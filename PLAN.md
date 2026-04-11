@@ -67,7 +67,7 @@ and request human approval before spawning. Approved roles are added back to the
 |------|-------|----------------|
 | **Dev** | `dev` | All game code — engine, logic, systems, components |
 | **QA** | `qa` | Test plans, bug reports, regression checks, playtest notes |
-| **DevOps** | `devops` | Build pipeline, CI/CD, env config, deployment |
+| **DevOps** | `devops` | Local dev server → build pipeline → CI/CD → deployment. Localhost always comes first. |
 
 ### Shipping
 | Role | Agent | Responsibility |
@@ -122,6 +122,21 @@ The Director makes this call — not the plan.
 - [ ] Run the full pipeline on a real game idea
 - [ ] Iterate on role definitions and Director logic based on output quality
 - [ ] Ship the game
+
+---
+
+## DevOps: Localhost First
+
+DevOps always delivers a working localhost target before any remote deployment. This is not
+optional — it's the first deliverable. Sequence is always:
+
+1. **Local dev server** — game runs on localhost, no build step if possible
+2. **QA plays on localhost** — sign-off required before deploy
+3. **Build pipeline** — only after QA pass
+4. **Deploy** — only after a successful build
+
+This unblocks QA early and prevents deploying broken builds. Deploy target (GitHub Pages,
+Netlify, itch.io, etc.) is a separate decision made after the game is playable.
 
 ---
 

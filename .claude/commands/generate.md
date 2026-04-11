@@ -47,6 +47,14 @@ Each agent stub should contain:
 - Current phase goal
 - Any hard constraints from the concept
 
+**DevOps stub specifically must always include this sequencing:**
+1. Local dev server first — game must run on localhost before anything else
+2. QA plays on localhost — devops provides the "how to run locally" instructions
+3. Build pipeline — only after QA signs off
+4. Deploy — target and method are devops's call, decided after the game is playable
+
+This is non-negotiable regardless of game complexity.
+
 ## Step 4 — Confirm
 
 Print a short summary of what was generated and ask if anything should be revised before committing.

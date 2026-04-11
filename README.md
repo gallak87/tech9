@@ -6,6 +6,15 @@ You give it a game idea. It assembles a team of specialized agents — designer,
 
 ---
 
+## Games built with tech9
+
+| Game | Status | Play |
+|------|--------|------|
+| [🧑‍🚀gravelrun](games/gravelrun/) | alpha | [▶ play](https://gallak87.github.io/tech9/) |
+| [🐍snake](games/snake/) | shipped | [▶ play](https://gallak87.github.io/tech9/snake/) |
+
+---
+
 ## How it works
 
 ```
@@ -65,14 +74,6 @@ Simple game → fewer agents. Complex game → more. The Director decides.
 
 DevOps always targets localhost before any deployment. QA plays the game locally before a
 single byte goes to production. Deploy only when the game is playable and QA has signed off.
-
----
-
-## Games built with tech9
-
-| Game | Status | Play |
-|------|--------|------|
-| [snake](games/snake/) | shipped | [gallak87.github.io/tech9](https://gallak87.github.io/tech9/) |
 
 ---
 

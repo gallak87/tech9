@@ -3,7 +3,7 @@
 // Phase 4: art swap — placeholder rects replaced with sprites.
 
 import { LEVEL } from './level.js';
-import { sprites } from './sprites.js';
+import { sprites, loadSprites } from './sprites.js';
 
 // ---------------------------------------------------------------------------
 // Canvas setup — 480×270 internal resolution, scaled to fill viewport
@@ -763,4 +763,4 @@ function renderDead() {
 // Boot
 // ---------------------------------------------------------------------------
 
-requestAnimationFrame(loop);
+loadSprites().then(() => requestAnimationFrame(loop));

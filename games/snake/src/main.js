@@ -25,9 +25,50 @@ const C = {
 
 const FONT = '"SF Mono", "Fira Code", "Consolas", monospace';
 
+// --- Audio ---
+let audioCtx = null;
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function playEat() {
+  const ac = getAudioCtx();
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.connect(gain);
+  gain.connect(ac.destination);
+  osc.type = 'sine';
+  const t = ac.currentTime;
+  osc.frequency.setValueAtTime(300, t);
+  osc.frequency.linearRampToValueAtTime(600, t + 0.09);
+  gain.gain.setValueAtTime(0.3, t);
+  gain.gain.linearRampToValueAtTime(0, t + 0.09);
+  osc.start(t);
+  osc.stop(t + 0.09);
+}
+
+function playDeath() {
+  const ac = getAudioCtx();
+  const osc = ac.createOscillator();
+  const gain = ac.createGain();
+  osc.connect(gain);
+  gain.connect(ac.destination);
+  osc.type = 'sine';
+  const t = ac.currentTime;
+  osc.frequency.setValueAtTime(280, t);
+  osc.frequency.linearRampToValueAtTime(80, t + 0.2);
+  gain.gain.setValueAtTime(0.4, t);
+  gain.gain.linearRampToValueAtTime(0, t + 0.2);
+  osc.start(t);
+  osc.stop(t + 0.2);
+}
+
 // --- State ---
 let snake, dir, nextDir, food, score, state;
 let tickTimer = null;
+let rafHandle = null;
 
 // Death sequence state
 let deathPhase = 0;     // 0=fresh, 1=overlaying, 2=done
@@ -47,7 +88,8 @@ let headFlashColor = C.snakeHead;
 
 // --- Init ---
 function init() {
-  // Cancel any running timers
+  // Cancel any running timers and animation loop
+  if (rafHandle) cancelAnimationFrame(rafHandle);
   if (tickTimer) clearInterval(tickTimer);
   deathTimers.forEach(t => clearTimeout(t));
   deathTimers = [];
@@ -72,13 +114,13 @@ function init() {
   overlayAlpha = 0;
   headFlashing = false;
   headFlashColor = C.snakeHead;
-  foodFlashFrame = 0;
+  foodFlashFrame = 3; // skip flash artifact on init
 
   food = spawnFood();
   startFoodFlash();
 
   tickTimer = setInterval(tick, TICK_MS);
-  requestAnimationFrame(render);
+  rafHandle = requestAnimationFrame(render);
 }
 
 // --- Food ---
@@ -208,11 +250,15 @@ function tick() {
       // Win condition
       state = 'win';
       clearInterval(tickTimer);
+      if (foodFlashTimer) { clearTimeout(foodFlashTimer); foodFlashTimer = null; }
+      if (headFlashTimer) { clearTimeout(headFlashTimer); headFlashTimer = null; }
+      headFlashing = false;
       return;
     }
     food = newFood;
     startFoodFlash();
     startHeadFlash();
+    playEat();
   } else {
     snake.pop();
   }
@@ -220,6 +266,7 @@ function tick() {
 
 // --- Death ---
 function die() {
+  playDeath();
   state = 'dead';
   clearInterval(tickTimer);
   tickTimer = null;
@@ -253,7 +300,7 @@ function die() {
 
 // --- Render ---
 function render() {
-  requestAnimationFrame(render);
+  rafHandle = requestAnimationFrame(render);
 
   // Clear
   ctx.fillStyle = C.bg;

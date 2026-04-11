@@ -70,9 +70,9 @@ single byte goes to production. Deploy only when the game is playable and QA has
 
 ## Games built with tech9
 
-| Game | Status |
-|------|--------|
-| [snake](games/snake/) | in progress |
+| Game | Status | Play |
+|------|--------|------|
+| [snake](games/snake/) | shipped | [gallak87.github.io/tech9](https://gallak87.github.io/tech9/) |
 
 ---
 

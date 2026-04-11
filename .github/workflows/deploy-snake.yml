@@ -1,0 +1,54 @@
+name: Deploy Snake to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'games/snake/src/**'
+      - '.github/workflows/deploy-snake.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy at a time; don't cancel in-progress so we don't leave Pages in a broken state
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # No build step — src is already plain HTML/JS.
+      # If a build tool is added later, run it here and point upload-pages-artifact
+      # at the dist directory instead of games/snake/src.
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Upload only the snake src directory.
+          # GitHub Pages will serve it at gallak87.github.io/tech9/games/snake/
+          # NOTE: Pages serves the entire repo root by default. We're uploading
+          # only this subdirectory, so the artifact becomes the site root.
+          # To serve multiple games under one Pages site, switch to a top-level
+          # artifact that includes all games/ subdirectories and the root index.
+          path: games/snake/src
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

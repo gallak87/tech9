@@ -1,0 +1,5 @@
+# No build step — nothing to ignore for now.
+# If a build tool is added later, add dist/ node_modules/ etc. here.
+node_modules/
+dist/
+.DS_Store

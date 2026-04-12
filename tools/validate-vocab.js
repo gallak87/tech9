@@ -33,7 +33,8 @@ function validateRole(file, data) {
 
   // id
   if (!SLUG_PATTERN.test(data.id)) errors.push(err(f, `id "${data.id}" must match ^[a-z][a-z0-9_]*$`));
-  if (data.id !== f) errors.push(err(f, `id "${data.id}" must match filename "${f}"`));
+  const fBase = f.replace(/^\d+_/, '');
+  if (data.id !== fBase) errors.push(err(f, `id "${data.id}" must match filename base "${fBase}"`))
 
   // category
   if (!CATEGORIES.has(data.category)) errors.push(err(f, `category must be one of: ${[...CATEGORIES].join(', ')}`));

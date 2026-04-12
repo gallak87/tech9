@@ -1,0 +1,122 @@
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "tech9/vocab/role"
+title: Role Definition
+description: >
+  Schema for a tech9 vocabulary role definition.
+  Every file in vocab/roles/ must validate against this.
+
+type: object
+required:
+  - id
+  - name
+  - category
+  - responsibility
+  - inputs
+  - outputs
+  - dependencies
+
+properties:
+
+  id:
+    type: string
+    pattern: "^[a-z][a-z0-9_]*$"
+    description: >
+      Slug — used as the agent filename (e.g. "dev" → agents/dev.md).
+      Must be unique across the vocabulary.
+
+  name:
+    type: string
+    description: Display name shown in GAME_PLAN.md (e.g. "Dev", "Art Director").
+
+  category:
+    type: string
+    enum: [creative, engineering, shipping]
+    description: Which layer of the team this role belongs to.
+
+  responsibility:
+    type: string
+    description: >
+      One paragraph. What this role owns end-to-end — not a task list,
+      a domain. The Director reads this to decide whether to include the role.
+
+  inputs:
+    type: array
+    minItems: 1
+    description: Everything this role must read before it can do its work.
+    items:
+      type: object
+      required: [source, artifact, required]
+      additionalProperties: false
+      properties:
+        source:
+          type: string
+          description: >
+            Where this artifact comes from. One of:
+              concept       — CONCEPT.md (always available)
+              game_plan     — GAME_PLAN.md (available after Director runs)
+              role:<id>     — output of another role (e.g. role:art)
+              external      — something the human provides (e.g. a reference image)
+          pattern: "^(concept|game_plan|role:[a-z][a-z0-9_]*|external)$"
+        artifact:
+          type: string
+          description: File path or document name (e.g. "CONCEPT.md", "agents/art.md output").
+        required:
+          type: boolean
+          description: If true, this role cannot start without this input.
+        notes:
+          type: string
+          description: What specifically to look for in this artifact. Optional.
+
+  outputs:
+    type: array
+    minItems: 1
+    description: Artifacts this role produces. Other roles' inputs reference these.
+    items:
+      type: object
+      required: [artifact, description]
+      additionalProperties: false
+      properties:
+        artifact:
+          type: string
+          description: File path or document name produced (e.g. "agents/art.md output", "src/game.js").
+        description:
+          type: string
+          description: What this artifact contains and which roles consume it.
+
+  dependencies:
+    type: array
+    description: >
+      Role IDs that must have delivered their outputs before this role starts.
+      The Scaffolder uses this to determine agent execution order.
+    items:
+      type: string
+      pattern: "^[a-z][a-z0-9_]*$"
+
+  merge:
+    type: object
+    description: >
+      Rules the Director uses when deciding whether to merge or split this role.
+      Optional — omit if this role always runs standalone.
+    additionalProperties: false
+    properties:
+      candidates:
+        type: array
+        items:
+          type: string
+        description: Role IDs that are commonly merged into this one for simple games.
+      merge_when:
+        type: string
+        description: Condition under which merging this role is appropriate.
+      split_when:
+        type: string
+        description: Condition under which this role warrants splitting into sub-roles.
+
+  prompt_template:
+    type: string
+    description: >
+      Inline template for generating this role's agent stub (agents/<id>.md).
+      Available placeholders: {{game_name}}, {{concept_summary}}, {{phase_goal}},
+      {{inputs_list}}, {{outputs_list}}, {{hard_constraints}}.
+      The Scaffolder fills these in from CONCEPT.md and the Director's team config.
+
+additionalProperties: false

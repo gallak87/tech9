@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <title>VOID SENTINEL</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,6 +15,11 @@
       width: 100%;
       overflow: hidden;
       font-family: 'Courier New', monospace;
+      touch-action: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
     }
     body {
       display: flex;
@@ -38,6 +46,7 @@
       border: 1px solid #0d1b3a;
       box-shadow: 0 0 80px rgba(0, 255, 255, 0.14),
                   inset 0 0 60px rgba(255, 0, 200, 0.07);
+      touch-action: none;
     }
     @media (max-aspect-ratio: 2/3) {
       #wrap { height: auto; width: 100vw; }

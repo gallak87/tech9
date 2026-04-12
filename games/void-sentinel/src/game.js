@@ -11,8 +11,13 @@ const ctx    = canvas.getContext('2d');
 
 const CANVAS_W = 640;
 const CANVAS_H = 960;
-canvas.width  = CANVAS_W;
-canvas.height = CANVAS_H;
+
+// High-DPI support — backing store scales with devicePixelRatio, but all
+// game code draws in logical (CANVAS_W × CANVAS_H) coordinates.
+const DPR = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+canvas.width  = CANVAS_W * DPR;
+canvas.height = CANVAS_H * DPR;
+ctx.scale(DPR, DPR);
 
 const STATE = {
   MENU:      'MENU',
@@ -111,11 +116,12 @@ const WEAPON_TIERS = {
 const player = {
   x: CANVAS_W / 2,
   y: CANVAS_H * 0.78,
-  halfW: 20,
-  halfH: 28,
+  // Hitbox is deliberately smaller than the sprite — bullet-hell convention,
+  // plus the thumb obscures the ship on touch devices.
+  halfW: 9,
+  halfH: 12,
   fireTimer: 0,
-  tier: 1,        // currently selected tier (1..maxTier)
-  maxTier: 1,     // highest tier unlocked this session (advanced by pickups)
+  tier: 1,        // current weapon tier (1..5), advances on pickup
   invincible: false,
   invincibleTimer: 0,
   blinkTimer: 0,
@@ -192,16 +198,6 @@ window.addEventListener('keydown', (e) => {
     game.state = STATE.MENU; e.preventDefault(); return;
   }
 
-  // Cycle weapon tier (X or C or Shift)
-  if ((game.state === STATE.PLAYING || game.state === STATE.BOSS) &&
-      (e.code === 'KeyX' || e.code === 'KeyC' || e.code === 'ShiftLeft' || e.code === 'ShiftRight')) {
-    if (player.maxTier > 1) {
-      player.tier = (player.tier % player.maxTier) + 1;
-    }
-    e.preventDefault();
-    return;
-  }
-
   // Prevent space from scrolling page
   if (e.code === 'Space') e.preventDefault();
 });
@@ -212,6 +208,59 @@ canvas.addEventListener('click', () => {
   if (game.state === STATE.MENU) startGame();
   else if (game.state === STATE.WIN || game.state === STATE.GAME_OVER) game.state = STATE.MENU;
 });
+
+// ---------------------------------------------------------------------------
+// Touch — relative drag (DoDonPachi-style): the ship moves by the same delta
+// as your finger, starting from wherever each new touch lands. You never
+// teleport the ship to your finger, so the thumb can sit off to the side.
+// ---------------------------------------------------------------------------
+
+function clientToCanvas(cx, cy) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (cx - rect.left) * (CANVAS_W / rect.width),
+    y: (cy - rect.top)  * (CANVAS_H / rect.height),
+  };
+}
+
+let dragActive  = false;
+let dragStartCx = 0, dragStartCy = 0;
+let dragStartPx = 0, dragStartPy = 0;
+
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+
+  if (game.state === STATE.MENU) { startGame(); return; }
+  if (game.state === STATE.WIN || game.state === STATE.GAME_OVER) {
+    game.state = STATE.MENU;
+    return;
+  }
+  if (e.touches.length === 0) return;
+  const t = e.touches[0];
+  const p = clientToCanvas(t.clientX, t.clientY);
+  dragActive  = true;
+  dragStartCx = p.x;
+  dragStartCy = p.y;
+  dragStartPx = player.x;
+  dragStartPy = player.y;
+}, { passive: false });
+
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!dragActive || e.touches.length === 0) return;
+  const t = e.touches[0];
+  const p = clientToCanvas(t.clientX, t.clientY);
+  player.x = dragStartPx + (p.x - dragStartCx);
+  player.y = dragStartPy + (p.y - dragStartCy);
+}, { passive: false });
+
+function endTouch(e) {
+  e.preventDefault();
+  if (e.touches && e.touches.length > 0) return;
+  dragActive = false;
+}
+canvas.addEventListener('touchend',    endTouch, { passive: false });
+canvas.addEventListener('touchcancel', endTouch, { passive: false });
 
 // ---------------------------------------------------------------------------
 // Lifecycle
@@ -233,7 +282,6 @@ function startGame() {
   player.x = CANVAS_W / 2;
   player.y = CANVAS_H * 0.78;
   player.tier = 1;
-  player.maxTier = 1;
   player.fireTimer = 0;
   player.invincible = false;
   player.invincibleTimer = 0;
@@ -764,8 +812,11 @@ function updatePlayer(dt) {
   if (keys['ArrowUp']    || keys['KeyW']) player.y -= sp;
   if (keys['ArrowDown']  || keys['KeyS']) player.y += sp;
 
-  player.x = Math.max(player.halfW, Math.min(CANVAS_W - player.halfW, player.x));
-  player.y = Math.max(player.halfH, Math.min(CANVAS_H - player.halfH, player.y));
+  // Clamp to sprite bounds, not hitbox (hitbox is intentionally smaller)
+  const clampX = SHIP_W / 2;
+  const clampY = SHIP_H / 2;
+  player.x = Math.max(clampX, Math.min(CANVAS_W - clampX, player.x));
+  player.y = Math.max(clampY, Math.min(CANVAS_H - clampY, player.y));
 
   // Auto-fire (always on during PLAYING/BOSS)
   player.fireTimer += dt;
@@ -1027,10 +1078,9 @@ function checkCollisions() {
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
     if (overlap(p.x, p.y, p.halfW, p.halfH, player.x, player.y, player.halfW, player.halfH)) {
-      // Advance max tier (and select it)
-      if (player.maxTier < 5) {
-        player.maxTier += 1;
-        player.tier = player.maxTier;
+      // Advance to next weapon tier; at max, award score
+      if (player.tier < 5) {
+        player.tier += 1;
       } else {
         game.score += 500;
       }
@@ -1049,9 +1099,8 @@ function hitPlayer() {
   player.invincible = true;
   player.invincibleTimer = INVINCIBILITY_DURATION;
   player.blinkTimer = 0;
-  // Drop weapon tier by 1 but keep maxTier unchanged-ish (lose progress)
-  if (player.maxTier > 1) player.maxTier -= 1;
-  player.tier = Math.min(player.tier, player.maxTier);
+  // Lose a weapon tier on hit (floors at 1)
+  if (player.tier > 1) player.tier -= 1;
 
   if (game.lives <= 0) gameOver();
 }
@@ -1370,7 +1419,7 @@ function drawHUD() {
   // Weapon
   ctx.textAlign = 'left';
   ctx.fillStyle = WEAPON_TIERS[player.tier].color;
-  ctx.fillText(`WPN  T${player.tier}/${player.maxTier}  ${WEAPON_TIERS[player.tier].name}`, 12, CANVAS_H - 14);
+  ctx.fillText(`WPN  T${player.tier}  ${WEAPON_TIERS[player.tier].name}`, 12, CANVAS_H - 14);
 
   // Lives
   ctx.textAlign = 'right';
@@ -1446,9 +1495,9 @@ function drawMenu() {
   // Controls
   ctx.font = 'bold 17px Courier New';
   ctx.fillStyle = COL.white;
-  ctx.fillText('ARROWS / WASD   MOVE',      CANVAS_W / 2, CANVAS_H * 0.58);
-  ctx.fillText('X / SHIFT       CYCLE WEAPON', CANVAS_W / 2, CANVAS_H * 0.62);
-  ctx.fillText('AUTO-FIRE       ALWAYS ON',  CANVAS_W / 2, CANVAS_H * 0.66);
+  ctx.fillText('DRAG / ARROWS / WASD   MOVE',          CANVAS_W / 2, CANVAS_H * 0.58);
+  ctx.fillText('AUTO-FIRE              ALWAYS ON',     CANVAS_W / 2, CANVAS_H * 0.62);
+  ctx.fillText('PICKUPS                LEVEL UP WEAPON', CANVAS_W / 2, CANVAS_H * 0.66);
 
   // Start prompt
   const blink = Math.floor(performance.now() / 400) % 2 === 0;

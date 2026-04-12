@@ -7,9 +7,10 @@
 //
 // Defaults: http://localhost:11434, model x/flux2-klein
 
-const fs   = require('fs');
-const path = require('path');
-const http = require('http');
+const fs            = require('fs');
+const path          = require('path');
+const http          = require('http');
+const { execSync }  = require('child_process');
 
 const manifestPath = process.argv[2];
 if (!manifestPath) {
@@ -55,8 +56,18 @@ async function generate(sprite) {
   if (!res.image) throw new Error(`No image in response for "${sprite.name}"`);
   const outPath = path.resolve(manifestDir, sprite.out);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
-  fs.writeFileSync(outPath, Buffer.from(res.image, 'base64'));
-  console.log(`saved → ${sprite.out}`);
+  const buf = Buffer.from(res.image, 'base64');
+  fs.writeFileSync(outPath, buf);
+  const originalKb = Math.round(buf.length / 1024);
+
+  if (sprite.w && sprite.h) {
+    // sips -z <height> <width> <file>  (sips takes rows then cols)
+    execSync(`sips -z ${sprite.h} ${sprite.w} "${outPath}" --out "${outPath}"`, { stdio: 'ignore' });
+    const finalKb = Math.round(fs.statSync(outPath).size / 1024);
+    console.log(`saved → ${sprite.out}  (${sprite.w}×${sprite.h}px, ${originalKb}kb → ${finalKb}kb)`);
+  } else {
+    console.log(`saved → ${sprite.out}  (${originalKb}kb, no resize — add w/h to manifest)`);
+  }
 }
 
 async function main() {

@@ -4,26 +4,31 @@
   "sprites": [
     {
       "name": "player",
+      "w": 32, "h": 32,
       "prompt": "pixel art game sprite, armored soldier running right, dark gray industrial armor plates, rust orange visor helmet, running mid-stride pose, side view, black background, retro platformer, crisp limited palette",
       "out": "src/assets/player.png"
     },
     {
       "name": "walker",
+      "w": 24, "h": 24,
       "prompt": "pixel art game sprite, squat patrol robot enemy, front-facing, boxy dark metal chassis, single glowing red eye slit, short stubby legs, industrial factory bot, black background, retro platformer, crisp limited palette",
       "out": "src/assets/walker.png"
     },
     {
       "name": "jumper",
+      "w": 24, "h": 24,
       "prompt": "pixel art game sprite, coiled spring robot enemy, side view, compressed squat body, large single eye, visible spring base, crouched ready to leap, dark metal, black background, retro platformer, crisp limited palette",
       "out": "src/assets/jumper.png"
     },
     {
       "name": "ground_tile",
+      "w": 32, "h": 32,
       "prompt": "pixel art seamless square tile, dark concrete industrial floor block, gritty worn texture, subtle crack lines, gray tones, black background, retro game tileset",
       "out": "src/assets/ground_tile.png"
     },
     {
       "name": "platform_tile",
+      "w": 32, "h": 16,
       "prompt": "pixel art seamless square tile, metal grate platform block, industrial steel grid pattern, lighter gray than concrete, factory catwalk, black background, retro game tileset",
       "out": "src/assets/platform_tile.png"
     }

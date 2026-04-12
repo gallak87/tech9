@@ -31,6 +31,9 @@ Actually: `node ../../tools/probe.js` from this game directory, or use the absol
 
 {{sprites_table}}
 
+Sprite dimensions are defined in `sprites-manifest.json` (`w`/`h` per entry) and must match
+what the game code expects. sprite-gen resizes to those dimensions after generation.
+
 ## Visual style
 
 {{visual_style}}

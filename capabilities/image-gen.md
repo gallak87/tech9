@@ -33,14 +33,19 @@ The manifest lives at `games/<game>/sprites-manifest.json`.
   "host":    "http://localhost:11434",
   "model":   "x/flux2-klein",
   "sprites": [
-    { "name": "player",  "prompt": "...", "out": "src/assets/player.png" },
-    { "name": "enemy",   "prompt": "...", "out": "src/assets/enemy.png"  }
+    { "name": "player", "w": 32, "h": 32, "prompt": "...", "out": "src/assets/player.png" },
+    { "name": "enemy",  "w": 24, "h": 24, "prompt": "...", "out": "src/assets/enemy.png"  }
   ]
 }
 ```
 
 `host` and `model` are optional — defaults to `localhost:11434` and `x/flux2-klein`.
 `OLLAMA_HOST` env var overrides host if set.
+
+**Always set `w` and `h`** matching the game's actual sprite dimensions. Ollama generates 1024×1024
+regardless of what you ask for — sprite-gen resizes to `w`×`h` immediately after saving using `sips`.
+Without these fields the file stays at 1024×1024 (~800kb) and the game scales it down at runtime,
+which is wasteful. A 32×32 PNG should be under 1kb.
 
 ## Prompt best practices
 
@@ -68,7 +73,8 @@ Images are base64-decoded from Ollama's `image` field in the response.
 
 ## Known limitations
 
-- Ollama model (`x/flux2-klein`) outputs 1024×1024 RGB — no alpha channel
+- Ollama model (`x/flux2-klein`) outputs 1024×1024 RGB — no alpha channel. Always specify `w`/`h`
+  in the manifest so sprite-gen resizes down immediately (uses `sips`, macOS only).
 - Black backgrounds composite okay against dark game BGs but need masking for light backgrounds
 - Single-frame output only — multi-frame animations require one sprite per frame
 - Generation is slow (~10–30s per sprite depending on hardware)

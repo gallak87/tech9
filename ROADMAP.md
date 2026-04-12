@@ -99,3 +99,12 @@ produced anything meaningful, though it did catch minor issues. Replacing it wit
 manual `/code-review` command so review happens at the author's discretion, not on
 a fixed phase timer. The qa role stays in `vocab/roles/` as a reference but will be
 excluded from generated team configs by default.
+
+### Sprite black background
+
+Flux always generates on solid black — no native transparency. Three options to pick from:
+- **ImageMagick** (`convert -fuzz 15% -transparent black`) — simplest if available
+- **One-time pixel scrub at load** — `getImageData` in JS, zero alpha on near-black pixels
+- **Pipeline step** — `tools/sprite-postprocess.js` runs after gen, bakes clean PNGs to disk
+
+Chroma key (magenta bg) is also an option to make scrubbing more precise.

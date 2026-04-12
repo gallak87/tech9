@@ -62,6 +62,22 @@ Agents: `dev`, `qa`, `devops`
 Final regression sweep. dev fixes QA-reported issues, integrates any late-arriving sprites, ensures placeholder fallbacks still work for any unfinished assets. devops cuts a v1.0.0 tag, writes the changelog, and does the final deploy.
 QA gate: Full playthrough from intro to mid-game in live build, zero console errors, all art either generated or placeholder-clean, version tag live on GitHub Pages.
 
+### Phase 6.5 — Pixi Port (perf uplift)
+Agents: `dev`, `qa`, `devops`
+
+Port the rendering layer from Canvas 2D to PixiJS now that the game surface is stable and we know which draw paths are actually hot. Canvas 2D got us to content-complete; Pixi lifts the ceiling for the post-FX pass and any post-release content drops. See ROADMAP.md §4 for framework rationale — chronoforge is explicitly the poster child for this uplift.
+
+Scope:
+- Introduce Pixi as a dependency; keep the existing scene-state machine and game logic untouched — this is a renderer swap, not a rewrite.
+- Port in order of draw-cost: overworld tilemap (biggest win — tile-sprite batching replaces per-tile `drawImage`), battle scene (sprites + VFX filters), base scene, menu overlay last.
+- Introduce filter stack for the neon/synthwave look the art spec calls for: bloom, chromatic aberration, subtle CRT scanline — things Canvas 2D can't do cheaply. This is the actual payoff, not just raw fps.
+- Keep the placeholder-vs-generated-sprite Settings toggle functional through the port (it's a beta-test affordance, not a renderer-specific feature).
+- Historian (when it exists) should capture what broke during the port — this is the first Pixi retrofit and lessons from it directly inform the rubric in ROADMAP §4.
+
+QA gate: Full playthrough, 60fps steady on the overworld at max zoom with fog on (current Canvas 2D build drops frames here), battle VFX visibly richer than pre-port baseline, no regressions in gameplay behavior, build is live.
+
+**Why after Phase 6, not earlier:** porting a finished surface is cheaper than porting a moving one. Your recent atlas + placeholder-cache + fog-memo patches bought enough Canvas 2D headroom to carry us through Phase 4–5 without blocking content work.
+
 ## Key Decisions Deferred to Agents
 
 | Decision | Deferred To |

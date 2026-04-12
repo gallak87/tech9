@@ -179,7 +179,7 @@ Decision rubric (bake into `vocab/roles/dev.json` as a selector):
 | **Canvas 2D** | ≤ a few hundred draws/frame. Snake-scale. Menus. Splash screens. | Zero deps. Immediate mode. Dies past ~2k state-changing draws. |
 | **PixiJS** | Tilemaps, particle effects, >500 sprites, any 2D game with scrolling world. | Sprite-batched WebGL under a 2D API. 10k+ sprites at 60fps. Same mental model as Canvas 2D, ~10× headroom. This is the right default for most of our catalog. |
 | **Phaser** | Full games with scenes, physics, input management, tilemap loaders, tweens, audio buses. | Batteries-included 2D framework on top of Pixi. Heavier dep + more opinions, but cuts a lot of bespoke infra. |
-| **Three.js** | Actual 3D. | Skip for 2D pixel-art games — abstraction tax for nothing. |
+| **Three.js** | Actual 3D (iso meshes, dynamic lighting, voxel worlds). | Skip for 2D pixel-art — the runtime is fine, but the *asset pipeline* is the real cost: one sprite is a 30kb PNG from flux in ~20s; a 3D asset is mesh + rig + animations + albedo/normal/roughness/emissive maps, and open 3D generators (Trellis, Hunyuan3D-2, Meshy) take minutes per asset and still need DCC-tool cleanup. Pick this when the *concept* is designed for 3D, don't bolt it onto a 2D game. |
 | **WebGPU** | Not yet — Safari support still patchy in 2026. Revisit end of year. | The future, but not the default today. |
 
 **Rust/WASM is a separate axis:** it solves *compute* bottlenecks (physics sims, voxel
@@ -195,3 +195,60 @@ bound, which none of ours have been. Our bottleneck is always GPU batching.
   Pixi deps and Pixi games don't reinvent sprite batching.
 - Retrofit existing games in a later pass if we want to bump them (chronoforge → Pixi
   would be a real win).
+
+### 5. Historian agent — cross-game learning loop
+
+Every game gen produces learnings: perf pitfalls, prompt-fidelity patterns, UX failures we
+repeat, audio cues that landed or didn't. Today those learnings live only in this ROADMAP
+(the patch-out entries above are literally post-hoc lessons) and in commit history. That's
+fragile — the next game re-hits the same walls because no agent reads them on spin-up.
+
+**The Historian is a post-hoc agent that runs after each game's final phase.** It ingests
+the finished game's artifacts and writes durable lessons into a structured log the
+Director reads at the *start* of every future gen.
+
+**Inputs:**
+- The game's `GAME_PLAN.md`, `CONCEPT.md`, and all `agents/*-output.md`
+- Git log + diffs since scaffold (what was actually built vs. planned)
+- Roadmap patch-out entries added during the build
+- User feedback captured during play (optional — stays in chat unless flagged)
+
+**Outputs:**
+- `games/<game>/LESSONS.md` — per-game observations (what worked, what didn't, numbers
+  that felt right: "ATB full gauge at 1.2s, not 2s")
+- `meta/LESSONS.md` — aggregated, tagged by domain (`perf`, `art`, `scaffold`, `audio`,
+  `ux`). Director reads this on every run and filters by relevance to the concept.
+
+**Graduation model (critical — prevents context bloat):**
+
+Lessons are a *staging ground*, not a permanent log. When a lesson proves durable across
+2+ games, it **graduates** — the Historian (or a manual pass) patches it into the
+framework and deletes it from LESSONS.md:
+
+- Per-role rules → `vocab/roles/*.json` (enforced by default in every team config)
+- Director decision rubrics → `meta/02_director.md` (picked up in every concept pass)
+- Scaffolder defaults → `tools/scaffold.js` (shipped in every new game's `src/`)
+- Cross-cutting framework patterns → new entry in this ROADMAP's patch-outs section
+
+What *stays* in LESSONS.md is genuinely per-game or still-unproven observations. If
+`meta/LESSONS.md` grows past ~200 lines after a few games, that's the signal to run a
+graduation pass — don't let it become a novel.
+
+**Where to patch:**
+- `vocab/roles/historian.json` — new role definition
+- `meta/02_director.md` — Historian runs after QA gate on final phase (like devops owns
+  deploys, historian owns learnings)
+- `meta/03_scaffolder.md` (or `tools/scaffold.js`) — scaffold `agents/historian.md` stub
+  by default on every new game
+- `meta/00_concept_generator.md` + `02_director.md` — both read `meta/LESSONS.md` filtered
+  by concept tags on spin-up
+- `tools/scaffold.js` — create `meta/LESSONS.md` if it doesn't exist, leave untouched if
+  it does (append-only from Historian, human-editable for manual graduation)
+
+**Open questions (defer to first implementation):**
+- Does Historian run fully autonomous or require a human "graduate this?" approval step?
+  Lean toward approval for graduations; autonomous for per-game log writes.
+- Staleness: a lesson from chronoforge-Canvas-2D becomes misleading after the Pixi
+  conversion. Need a "still true?" review flag with a timestamp on each entry.
+- How does it interact with user memory? Memory is Claude-session-scoped; LESSONS is
+  repo-scoped and survives across Claude instances. They're complementary, not redundant.

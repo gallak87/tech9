@@ -1,0 +1,131 @@
+{
+  "game_name": "void-sentinel",
+  "concept_summary": "Void Sentinel is a vertical-scrolling space shooter with cinematic 2.5D graphics where players defend against procedurally-generated enemy waves using a dynamic 5-tier weapon system. Navigate screen-filling bullet patterns, manage limited lives across sessions, and confront multi-phase boss encounters with intricate attack mechanics. The game rewards tactical weapon selection, precise dodging, and pattern recognition, combining the bullet-hell intensity of Ikaruga with the arcade simplicity of Asteroids.",
+  "scope_constraints": [
+    "Vertical scrolling only — no horizontal wrapping or edge scrolling, camera locked above the player ship.",
+    "Procedural enemy waves in scope — 3+ distinct enemy types (scouts, bombers, drones) with randomized formation and spawn timing; static boss patterns are out of scope for v1 procedural generation.",
+    "5-tier weapon system is in scope — single/dual/spread/piercing/hybrid firing modes; weapon progression via pickup collection, not skill trees or meta progression.",
+    "Three-life permadeath is in scope — session-only lives, no checkpoints or continues within a session.",
+    "Destructible environment is out of scope for v1 — focus on ship, enemies, and weapons; static void background with no interactive terrain.",
+    "Three-phase boss battles are in scope — each phase with distinct attack patterns; procedural boss generation is out of scope.",
+    "Persistent HUD in scope — score, weapon level, health bar; no pause menu, settings, or narrative UI.",
+    "Keyboard controls in scope (arrow keys / WASD + spacebar), no gamepad support for v1.",
+    "No audio/music for v1 — sound design is out of scope; focus on visual feedback (screen shake, particles, glow).",
+    "2.5D graphics with animated sprites in scope — parallax, particle effects, and neon glow post-processing; 3D model rendering is out of scope, hand-drawn or pre-rendered sprite assets only."
+  ],
+  "team": [
+    {
+      "role_id": "gamedesign",
+      "active": true,
+      "notes": "Owns procedural wave generation rules (enemy mix per wave, spawn cadence, formation archetypes), 5-tier weapon behavior spec (bullet count, angles, piercing logic), enemy behavior specs (Scout, Bomber, Drone), boss 3-phase attack patterns, pickup drop rates, hit/damage tuning."
+    },
+    {
+      "role_id": "art",
+      "active": true,
+      "notes": "Owns visual style decision (neon sci-fi noir), color palette, all sprite dimensions, and produces all sprites via Ollama. Merged with asset — direction and production in one agent."
+    },
+    {
+      "role_id": "asset",
+      "active": false,
+      "merged_into": "art",
+      "notes": "Merged into art. Ollama-based sprite gen means one agent does both direction and production."
+    },
+    {
+      "role_id": "level",
+      "active": false,
+      "notes": "Skipped. Procedural wave shooter with no spatial level geometry — wave scripts belong to gamedesign, not a level designer."
+    },
+    {
+      "role_id": "audio",
+      "active": false,
+      "notes": "Skipped per scope constraint: 'No audio/music for v1 — sound design is out of scope'. Visual feedback only."
+    },
+    {
+      "role_id": "dev",
+      "active": true,
+      "notes": "Owns all game code — engine loop, scrolling void background, player ship, 5-tier weapon system with cycling, procedural wave spawner, 3 enemy entities, boss with 3-phase state machine, collision, particle/glow effects, screen shake, HUD, state machine."
+    },
+    {
+      "role_id": "qa",
+      "active": true,
+      "notes": "Playtests after each dev phase. Gates on weapon cycling/progression, enemy behaviors, wave progression, boss phase transitions, collision accuracy, HUD correctness, and final deployed build."
+    },
+    {
+      "role_id": "devops",
+      "active": true,
+      "notes": "Localhost first. Owns local dev server, build pipeline, deploy to GitHub Pages. Absorbs release — single deploy step, no ceremony."
+    },
+    {
+      "role_id": "release",
+      "active": false,
+      "merged_into": "devops",
+      "notes": "Merged into devops. GitHub Pages deploy is a single step with no store page or launch checklist."
+    },
+    {
+      "role_id": "postlaunch",
+      "active": false,
+      "notes": "Skipped. Out of scope for v1."
+    }
+  ],
+  "phases": [
+    {
+      "name": "Phase 0 — Engine Skeleton",
+      "description": "Canvas on screen. Game loop at 60fps. State machine wired: MENU → PLAYING → BOSS → WIN → GAME_OVER. Player ship moves with arrow keys / WASD. Parallax starfield void background scrolling downward. Nothing fancy — just the skeleton everything hangs off.",
+      "agents": ["dev", "devops"],
+      "parallel": false,
+      "qa_gate": "Game runs on localhost. Player ship moves. State machine transitions work. 60fps confirmed."
+    },
+    {
+      "name": "Phase 1 — Game Design + Visual Direction",
+      "description": "gamedesign delivers: procedural wave generation rules (enemy mix, spawn cadence, formation archetypes), 5-tier weapon spec (single/dual/spread/piercing/hybrid — bullet counts, angles, damage, piercing flags), enemy behavior rules (Scout swarm flight, Bomber fire patterns, Drone tracking), boss 3-phase attack patterns (attack type, projectile pattern, trigger thresholds), pickup drop rates per enemy. art delivers: neon sci-fi noir style guide, color palette, sprite dimensions for every entity (player ship, scout, bomber, drone, boss, pickup, bullets per tier, explosion frames).",
+      "agents": ["gamedesign", "art"],
+      "parallel": true,
+      "qa_gate": null
+    },
+    {
+      "name": "Phase 2 — Core Combat",
+      "description": "Player shoots. 5-tier weapon system fully implemented (cycling via key, distinct bullet patterns per tier, piercing flag). Enemy hit detection and health pools per spec. Player hit detection — costs 1 life, permadeath at 0. Score accumulation. Pickup entity that both heals and advances weapon tier. HUD: score, weapon tier, lives. All using placeholder rects — no sprites yet. Particle explosions on enemy destruction. Screen shake on hits.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "Shoot enemies, collect pickups, weapon tier advances on pickup and resets on death. Lives decrement on hit. Score counts accurately. HUD reflects state. Particles + shake feel punchy."
+    },
+    {
+      "name": "Phase 3 — Procedural Waves + Enemies",
+      "description": "All 3 enemy types (Scout/Bomber/Drone) implemented with behaviors from gamedesign spec. Procedural wave spawner generates varied formations and spawn timings per the wave generation rules. Bomber fires projectiles. Drone tracks the player. Difficulty curve escalates across waves. End of wave loop triggers boss transition.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "All 3 enemy types spawn, move, and behave per spec. Procedural waves vary between runs. Boss transition reached. No spawn or collision bugs."
+    },
+    {
+      "name": "Phase 4 — Boss + Bullet Hell",
+      "description": "Boss entity enters after wave clear. Health bar at top. Boss has 3 attack phases — transitions at 66% and 33% HP trigger visibly different bullet-hell patterns per gamedesign spec. Boss defeat loops back to next wave phase (and/or WIN state for v1). Player death during boss triggers GAME_OVER.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "Boss enters cleanly. All 3 phases trigger and behave correctly. Health bar drains accurately. Bullet patterns readable but challenging. WIN and GAME_OVER states reached from boss fight."
+    },
+    {
+      "name": "Phase 5 — Art Integration + Neon Polish",
+      "description": "art generates all sprites via Ollama (player ship, Scout, Bomber, Drone, boss, bullet tiers, pickup, explosion frames). dev swaps placeholder rects for sprites. Neon glow post-processing layered on entities and bullets. Parallax starfield fleshed out. No gameplay changes beyond visual drop.",
+      "agents": ["art", "dev"],
+      "parallel": false,
+      "qa_gate": "Visual regression check. All sprites render correctly. Neon glow legible. Screen composition reads cleanly. No new collision or gameplay bugs."
+    },
+    {
+      "name": "Phase 6 — Polish + Ship",
+      "description": "Start screen with title, controls (arrows/WASD = move, space = fire, X = cycle weapon tier), and start prompt. Win screen with final score. Game Over screen with score. Smooth menu → game flow. devops final build + deploy to GitHub Pages.",
+      "agents": ["dev", "devops"],
+      "parallel": false,
+      "qa_gate": "Full playthrough on deployed build. Start screen shows controls. Win and Game Over screens work. Score displays correctly on both."
+    }
+  ],
+  "deferred_decisions": [
+    { "decision": "Exact physics tuning (ship acceleration, bullet speed, enemy speed curves)", "deferred_to": "dev" },
+    { "decision": "Sprite dimensions, animation frame counts, and enemy visual taxonomy", "deferred_to": "art" },
+    { "decision": "Difficulty curve and spawn rates per wave progression", "deferred_to": "gamedesign" },
+    { "decision": "Exact neon glow parameters, color palette, and particle trail effects", "deferred_to": "art" },
+    { "decision": "Procedural wave generation rules (RNG seed, formation archetypes, mix ratios)", "deferred_to": "gamedesign" },
+    { "decision": "Boss attack patterns and HP threshold feedback per phase", "deferred_to": "gamedesign" },
+    { "decision": "Weapon tier cycling key + whether cycling is manual or auto on pickup", "deferred_to": "gamedesign" },
+    { "decision": "Pickup drop probability per enemy type", "deferred_to": "gamedesign" }
+  ]
+}

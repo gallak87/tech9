@@ -8,6 +8,7 @@ on:
       - 'games/gravelrun/src/**'
       - 'games/snake/src/**'
       - 'games/skyrift/src/**'
+      - 'games/void-sentinel/src/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -34,10 +35,11 @@ jobs:
 
       - name: Build site
         run: |
-          mkdir -p _site/snake _site/skyrift
+          mkdir -p _site/snake _site/skyrift _site/void-sentinel
           cp -r games/gravelrun/src/. _site/
           cp -r games/snake/src/. _site/snake/
           cp -r games/skyrift/src/. _site/skyrift/
+          cp -r games/void-sentinel/src/. _site/void-sentinel/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

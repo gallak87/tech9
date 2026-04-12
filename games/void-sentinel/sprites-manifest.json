@@ -1,0 +1,57 @@
+{
+  "game": "void-sentinel",
+  "model": "x/flux2-klein:latest",
+  "host": "http://localhost:11434",
+  "style": "neon sci-fi noir pixel art — boss-style mechanical warship aesthetic",
+  "palette_notes": "Solid pure black background. Mechanical panel detail with thick neon rim lights along edges. Glowing plasma core at center with white hot-spot. Symmetric cannon pods / wing flanges. Limited palette, crisp pixel edges, NO anti-aliasing. Player = cyan/magenta rim on gunmetal titanium. Scout = lime/emerald rim on charcoal. Bomber = magenta/yellow rim on charcoal. Drone = crimson rim on gunmetal orb. Pickup = cyan/magenta faceted crystal with white hot-spot.",
+  "sprites": [
+    {
+      "name": "ship",
+      "label": "Player Ship",
+      "w": 72,
+      "h": 84,
+      "out": "src/sprites/ship.png",
+      "prompt": "pixel art top-down futuristic player starfighter sprite, solid black background, sleek arrowhead fuselage with mechanical panel detail, gunmetal titanium hull with thick bright cyan and magenta neon rim lights along panel edges, glowing cyan plasma cockpit canopy at the center with a white hot-spot, symmetric wing flanges with pointed tips, dual magenta plasma thruster glow at the rear base, menacing sleek arrowhead silhouette pointing upward, sci-fi noir bullet-hell shooter, crisp limited palette, no anti-aliasing"
+    },
+    {
+      "name": "scout",
+      "label": "Scout Enemy",
+      "w": 56,
+      "h": 56,
+      "out": "src/sprites/scout.png",
+      "prompt": "pixel art top-down alien scout attack-drone sprite, solid black background, aggressive delta-wing silhouette pointing downward, gunmetal charcoal hull with thick acid lime green and emerald neon rim lights along panel edges, glowing lime plasma core orb at the center with a white hot-spot, symmetric swept wing tips, sharp pointed nose pointing down, menacing angular silhouette, sci-fi noir bullet-hell shooter enemy, crisp limited palette, no anti-aliasing"
+    },
+    {
+      "name": "bomber",
+      "label": "Bomber Enemy",
+      "w": 96,
+      "h": 84,
+      "out": "src/sprites/bomber.png",
+      "prompt": "pixel art top-down alien heavy bomber saucer sprite, solid black background, wide round flying-saucer silhouette pointing downward, gunmetal charcoal hull with thick deep magenta and amber yellow neon rim lights along panel edges, glowing yellow plasma core orb at the center with a white hot-spot, symmetric cannon pods flanking the sides, heavy mechanical panel detail, chunky menacing silhouette, sci-fi noir bullet-hell shooter enemy, crisp limited palette, no anti-aliasing"
+    },
+    {
+      "name": "drone",
+      "label": "Drone Enemy",
+      "w": 64,
+      "h": 64,
+      "out": "src/sprites/drone.png",
+      "prompt": "pixel art top-down spherical hunter-killer drone sprite, solid black background, menacing round orb silhouette, gunmetal charcoal hull with thick crimson red neon rim lights along panel seams, glowing bright red plasma cyclops eye at the center with a white hot-spot, symmetric orbital spike rings, aggressive mechanical shell plating, sci-fi noir bullet-hell shooter enemy, crisp limited palette, no anti-aliasing"
+    },
+    {
+      "name": "boss",
+      "label": "Boss Sentinel",
+      "w": 240,
+      "h": 160,
+      "out": "src/sprites/boss.png",
+      "prompt": "pixel art top-down massive alien boss warship sprite, solid black background, wide ominous mechanical fortress silhouette pointing downward, gunmetal charcoal hull with thick violet and magenta neon rim lights along panel edges, glowing violet plasma core orb at the center with a white hot-spot, symmetric cannon pods flanking the sides, menacing wing flanges, heavy mechanical detail, sci-fi noir bullet-hell shooter boss, crisp limited palette, no anti-aliasing"
+    },
+    {
+      "name": "pickup",
+      "label": "Weapon Pickup",
+      "w": 36,
+      "h": 36,
+      "out": "src/sprites/pickup.png",
+      "prompt": "pixel art weapon power-up crystal collectible sprite, solid black background, small faceted diamond silhouette, gunmetal charcoal rim with thick cyan and magenta neon rim lights along crystal edges, glowing cyan plasma core at the center with a bright white hot-spot, symmetric angular facets, sci-fi noir bullet-hell shooter pickup, crisp limited palette, no anti-aliasing"
+    }
+  ]
+}

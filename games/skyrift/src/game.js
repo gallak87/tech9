@@ -61,6 +61,36 @@ const stars = [];
 })();
 
 // ---------------------------------------------------------------------------
+// Sprites — loaded async before loop starts
+// ---------------------------------------------------------------------------
+
+const imgs = {};
+
+function loadSprites() {
+  const defs = [
+    ['player',      'sprites/player.png'],
+    ['scout',       'sprites/scout.png'],
+    ['bomber',      'sprites/bomber.png'],
+    ['interceptor', 'sprites/interceptor.png'],
+    ['pickup',      'sprites/pickup.png'],
+  ];
+  return Promise.all(defs.map(([key, src]) => new Promise(resolve => {
+    const img = new Image();
+    img.onload  = () => { imgs[key] = img; resolve(); };
+    img.onerror = () => { console.warn(`sprite missing: ${src}`); resolve(); };
+    img.src = src;
+  })));
+}
+
+function drawSprite(key, cx, cy, w, h) {
+  const img = imgs[key];
+  if (!img) return false;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+  return true;
+}
+
+// ---------------------------------------------------------------------------
 // Scrolling stripe background
 // ---------------------------------------------------------------------------
 // Stripes scroll downward at SCROLL_SPEED px/sec to sell vertical movement.
@@ -118,9 +148,9 @@ const bullets = [];
 
 // Hitboxes from gamedesign spec (half-extents). Sprite sizes from art-output.md.
 const ENEMY_SPECS = {
-  scout:       { halfW: 11, halfH:  9, hp: 1, score: 100,  dropChance: 0.08,  color: '#39ff14', w: 28, h: 28 },
-  bomber:      { halfW: 15, halfH: 14, hp: 3, score: 250,  dropChance: 0.20,  color: '#6b21a8', w: 48, h: 40 },
-  interceptor: { halfW: 13, halfH: 13, hp: 5, score: 500,  dropChance: 0.15,  color: '#dc1a1a', w: 32, h: 44 },
+  scout:       { halfW: 11, halfH:  9, hp: 1, score: 100,  dropChance: 0.30,  color: '#39ff14', w: 28, h: 28 },
+  bomber:      { halfW: 15, halfH: 14, hp: 3, score: 250,  dropChance: 0.55,  color: '#6b21a8', w: 48, h: 40 },
+  interceptor: { halfW: 13, halfH: 13, hp: 5, score: 500,  dropChance: 0.45,  color: '#dc1a1a', w: 32, h: 44 },
 };
 
 // enemies array — each object: { type, x, y, halfW, halfH, w, h, hp, maxHp, score, dropChance, color,
@@ -513,9 +543,8 @@ function update(dt) {
 
 function updateBackground(dt) {
   scrollY += SCROLL_SPEED * dt;
-  if (scrollY >= STRIPE_H) {
-    scrollY -= STRIPE_H;
-  }
+  // No wrap — let scrollY grow continuously. drawBackground uses modulo so it
+  // can derive both the visual offset AND the color phase without a seam.
 }
 
 function updatePlayer(dt) {
@@ -850,14 +879,16 @@ function draw() {
 // ---- Background ----
 
 function drawBackground() {
-  // Draw alternating stripes that scroll downward.
-  // We offset by scrollY so stripes appear to move toward the player.
+  // scrollY grows continuously. Derive offset and color phase from it so there's
+  // never a seam — the color alternation stays consistent across wraps.
   const colors = ['#0a0a2e', '#0d1157'];
-  const totalStripes = Math.ceil(CANVAS_H / STRIPE_H) + 2;  // +2 for scroll overhang
+  const offset      = scrollY % STRIPE_H;                   // visual sub-stripe offset
+  const colorPhase  = Math.floor(scrollY / STRIPE_H) % 2;  // which color is "first"
+  const totalStripes = Math.ceil(CANVAS_H / STRIPE_H) + 2;
 
   for (let i = 0; i < totalStripes; i++) {
-    ctx.fillStyle = colors[i % 2];
-    const y = -STRIPE_H + (i * STRIPE_H) + scrollY;
+    ctx.fillStyle = colors[(i + colorPhase) % 2];
+    const y = -STRIPE_H + (i * STRIPE_H) + offset;
     ctx.fillRect(0, y, CANVAS_W, STRIPE_H);
   }
 }
@@ -883,18 +914,18 @@ function drawPlayer() {
 
   const { x, y, halfW, halfH } = player;
 
-  ctx.fillStyle = '#ffffff';
-  ctx.beginPath();
-  // Triangle pointing up: tip at top center, base at bottom left/right
-  ctx.moveTo(x,          y - halfH);   // tip (top)
-  ctx.lineTo(x - halfW,  y + halfH);   // bottom-left
-  ctx.lineTo(x + halfW,  y + halfH);   // bottom-right
-  ctx.closePath();
-  ctx.fill();
-
-  // Tiny engine glow at the base — visual flare, one line
-  ctx.fillStyle = '#4488ff';
-  ctx.fillRect(x - 4, y + halfH, 8, 5);
+  if (!drawSprite('player', x, y, halfW * 2, halfH * 2)) {
+    // fallback: triangle
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(x,          y - halfH);
+    ctx.lineTo(x - halfW,  y + halfH);
+    ctx.lineTo(x + halfW,  y + halfH);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#4488ff';
+    ctx.fillRect(x - 4, y + halfH, 8, 5);
+  }
 }
 
 // ---- Bullets ----
@@ -915,8 +946,11 @@ function drawBullets() {
 
 function drawEnemies() {
   for (const e of enemies) {
-    ctx.fillStyle = e.color;
-    ctx.fillRect(e.x - e.w / 2, e.y - e.h / 2, e.w, e.h);
+    if (!drawSprite(e.type, e.x, e.y, e.w, e.h)) {
+      // fallback: colored rect
+      ctx.fillStyle = e.color;
+      ctx.fillRect(e.x - e.w / 2, e.y - e.h / 2, e.w, e.h);
+    }
 
     // HP bar above enemy (only if damaged)
     if (e.hp < e.maxHp) {
@@ -978,20 +1012,28 @@ function drawWaveIndicator() {
 function drawPickups() {
   for (const p of pickups) {
     const t = Date.now() / 1000;
-    // Subtle pulse glow
     const glow = 0.5 + 0.5 * Math.sin(t * 6);
-    ctx.globalAlpha = 0.4 + glow * 0.3;
-    ctx.fillStyle = '#ffd700';
-    ctx.fillRect(p.x - p.halfW - 2, p.y - p.halfH - 2, (p.halfW + 2) * 2, (p.halfH + 2) * 2);
-    ctx.globalAlpha = 1;
 
-    // Core diamond shape
-    ctx.fillStyle = '#ffd700';
     ctx.save();
     ctx.translate(p.x, p.y);
-    ctx.rotate(Math.PI / 4 + t * 2);  // slow spin
-    const s = p.halfW * 0.9;
-    ctx.fillRect(-s / 2, -s / 2, s, s);
+    ctx.rotate(t * 2);   // slow spin
+
+    if (imgs['pickup']) {
+      ctx.globalAlpha = 0.85 + glow * 0.15;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(imgs['pickup'], -p.halfW, -p.halfH, p.halfW * 2, p.halfH * 2);
+      ctx.globalAlpha = 1;
+    } else {
+      // fallback: gold rect
+      ctx.globalAlpha = 0.4 + glow * 0.3;
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(-p.halfW - 2, -p.halfH - 2, (p.halfW + 2) * 2, (p.halfH + 2) * 2);
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = '#ffd700';
+      const s = p.halfW * 0.9;
+      ctx.fillRect(-s / 2, -s / 2, s, s);
+    }
+
     ctx.restore();
   }
 }
@@ -1139,4 +1181,4 @@ function loop(timestamp) {
   draw();
 }
 
-requestAnimationFrame(loop);
+loadSprites().then(() => requestAnimationFrame(loop));

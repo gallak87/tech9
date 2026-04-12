@@ -86,5 +86,16 @@ The goal is to find where the structured output breaks down and fix the schemas.
 
 - The vocabulary (roles, responsibilities, merge rules) — already solid
 - The localhost-first devops pattern — baked in
-- The QA-after-every-dev-session rule — non-negotiable
 - The clean separation between tech9 (factory) and game repos (products)
+
+---
+
+## Pipeline notes
+
+### QA role → /code-review
+
+The `qa` role in the generator ran too eagerly — spawning before art/dev agents had
+produced anything meaningful, though it did catch minor issues. Replacing it with a
+manual `/code-review` command so review happens at the author's discretion, not on
+a fixed phase timer. The qa role stays in `vocab/roles/` as a reference but will be
+excluded from generated team configs by default.

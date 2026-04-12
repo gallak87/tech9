@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tech9/vocab/agent_stub",
+  "title": "Agent Stub (agents/<id>.md)",
+  "description": "Schema for a generated agent file. The Scaffolder produces these from vocab/roles/ templates + Director team config. Each property maps to a section in the markdown file.",
+  "type": "object",
+  "required": ["role", "responsibility", "inputs", "outputs", "current_phase_goal"],
+  "additionalProperties": false,
+  "properties": {
+    "role": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]*$",
+      "description": "Role id. Must match the filename (agents/<role>.md) and a role in vocab/roles/."
+    },
+    "responsibility": {
+      "type": "string",
+      "description": "One paragraph — what this agent owns in this specific game. Derived from the role's vocabulary definition but narrowed to the game's scope."
+    },
+    "inputs": {
+      "type": "array",
+      "description": "What this agent reads before starting. Scoped to this game — only inputs that actually exist for this game, not all possible inputs from the role definition.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["artifact", "notes"],
+        "additionalProperties": false,
+        "properties": {
+          "artifact": {
+            "type": "string",
+            "description": "File path or document name (e.g. 'CONCEPT.md', 'agents/art.md output')."
+          },
+          "notes": {
+            "type": "string",
+            "description": "What specifically to look for in this artifact."
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "description": "What this agent produces. Must be concrete — file paths or specific deliverable names.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["artifact", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "artifact": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "current_phase_goal": {
+      "type": "string",
+      "description": "What to do right now, in the current phase. Specific enough that an agent starting cold knows exactly where to begin. Updated by the Scaffolder as phases progress."
+    },
+    "hard_constraints": {
+      "type": "array",
+      "description": "Non-negotiable rules for this agent in this game. Drawn from CONCEPT.md scope constraints + any role-specific rules. Optional — omit only if there are genuinely none.",
+      "items": { "type": "string" }
+    },
+    "capability_docs": {
+      "type": "array",
+      "description": "Paths to capability docs this agent should read (e.g. 'capabilities/image-gen.md'). Injected by Scaffolder based on probe.js output at scaffold time.",
+      "items": { "type": "string" }
+    }
+  }
+}

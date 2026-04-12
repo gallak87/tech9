@@ -1,0 +1,49 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tech9/vocab/concept",
+  "title": "CONCEPT.md",
+  "description": "Schema for a game concept document. The Concept Generator must produce output that satisfies this. Each property maps to an H2 section in the markdown file.",
+  "type": "object",
+  "required": ["game_summary", "core_loop", "target_feel", "scope_constraints"],
+  "additionalProperties": false,
+  "properties": {
+    "game_summary": {
+      "type": "string",
+      "description": "One paragraph. What the game is — genre, setting, player action, win condition. Should be intelligible to someone who has never heard of it. No bullet points.",
+      "minLength": 50
+    },
+    "core_loop": {
+      "type": "string",
+      "description": "The moment-to-moment player experience. What the player does, what happens as a result, what the feedback is. Controls, scoring, failure, and win state must all be covered. Written as prose or tight bullets — not a feature list."
+    },
+    "target_feel": {
+      "type": "string",
+      "description": "The emotional and kinesthetic quality the game should have. Genre references, tone words, what 'success' feels like to the player. Guides art, audio, and physics tuning decisions."
+    },
+    "scope_constraints": {
+      "type": "array",
+      "description": "Explicit in/out decisions for v1. Each item is a constraint — a feature that is definitively in scope or definitively out. No maybes. The Director and all agents treat these as hard rules.",
+      "minItems": 3,
+      "items": {
+        "type": "string",
+        "description": "A single scope decision, e.g. 'No audio — out of scope for v1' or 'Shooting is in scope — X fires a bullet'."
+      }
+    },
+    "known_unknowns": {
+      "type": "array",
+      "description": "Decisions not made here — explicitly deferred to a specific agent. Each item names the decision and who owns it. Optional — omit only if every decision is made.",
+      "items": {
+        "type": "object",
+        "required": ["decision", "deferred_to"],
+        "additionalProperties": false,
+        "properties": {
+          "decision": { "type": "string" },
+          "deferred_to": {
+            "type": "string",
+            "description": "Role id of the agent who will make this call (e.g. 'dev', 'art', 'level')."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "tech9/vocab/game_plan",
+  "title": "GAME_PLAN.md",
+  "description": "Schema for a game plan document. The Director outputs a team config that the Scaffolder uses to generate this. Each top-level property maps to a section in the markdown file.",
+  "type": "object",
+  "required": ["game_name", "team", "phases"],
+  "additionalProperties": false,
+  "properties": {
+    "game_name": {
+      "type": "string",
+      "description": "The game's name. Used as the document title and in generated agent stubs."
+    },
+    "team": {
+      "type": "array",
+      "description": "One entry per vocabulary role. Every role must be accounted for — either active, merged, or skipped. No role can be silently omitted.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["role_id", "active"],
+        "additionalProperties": false,
+        "properties": {
+          "role_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$",
+            "description": "Must match a role id in vocab/roles/."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "True if this role has a generated agent stub. False if merged or skipped."
+          },
+          "merged_into": {
+            "type": "string",
+            "description": "If active is false and role was merged, the role_id it was absorbed into. Omit if skipped entirely."
+          },
+          "notes": {
+            "type": "string",
+            "description": "Why this role is active / merged / skipped. Required when active is false — the Director must justify the decision."
+          }
+        }
+      }
+    },
+    "phases": {
+      "type": "array",
+      "description": "Ordered execution phases. Phase 0 is always the engine skeleton / localhost proof. QA gates are required between phases that produce playable output.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "agents"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Short phase label, e.g. 'Phase 0 — Engine Skeleton'."
+          },
+          "description": {
+            "type": "string",
+            "description": "What gets built in this phase. Concrete deliverables, not goals."
+          },
+          "agents": {
+            "type": "array",
+            "description": "Role ids of agents doing work in this phase.",
+            "minItems": 1,
+            "items": { "type": "string" }
+          },
+          "parallel": {
+            "type": "boolean",
+            "description": "True if all agents in this phase can run simultaneously. Defaults to false.",
+            "default": false
+          },
+          "qa_gate": {
+            "type": "string",
+            "description": "What QA must verify before the next phase begins. Omit only for non-playable phases (e.g. art-only passes)."
+          }
+        }
+      }
+    },
+    "deferred_decisions": {
+      "type": "array",
+      "description": "Decisions not made in this plan — explicitly owned by a specific agent. Mirrors known_unknowns from CONCEPT.md, plus any new ones the Director identifies.",
+      "items": {
+        "type": "object",
+        "required": ["decision", "deferred_to"],
+        "additionalProperties": false,
+        "properties": {
+          "decision": { "type": "string" },
+          "deferred_to": { "type": "string" }
+        }
+      }
+    }
+  }
+}

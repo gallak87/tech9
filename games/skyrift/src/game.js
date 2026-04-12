@@ -85,8 +85,11 @@ function loadSprites() {
 function drawSprite(key, cx, cy, w, h) {
   const img = imgs[key];
   if (!img) return false;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';  // black pixels become transparent
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+  ctx.restore();
   return true;
 }
 

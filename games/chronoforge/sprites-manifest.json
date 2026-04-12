@@ -1,0 +1,191 @@
+{
+  "model": "x/flux2-klein:latest",
+  "host": "http://localhost:11434",
+  "style_prefix": "pixel art game sprite, clean silhouette, neon synthwave post-apocalyptic sci-fi, limited palette of deep violet/indigo with magenta/cyan/yellow accents, no background (transparent or pure black), Chrono Trigger meets Hyper Light Drifter",
+  "sprites": [
+    { "name": "kaida_overworld", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overworld sprite, young woman warrior with short magenta hair sweep, pulse-blade on back, cyan jacket + dark leggings, tiny 3/4 top-down view, crisp silhouette", "out": "src/assets/kaida_overworld.png" },
+    { "name": "vex_overworld", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overworld sprite, tall hooded mystic in dark cloak with cyan chrono-glyphs glowing on hem, chrono-staff, 3/4 top-down view", "out": "src/assets/vex_overworld.png" },
+    { "name": "rune_overworld", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overworld sprite, stocky engineer with yellow goggles and antenna, forge-hammer at hip, drone on shoulder, mustard-yellow rig, 3/4 top-down view", "out": "src/assets/rune_overworld.png" },
+
+    { "name": "kaida_battle_idle", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art battle sprite, side view, young woman striker, magenta hair sweep, pulse-blade at ready, confident stance, neon magenta accents", "out": "src/assets/kaida_battle_idle.png" },
+    { "name": "vex_battle_idle", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art battle sprite, side view, tall hooded mystic with chrono-staff, cyan glyphs floating, ethereal stance", "out": "src/assets/vex_battle_idle.png" },
+    { "name": "rune_battle_idle", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art battle sprite, side view, engineer with hammer and shoulder-drone, yellow goggles, grounded stance", "out": "src/assets/rune_battle_idle.png" },
+
+    { "name": "kaida_battle_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, striker mid-slash with pulse-blade, magenta trail, dynamic pose", "out": "src/assets/kaida_battle_attack.png" },
+    { "name": "kaida_battle_cast", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, striker channeling tech with blade raised, cyan rift sparks", "out": "src/assets/kaida_battle_cast.png" },
+    { "name": "kaida_battle_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, striker recoiling from hit, flash of white on silhouette", "out": "src/assets/kaida_battle_hurt.png" },
+    { "name": "kaida_battle_victory", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle sprite, side view, striker victory pose, blade raised, magenta sparkle", "out": "src/assets/kaida_battle_victory.png" },
+
+    { "name": "vex_battle_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, mystic swinging chrono-staff, cyan trail", "out": "src/assets/vex_battle_attack.png" },
+    { "name": "vex_battle_cast", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, mystic arms raised channeling void spell, floating cyan runes", "out": "src/assets/vex_battle_cast.png" },
+    { "name": "vex_battle_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, mystic hit, cloak fluttering", "out": "src/assets/vex_battle_hurt.png" },
+    { "name": "vex_battle_victory", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle sprite, side view, mystic hood back, staff planted, cyan aura", "out": "src/assets/vex_battle_victory.png" },
+
+    { "name": "rune_battle_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, engineer swinging forge-hammer overhead, sparks", "out": "src/assets/rune_battle_attack.png" },
+    { "name": "rune_battle_cast", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, engineer deploying drones, yellow energy field", "out": "src/assets/rune_battle_cast.png" },
+    { "name": "rune_battle_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, engineer stumbling, goggles flashing", "out": "src/assets/rune_battle_hurt.png" },
+    { "name": "rune_battle_victory", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle sprite, side view, engineer thumbs-up with drone hovering, yellow sparkle", "out": "src/assets/rune_battle_victory.png" },
+
+    { "name": "kaida_portrait", "w": 128, "h": 128, "priority": 1, "prompt": "pixel art dialog portrait bust, young woman striker, magenta hair sweep, confident smirk, cyan jacket collar, neon highlights", "out": "src/assets/kaida_portrait.png" },
+    { "name": "vex_portrait", "w": 128, "h": 128, "priority": 1, "prompt": "pixel art dialog portrait bust, hooded mystic, face half-shadowed, cyan eye glow, serene expression", "out": "src/assets/vex_portrait.png" },
+    { "name": "rune_portrait", "w": 128, "h": 128, "priority": 1, "prompt": "pixel art dialog portrait bust, engineer with yellow goggles pushed up on forehead, warm grin, drone on shoulder", "out": "src/assets/rune_portrait.png" },
+
+    { "name": "rust_scrapper_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, melee wasteland raider, rusted armor, jagged blade, hunched stance", "out": "src/assets/rust_scrapper_idle.png" },
+    { "name": "rust_scrapper_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, wasteland raider mid-cleave, rusty trail", "out": "src/assets/rust_scrapper_attack.png" },
+    { "name": "rust_scrapper_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, wasteland raider hit, flash", "out": "src/assets/rust_scrapper_hurt.png" },
+    { "name": "rust_scrapper_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, wasteland raider collapsing, fading rust dust", "out": "src/assets/rust_scrapper_death.png" },
+
+    { "name": "drone_sentinel_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, hovering combat drone, red scanner eye, sleek chrome", "out": "src/assets/drone_sentinel_idle.png" },
+    { "name": "drone_sentinel_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, drone firing seeker missile, orange glow", "out": "src/assets/drone_sentinel_attack.png" },
+    { "name": "drone_sentinel_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, drone sparking hit", "out": "src/assets/drone_sentinel_hurt.png" },
+    { "name": "drone_sentinel_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, drone exploding, shrapnel burst", "out": "src/assets/drone_sentinel_death.png" },
+
+    { "name": "mutant_hound_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, four-legged mutant hound, exposed muscle, glowing eyes, crouched", "out": "src/assets/mutant_hound_idle.png" },
+    { "name": "mutant_hound_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, mutant hound mid-pounce, fangs bared", "out": "src/assets/mutant_hound_attack.png" },
+    { "name": "mutant_hound_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, mutant hound recoiling", "out": "src/assets/mutant_hound_hurt.png" },
+    { "name": "mutant_hound_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, mutant hound collapsing", "out": "src/assets/mutant_hound_death.png" },
+
+    { "name": "gravbot_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, bulky shield-bearing combat bot, cyan shield projected, heavy frame", "out": "src/assets/gravbot_idle.png" },
+    { "name": "gravbot_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, grav-bot slamming shield forward, shockwave", "out": "src/assets/gravbot_attack.png" },
+    { "name": "gravbot_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, grav-bot staggered, shield flickering", "out": "src/assets/gravbot_hurt.png" },
+    { "name": "gravbot_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, grav-bot collapsing in chunks", "out": "src/assets/gravbot_death.png" },
+
+    { "name": "neon_cultist_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, cult caster in pink neon robes, hood up, glowing pink glyphs", "out": "src/assets/neon_cultist_idle.png" },
+    { "name": "neon_cultist_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, neon cultist casting curse, pink energy burst", "out": "src/assets/neon_cultist_attack.png" },
+    { "name": "neon_cultist_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, neon cultist robe billowing from hit", "out": "src/assets/neon_cultist_hurt.png" },
+    { "name": "neon_cultist_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, neon cultist dissolving into pink motes", "out": "src/assets/neon_cultist_death.png" },
+
+    { "name": "sandworm_hatchling_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, small sandworm emerging from ground, segmented sandy body, gaping maw", "out": "src/assets/sandworm_hatchling_idle.png" },
+    { "name": "sandworm_hatchling_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, sandworm lunging upward, sand spray", "out": "src/assets/sandworm_hatchling_attack.png" },
+    { "name": "sandworm_hatchling_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, sandworm recoiling", "out": "src/assets/sandworm_hatchling_hurt.png" },
+    { "name": "sandworm_hatchling_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, sandworm collapsing into dust", "out": "src/assets/sandworm_hatchling_death.png" },
+
+    { "name": "wraith_core_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, floating void wraith with glowing core, translucent purple body", "out": "src/assets/wraith_core_idle.png" },
+    { "name": "wraith_core_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, wraith phase-striking, purple blur", "out": "src/assets/wraith_core_attack.png" },
+    { "name": "wraith_core_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, wraith fracturing, core pulsing", "out": "src/assets/wraith_core_hurt.png" },
+    { "name": "wraith_core_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, wraith imploding into a single bright point", "out": "src/assets/wraith_core_death.png" },
+
+    { "name": "architect_herald_idle", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle mini-boss, tall herald of the Architect, ornate chrome armor, cyan halo, imposing", "out": "src/assets/architect_herald_idle.png" },
+    { "name": "architect_herald_attack", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art mini-boss, herald casting orbital strike, cyan beam descending", "out": "src/assets/architect_herald_attack.png" },
+    { "name": "architect_herald_hurt", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art mini-boss, herald armor cracking", "out": "src/assets/architect_herald_hurt.png" },
+    { "name": "architect_herald_death", "w": 64, "h": 64, "priority": 4, "prompt": "pixel art mini-boss, herald shattering into light shards", "out": "src/assets/architect_herald_death.png" },
+
+    { "name": "void_architect_p1", "w": 128, "h": 128, "priority": 4, "prompt": "pixel art boss sprite, Void Architect phase 1, cloaked cosmic figure with starfield inside silhouette, magenta core, towering", "out": "src/assets/void_architect_p1.png" },
+    { "name": "void_architect_p2", "w": 128, "h": 128, "priority": 4, "prompt": "pixel art boss sprite, Void Architect phase 2, cloak torn open revealing fractal machinery, magenta + cyan core", "out": "src/assets/void_architect_p2.png" },
+    { "name": "void_architect_p3", "w": 128, "h": 128, "priority": 4, "prompt": "pixel art boss sprite, Void Architect phase 3, pure energy being, magenta/cyan/yellow storm silhouette", "out": "src/assets/void_architect_p3.png" },
+
+    { "name": "rust_scrapper_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, small rusty raider silhouette, top-down", "out": "src/assets/rust_scrapper_ow.png" },
+    { "name": "drone_sentinel_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, hovering drone top-down, red light", "out": "src/assets/drone_sentinel_ow.png" },
+    { "name": "mutant_hound_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, four-legged hound top-down", "out": "src/assets/mutant_hound_ow.png" },
+    { "name": "gravbot_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, heavy bot top-down", "out": "src/assets/gravbot_ow.png" },
+    { "name": "neon_cultist_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, pink-robed cultist top-down", "out": "src/assets/neon_cultist_ow.png" },
+    { "name": "sandworm_hatchling_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld marker, mound with emerging worm, top-down", "out": "src/assets/sandworm_hatchling_ow.png" },
+    { "name": "wraith_core_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld marker, glowing purple orb top-down", "out": "src/assets/wraith_core_ow.png" },
+    { "name": "architect_herald_ow", "w": 32, "h": 32, "priority": 3, "prompt": "pixel art overworld marker, tall chrome figure top-down, cyan halo", "out": "src/assets/architect_herald_ow.png" },
+
+    { "name": "town_center_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art isometric-ish building, survivor-era town center, scrap wood and salvaged metal hut with chimney smoke", "out": "src/assets/town_center_t1.png" },
+    { "name": "town_center_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer-era town center, reinforced walls with cyan banner, larger than t1", "out": "src/assets/town_center_t2.png" },
+    { "name": "town_center_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant-era town center, polished alloy with neon trim, two stories", "out": "src/assets/town_center_t3.png" },
+    { "name": "town_center_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent-era town center, spire with magenta neon and antenna, imposing", "out": "src/assets/town_center_t4.png" },
+
+    { "name": "farm_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor-era farm, tilled dirt rows and a scarecrow", "out": "src/assets/farm_t1.png" },
+    { "name": "farm_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer-era farm, greenhouse dome with green glow", "out": "src/assets/farm_t2.png" },
+    { "name": "farm_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant-era hydroponic farm, stacked trays with cyan grow-lights", "out": "src/assets/farm_t3.png" },
+    { "name": "farm_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent-era bio-reactor farm, crystalline dome with swirling green energy", "out": "src/assets/farm_t4.png" },
+
+    { "name": "mine_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor-era mine, wooden shaft with minecart", "out": "src/assets/mine_t1.png" },
+    { "name": "mine_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer-era mine, reinforced metal shaft, conveyor", "out": "src/assets/mine_t2.png" },
+    { "name": "mine_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant-era mine, auto-drilling rig with cyan lights", "out": "src/assets/mine_t3.png" },
+    { "name": "mine_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent-era mine, gravity well extractor with floating ore chunks", "out": "src/assets/mine_t4.png" },
+
+    { "name": "energy_extractor_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor-era energy extractor, makeshift wind turbine on scrap tower", "out": "src/assets/energy_extractor_t1.png" },
+    { "name": "energy_extractor_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer-era solar array on steel frame, cyan panels", "out": "src/assets/energy_extractor_t2.png" },
+    { "name": "energy_extractor_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant-era fusion pylon, glowing yellow core", "out": "src/assets/energy_extractor_t3.png" },
+    { "name": "energy_extractor_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent-era zero-point reactor, floating crystal in a containment ring", "out": "src/assets/energy_extractor_t4.png" },
+
+    { "name": "barracks_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor barracks, scrap-wood bunkhouse with training dummy", "out": "src/assets/barracks_t1.png" },
+    { "name": "barracks_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer barracks, armored bunker with flag", "out": "src/assets/barracks_t2.png" },
+    { "name": "barracks_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant barracks, tech training hall with holo-targets", "out": "src/assets/barracks_t3.png" },
+    { "name": "barracks_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent barracks, elite academy with neon banners", "out": "src/assets/barracks_t4.png" },
+
+    { "name": "forge_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor forge, open-air smithy with anvil and flame", "out": "src/assets/forge_t1.png" },
+    { "name": "forge_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer forge, stone furnace with chimney", "out": "src/assets/forge_t2.png" },
+    { "name": "forge_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant forge, laser-cutter workshop, cyan glow", "out": "src/assets/forge_t3.png" },
+    { "name": "forge_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent forge, plasma-reactor smithy with orbital gear", "out": "src/assets/forge_t4.png" },
+
+    { "name": "research_lab_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor research shack, blackboard and salvaged books", "out": "src/assets/research_lab_t1.png" },
+    { "name": "research_lab_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer research lab, reinforced with satellite dish", "out": "src/assets/research_lab_t2.png" },
+    { "name": "research_lab_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant lab, holo-projector dome, floating data shards", "out": "src/assets/research_lab_t3.png" },
+    { "name": "research_lab_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent lab, crystalline research spire with orbiting rings", "out": "src/assets/research_lab_t4.png" },
+
+    { "name": "wall_t1", "w": 96, "h": 96, "priority": 4, "prompt": "pixel art wall section, wood-plank palisade with spiked top", "out": "src/assets/wall_t1.png" },
+    { "name": "wall_t2", "w": 96, "h": 96, "priority": 4, "prompt": "pixel art wall section, riveted steel barricade", "out": "src/assets/wall_t2.png" },
+    { "name": "wall_t3", "w": 96, "h": 96, "priority": 4, "prompt": "pixel art wall section, alloy wall with cyan energy seam", "out": "src/assets/wall_t3.png" },
+    { "name": "wall_t4", "w": 96, "h": 96, "priority": 4, "prompt": "pixel art wall section, force-field pylon with magenta shield glow", "out": "src/assets/wall_t4.png" },
+
+    { "name": "tile_grass", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, overgrown grass with ruined wires, seamless edges", "out": "src/assets/tile_grass.png" },
+    { "name": "tile_dirt", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, packed dirt path, seamless", "out": "src/assets/tile_dirt.png" },
+    { "name": "tile_ruin_rubble", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, broken concrete rubble with rebar", "out": "src/assets/tile_ruin_rubble.png" },
+    { "name": "tile_dead_tree", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead object tile, dead twisted tree on grass", "out": "src/assets/tile_dead_tree.png" },
+    { "name": "tile_stream", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, cyan-tinted stream with faint glow, seamless", "out": "src/assets/tile_stream.png" },
+    { "name": "tile_cracked_road", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, cracked asphalt with yellow line, seamless", "out": "src/assets/tile_cracked_road.png" },
+
+    { "name": "tile_sand", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, rippled wasteland sand, seamless", "out": "src/assets/tile_sand.png" },
+    { "name": "tile_rust_patch", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, rust-stained ground with metal scraps", "out": "src/assets/tile_rust_patch.png" },
+    { "name": "tile_neon_cable", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead tile, glowing magenta cables laid across ground", "out": "src/assets/tile_neon_cable.png" },
+    { "name": "tile_barricade", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, concrete barricade with warning stripes", "out": "src/assets/tile_barricade.png" },
+    { "name": "tile_billboard", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, flickering neon billboard fragment", "out": "src/assets/tile_billboard.png" },
+    { "name": "tile_broken_highway", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, broken elevated highway segment", "out": "src/assets/tile_broken_highway.png" },
+
+    { "name": "tile_bio_moss", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, alien bio-moss with cyan veins, seamless", "out": "src/assets/tile_bio_moss.png" },
+    { "name": "tile_crystal_shard", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, jutting magenta crystal shard", "out": "src/assets/tile_crystal_shard.png" },
+    { "name": "tile_bio_pool", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, glowing green bio-pool, seamless", "out": "src/assets/tile_bio_pool.png" },
+    { "name": "tile_alien_tree", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, twisting alien tree with pink fronds", "out": "src/assets/tile_alien_tree.png" },
+    { "name": "tile_terraform_pipe", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, terraform pipe pumping green mist", "out": "src/assets/tile_terraform_pipe.png" },
+    { "name": "tile_growth_tile", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead tile, soft alien growth with scattered spores, seamless", "out": "src/assets/tile_growth_tile.png" },
+
+    { "name": "city_haventide", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, coastal ruin port with pink neon docks and sailed salvage ships, dusk", "out": "src/assets/city_haventide.png" },
+    { "name": "city_emberline", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, desert trade hub with rust and brass towers, caravan banners", "out": "src/assets/city_emberline.png" },
+    { "name": "city_orbital_reach", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, ruined space-elevator base, cyan steel scaffolding piercing clouds", "out": "src/assets/city_orbital_reach.png" },
+    { "name": "city_last_crown", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, final megacity with magenta neon spires and floating platforms, ominous", "out": "src/assets/city_last_crown.png" },
+
+    { "name": "vfx_slash_trail", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, arcing magenta slash trail on black", "out": "src/assets/vfx_slash_trail.png" },
+    { "name": "vfx_burst", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, radial particle burst, white + cyan sparks on black", "out": "src/assets/vfx_burst.png" },
+    { "name": "vfx_shockwave", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, expanding shockwave ring, yellow/orange, on black", "out": "src/assets/vfx_shockwave.png" },
+    { "name": "vfx_timefreeze_pulse", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, concentric chrono-pulse rings in cyan, on black", "out": "src/assets/vfx_timefreeze_pulse.png" },
+    { "name": "vfx_flame", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, flickering orange flame puff on black", "out": "src/assets/vfx_flame.png" },
+    { "name": "vfx_ice_shard", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, cluster of cyan ice shards, on black", "out": "src/assets/vfx_ice_shard.png" },
+    { "name": "vfx_void_rift", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, tear in space with magenta edge and starfield interior, on black", "out": "src/assets/vfx_void_rift.png" },
+    { "name": "vfx_heal_sparkle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, green healing sparkles rising, on black", "out": "src/assets/vfx_heal_sparkle.png" },
+
+    { "name": "proj_pulse_bolt", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, magenta energy bolt with trailing fade, on black", "out": "src/assets/proj_pulse_bolt.png" },
+    { "name": "proj_chrono_shard", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, cyan crystalline shard with motion blur, on black", "out": "src/assets/proj_chrono_shard.png" },
+    { "name": "proj_drone_pellet", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, small yellow energy pellet, on black", "out": "src/assets/proj_drone_pellet.png" },
+    { "name": "proj_enemy_arrow", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, crude rust-iron arrow with feather, on black", "out": "src/assets/proj_enemy_arrow.png" },
+    { "name": "proj_void_lance", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, elongated magenta lance with cyan core, on black", "out": "src/assets/proj_void_lance.png" },
+
+    { "name": "icon_food", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, stylized wheat bundle, warm colors, transparent bg", "out": "src/assets/icon_food.png" },
+    { "name": "icon_ore", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, chunky grey ore cluster with cyan crystal facet, transparent bg", "out": "src/assets/icon_ore.png" },
+    { "name": "icon_energy", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, yellow lightning bolt in a ring, transparent bg", "out": "src/assets/icon_energy.png" },
+    { "name": "icon_renown", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, magenta laurel wreath crown, transparent bg", "out": "src/assets/icon_renown.png" },
+    { "name": "icon_skill_point", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, cyan star burst, transparent bg", "out": "src/assets/icon_skill_point.png" },
+
+    { "name": "icon_weapon", "w": 24, "h": 24, "priority": 3, "prompt": "pixel art UI icon, stylized sword silhouette on badge, transparent bg", "out": "src/assets/icon_weapon.png" },
+    { "name": "icon_armor", "w": 24, "h": 24, "priority": 3, "prompt": "pixel art UI icon, chestplate silhouette on badge, transparent bg", "out": "src/assets/icon_armor.png" },
+    { "name": "icon_accessory", "w": 24, "h": 24, "priority": 3, "prompt": "pixel art UI icon, amulet silhouette on badge, transparent bg", "out": "src/assets/icon_accessory.png" },
+
+    { "name": "icon_crit", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, exclamation star, magenta, transparent bg", "out": "src/assets/icon_crit.png" },
+    { "name": "icon_heal", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, green plus cross, transparent bg", "out": "src/assets/icon_heal.png" },
+    { "name": "icon_shield", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, cyan shield glyph, transparent bg", "out": "src/assets/icon_shield.png" },
+    { "name": "icon_buff", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, upward arrow on green ring, transparent bg", "out": "src/assets/icon_buff.png" },
+    { "name": "icon_debuff", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, downward arrow on red ring, transparent bg", "out": "src/assets/icon_debuff.png" },
+
+    { "name": "tab_map", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, folded map glyph, transparent bg", "out": "src/assets/tab_map.png" },
+    { "name": "tab_party", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, three silhouetted heads, transparent bg", "out": "src/assets/tab_party.png" },
+    { "name": "tab_inventory", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, satchel with buckle, transparent bg", "out": "src/assets/tab_inventory.png" },
+    { "name": "tab_skills", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, branching node tree, transparent bg", "out": "src/assets/tab_skills.png" },
+    { "name": "tab_quests", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, scroll with checkmark, transparent bg", "out": "src/assets/tab_quests.png" },
+    { "name": "tab_save", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, floppy disk (retro), transparent bg", "out": "src/assets/tab_save.png" },
+    { "name": "tab_settings", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, gear cog, transparent bg", "out": "src/assets/tab_settings.png" }
+  ]
+}

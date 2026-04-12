@@ -189,9 +189,17 @@ ${deferred}
 }
 
 function renderAgentStub(role, entry, cfg) {
-  const inputsList = role.inputs
-    .map(i => `- \`${i.artifact}\`${i.notes ? ' — ' + i.notes : ''}`)
-    .join('\n');
+  // Build active role set for this game — used to skip inputs from omitted roles
+  const activeRoleIds = new Set(cfg.team.filter(t => t.active).map(t => t.role_id));
+
+  const relevantInputs = role.inputs.filter(inp => {
+    const peerMatch = inp.source.match(/^role:(.+)$/);
+    if (peerMatch) return activeRoleIds.has(peerMatch[1]); // drop if role not in this game
+    return true; // concept / game_plan / external always included
+  });
+
+  const fmt = (i) => `- \`${i.artifact}\`${i.notes ? ' — ' + i.notes : ''}`;
+  const inputsList = relevantInputs.map(fmt).join('\n') || '_None._';
 
   const outputsList = role.outputs
     .map(o => `- \`${o.artifact}\` — ${o.description}`)

@@ -121,7 +121,8 @@ const player = {
   halfW: 9,
   halfH: 12,
   fireTimer: 0,
-  tier: 1,        // current weapon tier (1..5), advances on pickup
+  tier: 1,        // currently selected tier (1..maxTier)
+  maxTier: 1,     // highest tier unlocked this session
   invincible: false,
   invincibleTimer: 0,
   blinkTimer: 0,
@@ -198,6 +199,17 @@ window.addEventListener('keydown', (e) => {
     game.state = STATE.MENU; e.preventDefault(); return;
   }
 
+  // Cycle weapon tier — down-select among unlocked tiers (tactical play)
+  if ((game.state === STATE.PLAYING || game.state === STATE.BOSS) &&
+      (e.code === 'KeyX' || e.code === 'KeyC' ||
+       e.code === 'ShiftLeft' || e.code === 'ShiftRight')) {
+    if (player.maxTier > 1) {
+      player.tier = (player.tier % player.maxTier) + 1;
+    }
+    e.preventDefault();
+    return;
+  }
+
   // Prevent space from scrolling page
   if (e.code === 'Space') e.preventDefault();
 });
@@ -210,9 +222,13 @@ canvas.addEventListener('click', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Touch — relative drag (DoDonPachi-style): the ship moves by the same delta
-// as your finger, starting from wherever each new touch lands. You never
-// teleport the ship to your finger, so the thumb can sit off to the side.
+// Pointer Events — relative drag (DoDonPachi-style): the ship moves by the
+// same delta as your finger, starting from wherever each new touch lands.
+// Thumb can sit off to the side while the ship stays visible.
+//
+// We use the Pointer Events API (not raw TouchEvent) because it's more
+// reliable on Android Chrome and unifies mouse/touch/pen. setPointerCapture
+// means drag keeps tracking even if the finger drifts outside the canvas.
 // ---------------------------------------------------------------------------
 
 function clientToCanvas(cx, cy) {
@@ -223,11 +239,16 @@ function clientToCanvas(cx, cy) {
   };
 }
 
-let dragActive  = false;
-let dragStartCx = 0, dragStartCy = 0;
-let dragStartPx = 0, dragStartPy = 0;
+let dragActive   = false;
+let dragPointerId = null;
+let dragStartCx  = 0, dragStartCy = 0;
+let dragStartPx  = 0, dragStartPy = 0;
+let dragCurrentX = 0, dragCurrentY = 0;
 
-canvas.addEventListener('touchstart', (e) => {
+canvas.addEventListener('pointerdown', (e) => {
+  // Only consume touch/pen; let mouse fall through to the click handler
+  // (keeps desktop "click-to-start" simple).
+  if (e.pointerType === 'mouse') return;
   e.preventDefault();
 
   if (game.state === STATE.MENU) { startGame(); return; }
@@ -235,32 +256,41 @@ canvas.addEventListener('touchstart', (e) => {
     game.state = STATE.MENU;
     return;
   }
-  if (e.touches.length === 0) return;
-  const t = e.touches[0];
-  const p = clientToCanvas(t.clientX, t.clientY);
-  dragActive  = true;
-  dragStartCx = p.x;
-  dragStartCy = p.y;
-  dragStartPx = player.x;
-  dragStartPy = player.y;
+
+  const p = clientToCanvas(e.clientX, e.clientY);
+  dragActive    = true;
+  dragPointerId = e.pointerId;
+  dragStartCx   = p.x;
+  dragStartCy   = p.y;
+  dragStartPx   = player.x;
+  dragStartPy   = player.y;
+  dragCurrentX  = p.x;
+  dragCurrentY  = p.y;
+
+  if (canvas.setPointerCapture) {
+    try { canvas.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+  }
 }, { passive: false });
 
-canvas.addEventListener('touchmove', (e) => {
+canvas.addEventListener('pointermove', (e) => {
+  if (!dragActive || e.pointerId !== dragPointerId) return;
   e.preventDefault();
-  if (!dragActive || e.touches.length === 0) return;
-  const t = e.touches[0];
-  const p = clientToCanvas(t.clientX, t.clientY);
+  const p = clientToCanvas(e.clientX, e.clientY);
+  dragCurrentX = p.x;
+  dragCurrentY = p.y;
   player.x = dragStartPx + (p.x - dragStartCx);
   player.y = dragStartPy + (p.y - dragStartCy);
 }, { passive: false });
 
-function endTouch(e) {
+function endPointer(e) {
+  if (!dragActive || e.pointerId !== dragPointerId) return;
   e.preventDefault();
-  if (e.touches && e.touches.length > 0) return;
   dragActive = false;
+  dragPointerId = null;
 }
-canvas.addEventListener('touchend',    endTouch, { passive: false });
-canvas.addEventListener('touchcancel', endTouch, { passive: false });
+canvas.addEventListener('pointerup',     endPointer, { passive: false });
+canvas.addEventListener('pointercancel', endPointer, { passive: false });
+canvas.addEventListener('pointerleave',  endPointer, { passive: false });
 
 // ---------------------------------------------------------------------------
 // Lifecycle
@@ -282,6 +312,7 @@ function startGame() {
   player.x = CANVAS_W / 2;
   player.y = CANVAS_H * 0.78;
   player.tier = 1;
+  player.maxTier = 1;
   player.fireTimer = 0;
   player.invincible = false;
   player.invincibleTimer = 0;
@@ -1078,9 +1109,11 @@ function checkCollisions() {
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
     if (overlap(p.x, p.y, p.halfW, p.halfH, player.x, player.y, player.halfW, player.halfH)) {
-      // Advance to next weapon tier; at max, award score
-      if (player.tier < 5) {
-        player.tier += 1;
+      // Advance the max unlocked tier (and auto-select it). X/Shift on
+      // desktop lets players cycle back down among unlocked tiers.
+      if (player.maxTier < 5) {
+        player.maxTier += 1;
+        player.tier    = player.maxTier;
       } else {
         game.score += 500;
       }
@@ -1100,7 +1133,8 @@ function hitPlayer() {
   player.invincibleTimer = INVINCIBILITY_DURATION;
   player.blinkTimer = 0;
   // Lose a weapon tier on hit (floors at 1)
-  if (player.tier > 1) player.tier -= 1;
+  if (player.maxTier > 1) player.maxTier -= 1;
+  player.tier = Math.min(player.tier, player.maxTier);
 
   if (game.lives <= 0) gameOver();
 }
@@ -1137,6 +1171,7 @@ function render() {
     if (game.state !== STATE.GAME_OVER || player.invincibleTimer > -0.2) drawPlayer();
     drawHUD();
     if (game.waveIndicatorTimer > 0) drawWaveIndicator();
+    if (dragActive) drawTouchIndicator();
   }
 
   // Flash
@@ -1419,7 +1454,7 @@ function drawHUD() {
   // Weapon
   ctx.textAlign = 'left';
   ctx.fillStyle = WEAPON_TIERS[player.tier].color;
-  ctx.fillText(`WPN  T${player.tier}  ${WEAPON_TIERS[player.tier].name}`, 12, CANVAS_H - 14);
+  ctx.fillText(`WPN  T${player.tier}/${player.maxTier}  ${WEAPON_TIERS[player.tier].name}`, 12, CANVAS_H - 14);
 
   // Lives
   ctx.textAlign = 'right';
@@ -1462,6 +1497,39 @@ function drawHUD() {
   ctx.restore();
 }
 
+function drawTouchIndicator() {
+  // Two-part visual: a big ring at the fingertip (so you know touch is
+  // registering), a small dot at the drag-start point, and a faint line
+  // between them so the "delta = finger - start" mapping is obvious.
+  ctx.save();
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.strokeStyle = 'rgba(120, 220, 255, 0.55)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(dragCurrentX, dragCurrentY, 26, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(120, 220, 255, 0.25)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.arc(dragCurrentX, dragCurrentY, 44, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Start-point dot
+  ctx.fillStyle = 'rgba(255, 60, 240, 0.6)';
+  ctx.beginPath();
+  ctx.arc(dragStartCx, dragStartCy, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Connecting line
+  ctx.strokeStyle = 'rgba(255, 60, 240, 0.35)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(dragStartCx, dragStartCy);
+  ctx.lineTo(dragCurrentX, dragCurrentY);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function drawWaveIndicator() {
   const alpha = Math.min(1, game.waveIndicatorTimer / 1.0);
   ctx.save();
@@ -1495,9 +1563,10 @@ function drawMenu() {
   // Controls
   ctx.font = 'bold 17px Courier New';
   ctx.fillStyle = COL.white;
-  ctx.fillText('DRAG / ARROWS / WASD   MOVE',          CANVAS_W / 2, CANVAS_H * 0.58);
-  ctx.fillText('AUTO-FIRE              ALWAYS ON',     CANVAS_W / 2, CANVAS_H * 0.62);
-  ctx.fillText('PICKUPS                LEVEL UP WEAPON', CANVAS_W / 2, CANVAS_H * 0.66);
+  ctx.fillText('DRAG / ARROWS / WASD   MOVE',          CANVAS_W / 2, CANVAS_H * 0.56);
+  ctx.fillText('X / SHIFT              CYCLE WEAPON',   CANVAS_W / 2, CANVAS_H * 0.60);
+  ctx.fillText('AUTO-FIRE              ALWAYS ON',     CANVAS_W / 2, CANVAS_H * 0.64);
+  ctx.fillText('PICKUPS                UNLOCK TIERS',  CANVAS_W / 2, CANVAS_H * 0.68);
 
   // Start prompt
   const blink = Math.floor(performance.now() / 400) % 2 === 0;

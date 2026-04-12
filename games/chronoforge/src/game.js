@@ -1,14 +1,16 @@
 // Chronoforge — main entry. Phase 2: overworld + menu shell + first-deploy readiness.
 
 import {
-  drawSplash, drawOverworld, drawBattle, drawBase,
-  initParty, updateOverworld, handleBattleKey,
+  drawSplash, drawOverworld, drawBase,
+  initParty, updateOverworld,
 } from './scenes.js';
 import {
   menuState, toggleMenu, closeMenu, handleMenuKey,
   handleMenuMouseDown, handleMenuMouseMove, handleMenuMouseUp, handleMenuWheel,
   drawMenu,
 } from './menu.js';
+import { initBattle, updateBattle, drawBattle, handleBattleKey } from './battle.js';
+import { initAudio, resumeAudio, playSfx } from './audio.js';
 import { PLAYER_START, MAP_W, MAP_H } from './world.js';
 
 const STATES = Object.freeze({
@@ -38,7 +40,11 @@ const game = {
   pendingEncounter: null,
 
   setState(next) {
-    if (this.state !== next) this.state = next;
+    if (this.state === next) return;
+    this.state = next;
+    if (next === 'battle' && this.pendingEncounter) {
+      initBattle(this, this.pendingEncounter);
+    }
   },
   toast(msg) {
     this.toastMsg = msg;
@@ -76,9 +82,14 @@ window.addEventListener('keydown', (e) => {
   const k = e.key;
   game.keys.add(k);
 
+  // first keypress unlocks audio context (browser autoplay policy)
+  initAudio(); resumeAudio();
+
   if (k === 'Escape' || k === 'Tab') {
     e.preventDefault();
+    const wasOpen = menuState.open;
     toggleMenu();
+    playSfx(wasOpen ? 'ui_menu_close' : 'ui_menu_open', { gain: 0.5 });
     return;
   }
 
@@ -89,11 +100,12 @@ window.addEventListener('keydown', (e) => {
 
   if (game.state === STATES.SPLASH && (k === 'Enter' || k === ' ')) {
     game.setState(STATES.OVERWORLD);
+    playSfx('ui_click');
     return;
   }
 
   if (game.state === STATES.BATTLE) {
-    handleBattleKey(k, game);
+    handleBattleKey(game, k);
     return;
   }
 
@@ -136,6 +148,7 @@ function frame(t) {
   // update
   if (!menuState.open) {
     if (game.state === STATES.OVERWORLD) updateOverworld(game, dt);
+    else if (game.state === STATES.BATTLE) updateBattle(game, dt);
   }
 
   // render

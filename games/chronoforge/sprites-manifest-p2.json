@@ -1,0 +1,447 @@
+{
+  "model": "x/flux2-klein:latest",
+  "host": "http://localhost:11434",
+  "style_prefix": "pixel art game sprite, pure black background (#000000), neon synthwave post-apocalyptic sci-fi, deep violet and indigo base with glowing magenta / cyan / amber yellow accents, detailed shading with rim light, soft glow halo around neon elements, chunky pixel highlights, gradient dithering on volumes, metallic material reads, crisp readable silhouette centered in frame, no text, no watermark, no border frame, Chrono Trigger meets Hyper Light Drifter meets Signalis",
+  "sprites": [
+    {
+      "name": "kaida_battle_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle sprite, side view, striker mid-slash with pulse-blade, magenta trail, dynamic pose",
+      "out": "src/assets/kaida_battle_attack.png"
+    },
+    {
+      "name": "kaida_battle_cast",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle sprite, side view, striker channeling tech with blade raised, cyan rift sparks",
+      "out": "src/assets/kaida_battle_cast.png"
+    },
+    {
+      "name": "kaida_battle_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle sprite, side view, striker recoiling from hit, flash of white on silhouette",
+      "out": "src/assets/kaida_battle_hurt.png"
+    },
+    {
+      "name": "vex_battle_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle sprite, side view, mystic swinging chrono-staff, cyan trail",
+      "out": "src/assets/vex_battle_attack.png"
+    },
+    {
+      "name": "vex_battle_cast",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle sprite, side view, mystic arms raised channeling void spell, floating cyan runes",
+      "out": "src/assets/vex_battle_cast.png"
+    },
+    {
+      "name": "vex_battle_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle sprite, side view, mystic hit, cloak fluttering",
+      "out": "src/assets/vex_battle_hurt.png"
+    },
+    {
+      "name": "rune_battle_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle sprite, side view, engineer swinging forge-hammer overhead, sparks",
+      "out": "src/assets/rune_battle_attack.png"
+    },
+    {
+      "name": "rune_battle_cast",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle sprite, side view, engineer deploying drones, yellow energy field",
+      "out": "src/assets/rune_battle_cast.png"
+    },
+    {
+      "name": "rune_battle_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle sprite, side view, engineer stumbling, goggles flashing",
+      "out": "src/assets/rune_battle_hurt.png"
+    },
+    {
+      "name": "rust_scrapper_idle",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, melee wasteland raider, rusted armor, jagged blade, hunched stance",
+      "out": "src/assets/rust_scrapper_idle.png"
+    },
+    {
+      "name": "rust_scrapper_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, wasteland raider mid-cleave, rusty trail",
+      "out": "src/assets/rust_scrapper_attack.png"
+    },
+    {
+      "name": "rust_scrapper_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, wasteland raider hit, flash",
+      "out": "src/assets/rust_scrapper_hurt.png"
+    },
+    {
+      "name": "drone_sentinel_idle",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, hovering combat drone, red scanner eye, sleek chrome",
+      "out": "src/assets/drone_sentinel_idle.png"
+    },
+    {
+      "name": "drone_sentinel_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, drone firing seeker missile, orange glow",
+      "out": "src/assets/drone_sentinel_attack.png"
+    },
+    {
+      "name": "drone_sentinel_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, drone sparking hit",
+      "out": "src/assets/drone_sentinel_hurt.png"
+    },
+    {
+      "name": "mutant_hound_idle",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, four-legged mutant hound, exposed muscle, glowing eyes, crouched",
+      "out": "src/assets/mutant_hound_idle.png"
+    },
+    {
+      "name": "mutant_hound_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, mutant hound mid-pounce, fangs bared",
+      "out": "src/assets/mutant_hound_attack.png"
+    },
+    {
+      "name": "mutant_hound_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, mutant hound recoiling",
+      "out": "src/assets/mutant_hound_hurt.png"
+    },
+    {
+      "name": "gravbot_idle",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, bulky shield-bearing combat bot, cyan shield projected, heavy frame",
+      "out": "src/assets/gravbot_idle.png"
+    },
+    {
+      "name": "gravbot_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, grav-bot slamming shield forward, shockwave",
+      "out": "src/assets/gravbot_attack.png"
+    },
+    {
+      "name": "gravbot_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, grav-bot staggered, shield flickering",
+      "out": "src/assets/gravbot_hurt.png"
+    },
+    {
+      "name": "neon_cultist_idle",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, cult caster in pink neon robes, hood up, glowing pink glyphs",
+      "out": "src/assets/neon_cultist_idle.png"
+    },
+    {
+      "name": "neon_cultist_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, neon cultist casting curse, pink energy burst",
+      "out": "src/assets/neon_cultist_attack.png"
+    },
+    {
+      "name": "neon_cultist_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, neon cultist robe billowing from hit",
+      "out": "src/assets/neon_cultist_hurt.png"
+    },
+    {
+      "name": "sandworm_hatchling_idle",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, small sandworm emerging from ground, segmented sandy body, gaping maw",
+      "out": "src/assets/sandworm_hatchling_idle.png"
+    },
+    {
+      "name": "sandworm_hatchling_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, sandworm lunging upward, sand spray",
+      "out": "src/assets/sandworm_hatchling_attack.png"
+    },
+    {
+      "name": "sandworm_hatchling_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, sandworm recoiling",
+      "out": "src/assets/sandworm_hatchling_hurt.png"
+    },
+    {
+      "name": "wraith_core_idle",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, floating void wraith with glowing core, translucent purple body",
+      "out": "src/assets/wraith_core_idle.png"
+    },
+    {
+      "name": "wraith_core_attack",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, wraith phase-striking, purple blur",
+      "out": "src/assets/wraith_core_attack.png"
+    },
+    {
+      "name": "wraith_core_hurt",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle enemy, wraith fracturing, core pulsing",
+      "out": "src/assets/wraith_core_hurt.png"
+    },
+    {
+      "name": "rust_scrapper_ow",
+      "w": 32,
+      "h": 32,
+      "priority": 2,
+      "prompt": "pixel art overworld encounter marker, small rusty raider silhouette, top-down",
+      "out": "src/assets/rust_scrapper_ow.png"
+    },
+    {
+      "name": "drone_sentinel_ow",
+      "w": 32,
+      "h": 32,
+      "priority": 2,
+      "prompt": "pixel art overworld encounter marker, hovering drone top-down, red light",
+      "out": "src/assets/drone_sentinel_ow.png"
+    },
+    {
+      "name": "mutant_hound_ow",
+      "w": 32,
+      "h": 32,
+      "priority": 2,
+      "prompt": "pixel art overworld encounter marker, four-legged hound top-down",
+      "out": "src/assets/mutant_hound_ow.png"
+    },
+    {
+      "name": "gravbot_ow",
+      "w": 32,
+      "h": 32,
+      "priority": 2,
+      "prompt": "pixel art overworld encounter marker, heavy bot top-down",
+      "out": "src/assets/gravbot_ow.png"
+    },
+    {
+      "name": "neon_cultist_ow",
+      "w": 32,
+      "h": 32,
+      "priority": 2,
+      "prompt": "pixel art overworld encounter marker, pink-robed cultist top-down",
+      "out": "src/assets/neon_cultist_ow.png"
+    },
+    {
+      "name": "sandworm_hatchling_ow",
+      "w": 32,
+      "h": 32,
+      "priority": 2,
+      "prompt": "pixel art overworld marker, mound with emerging worm, top-down",
+      "out": "src/assets/sandworm_hatchling_ow.png"
+    },
+    {
+      "name": "wraith_core_ow",
+      "w": 32,
+      "h": 32,
+      "priority": 2,
+      "prompt": "pixel art overworld marker, glowing purple orb top-down",
+      "out": "src/assets/wraith_core_ow.png"
+    },
+    {
+      "name": "vfx_slash_trail",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle VFX, arcing magenta slash trail on black",
+      "out": "src/assets/vfx_slash_trail.png"
+    },
+    {
+      "name": "vfx_burst",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle VFX, radial particle burst, white + cyan sparks on black",
+      "out": "src/assets/vfx_burst.png"
+    },
+    {
+      "name": "vfx_shockwave",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle VFX, expanding shockwave ring, yellow/orange, on black",
+      "out": "src/assets/vfx_shockwave.png"
+    },
+    {
+      "name": "vfx_timefreeze_pulse",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle VFX, concentric chrono-pulse rings in cyan, on black",
+      "out": "src/assets/vfx_timefreeze_pulse.png"
+    },
+    {
+      "name": "vfx_flame",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle VFX, flickering orange flame puff on black",
+      "out": "src/assets/vfx_flame.png"
+    },
+    {
+      "name": "vfx_ice_shard",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle VFX, cluster of cyan ice shards, on black",
+      "out": "src/assets/vfx_ice_shard.png"
+    },
+    {
+      "name": "vfx_void_rift",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle VFX, tear in space with magenta edge and starfield interior, on black",
+      "out": "src/assets/vfx_void_rift.png"
+    },
+    {
+      "name": "vfx_heal_sparkle",
+      "w": 64,
+      "h": 64,
+      "priority": 2,
+      "prompt": "pixel art battle VFX, green healing sparkles rising, on black",
+      "out": "src/assets/vfx_heal_sparkle.png"
+    },
+    {
+      "name": "proj_pulse_bolt",
+      "w": 16,
+      "h": 16,
+      "priority": 2,
+      "prompt": "pixel art projectile, magenta energy bolt with trailing fade, on black",
+      "out": "src/assets/proj_pulse_bolt.png"
+    },
+    {
+      "name": "proj_chrono_shard",
+      "w": 16,
+      "h": 16,
+      "priority": 2,
+      "prompt": "pixel art projectile, cyan crystalline shard with motion blur, on black",
+      "out": "src/assets/proj_chrono_shard.png"
+    },
+    {
+      "name": "proj_drone_pellet",
+      "w": 16,
+      "h": 16,
+      "priority": 2,
+      "prompt": "pixel art projectile, small yellow energy pellet, on black",
+      "out": "src/assets/proj_drone_pellet.png"
+    },
+    {
+      "name": "proj_enemy_arrow",
+      "w": 16,
+      "h": 16,
+      "priority": 2,
+      "prompt": "pixel art projectile, crude rust-iron arrow with feather, on black",
+      "out": "src/assets/proj_enemy_arrow.png"
+    },
+    {
+      "name": "proj_void_lance",
+      "w": 16,
+      "h": 16,
+      "priority": 2,
+      "prompt": "pixel art projectile, elongated magenta lance with cyan core, on black",
+      "out": "src/assets/proj_void_lance.png"
+    },
+    {
+      "name": "icon_crit",
+      "w": 24,
+      "h": 24,
+      "priority": 2,
+      "prompt": "pixel art UI status icon, exclamation star, magenta, transparent bg",
+      "out": "src/assets/icon_crit.png"
+    },
+    {
+      "name": "icon_heal",
+      "w": 24,
+      "h": 24,
+      "priority": 2,
+      "prompt": "pixel art UI status icon, green plus cross, transparent bg",
+      "out": "src/assets/icon_heal.png"
+    },
+    {
+      "name": "icon_shield",
+      "w": 24,
+      "h": 24,
+      "priority": 2,
+      "prompt": "pixel art UI status icon, cyan shield glyph, transparent bg",
+      "out": "src/assets/icon_shield.png"
+    },
+    {
+      "name": "icon_buff",
+      "w": 24,
+      "h": 24,
+      "priority": 2,
+      "prompt": "pixel art UI status icon, upward arrow on green ring, transparent bg",
+      "out": "src/assets/icon_buff.png"
+    },
+    {
+      "name": "icon_debuff",
+      "w": 24,
+      "h": 24,
+      "priority": 2,
+      "prompt": "pixel art UI status icon, downward arrow on red ring, transparent bg",
+      "out": "src/assets/icon_debuff.png"
+    }
+  ]
+}

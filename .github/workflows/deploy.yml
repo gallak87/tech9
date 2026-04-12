@@ -7,6 +7,7 @@ on:
     paths:
       - 'games/gravelrun/src/**'
       - 'games/snake/src/**'
+      - 'games/skyrift/src/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -33,9 +34,10 @@ jobs:
 
       - name: Build site
         run: |
-          mkdir -p _site/snake
+          mkdir -p _site/snake _site/skyrift
           cp -r games/gravelrun/src/. _site/
           cp -r games/snake/src/. _site/snake/
+          cp -r games/skyrift/src/. _site/skyrift/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

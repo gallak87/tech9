@@ -12,6 +12,7 @@ You give it a game idea. It assembles a team of specialized agents — designer,
 |------|--------|------|
 | [🧑‍🚀gravelrun](games/gravelrun/) | alpha | [▶ play](https://gallak87.github.io/tech9/) |
 | [🐍snake](games/snake/) | shipped | [▶ play](https://gallak87.github.io/tech9/snake/) |
+| [🛩️skyrift](games/skyrift/) | alpha | [▶ play](https://gallak87.github.io/tech9/skyrift/) |
 
 ---
 

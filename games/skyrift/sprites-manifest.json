@@ -1,14 +1,103 @@
 {
-  "model": "x/flux2-klein:latest",
-  "host": "http://localhost:11434",
+  "game": "skyrift",
+  "style": "pixel art",
+  "palette_notes": "Dark navy sky background (#0a0e1f). Player is white/cyan. Enemies: Scout=acid green, Bomber=deep purple/amber, Interceptor=crimson/silver. Boss is gunmetal with orange/magenta phase glows. Bullets escalate: white, yellow, blue, lime, violet. Explosions: white flash → orange fire → dark smoke. Pickups glow gold. All sprites on solid black background, no anti-aliasing, crisp limited palette.",
   "sprites": [
     {
-      "_note": "Add sprites here after art agent defines visual style and dimensions",
-      "name": "example",
-      "w": 32,
-      "h": 32,
-      "prompt": "pixel art game sprite, black background, retro, crisp limited palette",
-      "out": "src/assets/example.png"
+      "id": "player",
+      "label": "Player Jet",
+      "width": 40,
+      "height": 48,
+      "output_path": "sprites/player.png",
+      "prompt": "Top-down pixel art fighter jet sprite on solid black background, 40x48 pixels, white titanium body with cyan cockpit glow (#00f5ff), twin engine exhausts, clean military silhouette pointing upward, no anti-aliasing, crisp 1-bit shading."
+    },
+    {
+      "id": "scout",
+      "label": "Scout Enemy",
+      "width": 28,
+      "height": 28,
+      "output_path": "sprites/scout.png",
+      "prompt": "Top-down pixel art enemy scout aircraft sprite on solid black background, 28x28 pixels, acid green (#39ff14) body with dark olive wing shadows, small fast-looking delta-wing shape pointing downward, aggressive minimal design, no anti-aliasing."
+    },
+    {
+      "id": "bomber",
+      "label": "Bomber Enemy",
+      "width": 48,
+      "height": 40,
+      "output_path": "sprites/bomber.png",
+      "prompt": "Top-down pixel art enemy bomber aircraft sprite on solid black background, 48x40 pixels, deep purple (#6b21a8) body with amber (#f59e0b) underbelly bomb bay, wide wingspan, heavy silhouette pointing downward, chunky pixel shading, no anti-aliasing."
+    },
+    {
+      "id": "interceptor",
+      "label": "Interceptor Enemy",
+      "width": 32,
+      "height": 44,
+      "output_path": "sprites/interceptor.png",
+      "prompt": "Top-down pixel art enemy interceptor aircraft sprite on solid black background, 32x44 pixels, blood crimson (#dc1a1a) body with chrome silver canard fins, narrow swept-wing profile pointing downward, menacing angular design, no anti-aliasing."
+    },
+    {
+      "id": "boss",
+      "label": "Boss",
+      "width": 160,
+      "height": 140,
+      "output_path": "sprites/boss.png",
+      "prompt": "Top-down pixel art massive enemy boss aircraft sprite on solid black background, 160x140 pixels, gunmetal dark grey (#2d3748) armored hull, multiple gun turrets, large glowing engine cores, intimidating symmetrical warship silhouette pointing downward, detailed pixel shading, no anti-aliasing."
+    },
+    {
+      "id": "bullet_l1",
+      "label": "Bullet — Level 1 (single)",
+      "width": 2,
+      "height": 6,
+      "output_path": "sprites/bullet_l1.png",
+      "prompt": "Pixel art game bullet sprite on solid black background, 2x6 pixels, single bright white (#ffffff) laser sliver, vertical orientation, glowing core pixel, minimal, crisp."
+    },
+    {
+      "id": "bullet_l2",
+      "label": "Bullet — Level 2 (twin)",
+      "width": 2,
+      "height": 6,
+      "output_path": "sprites/bullet_l2.png",
+      "prompt": "Pixel art game bullet sprite on solid black background, 2x6 pixels, volt yellow (#ffe000) laser bolt, vertical orientation, slightly brighter center pixel, clean and crisp."
+    },
+    {
+      "id": "bullet_l3",
+      "label": "Bullet — Level 3 (spread)",
+      "width": 3,
+      "height": 7,
+      "output_path": "sprites/bullet_l3.png",
+      "prompt": "Pixel art game bullet sprite on solid black background, 3x7 pixels, sky blue (#0099ff) energy bolt, slightly fatter than a standard shot, vertical orientation, soft inner glow, crisp pixel edges."
+    },
+    {
+      "id": "bullet_l4",
+      "label": "Bullet — Level 4 (homing missile)",
+      "width": 4,
+      "height": 10,
+      "output_path": "sprites/bullet_l4.png",
+      "prompt": "Pixel art game missile sprite on solid black background, 4x10 pixels, lime green (#aaff00) elongated rocket shape with pointed nose and small fins at base, vertical orientation, distinct missile silhouette, crisp pixels."
+    },
+    {
+      "id": "bullet_l5",
+      "label": "Bullet — Level 5 (piercing)",
+      "width": 3,
+      "height": 8,
+      "output_path": "sprites/bullet_l5.png",
+      "prompt": "Pixel art game bullet sprite on solid black background, 3x8 pixels, violet purple (#cc44ff) piercing energy shot, vertical orientation, 1-pixel bright white core surrounded by violet, subtle outer glow pixel border, crisp."
+    },
+    {
+      "id": "explosion",
+      "label": "Explosion (6-frame sheet)",
+      "width": 32,
+      "height": 32,
+      "output_path": "sprites/explosion.png",
+      "prompt": "Pixel art explosion sprite on solid black background, 32x32 pixels, single frame showing mid-explosion orange fireball (#ff6b00) with white flash center and dark brown smoke wisps at edges, classic retro game explosion style, crisp limited palette, no anti-aliasing."
+    },
+    {
+      "id": "pickup",
+      "label": "Weapon Pickup",
+      "width": 20,
+      "height": 20,
+      "output_path": "sprites/pickup.png",
+      "prompt": "Pixel art collectible power-up sprite on solid black background, 20x20 pixels, spinning golden diamond shape, bright gold (#ffd700) with white highlight pixels at corners, glowing aura of 1-pixel gold border, crisp pixel art style, no anti-aliasing."
     }
   ]
 }

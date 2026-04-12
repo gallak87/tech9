@@ -132,7 +132,8 @@ export function handleMenuMouseMove(mx, my, game) {
   if (menuState.map.dragging) {
     const dx = mx - menuState.map.dragLastX;
     const dy = my - menuState.map.dragLastY;
-    const worldPerPx = (TILE) / mapScale(game);
+    // one screen pixel == 1/scale world units; drag should 1:1 track the cursor
+    const worldPerPx = 1 / mapScale(game);
     menuState.map.cx -= dx * worldPerPx;
     menuState.map.cy -= dy * worldPerPx;
     menuState.map.dragLastX = mx;

@@ -1,0 +1,142 @@
+{
+  "game_name": "skyrift",
+  "concept_summary": "A top-down vertical scrolling shooter where the player pilots a fighter jet through escalating waves of enemy aircraft. Armed with an upgradeable 5-level weapon system, the player fights through Scout, Bomber, and Interceptor enemies before facing a multi-phase boss with a dedicated health bar. Collect weapon power-ups, rack up points, survive three hits — defeat the boss to win, lose all three lives and it's game over.",
+  "scope_constraints": [
+    "Single level with one boss in v1 — no level select, no stage progression beyond the one boss",
+    "Weapon system has exactly 5 levels — each level is visually and audibly distinct",
+    "Exactly 3 enemy types: Scout (easy, fast, 1 hit), Bomber (medium, slow, drops projectiles, 3 hits), Interceptor (hard, aggressive, evasive, 5 hits)",
+    "Boss has exactly 3 attack phases — phase transitions triggered at 66% and 33% HP thresholds",
+    "Audio is in scope — Web Audio API synthesized SFX only, no audio files to load",
+    "Player has exactly 3 lives — each hit costs 1 life and drops weapon level by 1 (weapon level floors at 1)",
+    "Auto-fire is in scope — Z or Space toggles auto-fire on/off, no manual fire rate management",
+    "No touchscreen controls — keyboard only (Arrow keys to move, Z or Space for auto-fire toggle)",
+    "No persistent state — no localStorage, no high score board, no save between sessions",
+    "Weapon power-up drops are the only pickups — no shields, no bombs, no extra lives",
+    "HUD always shows: score, weapon level (1–5), lives, boss health bar (boss phase only)",
+    "Controls are displayed on the start screen (Arrows = move, Z/Space = auto-fire toggle) — not shown during gameplay"
+  ],
+  "team": [
+    {
+      "role_id": "gamedesign",
+      "active": true,
+      "notes": "Owns wave scripts (spawn order, timing, difficulty curve), boss attack patterns for all 3 phases, enemy behavior specs (Scout movement, Bomber fire patterns, Interceptor evasion), and weapon drop probabilities. Too much design work to fold into concept alone."
+    },
+    {
+      "role_id": "art",
+      "active": true,
+      "notes": "Owns visual style decision (pixel art vs vector glow), color palette, all sprite dimensions, and produces all assets via Ollama. Merged with asset — direction and production in one agent."
+    },
+    {
+      "role_id": "asset",
+      "active": false,
+      "merged_into": "art",
+      "notes": "Merged into art. Ollama-based sprite gen means one agent does both direction and production."
+    },
+    {
+      "role_id": "level",
+      "active": false,
+      "notes": "Skipped. No spatial level geometry. This is a wave shooter — enemy spawn patterns belong to gamedesign, not a level designer."
+    },
+    {
+      "role_id": "audio",
+      "active": true,
+      "notes": "Audio is explicitly in scope. Owns Web Audio API synthesis for: shoot SFX per weapon level (5 variants), enemy hit, explosion (enemy + boss), weapon-level-up fanfare, boss phase transition sting, boss death. Real work."
+    },
+    {
+      "role_id": "dev",
+      "active": true,
+      "notes": "Owns all game code — engine, scrolling background, player entity, weapon system (5 levels + distinct bullet types), enemy entities (Scout/Bomber/Interceptor), wave spawner, boss entity + 3-phase system, collision detection, scoring, HUD, state machine."
+    },
+    {
+      "role_id": "qa",
+      "active": true,
+      "notes": "Playtests after every dev phase. Gates on weapon level progression correctness, all enemy behaviors, boss phase transitions, audio event firing, and final deployed build."
+    },
+    {
+      "role_id": "devops",
+      "active": true,
+      "notes": "Localhost first. Owns local dev server, build pipeline, deploy to GitHub Pages. Absorbs release — single deploy step, no ceremony."
+    },
+    {
+      "role_id": "release",
+      "active": false,
+      "merged_into": "devops",
+      "notes": "Merged into devops. GitHub Pages deploy is a single step with no store page or launch checklist required."
+    },
+    {
+      "role_id": "postlaunch",
+      "active": false,
+      "notes": "Skipped. Out of scope for v1."
+    }
+  ],
+  "phases": [
+    {
+      "name": "Phase 0 — Engine Skeleton",
+      "description": "Canvas on screen. Game loop running at 60fps. State machine wired: MENU → PLAYING → BOSS → WIN → GAME_OVER. Player jet moves with arrow keys. Vertical scroll background (static color or simple gradient). Nothing fancy — just the skeleton everything hangs off.",
+      "agents": ["dev", "devops"],
+      "parallel": false,
+      "qa_gate": "Game runs on localhost. Player jet moves. State machine transitions work. 60fps confirmed."
+    },
+    {
+      "name": "Phase 1 — Game Design + Visual Direction",
+      "description": "gamedesign delivers: wave script (enemy type, spawn position, timing across the level), boss attack specs for all 3 phases, enemy behavior rules (Scout flight patterns, Bomber fire cadence, Interceptor evasion logic), weapon drop probability per enemy type. art delivers: visual style decision, color palette, sprite dimensions for all entities (player, Scout, Bomber, Interceptor, boss, bullets per weapon level, explosion, pickup).",
+      "agents": ["gamedesign", "art"],
+      "parallel": true,
+      "qa_gate": null
+    },
+    {
+      "name": "Phase 2 — Core Combat",
+      "description": "Player shoots. Weapon system fully implemented (5 levels, distinct bullet patterns per level). Enemy hit detection and health pools (Scout=1, Bomber=3, Interceptor=5). Player hit detection — lose life + drop weapon level. Score accumulation (Scout=100, Bomber=250, Interceptor=500). Weapon power-up pickup entity. HUD: score, weapon level, lives. All using placeholder rects — no sprites yet.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "Shoot enemies, collect pickups, weapon level advances and drops correctly. Lives decrement on hit. Score counts accurately. HUD reflects state."
+    },
+    {
+      "name": "Phase 3 — Enemies + Wave Spawner",
+      "description": "All 3 enemy types implemented with behaviors from gamedesign spec. Wave spawner reads the wave script and spawns enemies at the right times and positions. Bomber fires projectiles. Interceptor exhibits evasion behavior. Difficulty curve plays out correctly end-to-end.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "All 3 enemy types spawn, move, and behave per gamedesign spec. Wave progression reaches the boss transition. No spawn or collision bugs."
+    },
+    {
+      "name": "Phase 4 — Boss",
+      "description": "Boss entity enters after wave clear. Health bar displayed at top of screen. Boss has 3 attack phases — transitions at 66% and 33% HP trigger visibly different attack patterns per gamedesign spec. Boss defeat triggers WIN state. Player death during boss triggers GAME_OVER.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "Boss enters cleanly. All 3 phases trigger and behave correctly. Health bar drains accurately. WIN and GAME_OVER states reached from boss fight."
+    },
+    {
+      "name": "Phase 5 — Art Integration",
+      "description": "art generates all sprites via Ollama (player jet, Scout, Bomber, Interceptor, boss, bullet variants per weapon level, explosion, weapon pickup). dev swaps placeholder rects for sprites. No gameplay changes — art drop only.",
+      "agents": ["art", "dev"],
+      "parallel": false,
+      "qa_gate": "Visual regression check. All sprites render correctly at correct dimensions. No new collision or gameplay bugs introduced."
+    },
+    {
+      "name": "Phase 6 — Audio Integration",
+      "description": "audio designs and implements all SFX via Web Audio API: shoot sounds (5 variants, one per weapon level), enemy hit, explosion (small for enemies, large for boss), weapon-level-up fanfare, boss phase transition sting, boss death. dev integrates audio events at the correct trigger points.",
+      "agents": ["audio", "dev"],
+      "parallel": false,
+      "qa_gate": "All audio events fire at the right moments. No performance degradation. Sounds are distinct and appropriate per event."
+    },
+    {
+      "name": "Phase 7 — Polish + Ship",
+      "description": "Start screen with game title, controls display (Arrows = move, Z/Space = auto-fire), and start prompt. Win screen with final score. Game Over screen with score. Smooth menu → game flow. devops final build + deploy to GitHub Pages.",
+      "agents": ["dev", "devops"],
+      "parallel": false,
+      "qa_gate": "Full playthrough on the deployed build. Start screen shows controls. Win and Game Over screens work. Score displays correctly on both."
+    }
+  ],
+  "deferred_decisions": [
+    { "decision": "Enemy wave patterns and spawn timing across the level", "deferred_to": "gamedesign" },
+    { "decision": "Boss attack patterns per phase (projectile types, movement, timing)", "deferred_to": "gamedesign" },
+    { "decision": "Whether Bomber fires in fixed patterns or randomized bursts", "deferred_to": "gamedesign" },
+    { "decision": "Interceptor evasion behavior (speed boost on approach, dodge pattern, or pre-programmed path)", "deferred_to": "gamedesign" },
+    { "decision": "Exact boss health pool total and visual feedback at phase thresholds", "deferred_to": "gamedesign" },
+    { "decision": "Visual style — pixel art vs vector glow aesthetic, color palette", "deferred_to": "art" },
+    { "decision": "Sprite dimensions and bullet visual design per weapon level", "deferred_to": "art" },
+    { "decision": "SFX synthesis approach per event (shoot, hit, explosion, level-up, boss death)", "deferred_to": "audio" },
+    { "decision": "Bullet speeds, enemy movement speeds, collision hitbox sizes, scroll rate", "deferred_to": "dev" },
+    { "decision": "Weapon power-up drop probability per enemy type", "deferred_to": "dev" }
+  ]
+}

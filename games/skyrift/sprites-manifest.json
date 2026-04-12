@@ -1,0 +1,14 @@
+{
+  "model": "x/flux2-klein:latest",
+  "host": "http://localhost:11434",
+  "sprites": [
+    {
+      "_note": "Add sprites here after art agent defines visual style and dimensions",
+      "name": "example",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art game sprite, black background, retro, crisp limited palette",
+      "out": "src/assets/example.png"
+    }
+  ]
+}

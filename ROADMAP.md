@@ -160,3 +160,38 @@ easy to forget.
   pan/zoom. The dev role's menu template should ship with a `resetView()` helper and a
   keybound visible button.
 - **Default keybind:** `R` or `0`. Button label: `RESET VIEW [R]`.
+
+### 4. Rendering tier selection (stop defaulting to Canvas 2D)
+
+Every game so far (snake, skyrift, void-sentinel, chronoforge) shipped on raw Canvas 2D
+because it was zero-dependency and fast to prototype. Chronoforge hit the ceiling: a
+60×40 tilemap + per-tile fog + placeholder text = 50% CPU on a single Chrome tab before
+any optimization passes. Canvas 2D is CPU-bound immediate-mode rendering with no batching
+— every `fillRect` is a driver draw call. Any game past ~2k state-changing draws per
+frame needs a different tier.
+
+**The Director should pick a rendering tier from the concept, not default to Canvas 2D.**
+
+Decision rubric (bake into `vocab/roles/dev.json` as a selector):
+
+| Tier | When to use | What you get |
+|------|-------------|--------------|
+| **Canvas 2D** | ≤ a few hundred draws/frame. Snake-scale. Menus. Splash screens. | Zero deps. Immediate mode. Dies past ~2k state-changing draws. |
+| **PixiJS** | Tilemaps, particle effects, >500 sprites, any 2D game with scrolling world. | Sprite-batched WebGL under a 2D API. 10k+ sprites at 60fps. Same mental model as Canvas 2D, ~10× headroom. This is the right default for most of our catalog. |
+| **Phaser** | Full games with scenes, physics, input management, tilemap loaders, tweens, audio buses. | Batteries-included 2D framework on top of Pixi. Heavier dep + more opinions, but cuts a lot of bespoke infra. |
+| **Three.js** | Actual 3D. | Skip for 2D pixel-art games — abstraction tax for nothing. |
+| **WebGPU** | Not yet — Safari support still patchy in 2026. Revisit end of year. | The future, but not the default today. |
+
+**Rust/WASM is a separate axis:** it solves *compute* bottlenecks (physics sims, voxel
+gen, raytracing), not rendering. Don't reach for it unless a game's logic layer is CPU-
+bound, which none of ours have been. Our bottleneck is always GPU batching.
+
+**Where to patch:**
+- `meta/02_director.md` — add a "rendering tier" question to the decision pass, based on
+  entity count / world size / animation density estimated from the concept.
+- `vocab/roles/dev.json` — enumerate the supported tiers and what scaffolding each one
+  ships (index.html skeleton, boot module, asset loader).
+- `tools/scaffold.js` — tier-specific `src/` templates, so Canvas 2D games don't carry
+  Pixi deps and Pixi games don't reinvent sprite batching.
+- Retrofit existing games in a later pass if we want to bump them (chronoforge → Pixi
+  would be a real win).

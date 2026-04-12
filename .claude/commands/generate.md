@@ -1,60 +1,52 @@
 ---
 name: generate
-description: Simulate the full tech9 pipeline — Concept Generator → Director → scaffold — for a given game idea. Creates a game folder under games/ with CONCEPT.md, GAME_PLAN.md, and agent stubs.
+description: Run the tech9 pipeline — Concept Generator → Director → Scaffolder — for a given game idea. Usage: /generate "game idea"
 ---
 
-You are simulating the tech9 pipeline manually. The user has provided a game idea as the argument to this command.
+You are orchestrating the tech9 pipeline. Your job is to run each meta agent in sequence
+and hand off between them. You do not write game files yourself — the Scaffolder does that.
 
-Work through these steps in order:
+The meta agent prompts are in `meta/`. Read them before each step.
 
 ## Step 1 — Concept Generator
 
-Produce a `CONCEPT.md` for this game. Be specific and opinionated — make real decisions, don't hedge. Cover:
+Read `meta/01_concept-generator.md` and follow it exactly.
 
-- **Game summary** (1-2 sentences)
-- **Core loop** (what does the player do, moment to moment?)
-- **Target feel** (what emotion/sensation are we going for?)
-- **Scope constraints** (what's explicitly out of scope to keep this shippable?)
-- **Known unknowns** (what decisions are deferred to agents?)
+Input: `$ARGUMENTS` (the game idea the user provided)
+Output: `games/<game-slug>/concept.json` + `games/<game-slug>/CONCEPT.md`
+
+Do not proceed to Step 2 until the user confirms the concept.
 
 ## Step 2 — Director
 
-Read the concept you just wrote and assemble the right team. For each role in the vocabulary, decide: needed or not? Merge any roles that would obviously overlap for this game's complexity.
+Read `meta/02_director.md` and follow it exactly.
 
-Vocabulary to select from: `gamedesign`, `art`, `asset`, `level`, `audio`, `dev`, `qa`, `devops`, `release`, `postlaunch`
+Input: `games/<game-slug>/concept.json` + `vocab/roles/*.json`
+Output: `games/<game-slug>/team_config.json`
 
-Produce a `GAME_PLAN.md` with:
-- **Team** — which agents are active and why (or why a role was merged/skipped)
-- **Phase plan** — tailored to this specific game (not generic)
-- **Key decisions deferred to agents** — what the Director explicitly did not decide
+Show the user the team composition (active / merged / skipped) and the phase plan before writing.
+Ask: "Does this team and phase plan look right?" Do not proceed until confirmed.
 
-## Step 3 — Scaffold
+## Step 3 — Scaffolder
 
-Create the following structure under `games/[game-name]/`:
+Run the Scaffolder:
 
 ```
-games/[game-name]/
-├── CONCEPT.md
-├── GAME_PLAN.md
-└── agents/
-    └── [one .md stub per active agent]
+node tools/scaffold.js games/<game-slug>/team_config.json
 ```
 
-Each agent stub should contain:
-- Role name + one-line responsibility
-- Inputs (what they receive / read)
-- Outputs (what they produce)
-- Current phase goal
-- Any hard constraints from the concept
-
-**DevOps stub specifically must always include this sequencing:**
-1. Local dev server first — game must run on localhost before anything else
-2. QA plays on localhost — devops provides the "how to run locally" instructions
-3. Build pipeline — only after QA signs off
-4. Deploy — target and method are devops's call, decided after the game is playable
-
-This is non-negotiable regardless of game complexity.
+This generates:
+- `games/<game-slug>/GAME_PLAN.md`
+- `games/<game-slug>/agents/<role>.md` for each active role
+- `games/<game-slug>/src/index.html` skeleton (if dev active)
+- `games/<game-slug>/.claude/commands/run-art.md` (if art active)
+- `games/<game-slug>/sprites-manifest.json` (if art active)
 
 ## Step 4 — Confirm
 
-Print a short summary of what was generated and ask if anything should be revised before committing.
+Show the user:
+1. The file tree of what was generated (`ls -R games/<game-slug>/`)
+2. The wave execution order derived from active roles and their dependencies:
+   - Wave N: [role ids] — what each wave delivers
+
+Ask: "Ready to start Wave 1?" If yes, the user kicks off the relevant agents.

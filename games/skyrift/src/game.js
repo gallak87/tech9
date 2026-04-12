@@ -1022,6 +1022,7 @@ function drawPickups() {
     ctx.rotate(t * 2);   // slow spin
 
     if (imgs['pickup']) {
+      ctx.globalCompositeOperation = 'screen';
       ctx.globalAlpha = 0.85 + glow * 0.15;
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(imgs['pickup'], -p.halfW, -p.halfH, p.halfW * 2, p.halfH * 2);

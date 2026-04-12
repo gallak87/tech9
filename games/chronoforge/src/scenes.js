@@ -2,7 +2,7 @@
 // Battle and Base remain stubs (Phase 3, Phase 4).
 
 import { TILE, MAP_W, MAP_H, tileAt, CITIES, ENCOUNTERS, PLAYER_START } from './world.js';
-import { drawSprite } from './sprites.js';
+import { drawSprite, getSpriteVersion } from './sprites.js';
 
 const PALETTE = {
   bg: '#07060d', bgAlt: '#120a22',
@@ -78,6 +78,64 @@ const MOVE_COOLDOWN_MS = 140;
 const CAMERA_LERP = 0.18;
 
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+
+// --- offscreen tile atlas (whole world pre-rendered once; re-rendered on sprite load) ---
+let tileCanvas = null;
+let tileCanvasVersion = -1;
+
+function getTileCanvas() {
+  const version = getSpriteVersion();
+  if (!tileCanvas) {
+    tileCanvas = document.createElement('canvas');
+    tileCanvas.width = MAP_W * TILE;
+    tileCanvas.height = MAP_H * TILE;
+  }
+  if (tileCanvasVersion !== version) {
+    const ctx = tileCanvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, tileCanvas.width, tileCanvas.height);
+    for (let ty = 0; ty < MAP_H; ty++) {
+      for (let tx = 0; tx < MAP_W; tx++) {
+        const t = tileAt(tx, ty);
+        if (!t) continue;
+        drawSprite(ctx, t.t, tx * TILE, ty * TILE, TILE, TILE);
+      }
+    }
+    tileCanvasVersion = version;
+  }
+  return tileCanvas;
+}
+
+// --- fog alpha cache (recomputed only when explored-set size changes) ---
+let fogAlphaArr = null;       // Uint8Array of MAP_W*MAP_H, values 0..255
+let fogExploredSize = -1;
+
+function getFogAlphaArr(game) {
+  if (!fogAlphaArr) fogAlphaArr = new Uint8Array(MAP_W * MAP_H);
+  if (fogExploredSize !== game.explored.size) {
+    const exp = game.explored;
+    for (let ty = 0; ty < MAP_H; ty++) {
+      for (let tx = 0; tx < MAP_W; tx++) {
+        const here = exp.has(`${tx},${ty}`);
+        let n = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            if (exp.has(`${tx + dx},${ty + dy}`)) n++;
+          }
+        }
+        let a;
+        if (here && n === 8) a = 0;
+        else if (here) a = 56;      // 0.22 * 255
+        else if (n > 0) a = 140;    // 0.55 * 255
+        else a = 219;               // 0.86 * 255
+        fogAlphaArr[ty * MAP_W + tx] = a;
+      }
+    }
+    fogExploredSize = exp.size;
+  }
+  return fogAlphaArr;
+}
 
 export function partyRenderPos(game) {
   const p = game.party;
@@ -164,14 +222,16 @@ export function drawOverworld(ctx, game) {
   const lastTx = Math.min(MAP_W, Math.ceil((camX + w) / TILE) + 1);
   const lastTy = Math.min(MAP_H, Math.ceil((camY + h) / TILE) + 1);
 
-  for (let ty = firstTy; ty < lastTy; ty++) {
-    for (let tx = firstTx; tx < lastTx; tx++) {
-      const t = tileAt(tx, ty);
-      if (!t) continue;
-      const sx = Math.round(tx * TILE - camX);
-      const sy = Math.round(ty * TILE - camY);
-      drawSprite(ctx, t.t, sx, sy, TILE, TILE);
-    }
+  // blit visible slice of the pre-rendered tile atlas
+  const atlas = getTileCanvas();
+  const srcX = Math.max(0, camX);
+  const srcY = Math.max(0, camY);
+  const srcW = Math.min(atlas.width - srcX, w);
+  const srcH = Math.min(atlas.height - srcY, h);
+  if (srcW > 0 && srcH > 0) {
+    const dstX = Math.round(srcX - camX);
+    const dstY = Math.round(srcY - camY);
+    ctx.drawImage(atlas, srcX, srcY, srcW, srcH, dstX, dstY, srcW, srcH);
   }
 
   // cities (landmark sprites, larger than a tile) with pulsing ground glow
@@ -229,32 +289,21 @@ export function drawOverworld(ctx, game) {
 }
 
 function drawSoftFog(ctx, game, camX, camY, firstTx, firstTy, lastTx, lastTy) {
+  const arr = getFogAlphaArr(game);
+  let prev = -1;
   for (let ty = firstTy; ty < lastTy; ty++) {
     for (let tx = firstTx; tx < lastTx; tx++) {
-      const alpha = fogAlpha(game, tx, ty);
-      if (alpha <= 0) continue;
+      const a = arr[ty * MAP_W + tx];
+      if (a === 0) continue;
+      if (a !== prev) {
+        ctx.fillStyle = `rgba(7,6,13,${(a / 255).toFixed(3)})`;
+        prev = a;
+      }
       const sx = Math.round(tx * TILE - camX);
       const sy = Math.round(ty * TILE - camY);
-      ctx.fillStyle = `rgba(7,6,13,${alpha})`;
       ctx.fillRect(sx, sy, TILE + 1, TILE + 1);
     }
   }
-}
-
-function fogAlpha(game, tx, ty) {
-  const exp = game.explored;
-  const here = exp.has(`${tx},${ty}`);
-  let neighborsExplored = 0;
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
-      if (dx === 0 && dy === 0) continue;
-      if (exp.has(`${tx + dx},${ty + dy}`)) neighborsExplored++;
-    }
-  }
-  if (here && neighborsExplored === 8) return 0;          // fully interior — clear
-  if (here) return 0.22;                                   // explored edge — faint haze
-  if (neighborsExplored > 0) return 0.55;                  // one step out — dim
-  return 0.86;                                             // deep unknown
 }
 
 function drawOverworldHud(ctx, game) {

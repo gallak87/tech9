@@ -37,6 +37,12 @@ function hashColor(str) {
 }
 
 const cache = new Map();
+const placeholderCache = new Map(); // "name|w|h" -> HTMLCanvasElement
+
+// Bumps on every sprite load resolution (success or 404). Consumers that cache
+// composited layers (e.g. tile atlas) can watch this to know when to invalidate.
+let spriteVersion = 0;
+export function getSpriteVersion() { return spriteVersion; }
 
 export const spriteSettings = {
   forcePlaceholders: false,
@@ -61,6 +67,7 @@ export function getSprite(name, w, h) {
   cache.set(key, { img: null, loading: true });
   loadImage(`assets/${name}.png`).then((img) => {
     cache.set(key, { img, loading: false });
+    spriteVersion++;
   });
   return null;
 }
@@ -93,19 +100,28 @@ export function drawSprite(ctx, name, x, y, w, h, opts = {}) {
 }
 
 function drawPlaceholder(ctx, name, x, y, w, h) {
-  const color = hashColor(name);
-  ctx.fillStyle = color;
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
-  // only show letter on non-tiny sprites
-  if (w >= 24 && h >= 24) {
-    const letter = (name.match(/[a-z]/i) || ['?'])[0].toUpperCase();
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = `600 ${Math.floor(Math.min(w, h) * 0.5)}px system-ui, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(letter, x + w / 2, y + h / 2 + 1);
+  const key = `${name}|${w}|${h}`;
+  let canvas = placeholderCache.get(key);
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(w));
+    canvas.height = Math.max(1, Math.round(h));
+    const pctx = canvas.getContext('2d');
+    const color = hashColor(name);
+    pctx.fillStyle = color;
+    pctx.fillRect(0, 0, w, h);
+    pctx.strokeStyle = 'rgba(255,255,255,0.25)';
+    pctx.lineWidth = 1;
+    pctx.strokeRect(0.5, 0.5, w - 1, h - 1);
+    if (w >= 24 && h >= 24) {
+      const letter = (name.match(/[a-z]/i) || ['?'])[0].toUpperCase();
+      pctx.fillStyle = 'rgba(255,255,255,0.85)';
+      pctx.font = `600 ${Math.floor(Math.min(w, h) * 0.5)}px system-ui, sans-serif`;
+      pctx.textAlign = 'center';
+      pctx.textBaseline = 'middle';
+      pctx.fillText(letter, w / 2, h / 2 + 1);
+    }
+    placeholderCache.set(key, canvas);
   }
+  ctx.drawImage(canvas, x, y);
 }

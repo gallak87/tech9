@@ -33,6 +33,18 @@ export const menuState = {
   hoverCity: null,
 };
 
+function resetMapView(game) {
+  menuState.map.zoom = 1;
+  menuState.map.dragging = false;
+  if (game && game.party) {
+    menuState.map.cx = game.party.x * TILE + TILE / 2;
+    menuState.map.cy = game.party.y * TILE + TILE / 2;
+  } else {
+    menuState.map.cx = MAP_W * TILE / 2;
+    menuState.map.cy = MAP_H * TILE / 2;
+  }
+}
+
 const TAB_SLIDE_MS = 180;
 
 function setTab(next, game) {
@@ -71,6 +83,7 @@ export function handleMenuKey(key, game) {
     else if (k === 'd' || k === 'D') menuState.map.cx += pan;
     else if (k === '+' || k === '=') menuState.map.zoom = Math.min(2.5, menuState.map.zoom * 1.15);
     else if (k === '-' || k === '_') menuState.map.zoom = Math.max(0.3, menuState.map.zoom / 1.15);
+    else if (k === 'r' || k === 'R' || k === '0') resetMapView(game);
   }
   return true;
 }
@@ -78,6 +91,11 @@ export function handleMenuKey(key, game) {
 // --- mouse input ---
 export function handleMenuMouseDown(mx, my, game) {
   if (TABS[menuState.tab] === 'Map') {
+    const resetBtn = resetBtnRect(game);
+    if (pointInRect(mx, my, resetBtn)) {
+      resetMapView(game);
+      return true;
+    }
     const rect = mapRect(game);
     if (pointInRect(mx, my, rect)) {
       // click on a city?
@@ -196,7 +214,7 @@ export function drawMenu(ctx, game) {
   ctx.textAlign = 'center';
   ctx.fillStyle = PALETTE.dim;
   ctx.font = '400 11px ui-monospace, monospace';
-  ctx.fillText('[Q/E] tabs   [1-7] jump   [Esc/Tab] close   (Map: drag / WASD / wheel)', w / 2, frame.y + frame.h - 14);
+  ctx.fillText('[Q/E] tabs   [1-7] jump   [Esc/Tab] close   (Map: drag / WASD / wheel / R reset)', w / 2, frame.y + frame.h - 14);
 }
 
 function drawTabBody(ctx, game, name) {
@@ -373,6 +391,25 @@ function drawMapTab(ctx, game) {
   ctx.textBaseline = 'top';
   ctx.font = '400 11px ui-monospace, monospace';
   ctx.fillText(`zoom ${menuState.map.zoom.toFixed(2)}x   center (${(menuState.map.cx / TILE).toFixed(0)}, ${(menuState.map.cy / TILE).toFixed(0)})`, rect.x + 8, rect.y + 8);
+
+  // reset view button
+  const btn = resetBtnRect(game);
+  ctx.fillStyle = PALETTE.panel;
+  ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
+  ctx.strokeStyle = PALETTE.accent2;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(btn.x + 0.5, btn.y + 0.5, btn.w - 1, btn.h - 1);
+  ctx.fillStyle = PALETTE.accent2;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = '600 11px ui-monospace, monospace';
+  ctx.fillText('RESET VIEW [R]', btn.x + btn.w / 2, btn.y + btn.h / 2);
+}
+
+function resetBtnRect(game) {
+  const rect = mapRect(game);
+  const w = 130, h = 26;
+  return { x: rect.x + rect.w - w - 8, y: rect.y + rect.h - h - 8, w, h };
 }
 
 function tileMapColor(biome, type) {

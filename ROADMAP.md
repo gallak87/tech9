@@ -108,3 +108,55 @@ Flux always generates on solid black — no native transparency. Three options t
 - **Pipeline step** — `tools/sprite-postprocess.js` runs after gen, bakes clean PNGs to disk
 
 Chroma key (magenta bg) is also an option to make scrubbing more precise.
+
+---
+
+## Recurring per-game patch-outs (patch the framework, not the game)
+
+These are items we re-discover on every game (skyrift, void-sentinel, chronoforge all hit them).
+When the Concept Generator / Director / Scaffolder move from Claude-in-inference to real code,
+bake these in as defaults so games don't have to re-derive them.
+
+### 1. Screen-blend sprite compositing
+
+Because flux outputs solid black backgrounds, every game's `drawSprite` helper needs
+`ctx.globalCompositeOperation = 'screen'` for non-tile sprites. Otherwise you get visible
+black rectangles around every sprite against dark scenes.
+
+- **Where to patch:** the `dev` role's scaffolded sprite-loader template (or whatever
+  reusable sprite module the devops/dev agent ships).
+- **Default contract:** `drawSprite(ctx, name, x, y, w, h, { blend })`. Auto-apply `'screen'`
+  for non-`tile_` prefixed sprites unless caller overrides. Also set
+  `ctx.imageSmoothingEnabled = false` inside the blend block to keep pixel crunch.
+- Reference impls: `games/skyrift/src/game.js` drawSprite, now
+  `games/chronoforge/src/sprites.js` drawSprite.
+
+### 2. Sprite fidelity prompt contract
+
+The art agent's default prompt scaffolding on the first two games was too terse and produced
+low-detail sprites — lots of flat silhouettes, no shading, no glow. The fix is to bake richer
+language into the art role's default `style_prefix` and per-sprite prompt template.
+
+- **Style prefix must include:** `pure black background (#000000)`, `detailed shading with
+  rim light`, `soft glow halo around neon elements`, `chunky pixel highlights`, `gradient
+  dithering on volumes`, `crisp readable silhouette centered in frame`, `no text, no
+  watermark, no border frame`.
+- **Per-sprite prompt must describe:** silhouette + pose, **lighting direction / rim-light
+  source**, **material reads** (matte/metallic/fabric), **accent glow colors**, and framing
+  ("centered on black").
+- **Minimum useful dimensions:** battle sprites ≥ 96px, portraits ≥ 144px, city/landmark
+  illustrations ≥ 192×144. Icons/tiles can stay 24–40px. Below those sizes, sips downscale
+  destroys the detail flux produces.
+- **Where to patch:** the `art` role's stub template + `sprites-manifest.json` scaffolder in
+  `tools/scaffold.js`. Also extend `capabilities/image-gen.md` with the fidelity checklist.
+
+### 3. Scrollable-map overlays need a reset-view control
+
+Any menu/map with pan + zoom needs a "reset view" affordance from day one — pan/zoom gets
+stuck off-screen and users can't recover without a hotkey + visible button. Trivial to add,
+easy to forget.
+
+- **Where to patch:** the `gamedesign` role's UX checklist for any overlay that supports
+  pan/zoom. The dev role's menu template should ship with a `resetView()` helper and a
+  keybound visible button.
+- **Default keybind:** `R` or `0`. Button label: `RESET VIEW [R]`.

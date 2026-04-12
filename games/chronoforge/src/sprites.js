@@ -65,10 +65,28 @@ export function getSprite(name, w, h) {
   return null;
 }
 
-export function drawSprite(ctx, name, x, y, w, h) {
+// Sprites whose prefix starts with one of these are treated as opaque and
+// drawn with normal compositing. Everything else gets `screen` blend so the
+// flux-generated black background drops out over dark scenes.
+const OPAQUE_PREFIXES = ['tile_'];
+
+function useScreenBlend(name) {
+  return !OPAQUE_PREFIXES.some(p => name.startsWith(p));
+}
+
+export function drawSprite(ctx, name, x, y, w, h, opts = {}) {
   const img = getSprite(name, w, h);
   if (img) {
-    ctx.drawImage(img, x, y, w, h);
+    const blend = opts.blend || (useScreenBlend(name) ? 'screen' : 'source-over');
+    if (blend !== 'source-over') {
+      ctx.save();
+      ctx.globalCompositeOperation = blend;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(img, x, y, w, h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(img, x, y, w, h);
+    }
     return;
   }
   drawPlaceholder(ctx, name, x, y, w, h);

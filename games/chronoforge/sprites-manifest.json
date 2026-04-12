@@ -1,7 +1,7 @@
 {
   "model": "x/flux2-klein:latest",
   "host": "http://localhost:11434",
-  "style_prefix": "pixel art game sprite, clean silhouette, neon synthwave post-apocalyptic sci-fi, limited palette of deep violet/indigo with magenta/cyan/yellow accents, no background (transparent or pure black), Chrono Trigger meets Hyper Light Drifter",
+  "style_prefix": "pixel art game sprite, pure black background (#000000), neon synthwave post-apocalyptic sci-fi, deep violet and indigo base with glowing magenta / cyan / amber yellow accents, detailed shading with rim light, soft glow halo around neon elements, chunky pixel highlights, gradient dithering on volumes, metallic material reads, crisp readable silhouette centered in frame, no text, no watermark, no border frame, Chrono Trigger meets Hyper Light Drifter meets Signalis",
   "sprites": [
     { "name": "kaida_overworld", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overworld sprite, young woman warrior with short magenta hair sweep, pulse-blade on back, cyan jacket + dark leggings, tiny 3/4 top-down view, crisp silhouette", "out": "src/assets/kaida_overworld.png" },
     { "name": "vex_overworld", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overworld sprite, tall hooded mystic in dark cloak with cyan chrono-glyphs glowing on hem, chrono-staff, 3/4 top-down view", "out": "src/assets/vex_overworld.png" },

@@ -18,6 +18,9 @@ const PALETTE = {
 export const menuState = {
   open: false,
   tab: 0,
+  prevTab: 0,
+  tabChangeTime: -9999,
+  tabDir: 1,
   // map tab view state
   map: {
     zoom: 1,
@@ -30,6 +33,16 @@ export const menuState = {
   hoverCity: null,
 };
 
+const TAB_SLIDE_MS = 180;
+
+function setTab(next, game) {
+  if (next === menuState.tab) return;
+  menuState.prevTab = menuState.tab;
+  menuState.tabDir = next > menuState.tab ? 1 : -1;
+  menuState.tab = next;
+  menuState.tabChangeTime = game ? game.time : performance.now();
+}
+
 export function openMenu() { menuState.open = true; }
 export function closeMenu() { menuState.open = false; menuState.map.dragging = false; }
 export function toggleMenu() { menuState.open ? closeMenu() : openMenu(); }
@@ -38,15 +51,15 @@ export function toggleMenu() { menuState.open ? closeMenu() : openMenu(); }
 export function handleMenuKey(key, game) {
   const k = key;
   if (k === 'ArrowLeft' || k === 'q' || k === 'Q') {
-    menuState.tab = (menuState.tab - 1 + TABS.length) % TABS.length;
+    setTab((menuState.tab - 1 + TABS.length) % TABS.length, game);
     return true;
   }
   if (k === 'ArrowRight' || k === 'e' || k === 'E') {
-    menuState.tab = (menuState.tab + 1) % TABS.length;
+    setTab((menuState.tab + 1) % TABS.length, game);
     return true;
   }
   if (/^[1-7]$/.test(k)) {
-    menuState.tab = parseInt(k, 10) - 1;
+    setTab(parseInt(k, 10) - 1, game);
     return true;
   }
   // Map tab panning via WASD when on Map tab
@@ -90,7 +103,7 @@ export function handleMenuMouseDown(mx, my, game) {
   const tabRects = tabBarRects(game);
   for (let i = 0; i < tabRects.length; i++) {
     if (pointInRect(mx, my, tabRects[i])) {
-      menuState.tab = i;
+      setTab(i, game);
       return true;
     }
   }
@@ -155,9 +168,39 @@ export function drawMenu(ctx, game) {
     ctx.fillText(`${i + 1}. ${name}`, r.x + r.w / 2, r.y + r.h / 2);
   });
 
-  // body
-  const tab = TABS[menuState.tab];
-  switch (tab) {
+  // body (with slide transition on tab change)
+  const slideT = Math.min(1, (game.time - menuState.tabChangeTime) / TAB_SLIDE_MS);
+  if (slideT < 1) {
+    const eased = 1 - Math.pow(1 - slideT, 3);
+    const slideDist = frame.w * 0.12;
+    const fadeOut = 1 - eased;
+    const offsetOut = eased * slideDist * menuState.tabDir;
+    const offsetIn = (1 - eased) * slideDist * menuState.tabDir * -1;
+    // outgoing tab fades out + drifts
+    ctx.save();
+    ctx.globalAlpha = fadeOut;
+    ctx.translate(offsetOut, 0);
+    drawTabBody(ctx, game, TABS[menuState.prevTab]);
+    ctx.restore();
+    // incoming tab fades in + drifts into place
+    ctx.save();
+    ctx.globalAlpha = eased;
+    ctx.translate(offsetIn, 0);
+    drawTabBody(ctx, game, TABS[menuState.tab]);
+    ctx.restore();
+  } else {
+    drawTabBody(ctx, game, TABS[menuState.tab]);
+  }
+
+  // footer hint
+  ctx.textAlign = 'center';
+  ctx.fillStyle = PALETTE.dim;
+  ctx.font = '400 11px ui-monospace, monospace';
+  ctx.fillText('[Q/E] tabs   [1-7] jump   [Esc/Tab] close   (Map: drag / WASD / wheel)', w / 2, frame.y + frame.h - 14);
+}
+
+function drawTabBody(ctx, game, name) {
+  switch (name) {
     case 'Map': drawMapTab(ctx, game); break;
     case 'Party': drawStubTab(ctx, game, 'PARTY', 'Hero portraits, HP/MP/XP bars, stats — wires up in Phase 5.'); break;
     case 'Inventory': drawStubTab(ctx, game, 'INVENTORY', 'Owned items + equip slots with stat-diff preview — wires up in Phase 5.'); break;
@@ -166,12 +209,6 @@ export function drawMenu(ctx, game) {
     case 'Save': drawStubTab(ctx, game, 'SAVE', 'localStorage save/load/delete — wires up in Phase 5.'); break;
     case 'Settings': drawSettingsTab(ctx, game); break;
   }
-
-  // footer hint
-  ctx.textAlign = 'center';
-  ctx.fillStyle = PALETTE.dim;
-  ctx.font = '400 11px ui-monospace, monospace';
-  ctx.fillText('[Q/E] tabs   [1-7] jump   [Esc/Tab] close   (Map: drag / WASD / wheel)', w / 2, frame.y + frame.h - 14);
 }
 
 function drawStubTab(ctx, game, title, body) {

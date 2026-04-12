@@ -6,6 +6,7 @@
   "inputs": [
     { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Scope constraints, number of levels, genre" },
     { "source": "game_plan", "artifact": "GAME_PLAN.md", "required": true, "notes": "Phase ordering — when level data is needed" },
+    { "source": "role:gamedesign", "artifact": "agents/gamedesign.md output", "required": true, "notes": "Mechanics spec — enemy behaviors, scoring rules, player constraints that level geometry must support" },
     { "source": "role:dev", "artifact": "agents/dev.md output", "required": true, "notes": "Level data format the engine expects (schema for platforms, enemies, start/exit)" }
   ],
   "outputs": [
@@ -18,7 +19,7 @@
       "description": "Human-readable layout for review before coding starts. Accompanies the data file."
     }
   ],
-  "dependencies": ["dev"],
+  "dependencies": ["gamedesign", "dev"],
   "merge": {
     "candidates": ["gamedesign"],
     "merge_when": "Single linear level — game designer can define level structure inline with the mechanics doc.",

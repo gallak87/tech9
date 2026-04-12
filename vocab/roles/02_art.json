@@ -4,7 +4,8 @@
   "category": "creative",
   "responsibility": "Defines the visual language of the game — style, palette, grid/sprite dimensions, UI layout direction, feedback specs. Does not produce assets; produces the spec that asset artist consumes. When merged with asset, owns both the direction and the production.",
   "inputs": [
-    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Target feel, genre, scope constraints" }
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Target feel, genre, scope constraints" },
+    { "source": "role:gamedesign", "artifact": "agents/gamedesign.md output", "required": true, "notes": "Mechanics and state machine — visual direction should reflect what the game does" }
   ],
   "outputs": [
     {
@@ -12,7 +13,7 @@
       "description": "Visual spec: style decision, color palette, sprite/grid dimensions, feedback specs (death, score, win). Consumed by asset and dev."
     }
   ],
-  "dependencies": [],
+  "dependencies": ["gamedesign"],
   "merge": {
     "candidates": ["asset"],
     "merge_when": "Simple game where one agent can decide the look and produce all assets. Art Director and Asset Artist merged into a single 'art' agent.",

@@ -14,7 +14,7 @@
     { "artifact": "src/game.js", "description": "All game logic — engine loop, state machine, entities, physics, input, rendering, HUD." },
     { "artifact": "agents/dev.md output", "description": "Data format contracts consumed by level (platform/enemy schema) and asset (sprite dimensions, file format)." }
   ],
-  "dependencies": [],
+  "dependencies": ["gamedesign"],
   "merge": {
     "merge_when": "Never merged — dev is always a standalone role.",
     "split_when": "Engine complexity warrants splitting (e.g. separate physics engine, networking layer, or multiple platform targets)."

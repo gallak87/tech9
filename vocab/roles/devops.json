@@ -1,0 +1,23 @@
+{
+  "id": "devops",
+  "name": "DevOps",
+  "category": "engineering",
+  "responsibility": "Owns the full delivery pipeline: local dev server → build → CI/CD → deployment. Localhost always comes first — the game must run locally before any build or deploy step is attempted. Chooses the tech stack for serving, building, and hosting. DevOps sign-off on localhost is required before QA can run.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Scope — informs deploy target (GitHub Pages, itch.io, Netlify, etc.)" },
+    { "source": "role:dev", "artifact": "src/index.html", "required": true, "notes": "Entry point — must confirm it serves correctly on localhost" }
+  ],
+  "outputs": [
+    {
+      "artifact": "agents/devops.md output",
+      "description": "How to run the local dev server (command, URL, any setup steps). Build pipeline config. Deploy target and URL once live."
+    }
+  ],
+  "dependencies": ["dev"],
+  "merge": {
+    "candidates": ["release"],
+    "merge_when": "Simple deploy — static site on GitHub Pages or itch.io where DevOps and Release are the same one-step process.",
+    "split_when": "Release involves store page copy, screenshots, changelog, or a separate launch checklist beyond just deploying."
+  },
+  "prompt_template": "# Agent: devops\n**Responsibility:** Own the delivery pipeline for {{game_name}} — localhost first, then build, then deploy.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Hard Constraints\nLocalhost always comes first. The sequence is always: local dev server → QA signs off → build → deploy. Never deploy before QA has passed on localhost.\n\n{{hard_constraints}}"
+}

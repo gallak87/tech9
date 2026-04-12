@@ -1,0 +1,23 @@
+{
+  "id": "dev",
+  "name": "Dev",
+  "category": "engineering",
+  "responsibility": "Builds and owns all game code — engine, physics, collision, state machine, rendering, HUD, input handling. The authoritative source for what the engine can and cannot do. Defines the data formats that level and asset must conform to. Vanilla JS + HTML5 Canvas is the default stack unless the concept explicitly requires otherwise.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Core loop, controls, scope constraints, known unknowns" },
+    { "source": "game_plan", "artifact": "GAME_PLAN.md", "required": true, "notes": "Phase order, what's decided vs deferred" },
+    { "source": "role:art", "artifact": "agents/art.md output", "required": false, "notes": "Sprite/grid dimensions needed before rendering code is written" },
+    { "source": "role:level", "artifact": "src/level.js", "required": false, "notes": "Level data format — dev defines the schema, level populates it" }
+  ],
+  "outputs": [
+    { "artifact": "src/index.html", "description": "Entry point. Game must run on localhost from this file with no build step." },
+    { "artifact": "src/game.js", "description": "All game logic — engine loop, state machine, entities, physics, input, rendering, HUD." },
+    { "artifact": "agents/dev.md output", "description": "Data format contracts consumed by level (platform/enemy schema) and asset (sprite dimensions, file format)." }
+  ],
+  "dependencies": [],
+  "merge": {
+    "merge_when": "Never merged — dev is always a standalone role.",
+    "split_when": "Engine complexity warrants splitting (e.g. separate physics engine, networking layer, or multiple platform targets)."
+  },
+  "prompt_template": "# Agent: dev\n**Responsibility:** Build and own all game code for {{game_name}}.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Hard Constraints\n{{hard_constraints}}"
+}

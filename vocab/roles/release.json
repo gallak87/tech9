@@ -1,0 +1,24 @@
+{
+  "id": "release",
+  "name": "Release",
+  "category": "shipping",
+  "responsibility": "Owns versioning, changelogs, store page copy and assets, and the launch checklist. Runs after QA pass and before the public deploy. Ensures the game is presented correctly at launch — title, description, screenshots, tags. Does not touch code.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Game summary and feel — source of truth for store copy" },
+    { "source": "role:qa", "artifact": "agents/qa.md output", "required": true, "notes": "QA must have passed before release work begins" },
+    { "source": "role:devops", "artifact": "agents/devops.md output", "required": true, "notes": "Deploy target — determines what release artifacts are needed (itch.io page vs GitHub Pages vs other)" }
+  ],
+  "outputs": [
+    {
+      "artifact": "agents/release.md output",
+      "description": "Version tag, changelog, store page copy (title, description, tags), screenshot list, launch checklist. Consumed by devops for final deploy."
+    }
+  ],
+  "dependencies": ["qa", "devops"],
+  "merge": {
+    "candidates": ["devops"],
+    "merge_when": "Simple deploy where 'release' is just tagging a version and pushing — no store page, no copy, no checklist beyond what devops already does.",
+    "split_when": "Launch involves a store page, marketing copy, screenshots, or a multi-step checklist."
+  },
+  "prompt_template": "# Agent: release\n**Responsibility:** Prepare {{game_name}} for public launch — versioning, copy, checklist.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Hard Constraints\n{{hard_constraints}}"
+}

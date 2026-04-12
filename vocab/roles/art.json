@@ -1,0 +1,22 @@
+{
+  "id": "art",
+  "name": "Art Director",
+  "category": "creative",
+  "responsibility": "Defines the visual language of the game — style, palette, grid/sprite dimensions, UI layout direction, feedback specs. Does not produce assets; produces the spec that asset artist consumes. When merged with asset, owns both the direction and the production.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Target feel, genre, scope constraints" }
+  ],
+  "outputs": [
+    {
+      "artifact": "agents/art.md output",
+      "description": "Visual spec: style decision, color palette, sprite/grid dimensions, feedback specs (death, score, win). Consumed by asset and dev."
+    }
+  ],
+  "dependencies": [],
+  "merge": {
+    "candidates": ["asset"],
+    "merge_when": "Simple game where one agent can decide the look and produce all assets. Art Director and Asset Artist merged into a single 'art' agent.",
+    "split_when": "Asset volume is high enough that direction and production benefit from separation — Art Director sets the bar, Asset Artist executes."
+  },
+  "prompt_template": "# Agent: art\n**Responsibility:** Define the visual language for {{game_name}}.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Constraints\n{{hard_constraints}}"
+}

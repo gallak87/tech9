@@ -1,0 +1,28 @@
+{
+  "id": "level",
+  "name": "Level Designer",
+  "category": "creative",
+  "responsibility": "Designs world layout, level structure, platform geometry, enemy placement, and pacing through space. Produces data the engine loads directly — not prose, not diagrams alone, but a concrete level data structure. Owns the difficulty curve and the player's spatial journey.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Scope constraints, number of levels, genre" },
+    { "source": "game_plan", "artifact": "GAME_PLAN.md", "required": true, "notes": "Phase ordering — when level data is needed" },
+    { "source": "role:dev", "artifact": "agents/dev.md output", "required": true, "notes": "Level data format the engine expects (schema for platforms, enemies, start/exit)" }
+  ],
+  "outputs": [
+    {
+      "artifact": "src/level.js (or level.json)",
+      "description": "Level data object: platform rects, enemy list, player start, exit position, level dimensions. Dropped directly into src/ by dev."
+    },
+    {
+      "artifact": "ASCII level diagram",
+      "description": "Human-readable layout for review before coding starts. Accompanies the data file."
+    }
+  ],
+  "dependencies": ["dev"],
+  "merge": {
+    "candidates": ["gamedesign"],
+    "merge_when": "Single linear level — game designer can define level structure inline with the mechanics doc.",
+    "split_when": "Level has non-linear paths, multiple rooms/zones, or difficulty curve complex enough to warrant dedicated design work."
+  },
+  "prompt_template": "# Agent: level\n**Responsibility:** Design the level(s) for {{game_name}} — geometry, enemies, pacing.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Hard Constraints\n{{hard_constraints}}"
+}

@@ -1,0 +1,23 @@
+{
+  "id": "qa",
+  "name": "QA",
+  "category": "engineering",
+  "responsibility": "Owns test plans, bug reports, regression checks, and playtest notes. Runs after every dev session before anything is deployed. Signs off on localhost before the build pipeline runs. The blocker between dev output and deployment — QA pass is required, not optional.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Core loop and scope — defines what 'working correctly' means" },
+    { "source": "role:dev", "artifact": "src/index.html", "required": true, "notes": "The game running on localhost — QA plays it" },
+    { "source": "role:devops", "artifact": "agents/devops.md output", "required": true, "notes": "How to run the local server, what URL to hit" }
+  ],
+  "outputs": [
+    {
+      "artifact": "agents/qa.md output (QA report)",
+      "description": "Bug list with reproduction steps, severity, and status. Pass/fail verdict for current phase. Consumed by dev for fixes and devops for deploy gate."
+    }
+  ],
+  "dependencies": ["dev", "devops"],
+  "merge": {
+    "merge_when": "Never merged — QA must be independent from dev to catch what dev misses.",
+    "split_when": "N/A — QA is always a single role."
+  },
+  "prompt_template": "# Agent: qa\n**Responsibility:** Test {{game_name}} and produce a clear pass/fail verdict before deployment.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Hard Constraints\n{{hard_constraints}}"
+}

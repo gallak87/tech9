@@ -1,0 +1,22 @@
+{
+  "id": "gamedesign",
+  "name": "Game Designer",
+  "category": "creative",
+  "responsibility": "Owns mechanics, systems, core loop, balance, and progression rules. Defines how the game feels to play — not how it looks or sounds. Produces the game design spec that dev, level, and art all build from. The authoritative source for 'how does X work?'",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Core loop, target feel, scope constraints, known unknowns" }
+  ],
+  "outputs": [
+    {
+      "artifact": "agents/gamedesign.md output",
+      "description": "Game design spec: mechanics definitions, state machine, scoring rules, entity behaviors, balance parameters. Consumed by dev and level."
+    }
+  ],
+  "dependencies": [],
+  "merge": {
+    "candidates": ["level"],
+    "merge_when": "Single linear level with no special mechanics — game designer can define level structure inline with the mechanics doc.",
+    "split_when": "Level complexity warrants its own agent (non-linear layout, multiple level types, procedural generation)."
+  },
+  "prompt_template": "# Agent: gamedesign\n**Responsibility:** Own the mechanics, core loop, and balance rules for {{game_name}}.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Hard Constraints\n{{hard_constraints}}"
+}

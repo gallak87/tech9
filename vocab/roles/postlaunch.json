@@ -1,0 +1,24 @@
+{
+  "id": "postlaunch",
+  "name": "Post-Launch",
+  "category": "shipping",
+  "responsibility": "Owns player support, incident response, dependency updates, and hotfixes after the game is live. Monitors for broken deploys, responds to bug reports, and decides what warrants a patch. Optional until something is shipped.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Scope — what was shipped, what was deliberately deferred" },
+    { "source": "role:release", "artifact": "agents/release.md output", "required": true, "notes": "What version is live, what the changelog says" },
+    { "source": "external", "artifact": "Player bug reports / incident signals", "required": false, "notes": "GitHub issues, itch.io comments, or other player feedback channels" }
+  ],
+  "outputs": [
+    {
+      "artifact": "agents/postlaunch.md output",
+      "description": "Incident log, hotfix decisions (ship vs defer), dependency update status. Feeds back into dev for patches."
+    }
+  ],
+  "dependencies": ["release"],
+  "merge": {
+    "candidates": ["release"],
+    "merge_when": "Post-launch is just 'watch for breakage' — can be folded into the release agent for simple projects.",
+    "split_when": "Ongoing player support, regular updates, or incident response warrants its own dedicated role."
+  },
+  "prompt_template": "# Agent: postlaunch\n**Responsibility:** Monitor and maintain {{game_name}} after launch.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Hard Constraints\n{{hard_constraints}}"
+}

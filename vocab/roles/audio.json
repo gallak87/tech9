@@ -1,0 +1,22 @@
+{
+  "id": "audio",
+  "name": "Audio Designer",
+  "category": "creative",
+  "responsibility": "Defines sound effects direction, music tone, and audio implementation notes. Produces an audio spec and, where tooling allows, actual audio assets. Scope is always scoped to what's in v1 — audio is frequently deferred entirely for simple games.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Target feel, scope constraints — audio may be explicitly out of scope" },
+    { "source": "role:dev", "artifact": "agents/dev.md output", "required": false, "notes": "Web Audio API constraints, what events need SFX hooks" }
+  ],
+  "outputs": [
+    {
+      "artifact": "agents/audio.md output",
+      "description": "Audio spec: per-event SFX direction, music tone/loop notes, implementation guidance for dev. Or a single-line 'audio is out of scope for v1' if deferred."
+    }
+  ],
+  "dependencies": [],
+  "merge": {
+    "merge_when": "Audio is in scope but simple — one agent can write the spec and produce basic SFX.",
+    "split_when": "Audio warrants dedicated composition or a separate sound design pass."
+  },
+  "prompt_template": "# Agent: audio\n**Responsibility:** Define the audio direction for {{game_name}}.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Constraints\n{{hard_constraints}}"
+}

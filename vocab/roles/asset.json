@@ -1,0 +1,24 @@
+{
+  "id": "asset",
+  "name": "Asset Artist",
+  "category": "creative",
+  "responsibility": "Produces all visual assets — sprites, tilesets, animations, environment art — working strictly from the Art Director's spec. Does not make style decisions. Outputs files that dev drops directly into src/assets/ with no modification.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Scope constraints — what's in/out of v1" },
+    { "source": "role:art", "artifact": "agents/art.md output", "required": true, "notes": "Visual spec — style, palette, dimensions. Do not deviate." },
+    { "source": "role:dev", "artifact": "agents/dev.md output", "required": false, "notes": "Confirm sprite dimensions and file format expected by the engine" }
+  ],
+  "outputs": [
+    {
+      "artifact": "src/assets/*.png (or equivalent)",
+      "description": "All game sprites and tiles at the dimensions specified by art director. Consumed directly by dev."
+    }
+  ],
+  "dependencies": ["art"],
+  "merge": {
+    "candidates": ["art"],
+    "merge_when": "Art direction and asset production handled by one agent — typical for small games.",
+    "split_when": "Art Director's spec is a standalone deliverable that another person or process executes."
+  },
+  "prompt_template": "# Agent: asset\n**Responsibility:** Produce all visual assets for {{game_name}} from the art director's spec.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Hard Constraints\n{{hard_constraints}}"
+}

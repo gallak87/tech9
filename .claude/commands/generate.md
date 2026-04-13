@@ -42,11 +42,16 @@ This generates:
 - `games/<game-slug>/.claude/commands/run-art.md` (if art active)
 - `games/<game-slug>/sprites-manifest.json` (if art active)
 
-## Step 4 — Confirm
+## Step 4 — Confirm and hand off
 
 Show the user:
 1. The file tree of what was generated (`ls -R games/<game-slug>/`)
-2. The wave execution order derived from active roles and their dependencies:
-   - Wave N: [role ids] — what each wave delivers
+2. The phase execution order — each phase, which agents are in it, what it delivers
 
-Ask: "Ready to start Wave 1?" If yes, the user kicks off the relevant agents.
+Then say exactly:
+
+> Team is assembled. Say **let's go** to kick off Phase 1.
+
+When the user says "let's go" (or equivalent), run the agents for Phase 1 in order.
+For parallel phases, run those agents concurrently. Continue phase by phase, pausing
+after each one for the user to play the build and confirm before proceeding.

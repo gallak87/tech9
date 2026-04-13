@@ -25,26 +25,36 @@ Run: `node tools/probe.js`
 
 ## Standard workflow (Ollama available)
 
-1. Read `games/<game>/sprites-manifest.json` to see current prompts
-2. Generate sprites — all at once or one at a time:
-   ```
-   node tools/sprite-gen.js games/<game>/sprites-manifest.json
-   node tools/sprite-gen.js games/<game>/sprites-manifest.json --sprite <name>
-   ```
-3. Read the generated PNG(s) to show the user what was produced
-4. If the user wants changes, update the prompt in the manifest and regenerate that sprite
+For each sprite category in the manifest:
+
+1. Generate one proof sprite for the category
+2. Read the output PNG — self-review against the style spec:
+   - Correct palette / tone for this game?
+   - Silhouette readable at target size?
+   - No watermark, border frame, or off-prompt elements?
+3. If it passes: generate the remaining sprites in the category and continue
+4. If it fails: revise the prompt and retry (max 2 attempts)
+5. If still failing after 2 attempts: surface both attempts to the user and wait for direction
+
+Do not batch-generate a full category before reviewing the proof. Do not ask the user
+to approve every sprite — only surface when blocked.
+
+```
+node tools/sprite-gen.js games/<game>/sprites-manifest.json
+node tools/sprite-gen.js games/<game>/sprites-manifest.json --sprite <name>
+```
 
 ## Prompt guidance
 
 See `capabilities/image-gen.md` for prompt best practices. Key points:
 - Always include: `pixel art`, `black background`, `retro` genre term, `crisp limited palette`
 - Describe silhouette first — that's what reads at small sizes
-- For tiles: add `seamless`, `no border`
+- For tiles: add `seamless`, `no vignette`, `no dark border at edges`
 
 ## Starting this session
 
 If the user typed `/run-art` or `/run-art <game>` with no other instruction:
 1. Probe capabilities
 2. Read the manifest
-3. Generate all sprites (or describe all sprites in fallback mode)
-4. Show results and ask what they want to change
+3. Run the proof → self-review → batch loop for all categories
+4. Report what was generated when done; surface any blocked categories

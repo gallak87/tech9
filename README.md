@@ -2,11 +2,11 @@
 
 An indie game studio that runs on Claude subagents.
 
-You give it a game idea. It assembles a team of specialized agents — designer, artist, dev, QA, audio, devops — scoped exactly to what that game needs. The agents build the game. You play it.
+You give it a game idea. It builds the game.
 
 ---
 
-## Games built with tech9
+## Games
 
 | Game | Status | Play |
 |------|--------|------|
@@ -21,124 +21,120 @@ You give it a game idea. It assembles a team of specialized agents — designer,
 ## How it works
 
 ```
-You: "snake but the snake is a train"
-        │
-        ▼
-Concept Generator  →  CONCEPT.md       (what are we building?)
-        │
-        ▼
-Director           →  GAME_PLAN.md     (which agents, in what order?)
-        │
-        ▼
-Agents             →  agents/*.md      (scoped stubs per role)
-        │
-        ▼
-Agents build the game, phase by phase
+  your idea
+      │
+      ▼
+  Concept Generator ── CONCEPT.md ── [ confirm ]
+      │
+      ▼
+  Director ── GAME_PLAN.md ── [ confirm roster + phases ]
+      │
+      ▼
+  Agents build, phase by phase
+      │
+      ▼
+  play it on localhost → ship
 ```
-
-Each agent owns a loop — it runs, self-reviews, and only surfaces to you when blocked.
-Slash commands are interrupt points, not triggers.
 
 ---
 
 ## Quickstart
 
-**1. Write a one-paragraph pitch.**
-Use a cheap model (Haiku works) to sharpen your idea into a tight paragraph before you start. Vague input = vague concept.
+Sharpen your idea into a tight paragraph first — vague input = vague game. Use a cheap model (Haiku works) to get there fast.
 
-**2. Run the pipeline.**
 ```
 /generate "your one-paragraph pitch"
 ```
-The Concept Generator drafts `CONCEPT.md`. Review it, push back, iterate until it's right — this is the most important gate. Once you agree, the Director picks the agent roster and presents it for confirmation:
+
+**Gate 1 — concept.** The Concept Generator drafts `CONCEPT.md` and stops. Read it, push back, cut scope. Don't proceed until it's right.
+
+**Gate 2 — roster.** The Director proposes a team and stops:
 
 ```
-Team (6 active):
+  Team (6 active):
 
   Active  Role        Why
   ──────────────────────────────────────────────────────────────
   ✓       gamedesign  ATB math, skill trees, economy balance
-  ✓       art         Visual style + all sprite production via Ollama
-  ✓       audio       SFX variants + stinger cues = real work
-  ✓       dev         Engine, battle system, base management, menus
-  ✓       devops      Localhost + deploy (absorbs release)
-  ✓       historian   Post-phase learnings → feeds future gens
+  ✓       art         Visual style + sprite gen via Ollama
+  ✓       audio       SFX variants + stinger cues
+  ✓       dev         Engine, battle system, menus
+  ✓       devops      Localhost + deploy
+  ✓       historian   Learnings → feed future gens
   ✗       asset       Merged into art
-  ✗       level       Skipped — handcrafted map supplied by user
+  ✗       level       Skipped — handcrafted map
   ✗       postlaunch  Out of scope
 
-  8 phases: Scaffold → Design (parallel) → Overworld → Battle →
+  8 phases: Scaffold → Design → Overworld → Battle →
             Base → Progression → Polish → Ship
 
   Does this team and phase plan look right?
 ```
 
-Confirm, adjust, or push back — then the agents start building phase by phase.
+Confirm → agents start. Each phase ends with a playable localhost build.
 
-**3. Image generation (optional).**
-Agents call `/run-art` internally when they need sprites. This requires Ollama running locally with a Flux model:
+---
+
+## Image gen
+
+Agents call `/run-art` internally. Requires Ollama with a Flux model:
+
 ```bash
 ollama run x/flux2-klein
 ```
-If Ollama isn't available the art agent falls back to placeholder sprites — colored shapes with labels. The game is fully playable either way; real sprites swap in when gen is available.
 
-**4. Watch the agents run.**
-Each phase ends with a deployable build. The devops agent serves it on localhost so you can play it before anything ships.
+No Ollama → agents fall back to placeholder sprites. Game is fully playable either way.
 
 ---
 
-## Between phases — the iteration loop
+## Between phases
 
-After each phase completes:
+This is where the game gets made. Agents surface decisions — answer them, iterate, get it right here rather than coming back later.
 
-- **Play the build.** Does it feel right? Note anything broken or off.
-- **Commit what's done.** Each phase should be a clean commit. Don't carry forward broken state.
-- **Unblock agents.** If an agent surfaced a decision (ambiguous mechanic, art direction call, UX layout), answer it before the next phase starts.
-- **Interrupt if needed.** Slash commands let you reach into a running agent:
+You control the commit/push cadence. Agents won't do it for you. When a phase feels solid:
 
-| Command | What it does |
-|---------|-------------|
-| `/run-<agent>` | Start or resume that agent's loop |
-| `/proof-<agent>` | Pause after the next proof unit, show it, wait for input |
-| `/status-<agent>` | Report loop position without interrupting |
-| `/reset-<agent>` | Restart that agent from scratch |
+```
+  phase done
+      │
+      ├── play the build on localhost
+      ├── iterate — push back on anything that feels off
+      ├── commit when it's right
+      └── tell it to continue → next phase
+```
 
-Game-specific variants (`/run-art:terrain`, `/run-art:portraits`) are scaffolded by the Director based on what the game needs.
+The main lever mid-phase is `/run-art` — call it when sprites need a regen. The art agent self-reviews before committing a full batch; step in if something looks wrong. TODO: add more levers
 
 ---
 
-## The Agent Vocabulary
-
-Not every game needs every agent. The Director picks from these:
+## Agent vocabulary
 
 | Agent | Role |
 |-------|------|
-| `gamedesign` | Mechanics, systems, core loop, balance |
-| `art` | Visual style, sprite gen, art direction |
+| `gamedesign` | Mechanics, systems, balance |
+| `art` | Visual style, sprite gen |
 | `level` | World layout, level structure |
 | `audio` | SFX, music direction |
 | `dev` | All game code |
-| `devops` | Local dev server → build → deploy |
-| `historian` | Post-phase learnings → feeds future gens |
+| `devops` | Dev server → build → deploy |
+| `historian` | Cross-game learnings |
 
-Simple game → fewer agents. Complex game → more. The Director decides.
+The Director picks what the game needs. Simple game → fewer agents.
 
 ---
 
-## Project structure
+## Structure
 
 ```
 tech9/
-├── README.md
-├── ROADMAP.md           ← framework evolution + patch-outs
-├── skills/              ← slash command definitions
-├── tools/               ← sprite-gen, scaffold, probe utilities
+├── ROADMAP.md           ← framework evolution
+├── .claude/commands/    ← slash commands (/generate, /run-art)
+├── tools/               ← sprite-gen, scaffold, probe
 ├── vocab/               ← agent role definitions
-├── meta/                ← Concept Generator + Director prompts
+├── meta/                ← Concept Generator + Director
 └── games/
     └── <game>/
         ├── CONCEPT.md
         ├── GAME_PLAN.md
-        ├── agents/      ← agent stubs for this game
-        └── src/         ← game source
+        ├── agents/
+        └── src/
 ```

@@ -1,0 +1,48 @@
+{
+  "game": "chronoforge",
+  "note": "Walking/passable ground tiles — 64x64 native (2x density vs original 32x32) so the world feels less zoomed-out. Same seamless-edge constraints. Engine TILE constant will bump to 64 once accent tiles also regen at 64x64.",
+  "sprites": [
+    {
+      "name": "tile_grass",
+      "w": 64, "h": 64, "priority": 1,
+      "prompt": "pixel art, seamless repeating ground texture, overgrown green grass with sparse rusty wire fragments, flat overhead 90-degree top-down view, uniform all-over texture with no center focal point, edges wrap to neighbor, black background, crisp limited palette, no border, no frame, no perspective, no vignette",
+      "out": "src/assets/tile_grass.png"
+    },
+    {
+      "name": "tile_dirt",
+      "w": 64, "h": 64, "priority": 1,
+      "prompt": "pixel art, seamless repeating ground texture, plain tilled brown earth, flat overhead 90-degree top-down view, uniform texture edge to edge, subtle grain variation, NO debris, NO mushrooms, NO red specks, NO glow, NO neon, NO growth, black background, crisp limited palette, no border, no frame",
+      "out": "src/assets/tile_dirt.png"
+    },
+    {
+      "name": "tile_cracked_road",
+      "w": 64, "h": 64, "priority": 1,
+      "prompt": "pixel art, seamless repeating ground texture, cracked grey asphalt road surface with faint fading yellow centerline running straight through, flat overhead 90-degree top-down, uniform across full tile, line enters top edge and exits bottom edge perfectly aligned, black background, crisp limited palette, no frame, no vignette",
+      "out": "src/assets/tile_cracked_road.png"
+    },
+    {
+      "name": "tile_sand",
+      "w": 64, "h": 64, "priority": 1,
+      "prompt": "pixel art, seamless repeating ground texture, rippled tan wasteland sand, flat overhead 90-degree top-down, gentle dune ripples uniformly across tile, ripples continue across edges to neighbor, NO oasis, NO centerpiece, NO glow, black background, crisp limited palette, no frame",
+      "out": "src/assets/tile_sand.png"
+    },
+    {
+      "name": "tile_rust_patch",
+      "w": 64, "h": 64, "priority": 1,
+      "prompt": "pixel art, seamless repeating ground texture, rust-stained orange-brown metal ground with scattered small scraps, flat overhead 90-degree top-down, scraps distributed evenly across the tile with no central cluster, texture continues across edges, black background, crisp limited palette, no frame",
+      "out": "src/assets/tile_rust_patch.png"
+    },
+    {
+      "name": "tile_bio_moss",
+      "w": 64, "h": 64, "priority": 1,
+      "prompt": "pixel art, seamless repeating ground texture, alien bio-moss in dark teal-green with faint cyan vein filaments, flat overhead 90-degree top-down, veins form a subtle network across the entire tile, pattern continues across edges to neighbor, no central bloom, no brightest-point focal, black background, crisp limited palette, no frame",
+      "out": "src/assets/tile_bio_moss.png"
+    },
+    {
+      "name": "tile_growth_tile",
+      "w": 64, "h": 64, "priority": 1,
+      "prompt": "pixel art, seamless repeating ground texture, soft alien growth mat with tiny scattered magenta spores, flat overhead 90-degree top-down, spores evenly distributed across tile with no central cluster, ground color uniform edge to edge, pattern continues to neighbor, black background, crisp limited palette, no frame",
+      "out": "src/assets/tile_growth_tile.png"
+    }
+  ]
+}

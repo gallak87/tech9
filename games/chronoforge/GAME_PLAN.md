@@ -60,7 +60,14 @@ QA gate: Party levels, equips gear via both click and drag-and-drop with correct
 Agents: `dev`, `qa`, `devops`
 
 Final regression sweep. dev fixes QA-reported issues, integrates any late-arriving sprites, ensures placeholder fallbacks still work for any unfinished assets. devops cuts a v1.0.0 tag, writes the changelog, and does the final deploy.
+
+Polish-phase notes (decisions deferred from earlier phases):
+- **Base placement upgrade** — Phase 4 shipped a fixed-slot base layout for speed. If the base feels cramped or on-rails in beta-testing, upgrade to free placement on a small tile grid (AoE-style click-to-place). Sprites and costs already fit either model.
+
 QA gate: Full playthrough from intro to mid-game in live build, zero console errors, all art either generated or placeholder-clean, version tag live on GitHub Pages.
+
+### Post-release (not in v1)
+- **Scripted raid events** — the `wall` building and enemy overworld presence were designed with a "scripted story raid" in mind (defend base at key beats). Explicitly deferred until after v1.0.0 ships. Walls in v1 are purely visual/tier-progress; they grant no gameplay effect until raids exist.
 
 ### Phase 6.5 — Pixi Port (perf uplift)
 Agents: `dev`, `qa`, `devops`

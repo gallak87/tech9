@@ -1,9 +1,13 @@
 // Chronoforge — main entry. Phase 2: overworld + menu shell + first-deploy readiness.
 
 import {
-  drawSplash, drawOverworld, drawBase,
+  drawSplash, drawOverworld,
   initParty, updateOverworld,
 } from './scenes.js';
+import {
+  initBase, initTierState, maybeTick, drawBaseScene,
+  handleBaseMouseDown, handleBaseMouseMove, handleBaseKey,
+} from './base.js';
 import {
   menuState, toggleMenu, closeMenu, handleMenuKey,
   handleMenuMouseDown, handleMenuMouseMove, handleMenuMouseUp, handleMenuWheel,
@@ -34,10 +38,12 @@ const game = {
 
   party: initParty(),
   explored: new Set(),
-  resources: { food: 10, ore: 5, energy: 0, renown: 0, skillPoints: 0 },
+  resources: { food: 10, ore: 150, energy: 0, renown: 0, skillPoints: 0 },
   toastMsg: null,
   toastExpire: 0,
   pendingEncounter: null,
+  base: initBase(),
+  ...initTierState(),
 
   setState(next) {
     if (this.state === next) return;
@@ -112,7 +118,7 @@ window.addEventListener('keydown', (e) => {
   if (game.state === STATES.OVERWORLD) {
     if (k === 'c' || k === 'C') game.setState(STATES.BASE);
   } else if (game.state === STATES.BASE) {
-    if (k === 'o' || k === 'O') game.setState(STATES.OVERWORLD);
+    if (handleBaseKey(game, k)) { e.preventDefault(); return; }
   }
 });
 
@@ -120,11 +126,13 @@ window.addEventListener('keyup', (e) => { game.keys.delete(e.key); });
 
 canvas.addEventListener('mousedown', (e) => {
   game.mouseX = e.clientX; game.mouseY = e.clientY;
-  if (menuState.open) handleMenuMouseDown(e.clientX, e.clientY, game);
+  if (menuState.open) { handleMenuMouseDown(e.clientX, e.clientY, game); return; }
+  if (game.state === STATES.BASE) handleBaseMouseDown(game, e.clientX, e.clientY);
 });
 canvas.addEventListener('mousemove', (e) => {
   game.mouseX = e.clientX; game.mouseY = e.clientY;
-  if (menuState.open) handleMenuMouseMove(e.clientX, e.clientY, game);
+  if (menuState.open) { handleMenuMouseMove(e.clientX, e.clientY, game); return; }
+  if (game.state === STATES.BASE) handleBaseMouseMove(game, e.clientX, e.clientY);
 });
 canvas.addEventListener('mouseup', () => {
   if (menuState.open) handleMenuMouseUp();
@@ -149,6 +157,8 @@ function frame(t) {
   if (!menuState.open) {
     if (game.state === STATES.OVERWORLD) updateOverworld(game, dt);
     else if (game.state === STATES.BATTLE) updateBattle(game, dt);
+    // resource tick runs on overworld + base per gamedesign spec
+    if (game.state === STATES.OVERWORLD || game.state === STATES.BASE) maybeTick(game, t);
   }
 
   // render
@@ -156,7 +166,7 @@ function frame(t) {
     case STATES.SPLASH: drawSplash(ctx, game); break;
     case STATES.OVERWORLD: drawOverworld(ctx, game); break;
     case STATES.BATTLE: drawBattle(ctx, game); break;
-    case STATES.BASE: drawBase(ctx, game); break;
+    case STATES.BASE: drawBaseScene(ctx, game); break;
   }
 
   if (menuState.open) drawMenu(ctx, game);

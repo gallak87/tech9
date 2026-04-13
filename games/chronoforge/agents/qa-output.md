@@ -72,3 +72,60 @@ The following are **not** auto-verifiable — please exercise in the live build:
 ## 7. Verdict
 
 **Static pass.** Ready for human playtest and devops deploy. No blockers found.
+
+---
+
+# QA Report — Chronoforge Phase 4 (Playtest findings)
+
+Phase 4 (Base Management) is live and playable end-to-end: build, upgrade, tick,
+tier-up, demolish. Findings below are all non-blocking polish / iteration notes
+captured from live play, not automated static analysis.
+
+## Findings
+
+### F-4.1 — Flux creative-liberty tile overrides (P1 grassland tiles)
+
+Several P1 tiles generated on non-literal interpretations of their prompts.
+Caught only now because Phase 4 is the first time the game is deeply-playable
+enough to stop staring at UI and actually look at the world tiles in situ:
+
+| tile | intended | flux delivered |
+|------|----------|----------------|
+| `tile_stream` | flowing water creek, blue reflective | neon cyan lightning bolt, electric "data stream" |
+| `tile_dirt` | plain brown earth | brown with red/orange specks (mushrooms? debris?) |
+| `tile_dead_tree` | dark bare tree silhouette | ~60% mostly-black frame, contributes to overworld dim/see-through feel |
+| `tile_ruin_rubble` | grey stone rubble | dense geometric pattern, reads busier than surroundings |
+
+**Not shipping-blocking** — the game is playable and the aesthetic still reads
+as "neon post-apocalyptic", which is on-brand. But the overworld visual
+coherence takes a hit because neighboring tiles read from different visual
+dialects (neon-electric vs. organic vs. black-void).
+
+**Fix option (cheap):** regen the 6 P1 grassland tiles with tighter prompts
+that constrain flux's "neon everywhere" default:
+- `tile_stream` — explicit "shallow blue water creek, gravel edges, NO electricity, NO lightning, NO neon"
+- `tile_dirt` — "plain tilled brown earth, uniform texture, no debris, no growth"
+- `tile_dead_tree` — "bare grey-brown tree on grass base, fills frame edge-to-edge"
+
+### F-4.2 — Timing: visual coherence bugs only surface at deep-playability
+
+This is a **process finding, not a game finding.** Worth surfacing to the
+Historian agent (ROADMAP §5) when it lands:
+
+> Art-direction coherence issues (flux taking creative liberties, tile frame
+> coverage, neighboring-tile dissonance) **only become visible once the game
+> is playable enough that the player stops looking at the UI and starts
+> looking at the world.** Running an art-regen pass before that point is
+> premature — you'll regen things that only look broken in context you
+> haven't built yet. Corollary: a "visual QA pass" should be explicitly
+> scheduled at the *end* of each playable-gate phase, not at the start of
+> the next one.
+
+This observation is a graduation candidate for `meta/LESSONS.md` once the
+Historian agent is implemented. It's already general enough to apply to every
+game in the pipeline.
+
+## Verdict
+
+**Phase 4 pass, with F-4.1 queued as optional art-regen task.** F-4.2
+captured for Historian handoff.

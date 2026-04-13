@@ -3,6 +3,7 @@
 
 import { TILE, MAP_W, MAP_H, tileAt, CITIES, ENCOUNTERS, PLAYER_START } from './world.js';
 import { drawSprite, getSpriteVersion } from './sprites.js';
+import { aggregateYields, TICK_MS } from './base.js';
 
 const PALETTE = {
   bg: '#07060d', bgAlt: '#120a22',
@@ -106,35 +107,46 @@ function getTileCanvas() {
   return tileCanvas;
 }
 
-// --- fog alpha cache (recomputed only when explored-set size changes) ---
-let fogAlphaArr = null;       // Uint8Array of MAP_W*MAP_H, values 0..255
+// --- fog canvas (whole map pre-rendered; re-rendered only when explored grows) ---
+let fogCanvas = null;
 let fogExploredSize = -1;
 
-function getFogAlphaArr(game) {
-  if (!fogAlphaArr) fogAlphaArr = new Uint8Array(MAP_W * MAP_H);
-  if (fogExploredSize !== game.explored.size) {
-    const exp = game.explored;
-    for (let ty = 0; ty < MAP_H; ty++) {
-      for (let tx = 0; tx < MAP_W; tx++) {
-        const here = exp.has(`${tx},${ty}`);
-        let n = 0;
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            if (dx === 0 && dy === 0) continue;
-            if (exp.has(`${tx + dx},${ty + dy}`)) n++;
-          }
-        }
-        let a;
-        if (here && n === 8) a = 0;
-        else if (here) a = 56;      // 0.22 * 255
-        else if (n > 0) a = 140;    // 0.55 * 255
-        else a = 219;               // 0.86 * 255
-        fogAlphaArr[ty * MAP_W + tx] = a;
-      }
-    }
-    fogExploredSize = exp.size;
+function getFogCanvas(game) {
+  if (!fogCanvas) {
+    fogCanvas = document.createElement('canvas');
+    fogCanvas.width = MAP_W * TILE;
+    fogCanvas.height = MAP_H * TILE;
   }
-  return fogAlphaArr;
+  if (fogExploredSize === game.explored.size) return fogCanvas;
+  const fctx = fogCanvas.getContext('2d');
+  fctx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
+  const exp = game.explored;
+  let prevA = -1;
+  for (let ty = 0; ty < MAP_H; ty++) {
+    for (let tx = 0; tx < MAP_W; tx++) {
+      const here = exp.has(`${tx},${ty}`);
+      let n = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          if (exp.has(`${tx + dx},${ty + dy}`)) n++;
+        }
+      }
+      let a;
+      if (here && n === 8) a = 0;
+      else if (here) a = 56;
+      else if (n > 0) a = 140;
+      else a = 219;
+      if (a === 0) continue;
+      if (a !== prevA) {
+        fctx.fillStyle = `rgba(7,6,13,${(a / 255).toFixed(3)})`;
+        prevA = a;
+      }
+      fctx.fillRect(tx * TILE, ty * TILE, TILE + 1, TILE + 1);
+    }
+  }
+  fogExploredSize = exp.size;
+  return fogCanvas;
 }
 
 export function partyRenderPos(game) {
@@ -234,31 +246,42 @@ export function drawOverworld(ctx, game) {
     ctx.drawImage(atlas, srcX, srcY, srcW, srcH, dstX, dstY, srcW, srcH);
   }
 
-  // cities (landmark sprites, larger than a tile) with pulsing ground glow
+  // cities — sit on a clean 2x2 tile footprint, frame snaps to grid
+  const CITY_TILES = 2;
+  const cellPx = CITY_TILES * TILE;
   for (const c of CITIES) {
     if (!game.explored.has(`${c.x},${c.y}`)) continue;
-    const cw = 128, ch = 96;
-    const sx = Math.round(c.x * TILE + TILE / 2 - cw / 2 - camX);
-    const sy = Math.round(c.y * TILE + TILE / 2 - ch / 2 - camY);
+    // footprint anchored at the city tile, extending right and down (2x2)
+    const fx = Math.round(c.x * TILE - camX);
+    const fy = Math.round(c.y * TILE - camY);
 
-    // pulsing ground halo
     const pulse = 0.5 + Math.sin(game.time * 0.0025 + c.x * 0.5) * 0.5;
-    const haloColor = c.unlocked ? '255,45,212' : '34,227,255';
-    const grd = ctx.createRadialGradient(
-      sx + cw / 2, sy + ch - 8, 4,
-      sx + cw / 2, sy + ch - 8, 60 + pulse * 12
-    );
-    grd.addColorStop(0, `rgba(${haloColor},${0.35 + pulse * 0.18})`);
-    grd.addColorStop(1, `rgba(${haloColor},0)`);
-    ctx.fillStyle = grd;
-    ctx.fillRect(sx - 20, sy + ch - 60, cw + 40, 80);
+    const stroke = c.unlocked ? '255,45,212' : '34,227,255';
 
-    drawSprite(ctx, c.landmark, sx, sy, cw, ch);
-    // label
+    // dark backdrop so terrain stops bleeding through the cell
+    ctx.fillStyle = `rgba(7,6,13,0.78)`;
+    ctx.fillRect(fx, fy, cellPx, cellPx);
+    // subtle pulsing inner tint
+    ctx.fillStyle = `rgba(${stroke},${0.08 + pulse * 0.06})`;
+    ctx.fillRect(fx, fy, cellPx, cellPx);
+
+    // sprite fills the footprint
+    drawSprite(ctx, c.landmark, fx, fy, cellPx, cellPx);
+
+    // pulsing outer frame on tile boundary
+    ctx.strokeStyle = `rgba(${stroke},${0.55 + pulse * 0.35})`;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(fx + 0.5, fy + 0.5, cellPx - 1, cellPx - 1);
+    // thin inner rim
+    ctx.strokeStyle = `rgba(${stroke},${0.2 + pulse * 0.15})`;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(fx + 3.5, fy + 3.5, cellPx - 7, cellPx - 7);
+
+    // label above the cell
     ctx.fillStyle = PALETTE.ink;
     ctx.textAlign = 'center';
     ctx.font = '700 12px system-ui, sans-serif';
-    ctx.fillText(c.name.toUpperCase(), sx + cw / 2, sy - 6);
+    ctx.fillText(c.name.toUpperCase(), fx + cellPx / 2, fy - 6);
   }
 
   // encounter markers
@@ -282,28 +305,22 @@ export function drawOverworld(ctx, game) {
   ctx.fill();
   drawSprite(ctx, 'kaida_overworld', pcx, pcy, TILE, TILE);
 
-  // soft fog-of-war (3-band gradient around reveal edge)
-  drawSoftFog(ctx, game, camX, camY, firstTx, firstTy, lastTx, lastTy);
+  // soft fog-of-war — single blit from pre-rendered offscreen canvas
+  drawSoftFog(ctx, game, camX, camY, w, h);
 
   drawOverworldHud(ctx, game);
 }
 
-function drawSoftFog(ctx, game, camX, camY, firstTx, firstTy, lastTx, lastTy) {
-  const arr = getFogAlphaArr(game);
-  let prev = -1;
-  for (let ty = firstTy; ty < lastTy; ty++) {
-    for (let tx = firstTx; tx < lastTx; tx++) {
-      const a = arr[ty * MAP_W + tx];
-      if (a === 0) continue;
-      if (a !== prev) {
-        ctx.fillStyle = `rgba(7,6,13,${(a / 255).toFixed(3)})`;
-        prev = a;
-      }
-      const sx = Math.round(tx * TILE - camX);
-      const sy = Math.round(ty * TILE - camY);
-      ctx.fillRect(sx, sy, TILE + 1, TILE + 1);
-    }
-  }
+function drawSoftFog(ctx, game, camX, camY, w, h) {
+  const fog = getFogCanvas(game);
+  const srcX = Math.max(0, camX);
+  const srcY = Math.max(0, camY);
+  const srcW = Math.min(fog.width - srcX, w);
+  const srcH = Math.min(fog.height - srcY, h);
+  if (srcW <= 0 || srcH <= 0) return;
+  const dstX = Math.round(srcX - camX);
+  const dstY = Math.round(srcY - camY);
+  ctx.drawImage(fog, srcX, srcY, srcW, srcH, dstX, dstY, srcW, srcH);
 }
 
 function drawOverworldHud(ctx, game) {
@@ -311,16 +328,54 @@ function drawOverworldHud(ctx, game) {
 
   // top bar: party pos, resources
   ctx.fillStyle = 'rgba(7,6,13,0.7)';
-  ctx.fillRect(0, 0, w, 36);
+  ctx.fillRect(0, 0, w, 44);
   ctx.fillStyle = PALETTE.ink;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
   ctx.font = '600 13px ui-monospace, monospace';
   ctx.fillText(`Kaida · Vex · Rune   pos (${game.party.x}, ${game.party.y})`, 16, 18);
 
+  const rates = aggregateYields(game);
+  const anyRate = rates.food + rates.ore + rates.energy + rates.renown > 0;
+  const progress = anyRate ? Math.min(1, (game.time - (game.base.lastTickAt || 0)) / TICK_MS) : 0;
+  const resItems = [
+    { key: 'food',   label: 'Food',   color: '#7fe39a' },
+    { key: 'ore',    label: 'Ore',    color: '#b9c1d9' },
+    { key: 'energy', label: 'Energy', color: '#ffd23f' },
+    { key: 'renown', label: 'Renown', color: PALETTE.accent },
+  ];
   ctx.textAlign = 'right';
-  ctx.fillStyle = PALETTE.accent2;
-  ctx.fillText(`Food ${game.resources.food}   Ore ${game.resources.ore}   Energy ${game.resources.energy}   Renown ${game.resources.renown}`, w - 16, 18);
+  ctx.textBaseline = 'middle';
+  ctx.font = '600 13px ui-monospace, monospace';
+  let rx = w - 16;
+  for (let i = resItems.length - 1; i >= 0; i--) {
+    const it = resItems[i];
+    const val = game.resources[it.key] | 0;
+    const rate = rates[it.key] | 0;
+    const main = `${it.label} ${val}`;
+    ctx.fillStyle = it.color;
+    ctx.fillText(main, rx, 16);
+    const mainW = ctx.measureText(main).width;
+
+    // small progress pill + rate under this resource (only if yielding)
+    if (rate > 0) {
+      const pillW = Math.max(32, mainW);
+      const pillX = rx - pillW;
+      const pillY = 30;
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(pillX, pillY, pillW, 2);
+      ctx.fillStyle = it.color;
+      ctx.globalAlpha = 0.7;
+      ctx.fillRect(pillX, pillY, pillW * progress, 2);
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = 'rgba(138,131,184,0.85)';
+      ctx.font = '500 10px ui-monospace, monospace';
+      ctx.fillText(`+${rate}`, rx, 38);
+      ctx.font = '600 13px ui-monospace, monospace';
+    }
+    rx -= mainW + 24;
+  }
 
   // bottom hint bar
   ctx.fillStyle = 'rgba(7,6,13,0.7)';
@@ -339,46 +394,6 @@ function drawOverworldHud(ctx, game) {
     ctx.textBaseline = 'middle';
     ctx.fillText(game.toastMsg, w / 2, 80);
   }
-}
-
-// --- BASE (stub) ---
-export function drawBase(ctx, game) {
-  const { width: w, height: h } = game;
-  ctx.fillStyle = PALETTE.bg;
-  ctx.fillRect(0, 0, w, h);
-  drawGrid(ctx, w, h);
-  drawScanlines(ctx, w, h);
-
-  // show a few placeholder buildings
-  const row = [
-    { name: 'town_center_t1', label: 'Town Center' },
-    { name: 'farm_t1', label: 'Farm' },
-    { name: 'mine_t1', label: 'Mine' },
-  ];
-  row.forEach((b, i) => {
-    const x = w / 2 - 200 + i * 150;
-    const y = h / 2 - 48;
-    drawSprite(ctx, b.name, x, y, 96, 96);
-    ctx.fillStyle = PALETTE.dim;
-    ctx.textAlign = 'center';
-    ctx.font = '600 12px system-ui, sans-serif';
-    ctx.fillText(b.label, x + 48, y + 112);
-  });
-
-  ctx.textAlign = 'center';
-  ctx.fillStyle = PALETTE.accent;
-  ctx.font = '700 40px system-ui, sans-serif';
-  ctx.shadowColor = PALETTE.accent;
-  ctx.shadowBlur = 14;
-  ctx.fillText('CITY BASE', w / 2, 100);
-  ctx.shadowBlur = 0;
-
-  ctx.fillStyle = PALETTE.ink;
-  ctx.font = '400 14px system-ui, sans-serif';
-  ctx.fillText('Resource loops + 4-tier upgrades arrive Phase 4.', w / 2, h - 60);
-  ctx.fillStyle = PALETTE.dim;
-  ctx.font = '400 12px ui-monospace, monospace';
-  ctx.fillText('[O] overworld   [Esc/Tab] menu', w / 2, h - 30);
 }
 
 function drawGrid(ctx, w, h) {

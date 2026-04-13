@@ -52,6 +52,35 @@ Then say exactly:
 
 > Team is assembled. Say **let's go** to kick off Phase 1.
 
-When the user says "let's go" (or equivalent), run the agents for Phase 1 in order.
-For parallel phases, run those agents concurrently. Continue phase by phase, pausing
-after each one for the user to play the build and confirm before proceeding.
+## Step 5 — Run phases via subagents
+
+When the user says "let's go" (or equivalent):
+
+**For each phase in order:**
+
+1. Spawn each agent in the phase as a subagent using the Agent tool
+   - Agent prompt = contents of `games/<game-slug>/agents/<role>.md`
+   - Agent context = `games/<game-slug>/CONCEPT.md` + `games/<game-slug>/GAME_PLAN.md`
+   - Parallel phases → spawn agents concurrently in a single message
+   - Sequential phases → wait for prior agent to complete before spawning next
+
+2. Each subagent runs autonomously and writes its outputs to `games/<game-slug>/`
+
+3. Surface to the user only when:
+   - A subagent returns blocked (ambiguous decision, missing peer output, tool failure)
+   - A phase completes and the build needs human review before proceeding
+
+4. When blocked: show the user exactly what the agent needs, get the call, resume the agent
+
+5. When a phase completes:
+   - Summarise what was built
+   - Ask the user to play the build on localhost
+   - Wait for confirmation before spawning the next phase
+
+**Block vs surface heuristic:**
+- Missing file or tool error → try to resolve automatically first, only surface if unresolvable
+- Ambiguous design decision → always surface, never guess
+- One agent waiting on another agent's output → surface with a clear "X is blocked on Y"
+
+**Never** proceed to the next phase without explicit user confirmation. The user may want
+to run `/expand` or `/run-art` between phases before continuing.

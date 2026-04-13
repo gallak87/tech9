@@ -24,31 +24,63 @@ You give it a game idea. It assembles a team of specialized agents — designer,
 You: "snake but the snake is a train"
         │
         ▼
-Concept Generator  →  CONCEPT.md   (what are we building, exactly?)
+Concept Generator  →  CONCEPT.md       (what are we building?)
         │
         ▼
-Director           →  GAME_PLAN.md  (which agents do we need, and in what order?)
+Director           →  GAME_PLAN.md     (which agents, in what order?)
         │
         ▼
-agents/            →  one .md stub per role, each with scope + I/O contract
+Agents             →  agents/*.md      (scoped stubs per role)
         │
         ▼
-Agents build the game
+Agents build the game, phase by phase
 ```
 
-Two layers:
-- **Meta layer** (Concept Generator + Director) — lives in this repo only, never exported
-- **Vocabulary** (all possible agent roles) — selectively exported per game based on complexity
+Each agent owns a loop — it runs, self-reviews, and only surfaces to you when blocked.
+Slash commands are interrupt points, not triggers.
 
 ---
 
 ## Quickstart
 
-```
-/generate <your game idea>
-```
+**1. Write a one-paragraph pitch.**
+Use a cheap model (Haiku works) to sharpen your idea into a tight paragraph before you start. Vague input = vague concept.
 
-That's it. The `/generate` skill simulates the full pipeline — Concept Generator → Director → scaffolded game repo under `games/[name]/`.
+**2. Run the pipeline.**
+```
+/generate "your one-paragraph pitch"
+```
+The Concept Generator drafts `CONCEPT.md`. Review it, push back, iterate until it's right — this is the most important gate. Once you agree, the Director picks the agent roster and the agents start building phase by phase.
+
+**3. Image generation (optional).**
+Agents call `/run-art` internally when they need sprites. This requires Ollama running locally with a Flux model:
+```bash
+ollama run x/flux2-klein
+```
+If Ollama isn't available the art agent falls back to placeholder sprites — colored shapes with labels. The game is fully playable either way; real sprites swap in when gen is available.
+
+**4. Watch the agents run.**
+Each phase ends with a deployable build. The devops agent serves it on localhost so you can play it before anything ships.
+
+---
+
+## Between phases — the iteration loop
+
+After each phase completes:
+
+- **Play the build.** Does it feel right? Note anything broken or off.
+- **Commit what's done.** Each phase should be a clean commit. Don't carry forward broken state.
+- **Unblock agents.** If an agent surfaced a decision (ambiguous mechanic, art direction call, UX layout), answer it before the next phase starts.
+- **Interrupt if needed.** Slash commands let you reach into a running agent:
+
+| Command | What it does |
+|---------|-------------|
+| `/run-<agent>` | Start or resume that agent's loop |
+| `/proof-<agent>` | Pause after the next proof unit, show it, wait for input |
+| `/status-<agent>` | Report loop position without interrupting |
+| `/reset-<agent>` | Restart that agent from scratch |
+
+Game-specific variants (`/run-art:terrain`, `/run-art:portraits`) are scaffolded by the Director based on what the game needs.
 
 ---
 
@@ -59,35 +91,14 @@ Not every game needs every agent. The Director picks from these:
 | Agent | Role |
 |-------|------|
 | `gamedesign` | Mechanics, systems, core loop, balance |
-| `art` | Visual style guide, palette, direction |
-| `asset` | Sprites, tilesets, animations |
+| `art` | Visual style, sprite gen, art direction |
 | `level` | World layout, level structure |
 | `audio` | SFX, music direction |
 | `dev` | All game code |
-| `qa` | Playtesting, bug reports |
 | `devops` | Local dev server → build → deploy |
-| `release` | Versioning, changelogs, store page |
-| `postlaunch` | Support, incidents, maintenance |
+| `historian` | Post-phase learnings → feeds future gens |
 
 Simple game → fewer agents. Complex game → more. The Director decides.
-
----
-
-## DevOps philosophy: localhost first
-
-DevOps always targets localhost before any deployment. QA plays the game locally before a
-single byte goes to production. Deploy only when the game is playable and QA has signed off.
-
----
-
-## Adding a new role
-
-If the Director needs a role that doesn't exist in the vocabulary, it must:
-1. Propose the new role with a full definition (name, responsibility, inputs, outputs)
-2. Get human approval
-3. The approved role gets added back to the vocabulary here
-
-No free-form agent generation — the vocabulary grows deliberately.
 
 ---
 
@@ -95,14 +106,16 @@ No free-form agent generation — the vocabulary grows deliberately.
 
 ```
 tech9/
-├── PLAN.md              ← architecture + vocabulary reference
-├── README.md            ← you are here
-├── .claude/commands/    ← slash commands (/generate)
-├── games/               ← one folder per generated game
-│   └── snake/
-│       ├── CONCEPT.md
-│       ├── GAME_PLAN.md
-│       ├── agents/      ← agent stubs for this game
-│       └── src/         ← game source code
-└── .github/workflows/   ← CI/CD per game
+├── README.md
+├── ROADMAP.md           ← framework evolution + patch-outs
+├── skills/              ← slash command definitions
+├── tools/               ← sprite-gen, scaffold, probe utilities
+├── vocab/               ← agent role definitions
+├── meta/                ← Concept Generator + Director prompts
+└── games/
+    └── <game>/
+        ├── CONCEPT.md
+        ├── GAME_PLAN.md
+        ├── agents/      ← agent stubs for this game
+        └── src/         ← game source
 ```

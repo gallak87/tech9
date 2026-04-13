@@ -50,7 +50,30 @@ Use a cheap model (Haiku works) to sharpen your idea into a tight paragraph befo
 ```
 /generate "your one-paragraph pitch"
 ```
-The Concept Generator drafts `CONCEPT.md`. Review it, push back, iterate until it's right — this is the most important gate. Once you agree, the Director picks the agent roster and the agents start building phase by phase.
+The Concept Generator drafts `CONCEPT.md`. Review it, push back, iterate until it's right — this is the most important gate. Once you agree, the Director picks the agent roster and presents it for confirmation:
+
+```
+Team (6 active):
+
+  Active  Role        Why
+  ──────────────────────────────────────────────────────────────
+  ✓       gamedesign  ATB math, skill trees, economy balance
+  ✓       art         Visual style + all sprite production via Ollama
+  ✓       audio       SFX variants + stinger cues = real work
+  ✓       dev         Engine, battle system, base management, menus
+  ✓       devops      Localhost + deploy (absorbs release)
+  ✓       historian   Post-phase learnings → feeds future gens
+  ✗       asset       Merged into art
+  ✗       level       Skipped — handcrafted map supplied by user
+  ✗       postlaunch  Out of scope
+
+  8 phases: Scaffold → Design (parallel) → Overworld → Battle →
+            Base → Progression → Polish → Ship
+
+  Does this team and phase plan look right?
+```
+
+Confirm, adjust, or push back — then the agents start building phase by phase.
 
 **3. Image generation (optional).**
 Agents call `/run-art` internally when they need sprites. This requires Ollama running locally with a Flux model:

@@ -44,9 +44,36 @@ const placeholderCache = new Map(); // "name|w|h" -> HTMLCanvasElement
 let spriteVersion = 0;
 export function getSpriteVersion() { return spriteVersion; }
 
+export const TERRAIN_SETS = [
+  'lush', 'wasteland', 'neon', 'ashen', 'terraform',
+  'toxic', 'ember', 'void', 'radiant', 'glacial',
+];
+
 export const spriteSettings = {
   forcePlaceholders: false,
+  terrainSet: null,  // null = use flat assets/; string = use assets/terrain/<set>/
 };
+
+// Tile names that have per-terrain-set variants.
+const TERRAIN_TILE_NAMES = new Set([
+  'tile_grass','tile_dirt','tile_cracked_road','tile_sand',
+  'tile_rust_patch','tile_bio_moss','tile_growth_tile',
+]);
+
+export function setTerrainSet(setName) {
+  if (spriteSettings.terrainSet === setName) return;
+  spriteSettings.terrainSet = setName;
+  // Evict terrain tile cache entries so they reload from the new path.
+  for (const name of TERRAIN_TILE_NAMES) cache.delete(name);
+  spriteVersion++;
+}
+
+function spritePath(name) {
+  if (spriteSettings.terrainSet && TERRAIN_TILE_NAMES.has(name)) {
+    return `assets/terrain/${spriteSettings.terrainSet}/${name}.png`;
+  }
+  return `assets/${name}.png`;
+}
 
 function loadImage(src) {
   return new Promise((resolve) => {
@@ -65,7 +92,7 @@ export function getSprite(name, w, h) {
     return entry.img;
   }
   cache.set(key, { img: null, loading: true });
-  loadImage(`assets/${name}.png`).then((img) => {
+  loadImage(spritePath(name)).then((img) => {
     cache.set(key, { img, loading: false });
     spriteVersion++;
   });

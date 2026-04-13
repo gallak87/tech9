@@ -68,6 +68,7 @@ QA gate: Full playthrough from intro to mid-game in live build, zero console err
 
 ### Post-release (not in v1)
 - **Scripted raid events** — the `wall` building and enemy overworld presence were designed with a "scripted story raid" in mind (defend base at key beats). Explicitly deferred until after v1.0.0 ships. Walls in v1 are purely visual/tier-progress; they grant no gameplay effect until raids exist.
+- **Autotile / transition tiles** — each biome boundary (grass↔dirt, sand↔rust, moss↔growth) needs ~8 edge+corner transition tiles so terrain blends organically rather than hard-cuts at a grid line. This is the industry standard (LTTP-style Wang tiles / autotile sets). Art cost: ~24 tiles for 3 main boundaries. Engine cost: neighbor-scan at map load, pick variant from a transition lookup table. Deferred post-v1 because (a) named terrain sets already ship as a strong visual upgrade and (b) transition tiles require the world layout to be locked first — adding them to a moving target wastes art budget.
 
 ### Phase 6.5 — Pixi Port (perf uplift)
 Agents: `dev`, `qa`, `devops`

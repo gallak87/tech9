@@ -122,11 +122,17 @@ function fillTemplate(tmpl, vars) {
 
 // ─── Validators ───────────────────────────────────────────────────────────────
 
+const VALID_TIERS = ['canvas2d', 'pixi', 'phaser', 'threejs'];
+
 function validateConfig(cfg) {
-  const required = ['game_name', 'team', 'phases'];
+  const required = ['game_name', 'team', 'phases', 'rendering_tier'];
   const missing  = required.filter(k => cfg[k] === undefined);
   if (missing.length) {
     console.error(`team_config.json missing required fields: ${missing.join(', ')}`);
+    process.exit(1);
+  }
+  if (!VALID_TIERS.includes(cfg.rendering_tier)) {
+    console.error(`team_config.json: rendering_tier must be one of: ${VALID_TIERS.join(', ')}`);
     process.exit(1);
   }
   if (!Array.isArray(cfg.team) || cfg.team.length === 0) {
@@ -223,6 +229,34 @@ function renderAgentStub(role, entry, cfg) {
     ? `\n## Capability Docs\n${capDocs.map(d => `- \`${d}\``).join('\n')}\n`
     : '';
 
+  // Dev-specific contract injections
+  const devContracts = role.id === 'dev' ? `
+## Rendering Tier
+This game uses **${cfg.rendering_tier || 'pixi'}**. See the scaffolded \`src/index.html\` for the boot pattern.
+${cfg.rendering_tier === 'canvas2d' ? '' : '- Pixi is available as `window.__PIXI__` — do not re-import it.\n- Use `PIXI.Application`, `PIXI.Sprite`, `PIXI.Spritesheet` as the rendering primitives.\n- Batch sprite draws via `PIXI.Container` — never draw sprites one-by-one outside a container.'}
+
+## Sprite compositing contract
+Flux generates sprites on solid black backgrounds. Non-tile sprites must use \`screen\` blend
+to drop the black without masking:
+\`\`\`js
+// tile_ prefixed sprites → source-over (opaque ground tiles)
+// everything else → screen blend
+function drawSprite(container, name, x, y, w, h) {
+  const sprite = new PIXI.Sprite(textures[name]);
+  sprite.position.set(x, y);
+  sprite.width = w; sprite.height = h;
+  if (!name.startsWith('tile_')) sprite.blendMode = PIXI.BLEND_MODES.SCREEN;
+  container.addChild(sprite);
+}
+\`\`\`
+Always set \`PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST\` at boot for pixel art.
+
+## Dev tools
+Mount domain-scoped dev tools when the art agent requests one. Follow \`tools/dev-tool-contract.md\`.
+Check \`window.__DEV_TOOLS__\` before mounting. Strip before ship.
+` : '';
+
+
   return fillTemplate(role.prompt_template, {
     game_name:        cfg.game_name,
     concept_summary:  cfg.concept_summary || '',
@@ -230,11 +264,26 @@ function renderAgentStub(role, entry, cfg) {
     inputs_list:      inputsList,
     outputs_list:     outputsList,
     hard_constraints: constraints,
-  }) + capSection;
+  }) + capSection + devContracts;
 }
 
 function renderSrcSkeleton(cfg) {
   const name = cfg.game_name;
+  const tier = cfg.rendering_tier || 'pixi';
+
+  const pixiBootstrap = `
+  <script type="module">
+    import * as PIXI from 'https://cdn.jsdelivr.net/npm/pixi.js@8/dist/pixi.min.mjs';
+    window.__PIXI__ = PIXI;
+  </script>
+  <script type="module" src="game.js"></script>`;
+
+  const canvas2dBootstrap = `
+  <script type="module" src="game.js"></script>`;
+
+  const bootstrap = tier === 'canvas2d' ? canvas2dBootstrap : pixiBootstrap;
+  const canvasEl  = tier === 'canvas2d' ? '\n  <canvas id="canvas"></canvas>' : '';
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -243,13 +292,13 @@ function renderSrcSkeleton(cfg) {
   <title>${name}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; }
+    body { background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
     canvas { display: block; image-rendering: pixelated; }
   </style>
 </head>
-<body>
-  <canvas id="canvas"></canvas>
-  <script type="module" src="game.js"></script>
+<body>${canvasEl}
+  <!-- DEV TOOLS — remove before ship or set window.__DEV_TOOLS__ = false -->
+  <script>window.__DEV_TOOLS__ = true;</script>${bootstrap}
 </body>
 </html>
 `;
@@ -265,13 +314,14 @@ function renderSpritesManifest(cfg, caps) {
   return JSON.stringify({
     model,
     host: caps.ollama?.host || 'http://localhost:11434',
+    note: 'Minimum sprite sizes: battle sprites ≥ 96px, portraits ≥ 144px, tiles = 64px, icons ≥ 40px. Below these sizes flux detail is lost on downscale.',
     sprites: [
       {
         _note: 'Add sprites here after art agent defines visual style and dimensions',
         name: 'example',
-        w: 32,
-        h: 32,
-        prompt: 'pixel art game sprite, black background, retro, crisp limited palette',
+        w: 64,
+        h: 64,
+        prompt: 'pixel art game sprite, pure black background (#000000), detailed shading with rim light, crisp readable silhouette centered in frame, no text, no watermark, no border frame, retro, crisp limited palette',
         out: 'src/assets/example.png'
       }
     ]

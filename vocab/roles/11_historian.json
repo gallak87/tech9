@@ -1,0 +1,31 @@
+{
+  "id": "historian",
+  "name": "Historian",
+  "category": "meta",
+  "responsibility": "Captures learnings from a completed game and writes them into a structured log the Director reads at the start of every future gen. Runs once per game, after the final phase. Does not produce game assets or code.",
+  "inputs": [
+    { "source": "game", "artifact": "GAME_PLAN.md", "required": true, "notes": "Planned phases vs what actually shipped" },
+    { "source": "game", "artifact": "CONCEPT.md", "required": true, "notes": "Original intent — compare against what was built" },
+    { "source": "game", "artifact": "agents/*-output.md", "required": true, "notes": "What each agent actually produced and where it deviated from plan" },
+    { "source": "repo", "artifact": "git log", "required": true, "notes": "What was actually committed vs planned — drift is a signal" },
+    { "source": "meta", "artifact": "ROADMAP.md patch-out entries added during the build", "required": false, "notes": "Learnings already captured mid-build" }
+  ],
+  "outputs": [
+    {
+      "artifact": "games/<game>/LESSONS.md",
+      "description": "Per-game observations: what worked, what didn't, numbers that felt right. Tagged by domain (perf, art, scaffold, audio, ux)."
+    },
+    {
+      "artifact": "meta/LESSONS.md",
+      "description": "Aggregated cross-game lessons. Director reads this on every run, filtered by concept tags. Lessons graduate out of this file into framework defaults when proven across 2+ games."
+    }
+  ],
+  "dependencies": ["dev", "art", "qa"],
+  "merge": {
+    "candidates": [],
+    "merge_when": "Never merged — historian runs post-hoc and has no peer to absorb into.",
+    "split_when": "N/A"
+  },
+  "graduation_model": "A lesson in meta/LESSONS.md graduates when it proves durable across 2+ games. On graduation the Historian (or a manual pass) patches it into the framework and removes it from LESSONS.md: per-role rules → vocab/roles/*.json, Director rubrics → meta/02_director.md, scaffolder defaults → tools/scaffold.js. What stays in LESSONS.md is genuinely per-game or still-unproven.",
+  "prompt_template": "# Agent: historian\n**Responsibility:** Capture learnings from {{game_name}} and write them into the cross-game lesson log.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\nPost-mortem pass. Read all agent outputs and git history. Write LESSONS.md for this game. Flag any lessons ready to graduate into the framework.\n\n## Constraints\n{{hard_constraints}}"
+}

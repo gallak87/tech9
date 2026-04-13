@@ -53,7 +53,23 @@ Justify with `notes`. Must reference a scope constraint or an explicit design re
   `audio` when audio is an explicit scope constraint).
 - Merges must follow the `merge.candidates` in the role definition. Don't invent merges.
 
-### 4. Plan the phases
+### 4. Select the rendering tier
+
+Before planning phases, pick a rendering tier for the dev agent. This decision is written
+into `team_config.json` as `rendering_tier` and injected into the dev agent stub.
+
+| Tier | Pick when |
+|------|-----------|
+| `canvas2d` | ≤ a few hundred draws/frame. Snake-scale. No scrolling world. |
+| `pixi` | Tilemaps, scrolling world, >500 sprites, particle effects. Default for most games. |
+| `phaser` | Full scenes, physics, tweens, tilemap loaders needed out of the box. |
+| `threejs` | Concept is explicitly 3D. Do not pick for 2D pixel-art games. |
+
+**Default is `pixi`** — do not default to `canvas2d` unless the concept is genuinely
+snake-scale. Signal words in the concept that push toward Pixi: tilemap, overworld,
+scrolling, large world, many enemies, particle effects, base management.
+
+### 5. Plan the phases
 
 Phase 0 is always: engine skeleton + localhost confirmation. Always.
 
@@ -63,12 +79,12 @@ After that, derive phases from the game's complexity. Rules:
 - Phase names must be concrete: "Phase 2 — Level Geometry", not "Phase 2 — Content"
 - Each phase must list which agent ids are doing work in it
 
-### 5. Carry forward deferred decisions
+### 6. Carry forward deferred decisions
 
 Copy `known_unknowns` from concept.json into `deferred_decisions`. Add any new ones
 the Director introduces (decisions the concept left open that you're explicitly not making).
 
-### 6. Write `team_config.json`
+### 7. Write `team_config.json`
 
 Must satisfy `vocab/schemas/game_plan.schema.json` plus two extra fields the Scaffolder needs:
 
@@ -76,6 +92,7 @@ Must satisfy `vocab/schemas/game_plan.schema.json` plus two extra fields the Sca
 {
   "game_name": "string",
   "concept_summary": "string — game_summary from concept.json verbatim",
+  "rendering_tier": "canvas2d | pixi | phaser | threejs",
   "scope_constraints": ["string", "..."],
   "team": [
     {

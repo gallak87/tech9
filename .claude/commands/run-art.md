@@ -51,6 +51,25 @@ See `capabilities/image-gen.md` for prompt best practices. Key points:
 - Describe silhouette first — that's what reads at small sizes
 - For tiles: add `seamless`, `no vignette`, `no dark border at edges`
 
+## Dev tool
+
+When starting a new sprite domain (tiles, heroes, enemies, buildings, etc.), request the
+dev agent to mount a domain-scoped dev tool following `tools/dev-tool-contract.md`.
+
+The tool mounts once per domain and stays live while generation runs — not per-sprite,
+not on every proof. The user explores it at their own pace. It gives them real in-game
+context (tiled grid for terrain, animated cycle for heroes, upgrade progression for buildings)
+so style decisions happen faster and with better information.
+
+**What to specify to dev:**
+- Domain name and sprite paths as they complete
+- Display context (tile grid, character over background, icon strip, etc.)
+- Any meaningful interaction (cycle variants, compare tiers, toggle placeholder vs generated)
+
+Generation continues while the tool is live. Only block if the user explicitly calls
+something out. When the domain is done, leave the tool mounted — don't tear it down
+between domains. See `tools/dev-tool-contract.md` for the env gate and removal at ship time.
+
 ## Starting this session
 
 If the user typed `/run-art` or `/run-art <game>` with no other instruction:

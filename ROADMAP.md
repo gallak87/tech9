@@ -196,29 +196,81 @@ bound, which none of ours have been. Our bottleneck is always GPU batching.
 - Retrofit existing games in a later pass if we want to bump them (chronoforge → Pixi
   would be a real win).
 
-### 5. Art proof pass before full batch gen
+### 5. Agent loop contract + slash commands as interrupt points
 
-The art agent writes prompts cold — no visual feedback until after generation completes.
-On a 70-sprite manifest this means prompt failures compound: the wrong style, palette, or
-framing is baked into every sprite in a category before anyone notices. Fixing it requires
-selective regeneration, which is slow and produces visual inconsistency across the batch.
+#### The problem with slash commands as primitives
 
-**Add `/proof-art` as a first-class primitive alongside `/run-art`.**
+`/run-art` was introduced as a human-invoked command. In practice it exposed a gap:
+the art agent had no autonomous loop — it wrote a manifest, handed off, and waited for
+a human to pull the trigger on generation. Every iteration (generate → eyeball → tweak
+prompt → regenerate) required explicit human invocation. That is not a scalable pattern
+across agents or games.
 
-- `/proof-art` generates one representative sprite per category (one tile, one hero stance,
-  one building tier) and surfaces it for human approval before the full batch runs.
-- Human gates it: approve advances to full gen, reject prompts an inline prompt revision
-  before any further generation.
-- Director includes a `/proof-art` checkpoint in the game plan before each `/run-art` call.
-  Mandatory for first-time sprite categories; optional for reruns of known-good categories.
+Slash commands should not be the primary flow. They are **interrupt points** — ways for
+a human to override, resume, or inspect an agent's loop. The agent owns the loop.
 
-**Where to patch:**
-- `skills/run-art.md` — document the two-step contract: proof → approve → run
-- `skills/proof-art.md` — new skill; same Ollama path as `/run-art`, generates 1 sprite
-  per category key and exits
-- `meta/02_director.md` — phase plan template includes proof checkpoint before full art gen
-- `vocab/roles/art.json` — art role responsibilities include proof-pass sign-off, not just
-  manifest authoring
+#### The agent loop contract
+
+Every agent that produces iterative output (art, dev, audio, qa) must define:
+
+1. **Loop** — what it repeats autonomously until done or blocked
+2. **Completion signal** — what "done" looks like (all sprites pass review, all phases
+   green, etc.)
+3. **Block conditions** — what causes it to pause and surface a decision to the human
+   (ambiguous concept, approval required, tool unavailable)
+4. **Interrupt points** — named moments in the loop where a human *can* intervene via
+   slash command, but does not have to
+
+For the art agent specifically:
+
+```
+loop:
+  for each sprite category in manifest:
+    generate one proof sprite
+    self-review: does it match the style spec? (read the image, check palette/silhouette)
+    if yes: generate remaining sprites in category, continue
+    if no: revise prompt, retry (max 2 attempts)
+    if still failing: BLOCK — surface to human with both attempts shown
+
+completion: all categories generated and self-reviewed
+block conditions: tool unavailable (Ollama down), ambiguous style direction,
+                  >2 failed attempts on a category
+interrupt points: /proof-art (show current category proof and pause),
+                  /run-art (skip self-review, generate full batch immediately)
+```
+
+The art agent does not wait for `/run-art` to be invoked. It runs, self-reviews using
+image reads, and only surfaces to the human when it is genuinely blocked.
+
+#### Slash commands as the interrupt surface
+
+Slash commands are how the human reaches into a running agent loop. They are consistent
+across all games and all agents. Convention:
+
+| Pattern | Meaning |
+|---------|---------|
+| `/run-<agent>` | Start or resume the agent's full loop from current state |
+| `/proof-<agent>` | Pause after the next proof unit, show it, wait for input |
+| `/status-<agent>` | Report current loop position without interrupting |
+| `/reset-<agent>` | Restart the agent's loop from scratch |
+
+These are not game-specific. They are framework-level conventions the Director uses
+when declaring a game's agent roster. Any agent the Director spins up gets this interrupt
+surface for free — the slash command stubs are scaffolded by default.
+
+Game-specific commands (`/run-art:terrain`, `/run-art:portraits`) are sub-scoped
+variants of the same pattern, derived by the Director from the manifest structure (§6).
+
+#### Where to patch
+
+- `vocab/roles/*.json` — every role definition gains a `loop`, `completion`,
+  `block_conditions`, and `interrupt_points` field
+- `meta/02_director.md` — Director validates that every agent in the team config has a
+  defined loop contract before the game plan is written
+- `tools/scaffold.js` — scaffolds `/run-<agent>`, `/proof-<agent>`, `/status-<agent>`
+  skill stubs for every agent in the team config, pointing at the agent's `agents/<role>.md`
+- `skills/run-art.md` — rewritten as an interrupt point spec, not a primary invocation doc;
+  documents that the art agent runs autonomously and this command is an override
 
 ---
 

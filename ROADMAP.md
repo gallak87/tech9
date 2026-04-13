@@ -263,12 +263,10 @@ variants of the same pattern, derived by the Director from the manifest structur
 
 #### Where to patch
 
-- `vocab/roles/*.json` — every role definition gains a `loop`, `completion`,
-  `block_conditions`, and `interrupt_points` field
+- ~~`vocab/roles/*.json` — every role definition gains a `loop`, `completion`, `block_conditions`, and `interrupt_points` field~~ — stale. Loop contract lives in the agent skill file (`run-art.md`), not in role JSON the Director consumes. Adding fields nobody reads is noise.
 - `meta/02_director.md` — Director validates that every agent in the team config has a
   defined loop contract before the game plan is written
-- `tools/scaffold.js` — scaffolds `/run-<agent>`, `/proof-<agent>`, `/status-<agent>`
-  skill stubs for every agent in the team config, pointing at the agent's `agents/<role>.md`
+- ~~`tools/scaffold.js` — scaffolds `/run-<agent>`, `/proof-<agent>`, `/status-<agent>` skill stubs for every agent in the team config~~ — stale. Agents own their loops; a heavy scaffolded command surface contradicts that. Slash commands are rare human interrupts, not boilerplate.
 - `skills/run-art.md` — rewritten as an interrupt point spec, not a primary invocation doc;
   documents that the art agent runs autonomously and this command is an override
 

@@ -50,12 +50,20 @@ Show 3–5 concrete expansion options ranked by impact. For each:
 Wait for the user to respond to each before moving to the next, or let them
 approve a set all at once.
 
-## Step 4 — Execute approved expansions
+## Step 4 — Declare and hand off
 
-For each approved expansion:
-- Update the relevant agent's output or manifest directly
-- If new sprites are needed, add them to `sprites-manifest.json` and note that `/run-art` should follow
-- If new game logic is needed, implement it
-- If scope constraints in CONCEPT.md need updating to reflect the expansion, update them
+For each approved expansion, update declarations only — do not do the agent's work:
 
-Commit when done. Tell the user what changed and what (if anything) still needs `/run-art`.
+- Add new sprites to `sprites-manifest.json`
+- Update scope constraints in `CONCEPT.md` to reflect the expansion
+- Add new entries to the relevant agent stub in `agents/` describing what needs building
+
+Then tell the user exactly what to run next:
+
+```
+Declared. To execute:
+  → gamedesign agent: wire boss move sets and drop tables
+  → /run-art: generate 3 new boss sprites
+```
+
+Commit the declaration changes. The agents do the rest.

@@ -1,6 +1,6 @@
 ---
 name: run-art
-description: Art agent — generate or regenerate sprites via Ollama for any game. Usage: /run-art [game-name]
+description: "Art agent — generate or regenerate sprites via Ollama for any game. Usage: /run-art [game-name]"
 ---
 
 You are the art agent. Your job: generate sprite images via Ollama and keep the game looking good.

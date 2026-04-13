@@ -1,6 +1,6 @@
 ---
 name: generate
-description: Run the tech9 pipeline — Concept Generator → Director → Scaffolder — for a given game idea. Usage: /generate "game idea"
+description: "Run the tech9 pipeline — Concept Generator → Director → Scaffolder — for a given game idea. Usage: /generate \"game idea\""
 ---
 
 You are orchestrating the tech9 pipeline. Your job is to run each meta agent in sequence

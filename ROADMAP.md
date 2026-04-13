@@ -196,7 +196,64 @@ bound, which none of ours have been. Our bottleneck is always GPU batching.
 - Retrofit existing games in a later pass if we want to bump them (chronoforge → Pixi
   would be a real win).
 
-### 5. Historian agent — cross-game learning loop
+### 5. Art proof pass before full batch gen
+
+The art agent writes prompts cold — no visual feedback until after generation completes.
+On a 70-sprite manifest this means prompt failures compound: the wrong style, palette, or
+framing is baked into every sprite in a category before anyone notices. Fixing it requires
+selective regeneration, which is slow and produces visual inconsistency across the batch.
+
+**Add `/proof-art` as a first-class primitive alongside `/run-art`.**
+
+- `/proof-art` generates one representative sprite per category (one tile, one hero stance,
+  one building tier) and surfaces it for human approval before the full batch runs.
+- Human gates it: approve advances to full gen, reject prompts an inline prompt revision
+  before any further generation.
+- Director includes a `/proof-art` checkpoint in the game plan before each `/run-art` call.
+  Mandatory for first-time sprite categories; optional for reruns of known-good categories.
+
+**Where to patch:**
+- `skills/run-art.md` — document the two-step contract: proof → approve → run
+- `skills/proof-art.md` — new skill; same Ollama path as `/run-art`, generates 1 sprite
+  per category key and exits
+- `meta/02_director.md` — phase plan template includes proof checkpoint before full art gen
+- `vocab/roles/art.json` — art role responsibilities include proof-pass sign-off, not just
+  manifest authoring
+
+---
+
+### 6. Director emits game-specific CLI
+
+The current primitive set (`/generate`, `/run-art`) is concept-agnostic — every game gets
+the same handles regardless of what iteration loops it actually needs. As a game matures
+past scaffolding, the relevant iteration surface diverges: a tilemap RPG needs
+`/run-art:terrain`, a physics platformer needs `/qa:collision`. Forcing authors to derive
+these manually re-discovers work the Director already has enough context to declare.
+
+**The Director's output should include a `scripts` block — a set of game-specific slash
+command stubs derived from the concept and team config.**
+
+- Director inspects the concept's genre, scene count, asset categories, and phase plan
+- Emits a `scripts:` section in the team config listing named commands, their responsible
+  agent, and their invocation (e.g. `run-art:terrain → art agent, manifest filter: terrain/`)
+- Scaffolder writes these as skill stubs into the game's local `.claude/` or documents
+  them in `agents/dev.md` as npm-style script targets
+- Commands are *derived*, not generic — a Snake-scale game gets no art scripts; a
+  60×40 tilemap RPG gets `/run-art:terrain`, `/run-art:buildings`, `/run-art:portraits`
+
+**Contract:**
+- Game-specific scripts are scoped to the game directory, not added to the global skill set
+- Naming convention: `<primitive>:<category>` (e.g. `run-art:terrain`, `proof-art:heroes`)
+- Director re-emits the scripts block if the concept or phase plan changes materially
+
+**Where to patch:**
+- `meta/02_director.md` — add scripts derivation step to the Director's output spec
+- `vocab/roles/director.json` — `outputs` field includes `scripts[]`
+- `tools/scaffold.js` — reads `scripts[]` from team config, writes stub skill files
+
+---
+
+### 7. Historian agent — cross-game learning loop
 
 Every game gen produces learnings: perf pitfalls, prompt-fidelity patterns, UX failures we
 repeat, audio cues that landed or didn't. Today those learnings live only in this ROADMAP

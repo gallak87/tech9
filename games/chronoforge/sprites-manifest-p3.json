@@ -1,0 +1,50 @@
+{
+  "model": "x/flux2-klein:latest",
+  "host": "http://localhost:11434",
+  "style_prefix": "pixel art game sprite, pure black background (#000000), neon synthwave post-apocalyptic sci-fi, deep violet and indigo base with glowing magenta / cyan / amber yellow accents, detailed shading with rim light, soft glow halo around neon elements, chunky pixel highlights, gradient dithering on volumes, metallic material reads, crisp readable silhouette centered in frame, no text, no watermark, no border frame, Chrono Trigger meets Hyper Light Drifter meets Signalis",
+  "sprites": [
+    { "name": "town_center_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 1 town center, rust-patched salvage hut with sagging roof, amber lantern glow, wooden scaffolding, primitive survivor outpost", "out": "src/assets/town_center_t1.png" },
+    { "name": "town_center_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 2 town center, reinforced stone-and-steel longhouse, magenta banner, stable walls, early reclamation era", "out": "src/assets/town_center_t2.png" },
+    { "name": "town_center_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 3 town center, industrial command post, cyan neon trim, radio mast, rooftop antenna, polished steel plating", "out": "src/assets/town_center_t3.png" },
+    { "name": "town_center_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 4 town center, arc-lit citadel spire, magenta dome, hovering banners, final-era megastructure", "out": "src/assets/town_center_t4.png" },
+
+    { "name": "farm_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 1 farm, tilled dirt plots with wooden stakes, green sprouts, straw-roof shed", "out": "src/assets/farm_t1.png" },
+    { "name": "farm_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 2 farm, irrigated crop rows with stone wall border, small windmill, amber harvest glow", "out": "src/assets/farm_t2.png" },
+    { "name": "farm_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 3 farm, greenhouse with cyan UV grow-lamps, metal trellises, hydroponic racks", "out": "src/assets/farm_t3.png" },
+    { "name": "farm_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 4 farm, vertical bio-tower, glowing green plant columns, magenta neon banding, auto-harvester arm", "out": "src/assets/farm_t4.png" },
+
+    { "name": "mine_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 1 mine, wooden pit entrance with rail cart, pile of ore chunks, pick-axe leaning on post", "out": "src/assets/mine_t1.png" },
+    { "name": "mine_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 2 mine, stone shaft with reinforced beams, amber lantern, ore conveyor visible", "out": "src/assets/mine_t2.png" },
+    { "name": "mine_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 3 mine, industrial drilling rig with steel derrick, cyan coolant tanks, smoke stacks", "out": "src/assets/mine_t3.png" },
+    { "name": "mine_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 4 mine, deep-core extraction tower, magenta plasma drill shaft, floating ore refinery module", "out": "src/assets/mine_t4.png" },
+
+    { "name": "energy_extractor_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 1 energy extractor, makeshift solar panels on wooden frame, coiled cables, generator hum", "out": "src/assets/energy_extractor_t1.png" },
+    { "name": "energy_extractor_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 2 energy extractor, windmill turbine plus battery shed, amber warning light", "out": "src/assets/energy_extractor_t2.png" },
+    { "name": "energy_extractor_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 3 energy extractor, fusion coil tower with cyan arc discharge, cooling fins, heavy base plinth", "out": "src/assets/energy_extractor_t3.png" },
+    { "name": "energy_extractor_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 4 energy extractor, antimatter pylon pulsing magenta, levitating ring rotators, exotic particle halo", "out": "src/assets/energy_extractor_t4.png" },
+
+    { "name": "barracks_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 1 barracks, timber bunkhouse with canvas sides, weapon rack, campfire pit", "out": "src/assets/barracks_t1.png" },
+    { "name": "barracks_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 2 barracks, stone drill-yard with training dummies, reinforced gate, militia standard", "out": "src/assets/barracks_t2.png" },
+    { "name": "barracks_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 3 barracks, steel-clad armory with cyan tactical lights, weapon lockers, exo-suit rack", "out": "src/assets/barracks_t3.png" },
+    { "name": "barracks_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 4 barracks, elite warcaster garrison, magenta banners, hovering drone sentries, hero-class armor displays", "out": "src/assets/barracks_t4.png" },
+
+    { "name": "forge_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 1 forge, open-air smithy with stone anvil, roaring orange coals, bellows and water trough", "out": "src/assets/forge_t1.png" },
+    { "name": "forge_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 2 forge, enclosed forge-hall with brick chimney, amber furnace glow, hanging tools", "out": "src/assets/forge_t2.png" },
+    { "name": "forge_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 3 forge, industrial foundry with steel cupola, molten-metal channels, cyan cooling pipes", "out": "src/assets/forge_t3.png" },
+    { "name": "forge_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 4 forge, plasma-smelter complex, floating magenta weapon-schematic holograms, levitating anvil ring", "out": "src/assets/forge_t4.png" },
+
+    { "name": "research_lab_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 1 research lab, wooden shack with junk-tech workbench, open tome, candle", "out": "src/assets/research_lab_t1.png" },
+    { "name": "research_lab_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 2 research lab, brick study with scattered scrolls, amber desk lamp, small telescope on roof", "out": "src/assets/research_lab_t2.png" },
+    { "name": "research_lab_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 3 research lab, steel-and-glass laboratory, cyan holographic console, specimen tanks, computer banks", "out": "src/assets/research_lab_t3.png" },
+    { "name": "research_lab_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 4 research lab, chrono-archive spire, floating magenta orrery rings, void-lens observatory dome", "out": "src/assets/research_lab_t4.png" },
+
+    { "name": "wall_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 1 wall segment, timber palisade with sharpened stakes, supports, watch-step", "out": "src/assets/wall_t1.png" },
+    { "name": "wall_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 2 wall segment, stone battlement with crenellations, amber torch sconces", "out": "src/assets/wall_t2.png" },
+    { "name": "wall_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 3 wall segment, reinforced concrete barrier with cyan sensor strip, steel gate plating", "out": "src/assets/wall_t3.png" },
+    { "name": "wall_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building sprite, tier 4 wall segment, magenta force-shield emitter pylons, glowing energy curtain, polished alloy base", "out": "src/assets/wall_t4.png" },
+
+    { "name": "icon_weapon", "w": 24, "h": 24, "priority": 3, "prompt": "pixel art ui icon, weapon slot, stylized sword-and-blade silhouette, magenta accent, flat readable shape, game inventory glyph", "out": "src/assets/icon_weapon.png" },
+    { "name": "icon_armor", "w": 24, "h": 24, "priority": 3, "prompt": "pixel art ui icon, armor slot, cuirass / chestplate silhouette, cyan accent, flat readable shape, game inventory glyph", "out": "src/assets/icon_armor.png" },
+    { "name": "icon_accessory", "w": 24, "h": 24, "priority": 3, "prompt": "pixel art ui icon, accessory slot, rune-amulet silhouette with gem, amber accent, flat readable shape, game inventory glyph", "out": "src/assets/icon_accessory.png" }
+  ]
+}

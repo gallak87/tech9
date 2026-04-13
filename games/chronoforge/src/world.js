@@ -2,7 +2,7 @@
 // Handcrafted 60x40 tile grid. Biome regions are hand-placed; within a biome,
 // tile variety is seeded so regeneration is deterministic.
 
-export const TILE = 32; // px per tile
+export const TILE = 64; // px per tile
 export const MAP_W = 60;
 export const MAP_H = 40;
 

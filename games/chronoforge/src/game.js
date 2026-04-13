@@ -16,6 +16,59 @@ import {
 import { initBattle, updateBattle, drawBattle, handleBattleKey } from './battle.js';
 import { initAudio, resumeAudio, playSfx } from './audio.js';
 import { PLAYER_START, MAP_W, MAP_H } from './world.js';
+import { TERRAIN_SETS, setTerrainSet, spriteSettings } from './sprites.js';
+
+// --- DEV: floating terrain picker ---
+(function mountTerrainPicker() {
+  const sets = [null, ...TERRAIN_SETS];
+  const el = document.createElement('div');
+  el.id = 'terrain-picker';
+  el.style.cssText = `
+    position:fixed; left:12px; top:50%; transform:translateY(-50%);
+    background:rgba(0,0,0,0.82); border:1px solid #555; border-radius:6px;
+    padding:8px 10px; display:flex; flex-direction:column; gap:6px;
+    font:700 11px ui-monospace,monospace; color:#ccc; z-index:9999;
+    user-select:none;
+  `;
+  const label = document.createElement('div');
+  label.style.cssText = 'text-align:center; font-size:9px; letter-spacing:1px; color:#888;';
+  label.textContent = 'TERRAIN';
+
+  const name = document.createElement('div');
+  name.style.cssText = 'text-align:center; color:#fff; min-width:72px;';
+
+  function refresh() {
+    name.textContent = spriteSettings.terrainSet ? spriteSettings.terrainSet.toUpperCase() : 'DEFAULT';
+  }
+
+  function btnStyle(el) {
+    el.style.cssText = `
+      background:#222; border:1px solid #555; border-radius:3px;
+      color:#adf; padding:3px 0; cursor:pointer; font:700 13px system-ui;
+      text-align:center;
+    `;
+  }
+
+  const prev = document.createElement('button');
+  btnStyle(prev); prev.textContent = '▲';
+  prev.onclick = () => {
+    const i = sets.indexOf(spriteSettings.terrainSet);
+    setTerrainSet(sets[(i - 1 + sets.length) % sets.length]);
+    refresh();
+  };
+
+  const next = document.createElement('button');
+  btnStyle(next); next.textContent = '▼';
+  next.onclick = () => {
+    const i = sets.indexOf(spriteSettings.terrainSet);
+    setTerrainSet(sets[(i + 1) % sets.length]);
+    refresh();
+  };
+
+  el.append(label, prev, name, next);
+  document.body.appendChild(el);
+  refresh();
+})();
 
 const STATES = Object.freeze({
   SPLASH: 'splash',

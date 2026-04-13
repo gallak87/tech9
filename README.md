@@ -71,7 +71,7 @@ Sharpen your idea into a tight paragraph first — vague input = vague game. Use
   Does this team and phase plan look right?
 ```
 
-Confirm → agents start. Each phase ends with a playable localhost build.
+Confirm → before saying **let's go**, switch to Opus. Agents are doing real multi-file reasoning across phases — Sonnet will work but Opus holds context better and makes fewer wrong turns. Each phase ends with a playable localhost build.
 
 ---
 

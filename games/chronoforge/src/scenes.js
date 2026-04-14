@@ -4,6 +4,7 @@
 import { TILE, MAP_W, MAP_H, tileAt, CITIES, ENCOUNTERS, PLAYER_START } from './world.js';
 import { drawSprite, getSpriteVersion } from './sprites.js';
 import { aggregateYields, TICK_MS } from './base.js';
+import { checkQuestProgress } from './progression.js';
 
 const PALETTE = {
   bg: '#07060d', bgAlt: '#120a22',
@@ -191,6 +192,7 @@ export function updateOverworld(game, dt) {
   if (city && !city.unlocked) {
     city.unlocked = true;
     game.toast(`Reached ${city.name} — fast-travel unlocked`);
+    if (game.quests) checkQuestProgress(game, { type: 'city_reached', cityId: city.id });
   }
 
   // encounter stepped on → battle

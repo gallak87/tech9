@@ -1,0 +1,16 @@
+{
+  "name": "chronoforge",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "pixi-filters": "^6.1.1",
+    "pixi.js": "^8.6.6"
+  }
+}

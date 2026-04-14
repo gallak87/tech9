@@ -6,6 +6,7 @@
 import { drawSprite } from './sprites.js';
 import { playSfx } from './audio.js';
 import { CITIES } from './world.js';
+import { computeStats, SKILL_TREES, awardXp, checkQuestProgress } from './progression.js';
 
 const PALETTE = {
   bg: '#07060d', panel: 'rgba(18,10,34,0.88)', ink: '#e7e5ff', dim: '#8a83b8',
@@ -33,6 +34,40 @@ const ENEMY_TEMPLATES = {
   wraith_core:       { name: 'Wraith Core',     hp: 130, str: 15, def: 9,  spd: 13, xp: 110, renown: 12 },
 };
 
+// Combat properties for each skill (referenced by id from progression.js skill trees)
+const TECH_DATA = {
+  rift_cleave:   { id: 'rift_cleave',   name: 'Rift Cleave',   mp: 8,  power: 2.0, stat: 'str', el: 'phys',    aoe: true  },
+  chrono_strike: { id: 'chrono_strike', name: 'Chrono Strike', mp: 10, power: 1.8, stat: 'str', el: 'phys',    aoe: false },
+  time_sever:    { id: 'time_sever',    name: 'Time Sever',    mp: 18, power: 4.5, stat: 'str', el: 'phys',    aoe: false },
+  void_lance:    { id: 'void_lance',    name: 'Void Lance',    mp: 14, power: 2.3, stat: 'int', el: 'void',    aoe: false },
+  null_field:    { id: 'null_field',    name: 'Null Field',    mp: 20, power: 1.8, stat: 'int', el: 'void',    aoe: true  },
+  entropy_surge: { id: 'entropy_surge', name: 'Entropy Surge', mp: 28, power: 1.5, stat: 'int', el: 'void',    aoe: true  },
+  aegis_field:   { id: 'aegis_field',   name: 'Aegis Field',   mp: 10, power: 0,   stat: 'tec', el: 'support', aoe: false, buff: 'shield' },
+  bulwark:       { id: 'bulwark',       name: 'Bulwark',       mp: 8,  power: 0,   stat: 'tec', el: 'support', aoe: false, buff: 'taunt'  },
+  temporal_wall: { id: 'temporal_wall', name: 'Temporal Wall', mp: 32, power: 0,   stat: 'tec', el: 'support', aoe: true,  buff: 'immunity' },
+};
+
+function buildTechs(skills) {
+  return Object.keys(skills)
+    .filter(id => skills[id] && TECH_DATA[id])
+    .map(id => TECH_DATA[id]);
+}
+
+// Build a battle-ready hero from the persistent game hero object.
+function heroFromGame(gh) {
+  const stats = computeStats(gh);
+  return {
+    id: gh.id,
+    name: gh.name,
+    hp: gh.hp, maxHp: stats.maxHp,
+    mp: gh.mp, maxMp: stats.maxMp,
+    str: stats.str, int: stats.int, tec: stats.tec,
+    def: stats.def, spd: stats.spd, crit: stats.crit,
+    atb: Math.random() * 40, shield: 0, flash: 0,
+    techs: buildTechs(gh.skills),
+  };
+}
+
 function cloneHero(id) {
   const t = HERO_TEMPLATES[id];
   return { id, ...t, hp: t.hp, mp: t.mp, maxHp: t.hp, maxMp: t.mp, atb: Math.random() * 40, shield: 0, flash: 0 };
@@ -48,8 +83,12 @@ export function initBattle(game, encounter) {
   const enemies = [];
   const count = encounter.count || 1;
   for (let i = 0; i < count; i++) enemies.push(cloneEnemy(encounter.enemy, i));
+  // use persistent heroes if available, else fall back to templates
+  const battleHeroes = game.heroes
+    ? game.heroes.map(gh => heroFromGame(gh))
+    : ['kaida', 'vex', 'rune'].map(cloneHero);
   game.battle = {
-    heroes: ['kaida', 'vex', 'rune'].map(cloneHero),
+    heroes: battleHeroes,
     enemies,
     phase: 'active',       // active | win | lose
     timeFreeze: 0,
@@ -316,11 +355,27 @@ function endBattle(game, victory) {
     const oreGain = Math.floor(xpGain / 10);
     game.resources.renown += renownGain;
     game.resources.ore += oreGain;
+    // award XP to persistent heroes and check quest progress
+    if (game.heroes) {
+      awardXp(game, xpGain);
+      checkQuestProgress(game, { type: 'encounter_cleared', encounterId: enc.id });
+    }
     game.toast(`Victory — +${renownGain} Renown, +${oreGain} Ore`);
+    // restore heroes to full HP/MP after victory
+    if (game.heroes) {
+      for (const h of game.heroes) { h.hp = h.maxHp; h.mp = h.maxMp; }
+    }
   } else {
     const home = CITIES[0];
     game.party.x = home.x; game.party.y = home.y;
     game.party.fromX = home.x; game.party.fromY = home.y;
+    // return at half HP
+    if (game.heroes) {
+      for (const h of game.heroes) {
+        h.hp = Math.max(1, Math.floor(h.maxHp * 0.5));
+        h.mp = Math.max(0, Math.floor(h.maxMp * 0.5));
+      }
+    }
     game.toast('Defeated — returned to Haventide');
   }
   game.pendingEncounter = null;

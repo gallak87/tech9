@@ -17,6 +17,7 @@ import { initBattle, updateBattle, drawBattle, handleBattleKey } from './battle.
 import { initAudio, resumeAudio, playSfx } from './audio.js';
 import { PLAYER_START, MAP_W, MAP_H } from './world.js';
 import { TERRAIN_SETS, setTerrainSet, spriteSettings } from './sprites.js';
+import { initHeroes, initInventory, initQuests } from './progression.js';
 
 // --- DEV: floating terrain picker ---
 (function mountTerrainPicker() {
@@ -92,6 +93,9 @@ const game = {
   party: initParty(),
   explored: new Set(),
   resources: { food: 10, ore: 150, energy: 0, renown: 0, skillPoints: 0 },
+  heroes: initHeroes(),
+  inventory: initInventory(),
+  quests: initQuests(),
   toastMsg: null,
   toastExpire: 0,
   pendingEncounter: null,
@@ -187,8 +191,8 @@ canvas.addEventListener('mousemove', (e) => {
   if (menuState.open) { handleMenuMouseMove(e.clientX, e.clientY, game); return; }
   if (game.state === STATES.BASE) handleBaseMouseMove(game, e.clientX, e.clientY);
 });
-canvas.addEventListener('mouseup', () => {
-  if (menuState.open) handleMenuMouseUp();
+canvas.addEventListener('mouseup', (e) => {
+  if (menuState.open) handleMenuMouseUp(e.clientX, e.clientY, game);
 });
 canvas.addEventListener('wheel', (e) => {
   if (menuState.open) {

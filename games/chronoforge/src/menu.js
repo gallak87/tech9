@@ -5,6 +5,11 @@
 
 import { TILE, MAP_W, MAP_H, TILES, CITIES } from './world.js';
 import { spriteSettings, drawSprite, TERRAIN_SETS, setTerrainSet } from './sprites.js';
+import {
+  HERO_DEFS, ITEM_DEFS, SKILL_TREES, QUEST_DEFS,
+  computeStats, equipItem, unequipItem, spendSkillPoint,
+  saveGame, loadGame, hasSave, getSaveMeta, deleteSave,
+} from './progression.js';
 
 export const TABS = ['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'];
 
@@ -21,16 +26,31 @@ export const menuState = {
   prevTab: 0,
   tabChangeTime: -9999,
   tabDir: 1,
-  // map tab view state
+  // map tab
   map: {
     zoom: 1,
-    cx: MAP_W * TILE / 2, // world-space center
+    cx: MAP_W * TILE / 2,
     cy: MAP_H * TILE / 2,
     dragging: false,
     dragLastX: 0,
     dragLastY: 0,
   },
   hoverCity: null,
+  // inventory tab
+  inv: {
+    heroIdx: 0,
+    selectedItemIdx: -1,  // index into game.inventory (-1 = none)
+    dragItemIdx: -1,      // index being dragged (-1 = none)
+    dragX: 0, dragY: 0,
+    dragStartX: 0, dragStartY: 0,
+    hoverSlot: null,      // { heroId, slot }
+  },
+  // skills tab
+  skills: { heroIdx: 0 },
+  // quests tab
+  quests: { selectedIdx: 0 },
+  // save tab
+  save: { msg: '', msgExpire: 0 },
 };
 
 function resetMapView(game) {
@@ -98,7 +118,6 @@ export function handleMenuMouseDown(mx, my, game) {
     }
     const rect = mapRect(game);
     if (pointInRect(mx, my, rect)) {
-      // click on a city?
       const city = pickCity(mx, my, rect, game);
       if (city && (city.unlocked || city.id === 'haventide')) {
         fastTravel(city, game);
@@ -110,6 +129,20 @@ export function handleMenuMouseDown(mx, my, game) {
       return true;
     }
   }
+
+  if (TABS[menuState.tab] === 'Inventory') {
+    return handleInvMouseDown(mx, my, game);
+  }
+  if (TABS[menuState.tab] === 'Skills') {
+    return handleSkillsMouseDown(mx, my, game);
+  }
+  if (TABS[menuState.tab] === 'Quests') {
+    return handleQuestsMouseDown(mx, my, game);
+  }
+  if (TABS[menuState.tab] === 'Save') {
+    return handleSaveMouseDown(mx, my, game);
+  }
+
   if (TABS[menuState.tab] === 'Settings') {
     const toggle = settingsToggleRect(game);
     if (pointInRect(mx, my, toggle)) {
@@ -120,7 +153,8 @@ export function handleMenuMouseDown(mx, my, game) {
     if (pointInRect(mx, my, prev)) { cycleTerrainSet(-1); return true; }
     if (pointInRect(mx, my, next)) { cycleTerrainSet(+1); return true; }
   }
-  // tab clicks
+
+  // tab bar
   const tabRects = tabBarRects(game);
   for (let i = 0; i < tabRects.length; i++) {
     if (pointInRect(mx, my, tabRects[i])) {
@@ -135,7 +169,6 @@ export function handleMenuMouseMove(mx, my, game) {
   if (menuState.map.dragging) {
     const dx = mx - menuState.map.dragLastX;
     const dy = my - menuState.map.dragLastY;
-    // one screen pixel == 1/scale world units; drag should 1:1 track the cursor
     const worldPerPx = 1 / mapScale(game);
     menuState.map.cx -= dx * worldPerPx;
     menuState.map.cy -= dy * worldPerPx;
@@ -145,10 +178,30 @@ export function handleMenuMouseMove(mx, my, game) {
     const rect = mapRect(game);
     menuState.hoverCity = pickCity(mx, my, rect, game);
   }
+  // update drag position for inventory
+  if (menuState.inv.dragItemIdx >= 0) {
+    menuState.inv.dragX = mx;
+    menuState.inv.dragY = my;
+    // detect which equip slot is hovered
+    menuState.inv.hoverSlot = pickEquipSlot(mx, my, game);
+  }
 }
 
-export function handleMenuMouseUp() {
+export function handleMenuMouseUp(mx, my, game) {
   menuState.map.dragging = false;
+  if (menuState.inv.dragItemIdx >= 0 && game) {
+    const slot = pickEquipSlot(mx, my, game);
+    if (slot) {
+      const inv = menuState.inv;
+      const hero = game.heroes[inv.heroIdx];
+      if (hero) {
+        equipItem(game, hero.id, slot, inv.dragItemIdx);
+        inv.selectedItemIdx = -1;
+      }
+    }
+    menuState.inv.dragItemIdx = -1;
+    menuState.inv.hoverSlot = null;
+  }
 }
 
 export function handleMenuWheel(dy, mx, my, game) {
@@ -223,26 +276,739 @@ export function drawMenu(ctx, game) {
 
 function drawTabBody(ctx, game, name) {
   switch (name) {
-    case 'Map': drawMapTab(ctx, game); break;
-    case 'Party': drawStubTab(ctx, game, 'PARTY', 'Hero portraits, HP/MP/XP bars, stats — wires up in Phase 5.'); break;
-    case 'Inventory': drawStubTab(ctx, game, 'INVENTORY', 'Owned items + equip slots with stat-diff preview — wires up in Phase 5.'); break;
-    case 'Skills': drawStubTab(ctx, game, 'SKILLS', 'Per-hero skill trees — wires up in Phase 5.'); break;
-    case 'Quests': drawStubTab(ctx, game, 'QUESTS', 'Active and completed quest log — wires up in Phase 5.'); break;
-    case 'Save': drawStubTab(ctx, game, 'SAVE', 'localStorage save/load/delete — wires up in Phase 5.'); break;
-    case 'Settings': drawSettingsTab(ctx, game); break;
+    case 'Map':       drawMapTab(ctx, game); break;
+    case 'Party':     drawPartyTab(ctx, game); break;
+    case 'Inventory': drawInventoryTab(ctx, game); break;
+    case 'Skills':    drawSkillsTab(ctx, game); break;
+    case 'Quests':    drawQuestsTab(ctx, game); break;
+    case 'Save':      drawSaveTab(ctx, game); break;
+    case 'Settings':  drawSettingsTab(ctx, game); break;
   }
 }
 
-function drawStubTab(ctx, game, title, body) {
+// ─── Party tab ───────────────────────────────────────────────────────────────
+
+function drawPartyTab(ctx, game) {
+  if (!game.heroes) return;
   const f = frameRect(game);
+  const bodyY = f.y + 60;
+  const bodyH = f.h - 70;
+  const cardW = Math.floor((f.w - 60) / 3);
+  const cardPad = 20;
+
   ctx.fillStyle = PALETTE.ink;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.font = '700 40px system-ui, sans-serif';
-  ctx.fillText(title, game.width / 2, f.y + 110);
+  ctx.textAlign = 'left';
+  ctx.font = '600 11px ui-monospace, monospace';
   ctx.fillStyle = PALETTE.dim;
-  ctx.font = '400 14px system-ui, sans-serif';
-  ctx.fillText(body, game.width / 2, f.y + 170);
+  ctx.fillText(`SKILL POINTS: ${game.resources.skillPoints || 0}`, f.x + 24, bodyY - 18);
+
+  game.heroes.forEach((hero, i) => {
+    const x = f.x + 20 + i * (cardW + 10);
+    const y = bodyY;
+    const w = cardW;
+    const h = bodyH;
+
+    // card bg
+    ctx.fillStyle = PALETTE.panel;
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = hero.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+
+    // portrait circle
+    const cx = x + w / 2, cy = y + cardPad + 40;
+    const r = 38;
+    ctx.fillStyle = hero.color + '33';
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = hero.color; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = hero.color;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `700 26px system-ui, sans-serif`;
+    ctx.fillText(hero.name[0], cx, cy);
+
+    let ty = cy + r + 14;
+
+    // name + level
+    ctx.fillStyle = PALETTE.ink;
+    ctx.font = '700 15px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.fillText(hero.name, cx, ty); ty += 18;
+    ctx.fillStyle = hero.color;
+    ctx.font = '400 11px ui-monospace, monospace';
+    ctx.fillText(`${hero.role}  •  Lv ${hero.level}`, cx, ty); ty += 20;
+
+    // HP bar
+    const barX = x + cardPad, barW = w - cardPad * 2, barH = 9;
+    drawBar(ctx, barX, ty, barW, barH, hero.hp, hero.maxHp, '#ff4a5a', '#3a1520');
+    ctx.fillStyle = PALETTE.dim; ctx.font = '400 10px ui-monospace, monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText(`${hero.hp}/${hero.maxHp}`, x + w - cardPad, ty); ty += barH + 10;
+
+    // MP bar
+    drawBar(ctx, barX, ty, barW, barH, hero.mp, hero.maxMp, '#22e3ff', '#0a2535');
+    ctx.fillStyle = PALETTE.dim; ctx.font = '400 10px ui-monospace, monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText(`${hero.mp}/${hero.maxMp}`, x + w - cardPad, ty); ty += barH + 10;
+
+    // XP bar
+    drawBar(ctx, barX, ty, barW, barH, hero.xp, hero.xpNext, '#ffd23f', '#2a2010');
+    ctx.fillStyle = PALETTE.dim; ctx.font = '400 10px ui-monospace, monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'top';
+    ctx.fillText(`${hero.xp}/${hero.xpNext} xp`, x + w - cardPad, ty); ty += barH + 16;
+
+    // stats grid
+    const stats = computeStats(hero);
+    const statList = [
+      ['STR', stats.str], ['INT', stats.int], ['TEC', stats.tec],
+      ['DEF', stats.def], ['SPD', stats.spd], ['CRIT', stats.crit],
+    ];
+    ctx.textAlign = 'left';
+    ctx.font = '400 11px ui-monospace, monospace';
+    const colW = (barW) / 2;
+    statList.forEach(([label, val], si) => {
+      const sx = barX + (si % 2) * colW;
+      const sy = ty + Math.floor(si / 2) * 16;
+      ctx.fillStyle = PALETTE.dim;
+      ctx.fillText(label, sx, sy);
+      ctx.fillStyle = PALETTE.ink;
+      ctx.textAlign = 'right';
+      ctx.fillText(String(val), sx + colW - 4, sy);
+      ctx.textAlign = 'left';
+    });
+    ty += Math.ceil(statList.length / 2) * 16 + 14;
+
+    // equipped items
+    ctx.fillStyle = PALETTE.dim;
+    ctx.font = '600 10px ui-monospace, monospace';
+    ctx.textAlign = 'left';
+    ctx.fillText('EQUIP', barX, ty); ty += 14;
+    for (const slot of ['weapon', 'armor', 'accessory']) {
+      const itemId = hero.equip[slot];
+      const def = itemId ? ITEM_DEFS[itemId] : null;
+      ctx.fillStyle = def ? def.color : PALETTE.grid;
+      ctx.fillRect(barX, ty, 8, 8);
+      ctx.fillStyle = def ? PALETTE.ink : PALETTE.dim;
+      ctx.font = '400 10px ui-monospace, monospace';
+      ctx.fillText(def ? def.name : `— (${slot})`, barX + 12, ty);
+      ty += 13;
+    }
+  });
+}
+
+// ─── Inventory tab ────────────────────────────────────────────────────────────
+
+const SLOTS = ['weapon', 'armor', 'accessory'];
+
+// Hit-test helpers for inventory layout
+function invHeroRect(heroIdx, game) {
+  const f = frameRect(game);
+  const panelX = f.x + 20 + Math.floor(f.w * 0.46);
+  const panelW = f.w - Math.floor(f.w * 0.46) - 40;
+  const heroW = Math.floor(panelW / 3);
+  return { x: panelX + heroIdx * heroW, y: f.y + 64, w: heroW, h: 30 };
+}
+
+function invSlotRect(heroIdx, slotIdx, game) {
+  const f = frameRect(game);
+  const panelX = f.x + 20 + Math.floor(f.w * 0.46);
+  const panelW = f.w - Math.floor(f.w * 0.46) - 40;
+  const heroW = Math.floor(panelW / 3);
+  return {
+    x: panelX + heroIdx * heroW + 4,
+    y: f.y + 100 + slotIdx * 64,
+    w: heroW - 8, h: 58,
+  };
+}
+
+function invItemRect(idx, game) {
+  const f = frameRect(game);
+  const itemW = Math.floor(f.w * 0.44) - 20;
+  const itemH = 48;
+  const x = f.x + 20;
+  const y = f.y + 64 + idx * (itemH + 6);
+  return { x, y, w: itemW, h: itemH };
+}
+
+function pickEquipSlot(mx, my, game) {
+  if (!game.heroes) return null;
+  for (let hi = 0; hi < game.heroes.length; hi++) {
+    for (let si = 0; si < SLOTS.length; si++) {
+      const r = invSlotRect(hi, si, game);
+      if (pointInRect(mx, my, r)) return { heroId: game.heroes[hi].id, slot: SLOTS[si], heroIdx: hi };
+    }
+  }
+  return null;
+}
+
+function handleInvMouseDown(mx, my, game) {
+  if (!game.heroes) return false;
+  const inv = menuState.inv;
+
+  // hero selector
+  for (let i = 0; i < game.heroes.length; i++) {
+    const r = invHeroRect(i, game);
+    if (pointInRect(mx, my, r)) { inv.heroIdx = i; return true; }
+  }
+
+  // equip slot click
+  const slot = pickEquipSlot(mx, my, game);
+  if (slot) {
+    if (inv.selectedItemIdx >= 0) {
+      // try to equip selected item into this slot
+      if (equipItem(game, slot.heroId, slot.slot, inv.selectedItemIdx)) {
+        inv.selectedItemIdx = -1;
+      }
+    } else {
+      // click on equipped item → unequip it (puts in inventory, selects it)
+      const hero = game.heroes.find(h => h.id === slot.heroId);
+      if (hero && hero.equip[slot.slot]) {
+        unequipItem(game, slot.heroId, slot.slot);
+        // select the last item (just added)
+        inv.selectedItemIdx = game.inventory.length - 1;
+      }
+    }
+    return true;
+  }
+
+  // item list click or drag start
+  for (let i = 0; i < game.inventory.length; i++) {
+    const r = invItemRect(i, game);
+    if (pointInRect(mx, my, r)) {
+      if (inv.selectedItemIdx === i) {
+        inv.selectedItemIdx = -1; // deselect
+      } else {
+        inv.selectedItemIdx = i;
+        // start drag
+        inv.dragItemIdx = i;
+        inv.dragX = mx; inv.dragY = my;
+        inv.dragStartX = mx; inv.dragStartY = my;
+      }
+      return true;
+    }
+  }
+
+  // click empty area → deselect
+  inv.selectedItemIdx = -1;
+  return false;
+}
+
+function drawInventoryTab(ctx, game) {
+  if (!game.heroes) return;
+  const f = frameRect(game);
+  const inv = menuState.inv;
+  const splitX = f.x + 20 + Math.floor(f.w * 0.44);
+
+  // --- left: item list ---
+  ctx.fillStyle = PALETTE.dim;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.font = '600 11px ui-monospace, monospace';
+  ctx.fillText(`INVENTORY  (${game.inventory.length} items)`, f.x + 20, f.y + 64);
+
+  const isDragging = inv.dragItemIdx >= 0;
+
+  game.inventory.forEach((item, i) => {
+    if (isDragging && i === inv.dragItemIdx) return; // drawn at cursor below
+    const r = invItemRect(i, game);
+    const def = ITEM_DEFS[item.id];
+    if (!def) return;
+    const selected = inv.selectedItemIdx === i;
+    ctx.fillStyle = selected ? PALETTE.panel + 'cc' : PALETTE.panel + '88';
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = selected ? PALETTE.accent : PALETTE.grid;
+    ctx.lineWidth = selected ? 2 : 1;
+    ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+
+    // color pip
+    ctx.fillStyle = def.color;
+    ctx.fillRect(r.x + 8, r.y + 8, 8, 8);
+
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillStyle = PALETTE.ink;
+    ctx.font = '600 12px system-ui, sans-serif';
+    ctx.fillText(def.name, r.x + 24, r.y + 7);
+    ctx.fillStyle = PALETTE.dim;
+    ctx.font = '400 10px ui-monospace, monospace';
+    ctx.fillText(`[${def.slot}]  ${Object.entries(def.stats).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join('  ')}`, r.x + 24, r.y + 24);
+    ctx.font = '400 10px system-ui, sans-serif';
+    ctx.fillText(def.desc, r.x + 24, r.y + 36);
+  });
+
+  if (game.inventory.length === 0) {
+    ctx.fillStyle = PALETTE.dim;
+    ctx.font = '400 13px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('No items in inventory', f.x + 20 + Math.floor(f.w * 0.44) / 2, f.y + 140);
+  }
+
+  // divider
+  ctx.strokeStyle = PALETTE.grid;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(splitX + 10, f.y + 58);
+  ctx.lineTo(splitX + 10, f.y + f.h - 30);
+  ctx.stroke();
+
+  // --- right: hero equip panels ---
+  const panelX = splitX + 24;
+  const panelW = f.x + f.w - 20 - panelX;
+  const heroW = Math.floor(panelW / 3);
+
+  ctx.fillStyle = PALETTE.dim;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.font = '600 11px ui-monospace, monospace';
+  ctx.fillText('EQUIP SLOTS', panelX, f.y + 64);
+
+  for (let hi = 0; hi < game.heroes.length; hi++) {
+    const hero = game.heroes[hi];
+    const hr = invHeroRect(hi, game);
+    const active = inv.heroIdx === hi;
+
+    // hero header
+    ctx.fillStyle = active ? hero.color + '33' : PALETTE.panel;
+    ctx.fillRect(hr.x, hr.y, hr.w, hr.h);
+    ctx.strokeStyle = active ? hero.color : PALETTE.grid;
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.strokeRect(hr.x + 0.5, hr.y + 0.5, hr.w - 1, hr.h - 1);
+    ctx.fillStyle = active ? hero.color : PALETTE.ink;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `${active ? '700' : '400'} 11px system-ui, sans-serif`;
+    ctx.fillText(hero.name, hr.x + hr.w / 2, hr.y + hr.h / 2);
+
+    // equip slots
+    for (let si = 0; si < SLOTS.length; si++) {
+      const slot = SLOTS[si];
+      const sr = invSlotRect(hi, si, game);
+      const itemId = hero.equip[slot];
+      const def = itemId ? ITEM_DEFS[itemId] : null;
+
+      // highlight if valid drop target for selected/dragged item
+      const pendingIdx = isDragging ? inv.dragItemIdx : inv.selectedItemIdx;
+      const pendingItem = pendingIdx >= 0 ? game.inventory[pendingIdx] : null;
+      const isTarget = pendingItem && ITEM_DEFS[pendingItem.id]?.slot === slot;
+
+      ctx.fillStyle = isTarget ? PALETTE.accent + '22' : PALETTE.panel + '88';
+      ctx.fillRect(sr.x, sr.y, sr.w, sr.h);
+      ctx.strokeStyle = isTarget ? PALETTE.accent : (def ? PALETTE.grid : PALETTE.grid + '44');
+      ctx.lineWidth = isTarget ? 2 : 1;
+      ctx.strokeRect(sr.x + 0.5, sr.y + 0.5, sr.w - 1, sr.h - 1);
+
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillStyle = PALETTE.dim;
+      ctx.font = '600 9px ui-monospace, monospace';
+      ctx.fillText(slot.toUpperCase(), sr.x + 6, sr.y + 5);
+
+      if (def) {
+        ctx.fillStyle = def.color;
+        ctx.fillRect(sr.x + 6, sr.y + 18, 7, 7);
+        ctx.fillStyle = PALETTE.ink;
+        ctx.font = '600 11px system-ui, sans-serif';
+        ctx.fillText(def.name, sr.x + 18, sr.y + 17);
+        ctx.fillStyle = PALETTE.dim;
+        ctx.font = '400 10px ui-monospace, monospace';
+        ctx.fillText(Object.entries(def.stats).map(([k, v]) => `+${v}${k.toUpperCase()}`).join(' '), sr.x + 18, sr.y + 31);
+
+        // stat-diff if an item is pending for this slot
+        if (isTarget && pendingItem) {
+          const newDef = ITEM_DEFS[pendingItem.id];
+          if (newDef) {
+            const diffs = [];
+            for (const [k, v] of Object.entries(newDef.stats)) {
+              const curV = def.stats[k] || 0;
+              const d = v - curV;
+              if (d !== 0) diffs.push(`${d > 0 ? '+' : ''}${d}${k.toUpperCase()}`);
+            }
+            if (diffs.length) {
+              ctx.fillStyle = PALETTE.warn;
+              ctx.font = '400 10px ui-monospace, monospace';
+              ctx.fillText(`→ ${diffs.join(' ')}`, sr.x + 18, sr.y + 43);
+            }
+          }
+        }
+      } else {
+        ctx.fillStyle = PALETTE.dim + '66';
+        ctx.font = '400 10px ui-monospace, monospace';
+        ctx.fillText('(empty)', sr.x + 6, sr.y + 18);
+        // stat-diff: show full new stats as gain
+        if (isTarget && pendingItem) {
+          const newDef = ITEM_DEFS[pendingItem.id];
+          if (newDef) {
+            ctx.fillStyle = PALETTE.good || '#4af2a1';
+            ctx.font = '400 10px ui-monospace, monospace';
+            ctx.fillText(`→ ${Object.entries(newDef.stats).map(([k, v]) => `+${v}${k.toUpperCase()}`).join(' ')}`, sr.x + 6, sr.y + 30);
+          }
+        }
+      }
+    }
+  }
+
+  // floating drag ghost
+  if (isDragging && inv.dragItemIdx >= 0 && game.inventory[inv.dragItemIdx]) {
+    const def = ITEM_DEFS[game.inventory[inv.dragItemIdx].id];
+    if (def) {
+      ctx.globalAlpha = 0.82;
+      ctx.fillStyle = PALETTE.panel;
+      ctx.fillRect(inv.dragX - 60, inv.dragY - 20, 120, 36);
+      ctx.strokeStyle = def.color; ctx.lineWidth = 2;
+      ctx.strokeRect(inv.dragX - 59.5, inv.dragY - 19.5, 119, 35);
+      ctx.fillStyle = def.color;
+      ctx.fillRect(inv.dragX - 52, inv.dragY - 12, 8, 8);
+      ctx.fillStyle = PALETTE.ink;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.font = '600 12px system-ui, sans-serif';
+      ctx.fillText(def.name, inv.dragX - 40, inv.dragY - 14);
+      ctx.globalAlpha = 1;
+    }
+  }
+}
+
+// ─── Skills tab ───────────────────────────────────────────────────────────────
+
+function handleSkillsMouseDown(mx, my, game) {
+  if (!game.heroes) return false;
+  const sk = menuState.skills;
+  const f = frameRect(game);
+
+  // hero selector
+  const heroTabW = 120, heroTabH = 32, heroTabY = f.y + 66;
+  for (let i = 0; i < game.heroes.length; i++) {
+    const r = { x: f.x + 20 + i * (heroTabW + 8), y: heroTabY, w: heroTabW, h: heroTabH };
+    if (pointInRect(mx, my, r)) { sk.heroIdx = i; return true; }
+  }
+
+  // skill node click
+  const hero = game.heroes[sk.heroIdx];
+  if (!hero) return false;
+  const tree = SKILL_TREES[hero.id] || [];
+  const nodeY0 = f.y + 120;
+  const nodeH = 72, nodeGap = 12;
+  const nodeX = f.x + 40, nodeW = f.w - 80;
+  for (let i = 0; i < tree.length; i++) {
+    const skill = tree[i];
+    if (skill.cost === 0) continue; // starter skill, not unlockable via points
+    const r = { x: nodeX, y: nodeY0 + i * (nodeH + nodeGap), w: nodeW, h: nodeH };
+    if (pointInRect(mx, my, r)) {
+      spendSkillPoint(game, hero.id, skill.id);
+      return true;
+    }
+  }
+  return false;
+}
+
+function drawSkillsTab(ctx, game) {
+  if (!game.heroes) return;
+  const sk = menuState.skills;
+  const f = frameRect(game);
+
+  // hero selector tabs
+  const heroTabW = 120, heroTabH = 32, heroTabY = f.y + 66;
+  for (let i = 0; i < game.heroes.length; i++) {
+    const hero = game.heroes[i];
+    const active = sk.heroIdx === i;
+    const r = { x: f.x + 20 + i * (heroTabW + 8), y: heroTabY, w: heroTabW, h: heroTabH };
+    ctx.fillStyle = active ? hero.color + '33' : PALETTE.panel;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = active ? hero.color : PALETTE.grid;
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+    ctx.fillStyle = active ? hero.color : PALETTE.ink;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `${active ? '700' : '400'} 12px system-ui, sans-serif`;
+    ctx.fillText(hero.name, r.x + r.w / 2, r.y + r.h / 2);
+  }
+
+  // skill points available
+  ctx.fillStyle = PALETTE.warn;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.font = '600 12px ui-monospace, monospace';
+  ctx.fillText(`Skill Points: ${game.resources.skillPoints || 0}`, f.x + 20 + 3 * (heroTabW + 8) + 16, heroTabY + heroTabH / 2);
+
+  const hero = game.heroes[sk.heroIdx];
+  if (!hero) return;
+  const tree = SKILL_TREES[hero.id] || [];
+
+  const nodeY0 = f.y + 122;
+  const nodeH = 70, nodeGap = 14;
+  const nodeX = f.x + 40, nodeW = f.w - 80;
+
+  // connector lines between nodes
+  ctx.strokeStyle = PALETTE.grid;
+  ctx.lineWidth = 2;
+  for (let i = 1; i < tree.length; i++) {
+    const y1 = nodeY0 + (i - 1) * (nodeH + nodeGap) + nodeH;
+    const y2 = nodeY0 + i * (nodeH + nodeGap);
+    const midX = nodeX + 28;
+    ctx.beginPath();
+    ctx.moveTo(midX, y1);
+    ctx.lineTo(midX, y2);
+    ctx.stroke();
+  }
+
+  for (let i = 0; i < tree.length; i++) {
+    const skill = tree[i];
+    const unlocked = !!hero.skills[skill.id];
+    const prereqOk = !skill.requires || !!hero.skills[skill.requires];
+    const canAfford = skill.cost === 0 || (prereqOk && (game.resources.skillPoints || 0) >= skill.cost);
+    const isStarter = skill.cost === 0;
+
+    const ry = nodeY0 + i * (nodeH + nodeGap);
+    ctx.fillStyle = unlocked ? hero.color + '22' : PALETTE.panel + '88';
+    ctx.fillRect(nodeX, ry, nodeW, nodeH);
+    ctx.strokeStyle = unlocked ? hero.color : (canAfford && !isStarter ? PALETTE.accent2 + '88' : PALETTE.grid);
+    ctx.lineWidth = unlocked ? 2 : 1;
+    ctx.strokeRect(nodeX + 0.5, ry + 0.5, nodeW - 1, nodeH - 1);
+
+    // skill icon circle
+    const icx = nodeX + 24, icy = ry + nodeH / 2;
+    ctx.fillStyle = unlocked ? hero.color : PALETTE.grid;
+    ctx.beginPath(); ctx.arc(icx, icy, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = unlocked ? PALETTE.bg : PALETTE.dim;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = '700 11px system-ui, sans-serif';
+    ctx.fillText(unlocked ? '✓' : isStarter ? '★' : `${skill.cost}`, icx, icy);
+
+    // name + desc
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillStyle = unlocked ? PALETTE.ink : (canAfford && !isStarter ? PALETTE.ink + 'cc' : PALETTE.dim);
+    ctx.font = `${unlocked ? '700' : '600'} 14px system-ui, sans-serif`;
+    ctx.fillText(skill.name, nodeX + 48, ry + 10);
+    ctx.fillStyle = PALETTE.dim;
+    ctx.font = '400 11px system-ui, sans-serif';
+    ctx.fillText(skill.desc, nodeX + 48, ry + 28);
+
+    // status label
+    ctx.textAlign = 'right';
+    ctx.font = '600 10px ui-monospace, monospace';
+    if (isStarter) {
+      ctx.fillStyle = hero.color;
+      ctx.fillText('STARTING', nodeX + nodeW - 10, ry + 10);
+    } else if (unlocked) {
+      ctx.fillStyle = hero.color;
+      ctx.fillText('UNLOCKED', nodeX + nodeW - 10, ry + 10);
+    } else if (!prereqOk) {
+      ctx.fillStyle = PALETTE.dim;
+      ctx.fillText('LOCKED', nodeX + nodeW - 10, ry + 10);
+      const reqSkill = tree.find(s => s.id === skill.requires);
+      ctx.fillText(`req: ${reqSkill?.name || skill.requires}`, nodeX + nodeW - 10, ry + 24);
+    } else {
+      ctx.fillStyle = canAfford ? PALETTE.accent2 : PALETTE.dim;
+      ctx.fillText(canAfford ? `CLICK TO UNLOCK  (${skill.cost} SP)` : `NEED ${skill.cost} SP`, nodeX + nodeW - 10, ry + 10);
+    }
+  }
+}
+
+// ─── Quests tab ───────────────────────────────────────────────────────────────
+
+function handleQuestsMouseDown(mx, my, game) {
+  if (!game.quests) return false;
+  const f = frameRect(game);
+  const listW = Math.floor(f.w * 0.38);
+  const itemH = 52, itemGap = 6;
+  const startY = f.y + 72;
+  for (let i = 0; i < game.quests.length; i++) {
+    const r = { x: f.x + 20, y: startY + i * (itemH + itemGap), w: listW, h: itemH };
+    if (pointInRect(mx, my, r)) { menuState.quests.selectedIdx = i; return true; }
+  }
+  return false;
+}
+
+function drawQuestsTab(ctx, game) {
+  if (!game.quests) return;
+  const f = frameRect(game);
+  const sel = menuState.quests.selectedIdx;
+  const listW = Math.floor(f.w * 0.38);
+  const detailX = f.x + 20 + listW + 16;
+  const detailW = f.w - listW - 56;
+  const itemH = 52, itemGap = 6;
+  const startY = f.y + 72;
+
+  // label
+  ctx.fillStyle = PALETTE.dim;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.font = '600 11px ui-monospace, monospace';
+  ctx.fillText('QUESTS', f.x + 20, f.y + 60);
+
+  // quest list
+  for (let i = 0; i < game.quests.length; i++) {
+    const q = game.quests[i];
+    const def = QUEST_DEFS.find(d => d.id === q.id);
+    if (!def) continue;
+    const active = sel === i;
+    const ry = startY + i * (itemH + itemGap);
+
+    ctx.fillStyle = active ? PALETTE.panel + 'cc' : PALETTE.panel + '44';
+    ctx.fillRect(f.x + 20, ry, listW, itemH);
+    ctx.strokeStyle = q.complete ? PALETTE.accent2 : (active ? PALETTE.accent : PALETTE.grid);
+    ctx.lineWidth = active ? 2 : 1;
+    ctx.strokeRect(f.x + 20.5, ry + 0.5, listW - 1, itemH - 1);
+
+    ctx.fillStyle = q.complete ? PALETTE.accent2 : PALETTE.ink;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.font = `${active ? '700' : '600'} 12px system-ui, sans-serif`;
+    ctx.fillText(def.title, f.x + 28, ry + 8);
+    ctx.fillStyle = PALETTE.dim;
+    ctx.font = '400 10px ui-monospace, monospace';
+    const doneCnt = q.objectives.filter(o => o.done).length;
+    ctx.fillText(`${def.giver}  •  ${doneCnt}/${q.objectives.length} objectives`, f.x + 28, ry + 26);
+    ctx.fillStyle = q.complete ? PALETTE.accent2 : PALETTE.warn;
+    ctx.font = '600 10px ui-monospace, monospace';
+    ctx.fillText(q.complete ? 'COMPLETE' : 'IN PROGRESS', f.x + 28, ry + 38);
+  }
+
+  // divider
+  ctx.strokeStyle = PALETTE.grid; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(detailX - 8, f.y + 58);
+  ctx.lineTo(detailX - 8, f.y + f.h - 30);
+  ctx.stroke();
+
+  // detail panel
+  if (sel >= 0 && sel < game.quests.length) {
+    const q = game.quests[sel];
+    const def = QUEST_DEFS.find(d => d.id === q.id);
+    if (def) {
+      let dy = f.y + 72;
+      ctx.fillStyle = q.complete ? PALETTE.accent2 : PALETTE.ink;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.font = '700 16px system-ui, sans-serif';
+      ctx.fillText(def.title, detailX, dy); dy += 22;
+
+      ctx.fillStyle = PALETTE.dim;
+      ctx.font = '400 11px ui-monospace, monospace';
+      ctx.fillText(`From: ${def.giver}`, detailX, dy); dy += 20;
+
+      ctx.fillStyle = PALETTE.ink;
+      ctx.font = '400 12px system-ui, sans-serif';
+      dy = wrapTextRet(ctx, def.desc, detailX, dy, detailW, 16) + 16;
+
+      ctx.fillStyle = PALETTE.dim;
+      ctx.font = '600 11px ui-monospace, monospace';
+      ctx.fillText('OBJECTIVES', detailX, dy); dy += 16;
+
+      for (const obj of q.objectives) {
+        ctx.fillStyle = obj.done ? PALETTE.accent2 : PALETTE.ink;
+        ctx.font = '400 12px system-ui, sans-serif';
+        ctx.fillText(`${obj.done ? '✓' : '○'}  ${obj.text}`, detailX, dy); dy += 18;
+      }
+
+      dy += 10;
+      ctx.fillStyle = PALETTE.dim;
+      ctx.font = '600 11px ui-monospace, monospace';
+      ctx.fillText('REWARD', detailX, dy); dy += 16;
+      ctx.fillStyle = PALETTE.warn;
+      ctx.font = '400 12px system-ui, sans-serif';
+      ctx.fillText(`${def.reward.xp} XP  +  ${def.reward.ore} Ore`, detailX, dy);
+    }
+  }
+}
+
+// helper: wrapText that returns final Y
+function wrapTextRet(ctx, text, x, y, maxW, lineH) {
+  const words = text.split(' ');
+  let line = '';
+  let yy = y;
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w;
+    if (ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line, x, yy);
+      line = w;
+      yy += lineH;
+    } else {
+      line = test;
+    }
+  }
+  if (line) { ctx.fillText(line, x, yy); yy += lineH; }
+  return yy;
+}
+
+// ─── Save tab ─────────────────────────────────────────────────────────────────
+
+function saveBtnRects(game) {
+  const f = frameRect(game);
+  const cx = game.width / 2;
+  const bw = 220, bh = 44;
+  return {
+    save:   { x: cx - bw / 2, y: f.y + 200, w: bw, h: bh },
+    load:   { x: cx - bw / 2, y: f.y + 256, w: bw, h: bh },
+    delete: { x: cx - bw / 2, y: f.y + 320, w: bw, h: bh },
+  };
+}
+
+function handleSaveMouseDown(mx, my, game) {
+  const btns = saveBtnRects(game);
+  const sv = menuState.save;
+  if (pointInRect(mx, my, btns.save)) {
+    const ok = saveGame(game);
+    sv.msg = ok ? 'Game saved.' : 'Save failed (storage error).';
+    sv.msgExpire = game.time + 2500;
+    return true;
+  }
+  if (pointInRect(mx, my, btns.load) && hasSave()) {
+    const ok = loadGame(game);
+    sv.msg = ok ? 'Game loaded.' : 'Load failed (data corrupt?).';
+    sv.msgExpire = game.time + 2500;
+    return true;
+  }
+  if (pointInRect(mx, my, btns.delete) && hasSave()) {
+    deleteSave();
+    sv.msg = 'Save deleted.';
+    sv.msgExpire = game.time + 2500;
+    return true;
+  }
+  return false;
+}
+
+function drawSaveTab(ctx, game) {
+  const f = frameRect(game);
+  const sv = menuState.save;
+  const cx = game.width / 2;
+
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillStyle = PALETTE.ink;
+  ctx.font = '700 28px system-ui, sans-serif';
+  ctx.fillText('SAVE / LOAD', cx, f.y + 90);
+
+  // save metadata
+  const meta = getSaveMeta();
+  if (meta) {
+    ctx.fillStyle = PALETTE.dim;
+    ctx.font = '400 12px ui-monospace, monospace';
+    const d = new Date(meta.ts);
+    ctx.fillText(`Last save: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}`, cx, f.y + 132);
+    ctx.fillText(`Tier: ${meta.tier}  •  Lv ${meta.heroLevels?.join('/')}`, cx, f.y + 150);
+    ctx.fillText(`Food: ${meta.resources?.food}  Ore: ${meta.resources?.ore}  Energy: ${meta.resources?.energy}`, cx, f.y + 168);
+  } else {
+    ctx.fillStyle = PALETTE.dim;
+    ctx.font = '400 12px ui-monospace, monospace';
+    ctx.fillText('No save found.', cx, f.y + 140);
+  }
+
+  const btns = saveBtnRects(game);
+  const defs = [
+    { key: 'save', label: 'Save Game', color: PALETTE.accent, enabled: true },
+    { key: 'load', label: 'Load Game', color: PALETTE.accent2, enabled: !!meta },
+    { key: 'delete', label: 'Delete Save', color: '#ff4a5a', enabled: !!meta },
+  ];
+  for (const { key, label, color, enabled } of defs) {
+    const r = btns[key];
+    ctx.fillStyle = enabled ? color + '22' : PALETTE.panel + '44';
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.strokeStyle = enabled ? color : PALETTE.grid;
+    ctx.lineWidth = enabled ? 2 : 1;
+    ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+    ctx.fillStyle = enabled ? color : PALETTE.dim;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `${enabled ? '700' : '400'} 14px system-ui, sans-serif`;
+    ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2);
+  }
+
+  // feedback message
+  if (sv.msg && game.time < sv.msgExpire) {
+    ctx.fillStyle = PALETTE.accent2;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.font = '600 13px system-ui, sans-serif';
+    ctx.fillText(sv.msg, cx, btns.delete.y + btns.delete.h + 16);
+  }
 }
 
 function drawSettingsTab(ctx, game) {
@@ -474,6 +1240,16 @@ function tileMapColor(biome, type) {
     case 'alien_terraform': return '#3e7a58';
     default: return '#222';
   }
+}
+
+// --- shared drawing helpers ---
+
+function drawBar(ctx, x, y, w, h, cur, max, fill, bg) {
+  ctx.fillStyle = bg;
+  ctx.fillRect(x, y, w, h);
+  const pct = max > 0 ? Math.max(0, Math.min(1, cur / max)) : 0;
+  ctx.fillStyle = fill;
+  ctx.fillRect(x, y, Math.floor(w * pct), h);
 }
 
 // --- geometry helpers ---

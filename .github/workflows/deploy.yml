@@ -10,6 +10,9 @@ on:
       - 'games/skyrift/src/**'
       - 'games/void-sentinel/src/**'
       - 'games/chronoforge/src/**'
+      - 'games/chronoforge/package.json'
+      - 'games/chronoforge/package-lock.json'
+      - 'games/chronoforge/vite.config.js'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -34,6 +37,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build chronoforge
+        run: |
+          cd games/chronoforge
+          npm ci
+          npm run build
+
       - name: Build site
         run: |
           mkdir -p _site/snake _site/skyrift _site/void-sentinel _site/chronoforge
@@ -41,7 +55,7 @@ jobs:
           cp -r games/snake/src/. _site/snake/
           cp -r games/skyrift/src/. _site/skyrift/
           cp -r games/void-sentinel/src/. _site/void-sentinel/
-          cp -r games/chronoforge/src/. _site/chronoforge/
+          cp -r games/chronoforge/dist/. _site/chronoforge/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

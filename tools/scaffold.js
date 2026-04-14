@@ -23,6 +23,7 @@ if (!configPath) {
 
 const ROOT    = path.resolve(__dirname, '..');
 const gameDir = path.dirname(path.resolve(configPath));
+const VALID_TIERS = ['canvas2d', 'pixi', 'phaser', 'threejs'];
 
 // ─── Load inputs ─────────────────────────────────────────────────────────────
 
@@ -121,8 +122,6 @@ function fillTemplate(tmpl, vars) {
 }
 
 // ─── Validators ───────────────────────────────────────────────────────────────
-
-const VALID_TIERS = ['canvas2d', 'pixi', 'phaser', 'threejs'];
 
 function validateConfig(cfg) {
   const required = ['game_name', 'team', 'phases', 'rendering_tier'];

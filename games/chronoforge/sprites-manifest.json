@@ -125,9 +125,9 @@
 
     { "name": "tile_grass", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, overgrown grass with ruined wires, seamless edges", "out": "src/assets/tile_grass.png" },
     { "name": "tile_dirt", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, packed dirt path, seamless", "out": "src/assets/tile_dirt.png" },
-    { "name": "tile_ruin_rubble", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, broken concrete rubble with rebar", "out": "src/assets/tile_ruin_rubble.png" },
-    { "name": "tile_dead_tree", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead object tile, dead twisted tree on grass", "out": "src/assets/tile_dead_tree.png" },
-    { "name": "tile_stream", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, cyan-tinted stream with faint glow, seamless", "out": "src/assets/tile_stream.png" },
+    { "name": "tile_ruin_rubble", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art overhead terrain tile, scattered broken concrete rubble with small rebar shards, calm and uniform, low detail, flat top-down, fills frame edge to edge, no vignette, no dark border at edges, seamless, crisp limited palette, black background", "out": "src/assets/tile_ruin_rubble.png" },
+    { "name": "tile_dead_tree", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art overhead object tile, large dead twisted tree centered and filling the frame, gnarled bare branches spreading to all edges, grass base, flat top-down, no vignette, no dark border at edges, crisp limited palette, black background", "out": "src/assets/tile_dead_tree.png" },
+    { "name": "tile_stream", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art overhead terrain tile, calm flowing water stream, soft cyan-blue ripples, gentle current, no lightning, no neon, no glow, flat top-down, fills frame edge to edge, no vignette, no dark border at edges, seamless, crisp limited palette, black background", "out": "src/assets/tile_stream.png" },
     { "name": "tile_cracked_road", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, cracked asphalt with yellow line, seamless", "out": "src/assets/tile_cracked_road.png" },
 
     { "name": "tile_sand", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, rippled wasteland sand, seamless", "out": "src/assets/tile_sand.png" },
@@ -142,7 +142,7 @@
     { "name": "tile_bio_pool", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, glowing green bio-pool, seamless", "out": "src/assets/tile_bio_pool.png" },
     { "name": "tile_alien_tree", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, twisting alien tree with pink fronds", "out": "src/assets/tile_alien_tree.png" },
     { "name": "tile_terraform_pipe", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, terraform pipe pumping green mist", "out": "src/assets/tile_terraform_pipe.png" },
-    { "name": "tile_growth_tile", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead tile, soft alien growth with scattered spores, seamless", "out": "src/assets/tile_growth_tile.png" },
+    { "name": "tile_growth_tile", "w": 64, "h": 64, "priority": 4, "bleed": 0.08, "prompt": "pixel art ground texture viewed from directly above, dense alien growth mat with bright magenta spore clusters and magenta vein network, the texture completely covers the entire canvas from corner to corner with no empty space, crisp limited palette", "out": "src/assets/tile_growth_tile.png" },
 
     { "name": "city_haventide", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, coastal ruin port with pink neon docks and sailed salvage ships, dusk", "out": "src/assets/city_haventide.png" },
     { "name": "city_emberline", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, desert trade hub with rust and brass towers, caravan banners", "out": "src/assets/city_emberline.png" },

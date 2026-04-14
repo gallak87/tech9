@@ -60,11 +60,23 @@ async function generate(sprite) {
   fs.writeFileSync(outPath, buf);
   const originalKb = Math.round(buf.length / 1024);
 
+  // Optional center-crop to strip flux's baked dark edge/vignette.
+  // sprite.bleed is the fraction trimmed off each side before resize (e.g. 0.08 = 8%).
+  if (sprite.bleed && sprite.bleed > 0) {
+    const info = execSync(`sips -g pixelWidth -g pixelHeight "${outPath}"`).toString();
+    const srcW = parseInt(info.match(/pixelWidth:\s*(\d+)/)[1], 10);
+    const srcH = parseInt(info.match(/pixelHeight:\s*(\d+)/)[1], 10);
+    const cropW = Math.round(srcW * (1 - 2 * sprite.bleed));
+    const cropH = Math.round(srcH * (1 - 2 * sprite.bleed));
+    execSync(`sips -c ${cropH} ${cropW} "${outPath}" --out "${outPath}"`, { stdio: 'ignore' });
+  }
+
   if (sprite.w && sprite.h) {
     // sips -z <height> <width> <file>  (sips takes rows then cols)
     execSync(`sips -z ${sprite.h} ${sprite.w} "${outPath}" --out "${outPath}"`, { stdio: 'ignore' });
     const finalKb = Math.round(fs.statSync(outPath).size / 1024);
-    console.log(`saved → ${sprite.out}  (${sprite.w}×${sprite.h}px, ${originalKb}kb → ${finalKb}kb)`);
+    const bleedTag = sprite.bleed ? ` bleed=${sprite.bleed}` : '';
+    console.log(`saved → ${sprite.out}  (${sprite.w}×${sprite.h}px, ${originalKb}kb → ${finalKb}kb${bleedTag})`);
   } else {
     console.log(`saved → ${sprite.out}  (${originalKb}kb, no resize — add w/h to manifest)`);
   }

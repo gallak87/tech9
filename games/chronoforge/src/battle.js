@@ -105,6 +105,7 @@ export function initBattle(game, encounter) {
     winTime: 0,
     comboFlash: 0,          // portrait-flash screen for crits / techs
     comboText: '',
+    actions: [],            // queued deferred hits — gates ATB while present
   };
   playSfx('ow_encounter', { gain: 0.7 });
 }
@@ -123,6 +124,17 @@ export function updateBattle(game, dt) {
   // hero flash decay
   for (const h of b.heroes) if (h.flash > 0) h.flash = Math.max(0, h.flash - dt);
   for (const e of b.enemies) if (e.flash > 0) e.flash = Math.max(0, e.flash - dt);
+
+  // lunge tick (paused during freeze via the early return above)
+  for (const a of b.heroes) if (a.lunge && a.lunge.life > 0) a.lunge.life = Math.max(0, a.lunge.life - dt);
+  for (const a of b.enemies) if (a.lunge && a.lunge.life > 0) a.lunge.life = Math.max(0, a.lunge.life - dt);
+
+  // queued actions — block ATB / new turns until empty
+  if (b.actions.length > 0) {
+    b.actions[0].delay -= dt;
+    while (b.actions.length && b.actions[0].delay <= 0) b.actions.shift().fn();
+    if (b.actions.length > 0) return;
+  }
 
   if (b.phase !== 'active') {
     b.winTime += dt;
@@ -228,12 +240,15 @@ function executeAction(game, hero, m) {
   const b = game.battle;
   if (m.action === 'attack') {
     const tgt = b.enemies[m.targetIdx];
-    basicAttack(game, hero, tgt);
+    triggerLunge(b, hero, tgt, 80);
+    scheduleAction(b, 220, () => {
+      basicAttack(game, hero, tgt);
+      checkBattleEnd(game);
+    });
   } else if (m.action === 'tech') {
     const tech = hero.techs[m.techIdx];
     hero.mp = Math.max(0, hero.mp - tech.mp);
     if (tech.el === 'support') {
-      // Aegis Field — shield whole party
       for (const h of b.heroes) if (h.hp > 0) h.shield = (h.shield || 0) + Math.floor(hero.tec * 3);
       spawnFloater(b, b.heroes[0], `+SHIELD`, PALETTE.accent2);
       b.log.push(`${hero.name} casts ${tech.name} — party shielded.`);
@@ -241,16 +256,65 @@ function executeAction(game, hero, m) {
       flashPortrait(b, hero.name, tech.name);
     } else if (tech.aoe) {
       const alive = b.enemies.filter(e => e.hp > 0);
-      alive.forEach(tgt => techHit(game, hero, tgt, tech));
-      flashPortrait(b, hero.name, tech.name);
+      const focus = alive[0] || b.enemies[0];
+      triggerLunge(b, hero, focus, 60);
+      scheduleAction(b, 260, () => {
+        alive.forEach(tgt => techHit(game, hero, tgt, tech));
+        flashPortrait(b, hero.name, tech.name);
+        checkBattleEnd(game);
+      });
     } else {
-      techHit(game, hero, b.enemies[m.targetIdx], tech);
-      flashPortrait(b, hero.name, tech.name);
+      const tgt = b.enemies[m.targetIdx];
+      triggerLunge(b, hero, tgt, 80);
+      scheduleAction(b, 260, () => {
+        techHit(game, hero, tgt, tech);
+        flashPortrait(b, hero.name, tech.name);
+        checkBattleEnd(game);
+      });
     }
   }
   hero.atb = 0;
   b.menu = null;
-  checkBattleEnd(game);
+}
+
+// --- tween helpers ---
+function scheduleAction(b, delay, fn) { b.actions.push({ delay, fn }); }
+
+function triggerLunge(b, attacker, target, peakDist = 64) {
+  const ax = targetX(b, attacker), ay = targetY(b, attacker);
+  const tx = targetX(b, target), ty = targetY(b, target);
+  const dx = tx - ax, dy = ty - ay;
+  const len = Math.hypot(dx, dy) || 1;
+  attacker.lunge = {
+    life: 480, maxLife: 480,
+    dx: dx / len * peakDist, dy: dy / len * peakDist,
+  };
+}
+
+function triggerHitReact(b, attacker, target, dist = 18) {
+  const ax = targetX(b, attacker), ay = targetY(b, attacker);
+  const tx = targetX(b, target), ty = targetY(b, target);
+  const dx = tx - ax, dy = ty - ay;
+  const len = Math.hypot(dx, dy) || 1;
+  target.lunge = {
+    life: 280, maxLife: 280,
+    dx: dx / len * dist, dy: dy / len * dist,
+  };
+}
+
+function lungeOffset(actor) {
+  if (!actor.lunge || actor.lunge.life <= 0) return { dx: 0, dy: 0, scale: 1 };
+  const t = 1 - actor.lunge.life / actor.lunge.maxLife;
+  const peak = 0.45;
+  let k;
+  if (t < peak) {
+    const u = t / peak;
+    k = u * u * (3 - 2 * u);
+  } else {
+    const u = (t - peak) / (1 - peak);
+    k = 1 - u * u * (3 - 2 * u);
+  }
+  return { dx: actor.lunge.dx * k, dy: actor.lunge.dy * k, scale: 1 + 0.08 * k };
 }
 
 function basicAttack(game, atk, tgt) {
@@ -270,6 +334,7 @@ function basicAttack(game, atk, tgt) {
     spawnFloater(b, tgt, `${dmg}`, PALETTE.ink);
   }
   applyDamage(b, tgt, dmg);
+  triggerHitReact(b, atk, tgt, isCrit ? 28 : 18);
   b.log.push(`${atk.name} hits ${tgt.name} for ${dmg}${isCrit ? ' (CRIT)' : ''}.`);
   b.vfx.push({ kind: 'slash', x: targetX(b, tgt), y: targetY(b, tgt), life: 240, maxLife: 240, color: PALETTE.accent });
 }
@@ -288,6 +353,7 @@ function techHit(game, atk, tgt, tech) {
     playSfx('bt_tech_cast', { gain: 0.85 });
   }
   applyDamage(b, tgt, dmg);
+  triggerHitReact(b, atk, tgt, isCrit ? 24 : 14);
   spawnFloater(b, tgt, `${dmg}`, tech.el === 'void' ? '#c77bff' : tech.el === 'ice' ? '#7bd8ff' : PALETTE.warn, isCrit);
   b.log.push(`${atk.name} casts ${tech.name} → ${tgt.name} (${dmg})${isCrit ? ' CRIT!' : ''}.`);
   b.vfx.push({ kind: tech.el === 'void' ? 'void' : 'tech', x: targetX(b, tgt), y: targetY(b, tgt), life: 360, maxLife: 360, color: PALETTE.accent2 });
@@ -298,24 +364,28 @@ function enemyTurn(game, enemy) {
   const aliveIdx = b.heroes.map((h, i) => h.hp > 0 ? i : -1).filter(i => i !== -1);
   if (aliveIdx.length === 0) return;
   const tgt = b.heroes[aliveIdx[Math.floor(Math.random() * aliveIdx.length)]];
-  const raw = enemy.str * 1.5 - tgt.def * 0.8;
-  let dmg = Math.max(1, Math.round(raw * (0.9 + Math.random() * 0.2)));
-  if (tgt.shield > 0) {
-    const absorbed = Math.min(tgt.shield, dmg);
-    tgt.shield -= absorbed;
-    dmg -= absorbed;
-    if (dmg > 0) tgt.hp = Math.max(0, tgt.hp - dmg);
-    spawnFloater(b, tgt, `-${absorbed + dmg} (shield)`, PALETTE.accent2);
-  } else {
-    tgt.hp = Math.max(0, tgt.hp - dmg);
-    spawnFloater(b, tgt, `${dmg}`, PALETTE.bad);
-  }
-  tgt.flash = 240;
-  playSfx('bt_hurt', { gain: 0.7 });
-  b.log.push(`${enemy.name} strikes ${tgt.name} for ${dmg}.`);
-  b.shake = 180;
+  triggerLunge(b, enemy, tgt, 80);
   enemy.atb = 0;
-  checkBattleEnd(game);
+  scheduleAction(b, 220, () => {
+    const raw = enemy.str * 1.5 - tgt.def * 0.8;
+    let dmg = Math.max(1, Math.round(raw * (0.9 + Math.random() * 0.2)));
+    if (tgt.shield > 0) {
+      const absorbed = Math.min(tgt.shield, dmg);
+      tgt.shield -= absorbed;
+      dmg -= absorbed;
+      if (dmg > 0) tgt.hp = Math.max(0, tgt.hp - dmg);
+      spawnFloater(b, tgt, `-${absorbed + dmg} (shield)`, PALETTE.accent2);
+    } else {
+      tgt.hp = Math.max(0, tgt.hp - dmg);
+      spawnFloater(b, tgt, `${dmg}`, PALETTE.bad);
+    }
+    tgt.flash = 240;
+    triggerHitReact(b, enemy, tgt, 18);
+    playSfx('bt_hurt', { gain: 0.7 });
+    b.log.push(`${enemy.name} strikes ${tgt.name} for ${dmg}.`);
+    b.shake = 180;
+    checkBattleEnd(game);
+  });
 }
 
 function applyDamage(b, tgt, dmg) {
@@ -412,6 +482,16 @@ function targetY(b, tgt) {
   return enemyPos(b.enemies.indexOf(tgt)).y;
 }
 
+function drawWithScale(ctx, scale, cx, cy, fn) {
+  if (scale === 1) { fn(); return; }
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+  ctx.translate(-cx, -cy);
+  fn();
+  ctx.restore();
+}
+
 export function drawBattle(ctx, game) {
   const b = game.battle;
   const { width: w, height: h } = game;
@@ -446,22 +526,25 @@ export function drawBattle(ctx, game) {
   // draw enemies
   b.enemies.forEach((e, i) => {
     const p = enemyPos(i);
+    const lo = lungeOffset(e);
+    const dx = p.x + lo.dx, dy = p.y + lo.dy;
     if (e.hp <= 0) {
       ctx.globalAlpha = 0.25;
       drawSprite(ctx, `${e.id}_idle`, p.x, p.y, 96, 96);
       ctx.globalAlpha = 1;
       return;
     }
-    // flash
-    if (e.flash > 0) {
-      ctx.save();
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.globalAlpha = e.flash / 240 * 0.8;
-      drawSprite(ctx, `${e.id}_idle`, p.x, p.y, 96, 96);
-      ctx.restore();
-    }
-    drawSprite(ctx, `${e.id}_idle`, p.x, p.y, 96, 96);
-    // HP bar
+    drawWithScale(ctx, lo.scale, dx + 48, dy + 48, () => {
+      drawSprite(ctx, `${e.id}_idle`, dx, dy, 96, 96);
+      if (e.flash > 0) {
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = e.flash / 240 * 0.8;
+        drawSprite(ctx, `${e.id}_idle`, dx, dy, 96, 96);
+        ctx.restore();
+      }
+    });
+    // HP bar (anchored, doesn't tween)
     drawBar(ctx, p.x, p.y + 104, 96, 8, e.hp / e.maxHp, PALETTE.bad);
     ctx.fillStyle = PALETTE.dim;
     ctx.font = '600 11px ui-monospace, monospace';
@@ -472,19 +555,23 @@ export function drawBattle(ctx, game) {
   // draw heroes
   b.heroes.forEach((hero, i) => {
     const p = heroPos(i);
+    const lo = lungeOffset(hero);
+    const dx = p.x + lo.dx, dy = p.y + lo.dy;
     if (hero.hp <= 0) {
       ctx.globalAlpha = 0.3;
       drawSprite(ctx, `${hero.id}_battle_idle`, p.x, p.y, 96, 96);
       ctx.globalAlpha = 1;
     } else {
-      drawSprite(ctx, `${hero.id}_battle_idle`, p.x, p.y, 96, 96);
-      if (hero.flash > 0) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = hero.flash / 240 * 0.6;
-        drawSprite(ctx, `${hero.id}_battle_idle`, p.x, p.y, 96, 96);
-        ctx.restore();
-      }
+      drawWithScale(ctx, lo.scale, dx + 48, dy + 48, () => {
+        drawSprite(ctx, `${hero.id}_battle_idle`, dx, dy, 96, 96);
+        if (hero.flash > 0) {
+          ctx.save();
+          ctx.globalCompositeOperation = 'lighter';
+          ctx.globalAlpha = hero.flash / 240 * 0.6;
+          drawSprite(ctx, `${hero.id}_battle_idle`, dx, dy, 96, 96);
+          ctx.restore();
+        }
+      });
       if (hero.shield > 0) {
         ctx.strokeStyle = PALETTE.accent2;
         ctx.lineWidth = 2;

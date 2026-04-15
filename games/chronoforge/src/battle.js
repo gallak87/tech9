@@ -6,7 +6,7 @@
 import { drawSprite } from './sprites.js';
 import { playSfx } from './audio.js';
 import { ALL_CITIES, PLAYER_START } from './world.js';
-import { computeStats, SKILL_TREES, awardXp, checkQuestProgress } from './progression.js';
+import { computeStats, SKILL_TREES, awardXp, checkQuestProgress, ITEM_DEFS } from './progression.js';
 
 const PALETTE = {
   bg: '#07060d', panel: 'rgba(18,10,34,0.88)', ink: '#e7e5ff', dim: '#8a83b8',
@@ -25,14 +25,33 @@ const HERO_TEMPLATES = {
 };
 
 const ENEMY_TEMPLATES = {
-  rust_scrapper:     { name: 'Rust Scrapper',   hp: 80,  str: 12, def: 6,  spd: 9,  xp: 40,  renown: 4 },
-  drone_sentinel:    { name: 'Drone Sentinel',  hp: 60,  str: 10, def: 4,  spd: 14, xp: 55,  renown: 5 },
-  mutant_hound:      { name: 'Mutant Hound',    hp: 95,  str: 14, def: 5,  spd: 12, xp: 60,  renown: 6 },
-  gravbot:           { name: 'Gravbot',         hp: 140, str: 11, def: 14, spd: 7,  xp: 80,  renown: 8 },
-  neon_cultist:      { name: 'Neon Cultist',    hp: 90,  str: 9,  def: 6,  spd: 11, xp: 75,  renown: 8 },
-  sandworm_hatchling:{ name: 'Sandworm',        hp: 110, str: 13, def: 8,  spd: 8,  xp: 70,  renown: 7 },
-  wraith_core:       { name: 'Wraith Core',     hp: 130, str: 15, def: 9,  spd: 13, xp: 110, renown: 12 },
-  architect_herald:  { name: 'Architect Herald',hp: 180, str: 17, def: 12, spd: 11, xp: 150, renown: 18 },
+  // T1 — early enemies
+  rust_scrapper:     { name: 'Rust Scrapper',   tier: 1, hp: 80,  str: 12, def: 6,  spd: 9,  xp: 40,  renown: 4,  drops: [{ itemId: 'bog_fang', chance: 0.08 }] },
+  drone_sentinel:    { name: 'Drone Sentinel',  tier: 1, hp: 60,  str: 10, def: 4,  spd: 14, xp: 55,  renown: 5,  drops: [{ itemId: 'slag_tooth', chance: 0.08 }] },
+  bog_stalker:       { name: 'Bog Stalker',     tier: 1, hp: 75,  str: 13, def: 5,  spd: 11, xp: 48,  renown: 5,  drops: [{ itemId: 'bog_fang', chance: 0.14 }] },
+  slag_rat:          { name: 'Slag Rat',        tier: 1, hp: 55,  str: 9,  def: 3,  spd: 15, xp: 42,  renown: 4,  drops: [{ itemId: 'slag_tooth', chance: 0.14 }] },
+
+  // T2 — mid
+  mutant_hound:      { name: 'Mutant Hound',    tier: 2, hp: 95,  str: 14, def: 5,  spd: 12, xp: 60,  renown: 6,  drops: [{ itemId: 'glacial_claw', chance: 0.1 }, { itemId: 'moss_ward', chance: 0.05 }] },
+  gravbot:           { name: 'Gravbot',         tier: 2, hp: 140, str: 11, def: 14, spd: 7,  xp: 80,  renown: 8,  drops: [{ itemId: 'moss_ward', chance: 0.1 }] },
+  mire_hulk:         { name: 'Mire Hulk',       tier: 2, hp: 130, str: 15, def: 9,  spd: 7,  xp: 78,  renown: 7,  drops: [{ itemId: 'moss_ward', chance: 0.15 }] },
+  glacier_wolf:      { name: 'Glacier Wolf',    tier: 2, hp: 105, str: 13, def: 6,  spd: 13, xp: 70,  renown: 7,  drops: [{ itemId: 'glacial_claw', chance: 0.15 }] },
+
+  // T3 — stronger
+  neon_cultist:      { name: 'Neon Cultist',    tier: 3, hp: 90,  str: 9,  def: 6,  spd: 11, xp: 75,  renown: 8,  drops: [{ itemId: 'ember_core', chance: 0.1 }] },
+  sandworm_hatchling:{ name: 'Sandworm',        tier: 3, hp: 110, str: 13, def: 8,  spd: 8,  xp: 90,  renown: 9,  drops: [{ itemId: 'frost_plate', chance: 0.08 }] },
+  ember_golem:       { name: 'Ember Golem',     tier: 3, hp: 170, str: 14, def: 13, spd: 6,  xp: 110, renown: 10, drops: [{ itemId: 'ember_core', chance: 0.15 }] },
+  frost_revenant:    { name: 'Frost Revenant',  tier: 3, hp: 120, str: 13, def: 10, spd: 11, xp: 100, renown: 10, drops: [{ itemId: 'frost_plate', chance: 0.15 }] },
+
+  // T4 — heavy
+  wraith_core:       { name: 'Wraith Core',     tier: 4, hp: 150, str: 16, def: 9,  spd: 13, xp: 130, renown: 13, drops: [{ itemId: 'void_scepter', chance: 0.15 }] },
+  mire_warden:       { name: 'Mire Warden',     tier: 4, hp: 165, str: 15, def: 11, spd: 10, xp: 140, renown: 14, drops: [{ itemId: 'void_scepter', chance: 0.2 }] },
+  magma_behemoth:    { name: 'Magma Behemoth',  tier: 4, hp: 220, str: 18, def: 14, spd: 6,  xp: 170, renown: 16, drops: [{ itemId: 'magma_blade', chance: 0.2 }] },
+
+  // T5 — bosses / elites
+  architect_herald:  { name: 'Architect Herald',tier: 5, hp: 220, str: 19, def: 13, spd: 11, xp: 180, renown: 20, drops: [{ itemId: 'titan_shard', chance: 0.5 }, { itemId: 'ember_crown', chance: 0.25 }] },
+  frost_colossus:    { name: 'Frost Colossus',  tier: 5, hp: 280, str: 20, def: 16, spd: 7,  xp: 220, renown: 22, drops: [{ itemId: 'titan_shard', chance: 0.4 }] },
+  ember_lord:        { name: 'Ember Lord',      tier: 5, hp: 260, str: 22, def: 14, spd: 10, xp: 240, renown: 25, drops: [{ itemId: 'ember_crown', chance: 0.4 }] },
 };
 
 // Combat properties for each skill (referenced by id from progression.js skill trees)
@@ -151,7 +170,7 @@ export function updateBattle(game, dt) {
 
   // tick gauges
   for (const h of b.heroes) if (h.hp > 0 && h.atb < 100) {
-    h.atb = Math.min(100, h.atb + h.spd / 100 * (dt / 16.67));
+    h.atb = Math.min(100, h.atb + h.spd / 80 * (dt / 16.67));
     if (h.atb >= 100 && !h._readyBeep) { playSfx('bt_atb_fill'); h._readyBeep = true; }
   }
   for (const e of b.enemies) if (e.hp > 0 && e.atb < 100) {
@@ -433,16 +452,33 @@ function endBattle(game, victory) {
     const oreGain = Math.floor(xpGain / 10);
     game.resources.renown += renownGain;
     game.resources.ore += oreGain;
+    // roll drops per enemy
+    const dropCounts = {};
+    for (const e of b.enemies) {
+      if (!e.drops) continue;
+      for (const d of e.drops) {
+        if (Math.random() < (d.chance || 0)) {
+          game.inventory.push({ id: d.itemId });
+          dropCounts[d.itemId] = (dropCounts[d.itemId] || 0) + 1;
+        }
+      }
+    }
     // award XP to persistent heroes and check quest progress
     if (game.heroes) {
       awardXp(game, xpGain);
       checkQuestProgress(game, { type: 'encounter_cleared', encounterId: enc.id });
     }
-    game.showRewards([
+    const rewards = [
       { icon: 'icon_renown', label: 'Renown', amount: renownGain },
       { icon: 'icon_ore',    label: 'Ore',    amount: oreGain },
       { icon: 'icon_skill_point', label: 'XP', amount: xpGain },
-    ]);
+    ];
+    for (const [itemId, amt] of Object.entries(dropCounts)) {
+      const def = ITEM_DEFS[itemId];
+      if (!def) continue;
+      rewards.push({ icon: `icon_${def.slot || 'weapon'}`, label: def.name, amount: amt });
+    }
+    game.showRewards(rewards);
     // restore heroes to full HP/MP after victory
     if (game.heroes) {
       for (const h of game.heroes) { h.hp = h.maxHp; h.mp = h.maxMp; }

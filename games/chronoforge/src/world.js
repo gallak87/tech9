@@ -66,7 +66,7 @@ export const MAPS = {
     doorways: [
       { x: 58, y: 20, to: { mapId: 'emberline_region', x: 1, y: 20 } },
     ],
-    worldDrop: null,
+    worldDrop: { x: 40, y: 10, itemId: 'bog_fang' },
   },
   emberline_region: {
     id: 'emberline_region',
@@ -91,8 +91,9 @@ export const MAPS = {
       { x: 1,  y: 20, to: { mapId: 'haventide_region',    x: 58, y: 20 } },
       { x: 58, y: 20, to: { mapId: 'orbital_reach_region', x: 1, y: 20 } },
       { x: 30, y: 38, to: { mapId: 'forest_veil_region',   x: 30, y: 1 } },
+      { x: 50, y: 4,  to: { mapId: 'crater_ember_region',  x: 10, y: 36 } },
     ],
-    worldDrop: null,
+    worldDrop: { x: 8, y: 8, itemId: 'glacial_claw' },
   },
   orbital_reach_region: {
     id: 'orbital_reach_region',
@@ -115,8 +116,9 @@ export const MAPS = {
     doorways: [
       { x: 1,  y: 20, to: { mapId: 'emberline_region',   x: 58, y: 20 } },
       { x: 58, y: 14, to: { mapId: 'last_crown_region',  x: 1,  y: 14 } },
+      { x: 10, y: 2,  to: { mapId: 'frost_canyon_region', x: 30, y: 36 } },
     ],
-    worldDrop: null,
+    worldDrop: { x: 42, y: 8, itemId: 'ember_core' },
   },
   last_crown_region: {
     id: 'last_crown_region',
@@ -139,7 +141,7 @@ export const MAPS = {
     doorways: [
       { x: 1, y: 14, to: { mapId: 'orbital_reach_region', x: 58, y: 14 } },
     ],
-    worldDrop: null,
+    worldDrop: { x: 50, y: 34, itemId: 'void_scepter' },
   },
   forest_veil_region: {
     id: 'forest_veil_region',
@@ -149,12 +151,65 @@ export const MAPS = {
     biome: 'forest_veil',
     city: null,
     encounters: [
-      { id: 'e9', x: 18, y: 22, enemy: 'mutant_hound' },
+      { id: 'e9',  x: 18, y: 22, enemy: 'mutant_hound' },
+      { id: 'e10', x: 42, y: 30, enemy: 'mire_hulk' },
     ],
     doorways: [
-      { x: 30, y: 1, to: { mapId: 'emberline_region', x: 30, y: 38 } },
+      { x: 30, y: 1,  to: { mapId: 'emberline_region', x: 30, y: 38 } },
+      { x: 58, y: 22, to: { mapId: 'mire_bog_region',  x: 1,  y: 22 } },
     ],
-    worldDrop: null,
+    worldDrop: { x: 10, y: 10, itemId: 'moss_ward' },
+  },
+  mire_bog_region: {
+    id: 'mire_bog_region',
+    name: 'Mire Bog',
+    backdrop: 'mire_bog',
+    tier: 2,
+    biome: 'mire_bog',
+    city: null,
+    encounters: [
+      { id: 'e11', x: 20, y: 18, enemy: 'bog_stalker' },
+      { id: 'e12', x: 32, y: 24, enemy: 'mire_hulk' },
+      { id: 'e13', x: 44, y: 12, enemy: 'mire_warden' },
+    ],
+    doorways: [
+      { x: 1, y: 22, to: { mapId: 'forest_veil_region', x: 58, y: 22 } },
+    ],
+    worldDrop: { x: 48, y: 30, itemId: 'slag_tooth' },
+  },
+  crater_ember_region: {
+    id: 'crater_ember_region',
+    name: 'Crater Ember',
+    backdrop: 'crater_ember',
+    tier: 4,
+    biome: 'crater_ember',
+    city: null,
+    encounters: [
+      { id: 'e14', x: 22, y: 16, enemy: 'ember_golem' },
+      { id: 'e15', x: 36, y: 26, enemy: 'magma_behemoth' },
+      { id: 'e16', x: 48, y: 12, enemy: 'ember_lord' },
+    ],
+    doorways: [
+      { x: 10, y: 36, to: { mapId: 'emberline_region', x: 50, y: 4 } },
+    ],
+    worldDrop: { x: 30, y: 6, itemId: 'magma_blade' },
+  },
+  frost_canyon_region: {
+    id: 'frost_canyon_region',
+    name: 'Frost Canyon',
+    backdrop: 'frost_canyon',
+    tier: 3,
+    biome: 'frost_canyon',
+    city: null,
+    encounters: [
+      { id: 'e17', x: 18, y: 20, enemy: 'glacier_wolf' },
+      { id: 'e18', x: 32, y: 14, enemy: 'frost_revenant' },
+      { id: 'e19', x: 46, y: 24, enemy: 'frost_colossus' },
+    ],
+    doorways: [
+      { x: 30, y: 36, to: { mapId: 'orbital_reach_region', x: 10, y: 2 } },
+    ],
+    worldDrop: { x: 8, y: 30, itemId: 'frost_plate' },
   },
 };
 

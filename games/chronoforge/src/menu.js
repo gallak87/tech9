@@ -190,17 +190,16 @@ export function handleMenuMouseMove(mx, my, game) {
 export function handleMenuMouseUp(mx, my, game) {
   menuState.map.dragging = false;
   if (menuState.inv.dragItemIdx >= 0 && game) {
-    const slot = pickEquipSlot(mx, my, game);
-    if (slot) {
-      const inv = menuState.inv;
-      const hero = game.heroes[inv.heroIdx];
-      if (hero) {
-        equipItem(game, hero.id, slot, inv.dragItemIdx);
+    const inv = menuState.inv;
+    const target = pickEquipSlot(mx, my, game);
+    if (target) {
+      if (equipItem(game, target.heroId, target.slot, inv.dragItemIdx)) {
+        inv.heroIdx = target.heroIdx;
         inv.selectedItemIdx = -1;
       }
     }
-    menuState.inv.dragItemIdx = -1;
-    menuState.inv.hoverSlot = null;
+    inv.dragItemIdx = -1;
+    inv.hoverSlot = null;
   }
 }
 
@@ -421,13 +420,18 @@ function invSlotRect(heroIdx, slotIdx, game) {
   };
 }
 
-function invItemRect(idx, game) {
+// displayPos 0 = top row (newest). Actual inventory index = length-1 - displayPos.
+function invItemRect(displayPos, game) {
   const f = frameRect(game);
   const itemW = Math.floor(f.w * 0.44) - 20;
   const itemH = 48;
   const x = f.x + 20;
-  const y = f.y + 84 + idx * (itemH + 6);
+  const y = f.y + 84 + displayPos * (itemH + 6);
   return { x, y, w: itemW, h: itemH };
+}
+
+function displayPosToIdx(displayPos, game) {
+  return game.inventory.length - 1 - displayPos;
 }
 
 function pickEquipSlot(mx, my, game) {
@@ -471,10 +475,11 @@ function handleInvMouseDown(mx, my, game) {
     return true;
   }
 
-  // item list click or drag start
-  for (let i = 0; i < game.inventory.length; i++) {
-    const r = invItemRect(i, game);
+  // item list click or drag start (iterate in display order — newest first)
+  for (let dp = 0; dp < game.inventory.length; dp++) {
+    const r = invItemRect(dp, game);
     if (pointInRect(mx, my, r)) {
+      const i = displayPosToIdx(dp, game);
       if (inv.selectedItemIdx === i) {
         inv.selectedItemIdx = -1; // deselect
       } else {
@@ -507,11 +512,14 @@ function drawInventoryTab(ctx, game) {
 
   const isDragging = inv.dragItemIdx >= 0;
 
-  game.inventory.forEach((item, i) => {
-    if (isDragging && i === inv.dragItemIdx) return; // drawn at cursor below
-    const r = invItemRect(i, game);
+  // render newest-first
+  for (let dp = 0; dp < game.inventory.length; dp++) {
+    const i = displayPosToIdx(dp, game);
+    const item = game.inventory[i];
+    if (isDragging && i === inv.dragItemIdx) continue; // drawn at cursor below
+    const r = invItemRect(dp, game);
     const def = ITEM_DEFS[item.id];
-    if (!def) return;
+    if (!def) continue;
     const selected = inv.selectedItemIdx === i;
     ctx.fillStyle = selected ? PALETTE.panel + 'cc' : PALETTE.panel + '88';
     ctx.fillRect(r.x, r.y, r.w, r.h);
@@ -532,7 +540,7 @@ function drawInventoryTab(ctx, game) {
     ctx.fillText(`[${def.slot}]  ${Object.entries(def.stats).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join('  ')}`, r.x + 24, r.y + 24);
     ctx.font = '400 10px system-ui, sans-serif';
     ctx.fillText(def.desc, r.x + 24, r.y + 36);
-  });
+  }
 
   if (game.inventory.length === 0) {
     ctx.fillStyle = PALETTE.dim;
@@ -586,11 +594,12 @@ function drawInventoryTab(ctx, game) {
       const pendingIdx = isDragging ? inv.dragItemIdx : inv.selectedItemIdx;
       const pendingItem = pendingIdx >= 0 ? game.inventory[pendingIdx] : null;
       const isTarget = pendingItem && ITEM_DEFS[pendingItem.id]?.slot === slot;
+      const isHovered = isDragging && isTarget && inv.hoverSlot && inv.hoverSlot.heroId === hero.id && inv.hoverSlot.slot === slot;
 
-      ctx.fillStyle = isTarget ? PALETTE.accent + '22' : PALETTE.panel + '88';
+      ctx.fillStyle = isHovered ? PALETTE.accent + '55' : (isTarget ? PALETTE.accent + '22' : PALETTE.panel + '88');
       ctx.fillRect(sr.x, sr.y, sr.w, sr.h);
-      ctx.strokeStyle = isTarget ? PALETTE.accent : (def ? PALETTE.grid : PALETTE.grid + '44');
-      ctx.lineWidth = isTarget ? 2 : 1;
+      ctx.strokeStyle = isHovered ? PALETTE.warn : (isTarget ? PALETTE.accent : (def ? PALETTE.grid : PALETTE.grid + '44'));
+      ctx.lineWidth = isHovered ? 3 : (isTarget ? 2 : 1);
       ctx.strokeRect(sr.x + 0.5, sr.y + 0.5, sr.w - 1, sr.h - 1);
 
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';

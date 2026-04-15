@@ -2,7 +2,7 @@
 // Owns: hero definitions, item catalog, skill trees, quest log, XP/level-up,
 // equip logic, save/load (localStorage).
 
-import { CITIES, ENCOUNTERS } from './world.js';
+import { ALL_CITIES, ALL_ENCOUNTERS, MAPS } from './world.js';
 
 // --- hero base definitions ---
 export const HERO_DEFS = {
@@ -255,8 +255,15 @@ export function saveGame(game) {
       v: 1,
       ts: Date.now(),
       resources: { ...game.resources },
-      party: { x: game.party.x, y: game.party.y, facing: game.party.facing },
-      explored: [...game.explored],
+      party: {
+        mapId: game.party.mapId,
+        x: game.party.x, y: game.party.y,
+        facing: game.party.facing,
+        worldDropsTaken: { ...game.party.worldDropsTaken },
+      },
+      explored: Object.fromEntries(
+        Object.entries(game.explored).map(([k, s]) => [k, [...s]])
+      ),
       heroes: game.heroes.map(h => ({
         ...h,
         equip: { ...h.equip },
@@ -273,8 +280,8 @@ export function saveGame(game) {
         researchBuilt: game.base.researchBuilt || false,
       },
       tier: game.tier,
-      cities: CITIES.map(c => ({ id: c.id, unlocked: c.unlocked })),
-      encounters: ENCOUNTERS.map(e => ({ id: e.id, cleared: !!e.cleared })),
+      cities: ALL_CITIES.map(c => ({ id: c.id, unlocked: c.unlocked })),
+      encounters: ALL_ENCOUNTERS.map(e => ({ id: e.id, cleared: !!e.cleared })),
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     return true;
@@ -314,6 +321,7 @@ export function loadGame(game) {
 
     game.resources = { ...d.resources };
 
+    game.party.mapId = d.party.mapId || 'haventide_region';
     game.party.x = d.party.x;
     game.party.y = d.party.y;
     game.party.fromX = d.party.x;
@@ -321,8 +329,19 @@ export function loadGame(game) {
     game.party.facing = d.party.facing || 'down';
     game.party.moveCooldown = 0;
     game.party.moveStart = -9999;
+    game.party.worldDropsTaken = d.party.worldDropsTaken || {};
 
-    game.explored = new Set(d.explored);
+    if (Array.isArray(d.explored)) {
+      // legacy v1 save — single flat explored set, seed into starting map
+      game.explored = Object.fromEntries(
+        Object.keys(MAPS).map(id => [id, new Set()])
+      );
+      game.explored[game.party.mapId] = new Set(d.explored);
+    } else {
+      game.explored = Object.fromEntries(
+        Object.keys(MAPS).map(id => [id, new Set(d.explored[id] || [])])
+      );
+    }
 
     game.heroes = d.heroes;
     game.inventory = d.inventory;
@@ -337,11 +356,11 @@ export function loadGame(game) {
     game.tier = d.tier;
 
     for (const cs of d.cities) {
-      const city = CITIES.find(c => c.id === cs.id);
+      const city = ALL_CITIES.find(c => c.id === cs.id);
       if (city) city.unlocked = cs.unlocked;
     }
     for (const es of d.encounters) {
-      const enc = ENCOUNTERS.find(e => e.id === es.id);
+      const enc = ALL_ENCOUNTERS.find(e => e.id === es.id);
       if (enc) enc.cleared = es.cleared;
     }
 

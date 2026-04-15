@@ -1,12 +1,11 @@
-// Chronoforge — World data (Phase 2 deliverable from level agent)
-// Handcrafted 60x40 tile grid. Biome regions are hand-placed; within a biome,
-// tile variety is seeded so regeneration is deterministic.
+// Chronoforge — World data. Multi-map: each MAPS entry is its own 60×40 grid
+// with its own pre-rendered backdrop, city, encounters, doorways, and (optional)
+// world-drop. Player state carries mapId; doorways trigger chrono-rift travel.
 
 export const TILE = 64; // px per tile
 export const MAP_W = 60;
 export const MAP_H = 40;
 
-// seeded rng (mulberry32)
 function rng(seed) {
   return function () {
     seed = (seed + 0x6D2B79F5) | 0;
@@ -17,149 +16,211 @@ function rng(seed) {
   };
 }
 
-// biome regions — hand-placed rectangles (x0, y0, x1, y1)
-const BIOMES = [
-  { id: 'grassland_ruins', rect: [0, 0, 22, 40] },
-  { id: 'neon_wastes', rect: [22, 0, 44, 40] },
-  { id: 'alien_terraform', rect: [44, 0, 60, 40] },
-];
-
-const BIOME_TILES = {
-  grassland_ruins: {
-    base: ['tile_grass', 'tile_grass', 'tile_grass', 'tile_dirt'],
-    accent: ['tile_dead_tree', 'tile_ruin_rubble', 'tile_stream'],
-    accentChance: 0.08,
-  },
-  neon_wastes: {
-    base: ['tile_sand', 'tile_sand', 'tile_rust_patch'],
-    accent: ['tile_barricade', 'tile_neon_cable', 'tile_billboard', 'tile_broken_highway'],
-    accentChance: 0.07,
-  },
-  alien_terraform: {
-    base: ['tile_bio_moss', 'tile_bio_moss', 'tile_growth_tile'],
-    accent: ['tile_crystal_shard', 'tile_bio_pool', 'tile_alien_tree', 'tile_terraform_pipe'],
-    accentChance: 0.1,
-  },
-};
-
-function biomeAt(x, y) {
-  for (const b of BIOMES) {
-    const [x0, y0, x1, y1] = b.rect;
-    if (x >= x0 && x < x1 && y >= y0 && y < y1) return b.id;
-  }
-  return 'grassland_ruins';
-}
-
-// build the tile grid
-function buildTiles() {
-  const rnd = rng(0xC410FA);
+// Trivial all-passable tile grid. Backdrop-rendered maps don't use this for
+// visuals; we only care about bounds + passability (everything passable).
+function buildTilesFor(biomeId, seed) {
+  const rnd = rng(seed);
+  const base = BIOME_BASE[biomeId] || ['tile_grass'];
   const grid = [];
   for (let y = 0; y < MAP_H; y++) {
     const row = [];
     for (let x = 0; x < MAP_W; x++) {
-      const biome = biomeAt(x, y);
-      const def = BIOME_TILES[biome];
-      const r = rnd();
-      let tile;
-      if (r < def.accentChance) {
-        tile = def.accent[Math.floor(rnd() * def.accent.length)];
-      } else {
-        tile = def.base[Math.floor(rnd() * def.base.length)];
-      }
-      row.push({ t: tile, biome, passable: tile !== 'tile_stream' && tile !== 'tile_bio_pool' });
+      const t = base[Math.floor(rnd() * base.length)];
+      row.push({ t, biome: biomeId, passable: true });
     }
     grid.push(row);
   }
-
-  // carve roads between cities — simple straight-ish corridors
-  const paths = [
-    [[12, 28], [20, 28], [20, 20], [32, 20], [32, 28]],       // Haventide -> Emberline
-    [[32, 28], [40, 28], [40, 14], [45, 14]],                  // Emberline -> Orbital Reach
-    [[45, 14], [50, 14], [50, 22], [52, 22]],                  // Orbital Reach -> Last Crown
-  ];
-  for (const path of paths) {
-    for (let i = 0; i < path.length - 1; i++) {
-      const [ax, ay] = path[i];
-      const [bx, by] = path[i + 1];
-      const dx = Math.sign(bx - ax), dy = Math.sign(by - ay);
-      let x = ax, y = ay;
-      while (x !== bx || y !== by) {
-        if (grid[y] && grid[y][x]) {
-          grid[y][x] = { t: 'tile_cracked_road', biome: biomeAt(x, y), passable: true };
-        }
-        if (x !== bx) x += dx;
-        else if (y !== by) y += dy;
-      }
-    }
-  }
-
   return grid;
 }
 
-export const CITIES = [
-  {
-    id: 'haventide',
-    name: 'Haventide',
-    x: 12, y: 28,
-    landmark: 'city_haventide',
+const BIOME_BASE = {
+  grassland_ruins: ['tile_grass', 'tile_grass', 'tile_dirt'],
+  neon_wastes:     ['tile_sand',  'tile_sand',  'tile_rust_patch'],
+  alien_terraform: ['tile_bio_moss', 'tile_growth_tile'],
+  frozen_ruins:    ['tile_dirt', 'tile_dirt', 'tile_ruin_rubble'],
+  forest_veil:     ['tile_grass', 'tile_grass', 'tile_dirt'],
+  mire_bog:        ['tile_dirt', 'tile_bio_moss'],
+  crater_ember:    ['tile_rust_patch', 'tile_cracked_road'],
+  frost_canyon:    ['tile_dirt', 'tile_ruin_rubble'],
+};
+
+// Central MAP definition. Each map is self-contained.
+export const MAPS = {
+  haventide_region: {
+    id: 'haventide_region',
+    name: 'Haventide Region',
+    backdrop: 'proof',
+    tier: 1,
     biome: 'grassland_ruins',
-    unlocked: true, // starting city — always available for fast-travel
-    blurb: 'Coastal fishing port. Your home base. Pink neon docks, rumor of a lost sister ship.',
+    city: {
+      id: 'haventide', name: 'Haventide',
+      x: 12, y: 28,
+      landmark: 'city_haventide',
+      biome: 'grassland_ruins',
+      unlocked: true,
+      blurb: 'Coastal fishing port. Your home base. Pink neon docks, rumor of a lost sister ship.',
+    },
+    encounters: [
+      { id: 'e1', x: 18, y: 25, enemy: 'rust_scrapper' },
+    ],
+    doorways: [
+      { x: 58, y: 20, to: { mapId: 'emberline_region', x: 1, y: 20 } },
+    ],
+    worldDrop: null,
   },
-  {
-    id: 'emberline',
-    name: 'Emberline',
-    x: 32, y: 28,
-    landmark: 'city_emberline',
+  emberline_region: {
+    id: 'emberline_region',
+    name: 'Emberline Region',
+    backdrop: 'desert',
+    tier: 2,
     biome: 'neon_wastes',
-    unlocked: false,
-    blurb: 'Desert trade hub. Caravans whisper of a collapsing orbital elevator.',
+    city: {
+      id: 'emberline', name: 'Emberline',
+      x: 32, y: 28,
+      landmark: 'city_emberline',
+      biome: 'neon_wastes',
+      unlocked: false,
+      blurb: 'Desert trade hub. Caravans whisper of a collapsing orbital elevator.',
+    },
+    encounters: [
+      { id: 'e2', x: 14, y: 18, enemy: 'mutant_hound' },
+      { id: 'e3', x: 24, y: 26, enemy: 'drone_sentinel' },
+      { id: 'e4', x: 42, y: 22, enemy: 'gravbot' },
+    ],
+    doorways: [
+      { x: 1,  y: 20, to: { mapId: 'haventide_region',    x: 58, y: 20 } },
+      { x: 58, y: 20, to: { mapId: 'orbital_reach_region', x: 1, y: 20 } },
+      { x: 30, y: 38, to: { mapId: 'forest_veil_region',   x: 30, y: 1 } },
+    ],
+    worldDrop: null,
   },
-  {
-    id: 'orbital_reach',
-    name: 'Orbital Reach',
-    x: 45, y: 14,
-    landmark: 'city_orbital_reach',
-    biome: 'neon_wastes',
-    unlocked: false,
-    blurb: 'Ruined space-elevator base. Cyan steel piercing the storm clouds.',
+  orbital_reach_region: {
+    id: 'orbital_reach_region',
+    name: 'Orbital Reach Region',
+    backdrop: 'frozen',
+    tier: 3,
+    biome: 'frozen_ruins',
+    city: {
+      id: 'orbital_reach', name: 'Orbital Reach',
+      x: 20, y: 18,
+      landmark: 'city_orbital_reach',
+      biome: 'neon_wastes',
+      unlocked: false,
+      blurb: 'Ruined space-elevator base. Cyan steel piercing the storm clouds.',
+    },
+    encounters: [
+      { id: 'e5', x: 14, y: 14, enemy: 'neon_cultist' },
+      { id: 'e6', x: 30, y: 22, enemy: 'sandworm_hatchling' },
+    ],
+    doorways: [
+      { x: 1,  y: 20, to: { mapId: 'emberline_region',   x: 58, y: 20 } },
+      { x: 58, y: 14, to: { mapId: 'last_crown_region',  x: 1,  y: 14 } },
+    ],
+    worldDrop: null,
   },
-  {
-    id: 'last_crown',
-    name: 'Last Crown',
-    x: 52, y: 22,
-    landmark: 'city_last_crown',
+  last_crown_region: {
+    id: 'last_crown_region',
+    name: 'Last Crown Region',
+    backdrop: 'alien',
+    tier: 4,
     biome: 'alien_terraform',
-    unlocked: false,
-    blurb: 'The final megacity. Magenta spires where the Void Architect waits.',
+    city: {
+      id: 'last_crown', name: 'Last Crown',
+      x: 32, y: 22,
+      landmark: 'city_last_crown',
+      biome: 'alien_terraform',
+      unlocked: false,
+      blurb: 'The final megacity. Magenta spires where the Void Architect waits.',
+    },
+    encounters: [
+      { id: 'e7', x: 20, y: 18, enemy: 'wraith_core' },
+      { id: 'e8', x: 45, y: 25, enemy: 'architect_herald' },
+    ],
+    doorways: [
+      { x: 1, y: 14, to: { mapId: 'orbital_reach_region', x: 58, y: 14 } },
+    ],
+    worldDrop: null,
   },
-];
+  forest_veil_region: {
+    id: 'forest_veil_region',
+    name: 'Forest Veil',
+    backdrop: 'forest',
+    tier: 2,
+    biome: 'forest_veil',
+    city: null,
+    encounters: [
+      { id: 'e9', x: 18, y: 22, enemy: 'mutant_hound' },
+    ],
+    doorways: [
+      { x: 30, y: 1, to: { mapId: 'emberline_region', x: 30, y: 38 } },
+    ],
+    worldDrop: null,
+  },
+};
 
-// encounter zones — visible enemy markers on the map
-export const ENCOUNTERS = [
-  { id: 'e1', x: 18, y: 25, enemy: 'rust_scrapper', biome: 'grassland_ruins' },
-  { id: 'e2', x: 24, y: 32, enemy: 'mutant_hound', biome: 'neon_wastes' },
-  { id: 'e3', x: 28, y: 20, enemy: 'drone_sentinel', biome: 'neon_wastes' },
-  { id: 'e4', x: 37, y: 22, enemy: 'gravbot', biome: 'neon_wastes' },
-  { id: 'e5', x: 42, y: 18, enemy: 'neon_cultist', biome: 'neon_wastes' },
-  { id: 'e6', x: 47, y: 10, enemy: 'sandworm_hatchling', biome: 'alien_terraform' },
-  { id: 'e7', x: 48, y: 20, enemy: 'wraith_core', biome: 'alien_terraform' },
-  { id: 'e8', x: 55, y: 25, enemy: 'architect_herald', biome: 'alien_terraform' },
-];
+// Generate tiles once per map (seed from id for determinism).
+for (const m of Object.values(MAPS)) {
+  let h = 0;
+  for (let i = 0; i < m.id.length; i++) h = (h * 31 + m.id.charCodeAt(i)) | 0;
+  m.tiles = buildTilesFor(m.biome, h);
+}
 
-export const TILES = buildTiles();
+export function getMap(mapId) {
+  return MAPS[mapId] || null;
+}
 
-export function tileAt(x, y) {
+export function tileAt(mapId, x, y) {
   if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) return null;
-  return TILES[y][x];
+  const m = MAPS[mapId];
+  if (!m) return null;
+  return m.tiles[y][x];
 }
 
-export function cityAt(x, y) {
-  return CITIES.find(c => c.x === x && c.y === y);
+export function cityAt(mapId, x, y) {
+  const m = MAPS[mapId];
+  if (!m || !m.city) return null;
+  return (m.city.x === x && m.city.y === y) ? m.city : null;
 }
 
-export function encounterAt(x, y) {
-  return ENCOUNTERS.find(e => e.x === x && e.y === y);
+export function encounterAt(mapId, x, y) {
+  const m = MAPS[mapId];
+  if (!m) return null;
+  return m.encounters.find(e => e.x === x && e.y === y && !e.cleared) || null;
 }
 
-export const PLAYER_START = { x: 12, y: 28 };
+export function doorwayAt(mapId, x, y) {
+  const m = MAPS[mapId];
+  if (!m) return null;
+  return m.doorways.find(d => d.x === x && d.y === y) || null;
+}
+
+export function worldDropAt(mapId, x, y) {
+  const m = MAPS[mapId];
+  if (!m || !m.worldDrop) return null;
+  return (m.worldDrop.x === x && m.worldDrop.y === y) ? m.worldDrop : null;
+}
+
+// --- Aggregate accessors for save state + menu UI ---
+// Cities tagged with mapId so callers (quest log, fast-travel, minimap)
+// can link an entry back to its map.
+export const ALL_CITIES = Object.values(MAPS)
+  .filter(m => m.city)
+  .map(m => {
+    m.city.mapId = m.id;
+    return m.city;
+  });
+
+export const ALL_ENCOUNTERS = Object.values(MAPS)
+  .flatMap(m => m.encounters.map(e => {
+    e.mapId = m.id;
+    return e;
+  }));
+
+export const PLAYER_START = { mapId: 'haventide_region', x: 12, y: 28 };
+
+// --- Back-compat shims (menu's full-map view + any stragglers) ---
+// Returns current-map tiles. Used only where the old single-map API exists.
+export function tilesOf(mapId) {
+  const m = MAPS[mapId];
+  return m ? m.tiles : null;
+}

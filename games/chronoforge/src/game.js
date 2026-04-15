@@ -8,9 +8,10 @@ import { Application, Sprite, Texture, ColorMatrixFilter } from 'pixi.js';
 import { AdvancedBloomFilter, RGBSplitFilter, CRTFilter } from 'pixi-filters';
 
 import {
-  drawSplash, drawOverworld,
-  initParty, updateOverworld,
+  drawSplash, drawOverworld, drawMapScene,
+  initParty, initExplored, updateOverworld,
 } from './scenes.js';
+import { updateTravel, drawTravel } from './travel.js';
 import {
   initBase, initTierState, maybeTick, drawBaseScene,
   handleBaseMouseDown, handleBaseMouseMove, handleBaseKey,
@@ -22,9 +23,9 @@ import {
 } from './menu.js';
 import { initBattle, updateBattle, drawBattle, handleBattleKey } from './battle.js';
 import { initAudio, resumeAudio, playSfx } from './audio.js';
-import { PLAYER_START, MAP_W, MAP_H } from './world.js';
+import { PLAYER_START, MAP_W, MAP_H, MAPS } from './world.js';
 import { TERRAIN_SETS, setTerrainSet, spriteSettings } from './sprites.js';
-import { initHeroes, initInventory, initQuests } from './progression.js';
+import { initHeroes, initInventory, initQuests, ITEM_DEFS } from './progression.js';
 import { WORLD_NAMES, devWorld, reloadAllWorlds } from './devWorld.js';
 
 // --- DEV: floating terrain picker + biome-probe viewer ---
@@ -305,6 +306,7 @@ const STATES = Object.freeze({
   OVERWORLD: 'overworld',
   BATTLE: 'battle',
   BASE: 'base',
+  TRAVEL: 'travel',
 });
 
 const htmlCanvas = document.getElementById('canvas');
@@ -323,7 +325,7 @@ const game = {
   mouseX: 0, mouseY: 0,
 
   party: initParty(),
-  explored: new Set(),
+  explored: initExplored(),
   resources: { food: 10, ore: 150, energy: 0, renown: 0, skillPoints: 0 },
   heroes: initHeroes(),
   inventory: initInventory(),
@@ -351,14 +353,22 @@ const game = {
     this.rewards = items.filter(it => it.amount > 0);
     this.rewardsExpire = this.time + 3000;
   },
+  pickUpWorldDrop(drop) {
+    const def = ITEM_DEFS[drop.itemId];
+    if (!def) return;
+    this.inventory.push({ id: drop.itemId });
+    this.toast(`Found ${def.name}`);
+    this.showRewards([{ icon: `icon_${def.slot || 'weapon'}`, label: def.name, amount: 1 }]);
+  },
 };
 
 (function seedExplored() {
   const r = 4;
+  const start = game.explored[PLAYER_START.mapId];
   for (let y = PLAYER_START.y - r; y <= PLAYER_START.y + r; y++) {
     for (let x = PLAYER_START.x - r; x <= PLAYER_START.x + r; x++) {
       if ((x - PLAYER_START.x) ** 2 + (y - PLAYER_START.y) ** 2 <= r * r) {
-        if (x >= 0 && y >= 0 && x < MAP_W && y < MAP_H) game.explored.add(`${x},${y}`);
+        if (x >= 0 && y >= 0 && x < MAP_W && y < MAP_H) start.add(`${x},${y}`);
       }
     }
   }
@@ -502,6 +512,9 @@ window.addEventListener('keydown', (e) => {
     if (k === 'c' || k === 'C') game.setState(STATES.BASE);
   } else if (game.state === STATES.BASE) {
     if (handleBaseKey(game, k)) { e.preventDefault(); return; }
+  } else if (game.state === STATES.TRAVEL) {
+    // no input during transition — prevent menu toggle conflicts, etc.
+    e.preventDefault();
   }
 });
 
@@ -538,6 +551,7 @@ function tick(ticker) {
   if (!menuState.open) {
     if (game.state === STATES.OVERWORLD) updateOverworld(game, dt);
     else if (game.state === STATES.BATTLE) updateBattle(game, dt);
+    else if (game.state === STATES.TRAVEL) updateTravel(game, dt);
     if (game.state === STATES.OVERWORLD || game.state === STATES.BASE) maybeTick(game, t);
   }
 
@@ -549,6 +563,10 @@ function tick(ticker) {
       case STATES.OVERWORLD: drawOverworld(ctx, game); break;
       case STATES.BATTLE:    drawBattle(ctx, game); break;
       case STATES.BASE:      drawBaseScene(ctx, game); break;
+      case STATES.TRAVEL:
+        drawMapScene(ctx, game, game.party.mapId);
+        drawTravel(ctx, game);
+        break;
     }
     if (menuState.open) drawMenu(ctx, game);
   }

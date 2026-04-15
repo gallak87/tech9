@@ -3,7 +3,7 @@
 // Map tab is fully live: pan (drag / WASD / arrows), zoom (wheel / +/-),
 // fog-of-war, fast-travel on click to unlocked cities.
 
-import { TILE, MAP_W, MAP_H, TILES, CITIES } from './world.js';
+import { TILE, MAP_W, MAP_H, tilesOf, getMap } from './world.js';
 import { spriteSettings, drawSprite, TERRAIN_SETS, setTerrainSet } from './sprites.js';
 import {
   HERO_DEFS, ITEM_DEFS, SKILL_TREES, QUEST_DEFS,
@@ -1112,9 +1112,12 @@ function drawMapTab(ctx, game) {
   const lastTx = Math.min(MAP_W, Math.ceil((viewX + viewW) / TILE));
   const lastTy = Math.min(MAP_H, Math.ceil((viewY + viewH) / TILE));
 
+  const mapId = game.party ? game.party.mapId : 'haventide_region';
+  const tiles = tilesOf(mapId);
+  const exp = game.explored && game.explored[mapId];
   for (let ty = firstTy; ty < lastTy; ty++) {
     for (let tx = firstTx; tx < lastTx; tx++) {
-      const t = TILES[ty][tx];
+      const t = tiles ? tiles[ty][tx] : { biome: '', t: '' };
       const sx = rect.x + (tx * TILE - viewX) * scale;
       const sy = rect.y + (ty * TILE - viewY) * scale;
       ctx.fillStyle = tileMapColor(t.biome, t.t);
@@ -1122,14 +1125,13 @@ function drawMapTab(ctx, game) {
     }
   }
 
-  // road overlay: already part of tile type; brightened
-  // fog-of-war — block tiles outside explored set
-  if (game.explored) {
+  // fog-of-war — block tiles outside current-map explored set
+  if (exp) {
     ctx.fillStyle = PALETTE.fog;
     for (let ty = firstTy; ty < lastTy; ty++) {
       for (let tx = firstTx; tx < lastTx; tx++) {
         const key = `${tx},${ty}`;
-        if (!game.explored.has(key)) {
+        if (!exp.has(key)) {
           const sx = rect.x + (tx * TILE - viewX) * scale;
           const sy = rect.y + (ty * TILE - viewY) * scale;
           ctx.fillRect(sx, sy, tileSize + 1, tileSize + 1);
@@ -1138,11 +1140,13 @@ function drawMapTab(ctx, game) {
     }
   }
 
-  // cities
-  for (const city of CITIES) {
+  // cities — only show current-map city on this minimap
+  const map = getMap(mapId);
+  const visibleCities = map && map.city ? [map.city] : [];
+  for (const city of visibleCities) {
     const sx = rect.x + (city.x * TILE + TILE / 2 - viewX) * scale;
     const sy = rect.y + (city.y * TILE + TILE / 2 - viewY) * scale;
-    const explored = !game.explored || game.explored.has(`${city.x},${city.y}`);
+    const explored = !exp || exp.has(`${city.x},${city.y}`);
     if (!explored) continue;
     const r = Math.max(6, 10 * scale);
     ctx.fillStyle = city.unlocked ? PALETTE.accent : PALETTE.dim;
@@ -1315,7 +1319,9 @@ function pickCity(mx, my, rect, game) {
   const viewW = rect.w / scale, viewH = rect.h / scale;
   const viewX = menuState.map.cx - viewW / 2;
   const viewY = menuState.map.cy - viewH / 2;
-  for (const city of CITIES) {
+  const map = getMap(game.party ? game.party.mapId : 'haventide_region');
+  const visibleCities = map && map.city ? [map.city] : [];
+  for (const city of visibleCities) {
     const sx = rect.x + (city.x * TILE + TILE / 2 - viewX) * scale;
     const sy = rect.y + (city.y * TILE + TILE / 2 - viewY) * scale;
     const r = Math.max(8, 12 * scale);

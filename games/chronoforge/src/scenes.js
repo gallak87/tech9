@@ -1,11 +1,16 @@
 // Chronoforge — Scene renderers + party controller for overworld.
 // Battle and Base remain stubs (Phase 3, Phase 4).
 
-import { TILE, MAP_W, MAP_H, tileAt, CITIES, ENCOUNTERS, PLAYER_START } from './world.js';
+import {
+  TILE, MAP_W, MAP_H,
+  tileAt, cityAt, encounterAt, doorwayAt, worldDropAt,
+  getMap, MAPS, PLAYER_START,
+} from './world.js';
 import { drawSprite, getSpriteVersion } from './sprites.js';
 import { aggregateYields, TICK_MS } from './base.js';
 import { checkQuestProgress } from './progression.js';
-import { getActiveBackdrop } from './devWorld.js';
+import { getMapBackdrop } from './devWorld.js';
+import { beginTravel } from './travel.js';
 
 const PALETTE = {
   bg: '#07060d', bgAlt: '#120a22',
@@ -66,6 +71,7 @@ export function drawSplash(ctx, game) {
 // --- OVERWORLD ---
 export function initParty() {
   return {
+    mapId: PLAYER_START.mapId,
     x: PLAYER_START.x,
     y: PLAYER_START.y,
     fromX: PLAYER_START.x,
@@ -73,7 +79,20 @@ export function initParty() {
     moveStart: -9999,
     moveCooldown: 0,
     facing: 'down',
+    worldDropsTaken: {}, // { [mapId]: true }
   };
+}
+
+export function initExplored() {
+  const explored = {};
+  for (const id of Object.keys(MAPS)) explored[id] = new Set();
+  return explored;
+}
+
+export function currentExplored(game) {
+  const id = game.party.mapId;
+  if (!game.explored[id]) game.explored[id] = new Set();
+  return game.explored[id];
 }
 
 const MOVE_DURATION_MS = 140;
@@ -82,47 +101,52 @@ const CAMERA_LERP = 0.18;
 
 function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
 
-// --- offscreen tile atlas (whole world pre-rendered once; re-rendered on sprite load) ---
-let tileCanvas = null;
-let tileCanvasVersion = -1;
+// --- offscreen tile atlas per mapId (fallback when a backdrop is missing) ---
+const tileCanvasCache = Object.create(null); // mapId -> { canvas, version }
 
-function getTileCanvas() {
+function getTileCanvas(mapId) {
   const version = getSpriteVersion();
-  if (!tileCanvas) {
-    tileCanvas = document.createElement('canvas');
-    tileCanvas.width = MAP_W * TILE;
-    tileCanvas.height = MAP_H * TILE;
+  let entry = tileCanvasCache[mapId];
+  if (!entry) {
+    const canvas = document.createElement('canvas');
+    canvas.width = MAP_W * TILE;
+    canvas.height = MAP_H * TILE;
+    entry = { canvas, version: -1 };
+    tileCanvasCache[mapId] = entry;
   }
-  if (tileCanvasVersion !== version) {
-    const ctx = tileCanvas.getContext('2d');
+  if (entry.version !== version) {
+    const ctx = entry.canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, tileCanvas.width, tileCanvas.height);
+    ctx.clearRect(0, 0, entry.canvas.width, entry.canvas.height);
     for (let ty = 0; ty < MAP_H; ty++) {
       for (let tx = 0; tx < MAP_W; tx++) {
-        const t = tileAt(tx, ty);
+        const t = tileAt(mapId, tx, ty);
         if (!t) continue;
         drawSprite(ctx, t.t, tx * TILE, ty * TILE, TILE, TILE);
       }
     }
-    tileCanvasVersion = version;
+    entry.version = version;
   }
-  return tileCanvas;
+  return entry.canvas;
 }
 
-// --- fog canvas (whole map pre-rendered; re-rendered only when explored grows) ---
-let fogCanvas = null;
-let fogExploredSize = -1;
+// --- fog canvas per mapId ---
+const fogCache = Object.create(null); // mapId -> { canvas, exploredSize }
 
 function getFogCanvas(game) {
-  if (!fogCanvas) {
-    fogCanvas = document.createElement('canvas');
-    fogCanvas.width = MAP_W * TILE;
-    fogCanvas.height = MAP_H * TILE;
+  const mapId = game.party.mapId;
+  const exp = currentExplored(game);
+  let entry = fogCache[mapId];
+  if (!entry) {
+    const canvas = document.createElement('canvas');
+    canvas.width = MAP_W * TILE;
+    canvas.height = MAP_H * TILE;
+    entry = { canvas, exploredSize: -1 };
+    fogCache[mapId] = entry;
   }
-  if (fogExploredSize === game.explored.size) return fogCanvas;
-  const fctx = fogCanvas.getContext('2d');
-  fctx.clearRect(0, 0, fogCanvas.width, fogCanvas.height);
-  const exp = game.explored;
+  if (entry.exploredSize === exp.size) return entry.canvas;
+  const fctx = entry.canvas.getContext('2d');
+  fctx.clearRect(0, 0, entry.canvas.width, entry.canvas.height);
   let prevA = -1;
   for (let ty = 0; ty < MAP_H; ty++) {
     for (let tx = 0; tx < MAP_W; tx++) {
@@ -147,8 +171,8 @@ function getFogCanvas(game) {
       fctx.fillRect(tx * TILE, ty * TILE, TILE + 1, TILE + 1);
     }
   }
-  fogExploredSize = exp.size;
-  return fogCanvas;
+  entry.exploredSize = exp.size;
+  return entry.canvas;
 }
 
 export function partyRenderPos(game) {
@@ -176,9 +200,10 @@ export function updateOverworld(game, dt) {
   if (dx === 0 && dy === 0) return;
 
   const nx = p.x + dx, ny = p.y + dy;
-  const devBackdrop = getActiveBackdrop();
-  if (!devBackdrop) {
-    const t = tileAt(nx, ny);
+  const map = getMap(p.mapId);
+  const hasBackdrop = !!(map && getMapBackdrop(map.backdrop));
+  if (!hasBackdrop) {
+    const t = tileAt(p.mapId, nx, ny);
     if (!t || !t.passable) return;
   } else {
     if (nx < 0 || ny < 0 || nx >= MAP_W || ny >= MAP_H) return;
@@ -190,31 +215,45 @@ export function updateOverworld(game, dt) {
   p.facing = dy < 0 ? 'up' : dy > 0 ? 'down' : dx < 0 ? 'left' : 'right';
   p.moveCooldown = MOVE_COOLDOWN_MS;
 
-  if (!devBackdrop) {
-    revealAround(game, nx, ny, 4);
+  revealAround(game, nx, ny, 4);
 
-    const city = CITIES.find(c => c.x === nx && c.y === ny);
-    if (city && !city.unlocked) {
-      city.unlocked = true;
-      game.toast(`Reached ${city.name} — fast-travel unlocked`);
-      if (game.quests) checkQuestProgress(game, { type: 'city_reached', cityId: city.id });
-    }
+  const city = cityAt(p.mapId, nx, ny);
+  if (city && !city.unlocked) {
+    city.unlocked = true;
+    game.toast(`Reached ${city.name} — fast-travel unlocked`);
+    if (game.quests) checkQuestProgress(game, { type: 'city_reached', cityId: city.id });
   }
 
-  // encounter stepped on → battle
-  const enc = ENCOUNTERS.find(e => e.x === nx && e.y === ny && !e.cleared);
+  // doorway → chrono-rift travel
+  const door = doorwayAt(p.mapId, nx, ny);
+  if (door) {
+    beginTravel(game, door);
+    return;
+  }
+
+  // encounter → battle
+  const enc = encounterAt(p.mapId, nx, ny);
   if (enc) {
     game.pendingEncounter = enc;
     game.setState('battle');
+    return;
+  }
+
+  // world drop → pick up (handled in game.js via showRewards hook)
+  const drop = worldDropAt(p.mapId, nx, ny);
+  if (drop && !p.worldDropsTaken[p.mapId] && game.pickUpWorldDrop) {
+    game.pickUpWorldDrop(drop);
+    p.worldDropsTaken[p.mapId] = true;
   }
 }
 
 function revealAround(game, cx, cy, r) {
+  const exp = currentExplored(game);
   for (let y = cy - r; y <= cy + r; y++) {
     for (let x = cx - r; x <= cx + r; x++) {
       if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) {
         if (x >= 0 && y >= 0 && x < MAP_W && y < MAP_H) {
-          game.explored.add(`${x},${y}`);
+          exp.add(`${x},${y}`);
         }
       }
     }
@@ -222,10 +261,17 @@ function revealAround(game, cx, cy, r) {
 }
 
 export function drawOverworld(ctx, game) {
+  drawMapScene(ctx, game, game.party.mapId);
+  drawOverworldHud(ctx, game);
+}
+
+// Renders a map scene at the current party position. Factored so travel.js
+// can snapshot the from/to maps with the same pipeline.
+export function drawMapScene(ctx, game, mapId) {
   const { width: w, height: h } = game;
+  const map = getMap(mapId);
   const render = partyRenderPos(game);
 
-  // smooth camera: lerp toward party render position
   const targetCamX = render.x * TILE + TILE / 2 - w / 2;
   const targetCamY = render.y * TILE + TILE / 2 - h / 2;
   if (game.cameraX === undefined) { game.cameraX = targetCamX; game.cameraY = targetCamY; }
@@ -237,14 +283,8 @@ export function drawOverworld(ctx, game) {
   ctx.fillStyle = PALETTE.bg;
   ctx.fillRect(0, 0, w, h);
 
-  const firstTx = Math.max(0, Math.floor(camX / TILE));
-  const firstTy = Math.max(0, Math.floor(camY / TILE));
-  const lastTx = Math.min(MAP_W, Math.ceil((camX + w) / TILE) + 1);
-  const lastTy = Math.min(MAP_H, Math.ceil((camY + h) / TILE) + 1);
-
-  // blit visible slice of the pre-rendered tile atlas (or dev world backdrop)
-  const devBackdrop = getActiveBackdrop();
-  const atlas = devBackdrop || getTileCanvas();
+  const backdrop = map ? getMapBackdrop(map.backdrop) : null;
+  const atlas = backdrop || getTileCanvas(mapId);
   const srcX = Math.max(0, camX);
   const srcY = Math.max(0, camY);
   const srcW = Math.min(atlas.width - srcX, w);
@@ -255,9 +295,29 @@ export function drawOverworld(ctx, game) {
     ctx.drawImage(atlas, srcX, srcY, srcW, srcH, dstX, dstY, srcW, srcH);
   }
 
-  if (devBackdrop) {
-    // dev world mode: encounters + party + HUD, no cities/fog/walkability
-    for (const e of ENCOUNTERS) {
+  const exp = currentExplored(game);
+
+  // city landmark on its footprint
+  if (map && map.city && exp.has(`${map.city.x},${map.city.y}`)) {
+    drawCityLandmark(ctx, map.city, camX, camY, game.time);
+  }
+
+  // doorway markers — subtle cyan radial pulse + chevron glyph toward exit
+  if (map) {
+    for (const d of map.doorways) {
+      if (!exp.has(`${d.x},${d.y}`)) continue;
+      drawDoorway(ctx, d, camX, camY, game.time);
+    }
+  }
+
+  // world drop — pulsing gold glow on its tile
+  if (map && map.worldDrop && !game.party.worldDropsTaken[mapId]) {
+    drawWorldDrop(ctx, map.worldDrop, camX, camY, game.time);
+  }
+
+  // encounter markers
+  if (map) {
+    for (const e of map.encounters) {
       if (e.cleared) continue;
       const ew = TILE, eh = TILE;
       const sx = Math.round(e.x * TILE - camX);
@@ -271,92 +331,96 @@ export function drawOverworld(ctx, game) {
       ctx.fillRect(ecx - ew * 0.7, ecy - ew * 0.7, ew * 1.4, ew * 1.4);
       drawSprite(ctx, `${e.enemy}_ow`, sx, sy + bob, ew, eh);
     }
-
-    const idleBob = render.moving ? 0 : Math.sin(game.time * 0.005) * 1.5;
-    const pcx = Math.round(render.x * TILE - camX);
-    const pcy = Math.round(render.y * TILE - camY + idleBob);
-
-    const hcx = pcx + TILE / 2, hcy = pcy + TILE / 2;
-    const hr = TILE * 0.9;
-    const hg = ctx.createRadialGradient(hcx, hcy, 0, hcx, hcy, hr);
-    hg.addColorStop(0, 'rgba(7,6,13,0.55)');
-    hg.addColorStop(0.55, 'rgba(7,6,13,0.25)');
-    hg.addColorStop(1, 'rgba(7,6,13,0)');
-    ctx.fillStyle = hg;
-    ctx.fillRect(hcx - hr, hcy - hr, hr * 2, hr * 2);
-
-    ctx.fillStyle = 'rgba(34,227,255,0.28)';
-    ctx.beginPath();
-    ctx.ellipse(pcx + TILE / 2, pcy + TILE - 2, 14, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    drawSprite(ctx, 'kaida_overworld', pcx, pcy, TILE, TILE);
-    drawOverworldHud(ctx, game);
-    return;
   }
 
-  // cities — sit on a clean 2x2 tile footprint, frame snaps to grid
-  const CITY_TILES = 2;
-  const cellPx = CITY_TILES * TILE;
-  for (const c of CITIES) {
-    if (!game.explored.has(`${c.x},${c.y}`)) continue;
-    // footprint anchored at the city tile, extending right and down (2x2)
-    const fx = Math.round(c.x * TILE - camX);
-    const fy = Math.round(c.y * TILE - camY);
-
-    const pulse = 0.5 + Math.sin(game.time * 0.0025 + c.x * 0.5) * 0.5;
-    const stroke = c.unlocked ? '255,45,212' : '34,227,255';
-
-    // dark backdrop so terrain stops bleeding through the cell
-    ctx.fillStyle = `rgba(7,6,13,0.78)`;
-    ctx.fillRect(fx, fy, cellPx, cellPx);
-    // subtle pulsing inner tint
-    ctx.fillStyle = `rgba(${stroke},${0.08 + pulse * 0.06})`;
-    ctx.fillRect(fx, fy, cellPx, cellPx);
-
-    // sprite fills the footprint
-    drawSprite(ctx, c.landmark, fx, fy, cellPx, cellPx);
-
-    // pulsing outer frame on tile boundary
-    ctx.strokeStyle = `rgba(${stroke},${0.55 + pulse * 0.35})`;
-    ctx.lineWidth = 2;
-    ctx.strokeRect(fx + 0.5, fy + 0.5, cellPx - 1, cellPx - 1);
-    // thin inner rim
-    ctx.strokeStyle = `rgba(${stroke},${0.2 + pulse * 0.15})`;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(fx + 3.5, fy + 3.5, cellPx - 7, cellPx - 7);
-
-    // label above the cell
-    ctx.fillStyle = PALETTE.ink;
-    ctx.textAlign = 'center';
-    ctx.font = '700 12px system-ui, sans-serif';
-    ctx.fillText(c.name.toUpperCase(), fx + cellPx / 2, fy - 6);
-  }
-
-  // encounter markers
-  for (const e of ENCOUNTERS) {
-    if (e.cleared) continue;
-    const ew = 32, eh = 32;
-    const sx = Math.round(e.x * TILE - camX);
-    const sy = Math.round(e.y * TILE - camY);
-    const bob = Math.sin(game.time * 0.006 + e.x) * 2;
-    drawSprite(ctx, `${e.enemy}_ow`, sx, sy + bob, ew, eh);
-  }
-
-  // party — smooth render pos + idle bob when stationary
+  // party
   const idleBob = render.moving ? 0 : Math.sin(game.time * 0.005) * 1.5;
   const pcx = Math.round(render.x * TILE - camX);
   const pcy = Math.round(render.y * TILE - camY + idleBob);
-  // soft glow ring underfoot (draw first)
-  ctx.fillStyle = 'rgba(34,227,255,0.22)';
+  const hcx = pcx + TILE / 2, hcy = pcy + TILE / 2;
+  const hr = TILE * 0.9;
+  const hg = ctx.createRadialGradient(hcx, hcy, 0, hcx, hcy, hr);
+  hg.addColorStop(0, 'rgba(7,6,13,0.55)');
+  hg.addColorStop(0.55, 'rgba(7,6,13,0.25)');
+  hg.addColorStop(1, 'rgba(7,6,13,0)');
+  ctx.fillStyle = hg;
+  ctx.fillRect(hcx - hr, hcy - hr, hr * 2, hr * 2);
+  ctx.fillStyle = 'rgba(34,227,255,0.28)';
   ctx.beginPath();
   ctx.ellipse(pcx + TILE / 2, pcy + TILE - 2, 14, 5, 0, 0, Math.PI * 2);
   ctx.fill();
   drawSprite(ctx, 'kaida_overworld', pcx, pcy, TILE, TILE);
 
-  // soft fog-of-war — single blit from pre-rendered offscreen canvas
   drawSoftFog(ctx, game, camX, camY, w, h);
+}
 
-  drawOverworldHud(ctx, game);
+function drawCityLandmark(ctx, c, camX, camY, time) {
+  const CITY_TILES = 2;
+  const cellPx = CITY_TILES * TILE;
+  const fx = Math.round(c.x * TILE - camX);
+  const fy = Math.round(c.y * TILE - camY);
+  const pulse = 0.5 + Math.sin(time * 0.0025 + c.x * 0.5) * 0.5;
+  const stroke = c.unlocked ? '255,45,212' : '34,227,255';
+  ctx.fillStyle = 'rgba(7,6,13,0.78)';
+  ctx.fillRect(fx, fy, cellPx, cellPx);
+  ctx.fillStyle = `rgba(${stroke},${0.08 + pulse * 0.06})`;
+  ctx.fillRect(fx, fy, cellPx, cellPx);
+  drawSprite(ctx, c.landmark, fx, fy, cellPx, cellPx);
+  ctx.strokeStyle = `rgba(${stroke},${0.55 + pulse * 0.35})`;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(fx + 0.5, fy + 0.5, cellPx - 1, cellPx - 1);
+  ctx.strokeStyle = `rgba(${stroke},${0.2 + pulse * 0.15})`;
+  ctx.lineWidth = 1;
+  ctx.strokeRect(fx + 3.5, fy + 3.5, cellPx - 7, cellPx - 7);
+  ctx.fillStyle = PALETTE.ink;
+  ctx.textAlign = 'center';
+  ctx.font = '700 12px system-ui, sans-serif';
+  ctx.fillText(c.name.toUpperCase(), fx + cellPx / 2, fy - 6);
+}
+
+function drawDoorway(ctx, d, camX, camY, time) {
+  const fx = Math.round(d.x * TILE - camX);
+  const fy = Math.round(d.y * TILE - camY);
+  const cx = fx + TILE / 2, cy = fy + TILE / 2;
+  const pulse = 0.5 + Math.sin(time * 0.004) * 0.5;
+  const r = TILE * (0.55 + pulse * 0.1);
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, `rgba(34,227,255,${0.35 + pulse * 0.25})`);
+  g.addColorStop(1, 'rgba(34,227,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  ctx.strokeStyle = `rgba(34,227,255,${0.6 + pulse * 0.3})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(cx, cy, TILE * 0.34, 0, Math.PI * 2);
+  ctx.stroke();
+  // chevron ">>" glyph
+  ctx.strokeStyle = `rgba(255,255,255,${0.7 + pulse * 0.3})`;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const chev = 6;
+  ctx.moveTo(cx - chev, cy - chev);
+  ctx.lineTo(cx, cy);
+  ctx.lineTo(cx - chev, cy + chev);
+  ctx.moveTo(cx + 2, cy - chev);
+  ctx.lineTo(cx + chev + 2, cy);
+  ctx.lineTo(cx + 2, cy + chev);
+  ctx.stroke();
+}
+
+function drawWorldDrop(ctx, drop, camX, camY, time) {
+  const fx = Math.round(drop.x * TILE - camX);
+  const fy = Math.round(drop.y * TILE - camY);
+  const cx = fx + TILE / 2, cy = fy + TILE / 2;
+  const pulse = 0.5 + Math.sin(time * 0.005) * 0.5;
+  const r = TILE * (0.5 + pulse * 0.15);
+  const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  g.addColorStop(0, `rgba(255,210,63,${0.55 + pulse * 0.25})`);
+  g.addColorStop(1, 'rgba(255,210,63,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  const iconSize = TILE * 0.5;
+  drawSprite(ctx, drop.icon || 'icon_weapon', cx - iconSize / 2, cy - iconSize / 2, iconSize, iconSize);
 }
 
 function drawSoftFog(ctx, game, camX, camY, w, h) {

@@ -1,0 +1,86 @@
+{
+  "game": "chronoforge",
+  "note": "Overworld enemy markers v2 — 10 new enemies, 2 per tier T1–T5. Same painterly+solid-black-bg formula as enemies-ow-64. Supersampled 128x128, drawn at TILE in-game.",
+  "sprites": [
+    {
+      "name": "bog_stalker_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a crouched bog-raider in mud-caked hide and reed wrappings, bone-knife raised mid-stab, 3/4 overhead Zelda-style camera angle, peat brown and moss green palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/bog_stalker_ow.png",
+      "tier": 1
+    },
+    {
+      "name": "slag_rat_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a small rangy ember rodent, charcoal fur, glowing orange cracks along its spine, molten-tipped tail, hunched scavenger pose, 3/4 overhead Zelda-style camera angle, black and ember-orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/slag_rat_ow.png",
+      "tier": 1
+    },
+    {
+      "name": "mire_hulk_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a tall hunched swamp brute draped in hanging moss and peat, thick matted shoulders, exposed sickly green muscle, arms raised to slam, 3/4 overhead Zelda-style camera angle, deep moss-green and muddy brown palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_hulk_ow.png",
+      "tier": 2
+    },
+    {
+      "name": "glacier_wolf_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a four-legged glacier wolf, thick frost-white fur with pale-blue ice shards along the spine, glowing pale-cyan eyes, mid-lunge pounce stance, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/glacier_wolf_ow.png",
+      "tier": 2
+    },
+    {
+      "name": "ember_golem_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a hulking stone golem with glowing orange lava cracks across its body, heavy rocky shoulders, boulder-fists clenched, planted combat stance, 3/4 overhead Zelda-style camera angle, charcoal and molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_golem_ow.png",
+      "tier": 3
+    },
+    {
+      "name": "frost_revenant_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a gaunt armored revenant, pale-blue ice-crusted plate, tattered frost-cloak, glowing cyan eye-slits, frost-blade raised to strike, 3/4 overhead Zelda-style camera angle, pale blue and frosted silver palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_revenant_ow.png",
+      "tier": 3
+    },
+    {
+      "name": "mire_warden_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a tall hooded swamp shaman in layered moss-robes, bone-totem staff crackling with sickly green wisps, glowing cyan glyphs on the hem, menacing upright stance, 3/4 overhead Zelda-style camera angle, murky green and sickly cyan palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_warden_ow.png",
+      "tier": 4
+    },
+    {
+      "name": "magma_behemoth_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a massive quadrupedal lava beast, obsidian plated hide with deep glowing orange molten seams, flame-maned shoulders, heavy charging stance, 3/4 overhead Zelda-style camera angle, near-black and bright molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/magma_behemoth_ow.png",
+      "tier": 4
+    },
+    {
+      "name": "frost_colossus_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a towering ice titan built of fused glacial shards, crystalline plated shoulders, massive ice-blade held overhead, faint pale-cyan glow from within, imposing upright stance, 3/4 overhead Zelda-style camera angle, pale-blue ice and frost-white palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_colossus_ow.png",
+      "tier": 5
+    },
+    {
+      "name": "ember_lord_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a regal magma avatar, obsidian armor cracked with blinding orange light, crown of jagged molten spikes, flame-cape trailing, one molten-blade extended in command, imposing upright stance, 3/4 overhead Zelda-style camera angle, near-black and blinding molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_lord_ow.png",
+      "tier": 5
+    }
+  ]
+}

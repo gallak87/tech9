@@ -5,7 +5,7 @@
 
 import { drawSprite } from './sprites.js';
 import { playSfx } from './audio.js';
-import { CITIES } from './world.js';
+import { ALL_CITIES, PLAYER_START } from './world.js';
 import { computeStats, SKILL_TREES, awardXp, checkQuestProgress } from './progression.js';
 
 const PALETTE = {
@@ -115,6 +115,7 @@ export function initBattle(game, encounter) {
 export function updateBattle(game, dt) {
   const b = game.battle;
   if (!b) return;
+  b._width = game.width;
   if (b.timeFreeze > 0) { b.timeFreeze -= dt; return; }
   if (b.shake > 0) b.shake = Math.max(0, b.shake - dt);
   if (b.comboFlash > 0) b.comboFlash = Math.max(0, b.comboFlash - dt);
@@ -447,9 +448,11 @@ function endBattle(game, victory) {
       for (const h of game.heroes) { h.hp = h.maxHp; h.mp = h.maxMp; }
     }
   } else {
-    const home = CITIES[0];
+    const home = ALL_CITIES.find(c => c.id === 'haventide') || ALL_CITIES[0];
+    game.party.mapId = home.mapId || PLAYER_START.mapId;
     game.party.x = home.x; game.party.y = home.y;
     game.party.fromX = home.x; game.party.fromY = home.y;
+    game.cameraX = undefined; game.cameraY = undefined;
     // return at half HP
     if (game.heroes) {
       for (const h of game.heroes) {
@@ -465,23 +468,32 @@ function endBattle(game, victory) {
 }
 
 // --- rendering ---
-const HERO_X = 260;
-const ENEMY_X_BASE = 900;
+// Formation centered on canvas; sides ~200px from center for close-quarters feel.
+const SPRITE_PX = 96;
+const HALF_GAP = 300;
 const HERO_Y_BASE = 340;
 const ENEMY_Y_BASE = 300;
 const HERO_SPACING = 130;
 const ENEMY_SPACING = 140;
 
-function heroPos(i) { return { x: HERO_X, y: HERO_Y_BASE + i * HERO_SPACING - 130 }; }
-function enemyPos(i) { return { x: ENEMY_X_BASE, y: ENEMY_Y_BASE + i * ENEMY_SPACING - 140 }; }
+function getBattleWidth(b) { return b._width || 1280; }
+
+function heroPos(i, b) {
+  const cx = getBattleWidth(b) / 2 - HALF_GAP;
+  return { x: Math.round(cx - SPRITE_PX / 2), y: HERO_Y_BASE + i * HERO_SPACING - 130 };
+}
+function enemyPos(i, b) {
+  const cx = getBattleWidth(b) / 2 + HALF_GAP;
+  return { x: Math.round(cx - SPRITE_PX / 2), y: ENEMY_Y_BASE + i * ENEMY_SPACING - 140 };
+}
 
 function targetX(b, tgt) {
-  if (b.heroes.includes(tgt)) return heroPos(b.heroes.indexOf(tgt)).x + 48;
-  return enemyPos(b.enemies.indexOf(tgt)).x + 48;
+  if (b.heroes.includes(tgt)) return heroPos(b.heroes.indexOf(tgt), b).x + 48;
+  return enemyPos(b.enemies.indexOf(tgt), b).x + 48;
 }
 function targetY(b, tgt) {
-  if (b.heroes.includes(tgt)) return heroPos(b.heroes.indexOf(tgt)).y;
-  return enemyPos(b.enemies.indexOf(tgt)).y;
+  if (b.heroes.includes(tgt)) return heroPos(b.heroes.indexOf(tgt), b).y;
+  return enemyPos(b.enemies.indexOf(tgt), b).y;
 }
 
 function drawWithScale(ctx, scale, cx, cy, fn) {
@@ -497,6 +509,7 @@ function drawWithScale(ctx, scale, cx, cy, fn) {
 export function drawBattle(ctx, game) {
   const b = game.battle;
   const { width: w, height: h } = game;
+  if (b) b._width = w;
 
   // shake
   let shakeX = 0, shakeY = 0;
@@ -527,7 +540,7 @@ export function drawBattle(ctx, game) {
 
   // draw enemies
   b.enemies.forEach((e, i) => {
-    const p = enemyPos(i);
+    const p = enemyPos(i, b);
     const lo = lungeOffset(e);
     const dx = p.x + lo.dx, dy = p.y + lo.dy;
     if (e.hp <= 0) {
@@ -556,7 +569,7 @@ export function drawBattle(ctx, game) {
 
   // draw heroes
   b.heroes.forEach((hero, i) => {
-    const p = heroPos(i);
+    const p = heroPos(i, b);
     const lo = lungeOffset(hero);
     const dx = p.x + lo.dx, dy = p.y + lo.dy;
     if (hero.hp <= 0) {
@@ -786,7 +799,7 @@ function drawActionMenu(ctx, game) {
     ctx.fillText('[A/D] cycle  [Enter] fire  [B] back to menu', mx + 12, my + 118);
 
     // reticle
-    const p = enemyPos(m.targetIdx);
+    const p = enemyPos(m.targetIdx, b);
     drawReticle(ctx, p.x + 48, p.y + 48, game.time);
   } else if (m.view === 'confirm') {
     const tech = hero.techs[m.techIdx];

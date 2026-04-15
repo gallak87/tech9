@@ -1,19 +1,26 @@
-// Dev-only: pre-rendered world map as the overworld backdrop.
-// Picker UI (in game.js) writes selectedIdx; scenes.js reads getActiveBackdrop().
+// Pre-rendered map backdrop loader. Each map's `backdrop` field names a PNG
+// at `assets/probe/world_<name>.png`; we lazy-load + stretch to world bounds.
 
 import { TILE, MAP_W, MAP_H } from './world.js';
 
-export const WORLD_NAMES = ['proof', 'desert', 'alien', 'frozen', 'forest'];
+export const WORLD_NAMES = [
+  'proof', 'desert', 'alien', 'frozen', 'forest',
+  'mire_bog', 'crater_ember', 'frost_canyon',
+];
 
 export const devWorld = {
   enabled: true,
-  selectedIdx: 0,
+  selectedIdx: 0,           // debug teleport picker only
   images: Object.create(null),
 };
 
 function loadOne(name) {
   const img = new Image();
-  img.onload = () => { devWorld.images[name] = img; backdropFor = null; };
+  img.onload = () => {
+    devWorld.images[name] = img;
+    // invalidate any cached backdrop canvas that was waiting on this image
+    if (backdropCache[name]) backdropCache[name].dirty = true;
+  };
   img.onerror = () => { devWorld.images[name] = null; };
   img.src = `assets/probe/world_${name}.png?t=${Date.now()}`;
 }
@@ -23,25 +30,28 @@ export function reloadAllWorlds() {
   for (const n of WORLD_NAMES) loadOne(n);
 }
 
-let backdropCanvas = null;
-let backdropFor = null;
+// Per-name backdrop canvas cache, stretched to world bounds.
+const backdropCache = Object.create(null);
 
-export function getActiveBackdrop() {
-  if (!devWorld.enabled) return null;
-  const name = WORLD_NAMES[devWorld.selectedIdx];
+export function getMapBackdrop(name) {
+  if (!name) return null;
   const img = devWorld.images[name];
   if (!img) return null;
-  if (backdropFor === name && backdropCanvas) return backdropCanvas;
-  if (!backdropCanvas) {
-    backdropCanvas = document.createElement('canvas');
-    backdropCanvas.width = MAP_W * TILE;
-    backdropCanvas.height = MAP_H * TILE;
+  let entry = backdropCache[name];
+  if (!entry) {
+    const canvas = document.createElement('canvas');
+    canvas.width = MAP_W * TILE;
+    canvas.height = MAP_H * TILE;
+    entry = { canvas, dirty: true };
+    backdropCache[name] = entry;
   }
-  const ctx = backdropCanvas.getContext('2d');
-  ctx.imageSmoothingEnabled = true;
-  ctx.imageSmoothingQuality = 'high';
-  ctx.clearRect(0, 0, backdropCanvas.width, backdropCanvas.height);
-  ctx.drawImage(img, 0, 0, backdropCanvas.width, backdropCanvas.height);
-  backdropFor = name;
-  return backdropCanvas;
+  if (entry.dirty) {
+    const ctx = entry.canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.clearRect(0, 0, entry.canvas.width, entry.canvas.height);
+    ctx.drawImage(img, 0, 0, entry.canvas.width, entry.canvas.height);
+    entry.dirty = false;
+  }
+  return entry.canvas;
 }

@@ -41,6 +41,9 @@ Role definition exists (`vocab/roles/11_historian.json`). Not yet wired into the
 - `meta/01_concept-generator.md` — same
 - Graduation: lessons proven across 2+ games get patched into framework defaults and removed from LESSONS.md
 
+EXAMPLE AGENT STORY:
+- plan: chronoforge-multiworld-drops in user root captures a work change that should be fed back to /expand and maybe /run-art - something that should apply to future games, delegating generating sprites to node commands so user can run themselves and not burn tokens, keep these tasks as first to go to agents can work while that happens
+
 ### 4. Scrollable-map reset-view
 
 Any map/overlay with pan + zoom needs a reset-view control from day one. Easy to forget.

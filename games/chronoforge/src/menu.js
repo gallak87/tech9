@@ -406,7 +406,7 @@ function invHeroRect(heroIdx, game) {
   const panelX = f.x + 20 + Math.floor(f.w * 0.46);
   const panelW = f.w - Math.floor(f.w * 0.46) - 40;
   const heroW = Math.floor(panelW / 3);
-  return { x: panelX + heroIdx * heroW, y: f.y + 64, w: heroW, h: 30 };
+  return { x: panelX + heroIdx * heroW, y: f.y + 84, w: heroW, h: 30 };
 }
 
 function invSlotRect(heroIdx, slotIdx, game) {
@@ -416,7 +416,7 @@ function invSlotRect(heroIdx, slotIdx, game) {
   const heroW = Math.floor(panelW / 3);
   return {
     x: panelX + heroIdx * heroW + 4,
-    y: f.y + 100 + slotIdx * 64,
+    y: f.y + 124 + slotIdx * 64,
     w: heroW - 8, h: 58,
   };
 }
@@ -426,7 +426,7 @@ function invItemRect(idx, game) {
   const itemW = Math.floor(f.w * 0.44) - 20;
   const itemH = 48;
   const x = f.x + 20;
-  const y = f.y + 64 + idx * (itemH + 6);
+  const y = f.y + 84 + idx * (itemH + 6);
   return { x, y, w: itemW, h: itemH };
 }
 
@@ -538,7 +538,7 @@ function drawInventoryTab(ctx, game) {
     ctx.fillStyle = PALETTE.dim;
     ctx.font = '400 13px system-ui, sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('No items in inventory', f.x + 20 + Math.floor(f.w * 0.44) / 2, f.y + 140);
+    ctx.fillText('No items in inventory', f.x + 20 + Math.floor(f.w * 0.44) / 2, f.y + 160);
   }
 
   // divider

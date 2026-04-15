@@ -426,12 +426,22 @@ async function initPixi() {
 
 function applyFx() {
   if (!sceneSprite) return;
+  // menu open → bypass all filters so UI text stays crisp (bloom blurs it).
+  if (menuState.open) { sceneSprite.filters = []; return; }
   const stack = [];
   if (fxSettings.grade) stack.push(filterColorGrade);
   if (fxSettings.bloom) stack.push(filterBloom);
   if (fxSettings.rgb) stack.push(filterRGB);
   if (fxSettings.crt) stack.push(filterCRT);
   sceneSprite.filters = stack;
+}
+
+let _lastMenuOpen = false;
+function syncMenuFilters() {
+  if (menuState.open !== _lastMenuOpen) {
+    _lastMenuOpen = menuState.open;
+    applyFx();
+  }
 }
 
 function resize() {
@@ -542,6 +552,8 @@ function tick(ticker) {
     }
     if (menuState.open) drawMenu(ctx, game);
   }
+
+  syncMenuFilters();
 
   // animate subtle per-frame filter drift so noise/CA don't look static
   if (fxSettings.crt && filterCRT) {

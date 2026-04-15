@@ -442,6 +442,37 @@ function drawOverworldHud(ctx, game) {
     ctx.textBaseline = 'middle';
     ctx.fillText(game.toastMsg, w / 2, 80);
   }
+
+  // reward row
+  if (game.rewards && game.rewardsExpire > game.time) {
+    drawRewardRow(ctx, game, w);
+  }
+}
+
+function drawRewardRow(ctx, game, w) {
+  const items = game.rewards;
+  const alpha = Math.min(1, (game.rewardsExpire - game.time) / 600);
+  const cardW = 112, cardH = 64, gap = 12, iconSize = 40;
+  const totalW = items.length * cardW + (items.length - 1) * gap;
+  let x = (w - totalW) / 2;
+  const y = 72;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  for (const it of items) {
+    ctx.fillStyle = 'rgba(7,6,13,0.9)';
+    ctx.fillRect(x, y, cardW, cardH);
+    ctx.strokeStyle = PALETTE.accent2;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(x + 0.5, y + 0.5, cardW - 1, cardH - 1);
+    drawSprite(ctx, it.icon, x + 10, y + (cardH - iconSize) / 2, iconSize, iconSize);
+    ctx.fillStyle = PALETTE.warn;
+    ctx.font = '800 24px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`+${it.amount}`, x + 60, y + cardH / 2);
+    x += cardW + gap;
+  }
+  ctx.restore();
 }
 
 function drawGrid(ctx, w, h) {

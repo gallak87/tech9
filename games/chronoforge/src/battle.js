@@ -96,7 +96,12 @@ export function initBattle(game, encounter) {
     floaters: [],
     vfx: [],
     menu: null,            // { heroIdx, view: 'root'|'tech'|'target', techIdx, targetIdx }
-    log: [`${enemies.length === 1 ? 'An' : 'A group of'} ${ENEMY_TEMPLATES[encounter.enemy].name}${enemies.length > 1 ? 's' : ''} appears!`],
+    log: [(() => {
+      const name = ENEMY_TEMPLATES[encounter.enemy].name;
+      if (enemies.length > 1) return `A group of ${name}s appears!`;
+      const article = /^[aeiou]/i.test(name) ? 'An' : 'A';
+      return `${article} ${name} appears!`;
+    })()],
     winTime: 0,
     comboFlash: 0,          // portrait-flash screen for crits / techs
     comboText: '',
@@ -360,7 +365,11 @@ function endBattle(game, victory) {
       awardXp(game, xpGain);
       checkQuestProgress(game, { type: 'encounter_cleared', encounterId: enc.id });
     }
-    game.toast(`Victory — +${renownGain} Renown, +${oreGain} Ore`);
+    game.showRewards([
+      { icon: 'icon_renown', label: 'Renown', amount: renownGain },
+      { icon: 'icon_ore',    label: 'Ore',    amount: oreGain },
+      { icon: 'icon_skill_point', label: 'XP', amount: xpGain },
+    ]);
     // restore heroes to full HP/MP after victory
     if (game.heroes) {
       for (const h of game.heroes) { h.hp = h.maxHp; h.mp = h.maxMp; }
@@ -622,15 +631,15 @@ function drawBattleHud(ctx, game) {
     ctx.fillText(hero.atb >= 100 ? 'READY' : `${Math.floor(hero.atb)}%`, rowX + 710, rowY + 6);
   });
 
-  // menu
-  if (b.menu) drawActionMenu(ctx, game);
-
-  // log tail
+  // log tail (drawn before menu so menu overlay covers any overlap)
   ctx.textAlign = 'right';
   ctx.fillStyle = PALETTE.dim;
   ctx.font = '400 11px ui-monospace, monospace';
   const lines = b.log.slice(-4);
   lines.forEach((l, i) => ctx.fillText(l, w - 16, h - panelH - 14 - (lines.length - 1 - i) * 14));
+
+  // menu (on top of log)
+  if (b.menu) drawActionMenu(ctx, game);
 }
 
 function drawActionMenu(ctx, game) {
@@ -642,7 +651,7 @@ function drawActionMenu(ctx, game) {
   const mx = w - 280;
   const my = h - 300;
 
-  ctx.fillStyle = 'rgba(7,6,13,0.92)';
+  ctx.fillStyle = 'rgba(7,6,13,1)';
   ctx.fillRect(mx, my, 260, 140);
   ctx.strokeStyle = PALETTE.accent;
   ctx.lineWidth = 2;
@@ -684,7 +693,8 @@ function drawActionMenu(ctx, game) {
     ctx.fillText(`▸ ${tgt.name}  (HP ${tgt.hp}/${tgt.maxHp})`, mx + 14, my + 58);
     ctx.fillStyle = PALETTE.dim;
     ctx.font = '400 10px ui-monospace, monospace';
-    ctx.fillText('[A/D] cycle  [Enter] fire  [B] back', mx + 12, my + 118);
+    ctx.fillStyle = PALETTE.accent2;
+    ctx.fillText('[A/D] cycle  [Enter] fire  [B] back to menu', mx + 12, my + 118);
 
     // reticle
     const p = enemyPos(m.targetIdx);

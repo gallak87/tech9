@@ -93,28 +93,53 @@ export function getSprite(name, w, h) {
   }
   cache.set(key, { img: null, loading: true });
   loadImage(spritePath(name)).then((img) => {
-    cache.set(key, { img, loading: false });
+    const final = (img && shouldKeyBlack(name)) ? keyBlackToAlpha(img) : img;
+    cache.set(key, { img: final, loading: false });
     spriteVersion++;
   });
   return null;
 }
 
-// Sprites whose prefix starts with one of these are treated as opaque and
-// drawn with normal compositing. Everything else gets `screen` blend so the
-// flux-generated black background drops out over dark scenes.
+// Sprites whose prefix starts with one of these keep their original opaque
+// pixels (terrain tiles). Everything else has its flux-black background keyed
+// out to alpha at load time so it draws crisply over bright backdrops instead
+// of being washed out by `screen` blend.
 const OPAQUE_PREFIXES = ['tile_'];
 
-function useScreenBlend(name) {
+function shouldKeyBlack(name) {
   return !OPAQUE_PREFIXES.some(p => name.startsWith(p));
+}
+
+// Convert near-black pixels to transparent and unmultiply remaining colors so
+// dark areas of the sprite recover full saturation. Returns a canvas.
+function keyBlackToAlpha(img) {
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth || img.width;
+  c.height = img.naturalHeight || img.height;
+  const cx = c.getContext('2d', { willReadFrequently: true });
+  cx.drawImage(img, 0, 0);
+  const data = cx.getImageData(0, 0, c.width, c.height);
+  const px = data.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const r = px[i], g = px[i + 1], b = px[i + 2];
+    const a = Math.max(r, g, b);
+    if (a < 14) { px[i + 3] = 0; continue; }
+    px[i + 3] = a;
+    const inv = 255 / a;
+    px[i]     = Math.min(255, r * inv);
+    px[i + 1] = Math.min(255, g * inv);
+    px[i + 2] = Math.min(255, b * inv);
+  }
+  cx.putImageData(data, 0, 0);
+  return c;
 }
 
 export function drawSprite(ctx, name, x, y, w, h, opts = {}) {
   const img = getSprite(name, w, h);
   if (img) {
-    const blend = opts.blend || (useScreenBlend(name) ? 'screen' : 'source-over');
-    if (blend !== 'source-over') {
+    if (opts.blend && opts.blend !== 'source-over') {
       ctx.save();
-      ctx.globalCompositeOperation = blend;
+      ctx.globalCompositeOperation = opts.blend;
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(img, x, y, w, h);
       ctx.restore();

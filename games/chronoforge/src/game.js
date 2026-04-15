@@ -278,7 +278,22 @@ function drawProbe(ctx, game) {
   }
   refreshFeather();
 
-  el.append(label, prev, name, next, sep, probeLabel, probeToggle, modeRow, worldRow, featherRow);
+  const sep2 = document.createElement('div');
+  sep2.style.cssText = 'height:1px; background:#333; margin:4px 0;';
+
+  const rewardsBtn = document.createElement('button');
+  btnStyle(rewardsBtn);
+  rewardsBtn.textContent = 'REPLAY REWARDS';
+  rewardsBtn.style.fontSize = '10px';
+  rewardsBtn.onclick = () => {
+    game.showRewards([
+      { icon: 'icon_renown',      label: 'Renown', amount: 4 },
+      { icon: 'icon_ore',         label: 'Ore',    amount: 4 },
+      { icon: 'icon_skill_point', label: 'XP',     amount: 40 },
+    ]);
+  };
+
+  el.append(label, prev, name, next, sep, probeLabel, probeToggle, modeRow, worldRow, featherRow, sep2, rewardsBtn);
   document.body.appendChild(el);
   refresh();
 })();
@@ -315,6 +330,8 @@ const game = {
   quests: initQuests(),
   toastMsg: null,
   toastExpire: 0,
+  rewards: null,
+  rewardsExpire: 0,
   pendingEncounter: null,
   base: initBase(),
   ...initTierState(),
@@ -329,6 +346,10 @@ const game = {
   toast(msg) {
     this.toastMsg = msg;
     this.toastExpire = this.time + 2200;
+  },
+  showRewards(items) {
+    this.rewards = items.filter(it => it.amount > 0);
+    this.rewardsExpire = this.time + 3000;
   },
 };
 

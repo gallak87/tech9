@@ -4,7 +4,7 @@
 // fog-of-war, fast-travel on click to unlocked cities.
 
 import { TILE, MAP_W, MAP_H, tilesOf, getMap } from './world.js';
-import { spriteSettings, drawSprite, TERRAIN_SETS, setTerrainSet } from './sprites.js';
+import { spriteSettings, drawSprite } from './sprites.js';
 import {
   HERO_DEFS, ITEM_DEFS, SKILL_TREES, QUEST_DEFS,
   computeStats, equipItem, unequipItem, spendSkillPoint,
@@ -149,9 +149,6 @@ export function handleMenuMouseDown(mx, my, game) {
       spriteSettings.forcePlaceholders = !spriteSettings.forcePlaceholders;
       return true;
     }
-    const { prev, next } = terrainArrowRects(game);
-    if (pointInRect(mx, my, prev)) { cycleTerrainSet(-1); return true; }
-    if (pointInRect(mx, my, next)) { cycleTerrainSet(+1); return true; }
   }
 
   // tab bar
@@ -1047,53 +1044,6 @@ function drawSettingsTab(ctx, game) {
     toggle.x + toggle.w / 2, toggle.y + toggle.h / 2
   );
 
-  // Terrain set picker
-  ctx.fillStyle = PALETTE.dim;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'top';
-  ctx.font = '600 11px ui-monospace, monospace';
-  ctx.fillText('TERRAIN SET', game.width / 2, f.y + 282);
-
-  const { prev, next } = terrainArrowRects(game);
-  const cx = game.width / 2;
-  const cy = f.y + 310;
-  const setLabel = spriteSettings.terrainSet
-    ? spriteSettings.terrainSet.toUpperCase()
-    : 'DEFAULT';
-
-  // arrow buttons
-  for (const [r, label] of [[prev, '◀'], [next, '▶']]) {
-    ctx.fillStyle = PALETTE.panel;
-    ctx.fillRect(r.x, r.y, r.w, r.h);
-    ctx.strokeStyle = PALETTE.accent2;
-    ctx.lineWidth = 1;
-    ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
-    ctx.fillStyle = PALETTE.accent2;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = '600 16px system-ui, sans-serif';
-    ctx.fillText(label, r.x + r.w / 2, cy + 20);
-  }
-
-  // set name display
-  ctx.fillStyle = PALETTE.panel;
-  ctx.fillRect(prev.x + prev.w + 4, cy, next.x - prev.x - prev.w - 8, 40);
-  ctx.strokeStyle = PALETTE.accent2;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(prev.x + prev.w + 4.5, cy + 0.5, next.x - prev.x - prev.w - 9, 39);
-  ctx.fillStyle = PALETTE.ink;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '700 14px ui-monospace, monospace';
-  ctx.fillText(setLabel, cx, cy + 20);
-
-  const idx = TERRAIN_SETS.indexOf(spriteSettings.terrainSet);
-  ctx.fillStyle = PALETTE.dim;
-  ctx.font = '400 11px ui-monospace, monospace';
-  ctx.fillText(
-    spriteSettings.terrainSet ? `${idx + 1} / ${TERRAIN_SETS.length}` : 'original tiles',
-    cx, cy + 50
-  );
 }
 
 function drawMapTab(ctx, game) {
@@ -1301,22 +1251,6 @@ function mapScale(game) {
 function settingsToggleRect(game) {
   const f = frameRect(game);
   return { x: game.width / 2 - 180, y: f.y + 220, w: 360, h: 40 };
-}
-
-function terrainArrowRects(game) {
-  const f = frameRect(game);
-  const cy = f.y + 310;
-  return {
-    prev: { x: game.width / 2 - 180, y: cy, w: 44, h: 40 },
-    next: { x: game.width / 2 + 136, y: cy, w: 44, h: 40 },
-  };
-}
-
-function cycleTerrainSet(dir) {
-  const sets = [null, ...TERRAIN_SETS]; // null = default flat assets
-  const cur = sets.indexOf(spriteSettings.terrainSet);
-  const next = (cur + dir + sets.length) % sets.length;
-  setTerrainSet(sets[next]);
 }
 
 function pointInRect(x, y, r) {

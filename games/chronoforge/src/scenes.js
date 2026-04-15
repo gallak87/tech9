@@ -351,7 +351,7 @@ export function drawMapScene(ctx, game, mapId) {
   ctx.fill();
   drawSprite(ctx, 'kaida_overworld', pcx, pcy, TILE, TILE);
 
-  drawSoftFog(ctx, game, camX, camY, w, h);
+  if (!game.devFogReveal) drawSoftFog(ctx, game, camX, camY, w, h);
 }
 
 function drawCityLandmark(ctx, c, camX, camY, time) {

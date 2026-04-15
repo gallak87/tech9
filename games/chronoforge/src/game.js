@@ -24,268 +24,67 @@ import {
 import { initBattle, updateBattle, drawBattle, handleBattleKey } from './battle.js';
 import { initAudio, resumeAudio, playSfx } from './audio.js';
 import { PLAYER_START, MAP_W, MAP_H, MAPS } from './world.js';
-import { TERRAIN_SETS, setTerrainSet, spriteSettings } from './sprites.js';
 import { initHeroes, initInventory, initQuests, ITEM_DEFS } from './progression.js';
-import { WORLD_NAMES, devWorld, reloadAllWorlds } from './devWorld.js';
-
-// --- DEV: floating terrain picker + biome-probe viewer ---
-const PROBE = { active: false, feather: 0, images: null, mode: 'world' };
-const PROBE_SIZES = [100, 400, 900];
-const FEATHER_PRESETS = [0, 10, 30, 60];
-
-function loadProbeImages() {
-  if (PROBE.images) return PROBE.images;
-  const load = (src) => new Promise((res) => {
-    const img = new Image();
-    img.onload = () => res(img);
-    img.onerror = () => res(null);
-    img.src = src;
-  });
-  PROBE.images = Promise.all(
-    PROBE_SIZES.flatMap((s) => [
-      load(`assets/probe/grassland_east_${s}.png`),
-      load(`assets/probe/wastes_west_${s}.png`),
-    ])
-  ).then((arr) => {
-    const pairs = [];
-    for (let i = 0; i < PROBE_SIZES.length; i++) {
-      pairs.push({ size: PROBE_SIZES[i], a: arr[i * 2], b: arr[i * 2 + 1] });
-    }
-    return pairs;
-  });
-  return PROBE.images;
-}
-
-let probePairsCached = null;
-loadProbeImages().then((p) => { probePairsCached = p; });
-
-function drawProbeWorld(ctx, game) {
-  ctx.fillStyle = '#0b0a12';
-  ctx.fillRect(0, 0, game.width, game.height);
-  const name = WORLD_NAMES[devWorld.selectedIdx];
-  const img = devWorld.images[name];
-  if (!img) {
-    ctx.fillStyle = '#faa';
-    ctx.font = '14px ui-monospace,monospace';
-    ctx.fillText(`no world_${name}. run:`, 20, 30);
-    ctx.fillText(`node ../../tools/sprite-gen.js sprites-manifest-world-proof.json --sprite world_${name}`, 20, 54);
-    return;
-  }
-  const iw = img.naturalWidth || img.width;
-  const ih = img.naturalHeight || img.height;
-  const scale = Math.min(game.width / iw, game.height / ih);
-  const dw = iw * scale, dh = ih * scale;
-  ctx.drawImage(img, (game.width - dw) / 2, (game.height - dh) / 2, dw, dh);
-  ctx.fillStyle = '#888';
-  ctx.font = '12px ui-monospace,monospace';
-  ctx.fillText(`world_${name}  ${devWorld.selectedIdx + 1}/${WORLD_NAMES.length}  ${iw}×${ih}`, 12, game.height - 12);
-}
-
-function drawProbe(ctx, game) {
-  if (PROBE.mode === 'world') {
-    drawProbeWorld(ctx, game);
-    return;
-  }
-  ctx.fillStyle = '#0b0a12';
-  ctx.fillRect(0, 0, game.width, game.height);
-
-  if (!probePairsCached) {
-    ctx.fillStyle = '#888';
-    ctx.font = '14px ui-monospace,monospace';
-    ctx.fillText('loading probe plates...', 20, 30);
-    return;
-  }
-
-  const missing = probePairsCached.filter((p) => !p.a || !p.b);
-  if (missing.length === probePairsCached.length) {
-    ctx.fillStyle = '#faa';
-    ctx.font = '14px ui-monospace,monospace';
-    ctx.fillText('no probe plates found. run:', 20, 30);
-    ctx.fillText('node ../../tools/sprite-gen.js sprites-manifest-biome-probe.json', 20, 54);
-    return;
-  }
-
-  const totalSrcW = Math.max(...PROBE_SIZES) * 2;
-  const totalSrcH = PROBE_SIZES.reduce((a, b) => a + b, 0) + 40 * (PROBE_SIZES.length - 1);
-  const scale = Math.min((game.width - 40) / totalSrcW, (game.height - 60) / totalSrcH);
-
-  let y = 20;
-  for (const pair of probePairsCached) {
-    const s = pair.size;
-    const plateW = s * scale;
-    const plateH = s * scale;
-    const feather = PROBE.feather * scale;
-    const totalW = 2 * plateW - feather;
-    const x0 = (game.width - totalW) / 2;
-
-    ctx.fillStyle = '#555';
-    ctx.font = '12px ui-monospace,monospace';
-    ctx.fillText(`${s}px  feather=${PROBE.feather}px`, x0, y - 4);
-
-    if (pair.a && pair.b) {
-      const xA = x0;
-      const xB = x0 + plateW - feather;
-      ctx.drawImage(pair.a, xA, y, plateW, plateH);
-      ctx.drawImage(pair.b, xB, y, plateW, plateH);
-      if (feather > 0) {
-        ctx.save();
-        ctx.globalCompositeOperation = 'destination-out';
-        const grad = ctx.createLinearGradient(xB, 0, xB + feather, 0);
-        grad.addColorStop(0, 'rgba(0,0,0,1)');
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(xB, y, feather, plateH);
-        ctx.restore();
-      }
-    } else {
-      ctx.fillStyle = '#331';
-      ctx.fillRect(x0, y, 2 * plateW - feather, plateH);
-      ctx.fillStyle = '#faa';
-      ctx.fillText(`missing ${s}px pair`, x0 + 8, y + 16);
-    }
-
-    y += plateH + 40;
-  }
-}
-
-(function mountTerrainPicker() {
-  const sets = [null, ...TERRAIN_SETS];
+// --- DEV: floating panel (bottom-right). Speed toggle, fog reveal, rewards replay. ---
+function mountDevPanel() {
   const el = document.createElement('div');
-  el.id = 'terrain-picker';
+  el.id = 'dev-panel';
   el.style.cssText = `
-    position:fixed; left:12px; top:50%; transform:translateY(-50%);
+    position:fixed; right:12px; bottom:12px;
     background:rgba(0,0,0,0.82); border:1px solid #555; border-radius:6px;
     padding:8px 10px; display:flex; flex-direction:column; gap:6px;
     font:700 11px ui-monospace,monospace; color:#ccc; z-index:9999;
-    user-select:none;
+    user-select:none; min-width:132px;
   `;
+
   const label = document.createElement('div');
   label.style.cssText = 'text-align:center; font-size:9px; letter-spacing:1px; color:#888;';
-  label.textContent = 'TERRAIN';
-
-  const name = document.createElement('div');
-  name.style.cssText = 'text-align:center; color:#fff; min-width:72px;';
-
-  function refresh() {
-    name.textContent = spriteSettings.terrainSet ? spriteSettings.terrainSet.toUpperCase() : 'DEFAULT';
-  }
+  label.textContent = 'DEV';
 
   function btnStyle(b) {
     b.style.cssText = `
       background:#222; border:1px solid #555; border-radius:3px;
-      color:#adf; padding:3px 0; cursor:pointer; font:700 13px system-ui;
+      color:#adf; padding:4px 6px; cursor:pointer; font:700 10px ui-monospace,monospace;
       text-align:center;
     `;
   }
 
-  const prev = document.createElement('button');
-  btnStyle(prev); prev.textContent = '▲';
-  prev.onclick = () => {
-    const i = sets.indexOf(spriteSettings.terrainSet);
-    setTerrainSet(sets[(i - 1 + sets.length) % sets.length]);
-    refresh();
-  };
-
-  const next = document.createElement('button');
-  btnStyle(next); next.textContent = '▼';
-  next.onclick = () => {
-    const i = sets.indexOf(spriteSettings.terrainSet);
-    setTerrainSet(sets[(i + 1) % sets.length]);
-    refresh();
-  };
-
-  const sep = document.createElement('div');
-  sep.style.cssText = 'height:1px; background:#333; margin:4px 0;';
-
-  const probeLabel = document.createElement('div');
-  probeLabel.style.cssText = 'text-align:center; font-size:9px; letter-spacing:1px; color:#888;';
-  probeLabel.textContent = 'PROBE';
-
-  const probeToggle = document.createElement('button');
-  btnStyle(probeToggle);
-  function refreshToggle() {
-    probeToggle.textContent = PROBE.active ? 'ON' : 'OFF';
-    probeToggle.style.color = PROBE.active ? '#6f6' : '#adf';
-  }
-  refreshToggle();
-  probeToggle.onclick = () => {
-    PROBE.active = !PROBE.active;
-    if (PROBE.active) {
-      const stale = probePairsCached && probePairsCached.every((p) => !p.a || !p.b);
-      if (stale || !probePairsCached) {
-        PROBE.images = null;
-        probePairsCached = null;
-        loadProbeImages().then((p) => { probePairsCached = p; });
-      }
-      reloadAllWorlds();
-    }
-    refreshToggle();
-  };
-
-  const modeRow = document.createElement('div');
-  modeRow.style.cssText = 'display:flex; gap:3px;';
-  const modes = [['pairs', 'PAIRS'], ['world', 'WORLD']];
-  const modeBtns = modes.map(([v, lbl]) => {
+  // battle speed 1x / 3x
+  const speedRow = document.createElement('div');
+  speedRow.style.cssText = 'display:flex; gap:3px; align-items:center;';
+  const speedLbl = document.createElement('div');
+  speedLbl.style.cssText = 'font-size:9px; color:#888; flex:1;';
+  speedLbl.textContent = 'BATTLE';
+  const speedBtns = [1, 3].map((v) => {
     const b = document.createElement('button');
     btnStyle(b);
-    b.style.padding = '3px 5px';
-    b.style.fontSize = '10px';
-    b.textContent = lbl;
-    b.onclick = () => { PROBE.mode = v; refreshMode(); };
-    modeRow.appendChild(b);
+    b.textContent = `${v}x`;
+    b.onclick = () => { game.battleSpeed = v; refreshSpeed(); };
+    speedRow.appendChild(b);
     return { v, el: b };
   });
-  function refreshMode() {
-    for (const m of modeBtns) {
-      m.el.style.background = (m.v === PROBE.mode) ? '#444' : '#222';
-      m.el.style.color = (m.v === PROBE.mode) ? '#fff' : '#adf';
+  function refreshSpeed() {
+    for (const s of speedBtns) {
+      const active = (game.battleSpeed || 1) === s.v;
+      s.el.style.background = active ? '#444' : '#222';
+      s.el.style.color = active ? '#fff' : '#adf';
     }
   }
-  refreshMode();
+  speedRow.prepend(speedLbl);
 
-  const worldRow = document.createElement('div');
-  worldRow.style.cssText = 'display:flex; gap:3px; align-items:center;';
-  const worldPrev = document.createElement('button');
-  btnStyle(worldPrev); worldPrev.textContent = '◀'; worldPrev.style.padding = '3px 6px'; worldPrev.style.fontSize = '10px';
-  const worldName = document.createElement('div');
-  worldName.style.cssText = 'flex:1; text-align:center; font-size:10px; color:#fff;';
-  const worldNext = document.createElement('button');
-  btnStyle(worldNext); worldNext.textContent = '▶'; worldNext.style.padding = '3px 6px'; worldNext.style.fontSize = '10px';
-  function refreshWorld() {
-    worldName.textContent = WORLD_NAMES[devWorld.selectedIdx].toUpperCase();
+  // fog reveal toggle
+  const fogBtn = document.createElement('button');
+  btnStyle(fogBtn);
+  function refreshFog() {
+    fogBtn.textContent = `FOG: ${game.devFogReveal ? 'OFF (revealed)' : 'ON'}`;
+    fogBtn.style.color = game.devFogReveal ? '#6f6' : '#adf';
   }
-  worldPrev.onclick = () => { devWorld.selectedIdx = (devWorld.selectedIdx - 1 + WORLD_NAMES.length) % WORLD_NAMES.length; refreshWorld(); };
-  worldNext.onclick = () => { devWorld.selectedIdx = (devWorld.selectedIdx + 1) % WORLD_NAMES.length; refreshWorld(); };
-  worldRow.append(worldPrev, worldName, worldNext);
-  refreshWorld();
+  fogBtn.onclick = () => { game.devFogReveal = !game.devFogReveal; refreshFog(); };
 
-  const featherRow = document.createElement('div');
-  featherRow.style.cssText = 'display:flex; gap:3px;';
-  const featherBtns = FEATHER_PRESETS.map((v) => {
-    const b = document.createElement('button');
-    btnStyle(b);
-    b.style.padding = '3px 5px';
-    b.style.fontSize = '11px';
-    b.textContent = String(v);
-    b.onclick = () => { PROBE.feather = v; refreshFeather(); };
-    featherRow.appendChild(b);
-    return { v, el: b };
-  });
-  function refreshFeather() {
-    for (const f of featherBtns) {
-      f.el.style.background = (f.v === PROBE.feather) ? '#444' : '#222';
-      f.el.style.color = (f.v === PROBE.feather) ? '#fff' : '#adf';
-    }
-  }
-  refreshFeather();
-
-  const sep2 = document.createElement('div');
-  sep2.style.cssText = 'height:1px; background:#333; margin:4px 0;';
-
+  // replay rewards
   const rewardsBtn = document.createElement('button');
   btnStyle(rewardsBtn);
   rewardsBtn.textContent = 'REPLAY REWARDS';
-  rewardsBtn.style.fontSize = '10px';
   rewardsBtn.onclick = () => {
     game.showRewards([
       { icon: 'icon_renown',      label: 'Renown', amount: 4 },
@@ -294,10 +93,11 @@ function drawProbe(ctx, game) {
     ]);
   };
 
-  el.append(label, prev, name, next, sep, probeLabel, probeToggle, modeRow, worldRow, featherRow, sep2, rewardsBtn);
+  el.append(label, speedRow, fogBtn, rewardsBtn);
   document.body.appendChild(el);
-  refresh();
-})();
+  refreshSpeed();
+  refreshFog();
+}
 
 const fxSettings = { grade: true, bloom: true, rgb: false, crt: false };
 
@@ -332,6 +132,8 @@ const game = {
   quests: initQuests(),
   toastMsg: null,
   toastExpire: 0,
+  devFogReveal: false,
+  battleSpeed: 1,
   rewards: null,
   rewardsExpire: 0,
   pendingEncounter: null,
@@ -550,26 +352,22 @@ function tick(ticker) {
 
   if (!menuState.open) {
     if (game.state === STATES.OVERWORLD) updateOverworld(game, dt);
-    else if (game.state === STATES.BATTLE) updateBattle(game, dt);
+    else if (game.state === STATES.BATTLE) updateBattle(game, dt * (game.battleSpeed || 1));
     else if (game.state === STATES.TRAVEL) updateTravel(game, dt);
     if (game.state === STATES.OVERWORLD || game.state === STATES.BASE) maybeTick(game, t);
   }
 
-  if (PROBE.active) {
-    drawProbe(ctx, game);
-  } else {
-    switch (game.state) {
-      case STATES.SPLASH:    drawSplash(ctx, game); break;
-      case STATES.OVERWORLD: drawOverworld(ctx, game); break;
-      case STATES.BATTLE:    drawBattle(ctx, game); break;
-      case STATES.BASE:      drawBaseScene(ctx, game); break;
-      case STATES.TRAVEL:
-        drawMapScene(ctx, game, game.party.mapId);
-        drawTravel(ctx, game);
-        break;
-    }
-    if (menuState.open) drawMenu(ctx, game);
+  switch (game.state) {
+    case STATES.SPLASH:    drawSplash(ctx, game); break;
+    case STATES.OVERWORLD: drawOverworld(ctx, game); break;
+    case STATES.BATTLE:    drawBattle(ctx, game); break;
+    case STATES.BASE:      drawBaseScene(ctx, game); break;
+    case STATES.TRAVEL:
+      drawMapScene(ctx, game, game.party.mapId);
+      drawTravel(ctx, game);
+      break;
   }
+  if (menuState.open) drawMenu(ctx, game);
 
   syncMenuFilters();
 
@@ -589,4 +387,5 @@ function tick(ticker) {
   resize();
   window.addEventListener('resize', resize);
   app.ticker.add(tick);
+  mountDevPanel();
 })();

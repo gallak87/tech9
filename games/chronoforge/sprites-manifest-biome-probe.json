@@ -1,0 +1,42 @@
+{
+  "game": "chronoforge",
+  "note": "Biome-edge probe — 2 plates at 3 resolutions (100, 400, 900) to see how fidelity scales. Output viewed via the terrain picker PROBE toggle.",
+  "sprites": [
+    {
+      "name": "biome_probe_grassland_east_100",
+      "w": 100, "h": 100,
+      "out": "src/assets/probe/grassland_east_100.png",
+      "prompt": "top-down painted fantasy pixel-art ground plate, ruined grassland biome: overgrown dead grass, scattered cracked concrete rubble, muted green and brown, a cracked asphalt highway running horizontally across the center and exiting cleanly off the RIGHT edge, slight morning haze, no vignette, no dark border, fully bleeds to all four edges, crisp painterly palette"
+    },
+    {
+      "name": "biome_probe_wastes_west_100",
+      "w": 100, "h": 100,
+      "out": "src/assets/probe/wastes_west_100.png",
+      "prompt": "top-down painted fantasy pixel-art ground plate, neon-wastes desert biome: windblown tan sand, scattered rusted metal debris, faint magenta cable tangles, a cracked asphalt highway entering cleanly from the LEFT edge and running horizontally across the center, dry heat shimmer, no vignette, no dark border, fully bleeds to all four edges, crisp painterly palette"
+    },
+    {
+      "name": "biome_probe_grassland_east_400",
+      "w": 400, "h": 400,
+      "out": "src/assets/probe/grassland_east_400.png",
+      "prompt": "top-down painted fantasy pixel-art ground plate, ruined grassland biome: overgrown dead grass, scattered cracked concrete rubble, muted green and brown, a cracked asphalt highway running horizontally across the center and exiting cleanly off the RIGHT edge, slight morning haze, no vignette, no dark border, fully bleeds to all four edges, crisp painterly palette"
+    },
+    {
+      "name": "biome_probe_wastes_west_400",
+      "w": 400, "h": 400,
+      "out": "src/assets/probe/wastes_west_400.png",
+      "prompt": "top-down painted fantasy pixel-art ground plate, neon-wastes desert biome: windblown tan sand, scattered rusted metal debris, faint magenta cable tangles, a cracked asphalt highway entering cleanly from the LEFT edge and running horizontally across the center, dry heat shimmer, no vignette, no dark border, fully bleeds to all four edges, crisp painterly palette"
+    },
+    {
+      "name": "biome_probe_grassland_east_900",
+      "w": 900, "h": 900,
+      "out": "src/assets/probe/grassland_east_900.png",
+      "prompt": "top-down painted fantasy pixel-art ground plate, ruined grassland biome: overgrown dead grass, scattered cracked concrete rubble, muted green and brown, a cracked asphalt highway running horizontally across the center and exiting cleanly off the RIGHT edge, slight morning haze, no vignette, no dark border, fully bleeds to all four edges, crisp painterly palette"
+    },
+    {
+      "name": "biome_probe_wastes_west_900",
+      "w": 900, "h": 900,
+      "out": "src/assets/probe/wastes_west_900.png",
+      "prompt": "top-down painted fantasy pixel-art ground plate, neon-wastes desert biome: windblown tan sand, scattered rusted metal debris, faint magenta cable tangles, a cracked asphalt highway entering cleanly from the LEFT edge and running horizontally across the center, dry heat shimmer, no vignette, no dark border, fully bleeds to all four edges, crisp painterly palette"
+    }
+  ]
+}

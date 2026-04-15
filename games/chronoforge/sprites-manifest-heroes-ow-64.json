@@ -1,0 +1,27 @@
+{
+  "game": "chronoforge",
+  "note": "Overworld party sprites — painterly game sprites on solid black bg, supersampled 128x128 then drawn at TILE in-game. Short punchy prompts; flux does better with less.",
+  "sprites": [
+    {
+      "name": "kaida_overworld",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Kaida, young warrior, short swept magenta hair, cyan jacket, dark leggings, glowing magenta pulse-blade held low ready, mid-stride battle stance, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/kaida_overworld.png"
+    },
+    {
+      "name": "vex_overworld",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Vex, tall hooded mystic in a dark cloak, cyan chrono-glyphs glowing on the hem, raising a chrono-staff crowned with a cyan orb, arcane casting stance, 3/4 overhead Zelda-style camera angle, deep purples and cyan glow, pure solid black background, crisp silhouette",
+      "out": "src/assets/vex_overworld.png"
+    },
+    {
+      "name": "rune_overworld",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Rune, stocky engineer with yellow-lensed goggles and a small antenna, mustard-yellow work rig with straps, swinging a forge-hammer, small hover-drone floating at the shoulder, 3/4 overhead Zelda-style camera angle, mustard rust and cyan palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/rune_overworld.png"
+    }
+  ]
+}

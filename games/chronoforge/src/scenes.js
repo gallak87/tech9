@@ -5,6 +5,7 @@ import { TILE, MAP_W, MAP_H, tileAt, CITIES, ENCOUNTERS, PLAYER_START } from './
 import { drawSprite, getSpriteVersion } from './sprites.js';
 import { aggregateYields, TICK_MS } from './base.js';
 import { checkQuestProgress } from './progression.js';
+import { getActiveBackdrop } from './devWorld.js';
 
 const PALETTE = {
   bg: '#07060d', bgAlt: '#120a22',
@@ -175,8 +176,13 @@ export function updateOverworld(game, dt) {
   if (dx === 0 && dy === 0) return;
 
   const nx = p.x + dx, ny = p.y + dy;
-  const t = tileAt(nx, ny);
-  if (!t || !t.passable) return;
+  const devBackdrop = getActiveBackdrop();
+  if (!devBackdrop) {
+    const t = tileAt(nx, ny);
+    if (!t || !t.passable) return;
+  } else {
+    if (nx < 0 || ny < 0 || nx >= MAP_W || ny >= MAP_H) return;
+  }
 
   p.fromX = p.x; p.fromY = p.y;
   p.x = nx; p.y = ny;
@@ -184,15 +190,15 @@ export function updateOverworld(game, dt) {
   p.facing = dy < 0 ? 'up' : dy > 0 ? 'down' : dx < 0 ? 'left' : 'right';
   p.moveCooldown = MOVE_COOLDOWN_MS;
 
-  // reveal fog
-  revealAround(game, nx, ny, 4);
+  if (!devBackdrop) {
+    revealAround(game, nx, ny, 4);
 
-  // city stepped on → unlock it
-  const city = CITIES.find(c => c.x === nx && c.y === ny);
-  if (city && !city.unlocked) {
-    city.unlocked = true;
-    game.toast(`Reached ${city.name} — fast-travel unlocked`);
-    if (game.quests) checkQuestProgress(game, { type: 'city_reached', cityId: city.id });
+    const city = CITIES.find(c => c.x === nx && c.y === ny);
+    if (city && !city.unlocked) {
+      city.unlocked = true;
+      game.toast(`Reached ${city.name} — fast-travel unlocked`);
+      if (game.quests) checkQuestProgress(game, { type: 'city_reached', cityId: city.id });
+    }
   }
 
   // encounter stepped on → battle
@@ -236,8 +242,9 @@ export function drawOverworld(ctx, game) {
   const lastTx = Math.min(MAP_W, Math.ceil((camX + w) / TILE) + 1);
   const lastTy = Math.min(MAP_H, Math.ceil((camY + h) / TILE) + 1);
 
-  // blit visible slice of the pre-rendered tile atlas
-  const atlas = getTileCanvas();
+  // blit visible slice of the pre-rendered tile atlas (or dev world backdrop)
+  const devBackdrop = getActiveBackdrop();
+  const atlas = devBackdrop || getTileCanvas();
   const srcX = Math.max(0, camX);
   const srcY = Math.max(0, camY);
   const srcW = Math.min(atlas.width - srcX, w);
@@ -246,6 +253,45 @@ export function drawOverworld(ctx, game) {
     const dstX = Math.round(srcX - camX);
     const dstY = Math.round(srcY - camY);
     ctx.drawImage(atlas, srcX, srcY, srcW, srcH, dstX, dstY, srcW, srcH);
+  }
+
+  if (devBackdrop) {
+    // dev world mode: encounters + party + HUD, no cities/fog/walkability
+    for (const e of ENCOUNTERS) {
+      if (e.cleared) continue;
+      const ew = TILE, eh = TILE;
+      const sx = Math.round(e.x * TILE - camX);
+      const sy = Math.round(e.y * TILE - camY);
+      const bob = Math.sin(game.time * 0.006 + e.x) * 2;
+      const ecx = sx + ew / 2, ecy = sy + eh / 2 + bob;
+      const eg = ctx.createRadialGradient(ecx, ecy, 0, ecx, ecy, ew * 0.7);
+      eg.addColorStop(0, 'rgba(7,6,13,0.45)');
+      eg.addColorStop(1, 'rgba(7,6,13,0)');
+      ctx.fillStyle = eg;
+      ctx.fillRect(ecx - ew * 0.7, ecy - ew * 0.7, ew * 1.4, ew * 1.4);
+      drawSprite(ctx, `${e.enemy}_ow`, sx, sy + bob, ew, eh);
+    }
+
+    const idleBob = render.moving ? 0 : Math.sin(game.time * 0.005) * 1.5;
+    const pcx = Math.round(render.x * TILE - camX);
+    const pcy = Math.round(render.y * TILE - camY + idleBob);
+
+    const hcx = pcx + TILE / 2, hcy = pcy + TILE / 2;
+    const hr = TILE * 0.9;
+    const hg = ctx.createRadialGradient(hcx, hcy, 0, hcx, hcy, hr);
+    hg.addColorStop(0, 'rgba(7,6,13,0.55)');
+    hg.addColorStop(0.55, 'rgba(7,6,13,0.25)');
+    hg.addColorStop(1, 'rgba(7,6,13,0)');
+    ctx.fillStyle = hg;
+    ctx.fillRect(hcx - hr, hcy - hr, hr * 2, hr * 2);
+
+    ctx.fillStyle = 'rgba(34,227,255,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(pcx + TILE / 2, pcy + TILE - 2, 14, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    drawSprite(ctx, 'kaida_overworld', pcx, pcy, TILE, TILE);
+    drawOverworldHud(ctx, game);
+    return;
   }
 
   // cities — sit on a clean 2x2 tile footprint, frame snaps to grid

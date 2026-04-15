@@ -32,6 +32,7 @@ const ENEMY_TEMPLATES = {
   neon_cultist:      { name: 'Neon Cultist',    hp: 90,  str: 9,  def: 6,  spd: 11, xp: 75,  renown: 8 },
   sandworm_hatchling:{ name: 'Sandworm',        hp: 110, str: 13, def: 8,  spd: 8,  xp: 70,  renown: 7 },
   wraith_core:       { name: 'Wraith Core',     hp: 130, str: 15, def: 9,  spd: 13, xp: 110, renown: 12 },
+  architect_herald:  { name: 'Architect Herald',hp: 180, str: 17, def: 12, spd: 11, xp: 150, renown: 18 },
 };
 
 // Combat properties for each skill (referenced by id from progression.js skill trees)
@@ -97,7 +98,8 @@ export function initBattle(game, encounter) {
     vfx: [],
     menu: null,            // { heroIdx, view: 'root'|'tech'|'target', techIdx, targetIdx }
     log: [(() => {
-      const name = ENEMY_TEMPLATES[encounter.enemy].name;
+      const tpl = ENEMY_TEMPLATES[encounter.enemy] || ENEMY_TEMPLATES.rust_scrapper;
+      const name = tpl.name;
       if (enemies.length > 1) return `A group of ${name}s appears!`;
       const article = /^[aeiou]/i.test(name) ? 'An' : 'A';
       return `${article} ${name} appears!`;

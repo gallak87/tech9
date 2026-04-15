@@ -464,12 +464,12 @@ function drawRewardRow(ctx, game, w) {
     ctx.strokeStyle = PALETTE.accent2;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(x + 0.5, y + 0.5, cardW - 1, cardH - 1);
-    drawSprite(ctx, it.icon, x + 10, y + (cardH - iconSize) / 2, iconSize, iconSize);
+    drawSprite(ctx, it.icon, x + 12, y + (cardH - iconSize) / 2, iconSize, iconSize);
     ctx.fillStyle = PALETTE.warn;
     ctx.font = '800 24px system-ui, sans-serif';
-    ctx.textAlign = 'left';
+    ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`+${it.amount}`, x + 60, y + cardH / 2);
+    ctx.fillText(`+${it.amount}`, x + cardW - 14, y + cardH / 2);
     x += cardW + gap;
   }
   ctx.restore();

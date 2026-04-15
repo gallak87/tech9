@@ -1,0 +1,83 @@
+{
+  "game": "chronoforge",
+  "note": "Battle-scene combat sprites @ 128x128 on solid black. Same painterly formula as overworld, with directional posing: heroes advance to the right, enemies advance to the left, so the two sides read as facing each other in-frame.",
+  "sprites": [
+    {
+      "name": "kaida_battle_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Kaida, young warrior, short swept magenta hair, cyan jacket, dark leggings, glowing magenta pulse-blade raised in a combat ready pose, body turned and advancing to the right, dynamic forward battle stance, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/kaida_battle_idle.png"
+    },
+    {
+      "name": "vex_battle_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Vex, tall hooded mystic in a dark cloak, cyan chrono-glyphs glowing on the hem, chrono-staff with a cyan orb extended forward, body turned and casting to the right, arcane combat stance, 3/4 overhead Zelda-style camera angle, deep purples and cyan glow, pure solid black background, crisp silhouette",
+      "out": "src/assets/vex_battle_idle.png"
+    },
+    {
+      "name": "rune_battle_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Rune, stocky engineer with yellow-lensed goggles and a small antenna, mustard-yellow work rig, forge-hammer swung forward, body turned and advancing to the right, small hover-drone floating beside him, grounded combat stance, 3/4 overhead Zelda-style camera angle, mustard rust and cyan palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/rune_battle_idle.png"
+    },
+    {
+      "name": "rust_scrapper_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a hunched rusty raider in scrap-metal armor and goggles, jagged weapon raised mid-swing, body turned and lunging to the left, rust and dirt palette, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/rust_scrapper_idle.png"
+    },
+    {
+      "name": "drone_sentinel_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a hovering quad-rotor surveillance drone with a glowing red optic eye, dark chrome body with red accents, body oriented and advancing to the left, rotors spinning, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/drone_sentinel_idle.png"
+    },
+    {
+      "name": "mutant_hound_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a four-legged mutant hound, patchy dark fur, exposed magenta muscle, jagged spine ridge, glowing cyan eyes, body turned and mid-lunge pouncing to the left, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/mutant_hound_idle.png"
+    },
+    {
+      "name": "gravbot_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a heavy bipedal combat bot, thick armored shoulders, cyan powercore glowing in the chest, slate plating with yellow warning stripes, body turned and striding to the left, heavy combat stance, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/gravbot_idle.png"
+    },
+    {
+      "name": "neon_cultist_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a hooded cultist in a pink-magenta robe with cyan glyphs on the hem, ritual blade raised for a strike, body turned and lunging to the left, magenta and cyan palette, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/neon_cultist_idle.png"
+    },
+    {
+      "name": "sandworm_hatchling_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a sand mound with a ringed segmented worm emerging head-first, cracked tan plating, bright red gullet gaping, head and body oriented toward the left, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/sandworm_hatchling_idle.png"
+    },
+    {
+      "name": "wraith_core_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a floating glowing purple orb wrapped in torn translucent veils, faint cyan inner light, wisps trailing to the right as it drifts leftward, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/wraith_core_idle.png"
+    },
+    {
+      "name": "architect_herald_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a tall humanoid figure in seamless chrome-white armor, cyan halo ring above the head, faint magenta trim, body turned and advancing to the left with arms spread menacingly, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/architect_herald_idle.png"
+    }
+  ]
+}

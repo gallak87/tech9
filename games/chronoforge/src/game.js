@@ -159,8 +159,7 @@ const game = {
     const def = ITEM_DEFS[drop.itemId];
     if (!def) return;
     this.inventory.push({ id: drop.itemId });
-    this.toast(`Found ${def.name}`);
-    this.showRewards([{ icon: `icon_${def.slot || 'weapon'}`, label: def.name, amount: 1 }]);
+    this.showRewards([{ icon: `icon_${drop.itemId}`, label: def.name, amount: 1 }]);
   },
 };
 

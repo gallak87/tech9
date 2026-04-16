@@ -8,7 +8,7 @@ import {
 } from './world.js';
 import { drawSprite, getSpriteVersion } from './sprites.js';
 import { aggregateYields, TICK_MS } from './base.js';
-import { checkQuestProgress } from './progression.js';
+import { checkQuestProgress, ITEM_DEFS } from './progression.js';
 import { getMapBackdrop } from './devWorld.js';
 import { beginTravel } from './travel.js';
 
@@ -414,13 +414,22 @@ function drawWorldDrop(ctx, drop, camX, camY, time) {
   const cx = fx + TILE / 2, cy = fy + TILE / 2;
   const pulse = 0.5 + Math.sin(time * 0.005) * 0.5;
   const r = TILE * (0.5 + pulse * 0.15);
+  const def = ITEM_DEFS[drop.itemId];
+  const color = def ? def.color : '#ffd23f';
+  const rgb = hexToRgb(color);
   const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  g.addColorStop(0, `rgba(255,210,63,${0.55 + pulse * 0.25})`);
-  g.addColorStop(1, 'rgba(255,210,63,0)');
+  g.addColorStop(0, `rgba(${rgb},${0.55 + pulse * 0.25})`);
+  g.addColorStop(1, `rgba(${rgb},0)`);
   ctx.fillStyle = g;
   ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
   const iconSize = TILE * 0.5;
-  drawSprite(ctx, drop.icon || 'icon_weapon', cx - iconSize / 2, cy - iconSize / 2, iconSize, iconSize);
+  drawSprite(ctx, `icon_${drop.itemId}`, cx - iconSize / 2, cy - iconSize / 2, iconSize, iconSize);
+}
+
+function hexToRgb(hex) {
+  const h = hex.replace('#', '');
+  const n = parseInt(h, 16);
+  return `${(n >> 16) & 255},${(n >> 8) & 255},${n & 255}`;
 }
 
 function drawSoftFog(ctx, game, camX, camY, w, h) {

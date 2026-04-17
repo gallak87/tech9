@@ -3,189 +3,2097 @@
   "host": "http://localhost:11434",
   "style_prefix": "pixel art game sprite, pure black background (#000000), neon synthwave post-apocalyptic sci-fi, deep violet and indigo base with glowing magenta / cyan / amber yellow accents, detailed shading with rim light, soft glow halo around neon elements, chunky pixel highlights, gradient dithering on volumes, metallic material reads, crisp readable silhouette centered in frame, no text, no watermark, no border frame, Chrono Trigger meets Hyper Light Drifter meets Signalis",
   "sprites": [
-    { "name": "kaida_overworld", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overworld sprite, young woman warrior with short magenta hair sweep, pulse-blade on back, cyan jacket + dark leggings, tiny 3/4 top-down view, crisp silhouette", "out": "src/assets/kaida_overworld.png" },
-    { "name": "vex_overworld", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overworld sprite, tall hooded mystic in dark cloak with cyan chrono-glyphs glowing on hem, chrono-staff, 3/4 top-down view", "out": "src/assets/vex_overworld.png" },
-    { "name": "rune_overworld", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overworld sprite, stocky engineer with yellow goggles and antenna, forge-hammer at hip, drone on shoulder, mustard-yellow rig, 3/4 top-down view", "out": "src/assets/rune_overworld.png" },
-
-    { "name": "kaida_battle_idle", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art battle sprite, side view, young woman striker, magenta hair sweep, pulse-blade at ready, confident stance, neon magenta accents", "out": "src/assets/kaida_battle_idle.png" },
-    { "name": "vex_battle_idle", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art battle sprite, side view, tall hooded mystic with chrono-staff, cyan glyphs floating, ethereal stance", "out": "src/assets/vex_battle_idle.png" },
-    { "name": "rune_battle_idle", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art battle sprite, side view, engineer with hammer and shoulder-drone, yellow goggles, grounded stance", "out": "src/assets/rune_battle_idle.png" },
-
-    { "name": "kaida_battle_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, striker mid-slash with pulse-blade, magenta trail, dynamic pose", "out": "src/assets/kaida_battle_attack.png" },
-    { "name": "kaida_battle_cast", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, striker channeling tech with blade raised, cyan rift sparks", "out": "src/assets/kaida_battle_cast.png" },
-    { "name": "kaida_battle_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, striker recoiling from hit, flash of white on silhouette", "out": "src/assets/kaida_battle_hurt.png" },
-    { "name": "kaida_battle_victory", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle sprite, side view, striker victory pose, blade raised, magenta sparkle", "out": "src/assets/kaida_battle_victory.png" },
-
-    { "name": "vex_battle_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, mystic swinging chrono-staff, cyan trail", "out": "src/assets/vex_battle_attack.png" },
-    { "name": "vex_battle_cast", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, mystic arms raised channeling void spell, floating cyan runes", "out": "src/assets/vex_battle_cast.png" },
-    { "name": "vex_battle_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, mystic hit, cloak fluttering", "out": "src/assets/vex_battle_hurt.png" },
-    { "name": "vex_battle_victory", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle sprite, side view, mystic hood back, staff planted, cyan aura", "out": "src/assets/vex_battle_victory.png" },
-
-    { "name": "rune_battle_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, engineer swinging forge-hammer overhead, sparks", "out": "src/assets/rune_battle_attack.png" },
-    { "name": "rune_battle_cast", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, engineer deploying drones, yellow energy field", "out": "src/assets/rune_battle_cast.png" },
-    { "name": "rune_battle_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle sprite, side view, engineer stumbling, goggles flashing", "out": "src/assets/rune_battle_hurt.png" },
-    { "name": "rune_battle_victory", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle sprite, side view, engineer thumbs-up with drone hovering, yellow sparkle", "out": "src/assets/rune_battle_victory.png" },
-
-    { "name": "kaida_portrait", "w": 128, "h": 128, "priority": 1, "prompt": "pixel art dialog portrait bust, young woman striker, magenta hair sweep, confident smirk, cyan jacket collar, neon highlights", "out": "src/assets/kaida_portrait.png" },
-    { "name": "vex_portrait", "w": 128, "h": 128, "priority": 1, "prompt": "pixel art dialog portrait bust, hooded mystic, face half-shadowed, cyan eye glow, serene expression", "out": "src/assets/vex_portrait.png" },
-    { "name": "rune_portrait", "w": 128, "h": 128, "priority": 1, "prompt": "pixel art dialog portrait bust, engineer with yellow goggles pushed up on forehead, warm grin, drone on shoulder", "out": "src/assets/rune_portrait.png" },
-
-    { "name": "rust_scrapper_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, melee wasteland raider, rusted armor, jagged blade, hunched stance", "out": "src/assets/rust_scrapper_idle.png" },
-    { "name": "rust_scrapper_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, wasteland raider mid-cleave, rusty trail", "out": "src/assets/rust_scrapper_attack.png" },
-    { "name": "rust_scrapper_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, wasteland raider hit, flash", "out": "src/assets/rust_scrapper_hurt.png" },
-    { "name": "rust_scrapper_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, wasteland raider collapsing, fading rust dust", "out": "src/assets/rust_scrapper_death.png" },
-
-    { "name": "drone_sentinel_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, hovering combat drone, red scanner eye, sleek chrome", "out": "src/assets/drone_sentinel_idle.png" },
-    { "name": "drone_sentinel_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, drone firing seeker missile, orange glow", "out": "src/assets/drone_sentinel_attack.png" },
-    { "name": "drone_sentinel_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, drone sparking hit", "out": "src/assets/drone_sentinel_hurt.png" },
-    { "name": "drone_sentinel_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, drone exploding, shrapnel burst", "out": "src/assets/drone_sentinel_death.png" },
-
-    { "name": "mutant_hound_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, four-legged mutant hound, exposed muscle, glowing eyes, crouched", "out": "src/assets/mutant_hound_idle.png" },
-    { "name": "mutant_hound_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, mutant hound mid-pounce, fangs bared", "out": "src/assets/mutant_hound_attack.png" },
-    { "name": "mutant_hound_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, mutant hound recoiling", "out": "src/assets/mutant_hound_hurt.png" },
-    { "name": "mutant_hound_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, mutant hound collapsing", "out": "src/assets/mutant_hound_death.png" },
-
-    { "name": "gravbot_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, bulky shield-bearing combat bot, cyan shield projected, heavy frame", "out": "src/assets/gravbot_idle.png" },
-    { "name": "gravbot_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, grav-bot slamming shield forward, shockwave", "out": "src/assets/gravbot_attack.png" },
-    { "name": "gravbot_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, grav-bot staggered, shield flickering", "out": "src/assets/gravbot_hurt.png" },
-    { "name": "gravbot_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, grav-bot collapsing in chunks", "out": "src/assets/gravbot_death.png" },
-
-    { "name": "neon_cultist_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, cult caster in pink neon robes, hood up, glowing pink glyphs", "out": "src/assets/neon_cultist_idle.png" },
-    { "name": "neon_cultist_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, neon cultist casting curse, pink energy burst", "out": "src/assets/neon_cultist_attack.png" },
-    { "name": "neon_cultist_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, neon cultist robe billowing from hit", "out": "src/assets/neon_cultist_hurt.png" },
-    { "name": "neon_cultist_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, neon cultist dissolving into pink motes", "out": "src/assets/neon_cultist_death.png" },
-
-    { "name": "sandworm_hatchling_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, small sandworm emerging from ground, segmented sandy body, gaping maw", "out": "src/assets/sandworm_hatchling_idle.png" },
-    { "name": "sandworm_hatchling_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, sandworm lunging upward, sand spray", "out": "src/assets/sandworm_hatchling_attack.png" },
-    { "name": "sandworm_hatchling_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, sandworm recoiling", "out": "src/assets/sandworm_hatchling_hurt.png" },
-    { "name": "sandworm_hatchling_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, sandworm collapsing into dust", "out": "src/assets/sandworm_hatchling_death.png" },
-
-    { "name": "wraith_core_idle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, floating void wraith with glowing core, translucent purple body", "out": "src/assets/wraith_core_idle.png" },
-    { "name": "wraith_core_attack", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, wraith phase-striking, purple blur", "out": "src/assets/wraith_core_attack.png" },
-    { "name": "wraith_core_hurt", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle enemy, wraith fracturing, core pulsing", "out": "src/assets/wraith_core_hurt.png" },
-    { "name": "wraith_core_death", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle enemy, wraith imploding into a single bright point", "out": "src/assets/wraith_core_death.png" },
-
-    { "name": "architect_herald_idle", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art battle mini-boss, tall herald of the Architect, ornate chrome armor, cyan halo, imposing", "out": "src/assets/architect_herald_idle.png" },
-    { "name": "architect_herald_attack", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art mini-boss, herald casting orbital strike, cyan beam descending", "out": "src/assets/architect_herald_attack.png" },
-    { "name": "architect_herald_hurt", "w": 64, "h": 64, "priority": 3, "prompt": "pixel art mini-boss, herald armor cracking", "out": "src/assets/architect_herald_hurt.png" },
-    { "name": "architect_herald_death", "w": 64, "h": 64, "priority": 4, "prompt": "pixel art mini-boss, herald shattering into light shards", "out": "src/assets/architect_herald_death.png" },
-
-    { "name": "void_architect_p1", "w": 128, "h": 128, "priority": 4, "prompt": "pixel art boss sprite, Void Architect phase 1, cloaked cosmic figure with starfield inside silhouette, magenta core, towering", "out": "src/assets/void_architect_p1.png" },
-    { "name": "void_architect_p2", "w": 128, "h": 128, "priority": 4, "prompt": "pixel art boss sprite, Void Architect phase 2, cloak torn open revealing fractal machinery, magenta + cyan core", "out": "src/assets/void_architect_p2.png" },
-    { "name": "void_architect_p3", "w": 128, "h": 128, "priority": 4, "prompt": "pixel art boss sprite, Void Architect phase 3, pure energy being, magenta/cyan/yellow storm silhouette", "out": "src/assets/void_architect_p3.png" },
-
-    { "name": "rust_scrapper_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, small rusty raider silhouette, top-down", "out": "src/assets/rust_scrapper_ow.png" },
-    { "name": "drone_sentinel_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, hovering drone top-down, red light", "out": "src/assets/drone_sentinel_ow.png" },
-    { "name": "mutant_hound_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, four-legged hound top-down", "out": "src/assets/mutant_hound_ow.png" },
-    { "name": "gravbot_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, heavy bot top-down", "out": "src/assets/gravbot_ow.png" },
-    { "name": "neon_cultist_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld encounter marker, pink-robed cultist top-down", "out": "src/assets/neon_cultist_ow.png" },
-    { "name": "sandworm_hatchling_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld marker, mound with emerging worm, top-down", "out": "src/assets/sandworm_hatchling_ow.png" },
-    { "name": "wraith_core_ow", "w": 32, "h": 32, "priority": 2, "prompt": "pixel art overworld marker, glowing purple orb top-down", "out": "src/assets/wraith_core_ow.png" },
-    { "name": "architect_herald_ow", "w": 32, "h": 32, "priority": 3, "prompt": "pixel art overworld marker, tall chrome figure top-down, cyan halo", "out": "src/assets/architect_herald_ow.png" },
-
-    { "name": "town_center_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art isometric-ish building, survivor-era town center, scrap wood and salvaged metal hut with chimney smoke", "out": "src/assets/town_center_t1.png" },
-    { "name": "town_center_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer-era town center, reinforced walls with cyan banner, larger than t1", "out": "src/assets/town_center_t2.png" },
-    { "name": "town_center_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant-era town center, polished alloy with neon trim, two stories", "out": "src/assets/town_center_t3.png" },
-    { "name": "town_center_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent-era town center, spire with magenta neon and antenna, imposing", "out": "src/assets/town_center_t4.png" },
-
-    { "name": "farm_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor-era farm, tilled dirt rows and a scarecrow", "out": "src/assets/farm_t1.png" },
-    { "name": "farm_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer-era farm, greenhouse dome with green glow", "out": "src/assets/farm_t2.png" },
-    { "name": "farm_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant-era hydroponic farm, stacked trays with cyan grow-lights", "out": "src/assets/farm_t3.png" },
-    { "name": "farm_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent-era bio-reactor farm, crystalline dome with swirling green energy", "out": "src/assets/farm_t4.png" },
-
-    { "name": "mine_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor-era mine, wooden shaft with minecart", "out": "src/assets/mine_t1.png" },
-    { "name": "mine_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer-era mine, reinforced metal shaft, conveyor", "out": "src/assets/mine_t2.png" },
-    { "name": "mine_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant-era mine, auto-drilling rig with cyan lights", "out": "src/assets/mine_t3.png" },
-    { "name": "mine_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent-era mine, gravity well extractor with floating ore chunks", "out": "src/assets/mine_t4.png" },
-
-    { "name": "energy_extractor_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor-era energy extractor, makeshift wind turbine on scrap tower", "out": "src/assets/energy_extractor_t1.png" },
-    { "name": "energy_extractor_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer-era solar array on steel frame, cyan panels", "out": "src/assets/energy_extractor_t2.png" },
-    { "name": "energy_extractor_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant-era fusion pylon, glowing yellow core", "out": "src/assets/energy_extractor_t3.png" },
-    { "name": "energy_extractor_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent-era zero-point reactor, floating crystal in a containment ring", "out": "src/assets/energy_extractor_t4.png" },
-
-    { "name": "barracks_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor barracks, scrap-wood bunkhouse with training dummy", "out": "src/assets/barracks_t1.png" },
-    { "name": "barracks_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer barracks, armored bunker with flag", "out": "src/assets/barracks_t2.png" },
-    { "name": "barracks_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant barracks, tech training hall with holo-targets", "out": "src/assets/barracks_t3.png" },
-    { "name": "barracks_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent barracks, elite academy with neon banners", "out": "src/assets/barracks_t4.png" },
-
-    { "name": "forge_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor forge, open-air smithy with anvil and flame", "out": "src/assets/forge_t1.png" },
-    { "name": "forge_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer forge, stone furnace with chimney", "out": "src/assets/forge_t2.png" },
-    { "name": "forge_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant forge, laser-cutter workshop, cyan glow", "out": "src/assets/forge_t3.png" },
-    { "name": "forge_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent forge, plasma-reactor smithy with orbital gear", "out": "src/assets/forge_t4.png" },
-
-    { "name": "research_lab_t1", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, survivor research shack, blackboard and salvaged books", "out": "src/assets/research_lab_t1.png" },
-    { "name": "research_lab_t2", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, reclaimer research lab, reinforced with satellite dish", "out": "src/assets/research_lab_t2.png" },
-    { "name": "research_lab_t3", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, ascendant lab, holo-projector dome, floating data shards", "out": "src/assets/research_lab_t3.png" },
-    { "name": "research_lab_t4", "w": 96, "h": 96, "priority": 3, "prompt": "pixel art building, transcendent lab, crystalline research spire with orbiting rings", "out": "src/assets/research_lab_t4.png" },
-
-    { "name": "wall_t1", "w": 96, "h": 96, "priority": 4, "prompt": "pixel art wall section, wood-plank palisade with spiked top", "out": "src/assets/wall_t1.png" },
-    { "name": "wall_t2", "w": 96, "h": 96, "priority": 4, "prompt": "pixel art wall section, riveted steel barricade", "out": "src/assets/wall_t2.png" },
-    { "name": "wall_t3", "w": 96, "h": 96, "priority": 4, "prompt": "pixel art wall section, alloy wall with cyan energy seam", "out": "src/assets/wall_t3.png" },
-    { "name": "wall_t4", "w": 96, "h": 96, "priority": 4, "prompt": "pixel art wall section, force-field pylon with magenta shield glow", "out": "src/assets/wall_t4.png" },
-
-    { "name": "tile_grass", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, overgrown grass with ruined wires, seamless edges", "out": "src/assets/tile_grass.png" },
-    { "name": "tile_dirt", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, packed dirt path, seamless", "out": "src/assets/tile_dirt.png" },
-    { "name": "tile_ruin_rubble", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art overhead terrain tile, scattered broken concrete rubble with small rebar shards, calm and uniform, low detail, flat top-down, fills frame edge to edge, no vignette, no dark border at edges, seamless, crisp limited palette, black background", "out": "src/assets/tile_ruin_rubble.png" },
-    { "name": "tile_dead_tree", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art overhead object tile, large dead twisted tree centered and filling the frame, gnarled bare branches spreading to all edges, grass base, flat top-down, no vignette, no dark border at edges, crisp limited palette, black background", "out": "src/assets/tile_dead_tree.png" },
-    { "name": "tile_stream", "w": 64, "h": 64, "priority": 1, "prompt": "pixel art overhead terrain tile, calm flowing water stream, soft cyan-blue ripples, gentle current, no lightning, no neon, no glow, flat top-down, fills frame edge to edge, no vignette, no dark border at edges, seamless, crisp limited palette, black background", "out": "src/assets/tile_stream.png" },
-    { "name": "tile_cracked_road", "w": 32, "h": 32, "priority": 1, "prompt": "pixel art overhead terrain tile, cracked asphalt with yellow line, seamless", "out": "src/assets/tile_cracked_road.png" },
-
-    { "name": "tile_sand", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, rippled wasteland sand, seamless", "out": "src/assets/tile_sand.png" },
-    { "name": "tile_rust_patch", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, rust-stained ground with metal scraps", "out": "src/assets/tile_rust_patch.png" },
-    { "name": "tile_neon_cable", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead tile, glowing magenta cables laid across ground", "out": "src/assets/tile_neon_cable.png" },
-    { "name": "tile_barricade", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, concrete barricade with warning stripes", "out": "src/assets/tile_barricade.png" },
-    { "name": "tile_billboard", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, flickering neon billboard fragment", "out": "src/assets/tile_billboard.png" },
-    { "name": "tile_broken_highway", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, broken elevated highway segment", "out": "src/assets/tile_broken_highway.png" },
-
-    { "name": "tile_bio_moss", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, alien bio-moss with cyan veins, seamless", "out": "src/assets/tile_bio_moss.png" },
-    { "name": "tile_crystal_shard", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, jutting magenta crystal shard", "out": "src/assets/tile_crystal_shard.png" },
-    { "name": "tile_bio_pool", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead terrain tile, glowing green bio-pool, seamless", "out": "src/assets/tile_bio_pool.png" },
-    { "name": "tile_alien_tree", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, twisting alien tree with pink fronds", "out": "src/assets/tile_alien_tree.png" },
-    { "name": "tile_terraform_pipe", "w": 32, "h": 32, "priority": 4, "prompt": "pixel art overhead object tile, terraform pipe pumping green mist", "out": "src/assets/tile_terraform_pipe.png" },
-    { "name": "tile_growth_tile", "w": 64, "h": 64, "priority": 4, "bleed": 0.08, "prompt": "pixel art ground texture viewed from directly above, dense alien growth mat with bright magenta spore clusters and magenta vein network, the texture completely covers the entire canvas from corner to corner with no empty space, crisp limited palette", "out": "src/assets/tile_growth_tile.png" },
-
-    { "name": "city_haventide", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, coastal ruin port with pink neon docks and sailed salvage ships, dusk", "out": "src/assets/city_haventide.png" },
-    { "name": "city_emberline", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, desert trade hub with rust and brass towers, caravan banners", "out": "src/assets/city_emberline.png" },
-    { "name": "city_orbital_reach", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, ruined space-elevator base, cyan steel scaffolding piercing clouds", "out": "src/assets/city_orbital_reach.png" },
-    { "name": "city_last_crown", "w": 128, "h": 96, "priority": 1, "prompt": "pixel art city landmark, final megacity with magenta neon spires and floating platforms, ominous", "out": "src/assets/city_last_crown.png" },
-
-    { "name": "vfx_slash_trail", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, arcing magenta slash trail on black", "out": "src/assets/vfx_slash_trail.png" },
-    { "name": "vfx_burst", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, radial particle burst, white + cyan sparks on black", "out": "src/assets/vfx_burst.png" },
-    { "name": "vfx_shockwave", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, expanding shockwave ring, yellow/orange, on black", "out": "src/assets/vfx_shockwave.png" },
-    { "name": "vfx_timefreeze_pulse", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, concentric chrono-pulse rings in cyan, on black", "out": "src/assets/vfx_timefreeze_pulse.png" },
-    { "name": "vfx_flame", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, flickering orange flame puff on black", "out": "src/assets/vfx_flame.png" },
-    { "name": "vfx_ice_shard", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, cluster of cyan ice shards, on black", "out": "src/assets/vfx_ice_shard.png" },
-    { "name": "vfx_void_rift", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, tear in space with magenta edge and starfield interior, on black", "out": "src/assets/vfx_void_rift.png" },
-    { "name": "vfx_heal_sparkle", "w": 64, "h": 64, "priority": 2, "prompt": "pixel art battle VFX, green healing sparkles rising, on black", "out": "src/assets/vfx_heal_sparkle.png" },
-
-    { "name": "proj_pulse_bolt", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, magenta energy bolt with trailing fade, on black", "out": "src/assets/proj_pulse_bolt.png" },
-    { "name": "proj_chrono_shard", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, cyan crystalline shard with motion blur, on black", "out": "src/assets/proj_chrono_shard.png" },
-    { "name": "proj_drone_pellet", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, small yellow energy pellet, on black", "out": "src/assets/proj_drone_pellet.png" },
-    { "name": "proj_enemy_arrow", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, crude rust-iron arrow with feather, on black", "out": "src/assets/proj_enemy_arrow.png" },
-    { "name": "proj_void_lance", "w": 16, "h": 16, "priority": 2, "prompt": "pixel art projectile, elongated magenta lance with cyan core, on black", "out": "src/assets/proj_void_lance.png" },
-
-    { "name": "icon_food", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, stylized wheat bundle, warm colors, transparent bg", "out": "src/assets/icon_food.png" },
-    { "name": "icon_ore", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, chunky grey ore cluster with cyan crystal facet, transparent bg", "out": "src/assets/icon_ore.png" },
-    { "name": "icon_energy", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, yellow lightning bolt in a ring, transparent bg", "out": "src/assets/icon_energy.png" },
-    { "name": "icon_renown", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, magenta laurel wreath crown, transparent bg", "out": "src/assets/icon_renown.png" },
-    { "name": "icon_skill_point", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI icon, cyan star burst, transparent bg", "out": "src/assets/icon_skill_point.png" },
-
-    { "name": "icon_weapon", "w": 24, "h": 24, "priority": 3, "prompt": "pixel art UI icon, stylized sword silhouette on badge, transparent bg", "out": "src/assets/icon_weapon.png" },
-    { "name": "icon_armor", "w": 24, "h": 24, "priority": 3, "prompt": "pixel art UI icon, chestplate silhouette on badge, transparent bg", "out": "src/assets/icon_armor.png" },
-    { "name": "icon_accessory", "w": 24, "h": 24, "priority": 3, "prompt": "pixel art UI icon, amulet silhouette on badge, transparent bg", "out": "src/assets/icon_accessory.png" },
-
-    { "name": "icon_crit", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, exclamation star, magenta, transparent bg", "out": "src/assets/icon_crit.png" },
-    { "name": "icon_heal", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, green plus cross, transparent bg", "out": "src/assets/icon_heal.png" },
-    { "name": "icon_shield", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, cyan shield glyph, transparent bg", "out": "src/assets/icon_shield.png" },
-    { "name": "icon_buff", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, upward arrow on green ring, transparent bg", "out": "src/assets/icon_buff.png" },
-    { "name": "icon_debuff", "w": 24, "h": 24, "priority": 2, "prompt": "pixel art UI status icon, downward arrow on red ring, transparent bg", "out": "src/assets/icon_debuff.png" },
-
-    { "name": "tab_map", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, folded map glyph, transparent bg", "out": "src/assets/tab_map.png" },
-    { "name": "tab_party", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, three silhouetted heads, transparent bg", "out": "src/assets/tab_party.png" },
-    { "name": "tab_inventory", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, satchel with buckle, transparent bg", "out": "src/assets/tab_inventory.png" },
-    { "name": "tab_skills", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, branching node tree, transparent bg", "out": "src/assets/tab_skills.png" },
-    { "name": "tab_quests", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, scroll with checkmark, transparent bg", "out": "src/assets/tab_quests.png" },
-    { "name": "tab_save", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, floppy disk (retro), transparent bg", "out": "src/assets/tab_save.png" },
-    { "name": "tab_settings", "w": 24, "h": 24, "priority": 1, "prompt": "pixel art UI tab icon, gear cog, transparent bg", "out": "src/assets/tab_settings.png" }
+    {
+      "name": "kaida_overworld",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Kaida, young warrior, short swept magenta hair, cyan jacket, dark leggings, glowing magenta pulse-blade held low ready, mid-stride battle stance, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/kaida_overworld.png",
+      "tags": [
+        "kaida",
+        "heroes",
+        "overworld"
+      ]
+    },
+    {
+      "name": "vex_overworld",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Vex, tall hooded mystic in a dark cloak, cyan chrono-glyphs glowing on the hem, raising a chrono-staff crowned with a cyan orb, arcane casting stance, 3/4 overhead Zelda-style camera angle, deep purples and cyan glow, pure solid black background, crisp silhouette",
+      "out": "src/assets/vex_overworld.png",
+      "tags": [
+        "vex",
+        "heroes",
+        "overworld"
+      ]
+    },
+    {
+      "name": "rune_overworld",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Rune, stocky engineer with yellow-lensed goggles and a small antenna, mustard-yellow work rig with straps, swinging a forge-hammer, small hover-drone floating at the shoulder, 3/4 overhead Zelda-style camera angle, mustard rust and cyan palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/rune_overworld.png",
+      "tags": [
+        "rune",
+        "heroes",
+        "overworld"
+      ]
+    },
+    {
+      "name": "kaida_battle_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Kaida, young woman warrior, short swept magenta hair, cyan jacket dark leggings, glowing magenta pulse-blade held at ready, confident battle stance, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/kaida_battle_idle.png",
+      "tags": [
+        "kaida",
+        "heroes",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "vex_battle_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Vex, tall cloaked mystic, deep oversized hood hiding face in shadow, dark purple robe with glowing cyan runic hem, chrono-staff with cyan orb tip, ethereal hovering stance, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/vex_battle_idle.png",
+      "tags": [
+        "vex",
+        "heroes",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "rune_battle_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Rune, stocky engineer, cracked yellow goggles on forehead, mustard-yellow armored bodysuit with tool belt, small hover-drone on shoulder, heavy forge-hammer at side, wide grounded stance, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/rune_battle_idle.png",
+      "tags": [
+        "rune",
+        "heroes",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "kaida_battle_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Kaida, young woman warrior, short swept magenta hair, cyan jacket dark leggings, mid-slash with glowing magenta pulse-blade, dynamic lean forward, neon magenta motion trail, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/kaida_battle_attack.png",
+      "tags": [
+        "kaida",
+        "heroes",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "kaida_battle_cast",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Kaida, young woman warrior, short swept magenta hair, cyan jacket dark leggings, pulse-blade raised overhead channeling rift energy, cyan and magenta sparks radiating, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/kaida_battle_cast.png",
+      "tags": [
+        "kaida",
+        "heroes",
+        "battle",
+        "cast"
+      ]
+    },
+    {
+      "name": "kaida_battle_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Kaida, young woman warrior, short swept magenta hair, cyan jacket dark leggings, recoiling from hit arms thrown back, white flash on silhouette, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/kaida_battle_hurt.png",
+      "tags": [
+        "kaida",
+        "heroes",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "kaida_battle_victory",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Kaida, young woman warrior, short swept magenta hair, cyan jacket dark leggings, one arm raised holding glowing magenta pulse-blade triumphantly, victory smirk, magenta sparkles, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/kaida_battle_victory.png",
+      "tags": [
+        "kaida",
+        "heroes",
+        "battle",
+        "victory"
+      ]
+    },
+    {
+      "name": "vex_battle_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Vex, tall cloaked mystic, deep oversized hood hiding face, dark purple robe glowing cyan runic hem, swinging chrono-staff in wide arc, cyan energy trail, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/vex_battle_attack.png",
+      "tags": [
+        "vex",
+        "heroes",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "vex_battle_cast",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Vex, tall cloaked mystic, deep oversized hood hiding face, dark purple robe glowing cyan runic hem, both arms raised channeling void spell, floating cyan runes orbiting, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/vex_battle_cast.png",
+      "tags": [
+        "vex",
+        "heroes",
+        "battle",
+        "cast"
+      ]
+    },
+    {
+      "name": "vex_battle_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Vex, tall cloaked mystic, deep oversized hood hiding face, dark purple robe glowing cyan runic hem, staggering from hit, cloak flaring, glyphs scattering, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/vex_battle_hurt.png",
+      "tags": [
+        "vex",
+        "heroes",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "vex_battle_victory",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Vex, tall cloaked mystic, hood pulled back revealing glowing cyan eyes, dark purple robe runic hem, chrono-staff planted in ground, subtle cyan aura, serene victorious pose, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/vex_battle_victory.png",
+      "tags": [
+        "vex",
+        "heroes",
+        "battle",
+        "victory"
+      ]
+    },
+    {
+      "name": "rune_battle_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Rune, stocky engineer, cracked yellow goggles on forehead, mustard-yellow armored bodysuit tool belt, drone on shoulder, swinging forge-hammer overhead powerful downstrike, amber sparks flying, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/rune_battle_attack.png",
+      "tags": [
+        "rune",
+        "heroes",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "rune_battle_cast",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Rune, stocky engineer, cracked yellow goggles on forehead, mustard-yellow armored bodysuit tool belt, arm forward deploying small drones, yellow energy field expanding from palm, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/rune_battle_cast.png",
+      "tags": [
+        "rune",
+        "heroes",
+        "battle",
+        "cast"
+      ]
+    },
+    {
+      "name": "rune_battle_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Rune, stocky engineer, cracked yellow goggles on forehead, mustard-yellow armored bodysuit tool belt, stumbling backward from hit, goggles flashing, shoulder drone spinning out, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/rune_battle_hurt.png",
+      "tags": [
+        "rune",
+        "heroes",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "rune_battle_victory",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of Rune, stocky engineer, cracked yellow goggles on forehead, mustard-yellow armored bodysuit tool belt, broad grin thumbs-up, drone hovering above with yellow sparkles, forge-hammer resting on shoulder, facing right, pure solid black background, crisp silhouette",
+      "out": "src/assets/rune_battle_victory.png",
+      "tags": [
+        "rune",
+        "heroes",
+        "battle",
+        "victory"
+      ]
+    },
+    {
+      "name": "kaida_portrait",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game portrait bust of Kaida, young woman warrior, short swept magenta hair, confident smirk, cyan jacket collar, neon magenta highlights, pure solid black background",
+      "out": "src/assets/kaida_portrait.png",
+      "tags": [
+        "kaida",
+        "heroes",
+        "portraits"
+      ]
+    },
+    {
+      "name": "vex_portrait",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game portrait bust of Vex, tall cloaked mystic, face half-shadowed by deep hood, glowing cyan eyes, dark purple robe runic collar, pure solid black background",
+      "out": "src/assets/vex_portrait.png",
+      "tags": [
+        "vex",
+        "heroes",
+        "portraits"
+      ]
+    },
+    {
+      "name": "rune_portrait",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game portrait bust of Rune, stocky engineer, cracked yellow goggles pushed up on forehead, warm grin, drone peeking over shoulder, mustard-yellow rig collar, pure solid black background",
+      "out": "src/assets/rune_portrait.png",
+      "tags": [
+        "rune",
+        "heroes",
+        "portraits"
+      ]
+    },
+    {
+      "name": "rust_scrapper_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Rust Scrapper, hunched wasteland raider, patchwork rusted armor, jagged cleaver blade, scarred aggressive face, menacing hunched stance, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/rust_scrapper_idle.png",
+      "tags": [
+        "rust_scrapper",
+        "enemies",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "rust_scrapper_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Rust Scrapper, hunched wasteland raider, patchwork rusted armor, jagged cleaver blade, mid-cleave swing with rusty motion trail, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/rust_scrapper_attack.png",
+      "tags": [
+        "rust_scrapper",
+        "enemies",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "rust_scrapper_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Rust Scrapper, hunched wasteland raider, patchwork rusted armor, jagged cleaver blade, recoiling from hit white flash on silhouette, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/rust_scrapper_hurt.png",
+      "tags": [
+        "rust_scrapper",
+        "enemies",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "rust_scrapper_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Rust Scrapper, hunched wasteland raider, patchwork rusted armor, collapsing forward, dissolving into rust dust, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/rust_scrapper_death.png",
+      "tags": [
+        "rust_scrapper",
+        "enemies",
+        "battle",
+        "death"
+      ]
+    },
+    {
+      "name": "drone_sentinel_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Drone Sentinel, sleek hovering combat drone, chrome body with red glowing scanner eye, twin thruster jets, weapon pod mounted below, alert hovering pose, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/drone_sentinel_idle.png",
+      "tags": [
+        "drone_sentinel",
+        "enemies",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "drone_sentinel_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Drone Sentinel, sleek chrome combat drone, red scanner eye, twin thrusters, firing seeker missile from weapon pod, orange launch glow, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/drone_sentinel_attack.png",
+      "tags": [
+        "drone_sentinel",
+        "enemies",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "drone_sentinel_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Drone Sentinel, sleek chrome combat drone, red scanner eye, struck by damage, sparking and smoking, chassis cracked, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/drone_sentinel_hurt.png",
+      "tags": [
+        "drone_sentinel",
+        "enemies",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "drone_sentinel_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Drone Sentinel, sleek chrome combat drone, exploding in fiery shrapnel burst, debris flying outward, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/drone_sentinel_death.png",
+      "tags": [
+        "drone_sentinel",
+        "enemies",
+        "battle",
+        "death"
+      ]
+    },
+    {
+      "name": "mutant_hound_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mutant Hound, four-legged beast, exposed raw muscle tissue, cracked hide, glowing amber eyes, bared fangs, low crouched ready-to-pounce stance, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/mutant_hound_idle.png",
+      "tags": [
+        "mutant_hound",
+        "enemies",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "mutant_hound_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mutant Hound, four-legged beast, exposed raw muscle tissue, glowing amber eyes, leaping mid-pounce fangs wide open, claws extended, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/mutant_hound_attack.png",
+      "tags": [
+        "mutant_hound",
+        "enemies",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "mutant_hound_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mutant Hound, four-legged beast, exposed raw muscle tissue, glowing amber eyes, recoiling from hit yelping, white flash on body, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/mutant_hound_hurt.png",
+      "tags": [
+        "mutant_hound",
+        "enemies",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "mutant_hound_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mutant Hound, four-legged beast, exposed raw muscle tissue, glowing amber eyes fading, collapsing to the ground, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/mutant_hound_death.png",
+      "tags": [
+        "mutant_hound",
+        "enemies",
+        "battle",
+        "death"
+      ]
+    },
+    {
+      "name": "gravbot_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Gravbot, bulky heavy combat robot, thick dark-plated frame, projecting a wide glowing cyan energy shield on one arm, planted defensive stance, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/gravbot_idle.png",
+      "tags": [
+        "gravbot",
+        "enemies",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "gravbot_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Gravbot, bulky heavy combat robot, thick dark-plated frame, slamming cyan energy shield forward in a shockwave bash, impact ripple, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/gravbot_attack.png",
+      "tags": [
+        "gravbot",
+        "enemies",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "gravbot_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Gravbot, bulky heavy combat robot, thick dark-plated frame, staggering from damage, cyan shield arm flickering and sparking, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/gravbot_hurt.png",
+      "tags": [
+        "gravbot",
+        "enemies",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "gravbot_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Gravbot, bulky heavy combat robot, thick dark-plated frame, collapsing and breaking apart in heavy chunks, cyan shield shattering, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/gravbot_death.png",
+      "tags": [
+        "gravbot",
+        "enemies",
+        "battle",
+        "death"
+      ]
+    },
+    {
+      "name": "neon_cultist_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Neon Cultist, robed cult caster, deep hood up, flowing bright pink neon robes with glowing glyph patterns, hands raised with pink energy forming, menacing stance, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/neon_cultist_idle.png",
+      "tags": [
+        "neon_cultist",
+        "enemies",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "neon_cultist_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Neon Cultist, robed cult caster, deep hood up, flowing bright pink neon robes with glyph patterns, arms thrust forward casting a curse, pink energy burst erupting, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/neon_cultist_attack.png",
+      "tags": [
+        "neon_cultist",
+        "enemies",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "neon_cultist_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Neon Cultist, robed cult caster, deep hood up, flowing bright pink neon robes with glyph patterns, struck by damage, robes billowing and glyphs scattering, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/neon_cultist_hurt.png",
+      "tags": [
+        "neon_cultist",
+        "enemies",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "neon_cultist_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Neon Cultist, robed cult caster, deep hood up, flowing bright pink neon robes, dissolving into swirling pink light motes, body fading, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/neon_cultist_death.png",
+      "tags": [
+        "neon_cultist",
+        "enemies",
+        "battle",
+        "death"
+      ]
+    },
+    {
+      "name": "sandworm_hatchling_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Sandworm Hatchling, small segmented worm, sandy amber scales, wide circular maw lined with jagged teeth, coiled upright ready to strike, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/sandworm_hatchling_idle.png",
+      "tags": [
+        "sandworm_hatchling",
+        "enemies",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "sandworm_hatchling_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Sandworm Hatchling, small segmented worm, sandy amber scales, wide circular maw, lunging forward with mouth gaping, sand particles spraying, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/sandworm_hatchling_attack.png",
+      "tags": [
+        "sandworm_hatchling",
+        "enemies",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "sandworm_hatchling_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Sandworm Hatchling, small segmented worm, sandy amber scales, wide circular maw, recoiling head thrashing in pain, white flash on body, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/sandworm_hatchling_hurt.png",
+      "tags": [
+        "sandworm_hatchling",
+        "enemies",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "sandworm_hatchling_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Sandworm Hatchling, small segmented worm, sandy amber scales, collapsing limp, dissolving into amber dust motes, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/sandworm_hatchling_death.png",
+      "tags": [
+        "sandworm_hatchling",
+        "enemies",
+        "battle",
+        "death"
+      ]
+    },
+    {
+      "name": "wraith_core_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Wraith Core, floating translucent dark-purple ghost figure, bright magenta glowing orb core at chest, wispy trailing tendrils, ominous hovering stance, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/wraith_core_idle.png",
+      "tags": [
+        "wraith_core",
+        "enemies",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "wraith_core_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Wraith Core, floating translucent dark-purple ghost figure, magenta glowing orb core, lunging forward claws extended, purple phase-blur trail, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/wraith_core_attack.png",
+      "tags": [
+        "wraith_core",
+        "enemies",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "wraith_core_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Wraith Core, floating translucent dark-purple ghost figure, magenta glowing orb core flickering and cracking, body fracturing into fragments, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/wraith_core_hurt.png",
+      "tags": [
+        "wraith_core",
+        "enemies",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "wraith_core_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Wraith Core, translucent dark-purple ghost figure imploding, magenta orb core collapsing to single bright point, purple wisps scattering, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/wraith_core_death.png",
+      "tags": [
+        "wraith_core",
+        "enemies",
+        "battle",
+        "death"
+      ]
+    },
+    {
+      "name": "architect_herald_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Architect Herald, tall imposing humanoid, sleek chrome and dark-indigo plated armor, glowing cyan circular halo behind head, crackling cyan energy lance in hand, authoritative upright stance, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/architect_herald_idle.png",
+      "tags": [
+        "architect_herald",
+        "enemies",
+        "battle",
+        "idle"
+      ]
+    },
+    {
+      "name": "architect_herald_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Architect Herald, tall imposing humanoid, chrome and dark-indigo plated armor, cyan halo glowing, arm raised summoning orbital strike, thick cyan beam descending, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/architect_herald_attack.png",
+      "tags": [
+        "architect_herald",
+        "enemies",
+        "battle",
+        "attack"
+      ]
+    },
+    {
+      "name": "architect_herald_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Architect Herald, tall imposing humanoid, chrome and dark-indigo plated armor cracking and sparking, cyan halo flickering and fragmenting, staggering pose, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/architect_herald_hurt.png",
+      "tags": [
+        "architect_herald",
+        "enemies",
+        "battle",
+        "hurt"
+      ]
+    },
+    {
+      "name": "architect_herald_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Architect Herald, tall imposing humanoid, chrome and dark-indigo armor shattering apart, cyan halo exploding into shards of light, body fragmenting in dramatic burst, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/architect_herald_death.png",
+      "tags": [
+        "architect_herald",
+        "enemies",
+        "battle",
+        "death"
+      ]
+    },
+    {
+      "name": "void_architect_p1",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Void Architect phase 1, towering cloaked cosmic figure, dark cloak with visible starfield swirling inside silhouette, bright magenta orb core at chest, arms wide, overwhelming presence, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/void_architect_p1.png",
+      "tags": [
+        "void_architect",
+        "enemies",
+        "battle",
+        "p1"
+      ]
+    },
+    {
+      "name": "void_architect_p2",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Void Architect phase 2, towering cosmic figure, cloak torn open revealing fractal clockwork machinery inside, magenta and cyan dual core exposed, hands crackling with energy, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/void_architect_p2.png",
+      "tags": [
+        "void_architect",
+        "enemies",
+        "battle",
+        "p2"
+      ]
+    },
+    {
+      "name": "void_architect_p3",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Void Architect phase 3, pure energy being, humanoid silhouette made entirely of swirling magenta cyan and amber yellow light, volatile storm of particles, final form, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/void_architect_p3.png",
+      "tags": [
+        "void_architect",
+        "enemies",
+        "battle",
+        "p3"
+      ]
+    },
+    {
+      "name": "rust_scrapper_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Rust Scrapper, hunched wasteland raider, patchwork rusted armor, jagged cleaver blade, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/rust_scrapper_ow.png",
+      "tags": [
+        "rust_scrapper",
+        "enemies",
+        "overworld"
+      ]
+    },
+    {
+      "name": "drone_sentinel_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Drone Sentinel, sleek hovering chrome combat drone, red glowing scanner eye, twin thrusters, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/drone_sentinel_ow.png",
+      "tags": [
+        "drone_sentinel",
+        "enemies",
+        "overworld"
+      ]
+    },
+    {
+      "name": "mutant_hound_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mutant Hound, four-legged beast, exposed raw muscle tissue, glowing amber eyes, crouched predator stance, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/mutant_hound_ow.png",
+      "tags": [
+        "mutant_hound",
+        "enemies",
+        "overworld"
+      ]
+    },
+    {
+      "name": "gravbot_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Gravbot, bulky heavy combat robot, dark plated frame, projected cyan energy shield on one arm, planted stance, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/gravbot_ow.png",
+      "tags": [
+        "gravbot",
+        "enemies",
+        "overworld"
+      ]
+    },
+    {
+      "name": "neon_cultist_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Neon Cultist, robed cult caster, deep hood up, bright pink neon robes with glowing glyph patterns, hands raised, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/neon_cultist_ow.png",
+      "tags": [
+        "neon_cultist",
+        "enemies",
+        "overworld"
+      ]
+    },
+    {
+      "name": "sandworm_hatchling_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Sandworm Hatchling, small segmented sandy amber worm, wide circular maw, coiled upright emerging from ground, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/sandworm_hatchling_ow.png",
+      "tags": [
+        "sandworm_hatchling",
+        "enemies",
+        "overworld"
+      ]
+    },
+    {
+      "name": "wraith_core_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Wraith Core, floating translucent dark-purple ghost figure, bright magenta glowing orb core at chest, wispy tendrils, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/wraith_core_ow.png",
+      "tags": [
+        "wraith_core",
+        "enemies",
+        "overworld"
+      ]
+    },
+    {
+      "name": "architect_herald_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Architect Herald, tall imposing humanoid, chrome and dark-indigo armor, glowing cyan circular halo behind head, energy lance in hand, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/architect_herald_ow.png",
+      "tags": [
+        "architect_herald",
+        "enemies",
+        "overworld"
+      ]
+    },
+    {
+      "name": "town_center_t1",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art isometric-ish building, survivor-era town center, scrap wood and salvaged metal hut with chimney smoke",
+      "out": "src/assets/town_center_t1.png",
+      "tags": [
+        "buildings",
+        "town_center"
+      ]
+    },
+    {
+      "name": "town_center_t2",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, reclaimer-era town center, reinforced walls with cyan banner, larger than t1",
+      "out": "src/assets/town_center_t2.png",
+      "tags": [
+        "buildings",
+        "town_center"
+      ]
+    },
+    {
+      "name": "town_center_t3",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, ascendant-era town center, polished alloy with neon trim, two stories",
+      "out": "src/assets/town_center_t3.png",
+      "tags": [
+        "buildings",
+        "town_center"
+      ]
+    },
+    {
+      "name": "town_center_t4",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, transcendent-era town center, spire with magenta neon and antenna, imposing",
+      "out": "src/assets/town_center_t4.png",
+      "tags": [
+        "buildings",
+        "town_center"
+      ]
+    },
+    {
+      "name": "farm_t1",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, survivor-era farm, tilled dirt rows and a scarecrow",
+      "out": "src/assets/farm_t1.png",
+      "tags": [
+        "buildings",
+        "farm"
+      ]
+    },
+    {
+      "name": "farm_t2",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, reclaimer-era farm, greenhouse dome with green glow",
+      "out": "src/assets/farm_t2.png",
+      "tags": [
+        "buildings",
+        "farm"
+      ]
+    },
+    {
+      "name": "farm_t3",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, ascendant-era hydroponic farm, stacked trays with cyan grow-lights",
+      "out": "src/assets/farm_t3.png",
+      "tags": [
+        "buildings",
+        "farm"
+      ]
+    },
+    {
+      "name": "farm_t4",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, transcendent-era bio-reactor farm, crystalline dome with swirling green energy",
+      "out": "src/assets/farm_t4.png",
+      "tags": [
+        "buildings",
+        "farm"
+      ]
+    },
+    {
+      "name": "mine_t1",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, survivor-era mine, wooden shaft with minecart",
+      "out": "src/assets/mine_t1.png",
+      "tags": [
+        "buildings",
+        "mine"
+      ]
+    },
+    {
+      "name": "mine_t2",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, reclaimer-era mine, reinforced metal shaft, conveyor",
+      "out": "src/assets/mine_t2.png",
+      "tags": [
+        "buildings",
+        "mine"
+      ]
+    },
+    {
+      "name": "mine_t3",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, ascendant-era mine, auto-drilling rig with cyan lights",
+      "out": "src/assets/mine_t3.png",
+      "tags": [
+        "buildings",
+        "mine"
+      ]
+    },
+    {
+      "name": "mine_t4",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, transcendent-era mine, gravity well extractor with floating ore chunks",
+      "out": "src/assets/mine_t4.png",
+      "tags": [
+        "buildings",
+        "mine"
+      ]
+    },
+    {
+      "name": "energy_extractor_t1",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, survivor-era energy extractor, makeshift wind turbine on scrap tower",
+      "out": "src/assets/energy_extractor_t1.png",
+      "tags": [
+        "buildings",
+        "energy_extractor"
+      ]
+    },
+    {
+      "name": "energy_extractor_t2",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, reclaimer-era solar array on steel frame, cyan panels",
+      "out": "src/assets/energy_extractor_t2.png",
+      "tags": [
+        "buildings",
+        "energy_extractor"
+      ]
+    },
+    {
+      "name": "energy_extractor_t3",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, ascendant-era fusion pylon, glowing yellow core",
+      "out": "src/assets/energy_extractor_t3.png",
+      "tags": [
+        "buildings",
+        "energy_extractor"
+      ]
+    },
+    {
+      "name": "energy_extractor_t4",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, transcendent-era zero-point reactor, floating crystal in a containment ring",
+      "out": "src/assets/energy_extractor_t4.png",
+      "tags": [
+        "buildings",
+        "energy_extractor"
+      ]
+    },
+    {
+      "name": "barracks_t1",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, survivor barracks, scrap-wood bunkhouse with training dummy",
+      "out": "src/assets/barracks_t1.png",
+      "tags": [
+        "buildings",
+        "barracks"
+      ]
+    },
+    {
+      "name": "barracks_t2",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, reclaimer barracks, armored bunker with flag",
+      "out": "src/assets/barracks_t2.png",
+      "tags": [
+        "buildings",
+        "barracks"
+      ]
+    },
+    {
+      "name": "barracks_t3",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, ascendant barracks, tech training hall with holo-targets",
+      "out": "src/assets/barracks_t3.png",
+      "tags": [
+        "buildings",
+        "barracks"
+      ]
+    },
+    {
+      "name": "barracks_t4",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, transcendent barracks, elite academy with neon banners",
+      "out": "src/assets/barracks_t4.png",
+      "tags": [
+        "buildings",
+        "barracks"
+      ]
+    },
+    {
+      "name": "forge_t1",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, survivor forge, open-air smithy with anvil and flame",
+      "out": "src/assets/forge_t1.png",
+      "tags": [
+        "buildings",
+        "forge"
+      ]
+    },
+    {
+      "name": "forge_t2",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, reclaimer forge, stone furnace with chimney",
+      "out": "src/assets/forge_t2.png",
+      "tags": [
+        "buildings",
+        "forge"
+      ]
+    },
+    {
+      "name": "forge_t3",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, ascendant forge, laser-cutter workshop, cyan glow",
+      "out": "src/assets/forge_t3.png",
+      "tags": [
+        "buildings",
+        "forge"
+      ]
+    },
+    {
+      "name": "forge_t4",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, transcendent forge, plasma-reactor smithy with orbital gear",
+      "out": "src/assets/forge_t4.png",
+      "tags": [
+        "buildings",
+        "forge"
+      ]
+    },
+    {
+      "name": "research_lab_t1",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, survivor research shack, blackboard and salvaged books",
+      "out": "src/assets/research_lab_t1.png",
+      "tags": [
+        "buildings",
+        "research_lab"
+      ]
+    },
+    {
+      "name": "research_lab_t2",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, reclaimer research lab, reinforced with satellite dish",
+      "out": "src/assets/research_lab_t2.png",
+      "tags": [
+        "buildings",
+        "research_lab"
+      ]
+    },
+    {
+      "name": "research_lab_t3",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, ascendant lab, holo-projector dome, floating data shards",
+      "out": "src/assets/research_lab_t3.png",
+      "tags": [
+        "buildings",
+        "research_lab"
+      ]
+    },
+    {
+      "name": "research_lab_t4",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art building, transcendent lab, crystalline research spire with orbiting rings",
+      "out": "src/assets/research_lab_t4.png",
+      "tags": [
+        "buildings",
+        "research_lab"
+      ]
+    },
+    {
+      "name": "wall_t1",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art wall section, wood-plank palisade with spiked top",
+      "out": "src/assets/wall_t1.png",
+      "tags": [
+        "buildings",
+        "wall"
+      ]
+    },
+    {
+      "name": "wall_t2",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art wall section, riveted steel barricade",
+      "out": "src/assets/wall_t2.png",
+      "tags": [
+        "buildings",
+        "wall"
+      ]
+    },
+    {
+      "name": "wall_t3",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art wall section, alloy wall with cyan energy seam",
+      "out": "src/assets/wall_t3.png",
+      "tags": [
+        "buildings",
+        "wall"
+      ]
+    },
+    {
+      "name": "wall_t4",
+      "w": 96,
+      "h": 96,
+      "prompt": "pixel art wall section, force-field pylon with magenta shield glow",
+      "out": "src/assets/wall_t4.png",
+      "tags": [
+        "buildings",
+        "wall"
+      ]
+    },
+    {
+      "name": "tile_grass",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead terrain tile, overgrown grass with ruined wires, seamless edges",
+      "out": "src/assets/tile_grass.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_dirt",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead terrain tile, packed dirt path, seamless",
+      "out": "src/assets/tile_dirt.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_ruin_rubble",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art overhead terrain tile, scattered broken concrete rubble with small rebar shards, calm and uniform, low detail, flat top-down, fills frame edge to edge, no vignette, no dark border at edges, seamless, crisp limited palette, black background",
+      "out": "src/assets/tile_ruin_rubble.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_dead_tree",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art overhead object tile, large dead twisted tree centered and filling the frame, gnarled bare branches spreading to all edges, grass base, flat top-down, no vignette, no dark border at edges, crisp limited palette, black background",
+      "out": "src/assets/tile_dead_tree.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_stream",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art overhead terrain tile, calm flowing water stream, soft cyan-blue ripples, gentle current, no lightning, no neon, no glow, flat top-down, fills frame edge to edge, no vignette, no dark border at edges, seamless, crisp limited palette, black background",
+      "out": "src/assets/tile_stream.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_cracked_road",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead terrain tile, cracked asphalt with yellow line, seamless",
+      "out": "src/assets/tile_cracked_road.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_sand",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead terrain tile, rippled wasteland sand, seamless",
+      "out": "src/assets/tile_sand.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_rust_patch",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead terrain tile, rust-stained ground with metal scraps",
+      "out": "src/assets/tile_rust_patch.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_neon_cable",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead tile, glowing magenta cables laid across ground",
+      "out": "src/assets/tile_neon_cable.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_barricade",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead object tile, concrete barricade with warning stripes",
+      "out": "src/assets/tile_barricade.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_billboard",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead object tile, flickering neon billboard fragment",
+      "out": "src/assets/tile_billboard.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_broken_highway",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead terrain tile, broken elevated highway segment",
+      "out": "src/assets/tile_broken_highway.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_bio_moss",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead terrain tile, alien bio-moss with cyan veins, seamless",
+      "out": "src/assets/tile_bio_moss.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_crystal_shard",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead object tile, jutting magenta crystal shard",
+      "out": "src/assets/tile_crystal_shard.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_bio_pool",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead terrain tile, glowing green bio-pool, seamless",
+      "out": "src/assets/tile_bio_pool.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_alien_tree",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead object tile, twisting alien tree with pink fronds",
+      "out": "src/assets/tile_alien_tree.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_terraform_pipe",
+      "w": 32,
+      "h": 32,
+      "prompt": "pixel art overhead object tile, terraform pipe pumping green mist",
+      "out": "src/assets/tile_terraform_pipe.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "tile_growth_tile",
+      "w": 128,
+      "h": 128,
+      "bleed": 0.08,
+      "prompt": "pixel art ground texture viewed from directly above, dense alien growth mat with bright magenta spore clusters and magenta vein network, the texture completely covers the entire canvas from corner to corner with no empty space, crisp limited palette",
+      "out": "src/assets/tile_growth_tile.png",
+      "tags": [
+        "tiles"
+      ]
+    },
+    {
+      "name": "city_haventide",
+      "w": 128,
+      "h": 96,
+      "prompt": "painterly game landmark of Haventide, coastal ruin port, pink neon docks and salvaged sails, weathered aqua and magenta palette, overhead view, pure solid black background, crisp silhouette",
+      "out": "src/assets/city_haventide.png",
+      "tags": [
+        "cities"
+      ]
+    },
+    {
+      "name": "city_emberline",
+      "w": 128,
+      "h": 96,
+      "prompt": "painterly game landmark of Emberline, desert trade hub, rust and brass towers with caravan banners, amber and burnt-orange palette, overhead view, pure solid black background, crisp silhouette",
+      "out": "src/assets/city_emberline.png",
+      "tags": [
+        "cities"
+      ]
+    },
+    {
+      "name": "city_orbital_reach",
+      "w": 128,
+      "h": 96,
+      "prompt": "painterly game landmark of Orbital Reach, ruined space-elevator base, cyan steel scaffolding piercing upward, cold steel and cyan palette, overhead view, pure solid black background, crisp silhouette",
+      "out": "src/assets/city_orbital_reach.png",
+      "tags": [
+        "cities"
+      ]
+    },
+    {
+      "name": "city_last_crown",
+      "w": 128,
+      "h": 96,
+      "prompt": "painterly game landmark of Last Crown, final megacity, magenta neon spires and floating platforms, deep violet and magenta palette, overhead view, pure solid black background, crisp silhouette",
+      "out": "src/assets/city_last_crown.png",
+      "tags": [
+        "cities"
+      ]
+    },
+    {
+      "name": "vfx_slash_trail",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art battle VFX, arcing magenta slash trail on black",
+      "out": "src/assets/vfx_slash_trail.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "vfx_burst",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art battle VFX, radial particle burst, white + cyan sparks on black",
+      "out": "src/assets/vfx_burst.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "vfx_shockwave",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art battle VFX, expanding shockwave ring, yellow/orange, on black",
+      "out": "src/assets/vfx_shockwave.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "vfx_timefreeze_pulse",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art battle VFX, concentric chrono-pulse rings in cyan, on black",
+      "out": "src/assets/vfx_timefreeze_pulse.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "vfx_flame",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art battle VFX, flickering orange flame puff on black",
+      "out": "src/assets/vfx_flame.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "vfx_ice_shard",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art battle VFX, cluster of cyan ice shards, on black",
+      "out": "src/assets/vfx_ice_shard.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "vfx_void_rift",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art battle VFX, tear in space with magenta edge and starfield interior, on black",
+      "out": "src/assets/vfx_void_rift.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "vfx_heal_sparkle",
+      "w": 128,
+      "h": 128,
+      "prompt": "pixel art battle VFX, green healing sparkles rising, on black",
+      "out": "src/assets/vfx_heal_sparkle.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "proj_pulse_bolt",
+      "w": 16,
+      "h": 16,
+      "prompt": "pixel art projectile, magenta energy bolt with trailing fade, on black",
+      "out": "src/assets/proj_pulse_bolt.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "proj_chrono_shard",
+      "w": 16,
+      "h": 16,
+      "prompt": "pixel art projectile, cyan crystalline shard with motion blur, on black",
+      "out": "src/assets/proj_chrono_shard.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "proj_drone_pellet",
+      "w": 16,
+      "h": 16,
+      "prompt": "pixel art projectile, small yellow energy pellet, on black",
+      "out": "src/assets/proj_drone_pellet.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "proj_enemy_arrow",
+      "w": 16,
+      "h": 16,
+      "prompt": "pixel art projectile, crude rust-iron arrow with feather, on black",
+      "out": "src/assets/proj_enemy_arrow.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "proj_void_lance",
+      "w": 16,
+      "h": 16,
+      "prompt": "pixel art projectile, elongated magenta lance with cyan core, on black",
+      "out": "src/assets/proj_void_lance.png",
+      "tags": [
+        "vfx"
+      ]
+    },
+    {
+      "name": "icon_food",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI icon, stylized wheat bundle, warm colors, transparent bg",
+      "out": "src/assets/icon_food.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_ore",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI icon, chunky grey ore cluster with cyan crystal facet, transparent bg",
+      "out": "src/assets/icon_ore.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_energy",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI icon, yellow lightning bolt in a ring, transparent bg",
+      "out": "src/assets/icon_energy.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_renown",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI icon, magenta laurel wreath crown, transparent bg",
+      "out": "src/assets/icon_renown.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_skill_point",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI icon, cyan star burst, transparent bg",
+      "out": "src/assets/icon_skill_point.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_weapon",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI icon, stylized sword silhouette on badge, transparent bg",
+      "out": "src/assets/icon_weapon.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_armor",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI icon, chestplate silhouette on badge, transparent bg",
+      "out": "src/assets/icon_armor.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_accessory",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI icon, amulet silhouette on badge, transparent bg",
+      "out": "src/assets/icon_accessory.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_crit",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI status icon, exclamation star, magenta, transparent bg",
+      "out": "src/assets/icon_crit.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_heal",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI status icon, green plus cross, transparent bg",
+      "out": "src/assets/icon_heal.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_shield",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI status icon, cyan shield glyph, transparent bg",
+      "out": "src/assets/icon_shield.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_buff",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI status icon, upward arrow on green ring, transparent bg",
+      "out": "src/assets/icon_buff.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "icon_debuff",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI status icon, downward arrow on red ring, transparent bg",
+      "out": "src/assets/icon_debuff.png",
+      "tags": [
+        "icons",
+        "ui"
+      ]
+    },
+    {
+      "name": "tab_map",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI tab icon, folded map glyph, transparent bg",
+      "out": "src/assets/tab_map.png",
+      "tags": [
+        "ui"
+      ]
+    },
+    {
+      "name": "tab_party",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI tab icon, three silhouetted heads, transparent bg",
+      "out": "src/assets/tab_party.png",
+      "tags": [
+        "ui"
+      ]
+    },
+    {
+      "name": "tab_inventory",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI tab icon, satchel with buckle, transparent bg",
+      "out": "src/assets/tab_inventory.png",
+      "tags": [
+        "ui"
+      ]
+    },
+    {
+      "name": "tab_skills",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI tab icon, branching node tree, transparent bg",
+      "out": "src/assets/tab_skills.png",
+      "tags": [
+        "ui"
+      ]
+    },
+    {
+      "name": "tab_quests",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI tab icon, scroll with checkmark, transparent bg",
+      "out": "src/assets/tab_quests.png",
+      "tags": [
+        "ui"
+      ]
+    },
+    {
+      "name": "tab_save",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI tab icon, floppy disk (retro), transparent bg",
+      "out": "src/assets/tab_save.png",
+      "tags": [
+        "ui"
+      ]
+    },
+    {
+      "name": "tab_settings",
+      "w": 24,
+      "h": 24,
+      "prompt": "pixel art UI tab icon, gear cog, transparent bg",
+      "out": "src/assets/tab_settings.png",
+      "tags": [
+        "ui"
+      ]
+    },
+    {
+      "name": "bog_stalker_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a crouched bog-raider in mud-caked hide and reed wrappings, bone-knife raised mid-stab, 3/4 overhead Zelda-style camera angle, peat brown and moss green palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/bog_stalker_ow.png",
+      "tags": [
+        "bog_stalker",
+        "enemies",
+        "overworld",
+        "t1"
+      ]
+    },
+    {
+      "name": "slag_rat_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a small rangy ember rodent, charcoal fur, glowing orange cracks along its spine, molten-tipped tail, hunched scavenger pose, 3/4 overhead Zelda-style camera angle, black and ember-orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/slag_rat_ow.png",
+      "tags": [
+        "slag_rat",
+        "enemies",
+        "overworld",
+        "t1"
+      ]
+    },
+    {
+      "name": "mire_hulk_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a tall hunched swamp brute draped in hanging moss and peat, thick matted shoulders, exposed sickly green muscle, arms raised to slam, 3/4 overhead Zelda-style camera angle, deep moss-green and muddy brown palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_hulk_ow.png",
+      "tags": [
+        "mire_hulk",
+        "enemies",
+        "overworld",
+        "t2"
+      ]
+    },
+    {
+      "name": "glacier_wolf_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a four-legged glacier wolf, thick frost-white fur with pale-blue ice shards along the spine, glowing pale-cyan eyes, mid-lunge pounce stance, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/glacier_wolf_ow.png",
+      "tags": [
+        "glacier_wolf",
+        "enemies",
+        "overworld",
+        "t2"
+      ]
+    },
+    {
+      "name": "ember_golem_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a hulking stone golem with glowing orange lava cracks across its body, heavy rocky shoulders, boulder-fists clenched, planted combat stance, 3/4 overhead Zelda-style camera angle, charcoal and molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_golem_ow.png",
+      "tags": [
+        "ember_golem",
+        "enemies",
+        "overworld",
+        "t3"
+      ]
+    },
+    {
+      "name": "frost_revenant_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a gaunt armored revenant, pale-blue ice-crusted plate, tattered frost-cloak, glowing cyan eye-slits, frost-blade raised to strike, 3/4 overhead Zelda-style camera angle, pale blue and frosted silver palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_revenant_ow.png",
+      "tags": [
+        "frost_revenant",
+        "enemies",
+        "overworld",
+        "t3"
+      ]
+    },
+    {
+      "name": "mire_warden_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a tall hooded swamp shaman in layered moss-robes, bone-totem staff crackling with sickly green wisps, glowing cyan glyphs on the hem, menacing upright stance, 3/4 overhead Zelda-style camera angle, murky green and sickly cyan palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_warden_ow.png",
+      "tags": [
+        "mire_warden",
+        "enemies",
+        "overworld",
+        "t4"
+      ]
+    },
+    {
+      "name": "magma_behemoth_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a massive quadrupedal lava beast, obsidian plated hide with deep glowing orange molten seams, flame-maned shoulders, heavy charging stance, 3/4 overhead Zelda-style camera angle, near-black and bright molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/magma_behemoth_ow.png",
+      "tags": [
+        "magma_behemoth",
+        "enemies",
+        "overworld",
+        "t4"
+      ]
+    },
+    {
+      "name": "frost_colossus_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a towering ice titan built of fused glacial shards, crystalline plated shoulders, massive ice-blade held overhead, faint pale-cyan glow from within, imposing upright stance, 3/4 overhead Zelda-style camera angle, pale-blue ice and frost-white palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_colossus_ow.png",
+      "tags": [
+        "frost_colossus",
+        "enemies",
+        "overworld",
+        "t5"
+      ]
+    },
+    {
+      "name": "ember_lord_ow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a regal magma avatar, obsidian armor cracked with blinding orange light, crown of jagged molten spikes, flame-cape trailing, one molten-blade extended in command, imposing upright stance, 3/4 overhead Zelda-style camera angle, near-black and blinding molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_lord_ow.png",
+      "tags": [
+        "ember_lord",
+        "enemies",
+        "overworld",
+        "t5"
+      ]
+    },
+    {
+      "name": "bog_stalker_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Bog Stalker, crouched swamp raider, mud-caked hide armor and reed wrappings, bone-knife in hand, menacing ready stance, facing left, peat brown and moss green palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/bog_stalker_idle.png",
+      "tags": [
+        "bog_stalker",
+        "enemies",
+        "battle",
+        "idle",
+        "t1"
+      ]
+    },
+    {
+      "name": "slag_rat_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a small rangy ember rodent, charcoal fur, glowing orange cracks along its spine, molten-tipped tail, body turned and scampering to the left, 3/4 overhead Zelda-style camera angle, black and ember-orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/slag_rat_idle.png",
+      "tags": [
+        "slag_rat",
+        "enemies",
+        "battle",
+        "idle",
+        "t1"
+      ]
+    },
+    {
+      "name": "mire_hulk_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a tall hunched swamp brute draped in hanging moss and peat, thick matted shoulders, exposed sickly green muscle, body turned and slamming arms forward to the left, 3/4 overhead Zelda-style camera angle, deep moss-green and muddy brown palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_hulk_idle.png",
+      "tags": [
+        "mire_hulk",
+        "enemies",
+        "battle",
+        "idle",
+        "t2"
+      ]
+    },
+    {
+      "name": "glacier_wolf_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a four-legged glacier wolf, thick frost-white fur with pale-blue ice shards along the spine, glowing pale-cyan eyes, body turned and mid-lunge pouncing to the left, 3/4 overhead Zelda-style camera angle, pure solid black background, crisp silhouette",
+      "out": "src/assets/glacier_wolf_idle.png",
+      "tags": [
+        "glacier_wolf",
+        "enemies",
+        "battle",
+        "idle",
+        "t2"
+      ]
+    },
+    {
+      "name": "ember_golem_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a hulking stone golem with glowing orange lava cracks across its body, heavy rocky shoulders, body turned and striding to the left with boulder-fist cocked back, 3/4 overhead Zelda-style camera angle, charcoal and molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_golem_idle.png",
+      "tags": [
+        "ember_golem",
+        "enemies",
+        "battle",
+        "idle",
+        "t3"
+      ]
+    },
+    {
+      "name": "frost_revenant_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a gaunt armored revenant, pale-blue ice-crusted plate, tattered frost-cloak, glowing cyan eye-slits, frost-blade raised for a strike, body turned and lunging to the left, 3/4 overhead Zelda-style camera angle, pale blue and frosted silver palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_revenant_idle.png",
+      "tags": [
+        "frost_revenant",
+        "enemies",
+        "battle",
+        "idle",
+        "t3"
+      ]
+    },
+    {
+      "name": "mire_warden_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a tall hooded swamp shaman in layered moss-robes, bone-totem staff thrust forward crackling with sickly green wisps, glowing cyan glyphs on the hem, body turned and casting to the left, 3/4 overhead Zelda-style camera angle, murky green and sickly cyan palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_warden_idle.png",
+      "tags": [
+        "mire_warden",
+        "enemies",
+        "battle",
+        "idle",
+        "t4"
+      ]
+    },
+    {
+      "name": "magma_behemoth_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a massive quadrupedal lava beast, obsidian plated hide with deep glowing orange molten seams, flame-maned shoulders, body turned and charging to the left, 3/4 overhead Zelda-style camera angle, near-black and bright molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/magma_behemoth_idle.png",
+      "tags": [
+        "magma_behemoth",
+        "enemies",
+        "battle",
+        "idle",
+        "t4"
+      ]
+    },
+    {
+      "name": "frost_colossus_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a towering ice titan built of fused glacial shards, crystalline plated shoulders, massive ice-blade swung overhead, faint pale-cyan glow from within, body turned and advancing to the left, 3/4 overhead Zelda-style camera angle, pale-blue ice and frost-white palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_colossus_idle.png",
+      "tags": [
+        "frost_colossus",
+        "enemies",
+        "battle",
+        "idle",
+        "t5"
+      ]
+    },
+    {
+      "name": "ember_lord_idle",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a regal magma avatar, obsidian armor cracked with blinding orange light, crown of jagged molten spikes, flame-cape trailing, molten-blade extended in a commanding forward thrust, body turned and advancing to the left, 3/4 overhead Zelda-style camera angle, near-black and blinding molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_lord_idle.png",
+      "tags": [
+        "ember_lord",
+        "enemies",
+        "battle",
+        "idle",
+        "t5"
+      ]
+    },
+    {
+      "name": "icon_bog_fang",
+      "w": 64,
+      "h": 64,
+      "prompt": "painterly JRPG inventory icon of a curved single-edged DAGGER with a fang-shaped blade, bone-colored blade dripping green venom, bound leather grip, swamp-green and chartreuse palette, clearly readable as a dagger, diagonal 3/4 inventory framing, single centered object, crisp silhouette, pure solid black background",
+      "out": "src/assets/icon_bog_fang.png",
+      "tags": [
+        "icons",
+        "drops"
+      ]
+    },
+    {
+      "name": "icon_slag_tooth",
+      "w": 64,
+      "h": 64,
+      "prompt": "painterly JRPG inventory icon of a PENDANT NECKLACE — a hardened scrap-metal tooth hanging from a short iron chain, rust-pitted metal, warm bone-grey and rusted iron palette, clearly readable as a necklace accessory, diagonal 3/4 inventory framing, single centered object, crisp silhouette, pure solid black background",
+      "out": "src/assets/icon_slag_tooth.png",
+      "tags": [
+        "icons",
+        "drops"
+      ]
+    },
+    {
+      "name": "icon_glacial_claw",
+      "w": 64,
+      "h": 64,
+      "prompt": "painterly JRPG inventory icon of a CLAWED GAUNTLET weapon — armored fist with three curved ice-blue claws extending from the knuckles, translucent glacial material with cyan inner glow, frost-rimed edges, clearly readable as a claw weapon, diagonal 3/4 inventory framing, single centered object, crisp silhouette, pure solid black background",
+      "out": "src/assets/icon_glacial_claw.png",
+      "tags": [
+        "icons",
+        "drops"
+      ]
+    },
+    {
+      "name": "icon_moss_ward",
+      "w": 64,
+      "h": 64,
+      "prompt": "painterly JRPG inventory icon of a circular AMULET on a braided cord, round wooden disc wrapped in living moss with a glowing green spore-gem in the center, vibrant green with teal bioluminescence, clearly readable as an amulet accessory, diagonal 3/4 inventory framing, single centered object, crisp silhouette, pure solid black background",
+      "out": "src/assets/icon_moss_ward.png",
+      "tags": [
+        "icons",
+        "drops"
+      ]
+    },
+    {
+      "name": "icon_ember_core",
+      "w": 64,
+      "h": 64,
+      "prompt": "painterly JRPG inventory icon of a STAFF topped with a molten orb focus, long dark wooden shaft with a cracked obsidian orb at the top glowing with molten orange-red core, ember palette, clearly readable as a mage staff weapon, diagonal 3/4 inventory framing, single centered object, crisp silhouette, pure solid black background",
+      "out": "src/assets/icon_ember_core.png",
+      "tags": [
+        "icons",
+        "drops"
+      ]
+    },
+    {
+      "name": "icon_frost_plate",
+      "w": 64,
+      "h": 64,
+      "prompt": "painterly JRPG inventory icon of a CHESTPLATE ARMOR — symmetrical breastplate with sculpted pectoral plates and a central sternum ridge, pale blue ice-forged metal with silver rivets and frost crystal accents, clearly readable as a chest armor piece, front-facing inventory framing, single centered object, crisp silhouette, pure solid black background",
+      "out": "src/assets/icon_frost_plate.png",
+      "tags": [
+        "icons",
+        "drops"
+      ]
+    },
+    {
+      "name": "icon_void_scepter",
+      "w": 64,
+      "h": 64,
+      "prompt": "painterly JRPG inventory icon of a SCEPTER WEAPON — long dark ornate rod with a metal claw grip at the top holding a floating violet void-orb crackling with purple energy, deep purple and magenta palette, clearly readable as a scepter weapon, diagonal 3/4 inventory framing, single centered object, crisp silhouette, pure solid black background",
+      "out": "src/assets/icon_void_scepter.png",
+      "tags": [
+        "icons",
+        "drops"
+      ]
+    },
+    {
+      "name": "icon_magma_blade",
+      "w": 64,
+      "h": 64,
+      "prompt": "painterly JRPG inventory icon of a two-handed GREATSWORD, long straight double-edged blade with a cross-guard and wrapped grip, blackened iron blade with glowing red-orange molten fissures running along the center fuller, ember palette, clearly readable as a greatsword weapon, diagonal 3/4 inventory framing blade pointing up, single centered object, crisp silhouette, pure solid black background",
+      "out": "src/assets/icon_magma_blade.png",
+      "tags": [
+        "icons",
+        "drops"
+      ]
+    }
   ]
 }

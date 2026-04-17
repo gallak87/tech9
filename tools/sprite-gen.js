@@ -14,12 +14,18 @@ const { execSync }  = require('child_process');
 
 const manifestPath = process.argv[2];
 if (!manifestPath) {
-  console.error('Usage: node tools/sprite-gen.js <manifest.json> [--sprite <name>]');
+  console.error('Usage: node tools/sprite-gen.js <manifest.json> [--sprite <name>] [--tags <tag1,tag2,...>]');
   process.exit(1);
 }
 
-const filterIdx = process.argv.indexOf('--sprite');
+const filterIdx  = process.argv.indexOf('--sprite');
 const filterName = filterIdx !== -1 ? process.argv[filterIdx + 1] : null;
+
+const tagsArg = process.argv.find(a => a === '--tags' || a.startsWith('--tags='));
+const filterTags = tagsArg
+  ? (tagsArg.includes('=') ? tagsArg.split('=')[1] : process.argv[process.argv.indexOf('--tags') + 1])
+      .split(',').map(t => t.trim()).filter(Boolean)
+  : null;
 
 const manifest    = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const host        = manifest.host  || 'http://localhost:11434';
@@ -83,12 +89,27 @@ async function generate(sprite) {
 }
 
 async function main() {
-  const sprites = filterName
-    ? manifest.sprites.filter(s => s.name === filterName)
-    : manifest.sprites;
+  let sprites = manifest.sprites;
+
+  if (filterName) {
+    sprites = sprites.filter(s => s.name === filterName);
+  } else if (filterTags) {
+    // AND filter: sprite must have every listed tag
+    sprites = sprites.filter(s => {
+      const st = s.tags || [];
+      return filterTags.every(t => st.includes(t));
+    });
+  }
 
   if (!sprites.length) {
-    console.error(`No sprites found${filterName ? ` matching "${filterName}"` : ''}`);
+    const hint = filterName ? `matching name "${filterName}"`
+      : filterTags ? `matching tags [${filterTags.join(', ')}]` : '';
+    console.error(`No sprites found${hint ? ' ' + hint : ''}`);
+    if (filterTags) {
+      // Show available tags as a hint
+      const all = new Set(manifest.sprites.flatMap(s => s.tags || []));
+      console.error(`Available tags: ${[...all].sort().join(', ')}`);
+    }
     process.exit(1);
   }
 

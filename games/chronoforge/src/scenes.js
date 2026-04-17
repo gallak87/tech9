@@ -3,7 +3,7 @@
 
 import {
   TILE, MAP_W, MAP_H,
-  tileAt, cityAt, encounterAt, doorwayAt, worldDropAt,
+  tileAt, encounterAt, doorwayAt, worldDropAt,
   getMap, MAPS, PLAYER_START,
 } from './world.js';
 import { drawSprite, getSpriteVersion } from './sprites.js';
@@ -258,8 +258,10 @@ export function updateOverworld(game, dt) {
 
   revealAround(game, nx, ny, 4);
 
-  const city = cityAt(p.mapId, nx, ny);
-  if (city && !city.unlocked) {
+  const mapForCity = getMap(p.mapId);
+  const city = mapForCity && mapForCity.city;
+  // City landmark is 4×4 tiles centred on (city.x, city.y) with a 2-tile cell offset → footprint [x-1, x+2] × [y-1, y+2]
+  if (city && !city.unlocked && nx >= city.x - 1 && nx <= city.x + 2 && ny >= city.y - 1 && ny <= city.y + 2) {
     city.unlocked = true;
     game.toast(`Reached ${city.name} — fast-travel unlocked`);
     if (game.quests) checkQuestProgress(game, { type: 'city_reached', cityId: city.id });
@@ -313,26 +315,29 @@ export function drawMapScene(ctx, game, mapId) {
   const map = getMap(mapId);
   const render = partyRenderPos(game);
 
-  const targetCamX = render.x * TILE + TILE / 2 - w / 2;
-  const targetCamY = render.y * TILE + TILE / 2 - h / 2;
+  const backdrop = map ? getMapBackdrop(map.backdrop) : null;
+  const atlas = backdrop || getTileCanvas(mapId);
+
+  const targetCamXRaw = render.x * TILE + TILE / 2 - w / 2;
+  const targetCamYRaw = render.y * TILE + TILE / 2 - h / 2;
+  const targetCamX = Math.max(0, Math.min(atlas.width - w, targetCamXRaw));
+  const targetCamY = Math.max(0, Math.min(atlas.height - h, targetCamYRaw));
   if (game.cameraX === undefined) { game.cameraX = targetCamX; game.cameraY = targetCamY; }
   game.cameraX += (targetCamX - game.cameraX) * CAMERA_LERP;
   game.cameraY += (targetCamY - game.cameraY) * CAMERA_LERP;
-  const camX = game.cameraX;
-  const camY = game.cameraY;
+  const camX = Math.max(0, Math.min(atlas.width - w, game.cameraX));
+  const camY = Math.max(0, Math.min(atlas.height - h, game.cameraY));
 
   ctx.fillStyle = PALETTE.bg;
   ctx.fillRect(0, 0, w, h);
 
-  const backdrop = map ? getMapBackdrop(map.backdrop) : null;
-  const atlas = backdrop || getTileCanvas(mapId);
-  const srcX = Math.max(0, camX);
-  const srcY = Math.max(0, camY);
+  const srcX = camX;
+  const srcY = camY;
   const srcW = Math.min(atlas.width - srcX, w);
   const srcH = Math.min(atlas.height - srcY, h);
   if (srcW > 0 && srcH > 0) {
-    const dstX = Math.round(srcX - camX);
-    const dstY = Math.round(srcY - camY);
+    const dstX = 0;
+    const dstY = 0;
     ctx.drawImage(atlas, srcX, srcY, srcW, srcH, dstX, dstY, srcW, srcH);
   }
 
@@ -360,17 +365,17 @@ export function drawMapScene(ctx, game, mapId) {
   if (map) {
     for (const e of map.encounters) {
       if (e.cleared) continue;
-      const ew = TILE, eh = TILE;
+      const ew = TILE * 1.5, eh = TILE * 1.5;
       const sx = Math.round(e.x * TILE - camX);
       const sy = Math.round(e.y * TILE - camY);
       const bob = Math.sin(game.time * 0.006 + e.x) * 2;
-      const ecx = sx + ew / 2, ecy = sy + eh / 2 + bob;
+      const ecx = sx + TILE / 2, ecy = sy + TILE / 2 + bob;
       const eg = ctx.createRadialGradient(ecx, ecy, 0, ecx, ecy, ew * 0.7);
       eg.addColorStop(0, 'rgba(7,6,13,0.45)');
       eg.addColorStop(1, 'rgba(7,6,13,0)');
       ctx.fillStyle = eg;
       ctx.fillRect(ecx - ew * 0.7, ecy - ew * 0.7, ew * 1.4, ew * 1.4);
-      drawSprite(ctx, `${e.enemy}_ow`, sx, sy + bob, ew, eh);
+      drawSprite(ctx, `${e.enemy}_ow`, sx + (TILE - ew) / 2, sy + TILE - eh + bob, ew, eh);
     }
   }
 
@@ -390,7 +395,7 @@ export function drawMapScene(ctx, game, mapId) {
   ctx.beginPath();
   ctx.ellipse(pcx + TILE / 2, pcy + TILE - 2, 14, 5, 0, 0, Math.PI * 2);
   ctx.fill();
-  drawSprite(ctx, 'kaida_overworld', pcx, pcy, TILE, TILE);
+  drawSprite(ctx, 'kaida_overworld', pcx + (TILE - TILE * 1.5) / 2, pcy + TILE - TILE * 1.5, TILE * 1.5, TILE * 1.5);
 
   if (!game.devFogReveal) drawSoftFog(ctx, game, camX, camY, w, h);
 }
@@ -402,21 +407,26 @@ function drawCityLandmark(ctx, c, camX, camY, time) {
   const fy = Math.round(c.y * TILE - camY);
   const pulse = 0.5 + Math.sin(time * 0.0025 + c.x * 0.5) * 0.5;
   const stroke = c.unlocked ? '255,45,212' : '34,227,255';
+  const boxSize = TILE * 4;
+  const bx = fx + (cellPx - boxSize) / 2, by = fy + (cellPx - boxSize) / 2;
   ctx.fillStyle = 'rgba(7,6,13,0.78)';
-  ctx.fillRect(fx, fy, cellPx, cellPx);
+  ctx.fillRect(bx, by, boxSize, boxSize);
   ctx.fillStyle = `rgba(${stroke},${0.08 + pulse * 0.06})`;
-  ctx.fillRect(fx, fy, cellPx, cellPx);
-  drawSprite(ctx, c.landmark, fx, fy, cellPx, cellPx);
+  ctx.fillRect(bx, by, boxSize, boxSize);
+  const landmarkSize = TILE * 4;
+  const lx = fx + (cellPx - landmarkSize) / 2;
+  const ly = fy + (cellPx - landmarkSize) / 2;
+  drawSprite(ctx, c.landmark, lx, ly, landmarkSize, landmarkSize);
   ctx.strokeStyle = `rgba(${stroke},${0.55 + pulse * 0.35})`;
   ctx.lineWidth = 2;
-  ctx.strokeRect(fx + 0.5, fy + 0.5, cellPx - 1, cellPx - 1);
+  ctx.strokeRect(bx + 0.5, by + 0.5, boxSize - 1, boxSize - 1);
   ctx.strokeStyle = `rgba(${stroke},${0.2 + pulse * 0.15})`;
   ctx.lineWidth = 1;
-  ctx.strokeRect(fx + 3.5, fy + 3.5, cellPx - 7, cellPx - 7);
+  ctx.strokeRect(bx + 3.5, by + 3.5, boxSize - 7, boxSize - 7);
   ctx.fillStyle = PALETTE.ink;
   ctx.textAlign = 'center';
   ctx.font = '700 12px system-ui, sans-serif';
-  ctx.fillText(c.name.toUpperCase(), fx + cellPx / 2, fy - 6);
+  ctx.fillText(c.name.toUpperCase(), bx + boxSize / 2, by - 6);
 }
 
 function drawDoorway(ctx, d, camX, camY, time) {
@@ -463,7 +473,7 @@ function drawWorldDrop(ctx, drop, camX, camY, time) {
   g.addColorStop(1, `rgba(${rgb},0)`);
   ctx.fillStyle = g;
   ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-  const iconSize = TILE * 0.5;
+  const iconSize = TILE * 1.0;
   drawSprite(ctx, `icon_${drop.itemId}`, cx - iconSize / 2, cy - iconSize / 2, iconSize, iconSize);
 }
 
@@ -475,14 +485,10 @@ function hexToRgb(hex) {
 
 function drawSoftFog(ctx, game, camX, camY, w, h) {
   const fog = getFogCanvas(game);
-  const srcX = Math.max(0, camX);
-  const srcY = Math.max(0, camY);
-  const srcW = Math.min(fog.width - srcX, w);
-  const srcH = Math.min(fog.height - srcY, h);
+  const srcW = Math.min(fog.width - camX, w);
+  const srcH = Math.min(fog.height - camY, h);
   if (srcW <= 0 || srcH <= 0) return;
-  const dstX = Math.round(srcX - camX);
-  const dstY = Math.round(srcY - camY);
-  ctx.drawImage(fog, srcX, srcY, srcW, srcH, dstX, dstY, srcW, srcH);
+  ctx.drawImage(fog, camX, camY, srcW, srcH, 0, 0, srcW, srcH);
 }
 
 function drawOverworldHud(ctx, game) {

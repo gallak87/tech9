@@ -85,17 +85,33 @@ function heroFromGame(gh) {
     def: stats.def, spd: stats.spd, crit: stats.crit,
     atb: Math.random() * 40, shield: 0, flash: 0,
     techs: buildTechs(gh.skills),
+    spriteState: 'idle', spriteTimer: 0,
   };
 }
 
 function cloneHero(id) {
   const t = HERO_TEMPLATES[id];
-  return { id, ...t, hp: t.hp, mp: t.mp, maxHp: t.hp, maxMp: t.mp, atb: Math.random() * 40, shield: 0, flash: 0 };
+  return { id, ...t, hp: t.hp, mp: t.mp, maxHp: t.hp, maxMp: t.mp, atb: Math.random() * 40, shield: 0, flash: 0, spriteState: 'idle', spriteTimer: 0 };
 }
 
 function cloneEnemy(id, slot) {
   const t = ENEMY_TEMPLATES[id] || ENEMY_TEMPLATES.rust_scrapper;
-  return { id, slot, ...t, hp: t.hp, maxHp: t.hp, atb: Math.random() * 20, int: 10, tec: 6, crit: 4, flash: 0 };
+  return { id, slot, ...t, hp: t.hp, maxHp: t.hp, atb: Math.random() * 20, int: 10, tec: 6, crit: 4, flash: 0, spriteState: 'idle', spriteTimer: 0 };
+}
+
+function setSpriteState(actor, state, durationMs) {
+  actor.spriteState = state;
+  actor.spriteTimer = durationMs;
+}
+
+function heroSpriteName(hero) {
+  const s = hero.spriteState;
+  return `${hero.id}_battle_${s}`;
+}
+
+function enemySpriteName(e) {
+  const s = e.spriteState;
+  return `${e.id}_${s}`;
 }
 
 // --- battle state ---
@@ -143,9 +159,21 @@ export function updateBattle(game, dt) {
   b.floaters = b.floaters.filter(f => (f.life -= dt) > 0);
   b.vfx = b.vfx.filter(v => (v.life -= dt) > 0);
 
-  // hero flash decay
-  for (const h of b.heroes) if (h.flash > 0) h.flash = Math.max(0, h.flash - dt);
-  for (const e of b.enemies) if (e.flash > 0) e.flash = Math.max(0, e.flash - dt);
+  // hero flash + sprite state decay
+  for (const h of b.heroes) {
+    if (h.flash > 0) h.flash = Math.max(0, h.flash - dt);
+    if (h.spriteTimer > 0) {
+      h.spriteTimer = Math.max(0, h.spriteTimer - dt);
+      if (h.spriteTimer === 0 && h.spriteState !== 'victory') h.spriteState = 'idle';
+    }
+  }
+  for (const e of b.enemies) {
+    if (e.flash > 0) e.flash = Math.max(0, e.flash - dt);
+    if (e.spriteTimer > 0) {
+      e.spriteTimer = Math.max(0, e.spriteTimer - dt);
+      if (e.spriteTimer === 0 && e.spriteState !== 'death') e.spriteState = 'idle';
+    }
+  }
 
   // lunge tick (paused during freeze via the early return above)
   for (const a of b.heroes) if (a.lunge && a.lunge.life > 0) a.lunge.life = Math.max(0, a.lunge.life - dt);
@@ -262,8 +290,8 @@ function executeAction(game, hero, m) {
   const b = game.battle;
   if (m.action === 'attack') {
     const tgt = b.enemies[m.targetIdx];
-    triggerLunge(b, hero, tgt, 80);
-    scheduleAction(b, 220, () => {
+    triggerLunge(b, hero, tgt, 440);
+    scheduleAction(b, 275, () => {
       basicAttack(game, hero, tgt);
       checkBattleEnd(game);
     });
@@ -279,16 +307,16 @@ function executeAction(game, hero, m) {
     } else if (tech.aoe) {
       const alive = b.enemies.filter(e => e.hp > 0);
       const focus = alive[0] || b.enemies[0];
-      triggerLunge(b, hero, focus, 60);
-      scheduleAction(b, 260, () => {
+      triggerLunge(b, hero, focus, 400);
+      scheduleAction(b, 325, () => {
         alive.forEach(tgt => techHit(game, hero, tgt, tech));
         flashPortrait(b, hero.name, tech.name);
         checkBattleEnd(game);
       });
     } else {
       const tgt = b.enemies[m.targetIdx];
-      triggerLunge(b, hero, tgt, 80);
-      scheduleAction(b, 260, () => {
+      triggerLunge(b, hero, tgt, 440);
+      scheduleAction(b, 325, () => {
         techHit(game, hero, tgt, tech);
         flashPortrait(b, hero.name, tech.name);
         checkBattleEnd(game);
@@ -345,40 +373,48 @@ function basicAttack(game, atk, tgt) {
   const raw = atk.str * 1.5 - tgt.def * 0.8;
   let dmg = Math.max(1, Math.round(raw * baseRand));
   const isCrit = Math.random() < (0.05 + (atk.crit || 0) / 100);
+  setSpriteState(atk, 'attack', 425);
+  setSpriteState(tgt, 'hurt', 350);
   if (isCrit) {
     dmg = Math.round(dmg * 1.8);
-    b.timeFreeze = 260;
-    b.shake = 360;
+    b.timeFreeze = 325;
+    b.shake = 450;
     playSfx('bt_crit_hit', { gain: 0.85 });
     spawnFloater(b, tgt, `${dmg}!`, PALETTE.warn, true);
+    b.vfx.push({ kind: 'timefreeze', x: targetX(b, tgt), y: targetY(b, tgt), life: 475, maxLife: 475 });
   } else {
     playSfx('bt_basic_attack', { gain: 0.7 });
     spawnFloater(b, tgt, `${dmg}`, PALETTE.ink);
   }
   applyDamage(b, tgt, dmg);
-  triggerHitReact(b, atk, tgt, isCrit ? 28 : 18);
+  triggerHitReact(b, atk, tgt, isCrit ? 34 : 22);
   b.log.push(`${atk.name} hits ${tgt.name} for ${dmg}${isCrit ? ' (CRIT)' : ''}.`);
-  b.vfx.push({ kind: 'slash', x: targetX(b, tgt), y: targetY(b, tgt), life: 240, maxLife: 240, color: PALETTE.accent });
+  b.vfx.push({ kind: 'slash', x: targetX(b, tgt), y: targetY(b, tgt), life: 350, maxLife: 350 });
 }
+
+const EL_VFX = { void: 'void_rift', phys: 'slash', ice: 'ice_shard', flame: 'flame', heal: 'heal_sparkle' };
+function techVfxKind(el) { return EL_VFX[el] || 'burst'; }
 
 function techHit(game, atk, tgt, tech) {
   const b = game.battle;
   const statVal = atk[tech.stat];
   let dmg = Math.max(1, Math.round(tech.power * statVal + statVal * 0.5 - tgt.def * 0.5));
   const isCrit = Math.random() < 0.1 + (atk.crit || 0) / 100;
+  setSpriteState(atk, 'cast', 500);
+  setSpriteState(tgt, 'hurt', 350);
   if (isCrit) {
     dmg = Math.round(dmg * 1.8);
-    b.timeFreeze = 260;
-    b.shake = 360;
+    b.timeFreeze = 325;
+    b.shake = 450;
     playSfx('bt_crit_hit', { gain: 0.9 });
   } else {
     playSfx('bt_tech_cast', { gain: 0.85 });
   }
   applyDamage(b, tgt, dmg);
-  triggerHitReact(b, atk, tgt, isCrit ? 24 : 14);
+  triggerHitReact(b, atk, tgt, isCrit ? 30 : 18);
   spawnFloater(b, tgt, `${dmg}`, tech.el === 'void' ? '#c77bff' : tech.el === 'ice' ? '#7bd8ff' : PALETTE.warn, isCrit);
   b.log.push(`${atk.name} casts ${tech.name} → ${tgt.name} (${dmg})${isCrit ? ' CRIT!' : ''}.`);
-  b.vfx.push({ kind: tech.el === 'void' ? 'void' : 'tech', x: targetX(b, tgt), y: targetY(b, tgt), life: 360, maxLife: 360, color: PALETTE.accent2 });
+  b.vfx.push({ kind: techVfxKind(tech.el), x: targetX(b, tgt), y: targetY(b, tgt), life: 450, maxLife: 450 });
 }
 
 function enemyTurn(game, enemy) {
@@ -386,9 +422,11 @@ function enemyTurn(game, enemy) {
   const aliveIdx = b.heroes.map((h, i) => h.hp > 0 ? i : -1).filter(i => i !== -1);
   if (aliveIdx.length === 0) return;
   const tgt = b.heroes[aliveIdx[Math.floor(Math.random() * aliveIdx.length)]];
-  triggerLunge(b, enemy, tgt, 80);
+  triggerLunge(b, enemy, tgt, 440);
   enemy.atb = 0;
-  scheduleAction(b, 220, () => {
+  scheduleAction(b, 275, () => {
+    setSpriteState(enemy, 'attack', 425);
+    setSpriteState(tgt, 'hurt', 350);
     const raw = enemy.str * 1.5 - tgt.def * 0.8;
     let dmg = Math.max(1, Math.round(raw * (0.9 + Math.random() * 0.2)));
     if (tgt.shield > 0) {
@@ -401,8 +439,9 @@ function enemyTurn(game, enemy) {
       tgt.hp = Math.max(0, tgt.hp - dmg);
       spawnFloater(b, tgt, `${dmg}`, PALETTE.bad);
     }
-    tgt.flash = 240;
-    triggerHitReact(b, enemy, tgt, 18);
+    tgt.flash = 300;
+    triggerHitReact(b, enemy, tgt, 22);
+    b.vfx.push({ kind: 'slash', x: targetX(b, tgt), y: targetY(b, tgt), life: 325, maxLife: 325 });
     playSfx('bt_hurt', { gain: 0.7 });
     b.log.push(`${enemy.name} strikes ${tgt.name} for ${dmg}.`);
     b.shake = 180;
@@ -412,19 +451,19 @@ function enemyTurn(game, enemy) {
 
 function applyDamage(b, tgt, dmg) {
   tgt.hp = Math.max(0, tgt.hp - dmg);
-  tgt.flash = 220;
+  tgt.flash = 275;
 }
 
 function spawnFloater(b, target, text, color, big = false) {
   b.floaters.push({
     x: targetX(b, target), y: targetY(b, target),
     dx: (Math.random() - 0.5) * 30, dy: -28 + (Math.random() - 0.5) * 10,
-    text, color, life: 900, maxLife: 900, big,
+    text, color, life: 1125, maxLife: 1125, big,
   });
 }
 
 function flashPortrait(b, name, techName) {
-  b.comboFlash = 520;
+  b.comboFlash = 650;
   b.comboText = `${name.toUpperCase()} — ${techName.toUpperCase()}`;
   playSfx('bt_combo_intro', { gain: 0.7 });
 }
@@ -433,6 +472,8 @@ function checkBattleEnd(game) {
   const b = game.battle;
   if (b.enemies.every(e => e.hp <= 0)) {
     b.phase = 'win'; b.winTime = 0;
+    for (const e of b.enemies) setSpriteState(e, 'death', Infinity);
+    for (const h of b.heroes) if (h.hp > 0) setSpriteState(h, 'victory', Infinity);
     playSfx('bt_victory', { gain: 0.8 });
     return;
   }
@@ -581,17 +622,17 @@ export function drawBattle(ctx, game) {
     const dx = p.x + lo.dx, dy = p.y + lo.dy;
     if (e.hp <= 0) {
       ctx.globalAlpha = 0.25;
-      drawSprite(ctx, `${e.id}_idle`, p.x, p.y, 96, 96);
+      drawSprite(ctx, enemySpriteName(e), p.x, p.y, 128, 128);
       ctx.globalAlpha = 1;
       return;
     }
     drawWithScale(ctx, lo.scale, dx + 48, dy + 48, () => {
-      drawSprite(ctx, `${e.id}_idle`, dx, dy, 96, 96);
+      drawSprite(ctx, enemySpriteName(e), dx, dy, 128, 128);
       if (e.flash > 0) {
         ctx.save();
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = e.flash / 240 * 0.8;
-        drawSprite(ctx, `${e.id}_idle`, dx, dy, 96, 96);
+        drawSprite(ctx, enemySpriteName(e), dx, dy, 128, 128);
         ctx.restore();
       }
     });
@@ -610,16 +651,16 @@ export function drawBattle(ctx, game) {
     const dx = p.x + lo.dx, dy = p.y + lo.dy;
     if (hero.hp <= 0) {
       ctx.globalAlpha = 0.3;
-      drawSprite(ctx, `${hero.id}_battle_idle`, p.x, p.y, 96, 96);
+      drawSprite(ctx, heroSpriteName(hero), p.x, p.y, 128, 128);
       ctx.globalAlpha = 1;
     } else {
       drawWithScale(ctx, lo.scale, dx + 48, dy + 48, () => {
-        drawSprite(ctx, `${hero.id}_battle_idle`, dx, dy, 96, 96);
+        drawSprite(ctx, heroSpriteName(hero), dx, dy, 128, 128);
         if (hero.flash > 0) {
           ctx.save();
           ctx.globalCompositeOperation = 'lighter';
           ctx.globalAlpha = hero.flash / 240 * 0.6;
-          drawSprite(ctx, `${hero.id}_battle_idle`, dx, dy, 96, 96);
+          drawSprite(ctx, heroSpriteName(hero), dx, dy, 128, 128);
           ctx.restore();
         }
       });
@@ -656,7 +697,7 @@ export function drawBattle(ctx, game) {
 
   // portrait flash (combo intro)
   if (b.comboFlash > 0) {
-    const t = 1 - b.comboFlash / 520;
+    const t = 1 - b.comboFlash / 650;
     ctx.save();
     const stripeH = 80;
     const y = h / 2 - stripeH / 2;
@@ -696,32 +737,29 @@ export function drawBattle(ctx, game) {
   }
 }
 
+const VFX_SPRITE = {
+  slash:            'vfx_slash_trail',
+  burst:            'vfx_burst',
+  void_rift:        'vfx_void_rift',
+  timefreeze:       'vfx_timefreeze_pulse',
+  heal_sparkle:     'vfx_heal_sparkle',
+  flame:            'vfx_flame',
+  ice_shard:        'vfx_ice_shard',
+};
+
 function drawVfx(ctx, v) {
   const t = 1 - v.life / v.maxLife;
-  const alpha = Math.min(1, v.life / 120);
+  const alpha = Math.sin(t * Math.PI);
+  const scale = 0.6 + t * 1.0;
+  const spriteName = VFX_SPRITE[v.kind];
+  if (!spriteName) return;
+  const sz = 96;
+  const cx = v.x, cy = v.y;
   ctx.save();
-  ctx.globalAlpha = alpha;
-  if (v.kind === 'slash') {
-    ctx.strokeStyle = v.color;
-    ctx.lineWidth = 3 + (1 - t) * 4;
-    ctx.beginPath();
-    ctx.moveTo(v.x - 30, v.y - 30 + t * 20);
-    ctx.lineTo(v.x + 30, v.y + 30 - t * 20);
-    ctx.stroke();
-  } else if (v.kind === 'tech' || v.kind === 'void') {
-    ctx.fillStyle = v.color;
-    ctx.globalAlpha = alpha * 0.4;
-    const r = 20 + t * 60;
-    ctx.beginPath();
-    ctx.arc(v.x, v.y + 20, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = v.color;
-    ctx.lineWidth = 2;
-    ctx.globalAlpha = alpha;
-    ctx.beginPath();
-    ctx.arc(v.x, v.y + 20, r, 0, Math.PI * 2);
-    ctx.stroke();
-  }
+  ctx.globalAlpha = Math.max(0, alpha);
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+  drawSprite(ctx, spriteName, -sz / 2, -sz / 2, sz, sz);
   ctx.restore();
 }
 

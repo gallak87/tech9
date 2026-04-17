@@ -3,7 +3,8 @@
 // Map tab is fully live: pan (drag / WASD / arrows), zoom (wheel / +/-),
 // fog-of-war, fast-travel on click to unlocked cities.
 
-import { TILE, MAP_W, MAP_H, tilesOf, getMap } from './world.js';
+import { TILE, MAP_W, MAP_H, tilesOf, getMap, MAPS } from './world.js';
+import { getMapBackdrop } from './devWorld.js';
 import { spriteSettings, drawSprite } from './sprites.js';
 import {
   HERO_DEFS, ITEM_DEFS, SKILL_TREES, QUEST_DEFS,
@@ -28,9 +29,9 @@ export const menuState = {
   tabDir: 1,
   // map tab
   map: {
-    zoom: 1,
-    cx: MAP_W * TILE / 2,
-    cy: MAP_H * TILE / 2,
+    zoom: 0.4,
+    cx: 1030,
+    cy: 650,
     dragging: false,
     dragLastX: 0,
     dragLastY: 0,
@@ -53,16 +54,11 @@ export const menuState = {
   save: { msg: '', msgExpire: 0 },
 };
 
-function resetMapView(game) {
-  menuState.map.zoom = 1;
+function resetMapView(_game) {
+  menuState.map.zoom = 0.4;
+  menuState.map.cx = 1030;
+  menuState.map.cy = 650;
   menuState.map.dragging = false;
-  if (game && game.party) {
-    menuState.map.cx = game.party.x * TILE + TILE / 2;
-    menuState.map.cy = game.party.y * TILE + TILE / 2;
-  } else {
-    menuState.map.cx = MAP_W * TILE / 2;
-    menuState.map.cy = MAP_H * TILE / 2;
-  }
 }
 
 const TAB_SLIDE_MS = 180;
@@ -1056,10 +1052,111 @@ function drawSettingsTab(ctx, game) {
 
 }
 
+// ── World topology layout ─────────────────────────────────────────────────────
+// Virtual coordinate space (pixels). Each map node is a THUMB_VW × THUMB_VH
+// rectangle centred on (vx, vy). Pan/zoom maps virtual → screen.
+
+const WORLD_NODE_POS = {
+  haventide_region:     { vx: 240,  vy: 480 },
+  emberline_region:     { vx: 740,  vy: 480 },
+  orbital_reach_region: { vx: 1280, vy: 480 },
+  last_crown_region:    { vx: 1820, vy: 480 },
+  crater_ember_region:  { vx: 740,  vy: 140 },
+  frost_canyon_region:  { vx: 1280, vy: 140 },
+  forest_veil_region:   { vx: 740,  vy: 820 },
+  mire_bog_region:      { vx: 740,  vy: 1140 },
+};
+
+const WORLD_CONNECTIONS = [
+  ['haventide_region',     'emberline_region'],
+  ['emberline_region',     'orbital_reach_region'],
+  ['orbital_reach_region', 'last_crown_region'],
+  ['emberline_region',     'crater_ember_region'],
+  ['orbital_reach_region', 'frost_canyon_region'],
+  ['emberline_region',     'forest_veil_region'],
+  ['forest_veil_region',   'mire_bog_region'],
+];
+
+const TIER_COLORS = ['', '#4af2a1', '#22e3ff', '#ffd23f', '#ff9a2e', '#ff2dd4'];
+const THUMB_VW = 300;   // virtual pixels (matches 60:40 tile ratio at 5px/tile)
+const THUMB_VH = 200;
+
+// Returns the screen-space centre of a map node given current pan/zoom.
+function worldNodePx(mapId, rect) {
+  const n = WORLD_NODE_POS[mapId];
+  if (!n) return null;
+  const zoom = menuState.map.zoom;
+  return {
+    x: rect.x + rect.w / 2 + (n.vx - menuState.map.cx) * zoom,
+    y: rect.y + rect.h / 2 + (n.vy - menuState.map.cy) * zoom,
+  };
+}
+
+// ── Thumbnail caches ──────────────────────────────────────────────────────────
+const _mapThumbCache  = {};   // mapId → { canvas, hasBackdrop }
+const _fogThumbCache  = {};   // mapId → { canvas, size }
+
+function getMapThumb(mapId) {
+  const mapData = MAPS[mapId];
+  const backdrop = mapData && getMapBackdrop(mapData.backdrop);
+  const entry = _mapThumbCache[mapId];
+  if (entry && entry.hasBackdrop === !!backdrop) return entry.canvas;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = THUMB_VW; canvas.height = THUMB_VH;
+  const c = canvas.getContext('2d');
+  if (backdrop) {
+    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+    c.drawImage(backdrop, 0, 0, THUMB_VW, THUMB_VH);
+  } else {
+    const tiles = tilesOf(mapId);
+    if (tiles) {
+      const sx = THUMB_VW / MAP_W, sy = THUMB_VH / MAP_H;
+      for (let ty = 0; ty < MAP_H; ty++)
+        for (let tx = 0; tx < MAP_W; tx++) {
+          const t = tiles[ty][tx];
+          c.fillStyle = tileMapColor(t.biome, t.t);
+          c.fillRect(Math.floor(tx * sx), Math.floor(ty * sy), Math.ceil(sx) + 1, Math.ceil(sy) + 1);
+        }
+    }
+  }
+  _mapThumbCache[mapId] = { canvas, hasBackdrop: !!backdrop };
+  return canvas;
+}
+
+function getFogThumb(mapId, game) {
+  const exp = game.explored && game.explored[mapId];
+  const size = exp ? exp.size : 0;
+  let entry = _fogThumbCache[mapId];
+  if (entry && entry.size === size) return entry.canvas;
+
+  if (!entry) {
+    const canvas = document.createElement('canvas');
+    canvas.width = THUMB_VW; canvas.height = THUMB_VH;
+    entry = { canvas, size: -1 };
+    _fogThumbCache[mapId] = entry;
+  }
+  const c = entry.canvas.getContext('2d');
+  c.clearRect(0, 0, THUMB_VW, THUMB_VH);
+  c.fillStyle = 'rgba(7,6,13,0.85)';
+  if (!exp || size === 0) {
+    c.fillRect(0, 0, THUMB_VW, THUMB_VH);
+  } else {
+    const tw = THUMB_VW / MAP_W, th = THUMB_VH / MAP_H;
+    // 2×2 tile block sampling for perf
+    for (let ty = 0; ty < MAP_H; ty += 2)
+      for (let tx = 0; tx < MAP_W; tx += 2)
+        if (!exp.has(`${tx},${ty}`))
+          c.fillRect(Math.floor(tx * tw), Math.floor(ty * th), Math.ceil(tw * 2) + 1, Math.ceil(th * 2) + 1);
+  }
+  entry.size = size;
+  return entry.canvas;
+}
+
 function drawMapTab(ctx, game) {
   const rect = mapRect(game);
+  const zoom = menuState.map.zoom;
 
-  // frame
   ctx.save();
   ctx.beginPath();
   ctx.rect(rect.x, rect.y, rect.w, rect.h);
@@ -1068,86 +1165,206 @@ function drawMapTab(ctx, game) {
   ctx.fillStyle = PALETTE.bg;
   ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
 
-  const scale = mapScale(game);
-  const viewW = rect.w / scale;
-  const viewH = rect.h / scale;
-  const viewX = menuState.map.cx - viewW / 2;
-  const viewY = menuState.map.cy - viewH / 2;
+  // faint dot grid
+  ctx.fillStyle = 'rgba(29,22,56,0.7)';
+  for (let x = rect.x + 20; x < rect.x + rect.w; x += 36)
+    for (let y = rect.y + 20; y < rect.y + rect.h; y += 36)
+      ctx.fillRect(x, y, 2, 2);
 
-  // tile pass — draw a downscaled colored block per tile for perf
-  const tileSize = TILE * scale;
-  const firstTx = Math.max(0, Math.floor(viewX / TILE));
-  const firstTy = Math.max(0, Math.floor(viewY / TILE));
-  const lastTx = Math.min(MAP_W, Math.ceil((viewX + viewW) / TILE));
-  const lastTy = Math.min(MAP_H, Math.ceil((viewY + viewH) / TILE));
-
-  const mapId = game.party ? game.party.mapId : 'haventide_region';
-  const tiles = tilesOf(mapId);
-  const exp = game.explored && game.explored[mapId];
-  for (let ty = firstTy; ty < lastTy; ty++) {
-    for (let tx = firstTx; tx < lastTx; tx++) {
-      const t = tiles ? tiles[ty][tx] : { biome: '', t: '' };
-      const sx = rect.x + (tx * TILE - viewX) * scale;
-      const sy = rect.y + (ty * TILE - viewY) * scale;
-      ctx.fillStyle = tileMapColor(t.biome, t.t);
-      ctx.fillRect(sx, sy, tileSize + 1, tileSize + 1);
-    }
+  function isDiscovered(mapId) {
+    if (game.devFogReveal) return true;
+    return !!(game.explored && game.explored[mapId] && game.explored[mapId].size > 0);
   }
 
-  // fog-of-war — block tiles outside current-map explored set
-  if (exp) {
-    ctx.fillStyle = PALETTE.fog;
-    for (let ty = firstTy; ty < lastTy; ty++) {
-      for (let tx = firstTx; tx < lastTx; tx++) {
-        const key = `${tx},${ty}`;
-        if (!exp.has(key)) {
-          const sx = rect.x + (tx * TILE - viewX) * scale;
-          const sy = rect.y + (ty * TILE - viewY) * scale;
-          ctx.fillRect(sx, sy, tileSize + 1, tileSize + 1);
-        }
-      }
-    }
+  const tw = THUMB_VW * zoom;  // screen thumbnail width
+  const th = THUMB_VH * zoom;  // screen thumbnail height
+
+  // Helper: clamp line endpoint to thumbnail edge
+  function edgePt(fromId, toId) {
+    const f = worldNodePx(fromId, rect), t = worldNodePx(toId, rect);
+    if (!f || !t) return f;
+    const dx = t.x - f.x, dy = t.y - f.y;
+    if (!dx && !dy) return f;
+    const hw = tw / 2, hh = th / 2;
+    const s = Math.min(Math.abs(dx) > 0 ? hw / Math.abs(dx) : Infinity,
+                       Math.abs(dy) > 0 ? hh / Math.abs(dy) : Infinity);
+    return { x: f.x + dx * s, y: f.y + dy * s };
   }
 
-  // cities — only show current-map city on this minimap
-  const map = getMap(mapId);
-  const visibleCities = map && map.city ? [map.city] : [];
-  for (const city of visibleCities) {
-    const sx = rect.x + (city.x * TILE + TILE / 2 - viewX) * scale;
-    const sy = rect.y + (city.y * TILE + TILE / 2 - viewY) * scale;
-    const explored = !exp || exp.has(`${city.x},${city.y}`);
-    if (!explored) continue;
-    const r = Math.max(6, 10 * scale);
-    ctx.fillStyle = city.unlocked ? PALETTE.accent : PALETTE.dim;
-    ctx.beginPath();
-    ctx.arc(sx, sy, r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = PALETTE.ink;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    // label
+  // ── Connections ──────────────────────────────────────────────────────────────
+  for (const [a, b] of WORLD_CONNECTIONS) {
+    const da = isDiscovered(a), db = isDiscovered(b);
+    if (!da && !db) continue;
+    const ea = edgePt(a, b), eb = edgePt(b, a);
+    if (!ea || !eb) continue;
+    ctx.save();
+    ctx.strokeStyle = (da && db) ? 'rgba(34,227,255,0.55)' : 'rgba(138,131,184,0.25)';
+    ctx.lineWidth = (da && db) ? 2 : 1.5;
+    if (!da || !db) ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.moveTo(ea.x, ea.y); ctx.lineTo(eb.x, eb.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  // ── Map nodes ─────────────────────────────────────────────────────────────────
+  for (const [mapId, mapData] of Object.entries(MAPS)) {
+    const pos = worldNodePx(mapId, rect);
+    if (!pos) continue;
+    const disc = isDiscovered(mapId);
+    const nx = pos.x - tw / 2, ny = pos.y - th / 2;
+
+    if (!disc) {
+      const hasNeighbour = WORLD_CONNECTIONS.some(([a, b]) =>
+        (a === mapId && isDiscovered(b)) || (b === mapId && isDiscovered(a))
+      );
+      if (!hasNeighbour) continue;
+      ctx.save();
+      ctx.fillStyle = 'rgba(18,10,34,0.85)';
+      ctx.strokeStyle = 'rgba(138,131,184,0.3)';
+      ctx.lineWidth = 1.5; ctx.setLineDash([4, 3]);
+      ctx.fillRect(nx, ny, tw, th);
+      ctx.strokeRect(nx + 0.5, ny + 0.5, tw - 1, th - 1);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(138,131,184,0.5)';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `700 ${Math.max(14, Math.round(18 * zoom))}px system-ui, sans-serif`;
+      ctx.fillText('?', pos.x, pos.y);
+      ctx.restore();
+      continue;
+    }
+
+    const tc = TIER_COLORS[mapData.tier] || PALETTE.dim;
+
+    // thumbnail image
+    ctx.save();
+    ctx.beginPath(); ctx.rect(nx, ny, tw, th); ctx.clip();
+    const thumb = getMapThumb(mapId);
+    if (thumb) {
+      ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(thumb, nx, ny, tw, th);
+    }
+    // fog overlay
+    if (!game.devFogReveal) {
+      const fog = getFogThumb(mapId, game);
+      if (fog) ctx.drawImage(fog, nx, ny, tw, th);
+    }
+    ctx.restore();
+
+    // border (pulses for current map)
+    const isCurrent = game.party && game.party.mapId === mapId;
+    const pulse = isCurrent ? 0.5 + Math.sin((game.time || 0) * 0.005) * 0.5 : 1;
+    ctx.save();
+    ctx.strokeStyle = isCurrent ? `rgba(34,227,255,${pulse})` : tc;
+    ctx.lineWidth = isCurrent ? 3 : 1.5;
+    ctx.strokeRect(nx + 0.5, ny + 0.5, tw - 1, th - 1);
+    ctx.restore();
+
+    // tier badge (top-left)
+    const badgeSz = Math.max(18, Math.round(22 * zoom));
+    ctx.save();
+    ctx.fillStyle = 'rgba(7,6,13,0.88)'; ctx.fillRect(nx, ny, badgeSz, badgeSz);
+    ctx.fillStyle = tc;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `700 ${Math.max(8, Math.round(9 * zoom))}px ui-monospace, monospace`;
+    ctx.fillText(`T${mapData.tier}`, nx + badgeSz / 2, ny + badgeSz / 2);
+    ctx.restore();
+
+    // map name (below thumbnail)
+    ctx.save();
     ctx.fillStyle = PALETTE.ink;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-    ctx.font = '600 12px system-ui, sans-serif';
-    ctx.fillText(city.name, sx, sy - r - 4);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+    ctx.font = `600 ${Math.max(10, Math.round(12 * zoom))}px system-ui, sans-serif`;
+    ctx.fillText(mapData.name, pos.x, ny + th + 4);
+    ctx.restore();
+
+    // ── City dot (top-right corner) ───────────────────────────────────────────
+    if (mapData.city) {
+      const r = Math.max(4, Math.round(6 * zoom));
+      const cdx = nx + tw - r - 4, cdy = ny + r + 4;
+      ctx.save();
+      ctx.fillStyle   = mapData.city.unlocked ? PALETTE.accent : 'rgba(255,45,212,0.3)';
+      ctx.strokeStyle = mapData.city.unlocked ? 'rgba(255,255,255,0.8)' : 'rgba(138,131,184,0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(cdx, cdy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (mapData.city.unlocked && zoom >= 0.5) {
+        ctx.fillStyle = PALETTE.ink;
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.font = `500 ${Math.max(9, Math.round(10 * zoom))}px system-ui, sans-serif`;
+        ctx.fillText(mapData.city.name, cdx - r - 3, cdy);
+      }
+      ctx.restore();
+    }
+
+    // ── Enemy badges (bottom-left) ────────────────────────────────────────────
+    const encounters = mapData.encounters || [];
+    const active  = encounters.filter(e => !e.cleared).length;
+    const cleared = encounters.filter(e =>  e.cleared).length;
+    const br = Math.max(6, Math.round(8 * zoom));
+    const bfont = `700 ${Math.max(7, Math.round(9 * zoom))}px ui-monospace, monospace`;
+    let badgeY = ny + th - br - 4;
+
+    if (active > 0) {
+      ctx.save();
+      ctx.fillStyle = '#ff4a5a'; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(nx + br + 4, badgeY, br, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = bfont; ctx.fillText(active, nx + br + 4, badgeY);
+      ctx.restore();
+      badgeY -= br * 2 + 3;
+    }
+
+    if (cleared > 0) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(74,242,161,0.45)'; ctx.strokeStyle = 'rgba(74,242,161,0.7)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(nx + br + 4, badgeY, br, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#4af2a1'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = bfont; ctx.fillText(cleared, nx + br + 4, badgeY);
+      ctx.restore();
+    }
+
+    // ── World drop diamond (bottom-right) ─────────────────────────────────────
+    if (mapData.worldDrop) {
+      const taken = game.party && game.party.worldDropsTaken[mapId];
+      const ds = Math.max(5, Math.round(7 * zoom));
+      const ddx = nx + tw - ds - 4, ddy = ny + th - ds - 4;
+      ctx.save();
+      ctx.fillStyle   = taken ? 'rgba(34,227,255,0.2)' : '#22e3ff';
+      ctx.strokeStyle = taken ? 'rgba(34,227,255,0.35)' : 'rgba(34,227,255,0.9)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(ddx, ddy - ds); ctx.lineTo(ddx + ds, ddy);
+      ctx.lineTo(ddx, ddy + ds); ctx.lineTo(ddx - ds, ddy);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.restore();
+    }
   }
 
-  // party marker
-  if (game.party) {
-    const px = rect.x + (game.party.x * TILE + TILE / 2 - viewX) * scale;
-    const py = rect.y + (game.party.y * TILE + TILE / 2 - viewY) * scale;
-    const pulse = 1 + Math.sin(game.time * 0.006) * 0.15;
-    ctx.fillStyle = PALETTE.accent2;
-    ctx.beginPath();
-    ctx.arc(px, py, 8 * pulse, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = PALETTE.ink;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  }
-
+  // ── Legend ───────────────────────────────────────────────────────────────────
+  const lx = rect.x + 10, ly = rect.y + rect.h - 56;
+  ctx.save();
+  ctx.fillStyle = 'rgba(7,6,13,0.82)';
+  ctx.fillRect(lx, ly, 220, 50);
+  ctx.fillStyle = '#ff4a5a';
+  ctx.beginPath(); ctx.arc(lx + 12, ly + 13, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = PALETTE.dim; ctx.font = '400 10px ui-monospace, monospace';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('active enemies', lx + 22, ly + 13);
+  ctx.fillStyle = 'rgba(74,242,161,0.5)';
+  ctx.beginPath(); ctx.arc(lx + 12, ly + 35, 6, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(74,242,161,0.7)'; ctx.lineWidth = 1; ctx.stroke();
+  ctx.fillStyle = PALETTE.dim; ctx.fillText('cleared', lx + 22, ly + 35);
+  ctx.fillStyle = '#22e3ff';
+  ctx.beginPath();
+  ctx.moveTo(lx + 122, ly + 6); ctx.lineTo(lx + 128, ly + 13);
+  ctx.lineTo(lx + 122, ly + 20); ctx.lineTo(lx + 116, ly + 13);
+  ctx.closePath(); ctx.fill();
+  ctx.fillStyle = PALETTE.dim; ctx.fillText('world drop', lx + 132, ly + 13);
+  ctx.fillStyle = PALETTE.accent;
+  ctx.beginPath(); ctx.arc(lx + 122, ly + 35, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = PALETTE.dim; ctx.fillText('city', lx + 132, ly + 35);
   ctx.restore();
+
+  ctx.restore(); // end clip
 
   // border
   ctx.strokeStyle = PALETTE.accent2;
@@ -1164,8 +1381,7 @@ function drawMapTab(ctx, game) {
     ctx.strokeStyle = PALETTE.accent;
     ctx.strokeRect(tipX + 0.5, tipY + 0.5, 259, 89);
     ctx.fillStyle = PALETTE.ink;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.font = '700 14px system-ui, sans-serif';
     ctx.fillText(c.name, tipX + 10, tipY + 8);
     ctx.fillStyle = PALETTE.dim;
@@ -1175,43 +1391,29 @@ function drawMapTab(ctx, game) {
     ctx.font = '600 11px ui-monospace, monospace';
     ctx.fillText(c.unlocked ? '[click] fast-travel' : '[locked] visit in person first', tipX + 10, tipY + 72);
   }
-
-  // zoom indicator
-  ctx.fillStyle = PALETTE.dim;
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.font = '400 11px ui-monospace, monospace';
-  ctx.fillText(`zoom ${menuState.map.zoom.toFixed(2)}x   center (${(menuState.map.cx / TILE).toFixed(0)}, ${(menuState.map.cy / TILE).toFixed(0)})`, rect.x + 8, rect.y + 8);
-
-  // reset view button
-  const btn = resetBtnRect(game);
-  ctx.fillStyle = PALETTE.panel;
-  ctx.fillRect(btn.x, btn.y, btn.w, btn.h);
-  ctx.strokeStyle = PALETTE.accent2;
-  ctx.lineWidth = 1.5;
-  ctx.strokeRect(btn.x + 0.5, btn.y + 0.5, btn.w - 1, btn.h - 1);
-  ctx.fillStyle = PALETTE.accent2;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = '600 11px ui-monospace, monospace';
-  ctx.fillText('RESET VIEW [R]', btn.x + btn.w / 2, btn.y + btn.h / 2);
 }
 
 function resetBtnRect(game) {
+  // kept for backward-compat with mouse handler; topology view has no reset btn
   const rect = mapRect(game);
-  const w = 130, h = 26;
-  return { x: rect.x + rect.w - w - 8, y: rect.y + rect.h - h - 8, w, h };
+  return { x: -999, y: -999, w: 0, h: 0 };
 }
 
 function tileMapColor(biome, type) {
   if (type === 'tile_cracked_road') return '#4a4550';
-  if (type === 'tile_stream') return '#1f5a90';
-  if (type === 'tile_bio_pool') return '#2fa868';
+  if (type === 'tile_stream')       return '#1f5a90';
+  if (type === 'tile_bio_pool')     return '#2fa868';
+  if (type === 'tile_ruin_rubble')  return '#3a3540';
   switch (biome) {
     case 'grassland_ruins': return '#2f5a3a';
-    case 'neon_wastes': return '#6a4e35';
-    case 'alien_terraform': return '#3e7a58';
-    default: return '#222';
+    case 'neon_wastes':     return '#6a4e35';
+    case 'alien_terraform': return '#2e5e46';
+    case 'frozen_ruins':    return '#3a4a5a';
+    case 'forest_veil':     return '#284a30';
+    case 'mire_bog':        return '#2a3a28';
+    case 'crater_ember':    return '#5a3020';
+    case 'frost_canyon':    return '#303848';
+    default: return '#1e1e28';
   }
 }
 
@@ -1250,12 +1452,9 @@ function mapRect(game) {
   return { x: f.x + 20, y: top, w: f.w - 40, h: f.h - top + f.y - 30 };
 }
 
-function mapScale(game) {
-  const rect = mapRect(game);
-  // base: fit whole map into rect at zoom 1
-  const fitX = rect.w / (MAP_W * TILE);
-  const fitY = rect.h / (MAP_H * TILE);
-  return Math.min(fitX, fitY) * menuState.map.zoom;
+function mapScale(_game) {
+  // topology view: zoom is a direct scale factor, not tile-relative
+  return menuState.map.zoom;
 }
 
 function settingsToggleRect(game) {
@@ -1268,24 +1467,32 @@ function pointInRect(x, y, r) {
 }
 
 function pickCity(mx, my, rect, game) {
-  const scale = mapScale(game);
-  const viewW = rect.w / scale, viewH = rect.h / scale;
-  const viewX = menuState.map.cx - viewW / 2;
-  const viewY = menuState.map.cy - viewH / 2;
-  const map = getMap(game.party ? game.party.mapId : 'haventide_region');
-  const visibleCities = map && map.city ? [map.city] : [];
-  for (const city of visibleCities) {
-    const sx = rect.x + (city.x * TILE + TILE / 2 - viewX) * scale;
-    const sy = rect.y + (city.y * TILE + TILE / 2 - viewY) * scale;
-    const r = Math.max(8, 12 * scale);
-    if ((mx - sx) ** 2 + (my - sy) ** 2 <= r * r) return city;
+  const zoom = menuState.map.zoom;
+  const tw = THUMB_VW * zoom, th = THUMB_VH * zoom;
+  for (const [mapId, mapData] of Object.entries(MAPS)) {
+    if (!mapData.city) continue;
+    const disc = game.devFogReveal ||
+      !!(game.explored && game.explored[mapId] && game.explored[mapId].size > 0);
+    if (!disc) continue;
+    const pos = worldNodePx(mapId, rect);
+    if (!pos) continue;
+    // clicking anywhere in the thumbnail rect selects this map's city
+    const nx = pos.x - tw / 2, ny = pos.y - th / 2;
+    if (mx >= nx && mx <= nx + tw && my >= ny && my <= ny + th) return mapData.city;
   }
   return null;
 }
 
 function fastTravel(city, game) {
+  if (city.mapId && city.mapId !== game.party.mapId) {
+    game.party.mapId = city.mapId;
+    game.cameraX = undefined;
+    game.cameraY = undefined;
+  }
   game.party.x = city.x;
   game.party.y = city.y;
+  game.party.fromX = city.x;
+  game.party.fromY = city.y;
   menuState.open = false;
 }
 

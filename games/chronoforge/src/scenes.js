@@ -8,7 +8,7 @@ import {
 } from './world.js';
 import { drawSprite, getSpriteVersion } from './sprites.js';
 import { aggregateYields, TICK_MS } from './base.js';
-import { checkQuestProgress, ITEM_DEFS } from './progression.js';
+import { checkQuestProgress, ITEM_DEFS, hasSave, getSaveMeta, saveGame } from './progression.js';
 import { getMapBackdrop } from './devWorld.js';
 import { beginTravel } from './travel.js';
 
@@ -56,16 +56,57 @@ export function drawSplash(ctx, game) {
   ctx.font = '400 18px system-ui, sans-serif';
   ctx.fillText('a post-collapse strategy-RPG', cx, cy + 20);
 
-  const blink = Math.floor(game.time / 600) % 2 === 0;
-  if (blink) {
-    ctx.fillStyle = PALETTE.ink;
-    ctx.font = '600 16px system-ui, sans-serif';
-    ctx.fillText('PRESS ENTER', cx, cy + 90);
+  if (hasSave()) {
+    const meta = getSaveMeta();
+    const sel = game.splashCursor ?? 0;
+    const btnW = 200, btnH = 44, gap = 14;
+    const btnY = cy + 64;
+
+    // save summary
+    if (meta) {
+      ctx.fillStyle = PALETTE.dim;
+      ctx.font = '400 12px ui-monospace, monospace';
+      const d = new Date(meta.ts);
+      ctx.fillText(`Tier ${meta.tier}  ·  Lv ${meta.heroLevels?.join('/')}  ·  ${d.toLocaleDateString()}`, cx, btnY - 18);
+    }
+
+    const btns = [
+      { label: 'CONTINUE', color: PALETTE.accent },
+      { label: 'NEW GAME', color: PALETTE.accent2 },
+    ];
+    btns.forEach(({ label, color }, i) => {
+      const bx = cx - btnW / 2;
+      const by = btnY + i * (btnH + gap);
+      const active = sel === i;
+      ctx.fillStyle = active ? color + '33' : 'transparent';
+      ctx.fillRect(bx, by, btnW, btnH);
+      ctx.strokeStyle = active ? color : PALETTE.dim;
+      ctx.lineWidth = active ? 2 : 1;
+      ctx.strokeRect(bx + 0.5, by + 0.5, btnW - 1, btnH - 1);
+      ctx.fillStyle = active ? color : PALETTE.dim;
+      ctx.font = `${active ? '700' : '400'} 15px system-ui, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(label, cx, by + btnH / 2);
+    });
+
+    ctx.fillStyle = PALETTE.dim;
+    ctx.font = '400 11px ui-monospace, monospace';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('↑ ↓ to select  ·  ENTER to confirm', cx, btnY + 2 * (btnH + gap) + 14);
+  } else {
+    const blink = Math.floor(game.time / 600) % 2 === 0;
+    if (blink) {
+      ctx.fillStyle = PALETTE.ink;
+      ctx.font = '600 16px system-ui, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('PRESS ENTER', cx, cy + 90);
+    }
   }
 
   ctx.fillStyle = PALETTE.dim;
   ctx.font = '400 12px ui-monospace, monospace';
-  ctx.fillText('phase 2 — overworld alpha', cx, h - 30);
+  ctx.textBaseline = 'middle';
+  ctx.fillText('phase 5 — progression & save', cx, h - 30);
 }
 
 // --- OVERWORLD ---
@@ -216,6 +257,7 @@ export function updateOverworld(game, dt) {
   p.moveCooldown = MOVE_COOLDOWN_MS;
 
   revealAround(game, nx, ny, 4);
+  saveGame(game); // auto-save every step
 
   const city = cityAt(p.mapId, nx, ny);
   if (city && !city.unlocked) {

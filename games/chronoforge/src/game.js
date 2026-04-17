@@ -24,7 +24,7 @@ import {
 import { initBattle, updateBattle, drawBattle, handleBattleKey } from './battle.js';
 import { initAudio, resumeAudio, playSfx } from './audio.js';
 import { PLAYER_START, MAP_W, MAP_H, MAPS } from './world.js';
-import { initHeroes, initInventory, initQuests, ITEM_DEFS } from './progression.js';
+import { initHeroes, initInventory, initQuests, ITEM_DEFS, hasSave, loadGame } from './progression.js';
 // --- DEV: floating panel (bottom-right). Speed toggle, fog reveal, rewards replay. ---
 function mountDevPanel() {
   const el = document.createElement('div');
@@ -117,6 +117,7 @@ const ctx = offscreen.getContext('2d');
 
 const game = {
   state: STATES.SPLASH,
+  splashCursor: 0, // 0 = CONTINUE, 1 = NEW GAME (only relevant when hasSave())
   time: 0,
   frame: 0,
   lastT: 0,
@@ -298,8 +299,24 @@ window.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (game.state === STATES.SPLASH && (k === 'Enter' || k === ' ')) {
-    game.setState(STATES.OVERWORLD);
+  if (game.state === STATES.SPLASH) {
+    if (hasSave()) {
+      if (k === 'ArrowUp' || k === 'ArrowLeft' || k === 'w' || k === 'a') {
+        game.splashCursor = 0; return;
+      }
+      if (k === 'ArrowDown' || k === 'ArrowRight' || k === 's' || k === 'd') {
+        game.splashCursor = 1; return;
+      }
+      if (k === 'Enter' || k === ' ') {
+        if (game.splashCursor === 0) {
+          loadGame(game);
+        }
+        // cursor === 1: new game — keep default state, just transition
+        game.setState(STATES.OVERWORLD);
+      }
+    } else if (k === 'Enter' || k === ' ') {
+      game.setState(STATES.OVERWORLD);
+    }
     playSfx('ui_click');
     return;
   }

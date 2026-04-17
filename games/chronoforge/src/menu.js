@@ -956,11 +956,21 @@ function handleSaveMouseDown(mx, my, game) {
     return true;
   }
   if (pointInRect(mx, my, btns.delete) && hasSave()) {
-    deleteSave();
-    sv.msg = 'Save deleted.';
-    sv.msgExpire = game.time + 2500;
+    if (sv.confirmRestart) {
+      deleteSave();
+      sv.msg = 'Save deleted. Refresh to start over.';
+      sv.msgExpire = game.time + 4000;
+      sv.confirmRestart = false;
+    } else {
+      sv.confirmRestart = true;
+      sv.confirmExpire = game.time + 3000;
+      sv.msg = 'Click again to confirm restart.';
+      sv.msgExpire = game.time + 3000;
+    }
     return true;
   }
+  // Cancel confirm if clicking elsewhere
+  if (sv.confirmRestart && game.time > sv.confirmExpire) sv.confirmRestart = false;
   return false;
 }
 
@@ -993,7 +1003,7 @@ function drawSaveTab(ctx, game) {
   const defs = [
     { key: 'save', label: 'Save Game', color: PALETTE.accent, enabled: true },
     { key: 'load', label: 'Load Game', color: PALETTE.accent2, enabled: !!meta },
-    { key: 'delete', label: 'Delete Save', color: '#ff4a5a', enabled: !!meta },
+    { key: 'delete', label: sv.confirmRestart ? '⚠ Confirm Restart' : 'Start Over', color: '#ff4a5a', enabled: !!meta },
   ];
   for (const { key, label, color, enabled } of defs) {
     const r = btns[key];

@@ -257,7 +257,6 @@ export function updateOverworld(game, dt) {
   p.moveCooldown = MOVE_COOLDOWN_MS;
 
   revealAround(game, nx, ny, 4);
-  saveGame(game); // auto-save every step
 
   const city = cityAt(p.mapId, nx, ny);
   if (city && !city.unlocked) {

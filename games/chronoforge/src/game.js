@@ -24,7 +24,7 @@ import {
 import { initBattle, updateBattle, drawBattle, handleBattleKey } from './battle.js';
 import { initAudio, resumeAudio, playSfx } from './audio.js';
 import { PLAYER_START, MAP_W, MAP_H, MAPS } from './world.js';
-import { initHeroes, initInventory, initQuests, ITEM_DEFS, hasSave, loadGame } from './progression.js';
+import { initHeroes, initInventory, initQuests, ITEM_DEFS, hasSave, loadGame, saveGame } from './progression.js';
 // --- DEV: floating panel (bottom-right). Speed toggle, fog reveal, rewards replay. ---
 function mountDevPanel() {
   const el = document.createElement('div');
@@ -371,6 +371,14 @@ function tick(ticker) {
     else if (game.state === STATES.BATTLE) updateBattle(game, dt * (game.battleSpeed || 1));
     else if (game.state === STATES.TRAVEL) updateTravel(game, dt);
     if (game.state === STATES.OVERWORLD || game.state === STATES.BASE) maybeTick(game, t);
+  }
+
+  // Auto-save every 10s while on the overworld or traveling
+  if (game.state === STATES.OVERWORLD || game.state === STATES.TRAVEL) {
+    if (!game.lastAutoSave || t - game.lastAutoSave >= 10_000) {
+      saveGame(game);
+      game.lastAutoSave = t;
+    }
   }
 
   switch (game.state) {

@@ -74,7 +74,10 @@ const SPRITE_DEFS = [
   ['bomber',  'sprites/bomber.png'],
   ['drone',   'sprites/drone.png'],
   ['boss',    'sprites/boss.png'],
+  ['boss2',   'sprites/boss2.png'],
+  ['boss3',   'sprites/boss3.png'],
   ['pickup',  'sprites/pickup.png'],
+  ['bomb',    'sprites/bomb.png'],
 ];
 function loadSprites() {
   return Promise.all(SPRITE_DEFS.map(([k, src]) => new Promise(res => {
@@ -106,11 +109,13 @@ const FIRE_INTERVAL = 1 / 9; // 9 shots/sec
 const SHIP_W = 72, SHIP_H = 84;
 
 const WEAPON_TIERS = {
-  1: { name: 'SINGLE',   color: COL.cyan,    w: 4, h: 12, piercing: false },
-  2: { name: 'DUAL',     color: COL.yellow,  w: 4, h: 12, piercing: false },
-  3: { name: 'SPREAD',   color: COL.lime,    w: 4, h: 12, piercing: false },
-  4: { name: 'PIERCING', color: COL.magenta, w: 5, h: 16, piercing: true  },
-  5: { name: 'HYBRID',   color: COL.violet,  w: 5, h: 16, piercing: true  },
+  1: { name: 'SINGLE',   color: COL.cyan,    w: 4, h: 12, piercing: false, fireInterval: 1/9  },
+  2: { name: 'DUAL',     color: COL.yellow,  w: 4, h: 12, piercing: false, fireInterval: 1/9  },
+  3: { name: 'SPREAD',   color: COL.lime,    w: 4, h: 12, piercing: false, fireInterval: 1/9  },
+  4: { name: 'PIERCING', color: COL.magenta, w: 5, h: 16, piercing: true,  fireInterval: 1/9  },
+  5: { name: 'BARRAGE',  color: COL.orange,  w: 4, h: 12, piercing: false, fireInterval: 1/9  },
+  6: { name: 'SEEKER',   color: COL.lime,    w: 5, h: 16, piercing: true,  fireInterval: 1/7  },
+  7: { name: 'HYBRID',   color: COL.violet,  w: 5, h: 16, piercing: true,  fireInterval: 1/9  },
 };
 
 const player = {
@@ -349,35 +354,44 @@ function generateWave(waveNum) {
   const events = [];
   const difficulty = Math.min(1 + (waveNum - 1) * 0.22, 4.5);
 
-  // How many formations this wave?
-  const formationCount = 1 + Math.floor(rng() * 2) + Math.floor((waveNum - 1) / 3);
+  // How many formations this wave? Min 2, ramps up faster
+  const formationCount = 2 + Math.floor(rng() * 2) + Math.floor((waveNum - 1) / 2);
+
+  const isEliteWave = waveNum % 3 === 0;
 
   let t = 0;
   for (let f = 0; f < formationCount; f++) {
     const pick = rng();
-    if (waveNum <= 2) {
+    if (waveNum === 1) {
       addFormationLine(events, t, rng);
-    } else if (pick < 0.22) {
+    } else if (pick < 0.18) {
       addFormationLine(events, t, rng);
-    } else if (pick < 0.42) {
+    } else if (pick < 0.36) {
       addFormationV(events, t, rng);
-    } else if (pick < 0.58) {
+    } else if (pick < 0.52) {
       addFormationDiagonal(events, t, rng);
-    } else if (pick < 0.72 && waveNum >= 3) {
+    } else if (pick < 0.68 && waveNum >= 2) {
       addFormationBomberRun(events, t, rng);
-    } else if (pick < 0.88 && waveNum >= 4) {
+    } else if (pick < 0.84 && waveNum >= 2) {
       addFormationDroneSwarm(events, t, rng);
     } else {
       addFormationDuel(events, t, rng);
     }
-    t += 2.2 + rng() * 1.6 - Math.min(0.6, (difficulty - 1) * 0.15);
+    t += 1.8 + rng() * 1.2 - Math.min(0.5, (difficulty - 1) * 0.15);
+  }
+
+  // On elite waves, mark ~40% of enemies as elite
+  if (isEliteWave) {
+    for (const ev of events) {
+      if (rng() < 0.4) ev.elite = true;
+    }
   }
 
   return events;
 }
 
 function addFormationLine(events, t0, rng) {
-  const count = 3 + Math.floor(rng() * 3);
+  const count = 4 + Math.floor(rng() * 4);
   const pad   = 60;
   const step  = (CANVAS_W - pad * 2) / (count - 1);
   const dir   = rng() < 0.5 ? 1 : -1;
@@ -450,7 +464,7 @@ function addFormationDuel(events, t0, rng) {
 // Spawners
 // ---------------------------------------------------------------------------
 
-function spawnEnemy(type, x) {
+function spawnEnemy(type, x, opts = {}) {
   const spec = ENEMY_SPECS[type];
   const e = {
     type, x,
@@ -459,16 +473,18 @@ function spawnEnemy(type, x) {
     halfH: spec.halfH,
     w: spec.w,
     h: spec.h,
-    hp: spec.hp,
-    maxHp: spec.hp,
-    score: spec.score,
-    dropChance: spec.dropChance,
+    hp: opts.elite ? spec.hp * 2 : spec.hp,
+    maxHp: opts.elite ? spec.hp * 2 : spec.hp,
+    score: opts.elite ? spec.score * 2 : spec.score,
+    dropChance: opts.elite ? 1 : spec.dropChance,
     color: spec.color,
+    elite: opts.elite || false,
     vx: 0, vy: 0,
     fireTimer: 0,
     invulnTimer: 0.15,
     phase: Math.random() * Math.PI * 2,
     flashTimer: 0,
+    midFired: false,
     // drone state
     travelY: 0,
     tracking: false,
@@ -480,12 +496,13 @@ function spawnEnemy(type, x) {
   enemies.push(e);
 }
 
-function spawnPickup(x, y) {
+function spawnPickup(x, y, type = 'tier') {
   pickups.push({
     x, y,
     halfW: 14, halfH: 14,
     vy: 90,
     t: 0,
+    type,
   });
 }
 
@@ -576,12 +593,41 @@ function fireBullets() {
       break;
     }
     case 5: {
-      // Hybrid — piercing center + wide spread + missiles
+      // Barrage — 4 forward bullets in a moderate fan, no pierce
+      // More density than SPREAD, trade-off: loses piercing
+      const offsets = [-18, -6, 6, 18];
+      const angles  = [-10, -3, 3, 10];
+      for (let i = 0; i < 4; i++) {
+        const a = ang(angles[i]);
+        shoot(bx + offsets[i], by, a.vx, a.vy,
+          { color: COL.orange, w: 4, h: 12, piercing: false });
+      }
+      break;
+    }
+    case 6: {
+      // Seeker — 1 piercing center shot + 3 homing missiles
+      // Regains pierce, adds smart tracking
+      shoot(bx, by, 0, up, { color: COL.lime, w: 5, h: 16, piercing: true });
+      for (const [ox, ivx] of [[-20, -80], [0, 0], [20, 80]]) {
+        bullets.push({
+          x: bx + ox, y: by,
+          vx: ivx, vy: up * 0.85,
+          w: 4, h: 14,
+          color: COL.lime,
+          piercing: false,
+          seeker: true,
+          hits: new Set(),
+        });
+      }
+      break;
+    }
+    case 7: {
+      // Hybrid — piercing center + wide angled spread + side missiles
+      // The godtier: everything at once
       shoot(bx, by, 0, up);
       const a = ang(-18); const b = ang(18);
       shoot(bx - 8, by, a.vx, a.vy);
       shoot(bx + 8, by, b.vx, b.vy);
-      // Side missiles (non-piercing, coloured distinctly)
       const m = { color: COL.magenta, w: 5, h: 14, piercing: false };
       shoot(bx - 22, by, 30,  up, m);
       shoot(bx + 22, by, -30, up, m);
@@ -608,15 +654,21 @@ const boss = {
   halfW: 100, halfH: 60,
   hp: 0, maxHp: 0,
   phase: 1,      // 1..3
+  bossType: 'sentinel', // 'sentinel' | 'interceptor' | 'colossus'
   enterTimer: 0, // counts down during entry animation
   patternTimer: 0,
   patternClock: 0,
   deathTimer: 0,
   flashTimer: 0,
   swayPhase: 0,
+  chargeTimer: 0,   // telegraph wind-up before shotgun blasts
+  strafeDir: 1,     // interceptor strafe direction
+  strafeTimer: 0,
 };
 
 function spawnBoss() {
+  const types = ['sentinel', 'interceptor', 'colossus'];
+  boss.bossType = types[game.bossCycle % 3];
   boss.active = true;
   boss.x = CANVAS_W / 2;
   boss.y = -120;
@@ -629,6 +681,9 @@ function spawnBoss() {
   boss.deathTimer = 0;
   boss.flashTimer = 0;
   boss.swayPhase = 0;
+  boss.chargeTimer = 0;
+  boss.strafeDir = 1;
+  boss.strafeTimer = 0;
   game.state = STATE.BOSS;
   game.waveIndicatorTimer = 2.0;
 }
@@ -643,25 +698,48 @@ function updateBoss(dt) {
     return;
   }
 
-  // Sway
+  // Movement by type
   boss.swayPhase += dt;
-  boss.x = CANVAS_W / 2 + Math.sin(boss.swayPhase * 0.8) * 200;
-  boss.y = 160 + Math.sin(boss.swayPhase * 1.3) * 16;
+  if (boss.bossType === 'sentinel') {
+    boss.x = CANVAS_W / 2 + Math.sin(boss.swayPhase * 0.8) * 200;
+    boss.y = 160 + Math.sin(boss.swayPhase * 1.3) * 16;
+  } else if (boss.bossType === 'interceptor') {
+    // Fast horizontal strafe, reverses at edges
+    boss.strafeTimer -= dt;
+    if (boss.strafeTimer <= 0) {
+      boss.strafeDir *= -1;
+      boss.strafeTimer = 1.2 + Math.random() * 0.8;
+    }
+    boss.x += boss.strafeDir * 320 * dt;
+    boss.x = Math.max(boss.halfW + 20, Math.min(CANVAS_W - boss.halfW - 20, boss.x));
+    boss.y = 140 + Math.sin(boss.swayPhase * 2.2) * 10;
+  } else {
+    // Colossus — barely moves
+    boss.x = CANVAS_W / 2 + Math.sin(boss.swayPhase * 0.25) * 60;
+    boss.y = 170 + Math.sin(boss.swayPhase * 0.4) * 8;
+  }
 
-  // Determine phase from HP
+  // Phase transitions (all types share same HP thresholds)
   const hpFrac = boss.hp / boss.maxHp;
+  const phaseTransColors = {
+    sentinel:    [COL.yellow, COL.magenta],
+    interceptor: [COL.orange, COL.red],
+    colossus:    [COL.red,    COL.violet],
+  }[boss.bossType];
   if (hpFrac <= 0.33 && boss.phase < 3) {
     boss.phase = 3;
     boss.patternTimer = 0;
+    boss.chargeTimer = 0;
     addShake(10);
     game.flash = 0.35;
-    spawnExplosion(boss.x, boss.y, COL.magenta, 24, 1.5);
+    spawnExplosion(boss.x, boss.y, phaseTransColors[1], 24, 1.5);
   } else if (hpFrac <= 0.66 && boss.phase < 2) {
     boss.phase = 2;
     boss.patternTimer = 0;
+    boss.chargeTimer = 0;
     addShake(8);
     game.flash = 0.25;
-    spawnExplosion(boss.x, boss.y, COL.yellow, 20, 1.3);
+    spawnExplosion(boss.x, boss.y, phaseTransColors[0], 20, 1.3);
   }
 
   // Death
@@ -679,9 +757,9 @@ function updateBoss(dt) {
     if (boss.deathTimer >= 1.8) {
       // Boss down — big pickup, advance to next wave cycle
       game.score += 5000;
-      spawnPickup(boss.x, boss.y);
-      spawnPickup(boss.x - 30, boss.y);
-      spawnPickup(boss.x + 30, boss.y);
+      spawnPickup(boss.x, boss.y, 'tier');
+      spawnPickup(boss.x - 30, boss.y, 'tier');
+      spawnPickup(boss.x + 30, boss.y, 'tier');
       boss.active = false;
       game.bossCycle += 1;
       if (game.bossCycle >= 3) {
@@ -704,13 +782,23 @@ function updateBoss(dt) {
   // Flash timer
   if (boss.flashTimer > 0) boss.flashTimer -= dt;
 
-  // Pattern selection by phase
+  // Pattern selection by type + phase
   boss.patternTimer += dt;
   boss.patternClock += dt;
 
-  if (boss.phase === 1) bossPatternPhase1(dt);
-  else if (boss.phase === 2) bossPatternPhase2(dt);
-  else bossPatternPhase3(dt);
+  if (boss.bossType === 'interceptor') {
+    if (boss.phase === 1) bossPatternInterceptor1(dt);
+    else if (boss.phase === 2) bossPatternInterceptor2(dt);
+    else bossPatternInterceptor3(dt);
+  } else if (boss.bossType === 'colossus') {
+    if (boss.phase === 1) bossPatternColossus1(dt);
+    else if (boss.phase === 2) bossPatternColossus2(dt);
+    else bossPatternColossus3(dt);
+  } else {
+    if (boss.phase === 1) bossPatternPhase1(dt);
+    else if (boss.phase === 2) bossPatternPhase2(dt);
+    else bossPatternPhase3(dt);
+  }
 }
 
 // Phase 1 — wide radial bursts every 1.4s + targeted stream
@@ -763,7 +851,7 @@ function bossPatternPhase2(dt) {
   }
 }
 
-// Phase 3 — spiraling arms + radial bursts + aimed shotgun blasts
+// Phase 3 — spiraling arms + aimed shotgun blasts (with telegraph)
 function bossPatternPhase3(dt) {
   // Continuous spiraling arms
   if (boss.patternTimer % 0.06 < dt) {
@@ -779,23 +867,184 @@ function bossPatternPhase3(dt) {
       });
     }
   }
-  // Shotgun blasts every 1.7s
-  if (boss.patternTimer >= 1.7) {
+  // Shotgun blasts every 1.7s — 0.45s telegraph first
+  if (boss.chargeTimer > 0) {
+    boss.chargeTimer -= dt;
+    if (boss.chargeTimer <= 0) {
+      boss.chargeTimer = 0;
+      const dx = player.x - boss.x;
+      const dy = player.y - (boss.y + boss.halfH);
+      const base = Math.atan2(dy, dx);
+      for (let i = -2; i <= 2; i++) {
+        const a = base + i * 0.14;
+        enemyBullets.push({
+          x: boss.x, y: boss.y + boss.halfH,
+          vx: Math.cos(a) * 320,
+          vy: Math.sin(a) * 320,
+          w: 6, h: 8,
+          color: COL.red,
+          big: true,
+        });
+      }
+      addShake(5);
+    }
+  } else if (boss.patternTimer >= 1.7) {
+    boss.patternTimer = 0;
+    boss.chargeTimer = 0.45;
+  }
+}
+
+// --- Interceptor patterns (cycle 2) ---
+
+// Phase 1 — rapid aimed double-stream
+function bossPatternInterceptor1(dt) {
+  if (boss.patternTimer >= 0.18) {
     boss.patternTimer = 0;
     const dx = player.x - boss.x;
-    const dy = player.y - (boss.y + boss.halfH);
-    const base = Math.atan2(dy, dx);
-    for (let i = -2; i <= 2; i++) {
-      const a = base + i * 0.14;
+    const dy = player.y - boss.y;
+    const d  = Math.hypot(dx, dy) || 1;
+    for (const off of [-12, 12]) {
       enemyBullets.push({
-        x: boss.x, y: boss.y + boss.halfH,
-        vx: Math.cos(a) * 320,
-        vy: Math.sin(a) * 320,
-        w: 6, h: 8,
+        x: boss.x + off, y: boss.y + boss.halfH,
+        vx: (dx / d) * 340 + off * 1.5,
+        vy: (dy / d) * 340,
+        w: 4, h: 10,
+        color: COL.orange,
+      });
+    }
+  }
+}
+
+// Phase 2 — cross-burst grid every 1.1s + double-stream
+function bossPatternInterceptor2(dt) {
+  bossPatternInterceptor1(dt);
+  if (boss.patternTimer >= 1.1) {
+    boss.patternTimer = 0;
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2 + boss.patternClock * 0.3;
+      enemyBullets.push({
+        x: boss.x, y: boss.y,
+        vx: Math.cos(a) * 240,
+        vy: Math.sin(a) * 240 + 30,
+        w: 5, h: 5,
         color: COL.red,
         big: true,
       });
     }
+  }
+}
+
+// Phase 3 — double-stream + cross-burst + zigzag spray (with telegraph)
+function bossPatternInterceptor3(dt) {
+  // Fast double-stream
+  if (boss.patternTimer >= 0.12) {
+    boss.patternTimer = 0;
+    const dx = player.x - boss.x;
+    const dy = player.y - boss.y;
+    const d  = Math.hypot(dx, dy) || 1;
+    for (const off of [-14, 0, 14]) {
+      enemyBullets.push({
+        x: boss.x + off, y: boss.y + boss.halfH,
+        vx: (dx / d) * 360 + off * 1.2,
+        vy: (dy / d) * 360,
+        w: 4, h: 10,
+        color: COL.orange,
+      });
+    }
+  }
+  // Shotgun telegraph every 1.4s
+  if (boss.chargeTimer > 0) {
+    boss.chargeTimer -= dt;
+    if (boss.chargeTimer <= 0) {
+      boss.chargeTimer = 0;
+      const dx = player.x - boss.x;
+      const dy = player.y - (boss.y + boss.halfH);
+      const base = Math.atan2(dy, dx);
+      for (let i = -3; i <= 3; i++) {
+        const a = base + i * 0.11;
+        enemyBullets.push({
+          x: boss.x, y: boss.y + boss.halfH,
+          vx: Math.cos(a) * 380,
+          vy: Math.sin(a) * 380,
+          w: 5, h: 8,
+          color: COL.red,
+          big: true,
+        });
+      }
+      addShake(7);
+    }
+  } else if (boss.patternClock % 1.4 < dt) {
+    boss.chargeTimer = 0.45;
+  }
+}
+
+// --- Colossus patterns (cycle 3) ---
+
+// Phase 1 — slow massive 24-bullet radial nova every 2.2s
+function bossPatternColossus1(dt) {
+  if (boss.patternTimer >= 2.2) {
+    boss.patternTimer = 0;
+    const n = 24;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + boss.patternClock * 0.1;
+      enemyBullets.push({
+        x: boss.x, y: boss.y,
+        vx: Math.cos(a) * 180,
+        vy: Math.sin(a) * 180 + 20,
+        w: 7, h: 7,
+        color: COL.red,
+        big: true,
+      });
+    }
+    addShake(4);
+    game.flash = 0.15;
+  }
+}
+
+// Phase 2 — nova + slow sweeping beam (line of bullets left→right)
+function bossPatternColossus2(dt) {
+  bossPatternColossus1(dt);
+  // Sweep: fires a horizontal line of bullets that sweeps downward
+  if (boss.patternTimer >= 0.05) {
+    boss.patternTimer = 0;
+    const sweepX = (boss.patternClock % 3.0) / 3.0 * CANVAS_W;
+    enemyBullets.push({
+      x: sweepX, y: boss.y + boss.halfH + 10,
+      vx: 0,
+      vy: 200,
+      w: 8, h: 8,
+      color: COL.violet,
+      big: true,
+    });
+  }
+}
+
+// Phase 3 — nova + sweep + aimed shotgun (with telegraph)
+function bossPatternColossus3(dt) {
+  bossPatternColossus2(dt);
+  if (boss.chargeTimer > 0) {
+    boss.chargeTimer -= dt;
+    if (boss.chargeTimer <= 0) {
+      boss.chargeTimer = 0;
+      const dx = player.x - boss.x;
+      const dy = player.y - (boss.y + boss.halfH);
+      const base = Math.atan2(dy, dx);
+      for (let i = -3; i <= 3; i++) {
+        const a = base + i * 0.18;
+        enemyBullets.push({
+          x: boss.x, y: boss.y + boss.halfH,
+          vx: Math.cos(a) * 300,
+          vy: Math.sin(a) * 300,
+          w: 8, h: 10,
+          color: COL.red,
+          big: true,
+        });
+      }
+      addShake(10);
+      game.flash = 0.2;
+    }
+  } else if (boss.patternClock % 2.0 < dt) {
+    boss.chargeTimer = 0.55;
   }
 }
 
@@ -850,10 +1099,11 @@ function updatePlayer(dt) {
   player.y = Math.max(clampY, Math.min(CANVAS_H - clampY, player.y));
 
   // Auto-fire (always on during PLAYING/BOSS)
+  const fireInterval = WEAPON_TIERS[player.tier].fireInterval;
   player.fireTimer += dt;
-  while (player.fireTimer >= FIRE_INTERVAL) {
+  while (player.fireTimer >= fireInterval) {
     fireBullets();
-    player.fireTimer -= FIRE_INTERVAL;
+    player.fireTimer -= fireInterval;
   }
 
   player.thrust = (player.thrust + dt * 22) % (Math.PI * 2);
@@ -871,6 +1121,21 @@ function updatePlayer(dt) {
 function updateBullets(dt) {
   for (let i = bullets.length - 1; i >= 0; i--) {
     const b = bullets[i];
+    if (b.seeker && enemies.length > 0) {
+      let nearest = null, nearDist = Infinity;
+      for (const e of enemies) {
+        const d = Math.hypot(e.x - b.x, e.y - b.y);
+        if (d < nearDist) { nearDist = d; nearest = e; }
+      }
+      if (nearest) {
+        const dx = nearest.x - b.x, dy = nearest.y - b.y;
+        const d  = Math.hypot(dx, dy) || 1;
+        b.vx += (dx / d) * 680 * dt;
+        b.vy += (dy / d) * 680 * dt;
+        const sp = Math.hypot(b.vx, b.vy);
+        if (sp > BULLET_SPEED * 1.2) { b.vx = b.vx / sp * BULLET_SPEED * 1.2; b.vy = b.vy / sp * BULLET_SPEED * 1.2; }
+      }
+    }
     b.x += b.vx * dt;
     b.y += b.vy * dt;
     if (b.y + b.h < 0 || b.y > CANVAS_H || b.x < -20 || b.x > CANVAS_W + 20) {
@@ -909,6 +1174,17 @@ function updateScout(e, dt) {
   const wave = Math.sin((e.y / 40) + e.phase);
   e.x += wave * 110 * dt;
   e.x = Math.max(e.halfW, Math.min(CANVAS_W - e.halfW, e.x));
+  // Mid-screen burst — fires once when crossing 35% down
+  if (!e.midFired && e.y > CANVAS_H * 0.35) {
+    e.midFired = true;
+    for (const ox of [-8, 8]) {
+      enemyBullets.push({
+        x: e.x + ox, y: e.y + e.halfH,
+        vx: 0, vy: ENEMY_BULLET_SPEED * 0.75,
+        w: 4, h: 8, color: COL.lime,
+      });
+    }
+  }
 }
 
 function updateBomber(e, dt) {
@@ -1000,7 +1276,7 @@ function updateWaveSpawner(dt) {
   game.waveTimer += dt;
   for (const ev of game.wavePending) {
     if (!ev.fired && game.waveTimer >= ev.delay) {
-      spawnEnemy(ev.type, ev.x);
+      spawnEnemy(ev.type, ev.x, { elite: ev.elite || false });
       ev.fired = true;
     }
   }
@@ -1041,6 +1317,19 @@ function checkCollisions() {
         e.hp -= 1;
         e.flashTimer = 0.08;
         spawnHitSpark(b.x, b.y, b.color);
+        // Drone retaliates on hit (if still alive)
+        if (e.type === 'drone' && e.hp > 0) {
+          const dx = e.x - player.x, dy = e.y - player.y;
+          const d = Math.hypot(dx, dy) || 1;
+          for (let k = -1; k <= 1; k++) {
+            const a = Math.atan2(dy, dx) + k * 0.3;
+            enemyBullets.push({
+              x: e.x, y: e.y,
+              vx: Math.cos(a) * 260, vy: Math.sin(a) * 260,
+              w: 4, h: 4, color: COL.red,
+            });
+          }
+        }
         if (b.piercing) {
           b.hits.add(e);
         } else {
@@ -1051,7 +1340,11 @@ function checkCollisions() {
           game.score += e.score;
           spawnExplosion(e.x, e.y, e.color, 18, 1);
           addShake(3);
-          if (Math.random() < e.dropChance) spawnPickup(e.x, e.y);
+          if (e.type === 'bomber') {
+            spawnPickup(e.x, e.y, 'bomb');
+          } else if (Math.random() < e.dropChance) {
+            spawnPickup(e.x, e.y, 'tier');
+          }
           enemies.splice(j, 1);
         }
         if (consumed) break;
@@ -1109,16 +1402,30 @@ function checkCollisions() {
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
     if (overlap(p.x, p.y, p.halfW, p.halfH, player.x, player.y, player.halfW, player.halfH)) {
-      // Advance the max unlocked tier (and auto-select it). X/Shift on
-      // desktop lets players cycle back down among unlocked tiers.
-      if (player.maxTier < 5) {
-        player.maxTier += 1;
-        player.tier    = player.maxTier;
-      } else {
+      if (p.type === 'bomb') {
+        // Screen-clear pulse — kill all enemies + wipe all enemy bullets
+        for (const e of enemies) {
+          game.score += e.score;
+          spawnExplosion(e.x, e.y, e.color, 14, 1.2);
+        }
+        enemies.length = 0;
+        enemyBullets.length = 0;
+        spawnExplosion(player.x, player.y, COL.orange, 60, 3);
+        addShake(14);
+        game.flash = 0.5;
         game.score += 500;
+      } else {
+        // Advance the max unlocked tier (and auto-select it). X/Shift on
+        // desktop lets players cycle back down among unlocked tiers.
+        if (player.maxTier < 7) {
+          player.maxTier += 1;
+          player.tier    = player.maxTier;
+        } else {
+          game.score += 500;
+        }
+        spawnHitSpark(p.x, p.y, COL.cyan);
+        spawnHitSpark(p.x, p.y, COL.magenta);
       }
-      spawnHitSpark(p.x, p.y, COL.cyan);
-      spawnHitSpark(p.x, p.y, COL.magenta);
       pickups.splice(i, 1);
     }
   }
@@ -1293,6 +1600,13 @@ function drawEnemies() {
     if (!drawSprite(e.type, e.x, e.y, e.w, e.h)) {
       drawVectorEnemy(e);
     }
+    if (e.elite) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = `rgba(255, 200, 0, ${0.25 + 0.15 * Math.sin(performance.now() / 200)})`;
+      ctx.fillRect(e.x - e.halfW, e.y - e.halfH, e.halfW * 2, e.halfH * 2);
+      ctx.restore();
+    }
     if (e.flashTimer > 0) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
@@ -1338,10 +1652,37 @@ function drawBoss() {
   ctx.save();
   ctx.globalAlpha = alpha;
 
+  // Phase color by type
+  const bossPhaseColors = {
+    sentinel:    [COL.magenta, COL.yellow,  COL.violet],
+    interceptor: [COL.orange,  COL.red,     COL.yellow],
+    colossus:    [COL.red,     COL.violet,  COL.magenta],
+  }[boss.bossType];
+  const phaseColor = bossPhaseColors[boss.phase - 1];
+
+  // Charge cone telegraph
+  if (boss.chargeTimer > 0) {
+    const progress = Math.max(0, 1 - boss.chargeTimer / 0.55);
+    const dx = player.x - boss.x;
+    const dy = player.y - (boss.y + boss.halfH);
+    const angle = Math.atan2(dy, dx);
+    const spread = 0.35 * (1 - progress * 0.5);
+    const length = 180 * progress;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = 0.6 * progress * alpha;
+    ctx.fillStyle = COL.red;
+    ctx.beginPath();
+    ctx.moveTo(boss.x, boss.y + boss.halfH);
+    ctx.arc(boss.x, boss.y + boss.halfH, length, angle - spread, angle + spread);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
   // Outer glow
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  const phaseColor = boss.phase === 1 ? COL.magenta : boss.phase === 2 ? COL.yellow : COL.violet;
   const g = ctx.createRadialGradient(boss.x, boss.y, 10, boss.x, boss.y, 140);
   g.addColorStop(0, phaseColor);
   g.addColorStop(1, 'rgba(0,0,0,0)');
@@ -1352,7 +1693,8 @@ function drawBoss() {
   ctx.fill();
   ctx.restore();
 
-  if (!drawSprite('boss', boss.x, boss.y, boss.halfW * 2, boss.halfH * 2)) {
+  const spriteKey = boss.bossType === 'interceptor' ? 'boss2' : boss.bossType === 'colossus' ? 'boss3' : 'boss';
+  if (!drawSprite(spriteKey, boss.x, boss.y, boss.halfW * 2, boss.halfH * 2)) {
     // Vector boss
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -1399,26 +1741,51 @@ function drawPickups() {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const pulse = 0.6 + 0.4 * Math.sin(p.t * 10);
-    // glow
-    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 34);
-    g.addColorStop(0, `rgba(90, 220, 255, ${0.9 * pulse})`);
-    g.addColorStop(0.6, `rgba(255, 60, 240, ${0.4 * pulse})`);
-    g.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 34, 0, Math.PI * 2); ctx.fill();
-
-    if (!drawSprite('pickup', p.x, p.y, 36, 36)) {
-      // Vector diamond
-      ctx.fillStyle = COL.cyan;
-      ctx.strokeStyle = COL.white;
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(p.x,       p.y - 14);
-      ctx.lineTo(p.x + 11,  p.y);
-      ctx.lineTo(p.x,       p.y + 14);
-      ctx.lineTo(p.x - 11,  p.y);
-      ctx.closePath();
-      ctx.fill(); ctx.stroke();
+    if (p.type === 'bomb') {
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 34);
+      g.addColorStop(0, `rgba(255, 140, 0, ${0.9 * pulse})`);
+      g.addColorStop(0.6, `rgba(255, 60, 0, ${0.4 * pulse})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 34, 0, Math.PI * 2); ctx.fill();
+      if (!drawSprite('bomb', p.x, p.y, 36, 36)) {
+        // Vector hexagon
+        ctx.fillStyle = COL.orange;
+        ctx.strokeStyle = COL.red;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+          const a = i / 6 * Math.PI * 2 - Math.PI / 6;
+          i === 0 ? ctx.moveTo(p.x + Math.cos(a) * 12, p.y + Math.sin(a) * 12)
+                  : ctx.lineTo(p.x + Math.cos(a) * 12, p.y + Math.sin(a) * 12);
+        }
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        // warning dot
+        ctx.fillStyle = COL.white;
+        ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2); ctx.fill();
+      }
+    } else {
+      // glow
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 34);
+      g.addColorStop(0, `rgba(90, 220, 255, ${0.9 * pulse})`);
+      g.addColorStop(0.6, `rgba(255, 60, 240, ${0.4 * pulse})`);
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 34, 0, Math.PI * 2); ctx.fill();
+      if (!drawSprite('pickup', p.x, p.y, 36, 36)) {
+        // Vector diamond
+        ctx.fillStyle = COL.cyan;
+        ctx.strokeStyle = COL.white;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(p.x,       p.y - 14);
+        ctx.lineTo(p.x + 11,  p.y);
+        ctx.lineTo(p.x,       p.y + 14);
+        ctx.lineTo(p.x - 11,  p.y);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+      }
     }
     ctx.restore();
   }
@@ -1491,7 +1858,8 @@ function drawHUD() {
     ctx.textAlign = 'center';
     ctx.fillStyle = COL.cyan;
     ctx.font = 'bold 11px Courier New';
-    ctx.fillText(`SENTINEL ${boss.phase}/3  —  CYCLE ${game.bossCycle + 1}/3`, CANVAS_W / 2, barY - 6);
+    const bossLabel = (boss.bossType || 'sentinel').toUpperCase();
+    ctx.fillText(`${bossLabel} ${boss.phase}/3  —  CYCLE ${game.bossCycle + 1}/3`, CANVAS_W / 2, barY - 6);
   }
 
   ctx.restore();
@@ -1539,7 +1907,8 @@ function drawWaveIndicator() {
   ctx.textAlign = 'center';
   if (game.state === STATE.BOSS) {
     ctx.fillStyle = COL.magenta;
-    ctx.fillText('SENTINEL INCOMING', CANVAS_W / 2, CANVAS_H / 2);
+    const bossNames = { sentinel: 'SENTINEL', interceptor: 'INTERCEPTOR', colossus: 'COLOSSUS' };
+    ctx.fillText(`${bossNames[boss.bossType] || 'SENTINEL'} INCOMING`, CANVAS_W / 2, CANVAS_H / 2);
   } else {
     ctx.fillText(`WAVE ${game.wave}`, CANVAS_W / 2, CANVAS_H / 2);
   }

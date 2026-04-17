@@ -52,6 +52,30 @@
       "h": 36,
       "out": "src/sprites/pickup.png",
       "prompt": "pixel art weapon power-up crystal collectible sprite, solid black background, small faceted diamond silhouette, gunmetal charcoal rim with thick cyan and magenta neon rim lights along crystal edges, glowing cyan plasma core at the center with a bright white hot-spot, symmetric angular facets, sci-fi noir bullet-hell shooter pickup, crisp limited palette, no anti-aliasing"
+    },
+    {
+      "name": "boss2",
+      "label": "Boss Interceptor (Cycle 2)",
+      "w": 240,
+      "h": 160,
+      "out": "src/sprites/boss2.png",
+      "prompt": "pixel art strict top-down overhead view alien interceptor boss warship, camera looking straight down from above, NO perspective or isometric angle, massive boomerang crescent silhouette with giant swept scythe wings dominating the full width, nose pointing straight downward toward bottom of frame, twin enormous protruding railgun barrels at the front center, gunmetal charcoal armor hull panels with thick blazing electric orange and amber neon rim lights tracing every panel seam, glowing amber plasma reactor core dead center with brilliant white hot-spot, serrated trailing wing edges, four thruster vents at the rear, menacing predator warship seen from directly above, solid pure black background, sci-fi noir bullet-hell shooter boss, crisp pixel palette, no anti-aliasing, no 3D perspective distortion"
+    },
+    {
+      "name": "boss3",
+      "label": "Boss Colossus (Cycle 3)",
+      "w": 240,
+      "h": 160,
+      "out": "src/sprites/boss3.png",
+      "prompt": "pixel art strict top-down overhead view alien colossus dreadnought boss, camera looking straight down from above, NO perspective or isometric angle, massive symmetric cross-shaped armored fortress silhouette with four enormous heavy cannon turret pods extending outward from each arm, tip of lower arm pointing straight down toward bottom of frame, overlapping thick armor plate segments with rivets and ventilation slits, central blood-red plasma reactor at the dead center with brilliant white hot-spot radiating energy vein lines outward to each cannon, gunmetal charcoal hull with blood-red and deep crimson neon rim lights blazing along every armor edge, vast imposing dreadnought of annihilation seen from directly above, solid pure black background, sci-fi noir bullet-hell shooter final boss, crisp pixel palette, no anti-aliasing, no 3D perspective distortion"
+    },
+    {
+      "name": "bomb",
+      "label": "Bomb Pickup",
+      "w": 36,
+      "h": 36,
+      "out": "src/sprites/bomb.png",
+      "prompt": "pixel art screen-clear bomb power-up collectible sprite, solid black background, small hexagonal grenade silhouette, gunmetal charcoal rim with thick orange and red neon rim lights along hex edges, glowing orange plasma core at the center with a bright white hot-spot, symmetric angular hex facets with a warning symbol, sci-fi noir bullet-hell shooter pickup, crisp limited palette, no anti-aliasing"
     }
   ]
 }

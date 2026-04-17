@@ -255,10 +255,7 @@ export function handleBattleKey(game, key) {
       if (sel === 'attack') { m.view = 'target'; m.action = 'attack'; playSfx('bt_action_select'); }
       else if (sel === 'tech') {
         if (hero.techs.length === 0) return;
-        const t = hero.techs[0];
-        if (hero.mp < t.mp) { playSfx('bt_miss'); return; }
-        m.view = t.aoe || t.el === 'support' ? 'confirm' : 'target';
-        m.action = 'tech'; m.techIdx = 0;
+        m.view = 'tech'; m.techSel = 0;
         playSfx('bt_action_select');
       } else if (sel === 'defend') {
         hero.shield = Math.floor(hero.def * 3);
@@ -280,8 +277,25 @@ export function handleBattleKey(game, key) {
     } else if (key === 'Enter' || key === ' ') {
       executeAction(game, hero, m);
     }
+  } else if (m.view === 'tech') {
+    const n = hero.techs.length;
+    if (key === 'ArrowUp' || key === 'w' || key === 'W') {
+      m.techSel = (m.techSel - 1 + n) % n; playSfx('ui_tab', { gain: 0.4 });
+    } else if (key === 'ArrowDown' || key === 's' || key === 'S') {
+      m.techSel = (m.techSel + 1) % n; playSfx('ui_tab', { gain: 0.4 });
+    } else if (key === 'Enter' || key === ' ') {
+      const t = hero.techs[m.techSel];
+      if (hero.mp < t.mp) { playSfx('bt_miss'); return; }
+      m.techIdx = m.techSel;
+      m.action = 'tech';
+      m.view = t.aoe || t.el === 'support' ? 'confirm' : 'target';
+      playSfx('bt_action_select');
+    } else if (key === 'b' || key === 'B' || key === 'Escape') {
+      m.view = 'root'; playSfx('ui_tab', { gain: 0.4 });
+    }
   } else if (m.view === 'confirm') {
     if (key === 'Enter' || key === ' ') executeAction(game, hero, m);
+    else if (key === 'b' || key === 'B' || key === 'Escape') { m.view = 'tech'; playSfx('ui_tab', { gain: 0.4 }); }
   }
 }
 
@@ -842,14 +856,14 @@ function drawActionMenu(ctx, game) {
   if (m.view === 'root') {
     const opts = [
       { id: 'attack', label: 'Attack' },
-      { id: 'tech', label: `Tech  (${hero.techs[0].name} · ${hero.techs[0].mp} MP)` },
+      { id: 'tech',   label: `Tech ▸` },
       { id: 'defend', label: 'Defend' },
     ];
     const sel = m.rootSel || 'attack';
     opts.forEach((o, i) => {
       const y = my + 36 + i * 24;
       const active = o.id === sel;
-      const canDo = o.id !== 'tech' || hero.mp >= hero.techs[0].mp;
+      const canDo = o.id !== 'tech' || hero.techs.some(t => hero.mp >= t.mp);
       ctx.fillStyle = active ? PALETTE.accent : 'transparent';
       if (active) ctx.fillRect(mx + 6, y - 2, 248, 22);
       ctx.fillStyle = !canDo ? PALETTE.dim : active ? PALETTE.bg : PALETTE.ink;
@@ -859,6 +873,27 @@ function drawActionMenu(ctx, game) {
     ctx.fillStyle = PALETTE.dim;
     ctx.font = '400 10px ui-monospace, monospace';
     ctx.fillText('[W/S] select  [Enter] confirm', mx + 12, my + 118);
+  } else if (m.view === 'tech') {
+    ctx.fillStyle = PALETTE.ink;
+    ctx.font = '600 12px system-ui, sans-serif';
+    ctx.fillText('Choose Tech:', mx + 12, my + 28);
+    hero.techs.forEach((t, i) => {
+      const y = my + 48 + i * 22;
+      const active = i === (m.techSel || 0);
+      const canAfford = hero.mp >= t.mp;
+      ctx.fillStyle = active ? PALETTE.accent : 'transparent';
+      if (active) ctx.fillRect(mx + 6, y - 2, 248, 20);
+      ctx.fillStyle = !canAfford ? PALETTE.dim : active ? PALETTE.bg : PALETTE.ink;
+      ctx.font = '600 11px system-ui, sans-serif';
+      ctx.fillText(`${active ? '▸ ' : '  '}${t.name}`, mx + 14, y);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = !canAfford ? PALETTE.dim : active ? PALETTE.bg : PALETTE.accent2;
+      ctx.fillText(`${t.mp} MP`, mx + 252, y);
+      ctx.textAlign = 'left';
+    });
+    ctx.fillStyle = PALETTE.dim;
+    ctx.font = '400 10px ui-monospace, monospace';
+    ctx.fillText('[W/S] select  [Enter] pick  [B] back', mx + 12, my + 118);
   } else if (m.view === 'target') {
     ctx.fillStyle = PALETTE.ink;
     ctx.font = '600 12px system-ui, sans-serif';

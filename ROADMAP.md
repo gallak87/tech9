@@ -67,6 +67,22 @@ These were recurring per-game re-discoveries. All patched into the framework as 
 | Historian vocab role | `vocab/roles/11_historian.json` — graduation model defined |
 | Art proof pass | `run-art.md` — agent self-reviews proof before batching, surfaces only when blocked |
 
+### 5. Slash command dispatcher / specialized agent routing
+
+Current pipeline uses generic slash commands that run in the same context. The idea: each command switches to a purpose-built agent with narrowed system prompt, tools, and RAG context — rather than one agent that tries to do everything.
+
+- `/dev` — file system + component docs, no infra access
+- `/devops` — CI/CD, cloud CLI, secrets; changes require explicit approval
+- `/test` — test runners, coverage; no write access to src
+- `/map` — scans codebase, emits dependency graph so agents know what they're touching before acting
+
+**Why it matters for tech9:** `/run-art`, `/expand`, `/generate` are already routing to different agents — this is just making the boundary explicit and narrowing tool access per route. Reduces hallucination surface, cleaner permission model, and lets agents hand off results to each other (devops sets up env → signals dev to update the badge).
+
+Key implementation pieces:
+- Each command gets its own system prompt file in `.claude/commands/`
+- Director emits a `tool_access[]` block in `team_config.json` (extends item 2 above)
+- Chain protocol: agent emits a structured `handoff` payload instead of prose; receiving agent reads it as first context
+
 ---
 
 ## Deferred (post-v1 of current games)

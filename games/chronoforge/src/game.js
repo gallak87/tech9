@@ -283,12 +283,13 @@ function resize() {
   if (app.renderer) {
     app.renderer.resize(w, h);
   }
-  if (sceneTexture) {
-    sceneTexture.source.resize(offscreen.width, offscreen.height, 1);
-  }
   if (sceneSprite) {
+    const newTex = Texture.from(offscreen);
+    sceneSprite.texture = newTex;
     sceneSprite.width = w;
     sceneSprite.height = h;
+    if (sceneTexture) sceneTexture.destroy();
+    sceneTexture = newTex;
   }
 }
 
@@ -349,6 +350,11 @@ window.addEventListener('keydown', (e) => {
     if (handleBaseKey(game, k)) { e.preventDefault(); return; }
   } else if (game.state === STATES.OVERWORLD && (game.base?.pickerOpen || game.base?.upgradeOpen)) {
     if (handleBaseKey(game, k)) { e.preventDefault(); return; }
+  } else if (game.state === STATES.OVERWORLD && (k === 'c' || k === 'C') && game.party.currentEncounter) {
+    game.pendingEncounter = game.party.currentEncounter;
+    game.setState('battle');
+    e.preventDefault();
+    return;
   } else if (game.state === STATES.OVERWORLD && (k === 'c' || k === 'C') && game.party.currentPlot) {
     const slot = game.base.slots[game.party.currentPlot.slotIdx];
     game.base.activeSlot = game.party.currentPlot.slotIdx;

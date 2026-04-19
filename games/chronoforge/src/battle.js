@@ -96,7 +96,9 @@ function cloneHero(id) {
 
 function cloneEnemy(id, slot) {
   const t = ENEMY_TEMPLATES[id] || ENEMY_TEMPLATES.rust_scrapper;
-  return { id, slot, ...t, hp: t.hp, maxHp: t.hp, atb: Math.random() * 20, int: 10, tec: 6, crit: 4, flash: 0, spriteState: 'idle', spriteTimer: 0 };
+  const tier = t.tier || 1;
+  const atbHead = (tier - 1) * 8; // T1=0, T2=8, T3=16, T4=24, T5=32
+  return { id, slot, ...t, hp: t.hp, maxHp: t.hp, atb: atbHead + Math.random() * 20, int: 10, tec: 6, crit: 4, flash: 0, spriteState: 'idle', spriteTimer: 0 };
 }
 
 function setSpriteState(actor, state, durationMs) {
@@ -501,33 +503,36 @@ function endBattle(game, victory) {
   const b = game.battle;
   const enc = game.pendingEncounter;
   if (victory) {
+    const wasCleared = enc.cleared;
     enc.cleared = true;
     const xpGain = b.enemies.reduce((s, e) => s + (e.xp || 0), 0);
-    const renownGain = b.enemies.reduce((s, e) => s + (e.renown || 0), 0);
-    const oreGain = Math.floor(xpGain / 10);
-    game.resources.renown += renownGain;
-    game.resources.ore += oreGain;
     // roll drops per enemy
     const dropCounts = {};
     for (const e of b.enemies) {
       if (!e.drops) continue;
       for (const d of e.drops) {
-        if (Math.random() < (d.chance || 0)) {
+        const tierBonus = 1 + (e.tier - 1) * 0.15; // T1=1×, T2=1.15×, T3=1.3×, T4=1.45×, T5=1.6×
+        if (Math.random() < (d.chance || 0) * tierBonus) {
           game.inventory.push({ id: d.itemId });
           dropCounts[d.itemId] = (dropCounts[d.itemId] || 0) + 1;
         }
       }
     }
-    // award XP to persistent heroes and check quest progress
     if (game.heroes) {
       awardXp(game, xpGain);
-      checkQuestProgress(game, { type: 'encounter_cleared', encounterId: enc.id });
+      if (!wasCleared) checkQuestProgress(game, { type: 'encounter_cleared', encounterId: enc.id });
     }
-    const rewards = [
-      { icon: 'icon_renown', label: 'Renown', amount: renownGain },
-      { icon: 'icon_ore',    label: 'Ore',    amount: oreGain },
-      { icon: 'icon_skill_point', label: 'XP', amount: xpGain },
-    ];
+    const rewards = [{ icon: 'icon_skill_point', label: 'XP', amount: xpGain }];
+    if (!wasCleared) {
+      const renownGain = b.enemies.reduce((s, e) => s + (e.renown || 0), 0);
+      const oreGain = Math.floor(xpGain / 10);
+      game.resources.renown += renownGain;
+      game.resources.ore += oreGain;
+      rewards.unshift(
+        { icon: 'icon_renown', label: 'Renown', amount: renownGain },
+        { icon: 'icon_ore',    label: 'Ore',    amount: oreGain },
+      );
+    }
     for (const [itemId, amt] of Object.entries(dropCounts)) {
       const def = ITEM_DEFS[itemId];
       if (!def) continue;

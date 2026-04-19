@@ -2094,6 +2094,426 @@
         "icons",
         "drops"
       ]
+    },
+    {
+      "name": "bog_stalker_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Bog Stalker, crouched swamp raider, mud-caked hide armor and reed wrappings, lunging forward mid-stab with bone-knife, peat dust kicking up, facing left, peat brown and moss green palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/bog_stalker_attack.png",
+      "tags": [
+        "bog_stalker",
+        "enemies",
+        "battle",
+        "attack",
+        "t1"
+      ]
+    },
+    {
+      "name": "bog_stalker_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Bog Stalker, crouched swamp raider, mud-caked hide armor and reed wrappings, recoiling from hit stumbling backward, white flash on silhouette, facing left, peat brown and moss green palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/bog_stalker_hurt.png",
+      "tags": [
+        "bog_stalker",
+        "enemies",
+        "battle",
+        "hurt",
+        "t1"
+      ]
+    },
+    {
+      "name": "bog_stalker_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Bog Stalker, crouched swamp raider, mud-caked hide armor and reed wrappings, collapsing face-down dissolving into swamp muck, facing left, peat brown and moss green palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/bog_stalker_death.png",
+      "tags": [
+        "bog_stalker",
+        "enemies",
+        "battle",
+        "death",
+        "t1"
+      ]
+    },
+    {
+      "name": "slag_rat_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Slag Rat, small rangy ember rodent, charcoal fur, glowing orange cracks along its spine, molten-tipped tail, leaping forward with fangs bared and tail lashing, ember sparks flying, facing left, black and ember-orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/slag_rat_attack.png",
+      "tags": [
+        "slag_rat",
+        "enemies",
+        "battle",
+        "attack",
+        "t1"
+      ]
+    },
+    {
+      "name": "slag_rat_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Slag Rat, small rangy ember rodent, charcoal fur, glowing orange cracks along its spine, molten-tipped tail, recoiling from hit skidding backward, white flash on body, facing left, black and ember-orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/slag_rat_hurt.png",
+      "tags": [
+        "slag_rat",
+        "enemies",
+        "battle",
+        "hurt",
+        "t1"
+      ]
+    },
+    {
+      "name": "slag_rat_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Slag Rat, small rangy ember rodent, charcoal fur, orange cracks fading, collapsing limp and dissolving into drifting ash, facing left, black and ember-orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/slag_rat_death.png",
+      "tags": [
+        "slag_rat",
+        "enemies",
+        "battle",
+        "death",
+        "t1"
+      ]
+    },
+    {
+      "name": "mire_hulk_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mire Hulk, tall hunched swamp brute draped in hanging moss and peat, thick matted shoulders, exposed sickly green muscle, both arms slamming down in a crushing overhead blow, mud and moss spraying, facing left, deep moss-green and muddy brown palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_hulk_attack.png",
+      "tags": [
+        "mire_hulk",
+        "enemies",
+        "battle",
+        "attack",
+        "t2"
+      ]
+    },
+    {
+      "name": "mire_hulk_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mire Hulk, tall hunched swamp brute draped in hanging moss and peat, thick matted shoulders, staggering from hit, white flash on body, moss-chunks flying, facing left, deep moss-green and muddy brown palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_hulk_hurt.png",
+      "tags": [
+        "mire_hulk",
+        "enemies",
+        "battle",
+        "hurt",
+        "t2"
+      ]
+    },
+    {
+      "name": "mire_hulk_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mire Hulk, tall hunched swamp brute draped in hanging moss and peat, toppling sideways and dissolving into bog muck, facing left, deep moss-green and muddy brown palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_hulk_death.png",
+      "tags": [
+        "mire_hulk",
+        "enemies",
+        "battle",
+        "death",
+        "t2"
+      ]
+    },
+    {
+      "name": "glacier_wolf_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Glacier Wolf, four-legged glacier wolf, thick frost-white fur with pale-blue ice shards along the spine, glowing pale-cyan eyes, leaping mid-pounce jaws snapping wide, ice shards spraying, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/glacier_wolf_attack.png",
+      "tags": [
+        "glacier_wolf",
+        "enemies",
+        "battle",
+        "attack",
+        "t2"
+      ]
+    },
+    {
+      "name": "glacier_wolf_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Glacier Wolf, four-legged glacier wolf, thick frost-white fur with pale-blue ice shards along the spine, glowing pale-cyan eyes, recoiling from hit yelping and skidding, white flash on body, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/glacier_wolf_hurt.png",
+      "tags": [
+        "glacier_wolf",
+        "enemies",
+        "battle",
+        "hurt",
+        "t2"
+      ]
+    },
+    {
+      "name": "glacier_wolf_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Glacier Wolf, four-legged glacier wolf, frost-white fur, ice shards shattering apart as body collapses, dissolving into frost mist, glowing eyes fading, facing left, pure solid black background, crisp silhouette",
+      "out": "src/assets/glacier_wolf_death.png",
+      "tags": [
+        "glacier_wolf",
+        "enemies",
+        "battle",
+        "death",
+        "t2"
+      ]
+    },
+    {
+      "name": "ember_golem_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Ember Golem, hulking stone golem with glowing orange lava cracks across its body, heavy rocky shoulders, swinging boulder-fist in massive overhead smash, lava splash erupting from impact, facing left, charcoal and molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_golem_attack.png",
+      "tags": [
+        "ember_golem",
+        "enemies",
+        "battle",
+        "attack",
+        "t3"
+      ]
+    },
+    {
+      "name": "ember_golem_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Ember Golem, hulking stone golem with glowing orange lava cracks across its body, struck by damage, stone chunks cracking off shoulders, lava cracks flickering and surging, facing left, charcoal and molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_golem_hurt.png",
+      "tags": [
+        "ember_golem",
+        "enemies",
+        "battle",
+        "hurt",
+        "t3"
+      ]
+    },
+    {
+      "name": "ember_golem_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Ember Golem, hulking stone golem, shattering apart into chunks of stone and molten shards, lava cracks extinguishing, body crumbling, facing left, charcoal and molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_golem_death.png",
+      "tags": [
+        "ember_golem",
+        "enemies",
+        "battle",
+        "death",
+        "t3"
+      ]
+    },
+    {
+      "name": "frost_revenant_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Frost Revenant, gaunt armored revenant, pale-blue ice-crusted plate, tattered frost-cloak, glowing cyan eye-slits, lunging forward with frost-blade thrust, icy energy trail, facing left, pale blue and frosted silver palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_revenant_attack.png",
+      "tags": [
+        "frost_revenant",
+        "enemies",
+        "battle",
+        "attack",
+        "t3"
+      ]
+    },
+    {
+      "name": "frost_revenant_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Frost Revenant, gaunt armored revenant, pale-blue ice-crusted plate cracking, tattered frost-cloak billowing, cyan eye-slits flickering, staggering from hit, facing left, pale blue and frosted silver palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_revenant_hurt.png",
+      "tags": [
+        "frost_revenant",
+        "enemies",
+        "battle",
+        "hurt",
+        "t3"
+      ]
+    },
+    {
+      "name": "frost_revenant_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Frost Revenant, gaunt armored revenant, armor shattering apart into ice fragments, frost-cloak dissolving, cyan eye-slits fading to nothing, facing left, pale blue and frosted silver palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_revenant_death.png",
+      "tags": [
+        "frost_revenant",
+        "enemies",
+        "battle",
+        "death",
+        "t3"
+      ]
+    },
+    {
+      "name": "mire_warden_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mire Warden, tall hooded swamp shaman in layered moss-robes, bone-totem staff thrust forward erupting a green wisp blast, cyan glyphs on hem flaring, facing left, murky green and sickly cyan palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_warden_attack.png",
+      "tags": [
+        "mire_warden",
+        "enemies",
+        "battle",
+        "attack",
+        "t4"
+      ]
+    },
+    {
+      "name": "mire_warden_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mire Warden, tall hooded swamp shaman in layered moss-robes, struck by damage, moss-robes billowing, staff arm knocked back, cyan glyphs scattering, facing left, murky green and sickly cyan palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_warden_hurt.png",
+      "tags": [
+        "mire_warden",
+        "enemies",
+        "battle",
+        "hurt",
+        "t4"
+      ]
+    },
+    {
+      "name": "mire_warden_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Mire Warden, tall hooded swamp shaman in layered moss-robes, collapsing as body dissolves into green mist, bone-totem staff crumbling, hood falling, facing left, murky green and sickly cyan palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/mire_warden_death.png",
+      "tags": [
+        "mire_warden",
+        "enemies",
+        "battle",
+        "death",
+        "t4"
+      ]
+    },
+    {
+      "name": "magma_behemoth_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Magma Behemoth, massive quadrupedal lava beast, obsidian plated hide with deep glowing orange molten seams, flame-maned shoulders, rearing up and slamming front legs down in a shockwave, lava splashing outward, facing left, near-black and bright molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/magma_behemoth_attack.png",
+      "tags": [
+        "magma_behemoth",
+        "enemies",
+        "battle",
+        "attack",
+        "t4"
+      ]
+    },
+    {
+      "name": "magma_behemoth_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Magma Behemoth, massive quadrupedal lava beast, obsidian plated hide struck and cracking, molten seams surging bright from impact, staggering, facing left, near-black and bright molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/magma_behemoth_hurt.png",
+      "tags": [
+        "magma_behemoth",
+        "enemies",
+        "battle",
+        "hurt",
+        "t4"
+      ]
+    },
+    {
+      "name": "magma_behemoth_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Magma Behemoth, massive quadrupedal lava beast, obsidian hide shattering apart in chunks, molten core extinguishing and going dark, body collapsing, facing left, near-black and bright molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/magma_behemoth_death.png",
+      "tags": [
+        "magma_behemoth",
+        "enemies",
+        "battle",
+        "death",
+        "t4"
+      ]
+    },
+    {
+      "name": "frost_colossus_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Frost Colossus, towering ice titan built of fused glacial shards, crystalline plated shoulders, bringing massive ice-blade down in a powerful overhead cleave, ice shards spraying from impact, pale-cyan inner glow flaring, facing left, pale-blue ice and frost-white palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_colossus_attack.png",
+      "tags": [
+        "frost_colossus",
+        "enemies",
+        "battle",
+        "attack",
+        "t5"
+      ]
+    },
+    {
+      "name": "frost_colossus_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Frost Colossus, towering ice titan built of fused glacial shards, crystalline shoulders cracking from damage, pale-cyan inner glow flickering, staggering, glacial fragments breaking off, facing left, pale-blue ice and frost-white palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_colossus_hurt.png",
+      "tags": [
+        "frost_colossus",
+        "enemies",
+        "battle",
+        "hurt",
+        "t5"
+      ]
+    },
+    {
+      "name": "frost_colossus_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Frost Colossus, towering ice titan, shattering apart in cascading glacial fragments, pale-cyan light fading from within, ice-blade exploding into shards, facing left, pale-blue ice and frost-white palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/frost_colossus_death.png",
+      "tags": [
+        "frost_colossus",
+        "enemies",
+        "battle",
+        "death",
+        "t5"
+      ]
+    },
+    {
+      "name": "ember_lord_attack",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Ember Lord, regal magma avatar, obsidian armor cracked with blinding orange light, crown of jagged molten spikes, sweeping molten-blade in a wide arc, flame-cape flaring out dramatically, magma trail in the blade's wake, facing left, near-black and blinding molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_lord_attack.png",
+      "tags": [
+        "ember_lord",
+        "enemies",
+        "battle",
+        "attack",
+        "t5"
+      ]
+    },
+    {
+      "name": "ember_lord_hurt",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Ember Lord, regal magma avatar, obsidian armor cracking from damage, blinding orange light surging through the cracks, crown tilting, staggering, facing left, near-black and blinding molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_lord_hurt.png",
+      "tags": [
+        "ember_lord",
+        "enemies",
+        "battle",
+        "hurt",
+        "t5"
+      ]
+    },
+    {
+      "name": "ember_lord_death",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of the Ember Lord, regal magma avatar, obsidian armor shattering apart, molten core imploding in a blinding final flash, flame-cape disintegrating into embers, molten crown crumbling, facing left, near-black and blinding molten orange palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/ember_lord_death.png",
+      "tags": [
+        "ember_lord",
+        "enemies",
+        "battle",
+        "death",
+        "t5"
+      ]
     }
   ]
 }

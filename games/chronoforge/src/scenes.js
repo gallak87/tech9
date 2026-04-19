@@ -375,6 +375,11 @@ export function drawMapScene(ctx, game, mapId) {
       eg.addColorStop(1, 'rgba(7,6,13,0)');
       ctx.fillStyle = eg;
       ctx.fillRect(ecx - ew * 0.7, ecy - ew * 0.7, ew * 1.4, ew * 1.4);
+      ctx.strokeStyle = 'rgba(180,40,40,0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(ecx, sy + TILE - 4 + bob, 24.5, 8.75, 0, 0, Math.PI * 2);
+      ctx.stroke();
       drawSprite(ctx, `${e.enemy}_ow`, sx + (TILE - ew) / 2, sy + TILE - eh + bob, ew, eh);
     }
   }
@@ -391,9 +396,9 @@ export function drawMapScene(ctx, game, mapId) {
   hg.addColorStop(1, 'rgba(7,6,13,0)');
   ctx.fillStyle = hg;
   ctx.fillRect(hcx - hr, hcy - hr, hr * 2, hr * 2);
-  ctx.fillStyle = 'rgba(34,227,255,0.28)';
+  ctx.fillStyle = 'rgba(34,227,255,0.18)';
   ctx.beginPath();
-  ctx.ellipse(pcx + TILE / 2, pcy + TILE - 2, 14, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(pcx + TILE / 2, pcy + TILE - 2, 24.5, 8.75, 0, 0, Math.PI * 2);
   ctx.fill();
   drawSprite(ctx, 'kaida_overworld', pcx + (TILE - TILE * 1.5) / 2, pcy + TILE - TILE * 1.5, TILE * 1.5, TILE * 1.5);
 

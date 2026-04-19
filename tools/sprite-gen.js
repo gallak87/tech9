@@ -94,10 +94,10 @@ async function main() {
   if (filterName) {
     sprites = sprites.filter(s => s.name === filterName);
   } else if (filterTags) {
-    // AND filter: sprite must have every listed tag
+    // OR filter: sprite must have at least one listed tag
     sprites = sprites.filter(s => {
       const st = s.tags || [];
-      return filterTags.every(t => st.includes(t));
+      return filterTags.some(t => st.includes(t));
     });
   }
 

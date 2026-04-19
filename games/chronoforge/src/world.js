@@ -61,7 +61,9 @@ export const MAPS = {
       blurb: 'Coastal fishing port. Your home base. Pink neon docks, rumor of a lost sister ship.',
     },
     encounters: [
-      { id: 'e1', x: 18, y: 25, enemy: 'rust_scrapper' },
+      { id: 'e1',  x: 18, y: 25, enemy: 'rust_scrapper' },
+      { id: 'e20', x: 30, y: 15, enemy: 'bog_stalker' },
+      { id: 'e21', x: 45, y: 30, enemy: 'slag_rat' },
     ],
     doorways: [
       { x: 58, y: 20, to: { mapId: 'emberline_region', x: 1, y: 20 } },
@@ -83,9 +85,11 @@ export const MAPS = {
       blurb: 'Desert trade hub. Caravans whisper of a collapsing orbital elevator.',
     },
     encounters: [
-      { id: 'e2', x: 14, y: 18, enemy: 'mutant_hound' },
-      { id: 'e3', x: 24, y: 26, enemy: 'drone_sentinel' },
-      { id: 'e4', x: 42, y: 22, enemy: 'gravbot' },
+      { id: 'e2',  x: 14, y: 18, enemy: 'mutant_hound' },
+      { id: 'e3',  x: 24, y: 26, enemy: 'drone_sentinel' },
+      { id: 'e4',  x: 42, y: 22, enemy: 'gravbot' },
+      { id: 'e22', x: 8,  y: 30, enemy: 'slag_rat' },
+      { id: 'e23', x: 50, y: 14, enemy: 'bog_stalker' },
     ],
     doorways: [
       { x: 1,  y: 20, to: { mapId: 'haventide_region',    x: 58, y: 20 } },
@@ -110,8 +114,10 @@ export const MAPS = {
       blurb: 'Ruined space-elevator base. Cyan steel piercing the storm clouds.',
     },
     encounters: [
-      { id: 'e5', x: 14, y: 14, enemy: 'neon_cultist' },
-      { id: 'e6', x: 30, y: 22, enemy: 'sandworm_hatchling' },
+      { id: 'e5',  x: 14, y: 14, enemy: 'neon_cultist' },
+      { id: 'e6',  x: 30, y: 22, enemy: 'sandworm_hatchling' },
+      { id: 'e28', x: 42, y: 30, enemy: 'glacier_wolf' },
+      { id: 'e29', x: 50, y: 14, enemy: 'frost_revenant' },
     ],
     doorways: [
       { x: 1,  y: 20, to: { mapId: 'emberline_region',   x: 58, y: 20 } },
@@ -135,8 +141,11 @@ export const MAPS = {
       blurb: 'The final megacity. Magenta spires where the Void Architect waits.',
     },
     encounters: [
-      { id: 'e7', x: 20, y: 18, enemy: 'wraith_core' },
-      { id: 'e8', x: 45, y: 25, enemy: 'architect_herald' },
+      { id: 'e7',  x: 20, y: 18, enemy: 'wraith_core' },
+      { id: 'e8',  x: 45, y: 25, enemy: 'architect_herald' },
+      { id: 'e32', x: 10, y: 28, enemy: 'mire_warden' },
+      { id: 'e33', x: 40, y: 14, enemy: 'gravbot' },
+      { id: 'e34', x: 52, y: 30, enemy: 'neon_cultist' },
     ],
     doorways: [
       { x: 1, y: 14, to: { mapId: 'orbital_reach_region', x: 58, y: 14 } },
@@ -153,6 +162,8 @@ export const MAPS = {
     encounters: [
       { id: 'e9',  x: 18, y: 22, enemy: 'mutant_hound' },
       { id: 'e10', x: 42, y: 30, enemy: 'mire_hulk' },
+      { id: 'e24', x: 30, y: 15, enemy: 'bog_stalker' },
+      { id: 'e25', x: 52, y: 20, enemy: 'slag_rat' },
     ],
     doorways: [
       { x: 30, y: 1,  to: { mapId: 'emberline_region', x: 30, y: 38 } },
@@ -171,6 +182,8 @@ export const MAPS = {
       { id: 'e11', x: 20, y: 18, enemy: 'bog_stalker' },
       { id: 'e12', x: 32, y: 24, enemy: 'mire_hulk' },
       { id: 'e13', x: 44, y: 12, enemy: 'mire_warden' },
+      { id: 'e26', x: 10, y: 28, enemy: 'slag_rat' },
+      { id: 'e27', x: 52, y: 22, enemy: 'mutant_hound' },
     ],
     doorways: [
       { x: 1, y: 22, to: { mapId: 'forest_veil_region', x: 58, y: 22 } },
@@ -188,6 +201,8 @@ export const MAPS = {
       { id: 'e14', x: 22, y: 16, enemy: 'ember_golem' },
       { id: 'e15', x: 36, y: 26, enemy: 'magma_behemoth' },
       { id: 'e16', x: 48, y: 12, enemy: 'ember_lord' },
+      { id: 'e35', x: 10, y: 26, enemy: 'gravbot' },
+      { id: 'e36', x: 34, y: 10, enemy: 'neon_cultist' },
     ],
     doorways: [
       { x: 10, y: 36, to: { mapId: 'emberline_region', x: 50, y: 4 } },
@@ -205,6 +220,8 @@ export const MAPS = {
       { id: 'e17', x: 18, y: 20, enemy: 'glacier_wolf' },
       { id: 'e18', x: 32, y: 14, enemy: 'frost_revenant' },
       { id: 'e19', x: 46, y: 24, enemy: 'frost_colossus' },
+      { id: 'e30', x: 8,  y: 28, enemy: 'neon_cultist' },
+      { id: 'e31', x: 52, y: 34, enemy: 'sandworm_hatchling' },
     ],
     doorways: [
       { x: 30, y: 36, to: { mapId: 'orbital_reach_region', x: 10, y: 2 } },

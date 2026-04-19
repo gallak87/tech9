@@ -120,7 +120,10 @@ export function drawSprite(ctx, name, x, y, w, h, opts = {}) {
       ctx.drawImage(img, x, y, w, h);
       ctx.restore();
     } else {
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
       ctx.drawImage(img, x, y, w, h);
+      ctx.restore();
     }
     return;
   }

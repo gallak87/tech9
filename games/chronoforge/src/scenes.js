@@ -122,7 +122,8 @@ export function initParty() {
     moveStart: -9999,
     moveCooldown: 0,
     facing: 'down',
-    worldDropsTaken: {}, // { [mapId]: true }
+    worldDropsTaken: {},
+    currentEncounter: null,
   };
 }
 
@@ -304,12 +305,18 @@ export function updateOverworld(game, dt) {
     return;
   }
 
-  // encounter → battle
-  const enc = encounterAt(p.mapId, nx, ny);
-  if (enc) {
-    game.pendingEncounter = enc;
-    game.setState('battle');
-    return;
+  // encounter → battle (uncleared: auto-trigger; cleared: set badge for C-key re-fight)
+  const curMap = getMap(p.mapId);
+  const nearEnc = curMap?.encounters.find(e => nx >= e.x && nx < e.x + 2 && ny >= e.y && ny < e.y + 2);
+  if (nearEnc) {
+    if (!nearEnc.cleared) {
+      game.pendingEncounter = nearEnc;
+      game.setState('battle');
+      return;
+    }
+    game.party.currentEncounter = nearEnc;
+  } else {
+    game.party.currentEncounter = null;
   }
 
   // world drop → pick up (handled in game.js via showRewards hook)
@@ -367,9 +374,8 @@ export function drawMapScene(ctx, game, mapId) {
   const srcW = Math.min(atlas.width - srcX, w);
   const srcH = Math.min(atlas.height - srcY, h);
   if (srcW > 0 && srcH > 0) {
-    const dstX = 0;
-    const dstY = 0;
-    ctx.drawImage(atlas, srcX, srcY, srcW, srcH, dstX, dstY, srcW, srcH);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(atlas, srcX, srcY, srcW, srcH, 0, 0, srcW, srcH);
   }
 
   const exp = currentExplored(game);
@@ -406,27 +412,33 @@ export function drawMapScene(ctx, game, mapId) {
   ctx.fill();
   drawSprite(ctx, 'kaida_overworld', pcx + (TILE - TILE * 1.5) / 2, pcy + TILE - TILE * 1.5, TILE * 1.5, TILE * 1.5);
   drawPlotBadge(ctx, game, camX, camY);
+  drawEncounterBadge(ctx, game, camX, camY);
 
   // encounters + world drop before fog — hidden until explored
   if (map) {
     for (const e of map.encounters) {
-      if (e.cleared) continue;
       const ew = TILE * 2, eh = TILE * 2;
       const sx = Math.round(e.x * TILE - camX);
       const sy = Math.round(e.y * TILE - camY);
-      const bob = Math.sin(game.time * 0.006 + e.x) * 2;
+      const bob = e.cleared ? 0 : Math.sin(game.time * 0.006 + e.x) * 2;
       const ecx = sx + TILE / 2, ecy = sy + TILE / 2;
-      const pulse = 0.5 + Math.sin(game.time * 0.003 + e.x) * 0.5;
-      const rg = ctx.createRadialGradient(ecx, ecy, 0, ecx, ecy, TILE * 0.9);
-      rg.addColorStop(0, `rgba(200,30,30,${0.18 + pulse * 0.08})`);
-      rg.addColorStop(1, 'rgba(200,30,30,0)');
-      ctx.fillStyle = rg;
-      ctx.fillRect(ecx - TILE, ecy - TILE, TILE * 2, TILE * 2);
-      ctx.fillStyle = 'rgba(220,50,50,0.18)';
-      ctx.beginPath();
-      ctx.ellipse(ecx, sy + TILE - 2 + bob, 24.5, 8.75, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.save();
+      if (e.cleared) {
+        ctx.globalAlpha = 0.28;
+      } else {
+        const pulse = 0.5 + Math.sin(game.time * 0.003 + e.x) * 0.5;
+        const rg = ctx.createRadialGradient(ecx, ecy, 0, ecx, ecy, TILE * 0.9);
+        rg.addColorStop(0, `rgba(200,30,30,${0.18 + pulse * 0.08})`);
+        rg.addColorStop(1, 'rgba(200,30,30,0)');
+        ctx.fillStyle = rg;
+        ctx.fillRect(ecx - TILE, ecy - TILE, TILE * 2, TILE * 2);
+        ctx.fillStyle = 'rgba(220,50,50,0.18)';
+        ctx.beginPath();
+        ctx.ellipse(ecx, sy + TILE - 2, 24.5, 8.75, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       drawSprite(ctx, `${e.enemy}_ow`, sx + (TILE - ew) / 2, sy + TILE - eh + bob, ew, eh);
+      ctx.restore();
     }
   }
 
@@ -446,24 +458,10 @@ function drawCityLandmark(ctx, c, camX, camY, time) {
   const stroke = '34,227,255';
   const boxSize = TILE * 4;
   const bx = fx + (cellPx - boxSize) / 2, by = fy + (cellPx - boxSize) / 2;
-  ctx.fillStyle = 'rgba(7,6,13,0.78)';
-  ctx.fillRect(bx, by, boxSize, boxSize);
-  ctx.fillStyle = `rgba(${stroke},${0.08 + pulse * 0.06})`;
-  ctx.fillRect(bx, by, boxSize, boxSize);
   const landmarkSize = TILE * 4;
   const lx = fx + (cellPx - landmarkSize) / 2;
   const ly = fy + (cellPx - landmarkSize) / 2;
   drawSprite(ctx, c.landmark, lx, ly, landmarkSize, landmarkSize);
-  ctx.strokeStyle = `rgba(${stroke},${0.55 + pulse * 0.35})`;
-  ctx.lineWidth = 2;
-  ctx.strokeRect(bx + 0.5, by + 0.5, boxSize - 1, boxSize - 1);
-  ctx.strokeStyle = `rgba(${stroke},${0.2 + pulse * 0.15})`;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(bx + 3.5, by + 3.5, boxSize - 7, boxSize - 7);
-  ctx.fillStyle = PALETTE.ink;
-  ctx.textAlign = 'center';
-  ctx.font = '700 12px system-ui, sans-serif';
-  ctx.fillText(c.name.toUpperCase(), bx + boxSize / 2, by - 6);
 }
 
 function drawHaventidePlots(ctx, c, camX, camY, game) {
@@ -478,20 +476,7 @@ function drawHaventidePlots(ctx, c, camX, camY, game) {
       const def = BUILDINGS[slot.building.type];
       if (def) {
         const sprSize = (def.tileSize ?? 2) * TILE;
-        const pulse = 0.5 + Math.sin(game.time * 0.0025 + plot.x * 0.5) * 0.5;
-        // dark backdrop + sprite
-        ctx.fillStyle = 'rgba(7,6,13,0.72)';
-        ctx.fillRect(px, py, sprSize, sprSize);
-        ctx.fillStyle = `rgba(34,227,255,${0.05 + pulse * 0.03})`;
-        ctx.fillRect(px, py, sprSize, sprSize);
         drawSprite(ctx, def.sprite(slot.building.tier), px, py, sprSize, sprSize);
-        // soft cyan border
-        ctx.strokeStyle = `rgba(34,227,255,${0.32 + pulse * 0.22})`;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(px + 0.5, py + 0.5, sprSize - 1, sprSize - 1);
-        ctx.strokeStyle = `rgba(34,227,255,${0.12 + pulse * 0.08})`;
-        ctx.lineWidth = 1;
-        ctx.strokeRect(px + 3.5, py + 3.5, sprSize - 7, sprSize - 7);
       }
     } else {
       const alpha = isActive ? 1.0 : 0.75;
@@ -537,6 +522,29 @@ function drawPlotBadge(ctx, game, camX, camY) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, cx, by + bh / 2);
+}
+
+function drawEncounterBadge(ctx, game, camX, camY) {
+  const enc = game.party.currentEncounter;
+  if (!enc) return;
+  const ex = Math.round(enc.x * TILE - camX);
+  const ey = Math.round(enc.y * TILE - camY);
+  const cx = ex + TILE;
+  const by = ey - Math.round(TILE * 0.6);
+  const bw = 100, bh = 22;
+  const bx = cx - bw / 2;
+  ctx.fillStyle = 'rgba(7,6,13,0.92)';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 5);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,74,90,0.85)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = '#ff4a5a';
+  ctx.font = '700 11px ui-monospace, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('[C] RE-FIGHT', cx, by + bh / 2);
 }
 
 function drawDoorway(ctx, d, camX, camY, time) {

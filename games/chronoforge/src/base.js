@@ -1,6 +1,6 @@
 // Chronoforge — Phase 4 base scene.
 //
-// Fixed-slot settlement (10 slots, 5×2). Click empty slot → building picker
+// Fixed-slot settlement (18 slots, 6×3). Click empty slot → building picker
 // modal → pick type → deducts cost → places tier 1. Click occupied slot →
 // upgrade modal → pay cost → advances tier, sprite swaps automatically.
 //
@@ -27,6 +27,7 @@ export const BUILDINGS = {
   town_center: {
     name: 'Town Center',
     blurb: 'Settlement core. Upgrading it advances the tech tier rank of the city.',
+    tileSize: 4,
     sprite: (t) => `town_center_t${t}`,
     yields:   [null, null,             null,                         null,                         null],
     tierCost: [null, null,             { ore: 120, food: 40 },       { ore: 300, energy: 40 },     { ore: 700, energy: 120 }],
@@ -35,6 +36,7 @@ export const BUILDINGS = {
   farm: {
     name: 'Farm',
     blurb: 'Generates food each tick. Food feeds heals and training.',
+    tileSize: 2,
     sprite: (t) => `farm_t${t}`,
     yields:   [null, { food: 2 },      { food: 3 },                  { food: 5 },                  { food: 8 }],
     tierCost: [null, { ore: 20 },      { ore: 60 },                  { ore: 150, energy: 10 },     { ore: 340, energy: 45 }],
@@ -43,6 +45,7 @@ export const BUILDINGS = {
   mine: {
     name: 'Mine',
     blurb: 'Extracts ore each tick. Ore powers all upgrades.',
+    tileSize: 3,
     sprite: (t) => `mine_t${t}`,
     yields:   [null, { ore: 1 },       { ore: 2 },                   { ore: 3 },                   { ore: 4 }],
     tierCost: [null, { ore: 30 },      { ore: 80 },                  { ore: 200, energy: 15 },     { ore: 450, energy: 55 }],
@@ -51,6 +54,7 @@ export const BUILDINGS = {
   energy_extractor: {
     name: 'Energy Extractor',
     blurb: 'Generates energy each tick. Requires Reclaimer tier.',
+    tileSize: 2,
     sprite: (t) => `energy_extractor_t${t}`,
     yields:   [null, { energy: 1 },    { energy: 2 },                { energy: 3 },                { energy: 5 }],
     tierCost: [null, { ore: 50 },      { ore: 140, energy: 5 },      { ore: 320, energy: 40 },    { ore: 700, energy: 110 }],
@@ -59,6 +63,7 @@ export const BUILDINGS = {
   barracks: {
     name: 'Barracks',
     blurb: 'Hero training grounds. Unlocks higher unit cap per tier.',
+    tileSize: 2,
     sprite: (t) => `barracks_t${t}`,
     yields:   [null, null,             null,                         null,                         null],
     tierCost: [null, { ore: 40, food: 20 }, { ore: 120, food: 40 }, { ore: 280, energy: 25 },   { ore: 640, energy: 80 }],
@@ -67,6 +72,7 @@ export const BUILDINGS = {
   forge: {
     name: 'Forge',
     blurb: 'Crafts gear. Unlocks higher gear tiers.',
+    tileSize: 2,
     sprite: (t) => `forge_t${t}`,
     yields:   [null, null,             null,                         null,                         null],
     tierCost: [null, { ore: 60 },      { ore: 160, energy: 10 },     { ore: 360, energy: 35 },    { ore: 800, energy: 100 }],
@@ -75,6 +81,7 @@ export const BUILDINGS = {
   research_lab: {
     name: 'Research Lab',
     blurb: 'Researches techs and passives. Gates Transcendent tier.',
+    tileSize: 2,
     sprite: (t) => `research_lab_t${t}`,
     yields:   [null, { renown: 1 },    { renown: 2 },                { renown: 3 },                { renown: 5 }],
     tierCost: [null, { ore: 80, energy: 30 }, { ore: 200, energy: 50 }, { ore: 450, energy: 90 }, { ore: 900, energy: 160 }],
@@ -83,6 +90,7 @@ export const BUILDINGS = {
   wall: {
     name: 'Wall',
     blurb: 'Fortification. Raids come post-release; cosmetic tier flair for now.',
+    tileSize: 2,
     sprite: (t) => `wall_t${t}`,
     yields:   [null, null,             null,                         null,                         null],
     tierCost: [null, { ore: 20 },      { ore: 50 },                  { ore: 120, energy: 10 },    { ore: 280, energy: 40 }],
@@ -90,7 +98,7 @@ export const BUILDINGS = {
   },
 };
 
-const BUILDING_ORDER = ['town_center', 'farm', 'mine', 'energy_extractor', 'barracks', 'forge', 'research_lab', 'wall'];
+const BUILDING_ORDER = ['town_center', 'farm', 'mine', 'energy_extractor', 'barracks', 'forge', 'research_lab'];
 
 // --- tier ladder ---
 const TIER_ORDER = ['Survivor', 'Reclaimer', 'Ascendant', 'Transcendent'];
@@ -104,7 +112,7 @@ const TIER_UP_REQS = {
 // --- scene state ---
 export function initBase() {
   const slots = [];
-  for (let i = 0; i < 10; i++) slots.push({ building: null });
+  for (let i = 0; i < 18; i++) slots.push({ building: null });
   // slot 0 is pre-placed Town Center T1 (free start).
   slots[0].building = { type: 'town_center', tier: 1 };
   return {
@@ -115,6 +123,8 @@ export function initBase() {
     activeSlot: -1,
     hoverSlot: -1,
     pickerHover: -1,
+    pickerCursor: 0,
+    upgradeCursor: 0, // 0 = UPGRADE, 1 = DEMOLISH
     msg: null,
     msgExpire: 0,
     researchBuilt: false,
@@ -198,9 +208,9 @@ function toast(base, msg) {
 // --- layout helpers ---
 function slotGrid(game) {
   const { width: w, height: h } = game;
-  const cols = 5, rows = 2;
-  const cellW = 160, cellH = 180;
-  const gap = 20;
+  const cols = 6, rows = 3;
+  const cellW = 140, cellH = 150;
+  const gap = 14;
   const totalW = cols * cellW + (cols - 1) * gap;
   const totalH = rows * cellH + (rows - 1) * gap;
   const x0 = Math.floor((w - totalW) / 2);
@@ -272,10 +282,12 @@ export function handleBaseMouseDown(game, mx, my) {
     if (slot.building) {
       b.upgradeOpen = true;
       b.activeSlot = i;
+      b.upgradeCursor = 0;
       playSfx('ui_click', { gain: 0.5 });
     } else {
       b.pickerOpen = true;
       b.activeSlot = i;
+      b.pickerCursor = 0;
       playSfx('ui_click', { gain: 0.5 });
     }
     return;
@@ -303,10 +315,43 @@ export function handleBaseMouseMove(game, mx, my) {
 export function handleBaseKey(game, k) {
   const b = game.base;
   if (k === 'Escape' || k === 'Tab') {
-    // handled globally for menu — but also close any open modal here when not menu
     if (b.pickerOpen) { b.pickerOpen = false; return true; }
     if (b.upgradeOpen) { b.upgradeOpen = false; return true; }
     return false;
+  }
+  if (b.pickerOpen) {
+    const items = pickerItemRects(game).filter(r => r.type !== '__close');
+    const n = items.length;
+    if (k === 'ArrowUp' || k === 'w' || k === 'W') {
+      b.pickerCursor = (b.pickerCursor - 1 + n) % n;
+      return true;
+    }
+    if (k === 'ArrowDown' || k === 's' || k === 'S') {
+      b.pickerCursor = (b.pickerCursor + 1) % n;
+      return true;
+    }
+    if (k === 'Enter' || k === ' ') {
+      const item = items[b.pickerCursor];
+      if (item) tryBuild(game, b.activeSlot, item.type);
+      return true;
+    }
+    return true;
+  }
+  if (b.upgradeOpen) {
+    if (k === 'ArrowLeft' || k === 'a' || k === 'A' || k === 'ArrowRight' || k === 'd' || k === 'D') {
+      b.upgradeCursor = b.upgradeCursor === 0 ? 1 : 0;
+      return true;
+    }
+    if (k === 'Enter' || k === ' ') {
+      if (b.upgradeCursor === 0) {
+        const slot = b.slots[b.activeSlot];
+        if (slot?.building) tryUpgrade(game, b.activeSlot);
+      } else {
+        demolish(game, b.activeSlot);
+      }
+      return true;
+    }
+    return true;
   }
   if (k === 'o' || k === 'O') { game.setState('overworld'); return true; }
   if (k === 't' || k === 'T') { tryTierUp(game); return true; }
@@ -517,6 +562,14 @@ export function drawBaseScene(ctx, game) {
   }
 }
 
+export function drawBaseModals(ctx, game) {
+  if (game.base.pickerOpen) drawPicker(ctx, game);
+  if (game.base.upgradeOpen) drawUpgrade(ctx, game);
+  if (game.base.msg && performance.now() < game.base.msgExpire) {
+    drawToast(ctx, game, game.base.msg);
+  }
+}
+
 let _yieldsCache = null;
 let _yieldsCacheVersion = -1;
 export function aggregateYields(game) {
@@ -692,7 +745,7 @@ function drawPicker(ctx, game) {
   ctx.fillText('SELECT BUILDING', mr.x + 22, mr.y + 20);
   ctx.fillStyle = PALETTE.dim;
   ctx.font = '500 11px ui-monospace, monospace';
-  ctx.fillText(`SLOT ${game.base.activeSlot + 1} / 10`, mr.x + 22, mr.y + 44);
+  ctx.fillText(`SLOT ${game.base.activeSlot + 1} / 18`, mr.x + 22, mr.y + 44);
 
   // close
   ctx.fillStyle = PALETTE.ink;
@@ -710,7 +763,7 @@ function drawPicker(ctx, game) {
     const affordable = canAfford(game.resources, cost);
     const gateOK = meetsTierGate(game, gate);
     const enabled = affordable && gateOK;
-    const hovered = game.base.pickerHover === i;
+    const hovered = game.base.pickerHover === i || game.base.pickerCursor === i;
 
     if (hovered && enabled) {
       ctx.fillStyle = '#2a1a4a';
@@ -831,10 +884,11 @@ function drawUpgrade(ctx, game) {
 
   // upgrade — three visual states: enabled (cyan), disabled (muted panel + hatched feel), max
   const maxed = nextTier > 4;
+  const upgSel = game.base.upgradeCursor === 0;
   ctx.fillStyle = maxed ? '#0f0920' : upgradeEnabled ? PALETTE.cyan : '#2a1a4a';
   ctx.fillRect(btns.upgrade.x, btns.upgrade.y, btns.upgrade.w, btns.upgrade.h);
-  ctx.strokeStyle = upgradeEnabled ? PALETTE.ink : PALETTE.slotBorder;
-  ctx.lineWidth = upgradeEnabled ? 2 : 1;
+  ctx.strokeStyle = upgSel ? PALETTE.ink : upgradeEnabled ? PALETTE.ink : PALETTE.slotBorder;
+  ctx.lineWidth = upgSel ? 3 : upgradeEnabled ? 2 : 1;
   ctx.strokeRect(btns.upgrade.x + 0.5, btns.upgrade.y + 0.5, btns.upgrade.w - 1, btns.upgrade.h - 1);
   ctx.lineWidth = 1;
   ctx.fillStyle = upgradeEnabled ? '#07060d' : PALETTE.dim;
@@ -852,10 +906,13 @@ function drawUpgrade(ctx, game) {
 
   // demolish
   const canDemolish = type !== 'town_center';
+  const demSel = game.base.upgradeCursor === 1;
   ctx.fillStyle = canDemolish ? '#2a0e14' : '#0f0920';
   ctx.fillRect(btns.demolish.x, btns.demolish.y, btns.demolish.w, btns.demolish.h);
-  ctx.strokeStyle = canDemolish ? PALETTE.red : PALETTE.slotBorder;
+  ctx.strokeStyle = demSel ? PALETTE.red : canDemolish ? PALETTE.red : PALETTE.slotBorder;
+  ctx.lineWidth = demSel ? 3 : 1;
   ctx.strokeRect(btns.demolish.x + 0.5, btns.demolish.y + 0.5, btns.demolish.w - 1, btns.demolish.h - 1);
+  ctx.lineWidth = 1;
   ctx.fillStyle = canDemolish ? PALETTE.red : PALETTE.dim;
   ctx.font = '700 13px ui-monospace, monospace';
   ctx.fillText('✕ DEMOLISH', btns.demolish.x + btns.demolish.w / 2, btns.demolish.y + btns.demolish.h / 2);

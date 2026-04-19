@@ -7,10 +7,12 @@ import {
   getMap, MAPS, PLAYER_START,
 } from './world.js';
 import { drawSprite, getSpriteVersion } from './sprites.js';
-import { aggregateYields, TICK_MS } from './base.js';
+import { aggregateYields, TICK_MS, BUILDINGS, drawBaseModals } from './base.js';
 import { checkQuestProgress, ITEM_DEFS, hasSave, getSaveMeta, saveGame } from './progression.js';
 import { getMapBackdrop } from './devWorld.js';
 import { beginTravel } from './travel.js';
+import { enterCity } from './city.js';
+import { getMapThumb } from './menu.js';
 
 const PALETTE = {
   bg: '#07060d', bgAlt: '#120a22',
@@ -228,6 +230,7 @@ export function partyRenderPos(game) {
 }
 
 export function updateOverworld(game, dt) {
+  if (game.base?.pickerOpen || game.base?.upgradeOpen) return;
   const p = game.party;
   p.moveCooldown -= dt;
   if (p.moveCooldown > 0) return;
@@ -247,7 +250,9 @@ export function updateOverworld(game, dt) {
     const t = tileAt(p.mapId, nx, ny);
     if (!t || !t.passable) return;
   } else {
-    if (nx < 0 || ny < 0 || nx >= MAP_W || ny >= MAP_H) return;
+    const mw = (map && map.w) ?? MAP_W;
+    const mh = (map && map.h) ?? MAP_H;
+    if (nx < 0 || ny < 0 || nx >= mw || ny >= mh) return;
   }
 
   p.fromX = p.x; p.fromY = p.y;
@@ -265,6 +270,31 @@ export function updateOverworld(game, dt) {
     city.unlocked = true;
     game.toast(`Reached ${city.name} — fast-travel unlocked`);
     if (game.quests) checkQuestProgress(game, { type: 'city_reached', cityId: city.id });
+  }
+
+  // city entry — non-Haventide cities enter walkable interior
+  if (city && city.unlocked && nx >= city.x - 1 && nx <= city.x + 2 && ny >= city.y - 1 && ny <= city.y + 2) {
+    if (city.id !== 'haventide') {
+      enterCity(game, city);
+      return;
+    }
+    // Haventide: step on exact city tile = Town Center — show badge, C to open
+    if (nx === city.x && ny === city.y) {
+      game.party.currentPlot = { slotIdx: 0, x: city.x, y: city.y };
+      return;
+    }
+  }
+
+  // Haventide building plots — step anywhere in the building footprint to trigger
+  if (city && city.id === 'haventide' && city.plots) {
+    const plot = city.plots.find(pl => {
+      const slot = game.base.slots[pl.slotIdx];
+      const size = slot?.building ? (BUILDINGS[slot.building.type]?.tileSize ?? 2) : 2;
+      return nx >= pl.x && nx < pl.x + size && ny >= pl.y && ny < pl.y + size;
+    });
+    game.party.currentPlot = plot || null;
+  } else {
+    game.party.currentPlot = null;
   }
 
   // doorway → chrono-rift travel
@@ -306,6 +336,7 @@ function revealAround(game, cx, cy, r) {
 export function drawOverworld(ctx, game) {
   drawMapScene(ctx, game, game.party.mapId);
   drawOverworldHud(ctx, game);
+  if (game.base?.pickerOpen || game.base?.upgradeOpen) drawBaseModals(ctx, game);
 }
 
 // Renders a map scene at the current party position. Factored so travel.js
@@ -346,6 +377,7 @@ export function drawMapScene(ctx, game, mapId) {
   // city landmark on its footprint
   if (map && map.city && exp.has(`${map.city.x},${map.city.y}`)) {
     drawCityLandmark(ctx, map.city, camX, camY, game.time);
+    drawHaventidePlots(ctx, map.city, camX, camY, game);
   }
 
   // doorway markers — subtle cyan radial pulse + chevron glyph toward exit
@@ -353,34 +385,6 @@ export function drawMapScene(ctx, game, mapId) {
     for (const d of map.doorways) {
       if (!exp.has(`${d.x},${d.y}`)) continue;
       drawDoorway(ctx, d, camX, camY, game.time);
-    }
-  }
-
-  // world drop — pulsing gold glow on its tile
-  if (map && map.worldDrop && !game.party.worldDropsTaken[mapId]) {
-    drawWorldDrop(ctx, map.worldDrop, camX, camY, game.time);
-  }
-
-  // encounter markers
-  if (map) {
-    for (const e of map.encounters) {
-      if (e.cleared) continue;
-      const ew = TILE * 1.5, eh = TILE * 1.5;
-      const sx = Math.round(e.x * TILE - camX);
-      const sy = Math.round(e.y * TILE - camY);
-      const bob = Math.sin(game.time * 0.006 + e.x) * 2;
-      const ecx = sx + TILE / 2, ecy = sy + TILE / 2 + bob;
-      const eg = ctx.createRadialGradient(ecx, ecy, 0, ecx, ecy, ew * 0.7);
-      eg.addColorStop(0, 'rgba(7,6,13,0.45)');
-      eg.addColorStop(1, 'rgba(7,6,13,0)');
-      ctx.fillStyle = eg;
-      ctx.fillRect(ecx - ew * 0.7, ecy - ew * 0.7, ew * 1.4, ew * 1.4);
-      ctx.strokeStyle = 'rgba(180,40,40,0.55)';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.ellipse(ecx, sy + TILE - 4 + bob, 24.5, 8.75, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      drawSprite(ctx, `${e.enemy}_ow`, sx + (TILE - ew) / 2, sy + TILE - eh + bob, ew, eh);
     }
   }
 
@@ -401,6 +405,34 @@ export function drawMapScene(ctx, game, mapId) {
   ctx.ellipse(pcx + TILE / 2, pcy + TILE - 2, 24.5, 8.75, 0, 0, Math.PI * 2);
   ctx.fill();
   drawSprite(ctx, 'kaida_overworld', pcx + (TILE - TILE * 1.5) / 2, pcy + TILE - TILE * 1.5, TILE * 1.5, TILE * 1.5);
+  drawPlotBadge(ctx, game, camX, camY);
+
+  // encounters + world drop before fog — hidden until explored
+  if (map) {
+    for (const e of map.encounters) {
+      if (e.cleared) continue;
+      const ew = TILE * 2, eh = TILE * 2;
+      const sx = Math.round(e.x * TILE - camX);
+      const sy = Math.round(e.y * TILE - camY);
+      const bob = Math.sin(game.time * 0.006 + e.x) * 2;
+      const ecx = sx + TILE / 2, ecy = sy + TILE / 2;
+      const pulse = 0.5 + Math.sin(game.time * 0.003 + e.x) * 0.5;
+      const rg = ctx.createRadialGradient(ecx, ecy, 0, ecx, ecy, TILE * 0.9);
+      rg.addColorStop(0, `rgba(200,30,30,${0.18 + pulse * 0.08})`);
+      rg.addColorStop(1, 'rgba(200,30,30,0)');
+      ctx.fillStyle = rg;
+      ctx.fillRect(ecx - TILE, ecy - TILE, TILE * 2, TILE * 2);
+      ctx.fillStyle = 'rgba(220,50,50,0.18)';
+      ctx.beginPath();
+      ctx.ellipse(ecx, sy + TILE - 2 + bob, 24.5, 8.75, 0, 0, Math.PI * 2);
+      ctx.fill();
+      drawSprite(ctx, `${e.enemy}_ow`, sx + (TILE - ew) / 2, sy + TILE - eh + bob, ew, eh);
+    }
+  }
+
+  if (map && map.worldDrop && !game.party.worldDropsTaken[mapId]) {
+    drawWorldDrop(ctx, map.worldDrop, camX, camY, game.time);
+  }
 
   if (!game.devFogReveal) drawSoftFog(ctx, game, camX, camY, w, h);
 }
@@ -411,7 +443,7 @@ function drawCityLandmark(ctx, c, camX, camY, time) {
   const fx = Math.round(c.x * TILE - camX);
   const fy = Math.round(c.y * TILE - camY);
   const pulse = 0.5 + Math.sin(time * 0.0025 + c.x * 0.5) * 0.5;
-  const stroke = c.unlocked ? '255,45,212' : '34,227,255';
+  const stroke = '34,227,255';
   const boxSize = TILE * 4;
   const bx = fx + (cellPx - boxSize) / 2, by = fy + (cellPx - boxSize) / 2;
   ctx.fillStyle = 'rgba(7,6,13,0.78)';
@@ -432,6 +464,79 @@ function drawCityLandmark(ctx, c, camX, camY, time) {
   ctx.textAlign = 'center';
   ctx.font = '700 12px system-ui, sans-serif';
   ctx.fillText(c.name.toUpperCase(), bx + boxSize / 2, by - 6);
+}
+
+function drawHaventidePlots(ctx, c, camX, camY, game) {
+  if (c.id !== 'haventide' || !game.base || !c.plots) return;
+  const cp = game.party.currentPlot;
+  for (const plot of c.plots) {
+    const px = Math.round(plot.x * TILE - camX);
+    const py = Math.round(plot.y * TILE - camY);
+    const slot = game.base.slots[plot.slotIdx];
+    const isActive = cp && cp.slotIdx === plot.slotIdx;
+    if (slot?.building) {
+      const def = BUILDINGS[slot.building.type];
+      if (def) {
+        const sprSize = (def.tileSize ?? 2) * TILE;
+        const pulse = 0.5 + Math.sin(game.time * 0.0025 + plot.x * 0.5) * 0.5;
+        // dark backdrop + sprite
+        ctx.fillStyle = 'rgba(7,6,13,0.72)';
+        ctx.fillRect(px, py, sprSize, sprSize);
+        ctx.fillStyle = `rgba(34,227,255,${0.05 + pulse * 0.03})`;
+        ctx.fillRect(px, py, sprSize, sprSize);
+        drawSprite(ctx, def.sprite(slot.building.tier), px, py, sprSize, sprSize);
+        // soft cyan border
+        ctx.strokeStyle = `rgba(34,227,255,${0.32 + pulse * 0.22})`;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(px + 0.5, py + 0.5, sprSize - 1, sprSize - 1);
+        ctx.strokeStyle = `rgba(34,227,255,${0.12 + pulse * 0.08})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(px + 3.5, py + 3.5, sprSize - 7, sprSize - 7);
+      }
+    } else {
+      const alpha = isActive ? 1.0 : 0.75;
+      const size = TILE * 2;
+      ctx.fillStyle = `rgba(34,227,255,${isActive ? 0.12 : 0.07})`;
+      ctx.fillRect(px, py, size, size);
+      ctx.strokeStyle = `rgba(34,227,255,${alpha})`;
+      ctx.lineWidth = isActive ? 2.5 : 2;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(px + 2, py + 2, size - 4, size - 4);
+      ctx.setLineDash([]);
+      ctx.fillStyle = `rgba(34,227,255,${isActive ? 0.9 : 0.65})`;
+      ctx.font = '700 28px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('+', px + size / 2, py + size / 2);
+    }
+  }
+}
+
+function drawPlotBadge(ctx, game, camX, camY) {
+  const cp = game.party.currentPlot;
+  if (!cp || !game.base || game.base.pickerOpen || game.base.upgradeOpen) return;
+  const slot = game.base.slots[cp.slotIdx];
+  const label = slot?.building ? '[C] UPGRADE' : '[C] BUILD';
+  const def = slot?.building ? BUILDINGS[slot.building.type] : null;
+  const ts = (def?.tileSize ?? 2) * TILE;
+  const px = Math.round(cp.x * TILE - camX);
+  const py = Math.round(cp.y * TILE - camY);
+  const cx = px + ts / 2;
+  const by = py - Math.round(TILE * 1.1);
+  const bw = 92, bh = 22;
+  const bx = cx - bw / 2;
+  ctx.fillStyle = 'rgba(7,6,13,0.92)';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 5);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(34,227,255,0.8)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = '#22e3ff';
+  ctx.font = '700 11px ui-monospace, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, cx, by + bh / 2);
 }
 
 function drawDoorway(ctx, d, camX, camY, time) {
@@ -556,7 +661,7 @@ function drawOverworldHud(ctx, game) {
   ctx.fillStyle = PALETTE.dim;
   ctx.textAlign = 'center';
   ctx.font = '400 12px ui-monospace, monospace';
-  ctx.fillText('[WASD] move   [Esc/Tab] menu   [C] city base   step on an enemy to fight', w / 2, h - 14);
+  ctx.fillText('[WASD] move   [Esc/Tab] menu   walk into a city to enter   [C] build/upgrade on a plot', w / 2, h - 14);
 
   // toast
   if (game.toastMsg && game.toastExpire > game.time) {
@@ -572,6 +677,97 @@ function drawOverworldHud(ctx, game) {
   if (game.rewards && game.rewardsExpire > game.time) {
     drawRewardRow(ctx, game, w);
   }
+
+  drawMinimapHud(ctx, game);
+}
+
+function drawMinimapHud(ctx, game) {
+  if (!game.devMinimap) return;
+  const mapId = game.party.mapId;
+  const mapData = MAPS[mapId];
+  if (!mapData) return;
+
+  const MW = 300, MH = Math.round(300 * MAP_H / MAP_W); // 300×200
+  const ox = 8, oy = 52; // below top bar
+
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.beginPath(); ctx.rect(ox, oy, MW, MH); ctx.clip();
+
+  const thumb = getMapThumb(mapId);
+  if (thumb) {
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(thumb, ox, oy, MW, MH);
+  } else {
+    ctx.fillStyle = '#07060d'; ctx.fillRect(ox, oy, MW, MH);
+  }
+
+  const tx = (t) => ox + (t / MAP_W) * MW;
+  const ty = (t) => oy + (t / MAP_H) * MH;
+
+  // city dot
+  if (mapData.city) {
+    const r = 7;
+    ctx.fillStyle = mapData.city.unlocked ? '#ff2dd4' : 'rgba(255,45,212,0.3)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(tx(mapData.city.x), ty(mapData.city.y), r, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+  }
+
+  // encounter dots
+  for (const e of (mapData.encounters || [])) {
+    const r = 5;
+    ctx.fillStyle = e.cleared ? 'rgba(74,242,161,0.55)' : '#ff4a5a';
+    ctx.strokeStyle = e.cleared ? 'rgba(74,242,161,0.9)' : 'rgba(0,0,0,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(tx(e.x), ty(e.y), r, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+  }
+
+  // world drop diamond
+  if (mapData.worldDrop && !game.party.worldDropsTaken[mapId]) {
+    const ds = 7;
+    const ddx = tx(mapData.worldDrop.x), ddy = ty(mapData.worldDrop.y);
+    ctx.fillStyle = '#22e3ff'; ctx.strokeStyle = 'rgba(34,227,255,0.9)'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(ddx, ddy - ds); ctx.lineTo(ddx + ds, ddy);
+    ctx.lineTo(ddx, ddy + ds); ctx.lineTo(ddx - ds, ddy);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+
+  // doorway markers — mini ">>" chevron, distinct from drop diamond
+  ctx.strokeStyle = 'rgba(34,227,255,0.9)'; ctx.lineWidth = 1.5;
+  for (const d of (mapData.doorways || [])) {
+    const dcx = tx(d.x), dcy = ty(d.y);
+    const c = 4;
+    ctx.beginPath();
+    ctx.moveTo(dcx - c,     dcy - c); ctx.lineTo(dcx,     dcy); ctx.lineTo(dcx - c,     dcy + c);
+    ctx.moveTo(dcx + 1,     dcy - c); ctx.lineTo(dcx + c + 1, dcy); ctx.lineTo(dcx + 1,     dcy + c);
+    ctx.stroke();
+  }
+
+  // player — solid white triangle pointing up, easy to distinguish at a glance
+  const pdx = tx(game.party.x), pdy = ty(game.party.y);
+  const ps = 7;
+  ctx.fillStyle = '#ffffff';
+  ctx.strokeStyle = '#22e3ff'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(pdx, pdy - ps);
+  ctx.lineTo(pdx + ps * 0.75, pdy + ps * 0.55);
+  ctx.lineTo(pdx - ps * 0.75, pdy + ps * 0.55);
+  ctx.closePath(); ctx.fill(); ctx.stroke();
+
+  ctx.restore();
+
+  // border + label
+  ctx.strokeStyle = 'rgba(34,227,255,0.55)'; ctx.lineWidth = 1.5;
+  ctx.strokeRect(ox + 0.5, oy + 0.5, MW - 1, MH - 1);
+  ctx.fillStyle = 'rgba(7,6,13,0.7)';
+  ctx.fillRect(ox + 1, oy + 1, MW - 2, 14);
+  ctx.fillStyle = 'rgba(34,227,255,0.7)';
+  ctx.font = '500 9px ui-monospace, monospace';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillText((mapData.name || mapId).toUpperCase(), ox + 5, oy + 3);
 }
 
 function drawRewardRow(ctx, game, w) {

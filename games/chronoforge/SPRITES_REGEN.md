@@ -60,6 +60,24 @@ node tools/sprite-gen.js games/chronoforge/sprites-manifest.json --tags=portrait
 node tools/sprite-gen.js games/chronoforge/sprites-manifest.json --tags=cities
 ```
 
+## City Interiors (NEW)
+
+```
+node tools/sprite-gen.js games/chronoforge/sprites-manifest.json --tags=city_interior
+```
+
+## Buildings — overhead angle, no black bg (re-run)
+
+```
+node tools/sprite-gen.js games/chronoforge/sprites-manifest.json --tags=buildings
+```
+
+## Haventide landmark — overhead angle, no black bg (re-run)
+
+```
+node tools/sprite-gen.js games/chronoforge/sprites-manifest.json --sprite city_haventide
+```
+
 ---
 
 ## Single sprite

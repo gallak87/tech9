@@ -18,13 +18,13 @@ function rng(seed) {
 
 // Trivial all-passable tile grid. Backdrop-rendered maps don't use this for
 // visuals; we only care about bounds + passability (everything passable).
-function buildTilesFor(biomeId, seed) {
+function buildTilesFor(biomeId, seed, w = MAP_W, h = MAP_H) {
   const rnd = rng(seed);
   const base = BIOME_BASE[biomeId] || ['tile_grass'];
   const grid = [];
-  for (let y = 0; y < MAP_H; y++) {
+  for (let y = 0; y < h; y++) {
     const row = [];
-    for (let x = 0; x < MAP_W; x++) {
+    for (let x = 0; x < w; x++) {
       const t = base[Math.floor(rnd() * base.length)];
       row.push({ t, biome: biomeId, passable: true });
     }
@@ -59,9 +59,23 @@ export const MAPS = {
       biome: 'grassland_ruins',
       unlocked: true,
       blurb: 'Coastal fishing port. Your home base. Pink neon docks, rumor of a lost sister ship.',
+      plots: [
+        // TC landmark box: tiles x=11-14, y=27-30 (city at 12,28, boxSize=4×TILE offset -1)
+        // Uniform 1-tile gap on all 4 sides: left x=8(→9,gap10), right x=16(→17,gap15),
+        //   top y=24(→25,gap26), bottom y=32(→33,gap31). Max building = mine 3×3.
+        // inner ring
+        { slotIdx: 1,  x: 8,  y: 24 }, { slotIdx: 2,  x: 12, y: 24 }, { slotIdx: 3,  x: 16, y: 24 },
+        { slotIdx: 4,  x: 8,  y: 28 },                                  { slotIdx: 5,  x: 16, y: 28 },
+        { slotIdx: 6,  x: 8,  y: 32 }, { slotIdx: 7,  x: 12, y: 32 }, { slotIdx: 8,  x: 16, y: 32 },
+        // outer ring
+        { slotIdx: 9,  x: 4,  y: 20 }, { slotIdx: 10, x: 12, y: 19 }, { slotIdx: 11, x: 20, y: 20 },
+        { slotIdx: 12, x: 4,  y: 28 },                                  { slotIdx: 13, x: 20, y: 28 },
+        { slotIdx: 14, x: 4,  y: 36 }, { slotIdx: 15, x: 12, y: 37 }, { slotIdx: 16, x: 20, y: 36 },
+        { slotIdx: 17, x: 8,  y: 17 },
+      ],
     },
     encounters: [
-      { id: 'e1',  x: 18, y: 25, enemy: 'rust_scrapper' },
+      { id: 'e1',  x: 30, y: 25, enemy: 'rust_scrapper' },
       { id: 'e20', x: 30, y: 15, enemy: 'bog_stalker' },
       { id: 'e21', x: 45, y: 30, enemy: 'slag_rat' },
     ],
@@ -228,13 +242,83 @@ export const MAPS = {
     ],
     worldDrop: { x: 8, y: 30, itemId: 'frost_plate' },
   },
+  haventide_interior: {
+    id: 'haventide_interior',
+    name: 'Haventide',
+    backdrop: null,
+    w: 30, h: 20,
+    biome: 'grassland_ruins',
+    isInterior: true,
+    parentCityId: 'haventide',
+    parentMapId: 'haventide_region',
+    plots: [
+      { slotIdx: 0,  x: 15, y: 10 }, // Town Center — center
+      { slotIdx: 1,  x: 11, y: 7  }, { slotIdx: 2,  x: 19, y: 7  },
+      { slotIdx: 3,  x: 11, y: 13 }, { slotIdx: 4,  x: 19, y: 13 },
+      { slotIdx: 5,  x: 7,  y: 5  }, { slotIdx: 6,  x: 15, y: 5  }, { slotIdx: 7,  x: 23, y: 5  },
+      { slotIdx: 8,  x: 7,  y: 10 },                                { slotIdx: 9,  x: 23, y: 10 },
+      { slotIdx: 10, x: 7,  y: 15 }, { slotIdx: 11, x: 15, y: 15 }, { slotIdx: 12, x: 23, y: 15 },
+      { slotIdx: 13, x: 4,  y: 3  }, { slotIdx: 14, x: 26, y: 3  },
+      { slotIdx: 15, x: 4,  y: 17 }, { slotIdx: 16, x: 26, y: 17 },
+      { slotIdx: 17, x: 15, y: 18 },
+    ],
+    city: null, encounters: [], worldDrop: null,
+    doorways: [
+      { x: 15, y: 0, to: { mapId: 'haventide_region', x: 12, y: 32 } },
+    ],
+  },
+  emberline_interior: {
+    id: 'emberline_interior',
+    name: 'Emberline',
+    backdrop: null,
+    w: 35, h: 24,
+    biome: 'neon_wastes',
+    isInterior: true,
+    parentCityId: 'emberline',
+    parentMapId: 'emberline_region',
+    plots: null,
+    city: null, encounters: [], worldDrop: null,
+    doorways: [
+      { x: 17, y: 0, to: { mapId: 'emberline_region', x: 32, y: 32 } },
+    ],
+  },
+  orbital_reach_interior: {
+    id: 'orbital_reach_interior',
+    name: 'Orbital Reach',
+    backdrop: null,
+    w: 35, h: 24,
+    biome: 'frozen_ruins',
+    isInterior: true,
+    parentCityId: 'orbital_reach',
+    parentMapId: 'orbital_reach_region',
+    plots: null,
+    city: null, encounters: [], worldDrop: null,
+    doorways: [
+      { x: 17, y: 0, to: { mapId: 'orbital_reach_region', x: 20, y: 22 } },
+    ],
+  },
+  last_crown_interior: {
+    id: 'last_crown_interior',
+    name: 'Last Crown',
+    backdrop: null,
+    w: 35, h: 24,
+    biome: 'alien_terraform',
+    isInterior: true,
+    parentCityId: 'last_crown',
+    parentMapId: 'last_crown_region',
+    plots: null,
+    city: null, encounters: [], worldDrop: null,
+    doorways: [
+      { x: 17, y: 0, to: { mapId: 'last_crown_region', x: 32, y: 26 } },
+    ],
+  },
 };
 
 // Generate tiles once per map (seed from id for determinism).
 for (const m of Object.values(MAPS)) {
   let h = 0;
   for (let i = 0; i < m.id.length; i++) h = (h * 31 + m.id.charCodeAt(i)) | 0;
-  m.tiles = buildTilesFor(m.biome, h);
+  m.tiles = buildTilesFor(m.biome, h, m.w ?? MAP_W, m.h ?? MAP_H);
 }
 
 export function getMap(mapId) {
@@ -242,9 +326,11 @@ export function getMap(mapId) {
 }
 
 export function tileAt(mapId, x, y) {
-  if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) return null;
   const m = MAPS[mapId];
   if (!m) return null;
+  const w = m.w ?? MAP_W;
+  const h = m.h ?? MAP_H;
+  if (x < 0 || y < 0 || x >= w || y >= h) return null;
   return m.tiles[y][x];
 }
 
@@ -288,7 +374,7 @@ export const ALL_ENCOUNTERS = Object.values(MAPS)
     return e;
   }));
 
-export const PLAYER_START = { mapId: 'haventide_region', x: 12, y: 28 };
+export const PLAYER_START = { mapId: 'haventide_region', x: 12, y: 26 };
 
 // --- Back-compat shims (menu's full-map view + any stragglers) ---
 // Returns current-map tiles. Used only where the old single-map API exists.

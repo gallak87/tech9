@@ -1096,7 +1096,7 @@ function worldNodePx(mapId, rect) {
 const _mapThumbCache  = {};   // mapId → { canvas, hasBackdrop }
 const _fogThumbCache  = {};   // mapId → { canvas, size }
 
-function getMapThumb(mapId) {
+export function getMapThumb(mapId) {
   const mapData = MAPS[mapId];
   const backdrop = mapData && getMapBackdrop(mapData.backdrop);
   const entry = _mapThumbCache[mapId];
@@ -1277,57 +1277,50 @@ function drawMapTab(ctx, game) {
     ctx.fillText(mapData.name, pos.x, ny + th + 4);
     ctx.restore();
 
-    // ── City dot (top-right corner) ───────────────────────────────────────────
+    // helpers: tile coord → thumbnail pixel
+    const tx = (t) => nx + (t / MAP_W) * tw;
+    const ty = (t) => ny + (t / MAP_H) * th;
+
+    // ── City dot at real map position ─────────────────────────────────────────
     if (mapData.city) {
-      const r = Math.max(4, Math.round(6 * zoom));
-      const cdx = nx + tw - r - 4, cdy = ny + r + 4;
+      const r = Math.max(4, Math.round(5 * zoom));
+      const cdx = tx(mapData.city.x), cdy = ty(mapData.city.y);
       ctx.save();
+      ctx.beginPath(); ctx.rect(nx, ny, tw, th); ctx.clip();
       ctx.fillStyle   = mapData.city.unlocked ? PALETTE.accent : 'rgba(255,45,212,0.3)';
       ctx.strokeStyle = mapData.city.unlocked ? 'rgba(255,255,255,0.8)' : 'rgba(138,131,184,0.4)';
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(cdx, cdy, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
       if (mapData.city.unlocked && zoom >= 0.5) {
         ctx.fillStyle = PALETTE.ink;
-        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
-        ctx.font = `500 ${Math.max(9, Math.round(10 * zoom))}px system-ui, sans-serif`;
-        ctx.fillText(mapData.city.name, cdx - r - 3, cdy);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+        ctx.font = `500 ${Math.max(8, Math.round(9 * zoom))}px system-ui, sans-serif`;
+        ctx.fillText(mapData.city.name, cdx, cdy - r - 2);
       }
       ctx.restore();
     }
 
-    // ── Enemy badges (bottom-left) ────────────────────────────────────────────
+    // ── Enemy dots at real map positions ──────────────────────────────────────
     const encounters = mapData.encounters || [];
-    const active  = encounters.filter(e => !e.cleared).length;
-    const cleared = encounters.filter(e =>  e.cleared).length;
-    const br = Math.max(6, Math.round(8 * zoom));
-    const bfont = `700 ${Math.max(7, Math.round(9 * zoom))}px ui-monospace, monospace`;
-    let badgeY = ny + th - br - 4;
-
-    if (active > 0) {
-      ctx.save();
-      ctx.fillStyle = '#ff4a5a'; ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(nx + br + 4, badgeY, br, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = bfont; ctx.fillText(active, nx + br + 4, badgeY);
-      ctx.restore();
-      badgeY -= br * 2 + 3;
+    const er = Math.max(3, Math.round(4 * zoom));
+    ctx.save();
+    ctx.beginPath(); ctx.rect(nx, ny, tw, th); ctx.clip();
+    for (const e of encounters) {
+      const ex = tx(e.x), ey = ty(e.y);
+      ctx.fillStyle   = e.cleared ? 'rgba(74,242,161,0.55)' : '#ff4a5a';
+      ctx.strokeStyle = e.cleared ? 'rgba(74,242,161,0.9)'  : 'rgba(0,0,0,0.5)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     }
+    ctx.restore();
 
-    if (cleared > 0) {
-      ctx.save();
-      ctx.fillStyle = 'rgba(74,242,161,0.45)'; ctx.strokeStyle = 'rgba(74,242,161,0.7)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(nx + br + 4, badgeY, br, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-      ctx.fillStyle = '#4af2a1'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = bfont; ctx.fillText(cleared, nx + br + 4, badgeY);
-      ctx.restore();
-    }
-
-    // ── World drop diamond (bottom-right) ─────────────────────────────────────
+    // ── World drop diamond at real map position ────────────────────────────────
     if (mapData.worldDrop) {
       const taken = game.party && game.party.worldDropsTaken[mapId];
-      const ds = Math.max(5, Math.round(7 * zoom));
-      const ddx = nx + tw - ds - 4, ddy = ny + th - ds - 4;
+      const ds = Math.max(4, Math.round(6 * zoom));
+      const ddx = tx(mapData.worldDrop.x), ddy = ty(mapData.worldDrop.y);
       ctx.save();
+      ctx.beginPath(); ctx.rect(nx, ny, tw, th); ctx.clip();
       ctx.fillStyle   = taken ? 'rgba(34,227,255,0.2)' : '#22e3ff';
       ctx.strokeStyle = taken ? 'rgba(34,227,255,0.35)' : 'rgba(34,227,255,0.9)';
       ctx.lineWidth = 1.5;

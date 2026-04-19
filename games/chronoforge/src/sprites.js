@@ -87,8 +87,10 @@ function shouldKeyBlack(name) {
   return !OPAQUE_PREFIXES.some(p => name.startsWith(p));
 }
 
-// Convert near-black pixels to transparent and unmultiply remaining colors so
-// dark areas of the sprite recover full saturation. Returns a canvas.
+// Key out the pure black background from AI-generated sprites.
+// Uses a hard threshold (true black → transparent) + small anti-alias ramp.
+// Preserves original pixel colors at full opacity — no unmultiply, which was
+// washing out dark-colored sprites (e.g. a dark gray rat body → ghostly smear).
 function keyBlackToAlpha(img) {
   const c = document.createElement('canvas');
   c.width = img.naturalWidth || img.width;
@@ -97,15 +99,12 @@ function keyBlackToAlpha(img) {
   cx.drawImage(img, 0, 0);
   const data = cx.getImageData(0, 0, c.width, c.height);
   const px = data.data;
+  const LO = 12, HI = 50;
   for (let i = 0; i < px.length; i += 4) {
-    const r = px[i], g = px[i + 1], b = px[i + 2];
-    const a = Math.max(r, g, b);
-    if (a < 14) { px[i + 3] = 0; continue; }
-    px[i + 3] = a;
-    const inv = 255 / a;
-    px[i]     = Math.min(255, r * inv);
-    px[i + 1] = Math.min(255, g * inv);
-    px[i + 2] = Math.min(255, b * inv);
+    const maxC = Math.max(px[i], px[i + 1], px[i + 2]);
+    if (maxC < LO) { px[i + 3] = 0; continue; }
+    // smooth anti-alias ramp in [LO, HI], fully opaque above HI
+    px[i + 3] = maxC < HI ? Math.round((maxC - LO) * 255 / (HI - LO)) : 255;
   }
   cx.putImageData(data, 0, 0);
   return c;

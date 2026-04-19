@@ -823,9 +823,9 @@
     },
     {
       "name": "town_center_t1",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art isometric-ish building, survivor-era town center, scrap wood and salvaged metal hut with chimney smoke",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a survivor-era town center, ramshackle scrap-wood watchtower with corrugated metal walls and a smoking chimney, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, scrappy post-apocalyptic construction, muted browns and grays, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/town_center_t1.png",
       "tags": [
         "buildings",
@@ -834,9 +834,9 @@
     },
     {
       "name": "town_center_t2",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, reclaimer-era town center, reinforced walls with cyan banner, larger than t1",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a reclaimer-era town center, fortified stone walls with a cyan banner and reinforced gate, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, more substantial and orderly than t1, warm stone tones with cyan accent, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/town_center_t2.png",
       "tags": [
         "buildings",
@@ -845,9 +845,9 @@
     },
     {
       "name": "town_center_t3",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, ascendant-era town center, polished alloy with neon trim, two stories",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of an ascendant-era town center, polished alloy and neon-trim two-storey hall with glowing cyan trim, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, sleek and imposing, metallic silvers and cyan glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/town_center_t3.png",
       "tags": [
         "buildings",
@@ -856,9 +856,9 @@
     },
     {
       "name": "town_center_t4",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, transcendent-era town center, spire with magenta neon and antenna, imposing",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a transcendent-era town center, gleaming spire with magenta neon antenna and floating platform, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, futuristic and monumental, silver and magenta energy glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/town_center_t4.png",
       "tags": [
         "buildings",
@@ -867,9 +867,9 @@
     },
     {
       "name": "farm_t1",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, survivor-era farm, tilled dirt rows and a scarecrow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a survivor-era farm, tilled dirt rows with a wooden scarecrow, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, humble farmstead feel, warm browns and straw yellows, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/farm_t1.png",
       "tags": [
         "buildings",
@@ -878,9 +878,9 @@
     },
     {
       "name": "farm_t2",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, reclaimer-era farm, greenhouse dome with green glow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a reclaimer-era greenhouse farm, low glass dome with green glow, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, tidy and productive, warm greens and weathered metal, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/farm_t2.png",
       "tags": [
         "buildings",
@@ -889,9 +889,9 @@
     },
     {
       "name": "farm_t3",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, ascendant-era hydroponic farm, stacked trays with cyan grow-lights",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of an ascendant-era hydroponic farm, stacked grow-trays with cyan lights, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, compact and high-tech, greens and cyan glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/farm_t3.png",
       "tags": [
         "buildings",
@@ -900,9 +900,9 @@
     },
     {
       "name": "farm_t4",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, transcendent-era bio-reactor farm, crystalline dome with swirling green energy",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a transcendent-era bio-reactor farm, crystalline dome with swirling green energy vines, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, alien and lush, crystal greens and emerald glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/farm_t4.png",
       "tags": [
         "buildings",
@@ -911,9 +911,9 @@
     },
     {
       "name": "mine_t1",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, survivor-era mine, wooden shaft with minecart",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a survivor-era mine, wooden shaft entrance with a minecart on rails, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, rugged and rough-hewn, dark earth and timber, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/mine_t1.png",
       "tags": [
         "buildings",
@@ -922,9 +922,9 @@
     },
     {
       "name": "mine_t2",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, reclaimer-era mine, reinforced metal shaft, conveyor",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a reclaimer-era mine, reinforced metal shaft with conveyor belt, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, industrial and gritty, iron and rust tones, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/mine_t2.png",
       "tags": [
         "buildings",
@@ -933,9 +933,9 @@
     },
     {
       "name": "mine_t3",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, ascendant-era mine, auto-drilling rig with cyan lights",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of an ascendant-era mine, auto-drilling rig with cyan warning lights, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, mechanical and precise, gunmetal and cyan accent, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/mine_t3.png",
       "tags": [
         "buildings",
@@ -944,9 +944,9 @@
     },
     {
       "name": "mine_t4",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, transcendent-era mine, gravity well extractor with floating ore chunks",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a transcendent-era mine, gravity-well extractor with floating ore chunks orbiting a glowing core, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, otherworldly, deep purples and amber ore glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/mine_t4.png",
       "tags": [
         "buildings",
@@ -955,9 +955,9 @@
     },
     {
       "name": "energy_extractor_t1",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, survivor-era energy extractor, makeshift wind turbine on scrap tower",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a survivor-era wind turbine on a scrap-metal tower, spinning blades, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, makeshift and precarious, rusted metals and pale sky, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/energy_extractor_t1.png",
       "tags": [
         "buildings",
@@ -966,9 +966,9 @@
     },
     {
       "name": "energy_extractor_t2",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, reclaimer-era solar array on steel frame, cyan panels",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a reclaimer-era solar array on a steel frame, cyan panels angled upward, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, orderly rows, steel gray and cyan sheen, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/energy_extractor_t2.png",
       "tags": [
         "buildings",
@@ -977,9 +977,9 @@
     },
     {
       "name": "energy_extractor_t3",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, ascendant-era fusion pylon, glowing yellow core",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of an ascendant-era fusion pylon, glowing amber energy core on a tech column, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, intense energy field, gunmetal and amber glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/energy_extractor_t3.png",
       "tags": [
         "buildings",
@@ -988,9 +988,9 @@
     },
     {
       "name": "energy_extractor_t4",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, transcendent-era zero-point reactor, floating crystal in a containment ring",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a transcendent-era zero-point reactor, floating crystal suspended in a containment ring with arcing energy, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, radiant and volatile, white and violet energy, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/energy_extractor_t4.png",
       "tags": [
         "buildings",
@@ -999,9 +999,9 @@
     },
     {
       "name": "barracks_t1",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, survivor barracks, scrap-wood bunkhouse with training dummy",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a survivor-era barracks, scrap-wood bunkhouse with a training dummy outside, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, rough and functional, weathered planks and dirt, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/barracks_t1.png",
       "tags": [
         "buildings",
@@ -1010,9 +1010,9 @@
     },
     {
       "name": "barracks_t2",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, reclaimer barracks, armored bunker with flag",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a reclaimer-era barracks, armored bunker with a flag and slit windows, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, sturdy and militaristic, concrete and steel, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/barracks_t2.png",
       "tags": [
         "buildings",
@@ -1021,9 +1021,9 @@
     },
     {
       "name": "barracks_t3",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, ascendant barracks, tech training hall with holo-targets",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of an ascendant-era tech training hall with holo-targets and practice arena, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, high-tech training facility, cyan holo-light and polished floors, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/barracks_t3.png",
       "tags": [
         "buildings",
@@ -1032,9 +1032,9 @@
     },
     {
       "name": "barracks_t4",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, transcendent barracks, elite academy with neon banners",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a transcendent-era elite academy with neon banners and a holographic battle dome, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, prestigious and formidable, deep navy and magenta neon, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/barracks_t4.png",
       "tags": [
         "buildings",
@@ -1043,9 +1043,9 @@
     },
     {
       "name": "forge_t1",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, survivor forge, open-air smithy with anvil and flame",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a survivor-era open-air smithy, anvil and glowing forge fire, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, primitive craft, orange flame glow and dark iron, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/forge_t1.png",
       "tags": [
         "buildings",
@@ -1054,9 +1054,9 @@
     },
     {
       "name": "forge_t2",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, reclaimer forge, stone furnace with chimney",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a reclaimer-era stone furnace with a chimney pumping smoke, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, heavy-duty and sooty, stone gray and ember glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/forge_t2.png",
       "tags": [
         "buildings",
@@ -1065,9 +1065,9 @@
     },
     {
       "name": "forge_t3",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, ascendant forge, laser-cutter workshop, cyan glow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of an ascendant-era laser-cutter workshop with cyan arc sparks, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, precision industrial, metallic and cyan arc-light, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/forge_t3.png",
       "tags": [
         "buildings",
@@ -1076,9 +1076,9 @@
     },
     {
       "name": "forge_t4",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, transcendent forge, plasma-reactor smithy with orbital gear",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a transcendent-era plasma-reactor smithy with orbital gear ring and glowing crucible, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, legendary forge, magenta plasma and chrome, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/forge_t4.png",
       "tags": [
         "buildings",
@@ -1087,9 +1087,9 @@
     },
     {
       "name": "research_lab_t1",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, survivor research shack, blackboard and salvaged books",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a survivor-era research shack with a chalkboard and salvaged books stacked outside, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, humble and cluttered, wooden walls and candlelight, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/research_lab_t1.png",
       "tags": [
         "buildings",
@@ -1098,9 +1098,9 @@
     },
     {
       "name": "research_lab_t2",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, reclaimer research lab, reinforced with satellite dish",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a reclaimer-era research lab, reinforced walls with a satellite dish on the roof, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, functional science outpost, concrete and antenna steel, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/research_lab_t2.png",
       "tags": [
         "buildings",
@@ -1109,9 +1109,9 @@
     },
     {
       "name": "research_lab_t3",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, ascendant lab, holo-projector dome, floating data shards",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of an ascendant-era holo-projector dome with floating data shards orbiting it, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, advanced research center, glass dome and cyan data-light, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/research_lab_t3.png",
       "tags": [
         "buildings",
@@ -1120,9 +1120,9 @@
     },
     {
       "name": "research_lab_t4",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art building, transcendent lab, crystalline research spire with orbiting rings",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a transcendent-era crystalline research spire with orbiting data rings and glowing runes, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, apex of knowledge, crystal spire and violet data glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/research_lab_t4.png",
       "tags": [
         "buildings",
@@ -1131,9 +1131,9 @@
     },
     {
       "name": "wall_t1",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art wall section, wood-plank palisade with spiked top",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a wood-plank palisade wall segment with spiked top, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, crude timber barrier, raw wood and dirt base, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/wall_t1.png",
       "tags": [
         "buildings",
@@ -1142,9 +1142,9 @@
     },
     {
       "name": "wall_t2",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art wall section, riveted steel barricade",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a riveted steel barricade wall segment, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, industrial fortification, iron gray and rivet detail, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/wall_t2.png",
       "tags": [
         "buildings",
@@ -1153,9 +1153,9 @@
     },
     {
       "name": "wall_t3",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art wall section, alloy wall with cyan energy seam",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of an alloy wall segment with a glowing cyan energy seam, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, high-tech barrier, polished alloy and cyan glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/wall_t3.png",
       "tags": [
         "buildings",
@@ -1164,9 +1164,9 @@
     },
     {
       "name": "wall_t4",
-      "w": 96,
-      "h": 96,
-      "prompt": "pixel art wall section, force-field pylon with magenta shield glow",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of a force-field pylon wall with a magenta shield projection, 3/4 overhead Zelda-style camera angle, planted on patchy dirt and grass, earthy warm tones, energy barrier, chrome pylon and magenta shield glow, no black background, no background border, blends into grassland terrain",
       "out": "src/assets/wall_t4.png",
       "tags": [
         "buildings",
@@ -1358,7 +1358,7 @@
       "name": "city_haventide",
       "w": 128,
       "h": 96,
-      "prompt": "painterly game landmark of Haventide, coastal ruin port, pink neon docks and salvaged sails, weathered aqua and magenta palette, overhead view, pure solid black background, crisp silhouette",
+      "prompt": "painterly game landmark of Haventide, 3/4 overhead Zelda-style camera angle, coastal ruin port landmark building, collapsed pier with pink neon dock lanterns, salvaged sails and aqua neon rope lights, weathered wood and rust, planted on coastal grass and sand, warm aqua and magenta neon accents, no black background, no background border",
       "out": "src/assets/city_haventide.png",
       "tags": [
         "cities"
@@ -2513,6 +2513,61 @@
         "battle",
         "death",
         "t5"
+      ]
+    },
+    {
+      "name": "haventide_interior",
+      "w": 2048,
+      "h": 1280,
+      "prompt": "painterly overhead open-world map view, Haventide coastal ruin port, sprawling cobblestone streets and alleyways extending to all edges of the image, pink neon lanterns on iron poles, weathered wooden buildings and warehouses blending into the scene, docks and dark water at the far edge, aqua and magenta palette, puddles reflecting neon, no characters, fills entire canvas edge to edge with no border or black framing",
+      "out": "src/assets/probe/haventide_interior.png",
+      "tags": [
+        "city_interior",
+        "cities"
+      ]
+    },
+    {
+      "name": "emberline_interior",
+      "w": 2048,
+      "h": 1280,
+      "prompt": "painterly overhead open-world map view, Emberline desert trade city, sprawling open-air bazaar with rust and brass market stalls extending to all edges, amber torches on sandstone posts lining sandy streets, sandstone buildings and archways blending into the scene, amber and burnt-orange palette, sand drifts and worn stone paths, no characters, fills entire canvas edge to edge with no border or black framing",
+      "out": "src/assets/probe/emberline_interior.png",
+      "tags": [
+        "city_interior",
+        "cities"
+      ]
+    },
+    {
+      "name": "orbital_reach_interior",
+      "w": 2048,
+      "h": 1280,
+      "prompt": "painterly overhead open-world map view, Orbital Reach industrial city at the base of a ruined space elevator, sprawling metal grating platforms and cyan steel catwalks extending to all edges, massive elevator shaft pillar rising from center, industrial machinery and cranes filling the scene, cold steel and cyan palette, cyan indicator lights on every surface, no characters, fills entire canvas edge to edge with no border or black framing",
+      "out": "src/assets/probe/orbital_reach_interior.png",
+      "tags": [
+        "city_interior",
+        "cities"
+      ]
+    },
+    {
+      "name": "last_crown_interior",
+      "w": 2048,
+      "h": 1280,
+      "prompt": "painterly overhead open-world map view, Last Crown megacity streets, sprawling violet stone plazas and floating walkways extending to all edges, magenta neon holo-signs and crystal spires casting light across the scene, glowing circuit inlays in the ground, deep violet and magenta palette, the city stretches endlessly in all directions, no characters, fills entire canvas edge to edge with no border or black framing",
+      "out": "src/assets/probe/last_crown_interior.png",
+      "tags": [
+        "city_interior",
+        "cities"
+      ]
+    },
+    {
+      "name": "plot_empty",
+      "w": 128,
+      "h": 128,
+      "prompt": "painterly game sprite of an empty building foundation, cracked stone outline and faint dashed border marking a build site, subtle plus sign in center, muted gray palette, pure solid black background, crisp silhouette",
+      "out": "src/assets/plot_empty.png",
+      "tags": [
+        "plot",
+        "city_interior"
       ]
     }
   ]

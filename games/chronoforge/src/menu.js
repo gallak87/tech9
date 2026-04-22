@@ -13,6 +13,7 @@ import {
 } from './progression.js';
 
 export const TABS = ['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'];
+const TAB_ICONS = TABS.map(n => `tab_${n.toLowerCase()}`);
 
 const PALETTE = {
   bg: '#07060d', bgAlt: '#120a22', panel: '#1a1232',
@@ -29,9 +30,9 @@ export const menuState = {
   tabDir: 1,
   // map tab
   map: {
-    zoom: 0.4,
-    cx: 1030,
-    cy: 650,
+    zoom: 1.4,
+    cx: 240,
+    cy: 480,
     dragging: false,
     dragLastX: 0,
     dragLastY: 0,
@@ -54,10 +55,12 @@ export const menuState = {
   save: { msg: '', msgExpire: 0 },
 };
 
-function resetMapView(_game) {
-  menuState.map.zoom = 0.4;
-  menuState.map.cx = 1030;
-  menuState.map.cy = 650;
+function resetMapView(game) {
+  const mapId = game?.party?.mapId;
+  const node = mapId && WORLD_NODE_POS[mapId];
+  menuState.map.zoom = 1.4;
+  menuState.map.cx = node ? node.vx : 240;
+  menuState.map.cy = node ? node.vy : 480;
   menuState.map.dragging = false;
 }
 
@@ -228,11 +231,14 @@ export function drawMenu(ctx, game) {
     ctx.fillRect(r.x, r.y, r.w, r.h);
     ctx.strokeStyle = active ? PALETTE.accent : PALETTE.grid;
     ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+    const iconSz = 32;
+    const iconY = r.y + (r.h - iconSz) / 2;
+    drawSprite(ctx, TAB_ICONS[i], r.x + 8, iconY, iconSz, iconSz);
     ctx.fillStyle = active ? PALETTE.bg : PALETTE.ink;
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.font = '600 12px system-ui, sans-serif';
-    ctx.fillText(`${i + 1}. ${name}`, r.x + r.w / 2, r.y + r.h / 2);
+    ctx.font = '600 14px system-ui, sans-serif';
+    ctx.fillText(name, r.x + 8 + iconSz + 6, r.y + r.h / 2);
   });
 
   // body (with slide transition on tab change)
@@ -263,7 +269,7 @@ export function drawMenu(ctx, game) {
   ctx.textAlign = 'center';
   ctx.fillStyle = PALETTE.dim;
   ctx.font = '400 11px ui-monospace, monospace';
-  ctx.fillText('[Q/E] tabs   [1-7] jump   [Esc/Tab] close   (Map: drag / WASD / wheel / R reset)', w / 2, frame.y + frame.h - 14);
+  ctx.fillText('[Q/E] tabs   [1-7] jump   [Esc/Tab] close   (Map: drag / WASD / wheel / =-  zoom / R reset)', w / 2, frame.y + frame.h - 14);
 }
 
 function drawTabBody(ctx, game, name) {
@@ -290,7 +296,7 @@ function drawPartyTab(ctx, game) {
 
   ctx.fillStyle = PALETTE.ink;
   ctx.textAlign = 'left';
-  ctx.font = '600 11px ui-monospace, monospace';
+  ctx.font = '600 12px ui-monospace, monospace';
   ctx.fillStyle = PALETTE.dim;
   ctx.fillText(`SKILL POINTS: ${game.resources.skillPoints || 0}`, f.x + 24, bodyY - 18);
 
@@ -327,25 +333,25 @@ function drawPartyTab(ctx, game) {
     ctx.textAlign = 'center'; ctx.textBaseline = 'top';
     ctx.fillText(hero.name, cx, ty); ty += 18;
     ctx.fillStyle = hero.color;
-    ctx.font = '400 11px ui-monospace, monospace';
-    ctx.fillText(`${hero.role}  •  Lv ${hero.level}`, cx, ty); ty += 20;
+    ctx.font = '400 13px ui-monospace, monospace';
+    ctx.fillText(`${hero.role}  •  Lv ${hero.level}`, cx, ty); ty += 22;
 
     // HP bar
     const barX = x + cardPad, barW = w - cardPad * 2, barH = 9;
     drawBar(ctx, barX, ty, barW, barH, hero.hp, hero.maxHp, '#ff4a5a', '#3a1520');
-    ctx.fillStyle = PALETTE.dim; ctx.font = '400 10px ui-monospace, monospace';
+    ctx.fillStyle = PALETTE.dim; ctx.font = '400 12px ui-monospace, monospace';
     ctx.textAlign = 'right'; ctx.textBaseline = 'top';
     ctx.fillText(`${hero.hp}/${hero.maxHp}`, x + w - cardPad, ty); ty += barH + 10;
 
     // MP bar
     drawBar(ctx, barX, ty, barW, barH, hero.mp, hero.maxMp, '#22e3ff', '#0a2535');
-    ctx.fillStyle = PALETTE.dim; ctx.font = '400 10px ui-monospace, monospace';
+    ctx.fillStyle = PALETTE.dim; ctx.font = '400 12px ui-monospace, monospace';
     ctx.textAlign = 'right'; ctx.textBaseline = 'top';
     ctx.fillText(`${hero.mp}/${hero.maxMp}`, x + w - cardPad, ty); ty += barH + 10;
 
     // XP bar
     drawBar(ctx, barX, ty, barW, barH, hero.xp, hero.xpNext, '#ffd23f', '#2a2010');
-    ctx.fillStyle = PALETTE.dim; ctx.font = '400 10px ui-monospace, monospace';
+    ctx.fillStyle = PALETTE.dim; ctx.font = '400 12px ui-monospace, monospace';
     ctx.textAlign = 'right'; ctx.textBaseline = 'top';
     ctx.fillText(`${hero.xp}/${hero.xpNext} xp`, x + w - cardPad, ty); ty += barH + 16;
 
@@ -356,7 +362,7 @@ function drawPartyTab(ctx, game) {
       ['DEF', stats.def], ['SPD', stats.spd], ['CRIT', stats.crit],
     ];
     ctx.textAlign = 'left';
-    ctx.font = '400 11px ui-monospace, monospace';
+    ctx.font = '400 12px ui-monospace, monospace';
     const colW = (barW) / 2;
     statList.forEach(([label, val], si) => {
       const sx = barX + (si % 2) * colW;
@@ -372,18 +378,18 @@ function drawPartyTab(ctx, game) {
 
     // equipped items
     ctx.fillStyle = PALETTE.dim;
-    ctx.font = '600 10px ui-monospace, monospace';
+    ctx.font = '600 12px ui-monospace, monospace';
     ctx.textAlign = 'left';
-    ctx.fillText('EQUIP', barX, ty); ty += 14;
+    ctx.fillText('EQUIP', barX, ty); ty += 16;
     for (const slot of ['weapon', 'armor', 'accessory']) {
       const itemId = hero.equip[slot];
       const def = itemId ? ITEM_DEFS[itemId] : null;
       ctx.fillStyle = def ? def.color : PALETTE.grid;
       ctx.fillRect(barX, ty, 8, 8);
       ctx.fillStyle = def ? PALETTE.ink : PALETTE.dim;
-      ctx.font = '400 10px ui-monospace, monospace';
+      ctx.font = '400 12px ui-monospace, monospace';
       ctx.fillText(def ? def.name : `— (${slot})`, barX + 12, ty);
-      ty += 13;
+      ty += 15;
     }
   });
 }
@@ -398,7 +404,7 @@ function invHeroRect(heroIdx, game) {
   const panelX = f.x + 20 + Math.floor(f.w * 0.46);
   const panelW = f.w - Math.floor(f.w * 0.46) - 40;
   const heroW = Math.floor(panelW / 3);
-  return { x: panelX + heroIdx * heroW, y: f.y + 84, w: heroW, h: 30 };
+  return { x: panelX + heroIdx * heroW, y: f.y + 84, w: heroW, h: 38 };
 }
 
 function invSlotRect(heroIdx, slotIdx, game) {
@@ -408,8 +414,8 @@ function invSlotRect(heroIdx, slotIdx, game) {
   const heroW = Math.floor(panelW / 3);
   return {
     x: panelX + heroIdx * heroW + 4,
-    y: f.y + 124 + slotIdx * 64,
-    w: heroW - 8, h: 58,
+    y: f.y + 132 + slotIdx * 84,
+    w: heroW - 8, h: 76,
   };
 }
 
@@ -417,9 +423,9 @@ function invSlotRect(heroIdx, slotIdx, game) {
 function invItemRect(displayPos, game) {
   const f = frameRect(game);
   const itemW = Math.floor(f.w * 0.44) - 20;
-  const itemH = 48;
+  const itemH = 72;
   const x = f.x + 20;
-  const y = f.y + 84 + displayPos * (itemH + 6);
+  const y = f.y + 84 + displayPos * (itemH + 8);
   return { x, y, w: itemW, h: itemH };
 }
 
@@ -520,19 +526,16 @@ function drawInventoryTab(ctx, game) {
     ctx.lineWidth = selected ? 2 : 1;
     ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
 
-    // color pip
-    ctx.fillStyle = def.color;
-    ctx.fillRect(r.x + 8, r.y + 8, 8, 8);
-
+    drawSprite(ctx, `icon_${def.slot}`, r.x + 8, r.y + 10, 28, 28);
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillStyle = PALETTE.ink;
-    ctx.font = '600 12px system-ui, sans-serif';
-    ctx.fillText(def.name, r.x + 24, r.y + 7);
+    ctx.font = '600 15px system-ui, sans-serif';
+    ctx.fillText(def.name, r.x + 44, r.y + 10);
     ctx.fillStyle = PALETTE.dim;
-    ctx.font = '400 10px ui-monospace, monospace';
-    ctx.fillText(`[${def.slot}]  ${Object.entries(def.stats).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join('  ')}`, r.x + 24, r.y + 24);
-    ctx.font = '400 10px system-ui, sans-serif';
-    ctx.fillText(def.desc, r.x + 24, r.y + 36);
+    ctx.font = '400 12px ui-monospace, monospace';
+    ctx.fillText(Object.entries(def.stats).map(([k, v]) => `+${v} ${k.toUpperCase()}`).join('  '), r.x + 44, r.y + 30);
+    ctx.font = '400 11px system-ui, sans-serif';
+    ctx.fillText(def.desc, r.x + 44, r.y + 48);
   }
 
   if (game.inventory.length === 0) {
@@ -595,20 +598,19 @@ function drawInventoryTab(ctx, game) {
       ctx.lineWidth = isHovered ? 3 : (isTarget ? 2 : 1);
       ctx.strokeRect(sr.x + 0.5, sr.y + 0.5, sr.w - 1, sr.h - 1);
 
+      drawSprite(ctx, `icon_${slot}`, sr.x + 6, sr.y + 6, 22, 22);
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillStyle = PALETTE.dim;
-      ctx.font = '600 9px ui-monospace, monospace';
-      ctx.fillText(slot.toUpperCase(), sr.x + 6, sr.y + 5);
+      ctx.font = '600 11px ui-monospace, monospace';
+      ctx.fillText(slot.toUpperCase(), sr.x + 32, sr.y + 10);
 
       if (def) {
-        ctx.fillStyle = def.color;
-        ctx.fillRect(sr.x + 6, sr.y + 18, 7, 7);
         ctx.fillStyle = PALETTE.ink;
-        ctx.font = '600 11px system-ui, sans-serif';
-        ctx.fillText(def.name, sr.x + 18, sr.y + 17);
+        ctx.font = '600 13px system-ui, sans-serif';
+        ctx.fillText(def.name, sr.x + 32, sr.y + 26);
         ctx.fillStyle = PALETTE.dim;
-        ctx.font = '400 10px ui-monospace, monospace';
-        ctx.fillText(Object.entries(def.stats).map(([k, v]) => `+${v}${k.toUpperCase()}`).join(' '), sr.x + 18, sr.y + 31);
+        ctx.font = '400 11px ui-monospace, monospace';
+        ctx.fillText(Object.entries(def.stats).map(([k, v]) => `+${v}${k.toUpperCase()}`).join(' '), sr.x + 32, sr.y + 44);
 
         // stat-diff if an item is pending for this slot
         if (isTarget && pendingItem) {
@@ -622,22 +624,22 @@ function drawInventoryTab(ctx, game) {
             }
             if (diffs.length) {
               ctx.fillStyle = PALETTE.warn;
-              ctx.font = '400 10px ui-monospace, monospace';
-              ctx.fillText(`→ ${diffs.join(' ')}`, sr.x + 18, sr.y + 43);
+              ctx.font = '400 11px ui-monospace, monospace';
+              ctx.fillText(`→ ${diffs.join(' ')}`, sr.x + 32, sr.y + 58);
             }
           }
         }
       } else {
         ctx.fillStyle = PALETTE.dim + '66';
-        ctx.font = '400 10px ui-monospace, monospace';
-        ctx.fillText('(empty)', sr.x + 6, sr.y + 18);
+        ctx.font = '400 11px ui-monospace, monospace';
+        ctx.fillText('(empty)', sr.x + 32, sr.y + 26);
         // stat-diff: show full new stats as gain
         if (isTarget && pendingItem) {
           const newDef = ITEM_DEFS[pendingItem.id];
           if (newDef) {
             ctx.fillStyle = PALETTE.good || '#4af2a1';
-            ctx.font = '400 10px ui-monospace, monospace';
-            ctx.fillText(`→ ${Object.entries(newDef.stats).map(([k, v]) => `+${v}${k.toUpperCase()}`).join(' ')}`, sr.x + 6, sr.y + 30);
+            ctx.font = '400 11px ui-monospace, monospace';
+            ctx.fillText(`→ ${Object.entries(newDef.stats).map(([k, v]) => `+${v}${k.toUpperCase()}`).join(' ')}`, sr.x + 32, sr.y + 44);
           }
         }
       }
@@ -715,14 +717,14 @@ function drawSkillsTab(ctx, game) {
     ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
     ctx.fillStyle = active ? hero.color : PALETTE.ink;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `${active ? '700' : '400'} 12px system-ui, sans-serif`;
+    ctx.font = `${active ? '700' : '400'} 15px system-ui, sans-serif`;
     ctx.fillText(hero.name, r.x + r.w / 2, r.y + r.h / 2);
   }
 
   // skill points available
   ctx.fillStyle = PALETTE.warn;
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  ctx.font = '600 12px ui-monospace, monospace';
+  ctx.font = '600 13px ui-monospace, monospace';
   ctx.fillText(`Skill Points: ${game.resources.skillPoints || 0}`, f.x + 20 + 3 * (heroTabW + 8) + 16, heroTabY + heroTabH / 2);
 
   const hero = game.heroes[sk.heroIdx];
@@ -772,15 +774,15 @@ function drawSkillsTab(ctx, game) {
     // name + desc
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillStyle = unlocked ? PALETTE.ink : (canAfford && !isStarter ? PALETTE.ink + 'cc' : PALETTE.dim);
-    ctx.font = `${unlocked ? '700' : '600'} 14px system-ui, sans-serif`;
+    ctx.font = `${unlocked ? '700' : '600'} 15px system-ui, sans-serif`;
     ctx.fillText(skill.name, nodeX + 48, ry + 10);
     ctx.fillStyle = PALETTE.dim;
-    ctx.font = '400 11px system-ui, sans-serif';
-    ctx.fillText(skill.desc, nodeX + 48, ry + 28);
+    ctx.font = '400 13px system-ui, sans-serif';
+    ctx.fillText(skill.desc, nodeX + 48, ry + 30);
 
     // status label
     ctx.textAlign = 'right';
-    ctx.font = '600 10px ui-monospace, monospace';
+    ctx.font = '600 12px ui-monospace, monospace';
     if (isStarter) {
       ctx.fillStyle = hero.color;
       ctx.fillText('STARTING', nodeX + nodeW - 10, ry + 10);
@@ -827,7 +829,7 @@ function drawQuestsTab(ctx, game) {
   // label
   ctx.fillStyle = PALETTE.dim;
   ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-  ctx.font = '600 11px ui-monospace, monospace';
+  ctx.font = '600 12px ui-monospace, monospace';
   ctx.fillText('QUESTS', f.x + 20, f.y + 60);
 
   // quest list
@@ -846,15 +848,15 @@ function drawQuestsTab(ctx, game) {
 
     ctx.fillStyle = q.complete ? PALETTE.accent2 : PALETTE.ink;
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.font = `${active ? '700' : '600'} 12px system-ui, sans-serif`;
-    ctx.fillText(def.title, f.x + 28, ry + 8);
+    ctx.font = `${active ? '700' : '600'} 15px system-ui, sans-serif`;
+    ctx.fillText(def.title, f.x + 28, ry + 6);
     ctx.fillStyle = PALETTE.dim;
-    ctx.font = '400 10px ui-monospace, monospace';
+    ctx.font = '400 13px ui-monospace, monospace';
     const doneCnt = q.objectives.filter(o => o.done).length;
     ctx.fillText(`${def.giver}  •  ${doneCnt}/${q.objectives.length} objectives`, f.x + 28, ry + 26);
     ctx.fillStyle = q.complete ? PALETTE.accent2 : PALETTE.warn;
-    ctx.font = '600 10px ui-monospace, monospace';
-    ctx.fillText(q.complete ? 'COMPLETE' : 'IN PROGRESS', f.x + 28, ry + 38);
+    ctx.font = '600 12px ui-monospace, monospace';
+    ctx.fillText(q.complete ? 'COMPLETE' : 'IN PROGRESS', f.x + 28, ry + 40);
   }
 
   // divider
@@ -872,33 +874,33 @@ function drawQuestsTab(ctx, game) {
       let dy = f.y + 72;
       ctx.fillStyle = q.complete ? PALETTE.accent2 : PALETTE.ink;
       ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-      ctx.font = '700 16px system-ui, sans-serif';
+      ctx.font = '700 15px system-ui, sans-serif';
       ctx.fillText(def.title, detailX, dy); dy += 22;
 
       ctx.fillStyle = PALETTE.dim;
-      ctx.font = '400 11px ui-monospace, monospace';
+      ctx.font = '400 13px ui-monospace, monospace';
       ctx.fillText(`From: ${def.giver}`, detailX, dy); dy += 20;
 
       ctx.fillStyle = PALETTE.ink;
-      ctx.font = '400 12px system-ui, sans-serif';
-      dy = wrapTextRet(ctx, def.desc, detailX, dy, detailW, 16) + 16;
+      ctx.font = '400 13px system-ui, sans-serif';
+      dy = wrapTextRet(ctx, def.desc, detailX, dy, detailW, 18) + 16;
 
       ctx.fillStyle = PALETTE.dim;
-      ctx.font = '600 11px ui-monospace, monospace';
-      ctx.fillText('OBJECTIVES', detailX, dy); dy += 16;
+      ctx.font = '600 12px ui-monospace, monospace';
+      ctx.fillText('OBJECTIVES', detailX, dy); dy += 18;
 
       for (const obj of q.objectives) {
         ctx.fillStyle = obj.done ? PALETTE.accent2 : PALETTE.ink;
-        ctx.font = '400 12px system-ui, sans-serif';
-        ctx.fillText(`${obj.done ? '✓' : '○'}  ${obj.text}`, detailX, dy); dy += 18;
+        ctx.font = '400 13px system-ui, sans-serif';
+        ctx.fillText(`${obj.done ? '✓' : '○'}  ${obj.text}`, detailX, dy); dy += 20;
       }
 
       dy += 10;
       ctx.fillStyle = PALETTE.dim;
-      ctx.font = '600 11px ui-monospace, monospace';
-      ctx.fillText('REWARD', detailX, dy); dy += 16;
+      ctx.font = '600 12px ui-monospace, monospace';
+      ctx.fillText('REWARD', detailX, dy); dy += 18;
       ctx.fillStyle = PALETTE.warn;
-      ctx.font = '400 12px system-ui, sans-serif';
+      ctx.font = '400 13px system-ui, sans-serif';
       ctx.fillText(`${def.reward.xp} XP  +  ${def.reward.ore} Ore`, detailX, dy);
     }
   }
@@ -977,7 +979,7 @@ function drawSaveTab(ctx, game) {
 
   ctx.textAlign = 'center'; ctx.textBaseline = 'top';
   ctx.fillStyle = PALETTE.ink;
-  ctx.font = '700 28px system-ui, sans-serif';
+  ctx.font = '700 24px system-ui, sans-serif';
   ctx.fillText('SAVE / LOAD', cx, f.y + 90);
 
   // save metadata
@@ -1010,7 +1012,7 @@ function drawSaveTab(ctx, game) {
     ctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
     ctx.fillStyle = enabled ? color : PALETTE.dim;
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = `${enabled ? '700' : '400'} 14px system-ui, sans-serif`;
+    ctx.font = `${enabled ? '700' : '400'} 15px system-ui, sans-serif`;
     ctx.fillText(label, r.x + r.w / 2, r.y + r.h / 2);
   }
 
@@ -1028,7 +1030,7 @@ function drawSettingsTab(ctx, game) {
   ctx.fillStyle = PALETTE.ink;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'top';
-  ctx.font = '700 34px system-ui, sans-serif';
+  ctx.font = '700 24px system-ui, sans-serif';
   ctx.fillText('SETTINGS', game.width / 2, f.y + 110);
 
   ctx.fillStyle = PALETTE.dim;
@@ -1044,7 +1046,7 @@ function drawSettingsTab(ctx, game) {
   ctx.fillStyle = spriteSettings.forcePlaceholders ? PALETTE.bg : PALETTE.ink;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = '600 14px system-ui, sans-serif';
+  ctx.font = '600 15px system-ui, sans-serif';
   ctx.fillText(
     spriteSettings.forcePlaceholders ? '✔  Showing placeholders (A/B mode)' : 'Click to force placeholder sprites',
     toggle.x + toggle.w / 2, toggle.y + toggle.h / 2
@@ -1435,7 +1437,7 @@ function tabBarRects(game) {
     x: f.x + 20 + i * tabW,
     y: tabY,
     w: tabW - 4,
-    h: 30,
+    h: 44,
   }));
 }
 

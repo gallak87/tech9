@@ -600,12 +600,14 @@ function drawResourcesHUD(ctx, game) {
   ctx.textBaseline = 'top';
   items.forEach((it, i) => {
     const x = x0 + i * gap;
+    drawSprite(ctx, `icon_${it.key}`, x, y0, 14, 14);
     ctx.fillStyle = PALETTE.dim;
     ctx.font = '600 10px ui-monospace, monospace';
-    ctx.fillText(it.label, x, y0);
+    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(it.label, x + 17, y0 + 2);
     ctx.fillStyle = it.color;
     ctx.font = '700 22px ui-monospace, monospace';
-    ctx.fillText(String(game.resources[it.key] | 0), x, y0 + 14);
+    ctx.fillText(String(game.resources[it.key] | 0), x, y0 + 17);
 
     // subtle rate line — low contrast, small, only shown when something ticks
     const rate = rates[it.key];

@@ -825,6 +825,9 @@ function drawBattleHud(ctx, game) {
     ctx.fillStyle = hero.atb >= 100 ? PALETTE.warn : PALETTE.ink;
     ctx.font = '700 10px ui-monospace, monospace';
     ctx.fillText(hero.atb >= 100 ? 'READY' : `${Math.floor(hero.atb)}%`, rowX + 710, rowY + 6);
+    // status icons
+    let statusX = rowX + 750;
+    if (hero.shield > 0) { drawSprite(ctx, 'icon_shield', statusX, rowY, 18, 18); statusX += 22; }
   });
 
   // log tail (drawn before menu so menu overlay covers any overlap)

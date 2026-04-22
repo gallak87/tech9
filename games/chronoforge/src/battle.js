@@ -27,9 +27,9 @@ const HERO_TEMPLATES = {
 const ENEMY_TEMPLATES = {
   // T1 — early enemies
   rust_scrapper:     { name: 'Rust Scrapper',   tier: 1, hp: 80,  str: 12, def: 6,  spd: 9,  xp: 40,  renown: 4,  drops: [{ itemId: 'bog_fang', chance: 0.08 }] },
-  drone_sentinel:    { name: 'Drone Sentinel',  tier: 1, hp: 60,  str: 10, def: 4,  spd: 14, xp: 55,  renown: 5,  drops: [{ itemId: 'slag_tooth', chance: 0.08 }] },
+  drone_sentinel:    { name: 'Drone Sentinel',  tier: 1, hp: 60,  str: 10, def: 4,  spd: 14, xp: 55,  renown: 5,  drops: [{ itemId: 'swamp_coil', chance: 0.08 }] },
   bog_stalker:       { name: 'Bog Stalker',     tier: 1, hp: 75,  str: 13, def: 5,  spd: 11, xp: 48,  renown: 5,  drops: [{ itemId: 'bog_fang', chance: 0.14 }] },
-  slag_rat:          { name: 'Slag Rat',        tier: 1, hp: 55,  str: 9,  def: 3,  spd: 15, xp: 42,  renown: 4,  drops: [{ itemId: 'slag_tooth', chance: 0.14 }] },
+  slag_rat:          { name: 'Slag Rat',        tier: 1, hp: 55,  str: 9,  def: 3,  spd: 15, xp: 42,  renown: 4,  drops: [{ itemId: 'swamp_coil', chance: 0.14 }] },
 
   // T2 — mid
   mutant_hound:      { name: 'Mutant Hound',    tier: 2, hp: 95,  str: 14, def: 5,  spd: 12, xp: 60,  renown: 6,  drops: [{ itemId: 'glacial_claw', chance: 0.1 }, { itemId: 'moss_ward', chance: 0.05 }] },

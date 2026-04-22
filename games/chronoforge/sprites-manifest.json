@@ -2019,11 +2019,11 @@
       ]
     },
     {
-      "name": "icon_slag_tooth",
+      "name": "icon_swamp_coil",
       "w": 64,
       "h": 64,
-      "prompt": "painterly JRPG inventory icon of a PENDANT NECKLACE — a hardened scrap-metal tooth hanging from a short iron chain, rust-pitted metal, warm bone-grey and rusted iron palette, clearly readable as a necklace accessory, diagonal 3/4 inventory framing, single centered object, crisp silhouette, pure solid black background",
-      "out": "src/assets/icon_slag_tooth.png",
+      "prompt": "painterly JRPG inventory icon of a COILED ARMBAND — a tightly wound bracelet of twisted copper wire and dark reed stalks, green patina on the metal, wet and mossy, clearly readable as a wrist accessory, diagonal 3/4 inventory framing, single centered object, crisp silhouette, pure solid black background",
+      "out": "src/assets/icon_swamp_coil.png",
       "tags": [
         "icons",
         "drops"

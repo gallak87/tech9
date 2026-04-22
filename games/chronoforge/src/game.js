@@ -73,14 +73,26 @@ function mountDevPanel() {
   }
   speedRow.prepend(speedLbl);
 
-  // fog reveal toggle
+  // world fog toggle
   const fogBtn = document.createElement('button');
   btnStyle(fogBtn);
   function refreshFog() {
-    fogBtn.textContent = `FOG: ${game.devFogReveal ? 'OFF (revealed)' : 'ON'}`;
+    fogBtn.textContent = `WORLD FOG: ${game.devFogReveal ? 'OFF' : 'ON'}`;
     fogBtn.style.color = game.devFogReveal ? '#6f6' : '#adf';
   }
   fogBtn.onclick = () => { game.devFogReveal = !game.devFogReveal; refreshFog(); };
+
+  // reset current map state
+  const resetMapBtn = document.createElement('button');
+  btnStyle(resetMapBtn);
+  resetMapBtn.textContent = 'RESET MAP';
+  resetMapBtn.onclick = () => {
+    const mapId = game.party?.mapId;
+    if (!mapId) return;
+    for (const enc of (MAPS[mapId]?.encounters || [])) enc.cleared = false;
+    delete game.party.worldDropsTaken[mapId];
+    if (game.explored?.[mapId]) game.explored[mapId].clear();
+  };
 
   // minimap hud toggle
   const minimapBtn = document.createElement('button');
@@ -103,7 +115,7 @@ function mountDevPanel() {
     ]);
   };
 
-  el.append(label, speedRow, fogBtn, minimapBtn, rewardsBtn);
+  el.append(label, speedRow, fogBtn, minimapBtn, resetMapBtn, rewardsBtn);
   document.body.appendChild(el);
   refreshSpeed();
   refreshFog();

@@ -201,7 +201,7 @@ export const MAPS = {
     doorways: [
       { x: 1, y: 22, to: { mapId: 'forest_veil_region', x: 44, y: 22 } },
     ],
-    worldDrop: { x: 36, y: 27, itemId: 'slag_tooth' },
+    worldDrop: { x: 36, y: 27, itemId: 'swamp_coil' },
   },
   crater_ember_region: {
     id: 'crater_ember_region',

@@ -42,8 +42,8 @@ export const ITEM_DEFS = {
   crit_lens:     { name: 'Crit Lens',     slot: 'accessory', stats: { crit: 5 },           desc: 'Targeting optic implant.',     color: '#ff2dd4' },
 
   // drop-only items (tier-scaled rewards)
-  bog_fang:      { name: 'Bog Fang',      slot: 'weapon',    stats: { str: 3, spd: 2 },    desc: 'Venom-stained tooth.',         color: '#7ad67a' },
-  slag_tooth:    { name: 'Slag Tooth',    slot: 'accessory', stats: { crit: 3, spd: 2 },   desc: 'Hardened scrap shard.',        color: '#b8b2a6' },
+  bog_fang:      { name: 'Bog Fang',      slot: 'weapon',    stats: { str: 3, spd: 2 },    desc: 'Venom-stained tooth.',                  color: '#7ad67a' },
+  swamp_coil:    { name: 'Swamp Coil',   slot: 'accessory', stats: { crit: 3, spd: 2 },   desc: 'Reed-and-copper armband, still damp.',   color: '#7a9e6a' },
   glacial_claw:  { name: 'Glacial Claw',  slot: 'weapon',    stats: { str: 7, crit: 3 },   desc: 'Icebound rending claw.',       color: '#7bd8ff' },
   moss_ward:     { name: 'Moss Ward',     slot: 'accessory', stats: { def: 4, hp: 15 },    desc: 'Living bio-weave charm.',      color: '#4af2a1' },
   ember_core:    { name: 'Ember Core',    slot: 'weapon',    stats: { int: 9, str: 3 },    desc: 'Magma-forged focus.',          color: '#ff6a2c' },

@@ -217,7 +217,7 @@ export function updateBattle(game, dt) {
     if (h.atb >= 100 && !h._readyBeep) { playSfx('bt_atb_fill'); h._readyBeep = true; }
   }
   for (const e of b.enemies) if (e.hp > 0 && e.atb < 100) {
-    e.atb = Math.min(100, e.atb + e.spd / 74 * (regenDt / 16.67));
+    e.atb = Math.min(100, e.atb + e.spd / 41 * (regenDt / 16.67));
   }
 
   // first ready hero → open menu

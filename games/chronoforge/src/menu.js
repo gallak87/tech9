@@ -74,9 +74,9 @@ function setTab(next, game) {
   menuState.tabChangeTime = game ? game.time : performance.now();
 }
 
-export function openMenu() { menuState.open = true; }
+export function openMenu(game) { menuState.open = true; resetMapView(game); }
 export function closeMenu() { menuState.open = false; menuState.map.dragging = false; }
-export function toggleMenu() { menuState.open ? closeMenu() : openMenu(); }
+export function toggleMenu(game) { menuState.open ? closeMenu() : openMenu(game); }
 
 // --- keyboard input routed from game.js when open ---
 export function handleMenuKey(key, game) {

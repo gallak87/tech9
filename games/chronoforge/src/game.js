@@ -312,7 +312,7 @@ window.addEventListener('keydown', (e) => {
       return;
     }
     const wasOpen = menuState.open;
-    toggleMenu();
+    toggleMenu(game);
     playSfx(wasOpen ? 'ui_menu_close' : 'ui_menu_open', { gain: 0.5 });
     return;
   }

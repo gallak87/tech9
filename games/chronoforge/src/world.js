@@ -108,7 +108,7 @@ export const MAPS = {
       { x: 1,  y: 15, to: { mapId: 'haventide_region',    x: 44, y: 15 } },
       { x: 44, y: 15, to: { mapId: 'orbital_reach_region', x: 1, y: 20 } },
       { x: 22, y: 29, to: { mapId: 'forest_veil_region',   x: 30, y: 1 } },
-      { x: 42, y: 4,  to: { mapId: 'crater_ember_region',  x: 10, y: 36 } },
+      { x: 42, y: 4,  to: { mapId: 'crater_ember_region',  x: 10, y: 28 } },
     ],
     worldDrop: { x: 8, y: 8, itemId: 'glacial_claw' },
   },
@@ -135,7 +135,7 @@ export const MAPS = {
     doorways: [
       { x: 1,  y: 20, to: { mapId: 'emberline_region',   x: 44, y: 15 } },
       { x: 58, y: 14, to: { mapId: 'last_crown_region',  x: 1,  y: 14 } },
-      { x: 10, y: 2,  to: { mapId: 'frost_canyon_region', x: 30, y: 36 } },
+      { x: 10, y: 2,  to: { mapId: 'frost_canyon_region', x: 30, y: 28 } },
     ],
     worldDrop: { x: 42, y: 8, itemId: 'ember_core' },
   },
@@ -218,7 +218,7 @@ export const MAPS = {
       { id: 'e36', x: 34, y: 10, enemy: 'neon_cultist' },
     ],
     doorways: [
-      { x: 10, y: 36, to: { mapId: 'emberline_region', x: 42, y: 4 } },
+      { x: 10, y: 28, to: { mapId: 'emberline_region', x: 42, y: 4 } },
     ],
     worldDrop: { x: 30, y: 6, itemId: 'magma_blade' },
   },
@@ -237,7 +237,7 @@ export const MAPS = {
       { id: 'e31', x: 52, y: 34, enemy: 'sandworm_hatchling' },
     ],
     doorways: [
-      { x: 30, y: 36, to: { mapId: 'orbital_reach_region', x: 10, y: 2 } },
+      { x: 30, y: 28, to: { mapId: 'orbital_reach_region', x: 10, y: 2 } },
     ],
     worldDrop: { x: 8, y: 30, itemId: 'frost_plate' },
   },

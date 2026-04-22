@@ -58,7 +58,8 @@ function post(url, body) {
 
 async function generate(sprite) {
   process.stdout.write(`  ${sprite.name} ... `);
-  const res = await post(`${host}/api/generate`, { model, prompt: sprite.prompt, stream: false });
+  const genOpts = sprite.w && sprite.h ? { width: sprite.w, height: sprite.h } : {};
+  const res = await post(`${host}/api/generate`, { model, prompt: sprite.prompt, stream: false, options: genOpts });
   if (!res.image) throw new Error(`No image in response for "${sprite.name}"`);
   const outPath = path.resolve(manifestDir, sprite.out);
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
@@ -78,7 +79,18 @@ async function generate(sprite) {
   }
 
   if (sprite.w && sprite.h) {
-    // sips -z <height> <width> <file>  (sips takes rows then cols)
+    // Aspect-fill: crop to target ratio first so the resize is a clean scale, not a squish.
+    const info = execSync(`sips -g pixelWidth -g pixelHeight "${outPath}"`).toString();
+    const srcW = parseInt(info.match(/pixelWidth:\s*(\d+)/)[1], 10);
+    const srcH = parseInt(info.match(/pixelHeight:\s*(\d+)/)[1], 10);
+    const targetRatio = sprite.w / sprite.h;
+    const srcRatio    = srcW / srcH;
+    if (Math.abs(srcRatio - targetRatio) > 0.01) {
+      const cropW = srcRatio > targetRatio ? Math.round(srcH * targetRatio) : srcW;
+      const cropH = srcRatio > targetRatio ? srcH : Math.round(srcW / targetRatio);
+      execSync(`sips -c ${cropH} ${cropW} "${outPath}" --out "${outPath}"`, { stdio: 'ignore' });
+    }
+    // sips -z <height> <width> (sips takes rows then cols)
     execSync(`sips -z ${sprite.h} ${sprite.w} "${outPath}" --out "${outPath}"`, { stdio: 'ignore' });
     const finalKb = Math.round(fs.statSync(outPath).size / 1024);
     const bleedTag = sprite.bleed ? ` bleed=${sprite.bleed}` : '';

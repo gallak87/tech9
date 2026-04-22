@@ -57,7 +57,7 @@ export function enterCity(game, city) {
   if (!map) return;
   game.party.mapId = interiorId;
   game.party.x = Math.floor(map.w / 2);
-  game.party.y = Math.floor(map.h / 2);
+  game.party.y = Math.floor((map.h ?? 24) * 0.75);
   game.party.fromX = game.party.x;
   game.party.fromY = game.party.y;
   game.party.facing = 'up';
@@ -232,7 +232,7 @@ export function drawCityScene(ctx, game) {
   ctx.fillStyle = '#8a83b8';
   ctx.font = '400 11px ui-monospace, monospace';
   ctx.textAlign = 'left';
-  ctx.fillText('[WASD] move   walk to exit doorway to leave', 12, h - 14);
+  ctx.fillText(`[WASD] move   ${map.exitHint ?? 'walk to exit doorway to leave'}`, 12, h - 14);
 
   // modals on top
   drawBaseModals(ctx, game);

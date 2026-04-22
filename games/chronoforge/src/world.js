@@ -3,8 +3,9 @@
 // world-drop. Player state carries mapId; doorways trigger chrono-rift travel.
 
 export const TILE = 64; // px per tile
-export const MAP_W = 60;
-export const MAP_H = 40;
+// always target 60/40 proportion to prevent weird tile placement issues
+export const MAP_W = 45;
+export const MAP_H = 30;
 
 function rng(seed) {
   return function () {
@@ -54,35 +55,33 @@ export const MAPS = {
     biome: 'grassland_ruins',
     city: {
       id: 'haventide', name: 'Haventide',
-      x: 12, y: 28,
+      x: 12, y: 20,
       landmark: 'city_haventide',
       biome: 'grassland_ruins',
       unlocked: true,
       blurb: 'Coastal fishing port. Your home base. Pink neon docks, rumor of a lost sister ship.',
       plots: [
-        // TC landmark box: tiles x=11-14, y=27-30 (city at 12,28, boxSize=4×TILE offset -1)
-        // Uniform 1-tile gap on all 4 sides: left x=8(→9,gap10), right x=16(→17,gap15),
-        //   top y=24(→25,gap26), bottom y=32(→33,gap31). Max building = mine 3×3.
+        // TC landmark box: city at 12,20. inner ring 4 tiles out, outer ring 8 tiles out.
         // inner ring
-        { slotIdx: 1,  x: 8,  y: 24 }, { slotIdx: 2,  x: 12, y: 24 }, { slotIdx: 3,  x: 16, y: 24 },
-        { slotIdx: 4,  x: 8,  y: 28 },                                  { slotIdx: 5,  x: 16, y: 28 },
-        { slotIdx: 6,  x: 8,  y: 32 }, { slotIdx: 7,  x: 12, y: 32 }, { slotIdx: 8,  x: 16, y: 32 },
+        { slotIdx: 1,  x: 8,  y: 16 }, { slotIdx: 2,  x: 12, y: 16 }, { slotIdx: 3,  x: 16, y: 16 },
+        { slotIdx: 4,  x: 8,  y: 20 },                                  { slotIdx: 5,  x: 16, y: 20 },
+        { slotIdx: 6,  x: 8,  y: 24 }, { slotIdx: 7,  x: 12, y: 24 }, { slotIdx: 8,  x: 16, y: 24 },
         // outer ring
-        { slotIdx: 9,  x: 4,  y: 20 }, { slotIdx: 10, x: 12, y: 19 }, { slotIdx: 11, x: 20, y: 20 },
-        { slotIdx: 12, x: 4,  y: 28 },                                  { slotIdx: 13, x: 20, y: 28 },
-        { slotIdx: 14, x: 4,  y: 36 }, { slotIdx: 15, x: 12, y: 37 }, { slotIdx: 16, x: 20, y: 36 },
-        { slotIdx: 17, x: 8,  y: 17 },
+        { slotIdx: 9,  x: 4,  y: 12 }, { slotIdx: 10, x: 12, y: 11 }, { slotIdx: 11, x: 20, y: 12 },
+        { slotIdx: 12, x: 4,  y: 20 },                                  { slotIdx: 13, x: 20, y: 20 },
+        { slotIdx: 14, x: 4,  y: 28 }, { slotIdx: 15, x: 12, y: 29 }, { slotIdx: 16, x: 20, y: 28 },
+        { slotIdx: 17, x: 8,  y: 9  },
       ],
     },
     encounters: [
-      { id: 'e1',  x: 30, y: 25, enemy: 'rust_scrapper' },
-      { id: 'e20', x: 30, y: 15, enemy: 'bog_stalker' },
-      { id: 'e21', x: 45, y: 30, enemy: 'slag_rat' },
+      { id: 'e1',  x: 30, y: 17, enemy: 'rust_scrapper' },
+      { id: 'e20', x: 30, y:  7, enemy: 'bog_stalker' },
+      { id: 'e21', x: 40, y: 22, enemy: 'slag_rat' },
     ],
     doorways: [
-      { x: 58, y: 20, to: { mapId: 'emberline_region', x: 1, y: 20 } },
+      { x: 44, y: 15, to: { mapId: 'emberline_region', x: 1, y: 20 } },
     ],
-    worldDrop: { x: 40, y: 10, itemId: 'bog_fang' },
+    worldDrop: { x: 38, y: 5, itemId: 'bog_fang' },
   },
   emberline_region: {
     id: 'emberline_region',
@@ -92,24 +91,24 @@ export const MAPS = {
     biome: 'neon_wastes',
     city: {
       id: 'emberline', name: 'Emberline',
-      x: 32, y: 28,
+      x: 32, y: 17,
       landmark: 'city_emberline',
       biome: 'neon_wastes',
       unlocked: false,
       blurb: 'Desert trade hub. Caravans whisper of a collapsing orbital elevator.',
     },
     encounters: [
-      { id: 'e2',  x: 14, y: 18, enemy: 'mutant_hound' },
-      { id: 'e3',  x: 24, y: 26, enemy: 'drone_sentinel' },
-      { id: 'e4',  x: 42, y: 22, enemy: 'gravbot' },
-      { id: 'e22', x: 8,  y: 30, enemy: 'slag_rat' },
-      { id: 'e23', x: 50, y: 14, enemy: 'bog_stalker' },
+      { id: 'e2',  x: 14, y: 16, enemy: 'mutant_hound' },
+      { id: 'e3',  x: 24, y: 20, enemy: 'drone_sentinel' },
+      { id: 'e4',  x: 40, y: 18, enemy: 'gravbot' },
+      { id: 'e22', x: 8,  y: 21, enemy: 'slag_rat' },
+      { id: 'e23', x: 38, y: 8,  enemy: 'bog_stalker' },
     ],
     doorways: [
-      { x: 1,  y: 20, to: { mapId: 'haventide_region',    x: 58, y: 20 } },
-      { x: 58, y: 20, to: { mapId: 'orbital_reach_region', x: 1, y: 20 } },
-      { x: 30, y: 38, to: { mapId: 'forest_veil_region',   x: 30, y: 1 } },
-      { x: 50, y: 4,  to: { mapId: 'crater_ember_region',  x: 10, y: 36 } },
+      { x: 1,  y: 15, to: { mapId: 'haventide_region',    x: 44, y: 15 } },
+      { x: 44, y: 15, to: { mapId: 'orbital_reach_region', x: 1, y: 20 } },
+      { x: 22, y: 29, to: { mapId: 'forest_veil_region',   x: 30, y: 1 } },
+      { x: 42, y: 4,  to: { mapId: 'crater_ember_region',  x: 10, y: 36 } },
     ],
     worldDrop: { x: 8, y: 8, itemId: 'glacial_claw' },
   },
@@ -134,7 +133,7 @@ export const MAPS = {
       { id: 'e29', x: 50, y: 14, enemy: 'frost_revenant' },
     ],
     doorways: [
-      { x: 1,  y: 20, to: { mapId: 'emberline_region',   x: 58, y: 20 } },
+      { x: 1,  y: 20, to: { mapId: 'emberline_region',   x: 44, y: 15 } },
       { x: 58, y: 14, to: { mapId: 'last_crown_region',  x: 1,  y: 14 } },
       { x: 10, y: 2,  to: { mapId: 'frost_canyon_region', x: 30, y: 36 } },
     ],
@@ -180,7 +179,7 @@ export const MAPS = {
       { id: 'e25', x: 52, y: 20, enemy: 'slag_rat' },
     ],
     doorways: [
-      { x: 30, y: 1,  to: { mapId: 'emberline_region', x: 30, y: 38 } },
+      { x: 30, y: 1,  to: { mapId: 'emberline_region', x: 22, y: 29 } },
       { x: 58, y: 22, to: { mapId: 'mire_bog_region',  x: 1,  y: 22 } },
     ],
     worldDrop: { x: 10, y: 10, itemId: 'moss_ward' },
@@ -219,7 +218,7 @@ export const MAPS = {
       { id: 'e36', x: 34, y: 10, enemy: 'neon_cultist' },
     ],
     doorways: [
-      { x: 10, y: 36, to: { mapId: 'emberline_region', x: 50, y: 4 } },
+      { x: 10, y: 36, to: { mapId: 'emberline_region', x: 42, y: 4 } },
     ],
     worldDrop: { x: 30, y: 6, itemId: 'magma_blade' },
   },
@@ -262,9 +261,10 @@ export const MAPS = {
       { slotIdx: 15, x: 4,  y: 17 }, { slotIdx: 16, x: 26, y: 17 },
       { slotIdx: 17, x: 15, y: 18 },
     ],
+    exitHint: 'walk south to the waterfront to leave',
     city: null, encounters: [], worldDrop: null,
     doorways: [
-      { x: 15, y: 0, to: { mapId: 'haventide_region', x: 12, y: 32 } },
+      { x: 15, y: 19, to: { mapId: 'haventide_region', x: 12, y: 24 } },
     ],
   },
   emberline_interior: {
@@ -276,10 +276,11 @@ export const MAPS = {
     isInterior: true,
     parentCityId: 'emberline',
     parentMapId: 'emberline_region',
+    exitHint: 'walk back through the gate arch to leave',
     plots: null,
     city: null, encounters: [], worldDrop: null,
     doorways: [
-      { x: 17, y: 0, to: { mapId: 'emberline_region', x: 32, y: 32 } },
+      { x: 17, y: 23, to: { mapId: 'emberline_region', x: 32, y: 20 } },
     ],
   },
   orbital_reach_interior: {
@@ -291,10 +292,11 @@ export const MAPS = {
     isInterior: true,
     parentCityId: 'orbital_reach',
     parentMapId: 'orbital_reach_region',
+    exitHint: 'walk south through the blast doors to leave',
     plots: null,
     city: null, encounters: [], worldDrop: null,
     doorways: [
-      { x: 17, y: 0, to: { mapId: 'orbital_reach_region', x: 20, y: 22 } },
+      { x: 17, y: 23, to: { mapId: 'orbital_reach_region', x: 20, y: 22 } },
     ],
   },
   last_crown_interior: {
@@ -306,10 +308,11 @@ export const MAPS = {
     isInterior: true,
     parentCityId: 'last_crown',
     parentMapId: 'last_crown_region',
+    exitHint: 'step back through the void gate to leave',
     plots: null,
     city: null, encounters: [], worldDrop: null,
     doorways: [
-      { x: 17, y: 0, to: { mapId: 'last_crown_region', x: 32, y: 26 } },
+      { x: 17, y: 23, to: { mapId: 'last_crown_region', x: 32, y: 26 } },
     ],
   },
 };
@@ -374,7 +377,7 @@ export const ALL_ENCOUNTERS = Object.values(MAPS)
     return e;
   }));
 
-export const PLAYER_START = { mapId: 'haventide_region', x: 12, y: 26 };
+export const PLAYER_START = { mapId: 'haventide_region', x: 12, y: 18 };
 
 // --- Back-compat shims (menu's full-map view + any stragglers) ---
 // Returns current-map tiles. Used only where the old single-map API exists.

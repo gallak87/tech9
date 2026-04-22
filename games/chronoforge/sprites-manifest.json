@@ -1366,8 +1366,8 @@
     },
     {
       "name": "city_emberline",
-      "w": 128,
-      "h": 96,
+      "w": 256,
+      "h": 256,
       "prompt": "painterly game landmark of Emberline, desert trade hub, rust and brass towers with caravan banners, amber and burnt-orange palette, overhead view, pure solid black background, crisp silhouette",
       "out": "src/assets/city_emberline.png",
       "tags": [
@@ -1376,8 +1376,8 @@
     },
     {
       "name": "city_orbital_reach",
-      "w": 128,
-      "h": 96,
+      "w": 256,
+      "h": 256,
       "prompt": "painterly game landmark of Orbital Reach, ruined space-elevator base, cyan steel scaffolding piercing upward, cold steel and cyan palette, overhead view, pure solid black background, crisp silhouette",
       "out": "src/assets/city_orbital_reach.png",
       "tags": [
@@ -1386,8 +1386,8 @@
     },
     {
       "name": "city_last_crown",
-      "w": 128,
-      "h": 96,
+      "w": 256,
+      "h": 256,
       "prompt": "painterly game landmark of Last Crown, final megacity, magenta neon spires and floating platforms, deep violet and magenta palette, overhead view, pure solid black background, crisp silhouette",
       "out": "src/assets/city_last_crown.png",
       "tags": [
@@ -2519,7 +2519,7 @@
       "name": "haventide_interior",
       "w": 2048,
       "h": 1280,
-      "prompt": "painterly overhead open-world map view, Haventide coastal ruin port, sprawling cobblestone streets and alleyways extending to all edges of the image, pink neon lanterns on iron poles, weathered wooden buildings and warehouses blending into the scene, docks and dark water at the far edge, aqua and magenta palette, puddles reflecting neon, no characters, fills entire canvas edge to edge with no border or black framing",
+      "prompt": "painterly overhead open-world map view, Haventide coastal ruin port, sprawling cobblestone streets and alleyways, pink neon lanterns on iron poles, weathered wooden buildings and warehouses, aqua and magenta palette, puddles reflecting neon — at the exact bottom center of the image a weathered stone archway spans a cobblestone road running north into the port district, the arch and road must be visually prominent and centered at the bottom edge, no characters, fills entire canvas edge to edge with no border or black framing",
       "out": "src/assets/probe/haventide_interior.png",
       "tags": [
         "city_interior",
@@ -2530,7 +2530,7 @@
       "name": "emberline_interior",
       "w": 2048,
       "h": 1280,
-      "prompt": "painterly overhead open-world map view, Emberline desert trade city, sprawling open-air bazaar with rust and brass market stalls extending to all edges, amber torches on sandstone posts lining sandy streets, sandstone buildings and archways blending into the scene, amber and burnt-orange palette, sand drifts and worn stone paths, no characters, fills entire canvas edge to edge with no border or black framing",
+      "prompt": "painterly overhead open-world map view, Emberline desert trade city, open-air bazaar with colorful canvas awnings and sandstone architecture, amber torchlight, burnt-amber and terracotta palette, no characters, fills canvas edge to edge with no border or black framing",
       "out": "src/assets/probe/emberline_interior.png",
       "tags": [
         "city_interior",
@@ -2541,7 +2541,7 @@
       "name": "orbital_reach_interior",
       "w": 2048,
       "h": 1280,
-      "prompt": "painterly overhead open-world map view, Orbital Reach industrial city at the base of a ruined space elevator, sprawling metal grating platforms and cyan steel catwalks extending to all edges, massive elevator shaft pillar rising from center, industrial machinery and cranes filling the scene, cold steel and cyan palette, cyan indicator lights on every surface, no characters, fills entire canvas edge to edge with no border or black framing",
+      "prompt": "painterly overhead open-world map view, Orbital Reach ruined space-elevator base, industrial district with metal grating platforms and cyan steel catwalks, cold cyan indicator lighting, gunmetal and cyan palette, no characters, fills canvas edge to edge with no border or black framing",
       "out": "src/assets/probe/orbital_reach_interior.png",
       "tags": [
         "city_interior",
@@ -2552,7 +2552,7 @@
       "name": "last_crown_interior",
       "w": 2048,
       "h": 1280,
-      "prompt": "painterly overhead open-world map view, Last Crown megacity streets, sprawling violet stone plazas and floating walkways extending to all edges, magenta neon holo-signs and crystal spires casting light across the scene, glowing circuit inlays in the ground, deep violet and magenta palette, the city stretches endlessly in all directions, no characters, fills entire canvas edge to edge with no border or black framing",
+      "prompt": "painterly overhead open-world map view, Last Crown megacity, void-tech district with violet stone plazas and floating walkways, magenta neon holo-signs casting deep shadows, deep violet and magenta palette, no characters, fills canvas edge to edge with no border or black framing",
       "out": "src/assets/probe/last_crown_interior.png",
       "tags": [
         "city_interior",

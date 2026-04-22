@@ -5,8 +5,8 @@
     {
       "name": "world_mire_bog",
       "out": "src/assets/probe/world_mire_bog.png",
-      "w": 2048,
-      "h": 1280,
+      "w": 4096,
+      "h": 2560,
       "prompt": "overhead map asset for a 2D top-down adventure game, strict orthographic projection, camera pointing straight down at 90 degrees, flat tabletop-RPG battle-map style like Stardew Valley overworld or a D&D map tile, uniform angle across the entire image, no perspective, no horizon, no sky, no clouds, no parallax, no fisheye, all features drawn as flat footprints from directly above. Single cohesive biome filling the entire map edge to edge with no coastline and no water boundary along any edge: dark sunken mire, peat-brown soggy ground with murky olive-green moss, scattered sunken rotten logs and half-submerged mossy stones, sparse clumps of reeds and cattails, patches of dark fungal rings, discrete round pools of still murky-green water dotted through the terrain (round pool shapes, NOT a maze of webs), a single narrow plank trail meandering gently from north to south through the middle on slightly raised earth. Layout built for walkability: large open traversable muck flats in the center with small islands of firmer ground, obstacles clustered along edges and corners leaving wide horizontal and vertical corridors through the middle. Muted palette of peat browns, murky olive greens, dark teals and a hint of sickly luminescent green for the fungal accents. Painterly pixel texture, hand-drawn ground detail. No coastline, no ocean, no biome stripes, no hard seams, no 3D buildings, no trees in side-view (foliage is overhead canopy footprint only), no bridges, no overpasses, no elevation changes, no cliffs, no grid, no border, no vignette, no text, no UI.",
       "expectTransition": "edge-pool-gradient",
       "tier": 2
@@ -14,8 +14,8 @@
     {
       "name": "world_crater_ember",
       "out": "src/assets/probe/world_crater_ember.png",
-      "w": 2048,
-      "h": 1280,
+      "w": 4096,
+      "h": 2560,
       "prompt": "overhead map asset for a 2D top-down adventure game, strict orthographic projection, camera pointing straight down at 90 degrees, flat tabletop-RPG battle-map style like Stardew Valley overworld or a D&D map tile, uniform angle across the entire image, no perspective, no horizon, no sky, no clouds, no parallax, no fisheye, all features drawn as flat footprints from directly above. Single cohesive biome filling the entire map edge to edge with no coastline and no water boundary on any edge: volcanic crater floor of cracked black obsidian and scorched dark basalt, bright molten lava filling narrow cracks and small discrete round lava pools scattered through the terrain (round pool shapes, NOT a maze of webs), scattered jagged volcanic rocks and small obsidian shards, drifts of dark gray ash, sparse patches of glowing ember embers, a single worn ash-path meandering gently from west to east through the middle on safer cooled rock. Layout built for walkability: large open traversable cooled rock flats in the center, obstacles clustered along edges and corners leaving wide horizontal and vertical corridors through the middle. Hot palette of near-black obsidian, deep charcoal, volcanic reds and bright molten orange-yellow accents. Painterly pixel texture, hand-drawn ground detail. No coastline, no ocean, no biome stripes, no hard seams, no 3D buildings, no volcano in side-view, no lava fountains in side-view, no bridges, no overpasses, no elevation changes, no cliffs, no grid, no border, no vignette, no text, no UI.",
       "expectTransition": "edge-pool-gradient",
       "tier": 4
@@ -23,8 +23,8 @@
     {
       "name": "world_frost_canyon",
       "out": "src/assets/probe/world_frost_canyon.png",
-      "w": 2048,
-      "h": 1280,
+      "w": 4096,
+      "h": 2560,
       "prompt": "overhead map asset for a 2D top-down adventure game, strict orthographic projection, camera pointing straight down at 90 degrees, flat tabletop-RPG battle-map style like Stardew Valley overworld or a D&D map tile, uniform angle across the entire image, no perspective, no horizon, no sky, no clouds, no parallax, no fisheye, all features drawn as flat footprints from directly above. Single cohesive biome filling the entire map edge to edge with no coastline and no water boundary on any edge: frost-locked canyon floor of packed snow and hard blue glacial ice, scattered small jagged ice shards and frozen stone rubble poking through the snow, a frozen river course running gently from north to south through the middle as a slightly-recessed band of pale-blue ice with clean edges, occasional patches of windblown powder, sparse dead frost-bitten shrubs clumped near the ice banks, a single narrow boot-path meandering gently alongside the frozen river on packed snow. Layout built for walkability: the canyon floor is entirely traversable flat ground (NO cliff walls, NO drop-offs), obstacles clustered along edges and corners leaving wide horizontal and vertical corridors through the middle. Cold palette of pale blue-whites, frosted cyans, soft grays and muted slate. Painterly pixel texture, hand-drawn ground detail. No coastline, no ocean, no biome stripes, no hard seams, no 3D buildings, no canyon walls in side-view, no cliffs, no bridges, no overpasses, no elevation changes, no grid, no border, no vignette, no text, no UI.",
       "expectTransition": "interior-ice-river",
       "tier": 3

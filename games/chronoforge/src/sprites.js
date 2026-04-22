@@ -61,6 +61,19 @@ function loadImage(src) {
   });
 }
 
+export function preloadSprites(names) {
+  for (const name of names) {
+    if (!cache.has(name)) {
+      cache.set(name, { img: null, loading: true });
+      loadImage(spritePath(name)).then((img) => {
+        const final = (img && shouldKeyBlack(name)) ? keyBlackToAlpha(img) : img;
+        cache.set(name, { img: final, loading: false });
+        spriteVersion++;
+      });
+    }
+  }
+}
+
 export function getSprite(name, w, h) {
   if (spriteSettings.forcePlaceholders) return null;
   const key = `${name}`;

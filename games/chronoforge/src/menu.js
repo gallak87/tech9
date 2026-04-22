@@ -337,23 +337,23 @@ function drawPartyTab(ctx, game) {
     ctx.fillText(`${hero.role}  •  Lv ${hero.level}`, cx, ty); ty += 22;
 
     // HP bar
-    const barX = x + cardPad, barW = w - cardPad * 2, barH = 9;
+    const barX = x + cardPad, barW = w - cardPad * 2, barH = 14;
     drawBar(ctx, barX, ty, barW, barH, hero.hp, hero.maxHp, '#ff4a5a', '#3a1520');
-    ctx.fillStyle = PALETTE.dim; ctx.font = '400 12px ui-monospace, monospace';
-    ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-    ctx.fillText(`${hero.hp}/${hero.maxHp}`, x + w - cardPad, ty); ty += barH + 10;
+    ctx.font = '700 11px ui-monospace, monospace';
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.strokeStyle = 'rgba(0,0,0,0.85)'; ctx.lineWidth = 3;
+    ctx.strokeText(`${hero.hp}/${hero.maxHp}`, barX + barW - 5, ty + barH / 2);
+    ctx.fillStyle = PALETTE.ink; ctx.fillText(`${hero.hp}/${hero.maxHp}`, barX + barW - 5, ty + barH / 2); ty += barH + 6;
 
     // MP bar
     drawBar(ctx, barX, ty, barW, barH, hero.mp, hero.maxMp, '#22e3ff', '#0a2535');
-    ctx.fillStyle = PALETTE.dim; ctx.font = '400 12px ui-monospace, monospace';
-    ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-    ctx.fillText(`${hero.mp}/${hero.maxMp}`, x + w - cardPad, ty); ty += barH + 10;
+    ctx.strokeText(`${hero.mp}/${hero.maxMp}`, barX + barW - 5, ty + barH / 2);
+    ctx.fillStyle = PALETTE.ink; ctx.fillText(`${hero.mp}/${hero.maxMp}`, barX + barW - 5, ty + barH / 2); ty += barH + 6;
 
     // XP bar
     drawBar(ctx, barX, ty, barW, barH, hero.xp, hero.xpNext, '#ffd23f', '#2a2010');
-    ctx.fillStyle = PALETTE.dim; ctx.font = '400 12px ui-monospace, monospace';
-    ctx.textAlign = 'right'; ctx.textBaseline = 'top';
-    ctx.fillText(`${hero.xp}/${hero.xpNext} xp`, x + w - cardPad, ty); ty += barH + 16;
+    ctx.strokeText(`${hero.xp}/${hero.xpNext} xp`, barX + barW - 5, ty + barH / 2);
+    ctx.fillStyle = PALETTE.ink; ctx.fillText(`${hero.xp}/${hero.xpNext} xp`, barX + barW - 5, ty + barH / 2); ty += barH + 14;
 
     // stats grid
     const stats = computeStats(hero);

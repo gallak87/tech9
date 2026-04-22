@@ -21,7 +21,7 @@ import {
   handleMenuMouseDown, handleMenuMouseMove, handleMenuMouseUp, handleMenuWheel,
   drawMenu,
 } from './menu.js';
-import { initBattle, updateBattle, drawBattle, handleBattleKey } from './battle.js';
+import { initBattle, updateBattle, drawBattle, handleBattleKey, preloadBattleSprites } from './battle.js';
 import { updateCity, drawCityScene, handleCityMouseDown, handleCityKey } from './city.js';
 import { initAudio, resumeAudio, playSfx } from './audio.js';
 import { PLAYER_START, MAP_W, MAP_H, MAPS } from './world.js';
@@ -159,6 +159,9 @@ const game = {
     this.state = next;
     if (next === 'battle' && this.pendingEncounter) {
       initBattle(this, this.pendingEncounter);
+    }
+    if (next === 'overworld') {
+      preloadBattleSprites();
     }
   },
   toast(msg) {

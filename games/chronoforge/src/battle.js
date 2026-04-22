@@ -3,7 +3,7 @@
 // enters action-select. Enemies AI-picks an action when their gauge fills.
 // Crits trigger 250ms time-freeze + screen-shake. Victory → XP/Renown.
 
-import { drawSprite } from './sprites.js';
+import { drawSprite, preloadSprites } from './sprites.js';
 import { playSfx } from './audio.js';
 import { ALL_CITIES, PLAYER_START } from './world.js';
 import { computeStats, SKILL_TREES, awardXp, checkQuestProgress, ITEM_DEFS } from './progression.js';
@@ -114,6 +114,18 @@ function heroSpriteName(hero) {
 function enemySpriteName(e) {
   const s = e.spriteState;
   return `${e.id}_${s}`;
+}
+
+const HERO_STATES = ['idle', 'attack', 'cast', 'hurt', 'victory'];
+const ENEMY_STATES = ['idle', 'attack', 'hurt', 'death'];
+
+export function preloadBattleSprites() {
+  const names = [];
+  for (const id of Object.keys(HERO_TEMPLATES))
+    for (const s of HERO_STATES) names.push(`${id}_battle_${s}`);
+  for (const id of Object.keys(ENEMY_TEMPLATES))
+    for (const s of ENEMY_STATES) names.push(`${id}_${s}`);
+  preloadSprites(names);
 }
 
 // --- battle state ---

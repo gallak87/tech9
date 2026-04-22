@@ -129,12 +129,12 @@ export const MAPS = {
     encounters: [
       { id: 'e5',  x: 14, y: 14, enemy: 'neon_cultist' },
       { id: 'e6',  x: 30, y: 22, enemy: 'sandworm_hatchling' },
-      { id: 'e28', x: 42, y: 30, enemy: 'glacier_wolf' },
-      { id: 'e29', x: 50, y: 14, enemy: 'frost_revenant' },
+      { id: 'e28', x: 42, y: 26, enemy: 'glacier_wolf' },
+      { id: 'e29', x: 40, y: 14, enemy: 'frost_revenant' },
     ],
     doorways: [
       { x: 1,  y: 20, to: { mapId: 'emberline_region',   x: 44, y: 15 } },
-      { x: 58, y: 14, to: { mapId: 'last_crown_region',  x: 1,  y: 14 } },
+      { x: 44, y: 14, to: { mapId: 'last_crown_region',  x: 1,  y: 14 } },
       { x: 10, y: 2,  to: { mapId: 'frost_canyon_region', x: 30, y: 28 } },
     ],
     worldDrop: { x: 42, y: 8, itemId: 'ember_core' },
@@ -155,15 +155,15 @@ export const MAPS = {
     },
     encounters: [
       { id: 'e7',  x: 20, y: 18, enemy: 'wraith_core' },
-      { id: 'e8',  x: 45, y: 25, enemy: 'architect_herald' },
+      { id: 'e8',  x: 42, y: 25, enemy: 'architect_herald' },
       { id: 'e32', x: 10, y: 28, enemy: 'mire_warden' },
       { id: 'e33', x: 40, y: 14, enemy: 'gravbot' },
-      { id: 'e34', x: 52, y: 30, enemy: 'neon_cultist' },
+      { id: 'e34', x: 40, y: 26, enemy: 'neon_cultist' },
     ],
     doorways: [
-      { x: 1, y: 14, to: { mapId: 'orbital_reach_region', x: 58, y: 14 } },
+      { x: 1, y: 14, to: { mapId: 'orbital_reach_region', x: 44, y: 14 } },
     ],
-    worldDrop: { x: 50, y: 34, itemId: 'void_scepter' },
+    worldDrop: { x: 38, y: 26, itemId: 'void_scepter' },
   },
   forest_veil_region: {
     id: 'forest_veil_region',
@@ -174,13 +174,13 @@ export const MAPS = {
     city: null,
     encounters: [
       { id: 'e9',  x: 18, y: 22, enemy: 'mutant_hound' },
-      { id: 'e10', x: 42, y: 30, enemy: 'mire_hulk' },
+      { id: 'e10', x: 38, y: 26, enemy: 'mire_hulk' },
       { id: 'e24', x: 30, y: 15, enemy: 'bog_stalker' },
-      { id: 'e25', x: 52, y: 20, enemy: 'slag_rat' },
+      { id: 'e25', x: 40, y: 18, enemy: 'slag_rat' },
     ],
     doorways: [
       { x: 30, y: 1,  to: { mapId: 'emberline_region', x: 22, y: 29 } },
-      { x: 58, y: 22, to: { mapId: 'mire_bog_region',  x: 1,  y: 22 } },
+      { x: 44, y: 22, to: { mapId: 'mire_bog_region',  x: 1,  y: 22 } },
     ],
     worldDrop: { x: 10, y: 10, itemId: 'moss_ward' },
   },
@@ -196,12 +196,12 @@ export const MAPS = {
       { id: 'e12', x: 32, y: 24, enemy: 'mire_hulk' },
       { id: 'e13', x: 44, y: 12, enemy: 'mire_warden' },
       { id: 'e26', x: 10, y: 28, enemy: 'slag_rat' },
-      { id: 'e27', x: 52, y: 22, enemy: 'mutant_hound' },
+      { id: 'e27', x: 38, y: 20, enemy: 'mutant_hound' },
     ],
     doorways: [
-      { x: 1, y: 22, to: { mapId: 'forest_veil_region', x: 58, y: 22 } },
+      { x: 1, y: 22, to: { mapId: 'forest_veil_region', x: 44, y: 22 } },
     ],
-    worldDrop: { x: 48, y: 30, itemId: 'slag_tooth' },
+    worldDrop: { x: 36, y: 27, itemId: 'slag_tooth' },
   },
   crater_ember_region: {
     id: 'crater_ember_region',
@@ -213,7 +213,7 @@ export const MAPS = {
     encounters: [
       { id: 'e14', x: 22, y: 16, enemy: 'ember_golem' },
       { id: 'e15', x: 36, y: 26, enemy: 'magma_behemoth' },
-      { id: 'e16', x: 48, y: 12, enemy: 'ember_lord' },
+      { id: 'e16', x: 40, y: 12, enemy: 'ember_lord' },
       { id: 'e35', x: 14, y: 22, enemy: 'gravbot' },
       { id: 'e36', x: 34, y: 10, enemy: 'neon_cultist' },
     ],
@@ -232,14 +232,14 @@ export const MAPS = {
     encounters: [
       { id: 'e17', x: 18, y: 20, enemy: 'glacier_wolf' },
       { id: 'e18', x: 32, y: 14, enemy: 'frost_revenant' },
-      { id: 'e19', x: 46, y: 24, enemy: 'frost_colossus' },
+      { id: 'e19', x: 40, y: 22, enemy: 'frost_colossus' },
       { id: 'e30', x: 8,  y: 28, enemy: 'neon_cultist' },
-      { id: 'e31', x: 52, y: 34, enemy: 'sandworm_hatchling' },
+      { id: 'e31', x: 38, y: 26, enemy: 'sandworm_hatchling' },
     ],
     doorways: [
       { x: 30, y: 28, to: { mapId: 'orbital_reach_region', x: 10, y: 2 } },
     ],
-    worldDrop: { x: 8, y: 30, itemId: 'frost_plate' },
+    worldDrop: { x: 8, y: 27, itemId: 'frost_plate' },
   },
   haventide_interior: {
     id: 'haventide_interior',

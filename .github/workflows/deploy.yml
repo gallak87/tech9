@@ -50,12 +50,12 @@ jobs:
 
       - name: Build site
         run: |
-          mkdir -p _site/snake _site/skyrift _site/void-sentinel _site/chronoforge
-          cp -r games/gravelrun/src/. _site/
+          mkdir -p _site/gravelrun _site/snake _site/skyrift _site/void-sentinel
+          cp -r games/chronoforge/dist/. _site/
+          cp -r games/gravelrun/src/. _site/gravelrun/
           cp -r games/snake/src/. _site/snake/
           cp -r games/skyrift/src/. _site/skyrift/
           cp -r games/void-sentinel/src/. _site/void-sentinel/
-          cp -r games/chronoforge/dist/. _site/chronoforge/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

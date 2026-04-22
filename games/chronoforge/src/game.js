@@ -404,7 +404,7 @@ function tick(ticker) {
 
   if (!menuState.open) {
     if (game.state === STATES.OVERWORLD) updateOverworld(game, dt);
-    else if (game.state === STATES.BATTLE) updateBattle(game, dt * (game.battleSpeed || 1));
+    else if (game.state === STATES.BATTLE) updateBattle(game, dt);
     else if (game.state === STATES.TRAVEL) updateTravel(game, dt);
     else if (game.state === STATES.CITY) updateCity(game, dt);
     if (game.state === STATES.OVERWORLD || game.state === STATES.BASE || game.state === STATES.CITY) maybeTick(game, t);

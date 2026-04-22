@@ -198,13 +198,14 @@ export function updateBattle(game, dt) {
   // while a hero has a menu open → pause ATB
   if (b.menu !== null) return;
 
-  // tick gauges
+  // tick gauges — battleSpeed only affects regen, not animations
+  const regenDt = dt * (game.battleSpeed || 1);
   for (const h of b.heroes) if (h.hp > 0 && h.atb < 100) {
-    h.atb = Math.min(100, h.atb + h.spd / 80 * (dt / 16.67));
+    h.atb = Math.min(100, h.atb + h.spd / 59 * (regenDt / 16.67));
     if (h.atb >= 100 && !h._readyBeep) { playSfx('bt_atb_fill'); h._readyBeep = true; }
   }
   for (const e of b.enemies) if (e.hp > 0 && e.atb < 100) {
-    e.atb = Math.min(100, e.atb + e.spd / 100 * (dt / 16.67));
+    e.atb = Math.min(100, e.atb + e.spd / 74 * (regenDt / 16.67));
   }
 
   // first ready hero → open menu
@@ -307,7 +308,7 @@ function executeAction(game, hero, m) {
   if (m.action === 'attack') {
     const tgt = b.enemies[m.targetIdx];
     triggerLunge(b, hero, tgt, 440);
-    scheduleAction(b, 275, () => {
+    scheduleAction(b, 385, () => {
       basicAttack(game, hero, tgt);
       checkBattleEnd(game);
     });
@@ -324,7 +325,7 @@ function executeAction(game, hero, m) {
       const alive = b.enemies.filter(e => e.hp > 0);
       const focus = alive[0] || b.enemies[0];
       triggerLunge(b, hero, focus, 400);
-      scheduleAction(b, 325, () => {
+      scheduleAction(b, 455, () => {
         alive.forEach(tgt => techHit(game, hero, tgt, tech));
         flashPortrait(b, hero.name, tech.name);
         checkBattleEnd(game);
@@ -332,7 +333,7 @@ function executeAction(game, hero, m) {
     } else {
       const tgt = b.enemies[m.targetIdx];
       triggerLunge(b, hero, tgt, 440);
-      scheduleAction(b, 325, () => {
+      scheduleAction(b, 455, () => {
         techHit(game, hero, tgt, tech);
         flashPortrait(b, hero.name, tech.name);
         checkBattleEnd(game);
@@ -352,7 +353,7 @@ function triggerLunge(b, attacker, target, peakDist = 64) {
   const dx = tx - ax, dy = ty - ay;
   const len = Math.hypot(dx, dy) || 1;
   attacker.lunge = {
-    life: 480, maxLife: 480,
+    life: 675, maxLife: 675,
     dx: dx / len * peakDist, dy: dy / len * peakDist,
   };
 }
@@ -363,7 +364,7 @@ function triggerHitReact(b, attacker, target, dist = 18) {
   const dx = tx - ax, dy = ty - ay;
   const len = Math.hypot(dx, dy) || 1;
   target.lunge = {
-    life: 280, maxLife: 280,
+    life: 390, maxLife: 390,
     dx: dx / len * dist, dy: dy / len * dist,
   };
 }
@@ -389,8 +390,8 @@ function basicAttack(game, atk, tgt) {
   const raw = atk.str * 1.5 - tgt.def * 0.8;
   let dmg = Math.max(1, Math.round(raw * baseRand));
   const isCrit = Math.random() < (0.05 + (atk.crit || 0) / 100);
-  setSpriteState(atk, 'attack', 425);
-  setSpriteState(tgt, 'hurt', 350);
+  setSpriteState(atk, 'attack', 595);
+  setSpriteState(tgt, 'hurt', 490);
   if (isCrit) {
     dmg = Math.round(dmg * 1.8);
     b.timeFreeze = 325;
@@ -416,8 +417,8 @@ function techHit(game, atk, tgt, tech) {
   const statVal = atk[tech.stat];
   let dmg = Math.max(1, Math.round(tech.power * statVal + statVal * 0.5 - tgt.def * 0.5));
   const isCrit = Math.random() < 0.1 + (atk.crit || 0) / 100;
-  setSpriteState(atk, 'cast', 500);
-  setSpriteState(tgt, 'hurt', 350);
+  setSpriteState(atk, 'cast', 700);
+  setSpriteState(tgt, 'hurt', 490);
   if (isCrit) {
     dmg = Math.round(dmg * 1.8);
     b.timeFreeze = 325;
@@ -440,9 +441,9 @@ function enemyTurn(game, enemy) {
   const tgt = b.heroes[aliveIdx[Math.floor(Math.random() * aliveIdx.length)]];
   triggerLunge(b, enemy, tgt, 440);
   enemy.atb = 0;
-  scheduleAction(b, 275, () => {
-    setSpriteState(enemy, 'attack', 425);
-    setSpriteState(tgt, 'hurt', 350);
+  scheduleAction(b, 385, () => {
+    setSpriteState(enemy, 'attack', 595);
+    setSpriteState(tgt, 'hurt', 490);
     const raw = enemy.str * 1.5 - tgt.def * 0.8;
     let dmg = Math.max(1, Math.round(raw * (0.9 + Math.random() * 0.2)));
     if (tgt.shield > 0) {

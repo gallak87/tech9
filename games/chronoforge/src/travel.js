@@ -5,6 +5,7 @@
 
 import { playSfx } from './audio.js';
 import { getMap } from './world.js';
+import { revealAround } from './scenes.js';
 
 const DURATION_MS = 800;
 const MID_MS = 400;
@@ -38,6 +39,7 @@ export function updateTravel(game, dt) {
     // camera snaps to new map next frame
     game.cameraX = undefined;
     game.cameraY = undefined;
+    revealAround(game, tr.to.x, tr.to.y, 4);
     tr.swapped = true;
   }
   if (tr.t >= tr.duration) {

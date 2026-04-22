@@ -22,7 +22,7 @@ import {
   drawMenu,
 } from './menu.js';
 import { initBattle, updateBattle, drawBattle, handleBattleKey, preloadBattleSprites } from './battle.js';
-import { updateCity, drawCityScene, handleCityMouseDown, handleCityKey } from './city.js';
+import { updateCity, drawCityScene, handleCityMouseDown, handleCityKey, enterCity } from './city.js';
 import { initAudio, resumeAudio, playSfx } from './audio.js';
 import { PLAYER_START, MAP_W, MAP_H, MAPS } from './world.js';
 import { initHeroes, initInventory, initQuests, ITEM_DEFS, hasSave, loadGame, saveGame } from './progression.js';
@@ -353,6 +353,10 @@ window.addEventListener('keydown', (e) => {
     if (handleBaseKey(game, k)) { e.preventDefault(); return; }
   } else if (game.state === STATES.OVERWORLD && (game.base?.pickerOpen || game.base?.upgradeOpen)) {
     if (handleBaseKey(game, k)) { e.preventDefault(); return; }
+  } else if (game.state === STATES.OVERWORLD && (k === 'c' || k === 'C') && game.party.currentCity) {
+    enterCity(game, game.party.currentCity);
+    e.preventDefault();
+    return;
   } else if (game.state === STATES.OVERWORLD && (k === 'c' || k === 'C') && game.party.currentEncounter) {
     game.pendingEncounter = game.party.currentEncounter;
     game.setState('battle');

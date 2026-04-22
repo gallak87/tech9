@@ -124,6 +124,7 @@ export function initParty() {
     facing: 'down',
     worldDropsTaken: {},
     currentEncounter: null,
+    currentCity: null,
   };
 }
 
@@ -273,17 +274,17 @@ export function updateOverworld(game, dt) {
     if (game.quests) checkQuestProgress(game, { type: 'city_reached', cityId: city.id });
   }
 
-  // city entry — non-Haventide cities enter walkable interior
-  if (city && city.unlocked && nx >= city.x - 1 && nx <= city.x + 2 && ny >= city.y - 1 && ny <= city.y + 2) {
+  // city entry — show [C] badge on footprint, enter on C key
+  const onCityFootprint = city && city.unlocked &&
+    nx >= city.x - 1 && nx <= city.x + 2 && ny >= city.y - 1 && ny <= city.y + 2;
+  if (onCityFootprint) {
     if (city.id !== 'haventide') {
-      enterCity(game, city);
-      return;
-    }
-    // Haventide: step on exact city tile = Town Center — show badge, C to open
-    if (nx === city.x && ny === city.y) {
+      game.party.currentCity = city;
+    } else if (nx === city.x && ny === city.y) {
       game.party.currentPlot = { slotIdx: 0, x: city.x, y: city.y };
-      return;
     }
+  } else {
+    game.party.currentCity = null;
   }
 
   // Haventide building plots — step anywhere in the building footprint to trigger
@@ -327,7 +328,7 @@ export function updateOverworld(game, dt) {
   }
 }
 
-function revealAround(game, cx, cy, r) {
+export function revealAround(game, cx, cy, r) {
   const exp = currentExplored(game);
   for (let y = cy - r; y <= cy + r; y++) {
     for (let x = cx - r; x <= cx + r; x++) {
@@ -412,6 +413,7 @@ export function drawMapScene(ctx, game, mapId) {
   ctx.fill();
   drawSprite(ctx, 'kaida_overworld', pcx + (TILE - TILE * 1.5) / 2, pcy + TILE - TILE * 1.5, TILE * 1.5, TILE * 1.5);
   drawPlotBadge(ctx, game, camX, camY);
+  drawCityBadge(ctx, game, camX, camY);
   drawEncounterBadge(ctx, game, camX, camY);
 
   // encounters + world drop before fog — hidden until explored
@@ -522,6 +524,29 @@ function drawPlotBadge(ctx, game, camX, camY) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(label, cx, by + bh / 2);
+}
+
+function drawCityBadge(ctx, game, camX, camY) {
+  const city = game.party.currentCity;
+  if (!city) return;
+  const px = Math.round(city.x * TILE - camX);
+  const py = Math.round(city.y * TILE - camY);
+  const cx = px + TILE;
+  const by = py - Math.round(TILE * 1.1);
+  const bw = 104, bh = 22;
+  const bx = cx - bw / 2;
+  ctx.fillStyle = 'rgba(7,6,13,0.92)';
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, bh, 5);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,210,63,0.85)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.fillStyle = '#ffd23f';
+  ctx.font = '700 11px ui-monospace, monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('[C] ENTER CITY', cx, by + bh / 2);
 }
 
 function drawEncounterBadge(ctx, game, camX, camY) {
@@ -669,7 +694,7 @@ function drawOverworldHud(ctx, game) {
   ctx.fillStyle = PALETTE.dim;
   ctx.textAlign = 'center';
   ctx.font = '400 12px ui-monospace, monospace';
-  ctx.fillText('[WASD] move   [Esc/Tab] menu   walk into a city to enter   [C] build/upgrade on a plot', w / 2, h - 14);
+  ctx.fillText('[WASD] move   [Esc/Tab] menu   [C] enter city / build / re-fight', w / 2, h - 14);
 
   // toast
   if (game.toastMsg && game.toastExpire > game.time) {

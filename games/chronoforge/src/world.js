@@ -214,7 +214,7 @@ export const MAPS = {
       { id: 'e14', x: 22, y: 16, enemy: 'ember_golem' },
       { id: 'e15', x: 36, y: 26, enemy: 'magma_behemoth' },
       { id: 'e16', x: 48, y: 12, enemy: 'ember_lord' },
-      { id: 'e35', x: 10, y: 26, enemy: 'gravbot' },
+      { id: 'e35', x: 14, y: 22, enemy: 'gravbot' },
       { id: 'e36', x: 34, y: 10, enemy: 'neon_cultist' },
     ],
     doorways: [

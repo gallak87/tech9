@@ -1,0 +1,15 @@
+{
+  "model": "x/flux2-klein:latest",
+  "host": "http://localhost:11434",
+  "note": "Minimum sprite sizes: battle sprites ≥ 96px, portraits ≥ 144px, tiles = 64px, icons ≥ 40px. Below these sizes flux detail is lost on downscale.",
+  "sprites": [
+    {
+      "_note": "Add sprites here after art agent defines visual style and dimensions",
+      "name": "example",
+      "w": 64,
+      "h": 64,
+      "prompt": "pixel art game sprite, pure black background (#000000), detailed shading with rim light, crisp readable silhouette centered in frame, no text, no watermark, no border frame, retro, crisp limited palette",
+      "out": "src/assets/example.png"
+    }
+  ]
+}

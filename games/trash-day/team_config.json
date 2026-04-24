@@ -1,0 +1,123 @@
+{
+  "game_name": "Trash Day",
+  "concept_summary": "Trash Day is an endless 3D driving game built in Three.js where the player steers a chunky low-poly garbage truck down a procedurally scrolling suburban street. Houses and trash cans appear at the curb as the road winds ahead. The player pulls up to each can and presses a button to trigger a truck-arm pickup animation, tipping the trash into the hopper with a colorful particle burst. The street never ends — it just gets twistier as cans pile up. There is no fail state and no timer; the sole goal is to collect as many cans as possible, with a running score displayed on screen. The game is designed for young children: easy to pick up, intrinsically rewarding, and impossible to lose.",
+  "rendering_tier": "threejs",
+  "scope_constraints": [
+    "IN: Endless procedurally scrolling street with low-poly houses and trash cans at the curb.",
+    "IN: Tank-style keyboard controls — A/D to turn, W/S to drive.",
+    "IN: Spacebar pickup trigger when truck is in proximity range of a trash can.",
+    "IN: Truck arm pivot animation on every successful pickup.",
+    "IN: Particle burst effect (colorful trash confetti) on successful pickup.",
+    "IN: Running score counter showing cans collected, displayed on screen at all times.",
+    "OUT: No fail state — the player cannot lose or get a game over.",
+    "OUT: No timer or time pressure of any kind.",
+    "OUT: No audio — sound is out of scope for v1.",
+    "OUT: No mobile or touch controls in v1.",
+    "OUT: No high score persistence — score resets on page reload.",
+    "OUT: No level select, checkpoints, or distinct level structure."
+  ],
+  "team": [
+    {
+      "role_id": "gamedesign",
+      "active": true,
+      "notes": "Owns mechanics spec: proximity pickup radius, scoring increment, road generation algorithm, difficulty curve (bend frequency, can density over time), entity behaviors (truck physics feel, arm animation timing)."
+    },
+    {
+      "role_id": "art",
+      "active": true,
+      "notes": "Merged with asset. Defines visual language and produces Three.js geometry/material code for all entities — truck, houses, trash cans, road, particle confetti. No sprite files; all art is code-based geometry. Owns color palette and low-poly toy aesthetic."
+    },
+    {
+      "role_id": "asset",
+      "active": false,
+      "merged_into": "art",
+      "notes": "No sprite or image assets in a Three.js game. Art agent owns both direction and geometry code production."
+    },
+    {
+      "role_id": "level",
+      "active": false,
+      "notes": "Skipped. Scope constraint explicitly states no level structure, no checkpoints, no level select. Road generation is procedural — owned by gamedesign and dev."
+    },
+    {
+      "role_id": "audio",
+      "active": false,
+      "notes": "Skipped. Scope constraint explicitly states audio is out of scope for v1."
+    },
+    {
+      "role_id": "dev",
+      "active": true,
+      "notes": "Builds all game code: Three.js scene setup, truck geometry and tank controls, procedural road scrolling, house and can spawning, proximity detection, arm pivot animation, particle burst system, score HUD. Owns index.html and game.js."
+    },
+    {
+      "role_id": "qa",
+      "active": true,
+      "notes": "Gates each phase. Must confirm: Three.js renders on localhost, truck drives correctly, road scrolls, cans spawn and are collectable, pickup animation fires, score increments, no crash states."
+    },
+    {
+      "role_id": "devops",
+      "active": true,
+      "notes": "Merged with release and postlaunch. Owns localhost dev server (Phase 0), static deploy target, and post-launch monitoring. Simple static site — no build step needed beyond serving index.html."
+    },
+    {
+      "role_id": "release",
+      "active": false,
+      "merged_into": "devops",
+      "notes": "No store page, no marketing copy, no itch.io listing. Release is just a deploy — absorbed into devops."
+    },
+    {
+      "role_id": "postlaunch",
+      "active": false,
+      "merged_into": "devops",
+      "notes": "Simple personal project for a kid — no player support or incident response needed. Devops monitors for broken deploy."
+    },
+    {
+      "role_id": "historian",
+      "active": true,
+      "notes": "Runs after final phase. Captures Three.js-specific lessons (geometry composition patterns, procedural scrolling approach, particle system approach) into LESSONS.md."
+    }
+  ],
+  "phases": [
+    {
+      "name": "Phase 0 — Engine Skeleton",
+      "description": "Three.js scene initialized with a perspective camera, directional light, and a flat road plane. Truck represented as a placeholder box. DevOps confirms the game loads and renders on localhost with no errors.",
+      "agents": ["dev", "devops"],
+      "parallel": false,
+      "qa_gate": "localhost:3000 loads, Three.js renders without console errors, placeholder truck box visible on road plane."
+    },
+    {
+      "name": "Phase 1 — Design + Visual Language",
+      "description": "Gamedesign produces the full mechanics spec (proximity radius, scoring, road gen algorithm, difficulty ramp). Art defines the color palette and writes Three.js geometry/material code for all entities: truck (cab + hopper + arm), houses, trash cans, road segments, particle confetti. Both agents run in parallel with no dependencies on each other.",
+      "agents": ["gamedesign", "art"],
+      "parallel": true,
+      "qa_gate": "Mechanics spec reviewed and approved. Art geometry code reviewed — all entities look correct in isolation before dev integrates them."
+    },
+    {
+      "name": "Phase 2 — World + Driving",
+      "description": "Dev integrates art geometry, implements tank-style controls (WASD), procedural road segment scrolling, house and trash can spawning at the curb, and camera following the truck. Road bends increase in frequency over time per the gamedesign spec.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "Truck drives with correct tank controls, road scrolls continuously, houses and cans appear at the curb, camera follows truck correctly."
+    },
+    {
+      "name": "Phase 3 — Pickup Mechanic + Score HUD",
+      "description": "Dev implements proximity detection (per gamedesign spec radius), Spacebar pickup trigger, truck arm pivot animation, colorful particle burst on pickup, and the score counter HUD. Full core loop is now playable.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "Full loop playable end-to-end: drive to can, press Space, arm animates, particles fire, score increments. All scope constraints verified. No crash states."
+    },
+    {
+      "name": "Phase 4 — Ship + Post-Mortem",
+      "description": "DevOps deploys the static game to its final host. Historian runs a post-mortem pass: reads all agent outputs and git history, writes LESSONS.md for Trash Day, flags any Three.js lessons ready to graduate into the framework.",
+      "agents": ["devops", "historian"],
+      "parallel": true,
+      "qa_gate": "Game accessible at deployed URL. LESSONS.md written and cross-game meta/LESSONS.md updated."
+    }
+  ],
+  "deferred_decisions": [
+    { "decision": "Exact procedural generation algorithm for road bends and house/can placement spacing", "deferred_to": "gamedesign" },
+    { "decision": "Truck arm animation implementation — simple object pivot vs. articulated segments", "deferred_to": "dev" },
+    { "decision": "Color palette and geometry detail level for low-poly art style", "deferred_to": "art" },
+    { "decision": "Proximity pickup radius in world units", "deferred_to": "gamedesign" },
+    { "decision": "Difficulty ramp curve — how quickly bend frequency and can density increase", "deferred_to": "gamedesign" }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "game_summary": "Trash Day is an endless 3D driving game built in Three.js where the player steers a chunky low-poly garbage truck down a procedurally scrolling suburban street. Houses and trash cans appear at the curb as the road winds ahead. The player pulls up to each can and presses a button to trigger a truck-arm pickup animation, tipping the trash into the hopper with a colorful particle burst. The street never ends — it just gets twistier as cans pile up. There is no fail state and no timer; the sole goal is to collect as many cans as possible, with a running score displayed on screen. The game is designed for young children: easy to pick up, intrinsically rewarding, and impossible to lose.",
+  "core_loop": "The player drives with tank-style controls: A/D to turn, W/S to move forward and backward. The street procedurally scrolls ahead, generating chunky low-poly houses with trash cans sitting at the curb. When the truck enters pickup range of a can, a visual prompt appears. The player presses Space to trigger the pickup: the truck arm swings out, the can lifts and tips into the hopper, and a particle burst of colorful trash confetti fires out. The score increments by 1 and the can disappears. The road continues ahead, bending left and right with increasing frequency over time. Can density slowly increases as score grows. There is no death, no timer, and no fail state — the game runs until the player stops. Score is displayed prominently on screen. No high score persistence in v1.",
+  "target_feel": "Cheerful, chunky, and satisfying. The truck feels heavy and deliberate — slow turns, no twitchiness. Every pickup is a micro-celebration: arm swings, trash flies, number ticks up. Tone is bright and toy-like, aimed at ages 3-6. Think Hot Wheels meets garbage day. Success feels like settling into a rhythm — drive, stop, collect, drive. The world should look like a happy plastic toy set: bold colors, rounded low-poly geometry, no sharp or threatening elements.",
+  "scope_constraints": [
+    "IN: Endless procedurally scrolling street with low-poly houses and trash cans at the curb.",
+    "IN: Tank-style keyboard controls — A/D to turn, W/S to drive.",
+    "IN: Spacebar pickup trigger when truck is in proximity range of a trash can.",
+    "IN: Truck arm pivot animation on every successful pickup.",
+    "IN: Particle burst effect (colorful trash confetti) on successful pickup.",
+    "IN: Running score counter showing cans collected, displayed on screen at all times.",
+    "OUT: No fail state — the player cannot lose or get a game over.",
+    "OUT: No timer or time pressure of any kind.",
+    "OUT: No audio — sound is out of scope for v1.",
+    "OUT: No mobile or touch controls in v1.",
+    "OUT: No high score persistence — score resets on page reload.",
+    "OUT: No level select, checkpoints, or distinct level structure."
+  ],
+  "known_unknowns": [
+    { "decision": "Exact procedural generation algorithm for road bends and house/can placement spacing", "deferred_to": "dev" },
+    { "decision": "Truck arm animation implementation — simple object pivot vs. articulated segments", "deferred_to": "dev" },
+    { "decision": "Color palette and geometry detail level for low-poly art style", "deferred_to": "art" }
+  ]
+}

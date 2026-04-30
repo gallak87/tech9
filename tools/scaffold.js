@@ -228,12 +228,25 @@ function renderAgentStub(role, entry, cfg) {
     ? `\n## Capability Docs\n${capDocs.map(d => `- \`${d}\``).join('\n')}\n`
     : '';
 
-  // Dev-specific contract injections
-  const devContracts = role.id === 'dev' ? `
-## Rendering Tier
-This game uses **${cfg.rendering_tier || 'pixi'}**. See the scaffolded \`src/index.html\` for the boot pattern.
-${cfg.rendering_tier === 'canvas2d' ? '' : '- Pixi is available as `window.__PIXI__` — do not re-import it.\n- Use `PIXI.Application`, `PIXI.Sprite`, `PIXI.Spritesheet` as the rendering primitives.\n- Batch sprite draws via `PIXI.Container` — never draw sprites one-by-one outside a container.'}
-
+  // Dev-specific contract injections — reads stack template from vocab/templates/stacks/
+  let devContracts = '';
+  if (role.id === 'dev') {
+    const tier = cfg.rendering_tier || 'pixi';
+    const stackTemplateMap = {
+      'canvas2d': 'stack-canvas2d.md',
+      'pixi':     'stack-pixi.md',
+      'threejs':  'stack-threejs.md',
+    };
+    const stackFile = stackTemplateMap[tier];
+    let stackSection = '';
+    if (stackFile) {
+      const stackPath = path.join(ROOT, 'vocab/templates/stacks', stackFile);
+      if (fs.existsSync(stackPath)) {
+        stackSection = fs.readFileSync(stackPath, 'utf8')
+          .replace(/\{\{game_name\}\}/g, cfg.game_name);
+      }
+    }
+    const pixiContracts = tier === 'pixi' ? `
 ## Sprite compositing contract
 Flux generates sprites on solid black backgrounds. Non-tile sprites must use \`screen\` blend
 to drop the black without masking:
@@ -249,11 +262,9 @@ function drawSprite(container, name, x, y, w, h) {
 }
 \`\`\`
 Always set \`PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST\` at boot for pixel art.
-
-## Dev tools
-Mount domain-scoped dev tools when the art agent requests one. Follow \`tools/dev-tool-contract.md\`.
-Check \`window.__DEV_TOOLS__\` before mounting. Strip before ship.
 ` : '';
+    devContracts = `\n${stackSection}${pixiContracts}\n## Dev tools\nMount domain-scoped dev tools when the art agent requests one. Follow \`tools/dev-tool-contract.md\`.\nCheck \`window.__DEV_TOOLS__\` before mounting. Strip before ship.\n`;
+  }
 
 
   return fillTemplate(role.prompt_template, {
@@ -280,7 +291,12 @@ function renderSrcSkeleton(cfg) {
   const canvas2dBootstrap = `
   <script type="module" src="game.js"></script>`;
 
-  const bootstrap = tier === 'canvas2d' ? canvas2dBootstrap : pixiBootstrap;
+  const threejsBootstrap = `
+  <script type="module" src="main.js"></script>`;
+
+  const bootstrap = tier === 'canvas2d' ? canvas2dBootstrap
+                  : tier === 'threejs'  ? threejsBootstrap
+                  : pixiBootstrap;
   const canvasEl  = tier === 'canvas2d' ? '\n  <canvas id="canvas"></canvas>' : '';
 
   return `<!DOCTYPE html>

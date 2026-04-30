@@ -2,7 +2,7 @@
   "id": "dev",
   "name": "Dev",
   "category": "engineering",
-  "responsibility": "Builds and owns all game code — engine, physics, collision, state machine, rendering, HUD, input handling. The authoritative source for what the engine can and cannot do. Defines the data formats that level and asset must conform to. All games use Vite + npm. The renderer (canvas2d, pixi2d, or threejs3d) is determined by the rendering_tier field in CONCEPT.md — canvas2d is the default.",
+  "responsibility": "Builds and owns all game code — engine, physics, collision, state machine, rendering, HUD, input handling. The authoritative source for what the engine can and cannot do. Defines the data formats that level and asset must conform to. All games use Vite + npm. The renderer (canvas2d, pixi, or threejs) is determined by the rendering_tier field in CONCEPT.md — canvas2d is the default.",
   "inputs": [
     { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Core loop, controls, scope constraints, rendering_tier" },
     { "source": "game_plan", "artifact": "GAME_PLAN.md", "required": true, "notes": "Phase order, what's decided vs deferred" },
@@ -23,15 +23,15 @@
       "dev_server": "npx vite",
       "template": "vocab/templates/stacks/stack-canvas2d.md"
     },
-    "pixi2d": {
+    "pixi": {
       "deps": ["vite", "pixi.js"],
       "dev_server": "npx vite",
-      "template": "vocab/templates/stacks/stack-pixi2d.md"
+      "template": "vocab/templates/stacks/stack-pixi.md"
     },
-    "threejs3d": {
+    "threejs": {
       "deps": ["vite", "three"],
       "dev_server": "npx vite",
-      "template": "vocab/templates/stacks/stack-threejs3d.md"
+      "template": "vocab/templates/stacks/stack-threejs.md"
     }
   },
   "dependencies": ["gamedesign"],

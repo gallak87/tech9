@@ -1,0 +1,113 @@
+{
+  "game_name": "Orb Vacuum",
+  "concept_summary": "Orb Vacuum is a survival arcade game set inside a dark, bounded 3D arena. The player controls a glowing orb using WASD, floating freely in the space. Smaller orbs drift around the arena — flying into them absorbs them, making the player grow. Larger orbs will shrink the player on contact. The arena continuously spawns new orbs, gradually tightening the size differential so smaller windows of safety open up over time. There is no fail state and no win condition — the game runs forever, and the only goal is to maximize the running count of orbs absorbed.",
+  "rendering_tier": "threejs",
+  "scope_constraints": [
+    "IN: WASD movement in the horizontal plane, camera orbits with mouse drag or Q/E keys.",
+    "IN: Size-based absorption — player absorbs any orb smaller than themselves on contact.",
+    "IN: Size penalty on contact with a larger orb — player shrinks, never dies.",
+    "IN: Running score counter (orbs absorbed) displayed on-screen at all times.",
+    "IN: Procedural orb spawning at arena boundary, increasing in rate and difficulty over time.",
+    "IN: Bloom-style glowing appearance for all orbs — neon colors on dark background.",
+    "IN: Brief visual feedback on absorb (scale pulse) and on hit (screen flash).",
+    "OUT: No audio — sound effects and music are out of scope for v1.",
+    "OUT: No high score persistence — score resets on page reload.",
+    "OUT: No mobile or touch controls in v1.",
+    "OUT: No powerups, special orbs, or abilities beyond grow/shrink.",
+    "OUT: No vertical movement — the player moves only in the horizontal plane."
+  ],
+  "team": [
+    {
+      "role_id": "gamedesign",
+      "active": true,
+      "notes": "Owns the numbers doc: size comparison threshold, growth/shrink deltas per absorb/hit, spawn rate curve, difficulty escalation schedule every 30s, starting player radius."
+    },
+    {
+      "role_id": "art",
+      "active": true,
+      "notes": "Owns the visual spec: neon color palette for orb tiers, bloom/glow approach recommendation for dev, player vs enemy visual distinction, HUD typography and layout."
+    },
+    {
+      "role_id": "asset",
+      "active": false,
+      "merged_into": "art",
+      "notes": "No discrete asset files — all geometry is procedural Three.js SphereGeometry. Art agent covers the full visual spec."
+    },
+    {
+      "role_id": "level",
+      "active": false,
+      "notes": "No levels. The arena is a fixed bounded space with procedural orb spawning. Level design has no scope here."
+    },
+    {
+      "role_id": "audio",
+      "active": false,
+      "notes": "Explicit scope constraint: OUT — no audio in v1."
+    },
+    {
+      "role_id": "dev",
+      "active": true,
+      "notes": "Owns all code: Three.js scene, arena boundaries, player orb, WASD + camera controls, size comparison logic, absorb/shrink mechanics, orb spawning system, difficulty escalation, score HUD, bloom materials, pulse/flash feedback."
+    },
+    {
+      "role_id": "qa",
+      "active": true,
+      "notes": "Playtest sign-off required after Phase 2. Verifies all scope constraints, absorb/shrink feel, difficulty curve, visual feedback, and no regressions."
+    },
+    {
+      "role_id": "devops",
+      "active": true,
+      "notes": "Phase 0: npm install + npx vite running on localhost:5173. Phase 3: build + deploy (GitHub Pages or itch.io)."
+    },
+    {
+      "role_id": "release",
+      "active": false,
+      "merged_into": "devops",
+      "notes": "Simple static deploy — no store page, no changelog, no launch checklist beyond tagging and pushing. DevOps handles it."
+    },
+    {
+      "role_id": "postlaunch",
+      "active": false,
+      "notes": "Nothing shipped yet. Activate after v1 is live if needed."
+    },
+    {
+      "role_id": "historian",
+      "active": true,
+      "notes": "Runs post-hoc after ship. Documents what was built, what decisions were made, and what changed from concept to shipped game."
+    }
+  ],
+  "phases": [
+    {
+      "name": "Phase 0 — Engine Skeleton",
+      "description": "Three.js scene with dark background, arena boundary box (wireframe or subtle walls), player orb as a placeholder sphere, WASD horizontal movement, camera orbit via mouse drag. DevOps confirms npm install + npx vite loads clean on localhost:5173.",
+      "agents": ["dev", "devops"],
+      "parallel": false,
+      "qa_gate": "Game loads on localhost:5173 with no console errors. Player orb is visible and moves with WASD. Camera orbits. Arena boundary is visible."
+    },
+    {
+      "name": "Phase 1 — Design & Art Spec",
+      "description": "gamedesign writes the mechanics doc: starting radius, size comparison threshold, growth/shrink deltas, spawn rate curve, difficulty escalation schedule. art writes the visual spec: neon color palette, bloom recipe for dev, player vs NPC orb visual distinction, HUD layout. These two agents have no dependencies on each other.",
+      "agents": ["gamedesign", "art"],
+      "parallel": true
+    },
+    {
+      "name": "Phase 2 — Full Implementation",
+      "description": "dev implements everything from Phase 1 outputs: orb spawning system at arena boundary, inward drift, size comparison and collision, absorb logic (grow + score + pulse), shrink logic (size penalty + screen flash), difficulty escalation every 30s, bloom/glow materials per art spec, neon color palette, score HUD.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "Full playable build: absorb and shrink both work correctly, score increments, orbs spawn and escalate over time, bloom visible on all orbs, pulse and flash feedback present, all scope constraints met."
+    },
+    {
+      "name": "Phase 3 — QA & Deploy",
+      "description": "qa runs a full playtest against every scope constraint and files any bugs. devops runs the Vite build and deploys to the chosen target (GitHub Pages or itch.io).",
+      "agents": ["qa", "devops"],
+      "parallel": true,
+      "qa_gate": "QA sign-off on all scope constraints. Deployed URL is live and loads clean."
+    }
+  ],
+  "deferred_decisions": [
+    { "decision": "Exact movement speed, drag, and orb drift velocity — needs playtesting to feel right.", "deferred_to": "dev" },
+    { "decision": "Bloom implementation approach — post-processing pass vs additive material trick.", "deferred_to": "dev" },
+    { "decision": "Arena size and boundary behavior — hard wall vs soft repulsion field.", "deferred_to": "dev" },
+    { "decision": "Deploy target — GitHub Pages vs itch.io.", "deferred_to": "devops" }
+  ]
+}

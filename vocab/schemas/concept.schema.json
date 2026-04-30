@@ -9,9 +9,9 @@
   "properties": {
     "rendering_tier": {
       "type": "string",
-      "enum": ["canvas2d", "pixi2d", "threejs3d"],
+      "enum": ["canvas2d", "pixi", "threejs"],
       "default": "canvas2d",
-      "description": "Renderer the game uses. Director passes this to dev and devops so they inject the right stack template. canvas2d = vanilla JS + Vite, no renderer dep. pixi2d = Pixi.js + Vite. threejs3d = Three.js + Vite. All tiers use Vite — the difference is only the renderer dep and boot pattern."
+      "description": "Renderer the game uses. Director passes this to dev and devops so they inject the right stack template. canvas2d = vanilla JS + Vite, no renderer dep. pixi = Pixi.js + Vite. threejs = Three.js + Vite. All tiers use Vite — the difference is only the renderer dep and boot pattern."
     },
     "game_summary": {
       "type": "string",

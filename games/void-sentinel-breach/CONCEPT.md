@@ -1,0 +1,38 @@
+# Void Sentinel: Breach — Concept
+
+## Game Summary
+Void Sentinel: Breach is a third-person bullet hell shooter that puts a proven vertical-shooter design inside a cinematic Three.js 3D world. The camera locks low behind the player's fighter as the world streams toward them. Enemies and the player are billboard sprites (THREE.Sprite with Ollama-generated textures) living in real 3D space — giving crisp sprite art with cinematic depth, parallax, and camera shake for free. Four enemy types spawn in dense scripted waves: Scouts (1-hit, burst fire), Bombers (3-hit, spread bursts, drops bomb pickup), Drones (2-hit, sprays 3 bullets backward when hit), and Elites (every 3rd wave, gold-pulse variants, 2× HP/score, guaranteed drop). A 7-tier weapon system upgrades via pickups and drops one tier on each hit. Three distinct boss types — Sentinel, Interceptor, Colossus — rotate each cycle, each with unique movement and 3-phase attack patterns with a telegraph charge cone. The player has 3 lives. Defeat all waves and boss to win. Reach 0 lives and it's game over.
+
+## Core Loop
+Arrow keys or WASD move the player sprite left/right/up/down in screen-space bounds. Spacebar or Z cycles weapon tier (1–7). Auto-fire is always on. Destroying enemies scores points (Scout=100, Bomber=250, Drone=150, Elite=2× base) and may drop a weapon pickup (advances tier by 1) or a bomb pickup (from Bombers, clears all on-screen enemies and bullets). Each player hit costs 1 life and drops weapon tier by 1 (floors at 1). At 0 lives: GAME_OVER. After all waves clear, a boss enters with a health bar at top of screen. Boss has 3 attack phases at 66% and 33% HP with charge-cone telegraphs. 3 boss types rotate per cycle: Sentinel (homing focus), Interceptor (fast sweeping), Colossus (screen-filling spread). Boss death triggers WIN with final score.
+
+## Target Feel
+Cinematic bullet hell — the intensity of void-sentinel with the visual depth of a 3D world. Billboard sprites keep the art crisp and Ollama-generatable while living in 3D space with real depth, parallax, and camera shake. The screen is always busy from wave 1. Weapon tier 7 must feel dramatically more powerful than tier 1. Boss phase transitions are unmistakable — camera shake, world color shift, audio sting. Phase 3 of any boss should feel genuinely dangerous. References: void-sentinel (the proven design), Ikaruga, Raiden IV. Every frame should look like a screenshot worth sharing.
+
+## Scope Constraints
+- IN: Third-person behind-the-fighter camera — low angle, locked behind player, world streams forward. Camera shake on hit and boss phase transitions.
+- IN: Arrow keys and WASD move the fighter. Spacebar or Z cycles weapon tier. Auto-fire always on.
+- IN: 7-tier weapon system — T1: single shot, T2: dual shot, T3: 3-way spread, T4: piercing shot, T5: 4-bullet barrage fan, T6: pierce + 3 homing seekers, T7: full spread + piercing + seekers (godtier).
+- IN: 4 enemy types — Scout (1-hit, fast, 2-bullet burst), Bomber (3-hit, slow, spread bursts, drops bomb pickup), Drone (2-hit, sprays 3 bullets backward on death), Elite (every 3rd wave, gold pulse, 2× HP and score, guaranteed pickup drop).
+- IN: 3 distinct boss types rotating per cycle — Sentinel (homing focus), Interceptor (fast sweeping), Colossus (screen-filling spread). Each has 3 attack phases at 66%/33% HP with charge-cone telegraph.
+- IN: Bomb pickup from Bombers — clears all on-screen enemies and bullets instantly.
+- IN: Phase 0 uses placeholder polygon geometry (BoxGeometry, ConeGeometry) for all entities. Art integration phase replaces with THREE.Sprite billboards using Ollama-generated PNG textures.
+- IN: Scrolling 3D world — distant terrain plane, mid-layer cloud banks at multiple scroll speeds, near atmosphere haze. All procedural Three.js geometry.
+- IN: UnrealBloomPass post-processing — bloom on bullet trails, engine glows, explosions, pickups.
+- IN: Web Audio API synthesized SFX — shoot (7 variants per weapon tier), enemy hit, explosion, weapon tier-up fanfare, bomb blast, boss phase transition sting, boss death. No audio files.
+- IN: HUD — score, weapon tier (1–7), lives, bomb count always visible. Boss health bar during boss phase only.
+- IN: Start screen with controls. WIN and GAME_OVER screens with final score.
+- OUT: No touchscreen or gamepad — keyboard only for v1.
+- OUT: No persistent state — no localStorage, no high score board.
+- OUT: No level select — single run from wave 1 to boss.
+- OUT: No multiplayer.
+
+## Known Unknowns
+| Decision | Deferred To |
+|----------|-------------|
+| Full wave script — spawn order, formation types, timing, density curve across all waves. | gamedesign |
+| Boss attack patterns per phase for all 3 boss types — bullet types, counts, speeds, movement paths. | gamedesign |
+| Weapon pickup drop probabilities per enemy type. Bomb drop probability from Bombers. | gamedesign |
+| Visual style — color palette, sprite art direction for player, 4 enemy types, 3 bosses, bullets per tier, pickups, explosions. | art |
+| SFX synthesis specifics — oscillator types, envelope shapes, frequencies per event. | audio |
+| Bullet speeds, enemy movement speeds, scroll rate, player movement bounds, hitbox sizes, bloom parameters. | dev |

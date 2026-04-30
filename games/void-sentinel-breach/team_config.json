@@ -1,0 +1,141 @@
+{
+  "game_name": "Void Sentinel: Breach",
+  "concept_summary": "Void Sentinel: Breach is a third-person bullet hell shooter that puts a proven vertical-shooter design inside a cinematic Three.js 3D world. The camera locks low behind the player's fighter as the world streams toward them. Enemies and the player are billboard sprites (THREE.Sprite with Ollama-generated textures) living in real 3D space — giving crisp sprite art with cinematic depth, parallax, and camera shake for free. Four enemy types spawn in dense scripted waves: Scouts (1-hit, burst fire), Bombers (3-hit, spread bursts, drops bomb pickup), Drones (2-hit, sprays 3 bullets backward when hit), and Elites (every 3rd wave, gold-pulse variants, 2x HP/score, guaranteed drop). A 7-tier weapon system upgrades via pickups and drops one tier on each hit. Three distinct boss types — Sentinel, Interceptor, Colossus — rotate each cycle, each with unique movement and 3-phase attack patterns with a telegraph charge cone. The player has 3 lives. Defeat all waves and boss to win. Reach 0 lives and it's game over.",
+  "rendering_tier": "threejs",
+  "scope_constraints": [
+    "IN: Third-person behind-the-fighter camera — low angle, locked behind player, world streams forward. Camera shake on hit and boss phase transitions.",
+    "IN: Arrow keys and WASD move the fighter. Spacebar or Z cycles weapon tier. Auto-fire always on.",
+    "IN: 7-tier weapon system — T1: single shot, T2: dual shot, T3: 3-way spread, T4: piercing shot, T5: 4-bullet barrage fan, T6: pierce + 3 homing seekers, T7: full spread + piercing + seekers (godtier).",
+    "IN: 4 enemy types — Scout (1-hit, fast, 2-bullet burst), Bomber (3-hit, slow, spread bursts, drops bomb pickup), Drone (2-hit, sprays 3 bullets backward on death), Elite (every 3rd wave, gold pulse, 2x HP and score, guaranteed pickup drop).",
+    "IN: 3 distinct boss types rotating per cycle — Sentinel (homing focus), Interceptor (fast sweeping), Colossus (screen-filling spread). Each has 3 attack phases at 66%/33% HP with charge-cone telegraph.",
+    "IN: Bomb pickup from Bombers — clears all on-screen enemies and bullets instantly.",
+    "IN: Phase 0 uses placeholder polygon geometry (BoxGeometry, ConeGeometry) for all entities. Art integration phase replaces with THREE.Sprite billboards using Ollama-generated PNG textures.",
+    "IN: Scrolling 3D world — distant terrain plane, mid-layer cloud banks at multiple scroll speeds, near atmosphere haze. All procedural Three.js geometry.",
+    "IN: UnrealBloomPass post-processing — bloom on bullet trails, engine glows, explosions, pickups.",
+    "IN: Web Audio API synthesized SFX — shoot (7 variants per weapon tier), enemy hit, explosion, weapon tier-up fanfare, bomb blast, boss phase transition sting, boss death. No audio files.",
+    "IN: HUD — score, weapon tier (1-7), lives, bomb count always visible. Boss health bar during boss phase only.",
+    "IN: Start screen with controls. WIN and GAME_OVER screens with final score.",
+    "OUT: No touchscreen or gamepad — keyboard only for v1.",
+    "OUT: No persistent state — no localStorage, no high score board.",
+    "OUT: No level select — single run from wave 1 to boss.",
+    "OUT: No multiplayer."
+  ],
+  "team": [
+    {
+      "role_id": "gamedesign",
+      "active": true,
+      "notes": "Owns the full wave script (all formations, timing, density curve), all 3 boss types x 3 phases each (attack patterns, bullet types, movement), all 4 enemy behaviors, 7 weapon tier specs, and weapon/bomb drop probabilities. This is the largest gamedesign workload in the pipeline — cannot be merged."
+    },
+    {
+      "role_id": "art",
+      "active": true,
+      "notes": "Merged with asset. Owns visual direction + Ollama sprite generation for all entities: player ship, Scout, Bomber, Drone, Elite, Sentinel boss, Interceptor boss, Colossus boss, 7 bullet tier variants, explosion, weapon pickup, bomb pickup. Billboard sprite dimensions must match what dev expects for THREE.Sprite."
+    },
+    {
+      "role_id": "asset",
+      "active": false,
+      "merged_into": "art",
+      "notes": "Art direction and production in one agent — Ollama pipeline handles both."
+    },
+    {
+      "role_id": "level",
+      "active": false,
+      "merged_into": "gamedesign",
+      "notes": "Wave-based shooter — no spatial level geometry. Enemy spawn scripts and wave sequencing belong entirely to gamedesign."
+    },
+    {
+      "role_id": "audio",
+      "active": true,
+      "notes": "Web Audio API SFX is explicitly in scope. Owns synthesis specs and implementation for: 7 weapon tier shoot sounds, enemy hit, small explosion, large explosion, weapon tier-up fanfare, bomb blast, boss phase transition sting, boss death."
+    },
+    {
+      "role_id": "dev",
+      "active": true,
+      "notes": "Owns all code: Three.js scene, behind-jet camera, scrolling world layers, state machine (MENU/PLAYING/BOSS/WIN/GAME_OVER), player entity, 7-tier weapon system, 4 enemy types + behaviors, wave spawner, 3 boss types + 3-phase system, collision detection, HUD, bloom post-processing, sprite billboard integration, audio event hooks."
+    },
+    {
+      "role_id": "qa",
+      "active": true,
+      "notes": "Gates every dev phase. Critical checkpoints: weapon tier progression and drop correctness, all 4 enemy behaviors, all 3 boss types x 3 phases, audio event firing, full run playthrough on deployed build."
+    },
+    {
+      "role_id": "devops",
+      "active": true,
+      "notes": "Phase 0 localhost confirmation. Final phase: Vite build + deploy to GitHub Pages. Merged with release — no store page or launch checklist needed."
+    },
+    {
+      "role_id": "release",
+      "active": false,
+      "merged_into": "devops",
+      "notes": "Simple GitHub Pages static deploy. No store page, no changelog ceremony. DevOps handles it."
+    },
+    {
+      "role_id": "postlaunch",
+      "active": false,
+      "notes": "Nothing shipped yet. Activate after v1 is live."
+    },
+    {
+      "role_id": "historian",
+      "active": true,
+      "notes": "Runs post-hoc after ship. This is the first Three.js billboard-sprite hybrid in the pipeline — learnings on that pattern are especially valuable to capture."
+    }
+  ],
+  "phases": [
+    {
+      "name": "Phase 0 — Engine Skeleton",
+      "description": "Three.js scene with behind-jet camera at low angle. Scrolling world: terrain plane + 2 cloud layers at different speeds + atmosphere haze, all procedural geometry. Player ship as BoxGeometry placeholder. WASD/arrows move player within screen bounds. Auto-fire shoots BoxGeometry bullet placeholders forward. State machine wired: MENU → PLAYING → BOSS → WIN → GAME_OVER (transitions work, states are stubs). DevOps confirms npm install + npx vite on localhost:5173.",
+      "agents": ["dev", "devops"],
+      "parallel": false,
+      "qa_gate": "Game loads on localhost with no errors. Player moves. Placeholder bullets fire. World scrolls. State machine transitions between all 5 states."
+    },
+    {
+      "name": "Phase 1 — Design + Art Spec",
+      "description": "gamedesign delivers: complete wave script (all formations, timing, density curve), all 3 boss types x 3 attack phases each (bullet patterns, movement paths, charge-cone timing), all 4 enemy behavior rules, 7 weapon tier bullet patterns, drop probabilities. art delivers: visual style decision, full color palette, exact sprite dimensions for every entity (player, 4 enemies, 3 bosses, 7 bullet variants, explosion, 2 pickups) — dimensions must be billboard-ready for THREE.Sprite.",
+      "agents": ["gamedesign", "art"],
+      "parallel": true
+    },
+    {
+      "name": "Phase 2 — Core Combat",
+      "description": "All 7 weapon tiers implemented with placeholder geometry bullets (distinct colors/shapes per tier). All 4 enemy types with movement behaviors and attack patterns (polygon placeholders). Player-bullet vs enemy collision. Enemy-bullet vs player collision. Lives system — hit costs life + drops weapon tier. Bomb mechanic — clears screen. Score accumulation. HUD: score, weapon tier, lives, bomb count. Pickup entities (weapon + bomb) spawn and collect correctly.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "Shoot all 4 enemy types, weapon tiers advance and drop correctly, lives decrement on hit, bomb clears screen, score counts accurately, all pickup types collect correctly."
+    },
+    {
+      "name": "Phase 3 — Wave System + Boss",
+      "description": "Wave spawner reads gamedesign wave script — correct enemy types spawn at correct times and positions. All 3 boss types implemented with 3-phase attack patterns, health bar at top of screen, charge-cone telegraph before heavy attacks. Phase transitions at 66%/33% HP. Boss death → WIN. Player death during boss → GAME_OVER. Start and end screens with score.",
+      "agents": ["dev"],
+      "parallel": false,
+      "qa_gate": "Full run playable from wave 1 through boss to WIN. All 3 boss types reachable. Phase transitions fire correctly. WIN and GAME_OVER screens show correct score."
+    },
+    {
+      "name": "Phase 4 — Art Integration",
+      "description": "art generates all sprites via Ollama (player, Scout, Bomber, Drone, Elite, Sentinel, Interceptor, Colossus, 7 bullet variants, explosion, weapon pickup, bomb pickup). dev swaps all BoxGeometry/ConeGeometry placeholders for THREE.Sprite billboards with generated PNG textures. Bloom parameters tuned. No gameplay changes.",
+      "agents": ["art", "dev"],
+      "parallel": false,
+      "qa_gate": "Visual regression — all sprites render at correct sizes, no new collision or gameplay bugs, bloom looks correct, game is visually impressive."
+    },
+    {
+      "name": "Phase 5 — Audio Integration",
+      "description": "audio designs and implements all Web Audio API SFX: 7 weapon tier shoot sounds (distinct per tier), enemy hit, small explosion (enemies), large explosion (boss), weapon tier-up fanfare, bomb blast, boss phase transition sting, boss death. dev integrates audio events at all correct trigger points. Camera shake on hit and boss phase transitions implemented here if not already.",
+      "agents": ["audio", "dev"],
+      "parallel": false,
+      "qa_gate": "All audio events fire at correct moments. No performance degradation. Tier 7 sounds dramatically different from tier 1."
+    },
+    {
+      "name": "Phase 6 — Polish + Ship",
+      "description": "Start screen polished with title, controls (Arrows/WASD = move, Space/Z = cycle weapon), and start prompt. WIN and GAME_OVER screens polished with final score. Smooth menu flow. devops final Vite build + deploy to GitHub Pages.",
+      "agents": ["dev", "devops"],
+      "parallel": false,
+      "qa_gate": "Full playthrough on deployed URL. Start screen shows controls. WIN and GAME_OVER work. Score correct. No console errors on deploy."
+    }
+  ],
+  "deferred_decisions": [
+    { "decision": "Full wave script — spawn order, formation types, timing, density curve across all waves.", "deferred_to": "gamedesign" },
+    { "decision": "Boss attack patterns per phase for all 3 boss types — bullet types, counts, speeds, movement paths.", "deferred_to": "gamedesign" },
+    { "decision": "Weapon pickup drop probabilities per enemy type. Bomb drop probability from Bombers.", "deferred_to": "gamedesign" },
+    { "decision": "Visual style — color palette, sprite art direction for all entities.", "deferred_to": "art" },
+    { "decision": "SFX synthesis specifics — oscillator types, envelope shapes, frequencies per event.", "deferred_to": "audio" },
+    { "decision": "Bullet speeds, enemy movement speeds, scroll rate, player movement bounds, hitbox sizes, bloom parameters.", "deferred_to": "dev" }
+  ]
+}

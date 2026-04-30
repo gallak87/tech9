@@ -50,8 +50,9 @@ jobs:
 
       - name: Build site
         run: |
-          mkdir -p _site/gravelrun _site/snake _site/skyrift _site/void-sentinel
+          mkdir -p _site/gravelrun _site/snake _site/skyrift _site/void-sentinel _site/orb-vacuum
           cp -r games/chronoforge/dist/. _site/
+          cp -r games/orb-vacuum/dist/. _site/orb-vacuum/
           cp -r games/gravelrun/src/. _site/gravelrun/
           cp -r games/snake/src/. _site/snake/
           cp -r games/skyrift/src/. _site/skyrift/

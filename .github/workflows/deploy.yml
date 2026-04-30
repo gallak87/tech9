@@ -9,6 +9,7 @@ on:
       - 'games/snake/src/**'
       - 'games/skyrift/src/**'
       - 'games/void-sentinel/src/**'
+      - 'games/orb-vacuum/src/**'
       - 'games/chronoforge/src/**'
       - 'games/chronoforge/package.json'
       - 'games/chronoforge/package-lock.json'
@@ -45,6 +46,12 @@ jobs:
       - name: Build chronoforge
         run: |
           cd games/chronoforge
+          npm ci
+          npm run build
+
+      - name: Build orb vacuum
+        run: |
+          cd games/orb-vacuum
           npm ci
           npm run build
 

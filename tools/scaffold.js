@@ -230,6 +230,7 @@ function renderAgentStub(role, entry, cfg) {
 
   // Dev-specific contract injections — reads stack template from vocab/templates/stacks/
   let devContracts = '';
+  let renderingTierSection = '';
   if (role.id === 'dev') {
     const tier = cfg.rendering_tier || 'pixi';
     const stackTemplateMap = {
@@ -238,11 +239,10 @@ function renderAgentStub(role, entry, cfg) {
       'threejs':  'stack-threejs.md',
     };
     const stackFile = stackTemplateMap[tier];
-    let stackSection = '';
     if (stackFile) {
       const stackPath = path.join(ROOT, 'vocab/templates/stacks', stackFile);
       if (fs.existsSync(stackPath)) {
-        stackSection = fs.readFileSync(stackPath, 'utf8')
+        renderingTierSection = fs.readFileSync(stackPath, 'utf8')
           .replace(/\{\{game_name\}\}/g, cfg.game_name);
       }
     }
@@ -263,17 +263,18 @@ function drawSprite(container, name, x, y, w, h) {
 \`\`\`
 Always set \`PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST\` at boot for pixel art.
 ` : '';
-    devContracts = `\n${stackSection}${pixiContracts}\n## Dev tools\nMount domain-scoped dev tools when the art agent requests one. Follow \`tools/dev-tool-contract.md\`.\nCheck \`window.__DEV_TOOLS__\` before mounting. Strip before ship.\n`;
+    devContracts = `\n${pixiContracts}\n## Dev tools\nMount domain-scoped dev tools when the art agent requests one. Follow \`tools/dev-tool-contract.md\`.\nCheck \`window.__DEV_TOOLS__\` before mounting. Strip before ship.\n`;
   }
 
 
   return fillTemplate(role.prompt_template, {
-    game_name:        cfg.game_name,
-    concept_summary:  cfg.concept_summary || '',
-    phase_goal:       phaseGoal,
-    inputs_list:      inputsList,
-    outputs_list:     outputsList,
-    hard_constraints: constraints,
+    game_name:              cfg.game_name,
+    concept_summary:        cfg.concept_summary || '',
+    phase_goal:             phaseGoal,
+    inputs_list:            inputsList,
+    outputs_list:           outputsList,
+    hard_constraints:       constraints,
+    rendering_tier_section: renderingTierSection,
   }) + capSection + devContracts;
 }
 

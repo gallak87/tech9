@@ -1,0 +1,98 @@
+{
+  "game_name": "Snake2",
+  "concept_summary": "Snake2 is a high-octane arcade game where the player steers a glowing neon snake across a dark grid, eating pickups to grow longer and accumulate score. Three tiers of pickup exist — common (green), rare (gold), and legendary (red) — each growing the snake by a different amount and triggering an escalating screen-flash effect. The game ends when the snake collides with itself or a wall. There is no win condition — the goal is a high score.",
+  "rendering_tier": "canvas2d",
+  "scope_constraints": [
+    "IN: Three pickup tiers — common, rare, legendary — with distinct CSS colors and flash effects.",
+    "IN: Live score display — shown on screen, resets on death, no persistence.",
+    "IN: Speed escalation — snake tick rate shortens by ~5ms every 50 points, capping at a max difficulty floor.",
+    "IN: Screen/grid CSS flash animation on pickup — intensity (duration + brightness) scales with tier.",
+    "OUT: No leaderboard, no localStorage, no initials entry.",
+    "OUT: No audio — no sound effects or music.",
+    "OUT: No power-ups beyond the three pickup tiers — no shields, slow-mo, bombs, etc.",
+    "OUT: No sprite assets — all visuals are pure CSS (backgrounds, borders, box-shadow, keyframe animations).",
+    "OUT: No mobile touch controls — keyboard only for v1."
+  ],
+  "team": [
+    {
+      "role_id": "gamedesign",
+      "active": true,
+      "notes": "Owns the mechanics spec: pickup tier definitions (growth amounts, point values, spawn promotion probability), speed escalation formula, state machine (idle → playing → dead → restart), and input handling rules."
+    },
+    {
+      "role_id": "art",
+      "active": true,
+      "notes": "Owns the visual language: neon palette, per-tier CSS colors and box-shadow glow values, flash keyframe specs (duration + brightness) for each tier, grid/cell sizing, snake head vs body visual distinction."
+    },
+    {
+      "role_id": "asset",
+      "active": false,
+      "merged_into": "art",
+      "notes": "No sprite assets exist. All visuals are pure CSS. Art's spec is the only deliverable — asset production is identical to writing the spec, so roles collapse."
+    },
+    {
+      "role_id": "level",
+      "active": false,
+      "notes": "Skipped. Snake has no level structure — single infinite grid with random pickup placement."
+    },
+    {
+      "role_id": "audio",
+      "active": false,
+      "notes": "Skipped. Explicit scope constraint: audio OUT of scope."
+    },
+    {
+      "role_id": "dev",
+      "active": true,
+      "notes": "Builds all game code: CSS grid rendering, snake movement, collision detection, 3-tier pickup system, CSS flash animation triggering, live score HUD, death/restart flow, speed escalation loop."
+    },
+    {
+      "role_id": "qa",
+      "active": false,
+      "notes": "Skipped. User is playing locally — no QA pass needed for this build."
+    },
+    {
+      "role_id": "devops",
+      "active": false,
+      "notes": "Skipped. No deploy — user will open index.html directly or serve locally themselves."
+    },
+    {
+      "role_id": "release",
+      "active": false,
+      "notes": "Skipped. No deploy."
+    },
+    {
+      "role_id": "postlaunch",
+      "active": false,
+      "notes": "Skipped. Nothing shipped."
+    },
+    {
+      "role_id": "historian",
+      "active": false,
+      "notes": "Skipped. Speedrun — no post-mortem."
+    }
+  ],
+  "phases": [
+    {
+      "name": "Phase 0 — Engine Skeleton",
+      "description": "Blank 20×20 CSS grid in src/index.html. Game loop wired (setInterval tick). No game logic — just the shell that runs in a browser.",
+      "agents": ["dev"],
+      "parallel": false
+    },
+    {
+      "name": "Phase 1 — Design + Visual Direction",
+      "description": "gamedesign writes the full mechanics spec (pickup tier rules, spawn promotion probability, speed escalation formula, state machine). art writes the CSS visual spec (neon palette, per-tier colors and glow values, flash animation keyframe parameters, grid cell sizing).",
+      "agents": ["gamedesign", "art"],
+      "parallel": true
+    },
+    {
+      "name": "Phase 2 — Full Implementation",
+      "description": "dev implements: snake movement and self-collision, wall-collision death, 3-tier pickup spawning with promotion logic, CSS flash animation per tier, live score counter, death overlay, restart flow, speed escalation. All from Phase 1 specs.",
+      "agents": ["dev"],
+      "parallel": false
+    }
+  ],
+  "deferred_decisions": [
+    { "decision": "Exact CSS glow/flash animation parameters for each tier (keyframe timing, shadow spread)", "deferred_to": "art" },
+    { "decision": "Grid dimensions and cell size for optimal playfield density", "deferred_to": "dev" }
+  ]
+}

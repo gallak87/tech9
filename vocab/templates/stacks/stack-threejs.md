@@ -70,3 +70,4 @@ npx vite build  # production build → dist/
 - Import Three.js as `import * as THREE from 'three'` — never use a CDN script tag
 - Put static assets (textures, models) in `public/` — served at root, not processed by Vite
 - Load textures with `new THREE.TextureLoader().load('/texture.png')`
+- **Camera distance must scale with subject size** if the player/subject scale changes at runtime. A fixed camera distance works only when scale is fixed. For games where the player grows or shrinks (Agar-style, physics sandboxes, scale-shifting platformers), compute distance dynamically each frame — e.g. `const CAM_DISTANCE = Math.max(minDist, subject.radius * k + offset)`. The specific multiplier `k` and `offset` need playtesting, but the pattern is always: distance is a linear function of radius, clamped to a minimum so tiny subjects stay in frame.

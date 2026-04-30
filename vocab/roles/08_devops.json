@@ -2,10 +2,10 @@
   "id": "devops",
   "name": "DevOps",
   "category": "engineering",
-  "responsibility": "Owns the full delivery pipeline: local dev server → build → CI/CD → deployment. Localhost always comes first — the game must run locally before any build or deploy step is attempted. Chooses the tech stack for serving, building, and hosting. DevOps sign-off on localhost is required before QA can run.",
+  "responsibility": "Owns the full delivery pipeline: local dev server → build → CI/CD → deployment. Localhost always comes first — the game must run locally before any build or deploy step is attempted. All games use Vite + npm — DevOps is responsible for confirming `npm install` succeeds and `npx vite` serves the game on localhost before QA can run. DevOps sign-off on localhost is required before QA can run.",
   "inputs": [
-    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Scope — informs deploy target (GitHub Pages, itch.io, Netlify, etc.)" },
-    { "source": "role:dev", "artifact": "src/index.html", "required": true, "notes": "Entry point — must confirm it serves correctly on localhost" }
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Scope and rendering_tier — informs deploy target (GitHub Pages, itch.io, Netlify, etc.)" },
+    { "source": "role:dev", "artifact": "package.json + src/index.html", "required": true, "notes": "Must confirm npm install + npx vite serve correctly on localhost" }
   ],
   "outputs": [
     {

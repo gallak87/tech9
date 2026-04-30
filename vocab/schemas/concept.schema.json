@@ -7,6 +7,12 @@
   "required": ["game_summary", "core_loop", "target_feel", "scope_constraints"],
   "additionalProperties": false,
   "properties": {
+    "rendering_tier": {
+      "type": "string",
+      "enum": ["canvas2d", "pixi2d", "threejs3d"],
+      "default": "canvas2d",
+      "description": "Renderer the game uses. Director passes this to dev and devops so they inject the right stack template. canvas2d = vanilla JS + Vite, no renderer dep. pixi2d = Pixi.js + Vite. threejs3d = Three.js + Vite. All tiers use Vite — the difference is only the renderer dep and boot pattern."
+    },
     "game_summary": {
       "type": "string",
       "description": "One paragraph. What the game is — genre, setting, player action, win condition. Should be intelligible to someone who has never heard of it. No bullet points.",

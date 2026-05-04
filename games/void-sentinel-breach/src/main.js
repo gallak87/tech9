@@ -563,6 +563,7 @@ window.addEventListener('keydown', (e) => {
 // ─── Camera modes (dev) ───────────────────────────────────────────────────────
 const CAM_MODES = [
   { name: 'CHASE',  offset: new THREE.Vector3(0, 3.2, 8.5),  lookDZ: -6, lookDY: -0.5 },
+  { name: 'LOW',    offset: new THREE.Vector3(0, 1.5, 5.0),  lookDZ: -8, lookDY:  0.0 },
   { name: '1ST-P',  offset: new THREE.Vector3(0, 0.4, -1.2), lookDZ: -8, lookDY:  0.0 },
   { name: 'HIGH',   offset: new THREE.Vector3(0, 9.0, 12.0), lookDZ: -4, lookDY: -1.5 },
 ];

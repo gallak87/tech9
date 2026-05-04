@@ -112,6 +112,26 @@ function _disposeMesh(mesh) {
   });
 }
 
+// ─── Hit flash helpers ────────────────────────────────────────────────────────
+const _WHITE = new THREE.Color(1, 1, 1);
+function _applyHitFlash(group) {
+  group.traverse(c => {
+    if (!c.isMesh) return;
+    c.material.color.set(_WHITE);
+    if (c.material.emissive) c.material.emissive.set(_WHITE);
+  });
+}
+function _restoreColors(group) {
+  group.traverse(c => {
+    if (!c.isMesh || !c.userData.origColor) return;
+    c.material.color.copy(c.userData.origColor);
+    if (c.material.emissive) {
+      const ei = c.material.userData.baseEmissive || 0;
+      c.material.emissive.set(c.userData.origColor).multiplyScalar(ei > 0 ? 1 : 0);
+    }
+  });
+}
+
 // ─── Geo-manifest mesh builder ───────────────────────────────────────────────
 function buildEntityMesh(entityDef) {
   const group = new THREE.Group();
@@ -144,6 +164,7 @@ function buildEntityMesh(entityDef) {
       mat.userData.baseEmissive = part.emissiveIntensity || 0;
     }
     const mesh = new THREE.Mesh(geo, mat);
+    mesh.userData.origColor = new THREE.Color(part.color);
     if (part.position) mesh.position.set(...part.position);
     if (part.rotation) mesh.rotation.set(...part.rotation);
     group.add(mesh);
@@ -366,22 +387,22 @@ function fireWeapon(scene) {
 // ─── Enemy spawning ───────────────────────────────────────────────────────────
 const ENEMY_CONFIGS = {
   scout: {
-    color: 0xFF3060, hp: 1, speed: 6, score: 100,
+    color: 0xFF3060, hp: 1, speed: 6, score: 100,  // scouts stay 1-hit
     size: [0.6, 0.2, 0.6],
     dropWeapon: 0.08, dropBomb: 0,
   },
   bomber: {
-    color: 0x8B30FF, hp: 3, speed: 2.5, score: 300,
+    color: 0x8B30FF, hp: 6, speed: 2.5, score: 300,
     size: [1.0, 0.3, 1.0],
     dropWeapon: 0.05, dropBomb: 0.40,
   },
   drone: {
-    color: 0x00FF99, hp: 2, speed: 4.5, score: 200,
+    color: 0x00FF99, hp: 4, speed: 4.5, score: 200,
     size: [0.7, 0.2, 0.7],
     dropWeapon: 0.12, dropBomb: 0,
   },
   elite: {
-    color: 0xFFD700, hp: 2, speed: 6 * 1.15, score: 200,
+    color: 0xFFD700, hp: 5, speed: 6 * 1.15, score: 200,
     size: [0.6, 0.2, 0.6],
     dropWeapon: 1.0, dropBomb: 0.15,
     isElite: true,
@@ -471,6 +492,7 @@ export function spawnEnemy(scene, type, opts = {}) {
     isElite: !!cfg.isElite,
     halfSize,
     dead: false,
+    hitFlash: 0,
     ...movementData,
   };
 
@@ -504,7 +526,7 @@ function spawnPickup(scene, position, type) {
   mesh.position.copy(position);
   mesh.position.y = Math.max(0.3, position.y);
   scene.add(mesh);
-  pickups.push({ mesh, type, timer: 8.0 });
+  pickups.push({ mesh, type, timer: 12.0 });
 }
 
 // ─── Enemy death ──────────────────────────────────────────────────────────────
@@ -984,6 +1006,7 @@ function damageBoss(scene, amount) {
   if (!boss || boss.dead || boss._transitioning) return;
   boss.hp -= amount;
   if (boss.hp < 0) boss.hp = 0;
+  boss.hitFlash = 0.08;
 
   const pct = boss.hp / boss.maxHp;
   const p2threshold = 0.666;
@@ -1031,6 +1054,13 @@ function _updateBoss(dt, scene) {
       boss.z = -18;
     }
     return;
+  }
+
+  // Hit flash
+  if (boss.hitFlash > 0) {
+    boss.hitFlash -= dt;
+    if (boss.hitFlash > 0) _applyHitFlash(boss.mesh);
+    else _restoreColors(boss.mesh);
   }
 
   // Death countdown
@@ -1639,6 +1669,13 @@ export function update(dt, scene) {
 
       updateEnemy(e, dt, scene, now);
 
+      // Hit flash
+      if (e.hitFlash > 0) {
+        e.hitFlash -= dt;
+        if (e.hitFlash > 0) _applyHitFlash(e.mesh);
+        else _restoreColors(e.mesh);
+      }
+
       if (e.mesh.position.z > 8) {
         scene.remove(e.mesh);
         _disposeMesh(e.mesh);
@@ -1673,6 +1710,7 @@ export function update(dt, scene) {
             bulletKilled = true;
           }
           e.hp--;
+          e.hitFlash = 0.1;
           if (e.hp <= 0) {
             killEnemy(scene, e, true, false);
             enemies.splice(ei, 1);
@@ -1708,13 +1746,13 @@ export function update(dt, scene) {
   // ── Pickups: movement + collection ───────────────────────────────────────
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
-    p.mesh.position.z -= 1.0 * dt;
+    p.mesh.position.z += 4.0 * dt;  // drift toward player (+z = toward camera)
     p.mesh.rotation.y += dt * 2;
     p.timer -= dt;
 
     const dist = p.mesh.position.distanceTo(player.position);
     let collected = dist < 1.2;
-    let expired = p.timer <= 0 || p.mesh.position.z > 8 || p.mesh.position.z < -20;
+    let expired = p.timer <= 0 || p.mesh.position.z > 8;
 
     if (collected) {
       if (p.type === 'weapon') {

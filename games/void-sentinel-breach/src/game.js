@@ -575,6 +575,70 @@ export function devCycleTier(dir) {
   weaponTier = ((weaponTier - 1 + dir + 7) % 7) + 1;
 }
 
+export function devBuildArtScene(scene) {
+  const meshes = [];
+  const add = (def, x, y, z, label) => {
+    const m = buildEntityMesh(def);
+    m.position.set(x, y, z);
+    m.userData.artLabel = label;
+    scene.add(m);
+    meshes.push(m);
+    return m;
+  };
+
+  // Player
+  add(GEO_MANIFEST.entities.player, 0, 0.6, 0, 'PLAYER');
+
+  // Enemies — row at z=-10
+  add(GEO_MANIFEST.entities.scout,   -7, 1, -10, 'SCOUT');
+  add(GEO_MANIFEST.entities.bomber,  -2.5, 1, -10, 'BOMBER');
+  add(GEO_MANIFEST.entities.drone,    2.5, 1, -10, 'DRONE');
+  add(GEO_MANIFEST.entities.elite,    7, 1.5, -10, 'ELITE');
+
+  // Bosses — row at z=-22
+  add(GEO_MANIFEST.entities.sentinel_boss,    -9, 4, -22, 'SENTINEL');
+  add(GEO_MANIFEST.entities.interceptor_boss,  0, 4, -22, 'INTERCEPTOR');
+  add(GEO_MANIFEST.entities.colossus_boss,     9, 4, -22, 'COLOSSUS');
+
+  // Bullets T1-T7 + enemy bullet — row at z=-32
+  const addBullet = (spec, x, z, label) => {
+    if (!spec) return;
+    const geo = new THREE.BoxGeometry(...(spec.args || [0.12, 0.12, 0.5]));
+    const mat = new THREE.MeshBasicMaterial({ color: spec.color || '#ffffff' });
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, 1, z);
+    m.userData.artLabel = label;
+    scene.add(m);
+    meshes.push(m);
+  };
+  for (let t = 1; t <= 7; t++) {
+    addBullet(GEO_MANIFEST.bullets[`T${t}`], -10.5 + (t - 1) * 3, -32, `T${t}`);
+  }
+  addBullet(GEO_MANIFEST.bullets.enemy, 11, -32, 'EBULLET');
+
+  // Pickups — row at z=-40
+  ['weapon', 'bomb'].forEach((k, i) => {
+    const spec = GEO_MANIFEST.pickups[k];
+    if (spec) {
+      const m = buildEntityMesh({ worldScale: [1, 1, 1], parts: spec.parts || [] });
+      m.position.set(-3 + i * 6, 1, -40);
+      m.userData.artLabel = k.toUpperCase();
+      scene.add(m);
+      meshes.push(m);
+    }
+  });
+
+  return meshes;
+}
+
+export function devClearArtScene(scene, meshes) {
+  for (const m of meshes) {
+    scene.remove(m);
+    _disposeMesh(m);
+  }
+  meshes.length = 0;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  WAVE SYSTEM
 // ─────────────────────────────────────────────────────────────────────────────

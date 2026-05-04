@@ -484,6 +484,83 @@ function renderHUD(dt) {
   }
 }
 
+// ─── Art Mode ────────────────────────────────────────────────────────────────
+let artMode = false;
+let artMeshes = [];
+let artLabelContainer = null;
+
+function buildArtLabels(meshes) {
+  if (artLabelContainer) artLabelContainer.remove();
+  artLabelContainer = document.createElement('div');
+  artLabelContainer.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;';
+  document.body.appendChild(artLabelContainer);
+
+  for (const m of meshes) {
+    if (!m.userData.artLabel) continue;
+    const el = document.createElement('div');
+    el.style.cssText = `
+      position:absolute; font-family:'Share Tech Mono',monospace;
+      font-size:11px; color:#00ffcc; text-shadow:0 0 6px #00ffcc;
+      letter-spacing:1px; white-space:nowrap; pointer-events:none;
+    `;
+    el.textContent = m.userData.artLabel;
+    el.dataset.meshId = m.uuid;
+    artLabelContainer.appendChild(el);
+  }
+}
+
+function updateArtLabels() {
+  if (!artLabelContainer) return;
+  const labels = artLabelContainer.querySelectorAll('div');
+  let meshIdx = 0;
+  for (const mesh of artMeshes) {
+    if (!mesh.userData.artLabel) continue;
+    const el = labels[meshIdx++];
+    if (!el) continue;
+    const pos = mesh.position.clone().project(camera);
+    const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
+    el.style.left = `${x - 20}px`;
+    el.style.top = `${y + 12}px`;
+    el.style.display = pos.z < 1 ? 'block' : 'none';
+  }
+}
+
+function toggleArtMode() {
+  artMode = !artMode;
+  if (artMode) {
+    artMeshes = Game.devBuildArtScene(scene);
+    buildArtLabels(artMeshes);
+    camera.position.set(0, 18, 10);
+    camera.lookAt(0, 0, -20);
+    if (artBanner) artBanner.style.display = 'block';
+  } else {
+    Game.devClearArtScene(scene, artMeshes);
+    artMeshes = [];
+    if (artLabelContainer) { artLabelContainer.remove(); artLabelContainer = null; }
+    if (artBanner) artBanner.style.display = 'none';
+  }
+}
+
+// Art mode banner
+const artBanner = document.createElement('div');
+artBanner.style.cssText = `
+  position:fixed; bottom:60px; left:50%; transform:translateX(-50%);
+  font-family:'Share Tech Mono',monospace; font-size:12px; color:#ff9900;
+  text-shadow:0 0 8px #ff9900; letter-spacing:2px; pointer-events:none;
+  display:none;
+`;
+artBanner.textContent = '[ ART MODE — M TO EXIT ]';
+document.body.appendChild(artBanner);
+
+// M key
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyM' && window.__DEV_TOOLS__) {
+    toggleArtMode();
+    e.preventDefault();
+  }
+});
+
 // ─── Resize ───────────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -500,6 +577,13 @@ function loop() {
   requestAnimationFrame(loop);
 
   const dt = Math.min(clock.getDelta(), 0.05);
+
+  if (artMode) {
+    updateArtLabels();
+    renderHUD(dt);
+    composer.render();
+    return;
+  }
 
   Game.update(dt, scene);
 

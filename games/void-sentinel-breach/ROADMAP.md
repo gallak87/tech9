@@ -4,6 +4,12 @@
 
 ---
 
+## Framework notes (for historian post-ship)
+
+- **geo-gen tool**: Like `sprites-gen.js` but for geo-manifests. Art agent currently edits JSON directly — fine for now. After VSB ships, evaluate whether a scaffold/validator tool makes sense (e.g. validates geo types, previews part counts, catches typos in geometry names). Add to tech9 framework if the pattern appears in a 2nd Three.js game.
+
+---
+
 ## Done
 
 ### Phase 0 — Engine skeleton

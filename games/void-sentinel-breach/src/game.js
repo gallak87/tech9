@@ -125,7 +125,10 @@ function buildEntityMesh(entityDef) {
       case 'ConeGeometry':     geo = new THREE.ConeGeometry(...part.args); break;
       case 'CylinderGeometry': geo = new THREE.CylinderGeometry(...part.args); break;
       case 'SphereGeometry':   geo = new THREE.SphereGeometry(...part.args); break;
-      case 'TorusGeometry':    geo = new THREE.TorusGeometry(...part.args); break;
+      case 'TorusGeometry':       geo = new THREE.TorusGeometry(...part.args); break;
+      case 'OctahedronGeometry':  geo = new THREE.OctahedronGeometry(...part.args); break;
+      case 'IcosahedronGeometry': geo = new THREE.IcosahedronGeometry(...part.args); break;
+      case 'TetrahedronGeometry': geo = new THREE.TetrahedronGeometry(...part.args); break;
     }
     let mat;
     if (part.material === 'basic') {

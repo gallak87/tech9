@@ -118,7 +118,10 @@ function _applyHitFlash(group) {
   group.traverse(c => {
     if (!c.isMesh) return;
     c.material.color.set(_WHITE);
-    if (c.material.emissive) c.material.emissive.set(_WHITE);
+    if (c.material.emissive) {
+      c.material.emissive.set(_WHITE);
+      c.material.emissiveIntensity = 3.0;
+    }
   });
 }
 function _restoreColors(group) {
@@ -126,8 +129,8 @@ function _restoreColors(group) {
     if (!c.isMesh || !c.userData.origColor) return;
     c.material.color.copy(c.userData.origColor);
     if (c.material.emissive) {
-      const ei = c.material.userData.baseEmissive || 0;
-      c.material.emissive.set(c.userData.origColor).multiplyScalar(ei > 0 ? 1 : 0);
+      c.material.emissive.copy(c.userData.origColor);
+      c.material.emissiveIntensity = c.material.userData.baseEmissive || 0;
     }
   });
 }
@@ -1710,7 +1713,7 @@ export function update(dt, scene) {
             bulletKilled = true;
           }
           e.hp--;
-          e.hitFlash = 0.1;
+          e.hitFlash = 0.18;
           if (e.hp <= 0) {
             killEnemy(scene, e, true, false);
             enemies.splice(ei, 1);

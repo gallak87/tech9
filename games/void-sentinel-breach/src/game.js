@@ -113,23 +113,20 @@ function _disposeMesh(mesh) {
 }
 
 // ─── Hit flash helpers ────────────────────────────────────────────────────────
-const _WHITE = new THREE.Color(1, 1, 1);
 function _applyHitFlash(group) {
   group.traverse(c => {
     if (!c.isMesh) return;
-    c.material.color.set(_WHITE);
     if (c.material.emissive) {
-      c.material.emissive.set(_WHITE);
-      c.material.emissiveIntensity = 3.0;
+      c.material.emissive.copy(c.userData.origColor || c.material.color);
+      c.material.emissiveIntensity = 1.5;
     }
   });
 }
 function _restoreColors(group) {
   group.traverse(c => {
-    if (!c.isMesh || !c.userData.origColor) return;
-    c.material.color.copy(c.userData.origColor);
+    if (!c.isMesh) return;
     if (c.material.emissive) {
-      c.material.emissive.copy(c.userData.origColor);
+      c.material.emissive.copy(c.userData.origColor || c.material.color);
       c.material.emissiveIntensity = c.material.userData.baseEmissive || 0;
     }
   });
@@ -390,7 +387,7 @@ function fireWeapon(scene) {
 // ─── Enemy spawning ───────────────────────────────────────────────────────────
 const ENEMY_CONFIGS = {
   scout: {
-    color: 0xFF3060, hp: 1, speed: 6, score: 100,  // scouts stay 1-hit
+    color: 0xFF3060, hp: 2, speed: 6, score: 100,
     size: [0.6, 0.2, 0.6],
     dropWeapon: 0.08, dropBomb: 0,
   },
@@ -1713,7 +1710,7 @@ export function update(dt, scene) {
             bulletKilled = true;
           }
           e.hp--;
-          e.hitFlash = 0.18;
+          e.hitFlash = 0.12;
           if (e.hp <= 0) {
             killEnemy(scene, e, true, false);
             enemies.splice(ei, 1);

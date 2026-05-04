@@ -32,7 +32,6 @@ scene.add(rimLight);
 
 // ─── Camera ───────────────────────────────────────────────────────────────────
 const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 400);
-const CAMERA_OFFSET = new THREE.Vector3(0, 3.2, 8.5);
 
 // ─── Post-processing ──────────────────────────────────────────────────────────
 const composer = new EffectComposer(renderer);
@@ -561,6 +560,32 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// ─── Camera modes (dev) ───────────────────────────────────────────────────────
+const CAM_MODES = [
+  { name: 'CHASE',  offset: new THREE.Vector3(0, 3.2, 8.5),  lookDZ: -6, lookDY: -0.5 },
+  { name: '1ST-P',  offset: new THREE.Vector3(0, 0.4, -1.2), lookDZ: -8, lookDY:  0.0 },
+  { name: 'HIGH',   offset: new THREE.Vector3(0, 9.0, 12.0), lookDZ: -4, lookDY: -1.5 },
+];
+let camModeIdx = 0;
+
+if (window.__DEV_TOOLS__) {
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'KeyC' && !artMode) {
+      camModeIdx = (camModeIdx + 1) % CAM_MODES.length;
+      const name = CAM_MODES[camModeIdx].name;
+      // Flash name on screen briefly
+      const flash = document.createElement('div');
+      flash.style.cssText = `position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+        font-family:'Share Tech Mono',monospace;font-size:13px;color:#ffcc00;
+        text-shadow:0 0 8px #ffcc00;letter-spacing:2px;pointer-events:none;z-index:999;`;
+      flash.textContent = `CAM: ${name}`;
+      document.body.appendChild(flash);
+      setTimeout(() => flash.remove(), 1200);
+      e.preventDefault();
+    }
+  });
+}
+
 // ─── Resize ───────────────────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -589,8 +614,8 @@ function loop() {
 
   // Camera: follow player with shake
   if (Game.player) {
-    const target = Game.player.position.clone().add(CAMERA_OFFSET);
-    camera.position.copy(target);
+    const cam = CAM_MODES[camModeIdx];
+    camera.position.copy(Game.player.position).add(cam.offset);
 
     if (Game.cameraShakeIntensity > 0) {
       const s = Game.cameraShakeIntensity;
@@ -603,8 +628,8 @@ function loop() {
     }
 
     const lookAt = Game.player.position.clone();
-    lookAt.z -= 6;
-    lookAt.y -= 0.5;
+    lookAt.z += cam.lookDZ;
+    lookAt.y += cam.lookDY;
     camera.lookAt(lookAt);
   }
 

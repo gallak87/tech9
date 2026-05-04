@@ -39,7 +39,7 @@ composer.addPass(new RenderPass(scene, camera));
 
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.9, 0.4, 0.2
+  0.6, 0.3, 0.55
 );
 composer.addPass(bloomPass);
 
@@ -296,7 +296,7 @@ const BOSS_PHASE_COLORS = ['', '#FF3060', '#FF6B00', '#FF00FF'];
 // Scene tint during boss phases
 const BOSS_BG_COLORS = ['', 0x000814, 0x100408, 0x1a0020];
 
-let _bloomTarget = 0.9;
+let _bloomTarget = 0.6;
 let _lastWaveFlashText = '';
 
 function _formatTime(secs) {
@@ -406,9 +406,9 @@ function renderHUD(dt) {
   }
 
   // Bloom lerp
-  let baseBloom = 0.9;
+  let baseBloom = 0.6;
   if (isBoss && Game.boss) {
-    baseBloom = Game.boss.phase === 1 ? 1.1 : (Game.boss.phase === 2 ? 1.4 : 1.8);
+    baseBloom = Game.boss.phase === 1 ? 0.8 : (Game.boss.phase === 2 ? 1.1 : 1.4);
   }
   if (_bloomTarget > baseBloom) {
     _bloomTarget = Math.max(baseBloom, _bloomTarget - dt * 3.5);
@@ -563,7 +563,7 @@ window.addEventListener('keydown', (e) => {
 // ─── Camera modes (dev) ───────────────────────────────────────────────────────
 const CAM_MODES = [
   { name: 'CHASE',  offset: new THREE.Vector3(0, 3.2, 8.5),  lookDZ: -6, lookDY: -0.5 },
-  { name: 'LOW',    offset: new THREE.Vector3(0, 1.5, 5.0),  lookDZ: -8, lookDY:  0.0 },
+  { name: 'LOW',    offset: new THREE.Vector3(0, 1.2, 3.0),  lookDZ: -8, lookDY:  0.0 },
   { name: '1ST-P',  offset: new THREE.Vector3(0, 0.4, -1.2), lookDZ: -8, lookDY:  0.0 },
   { name: 'HIGH',   offset: new THREE.Vector3(0, 9.0, 12.0), lookDZ: -4, lookDY: -1.5 },
 ];

@@ -1,886 +1,1743 @@
 {
   "entities": {
     "player": {
-      "worldScale": [2.0, 2.0, 2.0],
+      "worldScale": [
+        2,
+        2,
+        2
+      ],
       "parts": [
         {
           "geo": "ConeGeometry",
-          "args": [0.06, 0.36, 5],
+          "args": [
+            0.06,
+            0.36,
+            5
+          ],
           "color": "#1A9FFF",
           "emissive": "#1A9FFF",
-          "emissiveIntensity": 1.2,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.38, 0]
+          "position": [
+            0,
+            0.38,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.07, 0.10, 0.50, 6],
+          "args": [
+            0.07,
+            0.1,
+            0.5,
+            6
+          ],
           "color": "#1A9FFF",
           "emissive": "#0A4A8A",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.05, 0]
+          "position": [
+            0,
+            0.05,
+            0
+          ]
         },
         {
           "geo": "IcosahedronGeometry",
-          "args": [0.11, 0],
+          "args": [
+            0.11,
+            0
+          ],
           "color": "#00E5FF",
           "emissive": "#00E5FF",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic",
-          "position": [0, 0.08, 0.08]
+          "position": [
+            0,
+            0.08,
+            0.08
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.80, 0.22, 0.04],
+          "args": [
+            0.8,
+            0.22,
+            0.04
+          ],
           "color": "#1060AA",
           "emissive": "#083060",
-          "emissiveIntensity": 0.3,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, -0.04, 0]
+          "position": [
+            0,
+            -0.04,
+            0
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.38, 0.34, 0.03],
+          "args": [
+            0.38,
+            0.34,
+            0.03
+          ],
           "color": "#0D70CC",
           "emissive": "#083060",
-          "emissiveIntensity": 0.3,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0.36, -0.18, 0]
+          "position": [
+            0.36,
+            -0.18,
+            0
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.38, 0.34, 0.03],
+          "args": [
+            0.38,
+            0.34,
+            0.03
+          ],
           "color": "#0D70CC",
           "emissive": "#083060",
-          "emissiveIntensity": 0.3,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [-0.36, -0.18, 0]
+          "position": [
+            -0.36,
+            -0.18,
+            0
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.05, 0.14, 5],
+          "args": [
+            0.05,
+            0.14,
+            5
+          ],
           "color": "#1A9FFF",
           "emissive": "#0A4A8A",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0.56, -0.28, 0],
-          "rotation": [0, 0, -0.5236]
+          "position": [
+            0.56,
+            -0.28,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            -0.5236
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.05, 0.14, 5],
+          "args": [
+            0.05,
+            0.14,
+            5
+          ],
           "color": "#1A9FFF",
           "emissive": "#0A4A8A",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [-0.56, -0.28, 0],
-          "rotation": [0, 0, 0.5236]
+          "position": [
+            -0.56,
+            -0.28,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            0.5236
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.09, 0.30, 6],
+          "args": [
+            0.09,
+            0.3,
+            6
+          ],
           "color": "#00E5FF",
           "emissive": "#00E5FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [0, -0.44, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0,
+            -0.44,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.06, 0.22, 6],
+          "args": [
+            0.06,
+            0.22,
+            6
+          ],
           "color": "#00E5FF",
           "emissive": "#00E5FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [0.24, -0.38, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0.24,
+            -0.38,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.06, 0.22, 6],
+          "args": [
+            0.06,
+            0.22,
+            6
+          ],
           "color": "#00E5FF",
           "emissive": "#00E5FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [-0.24, -0.38, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            -0.24,
+            -0.38,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         }
       ]
     },
-
     "scout": {
-      "worldScale": [1.2, 1.2, 1.2],
+      "worldScale": [
+        1.2,
+        1.2,
+        1.2
+      ],
       "parts": [
         {
           "geo": "ConeGeometry",
-          "args": [0.07, 0.52, 5],
+          "args": [
+            0.07,
+            0.52,
+            5
+          ],
           "color": "#FF3060",
           "emissive": "#8A0020",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.22, 0]
+          "position": [
+            0,
+            0.22,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.07, 0.09, 0.36, 5],
+          "args": [
+            0.07,
+            0.09,
+            0.36,
+            5
+          ],
           "color": "#FF3060",
           "emissive": "#8A0020",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, -0.06, 0]
+          "position": [
+            0,
+            -0.06,
+            0
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.54, 0.12, 0.03],
+          "args": [
+            0.54,
+            0.12,
+            0.03
+          ],
           "color": "#CC1040",
           "emissive": "#6A0018",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.04, 0]
+          "position": [
+            0,
+            0.04,
+            0
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.03, 0.12, 4],
+          "args": [
+            0.03,
+            0.12,
+            4
+          ],
           "color": "#FF3060",
           "emissive": "#8A0020",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0.30, 0.0, 0],
-          "rotation": [0, 0, -1.5708]
+          "position": [
+            0.3,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            -1.5708
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.03, 0.12, 4],
+          "args": [
+            0.03,
+            0.12,
+            4
+          ],
           "color": "#FF3060",
           "emissive": "#8A0020",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [-0.30, 0.0, 0],
-          "rotation": [0, 0, 1.5708]
+          "position": [
+            -0.3,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            1.5708
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.03, 0.03, 0.20, 5],
+          "args": [
+            0.03,
+            0.03,
+            0.2,
+            5
+          ],
           "color": "#FF6090",
           "emissive": "#FF6090",
           "emissiveIntensity": 1.5,
           "material": "basic",
-          "position": [0, 0.30, 0]
+          "position": [
+            0,
+            0.3,
+            0
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.07, 0.20, 6],
+          "args": [
+            0.07,
+            0.2,
+            6
+          ],
           "color": "#FF6090",
           "emissive": "#FF6090",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0, -0.32, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0,
+            -0.32,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         }
       ]
     },
-
     "bomber": {
-      "worldScale": [2.2, 2.2, 2.2],
+      "worldScale": [
+        2.2,
+        2.2,
+        2.2
+      ],
       "parts": [
         {
           "geo": "CylinderGeometry",
-          "args": [0.18, 0.22, 0.72, 7],
+          "args": [
+            0.18,
+            0.22,
+            0.72,
+            7
+          ],
           "color": "#8B30FF",
           "emissive": "#3A0880",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0, 0]
+          "position": [
+            0,
+            0,
+            0
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.20, 8, 8],
+          "args": [
+            0.2,
+            8,
+            8
+          ],
           "color": "#8B30FF",
           "emissive": "#3A0880",
-          "emissiveIntensity": 0.6,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.22, 0.04]
+          "position": [
+            0,
+            0.22,
+            0.04
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [1.10, 0.30, 0.04],
+          "args": [
+            1.1,
+            0.3,
+            0.04
+          ],
           "color": "#6818C0",
           "emissive": "#280660",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.06, 0]
+          "position": [
+            0,
+            0.06,
+            0
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.72, 0.18, 0.03],
+          "args": [
+            0.72,
+            0.18,
+            0.03
+          ],
           "color": "#5010A0",
           "emissive": "#200450",
-          "emissiveIntensity": 0.3,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, -0.12, 0]
+          "position": [
+            0,
+            -0.12,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.10, 0.12, 0.28, 6],
+          "args": [
+            0.1,
+            0.12,
+            0.28,
+            6
+          ],
           "color": "#7020E0",
           "emissive": "#300870",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0.48, -0.06, 0]
+          "position": [
+            0.48,
+            -0.06,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.10, 0.12, 0.28, 6],
+          "args": [
+            0.1,
+            0.12,
+            0.28,
+            6
+          ],
           "color": "#7020E0",
           "emissive": "#300870",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [-0.48, -0.06, 0]
+          "position": [
+            -0.48,
+            -0.06,
+            0
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.13, 0.30, 7],
+          "args": [
+            0.13,
+            0.3,
+            7
+          ],
           "color": "#C070FF",
           "emissive": "#C070FF",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0, -0.50, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0,
+            -0.5,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.10, 0.24, 6],
+          "args": [
+            0.1,
+            0.24,
+            6
+          ],
           "color": "#C070FF",
           "emissive": "#C070FF",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic",
-          "position": [0.48, -0.38, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0.48,
+            -0.38,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.10, 0.24, 6],
+          "args": [
+            0.1,
+            0.24,
+            6
+          ],
           "color": "#C070FF",
           "emissive": "#C070FF",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic",
-          "position": [-0.48, -0.38, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            -0.48,
+            -0.38,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.07, 0.28, 5],
+          "args": [
+            0.07,
+            0.28,
+            5
+          ],
           "color": "#8B30FF",
           "emissive": "#3A0880",
-          "emissiveIntensity": 0.8,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.50, 0]
+          "position": [
+            0,
+            0.5,
+            0
+          ]
         }
       ]
     },
-
     "drone": {
-      "worldScale": [1.0, 1.0, 1.0],
+      "worldScale": [
+        1,
+        1,
+        1
+      ],
       "parts": [
         {
           "geo": "OctahedronGeometry",
-          "args": [0.22, 0],
+          "args": [
+            0.22,
+            0
+          ],
           "color": "#00FF99",
           "emissive": "#007040",
-          "emissiveIntensity": 0.6,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0, 0.04]
+          "position": [
+            0,
+            0,
+            0.04
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.52, 0.10, 0.03],
+          "args": [
+            0.52,
+            0.1,
+            0.03
+          ],
           "color": "#00CC70",
           "emissive": "#005830",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.02, 0]
+          "position": [
+            0,
+            0.02,
+            0
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.03, 0.10, 4],
+          "args": [
+            0.03,
+            0.1,
+            4
+          ],
           "color": "#00AA58",
           "emissive": "#004020",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0.30, 0.02, 0],
-          "rotation": [0, 0, -1.5708]
+          "position": [
+            0.3,
+            0.02,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            -1.5708
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.03, 0.10, 4],
+          "args": [
+            0.03,
+            0.1,
+            4
+          ],
           "color": "#00AA58",
           "emissive": "#004020",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [-0.30, 0.02, 0],
-          "rotation": [0, 0, 1.5708]
+          "position": [
+            -0.3,
+            0.02,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            1.5708
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.05, 6, 6],
+          "args": [
+            0.05,
+            6,
+            6
+          ],
           "color": "#80FFD0",
           "emissive": "#80FFD0",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0, 0.14, 0.06]
+          "position": [
+            0,
+            0.14,
+            0.06
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.06, 0.18, 5],
+          "args": [
+            0.06,
+            0.18,
+            5
+          ],
           "color": "#80FFD0",
           "emissive": "#80FFD0",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0, -0.26, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0,
+            -0.26,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         }
       ]
     },
-
     "elite": {
       "isElite": true,
-      "worldScale": [1.6, 1.6, 1.6],
+      "worldScale": [
+        1.6,
+        1.6,
+        1.6
+      ],
       "parts": [
         {
           "geo": "ConeGeometry",
-          "args": [0.07, 0.42, 5],
+          "args": [
+            0.07,
+            0.42,
+            5
+          ],
           "color": "#FFD700",
           "emissive": "#806000",
-          "emissiveIntensity": 0.7,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.30, 0]
+          "position": [
+            0,
+            0.3,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.08, 0.11, 0.42, 6],
+          "args": [
+            0.08,
+            0.11,
+            0.42,
+            6
+          ],
           "color": "#FFD700",
           "emissive": "#806000",
-          "emissiveIntensity": 0.6,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, -0.02, 0]
+          "position": [
+            0,
+            -0.02,
+            0
+          ]
         },
         {
           "geo": "IcosahedronGeometry",
-          "args": [0.12, 0],
+          "args": [
+            0.12,
+            0
+          ],
           "color": "#FFEE80",
           "emissive": "#FFEE80",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic",
-          "position": [0, 0.06, 0.08]
+          "position": [
+            0,
+            0.06,
+            0.08
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.76, 0.20, 0.03],
+          "args": [
+            0.76,
+            0.2,
+            0.03
+          ],
           "color": "#EEC000",
           "emissive": "#706000",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.06, 0]
+          "position": [
+            0,
+            0.06,
+            0
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.30, 0.32, 0.03],
+          "args": [
+            0.3,
+            0.32,
+            0.03
+          ],
           "color": "#CCA000",
           "emissive": "#604800",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0.36, -0.06, 0]
+          "position": [
+            0.36,
+            -0.06,
+            0
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.30, 0.32, 0.03],
+          "args": [
+            0.3,
+            0.32,
+            0.03
+          ],
           "color": "#CCA000",
           "emissive": "#604800",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [-0.36, -0.06, 0]
+          "position": [
+            -0.36,
+            -0.06,
+            0
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.04, 0.12, 4],
+          "args": [
+            0.04,
+            0.12,
+            4
+          ],
           "color": "#FFD700",
           "emissive": "#806000",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0.54, -0.14, 0],
-          "rotation": [0, 0, -1.5708]
+          "position": [
+            0.54,
+            -0.14,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            -1.5708
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.04, 0.12, 4],
+          "args": [
+            0.04,
+            0.12,
+            4
+          ],
           "color": "#FFD700",
           "emissive": "#806000",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [-0.54, -0.14, 0],
-          "rotation": [0, 0, 1.5708]
+          "position": [
+            -0.54,
+            -0.14,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            1.5708
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.07, 0.22, 6],
+          "args": [
+            0.07,
+            0.22,
+            6
+          ],
           "color": "#FFEE80",
           "emissive": "#FFEE80",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [0.18, -0.38, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0.18,
+            -0.38,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.07, 0.22, 6],
+          "args": [
+            0.07,
+            0.22,
+            6
+          ],
           "color": "#FFEE80",
           "emissive": "#FFEE80",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [-0.18, -0.38, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            -0.18,
+            -0.38,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "TorusGeometry",
-          "args": [0.50, 0.03, 8, 32],
+          "args": [
+            0.5,
+            0.03,
+            8,
+            32
+          ],
           "color": "#FFEE80",
           "emissive": "#FFEE80",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic"
         }
       ]
     },
-
     "sentinel_boss": {
-      "worldScale": [5.0, 5.0, 5.0],
+      "worldScale": [
+        5,
+        5,
+        5
+      ],
       "parts": [
         {
           "geo": "CylinderGeometry",
-          "args": [0.28, 0.28, 0.18, 8],
+          "args": [
+            0.28,
+            0.28,
+            0.18,
+            8
+          ],
           "color": "#00BFFF",
           "emissive": "#004A70",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard"
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.16, 0.20, 0.14, 8],
+          "args": [
+            0.16,
+            0.2,
+            0.14,
+            8
+          ],
           "color": "#00A0E0",
           "emissive": "#003860",
-          "emissiveIntensity": 0.6,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0, 0.10]
+          "position": [
+            0,
+            0,
+            0.1
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.14, 10, 10],
+          "args": [
+            0.14,
+            10,
+            10
+          ],
           "color": "#60DFFF",
           "emissive": "#60DFFF",
-          "emissiveIntensity": 4.0,
+          "emissiveIntensity": 4,
           "material": "basic",
-          "position": [0, 0, 0.16]
+          "position": [
+            0,
+            0,
+            0.16
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.06, 0.06, 0.68, 6],
+          "args": [
+            0.06,
+            0.06,
+            0.68,
+            6
+          ],
           "color": "#0090CC",
           "emissive": "#003050",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0, 0],
-          "rotation": [0, 0, 1.5708]
+          "position": [
+            0,
+            0,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            1.5708
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.06, 0.06, 0.68, 6],
+          "args": [
+            0.06,
+            0.06,
+            0.68,
+            6
+          ],
           "color": "#0090CC",
           "emissive": "#003050",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0, 0]
+          "position": [
+            0,
+            0,
+            0
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.10, 8, 8],
+          "args": [
+            0.1,
+            8,
+            8
+          ],
           "color": "#60DFFF",
           "emissive": "#60DFFF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [0.38, 0, 0.06]
+          "position": [
+            0.38,
+            0,
+            0.06
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.10, 8, 8],
+          "args": [
+            0.1,
+            8,
+            8
+          ],
           "color": "#60DFFF",
           "emissive": "#60DFFF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [-0.38, 0, 0.06]
+          "position": [
+            -0.38,
+            0,
+            0.06
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.10, 8, 8],
+          "args": [
+            0.1,
+            8,
+            8
+          ],
           "color": "#60DFFF",
           "emissive": "#60DFFF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [0, 0.38, 0.06]
+          "position": [
+            0,
+            0.38,
+            0.06
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.10, 8, 8],
+          "args": [
+            0.1,
+            8,
+            8
+          ],
           "color": "#60DFFF",
           "emissive": "#60DFFF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [0, -0.38, 0.06]
+          "position": [
+            0,
+            -0.38,
+            0.06
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.06, 0.18, 5],
+          "args": [
+            0.06,
+            0.18,
+            5
+          ],
           "color": "#60DFFF",
           "emissive": "#60DFFF",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0.38, 0, 0.06],
-          "rotation": [0, 0, -1.5708]
+          "position": [
+            0.38,
+            0,
+            0.06
+          ],
+          "rotation": [
+            0,
+            0,
+            -1.5708
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.06, 0.18, 5],
+          "args": [
+            0.06,
+            0.18,
+            5
+          ],
           "color": "#60DFFF",
           "emissive": "#60DFFF",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [-0.38, 0, 0.06],
-          "rotation": [0, 0, 1.5708]
+          "position": [
+            -0.38,
+            0,
+            0.06
+          ],
+          "rotation": [
+            0,
+            0,
+            1.5708
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.06, 0.18, 5],
+          "args": [
+            0.06,
+            0.18,
+            5
+          ],
           "color": "#60DFFF",
           "emissive": "#60DFFF",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0, 0.38, 0.06],
-          "rotation": [0, 0, 0]
+          "position": [
+            0,
+            0.38,
+            0.06
+          ],
+          "rotation": [
+            0,
+            0,
+            0
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.06, 0.18, 5],
+          "args": [
+            0.06,
+            0.18,
+            5
+          ],
           "color": "#60DFFF",
           "emissive": "#60DFFF",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0, -0.38, 0.06],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0,
+            -0.38,
+            0.06
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "TorusGeometry",
-          "args": [0.32, 0.04, 8, 32],
+          "args": [
+            0.32,
+            0.04,
+            8,
+            32
+          ],
           "color": "#00BFFF",
           "emissive": "#00BFFF",
           "emissiveIntensity": 1.5,
           "material": "basic",
-          "position": [0, 0, 0.02]
+          "position": [
+            0,
+            0,
+            0.02
+          ]
         }
       ]
     },
-
     "interceptor_boss": {
-      "worldScale": [4.5, 4.0, 4.0],
+      "worldScale": [
+        4.5,
+        4,
+        4
+      ],
       "parts": [
         {
           "geo": "ConeGeometry",
-          "args": [0.10, 0.60, 6],
+          "args": [
+            0.1,
+            0.6,
+            6
+          ],
           "color": "#FF6B00",
           "emissive": "#803000",
-          "emissiveIntensity": 0.7,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.44, 0]
+          "position": [
+            0,
+            0.44,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.12, 0.16, 0.62, 7],
+          "args": [
+            0.12,
+            0.16,
+            0.62,
+            7
+          ],
           "color": "#FF6B00",
           "emissive": "#803000",
-          "emissiveIntensity": 0.6,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, -0.02, 0]
+          "position": [
+            0,
+            -0.02,
+            0
+          ]
         },
         {
           "geo": "IcosahedronGeometry",
-          "args": [0.16, 0],
+          "args": [
+            0.16,
+            0
+          ],
           "color": "#FFAA40",
           "emissive": "#FFAA40",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic",
-          "position": [0, 0.08, 0.10]
+          "position": [
+            0,
+            0.08,
+            0.1
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [1.10, 0.26, 0.04],
+          "args": [
+            1.1,
+            0.26,
+            0.04
+          ],
           "color": "#E05000",
           "emissive": "#602000",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.08, 0]
+          "position": [
+            0,
+            0.08,
+            0
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.70, 0.16, 0.03],
+          "args": [
+            0.7,
+            0.16,
+            0.03
+          ],
           "color": "#CC4200",
           "emissive": "#501800",
-          "emissiveIntensity": 0.3,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, -0.08, 0]
+          "position": [
+            0,
+            -0.08,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.07, 0.09, 0.32, 5],
+          "args": [
+            0.07,
+            0.09,
+            0.32,
+            5
+          ],
           "color": "#B03800",
           "emissive": "#401000",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0.54, 0.06, 0]
+          "position": [
+            0.54,
+            0.06,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.07, 0.09, 0.32, 5],
+          "args": [
+            0.07,
+            0.09,
+            0.32,
+            5
+          ],
           "color": "#B03800",
           "emissive": "#401000",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [-0.54, 0.06, 0]
+          "position": [
+            -0.54,
+            0.06,
+            0
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.08, 8, 8],
+          "args": [
+            0.08,
+            8,
+            8
+          ],
           "color": "#FFAA40",
           "emissive": "#FFAA40",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [0.54, 0.22, 0.06]
+          "position": [
+            0.54,
+            0.22,
+            0.06
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.08, 8, 8],
+          "args": [
+            0.08,
+            8,
+            8
+          ],
           "color": "#FFAA40",
           "emissive": "#FFAA40",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [-0.54, 0.22, 0.06]
+          "position": [
+            -0.54,
+            0.22,
+            0.06
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.06, 8, 8],
+          "args": [
+            0.06,
+            8,
+            8
+          ],
           "color": "#FFAA40",
           "emissive": "#FFAA40",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0.30, 0.22, 0.06]
+          "position": [
+            0.3,
+            0.22,
+            0.06
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.06, 8, 8],
+          "args": [
+            0.06,
+            8,
+            8
+          ],
           "color": "#FFAA40",
           "emissive": "#FFAA40",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [-0.30, 0.22, 0.06]
+          "position": [
+            -0.3,
+            0.22,
+            0.06
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.11, 0.34, 6],
+          "args": [
+            0.11,
+            0.34,
+            6
+          ],
           "color": "#FFAA40",
           "emissive": "#FFAA40",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0, -0.54, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0,
+            -0.54,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.08, 0.26, 6],
+          "args": [
+            0.08,
+            0.26,
+            6
+          ],
           "color": "#FFAA40",
           "emissive": "#FFAA40",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic",
-          "position": [0.40, -0.40, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0.4,
+            -0.4,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.08, 0.26, 6],
+          "args": [
+            0.08,
+            0.26,
+            6
+          ],
           "color": "#FFAA40",
           "emissive": "#FFAA40",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic",
-          "position": [-0.40, -0.40, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            -0.4,
+            -0.4,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         }
       ]
     },
-
     "colossus_boss": {
-      "worldScale": [7.0, 6.0, 6.0],
+      "worldScale": [
+        7,
+        6,
+        6
+      ],
       "parts": [
         {
           "geo": "IcosahedronGeometry",
-          "args": [0.34, 0],
+          "args": [
+            0.34,
+            0
+          ],
           "color": "#CC00FF",
           "emissive": "#600080",
-          "emissiveIntensity": 0.7,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0, 0.06]
+          "position": [
+            0,
+            0,
+            0.06
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.22, 10, 10],
+          "args": [
+            0.22,
+            10,
+            10
+          ],
           "color": "#BB00EE",
           "emissive": "#580078",
-          "emissiveIntensity": 0.8,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.14, 0.10]
+          "position": [
+            0,
+            0.14,
+            0.1
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [1.10, 0.32, 0.05],
+          "args": [
+            1.1,
+            0.32,
+            0.05
+          ],
           "color": "#AA00DD",
           "emissive": "#500068",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, 0.16, 0]
+          "position": [
+            0,
+            0.16,
+            0
+          ]
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.88, 0.24, 0.04],
+          "args": [
+            0.88,
+            0.24,
+            0.04
+          ],
           "color": "#9900CC",
           "emissive": "#480060",
-          "emissiveIntensity": 0.4,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0, -0.16, 0]
+          "position": [
+            0,
+            -0.16,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.14, 0.18, 0.30, 6],
+          "args": [
+            0.14,
+            0.18,
+            0.3,
+            6
+          ],
           "color": "#8800BB",
           "emissive": "#400058",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [0.52, 0.20, 0]
+          "position": [
+            0.52,
+            0.2,
+            0
+          ]
         },
         {
           "geo": "CylinderGeometry",
-          "args": [0.14, 0.18, 0.30, 6],
+          "args": [
+            0.14,
+            0.18,
+            0.3,
+            6
+          ],
           "color": "#8800BB",
           "emissive": "#400058",
-          "emissiveIntensity": 0.5,
+          "emissiveIntensity": 0.05,
           "material": "standard",
-          "position": [-0.52, 0.20, 0]
+          "position": [
+            -0.52,
+            0.2,
+            0
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.18, 10, 10],
+          "args": [
+            0.18,
+            10,
+            10
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
-          "emissiveIntensity": 4.0,
+          "emissiveIntensity": 4,
           "material": "basic",
-          "position": [0, 0, 0.24]
+          "position": [
+            0,
+            0,
+            0.24
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.10, 8, 8],
+          "args": [
+            0.1,
+            8,
+            8
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [0.50, 0.22, 0.12]
+          "position": [
+            0.5,
+            0.22,
+            0.12
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.10, 8, 8],
+          "args": [
+            0.1,
+            8,
+            8
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [-0.50, 0.22, 0.12]
+          "position": [
+            -0.5,
+            0.22,
+            0.12
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.08, 8, 8],
+          "args": [
+            0.08,
+            8,
+            8
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [0.50, -0.18, 0.10]
+          "position": [
+            0.5,
+            -0.18,
+            0.1
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.08, 8, 8],
+          "args": [
+            0.08,
+            8,
+            8
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "position": [-0.50, -0.18, 0.10]
+          "position": [
+            -0.5,
+            -0.18,
+            0.1
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.06, 8, 8],
+          "args": [
+            0.06,
+            8,
+            8
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0.26, 0.44, 0.08]
+          "position": [
+            0.26,
+            0.44,
+            0.08
+          ]
         },
         {
           "geo": "SphereGeometry",
-          "args": [0.06, 8, 8],
+          "args": [
+            0.06,
+            8,
+            8
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [-0.26, 0.44, 0.08]
+          "position": [
+            -0.26,
+            0.44,
+            0.08
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.16, 0.44, 7],
+          "args": [
+            0.16,
+            0.44,
+            7
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0, -0.62, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0,
+            -0.62,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.11, 0.32, 6],
+          "args": [
+            0.11,
+            0.32,
+            6
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic",
-          "position": [0.38, -0.50, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            0.38,
+            -0.5,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         },
         {
           "geo": "ConeGeometry",
-          "args": [0.11, 0.32, 6],
+          "args": [
+            0.11,
+            0.32,
+            6
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic",
-          "position": [-0.38, -0.50, 0],
-          "rotation": [0, 0, 3.14159]
+          "position": [
+            -0.38,
+            -0.5,
+            0
+          ],
+          "rotation": [
+            0,
+            0,
+            3.14159
+          ]
         }
       ]
     },
-
     "explosion": {
       "type": "particle",
       "count": 12,
-      "speed": 4.0,
+      "speed": 4,
       "lifetime": 0.4,
       "color": "#FF6B00",
       "endColor": "#FF00FF",
@@ -888,14 +1745,17 @@
       "endRadius": 0.6
     }
   },
-
   "bullets": {
     "T1": {
       "color": "#80CFFF",
       "emissive": "#B0E8FF",
-      "emissiveIntensity": 2.0,
+      "emissiveIntensity": 2,
       "geo": "BoxGeometry",
-      "args": [0.12, 0.12, 0.5],
+      "args": [
+        0.12,
+        0.12,
+        0.5
+      ],
       "material": "basic"
     },
     "T2": {
@@ -903,7 +1763,11 @@
       "emissive": "#90FFFF",
       "emissiveIntensity": 2.2,
       "geo": "BoxGeometry",
-      "args": [0.13, 0.13, 0.52],
+      "args": [
+        0.13,
+        0.13,
+        0.52
+      ],
       "material": "basic"
     },
     "T3": {
@@ -911,7 +1775,11 @@
       "emissive": "#90FFB0",
       "emissiveIntensity": 2.3,
       "geo": "BoxGeometry",
-      "args": [0.14, 0.14, 0.54],
+      "args": [
+        0.14,
+        0.14,
+        0.54
+      ],
       "material": "basic"
     },
     "T4": {
@@ -919,7 +1787,11 @@
       "emissive": "#FFFF80",
       "emissiveIntensity": 2.5,
       "geo": "BoxGeometry",
-      "args": [0.14, 0.14, 0.56],
+      "args": [
+        0.14,
+        0.14,
+        0.56
+      ],
       "material": "basic"
     },
     "T5": {
@@ -927,7 +1799,11 @@
       "emissive": "#FFCC60",
       "emissiveIntensity": 2.5,
       "geo": "BoxGeometry",
-      "args": [0.15, 0.15, 0.56],
+      "args": [
+        0.15,
+        0.15,
+        0.56
+      ],
       "material": "basic"
     },
     "T6": {
@@ -935,7 +1811,11 @@
       "emissive": "#FF8090",
       "emissiveIntensity": 2.8,
       "geo": "BoxGeometry",
-      "args": [0.15, 0.15, 0.58],
+      "args": [
+        0.15,
+        0.15,
+        0.58
+      ],
       "material": "basic"
     },
     "T7": {
@@ -943,7 +1823,11 @@
       "emissive": "#FF80FF",
       "emissiveIntensity": 3.5,
       "geo": "BoxGeometry",
-      "args": [0.18, 0.18, 0.70],
+      "args": [
+        0.18,
+        0.18,
+        0.7
+      ],
       "material": "basic"
     },
     "enemy": {
@@ -951,17 +1835,24 @@
       "emissive": "#FF6060",
       "emissiveIntensity": 2.2,
       "geo": "BoxGeometry",
-      "args": [0.10, 0.10, 0.44],
+      "args": [
+        0.1,
+        0.1,
+        0.44
+      ],
       "material": "basic"
     }
   },
-
   "pickups": {
     "weapon": {
       "parts": [
         {
           "geo": "SphereGeometry",
-          "args": [0.28, 10, 10],
+          "args": [
+            0.28,
+            10,
+            10
+          ],
           "color": "#00E5FF",
           "emissive": "#00E5FF",
           "emissiveIntensity": 2.5,
@@ -969,21 +1860,39 @@
         },
         {
           "geo": "TorusGeometry",
-          "args": [0.36, 0.04, 8, 24],
+          "args": [
+            0.36,
+            0.04,
+            8,
+            24
+          ],
           "color": "#FFFFFF",
           "emissive": "#00E5FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "rotation": [1.5708, 0, 0]
+          "rotation": [
+            1.5708,
+            0,
+            0
+          ]
         },
         {
           "geo": "TorusGeometry",
-          "args": [0.36, 0.04, 8, 24],
+          "args": [
+            0.36,
+            0.04,
+            8,
+            24
+          ],
           "color": "#FFFFFF",
           "emissive": "#00E5FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic",
-          "rotation": [0, 1.5708, 0]
+          "rotation": [
+            0,
+            1.5708,
+            0
+          ]
         }
       ]
     },
@@ -991,27 +1900,44 @@
       "parts": [
         {
           "geo": "SphereGeometry",
-          "args": [0.26, 8, 8],
+          "args": [
+            0.26,
+            8,
+            8
+          ],
           "color": "#C070FF",
           "emissive": "#8B30FF",
-          "emissiveIntensity": 2.0,
+          "emissiveIntensity": 2,
           "material": "basic"
         },
         {
           "geo": "BoxGeometry",
-          "args": [0.12, 0.36, 0.12],
+          "args": [
+            0.12,
+            0.36,
+            0.12
+          ],
           "color": "#C070FF",
           "emissive": "#8B30FF",
           "emissiveIntensity": 2.5,
           "material": "basic",
-          "position": [0, 0.30, 0]
+          "position": [
+            0,
+            0.3,
+            0
+          ]
         },
         {
           "geo": "TorusGeometry",
-          "args": [0.32, 0.03, 8, 20],
+          "args": [
+            0.32,
+            0.03,
+            8,
+            20
+          ],
           "color": "#FF40FF",
           "emissive": "#FF40FF",
-          "emissiveIntensity": 3.0,
+          "emissiveIntensity": 3,
           "material": "basic"
         }
       ]

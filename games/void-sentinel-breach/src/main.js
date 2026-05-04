@@ -39,7 +39,7 @@ composer.addPass(new RenderPass(scene, camera));
 
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
-  0.6, 0.3, 0.55
+  0.6, 0.05, 0.55
 );
 composer.addPass(bloomPass);
 
@@ -257,16 +257,30 @@ devPanel.innerHTML = `
   </div>
   <div id="vsb-dev-body">
     <div>
+      <span style="color:#7a9ab0">STATE</span>
+      <button id="vsb-s1">1 MENU</button>
+      <button id="vsb-s2">2 PLAY</button>
+      <button id="vsb-s3">3 BOSS</button>
+      <button id="vsb-s4">4 WIN</button>
+      <button id="vsb-s5">5 OVER</button>
+    </div>
+    <div>
       <span style="color:#7a9ab0">TIER</span>
       <button id="vsb-tier-down">[ −</button>
       <button id="vsb-tier-up">] +</button>
     </div>
     <div>
       <span style="color:#7a9ab0">SPAWN</span>
-      <button id="vsb-spawn-s">Scout (⇧S)</button>
-      <button id="vsb-spawn-b">Bomber (⇧B)</button>
-      <button id="vsb-spawn-d">Drone (⇧D)</button>
-      <button id="vsb-spawn-e">Elite (⇧E)</button>
+      <button id="vsb-spawn-s">⇧S Scout</button>
+      <button id="vsb-spawn-b">⇧B Bomber</button>
+      <button id="vsb-spawn-d">⇧D Drone</button>
+      <button id="vsb-spawn-e">⇧E Elite</button>
+    </div>
+    <div>
+      <span style="color:#7a9ab0">VIEW</span>
+      <button id="vsb-btn-art">M Art</button>
+      <button id="vsb-btn-ships">P Ship focus</button>
+      <button id="vsb-btn-cam">C Cam</button>
     </div>
     <div id="vsb-dev-stats" class="vsb-dev-stats"></div>
   </div>
@@ -286,6 +300,28 @@ document.getElementById('vsb-spawn-s').addEventListener('click', () => Game.devS
 document.getElementById('vsb-spawn-b').addEventListener('click', () => Game.devSpawnEnemy('bomber'));
 document.getElementById('vsb-spawn-d').addEventListener('click', () => Game.devSpawnEnemy('drone'));
 document.getElementById('vsb-spawn-e').addEventListener('click', () => Game.devSpawnEnemy('elite'));
+document.getElementById('vsb-s1').addEventListener('click', () => Game.devSetState('MENU'));
+document.getElementById('vsb-s2').addEventListener('click', () => Game.devSetState('PLAYING'));
+document.getElementById('vsb-s3').addEventListener('click', () => Game.devSetState('BOSS'));
+document.getElementById('vsb-s4').addEventListener('click', () => Game.devSetState('WIN'));
+document.getElementById('vsb-s5').addEventListener('click', () => Game.devSetState('GAME_OVER'));
+document.getElementById('vsb-btn-art').addEventListener('click', () => toggleArtMode());
+document.getElementById('vsb-btn-ships').addEventListener('click', () => {
+  if (!artMode) toggleArtMode();
+  artShipFocusIdx = (artShipFocusIdx + 2) % (SHIP_FOCUS_CAMS.length + 1) - 1;
+  _setArtCamera();
+  buildArtLabels(artMeshes);
+});
+document.getElementById('vsb-btn-cam').addEventListener('click', () => {
+  camModeIdx = (camModeIdx + 1) % CAM_MODES.length;
+  const flash = document.createElement('div');
+  flash.style.cssText = `position:fixed;bottom:100px;left:50%;transform:translateX(-50%);
+    font-family:'Share Tech Mono',monospace;font-size:13px;color:#ffcc00;
+    text-shadow:0 0 8px #ffcc00;letter-spacing:2px;pointer-events:none;z-index:999;`;
+  flash.textContent = `CAM: ${CAM_MODES[camModeIdx].name}`;
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 1200);
+});
 
 // ─── HUD / visual state ───────────────────────────────────────────────────────
 const MAX_LIVES = 3;
@@ -487,6 +523,13 @@ function renderHUD(dt) {
 let artMode = false;
 let artMeshes = [];
 let artLabelContainer = null;
+let artShipFocusIdx = -1; // -1 = overhead, 0/1/2 = focused on that ship variant
+
+const SHIP_FOCUS_CAMS = [
+  { x: -6, label: 'V1 (current)' },
+  { x:  0, label: 'V2 (arwing)'  },
+  { x:  6, label: 'V3 (viper)'   },
+];
 
 function buildArtLabels(meshes) {
   if (artLabelContainer) artLabelContainer.remove();
@@ -525,19 +568,33 @@ function updateArtLabels() {
   }
 }
 
+function _setArtCamera() {
+  if (artShipFocusIdx < 0) {
+    camera.position.set(0, 18, 10);
+    camera.lookAt(0, 0, -20);
+    artBanner.textContent = '[ ART MODE — M exit · P ship focus ]';
+  } else {
+    const fx = SHIP_FOCUS_CAMS[artShipFocusIdx].x;
+    camera.position.set(fx, 2.5, 6);
+    camera.lookAt(fx, 0.5, -2);
+    artBanner.textContent = `[ ${SHIP_FOCUS_CAMS[artShipFocusIdx].label} — P next · M exit ]`;
+  }
+}
+
 function toggleArtMode() {
   artMode = !artMode;
   if (artMode) {
+    artShipFocusIdx = -1;
     artMeshes = Game.devBuildArtScene(scene);
     buildArtLabels(artMeshes);
-    camera.position.set(0, 18, 10);
-    camera.lookAt(0, 0, -20);
-    if (artBanner) artBanner.style.display = 'block';
+    _setArtCamera();
+    artBanner.style.display = 'block';
   } else {
+    artShipFocusIdx = -1;
     Game.devClearArtScene(scene, artMeshes);
     artMeshes = [];
     if (artLabelContainer) { artLabelContainer.remove(); artLabelContainer = null; }
-    if (artBanner) artBanner.style.display = 'none';
+    artBanner.style.display = 'none';
   }
 }
 
@@ -552,20 +609,28 @@ artBanner.style.cssText = `
 artBanner.textContent = '[ ART MODE — M TO EXIT ]';
 document.body.appendChild(artBanner);
 
-// M key
+// M key — toggle art mode
 window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyM' && window.__DEV_TOOLS__) {
     toggleArtMode();
+    e.preventDefault();
+  }
+  // P key — cycle ship focus while in art mode
+  if (e.code === 'KeyP' && window.__DEV_TOOLS__ && artMode) {
+    // cycles: -1 → 0 → 1 → 2 → -1 → ...
+    artShipFocusIdx = (artShipFocusIdx + 2) % (SHIP_FOCUS_CAMS.length + 1) - 1;
+    _setArtCamera();
+    buildArtLabels(artMeshes);
     e.preventDefault();
   }
 });
 
 // ─── Camera modes (dev) ───────────────────────────────────────────────────────
 const CAM_MODES = [
-  { name: 'CHASE',  offset: new THREE.Vector3(0, 3.2, 8.5),  lookDZ: -6, lookDY: -0.5 },
   { name: 'LOW',    offset: new THREE.Vector3(0, 1.2, 3.0),  lookDZ: -8, lookDY:  0.0 },
   { name: '1ST-P',  offset: new THREE.Vector3(0, 0.4, -1.2), lookDZ: -8, lookDY:  0.0 },
   { name: 'HIGH',   offset: new THREE.Vector3(0, 9.0, 12.0), lookDZ: -4, lookDY: -1.5 },
+  { name: 'CHASE',  offset: new THREE.Vector3(0, 3.2, 8.5),  lookDZ: -6, lookDY: -0.5 },
 ];
 let camModeIdx = 0;
 
@@ -610,6 +675,7 @@ function loop() {
     composer.render();
     return;
   }
+
 
   Game.update(dt, scene);
 

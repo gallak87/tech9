@@ -600,19 +600,27 @@ export function devCycleTier(dir) {
   weaponTier = ((weaponTier - 1 + dir + 7) % 7) + 1;
 }
 
+export function devSetState(stateName) {
+  const target = STATE[stateName];
+  if (target) transitionTo(target);
+}
+
 export function devBuildArtScene(scene) {
   const meshes = [];
-  const add = (def, x, y, z, label) => {
+  const add = (def, x, y, z, label, extra = {}) => {
     const m = buildEntityMesh(def);
     m.position.set(x, y, z);
     m.userData.artLabel = label;
+    Object.assign(m.userData, extra);
     scene.add(m);
     meshes.push(m);
     return m;
   };
 
-  // Player
-  add(GEO_MANIFEST.entities.player, 0, 0.6, 0, 'PLAYER');
+  // Player variants — row at z=0, spread in X so P-key camera focus works per ship
+  add(GEO_MANIFEST.entities.player,    -6, 0.6, 0, 'V1 (current)', { shipFocusIdx: 0 });
+  add(GEO_MANIFEST.entities.player_v2,  0, 0.6, 0, 'V2 (arwing)',  { shipFocusIdx: 1 });
+  add(GEO_MANIFEST.entities.player_v3,  6, 0.6, 0, 'V3 (viper)',   { shipFocusIdx: 2 });
 
   // Enemies — row at z=-10
   add(GEO_MANIFEST.entities.scout,   -7, 1, -10, 'SCOUT');

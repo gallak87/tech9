@@ -300,151 +300,66 @@ export function buildWorld(scene) {
 }
 
 // ─── Scenery helpers ──────────────────────────────────────────────────────────
-const _SCENERY_TYPES = ['data_block', 'comm_tower', 'energy_pylon', 'billboard'];
-const _SCENERY_POOL_SIDE = 6;
+const _SCENERY_POOL_SIDE = 9;  // 9 per side, 50-unit spacing = dense city feel
+const _NEON_COLS = [0x00ccff, 0xff00cc, 0xffcc00, 0xff2266, 0x00ffcc, 0xcc00ff];
 
 function _sr(min, max) { return min + Math.random() * (max - min); }
+function _neon() { return _NEON_COLS[Math.floor(Math.random() * _NEON_COLS.length)]; }
+function _addMesh(g, geo, mat, y) { const m = new THREE.Mesh(geo, mat); m.position.y = y; g.add(m); }
+function _basicAdd(col) { return new THREE.MeshBasicMaterial({ color: col, blending: THREE.AdditiveBlending, depthWrite: false }); }
 
-function _buildDataBlock() {
-  const h = _sr(5, 14), w = _sr(2.5, 5), d = w * _sr(0.6, 1.0);
+// Box tower: dark slab + single neon accent band
+function _buildTowerBox() {
+  const h = _sr(6, 18), w = _sr(2, 5), d = _sr(2, 4);
   const g = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(w, h, d),
-    new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.6, metalness: 0.4 })
-  );
-  body.position.y = h / 2;
-  g.add(body);
-  // accent stripe
-  const stripe = new THREE.Mesh(
-    new THREE.BoxGeometry(w + 0.3, h * 0.07, d + 0.3),
-    new THREE.MeshStandardMaterial({ color: 0x0f3460, emissive: new THREE.Color(0x1060c0), emissiveIntensity: 0.7, roughness: 0.4, metalness: 0.5 })
-  );
-  stripe.position.y = h * 0.72;
-  g.add(stripe);
-  // window rows (additive glowing strips)
-  const winMat = new THREE.MeshBasicMaterial({ color: 0x2255ff, blending: THREE.AdditiveBlending, depthWrite: false });
-  const rows = Math.floor(h / 1.4);
-  for (let r = 0; r < rows; r++) {
-    const win = new THREE.Mesh(new THREE.BoxGeometry(w * 0.65, 0.18, 0.05), winMat.clone());
-    win.position.set(0, 1.1 + r * 1.4, d / 2 + 0.03);
-    g.add(win);
-  }
-  // rooftop antenna
-  const ant = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.05, 0.05, 2, 6),
-    new THREE.MeshBasicMaterial({ color: 0x00ffcc })
-  );
-  ant.position.y = h + 1;
-  g.add(ant);
+  _addMesh(g, new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: 0x0d0d1a, roughness: 0.7, metalness: 0.3 }), h / 2);
+  _addMesh(g, new THREE.BoxGeometry(w + 0.2, h * 0.06, d + 0.2), _basicAdd(_neon()), h * _sr(0.55, 0.85));
   return g;
 }
 
-function _buildCommTower() {
-  const h = _sr(10, 20);
+// Slim spire: narrow tapered cylinder + glowing tip
+function _buildSpire() {
+  const h = _sr(12, 24);
   const g = new THREE.Group();
-  const shaft = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.12, 0.35, h, 6),
-    new THREE.MeshStandardMaterial({ color: 0x222233, roughness: 0.4, metalness: 0.7 })
-  );
-  shaft.position.y = h / 2;
-  g.add(shaft);
-  const ringDefs = [[0.3, 0x00ccff], [0.6, 0xff00cc], [0.85, 0x00ccff]];
-  for (const [frac, col] of ringDefs) {
-    const r = _sr(0.8, 1.4) * (1 - frac * 0.4);
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(r, 0.07, 8, 24),
-      new THREE.MeshBasicMaterial({ color: col, blending: THREE.AdditiveBlending, depthWrite: false })
-    );
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = h * frac;
-    g.add(ring);
-  }
-  const tip = new THREE.Mesh(
-    new THREE.SphereGeometry(0.15, 8, 8),
-    new THREE.MeshBasicMaterial({ color: 0xff4400 })
-  );
-  tip.position.y = h + 0.15;
-  g.add(tip);
+  _addMesh(g, new THREE.CylinderGeometry(0.1, 0.4, h, 5), new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.5, metalness: 0.6 }), h / 2);
+  _addMesh(g, new THREE.SphereGeometry(0.25, 8, 8), _basicAdd(_neon()), h + 0.25);
   return g;
 }
 
-function _buildEnergyPylon() {
-  const h = _sr(6, 12);
+// Pylon: hex column + one torus ring
+function _buildPylon() {
+  const h = _sr(5, 11), col = _neon();
   const g = new THREE.Group();
-  const col = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.28, 0.42, h, 6),
-    new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.3, metalness: 0.8 })
-  );
-  col.position.y = h / 2;
-  g.add(col);
-  const ringCount = Math.floor(h / 1.5);
-  for (let i = 0; i < ringCount; i++) {
-    const col = i % 2 === 0 ? 0xff00ff : 0xcc00ff;
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.65, 0.07, 8, 24),
-      new THREE.MeshBasicMaterial({ color: col, blending: THREE.AdditiveBlending, depthWrite: false })
-    );
-    ring.rotation.x = Math.PI / 2;
-    ring.position.y = 1.0 + i * 1.5;
-    g.add(ring);
-  }
-  const cap = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.4),
-    new THREE.MeshBasicMaterial({ color: 0x00ffff, blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  cap.position.y = h + 0.4;
-  g.add(cap);
+  _addMesh(g, new THREE.CylinderGeometry(0.25, 0.4, h, 6), new THREE.MeshStandardMaterial({ color: 0x0a0a18, roughness: 0.3, metalness: 0.8 }), h / 2);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.08, 8, 20), _basicAdd(col));
+  ring.rotation.x = Math.PI / 2;
+  ring.position.y = h * _sr(0.45, 0.75);
+  g.add(ring);
+  _addMesh(g, new THREE.OctahedronGeometry(0.3), _basicAdd(col), h + 0.3);
   return g;
 }
 
+// Billboard: post + glowing panel
 function _buildBillboard() {
-  const h = _sr(5, 9), pw = _sr(4, 7), ph = pw * _sr(0.38, 0.55);
+  const h = _sr(5, 10), pw = _sr(3, 6), ph = pw * _sr(0.4, 0.6);
   const g = new THREE.Group();
-  const post = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.14, 0.14, h, 6),
-    new THREE.MeshStandardMaterial({ color: 0x1a1a1a })
-  );
-  post.position.y = h / 2;
-  g.add(post);
-  const panel = new THREE.Mesh(
-    new THREE.BoxGeometry(pw, ph, 0.22),
-    new THREE.MeshStandardMaterial({ color: 0x080818 })
-  );
-  panel.position.y = h + ph / 2;
-  g.add(panel);
-  const rim = new THREE.Mesh(
-    new THREE.BoxGeometry(pw + 0.35, ph + 0.35, 0.1),
-    new THREE.MeshBasicMaterial({ color: 0x00ccff, blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  rim.position.set(0, h + ph / 2, -0.08);
-  g.add(rim);
-  const contentColors = [0xff2266, 0x00ffcc, 0xffaa00, 0xff4488];
-  const content = new THREE.Mesh(
-    new THREE.BoxGeometry(pw * 0.82, ph * 0.76, 0.05),
-    new THREE.MeshBasicMaterial({ color: contentColors[Math.floor(Math.random() * contentColors.length)], blending: THREE.AdditiveBlending, depthWrite: false })
-  );
-  content.position.set(0, h + ph / 2, 0.14);
-  g.add(content);
+  _addMesh(g, new THREE.CylinderGeometry(0.12, 0.12, h, 5), new THREE.MeshStandardMaterial({ color: 0x111111 }), h / 2);
+  _addMesh(g, new THREE.BoxGeometry(pw, ph, 0.15), new THREE.MeshStandardMaterial({ color: 0x050510 }), h + ph / 2);
+  _addMesh(g, new THREE.BoxGeometry(pw + 0.3, ph + 0.3, 0.08), _basicAdd(_neon()), h + ph / 2);
   return g;
 }
 
-function _buildSceneryItem(type) {
-  switch (type) {
-    case 'data_block':   return _buildDataBlock();
-    case 'comm_tower':   return _buildCommTower();
-    case 'energy_pylon': return _buildEnergyPylon();
-    case 'billboard':    return _buildBillboard();
-    default:             return _buildDataBlock();
-  }
+function _buildSceneryItem() {
+  const builders = [_buildTowerBox, _buildTowerBox, _buildSpire, _buildPylon, _buildBillboard];
+  return builders[Math.floor(Math.random() * builders.length)]();
 }
 
 function _initScenery(scene) {
   _sceneryPool = [];
   for (let i = 0; i < _SCENERY_POOL_SIDE * 2; i++) {
     const side = i < _SCENERY_POOL_SIDE ? -1 : 1;
-    const type = _SCENERY_TYPES[Math.floor(Math.random() * _SCENERY_TYPES.length)];
-    const mesh = _buildSceneryItem(type);
-    mesh.position.set(side * _sr(14, 22), 0, -80 - (i % _SCENERY_POOL_SIDE) * 100);
+    const mesh = _buildSceneryItem();
+    mesh.position.set(side * _sr(13, 21), 0, -60 - (i % _SCENERY_POOL_SIDE) * 50);
     scene.add(mesh);
     _sceneryPool.push({ mesh, side });
   }
@@ -2038,9 +1953,8 @@ export function update(dt, scene) {
       if (s.mesh.position.z > 15) {
         _scene.remove(s.mesh);
         _disposeMesh(s.mesh);
-        const type = _SCENERY_TYPES[Math.floor(Math.random() * _SCENERY_TYPES.length)];
-        s.mesh = _buildSceneryItem(type);
-        s.mesh.position.set(s.side * _sr(14, 22), 0, -580);
+        s.mesh = _buildSceneryItem();
+        s.mesh.position.set(s.side * _sr(13, 21), 0, -430);
         _scene.add(s.mesh);
       }
     }

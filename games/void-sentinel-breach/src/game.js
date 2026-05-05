@@ -301,7 +301,7 @@ function deg2rad(d) { return d * Math.PI / 180; }
 function makeBulletMesh(tier) {
   const spec = GEO_MANIFEST.bullets[`T${tier}`] || GEO_MANIFEST.bullets.T1;
   const geo = new THREE.BoxGeometry(...spec.args);
-  const mat = new THREE.MeshBasicMaterial({ color: spec.color });
+  const mat = new THREE.MeshBasicMaterial({ color: spec.color, blending: THREE.AdditiveBlending, depthWrite: false });
   return new THREE.Mesh(geo, mat);
 }
 
@@ -517,7 +517,7 @@ export function spawnEnemy(scene, type, opts = {}) {
 function spawnEnemyBullet(scene, origin, angleDeg, speed, color = 0xFF4444, scale = 1, yVel = 0) {
   const spec = GEO_MANIFEST.bullets.enemy;
   const geo = new THREE.BoxGeometry(spec.args[0] * scale, spec.args[1] * scale, spec.args[2] * scale);
-  const mat = new THREE.MeshBasicMaterial({ color: color !== 0xFF4444 ? color : spec.color });
+  const mat = new THREE.MeshBasicMaterial({ color: color !== 0xFF4444 ? color : spec.color, blending: THREE.AdditiveBlending, depthWrite: false });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.position.copy(origin);
   scene.add(mesh);

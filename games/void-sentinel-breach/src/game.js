@@ -242,7 +242,7 @@ export function buildWorld(scene) {
   _terrainPlanes = [];
   for (let ti = 0; ti < 2; ti++) {
     const terrainGeo = new THREE.PlaneGeometry(60, 300, 10, 60);
-    const terrainMat = new THREE.MeshLambertMaterial({ color: 0x1a3a1a });
+    const terrainMat = new THREE.MeshBasicMaterial({ color: 0x0a1e0a });
     const plane = new THREE.Mesh(terrainGeo, terrainMat);
     plane.rotation.x = -Math.PI / 2;
     plane.position.set(0, 0, -80 - ti * 300);
@@ -1737,7 +1737,7 @@ export function update(dt, scene) {
         if (b.piercing && b.hitSet && b.hitSet.has(e)) continue;
 
         const dist = b.mesh.position.distanceTo(e.mesh.position);
-        if (dist < 1.2 + e.halfSize) {
+        if (dist < 0.4 + e.halfSize) {
           if (b.piercing && b.hitSet) {
             b.hitSet.add(e);
           } else {

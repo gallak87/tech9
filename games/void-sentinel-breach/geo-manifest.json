@@ -2040,9 +2040,9 @@
       "emissiveIntensity": 2,
       "geo": "BoxGeometry",
       "args": [
-        0.12,
-        0.12,
-        0.5
+        0.06,
+        0.06,
+        0.38
       ],
       "material": "basic"
     },
@@ -2052,9 +2052,9 @@
       "emissiveIntensity": 2.2,
       "geo": "BoxGeometry",
       "args": [
-        0.13,
-        0.13,
-        0.52
+        0.07,
+        0.07,
+        0.40
       ],
       "material": "basic"
     },
@@ -2064,9 +2064,9 @@
       "emissiveIntensity": 2.3,
       "geo": "BoxGeometry",
       "args": [
-        0.14,
-        0.14,
-        0.54
+        0.07,
+        0.07,
+        0.42
       ],
       "material": "basic"
     },
@@ -2076,9 +2076,9 @@
       "emissiveIntensity": 2.5,
       "geo": "BoxGeometry",
       "args": [
-        0.14,
-        0.14,
-        0.56
+        0.08,
+        0.08,
+        0.43
       ],
       "material": "basic"
     },
@@ -2088,9 +2088,9 @@
       "emissiveIntensity": 2.5,
       "geo": "BoxGeometry",
       "args": [
-        0.15,
-        0.15,
-        0.56
+        0.08,
+        0.08,
+        0.44
       ],
       "material": "basic"
     },
@@ -2100,9 +2100,9 @@
       "emissiveIntensity": 2.8,
       "geo": "BoxGeometry",
       "args": [
-        0.15,
-        0.15,
-        0.58
+        0.09,
+        0.09,
+        0.45
       ],
       "material": "basic"
     },
@@ -2112,9 +2112,9 @@
       "emissiveIntensity": 3.5,
       "geo": "BoxGeometry",
       "args": [
-        0.18,
-        0.18,
-        0.7
+        0.10,
+        0.10,
+        0.48
       ],
       "material": "basic"
     },

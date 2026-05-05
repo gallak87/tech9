@@ -83,6 +83,7 @@ document.body.appendChild(hud);
   style.id = 'vsb-styles';
   style.textContent = `
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes blinkPulse { 0%,100%{opacity:1} 50%{opacity:0.25} }
     @keyframes blinkfast { 0%,100%{opacity:1} 50%{opacity:0.3} }
     @keyframes waveFlashAnim {
       0%   { opacity:0; transform:translateX(-50%) scale(0.7); }
@@ -191,6 +192,28 @@ document.body.appendChild(hud);
     }
     #vsb-dev-body button:hover { background:#223344; }
     #vsb-dev-stats { color:#7a9ab0; font-size:11px; line-height:1.6; }
+    #vsb-joystick-zone {
+      position:fixed; bottom:20px; left:20px;
+      width:120px; height:120px;
+      border-radius:50%; background:rgba(0,230,255,0.08);
+      border:2px solid rgba(0,230,255,0.25);
+      touch-action:none; display:none; z-index:200;
+    }
+    #vsb-joystick-thumb {
+      position:absolute; width:44px; height:44px;
+      border-radius:50%; background:rgba(0,230,255,0.35);
+      border:2px solid rgba(0,230,255,0.6);
+      left:50%; top:50%; transform:translate(-50%,-50%);
+      pointer-events:none;
+    }
+    #vsb-bomb-btn {
+      position:fixed; bottom:20px; right:20px;
+      width:72px; height:72px; border-radius:50%;
+      background:rgba(192,112,255,0.25); border:2px solid rgba(192,112,255,0.6);
+      font-family:'Share Tech Mono',monospace; font-size:11px; color:#C070FF;
+      display:none; align-items:center; justify-content:center;
+      touch-action:none; z-index:200; letter-spacing:1px;
+    }
   `;
   document.head.appendChild(style);
 }
@@ -463,44 +486,53 @@ function renderHUD(dt) {
   if (state === Game.STATE.MENU) {
     overlay.style.display = 'flex';
     overlay.innerHTML = `
-      <div style="font-family:'Share Tech Mono',monospace;font-size:40px;letter-spacing:4px;color:#00eeff;text-shadow:0 0 24px #00eeff;text-align:center;line-height:1.2">
-        VOID SENTINEL<br><span style="color:#ff4400;text-shadow:0 0 20px #ff4400;">BREACH</span>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:48px;letter-spacing:4px;color:#00eeff;text-shadow:0 0 24px #00eeff,0 0 48px #00aabb;text-align:center;line-height:1.15">
+        VOID SENTINEL<br><span style="color:#ff4400;text-shadow:0 0 20px #ff4400,0 0 40px #ff2200;">BREACH</span>
       </div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:13px;line-height:2.4;text-align:center;color:#aaccff;">
-        WASD / ARROWS &mdash; MOVE<br>
-        AUTO-FIRE &mdash; ALWAYS ON<br>
-        12 WAVES + FINAL BOSS
+      <div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:#445566;letter-spacing:3px;text-align:center;margin-top:-8px;">
+        12 WAVES OF CHAOS
       </div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:17px;animation:blink 1.1s step-end infinite;color:#00ffcc;">
-        [ PRESS ENTER OR CLICK TO START ]
+      <div style="font-family:'Share Tech Mono',monospace;font-size:12px;line-height:2.0;text-align:center;color:#5577aa;margin-top:4px;">
+        WASD / ARROWS &mdash; MOVE &nbsp;&middot;&nbsp; BOMB &mdash; X / Z<br>
+        WEAPONS DROP FROM KILLS &nbsp;&middot;&nbsp; SURVIVE ALL 12 WAVES
+      </div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:17px;animation:blinkPulse 1.4s ease-in-out infinite;color:#00ffcc;">
+        PRESS ENTER OR CLICK
       </div>
     `;
   } else if (state === Game.STATE.WIN) {
+    const sc = Game.score;
+    const stars = sc > 50000 ? '&#9733;&#9733;&#9733;' : sc > 20000 ? '&#9733;&#9733;&#9734;' : '&#9733;&#9734;&#9734;';
     overlay.style.display = 'flex';
     overlay.innerHTML = `
-      <div style="font-family:'Share Tech Mono',monospace;font-size:48px;color:#ffff00;text-shadow:0 0 32px #ffff00,0 0 60px #ffffaa;letter-spacing:4px;">VICTORY</div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:#666;letter-spacing:2px;">BREACH ELIMINATED</div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:24px;color:#fff;letter-spacing:3px;">SCORE &nbsp;${String(Game.score).padStart(8,'0')}</div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#aaccff;line-height:2.2;text-align:center;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:52px;color:#ffff00;text-shadow:0 0 32px #ffff00,0 0 60px #ffffaa;letter-spacing:4px;">VICTORY</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:16px;color:#00ff88;text-shadow:0 0 12px #00ff88;letter-spacing:3px;">BREACH ELIMINATED</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:26px;color:#fff;letter-spacing:3px;margin-top:4px;">SCORE &nbsp;${String(sc).padStart(8,'0')}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:28px;color:#ffcc00;letter-spacing:6px;text-shadow:0 0 10px #ffaa00;">${stars}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:#7a9ab0;line-height:2.2;text-align:center;">
         WAVE REACHED &nbsp; ${Game.waveReached}&nbsp;/&nbsp;${Game.waveCount}<br>
         TIME SURVIVED &nbsp; ${_formatTime(Game.timeSurvived)}
       </div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#00ffcc;animation:blink 1.1s step-end infinite;">[ R OR CLICK TO RETURN ]</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#00ffcc;animation:blinkPulse 1.4s ease-in-out infinite;">[ PLAY AGAIN &mdash; R / CLICK ]</div>
     `;
   } else if (state === Game.STATE.GAME_OVER) {
     overlay.style.display = 'flex';
     overlay.innerHTML = `
-      <div style="font-family:'Share Tech Mono',monospace;font-size:48px;color:#ff2200;text-shadow:0 0 32px #ff2200,0 0 60px #ff4400;letter-spacing:2px;">GAME OVER</div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:24px;color:#fff;letter-spacing:3px;">SCORE &nbsp;${String(Game.score).padStart(8,'0')}</div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#aaccff;line-height:2.2;text-align:center;">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:52px;color:#ff2200;text-shadow:0 0 32px #ff2200,0 0 60px #ff4400;letter-spacing:2px;">GAME OVER</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#661111;letter-spacing:4px;text-shadow:0 0 8px #440000;">SENTINEL WINS</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:26px;color:#fff;letter-spacing:3px;margin-top:4px;">SCORE &nbsp;${String(Game.score).padStart(8,'0')}</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:#7a9ab0;line-height:2.2;text-align:center;">
         WAVE REACHED &nbsp; ${Game.waveReached}&nbsp;/&nbsp;${Game.waveCount}<br>
         TIME SURVIVED &nbsp; ${_formatTime(Game.timeSurvived)}
       </div>
-      <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#ff6644;animation:blink 1.1s step-end infinite;">[ R OR CLICK TO RETURN ]</div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#ff6644;animation:blinkPulse 1.4s ease-in-out infinite;">[ TRY AGAIN &mdash; R / CLICK ]</div>
     `;
   } else {
     overlay.style.display = 'none';
   }
+
+  // Touch controls visibility
+  _updateTouchVisibility(state);
 
   // Dev panel
   devPanel.style.display = window.__DEV_TOOLS__ ? 'block' : 'none';
@@ -624,6 +656,119 @@ window.addEventListener('keydown', (e) => {
     e.preventDefault();
   }
 });
+
+// ─── Mobile Touch Controls ───────────────────────────────────────────────────
+const joystickZone = document.createElement('div');
+joystickZone.id = 'vsb-joystick-zone';
+joystickZone.innerHTML = '<div id="vsb-joystick-thumb"></div>';
+document.body.appendChild(joystickZone);
+
+const bombBtn = document.createElement('div');
+bombBtn.id = 'vsb-bomb-btn';
+bombBtn.textContent = 'BOMB';
+document.body.appendChild(bombBtn);
+
+const isTouchDevice = 'ontouchstart' in window;
+if (isTouchDevice) {
+  joystickZone.style.display = 'block';
+  bombBtn.style.display = 'flex';
+}
+
+const joystickThumb = document.getElementById('vsb-joystick-thumb');
+let joystickActive = false;
+let joystickOriginX = 0, joystickOriginY = 0;
+const JOYSTICK_RADIUS = 50;
+const JOYSTICK_THRESHOLD = 12;
+const _activeArrows = new Set();
+
+function _fireKey(code, down) {
+  const type = down ? 'keydown' : 'keyup';
+  window.dispatchEvent(new KeyboardEvent(type, { code, bubbles: true }));
+}
+
+function _setArrow(code, active) {
+  if (active && !_activeArrows.has(code)) {
+    _activeArrows.add(code);
+    _fireKey(code, true);
+  } else if (!active && _activeArrows.has(code)) {
+    _activeArrows.delete(code);
+    _fireKey(code, false);
+  }
+}
+
+function _releaseAllArrows() {
+  for (const code of _activeArrows) _fireKey(code, false);
+  _activeArrows.clear();
+}
+
+function _updateJoystick(clientX, clientY) {
+  const rect = joystickZone.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const dx = clientX - cx;
+  const dy = clientY - cy;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const clamped = Math.min(dist, JOYSTICK_RADIUS);
+  const nx = dist > 0 ? dx / dist : 0;
+  const ny = dist > 0 ? dy / dist : 0;
+  const tx = nx * clamped;
+  const ty = ny * clamped;
+  joystickThumb.style.left = `calc(50% + ${tx}px)`;
+  joystickThumb.style.top  = `calc(50% + ${ty}px)`;
+  joystickThumb.style.transform = 'translate(-50%,-50%)';
+
+  const mag = Math.min(dist, JOYSTICK_RADIUS);
+  if (mag > JOYSTICK_THRESHOLD) {
+    _setArrow('ArrowRight', dx >  JOYSTICK_THRESHOLD);
+    _setArrow('ArrowLeft',  dx < -JOYSTICK_THRESHOLD);
+    _setArrow('ArrowDown',  dy >  JOYSTICK_THRESHOLD);
+    _setArrow('ArrowUp',    dy < -JOYSTICK_THRESHOLD);
+  } else {
+    _releaseAllArrows();
+  }
+}
+
+joystickZone.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  joystickActive = true;
+  const t = e.changedTouches[0];
+  joystickOriginX = t.clientX;
+  joystickOriginY = t.clientY;
+  _updateJoystick(t.clientX, t.clientY);
+}, { passive: false });
+
+joystickZone.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (!joystickActive) return;
+  const t = e.changedTouches[0];
+  _updateJoystick(t.clientX, t.clientY);
+}, { passive: false });
+
+joystickZone.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  joystickActive = false;
+  joystickThumb.style.left = '50%';
+  joystickThumb.style.top  = '50%';
+  _releaseAllArrows();
+}, { passive: false });
+
+bombBtn.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  _fireKey('KeyX', true);
+}, { passive: false });
+
+bombBtn.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  _fireKey('KeyX', false);
+}, { passive: false });
+
+// Show/hide touch controls based on game state
+function _updateTouchVisibility(state) {
+  if (!isTouchDevice) return;
+  const playing = state === Game.STATE.PLAYING || state === Game.STATE.BOSS;
+  joystickZone.style.display = playing ? 'block' : 'none';
+  bombBtn.style.display = playing ? 'flex' : 'none';
+}
 
 // ─── Camera modes (dev) ───────────────────────────────────────────────────────
 const CAM_MODES = [

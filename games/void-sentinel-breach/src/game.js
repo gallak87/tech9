@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import GEO_MANIFEST from '../geo-manifest.json';
+import { initAudio, playSound } from './audio.js';
 
 // ─── State Machine ────────────────────────────────────────────────────────────
 export const STATE = { MENU: 'MENU', PLAYING: 'PLAYING', BOSS: 'BOSS', WIN: 'WIN', GAME_OVER: 'GAME_OVER' };
@@ -22,6 +23,7 @@ export function transitionTo(next) {
   currentState = next;
 
   if (next === STATE.PLAYING) {
+    initAudio();
     score = 0;
     lives = 3;
     bombCount = 0;
@@ -92,6 +94,7 @@ export const _waveFlashRef = { text: '', timer: 0 }; // mutable object for main.
 // ─── Scene objects exposed so main.js can add them to scene ──────────────────
 export let player;
 export let terrainPlane;
+let _terrainPlanes = [];
 export let cloudLayers = [];
 export let hazeMesh;
 export const playerBullets = [];  // { mesh, vel, piercing, hitSet }[]
@@ -233,20 +236,26 @@ let shotCounter = 0;
 export function buildWorld(scene) {
   _scene = scene;
 
-  const terrainGeo = new THREE.PlaneGeometry(60, 300, 10, 60);
-  const terrainMat = new THREE.MeshLambertMaterial({ color: 0x1a3a1a });
-  terrainPlane = new THREE.Mesh(terrainGeo, terrainMat);
-  terrainPlane.rotation.x = -Math.PI / 2;
-  terrainPlane.position.set(0, 0, -80);
-  scene.add(terrainPlane);
+  _terrainPlanes = [];
+  for (let ti = 0; ti < 2; ti++) {
+    const terrainGeo = new THREE.PlaneGeometry(60, 300, 10, 60);
+    const terrainMat = new THREE.MeshLambertMaterial({ color: 0x1a3a1a });
+    const plane = new THREE.Mesh(terrainGeo, terrainMat);
+    plane.rotation.x = -Math.PI / 2;
+    plane.position.set(0, 0, -80 - ti * 300);
+    scene.add(plane);
 
-  const gridGeo = new THREE.PlaneGeometry(60, 300, 20, 120);
-  const gridMat = new THREE.MeshBasicMaterial({ color: 0x2a5a2a, wireframe: true, transparent: true, opacity: 0.3 });
-  const gridMesh = new THREE.Mesh(gridGeo, gridMat);
-  gridMesh.rotation.x = -Math.PI / 2;
-  gridMesh.position.set(0, 0.01, -80);
-  scene.add(gridMesh);
-  terrainPlane.userData.grid = gridMesh;
+    const gridGeo = new THREE.PlaneGeometry(60, 300, 20, 120);
+    const gridMat = new THREE.MeshBasicMaterial({ color: 0x2a5a2a, wireframe: true, transparent: true, opacity: 0.3 });
+    const gridMesh = new THREE.Mesh(gridGeo, gridMat);
+    gridMesh.rotation.x = -Math.PI / 2;
+    gridMesh.position.set(0, 0.01, -80 - ti * 300);
+    scene.add(gridMesh);
+    plane.userData.grid = gridMesh;
+
+    _terrainPlanes.push(plane);
+  }
+  terrainPlane = _terrainPlanes[0]; // backwards compat
 
   // cloudLayers[0] = buildCloudLayer(scene, 0x4466aa, 10, 5, 2, 3, 0.6);
   // cloudLayers[1] = buildCloudLayer(scene, 0xaabbcc, 8, 7, 2.8, 4.5, 1.2);
@@ -382,6 +391,7 @@ function fireWeapon(scene) {
       break;
     }
   }
+  playSound('shoot_t' + weaponTier);
 }
 
 // ─── Enemy spawning ───────────────────────────────────────────────────────────
@@ -501,7 +511,7 @@ export function spawnEnemy(scene, type, opts = {}) {
 }
 
 // ─── Enemy bullet spawning ────────────────────────────────────────────────────
-function spawnEnemyBullet(scene, origin, angleDeg, speed, color = 0xFF4444, scale = 1) {
+function spawnEnemyBullet(scene, origin, angleDeg, speed, color = 0xFF4444, scale = 1, yVel = 0) {
   const spec = GEO_MANIFEST.bullets.enemy;
   const geo = new THREE.BoxGeometry(spec.args[0] * scale, spec.args[1] * scale, spec.args[2] * scale);
   const mat = new THREE.MeshBasicMaterial({ color: color !== 0xFF4444 ? color : spec.color });
@@ -509,7 +519,7 @@ function spawnEnemyBullet(scene, origin, angleDeg, speed, color = 0xFF4444, scal
   mesh.position.copy(origin);
   scene.add(mesh);
   const rad = deg2rad(angleDeg);
-  const vel = new THREE.Vector3(Math.sin(rad) * speed, 0, Math.cos(rad) * speed);
+  const vel = new THREE.Vector3(Math.sin(rad) * speed, yVel, Math.cos(rad) * speed);
   enemyBullets.push({ mesh, vel });
 }
 
@@ -560,6 +570,7 @@ let flashTimer = 0;
 
 function hitPlayer() {
   if (invincibleTimer > 0) return;
+  playSound('player_hit');
   lives--;
   weaponTier = 1;
   shotCounter = 0;
@@ -574,6 +585,7 @@ function hitPlayer() {
 
 // ─── Bomb activation ─────────────────────────────────────────────────────────
 function activateBomb(scene) {
+  playSound('bomb_blast');
   triggerShake(1.2);
   if (currentState === STATE.BOSS && boss) {
     // Boss takes 10% of current HP
@@ -1039,6 +1051,7 @@ function _killBoss(scene) {
   if (!boss || boss.dead) return;
   boss.dead = true;
   score += boss.score;
+  playSound('boss_death');
   triggerShake(1.5);
   _clearTelegraph(scene);
   scene.remove(boss.mesh);
@@ -1088,6 +1101,7 @@ function _updateBoss(dt, scene) {
       boss.phase++;
       boss._transitioning = false;
       bossPhaseTransition = true; // main.js reads + resets
+      playSound('boss_phase_transition');
       triggerShake(0.8);
       _clearTelegraph(scene);
       // Reset attack timers on transition
@@ -1185,8 +1199,10 @@ function _sentinelFireBurst(scene, count, speed) {
   const origin = new THREE.Vector3(boss.x, boss.y, boss.z);
   const baseAngle = getAngleToPlayer(origin);
   const spread = count === 3 ? [-8, 0, 8] : [-16, -8, 0, 8, 16];
+  const yAmp = boss.phase >= 3 ? 2.5 : 1.5;
   for (let i = 0; i < count; i++) {
-    spawnEnemyBullet(scene, origin, baseAngle + spread[i], speed, 0x00BFFF, 1.5);
+    const yVel = i % 2 === 1 ? yAmp : -yAmp;
+    spawnEnemyBullet(scene, origin, baseAngle + spread[i], speed, 0x00BFFF, 1.5, yVel);
   }
 }
 
@@ -1194,9 +1210,11 @@ function _sentinelFireSweep(scene, count, dir) {
   // Horizontal row of bullets across X axis
   const startX = dir > 0 ? -7 : 7;
   const spacing = 14 / (count - 1);
+  const yAmp = boss.phase >= 3 ? 2.0 : 1.0;
   for (let i = 0; i < count; i++) {
     const origin = new THREE.Vector3(startX + i * spacing * dir, boss.y, boss.z);
-    spawnEnemyBullet(scene, origin, 180, 3.5, 0x4488FF, 1.8); // angle 180 = straight +Z (toward player)
+    const yVel = i % 2 === 0 ? yAmp : -yAmp;
+    spawnEnemyBullet(scene, origin, 180, 3.5, 0x4488FF, 1.8, yVel); // angle 180 = straight +Z (toward player)
   }
 }
 
@@ -1346,7 +1364,8 @@ function _interceptorFireRing(scene, count, rotOffset) {
   const origin = new THREE.Vector3(boss.x, boss.y, boss.z);
   for (let i = 0; i < count; i++) {
     const angle = (360 / count) * i + rotOffset;
-    spawnEnemyBullet(scene, origin, angle, 5, 0xFF6B00, 1.5);
+    const elevation = Math.sin((i / count) * Math.PI * 2) * 3.0;
+    spawnEnemyBullet(scene, origin, angle, 5, 0xFF6B00, 1.5, elevation);
   }
 }
 
@@ -1357,7 +1376,8 @@ function _interceptorStrafeSpr(scene, count) {
   const spread = 30;
   for (let i = 0; i < count; i++) {
     const a = baseAngle - spread / 2 + (spread / (count - 1)) * i;
-    spawnEnemyBullet(scene, origin, 180 + a, 6.5, 0xFFAA00, 1.2);
+    const yVel = (Math.random() - 0.5) * 4;
+    spawnEnemyBullet(scene, origin, 180 + a, 6.5, 0xFFAA00, 1.2, yVel);
   }
 }
 
@@ -1429,7 +1449,8 @@ function _colossusFireColumns(scene, cols, speed) {
   for (let i = 0; i < cols; i++) {
     const ox = boss.x + (-spread / 2) + i * step;
     const origin = new THREE.Vector3(ox, boss.y, boss.z);
-    spawnEnemyBullet(scene, origin, 180, speed, 0xAA00FF, 1.3); // 180 = straight +Z toward player
+    const yVel = (i - cols / 2) * 0.8;
+    spawnEnemyBullet(scene, origin, 180, speed, 0xAA00FF, 1.3, yVel); // 180 = straight +Z toward player
   }
 }
 
@@ -1446,7 +1467,8 @@ function _colossusFireBombs(scene, count) {
     mesh.position.copy(origin);
     scene.add(mesh);
     const driftSpeed = boss.phase === 1 ? 2.5 : (boss.phase === 2 ? 3.5 : 4.0);
-    const vel = new THREE.Vector3(0, 0, driftSpeed);
+    const bombYVel = (Math.random() - 0.5) * 2;
+    const vel = new THREE.Vector3(0, bombYVel, driftSpeed);
     enemyBullets.push({ mesh, vel, isBomb: true });
   }
 }
@@ -1662,7 +1684,8 @@ export function update(dt, scene) {
     }
 
     b.mesh.position.addScaledVector(b.vel, dt);
-    if (b.mesh.position.z > 15 || b.mesh.position.z < -80 || Math.abs(b.mesh.position.x) > 20) {
+    if (b.mesh.position.z > 15 || b.mesh.position.z < -80 || Math.abs(b.mesh.position.x) > 20 ||
+        b.mesh.position.y < -2 || b.mesh.position.y > 12) {
       scene.remove(b.mesh);
       b.mesh.geometry.dispose();
       enemyBullets.splice(i, 1);
@@ -1720,8 +1743,11 @@ export function update(dt, scene) {
           e.hp--;
           e.hitFlash = 0.12;
           if (e.hp <= 0) {
+            playSound(e.type === 'bomber' ? 'enemy_death_large' : 'enemy_death_small');
             killEnemy(scene, e, true, false);
             enemies.splice(ei, 1);
+          } else {
+            playSound('enemy_hit');
           }
           if (bulletKilled) break;
         }
@@ -1766,10 +1792,12 @@ export function update(dt, scene) {
       if (p.type === 'weapon') {
         if (weaponTier < 7) {
           weaponTier++;
+          playSound('weapon_tier_up');
         } else {
           score += 500;
         }
       } else if (p.type === 'bomb') {
+        playSound('pickup_bomb');
         bombCount++;
         activateBomb(scene);
         bombCount = Math.max(0, bombCount - 1);
@@ -1790,13 +1818,13 @@ export function update(dt, scene) {
 
   // ── World scroll ──────────────────────────────────────────────────────────
   if (_worldSpeed > 0) {
-    terrainPlane.position.z += _worldSpeed * dt;
-    if (terrainPlane.userData.grid) {
-      terrainPlane.userData.grid.position.z += _worldSpeed * dt;
-    }
-    if (terrainPlane.position.z > 60) {
-      terrainPlane.position.z -= 300;
-      if (terrainPlane.userData.grid) terrainPlane.userData.grid.position.z -= 300;
+    for (const tp of _terrainPlanes) {
+      tp.position.z += _worldSpeed * dt;
+      if (tp.userData.grid) tp.userData.grid.position.z += _worldSpeed * dt;
+      if (tp.position.z > 60) {
+        tp.position.z -= 300;
+        if (tp.userData.grid) tp.userData.grid.position.z -= 300;
+      }
     }
 
     // scrollClouds(cloudLayers[0], CLOUD_SPEED_1, dt);

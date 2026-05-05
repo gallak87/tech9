@@ -8,7 +8,7 @@ export let currentState = STATE.MENU;
 
 // ─── Wave system exports ──────────────────────────────────────────────────────
 export let currentWave = 0;
-export const waveCount = 12;
+export const waveCount = 6;
 export let boss = null;
 export let bossPhaseTransition = false;
 
@@ -982,7 +982,7 @@ function _startWave(scene, waveNum) {
 
   // Shift grid color by zone (3 waves per zone)
   const WAVE_GRID_COLORS = [0x1a5a2a, 0x1a2a5a, 0x3a1a5a, 0x5a1a1a];
-  const zoneColor = WAVE_GRID_COLORS[Math.min(Math.floor((waveNum - 1) / 3), 3)];
+  const zoneColor = WAVE_GRID_COLORS[Math.min(Math.floor((waveNum - 1) / 2), 3)];
   for (const tp of _terrainPlanes) {
     if (tp.userData.grid) tp.userData.grid.material.color.setHex(zoneColor);
   }
@@ -1073,15 +1073,15 @@ function _spawnBoss(scene) {
   let mesh, hp, scoreVal;
   if (type === 'sentinel') {
     mesh = buildEntityMesh(GEO_MANIFEST.entities.sentinel_boss);
-    hp = 1200;
+    hp = 160;
     scoreVal = 15000;
   } else if (type === 'interceptor') {
     mesh = buildEntityMesh(GEO_MANIFEST.entities.interceptor_boss);
-    hp = 900;
+    hp = 120;
     scoreVal = 18000;
   } else {
     mesh = buildEntityMesh(GEO_MANIFEST.entities.colossus_boss);
-    hp = 1800;
+    hp = 200;
     scoreVal = 25000;
   }
 

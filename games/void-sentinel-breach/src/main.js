@@ -490,11 +490,11 @@ function renderHUD(dt) {
         VOID SENTINEL<br><span style="color:#ff4400;text-shadow:0 0 20px #ff4400,0 0 40px #ff2200;">BREACH</span>
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:#445566;letter-spacing:3px;text-align:center;margin-top:-8px;">
-        12 WAVES OF CHAOS
+        6 WAVES OF CHAOS
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:12px;line-height:2.0;text-align:center;color:#5577aa;margin-top:4px;">
         WASD / ARROWS &mdash; MOVE &nbsp;&middot;&nbsp; BOMB &mdash; X / Z<br>
-        WEAPONS DROP FROM KILLS &nbsp;&middot;&nbsp; SURVIVE ALL 12 WAVES
+        WEAPONS DROP FROM KILLS &nbsp;&middot;&nbsp; SURVIVE ALL 6 WAVES
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:17px;animation:blinkPulse 1.4s ease-in-out infinite;color:#00ffcc;">
         PRESS ENTER OR CLICK

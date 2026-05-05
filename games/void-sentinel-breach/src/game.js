@@ -95,6 +95,9 @@ export const _waveFlashRef = { text: '', timer: 0 }; // mutable object for main.
 export let player;
 export let terrainPlane;
 let _terrainPlanes = [];
+let _sceneryPool = [];      // { mesh: THREE.Group, side: 1|-1 }[]
+let _canyonWalls = [];
+let _mountainMeshes = [];
 export let cloudLayers = [];
 export let hazeMesh;
 export const playerBullets = [];  // { mesh, vel, piercing, hitSet }[]
@@ -269,6 +272,24 @@ export function buildWorld(scene) {
   hazeMesh.position.set(0, 2.5, -55);
   scene.add(hazeMesh);
 
+  // Canyon side walls — vertical planes flanking the corridor
+  _canyonWalls = [];
+  for (const side of [-1, 1]) {
+    const wallGeo = new THREE.PlaneGeometry(600, 25);
+    const wallMat = new THREE.MeshBasicMaterial({ color: 0x06060f, side: THREE.DoubleSide });
+    const wall = new THREE.Mesh(wallGeo, wallMat);
+    wall.rotation.y = side * Math.PI / 2;
+    wall.position.set(side * 32, 12, -230);
+    scene.add(wall);
+    _canyonWalls.push(wall);
+  }
+
+  // Background mountains — fixed silhouettes on the horizon
+  _initMountains(scene);
+
+  // Scrolling city scenery pool
+  _initScenery(scene);
+
   // Player ship — built from geo-manifest
   player = buildEntityMesh(GEO_MANIFEST.entities.player);
   player.position.set(0, 0.6, 0);
@@ -276,6 +297,179 @@ export function buildWorld(scene) {
   player.userData.velY = 0;
 
   scene.add(player);
+}
+
+// ─── Scenery helpers ──────────────────────────────────────────────────────────
+const _SCENERY_TYPES = ['data_block', 'comm_tower', 'energy_pylon', 'billboard'];
+const _SCENERY_POOL_SIDE = 6;
+
+function _sr(min, max) { return min + Math.random() * (max - min); }
+
+function _buildDataBlock() {
+  const h = _sr(5, 14), w = _sr(2.5, 5), d = w * _sr(0.6, 1.0);
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(w, h, d),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.6, metalness: 0.4 })
+  );
+  body.position.y = h / 2;
+  g.add(body);
+  // accent stripe
+  const stripe = new THREE.Mesh(
+    new THREE.BoxGeometry(w + 0.3, h * 0.07, d + 0.3),
+    new THREE.MeshStandardMaterial({ color: 0x0f3460, emissive: new THREE.Color(0x1060c0), emissiveIntensity: 0.7, roughness: 0.4, metalness: 0.5 })
+  );
+  stripe.position.y = h * 0.72;
+  g.add(stripe);
+  // window rows (additive glowing strips)
+  const winMat = new THREE.MeshBasicMaterial({ color: 0x2255ff, blending: THREE.AdditiveBlending, depthWrite: false });
+  const rows = Math.floor(h / 1.4);
+  for (let r = 0; r < rows; r++) {
+    const win = new THREE.Mesh(new THREE.BoxGeometry(w * 0.65, 0.18, 0.05), winMat.clone());
+    win.position.set(0, 1.1 + r * 1.4, d / 2 + 0.03);
+    g.add(win);
+  }
+  // rooftop antenna
+  const ant = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.05, 0.05, 2, 6),
+    new THREE.MeshBasicMaterial({ color: 0x00ffcc })
+  );
+  ant.position.y = h + 1;
+  g.add(ant);
+  return g;
+}
+
+function _buildCommTower() {
+  const h = _sr(10, 20);
+  const g = new THREE.Group();
+  const shaft = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.12, 0.35, h, 6),
+    new THREE.MeshStandardMaterial({ color: 0x222233, roughness: 0.4, metalness: 0.7 })
+  );
+  shaft.position.y = h / 2;
+  g.add(shaft);
+  const ringDefs = [[0.3, 0x00ccff], [0.6, 0xff00cc], [0.85, 0x00ccff]];
+  for (const [frac, col] of ringDefs) {
+    const r = _sr(0.8, 1.4) * (1 - frac * 0.4);
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(r, 0.07, 8, 24),
+      new THREE.MeshBasicMaterial({ color: col, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = h * frac;
+    g.add(ring);
+  }
+  const tip = new THREE.Mesh(
+    new THREE.SphereGeometry(0.15, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0xff4400 })
+  );
+  tip.position.y = h + 0.15;
+  g.add(tip);
+  return g;
+}
+
+function _buildEnergyPylon() {
+  const h = _sr(6, 12);
+  const g = new THREE.Group();
+  const col = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.28, 0.42, h, 6),
+    new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.3, metalness: 0.8 })
+  );
+  col.position.y = h / 2;
+  g.add(col);
+  const ringCount = Math.floor(h / 1.5);
+  for (let i = 0; i < ringCount; i++) {
+    const col = i % 2 === 0 ? 0xff00ff : 0xcc00ff;
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.65, 0.07, 8, 24),
+      new THREE.MeshBasicMaterial({ color: col, blending: THREE.AdditiveBlending, depthWrite: false })
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 1.0 + i * 1.5;
+    g.add(ring);
+  }
+  const cap = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.4),
+    new THREE.MeshBasicMaterial({ color: 0x00ffff, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  cap.position.y = h + 0.4;
+  g.add(cap);
+  return g;
+}
+
+function _buildBillboard() {
+  const h = _sr(5, 9), pw = _sr(4, 7), ph = pw * _sr(0.38, 0.55);
+  const g = new THREE.Group();
+  const post = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.14, 0.14, h, 6),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a1a })
+  );
+  post.position.y = h / 2;
+  g.add(post);
+  const panel = new THREE.Mesh(
+    new THREE.BoxGeometry(pw, ph, 0.22),
+    new THREE.MeshStandardMaterial({ color: 0x080818 })
+  );
+  panel.position.y = h + ph / 2;
+  g.add(panel);
+  const rim = new THREE.Mesh(
+    new THREE.BoxGeometry(pw + 0.35, ph + 0.35, 0.1),
+    new THREE.MeshBasicMaterial({ color: 0x00ccff, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  rim.position.set(0, h + ph / 2, -0.08);
+  g.add(rim);
+  const contentColors = [0xff2266, 0x00ffcc, 0xffaa00, 0xff4488];
+  const content = new THREE.Mesh(
+    new THREE.BoxGeometry(pw * 0.82, ph * 0.76, 0.05),
+    new THREE.MeshBasicMaterial({ color: contentColors[Math.floor(Math.random() * contentColors.length)], blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  content.position.set(0, h + ph / 2, 0.14);
+  g.add(content);
+  return g;
+}
+
+function _buildSceneryItem(type) {
+  switch (type) {
+    case 'data_block':   return _buildDataBlock();
+    case 'comm_tower':   return _buildCommTower();
+    case 'energy_pylon': return _buildEnergyPylon();
+    case 'billboard':    return _buildBillboard();
+    default:             return _buildDataBlock();
+  }
+}
+
+function _initScenery(scene) {
+  _sceneryPool = [];
+  for (let i = 0; i < _SCENERY_POOL_SIDE * 2; i++) {
+    const side = i < _SCENERY_POOL_SIDE ? -1 : 1;
+    const type = _SCENERY_TYPES[Math.floor(Math.random() * _SCENERY_TYPES.length)];
+    const mesh = _buildSceneryItem(type);
+    mesh.position.set(side * _sr(14, 22), 0, -80 - (i % _SCENERY_POOL_SIDE) * 100);
+    scene.add(mesh);
+    _sceneryPool.push({ mesh, side });
+  }
+}
+
+function _initMountains(scene) {
+  _mountainMeshes = [];
+  const mountainDefs = [
+    // [x, z, radius, height, segments]
+    [-45, -110, 12, 22, 5], [-28, -95,  8, 16, 4], [-60, -120, 16, 28, 6],
+    [-35, -105, 6, 12, 4],  [-52, -130, 10, 20, 5],
+    [ 45, -110, 12, 22, 5], [ 28, -95,  8, 16, 4], [ 60, -120, 16, 28, 6],
+    [ 35, -105, 6, 12, 4],  [ 52, -130, 10, 20, 5],
+    [-18, -80,  5, 10, 4],  [ 18, -80,  5, 10, 4],
+    [-72, -140, 18, 32, 5], [ 72, -140, 18, 32, 5],
+  ];
+  for (const [x, z, r, h, seg] of mountainDefs) {
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(r, h, seg),
+      new THREE.MeshBasicMaterial({ color: 0x080810 })
+    );
+    cone.position.set(x + _sr(-2, 2), h / 2 - 0.5, z + _sr(-5, 5));
+    scene.add(cone);
+    _mountainMeshes.push(cone);
+  }
 }
 
 function buildCloudLayer(scene, color, count, spread, yBase, yRange, scale) {
@@ -857,6 +1051,13 @@ function _startWave(scene, waveNum) {
   // Show wave flash
   _waveFlashRef.text = `WAVE ${waveNum}`;
   _waveFlashRef.timer = 1.5;
+
+  // Shift grid color by zone (3 waves per zone)
+  const WAVE_GRID_COLORS = [0x1a5a2a, 0x1a2a5a, 0x3a1a5a, 0x5a1a1a];
+  const zoneColor = WAVE_GRID_COLORS[Math.min(Math.floor((waveNum - 1) / 3), 3)];
+  for (const tp of _terrainPlanes) {
+    if (tp.userData.grid) tp.userData.grid.material.color.setHex(zoneColor);
+  }
 }
 
 function _updateWaveSystem(dt, scene) {
@@ -1830,6 +2031,25 @@ export function update(dt, scene) {
 
     // scrollClouds(cloudLayers[0], CLOUD_SPEED_1, dt);
     // scrollClouds(cloudLayers[1], CLOUD_SPEED_2, dt);
+
+    // Scroll city scenery
+    for (const s of _sceneryPool) {
+      s.mesh.position.z += _worldSpeed * dt;
+      if (s.mesh.position.z > 15) {
+        _scene.remove(s.mesh);
+        _disposeMesh(s.mesh);
+        const type = _SCENERY_TYPES[Math.floor(Math.random() * _SCENERY_TYPES.length)];
+        s.mesh = _buildSceneryItem(type);
+        s.mesh.position.set(s.side * _sr(14, 22), 0, -580);
+        _scene.add(s.mesh);
+      }
+    }
+
+    // Mountains drift slowly (parallax)
+    for (const m of _mountainMeshes) {
+      m.position.z += _worldSpeed * 0.12 * dt;
+      if (m.position.z > 20) m.position.z -= 160;
+    }
   }
 
   // ── Camera shake decay ────────────────────────────────────────────────────

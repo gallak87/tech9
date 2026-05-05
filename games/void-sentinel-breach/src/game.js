@@ -190,6 +190,9 @@ window.addEventListener('keydown', e => {
   if (e.code === 'KeyR' && (currentState === STATE.WIN || currentState === STATE.GAME_OVER)) {
     transitionTo(STATE.MENU);
   }
+  if ((e.code === 'KeyX' || e.code === 'KeyZ') && (currentState === STATE.PLAYING || currentState === STATE.BOSS)) {
+    if (bombCount > 0) { bombCount--; if (_scene) activateBomb(_scene); }
+  }
   if (window.__DEV_TOOLS__) {
     if (e.code === 'Digit1') transitionTo(STATE.MENU);
     if (e.code === 'Digit2') transitionTo(STATE.PLAYING);
@@ -1798,9 +1801,7 @@ export function update(dt, scene) {
         }
       } else if (p.type === 'bomb') {
         playSound('pickup_bomb');
-        bombCount++;
-        activateBomb(scene);
-        bombCount = Math.max(0, bombCount - 1);
+        if (bombCount < 4) bombCount++;
       }
     }
 

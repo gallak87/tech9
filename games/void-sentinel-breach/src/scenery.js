@@ -62,7 +62,7 @@ function _update_walls(scene, dt, worldSpeed) {
       scene.remove(s.mesh);
       _disposeMesh(s.mesh);
       s.mesh = _buildItem_walls();
-      s.mesh.position.set(s.side * _sr(49, 49), 0, -710);
+      s.mesh.position.set(s.side * _sr(49, 49), 0, -794);
       scene.add(s.mesh);
     }
   }
@@ -100,11 +100,11 @@ let _pool_skyline = [];
 
 function _init_skyline(scene) {
   _pool_skyline = [];
-  for (let i = 0; i < 17 * 2; i++) {
-    const side = i < 17 ? -1 : 1;
+  for (let i = 0; i < 22 * 2; i++) {
+    const side = i < 22 ? -1 : 1;
     const mesh = _buildItem_skyline();
     const x = side * _sr(31.5, 34.5);
-    const z = -40 - (i % 17) * 22;
+    const z = -40 - (i % 22) * 22;
     mesh.position.set(x, 0, z);
     scene.add(mesh);
     _pool_skyline.push({ mesh, side });
@@ -119,7 +119,7 @@ function _update_skyline(scene, dt, worldSpeed) {
       scene.remove(s.mesh);
       _disposeMesh(s.mesh);
       s.mesh = _buildItem_skyline();
-      s.mesh.position.set(s.side * _sr(31.5, 34.5), 0, -420);
+      s.mesh.position.set(s.side * _sr(31.5, 34.5), 0, -524);
       scene.add(s.mesh);
     }
   }

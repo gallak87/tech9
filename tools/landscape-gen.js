@@ -221,7 +221,7 @@ for (const layer of manifest.layers) {
       scene.remove(s.mesh);
       _disposeMesh(s.mesh);
       s.mesh = _buildItem_${layer.name}();
-      s.mesh.position.set(s.side * _sr(${layer.xRange[0]}, ${layer.xRange[1]}), 0, ${layer.zReset});
+      s.mesh.position.set(s.side * _sr(${layer.xRange[0]}, ${layer.xRange[1]}), 0, ${layer.zStart - layer.countPerSide * layer.zSpacing});
       scene.add(s.mesh);
     }
   }

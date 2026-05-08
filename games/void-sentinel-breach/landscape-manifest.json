@@ -5,13 +5,13 @@
       "name": "walls",
       "countPerSide": 14,
       "xRange": [
-        49,
-        49
+        60,
+        60
       ],
       "zStart": -10,
       "zSpacing": 56,
       "zReset": -710,
-      "speedMult": 1.65,
+      "speedMult": 1,
       "wrapZ": 15,
       "buildings": [
         {
@@ -34,12 +34,15 @@
     },
     {
       "name": "skyline",
-      "countPerSide": 17,
-      "xRange": [31.5, 34.5],
+      "countPerSide": 28,
+      "xRange": [
+        16,
+        34.5
+      ],
       "zStart": -40,
       "zSpacing": 22,
       "zReset": -420,
-      "speedMult": 0.6,
+      "speedMult": 1.65,
       "wrapZ": 20,
       "buildings": [
         {
@@ -60,7 +63,8 @@
           "windows": {
             "cols": 3,
             "rows": 6,
-            "floorBands": 2
+            "floorBands": 2,
+            "palette": ["#00aaff","#aa00ff","#00ffcc","#ff00aa","#ffaa00","#44aaff"]
           }
         }
       ],

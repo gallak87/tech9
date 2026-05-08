@@ -92,22 +92,26 @@ function emitBuilder(type, spec, paletteVar) {
     lines.push(`  _addMesh(g, new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: ${neon(paletteVar)}, emissive: ${neon(paletteVar)}, emissiveIntensity: 0.5, roughness: 1.0, metalness: 0 }), h / 2);`);
     if (spec.windows) {
       const { cols = 3, rows = 6, floorBands = 0 } = spec.windows;
+      const winPalRef = spec.windows.palette
+        ? `[${spec.windows.palette.map(hex).join(', ')}]`
+        : paletteVar;
+      lines.push(`  const _winPal = ${winPalRef};`);
       lines.push(`  for (const _sx of [-1, 1]) {`);
       lines.push(`    for (let _r = 0; _r < ${rows}; _r++) {`);
       lines.push(`      for (let _c = 0; _c < ${cols}; _c++) {`);
       lines.push(`        if (Math.random() < 0.35) continue;`);
-      lines.push(`        const _wm = new THREE.Mesh(new THREE.BoxGeometry(0.15, _sr(0.8, 1.8), d / ${cols} * 0.55), _basicAdd(${neon(paletteVar)}));`);
+      lines.push(`        const _wm = new THREE.Mesh(new THREE.BoxGeometry(0.15, _sr(0.8, 1.8), d / ${cols} * 0.55), _basicAdd(_neon(_winPal)));`);
       lines.push(`        _wm.position.set(_sx * (w / 2 + 0.08), (_r + 0.5) * (h / ${rows}), -d / 2 + (_c + 0.5) * (d / ${cols}));`);
       lines.push(`        g.add(_wm);`);
       lines.push(`      }`);
       lines.push(`    }`);
       lines.push(`  }`);
       if (floorBands === 1) {
-        lines.push(`  _addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), _basicAdd(${neon(paletteVar)}), h);`);
+        lines.push(`  _addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), _basicAdd(_neon(_winPal)), h);`);
       } else if (floorBands > 1) {
         lines.push(`  for (let _bi = 0; _bi < ${floorBands}; _bi++) {`);
         lines.push(`    const _by = _bi === 0 ? 0.1 : _bi === ${floorBands - 1} ? h : h * _bi / ${floorBands - 1};`);
-        lines.push(`    _addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), _basicAdd(${neon(paletteVar)}), _by);`);
+        lines.push(`    _addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), _basicAdd(_neon(_winPal)), _by);`);
         lines.push(`  }`);
       }
     }

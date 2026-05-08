@@ -46,7 +46,7 @@ function _init_walls(scene) {
   for (let i = 0; i < 14 * 2; i++) {
     const side = i < 14 ? -1 : 1;
     const mesh = _buildItem_walls();
-    const x = side * _sr(49, 49);
+    const x = side * _sr(60, 60);
     const z = -10 - (i % 14) * 56;
     mesh.position.set(x, 0, z);
     scene.add(mesh);
@@ -55,14 +55,14 @@ function _init_walls(scene) {
 }
 
 function _update_walls(scene, dt, worldSpeed) {
-  const spd = worldSpeed * 1.65;
+  const spd = worldSpeed * 1;
   for (const s of _pool_walls) {
     s.mesh.position.z += spd * dt;
     if (s.mesh.position.z > 15) {
       scene.remove(s.mesh);
       _disposeMesh(s.mesh);
       s.mesh = _buildItem_walls();
-      s.mesh.position.set(s.side * _sr(49, 49), 0, -794);
+      s.mesh.position.set(s.side * _sr(60, 60), 0, -794);
       scene.add(s.mesh);
     }
   }
@@ -74,11 +74,12 @@ function _build_skyline_slab() {
   const h = _sr(45, 80), w = _sr(4, 12), d = _sr(4, 10);
   const g = new THREE.Group();
   _addMesh(g, new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: _neon(_PAL_SKYLINE), emissive: _neon(_PAL_SKYLINE), emissiveIntensity: 0.5, roughness: 1.0, metalness: 0 }), h / 2);
+  const _winPal = [0x00aaff, 0xaa00ff, 0x00ffcc, 0xff00aa, 0xffaa00, 0x44aaff];
   for (const _sx of [-1, 1]) {
     for (let _r = 0; _r < 6; _r++) {
       for (let _c = 0; _c < 3; _c++) {
         if (Math.random() < 0.35) continue;
-        const _wm = new THREE.Mesh(new THREE.BoxGeometry(0.15, _sr(0.8, 1.8), d / 3 * 0.55), _basicAdd(_neon(_PAL_SKYLINE)));
+        const _wm = new THREE.Mesh(new THREE.BoxGeometry(0.15, _sr(0.8, 1.8), d / 3 * 0.55), _basicAdd(_neon(_winPal)));
         _wm.position.set(_sx * (w / 2 + 0.08), (_r + 0.5) * (h / 6), -d / 2 + (_c + 0.5) * (d / 3));
         g.add(_wm);
       }
@@ -86,7 +87,7 @@ function _build_skyline_slab() {
   }
   for (let _bi = 0; _bi < 2; _bi++) {
     const _by = _bi === 0 ? 0.1 : _bi === 1 ? h : h * _bi / 1;
-    _addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), _basicAdd(_neon(_PAL_SKYLINE)), _by);
+    _addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), _basicAdd(_neon(_winPal)), _by);
   }
   return g;
 }
@@ -100,11 +101,11 @@ let _pool_skyline = [];
 
 function _init_skyline(scene) {
   _pool_skyline = [];
-  for (let i = 0; i < 22 * 2; i++) {
-    const side = i < 22 ? -1 : 1;
+  for (let i = 0; i < 28 * 2; i++) {
+    const side = i < 28 ? -1 : 1;
     const mesh = _buildItem_skyline();
-    const x = side * _sr(31.5, 34.5);
-    const z = -40 - (i % 22) * 22;
+    const x = side * _sr(16, 34.5);
+    const z = -40 - (i % 28) * 22;
     mesh.position.set(x, 0, z);
     scene.add(mesh);
     _pool_skyline.push({ mesh, side });
@@ -112,14 +113,14 @@ function _init_skyline(scene) {
 }
 
 function _update_skyline(scene, dt, worldSpeed) {
-  const spd = worldSpeed * 0.6;
+  const spd = worldSpeed * 1.65;
   for (const s of _pool_skyline) {
     s.mesh.position.z += spd * dt;
     if (s.mesh.position.z > 20) {
       scene.remove(s.mesh);
       _disposeMesh(s.mesh);
       s.mesh = _buildItem_skyline();
-      s.mesh.position.set(s.side * _sr(31.5, 34.5), 0, -524);
+      s.mesh.position.set(s.side * _sr(16, 34.5), 0, -656);
       scene.add(s.mesh);
     }
   }

@@ -115,13 +115,14 @@ function buildSlab(spec, palette) {
     h / 2);
   if (spec.windows) {
     const { cols = 3, rows = 6, floorBands = 0 } = spec.windows;
+    const winPalette = spec.windows.palette || palette;
     for (const sx of [-1, 1]) {
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           if (_rng() < 0.35) continue;
           const wm = new THREE.Mesh(
             new THREE.BoxGeometry(0.15, sr([0.8, 1.8]), d / cols * 0.55),
-            basicAdd(neon(palette))
+            basicAdd(neon(winPalette))
           );
           wm.position.set(sx * (w / 2 + 0.08), (r + 0.5) * (h / rows), -d / 2 + (c + 0.5) * (d / cols));
           g.add(wm);
@@ -129,11 +130,11 @@ function buildSlab(spec, palette) {
       }
     }
     if (floorBands === 1) {
-      addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), basicAdd(neon(palette)), h);
+      addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), basicAdd(neon(winPalette)), h);
     } else if (floorBands > 1) {
       for (let bi = 0; bi < floorBands; bi++) {
         const by = bi === 0 ? 0.1 : bi === floorBands - 1 ? h : h * bi / (floorBands - 1);
-        addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), basicAdd(neon(palette)), by);
+        addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), basicAdd(neon(winPalette)), by);
       }
     }
   }
@@ -309,6 +310,21 @@ function buildUI() {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 const status = document.getElementById('status');
 let originalManifest = null;
+
+function setCamera(preset) {
+  if (preset === 'game') {
+    camera.position.set(0, 14, 35); controls.target.set(0, 6, -80);
+  } else if (preset === 'top') {
+    camera.position.set(0, 250, -200); controls.target.set(0, 0, -200);
+  } else if (preset === 'side') {
+    camera.position.set(120, 30, -200); controls.target.set(0, 10, -200);
+  }
+  controls.update();
+}
+
+document.getElementById('btn-cam-game').addEventListener('click', () => setCamera('game'));
+document.getElementById('btn-cam-top').addEventListener('click', () => setCamera('top'));
+document.getElementById('btn-cam-side').addEventListener('click', () => setCamera('side'));
 
 document.getElementById('btn-newseed').addEventListener('click', () => { newSeed(); buildPreview(); });
 

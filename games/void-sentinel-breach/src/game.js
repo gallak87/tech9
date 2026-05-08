@@ -97,7 +97,6 @@ export let player;
 export let terrainPlane;
 let _terrainPlanes = [];
 let _canyonWalls = [];
-let _mountainMeshes = [];
 export let cloudLayers = [];
 export let hazeMesh;
 export const playerBullets = [];  // { mesh, vel, piercing, hitSet }[]
@@ -268,8 +267,6 @@ export function buildWorld(scene) {
 
   _canyonWalls = [];
 
-  // Background mountains — fixed silhouettes on the horizon
-  _initMountains(scene);
 
   // Scrolling city scenery pool
   initScenery(scene);
@@ -286,27 +283,6 @@ export function buildWorld(scene) {
 // ─── Scenery helpers ──────────────────────────────────────────────────────────
 function _sr(min, max) { return min + Math.random() * (max - min); }
 
-function _initMountains(scene) {
-  _mountainMeshes = [];
-  const mountainDefs = [
-    // [x, z, radius, height, segments]
-    [-45, -110, 12, 22, 5], [-28, -95,  8, 16, 4], [-60, -120, 16, 28, 6],
-    [-35, -105, 6, 12, 4],  [-52, -130, 10, 20, 5],
-    [ 45, -110, 12, 22, 5], [ 28, -95,  8, 16, 4], [ 60, -120, 16, 28, 6],
-    [ 35, -105, 6, 12, 4],  [ 52, -130, 10, 20, 5],
-    [-18, -80,  5, 10, 4],  [ 18, -80,  5, 10, 4],
-    [-72, -140, 18, 32, 5], [ 72, -140, 18, 32, 5],
-  ];
-  for (const [x, z, r, h, seg] of mountainDefs) {
-    const cone = new THREE.Mesh(
-      new THREE.ConeGeometry(r, h, seg),
-      new THREE.MeshBasicMaterial({ color: 0x080810 })
-    );
-    cone.position.set(x + _sr(-2, 2), h / 2 - 0.5, z + _sr(-5, 5));
-    scene.add(cone);
-    _mountainMeshes.push(cone);
-  }
-}
 
 function buildCloudLayer(scene, color, count, spread, yBase, yRange, scale) {
   const group = new THREE.Group();
@@ -1884,11 +1860,6 @@ export function update(dt, scene) {
     // Scroll city scenery
     updateScenery(_scene, dt, _worldSpeed);
 
-    // Mountains drift slowly (parallax)
-    for (const m of _mountainMeshes) {
-      m.position.z += _worldSpeed * 0.12 * dt;
-      if (m.position.z > 20) m.position.z -= 160;
-    }
   }
 
   // ── Camera shake decay ────────────────────────────────────────────────────

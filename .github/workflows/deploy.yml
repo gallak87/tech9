@@ -14,6 +14,7 @@ on:
       - 'games/chronoforge/package.json'
       - 'games/chronoforge/package-lock.json'
       - 'games/chronoforge/vite.config.js'
+      - 'games/void-sentinel-breach/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -55,11 +56,18 @@ jobs:
           npm ci
           npm run build
 
+      - name: Build void-sentinel-breach
+        run: |
+          cd games/void-sentinel-breach
+          npm ci
+          npm run build
+
       - name: Build site
         run: |
-          mkdir -p _site/gravelrun _site/snake _site/skyrift _site/void-sentinel _site/orb-vacuum
+          mkdir -p _site/gravelrun _site/snake _site/skyrift _site/void-sentinel _site/orb-vacuum _site/void-sentinel-breach
           cp -r games/chronoforge/dist/. _site/
           cp -r games/orb-vacuum/dist/. _site/orb-vacuum/
+          cp -r games/void-sentinel-breach/dist/. _site/void-sentinel-breach/
           cp -r games/gravelrun/src/. _site/gravelrun/
           cp -r games/snake/src/. _site/snake/
           cp -r games/skyrift/src/. _site/skyrift/

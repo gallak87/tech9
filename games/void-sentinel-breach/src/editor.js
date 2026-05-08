@@ -113,6 +113,30 @@ function buildSlab(spec, palette) {
   addMesh(g, new THREE.BoxGeometry(w, h, d),
     new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.5, roughness: 1 }),
     h / 2);
+  if (spec.windows) {
+    const { cols = 3, rows = 6, floorBands = 0 } = spec.windows;
+    for (const sx of [-1, 1]) {
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          if (_rng() < 0.35) continue;
+          const wm = new THREE.Mesh(
+            new THREE.BoxGeometry(0.15, sr([0.8, 1.8]), d / cols * 0.55),
+            basicAdd(neon(palette))
+          );
+          wm.position.set(sx * (w / 2 + 0.08), (r + 0.5) * (h / rows), -d / 2 + (c + 0.5) * (d / cols));
+          g.add(wm);
+        }
+      }
+    }
+    if (floorBands === 1) {
+      addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), basicAdd(neon(palette)), h);
+    } else if (floorBands > 1) {
+      for (let bi = 0; bi < floorBands; bi++) {
+        const by = bi === 0 ? 0.1 : bi === floorBands - 1 ? h : h * bi / (floorBands - 1);
+        addMesh(g, new THREE.BoxGeometry(w + 0.3, 0.2, d + 0.3), basicAdd(neon(palette)), by);
+      }
+    }
+  }
   return g;
 }
 
@@ -264,6 +288,11 @@ function buildUI() {
       if (b.h) {
         body.appendChild(makeSlider(`${b.type} h min`, b.h[0], 1, 100, 1, v => { manifest.layers[li].buildings[bi].h[0] = v; }));
         body.appendChild(makeSlider(`${b.type} h max`, b.h[1], 1, 100, 1, v => { manifest.layers[li].buildings[bi].h[1] = v; }));
+      }
+      if (b.windows) {
+        body.appendChild(makeSlider(`${b.type} win cols`, b.windows.cols, 1, 8, 1, v => { manifest.layers[li].buildings[bi].windows.cols = v; }));
+        body.appendChild(makeSlider(`${b.type} win rows`, b.windows.rows, 1, 12, 1, v => { manifest.layers[li].buildings[bi].windows.rows = v; }));
+        body.appendChild(makeSlider(`${b.type} floor bands`, b.windows.floorBands, 0, 6, 1, v => { manifest.layers[li].buildings[bi].windows.floorBands = v; }));
       }
     });
     body.appendChild(makePalette(layer.palette, li));

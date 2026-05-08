@@ -266,23 +266,7 @@ export function buildWorld(scene) {
   // cloudLayers[0] = buildCloudLayer(scene, 0x4466aa, 10, 5, 2, 3, 0.6);
   // cloudLayers[1] = buildCloudLayer(scene, 0xaabbcc, 8, 7, 2.8, 4.5, 1.2);
 
-  const hazeGeo = new THREE.PlaneGeometry(200, 30);
-  const hazeMat = new THREE.MeshBasicMaterial({ color: 0x001133, transparent: true, opacity: 0.55, depthWrite: false });
-  hazeMesh = new THREE.Mesh(hazeGeo, hazeMat);
-  hazeMesh.position.set(0, 2.5, -55);
-  scene.add(hazeMesh);
-
-  // Canyon side walls — vertical planes flanking the corridor
   _canyonWalls = [];
-  for (const side of [-1, 1]) {
-    const wallGeo = new THREE.PlaneGeometry(600, 25);
-    const wallMat = new THREE.MeshBasicMaterial({ color: 0x06060f, side: THREE.DoubleSide });
-    const wall = new THREE.Mesh(wallGeo, wallMat);
-    wall.rotation.y = side * Math.PI / 2;
-    wall.position.set(side * 32, 12, -230);
-    scene.add(wall);
-    _canyonWalls.push(wall);
-  }
 
   // Background mountains — fixed silhouettes on the horizon
   _initMountains(scene);

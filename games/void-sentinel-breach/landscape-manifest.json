@@ -5,11 +5,11 @@
       "name": "walls",
       "countPerSide": 14,
       "xRange": [
-        54.5,
-        44
+        49,
+        49
       ],
       "zStart": -10,
-      "zSpacing": 47,
+      "zSpacing": 56,
       "zReset": -710,
       "speedMult": 1.65,
       "wrapZ": 15,
@@ -18,8 +18,8 @@
           "type": "wall_panel",
           "weight": 1,
           "h": [
-            30,
-            45
+            75,
+            75
           ]
         }
       ],
@@ -34,15 +34,11 @@
     },
     {
       "name": "skyline",
-      "countPerSide": 12,
-      "xRange": [
-        34.5,
-        31.5
-      ],
-      "zRange": [
-        -40,
-        -380
-      ],
+      "countPerSide": 17,
+      "xRange": [31.5, 34.5],
+      "zStart": -40,
+      "zSpacing": 22,
+      "zReset": -420,
       "speedMult": 0.6,
       "wrapZ": 20,
       "buildings": [
@@ -60,7 +56,12 @@
           "d": [
             4,
             10
-          ]
+          ],
+          "windows": {
+            "cols": 3,
+            "rows": 6,
+            "floorBands": 2
+          }
         }
       ],
       "palette": [

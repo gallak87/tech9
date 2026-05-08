@@ -341,13 +341,16 @@ editorOverlay.innerHTML = `
 document.body.appendChild(editorOverlay);
 
 let _editorOpen = false;
+const _editorFrame = document.getElementById('vsb-editor-frame');
 function openEditor() {
   _editorOpen = true;
+  _editorFrame.src = './editor.html';
   editorOverlay.classList.add('open');
 }
 function closeEditor() {
   _editorOpen = false;
   editorOverlay.classList.remove('open');
+  _editorFrame.src = '';
 }
 document.getElementById('vsb-editor-close').addEventListener('click', closeEditor);
 document.getElementById('vsb-btn-editor').addEventListener('click', openEditor);

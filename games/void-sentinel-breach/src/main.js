@@ -323,7 +323,7 @@ devPanel.innerHTML = `
       <button id="vsb-btn-cam">C Cam</button>
     </div>
     <div>
-      <button id="vsb-btn-editor" style="width:100%;letter-spacing:1px">⬡ LANDSCAPE EDITOR</button>
+      <button id="vsb-btn-editor" style="width:100%;letter-spacing:1px;border-color:#4af;color:#8df;background:#0a2030;">⬡ LANDSCAPE EDITOR</button>
     </div>
     <div id="vsb-dev-stats" class="vsb-dev-stats"></div>
   </div>

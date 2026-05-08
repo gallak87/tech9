@@ -17,7 +17,6 @@ document.body.appendChild(renderer.domElement);
 // ─── Scene ────────────────────────────────────────────────────────────────────
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000814);
-scene.fog = new THREE.FogExp2(0x000814, 0.018);
 
 const ambientLight = new THREE.AmbientLight(0x223344, 1.2);
 scene.add(ambientLight);
@@ -460,7 +459,6 @@ function renderHUD(dt) {
     if (Game.boss) {
       const bg = BOSS_BG_COLORS[Game.boss.phase] || 0x000814;
       scene.background = new THREE.Color(bg);
-      scene.fog.color = new THREE.Color(bg);
     }
   }
 
@@ -479,7 +477,6 @@ function renderHUD(dt) {
   // Reset scene color when back to PLAYING / MENU
   if (state === Game.STATE.PLAYING || state === Game.STATE.MENU) {
     scene.background = new THREE.Color(0x000814);
-    scene.fog.color = new THREE.Color(0x000814);
   }
 
   // Overlay

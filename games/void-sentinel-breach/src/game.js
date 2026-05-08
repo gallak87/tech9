@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import GEO_MANIFEST from '../geo-manifest.json';
 import { initAudio, playSound } from './audio.js';
+import { initScenery, updateScenery } from './scenery.js';
 
 // ─── State Machine ────────────────────────────────────────────────────────────
 export const STATE = { MENU: 'MENU', PLAYING: 'PLAYING', BOSS: 'BOSS', WIN: 'WIN', GAME_OVER: 'GAME_OVER' };
@@ -95,7 +96,6 @@ export const _waveFlashRef = { text: '', timer: 0 }; // mutable object for main.
 export let player;
 export let terrainPlane;
 let _terrainPlanes = [];
-let _sceneryPool = [];      // { mesh: THREE.Group, side: 1|-1 }[]
 let _canyonWalls = [];
 let _mountainMeshes = [];
 export let cloudLayers = [];
@@ -288,7 +288,7 @@ export function buildWorld(scene) {
   _initMountains(scene);
 
   // Scrolling city scenery pool
-  _initScenery(scene);
+  initScenery(scene);
 
   // Player ship — built from geo-manifest
   player = buildEntityMesh(GEO_MANIFEST.entities.player);
@@ -300,70 +300,7 @@ export function buildWorld(scene) {
 }
 
 // ─── Scenery helpers ──────────────────────────────────────────────────────────
-const _SCENERY_POOL_SIDE = 9;  // 9 per side, 50-unit spacing = dense city feel
-const _NEON_COLS = [0x00ccff, 0xff00cc, 0xffcc00, 0xff2266, 0x00ffcc, 0xcc00ff];
-
 function _sr(min, max) { return min + Math.random() * (max - min); }
-function _neon() { return _NEON_COLS[Math.floor(Math.random() * _NEON_COLS.length)]; }
-function _addMesh(g, geo, mat, y) { const m = new THREE.Mesh(geo, mat); m.position.y = y; g.add(m); }
-function _basicAdd(col) { return new THREE.MeshBasicMaterial({ color: col, blending: THREE.AdditiveBlending, depthWrite: false }); }
-
-// Box tower: dark slab + single neon accent band
-function _buildTowerBox() {
-  const h = _sr(6, 18), w = _sr(2, 5), d = _sr(2, 4);
-  const g = new THREE.Group();
-  _addMesh(g, new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: 0x0d0d1a, roughness: 0.7, metalness: 0.3 }), h / 2);
-  _addMesh(g, new THREE.BoxGeometry(w + 0.2, h * 0.06, d + 0.2), _basicAdd(_neon()), h * _sr(0.55, 0.85));
-  return g;
-}
-
-// Slim spire: narrow tapered cylinder + glowing tip
-function _buildSpire() {
-  const h = _sr(12, 24);
-  const g = new THREE.Group();
-  _addMesh(g, new THREE.CylinderGeometry(0.1, 0.4, h, 5), new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.5, metalness: 0.6 }), h / 2);
-  _addMesh(g, new THREE.SphereGeometry(0.25, 8, 8), _basicAdd(_neon()), h + 0.25);
-  return g;
-}
-
-// Pylon: hex column + one torus ring
-function _buildPylon() {
-  const h = _sr(5, 11), col = _neon();
-  const g = new THREE.Group();
-  _addMesh(g, new THREE.CylinderGeometry(0.25, 0.4, h, 6), new THREE.MeshStandardMaterial({ color: 0x0a0a18, roughness: 0.3, metalness: 0.8 }), h / 2);
-  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.08, 8, 20), _basicAdd(col));
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = h * _sr(0.45, 0.75);
-  g.add(ring);
-  _addMesh(g, new THREE.OctahedronGeometry(0.3), _basicAdd(col), h + 0.3);
-  return g;
-}
-
-// Billboard: post + glowing panel
-function _buildBillboard() {
-  const h = _sr(5, 10), pw = _sr(3, 6), ph = pw * _sr(0.4, 0.6);
-  const g = new THREE.Group();
-  _addMesh(g, new THREE.CylinderGeometry(0.12, 0.12, h, 5), new THREE.MeshStandardMaterial({ color: 0x111111 }), h / 2);
-  _addMesh(g, new THREE.BoxGeometry(pw, ph, 0.15), new THREE.MeshStandardMaterial({ color: 0x050510 }), h + ph / 2);
-  _addMesh(g, new THREE.BoxGeometry(pw + 0.3, ph + 0.3, 0.08), _basicAdd(_neon()), h + ph / 2);
-  return g;
-}
-
-function _buildSceneryItem() {
-  const builders = [_buildTowerBox, _buildTowerBox, _buildSpire, _buildPylon, _buildBillboard];
-  return builders[Math.floor(Math.random() * builders.length)]();
-}
-
-function _initScenery(scene) {
-  _sceneryPool = [];
-  for (let i = 0; i < _SCENERY_POOL_SIDE * 2; i++) {
-    const side = i < _SCENERY_POOL_SIDE ? -1 : 1;
-    const mesh = _buildSceneryItem();
-    mesh.position.set(side * _sr(13, 21), 0, -60 - (i % _SCENERY_POOL_SIDE) * 50);
-    scene.add(mesh);
-    _sceneryPool.push({ mesh, side });
-  }
-}
 
 function _initMountains(scene) {
   _mountainMeshes = [];
@@ -1961,16 +1898,7 @@ export function update(dt, scene) {
     // scrollClouds(cloudLayers[1], CLOUD_SPEED_2, dt);
 
     // Scroll city scenery
-    for (const s of _sceneryPool) {
-      s.mesh.position.z += _worldSpeed * dt;
-      if (s.mesh.position.z > 15) {
-        _scene.remove(s.mesh);
-        _disposeMesh(s.mesh);
-        s.mesh = _buildSceneryItem();
-        s.mesh.position.set(s.side * _sr(13, 21), 0, -430);
-        _scene.add(s.mesh);
-      }
-    }
+    updateScenery(_scene, dt, _worldSpeed);
 
     // Mountains drift slowly (parallax)
     for (const m of _mountainMeshes) {

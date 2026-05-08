@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VSB Landscape Editor</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #080c14; color: #c0d0e0; font-family: 'Courier New', monospace; font-size: 12px; display: flex; height: 100vh; overflow: hidden; }
+
+    #panel {
+      width: 280px; min-width: 280px; height: 100vh; overflow-y: auto;
+      background: #0a0e18; border-right: 1px solid #1a2a3a;
+      display: flex; flex-direction: column;
+    }
+
+    #panel-header {
+      padding: 12px 14px; background: #0d1420; border-bottom: 1px solid #1a2a3a;
+      font-size: 13px; letter-spacing: 2px; color: #4af;
+    }
+
+    #layers { padding: 8px; flex: 1; }
+
+    .layer-block {
+      margin-bottom: 12px; border: 1px solid #1a2a3a; border-radius: 3px; overflow: hidden;
+    }
+    .layer-title {
+      padding: 6px 10px; background: #111c28; color: #7ab; font-size: 11px;
+      letter-spacing: 1px; text-transform: uppercase; cursor: pointer;
+      display: flex; justify-content: space-between;
+    }
+    .layer-body { padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
+
+    .field { display: flex; flex-direction: column; gap: 2px; }
+    .field label { color: #6a8a9a; font-size: 10px; letter-spacing: 1px; }
+    .field-row { display: flex; gap: 6px; align-items: center; }
+    .field input[type=range] { flex: 1; accent-color: #4af; height: 3px; }
+    .field .val { color: #adf; width: 38px; text-align: right; font-size: 11px; }
+
+    .palette-row { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
+    .swatch {
+      width: 20px; height: 20px; border-radius: 2px; border: 1px solid #334;
+      cursor: pointer; position: relative;
+    }
+    .swatch input[type=color] {
+      opacity: 0; position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer;
+    }
+
+    #actions {
+      padding: 10px; border-top: 1px solid #1a2a3a; display: flex; flex-direction: column; gap: 6px;
+    }
+    button {
+      padding: 7px 12px; border: 1px solid #2a4a6a; background: #0d1a28;
+      color: #4af; font-family: inherit; font-size: 11px; letter-spacing: 1px;
+      cursor: pointer; border-radius: 2px; text-transform: uppercase;
+    }
+    button:hover { background: #1a2e40; border-color: #4af; }
+    button.primary { border-color: #4af; background: #0a2030; color: #8df; }
+    button.primary:hover { background: #0d2840; }
+
+    #status {
+      font-size: 10px; color: #6a8; padding: 4px 0; min-height: 16px; text-align: center;
+    }
+
+    #canvas-wrap { flex: 1; position: relative; }
+    #canvas-wrap canvas { display: block; }
+    #hint {
+      position: absolute; bottom: 12px; left: 12px; color: #334; font-size: 10px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="panel">
+    <div id="panel-header">⬡ LANDSCAPE EDITOR</div>
+    <div id="layers"></div>
+    <div id="actions">
+      <button id="btn-apply">↺ Apply Preview</button>
+      <button id="btn-save" class="primary">⬇ Save + Generate</button>
+      <button id="btn-reset">⟳ Reset to Saved</button>
+      <div id="status"></div>
+    </div>
+  </div>
+  <div id="canvas-wrap">
+    <div id="hint">orbit: left drag · zoom: scroll · pan: right drag</div>
+  </div>
+  <script type="module" src="./editor.js"></script>
+</body>
+</html>

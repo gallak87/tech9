@@ -16,10 +16,10 @@ function _disposeMesh(obj) {
 const _PAL_WALLS = [0x00aaff, 0xaa00ff, 0x00ffcc, 0xff00aa, 0xffaa00, 0x44aaff];
 
 function _build_walls_wall_panel() {
-  const H = _sr(22, 38);
+  const H = _sr(30, 45);
   const g = new THREE.Group();
   _addMesh(g, new THREE.BoxGeometry(2, H, 55), new THREE.MeshStandardMaterial({ color: 0x0c0c20, emissive: 0x060612, emissiveIntensity: 0.3, roughness: 0.8 }), H / 2);
-  const _cols = 7, _rows = Math.max(3, Math.floor(H / 5));
+  const _cols = 7, _rows = 8;
   for (let r = 0; r < _rows; r++) {
     for (let c = 0; c < _cols; c++) {
       if (Math.random() < 0.25) continue;
@@ -46,8 +46,8 @@ function _init_walls(scene) {
   for (let i = 0; i < 14 * 2; i++) {
     const side = i < 14 ? -1 : 1;
     const mesh = _buildItem_walls();
-    const x = side * _sr(10, 10);
-    const z = -10 - (i % 14) * 50;
+    const x = side * _sr(54.5, 44);
+    const z = -10 - (i % 14) * 47;
     mesh.position.set(x, 0, z);
     scene.add(mesh);
     _pool_walls.push({ mesh, side });
@@ -55,23 +55,23 @@ function _init_walls(scene) {
 }
 
 function _update_walls(scene, dt, worldSpeed) {
-  const spd = worldSpeed * 1;
+  const spd = worldSpeed * 1.65;
   for (const s of _pool_walls) {
     s.mesh.position.z += spd * dt;
     if (s.mesh.position.z > 15) {
       scene.remove(s.mesh);
       _disposeMesh(s.mesh);
       s.mesh = _buildItem_walls();
-      s.mesh.position.set(s.side * _sr(10, 10), 0, -710);
+      s.mesh.position.set(s.side * _sr(54.5, 44), 0, -710);
       scene.add(s.mesh);
     }
   }
 }
 
-const _PAL_SKYLINE = [0x0a2040, 0x0c2850, 0x0e1e38, 0x112244];
+const _PAL_SKYLINE = [0x2162c4, 0x1450a3, 0x244170, 0x062d79];
 
 function _build_skyline_slab() {
-  const h = _sr(30, 80), w = _sr(4, 12), d = _sr(4, 10);
+  const h = _sr(45, 80), w = _sr(4, 12), d = _sr(4, 10);
   const g = new THREE.Group();
   _addMesh(g, new THREE.BoxGeometry(w, h, d), new THREE.MeshStandardMaterial({ color: _neon(_PAL_SKYLINE), emissive: _neon(_PAL_SKYLINE), emissiveIntensity: 0.5, roughness: 1.0, metalness: 0 }), h / 2);
   return g;
@@ -89,7 +89,7 @@ function _init_skyline(scene) {
   for (let i = 0; i < 12 * 2; i++) {
     const side = i < 12 ? -1 : 1;
     const mesh = _buildItem_skyline();
-    const x = side * _sr(28, 46);
+    const x = side * _sr(34.5, 31.5);
     const z = _sr(-40, -380);
     mesh.position.set(x, 0, z);
     scene.add(mesh);
@@ -103,7 +103,7 @@ function _update_skyline(scene, dt, worldSpeed) {
     s.mesh.position.z += spd * dt;
     if (s.mesh.position.z > 20) {
       s.mesh.position.z = _sr(-40, -380);
-      s.mesh.position.x = s.side * _sr(28, 46);
+      s.mesh.position.x = s.side * _sr(34.5, 31.5);
     }
   }
 }

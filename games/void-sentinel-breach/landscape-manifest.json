@@ -4,28 +4,71 @@
     {
       "name": "walls",
       "countPerSide": 14,
-      "xRange": [10, 10],
+      "xRange": [
+        54.5,
+        44
+      ],
       "zStart": -10,
-      "zSpacing": 50,
+      "zSpacing": 47,
       "zReset": -710,
-      "speedMult": 1.0,
+      "speedMult": 1.65,
       "wrapZ": 15,
       "buildings": [
-        { "type": "wall_panel", "weight": 1, "h": [22, 38] }
+        {
+          "type": "wall_panel",
+          "weight": 1,
+          "h": [
+            30,
+            45
+          ]
+        }
       ],
-      "palette": ["#00aaff","#aa00ff","#00ffcc","#ff00aa","#ffaa00","#44aaff"]
+      "palette": [
+        "#00aaff",
+        "#aa00ff",
+        "#00ffcc",
+        "#ff00aa",
+        "#ffaa00",
+        "#44aaff"
+      ]
     },
     {
       "name": "skyline",
       "countPerSide": 12,
-      "xRange": [28, 46],
-      "zRange": [-40, -380],
+      "xRange": [
+        34.5,
+        31.5
+      ],
+      "zRange": [
+        -40,
+        -380
+      ],
       "speedMult": 0.6,
       "wrapZ": 20,
       "buildings": [
-        { "type": "slab", "weight": 1, "h": [30, 80], "w": [4, 12], "d": [4, 10] }
+        {
+          "type": "slab",
+          "weight": 1,
+          "h": [
+            45,
+            80
+          ],
+          "w": [
+            4,
+            12
+          ],
+          "d": [
+            4,
+            10
+          ]
+        }
       ],
-      "palette": ["#0a2040","#0c2850","#0e1e38","#112244"]
+      "palette": [
+        "#2162c4",
+        "#1450a3",
+        "#244170",
+        "#062d79"
+      ]
     }
   ]
 }

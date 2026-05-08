@@ -73,7 +73,7 @@ function emitBuilder(type, spec, paletteVar) {
     lines.push(`  const H = ${sr(spec.h)};`);
     lines.push(`  const g = new THREE.Group();`);
     lines.push(`  _addMesh(g, new THREE.BoxGeometry(2, H, ${W}), new THREE.MeshStandardMaterial({ color: 0x0c0c20, emissive: 0x060612, emissiveIntensity: 0.3, roughness: 0.8 }), H / 2);`);
-    lines.push(`  const _cols = 7, _rows = Math.max(3, Math.floor(H / 5));`);
+    lines.push(`  const _cols = 7, _rows = 8;`);
     lines.push(`  for (let r = 0; r < _rows; r++) {`);
     lines.push(`    for (let c = 0; c < _cols; c++) {`);
     lines.push(`      if (Math.random() < 0.25) continue;`);

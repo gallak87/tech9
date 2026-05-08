@@ -5,11 +5,25 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 let manifest = null;
 let previewMeshes = [];
 
+// Seeded RNG — same seed = same layout. Sliders reuse seed; Apply picks a new one.
+let _seed = Date.now();
+function _rng() {
+  _seed |= 0; _seed = _seed + 0x6D2B79F5 | 0;
+  let t = Math.imul(_seed ^ _seed >>> 15, 1 | _seed);
+  t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+  return ((t ^ t >>> 14) >>> 0) / 4294967296;
+}
+let _seedSnapshot = _seed;
+let _originalSeed = _seed;
+function resetRng() { _seed = _seedSnapshot; }
+function newSeed() { _seedSnapshot = Date.now() ^ (Math.random() * 0xFFFFFF | 0); _seed = _seedSnapshot; }
+function restoreOriginalSeed() { _seedSnapshot = _originalSeed; _seed = _originalSeed; }
+
 function debounce(fn, ms) {
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
-const debouncedPreview = debounce(() => buildPreview(), 100);
+const debouncedPreview = debounce(() => { resetRng(); buildPreview(); }, 100);
 
 // ─── ThreeJS setup ────────────────────────────────────────────────────────────
 const wrap = document.getElementById('canvas-wrap');
@@ -61,8 +75,8 @@ function animate() {
 animate();
 
 // ─── Builder helpers ──────────────────────────────────────────────────────────
-function sr(range) { return range[0] + Math.random() * (range[1] - range[0]); }
-function neon(palette) { return new THREE.Color(palette[Math.floor(Math.random() * palette.length)]); }
+function sr(range) { return range[0] + _rng() * (range[1] - range[0]); }
+function neon(palette) { return new THREE.Color(palette[Math.floor(_rng() * palette.length)]); }
 function basicAdd(col) {
   return new THREE.MeshBasicMaterial({ color: col, blending: THREE.AdditiveBlending, depthWrite: false });
 }
@@ -77,10 +91,10 @@ function buildWallPanel(spec, palette) {
   addMesh(g, new THREE.BoxGeometry(2, H, W),
     new THREE.MeshStandardMaterial({ color: 0x0c0c20, emissive: 0x060612, emissiveIntensity: 0.3, roughness: 0.8 }),
     H / 2);
-  const cols = 7, rows = Math.max(3, Math.floor(H / 5));
+  const cols = 7, rows = 8;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (Math.random() < 0.25) continue;
+      if (_rng() < 0.25) continue;
       const wm = new THREE.Mesh(
         new THREE.BoxGeometry(2.6, sr([0.8, 2.0]), sr([1.0, 3.0])),
         basicAdd(neon(palette))
@@ -127,7 +141,7 @@ const BUILDERS = { wall_panel: buildWallPanel, slab: buildSlab, tower: buildTowe
 function buildItem(layer) {
   const weighted = [];
   for (const b of layer.buildings) for (let w = 0; w < (b.weight || 1); w++) weighted.push(b);
-  const spec = weighted[Math.floor(Math.random() * weighted.length)];
+  const spec = weighted[Math.floor(_rng() * weighted.length)];
   const fn = BUILDERS[spec.type];
   return fn ? fn(spec, layer.palette) : null;
 }
@@ -153,10 +167,10 @@ function buildPreview() {
       const side = i < perSide ? -1 : 1;
       const mesh = buildItem(layer);
       if (!mesh) continue;
-      const x = side * (xRange[0] + Math.random() * (xRange[1] - xRange[0]));
+      const x = side * (xRange[0] + _rng() * (xRange[1] - xRange[0]));
       let z;
       if (layer.zRange) {
-        z = layer.zRange[0] + Math.random() * (layer.zRange[1] - layer.zRange[0]);
+        z = layer.zRange[0] + _rng() * (layer.zRange[1] - layer.zRange[0]);
       } else {
         z = (layer.zStart || -10) - (i % perSide) * spacing;
       }
@@ -267,10 +281,11 @@ function buildUI() {
 const status = document.getElementById('status');
 let originalManifest = null;
 
-document.getElementById('btn-apply').addEventListener('click', buildPreview);
+document.getElementById('btn-newseed').addEventListener('click', () => { newSeed(); buildPreview(); });
 
 document.getElementById('btn-reset').addEventListener('click', () => {
   manifest = JSON.parse(originalManifest);
+  restoreOriginalSeed();
   buildUI();
   buildPreview();
 });
@@ -306,6 +321,7 @@ async function init() {
   manifest = JSON.parse(text);
   buildUI();
   buildPreview();
+  _originalSeed = _seedSnapshot; // lock in the seed used for the initial layout
 }
 
 init();

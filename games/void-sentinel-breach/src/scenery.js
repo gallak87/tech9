@@ -68,7 +68,7 @@ function _update_walls(scene, dt, worldSpeed) {
   }
 }
 
-const _PAL_SKYLINE = [0x2162c4, 0x1450a3, 0x244170, 0x062d79];
+const _PAL_SKYLINE = [0x4b9636, 0x2c6fce, 0x70243b, 0xb3b875];
 
 function _build_skyline_slab() {
   const h = _sr(45, 80), w = _sr(4, 12), d = _sr(4, 10);
@@ -101,11 +101,11 @@ let _pool_skyline = [];
 
 function _init_skyline(scene) {
   _pool_skyline = [];
-  for (let i = 0; i < 28 * 2; i++) {
-    const side = i < 28 ? -1 : 1;
+  for (let i = 0; i < 30 * 2; i++) {
+    const side = i < 30 ? -1 : 1;
     const mesh = _buildItem_skyline();
-    const x = side * _sr(16, 34.5);
-    const z = -40 - (i % 28) * 22;
+    const x = side * _sr(16, 38.5);
+    const z = -40 - (i % 30) * 22;
     mesh.position.set(x, 0, z);
     scene.add(mesh);
     _pool_skyline.push({ mesh, side });
@@ -120,7 +120,7 @@ function _update_skyline(scene, dt, worldSpeed) {
       scene.remove(s.mesh);
       _disposeMesh(s.mesh);
       s.mesh = _buildItem_skyline();
-      s.mesh.position.set(s.side * _sr(16, 34.5), 0, -656);
+      s.mesh.position.set(s.side * _sr(16, 38.5), 0, -700);
       scene.add(s.mesh);
     }
   }

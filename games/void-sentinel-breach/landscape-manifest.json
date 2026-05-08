@@ -34,10 +34,10 @@
     },
     {
       "name": "skyline",
-      "countPerSide": 28,
+      "countPerSide": 30,
       "xRange": [
         16,
-        34.5
+        38.5
       ],
       "zStart": -40,
       "zSpacing": 22,
@@ -64,15 +64,22 @@
             "cols": 3,
             "rows": 6,
             "floorBands": 2,
-            "palette": ["#00aaff","#aa00ff","#00ffcc","#ff00aa","#ffaa00","#44aaff"]
+            "palette": [
+              "#00aaff",
+              "#aa00ff",
+              "#00ffcc",
+              "#ff00aa",
+              "#ffaa00",
+              "#44aaff"
+            ]
           }
         }
       ],
       "palette": [
-        "#2162c4",
-        "#1450a3",
-        "#244170",
-        "#062d79"
+        "#4b9636",
+        "#2c6fce",
+        "#70243b",
+        "#b3b875"
       ]
     }
   ]

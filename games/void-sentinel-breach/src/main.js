@@ -301,8 +301,11 @@ devPanel.innerHTML = `
       <button id="vsb-s1">1 MENU</button>
       <button id="vsb-s2">2 PLAY</button>
       <button id="vsb-s3">3 BOSS</button>
-      <button id="vsb-s4">4 WIN</button>
-      <button id="vsb-s5">5 OVER</button>
+    </div>
+    <div>
+      <span style="color:#7a9ab0">WAVE</span>
+      <button id="vsb-wave-prev">− prev</button>
+      <button id="vsb-wave-next">+ next</button>
     </div>
     <div>
       <span style="color:#7a9ab0">TIER</span>
@@ -370,8 +373,8 @@ document.getElementById('vsb-spawn-e').addEventListener('click', () => Game.devS
 document.getElementById('vsb-s1').addEventListener('click', () => Game.devSetState('MENU'));
 document.getElementById('vsb-s2').addEventListener('click', () => Game.devSetState('PLAYING'));
 document.getElementById('vsb-s3').addEventListener('click', () => Game.devSetState('BOSS'));
-document.getElementById('vsb-s4').addEventListener('click', () => Game.devSetState('WIN'));
-document.getElementById('vsb-s5').addEventListener('click', () => Game.devSetState('GAME_OVER'));
+document.getElementById('vsb-wave-prev').addEventListener('click', () => Game.devJumpWave(-1));
+document.getElementById('vsb-wave-next').addEventListener('click', () => Game.devJumpWave(+1));
 document.getElementById('vsb-btn-art').addEventListener('click', () => toggleArtMode());
 document.getElementById('vsb-btn-ships').addEventListener('click', () => {
   if (!artMode) toggleArtMode();
@@ -444,7 +447,7 @@ function renderHUD(dt) {
 
   // Wave indicator (top right)
   if (state === Game.STATE.PLAYING && Game.currentWave > 0) {
-    waveIndicatorEl.textContent = `WAVE ${Game.currentWave} / ${Game.waveCount}`;
+    waveIndicatorEl.textContent = `WAVE ${Game.currentWave}`;
     waveIndicatorEl.style.display = 'block';
   } else if (state === Game.STATE.BOSS) {
     waveIndicatorEl.textContent = 'BOSS';
@@ -532,11 +535,11 @@ function renderHUD(dt) {
         VOID SENTINEL<br><span style="color:#ff4400;text-shadow:0 0 20px #ff4400,0 0 40px #ff2200;">BREACH</span>
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:12px;color:#445566;letter-spacing:3px;text-align:center;margin-top:-8px;">
-        6 WAVES OF CHAOS
+        ENDLESS WAVES &nbsp;&middot;&nbsp; 3 BOSS CYCLES
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:12px;line-height:2.0;text-align:center;color:#5577aa;margin-top:4px;">
         WASD / ARROWS &mdash; MOVE &nbsp;&middot;&nbsp; BOMB &mdash; X / Z<br>
-        WEAPONS DROP FROM KILLS &nbsp;&middot;&nbsp; SURVIVE ALL 6 WAVES
+        WEAPONS DROP FROM KILLS &nbsp;&middot;&nbsp; SURVIVE 3 BOSS CYCLES
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:17px;animation:blinkPulse 1.4s ease-in-out infinite;color:#00ffcc;">
         PRESS ENTER OR CLICK
@@ -552,7 +555,7 @@ function renderHUD(dt) {
       <div style="font-family:'Share Tech Mono',monospace;font-size:26px;color:#fff;letter-spacing:3px;margin-top:4px;">SCORE &nbsp;${String(sc).padStart(8,'0')}</div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:28px;color:#ffcc00;letter-spacing:6px;text-shadow:0 0 10px #ffaa00;">${stars}</div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:#7a9ab0;line-height:2.2;text-align:center;">
-        WAVE REACHED &nbsp; ${Game.waveReached}&nbsp;/&nbsp;${Game.waveCount}<br>
+        WAVE REACHED &nbsp; ${Game.waveReached}<br>
         TIME SURVIVED &nbsp; ${_formatTime(Game.timeSurvived)}
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#00ffcc;animation:blinkPulse 1.4s ease-in-out infinite;">[ PLAY AGAIN &mdash; R / CLICK ]</div>
@@ -564,7 +567,7 @@ function renderHUD(dt) {
       <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#661111;letter-spacing:4px;text-shadow:0 0 8px #440000;">SENTINEL WINS</div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:26px;color:#fff;letter-spacing:3px;margin-top:4px;">SCORE &nbsp;${String(Game.score).padStart(8,'0')}</div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:13px;color:#7a9ab0;line-height:2.2;text-align:center;">
-        WAVE REACHED &nbsp; ${Game.waveReached}&nbsp;/&nbsp;${Game.waveCount}<br>
+        WAVE REACHED &nbsp; ${Game.waveReached}<br>
         TIME SURVIVED &nbsp; ${_formatTime(Game.timeSurvived)}
       </div>
       <div style="font-family:'Share Tech Mono',monospace;font-size:14px;color:#ff6644;animation:blinkPulse 1.4s ease-in-out infinite;">[ TRY AGAIN &mdash; R / CLICK ]</div>
@@ -586,7 +589,7 @@ function renderHUD(dt) {
         : 'none';
       statsEl.innerHTML =
         `tier: T${Game.weaponTier}  lives: ${Game.lives}  bombs: ${Game.bombCount}<br>` +
-        `wave: ${Game.currentWave}/${Game.waveCount}  enemies: ${Game.enemies.length}<br>` +
+        `wave: ${Game.currentWave}  cycle: ${Game.getBossCycle()}  enemies: ${Game.enemies.length}<br>` +
         `pBullets: ${Game.playerBullets.length}  eBullets: ${Game.enemyBullets.length}<br>` +
         `boss: ${bossInfo}`;
     }

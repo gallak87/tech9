@@ -9,7 +9,7 @@ export let currentState = STATE.MENU;
 
 // ─── Wave system exports ──────────────────────────────────────────────────────
 export let currentWave = 0;
-export const waveCount = 6;
+export const waveCount = Infinity;
 export let boss = null;
 export let bossPhaseTransition = false;
 
@@ -43,6 +43,7 @@ export function transitionTo(next) {
     _waveFlashRef.text = '';
     _waveFlashRef.timer = 0;
     _waveSpawnQueue = [];
+    _bossCycle = 0;
     _worldSpeed = 2.0;
     bossPhaseTransition = false;
 
@@ -199,8 +200,8 @@ window.addEventListener('keydown', e => {
     if (e.code === 'Digit1') transitionTo(STATE.MENU);
     if (e.code === 'Digit2') transitionTo(STATE.PLAYING);
     if (e.code === 'Digit3') transitionTo(STATE.BOSS);
-    if (e.code === 'Digit4') transitionTo(STATE.WIN);
-    if (e.code === 'Digit5') transitionTo(STATE.GAME_OVER);
+    if (e.code === 'Equal' || e.code === 'NumpadAdd')      devJumpWave(+1);  // + next wave
+    if (e.code === 'Minus' || e.code === 'NumpadSubtract') devJumpWave(-1);  // - prev wave
     if (e.code === 'BracketLeft')  { weaponTier = weaponTier > 1 ? weaponTier - 1 : 7; }
     if (e.code === 'BracketRight') { weaponTier = weaponTier < 7 ? weaponTier + 1 : 1; }
     if (e.shiftKey && e.code === 'KeyS') { if (_scene) spawnEnemy(_scene, 'scout'); }
@@ -630,6 +631,17 @@ export function devSpawnEnemy(type) {
   if (_scene) spawnEnemy(_scene, type);
 }
 
+export function devJumpWave(delta) {
+  if (currentState !== STATE.PLAYING) return;
+  for (const e of enemies) { _scene && _scene.remove(e.mesh); _disposeMesh(e.mesh); }
+  enemies.length = 0;
+  for (const b of enemyBullets) { _scene && _scene.remove(b.mesh); b.mesh.geometry.dispose(); }
+  enemyBullets.length = 0;
+  _waveSpawnQueue = [];
+  const next = Math.max(1, currentWave + delta);
+  _startWave(_scene, next);
+}
+
 export function devCycleTier(dir) {
   weaponTier = ((weaponTier - 1 + dir + 7) % 7) + 1;
 }
@@ -714,153 +726,109 @@ export function devClearArtScene(scene, meshes) {
 // idle → spawning → waiting (all spawned, waiting for enemies to clear) → gap → (next wave or boss)
 let _waveState = 'idle';    // 'idle' | 'spawning' | 'waiting' | 'gap' | 'boss-pause' | 'boss-transition'
 let _waveTimer = 0;         // general timer
-let _wavePauseTimer = 0;    // 2s gap between waves
+let _wavePauseTimer = 0;    // gap between waves
 let _waveFlashTimer = 0;
 let _waveSpawnQueue = [];   // { delay, type, opts }[]
+let _bossCycle = 0;         // number of bosses defeated this run
+
+function _mulberry32(seed) {
+  return function () {
+    seed = (seed + 0x6D2B79F5) | 0;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function _fmtLine(entries, t0, rng, Z) {
+  const count = 4 + Math.floor(rng() * 4);
+  const step = (count > 1) ? 11 / (count - 1) : 0;  // span -5.5 to +5.5
+  const dir = rng() < 0.5 ? 1 : -1;
+  for (let i = 0; i < count; i++) {
+    const idx = dir === 1 ? i : count - 1 - i;
+    entries.push({ delay: t0 + i * 0.25, type: 'scout', opts: { spawnX: -5.5 + idx * step, spawnZ: Z } });
+  }
+}
+
+function _fmtV(entries, t0, rng, Z) {
+  const cx = (rng() - 0.5) * 4;  // center wanders ±2 to keep wings in bounds
+  for (let i = 0; i < 5; i++) {
+    const off = (i - 2) * 2;
+    entries.push({ delay: t0 + Math.abs(i - 2) * 0.18, type: 'scout', opts: { spawnX: cx + off, spawnZ: Z, fixedY: 3.5, sinePhase: (i - 2) * 0.3 } });
+  }
+}
+
+function _fmtDiagonal(entries, t0, rng, Z) {
+  const dir = rng() < 0.5 ? 1 : -1;
+  const startX = dir === 1 ? -5 : 5;
+  for (let i = 0; i < 4; i++) {
+    entries.push({ delay: t0 + i * 0.35, type: 'scout', opts: { spawnX: startX + dir * i * 3, spawnZ: Z } });
+  }
+}
+
+function _fmtBomberRun(entries, t0, rng, Z) {
+  const slots = [-4, 0, 4];
+  const n = 1 + Math.floor(rng() * 2);
+  for (let i = 0; i < n; i++) {
+    const sx = slots[Math.floor(rng() * slots.length)];
+    entries.push({ delay: t0 + i * 1.0, type: 'bomber', opts: { spawnZ: Z, startX: sx, fromLeft: sx <= 0 } });
+  }
+  entries.push({ delay: t0 + 1.5, type: 'scout', opts: { spawnX: -5, spawnZ: Z } });
+  entries.push({ delay: t0 + 1.7, type: 'scout', opts: { spawnX:  5, spawnZ: Z } });
+}
+
+function _fmtDroneSwarm(entries, t0, rng, Z) {
+  const n = 2 + Math.floor(rng() * 3);
+  const sweepYOptions = [2.5, 3.0, 3.5, 4.0];
+  for (let i = 0; i < n; i++) {
+    const fromLeft = i % 2 === 0;
+    const sweepY = sweepYOptions[Math.floor(rng() * sweepYOptions.length)];
+    entries.push({ delay: t0 + i * 0.45, type: 'drone', opts: { fromLeft, sweepY, spawnZ: Z } });
+  }
+}
+
+function _fmtDuel(entries, t0, rng, Z) {
+  entries.push({ delay: t0,       type: 'bomber', opts: { spawnZ: Z, startX: -5, fromLeft: true  } });
+  entries.push({ delay: t0,       type: 'bomber', opts: { spawnZ: Z, startX:  5, fromLeft: false } });
+  entries.push({ delay: t0 + 1.2, type: 'drone',  opts: { spawnZ: Z, fromLeft: rng() < 0.5, sweepY: 3.0 } });
+}
 
 // Each entry: { delay: total_seconds_from_wave_start, type: 'scout'|etc, opts: {} }
-function _buildWaveScript(waveNum) {
+function _generateWave(waveNum) {
+  const Z = -22;
+  const rng = _mulberry32(waveNum * 9973 + 17);
   const entries = [];
-  const Z = -22; // default spawn Z
+  const difficulty = Math.min(1 + (waveNum - 1) * 0.22, 4.5);
+  const formationCount = 2 + Math.floor(rng() * 2) + Math.floor((waveNum - 1) / 2);
+  const isEliteWave = waveNum % 3 === 0;
 
-  switch (waveNum) {
-    case 1: {
-      // 4× Scout, single file down center, 1.2s stagger
-      for (let i = 0; i < 4; i++) {
-        entries.push({ delay: i * 1.2, type: 'scout', opts: { spawnX: 0, spawnZ: Z } });
+  let t = 0;
+  for (let f = 0; f < formationCount; f++) {
+    const pick = rng();
+    if      (waveNum === 1)               _fmtLine(entries, t, rng, Z);
+    else if (pick < 0.18)                 _fmtLine(entries, t, rng, Z);
+    else if (pick < 0.36)                 _fmtV(entries, t, rng, Z);
+    else if (pick < 0.52)                 _fmtDiagonal(entries, t, rng, Z);
+    else if (pick < 0.68 && waveNum >= 2) _fmtBomberRun(entries, t, rng, Z);
+    else if (pick < 0.84 && waveNum >= 2) _fmtDroneSwarm(entries, t, rng, Z);
+    else                                  _fmtDuel(entries, t, rng, Z);
+    t += 1.8 + rng() * 1.2 - Math.min(0.5, (difficulty - 1) * 0.15);
+  }
+
+  if (isEliteWave) {
+    for (const ev of entries) {
+      if (ev.type === 'scout' && rng() < 0.4) {
+        ev.type = 'elite';
+        ev.opts = { ...ev.opts, eliteBase: 'scout', movementType: 'scout' };
       }
-      break;
     }
-    case 2: {
-      // 6× Scout, 2 columns of 3 from left+right edges, pairs staggered 0.8s
-      for (let i = 0; i < 3; i++) {
-        const d = i * 0.8;
-        entries.push({ delay: d, type: 'scout', opts: { spawnX: -5.5, spawnZ: Z } });
-        entries.push({ delay: d, type: 'scout', opts: { spawnX:  5.5, spawnZ: Z } });
-      }
-      break;
-    }
-    case 3: {
-      // 3× Scout staggered 0.6s, then 2× Bomber 1.5s after last scout
-      for (let i = 0; i < 3; i++) {
-        entries.push({ delay: i * 0.6, type: 'scout', opts: { spawnX: (i - 1) * 2, spawnZ: Z } });
-      }
-      const bomberStart = 2 * 0.6 + 1.5;
-      entries.push({ delay: bomberStart, type: 'bomber', opts: { fromLeft: true,  spawnZ: Z } });
-      entries.push({ delay: bomberStart, type: 'bomber', opts: { fromLeft: false, spawnZ: Z } });
-      break;
-    }
-    case 4: {
-      // 2× Drone simultaneous at start; 4× Scout staggered 0.5s starting at 0.8s
-      entries.push({ delay: 0,   type: 'drone', opts: { fromLeft: true,  sweepY: 3.0, spawnZ: Z } });
-      entries.push({ delay: 0,   type: 'drone', opts: { fromLeft: false, sweepY: 3.0, spawnZ: Z } });
-      for (let i = 0; i < 4; i++) {
-        entries.push({ delay: 0.8 + i * 0.5, type: 'scout', opts: { spawnX: (Math.random() - 0.5) * 8, spawnZ: Z } });
-      }
-      break;
-    }
-    case 5: {
-      // 9× Scout V-formation: point first, 4 per wing, 1.0u lateral apart, simultaneous
-      // Point = index 0, wing L: -1,-2,-3,-4; wing R: +1,+2,+3,+4
-      // All spawn at same Z, staggered slightly by row for visual V
-      entries.push({ delay: 0, type: 'scout', opts: { spawnX: 0,    spawnZ: Z,      fixedY: 3.5, sinePhase: 0 } });
-      for (let i = 1; i <= 4; i++) {
-        entries.push({ delay: 0, type: 'scout', opts: { spawnX: -i * 1.0, spawnZ: Z - i * 0.5, fixedY: 3.5, sinePhase: i * 0.3 } });
-        entries.push({ delay: 0, type: 'scout', opts: { spawnX:  i * 1.0, spawnZ: Z - i * 0.5, fixedY: 3.5, sinePhase: -i * 0.3 } });
-      }
-      break;
-    }
-    case 6: {
-      // 1× Elite Scout center, scouts flanks 0.6s later, drones 2.0s in
-      entries.push({ delay: 0,   type: 'elite', opts: { spawnX: 0,    spawnZ: Z, eliteBase: 'scout', movementType: 'scout' } });
-      entries.push({ delay: 0.6, type: 'scout', opts: { spawnX: -3,   spawnZ: Z } });
-      entries.push({ delay: 0.6, type: 'scout', opts: { spawnX:  3,   spawnZ: Z } });
-      entries.push({ delay: 0.6, type: 'scout', opts: { spawnX: -5,   spawnZ: Z } });
-      entries.push({ delay: 0.6, type: 'scout', opts: { spawnX:  5,   spawnZ: Z } });
-      entries.push({ delay: 2.0, type: 'drone', opts: { fromLeft: true,  sweepY: 2.8, spawnZ: Z } });
-      entries.push({ delay: 2.0, type: 'drone', opts: { fromLeft: false, sweepY: 2.8, spawnZ: Z } });
-      break;
-    }
-    case 7: {
-      // 4× Bomber horizontal row simultaneous; 3× Scout staggered 0.7s starting 1.0s in
-      const bomberXs = [-4, -1.3, 1.3, 4];
-      for (const bx of bomberXs) {
-        entries.push({ delay: 0, type: 'bomber', opts: { spawnZ: Z, startX: bx, fromLeft: bx < 0 } });
-      }
-      for (let i = 0; i < 3; i++) {
-        entries.push({ delay: 1.0 + i * 0.7, type: 'scout', opts: { spawnX: (i - 1) * 3, spawnZ: Z } });
-      }
-      break;
-    }
-    case 8: {
-      // 3 drone pairs at Y=4.0, 3.2, 2.4, staggered 1.0s; bombers at 3.0s
-      const droneYs = [4.0, 3.2, 2.4];
-      for (let i = 0; i < 3; i++) {
-        const fl = i % 2 === 0; // alternate sweep direction per layer
-        entries.push({ delay: i * 1.0, type: 'drone', opts: { fromLeft:  fl, sweepY: droneYs[i], spawnZ: Z } });
-        entries.push({ delay: i * 1.0, type: 'drone', opts: { fromLeft: !fl, sweepY: droneYs[i], spawnZ: Z } });
-      }
-      entries.push({ delay: 3.0, type: 'bomber', opts: { fromLeft: true,  spawnZ: Z } });
-      entries.push({ delay: 3.0, type: 'bomber', opts: { fromLeft: false, spawnZ: Z } });
-      break;
-    }
-    case 9: {
-      // 1× Elite Bomber center; 2× regular bombers 1.0s later; scouts every 0.9s for 4s
-      entries.push({ delay: 0,   type: 'elite',  opts: { spawnZ: Z, eliteBase: 'bomber', movementType: 'bomber', fromLeft: false, holdDuration: 3.5 } });
-      entries.push({ delay: 1.0, type: 'bomber', opts: { fromLeft: true,  spawnZ: Z } });
-      entries.push({ delay: 1.0, type: 'bomber', opts: { fromLeft: false, spawnZ: Z } });
-      for (let i = 0; i < 5; i++) {
-        entries.push({ delay: i * 0.9, type: 'scout', opts: { spawnX: (Math.random() - 0.5) * 10, spawnZ: Z } });
-      }
-      break;
-    }
-    case 10: {
-      // 4 scouts in 2 diagonals (X pattern); drones 1.5s; bombers 3.5s
-      const diagXs = [-4, -2, 2, 4];
-      for (let i = 0; i < 4; i++) {
-        entries.push({ delay: 0, type: 'scout', opts: { spawnX: diagXs[i], spawnZ: Z - Math.abs(diagXs[i]) * 0.3 } });
-      }
-      entries.push({ delay: 1.5, type: 'drone', opts: { fromLeft: true,  sweepY: 3.2, spawnZ: Z } });
-      entries.push({ delay: 1.5, type: 'drone', opts: { fromLeft: false, sweepY: 3.2, spawnZ: Z } });
-      entries.push({ delay: 1.5, type: 'drone', opts: { fromLeft: true,  sweepY: 2.5, spawnZ: Z } });
-      entries.push({ delay: 1.5, type: 'drone', opts: { fromLeft: false, sweepY: 2.5, spawnZ: Z } });
-      entries.push({ delay: 3.5, type: 'bomber', opts: { fromLeft: true,  spawnZ: Z } });
-      entries.push({ delay: 3.5, type: 'bomber', opts: { fromLeft: false, spawnZ: Z } });
-      break;
-    }
-    case 11: {
-      // 2× Elite Drones simultaneous; regular drones 0.5s; scouts staggered 0.6s from 1.0s
-      entries.push({ delay: 0,   type: 'elite', opts: { eliteBase: 'drone', movementType: 'drone', fromLeft: true,  sweepY: 3.5, spawnZ: Z } });
-      entries.push({ delay: 0,   type: 'elite', opts: { eliteBase: 'drone', movementType: 'drone', fromLeft: false, sweepY: 3.5, spawnZ: Z } });
-      entries.push({ delay: 0.5, type: 'drone', opts: { fromLeft: true,  sweepY: 3.0, spawnZ: Z } });
-      entries.push({ delay: 0.5, type: 'drone', opts: { fromLeft: false, sweepY: 3.0, spawnZ: Z } });
-      entries.push({ delay: 0.5, type: 'drone', opts: { fromLeft: true,  sweepY: 2.5, spawnZ: Z } });
-      entries.push({ delay: 0.5, type: 'drone', opts: { fromLeft: false, sweepY: 2.5, spawnZ: Z } });
-      for (let i = 0; i < 3; i++) {
-        entries.push({ delay: 1.0 + i * 0.6, type: 'scout', opts: { spawnX: (i - 1) * 2, spawnZ: Z } });
-      }
-      break;
-    }
-    case 12: {
-      // V-scouts simultaneous; bombers 0.5s; drones 1.5s; Elite Scout 2.0s
-      entries.push({ delay: 0, type: 'scout', opts: { spawnX: 0,    spawnZ: Z,      fixedY: 3.5 } });
-      for (let i = 1; i <= 2; i++) {
-        entries.push({ delay: 0, type: 'scout', opts: { spawnX: -i * 1.5, spawnZ: Z - i * 0.5, fixedY: 3.5 } });
-        entries.push({ delay: 0, type: 'scout', opts: { spawnX:  i * 1.5, spawnZ: Z - i * 0.5, fixedY: 3.5 } });
-      }
-      entries.push({ delay: 0.5, type: 'bomber', opts: { fromLeft: true,  spawnZ: Z } });
-      entries.push({ delay: 0.5, type: 'bomber', opts: { fromLeft: false, spawnZ: Z } });
-      entries.push({ delay: 1.5, type: 'drone',  opts: { fromLeft: true,  sweepY: 3.0, spawnZ: Z } });
-      entries.push({ delay: 1.5, type: 'drone',  opts: { fromLeft: false, sweepY: 3.0, spawnZ: Z } });
-      entries.push({ delay: 2.0, type: 'elite',  opts: { spawnX: 0, spawnZ: Z, eliteBase: 'scout', movementType: 'scout' } });
-      break;
-    }
-    default:
-      break;
   }
 
   return entries;
 }
+
+export function getBossCycle() { return _bossCycle; }
 
 function _startWave(scene, waveNum) {
   currentWave = waveNum;
@@ -871,7 +839,7 @@ function _startWave(scene, waveNum) {
   _worldSpeed = Math.min(WORLD_SPEED_CAP, WORLD_SPEED_BASE + WORLD_SPEED_STEP * (waveNum - 1));
 
   // Build spawn queue with absolute delays
-  _waveSpawnQueue = _buildWaveScript(waveNum).sort((a, b) => a.delay - b.delay);
+  _waveSpawnQueue = _generateWave(waveNum).sort((a, b) => a.delay - b.delay);
 
   // Show wave flash
   _waveFlashRef.text = `WAVE ${waveNum}`;
@@ -879,7 +847,7 @@ function _startWave(scene, waveNum) {
 
   // Shift grid color by zone (3 waves per zone)
   const WAVE_GRID_COLORS = [0x1a5a2a, 0x1a2a5a, 0x3a1a5a, 0x5a1a1a];
-  const zoneColor = WAVE_GRID_COLORS[Math.min(Math.floor((waveNum - 1) / 2), 3)];
+  const zoneColor = WAVE_GRID_COLORS[Math.floor((waveNum - 1) / 2) % WAVE_GRID_COLORS.length];
   for (const tp of _terrainPlanes) {
     if (tp.userData.grid) tp.userData.grid.material.color.setHex(zoneColor);
   }
@@ -915,15 +883,13 @@ function _updateWaveSystem(dt, scene) {
   }
 
   if (_waveState === 'waiting') {
-    // Wait for all enemies to be gone
     if (enemies.length === 0) {
-      if (currentWave >= waveCount) {
-        // After wave 12: 3s boss pause
+      if (currentWave % 5 === 0) {
+        // Every 5th wave: boss arena
         _waveState = 'boss-pause';
         _wavePauseTimer = 3.0;
-        _worldSpeed = 0; // stop scroll
+        _worldSpeed = 0;
       } else {
-        // 2s gap before next wave
         _waveState = 'gap';
         _wavePauseTimer = 2.0;
       }
@@ -965,22 +931,15 @@ function _clearTelegraph(scene) {
 
 function _spawnBoss(scene) {
   const types = ['sentinel', 'interceptor', 'colossus'];
-  const type = types[Math.floor(Math.random() * types.length)];
+  const type = types[_bossCycle % 3];
 
-  let mesh, hp, scoreVal;
-  if (type === 'sentinel') {
-    mesh = buildEntityMesh(GEO_MANIFEST.entities.sentinel_boss);
-    hp = 160;
-    scoreVal = 15000;
-  } else if (type === 'interceptor') {
-    mesh = buildEntityMesh(GEO_MANIFEST.entities.interceptor_boss);
-    hp = 120;
-    scoreVal = 18000;
-  } else {
-    mesh = buildEntityMesh(GEO_MANIFEST.entities.colossus_boss);
-    hp = 200;
-    scoreVal = 25000;
-  }
+  const BASE_HP    = { sentinel: 160, interceptor: 120, colossus: 200 };
+  const BASE_SCORE = { sentinel: 15000, interceptor: 18000, colossus: 25000 };
+  const MESH_KEY   = { sentinel: 'sentinel_boss', interceptor: 'interceptor_boss', colossus: 'colossus_boss' };
+
+  const mesh     = buildEntityMesh(GEO_MANIFEST.entities[MESH_KEY[type]]);
+  const hp       = BASE_HP[type]    + _bossCycle * 40;
+  const scoreVal = BASE_SCORE[type] + _bossCycle * 5000;
 
   mesh.position.set(0, 4.0, -18);
   scene.add(mesh);
@@ -1117,8 +1076,19 @@ function _updateBoss(dt, scene) {
   if (boss.dead) {
     boss._deathTimer -= dt;
     if (boss._deathTimer <= 0) {
-      transitionTo(STATE.WIN);
       boss = null;
+      _bossCycle += 1;
+      if (_bossCycle >= 3) {
+        transitionTo(STATE.WIN);
+      } else {
+        // Resume procedural waves — skip to next cycle start
+        currentWave = _bossCycle * 5;
+        _waveState = 'gap';
+        _wavePauseTimer = 3.2;
+        _worldSpeed = Math.min(WORLD_SPEED_CAP, WORLD_SPEED_BASE + WORLD_SPEED_STEP * (currentWave - 1));
+        _waveFlashRef.text = `CYCLE ${_bossCycle + 1}`;
+        _waveFlashRef.timer = 2.5;
+      }
     }
     return;
   }

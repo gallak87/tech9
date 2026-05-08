@@ -456,10 +456,11 @@ export function spawnEnemy(scene, type, opts = {}) {
   const manifestKey = cfg.isElite ? 'elite' : type;
   const entityDef = GEO_MANIFEST.entities[manifestKey] || GEO_MANIFEST.entities.scout;
   const mesh = buildEntityMesh(entityDef);
+  mesh.scale.multiplyScalar(1.44);
 
-  // halfSize for collision — based on worldScale
+  // halfSize for collision — based on worldScale (include enemy scale factor)
   const ws = entityDef.worldScale || [1, 1, 1];
-  const halfSize = Math.max(...ws) * 0.5;
+  const halfSize = Math.max(...ws) * 0.5 * 1.44;
 
   // Spawn position — opts can override
   const spawnX = opts.spawnX !== undefined ? opts.spawnX : (Math.random() - 0.5) * 10;
@@ -534,7 +535,7 @@ export function spawnEnemy(scene, type, opts = {}) {
 // ─── Enemy bullet spawning ────────────────────────────────────────────────────
 function spawnEnemyBullet(scene, origin, angleDeg, speed, color = 0xFF4444, scale = 1, yVel = 0) {
   const spec = GEO_MANIFEST.bullets.enemy;
-  const geo = new THREE.BoxGeometry(spec.args[0] * scale, spec.args[1] * scale, spec.args[2] * scale);
+  const geo = new THREE.BoxGeometry(spec.args[0] * scale * 0.7, spec.args[1] * scale * 0.7, spec.args[2] * scale * 0.7);
   const bulletColor = color !== 0xFF4444 ? color : spec.color;
   const mat = new THREE.MeshStandardMaterial({
     color: 0x000000,
@@ -615,11 +616,11 @@ function hitPlayer() {
 function activateBomb(scene) {
   playSound('bomb_blast');
   triggerShake(1.2);
+  bombBlast.active = true;
   if (currentState === STATE.BOSS && boss) {
     const dmg = Math.floor(boss.hp * 0.1);
     damageBoss(scene, dmg);
   } else {
-    bombBlast.active = true;
     for (let i = enemies.length - 1; i >= 0; i--) {
       killEnemy(scene, enemies[i], true, true);
     }
@@ -951,6 +952,7 @@ function _spawnBoss(scene) {
   const MESH_KEY   = { sentinel: 'sentinel_boss', interceptor: 'interceptor_boss', colossus: 'colossus_boss' };
 
   const mesh     = buildEntityMesh(GEO_MANIFEST.entities[MESH_KEY[type]]);
+  mesh.scale.multiplyScalar(1.44);
   const hp       = BASE_HP[type]    + _bossCycle * 40;
   const scoreVal = BASE_SCORE[type] + _bossCycle * 5000;
 

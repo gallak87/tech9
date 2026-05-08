@@ -173,6 +173,24 @@ document.body.appendChild(hud);
       display:flex; flex-direction:column; align-items:center; justify-content:center;
       background:rgba(0,0,20,0.78); gap:20px;
     }
+    #vsb-editor-overlay {
+      display:none; position:fixed; inset:0; z-index:500;
+      background:rgba(0,0,10,0.88);
+      align-items:center; justify-content:center;
+    }
+    #vsb-editor-overlay.open { display:flex; }
+    #vsb-editor-frame {
+      width:92vw; height:90vh;
+      border:1px solid #4af; border-radius:4px;
+      background:#080c14;
+    }
+    #vsb-editor-close {
+      position:absolute; top:16px; right:24px;
+      font-family:'Share Tech Mono',monospace; font-size:13px;
+      color:#4af; background:#0a1a28; border:1px solid #4af;
+      padding:6px 14px; cursor:pointer; letter-spacing:1px; z-index:501;
+    }
+    #vsb-editor-close:hover { background:#0d2840; }
     #vsb-dev-panel {
       position:absolute; top:12px; right:12px;
       background:rgba(0,0,0,0.82); border:1px solid #334;
@@ -304,11 +322,35 @@ devPanel.innerHTML = `
       <button id="vsb-btn-ships">P Ship focus</button>
       <button id="vsb-btn-cam">C Cam</button>
     </div>
+    <div>
+      <button id="vsb-btn-editor" style="width:100%;letter-spacing:1px">⬡ LANDSCAPE EDITOR</button>
+    </div>
     <div id="vsb-dev-stats" class="vsb-dev-stats"></div>
   </div>
 `;
 devPanel.style.display = 'none';
 document.body.appendChild(devPanel);
+
+// ─── Landscape editor overlay ─────────────────────────────────────────────────
+const editorOverlay = document.createElement('div');
+editorOverlay.id = 'vsb-editor-overlay';
+editorOverlay.innerHTML = `
+  <button id="vsb-editor-close">✕ CLOSE EDITOR</button>
+  <iframe id="vsb-editor-frame" src="./editor.html" frameborder="0"></iframe>
+`;
+document.body.appendChild(editorOverlay);
+
+let _editorOpen = false;
+function openEditor() {
+  _editorOpen = true;
+  editorOverlay.classList.add('open');
+}
+function closeEditor() {
+  _editorOpen = false;
+  editorOverlay.classList.remove('open');
+}
+document.getElementById('vsb-editor-close').addEventListener('click', closeEditor);
+document.getElementById('vsb-btn-editor').addEventListener('click', openEditor);
 
 let devPanelOpen = true;
 document.getElementById('vsb-dev-header').addEventListener('click', () => {
@@ -818,6 +860,10 @@ function loop() {
     return;
   }
 
+  if (_editorOpen) {
+    composer.render();
+    return;
+  }
 
   Game.update(dt, scene);
 

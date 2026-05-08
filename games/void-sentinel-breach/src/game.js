@@ -42,6 +42,8 @@ export function transitionTo(next) {
     _waveFlashTimer = 0;
     _waveFlashRef.text = '';
     _waveFlashRef.timer = 0;
+    _pickupFlash.text = '';
+    _pickupFlash.timer = 0;
     _waveSpawnQueue = [];
     _bossCycle = 0;
     _worldSpeed = 2.0;
@@ -103,7 +105,10 @@ export let hazeMesh;
 export const playerBullets = [];  // { mesh, vel, piercing, hitSet }[]
 export const enemyBullets = [];   // { mesh, vel }[]
 export const enemies = [];        // EnemyObj[]
-export const pickups = [];        // { mesh, type, timer }[]
+export const pickups = [];        // { mesh, type, timer, t }[]
+export const pickupFlash = { text: '', color: '#00eeff', timer: 0 };
+let _pickupFlash = pickupFlash;
+export const bombBlast = { active: false };
 
 // Keep a scene ref so we can remove meshes during collisions
 let _scene = null;
@@ -415,22 +420,22 @@ const ENEMY_CONFIGS = {
   scout: {
     color: 0xFF3060, hp: 2, speed: 6, score: 100,
     size: [0.6, 0.2, 0.6],
-    dropWeapon: 0.08, dropBomb: 0,
+    dropWeapon: 0.18, dropBomb: 0,
   },
   bomber: {
     color: 0x8B30FF, hp: 6, speed: 2.5, score: 300,
     size: [1.0, 0.3, 1.0],
-    dropWeapon: 0.05, dropBomb: 0.40,
+    dropWeapon: 0, dropBomb: 0.42,
   },
   drone: {
     color: 0x00FF99, hp: 4, speed: 4.5, score: 200,
     size: [0.7, 0.2, 0.7],
-    dropWeapon: 0.12, dropBomb: 0,
+    dropWeapon: 0.28, dropBomb: 0,
   },
   elite: {
     color: 0xFFD700, hp: 5, speed: 6 * 1.15, score: 200,
     size: [0.6, 0.2, 0.6],
-    dropWeapon: 1.0, dropBomb: 0.15,
+    dropWeapon: 1.0, dropBomb: 0,
     isElite: true,
   },
 };
@@ -559,7 +564,7 @@ function spawnPickup(scene, position, type) {
   mesh.position.copy(position);
   mesh.position.y = Math.max(0.3, position.y);
   scene.add(mesh);
-  pickups.push({ mesh, type, timer: 12.0 });
+  pickups.push({ mesh, type, timer: 12.0, t: 0 });
 }
 
 // ─── Enemy death ──────────────────────────────────────────────────────────────
@@ -611,10 +616,10 @@ function activateBomb(scene) {
   playSound('bomb_blast');
   triggerShake(1.2);
   if (currentState === STATE.BOSS && boss) {
-    // Boss takes 10% of current HP
     const dmg = Math.floor(boss.hp * 0.1);
     damageBoss(scene, dmg);
   } else {
+    bombBlast.active = true;
     for (let i = enemies.length - 1; i >= 0; i--) {
       killEnemy(scene, enemies[i], true, true);
     }
@@ -629,6 +634,13 @@ function activateBomb(scene) {
 // ─── Dev spawn helpers ────────────────────────────────────────────────────────
 export function devSpawnEnemy(type) {
   if (_scene) spawnEnemy(_scene, type);
+}
+
+export function devFireBomb() {
+  if (!_scene) return;
+  bombCount = Math.max(bombCount, 1);
+  bombCount--;
+  activateBomb(_scene);
 }
 
 export function devJumpWave(delta) {
@@ -855,6 +867,7 @@ function _startWave(scene, waveNum) {
 
 function _updateWaveSystem(dt, scene) {
   if (_waveFlashRef.timer > 0) _waveFlashRef.timer -= dt;
+  if (_pickupFlash.timer > 0) _pickupFlash.timer -= dt;
 
   if (_waveState === 'idle') {
     // Start wave 1
@@ -1706,7 +1719,7 @@ export function update(dt, scene) {
         else _restoreColors(e.mesh);
       }
 
-      if (e.mesh.position.z > 8) {
+      if (e.mesh.position.z > 8 || Math.abs(e.mesh.position.x) > 20 || e.mesh.position.z < -60) {
         scene.remove(e.mesh);
         _disposeMesh(e.mesh);
         enemies.splice(i, 1);
@@ -1779,25 +1792,47 @@ export function update(dt, scene) {
   // ── Pickups: movement + collection ───────────────────────────────────────
   for (let i = pickups.length - 1; i >= 0; i--) {
     const p = pickups[i];
-    p.mesh.position.z += 4.0 * dt;  // drift toward player (+z = toward camera)
-    p.mesh.rotation.y += dt * 2;
+    p.t += dt;
     p.timer -= dt;
 
-    const dist = p.mesh.position.distanceTo(player.position);
-    let collected = dist < 1.2;
-    let expired = p.timer <= 0 || p.mesh.position.z > 8;
+    // Drift toward player (homing once close, gentle forward drift always)
+    const toPlayer = new THREE.Vector3().subVectors(player.position, p.mesh.position);
+    const dist = toPlayer.length();
+    if (dist < 6) {
+      toPlayer.normalize().multiplyScalar(5.0 * dt);
+      p.mesh.position.add(toPlayer);
+    } else {
+      p.mesh.position.z += 3.0 * dt;
+    }
+
+    // Spin + pulse emissive
+    p.mesh.rotation.y += dt * 3;
+    const pulse = 0.6 + 0.4 * Math.sin(p.t * 10);
+    p.mesh.traverse(c => {
+      if (c.isMesh && c.material.emissive) {
+        c.material.emissiveIntensity = (c.material.userData.baseEmissive || 3) * pulse;
+      }
+    });
+
+    const collected = dist < 1.2;
+    const expired = p.timer <= 0 || p.mesh.position.z > 8;
 
     if (collected) {
       if (p.type === 'weapon') {
         if (weaponTier < 7) {
           weaponTier++;
           playSound('weapon_tier_up');
+          _pickupFlash = { text: 'TIER UP', color: '#00eeff', timer: 1.2 };
         } else {
           score += 500;
+          _pickupFlash = { text: '+500', color: '#00eeff', timer: 1.0 };
         }
       } else if (p.type === 'bomb') {
         playSound('pickup_bomb');
-        if (bombCount < 4) bombCount++;
+        if (bombCount < 4) {
+          bombCount++;
+          _pickupFlash = { text: '+BOMB', color: '#ff8800', timer: 1.2 };
+        }
       }
     }
 

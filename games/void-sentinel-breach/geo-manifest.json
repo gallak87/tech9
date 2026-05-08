@@ -2135,98 +2135,33 @@
     "weapon": {
       "parts": [
         {
-          "geo": "SphereGeometry",
-          "args": [
-            0.28,
-            10,
-            10
-          ],
-          "color": "#00E5FF",
-          "emissive": "#00E5FF",
-          "emissiveIntensity": 2.5,
+          "geo": "OctahedronGeometry",
+          "args": [0.32, 0],
+          "color": "#00eeff",
+          "emissive": "#00eeff",
+          "emissiveIntensity": 3.0,
           "material": "basic"
-        },
-        {
-          "geo": "TorusGeometry",
-          "args": [
-            0.36,
-            0.04,
-            8,
-            24
-          ],
-          "color": "#FFFFFF",
-          "emissive": "#00E5FF",
-          "emissiveIntensity": 3,
-          "material": "basic",
-          "rotation": [
-            1.5708,
-            0,
-            0
-          ]
-        },
-        {
-          "geo": "TorusGeometry",
-          "args": [
-            0.36,
-            0.04,
-            8,
-            24
-          ],
-          "color": "#FFFFFF",
-          "emissive": "#00E5FF",
-          "emissiveIntensity": 3,
-          "material": "basic",
-          "rotation": [
-            0,
-            1.5708,
-            0
-          ]
         }
       ]
     },
     "bomb": {
       "parts": [
         {
-          "geo": "SphereGeometry",
-          "args": [
-            0.26,
-            8,
-            8
-          ],
-          "color": "#C070FF",
-          "emissive": "#8B30FF",
-          "emissiveIntensity": 2,
+          "geo": "IcosahedronGeometry",
+          "args": [0.28, 0],
+          "color": "#ff6600",
+          "emissive": "#ff4400",
+          "emissiveIntensity": 3.0,
           "material": "basic"
-        },
-        {
-          "geo": "BoxGeometry",
-          "args": [
-            0.12,
-            0.36,
-            0.12
-          ],
-          "color": "#C070FF",
-          "emissive": "#8B30FF",
-          "emissiveIntensity": 2.5,
-          "material": "basic",
-          "position": [
-            0,
-            0.3,
-            0
-          ]
         },
         {
           "geo": "TorusGeometry",
-          "args": [
-            0.32,
-            0.03,
-            8,
-            20
-          ],
-          "color": "#FF40FF",
-          "emissive": "#FF40FF",
-          "emissiveIntensity": 3,
-          "material": "basic"
+          "args": [0.38, 0.04, 8, 20],
+          "color": "#ff8800",
+          "emissive": "#ff6600",
+          "emissiveIntensity": 2.5,
+          "material": "basic",
+          "rotation": [1.5708, 0, 0]
         }
       ]
     }

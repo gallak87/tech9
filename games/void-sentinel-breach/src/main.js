@@ -168,6 +168,42 @@ document.body.appendChild(hud);
       letter-spacing:8px; pointer-events:none; display:none;
       white-space:nowrap;
     }
+    #vsb-pickup-flash {
+      position:absolute; bottom:72px; left:50%;
+      transform:translateX(-50%);
+      font-family:'Share Tech Mono',monospace; font-size:16px;
+      letter-spacing:4px; pointer-events:none; display:none;
+      white-space:nowrap;
+    }
+    @keyframes pickupFlashAnim {
+      0%   { opacity:1; transform:translateX(-50%) translateY(0); }
+      100% { opacity:0; transform:translateX(-50%) translateY(-28px); }
+    }
+    #vsb-bomb-blast {
+      position:absolute; inset:0; pointer-events:none; display:none;
+    }
+    #vsb-bomb-blast-flash {
+      position:absolute; inset:0;
+      background: radial-gradient(ellipse at center, rgba(255,180,0,0.55) 0%, rgba(255,80,0,0.25) 40%, transparent 70%);
+    }
+    #vsb-bomb-blast-ring {
+      position:absolute;
+      border-radius:50%;
+      border: 3px solid #ff8800;
+      box-shadow: 0 0 24px #ff6600, inset 0 0 24px rgba(255,100,0,0.3);
+      top:50%; left:50%;
+      transform:translate(-50%,-50%) scale(0);
+    }
+    @keyframes bombFlashAnim {
+      0%   { opacity:0.9; }
+      30%  { opacity:0.6; }
+      100% { opacity:0; }
+    }
+    @keyframes bombRingAnim {
+      0%   { transform:translate(-50%,-50%) perspective(400px) rotateX(55deg) scale(0);   opacity:1; }
+      60%  { opacity:0.8; }
+      100% { transform:translate(-50%,-50%) perspective(400px) rotateX(55deg) scale(2.8); opacity:0; }
+    }
     #vsb-overlay {
       position:absolute; top:0; left:0; width:100%; height:100%;
       display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -255,6 +291,19 @@ const waveFlashEl = document.createElement('div');
 waveFlashEl.id = 'vsb-wave-flash';
 hud.appendChild(waveFlashEl);
 
+// Pickup flash — small label near weapon HUD
+const pickupFlashEl = document.createElement('div');
+pickupFlashEl.id = 'vsb-pickup-flash';
+hud.appendChild(pickupFlashEl);
+
+// Bomb blast overlay
+const bombBlastEl = document.createElement('div');
+bombBlastEl.id = 'vsb-bomb-blast';
+bombBlastEl.innerHTML = `<div id="vsb-bomb-blast-flash"></div><div id="vsb-bomb-blast-ring"></div>`;
+hud.appendChild(bombBlastEl);
+const bombBlastFlashEl = document.getElementById('vsb-bomb-blast-flash');
+const bombBlastRingEl  = document.getElementById('vsb-bomb-blast-ring');
+
 // Weapon tier pips — bottom left
 const weaponEl = document.createElement('div');
 weaponEl.id = 'vsb-weapon';
@@ -320,6 +369,10 @@ devPanel.innerHTML = `
       <button id="vsb-spawn-e">⇧E Elite</button>
     </div>
     <div>
+      <span style="color:#7a9ab0">BOMB</span>
+      <button id="vsb-dev-bomb" style="border-color:#ff8800;color:#ff8800;">💥 Fire bomb</button>
+    </div>
+    <div>
       <span style="color:#7a9ab0">VIEW</span>
       <button id="vsb-btn-art">M Art</button>
       <button id="vsb-btn-ships">P Ship focus</button>
@@ -366,6 +419,7 @@ document.getElementById('vsb-dev-header').addEventListener('click', () => {
 });
 document.getElementById('vsb-tier-down').addEventListener('click', () => Game.devCycleTier(-1));
 document.getElementById('vsb-tier-up').addEventListener('click',   () => Game.devCycleTier(1));
+document.getElementById('vsb-dev-bomb').addEventListener('click', () => Game.devFireBomb());
 document.getElementById('vsb-spawn-s').addEventListener('click', () => Game.devSpawnEnemy('scout'));
 document.getElementById('vsb-spawn-b').addEventListener('click', () => Game.devSpawnEnemy('bomber'));
 document.getElementById('vsb-spawn-d').addEventListener('click', () => Game.devSpawnEnemy('drone'));
@@ -404,6 +458,7 @@ const BOSS_BG_COLORS = ['', 0x000814, 0x100408, 0x1a0020];
 
 let _bloomTarget = 0.6;
 let _lastWaveFlashText = '';
+let _lastPickupFlashText = '';
 
 function _formatTime(secs) {
   const m = Math.floor(secs / 60);
@@ -472,6 +527,40 @@ function renderHUD(dt) {
   }
   if (flashRef.timer <= 0) {
     _lastWaveFlashText = '';
+  }
+
+  // Pickup flash
+  const pf = Game.pickupFlash;
+  if (pf.text && pf.timer > 0 && pf.text !== _lastPickupFlashText) {
+    _lastPickupFlashText = pf.text;
+    pickupFlashEl.textContent = pf.text;
+    pickupFlashEl.style.color = pf.color;
+    pickupFlashEl.style.textShadow = `0 0 12px ${pf.color}, 0 0 24px ${pf.color}`;
+    pickupFlashEl.style.display = 'block';
+    pickupFlashEl.style.animation = 'none';
+    void pickupFlashEl.offsetWidth;
+    pickupFlashEl.style.animation = 'pickupFlashAnim 1.0s ease-out forwards';
+  }
+  if (pf.timer <= 0) {
+    _lastPickupFlashText = '';
+    pickupFlashEl.style.display = 'none';
+  }
+
+  // Bomb blast animation
+  if (Game.bombBlast.active) {
+    Game.bombBlast.active = false;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const size = Math.sqrt(w * w + h * h); // diagonal — ring expands to cover full screen
+    bombBlastRingEl.style.width  = `${size}px`;
+    bombBlastRingEl.style.height = `${size}px`;
+    bombBlastEl.style.display = 'block';
+    bombBlastFlashEl.style.animation = 'none';
+    bombBlastRingEl.style.animation  = 'none';
+    void bombBlastEl.offsetWidth;
+    bombBlastFlashEl.style.animation = 'bombFlashAnim 0.55s ease-out forwards';
+    bombBlastRingEl.style.animation  = 'bombRingAnim 0.66s ease-out forwards';
+    setTimeout(() => { bombBlastEl.style.display = 'none'; }, 720);
   }
 
   // Boss bar

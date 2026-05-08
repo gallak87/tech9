@@ -1,6 +1,6 @@
 # VOID SENTINEL: BREACH — Roadmap
 
-## Status: Phase 4 complete (geo art), Phase 5 partially done
+## Status: Phase 4 complete, landscape system + editor done, Phase 5 (audio) next
 
 ---
 
@@ -38,10 +38,26 @@ Wrote `geo-manifest.json`: each entity defined as composite Three.js primitives 
 - Hitbox radius: bumped from 0.4 to 1.2 + halfSize
 - Pickup drift: now moves toward player, collection radius 1.2, out-of-bounds check both directions
 - Cloud boxes: disabled (visual clutter)
+- Hit blink on damage: ✅ done — `hitFlash` on enemies + boss, white emissive flash
+- Boss attack Y-axis: ✅ done — `_dashTargetY` per phase
+
+### Landscape system + editor ✅ done
+- `landscape-manifest.json` → `tools/landscape-gen.js` → `src/scenery.js` pipeline
+- Two layers: `walls` (outer corridor panels, x=±60, h=75, continuous) + `skyline` (city slabs, x=16–38, windowed)
+- Browser editor at `/editor.html` — live 3D preview, sliders, Save+Generate
+- Editor embedded as lazy-loaded iframe in dev tools panel (zero background cost)
+- Lessons captured in `LESSONS.md` and `meta/LESSONS.md`
 
 ---
 
 ## Up Next
+
+### Phase 5 — Audio integration
+Wire `src/audio.js` `playSound()` calls into game.js trigger points:
+- Player fire (per tier), enemy hit, enemy death, player hit, bomb, boss phase transition, boss death, weapon pickup, win/game over stings
+
+### Terrain going black
+The terrain plane scrolls off-screen during longer sessions — reset math doesn't match plane size. Fix: either scale the plane to 400+ units or leapfrog two planes.
 
 ### Geometry polish (art re-run)
 Current meshes are too boxy — BoxGeometry overused. Re-run art agent with a sharper brief:
@@ -49,16 +65,6 @@ Current meshes are too boxy — BoxGeometry overused. Re-run art agent with a sh
 - Enemies: distinct silhouettes — scouts should be thin darts, bombers should be wide/heavy, drones compact, elites aggressive
 - Bosses: massive, asymmetric, imposing — use IcosahedronGeometry for core bodies, multiple engine clusters
 - Key instruction: **minimize BoxGeometry**, prefer Cone/Sphere/Octahedron/Icosahedron for primary shapes, use thin flat boxes only for wing planes
-
-### Boss attack planes
-Boss bullets currently all fire in a single horizontal plane. They should fire in 3D — diagonal volleys, angled upward/downward spreads, ring patterns at varying Y heights. Revisit all 3 boss attack patterns (burst, sweep, seeker, beam, ring, column, spiral, annihilation) and add Y-axis variation so the player has to dodge in 3D space, not just left/right.
-
-### Hit blink on damage
-When a bullet lands on an enemy or boss, flash white for ~0.1s.
-- Add `hitFlash: 0` to each enemy spawn
-- On hit: `e.hitFlash = 0.12`
-- In update loop: decrement, traverse mesh, set `emissiveIntensity` to 8.0 + `color` to white while active, restore after
-- Same pattern for boss
 
 ### Phase 5 — Audio integration
 Wire `src/audio.js` `playSound()` calls into game.js trigger points:

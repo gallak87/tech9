@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "art:player": "blender --background --python tools/blender/gen_player.py -- --output src/public/assets/player.glb",
+    "art": "npm run art:player"
   },
   "dependencies": {
     "three": "^0.184.0",

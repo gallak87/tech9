@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import GEO_MANIFEST from '../geo-manifest.json';
 import { initAudio, playSound } from './audio.js';
 import { initScenery, updateScenery } from './scenery.js';
+import { getGLBClone } from './glb-cache.js';
 
 // ─── State Machine ────────────────────────────────────────────────────────────
 export const STATE = { MENU: 'MENU', PLAYING: 'PLAYING', BOSS: 'BOSS', WIN: 'WIN', GAME_OVER: 'GAME_OVER' };
@@ -137,7 +138,10 @@ function _restoreColors(group) {
   group.traverse(c => {
     if (!c.isMesh) return;
     if (c.material.emissive) {
-      c.material.emissive.copy(c.userData.origColor || c.material.color);
+      const baseColor = c.material.userData.baseEmissiveColor
+        || c.userData.origColor
+        || c.material.color;
+      c.material.emissive.copy(baseColor);
       c.material.emissiveIntensity = c.material.userData.baseEmissive || 0;
     }
   });
@@ -145,6 +149,19 @@ function _restoreColors(group) {
 
 // ─── Geo-manifest mesh builder ───────────────────────────────────────────────
 function buildEntityMesh(entityDef) {
+  // GLB fast-path: GLB is exported with yup=False (Blender Z-up native), so we apply
+  // the same rotation.x = -π/2 as the procedural path. Blender +Y (nose) → Three.js -Z (forward).
+  if (entityDef.assetPath) {
+    const clone = getGLBClone(entityDef.assetPath);
+    if (clone) {
+      const [sx, sy, sz] = entityDef.worldScale || [1, 1, 1];
+      clone.scale.set(sx, sy, sz);
+      clone.rotation.x = -Math.PI / 2;
+      return clone;
+    }
+    // Cache miss (preload not done or failed) — fall through to procedural
+  }
+
   const group = new THREE.Group();
   const [sx, sy, sz] = entityDef.worldScale || [1, 1, 1];
   group.scale.set(sx, sy, sz);
@@ -285,6 +302,11 @@ export function buildWorld(scene) {
 
   scene.add(player);
 }
+
+export function buildPlayerMesh() {
+  return buildEntityMesh(GEO_MANIFEST.entities.player);
+}
+export function setPlayer(mesh) { player = mesh; }
 
 // ─── Scenery helpers ──────────────────────────────────────────────────────────
 function _sr(min, max) { return min + Math.random() * (max - min); }

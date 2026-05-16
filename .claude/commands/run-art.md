@@ -3,77 +3,61 @@ name: run-art
 description: "Art agent — generate or regenerate sprites via Ollama for any game. Usage: /run-art [game-name]"
 ---
 
-You are the art agent. Your job: generate sprite images via Ollama and keep the game looking good.
+You are the art agent. Your job: output the exact commands to generate art assets — sprites via
+Ollama and 3D models via Blender. Do NOT run these commands yourself. Print them for the user
+to run in parallel while you continue generating code.
 
 ## Determine the game
 
-If `$ARGUMENTS` is non-empty, treat it as the game name (e.g. `gravelrun`).
+If `$ARGUMENTS` is non-empty, treat it as the game name (e.g. `void-sentinel-breach`).
 
-If no argument: look for `sprites-manifest.json` in `games/*/` — if exactly one exists, use that game.
-If multiple exist, list them and ask the user which to work on.
+If no argument: look for `sprites-manifest.json` or Blender scripts (`tools/blender/gen_*.py`) in
+`games/*/` — if exactly one game has art assets, use that game. If multiple, list and ask.
 
-Manifest path: `games/<game>/sprites-manifest.json`
+## Detect art pipeline type
 
-## Before generating — probe capabilities
+Check `games/<game>/`:
+- Has `tools/blender/gen_*.py`? → **Blender pipeline** (3D GLB assets)
+- Has `sprites-manifest.json`? → **Sprite pipeline** (Ollama 2D sprites)
+- Has both? → output commands for both
 
-Run: `node tools/probe.js`
+## Output format
 
-- If Ollama is available with a flux model: proceed with image gen (standard workflow below)
-- If Ollama is not available: switch to **fallback mode** — write sprite specs as markdown instead of
-  generating images. Document each sprite: dimensions, colors, key visual elements, silhouette.
-  Clearly tell the user that Ollama isn't running and what they need to do to enable image gen.
+Always output commands in a code block the user can copy and run. Group by pipeline.
+Include a one-liner explaining what each command does.
 
-## Standard workflow (Ollama available)
+### Blender pipeline commands
 
-For each sprite category in the manifest:
-
-1. Generate one proof sprite for the category
-2. Read the output PNG — self-review against the style spec:
-   - Correct palette / tone for this game?
-   - Silhouette readable at target size?
-   - No watermark, border frame, or off-prompt elements?
-3. If it passes: generate the remaining sprites in the category and continue
-4. If it fails: revise the prompt and retry (max 2 attempts)
-5. If still failing after 2 attempts: surface both attempts to the user and wait for direction
-
-Do not batch-generate a full category before reviewing the proof. Do not ask the user
-to approve every sprite — only surface when blocked.
-
+For each `tools/blender/gen_<entity>.py`:
+```bash
+# Generate <entity> model → src/public/assets/<entity>.glb
+blender --background --python games/<game>/tools/blender/gen_<entity>.py -- \
+  --output games/<game>/src/public/assets/<entity>.glb
 ```
+
+### Sprite pipeline commands
+
+```bash
+# Check Ollama availability
+node tools/probe.js
+
+# Generate all sprites
 node tools/sprite-gen.js games/<game>/sprites-manifest.json
+
+# Generate a single sprite by name
 node tools/sprite-gen.js games/<game>/sprites-manifest.json --sprite <name>
 ```
 
-## Prompt guidance
+## After outputting commands
 
-See `capabilities/image-gen.md` for prompt best practices. Key points:
-- Always include: `pixel art`, `black background`, `retro` genre term, `crisp limited palette`
-- Describe silhouette first — that's what reads at small sizes
-- For tiles: add `seamless`, `no vignette`, `no dark border at edges`
+1. Read the relevant manifests (`sprites-manifest.json`, `geo-manifest.json`) to understand
+   what entities need art
+2. If any `gen_*.py` scripts are missing for entities that have `assetPath` in geo-manifest,
+   note which ones need scripts written
+3. Report the status: which assets exist on disk vs. which are missing
 
-## Dev tool
+## Do NOT
 
-When starting a new sprite domain (tiles, heroes, enemies, buildings, etc.), request the
-dev agent to mount a domain-scoped dev tool following `tools/dev-tool-contract.md`.
-
-The tool mounts once per domain and stays live while generation runs — not per-sprite,
-not on every proof. The user explores it at their own pace. It gives them real in-game
-context (tiled grid for terrain, animated cycle for heroes, upgrade progression for buildings)
-so style decisions happen faster and with better information.
-
-**What to specify to dev:**
-- Domain name and sprite paths as they complete
-- Display context (tile grid, character over background, icon strip, etc.)
-- Any meaningful interaction (cycle variants, compare tiers, toggle placeholder vs generated)
-
-Generation continues while the tool is live. Only block if the user explicitly calls
-something out. When the domain is done, leave the tool mounted — don't tear it down
-between domains. See `tools/dev-tool-contract.md` for the env gate and removal at ship time.
-
-## Starting this session
-
-If the user typed `/run-art` or `/run-art <game>` with no other instruction:
-1. Probe capabilities
-2. Read the manifest
-3. Run the proof → self-review → batch loop for all categories
-4. Report what was generated when done; surface any blocked categories
+- Do not run blender, node, or any shell commands yourself
+- Do not wait for commands to complete — the user runs them independently
+- Do not probe Ollama by running node tools/probe.js yourself

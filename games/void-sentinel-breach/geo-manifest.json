@@ -1,6 +1,7 @@
 {
   "entities": {
     "player": {
+      "assetPath": "./assets/player.glb",
       "worldScale": [
         2,
         2,

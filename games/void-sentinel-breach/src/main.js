@@ -4,6 +4,7 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 import * as Game from './game.js';
+import { preloadGLBs } from './glb-cache.js';
 
 // ─── Renderer ─────────────────────────────────────────────────────────────────
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -44,6 +45,22 @@ composer.addPass(bloomPass);
 
 // ─── Build world ──────────────────────────────────────────────────────────────
 Game.buildWorld(scene);
+
+// Preload GLBs and swap player mesh when ready (procedural fallback until then)
+preloadGLBs().then(() => {
+  if (Game.player) {
+    scene.remove(Game.player);
+    Game.player.traverse(c => {
+      if (c.isMesh) { c.geometry.dispose(); c.material.dispose(); }
+    });
+    const fresh = Game.buildPlayerMesh();
+    fresh.position.copy(Game.player.position);
+    fresh.userData.velX = Game.player.userData.velX || 0;
+    fresh.userData.velY = Game.player.userData.velY || 0;
+    Game.setPlayer(fresh);
+    scene.add(fresh);
+  }
+});
 
 // ─── Stars ────────────────────────────────────────────────────────────────────
 {
@@ -785,11 +802,60 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyP' && window.__DEV_TOOLS__ && artMode) {
     // cycles: -1 → 0 → 1 → 2 → -1 → ...
     artShipFocusIdx = (artShipFocusIdx + 2) % (SHIP_FOCUS_CAMS.length + 1) - 1;
+    _resetFocusedShipRotation();
     _setArtCamera();
     buildArtLabels(artMeshes);
     e.preventDefault();
   }
 });
+
+// Click-drag rotation for focused ship in art mode
+let _dragging = false;
+let _dragLastX = 0, _dragLastY = 0;
+
+function _getFocusedShipMesh() {
+  if (!artMode || artShipFocusIdx < 0) return null;
+  for (const m of artMeshes) {
+    if (m.userData.shipFocusIdx === artShipFocusIdx) return m;
+  }
+  return null;
+}
+
+function _resetFocusedShipRotation() {
+  for (const m of artMeshes) {
+    if (m.userData.shipFocusIdx !== undefined && m.userData.artBaseRotation) {
+      m.rotation.copy(m.userData.artBaseRotation);
+    }
+  }
+}
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  const ship = _getFocusedShipMesh();
+  if (!ship) return;
+  if (!ship.userData.artBaseRotation) ship.userData.artBaseRotation = ship.rotation.clone();
+  _dragging = true;
+  _dragLastX = e.clientX;
+  _dragLastY = e.clientY;
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (!_dragging) return;
+  const ship = _getFocusedShipMesh();
+  if (!ship) return;
+  const dx = e.clientX - _dragLastX;
+  const dy = e.clientY - _dragLastY;
+  _dragLastX = e.clientX;
+  _dragLastY = e.clientY;
+  ship.rotateY(dx * 0.01);
+  ship.rotateX(dy * 0.01);
+});
+
+renderer.domElement.addEventListener('pointerup', (e) => {
+  _dragging = false;
+  try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
+});
+renderer.domElement.addEventListener('pointercancel', () => { _dragging = false; });
 
 // ─── Mobile Touch Controls ───────────────────────────────────────────────────
 const joystickZone = document.createElement('div');

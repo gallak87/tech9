@@ -10,6 +10,8 @@ const GeoManifestScript := preload("res://scripts/GeoManifest.gd")
 var _overlay: Label
 var _gallery_active := false
 var _gallery_nodes: Array = []
+var _saved_cam_pos := Vector3.ZERO
+var _saved_cam_basis := Basis.IDENTITY
 
 func _ready() -> void:
 	_build_overlay()
@@ -107,11 +109,17 @@ func _toggle_gallery() -> void:
 
 func _enter_gallery() -> void:
 	_gallery_active = true
-	# Hard-pause game: clear field, hide gameplay nodes
 	_game._clear_field()
 	_game.player.visible = false
 	_game.hud.visible = false
-	_game.state = _game.State.MENU  # stops physics processing
+	_game.state = _game.State.MENU
+
+	# Save camera and move it close to the gallery plane
+	var cam: Camera3D = _game.camera
+	_saved_cam_pos = cam.position
+	_saved_cam_basis = cam.basis
+	cam.position = Vector3(0, 0.5, 4)
+	cam.look_at(Vector3(0, 0, -5), Vector3.UP)
 
 	var small_keys: Array = []
 	var boss_keys: Array = []
@@ -121,15 +129,15 @@ func _enter_gallery() -> void:
 		else:
 			small_keys.append(k)
 
-	# Small entities: y=2, z=-14, 2.5 unit spacing
+	# Small entities: y=1.5, z=-5, 2.5 unit spacing
 	var sx: float = -(small_keys.size() - 1) * 2.5 / 2.0
 	for i in small_keys.size():
-		_make_gallery_entity(small_keys[i], Vector3(sx + i * 2.5, 2.0, -14.0))
+		_make_gallery_entity(small_keys[i], Vector3(sx + i * 2.5, 1.5, -5.0))
 
-	# Boss entities: y=-1.5, z=-14, 5 unit spacing
+	# Boss entities: y=-1.5, z=-5, 5 unit spacing
 	var bx: float = -(boss_keys.size() - 1) * 5.0 / 2.0
 	for i in boss_keys.size():
-		_make_gallery_entity(boss_keys[i], Vector3(bx + i * 5.0, -1.5, -14.0))
+		_make_gallery_entity(boss_keys[i], Vector3(bx + i * 5.0, -1.5, -5.0))
 
 func _make_gallery_entity(key: String, pos: Vector3) -> void:
 	var root := Node3D.new()
@@ -157,8 +165,11 @@ func _exit_gallery() -> void:
 		if is_instance_valid(n):
 			n.queue_free()
 	_gallery_nodes.clear()
+	# Restore camera
+	var cam: Camera3D = _game.camera
+	cam.position = _saved_cam_pos
+	cam.basis = _saved_cam_basis
 	_game.hud.visible = true
-	# Restart cleanly — easiest way to restore full game state
 	_game._start_game()
 	_game.player.god_mode = _overlay.visible
 

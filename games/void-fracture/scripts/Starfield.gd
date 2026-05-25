@@ -36,7 +36,7 @@ func _ready() -> void:
 			)
 			add_child(star)
 			_stars.append({ "node": star, "speed": layer["speed"],
-			                "layer": layer_idx, "spread": layer["spread"] })
+							"layer": layer_idx, "spread": layer["spread"] })
 
 func _process(delta: float) -> void:
 	for s in _stars:

@@ -25,6 +25,7 @@ var weapon_tier := 0          # current active tier (0-indexed)
 var max_tier := 0             # highest unlocked tier
 var lives := 3
 var invincible := false
+var god_mode := false
 var _invincible_timer := 0.0
 var _fire_timer := 0.0
 var _blink_timer := 0.0
@@ -117,7 +118,7 @@ func _handle_invincibility(delta: float) -> void:
 			visible = true
 
 func take_hit() -> void:
-	if invincible:
+	if invincible or god_mode:
 		return
 	lives -= 1
 	weapon_tier = 0

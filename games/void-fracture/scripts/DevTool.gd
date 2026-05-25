@@ -26,11 +26,11 @@ func _build_overlay() -> void:
 	_overlay.set_anchor(SIDE_BOTTOM, 1.0)
 	_overlay.offset_left = -260.0
 	_overlay.offset_right = -12.0
-	_overlay.offset_top = -190.0
+	_overlay.offset_top = -200.0
 	_overlay.offset_bottom = -12.0
 	_overlay.add_theme_font_size_override("font_size", 13)
 	_overlay.add_theme_color_override("font_color", Color(1.0, 1.0, 0.0, 0.9))
-	_overlay.text = "── DEV  (` to close) ──\n[ / ]   weapon tier\nB       spawn boss\nN       skip wave\nG       geo gallery\nK       kill enemies\n1/2/3   boss type"
+	_overlay.text = "── DEV  (` to close) ──\n[ / ]   weapon tier\nB       spawn boss\nN       skip wave\nG       geo gallery\nK       kill enemies\n1/2/3   boss type\n\n★ GOD MODE ACTIVE ★"
 	canvas.add_child(_overlay)
 	add_child(canvas)
 
@@ -40,6 +40,7 @@ func _input(event: InputEvent) -> void:
 	match event.keycode:
 		KEY_QUOTELEFT:
 			_overlay.visible = !_overlay.visible
+			_game.player.god_mode = _overlay.visible
 		KEY_BRACKETLEFT:
 			_cycle_weapon(-1)
 		KEY_BRACKETRIGHT:
@@ -100,40 +101,37 @@ func _kill_enemies() -> void:
 
 func _toggle_gallery() -> void:
 	if _gallery_active:
-		_clear_gallery()
+		_exit_gallery()
 	else:
-		_spawn_gallery()
+		_enter_gallery()
 
-func _spawn_gallery() -> void:
+func _enter_gallery() -> void:
 	_gallery_active = true
-
-	var all_keys: Array = []
-	for k in GeoManifestScript.ENTITIES.keys():
-		all_keys.append(k)
+	# Hard-pause game: clear field, hide gameplay nodes
+	_game._clear_field()
+	_game.player.visible = false
+	_game.hud.visible = false
+	_game.state = _game.State.MENU  # stops physics processing
 
 	var small_keys: Array = []
 	var boss_keys: Array = []
-	for k in all_keys:
+	for k in GeoManifestScript.ENTITIES.keys():
 		if "boss" in k:
 			boss_keys.append(k)
 		else:
 			small_keys.append(k)
 
-	# Small entities: row at y=3, z=-14
-	var sx := -(small_keys.size() - 1) * 2.2 / 2.0
+	# Small entities: y=2, z=-14, 2.5 unit spacing
+	var sx: float = -(small_keys.size() - 1) * 2.5 / 2.0
 	for i in small_keys.size():
-		var key: String = small_keys[i]
-		var node := _make_gallery_entity(key, Vector3(sx + i * 2.2, 3.0, -14.0))
-		_gallery_nodes.append(node)
+		_make_gallery_entity(small_keys[i], Vector3(sx + i * 2.5, 2.0, -14.0))
 
-	# Boss entities: row at y=0, z=-14
-	var bx := -(boss_keys.size() - 1) * 4.5 / 2.0
+	# Boss entities: y=-1.5, z=-14, 5 unit spacing
+	var bx: float = -(boss_keys.size() - 1) * 5.0 / 2.0
 	for i in boss_keys.size():
-		var key: String = boss_keys[i]
-		var node := _make_gallery_entity(key, Vector3(bx + i * 4.5, 0.0, -14.0))
-		_gallery_nodes.append(node)
+		_make_gallery_entity(boss_keys[i], Vector3(bx + i * 5.0, -1.5, -14.0))
 
-func _make_gallery_entity(key: String, pos: Vector3) -> Node3D:
+func _make_gallery_entity(key: String, pos: Vector3) -> void:
 	var root := Node3D.new()
 	root.position = pos
 	var parts: Array = GeoManifestScript.ENTITIES[key]["parts"] as Array
@@ -142,29 +140,32 @@ func _make_gallery_entity(key: String, pos: Vector3) -> Node3D:
 
 	var label := Label3D.new()
 	label.text = key
-	label.font_size = 18
+	label.font_size = 20
 	label.modulate = Color(1, 1, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.position = Vector3(0, 2.0, 0)
+	label.position = Vector3(0, 2.2, 0)
 	label.no_depth_test = true
 	root.add_child(label)
 
-	root.set_meta("gallery_spin", mesh)
+	root.set_meta("spin_mesh", mesh)
 	_game.add_child(root)
 	_gallery_nodes.append(root)
-	return root
 
-func _clear_gallery() -> void:
+func _exit_gallery() -> void:
 	_gallery_active = false
 	for n in _gallery_nodes:
 		if is_instance_valid(n):
 			n.queue_free()
 	_gallery_nodes.clear()
+	_game.hud.visible = true
+	# Restart cleanly — easiest way to restore full game state
+	_game._start_game()
+	_game.player.god_mode = _overlay.visible
 
 func _process(delta: float) -> void:
 	if not _gallery_active:
 		return
 	for n in _gallery_nodes:
-		if is_instance_valid(n) and n.has_meta("gallery_spin"):
-			var mesh: Node3D = n.get_meta("gallery_spin")
+		if is_instance_valid(n) and n.has_meta("spin_mesh"):
+			var mesh: Node3D = n.get_meta("spin_mesh")
 			mesh.rotate_y(delta * 0.8)

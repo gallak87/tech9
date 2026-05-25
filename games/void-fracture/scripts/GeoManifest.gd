@@ -92,6 +92,82 @@ const ENTITIES := {
 			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
 		]
 	},
+	"sentinel_boss": {
+		"parts": [
+			# Core sphere
+			{ "type": "sphere", "radius": 0.8,
+			  "color": Color(0.0, 0.6, 1.0), "emissive": Color(0.0, 0.75, 1.0), "ei": 1.5,
+			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
+			# Horizontal ring
+			{ "type": "torus", "inner_radius": 1.05, "outer_radius": 1.35,
+			  "color": Color(0.0, 0.5, 1.0), "emissive": Color(0.0, 0.75, 1.0), "ei": 2.0,
+			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
+			# Vertical ring (tilted 90° on X)
+			{ "type": "torus", "inner_radius": 1.05, "outer_radius": 1.35,
+			  "color": Color(0.2, 0.4, 1.0), "emissive": Color(0.0, 0.6, 1.0), "ei": 1.8,
+			  "pos": Vector3(0, 0, 0), "rot": Vector3(90, 0, 0) },
+			# Horizontal arm span
+			{ "type": "box", "size": Vector3(2.6, 0.1, 0.16),
+			  "color": Color(0.0, 0.5, 0.9), "emissive": Color(0.0, 0.6, 1.0), "ei": 1.2,
+			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
+			# Fore-aft arm span
+			{ "type": "box", "size": Vector3(0.16, 0.1, 2.6),
+			  "color": Color(0.0, 0.5, 0.9), "emissive": Color(0.0, 0.6, 1.0), "ei": 1.2,
+			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
+		]
+	},
+	"interceptor_boss": {
+		"parts": [
+			# Fuselage
+			{ "type": "box", "size": Vector3(0.45, 0.28, 2.4),
+			  "color": Color(1.0, 0.45, 0.0), "emissive": Color(0.8, 0.2, 0.0), "ei": 1.0,
+			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
+			# Swept wings
+			{ "type": "box", "size": Vector3(2.8, 0.07, 1.0),
+			  "color": Color(0.8, 0.35, 0.0), "emissive": Color(0.6, 0.15, 0.0), "ei": 0.8,
+			  "pos": Vector3(0, 0, 0.3), "rot": Vector3(0, -10, 0) },
+			# Nose tip cone
+			{ "type": "cylinder", "radius_top": 0.02, "radius_bottom": 0.16, "height": 0.55,
+			  "color": Color(1.0, 0.6, 0.0), "emissive": Color(1.0, 0.8, 0.0), "ei": 2.0,
+			  "pos": Vector3(0, 0, -1.48), "rot": Vector3(90, 0, 0) },
+			# Left engine glow
+			{ "type": "sphere", "radius": 0.17,
+			  "color": Color(1.0, 0.3, 0.0), "emissive": Color(2.0, 0.6, 0.0), "ei": 3.2,
+			  "pos": Vector3(-0.2, 0, 1.28), "rot": Vector3(0, 0, 0) },
+			# Right engine glow
+			{ "type": "sphere", "radius": 0.17,
+			  "color": Color(1.0, 0.3, 0.0), "emissive": Color(2.0, 0.6, 0.0), "ei": 3.2,
+			  "pos": Vector3(0.2, 0, 1.28), "rot": Vector3(0, 0, 0) },
+		]
+	},
+	"colossus_boss": {
+		"parts": [
+			# Main hull
+			{ "type": "box", "size": Vector3(2.4, 0.55, 1.8),
+			  "color": Color(0.5, 0.0, 0.8), "emissive": Color(0.3, 0.0, 0.5), "ei": 0.8,
+			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
+			# Left heavy block
+			{ "type": "box", "size": Vector3(0.75, 0.45, 1.2),
+			  "color": Color(0.4, 0.0, 0.7), "emissive": Color(0.2, 0.0, 0.4), "ei": 0.6,
+			  "pos": Vector3(-1.58, 0, 0), "rot": Vector3(0, 0, 0) },
+			# Right heavy block
+			{ "type": "box", "size": Vector3(0.75, 0.45, 1.2),
+			  "color": Color(0.4, 0.0, 0.7), "emissive": Color(0.2, 0.0, 0.4), "ei": 0.6,
+			  "pos": Vector3(1.58, 0, 0), "rot": Vector3(0, 0, 0) },
+			# Command tower
+			{ "type": "box", "size": Vector3(0.65, 0.5, 0.65),
+			  "color": Color(0.6, 0.0, 1.0), "emissive": Color(0.4, 0.0, 0.8), "ei": 1.5,
+			  "pos": Vector3(0, 0.52, -0.2), "rot": Vector3(0, 0, 0) },
+			# Left core emitter
+			{ "type": "sphere", "radius": 0.22,
+			  "color": Color(0.8, 0.0, 1.0), "emissive": Color(1.5, 0.0, 2.5), "ei": 3.5,
+			  "pos": Vector3(-0.7, 0, 0), "rot": Vector3(0, 0, 0) },
+			# Right core emitter
+			{ "type": "sphere", "radius": 0.22,
+			  "color": Color(0.8, 0.0, 1.0), "emissive": Color(1.5, 0.0, 2.5), "ei": 3.5,
+			  "pos": Vector3(0.7, 0, 0), "rot": Vector3(0, 0, 0) },
+		]
+	},
 }
 
 const BULLETS := {

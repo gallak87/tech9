@@ -18,10 +18,34 @@ extends CanvasLayer
 var _flash_timer := 0.0
 var _prompt_blink := 0.0
 
+var _boss_label: Label
+var _boss_hp_pct := 1.0
+var _boss_phase := 0
+var _boss_type_name := ""
+var _boss_active := false
+
 func _ready() -> void:
 	show_menu(true)
 	show_game_over(false)
 	flash_label.modulate.a = 0.0
+	_setup_boss_bar()
+
+func _setup_boss_bar() -> void:
+	_boss_label = Label.new()
+	_boss_label.visible = false
+	_boss_label.layout_mode = 1
+	_boss_label.set_anchor(SIDE_LEFT, 0.5)
+	_boss_label.set_anchor(SIDE_RIGHT, 0.5)
+	_boss_label.set_anchor(SIDE_TOP, 0.0)
+	_boss_label.set_anchor(SIDE_BOTTOM, 0.0)
+	_boss_label.offset_left = -220.0
+	_boss_label.offset_right = 220.0
+	_boss_label.offset_top = 8.0
+	_boss_label.offset_bottom = 56.0
+	_boss_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_label.add_theme_font_size_override("font_size", 14)
+	_boss_label.add_theme_color_override("font_color", Color(1.0, 0.4, 0.1))
+	$GameUI.add_child(_boss_label)
 
 func _process(delta: float) -> void:
 	if _flash_timer > 0:
@@ -89,3 +113,31 @@ func flash_bomb() -> void:
 	flash_label.text = "BOMB"
 	flash_label.add_theme_color_override("font_color", Color(0.7, 0.3, 1.0))
 	_flash_timer = 0.6
+
+# --- Boss HP bar ---
+
+func show_boss_bar(boss_type: int) -> void:
+	var names := ["SENTINEL", "INTERCEPTOR", "COLOSSUS"]
+	_boss_type_name = names[boss_type]
+	_boss_hp_pct = 1.0
+	_boss_phase = 0
+	_boss_active = true
+	_boss_label.visible = true
+	_update_boss_label()
+
+func hide_boss_bar() -> void:
+	_boss_active = false
+	_boss_label.visible = false
+
+func update_boss_hp(pct: float, phase: int) -> void:
+	_boss_hp_pct = clampf(pct, 0.0, 1.0)
+	_boss_phase = phase
+	_update_boss_label()
+
+func _update_boss_label() -> void:
+	var bar_width := 22
+	var filled := int(bar_width * _boss_hp_pct)
+	var empty := bar_width - filled
+	var bar := "█".repeat(filled) + "░".repeat(empty)
+	var phase_names := ["PHASE I", "PHASE II", "PHASE III"]
+	_boss_label.text = "⚠ %s  %s ⚠\n%s" % [_boss_type_name, phase_names[_boss_phase], bar]

@@ -8,6 +8,7 @@ enum State { MENU, PLAYING, BOSS, GAME_OVER, WIN }
 
 const BULLET_SCENE_PATH := "res://scenes/Bullet.tscn"
 const ENEMY_SCENE_PATH  := "res://scenes/Enemy.tscn"
+const BOSS_SCENE_PATH   := "res://scenes/Boss.tscn"
 
 @onready var player: Node3D = $Player
 @onready var camera: Camera3D = $Camera3D
@@ -26,10 +27,13 @@ var _cam_base_pos := Vector3(0, 2.5, 6)
 var _cam_shake := 0.0
 var _bullet_scene: PackedScene
 var _enemy_scene: PackedScene
+var _boss_scene: PackedScene
+var _active_boss: Node3D = null
 
 func _ready() -> void:
 	_bullet_scene = load(BULLET_SCENE_PATH)
 	_enemy_scene  = load(ENEMY_SCENE_PATH)
+	_boss_scene   = load(BOSS_SCENE_PATH)
 	camera.position = _cam_base_pos
 	camera.look_at(Vector3(0, 0, -10), Vector3.UP)
 
@@ -90,6 +94,7 @@ func _start_game() -> void:
 	player.position = Vector3(0, 0, 1)
 	hud.show_menu(false)
 	hud.show_game_over(false)
+	hud.hide_boss_bar()
 	hud.update_score(score)
 	hud.update_lives(player.lives)
 	hud.update_wave(current_wave + 1)
@@ -109,6 +114,7 @@ func _game_over() -> void:
 	state = State.GAME_OVER
 	hi_score = max(hi_score, score)
 	hud.show_game_over(true, score, hi_score, current_wave)
+	hud.hide_boss_bar()
 	player.visible = false
 
 func _win() -> void:
@@ -124,6 +130,9 @@ func _clear_field() -> void:
 		node.queue_free()
 	for node in get_tree().get_nodes_in_group("pickups"):
 		node.queue_free()
+	if _active_boss and is_instance_valid(_active_boss):
+		_active_boss.queue_free()
+	_active_boss = null
 
 # --- Bullet spawning ---
 
@@ -158,11 +167,17 @@ func _spawn_seeker(origin: Vector3) -> void:
 	b.add_to_group("player_bullets")
 
 func _spawn_enemy_bullet(pos: Vector3, dir: Vector3) -> void:
+	_do_spawn_enemy_bullet(pos, dir, false)
+
+func _spawn_boss_bullet(pos: Vector3, dir: Vector3, fast: bool) -> void:
+	_do_spawn_enemy_bullet(pos, dir, fast)
+
+func _do_spawn_enemy_bullet(pos: Vector3, dir: Vector3, fast: bool) -> void:
 	var b: Node3D = _bullet_scene.instantiate()
 	b.direction = dir
 	b.tier_key = "enemy"
 	b.is_enemy = true
-	b.speed = BulletScript.ENEMY_BULLET_SPEED
+	b.speed = BulletScript.ENEMY_BULLET_SPEED * (1.5 if fast else 1.0)
 	b.position = pos
 	add_child(b)
 	b.add_to_group("bullets")
@@ -238,9 +253,11 @@ func _check_pickups(delta: float) -> void:
 func _check_bullet_hits() -> void:
 	var player_bullets := get_tree().get_nodes_in_group("player_bullets")
 	var enemies := get_tree().get_nodes_in_group("enemies")
+
 	for bullet in player_bullets:
 		if not is_instance_valid(bullet):
 			continue
+		var consumed := false
 		for enemy in enemies:
 			if not is_instance_valid(enemy):
 				continue
@@ -252,7 +269,20 @@ func _check_bullet_hits() -> void:
 				enemy.take_damage(1)
 				if not bullet.piercing:
 					bullet.queue_free()
+					consumed = true
 					break
+		if consumed:
+			continue
+		# Boss hit check
+		if _active_boss and is_instance_valid(_active_boss):
+			if not bullet.hit_enemies.has(_active_boss):
+				var dist: float = bullet.global_position.distance_to(_active_boss.global_position)
+				if dist < 2.5:
+					bullet.hit_enemies.append(_active_boss)
+					_active_boss.take_damage(1)
+					hud.update_boss_hp(_active_boss.get_hp_pct(), _active_boss.phase)
+					if not bullet.piercing:
+						bullet.queue_free()
 
 	var enemy_bullets := get_tree().get_nodes_in_group("enemy_bullets")
 	for bullet in enemy_bullets:
@@ -291,15 +321,42 @@ func _on_wave_complete() -> void:
 func _on_boss_wave(wave_num: int, cycle: int) -> void:
 	state = State.BOSS
 	hud.flash_wave(wave_num, true)
-	# Boss logic in Phase 2 — placeholder for now
 	await get_tree().create_timer(2.0).timeout
-	# Immediately end boss for Phase 0 skeleton
+	if state != State.BOSS:
+		return
+	_spawn_boss(cycle)
+
+func _spawn_boss(cycle: int) -> void:
+	var boss_type := boss_cycles_beaten % 3
+	var boss: Node3D = _boss_scene.instantiate()
+	boss.setup(boss_type, cycle)
+	boss.position = Vector3(0, 0, -30)
+	add_child(boss)
+	boss.add_to_group("boss")
+	boss.died.connect(_on_boss_died)
+	boss.phase_changed.connect(_on_boss_phase_changed)
+	boss.fired_bullet.connect(_spawn_boss_bullet)
+	_active_boss = boss
+	hud.show_boss_bar(boss_type)
+
+func _on_boss_died(pos: Vector3, score_val: int) -> void:
+	_active_boss = null
+	score += score_val
+	hud.update_score(score)
+	hud.hide_boss_bar()
+	_add_shake(2.0)
 	boss_cycles_beaten += 1
+	await get_tree().create_timer(1.5).timeout
 	if boss_cycles_beaten >= 3:
 		_win()
 	else:
 		state = State.PLAYING
 		_next_wave()
+
+func _on_boss_phase_changed(phase: int) -> void:
+	_add_shake(1.5)
+	if _active_boss and is_instance_valid(_active_boss):
+		hud.update_boss_hp(_active_boss.get_hp_pct(), phase)
 
 # --- Bomb ---
 
@@ -315,6 +372,9 @@ func _use_bomb() -> void:
 	for bullet in get_tree().get_nodes_in_group("enemy_bullets"):
 		if is_instance_valid(bullet):
 			bullet.queue_free()
+	if _active_boss and is_instance_valid(_active_boss):
+		_active_boss.take_bomb_damage()
+		hud.update_boss_hp(_active_boss.get_hp_pct(), _active_boss.phase)
 	hud.flash_bomb()
 
 # --- Signals from player ---

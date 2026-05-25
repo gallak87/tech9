@@ -65,9 +65,9 @@ func _process(delta: float) -> void:
 		Type.BOMBER: _update_bomber(delta)
 		Type.DRONE:  _update_drone(delta)
 
-	# out of bounds (past the player)
+	# out of bounds — route through _die() so wave spawner counter stays accurate
 	if position.z > 5:
-		queue_free()
+		_die()
 
 func _update_scout(delta: float) -> void:
 	# sine-wave horizontal + forward drift

@@ -204,7 +204,7 @@ func _do_phase_transition(new_phase: int) -> void:
 	_transitioning = false
 
 func _update_emissive_color() -> void:
-	var color := PHASE_COLORS[boss_type][phase]
+	var color: Color = PHASE_COLORS[boss_type][phase]
 	for child in _mesh_root.get_children():
 		if child is MeshInstance3D:
 			var mat: StandardMaterial3D = child.material_override

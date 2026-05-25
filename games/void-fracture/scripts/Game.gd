@@ -1,8 +1,9 @@
 extends Node3D
 
-const BulletScript  := preload("res://scripts/Bullet.gd")
-const EnemyScript   := preload("res://scripts/Enemy.gd")
+const BulletScript      := preload("res://scripts/Bullet.gd")
+const EnemyScript       := preload("res://scripts/Enemy.gd")
 const GeoManifestScript := preload("res://scripts/GeoManifest.gd")
+const ExplosionScript   := preload("res://scripts/Explosion.gd")
 
 enum State { MENU, PLAYING, BOSS, GAME_OVER, WIN }
 
@@ -200,6 +201,7 @@ func _on_enemy_died(pos: Vector3, type: int, drop_type: String) -> void:
 	score += _score_for_type(type)
 	hud.update_score(score)
 	wave_spawner.on_enemy_died()
+	_spawn_explosion(pos, type)
 	if drop_type != "":
 		_spawn_pickup(pos, drop_type)
 
@@ -221,6 +223,29 @@ func _spawn_pickup(pos: Vector3, type: String) -> void:
 	pickup.set_meta("age", 0.0)
 	add_child(pickup)
 	pickup.add_to_group("pickups")
+
+func _spawn_explosion(pos: Vector3, enemy_type: int) -> void:
+	var e := ExplosionScript.new()
+	match enemy_type:
+		EnemyScript.Type.SCOUT:
+			e.color = Color(1.0, 0.2, 0.1)
+			e.count = 10; e.speed = 4.5
+		EnemyScript.Type.BOMBER:
+			e.color = Color(0.7, 0.3, 1.0)
+			e.count = 16; e.speed = 3.5; e.lifetime = 0.7
+		EnemyScript.Type.DRONE:
+			e.color = Color(0.0, 1.0, 0.5)
+			e.count = 12; e.speed = 5.0
+	e.position = pos
+	add_child(e)
+
+func _spawn_boss_explosion(pos: Vector3) -> void:
+	for _i in 4:
+		var e := ExplosionScript.new()
+		e.color = Color(1.0, 0.6, 0.0)
+		e.count = 20; e.speed = 6.0; e.lifetime = 0.9
+		e.position = pos + Vector3(randf_range(-1.5, 1.5), 0, randf_range(-1.5, 1.5))
+		add_child(e)
 
 func _physics_process(delta: float) -> void:
 	if state != State.PLAYING and state != State.BOSS:
@@ -345,6 +370,7 @@ func _on_boss_died(pos: Vector3, score_val: int) -> void:
 	hud.update_score(score)
 	hud.hide_boss_bar()
 	_add_shake(2.0)
+	_spawn_boss_explosion(pos)
 	boss_cycles_beaten += 1
 	await get_tree().create_timer(1.5).timeout
 	if boss_cycles_beaten >= 3:

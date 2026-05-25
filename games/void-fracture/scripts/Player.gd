@@ -29,15 +29,24 @@ var _invincible_timer := 0.0
 var _fire_timer := 0.0
 var _blink_timer := 0.0
 var _mesh_root: Node3D
+var _engine_glow: StandardMaterial3D = null
+var _thrust_timer := 0.0
 
 func _ready() -> void:
 	_mesh_root = GeoManifestScript.build_mesh(GeoManifestScript.ENTITIES["player"]["parts"] as Array)
 	add_child(_mesh_root)
+	# Last part in player manifest is the engine glow sphere — grab its material
+	var children := _mesh_root.get_children()
+	if children.size() > 0:
+		var last: MeshInstance3D = children[children.size() - 1]
+		if last is MeshInstance3D:
+			_engine_glow = last.material_override
 
 func _process(delta: float) -> void:
 	_handle_movement(delta)
 	_handle_fire(delta)
 	_handle_invincibility(delta)
+	_handle_thrust(delta)
 
 func _handle_movement(delta: float) -> void:
 	var dir := Vector3.ZERO
@@ -87,6 +96,14 @@ func _emit_shots(tier: int) -> void:
 			fired.emit(Vector3(0, 0, -1), tier, position)
 			fired.emit(Vector3(-0.32, 0, -1).normalized(), tier, position)
 			fired.emit(Vector3( 0.32, 0, -1).normalized(), tier, position)
+
+func _handle_thrust(delta: float) -> void:
+	if not _engine_glow:
+		return
+	_thrust_timer += delta
+	# Pulse engine glow: base 3.5 + sine wave + fire flash on shot
+	var pulse := 3.5 + sin(_thrust_timer * 12.0) * 0.8
+	_engine_glow.emission_energy_multiplier = lerpf(_engine_glow.emission_energy_multiplier, pulse, delta * 14.0)
 
 func _handle_invincibility(delta: float) -> void:
 	if invincible:

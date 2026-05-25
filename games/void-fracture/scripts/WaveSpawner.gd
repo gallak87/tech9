@@ -14,14 +14,12 @@ var _spawn_queue: Array = []
 var _spawn_timer := 0.0
 var _enemies_alive := 0
 var _active := false
-var _world_speed := 2.0
 
 func _ready() -> void:
 	pass
 
 func start_wave(wave_num: int) -> void:
 	current_wave = wave_num
-	_world_speed = min(2.0 + (wave_num - 1) * 0.15, 4.5)
 
 	if wave_num % 5 == 0:
 		var cycle := (wave_num / 5) - 1
@@ -29,17 +27,22 @@ func start_wave(wave_num: int) -> void:
 		return
 
 	_spawn_queue = _generate_wave(wave_num)
-	_enemies_alive = _spawn_queue.size()
+	_enemies_alive = 0
+	for entry in _spawn_queue:
+		if not entry.get("gap", false):
+			_enemies_alive += 1
+	_spawn_timer = 0.0
 	_active = true
 
 func _process(delta: float) -> void:
 	if not _active or _spawn_queue.is_empty():
 		return
 	_spawn_timer -= delta
-	if _spawn_timer <= 0 and _spawn_queue.size() > 0:
+	if _spawn_timer <= 0:
 		var entry: Dictionary = _spawn_queue.pop_front()
-		_spawn_timer = entry.get("delay", 0.4)
-		_do_spawn(entry)
+		_spawn_timer = entry.get("delay", 0.3)
+		if not entry.get("gap", false):
+			_do_spawn(entry)
 
 func _do_spawn(entry: Dictionary) -> void:
 	spawn_enemy.emit(
@@ -69,53 +72,54 @@ func _generate_wave(wave_num: int) -> Array:
 	formation_count = min(formation_count, 6)
 
 	var queue: Array = []
-	var t := 0.0
 
 	for _i in formation_count:
+		if not queue.is_empty():
+			# Gap between formations — pure timing delay, no enemy spawn
+			queue.append({ "gap": true, "delay": 1.6 + _rng_float(rng) * 1.4 })
 		var f_type := _rng_int(rng, 0, 5)
-		var formation: Array = _make_formation(f_type, rng, difficulty, is_elite_wave, t)
+		var formation: Array = _make_formation(f_type, rng, difficulty, is_elite_wave)
 		queue.append_array(formation)
-		t += 1.8 + _rng_float(rng) * 1.5
 
 	return queue
 
-func _make_formation(f_type: int, rng: Array, difficulty: float, elite_wave: bool, base_t: float) -> Array:
+func _make_formation(f_type: int, rng: Array, difficulty: float, elite_wave: bool) -> Array:
 	var entries: Array = []
 	match f_type:
 		0: # LINE — scouts horizontal
 			var count := 4 + int(difficulty * 0.5)
 			for i in count:
 				var x: float = lerpf(-4.0, 4.0, float(i) / float(count - 1))
-				entries.append(_scout_entry(Vector3(x, 0, -30), base_t + i * 0.18, elite_wave))
+				entries.append(_scout_entry(Vector3(x, 0, -30), 0.18, elite_wave))
 		1: # V FORMATION
 			var positions: Array[Vector3] = [Vector3(0,0,-30), Vector3(-1.2,0,-28.5), Vector3(1.2,0,-28.5),
 			                  Vector3(-2.4,0,-27), Vector3(2.4,0,-27)]
-			for i in positions.size():
-				entries.append(_scout_entry(positions[i], base_t + i * 0.12, elite_wave))
+			for pos in positions:
+				entries.append(_scout_entry(pos, 0.12, elite_wave))
 		2: # DIAGONAL SWEEP
 			for i in 4:
 				var x := -4.0 + i * 2.5 if randf() > 0.5 else 4.0 - i * 2.5
-				entries.append(_scout_entry(Vector3(x, 0, -28), base_t + i * 0.28, elite_wave))
+				entries.append(_scout_entry(Vector3(x, 0, -28), 0.28, elite_wave))
 		3: # BOMBER RUN
-			entries.append(_bomber_entry(Vector3(-2, 0, -25), base_t))
-			entries.append(_scout_entry(Vector3(-3.5, 0, -28), base_t + 0.3, elite_wave))
-			entries.append(_scout_entry(Vector3(-0.5, 0, -28), base_t + 0.3, elite_wave))
+			entries.append(_bomber_entry(Vector3(-2, 0, -25), 0.3))
+			entries.append(_scout_entry(Vector3(-3.5, 0, -28), 0.3, elite_wave))
+			entries.append(_scout_entry(Vector3(-0.5, 0, -28), 0.3, elite_wave))
 		4: # DRONE SWARM
 			var count := 2 + int(difficulty * 0.4)
 			count = min(count, 5)
-			for i in count:
+			for _i in count:
 				var x := randf_range(-3.5, 3.5)
 				entries.append({
 					"type": EnemyScript.Type.DRONE, "pos": Vector3(x, 0, -28),
 					"hp": 2, "speed": 3.5, "score": 200, "elite": false,
-					"entry_target": Vector3.ZERO, "delay": base_t + i * 0.45
+					"entry_target": Vector3.ZERO, "delay": 0.45
 				})
 		5: # DUEL — 2 bombers + center drone
-			entries.append(_bomber_entry(Vector3(-3, 0, -24), base_t))
-			entries.append(_bomber_entry(Vector3( 3, 0, -24), base_t + 0.2))
+			entries.append(_bomber_entry(Vector3(-3, 0, -24), 0.3))
+			entries.append(_bomber_entry(Vector3( 3, 0, -24), 0.3))
 			entries.append({ "type": EnemyScript.Type.DRONE, "pos": Vector3(0, 0, -26),
 				"hp": 2, "speed": 4.0, "score": 200, "elite": false,
-				"entry_target": Vector3.ZERO, "delay": base_t + 0.5 })
+				"entry_target": Vector3.ZERO, "delay": 0.4 })
 	return entries
 
 func _scout_entry(pos: Vector3, delay: float, elite: bool) -> Dictionary:

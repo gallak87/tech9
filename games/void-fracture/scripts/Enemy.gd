@@ -65,8 +65,8 @@ func _process(delta: float) -> void:
 		Type.BOMBER: _update_bomber(delta)
 		Type.DRONE:  _update_drone(delta)
 
-	# out of bounds
-	if position.z > 10:
+	# out of bounds (past the player)
+	if position.z > 5:
 		queue_free()
 
 func _update_scout(delta: float) -> void:

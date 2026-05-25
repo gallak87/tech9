@@ -12,10 +12,10 @@ const ENTITIES := {
 			{ "type": "box", "size": Vector3(0.22, 0.07, 0.82),
 			  "color": Color(0.45, 0.8, 0.95), "emissive": Color(0.0, 0.3, 0.5), "ei": 0.4,
 			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
-			# nose cone
+			# nose cone (rotated 90° on X so it points along Z, not Y)
 			{ "type": "cylinder", "radius_top": 0.02, "radius_bottom": 0.09, "height": 0.28,
 			  "color": Color(0.45, 0.8, 0.95), "emissive": Color(0.0, 0.2, 0.4), "ei": 0.3,
-			  "pos": Vector3(0, 0, -0.55), "rot": Vector3(0, 0, 0) },
+			  "pos": Vector3(0, 0, -0.55), "rot": Vector3(90, 0, 0) },
 			# left delta wing (swept back: Y rot pushes front inward, rear outward)
 			{ "type": "box", "size": Vector3(0.72, 0.03, 0.52),
 			  "color": Color(0.35, 0.68, 0.88), "emissive": Color(0.0, 0.15, 0.3), "ei": 0.2,
@@ -32,10 +32,10 @@ const ENTITIES := {
 			{ "type": "box", "size": Vector3(0.30, 0.025, 0.20),
 			  "color": Color(0.35, 0.65, 0.85), "emissive": Color(0.0, 0.1, 0.2), "ei": 0.2,
 			  "pos": Vector3(0.24, 0, 0.36), "rot": Vector3(0, -8, 0) },
-			# vertical tail fin (single, F-35 style)
-			{ "type": "box", "size": Vector3(0.035, 0.30, 0.26),
-			  "color": Color(0.4, 0.72, 0.9), "emissive": Color(0.0, 0.2, 0.35), "ei": 0.3,
-			  "pos": Vector3(0, 0.15, 0.26), "rot": Vector3(0, 0, 0) },
+			# vertical tail fin (single, F-35 style — slender, at rear)
+			{ "type": "box", "size": Vector3(0.028, 0.22, 0.20),
+			  "color": Color(0.4, 0.72, 0.9), "emissive": Color(0.0, 0.15, 0.3), "ei": 0.2,
+			  "pos": Vector3(0, 0.11, 0.34), "rot": Vector3(0, 0, 0) },
 			# left DSI intake bump
 			{ "type": "box", "size": Vector3(0.09, 0.06, 0.26),
 			  "color": Color(0.3, 0.58, 0.78), "emissive": Color(0.0, 0.12, 0.25), "ei": 0.3,

@@ -163,7 +163,7 @@ func _flash_hit() -> void:
 				mat.emission_energy_multiplier = 4.0
 	await get_tree().create_timer(0.08).timeout
 	# restore (re-read from manifest)
-	var parts := GeoManifestScript.ENTITIES[_entity_key()]["parts"]
+	var parts: Array = GeoManifestScript.ENTITIES[_entity_key()]["parts"] as Array
 	var i := 0
 	for child in _mesh_root.get_children():
 		if child is MeshInstance3D and i < parts.size():

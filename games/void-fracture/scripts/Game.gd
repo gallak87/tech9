@@ -305,7 +305,9 @@ func _check_bullet_hits() -> void:
 				if dist < 2.5:
 					bullet.hit_enemies.append(_active_boss)
 					_active_boss.take_damage(1)
-					hud.update_boss_hp(_active_boss.get_hp_pct(), _active_boss.phase)
+					# boss may have died synchronously in take_damage — re-check before reading
+					if _active_boss and is_instance_valid(_active_boss):
+						hud.update_boss_hp(_active_boss.get_hp_pct(), _active_boss.phase)
 					if not bullet.piercing:
 						bullet.queue_free()
 
@@ -400,7 +402,8 @@ func _use_bomb() -> void:
 			bullet.queue_free()
 	if _active_boss and is_instance_valid(_active_boss):
 		_active_boss.take_bomb_damage()
-		hud.update_boss_hp(_active_boss.get_hp_pct(), _active_boss.phase)
+		if _active_boss and is_instance_valid(_active_boss):
+			hud.update_boss_hp(_active_boss.get_hp_pct(), _active_boss.phase)
 	hud.flash_bomb()
 
 # --- Signals from player ---

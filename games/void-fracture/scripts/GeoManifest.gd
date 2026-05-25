@@ -172,23 +172,23 @@ const ENTITIES := {
 
 const BULLETS := {
 	"T1": { "color": Color(0.5, 0.81, 1.0), "emissive": Color(0.0, 0.8, 2.0), "ei": 4.0,
-	        "size": Vector3(0.1, 0.1, 0.55) },
+			"size": Vector3(0.1, 0.1, 0.55) },
 	"T2": { "color": Color(1.0, 1.0, 0.0), "emissive": Color(1.5, 1.5, 0.0), "ei": 4.0,
-	        "size": Vector3(0.1, 0.1, 0.55) },
+			"size": Vector3(0.1, 0.1, 0.55) },
 	"T3": { "color": Color(0.25, 1.0, 0.5), "emissive": Color(0.0, 2.0, 0.5), "ei": 4.0,
-	        "size": Vector3(0.11, 0.11, 0.58) },
+			"size": Vector3(0.11, 0.11, 0.58) },
 	"T4": { "color": Color(1.0, 0.0, 1.0), "emissive": Color(2.0, 0.0, 2.0), "ei": 4.0,
-	        "size": Vector3(0.11, 0.11, 0.62) },
+			"size": Vector3(0.11, 0.11, 0.62) },
 	"T5": { "color": Color(1.0, 0.6, 0.0), "emissive": Color(2.0, 0.8, 0.0), "ei": 4.0,
-	        "size": Vector3(0.12, 0.12, 0.55) },
+			"size": Vector3(0.12, 0.12, 0.55) },
 	"T6": { "color": Color(1.0, 0.25, 0.37), "emissive": Color(2.0, 0.0, 0.5), "ei": 4.0,
-	        "size": Vector3(0.12, 0.12, 0.60) },
+			"size": Vector3(0.12, 0.12, 0.60) },
 	"T7": { "color": Color(0.7, 0.0, 1.0), "emissive": Color(1.5, 0.0, 2.5), "ei": 4.0,
-	        "size": Vector3(0.14, 0.14, 0.65) },
+			"size": Vector3(0.14, 0.14, 0.65) },
 	"enemy": { "color": Color(1.0, 0.3, 0.1), "emissive": Color(2.0, 0.2, 0.0), "ei": 3.0,
-	            "size": Vector3(0.12, 0.12, 0.40) },
+				"size": Vector3(0.12, 0.12, 0.40) },
 	"seeker": { "color": Color(0.25, 1.0, 0.5), "emissive": Color(0.0, 2.5, 1.0), "ei": 4.0,
-	             "size": Vector3(0.14, 0.14, 0.45) },
+				 "size": Vector3(0.14, 0.14, 0.45) },
 }
 
 const PICKUPS := {

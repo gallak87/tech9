@@ -4,9 +4,9 @@ extends Node3D
 # Stars are small emissive spheres spread across the play volume
 
 const LAYERS := [
-	{ "count": 80,  "speed": 4.0,  "spread": 12.0, "z_range": [-60, 0], "size": 0.04, "brightness": 0.6 },
-	{ "count": 52,  "speed": 10.0, "spread": 10.0, "z_range": [-50, 0], "size": 0.06, "brightness": 0.8 },
-	{ "count": 30,  "speed": 20.0, "spread": 8.0,  "z_range": [-40, 0], "size": 0.09, "brightness": 1.2 },
+	{ "count": 90,  "speed": 4.0,  "spread": 12.0, "z_range": [-60, 0], "size": 0.018, "brightness": 0.28 },
+	{ "count": 55,  "speed": 10.0, "spread": 10.0, "z_range": [-50, 0], "size": 0.024, "brightness": 0.38 },
+	{ "count": 28,  "speed": 20.0, "spread": 8.0,  "z_range": [-40, 0], "size": 0.032, "brightness": 0.50 },
 ]
 
 var _stars: Array = []
@@ -26,8 +26,8 @@ func _ready() -> void:
 			var brightness: float = layer["brightness"]
 			mat.albedo_color = Color(brightness, brightness, brightness)
 			mat.emission_enabled = true
-			mat.emission = Color(brightness, brightness, brightness * 1.2)
-			mat.emission_energy_multiplier = brightness * 2.0
+			mat.emission = Color(brightness, brightness, brightness)
+			mat.emission_energy_multiplier = 1.0  # no bloom on stars
 			star.material_override = mat
 			star.position = Vector3(
 				randf_range(-layer["spread"], layer["spread"]),

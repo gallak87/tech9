@@ -70,10 +70,10 @@ func _cycle_weapon(dir: int) -> void:
 func _drop_boss(boss_type: int) -> void:
 	if _game._active_boss and is_instance_valid(_game._active_boss):
 		return
-	var cycle := _game.boss_cycles_beaten
+	var cycle: int = _game.boss_cycles_beaten
 	if boss_type >= 0:
 		# Override: temporarily set boss_cycles_beaten to target type
-		var saved := _game.boss_cycles_beaten
+		var saved: int = _game.boss_cycles_beaten
 		_game.boss_cycles_beaten = boss_type
 		_game.state = _game.State.BOSS
 		_game._spawn_boss(cycle)

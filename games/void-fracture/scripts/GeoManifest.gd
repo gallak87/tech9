@@ -56,32 +56,54 @@ const ENTITIES := {
 	},
 	"scout": {
 		"parts": [
-			{ "type": "cylinder", "radius_top": 0.05, "radius_bottom": 0.28, "height": 0.9,
+			# Fuselage — slim needle along Z (flying toward camera)
+			{ "type": "cylinder", "radius_top": 0.04, "radius_bottom": 0.12, "height": 0.65,
 			  "color": Color(1.0, 0.18, 0.37), "emissive": Color(0.8, 0.0, 0.15), "ei": 0.8,
-			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
-			{ "type": "box", "size": Vector3(0.75, 0.05, 0.38),
+			  "pos": Vector3(0, 0, 0), "rot": Vector3(90, 0, 0) },
+			# Swept delta wings
+			{ "type": "box", "size": Vector3(0.82, 0.04, 0.38),
 			  "color": Color(0.8, 0.1, 0.2), "emissive": Color(0.5, 0.0, 0.08), "ei": 0.4,
-			  "pos": Vector3(0, 0, 0.12), "rot": Vector3(0, 0, 0) },
+			  "pos": Vector3(0, 0, 0.1), "rot": Vector3(0, -12, 0) },
+			# Engine glow
+			{ "type": "sphere", "radius": 0.07,
+			  "color": Color(1.0, 0.4, 0.5), "emissive": Color(2.0, 0.0, 0.3), "ei": 3.0,
+			  "pos": Vector3(0, 0, 0.36), "rot": Vector3(0, 0, 0) },
 		]
 	},
 	"bomber": {
 		"parts": [
-			{ "type": "box", "size": Vector3(0.7, 0.25, 0.9),
+			# Wide heavy fuselage
+			{ "type": "box", "size": Vector3(0.55, 0.22, 0.85),
 			  "color": Color(0.54, 0.19, 1.0), "emissive": Color(0.2, 0.0, 0.5), "ei": 0.6,
 			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
-			{ "type": "sphere", "radius": 0.2,
-			  "color": Color(0.7, 0.3, 1.0), "emissive": Color(0.4, 0.0, 0.8), "ei": 1.2,
-			  "pos": Vector3(0, 0, -0.3), "rot": Vector3(0, 0, 0) },
+			# Stubby wide wings
+			{ "type": "box", "size": Vector3(1.1, 0.07, 0.4),
+			  "color": Color(0.4, 0.1, 0.8), "emissive": Color(0.15, 0.0, 0.4), "ei": 0.5,
+			  "pos": Vector3(0, -0.05, 0.15), "rot": Vector3(0, 0, 0) },
+			# Left weapon pod
+			{ "type": "sphere", "radius": 0.13,
+			  "color": Color(0.7, 0.3, 1.0), "emissive": Color(0.4, 0.0, 0.8), "ei": 1.4,
+			  "pos": Vector3(-0.38, -0.1, 0.2), "rot": Vector3(0, 0, 0) },
+			# Right weapon pod
+			{ "type": "sphere", "radius": 0.13,
+			  "color": Color(0.7, 0.3, 1.0), "emissive": Color(0.4, 0.0, 0.8), "ei": 1.4,
+			  "pos": Vector3(0.38, -0.1, 0.2), "rot": Vector3(0, 0, 0) },
 		]
 	},
 	"drone": {
 		"parts": [
-			{ "type": "sphere", "radius": 0.3,
-			  "color": Color(0.0, 1.0, 0.6), "emissive": Color(0.0, 0.5, 0.2), "ei": 0.7,
+			# Core orb
+			{ "type": "sphere", "radius": 0.26,
+			  "color": Color(0.0, 1.0, 0.6), "emissive": Color(0.0, 0.5, 0.2), "ei": 0.8,
 			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
-			{ "type": "torus", "inner_radius": 0.28, "outer_radius": 0.38,
-			  "color": Color(0.0, 0.8, 0.4), "emissive": Color(0.0, 0.6, 0.2), "ei": 1.0,
+			# Horizontal ring (XZ plane)
+			{ "type": "torus", "inner_radius": 0.30, "outer_radius": 0.42,
+			  "color": Color(0.0, 0.8, 0.4), "emissive": Color(0.0, 0.6, 0.2), "ei": 1.2,
 			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
+			# Vertical ring (tilted 90° — visible from camera)
+			{ "type": "torus", "inner_radius": 0.30, "outer_radius": 0.42,
+			  "color": Color(0.0, 0.6, 0.3), "emissive": Color(0.0, 0.4, 0.15), "ei": 0.9,
+			  "pos": Vector3(0, 0, 0), "rot": Vector3(90, 0, 0) },
 		]
 	},
 	"elite_overlay": {
@@ -142,30 +164,34 @@ const ENTITIES := {
 	},
 	"colossus_boss": {
 		"parts": [
-			# Main hull
-			{ "type": "box", "size": Vector3(2.4, 0.55, 1.8),
+			# Main hull — wider, taller than before
+			{ "type": "box", "size": Vector3(2.6, 0.7, 1.6),
 			  "color": Color(0.5, 0.0, 0.8), "emissive": Color(0.3, 0.0, 0.5), "ei": 0.8,
 			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
-			# Left heavy block
-			{ "type": "box", "size": Vector3(0.75, 0.45, 1.2),
+			# Left shoulder block (raised)
+			{ "type": "box", "size": Vector3(0.7, 0.6, 1.0),
 			  "color": Color(0.4, 0.0, 0.7), "emissive": Color(0.2, 0.0, 0.4), "ei": 0.6,
-			  "pos": Vector3(-1.58, 0, 0), "rot": Vector3(0, 0, 0) },
-			# Right heavy block
-			{ "type": "box", "size": Vector3(0.75, 0.45, 1.2),
+			  "pos": Vector3(-1.65, 0.1, 0), "rot": Vector3(0, 0, 0) },
+			# Right shoulder block
+			{ "type": "box", "size": Vector3(0.7, 0.6, 1.0),
 			  "color": Color(0.4, 0.0, 0.7), "emissive": Color(0.2, 0.0, 0.4), "ei": 0.6,
-			  "pos": Vector3(1.58, 0, 0), "rot": Vector3(0, 0, 0) },
-			# Command tower
-			{ "type": "box", "size": Vector3(0.65, 0.5, 0.65),
+			  "pos": Vector3(1.65, 0.1, 0), "rot": Vector3(0, 0, 0) },
+			# Command tower (tall)
+			{ "type": "box", "size": Vector3(0.6, 0.8, 0.6),
 			  "color": Color(0.6, 0.0, 1.0), "emissive": Color(0.4, 0.0, 0.8), "ei": 1.5,
-			  "pos": Vector3(0, 0.52, -0.2), "rot": Vector3(0, 0, 0) },
+			  "pos": Vector3(0, 0.75, -0.2), "rot": Vector3(0, 0, 0) },
+			# Forward cannon barrel
+			{ "type": "cylinder", "radius_top": 0.08, "radius_bottom": 0.08, "height": 0.7,
+			  "color": Color(0.35, 0.0, 0.6), "emissive": Color(0.2, 0.0, 0.4), "ei": 0.5,
+			  "pos": Vector3(0, 0, -1.15), "rot": Vector3(90, 0, 0) },
 			# Left core emitter
 			{ "type": "sphere", "radius": 0.22,
 			  "color": Color(0.8, 0.0, 1.0), "emissive": Color(1.5, 0.0, 2.5), "ei": 3.5,
-			  "pos": Vector3(-0.7, 0, 0), "rot": Vector3(0, 0, 0) },
+			  "pos": Vector3(-0.8, 0, 0), "rot": Vector3(0, 0, 0) },
 			# Right core emitter
 			{ "type": "sphere", "radius": 0.22,
 			  "color": Color(0.8, 0.0, 1.0), "emissive": Color(1.5, 0.0, 2.5), "ei": 3.5,
-			  "pos": Vector3(0.7, 0, 0), "rot": Vector3(0, 0, 0) },
+			  "pos": Vector3(0.8, 0, 0), "rot": Vector3(0, 0, 0) },
 		]
 	},
 }

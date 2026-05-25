@@ -71,6 +71,8 @@ func _cycle_weapon(dir: int) -> void:
 	p.weapon_tier_changed.emit(p.weapon_tier)
 
 func _drop_boss(boss_type: int) -> void:
+	if _gallery_active:
+		return
 	if _game._active_boss and is_instance_valid(_game._active_boss):
 		return
 	var cycle: int = _game.boss_cycles_beaten

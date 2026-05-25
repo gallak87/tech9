@@ -8,32 +8,60 @@ extends Node
 const ENTITIES := {
 	"player": {
 		"parts": [
-			# fuselage
-			{ "type": "cylinder", "radius_top": 0.08, "radius_bottom": 0.28, "height": 1.1,
-			  "color": Color(0.5, 0.85, 1.0), "emissive": Color(0.0, 0.4, 0.6), "ei": 0.5,
+			# wide flat fuselage body (blended wing-body like F-35)
+			{ "type": "box", "size": Vector3(0.22, 0.07, 0.82),
+			  "color": Color(0.45, 0.8, 0.95), "emissive": Color(0.0, 0.3, 0.5), "ei": 0.4,
 			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
-			# left wing
-			{ "type": "box", "size": Vector3(0.9, 0.06, 0.55),
-			  "color": Color(0.4, 0.7, 0.9), "emissive": Color(0.0, 0.2, 0.4), "ei": 0.3,
-			  "pos": Vector3(-0.55, 0, 0.15), "rot": Vector3(0, 0, 0) },
-			# right wing
-			{ "type": "box", "size": Vector3(0.9, 0.06, 0.55),
-			  "color": Color(0.4, 0.7, 0.9), "emissive": Color(0.0, 0.2, 0.4), "ei": 0.3,
-			  "pos": Vector3(0.55, 0, 0.15), "rot": Vector3(0, 0, 0) },
-			# engine glow
-			{ "type": "sphere", "radius": 0.14,
-			  "color": Color(0.0, 0.8, 1.0), "emissive": Color(0.0, 1.0, 1.5), "ei": 2.0,
-			  "pos": Vector3(0, 0, 0.55), "rot": Vector3(0, 0, 0) },
+			# nose cone
+			{ "type": "cylinder", "radius_top": 0.02, "radius_bottom": 0.09, "height": 0.28,
+			  "color": Color(0.45, 0.8, 0.95), "emissive": Color(0.0, 0.2, 0.4), "ei": 0.3,
+			  "pos": Vector3(0, 0, -0.55), "rot": Vector3(0, 0, 0) },
+			# left delta wing (swept back: Y rot pushes front inward, rear outward)
+			{ "type": "box", "size": Vector3(0.72, 0.03, 0.52),
+			  "color": Color(0.35, 0.68, 0.88), "emissive": Color(0.0, 0.15, 0.3), "ei": 0.2,
+			  "pos": Vector3(-0.44, -0.01, 0.08), "rot": Vector3(0, 14, 0) },
+			# right delta wing
+			{ "type": "box", "size": Vector3(0.72, 0.03, 0.52),
+			  "color": Color(0.35, 0.68, 0.88), "emissive": Color(0.0, 0.15, 0.3), "ei": 0.2,
+			  "pos": Vector3(0.44, -0.01, 0.08), "rot": Vector3(0, -14, 0) },
+			# left horizontal stabilizer (rear)
+			{ "type": "box", "size": Vector3(0.30, 0.025, 0.20),
+			  "color": Color(0.35, 0.65, 0.85), "emissive": Color(0.0, 0.1, 0.2), "ei": 0.2,
+			  "pos": Vector3(-0.24, 0, 0.36), "rot": Vector3(0, 8, 0) },
+			# right horizontal stabilizer
+			{ "type": "box", "size": Vector3(0.30, 0.025, 0.20),
+			  "color": Color(0.35, 0.65, 0.85), "emissive": Color(0.0, 0.1, 0.2), "ei": 0.2,
+			  "pos": Vector3(0.24, 0, 0.36), "rot": Vector3(0, -8, 0) },
+			# vertical tail fin (single, F-35 style)
+			{ "type": "box", "size": Vector3(0.035, 0.30, 0.26),
+			  "color": Color(0.4, 0.72, 0.9), "emissive": Color(0.0, 0.2, 0.35), "ei": 0.3,
+			  "pos": Vector3(0, 0.15, 0.26), "rot": Vector3(0, 0, 0) },
+			# left DSI intake bump
+			{ "type": "box", "size": Vector3(0.09, 0.06, 0.26),
+			  "color": Color(0.3, 0.58, 0.78), "emissive": Color(0.0, 0.12, 0.25), "ei": 0.3,
+			  "pos": Vector3(-0.14, -0.04, -0.12), "rot": Vector3(0, 0, 0) },
+			# right DSI intake bump
+			{ "type": "box", "size": Vector3(0.09, 0.06, 0.26),
+			  "color": Color(0.3, 0.58, 0.78), "emissive": Color(0.0, 0.12, 0.25), "ei": 0.3,
+			  "pos": Vector3(0.14, -0.04, -0.12), "rot": Vector3(0, 0, 0) },
+			# canopy bubble
+			{ "type": "sphere", "radius": 0.065,
+			  "color": Color(0.55, 0.88, 1.0), "emissive": Color(0.2, 0.6, 1.0), "ei": 1.2,
+			  "pos": Vector3(0, 0.07, -0.22), "rot": Vector3(0, 0, 0) },
+			# engine exhaust glow
+			{ "type": "sphere", "radius": 0.085,
+			  "color": Color(0.0, 0.7, 1.0), "emissive": Color(0.0, 1.2, 2.0), "ei": 3.5,
+			  "pos": Vector3(0, 0, 0.42), "rot": Vector3(0, 0, 0) },
 		]
 	},
 	"scout": {
 		"parts": [
-			{ "type": "cylinder", "radius_top": 0.04, "radius_bottom": 0.22, "height": 0.7,
-			  "color": Color(1.0, 0.18, 0.37), "emissive": Color(0.6, 0.0, 0.1), "ei": 0.6,
+			{ "type": "cylinder", "radius_top": 0.05, "radius_bottom": 0.28, "height": 0.9,
+			  "color": Color(1.0, 0.18, 0.37), "emissive": Color(0.8, 0.0, 0.15), "ei": 0.8,
 			  "pos": Vector3(0, 0, 0), "rot": Vector3(0, 0, 0) },
-			{ "type": "box", "size": Vector3(0.6, 0.05, 0.3),
-			  "color": Color(0.8, 0.1, 0.2), "emissive": Color(0.4, 0.0, 0.05), "ei": 0.3,
-			  "pos": Vector3(0, 0, 0.1), "rot": Vector3(0, 0, 0) },
+			{ "type": "box", "size": Vector3(0.75, 0.05, 0.38),
+			  "color": Color(0.8, 0.1, 0.2), "emissive": Color(0.5, 0.0, 0.08), "ei": 0.4,
+			  "pos": Vector3(0, 0, 0.12), "rot": Vector3(0, 0, 0) },
 		]
 	},
 	"bomber": {
@@ -67,24 +95,24 @@ const ENTITIES := {
 }
 
 const BULLETS := {
-	"T1": { "color": Color(0.5, 0.81, 1.0), "emissive": Color(0.0, 0.8, 2.0), "ei": 3.0,
-	        "size": Vector3(0.06, 0.06, 0.38) },
-	"T2": { "color": Color(1.0, 1.0, 0.0), "emissive": Color(1.5, 1.5, 0.0), "ei": 3.0,
-	        "size": Vector3(0.06, 0.06, 0.38) },
-	"T3": { "color": Color(0.25, 1.0, 0.5), "emissive": Color(0.0, 2.0, 0.5), "ei": 3.0,
-	        "size": Vector3(0.07, 0.07, 0.42) },
-	"T4": { "color": Color(1.0, 0.0, 1.0), "emissive": Color(2.0, 0.0, 2.0), "ei": 3.0,
-	        "size": Vector3(0.07, 0.07, 0.45) },
-	"T5": { "color": Color(1.0, 0.6, 0.0), "emissive": Color(2.0, 0.8, 0.0), "ei": 3.0,
-	        "size": Vector3(0.07, 0.07, 0.38) },
-	"T6": { "color": Color(1.0, 0.25, 0.37), "emissive": Color(2.0, 0.0, 0.5), "ei": 3.0,
-	        "size": Vector3(0.07, 0.07, 0.42) },
-	"T7": { "color": Color(0.7, 0.0, 1.0), "emissive": Color(1.5, 0.0, 2.5), "ei": 3.0,
-	        "size": Vector3(0.08, 0.08, 0.48) },
-	"enemy": { "color": Color(1.0, 0.3, 0.1), "emissive": Color(2.0, 0.2, 0.0), "ei": 2.5,
-	            "size": Vector3(0.08, 0.08, 0.28) },
-	"seeker": { "color": Color(0.25, 1.0, 0.5), "emissive": Color(0.0, 2.5, 1.0), "ei": 3.5,
-	             "size": Vector3(0.1, 0.1, 0.32) },
+	"T1": { "color": Color(0.5, 0.81, 1.0), "emissive": Color(0.0, 0.8, 2.0), "ei": 4.0,
+	        "size": Vector3(0.1, 0.1, 0.55) },
+	"T2": { "color": Color(1.0, 1.0, 0.0), "emissive": Color(1.5, 1.5, 0.0), "ei": 4.0,
+	        "size": Vector3(0.1, 0.1, 0.55) },
+	"T3": { "color": Color(0.25, 1.0, 0.5), "emissive": Color(0.0, 2.0, 0.5), "ei": 4.0,
+	        "size": Vector3(0.11, 0.11, 0.58) },
+	"T4": { "color": Color(1.0, 0.0, 1.0), "emissive": Color(2.0, 0.0, 2.0), "ei": 4.0,
+	        "size": Vector3(0.11, 0.11, 0.62) },
+	"T5": { "color": Color(1.0, 0.6, 0.0), "emissive": Color(2.0, 0.8, 0.0), "ei": 4.0,
+	        "size": Vector3(0.12, 0.12, 0.55) },
+	"T6": { "color": Color(1.0, 0.25, 0.37), "emissive": Color(2.0, 0.0, 0.5), "ei": 4.0,
+	        "size": Vector3(0.12, 0.12, 0.60) },
+	"T7": { "color": Color(0.7, 0.0, 1.0), "emissive": Color(1.5, 0.0, 2.5), "ei": 4.0,
+	        "size": Vector3(0.14, 0.14, 0.65) },
+	"enemy": { "color": Color(1.0, 0.3, 0.1), "emissive": Color(2.0, 0.2, 0.0), "ei": 3.0,
+	            "size": Vector3(0.12, 0.12, 0.40) },
+	"seeker": { "color": Color(0.25, 1.0, 0.5), "emissive": Color(0.0, 2.5, 1.0), "ei": 4.0,
+	             "size": Vector3(0.14, 0.14, 0.45) },
 }
 
 const PICKUPS := {

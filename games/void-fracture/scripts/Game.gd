@@ -22,7 +22,7 @@ var bombs := 3
 var current_wave := 0
 var boss_cycles_beaten := 0
 
-var _cam_base_pos := Vector3(0, 5, 8)
+var _cam_base_pos := Vector3(0, 2.5, 6)
 var _cam_shake := 0.0
 var _bullet_scene: PackedScene
 var _enemy_scene: PackedScene
@@ -31,7 +31,7 @@ func _ready() -> void:
 	_bullet_scene = load(BULLET_SCENE_PATH)
 	_enemy_scene  = load(ENEMY_SCENE_PATH)
 	camera.position = _cam_base_pos
-	camera.look_at(Vector3(0, 0, -2), Vector3.UP)
+	camera.look_at(Vector3(0, 0, -10), Vector3.UP)
 
 	player.add_to_group("player")
 	player.fired.connect(_on_player_fired)
@@ -87,7 +87,7 @@ func _start_game() -> void:
 	player.max_tier = 0
 	player.invincible = false
 	player.visible = true
-	player.position = Vector3(0, 0, 2)
+	player.position = Vector3(0, 0, 1)
 	hud.show_menu(false)
 	hud.show_game_over(false)
 	hud.update_score(score)
@@ -218,7 +218,7 @@ func _check_pickups(delta: float) -> void:
 	for pickup in get_tree().get_nodes_in_group("pickups"):
 		var age: float = pickup.get_meta("age", 0.0) + delta
 		pickup.set_meta("age", age)
-		pickup.position.z += 1.5 * delta
+		pickup.position.z += 6.0 * delta
 		pickup.rotate_y(delta * 2.0)
 		if age > 12.0 or pickup.position.z > 8:
 			pickup.queue_free()

@@ -7,9 +7,9 @@ signal bomb_used()
 signal weapon_tier_changed(tier: int)
 
 const SPEED := 8.0
-const BOUNDS_X := 4.5
-const BOUNDS_Z_MIN := -1.5   # close to camera
-const BOUNDS_Z_MAX := 3.5    # far end of play area
+const BOUNDS_X := 3.2
+const BOUNDS_Z_MIN := -1.0
+const BOUNDS_Z_MAX := 2.5
 
 const WEAPON_TIERS := [
 	{ "name": "SINGLE",   "fire_rate": 9.0, "pierce": false, "seeker": 0 },

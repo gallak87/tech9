@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3 uid="uid://main001"]
+[gd_scene load_steps=9 format=3 uid="uid://main001"]
 
 [ext_resource type="Script" path="res://scripts/Game.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/Player.gd" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/HUD.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/GeoManifest.gd" id="6"]
 [ext_resource type="Environment" path="res://assets/default_env.tres" id="7"]
+[ext_resource type="Script" path="res://scripts/DevTool.gd" id="8"]
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1")
@@ -35,6 +36,9 @@ script = ExtResource("2")
 
 [node name="WaveSpawner" type="Node" parent="."]
 script = ExtResource("3")
+
+[node name="DevTool" type="Node" parent="."]
+script = ExtResource("8")
 
 [node name="HUD" type="CanvasLayer" parent="."]
 script = ExtResource("5")

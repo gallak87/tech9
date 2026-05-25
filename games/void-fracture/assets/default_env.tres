@@ -1,0 +1,26 @@
+[gd_resource type="Environment" load_steps=2 format=3 uid="uid://b3vxqmtlnefbj"]
+
+[sub_resource type="Sky" id="Sky_1"]
+
+[resource]
+background_mode = 1
+sky = SubResource("Sky_1")
+tonemap_mode = 2
+glow_enabled = true
+glow_levels/1 = 0.0
+glow_levels/2 = 0.0
+glow_levels/3 = 1.0
+glow_levels/4 = 1.0
+glow_levels/5 = 1.0
+glow_levels/6 = 0.0
+glow_levels/7 = 0.0
+glow_intensity = 0.8
+glow_strength = 1.2
+glow_bloom = 0.1
+glow_blend_mode = 2
+glow_hdr_threshold = 0.7
+glow_hdr_scale = 2.0
+adjustment_enabled = true
+adjustment_brightness = 1.0
+adjustment_contrast = 1.1
+adjustment_saturation = 1.2

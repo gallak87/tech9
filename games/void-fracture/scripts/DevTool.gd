@@ -124,8 +124,8 @@ func _enter_gallery() -> void:
 	var cam: Camera3D = _game.camera
 	_saved_cam_pos = cam.position
 	_saved_cam_basis = cam.basis
-	cam.position = Vector3(0, 1.0, 6)
-	cam.look_at(Vector3(0, 0.2, -5), Vector3.UP)
+	cam.position = Vector3(0, 1.0, 3.5)
+	cam.look_at(Vector3(0, 0.9, -4), Vector3.UP)
 
 	var player_keys: Array = []
 	var enemy_keys: Array = []
@@ -140,18 +140,18 @@ func _enter_gallery() -> void:
 		else:
 			enemy_keys.append(k)
 
-	# Player row: bottom, y=-2.0
-	_make_gallery_entity("player", Vector3(0.0, -2.0, -5.0))
+	# Player row: bottom, y=-0.6
+	_make_gallery_entity("player", Vector3(0.0, -0.6, -4.0))
 
-	# Enemy row: middle, y=0.0, 3.0 unit spacing
+	# Enemy row: middle, y=0.9, 3.0 unit spacing
 	var ex: float = -(enemy_keys.size() - 1) * 3.0 / 2.0
 	for i in enemy_keys.size():
-		_make_gallery_entity(enemy_keys[i], Vector3(ex + i * 3.0, 0.0, -5.0))
+		_make_gallery_entity(enemy_keys[i], Vector3(ex + i * 3.0, 0.9, -4.0))
 
-	# Boss row: top, y=2.2, 5 unit spacing
+	# Boss row: top, y=2.4, 5 unit spacing
 	var bx: float = -(boss_keys.size() - 1) * 5.0 / 2.0
 	for i in boss_keys.size():
-		_make_gallery_entity(boss_keys[i], Vector3(bx + i * 5.0, 2.2, -5.0))
+		_make_gallery_entity(boss_keys[i], Vector3(bx + i * 5.0, 2.4, -4.0))
 
 func _make_gallery_entity(key: String, pos: Vector3) -> void:
 	var root := Node3D.new()
@@ -165,7 +165,7 @@ func _make_gallery_entity(key: String, pos: Vector3) -> void:
 	label.font_size = 20
 	label.modulate = Color(1, 1, 0)
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.position = Vector3(0, 2.2, 0)
+	label.position = Vector3(0, -0.9, 0)
 	label.no_depth_test = true
 	root.add_child(label)
 

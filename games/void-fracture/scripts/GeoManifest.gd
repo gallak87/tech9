@@ -12,10 +12,10 @@ const ENTITIES := {
 			{ "type": "box", "size": Vector3(0.24, 0.08, 0.88),
 			  "color": Color(0.45, 0.8, 0.95), "emissive": Color(0.0, 0.3, 0.5), "ei": 0.4,
 			  "pos": Vector3(0, 0, -0.02), "rot": Vector3(0, 0, 0) },
-			# Nose cone — rot(90,0,0): local +Y→world -Z, so radius_top(0)=point faces -Z (forward)
+			# Nose cone — rot(-90,0,0): local +Y→world -Z, tip(radius_top=0) faces -Z (forward)
 			{ "type": "cylinder", "radius_top": 0.0, "radius_bottom": 0.10, "height": 0.26,
 			  "color": Color(0.45, 0.8, 0.95), "emissive": Color(0.0, 0.2, 0.4), "ei": 0.3,
-			  "pos": Vector3(0, 0, -0.59), "rot": Vector3(90, 0, 0) },
+			  "pos": Vector3(0, 0, -0.59), "rot": Vector3(-90, 0, 0) },
 			# === LEFT WING — two-box delta sweep ===
 			{ "type": "box", "size": Vector3(0.40, 0.024, 0.55),
 			  "color": Color(0.38, 0.70, 0.90), "emissive": Color(0.0, 0.15, 0.3), "ei": 0.2,
@@ -68,10 +68,10 @@ const ENTITIES := {
 	},
 	"scout": {
 		"parts": [
-			# Fuselage cone — rot(-90,0,0): local +Y→world +Z, so radius_top(0)=point faces player
+			# Fuselage cone — rot(90,0,0): local +Y→world +Z, tip(radius_top=0) faces +Z (toward player)
 			{ "type": "cylinder", "radius_top": 0.0, "radius_bottom": 0.12, "height": 0.65,
 			  "color": Color(1.0, 0.18, 0.37), "emissive": Color(0.8, 0.0, 0.15), "ei": 0.8,
-			  "pos": Vector3(0, 0, 0.0), "rot": Vector3(-90, 0, 0) },
+			  "pos": Vector3(0, 0, 0.0), "rot": Vector3(90, 0, 0) },
 			# Left swept wing
 			{ "type": "box", "size": Vector3(0.46, 0.030, 0.40),
 			  "color": Color(0.85, 0.1, 0.22), "emissive": Color(0.5, 0.0, 0.08), "ei": 0.4,
@@ -100,14 +100,14 @@ const ENTITIES := {
 			{ "type": "box", "size": Vector3(0.50, 0.06, 0.36),
 			  "color": Color(0.4, 0.1, 0.8), "emissive": Color(0.15, 0.0, 0.4), "ei": 0.5,
 			  "pos": Vector3(0.52, -0.05, 0.10), "rot": Vector3(0, -20, 0) },
-			# Left weapon pod — barrel faces player (+Z), rot(-90): +Y→+Z
+			# Left weapon pod — barrel faces player (+Z), rot(90,0,0): +Y→+Z, small end faces +Z
 			{ "type": "cylinder", "radius_top": 0.055, "radius_bottom": 0.11, "height": 0.32,
 			  "color": Color(0.7, 0.3, 1.0), "emissive": Color(0.4, 0.0, 0.8), "ei": 1.4,
-			  "pos": Vector3(-0.44, -0.10, 0.16), "rot": Vector3(-90, 0, 0) },
+			  "pos": Vector3(-0.44, -0.10, 0.16), "rot": Vector3(90, 0, 0) },
 			# Right weapon pod
 			{ "type": "cylinder", "radius_top": 0.055, "radius_bottom": 0.11, "height": 0.32,
 			  "color": Color(0.7, 0.3, 1.0), "emissive": Color(0.4, 0.0, 0.8), "ei": 1.4,
-			  "pos": Vector3(0.44, -0.10, 0.16), "rot": Vector3(-90, 0, 0) },
+			  "pos": Vector3(0.44, -0.10, 0.16), "rot": Vector3(90, 0, 0) },
 		]
 	},
 	"drone": {
@@ -183,10 +183,10 @@ const ENTITIES := {
 			{ "type": "box", "size": Vector3(0.60, 0.04, 0.45),
 			  "color": Color(0.75, 0.28, 0.0), "emissive": Color(0.5, 0.1, 0.0), "ei": 0.6,
 			  "pos": Vector3(1.25, -0.03, 0.42), "rot": Vector3(0, 28, 0) },
-			# Nose cone (faces -Z = forward for this boss)
+			# Nose cone (faces -Z = forward for this boss), rot(-90): tip at -Z
 			{ "type": "cylinder", "radius_top": 0.0, "radius_bottom": 0.16, "height": 0.55,
 			  "color": Color(1.0, 0.6, 0.0), "emissive": Color(1.0, 0.8, 0.0), "ei": 2.0,
-			  "pos": Vector3(0, 0, -1.55), "rot": Vector3(90, 0, 0) },
+			  "pos": Vector3(0, 0, -1.55), "rot": Vector3(-90, 0, 0) },
 			# Left canted tail fin
 			{ "type": "box", "size": Vector3(0.04, 0.38, 0.45),
 			  "color": Color(1.0, 0.5, 0.0), "emissive": Color(0.8, 0.3, 0.0), "ei": 1.0,

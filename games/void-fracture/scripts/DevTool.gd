@@ -115,31 +115,41 @@ func _enter_gallery() -> void:
 	_game.player.visible = false
 	_game.hud.visible = false
 	_game.state = _game.State.MENU
+	if _game._corridor:
+		_game._corridor.visible = false
 
-	# Save camera and move it close to the gallery plane
+	# Save camera and widen view to cover three rows
 	var cam: Camera3D = _game.camera
 	_saved_cam_pos = cam.position
 	_saved_cam_basis = cam.basis
-	cam.position = Vector3(0, 0.5, 4)
-	cam.look_at(Vector3(0, 0, -5), Vector3.UP)
+	cam.position = Vector3(0, 1.0, 6)
+	cam.look_at(Vector3(0, 0.2, -5), Vector3.UP)
 
-	var small_keys: Array = []
+	var player_keys: Array = []
+	var enemy_keys: Array = []
 	var boss_keys: Array = []
 	for k in GeoManifestScript.ENTITIES.keys():
-		if "boss" in k:
+		if k == "elite_overlay":
+			continue
+		elif k == "player":
+			player_keys.append(k)
+		elif "boss" in k:
 			boss_keys.append(k)
 		else:
-			small_keys.append(k)
+			enemy_keys.append(k)
 
-	# Small entities: y=1.5, z=-5, 2.5 unit spacing
-	var sx: float = -(small_keys.size() - 1) * 2.5 / 2.0
-	for i in small_keys.size():
-		_make_gallery_entity(small_keys[i], Vector3(sx + i * 2.5, 1.5, -5.0))
+	# Player row: bottom, y=-2.0
+	_make_gallery_entity("player", Vector3(0.0, -2.0, -5.0))
 
-	# Boss entities: y=-1.5, z=-5, 5 unit spacing
+	# Enemy row: middle, y=0.0, 3.0 unit spacing
+	var ex: float = -(enemy_keys.size() - 1) * 3.0 / 2.0
+	for i in enemy_keys.size():
+		_make_gallery_entity(enemy_keys[i], Vector3(ex + i * 3.0, 0.0, -5.0))
+
+	# Boss row: top, y=2.2, 5 unit spacing
 	var bx: float = -(boss_keys.size() - 1) * 5.0 / 2.0
 	for i in boss_keys.size():
-		_make_gallery_entity(boss_keys[i], Vector3(bx + i * 5.0, -1.5, -5.0))
+		_make_gallery_entity(boss_keys[i], Vector3(bx + i * 5.0, 2.2, -5.0))
 
 func _make_gallery_entity(key: String, pos: Vector3) -> void:
 	var root := Node3D.new()
@@ -171,6 +181,8 @@ func _exit_gallery() -> void:
 	var cam: Camera3D = _game.camera
 	cam.position = _saved_cam_pos
 	cam.basis = _saved_cam_basis
+	if _game._corridor:
+		_game._corridor.visible = true
 	_game.hud.visible = true
 	_game._start_game()
 	_game.player.god_mode = _overlay.visible

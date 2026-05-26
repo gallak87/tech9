@@ -4,6 +4,8 @@ const BulletScript      := preload("res://scripts/Bullet.gd")
 const EnemyScript       := preload("res://scripts/Enemy.gd")
 const GeoManifestScript := preload("res://scripts/GeoManifest.gd")
 const ExplosionScript   := preload("res://scripts/Explosion.gd")
+const CorridorScript    := preload("res://scripts/Corridor.gd")
+const BombWaveScript    := preload("res://scripts/BombWave.gd")
 
 enum State { MENU, PLAYING, BOSS, GAME_OVER, WIN }
 
@@ -26,10 +28,12 @@ var boss_cycles_beaten := 0
 
 var _cam_base_pos := Vector3(0, 2.5, 6)
 var _cam_shake := 0.0
+var _bomb_cooldown := 0.0
 var _bullet_scene: PackedScene
 var _enemy_scene: PackedScene
 var _boss_scene: PackedScene
 var _active_boss: Node3D = null
+var _corridor: Node3D = null
 
 func _ready() -> void:
 	_bullet_scene = load(BULLET_SCENE_PATH)
@@ -37,6 +41,9 @@ func _ready() -> void:
 	_boss_scene   = load(BOSS_SCENE_PATH)
 	camera.position = _cam_base_pos
 	camera.look_at(Vector3(0, 0, -10), Vector3.UP)
+	_corridor = Node3D.new()
+	_corridor.set_script(CorridorScript)
+	add_child(_corridor)
 
 	player.add_to_group("player")
 	player.fired.connect(_on_player_fired)
@@ -50,6 +57,7 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_update_camera_shake(delta)
+	_bomb_cooldown = maxf(0.0, _bomb_cooldown - delta)
 	if state == State.MENU and Input.is_action_just_pressed("ui_accept"):
 		_start_game()
 	if state == State.GAME_OVER and Input.is_action_just_pressed("ui_accept"):
@@ -62,6 +70,9 @@ func _process(delta: float) -> void:
 # --- Camera ---
 
 func _update_camera_shake(delta: float) -> void:
+	if state == State.PLAYING or state == State.BOSS:
+		var target_y := 2.5 + player.position.y * 0.3
+		_cam_base_pos.y = lerpf(_cam_base_pos.y, target_y, delta * 3.0)
 	if _cam_shake > 0:
 		camera.position = _cam_base_pos + Vector3(
 			randf_range(-1, 1) * _cam_shake * 0.12,
@@ -93,6 +104,8 @@ func _start_game() -> void:
 	player.invincible = false
 	player.visible = true
 	player.position = Vector3(0, 0, 1)
+	_cam_base_pos = Vector3(0, 2.5, 6)
+	_bomb_cooldown = 0.4
 	hud.show_menu(false)
 	hud.show_game_over(false)
 	hud.hide_boss_bar()
@@ -216,7 +229,10 @@ func _score_for_type(type: int) -> int:
 
 func _spawn_pickup(pos: Vector3, type: String) -> void:
 	var pickup := Node3D.new()
-	pickup.position = pos
+	var spawn_pos := pos
+	spawn_pos.x = clamp(spawn_pos.x, -2.5, 2.5)
+	spawn_pos.y = clamp(spawn_pos.y, -0.8, 0.8)
+	pickup.position = spawn_pos
 	var mesh_root: Node3D = GeoManifestScript.build_mesh(GeoManifestScript.PICKUPS[type]["parts"] as Array)
 	pickup.add_child(mesh_root)
 	pickup.set_meta("pickup_type", type)
@@ -289,7 +305,7 @@ func _check_bullet_hits() -> void:
 			if bullet.hit_enemies.has(enemy):
 				continue
 			var dist: float = bullet.global_position.distance_to(enemy.global_position)
-			if dist < 0.9:
+			if dist < 1.4:
 				bullet.hit_enemies.append(enemy)
 				enemy.take_damage(1)
 				if not bullet.piercing:
@@ -389,14 +405,22 @@ func _on_boss_phase_changed(phase: int) -> void:
 # --- Bomb ---
 
 func _use_bomb() -> void:
-	if bombs <= 0:
+	if bombs <= 0 or _bomb_cooldown > 0:
 		return
 	bombs -= 1
 	hud.update_bombs(bombs)
 	_add_shake(1.2)
+	var wave := Node3D.new()
+	wave.set_script(BombWaveScript)
+	wave.position = player.global_position
+	add_child(wave)
+	var killed := 0
 	for enemy in get_tree().get_nodes_in_group("enemies"):
 		if is_instance_valid(enemy):
 			enemy.queue_free()
+			killed += 1
+	for _i in killed:
+		wave_spawner.on_enemy_died()
 	for bullet in get_tree().get_nodes_in_group("enemy_bullets"):
 		if is_instance_valid(bullet):
 			bullet.queue_free()

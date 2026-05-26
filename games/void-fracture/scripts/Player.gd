@@ -7,9 +7,9 @@ signal bomb_used()
 signal weapon_tier_changed(tier: int)
 
 const SPEED := 8.0
-const BOUNDS_X := 3.2
-const BOUNDS_Z_MIN := -1.0
-const BOUNDS_Z_MAX := 2.5
+const BOUNDS_X     :=  3.2
+const BOUNDS_Y_MIN := -1.2
+const BOUNDS_Y_MAX :=  1.2
 
 const WEAPON_TIERS := [
 	{ "name": "SINGLE",   "fire_rate": 9.0, "pierce": false, "seeker": 0 },
@@ -53,15 +53,15 @@ func _handle_movement(delta: float) -> void:
 	var dir := Vector3.ZERO
 	if Input.is_action_pressed("move_left"):  dir.x -= 1
 	if Input.is_action_pressed("move_right"): dir.x += 1
-	if Input.is_action_pressed("move_up"):    dir.z -= 1
-	if Input.is_action_pressed("move_down"):  dir.z += 1
+	if Input.is_action_pressed("move_up"):    dir.y += 1
+	if Input.is_action_pressed("move_down"):  dir.y -= 1
 	if dir.length_squared() > 0:
 		dir = dir.normalized()
 	position += dir * SPEED * delta
 	position.x = clamp(position.x, -BOUNDS_X, BOUNDS_X)
-	position.z = clamp(position.z, BOUNDS_Z_MIN, BOUNDS_Z_MAX)
-	# tilt ship on strafe for feel
+	position.y = clamp(position.y, BOUNDS_Y_MIN, BOUNDS_Y_MAX)
 	_mesh_root.rotation.z = lerp(_mesh_root.rotation.z, -dir.x * 0.35, delta * 8.0)
+	_mesh_root.rotation.x = lerp(_mesh_root.rotation.x,  dir.y * 0.20, delta * 8.0)
 
 func _handle_fire(delta: float) -> void:
 	_fire_timer -= delta

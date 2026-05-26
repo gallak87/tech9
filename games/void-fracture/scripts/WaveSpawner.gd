@@ -14,6 +14,7 @@ var _spawn_queue: Array = []
 var _spawn_timer := 0.0
 var _enemies_alive := 0
 var _active := false
+var _wave_complete_fired := false
 
 func _ready() -> void:
 	pass
@@ -33,6 +34,7 @@ func start_wave(wave_num: int) -> void:
 			_enemies_alive += 1
 	_spawn_timer = 0.0
 	_active = true
+	_wave_complete_fired = false
 
 func _process(delta: float) -> void:
 	if not _active or _spawn_queue.is_empty():
@@ -57,7 +59,8 @@ func _do_spawn(entry: Dictionary) -> void:
 
 func on_enemy_died() -> void:
 	_enemies_alive -= 1
-	if _enemies_alive <= 0 and _spawn_queue.is_empty():
+	if _enemies_alive <= 0 and _spawn_queue.is_empty() and not _wave_complete_fired:
+		_wave_complete_fired = true
 		_active = false
 		await get_tree().create_timer(1.2).timeout
 		wave_complete.emit()

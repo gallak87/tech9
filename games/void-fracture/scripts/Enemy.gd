@@ -65,6 +65,7 @@ func _process(delta: float) -> void:
 		Type.BOMBER: _update_bomber(delta)
 		Type.DRONE:  _update_drone(delta)
 
+	position.x = clamp(position.x, -3.0, 3.0)
 	# out of bounds — route through _die() so wave spawner counter stays accurate
 	if position.z > 5:
 		_die()

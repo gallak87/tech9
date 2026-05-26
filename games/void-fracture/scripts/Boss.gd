@@ -9,7 +9,7 @@ signal died(pos: Vector3, score: int)
 signal phase_changed(phase: int)
 signal fired_bullet(pos: Vector3, direction: Vector3, fast: bool)
 
-const BASE_HP      := [160, 120, 200]
+const BASE_HP      := [450, 350, 580]
 const BASE_SCORE   := [15000, 18000, 25000]
 const PHASE_COLORS := [
 	[Color(0.0, 0.75, 1.0),  Color(1.0, 0.3, 0.2),   Color(0.8, 0.0, 1.0)],  # SENTINEL
@@ -32,6 +32,7 @@ var _entry_target_z := -12.0
 var _dash_target := Vector3.ZERO
 var _mesh_root: Node3D
 var _transitioning := false
+var _flashing := false
 
 func _ready() -> void:
 	add_to_group("boss")
@@ -40,7 +41,7 @@ func _ready() -> void:
 func setup(p_type: int, p_cycle: int) -> void:
 	boss_type = p_type
 	cycle = p_cycle
-	max_hp = BASE_HP[p_type] + 40 * p_cycle
+	max_hp = BASE_HP[p_type] + 120 * p_cycle
 	hp = max_hp
 	score_value = BASE_SCORE[p_type] + 5000 * p_cycle
 
@@ -216,9 +217,25 @@ func _update_emissive_color() -> void:
 
 func take_damage(dmg: int) -> void:
 	hp -= dmg
+	_flash_hit()
 	if hp <= 0:
 		hp = 0
 		_die()
+
+func _flash_hit() -> void:
+	if _flashing or not is_instance_valid(_mesh_root):
+		return
+	_flashing = true
+	for child in _mesh_root.get_children():
+		if child is MeshInstance3D:
+			var mat: StandardMaterial3D = child.material_override
+			if mat:
+				mat.emission = Color.WHITE
+				mat.emission_energy_multiplier = 6.0
+	await get_tree().create_timer(0.07).timeout
+	_flashing = false
+	if is_instance_valid(self) and is_instance_valid(_mesh_root):
+		_update_emissive_color()
 
 func take_bomb_damage() -> void:
 	take_damage(int(max_hp * 0.10))

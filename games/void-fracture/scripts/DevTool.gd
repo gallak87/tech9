@@ -112,6 +112,8 @@ func _toggle_gallery() -> void:
 func _enter_gallery() -> void:
 	_gallery_active = true
 	_game._clear_field()
+	_game.wave_spawner._active = false
+	_game.wave_spawner._spawn_queue.clear()
 	_game.player.visible = false
 	_game.hud.visible = false
 	_game.state = _game.State.MENU

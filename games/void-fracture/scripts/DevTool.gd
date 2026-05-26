@@ -32,7 +32,7 @@ func _build_overlay() -> void:
 	_overlay.offset_bottom = -12.0
 	_overlay.add_theme_font_size_override("font_size", 13)
 	_overlay.add_theme_color_override("font_color", Color(1.0, 1.0, 0.0, 0.9))
-	_overlay.text = "── DEV  (` to close) ──\n[ / ]   weapon tier\nB       spawn boss\nN       skip wave\nG       geo gallery\nK       kill enemies\n1/2/3   boss type\n\n★ GOD MODE ACTIVE ★"
+	_overlay.text = "── DEV  (` to close) ──\n[  /  ]  weapon tier\nB        spawn boss\nN        skip wave\nG        geo gallery\nK        kill enemies\n1/2/3    boss type\n\n★ GOD MODE ACTIVE ★"
 	canvas.add_child(_overlay)
 	add_child(canvas)
 
@@ -45,7 +45,7 @@ func _input(event: InputEvent) -> void:
 			_game.player.god_mode = _overlay.visible
 		KEY_BRACKETLEFT:
 			_cycle_weapon(-1)
-		KEY_BRACKETRIGHT:
+		KEY_BRACKETRIGHT, KEY_SLASH:
 			_cycle_weapon(1)
 		KEY_B:
 			_drop_boss(-1)

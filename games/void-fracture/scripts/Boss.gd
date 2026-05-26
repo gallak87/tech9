@@ -103,8 +103,8 @@ func _process(delta: float) -> void:
 # --- Boss movement & attack patterns ---
 
 func _update_sentinel(delta: float) -> void:
-	# Drift left/right sinusoidally
 	position.x = sin(_age * 0.6) * 3.0
+	position.y = sin(_age * 0.45 + 1.2) * 0.9
 	_fire_timer -= delta
 	if _fire_timer <= 0:
 		match phase:
@@ -117,9 +117,9 @@ func _update_interceptor(delta: float) -> void:
 	_move_timer -= delta
 	if _move_timer <= 0:
 		var targets: Array[Vector3] = [
-			Vector3(-3, 0, -12), Vector3(3, 0, -12),
-			Vector3(0, 0, -14),  Vector3(-2, 0, -10),
-			Vector3(2, 0, -10)
+			Vector3(-3,  0.8, -12), Vector3( 3, -0.7, -12),
+			Vector3( 0,  1.0, -14), Vector3(-2, -0.5, -10),
+			Vector3( 2,  0.6, -10)
 		]
 		_dash_target = targets[randi() % targets.size()]
 		var wait_times := [0.5, 0.8, 1.2, 0.6]
@@ -136,8 +136,8 @@ func _update_interceptor(delta: float) -> void:
 			2: _fire_timer = 0.6; _fire_aimed(); _fire_spread(8, 0.28); _fire_ring(4)
 
 func _update_colossus(delta: float) -> void:
-	# Slow drift, barely moves
 	position.x = sin(_age * 0.3) * 1.5
+	position.y = sin(_age * 0.22) * 0.6
 	position.z = -14.0
 	_fire_timer -= delta
 	if _fire_timer <= 0:
@@ -149,9 +149,13 @@ func _update_colossus(delta: float) -> void:
 # --- Fire helpers ---
 
 func _fire_spread(count: int, spread: float) -> void:
+	var player := _find_player()
+	var y_lean := 0.0
+	if player:
+		y_lean = clampf((player.global_position.y - global_position.y) * 0.35, -0.5, 0.5)
 	for i in count:
 		var angle := (float(i) / float(count)) * TAU
-		var dir := Vector3(cos(angle) * spread, 0, sin(angle) * spread + 1.0).normalized()
+		var dir := Vector3(cos(angle) * spread, y_lean, sin(angle) * spread + 1.0).normalized()
 		fired_bullet.emit(global_position, dir, false)
 
 func _fire_aimed() -> void:

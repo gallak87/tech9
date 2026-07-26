@@ -1,10 +1,12 @@
 # DUNEGLIDE — Roadmap
 
-## Status: Phases 1, 2, 2.5, 2.75, 3a, 3c done. Phase 3b (finish + thruster) next.
+## Status: PAUSED after Phase 3c. Direction changed — read the pivot below first.
 
-Free-roam terrain-glide arcade shooter. Keeps void-fracture's shooter DNA —
-waves, 3 enemy archetypes, 3 bosses with phases, 7 weapon tiers, bombs, score —
-on a dense analytic block heightfield instead of an on-rails neon corridor.
+Free-roam terrain glider on a dense analytic block heightfield.
+
+**The original premise — "port void-fracture's shooter DNA" — has been retired.**
+See "Design pivot" below. Phases 4 and 5 as previously written (combat port,
+wave-based enemies + bosses) are **cancelled**, not deferred. Do not build them.
 
 Visual target: "Hyperion One" by Seba_dev (r/godot) — flat delta ship carving at
 speed over a dune mosaic of tiny extruded tiles, soft dawn sky, heavy haze.
@@ -174,17 +176,80 @@ neighbours, and the slope comes purely from their varying height.
   below 1.0 opens real holes you can see the far side of the dune through. The
   intended value is 1.0 and there is no reason to ship anything else.
 
+## Design pivot — free-roam hub, not a shooter
+
+Decided in discussion after Phase 3c, with the game paused. Recorded here because
+none of it is in the code yet.
+
+**Why the shooter didn't survive free-roam.** void-fracture's loop is wave
+attrition: enemies arrive on a schedule, the corridor means you cannot leave, and
+pressure accumulates. Free-roam deletes the forced engagement that loop depends
+on — the player can always fly away. Every fix is a constraint that re-adds the
+corridor Phase 0 deliberately removed. Secondary problem: combat wants you slow
+and tracking a target, carving wants you fast and reading terrain; they compete
+for the same attention, and carving is what currently feels good.
+
+Note the boss objection that started it — "would they fly backwards?" — is NOT
+the blocker. A boss at matched velocity flying alongside you reads fine; that is
+what Star Fox all-range mode and Panzer Dragoon do. The blocker is forced
+engagement, not boss motion.
+
+**New shape: hub-and-events.** Forza Horizon's skeleton, and also what the visual
+reference (Hyperion One) actually is — its author describes it as "free roam with
+events... find events and activate them (orb) → race the event". Free-roam at
+low or boosted speed; discover markers; activate one to enter a bounded event;
+finish and return to roaming. Engagement becomes opt-in, which turns free-roam's
+"player can always leave" from a hole into a feature.
+
+**Deliberately NOT an RPG** despite the shorthand used in discussion — no stats,
+inventory, XP curves or economy. Unlocks and times only. Every system added is
+one that has to be fed with content.
+
+### Decided
+
+- **Content is the landmarks, not terrain.** The heightfield is periodic at 8192
+  units (~105s at cruise), so terrain cannot carry exploration — every region
+  looks like every other. Confirmed as acceptable: events/markers distinguish
+  places, Forza-style. Regional variation (low-frequency amplitude + palette
+  modulation) is still on the table and is much cheaper to add before events
+  assume a flat world than after.
+- **Nothing can be permanently placed on the terrain surface** — it morphs on a
+  126s cycle. Gates that re-sample height each frame are fine; persistent
+  structures are not.
+- **Arena battles rescue the void-fracture reuse.** Inside a bounded battle event
+  the player can be constrained to something corridor-shaped, and the wave
+  spawner, formations and boss phase logic port nearly verbatim. The shooter code
+  is not wasted — it stops being the whole game and becomes one event type.
+- **Dogfight events stay ground-clinging** for v1. Keeps it a 2D pursuit problem
+  with terrain following instead of true 3D air combat.
+
+### Open — answer before planning
+
+- **Regional variation**: add it, or accept a uniform world?
+- **Race type**: gates to thread (readable, constraining) or checkpoint-to-
+  checkpoint with a free line (closer to where the fun currently is)?
+- **The no-crash guarantee.** The altitude spring always wins, so the ship cannot
+  hit terrain. Keeping it rules out a trick/jump game and any obstacle course
+  with real failure. This single answer splits "flow racer" from "trick game" and
+  nothing else should be planned until it is settled.
+
 ## Up Next (in order)
 
-1. **Phase 3b — Art finish + thruster.** Step 4 of the inversion (SSAO in the
-   gaps, per-tile roughness/albedo off `v_hash`, possibly SSR for a true wet
-   sheen and a visible ship reflection) plus the engine thruster.
-2. **Phase 4 — Combat port.** Weapon tiers, bullets, pickups, bombs, HUD,
-   `Game.gd` state machine. All fire directions become
-   `global_transform.basis * local_dir` — void-fracture's are literal `-Z`.
-3. **Phase 5 — Enemies + bosses.** Per-archetype altitude behaviour: scouts hug
-   terrain, bombers hold altitude, drones dive. Formations rewritten from
-   corridor coordinate literals to heading-relative offsets.
+1. **Event framework first — not any single event.** One state machine:
+   free-roam → armed → countdown → running → scored → free-roam, with event
+   types as subclasses supplying only spawn/win/lose/score rules. Build a race
+   hardcoded and adding battles later means rewriting it. Highest leverage piece.
+2. **First race event.** Gates or checkpoints following terrain height, boost
+   economy, timer, score. This tests the actual question: is carving these dunes
+   fun for 90 seconds with a goal and nothing shooting at you? If no, no amount
+   of weapon tiers fixes it.
+3. **Free-roam layer.** Event markers to fly to and activate. Low-speed roaming
+   already works via brake.
+4. **Battle events.** Arena type first (reuses the most from void-fracture),
+   dogfight second.
+5. **Phase 3b — Art finish + thruster.** Deliberately demoted below gameplay:
+   SSAO, per-cell roughness/albedo off `v_hash`, possibly SSR, the engine
+   thruster, and trying `bar_height ~0.06` so bars have physical thickness.
 4. **Phase 6 — UX pass.** Menu, game over, wave transitions, speed/altitude
    readout, dev tool with terrain toggles.
 5. **Phase 7 — Polish.** See below.

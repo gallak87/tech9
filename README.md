@@ -75,6 +75,62 @@ Confirm → before saying **let's go**, switch to Opus. Agents are doing real mu
 
 ---
 
+## Godot games
+
+Most games here are web (Canvas2D / Pixi / Three.js) and need nothing installed. The 3D ones are Godot and need a bridge so agents can actually *see* what they build.
+
+| Game | Stack |
+|------|-------|
+| [duneglide](games/duneglide/) | Godot 4.6, Forward+ |
+| [void-fracture](games/void-fracture/) | Godot 4.6, Forward+ |
+
+Without the bridge an agent can write GDScript but can't launch the game, read the scene tree, inject input, or take a screenshot — so it's coding blind and you become the render loop. With it, it runs the game, flies it with synthetic input, screenshots the result, checks the frame budget, and iterates on its own.
+
+### Setup
+
+Needs [Godot 4.4+](https://godotengine.org/download) and Node 18+.
+
+```bash
+npm run mcp:setup
+```
+
+That clones [tugcantopaloglu/godot-mcp](https://github.com/tugcantopaloglu/godot-mcp), builds it, finds your Godot binary, and writes a project-scoped `.mcp.json`. Restart Claude Code, then confirm with `/mcp`.
+
+```bash
+npm run mcp:check    # report status, change nothing
+```
+
+Overrides, if the defaults guess wrong:
+
+```bash
+GODOT_MCP_DIR=~/src/godot-mcp \
+GODOT_PATH=/Applications/Godot.app/Contents/MacOS/Godot \
+  npm run mcp:setup
+```
+
+`.mcp.json` is generated per machine (absolute paths) and gitignored. **If you already have `godot-mcp` configured at user level — check `claude mcp list` — skip this; a project-scoped copy would just register a duplicate.**
+
+Verify it end to end by asking Claude to run `games/duneglide` and screenshot it.
+
+### The in-game half
+
+The MCP server is only one side. Each Godot project also carries `mcp_interaction_server.gd` at its root, registered as an autoload:
+
+```ini
+[autoload]
+McpInteractionServer="*res://mcp_interaction_server.gd"
+```
+
+It opens a TCP JSON server on `127.0.0.1:9090` and is what the `game_*` tools actually talk to. **Copy it into any new Godot project or none of them work.** The port is overridable (`--mcp-port=N`, or `GODOT_MCP_PORT`) so two games can run side by side for comparison.
+
+Gotchas worth knowing before you lose an hour to them:
+
+- `--headless --check-only` **hangs on Apple Silicon**. Background it and `pkill -f "Godot.*headless"`.
+- New `class_name` scripts are invisible to a launched game until the class cache exists. Run `Godot --headless --editor --quit --path .` once after adding one, or you get `Identifier "X" not declared in the current scope`.
+- Don't `await` inside the `game_eval` tool — it deadlocks against the server's busy mutex.
+
+---
+
 ## Image gen
 
 Agents call `/run-art` internally. Requires Ollama with a Flux model:
@@ -128,7 +184,7 @@ The Director picks what the game needs. Simple game → fewer agents.
 tech9/
 ├── ROADMAP.md           ← framework evolution
 ├── .claude/commands/    ← slash commands (/generate, /run-art)
-├── tools/               ← sprite-gen, scaffold, probe
+├── tools/               ← sprite-gen, scaffold, probe, setup-godot-mcp
 ├── vocab/               ← agent role definitions
 ├── meta/                ← Concept Generator + Director
 └── games/

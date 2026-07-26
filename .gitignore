@@ -1,1 +1,6 @@
 node_modules/
+.DS_Store
+
+# Generated per machine by `npm run mcp:setup` — contains absolute paths to
+# the Godot binary and the godot-mcp checkout, so it is not portable.
+.mcp.json

@@ -77,6 +77,17 @@ anti_aliasing/quality/use_taa=false
 shader_compiler/shader_cache/enabled=true
 lights_and_shadows/directional_shadow/soft_shadow_filter_quality=0
 
+[shader_globals]
+
+h_time={
+"type": "float",
+"value": 0.0
+}
+h_amplitude={
+"type": "float",
+"value": 1.0
+}
+
 [autoload]
 
 McpInteractionServer="*res://mcp_interaction_server.gd"

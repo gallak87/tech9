@@ -49,6 +49,12 @@ func _ready() -> void:
 	add_child(_panel)
 
 	_label = Label.new()
+	# Monospace, or none of the column alignment or the [ ] key boxes line up —
+	# Godot's default UI font is proportional.
+	var mono := SystemFont.new()
+	mono.font_names = PackedStringArray(["Menlo", "Monaco", "SF Mono",
+		"DejaVu Sans Mono", "Courier New"])
+	_label.add_theme_font_override("font", mono)
 	_label.add_theme_font_size_override("font_size", 12)
 	_label.add_theme_color_override("font_color", Color(0.86, 0.90, 1.0))
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -106,9 +112,22 @@ func _build_text() -> String:
 	L.append("  · camera    distance, lag, roll, fov kick")
 	L.append("  · art       palette, fog, glow, sun")
 	L.append("")
-	L.append("KEYS")
-	L.append("  `  this overlay      P  parity dots%s" % [
-		"  (on)" if (_parity and _parity.visible) else ""])
-	L.append("  WASD steer/pitch     Shift boost  Ctrl brake")
+	L.append("INPUT")
+	L.append("      %s          boost %s" % [
+		_key("W", "nose_up"), _key("SHIFT", "boost")])
+	L.append("   %s %s %s       brake %s" % [
+		_key("A", "steer_left"), _key("S", "nose_down"),
+		_key("D", "steer_right"), _key("CTRL", "brake")])
+	L.append("")
+	L.append("KEYS   `  overlay    P  parity dots%s" % [
+		"  [ON]" if (_parity and _parity.visible) else ""])
 
 	return "\n".join(L)
+
+
+## Live key box: filled brackets while held, dim dots when idle. Same character
+## width either way so the row doesn't jitter as you fly.
+func _key(label: String, action: String) -> String:
+	if InputMap.has_action(action) and Input.is_action_pressed(action):
+		return "[%s]" % label
+	return "·%s·" % label

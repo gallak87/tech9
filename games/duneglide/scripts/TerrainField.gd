@@ -42,8 +42,11 @@ extends Node3D
 @export var column_depth := 3.0
 
 @export_group("Bars")
-## How far a bar cell stands proud of a floor cell. 0 = plain voxel heightfield.
-@export var bar_height := 0.16
+## How far a bar cell stands proud of a floor cell. At 0 the bars are pure
+## albedo — dark rows on a bright floor with no relief of their own, which is
+## what reviewed best. Small positive values (~0.06) give them physical
+## thickness that catches light on the riser; worth revisiting.
+@export var bar_height := 0.0
 ## Bar row spacing and thickness, in cells.
 @export var bar_period := 4.0
 @export var bar_width := 1.0

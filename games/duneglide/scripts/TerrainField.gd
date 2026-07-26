@@ -29,9 +29,10 @@ extends Node3D
 ## "raised dash" mosaic rather than a checkerboard.
 @export var fill_x := 0.94
 ## Narrow in Z gives the reference's "raised dash" striation rather than a
-## checkerboard of cubes. Safe to keep thin now that the substrate reads as
-## shadow instead of a void.
-@export var fill_z := 0.76
+## checkerboard of cubes. Was widened to 0.76 only because the dark substrate
+## read as holes between the dashes; post-inversion (Phase 3) the substrate is
+## the bright surface and the dashes should be sparse marks ON it again.
+@export var fill_z := 0.30
 ## Skirt depth. Deep blocks read as vertical fins from a low angle rather than
 ## the reference's flat tiles — keep this just long enough to show a side face.
 @export var block_depth := 0.22

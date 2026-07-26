@@ -6,7 +6,10 @@ shader_type sky;
 
 uniform vec3 zenith : source_color = vec3(0.34, 0.42, 0.66);
 uniform vec3 horizon : source_color = vec3(0.80, 0.72, 0.72);
-uniform vec3 ground : source_color = vec3(0.26, 0.24, 0.32);
+// Never seen directly (terrain covers it), but ambient_light_source is SKY, so
+// this is half the irradiance hitting the ground plane. At 0.26 the glossy
+// substrate rendered as a dark slate and the Phase 3 inversion didn't read.
+uniform vec3 ground : source_color = vec3(0.40, 0.38, 0.46);
 uniform vec3 sun_tint : source_color = vec3(1.00, 0.84, 0.66);
 uniform vec3 sun_dir = vec3(0.32, 0.075, -0.945);
 uniform float sun_size = 0.012;

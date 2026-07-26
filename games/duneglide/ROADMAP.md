@@ -1,6 +1,6 @@
 # DUNEGLIDE — Roadmap
 
-## Status: Phases 1, 2, 2.5, 2.75 done. Phase 3 (art direction) next.
+## Status: Phases 1, 2, 2.5, 2.75, 3a done. Phase 3b (finish + thruster) next.
 
 Free-roam terrain-glide arcade shooter. Keeps void-fracture's shooter DNA —
 waves, 3 enemy archetypes, 3 bosses with phases, 7 weapon tiers, bombs, score —
@@ -89,10 +89,40 @@ Baseline it replaces: void-fracture at 894 draw calls / 973 objects.
   exported vars on `Glider` / `ChaseCamera` / `TerrainField` directly, so the
   overlay stays a view and the defaults stay in the scripts.
 
+### Phase 3a — Value inversion
+The "tiles read vectory" issue below, steps 1-3. The substrate and the blocks
+swapped roles: **the substrate is now the bright glossy surface and the blocks
+are the dark marks on it.** Do not partially revert either half — the look
+depends entirely on the contrast between them, so darkening the floor without
+lightening the blocks (or vice versa) collapses straight back to the flat read.
+
+- `substrate.gdshader` — `floor_color` 0.44 -> 0.74, roughness 0.95 -> 0.07,
+  specular 0.1 -> 1.0. Normal is now recomputed **per-fragment** from
+  `terrain_hd`; at this roughness the sky reflection is sharp enough that the
+  interpolated vertex normal showed the substrate's triangulation as faceted
+  bands. Costs nothing measurable (still 120fps / 19 draw calls).
+- `substrate.gdshader` — coarse dark grid, `grid_spacing 24.0` (24x the block
+  pitch, so it reads as panel seams *under* the mosaic, not more mosaic).
+  Distance-widened line mask so far seams dim instead of moireing. Seams are
+  matte, so they stay legible where the sun sheen crosses them.
+- `block_terrain.gdshader` — `base_color` 0.60 -> 0.13, `body_energy` and
+  `cap_energy` to 0, `edge_energy` 0.55 -> 0.05 (0.14 still read as neon piping
+  around every block), both faces matte. Per-block `hue` range tightened to
+  0.82-1.18: on a dark albedo the old 0.72-1.28 is a far bigger *relative* swing
+  and the field went speckly.
+- `fill_z` 0.76 -> 0.30. The 0.76 only existed because the dark substrate read
+  as holes; that pressure is gone.
+- Lighting had to come up with it, or the "bright" floor rendered as dark slate:
+  `ambient_light_energy` 0.42 -> 0.62, sun energy 0.55 -> 0.85, and the sky's
+  `ground` colour 0.26 -> 0.40. `ambient_light_source` is SKY, so that ground
+  colour is half the irradiance on an up-facing surface even though it is never
+  seen directly.
+
 ## Up Next (in order)
 
-1. **Phase 3 — Art direction pass.** Palette, thruster, and the value-inversion
-   fix described under Known Issues.
+1. **Phase 3b — Art finish + thruster.** Step 4 of the inversion (SSAO in the
+   gaps, per-tile roughness/albedo off `v_hash`, possibly SSR for a true wet
+   sheen and a visible ship reflection) plus the engine thruster.
 2. **Phase 4 — Combat port.** Weapon tiers, bullets, pickups, bombs, HUD,
    `Game.gd` state machine. All fire directions become
    `global_transform.basis * local_dir` — void-fracture's are literal `-Z`.
@@ -105,7 +135,11 @@ Baseline it replaces: void-fracture at 894 draw calls / 973 objects.
 
 ## Known Issues / Tech Debt
 
-- **Tiles read "vectory" rather than "concrete"** (raised at the Phase 1 gate).
+- ~~**Tiles read "vectory" rather than "concrete"**~~ — steps 1-3 done in
+  Phase 3a above; only step 4 (the finish pass) is left. Original analysis kept
+  because it is the reasoning behind the whole current palette:
+
+  **Tiles read "vectory" rather than "concrete"** (raised at the Phase 1 gate).
   Better reference stills supplied afterwards show the cause is not finish
   detail — **our value relationship is inverted from the target**:
 

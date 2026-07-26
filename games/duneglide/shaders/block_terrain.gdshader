@@ -9,22 +9,27 @@ uniform float lod_scale = 1.0;
 uniform float block_depth = 3.2;
 
 group_uniforms Look;
-// Near-neutral grey-lavender. The reference's terrain is desaturated and lets
-// the sky tint it; a saturated albedo fights the dawn gradient and reads as
-// plastic.
-uniform vec3 base_color : source_color = vec3(0.60, 0.57, 0.68);
+// PHASE 3 VALUE INVERSION. These blocks used to be the LIGHT surface and the
+// substrate the dark gaps. That is backwards from the reference: there the
+// raised marks are DARK slabs sitting on a bright glossy floor, and that
+// contrast — not any finish detail on the marks — is what makes it read as
+// concrete rather than vector art. Keep this darker than substrate/floor_color.
+uniform vec3 base_color : source_color = vec3(0.13, 0.12, 0.16);
 uniform vec3 edge_color : source_color = vec3(1.00, 0.72, 0.55);
 uniform vec3 cap_color : source_color = vec3(1.00, 0.86, 0.78);
-uniform float body_energy = 0.06;
+// Zero now. Any body glow on a dark slab just lifts it back toward the floor
+// value and undoes the inversion.
+uniform float body_energy = 0.0;
 // The reference reads as LIT, not glowing. Emission here is a rim accent on top
-// of sky-ambient shading, not the primary light source — anything near 1.0
-// saturates the whole field to white once glow_hdr_threshold 0.7 catches it.
-uniform float edge_energy = 0.55;
+// of sky-ambient shading, not the primary light source. Much weaker than the
+// pre-inversion 0.55 — on a dark slab even 0.14 read as glowing neon piping
+// around every single block.
+uniform float edge_energy = 0.05;
 // NOT void-fracture's 3.5. That was tuned for a 0.06-unit edge strip; here the
 // cap is an entire top face and 3.5 blows the whole field out to a white sheet
-// under glow_hdr_threshold 0.7. The hot value belongs on edge_energy, which
-// only lights the ~16% of the face inside rim_width.
-uniform float cap_energy = 0.10;
+// under glow_hdr_threshold 0.7. Zero post-inversion: the slab tops are the
+// darkest thing in frame.
+uniform float cap_energy = 0.0;
 uniform float rim_width = 0.16;
 
 group_uniforms Fade;
@@ -80,15 +85,20 @@ void fragment() {
 	float cap = is_top * (1.0 - rim);
 
 	vec3 tint = mix(edge_color, cap_color, is_top);
-	float hue = 0.72 + 0.56 * v_hash;
+	// Tighter than the pre-inversion 0.72 + 0.56. On a dark albedo the same
+	// multiplier range is a much bigger *relative* swing and the field turns
+	// speckly; this keeps per-slab variation visible without the noise.
+	float hue = 0.82 + 0.36 * v_hash;
 
 	// void-fracture used albedo * 0.12 because its blocks were self-lit neon on
 	// black. Here the sky does the lighting, so albedo has to actually carry the
 	// surface colour or the field reads as silhouette.
 	ALBEDO = base_color * hue;
-	ROUGHNESS = mix(0.85, 0.38, is_top);   // glossier tops catch the dawn sky
+	// Matte on both faces. The gloss belongs to the substrate now — a glossy dark
+	// slab picks up the same dawn sky as the floor and the values converge again.
+	ROUGHNESS = mix(0.92, 0.80, is_top);
 	METALLIC = 0.0;
-	SPECULAR = 0.30;
+	SPECULAR = 0.18;
 
 	EMISSION = base_color * body_energy
 		+ tint * rim * edge_energy

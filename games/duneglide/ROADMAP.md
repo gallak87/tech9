@@ -191,6 +191,21 @@ lightening the blocks (or vice versa) collapses straight back to the flat read.
   or a real skirt, not more fog. Note the obvious shortcut is a trap — just
   setting `ground` to `fog_color` floods the ambient AND gets mirrored by the
   glossy substrate, and the whole scene washes to white.
+- **Tiles read as tall boxes on steep slopes, not the reference's flat mosaic.**
+  This is now a geometry consequence, not a tuning miss. The blocks are a voxel
+  staircase (one flat height per block), so the riser between neighbouring tiles
+  is `slope * pitch` and the skirt has to be at least that deep or you see
+  straight under the tiles to the far side of the dune. Riser-to-width ratio is
+  therefore just the terrain slope — **shrinking `pitch0` does not help**, it
+  scales both. On the ~30 degree dune faces that is a 0.55 ratio and reads as
+  boxes.
+  The real fix if the boxes aren't wanted is to stop making the tops flat:
+  tilt each tile's top quad to the local gradient so it becomes a raised plate
+  lying ON the dune rather than a step in a staircase. Then the skirt only ever
+  needs `substrate_drop`, and no slope produces risers. That is much closer to
+  the reference, but it gives up the hard voxel read that `BlockChunkMesh`'s
+  one-height-per-block trick exists to produce — so it is an art-direction
+  call, not a bug fix. **Undecided; ask before doing it.**
 - Faint hairline at LOD ring boundaries on steep slopes. The rings sample height
   at different block centres, so they disagree slightly; substrate fills most of
   it. Revisit once the real viewing altitude is known.

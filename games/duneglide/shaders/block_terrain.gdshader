@@ -6,7 +6,22 @@ render_mode cull_back, diffuse_lambert, specular_schlick_ggx, depth_draw_opaque;
 group_uniforms Geometry;
 // 1, 2, 4 — one material instance per LOD ring, so the skirt scales with pitch.
 uniform float lod_scale = 1.0;
+// MINIMUM skirt depth, used on flat ground. The actual depth is per-block and
+// can be much larger on a slope — see vertex().
 uniform float block_depth = 3.2;
+// Must match this ring's pitch and the substrate's drop, or the skirt stops
+// short of the floor and opens a see-through slot.
+uniform float pitch = 1.0;
+uniform float substrate_drop = 0.14;
+// Block footprint as a fraction of pitch — must match TerrainField's fill_x /
+// fill_z. The skirt needs less depth than the full inter-centre step because the
+// block does not reach the cell corner; see vertex().
+uniform float fill_x = 0.94;
+uniform float fill_z = 0.30;
+// Slack on the linear step estimate below, to absorb curvature between block
+// centres. Cheaper than sampling the neighbours for real. The estimate is exact
+// on linear terrain, so this only has to cover curvature — keep it near 1.
+uniform float skirt_margin = 1.1;
 
 group_uniforms Look;
 // PHASE 3 VALUE INVERSION. These blocks used to be the LIGHT surface and the
@@ -48,9 +63,28 @@ void vertex() {
 	vec3 hd = terrain_hd(centre_world);
 	float is_top = COLOR.b;
 
+	// Skirt depth is PER-BLOCK, not constant. The substrate under this block sits
+	// at (min of the surrounding block centres) - substrate_drop, so on a slope
+	// it is a full inter-centre step below this block's own top. A constant
+	// block_depth cannot serve both cases: at 0.22 the skirt stopped short on
+	// slopes and left a horizontal slot you could see the far side of the dune
+	// through, and at 1.0 (deep enough for the worst slope) flat ground grew tall
+	// vertical fins instead of the reference's flat tiles.
+	//
+	// hd.yz is the gradient we already have. The substrate vert at a cell corner
+	// is a full inter-centre step below this centre, but the block stops short of
+	// that corner, and the floor between is a bilinear interpolation — so at the
+	// block's own edge the floor has only fallen (1 + fill)/2 of that step. Using
+	// the full step instead made skirts ~1.4x too deep in X and ~2x in Z, which
+	// buried the bright substrate and undid the Phase 3a value inversion.
+	float ax = (1.0 + fill_x) * 0.5;
+	float az = (1.0 + fill_z) * 0.5;
+	float step_down = (abs(hd.y) * ax + abs(hd.z) * az) * pitch * skirt_margin;
+	float depth = max(block_depth * lod_scale, step_down + substrate_drop + 0.02);
+
 	// VERTEX.y is baked 0 (bottom) or 1 (top), so the top face lands exactly
-	// on h and the skirt hangs a constant depth below it.
-	VERTEX.y = hd.x + (VERTEX.y - 1.0) * block_depth * lod_scale;
+	// on h and the skirt hangs below it.
+	VERTEX.y = hd.x - (1.0 - VERTEX.y) * depth;
 
 	// Tops adopt the analytic surface normal so the dune reads as a continuous
 	// form under lighting; sides keep their baked face normals.

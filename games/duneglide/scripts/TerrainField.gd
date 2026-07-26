@@ -50,7 +50,7 @@ func _ready() -> void:
 		var size: float = chunk_n * pitch
 		var block_mesh := BlockChunkMesh.build(chunk_n, pitch, fill_x, fill_z)
 		var sub_mesh := SubstrateMesh.build(chunk_n, pitch)
-		var bmat := _block_mat(pow(2.0, l))
+		var bmat := _block_mat(pow(2.0, l), pitch)
 		var smat := _substrate_mat(pitch)
 
 		var nodes: Array = []
@@ -70,11 +70,17 @@ func _ready() -> void:
 	_relocate(true)
 
 
-func _block_mat(lod_scale: float) -> ShaderMaterial:
+func _block_mat(lod_scale: float, pitch: float) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = load("res://shaders/block_terrain.gdshader")
 	m.set_shader_parameter("lod_scale", lod_scale)
 	m.set_shader_parameter("block_depth", block_depth)
+	# The skirt sizes itself against the substrate, so it needs both of these.
+	# Keep substrate_drop in sync with _substrate_mat() or holes reopen.
+	m.set_shader_parameter("pitch", pitch)
+	m.set_shader_parameter("substrate_drop", substrate_drop)
+	m.set_shader_parameter("fill_x", fill_x)
+	m.set_shader_parameter("fill_z", fill_z)
 	return m
 
 
@@ -117,6 +123,10 @@ func set_fill(fx: float, fz: float) -> void:
 		# Every chunk in a ring shares one Mesh resource — assign the same one.
 		for c in r["nodes"]:
 			c["b"].mesh = m
+			# The skirt sizes itself off the footprint, so the shader has to hear
+			# about the change too or it under-runs the floor and reopens holes.
+			c["b"].material_override.set_shader_parameter("fill_x", fill_x)
+			c["b"].material_override.set_shader_parameter("fill_z", fill_z)
 
 
 func _process(delta: float) -> void:

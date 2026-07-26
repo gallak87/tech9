@@ -80,11 +80,37 @@ func _rescale() -> void:
 	_panel.position = Vector2(16.0 * s, 16.0 * s)
 
 
+## Block footprint step per keypress. Coarse enough that a couple of taps show
+## an obvious difference — this knob is for finding the right look, not nudging.
+const FILL_STEP := 0.02
+
+
 func _input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo:
-		if (event as InputEventKey).physical_keycode == KEY_QUOTELEFT:
-			visible = not visible
-			get_viewport().set_input_as_handled()
+	if not (event is InputEventKey and event.pressed):
+		return
+	var key := (event as InputEventKey).physical_keycode
+
+	if key == KEY_QUOTELEFT and not event.echo:
+		visible = not visible
+		get_viewport().set_input_as_handled()
+		return
+
+	# Knobs only bind while the overlay is open, so they can use plain keys
+	# without stealing them from flight controls during normal play.
+	if not visible or not _terrain:
+		return
+	# echo IS allowed here (unlike the toggle) so holding a key sweeps the value.
+	# Each step rebuilds 4 ArrayMeshes; at key-repeat rate that is affordable.
+	var fx := _terrain.fill_x
+	var fz := _terrain.fill_z
+	match key:
+		KEY_BRACKETLEFT:  fz -= FILL_STEP
+		KEY_BRACKETRIGHT: fz += FILL_STEP
+		KEY_MINUS:        fx -= FILL_STEP
+		KEY_EQUAL:        fx += FILL_STEP
+		_: return
+	_terrain.set_fill(fx, fz)
+	get_viewport().set_input_as_handled()
 
 
 func _process(_delta: float) -> void:
@@ -114,8 +140,14 @@ func _build_text() -> String:
 	L.append("  %s boost  %s brake" % [
 		_key("SHIFT", "boost"), _key("CTRL", "brake")])
 	L.append("")
-	L.append("  tuning knobs — todo")
-	L.append("")
+	if _terrain:
+		# x is the dash LENGTH along the lattice, z the WIDTH across it. z is the
+		# one that decides dash-vs-cube; x barely reads until it drops under ~0.6.
+		# Not _key() boxes: those track a held InputMap action, and these are
+		# discrete taps on raw keycodes with no action behind them.
+		L.append("  TILE  width  %.2f   [ ]" % _terrain.fill_z)
+		L.append("        length %.2f   - =" % _terrain.fill_x)
+		L.append("")
 	L.append("  `  close     P  parity%s" % [
 		"  [ON]" if (_parity and _parity.visible) else ""])
 

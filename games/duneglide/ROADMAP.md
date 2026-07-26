@@ -82,12 +82,16 @@ Baseline it replaces: void-fracture at 894 draw calls / 973 objects.
   convention. `PROCESS_MODE_ALWAYS` so it survives a pause.
 - Live telemetry: fps, draw calls, speed, boost, altitude, bank, heading,
   terrain height, position, camera yaw lag, fov, wave clock.
-- Tuning controls are a **placeholder list** for now — terrain / glide / camera
-  / art. The shell exists so adding a slider later is a small change, not a new
-  subsystem.
-- Reads state only, never writes it. When knobs land they should drive the
-  exported vars on `Glider` / `ChaseCamera` / `TerrainField` directly, so the
-  overlay stays a view and the defaults stay in the scripts.
+- First real knob (added during Phase 3a): **tile footprint**, `[` / `]` for
+  width (`fill_z`) and `-` / `=` for length (`fill_x`). Knobs only bind while
+  the overlay is open, so they don't need to reserve keys from flight controls.
+- That knob is the expensive kind. `fill_x`/`fill_z` are baked into vertex
+  positions, so unlike every other terrain parameter they cannot be a shader
+  uniform — `TerrainField.set_fill()` rebuilds one ArrayMesh per LOD
+  (4 x 46080 verts). Fine on a keypress, never call it per frame.
+- Otherwise reads state, never writes it. Knobs drive the exported vars on
+  `Glider` / `ChaseCamera` / `TerrainField` directly, so the overlay stays a
+  view and the defaults stay in the scripts.
 
 ### Phase 3a — Value inversion
 The "tiles read vectory" issue below, steps 1-3. The substrate and the blocks
@@ -218,7 +222,7 @@ lightening the blocks (or vice versa) collapses straight back to the flat read.
 | `shaders/block_terrain.gdshader` | Extrusion, rim/cap shading, fog fade |
 | `shaders/dawn_sky.gdshader` | Dawn gradient + sun orb |
 | `scripts/DebugParity.gd` | CPU/GPU agreement harness (**P**) |
-| `scripts/DevTool.gd` | Dev overlay + telemetry (**`**) |
+| `scripts/DevTool.gd` | Dev overlay + telemetry (**`**), tile footprint knobs |
 | `scripts/Glider.gd` | Flight controller; owns position + yaw only |
 | `scripts/ChaseCamera.gd` | Damped follower, independent pos/yaw/roll rates |
 | `scripts/Damp.gd` | Frame-rate-independent smoothing helpers |

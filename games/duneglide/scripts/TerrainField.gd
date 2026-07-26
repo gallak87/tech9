@@ -101,6 +101,24 @@ func _spawn(m: Mesh, mat: ShaderMaterial) -> MeshInstance3D:
 	return mi
 
 
+## Rebuild every ring's block mesh at a new footprint. Dev-tool only.
+##
+## fill_x/fill_z are baked into the vertex positions at build time, so unlike
+## every other terrain knob this one cannot be a shader uniform — it costs a
+## full ArrayMesh rebuild per LOD (4 x 46080 verts). That is a few ms and it
+## allocates, so it is fine on a keypress and must never be called per frame.
+func set_fill(fx: float, fz: float) -> void:
+	fill_x = clampf(fx, 0.04, 1.0)
+	fill_z = clampf(fz, 0.04, 1.0)
+	for r in _rings:
+		# Rings don't store pitch, but size is chunk_n * pitch by construction.
+		var pitch: float = r["size"] / float(chunk_n)
+		var m := BlockChunkMesh.build(chunk_n, pitch, fill_x, fill_z)
+		# Every chunk in a ring shares one Mesh resource — assign the same one.
+		for c in r["nodes"]:
+			c["b"].mesh = m
+
+
 func _process(delta: float) -> void:
 	Height.advance(delta)
 	RenderingServer.global_shader_parameter_set("h_time", Height.wave_time)

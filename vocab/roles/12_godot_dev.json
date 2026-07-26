@@ -1,0 +1,27 @@
+{
+  "id": "godot_dev",
+  "name": "Godot Dev",
+  "category": "engineering",
+  "responsibility": "Owns all GDScript and scene structure for a Godot game — nodes, scenes, state machine, controllers, cameras, input, gameplay systems, HUD. The Godot counterpart to `dev`, which is web-only (Vite + npm) and must not be active on the same game. Authoritative on what the engine can do and on the data contracts other roles conform to. Must use the godot-mcp bridge to run and verify the game rather than writing blind; a change is not done until it has been launched, evaluated and screenshotted.",
+  "inputs": [
+    { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Core loop, controls, scope constraints" },
+    { "source": "game_plan", "artifact": "GAME_PLAN.md", "required": true, "notes": "Phase order, what's decided vs deferred" },
+    { "source": "external", "artifact": "capabilities/godot-mcp.md", "required": true, "notes": "How to run, inspect and verify the game. Read before writing any code." },
+    { "source": "external", "artifact": "vocab/templates/stacks/stack-godot.md", "required": true, "notes": "Project layout, project.godot essentials, engine rules" },
+    { "source": "role:godot_techart", "artifact": "agents/godot_techart.md output", "required": false, "notes": "Shader uniform and material contracts this code must drive" }
+  ],
+  "outputs": [
+    { "artifact": "project.godot", "description": "Project config — main scene, autoloads, renderer, shader globals, input map." },
+    { "artifact": "mcp_interaction_server.gd", "description": "The in-game half of the godot-mcp bridge, registered as an autoload. Without it no game_* tool works." },
+    { "artifact": "scenes/Main.tscn", "description": "Main scene — world root, environment, light, player and camera rig." },
+    { "artifact": "scripts/*.gd", "description": "All gameplay code. Controllers, cameras, state machine, systems." },
+    { "artifact": "agents/godot_dev.md output", "description": "Data contracts consumed by godot_techart (uniforms to drive) and level/asset (mesh and scene formats)." }
+  ],
+  "dependencies": ["gamedesign"],
+  "merge": {
+    "candidates": ["godot_techart", "godot_tools"],
+    "merge_when": "Small Godot game with no custom shaders and no tuning-heavy systems — absorb godot_techart and godot_tools. Merge godot_tools whenever the game has fewer than about three tunable subsystems.",
+    "split_when": "Shader/render work becomes a meaningful share of the build, or the game needs a real in-game tuning harness — split godot_techart and godot_tools back out."
+  },
+  "prompt_template": "# Agent: godot_dev\n**Responsibility:** Build and own all GDScript and scene structure for {{game_name}}.\n\n## Inputs\n{{inputs_list}}\n\n## Outputs\n{{outputs_list}}\n\n## Current Phase Goal\n{{phase_goal}}\n\n## Hard Constraints\n{{hard_constraints}}\n\n## Non-negotiables\n- Copy `mcp_interaction_server.gd` into the project root and register the autoload FIRST. Nothing else is verifiable until it is there.\n- Verify every change through the bridge: run_project -> game_get_errors -> game_eval -> game_screenshot. Never report a change as working on the strength of the diff alone.\n- Record fps and draw calls whenever rendering changes.\n\n{{rendering_tier_section}}"
+}

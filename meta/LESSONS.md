@@ -126,3 +126,106 @@ Checklist on any layout change: review all parallax/decorative elements against 
 ## [threejs] Z-spacing must exceed object Z-depth
 
 `zSpacing > object_Z_depth` (with ≥1 unit margin). Violating this causes z-fighting between adjacent pool instances. The margin prevents edge-case overlap from floating point. If panel Z-width is 55, `zSpacing = 56` minimum.
+
+---
+
+# Godot / 3D
+
+Tags: [godot] [mcp] [terrain] [shader] [process]
+
+First established in duneglide. See `games/duneglide/LESSONS.md` for the full derivation of
+each. These are the ones that generalise beyond that game.
+
+---
+
+## [mcp] Verify with numbers before pictures
+
+Order the loop: `run_project` → `game_get_errors` → `game_eval` (assert state) →
+`game_screenshot` → draw calls. A screenshot tells you something is wrong; an eval tells you
+what. `game_get_errors` first because it returns only what is new since the last call, so a
+late call misses the compile errors entirely.
+
+---
+
+## [mcp] Prove invariants over thousands of cases, don't hunt for a frame
+
+If a bug has an arithmetic or geometric statement behind it, test that statement over
+thousands of random cases inside one `game_eval`. In duneglide this converted a multi-hour
+intermittent-artifact hunt (a dozen failed screenshot attempts, three wrong root causes) into
+a proven cause in a single call — 44,830 of 60,000 LOD seams violated the invariant.
+
+**Corollary: after one wrong diagnosis of a visual artifact, stop looking and start deriving.**
+
+---
+
+## [mcp] Screenshots return stale frames when the window is occluded
+
+macOS stops compositing an unfocused or covered window; `game_screenshot` then returns the
+last frame with no error, indefinitely. Two successive impossibly-identical screenshots means
+verify liveness via `game_eval` on a moving value — not that the change did nothing.
+
+---
+
+## [mcp] `load()` returns the cached resource
+
+Editing a `.gdshader` or `.gd` on disk does not affect the running game. Restart the project
+to pick up file edits. Likewise, values set through `game_eval` are runtime-only — bake them
+into files and re-verify from a cold start, or lose the tuning.
+
+---
+
+## [godot] Any game with configurable/tuned systems needs an in-game dev overlay from Phase 1
+
+Same lesson as the web games' editor, and it lands harder in 3D: overlay on a dedicated key,
+`PROCESS_MODE_ALWAYS`, live telemetry, runtime knobs for anything tuned by eye, and a
+freeze-and-orbit camera. Being able to stop time and fly around the geometry is worth more
+than any number of forward-facing screenshots. The overlay is a view — knobs drive the owning
+script's exported vars so defaults stay in the scripts.
+
+---
+
+## [godot] Vertex displacement has four non-negotiables
+
+`custom_aabb` (or chunks blink out when the camera turns), `flags = 0` on
+`add_surface_from_arrays` when a vertex attribute carries geometry rather than texture data,
+index counts under 65536 per surface, and `cast_shadow = OFF` on dense procedural geometry.
+Also: **never enable TAA** — Godot builds motion vectors from `PREV_MODEL_MATRIX`, which knows
+nothing about vertex-shader displacement, and smears it to mush at speed.
+
+---
+
+## [terrain] Every clipmap ring snaps on the finest ring's grid
+
+Per-ring snapping tears chunk-sized holes wherever adjacent rings' snap points disagree, which
+is most of the time. One shared snap makes ring coverage and the next ring's hollow centre
+identical by construction. Requires `chunk_n % 2^(lod_count-1) == 0` — assert it at startup.
+
+---
+
+## [terrain] Don't put a smooth surface under a stepped one
+
+The gap between them is a free variable that moves with slope and will generate a stream of
+distinct-looking bugs that are all the same bug. If the surface is stepped, make the stepped
+thing solid and let it *be* the ground.
+
+**General form: when three symptoms keep trading places under fixes, the representation is
+wrong, not the tuning.**
+
+---
+
+## [shader] A sky's below-horizon colour feeds ambient, aerial-perspective fog, and grazing reflections
+
+Changing it to hide a world-edge affects all three and can wash out the entire scene. Hide an
+edge with a narrow fog-coloured band under the horizon instead. Size the band from
+`atan(eye_height_above_distant_terrain / world_radius)` — the driver is height above *distant*
+terrain, so skimming a ridge is the worst case, not flying high.
+
+---
+
+## [shader] Check the value relationship before adding detail
+
+"Reads like vector art, not a real surface" is usually an inverted value relationship against
+the reference, not missing surface detail. Compare which surface is bright and which is dark
+before adding finish passes. Comment *why* every tuned constant is what it is — emission
+energies, hue ranges and fill factors are all context-dependent and get "simplified" into
+breakage otherwise.

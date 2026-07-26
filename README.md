@@ -79,6 +79,10 @@ Confirm → before saying **let's go**, switch to Opus. Agents are doing real mu
 
 Most games here are web (Canvas2D / Pixi / Three.js) and need nothing installed. The 3D ones are Godot and need a bridge so agents can actually *see* what they build.
 
+`/generate` supports Godot as a first-class tier — pick `rendering_tier: godot` and the Director swaps `dev` for `godot_dev` / `godot_techart` / `godot_tools`, and the Scaffolder emits `project.godot` with the MCP autoload already wired. Full agent-facing docs: [`capabilities/godot-mcp.md`](capabilities/godot-mcp.md).
+
+**The bridge is a hard dependency, not a nice-to-have.** Unlike image gen (which degrades to written specs), an agent that can't run and screenshot a 3D build can't build one. If `npm run mcp:check` fails, don't scaffold a Godot game.
+
 | Game | Stack |
 |------|-------|
 | [duneglide](games/duneglide/) | Godot 4.6, Forward+ |
@@ -170,7 +174,10 @@ The main lever mid-phase is `/run-art` — call it when sprites need a regen. Th
 | `art` | Visual style, sprite gen |
 | `level` | World layout, level structure |
 | `audio` | SFX, music direction |
-| `dev` | All game code |
+| `dev` | All game code — **web only** (Vite + npm) |
+| `godot_dev` | GDScript, scenes, controllers, gameplay |
+| `godot_techart` | Shaders, materials, LOD, frame budget |
+| `godot_tools` | Dev overlay, runtime knobs, inspection camera |
 | `devops` | Dev server → build → deploy |
 | `historian` | Cross-game learnings |
 
@@ -185,6 +192,7 @@ tech9/
 ├── ROADMAP.md           ← framework evolution
 ├── .claude/commands/    ← slash commands (/generate, /run-art)
 ├── tools/               ← sprite-gen, scaffold, probe, setup-godot-mcp
+├── capabilities/        ← what this machine can do (image-gen, godot-mcp)
 ├── vocab/               ← agent role definitions
 ├── meta/                ← Concept Generator + Director
 └── games/

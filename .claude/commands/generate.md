@@ -17,6 +17,24 @@ Output: `games/<game-slug>/concept.json` + `games/<game-slug>/CONCEPT.md`
 
 Do not proceed to Step 2 until the user confirms the concept.
 
+### Capability probe
+
+Before Step 2, probe what this machine can actually do. The Director's tier and roster
+decisions depend on it.
+
+```
+node tools/probe.js          # image-gen (Ollama)
+npm run mcp:check            # godot-mcp
+```
+
+Report both to the user with the concept. They are not equivalent:
+
+- **image-gen missing** → art degrades to written specs. Never blocks a game.
+- **godot-mcp missing** → the `godot` tier is unavailable, full stop. An agent that cannot
+  run and screenshot a 3D build cannot build one. If the concept wants Godot and the bridge
+  is missing, say so and settle on `threejs` or stop — do not scaffold a game the agents
+  cannot see.
+
 ## Step 2 — Director
 
 Read `meta/02_director.md` and follow it exactly.
@@ -38,9 +56,14 @@ node tools/scaffold.js games/<game-slug>/team_config.json
 This generates:
 - `games/<game-slug>/GAME_PLAN.md`
 - `games/<game-slug>/agents/<role>.md` for each active role
-- `games/<game-slug>/src/index.html` skeleton (if dev active)
+- `games/<game-slug>/src/index.html` skeleton (web tiers, if dev active)
+- `games/<game-slug>/project.godot` + `mcp_interaction_server.gd` (godot tier)
 - `games/<game-slug>/.claude/commands/run-art.md` (if art active)
 - `games/<game-slug>/sprites-manifest.json` (if art active)
+
+**Godot games:** Phase 0 must prove the bridge before any content phase — launch the project,
+screenshot it, read draw calls. If that does not pass, stop and fix it; every later phase
+depends on agents being able to see their own output.
 
 ## Step 4 — Confirm and hand off
 

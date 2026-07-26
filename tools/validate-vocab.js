@@ -12,9 +12,12 @@ const ROOT       = path.resolve(__dirname, '..');
 const SCHEMA     = JSON.parse(fs.readFileSync(path.join(ROOT, 'vocab/schemas/role.schema.json'), 'utf8'));
 const ROLES_DIR  = path.join(ROOT, 'vocab/roles');
 
-const SOURCE_PATTERN = /^(concept|game_plan|role:[a-z][a-z0-9_]*|external)$/;
-const SLUG_PATTERN   = /^[a-z][a-z0-9_]*$/;
-const CATEGORIES     = new Set(['creative', 'engineering', 'shipping']);
+// Derived from the schema, never restated. Hardcoding these let the validator drift out of
+// sync with role.schema.json and fail every run on roles that were actually valid — which
+// makes the tool useless as a gate, because everyone learns to ignore its output.
+const SOURCE_PATTERN = new RegExp(SCHEMA.properties.inputs.items.properties.source.pattern);
+const SLUG_PATTERN   = new RegExp(SCHEMA.properties.id.pattern);
+const CATEGORIES     = new Set(SCHEMA.properties.category.enum);
 
 function err(file, msg) {
   return `  ✗  ${file}: ${msg}`;
@@ -48,7 +51,7 @@ function validateRole(file, data) {
       if (!inp.artifact) errors.push(err(f, `inputs[${i}]: missing "artifact"`));
       if (inp.required === undefined) errors.push(err(f, `inputs[${i}]: missing "required"`));
       if (inp.source && !SOURCE_PATTERN.test(inp.source)) {
-        errors.push(err(f, `inputs[${i}]: source "${inp.source}" must match concept|game_plan|role:<id>|external`));
+        errors.push(err(f, `inputs[${i}]: source "${inp.source}" must match ${SOURCE_PATTERN.source}`));
       }
     });
   }

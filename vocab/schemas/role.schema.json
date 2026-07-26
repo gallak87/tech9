@@ -4,13 +4,21 @@
   "title": "Role Definition",
   "description": "Schema for a tech9 vocabulary role definition. Every file in vocab/roles/ must validate against this.",
   "type": "object",
-  "required": ["id", "name", "category", "responsibility", "inputs", "outputs", "dependencies"],
+  "required": [
+    "id",
+    "name",
+    "category",
+    "responsibility",
+    "inputs",
+    "outputs",
+    "dependencies"
+  ],
   "additionalProperties": false,
   "properties": {
     "id": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9_]*$",
-      "description": "Slug — used as the agent filename (e.g. 'dev' → agents/dev.md). Must be unique across the vocabulary."
+      "description": "Slug \u2014 used as the agent filename (e.g. 'dev' \u2192 agents/dev.md). Must be unique across the vocabulary."
     },
     "name": {
       "type": "string",
@@ -18,8 +26,13 @@
     },
     "category": {
       "type": "string",
-      "enum": ["creative", "engineering", "shipping"],
-      "description": "Which layer of the team this role belongs to."
+      "enum": [
+        "creative",
+        "engineering",
+        "shipping",
+        "meta"
+      ],
+      "description": "Which layer of the team this role belongs to. 'meta' roles (historian) act on the framework rather than on a game."
     },
     "responsibility": {
       "type": "string",
@@ -31,13 +44,17 @@
       "description": "Everything this role must read before it can do its work.",
       "items": {
         "type": "object",
-        "required": ["source", "artifact", "required"],
+        "required": [
+          "source",
+          "artifact",
+          "required"
+        ],
         "additionalProperties": false,
         "properties": {
           "source": {
             "type": "string",
-            "pattern": "^(concept|game_plan|role:[a-z][a-z0-9_]*|external)$",
-            "description": "concept | game_plan | role:<id> | external"
+            "pattern": "^(concept|game_plan|role:[a-z][a-z0-9_]*|external|game|repo|meta)$",
+            "description": "concept | game_plan | role:<id> | external | game | repo | meta"
           },
           "artifact": {
             "type": "string",
@@ -60,7 +77,10 @@
       "description": "Artifacts this role produces. Other roles' inputs reference these.",
       "items": {
         "type": "object",
-        "required": ["artifact", "description"],
+        "required": [
+          "artifact",
+          "description"
+        ],
         "additionalProperties": false,
         "properties": {
           "artifact": {
@@ -89,7 +109,9 @@
       "properties": {
         "candidates": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Role IDs commonly merged into this one for simple games."
         },
         "merge_when": {
@@ -105,6 +127,14 @@
     "prompt_template": {
       "type": "string",
       "description": "Template for generating agents/<id>.md. Placeholders: {{game_name}}, {{concept_summary}}, {{phase_goal}}, {{inputs_list}}, {{outputs_list}}, {{hard_constraints}}."
+    },
+    "renderer_variants": {
+      "type": "object",
+      "description": "Web-tier-specific deps/dev-server/template, keyed by rendering_tier. Only meaningful on `dev`."
+    },
+    "graduation_model": {
+      "type": "string",
+      "description": "How a lesson owned by this role graduates into framework defaults. Only meaningful on `historian`."
     }
   }
 }

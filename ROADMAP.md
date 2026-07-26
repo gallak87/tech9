@@ -44,12 +44,49 @@ Role definition exists (`vocab/roles/11_historian.json`). Not yet wired into the
 EXAMPLE AGENT STORY:
 - plan: chronoforge-multiworld-drops in user root captures a work change that should be fed back to /expand and maybe /run-art - something that should apply to future games, delegating generating sprites to node commands so user can run themselves and not burn tokens, keep these tasks as first to go to agents can work while that happens
 
-### 4. Scrollable-map reset-view
+### 4. Separate engine / assets / gameplay
+
+**TODO — do not carve this out yet, but design toward it.**
+
+The goal: a reusable Godot engine block that multiple games sit on top of, so a new game is
+content and rules rather than another terrain renderer. Three layers, cleanly separated:
+
+- **engine** — terrain/clipmap, controller + camera rigs, dev overlay, MCP bridge, shader
+  library. Game-agnostic, no gameplay assumptions.
+- **assets** — meshes, materials, palettes, audio. Swappable per game.
+- **gameplay** — rules, events, progression, HUD. The only part that should differ between
+  two games in the same style.
+
+duneglide is the first real candidate to extract from — its terrain, glide controller, chase
+camera and dev overlay are all game-agnostic already, and the whole point of the free-roam
+hub-and-events design is that other games could reuse it.
+
+Open questions to answer before extracting: Godot addon vs git submodule vs plain copied
+directory; how the scaffolder instantiates a game against an engine version; whether the
+engine carries its own `project.godot` fragments or the game owns all config.
+
+### 5. Scrollable-map reset-view
 
 Any map/overlay with pan + zoom needs a reset-view control from day one. Easy to forget.
 
 - Add to `gamedesign` role UX checklist
 - Default keybind: `R`. Button label: `RESET VIEW [R]`
+
+### 6. Slash command dispatcher / specialized agent routing
+
+Current pipeline uses generic slash commands that run in the same context. The idea: each command switches to a purpose-built agent with narrowed system prompt, tools, and RAG context — rather than one agent that tries to do everything.
+
+- `/dev` — file system + component docs, no infra access
+- `/devops` — CI/CD, cloud CLI, secrets; changes require explicit approval
+- `/test` — test runners, coverage; no write access to src
+- `/map` — scans codebase, emits dependency graph so agents know what they're touching before acting
+
+**Why it matters for tech9:** `/run-art`, `/expand`, `/generate` are already routing to different agents — this is just making the boundary explicit and narrowing tool access per route. Reduces hallucination surface, cleaner permission model, and lets agents hand off results to each other (devops sets up env → signals dev to update the badge).
+
+Key implementation pieces:
+- Each command gets its own system prompt file in `.claude/commands/`
+- Director emits a `tool_access[]` block in `team_config.json` (extends item 2 above)
+- Chain protocol: agent emits a structured `handoff` payload instead of prose; receiving agent reads it as first context
 
 ---
 
@@ -66,22 +103,12 @@ These were recurring per-game re-discoveries. All patched into the framework as 
 | Dev tool contract | `tools/dev-tool-contract.md` — one tool per domain, `window.__DEV_TOOLS__` env gate |
 | Historian vocab role | `vocab/roles/11_historian.json` — graduation model defined |
 | Art proof pass | `run-art.md` — agent self-reviews proof before batching, surfaces only when blocked |
-
-### 5. Slash command dispatcher / specialized agent routing
-
-Current pipeline uses generic slash commands that run in the same context. The idea: each command switches to a purpose-built agent with narrowed system prompt, tools, and RAG context — rather than one agent that tries to do everything.
-
-- `/dev` — file system + component docs, no infra access
-- `/devops` — CI/CD, cloud CLI, secrets; changes require explicit approval
-- `/test` — test runners, coverage; no write access to src
-- `/map` — scans codebase, emits dependency graph so agents know what they're touching before acting
-
-**Why it matters for tech9:** `/run-art`, `/expand`, `/generate` are already routing to different agents — this is just making the boundary explicit and narrowing tool access per route. Reduces hallucination surface, cleaner permission model, and lets agents hand off results to each other (devops sets up env → signals dev to update the badge).
-
-Key implementation pieces:
-- Each command gets its own system prompt file in `.claude/commands/`
-- Director emits a `tool_access[]` block in `team_config.json` (extends item 2 above)
-- Chain protocol: agent emits a structured `handoff` payload instead of prose; receiving agent reads it as first context
+| Godot as a first-class tier | `rendering_tier: godot` — schema, Director tier table, `tools/scaffold.js` emits `project.godot` + MCP autoload |
+| Godot role family | `vocab/roles/12_godot_dev`, `13_godot_techart`, `14_godot_tools` — `dev` marked web-only and mutually exclusive |
+| godot-mcp as a capability | `capabilities/godot-mcp.md` — probe, verify loop, debugging technique, gotchas. Injected into every Godot agent stub |
+| Godot stack template | `vocab/templates/stacks/stack-godot.md` — Forward+, TAA ban, vertex-displacement rules |
+| Historian first pass | `games/duneglide/LESSONS.md` + Godot/3D section of `meta/LESSONS.md` |
+| validate-vocab reads its own schema | `tools/validate-vocab.js` — was hardcoding rules and failing on valid roles, so its output was ignored |
 
 ---
 

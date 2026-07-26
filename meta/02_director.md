@@ -63,11 +63,36 @@ into `team_config.json` as `rendering_tier` and injected into the dev agent stub
 | `canvas2d` | ≤ a few hundred draws/frame. Snake-scale. No scrolling world. |
 | `pixi` | Tilemaps, scrolling world, >500 sprites, particle effects. Default for most games. |
 | `phaser` | Full scenes, physics, tweens, tilemap loaders needed out of the box. |
-| `threejs` | Concept is explicitly 3D. Do not pick for 2D pixel-art games. |
+| `threejs` | Concept is explicitly 3D and browser-first. Do not pick for 2D pixel-art games. |
+| `godot` | Concept is 3D and wants real engine features — custom shaders, LOD, large worlds, frame-budget work. Native, not web. |
 
 **Default is `pixi`** — do not default to `canvas2d` unless the concept is genuinely
 snake-scale. Signal words in the concept that push toward Pixi: tilemap, overworld,
 scrolling, large world, many enemies, particle effects, base management.
+
+#### threejs vs godot
+
+Both are 3D; they are not interchangeable.
+
+- **`threejs`** — ships to GitHub Pages for free, so a link works immediately. Pick it when
+  the 3D is simple enough that the browser is not the constraint.
+- **`godot`** — pick when the concept needs custom shaders, procedural or streamed terrain,
+  LOD, or a real frame budget. Costs a web build (Godot HTML5 export of a Forward+ game is
+  its own phase, not a free step), so "playable" means locally until that phase lands.
+
+**Picking `godot` changes the team, not just a template:**
+
+- Skip `dev` entirely. Activate `godot_dev`, and `godot_techart` / `godot_tools` unless
+  merged. Never have `dev` and `godot_dev` both active.
+- **Check the godot-mcp capability is available before committing to this tier**
+  (`npm run mcp:check`). Unlike image-gen there is no degraded fallback — an agent that
+  cannot run and screenshot the game cannot build a 3D game. If the bridge is missing, say
+  so and pick `threejs` or stop; do not scaffold a Godot game an agent cannot see.
+- Merge guidance: no custom shaders → merge `godot_techart` into `godot_dev`. Fewer than
+  ~3 tunable subsystems → merge `godot_tools` into `godot_dev`. A terrain/world game with a
+  named visual reference should keep all three split.
+- Phase 0 for a Godot game is: project skeleton + MCP autoload + **prove the bridge works**
+  (launch, screenshot, read draw calls). Do not plan any content phase before that passes.
 
 ### 5. Plan the phases
 

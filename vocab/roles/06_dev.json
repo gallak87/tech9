@@ -2,7 +2,7 @@
   "id": "dev",
   "name": "Dev",
   "category": "engineering",
-  "responsibility": "Builds and owns all game code — engine, physics, collision, state machine, rendering, HUD, input handling. The authoritative source for what the engine can and cannot do. Defines the data formats that level and asset must conform to. All games use Vite + npm. The renderer (canvas2d, pixi, or threejs) is determined by the rendering_tier field in CONCEPT.md — canvas2d is the default.",
+  "responsibility": "Builds and owns all game code for WEB games — engine, physics, collision, state machine, rendering, HUD, input handling. The authoritative source for what the engine can and cannot do. Defines the data formats that level and asset must conform to. Web games use Vite + npm; the renderer (canvas2d, pixi, threejs) comes from the rendering_tier field. NOT for Godot: when rendering_tier is `godot` this role is skipped entirely and godot_dev / godot_techart / godot_tools take over. Never have both dev and godot_dev active on the same game.",
   "inputs": [
     { "source": "concept", "artifact": "CONCEPT.md", "required": true, "notes": "Core loop, controls, scope constraints, rendering_tier" },
     { "source": "game_plan", "artifact": "GAME_PLAN.md", "required": true, "notes": "Phase order, what's decided vs deferred" },

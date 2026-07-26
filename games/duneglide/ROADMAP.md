@@ -1,6 +1,6 @@
 # DUNEGLIDE — Roadmap
 
-## Status: Phases 1, 2, 2.5 done. Phase 3 (art direction) next.
+## Status: Phases 1, 2, 2.5, 2.75 done. Phase 3 (art direction) next.
 
 Free-roam terrain-glide arcade shooter. Keeps void-fracture's shooter DNA —
 waves, 3 enemy archetypes, 3 bosses with phases, 7 weapon tiers, bombs, score —
@@ -77,6 +77,18 @@ Baseline it replaces: void-fracture at 894 draw calls / 973 objects.
   material, the same trick void-fracture uses — the baked texture fights the
   dawn palette.
 
+### Phase 2.75 — Dev overlay
+- `scripts/DevTool.gd`, backtick (`` ` ``) to toggle, matching void-fracture's
+  convention. `PROCESS_MODE_ALWAYS` so it survives a pause.
+- Live telemetry: fps, draw calls, speed, boost, altitude, bank, heading,
+  terrain height, position, camera yaw lag, fov, wave clock.
+- Tuning controls are a **placeholder list** for now — terrain / glide / camera
+  / art. The shell exists so adding a slider later is a small change, not a new
+  subsystem.
+- Reads state only, never writes it. When knobs land they should drive the
+  exported vars on `Glider` / `ChaseCamera` / `TerrainField` directly, so the
+  overlay stays a view and the defaults stay in the scripts.
+
 ## Up Next (in order)
 
 1. **Phase 3 — Art direction pass.** Palette, thruster, and the value-inversion
@@ -145,6 +157,11 @@ Baseline it replaces: void-fracture at 894 draw calls / 973 objects.
 | `shaders/block_terrain.gdshader` | Extrusion, rim/cap shading, fog fade |
 | `shaders/dawn_sky.gdshader` | Dawn gradient + sun orb |
 | `scripts/DebugParity.gd` | CPU/GPU agreement harness (**P**) |
+| `scripts/DevTool.gd` | Dev overlay + telemetry (**`**) |
+| `scripts/Glider.gd` | Flight controller; owns position + yaw only |
+| `scripts/ChaseCamera.gd` | Damped follower, independent pos/yaw/roll rates |
+| `scripts/Damp.gd` | Frame-rate-independent smoothing helpers |
+| `assets/ship.glb` | TripoSR jet from void-fracture; basis is load-bearing |
 | `scripts/FlyCam.gd` | Free-flight dev camera (**M** capture, **F** auto-forward) |
 | `mcp_interaction_server.gd` | MCP bridge autoload, TCP 9090 |
 

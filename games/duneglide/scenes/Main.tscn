@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://dg0main0scene"]
+[gd_scene load_steps=8 format=3 uid="uid://dg0main0scene"]
 
 [ext_resource type="Environment" path="res://assets/dawn_env.tres" id="1"]
 [ext_resource type="Script" path="res://scripts/TerrainField.gd" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/Glider.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/ChaseCamera.gd" id="6"]
 [ext_resource type="PackedScene" uid="uid://deyvaip0cvowv" path="res://assets/ship.glb" id="7"]
+[ext_resource type="Script" path="res://scripts/DevTool.gd" id="8"]
 
 [node name="Main" type="Node3D"]
 
@@ -44,3 +45,10 @@ far = 900.0
 [node name="DebugParity" type="Node3D" parent="."]
 script = ExtResource("4")
 follow = NodePath("../Ship")
+
+[node name="DevTool" type="CanvasLayer" parent="."]
+script = ExtResource("8")
+ship_path = NodePath("../Ship")
+camera_rig_path = NodePath("../CameraRig")
+terrain_path = NodePath("../Terrain")
+parity_path = NodePath("../DebugParity")

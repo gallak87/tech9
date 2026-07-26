@@ -60,6 +60,13 @@ extends Node3D
 ## which reads as the ship actively steering.
 @export var nose_lead := 0.16
 
+@export_group("Hull")
+## The ship mesh is a TripoSR-generated GLB carrying its own baked texture,
+## which fights the dawn palette. Override it flat, the way void-fracture does.
+@export var hull_albedo := Color(0.16, 0.40, 0.90)
+@export var hull_emission := Color(0.10, 0.30, 0.82)
+@export var hull_emission_energy := 0.5
+
 signal fired(direction: Vector3, tier: int, pos: Vector3)
 
 var speed := 78.0
@@ -87,6 +94,21 @@ var _dbg_scored := 0
 func _ready() -> void:
 	speed = cruise_speed
 	global_position.y = Height.height(global_position.x, global_position.z) + hover_height
+	_skin_hull(attitude)
+
+
+func _skin_hull(node: Node) -> void:
+	if node is MeshInstance3D:
+		var m := StandardMaterial3D.new()
+		m.albedo_color = hull_albedo
+		m.metallic = 0.15
+		m.roughness = 0.34
+		m.emission_enabled = true
+		m.emission = hull_emission
+		m.emission_energy_multiplier = hull_emission_energy
+		(node as MeshInstance3D).material_override = m
+	for c in node.get_children():
+		_skin_hull(c)
 
 
 ## Godot convention: -Z is forward.

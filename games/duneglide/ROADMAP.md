@@ -1,6 +1,6 @@
 # DUNEGLIDE — Roadmap
 
-## Status: Phase 1 done (terrain renderer). Phase 2 (glide controller) next.
+## Status: Phases 1, 2, 2.5 done. Phase 3 (art direction) next.
 
 Free-roam terrain-glide arcade shooter. Keeps void-fracture's shooter DNA —
 waves, 3 enemy archetypes, 3 bosses with phases, 7 weapon tiers, bombs, score —
@@ -47,27 +47,49 @@ speed over a dune mosaic of tiny extruded tiles, soft dawn sky, heavy haze.
 **Measured: 24 draw calls, 120fps (vsync-capped) on M1 Pro at 1280x800.**
 Baseline it replaces: void-fracture at 894 draw calls / 973 objects.
 
+### Phase 2 — Glide controller + camera
+- `scripts/Glider.gd` — owns position and yaw only; bank/pitch are cosmetic and
+  live on the `Attitude` child so gameplay direction is never contaminated by
+  visual roll. Bank is the state, yaw rate is *derived* from it via a
+  coordinated turn, so turn radius scales with speed automatically (33m at
+  cruise 78 u/s, 76m at boost 118 — boost widens turns for free).
+- Altitude: critically damped spring to `Height.height_grad()` + hover, with
+  0.28s forward look-ahead so the ship climbs *before* the dune arrives.
+  Terrain is soft; the spring always wins and there is no crash case.
+- `scripts/ChaseCamera.gd` — damped follower with **independent** time
+  constants for position / yaw / roll (~22° yaw lag mid-carve is what makes a
+  carve read as one). Not a child of the ship, and roll lives on a child pivot
+  because `look_at()` rewrites the basis.
+- `scripts/Damp.gd` — delta-based smoothing helpers. Never use a bare
+  `lerp(a, b, k)` here; it settles at different rates at 60 and 120fps.
+- `debug_attitude_report()` on the Glider scores nose-vs-slope agreement per
+  frame. Currently 89.4%; the residual is damping lag. A sign inversion reads
+  ~10%, so this catches the bug class below if it ever comes back.
+
+### Phase 2.5 — Real ship mesh
+- Swapped the placeholder `PrismMesh` delta for void-fracture's TripoSR-derived
+  jet (`assets/ship.glb`, originally `void-fracture/staging/0/mesh.glb`).
+- Carries the same hand-tuned rotation basis void-fracture uses — TripoSR has
+  no guaranteed output orientation, so that basis is the only thing making the
+  nose point `-Z`. Uniformly scaled ×5: the raw mesh is only 0.88 units at its
+  longest and read as a speck at the chase-camera distance.
+- `Glider._skin_hull()` overrides the GLB's baked TripoSR texture with a flat
+  material, the same trick void-fracture uses — the baked texture fights the
+  dawn palette.
+
 ## Up Next (in order)
 
-1. **Phase 2 — Glide controller + camera.** `Glider.gd`: velocity + yaw heading,
-   bank-drives-yaw coordinated turn, critically damped altitude spring against
-   `Height.height_grad()` with forward look-ahead, attitude from the analytic
-   surface normal. `CameraRig.gd`: damped follower with *independent* time
-   constants for position / yaw / roll — not a child of the ship (a hard child
-   transform transmits every bank into the viewport and is nauseating), and
-   roll must live on a child pivot because `look_at()` rewrites the basis.
-   Terrain is **soft** — the hover spring always wins, there is no crash case.
-2. **Phase 3 — Art direction pass.** Delta ship in `GeoManifest`, palette,
-   thruster.
-3. **Phase 4 — Combat port.** Weapon tiers, bullets, pickups, bombs, HUD,
+1. **Phase 3 — Art direction pass.** Palette, thruster, and the value-inversion
+   fix described under Known Issues.
+2. **Phase 4 — Combat port.** Weapon tiers, bullets, pickups, bombs, HUD,
    `Game.gd` state machine. All fire directions become
    `global_transform.basis * local_dir` — void-fracture's are literal `-Z`.
-4. **Phase 5 — Enemies + bosses.** Per-archetype altitude behaviour: scouts hug
+3. **Phase 5 — Enemies + bosses.** Per-archetype altitude behaviour: scouts hug
    terrain, bombers hold altitude, drones dive. Formations rewritten from
    corridor coordinate literals to heading-relative offsets.
-5. **Phase 6 — UX pass.** Menu, game over, wave transitions, speed/altitude
+4. **Phase 6 — UX pass.** Menu, game over, wave transitions, speed/altitude
    readout, dev tool with terrain toggles.
-6. **Phase 7 — Polish.** See below.
+5. **Phase 7 — Polish.** See below.
 
 ## Known Issues / Tech Debt
 
@@ -103,6 +125,13 @@ Baseline it replaces: void-fracture at 894 draw calls / 973 objects.
   grazing angle.
 - Morph rate (~126s cycle, big dunes drifting ~2.8 u/s) is unreviewed — tune
   once there is a ship to judge it against.
+- Total nose pitch swing is ~41° over varied terrain, which is a lot of drama.
+  It moves in the right direction now, so it may read as expressive rather than
+  wrong — if not, halve `surf_pitch_gain` and the `_climb_pitch` clamp.
+- **Perceived** speed is unreviewed. The numbers are already there (cruise
+  78 u/s ≈ 175 mph, boost 118 ≈ 264 mph, 78 tiles/sec), so if it doesn't *feel*
+  fast the fix is the cues — motion blur, speed lines, camera distance, FOV
+  kick — not a bigger number.
 
 ## Key Files
 

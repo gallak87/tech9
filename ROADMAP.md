@@ -61,6 +61,8 @@ duneglide is the first real candidate to extract from — its terrain, glide con
 camera and dev overlay are all game-agnostic already, and the whole point of the free-roam
 hub-and-events design is that other games could reuse it.
 
+Other Godot-tier follow-ups live in `GODOT_ROADMAP.md`.
+
 Open questions to answer before extracting: Godot addon vs git submodule vs plain copied
 directory; how the scaffolder instantiates a game against an engine version; whether the
 engine carries its own `project.godot` fragments or the game owns all config.

@@ -190,6 +190,7 @@ The Director picks what the game needs. Simple game → fewer agents.
 ```
 tech9/
 ├── ROADMAP.md           ← framework evolution
+├── GODOT_ROADMAP.md     ← Godot-tier follow-ups
 ├── .claude/commands/    ← slash commands (/generate, /run-art)
 ├── tools/               ← sprite-gen, scaffold, probe, setup-godot-mcp
 ├── capabilities/        ← what this machine can do (image-gen, godot-mcp)

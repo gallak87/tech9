@@ -1,9 +1,21 @@
-[gd_scene load_steps=5 format=3 uid="uid://dg0main0scene"]
+[gd_scene load_steps=8 format=3 uid="uid://dg0main0scene"]
 
 [ext_resource type="Environment" path="res://assets/dawn_env.tres" id="1"]
 [ext_resource type="Script" path="res://scripts/TerrainField.gd" id="2"]
-[ext_resource type="Script" path="res://scripts/FlyCam.gd" id="3"]
 [ext_resource type="Script" path="res://scripts/DebugParity.gd" id="4"]
+[ext_resource type="Script" path="res://scripts/Glider.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/ChaseCamera.gd" id="6"]
+
+[sub_resource type="PrismMesh" id="Prism_1"]
+size = Vector3(3.2, 4.6, 0.42)
+
+[sub_resource type="StandardMaterial3D" id="Hull_1"]
+albedo_color = Color(0.18, 0.42, 0.92, 1)
+metallic = 0.1
+roughness = 0.35
+emission_enabled = true
+emission = Color(0.12, 0.34, 0.85, 1)
+emission_energy_multiplier = 0.6
 
 [node name="Main" type="Node3D"]
 
@@ -18,16 +30,29 @@ shadow_enabled = false
 
 [node name="Terrain" type="Node3D" parent="."]
 script = ExtResource("2")
-target = NodePath("../FlyCam")
+target = NodePath("../Ship")
 
-[node name="FlyCam" type="Node3D" parent="."]
-script = ExtResource("3")
+[node name="Ship" type="Node3D" parent="."]
+script = ExtResource("5")
 
-[node name="Camera3D" type="Camera3D" parent="FlyCam"]
+[node name="Attitude" type="Node3D" parent="Ship"]
+
+[node name="Hull" type="MeshInstance3D" parent="Ship/Attitude"]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 0, 0)
+mesh = SubResource("Prism_1")
+surface_material_override/0 = SubResource("Hull_1")
+
+[node name="CameraRig" type="Node3D" parent="."]
+script = ExtResource("6")
+target = NodePath("../Ship")
+
+[node name="RollPivot" type="Node3D" parent="CameraRig"]
+
+[node name="Camera3D" type="Camera3D" parent="CameraRig/RollPivot"]
 fov = 72.0
 near = 0.4
 far = 900.0
 
 [node name="DebugParity" type="Node3D" parent="."]
 script = ExtResource("4")
-follow = NodePath("../FlyCam")
+follow = NodePath("../Ship")

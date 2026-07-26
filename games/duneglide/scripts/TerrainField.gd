@@ -34,8 +34,8 @@ extends Node3D
 @export var fill_z := 0.76
 ## Skirt depth. Deep blocks read as vertical fins from a low angle rather than
 ## the reference's flat tiles — keep this just long enough to show a side face.
-@export var block_depth := 0.55
-@export var substrate_drop := 0.32
+@export var block_depth := 0.22
+@export var substrate_drop := 0.14
 @export var target: NodePath
 
 var _rings: Array = []

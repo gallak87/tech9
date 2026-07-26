@@ -58,6 +58,15 @@ var _tgt: Node3D
 
 
 func _ready() -> void:
+	# Every ring snaps on the finest ring's grid (see _relocate), so that step
+	# has to be a whole number of cells for the COARSEST ring too, or its cells
+	# slide off the world lattice and the terrain visibly crawls. chunk_n 48 with
+	# 4 LODs gives 48 / 8 = 6 cells per step; a 6th LOD would need 48 / 32 and
+	# would break it.
+	assert(chunk_n % int(pow(2, lod_count - 1)) == 0,
+		"chunk_n %d must divide by 2^(lod_count-1) = %d" % [
+			chunk_n, int(pow(2, lod_count - 1))])
+
 	_tgt = get_node_or_null(target) as Node3D
 	for l in lod_count:
 		var pitch: float = pitch0 * pow(2.0, l)
@@ -152,16 +161,31 @@ func _process(delta: float) -> void:
 
 func _relocate(force: bool) -> void:
 	var p := _tgt.global_position if _tgt else Vector3.ZERO
+
+	# ONE snap point for every ring, on the FINEST ring's grid.
+	#
+	# Rings used to snap to their own grid, which silently tore holes in the
+	# ground. Ring L covers snap_L +- 2*s_L, and ring L+1's hollow inner 2x2 is
+	# exactly snap_(L+1) +- 2*s_L — same size, so they only line up when the two
+	# snaps are equal. They differ by +-s_L for about half of all player
+	# positions, and whenever they do, a one-chunk-wide strip of the hole is
+	# covered by NOTHING and you see straight through the world. That is the
+	# chunk-sized patch that blinked in and out while flying (dark before the
+	# haze shelf widened, pale after).
+	#
+	# A shared snap makes coverage and hole identical by construction. Cells stay
+	# locked to the world lattice as long as the step is a whole number of cells
+	# for every ring, which is what the assert below guarantees.
+	var s0: float = chunk_n * pitch0
+	var snap := Vector2(
+		floor(p.x / s0 + 0.5) * s0,
+		floor(p.z / s0 + 0.5) * s0)
+
 	for r in _rings:
-		var s: float = r["size"]
-		# Snap to this ring's own chunk grid so cells stay locked to the world
-		# lattice instead of sliding along with the player.
-		var snap := Vector2(
-			floor(p.x / s + 0.5) * s,
-			floor(p.z / s + 0.5) * s)
 		if not force and snap.is_equal_approx(r["snap"]):
 			continue
 		r["snap"] = snap
+		var s: float = r["size"]
 		for c in r["nodes"]:
 			var o: Vector2i = c["off"]
 			var wp := Vector3(snap.x + (o.x + 0.5) * s, 0.0, snap.y + (o.y + 0.5) * s)

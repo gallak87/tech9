@@ -253,6 +253,13 @@ neighbours, and the slope comes purely from their varying height.
   Post-3c that is the intended look rather than a defect, but if it ever needs
   softening the only real lever is the heightfield's own slope (amplitude or
   dominant wavelength), which also changes how the terrain flies.
+- **LOD banding / pop.** The cell pitch doubles per ring, so the mosaic is
+  visibly coarser further out and a band of ground re-resolves to finer cells as
+  you fly into the next ring. Expected clipmap behaviour, not a bug — but it is
+  a hard switch with no blend. Standard cures if it bothers: morph the outer
+  cells of a ring toward the coarser sample over the last stretch before the
+  seam (geometry-clipmap style), or push the seams further out with more rings.
+  Cosmetic; deferred.
 - Faint hairline at LOD ring boundaries on steep slopes. The rings sample height
   at different cell centres, so they disagree slightly. There is no substrate
   filling it any more, so this is now the only thing that can show a crack —

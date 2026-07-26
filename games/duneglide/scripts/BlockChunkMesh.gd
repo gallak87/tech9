@@ -22,7 +22,8 @@ extends RefCounted
 const MAX_CHUNK_N := 48
 
 
-static func build(n: int, pitch: float, fill_x: float, fill_z: float) -> ArrayMesh:
+static func build(n: int, pitch: float, fill_x: float, fill_z: float,
+		depth: float) -> ArrayMesh:
 	assert(n <= MAX_CHUNK_N, "chunk_n %d overflows 16-bit indices (max %d)" % [n, MAX_CHUNK_N])
 
 	var hw := pitch * fill_x * 0.5
@@ -88,7 +89,9 @@ static func build(n: int, pitch: float, fill_x: float, fill_z: float) -> ArrayMe
 	# from the source verts spans only y in [0,1]. Without this override, chunks
 	# blink out of existence the moment the camera pitches up. This is the #1
 	# vertex-displacement bug in Godot.
-	var pad := Height.MAX_ABS_H + 24.0
+	# Must cover the analytic height range PLUS however far the shader hangs the
+	# column bottoms below it, or chunks blink out when the camera pitches up.
+	var pad := Height.MAX_ABS_H + depth + 12.0
 	m.custom_aabb = AABB(
 		Vector3(-half, -pad, -half),
 		Vector3(n * pitch, pad * 2.0, n * pitch))

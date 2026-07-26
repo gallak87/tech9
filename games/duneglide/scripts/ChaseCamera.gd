@@ -76,6 +76,20 @@ func _process(dt: float) -> void:
 		fov_rate, dt)
 
 
+## Jump straight to the resting pose behind the ship, no damping. Used when the
+## dev overlay hands the camera back after an orbit — the point of the orbit is
+## to inspect geometry, so easing back from an arbitrary angle would just be a
+## second of nausea before gameplay resumes.
+func snap() -> void:
+	_yaw = _ship.yaw
+	_vel = Vector3.ZERO
+	global_position = _anchor()
+	_roll.rotation.z = _ship.bank * roll_share
+	_cam.fov = base_fov + _ship.boost_amount() * boost_fov_add
+	var fwd := _ship.forward()
+	look_at(_ship.global_position + fwd * look_ahead + Vector3.UP * look_up, Vector3.UP)
+
+
 func _anchor() -> Vector3:
 	var f := Vector3(-sin(_yaw), 0.0, -cos(_yaw))
 	return _ship.global_position - f * distance + Vector3.UP * height

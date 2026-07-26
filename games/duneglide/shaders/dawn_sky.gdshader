@@ -8,10 +8,10 @@ uniform vec3 zenith : source_color = vec3(0.34, 0.42, 0.66);
 uniform vec3 horizon : source_color = vec3(0.80, 0.72, 0.72);
 // Mostly not seen directly (terrain covers it), but ambient_light_source is SKY,
 // so this is half the irradiance hitting the ground plane. At 0.26 the glossy
-// substrate rendered as a dark slate and the Phase 3 inversion didn't read.
+// terrain rendered as a dark slate and the Phase 3 inversion didn't read.
 // Do NOT just raise this to the fog colour to hide the terrain edge (see
 // haze_color): a bright lower hemisphere both floods the ambient and gets
-// mirrored by the roughness-0.07 substrate at grazing angles, and the whole
+// mirrored by the roughness-0.07 floor cells at grazing angles, and the whole
 // scene washes to white.
 uniform vec3 ground : source_color = vec3(0.40, 0.38, 0.46);
 

@@ -1,8 +1,8 @@
 // Analytic terrain heightfield — the GPU source of truth.
 //
 // MUST STAY IDENTICAL TO res://scripts/Height.gd.
-// Included by block_terrain.gdshader and substrate.gdshader so there is exactly
-// one GPU copy of the function. Any edit here must be mirrored in Height.gd;
+// Included by block_terrain.gdshader so there is exactly one GPU copy of the
+// function. Any edit here must be mirrored in Height.gd;
 // DebugParity.gd is the harness that catches a mismatch in one frame.
 //
 // The octaves are macro-unrolled rather than looped over a const array on

@@ -4,12 +4,17 @@ extends Node3D
 ## Player-centred terrain clipmap.
 ##
 ## LOD_COUNT nested rings. Each ring is 4x4 chunks minus its hollow inner 2x2,
-## so ring L+1 exactly surrounds ring L. Block pitch doubles per ring, so each
+## so ring L+1 exactly surrounds ring L. Cell pitch doubles per ring, so each
 ## ring covers 4x the area of the one inside it for the same chunk count.
 ##
 ## Every chunk in a ring shares ONE baked Mesh resource — built once in _ready
 ## and never touched again. Streaming is purely "reassign global_position", so
 ## a recycle frame costs 80 Vector3 writes and cannot allocate or hitch.
+##
+## The terrain is SOLID COLUMNS and nothing else. There used to be a second mesh
+## (SubstrateMesh) providing a smooth floor under gapped tiles; it is gone, along
+## with the whole class of bugs that came from a smooth sheet trying to stay a
+## constant distance under a stepped surface. See block_terrain.gdshader.
 ##
 ## There is deliberately no collision geometry anywhere. Every terrain query in
 ## the game (ship altitude, camera clearance, enemy hover, bullet impacts) is a
@@ -25,18 +30,24 @@ extends Node3D
 @export var pitch0 := 1.0
 ## 4 rings: +-96 / +-192 / +-384 / +-768.
 @export var lod_count := 4
-## Block footprint as a fraction of pitch. Wider than deep gives the reference's
-## "raised dash" mosaic rather than a checkerboard.
-@export var fill_x := 0.94
-## Narrow in Z gives the reference's "raised dash" striation rather than a
-## checkerboard of cubes. Was widened to 0.76 only because the dark substrate
-## read as holes between the dashes; post-inversion (Phase 3) the substrate is
-## the bright surface and the dashes should be sparse marks ON it again.
-@export var fill_z := 0.30
-## Skirt depth. Deep blocks read as vertical fins from a low angle rather than
-## the reference's flat tiles — keep this just long enough to show a side face.
-@export var block_depth := 0.22
-@export var substrate_drop := 0.14
+
+@export_group("Cells")
+## Cell footprint as a fraction of pitch. **1.0 is the intended value** — the
+## columns are the ground, so any gap is a hole you can see the far side of the
+## dune through. Exposed only so the dev overlay can demonstrate that.
+@export var fill_x := 1.0
+@export var fill_z := 1.0
+## Column depth, as a multiple of pitch. Only has to exceed the biggest step to a
+## neighbour (~1.66 * pitch); the rest is hidden behind the neighbouring column.
+@export var column_depth := 3.0
+
+@export_group("Bars")
+## How far a bar cell stands proud of a floor cell. 0 = plain voxel heightfield.
+@export var bar_height := 0.16
+## Bar row spacing and thickness, in cells.
+@export var bar_period := 4.0
+@export var bar_width := 1.0
+
 @export var target: NodePath
 
 var _rings: Array = []
@@ -48,10 +59,8 @@ func _ready() -> void:
 	for l in lod_count:
 		var pitch: float = pitch0 * pow(2.0, l)
 		var size: float = chunk_n * pitch
-		var block_mesh := BlockChunkMesh.build(chunk_n, pitch, fill_x, fill_z)
-		var sub_mesh := SubstrateMesh.build(chunk_n, pitch)
-		var bmat := _block_mat(pow(2.0, l), pitch)
-		var smat := _substrate_mat(pitch)
+		var mesh := BlockChunkMesh.build(chunk_n, pitch, fill_x, fill_z, _depth(pitch))
+		var mat := _block_mat(pitch)
 
 		var nodes: Array = []
 		for oz in range(-2, 2):
@@ -61,72 +70,73 @@ func _ready() -> void:
 				if l > 0 and ox >= -1 and ox <= 0 and oz >= -1 and oz <= 0:
 					continue
 				nodes.append({
-					"b": _spawn(block_mesh, bmat),
-					"s": _spawn(sub_mesh, smat),
+					"b": _spawn(mesh, mat),
 					"off": Vector2i(ox, oz),
 				})
-		_rings.append({"size": size, "snap": Vector2(NAN, NAN), "nodes": nodes})
+		_rings.append({"size": size, "pitch": pitch, "snap": Vector2(NAN, NAN),
+			"nodes": nodes})
 
 	_relocate(true)
 
 
-func _block_mat(lod_scale: float, pitch: float) -> ShaderMaterial:
+## How far below the analytic surface a column bottoms out, for the mesh AABB.
+## Includes the far-edge sink applied in the vertex shader.
+func _depth(pitch: float) -> float:
+	return column_depth * pitch + bar_height + 3.0
+
+
+func _block_mat(pitch: float) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = load("res://shaders/block_terrain.gdshader")
-	m.set_shader_parameter("lod_scale", lod_scale)
-	m.set_shader_parameter("block_depth", block_depth)
-	# The skirt sizes itself against the substrate, so it needs both of these.
-	# Keep substrate_drop in sync with _substrate_mat() or holes reopen.
 	m.set_shader_parameter("pitch", pitch)
-	m.set_shader_parameter("substrate_drop", substrate_drop)
-	m.set_shader_parameter("fill_x", fill_x)
-	m.set_shader_parameter("fill_z", fill_z)
+	m.set_shader_parameter("column_depth", column_depth)
+	_push_bars(m)
 	return m
 
 
-func _substrate_mat(pitch: float) -> ShaderMaterial:
-	var m := ShaderMaterial.new()
-	m.shader = load("res://shaders/substrate.gdshader")
-	m.set_shader_parameter("drop", substrate_drop)
-	# The shader needs the ring's pitch to find the block centres bracketing each
-	# substrate vertex. Wrong pitch here and the floor pokes through the tops.
-	m.set_shader_parameter("pitch", pitch)
-	return m
+func _push_bars(m: ShaderMaterial) -> void:
+	m.set_shader_parameter("bar_height", bar_height)
+	m.set_shader_parameter("bar_period", bar_period)
+	m.set_shader_parameter("bar_width", bar_width)
 
 
 func _spawn(m: Mesh, mat: ShaderMaterial) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = m
 	mi.material_override = mat
-	# 64k emissive blocks in a shadow pass is a second (and third, and fourth,
-	# per cascade) full geometry draw. The look is emissive/ambient — nothing
-	# is lost by opting out entirely.
+	# 120k columns in a shadow pass is a second (and third, and fourth, per
+	# cascade) full geometry draw. The look is sky-ambient — nothing is lost.
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	add_child(mi)
 	return mi
 
 
-## Rebuild every ring's block mesh at a new footprint. Dev-tool only.
-##
-## fill_x/fill_z are baked into the vertex positions at build time, so unlike
-## every other terrain knob this one cannot be a shader uniform — it costs a
-## full ArrayMesh rebuild per LOD (4 x 46080 verts). That is a few ms and it
-## allocates, so it is fine on a keypress and must never be called per frame.
+## Dev-overlay knob. Bar shape is pure shader state, so this is free — unlike
+## set_fill(), which has to rebuild geometry.
+func set_bars(height: float, period: float, width: float) -> void:
+	bar_height = maxf(height, 0.0)
+	bar_period = maxf(period, 1.0)
+	bar_width = clampf(width, 0.0, bar_period)
+	for r in _rings:
+		for c in r["nodes"]:
+			_push_bars(c["b"].material_override)
+
+
+## Dev-overlay knob. fill is baked into vertex positions, so unlike every other
+## terrain parameter this one cannot be a shader uniform — it costs a full
+## ArrayMesh rebuild per LOD (4 x 46080 verts). Fine on a keypress, never per
+## frame. Anything below 1.0 opens real holes in the ground; that is the point of
+## having it on a knob.
 func set_fill(fx: float, fz: float) -> void:
 	fill_x = clampf(fx, 0.04, 1.0)
 	fill_z = clampf(fz, 0.04, 1.0)
 	for r in _rings:
-		# Rings don't store pitch, but size is chunk_n * pitch by construction.
-		var pitch: float = r["size"] / float(chunk_n)
-		var m := BlockChunkMesh.build(chunk_n, pitch, fill_x, fill_z)
+		var pitch: float = r["pitch"]
+		var mesh := BlockChunkMesh.build(chunk_n, pitch, fill_x, fill_z, _depth(pitch))
 		# Every chunk in a ring shares one Mesh resource — assign the same one.
 		for c in r["nodes"]:
-			c["b"].mesh = m
-			# The skirt sizes itself off the footprint, so the shader has to hear
-			# about the change too or it under-runs the floor and reopens holes.
-			c["b"].material_override.set_shader_parameter("fill_x", fill_x)
-			c["b"].material_override.set_shader_parameter("fill_z", fill_z)
+			c["b"].mesh = mesh
 
 
 func _process(delta: float) -> void:
@@ -141,7 +151,7 @@ func _relocate(force: bool) -> void:
 	var p := _tgt.global_position if _tgt else Vector3.ZERO
 	for r in _rings:
 		var s: float = r["size"]
-		# Snap to this ring's own chunk grid so blocks stay locked to the world
+		# Snap to this ring's own chunk grid so cells stay locked to the world
 		# lattice instead of sliding along with the player.
 		var snap := Vector2(
 			floor(p.x / s + 0.5) * s,
@@ -153,4 +163,3 @@ func _relocate(force: bool) -> void:
 			var o: Vector2i = c["off"]
 			var wp := Vector3(snap.x + (o.x + 0.5) * s, 0.0, snap.y + (o.y + 0.5) * s)
 			c["b"].global_position = wp
-			c["s"].global_position = wp

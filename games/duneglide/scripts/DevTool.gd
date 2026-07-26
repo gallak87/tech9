@@ -2,14 +2,13 @@ extends CanvasLayer
 
 ## Dev overlay. Backtick (`) toggles, matching void-fracture's convention.
 ##
-## Phase 2.75: the shell plus live telemetry. The tuning controls are a
-## placeholder list for now — the point is that the overlay exists and has a
-## home for them, so adding a slider later is a five-line change rather than a
-## new subsystem.
+## Everything except the knobs reads state; it never writes it. The knobs drive
+## the exported vars on TerrainField directly, so the overlay stays a view and
+## the defaults stay in the scripts.
 ##
-## Everything here reads state; nothing writes it. When knobs do land they
-## should drive the exported vars on Glider / ChaseCamera / TerrainField
-## directly, so the overlay stays a view and the defaults stay in the scripts.
+## The pause/orbit rig at the bottom is TEMPORARY — it exists to inspect terrain
+## geometry up close while tuning the cell look, and should come out once that
+## is settled. It is not a game pause and makes no attempt to be one.
 
 @export var ship_path: NodePath
 @export var camera_rig_path: NodePath
@@ -23,10 +22,18 @@ var _parity: Node3D
 var _label: Label
 var _panel: PanelContainer
 
+# Orbit state, only meaningful while _frozen.
+var _frozen := false
+var _dragging := false
+var _orb_yaw := 0.0
+var _orb_pitch := 0.5
+var _orb_dist := 14.0
+
 
 func _ready() -> void:
 	# Keep working if the game pauses (menus, wave transitions) — a dev overlay
-	# that dies with the pause state is useless exactly when you need it.
+	# that dies with the pause state is useless exactly when you need it. It is
+	# also what lets the orbit rig drive the camera while the tree is paused.
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 100
 
@@ -80,50 +87,134 @@ func _rescale() -> void:
 	_panel.position = Vector2(16.0 * s, 16.0 * s)
 
 
-## Block footprint step per keypress. Coarse enough that a couple of taps show
-## an obvious difference — this knob is for finding the right look, not nudging.
+const BAR_H_STEP := 0.02
 const FILL_STEP := 0.02
+const ORBIT_SENS := 0.006
+const ZOOM_STEP := 1.15
 
 
 func _input(event: InputEvent) -> void:
+	if _frozen and _orbit_input(event):
+		return
 	if not (event is InputEventKey and event.pressed):
 		return
 	var key := (event as InputEventKey).physical_keycode
 
-	if key == KEY_QUOTELEFT and not event.echo:
-		visible = not visible
-		get_viewport().set_input_as_handled()
-		return
+	if not event.echo:
+		match key:
+			KEY_QUOTELEFT:
+				visible = not visible
+				get_viewport().set_input_as_handled()
+				return
+			KEY_BACKSLASH:
+				_set_frozen(not _frozen)
+				get_viewport().set_input_as_handled()
+				return
 
 	# Knobs only bind while the overlay is open, so they can use plain keys
 	# without stealing them from flight controls during normal play.
 	if not visible or not _terrain:
 		return
-	# echo IS allowed here (unlike the toggle) so holding a key sweeps the value.
-	# Each step rebuilds 4 ArrayMeshes; at key-repeat rate that is affordable.
-	var fx := _terrain.fill_x
-	var fz := _terrain.fill_z
+	# echo IS allowed here (unlike the toggles) so holding a key sweeps a value.
+	var bh := _terrain.bar_height
+	var bp := _terrain.bar_period
+	var bw := _terrain.bar_width
 	match key:
-		KEY_BRACKETLEFT:  fz -= FILL_STEP
-		KEY_BRACKETRIGHT: fz += FILL_STEP
-		KEY_MINUS:        fx -= FILL_STEP
-		KEY_EQUAL:        fx += FILL_STEP
+		KEY_BRACKETLEFT:  bh -= BAR_H_STEP
+		KEY_BRACKETRIGHT: bh += BAR_H_STEP
+		KEY_MINUS:        bp -= 1.0
+		KEY_EQUAL:        bp += 1.0
+		KEY_SEMICOLON:    bw -= 1.0
+		KEY_APOSTROPHE:   bw += 1.0
+		# fill < 1.0 opens real holes in the ground. Kept on a knob purely to
+		# show that it does; the intended value is 1.0.
+		KEY_COMMA:
+			_terrain.set_fill(_terrain.fill_x - FILL_STEP, _terrain.fill_z - FILL_STEP)
+			get_viewport().set_input_as_handled()
+			return
+		KEY_PERIOD:
+			_terrain.set_fill(_terrain.fill_x + FILL_STEP, _terrain.fill_z + FILL_STEP)
+			get_viewport().set_input_as_handled()
+			return
 		_: return
-	_terrain.set_fill(fx, fz)
+	_terrain.set_bars(bh, bp, bw)
 	get_viewport().set_input_as_handled()
 
 
-func _process(_delta: float) -> void:
-	if not visible:
+## Returns true if the event was an orbit gesture and should not fall through.
+func _orbit_input(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		match mb.button_index:
+			MOUSE_BUTTON_LEFT:
+				_dragging = mb.pressed
+				return true
+			MOUSE_BUTTON_WHEEL_UP:
+				if mb.pressed:
+					_orb_dist = maxf(_orb_dist / ZOOM_STEP, 1.5)
+				return true
+			MOUSE_BUTTON_WHEEL_DOWN:
+				if mb.pressed:
+					_orb_dist = minf(_orb_dist * ZOOM_STEP, 400.0)
+				return true
+	elif event is InputEventMouseMotion and _dragging:
+		var rel := (event as InputEventMouseMotion).relative
+		_orb_yaw -= rel.x * ORBIT_SENS
+		# Stop just short of the poles; at exactly +-90 the look_at up vector is
+		# parallel to the view direction and the basis blows up.
+		_orb_pitch = clampf(_orb_pitch + rel.y * ORBIT_SENS, -1.5, 1.5)
+		return true
+	return false
+
+
+func _set_frozen(on: bool) -> void:
+	if on == _frozen:
 		return
-	_label.text = _build_text()
+	_frozen = on
+	get_tree().paused = on
+	if not _rig:
+		return
+	var cam := _rig.get_node("RollPivot/Camera3D") as Camera3D
+	if on:
+		# Seed the orbit from wherever the chase camera happens to be, so
+		# freezing doesn't jump the view.
+		var off := cam.global_position - _pivot()
+		_orb_dist = maxf(off.length(), 2.0)
+		_orb_yaw = atan2(off.x, off.z)
+		_orb_pitch = asin(clampf(off.y / _orb_dist, -1.0, 1.0))
+	else:
+		_dragging = false
+		# The orbit drove the Camera3D's own transform; hand it back to the rig
+		# and jump to the resting pose so play resumes from behind the ship.
+		cam.transform = Transform3D.IDENTITY
+		_rig.get_node("RollPivot").transform = Transform3D.IDENTITY
+		_rig.snap()
+
+
+func _pivot() -> Vector3:
+	return _ship.global_position if _ship else Vector3.ZERO
+
+
+func _process(_delta: float) -> void:
+	if _frozen and _rig and _ship:
+		# The rig's _process is halted by the pause, so writing the Camera3D's
+		# global transform here is uncontested.
+		var cam := _rig.get_node("RollPivot/Camera3D") as Camera3D
+		var p := _pivot()
+		var dir := Vector3(
+			sin(_orb_yaw) * cos(_orb_pitch),
+			sin(_orb_pitch),
+			cos(_orb_yaw) * cos(_orb_pitch))
+		cam.global_position = p + dir * _orb_dist
+		cam.look_at(p, Vector3.UP)
+	if visible:
+		_label.text = _build_text()
 
 
 func _build_text() -> String:
 	# Deliberately sparse. This is read at a glance while flying, not a metrics
 	# dump. fps and draw calls came out: they are better measured properly via
-	# game_performance over MCP than squinted at mid-carve, and they were the
-	# densest, least actionable rows on the panel.
+	# game_performance over MCP than squinted at mid-carve.
 	var L: Array[String] = []
 	L.append("DUNEGLIDE")
 	L.append("")
@@ -134,22 +225,25 @@ func _build_text() -> String:
 		L.append("  BANK       %4.0f°" % rad_to_deg(_ship.bank))
 		L.append("")
 
+	if _terrain:
+		L.append("  BAR  height %.2f   [ ]" % _terrain.bar_height)
+		L.append("       every  %d      - =" % int(_terrain.bar_period))
+		L.append("       thick  %d      ; '" % int(_terrain.bar_width))
+		L.append("  CELL fill   %.2f   , ." % _terrain.fill_z)
+		L.append("")
+
 	L.append("  %s %s %s %s" % [
 		_key("W", "nose_up"), _key("A", "steer_left"),
 		_key("S", "nose_down"), _key("D", "steer_right")])
 	L.append("  %s boost  %s brake" % [
 		_key("SHIFT", "boost"), _key("CTRL", "brake")])
 	L.append("")
-	if _terrain:
-		# x is the dash LENGTH along the lattice, z the WIDTH across it. z is the
-		# one that decides dash-vs-cube; x barely reads until it drops under ~0.6.
-		# Not _key() boxes: those track a held InputMap action, and these are
-		# discrete taps on raw keycodes with no action behind them.
-		L.append("  TILE  width  %.2f   [ ]" % _terrain.fill_z)
-		L.append("        length %.2f   - =" % _terrain.fill_x)
-		L.append("")
-	L.append("  `  close     P  parity%s" % [
+	L.append("  \\  %s   P  parity%s" % [
+		"UNFREEZE " if _frozen else "freeze   ",
 		"  [ON]" if (_parity and _parity.visible) else ""])
+	if _frozen:
+		L.append("     drag to orbit, wheel to zoom")
+	L.append("  `  close")
 
 	return "\n".join(L)
 

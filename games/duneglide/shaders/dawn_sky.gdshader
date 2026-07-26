@@ -18,13 +18,24 @@ uniform vec3 ground : source_color = vec3(0.40, 0.38, 0.46);
 // The clipmap ends at +-768 while the terrain shaders fade to fog_color by 620,
 // so past the edge you see straight through to the sky. fog_sky_affect is 0
 // (turning it on would flatten the whole dawn gradient, since sky is at infinite
-// depth), which left the terrain silhouetted against a hard dark band — it read
-// in game as distant mountains showing THROUGH the near terrain wherever a
-// valley dipped below the edge. Matching a narrow band under the horizon to
-// fog_color dissolves that edge. Narrow on purpose: it is a few degrees of the
-// hemisphere, so it barely moves the sky's irradiance.
+// depth), which left the terrain silhouetted against a hard dark band. Matching
+// a band under the horizon to fog_color dissolves that edge.
+//
+// SIZING THIS IS NOT COSMETIC. Rays that would strike terrain past 768 strike
+// nothing, so the exposed sky is a band running from the horizon down to
+// atan(eye_height_above_the_DISTANT_terrain / 768) — bounded above by the far
+// silhouette and below by near terrain, which is what it looks like in game.
+// The driver is height above the *distant* terrain, not altitude: skimming a
+// ridge crest at 2 units puts the eye ~70 above a far trough, which is 5.2deg.
+// The original 0.055 (3.2deg) covered flat ground and failed on every ridge.
+// 0.20 is ~11.5deg, which covers the full +-35 heightfield range with margin.
+//
+// It stays a *band*, not a brighter hemisphere: cosine-weighted irradiance on an
+// up-facing surface takes nothing from below the horizon, so widening this does
+// not repeat the wash-out from raising `ground` (see above). It does slightly
+// enrich the grazing reflection on the glossy floor cells, which is wanted.
 uniform vec3 haze_color : source_color = vec3(0.78, 0.73, 0.74);
-uniform float haze_depth = 0.055;
+uniform float haze_depth = 0.20;
 uniform vec3 sun_tint : source_color = vec3(1.00, 0.84, 0.66);
 uniform vec3 sun_dir = vec3(0.32, 0.075, -0.945);
 uniform float sun_size = 0.012;
@@ -39,7 +50,10 @@ void sky() {
 	vec3 col = mix(horizon, zenith, pow(clamp(up, 0.0, 1.0), 0.42));
 	// Haze shelf first, then fall away to the dark ground below it.
 	col = mix(col, haze_color, smoothstep(0.01, -haze_depth * 0.5, up));
-	col = mix(col, ground, smoothstep(-haze_depth, -haze_depth - 0.16, up));
+	// Long tail to `ground` so the shelf's lower edge is never itself a visible
+	// line — at this width a short falloff just moves the artifact rather than
+	// removing it.
+	col = mix(col, ground, smoothstep(-haze_depth, -haze_depth - 0.35, up));
 
 	float d = dot(normalize(EYEDIR), normalize(sun_dir));
 	float disc = smoothstep(1.0 - sun_size, 1.0 - sun_size * 0.35, d);

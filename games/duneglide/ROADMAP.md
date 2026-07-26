@@ -220,21 +220,33 @@ neighbours, and the slope comes purely from their varying height.
   Still material-only; no geometry change, and there is vertex budget spare.
   **Only gets harder if it turns out to need per-block bevels**, which would
   mean a `BlockChunkMesh` rebuild.
-- **The clipmap edge is only hidden by a haze band in the sky shader.** The
-  terrain stops at +-768 and `fog_sky_affect` is 0, so anything past the edge is
-  raw sky. Pre-Phase-3 the sky's `ground` colour was dark and the far terrain
-  faded to bright fog, so the edge showed as a hard dark band — in game it read
-  as *distant mountains visible through the near terrain* wherever a valley
-  dipped below the horizon. `haze_color`/`haze_depth` in `dawn_sky.gdshader` fix
-  it by matching a narrow shelf under the horizon to `fog_color`.
-  The shelf is only ~3 degrees deep. That covers the edge at gameplay altitude
-  (~10 units, where 768 units out is under 1 degree below horizon) but NOT from
-  high up — at 220 units the edge is ~16 degrees down and the band reappears.
-  So: **any feature that lifts the camera (a death cam, a map view, a boss
-  arena flyover) will expose this**, and the fix then is a bigger `haze_depth`
-  or a real skirt, not more fog. Note the obvious shortcut is a trap — just
-  setting `ground` to `fog_color` floods the ambient AND gets mirrored by the
-  glossy floor cells, and the whole scene washes to white.
+- **The clipmap edge is only hidden by a haze band in the sky shader**, and the
+  sky's below-horizon colour is load-bearing for far more than the sky. Two
+  separate couplings, both of which produced "dark patch" reports:
+
+  1. *Seeing past the edge.* Terrain stops at +-768 and `fog_sky_affect` is 0,
+     so rays that would hit terrain further out hit raw sky instead. That makes
+     a band running from the horizon down to
+     `atan(eye_height_above_the_DISTANT_terrain / 768)` — bounded above by the
+     far silhouette, below by near terrain. The driver is height above the
+     *distant* terrain, **not altitude**: skimming a ridge crest at 2 units puts
+     the eye ~70 above a far trough = 5.2 degrees. Flying ridge lines is the
+     worst case and is exactly how it was found.
+  2. *Aerial perspective.* `fog_aerial_perspective = 0.55` tints distance fog
+     with the sky radiance **along the view ray**. Looking even slightly down at
+     distant terrain samples below the horizon, so the ground colour bleeds
+     straight onto far terrain. Proved by setting `ground` to red: the entire
+     terrain went pink, not just a sky band. This is the stronger of the two and
+     is why the artifact reads as a broad dark *region* rather than a thin strip.
+
+  Fix for both: `haze_color` = `fog_color` over a band `haze_depth` deep, with a
+  long tail to `ground` so the shelf's own lower edge is never a visible line.
+  **0.20 (11.5 degrees)**, up from 0.055 (3.2), which covered flat ground and
+  failed on every ridge. Verified clean at 30 units of lift and at a 35-degree
+  down-angle.
+  Widening the *band* is safe; raising `ground` itself is the trap — that floods
+  ambient AND aerial perspective AND gets mirrored by the glossy floor cells,
+  and the whole scene washes to white.
 - Riser-to-width ratio on the columns is exactly the terrain slope, so
   **shrinking `pitch0` does not make the steps less chunky** — it scales the
   riser and the cell width together. On the ~30 degree dune faces that is ~0.55.

@@ -164,11 +164,29 @@ lightening the blocks (or vice versa) collapses straight back to the flat read.
   Still material-only; no geometry change, and there is vertex budget spare.
   **Only gets harder if it turns out to need per-block bevels**, which would
   mean a `BlockChunkMesh` rebuild.
+- **The clipmap edge is only hidden by a haze band in the sky shader.** The
+  terrain stops at +-768 and `fog_sky_affect` is 0, so anything past the edge is
+  raw sky. Pre-Phase-3 the sky's `ground` colour was dark and the far terrain
+  faded to bright fog, so the edge showed as a hard dark band — in game it read
+  as *distant mountains visible through the near terrain* wherever a valley
+  dipped below the horizon. `haze_color`/`haze_depth` in `dawn_sky.gdshader` fix
+  it by matching a narrow shelf under the horizon to `fog_color`.
+  The shelf is only ~3 degrees deep. That covers the edge at gameplay altitude
+  (~10 units, where 768 units out is under 1 degree below horizon) but NOT from
+  high up — at 220 units the edge is ~16 degrees down and the band reappears.
+  So: **any feature that lifts the camera (a death cam, a map view, a boss
+  arena flyover) will expose this**, and the fix then is a bigger `haze_depth`
+  or a real skirt, not more fog. Note the obvious shortcut is a trap — just
+  setting `ground` to `fog_color` floods the ambient AND gets mirrored by the
+  glossy substrate, and the whole scene washes to white.
 - Faint hairline at LOD ring boundaries on steep slopes. The rings sample height
   at different block centres, so they disagree slightly; substrate fills most of
   it. Revisit once the real viewing altitude is known.
 - One dark region on steep back-slopes where the substrate shows through at a
   grazing angle.
+- Heavy moire on the tile field when viewed from high altitude. Not visible at
+  gameplay altitude and MSAA 2x + FXAA is all we have (TAA is banned, see Phase
+  0), so it is only a problem if a high camera ever ships.
 - Morph rate (~126s cycle, big dunes drifting ~2.8 u/s) is unreviewed — tune
   once there is a ship to judge it against.
 - Total nose pitch swing is ~41° over varied terrain, which is a lot of drama.

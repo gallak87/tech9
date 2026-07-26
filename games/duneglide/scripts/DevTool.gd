@@ -55,12 +55,29 @@ func _ready() -> void:
 	mono.font_names = PackedStringArray(["Menlo", "Monaco", "SF Mono",
 		"DejaVu Sans Mono", "Courier New"])
 	_label.add_theme_font_override("font", mono)
-	_label.add_theme_font_size_override("font_size", 12)
-	_label.add_theme_color_override("font_color", Color(0.86, 0.90, 1.0))
+	_label.add_theme_color_override("font_color", Color(0.88, 0.92, 1.0))
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_panel.add_child(_label)
 
+	# Scale the overlay with the window ourselves rather than setting
+	# window/stretch/mode = canvas_items: on a 3D game that stretch mode renders
+	# the 3D at base resolution and upscales it, which would soften the whole
+	# terrain just to fix text size.
+	get_viewport().size_changed.connect(_rescale)
+	_rescale()
+
 	visible = false
+
+
+const BASE_HEIGHT := 800.0
+const BASE_FONT := 17
+
+
+func _rescale() -> void:
+	var h := float(get_viewport().get_visible_rect().size.y)
+	var s := clampf(h / BASE_HEIGHT, 1.0, 3.0)
+	_label.add_theme_font_size_override("font_size", int(round(BASE_FONT * s)))
+	_panel.position = Vector2(16.0 * s, 16.0 * s)
 
 
 func _input(event: InputEvent) -> void:
@@ -77,49 +94,29 @@ func _process(_delta: float) -> void:
 
 
 func _build_text() -> String:
+	# Deliberately sparse. This is read at a glance while flying, not a metrics
+	# dump. fps and draw calls came out: they are better measured properly via
+	# game_performance over MCP than squinted at mid-carve, and they were the
+	# densest, least actionable rows on the panel.
 	var L: Array[String] = []
-	L.append("DUNEGLIDE · DEV                    ` close")
-	L.append("───────────────────────────────────────────")
-
-	L.append("fps       %5d      draw calls  %4d" % [
-		Engine.get_frames_per_second(),
-		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
-	])
+	L.append("DUNEGLIDE")
+	L.append("")
 
 	if _ship:
-		var p := _ship.global_position
-		var h := Height.height(p.x, p.z)
-		L.append("speed     %5.1f      boost      %4.0f%%" % [
-			_ship.speed, _ship.boost_amount() * 100.0])
-		L.append("altitude  %5.2f      bank       %4.0f°" % [
-			_ship.altitude(), rad_to_deg(_ship.bank)])
-		L.append("heading   %5.0f°     terrain h %5.1f" % [
-			rad_to_deg(_ship.yaw), h])
-		L.append("pos      %6.0f %6.0f" % [p.x, p.z])
+		L.append("  SPEED      %5.0f" % _ship.speed)
+		L.append("  ALTITUDE   %5.1f" % _ship.altitude())
+		L.append("  BANK       %4.0f°" % rad_to_deg(_ship.bank))
+		L.append("")
 
-	if _rig:
-		var lag := rad_to_deg(wrapf(_rig._yaw - (_ship.yaw if _ship else 0.0), -PI, PI))
-		L.append("cam lag   %5.0f°     fov       %5.1f" % [
-			lag, _rig.get_node("RollPivot/Camera3D").fov])
-
-	if _terrain:
-		L.append("wave t    %5.1f / %.1f" % [Height.wave_time, Height.TIME_WRAP])
-
+	L.append("  %s %s %s %s" % [
+		_key("W", "nose_up"), _key("A", "steer_left"),
+		_key("S", "nose_down"), _key("D", "steer_right")])
+	L.append("  %s boost  %s brake" % [
+		_key("SHIFT", "boost"), _key("CTRL", "brake")])
 	L.append("")
-	L.append("TUNING — placeholder, not wired yet")
-	L.append("  · terrain   amplitude, pitch, fill, depth")
-	L.append("  · glide     speed, bank, hover, lookahead")
-	L.append("  · camera    distance, lag, roll, fov kick")
-	L.append("  · art       palette, fog, glow, sun")
+	L.append("  tuning knobs — todo")
 	L.append("")
-	L.append("INPUT")
-	L.append("      %s          boost %s" % [
-		_key("W", "nose_up"), _key("SHIFT", "boost")])
-	L.append("   %s %s %s       brake %s" % [
-		_key("A", "steer_left"), _key("S", "nose_down"),
-		_key("D", "steer_right"), _key("CTRL", "brake")])
-	L.append("")
-	L.append("KEYS   `  overlay    P  parity dots%s" % [
+	L.append("  `  close     P  parity%s" % [
 		"  [ON]" if (_parity and _parity.visible) else ""])
 
 	return "\n".join(L)

@@ -101,6 +101,14 @@ lightening the blocks (or vice versa) collapses straight back to the flat read.
   `terrain_hd`; at this roughness the sky reflection is sharp enough that the
   interpolated vertex normal showed the substrate's triangulation as faceted
   bands. Costs nothing measurable (still 120fps / 19 draw calls).
+- `substrate.gdshader` — the floor now samples the **min of the four block
+  centres bracketing each vertex**, not the height at the vertex itself. Blocks
+  hold one height flat across each block; a smooth sample disagrees by up to
+  `slope * pitch/2`, which at LOD3 (pitch 8) is several units against a `drop`
+  of 0.14 — the floor punched up through the tops and rendered as smooth pale
+  wedges lying over the mosaic. The min is correct by construction at every LOD
+  and slope, so `drop` only has to cover LOD seams now. Needs the ring's `pitch`
+  as a uniform; `TerrainField._substrate_mat()` passes it.
 - `substrate.gdshader` — coarse dark grid, `grid_spacing 24.0` (24x the block
   pitch, so it reads as panel seams *under* the mosaic, not more mosaic).
   Distance-widened line mask so far seams dim instead of moireing. Seams are
@@ -182,8 +190,9 @@ lightening the blocks (or vice versa) collapses straight back to the flat read.
 - Faint hairline at LOD ring boundaries on steep slopes. The rings sample height
   at different block centres, so they disagree slightly; substrate fills most of
   it. Revisit once the real viewing altitude is known.
-- One dark region on steep back-slopes where the substrate shows through at a
-  grazing angle.
+- ~~One dark region on steep back-slopes where the substrate shows through at a
+  grazing angle.~~ Fixed by the substrate `min()` sample (Phase 3a) — the floor
+  can no longer rise above a block it touches, at any LOD or slope.
 - Heavy moire on the tile field when viewed from high altitude. Not visible at
   gameplay altitude and MSAA 2x + FXAA is all we have (TAA is banned, see Phase
   0), so it is only a problem if a high camera ever ships.

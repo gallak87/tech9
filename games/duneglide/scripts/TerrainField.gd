@@ -51,7 +51,7 @@ func _ready() -> void:
 		var block_mesh := BlockChunkMesh.build(chunk_n, pitch, fill_x, fill_z)
 		var sub_mesh := SubstrateMesh.build(chunk_n, pitch)
 		var bmat := _block_mat(pow(2.0, l))
-		var smat := _substrate_mat()
+		var smat := _substrate_mat(pitch)
 
 		var nodes: Array = []
 		for oz in range(-2, 2):
@@ -78,10 +78,13 @@ func _block_mat(lod_scale: float) -> ShaderMaterial:
 	return m
 
 
-func _substrate_mat() -> ShaderMaterial:
+func _substrate_mat(pitch: float) -> ShaderMaterial:
 	var m := ShaderMaterial.new()
 	m.shader = load("res://shaders/substrate.gdshader")
 	m.set_shader_parameter("drop", substrate_drop)
+	# The shader needs the ring's pitch to find the block centres bracketing each
+	# substrate vertex. Wrong pitch here and the floor pokes through the tops.
+	m.set_shader_parameter("pitch", pitch)
 	return m
 
 

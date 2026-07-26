@@ -4,6 +4,8 @@ render_mode cull_back, diffuse_lambert, specular_schlick_ggx, depth_draw_opaque;
 #include "res://shaders/terrain_height.gdshaderinc"
 
 uniform float drop = 1.4;   // how far below the block tops the floor sits
+// This ring's block pitch. Load-bearing — see vertex().
+uniform float pitch = 1.0;
 
 // PHASE 3 VALUE INVERSION. This used to be the dark "shadow between tiles".
 // It is now the BRIGHT GLOSSY SURFACE and the blocks are the dark marks on it —
@@ -42,12 +44,28 @@ varying float v_fade;
 varying float v_sharp;
 
 void vertex() {
-	// Sampled per-vertex (smooth), unlike the block shader's per-block sample —
-	// this is a continuous surface, so it should follow the dune exactly.
 	vec2 w = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
-	vec3 hd = terrain_hd(w);
-	VERTEX.y = hd.x - drop;
+
+	// Do NOT sample the height at w. The blocks sample once per block CENTRE and
+	// hold it flat across the whole block; a smooth sample at w disagrees with
+	// that by up to slope * pitch/2, which at LOD3 (pitch 8, slopes to ~0.8) is
+	// several units against a drop of 0.14 — so the floor punched up through the
+	// tops and rendered as smooth pale wedges lying over the mosaic.
+	//
+	// Substrate verts sit on block CORNERS, so the four block centres touching
+	// this vert are at w +- pitch/2 on each axis. Taking their min puts the floor
+	// at or below every block it touches, by construction, at every LOD and any
+	// slope. drop then only has to cover the LOD seams, not the slope error.
+	float hp = pitch * 0.5;
+	float h = min(
+		min(terrain_h(w + vec2(-hp, -hp)), terrain_h(w + vec2(hp, -hp))),
+		min(terrain_h(w + vec2(-hp,  hp)), terrain_h(w + vec2(hp,  hp))));
+	VERTEX.y = h - drop;
 	v_world = vec3(w.x, VERTEX.y, w.y);
+
+	// Shading normal stays the true smooth gradient at w — this is a lighting
+	// normal, and the min() above is a depth correction, not a shape change.
+	vec3 hd = terrain_hd(w);
 	v_vnormal = normalize(vec3(-hd.y, 1.0, -hd.z));
 
 	float d = length(w - CAMERA_POSITION_WORLD.xz);

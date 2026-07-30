@@ -62,7 +62,6 @@ into `team_config.json` as `rendering_tier` and injected into the dev agent stub
 |------|-----------|
 | `canvas2d` | ≤ a few hundred draws/frame. Snake-scale. No scrolling world. |
 | `pixi` | Tilemaps, scrolling world, >500 sprites, particle effects. Default for most games. |
-| `phaser` | Full scenes, physics, tweens, tilemap loaders needed out of the box. |
 | `threejs` | Concept is explicitly 3D and browser-first. Do not pick for 2D pixel-art games. |
 | `godot` | Concept is 3D and wants real engine features — custom shaders, LOD, large worlds, frame-budget work. Native, not web. |
 
@@ -117,7 +116,7 @@ Must satisfy `vocab/schemas/game_plan.schema.json` plus two extra fields the Sca
 {
   "game_name": "string",
   "concept_summary": "string — game_summary from concept.json verbatim",
-  "rendering_tier": "canvas2d | pixi | phaser | threejs",
+  "rendering_tier": "canvas2d | pixi | threejs | godot",
   "scope_constraints": ["string", "..."],
   "team": [
     {

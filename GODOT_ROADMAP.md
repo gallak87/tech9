@@ -14,23 +14,11 @@ Forward+ through the bridge, screenshotting it, and deleting it.
 
 ---
 
-## 1. Promote `mcp_interaction_server.gd` out of duneglide
+## 1. Promote `mcp_interaction_server.gd` out of duneglide — done
 
-**Why it matters:** `tools/scaffold.js` copies the bridge from
-`games/duneglide/mcp_interaction_server.gd` as a donor. That makes a framework capability
-depend on a game directory. If duneglide is moved, renamed or deleted, every new Godot scaffold
-loses the bridge — and the bridge is a hard dependency, not a nice-to-have.
-
-Currently it warns rather than failing silently, so this degrades loudly, but it should not be
-a game's job to host it.
-
-- Move the canonical copy to `tools/godot/mcp_interaction_server.gd`
-- Point `tools/scaffold.js` at it (search for `GODOT_ROLES` / the donor path)
-- Leave the game copies alone — they are per-project runtime files and should stay checked in
-- Note the port is parameterised (`--mcp-port=N` / `GODOT_MCP_PORT` / 9090 default) so two
-  games can run side by side; keep that when moving it
-
-Low risk, ~15 minutes. Do it before the second Godot game exists.
+Canonical copy now lives at `tools/godot/mcp_interaction_server.gd`; `tools/scaffold.js`'s
+`GODOT_ROLES` donor path points there. Game copies (`games/duneglide/`, `games/void-fracture/`)
+were left alone as per-project runtime files.
 
 ---
 
@@ -52,7 +40,7 @@ The Director is instructed to plan it this way; verify it actually does.
 
 ---
 
-## 3. `mcp:check` should emit `--json`
+## 3. `mcp:check` should emit `--json` — deferred, george is handling this one directly
 
 `tools/probe.js` supports `--json` and `/generate` parses it. `npm run mcp:check`
 (`tools/setup-godot-mcp.js --check`) only prints prose, so the capability probe in
@@ -66,22 +54,12 @@ rather than judgement.
 
 ---
 
-## 4. Dev tool contract has no Godot half
+## 4. Dev tool contract has no Godot half — done
 
-`tools/dev-tool-contract.md` is written for web games — `window.__DEV_TOOLS__`, mounted during
-art generation, stripped at ship. The `godot_tools` role points at it as a required input, so
-it currently reads a contract that does not describe its own platform.
-
-Needs a Godot section covering what duneglide actually landed on:
-
-- Overlay on a dedicated key, `PROCESS_MODE_ALWAYS` so it survives pause
-- Knobs bind only while the overlay is open, so they never steal keys from gameplay input
-- Overlay is a **view** — knobs drive the owning script's exported vars, defaults stay in the
-  scripts
-- Cheap vs expensive knobs: shader uniforms are free, anything baked into vertex positions
-  costs a mesh rebuild and must never be driven per frame
-- Freeze + orbit inspection camera, and marking it temporary with a deletion condition
-- Parity/invariant harness for anything computed on both CPU and GPU
+`tools/dev-tool-contract.md` now has a `## Godot` section covering the overlay lifecycle
+(`PROCESS_MODE_ALWAYS`, dedicated toggle key, knobs bind only while open), overlay-as-view,
+cheap vs expensive knobs, the freeze+orbit inspection camera, and the CPU/GPU parity harness
+pattern — sourced from `games/duneglide/scripts/DevTool.gd` and `DebugParity.gd`.
 
 ---
 

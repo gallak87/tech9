@@ -23,7 +23,7 @@ if (!configPath) {
 
 const ROOT    = path.resolve(__dirname, '..');
 const gameDir = path.dirname(path.resolve(configPath));
-const VALID_TIERS = ['canvas2d', 'pixi', 'phaser', 'threejs', 'godot'];
+const VALID_TIERS = ['canvas2d', 'pixi', 'threejs', 'godot'];
 // Roles that build a native Godot game. Mutually exclusive with `dev` — see
 // vocab/roles/06_dev.json. They get the godot-mcp capability doc and the godot stack.
 const GODOT_ROLES = ['godot_dev', 'godot_techart', 'godot_tools'];
@@ -74,7 +74,7 @@ if (config.rendering_tier === 'godot') {
     write('project.godot', renderGodotProject(config));
     // The in-game half of the godot-mcp bridge. Without it every game_* tool fails,
     // and it is the single most common thing forgotten when starting a Godot project.
-    const donor = path.join(ROOT, 'games/duneglide/mcp_interaction_server.gd');
+    const donor = path.join(ROOT, 'tools/godot/mcp_interaction_server.gd');
     if (fs.existsSync(donor) && (!exists('mcp_interaction_server.gd') || force)) {
       write('mcp_interaction_server.gd', fs.readFileSync(donor, 'utf8'));
     } else if (!fs.existsSync(donor)) {
@@ -260,9 +260,13 @@ function renderAgentStub(role, entry, cfg) {
       'godot':    'stack-godot.md',
     };
     const stackFile = stackTemplateMap[tier];
-    if (stackFile) {
+    if (!stackFile) {
+      console.warn(`  ⚠  No stack template mapped for rendering_tier "${tier}" — agent stub will have no stack section`);
+    } else {
       const stackPath = path.join(ROOT, 'vocab/templates/stacks', stackFile);
-      if (fs.existsSync(stackPath)) {
+      if (!fs.existsSync(stackPath)) {
+        console.warn(`  ⚠  Stack template missing: ${stackPath} — agent stub will have no stack section`);
+      } else {
         renderingTierSection = fs.readFileSync(stackPath, 'utf8')
           .replace(/\{\{game_name\}\}/g, cfg.game_name);
       }

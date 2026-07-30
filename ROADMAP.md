@@ -90,43 +90,7 @@ Key implementation pieces:
 - Director emits a `tool_access[]` block in `team_config.json` (extends item 2 above)
 - Chain protocol: agent emits a structured `handoff` payload instead of prose; receiving agent reads it as first context
 
-### 7. `phaser` tier is half-wired, and the miss is silent
-
-`phaser` is offered to the Director but cannot actually be scaffolded. Three places disagree:
-
-| Place | State |
-|---|---|
-| `meta/02_director.md` tier table + `team_config.json` example | offers `phaser` |
-| `tools/scaffold.js` `VALID_TIERS` | accepts `phaser` |
-| `vocab/schemas/concept.schema.json` enum | **does not include `phaser`** |
-| `vocab/templates/stacks/` | **no `stack-phaser.md`** |
-
-So a Director that picks `phaser` produces a `team_config.json` that fails concept-schema
-validation, and if it gets past that the dev agent stub is generated with **no stack section
-at all** — no deps, no boot pattern, no project structure. The agent then invents one.
-
-Worse, it fails silently. In `renderAgentStub`:
-
-```js
-const stackFile = stackTemplateMap[tier];
-if (stackFile) { if (fs.existsSync(stackPath)) { ...inject... } }
-```
-
-Two nested `if`s with no `else`. An unknown tier and a missing template file both leave
-`renderingTierSection` empty and print nothing.
-
-Fix, in order:
-1. Make the miss loud — `console.warn` (or hard fail) when a tier has no template or the file
-   is absent. This is the actual bug; the rest is content.
-2. Then decide `phaser`: write `stack-phaser.md` and add it to the concept schema enum, or
-   drop it from the Director table and `VALID_TIERS`. It has never been used by a shipped
-   game, so dropping is defensible.
-3. Add a check that `VALID_TIERS`, the concept schema enum, the Director table and the
-   contents of `vocab/templates/stacks/` all agree. Same class of drift as
-   `validate-vocab.js` hardcoding its own rules — a list restated in four places will
-   disagree eventually.
-
-### 8. Capability probes should be uniform
+### 7. Capability probes should be uniform
 
 `tools/probe.js` supports `--json` and `/generate` parses it. `npm run mcp:check` prints prose
 only, so the godot-mcp gate has to be read by eye while the image-gen one is mechanical.
@@ -159,6 +123,9 @@ These were recurring per-game re-discoveries. All patched into the framework as 
 | Godot stack template | `vocab/templates/stacks/stack-godot.md` — Forward+, TAA ban, vertex-displacement rules |
 | Historian first pass | `games/duneglide/LESSONS.md` + Godot/3D section of `meta/LESSONS.md` |
 | validate-vocab reads its own schema | `tools/validate-vocab.js` — was hardcoding rules and failing on valid roles, so its output was ignored |
+| `phaser` tier dropped, silent stack-template miss made loud | `tools/scaffold.js` `VALID_TIERS` and `meta/02_director.md` no longer offer `phaser` (never shipped a game, no `stack-phaser.md`, not in the concept schema enum). `renderAgentStub`'s stack-template lookup now `console.warn`s on an unmapped tier or missing template file instead of silently emitting nothing |
+| Godot dev tool contract | `tools/dev-tool-contract.md` `## Godot` section — overlay lifecycle, cheap vs expensive knobs, freeze+orbit camera, CPU/GPU parity harness, sourced from duneglide's `DevTool.gd` / `DebugParity.gd` |
+| `mcp_interaction_server.gd` promoted out of a game directory | `tools/godot/mcp_interaction_server.gd` is now the canonical donor `tools/scaffold.js` copies from, not `games/duneglide/` |
 
 ---
 

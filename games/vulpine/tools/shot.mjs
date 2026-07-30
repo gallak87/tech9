@@ -152,6 +152,18 @@ async function main() {
     if (!res.ok) { await browser.close(); if (server) server.kill(); process.exit(4); }
   }
 
+  // --seq N captures a burst instead of a single frame, so motion — trails,
+  // blur, animation, particle life — can actually be reviewed. A still frame
+  // cannot tell you whether a game moves well.
+  const SEQ = parseInt(arg('seq', '0'), 10) || 0;
+  const SEQ_STEPS = parseInt(arg('seq-steps', '6'), 10);
+
+  const settle = () => page.evaluate(() => new Promise(r => {
+    let n = 0;
+    const tick = () => (++n >= 6 ? r() : requestAnimationFrame(tick));
+    requestAnimationFrame(tick);
+  }));
+
   const written = [];
   for (const shot of shots) {
     const ok = await page.evaluate((s) => {
@@ -161,18 +173,25 @@ async function main() {
     }, shot);
     if (!ok) { console.warn(`skip unknown shot: ${shot}`); continue; }
 
-    // let TAA-free passes settle and the plume shader advance a few frames
-    await page.evaluate(() => new Promise(r => {
-      let n = 0;
-      const tick = () => (++n >= 6 ? r() : requestAnimationFrame(tick));
-      requestAnimationFrame(tick);
-    }));
+    await settle();
 
-    const file = path.join(OUT, `${shot}.png`);
-    const buf = await page.screenshot({ type: 'png' });
-    await writeFile(file, buf);
-    written.push(file);
-    process.stdout.write(`  ✓ ${path.relative(ROOT, file)}\n`);
+    if (SEQ > 1) {
+      for (let i = 0; i < SEQ; i++) {
+        if (i > 0) {
+          await page.evaluate((n) => window.__VULPINE__.step(n), SEQ_STEPS);
+          await settle();
+        }
+        const file = path.join(OUT, `${shot}-${String(i).padStart(2, '0')}.png`);
+        await writeFile(file, await page.screenshot({ type: 'png' }));
+        written.push(file);
+      }
+      process.stdout.write(`  ✓ ${shot} ×${SEQ}\n`);
+    } else {
+      const file = path.join(OUT, `${shot}.png`);
+      await writeFile(file, await page.screenshot({ type: 'png' }));
+      written.push(file);
+      process.stdout.write(`  ✓ ${path.relative(ROOT, file)}\n`);
+    }
   }
 
   const stats = await page.evaluate(() => window.__VULPINE__.stats());

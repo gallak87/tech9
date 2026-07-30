@@ -1,18 +1,23 @@
 import * as THREE from 'three';
-import { Sky } from 'three/examples/jsm/objects/Sky.js';
+import { SkyDome } from './sky.js';
 import { bakeStarfield } from './textures.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Environment — sky, sun, shadow rig, image-based lighting and fog, driven by a
-// single named preset. The sun direction is the one source of truth: the sky
-// shader, the key light, the IBL probe and the god-ray origin all read it, so
-// changing `elevation` re-lights the entire game coherently.
+// Environment — sky, sun, shadow rig, image-based lighting, atmosphere and the
+// per-preset grade, driven by a single named preset. The sun direction is the
+// one source of truth: the sky shader, the key light, the IBL probe, the fog
+// inscattering, the god-ray origin and the lens flare all read it, so changing
+// `elevation` re-lights the entire game coherently.
+//
+// A preset is not just "where is the sun". It carries its own tone curve,
+// split-tone, bloom energy, flare character and atmospheric model, because
+// that is the difference between three times of day and three *places*.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PRESETS = {
   corneria: {
     kind: 'atmosphere',
-    turbidity: 3.4, rayleigh: 1.35, mieCoefficient: 0.0042, mieDirectionalG: 0.86,
+    turbidity: 3.2, rayleigh: 1.5, mieCoefficient: 0.0040, mieDirectionalG: 0.86,
     elevation: 24, azimuth: 148,
     sunColor: 0xfff2dc, sunIntensity: 5.4,
     hemiSky: 0x9dc4f5, hemiGround: 0x4a4230, hemiIntensity: 0.30,
@@ -20,22 +25,72 @@ export const PRESETS = {
     rimColor: 0xffd9b0, rimIntensity: 0.42,
     fog: { color: 0x93b7dc, density: 0.00042 },
     exposure: 0.20,
-    godray: { intensity: 0.34, tint: 0xffd9a8 },
+    godray: { intensity: 0.30, tint: 0xffd9a8, clamp: 3.2, density: 0.60, decay: 0.947, weight: 2.2, threshold: 1.4 },
     envIntensity: 0.55,
+
+    sky: {
+      sunDisc: 44, aureole: 2.4, aureoleTight: 800, skyGain: 1.0,
+      cloudAmount: 1.0, coverage: 0.47, cloudHeight: 2100, cloudScale: 0.00020,
+      cloudWind: [0.0020, 0.0008], cloudThickness: 640, absorb: 2.7, erode: 0.20,
+      cloudSun: [1.95, 1.92, 1.84], cloudShade: [0.30, 0.37, 0.50],
+      cirrusAmount: 0.55, cirrusCoverage: 0.44, cirrusHeight: 8200,
+      cirrusScale: 0.000050, cirrusWind: [0.0010, 0.0004],
+    },
+    atmos: {
+      heightFalloff: 0.0016, baseHeight: -20,
+      highTint: [0.72, 0.84, 1.00], lowTint: [1.03, 1.00, 0.97],
+      sunTint: [0.55, 0.40, 0.22], sunPow: 7.0,
+    },
+    bloom: { strength: 0.075, radius: 1.0, threshold: 1.0, knee: 0.6, clamp: 8.0, anamorphic: 1.0, dirt: 0.05 },
+    flare: { intensity: 0.42, ghosts: 0.9, streak: 0.30, tint: 0xfff0d8 },
+    ao: { radius: 2.6, intensity: 1.05, strength: 0.60, tint: 0x1b2836 },
+    grade: {
+      toneMode: 2, shoulder: 1.0, toe: 1.18, white: 1.0, highlightDesat: 0.18,
+      saturation: 1.07, contrast: 1.045, ca: 1.5, vignette: 1.08, grain: 0.012,
+      lift: [0.005, 0.010, 0.022], gain: [1.0, 1.0, 1.0], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.93, 0.985, 1.10], highlightTint: [1.06, 1.015, 0.945],
+      sharpen: 0.26,
+    },
   },
+
   sunset: {
     kind: 'atmosphere',
-    turbidity: 8.5, rayleigh: 2.6, mieCoefficient: 0.011, mieDirectionalG: 0.92,
+    turbidity: 8.0, rayleigh: 2.4, mieCoefficient: 0.0090, mieDirectionalG: 0.90,
     elevation: 4.2, azimuth: 190,
     sunColor: 0xffb066, sunIntensity: 5.2,
     hemiSky: 0xc09ad0, hemiGround: 0x30202a, hemiIntensity: 0.7,
     fillColor: 0x7060a0, fillIntensity: 0.5,
     rimColor: 0xff8a4a, rimIntensity: 1.3,
     fog: { color: 0xe0a184, density: 0.00075 },
-    exposure: 0.55,
-    godray: { intensity: 0.9, tint: 0xffb373 },
+    exposure: 0.42,
+    godray: { intensity: 0.60, tint: 0xffb373, clamp: 3.0, density: 0.68, decay: 0.952, weight: 2.6, threshold: 1.1 },
     envIntensity: 1.0,
+
+    sky: {
+      sunDisc: 24, aureole: 5.5, aureoleTight: 260, skyGain: 1.0,
+      cloudAmount: 1.0, coverage: 0.56, cloudHeight: 2600, cloudScale: 0.00016,
+      cloudWind: [0.0016, 0.0006], cloudThickness: 900, absorb: 3.4, erode: 0.24,
+      cloudSun: [2.60, 1.42, 0.72], cloudShade: [0.26, 0.21, 0.32],
+      cirrusAmount: 0.80, cirrusCoverage: 0.50, cirrusHeight: 9000,
+      cirrusScale: 0.000044, cirrusWind: [0.0008, 0.0003],
+    },
+    atmos: {
+      heightFalloff: 0.0011, baseHeight: -20,
+      highTint: [0.60, 0.62, 0.92], lowTint: [1.10, 0.92, 0.80],
+      sunTint: [1.40, 0.66, 0.26], sunPow: 4.5,
+    },
+    bloom: { strength: 0.105, radius: 1.05, threshold: 0.95, knee: 0.65, clamp: 7.0, anamorphic: 1.15, dirt: 0.10 },
+    flare: { intensity: 0.85, ghosts: 1.1, streak: 0.45, tint: 0xffc98a },
+    ao: { radius: 2.8, intensity: 1.1, strength: 0.62, tint: 0x2a1c22 },
+    grade: {
+      toneMode: 2, shoulder: 1.06, toe: 1.28, white: 1.0, highlightDesat: 0.26,
+      saturation: 1.12, contrast: 1.075, ca: 2.1, vignette: 1.24, grain: 0.016,
+      lift: [0.014, 0.008, 0.020], gain: [1.03, 0.995, 0.965], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.86, 0.93, 1.16], highlightTint: [1.10, 1.00, 0.88],
+      sharpen: 0.26,
+    },
   },
+
   space: {
     kind: 'space',
     sunColor: 0xfff4e2, sunIntensity: 5.0,
@@ -45,11 +100,135 @@ export const PRESETS = {
     rimColor: 0x88bbff, rimIntensity: 0.85,
     fog: { color: 0x05070f, density: 0.00012 },
     exposure: 0.95,
-    godray: { intensity: 0.22, tint: 0xbdd6ff },
+    godray: { intensity: 0.16, tint: 0xbdd6ff, clamp: 2.5, density: 0.55, decay: 0.94, weight: 2.0, threshold: 1.6 },
     nebula: [0x2a3f7a, 0x6b2a6a, 0x123048],
     envIntensity: 0.8,
+
+    atmos: {
+      heightFalloff: 0.0002, baseHeight: -200,
+      highTint: [0.30, 0.42, 0.86], lowTint: [0.80, 0.86, 1.05],
+      sunTint: [0.24, 0.34, 0.62], sunPow: 9.0,
+    },
+    bloom: { strength: 0.115, radius: 1.15, threshold: 0.85, knee: 0.5, clamp: 10.0, anamorphic: 1.35, dirt: 0.14 },
+    flare: { intensity: 0.55, ghosts: 1.2, streak: 0.75, tint: 0xcfe4ff },
+    ao: { radius: 3.0, intensity: 1.2, strength: 0.70, tint: 0x0b1120 },
+    grade: {
+      toneMode: 2, shoulder: 0.98, toe: 1.34, white: 1.0, highlightDesat: 0.12,
+      saturation: 1.10, contrast: 1.10, ca: 2.4, vignette: 1.35, grain: 0.020,
+      lift: [0.002, 0.004, 0.014], gain: [0.98, 0.995, 1.045], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.82, 0.90, 1.22], highlightTint: [0.98, 1.00, 1.06],
+      sharpen: 0.32,
+    },
   },
 };
+
+/* ── Atmosphere: height fog + aerial perspective + sun inscattering ──────────
+   three's FogExp2 is a single flat colour multiplied in by view depth, which is
+   why distance reads as a wall rather than as air. These replacement chunks
+   integrate an exponential *height* falloff along the ray, tint the haze toward
+   the sky above and the ground haze below, and add a forward-scatter lobe so
+   looking toward the sun through 3 km of air actually glows.
+
+   Per-preset values are baked in as literals rather than uniforms, because
+   three composes built-in material uniforms at import time and there is no seam
+   to add new ones. Presets change roughly never, so the recompile is free; the
+   cache-key hook below is what stops three handing back a stale program.     */
+let _atmVersion = 0;
+let _cacheKeyPatched = false;
+
+function f(v) {
+  const s = Number(v).toFixed(6);
+  return s.includes('.') ? s : s + '.0';
+}
+
+function installAtmosphere(preset, sunDir) {
+  const a = preset.atmos || {};
+  const hi = a.highTint || [0.75, 0.85, 1.0];
+  const lo = a.lowTint || [1.0, 1.0, 1.0];
+  const st = a.sunTint || [0.4, 0.3, 0.2];
+
+  if (!_cacheKeyPatched) {
+    // Built-in materials key their compiled program off parameters, not off
+    // chunk text — without this, re-patching a chunk silently reuses the old
+    // program. This is the documented extension point for exactly that.
+    const base = THREE.Material.prototype.customProgramCacheKey;
+    THREE.Material.prototype.customProgramCacheKey = function () {
+      return base.call(this) + '|atm' + _atmVersion;
+    };
+    _cacheKeyPatched = true;
+  }
+  _atmVersion++;
+
+  THREE.ShaderChunk.fog_pars_vertex = /* glsl */`
+#ifdef USE_FOG
+  varying float vFogDepth;
+  varying float vFogHeight;
+  varying float vFogSunCos;
+#endif
+`;
+
+  // World height and the view/sun angle are derived from the view-space
+  // position and the view matrix basis, so this stays correct for instanced
+  // and skinned geometry where modelMatrix alone would not be.
+  THREE.ShaderChunk.fog_vertex = /* glsl */`
+#ifdef USE_FOG
+  vFogDepth = - mvPosition.z;
+  vec3 fogUpV  = vec3( viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1] );
+  vec3 fogSunV = mat3( viewMatrix ) * vec3( ${f(sunDir.x)}, ${f(sunDir.y)}, ${f(sunDir.z)} );
+  vFogHeight = cameraPosition.y + dot( mvPosition.xyz, fogUpV );
+  vFogSunCos = dot( normalize( mvPosition.xyz + vec3( 1e-5 ) ), fogSunV );
+#endif
+`;
+
+  THREE.ShaderChunk.fog_pars_fragment = /* glsl */`
+#ifdef USE_FOG
+  uniform vec3 fogColor;
+  varying float vFogDepth;
+  varying float vFogHeight;
+  varying float vFogSunCos;
+  #ifdef FOG_EXP2
+    uniform float fogDensity;
+  #else
+    uniform float fogNear;
+    uniform float fogFar;
+  #endif
+#endif
+`;
+
+  THREE.ShaderChunk.fog_fragment = /* glsl */`
+#ifdef USE_FOG
+  {
+    const float ATM_K  = ${f(a.heightFalloff ?? 0.0015)};
+    const float ATM_H0 = ${f(a.baseHeight ?? 0.0)};
+    const vec3  ATM_HI = vec3( ${f(hi[0])}, ${f(hi[1])}, ${f(hi[2])} );
+    const vec3  ATM_LO = vec3( ${f(lo[0])}, ${f(lo[1])}, ${f(lo[2])} );
+    const vec3  ATM_SUN = vec3( ${f(st[0])}, ${f(st[1])}, ${f(st[2])} );
+    const float ATM_SUNPOW = ${f(a.sunPow ?? 6.0)};
+
+    #ifdef FOG_EXP2
+      float atmDens = fogDensity;
+    #else
+      float atmDens = 1.0 / max( 1.0, fogFar - fogNear );
+    #endif
+
+    // analytic integral of exp(-k*h) along the view ray
+    float dh = vFogHeight - cameraPosition.y;
+    float baseD = exp( -ATM_K * ( cameraPosition.y - ATM_H0 ) );
+    float kh = ATM_K * dh;
+    float ramp = ( abs( kh ) < 0.02 ) ? 1.0 : ( 1.0 - exp( -kh ) ) / kh;
+    float od = atmDens * vFogDepth * baseD * ramp;
+    float fogFactor = 1.0 - exp( -max( 0.0, od ) );
+
+    // aerial perspective: haze takes the colour of the sky it is standing in
+    float dirY = clamp( dh / max( vFogDepth, 1.0 ), -1.0, 1.0 );
+    vec3 atmCol = fogColor * mix( ATM_LO, ATM_HI, smoothstep( -0.12, 0.42, dirY ) );
+    atmCol += ATM_SUN * pow( max( 0.0, vFogSunCos ), ATM_SUNPOW );
+
+    gl_FragColor.rgb = mix( gl_FragColor.rgb, atmCol, clamp( fogFactor, 0.0, 1.0 ) );
+  }
+#endif
+`;
+}
 
 export class Environment {
   constructor(engine, presetName = 'corneria') {
@@ -63,16 +242,16 @@ export class Environment {
     this.sunWorld = new THREE.Vector3();
     this.sunScreen = new THREE.Vector2(0.5, 0.5);
     this.sunVisible = 0;
+    this.cameraRoll = 0;
+    this.time = 0;
+    this._sunFirst = true;
 
     this._pmrem = new THREE.PMREMGenerator(engine.renderer);
     this._pmrem.compileEquirectangularShader();
     this._envRT = null;
 
-    // ── sky dome (Preetham analytic scattering)
-    this.sky = new Sky();
-    this.sky.scale.setScalar(20000);
-    this.sky.material.depthWrite = false;
-    this.sky.renderOrder = -1000;
+    // ── sky dome (Preetham scattering + lit cloud decks)
+    this.sky = new SkyDome();
     this.root.add(this.sky);
 
     // ── starfield backdrop (space presets)
@@ -121,16 +300,17 @@ export class Environment {
 
     if (p.kind === 'atmosphere') {
       this.sky.visible = true;
-      const u = this.sky.material.uniforms;
-      u.turbidity.value = p.turbidity;
-      u.rayleigh.value = p.rayleigh;
-      u.mieCoefficient.value = p.mieCoefficient;
-      u.mieDirectionalG.value = p.mieDirectionalG;
       const phi = THREE.MathUtils.degToRad(90 - p.elevation);
       const theta = THREE.MathUtils.degToRad(p.azimuth);
       this.sunDir.setFromSphericalCoords(1, phi, theta);
-      u.sunPosition.value.copy(this.sunDir);
+      this.sky.set({
+        turbidity: p.turbidity, rayleigh: p.rayleigh,
+        mieCoefficient: p.mieCoefficient, mieDirectionalG: p.mieDirectionalG,
+        ...(p.sky || {}),
+      });
+      this.sky.setSun(this.sunDir);
       if (this.starMesh) this.starMesh.visible = false;
+      if (this.nebulaMesh) this.nebulaMesh.visible = false;
     } else {
       this.sky.visible = false;
       this.sunDir.fromArray(p.sunDir).normalize();
@@ -150,15 +330,68 @@ export class Environment {
     this.rim.intensity = p.rimIntensity;
 
     this.scene.fog = new THREE.FogExp2(p.fog.color, p.fog.density);
+    installAtmosphere(p, this.sunDir);
+    this._dirtyMaterials();
 
-    if (this.engine.post) {
-      this.engine.post.params.exposure = p.exposure;
-      this.engine.post.godRays.params.intensity = p.godray.intensity;
-      this.engine.post.godRays.params.tint.setHex(p.godray.tint);
-    }
-
+    this._applyPost(p);
+    this._sunFirst = true;
     this.refreshEnvMap();
     return this;
+  }
+
+  /** Push the preset's post-process character into the composer. */
+  _applyPost(p) {
+    const post = this.engine.post;
+    if (!post) return;
+
+    post.params.exposure = p.exposure;
+
+    const gr = post.godRays.params;
+    const g = p.godray || {};
+    if (g.intensity != null) gr.intensity = g.intensity;
+    if (g.tint != null) gr.tint.setHex(g.tint);
+    if (g.clamp != null) gr.clamp = g.clamp;
+    if (g.density != null) gr.density = g.density;
+    if (g.decay != null) gr.decay = g.decay;
+    if (g.weight != null) gr.weight = g.weight;
+    if (g.threshold != null) gr.threshold = g.threshold;
+
+    if (p.bloom) Object.assign(post.params.bloom, p.bloom);
+
+    if (p.flare && post.flare) {
+      const fp = post.flare.params;
+      for (const [k, v] of Object.entries(p.flare)) {
+        if (k === 'tint') fp.tint.setHex(v); else fp[k] = v;
+      }
+    }
+
+    if (p.ao && post.ao) {
+      const ap = post.ao.params;
+      for (const [k, v] of Object.entries(p.ao)) {
+        if (k === 'tint') ap.tint.setHex(v); else ap[k] = v;
+      }
+    }
+
+    if (p.grade && post.grade) {
+      const u = post.grade.material.uniforms;
+      for (const [k, v] of Object.entries(p.grade)) {
+        const key = 'u' + k[0].toUpperCase() + k.slice(1);
+        const uni = u[key];
+        if (!uni) continue;
+        if (Array.isArray(v) && uni.value?.set) uni.value.set(...v);
+        else uni.value = v;
+      }
+    }
+  }
+
+  /** Force a rebuild of every material's program after an atmosphere swap. */
+  _dirtyMaterials() {
+    this.scene.traverse((o) => {
+      const m = o.material;
+      if (!m) return;
+      if (Array.isArray(m)) { for (const mm of m) mm.needsUpdate = true; }
+      else m.needsUpdate = true;
+    });
   }
 
   _ensureStars() {
@@ -176,7 +409,7 @@ export class Environment {
   }
 
   _tintNebula(colors) {
-    if (!colors || !this.starMesh) return;
+    if (!colors) return;
     // Nebula haze rendered as an additive inner shell so stars show through it.
     if (!this.nebulaMesh) {
       const geo = new THREE.SphereGeometry(15600, 48, 32);
@@ -226,24 +459,15 @@ export class Environment {
     this.nebulaMesh.visible = true;
   }
 
-  /** Bake the sky (and nebula) into a PMREM probe used by every PBR material. */
+  /** Bake the sky (and its clouds) into a PMREM probe used by every PBR material. */
   refreshEnvMap() {
-    const r = this.engine.renderer;
     const prevBg = this.scene.background;
-    const prevEnv = this.scene.environment;
     const prevFog = this.scene.fog;
 
     // isolate: only the dome contributes to the probe
     const capture = new THREE.Scene();
     if (this.preset.kind === 'atmosphere') {
-      const proxy = new Sky();
-      proxy.scale.setScalar(1000);
-      const su = proxy.material.uniforms, u = this.sky.material.uniforms;
-      su.turbidity.value = u.turbidity.value;
-      su.rayleigh.value = u.rayleigh.value;
-      su.mieCoefficient.value = u.mieCoefficient.value;
-      su.mieDirectionalG.value = u.mieDirectionalG.value;
-      su.sunPosition.value.copy(u.sunPosition.value);
+      const proxy = this.sky.makeProbeMesh(1000);
       capture.add(proxy);
       if (this._envRT) this._envRT.dispose();
       this._envRT = this._pmrem.fromScene(capture, 0.02, 0.1, 2000);
@@ -258,29 +482,30 @@ export class Environment {
     this.scene.environmentIntensity = this.preset.envIntensity ?? 1;
     this.scene.background = prevBg;
     this.scene.fog = prevFog;
-    void prevEnv;
   }
 
   /**
-   * Keeps the shadow frustum tight around the action and recomputes the sun's
-   * screen-space position for the god-ray pass.
+   * Keeps the shadow frustum tight around the action, advances the weather and
+   * recomputes the sun's screen-space position for god rays and the flare.
    */
   update(dt, focus, camera) {
+    this.time += dt;
     const dist = 420;
     this.sunWorld.copy(this.sunDir).multiplyScalar(dist).add(focus);
     this.sun.position.copy(this.sunWorld);
     this.sun.target.position.copy(focus);
     this.sun.target.updateMatrixWorld();
 
-    this.hemi.position.copy(focus).addScaledVector(new THREE.Vector3(0, 1, 0), 50);
-    this.fill.position.copy(focus).add(new THREE.Vector3(-this.sunDir.x, 0.35, -this.sunDir.z).multiplyScalar(200));
-    this.rim.position.copy(focus).add(new THREE.Vector3(-this.sunDir.x, -0.12, -this.sunDir.z).multiplyScalar(-260));
+    this.hemi.position.copy(focus).addScaledVector(_up, 50);
+    this.fill.position.copy(focus).add(_v2.set(-this.sunDir.x, 0.35, -this.sunDir.z).multiplyScalar(200));
+    this.rim.position.copy(focus).add(_v3.set(-this.sunDir.x, -0.12, -this.sunDir.z).multiplyScalar(-260));
 
     if (this.starMesh) this.starMesh.position.copy(camera.position);
     if (this.nebulaMesh) this.nebulaMesh.position.copy(camera.position);
     this.sky.position.copy(camera.position);
+    this.sky.setTime(this.time);
 
-    // sun in screen space, for god rays
+    // sun in screen space, for god rays and the flare
     const p = _v.copy(this.sunDir).multiplyScalar(9000).add(camera.position);
     p.project(camera);
     this.sunScreen.set(p.x * 0.5 + 0.5, p.y * 0.5 + 0.5);
@@ -290,11 +515,22 @@ export class Environment {
       Math.abs(this.sunScreen.y - 0.5) - 0.5,
     );
     const target = behind ? 0 : THREE.MathUtils.clamp(1 - off / 0.35, 0, 1);
-    this.sunVisible += (target - this.sunVisible) * Math.min(1, dt * 6);
+    if (this._sunFirst) { this.sunVisible = target; this._sunFirst = false; }
+    else this.sunVisible += (target - this.sunVisible) * Math.min(1, dt * 9);
 
-    if (this.engine.post) {
-      this.engine.post.godRays.sun.copy(this.sunScreen);
-      this.engine.post.godRays.visible = this.sunVisible;
+    // screen-space roll, so the flare's starburst stays welded to the lens
+    const e = camera.matrixWorld.elements;
+    this.cameraRoll = Math.atan2(e[1], e[5]);
+
+    const post = this.engine.post;
+    if (post) {
+      post.godRays.sun.copy(this.sunScreen);
+      post.godRays.visible = this.sunVisible;
+      if (post.flare) {
+        post.flare.sun.copy(this.sunScreen);
+        post.flare.visible = this.sunVisible;
+        post.flare.roll = this.cameraRoll;
+      }
     }
   }
 
@@ -305,3 +541,6 @@ export class Environment {
 }
 
 const _v = new THREE.Vector3();
+const _v2 = new THREE.Vector3();
+const _v3 = new THREE.Vector3();
+const _up = new THREE.Vector3(0, 1, 0);

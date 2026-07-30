@@ -347,6 +347,119 @@ export function bakeRockMaterial({ seed = 'rock', size = 1024, tintA = [0.42, 0.
   return { map, normalMap, roughnessMap };
 }
 
+/**
+ * Cloud density sheet — the substrate for the sky's layered cloud decks.
+ *
+ * Packed so one fetch feeds every layer:
+ *   R  low-frequency coverage (domain-warped, gives the deck its shape)
+ *   G  billow / cauliflower lumps from inverted Worley (cumulus silhouette)
+ *   B  fine erosion detail (wispy edges)
+ *   A  wind-smeared streaks (cirrus)
+ *
+ * Nyquist: the top octave of every field is kept under ~80 cells across the
+ * sheet, i.e. ≥6 texels per cell at 512. Anything finer aliases into fizz the
+ * moment the sky is minified toward the horizon.
+ */
+export function bakeCloudSheet({ seed = 'cloud', size = 512 } = {}) {
+  const rng = new RNG(seed);
+  const warpF = fbm2D(rng, { octaves: 3, base: 3, gain: 0.5 });    // 12 cells
+  const covF = fbm2D(rng, { octaves: 4, base: 3, gain: 0.58 });    // 24 cells
+  const billA = worley2D(rng, 5);
+  const billB = worley2D(rng, 11);
+  const detF = fbm2D(rng, { octaves: 4, base: 9, gain: 0.58 });    // 72 cells
+  const cirF = fbm2D(rng, { octaves: 4, base: 6, gain: 0.55 });    // 48 cells
+
+  const n = size * size;
+  const cov = new Float32Array(n);
+  const bill = new Float32Array(n);
+  const det = new Float32Array(n);
+  const cir = new Float32Array(n);
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const u = x / size, v = y / size;
+      const i = y * size + x;
+      const wx = (warpF(u, v) - 0.5) * 0.11;
+      const wy = (warpF(v, u) - 0.5) * 0.11;
+      cov[i] = covF(u + wx, v + wy);
+      bill[i] = 1 - Math.min(1, billA(u, v) * 0.66 + billB(u + 0.31, v + 0.17) * 0.44);
+      det[i] = detF(u, v);
+      cir[i] = cirF(u, v);
+    }
+  }
+
+  // Cirrus is the same field smeared along the wind axis, then ridged — that
+  // is what turns fbm blobs into the thin fibrous streaks of real cirrus.
+  const K = 14;
+  const smear = new Float32Array(n);
+  for (let y = 0; y < size; y++) {
+    const row = y * size;
+    for (let x = 0; x < size; x++) {
+      let s = 0;
+      for (let k = -K; k <= K; k++) s += cir[row + ((x + k) % size + size) % size];
+      smear[row + x] = s / (2 * K + 1);
+    }
+  }
+  let lo = 1, hi = 0;
+  for (let i = 0; i < n; i++) { if (smear[i] < lo) lo = smear[i]; if (smear[i] > hi) hi = smear[i]; }
+  const span = Math.max(1e-4, hi - lo);
+
+  return bakeRGBA(size, (u, v, out, x, y) => {
+    const i = y * size + x;
+    const s = (smear[i] - lo) / span;
+    const streak = 1 - Math.abs(s * 2 - 1);                 // ridged → fibres
+    out[0] = cov[i];
+    out[1] = bill[i];
+    out[2] = det[i];
+    out[3] = Math.min(1, streak * (0.55 + det[i] * 0.65));
+  });
+}
+
+/**
+ * Lens dirt — the smeared grease and dust on a real front element. Multiplied
+ * against the bloom pyramid so it only shows when something is actually bright,
+ * which is the only way it reads as a lens and not as a texture overlay.
+ */
+export function bakeLensDirt({ seed = 'dirt', size = 256 } = {}) {
+  const rng = new RNG(seed);
+  const grime = fbm2D(rng, { octaves: 4, base: 4, gain: 0.55 });
+  const blobs = [];
+  for (let i = 0; i < 46; i++) {
+    blobs.push({
+      x: rng.next(), y: rng.next(),
+      r: rng.range(0.006, 0.055),
+      a: rng.range(0.15, 1.0),
+      sx: rng.range(0.6, 3.2),
+    });
+  }
+  const scr = [];
+  for (let i = 0; i < 18; i++) {
+    scr.push({ x: rng.next(), y: rng.next(), ang: rng.range(0, Math.PI), len: rng.range(0.04, 0.30), a: rng.range(0.1, 0.5) });
+  }
+  return bakeRGBA(size, (u, v, out) => {
+    let a = grime(u, v) * 0.20;
+    for (const b of blobs) {
+      let dx = u - b.x, dy = v - b.y;
+      if (dx > 0.5) dx -= 1; if (dx < -0.5) dx += 1;
+      if (dy > 0.5) dy -= 1; if (dy < -0.5) dy += 1;
+      const d = Math.hypot(dx / b.sx, dy) / b.r;
+      if (d < 1) a += b.a * Math.pow(1 - d, 2.2);
+    }
+    for (const s of scr) {
+      let dx = u - s.x, dy = v - s.y;
+      if (dx > 0.5) dx -= 1; if (dx < -0.5) dx += 1;
+      if (dy > 0.5) dy -= 1; if (dy < -0.5) dy += 1;
+      const along = dx * Math.cos(s.ang) + dy * Math.sin(s.ang);
+      const across = -dx * Math.sin(s.ang) + dy * Math.cos(s.ang);
+      if (Math.abs(along) < s.len && Math.abs(across) < 0.004) {
+        a += s.a * (1 - Math.abs(along) / s.len);
+      }
+    }
+    a = Math.min(1, a * 0.55);
+    out[0] = a * 1.0; out[1] = a * 0.96; out[2] = a * 0.88; out[3] = 1;
+  }, { repeat: 1 });
+}
+
 function smooth01(x, a, b) {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);

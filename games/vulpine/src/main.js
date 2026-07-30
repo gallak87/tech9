@@ -67,7 +67,7 @@ let acc = 0;
 let simTime = 0;
 
 function step(dt) {
-  Input.update(simTime);
+  Input.update(dt, simTime);
   if (Input.state.anyPressed) ctx.audio.unlock();
   flight.update(dt, Input.state);
   world.update(dt);

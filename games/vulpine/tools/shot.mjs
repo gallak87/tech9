@@ -107,7 +107,10 @@ async function main() {
   });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}\n${e.stack || ''}`));
 
-  const url = `${base}/?quality=${QUALITY}&env=${ENV}&t=${TIME}`;
+  // The HUD is off by default: a legend overlay on top of every review shot
+  // hides exactly the corner of the frame a critic needs to see. --hud puts it
+  // back for reviewing the UI itself.
+  const url = `${base}/?quality=${QUALITY}&env=${ENV}&t=${TIME}&hud=${FLAG('hud') ? 1 : 0}`;
   await page.goto(url, { waitUntil: 'load', timeout: TIMEOUT });
 
   try {

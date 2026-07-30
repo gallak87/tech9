@@ -38,16 +38,24 @@ export const TUNE = {
   somersaultDuration: 1.05,
   uturnDuration: 1.25,
 
-  camBack: 15.4,
-  camUp: 3.55,
-  camLookAhead: 42,
-  camOffsetFollow: 0.30,
-  camDamp: 7.2,
-  camBoostBack: 4.6,
+  camBack: 12.6,
+  camUp: 3.15,
+  camLookAhead: 46,
+  camLookUp: 2.6,
+  // How much of the ship's offset the camera copies. Low values leave the ship
+  // pinned to the rail and sliding around the frame; high values glue the
+  // camera to the ship and kill the sense of manoeuvring. 0.7 is the Star Fox
+  // compromise — the ship leads the frame without escaping it.
+  camOffsetFollow: 0.70,
+  camAimFollow: 0.82,
+  camDamp: 8.4,
+  camBoostBack: 4.2,
   camBoostFov: 11,
-  camBrakeBack: -3.0,
+  camBrakeBack: -2.6,
   fovBase: 58,
 };
+
+const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
 
 const _v = new THREE.Vector3();
 const _q = new THREE.Quaternion();
@@ -192,11 +200,10 @@ export class Flight {
       const eased = p * p * (3 - 2 * p);
       rollExtra = this.rollDir * eased * Math.PI * 2;
     }
+    // Somersault: one clean 360° pitch loop, eased so the apex hangs.
     let somerPitch = 0;
     if (this.somersaultT >= 0) {
-      const p = this.somersaultT / TUNE.somersaultDuration;
-      somerPitch = Math.sin(p * Math.PI) * Math.PI * (p < 0.5 ? 1 : 1) * (1 - Math.cos(p * Math.PI * 2)) * 0.5;
-      somerPitch = (1 - Math.cos(p * Math.PI * 2)) * 0.5 * Math.PI * 2 * 0.5;
+      somerPitch = easeInOut(this.somersaultT / TUNE.somersaultDuration) * Math.PI * 2;
     }
 
     _e.set(this.pitch + somerPitch, this.yaw + Math.atan2(this.railDir.x, -this.railDir.z), this.bank + rollExtra, 'YXZ');
@@ -218,14 +225,18 @@ export class Flight {
     const back = TUNE.camBack + this.boostActive * TUNE.camBoostBack + this.brakeActive * TUNE.camBrakeBack;
     const railAhead = this.railPoint(this.railZ - TUNE.camLookAhead, _v).clone();
 
+    const f = TUNE.camOffsetFollow;
+    const af = TUNE.camAimFollow;
     const desired = new THREE.Vector3(
-      this.railPos.x + this.off.x * TUNE.camOffsetFollow,
-      this.railPos.y + this.off.y * TUNE.camOffsetFollow + TUNE.camUp,
+      this.railPos.x + this.off.x * f,
+      this.railPos.y + this.off.y * f + TUNE.camUp,
       this.railZ + back,
     );
+    // Aim past the ship rather than at it, so the ship sits low-centre in frame
+    // and the player is looking at where they are going, not at their own tail.
     const lookAt = new THREE.Vector3(
-      railAhead.x + this.off.x * (TUNE.camOffsetFollow * 0.55),
-      railAhead.y + this.off.y * (TUNE.camOffsetFollow * 0.55) + 1.2,
+      railAhead.x + this.off.x * af,
+      railAhead.y + this.off.y * af + TUNE.camLookUp,
       railAhead.z,
     );
 

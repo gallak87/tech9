@@ -7,7 +7,10 @@
     "dev": "vite --port 5180 --strictPort",
     "build": "vite build",
     "preview": "vite preview --port 5181 --strictPort",
-    "shot": "node tools/shot.mjs"
+    "shot": "node tools/shot.mjs",
+    "sheet": "node tools/sheet.mjs",
+    "blind": "node tools/blind.mjs",
+    "review": "node tools/shot.mjs --w 1920 --h 1080 --quality ultra --t 14"
   },
   "dependencies": {
     "three": "^0.184.0"

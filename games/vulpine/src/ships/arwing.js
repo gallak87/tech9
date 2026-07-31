@@ -1,46 +1,99 @@
 import * as THREE from 'three';
-import { Mat, additive, emissive } from '../render/materials.js';
-import { loft, superellipse, sweepProfile, wingGeometry, assemble, M } from '../render/geobuild.js';
+import { Mat, Tex, emissive } from '../render/materials.js';
+import { rng } from '../core/rng.js';
+import { registerShot } from '../game/shots.js';
+import { SMat, buildShipMaterials, flexMaterial } from './ship-materials.js';
+import {
+  loft, superellipse, assemble, M, stationAt,
+  hullLoft, wingLoft, chamferBox, extrudePoly, ductGeo, louvers,
+  boltRow, blisterGeo, tubeAlong, shellArc, mirrorX, triCount,
+} from '../render/geobuild.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// The Arwing. Everything here is lofted geometry — the fuselage is a swept
-// superellipse, the wings are real NACA airfoils with washout, the canopy is a
-// separate bubble. Forward is -Z, up is +Y, span is ±X.
+// The Arwing.
+//
+// Forward is -Z, up is +Y, span is ±X. Everything is lofted: the fuselage is a
+// swept superellipse with panel seams and intake wells cut into the loft itself,
+// the wings are real airfoils, and the wing assembly bends in the vertex stage
+// so tip fins and gun pods flex with the spar instead of hovering beside it.
+//
+// Silhouette targets, in priority order — these are what a reviewer reads at
+// 100 px, and everything else is subordinate to them:
+//   1. slender dart fuselage, sharp nose, no visible "fuselage + wing" join
+//   2. high-shouldered wings with modest sweep and outboard anhedral
+//   3. big upturned wingtip fins — the single most Arwing-specific feature
+//   4. twin laser barrels reaching forward past the cockpit
+//   5. one dominant engine bell flanked by two small ones
 // ─────────────────────────────────────────────────────────────────────────────
 
+const HALF_SPAN = 3.42;
+
+/* ── fuselage: sharp nose, shouldered waist, engine bay aft ─────────────────── */
 const FUSELAGE = [
-  { z: -3.62, rx: 0.014, ry: 0.011 },
-  { z: -3.34, rx: 0.072, ry: 0.056 },
-  { z: -2.92, rx: 0.148, ry: 0.112 },
-  { z: -2.36, rx: 0.232, ry: 0.176 },
-  { z: -1.70, rx: 0.312, ry: 0.240 },
-  { z: -0.98, rx: 0.382, ry: 0.296 },
-  { z: -0.22, rx: 0.428, ry: 0.336 },
-  { z:  0.54, rx: 0.444, ry: 0.348 },
-  { z:  1.24, rx: 0.418, ry: 0.328 },
-  { z:  1.86, rx: 0.372, ry: 0.292 },
-  { z:  2.24, rx: 0.344, ry: 0.266 },
-  { z:  2.36, rx: 0.330, ry: 0.252 },
+  { z: -4.06, rx: 0.015, ry: 0.013, p: 2.10, squash: 0.95, shoulder: 0.00 },
+  { z: -3.78, rx: 0.062, ry: 0.048, p: 2.20, squash: 0.90, shoulder: 0.02 },
+  { z: -3.34, rx: 0.134, ry: 0.096, p: 2.36, squash: 0.86, shoulder: 0.06 },
+  { z: -2.78, rx: 0.212, ry: 0.150, p: 2.55, squash: 0.82, shoulder: 0.11 },
+  { z: -2.08, rx: 0.288, ry: 0.208, p: 2.74, squash: 0.79, shoulder: 0.15 },
+  { z: -1.28, rx: 0.344, ry: 0.258, p: 2.86, squash: 0.77, shoulder: 0.17 },
+  { z: -0.44, rx: 0.386, ry: 0.294, p: 2.90, squash: 0.76, shoulder: 0.17 },
+  { z:  0.40, rx: 0.402, ry: 0.306, p: 2.86, squash: 0.77, shoulder: 0.15 },
+  { z:  1.16, rx: 0.386, ry: 0.294, p: 2.74, squash: 0.80, shoulder: 0.11 },
+  { z:  1.86, rx: 0.360, ry: 0.276, p: 2.56, squash: 0.84, shoulder: 0.06 },
+  { z:  2.34, rx: 0.342, ry: 0.260, p: 2.42, squash: 0.88, shoulder: 0.02 },
+  { z:  2.56, rx: 0.330, ry: 0.250, p: 2.36, squash: 0.92, shoulder: 0.00 },
 ];
 
-const WING = [
-  { span: 0.40, chord: 2.62, thickness: 0.135, sweep: -1.42, rise:  0.010, twist:  0.000 },
-  { span: 1.15, chord: 2.18, thickness: 0.118, sweep: -1.02, rise:  0.014, twist: -0.010 },
-  { span: 1.95, chord: 1.68, thickness: 0.094, sweep: -0.56, rise: -0.010, twist: -0.026 },
-  { span: 2.66, chord: 1.20, thickness: 0.072, sweep: -0.16, rise: -0.062, twist: -0.044 },
-  { span: 3.02, chord: 0.96, thickness: 0.052, sweep:  0.04, rise: -0.104, twist: -0.056 },
-];
-
+/* ── canopy: teardrop bubble set well forward ──────────────────────────────── */
 const CANOPY = [
-  { z: -2.28, rx: 0.075, ry: 0.030, y: 0.245 },
-  { z: -2.02, rx: 0.160, ry: 0.082, y: 0.262 },
-  { z: -1.62, rx: 0.246, ry: 0.150, y: 0.286 },
-  { z: -1.12, rx: 0.298, ry: 0.196, y: 0.306 },
-  { z: -0.62, rx: 0.300, ry: 0.196, y: 0.312 },
-  { z: -0.20, rx: 0.268, ry: 0.156, y: 0.310 },
-  { z:  0.10, rx: 0.212, ry: 0.092, y: 0.302 },
-  { z:  0.30, rx: 0.150, ry: 0.036, y: 0.296 },
+  { z: -2.66, rx: 0.048, ry: 0.020, yOff: 0.236 },
+  { z: -2.42, rx: 0.132, ry: 0.072, yOff: 0.246 },
+  { z: -2.06, rx: 0.212, ry: 0.132, yOff: 0.258 },
+  { z: -1.62, rx: 0.264, ry: 0.174, yOff: 0.272 },
+  { z: -1.14, rx: 0.276, ry: 0.183, yOff: 0.283 },
+  { z: -0.74, rx: 0.252, ry: 0.156, yOff: 0.290 },
+  { z: -0.42, rx: 0.196, ry: 0.096, yOff: 0.292 },
+  { z: -0.22, rx: 0.126, ry: 0.034, yOff: 0.290 },
 ];
+
+/**
+ * Wing: high shoulder root, ~24° leading-edge sweep, outboard anhedral, and a
+ * trailing edge that stays within 12 cm of z = 1.13 all the way out. That
+ * straight TE is what lets the elevons hinge on one clean line, and it is the
+ * planform cue that separates an Arwing from a generic delta.
+ */
+const WING = [
+  { span: 0.34, chord: 2.30, thickness: 0.150, sweep: -1.10, rise:  0.118, twist:  0.000 },
+  { span: 0.96, chord: 2.06, thickness: 0.128, sweep: -0.92, rise:  0.104, twist: -0.006 },
+  { span: 1.76, chord: 1.72, thickness: 0.100, sweep: -0.62, rise:  0.062, twist: -0.020 },
+  { span: 2.56, chord: 1.34, thickness: 0.078, sweep: -0.26, rise: -0.014, twist: -0.034 },
+  { span: 3.16, chord: 0.96, thickness: 0.058, sweep:  0.16, rise: -0.082, twist: -0.045 },
+  { span: HALF_SPAN, chord: 0.80, thickness: 0.048, sweep: 0.30, rise: -0.118, twist: -0.050 },
+];
+
+/* ── wingtip fin: the signature. Big, swept, canted out. ───────────────────── */
+// Split at span 1.04 so the red cap is real geometry rather than a decal that
+// z-fights the surface it is meant to be painted on.
+const TIP_FIN = [
+  { span: 0.00, chord: 1.42, thickness: 0.112, sweep: 0.02 },
+  { span: 0.42, chord: 1.20, thickness: 0.094, sweep: 0.22 },
+  { span: 0.86, chord: 0.94, thickness: 0.072, sweep: 0.46 },
+  { span: 1.04, chord: 0.82, thickness: 0.062, sweep: 0.58 },
+  { span: 1.24, chord: 0.66, thickness: 0.050, sweep: 0.72 },
+  { span: 1.46, chord: 0.44, thickness: 0.034, sweep: 0.90 },
+];
+const TIP_FIN_SPLIT = 3;
+
+/* ── dorsal fin behind the canopy ──────────────────────────────────────────── */
+const TAIL_FIN = [
+  { span: 0.00, chord: 1.52, thickness: 0.130, sweep: 0.46 },
+  { span: 0.42, chord: 1.26, thickness: 0.106, sweep: 0.70 },
+  { span: 0.82, chord: 0.98, thickness: 0.080, sweep: 0.96 },
+  { span: 0.98, chord: 0.86, thickness: 0.070, sweep: 1.08 },
+  { span: 1.16, chord: 0.70, thickness: 0.056, sweep: 1.24 },
+  { span: 1.34, chord: 0.46, thickness: 0.038, sweep: 1.44 },
+];
+const TAIL_FIN_SPLIT = 3;
 
 /* ── exhaust plume shader ─────────────────────────────────────────────────── */
 const PLUME_VERT = /* glsl */`
@@ -94,222 +147,768 @@ function plumeMaterial(hot, cool) {
   });
 }
 
-/* ── build ────────────────────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════════
+   geometry
+   ═══════════════════════════════════════════════════════════════════════════ */
 
 function fuselageGeo() {
-  const rings = FUSELAGE.map(s => {
-    const prof = superellipse(28, s.rx, s.ry, 2.55, { squash: 0.82 });
-    return prof.map(p => new THREE.Vector3(p.x, p.y, s.z));
+  return hullLoft({
+    stations: FUSELAGE, count: 34, steps: 26,
+    // girth seams: forward radome joint, cockpit sill frame, wing carry-through,
+    // the tank bay and the engine firewall
+    circGrooves: [
+      { z: -3.16, depth: 0.016, width: 0.028 },
+      { z: -2.52, depth: 0.014, width: 0.026 },
+      { z: -0.10, depth: 0.020, width: 0.034 },
+      { z:  1.02, depth: 0.016, width: 0.030 },
+      { z:  1.94, depth: 0.022, width: 0.036 },
+    ],
+    // stringers: the shoulder chine both sides and the ventral keel
+    longGrooves: [
+      { a: 0.000, depth: 0.016, width: 0.013, z0: -3.30, z1: 2.20, fade: 0.35 },
+      { a: 0.500, depth: 0.016, width: 0.013, z0: -3.30, z1: 2.20, fade: 0.35 },
+      { a: 0.750, depth: 0.014, width: 0.016, z0: -2.60, z1: 2.30, fade: 0.30 },
+    ],
+    // wells: the boundary-layer intakes on the upper flanks, and a pair of
+    // recessed avionics bays behind them
+    dents: [
+      { z: -0.62, a: 0.105, rz: 0.62, ra: 0.052, depth: 0.055, rim: 0.58 },
+      { z: -0.62, a: 0.395, rz: 0.62, ra: 0.052, depth: 0.055, rim: 0.58 },
+      { z:  1.30, a: 0.070, rz: 0.42, ra: 0.040, depth: 0.038, rim: 0.55 },
+      { z:  1.30, a: 0.430, rz: 0.42, ra: 0.040, depth: 0.038, rim: 0.55 },
+    ],
+    uvScale: [3, 4],
   });
-  return loft(rings, { capStart: true, capEnd: true, closed: true, uvScale: [2, 3] });
 }
 
-function canopyGeo(inset = 0) {
+function canopyGeo(inset = 0, squash = 0.10) {
   const rings = CANOPY.map(s => {
-    const prof = superellipse(24, s.rx - inset, s.ry - inset, 2.1, { squash: 0.25 });
-    return prof.map(p => new THREE.Vector3(p.x, Math.max(p.y, -0.02) + s.y, s.z));
+    const rx = Math.max(0.004, s.rx - inset);
+    const ry = Math.max(0.004, s.ry - inset);
+    return superellipse(26, rx, ry, 2.35, { squash })
+      .map(p => new THREE.Vector3(p.x, p.y + s.yOff, s.z));
   });
   return loft(rings, { capStart: true, capEnd: true, closed: true });
 }
 
-function wingtipFinGeo() {
-  // vertical fin at the wing tip — upper blade plus a short lower anhedral spur
-  const upper = [
-    { span: -0.030, chord: 0.94, thickness: 0.10, sweep: 0.02, rise: 0.0 },
-    { span:  0.030, chord: 0.94, thickness: 0.10, sweep: 0.02, rise: 0.0 },
-  ];
-  const blade = wingGeometry(upper, 18);
-  // rotate the airfoil so its span axis becomes vertical
-  blade.applyMatrix4(M.rz(Math.PI / 2));
-  return blade;
-}
-
-function laserPodGeo() {
-  const stations = [
-    { z: -1.30, r: 0.055 },
-    { z: -1.12, r: 0.098 },
-    { z: -0.70, r: 0.130 },
-    { z:  0.10, r: 0.138 },
-    { z:  0.62, r: 0.118 },
-    { z:  0.80, r: 0.086 },
-  ];
-  const rings = stations.map(s => superellipse(16, s.r, s.r * 0.92, 2.2).map(p => new THREE.Vector3(p.x, p.y, s.z)));
+/** A frame bow: a thin solid band that follows the canopy section at `z`. */
+function canopyBow(z, thick = 0.05, grow = 0.014) {
+  const rings = [];
+  for (const zz of [z - thick / 2, z, z + thick / 2]) {
+    const s = stationAt(CANOPY, zz, ['rx', 'ry', 'yOff']);
+    const k = zz === z ? grow : grow * 0.72;
+    rings.push(superellipse(26, s.rx + k, s.ry + k, 2.35, { squash: 0.10 })
+      .map(p => new THREE.Vector3(p.x, p.y + s.yOff, zz)));
+  }
   return loft(rings, { capStart: true, capEnd: true, closed: true });
 }
 
-function tailFinGeo() {
-  const spans = [
-    { span: 0.00, chord: 1.30, thickness: 0.16, sweep: 0.78, rise: 0 },
-    { span: 0.34, chord: 1.06, thickness: 0.12, sweep: 0.96, rise: 0 },
-    { span: 0.66, chord: 0.78, thickness: 0.09, sweep: 1.18, rise: 0 },
-    { span: 0.86, chord: 0.52, thickness: 0.06, sweep: 1.36, rise: 0 },
-  ];
-  const g = wingGeometry(spans, 18);
-  g.applyMatrix4(M.rz(Math.PI / 2));   // span becomes +Y
+/** A rail running along the canopy at angular fraction `a`. */
+function canopyRail(a, r = 0.017, z0 = -2.58, z1 = -0.28, n = 12) {
+  const path = [];
+  const t = a * Math.PI * 2;
+  const ex = 2 / 2.35;
+  const cx = Math.sign(Math.cos(t)) * Math.pow(Math.abs(Math.cos(t)), ex);
+  const cy = Math.sign(Math.sin(t)) * Math.pow(Math.abs(Math.sin(t)), ex);
+  for (let i = 0; i <= n; i++) {
+    const z = z0 + (z1 - z0) * (i / n);
+    const s = stationAt(CANOPY, z, ['rx', 'ry', 'yOff']);
+    const y = cy < 0 ? cy * 0.10 : cy;
+    path.push(new THREE.Vector3(cx * (s.rx + 0.010), y * (s.ry + 0.010) + s.yOff, z));
+  }
+  return tubeAlong(path, r, 7);
+}
+
+function wingGeo() {
+  return wingLoft(WING, {
+    res: 26, steps: 16,
+    chordGrooves: [
+      { xc: 0.18, depth: 0.010, width: 0.030 },
+      { xc: 0.58, depth: 0.012, width: 0.034 },
+      { xc: 0.82, side: 1, depth: 0.010, width: 0.028 },
+    ],
+    spanGrooves: [
+      { span: 0.98, depth: 0.014, width: 0.045 },
+      { span: 1.86, depth: 0.012, width: 0.042 },
+      { span: 2.66, depth: 0.010, width: 0.038 },
+    ],
+    uvScale: [2, 3],
+  });
+}
+
+function tipFinGeo() {
+  const g = wingLoft(TIP_FIN, {
+    res: 18, steps: 9,
+    chordGrooves: [{ xc: 0.42, depth: 0.010, width: 0.035 }],
+    uvScale: [1.4, 1.4],
+  });
+  g.applyMatrix4(M.rz(Math.PI / 2));       // span axis becomes +Y
   return g;
 }
 
-function intakeGeo() {
-  // side air intakes flanking the cockpit
-  const stations = [
-    { z: -1.05, rx: 0.11, ry: 0.15 },
-    { z: -0.72, rx: 0.16, ry: 0.20 },
-    { z:  0.10, rx: 0.17, ry: 0.21 },
-    { z:  0.72, rx: 0.14, ry: 0.17 },
-    { z:  0.94, rx: 0.10, ry: 0.12 },
-  ];
-  const rings = stations.map(s => superellipse(14, s.rx, s.ry, 3.0).map(p => new THREE.Vector3(p.x, p.y, s.z)));
-  return loft(rings, { capStart: true, capEnd: true, closed: true });
+function tailFinGeo() {
+  const g = wingLoft(TAIL_FIN, {
+    res: 20, steps: 10,
+    chordGrooves: [{ xc: 0.36, depth: 0.010, width: 0.032 }],
+    spanGrooves: [{ span: 0.44, depth: 0.010, width: 0.05 }],
+    uvScale: [1.4, 1.6],
+  });
+  g.applyMatrix4(M.rz(Math.PI / 2));
+  return g;
 }
 
-function nozzleGeo(rOuter, rInner, depth) {
-  const rings = [
-    ...[0, 1].map(i => superellipse(24, rOuter * (1 - i * 0.04), rOuter * (1 - i * 0.04), 2).map(p => new THREE.Vector3(p.x, p.y, i * 0.02))),
-    ...[0, 1, 2].map(i => {
-      const t = i / 2;
-      const r = rOuter * (1 - t * 0.30);
-      return superellipse(24, r, r, 2).map(p => new THREE.Vector3(p.x, p.y, 0.02 + t * depth));
-    }),
-    ...[0, 1].map(i => superellipse(24, rInner * (1 - i * 0.3), rInner * (1 - i * 0.3), 2).map(p => new THREE.Vector3(p.x, p.y, 0.02 + depth + i * 0.08))),
-  ];
-  return loft(rings, { capStart: false, capEnd: true, closed: true });
+/** Gun pod fairing that straddles the wing leading edge. */
+function laserPodGeo() {
+  return hullLoft({
+    stations: [
+      { z: -2.02, rx: 0.052, ry: 0.046, p: 2.4 },
+      { z: -1.82, rx: 0.108, ry: 0.096, p: 2.5 },
+      { z: -1.48, rx: 0.150, ry: 0.132, p: 2.7 },
+      { z: -0.90, rx: 0.164, ry: 0.144, p: 2.8 },
+      { z: -0.20, rx: 0.156, ry: 0.136, p: 2.7 },
+      { z:  0.46, rx: 0.126, ry: 0.108, p: 2.5 },
+      { z:  0.80, rx: 0.078, ry: 0.064, p: 2.4 },
+      { z:  0.94, rx: 0.030, ry: 0.026, p: 2.3 },
+    ],
+    count: 18, steps: 12,
+    circGrooves: [
+      { z: -1.28, depth: 0.012, width: 0.024 },
+      { z:  0.10, depth: 0.012, width: 0.024 },
+    ],
+    longGrooves: [{ a: 0.75, depth: 0.010, width: 0.020, z0: -1.6, z1: 0.6, fade: 0.2 }],
+    uvScale: [1.5, 2],
+  });
+}
+
+function barrelGeo() {
+  return hullLoft({
+    stations: [
+      { z: -3.52, rx: 0.048, ry: 0.048, p: 2.0 },
+      { z: -3.40, rx: 0.060, ry: 0.060, p: 2.0 },
+      { z: -3.34, rx: 0.052, ry: 0.052, p: 2.0 },
+      { z: -2.90, rx: 0.052, ry: 0.052, p: 2.0 },
+      { z: -2.84, rx: 0.062, ry: 0.062, p: 2.0 },
+      { z: -2.72, rx: 0.062, ry: 0.062, p: 2.0 },
+      { z: -2.66, rx: 0.054, ry: 0.054, p: 2.0 },
+      { z: -2.10, rx: 0.058, ry: 0.058, p: 2.0 },
+      { z: -1.86, rx: 0.070, ry: 0.070, p: 2.2 },
+    ],
+    count: 14, steps: 8,
+    longGrooves: [
+      { a: 0.25, depth: 0.008, width: 0.020, z0: -3.3, z1: -2.0, fade: 0.15 },
+      { a: 0.75, depth: 0.008, width: 0.020, z0: -3.3, z1: -2.0, fade: 0.15 },
+    ],
+  });
 }
 
 /**
- * @returns {THREE.Group} with `userData.api` = { setThrottle, setBoost, update, flexWings }
+ * Iris nozzle: eight hinged petals around a ceramic throat. `api` scales the
+ * hinge angle with throttle, so the bell narrows on cruise and flares on boost.
  */
-export function createArwing({ scale = 1, wingLights = true } = {}) {
+function makeNozzle(radius, len, petals = 8) {
+  const g = new THREE.Group();
+
+  const throat = new THREE.Mesh(hullLoft({
+    stations: [
+      { z: -0.30, rx: radius * 1.06, ry: radius * 1.06, p: 2.0 },
+      { z: -0.10, rx: radius * 0.98, ry: radius * 0.98, p: 2.0 },
+      { z:  0.10, rx: radius * 0.72, ry: radius * 0.72, p: 2.0 },
+      { z:  0.30, rx: radius * 0.60, ry: radius * 0.60, p: 2.0 },
+      { z:  0.52, rx: radius * 0.66, ry: radius * 0.66, p: 2.0 },
+    ],
+    count: 22, steps: 6, capStart: false, capEnd: false,
+    circGrooves: [{ z: 0.10, depth: radius * 0.05, width: 0.03 }],
+  }), SMat.ceramic);
+  throat.material.side = THREE.DoubleSide;
+  g.add(throat);
+
+  const petalGeo = shellArc({
+    r: radius, t: radius * 0.10,
+    a0: -Math.PI / petals + 0.035, a1: Math.PI / petals - 0.035,
+    z0: 0, z1: len, seg: 5, taper: 0.86,
+  });
+  petalGeo.translate(-radius, 0, 0);
+
+  const hinges = [];
+  for (let i = 0; i < petals; i++) {
+    const arm = new THREE.Group();
+    arm.rotation.z = (i / petals) * Math.PI * 2;
+    const pivot = new THREE.Group();
+    pivot.position.set(radius, 0, 0);
+    pivot.add(new THREE.Mesh(petalGeo, SMat.heat));
+    arm.add(pivot);
+    g.add(arm);
+    hinges.push(pivot);
+  }
+  g.userData.hinges = hinges;
+
+  // actuator rams, so the iris looks driven rather than magic
+  const rams = [];
+  for (let i = 0; i < petals; i += 2) {
+    const a = (i / petals) * Math.PI * 2;
+    const c = Math.cos(a), s = Math.sin(a);
+    const ram = chamferBox(radius * 0.11, radius * 0.11, len * 0.72, radius * 0.03);
+    ram.applyMatrix4(M.t(c * radius * 1.16, s * radius * 1.16, len * 0.30));
+    rams.push([ram, null]);
+  }
+  g.add(new THREE.Mesh(assemble(rams), SMat.metalDark));
+
+  return g;
+}
+
+/* ── cockpit ──────────────────────────────────────────────────────────────── */
+
+/**
+ * Interior geometry. Read through 30%-opacity glass at three-quarter angles,
+ * so what matters is contrast: a pale helmet against a black tub, and two or
+ * three instrument glows to give the volume depth.
+ */
+function buildCockpit() {
+  const g = new THREE.Group();
+  g.name = 'cockpit';
+
+  const tub = [
+    // floor + rails
+    [chamferBox(0.46, 0.030, 1.62, 0.012), M.t(0, 0.152, -1.44)],
+    [chamferBox(0.055, 0.075, 1.58, 0.014), M.t(0.215, 0.192, -1.44)],
+    [chamferBox(0.055, 0.075, 1.58, 0.014), M.t(-0.215, 0.192, -1.44)],
+    // rear bulkhead + head box
+    [chamferBox(0.48, 0.36, 0.055, 0.016), M.t(0, 0.330, -0.58)],
+    [chamferBox(0.26, 0.16, 0.10, 0.02), M.t(0, 0.560, -0.62)],
+    // coaming under the windscreen
+    [chamferBox(0.46, 0.06, 0.10, 0.02), M.chain(M.t(0, 0.318, -2.14), M.rx(0.34))],
+  ];
+  g.add(new THREE.Mesh(assemble(tub), SMat.cockpit));
+
+  // ejection seat
+  const seat = [
+    [chamferBox(0.30, 0.070, 0.34, 0.026), M.t(0, 0.206, -1.06)],
+    [chamferBox(0.30, 0.48, 0.075, 0.028), M.chain(M.t(0, 0.415, -0.865), M.rx(-0.20))],
+    [chamferBox(0.20, 0.11, 0.085, 0.028), M.chain(M.t(0, 0.622, -0.812), M.rx(-0.20))],
+    // bolsters
+    [chamferBox(0.055, 0.34, 0.075, 0.024), M.chain(M.t(0.146, 0.40, -0.90), M.rx(-0.20))],
+    [chamferBox(0.055, 0.34, 0.075, 0.024), M.chain(M.t(-0.146, 0.40, -0.90), M.rx(-0.20))],
+  ];
+  g.add(new THREE.Mesh(assemble(seat), SMat.seat));
+
+  // harness straps over the shoulders
+  const straps = [
+    [chamferBox(0.045, 0.012, 0.30, 0.005), M.chain(M.t(0.075, 0.455, -1.00), M.rx(0.52))],
+    [chamferBox(0.045, 0.012, 0.30, 0.005), M.chain(M.t(-0.075, 0.455, -1.00), M.rx(0.52))],
+  ];
+  g.add(new THREE.Mesh(assemble(straps), SMat.harness));
+
+  // instrument panel — a canted plate carrying the glow
+  const panelShape = [
+    new THREE.Vector2(-0.20, -0.10), new THREE.Vector2(0.20, -0.10),
+    new THREE.Vector2(0.17, 0.10), new THREE.Vector2(-0.17, 0.10),
+  ];
+  const panel = new THREE.Mesh(extrudePoly(panelShape, 0.035, 0.008), SMat.cockpit);
+  panel.position.set(0, 0.292, -1.94);
+  panel.rotation.x = -0.62;
+  g.add(panel);
+
+  const mfd = (x, y, w, h, mat) => {
+    const m = new THREE.Mesh(chamferBox(w, h, 0.012, 0.004), mat);
+    m.position.set(x, 0.292 + y * Math.cos(0.62), -1.925 + y * Math.sin(0.62));
+    m.rotation.x = -0.62;
+    return m;
+  };
+  g.add(mfd(-0.098, 0.010, 0.10, 0.075, SMat.instrument));
+  g.add(mfd(0.098, 0.010, 0.10, 0.075, SMat.instrumentAmber));
+  g.add(mfd(0, 0.052, 0.11, 0.026, SMat.instrument));
+  g.add(mfd(0, -0.052, 0.15, 0.016, SMat.instrumentRed));
+
+  // side consoles with switch banks
+  for (const sx of [1, -1]) {
+    const con = new THREE.Mesh(chamferBox(0.075, 0.045, 0.42, 0.014), SMat.cockpit);
+    con.position.set(0.185 * sx, 0.252, -1.48);
+    con.rotation.z = -0.22 * sx;
+    g.add(con);
+    g.add(new THREE.Mesh(boltRow({
+      from: [0.185 * sx, 0.278, -1.64], to: [0.185 * sx, 0.278, -1.32], n: 5, r: 0.009, h: 0.014,
+    }), SMat.metal));
+  }
+
+  // HUD combiner: a small tilted plate with a reticle
+  const hudPlate = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 0.16), SMat.hud);
+  hudPlate.position.set(0, 0.395, -2.02);
+  hudPlate.rotation.x = 0.30;
+  hudPlate.renderOrder = 3;
+  g.add(hudPlate);
+  const reticle = new THREE.Mesh(new THREE.TorusGeometry(0.035, 0.004, 6, 20), emissive(0x76ffd0, 3.0));
+  reticle.position.set(0, 0.395, -2.015);
+  reticle.rotation.x = 0.30;
+  reticle.renderOrder = 4;
+  g.add(reticle);
+
+  // control column
+  const stick = new THREE.Mesh(tubeAlong([
+    new THREE.Vector3(0, 0.185, -1.30),
+    new THREE.Vector3(0.008, 0.255, -1.325),
+    new THREE.Vector3(0.020, 0.316, -1.362),
+  ], (t) => 0.020 - t * 0.005, 8), SMat.metalDark);
+  g.add(stick);
+  const grip = new THREE.Mesh(chamferBox(0.042, 0.078, 0.048, 0.016), SMat.glove);
+  grip.position.set(0.022, 0.352, -1.368);
+  grip.rotation.x = -0.22;
+  g.add(grip);
+
+  // throttle quadrant
+  const thr = new THREE.Mesh(chamferBox(0.030, 0.058, 0.030, 0.010), SMat.glove);
+  thr.position.set(-0.176, 0.298, -1.44);
+  thr.rotation.x = -0.30;
+  g.add(thr);
+
+  /* ── pilot ──────────────────────────────────────────────────────────────── */
+  const pilot = new THREE.Group();
+  pilot.name = 'pilot';
+
+  const torso = hullLoft({
+    stations: [
+      { z: -0.16, rx: 0.108, ry: 0.070, p: 2.4 },
+      { z: -0.05, rx: 0.128, ry: 0.082, p: 2.5 },
+      { z:  0.10, rx: 0.140, ry: 0.086, p: 2.6 },
+      { z:  0.26, rx: 0.132, ry: 0.078, p: 2.6 },
+      { z:  0.36, rx: 0.104, ry: 0.062, p: 2.5 },
+      { z:  0.42, rx: 0.062, ry: 0.044, p: 2.3 },
+    ],
+    count: 14, steps: 7,
+  });
+  torso.applyMatrix4(M.chain(M.t(0, 0.300, -1.045), M.rx(Math.PI / 2 + 0.20)));
+  pilot.add(new THREE.Mesh(torso, SMat.suit));
+
+  // thighs forward to the floor, arms out to the stick
+  for (const sx of [1, -1]) {
+    const leg = tubeAlong([
+      new THREE.Vector3(0.078 * sx, 0.232, -1.02),
+      new THREE.Vector3(0.086 * sx, 0.236, -1.18),
+      new THREE.Vector3(0.090 * sx, 0.222, -1.32),
+      new THREE.Vector3(0.092 * sx, 0.186, -1.42),
+    ], (t) => 0.058 - t * 0.020, 8);
+    pilot.add(new THREE.Mesh(leg, SMat.suit));
+    const arm = tubeAlong([
+      new THREE.Vector3(0.132 * sx, 0.452, -0.98),
+      new THREE.Vector3(0.150 * sx, 0.398, -1.10),
+      new THREE.Vector3(0.120 * sx, 0.352, -1.26),
+      new THREE.Vector3((sx > 0 ? 0.032 : -0.168), 0.348, -1.35),
+    ], (t) => 0.046 - t * 0.016, 8);
+    pilot.add(new THREE.Mesh(arm, SMat.suit));
+  }
+
+  const helmet = new THREE.Mesh(hullLoft({
+    stations: [
+      { z: -0.108, rx: 0.048, ry: 0.052, p: 2.2 },
+      { z: -0.070, rx: 0.088, ry: 0.094, p: 2.3 },
+      { z: -0.010, rx: 0.106, ry: 0.112, p: 2.4 },
+      { z:  0.058, rx: 0.100, ry: 0.106, p: 2.4 },
+      { z:  0.106, rx: 0.062, ry: 0.070, p: 2.2 },
+    ],
+    count: 16, steps: 8,
+    circGrooves: [{ z: -0.010, depth: 0.008, width: 0.020 }],
+  }), SMat.helmet);
+  helmet.position.set(0, 0.596, -0.980);
+  helmet.rotation.x = Math.PI / 2;
+  pilot.add(helmet);
+
+  const visor = new THREE.Mesh(shellArc({
+    r: 0.106, t: 0.010, a0: -1.05, a1: 1.05, z0: -0.052, z1: 0.052, seg: 9, taper: 0.9,
+  }), SMat.visor);
+  visor.position.set(0, 0.598, -1.062);
+  visor.rotation.set(Math.PI / 2, 0, -Math.PI / 2);
+  pilot.add(visor);
+
+  // oxygen hose
+  pilot.add(new THREE.Mesh(tubeAlong([
+    new THREE.Vector3(0.062, 0.546, -1.032),
+    new THREE.Vector3(0.110, 0.480, -0.980),
+    new THREE.Vector3(0.140, 0.420, -0.930),
+  ], 0.014, 6), SMat.glove));
+
+  g.add(pilot);
+
+  // a soft interior fill so the tub is not a black hole under the glass
+  const fill = new THREE.PointLight(0x9fd2ff, 1.4, 2.6, 2);
+  fill.position.set(0, 0.34, -1.55);
+  fill.castShadow = false;
+  g.add(fill);
+
+  return g;
+}
+
+/* ── greeble packs ────────────────────────────────────────────────────────── */
+
+function hullGreebles() {
+  const r = rng('ship.greeble');
+  const metal = [];
+  const dark = [];
+
+  for (const sx of [1, -1]) {
+    // intake ducts sunk into the shoulder wells
+    dark.push([ductGeo({ rx: 0.115, ry: 0.155, depth: 0.34, throat: 0.5, lip: 0.03, sides: 16, p: 2.6 }),
+      M.chain(M.t(0.372 * sx, 0.106, -1.24), M.ry(0.30 * sx), M.rx(-0.06))]);
+
+    // splitter plate standing off the duct mouth
+    dark.push([chamferBox(0.022, 0.30, 0.30, 0.008),
+      M.chain(M.t(0.404 * sx, 0.106, -1.16), M.ry(0.30 * sx))]);
+
+    // heat louvres aft of the wing root
+    dark.push([louvers({ n: 5, w: 0.30, h: 0.030, d: 0.075, gap: 0.048, tilt: -0.55, curve: 0.25 }),
+      M.chain(M.t(0.386 * sx, 0.078, 1.30), M.ry(Math.PI / 2 * sx), M.rz(0.12))]);
+
+    // avionics bay covers with fasteners
+    metal.push([chamferBox(0.30, 0.012, 0.62, 0.006), M.chain(M.t(0.352 * sx, 0.212, 1.30), M.rz(1.10 * sx))]);
+    metal.push([boltRow({ from: [0.372 * sx, 0.258, 1.00], to: [0.372 * sx, 0.258, 1.60], n: 6, r: 0.011, h: 0.010 }), null]);
+    metal.push([boltRow({ from: [0.372 * sx, 0.160, 1.00], to: [0.372 * sx, 0.160, 1.60], n: 6, r: 0.011, h: 0.010 }), null]);
+
+    // spine fastener rows
+    metal.push([boltRow({ from: [0.10 * sx, 0.318, -0.20], to: [0.10 * sx, 0.300, 1.70], n: 9, r: 0.010, h: 0.008 }), null]);
+
+    // chine strakes forward of the wing
+    metal.push([extrudePoly([
+      new THREE.Vector2(-0.62, 0.0), new THREE.Vector2(0.30, 0.036),
+      new THREE.Vector2(0.30, -0.024), new THREE.Vector2(-0.62, -0.018),
+    ], 0.030, 0.006), M.chain(M.t(0.318 * sx, 0.045, -2.10), M.ry(Math.PI / 2 * sx), M.rz(0.10))]);
+
+    // sensor blisters
+    metal.push([blisterGeo({ rx: 0.062, ry: 0.036, rz: 0.098, seg: 12, rings: 4 }),
+      M.chain(M.t(0.268 * sx, 0.168, -2.68), M.rz(-0.55 * sx))]);
+    dark.push([blisterGeo({ rx: 0.048, ry: 0.030, rz: 0.070, seg: 10, rings: 4 }),
+      M.chain(M.t(0.176 * sx, -0.252, -0.60), M.rz(Math.PI))]);
+  }
+
+  // radome cap + pitot
+  dark.push([hullLoft({
+    stations: [
+      { z: -4.34, rx: 0.010, ry: 0.010, p: 2.0 },
+      { z: -4.20, rx: 0.030, ry: 0.028, p: 2.1 },
+      { z: -4.06, rx: 0.048, ry: 0.044, p: 2.2 },
+      { z: -3.86, rx: 0.062, ry: 0.056, p: 2.3 },
+      { z: -3.70, rx: 0.058, ry: 0.052, p: 2.3 },
+    ], count: 14, steps: 6,
+  }), null]);
+
+  // ventral keel with a real cross-section, plus its access panels
+  dark.push([hullLoft({
+    stations: [
+      { z: -1.30, rx: 0.115, ry: 0.020, p: 3.0 },
+      { z: -0.60, rx: 0.150, ry: 0.062, p: 3.2 },
+      { z:  0.60, rx: 0.158, ry: 0.078, p: 3.2 },
+      { z:  1.70, rx: 0.132, ry: 0.062, p: 3.0 },
+      { z:  2.10, rx: 0.096, ry: 0.030, p: 2.8 },
+    ], count: 14, steps: 8,
+    longGrooves: [{ a: 0.75, depth: 0.012, width: 0.030, z0: -1.0, z1: 1.9, fade: 0.2 }],
+  }), M.t(0, -0.322, 0)]);
+  metal.push([boltRow({ from: [0.10, -0.392, -0.40], to: [0.10, -0.392, 1.60], n: 8, r: 0.010, h: 0.008 }), null]);
+  metal.push([boltRow({ from: [-0.10, -0.392, -0.40], to: [-0.10, -0.392, 1.60], n: 8, r: 0.010, h: 0.008 }), null]);
+
+  // dorsal spine fairing running from the canopy into the fin
+  metal.push([hullLoft({
+    stations: [
+      { z: -0.34, rx: 0.086, ry: 0.030, p: 2.8 },
+      { z:  0.20, rx: 0.100, ry: 0.052, p: 3.0 },
+      { z:  1.20, rx: 0.092, ry: 0.048, p: 3.0 },
+      { z:  1.90, rx: 0.066, ry: 0.030, p: 2.8 },
+    ], count: 12, steps: 6,
+  }), M.t(0, 0.316, 0)]);
+
+  // engine bay collar — dark, banded, obviously a different assembly
+  dark.push([hullLoft({
+    stations: [
+      { z: 1.92, rx: 0.392, ry: 0.300, p: 2.6, squash: 0.86 },
+      { z: 2.12, rx: 0.412, ry: 0.320, p: 2.5, squash: 0.88 },
+      { z: 2.46, rx: 0.404, ry: 0.316, p: 2.4, squash: 0.90 },
+      { z: 2.62, rx: 0.380, ry: 0.296, p: 2.3, squash: 0.92 },
+    ],
+    count: 24, steps: 8, capStart: false, capEnd: false,
+    circGrooves: [{ z: 2.30, depth: 0.018, width: 0.028 }],
+    longGrooves: [
+      { a: 0.125, depth: 0.014, width: 0.018, z0: 1.95, z1: 2.60, fade: 0.08 },
+      { a: 0.375, depth: 0.014, width: 0.018, z0: 1.95, z1: 2.60, fade: 0.08 },
+      { a: 0.625, depth: 0.014, width: 0.018, z0: 1.95, z1: 2.60, fade: 0.08 },
+      { a: 0.875, depth: 0.014, width: 0.018, z0: 1.95, z1: 2.60, fade: 0.08 },
+    ],
+  }), null]);
+
+  // seeded avionics boxes tucked along the engine bay
+  for (let i = 0; i < 9; i++) {
+    const a = r.range(0, Math.PI * 2);
+    const z = r.range(1.55, 2.30);
+    const rad = 0.40 + r.range(0.0, 0.02);
+    metal.push([chamferBox(r.range(0.05, 0.11), r.range(0.03, 0.06), r.range(0.10, 0.24), 0.012),
+      M.chain(M.t(Math.cos(a) * rad, Math.sin(a) * rad * 0.76, z), M.rz(a))]);
+  }
+
+  return { metal: assemble(metal), dark: assemble(dark) };
+}
+
+function wingGreebles(sx) {
+  const metal = [];
+  const dark = [];
+
+  // wing-root fence where the wing meets the fuselage shoulder
+  metal.push([extrudePoly([
+    new THREE.Vector2(-1.30, 0.00), new THREE.Vector2(0.35, 0.10),
+    new THREE.Vector2(0.90, 0.02), new THREE.Vector2(-1.30, -0.06),
+  ], 0.026, 0.006), M.chain(M.t(0.50 * sx, 0.150, 0), M.ry(Math.PI / 2 * sx))]);
+
+  // pylon linking the gun pod to the wing
+  dark.push([chamferBox(0.055, 0.15, 0.72, 0.018), M.chain(M.t(1.30 * sx, 0.010, -0.85), M.rz(0.06 * sx))]);
+
+  // hardpoint blocks + fasteners along the spar line
+  for (let i = 0; i < 4; i++) {
+    metal.push([chamferBox(0.13, 0.030, 0.20, 0.010),
+      M.t((1.02 + i * 0.62) * sx, 0.115 - i * 0.045, 0.34 - i * 0.06)]);
+  }
+  metal.push([boltRow({ from: [0.75 * sx, 0.130, -0.55], to: [3.05 * sx, -0.062, 0.28], n: 9, r: 0.011, h: 0.008 }), null]);
+  metal.push([boltRow({ from: [0.75 * sx, 0.106, 0.72], to: [3.05 * sx, -0.098, 0.86], n: 8, r: 0.010, h: 0.008 }), null]);
+
+  // G-diffuser housing under the wing — a real box with vents, not a glow decal
+  dark.push([chamferBox(0.95, 0.085, 0.42, 0.024), M.chain(M.t(2.05 * sx, -0.115, 0.60), M.rz(0.10 * sx), M.ry(-0.12 * sx))]);
+  dark.push([louvers({ n: 4, w: 0.80, h: 0.026, d: 0.055, gap: 0.040, tilt: -0.45 }),
+    M.chain(M.t(2.05 * sx, -0.152, 0.62), M.rx(Math.PI / 2), M.ry(-0.12 * sx))]);
+
+  // tip-fin root fairing so the fin grows out of the wing
+  dark.push([extrudePoly([
+    new THREE.Vector2(-0.70, 0.00), new THREE.Vector2(0.10, 0.22),
+    new THREE.Vector2(0.55, 0.02), new THREE.Vector2(-0.70, -0.05),
+  ], 0.09, 0.014), M.chain(M.t(HALF_SPAN * sx, -0.085, 0.28), M.ry(Math.PI / 2 * sx))]);
+
+  // navigation blister on the tip fin
+  metal.push([blisterGeo({ rx: 0.040, ry: 0.026, rz: 0.070, seg: 10, rings: 4 }),
+    M.chain(M.t((HALF_SPAN + 0.06) * sx, 0.72, 0.52), M.rz(-Math.PI / 2 * sx))]);
+
+  return { metal: assemble(metal), dark: assemble(dark) };
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   assembly
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * @returns {THREE.Group} root with `userData.api` =
+ *   { update(dt, state), setThrottle, setDamage, damage, throttle, surfaces… }
+ */
+export function createArwing({ scale = 1, wingLights = true, cockpit = true } = {}) {
+  buildShipMaterials();
   const root = new THREE.Group();
   root.name = 'arwing';
 
-  /* ── light hull shell ─────────────────────────────────────────────────── */
-  const lightParts = [
-    [fuselageGeo(), null],
-    [intakeGeo(), M.t(0.50, -0.02, -0.15)],
-    [intakeGeo(), M.t(-0.50, -0.02, -0.15)],
-  ];
+  const flexU = { flex: { value: 0 }, roll: { value: 0 } };
 
-  const wingGeoL = wingGeometry(WING, 30);
-  const wingGeoR = wingGeometry(WING, 30);
-  wingGeoR.applyMatrix4(M.s(-1, 1, 1));
-  wingGeoR.computeVertexNormals();
+  /* ── fuselage ───────────────────────────────────────────────────────────── */
+  const greeb = hullGreebles();
+
+  const hullMesh = new THREE.Mesh(fuselageGeo(), SMat.paint);
+  hullMesh.name = 'hull';
+  const hullMetal = new THREE.Mesh(greeb.metal, SMat.metal);
+  const hullDark = new THREE.Mesh(greeb.dark, SMat.heat);
+
+  const tailFin = new THREE.Mesh(tailFinGeo(), SMat.paint);
+  tailFin.position.set(0, 0.300, 0);
+
+  /* ── trim: the red flashes that make the shape legible at distance ──────── */
+  const redParts = [
+    // nose chevron
+    [extrudePoly([
+      new THREE.Vector2(-0.55, 0.0), new THREE.Vector2(0.42, 0.075),
+      new THREE.Vector2(0.42, -0.075),
+    ], 0.052, 0.008), M.chain(M.t(0, 0.184, -3.02), M.rx(Math.PI / 2), M.rz(Math.PI / 2))],
+    // cheek flashes
+    [chamferBox(0.028, 0.075, 1.05, 0.010), M.chain(M.t(0.276, 0.108, -2.55), M.rz(-0.30), M.ry(0.10))],
+    [chamferBox(0.028, 0.075, 1.05, 0.010), M.chain(M.t(-0.276, 0.108, -2.55), M.rz(0.30), M.ry(-0.10))],
+    // spine stripe
+    [chamferBox(0.105, 0.028, 1.50, 0.010), M.t(0, 0.352, 1.05)],
+    // fin cap
+    [chamferBox(0.070, 0.075, 0.52, 0.020), M.t(0, 1.545, 1.86)],
+  ];
+  const redMesh = new THREE.Mesh(assemble(redParts), SMat.red);
+
+  const goldMesh = new THREE.Mesh(assemble([
+    [new THREE.TorusGeometry(0.056, 0.013, 8, 18), M.t(0, 0, -3.66)],
+    [chamferBox(0.020, 0.020, 0.34, 0.006), M.t(0.196, 0.246, -2.86)],
+    [chamferBox(0.020, 0.020, 0.34, 0.006), M.t(-0.196, 0.246, -2.86)],
+  ]), SMat.gold);
+
+  /* ── wing assembly ──────────────────────────────────────────────────────── */
+  // Wings, tip fins, gun pods and their trim are merged per material and share
+  // one flex shader, so the whole outer structure bends as a single spar.
+  const wingPaint = [], wingMetal = [], wingDark = [], wingRed = [];
+
+  for (const sx of [1, -1]) {
+    const mir = (g) => (sx < 0 ? mirrorX(g) : g);
+    const X = (v) => v * sx;
+
+    wingPaint.push([mir(wingGeo()), null]);
+
+    // tip fin, canted outboard
+    wingPaint.push([tipFinGeo(), M.chain(M.t(X(HALF_SPAN), -0.096, 0.05), M.rz(X(-0.20)))]);
+    // ventral spur below the tip
+    wingDark.push([tipFinGeo(), M.chain(M.t(X(HALF_SPAN), -0.140, 0.28), M.rz(X(0.24) + Math.PI), M.s(0.55, 0.52, 0.62))]);
+
+    // gun pod + barrel
+    wingPaint.push([mir(laserPodGeo()), M.t(X(1.30), -0.055, 0)]);
+    wingMetal.push([mir(barrelGeo()), M.t(X(1.30), -0.055, 0)]);
+    wingRed.push([new THREE.TorusGeometry(0.062, 0.014, 8, 16), M.t(X(1.30), -0.055, -3.50)]);
+
+    const g = wingGreebles(sx);
+    wingMetal.push([g.metal, null]);
+    wingDark.push([g.dark, null]);
+
+    // leading-edge red stripe following the sweep
+    wingRed.push([extrudePoly([
+      new THREE.Vector2(-1.15, 0.055), new THREE.Vector2(1.15, 0.020),
+      new THREE.Vector2(1.15, -0.020), new THREE.Vector2(-1.15, -0.055),
+    ], 0.11, 0.010), M.chain(M.t(X(2.30), 0.006, -0.72), M.ry(X(-0.42)), M.rx(Math.PI / 2), M.rz(Math.PI / 2))]);
+
+    // tip fin flash
+    wingRed.push([chamferBox(0.062, 0.42, 0.13, 0.018), M.chain(M.t(X(HALF_SPAN + 0.24), 1.02, 0.86), M.rz(X(-0.20)))]);
+  }
 
   const wingRoot = new THREE.Group();
   wingRoot.name = 'wings';
+  wingRoot.add(
+    new THREE.Mesh(assemble(wingPaint), flexMaterial(SMat.paint, flexU)),
+    new THREE.Mesh(assemble(wingMetal), flexMaterial(SMat.metal, flexU)),
+    new THREE.Mesh(assemble(wingDark), flexMaterial(SMat.heat, flexU)),
+    new THREE.Mesh(assemble(wingRed), flexMaterial(SMat.red, flexU)),
+  );
 
-  const wingL = new THREE.Mesh(wingGeoL, Mat.hull);
-  const wingR = new THREE.Mesh(wingGeoR, Mat.hull);
-  wingL.name = 'wingL'; wingR.name = 'wingR';
+  /* ── control surfaces ───────────────────────────────────────────────────── */
+  // Each lives in a pivot group at its hinge line and carries a fixed-weight
+  // flex material, so it tracks the bent wing instead of tearing away from it.
+  const surfaces = { elevon: [], brake: [], rudder: null, tipRudder: [] };
 
-  /* ── dark structural bits ─────────────────────────────────────────────── */
-  const darkParts = [
-    // nose sensor cone
-    [new THREE.ConeGeometry(0.075, 0.34, 16), M.chain(M.t(0, 0, -3.42), M.rx(-Math.PI / 2))],
-    // belly spine
-    [new THREE.BoxGeometry(0.34, 0.10, 2.9), M.t(0, -0.33, 0.35)],
-    // engine mount collar
-    [new THREE.CylinderGeometry(0.40, 0.44, 0.26, 24), M.chain(M.t(0, 0, 2.32), M.rx(Math.PI / 2))],
-    [tailFinGeo(), M.t(0, 0.24, 0.10)],
-  ];
-
-  /* ── red accents ──────────────────────────────────────────────────────── */
-  const redParts = [
-    // nose flash
-    [new THREE.BoxGeometry(0.20, 0.055, 1.05), M.chain(M.t(0, 0.175, -2.60), M.rx(-0.055))],
-    // dorsal stripe
-    [new THREE.BoxGeometry(0.14, 0.05, 1.35), M.t(0, 0.352, 1.20)],
-    // tail fin cap
-    [new THREE.BoxGeometry(0.075, 0.16, 0.62), M.t(0, 1.06, 1.44)],
-  ];
-
-  const hullMesh = new THREE.Mesh(assemble(lightParts), Mat.hull);
-  const darkMesh = new THREE.Mesh(assemble(darkParts), Mat.hullDark);
-  const redMesh = new THREE.Mesh(assemble(redParts), Mat.accentRed);
-  hullMesh.name = 'hull';
-
-  /* ── wing tips: fin + laser pod + red edge ────────────────────────────── */
-  const tipGroupFor = (side) => {
-    const g = new THREE.Group();
-    const sx = side;
-    const fin = new THREE.Mesh(wingtipFinGeo(), Mat.hull);
-    fin.position.set(3.04 * sx, 0.32, -0.02);
-    fin.scale.set(1, 1.05, 1);
-    g.add(fin);
-
-    const finLow = new THREE.Mesh(wingtipFinGeo(), Mat.hullDark);
-    finLow.position.set(3.04 * sx, -0.46, 0.16);
-    finLow.scale.set(0.75, 0.62, 0.8);
-    g.add(finLow);
-
-    const pod = new THREE.Mesh(laserPodGeo(), Mat.hull);
-    pod.position.set(2.52 * sx, -0.10, -0.28);
-    g.add(pod);
-
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.055, 0.62, 14), Mat.hullDark);
-    barrel.rotation.x = Math.PI / 2;
-    barrel.position.set(2.52 * sx, -0.10, -1.55);
-    g.add(barrel);
-
-    const muzzle = new THREE.Mesh(new THREE.TorusGeometry(0.052, 0.016, 8, 18), Mat.accentRed);
-    muzzle.rotation.y = 0;
-    muzzle.position.set(2.52 * sx, -0.10, -1.83);
-    g.add(muzzle);
-
-    // red leading-edge stripe
-    const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.045, 0.13), Mat.accentRed);
-    stripe.position.set(2.05 * sx, 0.045, -0.60);
-    stripe.rotation.y = -0.44 * sx;
-    g.add(stripe);
-
-    // G-diffuser glow strip under the wing
-    const gd = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.035, 0.24), Mat.gdiffuser);
-    gd.position.set(1.85 * sx, -0.088, 0.42);
-    gd.rotation.y = -0.28 * sx;
-    gd.name = 'gdiffuser';
-    g.add(gd);
-
-    return g;
+  const mkSurface = (mat, geo, hinge, station) => {
+    const pivot = new THREE.Group();
+    pivot.position.copy(hinge);
+    pivot.add(new THREE.Mesh(geo, flexMaterial(mat, flexU, { fixed: station })));
+    return pivot;
   };
 
-  wingRoot.add(wingL, wingR, tipGroupFor(1), tipGroupFor(-1));
+  for (const sx of [1, -1]) {
+    // elevon: outboard trailing edge
+    const evGeo = extrudePoly([
+      new THREE.Vector2(-0.52, 0.030), new THREE.Vector2(0.50, 0.014),
+      new THREE.Vector2(0.50, -0.014), new THREE.Vector2(-0.52, -0.030),
+    ], 1.05, 0.012);
+    evGeo.applyMatrix4(M.chain(M.rx(Math.PI / 2), M.rz(Math.PI / 2), M.t(0, 0, 0.20)));
+    const ev = mkSurface(SMat.paint, evGeo, new THREE.Vector3(2.28 * sx, -0.006, 0.94), 2.28 * sx);
+    ev.rotation.y = -0.06 * sx;
+    surfaces.elevon.push(ev);
+    wingRoot.add(ev);
 
-  /* ── engines ──────────────────────────────────────────────────────────── */
+    // airbrake: a plate lying flush on the upper wing that pops up on brake
+    const abGeo = extrudePoly([
+      new THREE.Vector2(-0.34, 0.34), new THREE.Vector2(0.34, 0.30),
+      new THREE.Vector2(0.34, -0.34), new THREE.Vector2(-0.34, -0.34),
+    ], 0.045, 0.010);
+    abGeo.applyMatrix4(M.chain(M.rx(-Math.PI / 2), M.t(0, 0.012, 0.30)));
+    const ab = mkSurface(SMat.paintGrey, abGeo, new THREE.Vector3(1.42 * sx, 0.118, 0.34), 1.42 * sx);
+    surfaces.brake.push(ab);
+    wingRoot.add(ab);
+
+    // tip-fin rudder
+    const trGeo = extrudePoly([
+      new THREE.Vector2(-0.44, 0.030), new THREE.Vector2(0.40, 0.012),
+      new THREE.Vector2(0.40, -0.012), new THREE.Vector2(-0.44, -0.030),
+    ], 0.62, 0.010);
+    trGeo.applyMatrix4(M.chain(M.rz(Math.PI / 2), M.t(0, 0.30, 0.16)));
+    const tr = mkSurface(SMat.paint, trGeo, new THREE.Vector3((HALF_SPAN + 0.20) * sx, 0.62, 1.06), HALF_SPAN * sx);
+    tr.rotation.z = -0.20 * sx;
+    surfaces.tipRudder.push(tr);
+    wingRoot.add(tr);
+  }
+
+  // dorsal rudder
+  {
+    const rGeo = extrudePoly([
+      new THREE.Vector2(-0.55, 0.038), new THREE.Vector2(0.48, 0.014),
+      new THREE.Vector2(0.48, -0.014), new THREE.Vector2(-0.55, -0.038),
+    ], 0.90, 0.012);
+    rGeo.applyMatrix4(M.chain(M.rz(Math.PI / 2), M.t(0, 0.42, 0.24)));
+    const rud = new THREE.Group();
+    rud.position.set(0, 0.52, 1.72);
+    rud.add(new THREE.Mesh(rGeo, SMat.paint));
+    surfaces.rudder = rud;
+    root.add(rud);
+  }
+
+  /* ── G-diffuser emissive strips ─────────────────────────────────────────── */
+  const gdiffusers = [];
+  for (const sx of [1, -1]) {
+    const gdMat = Mat.gdiffuser.clone();
+    const gd = new THREE.Mesh(chamferBox(0.86, 0.020, 0.30, 0.008), gdMat);
+    gd.position.set(2.05 * sx, -0.168, 0.60);
+    gd.rotation.set(0, -0.12 * sx, 0.10 * sx);
+    gd.name = 'gdiffuser';
+    wingRoot.add(gd);
+    gdiffusers.push(gd);
+
+    const gdTop = new THREE.Mesh(chamferBox(1.05, 0.014, 0.13, 0.006), gdMat);
+    gdTop.position.set(2.10 * sx, 0.028, 0.72);
+    gdTop.rotation.set(0, -0.12 * sx, 0.10 * sx);
+    wingRoot.add(gdTop);
+  }
+
+  /* ── engines ────────────────────────────────────────────────────────────── */
   const engines = new THREE.Group();
   engines.name = 'engines';
 
-  const mkEngine = (x, y, z, r, plumeLen, plumeR) => {
+  const mkEngine = (x, y, z, r, plumeLen, plumeR, name) => {
     const g = new THREE.Group();
     g.position.set(x, y, z);
+    g.name = name;
 
-    const shroud = new THREE.Mesh(nozzleGeo(r, r * 0.60, 0.34), Mat.hullDark);
-    g.add(shroud);
+    const housing = new THREE.Mesh(hullLoft({
+      stations: [
+        { z: -0.62, rx: r * 1.14, ry: r * 1.14, p: 2.2 },
+        { z: -0.30, rx: r * 1.22, ry: r * 1.22, p: 2.3 },
+        { z: -0.04, rx: r * 1.18, ry: r * 1.18, p: 2.3 },
+        { z:  0.06, rx: r * 1.10, ry: r * 1.10, p: 2.2 },
+      ],
+      count: 22, steps: 6, capStart: false, capEnd: false,
+      circGrooves: [{ z: -0.30, depth: r * 0.06, width: 0.03 }],
+      longGrooves: [
+        { a: 0.00, depth: r * 0.05, width: 0.02, z0: -0.6, z1: 0.04, fade: 0.06 },
+        { a: 0.25, depth: r * 0.05, width: 0.02, z0: -0.6, z1: 0.04, fade: 0.06 },
+        { a: 0.50, depth: r * 0.05, width: 0.02, z0: -0.6, z1: 0.04, fade: 0.06 },
+        { a: 0.75, depth: r * 0.05, width: 0.02, z0: -0.6, z1: 0.04, fade: 0.06 },
+      ],
+    }), SMat.heat);
+    g.add(housing);
 
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(r * 1.02, r * 0.075, 10, 30), Mat.accentBlue);
+    const nozzle = makeNozzle(r, r * 0.95);
+    nozzle.name = 'nozzle';
+    g.add(nozzle);
+
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(r * 1.16, r * 0.055, 8, 28), Mat.engineRing);
+    ring.position.z = -0.30;
     g.add(ring);
 
-    const core = new THREE.Mesh(new THREE.CircleGeometry(r * 0.66, 26), Mat.engineCore.clone());
-    core.position.z = 0.16;
+    const core = new THREE.Mesh(new THREE.CircleGeometry(r * 0.60, 24), Mat.engineCore.clone());
+    core.position.z = 0.24;
     core.rotation.y = Math.PI;
     core.name = 'core';
     g.add(core);
 
     const plume = new THREE.Mesh(
-      new THREE.CylinderGeometry(plumeR * 0.92, plumeR * 0.12, plumeLen, 22, 8, true),
+      new THREE.CylinderGeometry(plumeR * 0.92, plumeR * 0.12, plumeLen, 20, 8, true),
       plumeMaterial(0xdff2ff, 0x1f6bff),
     );
     plume.geometry.translate(0, -plumeLen / 2, 0);
     plume.rotation.x = -Math.PI / 2;
-    plume.position.z = 0.18;
+    plume.position.z = 0.28;
     plume.name = 'plume';
     plume.renderOrder = 6;
     g.add(plume);
 
     const glow = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: null, color: 0x66c2ff, blending: THREE.AdditiveBlending,
+      map: Tex.flareSoft, color: 0x66c2ff, blending: THREE.AdditiveBlending,
       transparent: true, depthWrite: false, toneMapped: false, fog: false,
     }));
-    glow.scale.setScalar(r * 5.2);
-    glow.position.z = 0.22;
+    glow.scale.setScalar(r * 6.0);
+    glow.position.z = 0.26;
     glow.name = 'glow';
     g.add(glow);
 
@@ -317,100 +916,318 @@ export function createArwing({ scale = 1, wingLights = true } = {}) {
     return g;
   };
 
-  const mainEngine = mkEngine(0, 0.00, 2.44, 0.335, 2.9, 0.30);
-  const engL = mkEngine(-0.82, -0.06, 2.10, 0.175, 1.6, 0.155);
-  const engR = mkEngine(0.82, -0.06, 2.10, 0.175, 1.6, 0.155);
+  const mainEngine = mkEngine(0, 0.005, 2.62, 0.372, 3.1, 0.33, 'engineMain');
+  const engL = mkEngine(-0.70, -0.062, 2.34, 0.186, 1.7, 0.165, 'engineL');
+  const engR = mkEngine(0.70, -0.062, 2.34, 0.186, 1.7, 0.165, 'engineR');
 
   const engineLight = new THREE.PointLight(0x4aa8ff, 6, 14, 2);
-  engineLight.position.set(0, 0, 3.1);
+  engineLight.position.set(0, 0, 3.2);
+  engineLight.castShadow = false;
   engines.add(engineLight);
 
-  /* ── canopy ───────────────────────────────────────────────────────────── */
-  const canopy = new THREE.Mesh(canopyGeo(), Mat.glass);
+  /* ── canopy + interior ──────────────────────────────────────────────────── */
+  const canopy = new THREE.Mesh(canopyGeo(), SMat.glass);
   canopy.name = 'canopy';
-  canopy.renderOrder = 4;
+  canopy.renderOrder = 5;
 
-  const canopyRim = new THREE.Mesh(canopyGeo(-0.012), Mat.canopyFrame);
-  canopyRim.scale.set(1.0, 0.995, 1.0);
-  canopyRim.renderOrder = 3;
+  const canopyFrame = new THREE.Mesh(assemble([
+    [canopyBow(-2.10, 0.055), null],
+    [canopyBow(-0.50, 0.060), null],
+    [canopyRail(0.0, 0.018), null],
+    [canopyRail(0.5, 0.018), null],
+    [canopyRail(0.25, 0.013, -2.50, -0.34, 10), null],
+  ]), SMat.metalDark);
+  canopyFrame.name = 'canopyFrame';
 
-  // interior suggestion — a dark shell so the glass has something behind it
-  const cockpitShell = new THREE.Mesh(canopyGeo(0.05), new THREE.MeshStandardMaterial({
-    color: 0x0a0e14, roughness: 0.85, metalness: 0.1, side: THREE.BackSide,
-  }));
-  cockpitShell.scale.set(0.94, 0.9, 0.96);
+  // sill: a solid coaming so the glass sits in something
+  const sill = new THREE.Mesh(loft(CANOPY.map(s => {
+    const pts = superellipse(26, s.rx + 0.026, s.ry + 0.026, 2.35, { squash: 0.10 });
+    return pts.map(p => new THREE.Vector3(p.x, Math.min(p.y, 0.012) + s.yOff - 0.012, s.z));
+  }), { capStart: true, capEnd: true, closed: true }), SMat.paint);
 
-  /* ── nav / warning lights ─────────────────────────────────────────────── */
+  const cockpitGroup = cockpit ? buildCockpit() : null;
+
+  /* ── nav / warning lights ───────────────────────────────────────────────── */
   const navLights = new THREE.Group();
+  navLights.name = 'navLights';
   if (wingLights) {
     const mk = (x, y, z, color, size) => {
       const m = new THREE.Mesh(new THREE.SphereGeometry(size, 10, 8), emissive(color, 8));
       m.position.set(x, y, z);
       navLights.add(m);
-      return m;
     };
-    mk(3.06, 0.72, 0.30, 0xff2a2a, 0.038);
-    mk(-3.06, 0.72, 0.30, 0x2aff5a, 0.038);
-    mk(0, 0.42, -1.05, 0xffffff, 0.026);
+    mk(HALF_SPAN + 0.10, 1.22, 1.02, 0xff2a2a, 0.040);
+    mk(-(HALF_SPAN + 0.10), 1.22, 1.02, 0x2aff5a, 0.040);
+    mk(0, 1.62, 1.92, 0xffffff, 0.028);
+    mk(0, -0.402, -0.98, 0xffffff, 0.024);
   }
 
-  root.add(hullMesh, darkMesh, redMesh, wingRoot, engines, cockpitShell, canopyRim, canopy, navLights);
+  /* ── damage kit ─────────────────────────────────────────────────────────── */
+  const damageGroup = new THREE.Group();
+  damageGroup.name = 'damage';
+
+  // scorch patches: thin shells hugging the hull, faded in with opacity
+  const scorchMat = SMat.scorch.clone();
+  const scorchParts = [];
+  {
+    const r = rng('ship.scorch');
+    for (let i = 0; i < 7; i++) {
+      const z = r.range(-1.6, 2.1);
+      const a = r.range(0, 1);
+      const s = stationAt(FUSELAGE, z, ['rx', 'ry']);
+      const t = a * Math.PI * 2;
+      scorchParts.push([
+        blisterGeo({ rx: r.range(0.14, 0.30), ry: 0.006, rz: r.range(0.18, 0.42), seg: 10, rings: 3 }),
+        M.chain(M.t(Math.cos(t) * s.rx * 1.02, Math.sin(t) * s.ry * 1.02, z), M.rz(t - Math.PI / 2)),
+      ]);
+    }
+    scorchParts.push([blisterGeo({ rx: 0.42, ry: 0.006, rz: 0.30, seg: 10, rings: 3 }), M.t(1.85, 0.075, 0.40)]);
+    scorchParts.push([blisterGeo({ rx: 0.34, ry: 0.006, rz: 0.26, seg: 10, rings: 3 }), M.t(-2.30, -0.010, 0.10)]);
+  }
+  const scorchMesh = new THREE.Mesh(assemble(scorchParts), scorchMat);
+  scorchMesh.visible = false;
+  damageGroup.add(scorchMesh);
+
+  // blown panel on the left wing root: cover plate hides, guts show through
+  const panelGeo = extrudePoly([
+    new THREE.Vector2(-0.30, 0.26), new THREE.Vector2(0.30, 0.24),
+    new THREE.Vector2(0.30, -0.26), new THREE.Vector2(-0.30, -0.26),
+  ], 0.028, 0.008);
+  panelGeo.applyMatrix4(M.rx(-Math.PI / 2));
+  const panelCover = new THREE.Mesh(panelGeo, SMat.paintGrey);
+  panelCover.position.set(-1.05, 0.130, -0.12);
+  wingRoot.add(panelCover);
+
+  const gutsParts = [];
+  for (let i = 0; i < 4; i++) {
+    gutsParts.push([chamferBox(0.55, 0.05, 0.035, 0.008), M.t(-1.05, 0.048, -0.32 + i * 0.14)]);
+  }
+  gutsParts.push([chamferBox(0.14, 0.08, 0.42, 0.014), M.t(-1.16, 0.060, -0.10)]);
+  gutsParts.push([chamferBox(0.10, 0.10, 0.20, 0.012), M.t(-0.94, 0.055, 0.06)]);
+  const guts = new THREE.Mesh(assemble(gutsParts), SMat.guts);
+  guts.visible = false;
+  damageGroup.add(guts);
+
+  const wires = new THREE.Mesh(assemble([
+    [tubeAlong([
+      new THREE.Vector3(-0.90, 0.10, -0.28), new THREE.Vector3(-1.02, 0.20, -0.16),
+      new THREE.Vector3(-1.14, 0.16, 0.00), new THREE.Vector3(-1.20, 0.24, 0.16),
+    ], 0.012, 6), null],
+    [tubeAlong([
+      new THREE.Vector3(-1.00, 0.09, 0.10), new THREE.Vector3(-1.12, 0.18, 0.20),
+      new THREE.Vector3(-1.22, 0.13, 0.32),
+    ], 0.010, 6), null],
+  ]), SMat.wire);
+  wires.visible = false;
+  damageGroup.add(wires);
+
+  const ember = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 6), SMat.ember.clone());
+  ember.position.set(-1.08, 0.14, -0.04);
+  ember.visible = false;
+  damageGroup.add(ember);
+
+  const smoke = [];
+  for (let i = 0; i < 7; i++) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: Tex.puff, color: 0x40372f, transparent: true, opacity: 0,
+      depthWrite: false, fog: false,
+    }));
+    s.scale.setScalar(0.4);
+    s.userData.phase = i / 7;
+    smoke.push(s);
+    damageGroup.add(s);
+  }
+
+  /* ── assemble ───────────────────────────────────────────────────────────── */
+  root.add(hullMesh, hullMetal, hullDark, tailFin, redMesh, goldMesh, wingRoot, engines, sill);
+  if (cockpitGroup) root.add(cockpitGroup);
+  root.add(canopyFrame, canopy, navLights, damageGroup);
   root.scale.setScalar(scale);
 
   root.traverse(o => {
     if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.frustumCulled = false; }
+    if (o.isSprite) o.frustumCulled = false;
   });
   canopy.castShadow = false;
+  scorchMesh.castShadow = false;
+  if (cockpitGroup) cockpitGroup.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
   for (const e of [mainEngine, engL, engR]) {
     e.traverse(o => { if (o.isMesh || o.isSprite) o.castShadow = false; });
   }
 
-  /* ── animation API ────────────────────────────────────────────────────── */
-  const plumes = [mainEngine, engL, engR].map(e => e.getObjectByName('plume'));
-  const cores = [mainEngine, engL, engR].map(e => e.getObjectByName('core'));
-  const glows = [mainEngine, engL, engR].map(e => e.getObjectByName('glow'));
-  const gdiffusers = [];
-  wingRoot.traverse(o => { if (o.name === 'gdiffuser') gdiffusers.push(o); });
+  /* ── animation API ──────────────────────────────────────────────────────── */
+  const engineList = [mainEngine, engL, engR];
+  const plumes = engineList.map(e => e.getObjectByName('plume'));
+  const cores = engineList.map(e => e.getObjectByName('core'));
+  const glows = engineList.map(e => e.getObjectByName('glow'));
+  const irises = engineList.map(e => e.getObjectByName('nozzle').userData.hinges);
+
+  const lerp = THREE.MathUtils.lerp;
+  const clamp = THREE.MathUtils.clamp;
 
   let t = 0;
+  let sFlex = 0, sRoll = 0, sBrake = 0, sPitch = 0, sYaw = 0;
+
   const api = {
     root, wingRoot, canopy, engines, engineLight,
+    cockpit: cockpitGroup,
+    surfaces, gdiffusers,
     throttle: 1, boost: 0, damage: 0,
+    triangles: 0,
+
     setThrottle(v) { this.throttle = v; },
-    update(dt, { throttle = 1, boost = 0, roll = 0 } = {}) {
+    setDamage(v) { this.damage = clamp(v, 0, 1); },
+
+    update(dt, state = {}) {
+      const {
+        throttle = 1, boost = 0, roll = 0, pitch = 0, yaw = 0, brake = 0, load = 0,
+      } = state;
+      if (state.damage != null) this.damage = clamp(state.damage, 0, 1);
+      const dmg = this.damage;
       t += dt;
-      const pw = 0.55 + throttle * 0.6 + boost * 1.25;
+      this.throttle = throttle; this.boost = boost;
+
+      const k = 1 - Math.exp(-dt * 9);
+
+      /* ── engines ── */
+      const misfire = dmg > 0.4 ? (Math.sin(t * 23.7) * 0.5 + 0.5) * (dmg - 0.4) * 1.6 : 0;
+      const pw = (0.55 + throttle * 0.6 + boost * 1.25) * (1 - misfire * 0.55);
       for (let i = 0; i < plumes.length; i++) {
         const p = plumes[i];
         if (!p) continue;
+        const sick = i === 2 ? dmg : 0;          // right engine takes the hit
         p.material.uniforms.uTime.value = t;
-        p.material.uniforms.uPower.value = pw * (i === 0 ? 1 : 0.72);
-        const len = 0.55 + throttle * 0.45 + boost * 1.5;
+        p.material.uniforms.uPower.value = pw * (i === 0 ? 1 : 0.72) * (1 - sick * 0.7);
+        const len = (0.55 + throttle * 0.45 + boost * 1.5) * (1 - sick * 0.45);
         p.scale.set(1 + boost * 0.22, len, 1 + boost * 0.22);
-        p.material.uniforms.uHot.value.setRGB(
-          0.87 + boost * 0.13, 0.95, 1.0,
-        );
+        p.material.uniforms.uHot.value.setRGB(0.87 + boost * 0.13, 0.95 - sick * 0.55, 1.0 - sick * 0.75);
+        p.material.uniforms.uCool.value.setRGB(0.12 + sick * 0.75, 0.42 - sick * 0.30, 1.0 - sick * 0.85);
       }
+
       const flick = 1 + Math.sin(t * 41) * 0.03 + Math.sin(t * 17.3) * 0.02;
-      for (const c of cores) {
+      for (let i = 0; i < cores.length; i++) {
+        const c = cores[i];
         if (!c) continue;
-        c.scale.setScalar((0.85 + throttle * 0.2 + boost * 0.32) * flick);
-        c.material.color.setRGB(0.62, 0.85, 1.0).multiplyScalar(6 + throttle * 4 + boost * 9);
+        const sick = i === 2 ? dmg : 0;
+        c.scale.setScalar((0.85 + throttle * 0.2 + boost * 0.32) * flick * (1 - sick * 0.5));
+        c.material.color.setRGB(0.62 + sick * 0.38, 0.85 - sick * 0.55, 1.0 - sick * 0.8)
+          .multiplyScalar((6 + throttle * 4 + boost * 9) * (1 - sick * 0.55));
       }
-      for (const g of glows) if (g) g.material.opacity = 0.55 + boost * 0.4;
-      engineLight.intensity = (5 + throttle * 3 + boost * 12) * flick;
+      for (const g of glows) if (g) g.material.opacity = (0.45 + boost * 0.4) * (1 - misfire * 0.5);
+      engineLight.intensity = (5 + throttle * 3 + boost * 12) * flick * (1 - misfire * 0.4);
+
+      // iris: tight on cruise, flared on boost, plus a slow breathing idle
+      const irisA = -0.16 + throttle * 0.10 + boost * 0.46 + Math.sin(t * 2.1) * 0.012;
+      for (const hinges of irises) {
+        for (let i = 0; i < hinges.length; i++) {
+          hinges[i].rotation.y = irisA + Math.sin(t * 9 + i) * 0.006 * boost;
+        }
+      }
+
+      /* ── aeroelastics ── */
+      // Symmetric bend follows load and thrust; antisymmetric follows roll and
+      // lags it, so the tips whip a beat behind the input.
+      const targetFlex = -0.05 - (load + boost * 0.35 + throttle * 0.10) * 0.55;
+      sFlex = lerp(sFlex, targetFlex, k);
+      sRoll = lerp(sRoll, clamp(roll, -1, 1) * 0.42, 1 - Math.exp(-dt * 5.5));
+      flexU.flex.value = sFlex + Math.sin(t * 6.3) * 0.012 * (1 + boost);
+      flexU.roll.value = sRoll;
+
+      /* ── control surfaces ── */
+      sPitch = lerp(sPitch, clamp(pitch, -1, 1), k);
+      sYaw = lerp(sYaw, clamp(yaw, -1, 1), k);
+      sBrake = lerp(sBrake, clamp(brake, 0, 1), 1 - Math.exp(-dt * 7));
+      const rl = clamp(roll, -1, 1);
+      for (let i = 0; i < surfaces.elevon.length; i++) {
+        const sx = i === 0 ? 1 : -1;
+        surfaces.elevon[i].rotation.x = (sPitch * 0.30 + rl * 0.34 * sx) + sBrake * 0.10;
+      }
+      for (const b of surfaces.brake) b.rotation.x = -sBrake * 1.05;
+      if (surfaces.rudder) surfaces.rudder.rotation.y = -sYaw * 0.26;
+      for (let i = 0; i < surfaces.tipRudder.length; i++) {
+        const sx = i === 0 ? 1 : -1;
+        surfaces.tipRudder[i].rotation.y = -sYaw * 0.22 - rl * 0.08 * sx;
+      }
+
+      /* ── g-diffusers ── */
+      const gdI = 0.55 + throttle * 0.45 + boost * 1.4 + sBrake * 0.5;
       for (const gd of gdiffusers) {
-        gd.material = gd.material;
-        gd.scale.y = 1 + boost * 0.6;
+        gd.material.color.setRGB(0.25, 0.66, 1.0).multiplyScalar(2.2 * gdI);
       }
-      // aero-elastic wing flex: tips lag the roll input
-      const flex = THREE.MathUtils.clamp(roll, -1, 1);
-      wingL.rotation.z = -flex * 0.045;
-      wingR.rotation.z = -flex * 0.045;
-      wingRoot.children[2] && (wingRoot.children[2].rotation.z = -flex * 0.06);
-      wingRoot.children[3] && (wingRoot.children[3].rotation.z = -flex * 0.06);
+
+      /* ── damage ── */
+      scorchMesh.visible = dmg > 0.02;
+      scorchMat.opacity = Math.min(0.92, dmg * 1.25);
+      const blown = dmg > 0.45;
+      panelCover.visible = !blown;
+      guts.visible = blown;
+      wires.visible = blown;
+      ember.visible = blown;
+      if (blown) {
+        const e = 0.7 + Math.sin(t * 18.4) * 0.3 * Math.sin(t * 7.1);
+        ember.material.color.setRGB(1.0, 0.42, 0.10).multiplyScalar(4 + e * 4);
+        ember.scale.setScalar(0.8 + e * 0.4);
+      }
+      for (let i = 0; i < smoke.length; i++) {
+        const s = smoke[i];
+        if (dmg < 0.35) { s.material.opacity = 0; continue; }
+        const u = (t * 0.9 + s.userData.phase) % 1;
+        s.position.set(0.70 + u * 0.5, -0.05 + u * 0.9, 2.4 + u * 3.4);
+        s.scale.setScalar(0.35 + u * 1.5);
+        s.material.opacity = (1 - u) * u * 2.6 * (dmg - 0.35) * 1.5;
+      }
     },
   };
+
+  api.triangles = triCount(root);
   root.userData.api = api;
   return root;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   review angles
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const _v = new THREE.Vector3();
+export function orbit(cam, target, { dist, yaw, pitch, fov = 34, up = 0 }) {
+  const y = THREE.MathUtils.degToRad(yaw);
+  const p = THREE.MathUtils.degToRad(pitch);
+  _v.set(Math.sin(y) * Math.cos(p), Math.sin(p), Math.cos(y) * Math.cos(p)).multiplyScalar(dist);
+  cam.position.copy(target).add(_v);
+  cam.position.y += up;
+  cam.fov = fov;
+  cam.updateProjectionMatrix();
+  cam.lookAt(target);
+}
+const at = (ship, x, y, z) => ship.position.clone().add(new THREE.Vector3(x, y, z));
+
+registerShot('ship-cockpit', ({ engine, ship }) => {
+  orbit(engine.camera, at(ship, 0, 0.35, -1.5), { dist: 2.5, yaw: 214, pitch: 22, fov: 30 });
+});
+registerShot('ship-wingroot', ({ engine, ship }) => {
+  orbit(engine.camera, at(ship, 0.9, 0.1, -0.6), { dist: 3.0, yaw: 246, pitch: 26, fov: 32 });
+});
+registerShot('ship-tip', ({ engine, ship }) => {
+  orbit(engine.camera, at(ship, 3.2, 0.35, 0.4), { dist: 3.6, yaw: 236, pitch: 12, fov: 32 });
+});
+registerShot('ship-nozzle', ({ engine, ship }) => {
+  orbit(engine.camera, at(ship, 0, 0, 2.6), { dist: 3.0, yaw: 32, pitch: 10, fov: 32 });
+});
+registerShot('ship-gun', ({ engine, ship }) => {
+  orbit(engine.camera, at(ship, 1.3, -0.05, -2.5), { dist: 2.8, yaw: 208, pitch: 14, fov: 32 });
+});
+registerShot('ship-belly', ({ engine, ship }) => {
+  orbit(engine.camera, ship.position, { dist: 10, yaw: 160, pitch: -38, fov: 34 });
+});
+registerShot('ship-silhouette', ({ engine, ship }) => {
+  orbit(engine.camera, ship.position, { dist: 26, yaw: 200, pitch: 14, fov: 20 });
+});
+registerShot('ship-damage', ({ engine, ship }) => {
+  ship.userData.api?.update?.(1 / 60, { throttle: 1, damage: 0.85 });
+  orbit(engine.camera, at(ship, -0.6, 0.1, 0.2), { dist: 6.5, yaw: 250, pitch: 24, fov: 34 });
+});
+registerShot('ship-brake', ({ engine, ship }) => {
+  const api = ship.userData.api;
+  if (api) for (let i = 0; i < 30; i++) api.update(1 / 60, { throttle: 0.2, roll: 0.6, brake: 1, pitch: -0.5 });
+  orbit(engine.camera, at(ship, 0, 0.2, 0.4), { dist: 9, yaw: 210, pitch: 34, fov: 34 });
+});

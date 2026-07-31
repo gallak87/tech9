@@ -185,6 +185,10 @@ export const P = {
   seed: 0, cell: 0, mode: 0, alpha: 1,
   r0: 1, g0: 1, b0: 1, bias: 1,
   r1: 1, g1: 1, b1: 1,
+  // Start the particle's clock in the future. A whole trail can then be written
+  // in one burst at spawn — same p₀ and v₀, staggered delays — and the shader
+  // strings it out behind the head for free.
+  delay: 0,
 };
 
 export function resetP() {
@@ -196,6 +200,7 @@ export function resetP() {
   P.seed = 0; P.cell = 0; P.mode = 0; P.alpha = 1;
   P.r0 = P.g0 = P.b0 = 1; P.bias = 1;
   P.r1 = P.g1 = P.b1 = 1;
+  P.delay = 0;
   return P;
 }
 
@@ -256,7 +261,14 @@ export class ParticleSystem {
       transparent: true,
       depthWrite: false,
       depthTest: true,
-      blending: blend === 'add' ? THREE.AdditiveBlending : THREE.NormalBlending,
+      // The additive fragment already outputs premultiplied colour (rgb·a), so
+      // it wants ONE/ONE. THREE.AdditiveBlending is SRC_ALPHA/ONE and would
+      // multiply by alpha a second time — soft edges then fall off quadratically
+      // and every brightness number in the emitters lies to you.
+      blending: blend === 'add' ? THREE.CustomBlending : THREE.NormalBlending,
+      blendSrc: THREE.OneFactor,
+      blendDst: THREE.OneFactor,
+      blendEquation: THREE.AddEquation,
       side: THREE.DoubleSide,
       toneMapped: false,
       fog: false,
@@ -285,7 +297,7 @@ export class ParticleSystem {
     a.cb[o] = P.r1; a.cb[o + 1] = P.g1; a.cb[o + 2] = P.b1;
 
     o = i * 4;
-    a.t[o] = this.time; a.t[o + 1] = P.life; a.t[o + 2] = P.fadeIn; a.t[o + 3] = P.fadePow;
+    a.t[o] = this.time + P.delay; a.t[o + 1] = P.life; a.t[o + 2] = P.fadeIn; a.t[o + 3] = P.fadePow;
     a.s[o] = P.size0; a.s[o + 1] = P.size1; a.s[o + 2] = P.rot; a.s[o + 3] = P.rotVel;
     a.d[o] = P.drag; a.d[o + 1] = P.gravity; a.d[o + 2] = P.turb; a.d[o + 3] = P.stretch;
     a.m[o] = P.seed; a.m[o + 1] = P.cell; a.m[o + 2] = P.mode; a.m[o + 3] = P.alpha;

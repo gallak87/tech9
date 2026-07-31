@@ -1,14 +1,19 @@
 import * as THREE from 'three';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Ribbon trails — engine plumes, wingtip vortices, water wake.
+// Ribbon trails — engine plumes, wingtip vortices, water wake, arc electricity.
 //
 // A whole bank of ribbons lives in ONE BufferGeometry with a static index
-// buffer, so N trails cost one draw call. Each ribbon keeps a ring of world
-// points; every frame the strip is re-ruled against the camera so the ribbon
-// always presents its face (a trail built from a fixed world-space normal
-// disappears edge-on, which is exactly when you are looking down the barrel of
-// the thing that is trailing).
+// buffer, so N trails cost one draw call.
+//
+// The strip is ruled **in the vertex shader**, not on the CPU: each vertex
+// carries the centreline point, the path tangent and a ±1 side flag, and the
+// shader offsets it along `cross(tangent, toEye)`. That matters for two
+// reasons. A ribbon built from a fixed world-space normal vanishes edge-on —
+// which is exactly when you are looking down the barrel of the thing that is
+// trailing. And a ribbon ruled on the CPU is only correct for the camera it was
+// ruled against, so it goes wrong the moment a review shot freezes the sim and
+// flies the camera somewhere else.
 //
 // Dead ribbons collapse their vertices to a point rather than being removed —
 // no index rebuilds, no re-upload of topology.
@@ -16,8 +21,11 @@ import * as THREE from 'three';
 
 const VERT = /* glsl */`
 precision highp float;
+attribute vec3  aTan;
+attribute float aSide;    // -1 / +1
 attribute float aAlong;   // 0 at head, 1 at tail
-attribute float aFade;    // per-vertex master alpha
+attribute float aWidth;
+attribute float aFade;
 attribute vec3  aCol;
 varying float vAlong;
 varying float vAcross;
@@ -25,11 +33,22 @@ varying float vFade;
 varying vec3  vCol;
 varying float vDepth;
 void main() {
+  vec3 toEye = cameraPosition - position;
+  float el = length(toEye);
+  toEye = el > 1e-5 ? toEye / el : vec3(0.0, 0.0, 1.0);
+  vec3 t = aTan;
+  float tl = length(t);
+  t = tl > 1e-5 ? t / tl : vec3(0.0, 0.0, 1.0);
+  vec3 side = cross(t, toEye);
+  float sl = length(side);
+  side = sl > 1e-4 ? side / sl : vec3(1.0, 0.0, 0.0);
+
+  vec3 p = position + side * (aSide * aWidth);
   vAlong = aAlong;
-  vAcross = uv.y;
+  vAcross = aSide * 0.5 + 0.5;
   vFade = aFade;
   vCol = aCol;
-  vec4 mv = modelViewMatrix * vec4(position, 1.0);
+  vec4 mv = viewMatrix * vec4(p, 1.0);
   vDepth = -mv.z;
   gl_Position = projectionMatrix * mv;
 }
@@ -57,10 +76,6 @@ void main() {
 }
 `;
 
-const _dir = new THREE.Vector3();
-const _side = new THREE.Vector3();
-const _toEye = new THREE.Vector3();
-
 class Ribbon {
   constructor(bank, index, segs) {
     this.bank = bank;
@@ -72,6 +87,7 @@ class Ribbon {
     this.width0 = 0.5;
     this.width1 = 0.15;
     this.alpha = 1;
+    this.taper = 4;             // exponent on the tail width falloff
     this.col = new THREE.Color(1, 1, 1);
     this.colTail = new THREE.Color(1, 1, 1);
   }
@@ -108,8 +124,10 @@ export class RibbonBank {
     const total = count * vpr;
 
     this.pos = new Float32Array(total * 3);
-    this.uv = new Float32Array(total * 2);
+    this.tan = new Float32Array(total * 3);
+    this.sideA = new Float32Array(total);
     this.along = new Float32Array(total);
+    this.wid = new Float32Array(total);
     this.fade = new Float32Array(total);
     this.col = new Float32Array(total * 3);
 
@@ -125,26 +143,29 @@ export class RibbonBank {
       this.ribbons.push(new Ribbon(this, r, segs));
     }
 
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(this.pos, 3).setUsage(THREE.DynamicDrawUsage));
-    g.setAttribute('uv', new THREE.BufferAttribute(this.uv, 2));
-    g.setAttribute('aAlong', new THREE.BufferAttribute(this.along, 1));
-    g.setAttribute('aFade', new THREE.BufferAttribute(this.fade, 1).setUsage(THREE.DynamicDrawUsage));
-    g.setAttribute('aCol', new THREE.BufferAttribute(this.col, 3).setUsage(THREE.DynamicDrawUsage));
-    g.setIndex(new THREE.BufferAttribute(idx, 1));
-    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
-
-    // static per-vertex uv / along
+    // static per-vertex side / along
     for (let r = 0; r < count; r++) {
       for (let s = 0; s <= segs; s++) {
         const t = s / segs;
         for (let e = 0; e < 2; e++) {
           const v = r * vpr + s * 2 + e;
-          this.uv[v * 2] = t; this.uv[v * 2 + 1] = e;
+          this.sideA[v] = e === 0 ? -1 : 1;
           this.along[v] = t;
         }
       }
     }
+
+    const g = new THREE.BufferGeometry();
+    const dyn = (arr, size) => new THREE.BufferAttribute(arr, size).setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('position', dyn(this.pos, 3));
+    g.setAttribute('aTan', dyn(this.tan, 3));
+    g.setAttribute('aSide', new THREE.BufferAttribute(this.sideA, 1));
+    g.setAttribute('aAlong', new THREE.BufferAttribute(this.along, 1));
+    g.setAttribute('aWidth', dyn(this.wid, 1));
+    g.setAttribute('aFade', dyn(this.fade, 1));
+    g.setAttribute('aCol', dyn(this.col, 3));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
 
     const mat = new THREE.ShaderMaterial({
       uniforms: {
@@ -167,13 +188,13 @@ export class RibbonBank {
     this.mesh.name = 'fx.ribbons.' + blend;
   }
 
-  /** Rebuild every active ribbon's strip against the camera. */
-  build(camPos) {
+  /** Push every active ribbon's centreline into the buffers. Camera-agnostic. */
+  commit() {
     const { segs, vpr } = this;
     for (let r = 0; r < this.count; r++) {
       const rb = this.ribbons[r];
       const base = r * vpr;
-      if (!rb.active || rb.n === 0) {
+      if (!rb.active || rb.n === 0 || rb.alpha <= 0) {
         for (let v = base; v < base + vpr; v++) this.fade[v] = 0;
         continue;
       }
@@ -181,36 +202,39 @@ export class RibbonBank {
       for (let s = 0; s <= segs; s++) {
         const i3 = s * 3;
         const x = p[i3], y = p[i3 + 1], z = p[i3 + 2];
-        // tangent from the neighbouring samples
         const a3 = Math.max(0, s - 1) * 3;
         const b3 = Math.min(segs, s + 1) * 3;
-        _dir.set(p[a3] - p[b3], p[a3 + 1] - p[b3 + 1], p[a3 + 2] - p[b3 + 2]);
-        if (_dir.lengthSq() < 1e-8) _dir.set(0, 0, 1);
-        _dir.normalize();
-        _toEye.set(camPos.x - x, camPos.y - y, camPos.z - z).normalize();
-        _side.crossVectors(_dir, _toEye);
-        if (_side.lengthSq() < 1e-8) _side.set(1, 0, 0); else _side.normalize();
+        let tx = p[a3] - p[b3], ty = p[a3 + 1] - p[b3 + 1], tz = p[a3 + 2] - p[b3 + 2];
+        if (tx * tx + ty * ty + tz * tz < 1e-10) { tx = 0; ty = 0; tz = 1; }
 
         const t = s / segs;
-        const w = THREE.MathUtils.lerp(rb.width0, rb.width1, t) * (1 - t * t * t * t) * 0.5;
+        const w = THREE.MathUtils.lerp(rb.width0, rb.width1, t) * (1 - Math.pow(t, rb.taper)) * 0.5;
         const cr = THREE.MathUtils.lerp(rb.col.r, rb.colTail.r, t);
         const cg = THREE.MathUtils.lerp(rb.col.g, rb.colTail.g, t);
         const cb = THREE.MathUtils.lerp(rb.col.b, rb.colTail.b, t);
 
         for (let e = 0; e < 2; e++) {
           const v = base + s * 2 + e;
-          const sgn = e === 0 ? -1 : 1;
-          this.pos[v * 3] = x + _side.x * w * sgn;
-          this.pos[v * 3 + 1] = y + _side.y * w * sgn;
-          this.pos[v * 3 + 2] = z + _side.z * w * sgn;
+          this.pos[v * 3] = x; this.pos[v * 3 + 1] = y; this.pos[v * 3 + 2] = z;
+          this.tan[v * 3] = tx; this.tan[v * 3 + 1] = ty; this.tan[v * 3 + 2] = tz;
+          this.wid[v] = w;
           this.fade[v] = rb.alpha;
           this.col[v * 3] = cr; this.col[v * 3 + 1] = cg; this.col[v * 3 + 2] = cb;
         }
       }
     }
-    this.geometry.attributes.position.needsUpdate = true;
+    const at = this.geometry.attributes;
+    at.position.needsUpdate = true;
+    at.aTan.needsUpdate = true;
+    at.aWidth.needsUpdate = true;
+    at.aFade.needsUpdate = true;
+    at.aCol.needsUpdate = true;
+  }
+
+  clear() {
+    for (const rb of this.ribbons) { rb.active = false; rb.n = 0; }
+    this.fade.fill(0);
     this.geometry.attributes.aFade.needsUpdate = true;
-    this.geometry.attributes.aCol.needsUpdate = true;
   }
 
   setFog(color, density) {

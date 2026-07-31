@@ -52,6 +52,16 @@ export function registerWorldShots() {
     park(engine.camera, [centrelineX(z) + 130, 26, z + 60], [centrelineX(z - 260) + 250, 8, z - 260], 46);
   });
 
+  // ── surface quality: close enough that the rock has to hold up on its own
+  registerShot('w-rock', ({ engine }) => {
+    const z = -2450;
+    park(engine.camera, [centrelineX(z) + 140, 34, z], [centrelineX(z - 40) + 420, 150, z - 40], 44);
+  });
+  registerShot('w-wall', ({ engine }) => {
+    const z = -3150;
+    park(engine.camera, [centrelineX(z) - 40, 70, z + 40], [centrelineX(z - 300) + 260, 210, z - 300], 46);
+  });
+
   // ── landmark close-ups
   registerShot('w-arch', ({ engine }) => onRail(engine.camera, -1720, { dy: -10, ahead: 300, aimY: 60, fov: 58 }));
   registerShot('w-bridge', ({ engine }) => onRail(engine.camera, -4950, { dy: -12, ahead: 340, aimY: 55, fov: 58 }));

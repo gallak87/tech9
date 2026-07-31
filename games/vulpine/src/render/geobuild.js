@@ -420,6 +420,7 @@ const WING_DEFAULTS = { chord: 1, thickness: 0.1, sweep: 0, rise: 0, twist: 0, c
 export function wingLoft(spans, {
   res = 30, steps = 14, chordGrooves = [], spanGrooves = [],
   camberPos = 0.4, capRoot = true, capTip = true, uvScale = [1, 1],
+  teCut = null,
 } = {}) {
   const st = spans.map(s => ({ ...WING_DEFAULTS, ...s, z: s.span }));
   const x0 = st[0].span, x1 = st[st.length - 1].span;
@@ -430,24 +431,43 @@ export function wingLoft(spans, {
     const x = g.span + o * (g.width ?? 0.05) * 1.7;
     if (x > x0 && x < x1) xs.push(x);
   }
+  // sharp walls at the ends of a trailing-edge cutout
+  if (teCut) for (const b of [teCut.span0, teCut.span1]) for (const o of [-1.5e-3, 1.5e-3]) {
+    const x = b + o;
+    if (x > x0 && x < x1) xs.push(x);
+  }
   const xu = dedupe(xs, Math.abs(x1 - x0) * 2e-4);
 
   const half = Math.max(6, res >> 1);
-  const params = [];
-  for (let i = 0; i <= half; i++) params.push({ xc: (1 - Math.cos((i / half) * Math.PI)) * 0.5, side: 1 });
-  for (let i = half - 1; i >= 1; i--) params.push({ xc: (1 - Math.cos((i / half) * Math.PI)) * 0.5, side: -1 });
+  // With a trailing-edge cutout the section no longer closes to a point, so the
+  // lower surface has to carry its own aft vertex to build the notch wall. That
+  // vertex exists on every ring (degenerate where the TE is sharp) because loft
+  // requires a constant ring length.
+  const cosx = (i) => (1 - Math.cos((i / half) * Math.PI)) * 0.5;
+  const paramsFor = (cut) => {
+    const arr = [];
+    for (let i = 0; i <= half; i++) arr.push({ xc: cosx(i) * cut, side: 1 });
+    for (let i = teCut ? half : half - 1; i >= 1; i--) arr.push({ xc: cosx(i) * cut, side: -1 });
+    return arr;
+  };
+  const cutAt = (x) => {
+    if (!teCut) return 1;
+    if (x < teCut.span0 || x > teCut.span1) return 1;
+    return typeof teCut.xc === 'function' ? teCut.xc(x) : teCut.xc;
+  };
 
   const rings = xu.map(x => {
     const s = stationAt(st, x, WING_KEYS);
     const c = Math.cos(s.twist), sn = Math.sin(s.twist);
     const qz = 0.25 * s.chord;
-    return params.map(pm => {
+    return paramsFor(cutAt(x)).map(pm => {
       const a = afPoint(pm.xc, pm.side, s.thickness, s.camber, camberPos);
       let cz = a.z * s.chord;
       let cy = a.y * s.chord;
       let dep = 0;
       for (const g of chordGrooves) {
         if (g.side && g.side !== pm.side) continue;
+        if (g.span0 != null && (x < g.span0 || x > g.span1)) continue;
         dep = Math.max(dep, pulse(Math.abs(pm.xc - g.xc), (g.width ?? 0.035) * 1.7) * (g.depth ?? 0.012));
       }
       for (const g of spanGrooves) {
@@ -460,6 +480,265 @@ export function wingLoft(spans, {
   });
 
   return loft(rings, { capStart: capRoot, capEnd: capTip, closed: true, uvScale });
+}
+
+/* ── surface frames: put a part ON a skin, not near it ─────────────────────── */
+
+/**
+ * The single most expensive mistake in procedural hard-surface work is placing
+ * detail with a guessed translate/rotate. It is *always* slightly off, and a
+ * plate hovering 3 cm off a wing is the difference between "modelled" and
+ * "assembled by an algorithm".
+ *
+ * So: every skin exposes a sampler, and every part that lives on it is placed by
+ * evaluating the same function that generated the skin. `frame()` returns a
+ * matrix whose basis is (X = spanwise out, Y = surface normal, Z = chordwise
+ * aft), which is exactly the space a greeble wants to be authored in.
+ */
+export function wingSurface(spans, { camberPos = 0.4 } = {}) {
+  const st = spans.map(s => ({ ...WING_DEFAULTS, ...s, z: s.span }));
+  const x0 = st[0].span, x1 = st[st.length - 1].span;
+  const clampS = (x) => Math.min(x1, Math.max(x0, x));
+  const station = (span) => stationAt(st, clampS(span), WING_KEYS);
+
+  const point = (span, xc, side = 1) => {
+    const s = station(span);
+    const c = Math.cos(s.twist), sn = Math.sin(s.twist);
+    const qz = 0.25 * s.chord;
+    const a = afPoint(clamp01(xc), side, s.thickness, s.camber, camberPos);
+    const dz = a.z * s.chord - qz, cy = a.y * s.chord;
+    return V3(span, s.rise + (dz * sn + cy * c), s.sweep + (dz * c - cy * sn + qz));
+  };
+
+  const tangentU = (span, xc, side) => {
+    const e = Math.max(2e-3, (x1 - x0) * 2e-3);
+    return point(clampS(span + e), xc, side).sub(point(clampS(span - e), xc, side)).normalize();
+  };
+  const tangentV = (span, xc, side) => {
+    const e = 5e-3;
+    return point(span, Math.min(1, xc + e), side).sub(point(span, Math.max(0, xc - e), side)).normalize();
+  };
+
+  const normal = (span, xc, side = 1) => {
+    const q = Math.min(0.985, Math.max(0.015, xc));
+    const n = new THREE.Vector3().crossVectors(tangentU(span, q, side), tangentV(span, q, side));
+    if (n.lengthSq() < 1e-12) return V3(0, side, 0);
+    n.normalize();
+    if (n.dot(point(span, q, side).clone().sub(point(span, q, 0))) < 0) n.negate();
+    return n;
+  };
+
+  /** Matrix4 placing a part authored in (X span, Y up-off-skin, Z aft). */
+  const frame = (span, xc, side = 1, { lift = 0, spin = 0 } = {}) => {
+    const p = point(span, xc, side);
+    const n = normal(span, xc, side);
+    let t = tangentV(span, xc, side);
+    const s = new THREE.Vector3().crossVectors(n, t).normalize();
+    t = new THREE.Vector3().crossVectors(s, n).normalize();
+    const m = new THREE.Matrix4().makeBasis(s, n, t);
+    if (spin) m.multiply(new THREE.Matrix4().makeRotationY(spin));
+    m.setPosition(p.addScaledVector(n, lift));
+    return m;
+  };
+
+  return {
+    spans: st, root: x0, tip: x1, station, point, normal, frame,
+    chordAt: (span) => station(span).chord,
+    thicknessAt: (span) => station(span).thickness * station(span).chord,
+    /** Leading / trailing edge points on the mean line — for stripes and fences. */
+    le: (span) => point(span, 0.002, 0),
+    te: (span) => point(span, 0.998, 0),
+    sample: (span, xc, side = 1) => ({ p: point(span, xc, side), n: normal(span, xc, side) }),
+  };
+}
+
+/** Same contract for a hullLoft body: u = z, v = fraction around the section. */
+export function hullSurface(stations) {
+  const st = stations.map(s => ({ ...HULL_DEFAULTS, ...s }));
+  const z0 = st[0].z, z1 = st[st.length - 1].z;
+  const clampZ = (z) => Math.min(z1, Math.max(z0, z));
+
+  const point = (z, a) => {
+    const s = stationAt(st, clampZ(z), HULL_KEYS);
+    const ex = 2 / Math.max(0.6, s.p);
+    const t = a * Math.PI * 2;
+    const ct = Math.cos(t), sn = Math.sin(t);
+    let x = Math.sign(ct) * Math.pow(Math.abs(ct), ex) * s.rx;
+    let y = Math.sign(sn) * Math.pow(Math.abs(sn), ex) * s.ry;
+    if (y < 0) y *= s.squash;
+    if (s.shoulder) x += Math.sign(ct) * s.shoulder * s.rx * Math.pow(Math.max(0, 1 - Math.abs(sn) * 1.7), 2);
+    return V3(x + s.xOff, y + s.yOff, z);
+  };
+  const axis = (z) => {
+    const s = stationAt(st, clampZ(z), HULL_KEYS);
+    return V3(s.xOff, s.yOff, z);
+  };
+
+  const tangentU = (z, a) => {
+    const e = (z1 - z0) * 2e-3;
+    return point(clampZ(z + e), a).sub(point(clampZ(z - e), a)).normalize();
+  };
+  const tangentV = (z, a) => point(z, a + 2e-3).sub(point(z, a - 2e-3)).normalize();
+
+  const normal = (z, a) => {
+    const n = new THREE.Vector3().crossVectors(tangentU(z, a), tangentV(z, a));
+    if (n.lengthSq() < 1e-12) return point(z, a).sub(axis(z)).normalize();
+    n.normalize();
+    if (n.dot(point(z, a).clone().sub(axis(z))) < 0) n.negate();
+    return n;
+  };
+
+  /** (X = around the section, Y = out of the skin, Z = aft along the body.) */
+  const frame = (z, a, { lift = 0, spin = 0 } = {}) => {
+    const p = point(z, a);
+    const n = normal(z, a);
+    let t = tangentU(z, a);
+    const s = new THREE.Vector3().crossVectors(n, t).normalize();
+    t = new THREE.Vector3().crossVectors(s, n).normalize();
+    const m = new THREE.Matrix4().makeBasis(s, n, t);
+    if (spin) m.multiply(new THREE.Matrix4().makeRotationY(spin));
+    m.setPosition(p.addScaledVector(n, lift));
+    return m;
+  };
+
+  return {
+    front: z0, back: z1, point, normal, frame,
+    radiusAt: (z) => stationAt(st, clampZ(z), HULL_KEYS),
+    sample: (z, a) => ({ p: point(z, a), n: normal(z, a) }),
+  };
+}
+
+/**
+ * A plate that hugs a curved skin. `sample(u, v)` returns `{p, n}`; the patch is
+ * lofted between two offset copies of that grid, so it follows every curve of
+ * the parent and can never float. Ring order is chosen from the measured frame
+ * handedness, so the caller does not have to think about winding.
+ */
+export function conformalPatch(sample, {
+  u0, u1, v0, v1, nu = 10, nv = 8, lift = 0.003, thick = 0.014, inset = 0.06,
+} = {}) {
+  const du = u1 - u0, dv = v1 - v0;
+
+  // handedness probe at the patch centre: does (du × dv) agree with the normal?
+  const uc = u0 + du * 0.5, vc = v0 + dv * 0.5;
+  const c0 = sample(uc, vc);
+  const eu = sample(uc + du * 0.01, vc).p.clone().sub(sample(uc - du * 0.01, vc).p);
+  const ev = sample(uc, vc + dv * 0.01).p.clone().sub(sample(uc, vc - dv * 0.01).p);
+  const topFirst = new THREE.Vector3().crossVectors(eu, ev).dot(c0.n) < 0;
+
+  const rows = [];
+  const edge = Math.min(0.14, Math.abs(inset));
+  rows.push([0, 0.0]);
+  rows.push([edge * 0.6, 1.0]);
+  for (let i = 1; i < nu; i++) rows.push([i / nu, 1.0]);
+  rows.push([1 - edge * 0.6, 1.0]);
+  rows.push([1, 0.0]);
+
+  // A plate needs a chamfer at every edge, or smooth vertex normals blend the
+  // top face into the side wall and it renders as a soft bead instead of a
+  // machined panel. `bev` is the extra column pair that gives the edge its facet.
+  //
+  // The rim must NOT collapse to zero thickness: coincident hi/lo vertices make
+  // zero-area triangles, whose normals come out as garbage and draw a black
+  // outline round the whole decal. Instead the rim sinks *below* the parent
+  // skin, so the wall exists but is buried and never seen.
+  const bev = 0.05;
+  const cols = [0, bev, ...Array.from({ length: nv - 1 }, (_, j) => bev + (1 - 2 * bev) * ((j + 1) / nv)), 1 - bev, 1];
+  const last = cols.length - 1;
+  const hOf = (j) => (j === 0 || j === last) ? 0.16 : (j === 1 || j === last - 1) ? 0.64 : 1;
+  const sink = Math.max(0.004, thick * 0.5);
+
+  const rings = rows.map(([tu, w]) => {
+    const u = u0 + du * tu;
+    const shrink = (1 - w) * inset;
+    const hi = [], lo = [];
+    for (let j = 0; j <= last; j++) {
+      const tv = shrink + (1 - 2 * shrink) * cols[j];
+      const { p, n } = sample(u, v0 + dv * tv);
+      const rim = (j === 0 || j === last || w < 1) ? sink : 0;
+      hi.push(p.clone().addScaledVector(n, lift + thick * (0.28 + 0.72 * w) * hOf(j)));
+      lo.push(p.clone().addScaledVector(n, lift - rim));
+    }
+    return topFirst ? hi.concat(lo.reverse()) : lo.concat(hi.reverse());
+  });
+
+  return loft(rings, { capStart: true, capEnd: true, closed: true });
+}
+
+/**
+ * A control surface built from the parent wing's own airfoil. The nose is a
+ * half-round centred exactly on the hinge line, so the notch cut into the wing
+ * (`wingLoft({ teCut })`) stays sealed through the whole deflection range.
+ *
+ * @returns {{geo, hinge: THREE.Vector3, quat: THREE.Quaternion, cut: Function}}
+ *   `geo` is already in hinge-local space (local +X = hinge axis), so the caller
+ *   does `pivot.position.copy(hinge); pivot.quaternion.copy(quat)` and then
+ *   deflects with `inner.rotation.x`.
+ */
+export function wingFlap(spans, {
+  span0, span1, xc = 0.72, gap = 0.012, steps = 5, res = 16, nose = 5, camberPos = 0.4,
+} = {}) {
+  const st = spans.map(s => ({ ...WING_DEFAULTS, ...s, z: s.span }));
+  const station = (span) => stationAt(st, span, WING_KEYS);
+
+  const halfT = (span) => {
+    const s = station(span);
+    return (afPoint(xc, 1, s.thickness, s.camber, camberPos).y
+          - afPoint(xc, -1, s.thickness, s.camber, camberPos).y) * 0.5;
+  };
+  /** The parent's cut must sit one nose-radius forward of the hinge. */
+  const cut = (span) => xc - halfT(span);
+
+  const to3 = (span, nz, ny) => {
+    const s = station(span);
+    const c = Math.cos(s.twist), sn = Math.sin(s.twist);
+    const qz = 0.25 * s.chord;
+    const dz = nz * s.chord - qz, cy = ny * s.chord;
+    return V3(span, s.rise + (dz * sn + cy * c), s.sweep + (dz * c - cy * sn + qz));
+  };
+
+  const half = Math.max(4, res >> 1);
+  const section = (span) => {
+    const s = station(span);
+    const r = halfT(span);
+    const camb = afPoint(xc, 0, s.thickness, s.camber, camberPos);
+    const pts = [];
+    for (let i = 0; i <= half; i++) {
+      const x = xc + (1 - xc) * (1 - Math.cos((i / half) * Math.PI * 0.5));
+      const a = afPoint(x, 1, s.thickness, s.camber, camberPos);
+      pts.push(to3(span, a.z, a.y));
+    }
+    for (let i = half; i >= 0; i--) {
+      const x = xc + (1 - xc) * (1 - Math.cos((i / half) * Math.PI * 0.5));
+      const a = afPoint(x, -1, s.thickness, s.camber, camberPos);
+      pts.push(to3(span, a.z, a.y));
+    }
+    for (let k = 1; k < nose; k++) {
+      const th = -Math.PI / 2 - (k / nose) * Math.PI;
+      pts.push(to3(span, camb.z + Math.cos(th) * r, camb.y + Math.sin(th) * r));
+    }
+    return pts;
+  };
+
+  const a = span0 + gap, b = span1 - gap;
+  const rings = [];
+  for (let i = 0; i <= steps; i++) rings.push(section(a + (b - a) * (i / steps)));
+  const geo = loft(rings, { capStart: true, capEnd: true, closed: true });
+
+  // hinge = the camber point at xc, which is where the nose arc is centred
+  const hingePt = (span) => {
+    const s = station(span);
+    const c = afPoint(xc, 0, s.thickness, s.camber, camberPos);
+    return to3(span, c.z, c.y);
+  };
+  const h0 = hingePt(a), h1 = hingePt(b);
+  const hinge = h0.clone().add(h1).multiplyScalar(0.5);
+  const axis = h1.clone().sub(h0).normalize();
+  const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(1, 0, 0), axis);
+  geo.translate(-hinge.x, -hinge.y, -hinge.z);
+  geo.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(quat.clone().invert()));
+
+  return { geo, hinge, quat, cut, span0: a, span1: b };
 }
 
 /* ── primitives with edges that catch light ───────────────────────────────── */

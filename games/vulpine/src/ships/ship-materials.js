@@ -108,11 +108,16 @@ export function buildShipMaterials() {
 
   // Thin enough that the cockpit reads through it, mirror-smooth so the sky
   // still rakes across it. depthWrite off, drawn after the interior.
+  //
+  // The tint has to be *light*: a dark glass over a dark tub is indistinguishable
+  // from no canopy at all, which is how the previous revision managed to have a
+  // fully modelled cockpit that nobody could see.
   SMat.glass = new THREE.MeshPhysicalMaterial({
-    color: 0x16242f, roughness: 0.04, metalness: 0.0,
-    transparent: true, opacity: 0.30,
+    color: 0x8fb6cc, roughness: 0.03, metalness: 0.0,
+    transparent: true, opacity: 0.18,
     clearcoat: 1.0, clearcoatRoughness: 0.02,
-    envMapIntensity: 2.3, ior: 1.5,
+    specularIntensity: 1.0,
+    envMapIntensity: 3.0, ior: 1.5,
     side: THREE.DoubleSide, depthWrite: false,
   });
 
@@ -199,14 +204,42 @@ export function buildShipMaterials() {
  * pins the weight for a part that lives at one station (a control surface),
  * everything else derives it from the vertex's own x.
  */
-export function flexMaterial(base, uniforms, { halfSpan = 3.42, fixed = null, amp = 0.40, sweepAmp = 0.05 } = {}) {
+export const FLEX = { halfSpan: 3.42, amp: 0.40, sweepAmp: 0.05 };
+
+/**
+ * The CPU-side twin of the flex shader. Control-surface pivots are groups, not
+ * vertices, so they cannot ride the vertex program — they have to evaluate the
+ * identical bend function or they detach from the wing the moment it loads up.
+ */
+export function flexOffset(x, flex, roll, { halfSpan = FLEX.halfSpan, amp = FLEX.amp, sweepAmp = FLEX.sweepAmp } = {}) {
+  const fw = Math.min(1, Math.abs(x) / halfSpan);
+  const fw2 = fw * fw;
+  return {
+    dy: (flex + roll * Math.sign(x)) * fw2 * amp,
+    dz: flex * fw2 * sweepAmp,
+  };
+}
+
+export function flexMaterial(base, uniforms, {
+  halfSpan = FLEX.halfSpan, fixed = null, offsetX = null, amp = FLEX.amp, sweepAmp = FLEX.sweepAmp,
+} = {}) {
   const m = base.clone();
   const w = fixed == null ? null : Math.min(1, Math.abs(fixed) / halfSpan);
-  const key = fixed == null ? 'span' : w.toFixed(3) + ':' + Math.sign(fixed);
+  const key = offsetX != null ? 'off' + offsetX.toFixed(3)
+    : fixed == null ? 'span' : w.toFixed(3) + ':' + Math.sign(fixed);
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uFlex = uniforms.flex;
     sh.uniforms.uFlexRoll = uniforms.roll;
-    const body = fixed == null
+    // A control surface lives in hinge-local space, so its own position.x is a
+    // distance from the hinge, not a span. Adding the hinge station back gives
+    // the shader the true span and the surface bends *with* the wing across its
+    // own length instead of stepping rigidly at one station.
+    const body = offsetX != null
+      ? `float fx = position.x + ${offsetX.toFixed(4)};
+         float fw = fx / ${halfSpan.toFixed(3)};
+         float fw2 = min(1.0, fw * fw);
+         float fs = sign(fx);`
+      : fixed == null
       ? `float fw = position.x / ${halfSpan.toFixed(3)};
          float fw2 = fw * fw;
          float fs = sign(position.x);`

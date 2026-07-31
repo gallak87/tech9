@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { Mat, Tex, emissive } from '../render/materials.js';
 import { rng } from '../core/rng.js';
 import { registerShot } from '../game/shots.js';
-import { SMat, buildShipMaterials, flexMaterial } from './ship-materials.js';
+import { SMat, buildShipMaterials, flexMaterial, flexOffset } from './ship-materials.js';
 import {
   loft, superellipse, assemble, M, stationAt,
   hullLoft, wingLoft, chamferBox, extrudePoly, ductGeo, louvers,
   boltRow, blisterGeo, tubeAlong, shellArc, mirrorX, triCount,
+  wingSurface, hullSurface, conformalPatch, wingFlap,
 } from '../render/geobuild.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,56 +45,85 @@ const FUSELAGE = [
   { z:  2.56, rx: 0.330, ry: 0.250, p: 2.36, squash: 0.92, shoulder: 0.00 },
 ];
 
-/* ── canopy: teardrop bubble set well forward ──────────────────────────────── */
+/**
+ * Canopy: teardrop bubble set well forward. It has to clear the pilot's helmet
+ * with visible daylight around it — a canopy the occupant pokes through reads
+ * as "no canopy at all", which is exactly how the previous revision failed.
+ */
 const CANOPY = [
-  { z: -2.66, rx: 0.048, ry: 0.020, yOff: 0.236 },
-  { z: -2.42, rx: 0.132, ry: 0.072, yOff: 0.246 },
-  { z: -2.06, rx: 0.212, ry: 0.132, yOff: 0.258 },
-  { z: -1.62, rx: 0.264, ry: 0.174, yOff: 0.272 },
-  { z: -1.14, rx: 0.276, ry: 0.183, yOff: 0.283 },
-  { z: -0.74, rx: 0.252, ry: 0.156, yOff: 0.290 },
-  { z: -0.42, rx: 0.196, ry: 0.096, yOff: 0.292 },
-  { z: -0.22, rx: 0.126, ry: 0.034, yOff: 0.290 },
+  { z: -2.80, rx: 0.050, ry: 0.024, yOff: 0.190 },
+  { z: -2.54, rx: 0.144, ry: 0.096, yOff: 0.202 },
+  { z: -2.16, rx: 0.232, ry: 0.184, yOff: 0.220 },
+  { z: -1.72, rx: 0.296, ry: 0.254, yOff: 0.244 },
+  { z: -1.26, rx: 0.316, ry: 0.288, yOff: 0.262 },
+  { z: -0.88, rx: 0.298, ry: 0.264, yOff: 0.272 },
+  { z: -0.52, rx: 0.242, ry: 0.186, yOff: 0.278 },
+  { z: -0.24, rx: 0.150, ry: 0.078, yOff: 0.276 },
 ];
+/** The interior is authored around y≈0.3; drop it so it lives under the glass. */
+const COCKPIT_DROP = -0.20;
 
 /**
- * Wing: high shoulder root, ~24° leading-edge sweep, outboard anhedral, and a
- * trailing edge that stays within 12 cm of z = 1.13 all the way out. That
- * straight TE is what lets the elevons hinge on one clean line, and it is the
- * planform cue that separates an Arwing from a generic delta.
+ * Wing: ~28° leading-edge sweep, mild trailing-edge sweep, outboard anhedral.
+ *
+ * Root chord is 1.72 against a 6.9 m airframe. The previous revision ran 2.30,
+ * which turned the planform into a delta slab — from the side the ship read as
+ * one continuous wedge with no daylight between fuselage and wing. Aspect ratio
+ * is what makes a dart look fast, and it is cheaper than any amount of greeble.
  */
 const WING = [
-  { span: 0.34, chord: 2.30, thickness: 0.150, sweep: -1.10, rise:  0.118, twist:  0.000 },
-  { span: 0.96, chord: 2.06, thickness: 0.128, sweep: -0.92, rise:  0.104, twist: -0.006 },
-  { span: 1.76, chord: 1.72, thickness: 0.100, sweep: -0.62, rise:  0.062, twist: -0.020 },
-  { span: 2.56, chord: 1.34, thickness: 0.078, sweep: -0.26, rise: -0.014, twist: -0.034 },
-  { span: 3.16, chord: 0.96, thickness: 0.058, sweep:  0.16, rise: -0.082, twist: -0.045 },
-  { span: HALF_SPAN, chord: 0.80, thickness: 0.048, sweep: 0.30, rise: -0.118, twist: -0.050 },
+  { span: 0.30, chord: 1.72, thickness: 0.148, sweep: -1.05, rise:  0.126, twist:  0.000 },
+  { span: 0.92, chord: 1.58, thickness: 0.128, sweep: -0.72, rise:  0.116, twist: -0.006 },
+  { span: 1.62, chord: 1.38, thickness: 0.106, sweep: -0.34, rise:  0.082, twist: -0.018 },
+  { span: 2.36, chord: 1.14, thickness: 0.082, sweep:  0.06, rise:  0.012, twist: -0.032 },
+  { span: 3.02, chord: 0.90, thickness: 0.060, sweep:  0.42, rise: -0.072, twist: -0.044 },
+  { span: HALF_SPAN, chord: 0.74, thickness: 0.048, sweep:  0.62, rise: -0.128, twist: -0.050 },
 ];
 
+/** Elevon: outboard 55% of the span, aft 28% of the chord. */
+const ELEVON_SPAN = [1.34, 3.04];
+const ELEVON_XC = 0.72;
+
 /* ── wingtip fin: the signature. Big, swept, canted out. ───────────────────── */
-// Split at span 1.04 so the red cap is real geometry rather than a decal that
+// Split at span 1.02 so the red cap is real geometry rather than a decal that
 // z-fights the surface it is meant to be painted on.
 const TIP_FIN = [
-  { span: 0.00, chord: 1.42, thickness: 0.112, sweep: 0.02 },
-  { span: 0.42, chord: 1.20, thickness: 0.094, sweep: 0.22 },
-  { span: 0.86, chord: 0.94, thickness: 0.072, sweep: 0.46 },
-  { span: 1.04, chord: 0.82, thickness: 0.062, sweep: 0.58 },
-  { span: 1.24, chord: 0.66, thickness: 0.050, sweep: 0.72 },
-  { span: 1.46, chord: 0.44, thickness: 0.034, sweep: 0.90 },
+  { span: 0.00, chord: 1.36, thickness: 0.115, sweep: 0.00 },
+  { span: 0.40, chord: 1.16, thickness: 0.096, sweep: 0.20 },
+  { span: 0.82, chord: 0.94, thickness: 0.074, sweep: 0.42 },
+  { span: 1.02, chord: 0.82, thickness: 0.062, sweep: 0.54 },
+  { span: 1.26, chord: 0.64, thickness: 0.048, sweep: 0.70 },
+  { span: 1.52, chord: 0.40, thickness: 0.032, sweep: 0.92 },
 ];
-const TIP_FIN_SPLIT = 3;
 
 /* ── dorsal fin behind the canopy ──────────────────────────────────────────── */
 const TAIL_FIN = [
-  { span: 0.00, chord: 1.52, thickness: 0.130, sweep: 0.46 },
-  { span: 0.42, chord: 1.26, thickness: 0.106, sweep: 0.70 },
-  { span: 0.82, chord: 0.98, thickness: 0.080, sweep: 0.96 },
-  { span: 0.98, chord: 0.86, thickness: 0.070, sweep: 1.08 },
-  { span: 1.16, chord: 0.70, thickness: 0.056, sweep: 1.24 },
-  { span: 1.34, chord: 0.46, thickness: 0.038, sweep: 1.44 },
+  { span: 0.00, chord: 1.46, thickness: 0.130, sweep: 0.52 },
+  { span: 0.42, chord: 1.22, thickness: 0.106, sweep: 0.74 },
+  { span: 0.82, chord: 0.96, thickness: 0.080, sweep: 0.98 },
+  { span: 0.98, chord: 0.84, thickness: 0.070, sweep: 1.10 },
+  { span: 1.16, chord: 0.68, thickness: 0.056, sweep: 1.26 },
+  { span: 1.34, chord: 0.44, thickness: 0.038, sweep: 1.46 },
 ];
-const TAIL_FIN_SPLIT = 3;
+
+/**
+ * One sampler per skin, shared by every part that has to sit on that skin.
+ * Trim, hatches, fences and control surfaces are all placed by evaluating these
+ * rather than by a hand-guessed translate — which is the entire reason the last
+ * revision had plates hovering in mid-air beside the wing.
+ */
+const DORSAL = [
+  { z: -0.34, rx: 0.086, ry: 0.030, p: 2.8, yOff: 0.316 },
+  { z:  0.20, rx: 0.100, ry: 0.052, p: 3.0, yOff: 0.316 },
+  { z:  1.20, rx: 0.092, ry: 0.048, p: 3.0, yOff: 0.316 },
+  { z:  1.90, rx: 0.066, ry: 0.030, p: 2.8, yOff: 0.316 },
+];
+
+const WING_S = wingSurface(WING);
+const TIPFIN_S = wingSurface(TIP_FIN);
+const TAILFIN_S = wingSurface(TAIL_FIN);
+const HULL_S = hullSurface(FUSELAGE);
+const DORSAL_S = hullSurface(DORSAL);
 
 /* ── exhaust plume shader ─────────────────────────────────────────────────── */
 const PLUME_VERT = /* glsl */`
@@ -219,41 +249,74 @@ function canopyRail(a, r = 0.017, z0 = -2.58, z1 = -0.28, n = 12) {
   return tubeAlong(path, r, 7);
 }
 
+/**
+ * Control surfaces. `wingFlap` owns the geometry *and* the notch profile the
+ * parent skin has to be cut to, which is the whole point: the two can never
+ * disagree, because they are the same function.
+ */
+const ELEVON = wingFlap(WING, {
+  span0: ELEVON_SPAN[0], span1: ELEVON_SPAN[1], xc: ELEVON_XC,
+  gap: 0.016, steps: 6, res: 16,
+});
+const TIP_RUDDER = wingFlap(TIP_FIN, { span0: 0.10, span1: 1.16, xc: 0.70, gap: 0.02, steps: 5, res: 14 });
+const TAIL_RUDDER = wingFlap(TAIL_FIN, { span0: 0.08, span1: 1.02, xc: 0.68, gap: 0.02, steps: 5, res: 14 });
+
 function wingGeo() {
   return wingLoft(WING, {
-    res: 26, steps: 16,
+    res: 26, steps: 18,
+    teCut: { span0: ELEVON_SPAN[0], span1: ELEVON_SPAN[1], xc: ELEVON.cut },
     chordGrooves: [
-      { xc: 0.18, depth: 0.010, width: 0.030 },
-      { xc: 0.58, depth: 0.012, width: 0.034 },
-      { xc: 0.82, side: 1, depth: 0.010, width: 0.028 },
+      { xc: 0.16, depth: 0.010, width: 0.028 },
+      { xc: 0.52, depth: 0.012, width: 0.032 },
+      // the airbrake bay outline, drawn only across the bay's span
+      { xc: 0.30, side: 1, depth: 0.013, width: 0.016, span0: 0.52, span1: 1.30 },
+      { xc: 0.63, side: 1, depth: 0.013, width: 0.016, span0: 0.52, span1: 1.30 },
     ],
     spanGrooves: [
-      { span: 0.98, depth: 0.014, width: 0.045 },
-      { span: 1.86, depth: 0.012, width: 0.042 },
-      { span: 2.66, depth: 0.010, width: 0.038 },
+      { span: 0.94, depth: 0.012, width: 0.030 },
+      { span: 1.62, depth: 0.012, width: 0.038 },
+      { span: 2.40, depth: 0.010, width: 0.034 },
+      { span: 3.04, depth: 0.010, width: 0.028 },
     ],
     uvScale: [2, 3],
   });
 }
 
-function tipFinGeo() {
+/** Fin geometries are authored span-along-X then stood up; span axis becomes +Y. */
+const STAND_UP = M.rz(Math.PI / 2);
+
+function tipFinGeo(cut = true) {
   const g = wingLoft(TIP_FIN, {
-    res: 18, steps: 9,
-    chordGrooves: [{ xc: 0.42, depth: 0.010, width: 0.035 }],
+    res: 18, steps: 10,
+    teCut: cut ? { span0: 0.10, span1: 1.16, xc: TIP_RUDDER.cut } : null,
+    chordGrooves: [{ xc: 0.40, depth: 0.010, width: 0.032 }],
+    spanGrooves: [{ span: 1.02, depth: 0.010, width: 0.030 }],
     uvScale: [1.4, 1.4],
   });
-  g.applyMatrix4(M.rz(Math.PI / 2));       // span axis becomes +Y
+  g.applyMatrix4(STAND_UP);
   return g;
 }
 
 function tailFinGeo() {
   const g = wingLoft(TAIL_FIN, {
     res: 20, steps: 10,
-    chordGrooves: [{ xc: 0.36, depth: 0.010, width: 0.032 }],
+    teCut: { span0: 0.08, span1: 1.02, xc: TAIL_RUDDER.cut },
+    chordGrooves: [{ xc: 0.34, depth: 0.010, width: 0.030 }],
     spanGrooves: [{ span: 0.44, depth: 0.010, width: 0.05 }],
     uvScale: [1.4, 1.6],
   });
-  g.applyMatrix4(M.rz(Math.PI / 2));
+  g.applyMatrix4(STAND_UP);
+  return g;
+}
+
+/**
+ * Trim, hatches and stripes as skin-hugging plates. `sampler` is any surface
+ * from geobuild; the patch cannot detach because it is generated from the same
+ * function as the surface it sits on.
+ */
+function finPatch(sampler, opts, mat = null) {
+  const g = conformalPatch((u, v) => sampler.sample(u, v, opts.side ?? 1), opts);
+  if (mat) g.applyMatrix4(mat);
   return g;
 }
 
@@ -527,11 +590,17 @@ function buildCockpit() {
 
   g.add(pilot);
 
-  // a soft interior fill so the tub is not a black hole under the glass
-  const fill = new THREE.PointLight(0x9fd2ff, 1.4, 2.6, 2);
-  fill.position.set(0, 0.34, -1.55);
+  // Two soft fills so the tub is not a black hole under the glass: one low and
+  // forward washing the panel, one behind the seat rimming the pilot's helmet
+  // and shoulders. Contrast inside the volume is what sells depth through glass.
+  const fill = new THREE.PointLight(0xbcdcff, 2.6, 3.0, 2);
+  fill.position.set(0, 0.30, -1.62);
   fill.castShadow = false;
   g.add(fill);
+  const rim = new THREE.PointLight(0x8fb8ff, 1.6, 2.2, 2);
+  rim.position.set(0, 0.52, -0.52);
+  rim.castShadow = false;
+  g.add(rim);
 
   return g;
 }
@@ -543,38 +612,60 @@ function hullGreebles() {
   const metal = [];
   const dark = [];
 
-  for (const sx of [1, -1]) {
-    // intake ducts sunk into the shoulder wells
-    dark.push([ductGeo({ rx: 0.115, ry: 0.155, depth: 0.34, throat: 0.5, lip: 0.03, sides: 16, p: 2.6 }),
-      M.chain(M.t(0.372 * sx, 0.106, -1.24), M.ry(0.30 * sx), M.rx(-0.06))]);
+  // `a` is the fraction around the section: 0 = starboard waterline, 0.25 = top,
+  // 0.5 = port, 0.75 = keel. Every flank part below is placed through HULL_S, so
+  // it lands on the skin no matter how the station table is retuned later.
+  const F = (z, a, o) => HULL_S.frame(z, a, o);
+  const mir = (m) => new THREE.Matrix4().multiplyMatrices(M.s(-1, 1, 1), m);
 
-    // splitter plate standing off the duct mouth
-    dark.push([chamferBox(0.022, 0.30, 0.30, 0.008),
-      M.chain(M.t(0.404 * sx, 0.106, -1.16), M.ry(0.30 * sx))]);
+  for (const sx of [1, -1]) {
+    const P = (z, a, o) => (sx > 0 ? F(z, a, o) : mir(F(z, a, o)));
+
+    // intake ducts sunk into the shoulder wells. In a hull frame +Y is out of
+    // the skin, so rx(+90°) turns the duct's bore inwards and the mouth reads as
+    // a real hole with a lip rather than a dark decal.
+    dark.push([ductGeo({ rx: 0.160, ry: 0.115, depth: 0.34, throat: 0.5, lip: 0.03, sides: 18, p: 2.6 }),
+      M.chain(P(-1.30, 0.055, { lift: -0.026 }), M.rx(Math.PI / 2))]);
+
+    // boundary-layer diverter standing ahead of the mouth
+    dark.push([chamferBox(0.30, 0.058, 0.020, 0.006), P(-1.56, 0.055, { lift: 0.026 })]);
 
     // heat louvres aft of the wing root
     dark.push([louvers({ n: 5, w: 0.30, h: 0.030, d: 0.075, gap: 0.048, tilt: -0.55, curve: 0.25 }),
-      M.chain(M.t(0.386 * sx, 0.078, 1.30), M.ry(Math.PI / 2 * sx), M.rz(0.12))]);
+      M.chain(P(1.32, 0.022, { lift: 0.006 }), M.rx(Math.PI / 2))]);
 
     // avionics bay covers with fasteners
-    metal.push([chamferBox(0.30, 0.012, 0.62, 0.006), M.chain(M.t(0.352 * sx, 0.212, 1.30), M.rz(1.10 * sx))]);
-    metal.push([boltRow({ from: [0.372 * sx, 0.258, 1.00], to: [0.372 * sx, 0.258, 1.60], n: 6, r: 0.011, h: 0.010 }), null]);
-    metal.push([boltRow({ from: [0.372 * sx, 0.160, 1.00], to: [0.372 * sx, 0.160, 1.60], n: 6, r: 0.011, h: 0.010 }), null]);
+    metal.push([conformalPatch((u, v) => HULL_S.sample(u, v),
+      { u0: 0.94, u1: 1.68, v0: 0.055, v1: 0.140, nu: 7, nv: 5, lift: 0.002, thick: 0.012, inset: 0.11 }),
+      sx > 0 ? null : M.s(-1, 1, 1)]);
+    for (const a of [0.048, 0.146]) for (let i = 0; i < 6; i++) {
+      metal.push([new THREE.CylinderGeometry(0.011, 0.009, 0.009, 6),
+        P(0.96 + i * 0.144, a, { lift: 0.004 })]);
+    }
 
     // spine fastener rows
-    metal.push([boltRow({ from: [0.10 * sx, 0.318, -0.20], to: [0.10 * sx, 0.300, 1.70], n: 9, r: 0.010, h: 0.008 }), null]);
+    for (let i = 0; i < 9; i++) {
+      metal.push([new THREE.CylinderGeometry(0.010, 0.008, 0.008, 6),
+        P(-0.20 + i * 0.238, 0.212, { lift: 0.003 })]);
+    }
 
-    // chine strakes forward of the wing
+    // chine strake running forward from the wing root along the shoulder line.
+    // ry(-90°) is what turns an XY outline into a fin standing on the skin with
+    // its long axis running aft — the frame supplies the rest.
     metal.push([extrudePoly([
-      new THREE.Vector2(-0.62, 0.0), new THREE.Vector2(0.30, 0.036),
-      new THREE.Vector2(0.30, -0.024), new THREE.Vector2(-0.62, -0.018),
-    ], 0.030, 0.006), M.chain(M.t(0.318 * sx, 0.045, -2.10), M.ry(Math.PI / 2 * sx), M.rz(0.10))]);
+      new THREE.Vector2(-0.78, 0.0), new THREE.Vector2(0.42, 0.042),
+      new THREE.Vector2(0.42, -0.026), new THREE.Vector2(-0.78, -0.020),
+    ], 0.028, 0.006), M.chain(P(-1.86, 0.0, { lift: 0.004 }), M.ry(-Math.PI / 2))]);
 
     // sensor blisters
-    metal.push([blisterGeo({ rx: 0.062, ry: 0.036, rz: 0.098, seg: 12, rings: 4 }),
-      M.chain(M.t(0.268 * sx, 0.168, -2.68), M.rz(-0.55 * sx))]);
-    dark.push([blisterGeo({ rx: 0.048, ry: 0.030, rz: 0.070, seg: 10, rings: 4 }),
-      M.chain(M.t(0.176 * sx, -0.252, -0.60), M.rz(Math.PI))]);
+    metal.push([blisterGeo({ rx: 0.058, ry: 0.034, rz: 0.094, seg: 12, rings: 4 }),
+      P(-2.66, 0.105, { lift: -0.004 })]);
+    dark.push([blisterGeo({ rx: 0.046, ry: 0.028, rz: 0.068, seg: 10, rings: 4 }),
+      P(-0.62, 0.700, { lift: -0.004 })]);
+    // formation-light strip along the flank
+    metal.push([conformalPatch((u, v) => HULL_S.sample(u, v),
+      { u0: -2.30, u1: -0.90, v0: 0.086, v1: 0.116, nu: 9, nv: 3, lift: 0.002, thick: 0.007, inset: 0.12 }),
+      sx > 0 ? null : M.s(-1, 1, 1)]);
   }
 
   // radome cap + pitot
@@ -603,14 +694,7 @@ function hullGreebles() {
   metal.push([boltRow({ from: [-0.10, -0.392, -0.40], to: [-0.10, -0.392, 1.60], n: 8, r: 0.010, h: 0.008 }), null]);
 
   // dorsal spine fairing running from the canopy into the fin
-  metal.push([hullLoft({
-    stations: [
-      { z: -0.34, rx: 0.086, ry: 0.030, p: 2.8 },
-      { z:  0.20, rx: 0.100, ry: 0.052, p: 3.0 },
-      { z:  1.20, rx: 0.092, ry: 0.048, p: 3.0 },
-      { z:  1.90, rx: 0.066, ry: 0.030, p: 2.8 },
-    ], count: 12, steps: 6,
-  }), M.t(0, 0.316, 0)]);
+  metal.push([hullLoft({ stations: DORSAL, count: 14, steps: 8 }), null]);
 
   // engine bay collar — dark, banded, obviously a different assembly
   dark.push([hullLoft({
@@ -642,43 +726,107 @@ function hullGreebles() {
   return { metal: assemble(metal), dark: assemble(dark) };
 }
 
-function wingGreebles(sx) {
-  const metal = [];
-  const dark = [];
+/* ── the starboard wing, built once and mirrored ───────────────────────────── */
 
-  // wing-root fence where the wing meets the fuselage shoulder
-  metal.push([extrudePoly([
-    new THREE.Vector2(-1.30, 0.00), new THREE.Vector2(0.35, 0.10),
-    new THREE.Vector2(0.90, 0.02), new THREE.Vector2(-1.30, -0.06),
-  ], 0.026, 0.006), M.chain(M.t(0.50 * sx, 0.150, 0), M.ry(Math.PI / 2 * sx))]);
+/** Where the tip fin stands: on the wing tip's upper skin, straddling its chord. */
+const TIP_ANCHOR = WING_S.point(HALF_SPAN, 0.42, 1);
+const TIP_FIN_M = M.chain(M.t(HALF_SPAN, TIP_ANCHOR.y - 0.035, 0.34), M.rz(-0.20));
+const TIP_VENT_M = M.chain(
+  M.t(HALF_SPAN, WING_S.point(HALF_SPAN, 0.5, -1).y + 0.02, 0.56),
+  M.rz(0.26 + Math.PI), M.s(0.40, 0.44, 0.52),
+);
 
-  // pylon linking the gun pod to the wing
-  dark.push([chamferBox(0.055, 0.15, 0.72, 0.018), M.chain(M.t(1.30 * sx, 0.010, -0.85), M.rz(0.06 * sx))]);
+/**
+ * Everything that hangs off, sits on or bolts to the starboard wing. Built for
+ * +X only and mirrored, so the two halves cannot drift apart, and every part is
+ * anchored through `WING_S` so nothing can float.
+ */
+function starboardWing() {
+  const paint = [], metal = [], dark = [], red = [];
+  const S = WING_S;
 
-  // hardpoint blocks + fasteners along the spar line
-  for (let i = 0; i < 4; i++) {
-    metal.push([chamferBox(0.13, 0.030, 0.20, 0.010),
-      M.t((1.02 + i * 0.62) * sx, 0.115 - i * 0.045, 0.34 - i * 0.06)]);
-  }
-  metal.push([boltRow({ from: [0.75 * sx, 0.130, -0.55], to: [3.05 * sx, -0.062, 0.28], n: 9, r: 0.011, h: 0.008 }), null]);
-  metal.push([boltRow({ from: [0.75 * sx, 0.106, 0.72], to: [3.05 * sx, -0.098, 0.86], n: 8, r: 0.010, h: 0.008 }), null]);
+  /* ── skin ── */
+  paint.push([wingGeo(), null]);
 
-  // G-diffuser housing under the wing — a real box with vents, not a glow decal
-  dark.push([chamferBox(0.95, 0.085, 0.42, 0.024), M.chain(M.t(2.05 * sx, -0.115, 0.60), M.rz(0.10 * sx), M.ry(-0.12 * sx))]);
-  dark.push([louvers({ n: 4, w: 0.80, h: 0.026, d: 0.055, gap: 0.040, tilt: -0.45 }),
-    M.chain(M.t(2.05 * sx, -0.152, 0.62), M.rx(Math.PI / 2), M.ry(-0.12 * sx))]);
-
-  // tip-fin root fairing so the fin grows out of the wing
+  /* ── tip fin ── */
+  paint.push([tipFinGeo(), TIP_FIN_M]);
+  dark.push([tipFinGeo(false), TIP_VENT_M]);
+  // root fairing blending the fin into the wing tip, seated on the tip chord
   dark.push([extrudePoly([
-    new THREE.Vector2(-0.70, 0.00), new THREE.Vector2(0.10, 0.22),
-    new THREE.Vector2(0.55, 0.02), new THREE.Vector2(-0.70, -0.05),
-  ], 0.09, 0.014), M.chain(M.t(HALF_SPAN * sx, -0.085, 0.28), M.ry(Math.PI / 2 * sx))]);
+    new THREE.Vector2(-0.62, 0.00), new THREE.Vector2(0.06, 0.19),
+    new THREE.Vector2(0.50, 0.02), new THREE.Vector2(-0.62, -0.05),
+  ], 0.085, 0.014), M.chain(M.t(HALF_SPAN, TIP_ANCHOR.y - 0.02, 0.86), M.ry(-Math.PI / 2))]);
 
-  // navigation blister on the tip fin
-  metal.push([blisterGeo({ rx: 0.040, ry: 0.026, rz: 0.070, seg: 10, rings: 4 }),
-    M.chain(M.t((HALF_SPAN + 0.06) * sx, 0.72, 0.52), M.rz(-Math.PI / 2 * sx))]);
+  /* ── gun pod ── */
+  const podY = S.point(1.32, 0.44, -1).y - 0.085;
+  const podM = M.t(1.32, podY, -0.10);
+  paint.push([laserPodGeo(), podM]);
+  metal.push([barrelGeo(), podM]);
+  red.push([new THREE.TorusGeometry(0.062, 0.014, 8, 16), M.t(1.32, podY, -3.60)]);
+  // pylon: from the pod's spine up into the wing's lower skin
+  {
+    const top = S.point(1.32, 0.44, -1);
+    dark.push([chamferBox(0.052, Math.max(0.06, top.y - podY + 0.10), 0.66, 0.016),
+      M.t(1.32, (top.y + podY) * 0.5 + 0.02, -0.62)]);
+  }
 
-  return { metal: assemble(metal), dark: assemble(dark) };
+  /* ── wing-root fence, standing on the skin along the chord ── */
+  metal.push([extrudePoly([
+    new THREE.Vector2(-0.62, 0.00), new THREE.Vector2(0.28, 0.062),
+    new THREE.Vector2(0.66, 0.010), new THREE.Vector2(-0.62, -0.05),
+  ], 0.024, 0.006), M.chain(S.frame(0.52, 0.46, 1, { lift: 0.004 }), M.ry(-Math.PI / 2))]);
+
+  /* ── hardpoints and fasteners riding the spar line ── */
+  // A cylinder's axis is +Y and a surface frame's +Y is the normal, so a
+  // fastener needs no rotation at all — it lands seated and square every time.
+  for (let i = 0; i < 4; i++) {
+    const sp = 1.05 + i * 0.60;
+    metal.push([chamferBox(0.12, 0.026, 0.19, 0.009), S.frame(sp, 0.36, -1, { lift: 0.010 })]);
+  }
+  for (const [xc, n] of [[0.20, 9], [0.66, 8]]) {
+    for (let i = 0; i < n; i++) {
+      const sp = 0.62 + (2.94 - 0.62) * (i / (n - 1));
+      metal.push([new THREE.CylinderGeometry(0.011, 0.009, 0.008, 6), S.frame(sp, xc, 1, { lift: 0.002 })]);
+    }
+  }
+
+  /* ── G-diffuser: a real unit bolted to the underside, not a glowing decal ── */
+  const gdM = S.frame(2.05, 0.60, -1, { lift: 0.052 });
+  dark.push([chamferBox(0.92, 0.090, 0.40, 0.022), gdM]);
+  dark.push([louvers({ n: 4, w: 0.78, h: 0.026, d: 0.052, gap: 0.038, tilt: -0.45 }),
+    M.chain(gdM, M.t(0, 0.048, 0), M.rx(Math.PI / 2))]);
+  for (let i = 0; i < 5; i++) {
+    metal.push([new THREE.CylinderGeometry(0.009, 0.008, 0.008, 6),
+      M.chain(gdM, M.t(-0.40 + i * 0.20, 0.048, -0.17))]);
+  }
+
+  /* ── navigation blister high on the tip fin ── */
+  // The fin is authored flat and stood up by STAND_UP, so anything riding its
+  // surface has to be carried through the *same* pair of matrices.
+  const FIN_M = new THREE.Matrix4().multiplyMatrices(TIP_FIN_M, STAND_UP);
+  metal.push([blisterGeo({ rx: 0.038, ry: 0.026, rz: 0.066, seg: 10, rings: 4 }),
+    M.chain(FIN_M, TIPFIN_S.frame(0.76, 0.44, -1, { lift: 0.004 }))]);
+
+  /* ── trim: conformal, so it is paint on a surface rather than a floating bar ─ */
+  const wingPatch = (o) => conformalPatch((u, v) => S.sample(u, v, o.side), o);
+  // leading-edge stripe, wrapped over the nose of the airfoil
+  red.push([wingPatch({ side: 1, u0: 0.55, u1: 3.34, v0: 0.004, v1: 0.085, nu: 16, nv: 4, lift: 0.002, thick: 0.008, inset: 0.10 }), null]);
+  red.push([wingPatch({ side: -1, u0: 0.55, u1: 3.34, v0: 0.004, v1: 0.075, nu: 16, nv: 4, lift: 0.002, thick: 0.008, inset: 0.10 }), null]);
+  // outboard upper chevron — the marking that reads at 100 px
+  red.push([wingPatch({ side: 1, u0: 2.38, u1: 3.06, v0: 0.17, v1: 0.60, nu: 7, nv: 6, lift: 0.002, thick: 0.007, inset: 0.09 }), null]);
+  // inboard grey service walkway, so the upper skin is not one clean sheet
+  metal.push([wingPatch({ side: 1, u0: 0.42, u1: 1.28, v0: 0.66, v1: 0.90, nu: 8, nv: 4, lift: 0.002, thick: 0.006, inset: 0.10 }), null]);
+
+  // tip-fin cap flash, on both faces of the fin
+  for (const side of [1, -1]) {
+    red.push([conformalPatch((u, v) => TIPFIN_S.sample(u, v, side),
+      { u0: 1.02, u1: 1.50, v0: 0.03, v1: 0.94, nu: 6, nv: 6, lift: 0.002, thick: 0.007, inset: 0.10 }), FIN_M]);
+  }
+
+  return {
+    paint: assemble(paint), metal: assemble(metal),
+    dark: assemble(dark), red: assemble(red),
+  };
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -708,147 +856,148 @@ export function createArwing({ scale = 1, wingLights = true, cockpit = true } = 
   tailFin.position.set(0, 0.300, 0);
 
   /* ── trim: the red flashes that make the shape legible at distance ──────── */
+  // Every one of these is a conformal patch sampled off the hull sampler, so it
+  // is paint lying on the skin. The previous revision floated them on guessed
+  // transforms and the ship grew a set of red antennae.
+  const hullPatch = (o) => conformalPatch((u, v) => HULL_S.sample(u, v), o);
   const redParts = [
-    // nose chevron
-    [extrudePoly([
-      new THREE.Vector2(-0.55, 0.0), new THREE.Vector2(0.42, 0.075),
-      new THREE.Vector2(0.42, -0.075),
-    ], 0.052, 0.008), M.chain(M.t(0, 0.184, -3.02), M.rx(Math.PI / 2), M.rz(Math.PI / 2))],
-    // cheek flashes
-    [chamferBox(0.028, 0.075, 1.05, 0.010), M.chain(M.t(0.276, 0.108, -2.55), M.rz(-0.30), M.ry(0.10))],
-    [chamferBox(0.028, 0.075, 1.05, 0.010), M.chain(M.t(-0.276, 0.108, -2.55), M.rz(0.30), M.ry(-0.10))],
-    // spine stripe
-    [chamferBox(0.105, 0.028, 1.50, 0.010), M.t(0, 0.352, 1.05)],
-    // fin cap
-    [chamferBox(0.070, 0.075, 0.52, 0.020), M.t(0, 1.545, 1.86)],
+    // nose chevron over the radome shoulder
+    [hullPatch({ u0: -3.66, u1: -2.70, v0: 0.196, v1: 0.304, nu: 10, nv: 6, lift: 0.002, thick: 0.009, inset: 0.16 }), null],
+    // cheek flashes riding the shoulder chine, both sides
+    [hullPatch({ u0: -3.24, u1: -1.62, v0: 0.010, v1: 0.062, nu: 13, nv: 4, lift: 0.002, thick: 0.008, inset: 0.10 }), null],
+    [hullPatch({ u0: -3.24, u1: -1.62, v0: 0.438, v1: 0.490, nu: 13, nv: 4, lift: 0.002, thick: 0.008, inset: 0.10 }), null],
+    // spine stripe, on the dorsal fairing rather than floating above the hull
+    [conformalPatch((u, v) => DORSAL_S.sample(u, v),
+      { u0: -0.20, u1: 1.78, v0: 0.190, v1: 0.310, nu: 11, nv: 4, lift: 0.002, thick: 0.008, inset: 0.10 }), null],
+    // dorsal fin cap
+    [conformalPatch((u, v) => TAILFIN_S.sample(u, v, 1),
+      { u0: 0.98, u1: 1.32, v0: 0.03, v1: 0.95, nu: 5, nv: 6, lift: 0.002, thick: 0.007, inset: 0.10 }),
+      M.chain(M.t(0, 0.300, 0), STAND_UP)],
+    [conformalPatch((u, v) => TAILFIN_S.sample(u, v, -1),
+      { u0: 0.98, u1: 1.32, v0: 0.03, v1: 0.95, nu: 5, nv: 6, lift: 0.002, thick: 0.007, inset: 0.10 }),
+      M.chain(M.t(0, 0.300, 0), STAND_UP)],
   ];
   const redMesh = new THREE.Mesh(assemble(redParts), SMat.red);
 
   const goldMesh = new THREE.Mesh(assemble([
-    [new THREE.TorusGeometry(0.056, 0.013, 8, 18), M.t(0, 0, -3.66)],
-    [chamferBox(0.020, 0.020, 0.34, 0.006), M.t(0.196, 0.246, -2.86)],
-    [chamferBox(0.020, 0.020, 0.34, 0.006), M.t(-0.196, 0.246, -2.86)],
+    [new THREE.TorusGeometry(0.052, 0.012, 8, 18), M.t(0, 0, -3.72)],
+    [hullPatch({ u0: -2.96, u1: -2.42, v0: 0.145, v1: 0.185, nu: 5, nv: 3, lift: 0.002, thick: 0.008, inset: 0.14 }), null],
+    [hullPatch({ u0: -2.96, u1: -2.42, v0: 0.315, v1: 0.355, nu: 5, nv: 3, lift: 0.002, thick: 0.008, inset: 0.14 }), null],
   ]), SMat.gold);
 
   /* ── wing assembly ──────────────────────────────────────────────────────── */
-  // Wings, tip fins, gun pods and their trim are merged per material and share
-  // one flex shader, so the whole outer structure bends as a single spar.
-  const wingPaint = [], wingMetal = [], wingDark = [], wingRed = [];
-
-  for (const sx of [1, -1]) {
-    const mir = (g) => (sx < 0 ? mirrorX(g) : g);
-    const X = (v) => v * sx;
-
-    wingPaint.push([mir(wingGeo()), null]);
-
-    // tip fin, canted outboard
-    wingPaint.push([tipFinGeo(), M.chain(M.t(X(HALF_SPAN), -0.096, 0.05), M.rz(X(-0.20)))]);
-    // ventral spur below the tip
-    wingDark.push([tipFinGeo(), M.chain(M.t(X(HALF_SPAN), -0.140, 0.28), M.rz(X(0.24) + Math.PI), M.s(0.55, 0.52, 0.62))]);
-
-    // gun pod + barrel
-    wingPaint.push([mir(laserPodGeo()), M.t(X(1.30), -0.055, 0)]);
-    wingMetal.push([mir(barrelGeo()), M.t(X(1.30), -0.055, 0)]);
-    wingRed.push([new THREE.TorusGeometry(0.062, 0.014, 8, 16), M.t(X(1.30), -0.055, -3.50)]);
-
-    const g = wingGreebles(sx);
-    wingMetal.push([g.metal, null]);
-    wingDark.push([g.dark, null]);
-
-    // leading-edge red stripe following the sweep
-    wingRed.push([extrudePoly([
-      new THREE.Vector2(-1.15, 0.055), new THREE.Vector2(1.15, 0.020),
-      new THREE.Vector2(1.15, -0.020), new THREE.Vector2(-1.15, -0.055),
-    ], 0.11, 0.010), M.chain(M.t(X(2.30), 0.006, -0.72), M.ry(X(-0.42)), M.rx(Math.PI / 2), M.rz(Math.PI / 2))]);
-
-    // tip fin flash
-    wingRed.push([chamferBox(0.062, 0.42, 0.13, 0.018), M.chain(M.t(X(HALF_SPAN + 0.24), 1.02, 0.86), M.rz(X(-0.20)))]);
-  }
+  // One wing is built and mirrored, so the halves cannot drift. Wings, tip fins,
+  // gun pods and trim are merged per material and share one flex shader, so the
+  // whole outer structure bends as a single spar.
+  const SB = starboardWing();
+  const MIRROR = M.s(-1, 1, 1);
+  const bothSides = (g) => assemble([[g, null], [g, MIRROR]]);
 
   const wingRoot = new THREE.Group();
   wingRoot.name = 'wings';
   wingRoot.add(
-    new THREE.Mesh(assemble(wingPaint), flexMaterial(SMat.paint, flexU)),
-    new THREE.Mesh(assemble(wingMetal), flexMaterial(SMat.metal, flexU)),
-    new THREE.Mesh(assemble(wingDark), flexMaterial(SMat.heat, flexU)),
-    new THREE.Mesh(assemble(wingRed), flexMaterial(SMat.red, flexU)),
+    new THREE.Mesh(bothSides(SB.paint), flexMaterial(SMat.paint, flexU)),
+    new THREE.Mesh(bothSides(SB.metal), flexMaterial(SMat.metal, flexU)),
+    new THREE.Mesh(bothSides(SB.dark), flexMaterial(SMat.heat, flexU)),
+    new THREE.Mesh(bothSides(SB.red), flexMaterial(SMat.red, flexU)),
   );
 
   /* ── control surfaces ───────────────────────────────────────────────────── */
-  // Each lives in a pivot group at its hinge line and carries a fixed-weight
-  // flex material, so it tracks the bent wing instead of tearing away from it.
+  // Each surface is cut from the parent skin: the elevon is literally the aft
+  // 28% of the wing's own airfoil, hinged on the axis the notch was cut around,
+  // and its pivot group rides the same bend function as the flex shader — so it
+  // stays in its slot at every deflection and every load.
   const surfaces = { elevon: [], brake: [], rudder: null, tipRudder: [] };
 
-  const mkSurface = (mat, geo, hinge, station) => {
+  const mkHinged = (geo, hinge, quat, base, sx) => {
     const pivot = new THREE.Group();
-    pivot.position.copy(hinge);
-    pivot.add(new THREE.Mesh(geo, flexMaterial(mat, flexU, { fixed: station })));
+    const p = hinge.clone();
+    if (sx < 0) p.x = -p.x;
+    pivot.position.copy(p);
+    const q = quat.clone();
+    if (sx < 0) { q.y = -q.y; q.z = -q.z; }   // mirror a rotation across x = 0
+    pivot.quaternion.copy(q);
+    const inner = new THREE.Group();
+    inner.add(new THREE.Mesh(
+      assemble([[geo, sx < 0 ? MIRROR : null]]),
+      flexMaterial(base, flexU, { offsetX: p.x }),
+    ));
+    pivot.add(inner);
+    pivot.userData.inner = inner;
     return pivot;
   };
 
+  const BRAKE_U = [0.54, 1.30], BRAKE_V = [0.315, 0.615];
+
   for (const sx of [1, -1]) {
-    // elevon: outboard trailing edge
-    const evGeo = extrudePoly([
-      new THREE.Vector2(-0.52, 0.030), new THREE.Vector2(0.50, 0.014),
-      new THREE.Vector2(0.50, -0.014), new THREE.Vector2(-0.52, -0.030),
-    ], 1.05, 0.012);
-    evGeo.applyMatrix4(M.chain(M.rx(Math.PI / 2), M.rz(Math.PI / 2), M.t(0, 0, 0.20)));
-    const ev = mkSurface(SMat.paint, evGeo, new THREE.Vector3(2.28 * sx, -0.006, 0.94), 2.28 * sx);
-    ev.rotation.y = -0.06 * sx;
+    /* elevon — the notch in the wing was cut to receive exactly this part */
+    const ev = mkHinged(ELEVON.geo, ELEVON.hinge, ELEVON.quat, SMat.paint, sx);
     surfaces.elevon.push(ev);
     wingRoot.add(ev);
 
-    // airbrake: a plate lying flush on the upper wing that pops up on brake
-    const abGeo = extrudePoly([
-      new THREE.Vector2(-0.34, 0.34), new THREE.Vector2(0.34, 0.30),
-      new THREE.Vector2(0.34, -0.34), new THREE.Vector2(-0.34, -0.34),
-    ], 0.045, 0.010);
-    abGeo.applyMatrix4(M.chain(M.rx(-Math.PI / 2), M.t(0, 0.012, 0.30)));
-    const ab = mkSurface(SMat.paintGrey, abGeo, new THREE.Vector3(1.42 * sx, 0.118, 0.34), 1.42 * sx);
+    /* airbrake — a panel lifted straight off the upper skin it lies on */
+    const abGeo = conformalPatch((u, v) => WING_S.sample(u, v, 1), {
+      u0: BRAKE_U[0], u1: BRAKE_U[1], v0: BRAKE_V[0], v1: BRAKE_V[1],
+      nu: 7, nv: 5, lift: 0.004, thick: 0.020, inset: 0.05,
+    });
+    const h0 = WING_S.point(BRAKE_U[0], BRAKE_V[0], 1);
+    const h1 = WING_S.point(BRAKE_U[1], BRAKE_V[0], 1);
+    const abHinge = h0.clone().add(h1).multiplyScalar(0.5);
+    const abQuat = new THREE.Quaternion()
+      .setFromUnitVectors(new THREE.Vector3(1, 0, 0), h1.clone().sub(h0).normalize());
+    abGeo.translate(-abHinge.x, -abHinge.y, -abHinge.z);
+    abGeo.applyMatrix4(new THREE.Matrix4().makeRotationFromQuaternion(abQuat.clone().invert()));
+    const ab = mkHinged(abGeo, abHinge, abQuat, SMat.paintGrey, sx);
     surfaces.brake.push(ab);
     wingRoot.add(ab);
 
-    // tip-fin rudder
-    const trGeo = extrudePoly([
-      new THREE.Vector2(-0.44, 0.030), new THREE.Vector2(0.40, 0.012),
-      new THREE.Vector2(0.40, -0.012), new THREE.Vector2(-0.44, -0.030),
-    ], 0.62, 0.010);
-    trGeo.applyMatrix4(M.chain(M.rz(Math.PI / 2), M.t(0, 0.30, 0.16)));
-    const tr = mkSurface(SMat.paint, trGeo, new THREE.Vector3((HALF_SPAN + 0.20) * sx, 0.62, 1.06), HALF_SPAN * sx);
-    tr.rotation.z = -0.20 * sx;
+    // the bay under it: sunk clear of the skin, only seen once the panel lifts
+    const wellGeo = conformalPatch((u, v) => WING_S.sample(u, v, 1), {
+      u0: BRAKE_U[0] + 0.03, u1: BRAKE_U[1] - 0.03, v0: BRAKE_V[0] + 0.008, v1: BRAKE_V[1] - 0.008,
+      nu: 6, nv: 4, lift: -0.062, thick: 0.030, inset: 0.05,
+    });
+    wingRoot.add(new THREE.Mesh(
+      assemble([[wellGeo, sx < 0 ? MIRROR : null]]),
+      flexMaterial(SMat.metalDark, flexU),
+    ));
+
+    /* tip-fin rudder — cut from the fin's own section, then stood up with it */
+    const finM = new THREE.Matrix4().multiplyMatrices(TIP_FIN_M, STAND_UP);
+    const tr = mkHinged(
+      TIP_RUDDER.geo,
+      TIP_RUDDER.hinge.clone().applyMatrix4(finM),
+      new THREE.Quaternion().setFromRotationMatrix(finM).multiply(TIP_RUDDER.quat),
+      SMat.paint, sx,
+    );
     surfaces.tipRudder.push(tr);
     wingRoot.add(tr);
   }
 
-  // dorsal rudder
+  // dorsal rudder, cut from the tail fin the same way
   {
-    const rGeo = extrudePoly([
-      new THREE.Vector2(-0.55, 0.038), new THREE.Vector2(0.48, 0.014),
-      new THREE.Vector2(0.48, -0.014), new THREE.Vector2(-0.55, -0.038),
-    ], 0.90, 0.012);
-    rGeo.applyMatrix4(M.chain(M.rz(Math.PI / 2), M.t(0, 0.42, 0.24)));
+    const finM = M.chain(M.t(0, 0.300, 0), STAND_UP);
     const rud = new THREE.Group();
-    rud.position.set(0, 0.52, 1.72);
-    rud.add(new THREE.Mesh(rGeo, SMat.paint));
+    rud.position.copy(TAIL_RUDDER.hinge.clone().applyMatrix4(finM));
+    rud.quaternion.copy(new THREE.Quaternion().setFromRotationMatrix(finM).multiply(TAIL_RUDDER.quat));
+    const inner = new THREE.Group();
+    inner.add(new THREE.Mesh(TAIL_RUDDER.geo, SMat.paint));
+    rud.add(inner);
+    rud.userData.inner = inner;
     surfaces.rudder = rud;
     root.add(rud);
   }
 
-  /* ── G-diffuser emissive strips ─────────────────────────────────────────── */
+  /* ── G-diffuser emissive strips, seated on the housing under each wing ──── */
   const gdiffusers = [];
+  const gdBase = WING_S.frame(2.05, 0.60, -1, { lift: 0.052 });
   for (const sx of [1, -1]) {
-    const gdMat = Mat.gdiffuser.clone();
-    const gd = new THREE.Mesh(chamferBox(0.86, 0.020, 0.30, 0.008), gdMat);
-    gd.position.set(2.05 * sx, -0.168, 0.60);
-    gd.rotation.set(0, -0.12 * sx, 0.10 * sx);
+    const gd = new THREE.Mesh(assemble([
+      [chamferBox(0.80, 0.016, 0.26, 0.006), M.chain(gdBase, M.t(0, -0.050, 0))],
+      [chamferBox(0.62, 0.010, 0.11, 0.004), WING_S.frame(2.05, 0.28, 1, { lift: 0.008 })],
+    ].map(([g, m]) => [g, sx < 0 ? new THREE.Matrix4().multiplyMatrices(MIRROR, m) : m])), Mat.gdiffuser.clone());
     gd.name = 'gdiffuser';
     wingRoot.add(gd);
     gdiffusers.push(gd);
-
-    const gdTop = new THREE.Mesh(chamferBox(1.05, 0.014, 0.13, 0.006), gdMat);
-    gdTop.position.set(2.10 * sx, 0.028, 0.72);
-    gdTop.rotation.set(0, -0.12 * sx, 0.10 * sx);
-    wingRoot.add(gdTop);
   }
 
   /* ── engines ────────────────────────────────────────────────────────────── */
@@ -931,11 +1080,11 @@ export function createArwing({ scale = 1, wingLights = true, cockpit = true } = 
   canopy.renderOrder = 5;
 
   const canopyFrame = new THREE.Mesh(assemble([
-    [canopyBow(-2.10, 0.055), null],
-    [canopyBow(-0.50, 0.060), null],
-    [canopyRail(0.0, 0.018), null],
-    [canopyRail(0.5, 0.018), null],
-    [canopyRail(0.25, 0.013, -2.50, -0.34, 10), null],
+    [canopyBow(-2.16, 0.048), null],
+    [canopyBow(-0.52, 0.052), null],
+    [canopyRail(0.0, 0.013, -2.72, -0.30, 14), null],
+    [canopyRail(0.5, 0.013, -2.72, -0.30, 14), null],
+    [canopyRail(0.25, 0.009, -2.62, -0.36, 12), null],
   ]), SMat.metalDark);
   canopyFrame.name = 'canopyFrame';
 
@@ -946,20 +1095,25 @@ export function createArwing({ scale = 1, wingLights = true, cockpit = true } = 
   }), { capStart: true, capEnd: true, closed: true }), SMat.paint);
 
   const cockpitGroup = cockpit ? buildCockpit() : null;
+  if (cockpitGroup) cockpitGroup.position.y = COCKPIT_DROP;
 
   /* ── nav / warning lights ───────────────────────────────────────────────── */
   const navLights = new THREE.Group();
   navLights.name = 'navLights';
   if (wingLights) {
-    const mk = (x, y, z, color, size) => {
+    const mk = (p, color, size) => {
       const m = new THREE.Mesh(new THREE.SphereGeometry(size, 10, 8), emissive(color, 8));
-      m.position.set(x, y, z);
+      m.position.copy(p);
       navLights.add(m);
     };
-    mk(HALF_SPAN + 0.10, 1.22, 1.02, 0xff2a2a, 0.040);
-    mk(-(HALF_SPAN + 0.10), 1.22, 1.02, 0x2aff5a, 0.040);
-    mk(0, 1.62, 1.92, 0xffffff, 0.028);
-    mk(0, -0.402, -0.98, 0xffffff, 0.024);
+    // Read off the fin surfaces rather than typed in — retune a fin and the
+    // lamps follow it instead of being left behind in empty air.
+    const finM = new THREE.Matrix4().multiplyMatrices(TIP_FIN_M, STAND_UP);
+    const tipLamp = TIPFIN_S.point(1.44, 0.30, 1).applyMatrix4(finM);
+    mk(tipLamp, 0xff2a2a, 0.038);
+    mk(tipLamp.clone().setX(-tipLamp.x), 0x2aff5a, 0.038);
+    mk(TAILFIN_S.point(1.28, 0.34, 1).applyMatrix4(M.chain(M.t(0, 0.300, 0), STAND_UP)), 0xffffff, 0.026);
+    mk(HULL_S.point(-0.98, 0.75).add(new THREE.Vector3(0, -0.075, 0)), 0xffffff, 0.024);
   }
 
   /* ── damage kit ─────────────────────────────────────────────────────────── */
@@ -1137,16 +1291,20 @@ export function createArwing({ scale = 1, wingLights = true, cockpit = true } = 
       sPitch = lerp(sPitch, clamp(pitch, -1, 1), k);
       sYaw = lerp(sYaw, clamp(yaw, -1, 1), k);
       sBrake = lerp(sBrake, clamp(brake, 0, 1), 1 - Math.exp(-dt * 7));
+      // Deflections are applied to the group *inside* the hinge pivot, because
+      // the pivot itself carries the hinge-axis orientation. Mirroring a
+      // rotation across x=0 negates (y,z) of the quaternion, so both sides take
+      // the same angle for a symmetric input and opposite angles for roll.
       const rl = clamp(roll, -1, 1);
       for (let i = 0; i < surfaces.elevon.length; i++) {
         const sx = i === 0 ? 1 : -1;
-        surfaces.elevon[i].rotation.x = (sPitch * 0.30 + rl * 0.34 * sx) + sBrake * 0.10;
+        surfaces.elevon[i].userData.inner.rotation.x = (sPitch * 0.34 + rl * 0.38 * sx) + sBrake * 0.12;
       }
-      for (const b of surfaces.brake) b.rotation.x = -sBrake * 1.05;
-      if (surfaces.rudder) surfaces.rudder.rotation.y = -sYaw * 0.26;
+      for (const b of surfaces.brake) b.userData.inner.rotation.x = -sBrake * 1.15;
+      if (surfaces.rudder) surfaces.rudder.userData.inner.rotation.x = sYaw * 0.30;
       for (let i = 0; i < surfaces.tipRudder.length; i++) {
         const sx = i === 0 ? 1 : -1;
-        surfaces.tipRudder[i].rotation.y = -sYaw * 0.22 - rl * 0.08 * sx;
+        surfaces.tipRudder[i].userData.inner.rotation.x = sYaw * 0.26 + rl * 0.10 * sx;
       }
 
       /* ── g-diffusers ── */

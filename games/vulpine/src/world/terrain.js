@@ -53,13 +53,18 @@ function farColumns(sign) {
 // or the whole canyon is one shade of brown.
 
 const C_ROCK = [1.00, 0.95, 0.88];
-const C_SAND = [1.45, 1.28, 0.94];
-const C_SCRUB = [0.58, 0.86, 0.40];
-const C_DRY = [1.16, 1.04, 0.70];
-const C_PALE = [1.20, 1.18, 1.12];
-const C_URBAN = [0.96, 0.96, 0.98];
+const C_SAND = [1.52, 1.34, 0.98];
+const C_SCRUB = [0.40, 0.60, 0.27];
+const C_DRY = [1.12, 0.98, 0.56];
+const C_PALE = [1.16, 1.16, 1.13];
+const C_URBAN = [0.92, 0.92, 0.95];
+const C_MOSS = [0.62, 0.74, 0.46];
 
-function tintAt(h, ny, z, out, o) {
+/**
+ * @param cav  0 = a knife-edge ridge, 0.5 = flat, 1 = the bottom of a gully.
+ * @param sky  fraction of the hemisphere this vertex can see.
+ */
+function tintAt(h, ny, z, cav, sky, out, o) {
   const slope = 1 - ny;
   let r = C_ROCK[0], g = C_ROCK[1], b = C_ROCK[2];
 
@@ -70,9 +75,17 @@ function tintAt(h, ny, z, out, o) {
   const dry = clamp((1 - smooth(0.26, 0.55, slope)) * smooth(14, 40, h) * (1 - smooth(190, 340, h)), 0, 1) * 0.8;
   r = lerp(r, C_DRY[0], dry); g = lerp(g, C_DRY[1], dry); b = lerp(b, C_DRY[2], dry);
 
-  // scrub in the gullies and on the terraces
-  const veg = clamp((1 - smooth(0.16, 0.40, slope)) * smooth(9, 30, h) * (1 - smooth(150, 300, h)), 0, 1);
+  // Scrub follows water, and water follows the gullies — so the vegetation mask
+  // is driven by concavity as much as by slope. Straight slope masking is what
+  // makes procedural terrain read as a contour map with a green filter on it.
+  const wet = smooth(0.52, 0.86, cav);
+  const veg = clamp((1 - smooth(0.16, 0.44, slope)) * smooth(9, 30, h) * (1 - smooth(150, 300, h))
+    * (0.35 + 0.9 * wet), 0, 1);
   r = lerp(r, C_SCRUB[0], veg); g = lerp(g, C_SCRUB[1], veg); b = lerp(b, C_SCRUB[2], veg);
+
+  // moss and lichen creep up the shaded crevices of the wall itself
+  const moss = clamp(wet * smooth(0.40, 0.78, slope) * (1 - sky) * 1.5 * (1 - smooth(180, 320, h)), 0, 0.55);
+  r = lerp(r, C_MOSS[0], moss); g = lerp(g, C_MOSS[1], moss); b = lerp(b, C_MOSS[2], moss);
 
   // beach sand — only on the shallow ground either side of the waterline
   const sand = clamp((1 - smooth(0.10, 0.34, slope)) * (1 - smooth(3.5, 15, h)) * smooth(-9, -2.5, h), 0, 1);
@@ -82,6 +95,42 @@ function tintAt(h, ny, z, out, o) {
   r = lerp(r, C_URBAN[0], urban); g = lerp(g, C_URBAN[1], urban); b = lerp(b, C_URBAN[2], urban);
 
   out[o] = r; out[o + 1] = g; out[o + 2] = b;
+}
+
+/* ── sky visibility ───────────────────────────────────────────────────────── */
+//
+// Without an occlusion term a canyon has no depth: the floor of a 300 m gorge
+// receives exactly as much sky as the rim above it, so both render at the same
+// value and the whole thing flattens into a grey sheet. This walks outward from
+// each vertex along the two grid axes, finds the highest elevation angle to the
+// surrounding terrain, and turns that into a hemisphere-visibility scalar that
+// scales *indirect* light only — direct sun still lands wherever it lands.
+//
+// Costs nothing at runtime: it is a handful of array reads per vertex, once.
+
+const HOR = [1, 2, 3, 5, 8, 12, 18, 26, 38, 54];
+
+function skyView(hs, usP, W, H, i, j, dz) {
+  const c = j * W + i;
+  const h = hs[c];
+  let occ = 0;
+  for (const s of HOR) {
+    const iA = i + s, iB = i - s;
+    if (iA < W) {
+      const d = usP[iA] - usP[i];
+      if (d > 1) { const a = (hs[j * W + iA] - h) / d; if (a > occ) occ = a; }
+    }
+    if (iB >= 0) {
+      const d = usP[i] - usP[iB];
+      if (d > 1) { const a = (hs[j * W + iB] - h) / d; if (a > occ) occ = a; }
+    }
+    const jA = j + s, jB = j - s;
+    const d = s * dz;
+    if (jA < H) { const a = (hs[jA * W + i] - h) / d; if (a > occ) occ = a; }
+    if (jB >= 0) { const a = (hs[jB * W + i] - h) / d; if (a > occ) occ = a; }
+  }
+  // tan(elevation) → visible fraction. 45° of blockage on one side ≈ 0.7.
+  return clamp(1 - smooth(0.05, 1.5, occ) * 0.88, 0.10, 1);
 }
 
 /* ── strip meshing ────────────────────────────────────────────────────────── */
@@ -128,11 +177,21 @@ function buildStrip(us, z0, rows, dz, lods) {
       const il = 1 / Math.hypot(nx, ny, nz);
       nx *= il; ny *= il; nz *= il;
 
+      // Second difference along both grid axes → concave (gully, ledge foot) vs
+      // convex (rim, buttress edge). This is what the eye reads as "rock has
+      // been eroded", and it is the one cue a normal map cannot fake at 300 m.
+      const cU = (hs[rowU + i] + hs[rowU + i + 2] - 2 * h) / (usP[i + 2] - usP[i]);
+      const cZ = (hs[j * W + i + 1] + hs[(j + 2) * W + i + 1] - 2 * h) / (2 * dz);
+      const cav = smooth(-0.34, 0.34, (cU + cZ) * 0.5);
+      const sky = skyView(hs, usP, W, H, i + 1, j + 1, dz);
+
       const k = j * cols + i;
       pos[k * 3] = cx + u - cxMid; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z - z0;
       nrm[k * 3] = nx; nrm[k * 3 + 1] = ny; nrm[k * 3 + 2] = nz;
-      tintAt(h, ny, z, col, k * 3);
-      uv[k * 2] = u * 0.01; uv[k * 2 + 1] = z * 0.01;
+      tintAt(h, ny, z, cav, sky, col, k * 3);
+      // The terrain shader is fully triplanar, so the UV channel is free: it
+      // carries the two fields the fragment stage cannot derive for itself.
+      uv[k * 2] = cav; uv[k * 2 + 1] = sky;
       if (h < minY) minY = h;
       if (h > maxY) maxY = h;
       const lx = cx + u - cxMid;

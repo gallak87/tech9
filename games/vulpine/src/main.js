@@ -72,7 +72,11 @@ function step(dt) {
   flight.update(dt, Input.state);
   world.update(dt);
   ctx.combat.update(dt);
-  ctx.fx.update(dt);
+  // FX deliberately does NOT run here. It emits from ctx.ship.position, which
+  // inside the sim holds the fixed-step state while the ship is *drawn*
+  // interpolated — trails would attach up to a full step ahead of the visible
+  // ship, wobbling with alpha. It runs in updateScene() instead, after the
+  // render transform is applied, so emitters sit exactly on the drawn ship.
   simTime += dt;
 }
 
@@ -80,6 +84,10 @@ function updateScene(dt, moveCamera = true, alpha = 1) {
   // Render interpolation: the sim is fixed-step, frames are not. Drawing the
   // raw sim state makes the ship stutter whenever steps-per-frame oscillates.
   flight.applyRenderState(alpha);
+  ship.updateMatrixWorld(true);
+  // Visual FX belong in the render phase: they emit from the ship's *drawn*
+  // transform, so this must come after applyRenderState.
+  ctx.fx.update(dt);
   if (moveCamera) flight.updateCamera(dt, engine.camera, alpha);
   env.update(dt, flight.pos, engine.camera);
   autoFocus();

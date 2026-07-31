@@ -1085,6 +1085,19 @@ export function installFx(ctx) {
 
   let fogSyncT = 0;
 
+  /* ── clock ─────────────────────────────────────────────────────────────────
+     FX advances on **sim time**, not on the wall clock it is handed.
+     `main.frame()` in shot mode runs `applyShot(); updateScene(realDt)` every
+     frame while the simulation is frozen, so wall-paced FX kept ageing while the
+     harness took the screenshot: a shot built for t=0.34 s was captured at
+     whatever 0.3–1 s the machine happened to drift to, and never twice the same.
+     Reading `ctx.time` instead makes a parked review frame cost exactly zero
+     seconds, and makes `__VULPINE__.step(n)` advance effects by exactly n/120 s —
+     so `--seq` produces a reproducible filmstrip. Live play is unaffected: there
+     the sim advances every frame anyway.                                        */
+  let simPaced = true;
+  let lastSim = 0;
+
   function syncFog() {
     const f = ctx.scene.fog;
     if (!f) return;
@@ -1099,7 +1112,17 @@ export function installFx(ctx) {
     shields.material.uniforms.uFogDensity.value = d;
   }
 
-  function update(dt) {
+  function update(dtWall) {
+    let dt = dtWall;
+    if (simPaced) {
+      const now = ctx.time ?? 0;
+      dt = now - lastSim;
+      lastSim = now;
+      // `seekTo()` fast-forwards the sim by seconds without rendering; ageing FX
+      // by that in one call would spray a frame's worth of environment dust in a
+      // single step. One long frame is the most any single update may represent.
+      if (dt > 0.30) dt = 0.30;
+    }
     if (!(dt > 0)) return;
     st.time += dt;
 
@@ -1152,6 +1175,7 @@ export function installFx(ctx) {
     debris.clear();
     trailsPrimed = false;
     st.flash = 0; st.charge = 0; st.charging = false;
+    lastSim = ctx.time ?? 0;
     for (const e of lights) { e.age = 1e9; e.l.intensity = 0; }
   }
 
@@ -1168,8 +1192,11 @@ export function installFx(ctx) {
     st.demo = false;
     clearAll();
     withSeed(name, () => { if (build) build(); });
+    // integrate by hand, off the sim clock, so the frame lands mid-life
     const h = 1 / 120;
-    for (let t = 0; t < age - 1e-6; t += h) update(h);
+    simPaced = false;
+    try { for (let t = 0; t < age - 1e-6; t += h) update(h); }
+    finally { simPaced = true; lastSim = ctx.time ?? 0; }
     st.demo = wasDemo;
   }
 

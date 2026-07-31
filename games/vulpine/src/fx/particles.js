@@ -26,6 +26,15 @@ const STRIDE = {
   p0: 3, vel: 3, t: 4, s: 4, d: 4, m: 4, ca: 4, cb: 3,
 };
 
+// Attribute names are spelled out rather than derived from the STRIDE keys.
+// Deriving them ('i' + capitalise(key)) silently produced `iCa`/`iCb` against a
+// shader that declares `iCA`/`iCB`; GL leaves an unbound attribute at its
+// generic value (0,0,0,1), so every particle in the game drew pure black —
+// invisible under additive blending. One casing rule, one whole subsystem gone.
+const ATTR = {
+  p0: 'iP0', vel: 'iVel', t: 'iT', s: 'iS', d: 'iD', m: 'iM', ca: 'iCA', cb: 'iCB',
+};
+
 const VERT = /* glsl */`
 precision highp float;
 
@@ -238,7 +247,11 @@ export class ParticleSystem {
       attr.setUsage(THREE.DynamicDrawUsage);
       this.arrays[name] = arr;
       this.attrs[name] = attr;
-      geo.setAttribute('i' + name[0].toUpperCase() + name.slice(1), attr);
+      geo.setAttribute(ATTR[name], attr);
+    }
+    // Fail loudly if the two lists ever drift again.
+    for (const n of Object.values(ATTR)) {
+      if (!geo.attributes[n]) throw new Error(`[fx] particle attribute ${n} unbound`);
     }
     geo.instanceCount = 0;
     geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);

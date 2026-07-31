@@ -58,6 +58,7 @@ export const TUNE = {
 const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
 
 const _v = new THREE.Vector3();
+const _vCam = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 
@@ -92,6 +93,16 @@ export class Flight {
     this._shakeSeed = 0;
 
     this.throttleN = 0.5;   // 0..1 for engine visuals
+
+    // Previous sim state, for render interpolation. The sim advances in fixed
+    // 120 Hz quanta while frames land wherever the display puts them; drawing
+    // raw sim state makes the ship stutter against the smoothly-damped camera
+    // whenever the steps-per-frame count oscillates. See applyRenderState().
+    this.prevPos = new THREE.Vector3();
+    this.prevQuat = new THREE.Quaternion();
+    this.prevRailZ = 0;
+    this.prevOff = new THREE.Vector2(0, 12);
+    this._hasPrev = false;
   }
 
   railPoint(z, out = new THREE.Vector3()) {
@@ -108,6 +119,12 @@ export class Flight {
   addShake(amount) { this.shake = Math.min(1.6, this.shake + amount); }
 
   update(dt, input) {
+    /* ── snapshot previous state for render interpolation ───────────────── */
+    this.prevPos.copy(this.pos);
+    this.prevQuat.copy(this.quat);
+    this.prevRailZ = this.railZ;
+    this.prevOff.copy(this.off);
+
     /* ── speed ──────────────────────────────────────────────────────────── */
     const wantBoost = input.boost > 0.05 && this.boost > 0;
     const wantBrake = input.brake > 0.05;
@@ -218,25 +235,48 @@ export class Flight {
     /* ── shake decay ────────────────────────────────────────────────────── */
     this.shake = Math.max(0, this.shake - dt * 2.1);
     this._shakeSeed += dt * 47;
+    this._hasPrev = true;
   }
 
-  /** Chase camera. Lags the ship, leads the rail, widens under boost. */
-  updateCamera(dt, camera) {
+  /**
+   * Blend the ship's *rendered* transform between the last two sim states.
+   * alpha = accumulator remainder / fixed step, i.e. how far into the next
+   * sim step this frame lands. Rendering trails the sim by <1 step, which is
+   * imperceptible; the payoff is that motion is continuous no matter how the
+   * fixed steps quantise across frames.
+   */
+  applyRenderState(alpha) {
+    if (!this._hasPrev) return;
+    const a = THREE.MathUtils.clamp(alpha, 0, 1);
+    this.ship.position.lerpVectors(this.prevPos, this.pos, a);
+    this.ship.quaternion.slerpQuaternions(this.prevQuat, this.quat, a);
+  }
+
+  /** Chase camera. Lags the ship, leads the rail, widens under boost.
+   *  `alpha` interpolates the sim state exactly as applyRenderState does, so
+   *  the camera targets and the rendered ship move on the same timeline. */
+  updateCamera(dt, camera, alpha = 1) {
+    const a = this._hasPrev ? THREE.MathUtils.clamp(alpha, 0, 1) : 1;
+    const railZ = this.prevRailZ + (this.railZ - this.prevRailZ) * a;
+    const offX = this.prevOff.x + (this.off.x - this.prevOff.x) * a;
+    const offY = this.prevOff.y + (this.off.y - this.prevOff.y) * a;
+    const railPos = this.railPoint(railZ, _vCam);
+
     const back = TUNE.camBack + this.boostActive * TUNE.camBoostBack + this.brakeActive * TUNE.camBrakeBack;
-    const railAhead = this.railPoint(this.railZ - TUNE.camLookAhead, _v).clone();
+    const railAhead = this.railPoint(railZ - TUNE.camLookAhead, _v).clone();
 
     const f = TUNE.camOffsetFollow;
     const af = TUNE.camAimFollow;
     const desired = new THREE.Vector3(
-      this.railPos.x + this.off.x * f,
-      this.railPos.y + this.off.y * f + TUNE.camUp,
-      this.railZ + back,
+      railPos.x + offX * f,
+      railPos.y + offY * f + TUNE.camUp,
+      railZ + back,
     );
     // Aim past the ship rather than at it, so the ship sits low-centre in frame
     // and the player is looking at where they are going, not at their own tail.
     const lookAt = new THREE.Vector3(
-      railAhead.x + this.off.x * af,
-      railAhead.y + this.off.y * af + TUNE.camLookUp,
+      railAhead.x + offX * af,
+      railAhead.y + offY * af + TUNE.camLookUp,
       railAhead.z,
     );
 

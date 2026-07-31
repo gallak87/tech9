@@ -76,8 +76,11 @@ function step(dt) {
   simTime += dt;
 }
 
-function updateScene(dt, moveCamera = true) {
-  if (moveCamera) flight.updateCamera(dt, engine.camera);
+function updateScene(dt, moveCamera = true, alpha = 1) {
+  // Render interpolation: the sim is fixed-step, frames are not. Drawing the
+  // raw sim state makes the ship stutter whenever steps-per-frame oscillates.
+  flight.applyRenderState(alpha);
+  if (moveCamera) flight.updateCamera(dt, engine.camera, alpha);
   env.update(dt, flight.pos, engine.camera);
   autoFocus();
   if (engine.post) engine.post.motion.strength = 0.32 + flight.boostActive * 0.85;
@@ -120,7 +123,7 @@ function frame() {
     acc += dt;
     let guard = 0;
     while (acc >= FIXED && guard++ < 8) { step(FIXED); acc -= FIXED; }
-    updateScene(dt);
+    updateScene(dt, true, acc / FIXED);
   } else if (shotMode) {
     applyShot(shotMode, ctx);
     updateScene(dt, false);

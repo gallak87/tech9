@@ -1430,7 +1430,14 @@ export class GradePass extends Pass {
 /* ── HDR probe ───────────────────────────────────────────────────────────────
    Reads the linear scene buffer back to the CPU at low resolution so exposure,
    clipping and contrast can be *measured*. Eyeballing a tone curve from PNGs is
-   how you end up shipping a white screen.                                     */
+   how you end up shipping a white screen.
+
+   A whole-frame histogram is necessary but NOT sufficient: a frame that is half
+   dark rock and half blown sky has a perfectly healthy median. So the probe also
+   reports `whitePct` — the share of pixels whose *dimmest* channel is already
+   past the point where the tone curve has nothing left to give, i.e. pixels that
+   land on flat achromatic white — and a coarse tile map saying WHERE they are.
+   That pair is what actually catches "looking sunward washes out".            */
 function halfToFloat(h) {
   const s = (h & 0x8000) >> 15, e = (h & 0x7c00) >> 10, f = h & 0x03ff;
   if (e === 0) return (s ? -1 : 1) * Math.pow(2, -14) * (f / 1024);
@@ -1453,8 +1460,15 @@ export class HDRProbe {
     }));
   }
 
-  /** @returns luminance stats of `texture` in linear light. */
-  sample(texture, exposure = 1) {
+  /**
+   * @param texture   HDR source to read back
+   * @param exposure  gain applied before measuring
+   * @param whiteAt   linear value at which the tone curve is visually white.
+   *                  A pixel whose *minimum* channel is past this has no colour
+   *                  and no gradient left — it is a hole in the picture.
+   * @returns luminance stats of `texture` in linear light, plus a tile map.
+   */
+  sample(texture, exposure = 1, whiteAt = 2.0) {
     const { renderer, rt, buf } = this;
     const prev = renderer.getRenderTarget();
     this.quad.material.uniforms.tDiffuse.value = texture;
@@ -1464,9 +1478,14 @@ export class HDRProbe {
     renderer.readRenderTargetPixels(rt, 0, 0, rt.width, rt.height, buf);
     renderer.setRenderTarget(prev);
 
-    const n = rt.width * rt.height;
+    const W = rt.width, H = rt.height, n = W * H;
     const lum = new Float64Array(n);
-    let clipped = 0, black = 0, nan = 0, sum = 0;
+    const TC = 16, TR = 9;                       // tile grid
+    const tSum = new Float64Array(TC * TR);
+    const tWhite = new Float64Array(TC * TR);
+    const tN = new Float64Array(TC * TR);
+    let clipped = 0, black = 0, nan = 0, sum = 0, white = 0;
+
     for (let i = 0; i < n; i++) {
       const r = halfToFloat(buf[i * 4]) * exposure;
       const g = halfToFloat(buf[i * 4 + 1]) * exposure;
@@ -1477,19 +1496,146 @@ export class HDRProbe {
       sum += l;
       if (l > 3.0) clipped++;        // past where the curve has anything left to give
       if (l < 0.004) black++;
+      // "white" means every channel is gone, not just luminance — a hot orange
+      // sunset pixel still carries information, a 1,1,1 pixel does not.
+      const isWhite = Math.min(r, g, b) >= whiteAt ? 1 : 0;
+      white += isWhite;
+
+      // readback is bottom-up; flip so tile row 0 is the TOP of the frame
+      const px = i % W, py = H - 1 - ((i / W) | 0);
+      const ti = ((py * TR / H) | 0) * TC + ((px * TC / W) | 0);
+      tSum[ti] += l; tWhite[ti] += isWhite; tN[ti]++;
     }
+
     lum.sort();
     const q = (p) => lum[Math.min(n - 1, Math.max(0, Math.round(p * (n - 1))))];
+    const tiles = { cols: TC, rows: TR, mean: new Float64Array(TC * TR), whitePct: new Float64Array(TC * TR) };
+    for (let t = 0; t < TC * TR; t++) {
+      const c = Math.max(1, tN[t]);
+      tiles.mean[t] = tSum[t] / c;
+      tiles.whitePct[t] = (tWhite[t] / c) * 100;
+    }
+
     return {
       mean: sum / n,
       p05: q(0.05), median: q(0.5), p90: q(0.90), p99: q(0.99), max: lum[n - 1],
       clippedPct: (clipped / n) * 100,
       blackPct: (black / n) * 100,
+      // The headline number for blowout. Anything above ~1% is a visible hole;
+      // above ~5% the frame has a dead region a reviewer will name.
+      whitePct: (white / n) * 100,
+      whiteAt,
+      tiles,
       nan,
     };
   }
 
   dispose() { this.rt.dispose(); this.quad.dispose(); }
+}
+
+/* ── tone curve, mirrored on the CPU ─────────────────────────────────────────
+   The probe needs to know where the *live* curve gives up, not where some
+   constant says it gives up — otherwise retuning the shoulder silently
+   invalidates every measurement taken before it.                             */
+export function uchimuraJS(x, P, a, m, l, c, b) {
+  const l0 = ((P - m) * l) / a;
+  const S0 = m + l0;
+  const S1 = m + a * l0;
+  const C2 = (a * P) / Math.max(1e-4, P - S1);
+  const CP = -C2 / P;
+  if (x < m) return m * Math.pow(Math.max(x / m, 1e-5), c) + b;
+  if (x < S0) return m + a * (x - m);
+  return P - (P - S1) * Math.exp(CP * (x - S0));
+}
+
+function acesJS(x) {
+  const a = 2.51, b = 0.03, c = 2.43, d = 0.59, e = 0.14;
+  return Math.min(1, Math.max(0, (x * (a * x + b)) / (x * (c * x + d) + e)));
+}
+
+/**
+ * The colour path of GRADE_FRAG, on the CPU. Spatial terms (CA, sharpen,
+ * vignette, grain) are skipped — they do not decide whether a pixel is white.
+ *
+ * This exists so `whitePct` measures the pixels the player actually sees go
+ * flat, not the pixels the tone curve alone would have flattened. The split
+ * tone and the contrast expansion downstream of the curve are worth ~0.5 stop
+ * of apparent white point, which is the difference between "0.6% blown" and
+ * the third of the frame that is visibly gone.
+ */
+export function gradeJS(rgb, u) {
+  const out = [0, 0, 0];
+  let c0 = rgb;
+
+  if (u.uHighlightDesat.value > 1e-4) {
+    const pk = Math.max(c0[0], c0[1], c0[2]);
+    const t = 1 - Math.exp(-Math.max(0, pk - 0.8) * u.uHighlightDesat.value);
+    const k = t * 0.85;
+    c0 = [c0[0] + (pk - c0[0]) * k, c0[1] + (pk - c0[1]) * k, c0[2] + (pk - c0[2]) * k];
+  }
+
+  const tm = u.uToneMode.value;
+  for (let i = 0; i < 3; i++) {
+    const x = Math.max(0, c0[i]);
+    let v;
+    if (tm < 0.5) v = acesJS(x);
+    else if (tm < 1.5) {
+      let l = (Math.log2(x + 6.1e-5) + 12.47393) / (12.47393 + 4.026069);
+      l = Math.min(1, Math.max(0, l));
+      v = Math.pow(l * l * (3 - 2 * l), 1 / 2.2);
+    } else {
+      v = uchimuraJS(x, u.uWhite.value, u.uShoulder.value, 0.22, 0.36, u.uToe.value, 0);
+    }
+    out[i] = Math.min(1, Math.max(0, v));
+  }
+
+  const pre = 0.2126 * out[0] + 0.7152 * out[1] + 0.0722 * out[2];
+  let s = (pre - 0.15) / 0.6;
+  s = Math.min(1, Math.max(0, s)); s = s * s * (3 - 2 * s);
+  const st = u.uShadowTint.value, ht = u.uHighlightTint.value;
+  const gain = u.uGain.value, lift = u.uLift.value, gam = u.uGamma.value;
+  const comp = ['x', 'y', 'z'];
+  for (let i = 0; i < 3; i++) {
+    const k = st[comp[i]] + (ht[comp[i]] - st[comp[i]]) * s;
+    let v = out[i] * k;
+    v = v * gain[comp[i]] + lift[comp[i]] * (1 - v);
+    v = Math.pow(Math.max(0, v), gam[comp[i]]);
+    out[i] = v;
+  }
+
+  const contrast = u.uContrast.value, sat = u.uSaturation.value;
+  for (let i = 0; i < 3; i++) out[i] = (out[i] - 0.5) * contrast + 0.5;
+  const lum = 0.2126 * out[0] + 0.7152 * out[1] + 0.0722 * out[2];
+  for (let i = 0; i < 3; i++) out[i] = Math.min(1, Math.max(0, lum + (out[i] - lum) * sat));
+  return out;
+}
+
+/**
+ * Where the response goes flat.
+ *
+ * "Is the pixel 1.0?" is the wrong question — this grade's split tone means the
+ * frame asymptotes to a warm off-white and literally never reaches 1.0, so a
+ * threshold test reports 0% blown for a frame with a third of it visibly dead.
+ * What the eye actually reads as blown is *loss of gradient*: the region where
+ * doubling scene radiance no longer changes the displayed value.
+ *
+ * So: the smallest linear input at which one more stop of light buys less than
+ * `minStep` of encoded output (default ≈2/255). Past that point the picture has
+ * no information left regardless of what number the channel holds.
+ */
+function whiteThreshold(u, minStep = 0.008) {
+  const enc = (x) => {
+    const c = gradeJS([x, x, x], u);
+    return Math.pow(Math.max(0, 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]), 1 / 2.2);
+  };
+  const flat = (x) => (enc(x * 2) - enc(x)) < minStep;
+  let lo = 0.02, hi = 256;
+  if (!flat(hi)) return hi;
+  for (let i = 0; i < 42; i++) {
+    const mid = (lo + hi) * 0.5;
+    if (flat(mid)) hi = mid; else lo = mid;
+  }
+  return hi;
 }
 
 /* ── shared copy material (lazily built) ─────────────────────────────────── */
@@ -1573,14 +1719,16 @@ export function buildComposer(engine, opts = {}) {
     /** Linear-light histogram of the current frame, pre- and post-exposure. */
     probe() {
       if (!api._probe) api._probe = new HDRProbe(renderer);
+      const wa = whiteThreshold(grade.material.uniforms);
       const out = {
-        raw: api._probe.sample(scenePass.colorTexture, 1),
-        exposed: api._probe.sample(scenePass.colorTexture, api.params.exposure),
+        raw: api._probe.sample(scenePass.colorTexture, 1, wa),
+        exposed: api._probe.sample(scenePass.colorTexture, api.params.exposure, wa),
         exposure: api.params.exposure,
+        whiteAt: wa,
       };
       // The composited tap is what actually judges blowout: it includes bloom,
       // god rays and the flare, which the scene buffer knows nothing about.
-      if (grade.inputTexture) out.composited = api._probe.sample(grade.inputTexture, api.params.trim);
+      if (grade.inputTexture) out.composited = api._probe.sample(grade.inputTexture, api.params.trim, wa);
       return out;
     },
     setSize(w, h, dpr) {

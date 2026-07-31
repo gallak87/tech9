@@ -1220,7 +1220,24 @@ export class LensFlarePass extends Pass {
 /* ── Grade / output ─────────────────────────────────────────────────────────
    The only place HDR becomes sRGB. Chromatic aberration happens on the HDR
    side (it's a lens effect, it precedes the sensor); grain and vignette come
-   after the tone curve where they behave like film.                          */
+   after the tone curve where they behave like film.
+
+   ORDER MATTERS, and getting it wrong is what produced the blown horizon this
+   file shipped with. A tone curve spends its entire top end building a shoulder
+   — six stops of scene light squeezed into the last 5% of the output range. Any
+   *multiply* downstream of that shoulder throws the whole thing away: a
+   highlight split-tone of 1.06 clips everything above 0.94, a contrast
+   expansion of 1.045 about a 0.5 pivot clips everything above 0.978, and a
+   saturation of 1.07 clips whichever channel was already highest. Stacked, they
+   moved the point where the picture stops responding to light from ~6 stops
+   over mid-grey down to 1.7 — which is why water specular and the horizon band
+   were flat white plates instead of highlights.
+
+   So the rule here: anything downstream of the tone curve must map [0,1] onto
+   [0,1] with both endpoints fixed. Per-channel gain moved *above* the curve
+   (where it is what it always physically was — a white balance), contrast
+   became an S-curve blend, saturation bleaches toward white instead of
+   clipping, and the split tone fades out as it approaches the shoulder.       */
 const GRADE_FRAG = /* glsl */`
 uniform sampler2D tDiffuse;
 uniform vec2  uResolution;
@@ -1241,13 +1258,18 @@ uniform vec3  uShadowTint;
 uniform vec3  uHighlightTint;
 uniform float uSharpen;
 uniform float uToneMode;     // 0 = ACES, 1 = AgX-ish, 2 = filmic GT
-uniform float uShoulder;     // GT: highlight compression
+uniform float uShoulder;     // GT: slope of the linear section
 uniform float uToe;          // GT: shadow crush
 uniform float uWhite;        // GT: white point
+uniform float uLinStart;     // GT: linear section start  (mid-grey anchor)
+uniform float uLinLen;       // GT: linear section length (sets shoulder onset)
 uniform float uHighlightDesat;
+uniform float uHighlightKnee;
 uniform float uFlash;
 uniform vec3  uFlashColor;
 varying vec2 vUv;
+
+const vec3 LUMA = vec3( 0.2126, 0.7152, 0.0722 );
 
 // Narkowicz ACES fit
 vec3 acesFilm(vec3 x) {
@@ -1279,6 +1301,27 @@ vec3 uchimura(vec3 x, float P, float a, float m, float l, float c, float b) {
   vec3 S = P - (P - S1) * exp(CP * (x - S0));
   vec3 L = m + a * (x - m);
   return T * w0 + L * w1 + S * w2;
+}
+
+/* Endpoint-preserving contrast. smoothstep IS an S-curve with both endpoints
+   fixed and unit range, so blending toward it adds midtone slope without ever
+   producing a value the tone curve's shoulder has to give up. k<0 flattens. */
+vec3 contrastS(vec3 x, float k) {
+  return mix(x, x * x * (3.0 - 2.0 * x), k);
+}
+
+/* Saturation that bleaches instead of clipping. Boosting chroma near white
+   normally drives one channel past 1.0 and the clamp eats the gradient with it;
+   here the excess is spent desaturating toward the pixel's own luminance, which
+   is what film does anyway — highlights lose colour before they lose detail. */
+vec3 satSafe(vec3 x, float s) {
+  float lum = dot(x, LUMA);
+  vec3 o = mix(vec3(lum), x, s);
+  float mx = max(o.r, max(o.g, o.b));
+  float mn = min(o.r, min(o.g, o.b));
+  if (mx > 1.0) o = mix(vec3(lum), o, (1.0 - lum) / max(1e-4, mx - lum));
+  if (mn < 0.0) o = mix(vec3(lum), o, lum / max(1e-4, lum - mn));
+  return o;
 }
 
 float hash13(vec3 p) {
@@ -1328,35 +1371,45 @@ void main() {
     hdr = max(hdr, vec3(0.0));
   }
 
-  hdr *= uExposure * uTint;
+  // Per-channel gain is a white balance and belongs in linear light, upstream
+  // of the curve. Downstream it is just a clip waiting to happen.
+  hdr *= uExposure * uTint * uGain;
   hdr += uFlashColor * uFlash * 6.0;
   hdr = max(hdr, vec3(0.0));
 
   // ── highlight desaturation before the curve: real film and real sensors
   // bleach toward white long before they clip, and this is what stops a hot
-  // sun from tone-mapping to a coloured plate.
+  // sun from tone-mapping to a coloured plate. The knee is where bleaching
+  // starts; set it above the sky's own radiance or the whole sky goes pale.
   if (uHighlightDesat > 0.0001) {
     float pk = max(hdr.r, max(hdr.g, hdr.b));
-    float t = 1.0 - exp(-max(0.0, pk - 0.8) * uHighlightDesat);
+    float t = 1.0 - exp(-max(0.0, pk - uHighlightKnee) * uHighlightDesat);
     hdr = mix(hdr, vec3(pk), t * 0.85);
   }
 
   vec3 col;
   if (uToneMode < 0.5)      col = acesFilm(hdr);
   else if (uToneMode < 1.5) col = agxish(hdr);
-  else                      col = clamp(uchimura(hdr, uWhite, uShoulder, 0.22, 0.36, uToe, 0.0), 0.0, 1.0);
+  else                      col = clamp(uchimura(hdr, uWhite, uShoulder, uLinStart, uLinLen, uToe, 0.0), 0.0, 1.0);
 
-  // ── split-tone, then lift / gamma / gain
-  float pre = dot(col, vec3(0.2126, 0.7152, 0.0722));
-  col *= mix(uShadowTint, uHighlightTint, smoothstep(0.15, 0.75, pre));
-  col = col * uGain + uLift * (1.0 - col);
+  /* ── display space. Everything from here fixes 0 and 1. ─────────────────── */
+
+  // Split tone, faded out into the shoulder: a tint applied at 0.98 is not a
+  // tint, it is a clip, and a genuinely blown highlight is white anyway.
+  float pre = dot(col, LUMA);
+  vec3 tone = mix(uShadowTint, uHighlightTint, smoothstep(0.10, 0.68, pre));
+  col *= mix(vec3(1.0), tone, 1.0 - smoothstep(0.78, 1.0, pre));
+
+  // Lift colours the toe and vanishes at white, so shadows carry hue without
+  // the highlights paying for it.
+  col = col + uLift * (1.0 - col);
   col = pow(max(col, vec3(0.0)), uGamma);
 
-  // ── contrast around 0.5 pivot, then saturation
-  col = (col - 0.5) * uContrast + 0.5;
-  float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
-  col = mix(vec3(lum), col, uSaturation);
   col = clamp(col, 0.0, 1.0);
+  col = contrastS(col, clamp((uContrast - 1.0) * 2.0, -0.6, 0.95));
+  col = satSafe(col, uSaturation);
+  col = clamp(col, 0.0, 1.0);
+  float lum = dot(col, LUMA);
 
   // ── vignette
   float vig = smoothstep(uVignetteSoft, uVignetteSoft - 0.55, r2 * uVignette);
@@ -1400,10 +1453,13 @@ export class GradePass extends Pass {
         uHighlightTint: { value: new THREE.Vector3(1.05, 1.01, 0.95) },
         uSharpen: { value: 0.28 },
         uToneMode: { value: 2 },
-        uShoulder: { value: 1.0 },
-        uToe: { value: 1.22 },
+        uShoulder: { value: 0.78 },
+        uToe: { value: 1.06 },
         uWhite: { value: 1.0 },
+        uLinStart: { value: 0.18 },
+        uLinLen: { value: 0.24 },
         uHighlightDesat: { value: 0.16 },
+        uHighlightKnee: { value: 1.4 },
         uFlash: { value: 0 },
         uFlashColor: { value: new THREE.Vector3(1, 1, 1) },
       },
@@ -1564,50 +1620,69 @@ function acesJS(x) {
  * the third of the frame that is visibly gone.
  */
 export function gradeJS(rgb, u) {
+  const comp = ['x', 'y', 'z'];
+  const gain = u.uGain.value;
   const out = [0, 0, 0];
-  let c0 = rgb;
+  let c0 = [
+    Math.max(0, rgb[0] * gain.x),
+    Math.max(0, rgb[1] * gain.y),
+    Math.max(0, rgb[2] * gain.z),
+  ];
 
   if (u.uHighlightDesat.value > 1e-4) {
+    const knee = u.uHighlightKnee ? u.uHighlightKnee.value : 0.8;
     const pk = Math.max(c0[0], c0[1], c0[2]);
-    const t = 1 - Math.exp(-Math.max(0, pk - 0.8) * u.uHighlightDesat.value);
+    const t = 1 - Math.exp(-Math.max(0, pk - knee) * u.uHighlightDesat.value);
     const k = t * 0.85;
     c0 = [c0[0] + (pk - c0[0]) * k, c0[1] + (pk - c0[1]) * k, c0[2] + (pk - c0[2]) * k];
   }
 
   const tm = u.uToneMode.value;
+  const m = u.uLinStart ? u.uLinStart.value : 0.22;
+  const l = u.uLinLen ? u.uLinLen.value : 0.36;
   for (let i = 0; i < 3; i++) {
     const x = Math.max(0, c0[i]);
     let v;
     if (tm < 0.5) v = acesJS(x);
     else if (tm < 1.5) {
-      let l = (Math.log2(x + 6.1e-5) + 12.47393) / (12.47393 + 4.026069);
-      l = Math.min(1, Math.max(0, l));
-      v = Math.pow(l * l * (3 - 2 * l), 1 / 2.2);
+      let lg = (Math.log2(x + 6.1e-5) + 12.47393) / (12.47393 + 4.026069);
+      lg = Math.min(1, Math.max(0, lg));
+      v = Math.pow(lg * lg * (3 - 2 * lg), 1 / 2.2);
     } else {
-      v = uchimuraJS(x, u.uWhite.value, u.uShoulder.value, 0.22, 0.36, u.uToe.value, 0);
+      v = uchimuraJS(x, u.uWhite.value, u.uShoulder.value, m, l, u.uToe.value, 0);
     }
     out[i] = Math.min(1, Math.max(0, v));
   }
 
+  // split tone, faded out into the shoulder
   const pre = 0.2126 * out[0] + 0.7152 * out[1] + 0.0722 * out[2];
-  let s = (pre - 0.15) / 0.6;
-  s = Math.min(1, Math.max(0, s)); s = s * s * (3 - 2 * s);
+  const ss = (e0, e1, x) => { let t = Math.min(1, Math.max(0, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); };
+  const s = ss(0.10, 0.68, pre);
+  const keep = 1 - ss(0.78, 1.0, pre);
   const st = u.uShadowTint.value, ht = u.uHighlightTint.value;
-  const gain = u.uGain.value, lift = u.uLift.value, gam = u.uGamma.value;
-  const comp = ['x', 'y', 'z'];
+  const lift = u.uLift.value, gam = u.uGamma.value;
   for (let i = 0; i < 3; i++) {
     const k = st[comp[i]] + (ht[comp[i]] - st[comp[i]]) * s;
-    let v = out[i] * k;
-    v = v * gain[comp[i]] + lift[comp[i]] * (1 - v);
+    let v = out[i] * (1 + (k - 1) * keep);
+    v = v + lift[comp[i]] * (1 - v);
     v = Math.pow(Math.max(0, v), gam[comp[i]]);
-    out[i] = v;
+    out[i] = Math.min(1, Math.max(0, v));
   }
 
-  const contrast = u.uContrast.value, sat = u.uSaturation.value;
-  for (let i = 0; i < 3; i++) out[i] = (out[i] - 0.5) * contrast + 0.5;
+  // endpoint-preserving contrast, then bleaching saturation
+  const k = Math.min(0.95, Math.max(-0.6, (u.uContrast.value - 1) * 2));
+  for (let i = 0; i < 3; i++) {
+    const x = out[i];
+    out[i] = x + (x * x * (3 - 2 * x) - x) * k;
+  }
+  const sat = u.uSaturation.value;
   const lum = 0.2126 * out[0] + 0.7152 * out[1] + 0.0722 * out[2];
-  for (let i = 0; i < 3; i++) out[i] = Math.min(1, Math.max(0, lum + (out[i] - lum) * sat));
-  return out;
+  const o = out.map(v => lum + (v - lum) * sat);
+  const mx = Math.max(o[0], o[1], o[2]);
+  const mn = Math.min(o[0], o[1], o[2]);
+  if (mx > 1) { const t = (1 - lum) / Math.max(1e-4, mx - lum); for (let i = 0; i < 3; i++) o[i] = lum + (o[i] - lum) * t; }
+  if (mn < 0) { const t = lum / Math.max(1e-4, lum - mn); for (let i = 0; i < 3; i++) o[i] = lum + (o[i] - lum) * t; }
+  return o.map(v => Math.min(1, Math.max(0, v)));
 }
 
 /**

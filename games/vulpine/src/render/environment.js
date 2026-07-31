@@ -17,38 +17,54 @@ import { bakeStarfield } from './textures.js';
 export const PRESETS = {
   corneria: {
     kind: 'atmosphere',
-    turbidity: 3.2, rayleigh: 1.5, mieCoefficient: 0.0040, mieDirectionalG: 0.86,
-    elevation: 24, azimuth: 148,
-    sunColor: 0xfff2dc, sunIntensity: 5.4,
-    hemiSky: 0x9dc4f5, hemiGround: 0x4a4230, hemiIntensity: 0.30,
-    fillColor: 0x6f93c4, fillIntensity: 0.18,
-    rimColor: 0xffd9b0, rimIntensity: 0.42,
-    fog: { color: 0x93b7dc, density: 0.00042 },
+    turbidity: 2.7, rayleigh: 1.85, mieCoefficient: 0.0032, mieDirectionalG: 0.80,
+    elevation: 27, azimuth: 148,
+    sunColor: 0xfff0d2, sunIntensity: 5.6,
+    // Ambient is two-sided on purpose: cool sky from above, warm bounce off the
+    // ground. That split is the only thing separating a shadow's hue from a
+    // shadow's value, and without it every unlit face collapses to one navy.
+    hemiSky: 0xaed2fb, hemiGround: 0x7a6746, hemiIntensity: 0.62,
+    fillColor: 0x8ab0dd, fillIntensity: 0.30,
+    rimColor: 0xffdcb4, rimIntensity: 0.55,
+    // Density is the single biggest control on whether this level reads as a
+    // place or as a blue wash. The haze colour is ~3x brighter than lit rock,
+    // so at 0.00050 a ridge 2 km out was 63% haze and every surface past the
+    // near bank collapsed to one flat blue — no aerial layering, no material
+    // response, no rock colour. 0.00022 keeps ~2 km of honest colour and still
+    // separates the far ridgelines.
+    fog: { color: 0xa6c6e6, density: 0.00022 },
     exposure: 0.20,
-    godray: { intensity: 0.30, tint: 0xffd9a8, clamp: 3.2, density: 0.60, decay: 0.947, weight: 2.2, threshold: 1.4 },
-    envIntensity: 0.55,
+    godray: { intensity: 0.24, tint: 0xffd9a8, clamp: 2.4, density: 0.60, decay: 0.947, weight: 2.2, threshold: 1.7 },
+    envIntensity: 0.95,
 
     sky: {
-      sunDisc: 44, aureole: 2.4, aureoleTight: 800, skyGain: 1.0,
+      sunDisc: 62, aureole: 1.20, aureoleTight: 1500, aureoleWide: 0.22, skyGain: 1.0,
+      // Haze values are pre-exposure linear, same units as the dome itself: the
+      // clear zenith sits near 1.2, so a horizon at ~2.0–3.0 reads as bright air
+      // with three stops of headroom left instead of a blown band.
+      hazeColor: [1.42, 1.86, 2.42], hazeSunColor: [2.90, 2.72, 2.42],
+      hazeAmount: 0.88, hazeHeight: 0.27, hazeFalloff: 1.7, hazeSunPow: 3.0,
+      zenithTint: [0.84, 0.92, 1.07],
       cloudAmount: 1.0, coverage: 0.47, cloudHeight: 2100, cloudScale: 0.00020,
       cloudWind: [0.0020, 0.0008], cloudThickness: 640, absorb: 2.7, erode: 0.20,
-      cloudSun: [1.95, 1.92, 1.84], cloudShade: [0.30, 0.37, 0.50],
+      cloudSun: [1.95, 1.92, 1.84], cloudShade: [0.34, 0.41, 0.55],
       cirrusAmount: 0.55, cirrusCoverage: 0.44, cirrusHeight: 8200,
       cirrusScale: 0.000050, cirrusWind: [0.0010, 0.0004],
     },
     atmos: {
       heightFalloff: 0.0016, baseHeight: -20,
-      highTint: [0.72, 0.84, 1.00], lowTint: [1.03, 1.00, 0.97],
-      sunTint: [0.55, 0.40, 0.22], sunPow: 7.0,
+      highTint: [0.70, 0.83, 1.02], lowTint: [1.06, 1.02, 0.96],
+      sunTint: [0.40, 0.29, 0.16], sunPow: 6.0,
     },
-    bloom: { strength: 0.075, radius: 1.0, threshold: 1.0, knee: 0.6, clamp: 8.0, anamorphic: 1.0, dirt: 0.05 },
-    flare: { intensity: 0.42, ghosts: 0.9, streak: 0.30, tint: 0xfff0d8 },
-    ao: { radius: 2.6, intensity: 1.05, strength: 0.60, tint: 0x1b2836 },
+    bloom: { strength: 0.055, radius: 1.05, threshold: 1.1, knee: 0.55, clamp: 4.0, anamorphic: 1.0, dirt: 0.04 },
+    flare: { intensity: 0.30, ghosts: 0.8, streak: 0.26, tint: 0xfff0d8 },
+    ao: { radius: 2.6, intensity: 1.05, strength: 0.60, tint: 0x22364c },
     grade: {
-      toneMode: 2, shoulder: 1.0, toe: 1.18, white: 1.0, highlightDesat: 0.18,
-      saturation: 1.07, contrast: 1.045, ca: 1.5, vignette: 1.08, grain: 0.012,
-      lift: [0.005, 0.010, 0.022], gain: [1.0, 1.0, 1.0], gamma: [1.0, 1.0, 1.0],
-      shadowTint: [0.93, 0.985, 1.10], highlightTint: [1.06, 1.015, 0.945],
+      toneMode: 2, shoulder: 0.74, linStart: 0.18, linLen: 0.22, toe: 1.12, white: 1.0,
+      highlightDesat: 0.14, highlightKnee: 1.6,
+      saturation: 1.16, contrast: 1.10, ca: 1.4, vignette: 1.02, grain: 0.010,
+      lift: [0.004, 0.012, 0.030], gain: [1.0, 1.0, 1.0], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.88, 0.97, 1.17], highlightTint: [1.05, 1.015, 0.955],
       sharpen: 0.26,
     },
   },
@@ -67,7 +83,12 @@ export const PRESETS = {
     envIntensity: 1.0,
 
     sky: {
-      sunDisc: 24, aureole: 5.5, aureoleTight: 260, skyGain: 1.0,
+      sunDisc: 34, aureole: 2.6, aureoleTight: 420, aureoleWide: 0.30, skyGain: 1.0,
+      // A low sun sits *inside* the aerosol layer, so the haze is thin and its
+      // sunward colour is the sunset itself rather than a correction to it.
+      hazeColor: [1.55, 1.30, 1.48], hazeSunColor: [4.20, 2.30, 1.05],
+      hazeAmount: 0.55, hazeHeight: 0.16, hazeFalloff: 1.5, hazeSunPow: 2.2,
+      zenithTint: [0.90, 0.90, 1.05],
       cloudAmount: 1.0, coverage: 0.56, cloudHeight: 2600, cloudScale: 0.00016,
       cloudWind: [0.0016, 0.0006], cloudThickness: 900, absorb: 3.4, erode: 0.24,
       cloudSun: [2.60, 1.42, 0.72], cloudShade: [0.26, 0.21, 0.32],
@@ -83,10 +104,11 @@ export const PRESETS = {
     flare: { intensity: 0.85, ghosts: 1.1, streak: 0.45, tint: 0xffc98a },
     ao: { radius: 2.8, intensity: 1.1, strength: 0.62, tint: 0x2a1c22 },
     grade: {
-      toneMode: 2, shoulder: 1.06, toe: 1.28, white: 1.0, highlightDesat: 0.26,
-      saturation: 1.12, contrast: 1.075, ca: 2.1, vignette: 1.24, grain: 0.016,
-      lift: [0.014, 0.008, 0.020], gain: [1.03, 0.995, 0.965], gamma: [1.0, 1.0, 1.0],
-      shadowTint: [0.86, 0.93, 1.16], highlightTint: [1.10, 1.00, 0.88],
+      toneMode: 2, shoulder: 0.80, linStart: 0.18, linLen: 0.24, toe: 1.20, white: 1.0,
+      highlightDesat: 0.20, highlightKnee: 1.3,
+      saturation: 1.20, contrast: 1.12, ca: 2.0, vignette: 1.20, grain: 0.015,
+      lift: [0.014, 0.008, 0.022], gain: [1.03, 0.995, 0.965], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.84, 0.92, 1.18], highlightTint: [1.09, 1.00, 0.89],
       sharpen: 0.26,
     },
   },
@@ -113,8 +135,9 @@ export const PRESETS = {
     flare: { intensity: 0.55, ghosts: 1.2, streak: 0.75, tint: 0xcfe4ff },
     ao: { radius: 3.0, intensity: 1.2, strength: 0.70, tint: 0x0b1120 },
     grade: {
-      toneMode: 2, shoulder: 0.98, toe: 1.34, white: 1.0, highlightDesat: 0.12,
-      saturation: 1.10, contrast: 1.10, ca: 2.4, vignette: 1.35, grain: 0.020,
+      toneMode: 2, shoulder: 0.82, linStart: 0.16, linLen: 0.22, toe: 1.30, white: 1.0,
+      highlightDesat: 0.12, highlightKnee: 1.5,
+      saturation: 1.14, contrast: 1.14, ca: 2.4, vignette: 1.32, grain: 0.018,
       lift: [0.002, 0.004, 0.014], gain: [0.98, 0.995, 1.045], gamma: [1.0, 1.0, 1.0],
       shadowTint: [0.82, 0.90, 1.22], highlightTint: [0.98, 1.00, 1.06],
       sharpen: 0.32,

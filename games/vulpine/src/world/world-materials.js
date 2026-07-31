@@ -59,45 +59,56 @@ function normalFrom(height, size, strength) {
   return tex(data, size, size);
 }
 
-/* ── rock: albedo in RGB, roughness in A (one tap instead of two) ─────────── */
+/* ── rock: a mask set, not a colour map ───────────────────────────────────── */
+//
+// The first version of this baked rock *colour* into a 9 m tile. At the ranges
+// this game is actually played at — 200 m to 2 km — that tile mips down to its
+// own mean and the entire canyon renders as one flat neutral value. That is the
+// whole reason the level read as folded paper.
+//
+// So the texture carries no colour at all now. It carries four decorrelated
+// scalar fields; every hue in the level is generated in the fragment shader
+// from world position, where it varies over tens of metres and therefore cannot
+// be averaged away by a mipmap:
+//
+//   R  fine detail value   (grit, cracks, flake spall) — the 9 m band
+//   G  broad value         (strata) — still legible at the 65 m band
+//   B  a decorrelated mask (patches) — drives varnish streaks and lichen
+//   A  roughness
 
-/** Linear → sRGB, because `bake` writes bytes into an sRGB-tagged texture. */
-const enc = (x) => (x <= 0.0031308 ? x * 12.92 : 1.055 * Math.pow(x, 1 / 2.4) - 0.055);
+const clamp01 = (x) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
-const rockSet = () => cached('world.rock', () => {
-  const r = new RNG('world:rock');
-  const strata = fbm2D(r, { octaves: 6, base: 5, gain: 0.55 });
-  const crack = ridged2D(r, { octaves: 5, base: 9, gain: 0.52 });
-  const grit = fbm2D(r, { octaves: 4, base: 40, gain: 0.58 });
-  const patch = fbm2D(r, { octaves: 3, base: 3, gain: 0.6 });
+const rockSet = () => cached('world.rock2', () => {
+  const r = new RNG('world:rock2');
+  const strata = fbm2D(r, { octaves: 5, base: 4, gain: 0.55 });
+  const crack = ridged2D(r, { octaves: 5, base: 8, gain: 0.52 });
+  const grit = fbm2D(r, { octaves: 4, base: 34, gain: 0.58 });
+  const patch = fbm2D(r, { octaves: 3, base: 3, gain: 0.62 });
+  const flake = worley2D(r, 11);
   const S = 512;
 
   const height = new Float32Array(S * S);
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {
       const u = x / S, v = y / S;
-      height[y * S + x] = strata(u, v * 0.55) * 0.75 + Math.pow(crack(u, v), 3) * 0.62 + grit(u, v) * 0.10;
+      height[y * S + x] = strata(u, v * 0.5) * 0.80
+        + Math.pow(crack(u, v), 3) * 0.72
+        + grit(u, v) * 0.11
+        - Math.pow(1 - flake(u, v), 2) * 0.22;
     }
   }
-  // Physically plausible stone: 0.10 linear in the shaded bands to 0.31 on the
-  // bleached faces, which is where andesite through sandstone actually sits.
-  // The texture stays close to neutral on purpose — all the hue lives in the
-  // shader's strata and in the vertex tint, both of which vary over tens of
-  // metres, so a 9 m tile can never announce itself as a repeating colour.
-  const A = [0.104, 0.089, 0.074], B = [0.312, 0.276, 0.228];
   const map = bake(S, S, (u, v, o) => {
-    const s = strata(u, v * 0.55);
-    const c = Math.pow(crack(u, v), 4);
+    const s = strata(u, v * 0.5);
+    const c = Math.pow(crack(u, v), 3);
     const g = grit(u, v);
     const p = patch(u * 0.5, v * 0.5);
-    const k = s * 0.66 + g * 0.34;
-    const warm = 0.90 + p * 0.20;
-    o[0] = enc((A[0] + (B[0] - A[0]) * k) * (1 - c * 0.55) * warm);
-    o[1] = enc((A[1] + (B[1] - A[1]) * k) * (1 - c * 0.55) * (warm * 0.98 + 0.02));
-    o[2] = enc((A[2] + (B[2] - A[2]) * k) * (1 - c * 0.55) * (0.92 + p * 0.16));
-    o[3] = Math.min(1, 0.66 + g * 0.22 + c * 0.14);      // roughness
-  }, { srgb: true });
-  return { map, normalMap: normalFrom(height, S, 2.6) };
+    const fl = 1 - flake(u, v);
+    o[0] = clamp01(0.26 + g * 0.52 + c * 0.34 + fl * 0.16);
+    o[1] = clamp01(0.14 + s * 0.90);
+    o[2] = clamp01(p * 1.05);
+    o[3] = clamp01(0.56 + g * 0.26 + c * 0.20 - fl * 0.12);
+  }, { srgb: false });
+  return { map, normalMap: normalFrom(height, S, 2.8) };
 });
 
 /* ── shore field: terrain height under the water plane, in rail space ─────── */
@@ -160,12 +171,37 @@ const GLSL_SHORE = /* glsl */`
 
 /* ── terrain ──────────────────────────────────────────────────────────────── */
 
+// Linear albedos. Real stone lives between 0.10 and 0.42; anything above that
+// is snow. The separation that makes a cliff read as sedimentary is *hue*
+// between the members, not brightness — so the ochre and the shale differ by
+// 0.20 in red and almost nothing in blue.
+const GLSL_LITHOLOGY = /* glsl */`
+  const vec3 L_OCHRE = vec3(0.312, 0.208, 0.126);   // iron-stained sandstone
+  const vec3 L_BUFF  = vec3(0.352, 0.312, 0.240);   // pale weathered limestone
+  const vec3 L_SHALE = vec3(0.176, 0.166, 0.166);   // cool grey mudstone
+  const vec3 L_RED   = vec3(0.276, 0.152, 0.100);   // red bed
+  const vec3 L_BASE  = vec3(0.246, 0.204, 0.156);   // undifferentiated country rock
+
+  // 0..1 around the formation cycle → which member is exposed here. Most of the
+  // cycle is country rock on purpose: a wall where every band is a different
+  // mineral is not a cliff, it is marbled endpaper. The named members are
+  // narrow, and they never fully replace the base.
+  vec3 lithology(float f) {
+    vec3 c = L_BASE;
+    c = mix(c, L_OCHRE, 0.85 * smoothstep(0.03, 0.11, f) * (1.0 - smoothstep(0.19, 0.30, f)));
+    c = mix(c, L_SHALE, 0.70 * smoothstep(0.38, 0.45, f) * (1.0 - smoothstep(0.50, 0.58, f)));
+    c = mix(c, L_BUFF,  0.80 * smoothstep(0.63, 0.70, f) * (1.0 - smoothstep(0.78, 0.86, f)));
+    c = mix(c, L_RED,   0.55 * smoothstep(0.90, 0.94, f) * (1.0 - smoothstep(0.98, 1.00, f)));
+    return c;
+  }
+`;
+
 export function terrainMaterial() {
   const rock = rockSet();
   const m = new THREE.MeshStandardMaterial({
     map: rock.map,
     normalMap: rock.normalMap,
-    normalScale: new THREE.Vector2(1.15, 1.15),
+    normalScale: new THREE.Vector2(1.25, 1.25),
     roughness: 1.0,
     metalness: 0.0,
     envMapIntensity: 0.62,
@@ -190,87 +226,119 @@ export function terrainMaterial() {
         varying vec3 vWNrm;
         varying vec2 vTerr;
         uniform float uScale;
+        ${GLSL_LITHOLOGY}
         vec3 gBW; vec2 gUX, gUY, gUZ; vec4 gTri;
-        float gWet, gDetail, gSteep, gAO;`)
+        vec3 gFaceUp;
+        float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx;`)
       .replace('#include <map_fragment>', `
         vec3 wn = normalize(vWNrm);
-        gBW = pow(abs(wn), vec3(6.0));
+        // A softer blend exponent than the usual 6 — at 4 the three projections
+        // overlap through the 45° band, which is where a hard blend leaves the
+        // seam you can see running along every buttress edge.
+        gBW = pow(abs(wn), vec3(4.0));
         gBW /= (gBW.x + gBW.y + gBW.z);
         gUX = vWPos.zy * uScale; gUY = vWPos.xz * uScale; gUZ = vWPos.xy * uScale;
         gTri = texture2D(map, gUX) * gBW.x + texture2D(map, gUY) * gBW.y + texture2D(map, gUZ) * gBW.z;
 
-        float camD = length(vWPos - cameraPosition);
+        // ── the band that survives distance ─────────────────────────────────
+        // 9 m of detail is gone by 400 m. A second tile at 65 m is what still
+        // reads as structure when the cliff is a kilometre away, and it costs
+        // three taps.
+        const float CRS = 0.137;
+        vec4 crs = texture2D(map, gUX * CRS + 0.19) * gBW.x
+                 + texture2D(map, gUY * CRS + 0.19) * gBW.y
+                 + texture2D(map, gUZ * CRS + 0.19) * gBW.z;
+        // …and a regional tap on a scale nothing in frame can repeat against,
+        // so 65 m never beats against itself into a visible lattice.
+        float reg = texture2D(map, vWPos.xz * uScale * 0.0197 + 0.61).r;
+        crs.g = mix(crs.g, crs.g * (0.55 + reg * 0.95), 0.75);
+
+        // World units covered by one pixel. This, not camera distance, is the
+        // quantity every detail band has to be faded against: it collapses
+        // range and grazing angle into the one number Nyquist actually cares
+        // about, and it is exact for free.
+        gWpx = max(fwidth(vWPos.x), max(fwidth(vWPos.y), fwidth(vWPos.z))) + 1e-4;
         gSteep = 1.0 - clamp(wn.y, 0.0, 1.0);
         float cav = vTerr.x;
         float sky = vTerr.y;
 
-        // broad tonal drift so a 9 m tile never announces itself at altitude
-        float macro = texture2D(map, vWPos.xz * uScale * 0.038).g;
-        float macro2 = texture2D(map, vWPos.xz * uScale * 0.0095 + 0.37).r;
-        vec3 albedo = gTri.rgb * mix(0.82, 1.14, macro) * mix(0.86, 1.12, macro2);
-
-        // ── bedding planes ──────────────────────────────────────────────────
+        // ── bedding ─────────────────────────────────────────────────────────
         // Beds are laid down flat and then folded, so the band coordinate is
-        // world Y warped by the same low-frequency field that drives the tint.
-        // A triangle wave, not fract(), or every 13 m there is a hard seam that
-        // reads as a contour line rather than as rock.
-        float yw = vWPos.y + (macro2 - 0.5) * 34.0 + (macro - 0.5) * 9.0 + gTri.g * 3.0;
-        float bedT = abs(fract(yw * (1.0 / 11.5)) * 2.0 - 1.0);
-        float bed = smoothstep(0.10, 0.62, bedT);
-        float bedFine = abs(fract(yw * (1.0 / 3.1) + gTri.r * 0.8) * 2.0 - 1.0);
+        // world Y warped by a low-frequency field. Two periods: 14 m members
+        // and a 78 m formation cycle that decides which rock this is.
+        // Beds are near-horizontal. The warp is what stops them being a ruled
+        // line across the whole level, but push it past a few metres and the
+        // wall stops reading as sediment and starts reading as marbling.
+        float warp = (crs.g - 0.5) * 11.0 + (gTri.g - 0.5) * 3.0;
+        float yw = vWPos.y + warp;
+        const float BEDP = 14.0;
+        float bedF = fract(yw * (1.0 / BEDP));
+        float bedT = abs(bedF * 2.0 - 1.0);
+        // dissolve the member banding once its period drops toward a few pixels
+        float bedFade = 1.0 - smoothstep(BEDP * 0.10, BEDP * 0.34, gWpx);
+        float bed = smoothstep(0.05, 0.72, bedT);
+        float parting = (1.0 - smoothstep(0.0, 0.13, bedT)) * bedFade;
+        gBedSlope = (bedF < 0.5 ? 1.0 : -1.0) * bedFade;
 
-        // formations: which mineral this stack of beds is made of
-        float form = fract(yw * (1.0 / 96.0) + macro2 * 0.55);
-        float formT = smoothstep(0.06, 0.48, form) * (1.0 - smoothstep(0.55, 0.95, form));
-        vec3 ochre = vec3(1.30, 0.90, 0.56);      // iron-stained sandstone
-        vec3 slate = vec3(0.80, 0.86, 0.96);      // cool grey shale
-        vec3 stratCol = mix(slate, ochre, formT);
+        float form = fract((vWPos.y + warp * 0.4) * (1.0 / 96.0) + crs.b * 0.30);
+        vec3 rock = lithology(form);
 
-        // Strata only exist where there is a face to show them, and they have
-        // to dissolve before the band period drops under a few pixels.
-        float faceMask = smoothstep(0.16, 0.62, gSteep) * (1.0 - smoothstep(1400.0, 4200.0, camD));
-        float stratK = mix(0.78, 1.20, bed) * mix(0.94, 1.06, bedFine);
-        albedo *= mix(vec3(1.0), stratCol * stratK, faceMask * 0.72);
+        // value: fine grain over broad grain, both band-limited by the tile
+        // they came from rather than by a magic distance
+        float v = (0.70 + 0.58 * gTri.r) * (0.76 + 0.44 * crs.g);
+        rock *= v;
+        rock *= mix(0.86, 1.11, bed) * (1.0 - parting * 0.26 * bedFade);
+        gBedK = bed;
+
+        // ── desert varnish ──────────────────────────────────────────────────
+        // The dark streaks that run down every real canyon wall from the rim.
+        // Deliberately anisotropic: 16 m across, 220 m down.
+        float streak = texture2D(map, vec2((vWPos.x * 0.62 + vWPos.z * 0.62) * uScale,
+                                            vWPos.y * uScale * 0.045 + 0.6)).b;
+        float faceK = smoothstep(0.24, 0.72, gSteep);
+        rock *= mix(1.0, 0.52 + streak * 0.86, faceK * 0.55 * (1.0 - smoothstep(2.0, 7.0, gWpx)));
 
         // ── cavity ──────────────────────────────────────────────────────────
         // Gullies collect dirt and damp; rims are scoured and dusty.
         float gully = smoothstep(0.54, 1.0, cav);
         float rim = smoothstep(0.46, 0.02, cav);
-        albedo *= mix(1.0, 0.58, gully * 0.85);
-        albedo *= mix(1.0, 1.13, rim * 0.8);
+        rock *= mix(1.0, 0.56, gully * 0.85);
+        rock *= mix(1.0, 1.16, rim * 0.8);
 
         // the waterline: rock darkens and glosses where it is permanently wet
-        gWet = (1.0 - smoothstep(-2.0, 6.0, vWPos.y)) * smoothstep(-18.0, -7.0, vWPos.y);
+        gWet = (1.0 - smoothstep(-1.0, 5.5, vWPos.y)) * smoothstep(-16.0, -6.0, vWPos.y);
         // a bleached tide mark just above it — the single cue that says "sea"
-        float tide = smoothstep(2.0, 5.0, vWPos.y) * (1.0 - smoothstep(6.0, 12.0, vWPos.y));
-        albedo *= mix(1.0, 0.44, gWet);
-        albedo *= mix(1.0, 1.22, tide * (1.0 - gSteep * 0.5));
+        float tide = smoothstep(1.5, 4.5, vWPos.y) * (1.0 - smoothstep(5.5, 11.0, vWPos.y));
+        rock *= mix(1.0, 0.40, gWet);
+        rock *= mix(1.0, 1.26, tide * (1.0 - gSteep * 0.5));
 
-        gDetail = (1.0 - smoothstep(45.0, 210.0, camD)) * smoothstep(0.10, 0.35, gSteep);
+        gDetail = (1.0 - smoothstep(0.22, 0.85, gWpx));
         gAO = mix(1.0, sky, 0.92) * mix(1.0, 0.70, gully * 0.7);
+        gFaceUp = normalize(vec3(0.0, 1.0, 0.0) - wn * wn.y + vec3(1e-5, 0.0, 0.0));
 
-        diffuseColor *= vec4(albedo, 1.0);
+        diffuseColor *= vec4(rock, 1.0);
       `)
       .replace('#include <roughnessmap_fragment>', `
-        // Wet rock is glossy, scoured rims are matte-dusty, gullies are matte.
-        float roughnessFactor = roughness * mix(gTri.a, 0.16, gWet);
+        // Wet rock is glossy, scoured rims are matte-dusty, shale partings
+        // catch a sheen the sandstone members do not.
+        float roughnessFactor = roughness * mix(gTri.a, 0.14, gWet);
+        roughnessFactor *= mix(1.06, 0.90, gBedK);
         roughnessFactor = min(1.0, roughnessFactor + smoothstep(0.54, 1.0, vTerr.x) * 0.10);
       `)
       .replace('#include <normal_fragment_maps>', `
         vec3 tnX = texture2D(normalMap, gUX).xyz * 2.0 - 1.0;
         vec3 tnY = texture2D(normalMap, gUY).xyz * 2.0 - 1.0;
         vec3 tnZ = texture2D(normalMap, gUZ).xyz * 2.0 - 1.0;
-        // Second octave at 2.4 m, faded out well before it can alias. This is
-        // the difference between a cliff you can read the grain of at 60 m and
-        // a smooth grey sheet.
+        // Second octave at 1.9 m, faded by pixel footprint rather than by range
+        // so it survives a close cliff and dies on a grazing plateau.
         if (gDetail > 0.004) {
-          float k = gDetail * 0.85;
+          float k = gDetail * 0.9;
           tnX.xy += (texture2D(normalMap, gUX * 4.7 + 0.31).xy * 2.0 - 1.0) * k;
           tnY.xy += (texture2D(normalMap, gUY * 4.7 + 0.31).xy * 2.0 - 1.0) * k;
           tnZ.xy += (texture2D(normalMap, gUZ * 4.7 + 0.31).xy * 2.0 - 1.0) * k;
         }
         // Vertical faces carry more relief than the silted floor does.
-        vec2 nsc = normalScale * mix(0.55, 1.45, gSteep);
+        vec2 nsc = normalScale * mix(0.50, 1.55, gSteep);
         tnX.xy *= nsc; tnY.xy *= nsc; tnZ.xy *= nsc;
         vec3 wnn = normalize(vWNrm);
         // whiteout blend — keeps detail through the 45° zones where UDN goes flat
@@ -278,6 +346,11 @@ export function terrainMaterial() {
         vec3 bY = vec3(tnY.xy + wnn.xz, abs(tnY.z) * wnn.y);
         vec3 bZ = vec3(tnZ.xy + wnn.xy, abs(tnZ.z) * wnn.z);
         vec3 wNormal = normalize(bX.zyx * gBW.x + bY.xzy * gBW.y + bZ.xyz * gBW.z);
+        // Bedding relief: each member weathers back to its own depth, so the
+        // parting between two of them is a V-groove, not a painted line. This
+        // is the term that makes strata catch the key light instead of just
+        // tinting — a stripe you can only see in albedo reads as wallpaper.
+        wNormal = normalize(wNormal + gFaceUp * gBedSlope * 0.42 * smoothstep(0.20, 0.60, gSteep));
         normal = normalize((viewMatrix * vec4(wNormal, 0.0)).xyz);
       `)
       // Baked sky visibility, applied where a real AO map would be. Indirect
@@ -601,15 +674,63 @@ export function foliageMaterial() {
   });
 }
 
-export function rockPropMaterial() {
+/**
+ * Free-standing rock — arches, stacks, boulders. Shares the terrain's texture
+ * set and its lithology, so a natural arch springing from a canyon wall is made
+ * of the same stone as the wall, banded on the same 14 m rhythm.
+ */
+export function rockPropMaterial({ scale = 0.112, tint = 0xffffff } = {}) {
   const rock = rockSet();
   const m = new THREE.MeshStandardMaterial({
-    map: rock.map, normalMap: rock.normalMap,
-    roughness: 1.0, metalness: 0.0, envMapIntensity: 0.6, vertexColors: true,
+    color: tint, map: rock.map, normalMap: rock.normalMap,
+    normalScale: new THREE.Vector2(1.1, 1.1),
+    roughness: 1.0, metalness: 0.0, envMapIntensity: 0.6,
   });
   m.onBeforeCompile = (sh) => {
+    sh.uniforms.uScale = { value: scale };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;`)
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+        vWNrm = normalize(mat3(modelMatrix) * objectNormal);`);
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <roughnessmap_fragment>', `float roughnessFactor = roughness * texture2D(map, vMapUv).a;`);
+      .replace('#include <common>', `#include <common>
+        varying vec3 vWPos; varying vec3 vWNrm; uniform float uScale;
+        ${GLSL_LITHOLOGY}
+        vec3 pBW; vec2 pUX, pUY, pUZ; vec4 pTri; float pWet;`)
+      .replace('#include <map_fragment>', `
+        vec3 pwn = normalize(vWNrm);
+        pBW = pow(abs(pwn), vec3(4.0)); pBW /= (pBW.x + pBW.y + pBW.z);
+        pUX = vWPos.zy * uScale; pUY = vWPos.xz * uScale; pUZ = vWPos.xy * uScale;
+        pTri = texture2D(map, pUX) * pBW.x + texture2D(map, pUY) * pBW.y + texture2D(map, pUZ) * pBW.z;
+        vec4 pCrs = texture2D(map, pUX * 0.137 + 0.19) * pBW.x
+                  + texture2D(map, pUY * 0.137 + 0.19) * pBW.y
+                  + texture2D(map, pUZ * 0.137 + 0.19) * pBW.z;
+        float pWpx = max(fwidth(vWPos.x), max(fwidth(vWPos.y), fwidth(vWPos.z))) + 1e-4;
+        float pYw = vWPos.y + (pCrs.g - 0.5) * 30.0 + (pTri.g - 0.5) * 5.0;
+        float pBedT = abs(fract(pYw * (1.0 / 14.0)) * 2.0 - 1.0);
+        float pFade = 1.0 - smoothstep(1.4, 4.8, pWpx);
+        vec3 pRock = lithology(fract(pYw * (1.0 / 78.0) + pCrs.b * 0.62));
+        pRock *= (0.68 + 0.62 * pTri.r) * (0.72 + 0.52 * pCrs.g);
+        pRock *= mix(1.0, mix(0.74, 1.18, smoothstep(0.05, 0.72, pBedT)), pFade);
+        pWet = (1.0 - smoothstep(-1.0, 5.5, vWPos.y)) * smoothstep(-16.0, -6.0, vWPos.y);
+        pRock *= mix(1.0, 0.40, pWet);
+        diffuseColor.rgb *= pRock;
+      `)
+      .replace('#include <roughnessmap_fragment>', `float roughnessFactor = roughness * mix(pTri.a, 0.14, pWet);`)
+      .replace('#include <normal_fragment_maps>', `
+        vec3 pnX = texture2D(normalMap, pUX).xyz * 2.0 - 1.0;
+        vec3 pnY = texture2D(normalMap, pUY).xyz * 2.0 - 1.0;
+        vec3 pnZ = texture2D(normalMap, pUZ).xyz * 2.0 - 1.0;
+        pnX.xy *= normalScale; pnY.xy *= normalScale; pnZ.xy *= normalScale;
+        vec3 pw = normalize(vWNrm);
+        vec3 qX = vec3(pnX.xy + pw.zy, abs(pnX.z) * pw.x);
+        vec3 qY = vec3(pnY.xy + pw.xz, abs(pnY.z) * pw.y);
+        vec3 qZ = vec3(pnZ.xy + pw.xy, abs(pnZ.z) * pw.z);
+        vec3 pN = normalize(qX.zyx * pBW.x + qY.xzy * pBW.y + qZ.xyz * pBW.z);
+        normal = normalize((viewMatrix * vec4(pN, 0.0)).xyz);
+      `);
+    m.userData.shader = sh;
   };
   return m;
 }

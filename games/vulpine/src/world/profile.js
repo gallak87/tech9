@@ -183,11 +183,22 @@ function bankJitter(z, right) {
 /**
  * Terrain height at lateral offset `u` from the centreline at `z`.
  * `P` is `profileAt(z)`; pass it in so a whole mesh row shares one lookup.
+ *
+ * The band limit widens past the near tier, because the far tier steps
+ * `spacing(d) * 2.6` laterally and 30 m along z — sampling it at the near
+ * tier's rate leaves every ridged band well past its own Nyquist limit and it
+ * aliases into spikes instead of dissolving.
+ *
+ * That widening MUST be a smooth function of `d` and never a per-caller
+ * constant. The two tiers share the boundary column at `nearHalf`, so if they
+ * disagree about the band limit there they disagree about the height there,
+ * and that opens a seam down the entire length of the level — which is
+ * precisely what the lateral skirts were papering over.
  */
 export function heightAtU(u, z, P) {
   const right = u >= 0;
   const d0 = Math.abs(u);
-  const sp = spacing(d0);
+  const sp = spacing(d0) * (1 + 1.6 * smooth(WORLD.nearHalf * 0.8, WORLD.nearHalf * 1.9, d0));
 
   const wm = 0.72 + 0.56 * nSide(z * (1 / 6000) + (right ? 0.11 : 0.61), (right ? 0.21 : 0.79));
   const d = Math.max(0, d0 + bankJitter(z, right) * smooth(0, 90, d0));

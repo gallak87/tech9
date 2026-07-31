@@ -1,40 +1,907 @@
 import * as THREE from 'three';
+import { rng } from '../core/rng.js';
+import { registerShot } from './shots.js';
+import { createEnemy, disposeEnemy, animateEnemy, enemySpec } from '../ships/enemies.js';
+import { createBoss, BOSS } from '../ships/boss.js';
+import { createArwing } from '../ships/arwing.js';
+import {
+  makeAgent, think, thinkWingman, killAgent, aimShot, orient, setState, clamp,
+} from './ai.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Combat / AI / mission seam.  OWNER: combat agent.
-// Yours: src/game/combat.js, src/game/ai.js, src/game/mission.js,
-//        src/ships/enemies.js, src/ships/boss.js
 //
-// Reads ctx.flight for the player state, calls ctx.fx for anything visual, and
-// pushes HUD state onto ctx.state so the UI agent can read it without coupling.
+// This file is the referee. It owns nothing visual and nothing about flying:
+// ships/enemies.js builds the hulls, game/ai.js flies them, fx draws the
+// consequences. What lives here is the part a player actually feels — who is
+// on screen, when, how much they hurt, and what it takes to kill them.
+//
+// Three rules the whole file is built around:
+//
+//   1. THE RAIL IS THE CLOCK.  Waves trigger on `flight.railZ`, never on wall
+//      time. Fly faster and the level does not desynchronise; a review capture
+//      at t=14 always shows the same fight.
+//   2. NOTHING IS A HITSCAN.  Every shot is a travelling body with a position,
+//      so it can be dodged, out-run and seen to miss. Enemy fire is slow enough
+//      (520 m/s against your 175) to read as an object, not a state change.
+//   3. THE HUD IS DOWNSTREAM.  Everything the UI needs is published onto
+//      `ctx.state` once per tick and never read back. The HUD cannot influence
+//      the fight, so it can never desync it.
 // ─────────────────────────────────────────────────────────────────────────────
 
+const R = rng('combat.spawn');
+const RG = rng('combat.gun');
+
+/* ── tuning ───────────────────────────────────────────────────────────────── */
+
+const TUNE = {
+  playerBullet: { speed: 980, range: 1100, dmg: 1, r: 2.2 },
+  chargedBullet: { speed: 470, range: 900, dmg: 6, r: 9.0 },
+  enemyBullet: { speed: 520, range: 700, r: 1.4 },
+
+  fireGap: 0.135,          // twin-linked, so 2 rounds per interval
+  chargeTime: 1.05,        // hold-to-lock, seconds
+  lockCone: 0.955,         // cos of the half-angle the lock will hold
+  lockRange: 900,
+
+  bombFuse: 2.6,
+  bombSpeed: 320,
+  bombRadius: 105,
+  bombDmg: 40,
+
+  playerRadius: 4.2,
+  shieldMax: 100,
+  respawnInvuln: 2.4,
+
+  ramDmg: 18,
+};
+
+/* the ship's four gun mounts, in Arwing local space */
+const PODS = [
+  new THREE.Vector3(3.05, -0.28, -3.15),
+  new THREE.Vector3(-3.05, -0.28, -3.15),
+  new THREE.Vector3(1.35, -0.10, -3.90),
+  new THREE.Vector3(-1.35, -0.10, -3.90),
+];
+
+/* ── the mission ──────────────────────────────────────────────────────────── */
+//
+// Corneria, front to back. `z` is the rail position that arms the wave; the
+// spawn happens once, when the player crosses it. Keep the gaps honest — a
+// shooter that never stops shooting has no dynamics, and the quiet stretches
+// are where the level gets to be looked at.
+
+const WAVES = [
+  { z: -260, kind: 'raptor', n: 3, form: 'vee', from: 'ahead' },
+  { z: -820, kind: 'raptor', n: 4, form: 'echelon', from: 'ahead', skill: 0.05 },
+  { z: -1380, kind: 'wasp', n: 5, form: 'swarm', from: 'ahead' },
+  { z: -1950, kind: 'bulwark', n: 3, form: 'banks' },
+  { z: -2380, kind: 'raptor', n: 4, form: 'vee', from: 'behind', skill: 0.1 },
+  { z: -2900, kind: 'hornet', n: 2, form: 'pair', from: 'ahead' },
+  { z: -3350, kind: 'bulwark', n: 4, form: 'banks' },
+  { z: -3700, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', skill: 0.15, hunt: true },
+  { z: -4300, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead' },
+  { z: -4750, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', skill: 0.1 },
+  { z: -5300, kind: 'bulwark', n: 4, form: 'banks' },
+  { z: -5750, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', skill: 0.2, hunt: true },
+  { z: -6300, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead' },
+  { z: -6800, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.2 },
+  { z: -7300, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', skill: 0.2 },
+  { z: -7800, kind: 'wasp', n: 8, form: 'swarm', from: 'ahead' },
+  { z: -8250, boss: true },
+];
+
+const COMMS = [
+  { z: -240, who: 'PEPPY', text: 'Enemy craft ahead — form up!' },
+  { z: -1360, who: 'FALCO', text: "Drones. Don't let them touch you." },
+  { z: -1930, who: 'SLIPPY', text: 'Ground batteries on both banks!' },
+  { z: -3680, who: 'PEPPY', text: 'They\'re going for Slippy — shake them off!' },
+  { z: -4280, who: 'FALCO', text: 'Gorge is tightening. Watch the walls.' },
+  { z: -6280, who: 'SLIPPY', text: 'That one\'s armoured! Hit the engines!' },
+  { z: -8200, who: 'PEPPY', text: 'Carrier dead ahead. This is it, Fox.' },
+];
+
+/* ── formations ───────────────────────────────────────────────────────────── */
+
+function station(form, i, n) {
+  const s = i - (n - 1) / 2;
+  switch (form) {
+    case 'vee': return [s * 78, Math.abs(s) * -12 + 10, -Math.abs(s) * 60];
+    case 'echelon': return [s * 66 + 40, s * 20, -i * 55];
+    case 'pair': return [s * 120, 12, 0];
+    case 'swarm': return [
+      Math.sin(i * 2.4) * 130, Math.cos(i * 1.7) * 55 + 20, Math.sin(i * 1.1) * 90,
+    ];
+    default: return [s * 90, 14, 0];
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════ */
+
 export function installCombat(ctx) {
+  const THREE_ = ctx.THREE;
   const group = new THREE.Group();
   group.name = 'combat';
   ctx.scene.add(group);
 
-  // Shared, UI-readable game state. The HUD renders this; nothing else writes it.
-  ctx.state = {
-    shield: 100, shieldMax: 100,
-    lives: 3, score: 0,
+  const enemyGroup = new THREE.Group(); enemyGroup.name = 'enemies';
+  const allyGroup = new THREE.Group(); allyGroup.name = 'wingmen';
+  group.add(enemyGroup, allyGroup);
+
+  /* ── shared, UI-readable game state ─────────────────────────────────────── */
+  const state = {
+    shield: 1, shieldRaw: TUNE.shieldMax, shieldMax: TUNE.shieldMax,
+    lives: 3, score: 0, hits: 0,
     bombs: 3,
-    lockOn: 0,              // 0..1 charge
-    lockTarget: null,       // THREE.Object3D or null
+    boost: 1, boostActive: 0,
+    speed: 0, alt: 0,
+    time: 0,
+    lockOn: 0,
+    lockTarget: null,
+    px: 0, py: 0, pz: 0,
+    fwd: new THREE.Vector3(0, 0, -1),
+    right: new THREE.Vector3(1, 0, 0),
     wingmen: [
       { id: 'falco', name: 'FALCO', health: 100, alive: true },
       { id: 'peppy', name: 'PEPPY', health: 100, alive: true },
       { id: 'slippy', name: 'SLIPPY', health: 100, alive: true },
     ],
-    enemies: [],            // live enemy objects, for HUD radar
-    message: null,          // { who, text, until }
+    enemies: [],
+    message: null,
     bossHealth: null,
     checkpoint: 0,
+    outcome: null,          // null | 'win' | 'lose'
   };
+  ctx.state = state;
+
+  /* ── live entities ──────────────────────────────────────────────────────── */
+  const foes = [];          // { agent, root, kind, spec, contact }
+  const allies = [];
+  const bullets = [];       // pooled below
+  const bombs = [];
+  let boss = null;          // { root, api, agent-ish }
+  let firedWaves = 0;
+  let firedComms = 0;
+  let fireT = 0;
+  let charge = 0;
+  let charging = false;
+  let invuln = 0;
+  let deadT = -1;
+
+  const _v = new THREE.Vector3();
+  const _v2 = new THREE.Vector3();
+  const _aim = new THREE.Vector3();
+  const _q = new THREE.Quaternion();
+  const UP = new THREE.Vector3(0, 1, 0);
+
+  /* ── wingmen: three Arwings that hold station off your wing ─────────────── */
+  const WING_SLOTS = [
+    [-62, -6, 46],   // falco, port and slightly back
+    [66, -4, 54],    // peppy, starboard
+    [-14, 16, 92],   // slippy, high and trailing
+  ];
+  /**
+   * Visual-only deep clone. `Object3D.clone()` JSON-stringifies userData, and
+   * the Arwing hangs its animation API off `userData.api`, which holds a back
+   * reference to the root — so the stock clone throws on a circular structure.
+   * Wingmen need the hull, not the rig: geometry and materials are shared, and
+   * userData is deliberately dropped.
+   */
+  function cloneVisual(src) {
+    const out = src.isMesh ? new THREE.Mesh(src.geometry, src.material)
+      : src.isPoints ? new THREE.Points(src.geometry, src.material)
+        : src.isLine ? new THREE.Line(src.geometry, src.material)
+          : new THREE.Group();
+    out.name = src.name;
+    out.position.copy(src.position);
+    out.quaternion.copy(src.quaternion);
+    out.scale.copy(src.scale);
+    out.visible = src.visible;
+    out.renderOrder = src.renderOrder;
+    out.frustumCulled = src.frustumCulled;
+    for (const c of src.children) out.add(cloneVisual(c));
+    return out;
+  }
+
+  {
+    const proto = createArwing({ scale: 1.0 });
+    for (let i = 0; i < 3; i++) {
+      const root = cloneVisual(proto);
+      root.name = 'wingman-' + state.wingmen[i].id;
+      allyGroup.add(root);
+      const spec = {
+        kind: 'arwing', radius: 4.0, hp: 100,
+        maxSpeed: 260, turnRate: 1.5, accel: 150,
+        guns: [], fireRange: 0, burst: 0, burstGap: 1, reload: 1, dmg: 0,
+      };
+      const a = makeAgent(spec, R, {});
+      a.homeSlot = new THREE.Vector3(...WING_SLOTS[i]);
+      a.offset.copy(a.homeSlot);
+      a.state = 'form';
+      a.alive = true;
+      allies.push({ agent: a, root, info: state.wingmen[i] });
+    }
+  }
+
+  /* ── review mode ────────────────────────────────────────────────────────── */
+  // The screenshot harness never touches the keyboard, so every review frame
+  // caught the level with the guns cold — no muzzle flash, no tracers, no
+  // impacts, nothing a critic could judge the *game* by. `?fight=1` drives the
+  // trigger and the lock from the sim clock instead of from input, so a capture
+  // shows a firefight in progress and stays byte-reproducible.
+  let autoFight = false;
+  try { autoFight = new URLSearchParams(location.search).get('fight') === '1'; }
+  catch { /* non-browser host */ }
+  let autoT = 0;
+
+  /* ── the world view handed to ai.js ─────────────────────────────────────── */
+  const view = {
+    time: 0,
+    player: { pos: new THREE.Vector3(), vel: new THREE.Vector3() },
+    playerRange: 0,
+    rng: RG,
+    neighbours: null,
+    groundAt: (x, z) => ctx.world.groundAt(x, z),
+    fire: (a) => enemyFire(a),
+  };
+
+  /* ── bullets ────────────────────────────────────────────────────────────── */
+  function spawnBullet(o) {
+    const b = bullets.length < 400 ? {} : null;
+    if (!b) return;
+    b.x = o.x; b.y = o.y; b.z = o.z;
+    b.vx = o.vx; b.vy = o.vy; b.vz = o.vz;
+    b.life = o.life; b.dmg = o.dmg; b.enemy = o.enemy; b.r = o.r;
+    b.charged = !!o.charged;
+    bullets.push(b);
+  }
+
+  function playerFire() {
+    const ship = ctx.ship;
+    ship.updateMatrixWorld();
+    _v2.set(0, 0, -1).applyQuaternion(ship.quaternion).normalize();
+    const inherit = view.player.vel;
+    // Twin-linked: alternate outer and inner pods so the pair reads as a
+    // rhythm rather than a wall of light.
+    const pair = (state.hits & 1) ? [2, 3] : [0, 1];
+    for (const i of pair) {
+      _v.copy(PODS[i]).applyMatrix4(ship.matrixWorld);
+      ctx.fx.laser(_v, _v2, { inherit });
+      spawnBullet({
+        x: _v.x, y: _v.y, z: _v.z,
+        vx: _v2.x * TUNE.playerBullet.speed + inherit.x,
+        vy: _v2.y * TUNE.playerBullet.speed + inherit.y,
+        vz: _v2.z * TUNE.playerBullet.speed + inherit.z,
+        life: TUNE.playerBullet.range / TUNE.playerBullet.speed,
+        dmg: TUNE.playerBullet.dmg, enemy: false, r: TUNE.playerBullet.r,
+      });
+      ctx.fx.muzzle(_v, _v2, { inherit });
+    }
+    ctx.audio.play('laser', { pos: _v });
+  }
+
+  function playerChargedFire() {
+    const ship = ctx.ship;
+    ship.updateMatrixWorld();
+    _v2.set(0, 0, -1).applyQuaternion(ship.quaternion).normalize();
+    _v.set(0, -0.2, -3.6).applyMatrix4(ship.matrixWorld);
+    const tgt = state.lockTarget;
+    if (tgt) { _aim.copy(tgt.agent.pos).sub(_v).normalize(); _v2.lerp(_aim, 0.85).normalize(); }
+    ctx.fx.chargedShot(_v, _v2, { inherit: view.player.vel });
+    spawnBullet({
+      x: _v.x, y: _v.y, z: _v.z,
+      vx: _v2.x * TUNE.chargedBullet.speed + view.player.vel.x,
+      vy: _v2.y * TUNE.chargedBullet.speed + view.player.vel.y,
+      vz: _v2.z * TUNE.chargedBullet.speed + view.player.vel.z,
+      life: TUNE.chargedBullet.range / TUNE.chargedBullet.speed,
+      dmg: TUNE.chargedBullet.dmg, enemy: false, r: TUNE.chargedBullet.r, charged: true,
+    });
+    ctx.audio.play('chargedShot', { pos: _v });
+  }
+
+  function enemyFire(a) {
+    const spec = a.spec;
+    const mounts = spec.guns;
+    if (!mounts || !mounts.length) return;
+    for (const m of mounts) {
+      _v.copy(m);
+      if (spec.static) {
+        _v.applyAxisAngle(UP, a.turretYaw || 0).add(a.pos);
+      } else {
+        _v.applyQuaternion(a.quat).add(a.pos);
+      }
+      aimShot(a, _v, view, TUNE.enemyBullet.speed, _aim);
+      ctx.fx.laser(_v, _aim, { enemy: true });
+      ctx.fx.muzzle(_v, _aim, { enemy: true });
+      spawnBullet({
+        x: _v.x, y: _v.y, z: _v.z,
+        vx: _aim.x * TUNE.enemyBullet.speed,
+        vy: _aim.y * TUNE.enemyBullet.speed,
+        vz: _aim.z * TUNE.enemyBullet.speed,
+        life: TUNE.enemyBullet.range / TUNE.enemyBullet.speed,
+        dmg: spec.dmg, enemy: true, r: TUNE.enemyBullet.r,
+      });
+    }
+    ctx.audio.play('enemyLaser', { pos: _v });
+  }
+
+  /* ── spawning ───────────────────────────────────────────────────────────── */
+  function spawnWave(w) {
+    if (w.boss) { spawnBoss(); return; }
+    const spec = enemySpec(w.kind);
+    for (let i = 0; i < w.n; i++) {
+      const root = createEnemy(w.kind);
+      enemyGroup.add(root);
+      const a = makeAgent(spec, R, { skill: w.skill ?? 0, wing: firedWaves });
+      const [sx, sy, sz] = station(w.form, i, w.n);
+
+      if (spec.static) {
+        // Ground batteries sit on the bank, alternating sides, ahead of you.
+        const side = i % 2 ? 1 : -1;
+        const z = view.player.pos.z - (420 + i * 210);
+        // Batteries sit on the bank, so they are placed off the *rail centre*
+        // at that z, not off the player — the river meanders and a fixed world
+        // offset would drop half of them in the water.
+        const u = side * (150 + R.range(0, 120));
+        const x = ctx.flight.railPoint(z, _v).x + u;
+        const g = ctx.world.groundAt(x, z);
+        a.pos.set(x, g + 3.2, z);
+        a.state = 'static';
+        a.turretYaw = 0; a.turretPitch = 0;
+        root.position.copy(a.pos);
+      } else {
+        const behind = w.from === 'behind';
+        a.entryZ = behind ? 340 : -(620 + i * 40);
+        a.runX = sx; a.runY = sy;
+        a.homeZ = sz - 300;
+        a.attackAt = 0.5 + i * 0.28 + R.range(0, 0.4);
+        a.maxPasses = 2 + (R.next() < 0.4 ? 1 : 0);
+        a.strafeFor = 2.4 + R.range(0, 1.6);
+        a.openWith = behind ? 'attack' : (R.next() < 0.25 ? 'strafe' : 'attack');
+        a.offset.set(sx, sy, a.entryZ);
+        a.pos.copy(view.player.pos).add(a.offset);
+        a.pos.y = Math.max(a.pos.y, ctx.world.groundAt(a.pos.x, a.pos.z) + 30);
+        a.fwd.set(0, 0, behind ? -1 : -1);
+        a.state = 'enter';
+        orient(a);
+      }
+
+      // one wave, one leader — the rest hold slots off them
+      const foe = { agent: a, root, kind: w.kind, spec, hitFlash: 0 };
+      if (i > 0 && !spec.static) {
+        a.leader = foes.length ? foes[foes.length - 1].agent : null;
+        a.slot.set(sx * 0.4, sy * 0.4, sz * 0.4);
+      }
+      foes.push(foe);
+    }
+
+    if (w.hunt) {
+      // send one at a wingman, so the rescue objective is visible
+      const live = allies.filter(al => al.info.alive);
+      const prey = live.length ? live[Math.floor(R.next() * live.length)] : null;
+      const hunter = foes[foes.length - 1];
+      if (prey && hunter && !hunter.spec.static) {
+        hunter.agent.prey = { pos: prey.agent.pos, alive: true, info: prey.info };
+        setState(hunter.agent, 'hunt', view);
+        prey.agent.state = 'chased';
+        prey.agent.stateT = 0;
+        say(prey.info.name, 'Get him off me!');
+      }
+    }
+  }
+
+  function spawnBoss() {
+    if (boss) return;
+    const root = createBoss();
+    const api = root.userData.api;
+    group.add(root);
+    const pos = new THREE.Vector3();
+    pos.copy(view.player.pos);
+    pos.z -= 1400;
+    pos.y = Math.max(pos.y + 40, ctx.world.groundAt(pos.x, pos.z) + 90);
+    root.position.copy(pos);
+    boss = {
+      root, api, pos, hp: BOSS.hullHp,
+      t: 0, phase: 1, chargeT: 0, fireT: 3.5,
+      turretT: [0, 0, 0, 0],
+      list: 0, dying: -1,
+    };
+    state.bossHealth = { label: 'GARGANTUA', value: 1, parts: api.parts.map(p => ({ id: p.id, label: p.label, v: 1 })) };
+    say('PEPPY', 'Aim for the engines, Fox!');
+    ctx.audio.music('boss');
+  }
+
+  function say(who, text) {
+    state.message = { who, text, until: view.time + 4.2 };
+    ctx.audio.play('comm');
+  }
+
+  /* ── damage ─────────────────────────────────────────────────────────────── */
+  function hurtFoe(foe, dmg, hitPos, impulse) {
+    const a = foe.agent;
+    if (a.dying) return;
+    a.hp -= dmg;
+    a.hitT = 0.12;
+    foe.hitFlash = 1;
+    a.evadeT = Math.max(a.evadeT, 0.5);
+    ctx.fx.impact(hitPos, _v2.copy(hitPos).sub(a.pos).normalize(), {});
+    if (a.hp <= 0) {
+      killAgent(a, RG, impulse);
+      state.score += foe.spec.score;
+      state.hits++;
+      ctx.fx.explosion(a.pos, { size: foe.spec.radius * 0.9 });
+      ctx.audio.play('explosion', { pos: a.pos, size: foe.spec.radius });
+      if (a.prey) a.prey.info && (a.prey = null);
+    } else {
+      ctx.audio.play('impact', { pos: hitPos });
+    }
+  }
+
+  function hurtPlayer(dmg, from) {
+    if (invuln > 0 || deadT >= 0 || state.outcome) return;
+    state.shieldRaw = Math.max(0, state.shieldRaw - dmg);
+    ctx.fx.addFlash(Math.min(0.5, dmg * 0.02));
+    ctx.flight.addShake(Math.min(1.2, dmg * 0.05));
+    if (from) ctx.fx.shieldHit(ctx.ship.position, from, TUNE.playerRadius * 1.6, 1);
+    ctx.audio.play('playerHit', { amount: dmg / 30 });
+    if (state.shieldRaw <= 0) killPlayer();
+  }
+
+  function killPlayer() {
+    deadT = 0;
+    ctx.fx.explosion(ctx.ship.position, { size: 5.5 });
+    ctx.fx.addFlash(0.9);
+    ctx.flight.addShake(1.6);
+    ctx.audio.play('explosion', { pos: ctx.ship.position, size: 6 });
+    ctx.ship.visible = false;
+    state.lives--;
+    if (state.lives < 0) { state.outcome = 'lose'; say('PEPPY', 'Fox! No...'); }
+  }
+
+  function respawn() {
+    deadT = -1;
+    state.shieldRaw = TUNE.shieldMax;
+    invuln = TUNE.respawnInvuln;
+    ctx.ship.visible = true;
+    ctx.audio.play('respawn');
+  }
+
+  /* ── boss ───────────────────────────────────────────────────────────────── */
+  function bossHit(bullet, wp) {
+    const api = boss.api;
+    let best = null, bestD = Infinity;
+    for (const p of api.parts) {
+      if (!p.alive || (p.locked && api.st.shutter < 0.5 && p.kind === 'core')) continue;
+      _v.copy(p.local).applyMatrix4(p.node.matrixWorld);
+      const d = _v.distanceTo(wp);
+      if (d < p.radius + bullet.r && d < bestD) { best = p; bestD = d; }
+    }
+    if (!best) return false;
+    best.hp -= bullet.dmg * (best.kind === 'hull' ? 0.35 : 1);
+    ctx.fx.impact(wp, _v2.copy(wp).sub(boss.root.position).normalize(), {});
+    ctx.audio.play('impact', { pos: wp });
+    if (best.hp <= 0 && best.alive) {
+      best.alive = false;
+      _v.copy(best.local).applyMatrix4(best.node.matrixWorld);
+      ctx.fx.explosion(_v, { size: best.radius * 1.2 });
+      ctx.audio.play('explosion', { pos: _v, size: best.radius });
+      state.score += 500;
+      if (best.kind === 'engine') { api.killNacelle(best.index); boss.list += 0.16; }
+      if (best.kind === 'turret') api.killTurret(best.index);
+      if (best.kind === 'core') { bossDie(); return true; }
+      // all turrets down → the core armour retracts
+      if (api.parts.filter(p => p.kind === 'turret' && p.alive).length === 0 && boss.phase < 2) {
+        boss.phase = 2;
+        api.setPhase(2);
+        say('FALCO', 'Armour\'s open — hit the core!');
+      }
+    }
+    return true;
+  }
+
+  function bossDie() {
+    boss.dying = 0;
+    state.outcome = 'win';
+    say('PEPPY', 'That\'s it! Great work, Fox!');
+    ctx.audio.music('victory');
+  }
+
+  function updateBoss(dt) {
+    const b = boss, api = b.api;
+    b.t += dt;
+
+    if (b.dying >= 0) {
+      b.dying += dt;
+      // a capital ship does not pop; it comes apart over four seconds
+      if (b.dying < 4.0 && RG.next() < dt * 9) {
+        _v.copy(b.root.position);
+        _v.x += RG.range(-32, 32); _v.y += RG.range(-9, 14); _v.z += RG.range(-34, 34);
+        ctx.fx.explosion(_v, { size: 5 + RG.range(0, 9) });
+        ctx.audio.play('explosion', { pos: _v, size: 8 });
+      }
+      b.root.position.y -= dt * 7 * Math.min(1, b.dying * 0.5);
+      b.root.rotation.z += dt * 0.16;
+      api.update(dt, { power: Math.max(0, 1 - b.dying * 0.5), list: b.list });
+      if (b.dying > 5.5) { b.root.visible = false; }
+      state.bossHealth = null;
+      return;
+    }
+
+    // hold station ahead of the player, sliding with the rail
+    const want = _v.copy(view.player.pos);
+    want.z -= 560;
+    want.y = Math.max(want.y + 26, ctx.world.groundAt(want.x, want.z) + 80);
+    b.root.position.lerp(want, Math.min(1, dt * 0.55));
+    b.root.lookAt(view.player.pos.x, b.root.position.y, view.player.pos.z + 900);
+
+    const alive = api.parts.filter(p => p.kind === 'engine' && p.alive).length;
+    api.setAlert(view.playerRange < 700 ? 1 : 0.35);
+    api.setShutter(b.phase >= 2 ? Math.min(1, (api.st.shutter + dt * 0.6)) : 0);
+    api.setHangar(b.phase >= 2 ? 0.9 : 0.15 + 0.15 * Math.sin(b.t * 0.6));
+
+    /* turrets track and fire */
+    for (let i = 0; i < 4; i++) {
+      const p = api.parts.find(q => q.kind === 'turret' && q.index === i);
+      if (!p || !p.alive) continue;
+      const muzzle = api.aimTurret(i, view.player.pos, dt, _v);
+      b.turretT[i] -= dt;
+      if (muzzle && b.turretT[i] <= 0 && view.playerRange < 1100) {
+        b.turretT[i] = 1.6 + RG.range(0, 1.1);
+        const fakeAgent = { skill: 0.62, spec: { dmg: 11 } };
+        aimShot(fakeAgent, muzzle, view, TUNE.enemyBullet.speed, _aim);
+        ctx.fx.laser(muzzle, _aim, { enemy: true });
+        ctx.fx.muzzle(muzzle, _aim, { enemy: true });
+        spawnBullet({
+          x: muzzle.x, y: muzzle.y, z: muzzle.z,
+          vx: _aim.x * TUNE.enemyBullet.speed, vy: _aim.y * TUNE.enemyBullet.speed,
+          vz: _aim.z * TUNE.enemyBullet.speed,
+          life: 1.6, dmg: 11, enemy: true, r: TUNE.enemyBullet.r,
+        });
+        ctx.audio.play('enemyLaser', { pos: muzzle });
+      }
+    }
+
+    /* spinal cannon: a long, telegraphed wind-up so it can be dodged */
+    b.fireT -= dt;
+    if (b.fireT <= 1.9 && b.fireT > 0) {
+      b.chargeT = 1 - b.fireT / 1.9;
+      api.setCharge(b.chargeT);
+      if (b.chargeT > 0.02 && b.chargeT < 0.06) ctx.audio.play('bossCharge');
+    } else if (b.fireT <= 0) {
+      api.fireBeam(1000);
+      ctx.audio.play('bossBeam');
+      ctx.fx.addFlash(0.35);
+      b.fireT = 6.5 + RG.range(0, 2.5);
+      b.chargeT = 0;
+      api.setCharge(0);
+      // the beam is a lane down the boss's forward axis
+      _v.set(0, 0, -1).applyQuaternion(b.root.quaternion);
+      _v2.copy(view.player.pos).sub(b.root.position);
+      const along = _v2.dot(_v);
+      const perp = _v2.addScaledVector(_v, -along).length();
+      if (along > 0 && perp < 26) hurtPlayer(34, b.root.position);
+    }
+
+    api.update(dt, { power: alive ? 1 : 0.15, list: b.list });
+
+    const total = api.parts.reduce((s, p) => s + Math.max(0, p.hp), 0);
+    const max = api.parts.reduce((s, p) => s + p.max, 0);
+    state.bossHealth = {
+      label: 'GARGANTUA',
+      value: clamp(total / max, 0, 1),
+      parts: api.parts.map(p => ({ id: p.id, label: p.label, v: clamp(p.hp / p.max, 0, 1), alive: p.alive })),
+    };
+  }
+
+  /* ── lock-on ────────────────────────────────────────────────────────────── */
+  function updateLock(dt) {
+    const input = ctx.input.state;
+    let held = input.fire;
+
+    if (autoFight) {
+      autoT += dt;
+      // 2.6 s cycle: a charged shot released at the top, then a burst of taps.
+      const c = autoT % 2.6;
+      held = c < 1.25 || (c > 1.5 && c < 2.35);
+    }
+
+    if (held && !charging && !state.outcome && deadT < 0) { charging = true; ctx.fx.chargeStart(); ctx.audio.play('chargeStart'); }
+    if (charging) {
+      charge = Math.min(1, charge + dt / TUNE.chargeTime);
+      // pick the best target inside the forward cone
+      let best = null, bestScore = -Infinity;
+      _v2.set(0, 0, -1).applyQuaternion(ctx.ship.quaternion).normalize();
+      for (const f of foes) {
+        if (f.agent.dying) continue;
+        _v.copy(f.agent.pos).sub(ctx.ship.position);
+        const d = _v.length();
+        if (d > TUNE.lockRange) continue;
+        const dot = _v.normalize().dot(_v2);
+        if (dot < TUNE.lockCone) continue;
+        const sc = dot * 2 - d / TUNE.lockRange;
+        if (sc > bestScore) { bestScore = sc; best = f; }
+      }
+      const prev = state.lockTarget;
+      state.lockTarget = charge > 0.35 ? best : null;
+      if (state.lockTarget && state.lockTarget !== prev) ctx.audio.play('lockOn');
+      else if (charge < 1 && Math.floor(charge * 8) !== Math.floor((charge - dt / TUNE.chargeTime) * 8)) ctx.audio.play('lockTick');
+      state.lockOn = charge;
+      if (!held) {
+        charging = false;
+        ctx.fx.chargeStop();
+        if (charge > 0.55) playerChargedFire();
+        else playerFire();
+        charge = 0;
+        state.lockOn = 0;
+        state.lockTarget = null;
+        fireT = TUNE.fireGap;
+      }
+    }
+
+    // tap-fire: holding also produces a normal stream until the charge takes
+    if (held && charge < 0.5) {
+      fireT -= dt;
+      if (fireT <= 0 && deadT < 0 && !state.outcome) { fireT = TUNE.fireGap; playerFire(); }
+    }
+  }
+
+  /* ── bombs ──────────────────────────────────────────────────────────────── */
+  function updateBombs(dt) {
+    const input = ctx.input.state;
+    if (input.bombPressed && state.bombs > 0 && deadT < 0 && !state.outcome) {
+      state.bombs--;
+      _v2.set(0, 0, -1).applyQuaternion(ctx.ship.quaternion).normalize();
+      _v.set(0, -0.6, -2.2).applyMatrix4(ctx.ship.matrixWorld);
+      bombs.push({
+        x: _v.x, y: _v.y, z: _v.z,
+        vx: _v2.x * TUNE.bombSpeed + view.player.vel.x,
+        vy: _v2.y * TUNE.bombSpeed + view.player.vel.y,
+        vz: _v2.z * TUNE.bombSpeed + view.player.vel.z,
+        t: 0,
+      });
+      ctx.audio.play('bombLaunch', { pos: _v });
+    }
+
+    for (let i = bombs.length - 1; i >= 0; i--) {
+      const b = bombs[i];
+      b.t += dt;
+      b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+      b.vy -= 12 * dt;
+      const g = ctx.world.groundAt(b.x, b.z);
+      let boom = b.t >= TUNE.bombFuse || b.y <= g + 1.5;
+      if (!boom) {
+        for (const f of foes) {
+          if (f.agent.dying) continue;
+          if (f.agent.pos.distanceToSquared(_v.set(b.x, b.y, b.z)) < 900) { boom = true; break; }
+        }
+      }
+      if (boom) {
+        _v.set(b.x, b.y, b.z);
+        ctx.fx.explosion(_v, { size: 16, shock: true });
+        ctx.fx.addFlash(0.4);
+        ctx.flight.addShake(0.5);
+        ctx.audio.play('explosion', { pos: _v, size: 18 });
+        for (const f of foes) {
+          if (f.agent.dying) continue;
+          const d = f.agent.pos.distanceTo(_v);
+          if (d < TUNE.bombRadius) {
+            hurtFoe(f, TUNE.bombDmg * (1 - d / TUNE.bombRadius), f.agent.pos,
+              _v2.copy(f.agent.pos).sub(_v).normalize().multiplyScalar(40));
+          }
+        }
+        if (boss && boss.dying < 0) {
+          const d = boss.root.position.distanceTo(_v);
+          if (d < TUNE.bombRadius + 30) bossHit({ dmg: TUNE.bombDmg, r: 40 }, _v);
+        }
+        bombs.splice(i, 1);
+      }
+    }
+  }
+
+  /* ── collisions ─────────────────────────────────────────────────────────── */
+  function updateBullets(dt) {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+      const b = bullets[i];
+      const px = b.x, py = b.y, pz = b.z;
+      b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+      b.life -= dt;
+
+      let gone = b.life <= 0;
+
+      if (!gone && b.enemy) {
+        // vs player — swept sphere against the segment travelled this tick
+        const d = segPointDist(px, py, pz, b.x, b.y, b.z, view.player.pos);
+        if (d < TUNE.playerRadius + b.r) {
+          _v.set(b.x, b.y, b.z);
+          hurtPlayer(b.dmg, _v);
+          gone = true;
+        }
+      } else if (!gone) {
+        for (const f of foes) {
+          const a = f.agent;
+          if (a.dying) continue;
+          const d = segPointDist(px, py, pz, b.x, b.y, b.z, a.pos);
+          if (d < a.spec.radius + b.r) {
+            _v.set(b.x, b.y, b.z);
+            hurtFoe(f, b.dmg, _v, _v2.set(b.vx, b.vy, b.vz).normalize().multiplyScalar(18));
+            gone = true;
+            break;
+          }
+        }
+        if (!gone && boss && boss.dying < 0) {
+          _v.set(b.x, b.y, b.z);
+          if (_v.distanceTo(boss.root.position) < BOSS.radius + 40 && bossHit(b, _v)) gone = true;
+        }
+      }
+
+      // terrain
+      if (!gone && b.y <= ctx.world.groundAt(b.x, b.z)) {
+        _v.set(b.x, ctx.world.groundAt(b.x, b.z), b.z);
+        ctx.fx.impact(_v, UP, { ground: true });
+        gone = true;
+      }
+
+      if (gone) { bullets[i] = bullets[bullets.length - 1]; bullets.pop(); }
+    }
+  }
+
+  function segPointDist(ax, ay, az, bx, by, bz, p) {
+    const dx = bx - ax, dy = by - ay, dz = bz - az;
+    const len2 = dx * dx + dy * dy + dz * dz;
+    let t = len2 > 1e-9 ? ((p.x - ax) * dx + (p.y - ay) * dy + (p.z - az) * dz) / len2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const cx = ax + dx * t - p.x, cy = ay + dy * t - p.y, cz = az + dz * t - p.z;
+    return Math.sqrt(cx * cx + cy * cy + cz * cz);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════ */
+
+  function update(dt) {
+    const flight = ctx.flight;
+    view.time += dt;
+    state.time = view.time;
+
+    /* player view */
+    view.player.pos.copy(flight.pos);
+    view.player.vel.copy(flight.railDir).multiplyScalar(flight.speed);
+    state.px = flight.pos.x; state.py = flight.pos.y; state.pz = flight.pos.z;
+    state.fwd.copy(flight.railDir);
+    state.right.crossVectors(flight.railDir, UP).normalize().multiplyScalar(-1);
+    state.speed = flight.speed;
+    state.alt = flight.pos.y - ctx.world.groundAt(flight.pos.x, flight.pos.z);
+    state.shield = state.shieldRaw / state.shieldMax;
+    state.boost = flight.boost / 100;
+    state.boostActive = flight.boostActive;
+
+    if (invuln > 0) invuln -= dt;
+
+    /* death / respawn */
+    if (deadT >= 0) {
+      deadT += dt;
+      if (deadT > 2.2 && state.lives >= 0 && !state.outcome) respawn();
+    }
+
+    /* mission triggers */
+    while (firedWaves < WAVES.length && flight.railZ <= WAVES[firedWaves].z) {
+      spawnWave(WAVES[firedWaves]);
+      firedWaves++;
+    }
+    while (firedComms < COMMS.length && flight.railZ <= COMMS[firedComms].z) {
+      say(COMMS[firedComms].who, COMMS[firedComms].text);
+      firedComms++;
+    }
+    if (state.message && view.time > state.message.until) state.message = null;
+
+    /* input-driven systems */
+    updateLock(dt);
+    updateBombs(dt);
+
+    /* enemies */
+    view.neighbours = foes.length < 24 ? foes.map(f => f.agent) : null;
+    for (let i = foes.length - 1; i >= 0; i--) {
+      const f = foes[i];
+      const a = f.agent;
+      view.playerRange = a.pos.distanceTo(view.player.pos);
+      think(a, dt, view);
+      f.hitFlash = Math.max(0, f.hitFlash - dt * 4);
+
+      f.root.position.copy(a.pos);
+      f.root.quaternion.copy(a.quat);
+      animateEnemy(f.root, dt, {
+        power: a.dying ? 0 : 1, alert: a.alert, damage: a.dying ? 1 : 1 - a.hp / a.maxHp, t: view.time,
+      });
+
+      // ram drones trade themselves for a chunk of your shield
+      if (!a.dying && a.spec.ram && view.playerRange < TUNE.playerRadius + a.spec.radius + 2) {
+        hurtPlayer(TUNE.ramDmg, a.pos);
+        killAgent(a, RG);
+        ctx.fx.explosion(a.pos, { size: a.spec.radius });
+        ctx.audio.play('explosion', { pos: a.pos, size: a.spec.radius });
+      }
+
+      // retire: dead, or so far behind that it will never matter again
+      const behind = a.pos.z - view.player.pos.z;
+      if (a.dead || behind > 1400 || (a.state === 'exit' && behind > 700)) {
+        if (a.dead && !a.spec.static) {
+          ctx.fx.explosion(a.pos, { size: a.spec.radius * 1.1 });
+          ctx.audio.play('explosion', { pos: a.pos, size: a.spec.radius });
+        }
+        enemyGroup.remove(f.root);
+        disposeEnemy(f.root);
+        for (const o of foes) if (o.agent.leader === a) o.agent.leader = null;
+        foes[i] = foes[foes.length - 1];
+        foes.pop();
+      }
+    }
+
+    /* wingmen */
+    for (const al of allies) {
+      const a = al.agent;
+      if (!al.info.alive) continue;
+      view.playerRange = a.pos.distanceTo(view.player.pos);
+      thinkWingman(a, dt, view);
+      al.root.position.copy(a.pos);
+      al.root.quaternion.copy(a.quat);
+      // is anything hunting them?
+      const hunted = foes.some(f => f.agent.prey && f.agent.prey.info === al.info && !f.agent.dying);
+      if (!hunted && a.state === 'chased') { a.state = 'form'; a.stateT = 0; }
+    }
+
+    /* boss */
+    if (boss) updateBoss(dt);
+
+    updateBullets(dt);
+
+    /* publish contacts for the radar */
+    const list = state.enemies;
+    list.length = 0;
+    for (const f of foes) {
+      if (f.agent.dying) continue;
+      list.push({
+        x: f.agent.pos.x, y: f.agent.pos.y, z: f.agent.pos.z,
+        locked: state.lockTarget === f,
+      });
+    }
+    for (const al of allies) {
+      if (!al.info.alive) continue;
+      list.push({ x: al.agent.pos.x, y: al.agent.pos.y, z: al.agent.pos.z, ally: true });
+    }
+    if (boss && boss.dying < 0) {
+      list.push({ x: boss.root.position.x, y: boss.root.position.y, z: boss.root.position.z, boss: true });
+    }
+  }
+
+  /* ── review cameras (registered from this file, per CONTRACT §1) ────────── */
+  registerShot('combat-wave', (c) => {
+    c.flight.updateCamera(1 / 60, c.engine.camera);
+  });
+  registerShot('combat-wide', (c) => {
+    const cam = c.engine.camera;
+    const p = c.flight.pos;
+    cam.position.set(p.x + 95, p.y + 42, p.z + 130);
+    cam.fov = 44;
+    cam.updateProjectionMatrix();
+    cam.lookAt(p.x - 20, p.y, p.z - 420);
+  });
+  registerShot('combat-boss', (c) => {
+    const cam = c.engine.camera;
+    const t = boss ? boss.root.position : c.flight.pos;
+    cam.position.set(t.x + 70, t.y + 34, t.z + 190);
+    cam.fov = 40;
+    cam.updateProjectionMatrix();
+    cam.lookAt(t.x, t.y, t.z);
+  });
 
   return {
     group,
-    update(dt) { void dt; },
-    dispose() { ctx.scene.remove(group); },
+    state,
+    get foes() { return foes; },
+    get boss() { return boss; },
+    update,
+    dispose() {
+      for (const f of foes) { enemyGroup.remove(f.root); disposeEnemy(f.root); }
+      if (boss) boss.api.dispose();
+      ctx.scene.remove(group);
+    },
   };
 }

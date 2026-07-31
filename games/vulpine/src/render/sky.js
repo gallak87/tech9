@@ -88,7 +88,16 @@ uniform vec3 up;
 uniform float uSunDisc;        // peak solar radiance, bounded on purpose
 uniform float uAureole;        // Mie aureole strength around the disc
 uniform float uAureoleTight;   // exponent: bigger = smaller glow
+uniform float uAureoleWide;    // energy split into the broad outer lobe
 uniform float uSkyGain;
+
+uniform vec3  uHazeColor;      // boundary-layer aerosol, away from the sun
+uniform vec3  uHazeSunColor;   // …and looking into it
+uniform float uHazeAmount;
+uniform float uHazeHeight;     // sin(elevation) where the layer has faded out
+uniform float uHazeFalloff;
+uniform float uHazeSunPow;
+uniform vec3  uZenithTint;     // ozone-ish deepening of the top of the dome
 
 uniform sampler2D tCloud;
 uniform float uTime;
@@ -165,9 +174,41 @@ void main() {
   float disc = smoothstep( sunAngularDiameterCos, sunAngularDiameterCos + 0.000025, cosTheta );
   float limb = sqrt( max( 0.0, 1.0 - pow( max( 0.0, ( 1.0 - cosTheta ) / ( 1.0 - sunAngularDiameterCos ) ), 2.0 ) ) );
   L0 += ( vSunE * uSunDisc * Fex ) * disc * mix( 0.62, 1.0, limb );
-  L0 += ( vSunE * uAureole * Fex ) * pow( max( 0.0, cosTheta ), uAureoleTight );
+
+  // Aureole in TWO lobes. One pow() is a single blob: raise the exponent and
+  // the glow shrinks, lower it and a plate of near-white eats a third of the
+  // frame. Real forward Mie scatter is a tight bright core sitting inside a
+  // broad faint skirt, and splitting the energy that way lets the core stay
+  // small while the halo still reaches far enough to read as atmosphere.
+  float ac = max( 0.0, cosTheta );
+  float aur = pow( ac, uAureoleTight ) * ( 1.0 - uAureoleWide )
+            + pow( ac, uAureoleTight * 0.055 ) * uAureoleWide;
+  L0 += ( vSunE * uAureole * Fex ) * aur;
 
   vec3 sky = ( ( Lin + L0 ) * 0.04 + vec3( 0.0, 0.0003, 0.00075 ) ) * uSkyGain;
+
+  // Ozone: the real reason a clear zenith is violet-blue rather than cyan. A
+  // touch of it stops the dome reading as one flat wash of pale blue.
+  sky *= mix( vec3( 1.0 ), uZenithTint, smoothstep( 0.05, 0.85, max( 0.0, direction.y ) ) );
+
+  /* ── boundary-layer haze ───────────────────────────────────────────────────
+     Preetham's optical path diverges as the view ray approaches horizontal:
+     the last few degrees accumulate unbounded Mie scatter and the horizon goes
+     flat achromatic white — the "fog wall" horizon, and (via the water's
+     reflection of it) the white plate across the lower half of the frame.
+
+     Real air near the ground is a bounded, tinted aerosol layer: brighter than
+     the zenith, warmer looking into the sun, and definitely not white. Blending
+     toward it puts a ceiling and a hue on the band. It is also the same colour
+     the terrain's aerial perspective fades into, so a distant ridge and the sky
+     behind it are separated by hue rather than by an edge.                    */
+  {
+    float h = 1.0 - smoothstep( 0.0, uHazeHeight, max( 0.0, direction.y ) );
+    // the solar disc is in front of the haze, not behind it
+    h = pow( h, uHazeFalloff ) * uHazeAmount * ( 1.0 - disc );
+    vec3 haze = mix( uHazeColor, uHazeSunColor, pow( ac, uHazeSunPow ) );
+    sky = mix( sky, haze, h );
+  }
 
   /* ── clouds ─────────────────────────────────────────────────────────────
      Both decks are planes; the ray-plane hit gives parallax and packs the deck
@@ -222,7 +263,10 @@ void main() {
 /** Defaults tuned for a bright day; presets override through `set()`. */
 export const SKY_DEFAULTS = {
   turbidity: 3.4, rayleigh: 1.35, mieCoefficient: 0.0042, mieDirectionalG: 0.86,
-  sunDisc: 42, aureole: 2.6, aureoleTight: 700, skyGain: 1.0,
+  sunDisc: 42, aureole: 1.25, aureoleTight: 1500, aureoleWide: 0.22, skyGain: 1.0,
+  hazeColor: [1.55, 1.95, 2.45], hazeSunColor: [3.0, 2.85, 2.55],
+  hazeAmount: 0.85, hazeHeight: 0.26, hazeFalloff: 1.7, hazeSunPow: 3.0,
+  zenithTint: [0.86, 0.93, 1.06],
   cloudAmount: 1.0, coverage: 0.46, cloudHeight: 2200, cloudScale: 0.00019,
   cloudWind: [0.0022, 0.0009], cloudThickness: 620, absorb: 2.6, erode: 0.20,
   cloudSun: [1.75, 1.72, 1.66], cloudShade: [0.30, 0.36, 0.48],
@@ -253,7 +297,16 @@ export function makeSkyMaterial() {
       uSunDisc: { value: SKY_DEFAULTS.sunDisc },
       uAureole: { value: SKY_DEFAULTS.aureole },
       uAureoleTight: { value: SKY_DEFAULTS.aureoleTight },
+      uAureoleWide: { value: SKY_DEFAULTS.aureoleWide },
       uSkyGain: { value: SKY_DEFAULTS.skyGain },
+
+      uHazeColor: { value: new THREE.Vector3(...SKY_DEFAULTS.hazeColor) },
+      uHazeSunColor: { value: new THREE.Vector3(...SKY_DEFAULTS.hazeSunColor) },
+      uHazeAmount: { value: SKY_DEFAULTS.hazeAmount },
+      uHazeHeight: { value: SKY_DEFAULTS.hazeHeight },
+      uHazeFalloff: { value: SKY_DEFAULTS.hazeFalloff },
+      uHazeSunPow: { value: SKY_DEFAULTS.hazeSunPow },
+      uZenithTint: { value: new THREE.Vector3(...SKY_DEFAULTS.zenithTint) },
 
       tCloud: { value: cloudSheet() },
       uTime: { value: 0 },
@@ -306,7 +359,15 @@ export class SkyDome extends THREE.Mesh {
     num('sunDisc', 'uSunDisc');
     num('aureole', 'uAureole');
     num('aureoleTight', 'uAureoleTight');
+    num('aureoleWide', 'uAureoleWide');
     num('skyGain', 'uSkyGain');
+    num('hazeAmount', 'uHazeAmount');
+    num('hazeHeight', 'uHazeHeight');
+    num('hazeFalloff', 'uHazeFalloff');
+    num('hazeSunPow', 'uHazeSunPow');
+    vec3('hazeColor', 'uHazeColor');
+    vec3('hazeSunColor', 'uHazeSunColor');
+    vec3('zenithTint', 'uZenithTint');
     num('cloudAmount', 'uCloudAmount');
     num('coverage', 'uCoverage');
     num('cloudHeight', 'uCloudHeight');

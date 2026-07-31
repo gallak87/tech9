@@ -110,7 +110,11 @@ async function main() {
   // The HUD is off by default: a legend overlay on top of every review shot
   // hides exactly the corner of the frame a critic needs to see. --hud puts it
   // back for reviewing the UI itself.
-  const url = `${base}/?quality=${QUALITY}&env=${ENV}&t=${TIME}&hud=${FLAG('hud') ? 1 : 0}`;
+  // --params "fight=1&bloom=0" appends arbitrary URL switches, so a new debug
+  // toggle never means editing this file.
+  const extra = arg('params', '');
+  const url = `${base}/?quality=${QUALITY}&env=${ENV}&t=${TIME}&hud=${FLAG('hud') ? 1 : 0}`
+    + (typeof extra === 'string' && extra ? `&${extra}` : '');
   await page.goto(url, { waitUntil: 'load', timeout: TIMEOUT });
 
   try {

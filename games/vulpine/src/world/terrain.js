@@ -20,7 +20,14 @@ import {
 
 const LOD_STEPS = [1, 2, 4];
 const LOD_DIST = [1500, 3000];      // metres at which to drop to the next step
-const SKIRT = 55;
+// Hard ceiling on the lateral hem. A heightfield has no underside, so a skirt
+// that drops further than the seam actually needs does not hide inside the
+// neighbouring tier — it hangs in open air below the surface and is visible as
+// a fin from any camera under the rim. That is what made the canyon read as
+// hanging sheets. Now that both tiers band-limit identically at the shared
+// boundary column (see profile.js:heightAtU) the only crack left is the
+// 6 m/30 m z-resolution mismatch, which is a few metres, not fifty.
+const SKIRT = 10;
 
 const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -52,13 +59,15 @@ function farColumns(sign) {
 // colours. Anything that reads as "a different material" has to come from here
 // or the whole canyon is one shade of brown.
 
-const C_ROCK = [1.00, 0.95, 0.88];
-const C_SAND = [1.52, 1.34, 0.98];
-const C_SCRUB = [0.40, 0.60, 0.27];
-const C_DRY = [1.12, 0.98, 0.56];
-const C_PALE = [1.16, 1.16, 1.13];
-const C_URBAN = [0.92, 0.92, 0.95];
-const C_MOSS = [0.62, 0.74, 0.46];
+const C_ROCK = [1.00, 0.97, 0.93];
+const C_SAND = [1.60, 1.36, 0.96];
+const C_SCRUB = [0.38, 0.62, 0.26];
+const C_DRY = [1.30, 1.06, 0.52];
+// The high shoulders are sun-bleached, not white. The previous [1.16,1.16,1.13]
+// pushed every plateau to neutral and is most of why the level read as paper.
+const C_PALE = [1.14, 1.02, 0.84];
+const C_URBAN = [0.90, 0.89, 0.86];
+const C_MOSS = [0.52, 0.68, 0.40];
 
 /**
  * @param cav  0 = a knife-edge ridge, 0.5 = flat, 1 = the bottom of a gully.
@@ -133,6 +142,27 @@ function skyView(hs, usP, W, H, i, j, dz) {
   return clamp(1 - smooth(0.05, 1.5, occ) * 0.88, 0.10, 1);
 }
 
+/** Separable box blur, `r` cells each way, clamped at the edges. In place. */
+function blur2D(a, w, h, r) {
+  const tmp = new Float32Array(a.length);
+  const n = 2 * r + 1;
+  for (let j = 0; j < h; j++) {
+    const row = j * w;
+    for (let i = 0; i < w; i++) {
+      let s = 0;
+      for (let k = -r; k <= r; k++) s += a[row + clamp(i + k, 0, w - 1)];
+      tmp[row + i] = s / n;
+    }
+  }
+  for (let j = 0; j < h; j++) {
+    for (let i = 0; i < w; i++) {
+      let s = 0;
+      for (let k = -r; k <= r; k++) s += tmp[clamp(j + k, 0, h - 1) * w + i];
+      a[j * w + i] = s / n;
+    }
+  }
+}
+
 /* ── strip meshing ────────────────────────────────────────────────────────── */
 
 function buildStrip(us, z0, rows, dz, lods) {
@@ -163,6 +193,27 @@ function buildStrip(us, z0, rows, dz, lods) {
   const cxMid = centrelineX(z0 - (rows - 1) * dz * 0.5);
   let minY = Infinity, maxY = -Infinity, minX = Infinity, maxX = -Infinity;
 
+  // ── pass 1: the two scalar fields, on their own grid ──────────────────────
+  // Both are sampled from a discrete neighbourhood, so both are noisy at the
+  // vertex spacing. Written straight to vertices that noise renders as a grid
+  // of blotches one quad across — which is exactly what the first build did on
+  // every plateau. Blur them first; they are lighting terms, not geometry, and
+  // nothing about them wants to be sharp.
+  const cavF = new Float32Array(cols * rows);
+  const skyF = new Float32Array(cols * rows);
+  for (let j = 0; j < rows; j++) {
+    const rowU = (j + 1) * W;
+    for (let i = 0; i < cols; i++) {
+      const h = hs[rowU + i + 1];
+      const cU = (hs[rowU + i] + hs[rowU + i + 2] - 2 * h) / (usP[i + 2] - usP[i]);
+      const cZ = (hs[j * W + i + 1] + hs[(j + 2) * W + i + 1] - 2 * h) / (2 * dz);
+      cavF[j * cols + i] = smooth(-0.34, 0.34, (cU + cZ) * 0.5);
+      skyF[j * cols + i] = skyView(hs, usP, W, H, i + 1, j + 1, dz);
+    }
+  }
+  blur2D(cavF, cols, rows, 1);
+  blur2D(skyF, cols, rows, 2);
+
   for (let j = 0; j < rows; j++) {
     const z = z0 - j * dz;
     const cx = centrelineX(z);
@@ -177,15 +228,13 @@ function buildStrip(us, z0, rows, dz, lods) {
       const il = 1 / Math.hypot(nx, ny, nz);
       nx *= il; ny *= il; nz *= il;
 
+      const k = j * cols + i;
       // Second difference along both grid axes → concave (gully, ledge foot) vs
       // convex (rim, buttress edge). This is what the eye reads as "rock has
       // been eroded", and it is the one cue a normal map cannot fake at 300 m.
-      const cU = (hs[rowU + i] + hs[rowU + i + 2] - 2 * h) / (usP[i + 2] - usP[i]);
-      const cZ = (hs[j * W + i + 1] + hs[(j + 2) * W + i + 1] - 2 * h) / (2 * dz);
-      const cav = smooth(-0.34, 0.34, (cU + cZ) * 0.5);
-      const sky = skyView(hs, usP, W, H, i + 1, j + 1, dz);
+      const cav = cavF[k];
+      const sky = skyF[k];
 
-      const k = j * cols + i;
       pos[k * 3] = cx + u - cxMid; pos[k * 3 + 1] = h; pos[k * 3 + 2] = z - z0;
       nrm[k * 3] = nx; nrm[k * 3 + 1] = ny; nrm[k * 3 + 2] = nz;
       tintAt(h, ny, z, cav, sky, col, k * 3);
@@ -206,12 +255,34 @@ function buildStrip(us, z0, rows, dz, lods) {
   // full resolution so a coarse chunk can never crack against a fine one.
   // (A skirt on those seams is what turned the first build into curtains: a
   // vertical flap dropped from a 70° cliff is a wall, not a hem.)
+  //
+  // How DEEP the hem goes matters as much as where it is. The lateral seam
+  // joins tiers with different Z steps (6 m near, 30 m far), so the worst crack
+  // it can open is however far the ground falls across one coarse span — a few
+  // centimetres on a plateau, tens of metres down a cliff. A single fixed drop
+  // cannot be right for both: at 55 m it hung a visible curtain off every rim
+  // in the level, which is most of why the canyon read as stacked paper.
+  // So each skirt vertex drops to the lowest surface height within one coarse
+  // span of it: exactly deep enough to cover the seam, ~0 on flat ground.
+  const seamSpan = Math.max(1, Math.ceil(WORLD.farResZ / dz));
+  const hemDepth = (i, j) => {
+    const y0 = pos[(j * cols + i) * 3 + 1];
+    let lo = y0;
+    for (let d = -seamSpan; d <= seamSpan; d++) {
+      const jj = j + d;
+      if (jj < 0 || jj >= rows) continue;
+      const y = pos[(jj * cols + i) * 3 + 1];
+      if (y < lo) lo = y;
+    }
+    return Math.min(SKIRT, y0 - lo + 1.5);
+  };
+
   const skirtOf = new Int32Array(nv).fill(-1);
   let sp = nv;
   const addSkirt = (i, j) => {
     const k = j * cols + i;
     skirtOf[k] = sp;
-    pos[sp * 3] = pos[k * 3]; pos[sp * 3 + 1] = pos[k * 3 + 1] - SKIRT; pos[sp * 3 + 2] = pos[k * 3 + 2];
+    pos[sp * 3] = pos[k * 3]; pos[sp * 3 + 1] = pos[k * 3 + 1] - hemDepth(i, j); pos[sp * 3 + 2] = pos[k * 3 + 2];
     nrm[sp * 3] = nrm[k * 3]; nrm[sp * 3 + 1] = nrm[k * 3 + 1]; nrm[sp * 3 + 2] = nrm[k * 3 + 2];
     col[sp * 3] = col[k * 3]; col[sp * 3 + 1] = col[k * 3 + 1]; col[sp * 3 + 2] = col[k * 3 + 2];
     uv[sp * 2] = uv[k * 2]; uv[sp * 2 + 1] = uv[k * 2 + 1];

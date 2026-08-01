@@ -1072,12 +1072,9 @@ export function installCombat(ctx) {
     // Second press detonates whatever is already in the air, before spending
     // another one from the rack.
     //
-    // `!bombs.length` on the launch branch is what makes one press spend one
-    // bomb. `bombPressed` is sampled once per rendered frame but read once per
-    // fixed step, and there are 1–8 of those per frame, so the launch condition
-    // has to go false the instant a bomb exists — `state.bombs > 0` stays true
-    // and empties the rack in a single frame. Nothing here can lean on
-    // `bombArm`: the repeats land inside the same millisecond.
+    // `*Pressed` is sampled per frame but read per fixed step, 1–8 times, so
+    // the launch guard must be a predicate the launch invalidates. `!bombs.length`
+    // is; `state.bombs > 0` is not.
     if (input.bombPressed && bombs.length && bombs[0].t > TUNE.bombArm) {
       bombs[0].detonate = true;
     } else if (input.bombPressed && !bombs.length && state.bombs > 0 && deadT < 0 && !state.outcome) {

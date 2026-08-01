@@ -100,7 +100,7 @@ export class Menu {
 
     g.save();
     g.globalAlpha = m.fade * rise * 0.62;
-    text(g, 'WASD / ARROWS  STEER      SPACE  FIRE      SHIFT  BOOST      ESC  PAUSE',
+    text(g, 'WASD / ARROWS  STEER      [HOLD] SPACE  FIRE      SHIFT  BOOST      ESC  PAUSE',
       cx, py + 30 * k, {
         size: 10.5 * k, track: 3.4, weight: 0.14, align: 'center',
         color: alpha(C.ice, 0.85), shadow: 5 * k,

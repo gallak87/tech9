@@ -28,7 +28,7 @@ export const CONTROLS = [
   { keys: ['W', 'A', 'S', 'D'], alt: '↑ ← ↓ →', label: 'Steer' },
   { keys: ['SHIFT'], label: 'Boost' },
   { keys: ['CTRL'], alt: 'Q', label: 'Brake' },
-  { keys: ['SPACE'], label: 'Fire' },
+  { keys: ['SPACE'], hold: true, label: 'Fire' },
   { keys: ['B'], label: 'Bomb' },
   { keys: ['Z', 'C'], label: 'Barrel roll' },
   { keys: ['X'], label: 'Somersault' },

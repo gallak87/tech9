@@ -58,17 +58,24 @@ export class Legend {
     const keyFont = `600 ${Math.round(12.5 * scale)}px ui-monospace, Menlo, monospace`;
     const labelFont = `500 ${Math.round(13.5 * scale)}px ui-monospace, Menlo, monospace`;
     const titleFont = `700 ${Math.round(12 * scale)}px ui-monospace, Menlo, monospace`;
+    // "HOLD" rides in front of the cap rather than inside it — a keycap reads as
+    // a thing you tap, and tapping fire never reaches the lock-on charge.
+    const holdFont = `700 ${Math.round(9.5 * scale)}px ui-monospace, Menlo, monospace`;
 
     // measure the key column so the labels line up on one axis
-    g.font = keyFont;
     let keyColW = 0;
     const rows = CONTROLS.map(c => {
       const caps = c.keys;
       let wSum = 0;
+      if (c.hold) {
+        g.font = holdFont;
+        wSum += g.measureText('HOLD').width + 6 * scale;
+      }
+      g.font = keyFont;
       for (const k of caps) wSum += this._capWidth(g, k, scale) + 5 * scale;
       if (c.alt) wSum += g.measureText(c.alt).width + 12 * scale;
       keyColW = Math.max(keyColW, wSum);
-      return { caps, alt: c.alt, label: c.label, wSum };
+      return { caps, alt: c.alt, hold: c.hold, label: c.label, wSum };
     });
 
     g.font = labelFont;
@@ -130,6 +137,12 @@ export class Legend {
     let ry = y + padY + titleH + rowH * 0.5;
     for (const r of rows) {
       let kx = x + padX;
+      if (r.hold) {
+        g.font = holdFont;
+        g.fillStyle = 'rgba(255,207,106,0.78)';
+        g.fillText('HOLD', kx, ry + 0.5 * scale);
+        kx += g.measureText('HOLD').width + 6 * scale;
+      }
       g.font = keyFont;
       for (const cap of r.caps) {
         kx = this._drawCap(g, cap, kx, ry, scale, a);

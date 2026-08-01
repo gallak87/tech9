@@ -28,10 +28,7 @@ export class Corneria {
     scene.add(this.root);
 
     this.terrainMat = terrainMaterial();
-    // The water's only specular used to be the PMREM probe of the sky, which is
-    // by construction a smooth gradient — so in a 300 m gorge the river came out
-    // uniform and *brighter* than the rock beside it. Both water materials share
-    // one reflector; they reference its uniform objects by identity, so the
+    // Both water materials share one reflector, by uniform identity — the
     // per-frame update happens once, in reflection.js.
     this.reflection = new PlanarReflection(scene, { planeY: WORLD.waterLevel });
     this._reflHide = [];
@@ -61,19 +58,14 @@ export class Corneria {
     mesh.renderOrder = -100000;
     mesh.onBeforeRender = (renderer, _s, camera) => {
       this._camPos.copy(camera.position);
-      // LOD first: the mirrored pass must draw the same tier the main pass will,
-      // or the reflection is of a different, coarser level than the one on screen.
+      // LOD first, or the mirrored pass draws a different tier than the screen.
       this._applyLOD();
       this._reflect(renderer, camera);
     };
     return mesh;
   }
 
-  /**
-   * Mirror the scene into the reflector. This is the one hook in the frame that
-   * fires before anything else is drawn, which is exactly what a planar
-   * reflection needs.
-   */
+  /** Mirror the scene into the reflector. Runs before anything else is drawn. */
   _reflect(renderer, camera) {
     const r = this.reflection;
     if (!r || !r.enabled) return;
@@ -81,12 +73,10 @@ export class Corneria {
     hide.length = 0;
     // The water cannot reflect itself, and the probe must not re-enter this.
     hide.push(this.water.group, this._probe);
-    // The sky dome, starfield and nebula are deliberately NOT mirrored. The
-    // buffer is cleared to alpha 0 so the shader can tell "this ray hit rock"
-    // from "this ray went to sky" and keep the existing IBL for the second case;
-    // drawing the dome would write alpha 1 over every one of those pixels and
-    // throw the distinction away. Re-collected each frame because switching
-    // environment preset rebuilds the nebula.
+    // Sky dome, starfield and nebula stay out: the buffer clears to alpha 0 so
+    // the shader can keep the sky IBL where the reflection ray misses geometry,
+    // and drawing them would write alpha 1 everywhere. Re-collected per frame
+    // because changing preset rebuilds the nebula.
     const env = this.scene.getObjectByName('environment');
     if (env) for (const o of env.children) if (o.isMesh && o.renderOrder <= -999) hide.push(o);
     r.hide = hide;
@@ -100,9 +90,7 @@ export class Corneria {
 
   update(dt) {
     this._time += dt;
-    // Both water materials, not just the river. The open-ocean apron now runs
-    // the same surface shader, and it was the only mesh in the level whose clock
-    // never advanced — 42 km of sea with its ripples frozen mid-frame.
+    // The apron runs the same surface shader, so it needs the same clock.
     for (const m of [this.waterMat, this.deepMat]) {
       const sh = m.userData.shader;
       if (sh && sh.uniforms.uTime) sh.uniforms.uTime.value = this._time;

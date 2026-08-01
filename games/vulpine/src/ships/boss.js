@@ -32,13 +32,9 @@ import {
 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
-// Health, and why these numbers. The player's guns put out ~14.8 dmg/s with
-// every round on target (two rounds per 0.135 s at 1 dmg), so a part's HP is
-// really a stopwatch: 170 is eleven seconds of perfect fire. The first pass ran
-// 260/90/520, i.e. ninety-five seconds of *flawless* shooting before the core
-// popped — and that is the floor, not the average. A rail-shooter boss that
-// outlasts the whole rest of the level stops reading as a fight and starts
-// reading as a wall you cannot damage, which is exactly what the owner hit.
+// HP is a stopwatch: the player's guns do ~14.8 dmg/s with every round on
+// target, so 170 is eleven seconds of perfect fire. Budget the whole rig
+// against how long the fight should last, not against how tough it should feel.
 export const BOSS = {
   length: 68, span: 72,
   radius: 30,
@@ -61,10 +57,8 @@ function bossMaterials() {
   BM.intakeDead = emissive(0x241a12, 0.6);
   BM.eye = emissive(0xff3a20, 5.0);
   BM.charge = emissive(0xffd070, 6.0);
-  // Hit register. Two colours, and the difference is the whole point: amber
-  // means the round landed on something that can be destroyed, cold blue means
-  // it landed on plating and did almost nothing. A player who cannot tell those
-  // apart has no way to learn where to shoot.
+  // Hit register: amber = a destructible part took the round, cold blue =
+  // plating. The colour is how the player learns where to shoot.
   BM.hitWeak = new THREE.Color(1.00, 0.72, 0.30);
   BM.hitHull = new THREE.Color(0.52, 0.76, 1.00);
   BM.beam = new THREE.MeshBasicMaterial({
@@ -718,18 +712,11 @@ export function createBoss() {
 
   /* ── the hit register ──────────────────────────────────────────────────── */
   //
-  // A 68 m hull absorbing a round five hundred metres away, with nothing but a
-  // scale-1 spark to show for it, is indistinguishable from a clean miss. The
-  // owner's report — "rounds landing on the boss produce no read" — is a
-  // rendering problem, not a balance one: at combat range the impact particles
-  // subtend about four pixels.
-  //
-  // So every part carries an additive shell scaled to the part itself. It is
-  // invisible until struck, pops to full in one frame and is gone in an eighth
-  // of a second — long enough to register, too short to name. Hull hits are not
-  // a part, they are a place, so they get a pooled bloom parked at the contact
-  // point in the carrier's own frame instead, which keeps it stuck to the plate
-  // it landed on while the ship banks.
+  // Impact particles subtend ~4 px against this hull at combat range, so each
+  // part carries an additive shell scaled to itself: invisible until struck,
+  // full in one frame, gone in an eighth of a second. Hull hits are a place
+  // rather than a part, so they use a pooled bloom placed at the contact point
+  // in the carrier's frame, which keeps it on the plate as the ship banks.
   const SHELL_LIFE = 0.13;
   const shellGeo = new THREE.IcosahedronGeometry(1, 2);
   const mkShellMat = (col) => new THREE.MeshBasicMaterial({
@@ -767,16 +754,11 @@ export function createBoss() {
   /**
    * World position of a weak point.
    *
-   * `local` in the table below is measured in the CARRIER's frame, not in the
-   * part node's — the nacelle group already sits at x = ±30, so composing
-   * `local` with `node.matrixWorld` applies that offset twice. Measured on the
-   * live rig: the nacelles resolved 60.8 m from the hull centre instead of 30,
-   * the turrets 28-44 m instead of ~16, the core 9 m instead of 4.4. Every
-   * collision test and every lock point in the fight was aiming at empty space
-   * beside the ship, which is why nothing the player fired had ever registered.
-   * The parts do not translate relative to the hull (turrets rotate in place,
-   * the core group only animates its petals), so the carrier's own matrix is
-   * the correct — and cheaper — frame for all of them.
+   * `local` in the table below is in the CARRIER's frame, not the part node's —
+   * the nacelle group already sits at x = ±30, so composing it with
+   * `node.matrixWorld` doubles the offset. Parts never translate relative to
+   * the hull (turrets rotate in place, the core only animates its petals), so
+   * the root matrix is both correct and cheaper for all of them.
    */
   api.partPoint = (part, out) => out.copy(part.local).applyMatrix4(root.matrixWorld);
 
@@ -787,8 +769,7 @@ export function createBoss() {
     if (part.kind === 'hull' && worldPoint) {
       const e = hullBlooms[bloomNext];
       bloomNext = (bloomNext + 1) % HULL_BLOOMS;
-      // ancestors + self only: recursing the whole 100-node rig here would cost
-      // more than the flash it is placing
+      // ancestors + self only — recursing the rig costs more than the flash
       root.updateWorldMatrix(true, false);
       e.m.position.copy(root.worldToLocal(_hp.copy(worldPoint)));
       e.m.scale.setScalar(4.2);

@@ -1,35 +1,18 @@
 import * as THREE from 'three';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Planar reflection for the water plane.
+// Planar reflection for the water plane. The scene is drawn a second time from
+// the camera mirrored about y = 0 and sampled projectively in the water shader,
+// so the river carries the canyon walls instead of only the sky probe.
 //
-// Why this exists at all: the water's only source of specular used to be the
-// PMREM probe of the sky, which is by construction a smooth gradient. In a
-// 300 m gorge that is the wrong answer by an order of magnitude — the surface
-// should be dominated by the reflection of the canyon walls, which are dark,
-// near-vertical and high-contrast. Reflecting sky and nothing else is exactly
-// why the river read as a sheet of polished plastic: it came out *brighter*
-// than the land beside it, and perfectly uniform.
+//   • half resolution, capped — the wave normals smear it anyway.
+//   • the sky is not drawn into it. Cleared to alpha 0, geometry writes 1, and
+//     the shader keeps its existing IBL wherever alpha is 0.
+//   • an oblique near plane (Lengyel) clips at the waterline, avoiding a global
+//     `renderer.clippingPlanes` — which would recompile every material.
 //
-// So the scene is rendered a second time from the camera mirrored about y = 0
-// and sampled projectively in the water shader. Three things make it cheap
-// enough to keep:
-//
-//   • half resolution, capped — the surface normals smear it anyway, and a
-//     sharp reflection off water is a bug, not a feature.
-//   • the sky dome is *not* drawn into it. The buffer is cleared to alpha 0,
-//     geometry writes alpha 1, and where alpha is 0 the shader keeps the sky
-//     IBL it already had. That is both cheaper and better than reflecting the
-//     dome, whose lower half would be sliced off by the clip plane anyway.
-//   • an oblique near plane (Lengyel) does the waterline clipping, so nothing
-//     below the surface leaks in and no global clipping plane is needed —
-//     `renderer.clippingPlanes` would force every material in the level to
-//     compile a second program.
-//
-// The pass is driven from Corneria's sentinel probe, which is the one hook in
-// the frame that fires before anything else is drawn. Reentry is guarded: the
-// nested render walks the same scene, so without the guard the probe would
-// call this again, forever.
+// Driven from Corneria's sentinel probe. Reentry is guarded: the nested render
+// walks the same scene and would otherwise re-enter forever.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _rot = new THREE.Matrix4();
@@ -103,7 +86,7 @@ export class PlanarReflection {
   render(renderer, camera) {
     if (this._busy || !this.enabled) return false;
     // Under the surface there is nothing to mirror, and the oblique projection
-    // degenerates. Fall back to the sky IBL rather than draw garbage.
+    // degenerates. Fall back to the sky IBL.
     if (camera.position.y <= this.planeY + 0.25) {
       this.uniforms.uReflOn.value = 0;
       return false;

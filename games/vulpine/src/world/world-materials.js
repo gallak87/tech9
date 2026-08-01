@@ -664,18 +664,14 @@ const GERSTNER = /* glsl */`
    Six decorrelated reads of one tileable ripple tile, at 0.9 m through 190 m.
    Two rules run this:
 
-   1. Every band is faded on **pixel footprint**, not on camera distance. wpx
-      folds range and grazing angle into the one number Nyquist cares about,
-      and at 200 m/s over a flat plane the grazing term dominates: the water
-      forty metres ahead of the nose covers more world per pixel than a cliff
-      four hundred metres away. Fading on distance is what left the near field
-      of `wdiag2/graze.png` with no ripple structure at all.
+   1. Bands fade on **pixel footprint**, not camera distance. wpx folds range
+      and grazing angle into the one number Nyquist cares about, and at 200 m/s
+      the grazing term dominates — water 40 m ahead covers more world per pixel
+      than a cliff at 400 m.
 
-   2. Amplitude a band loses to that fade is not thrown away, it is handed to
-      roughness. That is the whole physical story of distant water: the sheen
-      of a kilometre-away sea is the same chop you can resolve at ten metres,
-      integrated over the pixel. Drop it without the hand-off and the surface
-      turns to glass, which is precisely how this started.                    */
+   2. Amplitude lost to that fade is handed to roughness, not discarded: the
+      sheen of a distant sea is unresolved chop integrated over the pixel.
+      Without the hand-off the surface goes to glass.                         */
 const GLSL_WATER_SURFACE = /* glsl */`
   // World size one pixel covers on the surface, in metres.
   float waterFootprint(vec3 wp) {
@@ -763,15 +759,10 @@ const GLSL_WATER_REFLECT = /* glsl */`
 `;
 
 export function waterMaterial(reflection = null) {
-  // Roughness is the whole ball game here. A mirror-smooth plane seen at a
-  // grazing angle reflects the horizon sky straight down the barrel of the
-  // camera and clips to white across the entire frame — which is exactly what
-  // the first build did. Real water gets its distant sheen from ripples the
-  // pixel can no longer resolve, so the shader roughens with footprint instead.
-  //
-  // ior 1.333 rather than the 1.5 default: water's F0 is 0.02, half the glass
-  // value three assumes. That single number is most of the reason the river
-  // used to render brighter than the rock beside it.
+  // A mirror-smooth plane at a grazing angle reflects the horizon straight
+  // into the camera and clips to white, so the shader roughens with footprint.
+  // ior 1.333, not three's 1.5 default: water's F0 is 0.02, half the glass
+  // value, and that alone decides whether the river out-shines the rock.
   const m = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
     roughness: 0.10,
@@ -864,15 +855,13 @@ export function waterMaterial(reflection = null) {
         // ── how deep is the water under this bit of surface ────────────────
         // In metres, and measured to the *displaced* surface, so the waterline
         // advances and retreats with the swell instead of sitting on a ruled
-        // contour. That one term is the difference between a shore and a
-        // clipping boundary.
+        // contour.
         float bed = vBed;
         float d = max(0.0, vWave - bed);
 
         // ── colour ────────────────────────────────────────────────────────
-        // Absorption, roughly: red is gone by 4 m, green by 20, blue survives.
-        // Doing it as a Beer curve rather than a lerp is what gives the delta
-        // its band of jade over the sand bars without any of it being painted.
+        // Absorption: red gone by 4 m, green by 20, blue survives. A Beer
+        // curve rather than a lerp, so the jade over sand bars falls out.
         vec3 shallow = vec3(0.155, 0.360, 0.352);
         vec3 sea     = vec3(0.0060, 0.0330, 0.0740);
         vec3 col = mix(shallow, sea, 1.0 - exp(-d * 0.135));
@@ -950,12 +939,7 @@ export function waterMaterial(reflection = null) {
  * model as the river, minus the shore lookup and the displacement: it is one
  * 42 km disc with 72 segments, so there is nothing to displace.
  *
- * This used to be a bare MeshStandardMaterial, and because it sat only 2.5 m
- * under a surface whose swell troughs reach ~4.8 m, it won the depth test over
- * most of the river at grazing angles. Every "the water is a plastic sheet"
- * frame in `shots/base01` is this material, not the one above it. It is now
- * dropped clear of the troughs (see water.js) *and* given a real surface, so
- * the open sea past the level holds up on its own.
+ * Depth-sorts under the river mesh — see the clearance note in water.js.
  */
 export function deepWaterMaterial(reflection = null) {
   const m = new THREE.MeshPhysicalMaterial({

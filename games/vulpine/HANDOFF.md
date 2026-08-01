@@ -22,6 +22,9 @@ So:
 - **Anything discovered mid-session that is not this session's work** goes into
   `ROADMAP.md` under the phase it belongs to — not into a comment, not into a
   commit message, not only here.
+- **No prose in code comments.** State the constraint, not the story — no "the
+  owner reported", no "this used to", no before/after measurements, no
+  narrating what you just did. That belongs in the commit message or here.
 - **Do not add a module the roadmap does not ask for.** Ship criterion 7 is "no
   dead code"; this project has now shipped ~5,400 lines of finished, unimported
   modules across two sessions. `world/reflection.js` was the last of them and is

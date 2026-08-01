@@ -83,10 +83,7 @@ export class BossHealthBar {
         const dead = p.alive === false;
         const col = dead ? 'rgba(160,70,70,0.55)' : mix(C.red, C.amber, v);
         const initial = (p.label || '?').trim().charAt(0) || '?';
-        // `hit` is combat.js's decaying per-part strike timer, `aim` marks the
-        // part the lock is holding. Between them the strip answers the two
-        // questions a capital-ship fight has to answer every second — did that
-        // round land, and on what — from the HUD alone, at any range.
+        // `hit` decays per-part in combat.js; `aim` marks the locked part.
         const hit = dead ? 0 : sat(p.hit || 0);
         const aim = !dead && !!p.aim;
 

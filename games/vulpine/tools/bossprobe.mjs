@@ -1,12 +1,7 @@
-// Boss-fight probe.
-//
-// The three things the owner reported about Gargantua — it leaves weapons
-// range, hits do not register, the lock ignores it — are all questions about
-// the sim over time, and a screenshot can answer none of them. This steps the
-// fixed-step sim to the boss trigger, then samples the fight 4x/second and
-// reports the leash envelope (how far the carrier gets in each axis), how much
-// of the fight it spends inside the guns' cone and range, whether the lock ever
-// holds it, and how fast each weak point actually dies.
+// Boss-fight probe. Steps the sim to the boss trigger, then samples 4x/second:
+// the leash envelope per axis, time inside the guns' range and cone, whether
+// the lock holds and on which part, rounds landed, and weak-point kill times.
+// All of it is behaviour over time, which no screenshot can answer.
 //
 //   node tools/bossprobe.mjs <port> [seconds of fight]
 import { chromium } from 'playwright';
@@ -45,21 +40,16 @@ const data = await page.evaluate(async (fight) => {
   const FIXED = 1 / 120;
   const chunk = Math.round(0.25 / FIXED);
 
-  // The harness never dodges, so without this the player is dead — three lives
-  // spent, `outcome: 'lose'` — before the carrier even spawns, and every counter
-  // below freezes at whatever it held when the guns went cold. Topping the
-  // shield up each chunk is the only way to sample a boss fight that lasts.
+  // The harness never dodges: without this the player is out of lives before
+  // the carrier spawns and every counter below freezes.
   const keepAlive = () => {
     V.state.shieldRaw = V.state.shieldMax;
     V.state.lives = 3;
     V.state.outcome = null;
   };
 
-  // `V.step(n)` runs n fixed ticks and refreshes the rendered scene ONCE, at the
-  // end. The guns converge on the camera ray, and the camera only moves in that
-  // refresh — so batching 30 ticks fires 30 volleys down a camera pose up to
-  // 44 m stale, and every round in the sample went somewhere the player was not
-  // aiming. Step one tick at a time; the sim is identical, the aim is not.
+  // `V.step(n)` refreshes the scene once, at the end. The guns converge on the
+  // camera ray, so batching fires every volley down a stale camera pose.
   const stepN = (n) => { for (let i = 0; i < n; i++) V.step(1); };
 
   // run to the boss trigger
@@ -68,8 +58,8 @@ const data = await page.evaluate(async (fight) => {
   if (!V.combat.boss) return { error: 'boss never spawned', t };
   const tSpawn = t;
 
-  // Cumulative counters are useless here: the level fires several hundred
-  // rounds before the carrier ever spawns. Snapshot and difference.
+  // Counters are cumulative and the level fires hundreds of rounds before the
+  // carrier spawns — snapshot and difference.
   const diag0 = JSON.parse(JSON.stringify(V.combat.diag));
   const samples = [];
   let trkB = null;
@@ -102,9 +92,8 @@ const data = await page.evaluate(async (fight) => {
       inFlight: V.combat.bullets.filter(q => !q.enemy).length,
       seeking: V.combat.bullets.filter(q => q.seek && q.seek.boss).length,
       lockOn: +V.state.lockOn.toFixed(2),
-      // Follow ONE round by identity. `find()` returns whichever seeking round
-      // happens to be first in a pool that swap-removes, so sampling it looks
-      // like a trace and is actually a different round every time.
+      // Follow one round by identity: the pool swap-removes, so `find()` alone
+      // returns a different round each sample.
       trk: (() => {
         if (!trkB || V.combat.bullets.indexOf(trkB) < 0) {
           trkB = V.combat.bullets.find(z => z.seek && z.seek.boss) || null;

@@ -1,19 +1,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Dev panel — a DOM overlay of playtest shortcuts.
+// Dev panel — DOM overlay of playtest shortcuts.
 //
-// Deliberately NOT drawn on the HUD canvas. The HUD is a game object that gets
-// screenshotted, reviewed against a rubric and shipped; this is scaffolding.
-// Keeping it in the DOM means it can never leak into a capture by accident, it
-// costs nothing per frame, and it can be styled in ten lines instead of drawn.
+// DOM rather than the HUD canvas so it can never land in a capture. Hidden
+// until backquote for the same reason: the screenshot harness drives the same
+// dev server and never presses keys. `?dev=1` opens it on load.
 //
-// Hidden by default and toggled with backquote. That is not tidiness — the
-// screenshot harness drives the same dev server the owner plays on, and it never
-// touches the keyboard, so "hidden until a key is pressed" is exactly the
-// guarantee that review frames stay clean. `?dev=1` opens it on load.
-//
-// Everything here talks to the game through `window.__VULPINE__` only. No
-// imports from the sim, so nothing in here can change how the game behaves when
-// the panel is closed.
+// Talks to the game only through `window.__VULPINE__`, so nothing here can
+// change behaviour while the panel is closed. Add tools to `TOOLS`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CSS = `
@@ -69,12 +62,9 @@ export function installDevPanel(api) {
   /**
    * Run the sim forward until the carrier exists.
    *
-   * `seekTo` only ever steps FORWARD (`while simTime < target`), so seeking to a
-   * fixed time is a no-op once you are past it — hence the range guard and the
-   * top-up loop. Replaying the sim rather than teleporting the rail is the whole
-   * point: waves fire off `flight.railZ` crossings, so jumping the position
-   * would leave `firedWaves` behind and dump seventeen backlogged waves into one
-   * tick the moment the update loop caught up.
+   * Replays rather than teleporting the rail: waves trigger on `flight.railZ`
+   * crossings, so jumping the position dumps every backlogged wave into one
+   * tick. `seek` only steps forward, hence the guard and the top-up loop.
    */
   function skipToBoss(btn) {
     if (busy) return;
@@ -119,9 +109,7 @@ export function installDevPanel(api) {
     b.append(name, kbd);
     b.addEventListener('click', () => {
       t.run(b);
-      // A focused button eats the next Space as a re-click, and Space is the
-      // fire key — without this, one click on a tool permanently rebinds the
-      // player's trigger to that tool.
+      // a focused button eats the next Space, which is the fire key
       b.blur();
     });
     root.appendChild(b);
@@ -163,9 +151,7 @@ export function installDevPanel(api) {
     t.run(buttons.get(t.id).el);
   });
 
-  /* ── the one thing that needs a tick ────────────────────────────────────── */
-  // Bombs are spent inside the fixed step; topping the rack up once per frame
-  // from out here is enough, and it keeps the sim ignorant of the panel.
+  // Bombs are spent inside the fixed step; refilling once per frame is enough.
   const tick = () => {
     requestAnimationFrame(tick);
     if (infiniteBombs && api.state) api.state.bombs = 3;

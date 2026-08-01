@@ -110,6 +110,13 @@ export function installFx(ctx) {
   const alp = new ParticleSystem(5200, 'alpha', { renderOrder: 8, nearFade: 2.4 });
   const trails = new RibbonBank(3, 26, { blend: 'add', renderOrder: 9, fadePow: 1.25 });
   const soft = new RibbonBank(6, 22, { blend: 'alpha', renderOrder: 7, fadePow: 1.6 });
+  // Homing rounds cannot use the `laser()` bolt: that is a GPU particle whose
+  // position is integrated as p₀ + v₀t, so it flies dead straight no matter what
+  // the simulated round does. A tracked shot that curves onto its target while
+  // its own visible bolt carries on into the distance is worse than no homing at
+  // all. These ribbons are pushed a point per sim tick from the round's actual
+  // position, so the streak is the flight path by construction.
+  const tracers = new RibbonBank(12, 44, { blend: 'add', renderOrder: 10, fadePow: 1.15 });
   const shells = new ShellBank(16);
   const rings = new RingBank(40);
   const shields = new ShieldBank(8);
@@ -119,7 +126,7 @@ export function installFx(ctx) {
   const orb = new ChargeOrb({ color: 0xffc24a });
 
   group.add(
-    alp.mesh, soft.mesh, trails.mesh, add.mesh,
+    alp.mesh, soft.mesh, trails.mesh, tracers.mesh, add.mesh,
     shells.mesh, rings.mesh, shields.mesh, debris.mesh,
     cone.mesh, orb.group, orb.arcs.mesh, lines.mesh,
   );
@@ -924,16 +931,83 @@ export function installFx(ctx) {
   }
 
   /* ═══════════════════════════════════════════════════════════════════════ */
+  /*  TRACERS — the visible body of a homing round                           */
+  /* ═══════════════════════════════════════════════════════════════════════ */
+  //
+  // Owned by key, not by index: combat.js has no stable slot for a round, so it
+  // hands us the round object itself and we keep the association. A round that
+  // stops calling `tracer()` has its ribbon collapse to nothing over the next
+  // few frames rather than vanishing on the frame it died, which is what makes
+  // an intercept read as a streak arriving *into* the explosion.
+
+  const tracerOf = new Map();          // key → { rb, idle }
+  const tracerFree = tracers.ribbons.slice();
+
+  /**
+   * Push the current position of a tracked round.
+   * @param key   any stable object identifying the round
+   * @param opts  { charged } — charged rounds are fatter and gold, taps are cyan
+   */
+  function tracer(key, x, y, z, opts = {}) {
+    let e = tracerOf.get(key);
+    if (!e) {
+      const rb = tracerFree.pop();
+      if (!rb) return;                 // pool exhausted: the round still flies
+      rb.reset(x, y, z);
+      e = { rb, idle: 0 };
+      tracerOf.set(key, e);
+    }
+    const rb = e.rb;
+    e.idle = 0;
+    rb.push(x, y, z);
+    rb.active = true;
+    const ch = !!opts.charged;
+    rb.width0 = ch ? 2.6 : 0.85;       // head
+    rb.width1 = ch ? 0.9 : 0.30;       // tail
+    rb.taper = 1.25;
+    rb.alpha = ch ? 1 : 0.85;
+    if (ch) { rb.col.setRGB(1.0, 0.86, 0.45); rb.colTail.setRGB(1.0, 0.42, 0.10); }
+    else { rb.col.setRGB(0.72, 0.95, 1.0); rb.colTail.setRGB(0.20, 0.55, 1.0); }
+  }
+
+  /** Let a round's streak retract and hand the ribbon back. */
+  function tracerEnd(key) {
+    const e = tracerOf.get(key);
+    if (e) e.idle = 1e-6;              // non-zero: collapse begins next tick
+  }
+
+  function updateTracers(dt) {
+    for (const [key, e] of tracerOf) {
+      if (e.idle <= 0) { e.idle = dt; continue; }   // still being driven
+      e.idle += dt;
+      e.rb.collapse();
+      e.rb.alpha *= 0.72;
+      if (e.idle > 0.34) {
+        e.rb.active = false;
+        tracerFree.push(e.rb);
+        tracerOf.delete(key);
+      }
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════ */
   /*  CHARGED SHOT                                                           */
   /* ═══════════════════════════════════════════════════════════════════════ */
 
   function chargeStart() { st.charging = true; }
   function chargeStop() { st.charging = false; st.charge = 0; }
 
-  /** Fire the charged round from `origin` along `dir`. Consumes the charge. */
+  /**
+   * Fire the charged round from `origin` along `dir`. Consumes the charge.
+   * `opts.bolt === false` emits the release burst and the light but not the
+   * travelling bolt — for a homing round, which draws itself with `tracer()`
+   * because a straight GPU bolt cannot follow a curved flight path.
+   */
   function chargedShot(origin, dir, opts = {}) {
     const lvl = Math.max(0.25, st.charge);
-    laser(origin, dir, { ...opts, charged: true, width: (opts.width ?? 1) * (0.6 + lvl * 0.7) });
+    if (opts.bolt !== false) {
+      laser(origin, dir, { ...opts, charged: true, width: (opts.width ?? 1) * (0.6 + lvl * 0.7) });
+    }
     // release burst: the orb collapses into the round
     for (let i = 0; i < 26; i++) {
       R.onSphere(_d);
@@ -1107,6 +1181,7 @@ export function installFx(ctx) {
     alp.setFog(_fogCol, d);
     trails.setFog(_fogCol, d);
     soft.setFog(_fogCol, d);
+    tracers.setFog(_fogCol, d);
     shells.material.uniforms.uFogDensity.value = d;
     rings.material.uniforms.uFogDensity.value = d;
     shields.material.uniforms.uFogDensity.value = d;
@@ -1151,8 +1226,10 @@ export function installFx(ctx) {
 
     add.update(dt);
     alp.update(dt);
+    updateTracers(dt);
     trails.commit();
     soft.commit();
+    tracers.commit();
     shells.update(dt);
     rings.update(dt);
     shields.update(dt);
@@ -1170,7 +1247,9 @@ export function installFx(ctx) {
 
   function clearAll() {
     add.clear(); alp.clear();
-    trails.clear(); soft.clear();
+    trails.clear(); soft.clear(); tracers.clear();
+    for (const e of tracerOf.values()) { e.rb.active = false; tracerFree.push(e.rb); }
+    tracerOf.clear();
     shells.clear(); rings.clear(); shields.clear();
     debris.clear();
     trailsPrimed = false;
@@ -1375,6 +1454,7 @@ export function installFx(ctx) {
     group,
     explosion, laser, impact, spray,
     muzzle, shieldHit, chargedShot,
+    tracer, tracerEnd,
     chargeStart, chargeStop,
     get charge() { return st.charge; },
     setBoost(v) { st.boost = THREE.MathUtils.clamp(v, 0, 1); },
@@ -1393,7 +1473,7 @@ export function installFx(ctx) {
     dispose() {
       ctx.scene.remove(group);
       add.dispose(); alp.dispose();
-      trails.dispose(); soft.dispose();
+      trails.dispose(); soft.dispose(); tracers.dispose();
       shells.dispose(); rings.dispose(); shields.dispose();
       debris.dispose(); lines.dispose(); cone.dispose(); orb.dispose();
     },

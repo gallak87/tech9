@@ -50,6 +50,39 @@ const TUNE = {
   lockCone: 0.955,         // cos of the half-angle the lock will hold
   lockRange: 900,
 
+  // Homing. The lock reticle promised a tracking shot and the rounds flew dead
+  // straight, so the whole lock-on ceremony was decoration — you still had to
+  // hand-lead a crossing target, and the reticle actively lied about where the
+  // shot would go. These are turn rates in rad/s, applied to the round's
+  // velocity direction while its target lives.
+  //
+  // The charged round turns hard: it is the pay-off for holding the trigger for
+  // a second, and in Star Fox 64 it is the shot that genuinely cannot be dodged
+  // once it has you. The tap stream turns gently — enough to close the last few
+  // degrees on a target that is already under the reticle, not enough to make
+  // aiming optional. That distinction is the whole feel: aim assist, not
+  // auto-kill.
+  homeCharged: 3.4,
+  homeTap: 1.15,
+  // A flat turn rate cannot hit anything. A round at 470 m/s bending at
+  // 3.4 rad/s has a turn radius of 138 m, so once it is 60 m off-axis with 200 m
+  // to run it is geometrically incapable of closing — measured: mean closest
+  // approach 68 m against a 17 m hit radius, i.e. a clean miss that *looks*
+  // guided. Real guidance tightens as the range collapses, because the turn
+  // needed to correct a fixed miss distance goes as 1/d². So the rate carries a
+  // term proportional to (speed / range): far out it barely bends, in the last
+  // hundred metres it whips onto the target.
+  homeCloseGain: 1.8,
+  homeMaxTurn: 20,         // rad/s — ω·dt must stay well under a right angle
+  homeCloseFloor: 40,      // m — clamp on the 1/d term, so ω cannot run away
+  // Where steering stops. This was 26 m, which sounds harmlessly small and was
+  // the entire reason nothing connected: the hit radius is only 8 m for a tap
+  // and 17 m for a charged round, so cutting guidance at 26 m left the last
+  // stretch — the one that decides hit or miss — flying blind. Measured median
+  // closest approach was 13–19 m, i.e. every round sailed just past the hull.
+  // Guide it all the way in and let the collision test end the flight.
+  homeMinRange: 5,
+
   // A 2.6 s fuse on an invisible projectile is indistinguishable from a dead
   // key. The bomb now has a body you can see leave the ship, a much shorter
   // fuse, and a second press detonates it early — the Star Fox 64 behaviour.
@@ -232,6 +265,12 @@ export function installCombat(ctx) {
   const foes = [];          // { agent, root, kind, spec, contact }
   const allies = [];
   const bullets = [];       // pooled below
+
+  // Hit accounting for tracked rounds. Counting these from outside is not
+  // possible: a round is spliced out of the pool on the tick it connects, so a
+  // sampler only ever sees the frame *before* impact and every strike reads as
+  // a near miss just outside the hull. Count them where the damage is applied.
+  const diag = { homingFired: 0, homingHit: 0, homingLostTarget: 0, homingExpired: 0 };
   const bombs = [];
   let boss = null;          // { root, api, agent-ish }
   let firedWaves = 0;
@@ -249,6 +288,7 @@ export function installCombat(ctx) {
   const _v2 = new THREE.Vector3();
   const _aim = new THREE.Vector3();
   const _conv = new THREE.Vector3();
+  const _vb = new THREE.Vector3();
   const _q = new THREE.Quaternion();
   const UP = new THREE.Vector3(0, 1, 0);
 
@@ -331,6 +371,9 @@ export function installCombat(ctx) {
     b.vx = o.vx; b.vy = o.vy; b.vz = o.vz;
     b.life = o.life; b.dmg = o.dmg; b.enemy = o.enemy; b.r = o.r;
     b.charged = !!o.charged;
+    b.seek = o.seek || null;          // foe this round is tracking, if any
+    b.turn = o.turn || 0;             // rad/s it may bend its velocity by
+    if (b.turn) diag.homingFired++;
     bullets.push(b);
   }
 
@@ -344,9 +387,31 @@ export function installCombat(ctx) {
    * guns do not work. Every rail shooter converges its guns on the aim point
    * for exactly this reason. A live lock overrides it and leads the target.
    */
-  function convergePoint(out) {
-    const t = state.lockTarget;
-    if (t && !t.agent.dying) return out.copy(t.agent.pos);
+  /**
+   * @param aimRay force the reticle ray even when a lock is live. A tracked
+   *   round is launched down the reticle rather than at the firing solution:
+   *   solving the intercept at launch is *more* accurate, and it is the wrong
+   *   choice, because the round then flies almost straight and the guidance is
+   *   invisible — measured median bend over a whole flight, 2°. Launching along
+   *   the barrel and letting the seeker pull it round is what makes a homing
+   *   shot read as homing. The accuracy is recovered by the guidance, which is
+   *   also the thing the player is meant to be watching.
+   */
+  function convergePoint(out, speed = TUNE.playerBullet.speed, from = null, aimRay = false) {
+    const t = aimRay ? null : state.lockTarget;
+    if (t && !t.agent.dying) {
+      // Lead it. Firing at where a raptor *is* means missing behind it by the
+      // full flight time — 0.5 s at 500 m, which for a 90 m/s crossing target is
+      // 45 m of miss, several times its own length. One Newton step on the
+      // intercept equation is plenty: the target is not manoeuvring hard enough
+      // for the second iteration to be worth the cycles.
+      const a = t.agent;
+      const src = from || ctx.ship.position;
+      const flight = out.copy(a.pos).sub(src).length() / speed;
+      out.copy(a.pos);
+      if (a.vel) out.addScaledVector(a.vel, flight);
+      return out;
+    }
     const cam = ctx.camera;
     return out.set(0, 0, -1).applyQuaternion(cam.quaternion)
       .multiplyScalar(TUNE.converge).add(cam.position);
@@ -355,17 +420,22 @@ export function installCombat(ctx) {
   function playerFire() {
     const ship = ctx.ship;
     ship.updateMatrixWorld();
-    convergePoint(_conv);
+    const lock0 = state.lockTarget && !state.lockTarget.agent.dying ? state.lockTarget : null;
+    convergePoint(_conv, TUNE.playerBullet.speed, null, !!lock0);
     const inherit = view.player.vel;
     // Twin-linked: alternate outer and inner pods so the pair reads as a
     // rhythm rather than a wall of light. This keyed off `state.hits`, which
     // only increments on a *kill* — so the pods alternated once per dead
     // enemy instead of once per shot, and the rhythm never existed.
     const pair = (shotParity++ & 1) ? [2, 3] : [0, 1];
+    const lock = lock0;
     for (const i of pair) {
       _v.copy(PODS[i]).applyMatrix4(ship.matrixWorld);
       _v2.copy(_conv).sub(_v).normalize();
-      ctx.fx.laser(_v, _v2, { inherit });
+      // A tracking round draws its own ribbon from its real position each tick;
+      // the `laser()` bolt is a GPU particle on a straight p₀+v₀t path and would
+      // peel away from the round the moment it started to bend.
+      if (!lock) ctx.fx.laser(_v, _v2, { inherit });
       spawnBullet({
         x: _v.x, y: _v.y, z: _v.z,
         vx: _v2.x * TUNE.playerBullet.speed + inherit.x,
@@ -373,6 +443,7 @@ export function installCombat(ctx) {
         vz: _v2.z * TUNE.playerBullet.speed + inherit.z,
         life: TUNE.playerBullet.range / TUNE.playerBullet.speed,
         dmg: TUNE.playerBullet.dmg, enemy: false, r: TUNE.playerBullet.r,
+        seek: lock, turn: lock ? TUNE.homeTap : 0,
       });
       ctx.fx.muzzle(_v, _v2, { inherit });
     }
@@ -383,9 +454,13 @@ export function installCombat(ctx) {
     const ship = ctx.ship;
     ship.updateMatrixWorld();
     _v.set(0, -0.2, -3.6).applyMatrix4(ship.matrixWorld);
-    convergePoint(_conv);
+    const lock = state.lockTarget && !state.lockTarget.agent.dying ? state.lockTarget : null;
+    convergePoint(_conv, TUNE.chargedBullet.speed, _v, !!lock);
     _v2.copy(_conv).sub(_v).normalize();
-    ctx.fx.chargedShot(_v, _v2, { inherit: view.player.vel });
+    // `chargedShot` also fires the release burst around the muzzle, which we want
+    // either way — but it draws a straight bolt, and a tracking round supplies
+    // its own. Suppress just the bolt by giving it zero range.
+    ctx.fx.chargedShot(_v, _v2, { inherit: view.player.vel, bolt: !lock });
     spawnBullet({
       x: _v.x, y: _v.y, z: _v.z,
       vx: _v2.x * TUNE.chargedBullet.speed + view.player.vel.x,
@@ -393,6 +468,7 @@ export function installCombat(ctx) {
       vz: _v2.z * TUNE.chargedBullet.speed + view.player.vel.z,
       life: TUNE.chargedBullet.range / TUNE.chargedBullet.speed,
       dmg: TUNE.chargedBullet.dmg, enemy: false, r: TUNE.chargedBullet.r, charged: true,
+      seek: lock, turn: lock ? TUNE.homeCharged : 0,
     });
     ctx.audio.play('chargedShot', { pos: _v });
   }
@@ -904,11 +980,61 @@ export function installCombat(ctx) {
   function updateBullets(dt) {
     for (let i = bullets.length - 1; i >= 0; i--) {
       const b = bullets[i];
+
+      // ── homing ────────────────────────────────────────────────────────────
+      // Rotate the velocity toward the intercept point by at most `turn` rad
+      // this tick, keeping speed constant. Turning the *direction* rather than
+      // adding an acceleration is what makes it read as a guided round instead
+      // of a thrown one: the shot holds its speed and simply bends, which is
+      // both the Star Fox 64 look and far easier to keep stable.
+      if (b.seek) {
+        const a = b.seek.agent;
+        if (a.dying) { b.seek = null; diag.homingLostTarget++; }
+        else {
+          const sp = Math.hypot(b.vx, b.vy, b.vz);
+          // Aim at where it will be, not where it is — otherwise the round
+          // tail-chases a crossing target and never closes the last few metres.
+          _v.copy(a.pos);
+          const eta = _v.distanceTo(_vb.set(b.x, b.y, b.z)) / Math.max(1, sp);
+          if (a.vel) _v.addScaledVector(a.vel, eta);
+          _v.sub(_vb);
+          const dist = _v.length();
+          if (dist > TUNE.homeMinRange && sp > 1) {
+            _v.divideScalar(dist);
+            _v2.set(b.vx / sp, b.vy / sp, b.vz / sp);
+            const cos = Math.min(1, Math.max(-1, _v2.dot(_v)));
+            const ang = Math.acos(cos);
+            const omega = Math.min(
+              TUNE.homeMaxTurn,
+              b.turn * (1 + TUNE.homeCloseGain * sp / Math.max(dist, TUNE.homeCloseFloor)),
+            );
+            const step = Math.min(ang, omega * dt);
+            if (step > 1e-5) {
+              // rotate _v2 toward _v by `step`, then rescale to the old speed
+              const s = Math.sin(ang);
+              if (s > 1e-4) {
+                const k1 = Math.sin(ang - step) / s, k2 = Math.sin(step) / s;
+                b.vx = (_v2.x * k1 + _v.x * k2) * sp;
+                b.vy = (_v2.y * k1 + _v.y * k2) * sp;
+                b.vz = (_v2.z * k1 + _v.z * k2) * sp;
+              }
+            }
+          }
+        }
+      }
+
       const px = b.x, py = b.y, pz = b.z;
       b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
       b.life -= dt;
 
+      // A tracked round is drawn by its own ribbon, pushed from the position it
+      // actually reached this tick. `b.turn` rather than `b.seek` is the test:
+      // the streak must survive the target dying mid-flight, or the round goes
+      // invisible at the exact moment the player is watching it.
+      if (b.turn) ctx.fx.tracer(b, b.x, b.y, b.z, { charged: b.charged });
+
       let gone = b.life <= 0;
+      if (gone && b.turn) diag.homingExpired++;
 
       if (!gone && b.enemy) {
         // vs player — swept sphere against the segment travelled this tick
@@ -926,6 +1052,7 @@ export function installCombat(ctx) {
           if (d < a.spec.radius + b.r) {
             _v.set(b.x, b.y, b.z);
             hurtFoe(f, b.dmg, _v, _v2.set(b.vx, b.vy, b.vz).normalize().multiplyScalar(18));
+            if (b.turn) diag.homingHit++;
             gone = true;
             break;
           }
@@ -943,7 +1070,10 @@ export function installCombat(ctx) {
         gone = true;
       }
 
-      if (gone) { bullets[i] = bullets[bullets.length - 1]; bullets.pop(); }
+      if (gone) {
+        if (b.turn) ctx.fx.tracerEnd(b);
+        bullets[i] = bullets[bullets.length - 1]; bullets.pop();
+      }
     }
   }
 
@@ -1108,6 +1238,32 @@ export function installCombat(ctx) {
     cam.updateProjectionMatrix();
     cam.lookAt(p.x - 20, p.y, p.z - 420);
   });
+  // A tracked round is the one thing in the game whose whole point is the shape
+  // of its path, and no camera in the level could see one: `combat-wide` frames
+  // 400 m of canyon, in which a homing bolt is four pixels. This one finds a
+  // round that is actually seeking, then watches it side-on from the midpoint of
+  // the round-to-target line — the only vantage where a curve reads as a curve
+  // rather than as foreshortening.
+  registerShot('combat-homing', (c) => {
+    const cam = c.engine.camera;
+    let b = null;
+    for (const q of bullets) {
+      if (q.turn && q.seek && !q.seek.agent.dying) { b = q; break; }
+    }
+    if (!b) { c.flight.updateCamera(1 / 60, cam); return; }
+    const t = b.seek.agent.pos;
+    _v.set((b.x + t.x) * 0.5, (b.y + t.y) * 0.5, (b.z + t.z) * 0.5);
+    const range = Math.hypot(t.x - b.x, t.y - b.y, t.z - b.z);
+    // Stand off perpendicular to the round's velocity, far enough back that both
+    // the round and the thing it is chasing fit — and high enough to be clear of
+    // the water haze, which at 28 m filled the entire frame with flat blue.
+    const off = Math.max(160, range * 1.5);
+    _v2.set(-b.vz, 0, b.vx).normalize().multiplyScalar(off);
+    cam.position.set(_v.x + _v2.x, _v.y + Math.max(70, range * 0.55), _v.z + _v2.z);
+    cam.fov = 40;
+    cam.updateProjectionMatrix();
+    cam.lookAt(_v.x, _v.y, _v.z);
+  });
   registerShot('combat-boss', (c) => {
     const cam = c.engine.camera;
     const t = boss ? boss.root.position : c.flight.pos;
@@ -1122,6 +1278,11 @@ export function installCombat(ctx) {
     state,
     get foes() { return foes; },
     get boss() { return boss; },
+    // Rounds in flight. A screenshot cannot answer "does a locked shot bend
+    // toward its target" — that is a question about velocity over time — so the
+    // pool is readable for the harness to sample.
+    get bullets() { return bullets; },
+    get diag() { return diag; },
     update,
     dispose() {
       for (const f of foes) { enemyGroup.remove(f.root); disposeEnemy(f.root); }

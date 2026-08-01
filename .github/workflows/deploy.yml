@@ -3,8 +3,13 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - g/fox64
     paths:
+      - 'games/vulpine/src/**'
+      - 'games/vulpine/index.html'
+      - 'games/vulpine/package.json'
+      - 'games/vulpine/package-lock.json'
+      - 'games/vulpine/vite.config.js'
       - 'games/gravelrun/src/**'
       - 'games/snake/src/**'
       - 'games/skyrift/src/**'
@@ -44,6 +49,17 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Build vulpine
+        # playwright is a devDependency for the screenshot tooling only; vite
+        # still has to come from the dev tree, so skip the browser download
+        # rather than the dev install.
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: |
+          cd games/vulpine
+          npm ci
+          npm run build
+
       - name: Build chronoforge
         run: |
           cd games/chronoforge
@@ -64,8 +80,11 @@ jobs:
 
       - name: Build site
         run: |
-          mkdir -p _site/gravelrun _site/snake _site/skyrift _site/void-sentinel _site/orb-vacuum _site/void-sentinel-breach
-          cp -r games/chronoforge/dist/. _site/
+          mkdir -p _site/gravelrun _site/snake _site/skyrift _site/void-sentinel _site/orb-vacuum _site/void-sentinel-breach _site/chronoforge
+          # vulpine is the front door; chronoforge keeps its own subpath (its
+          # base is './', so it does not care where it is mounted).
+          cp -r games/vulpine/dist/. _site/
+          cp -r games/chronoforge/dist/. _site/chronoforge/
           cp -r games/orb-vacuum/dist/. _site/orb-vacuum/
           cp -r games/void-sentinel-breach/dist/. _site/void-sentinel-breach/
           cp -r games/gravelrun/src/. _site/gravelrun/

@@ -299,6 +299,23 @@ function buildStrip(us, z0, rows, dz, lods) {
 
   const last = rows - 1;
   const out = [];
+  // ── winding ───────────────────────────────────────────────────────────────
+  // Every triangle below is emitted so that (b-a)×(c-a) points the same way as
+  // the shading normal — i.e. counter-clockwise seen from the sky. Get this
+  // backwards and the surface still *shades* correctly (the normals are written
+  // analytically and never derived from the winding), so nothing looks obviously
+  // inverted; what happens instead is that back-face culling throws away every
+  // face turned toward the camera and keeps the ones turned away. The level then
+  // renders as a hollow shell: near walls vanish, the far bank shows through
+  // them, everything below eye height disappears, and the sliver of far wall
+  // that still faces you hangs in open air as a tapering ribbon. That is exactly
+  // the "fin" artefact, and the reason it survived every geometry test ever run
+  // against it — the vertices were always in the right place. Only the index
+  // order was wrong.
+  //
+  // Grid layout the orderings below depend on: +i steps toward +X, +j steps
+  // toward -Z. So with a=(i,j), b=(i+s,j), c=(i,j+s), d=(i+s,j+s), the
+  // sky-facing pair is (a,b,c) and (b,d,c).
   for (const s of lods) {
     const idx = [];
     // interior at the requested stride, leaving one full band at each end
@@ -307,28 +324,29 @@ function buildStrip(us, z0, rows, dz, lods) {
     for (let j = j0; j + s <= j1; j += s) {
       for (let i = 0; i + s <= cols - 1; i += s) {
         const a = j * cols + i, b = a + s, c = (j + s) * cols + i, d = c + s;
-        idx.push(a, c, b, b, c, d);
+        idx.push(a, b, c, b, d, c);
       }
     }
     if (s > 1) {
       // stitch the full-resolution boundary rows to the decimated interior
       for (let i = 0; i + s <= cols - 1; i += s) {
         const A = j0 * cols + i, B = j0 * cols + i + s;       // coarse, far side
-        for (let k = i; k < i + s; k++) idx.push(k, A, k + 1);
-        idx.push(i + s, A, B);
+        for (let k = i; k < i + s; k++) idx.push(k + 1, A, k);
+        idx.push(B, A, i + s);
 
         const C = j1 * cols + i, D = j1 * cols + i + s;       // coarse, near side
         const f = last * cols;
-        for (let k = i; k < i + s; k++) idx.push(C, f + k, f + k + 1);
-        idx.push(C, f + i + s, D);
+        for (let k = i; k < i + s; k++) idx.push(f + k + 1, f + k, C);
+        idx.push(D, f + i + s, C);
       }
     }
-    // lateral skirts, walking the same stride so their tops sit on the edge
+    // Lateral skirts, walking the same stride so their tops sit on the edge.
+    // These face *outward* — away from the strip — for the same culling reason.
     for (let j = 0; j + s <= last; j += s) {
       const l0 = j * cols, l1 = (j + s) * cols;
-      idx.push(l0, skirtOf[l0], l1, l1, skirtOf[l0], skirtOf[l1]);
+      idx.push(l1, skirtOf[l0], l0, skirtOf[l1], skirtOf[l0], l1);
       const r0 = j * cols + cols - 1, r1 = (j + s) * cols + cols - 1;
-      idx.push(r1, skirtOf[r1], r0, r0, skirtOf[r1], skirtOf[r0]);
+      idx.push(r0, skirtOf[r1], r1, skirtOf[r0], skirtOf[r1], r0);
     }
 
     const g = new THREE.BufferGeometry();
@@ -337,6 +355,11 @@ function buildStrip(us, z0, rows, dz, lods) {
     g.setAttribute('color', geoBase.color);
     g.setAttribute('uv', geoBase.uv);
     g.setIndex(idx);
+    // Shape metadata for tools/fins.mjs: it needs to tell a surface triangle
+    // (whose facet normal must agree with the shading normal) from a hem
+    // (whose facet normal is horizontal and must instead face outward), and
+    // there is no way to recover that from the buffers alone.
+    g.userData.grid = { cols, rows, surfaceVerts: nv };
     g.boundingSphere = new THREE.Sphere(
       new THREE.Vector3((minX + maxX) * 0.5, (minY + maxY) * 0.5, -(rows - 1) * dz * 0.5),
       Math.hypot(maxX - minX, (rows - 1) * dz, maxY - minY + SKIRT) * 0.5 + 1,

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RNG } from '../core/rng.js';
 import { fbm2D, ridged2D, worley2D, cached } from '../render/textures.js';
-import { WORLD, centrelineX, terrainHeight } from './profile.js';
+import { WORLD, centrelineX, centrelineDX, terrainHeight, profileAt, heightAtU } from './profile.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Materials owned by the world. Nothing here touches render/materials.js — the
@@ -142,6 +142,147 @@ const shoreField = () => cached('world.shore', () => {
   return t;
 });
 
+/* ── sun horizon field: terrain shadows without a shadow map ──────────────── */
+//
+// The level is a 10 km corridor between walls up to 1750 m tall, lit by a 27°
+// sun. A cliff that high throws a shadow the better part of two kilometres, and
+// those shadows are the only thing that gives the landscape form — without them
+// a mountain range is a flat cut-out and the canyon reads as a painted backdrop.
+//
+// A shadow map cannot deliver that here. The sun's cascade is 380 m across and
+// follows the ship (it exists for the Arwing and the props); switching the
+// terrain to castShadow inside it produces a hard rectangular shadow boundary
+// straight across the bank where the frustum ends, and self-shadowing acne on
+// every 80° wall — which is exactly why terrain casting was turned off. Widening
+// it to cover a 2 km shadow at any usable texel density means real CSM, several
+// hundred extra draw calls of terrain re-rasterised per cascade, and a bias
+// tuning problem on near-vertical faces that nobody wins.
+//
+// So the occlusion is baked instead — but as a *horizon map*, not as a shadow
+// for one fixed sun. For every point in the corridor this stores how high the
+// land stands, in each of eight compass sectors, as an elevation angle. Direct
+// sun is then simply "is the sun higher than the horizon in the sun's own
+// direction", evaluated per fragment against the live light. It costs two
+// texture fetches, it has no cascade seam, no acne, no depth bias, no range
+// limit, and it still responds correctly when the environment preset moves the
+// sun. It cannot shadow *moving* geometry onto the terrain — that is what the
+// real shadow map is still there for.
+//
+// Sector k runs anticlockwise from +u (world +X) toward -Z, 45° apart:
+//   0:+u  1:+u-z  2:-z  3:-u-z  4:-u  5:-u+z  6:+z  7:+u+z
+// Stored as an angle in 0..1 = 0..90°, so a byte buys 0.35° of resolution.
+
+// The grid is deliberately near-isotropic (≈16 m either way) so that the four
+// diagonal sectors really do point at 45° and the angular interpolation between
+// sectors is not skewed by the aspect ratio.
+export const HORIZON = { halfU: 2000, z0: WORLD.zStart, zLen: WORLD.zStart - WORLD.zEnd, w: 256, h: 660 };
+
+// Ray steps in texels, geometric: dense near the shading point where the
+// horizon changes fastest, sparse out at the range where only a whole mountain
+// can still matter. 112 texels ≈ 1.8 km, which is as far as a 27° sun can throw
+// a shadow from the tallest thing in the level.
+const HSTEPS = [1, 2, 3, 4, 5, 7, 9, 12, 16, 21, 28, 37, 49, 64, 85, 112];
+const HDIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+
+const horizonField = () => cached('world.horizon', () => {
+  const { halfU, z0, zLen, w, h } = HORIZON;
+  const du = (2 * halfU) / w;      // metres per texel across the rail
+  const dz = zLen / h;             // metres per texel along it
+
+  const F = new Float32Array(w * h);
+  for (let j = 0; j < h; j++) {
+    const z = z0 - (j + 0.5) * dz;
+    const P = profileAt(z);
+    const row = j * w;
+    for (let i = 0; i < w; i++) F[row + i] = heightAtU((-0.5 + (i + 0.5) / w) * 2 * halfU, z, P);
+  }
+
+  const A = new Uint8Array(w * h * 4);
+  const B = new Uint8Array(w * h * 4);
+  const INV = 1 / (Math.PI * 0.5);
+  for (let j = 0; j < h; j++) {
+    for (let i = 0; i < w; i++) {
+      const k = j * w + i;
+      const h0 = F[k];
+      for (let d = 0; d < 8; d++) {
+        const [si, sj] = HDIRS[d];
+        const stepLen = Math.hypot(si * du, sj * dz);
+        let best = 0;
+        for (const s of HSTEPS) {
+          const ii = i + si * s, jj = j + sj * s;
+          if (ii < 0 || ii >= w || jj < 0 || jj >= h) break;
+          // 2 m of slack: without it the noise on a convex slope puts a false
+          // half-degree horizon on every sunlit face and the whole level dims.
+          const t = (F[jj * w + ii] - h0 - 2) / (s * stepLen);
+          if (t > best) best = t;
+        }
+        const v = Math.min(255, Math.atan(best) * INV * 255) | 0;
+        if (d < 4) A[k * 4 + d] = v; else B[k * 4 + (d - 4)] = v;
+      }
+    }
+  }
+  const mk = (data) => {
+    const t = tex(data, w, h, { wrap: THREE.ClampToEdgeWrapping, aniso: 4 });
+    t.minFilter = THREE.LinearFilter;
+    t.generateMipmaps = false;
+    return t;
+  };
+  return { a: mk(A), b: mk(B) };
+});
+
+const GLSL_HORIZON = /* glsl */`
+  uniform sampler2D uHorizA;
+  uniform sampler2D uHorizB;
+  uniform vec3 uHorizCfg;               // halfU, z0, zLen
+
+  float centrelineDX(float z) {
+    float t = -z;
+    return -(cos(t * 0.00055) * 210.0 * 0.00055
+           + cos(t * 0.00181 + 1.7) * 78.0 * 0.00181
+           + cos(t * 0.0041 + 0.4) * 22.0 * 0.0041);
+  }
+  float pickSector(vec4 a, vec4 b, int k) {
+    vec4 v = k < 4 ? a : b;
+    int m = k < 4 ? k : k - 4;
+    return m == 0 ? v.x : (m == 1 ? v.y : (m == 2 ? v.z : v.w));
+  }
+  /**
+   * 1 where the sun clears the skyline, 0 where the land in front of it does
+   * not. sunW points from the surface toward the sun, in world space.
+   */
+  float sunHorizon(vec3 p, vec3 sunW) {
+    float u = p.x - centrelineX(p.z);
+    vec2 st = vec2(u / (2.0 * uHorizCfg.x) + 0.5, (uHorizCfg.y - p.z) / uHorizCfg.z);
+    // Off the baked corridor there is nothing tall enough left to cast, and a
+    // hard edge there would be worse than no shadow — fade out over the last
+    // eighth of the field instead of clipping.
+    float inside = smoothstep(0.0, 0.06, st.x) * smoothstep(1.0, 0.94, st.x)
+                 * smoothstep(0.0, 0.01, st.y) * smoothstep(1.0, 0.99, st.y);
+    if (inside <= 0.001) return 1.0;
+
+    // The stored sectors are laid out in rail space, and the rail shears with
+    // the meander — so the sun's bearing has to be taken there too, or every
+    // shadow in the level leans a few degrees off true wherever the river bends.
+    vec2 rail = vec2(sunW.x - centrelineDX(p.z) * sunW.z, sunW.z);
+    float len = max(length(rail), 1e-5);
+    float ang = atan(-rail.y, rail.x);                 // 0 at +u, +90° at -z
+    float f = ang * (4.0 / PI);
+    f = f - 8.0 * floor(f / 8.0);                      // wrap into 0..8
+    int k0 = int(f);
+    int k1 = int(mod(float(k0) + 1.0, 8.0));
+    vec4 ha = texture2D(uHorizA, st), hb = texture2D(uHorizB, st);
+    float hz = mix(pickSector(ha, hb, k0), pickSector(ha, hb, k1), fract(f)) * (PI * 0.5);
+
+    float sunEl = atan(sunW.y, len);
+    // ~3.5° of terminator. The sun's disc is half a degree, but the field is
+    // baked at 16 m and a hard edge on a soft field is just a staircase; the
+    // softness also grows with distance from the occluder, which is what a real
+    // penumbra does anyway.
+    float lit = smoothstep(-0.030, 0.032, sunEl - hz);
+    return mix(1.0, lit, inside);
+  }
+`;
+
 /* ── shared GLSL ──────────────────────────────────────────────────────────── */
 
 export const GLSL_CENTRELINE = /* glsl */`
@@ -208,8 +349,16 @@ export function terrainMaterial() {
     vertexColors: true,
     dithering: true,
   });
+  // ?terrdbg=sun|sky|cav flat-shades one baked field instead of the surface.
+  // Always defined, never conditional: GLSL ES makes an undefined identifier in
+  // an #if a compile error, not a zero.
+  m.defines = { TERR_DBG: { sun: 1, sky: 2, cav: 3 }[new URLSearchParams(location.search).get('terrdbg')] || 0 };
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uScale = { value: 0.112 };
+    const hz = horizonField();
+    sh.uniforms.uHorizA = { value: hz.a };
+    sh.uniforms.uHorizB = { value: hz.b };
+    sh.uniforms.uHorizCfg = { value: new THREE.Vector3(HORIZON.halfU, HORIZON.z0, HORIZON.zLen) };
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
         varying vec3 vWPos;
@@ -227,9 +376,11 @@ export function terrainMaterial() {
         varying vec2 vTerr;
         uniform float uScale;
         ${GLSL_LITHOLOGY}
+        ${GLSL_CENTRELINE}
+        ${GLSL_HORIZON}
         vec3 gBW; vec2 gUX, gUY, gUZ; vec4 gTri;
         vec3 gFaceUp;
-        float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx;`)
+        float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx, gDbg;`)
       .replace('#include <map_fragment>', `
         vec3 wn = normalize(vWNrm);
         // A softer blend exponent than the usual 6 — at 4 the three projections
@@ -263,31 +414,71 @@ export function terrainMaterial() {
         float sky = vTerr.y;
 
         // ── bedding ─────────────────────────────────────────────────────────
-        // Beds are laid down flat and then folded, so the band coordinate is
-        // world Y warped by a low-frequency field. Two periods: 14 m members
-        // and a 78 m formation cycle that decides which rock this is.
-        // Beds are near-horizontal. The warp is what stops them being a ruled
-        // line across the whole level, but push it past a few metres and the
-        // wall stops reading as sediment and starts reading as marbling.
-        float warp = (crs.g - 0.5) * 11.0 + (gTri.g - 0.5) * 3.0;
-        float yw = vWPos.y + warp;
-        const float BEDP = 14.0;
-        float bedF = fract(yw * (1.0 / BEDP));
-        float bedT = abs(bedF * 2.0 - 1.0);
+        // Beds are laid down flat and then folded, and the folding is doing all
+        // the work here. A perfectly horizontal band on a curved wall is not
+        // strata — it is a contour line, and a canyon ruled with contour lines
+        // reads as a topographic model of a canyon rather than as rock.
+        //
+        // The fold has to be three long sines and not a texture tap. Every band
+        // in the rock tile carries structure down to a tenth of its own period,
+        // so a warp built out of one wiggles at tens of metres: that is a
+        // corrugation, not a fold, and corrugated bedding is exactly what made
+        // these walls read as sheets of cardboard. 2.3 km / 900 m / 350 m at
+        // ±34 / ±21 / ±8 m works out to 4–9° of local dip, which is what a
+        // gently deformed sedimentary basin actually looks like.
+        float fold = sin(vWPos.x * 0.00071 - vWPos.z * 0.0017 + 2.1) * 34.0
+                   + sin(vWPos.x * 0.0027 + vWPos.z * 0.0011) * 21.0
+                   + sin(vWPos.z * 0.0043 + vWPos.x * 0.0009 + 1.3) * 8.0;
+        // …plus a metre of local wander, because a bed contact is a surface that
+        // was deposited, not machined.
+        float yw = vWPos.y + fold + (gTri.g - 0.5) * 2.2;
+
+        // Two incommensurate periods, so the sequence reads thick / thin / pair
+        // instead of the single ruled pitch that reads as wallpaper…
+        const float BEDP = 13.0;
+        float bedG = yw * (1.0 / BEDP);
+        float bi = floor(bedG);
+        float bedF = bedG - bi;
+        float bedT = abs(bedF * 2.0 - 1.0) * 0.70
+                   + abs(fract(yw * (1.0 / 31.0)) * 2.0 - 1.0) * 0.30;
+        // …and every individual bed gets its own character: how pale it is, how
+        // far it weathers back, how hard the contact beneath it cuts. This is
+        // the difference between a sedimentary sequence and a barcode. One hash
+        // of the bed index buys all of it, and because it is constant *within* a
+        // bed it follows the fold instead of fighting it.
+        float bh = fract(sin(bi * 91.73) * 4375.85);
         // dissolve the member banding once its period drops toward a few pixels
         float bedFade = 1.0 - smoothstep(BEDP * 0.10, BEDP * 0.34, gWpx);
-        float bed = smoothstep(0.05, 0.72, bedT);
-        float parting = (1.0 - smoothstep(0.0, 0.13, bedT)) * bedFade;
-        gBedSlope = (bedF < 0.5 ? 1.0 : -1.0) * bedFade;
+        float bed = smoothstep(0.10, 0.78, bedT);
+        float parting = (1.0 - smoothstep(0.0, 0.16, bedT)) * bedFade;
+        // Relief belongs at the contact, not across the whole bed: a member
+        // weathers to a flat face and only the parting between two of them is a
+        // groove. Spread across the bed it becomes a sawtooth, and a sawtooth
+        // under a low sun is a hard stripe every 13 m all the way up the wall.
+        gBedSlope = (bedF < 0.5 ? 1.0 : -1.0) * (1.0 - smoothstep(0.02, 0.40, bedT))
+                  * (0.30 + 1.7 * bh) * bedFade;
 
-        float form = fract((vWPos.y + warp * 0.4) * (1.0 / 96.0) + crs.b * 0.30);
-        vec3 rock = lithology(form);
+        // Beds only *outcrop* where the land cuts through them. Stand on a bench
+        // and you are standing on one bedding plane — a single rock over the
+        // whole terrace — not on a section through fifty of them. Applied
+        // regardless of slope, a Y-banded lithology turns every plateau in the
+        // level into a contour map of its own topography, in colour, which is
+        // the single most artificial thing a procedural terrain can do.
+        float outcrop = mix(0.16, 1.0, smoothstep(0.08, 0.42, gSteep));
+        float form = fract(yw * (1.0 / 96.0) + crs.b * 0.10);
+        vec3 rock = mix(L_BASE, lithology(form), outcrop);
 
         // value: fine grain over broad grain, both band-limited by the tile
         // they came from rather than by a magic distance
         float v = (0.70 + 0.58 * gTri.r) * (0.76 + 0.44 * crs.g);
         rock *= v;
-        rock *= mix(0.86, 1.11, bed) * (1.0 - parting * 0.26 * bedFade);
+        // The member-to-member value swing was 29%. Past a couple of hundred
+        // metres a 29% swing on a 13 m pitch is a zebra, not a cliff — what
+        // survives distance and still reads as sediment is the *hue* difference
+        // between members, so the value difference goes down to 14% and the
+        // relief term below picks up the slack.
+        rock *= mix(1.0, mix(0.94, 1.04, bed) * mix(0.93, 1.08, bh)
+                       * (1.0 - parting * 0.22 * bedFade), outcrop);
         gBedK = bed;
 
         // ── desert varnish ──────────────────────────────────────────────────
@@ -318,6 +509,17 @@ export function terrainMaterial() {
 
         diffuseColor *= vec4(rock, 1.0);
       `)
+      // ?terrdbg=sun|sky|cav — flat-shade one of the three baked scalar fields.
+      // These are the terms you cannot see in a finished frame because lighting,
+      // fog and the grade are all sitting on top of them, and every one of them
+      // is a field that goes subtly wrong in a way that reads as "the terrain
+      // looks off" rather than as an identifiable bug.
+      .replace('#include <opaque_fragment>', `
+        #if TERR_DBG > 0
+          gl_FragColor = vec4( vec3( gDbg ), 1.0 );
+        #else
+          #include <opaque_fragment>
+        #endif`)
       .replace('#include <roughnessmap_fragment>', `
         // Wet rock is glossy, scoured rims are matte-dusty, shale partings
         // catch a sheen the sandstone members do not.
@@ -350,9 +552,51 @@ export function terrainMaterial() {
         // parting between two of them is a V-groove, not a painted line. This
         // is the term that makes strata catch the key light instead of just
         // tinting — a stripe you can only see in albedo reads as wallpaper.
-        wNormal = normalize(wNormal + gFaceUp * gBedSlope * 0.42 * smoothstep(0.20, 0.60, gSteep));
+        wNormal = normalize(wNormal + gFaceUp * gBedSlope * 0.30 * smoothstep(0.20, 0.60, gSteep));
         normal = normalize((viewMatrix * vec4(wNormal, 0.0)).xyz);
       `)
+      // ── terrain shadows ───────────────────────────────────────────────────
+      // The key light is whichever directional light is brightest — the rig
+      // adds sun, fill and rim in that order, but relying on the index would
+      // make this break silently the day someone reorders them.
+      //
+      // Re-running RE_Direct for that one light and subtracting the occluded
+      // fraction is the only way to shadow it without touching the fill and the
+      // rim: those two exist precisely to keep a shadowed face from collapsing
+      // to a single navy value, so scaling the whole directDiffuse would undo
+      // the thing that makes shadows here read as air rather than as paint.
+      .replace('#include <lights_fragment_begin>', `#include <lights_fragment_begin>
+        #if ( NUM_DIR_LIGHTS > 0 )
+        {
+          int keyI = 0;
+          float keyB = -1.0;
+          for ( int i = 0; i < NUM_DIR_LIGHTS; i ++ ) {
+            float b = dot( directionalLights[ i ].color, vec3( 0.2126, 0.7152, 0.0722 ) );
+            if ( b > keyB ) { keyB = b; keyI = i; }
+          }
+          IncidentLight keyLight;
+          getDirectionalLightInfo( directionalLights[ keyI ], keyLight );
+          // directionalLights[].direction is view space; the horizon field is
+          // indexed in world space, so rotate it back (w = 0 drops the
+          // translation, and the row-vector product is the inverse rotation).
+          vec3 sunW = normalize( ( vec4( keyLight.direction, 0.0 ) * viewMatrix ).xyz );
+          float occ = 1.0 - sunHorizon( vWPos, sunW );
+          #if TERR_DBG == 1
+            gDbg = 1.0 - occ;
+          #elif TERR_DBG == 2
+            gDbg = vTerr.y;
+          #elif TERR_DBG == 3
+            gDbg = vTerr.x;
+          #endif
+          if ( occ > 0.002 ) {
+            ReflectedLight keyRL = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
+            RE_Direct( keyLight, geometryPosition, geometryNormal, geometryViewDir,
+                       geometryClearcoatNormal, material, keyRL );
+            reflectedLight.directDiffuse  -= keyRL.directDiffuse  * occ;
+            reflectedLight.directSpecular -= keyRL.directSpecular * occ;
+          }
+        }
+        #endif`)
       // Baked sky visibility, applied where a real AO map would be. Indirect
       // only — direct sun is unaffected, so a gorge floor goes dark and blue
       // while the rim above it keeps its warm key light.

@@ -94,6 +94,12 @@ register, swept collision.
 - [ ] **Enemy legibility past ~800 m.** Partly fixed (warm plating, dorsal
       camera-facing beacons). Still small and quiet at range. Re-tune now that
       the water background has changed.
+- [ ] **Tiny per-enemy health bars.** Owner: doubles as a legibility fix — a
+      floating bar is easier to spot than the hull it sits over. Pairs with the
+      beacon work and the scale experiment; try it before assuming more emissive
+      is the answer. Billboarded, clamped to a floor in *angular* size like the
+      class beacons, and probably only drawn once damaged so a clean screen
+      stays clean.
 - [ ] **Experiment: scale every ship up.** Player, hostiles and boss are hard to
       read at combat range; a global size bump may buy more legibility than any
       shader work. Try +25% / +50% on hulls, keep hit radii honest, and A/B it

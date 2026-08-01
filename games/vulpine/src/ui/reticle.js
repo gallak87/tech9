@@ -84,8 +84,13 @@ export class Reticle {
     if (charge > 0.015) {
       g.beginPath();
       g.arc(cx, cy, spread + 11 * k, -Math.PI / 2, -Math.PI / 2 + charge * Math.PI * 2);
+      g.lineWidth = 3.2 * k;
+      g.strokeStyle = 'rgba(2,8,14,0.5)';
+      g.stroke();
+      g.beginPath();
+      g.arc(cx, cy, spread + 11 * k, -Math.PI / 2, -Math.PI / 2 + charge * Math.PI * 2);
       g.lineWidth = 1.6 * k;
-      g.strokeStyle = rgba3(c3, 0.8);
+      g.strokeStyle = rgba3(c3, 0.85);
       g.shadowColor = col; g.shadowBlur = 5 * k;
       g.stroke();
       g.shadowBlur = 0;
@@ -183,10 +188,19 @@ export class LockMarker {
       const boxSize = size * pop;
       const half = boxSize * 0.5;
 
-      corners(g, proj.x - half, proj.y - half, boxSize, boxSize, boxSize * 0.32, 1.6 * k, col, {
+      // A target that is inside the lock cone is, by construction, close to
+      // boresight — this marker frequently sits right on top of the centre
+      // reticle. Rotating it 45° reads as a distinct HUD element even when
+      // the two coincide, instead of a doubled-up duplicate bracket.
+      g.save();
+      g.translate(proj.x, proj.y);
+      g.rotate(Math.PI / 4);
+      corners(g, -half, -half, boxSize, boxSize, boxSize * 0.32, 3.2 * k, 'rgba(2,8,14,0.5)', {});
+      corners(g, -half, -half, boxSize, boxSize, boxSize * 0.32, 1.6 * k, col, {
         glow: 6 * k + this.snap * 10 * k,
       });
-      diamond(g, proj.x, proj.y, 2.6 * k, col, { glow: 8 * k });
+      g.restore();
+      diamond(g, proj.x, proj.y, 2.4 * k, col, { glow: 8 * k });
 
       const lbl = `${kindLabel}  ${Math.round(proj.dist)}M`;
       text(g, lbl, proj.x, proj.y + half + 13 * k, {

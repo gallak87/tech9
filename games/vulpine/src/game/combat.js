@@ -4,6 +4,7 @@ import { registerShot } from './shots.js';
 import { createEnemy, disposeEnemy, animateEnemy, enemySpec } from '../ships/enemies.js';
 import { createBoss, BOSS } from '../ships/boss.js';
 import { createArwing } from '../ships/arwing.js';
+import { emissive } from '../render/materials.js';
 import {
   makeAgent, think, thinkWingman, killAgent, aimShot, orient, setState, clamp,
 } from './ai.js';
@@ -35,16 +36,25 @@ const RG = rng('combat.gun');
 /* ── tuning ───────────────────────────────────────────────────────────────── */
 
 const TUNE = {
-  playerBullet: { speed: 980, range: 1100, dmg: 1, r: 2.2 },
-  chargedBullet: { speed: 470, range: 900, dmg: 6, r: 9.0 },
+  // Bullet radii are generous on purpose. A 2.2 m round against a 2.6 m raptor
+  // half a kilometre out is a simulation, not an arcade shooter — Star Fox
+  // forgives by a wide margin and reads as precise because the *feedback* is
+  // precise, not because the collision is.
+  playerBullet: { speed: 980, range: 1100, dmg: 1, r: 5.5 },
+  chargedBullet: { speed: 470, range: 900, dmg: 6, r: 14.0 },
   enemyBullet: { speed: 520, range: 700, r: 1.4 },
 
+  converge: 520,           // metres at which the guns cross the aim ray
   fireGap: 0.135,          // twin-linked, so 2 rounds per interval
   chargeTime: 1.05,        // hold-to-lock, seconds
   lockCone: 0.955,         // cos of the half-angle the lock will hold
   lockRange: 900,
 
-  bombFuse: 2.6,
+  // A 2.6 s fuse on an invisible projectile is indistinguishable from a dead
+  // key. The bomb now has a body you can see leave the ship, a much shorter
+  // fuse, and a second press detonates it early — the Star Fox 64 behaviour.
+  bombFuse: 1.5,
+  bombArm: 0.18,           // grace before a second press can detonate it
   bombSpeed: 320,
   bombRadius: 105,
   bombDmg: 40,
@@ -167,10 +177,12 @@ export function installCombat(ctx) {
   let charging = false;
   let invuln = 0;
   let deadT = -1;
+  let bombGeo = null, bombMat = null;
 
   const _v = new THREE.Vector3();
   const _v2 = new THREE.Vector3();
   const _aim = new THREE.Vector3();
+  const _conv = new THREE.Vector3();
   const _q = new THREE.Quaternion();
   const UP = new THREE.Vector3(0, 1, 0);
 
@@ -256,16 +268,35 @@ export function installCombat(ctx) {
     bullets.push(b);
   }
 
+  /**
+   * Where the player's shots are actually going: the point under the reticle.
+   *
+   * Firing along the hull's own forward axis is the obvious thing and it is
+   * wrong. The chase camera sits behind and above the Arwing, so "straight
+   * ahead of the ship" and "the middle of the screen" are several degrees
+   * apart — shots drift off the crosshair, and the game reads as though the
+   * guns do not work. Every rail shooter converges its guns on the aim point
+   * for exactly this reason. A live lock overrides it and leads the target.
+   */
+  function convergePoint(out) {
+    const t = state.lockTarget;
+    if (t && !t.agent.dying) return out.copy(t.agent.pos);
+    const cam = ctx.camera;
+    return out.set(0, 0, -1).applyQuaternion(cam.quaternion)
+      .multiplyScalar(TUNE.converge).add(cam.position);
+  }
+
   function playerFire() {
     const ship = ctx.ship;
     ship.updateMatrixWorld();
-    _v2.set(0, 0, -1).applyQuaternion(ship.quaternion).normalize();
+    convergePoint(_conv);
     const inherit = view.player.vel;
     // Twin-linked: alternate outer and inner pods so the pair reads as a
     // rhythm rather than a wall of light.
     const pair = (state.hits & 1) ? [2, 3] : [0, 1];
     for (const i of pair) {
       _v.copy(PODS[i]).applyMatrix4(ship.matrixWorld);
+      _v2.copy(_conv).sub(_v).normalize();
       ctx.fx.laser(_v, _v2, { inherit });
       spawnBullet({
         x: _v.x, y: _v.y, z: _v.z,
@@ -283,10 +314,9 @@ export function installCombat(ctx) {
   function playerChargedFire() {
     const ship = ctx.ship;
     ship.updateMatrixWorld();
-    _v2.set(0, 0, -1).applyQuaternion(ship.quaternion).normalize();
     _v.set(0, -0.2, -3.6).applyMatrix4(ship.matrixWorld);
-    const tgt = state.lockTarget;
-    if (tgt) { _aim.copy(tgt.agent.pos).sub(_v).normalize(); _v2.lerp(_aim, 0.85).normalize(); }
+    convergePoint(_conv);
+    _v2.copy(_conv).sub(_v).normalize();
     ctx.fx.chargedShot(_v, _v2, { inherit: view.player.vel });
     spawnBullet({
       x: _v.x, y: _v.y, z: _v.z,
@@ -646,9 +676,25 @@ export function installCombat(ctx) {
   }
 
   /* ── bombs ──────────────────────────────────────────────────────────────── */
+  /** The visible body of a bomb in flight. Shared geometry, one material. */
+  function bombMesh() {
+    if (!bombGeo) {
+      bombGeo = new THREE.SphereGeometry(1.15, 16, 12);
+      bombMat = emissive(0xffb347, 4.2);
+    }
+    const m = new THREE.Mesh(bombGeo, bombMat);
+    m.name = 'bomb';
+    group.add(m);
+    return m;
+  }
+
   function updateBombs(dt) {
     const input = ctx.input.state;
-    if (input.bombPressed && state.bombs > 0 && deadT < 0 && !state.outcome) {
+    // Second press detonates whatever is already in the air, before spending
+    // another one from the rack.
+    if (input.bombPressed && bombs.length && bombs[0].t > TUNE.bombArm) {
+      bombs[0].detonate = true;
+    } else if (input.bombPressed && state.bombs > 0 && deadT < 0 && !state.outcome) {
       state.bombs--;
       _v2.set(0, 0, -1).applyQuaternion(ctx.ship.quaternion).normalize();
       _v.set(0, -0.6, -2.2).applyMatrix4(ctx.ship.matrixWorld);
@@ -657,7 +703,7 @@ export function installCombat(ctx) {
         vx: _v2.x * TUNE.bombSpeed + view.player.vel.x,
         vy: _v2.y * TUNE.bombSpeed + view.player.vel.y,
         vz: _v2.z * TUNE.bombSpeed + view.player.vel.z,
-        t: 0,
+        t: 0, detonate: false, mesh: bombMesh(),
       });
       ctx.audio.play('bombLaunch', { pos: _v });
     }
@@ -667,8 +713,15 @@ export function installCombat(ctx) {
       b.t += dt;
       b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
       b.vy -= 12 * dt;
+      // Visible body: it tumbles and pulses so it reads as armed, and it is on
+      // screen the instant the key goes down.
+      if (b.mesh) {
+        b.mesh.position.set(b.x, b.y, b.z);
+        b.mesh.rotation.set(b.t * 5.1, b.t * 3.7, 0);
+        b.mesh.scale.setScalar(1 + 0.22 * Math.sin(b.t * 26));
+      }
       const g = ctx.world.groundAt(b.x, b.z);
-      let boom = b.t >= TUNE.bombFuse || b.y <= g + 1.5;
+      let boom = b.detonate || b.t >= TUNE.bombFuse || b.y <= g + 1.5;
       if (!boom) {
         for (const f of foes) {
           if (f.agent.dying) continue;
@@ -693,6 +746,7 @@ export function installCombat(ctx) {
           const d = boss.root.position.distanceTo(_v);
           if (d < TUNE.bombRadius + 30) bossHit({ dmg: TUNE.bombDmg, r: 40 }, _v);
         }
+        if (b.mesh) group.remove(b.mesh);
         bombs.splice(i, 1);
       }
     }

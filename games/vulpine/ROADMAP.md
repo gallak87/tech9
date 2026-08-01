@@ -58,6 +58,21 @@ register, swept collision.
 
 ## Now — Phase 8: legibility and the first two encounters
 
+- [ ] **TOP PRIORITY — the ship auto-yaws.** Launch, touch nothing, and the nose
+      swings slowly left, then slowly right, forever. Owner: "super annoying,
+      don't auto yaw."
+      Source is `flight.js:226` — the yaw Euler is
+      `this.yaw + Math.atan2(railDir.x, -railDir.z)`. `this.yaw` is the stick
+      term and is 0 at rest; the second term is the rail heading, and the rail
+      is `centrelineX`, three summed sines with periods of ~1.5 km, ~3.5 km and
+      ~11 km. At 175 m/s that is an ~8.8 s wobble under a ~20 s swing under a
+      ~65 s sweep — exactly the reported motion.
+      The ship does need to fly down the corridor, so the fix is probably to
+      scale that term well down (the world curves around you instead of you
+      turning into it) rather than drop it. Check what else reads ship heading
+      before changing it — gun convergence uses the camera ray, not the hull
+      axis, but the chase camera and `fx` emission both derive from the hull.
+
 - [ ] **Loading screen with a progress bar.** Today `index.html` is a bare black
       page for ~5 s while terrain meshes, textures bake, the PMREM builds and
       shaders compile. No spinner, no logo, no progress — it reads as a hang.

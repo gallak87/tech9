@@ -83,9 +83,25 @@ export function makeAgent(spec, rng, opts = {}) {
     leader: null,
     wing: opts.wing ?? 0,
 
-    // personality — a wing of five must not fly as one object
-    skill: clamp(0.35 + rng.next() * 0.55 + (opts.skill ?? 0), 0.1, 0.98),
-    aggression: 0.5 + rng.next() * 0.5,
+    // How long this craft gets to own the field before it is required to leave.
+    // Without a budget a wave never resolves: passes loop, the wing drifts
+    // behind you, and by the fourth encounter there are a dozen leftovers on
+    // the radar that the player never got a clean shot at. A fight you cannot
+    // finish is not difficulty, it is a pile-up.
+    lifeT: 0,
+    leaveAt: opts.life ?? 9,
+
+    // ram drones: mark → dive → spent (see ramStep)
+    ram: 'mark', ramWait: opts.markFor ?? 1.6, ramT: 0,
+    ramAim: new THREE.Vector3(), ramDist0: 1, ramFixes: 0,
+
+    // personality — a wing of five must not fly as one object.
+    // The base is deliberately low and the spread narrow: it used to be
+    // 0.35 + rand*0.55, which meant a wave-one pilot rolled anywhere up to 0.90
+    // and the +0.2 the wave table could add was lost in the noise. The mission
+    // could not ramp because the dice were louder than the design.
+    skill: clamp(0.18 + rng.next() * 0.30 + (opts.skill ?? 0), 0.06, 0.96),
+    aggression: clamp(0.45 + rng.next() * 0.45 + (opts.aggro ?? 0), 0.3, 1.45),
     phase: rng.next() * Math.PI * 2,
     phase2: rng.next() * Math.PI * 2,
     wobble: 0.7 + rng.next() * 0.8,
@@ -192,7 +208,10 @@ ST.form = (a, dt, w) => {
  */
 ST.attack = (a, dt, w) => {
   const u = clamp(a.stateT / (2.6 + (1 - a.aggression) * 1.6), 0, 1);
-  const closeZ = lerp(a.entryZ, -55, u * u * (0.55 + a.aggression * 0.45));
+  // Every pass has to actually arrive. The old curve topped out at 0.75 for a
+  // mild pilot, so a "run" ended 200 m out and the player never got a nose-on
+  // silhouette to shoot at — the enemy just hovered and drifted past.
+  const closeZ = lerp(a.entryZ, -55, clamp(u * u * (0.78 + a.aggression * 0.30), 0, 1));
   a.offset.z += (closeZ - a.offset.z) * Math.min(1, dt * 1.6);
   a.offset.x += (a.runX * (1 - u * 0.65) - a.offset.x) * Math.min(1, dt * 1.1);
   a.offset.y += (a.runY * (1 - u * 0.4) + 6 - a.offset.y) * Math.min(1, dt * 1.1);
@@ -244,22 +263,44 @@ ST.hunt = (a, dt, w) => {
   a.offset.y += (_a.y + 4 - a.offset.y) * Math.min(1, dt * 2.0);
   a.offset.z += (_a.z + 62 - a.offset.z) * Math.min(1, dt * 2.0);
   a.alert = 1;
+  // A hunter that never gives up is exempt from the life budget for ever, which
+  // is how one raptor from the rescue beat ends up still on the radar at the
+  // boss. Ten seconds is long enough for the rescue to read as a rescue.
+  if (a.stateT > 10) setState(a, 'attack', w);
 };
 
-/** Leave the level. */
+/**
+ * Leave the level, and mean it. The old exit crawled to +520 m over about four
+ * seconds and combat.js would not retire the craft until it was 700 m behind,
+ * so "leaving" took the better part of ten seconds and the craft spent all of
+ * it hanging off the player's shoulder taking pot shots. Departure is a beat,
+ * not a state to live in.
+ */
 ST.exit = (a, dt, w) => {
-  a.offset.x += (Math.sign(a.breakX || 1) * 420 - a.offset.x) * Math.min(1, dt * 0.8);
-  a.offset.y += (a.runY + 120 - a.offset.y) * Math.min(1, dt * 0.8);
-  a.offset.z += (520 - a.offset.z) * Math.min(1, dt * 0.9);
+  const k = Math.min(1, dt * 1.6);
+  a.offset.x += (Math.sign(a.breakX || 1) * 520 - a.offset.x) * k;
+  a.offset.y += (a.runY + 200 - a.offset.y) * k;
+  a.offset.z += (980 - a.offset.z) * Math.min(1, dt * 1.5);
   a.alert = 0;
 };
 
 /** Hold a fixed world point — ground turrets. */
 ST.static_ = (a, dt, w) => { a.alert = w.playerRange < a.spec.fireRange ? 1 : 0.2; };
 
+/**
+ * Ingress. The wave appears far out on a bearing and closes at a fixed rate, so
+ * the approach has a designed *duration* rather than whatever falls out of a
+ * lerp. Waves used to materialise 700 m away and within ten degrees of the
+ * crosshair — inside the frustum, at a size the eye resolves, on the exact spot
+ * the player is already looking. Nothing was ever seen coming; it was seen
+ * arriving.
+ */
 ST.enter = (a, dt, w) => {
-  a.offset.z += (a.entryZ - a.offset.z) * Math.min(1, dt * 1.2);
-  if (a.stateT > a.attackAt) setState(a, a.openWith || 'attack', w);
+  a.offset.z = Math.min(a.entryZ, a.offset.z + (a.closeRate ?? 285) * dt);
+  a.offset.x += (a.entryX - a.offset.x) * Math.min(1, dt * 0.7);
+  a.offset.y += (a.entryY - a.offset.y) * Math.min(1, dt * 0.7);
+  a.alert = 0.45;
+  if (a.offset.z >= a.entryZ - 1 && a.stateT > a.attackAt) setState(a, a.openWith || 'attack', w);
 };
 
 export function setState(a, s, w) {
@@ -283,9 +324,22 @@ const STEP = {
  */
 export function think(a, dt, w) {
   a.stateT += dt;
+  a.lifeT += dt;
   a.hitT = Math.max(0, a.hitT - dt);
 
   if (a.dying) { dieStep(a, dt, w); return; }
+
+  /* The wave life budget. Measured: with a 3.2 s wave cadence and a 10–20 s
+     attack/break/loop cycle, live enemy count climbed 3 → 7 → 12 → 32 over one
+     run and no wave ever resolved. Over budget, a craft finishes the pass it is
+     flying and then goes home; past a grace period it goes home regardless. */
+  if (!a.spec.static && a.lifeT > a.leaveAt && a.state !== 'exit' && a.state !== 'hunt') {
+    if (a.lifeT > a.leaveAt + 5 || (a.state !== 'attack' && a.state !== 'break')) {
+      setState(a, 'exit', w);
+    } else {
+      a.maxPasses = 0;               // break → exit instead of break → loop
+    }
+  }
 
   const step = STEP[a.state] || ST.attack;
   step(a, dt, w);
@@ -316,11 +370,8 @@ export function think(a, dt, w) {
   _b.normalize().multiplyScalar(a.spec.maxSpeed * closeK);
   _b.addScaledVector(w.player.vel, clamp(1 - dist / 400, 0, 1));
 
-  /* a ram drone ignores stations and goes straight for the player */
-  if (a.spec.ram && a.state !== 'exit') {
-    leadPoint(a.pos, w.player.pos, w.player.vel, a.spec.maxSpeed, _c);
-    _b.copy(_c).sub(a.pos).normalize().multiplyScalar(a.spec.maxSpeed);
-  }
+  /* a ram drone trades itself for your shield — see ramStep */
+  if (a.spec.ram && a.state !== 'exit') ramStep(a, dt, w, _b);
 
   /* light separation so a wing does not converge to a point */
   if (w.neighbours) {
@@ -335,6 +386,59 @@ export function think(a, dt, w) {
 
   flyStep(a, _b, dt);
   gunnery(a, dt, w);
+}
+
+/**
+ * Ram drones, in three beats: MARK → DIVE → SPENT.
+ *
+ * The old version re-solved a perfect intercept every tick and flew it at
+ * 270 m/s with a 2.2 rad/s turn rate. That is a homing missile, and it showed:
+ * measured over a five-drone swarm, all five closed to within 2 m and the
+ * player lost 70 of 100 shield with no input that could have changed it. A
+ * suicide drone has to be *beatable by moving*, or it is a tax rather than a
+ * threat.
+ *
+ * So a drone now shadows you first (flaring its core, which is the telegraph),
+ * then commits to a single solved intercept and flies that line. Sidestep and
+ * it goes past. Better pilots get exactly one mid-course correction. The wave
+ * staggers its commits, so five drones read as five decisions the player can
+ * answer one at a time instead of one wall of damage.
+ */
+function ramStep(a, dt, w, out) {
+  a.ramT += dt;
+
+  if (a.ram === 'mark') {
+    // hold station, and flare just before committing so the dive is legible
+    a.alert = a.ramT > a.ramWait - 0.6 ? 1 : 0.5;
+    if (a.ramT >= a.ramWait) {
+      a.ram = 'dive';
+      a.ramT = 0;
+      leadPoint(a.pos, w.player.pos, w.player.vel, a.spec.maxSpeed, a.ramAim);
+      a.ramDist0 = Math.max(1, a.pos.distanceTo(a.ramAim));
+      a.ramFixes = a.skill > 0.5 ? 1 : 0;
+    }
+    return;
+  }
+
+  if (a.ram === 'dive') {
+    _c.copy(a.ramAim).sub(a.pos);
+    let d = _c.length();
+    if (a.ramFixes > 0 && d < a.ramDist0 * 0.5) {
+      a.ramFixes--;
+      leadPoint(a.pos, w.player.pos, w.player.vel, a.spec.maxSpeed, a.ramAim);
+      _c.copy(a.ramAim).sub(a.pos);
+      d = _c.length();
+    }
+    // spent once the line is flown out, or once it is past the player
+    if (d < 10 || a.pos.z > w.player.pos.z + 60 || a.ramT > 7) { a.ram = 'spent'; return; }
+    a.alert = 1;
+    out.copy(_c).normalize().multiplyScalar(a.spec.maxSpeed);
+    return;
+  }
+
+  // spent — it missed, and a drone that missed does not get a second attempt
+  if (a.state !== 'exit') { a.state = 'exit'; a.stateT = 0; }
+  a.alert = 0;
 }
 
 /** Turrets do not fly; they slew. */

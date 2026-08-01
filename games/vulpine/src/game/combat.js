@@ -80,35 +80,84 @@ const PODS = [
 // spawn happens once, when the player crosses it. Keep the gaps honest — a
 // shooter that never stops shooting has no dynamics, and the quiet stretches
 // are where the level gets to be looked at.
+//
+// Per-wave knobs, and why each one exists:
+//
+//   spawn   metres ahead at which the wave appears. Everything used to appear
+//           at ~700 m — close enough to resolve as a ship, so waves *arrived*
+//           instead of *approaching*. A long spawn buys the player a read.
+//   arc     entry bearing as a screen fraction: -1 hard left, +1 hard right.
+//           Measured, every wave in the old table entered at |ndc.x| ≈ 0.1, i.e.
+//           on the crosshair, so all sixteen encounters looked identical.
+//   climb   the same, vertically.
+//   life    seconds a craft owns the field before it is required to leave. The
+//           single most important number in this table — see ai.js:think.
+//   skill   added to every pilot's roll. Now runs 0 → 0.5 across the mission,
+//           against a much narrower base roll, so the ramp is actually felt.
+//   aggro   pushes reload rate and how hard a pass presses in.
+//   markFor / stagger  ram-drone commit delay and per-drone spacing.
+//   first / step / bank  ground-battery placement (see spawnWave).
+//
+// The two `from: 'behind'` waves are left exactly as they were found — the
+// owner has deferred the rear-attacker question and is reviewing it separately.
 
 const WAVES = [
-  { z: -260, kind: 'raptor', n: 3, form: 'vee', from: 'ahead' },
-  { z: -820, kind: 'raptor', n: 4, form: 'echelon', from: 'ahead', skill: 0.05 },
-  { z: -1380, kind: 'wasp', n: 5, form: 'swarm', from: 'ahead' },
-  { z: -1950, kind: 'bulwark', n: 3, form: 'banks' },
+  // ── act 1: teach the fight ────────────────────────────────────────────────
+  // Three raptors resolving out of the haze off the left shoulder. One pass,
+  // then they are gone: the player's first encounter has to have an end.
+  { z: -170, kind: 'raptor', n: 3, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.62, climb: 0.30, life: 7.0 },
+  // Same enemy, more of them, from the other side, pressing harder.
+  { z: -900, kind: 'raptor', n: 4, form: 'echelon', from: 'ahead', spawn: 1200, arc: 0.70, climb: -0.20, skill: 0.08, aggro: 0.05, life: 7.5 },
+  // First "oh no": a swarm that arrives as one mass and comes apart into five
+  // committed dives, 0.6 s apart, each of which can be dodged.
+  { z: -1500, kind: 'wasp', n: 5, form: 'swarm', from: 'ahead', spawn: 1450, arc: 0.08, climb: 0.44, life: 8.0, markFor: 2.3, stagger: 0.62 },
+  // The ground shoots back. Staggered down the rail so you meet them one at a
+  // time and can see the tracers coming off the bank.
+  { z: -2050, kind: 'bulwark', n: 3, form: 'banks', first: 780, step: 330, bank: 115 },
+
   { z: -2380, kind: 'raptor', n: 4, form: 'vee', from: 'behind', skill: 0.1 },
-  { z: -2900, kind: 'hornet', n: 2, form: 'pair', from: 'ahead' },
-  { z: -3350, kind: 'bulwark', n: 4, form: 'banks' },
-  { z: -3700, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', skill: 0.15, hunt: true },
-  { z: -4300, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead' },
-  { z: -4750, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', skill: 0.1 },
-  { z: -5300, kind: 'bulwark', n: 4, form: 'banks' },
-  { z: -5750, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', skill: 0.2, hunt: true },
-  { z: -6300, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead' },
+
+  // ── act 2: the gorge ──────────────────────────────────────────────────────
+  // Two gunboats. Heavy, slow, 14 hp — the first enemy that does not die to a
+  // single burst, so it is worth spawning far out and letting it loom.
+  { z: -2900, kind: 'hornet', n: 2, form: 'pair', from: 'ahead', spawn: 1550, arc: -0.30, climb: 0.10, skill: 0.14, life: 11 },
+  { z: -3380, kind: 'bulwark', n: 4, form: 'banks', first: 720, step: 300, bank: 105 },
+  // The rescue beat: one of them peels onto a wingman and Slippy calls for help.
+  { z: -3800, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1300, arc: 0.55, climb: -0.28, skill: 0.20, aggro: 0.10, hunt: true, life: 9 },
+  { z: -4380, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1500, arc: -0.25, climb: 0.36, skill: 0.2, life: 8.0, markFor: 1.9, stagger: 0.50 },
+  { z: -4850, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1500, arc: 0.34, climb: 0.22, skill: 0.26, aggro: 0.12, life: 11 },
+  { z: -5350, kind: 'bulwark', n: 4, form: 'banks', first: 760, step: 280, bank: 100 },
+  { z: -5800, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.48, climb: 0.32, skill: 0.32, aggro: 0.16, hunt: true, life: 8.5 },
+
+  // ── act 3: the dropship ───────────────────────────────────────────────────
+  // A 30 m assault transport is the level's only mid-boss, and it was a single
+  // craft spawned at 650 m with no escort and no staging — 1500 points that the
+  // player flew past. It now resolves over 2.3 km of approach and puts two
+  // fighters in the air out of its hangar as you close.
+  { z: -6150, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: 0.06, climb: 0.16, skill: 0.34, aggro: 0.2, life: 24, close: 200, escort: 2 },
+
   { z: -6800, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.2 },
-  { z: -7300, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', skill: 0.2 },
-  { z: -7800, kind: 'wasp', n: 8, form: 'swarm', from: 'ahead' },
-  { z: -8250, boss: true },
+
+  // ── act 4: the run in ─────────────────────────────────────────────────────
+  { z: -7250, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: -0.40, climb: -0.14, skill: 0.42, aggro: 0.22, life: 10 },
+  // Last swarm, tightest stagger in the game — and it clears 700 m before the
+  // carrier trigger, so the boss does not arrive into a cloud of leftovers.
+  { z: -7550, kind: 'wasp', n: 8, form: 'swarm', from: 'ahead', spawn: 1400, arc: 0.20, climb: 0.30, skill: 0.5, life: 7.0, markFor: 1.6, stagger: 0.38 },
+  { z: -8300, boss: true },
 ];
 
 const COMMS = [
-  { z: -240, who: 'PEPPY', text: 'Enemy craft ahead — form up!' },
-  { z: -1360, who: 'FALCO', text: "Drones. Don't let them touch you." },
-  { z: -1930, who: 'SLIPPY', text: 'Ground batteries on both banks!' },
-  { z: -3680, who: 'PEPPY', text: 'They\'re going for Slippy — shake them off!' },
-  { z: -4280, who: 'FALCO', text: 'Gorge is tightening. Watch the walls.' },
-  { z: -6280, who: 'SLIPPY', text: 'That one\'s armoured! Hit the engines!' },
-  { z: -8200, who: 'PEPPY', text: 'Carrier dead ahead. This is it, Fox.' },
+  { z: -150, who: 'PEPPY', text: 'Contacts, high off your port bow!' },
+  { z: -880, who: 'FALCO', text: 'Second flight, starboard. I\'ve got the far one.' },
+  { z: -1480, who: 'FALCO', text: "Drones! Don't let them touch you — break when they commit." },
+  { z: -2030, who: 'SLIPPY', text: 'Ground batteries on both banks!' },
+  { z: -2860, who: 'PEPPY', text: 'Gunboats. They soak a lot more than the fighters.' },
+  { z: -3780, who: 'PEPPY', text: 'They\'re going for Slippy — shake them off!' },
+  { z: -4360, who: 'FALCO', text: 'Gorge is tightening. Watch the walls.' },
+  { z: -5950, who: 'SLIPPY', text: 'Big contact ahead — that reads as a dropship!' },
+  { z: -6420, who: 'PEPPY', text: 'It\'s armoured, Fox. Hit the engines.' },
+  { z: -7950, who: 'FALCO', text: 'Scopes are clear. Too clear.' },
+  { z: -8260, who: 'PEPPY', text: 'Carrier dead ahead. This is it, Fox.' },
 ];
 
 /* ── formations ───────────────────────────────────────────────────────────── */
@@ -124,6 +173,21 @@ function station(form, i, n) {
     ];
     default: return [s * 90, 14, 0];
   }
+}
+
+/**
+ * Where a wave first shows up on screen, in metres, from a bearing expressed as
+ * a screen fraction. At the default 58° vertical FOV and 16:9, `arc = 1` puts
+ * the craft at roughly |ndc.x| = 0.7 — well outside the reticle, so the player
+ * turns to look at it — and the attack state walks it back to the centreline as
+ * it closes. `fan` spreads the wing across that bearing so a formation enters
+ * as a line of contacts rather than a stack of one.
+ */
+function entryPoint(w, i, n, dist, out) {
+  const s = n > 1 ? (i - (n - 1) / 2) / ((n - 1) / 2) : 0;
+  const arc = (w.arc ?? 0) + s * (w.fan ?? 0.18);
+  const climb = (w.climb ?? 0) + s * (w.fanY ?? 0.06);
+  return out.set(arc * dist * 0.42, climb * dist * 0.20, -dist);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════ */
@@ -177,6 +241,8 @@ export function installCombat(ctx) {
   let charging = false;
   let invuln = 0;
   let deadT = -1;
+  let firstKill = false;
+  let shotParity = 0;
   let bombGeo = null, bombMat = null;
 
   const _v = new THREE.Vector3();
@@ -292,8 +358,10 @@ export function installCombat(ctx) {
     convergePoint(_conv);
     const inherit = view.player.vel;
     // Twin-linked: alternate outer and inner pods so the pair reads as a
-    // rhythm rather than a wall of light.
-    const pair = (state.hits & 1) ? [2, 3] : [0, 1];
+    // rhythm rather than a wall of light. This keyed off `state.hits`, which
+    // only increments on a *kill* — so the pods alternated once per dead
+    // enemy instead of once per shot, and the rhythm never existed.
+    const pair = (shotParity++ & 1) ? [2, 3] : [0, 1];
     for (const i of pair) {
       _v.copy(PODS[i]).applyMatrix4(ship.matrixWorld);
       _v2.copy(_conv).sub(_v).normalize();
@@ -357,22 +425,35 @@ export function installCombat(ctx) {
 
   /* ── spawning ───────────────────────────────────────────────────────────── */
   function spawnWave(w) {
-    if (w.boss) { spawnBoss(); return; }
+    if (w.boss) {
+      // Stage the boss: anything still on the field is told to go home so the
+      // capital ship arrives into clean air instead of a cloud of leftovers.
+      for (const f of foes) if (!f.spec.static) f.agent.leaveAt = 0;
+      spawnBoss();
+      return;
+    }
     const spec = enemySpec(w.kind);
     for (let i = 0; i < w.n; i++) {
       const root = createEnemy(w.kind);
       enemyGroup.add(root);
-      const a = makeAgent(spec, R, { skill: w.skill ?? 0, wing: firedWaves });
+      const a = makeAgent(spec, R, {
+        skill: w.skill ?? 0, aggro: w.aggro ?? 0, wing: firedWaves,
+        life: w.life ?? 8.5, markFor: w.markFor ?? 1.8,
+      });
       const [sx, sy, sz] = station(w.form, i, w.n);
 
       if (spec.static) {
         // Ground batteries sit on the bank, alternating sides, ahead of you.
+        // They used to start 420 m out and sit 150–270 m off the rail, which is
+        // 30° off axis at contact: measured, a battery was inside the reticle
+        // for 0.24 s of its entire life. Further ahead and tighter in means you
+        // see the tracers leave the bank and have time to answer them.
         const side = i % 2 ? 1 : -1;
-        const z = view.player.pos.z - (420 + i * 210);
+        const z = view.player.pos.z - ((w.first ?? 760) + i * (w.step ?? 310));
         // Batteries sit on the bank, so they are placed off the *rail centre*
         // at that z, not off the player — the river meanders and a fixed world
         // offset would drop half of them in the water.
-        const u = side * (150 + R.range(0, 120));
+        const u = side * ((w.bank ?? 110) + R.range(0, 85));
         const x = ctx.flight.railPoint(z, _v).x + u;
         const g = ctx.world.groundAt(x, z);
         a.pos.set(x, g + 3.2, z);
@@ -382,16 +463,28 @@ export function installCombat(ctx) {
       } else {
         const behind = w.from === 'behind';
         a.entryZ = behind ? 340 : -(620 + i * 40);
+        a.closeRate = w.close ?? 285;
         a.runX = sx; a.runY = sy;
         a.homeZ = sz - 300;
         a.attackAt = 0.5 + i * 0.28 + R.range(0, 0.4);
-        a.maxPasses = 2 + (R.next() < 0.4 ? 1 : 0);
+        a.maxPasses = 1 + (R.next() < 0.45 ? 1 : 0);
         a.strafeFor = 2.4 + R.range(0, 1.6);
         a.openWith = behind ? 'attack' : (R.next() < 0.25 ? 'strafe' : 'attack');
-        a.offset.set(sx, sy, a.entryZ);
+        if (behind) {
+          a.offset.set(sx, sy, a.entryZ);
+          a.entryX = sx; a.entryY = sy;
+        } else {
+          entryPoint(w, i, w.n, (w.spawn ?? 1250) + i * 60, _v2);
+          a.entryX = _v2.x; a.entryY = _v2.y;
+          a.offset.copy(_v2);
+        }
+        if (spec.ram) a.ramWait = (w.markFor ?? 1.8) + i * (w.stagger ?? 0.6);
         a.pos.copy(view.player.pos).add(a.offset);
         a.pos.y = Math.max(a.pos.y, ctx.world.groundAt(a.pos.x, a.pos.z) + 30);
-        a.fwd.set(0, 0, behind ? -1 : -1);
+        // Nose-on. An 'ahead' wave flies *at* you, so it enters pointing +z; it
+        // used to enter pointing away and spend two seconds of turn rate
+        // reversing while sliding backwards down the rail.
+        a.fwd.set(0, 0, behind ? -1 : 1);
         a.state = 'enter';
         orient(a);
       }
@@ -402,6 +495,8 @@ export function installCombat(ctx) {
         a.leader = foes.length ? foes[foes.length - 1].agent : null;
         a.slot.set(sx * 0.4, sy * 0.4, sz * 0.4);
       }
+      // a carrier puts fighters in the air instead of just being large
+      if (spec.carrier && w.escort) foe.launch = { left: w.escort, t: 3.2 };
       foes.push(foe);
     }
 
@@ -420,6 +515,36 @@ export function installCombat(ctx) {
     }
   }
 
+  /**
+   * A dropship's hangar mouth is modelled and animated; nothing ever came out
+   * of it. Two fighters launched as the player closes turns 1500 points of
+   * scenery into a set piece, and costs two craft rather than a bigger wave.
+   */
+  function launchEscort(carrier) {
+    const spec = enemySpec('raptor');
+    const root = createEnemy('raptor');
+    enemyGroup.add(root);
+    const a = makeAgent(spec, R, { skill: 0.28, aggro: 0.2, life: 7.5, wing: 99 });
+    a.pos.copy(carrier.agent.pos);
+    a.pos.x += R.range(-11, 11);
+    a.pos.y -= 2.5;
+    a.offset.copy(a.pos).sub(view.player.pos);
+    a.entryX = a.offset.x; a.entryY = a.offset.y;
+    a.entryZ = Math.min(-260, a.offset.z + 140);
+    a.closeRate = 340;
+    a.runX = R.range(-80, 80); a.runY = 14;
+    a.homeZ = a.entryZ - 200;
+    a.attackAt = 0.3;
+    a.maxPasses = 1;
+    a.strafeFor = 1.4;
+    a.openWith = 'attack';
+    a.fwd.set(0, 0, 1);
+    a.state = 'enter';
+    orient(a);
+    foes.push({ agent: a, root, kind: 'raptor', spec, hitFlash: 0 });
+    ctx.audio.play('bombLaunch', { pos: a.pos });
+  }
+
   function spawnBoss() {
     if (boss) return;
     const root = createBoss();
@@ -427,7 +552,10 @@ export function installCombat(ctx) {
     group.add(root);
     const pos = new THREE.Vector3();
     pos.copy(view.player.pos);
-    pos.z -= 1400;
+    // 1400 m was 8 s of approach at cruise, but the wave before it used to land
+    // 2.6 s earlier, so the carrier resolved behind a screen of fighters. It
+    // now gets clean air and a longer walk-in.
+    pos.z -= 1900;
     pos.y = Math.max(pos.y + 40, ctx.world.groundAt(pos.x, pos.z) + 90);
     root.position.copy(pos);
     boss = {
@@ -454,13 +582,30 @@ export function installCombat(ctx) {
     a.hitT = 0.12;
     foe.hitFlash = 1;
     a.evadeT = Math.max(a.evadeT, 0.5);
-    ctx.fx.impact(hitPos, _v2.copy(hitPos).sub(a.pos).normalize(), {});
+    ctx.fx.impact(hitPos, _v2.copy(hitPos).sub(a.pos).normalize(),
+      { scale: 0.75 + foe.spec.radius * 0.09 });
     if (a.hp <= 0) {
       killAgent(a, RG, impulse);
       state.score += foe.spec.score;
       state.hits++;
-      ctx.fx.explosion(a.pos, { size: foe.spec.radius * 0.9 });
-      ctx.audio.play('explosion', { pos: a.pos, size: foe.spec.radius });
+      // fx.explosion reads `scale`, not `size` — this call passed `size` and so
+      // every kill in the game, from a 1.5 m drone to a 9.5 m dropship, went off
+      // at exactly scale 1. `boomScale` has been sitting in every enemy spec
+      // unused since the hulls were written.
+      const boom = foe.spec.boomScale ?? 1;
+      // Two stages: the round that kills it opens it up, and the wreck goes off
+      // properly when it hits something (the retire path below). One full-size
+      // detonation twice in a row reads as a bug rather than as a kill.
+      ctx.fx.explosion(a.pos, { scale: boom * 0.55, velocity: a.vel });
+      ctx.audio.play('explosion', { pos: a.pos, size: foe.spec.radius * boom * 0.7 });
+      // A kill you can feel. Scaled by distance so a wing dying at 600 m does
+      // not shake the camera, and by mass so a dropship lands harder.
+      const near = a.pos.distanceTo(view.player.pos);
+      if (near < 340) ctx.flight.addShake(Math.min(0.34, 0.10 * boom * (1 - near / 340)));
+      if (!firstKill) {
+        firstKill = true;
+        say('FALCO', 'Good shot, Fox!');
+      }
       if (a.prey) a.prey.info && (a.prey = null);
     } else {
       ctx.audio.play('impact', { pos: hitPos });
@@ -470,7 +615,10 @@ export function installCombat(ctx) {
   function hurtPlayer(dmg, from) {
     if (invuln > 0 || deadT >= 0 || state.outcome) return;
     state.shieldRaw = Math.max(0, state.shieldRaw - dmg);
-    ctx.fx.addFlash(Math.min(0.5, dmg * 0.02));
+    // The flash budget is shared and it accumulates. Five drone rams inside a
+    // second used to stack to the 1.2 cap and white the entire frame out for
+    // the whole encounter — see shots/k0-t10. A hit should punch, not blind.
+    ctx.fx.addFlash(Math.min(0.3, dmg * 0.011));
     ctx.flight.addShake(Math.min(1.2, dmg * 0.05));
     if (from) ctx.fx.shieldHit(ctx.ship.position, from, TUNE.playerRadius * 1.6, 1);
     ctx.audio.play('playerHit', { amount: dmg / 30 });
@@ -479,7 +627,7 @@ export function installCombat(ctx) {
 
   function killPlayer() {
     deadT = 0;
-    ctx.fx.explosion(ctx.ship.position, { size: 5.5 });
+    ctx.fx.explosion(ctx.ship.position, { scale: 2.6 });
     ctx.fx.addFlash(0.9);
     ctx.flight.addShake(1.6);
     ctx.audio.play('explosion', { pos: ctx.ship.position, size: 6 });
@@ -513,7 +661,7 @@ export function installCombat(ctx) {
     if (best.hp <= 0 && best.alive) {
       best.alive = false;
       _v.copy(best.local).applyMatrix4(best.node.matrixWorld);
-      ctx.fx.explosion(_v, { size: best.radius * 1.2 });
+      ctx.fx.explosion(_v, { scale: best.radius * 0.5 });
       ctx.audio.play('explosion', { pos: _v, size: best.radius });
       state.score += 500;
       if (best.kind === 'engine') { api.killNacelle(best.index); boss.list += 0.16; }
@@ -546,7 +694,7 @@ export function installCombat(ctx) {
       if (b.dying < 4.0 && RG.next() < dt * 9) {
         _v.copy(b.root.position);
         _v.x += RG.range(-32, 32); _v.y += RG.range(-9, 14); _v.z += RG.range(-34, 34);
-        ctx.fx.explosion(_v, { size: 5 + RG.range(0, 9) });
+        ctx.fx.explosion(_v, { scale: 1.4 + RG.range(0, 2.6) });
         ctx.audio.play('explosion', { pos: _v, size: 8 });
       }
       b.root.position.y -= dt * 7 * Math.min(1, b.dying * 0.5);
@@ -730,7 +878,7 @@ export function installCombat(ctx) {
       }
       if (boom) {
         _v.set(b.x, b.y, b.z);
-        ctx.fx.explosion(_v, { size: 16, shock: true });
+        ctx.fx.explosion(_v, { scale: 4.2, shock: true });
         ctx.fx.addFlash(0.4);
         ctx.flight.addShake(0.5);
         ctx.audio.play('explosion', { pos: _v, size: 18 });
@@ -862,23 +1010,46 @@ export function installCombat(ctx) {
       f.root.position.copy(a.pos);
       f.root.quaternion.copy(a.quat);
       animateEnemy(f.root, dt, {
-        power: a.dying ? 0 : 1, alert: a.alert, damage: a.dying ? 1 : 1 - a.hp / a.maxHp, t: view.time,
+        power: a.dying ? 0 : 1,
+        alert: a.alert,
+        // `hitFlash` was set on every hit, decayed every frame, and read by
+        // nothing. Folded into the damage term it drops the engines and eyes
+        // out for a beat, so the craft visibly flinches — which is how the
+        // player knows a round connected on something that did not die.
+        damage: a.dying ? 1 : Math.min(1, (1 - a.hp / a.maxHp) + f.hitFlash * 0.55),
+        t: view.time,
       });
+
+      // a carrier feeds the fight instead of merely being big
+      if (f.launch && !a.dying && a.state !== 'exit') {
+        f.launch.t -= dt;
+        if (f.launch.t <= 0 && f.launch.left > 0 && view.playerRange < 1700) {
+          f.launch.left--;
+          f.launch.t = 2.4;
+          launchEscort(f);
+        }
+      }
 
       // ram drones trade themselves for a chunk of your shield
       if (!a.dying && a.spec.ram && view.playerRange < TUNE.playerRadius + a.spec.radius + 2) {
-        hurtPlayer(TUNE.ramDmg, a.pos);
+        hurtPlayer(a.spec.dmg || TUNE.ramDmg, a.pos);
         killAgent(a, RG);
-        ctx.fx.explosion(a.pos, { size: a.spec.radius });
+        ctx.fx.explosion(a.pos, { scale: a.spec.boomScale ?? 1 });
         ctx.audio.play('explosion', { pos: a.pos, size: a.spec.radius });
       }
 
-      // retire: dead, or so far behind that it will never matter again
+      // Retire: dead, or so far behind that it will never matter again. A craft
+      // that has decided to leave is retired as soon as the chase camera cannot
+      // see it — the old 700 m threshold kept departing fighters alive and
+      // shooting from over the player's shoulder for another four seconds each,
+      // which is most of where the "everything is behind me" feeling came from.
       const behind = a.pos.z - view.player.pos.z;
-      if (a.dead || behind > 1400 || (a.state === 'exit' && behind > 700)) {
+      const stale = a.state === 'exit' && (behind > 300 || a.stateT > 6);
+      if (a.dead || behind > (a.spec.static ? 720 : 1400) || stale) {
         if (a.dead && !a.spec.static) {
-          ctx.fx.explosion(a.pos, { size: a.spec.radius * 1.1 });
-          ctx.audio.play('explosion', { pos: a.pos, size: a.spec.radius });
+          const boom = f.spec.boomScale ?? 1;
+          ctx.fx.explosion(a.pos, { scale: boom });
+          ctx.audio.play('explosion', { pos: a.pos, size: a.spec.radius * boom });
         }
         enemyGroup.remove(f.root);
         disposeEnemy(f.root);

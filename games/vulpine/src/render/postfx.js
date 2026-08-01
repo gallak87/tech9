@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { Pass, FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { SMAAPass } from 'three/examples/jsm/postprocessing/SMAAPass.js';
+import { bakeLensDirt } from './textures.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Frame graph
@@ -1767,6 +1768,12 @@ export function buildComposer(engine, opts = {}) {
   composer.addPass(motion);
 
   const bloom = new BloomPass();
+  // The whole lens-dirt path existed except for this line. `BLOOM_COMBINE_FRAG`
+  // has the branch, `matCombine` has `tDirt`, and all three environment presets
+  // already ask for it (`dirt: 0.04 / 0.10 / 0.14`) — but `dirtTexture` was left
+  // null, and `uHasDirt` is gated on the texture being present, so the feature
+  // silently did nothing rather than failing loudly. One bake, shared, 256².
+  bloom.dirtTexture = bakeLensDirt();
   composer.addPass(bloom);
 
   const flare = new LensFlarePass(scenePass.depthTexture);

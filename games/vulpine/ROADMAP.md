@@ -147,7 +147,10 @@ Multiple levels, all-range mode, branching paths, multiplayer, binary assets.
    clippedPct < 4, blackPct < 12.
 5. Zero console errors from `shot.mjs`, `inputtest.mjs`, `pacing.mjs`, `bossprobe.mjs`.
 6. Every control in `inputtest.mjs` does what the legend says.
-7. No dead code: every module written is imported and reachable.
+7. No dead code: every module written is imported and reachable. Standing
+   total, measured by sweeping every export in `src/**` for references outside
+   its own file: **~275 lines**, essentially all of it the Phase 9 built-world
+   materials. Re-run that sweep before claiming this criterion.
 
 ---
 

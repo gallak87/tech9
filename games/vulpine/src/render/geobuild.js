@@ -108,86 +108,6 @@ export function superellipse(count, rx, ry, p = 2.4, { squash = 1, yOffset = 0, 
   return pts;
 }
 
-/** NACA-4-ish airfoil (upper then lower surface, closed loop). */
-export function airfoil(count, chord, thickness, camber = 0.02, camberPos = 0.4) {
-  const half = Math.max(4, count >> 1);
-  const upper = [], lower = [];
-  for (let i = 0; i <= half; i++) {
-    // cosine spacing packs samples at the leading edge where curvature is high
-    const beta = (i / half) * Math.PI;
-    const x = (1 - Math.cos(beta)) * 0.5;
-    const yt = 5 * thickness * (0.2969 * Math.sqrt(x) - 0.1260 * x - 0.3516 * x * x + 0.2843 * x ** 3 - 0.1036 * x ** 4);
-    let yc, dyc;
-    if (x < camberPos) {
-      yc = (camber / (camberPos ** 2)) * (2 * camberPos * x - x * x);
-      dyc = (2 * camber / (camberPos ** 2)) * (camberPos - x);
-    } else {
-      yc = (camber / ((1 - camberPos) ** 2)) * (1 - 2 * camberPos + 2 * camberPos * x - x * x);
-      dyc = (2 * camber / ((1 - camberPos) ** 2)) * (camberPos - x);
-    }
-    const th = Math.atan(dyc);
-    upper.push(new THREE.Vector2((x - yt * Math.sin(th)) * chord, (yc + yt * Math.cos(th)) * chord));
-    lower.push(new THREE.Vector2((x + yt * Math.sin(th)) * chord, (yc - yt * Math.cos(th)) * chord));
-  }
-  lower.pop(); lower.shift();
-  return upper.concat(lower.reverse());
-}
-
-/**
- * Sweep a 2D profile along a set of stations.
- * station = { z, scale:[sx,sy], offset:[ox,oy], twist }
- */
-export function sweepProfile(profile, stations, opts = {}) {
-  const rings = stations.map(st => {
-    const [sx, sy] = st.scale ?? [1, 1];
-    const [ox, oy] = st.offset ?? [0, 0];
-    const tw = st.twist ?? 0;
-    const c = Math.cos(tw), s = Math.sin(tw);
-    return profile.map(p => {
-      const x = p.x * sx, y = p.y * sy;
-      return new THREE.Vector3(x * c - y * s + ox, x * s + y * c + oy, st.z);
-    });
-  });
-  return loft(rings, opts);
-}
-
-/**
- * Wing lofted from airfoil stations along a swept, tapered, dihedral span.
- * station = { span (x), chord, thickness, sweep (z of leading edge), rise (y),
- *             twist (washout, radians), camber }
- * Span runs along +X, chord runs aft along +Z, leading edge sits at `sweep`.
- */
-export function wingGeometry(spans, resolution = 26, opts = {}) {
-  const rings = spans.map(s => {
-    const af = airfoil(resolution, s.chord, s.thickness, s.camber ?? 0.015);
-    const tw = s.twist ?? 0;
-    const c = Math.cos(tw), sn = Math.sin(tw);
-    return af.map(p => {
-      const cx = p.x, cy = p.y;              // chordwise, thickness
-      const rz = (cx * c - cy * sn) + (s.sweep ?? 0);
-      const ry = (cx * sn + cy * c) + (s.rise ?? 0);
-      return new THREE.Vector3(s.span, ry, rz);
-    });
-  });
-  return loft(rings, { capStart: true, capEnd: true, closed: true, ...opts });
-}
-
-/** Ring of instanced greeble boxes around a cylinder — engine detail, hull vents. */
-export function greebleRing({ count = 12, radius = 1, z = 0, size = [0.12, 0.06, 0.3], jitter = 0, rng = null }) {
-  const geos = [];
-  for (let i = 0; i < count; i++) {
-    const a = (i / count) * Math.PI * 2;
-    const j = rng ? (rng.next() - 0.5) * jitter : 0;
-    const g = chamferBox(size[0], size[1], size[2] * (1 + j), Math.min(size[0], size[1]) * 0.28);
-    const m = new THREE.Matrix4()
-      .makeRotationZ(a)
-      .multiply(new THREE.Matrix4().makeTranslation(0, radius, z));
-    g.applyMatrix4(m);
-    geos.push(g);
-  }
-  return mergeGeometries(geos.map(g => g.index ? g.toNonIndexed() : g), false);
-}
-
 /**
  * Merge a list of [geometry, matrix] pairs into one buffer geometry.
  * Normals are computed **per part before merging** and then left alone — a
@@ -774,9 +694,6 @@ export function chamferBox(w, h, d, r = 0.02, seg = 2) {
   ];
   return loft(rings, { capStart: true, capEnd: true, closed: true });
 }
-/** Back-compat alias — old call sites expect a plain box signature. */
-export const bevelBox = chamferBox;
-
 /** Wedge/plate from a 2D outline, chamfered on both faces. */
 export function extrudePoly(pts2d, depth, chamfer = 0.015) {
   const cx = pts2d.reduce((a, p) => a + p.x, 0) / pts2d.length;

@@ -17,6 +17,10 @@ const KEYMAP = {
   pause:   ['Escape', 'KeyP'],
   view:    ['KeyF'],
   help:    ['KeyH', 'Slash'],
+  // Menu-only bindings. Separate from the flight controls on purpose: the menu
+  // wants discrete presses, and `up`/`down` are a ramped analogue stick.
+  confirm: ['Enter', 'NumpadEnter', 'Space'],
+  back:    ['Escape', 'Backspace'],
 };
 
 /** Human-readable control map — the on-screen legend renders straight from this. */
@@ -50,6 +54,7 @@ export const Input = {
     somersaultPressed: false, uturnPressed: false,
     pausePressed: false, viewPressed: false,
     helpPressed: false,
+    confirmPressed: false, upPressed: false, downPressed: false,
     anyPressed: false,
     usingPad: false,
   },
@@ -168,6 +173,9 @@ export const Input = {
     s.pausePressed = this.hit('pause');
     s.viewPressed = this.hit('view');
     s.helpPressed = this.hit('help');
+    s.confirmPressed = this.hit('confirm');
+    s.upPressed = this.hit('up');
+    s.downPressed = this.hit('down');
     s.anyPressed = this._pressed.size > 0 || s.firePressed;
 
     if (this._scripted) this._scripted(s, t);

@@ -72,33 +72,42 @@ export class BossHealthBar {
     const parts = this.parts;
     if (parts && parts.length) {
       const py = gy + barH + 6 * k;
-      const ph = 7 * k;
+      const ph = 10 * k;
       const gap = 2 * k;
       const pw = (barW - gap * (parts.length - 1)) / parts.length;
+      const cut = Math.min(pw, ph) * 0.3;
       for (let i = 0; i < parts.length; i++) {
         const p = parts[i];
         const px = x + i * (pw + gap);
         const v = sat(p.v);
         const dead = p.alive === false;
-        const col = dead ? 'rgba(120,60,60,0.5)' : mix(C.red, C.amber, v);
+        const col = dead ? 'rgba(160,70,70,0.55)' : mix(C.red, C.amber, v);
+        const initial = (p.label || '?').trim().charAt(0) || '?';
 
-        chamfer(g, px, py, pw, ph, Math.min(pw, ph) * 0.35);
-        g.fillStyle = 'rgba(4,10,17,0.72)';
+        chamfer(g, px, py, pw, ph, cut);
+        g.fillStyle = 'rgba(4,10,17,0.76)';
         g.fill();
 
+        // fill left-to-right — the pip is short and wide, so a bottom-up
+        // thermometer fill (the first pass) was a couple of px of nothing
         if (!dead && v > 0.01) {
           g.save();
-          chamfer(g, px, py, pw, ph, Math.min(pw, ph) * 0.35);
+          chamfer(g, px, py, pw, ph, cut);
           g.clip();
           g.fillStyle = col;
-          g.fillRect(px, py + ph * (1 - v), pw, ph * v);
+          g.fillRect(px, py, pw * v, ph);
           g.restore();
         }
 
-        chamfer(g, px, py, pw, ph, Math.min(pw, ph) * 0.35);
+        chamfer(g, px, py, pw, ph, cut);
         g.lineWidth = 1 * k;
         g.strokeStyle = alpha(C.ice, dead ? 0.15 : 0.32);
         g.stroke();
+
+        text(g, initial, px + pw / 2, py + ph / 2 + 0.3 * k, {
+          size: ph * 0.72, track: 0, weight: 0.22, align: 'center', baseline: 'middle',
+          color: dead ? alpha(C.text, 0.3) : 'rgba(4,10,17,0.75)', shadow: dead ? 0 : 0,
+        });
       }
     }
 

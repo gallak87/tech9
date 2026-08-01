@@ -8,6 +8,7 @@ import { Comms } from './comms.js';
 import { WingmenStrip } from './wingmen.js';
 import { BossHealthBar } from './bosshealth.js';
 import { OutcomeCard } from './outcome.js';
+import { Menu } from './menu.js';
 import { clamp } from './theme.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -53,6 +54,7 @@ export function installUI(ctx) {
   const wingmen = new WingmenStrip();
   const bossHealth = new BossHealthBar();
   const outcome = new OutcomeCard();
+  const menu = new Menu();
 
   /** dpr-independent UI scale + a 16:9 title-safe margin. */
   function layout() {
@@ -101,6 +103,9 @@ export function installUI(ctx) {
     resize,
     visible: true,
     update(dt) {
+      // The menu runs on real frame time — it is on screen precisely when sim
+      // time is stopped, so it cannot be driven from s.time like the rest.
+      menu.update(dt);
       legend.update(dt, ctx.input?.state);
       const s = ctx.state;
       if (!s) return;
@@ -122,6 +127,10 @@ export function installUI(ctx) {
       if (!s) return;
       const L = layout();
 
+      // On the title card the flight HUD is noise — draw the menu alone.
+      const m = ctx.mode;
+      if (m && m.mode === 'title') { menu.draw(g, L, m); return; }
+
       let y = status.draw(g, L, s);
       wingmen.draw(g, L, s, y + 8 * L.s);
 
@@ -136,6 +145,7 @@ export function installUI(ctx) {
       comms.draw(g, L, s, legendFootprint() * legend.alpha);
 
       outcome.draw(g, L, s);
+      if (m) menu.draw(g, L, m);
     },
     dispose() { host.removeChild(canvas); },
   };

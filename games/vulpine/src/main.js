@@ -11,6 +11,7 @@ import { installFx } from './fx/index.js';
 import { installCombat } from './game/combat.js';
 import { installUI } from './ui/index.js';
 import { installAudio } from './core/audio.js';
+import { installMode } from './game/mode.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Boot + main loop.
@@ -59,6 +60,14 @@ ctx.combat = installCombat(ctx);
 ctx.ui = installUI(ctx);
 ctx.audio = installAudio(ctx);
 
+// The review harness drives the game by seeking to a fixed sim time or by
+// naming a shot; neither wants to be greeted by a title card, so those boots
+// go straight to PLAYING. A plain visit gets the title.
+const mode = installMode(ctx, {
+  startPaused: !shotParam && !(seekParam > 0) && params.get('nomenu') !== '1',
+});
+ctx.mode = mode;
+
 engine.onResize = (w, h) => { ctx.ui.resize(w, h); };
 
 /* ── deterministic stepping ─────────────────────────────────────────────── */
@@ -67,8 +76,6 @@ let acc = 0;
 let simTime = 0;
 
 function step(dt) {
-  Input.update(dt, simTime);
-  if (Input.state.anyPressed) ctx.audio.unlock();
   flight.update(dt, Input.state);
   world.update(dt);
   ctx.combat.update(dt);
@@ -127,7 +134,18 @@ let shotMode = null;
 function frame() {
   requestAnimationFrame(frame);
   const dt = engine.tick();
-  if (running && !shotMode) {
+
+  // Input is sampled once per frame, OUTSIDE the fixed step. It used to live
+  // inside step(), which meant a paused game stopped reading the keyboard and
+  // could never be un-paused. Sampling here also matches what input actually
+  // is — a per-frame poll of devices, not a quantity the sim integrates.
+  if (!shotMode) {
+    Input.update(dt, simTime);
+    if (Input.state.anyPressed) ctx.audio.unlock();
+    mode.update(dt);
+  }
+
+  if (running && !shotMode && mode.simActive) {
     acc += dt;
     let guard = 0;
     while (acc >= FIXED && guard++ < 8) { step(FIXED); acc -= FIXED; }
@@ -135,6 +153,14 @@ function frame() {
   } else if (shotMode) {
     applyShot(shotMode, ctx);
     updateScene(dt, false);
+  } else {
+    // Title card or paused: keep presenting frames so the menu animates over a
+    // live view of the level, but advance nothing. The scene already holds its
+    // last state, so only the 2D overlay needs redrawing — and it gets real
+    // frame dt, because sim time is exactly what is frozen here.
+    ctx.audio.setEngine(0, 0);   // don't hold a running engine note under a menu
+    ctx.ui.update(dt);
+    ctx.ui.draw();
   }
   engine.render();
 }

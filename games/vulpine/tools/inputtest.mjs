@@ -101,6 +101,46 @@ await probe('fire — long hold (charge)', 'Space', 150);
 await probe('bomb', 'KeyB', 40);
 await probe('boost', 'ShiftLeft', 40);
 
+/* ── menu capture ───────────────────────────────────────────────────────────
+   The title card and the pause menu are only reachable through real key
+   presses, so the screenshot harness cannot photograph them. This can. */
+if (process.argv.includes('--menu')) {
+  const { mkdir } = await import('node:fs/promises');
+  const out = path.resolve(ROOT, 'shots/menu');
+  await mkdir(out, { recursive: true });
+
+  // pause, from the live game we have been shooting up
+  await page.keyboard.press('Escape');
+  await frames(30);
+  await page.screenshot({ path: path.join(out, 'pause.png') });
+  const paused = await page.evaluate(() => window.__VULPINE__.ctx.mode.mode);
+
+  // menu navigation actually moves the selection
+  await page.keyboard.press('KeyS');
+  await frames(8);
+  const moved = await page.evaluate(() => window.__VULPINE__.ctx.mode.index);
+  await page.screenshot({ path: path.join(out, 'pause-nav.png') });
+
+  // resume
+  await page.keyboard.press('Escape');
+  await frames(20);
+  const resumed = await page.evaluate(() => window.__VULPINE__.ctx.mode.mode);
+
+  // title card needs a boot with no seek
+  await page.goto(`${base}/?quality=medium&hud=1`, { waitUntil: 'load' });
+  await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 120000 });
+  await frames(60);
+  await page.screenshot({ path: path.join(out, 'title.png') });
+  const title = await page.evaluate(() => window.__VULPINE__.ctx.mode.mode);
+  await page.keyboard.press('Enter');
+  await frames(30);
+  const launched = await page.evaluate(() => window.__VULPINE__.ctx.mode.mode);
+
+  console.log('\n  menu: pause=%s  navIndex=%d  resume=%s  boot=%s  afterEnter=%s',
+    paused, moved, resumed, title, launched);
+  console.log('  wrote shots/menu/{title,pause,pause-nav}.png');
+}
+
 const final = await snap();
 console.log('\n  control                     key         fire?   ΔfxParticles  Δscore  Δbombs   lock  boost');
 console.log('  ' + '─'.repeat(88));

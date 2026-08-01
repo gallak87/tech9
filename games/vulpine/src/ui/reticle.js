@@ -215,7 +215,9 @@ export class LockMarker {
       const rx = L.w * 0.46, ry = L.h * 0.42;
       const ex = cx + Math.cos(ang) * rx;
       const ey = cy + Math.sin(ang) * ry;
-      chevron(g, ex, ey, 8 * k, ang + Math.PI / 2, rgba3(c3, 0.9), { glow: 6 * k });
+      chevron(g, ex, ey, 8 * k, ang + Math.PI / 2, rgba3(c3, 0.9), {
+        glow: 6 * k, stroke: 'rgba(2,8,14,0.6)', lw: 1.4 * k,
+      });
     }
 
     g.restore();

@@ -54,7 +54,94 @@ cp src/<your file> /tmp/iso/games/vulpine/src/<your file>
 # capture before/after in /tmp/iso; delete with: git worktree remove /tmp/iso
 ```
 
-## What just changed (this session)
+## Session 2026-08-01 (b) — boss fight + water
+
+Two lanes, one sub-agent on water and the main agent inline on the boss.
+
+**Boss (`game/combat.js`, `ships/boss.js`, `ui/bosshealth.js`).** All three of the
+owner's live-play complaints were real and all three are fixed. Measured with
+the new `tools/bossprobe.mjs`, over a 45 s fight:
+
+| | before | after |
+|---|---|---|
+| in weapon range (<1100 m) | drifted out | **100%** |
+| inside the ±17° lock cone | ~68% | **95.6%** |
+| lock ever holds the boss | impossible | **53.9%** (on a weak point) |
+| rounds that landed on it | **0** | **147** |
+| closest any round got to the hull | 282 m | **12 m** |
+| a part visibly flashing | 0% | **85%** |
+
+Four separate causes, none of which was "drift":
+
+1. *Station-keeping sampled the ground in the wrong place.* Altitude was floored
+   at `groundAt(player.x, player.z − 560) + 80`; the river meanders ~120 m over
+   560 m, so that point is inside the canyon wall for most of the level and
+   `groundAt` returned the rim. The carrier was ordered to ~450 m while the
+   player flew at 70, biased by the meander — the reported "up and to the left".
+   It now samples under itself and is hard-clamped into a box around the player
+   (`TUNE.boss`). The box is the leash; it cannot leave the weapon envelope.
+2. *The weak-point table was double-offset.* `part.local` is measured in the
+   carrier's frame but was composed with the part **node's** `matrixWorld`, which
+   already carries that offset. Measured on the live rig: nacelles resolved
+   60.8 m from the hull centre instead of 30, turrets 28–44 m instead of ~16,
+   the core 9 m instead of 4.4. Every collision test and every lock point in the
+   fight aimed at empty space beside the ship. `api.partPoint()` now owns it.
+3. *The lock point flipped between the two nacelles every tick.* They are 60 m
+   apart, so the seeker's lead term read a 1/120 s flip as ~7 km/s of target
+   motion and threw every guided round a kilometre wide. The chosen part is
+   sticky now — held until it dies or the core opens.
+4. *Collision was a point test, not a sweep.* A tap round covers 16 m per tick
+   against a 13 m hit sphere, so fast rounds tunnelled through the hull.
+
+Also: the hit register (per-part additive shell, amber on a destructible, cold
+blue on plating; pooled hull blooms parked at the contact point in the ship's
+frame; impacts scaled to the part; a strike flash and an aim marker on the boss
+bar's part strip), and an HP rebalance — 95 s of *flawless* fire to kill it was
+a wall, not a fight.
+
+**Harness gotcha worth not rediscovering.** `__VULPINE__.step(n)` runs n fixed
+ticks and refreshes the rendered scene **once**, at the end. The guns converge on
+the camera ray and the camera only moves in that refresh, so a probe that batches
+30 ticks fires 30 volleys down a camera pose up to 44 m stale and *nothing hits
+anything*. That artefact alone cost most of a debugging session. Step one tick at
+a time. Real play is fine (`frame()` batches at most 2).
+
+**Water (`world/water.js`, `world/world-materials.js`).** The "polished plastic
+sheet" was **not** the water shader. The Gerstner and ripple code was running
+correctly the whole time and was simply **hidden**: the 42 km open-ocean apron, a
+plain `MeshStandardMaterial` disc, sat 2.5 m below a surface whose swell troughs
+reach 4.8 m, so across most of a grazing frame the apron won the depth test and
+you were looking at an untextured disc. Proof pair: `shots/wdiag3/graze-apronly.png`
+(apron only) is pixel-for-pixel the old "broken" look; `graze-noapron.png` shows
+the real surface. Apron dropped to y = −12 and given the same surface shader.
+On top of that: a 6-band ripple system faded on **pixel footprint** (`fwidth`)
+rather than camera distance — at 200 m/s the grazing angle dominates, which is
+why the old distance fade left the near field bare — with the lost amplitude
+handed to roughness Toksvig-style; `ior: 1.333` so water stops rendering brighter
+than the rock beside it; Beer-curve depth absorption; a three-part shoreline; sun
+glitter. Before/after: `shots/base01/water.png` → `shots/commit-check/water.png`.
+
+**`src/world/reflection.js` is finished and NOT WIRED IN.** Planar reflector,
+mirror camera, oblique near plane, alpha-0 clear, reentry guard. Both water
+materials already accept an optional `reflection` and compile a `WATER_REFL`
+variant. Only `corneria.js` is missing — see the agent's step list below. This is
+exactly the dead-code failure the previous session was pulled up for; it is
+committed deliberately rather than thrown away, but it is doing nothing.
+
+### Next steps, in order
+
+1. Wire `reflection.js` into `corneria.js`: construct it, pass to both water
+   materials, and call `refl.render(renderer, camera)` from `_makeProbe()`'s
+   `onBeforeRender` after `_applyLOD()`, hiding the water group, the probe, and
+   the sky/starfield/nebula meshes (hiding those is what keeps alpha 0 so the sky
+   IBL survives where the reflection ray misses).
+2. Then tune the shoreline — the beach edge is still a hard geometric line with
+   no foam, visible in `shots/commit-check/water.png`.
+3. Take a real perf reading. Nothing here has been measured at the contract
+   point (1080p `--quality high`) since both lanes were rendering concurrently,
+   and the reflection pass is not in the budget at all yet.
+
+## What changed the session before
 
 The previous session fanned out five lanes and **three of them never wired
 their work in** — 4,873 lines of finished modules that nothing imported. That
@@ -91,6 +178,20 @@ Current reference frames: `shots/c3/` (HUD + combat, `--hud --params fight=1`).
 `shots/int0/` is the "before" for this session.
 
 ## Known defects, ranked by cost to the frame
+
+**Resolved since this list was written** — do not re-investigate:
+- ~~Fins hanging off the canyon rims.~~ The terrain index buffers were wound
+  backwards, so back-face culling kept the faces turned *away* from the camera.
+  Fixed in `4bb0eeb`; the note below is kept only for the elimination trail.
+- ~~Water is a mirror plane.~~ It was the apron occluding it. See above. Planar
+  reflection is still not wired in.
+- ~~No terrain shadows.~~ Delivered as a baked **horizon map** rather than CSM —
+  eight compass sectors of horizon elevation per point, evaluated per fragment
+  against the live sun (`GLSL_HORIZON` in `world-materials.js`). No cascade seam,
+  no acne, no range limit, and it tracks the environment preset.
+- ~~HUD status block missing its text.~~ `SHIELD` and the numeral render.
+- ~~The boss drifts out of the fight.~~ / ~~No hit feedback on the boss.~~ Both
+  fixed and measured — see the table above.
 
 1. **Thin tapering fins hang off the canyon rims** (right side of
    `shots/c5/combat-wide.png`, and every in-canyon frame). They read as torn
@@ -204,6 +305,14 @@ New this session:
   does a raptor stay shootable" — those are questions about the sim over time.
   This is what found the station-seek bug that had every enemy in the game
   lagging its commanded position. `node tools/pacing.mjs <port> <sim seconds>`.
+
+- **`tools/bossprobe.mjs`** steps to the boss trigger and then samples the fight
+  4×/second: the leash envelope in each axis, how much of the fight the carrier
+  spends inside the guns' range and cone, whether the lock ever holds it, which
+  part it holds, how many rounds actually land, and when each weak point dies.
+  `node tools/bossprobe.mjs <port> <fight seconds>`. It tops the player's shield
+  up every tick — the harness never dodges, so without that the player is dead
+  with `outcome: 'lose'` before the carrier even spawns and every counter freezes.
 
 - **`tools/freecam.mjs`** parks the camera anywhere and looks anywhere —
   `--pos x,y,z --look x,y,z --fov --nofog --nowater --wire`. Every named shot in

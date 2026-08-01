@@ -97,6 +97,35 @@ const TUNE = {
   respawnInvuln: 2.4,
 
   ramDmg: 18,
+
+  // ── the boss leash ──────────────────────────────────────────────────────
+  // Owner report, live play: Gargantua climbs away up and to the left and parks
+  // there, out of weapons range, and the only way to bring it back is to
+  // descend. The cause was station-keeping, not drift: the commanded altitude
+  // was floored at `groundAt(player.x, player.z - 560) + 80`, and because the
+  // river meanders up to ~120 m laterally over 560 m, that sample point sits
+  // *inside the canyon wall* for most of the level. `groundAt` there returns the
+  // rim — 300 to 400 m — so the carrier was ordered to ~450 m altitude while the
+  // player flew at 70, biased consistently in whichever direction the meander
+  // happened to run. Hence "up and to the left", and hence not random.
+  //
+  // Fixing the sample point is necessary but not sufficient: a soft follow can
+  // always be outrun by a boosting player. So the result is additionally
+  // hard-clamped into a box around the player. The box *is* the leash — the
+  // carrier physically cannot leave the weapon envelope, whatever the pattern
+  // asks for. Sized off the guns, not off taste: a tap round dies at 1100 m and
+  // the lock cone is ±17°, so at the 300-760 m station a ±170 m lateral offset
+  // keeps it both in range and inside the cone.
+  boss: {
+    z: -520,          // metres ahead it wants to sit
+    zNear: -300,      // nearest it may close
+    zFar: -760,       // furthest it may run
+    lateral: 170,
+    up: 105,
+    down: 70,
+    clearance: 55,    // minimum height over whatever is under it
+    follow: 1.6,      // rad/s-ish exponential follow; 0.55 lagged ~300 m
+  },
 };
 
 /* the ship's four gun mounts, in Arwing local space */
@@ -270,7 +299,17 @@ export function installCombat(ctx) {
   // possible: a round is spliced out of the pool on the tick it connects, so a
   // sampler only ever sees the frame *before* impact and every strike reads as
   // a near miss just outside the hull. Count them where the damage is applied.
-  const diag = { homingFired: 0, homingHit: 0, homingLostTarget: 0, homingExpired: 0 };
+  const diag = {
+    homingFired: 0, homingHit: 0, homingLostTarget: 0, homingExpired: 0,
+    // Boss accounting. "Did my shot land" is the owner's complaint and it is not
+    // answerable from a frame: a round is spliced out of the pool on the tick it
+    // connects. Count where the damage is applied. `bossNear` is the broad
+    // phase — a round that passes within 76 m of the hull — so bossNear high
+    // with bossLand zero means the rounds are arriving and the weak-point test
+    // is rejecting them, which is a very different bug from never arriving.
+    bossFired: 0, bossNear: 0, bossLand: 0, bossMinD: 1e9,
+    pGround: 0, pExpire: 0, pFoe: 0,
+  };
   const bombs = [];
   let boss = null;          // { root, api, agent-ish }
   let firedWaves = 0;
@@ -289,6 +328,8 @@ export function installCombat(ctx) {
   const _aim = new THREE.Vector3();
   const _conv = new THREE.Vector3();
   const _vb = new THREE.Vector3();
+  const _hitP = new THREE.Vector3();
+  const _wp = new THREE.Vector3();
   const _q = new THREE.Quaternion();
   const UP = new THREE.Vector3(0, 1, 0);
 
@@ -639,7 +680,10 @@ export function installCombat(ctx) {
       t: 0, phase: 1, chargeT: 0, fireT: 3.5,
       turretT: [0, 0, 0, 0],
       list: 0, dying: -1,
+      range: 1900, lockSeen: false, aimPart: null,
+      prevPos: new THREE.Vector3().copy(pos),
     };
+    for (const q of api.parts) q.hitT = 0;
     state.bossHealth = { label: 'GARGANTUA', value: 1, parts: api.parts.map(p => ({ id: p.id, label: p.label, v: 1 })) };
     say('PEPPY', 'Aim for the engines, Fox!');
     ctx.audio.music('boss');
@@ -721,22 +765,47 @@ export function installCombat(ctx) {
   }
 
   /* ── boss ───────────────────────────────────────────────────────────────── */
-  function bossHit(bullet, wp) {
+  /**
+   * Resolve a round's flight *segment* against the carrier's weak-point table.
+   * Swept rather than sampled: a tap round covers 16 m in a tick and a nacelle's
+   * hit sphere is 13 m across, so testing only the tick's end position let fast
+   * rounds tunnel clean through the ship — which reads, correctly, as "my shots
+   * go straight past the boss".
+   */
+  function bossHit(bullet, ax, ay, az, bx, by, bz) {
     const api = boss.api;
     let best = null, bestD = Infinity;
     for (const p of api.parts) {
       if (!p.alive || (p.locked && api.st.shutter < 0.5 && p.kind === 'core')) continue;
-      _v.copy(p.local).applyMatrix4(p.node.matrixWorld);
-      const d = _v.distanceTo(wp);
-      if (d < p.radius + bullet.r && d < bestD) { best = p; bestD = d; }
+      api.partPoint(p, _v);
+      const d = segClosest(ax, ay, az, bx, by, bz, _v, _hitP);
+      if (d < p.radius + bullet.r && d < bestD) { best = p; bestD = d; _wp.copy(_hitP); }
     }
     if (!best) return false;
-    best.hp -= bullet.dmg * (best.kind === 'hull' ? 0.35 : 1);
-    ctx.fx.impact(wp, _v2.copy(wp).sub(boss.root.position).normalize(), {});
+    const wp = _wp;
+    best.hp -= bullet.dmg * (best.kind === 'hull' ? 0.5 : 1);
+    best.hitT = HIT_TICK;
+
+    // ── the register ────────────────────────────────────────────────────────
+    // Owner report: rounds landing on the carrier produce no read, so a hit and
+    // a miss look the same — which is most of why the fight felt unwinnable
+    // rather than merely long. Three channels fire together now. The impact is
+    // scaled to the part it landed on instead of a flat 1, which at 500 m was
+    // about four pixels; the spray comes off the *part's* surface normal rather
+    // than the hull centre, so a nacelle strike throws sparks sideways; and the
+    // part itself flashes (amber if it can be destroyed, cold blue if it is
+    // plating). The HUD tick is published from updateBoss off `hitT`.
+    api.partPoint(best, _v);
+    _v2.copy(wp).sub(_v);
+    if (_v2.lengthSq() < 1e-8) _v2.copy(wp).sub(boss.root.position);
+    if (_v2.lengthSq() < 1e-8) _v2.set(0, 1, 0);
+    _v2.normalize();
+    ctx.fx.impact(wp, _v2, { scale: 0.85 + best.radius * 0.10 });
+    api.hitPart(best, wp);
     ctx.audio.play('impact', { pos: wp });
     if (best.hp <= 0 && best.alive) {
       best.alive = false;
-      _v.copy(best.local).applyMatrix4(best.node.matrixWorld);
+      api.partPoint(best, _v);
       ctx.fx.explosion(_v, { scale: best.radius * 0.5 });
       ctx.audio.play('explosion', { pos: _v, size: best.radius });
       state.score += 500;
@@ -781,15 +850,50 @@ export function installCombat(ctx) {
       return;
     }
 
-    // hold station ahead of the player, sliding with the rail
-    const want = _v.copy(view.player.pos);
-    want.z -= 560;
-    want.y = Math.max(want.y + 26, ctx.world.groundAt(want.x, want.z) + 80);
-    b.root.position.lerp(want, Math.min(1, dt * 0.55));
-    b.root.lookAt(view.player.pos.x, b.root.position.y, view.player.pos.z + 900);
+    /* ── station keeping, on a leash (see TUNE.boss) ───────────────────────── */
+    const L = TUNE.boss;
+    const pl = view.player.pos;
+    const want = _v.copy(pl);
+    // A parked target is not a boss. It weaves — but every term below is well
+    // inside the clamp that follows, so the weave can never become an escape.
+    // Amplitude is bounded by aim, not by taste: at the 412 m the leash settles
+    // to, ±92 m of weave is ±12.6° off the ship's forward axis, and stacked on
+    // the player's own banking it put the carrier outside the ±17° lock cone a
+    // third of the time. ±55 m is ±7.6°, which still has to be tracked but can
+    // always be reached.
+    want.x += Math.sin(b.t * 0.31) * 55 + Math.sin(b.t * 0.77 + 2.1) * 16;
+    want.y += 14 + Math.sin(b.t * 0.43 + 1.1) * 11;
+    want.z += L.z;
+    // Clearance is sampled under the carrier's *own* position. Sampling it half
+    // a kilometre up the corridor is the bug described above.
+    const floor = ctx.world.groundAt(b.root.position.x, b.root.position.z) + L.clearance;
+    if (want.y < floor) want.y = floor;
+    b.root.position.lerp(want, Math.min(1, dt * L.follow));
 
-    const alive = api.parts.filter(p => p.kind === 'engine' && p.alive).length;
-    api.setAlert(view.playerRange < 700 ? 1 : 0.35);
+    const bp = b.root.position;
+    bp.x = clamp(bp.x, pl.x - L.lateral, pl.x + L.lateral);
+    bp.y = clamp(bp.y, pl.y - L.down, pl.y + L.up);
+    bp.z = clamp(bp.z, pl.z + L.zFar, pl.z + L.zNear);
+    // last resort: never inside the landscape, even if that breaks the leash
+    const hard = ctx.world.groundAt(bp.x, bp.z) + 30;
+    if (bp.y < hard) bp.y = hard;
+
+    b.root.lookAt(pl.x, bp.y, pl.z + 900);
+
+    // `view.playerRange` is written by whichever agent updated last — by the
+    // time the boss runs it holds a *wingman's* range, which is always small, so
+    // every range gate below was permanently open. The carrier measures its own.
+    const bossRange = bp.distanceTo(pl);
+    b.range = bossRange;
+
+    // Keep the world matrices current: everything downstream this tick — the
+    // part-centre lookups in bossHit, the lock adapter, the turret muzzles —
+    // reads `node.matrixWorld`, and the renderer does not refresh it until
+    // after the sim has already used it.
+    b.root.updateMatrixWorld(true);
+
+    const alive = api.parts.filter(q => q.kind === 'engine' && q.alive).length;
+    api.setAlert(bossRange < 700 ? 1 : 0.35);
     api.setShutter(b.phase >= 2 ? Math.min(1, (api.st.shutter + dt * 0.6)) : 0);
     api.setHangar(b.phase >= 2 ? 0.9 : 0.15 + 0.15 * Math.sin(b.t * 0.6));
 
@@ -799,7 +903,7 @@ export function installCombat(ctx) {
       if (!p || !p.alive) continue;
       const muzzle = api.aimTurret(i, view.player.pos, dt, _v);
       b.turretT[i] -= dt;
-      if (muzzle && b.turretT[i] <= 0 && view.playerRange < 1100) {
+      if (muzzle && b.turretT[i] <= 0 && bossRange < 1100) {
         b.turretT[i] = 1.6 + RG.range(0, 1.1);
         const fakeAgent = { skill: 0.62, spec: { dmg: 11 } };
         aimShot(fakeAgent, muzzle, view, TUNE.enemyBullet.speed, _aim);
@@ -837,14 +941,89 @@ export function installCombat(ctx) {
     }
 
     api.update(dt, { power: alive ? 1 : 0.15, list: b.list });
+    updateBossLock(dt);
 
-    const total = api.parts.reduce((s, p) => s + Math.max(0, p.hp), 0);
-    const max = api.parts.reduce((s, p) => s + p.max, 0);
+    for (const q of api.parts) if (q.hitT > 0) q.hitT = Math.max(0, q.hitT - dt);
+
+    const total = api.parts.reduce((s, q) => s + Math.max(0, q.hp), 0);
+    const max = api.parts.reduce((s, q) => s + q.max, 0);
     state.bossHealth = {
       label: 'GARGANTUA',
       value: clamp(total / max, 0, 1),
-      parts: api.parts.map(p => ({ id: p.id, label: p.label, v: clamp(p.hp / p.max, 0, 1), alive: p.alive })),
+      parts: api.parts.map(q => ({
+        id: q.id, label: q.label, v: clamp(q.hp / q.max, 0, 1), alive: q.alive,
+        hit: clamp((q.hitT || 0) / HIT_TICK, 0, 1),
+        aim: bossLock.part === q,
+      })),
     };
+  }
+
+  /* ── the carrier as a lock target ───────────────────────────────────────── */
+  //
+  // Owner report: "bullets currently don't lock onto bosses even though they
+  // lock onto enemies." True, and structural — `updateLock` walks `foes`, and
+  // the carrier is not a foe. It is a rig of parts with no agent behind it.
+  //
+  // Rather than special-case the lock, the boss gets an adapter with the same
+  // shape a foe has (`{ agent: { pos, vel, dying } }`), which is the only thing
+  // the lock, the lead solver, the seeker and the HUD projection ever read. What
+  // makes it *worth* locking is that its `pos` is not the hull centre but
+  // whichever weak point matters right now: the reticle lands on an engine
+  // nacelle, and a guided round bends into the nacelle rather than splashing on
+  // 900 HP of plating for a third of the damage.
+  const HIT_TICK = 0.30;
+  const bossLock = {
+    boss: true, part: null, radius: BOSS.radius,
+    agent: { pos: new THREE.Vector3(), vel: new THREE.Vector3(), dying: false },
+  };
+
+  /** The part the lock should hold: the objective for the current phase. */
+  function bossAimPart() {
+    const api = boss.api;
+    const core = api.parts.find(q => q.kind === 'core' && q.alive);
+    if (core && api.st.shutter >= 0.5) return core;
+    let best = null, bestScore = Infinity;
+    for (const q of api.parts) {
+      if (!q.alive || q.kind === 'hull' || q.kind === 'core') continue;
+      api.partPoint(q, _vb);
+      // Engines are the phase-1 objective ("Aim for the engines, Fox!"), so they
+      // win ties by a wide margin; among equals, take the closest.
+      const s = _vb.distanceTo(ctx.ship.position) - (q.kind === 'engine' ? 500 : 0);
+      if (s < bestScore) { bestScore = s; best = q; }
+    }
+    return best || api.parts.find(q => q.kind === 'hull' && q.alive) || null;
+  }
+
+  function updateBossLock(dt) {
+    const b = boss, api = boss.api;
+
+    // The chosen weak point is STICKY, and that is not cosmetic. Re-picking it
+    // every tick let it flip between the two nacelles as the player weaved —
+    // they are 60 m apart, so the lock point teleported 60 m in one 1/120 s
+    // step, and the seeker's lead term read that as seven kilometres per second
+    // of target motion and threw every tracked round most of a mile wide.
+    // Measured before this: 294 guided rounds fired at the carrier, 232 expired,
+    // closest approach of *any* round to the hull 278 m, zero damage taken.
+    const core = api.parts.find(q => q.kind === 'core' && q.alive);
+    const coreOpen = !!core && api.st.shutter >= 0.5;
+    if (!b.aimPart || !b.aimPart.alive || (coreOpen && b.aimPart !== core)) {
+      b.aimPart = bossAimPart();
+      b.lockSeen = false;         // no lead until there are two samples of it
+    }
+    const part = b.aimPart;
+    bossLock.part = part;
+    bossLock.radius = part ? Math.max(part.radius, 6) : BOSS.radius;
+    if (part) api.partPoint(part, bossLock.agent.pos);
+    else bossLock.agent.pos.copy(b.root.position);
+
+    // Lead off the *carrier's* velocity, not the aim point's. Turret slew and
+    // shutter animation move a part several metres a second relative to the
+    // hull; none of it is motion a round should be leading, and all of it is
+    // noise divided by a 1/120 s timestep.
+    if (b.lockSeen) bossLock.agent.vel.subVectors(b.root.position, b.prevPos).divideScalar(Math.max(dt, 1e-4));
+    else { bossLock.agent.vel.set(0, 0, 0); b.lockSeen = true; }
+    b.prevPos.copy(b.root.position);
+    bossLock.agent.dying = b.dying >= 0;
   }
 
   /* ── lock-on ────────────────────────────────────────────────────────────── */
@@ -874,6 +1053,25 @@ export function installCombat(ctx) {
         if (dot < TUNE.lockCone) continue;
         const sc = dot * 2 - d / TUNE.lockRange;
         if (sc > bestScore) { bestScore = sc; best = f; }
+      }
+      // …and the carrier, through its adapter. Two concessions it needs and a
+      // fighter does not: the cone is widened by the target's own angular size
+      // (a cone written for a 3 m raptor rejects a 68 m ship that fills a third
+      // of the screen but whose centre sits a few degrees off the reticle), and
+      // the range gate is stretched, because the leash parks it at 300-760 m and
+      // a boss you cannot lock at its own station is a boss you cannot lock.
+      if (boss && boss.dying < 0 && boss.lockSeen) {
+        _v.copy(bossLock.agent.pos).sub(ctx.ship.position);
+        const d = _v.length();
+        if (d <= TUNE.lockRange * 1.35) {
+          const dot = _v.normalize().dot(_v2);
+          const slack = Math.min(0.10, (bossLock.radius + 22) / Math.max(d, 1));
+          if (dot >= TUNE.lockCone - slack) {
+            // A live capital ship outranks anything escorting it.
+            const sc = dot * 2 - d / (TUNE.lockRange * 1.35) + 0.30;
+            if (sc > bestScore) { bestScore = sc; best = bossLock; }
+          }
+        }
       }
       const prev = state.lockTarget;
       state.lockTarget = charge > 0.35 ? best : null;
@@ -968,7 +1166,7 @@ export function installCombat(ctx) {
         }
         if (boss && boss.dying < 0) {
           const d = boss.root.position.distanceTo(_v);
-          if (d < TUNE.bombRadius + 30) bossHit({ dmg: TUNE.bombDmg, r: 40 }, _v);
+          if (d < TUNE.bombRadius + 30) bossHit({ dmg: TUNE.bombDmg, r: 40 }, _v.x, _v.y, _v.z, _v.x, _v.y, _v.z);
         }
         if (b.mesh) group.remove(b.mesh);
         bombs.splice(i, 1);
@@ -1053,13 +1251,18 @@ export function installCombat(ctx) {
             _v.set(b.x, b.y, b.z);
             hurtFoe(f, b.dmg, _v, _v2.set(b.vx, b.vy, b.vz).normalize().multiplyScalar(18));
             if (b.turn) diag.homingHit++;
+            diag.pFoe++;
             gone = true;
             break;
           }
         }
         if (!gone && boss && boss.dying < 0) {
-          _v.set(b.x, b.y, b.z);
-          if (_v.distanceTo(boss.root.position) < BOSS.radius + 40 && bossHit(b, _v)) gone = true;
+          const dRoot = segPointDist(px, py, pz, b.x, b.y, b.z, boss.root.position);
+          if (dRoot < diag.bossMinD) diag.bossMinD = Math.round(dRoot);
+          if (dRoot < BOSS.radius + 46) {
+            diag.bossNear++;
+            if (bossHit(b, px, py, pz, b.x, b.y, b.z)) { diag.bossLand++; gone = true; }
+          }
         }
       }
 
@@ -1068,7 +1271,8 @@ export function installCombat(ctx) {
         _v.set(b.x, ctx.world.groundAt(b.x, b.z), b.z);
         ctx.fx.impact(_v, UP, { ground: true });
         gone = true;
-      }
+        if (!b.enemy) diag.pGround++;
+      } else if (gone && !b.enemy && b.life <= 0) diag.pExpire++;
 
       if (gone) {
         if (b.turn) ctx.fx.tracerEnd(b);
@@ -1084,6 +1288,16 @@ export function installCombat(ctx) {
     t = t < 0 ? 0 : t > 1 ? 1 : t;
     const cx = ax + dx * t - p.x, cy = ay + dy * t - p.y, cz = az + dz * t - p.z;
     return Math.sqrt(cx * cx + cy * cy + cz * cz);
+  }
+
+  /** As above, but also writes the point on the segment that was closest. */
+  function segClosest(ax, ay, az, bx, by, bz, p, out) {
+    const dx = bx - ax, dy = by - ay, dz = bz - az;
+    const len2 = dx * dx + dy * dy + dz * dz;
+    let t = len2 > 1e-9 ? ((p.x - ax) * dx + (p.y - ay) * dy + (p.z - az) * dz) / len2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    out.set(ax + dx * t, ay + dy * t, az + dz * t);
+    return out.distanceTo(p);
   }
 
   /* ═══════════════════════════════════════════════════════════════════════ */
@@ -1222,7 +1436,10 @@ export function installCombat(ctx) {
       list.push({ x: al.agent.pos.x, y: al.agent.pos.y, z: al.agent.pos.z, ally: true });
     }
     if (boss && boss.dying < 0) {
-      list.push({ x: boss.root.position.x, y: boss.root.position.y, z: boss.root.position.z, boss: true });
+      list.push({
+        x: boss.root.position.x, y: boss.root.position.y, z: boss.root.position.z,
+        boss: true, locked: state.lockTarget === bossLock,
+      });
     }
   }
 

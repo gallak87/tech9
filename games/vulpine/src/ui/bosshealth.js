@@ -83,6 +83,12 @@ export class BossHealthBar {
         const dead = p.alive === false;
         const col = dead ? 'rgba(160,70,70,0.55)' : mix(C.red, C.amber, v);
         const initial = (p.label || '?').trim().charAt(0) || '?';
+        // `hit` is combat.js's decaying per-part strike timer, `aim` marks the
+        // part the lock is holding. Between them the strip answers the two
+        // questions a capital-ship fight has to answer every second — did that
+        // round land, and on what — from the HUD alone, at any range.
+        const hit = dead ? 0 : sat(p.hit || 0);
+        const aim = !dead && !!p.aim;
 
         chamfer(g, px, py, pw, ph, cut);
         g.fillStyle = 'rgba(4,10,17,0.76)';
@@ -99,10 +105,25 @@ export class BossHealthBar {
           g.restore();
         }
 
+        // strike flash — a white wash over the whole pip, gone in 0.3 s
+        if (hit > 0.01) {
+          g.save();
+          chamfer(g, px, py, pw, ph, cut);
+          g.clip();
+          g.fillStyle = alpha('#ffffff', 0.20 + 0.55 * hit);
+          g.fillRect(px, py, pw, ph);
+          g.restore();
+        }
+
         chamfer(g, px, py, pw, ph, cut);
-        g.lineWidth = 1 * k;
-        g.strokeStyle = alpha(C.ice, dead ? 0.15 : 0.32);
+        g.lineWidth = (aim ? 1.9 : 1) * k;
+        g.strokeStyle = aim ? alpha(C.amber, 0.95) : alpha(C.ice, dead ? 0.15 : 0.32);
+        if (hit > 0.01 || aim) {
+          g.shadowColor = hit > 0.01 ? '#ffffff' : C.amber;
+          g.shadowBlur = (hit > 0.01 ? 12 * hit : 7) * k;
+        }
         g.stroke();
+        g.shadowBlur = 0;
 
         text(g, initial, px + pw / 2, py + ph / 2 + 0.3 * k, {
           size: ph * 0.72, track: 0, weight: 0.22, align: 'center', baseline: 'middle',

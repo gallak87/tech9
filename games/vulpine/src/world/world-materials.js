@@ -660,33 +660,148 @@ const GERSTNER = /* glsl */`
   }
 `;
 
-export function waterMaterial() {
+/* ── the surface itself, shared by the river mesh and the open-ocean apron ──
+   Six decorrelated reads of one tileable ripple tile, at 0.9 m through 190 m.
+   Two rules run this:
+
+   1. Every band is faded on **pixel footprint**, not on camera distance. wpx
+      folds range and grazing angle into the one number Nyquist cares about,
+      and at 200 m/s over a flat plane the grazing term dominates: the water
+      forty metres ahead of the nose covers more world per pixel than a cliff
+      four hundred metres away. Fading on distance is what left the near field
+      of `wdiag2/graze.png` with no ripple structure at all.
+
+   2. Amplitude a band loses to that fade is not thrown away, it is handed to
+      roughness. That is the whole physical story of distant water: the sheen
+      of a kilometre-away sea is the same chop you can resolve at ten metres,
+      integrated over the pixel. Drop it without the hand-off and the surface
+      turns to glass, which is precisely how this started.                    */
+const GLSL_WATER_SURFACE = /* glsl */`
+  // World size one pixel covers on the surface, in metres.
+  float waterFootprint(vec3 wp) {
+    return max(max(fwidth(wp.x), fwidth(wp.z)), fwidth(wp.y) * 0.35) + 1e-4;
+  }
+
+  // .xy  slope perturbation      .z  fraction of the chop that mipped away
+  // .w   near-field glint mask (the band that only exists inside ~20 m)
+  vec4 waterRipple(sampler2D nm, vec3 wp, float t, float wpx) {
+    vec2 p = wp.xz;
+
+    // repeat length → fade window. A band survives until its tile is roughly
+    // three pixels across, which is where the mip chain has flattened it out.
+    float k0 = 1.0 - smoothstep(0.11, 0.34, wpx);   // 0.9 m  glint
+    float k1 = 1.0 - smoothstep(0.34, 1.05, wpx);   // 2.7 m
+    float k2 = 1.0 - smoothstep(0.95, 3.10, wpx);   // 7.6 m
+    float k3 = 1.0 - smoothstep(2.70, 9.00, wpx);   // 22 m
+    float k4 = 1.0 - smoothstep(8.00, 27.0, wpx);   // 64 m
+    float k5 = 1.0 - smoothstep(23.0, 78.0, wpx);   // 190 m
+
+    vec2 n0 = texture2D(nm, p * (1.0 /   0.9) + vec2( 0.62,  0.29) * t + 0.11).xy * 2.0 - 1.0;
+    vec2 n1 = texture2D(nm, p * (1.0 /   2.7) + vec2(-0.26,  0.33) * t + 0.43).xy * 2.0 - 1.0;
+    vec2 n2 = texture2D(nm, p * (1.0 /   7.6) + vec2( 0.093,-0.126) * t + 0.77).xy * 2.0 - 1.0;
+    vec2 n3 = texture2D(nm, p * (1.0 /  22.0) + vec2(-0.041,-0.022) * t + 0.19).xy * 2.0 - 1.0;
+    vec2 n4 = texture2D(nm, p * (1.0 /  64.0) + vec2( 0.013, 0.010) * t + 0.58).xy * 2.0 - 1.0;
+    vec2 n5 = texture2D(nm, p * (1.0 / 190.0) + vec2(-0.005, 0.004) * t + 0.92).xy * 2.0 - 1.0;
+
+    const float A0 = 0.34, A1 = 0.52, A2 = 0.66, A3 = 0.78, A4 = 0.80, A5 = 0.62;
+    const float ASUM = A0 + A1 + A2 + A3 + A4 + A5;
+
+    vec2 slope = n0 * (A0 * k0) + n1 * (A1 * k1) + n2 * (A2 * k2)
+               + n3 * (A3 * k3) + n4 * (A4 * k4) + n5 * (A5 * k5);
+
+    float lost = (A0 * (1.0 - k0) + A1 * (1.0 - k1) + A2 * (1.0 - k2)
+                + A3 * (1.0 - k3) + A4 * (1.0 - k4) + A5 * (1.0 - k5)) / ASUM;
+
+    return vec4(slope, lost, k0);
+  }
+
+  /** Tilt a surface normal by a slope perturbation, without letting it fall
+   *  below the horizon — a normal that does is a black speckle at 200 m/s. */
+  vec3 waterNormal(vec3 base, vec2 slope, float amount) {
+    vec3 n = base + vec3(slope.x, 0.0, slope.y) * amount;
+    n.y = max(n.y, 0.34);
+    return normalize(n);
+  }
+`;
+
+/* ── planar reflection: sample and blend ──────────────────────────────────
+   Injected at <lights_fragment_end> by *replacing the radiance*, not by
+   overwriting reflectedLight.indirectSpecular. Radiance is the incoming light
+   from the mirror direction and nothing else; three then puts it through the
+   same split-sum BRDF as the probe would have got. Do it the other way and
+   the Fresnel term has to be reproduced by hand, which is how planar
+   reflections end up looking like a decal at normal incidence.
+
+   alpha carries whether the mirrored ray hit anything. Where it did not — sky
+   — the probe's value is kept, because a smooth sky probe is a perfectly good
+   model of a smooth sky.                                                     */
+const GLSL_WATER_REFLECT = /* glsl */`
+  uniform sampler2D uReflTex;
+  uniform mat4 uReflMat;
+  uniform float uReflOn;
+
+  vec4 planarReflection(vec4 clipUV, vec2 slope, float rough, float wpx) {
+    // Distortion is a screen-space nudge along the slope. World +x maps to
+    // screen right and world +z to screen up for a camera pointed down the
+    // rail, which is the framing this game is played in; the error off-axis is
+    // a wobble in a reflection that is already being smeared by ripples.
+    vec2 d = vec2(slope.x, slope.y) * (0.030 + 0.10 * rough);
+    // Long-range reads must not wander: a metre of lateral error at 2 km is a
+    // whole cliff, and it strobes.
+    d *= 1.0 - smoothstep(2.0, 22.0, wpx);
+    clipUV.xy += d * clipUV.w;
+
+    vec2 uv = clipUV.xy / max(clipUV.w, 1e-4);
+    vec4 s = texture2DProj(uReflTex, clipUV);
+
+    // off the edge of the mirror buffer, and behind it, fall back to the probe
+    float edge = smoothstep(0.0, 0.035, uv.x) * smoothstep(1.0, 0.965, uv.x)
+               * smoothstep(0.0, 0.035, uv.y) * smoothstep(1.0, 0.965, uv.y)
+               * step(0.0, clipUV.w);
+    return vec4(s.rgb, clamp(s.a, 0.0, 1.0) * edge * uReflOn);
+  }
+`;
+
+export function waterMaterial(reflection = null) {
   // Roughness is the whole ball game here. A mirror-smooth plane seen at a
   // grazing angle reflects the horizon sky straight down the barrel of the
   // camera and clips to white across the entire frame — which is exactly what
   // the first build did. Real water gets its distant sheen from ripples the
-  // pixel can no longer resolve, so the shader roughens with distance instead.
+  // pixel can no longer resolve, so the shader roughens with footprint instead.
+  //
+  // ior 1.333 rather than the 1.5 default: water's F0 is 0.02, half the glass
+  // value three assumes. That single number is most of the reason the river
+  // used to render brighter than the rock beside it.
   const m = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
-    roughness: 0.13,
+    roughness: 0.10,
     metalness: 0.0,
-    envMapIntensity: 0.95,
+    ior: 1.333,
+    envMapIntensity: 1.0,
     clearcoat: 0.0,
+    dithering: true,
   });
   m.normalMap = rippleMap();
+  m.defines = { WATER_REFL: reflection ? 1 : 0 };
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = { value: 0 };
     sh.uniforms.uShore = { value: shoreField() };
     sh.uniforms.uShoreCfg = { value: new THREE.Vector3(SHORE.halfU, SHORE.z0, SHORE.zLen) };
     sh.uniforms.uFoamTex = { value: foamMap() };
+    if (reflection) Object.assign(sh.uniforms, reflection.uniforms);
 
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
         uniform float uTime;
+        #if WATER_REFL
+          uniform mat4 uReflMat;
+          varying vec4 vRefl;
+        #endif
         varying vec3 vWPos;
         varying vec3 vWNrm;
-        varying float vCrest;
+        varying float vWave;
         varying float vShallow;
+        varying float vBed;
         ${GLSL_CENTRELINE}
         ${GLSL_SHORE}
         ${GERSTNER}`)
@@ -696,6 +811,7 @@ export function waterMaterial() {
         // waves shoal: they shorten and flatten as the bed comes up
         float _damp = smoothstep(-1.0, 22.0, -_sh.x);
         vShallow = 1.0 - _damp;
+        vBed = _sh.x;
         vec3 _tan = vec3(1.0, 0.0, 0.0);
         vec3 _bin = vec3(0.0, 0.0, 1.0);
         vec3 _off = vec3(0.0);
@@ -705,7 +821,13 @@ export function waterMaterial() {
         _off += gerstner(W3, _wp, uTime, _damp * 0.6 + 0.4, _tan, _bin);
         vec3 objectNormal = normalize(cross(_bin, _tan));
         vWNrm = objectNormal;
-        vCrest = clamp(_off.y * 0.42 + 0.30, 0.0, 1.0);
+        vWave = _off.y;
+        #if WATER_REFL
+          // Projected from the *undisplaced* point. The mirror is the plane,
+          // not the swell riding on it; feeding the displaced position back in
+          // doubles the wave into the reflection and it slides.
+          vRefl = uReflMat * vec4(_wp, 1.0);
+        #endif
         #ifdef USE_TANGENT
           vec3 objectTangent = vec3( tangent.xyz );
         #endif`)
@@ -719,60 +841,196 @@ export function waterMaterial() {
         uniform sampler2D uFoamTex;
         varying vec3 vWPos;
         varying vec3 vWNrm;
-        varying float vCrest;
+        varying float vWave;
         varying float vShallow;
-        float gFoam;
+        varying float vBed;
+        float gFoam, gWpx, gLost, gGlint, gSwash;
+        vec2 gSlope;
+        vec3 gWN;
         ${GLSL_CENTRELINE}
-        ${GLSL_SHORE}`)
+        ${GLSL_SHORE}
+        ${GLSL_WATER_SURFACE}
+        #if WATER_REFL
+          varying vec4 vRefl;
+          ${GLSL_WATER_REFLECT}
+        #endif`)
       .replace('#include <color_fragment>', `#include <color_fragment>
-        vec2 sh = shoreAt(vWPos);
-        float depth = clamp(-sh.x / 30.0, 0.0, 1.0);
+        gWpx = waterFootprint(vWPos);
+        vec4 _rip = waterRipple(normalMap, vWPos, uTime, gWpx);
+        gSlope = _rip.xy;
+        gLost  = _rip.z;
+        gGlint = _rip.w;
 
-        vec3 shallow = vec3(0.085, 0.290, 0.300);
-        vec3 deep    = vec3(0.0075, 0.045, 0.098);
-        vec3 col = mix(shallow, deep, smoothstep(0.04, 0.72, depth));
-        // the bed shows through where it is only a couple of metres down
-        col = mix(vec3(0.235, 0.205, 0.150), col, smoothstep(0.0, 0.20, depth));
+        // ── how deep is the water under this bit of surface ────────────────
+        // In metres, and measured to the *displaced* surface, so the waterline
+        // advances and retreats with the swell instead of sitting on a ruled
+        // contour. That one term is the difference between a shore and a
+        // clipping boundary.
+        float bed = vBed;
+        float d = max(0.0, vWave - bed);
 
-        // surf: a band that hugs the waterline, breaking with the swell
-        float band = 1.0 - smoothstep(0.0, 0.13, depth);
-        float roll = sin(sh.x * 0.55 + uTime * 1.25) * 0.5 + 0.5;
-        float ft = texture2D(uFoamTex, vWPos.xz * 0.030).r
-                 * texture2D(uFoamTex, vWPos.xz * 0.009 + uTime * 0.004).r * 2.1;
-        float surf = band * (0.35 + 0.75 * roll) * ft;
-        float crest = smoothstep(0.62, 1.0, vCrest) * ft * 0.55;
-        gFoam = clamp(surf * 1.5 + crest, 0.0, 1.0);
+        // ── colour ────────────────────────────────────────────────────────
+        // Absorption, roughly: red is gone by 4 m, green by 20, blue survives.
+        // Doing it as a Beer curve rather than a lerp is what gives the delta
+        // its band of jade over the sand bars without any of it being painted.
+        vec3 shallow = vec3(0.155, 0.360, 0.352);
+        vec3 sea     = vec3(0.0060, 0.0330, 0.0740);
+        vec3 col = mix(shallow, sea, 1.0 - exp(-d * 0.135));
+        // the bed itself shows through the first couple of metres
+        float bedShow = exp(-d * 0.55);
+        col = mix(col, vec3(0.250, 0.216, 0.156), bedShow * 0.85);
 
-        diffuseColor.rgb *= mix(col, vec3(0.90, 0.95, 1.0), gFoam);
+        // ── shoreline ─────────────────────────────────────────────────────
+        // Three separate things, because one foam term always reads as paint:
+        //   swash  the bright edge where the sheet of water runs up the sand
+        //   surf   the wider broken band behind it, torn up by the texture
+        //   crest  whitecaps offshore, where the swell steepens
+        float ftA = texture2D(uFoamTex, vWPos.xz * 0.055 + vec2(uTime * 0.004, 0.0)).r;
+        float ftB = texture2D(uFoamTex, vWPos.xz * 0.0125 - vec2(0.0, uTime * 0.0026)).r;
+        float ft = clamp(ftA * 1.35 + ftB * 0.75 - 0.28, 0.0, 1.6);
+
+        // the run-up: a travelling wave along the shore, not a static ring
+        float run = sin(bed * 0.42 - uTime * 0.85
+                      + texture2D(uFoamTex, vWPos.xz * 0.004).r * 6.0) * 0.5 + 0.5;
+        float swash = (1.0 - smoothstep(0.0, 1.4 + 1.6 * run, d)) * (0.55 + 0.60 * ft);
+        float surf  = (1.0 - smoothstep(0.6, 7.5, d)) * ft * (0.30 + 0.55 * run);
+        // whitecaps: the top of a steep wave, and only where it is steep
+        float steep = smoothstep(0.35, 1.0, length(gSlope) * 0.55 + vWave * 0.16);
+        float crest = smoothstep(0.55, 1.0, steep) * ft * 0.55;
+
+        gSwash = clamp(swash, 0.0, 1.0);
+        gFoam = clamp(swash * 1.15 + surf + crest, 0.0, 1.0);
+
+        // Wet backwash: the strip just seaward of the foam is darker than
+        // either, because it is a thin sheet over wet sand. Without it the
+        // foam has no edge to be an edge of.
+        col *= mix(1.0, 0.72, (1.0 - smoothstep(0.4, 3.2, d)) * (1.0 - gFoam));
+
+        diffuseColor.rgb *= mix(col, vec3(0.86, 0.92, 0.97), gFoam);
       `)
       .replace('#include <roughnessmap_fragment>', `
-        // sub-pixel chop the mesh cannot carry, folded back in as roughness
-        float camDist = length(vWPos - cameraPosition);
-        float far = smoothstep(90.0, 2200.0, camDist);
-        float roughnessFactor = mix(mix(roughness, 0.30, far), 0.80, gFoam) + vShallow * 0.06;
+        // Chop the pixel can no longer resolve, handed to roughness — see the
+        // note on GLSL_WATER_SURFACE. Foam is matte; the shoaling shallows are
+        // choppier than the open channel.
+        float roughnessFactor = mix(roughness, 0.36, pow(gLost, 0.80));
+        roughnessFactor = mix(roughnessFactor, 0.82, gFoam);
+        roughnessFactor += vShallow * 0.05;
       `)
       .replace('#include <normal_fragment_maps>', `
-        float nd = 1.0 - smoothstep(120.0, 1800.0, length(vWPos - cameraPosition));
-        vec2 r1 = vWPos.xz * 0.055 + vec2(uTime * 0.016, uTime * -0.011);
-        vec2 r2 = vWPos.xz * 0.017 + vec2(uTime * -0.007, uTime * 0.013);
-        vec2 r3 = vWPos.xz * 0.190 + vec2(uTime * 0.031, uTime * 0.024);
-        vec3 m1 = texture2D(normalMap, r1).xyz * 2.0 - 1.0;
-        vec3 m2 = texture2D(normalMap, r2).xyz * 2.0 - 1.0;
-        vec3 m3 = texture2D(normalMap, r3).xyz * 2.0 - 1.0;
-        vec2 rip = m1.xy * 0.55 + m2.xy * 0.80 + m3.xy * 0.35 * nd * (1.0 - gFoam);
-        vec3 wN = normalize(vWNrm + vec3(rip.x, 0.0, rip.y) * (0.42 - 0.28 * gFoam));
-        normal = normalize((viewMatrix * vec4(wN, 0.0)).xyz);
+        gWN = waterNormal(normalize(vWNrm), gSlope, 0.62 * (1.0 - 0.55 * gFoam));
+        normal = normalize((viewMatrix * vec4(gWN, 0.0)).xyz);
+      `)
+      .replace('#include <lights_fragment_end>', `
+        #if WATER_REFL
+        {
+          vec4 pr = planarReflection(vRefl, gSlope, material.roughness, gWpx);
+          radiance = mix(radiance, pr.rgb, pr.a);
+        }
+        #endif
+        #include <lights_fragment_end>
+        // Sun glitter. The specular lobe alone gives one smooth path down the
+        // sun; real water breaks that path into flecks because each facet
+        // inside the pixel is at its own angle. The 0.9 m band is the only one
+        // that still exists close in, so it is the one that gets to do it.
+        {
+          float g = gGlint * (1.0 - gFoam);
+          if (g > 0.002) {
+            float f = abs(gSlope.x) + abs(gSlope.y);
+            reflectedLight.directSpecular *= 1.0 + g * smoothstep(0.30, 1.30, f) * 2.6;
+          }
+        }
       `);
     m.userData.shader = sh;
   };
   return m;
 }
 
-/** The apron under everything — open ocean, no shore lookup, no displacement. */
-export function deepWaterMaterial() {
-  return new THREE.MeshStandardMaterial({
-    color: 0x0a1e30, roughness: 0.34, metalness: 0.0, envMapIntensity: 0.85,
+/**
+ * The apron under everything — open ocean out to the horizon. Same surface
+ * model as the river, minus the shore lookup and the displacement: it is one
+ * 42 km disc with 72 segments, so there is nothing to displace.
+ *
+ * This used to be a bare MeshStandardMaterial, and because it sat only 2.5 m
+ * under a surface whose swell troughs reach ~4.8 m, it won the depth test over
+ * most of the river at grazing angles. Every "the water is a plastic sheet"
+ * frame in `shots/base01` is this material, not the one above it. It is now
+ * dropped clear of the troughs (see water.js) *and* given a real surface, so
+ * the open sea past the level holds up on its own.
+ */
+export function deepWaterMaterial(reflection = null) {
+  const m = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    roughness: 0.11,
+    metalness: 0.0,
+    ior: 1.333,
+    envMapIntensity: 1.0,
+    dithering: true,
   });
+  m.normalMap = rippleMap();
+  m.defines = { WATER_REFL: reflection ? 1 : 0 };
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = { value: 0 };
+    if (reflection) Object.assign(sh.uniforms, reflection.uniforms);
+
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+        #if WATER_REFL
+          uniform mat4 uReflMat;
+          varying vec4 vRefl;
+        #endif
+        varying vec3 vWPos;`)
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+        #if WATER_REFL
+          // Projected at the plane, not at the apron's own depth: the apron is
+          // only ever seen a kilometre out, where the parallax between the two
+          // is a fraction of a pixel.
+          vRefl = uReflMat * vec4(vWPos.x, 0.0, vWPos.z, 1.0);
+        #endif`);
+
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        uniform float uTime;
+        varying vec3 vWPos;
+        float gWpx, gLost, gGlint;
+        vec2 gSlope;
+        ${GLSL_WATER_SURFACE}
+        #if WATER_REFL
+          varying vec4 vRefl;
+          ${GLSL_WATER_REFLECT}
+        #endif`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        gWpx = waterFootprint(vWPos);
+        vec4 _rip = waterRipple(normalMap, vWPos, uTime, gWpx);
+        gSlope = _rip.xy; gLost = _rip.z; gGlint = _rip.w;
+        diffuseColor.rgb *= vec3(0.0060, 0.0330, 0.0740);
+      `)
+      .replace('#include <roughnessmap_fragment>', `
+        float roughnessFactor = mix(roughness, 0.36, pow(gLost, 0.80));
+      `)
+      .replace('#include <normal_fragment_maps>', `
+        vec3 wN = waterNormal(vec3(0.0, 1.0, 0.0), gSlope, 0.62);
+        normal = normalize((viewMatrix * vec4(wN, 0.0)).xyz);
+      `)
+      .replace('#include <lights_fragment_end>', `
+        #if WATER_REFL
+        {
+          vec4 pr = planarReflection(vRefl, gSlope, material.roughness, gWpx);
+          radiance = mix(radiance, pr.rgb, pr.a);
+        }
+        #endif
+        #include <lights_fragment_end>
+        {
+          float g = gGlint;
+          if (g > 0.002) {
+            float f = abs(gSlope.x) + abs(gSlope.y);
+            reflectedLight.directSpecular *= 1.0 + g * smoothstep(0.30, 1.30, f) * 2.6;
+          }
+        }
+      `);
+    m.userData.shader = sh;
+  };
+  return m;
 }
 
 /* ── concrete, city, metal ────────────────────────────────────────────────── */

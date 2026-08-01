@@ -65,8 +65,13 @@ export class Corneria {
 
   update(dt) {
     this._time += dt;
-    const ws = this.waterMat.userData.shader;
-    if (ws) ws.uniforms.uTime.value = this._time;
+    // Both water materials, not just the river. The open-ocean apron now runs
+    // the same surface shader, and it was the only mesh in the level whose clock
+    // never advanced — 42 km of sea with its ripples frozen mid-frame.
+    for (const m of [this.waterMat, this.deepMat]) {
+      const sh = m.userData.shader;
+      if (sh && sh.uniforms.uTime) sh.uniforms.uTime.value = this._time;
+    }
   }
 
   /** Ground clearance at a world point — used by the flight model and by AI. */

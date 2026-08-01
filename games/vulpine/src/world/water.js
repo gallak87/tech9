@@ -61,12 +61,22 @@ export class Water {
       this.chunks.push({ meshes, zMid: z0 - CHUNK * 0.5, xMid: origin.x, lod: 0 });
     }
 
-    // Open ocean under the whole level. Sits slightly below the detailed
-    // surface so the two never fight for the depth buffer where they overlap.
+    // Open ocean under the whole level.
+    //
+    // It used to sit 2.5 m under the detailed surface, and that was the single
+    // worst bug in the water: the swell's troughs reach 4.8 m, so across most
+    // of a grazing frame the apron won the depth test and what you were
+    // actually looking at was a flat untextured disc. Hiding it in
+    // `shots/wdiag3/graze-noapron.png` turns the river back on. It now clears
+    // the deepest trough with room to spare; the 12 m step where the detailed
+    // mesh ends is 4 km out through 60% haze, and both surfaces now run the
+    // same shader, so the join reads as a swell line rather than a material
+    // change.
     const apron = new THREE.CircleGeometry(42000, 72);
     apron.rotateX(-Math.PI / 2);
     this.apron = new THREE.Mesh(apron, deepMaterial);
-    this.apron.position.set(0, WORLD.waterLevel - 2.5, (WORLD.zStart + WORLD.zEnd) * 0.5);
+    this.apron.name = 'water-apron';
+    this.apron.position.set(0, WORLD.waterLevel - 12, (WORLD.zStart + WORLD.zEnd) * 0.5);
     this.apron.frustumCulled = false;
     this.apron.renderOrder = -5;
     this.group.add(this.apron);

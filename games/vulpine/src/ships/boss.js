@@ -32,13 +32,20 @@ import {
 
 const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 
+// Health, and why these numbers. The player's guns put out ~14.8 dmg/s with
+// every round on target (two rounds per 0.135 s at 1 dmg), so a part's HP is
+// really a stopwatch: 170 is eleven seconds of perfect fire. The first pass ran
+// 260/90/520, i.e. ninety-five seconds of *flawless* shooting before the core
+// popped — and that is the floor, not the average. A rail-shooter boss that
+// outlasts the whole rest of the level stops reading as a fight and starts
+// reading as a wall you cannot damage, which is exactly what the owner hit.
 export const BOSS = {
   length: 68, span: 72,
   radius: 30,
-  hullHp: 900,
-  engineHp: 260,
-  turretHp: 90,
-  coreHp: 520,
+  hullHp: 900,          // never the objective; it exists so stray rounds land
+  engineHp: 170,
+  turretHp: 60,
+  coreHp: 320,
 };
 
 /* ── materials specific to the carrier ─────────────────────────────────────── */
@@ -54,6 +61,12 @@ function bossMaterials() {
   BM.intakeDead = emissive(0x241a12, 0.6);
   BM.eye = emissive(0xff3a20, 5.0);
   BM.charge = emissive(0xffd070, 6.0);
+  // Hit register. Two colours, and the difference is the whole point: amber
+  // means the round landed on something that can be destroyed, cold blue means
+  // it landed on plating and did almost nothing. A player who cannot tell those
+  // apart has no way to learn where to shoot.
+  BM.hitWeak = new THREE.Color(1.00, 0.72, 0.30);
+  BM.hitHull = new THREE.Color(0.52, 0.76, 1.00);
   BM.beam = new THREE.MeshBasicMaterial({
     vertexColors: true, transparent: true, blending: THREE.AdditiveBlending,
     depthWrite: false, toneMapped: false, fog: false, side: THREE.DoubleSide,
@@ -680,6 +693,8 @@ export function createBoss() {
         }
       }
 
+      if (api._hitTick) api._hitTick(dt);
+
       /* the whole ship rolls as it loses engines */
       root.rotation.z = st.list;
     },
@@ -700,6 +715,109 @@ export function createBoss() {
     { id: 'core', label: 'CORE', node: coreGroup, local: V3(0, 4.4, -1.0), radius: 5.0, hp: BOSS.coreHp, max: BOSS.coreHp, alive: true, kind: 'core', index: 0, locked: true },
     { id: 'hull', label: 'HULL', node: root, local: V3(0, 0, -6.0), radius: 13.0, hp: BOSS.hullHp, max: BOSS.hullHp, alive: true, kind: 'hull', index: 0 },
   ];
+
+  /* ── the hit register ──────────────────────────────────────────────────── */
+  //
+  // A 68 m hull absorbing a round five hundred metres away, with nothing but a
+  // scale-1 spark to show for it, is indistinguishable from a clean miss. The
+  // owner's report — "rounds landing on the boss produce no read" — is a
+  // rendering problem, not a balance one: at combat range the impact particles
+  // subtend about four pixels.
+  //
+  // So every part carries an additive shell scaled to the part itself. It is
+  // invisible until struck, pops to full in one frame and is gone in an eighth
+  // of a second — long enough to register, too short to name. Hull hits are not
+  // a part, they are a place, so they get a pooled bloom parked at the contact
+  // point in the carrier's own frame instead, which keeps it stuck to the plate
+  // it landed on while the ship banks.
+  const SHELL_LIFE = 0.13;
+  const shellGeo = new THREE.IcosahedronGeometry(1, 2);
+  const mkShellMat = (col) => new THREE.MeshBasicMaterial({
+    color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending,
+    depthWrite: false, toneMapped: false, fog: false,
+  });
+
+  for (const p of api.parts) {
+    p.flash = 0;
+    if (p.kind === 'hull') continue;
+    const mat = mkShellMat(BM.hitWeak);
+    const m = new THREE.Mesh(shellGeo, mat);
+    m.position.copy(p.local);
+    m.scale.setScalar(p.radius * 1.5);
+    m.visible = false;
+    m.frustumCulled = false;
+    m.renderOrder = 6;
+    p.node.add(m);
+    p.shell = m;
+  }
+
+  const HULL_BLOOMS = 6;
+  const hullBlooms = [];
+  for (let i = 0; i < HULL_BLOOMS; i++) {
+    const m = new THREE.Mesh(shellGeo, mkShellMat(BM.hitHull));
+    m.visible = false;
+    m.frustumCulled = false;
+    m.renderOrder = 6;
+    root.add(m);
+    hullBlooms.push({ m, t: 1e9 });
+  }
+  let bloomNext = 0;
+  const _hp = new THREE.Vector3();
+
+  /**
+   * World position of a weak point.
+   *
+   * `local` in the table below is measured in the CARRIER's frame, not in the
+   * part node's — the nacelle group already sits at x = ±30, so composing
+   * `local` with `node.matrixWorld` applies that offset twice. Measured on the
+   * live rig: the nacelles resolved 60.8 m from the hull centre instead of 30,
+   * the turrets 28-44 m instead of ~16, the core 9 m instead of 4.4. Every
+   * collision test and every lock point in the fight was aiming at empty space
+   * beside the ship, which is why nothing the player fired had ever registered.
+   * The parts do not translate relative to the hull (turrets rotate in place,
+   * the core group only animates its petals), so the carrier's own matrix is
+   * the correct — and cheaper — frame for all of them.
+   */
+  api.partPoint = (part, out) => out.copy(part.local).applyMatrix4(root.matrixWorld);
+
+  /** Register a hit on `part`. `worldPoint` is where the round actually landed. */
+  api.hitPart = (part, worldPoint) => {
+    if (!part) return;
+    part.flash = 1;
+    if (part.kind === 'hull' && worldPoint) {
+      const e = hullBlooms[bloomNext];
+      bloomNext = (bloomNext + 1) % HULL_BLOOMS;
+      // ancestors + self only: recursing the whole 100-node rig here would cost
+      // more than the flash it is placing
+      root.updateWorldMatrix(true, false);
+      e.m.position.copy(root.worldToLocal(_hp.copy(worldPoint)));
+      e.m.scale.setScalar(4.2);
+      e.t = 0;
+    }
+  };
+
+  api._hitTick = (dt) => {
+    for (const p of api.parts) {
+      if (!p.shell) continue;
+      if (p.flash > 0) {
+        p.flash = Math.max(0, p.flash - dt / SHELL_LIFE);
+        // squared falloff: the pop is on the first frame, the tail is a glow
+        p.shell.material.opacity = p.flash * p.flash * 0.55;
+        p.shell.scale.setScalar(p.radius * (1.5 + (1 - p.flash) * 0.75));
+        p.shell.visible = p.flash > 0.01 && p.alive;
+      } else if (p.shell.visible) {
+        p.shell.visible = false;
+      }
+    }
+    for (const e of hullBlooms) {
+      if (e.t > SHELL_LIFE) { if (e.m.visible) e.m.visible = false; continue; }
+      e.t += dt;
+      const k = Math.max(0, 1 - e.t / SHELL_LIFE);
+      e.m.material.opacity = k * k * 0.5;
+      e.m.scale.setScalar(4.2 + (1 - k) * 3.4);
+      e.m.visible = true;
+    }
+  };
 
   root.userData.api = api;
   return root;

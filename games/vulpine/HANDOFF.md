@@ -96,6 +96,13 @@ Current reference frames: `shots/c3/` (HUD + combat, `--hud --params fight=1`).
    so a 1750 m mountain range casts nothing and the landscape has no form
    definition. The comment says it waits for CSM — that is the real fix.
 4. **Enemies unreadable at distance** (see scope list above).
+5. **Rear attackers are unfair, not hard.** Owner feedback from live play: too
+   many enemies end up behind you and shoot from there. The radar already knows
+   where they are, so the fix is almost certainly a rear-threat indicator (an
+   edge-of-screen warning arc when a hostile has you in its firing cone from
+   behind) rather than removing the `from: 'behind'` waves — being flanked is
+   good, being shot by something you were given no way to notice is not.
+   Owner is still thinking about which; ask before changing wave composition.
 5. **HUD status block is missing its text.** The `SHIELD` label and the numeral
    in `status.js` do not appear in `shots/c3`, though the gauges do and the
    legend's text renders fine. Suspect a `glyphs.js` baseline/clip issue.
@@ -118,6 +125,12 @@ New this session:
 - **`?fight=1`** drives the trigger and lock from the sim clock instead of from
   input, so a capture shows an actual firefight. The harness never touches the
   keyboard, so without this every review frame had cold guns.
+- **`tools/inputtest.mjs`** presses real keys and reports what the sim did with
+  each control — the screenshot harness never touches the keyboard, so "does
+  the fire button fire" is a question no capture can answer. This is what
+  caught the gun-convergence bug after a dozen captures had missed it.
+  `--menu` additionally photographs the title card and pause menu, which are
+  only reachable through real key presses.
 - **`tools/freecam.mjs`** parks the camera anywhere and looks anywhere —
   `--pos x,y,z --look x,y,z --fov --nofog --nowater --wire`. Every named shot in
   `shots.js` frames the level from *inside* it, which is the wrong place to

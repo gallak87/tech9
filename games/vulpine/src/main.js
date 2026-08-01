@@ -12,6 +12,7 @@ import { installCombat } from './game/combat.js';
 import { installUI } from './ui/index.js';
 import { installAudio } from './core/audio.js';
 import { installMode } from './game/mode.js';
+import { installDevPanel } from './dev/panel.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Boot + main loop.
@@ -219,6 +220,12 @@ const api = {
   },
 };
 window.__VULPINE__ = api;
+
+// Playtest scaffolding. Talks to the game only through `api`, renders as DOM
+// rather than on the HUD canvas, and stays hidden until backquote is pressed —
+// which is what keeps it out of every screenshot the harness takes off this
+// same dev server. `?dev=1` opens it on load.
+installDevPanel(api);
 
 // URL overrides, for fast A/B without a rebuild: ?exposure=0.6&nopost=1
 const expParam = parseFloat(params.get('exposure'));

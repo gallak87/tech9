@@ -47,6 +47,7 @@ moment-to-moment feel until genuinely AAA rather than spreading thin across all
 | 6 | Title card, Esc pause menu, win/lose | `ui/menu.js`, `ui/outcome.js` |
 | 7 | Audio — graph, DSP, engine, beds, music, voices, autoplay-safe | `audio/**` |
 | — | Review harness: `shot`, `sheet`, `freecam`, `pacing`, `inputtest`, `bossprobe`, `blind` | `tools/**` |
+| — | Dev panel — DOM overlay of playtest shortcuts, backquote to toggle, `?dev=1` to open. Add tools to the `TOOLS` array | `dev/panel.js` |
 
 **Fixed and verified** (don't reopen): terrain winding/"fins"; enemy spawn crash;
 wingman clone crash; skirt curtains; fog density; gun convergence; lock-on

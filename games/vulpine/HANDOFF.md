@@ -1,7 +1,30 @@
 # Vulpine — resume handoff
 
-Drop this into a fresh agent to pick up mid-build. Read `CONTRACT.md` (lane
-ownership + hard rules) and `REVIEW.md` (the rubric) before touching anything.
+Drop this into a fresh agent to pick up mid-build. Read `ROADMAP.md` (the plan —
+what is done, what is next, what is out of scope), `CONTRACT.md` (lane ownership
++ hard rules) and `REVIEW.md` (the rubric) before touching anything.
+
+## Keeping the plan honest
+
+`ROADMAP.md` is the plan. This file is the queue and the session log. They drift
+apart unless you close the loop, and for seven sessions there was no plan at all
+to drift from — every session re-derived its priorities from a defect list, which
+is how a scope decision the owner made out loud ended up buried in a bug note.
+
+So:
+
+- **Every commit that closes a roadmap item ticks its box in the same commit.**
+  Not afterwards, not "in the next one". If the commit does not close an item,
+  say which phase it belongs to in the message.
+- **At the end of a phase**, re-cut the `Status:` line at the top of
+  `ROADMAP.md`, move the finished block into `## Done` with the files it landed
+  in, and delete the finished items from the defect list below.
+- **Anything discovered mid-session that is not this session's work** goes into
+  `ROADMAP.md` under the phase it belongs to — not into a comment, not into a
+  commit message, not only here.
+- **Do not add a module the roadmap does not ask for.** Ship criterion 7 is "no
+  dead code"; this project has now shipped ~5,400 lines of finished, unimported
+  modules across two sessions, and `world/reflection.js` is still one of them.
 
 ## Scope decision (2026-07-31)
 

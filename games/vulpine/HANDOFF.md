@@ -147,6 +147,32 @@ Current reference frames: `shots/c3/` (HUD + combat, `--hud --params fight=1`).
 5. **HUD status block is missing its text.** The `SHIELD` label and the numeral
    in `status.js` do not appear in `shots/c3`, though the gauges do and the
    legend's text renders fine. Suspect a `glyphs.js` baseline/clip issue.
+6. **The boss drifts out of the fight.** Owner feedback from live play
+   (2026-08-01): Gargantua climbs away up and to the *left* and parks there,
+   far enough out that player fire simply does not land. The only way to bring
+   it back is to descend, at which point it re-enters range. So the encounter
+   has a dead phase in the middle of it where the player has no way to make
+   progress and no indication of why. Two things to separate before fixing:
+   whether the boss's station-keeping is *drifting* (an integration or
+   leash bug — cf. the station-seek bug in `ai.js` that had every enemy lagging
+   its commanded position) or whether the pattern genuinely commands that
+   position and the arena is simply too large. Note the bias is consistently
+   up-and-left, not random, which points at the former. Look at `ships/boss.js`
+   and the boss branch of `game/combat.js`. Unmeasured so far — `tools/pacing.mjs`
+   samples the live fight over time and is the right instrument; extend it to
+   log boss position and player-to-boss range per second.
+7. **No hit feedback on the boss (and possibly on hulls generally).** Owner
+   feedback from live play (2026-08-01): rounds landing on the boss produce no
+   read, so there is no way to tell a hit from a miss — which is most of why
+   the out-of-range phase above is confusing rather than merely annoying.
+   Wanted: a short light pulse on impact. `fx.impact()` and `fx.shieldHit()`
+   already exist and are wired for foes (`hurtFoe` passes an impact point and a
+   normal); check whether `bossHit()` in `combat.js` calls anything equivalent,
+   and whether the boss's own materials have a hit-flash channel the way
+   `f.hitFlash` gives the raptors one. Cheapest strong version is an emissive
+   flash on the struck part plus one pooled point light — the pool already
+   exists in `fx/index.js` (`LIGHTS = 3`, idled at intensity 0). Keep it under
+   ~0.12 s; a flash you can name is too long.
 
 ## Harness (use it every iteration — never claim a look without a PNG you read)
 

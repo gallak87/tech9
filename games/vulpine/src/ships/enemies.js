@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { rng } from '../core/rng.js';
 import { emissive } from '../render/materials.js';
+import { bakeRGBA, cached } from '../render/textures.js';
 import { SMat, buildShipMaterials } from './ship-materials.js';
 import {
   loft, superellipse, assemble, M,
@@ -18,8 +19,11 @@ import {
 //      aft-swept wings, tips turned UP. So every hostile here inverts at least
 //      two of those cues — forward sweep, anhedral, blunt or forked noses,
 //      horizontal masses instead of vertical ones.
-//   2. COLOUR.  Cold dark plating and red emissives against the Arwing's pale
-//      paint and blue engines. Friend/foe is legible before shape is.
+//   2. COLOUR.  Dark warm plating and red emissives against the Arwing's pale
+//      paint and blue engines. Friend/foe is legible before shape is. The
+//      plating used to be a cool blue-grey at metalness 0.9, which made every
+//      hostile a mirror of the sky it was flying against — see the note on
+//      SMat.hostile in ship-materials.js.
 //   3. MASS.  A raptor is 6 m and reads light; a hornet is 11 m and reads heavy;
 //      the vanguard is 30 m and reads like something you should be worried by.
 //
@@ -52,6 +56,137 @@ function buildEnemyMaterials() {
     depthWrite: false, toneMapped: false, fog: false, side: THREE.DoubleSide,
   });
   return EMat;
+}
+
+/* ── class beacons: identity at 100 px ─────────────────────────────────────── */
+//
+// Design brief rule 1 says every class must be nameable at 100 px. Measured
+// against a real capture, it wasn't: at 600 m a 6 m raptor is ~15 px of dark
+// hull over hazy blue water, and a wasp is ~8 px of the same dark speck. Three
+// things fail together and they all fail for the same reason — you are looking
+// at the *front* of a hostile that is closing on you:
+//
+//   · the silhouette is 15 px, so shape carries nothing;
+//   · the hull is dark cold plating, and aerial perspective drags it toward the
+//     background value it is supposed to separate from;
+//   · every emissive on these ships (nozzle face, plume, exhaust halo) points
+//     AFT. Head-on, a hostile has no lit pixel on it at all.
+//
+// So each class carries a camera-facing beacon whose *angular* size has a
+// floor. It shrinks with distance like everything else until it would fall
+// under a few pixels, and then it stops — the hull keeps honest perspective,
+// the light stays readable. That is the whole trick.
+//
+// Colour is the class channel and blink pattern is the second one, because a
+// blink still resolves at three pixels where a hue difference is already
+// marginal. Every colour stays in the warm half of the wheel: hostile-vs-
+// Arwing (pale paint, blue engines) has to survive being read before class
+// does, so nothing here is allowed to go blue or green.
+//
+// One lamp per hull, and it sits on the DORSAL spine rather than the nose.
+// The first pass put it at the nose, which is right for a head-on pass and
+// useless for every other aspect — `depthTest` is on, so the hull ate its own
+// lamp the moment the ship turned away. Above the spine it is visible from the
+// front, both sides, the rear and from above, which is every aspect this game
+// actually presents. It also keeps the cost at one extra draw per ship.
+//
+// `fog: false` is what buys the punch-through, but an unfogged light with no
+// other limit would still be a visible star at 8 km. `far`/`fade` below cut it
+// off just past lock range, so beacons only exist inside the fight.
+
+// `minPx` is the floor on the lamp's *diameter in CSS pixels*. It is bigger
+// than it first looks reasonable to make it, and it has to be: the beacon is
+// competing with a sunlit water surface, so a 3 px dot at 15% blink-off simply
+// is not there. Measured — the first pass used 2.4–3.0 px and read as nothing
+// at all in `shots/e1`. Six pixels is roughly the point where hue survives the
+// tone map and the bloom.
+const BEACON = {
+  //          colour     gain size minPx  rate duty  pattern    at (hull-local)
+  raptor: {
+    color: 0xff2a14, gain: 6.5, size: 0.62, minPx: 8.0, rate: 0, duty: 1, pattern: 'steady',
+    at: [[0, 0.56, -0.50]],
+  },
+  wasp: {
+    color: 0xffb400, gain: 6.0, size: 0.40, minPx: 6.0, rate: 6.5, duty: 0.55, pattern: 'flicker',
+    at: [[0, 0.52, -0.10]],
+  },
+  hornet: {
+    color: 0xff1e78, gain: 6.0, size: 0.80, minPx: 8.0, rate: 1.1, duty: 0.5, pattern: 'double',
+    at: [[0, 1.02, 0.10]],
+  },
+  bulwark: {
+    color: 0xff6a08, gain: 5.0, size: 0.72, minPx: 5.5, rate: 0.55, duty: 0.5, pattern: 'pulse',
+    at: [[0, 3.25, 0]],
+  },
+  vanguard: {
+    color: 0xd24bff, gain: 6.5, size: 1.90, minPx: 11.0, rate: 0.9, duty: 0.5, pattern: 'strobe',
+    at: [[0, 2.95, -3.0], [0, -0.15, -13.1]],
+  },
+};
+
+/** Distances over which an unfogged beacon is allowed to exist, in metres. */
+const BEACON_FAR = 1500, BEACON_CUT = 2400;
+
+/**
+ * A light source is a small hard core inside a wide soft halo. One gaussian on
+ * its own reads as a smudge at every size; it is the core that survives being
+ * three pixels across, and the halo that keeps it from aliasing into a
+ * flickering dot as the ship crosses the pixel grid.
+ */
+function beaconTexture() {
+  return cached('enemy.beacon', () => {
+    const t = bakeRGBA(64, (u, v, out) => {
+      const dx = u - 0.5 + 1 / 128, dy = v - 0.5 + 1 / 128;
+      const r = Math.min(1, Math.hypot(dx, dy) * 2);
+      const core = Math.exp(-r * r * 42);
+      const halo = Math.pow(1 - r, 2.6) * 0.40;
+      out[0] = out[1] = out[2] = 1;
+      out[3] = Math.min(1, core + halo);
+    });
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+    t.needsUpdate = true;
+    return t;
+  });
+}
+
+function beaconNode(B, at) {
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: beaconTexture(),
+    color: new THREE.Color(B.color).multiplyScalar(B.gain),
+    blending: THREE.AdditiveBlending,
+    transparent: true, depthWrite: false,
+    toneMapped: false, fog: false, sizeAttenuation: true,
+  }));
+  s.name = 'beacon';
+  s.position.set(at[0], at[1], at[2]);
+  s.scale.setScalar(B.size);
+  s.renderOrder = 7;
+  return s;
+}
+
+/**
+ * 0..1 lamp state. Hard edges, not sines — an on/off edge reads at a few
+ * pixels where a smooth ramp just reads as a dimmer light.
+ *
+ * Nothing goes below ~0.35. The blink is a *modulation* that says which class
+ * this is; it is not allowed to be an extinction, because a hostile that
+ * vanishes for 200 ms every second is the rear-attacker problem all over again
+ * in a different costume. You must always be able to see it; the pattern is
+ * how you name it.
+ */
+function beaconDuty(B, t, phase) {
+  if (B.rate <= 0) return 1;
+  const ph = (t * B.rate + phase) % 1;
+  switch (B.pattern) {
+    // two quick winks then a long gap: unmistakable, and unmistakably *not*
+    // the single steady lamp a raptor carries.
+    case 'double': return (ph < 0.10 || (ph > 0.20 && ph < 0.30)) ? 1 : 0.38;
+    // a hard short flash — the thing you notice from the corner of your eye
+    case 'strobe': return ph < 0.10 ? 1 : 0.42;
+    // slow breathing, so a gun emplacement never reads as something closing
+    case 'pulse': return 0.55 + 0.45 * (0.5 - 0.5 * Math.cos(ph * Math.PI * 2));
+    default: return ph < B.duty ? 1 : 0.45;
+  }
 }
 
 /* ── part bucketing ────────────────────────────────────────────────────────── */
@@ -735,6 +870,9 @@ export function enemyProto(kind) {
     if (!b) throw new Error('unknown enemy kind: ' + kind);
     g = b();
     g.userData.spec.tris = triCount(g);
+    // after triCount, so `spec.tris` stays a count of hull, not of lamps
+    const B = BEACON[kind];
+    if (B) for (const at of B.at) g.add(beaconNode(B, at));
     protos.set(kind, g);
   }
   return g;
@@ -752,14 +890,43 @@ export function createEnemy(kind) {
   const root = proto.clone(true);
   root.userData.spec = proto.userData.spec;
 
-  const rig = { engines: [], eyes: [], turret: null, barrels: null, doors: [] };
+  const rig = { engines: [], eyes: [], beacons: [], turret: null, barrels: null, doors: [] };
   root.traverse((o) => {
     if (o.name === 'engine') rig.engines.push(o);
     else if (o.name === 'turret') rig.turret = o;
     else if (o.name === 'barrels') rig.barrels = o;
     else if (o.name === 'doorL' || o.name === 'doorR') rig.doors.push(o);
     if (o.isMesh && o.name === 'eye') { o.material = o.material.clone(); rig.eyes.push(o); }
+    else if (o.isSprite && o.name === 'beacon') { o.material = o.material.clone(); rig.beacons.push(o); }
   });
+
+  // The angular floor and the distance cutoff both need the camera, and
+  // `animateEnemy` is not given one — changing its signature would reach into
+  // combat.js, which is another lane. `onBeforeRender` already receives exactly
+  // what is needed, costs nothing when the sprite is culled, and runs late
+  // enough to be the last writer before the draw. `animateEnemy` publishes the
+  // lamp state to `userData.k`; this multiplies the range fade onto it.
+  const B = BEACON[kind];
+  for (let i = 0; i < rig.beacons.length; i++) {
+    const s = rig.beacons[i];
+    s.userData.phase = ((root.id + i * 37) % 100) / 100;
+    s.userData.k = 1;
+    s.onBeforeRender = (renderer, _scene, camera) => {
+      const d = camera.position.distanceTo(s.getWorldPosition(_bv));
+      const fade = 1 - clamp01((d - BEACON_FAR) / (BEACON_CUT - BEACON_FAR));
+      s.material.opacity = s.userData.k * fade;
+      if (fade <= 0) return;
+      // world size that subtends `minPx` vertical pixels at this distance
+      renderer.getSize(_bs);
+      const wpp = 2 * Math.tan(camera.fov * DEG2RAD * 0.5) * d / Math.max(1, _bs.y);
+      const k = Math.max(B.size, B.minPx * wpp);
+      if (Math.abs(k - s.scale.x) > 1e-4) {
+        s.scale.set(k, k, 1);
+        s.updateMatrixWorld(true);
+        s.modelViewMatrix.multiplyMatrices(camera.matrixWorldInverse, s.matrixWorld);
+      }
+    };
+  }
   // The nozzle discs animate with throttle, so they need their own materials.
   //
   // These are re-found on the clone every time rather than read from userData:
@@ -782,9 +949,15 @@ export function disposeEnemy(root) {
   if (!rig) return;
   for (const e of rig.eyes) e.material.dispose();
   for (const e of rig.engines) e.userData.face?.material?.dispose();
+  for (const b of rig.beacons || []) { b.onBeforeRender = noop; b.material.dispose(); }
 }
 
 const _c = new THREE.Color();
+const _bv = new THREE.Vector3();
+const _bs = new THREE.Vector2();
+const DEG2RAD = Math.PI / 180;
+const noop = () => {};
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /**
  * Per-frame cosmetics. `power` drives the engines, `alert` the eyes, `damage`
@@ -805,5 +978,15 @@ export function animateEnemy(root, dt, { power = 1, alert = 0, damage = 0, t = 0
   for (const e of rig.eyes) {
     const pulse = 0.7 + 0.3 * Math.sin(t * (alert > 0.5 ? 11 : 3.4) + root.id * 0.7);
     e.material.color.copy(_c.setRGB(1.0, 0.26 + alert * 0.26, 0.12)).multiplyScalar((2.4 + alert * 4.6) * pulse * live);
+  }
+  // `rig` also arrives here from boss.js, which builds its own and has no
+  // beacons — the boss is 40 m of silhouette and never had this problem.
+  const B = rig.beacons?.length ? BEACON[root.userData.spec?.kind] : null;
+  if (B) {
+    // Alert brightens rather than recolours: hue is the class channel and has
+    // to mean one thing only. Damage takes the lamps down with the rest of the
+    // electrical system, so a ship about to come apart visibly loses its light.
+    const gain = (0.88 + alert * 0.24) * (0.35 + 0.65 * live);
+    for (const b of rig.beacons) b.userData.k = beaconDuty(B, t, b.userData.phase) * gain;
   }
 }

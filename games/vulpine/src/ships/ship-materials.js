@@ -153,22 +153,37 @@ export function buildShipMaterials() {
   SMat.ember = emissive(0xff7a24, 5.0);
 
   /* ── hostiles ───────────────────────────────────────────────────────────── */
-  // Same construction quality, opposite design language: dark cold plating,
-  // red trim, red-hot emissives. Friend/foe has to read at 300 m.
+  // Same construction quality, opposite design language: dark plating, red
+  // trim, red-hot emissives. Friend/foe has to read at 300 m.
+  //
+  // It did not read at 300 m, and the reason was the two numbers below rather
+  // than anything about the hulls. The plating was a *cool* blue-grey
+  // (0x767c88 / 0x3d434d) at metalness 0.9 — and a 0.9-metal surface under an
+  // open sky has almost no diffuse term, so what you actually saw was the sky
+  // reflected back at you. The enemy was painted, per-pixel, the exact colour
+  // of the haze it was supposed to separate from; at 600 m over water it
+  // disappeared completely (measured, `shots/iso-before`).
+  //
+  // So: warm the plating, and drop the metalness far enough that the hull
+  // holds a value of its own instead of borrowing the environment's. It is
+  // still dark, still cold-*feeling* next to the Arwing's pale paint, and it
+  // now sits in the same family as its own red trim and emissives.
 
   SMat.hostile = new THREE.MeshPhysicalMaterial({
     map: dark.map, normalMap: dark.normalMap,
     roughnessMap: dark.roughnessMap, metalnessMap: dark.metalnessMap,
     normalScale: new THREE.Vector2(1.0, 1.0),
-    color: 0x767c88, roughness: 0.82, metalness: 0.9,
-    envMapIntensity: 0.95,
+    color: 0x8a6f66, roughness: 0.78, metalness: 0.55,
+    envMapIntensity: 0.80,
   });
   SMat.hostilePlate = SMat.hostile.clone();
-  SMat.hostilePlate.color.setHex(0x3d434d);
-  SMat.hostilePlate.roughness = 0.95;
+  SMat.hostilePlate.color.setHex(0x4e3c38);
+  SMat.hostilePlate.roughness = 0.92;
 
+  // The trim is the only mid-frequency shape cue that survives past ~40 px, so
+  // it has to be bright enough to be seen doing that job.
   SMat.hostileTrim = new THREE.MeshPhysicalMaterial({
-    color: 0x8e1620, roughness: 0.34, metalness: 0.25,
+    color: 0xc02028, roughness: 0.34, metalness: 0.25,
     clearcoat: 0.8, clearcoatRoughness: 0.18, envMapIntensity: 1.1,
   });
   SMat.hostileGlass = new THREE.MeshPhysicalMaterial({

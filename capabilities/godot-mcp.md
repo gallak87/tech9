@@ -110,6 +110,66 @@ was itself the finding.
 **Isolate by hiding.** Toggling `visible` on a subset of meshes via `game_eval` answers
 "which mesh is that?" instantly.
 
+**When the invariant keeps passing and the artifact is still there, stop deriving and raycast.**
+This is the failure mode of the technique above, and it is expensive. Deriving proves statements
+about your *model*. It cannot see a defect where the model is correct and the renderer disagrees
+with it — there, every derivation you run will keep confirming the model, truthfully, forever.
+
+The last game had ribbons of geometry hanging in mid-air. Three sessions of deriving proved the
+height field had no spikes, that every mesh vertex lay exactly on that field, and that the
+steepest slope was legitimate. All true. Every triangle was wound backwards, so back-face culling
+was keeping the faces turned away from the camera and discarding the ones facing it. Nothing in
+the pipeline inspected index order, and the normals were written analytically, so the surface
+still shaded correctly.
+
+Switch instruments the moment clean results and a visible defect coexist:
+
+```gdscript
+# what is actually under those pixels?
+var params := PhysicsRayQueryParameters3D.create(from, to)
+var hit := get_tree().root.get_world_3d().direct_space_state.intersect_ray(params)
+```
+
+- **Raycast the artifact.** A control ray fired straight down from 5000 m onto a chunk's own AABB
+  centre returned *no hit* — impossible for a front-facing heightfield. That one result was the
+  whole diagnosis. (For a `MeshInstance3D` with no collider, do the ray against the vertex arrays
+  in `game_eval`, or attach a temporary `create_trimesh_collision()`.)
+- **Compare geometric to shading normal**: `(b-a).cross(c-a)` against the normal written at that
+  vertex. A dot of −1.000 is conclusive; nothing else reports it.
+- **Diff two renders**, one with the suspect meshes hidden — that difference is the silhouette
+  exactly as rasterised, no assumptions.
+- **Flip what you cannot observe.** Setting the material to `cull_disabled` draws precisely the
+  triangles the GPU was discarding. If the frame becomes correct, you are finished.
+
+**Rule of thumb: derive against the model, raycast against the render.**
+
+**Validate an instrument before believing it reports nothing.** A measurement that says "no
+effect" is the most dangerous reading you can get, because it looks like a result. A guidance
+probe on the last game reported 0 hits out of 49 while the system was connecting on two thirds
+of them — it sampled once per tick, the sim tested the swept segment between ticks, and every
+clean strike registered as a near miss. The numbers were also *stable across parameter changes*,
+which reads exactly like "my edit did nothing".
+
+- Before trusting a null, feed the instrument a case you know is positive. If it cannot see that,
+  it cannot see anything.
+- **Count events where they are applied, not by polling from outside.** An entity is usually
+  freed on the frame its event fires, so a sampler structurally cannot observe it — the last
+  frame it ever sees is the one before. Increment a counter inside the collision/damage handler
+  and read it with `game_eval`.
+- **Tell:** a number that does not move when you change the parameter it measures is almost never
+  a real invariance. Suspect the instrument first.
+
+**Build an input harness and a time-domain harness early.** A screenshot is one frame with no
+keys held, so whole classes of bug are invisible to it however many you take:
+
+- *Input domain* — "does the fire button actually fire" cannot be answered by any capture,
+  because the capture path never presses a key. `game_key_press` / `game_key_hold` plus a
+  `game_eval` assert on the resulting state. This caught a gun bug that a dozen review
+  screenshots had missed.
+- *Time domain* — "is there dead air in this encounter", "does the boss drift out of range" are
+  questions about seconds, not frames. Step the sim and sample state ~10×/second. This found an
+  AI bug where every enemy lagged its commanded position.
+
 ## Gotchas already paid for
 
 Each of these cost real time. Read them before you lose an hour.

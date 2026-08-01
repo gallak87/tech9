@@ -123,6 +123,13 @@ between the level as designed and the level as shipped.
       Needs a pickup entity, a magnet/collect rule, HUD tier readout, and a
       rebalance of every enemy HP against the new DPS curve. New scope — decide
       whether it earns its keep in a single-level game before building it.
+      **Motivating case (owner, live play, post-rebalance): the boss is still a
+      tank.** Chewing through each compartment takes forever. The owner *likes*
+      the per-compartment grind, so the fix is probably more DPS by then rather
+      than less HP — either loot dropping through the level, or an automatic
+      weapon upgrade granted just before the boss as the reward for reaching it.
+      Do not cut boss HP again in isolation; that trades the part of the fight
+      the owner likes for the part that is broken.
 - [ ] Score/rank at level end (medals, hit %, time).
 
 ## Later — Phase 11: finish

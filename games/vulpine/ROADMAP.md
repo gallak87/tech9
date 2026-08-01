@@ -63,14 +63,16 @@ register, swept collision.
       shaders compile. No spinner, no logo, no progress — it reads as a hang.
       Needs staged progress reporting out of `main.js` init, drawn before the
       first frame.
-- [ ] **Bug: one bomb press spends the whole rack.** `Input.update` is polled
-      once per *rendered frame*, but `step(FIXED)` runs 1–8 times per frame at
-      120 Hz — so `input.bombPressed` is still true on every sub-step and
-      `updateBombs` decrements `state.bombs` once per step. At 60 fps that is 2+
-      bombs per press; 3 bombs vanish in ~25 ms. The `bombs[0].t > bombArm`
-      guard cannot catch it (arm is 0.18 s, the repeats happen inside 16 ms).
-      Fix: consume the edge in combat, or latch `*Pressed` for one sim step.
-      Same class of bug will bite any other `*Pressed` read inside `step()`.
+- [x] **Bug: one bomb press spends the whole rack.** Fixed. `bombPressed` is
+      sampled once per rendered frame and read once per fixed step (1–8 per
+      frame), and the launch branch guarded on `state.bombs > 0`, which stays
+      true after spending one. Now guarded on `!bombs.length`, which goes false
+      immediately. Audited every other `*Pressed` read: roll and somersault sit
+      inside `step()` too but already flip their own predicate (`rollT >= 0`,
+      `somersaultT >= 0`); everything else (`mode.js`, `legend.js`, `main.js`)
+      is read outside the step loop. **Rule for any new edge-triggered action:
+      the guard must be a predicate the action itself invalidates.** A resource
+      counter is not one.
 - [ ] **Encounter feel, waves 1–4** (`z = -260 … -1950`): spacing, entry angles,
       how long a raptor stays shootable, whether the wasp swarm reads as threat.
       Instrument with `tools/pacing.mjs`, not screenshots.

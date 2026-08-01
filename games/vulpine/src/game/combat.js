@@ -1071,9 +1071,16 @@ export function installCombat(ctx) {
     const input = ctx.input.state;
     // Second press detonates whatever is already in the air, before spending
     // another one from the rack.
+    //
+    // `!bombs.length` on the launch branch is what makes one press spend one
+    // bomb. `bombPressed` is sampled once per rendered frame but read once per
+    // fixed step, and there are 1–8 of those per frame, so the launch condition
+    // has to go false the instant a bomb exists — `state.bombs > 0` stays true
+    // and empties the rack in a single frame. Nothing here can lean on
+    // `bombArm`: the repeats land inside the same millisecond.
     if (input.bombPressed && bombs.length && bombs[0].t > TUNE.bombArm) {
       bombs[0].detonate = true;
-    } else if (input.bombPressed && state.bombs > 0 && deadT < 0 && !state.outcome) {
+    } else if (input.bombPressed && !bombs.length && state.bombs > 0 && deadT < 0 && !state.outcome) {
       state.bombs--;
       _v2.set(0, 0, -1).applyQuaternion(ctx.ship.quaternion).normalize();
       _v.set(0, -0.6, -2.2).applyMatrix4(ctx.ship.matrixWorld);

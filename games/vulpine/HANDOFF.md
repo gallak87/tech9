@@ -24,7 +24,8 @@ So:
   commit message, not only here.
 - **Do not add a module the roadmap does not ask for.** Ship criterion 7 is "no
   dead code"; this project has now shipped ~5,400 lines of finished, unimported
-  modules across two sessions, and `world/reflection.js` is still one of them.
+  modules across two sessions. `world/reflection.js` was the last of them and is
+  now wired; the built-world materials (Phase 9) are the remaining ~160 lines.
 
 ## Scope decision (2026-07-31)
 
@@ -144,25 +145,28 @@ handed to roughness Toksvig-style; `ior: 1.333` so water stops rendering brighte
 than the rock beside it; Beer-curve depth absorption; a three-part shoreline; sun
 glitter. Before/after: `shots/base01/water.png` → `shots/commit-check/water.png`.
 
-**`src/world/reflection.js` is finished and NOT WIRED IN.** Planar reflector,
-mirror camera, oblique near plane, alpha-0 clear, reentry guard. Both water
-materials already accept an optional `reflection` and compile a `WATER_REFL`
-variant. Only `corneria.js` is missing — see the agent's step list below. This is
-exactly the dead-code failure the previous session was pulled up for; it is
-committed deliberately rather than thrown away, but it is doing nothing.
+**`src/world/reflection.js` is now wired** (`corneria.js`). Constructed once,
+shared by both water materials by uniform identity, driven from the sentinel
+probe's `onBeforeRender` after `_applyLOD()` — LOD first, or the mirrored pass
+draws a coarser tier than the one on screen. Hidden for the pass: the water
+group, the probe itself, and every `environment` child with `renderOrder <= -999`
+(sky dome, starfield, nebula). Hiding those is load-bearing, not an optimisation:
+the buffer is cleared to alpha 0 so the shader can tell "this ray hit rock" from
+"this ray went to sky" and keep the IBL for the second case. Draw the dome and
+every one of those pixels gets alpha 1 and the distinction is gone.
+Result: `shots/wdiag2/graze.png` → `shots/refl1/graze.png`.
 
 ### Next steps, in order
 
-1. Wire `reflection.js` into `corneria.js`: construct it, pass to both water
-   materials, and call `refl.render(renderer, camera)` from `_makeProbe()`'s
-   `onBeforeRender` after `_applyLOD()`, hiding the water group, the probe, and
-   the sky/starfield/nebula meshes (hiding those is what keeps alpha 0 so the sky
-   IBL survives where the reflection ray misses).
-2. Then tune the shoreline — the beach edge is still a hard geometric line with
-   no foam, visible in `shots/commit-check/water.png`.
-3. Take a real perf reading. Nothing here has been measured at the contract
-   point (1080p `--quality high`) since both lanes were rendering concurrently,
-   and the reflection pass is not in the budget at all yet.
+1. **The frame is over budget, and it is not the reflection.** First
+   contract-point reading ever taken (1080p `--quality high`, serial, same five
+   shots): 17.3 ms with the reflector disabled, 18.1 ms with it. The base frame
+   was already over on its own. Profile that before optimising anything, and
+   note run-to-run variance is ±2 ms — one reading proves nothing.
+2. Tune the shoreline — the beach edge is still a hard geometric line with no
+   foam and the sand is a flat untextured wedge (`shots/refl1/w-shore.png`).
+3. `w-shore` composites at median 0.068 against a 0.10–0.20 target. Clipping and
+   black are healthy, so it is grade rather than range.
 
 ## What changed the session before
 

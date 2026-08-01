@@ -3,6 +3,7 @@ import { WORLD, centrelineX, centrelineY, terrainHeight, terrainNormal, profileA
 import { terrainMaterial, waterMaterial, deepWaterMaterial } from './world-materials.js';
 import { Terrain } from './terrain.js';
 import { Water } from './water.js';
+import { PlanarReflection } from './reflection.js';
 import { registerWorldShots } from './shots.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,11 +28,18 @@ export class Corneria {
     scene.add(this.root);
 
     this.terrainMat = terrainMaterial();
-    this.waterMat = waterMaterial();
+    // The water's only specular used to be the PMREM probe of the sky, which is
+    // by construction a smooth gradient — so in a 300 m gorge the river came out
+    // uniform and *brighter* than the rock beside it. Both water materials share
+    // one reflector; they reference its uniform objects by identity, so the
+    // per-frame update happens once, in reflection.js.
+    this.reflection = new PlanarReflection(scene, { planeY: WORLD.waterLevel });
+    this._reflHide = [];
+    this.waterMat = waterMaterial(this.reflection);
     this._time = 0;
     this._camPos = new THREE.Vector3(0, 60, 0);
 
-    this.deepMat = deepWaterMaterial();
+    this.deepMat = deepWaterMaterial(this.reflection);
     this.terrain = new Terrain(this.root, this.terrainMat);
     this.water = new Water(this.root, this.waterMat, this.deepMat);
 
@@ -51,11 +59,38 @@ export class Corneria {
     const mesh = new THREE.Mesh(g, m);
     mesh.frustumCulled = false;
     mesh.renderOrder = -100000;
-    mesh.onBeforeRender = (_r, _s, camera) => {
+    mesh.onBeforeRender = (renderer, _s, camera) => {
       this._camPos.copy(camera.position);
+      // LOD first: the mirrored pass must draw the same tier the main pass will,
+      // or the reflection is of a different, coarser level than the one on screen.
       this._applyLOD();
+      this._reflect(renderer, camera);
     };
     return mesh;
+  }
+
+  /**
+   * Mirror the scene into the reflector. This is the one hook in the frame that
+   * fires before anything else is drawn, which is exactly what a planar
+   * reflection needs.
+   */
+  _reflect(renderer, camera) {
+    const r = this.reflection;
+    if (!r || !r.enabled) return;
+    const hide = this._reflHide;
+    hide.length = 0;
+    // The water cannot reflect itself, and the probe must not re-enter this.
+    hide.push(this.water.group, this._probe);
+    // The sky dome, starfield and nebula are deliberately NOT mirrored. The
+    // buffer is cleared to alpha 0 so the shader can tell "this ray hit rock"
+    // from "this ray went to sky" and keep the existing IBL for the second case;
+    // drawing the dome would write alpha 1 over every one of those pixels and
+    // throw the distinction away. Re-collected each frame because switching
+    // environment preset rebuilds the nebula.
+    const env = this.scene.getObjectByName('environment');
+    if (env) for (const o of env.children) if (o.isMesh && o.renderOrder <= -999) hide.push(o);
+    r.hide = hide;
+    r.render(renderer, camera);
   }
 
   _applyLOD() {

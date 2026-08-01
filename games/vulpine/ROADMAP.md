@@ -83,10 +83,20 @@ register, swept collision.
 - [ ] **Rear-threat indicator.** Owner feedback: too many hostiles shoot from
       behind. Being flanked is good; being shot by something you were given no
       way to notice is not. Blocked on an owner call — see Open questions.
-- [ ] **Wire `world/reflection.js` into `corneria.js`.** Finished planar
-      reflector, currently dead code. Three steps in HANDOFF.
-- [ ] **Measure the frame at the contract point** — 1080p `--quality high`,
-      serially, nothing else rendering. Never once done. Budget is 16.6 ms.
+- [x] **Wire `world/reflection.js` into `corneria.js`.** Done. Canyon walls and
+      rock stacks now reflect; costs +0.8 ms.
+- [ ] **The frame is over budget.** First contract-point measurement ever taken
+      (1080p `--quality high`, serial): **17.3 ms with the reflection disabled,
+      18.1 ms with it**. So the reflection is not the problem — the base frame
+      was already 0.7 ms over on its own, and nobody had ever checked. Profile
+      the base frame before optimising anything. Note run-to-run variance is
+      ±2 ms, so any fix needs a repeated A/B, not one reading.
+- [ ] **Shoreline.** The beach/water boundary is still a hard geometric line
+      with no foam, and the sand is a flat untextured wedge
+      (`shots/refl1/w-shore.png`, mid-left; `shots/refl1/combat-wide.png`).
+- [ ] **`w-shore` sits under the exposure band** — composited median 0.068
+      against a 0.10–0.20 target. Clipping and black are fine, so it is grade,
+      not range. Check whether other shadowed-gorge angles do the same.
 
 ## Next — Phase 9: the built world
 

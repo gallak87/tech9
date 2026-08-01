@@ -31,11 +31,28 @@ I want you to build a 3D flying game Star Fox Vulpine at the level of the Star F
 on each item and have a separate sub-agent check it visually to ensure it looks triple A. That separate sub-agent should be a really harsh critic, and if it doesn't look triple A, it should keep going.
 ```
 
-Keep the fan-out to **1–2 sub-agents at a time on disjoint files**. Five
-parallel lanes hit the usage ceiling in ~15 minutes and three of them landed
-dead code (see below). Hand a sub-agent the API contract it needs *in the
+Keep the fan-out to **1 sub-agent at a time, plus yourself inline on a disjoint
+lane**. Five parallel lanes hit the usage ceiling in ~15 minutes and three of
+them landed dead code. Hand a sub-agent the API contract it needs *in the
 prompt* — making it re-derive the interfaces from source is what burned the
-budget last time.
+budget the time before.
+
+Two concurrent lanes turned out to be one too many, and **not** because of
+merge conflicts — disjoint files never conflicted once. The problem is that
+every lane drives the *same running app*. A before/after capture renders
+whatever the other lane's files happen to be at that instant, so any A/B
+measures both changes at once. It cost a whole enemy-legibility comparison
+before it was spotted (the other lane had moved the `combat-wide` camera).
+
+If you must measure a look while another lane is live, capture from a clean
+worktree instead:
+
+```bash
+git worktree add /tmp/iso HEAD --detach
+ln -s "$PWD/node_modules" /tmp/iso/games/vulpine/node_modules
+cp src/<your file> /tmp/iso/games/vulpine/src/<your file>
+# capture before/after in /tmp/iso; delete with: git worktree remove /tmp/iso
+```
 
 ## What just changed (this session)
 
@@ -78,24 +95,48 @@ Current reference frames: `shots/c3/` (HUD + combat, `--hud --params fight=1`).
 1. **Thin tapering fins hang off the canyon rims** (right side of
    `shots/c5/combat-wide.png`, and every in-canyon frame). They read as torn
    geometry and are the single biggest reason the canyon still looks like
-   stacked sheets rather than landmass. **Not yet diagnosed.** Ruled out, each
-   by a measured experiment — do not re-test these:
+   stacked sheets rather than landmass. **Still open.** Ruled out, each by a
+   measured experiment — do not re-test these:
    - *Not the lateral skirts.* Dropping `SKIRT` 55 → 10 changed the image not at
      all, and `hemDepth` measures 1 m on the far tier.
    - *Not the near/far tier seam.* They survive `freecam --hide "^ridge-"`, and
      both tiers now band-limit identically at the shared boundary column.
    - *Not far-tier aliasing.* They are inside `|u| < 1100`, i.e. near tier.
    - *Not water, not fog.* Survive `--nowater` and `--nofog`.
-   They are therefore real near-tier surface. Next step: bisect the noise bands
-   in `profile.js:heightAtU` (suspect the `plateau`/`relief` term just past the
-   cliff top `a3`, where `amp` is small but `rel` swings ±300 m, or
-   `bankJitter`) by zeroing one band at a time and re-shooting `combat-wide`.
+   - *Not fx.* `combat-wide` re-shot with every `fx.*` mesh forced invisible
+     every frame: all fins survive unchanged → `shots/dfx/combat-wide.png`.
+   - *They ARE `terrain-*` meshes.* Same shot with every `^terrain-` mesh
+     forced invisible: every fin disappears and only the smooth far-tier
+     `ridge-*` landmass remains → `shots/dter/combat-wide.png`.
+   - **The height FIELD is clean.** `heightAtU()` sampled on the exact near-tier
+     column set (153 columns, reproduced from `nearColumns()`) for every z from
+     720 to −4000 in 6 m steps, looking for a vertex differing from *both*
+     lateral neighbours by more than 40 m: **zero hits.**
+
+   So the previous handoff's advice — bisect the noise bands in
+   `profile.js:heightAtU` — **is a dead lead, do not spend budget on it.** The
+   defect is in the *mesh*, i.e. `terrain.js`: index buffers, the LOD stitch,
+   skirt topology, or the skirt normals/colours. The fins are much darker than
+   surrounding rock, so it may be a shading artefact as much as a silhouette
+   one. A wireframe capture already exists: `shots/dwire/combat-wide.png`,
+   where they appear as dense near-vertical streaks following grid *columns* —
+   many rows compressed into a narrow lateral band, consistent with a fold or
+   stretched sliver triangles rather than a displaced vertex.
 2. **Water is a mirror plane.** One clipped specular streak, no waves, no shore
    interaction, no depth falloff. `world/water.js` is largely untouched.
 3. **No terrain shadows.** `castShadow = false` on every chunk (`terrain.js`),
    so a 1750 m mountain range casts nothing and the landscape has no form
    definition. The comment says it waits for CSM — that is the real fix.
-4. **Enemies unreadable at distance** (see scope list above).
+4. ~~**Enemies unreadable at distance.**~~ **Partly fixed** (`fee163a`). Two
+   causes, both measured: the hostile plating was a *cool* blue-grey at
+   metalness 0.9, so with almost no diffuse term every hostile was painted the
+   colour of the haze it flew against; and every emissive on these hulls points
+   aft, so a closing hostile had no lit pixel at all. Plating is now warm at
+   metalness 0.55, and each class carries one dorsal camera-facing beacon with
+   a floor on its *angular* size (colour = class, blink pattern = second
+   channel). Costs one draw per live enemy.
+   **Not finished:** past ~800 m they are still small and quiet. Re-tune after
+   the water lane lands, since the background they compete against will change.
 5. **Rear attackers are unfair, not hard.** Owner feedback from live play: too
    many enemies end up behind you and shoot from there. The radar already knows
    where they are, so the fix is almost certainly a rear-threat indicator (an
@@ -131,6 +172,13 @@ New this session:
   caught the gun-convergence bug after a dozen captures had missed it.
   `--menu` additionally photographs the title card and pause menu, which are
   only reachable through real key presses.
+- **`tools/pacing.mjs`** steps the fixed-step sim and samples the live fight
+  10×/second, then reports wave-to-wave gaps, entry range and **time-on-target
+  per class**. A screenshot cannot answer "is there dead air here" or "how long
+  does a raptor stay shootable" — those are questions about the sim over time.
+  This is what found the station-seek bug that had every enemy in the game
+  lagging its commanded position. `node tools/pacing.mjs <port> <sim seconds>`.
+
 - **`tools/freecam.mjs`** parks the camera anywhere and looks anywhere —
   `--pos x,y,z --look x,y,z --fov --nofog --nowater --wire`. Every named shot in
   `shots.js` frames the level from *inside* it, which is the wrong place to

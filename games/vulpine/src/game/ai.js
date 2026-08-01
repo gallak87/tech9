@@ -188,6 +188,9 @@ function wander(a, t, amp, out) {
 
 /* ── behaviour ─────────────────────────────────────────────────────────────── */
 
+/** tan of the half-angle an attack run is allowed to sit off the player's axis. */
+const ATTACK_CONE = 0.34;   // ~19 deg, comfortably inside the 26 deg gun cone
+
 const ST = {};
 
 /** Fly the station the wing was given; hold the slot off the leader. */
@@ -213,8 +216,24 @@ ST.attack = (a, dt, w) => {
   // silhouette to shoot at — the enemy just hovered and drifted past.
   const closeZ = lerp(a.entryZ, -55, clamp(u * u * (0.78 + a.aggression * 0.30), 0, 1));
   a.offset.z += (closeZ - a.offset.z) * Math.min(1, dt * 1.6);
-  a.offset.x += (a.runX * (1 - u * 0.65) - a.offset.x) * Math.min(1, dt * 1.1);
-  a.offset.y += (a.runY * (1 - u * 0.4) + 6 - a.offset.y) * Math.min(1, dt * 1.1);
+  // Bound the run by ANGLE, not by distance. Closing in z while holding a
+  // fixed lateral station keeps the craft outside the reticle for the entire
+  // approach — at offset.z = -95 with runX = 200 it is still 36 deg off axis,
+  // and 36 deg is not a target, it is scenery. Measured with tools/pacing.mjs:
+  // a raptor sat inside a 26 deg cone for 1.3 s of its whole life on average,
+  // and some spawns never entered it at all.
+  //
+  // Capping |x| and |y| to a fraction of the remaining range makes the run
+  // converge onto the player's axis as it closes, which is both what a real
+  // attack run looks like and what keeps the craft shootable for the length of
+  // the pass rather than the last half second of it. The station still sets
+  // the *shape* of the approach; it just can no longer put the craft somewhere
+  // the player has no way to answer.
+  const reach = Math.abs(a.offset.z) * ATTACK_CONE;
+  const tx = clamp(a.runX * (1 - u * 0.65), -reach, reach);
+  const ty = clamp(a.runY * (1 - u * 0.4) + 6, -reach * 0.7, reach * 0.7);
+  a.offset.x += (tx - a.offset.x) * Math.min(1, dt * 1.1);
+  a.offset.y += (ty - a.offset.y) * Math.min(1, dt * 1.1);
   a.alert = 1;
   if (a.offset.z > -95 || a.stateT > 5.5) setState(a, 'break', w);
 };
@@ -362,13 +381,27 @@ export function think(a, dt, w) {
   const g = w.groundAt(_a.x, _a.z) + (a.spec.radius + 14);
   if (_a.y < g) _a.y = g;
 
-  /* seek that point, inheriting the player's rail velocity so a "station" is
-     genuinely a station and not a point the world slides out from under */
+  /* Seek that point, inheriting the player's rail velocity so a "station" is
+     genuinely a station and not a point the world slides out from under.
+
+     That inheritance used to fade to zero past 400 m, which quietly broke
+     every long approach in the game. Beyond 400 m a craft was chasing a point
+     receding at the player's 175 m/s with only its own 235 m/s to catch it —
+     about 60 m/s of net closure, and none at all if the geometry was oblique.
+     So it lagged its commanded station for most of its life and simply never
+     arrived. Measured with tools/pacing.mjs: raptors were commanded to close
+     to 95 m and averaged 247 m, and were inside the gun cone for 1.3 s of
+     their whole life. The station has to be in the player's frame at every
+     range or it is not a station. */
   _b.copy(_a).sub(a.pos);
   const dist = _b.length();
   const closeK = clamp(dist / 60, 0.25, 1);
-  _b.normalize().multiplyScalar(a.spec.maxSpeed * closeK);
-  _b.addScaledVector(w.player.vel, clamp(1 - dist / 400, 0, 1));
+  _b.normalize().multiplyScalar(a.spec.maxSpeed * closeK * 0.8);
+  _b.add(w.player.vel);
+  // ...but do not let frame-matching plus a full-speed seek turn into a craft
+  // that outruns its own spec on the approach.
+  const vmax = a.spec.maxSpeed * 1.45;
+  if (_b.lengthSq() > vmax * vmax) _b.setLength(vmax);
 
   /* a ram drone trades itself for your shield — see ramStep */
   if (a.spec.ram && a.state !== 'exit') ramStep(a, dt, w, _b);

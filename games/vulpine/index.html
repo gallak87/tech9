@@ -13,12 +13,22 @@
     #stage canvas { display: block; width: 100%; height: 100%; }
     #ui { position: fixed; inset: 0; pointer-events: none; }
     #ui canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    /* Boot overlay. The backdrop is CSS so it paints on the first frame the
+       browser gets, before any module has evaluated; src/ui/loading.js adds
+       the canvas over it and removes the whole node when the game is up. */
+    #boot {
+      position: fixed; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(120% 90% at 50% 40%, #0b1d2b 0%, #05101a 52%, #01060b 100%);
+    }
+    #boot canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
     .nocursor { cursor: none; }
   </style>
 </head>
 <body>
   <div id="stage"></div>
   <div id="ui"></div>
+  <div id="boot"></div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

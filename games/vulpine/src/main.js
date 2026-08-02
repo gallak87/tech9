@@ -13,6 +13,7 @@ import { installUI } from './ui/index.js';
 import { installAudio } from './core/audio.js';
 import { installMode } from './game/mode.js';
 import { installDevPanel } from './dev/panel.js';
+import { createLoader } from './ui/loading.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Boot + main loop.
@@ -21,6 +22,11 @@ import { installDevPanel } from './dev/panel.js';
 // fixed seams (installFx / installCombat / installUI / installAudio) and never
 // reach into each other, so each one can be worked on in isolation without
 // touching this file.
+//
+// Boot is staged: each `await loader.stage()` names the work that follows and
+// yields a frame, which is the only way the browser composites anything during
+// an otherwise synchronous ~5 s init. Stage weights are rough shares of that
+// wall time, so the bar advances at roughly a constant rate.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const params = new URLSearchParams(location.search);
@@ -32,14 +38,24 @@ const presetParam = params.get('env') || 'corneria';
 const railYawParam = parseFloat(params.get('railyaw'));
 if (!Number.isNaN(railYawParam)) FLIGHT_TUNE.railYawFollow = railYawParam;
 
+const loader = createLoader();
+await loader.stage('SPINNING UP RENDERER', 0.01);
+
 const engine = new Engine({ quality: qualityParam });
+await loader.stage('BAKING SURFACE MATERIALS', 0.18);
+
 buildMaterials(engine);
+await loader.stage('BAKING SKY AND LIGHT PROBE', 0.38);
 
 const env = new Environment(engine, presetParam);
+await loader.stage('LINKING POST CHAIN', 0.41);
+
 engine.buildPost();
 env.apply(presetParam);            // re-apply now that post exists
+await loader.stage('GENERATING CORNERIA', 0.47);
 
 const world = new Corneria(engine.scene);
+await loader.stage('ASSEMBLING ARWING', 0.60);
 
 const ship = createArwing({ scale: 1.0 });
 engine.scene.add(ship);
@@ -47,6 +63,7 @@ engine.scene.add(ship);
 const flight = new Flight(ship, world);
 
 Input.init();
+await loader.stage('ARMING FLIGHT SYSTEMS', 0.69);
 
 /** Context handed to every subsystem. Add fields, never remove them. */
 const ctx = {
@@ -241,12 +258,18 @@ for (const pass of ['godRays', 'dof', 'motion', 'bloom', 'smaa']) {
 if (params.get('hud') === '0') api.hudVisible(false);
 
 /* ── go ──────────────────────────────────────────────────────────────────── */
+await loader.stage('COMPILING SHADERS', 0.79);
 engine.renderer.compile(engine.scene, engine.camera);
+await loader.stage('WARMING UP', 0.94);
 if (seekParam > 0) seekTo(seekParam);
 else updateScene(FIXED);
 if (shotParam) api.setShot(shotParam);
 
 frame();
+
+// The overlay fades over live frames and removes itself; readiness is signalled
+// only afterwards so no capture path (?t=, ?shot=) can screenshot through it.
+await loader.finish();
 
 // Signal readiness only after several presented frames, so the harness never
 // screenshots a half-compiled pipeline.

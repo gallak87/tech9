@@ -116,11 +116,20 @@ register, swept collision.
       `camAimFollow` is gone — superseded by `camAimLead`, which scales the aim
       off the capped lead instead of off the raw offset.
 
-- [ ] **Loading screen with a progress bar.** Today `index.html` is a bare black
-      page for ~5 s while terrain meshes, textures bake, the PMREM builds and
-      shaders compile. No spinner, no logo, no progress — it reads as a hang.
-      Needs staged progress reporting out of `main.js` init, drawn before the
-      first frame.
+- [x] **Loading screen with a progress bar.** Done. `src/ui/loading.js` draws a
+      boot card with the HUD's own glyph face, `gauge()` and Arwing icon; the
+      backdrop is CSS on `#boot` so it paints before any module evaluates.
+      Init is synchronous, so nothing composites unless it yields: each stage in
+      `main.js` is `await loader.stage(label, weight)`, which eases the bar over
+      four rAF turns and hands the frame back before the blocking call runs.
+      Weights are measured shares of wall time (buildMaterials alone is 1.8 s of
+      ~5.2 s). The card cross-fades onto the first live frames and removes its
+      node before `ready` is signalled, so `?t=`/`?shot=` never capture through
+      it.
+
+      Out of scope, found while measuring: `buildMaterials()` is 35% of boot in
+      one blocking call, which is the one stage the bar cannot move through.
+      Splitting it per-material would let the bar advance across it.
 - [x] **Bug: one bomb press spends the whole rack.** Fixed. `bombPressed` is
       sampled once per rendered frame and read once per fixed step (1–8 per
       frame), and the launch branch guarded on `state.bombs > 0`, which stays

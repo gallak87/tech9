@@ -76,6 +76,10 @@ const rows = await page.evaluate(async (until) => {
       stick: +(V.flight.yaw * DEG).toFixed(2),
       rail: +(Math.atan2(rd.x, -rd.z) * DEG).toFixed(2),
       camY: +(e.y * DEG).toFixed(2),
+      offx: +V.flight.off.x.toFixed(2),
+      offy: +V.flight.off.y.toFixed(2),
+      soffx: +(V.flight._sOffX ?? 0).toFixed(2),
+      shake: +V.flight.shake.toFixed(3),
     });
   }
   return out;
@@ -93,7 +97,7 @@ for (const r of rows) {
   if (Math.round(r.t * 10) % 20) continue;      // print every 2 s
   console.log(`${String(r.t).padStart(5)} ${String(r.z).padStart(6)} ${String(r.ndcX).padStart(7)} ${String(r.offDeg).padStart(8)} ${String(r.noseDeg).padStart(8)} ${String(r.stick).padStart(8)} ${String(r.rail).padStart(8)} ${String(r.camY).padStart(8)}`);
 }
-for (const k of ['ndcX', 'ndcY', 'offDeg', 'noseDeg', 'stick', 'rail', 'camY']) {
+for (const k of ['ndcX', 'ndcY', 'noseDeg', 'camY', 'offx', 'offy', 'soffx', 'shake']) {
   const s = span(k);
   console.log(`${k.padEnd(8)} min ${String(s.min).padStart(7)}  max ${String(s.max).padStart(7)}  peak-to-peak ${s.pp}`);
 }

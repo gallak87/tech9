@@ -38,16 +38,23 @@ export const TUNE = {
   somersaultDuration: 1.05,
   uturnDuration: 1.25,
 
-  camBack: 12.6,
+  camBack: 17.0,
   camUp: 3.15,
   camLookAhead: 46,
   camLookUp: 2.6,
+  // Hard cap, in metres, on how far the ship may lead the rig. Sized against
+  // the trail: at 17 m back, 4.5 m puts the ship 15° off the camera axis and
+  // 2.5 m puts it 18° below, inside a 58° frustum with room to spare.
+  camLeadX: 4.5,
+  camLeadY: 2.5,
+  // How hard the aim swings out with that lead. 0 keeps the ship furthest
+  // off-centre, 1 nearly re-centres it.
+  camAimLead: 0.6,
   // How much of the ship's offset the camera copies. Low values leave the ship
   // pinned to the rail and sliding around the frame; high values glue the
   // camera to the ship and kill the sense of manoeuvring. 0.7 is the Star Fox
   // compromise — the ship leads the frame without escaping it.
   camOffsetFollow: 0.70,
-  camAimFollow: 0.82,
   camDamp: 8.4,
   // How much of the corridor's heading the hull and the camera lean into. The
   // meander sweeps ±13.7°, so at 1.0 the whole view S-turns forever with the
@@ -287,17 +294,27 @@ export class Flight {
     this._sOffY += (offY - this._sOffY) * k;
 
     const f = TUNE.camOffsetFollow;
-    const af = TUNE.camAimFollow;
+    // Both the rig and its aim hang off the ship, and the ship's lead over the
+    // rig is capped in metres. Expressed as a share of the offset it is not:
+    // the box is 105 m wide and 124 m tall against a 17 m trail, so at full
+    // deflection the ship sat 56° off axis laterally and 47° below — outside a
+    // 58° frustum, i.e. gone. Capping the realised gap also bounds the damper's
+    // own lag, worth 15 m on its own at terminal offset speed.
+    const leadX = THREE.MathUtils.clamp(offX - this._sOffX * f, -TUNE.camLeadX, TUNE.camLeadX);
+    const leadY = THREE.MathUtils.clamp(offY - this._sOffY * f, -TUNE.camLeadY, TUNE.camLeadY);
     this.camPos.set(
-      railPos.x + this._sOffX * f,
-      railPos.y + this._sOffY * f + TUNE.camUp,
+      railPos.x + offX - leadX,
+      railPos.y + offY - leadY + TUNE.camUp,
       railZ + back,
     );
     // Aim past the ship rather than at it, so the ship sits low-centre in frame
     // and the player is looking at where they are going, not at their own tail.
+    // The aim tracks the ship's own height: pinning it to the rail pitched the
+    // camera up while the player dived, which threw the ship out of frame from
+    // the other side.
     this.camLook.set(
-      railPos.x + (railAhead.x - railPos.x) * TUNE.railYawFollow + this._sOffX * af,
-      railAhead.y + this._sOffY * af + TUNE.camLookUp,
+      railPos.x + offX + (railAhead.x - railPos.x) * TUNE.railYawFollow + leadX * TUNE.camAimLead,
+      railPos.y + offY + TUNE.camLookUp,
       railAhead.z,
     );
 

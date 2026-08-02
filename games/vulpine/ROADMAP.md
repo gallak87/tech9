@@ -81,12 +81,39 @@ register, swept collision.
          camera where the ship *was*. On a meandering rail that lateral lag is
          what made the ship slide across the frame. Only the player's offset is
          damped now (`_sOffX`/`_sOffY`).
+      Note for anyone re-measuring: hands-off `framing.mjs` still shows ~3.5°
+      of camera yaw and 0.17 ndcX. That is **camera shake**, not drift — the
+      probe takes hits, `shake` peaks at 1.53, and shake displaces
+      `camera.position` by up to 3.8 m *before* `lookAt`, which at 17 m from the
+      ship is ~3°. `offx`/`offy`/`_sOffX` all measure zero variance. Do not
+      chase it as drift.
+
       3. *The corridor genuinely bends ±13.7°.* `TUNE.railYawFollow` scales how
          much the hull **and** the camera lean into it — scaled together, so they
          can never disagree. **0 by default** (owner's call: the behind-cam stays
          aligned so the reticle never drifts). The cost is that the ship crabs by
          the full rail heading rather than turning into it. `?railyaw=` overrides
          it live for A/B without a rebuild.
+
+- [x] **The ship left the frame at the top and bottom of the offset box.** Fixed.
+      The camera copied only `camOffsetFollow` (0.70) of the offset, so the ship's
+      lead over the rig was a *share* of an offset that ranges over 105 m
+      laterally and 124 m vertically, against a trail of 12.6 m. At full
+      deflection that is 56° off axis laterally and 47° below — outside a 58°
+      frustum, so the ship simply vanished. The aim made it worse: pinned to the
+      rail rather than the ship, it pitched the camera *up* 5° while the player
+      dived. Lead is now capped in metres (`camLeadX` 4.5, `camLeadY` 2.5), the
+      cap bounds the damper's own lag too (worth 15 m at terminal offset speed),
+      the aim hangs off the ship, and `camBack` went 12.6 → 17. Verified at all
+      four box corners — worst case is `ndcY -0.50`, half way to the edge:
+
+      | | centre | full down | full up | full left/right |
+      |---|---|---|---|---|
+      | ndcX | 0 | 0 | 0 | ∓0.15 |
+      | ndcY | −0.12 | **−0.50** | −0.12 | −0.12 |
+
+      `camAimFollow` is gone — superseded by `camAimLead`, which scales the aim
+      off the capped lead instead of off the raw offset.
 
 - [ ] **Loading screen with a progress bar.** Today `index.html` is a bare black
       page for ~5 s while terrain meshes, textures bake, the PMREM builds and

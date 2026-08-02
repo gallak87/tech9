@@ -81,6 +81,13 @@ register, swept collision.
          camera where the ship *was*. On a meandering rail that lateral lag is
          what made the ship slide across the frame. Only the player's offset is
          damped now (`_sOffX`/`_sOffY`).
+      3. *The corridor genuinely bends ±13.7°.* `TUNE.railYawFollow` scales how
+         much the hull **and** the camera lean into it — scaled together, so they
+         can never disagree. **0 by default** (owner's call: the behind-cam stays
+         aligned so the reticle never drifts). The cost is that the ship crabs by
+         the full rail heading rather than turning into it. `?railyaw=` overrides
+         it live for A/B without a rebuild.
+
       Note for anyone re-measuring: hands-off `framing.mjs` still shows ~3.5°
       of camera yaw and 0.17 ndcX. That is **camera shake**, not drift — the
       probe takes hits, `shake` peaks at 1.53, and shake displaces
@@ -88,12 +95,6 @@ register, swept collision.
       ship is ~3°. `offx`/`offy`/`_sOffX` all measure zero variance. Do not
       chase it as drift.
 
-      3. *The corridor genuinely bends ±13.7°.* `TUNE.railYawFollow` scales how
-         much the hull **and** the camera lean into it — scaled together, so they
-         can never disagree. **0 by default** (owner's call: the behind-cam stays
-         aligned so the reticle never drifts). The cost is that the ship crabs by
-         the full rail heading rather than turning into it. `?railyaw=` overrides
-         it live for A/B without a rebuild.
 
 - [x] **The ship left the frame at the top and bottom of the offset box.** Fixed.
       The camera copied only `camOffsetFollow` (0.70) of the offset, so the ship's
@@ -142,13 +143,13 @@ register, swept collision.
       is the answer. Billboarded, clamped to a floor in *angular* size like the
       class beacons, and probably only drawn once damaged so a clean screen
       stays clean.
-- [ ] **Experiment: scale every ship up.** Player, hostiles and boss are hard to
-      read at combat range; a global size bump may buy more legibility than any
-      shader work. Try +25% / +50% on hulls, keep hit radii honest, and A/B it
-      from `combat-wave` and `combat-wide`. Cheap to test, easy to revert.
+- [ ] **Experiment: scale every ship up.** *Punted by the owner (2026-08-01).*
+      Revisit only if beacons, health bars and emissive fall short.
 - [ ] **Rear-threat indicator.** Owner feedback: too many hostiles shoot from
       behind. Being flanked is good; being shot by something you were given no
-      way to notice is not. Blocked on an owner call — see Open questions.
+      way to notice is not. **Unblocked** — owner picked the edge-of-screen arc
+      over thinning the waves (see Owner decisions). Arc on the side the shot
+      comes from, brightness = how locked-on the hostile is.
 - [x] **Wire `world/reflection.js` into `corneria.js`.** Done. Canyon walls and
       rock stacks now reflect; costs +0.8 ms.
 - [ ] **The frame is over budget.** First contract-point measurement ever taken
@@ -232,11 +233,15 @@ Multiple levels, all-range mode, branching paths, multiplayer, binary assets.
 
 ---
 
-## Open questions for the owner
+## Owner decisions (2026-08-01) — settled, do not re-ask
 
-1. **Rear attackers** — edge-of-screen threat arc, or thin out the `from:'behind'`
-   waves? Asked two sessions ago, still open, still blocking that item.
-2. **Weapon upgrades** — worth the scope in a one-level game, or is a fixed
-   loadout the cleaner arcade answer?
-3. **Ship scale** — if the +25/+50% experiment reads better, do we accept the
-   canyon feeling proportionally tighter?
+1. **Rear attackers → edge-of-screen threat arc.** Keep the `from:'behind'`
+   waves; being flanked is good. Add a warning arc at the screen edge on the
+   side the shot is coming from, brightness scaling with how locked-on the
+   hostile is.
+2. **Ship scale → punted.** Not now. Get legibility from beacons, health bars
+   and emissive first; revisit only if those fall short.
+3. **Weapon upgrades → auto-grant one upgrade before the boss.** No pickup
+   entity, no drops, no level-wide HP rebalance. A weapon tier granted as the
+   reward for reaching the boss, which fixes the DPS slog without new systems.
+   The full drop system is explicitly *not* being built.

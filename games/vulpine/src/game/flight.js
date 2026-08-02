@@ -24,6 +24,15 @@ export const TUNE = {
   stickAccel: 520,       // offset acceleration from full stick
   offsetDamp: 4.1,
   offsetMaxSpeed: 132,
+  // Soft-wall spring. Stiff enough that the overshoot past the box stays small
+  // (v/sqrt(k) ~ 9 m at full offset speed) without needing to rewrite position.
+  wallSpring: 220,
+  wallDamp: 7,
+  // Ground cushion: metres of clearance over which the deck starts pushing back.
+  // Small enough that the deck is still reachable for a low pass.
+  groundCushion: 9,
+  groundSpring: 150,
+  groundDamp: 5,
 
   bankPerOffsetVel: 0.0068,
   bankPerStick: 0.62,
@@ -188,11 +197,16 @@ export class Flight {
     this.off.x += this.offVel.x * dt;
     this.off.y += this.offVel.y * dt;
 
-    // soft walls — push back rather than clamp, so the edge has weight
+    // Soft walls — a spring and extra damping past the limit, so the edge has
+    // weight. The position is never rewritten: remapping it each tick
+    // (`hi + over * 0.35`) is an iterated map that lands a fresh discontinuity
+    // on the offset on every tick spent against the wall, measured at 0.85 m of
+    // per-tick acceleration. The chase camera sits rigid against the hull at
+    // full deflection, so it passes all of that straight to the frame.
     const softClamp = (v, vel, lo, hi) => {
-      if (v > hi) { const over = v - hi; return [hi + over * 0.35, vel * 0.35 - over * 6 * dt]; }
-      if (v < lo) { const over = lo - v; return [lo - over * 0.35, vel * 0.35 + over * 6 * dt]; }
-      return [v, vel];
+      const over = v > hi ? v - hi : (v < lo ? v - lo : 0);
+      if (over === 0) return [v, vel];
+      return [v, (vel - over * TUNE.wallSpring * dt) * Math.exp(-TUNE.wallDamp * dt)];
     };
     [this.off.x, this.offVel.x] = softClamp(this.off.x, this.offVel.x, -TUNE.boxX, TUNE.boxX);
     [this.off.y, this.offVel.y] = softClamp(this.off.y, this.offVel.y, -TUNE.boxYDown, TUNE.boxYUp);
@@ -203,13 +217,22 @@ export class Flight {
 
     this.pos.set(this.railPos.x + this.off.x, this.railPos.y + this.off.y, this.railZ);
 
-    // terrain floor — you can graze the deck but not swim
+    // Terrain floor — you can graze the deck but not swim. Cushioned rather
+    // than bounced: the ship is sprung away over the last few metres of
+    // clearance, so the hard stop below is a backstop that rarely fires. A
+    // velocity sign flip on contact is a discontinuity, and at full deflection
+    // the camera rides rigid against the hull and passes it to the frame.
     const gy = this.world ? this.world.groundAt(this.pos.x, this.pos.z) + 5.5 : -Infinity;
+    const clearance = this.pos.y - gy;
+    if (clearance < TUNE.groundCushion) {
+      const pen = TUNE.groundCushion - clearance;
+      this.offVel.y = (this.offVel.y + pen * TUNE.groundSpring * dt) * Math.exp(-TUNE.groundDamp * dt);
+    }
     if (this.pos.y < gy) {
       const push = gy - this.pos.y;
       this.pos.y = gy;
       this.off.y += push;
-      if (this.offVel.y < 0) this.offVel.y *= -0.25;
+      if (this.offVel.y < 0) this.offVel.y = 0;
       this.addShake(Math.min(0.5, push * 0.05));
     }
 
@@ -300,8 +323,13 @@ export class Flight {
     // deflection the ship sat 56° off axis laterally and 47° below — outside a
     // 58° frustum, i.e. gone. Capping the realised gap also bounds the damper's
     // own lag, worth 15 m on its own at terminal offset speed.
-    const leadX = THREE.MathUtils.clamp(offX - this._sOffX * f, -TUNE.camLeadX, TUNE.camLeadX);
-    const leadY = THREE.MathUtils.clamp(offY - this._sOffY * f, -TUNE.camLeadY, TUNE.camLeadY);
+    // tanh, not clamp: a hard cap flips between rigid-to-ship when saturated and
+    // damped-to-rail when not, and that derivative corner reads as a snap every
+    // time the lead crosses it. tanh matches the linear response for small leads
+    // and approaches the cap without ever reaching a corner.
+    const softCap = (v, cap) => cap * Math.tanh(v / cap);
+    const leadX = softCap(offX - this._sOffX * f, TUNE.camLeadX);
+    const leadY = softCap(offY - this._sOffY * f, TUNE.camLeadY);
     this.camPos.set(
       railPos.x + offX - leadX,
       railPos.y + offY - leadY + TUNE.camUp,

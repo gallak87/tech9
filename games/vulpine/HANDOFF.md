@@ -81,6 +81,60 @@ cp src/<your file> /tmp/iso/games/vulpine/src/<your file>
 # capture before/after in /tmp/iso; delete with: git worktree remove /tmp/iso
 ```
 
+## Session 2026-08-01 (c) — flight camera + rear threat
+
+One sub-agent (loading screen) plus the main agent inline on flight/HUD. Owner
+hand-validated every change in the browser rather than through captures, which
+was far cheaper than the probe loop and caught two things a screenshot could not.
+
+**The ship auto-yaws — fixed, and the standing diagnosis was wrong.** The old
+note blamed the rail-heading term and said to scale it down. Scaling it down
+alone makes the drift *worse*. Three real causes, in order of size:
+
+1. A **sign error**: `YXZ` maps yaw θ to forward `(-sinθ, 0, -cosθ)`, so the
+   hull needs `atan2(-railDir.x, -railDir.z)`. The missing negation mirrored the
+   hull about the corridor while the camera aimed down it, so the two swings
+   added. Nose-vs-camera 44.7° → 5.5° peak-to-peak from that one character.
+2. The camera **damped its ride along the rail**. The rail is a known function
+   of `railZ`; damping it is pure lag, and lateral lag on a meander is what slid
+   the ship across the frame. Only the player's offset is damped now.
+3. `TUNE.railYawFollow` (0 by default, `?railyaw=` to override) scales how much
+   the hull *and* camera lean into the corridor, together so they cannot
+   disagree. 0 was the owner's call — the behind-cam stays aligned and the
+   reticle never drifts.
+
+**The ship left the frame at the box edges — fixed.** Separate bug, found by the
+owner immediately after: the lead was a *share* (`camOffsetFollow` 0.70) of an
+offset spanning 105 m × 124 m against a 12.6 m trail, i.e. 56° off-axis
+laterally and 47° below at full deflection. The aim made it worse by tracking
+the rail instead of the ship, pitching the camera *up* during a dive. Lead is
+capped in metres now; verified at all four box corners.
+
+**Watch out — `framing.mjs` hands-off still shows ~3.5° of camera yaw.** That is
+**camera shake**, not drift: the probe takes hits, and shake displaces
+`camera.position` before `lookAt`. `off.x`/`off.y`/`_sOffX` measure exactly zero
+variance. Do not chase it.
+
+**New tool: `tools/framing.mjs`.** Reports where the ship actually sits in the
+frame over time — ndcX/ndcY, nose-vs-camera angle, camera yaw, plus off/shake.
+Step **one tick at a time**; the camera damper only advances inside a step, so
+batching changes the answer. This is the instrument that settled all of the
+above, and no screenshot could have.
+
+**Rear-threat arcs shipped** (`ui/threat.js`). See ROADMAP for the tuning knob.
+A rear hostile is aimed at the player 42.6% of ticks — the owner's complaint,
+quantified.
+
+**Owner decisions captured** (ROADMAP → "Owner decisions", settled, do not
+re-ask): rear threat = arc, ship scale = punted, weapon upgrades = auto-grant
+one tier before the boss, no drop system.
+
+**Dead code**: deleted every orphan with no scheduled consumer. What remains is
+~190 lines, all with a named consumer in a scheduled phase (Phase 9 built-world
+materials, `shoreU` for the Phase 8 shoreline). Note the obvious one-line sweep
+misses orphans on multi-declarator lines — `const A = 1, B = 2` only reports
+`A`, which is how `L_MACRO` hid behind `L_FAR`.
+
 ## Session 2026-08-01 (b) — boss fight + water
 
 Two lanes, one sub-agent on water and the main agent inline on the boss.

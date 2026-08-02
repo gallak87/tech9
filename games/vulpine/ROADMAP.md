@@ -176,6 +176,28 @@ register, swept collision.
       is read outside the step loop. **Rule for any new edge-triggered action:
       the guard must be a predicate the action itself invalidates.** A resource
       counter is not one.
+- [ ] **One-time jump when crossing into the soft wall / ground cushion.**
+      Owner, live play (2026-08-01), after the stick-snap fix: "some middle
+      threshold where there's a 1-time jump when you cross it." Not urgent —
+      owner's call to leave it.
+      Diagnosed but not fixed. Both new springs in `flight.js` gate their *extra
+      damping* on a boolean rather than ramping it:
+
+      ```js
+      if (over === 0) return [v, vel];
+      return [v, (vel - over * TUNE.wallSpring * dt) * Math.exp(-TUNE.wallDamp * dt)];
+      ```
+
+      The spring term is continuous — `over` ramps from 0 — but the damping
+      multiplier switches on as a step the instant the boundary is crossed, so
+      total damping jumps from `offsetDamp` to `offsetDamp + wallDamp` in one
+      tick. That is a discontinuity in *acceleration*, which is felt once per
+      crossing and not while held. `groundCushion` has the identical shape.
+      Fix: scale the extra damping by penetration depth the same way the spring
+      is, e.g. `Math.exp(-damp * dt * Math.min(1, pen / ramp))`, so both terms
+      enter from zero. Cheap, but it changes wall feel, so re-measure per-tick
+      acceleration (the held-stick probe pattern) and re-check the box corners.
+
 - [ ] **Encounter feel, waves 1–4** (`z = -260 … -1950`): spacing, entry angles,
       how long a raptor stays shootable, whether the wasp swarm reads as threat.
       Instrument with `tools/pacing.mjs`, not screenshots.

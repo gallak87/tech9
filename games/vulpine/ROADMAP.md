@@ -116,6 +116,42 @@ register, swept collision.
       `camAimFollow` is gone — superseded by `camAimLead`, which scales the aim
       off the capped lead instead of off the raw offset.
 
+- [x] **The camera stuck, then jumped, then stuck again on a held turn.** Fixed.
+      Owner report after the framing fix landed. Measured with a held-stick probe
+      sampling per-tick acceleration (second difference) of both the camera and
+      the raw offset — `offX`'s own jolt (0.853 m) matched the camera's (0.854 m)
+      almost exactly, so the camera was not inventing it: at full deflection the
+      lead cap is saturated **95.6%** of ticks, the rig rides rigid against the
+      hull, and it passes any hitch in the offset straight to the frame.
+
+      Two discontinuities in the *sim*, both the same mistake — rewriting
+      position instead of applying a force:
+
+      - `softClamp` remapped the offset every tick past the box
+        (`hi + over * 0.35`), an iterated map that lands a fresh discontinuity on
+        every tick spent against the wall, and multiplied velocity by 0.35 per
+        tick besides. Now a spring + damper (`wallSpring`, `wallDamp`) that never
+        touches position; overshoot is ~9 m at full offset speed.
+      - The terrain floor teleported `off.y` and flipped velocity sign
+        (`*= -0.25`) — a bounce. Now cushioned over the last `groundCushion` 9 m
+        of clearance, with the hard stop kept as a backstop that zeroes velocity
+        rather than reflecting it.
+
+      Also softened the camera's lead cap from `clamp` to `cap * tanh(v / cap)`:
+      a hard cap flips between rigid-to-ship when saturated and damped-to-rail
+      when not, and that derivative corner reads as a snap each time the lead
+      crosses it.
+
+      | per-tick accel | before | after |
+      |---|---|---|
+      | camera X | 0.854 m | **0.102** |
+      | camera Y | 0.661 m | **0.095** |
+
+      What remains is the wall spring's own smooth response, on the order of the
+      stick's own acceleration. Framing re-verified at every box corner including
+      the new overshoot; worst case `ndcY -0.52`.
+      **Unvalidated in live play** — measured only. Needs a hands-on pass.
+
 - [x] **Loading screen with a progress bar.** Done. `src/ui/loading.js` draws a
       boot card with the HUD's own glyph face, `gauge()` and Arwing icon; the
       backdrop is CSS on `#boot` so it paints before any module evaluates.

@@ -309,6 +309,8 @@ export function installCombat(ctx) {
   const _v = new THREE.Vector3();
   const _v2 = new THREE.Vector3();
   const _aim = new THREE.Vector3();
+  const _threatF = new THREE.Vector3();
+  const _threatD = new THREE.Vector3();
   const _conv = new THREE.Vector3();
   const _vb = new THREE.Vector3();
   const _hitP = new THREE.Vector3();
@@ -1383,6 +1385,17 @@ export function installCombat(ctx) {
     updateBullets(dt);
 
     /* publish contacts for the radar */
+    // 0 when a foe is pointed away, 1 when its nose is on the player. The HUD's
+    // rear-threat arcs scale on this, so a hostile that merely happens to be
+    // behind you does not raise the same alarm as one lining up a shot.
+    function aimOnPlayer(a) {
+      _threatF.set(0, 0, -1).applyQuaternion(a.quat);
+      _threatD.set(state.px - a.pos.x, state.py - a.pos.y, state.pz - a.pos.z);
+      const d = _threatD.length();
+      if (d < 1e-3) return 1;
+      return Math.max(0, _threatF.dot(_threatD) / d);
+    }
+
     const list = state.enemies;
     list.length = 0;
     for (const f of foes) {
@@ -1390,6 +1403,7 @@ export function installCombat(ctx) {
       list.push({
         x: f.agent.pos.x, y: f.agent.pos.y, z: f.agent.pos.z,
         locked: state.lockTarget === f,
+        aim: aimOnPlayer(f.agent),
       });
     }
     for (const al of allies) {

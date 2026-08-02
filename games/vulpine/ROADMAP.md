@@ -145,11 +145,19 @@ register, swept collision.
       stays clean.
 - [ ] **Experiment: scale every ship up.** *Punted by the owner (2026-08-01).*
       Revisit only if beacons, health bars and emissive fall short.
-- [ ] **Rear-threat indicator.** Owner feedback: too many hostiles shoot from
-      behind. Being flanked is good; being shot by something you were given no
-      way to notice is not. **Unblocked** — owner picked the edge-of-screen arc
-      over thinning the waves (see Owner decisions). Arc on the side the shot
-      comes from, brightness = how locked-on the hostile is.
+- [x] **Rear-threat indicator.** Done — `ui/threat.js`, wired in `ui/index.js`.
+      Arcs on an ellipse hugging the frame, at the threat's bearing in the *rail*
+      frame so "that side of the radar" and "that side of the screen" always
+      agree. Intensity tracks how squarely the hostile is pointed at the player
+      (`aim`, published per-contact from `combat.js`), not just its range — a foe
+      crossing behind you is not the same event as one lining up a shot. Bearing
+      is held `GAP` clear of bottom centre so an arc never lands on the radar.
+      Measured over 60 s of `?fight=1`: a rear hostile is aimed at the player
+      **42.6% of ticks, peak 7 at once** — which is the owner's complaint,
+      quantified. Capture: `shots/threat/arcs.png`.
+      Not tuned yet: at 42.6% duty the border is busy. If it reads as noisy,
+      raise `AIM_ON` (0.55; the mean `aim` across rear foes is 0.49) rather than
+      shortening `RANGE` — distance is deliberately the weak term.
 - [x] **Wire `world/reflection.js` into `corneria.js`.** Done. Canyon walls and
       rock stacks now reflect; costs +0.8 ms.
 - [ ] **The frame is over budget.** First contract-point measurement ever taken

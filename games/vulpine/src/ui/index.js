@@ -7,6 +7,7 @@ import { Reticle, LockMarker } from './reticle.js';
 import { Comms } from './comms.js';
 import { WingmenStrip } from './wingmen.js';
 import { BossHealthBar } from './bosshealth.js';
+import { ThreatArcs } from './threat.js';
 import { OutcomeCard } from './outcome.js';
 import { Menu } from './menu.js';
 import { clamp } from './theme.js';
@@ -22,6 +23,7 @@ import { clamp } from './theme.js';
 //
 // Composition, top to bottom of the z-order:
 //   status (top-left) -> wingmen strip (under it) -> score (top-right) ->
+//   rear-threat arcs (frame border) ->
 //   boss health (top-centre, conditional) -> radar (bottom-centre) ->
 //   reticle + lock marker (centre / world-projected) -> legend -> comms
 //   (bottom-left, both share that corner, see comms.js) -> outcome card (top).
@@ -53,6 +55,7 @@ export function installUI(ctx) {
   const comms = new Comms();
   const wingmen = new WingmenStrip();
   const bossHealth = new BossHealthBar();
+  const threat = new ThreatArcs();
   const outcome = new OutcomeCard();
   const menu = new Menu();
 
@@ -117,6 +120,7 @@ export function installUI(ctx) {
       lockMarker.update(dt, s);
       comms.update(dt, s);
       bossHealth.update(dt, s);
+      threat.update(dt, s);
       outcome.update(dt, s);
     },
     draw() {
@@ -138,6 +142,7 @@ export function installUI(ctx) {
       bossHealth.draw(g, L, s);
       radar.draw(g, L, s);
 
+      threat.draw(g, L, s);
       reticle.draw(g, L, s);
       lockMarker.draw(g, L, s, projectLock(s, L));
 

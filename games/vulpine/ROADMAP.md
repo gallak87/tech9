@@ -222,7 +222,8 @@ register, swept collision.
       Measured over 60 s of `?fight=1`: a rear hostile is aimed at the player
       **42.6% of ticks, peak 7 at once** — which is the owner's complaint,
       quantified. Capture: `shots/threat/arcs.png`.
-      Not tuned yet: at 42.6% duty the border is busy. If it reads as noisy,
+      **Owner-validated in live play (2026-08-01)** — the 42.6% duty reads fine
+      on screen, no tuning wanted. If a later pass ever does want it quieter,
       raise `AIM_ON` (0.55; the mean `aim` across rear foes is 0.49) rather than
       shortening `RANGE` — distance is deliberately the weak term.
 - [x] **Wire `world/reflection.js` into `corneria.js`.** Done. Canyon walls and

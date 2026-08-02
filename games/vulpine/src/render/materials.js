@@ -116,8 +116,3 @@ export function additive(map, color = 0xffffff, intensity = 1) {
     depthWrite: false, toneMapped: false, fog: false,
   });
 }
-
-export function disposeMaterials() {
-  for (const k of Object.keys(Mat)) { Mat[k]?.dispose?.(); delete Mat[k]; }
-  built = false;
-}

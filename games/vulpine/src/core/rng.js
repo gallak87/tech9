@@ -63,4 +63,3 @@ export function rng(name) {
   if (!r) { r = new RNG('vulpine:' + name); streams.set(name, r); }
   return r;
 }
-export function resetStreams() { streams.clear(); }

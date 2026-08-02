@@ -271,8 +271,3 @@ export function flexMaterial(base, uniforms, {
   m.customProgramCacheKey = () => 'vulpine-flex-' + key;
   return m;
 }
-
-export function disposeShipMaterials() {
-  for (const k of Object.keys(SMat)) { SMat[k]?.dispose?.(); delete SMat[k]; }
-  built = false;
-}

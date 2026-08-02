@@ -309,17 +309,6 @@ function tailFinGeo() {
   return g;
 }
 
-/**
- * Trim, hatches and stripes as skin-hugging plates. `sampler` is any surface
- * from geobuild; the patch cannot detach because it is generated from the same
- * function as the surface it sits on.
- */
-function finPatch(sampler, opts, mat = null) {
-  const g = conformalPatch((u, v) => sampler.sample(u, v, opts.side ?? 1), opts);
-  if (mat) g.applyMatrix4(mat);
-  return g;
-}
-
 /** Gun pod fairing that straddles the wing leading edge. */
 function laserPodGeo() {
   return hullLoft({

@@ -191,21 +191,6 @@ export function hit(param, t0, peak, attack = 0.003, decay = 0.25, floor = EPS) 
   return t0 + attack + decay + 0.01;
 }
 
-/** Sustained envelope with a real release — for held notes and beds. */
-export function ahdsr(param, t0, peak, { a = 0.01, h = 0, d = 0.1, s = 0.6, dur = 0.3, r = 0.12 } = {}) {
-  const p = Math.max(peak, EPS * 4);
-  const sus = Math.max(p * s, EPS * 2);
-  param.setValueAtTime(EPS, t0);
-  param.exponentialRampToValueAtTime(p, t0 + a);
-  if (h > 0) param.setValueAtTime(p, t0 + a + h);
-  param.exponentialRampToValueAtTime(sus, t0 + a + h + d);
-  const off = t0 + Math.max(a + h + d, dur);
-  param.setValueAtTime(Math.max(param.value, EPS), off);
-  param.exponentialRampToValueAtTime(EPS, off + r);
-  param.setValueAtTime(0, off + r + 0.002);
-  return off + r + 0.01;
-}
-
 /** Exponential glide on a frequency param — never let it hit 0. */
 export function sweep(param, t0, from, to_, dur, curve = 'exp') {
   const a = Math.max(1, from), b = Math.max(1, to_);

@@ -5,7 +5,7 @@ import { buildMaterials } from './render/materials.js';
 import { Environment } from './render/environment.js';
 import { Corneria } from './world/corneria.js';
 import { createArwing } from './ships/arwing.js';
-import { Flight } from './game/flight.js';
+import { Flight, TUNE as FLIGHT_TUNE } from './game/flight.js';
 import { SHOTS, applyShot } from './game/shots.js';
 import { installFx } from './fx/index.js';
 import { installCombat } from './game/combat.js';
@@ -28,6 +28,9 @@ const qualityParam = params.get('quality') || 'high';
 const shotParam = params.get('shot');
 const seekParam = parseFloat(params.get('t') || '0');
 const presetParam = params.get('env') || 'corneria';
+
+const railYawParam = parseFloat(params.get('railyaw'));
+if (!Number.isNaN(railYawParam)) FLIGHT_TUNE.railYawFollow = railYawParam;
 
 const engine = new Engine({ quality: qualityParam });
 buildMaterials(engine);

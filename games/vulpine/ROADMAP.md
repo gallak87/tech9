@@ -46,7 +46,7 @@ moment-to-moment feel until genuinely AAA rather than spreading thin across all
 | 6 | HUD — shield/boost/bomb, radar, score, reticle, comms, squadron, boss bar | `ui/**` |
 | 6 | Title card, Esc pause menu, win/lose | `ui/menu.js`, `ui/outcome.js` |
 | 7 | Audio — graph, DSP, engine, beds, music, voices, autoplay-safe | `audio/**` |
-| — | Review harness: `shot`, `sheet`, `freecam`, `pacing`, `inputtest`, `bossprobe`, `blind` | `tools/**` |
+| — | Review harness: `shot`, `sheet`, `freecam`, `pacing`, `inputtest`, `bossprobe`, `framing`, `blind` | `tools/**` |
 | — | Dev panel — DOM overlay of playtest shortcuts, backquote to toggle, `?dev=1` to open. Add tools to the `TOOLS` array | `dev/panel.js` |
 
 **Fixed and verified** (don't reopen): terrain winding/"fins"; enemy spawn crash;
@@ -58,20 +58,35 @@ register, swept collision.
 
 ## Now — Phase 8: legibility and the first two encounters
 
-- [ ] **TOP PRIORITY — the ship auto-yaws.** Launch, touch nothing, and the nose
-      swings slowly left, then slowly right, forever. Owner: "super annoying,
-      don't auto yaw."
-      Source is `flight.js:226` — the yaw Euler is
-      `this.yaw + Math.atan2(railDir.x, -railDir.z)`. `this.yaw` is the stick
-      term and is 0 at rest; the second term is the rail heading, and the rail
-      is `centrelineX`, three summed sines with periods of ~1.5 km, ~3.5 km and
-      ~11 km. At 175 m/s that is an ~8.8 s wobble under a ~20 s swing under a
-      ~65 s sweep — exactly the reported motion.
-      The ship does need to fly down the corridor, so the fix is probably to
-      scale that term well down (the world curves around you instead of you
-      turning into it) rather than drop it. Check what else reads ship heading
-      before changing it — gun convergence uses the camera ray, not the hull
-      axis, but the chase camera and `fx` emission both derive from the hull.
+- [x] **TOP PRIORITY — the ship auto-yaws.** Fixed. Three separate causes, only
+      the third of which the old note guessed at. Measured with the new
+      `tools/framing.mjs` over 30 s of hands-off flight (nose-vs-camera angle and
+      ship position in NDC, peak-to-peak):
+
+      | | before | after |
+      |---|---|---|
+      | nose swing vs camera | 44.7° | **0.25°** |
+      | world swing (camera yaw) | 19.8° | **0.25°** |
+      | ship drift across frame | 0.28 ndcX | **0.016** |
+
+      1. *A sign error in the hull yaw.* `YXZ` maps yaw θ to forward
+         `(-sinθ, 0, -cosθ)`, so aligning the nose with `railDir` needs
+         `atan2(-railDir.x, -railDir.z)`. The negation was missing, which pointed
+         the hull at the *mirror* of the corridor heading. The camera aims down
+         the corridor correctly, so the two swings added instead of cancelling —
+         that doubling was most of the 44.7°.
+      2. *The camera damped its ride along the rail.* `camPos`/`camLook` lerped
+         toward targets that include the rail position, but the rail is a known
+         function of `railZ` — damping it buys no smoothing and only puts the
+         camera where the ship *was*. On a meandering rail that lateral lag is
+         what made the ship slide across the frame. Only the player's offset is
+         damped now (`_sOffX`/`_sOffY`).
+      3. *The corridor genuinely bends ±13.7°.* `TUNE.railYawFollow` scales how
+         much the hull **and** the camera lean into it — scaled together, so they
+         can never disagree. **0 by default** (owner's call: the behind-cam stays
+         aligned so the reticle never drifts). The cost is that the ship crabs by
+         the full rail heading rather than turning into it. `?railyaw=` overrides
+         it live for A/B without a rebuild.
 
 - [ ] **Loading screen with a progress bar.** Today `index.html` is a bare black
       page for ~5 s while terrain meshes, textures bake, the PMREM builds and
@@ -178,9 +193,15 @@ Multiple levels, all-range mode, branching paths, multiplayer, binary assets.
 5. Zero console errors from `shot.mjs`, `inputtest.mjs`, `pacing.mjs`, `bossprobe.mjs`.
 6. Every control in `inputtest.mjs` does what the legend says.
 7. No dead code: every module written is imported and reachable. Standing
-   total, measured by sweeping every export in `src/**` for references outside
-   its own file: **~275 lines**, essentially all of it the Phase 9 built-world
-   materials. Re-run that sweep before claiming this criterion.
+   total: **~190 lines** — `concreteMaterial`, `steelMaterial`, `foliageMaterial`
+   and `rockPropMaterial` (Phase 9 built-world) plus `shoreU` (Phase 8
+   shoreline). Kept deliberately: each has a named consumer in a scheduled
+   phase. Everything with no scheduled consumer is gone (`ahdsr`,
+   `resetStreams`, `disposeMaterials`, `disposeShipMaterials`, `finPatch`,
+   `L_FAR`, `L_MACRO`).
+   Re-run the sweep before claiming this criterion, and note the obvious
+   one-liner misses orphans on multi-declarator lines (`const A = 1, B = 2`
+   only reports `A`) — that is how `L_MACRO` hid behind `L_FAR`.
 
 ---
 

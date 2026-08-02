@@ -49,6 +49,13 @@ export const TUNE = {
   camOffsetFollow: 0.70,
   camAimFollow: 0.82,
   camDamp: 8.4,
+  // How much of the corridor's heading the hull and the camera lean into. The
+  // meander sweeps ±13.7°, so at 1.0 the whole view S-turns forever with the
+  // rail's periods (8.7 s / 20 s / 65 s) with no input touched. Both terms are
+  // scaled together — scaling only one makes them disagree and the nose wanders
+  // across the frame. Below 1.0 the ship crabs by the remainder, which reads as
+  // a crosswind; the corridor slides past instead of rotating around you.
+  railYawFollow: 0.0,
   camBoostBack: 4.2,
   camBoostFov: 11,
   camBrakeBack: -2.6,
@@ -223,7 +230,12 @@ export class Flight {
       somerPitch = easeInOut(this.somersaultT / TUNE.somersaultDuration) * Math.PI * 2;
     }
 
-    _e.set(this.pitch + somerPitch, this.yaw + Math.atan2(this.railDir.x, -this.railDir.z), this.bank + rollExtra, 'YXZ');
+    // YXZ maps yaw θ to forward (-sinθ, 0, -cosθ), so pointing the nose down the
+    // corridor needs the negated x. Without it the hull mirrors about the
+    // corridor, and since the camera aims down the corridor the two swings add
+    // instead of cancelling.
+    const railYaw = Math.atan2(-this.railDir.x, -this.railDir.z) * TUNE.railYawFollow;
+    _e.set(this.pitch + somerPitch, this.yaw + railYaw, this.bank + rollExtra, 'YXZ');
     this.quat.setFromEuler(_e);
 
     this.ship.position.copy(this.pos);
@@ -265,25 +277,29 @@ export class Flight {
     const back = TUNE.camBack + this.boostActive * TUNE.camBoostBack + this.brakeActive * TUNE.camBrakeBack;
     const railAhead = this.railPoint(railZ - TUNE.camLookAhead, _v).clone();
 
+    // Damp the player's offset, never the ride along the rail. The rail is a
+    // known function of railZ, so lagging it buys no smoothing — it only puts
+    // the camera where the ship was, and on a meandering rail that lateral lag
+    // reads as the ship sliding across the frame with the meander's period.
+    const k = 1 - Math.exp(-TUNE.camDamp * dt);
+    if (!this._camInit) { this._sOffX = offX; this._sOffY = offY; this._camInit = true; }
+    this._sOffX += (offX - this._sOffX) * k;
+    this._sOffY += (offY - this._sOffY) * k;
+
     const f = TUNE.camOffsetFollow;
     const af = TUNE.camAimFollow;
-    const desired = new THREE.Vector3(
-      railPos.x + offX * f,
-      railPos.y + offY * f + TUNE.camUp,
+    this.camPos.set(
+      railPos.x + this._sOffX * f,
+      railPos.y + this._sOffY * f + TUNE.camUp,
       railZ + back,
     );
     // Aim past the ship rather than at it, so the ship sits low-centre in frame
     // and the player is looking at where they are going, not at their own tail.
-    const lookAt = new THREE.Vector3(
-      railAhead.x + offX * af,
-      railAhead.y + offY * af + TUNE.camLookUp,
+    this.camLook.set(
+      railPos.x + (railAhead.x - railPos.x) * TUNE.railYawFollow + this._sOffX * af,
+      railAhead.y + this._sOffY * af + TUNE.camLookUp,
       railAhead.z,
     );
-
-    if (!this._camInit) { this.camPos.copy(desired); this.camLook.copy(lookAt); this._camInit = true; }
-    const k = 1 - Math.exp(-TUNE.camDamp * dt);
-    this.camPos.lerp(desired, k);
-    this.camLook.lerp(lookAt, k);
 
     camera.position.copy(this.camPos);
     if (this.shake > 0.001) {

@@ -82,7 +82,7 @@ const nWarp = fbm2D(R, { octaves: 2, base: 3, gain: 0.50 });     // λmin 1000 m
 
 const S_FAR = 1 / 22000, S_MACRO = 1 / 16000, S_RANGE = 1 / 6997;
 const S_HILL = 1 / 4501, S_FINE = 1 / 2213, S_CRAG = 1 / 1601;
-const L_FAR = 2750, L_MACRO = 2000, L_RANGE = 292, L_HILL = 140, L_FINE = 92, L_CRAG = 80;
+const L_RANGE = 292, L_HILL = 140, L_FINE = 92, L_CRAG = 80;
 
 /** 1 while a wavelength is comfortably above Nyquist for `sp`, 0 once it isn't. */
 function gainFor(lambda, sp) { return smooth(0.55, 1.40, lambda / (4 * sp)); }

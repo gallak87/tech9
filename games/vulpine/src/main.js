@@ -81,6 +81,14 @@ ctx.combat = installCombat(ctx);
 ctx.ui = installUI(ctx);
 ctx.audio = installAudio(ctx);
 
+// Hulls the motion blur must not touch. The pass reprojects depth as if every
+// pixel were static world geometry, which is maximally wrong for anything that
+// moves *with* the player — the Arwing, the station-keeping boss, and any
+// formation pacing it. `combat.group` already owns enemies, wingmen and the
+// boss, so the whole dynamic set is these two roots. Trails and fx are
+// deliberately absent: those genuinely should smear.
+if (engine.post) engine.post.motion.dynamic = [ship, ctx.combat.group];
+
 // The review harness drives the game by seeking to a fixed sim time or by
 // naming a shot; neither wants to be greeted by a title card, so those boots
 // go straight to PLAYING. A plain visit gets the title.
@@ -213,7 +221,9 @@ const api = {
     if (patch.trim != null) p.params.trim = patch.trim;
     if (patch.bloom) Object.assign(p.params.bloom, patch.bloom);
     if (patch.grade) for (const [k, v] of Object.entries(patch.grade)) {
-      const u = p.grade.material.uniforms['u' + k[0].toUpperCase() + k.slice(1)];
+      // Caps fallback for acronym uniforms (`uCA`) — see environment.js:apply.
+      const g = p.grade.material.uniforms;
+      const u = g['u' + k[0].toUpperCase() + k.slice(1)] || g['u' + k.toUpperCase()];
       if (u) { if (u.value?.set && Array.isArray(v)) u.value.set(...v); else u.value = v; }
     }
     if (patch.enable) for (const [k, v] of Object.entries(patch.enable)) p.setEnabled(k, v);

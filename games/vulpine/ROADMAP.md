@@ -47,7 +47,8 @@ moment-to-moment feel until genuinely AAA rather than spreading thin across all
 | 6 | Title card, Esc pause menu, win/lose | `ui/menu.js`, `ui/outcome.js` |
 | 7 | Audio — graph, DSP, engine, beds, music, voices, autoplay-safe | `audio/**` |
 | — | Review harness: `shot`, `sheet`, `freecam`, `pacing`, `inputtest`, `bossprobe`, `framing`, `blind` | `tools/**` |
-| — | Dev panel — DOM overlay of playtest shortcuts, backquote to toggle, `?dev=1` to open. Add tools to the `TOOLS` array | `dev/panel.js` |
+| — | Dev panel — DOM overlay of playtest shortcuts, backquote to toggle, `?dev=1` to open. Add buttons to `TOOLS`, sliders to `KNOBS` | `dev/panel.js` |
+| — | Live look knobs — exposure, trim, bloom, lens dirt, god rays, flare, AO, saturation, contrast, CA, vignette, motion blur, reflections, plus per-pass toggles. Key `5` copies every value as JSON so a dialled-in look can be pasted into `environment.js` verbatim | `dev/panel.js` |
 
 **Fixed and verified** (don't reopen): terrain winding/"fins"; enemy spawn crash;
 wingman clone crash; skirt curtains; fog density; gun convergence; lock-on
@@ -95,19 +96,44 @@ screenshot of ours. Do these before the rest of Phase 8.
       `ui/index.js` already has the read-only camera projection to build on
       (`projectLock`, and its comment on never mutating the camera).
 
-- [ ] **2. The post chain is overcooked.** Owner: "it sort of feels like the
-      graphics are cranked way up." Consistent with the live screenshot — the
-      water blooms hard, the sky washes toward white, and everything carries a
-      glow. Candidate knobs, all in `render/postfx.js`, none yet A/B'd against
-      the owner's eye rather than the `probe()` histogram:
-      bloom `strength: 0.085` + `clamp: 9.0` (`:1789`), lens flare
-      `intensity: 0.55` (`:1163`), god rays `intensity: 0.35` (`:572`), AO
-      `intensity: 1.05` (`:410`), and the ACES exposure/trim.
-      Note this pulls *against* the standing `w-shore` item below, which says a
-      shadowed gorge composites too **dark** at median 0.068. Both can be true —
-      that is a grade problem, not a range problem — so fix them as one grade
-      pass, not two opposing tweaks. `?exposure=`, `?nopost=1` and the
-      per-pass `?bloom=0` switches already exist for a live A/B.
+- [x] **2. The post chain is overcooked.** First pass done, and it is meant to be
+      dialled rather than decreed — see the dev knobs below. Owner's call was
+      "same look, less post sludge", not the reference build's flatter direction.
+
+      **The shipped look lives in `environment.js`'s preset, not in the pass
+      defaults.** `env.apply()` overwrites every pass param, so the constructor
+      numbers in `postfx.js` are never what is on screen. Tune the preset.
+
+      Pulled back in `corneria` — glow and over-processing only:
+      bloom `0.055 → 0.040`, lens dirt `0.04 → 0.022`, flare `0.30 → 0.19`,
+      god rays `0.24 → 0.16`, AO `1.05 → 0.86`, saturation `1.16 → 1.08`,
+      contrast `1.10 → 1.05`, CA `1.6 → 0.9`, vignette `1.02 → 0.92`.
+
+      **Exposure deliberately untouched**, because it pulls against the
+      `w-shore` item and would deepen it.
+
+      **Found while measuring — and it corrects the `w-shore` item below.** The
+      grade bug: `env.apply()` mapped grade key `ca` to `uCa`, but the uniform is
+      `uCA`, and the loop `continue`s on a miss *silently*. So `ca` never applied
+      in **any** preset and all three ran on the pass default `1.6` — higher than
+      any of them asked for. Chromatic aberration is a first-order "over-cranked"
+      tell, so this was part of the complaint. Fixed with a caps fallback in both
+      `environment.js` and `main.js`'s `api.post`.
+
+      Measured before/after (composited median, `hist.mjs`, quality high). The
+      pull-back *raises* every median — the big cuts were to darkening terms, so
+      it moves toward the 0.10–0.20 band, not away:
+
+      | shot | before | after |
+      |---|---|---|
+      | chase | 0.037 | 0.045 |
+      | valley | 0.030 | 0.032 |
+      | water | 0.034 | **0.059** |
+      | w-shore | 0.068 | 0.079 |
+      | sun | 0.115 | 0.116 |
+
+      `p90` < 0.6, `clippedPct` < 0.5, `blackPct` 0 on all of them — the other
+      three legs of ship criterion 4 pass comfortably.
 
 - [ ] **3. Every dynamic object is falsely motion-blurred — ship, boss and
       enemies.** Owner: "there's also way too much blur on the ship — its like in
@@ -158,6 +184,40 @@ screenshot of ours. Do these before the rest of Phase 8.
 
       Do not just disable `motionBlur` — it rides the AO quality tier (`:1748`)
       and the world's speed read would go with it.
+
+      **Done — masked, and the hull is visibly sharp again.** `MotionBlurPass`
+      renders the dynamic hulls into a half-res mask (red = hull, green = its own
+      depth so a hull behind a cliff cannot punch a hole in the blurred cliff) and
+      scales the blur by it. `motion.dynamic` is `[ship, combat.group]`, set in
+      `main.js`; fx and trails are deliberately excluded because they should
+      smear. Toggle live on dev key `4`.
+
+      Three things worth not re-deriving:
+      - The mask is drawn from a **private 2-child scene**, not by layer-filtering
+        the real one. Layer filtering works but a nested
+        `renderer.render(scene, …)` re-runs the shadow-map update for everything
+        in that scene.
+      - It is drawn in `post.render()` **before** `composer.render()`, never as
+        part of the chain.
+      - `hullMask()` takes **one** sample on purpose. The mask is half-res with a
+        linear filter, so one bilinear fetch already feathers the silhouette
+        across ~2 full-res pixels. A 5-tap version for a softer edge cost
+        **7.8 ms** at 1080p. Feather via `maskScale`, never by adding taps.
+
+- [ ] **Unresolved: sampling the mask costs far more than it should.** Split-timed
+      at 1080p high, GPU-synced, min of 60: `renderMask` is **0.7 ms** (663 meshes,
+      cheap as expected), but the composer chain goes **3.6 → 12.1 ms** with the
+      mask on. The only difference in the chain is a single `texture2D(tMask, …)`
+      in one fullscreen pass, which cannot cost 8 ms. Ruled out by measurement:
+      the mask render itself, the blur arithmetic (forcing `keep = 1.0` after the
+      fetch changed nothing), and linear vs nearest filtering.
+      Caveat on all of it: that harness's baseline chain is 3.6–4.7 ms where this
+      project's own contract measurement puts the whole 1080p frame at 17–18 ms, so
+      the absolute numbers are not comparable and the delta may be a headless
+      ANGLE-Metal artefact. **Check it in real Chrome with dev key `4` before
+      trusting it** — and if it is real, this is a blocker against ship criterion 3
+      and belongs with "the frame is over budget" below. Suspect a
+      render-target-to-sampler hazard forcing a flush.
 
 - [x] **TOP PRIORITY — the ship auto-yaws.** Fixed. Three separate causes, only
       the third of which the old note guessed at. Measured with the new
@@ -329,6 +389,15 @@ screenshot of ours. Do these before the rest of Phase 8.
       shortening `RANGE` — distance is deliberately the weak term.
 - [x] **Wire `world/reflection.js` into `corneria.js`.** Done. Canyon walls and
       rock stacks now reflect; costs +0.8 ms.
+- [x] **Reflections toned down.** Owner: "the reflections are WAY too good […]
+      lets tune that down slightly." `PlanarReflection.strength` (default **0.72**)
+      scales `uReflOn`, and the water shader already falls back to the sky probe
+      wherever the mirror's alpha is 0 — the same path the edge and sky-miss cases
+      take — so this is a blend toward a look that is known to work rather than a
+      new branch. A perfect mirror reads as CG; a river is not a mirror.
+      Side effect worth knowing: it *brightened* the river (water's composited
+      median 0.034 → 0.059), because more bright sky probe survives where dark
+      canyon wall used to be mirrored. Live on the `reflections` dev knob.
 - [ ] **The frame is over budget.** First contract-point measurement ever taken
       (1080p `--quality high`, serial): **17.3 ms with the reflection disabled,
       18.1 ms with it**. So the reflection is not the problem — the base frame
@@ -338,9 +407,18 @@ screenshot of ours. Do these before the rest of Phase 8.
 - [ ] **Shoreline.** The beach/water boundary is still a hard geometric line
       with no foam, and the sand is a flat untextured wedge
       (`shots/refl1/w-shore.png`, mid-left; `shots/refl1/combat-wide.png`).
-- [ ] **`w-shore` sits under the exposure band** — composited median 0.068
-      against a 0.10–0.20 target. Clipping and black are fine, so it is grade,
-      not range. Check whether other shadowed-gorge angles do the same.
+- [ ] **The whole level sits under the exposure band, not just `w-shore`.** The
+      old note asked whether other shadowed-gorge angles did the same. Measured
+      (`hist.mjs`, quality high, composited median): **they all do, and so does
+      everything else** — chase 0.045, valley 0.032, water 0.059, w-shore 0.079,
+      sun 0.116, against a 0.10–0.20 target. Only `sun` is near the band. So this
+      is not a per-shot defect and not a `w-shore` defect; it is one global grade
+      offset, and it wants a single lift (exposure/trim/toe) rather than per-camera
+      fixes. `p90`, `clippedPct` and `blackPct` are all healthy, so there is
+      headroom to lift into.
+      Left alone this session on purpose: the owner's brief was to *calm* the
+      image, and lifting exposure in the same pass would have fought that and made
+      both changes unmeasurable. Do it as its own pass, with the dev knobs.
 
 ## Next — Phase 9: the built world
 

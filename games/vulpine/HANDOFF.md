@@ -81,6 +81,80 @@ cp src/<your file> /tmp/iso/games/vulpine/src/<your file>
 # capture before/after in /tmp/iso; delete with: git worktree remove /tmp/iso
 ```
 
+## Session 2026-08-11 (b) — graphics pass: blur, reflections, sludge
+
+Owner's brief, in three parts: the ship/boss/enemies are permanently motion
+blurred, "the graphics are cranked way up", and "the reflections are WAY too
+good — tune that down slightly". Direction chosen by the owner: **keep the
+photoreal look, remove the sludge** — explicitly *not* the flatter stylised
+direction of the reference build. Plus: put the knobs in the dev panel so the
+owner can dial instead of the agent guessing.
+
+**The tuning you are looking for is in `environment.js`, not `postfx.js`.**
+`env.apply()` overwrites every pass param from the preset, so the constructor
+defaults in `postfx.js` are never what is on screen. That is why the panel's
+first render showed exposure 0.20 and bloom 0.055 against `postfx.js` defaults of
+1.0 and 0.085.
+
+**Grade bug, pre-existing, and part of the complaint.** `env.apply()` built its
+uniform name by title-casing the key, so `ca` became `uCa` — the uniform is
+`uCA`. The loop `continue`s on a miss with no warning, so `ca` **never applied in
+any of the three presets** and every one of them ran on the pass default `1.6`,
+higher than any asked for. Chromatic aberration is a first-order over-cranked
+tell. Fixed with a caps fallback in both `environment.js` and `api.post`. Any
+future acronym-cased grade key would have vanished the same way.
+
+**The under-exposure item was wrong in scope, and the correction matters.** The
+old note treated `w-shore`'s 0.068 median as a shadowed-gorge outlier. Measured
+across five cameras: chase 0.045, valley 0.032, water 0.059, w-shore 0.079, sun
+0.116 — everything is under the 0.10–0.20 band. It is one global grade offset,
+not a per-camera defect, and it wants a single lift. Deliberately not done this
+session: the brief was to *calm* the image and a simultaneous lift would have
+made both changes unmeasurable.
+
+**Motion blur: masked, not rebuilt.** Dynamic hulls render into a half-res mask
+(red = hull, green = own depth, so a hull behind a cliff cannot punch a hole in
+the blurred cliff) and the blur scales by it. Removes wrong blur; does not add
+right blur — fast-crossing traffic now gets none instead of an incorrect amount,
+which is a strict improvement but not the whole fix. Three traps already paid
+for:
+
+- Draw the mask from a **private 2-child scene**, not by layer-filtering the real
+  one: a nested `renderer.render(scene, …)` re-runs the shadow-map update for
+  everything in that scene.
+- Draw it in `post.render()` **before** `composer.render()`, never mid-chain.
+- `hullMask()` takes **one** sample. Half-res + linear filter already feathers
+  across ~2 full-res pixels. A 5-tap version cost **7.8 ms** at 1080p — it is four
+  more full-screen dependent reads. Feather via `maskScale`, never more taps.
+
+**Open, and flagged in ROADMAP as a possible ship blocker:** split-timed,
+`renderMask` is 0.7 ms but the chain goes 3.6 → 12.1 ms with the mask on, and the
+only chain-side difference is a single `texture2D`. Ruled out: the mask render,
+the blur arithmetic, and the texture filter. That harness's baseline chain is
+3.6–4.7 ms where the project's contract measurement puts the whole frame at
+17–18 ms, so the absolute scale is not comparable and this may be a headless
+ANGLE-Metal artefact. **Verify in real Chrome with dev key `4`.**
+
+**Careful with backticks inside the GLSL template literals.** Writing
+`` `maskScale` `` in a comment *inside* `MOTION_FRAG` terminated the template and
+produced `Unexpected identifier` with no line that looked wrong. Prose in those
+comments must be backtick-free.
+
+**Dev panel now has sliders** (`KNOBS`) for exposure, trim, bloom, lens dirt, god
+rays, flare, AO, saturation, contrast, CA, vignette, motion-blur gain and
+reflection strength, per-pass toggles, and key `5` to copy every value as JSON —
+so a dialled-in look comes back as numbers to paste into the preset. Note the
+motion knob is the blur **gain**, not `strength`: `main.js` rewrites `strength`
+from boost every frame, so a knob on it would be lost immediately.
+
+**A/B discipline, learned the hard way twice this session.** Two captures from two
+runs confound everything: the first ship-blur comparison actually measured the
+reflection change, which had landed in the same working tree. And `setShot()` only
+sets a flag — the camera moves inside the frame path, so probing right after it
+measures the *previous* pose and every shot reports identical numbers. `hist.mjs`
+gets this right (it settles for 8 frames) and takes `--js` to set the "before"
+arm, which is how the grade table above was produced from one build.
+
 ## Session 2026-08-11 — pre-boss weapon grants
 
 Single lane, no sub-agents. Owner's brief: "the game is hard, the guns are weak

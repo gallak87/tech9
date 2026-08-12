@@ -34,7 +34,13 @@ export const PRESETS = {
     // separates the far ridgelines.
     fog: { color: 0xa6c6e6, density: 0.00022 },
     exposure: 0.20,
-    godray: { intensity: 0.24, tint: 0xffd9a8, clamp: 2.4, density: 0.60, decay: 0.947, weight: 2.2, threshold: 1.7 },
+    // Exposure is deliberately untouched by the sludge pull-back: shadowed-gorge
+    // angles already composite *under* the 0.10–0.20 target (`w-shore` at 0.068),
+    // so pulling exposure to calm the glow would drive those further down. The
+    // over-cranked read comes from the glow and over-processing terms, and those
+    // are what came down — bloom, lens dirt, flare, god rays, AO, saturation,
+    // contrast and CA. Same look, less veil.
+    godray: { intensity: 0.16, tint: 0xffd9a8, clamp: 2.4, density: 0.60, decay: 0.947, weight: 2.2, threshold: 1.7 },
     envIntensity: 0.95,
 
     sky: {
@@ -56,13 +62,13 @@ export const PRESETS = {
       highTint: [0.70, 0.83, 1.02], lowTint: [1.06, 1.02, 0.96],
       sunTint: [0.40, 0.29, 0.16], sunPow: 6.0,
     },
-    bloom: { strength: 0.055, radius: 1.05, threshold: 1.1, knee: 0.55, clamp: 4.0, anamorphic: 1.0, dirt: 0.04 },
-    flare: { intensity: 0.30, ghosts: 0.8, streak: 0.26, tint: 0xfff0d8 },
-    ao: { radius: 2.6, intensity: 1.05, strength: 0.60, tint: 0x22364c },
+    bloom: { strength: 0.040, radius: 1.05, threshold: 1.1, knee: 0.55, clamp: 4.0, anamorphic: 1.0, dirt: 0.022 },
+    flare: { intensity: 0.19, ghosts: 0.8, streak: 0.26, tint: 0xfff0d8 },
+    ao: { radius: 2.6, intensity: 0.86, strength: 0.60, tint: 0x22364c },
     grade: {
       toneMode: 2, shoulder: 0.74, linStart: 0.18, linLen: 0.22, toe: 1.12, white: 1.0,
       highlightDesat: 0.14, highlightKnee: 1.6,
-      saturation: 1.16, contrast: 1.10, ca: 1.4, vignette: 1.02, grain: 0.010,
+      saturation: 1.08, contrast: 1.05, ca: 0.9, vignette: 0.92, grain: 0.010,
       lift: [0.004, 0.012, 0.030], gain: [1.0, 1.0, 1.0], gamma: [1.0, 1.0, 1.0],
       shadowTint: [0.88, 0.97, 1.17], highlightTint: [1.05, 1.015, 0.955],
       sharpen: 0.26,
@@ -398,8 +404,12 @@ export class Environment {
     if (p.grade && post.grade) {
       const u = post.grade.material.uniforms;
       for (const [k, v] of Object.entries(p.grade)) {
-        const key = 'u' + k[0].toUpperCase() + k.slice(1);
-        const uni = u[key];
+        // Acronym uniforms are spelled in caps (`uCA`), so title-casing the key
+        // alone misses them and the `continue` below then drops the value in
+        // silence. `ca` went unapplied in all three presets that way, leaving
+        // every one of them on the pass default — which was *higher* than any
+        // preset asked for. Try the caps form before giving up.
+        const uni = u['u' + k[0].toUpperCase() + k.slice(1)] || u['u' + k.toUpperCase()];
         if (!uni) continue;
         if (Array.isArray(v) && uni.value?.set) uni.value.set(...v);
         else uni.value = v;

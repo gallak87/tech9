@@ -46,6 +46,13 @@ export class PlanarReflection {
     this.clipBias = clipBias;
     this.enabled = true;
 
+    // How much of the mirrored buffer survives into the water. Below 1 the
+    // shader keeps that share of the sky probe instead — the fallback path the
+    // edge and sky-miss cases already take, so this is a blend toward a look
+    // that is known to work rather than a new code path. A perfect mirror reads
+    // as CG; a river is not a mirror.
+    this.strength = 0.72;
+
     /** Objects hidden for the duration of the pass — the water itself, the sky. */
     this.hide = [];
 
@@ -94,7 +101,7 @@ export class PlanarReflection {
     this._busy = true;
     try {
       this._draw(renderer, camera);
-      this.uniforms.uReflOn.value = 1;
+      this.uniforms.uReflOn.value = this.strength;
     } finally {
       this._busy = false;
     }

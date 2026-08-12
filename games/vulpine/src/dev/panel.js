@@ -12,7 +12,8 @@
 const CSS = `
 .vdev {
   position: fixed; right: 12px; bottom: 12px; z-index: 50;
-  display: none; flex-direction: column; gap: 5px; width: 186px;
+  display: none; flex-direction: column; gap: 5px; width: 208px;
+  max-height: calc(100vh - 24px); overflow-y: auto;
   padding: 9px; border-radius: 7px;
   background: rgba(6,12,20,0.88); border: 1px solid rgba(120,200,255,0.28);
   box-shadow: 0 6px 22px rgba(0,0,0,0.5);
@@ -42,6 +43,28 @@ const CSS = `
   border-radius: 3px;
 }
 .vdev .vdev-hint { font-size: 9px; color: #6f8ba3; letter-spacing: 0.4px; }
+.vdev .vdev-knob { display: flex; flex-direction: column; gap: 1px; }
+.vdev .vdev-knob-top {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 10px; color: #9fd0ff;
+}
+.vdev .vdev-knob-top b { font-weight: 600; color: #ffd489; font-variant-numeric: tabular-nums; }
+.vdev input[type=range] {
+  -webkit-appearance: none; appearance: none; width: 100%; height: 12px;
+  background: transparent; cursor: ew-resize; margin: 0;
+}
+.vdev input[type=range]::-webkit-slider-runnable-track {
+  height: 3px; border-radius: 2px; background: rgba(120,200,255,0.25);
+}
+.vdev input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none; margin-top: -4px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #9fd0ff; border: 1px solid rgba(6,12,20,0.9);
+}
+.vdev .vdev-row { display: flex; flex-wrap: wrap; gap: 3px; }
+.vdev .vdev-row button {
+  width: auto; flex: 1 1 auto; justify-content: center; padding: 3px 5px; font-size: 9px;
+}
 `;
 
 export function installDevPanel(api) {
@@ -95,6 +118,65 @@ export function installDevPanel(api) {
     render();
   }
 
+  /* ── look knobs ─────────────────────────────────────────────────────────────
+     Live so the owner can dial a look in one play session and read the numbers
+     back, instead of the agent guessing a grade and burning a capture loop on
+     each attempt. Every `set` writes the same field the tuning default writes,
+     so whatever lands here can be pasted straight into source.
+
+     `motion` is the blur *gain*, not its strength: main.js rewrites strength
+     from boost every frame, so a knob on strength would be lost immediately. */
+  const P = () => api.engine.post;
+  const GU = () => api.engine.post.grade.material.uniforms;
+  const KNOBS = [
+    // Ranges bracket the *preset's* live values (environment.js `corneria`),
+    // not the pass constructor defaults — the preset overwrites those in
+    // `env.apply()`, so the constructor numbers are never what is on screen.
+    { id: 'exposure', label: 'exposure', min: 0.05, max: 0.60, step: 0.005, dp: 3,
+      get: () => P().params.exposure, set: (v) => api.post({ exposure: v }) },
+    { id: 'trim', label: 'trim (late gain)', min: 0.4, max: 1.6, step: 0.01, dp: 2,
+      get: () => P().params.trim, set: (v) => api.post({ trim: v }) },
+    { id: 'bloom', label: 'bloom', min: 0, max: 0.20, step: 0.002, dp: 3,
+      get: () => P().params.bloom.strength, set: (v) => api.post({ bloom: { strength: v } }) },
+    { id: 'dirt', label: 'lens dirt', min: 0, max: 0.20, step: 0.005, dp: 3,
+      get: () => P().params.bloom.dirt, set: (v) => api.post({ bloom: { dirt: v } }) },
+    { id: 'godrays', label: 'god rays', min: 0, max: 0.7, step: 0.005, dp: 3,
+      get: () => P().godRays.params.intensity, set: (v) => api.post({ godRays: { intensity: v } }) },
+    { id: 'flare', label: 'lens flare', min: 0, max: 1.0, step: 0.01, dp: 2,
+      get: () => P().flare.params.intensity, set: (v) => { P().flare.params.intensity = v; } },
+    { id: 'ao', label: 'ambient occl', min: 0, max: 2.0, step: 0.01, dp: 2,
+      get: () => P().ao.params.intensity, set: (v) => { P().ao.params.intensity = v; } },
+    { id: 'sat', label: 'saturation', min: 0.6, max: 1.5, step: 0.01, dp: 2,
+      get: () => GU().uSaturation.value, set: (v) => api.post({ grade: { saturation: v } }) },
+    { id: 'contrast', label: 'contrast', min: 0.7, max: 1.4, step: 0.01, dp: 2,
+      get: () => GU().uContrast.value, set: (v) => api.post({ grade: { contrast: v } }) },
+    { id: 'ca', label: 'chromatic ab', min: 0, max: 3.0, step: 0.05, dp: 2,
+      get: () => GU().uCA.value, set: (v) => api.post({ grade: { ca: v } }) },
+    { id: 'vignette', label: 'vignette', min: 0, max: 1.6, step: 0.01, dp: 2,
+      get: () => GU().uVignette.value, set: (v) => api.post({ grade: { vignette: v } }) },
+    { id: 'motion', label: 'motion blur', min: 0, max: 2.0, step: 0.01, dp: 2,
+      get: () => P().motion.gain, set: (v) => { P().motion.gain = v; } },
+    { id: 'refl', label: 'reflections', min: 0, max: 1.0, step: 0.01, dp: 2,
+      get: () => api.world.reflection.strength, set: (v) => { api.world.reflection.strength = v; } },
+  ];
+
+  /** Pass toggles, for isolating what a look actually costs. */
+  const TOGGLES = ['bloom', 'godRays', 'flare', 'ao', 'motion', 'dof', 'smaa', 'taa'];
+
+  /** Log + copy every knob, so a dialled-in look can be pasted back verbatim. */
+  function dumpLook(btn) {
+    const out = {};
+    for (const k of KNOBS) out[k.id] = +k.get().toFixed(4);
+    out.hullMask = P().motion.mask;
+    out.passes = TOGGLES.reduce((a, id) => (a[id] = !!P()[id]?.enabled, a), {});
+    const text = JSON.stringify(out, null, 2);
+    console.log('[dev] look:\n' + text);
+    navigator.clipboard?.writeText(text).then(
+      () => flash(btn, 'copied!'),
+      () => flash(btn, 'logged'),
+    );
+  }
+
   const TOOLS = [
     { id: 'boss', label: 'Skip to boss', tag: '1', code: 'Digit1', run: skipToBoss },
     { id: 'bombs', label: 'Infinite bombs', tag: '2', code: 'Digit2', run: toggleBombs, on: () => infiniteBombs },
@@ -108,6 +190,13 @@ export function installDevPanel(api) {
         return w ? `Weapon +1 (${w.label})` : 'Weapon +1';
       },
     },
+    {
+      id: 'hullmask', tag: '4', code: 'Digit4',
+      label: 'Hull blur mask',
+      run: () => { P().motion.mask = !P().motion.mask; render(); },
+      on: () => P().motion.mask,
+    },
+    { id: 'dump', label: 'Copy look values', tag: '5', code: 'Digit5', run: dumpLook },
   ];
 
   /* ── dom ────────────────────────────────────────────────────────────────── */
@@ -134,9 +223,60 @@ export function installDevPanel(api) {
     buttons.set(t.id, { el: b, name, tool: t });
   }
 
+  /* ── look section ───────────────────────────────────────────────────────── */
+  const lookHead = document.createElement('h6');
+  lookHead.textContent = 'look';
+  root.appendChild(lookHead);
+
+  const knobs = [];
+  for (const k of KNOBS) {
+    const wrap = document.createElement('div');
+    wrap.className = 'vdev-knob';
+    const top = document.createElement('div');
+    top.className = 'vdev-knob-top';
+    const name = document.createElement('span');
+    name.textContent = k.label;
+    const val = document.createElement('b');
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = String(k.min); input.max = String(k.max); input.step = String(k.step);
+    const show = () => { val.textContent = k.get().toFixed(k.dp); };
+    input.addEventListener('input', () => {
+      k.set(parseFloat(input.value));
+      show();
+    });
+    // a focused slider eats the arrow keys, which are the steering keys
+    input.addEventListener('change', () => input.blur());
+    top.append(name, val);
+    wrap.append(top, input);
+    root.appendChild(wrap);
+    knobs.push({ k, input, show });
+  }
+
+  const togHead = document.createElement('h6');
+  togHead.textContent = 'passes';
+  root.appendChild(togHead);
+  const togRow = document.createElement('div');
+  togRow.className = 'vdev-row';
+  const toggles = [];
+  for (const id of TOGGLES) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = id;
+    b.addEventListener('click', () => {
+      const p = P()[id];
+      if (p) api.post({ enable: { [id]: !p.enabled } });
+      render();
+      b.blur();
+    });
+    togRow.appendChild(b);
+    toggles.push({ id, el: b });
+  }
+  root.appendChild(togRow);
+
   const hint = document.createElement('div');
   hint.className = 'vdev-hint';
-  hint.textContent = '` to hide';
+  hint.textContent = '` to hide · 5 copies the look';
   root.appendChild(hint);
   document.body.appendChild(root);
 
@@ -157,6 +297,10 @@ export function installDevPanel(api) {
       if (!busy) name.textContent = tool.live ? tool.live() : tool.label;
     }
     buttons.get('boss').el.disabled = busy || !!api.combat.boss;
+    // Sliders are only re-synced from source here, never per frame — dragging
+    // one must not fight a writer that rounds the value back.
+    for (const { k, input, show } of knobs) { input.value = String(k.get()); show(); }
+    for (const { id, el } of toggles) el.dataset.on = P()[id]?.enabled ? '1' : '0';
   }
 
   /* ── keys ───────────────────────────────────────────────────────────────── */

@@ -502,8 +502,7 @@ export function installCombat(ctx) {
       if (a.vel) out.addScaledVector(a.vel, flight);
       return out;
     }
-    return out.copy(ctx.flight.aimDir)
-      .multiplyScalar(TUNE.converge).add(ctx.ship.position);
+    return out.copy(ctx.flight.aimPoint);
   }
 
   /** The live tap-gun spec. Every fire-path number comes from here. */

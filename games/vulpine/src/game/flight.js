@@ -66,15 +66,22 @@ export const TUNE = {
   // both caps at full stick and ramps proportionally on the way there.
   camLeadGain: 1.0,
 
-  // Aim lead. The reticle and the guns share this, and it is what puts the
-  // crosshair ahead of the hull as you start to pan rather than pinning it to
-  // the middle of the frame forever. Angles, applied on top of the hull's own
-  // attitude, saturating through tanh so there is a definite "fully panned".
-  // Driven by offset *velocity*: which side of the corridor you happen to sit on
-  // must never enter an aim term (see the camera lead note in updateCamera).
-  aimYawMax: 0.115,        // rad, ~6.6 deg -> ~0.21 ndcX at the convergence range
-  aimPitchMax: 0.080,
+  // Aim lead — how far the crosshair rides ahead of the hull, as half-angles off
+  // the camera axis. Saturating through tanh so there is a definite "fully
+  // panned". Driven by offset *velocity*: which side of the corridor you sit on
+  // must never enter an aim term (see the centreline note in updateCamera).
+  // The camera lead already carries the hull to ~0.15 ndcX at full pan, so these
+  // have to clear that to read as leading rather than trailing.
+  // Sized against the camera lead, measured: the hull itself displaces ~0.17 ndc
+  // at full pan, so these are set to put the reticle ~1.3x that. Equal throw
+  // would read as the crosshair being welded to the hull rather than leading it.
+  aimYawMax: 0.26,         // rad -> ~0.23 ndc of throw at aimRange
+  aimPitchMax: 0.17,
   aimVelScale: 78,         // m/s of offset velocity that saturates the lead
+  // Distance the aim point sits ahead of the hull. Must match `converge` in
+  // combat.js: the guns are handed this exact point, so a mismatch would put the
+  // rounds somewhere the crosshair is not.
+  aimRange: 520,
   // How much of the corridor's heading the hull and the camera lean into. The
   // meander sweeps ±13.7°, so at 1.0 the whole view S-turns forever with the
   // rail's periods (8.7 s / 20 s / 65 s) with no input touched. Both terms are
@@ -109,6 +116,8 @@ const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) 
 const _v = new THREE.Vector3();
 const _vCam = new THREE.Vector3();
 const _vAim = new THREE.Vector3();
+const _vRight = new THREE.Vector3();
+const _vUp = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const UP = new THREE.Vector3(0, 1, 0);
@@ -134,11 +143,15 @@ export class Flight {
 
     this.pos = new THREE.Vector3();
     this.quat = new THREE.Quaternion();
-    // Where the guns point. Leads the hull by `aimYaw`/`aimPitch`; the reticle is
-    // drawn on this and nothing else.
+    // Where the guns converge and where the reticle is drawn — one point, so the
+    // crosshair cannot promise a shot the guns do not take. Built in updateCamera,
+    // in the camera's own basis.
     this.aimDir = new THREE.Vector3(0, 0, -1);
-    this.aimYaw = 0;
-    this.aimPitch = 0;
+    // Seeded ahead of the start pose: it is rebuilt in updateCamera, but the first
+    // sim step can land before the first render, and the guns read it.
+    this.aimPoint = new THREE.Vector3(0, 12, -TUNE.aimRange);
+    this.aimLeadX = 0;
+    this.aimLeadY = 0;
     this.railPos = new THREE.Vector3();
     this.railDir = new THREE.Vector3(0, 0, -1);
 
@@ -274,7 +287,14 @@ export class Flight {
       -this.offVel.x * TUNE.bankPerOffsetVel - stickX * TUNE.bankPerStick, -TUNE.bankMax, TUNE.bankMax);
     const pitchTarget = THREE.MathUtils.clamp(
       this.offVel.y * TUNE.pitchPerOffsetVel + -stickY * TUNE.pitchPerStick, -0.6, 0.6);
-    const yawTarget = stickX * TUNE.yawPerStick;
+    // Negated: YXZ maps yaw θ to forward (-sinθ, 0, -cosθ), so a *positive* yaw
+    // swings the nose toward -x. Without the sign, pushing right (stickX > 0)
+    // pitched the nose left while the ship translated right — the hull crabbed
+    // against its own travel by 0.2 rad, worth -0.36 ndcX of aim at the 520 m
+    // convergence range. That is the whole of the "horizontal is backwards"
+    // report: the aim lead rides the hull, so it inherited the error and doubled
+    // it. Measured with `tools/pilot.mjs aim`.
+    const yawTarget = -stickX * TUNE.yawPerStick;
 
     const k = 1 - Math.exp(-TUNE.attitudeDamp * dt);
     this.bank += (bankTarget - this.bank) * k;
@@ -310,13 +330,8 @@ export class Flight {
     // crossing the corridor. Rotating about world axes rather than the hull's own
     // is deliberate: at these attitudes the difference is negligible, and it
     // keeps the lead from tumbling with a barrel roll or a somersault.
-    const aimK = TUNE.aimLeadScale;
-    this.aimYaw = -TUNE.aimYawMax * aimK * Math.tanh(this.offVel.x / TUNE.aimVelScale);
-    this.aimPitch = TUNE.aimPitchMax * aimK * Math.tanh(this.offVel.y / TUNE.aimVelScale);
-    this.aimDir.set(0, 0, -1).applyQuaternion(this.quat);
-    this.aimDir.applyAxisAngle(UP, this.aimYaw);
-    _vAim.crossVectors(UP, this.aimDir).normalize();
-    this.aimDir.applyAxisAngle(_vAim, this.aimPitch).normalize();
+    this.aimLeadX = Math.tanh(this.offVel.x / TUNE.aimVelScale);
+    this.aimLeadY = Math.tanh(this.offVel.y / TUNE.aimVelScale);
 
     const api = this.ship.userData.api;
     if (api) api.update(dt, { throttle: this.throttleN, boost: this.boostActive, roll: stickX });
@@ -414,6 +429,34 @@ export class Flight {
     camera.lookAt(this.camLook);
     // subtle camera roll into the bank — sells the turn without inducing nausea
     camera.rotateZ(this.bank * 0.16);
+
+    // ── aim point ──────────────────────────────────────────────────────────
+    // Where the guns converge and where the reticle is drawn. Built in the
+    // *camera's* basis, after the camera is final, which is what makes the
+    // on-screen behaviour exact instead of emergent: a point `aimRange` straight
+    // down the view axis from the ship projects to the ship's own screen
+    // position, so displacing it along camera-right/up moves the crosshair off
+    // the hull by a known amount, in a known direction, on a known axis.
+    //
+    // Two earlier bases both failed, measured with `tools/pilot.mjs aim`:
+    //  • the hull's quaternion — bank and pitch are exaggerated for looks
+    //    (climbing reaches 0.75 rad), and 520 m of lever arm turned that into a
+    //    1.03 ndcY swing that threw the crosshair off the frame;
+    //  • the corridor heading — the reticle then wandered with the meander, which
+    //    is drift by another name.
+    // Velocity drives the lead, never position: position in a lead term is the
+    // centreline-crossing bug documented above.
+    const aimK = TUNE.aimLeadScale;
+    const throwX = TUNE.aimRange * Math.tan(TUNE.aimYawMax) * aimK * this.aimLeadX;
+    const throwY = TUNE.aimRange * Math.tan(TUNE.aimPitchMax) * aimK * this.aimLeadY;
+    _vAim.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    _vRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    _vUp.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    this.aimPoint.copy(this.ship.position)
+      .addScaledVector(_vAim, TUNE.aimRange)
+      .addScaledVector(_vRight, throwX)
+      .addScaledVector(_vUp, throwY);
+    this.aimDir.copy(this.aimPoint).sub(this.ship.position).normalize();
 
     const fov = TUNE.fovBase + this.boostActive * TUNE.camBoostFov - this.brakeActive * 4;
     if (Math.abs(camera.fov - fov) > 0.01) {

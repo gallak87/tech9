@@ -101,6 +101,33 @@ screenshot of ours. Do these before the rest of Phase 8.
       Regression-checked: carrier still dies (103 s vs 101.5 s) and rounds landed
       went 653 → 691, so ship-relative aim is neutral-to-better. `inputtest` clean.
 
+      **Horizontal was inverted on the first attempt, and the cause was older than
+      this work.** Reported from live play; found with the new `tools/pilot.mjs aim`,
+      which holds each steering key and measures the reticle's on-screen
+      displacement. Three layers, each hidden behind the one above:
+      1. `yawTarget = stickX * yawPerStick` had no negation. YXZ maps yaw θ to
+         forward `(-sinθ, 0, -cosθ)`, so pushing right yawed the *nose left* while
+         the ship translated right — the hull crabbed against its own travel by
+         0.2 rad. Pre-existing; the aim lead rode the hull and inherited it.
+      2. The aim then could not ride the hull at all: bank and pitch are
+         exaggerated for looks, and climbing reaches ~0.75 rad, which at 520 m of
+         lever arm threw the crosshair 1.03 ndcY — clean off the frame.
+      3. Basing it on the corridor heading instead made the reticle wander with
+         the meander, which is drift by another name.
+      Final form: the lead is built in the **camera's own basis** in
+      `updateCamera`, after the camera is final. A point `aimRange` down the view
+      axis from the hull projects onto the hull's own screen position, so
+      displacing it along camera right/up moves the crosshair off the hull by a
+      known amount on a known axis. Velocity-driven, tanh-saturating, and sized
+      against the measured camera lead so it *outruns* the hull rather than being
+      welded to it: dAim/dHull now 1.17–1.40 on all four axes.
+
+      **A probe that measures the wrong thing is worse than no probe.** The first
+      version of `pilot.mjs aim` compared the reticle's absolute position to the
+      hull's and reported two false inversions, because the hull rests ~0.3 ndc
+      *below* frame centre by design. It measures displacement from a neutral
+      sample now.
+
       **Awaiting the owner's hands-on pass.** Three live knobs for it —
       `rail yaw follow`, `aim lead`, `cam lead` — because whether the corridor
       rotating around you reads as flying it or as the camera wandering is not a

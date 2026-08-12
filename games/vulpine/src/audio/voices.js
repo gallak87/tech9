@@ -92,24 +92,33 @@ export class Voices {
     // 0.28 s no longer covers the player's tail (0.20 dec + 0.06)
     if (!this.claim(t, enemy ? 0.28 : 0.32, enemy ? 0.4 : 0.6)) return;
 
-    // The player shot started at 2450 Hz with a 0.135 s decay through a Q-5.5
-    // bandpass, which is a thin high zap — "pew". Weight comes from starting an
-    // octave lower, holding longer, and opening the filter so the fundamental
-    // survives instead of only its upper partials. Enemy fire is unchanged: it has
-    // to stay distinguishable from your own guns at a glance *and* by ear.
+    // "Pew" is the GLIDE, not the register. This voice swept the oscillator 12:1
+    // downward (2450 -> 205), and a long descending portamento is the toy-raygun
+    // gesture no matter what pitch it starts at — dropping f0 an octave just buys a
+    // lower-pitched pew, which is exactly what happened on the first attempt.
+    // A weapon is a bright transient plus a short, dark body that barely bends. So
+    // the player's glide is now ~2.4:1 and most of the decay is steady body.
+    // Enemy fire keeps its wide sweep: it has to stay distinguishable from your own
+    // guns by ear as well as by colour, and "incoming" is allowed to sound thinner.
     const v = R.laser.range(0.94, 1.07);
-    const f0 = (enemy ? 1500 : 1420) * v;
-    const f1 = (enemy ? 135 : 118) * v;
-    const dec = enemy ? 0.19 : 0.20;
+    const f0 = (enemy ? 1500 : 880) * v;
+    const f1 = (enemy ? 135 : 370) * v;
+    const dec = enemy ? 0.19 : 0.17;
     const out = this.tail({ gain: (opts.gain ?? 1) * (enemy ? 0.5 : 0.62), pan: opts.pan, lp: opts.lp });
 
     // body — two waves an octave apart give it a "zap" edge the pure square lacks
     const g1 = gain(ac, 0);
-    const bp = filter(ac, 'bandpass', enemy ? 2200 : 1250, enemy ? 3.5 : 2.2);
-    sweep(bp.frequency, t, f0 * 1.3, f1 * 2.2, dec * 1.05);
+    // Lowpass for the player, not bandpass: a bandpass scoops out the fundamental
+    // and leaves the buzz, which is half the toy quality.
+    const bp = enemy
+      ? filter(ac, 'bandpass', 2200, 3.5)
+      : filter(ac, 'lowpass', 2000, 1.1);
+    sweep(bp.frequency, t, enemy ? f0 * 1.3 : 2600, enemy ? f1 * 2.2 : 1000, dec * 0.8);
     bp.connect(g1); g1.connect(out);
 
-    const o1 = osc(ac, enemy ? 'sawtooth' : 'square', f0);
+    // square at this register is pure buzz; triangle carries the fundamental and
+    // the saw partner below supplies the edge.
+    const o1 = osc(ac, enemy ? 'sawtooth' : 'triangle', f0);
     const o2 = osc(ac, 'sawtooth', f0 * 0.503, 9);
     sweep(o1.frequency, t, f0, f1, dec);
     sweep(o2.frequency, t, f0 * 0.503, f1 * 0.503, dec);
@@ -121,20 +130,20 @@ export class Voices {
     // sub — the part you feel rather than hear. Nothing below ~200 Hz existed in
     // this voice at all, which is most of why it read as a toy.
     if (!enemy) {
-      const sub = osc(ac, 'sine', 190 * v);
-      sweep(sub.frequency, t, 190 * v, 62 * v, dec * 0.9);
+      const sub = osc(ac, 'sine', 150 * v);
+      sweep(sub.frequency, t, 150 * v, 78 * v, dec * 0.7);
       const sg = gain(ac, 0);
       sub.connect(sg); sg.connect(out);
-      hit(sg.gain, t, 0.5, 0.004, dec * 0.85);
+      hit(sg.gain, t, 0.85, 0.003, dec * 0.9);
       sub.start(t); sub.stop(t + dec + 0.06);
     }
 
     // transient — 6 ms of bright noise. Without it the shot has no "snap".
     const n = noiseSource(ac, 'white');
-    const nf = filter(ac, 'highpass', enemy ? 1400 : 2600, 0.9);
+    const nf = filter(ac, 'highpass', enemy ? 1400 : 1500, 0.9);
     const ng = gain(ac, 0);
     n.connect(nf); nf.connect(ng); ng.connect(out);
-    hit(ng.gain, t, enemy ? 0.32 : 0.4, 0.001, 0.028);
+    hit(ng.gain, t, enemy ? 0.32 : 0.55, 0.001, enemy ? 0.028 : 0.022);
 
     // ring — a short inharmonic partial that survives the distance filter and
     // keeps a far-off shot recognisable
@@ -142,7 +151,9 @@ export class Voices {
     sweep(rz.frequency, t, f0 * 1.87, f1 * 3.1, dec * 0.8);
     const rg = gain(ac, 0);
     rz.connect(rg); rg.connect(out);
-    hit(rg.gain, t, 0.12, 0.002, dec * 0.7);
+    // Much quieter on the player's gun: an inharmonic partial that sings is the
+    // difference between a weapon and a ray gun.
+    hit(rg.gain, t, enemy ? 0.12 : 0.03, 0.002, dec * 0.7);
 
     const end = t + dec + 0.06;
     for (const s of [o1, o2, rz, n]) { s.start(t); s.stop(end); }
@@ -156,23 +167,26 @@ export class Voices {
     const out = this.tail({ gain: (opts.gain ?? 1) * 0.75, pan: opts.pan, lp: opts.lp });
     const dec = 0.30 + 0.22 * lvl;
 
-    const lpf = filter(ac, 'lowpass', 2600, 7);
-    sweep(lpf.frequency, t, 3400, 260, dec * 1.2);
+    // Same glide problem as the tap shot: 780 -> 74 Hz is 10:1 of portamento, which
+    // is a cartoon descending zap. Tightened to ~2.4:1 with a much less extreme
+    // filter sweep, so the weight comes from the sub and the drive instead.
+    const lpf = filter(ac, 'lowpass', 2200, 3.5);
+    sweep(lpf.frequency, t, 2600, 620, dec * 1.0);
     const bg = gain(ac, 0);
     lpf.connect(bg); bg.connect(out);
     hit(bg.gain, t, 0.85, 0.004, dec);
 
-    const f0 = 780 * (0.85 + 0.3 * lvl);
+    const f0 = 520 * (0.85 + 0.3 * lvl);
     const o1 = osc(ac, 'sawtooth', f0);
-    const o2 = osc(ac, 'square', f0 * 0.5, -7);
-    sweep(o1.frequency, t, f0, 74, dec * 1.1);
-    sweep(o2.frequency, t, f0 * 0.5, 37, dec * 1.1);
+    const o2 = osc(ac, 'triangle', f0 * 0.5, -7);
+    sweep(o1.frequency, t, f0, 215, dec * 0.9);
+    sweep(o2.frequency, t, f0 * 0.5, 108, dec * 0.9);
     o1.connect(lpf);
     const g2 = gain(ac, 0.5); o2.connect(g2); g2.connect(lpf);
 
     // sub — the thing that makes it feel like it cost something to fire
-    const sub = osc(ac, 'sine', 130);
-    sweep(sub.frequency, t, 130, 34, dec * 1.4);
+    const sub = osc(ac, 'sine', 120);
+    sweep(sub.frequency, t, 120, 52, dec * 1.4);
     const sd = shaper(ac, this.drive);
     const sg = gain(ac, 0);
     sub.connect(sd); sd.connect(sg); sg.connect(out);

@@ -43,6 +43,22 @@ const CSS = `
   border-radius: 3px;
 }
 .vdev .vdev-hint { font-size: 9px; color: #6f8ba3; letter-spacing: 0.4px; }
+.vdev .vdev-fps {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 5px 7px; border-radius: 4px;
+  background: rgba(0,0,0,0.45); border: 1px solid rgba(120,200,255,0.22);
+  font-variant-numeric: tabular-nums;
+}
+.vdev .vdev-fps b {
+  flex: none; white-space: nowrap;
+  font-size: 15px; font-weight: 600; color: #5cf0a0;
+}
+.vdev .vdev-fps b.warn { color: #ffc161; }
+.vdev .vdev-fps b.bad { color: #ff5a52; }
+.vdev .vdev-fps span {
+  font-size: 9px; color: #6f8ba3; text-align: right; line-height: 1.35;
+  white-space: nowrap;
+}
 .vdev .vdev-knob { display: flex; flex-direction: column; gap: 1px; }
 .vdev .vdev-knob-top {
   display: flex; justify-content: space-between; align-items: baseline;
@@ -205,6 +221,26 @@ export function installDevPanel(api) {
   head.textContent = 'dev';
   root.appendChild(head);
 
+  // Frame cost, for judging a look change against what it costs. Sampled at 5 Hz
+  // rather than per frame because a number that changes 60 times a second cannot
+  // be read, and `avgFrameMs` is already smoothed. 16.6 ms is the contract
+  // budget, so the colour breaks there.
+  const fpsBox = document.createElement('div');
+  fpsBox.className = 'vdev-fps';
+  const fpsNum = document.createElement('b');
+  const fpsDetail = document.createElement('span');
+  fpsBox.append(fpsNum, fpsDetail);
+  root.appendChild(fpsBox);
+
+  function renderFps() {
+    const s = api.stats();
+    const ms = s.frameMs;
+    fpsNum.textContent = `${Math.round(s.fps)} fps`;
+    fpsNum.className = ms > 22 ? 'bad' : ms > 16.6 ? 'warn' : '';
+    fpsDetail.innerHTML =
+      `${ms.toFixed(1)} ms<br>${s.calls} dr · ${(s.tris / 1e6).toFixed(2)}M tri`;
+  }
+
   const buttons = new Map();
   for (const t of TOOLS) {
     const b = document.createElement('button');
@@ -316,9 +352,12 @@ export function installDevPanel(api) {
   });
 
   // Bombs are spent inside the fixed step; refilling once per frame is enough.
-  const tick = () => {
+  let fpsT = 0;
+  const tick = (t) => {
     requestAnimationFrame(tick);
     if (infiniteBombs && api.state) api.state.bombs = 3;
+    // Only while visible — a closed panel should cost nothing.
+    if (t - fpsT > 200 && root.classList.contains('open')) { fpsT = t; renderFps(); }
   };
   requestAnimationFrame(tick);
 

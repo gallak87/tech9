@@ -109,24 +109,55 @@ screenshot of ours. Do these before the rest of Phase 8.
       pass, not two opposing tweaks. `?exposure=`, `?nopost=1` and the
       per-pass `?bloom=0` switches already exist for a live A/B.
 
-- [ ] **3. The ship is in constant motion blur.** Owner: "there's also way too
-      much blur on the ship — its like in constant blur." Visible on the wings in
-      the live screenshot; they smear into streaks.
+- [ ] **3. Every dynamic object is falsely motion-blurred — ship, boss and
+      enemies.** Owner: "there's also way too much blur on the ship — its like in
+      constant blur", then "also the boss and enemies are also blurry". Visible on
+      the wings in the live screenshot, where they smear into streaks.
 
-      **Already diagnosed by the comment above the pass** (`postfx.js:739`):
-      *"Camera motion only (no per-object velocity buffer) which is exactly
-      right here — the whole world streams past the camera, so camera velocity
-      *is* the dominant motion."* That reasoning is correct for the world and
-      wrong for exactly one object. The Arwing is very nearly static in screen
-      space, but camera-only reprojection cannot know that, so at 175 m/s it
-      smears the one thing on screen that is not actually moving — and it is the
-      thing the player looks at.
-      `strength: 0.55`, `maxVel: 0.05`, 10 taps.
-      Cheapest correct fix is to mask the ship out of the pass rather than to
-      add a full velocity buffer, or to reduce strength; masking keeps the
-      world's streaming, which is doing real work for the sense of speed.
+      **One bug, and the comment above the pass states the wrong assumption as
+      if it were a justification** (`postfx.js:739`): *"Camera motion only (no
+      per-object velocity buffer) which is exactly right here — the whole world
+      streams past the camera, so camera velocity is the dominant motion."*
+
+      `MOTION_FRAG` unprojects `tDepth` and reprojects through `uPrevViewProj`,
+      i.e. it treats **every pixel as static world geometry**. The velocity it
+      computes is therefore only the camera's apparent sweep of a static point at
+      that depth. True screen velocity is that term *plus* the object's own world
+      motion, so the error equals the object's own motion — and it is **maximal
+      for anything that moves with the player**, whose two terms nearly cancel to
+      a true screen velocity of ~0 while the pass still applies the full camera
+      term. The blur on those objects is close to 100% spurious.
+
+      That is the ship, but also:
+      - **The boss, worst of all, because it station-keeps.** Measured in
+        `bossprobe`: `dz` mean −413.5, min −412, max −592 — a near-constant offset,
+        so it travels at cruise alongside the player and its real screen motion is
+        ~0. It gets smeared as though it were a cliff 413 m away swept past at
+        175 m/s.
+      - **Formation enemies and wingmen**, which pace the player the same way.
+
+      `strength: 0.55`, `maxVel: 0.05` (a 5%-of-screen cap — ~96 px at 1920,
+      which is the streak length in the screenshot), 10 taps.
+
+      **Do not fix this by masking only the ship** — that leaves the boss and
+      half the traffic smeared, which is how the item was first written and it
+      was wrong. Two real options:
+      - *Mask every dynamic entity out of the pass* — cheap and tractable,
+        because they are already enumerable: the `combat` group (which owns
+        `enemies`, `wingmen` and the boss) plus `ctx.ship`. Stencil or a 1-bit
+        mask RT with the depth test. Keeps the world's streaming, which is doing
+        the real work for the sense of speed. **Start here.** Two cautions: feather
+        the mask, or a crisp hull cut out of a smeared background reads as a
+        compositing bug; and mask the *hulls only*, since engine trails and fx
+        genuinely should blur.
+      - *A real per-object velocity buffer* — correct for everything including
+        fast-crossing traffic, and the actual AAA answer, but it needs prev model
+        matrices tracked per object and prev poses for the boss rig and the
+        Arwing's animated parts, or those come out wrong in a subtler way. Only
+        worth it if the mask's residual is visible.
+
       Do not just disable `motionBlur` — it rides the AO quality tier (`:1748`)
-      and the speed read would go with it.
+      and the world's speed read would go with it.
 
 - [x] **TOP PRIORITY — the ship auto-yaws.** Fixed. Three separate causes, only
       the third of which the old note guessed at. Measured with the new

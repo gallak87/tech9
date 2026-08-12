@@ -145,10 +145,15 @@ motion blur. Two notes worth carrying:
   *camera* ray, so a centred reticle is currently honest. Moving the reticle onto
   the hull without moving the guns reintroduces a lying reticle. Read the item
   before touching `reticle.js`.
-- The ship-blur cause is already written down as an assumption in
-  `postfx.js:739` — camera-only reprojection is right for the world and wrong for
-  the one object that is static in screen space. The comment argues for the
-  behaviour that produces the defect.
+- The blur one is **not just the ship** — the owner added the boss and enemies.
+  It is a single cause and `postfx.js:739` states the wrong assumption as its
+  justification: the pass treats every pixel as static world geometry, so the
+  error equals the object's own motion and is *maximal for anything that moves
+  with the player*. The boss is the worst case because it station-keeps at a
+  near-constant `dz` (−413.5 m mean, measured), so its true screen motion is ~0
+  and the blur is almost entirely spurious. Masking only the hull — the first
+  version of this note — would have left the boss and half the traffic smeared.
+  Mask the whole `combat` group plus `ctx.ship`, hulls only, feathered.
 
 **Left alone deliberately:** `homingHit` is 2 out of 346 homing rounds fired at
 the carrier. Tracking rounds essentially do not connect with the boss. That is a

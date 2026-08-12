@@ -81,6 +81,81 @@ cp src/<your file> /tmp/iso/games/vulpine/src/<your file>
 # capture before/after in /tmp/iso; delete with: git worktree remove /tmp/iso
 ```
 
+## Session 2026-08-11 — pre-boss weapon grants
+
+Single lane, no sub-agents. Owner's brief: "the game is hard, the guns are weak
+— 2-3 automatic weapon upgrades right before the boss."
+
+**The carrier was not a slog, it was unkillable.** This is the number that
+matters and nobody had taken it: `bossprobe.mjs` holds the trigger and never
+dodges, so it is a *perfect-uptime upper bound*. At tier 0, with 100% of samples
+inside both the range gate and the lock cone, after **240 s** the core had taken
+zero damage, two of four turrets were still full, and `killed: false`. Only 25%
+of rounds fired at the hull land, so 14.8 fired dps is ~3.7 landed against 900 hp
+of weak points. Four minutes, and that is the *bot*, not a player.
+
+With the three grants: killed at **101.5 s**, `outcome: win`. Engines 25/48.3 s →
+6.5/14.8 s; all four turrets die where two used to survive; the core goes from
+never-touched to dead.
+
+**Four tiers in `TUNE.weapons`**, each overriding the tap gun wholesale so the
+fire path reads one object and never branches on a tier number. Fired dps 14.8 →
+29.5 → 54.2 → 83.0. Top tier fires the full four-pod rack instead of alternating
+pairs — the deliberate "rhythm not a wall of light" comment in `playerFire` still
+holds at the low tiers; at the top, the wall of light *is* the reward.
+
+**Round radius climbs with the tiers too (5.5 → 8.2 m), and that matters more
+than it looks.** Hit rate compounds with damage: at tier 0 three quarters of
+rounds aimed at a 68 m hull miss it. Widening the round is roughly half of what
+makes a tier feel like an upgrade.
+
+**Two A/B switches, and you need both.** The fight is now balanced against the
+granted gun, so resetting the tier is not a baseline — the grants must be
+suppressed. `?grants=0` does that; `?wpn=N` starts on a tier. `bossprobe.mjs`
+now takes a 3rd arg of extra query params and **prints the live tier and dps**,
+so an arm cannot be run by mistake:
+
+```bash
+node tools/bossprobe.mjs 5313 240 'grants=0'   # baseline: killed: false
+node tools/bossprobe.mjs 5313 240              # granted:  killed at 101.5s
+```
+
+**Trap worth knowing — `theme.js:mix()` returns `'rgb(r,g,b)'`, not hex.** So
+`alpha(mix(a, b, t), 0.8)` and `mix(mix(...), c, t)` both silently produce
+`rgba(NaN,NaN,NaN,…)`; canvas rejects the fillStyle and *keeps the previous one*,
+which renders as whatever colour was last set rather than as an error. It cost a
+capture loop here: the HYPER label drew near-black while the gauge beside it,
+taking the same value directly, drew correct gold. Computed colours are not
+composable — use an explicit hex ramp (`WPN_TIER` in `status.js`) or
+`g.globalAlpha`. No shipped code does this; only the new code did.
+
+**Grant placement is measured, not guessed.** `z = -7150 / -7451 / -7751`, so
+each tier is followed by a wave to feel it on (hornets -7250, last wasp swarm
+-7550), and the last grant clears the -7951 comm by 1.1 s. No callout is
+overwritten in under ~1.1 s. `say()` holds a line 4.2 s and the run-in is dense,
+so the HUD pip row is the durable signal and the wingman lines are the moment.
+
+**Owner raised three new items mid-session** (2026-08-11), off a reference build
+on r/aigamedev plus a live-play screenshot. They are queued at the top of
+Phase 8 in `ROADMAP.md` with the diagnosis, not just the complaint: crosshair
+should move with the ship, the post chain is overcooked, the ship is in constant
+motion blur. Two notes worth carrying:
+
+- The crosshair one is **not just a HUD change**. The guns converge on the
+  *camera* ray, so a centred reticle is currently honest. Moving the reticle onto
+  the hull without moving the guns reintroduces a lying reticle. Read the item
+  before touching `reticle.js`.
+- The ship-blur cause is already written down as an assumption in
+  `postfx.js:739` — camera-only reprojection is right for the world and wrong for
+  the one object that is static in screen space. The comment argues for the
+  behaviour that produces the defect.
+
+**Left alone deliberately:** `homingHit` is 2 out of 346 homing rounds fired at
+the carrier. Tracking rounds essentially do not connect with the boss. That is a
+separate defect from weapon damage and was not in this lane — it is worth a
+session of its own, and it means the lock-on ceremony is still near-decorative
+against the one target it matters most against.
+
 ## Session 2026-08-01 (c) — flight camera + rear threat
 
 One sub-agent (loading screen) plus the main agent inline on flight/HUD. Owner
@@ -215,6 +290,8 @@ Result: `shots/wdiag2/graze.png` → `shots/refl1/graze.png`.
 
 ### Next steps, in order
 
+*(Written 2026-08-01. Still accurate — none of these were this session's lane.)*
+
 1. **The frame is over budget, and it is not the reflection.** First
    contract-point reading ever taken (1080p `--quality high`, serial, same five
    shots): 17.3 ms with the reflector disabled, 18.1 ms with it. The base frame
@@ -263,6 +340,15 @@ Current reference frames: `shots/c3/` (HUD + combat, `--hud --params fight=1`).
 
 ## Known defects, ranked by cost to the frame
 
+> **STALE — read `ROADMAP.md` for the live queue, not this list.** Items 1, 5
+> (both of them), 6 and 7 below are all fixed; the strikethrough block that
+> follows says so for some of them and the numbered list underneath contradicts
+> it, which is exactly the trap that costs a fresh agent a session. In
+> particular the fins in item 1 were the terrain index buffers being wound
+> backwards, fixed in `4bb0eeb` — **do not re-investigate them.** The list is
+> kept only for the elimination trails, which are still worth reading before
+> re-opening any of these.
+
 **Resolved since this list was written** — do not re-investigate:
 - ~~Fins hanging off the canyon rims.~~ The terrain index buffers were wound
   backwards, so back-face culling kept the faces turned *away* from the camera.
@@ -277,11 +363,14 @@ Current reference frames: `shots/c3/` (HUD + combat, `--hud --params fight=1`).
 - ~~The boss drifts out of the fight.~~ / ~~No hit feedback on the boss.~~ Both
   fixed and measured — see the table above.
 
-1. **Thin tapering fins hang off the canyon rims** (right side of
+1. ~~**Thin tapering fins hang off the canyon rims**~~ (right side of
    `shots/c5/combat-wide.png`, and every in-canyon frame). They read as torn
    geometry and are the single biggest reason the canyon still looks like
-   stacked sheets rather than landmass. **Still open.** Ruled out, each by a
-   measured experiment — do not re-test these:
+   stacked sheets rather than landmass. **FIXED in `4bb0eeb`** — the terrain
+   index buffers were wound backwards, so back-face culling kept the faces
+   turned away from the camera. The elimination trail below is kept because it
+   rules out a lot of terrain ground cheaply; the conclusion it builds toward is
+   the one that was right. Ruled out, each by a measured experiment:
    - *Not the lateral skirts.* Dropping `SKIRT` 55 → 10 changed the image not at
      all, and `hemDepth` measures 1 m on the far tier.
    - *Not the near/far tier seam.* They survive `freecam --hide "^ridge-"`, and

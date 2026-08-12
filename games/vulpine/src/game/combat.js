@@ -45,10 +45,34 @@ const TUNE = {
   enemyBullet: { speed: 520, range: 700, r: 1.4 },
 
   converge: 520,           // metres at which the guns cross the aim ray
-  fireGap: 0.135,          // twin-linked, so 2 rounds per interval
   chargeTime: 1.05,        // hold-to-lock, seconds
   lockCone: 0.955,         // cos of the half-angle the lock will hold
   lockRange: 900,
+
+  // Weapon tiers. Tier 0 is what the mission starts on; `GRANTS` below steps up
+  // one per rail crossing. Each entry overrides the tap gun wholesale,
+  // so the fire path reads one object and never branches on the tier number.
+  //
+  //   pods   how many of the four mounts fire per interval. 2 alternates outer
+  //          and inner pairs for the rhythm; 4 fires the full rack, which is
+  //          the read that the upgrade landed.
+  //   gap    seconds between fire intervals.
+  //   r      round radius. Bigger is more forgiving, and hit rate compounds
+  //          with damage — at tier 0 only 25% of rounds fired at the carrier
+  //          land, so widening the round is half of what makes a tier felt.
+  //   home   turn rate in rad/s for a tracking tap round, the tap-stream
+  //          counterpart to `homeCharged` below.
+  //
+  // Fired dps is pods * dmg / gap: 14.8, 29.5, 54.2, 83.0 — so the top tier is
+  // 5.6x tier 0. That multiple is sized off the carrier: 900 hp of weak points
+  // at tier 0's measured 3.7 landed dmg/s is four minutes of grind, which is
+  // the "boss is a tank" complaint. Do not answer it by cutting boss hp.
+  weapons: [
+    { id: 'LASER',  pods: 2, dmg: 1.0, gap: 0.135, r: 5.5, charged: 6,  width: 1.00, home: 1.15 },
+    { id: 'TWIN',   pods: 2, dmg: 1.8, gap: 0.122, r: 6.4, charged: 9,  width: 1.18, home: 1.30 },
+    { id: 'SPREAD', pods: 4, dmg: 1.6, gap: 0.118, r: 7.2, charged: 13, width: 1.32, home: 1.45 },
+    { id: 'HYPER',  pods: 4, dmg: 2.2, gap: 0.106, r: 8.2, charged: 18, width: 1.52, home: 1.65 },
+  ],
 
   // Homing. The lock reticle promised a tracking shot and the rounds flew dead
   // straight, so the whole lock-on ceremony was decoration — you still had to
@@ -61,9 +85,8 @@ const TUNE = {
   // once it has you. The tap stream turns gently — enough to close the last few
   // degrees on a target that is already under the reticle, not enough to make
   // aiming optional. That distinction is the whole feel: aim assist, not
-  // auto-kill.
+  // auto-kill. The tap rate lives per-tier in `weapons[].home`.
   homeCharged: 3.4,
-  homeTap: 1.15,
   // A flat turn rate cannot hit anything. A round at 470 m/s bending at
   // 3.4 rad/s has a turn radius of 138 m, so once it is 60 m off-axis with 200 m
   // to run it is geometrically incapable of closing — measured: mean closest
@@ -121,6 +144,7 @@ const PODS = [
   new THREE.Vector3(1.35, -0.10, -3.90),
   new THREE.Vector3(-1.35, -0.10, -3.90),
 ];
+const PODS_ALL = [0, 1, 2, 3];
 
 /* ── the mission ──────────────────────────────────────────────────────────── */
 //
@@ -194,6 +218,27 @@ const WAVES = [
   { z: -8300, boss: true },
 ];
 
+/* ── weapon grants ────────────────────────────────────────────────────────── */
+//
+// Awarded, not collected — there is no pickup entity and nothing to fly into.
+// The owner's call was that reaching the carrier *is* the reward, so the run-in
+// hands over the gun that makes the fight winnable.
+//
+// Placed so each grant is followed by something to shoot: the tier lands, then
+// the wave after it arrives, so the upgrade is felt on live targets instead of
+// on empty air. Order as `railZ` falls: -7150 grant, -7250 hornets, -7450
+// grant, -7550 wasps, -7750 grant, -7950 comms, -8300 carrier.
+//
+// The last grant is kept 200 m clear of the -7950 comm so its own callout is
+// not immediately overwritten — `say()` holds a line for 4.2 s and the run-in
+// is dense. The HUD tier readout is the durable signal; these lines are the
+// moment.
+const GRANTS = [
+  { z: -7150, who: 'SLIPPY', text: 'Rerouting reserve power to your lasers — twin-linked!' },
+  { z: -7450, who: 'PEPPY',  text: 'Second bank online. Spread pattern, Fox!' },
+  { z: -7750, who: 'FALCO',  text: "Full rack hot. Now go open that carrier up." },
+];
+
 const COMMS = [
   { z: -150, who: 'PEPPY', text: 'Contacts, high off your port bow!' },
   { z: -880, who: 'FALCO', text: 'Second flight, starboard. I\'ve got the far one.' },
@@ -260,6 +305,9 @@ export function installCombat(ctx) {
     time: 0,
     lockOn: 0,
     lockTarget: null,
+    // Weapon tier, for the HUD. `label` and `tiers` are published so ui/ never
+    // has to import the tuning table to draw the readout.
+    weapon: { tier: 0, label: TUNE.weapons[0].id, tiers: TUNE.weapons.length },
     px: 0, py: 0, pz: 0,
     fwd: new THREE.Vector3(0, 0, -1),
     right: new THREE.Vector3(1, 0, 0),
@@ -297,6 +345,11 @@ export function installCombat(ctx) {
   let boss = null;          // { root, api, agent-ish }
   let firedWaves = 0;
   let firedComms = 0;
+  let firedGrants = 0;
+  // Off is the measurement baseline: the carrier is balanced against the
+  // granted gun, so an A/B of the fight needs the pre-boss grants suppressed
+  // rather than the tier merely reset.
+  let grantsOn = true;
   let fireT = 0;
   let charge = 0;
   let charging = false;
@@ -443,9 +496,13 @@ export function installCombat(ctx) {
       .multiplyScalar(TUNE.converge).add(cam.position);
   }
 
+  /** The live tap-gun spec. Every fire-path number comes from here. */
+  function weapon() { return TUNE.weapons[state.weapon.tier]; }
+
   function playerFire() {
     const ship = ctx.ship;
     ship.updateMatrixWorld();
+    const w = weapon();
     const lock0 = state.lockTarget && !state.lockTarget.agent.dying ? state.lockTarget : null;
     convergePoint(_conv, TUNE.playerBullet.speed, null, !!lock0);
     const inherit = view.player.vel;
@@ -453,7 +510,10 @@ export function installCombat(ctx) {
     // rhythm rather than a wall of light. This keyed off `state.hits`, which
     // only increments on a *kill* — so the pods alternated once per dead
     // enemy instead of once per shot, and the rhythm never existed.
-    const pair = (shotParity++ & 1) ? [2, 3] : [0, 1];
+    //
+    // Past `pods: 2` the whole rack fires at once and the alternation stops. A
+    // wall of light is the point at that tier.
+    const pair = w.pods >= 4 ? PODS_ALL : ((shotParity++ & 1) ? [2, 3] : [0, 1]);
     const lock = lock0;
     for (const i of pair) {
       _v.copy(PODS[i]).applyMatrix4(ship.matrixWorld);
@@ -461,17 +521,17 @@ export function installCombat(ctx) {
       // A tracking round draws its own ribbon from its real position each tick;
       // the `laser()` bolt is a GPU particle on a straight p₀+v₀t path and would
       // peel away from the round the moment it started to bend.
-      if (!lock) ctx.fx.laser(_v, _v2, { inherit });
+      if (!lock) ctx.fx.laser(_v, _v2, { inherit, width: w.width });
       spawnBullet({
         x: _v.x, y: _v.y, z: _v.z,
         vx: _v2.x * TUNE.playerBullet.speed + inherit.x,
         vy: _v2.y * TUNE.playerBullet.speed + inherit.y,
         vz: _v2.z * TUNE.playerBullet.speed + inherit.z,
         life: TUNE.playerBullet.range / TUNE.playerBullet.speed,
-        dmg: TUNE.playerBullet.dmg, enemy: false, r: TUNE.playerBullet.r,
-        seek: lock, turn: lock ? TUNE.homeTap : 0,
+        dmg: TUNE.playerBullet.dmg * w.dmg, enemy: false, r: w.r,
+        seek: lock, turn: lock ? w.home : 0,
       });
-      ctx.fx.muzzle(_v, _v2, { inherit });
+      ctx.fx.muzzle(_v, _v2, { inherit, w: w.width });
     }
     ctx.audio.play('laser', { pos: _v });
   }
@@ -493,7 +553,7 @@ export function installCombat(ctx) {
       vy: _v2.y * TUNE.chargedBullet.speed + view.player.vel.y,
       vz: _v2.z * TUNE.chargedBullet.speed + view.player.vel.z,
       life: TUNE.chargedBullet.range / TUNE.chargedBullet.speed,
-      dmg: TUNE.chargedBullet.dmg, enemy: false, r: TUNE.chargedBullet.r, charged: true,
+      dmg: weapon().charged, enemy: false, r: TUNE.chargedBullet.r, charged: true,
       seek: lock, turn: lock ? TUNE.homeCharged : 0,
     });
     ctx.audio.play('chargedShot', { pos: _v });
@@ -677,6 +737,20 @@ export function installCombat(ctx) {
   function say(who, text) {
     state.message = { who, text, until: view.time + 4.2 };
     ctx.audio.play('comm');
+  }
+
+  /**
+   * Step the tap gun up one tier. Silent and idempotent at the top tier, so a
+   * grant table longer than the tier table is harmless.
+   * @param g optional grant row supplying the callout.
+   */
+  function grantWeapon(g) {
+    const w = state.weapon;
+    if (w.tier >= TUNE.weapons.length - 1) return;
+    w.tier++;
+    w.label = TUNE.weapons[w.tier].id;
+    ctx.audio.play('powerUp');
+    if (g) say(g.who, g.text);
   }
 
   /* ── damage ─────────────────────────────────────────────────────────────── */
@@ -1045,14 +1119,14 @@ export function installCombat(ctx) {
         charge = 0;
         state.lockOn = 0;
         state.lockTarget = null;
-        fireT = TUNE.fireGap;
+        fireT = weapon().gap;
       }
     }
 
     // tap-fire: holding also produces a normal stream until the charge takes
     if (held && charge < 0.5) {
       fireT -= dt;
-      if (fireT <= 0 && deadT < 0 && !state.outcome) { fireT = TUNE.fireGap; playerFire(); }
+      if (fireT <= 0 && deadT < 0 && !state.outcome) { fireT = weapon().gap; playerFire(); }
     }
   }
 
@@ -1299,6 +1373,12 @@ export function installCombat(ctx) {
       say(COMMS[firedComms].who, COMMS[firedComms].text);
       firedComms++;
     }
+    // After the comms, so on the rare tick that crosses both the grant callout
+    // wins — it is the rarer event and the one the player must not miss.
+    while (grantsOn && firedGrants < GRANTS.length && flight.railZ <= GRANTS[firedGrants].z) {
+      grantWeapon(GRANTS[firedGrants]);
+      firedGrants++;
+    }
     if (state.message && view.time > state.message.until) state.message = null;
 
     /* input-driven systems */
@@ -1475,6 +1555,10 @@ export function installCombat(ctx) {
     // pool is readable for the harness to sample.
     get bullets() { return bullets; },
     get diag() { return diag; },
+    /** Tap-gun dps at the live tier, so a probe can report it without the table. */
+    get dps() { const w = weapon(); return (w.pods * TUNE.playerBullet.dmg * w.dmg) / w.gap; },
+    grantWeapon,
+    set grants(on) { grantsOn = !!on; },
     update,
     dispose() {
       for (const f of foes) { enemyGroup.remove(f.root); disposeEnemy(f.root); }

@@ -58,6 +58,76 @@ register, swept collision.
 
 ## Now — Phase 8: legibility and the first two encounters
 
+### Next three, in order (owner, 2026-08-11)
+
+Raised off a reference build the owner found on r/aigamedev
+(`StarFox Inspired Game | Devlogs`, YOUTUBE.COM/@CORTIZDEV) plus a live-play
+screenshot of ours. Do these before the rest of Phase 8.
+
+- [ ] **1. The crosshair should move with the ship, not sit dead centre.**
+      Owner: "notice the cross hair — it moves WITH the ship, i think that would
+      feel a lot better than being centered at all times." In the reference the
+      reticle tracks the airframe; ours is pinned to the middle of the frame
+      forever (`ui/reticle.js:67`, `const cx = L.w * 0.5, cy = L.h * 0.5`, and
+      the same again at `:212` for the off-screen marker).
+
+      **This is not only a HUD change, and that is the whole difficulty.** The
+      guns currently converge on the *camera* ray — `convergePoint()` in
+      `combat.js` builds its aim point from `cam.quaternion`/`cam.position` at
+      `TUNE.converge` (520 m). A centred reticle is *honest* about that. Move the
+      reticle onto the ship without moving the guns and the reticle starts
+      lying — which is the exact defect the homing work was done to fix, and the
+      note in `reticle.js:14` about the lock marker separating from the centre
+      already depends on the current arrangement.
+
+      So pick one deliberately, and it is an owner call:
+      - *Guns follow the ship* — fire along the hull's forward axis, reticle
+        projected off the nose. Matches the reference, and offset flying becomes
+        genuinely aim-relevant rather than pure dodging. Changes aiming feel
+        everywhere and needs the whole `pacing`/`bossprobe` set re-measured,
+        since every hit-rate number in this file assumes camera convergence.
+      - *Reticle follows the ship, guns stay on the camera ray, and the reticle
+        is drawn at the true convergence point* — i.e. project the existing aim
+        point to screen instead of assuming it lands at centre. Honest, much
+        smaller, and it will move with the ship anyway because the ship's offset
+        is what shifts the camera ray. Probably the right first cut.
+
+      `ui/index.js` already has the read-only camera projection to build on
+      (`projectLock`, and its comment on never mutating the camera).
+
+- [ ] **2. The post chain is overcooked.** Owner: "it sort of feels like the
+      graphics are cranked way up." Consistent with the live screenshot — the
+      water blooms hard, the sky washes toward white, and everything carries a
+      glow. Candidate knobs, all in `render/postfx.js`, none yet A/B'd against
+      the owner's eye rather than the `probe()` histogram:
+      bloom `strength: 0.085` + `clamp: 9.0` (`:1789`), lens flare
+      `intensity: 0.55` (`:1163`), god rays `intensity: 0.35` (`:572`), AO
+      `intensity: 1.05` (`:410`), and the ACES exposure/trim.
+      Note this pulls *against* the standing `w-shore` item below, which says a
+      shadowed gorge composites too **dark** at median 0.068. Both can be true —
+      that is a grade problem, not a range problem — so fix them as one grade
+      pass, not two opposing tweaks. `?exposure=`, `?nopost=1` and the
+      per-pass `?bloom=0` switches already exist for a live A/B.
+
+- [ ] **3. The ship is in constant motion blur.** Owner: "there's also way too
+      much blur on the ship — its like in constant blur." Visible on the wings in
+      the live screenshot; they smear into streaks.
+
+      **Already diagnosed by the comment above the pass** (`postfx.js:739`):
+      *"Camera motion only (no per-object velocity buffer) which is exactly
+      right here — the whole world streams past the camera, so camera velocity
+      *is* the dominant motion."* That reasoning is correct for the world and
+      wrong for exactly one object. The Arwing is very nearly static in screen
+      space, but camera-only reprojection cannot know that, so at 175 m/s it
+      smears the one thing on screen that is not actually moving — and it is the
+      thing the player looks at.
+      `strength: 0.55`, `maxVel: 0.05`, 10 taps.
+      Cheapest correct fix is to mask the ship out of the pass rather than to
+      add a full velocity buffer, or to reduce strength; masking keeps the
+      world's streaming, which is doing real work for the sense of speed.
+      Do not just disable `motionBlur` — it rides the AO quality tier (`:1748`)
+      and the speed read would go with it.
+
 - [x] **TOP PRIORITY — the ship auto-yaws.** Fixed. Three separate causes, only
       the third of which the old note guessed at. Measured with the new
       `tools/framing.mjs` over 30 s of hands-off flight (nose-vs-camera angle and
@@ -260,18 +330,49 @@ between the level as designed and the level as shipped.
 
 ## Later — Phase 10: progression
 
-- [ ] **Weapon upgrade system.** Drops from kills and from wave clears: laser
-      tiers (single → twin → spread → homing), bomb capacity, shield pickups.
-      Needs a pickup entity, a magnet/collect rule, HUD tier readout, and a
-      rebalance of every enemy HP against the new DPS curve. New scope — decide
-      whether it earns its keep in a single-level game before building it.
-      **Motivating case (owner, live play, post-rebalance): the boss is still a
-      tank.** Chewing through each compartment takes forever. The owner *likes*
-      the per-compartment grind, so the fix is probably more DPS by then rather
-      than less HP — either loot dropping through the level, or an automatic
-      weapon upgrade granted just before the boss as the reward for reaching it.
-      Do not cut boss HP again in isolation; that trades the part of the fight
-      the owner likes for the part that is broken.
+The pre-boss weapon grant is done (above). What is left here is scoring.
+
+- [x] **Weapon upgrades, auto-granted before the boss.** Done, and the carrier
+      was not merely a slog — at tier 0 it is **unkillable**. Measured with
+      `bossprobe.mjs`, which holds the trigger and never dodges, so it is a
+      perfect-uptime upper bound on what a player can do: 100% of samples inside
+      both the range gate and the lock cone, and after **240 s** the core had
+      taken *zero* damage, two of four turrets were still at full, and
+      `killed: false`. Only 25% of rounds fired at the hull land, so tier 0's
+      14.8 fired dps is ~3.7 landed — 900 hp of weak points is four minutes.
+
+      Four tiers in `TUNE.weapons` (`LASER`/`TWIN`/`SPREAD`/`HYPER`), each
+      overriding the tap gun wholesale — damage, fire gap, round radius, tap
+      homing rate, bolt width, and how many of the four pods fire per interval
+      (2 alternating pairs at the low tiers, the full rack at the top). Fired
+      dps 14.8 → 29.5 → 54.2 → **83.0**, i.e. 5.6× tier 0.
+
+      | | tier 0 | tier 3 (granted) |
+      |---|---|---|
+      | engines down | 25 s / 48.3 s | **6.5 s / 14.8 s** |
+      | turrets down | 2 of 4, at 56 s / 64.8 s | **all 4 by 85.8 s** |
+      | core | untouched at 240 s | **dead at 101.5 s** |
+      | outcome | `killed: false` | **`win`** |
+
+      Three grants at `z = -7150 / -7451 / -7751`, awarded not collected — no
+      pickup entity, per the owner's settled call. Placed so each tier is
+      followed by a wave to feel it on (hornets at -7250, the last wasp swarm at
+      -7550), and the last one clears the -7951 comm by 1.1 s so no callout is
+      stomped. HUD readout is a 4-segment pip row in `ui/status.js` that warms
+      blue → green → amber → gold, plus a `powerUp` chime and a wingman line per
+      grant.
+
+      A/B switches, both needed because the fight is now balanced against the
+      granted gun: `?wpn=N` starts on a tier, `?grants=0` suppresses the grants
+      (the baseline arm). `bossprobe.mjs` takes a 3rd arg of extra query params
+      and reports the live tier and dps, so neither arm can be run by mistake.
+      Dev panel key `3` steps the tier and shows it in its own label.
+
+      **Unvalidated in live play** — measured only, and the probe never dodges.
+      Needs a hands-on pass on whether 5.6× is too much: the knob is
+      `TUNE.weapons[].dmg`/`gap`, and the grant count is just the length of
+      `GRANTS`. Do not answer a re-balance by cutting boss HP; the owner likes
+      the per-compartment grind.
 - [ ] Score/rank at level end (medals, hit %, time).
 
 ## Later — Phase 11: finish
@@ -317,7 +418,11 @@ Multiple levels, all-range mode, branching paths, multiplayer, binary assets.
    hostile is.
 2. **Ship scale → punted.** Not now. Get legibility from beacons, health bars
    and emissive first; revisit only if those fall short.
-3. **Weapon upgrades → auto-grant one upgrade before the boss.** No pickup
-   entity, no drops, no level-wide HP rebalance. A weapon tier granted as the
-   reward for reaching the boss, which fixes the DPS slog without new systems.
-   The full drop system is explicitly *not* being built.
+3. **Weapon upgrades → auto-grant before the boss.** No pickup entity, no drops,
+   no level-wide HP rebalance. Weapon tiers granted as the reward for reaching
+   the boss, which fixes the DPS slog without new systems. The full drop system
+   is explicitly *not* being built.
+   **Revised 2026-08-11 (owner): three grants, not one.** "The game is hard, the
+   guns are weak — 2-3 automatic weapon upgrades right before the boss." Shipped
+   as three, taking the gun to 5.6× its starting dps. Built and measured; awaiting
+   the owner's hands-on pass.

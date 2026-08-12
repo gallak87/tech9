@@ -3,13 +3,19 @@
 // the lock holds and on which part, rounds landed, and weak-point kill times.
 // All of it is behaviour over time, which no screenshot can answer.
 //
-//   node tools/bossprobe.mjs <port> [seconds of fight]
+//   node tools/bossprobe.mjs <port> [seconds of fight] [extra query params]
+//
+// The third argument is appended to the page URL, which is how the two arms of
+// a weapon A/B are run against the same build:
+//   node tools/bossprobe.mjs 5313 190 'grants=0'   # baseline gun
+//   node tools/bossprobe.mjs 5313 190             # granted gun
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 
 const ROOT = '/Users/g/code/scratch/tech9/games/vulpine';
 const PORT = parseInt(process.argv[2] || '5313', 10);
 const FIGHT = parseFloat(process.argv[3] || '70');
+const EXTRA = process.argv[4] ? '&' + process.argv[4].replace(/^&/, '') : '';
 
 const base = `http://127.0.0.1:${PORT}`;
 async function up(url, ms = 45000) {
@@ -32,7 +38,7 @@ const errs = [];
 page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 page.on('pageerror', e => errs.push('pageerror: ' + e.message));
 
-await page.goto(`${base}/?quality=medium&t=0.1&fight=1&hud=0`, { waitUntil: 'load' });
+await page.goto(`${base}/?quality=medium&t=0.1&fight=1&hud=0${EXTRA}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 120000 });
 
 const data = await page.evaluate(async (fight) => {
@@ -136,6 +142,9 @@ const data = await page.evaluate(async (fight) => {
       return out;
     })(),
     bullets: V.combat.bullets.length,
+    // Confirms the pre-boss grants actually fired, rather than assuming it from
+    // the rail position — the fight is balanced against the granted tier.
+    weapon: { ...V.state.weapon, dps: Math.round(V.combat.dps) },
     outcome: V.state.outcome, lives: V.state.lives, shield: Math.round(V.state.shieldRaw),
   };
 }, FIGHT);
@@ -153,6 +162,8 @@ const pct = (n) => ((100 * n) / S.length).toFixed(1) + '%';
 console.log(`boss spawned at sim t=${data.tSpawn}s; sampled ${data.dur}s (${S.length} samples)`);
 console.log(`killed: ${data.killed}   score ${data.score}   kills ${data.hits}`);
 console.log(`player: outcome=${data.outcome}  lives=${data.lives}  shield=${data.shield}`);
+const W = data.weapon || {};
+console.log(`weapon: tier ${W.tier}/${(W.tiers ?? 1) - 1} ${W.label}  ${W.dps} dps fired`);
 if (errs.length) console.log('CONSOLE ERRORS:', errs.slice(0, 6));
 
 console.log('\n--- leash envelope (boss minus player, metres) ---');

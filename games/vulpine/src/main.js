@@ -257,6 +257,14 @@ for (const pass of ['godRays', 'dof', 'motion', 'bloom', 'smaa']) {
 }
 if (params.get('hud') === '0') api.hudVisible(false);
 
+// Start on a weapon tier, so the pre-boss grants can be A/B'd without flying
+// 7 km to reach them. `?wpn=3` is the tier the carrier is balanced against.
+// `?grants=0` suppresses the pre-boss grants, which is the baseline arm of any
+// measurement of the fight.
+const wpnParam = parseInt(params.get('wpn'), 10);
+if (Number.isFinite(wpnParam)) for (let i = 0; i < wpnParam; i++) ctx.combat.grantWeapon();
+if (params.get('grants') === '0') ctx.combat.grants = false;
+
 /* ── go ──────────────────────────────────────────────────────────────────── */
 await loader.stage('COMPILING SHADERS', 0.79);
 engine.renderer.compile(engine.scene, engine.camera);

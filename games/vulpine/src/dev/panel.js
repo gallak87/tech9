@@ -87,9 +87,27 @@ export function installDevPanel(api) {
 
   function toggleBombs() { infiniteBombs = !infiniteBombs; render(); }
 
+  /** Step the tap gun up one tier, without flying to the pre-boss grants. */
+  function upgradeWeapon(btn) {
+    const w = api.state && api.state.weapon;
+    if (w && w.tier >= w.tiers - 1) { flash(btn, 'maxed'); return; }
+    api.combat.grantWeapon();
+    render();
+  }
+
   const TOOLS = [
     { id: 'boss', label: 'Skip to boss', tag: '1', code: 'Digit1', run: skipToBoss },
     { id: 'bombs', label: 'Infinite bombs', tag: '2', code: 'Digit2', run: toggleBombs, on: () => infiniteBombs },
+    {
+      id: 'wpn', tag: '3', code: 'Digit3', run: upgradeWeapon,
+      label: 'Weapon +1',
+      // The label carries the live tier, so the panel doubles as the readout
+      // when the HUD is hidden for a capture.
+      live: () => {
+        const w = api.state && api.state.weapon;
+        return w ? `Weapon +1 (${w.label})` : 'Weapon +1';
+      },
+    },
   ];
 
   /* ── dom ────────────────────────────────────────────────────────────────── */
@@ -123,7 +141,9 @@ export function installDevPanel(api) {
   document.body.appendChild(root);
 
   function setLabel(btn, text) {
-    for (const { el, name, tool } of buttons.values()) if (el === btn) name.textContent = text || tool.label;
+    for (const { el, name, tool } of buttons.values()) {
+      if (el === btn) name.textContent = text || (tool.live ? tool.live() : tool.label);
+    }
   }
 
   function flash(btn, text) {
@@ -134,7 +154,7 @@ export function installDevPanel(api) {
   function render() {
     for (const { el, name, tool } of buttons.values()) {
       if (tool.on) el.dataset.on = tool.on() ? '1' : '0';
-      if (!busy) name.textContent = tool.label;
+      if (!busy) name.textContent = tool.live ? tool.live() : tool.label;
     }
     buttons.get('boss').el.disabled = busy || !!api.combat.boss;
   }

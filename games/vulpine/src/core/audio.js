@@ -195,6 +195,7 @@ export function installAudio(ctx) {
           voices.bombLaunch(t, { pan, gain: g });
           break;
         case 'respawn':
+        case 'powerUp':
           voices.powerUp(t, {});
           break;
         case 'bossCharge':

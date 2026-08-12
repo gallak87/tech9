@@ -12,6 +12,10 @@ import { text, measure } from './glyphs.js';
 import { C, alpha, gauge, approach, sat, mix, clamp } from './theme.js';
 import { arwing, bomb } from './icons.js';
 
+// Weapon-tier hues, cool to hot. One per tier; the last is reused if the
+// tuning table ever grows past it.
+const WPN_TIER = ['#57d2ff', '#7fe3b0', '#ffc161', '#ffe9a8'];
+
 export class Status {
   constructor() {
     this.shield = 1;
@@ -23,6 +27,7 @@ export class Status {
     this.gain = 0;         // green pop when repaired
     this.livesPop = 0;
     this.bombPop = 0;
+    this.wpnPop = 0;       // gold flare when a tier is granted
     this._prev = null;
   }
 
@@ -45,8 +50,13 @@ export class Status {
 
     if (s.lives !== this._lives) { if (this._lives != null) this.livesPop = 1; this._lives = s.lives; }
     if (s.bombs !== this._bombs) { if (this._bombs != null) this.bombPop = 1; this._bombs = s.bombs; }
+    const tier = s.weapon ? s.weapon.tier : 0;
+    if (tier !== this._tier) { if (this._tier != null) this.wpnPop = 1; this._tier = tier; }
     this.livesPop = Math.max(0, this.livesPop - dt * 1.8);
     this.bombPop = Math.max(0, this.bombPop - dt * 1.8);
+    // Slower than the others: a weapon tier is granted three times a mission,
+    // so the flare is allowed to be the loudest thing in the block.
+    this.wpnPop = Math.max(0, this.wpnPop - dt * 0.7);
   }
 
   /** @returns {number} y of the bottom of the block, so callers can stack under it. */
@@ -215,6 +225,50 @@ export class Status {
     });
 
     y += ic + 4 * k;
+
+    /* ── weapon tier ────────────────────────────────────────────────────── */
+    // A segmented pip row rather than a numeral: the whole point of a grant is
+    // that you can see how many are left to come. The row warms from shield
+    // blue to gold across the tiers, so the top tier is legible from the
+    // colour alone without reading the label.
+    if (s.weapon) {
+      const tiers = Math.max(1, s.weapon.tiers | 0);
+      const tier = Math.min(tiers - 1, Math.max(0, s.weapon.tier | 0));
+      // Explicit hex ramp rather than a blend: `mix()` returns 'rgb(r,g,b)',
+      // which `alpha()` and `mix()` themselves cannot parse, so a computed
+      // colour cannot be composed further. Four hues climbing in temperature
+      // also read as distinct steps in a way a linear blend does not.
+      const hot = WPN_TIER[Math.min(tier, WPN_TIER.length - 1)];
+      const pop = this.wpnPop;
+      const wy = y + 6 * k;
+      const wH = Math.round(6 * k);
+      const wW = Math.round(barW * 0.42);
+
+      g.save();
+      if (pop > 0.02) {
+        g.shadowColor = `rgba(255,212,137,${0.75 * pop})`;
+        g.shadowBlur = 20 * k * pop;
+      }
+      gauge(g, x, wy, wW, wH, {
+        value: (tier + 1) / tiers,
+        segments: tiers,
+        gap: 2.2 * k,
+        colors: [hot, pop > 0.02 ? '#ffffff' : mix(hot, '#ffffff', 0.45)],
+        skew: wH * 0.8,
+        glow: (5 + 8 * pop) * k,
+        lw: 1 * k,
+        frame: alpha(hot, 0.32 + 0.4 * pop),
+      });
+      g.restore();
+
+      text(g, s.weapon.label || 'LASER', x + wW + 10 * k, wy + wH * 0.5, {
+        size: 9.5 * k, track: 3.4, weight: 0.15, baseline: 'middle',
+        color: pop > 0.02 ? '#ffffff' : alpha(hot, 0.86),
+        shadow: 4 * k, glow: pop > 0.02 ? 9 * k * pop : 0,
+      });
+
+      y = wy + wH + 4 * k;
+    }
 
     /* ── low-shield warning ─────────────────────────────────────────────── */
     if (low) {

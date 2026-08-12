@@ -8,6 +8,7 @@
 //   node tools/pilot.mjs aim                 reticle lead direction and throw
 //   node tools/pilot.mjs fly --seconds 90    autopilot playthrough, playability
 //   node tools/pilot.mjs aim --params wpn=3  extra URL switches
+//   node tools/pilot.mjs fly --headed        watch it fly, HUD and all
 //
 // Adding a scenario: drop an entry in SCENARIOS. It gets `{ page, frames, keys,
 // sample, evaluate }` and returns whatever its own `print` understands, so a new
@@ -34,6 +35,9 @@ const PORT = parseInt(arg('port', '5460'), 10);
 const SECONDS = parseFloat(arg('seconds', '75'));
 const EXTRA = arg('params', '') ? '&' + String(arg('params', '')).replace(/^&/, '') : '';
 const QUALITY = arg('quality', 'low');
+// Sim seconds to seek to before flying. ~44 lands just short of the carrier, so
+// the boss fight can be exercised without flying the 8 km in front of it.
+const START_T = arg('t', '6');
 
 /* ── boot ─────────────────────────────────────────────────────────────────── */
 
@@ -52,13 +56,24 @@ if (!(await up(base, 1200))) {
   if (!(await up(base))) { console.error('server did not start'); process.exit(1); }
 }
 
-const browser = await chromium.launch({ headless: true, args: ['--use-angle=metal', '--ignore-gpu-blocklist'] });
+// --headed to watch the autopilot fly. Slowed slightly so the input is legible.
+const HEADED = !!arg('headed', false);
+const browser = await chromium.launch({
+  headless: !HEADED,
+  slowMo: HEADED ? 12 : 0,
+  args: ['--use-angle=metal', '--ignore-gpu-blocklist'],
+});
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const errs = [];
 page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 page.on('pageerror', e => errs.push('pageerror: ' + e.message));
-// nomenu so input reaches the sim immediately; hud off so nothing is occluded
-await page.goto(`${base}/?quality=${QUALITY}&t=6&nomenu=1&hud=0${EXTRA}`, { waitUntil: 'load' });
+// The HUD stays ON. This is a pilot harness: the crosshair and the lock box are
+// the instruments the core loop is flown on, so hiding them models a player
+// flying blind. `--nohud` is there for the rare capture that wants a clean frame.
+// (It never affected the measurements either way — lock state lives in combat.js,
+// and screen positions here come from projecting world points directly.)
+const HUD = arg('nohud', false) ? 0 : 1;
+await page.goto(`${base}/?quality=${QUALITY}&t=${START_T}&nomenu=1&hud=${HUD}${EXTRA}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 180000 });
 await page.evaluate(() => window.focus());
 
@@ -93,6 +108,16 @@ const sample = () => page.evaluate(() => {
     shipX: shipN ? +shipN.x.toFixed(3) : null, shipY: shipN ? +shipN.y.toFixed(3) : null,
     aimX: aimN ? +aimN.x.toFixed(3) : null, aimY: aimN ? +aimN.y.toFixed(3) : null,
     leadX: +V.flight.aimLeadX.toFixed(3), leadY: +V.flight.aimLeadY.toFixed(3),
+    // Crab: the angle between where the hull points and where it is actually
+    // going. Non-zero with no input means the engine trails will visibly veer,
+    // because the trail is laid along travel while the nozzles point along the
+    // hull. This is the number behind "the trails veer without me steering".
+    crabDeg: (() => {
+      const fwd = new V.THREE.Vector3(0, 0, -1).applyQuaternion(V.ship.quaternion);
+      const vel = V.flight.railDir.clone().multiplyScalar(V.flight.speed);
+      vel.x += V.flight.offVel.x; vel.y += V.flight.offVel.y;
+      return +V.THREE.MathUtils.radToDeg(fwd.angleTo(vel.normalize())).toFixed(2);
+    })(),
     shield: Math.round(st.shieldRaw), lives: st.lives, score: st.score, kills: st.hits,
     outcome: st.outcome, live: st.enemies ? st.enemies.length : 0,
     boss: !!V.combat.boss, weapon: st.weapon ? st.weapon.label : '?',
@@ -140,7 +165,12 @@ const SCENARIOS = {
     },
     print({ zero, arms }) {
       console.log('Reticle lead, as displacement from neutral. NDC, half-frame = 1.0.');
-      console.log(`neutral: hull (${zero.shipX}, ${zero.shipY})  reticle (${zero.aimX}, ${zero.aimY})\n`);
+      console.log(`neutral: hull (${zero.shipX}, ${zero.shipY})  reticle (${zero.aimX}, ${zero.aimY})`);
+      // Hands-off crab is the one that matters: with no input the hull should be
+      // pointed exactly where it is travelling, or the trails veer on their own.
+      const crabVerdict = zero.crabDeg < 1.5 ? 'aligned' : '*** CRABBING — trails will veer ***';
+      console.log(`hands-off crab: ${zero.crabDeg}°  ${crabVerdict}`);
+      console.log(`under input:    ${arms.map(a => `${a.label.trim().split(' ')[1]} ${a.crabDeg}°`).join('  ')}\n`);
       console.log('  TRACKS = reticle moves the way you steer.  LEADS = it outruns the hull.\n');
       console.log('  input             offVel    dHull     dAim   ratio   verdict');
       let bad = 0;
@@ -175,28 +205,42 @@ const SCENARIOS = {
       await evaluate(() => {
         const V = window.__VULPINE__;
         window.__PILOT__ = { want: { x: 0, y: 0 } };
+        // Contacts are published FLAT — {x, y, z, ally, boss} — not {pos}. Reading
+        // `e.pos` silently skipped every one of them and the autopilot flew the
+        // whole level as a passenger: zero steering, zero kills, and framing
+        // numbers that looked perfect because nothing ever moved.
         window.__PILOT_TICK__ = () => {
           const st = V.state;
           const list = st.enemies || [];
           let best = null, bestD = 1e9;
           for (const e of list) {
-            if (!e.pos) continue;
-            const dz = e.pos.z - st.pz;
-            if (dz > -40) continue;                       // only what is ahead
-            const d = Math.hypot(e.pos.x - st.px, e.pos.y - st.py, dz);
+            if (e.ally) continue;
+            const dz = e.z - st.pz;
+            if (dz > -30) continue;                       // only what is ahead
+            const d = Math.hypot(e.x - st.px, e.y - st.py, dz);
             if (d < bestD) { bestD = d; best = e; }
           }
           const w = window.__PILOT__.want;
+          w.target = !!best;
+          w.lockOn = st.lockOn;
+          w.locked = !!st.lockTarget;
           if (best) {
-            w.x = Math.max(-1, Math.min(1, (best.pos.x - st.px) / 45));
-            w.y = Math.max(-1, Math.min(1, (best.pos.y - st.py) / 45));
+            w.x = Math.max(-1, Math.min(1, (best.x - st.px) / 40));
+            w.y = Math.max(-1, Math.min(1, (best.y - st.py) / 40));
           } else { w.x = 0; w.y = 0; }
         };
       });
-      await page.keyboard.down('Space');                  // hold the trigger
+      // Hold, wait for the lock, release. That is the game's core loop: holding
+      // tap-fires, then builds a charge and acquires a lock, and releasing on a
+      // locked contact lands a guaranteed homing hit. The first version of this
+      // scenario held the trigger for the whole level and never let go, so the
+      // charged shot never fired and it scored zero across 9 km. Rapid-tapping
+      // instead would also be wrong - it models a game this is not.
+      let trigger = false;
       const held = new Set();
       const t0 = Date.now();
       let nextSample = 0;
+      let iter = 0;
       while ((Date.now() - t0) / 1000 < SECONDS) {
         await evaluate(() => window.__PILOT_TICK__());
         const want = await evaluate(() => window.__PILOT__.want);
@@ -209,14 +253,20 @@ const SCENARIOS = {
           if (on && !held.has(k)) { await keys.down(k); held.add(k); }
           if (!on && held.has(k)) { await keys.up(k); held.delete(k); }
         }
+        // hold to build the lock, release once it is full to loose the shot
+        if (!trigger) { await keys.down('Space'); trigger = true; }
+        else if (want.lockOn >= 0.95) { await keys.up('Space'); trigger = false; }
         await frames(6);
         const el = (Date.now() - t0) / 1000;
         if (el >= nextSample) { nextSample = el + 3; rows.push(await sample()); }
+        // Only a decided outcome ends the run. Breaking on railZ would cut the
+        // boss fight off the moment it started: the rail keeps advancing all the
+        // way through it, so -8600 is reached seconds after the carrier spawns.
         const s = rows[rows.length - 1];
-        if (s && (s.outcome || s.railZ < -8600)) break;
+        if (s && s.outcome) break;
       }
       for (const k of held) await keys.up(k);
-      await page.keyboard.up('Space');
+      if (trigger) await keys.up('Space');
       return rows;
     },
     print(rows) {

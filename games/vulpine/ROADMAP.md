@@ -50,6 +50,12 @@ moment-to-moment feel until genuinely AAA rather than spreading thin across all
 | — | Dev panel — DOM overlay of playtest shortcuts, backquote to toggle, `?dev=1` to open. Add buttons to `TOOLS`, sliders to `KNOBS` | `dev/panel.js` |
 | — | Live look knobs — exposure, trim, bloom, lens dirt, god rays, flare, AO, saturation, contrast, CA, vignette, motion blur, reflections, plus per-pass toggles. Key `5` copies every value as JSON so a dialled-in look can be pasted into `environment.js` verbatim | `dev/panel.js` |
 
+**Core combat loop (owner, 2026-08-11 — was never written down):** *hold* the
+trigger. It tap-fires, then builds a charge and acquires a lock; a red box over a
+contact means releasing lands a guaranteed homing hit. Holding is the primary way
+to fight, not a special case — anything that assumes tapping (including
+autopilots) is modelling the wrong game.
+
 **Fixed and verified** (don't reopen): terrain winding/"fins"; enemy spawn crash;
 wingman clone crash; skirt curtains; fog density; gun convergence; lock-on
 tracking; HUD status text; boss station-keeping, weak-point frame, lock, hit
@@ -444,6 +450,21 @@ screenshot of ours. Do these before the rest of Phase 8.
       enter from zero. Cheap, but it changes wall feel, so re-measure per-tick
       acceleration (the held-stick probe pattern) and re-check the box corners.
 
+- [ ] **Autopilot playthrough findings (`pilot.mjs fly`, 2026-08-11).** First
+      input-driven run of the level. Waves 1–17 flown with the hold→lock→release
+      loop: **22 kills, 2580 score, never died, shield never below 68** — for a
+      competent pilot the run-in is not threatening, which corroborates the owner's
+      "the aim change made it feel easier". Framing holds under real input:
+      ndcX ±0.186, ndcY −0.485…−0.101, 0 of 15 samples near a frame edge.
+- [ ] **The level does not end.** Starting `pilot.mjs fly` near the carrier
+      (`--t 44`) flew to **z = −29237** — 20 km past the intended finish — with no
+      `outcome` ever set and kills frozen at 6. Either the boss does not spawn when
+      the rail is reached via a seek rather than by flying, or there is no terminal
+      state once past the carrier. Both are worth knowing before the difficulty
+      pass. Unrelated to flight feel, so it was left alone.
+- [ ] **Two 404s in the harness console.** Headed runs report them; almost
+      certainly a favicon the headless path never requests, but ship criterion 5
+      says *zero* console errors, so confirm before claiming that criterion.
 - [ ] **Encounter feel, waves 1–4** (`z = -260 … -1950`): spacing, entry angles,
       how long a raptor stays shootable, whether the wasp swarm reads as threat.
       Instrument with `tools/pacing.mjs`, not screenshots.

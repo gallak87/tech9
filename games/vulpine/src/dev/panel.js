@@ -183,6 +183,8 @@ export function installDevPanel(api) {
       get: () => FLIGHT.railYawFollow, set: (v) => { FLIGHT.railYawFollow = v; } },
     { id: 'aimlead', label: 'aim lead', min: 0, max: 2.5, step: 0.01, dp: 2,
       get: () => FLIGHT.aimLeadScale, set: (v) => { FLIGHT.aimLeadScale = v; } },
+    { id: 'yawslide', label: 'yaw into slide', min: 0, max: 0.008, step: 0.0002, dp: 4,
+      get: () => FLIGHT.yawPerOffsetVel, set: (v) => { FLIGHT.yawPerOffsetVel = v; } },
     { id: 'camlead', label: 'cam lead', min: 0, max: 2.5, step: 0.01, dp: 2,
       get: () => FLIGHT.camLeadGain, set: (v) => { FLIGHT.camLeadGain = v; } },
   ];

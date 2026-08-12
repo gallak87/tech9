@@ -40,6 +40,14 @@ export const TUNE = {
   pitchPerOffsetVel: 0.0042,
   pitchPerStick: 0.30,
   yawPerStick: 0.20,
+  // Yaw into a lateral slide, the counterpart of `pitchPerOffsetVel`. Its absence
+  // was an asymmetry: vertical movement turned the nose into itself and lateral
+  // movement did not, so measured crab was ~2° climbing against 19-23° panning,
+  // and the trails veered through every turn. Zeroing crab entirely would need
+  // atan(132/175) = 37°, which reads as the ship flying sideways; this leaves a
+  // deliberate few degrees of slide, which is the Arwing's character. Live on the
+  // `yaw into slide` dev knob.
+  yawPerOffsetVel: 0.0030,
   attitudeDamp: 7.5,
 
   rollDuration: 0.62,
@@ -82,26 +90,19 @@ export const TUNE = {
   // combat.js: the guns are handed this exact point, so a mismatch would put the
   // rounds somewhere the crosshair is not.
   aimRange: 520,
-  // How much of the corridor's heading the hull and the camera lean into. The
-  // meander sweeps ±13.7°, so at 1.0 the whole view S-turns forever with the
-  // rail's periods (8.7 s / 20 s / 65 s) with no input touched. Both terms are
-  // scaled together — scaling only one makes them disagree and the nose wanders
-  // across the frame. Below 1.0 the ship crabs by the remainder, which reads as
-  // a crosswind; the corridor slides past instead of rotating around you.
+  // How much of the corridor's heading the hull and the camera adopt. The meander
+  // sweeps ±13.7°. One factor drives both the hull's yaw and the camera's heading,
+  // so they cannot disagree.
   //
-  // Held at 0 while the reticle was pinned to screen centre, because any camera
-  // yaw then walked the crosshair off the guns. The reticle now rides the aim
-  // point, so that constraint is gone and the view can turn down the channel
-  // instead of crabbing along it. Partial rather than 1.0: the full heading makes
-  // the horizon S-turn continuously with no input, which reads as drift.
+  // 1.0 for a reason, not as a default: the ship travels along the full corridor
+  // heading regardless of this value, so anything less leaves the hull angled off
+  // its own velocity by the remainder. That crab shows up as the engine trails
+  // veering with no input touched — the trail is laid down along true travel while
+  // the nozzles point along the hull. Owner-reported, and it is the direct
+  // arithmetic consequence of a partial value.
   //
-  // 0.35, conservatively: measured hands-off over 40 s, the ship's own drift
-  // across the frame goes 0.17 ndcX peak-to-peak at 0 to 0.257 at 0.55, and
-  // uncommanded drift is exactly the complaint that got the auto-yaw fixed. Live
-  // on the `rail yaw` dev knob — this one wants a hands-on answer, not a measured
-  // one, because the question is whether the corridor rotating around you reads
-  // as flying it or as the camera wandering.
-  railYawFollow: 0.35,
+  // Below 1.0 is available on the `rail yaw` dev knob, but expect the veer back.
+  railYawFollow: 1.0,
   // Scales both aim-lead maxima together, for tuning the crosshair's throw
   // without touching their ratio. Live on the `aim lead` dev knob.
   aimLeadScale: 1.0,
@@ -118,6 +119,8 @@ const _vCam = new THREE.Vector3();
 const _vAim = new THREE.Vector3();
 const _vRight = new THREE.Vector3();
 const _vUp = new THREE.Vector3();
+const _vHead = new THREE.Vector3();
+const _vShip = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const UP = new THREE.Vector3(0, 1, 0);
@@ -294,7 +297,7 @@ export class Flight {
     // convergence range. That is the whole of the "horizontal is backwards"
     // report: the aim lead rides the hull, so it inherited the error and doubled
     // it. Measured with `tools/pilot.mjs aim`.
-    const yawTarget = -stickX * TUNE.yawPerStick;
+    const yawTarget = -(stickX * TUNE.yawPerStick + this.offVel.x * TUNE.yawPerOffsetVel);
 
     const k = 1 - Math.exp(-TUNE.attitudeDamp * dt);
     this.bank += (bankTarget - this.bank) * k;
@@ -368,7 +371,6 @@ export class Flight {
     const railPos = this.railPoint(railZ, _vCam);
 
     const back = TUNE.camBack + this.boostActive * TUNE.camBoostBack + this.brakeActive * TUNE.camBrakeBack;
-    const railAhead = this.railPoint(railZ - TUNE.camLookAhead, _v).clone();
 
     // Damp the player's offset, never the ride along the rail. The rail is a
     // known function of railZ, so lagging it buys no smoothing — it only puts
@@ -404,21 +406,41 @@ export class Flight {
     const softCap = (v, cap) => cap * Math.tanh(v / cap);
     const leadX = softCap((offX - this._sOffX) * TUNE.camLeadGain, TUNE.camLeadX);
     const leadY = softCap((offY - this._sOffY) * TUNE.camLeadGain, TUNE.camLeadY);
-    this.camPos.set(
-      railPos.x + offX - leadX,
-      railPos.y + offY - leadY + TUNE.camUp,
-      railZ + back,
-    );
+    // ── heading ────────────────────────────────────────────────────────────
+    // The rig is built along the *heading*, not along world z. `camPos.z` used to
+    // be `railZ + back`, which parks the camera behind the ship in world z rather
+    // than behind it along its direction of travel; on a corridor that bends
+    // ±13.7° those are different places, and the camera never swings round to sit
+    // behind the hull. Everything below is expressed in heading / right / up, so
+    // the rail supplies the path and the heading and is never a visual anchor.
+    _vHead.copy(this.railDir).normalize();
+    if (TUNE.railYawFollow < 0.999) {
+      // Blend toward world-forward. Anything less than 1 leaves the hull angled
+      // off its own velocity by the remainder — that crab is what makes the engine
+      // trails veer with no input touched, since the trail is laid down along true
+      // travel while the nozzles point along the hull.
+      _vHead.set(
+        _vHead.x * TUNE.railYawFollow,
+        _vHead.y * TUNE.railYawFollow,
+        _vHead.z * TUNE.railYawFollow + -1 * (1 - TUNE.railYawFollow),
+      ).normalize();
+    }
+    _vRight.crossVectors(_vHead, UP).normalize();
+
+    _vShip.set(railPos.x + offX, railPos.y + offY, railZ);
+    this.camPos.copy(_vShip)
+      .addScaledVector(_vHead, -back)
+      .addScaledVector(_vRight, -leadX)
+      .addScaledVector(UP, TUNE.camUp - leadY);
     // Aim past the ship rather than at it, so the ship sits low-centre in frame
     // and the player is looking at where they are going, not at their own tail.
     // The aim tracks the ship's own height: pinning it to the rail pitched the
     // camera up while the player dived, which threw the ship out of frame from
     // the other side.
-    this.camLook.set(
-      railPos.x + offX + (railAhead.x - railPos.x) * TUNE.railYawFollow + leadX * TUNE.camAimLead,
-      railPos.y + offY + TUNE.camLookUp,
-      railAhead.z,
-    );
+    this.camLook.copy(_vShip)
+      .addScaledVector(_vHead, TUNE.camLookAhead)
+      .addScaledVector(_vRight, leadX * TUNE.camAimLead)
+      .addScaledVector(UP, TUNE.camLookUp);
 
     camera.position.copy(this.camPos);
     if (this.shake > 0.001) {

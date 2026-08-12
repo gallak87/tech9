@@ -7,11 +7,25 @@ import { buildComposer } from '../render/postfx.js';
 // WebGLRenderer or touches the composer chain directly.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// `bloom`, `dof` and `motionBlur` are off by owner call (live-tuned 2026-08-11 on
+// an M1 in Chrome, at `high`). They are the same at every tier on purpose: a tier
+// should scale *cost*, not change what the game looks like, so a look decision
+// that only applied at `high` would mean the review harness — which defaults to
+// `ultra` — captured a look the owner had rejected.
+//
+// God rays and the lens flare are *not* switched off here even though the owner
+// turned them off too: both passes early-out on zero intensity, so zeroing them in
+// `environment.js` is already free, and leaving the passes enabled keeps their dev
+// knobs live. Bloom gets a flag instead because `BloomPass` has no such early-out —
+// it runs the whole 6-level pyramid at any strength, including 0.
+//
+// SMAA stays on wherever TAA is off. TAA is gated on `ao`, so at low/medium there
+// is no other antialiasing and dropping SMAA would leave those tiers with none.
 export const QUALITY = {
-  low:    { pixelRatio: 1.0,  shadowMap: 1024, shadows: true,  ao: false, dof: false, godrays: false, motionBlur: false, smaa: true,  bloomRes: 0.5,  aniso: 4 },
-  medium: { pixelRatio: 1.0,  shadowMap: 2048, shadows: true,  ao: false, dof: true,  godrays: true,  motionBlur: true,  smaa: true,  bloomRes: 0.5,  aniso: 8 },
-  high:   { pixelRatio: 1.25, shadowMap: 3072, shadows: true,  ao: true,  dof: true,  godrays: true,  motionBlur: true,  smaa: true,  bloomRes: 0.75, aniso: 16 },
-  ultra:  { pixelRatio: 1.5,  shadowMap: 4096, shadows: true,  ao: true,  dof: true,  godrays: true,  motionBlur: true,  smaa: true,  bloomRes: 1.0,  aniso: 16 },
+  low:    { pixelRatio: 1.0,  shadowMap: 1024, shadows: true,  ao: false, dof: false, godrays: false, motionBlur: false, smaa: true,  bloom: false, bloomRes: 0.5,  aniso: 4 },
+  medium: { pixelRatio: 1.0,  shadowMap: 2048, shadows: true,  ao: false, dof: false, godrays: true,  motionBlur: false, smaa: true,  bloom: false, bloomRes: 0.5,  aniso: 8 },
+  high:   { pixelRatio: 1.25, shadowMap: 3072, shadows: true,  ao: true,  dof: false, godrays: true,  motionBlur: false, smaa: false, bloom: false, bloomRes: 0.75, aniso: 16 },
+  ultra:  { pixelRatio: 1.5,  shadowMap: 4096, shadows: true,  ao: true,  dof: false, godrays: true,  motionBlur: false, smaa: false, bloom: false, bloomRes: 1.0,  aniso: 16 },
 };
 
 export class Engine {

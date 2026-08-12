@@ -40,7 +40,11 @@ export const PRESETS = {
     // over-cranked read comes from the glow and over-processing terms, and those
     // are what came down — bloom, lens dirt, flare, god rays, AO, saturation,
     // contrast and CA. Same look, less veil.
-    godray: { intensity: 0.16, tint: 0xffd9a8, clamp: 2.4, density: 0.60, decay: 0.947, weight: 2.2, threshold: 1.7 },
+    // God rays and the lens flare are off by owner call (live-tuned 2026-08-11,
+    // M1, in Chrome). Zero intensity is also free rather than merely invisible:
+    // both passes early-out on it, so there is no reason to disable the passes
+    // as well. Raise either knob in the dev panel to get them back.
+    godray: { intensity: 0.0, tint: 0xffd9a8, clamp: 2.4, density: 0.60, decay: 0.947, weight: 2.2, threshold: 1.7 },
     envIntensity: 0.95,
 
     sky: {
@@ -63,12 +67,15 @@ export const PRESETS = {
       sunTint: [0.40, 0.29, 0.16], sunPow: 6.0,
     },
     bloom: { strength: 0.040, radius: 1.05, threshold: 1.1, knee: 0.55, clamp: 4.0, anamorphic: 1.0, dirt: 0.022 },
-    flare: { intensity: 0.19, ghosts: 0.8, streak: 0.26, tint: 0xfff0d8 },
+    flare: { intensity: 0.0, ghosts: 0.8, streak: 0.26, tint: 0xfff0d8 },
     ao: { radius: 2.6, intensity: 0.86, strength: 0.60, tint: 0x22364c },
     grade: {
       toneMode: 2, shoulder: 0.74, linStart: 0.18, linLen: 0.22, toe: 1.12, white: 1.0,
       highlightDesat: 0.14, highlightKnee: 1.6,
-      saturation: 1.08, contrast: 1.05, ca: 0.9, vignette: 0.92, grain: 0.010,
+      // ca 0 by owner call. It had never actually applied before the uniform-name
+      // fix, so 0 is closer to what the game always looked like than the 1.6 the
+      // fix briefly exposed.
+      saturation: 1.08, contrast: 1.05, ca: 0.0, vignette: 0.92, grain: 0.010,
       lift: [0.004, 0.012, 0.030], gain: [1.0, 1.0, 1.0], gamma: [1.0, 1.0, 1.0],
       shadowTint: [0.88, 0.97, 1.17], highlightTint: [1.05, 1.015, 0.955],
       sharpen: 0.26,

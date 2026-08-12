@@ -1920,6 +1920,9 @@ export function buildComposer(engine, opts = {}) {
   composer.addPass(motion);
 
   const bloom = new BloomPass();
+  // Gated because the pass has no zero-strength early-out: the pyramid runs at any
+  // strength, so "bloom off" has to mean the pass, not a 0 on the knob.
+  bloom.enabled = q.bloom !== undefined ? !!q.bloom : true;
   // Per-preset strength lives in environment.js as `bloom.dirt`; `uHasDirt`
   // needs both that and this texture, or the branch is skipped.
   bloom.dirtTexture = bakeLensDirt();

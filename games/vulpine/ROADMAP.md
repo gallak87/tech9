@@ -135,6 +135,14 @@ screenshot of ours. Do these before the rest of Phase 8.
       `p90` < 0.6, `clippedPct` < 0.5, `blackPct` 0 on all of them — the other
       three legs of ship criterion 4 pass comfortably.
 
+      **Owner-tuned live and baked in (2026-08-11, M1, Chrome):** god rays
+      `0.16 → 0`, lens flare `0.19 → 0`, CA `0.9 → 0`. Everything else from the
+      pull-back kept as shipped. Both zeroed passes early-out on zero intensity, so
+      this is free as well as calmer, and the passes stay enabled — the dev knob
+      brings either back without a rebuild. CA at 0 is also closest to how the game
+      has always actually looked, since the key never reached the uniform before
+      the fix above.
+
 - [ ] **3. Every dynamic object is falsely motion-blurred — ship, boss and
       enemies.** Owner: "there's also way too much blur on the ship — its like in
       constant blur", then "also the boss and enemies are also blurry". Visible on
@@ -184,6 +192,13 @@ screenshot of ours. Do these before the rest of Phase 8.
 
       Do not just disable `motionBlur` — it rides the AO quality tier (`:1748`)
       and the world's speed read would go with it.
+
+      **Note: motion blur is now OFF at every quality tier** (owner call, same
+      live-tuning pass), so the hull mask below does not run by default. It is kept
+      rather than reverted because the blur is expected back once the frame is in
+      budget, and dev key `4` plus the `motion` pass toggle exercise it — that is
+      its named consumer for ship criterion 7. It also means the unresolved
+      mask-cost question below is currently moot in practice.
 
       **Done — masked, and the hull is visibly sharp again.** `MotionBlurPass`
       renders the dynamic hulls into a half-res mask (red = hull, green = its own
@@ -398,7 +413,23 @@ screenshot of ours. Do these before the rest of Phase 8.
       Side effect worth knowing: it *brightened* the river (water's composited
       median 0.034 → 0.059), because more bright sky probe survives where dark
       canyon wall used to be mirrored. Live on the `reflections` dev knob.
-- [ ] **The frame is over budget.** First contract-point measurement ever taken
+- [ ] **The frame is over budget, and post is not where it went.** Owner reading
+      from live play (2026-08-11, M1, Chrome, `quality=high`, in-game fps readout):
+      **55 fps / 18.3 ms, 1083 draws, 1.29 M tris — with bloom, god rays, flare,
+      motion blur, DOF *and* SMAA all toggled off.** Only AO and TAA were left on.
+      So ~18 ms is roughly the *scene pass plus AO/TAA/grade*, and the entire rest
+      of the post chain was never the cost. Every optimisation guess so far has
+      aimed at post; this says aim at the scene — draw count, terrain LOD, material
+      complexity, TAA and AO.
+      Also note the owner reached for those toggles to make the game playable, which
+      means the budget is not an abstract criterion any more; it is affecting how
+      the game feels to its owner. Treat it as promoted.
+      Two caveats before acting: the fps readout's `draws`/`tris` are unreliable in
+      this chain (nested `renderer.render` calls reset `renderer.info`, so they
+      report the last render, not the frame), and the browser was sharing the
+      machine with a dev server and an editor.
+
+- [ ] **Older note, kept for the numbers.** First contract-point measurement taken
       (1080p `--quality high`, serial): **17.3 ms with the reflection disabled,
       18.1 ms with it**. So the reflection is not the problem — the base frame
       was already 0.7 ms over on its own, and nobody had ever checked. Profile

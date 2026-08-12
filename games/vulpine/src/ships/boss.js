@@ -38,10 +38,16 @@ const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 export const BOSS = {
   length: 68, span: 72,
   radius: 30,
-  hullHp: 900,          // never the objective; it exists so stray rounds land
-  engineHp: 170,
-  turretHp: 60,
-  coreHp: 320,
+  // Halved on the owner's call (2026-08-11) after playing it with the granted
+  // gun. The older note said not to cut boss hp — that was written when tier-0's
+  // 3.7 landed dmg/s was the only lever and cutting hp would have traded away the
+  // per-compartment fight the owner likes. Both levers are in now: the pre-boss
+  // grants give 5.6x dps *and* the compartments come down faster, so this is a
+  // length cut on a fight whose structure already works, not a substitute for it.
+  hullHp: 450,          // never the objective; it exists so stray rounds land
+  engineHp: 85,
+  turretHp: 30,
+  coreHp: 160,
 };
 
 /* ── materials specific to the carrier ─────────────────────────────────────── */

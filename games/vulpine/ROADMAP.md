@@ -450,21 +450,20 @@ screenshot of ours. Do these before the rest of Phase 8.
       enter from zero. Cheap, but it changes wall feel, so re-measure per-tick
       acceleration (the held-stick probe pattern) and re-check the box corners.
 
-- [ ] **Autopilot playthrough findings (`pilot.mjs fly`, 2026-08-11).** First
-      input-driven run of the level. Waves 1–17 flown with the hold→lock→release
-      loop: **22 kills, 2580 score, never died, shield never below 68** — for a
-      competent pilot the run-in is not threatening, which corroborates the owner's
-      "the aim change made it feel easier". Framing holds under real input:
-      ndcX ±0.186, ndcY −0.485…−0.101, 0 of 15 samples near a frame edge.
+- [x] **Autopilot playthrough (`pilot.mjs fly`, 2026-08-11).** First input-driven
+      run of the level: 22 kills, 2580 score, never died, shield never below 68.
+      Framing holds under real input — ndcX ±0.186, ndcY −0.485…−0.101, 0 of 15
+      samples near a frame edge, which is the one thing no hands-off probe can check.
+      **Do not read the autopilot's survival as a difficulty signal.** It sees exact
+      contact positions every tick and never panics; the owner's verdict on the same
+      waves is "hard enough, perfect density". Wave difficulty is settled — the
+      probe is for framing and regressions, not for balance.
 - [ ] **The level does not end.** Starting `pilot.mjs fly` near the carrier
       (`--t 44`) flew to **z = −29237** — 20 km past the intended finish — with no
       `outcome` ever set and kills frozen at 6. Either the boss does not spawn when
       the rail is reached via a seek rather than by flying, or there is no terminal
       state once past the carrier. Both are worth knowing before the difficulty
       pass. Unrelated to flight feel, so it was left alone.
-- [ ] **Two 404s in the harness console.** Headed runs report them; almost
-      certainly a favicon the headless path never requests, but ship criterion 5
-      says *zero* console errors, so confirm before claiming that criterion.
 - [ ] **Encounter feel, waves 1–4** (`z = -260 … -1950`): spacing, entry angles,
       how long a raptor stays shootable, whether the wasp swarm reads as threat.
       Instrument with `tools/pacing.mjs`, not screenshots.
@@ -599,11 +598,16 @@ The pre-boss weapon grant is done (above). What is left here is scoring.
       and reports the live tier and dps, so neither arm can be run by mistake.
       Dev panel key `3` steps the tier and shows it in its own label.
 
-      **Unvalidated in live play** — measured only, and the probe never dodges.
-      Needs a hands-on pass on whether 5.6× is too much: the knob is
-      `TUNE.weapons[].dmg`/`gap`, and the grant count is just the length of
-      `GRANTS`. Do not answer a re-balance by cutting boss HP; the owner likes
-      the per-compartment grind.
+      **Owner-validated in live play (2026-08-11), and the carrier was still too
+      tanky, so its hp is now halved** (`BOSS` in `ships/boss.js`: hull 900→450,
+      engines 170→85, turrets 60→30, core 320→160). That reverses this item's
+      earlier "do not cut boss hp" guidance on purpose: that was written when
+      tier-0's 3.7 landed dmg/s was the only lever, and cutting hp then would have
+      traded away the per-compartment fight the owner likes. With the grants in,
+      both levers exist, so this is a length cut on a structure that already works.
+      Measured: carrier dies at **65.3 s**, down from 101.5 s.
+      Weapon knobs if a further re-balance is wanted: `TUNE.weapons[].dmg`/`gap`,
+      and the grant count is just the length of `GRANTS`.
 - [ ] Score/rank at level end (medals, hit %, time).
 
 ## Later — Phase 11: finish

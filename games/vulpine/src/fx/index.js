@@ -443,6 +443,10 @@ export function installFx(ctx) {
   /*  LASERS                                                                 */
   /* ═══════════════════════════════════════════════════════════════════════ */
 
+  // Visible size of a player tap bolt. One number: every part of the bolt derives
+  // its size from `w`, so this scales core, sheath, head and tail together.
+  const BOLT_SCALE = 2.0;
+
   /**
    * A travelling bolt plus its muzzle event.
    * @param {THREE.Vector3} origin @param {THREE.Vector3} dir (unit)
@@ -453,7 +457,13 @@ export function installFx(ctx) {
     const charged = !!opts.charged;
     const speed = opts.speed ?? (charged ? 470 : enemy ? 520 : 980);
     const range = opts.range ?? (charged ? 900 : enemy ? 700 : 1100);
-    const w = (opts.width ?? 1) * (charged ? 3.0 : 1);
+    // Player tap bolts read too small at anything short of full screen — the
+    // owner's report is that they are hard to see at all in a window. Every part
+    // of the bolt (hot core, sheath, leading flash, tail) derives its size from
+    // `w`, so scaling here scales the whole thing coherently. Charged rounds are
+    // already 3x and enemy fire is legible as it is, so neither is touched: this
+    // is one number for the bolt the player looks at most.
+    const w = (opts.width ?? 1) * (charged ? 3.0 : 1) * (!enemy && !charged ? BOLT_SCALE : 1);
     const life = range / speed;
     const core = charged ? COL.chargeCore : enemy ? COL.enemyCore : COL.playerCore;
     const glow = charged ? COL.chargeGlow : enemy ? COL.enemyGlow : COL.playerGlow;

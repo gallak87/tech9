@@ -89,17 +89,23 @@ export class Voices {
   laser(t, opts = {}) {
     const ac = this.ac;
     const enemy = !!opts.enemy;
-    if (!this.claim(t, 0.28, enemy ? 0.4 : 0.6)) return;
+    // 0.28 s no longer covers the player's tail (0.20 dec + 0.06)
+    if (!this.claim(t, enemy ? 0.28 : 0.32, enemy ? 0.4 : 0.6)) return;
 
+    // The player shot started at 2450 Hz with a 0.135 s decay through a Q-5.5
+    // bandpass, which is a thin high zap — "pew". Weight comes from starting an
+    // octave lower, holding longer, and opening the filter so the fundamental
+    // survives instead of only its upper partials. Enemy fire is unchanged: it has
+    // to stay distinguishable from your own guns at a glance *and* by ear.
     const v = R.laser.range(0.94, 1.07);
-    const f0 = (enemy ? 1500 : 2450) * v;
-    const f1 = (enemy ? 135 : 205) * v;
-    const dec = enemy ? 0.19 : 0.135;
-    const out = this.tail({ gain: (opts.gain ?? 1) * (enemy ? 0.5 : 0.42), pan: opts.pan, lp: opts.lp });
+    const f0 = (enemy ? 1500 : 1420) * v;
+    const f1 = (enemy ? 135 : 118) * v;
+    const dec = enemy ? 0.19 : 0.20;
+    const out = this.tail({ gain: (opts.gain ?? 1) * (enemy ? 0.5 : 0.62), pan: opts.pan, lp: opts.lp });
 
     // body — two waves an octave apart give it a "zap" edge the pure square lacks
     const g1 = gain(ac, 0);
-    const bp = filter(ac, 'bandpass', 2200, enemy ? 3.5 : 5.5);
+    const bp = filter(ac, 'bandpass', enemy ? 2200 : 1250, enemy ? 3.5 : 2.2);
     sweep(bp.frequency, t, f0 * 1.3, f1 * 2.2, dec * 1.05);
     bp.connect(g1); g1.connect(out);
 
@@ -111,6 +117,17 @@ export class Voices {
     o1.connect(bp); o2.connect(g2); g2.connect(bp);
 
     hit(g1.gain, t, 0.9, 0.0015, dec);
+
+    // sub — the part you feel rather than hear. Nothing below ~200 Hz existed in
+    // this voice at all, which is most of why it read as a toy.
+    if (!enemy) {
+      const sub = osc(ac, 'sine', 190 * v);
+      sweep(sub.frequency, t, 190 * v, 62 * v, dec * 0.9);
+      const sg = gain(ac, 0);
+      sub.connect(sg); sg.connect(out);
+      hit(sg.gain, t, 0.5, 0.004, dec * 0.85);
+      sub.start(t); sub.stop(t + dec + 0.06);
+    }
 
     // transient — 6 ms of bright noise. Without it the shot has no "snap".
     const n = noiseSource(ac, 'white');

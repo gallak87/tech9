@@ -869,6 +869,12 @@ export function enemyProto(kind) {
     const b = BUILDERS[kind];
     if (!b) throw new Error('unknown enemy kind: ' + kind);
     g = b();
+    // Collision radius and gun mounts scale with the model, once per kind. The
+    // mounts are transformed by the agent rather than by the mesh, so they do not
+    // inherit the root scale and would otherwise fire from inside the hull.
+    const sp = g.userData.spec;
+    sp.radius *= NPC_SCALE;
+    if (sp.guns) for (const m of sp.guns) m.multiplyScalar(NPC_SCALE);
     g.userData.spec.tris = triCount(g);
     // after triCount, so `spec.tris` stays a count of hull, not of lamps
     const B = BEACON[kind];
@@ -885,10 +891,23 @@ export function enemySpec(kind) { return enemyProto(kind).userData.spec; }
  * only the emissives that have to animate per-ship (the eye, the nozzle face)
  * are cloned, which is a handful of tiny MeshBasicMaterials per hull.
  */
+/**
+ * Visual and collision scale applied to every hostile and to the carrier.
+ *
+ * Scaled together on purpose: growing the model alone would shrink the hit area
+ * *relative to the visible hull*, so rounds that plainly look like hits would
+ * miss. `spec.radius` is the collision radius, and it is multiplied by the same
+ * number where the specs are built — so this is genuinely a bigger ship, not a
+ * bigger picture of the same ship. It is also the legibility experiment the
+ * roadmap had parked: bigger hostiles read further out.
+ */
+export const NPC_SCALE = 1.5;
+
 export function createEnemy(kind) {
   const proto = enemyProto(kind);
   const root = proto.clone(true);
   root.userData.spec = proto.userData.spec;
+  root.scale.setScalar(NPC_SCALE);
 
   const rig = { engines: [], eyes: [], beacons: [], turret: null, barrels: null, doors: [] };
   root.traverse((o) => {

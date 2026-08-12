@@ -464,6 +464,32 @@ screenshot of ours. Do these before the rest of Phase 8.
       the rail is reached via a seek rather than by flying, or there is no terminal
       state once past the carrier. Both are worth knowing before the difficulty
       pass. Unrelated to flight feel, so it was left alone.
+- [x] **The carrier flew the player's own inputs back at them.** Owner: "he kinda
+      just goes where i go and past me so i just have to constantly fly to the edges
+      of the deadzone". Cause was literal — the station was `_v.copy(pl)`, the
+      *player's* position plus a weave, and the box clamps were player-relative too,
+      so the carrier mirrored every stick input and slid past on whichever side the
+      player moved to. It could be chased but never lined up.
+      Lateral and vertical are now its own path in **rail** space (two
+      incommensurate lateral terms plus one vertical, `TUNE.boss.path*`), clamped to
+      the corridor rather than to the player. The z leash stays player-relative on
+      purpose: that is what keeps it in weapon range and stops it parking out of the
+      fight, which was a real defect once.
+      Amplitudes sit inside the player's own box so it is always reachable, and the
+      traverse peaks near 62 m/s against the player's 132 so it can always be
+      caught. Measured: rounds landed 6.7/s → 4.1/s and the hit-register flash 100%
+      → 78%, i.e. genuinely harder to hold on target, while still 100% inside the
+      lock cone for a straight-flying probe so it never becomes unfair.
+      Turn up `pathX`/`pathY` if it should demand more chasing.
+- [x] **Every hostile and the carrier are 50% larger** (`NPC_SCALE` in
+      `ships/enemies.js`). Visual *and* collision together: growing the model alone
+      would shrink the hit area relative to the visible hull, so rounds that plainly
+      look like hits would miss. `spec.radius` and the gun mounts scale at proto
+      build time (mounts are transformed by the agent, not the mesh, so they do not
+      inherit the root scale and would otherwise fire from inside the hull); the
+      boss's weak-point radii scale in `createBoss`, since `local` offsets already
+      ride the scaled node matrices but world-space radii do not.
+      This is also the ship-scale legibility experiment the roadmap had parked.
 - [ ] **Encounter feel, waves 1–4** (`z = -260 … -1950`): spacing, entry angles,
       how long a raptor stays shootable, whether the wasp swarm reads as threat.
       Instrument with `tools/pacing.mjs`, not screenshots.
@@ -605,7 +631,8 @@ The pre-boss weapon grant is done (above). What is left here is scoring.
       tier-0's 3.7 landed dmg/s was the only lever, and cutting hp then would have
       traded away the per-compartment fight the owner likes. With the grants in,
       both levers exist, so this is a length cut on a structure that already works.
-      Measured: carrier dies at **65.3 s**, down from 101.5 s.
+      Measured: carrier dies at **65.3 s**, down from 101.5 s. **Halved again on a
+      second play pass — now 36.5 s** (hull 225, engines 42, turrets 15, core 80).
       Weapon knobs if a further re-balance is wanted: `TUNE.weapons[].dmg`/`gap`,
       and the grant count is just the length of `GRANTS`.
 - [ ] Score/rank at level end (medals, hit %, time).

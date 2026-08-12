@@ -127,13 +127,25 @@ const TUNE = {
   // both in range and inside the cone.
   boss: {
     z: -520,          // metres ahead it wants to sit
-    zNear: -300,      // nearest it may close
+    zNear: -340,      // nearest it may close
     zFar: -760,       // furthest it may run
-    lateral: 170,
-    up: 105,
-    down: 70,
     clearance: 55,    // minimum height over whatever is under it
     follow: 1.6,      // rad/s-ish exponential follow; 0.55 lagged ~300 m
+    // Its own path across the corridor, in RAIL space. The station used to be the
+    // *player's* position plus a weave, so the carrier mirrored every input and
+    // slid past on whichever side you moved to — you could never line it up, only
+    // chase it to a box edge. Now it flies its own route and the player closes on
+    // it. Two incommensurate lateral terms so the path does not visibly loop.
+    //
+    // Amplitudes stay inside the player's own box (±105 lateral, +78/−46) so the
+    // carrier is always reachable, and the traverse speed stays well under the
+    // player's 132 m/s so it can always be caught: the lateral terms peak at
+    // 72·0.52 + 22·1.13 ≈ 62 m/s.
+    pathX: 72, pathXw: 0.52,
+    pathX2: 22, pathX2w: 1.13,
+    pathY: 24, pathYw: 0.71, pathYMid: 30,
+    // Box it roams, measured off the rail rather than off the player.
+    railX: 96, railYUp: 66, railYDown: 4,
   },
 };
 
@@ -371,6 +383,7 @@ export function installCombat(ctx) {
   const _vb = new THREE.Vector3();
   const _hitP = new THREE.Vector3();
   const _wp = new THREE.Vector3();
+const _bRail = new THREE.Vector3();
   const _q = new THREE.Quaternion();
   const UP = new THREE.Vector3(0, 1, 0);
 
@@ -911,15 +924,19 @@ export function installCombat(ctx) {
     }
 
     /* ── station keeping, on a leash (see TUNE.boss) ───────────────────────── */
+    // The z leash is still measured off the player — that is what keeps the
+    // carrier in weapon range and stops it parking out of the fight, which was a
+    // real defect once. Lateral and vertical are its OWN path in rail space, so it
+    // no longer mirrors the player's stick.
     const L = TUNE.boss;
     const pl = view.player.pos;
-    const want = _v.copy(pl);
-    // Weave amplitude is bounded by the lock cone: the leash settles at ~412 m,
-    // where ±55 m is ±7.6° off the ship's forward axis. Stacked on the player's
-    // own banking, much more than that falls outside the ±17° cone.
-    want.x += Math.sin(b.t * 0.31) * 55 + Math.sin(b.t * 0.77 + 2.1) * 16;
-    want.y += 14 + Math.sin(b.t * 0.43 + 1.1) * 11;
-    want.z += L.z;
+    const stationZ = pl.z + L.z;
+    ctx.flight.railPoint(stationZ, _bRail);
+    const want = _v.set(
+      _bRail.x + Math.sin(b.t * L.pathXw) * L.pathX + Math.sin(b.t * L.pathX2w + 2.1) * L.pathX2,
+      _bRail.y + L.pathYMid + Math.sin(b.t * L.pathYw + 1.1) * L.pathY,
+      stationZ,
+    );
     // Sampled under the carrier, not under the station: the station is 520 m up
     // a meandering corridor and lands inside the canyon wall, where groundAt
     // returns the rim.
@@ -928,8 +945,11 @@ export function installCombat(ctx) {
     b.root.position.lerp(want, Math.min(1, dt * L.follow));
 
     const bp = b.root.position;
-    bp.x = clamp(bp.x, pl.x - L.lateral, pl.x + L.lateral);
-    bp.y = clamp(bp.y, pl.y - L.down, pl.y + L.up);
+    // Clamped to the corridor, not to the player. Clamping to the player is what
+    // made it a mirror in the first place.
+    ctx.flight.railPoint(bp.z, _bRail);
+    bp.x = clamp(bp.x, _bRail.x - L.railX, _bRail.x + L.railX);
+    bp.y = clamp(bp.y, _bRail.y + L.railYDown, _bRail.y + L.railYUp);
     bp.z = clamp(bp.z, pl.z + L.zFar, pl.z + L.zNear);
     // last resort: never inside the landscape, even if that breaks the leash
     const hard = ctx.world.groundAt(bp.x, bp.z) + 30;

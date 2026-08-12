@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { emissive } from '../render/materials.js';
 import { SMat, buildShipMaterials } from './ship-materials.js';
-import { EMat } from './enemies.js';
+import { EMat, NPC_SCALE } from './enemies.js';
 import {
   loft, superellipse, assemble, M,
   hullLoft, chamferBox, extrudePoly, ductGeo, louvers,
@@ -37,17 +37,21 @@ const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
 // against how long the fight should last, not against how tough it should feel.
 export const BOSS = {
   length: 68, span: 72,
-  radius: 30,
+  radius: 30 * NPC_SCALE,
   // Halved on the owner's call (2026-08-11) after playing it with the granted
   // gun. The older note said not to cut boss hp — that was written when tier-0's
   // 3.7 landed dmg/s was the only lever and cutting hp would have traded away the
   // per-compartment fight the owner likes. Both levers are in now: the pre-boss
   // grants give 5.6x dps *and* the compartments come down faster, so this is a
   // length cut on a fight whose structure already works, not a substitute for it.
-  hullHp: 450,          // never the objective; it exists so stray rounds land
-  engineHp: 85,
-  turretHp: 30,
-  coreHp: 160,
+  // Halved twice on owner play-testing (2026-08-11). See the ROADMAP note on why
+  // this reverses the older "do not cut boss hp" guidance: that predates the
+  // pre-boss weapon grants, so hp was the only lever then and cutting it would
+  // have traded away the per-compartment fight. Now both levers exist.
+  hullHp: 225,          // never the objective; it exists so stray rounds land
+  engineHp: 42,
+  turretHp: 15,
+  coreHp: 80,
 };
 
 /* ── materials specific to the carrier ─────────────────────────────────────── */
@@ -290,6 +294,7 @@ export function createBoss() {
   bossMaterials();
   const root = new THREE.Group();
   root.name = 'gargantua';
+  root.scale.setScalar(NPC_SCALE);
   const p = Parts();
 
   /* ── main hull ── */
@@ -715,6 +720,10 @@ export function createBoss() {
     { id: 'core', label: 'CORE', node: coreGroup, local: V3(0, 4.4, -1.0), radius: 5.0, hp: BOSS.coreHp, max: BOSS.coreHp, alive: true, kind: 'core', index: 0, locked: true },
     { id: 'hull', label: 'HULL', node: root, local: V3(0, 0, -6.0), radius: 13.0, hp: BOSS.hullHp, max: BOSS.hullHp, alive: true, kind: 'hull', index: 0 },
   ];
+  // `local` offsets ride the node matrices, which already carry the root scale, so
+  // only these world-space radii need scaling by hand. Without it the weak points
+  // would keep their old size inside a hull half again as big.
+  for (const q of api.parts) q.radius *= NPC_SCALE;
 
   /* ── the hit register ──────────────────────────────────────────────────── */
   //

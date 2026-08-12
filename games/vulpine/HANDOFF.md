@@ -25,6 +25,20 @@ So:
 - **No prose in code comments.** State the constraint, not the story — no "the
   owner reported", no "this used to", no before/after measurements, no
   narrating what you just did. That belongs in the commit message or here.
+- **Never assert a magnitude you have not measured.** A comment saying a term is
+  "negligible", "small enough" or "close enough" is a *claim*, and the confident
+  tone makes the next reader — including the next you — build on it instead of
+  checking it. Put the number in or leave the sentence out. This cost a whole
+  crosshair rebuild: the aim lead carried the note *"rotating about world axes
+  rather than the hull's own is deliberate: at these attitudes the difference is
+  negligible"*, and the difference was 0.75 rad of hull pitch, which at 520 m of
+  lever arm threw the reticle 1.03 ndcY — completely off the frame. The comment
+  was written in the same commit as the code, so nothing had ever verified it.
+- **When you change what code does, re-read the comment above it.** The same aim
+  block kept a comment describing hull-forward rotation for three commits after
+  the rotation had moved to `updateCamera` and the lines beneath it had become two
+  scalar assignments. A stale comment is worse than none: it is a wrong answer in
+  the one place a reader trusts.
 - **Do not add a module the roadmap does not ask for.** Ship criterion 7 is "no
   dead code"; this project has now shipped ~5,400 lines of finished, unimported
   modules across two sessions. `world/reflection.js` was the last of them and is

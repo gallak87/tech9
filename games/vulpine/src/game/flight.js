@@ -324,12 +324,13 @@ export class Flight {
     this.ship.position.copy(this.pos);
     this.ship.quaternion.copy(this.quat);
 
-    // Aim lead — the single source of truth for where the guns point and where
-    // the reticle is drawn, so the crosshair can never promise a shot the guns
-    // do not take. Hull forward, then yawed and pitched by how hard the player is
-    // crossing the corridor. Rotating about world axes rather than the hull's own
-    // is deliberate: at these attitudes the difference is negligible, and it
-    // keeps the lead from tumbling with a barrel roll or a somersault.
+    // How hard the player is crossing the corridor, normalised and saturating:
+    // ±1 at `aimVelScale` of offset velocity. Scalars only — the aim geometry is
+    // built in `updateCamera`, in the camera's basis, because the crosshair is an
+    // extension of the *camera*, not of the hull or the corridor. Keeping the two
+    // apart is the point: this is a sim-rate input reading, that is a per-frame
+    // projection, and conflating them is what put the aim on the hull's
+    // exaggerated attitude in the first place.
     this.aimLeadX = Math.tanh(this.offVel.x / TUNE.aimVelScale);
     this.aimLeadY = Math.tanh(this.offVel.y / TUNE.aimVelScale);
 

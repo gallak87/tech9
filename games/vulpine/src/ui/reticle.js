@@ -1,5 +1,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Centre-screen aiming reticle + world-projected lock-on marker.
+// Aiming reticle + world-projected lock-on marker.
+//
+// The reticle is drawn on the projection of `state.aimPoint` — the same world
+// point `combat.convergePoint()` hands the guns — so it tracks the hull and its
+// aim lead rather than sitting at screen centre. It used to be pinned to the
+// middle of the frame, which was honest only because the guns fired down the
+// camera's centre ray; that dependency now runs the other way. Callers pass the
+// projected position in, and it falls back to centre if the point is somehow
+// unprojectable, so a bad frame degrades to the old behaviour rather than
+// dropping the crosshair.
 //
 // The reticle is the single most-seen pixel in the game — it sits over the
 // crosshair of every frame — so it carries three states in one shape instead
@@ -62,9 +71,10 @@ export class Reticle {
     this.snap = Math.max(0, this.snap - dt * 3.0);
   }
 
-  draw(g, L, s) {
+  draw(g, L, s, at = null) {
     const k = L.s;
-    const cx = L.w * 0.5, cy = L.h * 0.5;
+    const cx = at ? at.x : L.w * 0.5;
+    const cy = at ? at.y : L.h * 0.5;
     const charge = this.charge, locked = this.locked;
     const idle = Math.sin(s.time * 1.5) * 0.5 + 0.5;
 

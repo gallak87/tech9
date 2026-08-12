@@ -1,3 +1,5 @@
+import { TUNE as FLIGHT } from '../game/flight.js';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Dev panel — DOM overlay of playtest shortcuts.
 //
@@ -174,6 +176,15 @@ export function installDevPanel(api) {
       get: () => P().motion.gain, set: (v) => { P().motion.gain = v; } },
     { id: 'refl', label: 'reflections', min: 0, max: 1.0, step: 0.01, dp: 2,
       get: () => api.world.reflection.strength, set: (v) => { api.world.reflection.strength = v; } },
+    // Flight feel. These three are hands-on questions, not measurable ones —
+    // whether the corridor rotating around you reads as flying it or as the
+    // camera wandering is not something a probe can answer.
+    { id: 'railyaw', label: 'rail yaw follow', min: 0, max: 1.0, step: 0.01, dp: 2,
+      get: () => FLIGHT.railYawFollow, set: (v) => { FLIGHT.railYawFollow = v; } },
+    { id: 'aimlead', label: 'aim lead', min: 0, max: 2.5, step: 0.01, dp: 2,
+      get: () => FLIGHT.aimLeadScale, set: (v) => { FLIGHT.aimLeadScale = v; } },
+    { id: 'camlead', label: 'cam lead', min: 0, max: 2.5, step: 0.01, dp: 2,
+      get: () => FLIGHT.camLeadGain, set: (v) => { FLIGHT.camLeadGain = v; } },
   ];
 
   /** Pass toggles, for isolating what a look actually costs. */

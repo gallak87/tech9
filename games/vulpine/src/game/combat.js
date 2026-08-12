@@ -305,6 +305,9 @@ export function installCombat(ctx) {
     time: 0,
     lockOn: 0,
     lockTarget: null,
+    // World point the guns converge on. The reticle is drawn here, so it tracks
+    // the hull and its aim lead instead of sitting at screen centre.
+    aimPoint: new THREE.Vector3(),
     // Weapon tier, for the HUD. `label` and `tiers` are published so ui/ never
     // has to import the tuning table to draw the readout.
     weapon: { tier: 0, label: TUNE.weapons[0].id, tiers: TUNE.weapons.length },
@@ -459,12 +462,20 @@ export function installCombat(ctx) {
   /**
    * Where the player's shots are actually going: the point under the reticle.
    *
-   * Firing along the hull's own forward axis is the obvious thing and it is
-   * wrong. The chase camera sits behind and above the Arwing, so "straight
-   * ahead of the ship" and "the middle of the screen" are several degrees
-   * apart — shots drift off the crosshair, and the game reads as though the
-   * guns do not work. Every rail shooter converges its guns on the aim point
-   * for exactly this reason. A live lock overrides it and leads the target.
+   * The guns fire down `flight.aimDir` — the hull's forward axis plus the aim
+   * lead — and the reticle is *drawn on this same point*, so the two cannot
+   * disagree by construction.
+   *
+   * This used to fire down the camera's centre ray instead, on the grounds that
+   * the chase camera sits behind and above the hull, so "ahead of the ship" and
+   * "middle of the screen" are degrees apart and shots would drift off a
+   * centre-locked crosshair. That was true of a centre-locked crosshair. Now the
+   * crosshair goes where the guns go, so the dependency runs the other way and
+   * the reticle is free to leave the middle of the frame. The lock cone in
+   * `updateLock` was already measured off the hull, so this also puts the guns
+   * and the lock in the same frame for the first time.
+   *
+   * A live lock overrides it and leads the target.
    */
   /**
    * @param aimRay force the reticle ray even when a lock is live. A tracked
@@ -491,9 +502,8 @@ export function installCombat(ctx) {
       if (a.vel) out.addScaledVector(a.vel, flight);
       return out;
     }
-    const cam = ctx.camera;
-    return out.set(0, 0, -1).applyQuaternion(cam.quaternion)
-      .multiplyScalar(TUNE.converge).add(cam.position);
+    return out.copy(ctx.flight.aimDir)
+      .multiplyScalar(TUNE.converge).add(ctx.ship.position);
   }
 
   /** The live tap-gun spec. Every fire-path number comes from here. */
@@ -1382,6 +1392,11 @@ export function installCombat(ctx) {
     if (state.message && view.time > state.message.until) state.message = null;
 
     /* input-driven systems */
+    // Published every step, from the same helper the guns use, so the HUD can
+    // never draw the reticle somewhere the rounds are not going. `true` forces
+    // the reticle ray: with a lock live the rounds launch down the barrel and let
+    // the seeker pull them round, so the barrel is what the crosshair must show.
+    convergePoint(state.aimPoint, TUNE.playerBullet.speed, null, true);
     updateLock(dt);
     updateBombs(dt);
 

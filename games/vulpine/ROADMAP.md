@@ -65,7 +65,50 @@ Raised off a reference build the owner found on r/aigamedev
 (`StarFox Inspired Game | Devlogs`, YOUTUBE.COM/@CORTIZDEV) plus a live-play
 screenshot of ours. Do these before the rest of Phase 8.
 
-- [ ] **1. The crosshair should move with the ship, not sit dead centre.**
+- [x] **1. The crosshair moves with the ship. Done, plus the camera jump.**
+      Owner chose the behaviour by describing it: the crosshair leads the hull as
+      you begin to pan and saturates at a maximum. That is only honest if the guns
+      go there too, so `convergePoint()` now fires down `flight.aimDir` (hull
+      forward + aim lead) and the reticle is drawn on the *same* world point
+      (`state.aimPoint`), projected in `ui/index.js`. They cannot disagree by
+      construction. `updateLock` was already measuring its cone off the hull, so
+      the guns and the lock are finally in one frame.
+
+      Aim lead is velocity-driven and saturating: `aimYawMax` 0.115 rad through
+      `tanh(offVel / aimVelScale)`, which is ~60 m at the 520 m convergence range,
+      i.e. ~0.21 ndcX of throw at full pan.
+
+      **The camera "jump" when crossing the middle — found and fixed. It was a
+      position term in a lead.** The old lead was
+      `off - smoothedOff * camOffsetFollow`, which expands to
+      `(off - smoothedOff) + 0.3 * smoothedOff`: a velocity proxy *plus 30% of
+      position*. So which side of the ship the rig sat on was a function of which
+      half of the corridor the ship was in — saturated +4.5 m at one wall, −4.5 m
+      at the other, swinging through zero across the middle ±30 m. Crossing the
+      centreline whipped the rig 9 m laterally plus 5.4 m of aim in ~0.45 s
+      (seen-from-the-left to seen-from-the-right), while middle-to-edge showed half
+      the swing in the direction of travel and felt right — exactly the asymmetry
+      the owner described. The lead is now the damper's lag alone. `camOffsetFollow`
+      is gone.
+
+      **`railYawFollow` 0 → 0.35.** It was pinned at 0 only because a centre-locked
+      reticle walked off the guns under any camera yaw; that constraint died with
+      this change, so the view can turn down the channel instead of crabbing along
+      it. Conservative because hands-off ship drift measures 0.17 ndcX at 0 and
+      0.257 at 0.55, and uncommanded drift is the complaint that got the auto-yaw
+      fixed.
+
+      Regression-checked: carrier still dies (103 s vs 101.5 s) and rounds landed
+      went 653 → 691, so ship-relative aim is neutral-to-better. `inputtest` clean.
+
+      **Awaiting the owner's hands-on pass.** Three live knobs for it —
+      `rail yaw follow`, `aim lead`, `cam lead` — because whether the corridor
+      rotating around you reads as flying it or as the camera wandering is not a
+      question a probe can answer.
+
+- [ ] ~~**1. The crosshair should move with the ship, not sit dead centre.**~~
+      *(superseded by the entry above; kept for the reasoning that picked the
+      approach.)*
       Owner: "notice the cross hair — it moves WITH the ship, i think that would
       feel a lot better than being centered at all times." In the reference the
       reticle tracks the airframe; ours is pinned to the middle of the frame

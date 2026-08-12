@@ -59,19 +59,45 @@ export const TUNE = {
   // How hard the aim swings out with that lead. 0 keeps the ship furthest
   // off-centre, 1 nearly re-centres it.
   camAimLead: 0.6,
-  // How much of the ship's offset the camera copies. Low values leave the ship
-  // pinned to the rail and sliding around the frame; high values glue the
-  // camera to the ship and kill the sense of manoeuvring. 0.7 is the Star Fox
-  // compromise — the ship leads the frame without escaping it.
-  camOffsetFollow: 0.70,
   camDamp: 8.4,
+  // Scales the velocity-derived lead before the cap. The lead is the damper's
+  // own lag (`off - smoothedOff`), which is ~ velocity / camDamp: at terminal
+  // offset speed that is 132 / 8.4 = 15.7 m, so a gain of 1 already saturates
+  // both caps at full stick and ramps proportionally on the way there.
+  camLeadGain: 1.0,
+
+  // Aim lead. The reticle and the guns share this, and it is what puts the
+  // crosshair ahead of the hull as you start to pan rather than pinning it to
+  // the middle of the frame forever. Angles, applied on top of the hull's own
+  // attitude, saturating through tanh so there is a definite "fully panned".
+  // Driven by offset *velocity*: which side of the corridor you happen to sit on
+  // must never enter an aim term (see the camera lead note in updateCamera).
+  aimYawMax: 0.115,        // rad, ~6.6 deg -> ~0.21 ndcX at the convergence range
+  aimPitchMax: 0.080,
+  aimVelScale: 78,         // m/s of offset velocity that saturates the lead
   // How much of the corridor's heading the hull and the camera lean into. The
   // meander sweeps ±13.7°, so at 1.0 the whole view S-turns forever with the
   // rail's periods (8.7 s / 20 s / 65 s) with no input touched. Both terms are
   // scaled together — scaling only one makes them disagree and the nose wanders
   // across the frame. Below 1.0 the ship crabs by the remainder, which reads as
   // a crosswind; the corridor slides past instead of rotating around you.
-  railYawFollow: 0.0,
+  //
+  // Held at 0 while the reticle was pinned to screen centre, because any camera
+  // yaw then walked the crosshair off the guns. The reticle now rides the aim
+  // point, so that constraint is gone and the view can turn down the channel
+  // instead of crabbing along it. Partial rather than 1.0: the full heading makes
+  // the horizon S-turn continuously with no input, which reads as drift.
+  //
+  // 0.35, conservatively: measured hands-off over 40 s, the ship's own drift
+  // across the frame goes 0.17 ndcX peak-to-peak at 0 to 0.257 at 0.55, and
+  // uncommanded drift is exactly the complaint that got the auto-yaw fixed. Live
+  // on the `rail yaw` dev knob — this one wants a hands-on answer, not a measured
+  // one, because the question is whether the corridor rotating around you reads
+  // as flying it or as the camera wandering.
+  railYawFollow: 0.35,
+  // Scales both aim-lead maxima together, for tuning the crosshair's throw
+  // without touching their ratio. Live on the `aim lead` dev knob.
+  aimLeadScale: 1.0,
   camBoostBack: 4.2,
   camBoostFov: 11,
   camBrakeBack: -2.6,
@@ -82,8 +108,10 @@ const easeInOut = (p) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) 
 
 const _v = new THREE.Vector3();
 const _vCam = new THREE.Vector3();
+const _vAim = new THREE.Vector3();
 const _q = new THREE.Quaternion();
 const _e = new THREE.Euler();
+const UP = new THREE.Vector3(0, 1, 0);
 
 export class Flight {
   constructor(ship, world) {
@@ -106,6 +134,11 @@ export class Flight {
 
     this.pos = new THREE.Vector3();
     this.quat = new THREE.Quaternion();
+    // Where the guns point. Leads the hull by `aimYaw`/`aimPitch`; the reticle is
+    // drawn on this and nothing else.
+    this.aimDir = new THREE.Vector3(0, 0, -1);
+    this.aimYaw = 0;
+    this.aimPitch = 0;
     this.railPos = new THREE.Vector3();
     this.railDir = new THREE.Vector3(0, 0, -1);
 
@@ -271,6 +304,20 @@ export class Flight {
     this.ship.position.copy(this.pos);
     this.ship.quaternion.copy(this.quat);
 
+    // Aim lead — the single source of truth for where the guns point and where
+    // the reticle is drawn, so the crosshair can never promise a shot the guns
+    // do not take. Hull forward, then yawed and pitched by how hard the player is
+    // crossing the corridor. Rotating about world axes rather than the hull's own
+    // is deliberate: at these attitudes the difference is negligible, and it
+    // keeps the lead from tumbling with a barrel roll or a somersault.
+    const aimK = TUNE.aimLeadScale;
+    this.aimYaw = -TUNE.aimYawMax * aimK * Math.tanh(this.offVel.x / TUNE.aimVelScale);
+    this.aimPitch = TUNE.aimPitchMax * aimK * Math.tanh(this.offVel.y / TUNE.aimVelScale);
+    this.aimDir.set(0, 0, -1).applyQuaternion(this.quat);
+    this.aimDir.applyAxisAngle(UP, this.aimYaw);
+    _vAim.crossVectors(UP, this.aimDir).normalize();
+    this.aimDir.applyAxisAngle(_vAim, this.aimPitch).normalize();
+
     const api = this.ship.userData.api;
     if (api) api.update(dt, { throttle: this.throttleN, boost: this.boostActive, roll: stickX });
 
@@ -316,7 +363,6 @@ export class Flight {
     this._sOffX += (offX - this._sOffX) * k;
     this._sOffY += (offY - this._sOffY) * k;
 
-    const f = TUNE.camOffsetFollow;
     // Both the rig and its aim hang off the ship, and the ship's lead over the
     // rig is capped in metres. Expressed as a share of the offset it is not:
     // the box is 105 m wide and 124 m tall against a 17 m trail, so at full
@@ -327,9 +373,21 @@ export class Flight {
     // damped-to-rail when not, and that derivative corner reads as a snap every
     // time the lead crosses it. tanh matches the linear response for small leads
     // and approaches the cap without ever reaching a corner.
+    //
+    // The lead is the damper's own lag and nothing else. It used to be
+    // `off - smoothedOff * camOffsetFollow`, which expands to
+    // `(off - smoothedOff) + 0.3 * smoothedOff` — a velocity term plus 30% of
+    // *position*. That position term made which side of the ship the camera sat
+    // on a function of which half of the corridor the ship was in: saturated to
+    // +4.5 m out at one wall and -4.5 m at the other, swinging through zero in
+    // the middle ±30 m. Crossing the centreline therefore whipped the rig 9 m
+    // laterally plus 5.4 m of aim in about 0.45 s — seen-from-the-left to
+    // seen-from-the-right — while travelling middle-to-edge only ever showed half
+    // that swing, in the direction of travel, and felt correct. Position must
+    // never enter a lead term.
     const softCap = (v, cap) => cap * Math.tanh(v / cap);
-    const leadX = softCap(offX - this._sOffX * f, TUNE.camLeadX);
-    const leadY = softCap(offY - this._sOffY * f, TUNE.camLeadY);
+    const leadX = softCap((offX - this._sOffX) * TUNE.camLeadGain, TUNE.camLeadX);
+    const leadY = softCap((offY - this._sOffY) * TUNE.camLeadGain, TUNE.camLeadY);
     this.camPos.set(
       railPos.x + offX - leadX,
       railPos.y + offY - leadY + TUNE.camUp,

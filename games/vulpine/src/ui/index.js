@@ -79,6 +79,25 @@ export function installUI(ctx) {
   // the camera or the scene.
   const _lp = new ctx.THREE.Vector3();
   const _fwd = new ctx.THREE.Vector3();
+
+  /**
+   * Screen position of a world point, or null if it is behind the camera or
+   * unprojectable. Used for the reticle, which rides `state.aimPoint` — the same
+   * point the guns converge on — so the crosshair and the rounds cannot diverge.
+   * Read-only on the camera, exactly like `projectLock`.
+   */
+  const _ap = new ctx.THREE.Vector3();
+  function projectPoint(p, L) {
+    const cam = ctx.camera;
+    if (!p || !cam) return null;
+    _fwd.set(0, 0, -1).applyQuaternion(cam.quaternion);
+    _ap.copy(p).sub(cam.position);
+    if (_ap.dot(_fwd) < 4) return null;
+    _ap.copy(p).project(cam);
+    if (!Number.isFinite(_ap.x) || !Number.isFinite(_ap.y)) return null;
+    return { x: (_ap.x * 0.5 + 0.5) * L.w, y: (1 - (_ap.y * 0.5 + 0.5)) * L.h };
+  }
+
   function projectLock(s, L) {
     const target = s.lockTarget;
     if (!target) return null;
@@ -143,7 +162,7 @@ export function installUI(ctx) {
       radar.draw(g, L, s);
 
       threat.draw(g, L, s);
-      reticle.draw(g, L, s);
+      reticle.draw(g, L, s, projectPoint(s.aimPoint, L));
       lockMarker.draw(g, L, s, projectLock(s, L));
 
       legend.draw(g, w, h);

@@ -22,9 +22,10 @@ import { CORNERIA_WAVES, CORNERIA_GRANTS, CORNERIA_COMMS } from './combat.js';
 //      terrain the instant it is called, so it cannot start until the world is
 //      off screen. It starts at SPACE and has ~11 s to finish ~1.6 s of work.
 //
-// The 279 ms `renderer.compile` job at the tail of a rebuild is a known
-// single-frame spike. It lands under the approach phase, where there is no
-// terrain on screen to judder.
+// `setWorldVisible(false)` runs before the build is queued, and that ordering is
+// load-bearing in a way that is easy to break: `renderer.compile` walks
+// `traverseVisible`, so the warm job at the tail of the rebuild has to unhide the
+// root for its own call or it compiles nothing. See `corneria.js:_warm`.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Seconds in each phase of the hop. The lap is bounded by the rail, not time. */

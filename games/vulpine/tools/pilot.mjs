@@ -297,6 +297,125 @@ const SCENARIOS = {
    * manoeuvre is `rollDuration` 0.62 s — coarser than that and the sweep is two
    * points and an assumption.
    */
+  /**
+   * Is the transition smooth? `hop` above answers whether it is *correct* — the
+   * sim never stops, the rail lands at 0, no terrain leaks on screen. It samples
+   * every 8 frames, so it structurally cannot see a jolt.
+   *
+   * This records every rendered frame from inside the page (a round trip per
+   * frame would perturb the thing being measured) and reports second differences
+   * of camera position and view direction. A discontinuity in *acceleration* is
+   * what reads as a jump — the same measurement that found the camera snap on a
+   * held turn, where per-tick accel went 0.854 m -> 0.102.
+   */
+  hopjolt: {
+    async run({ frames, evaluate, snap }) {
+      // Straight into the hop from wherever the ship is — this is dev key 3
+      // (Skip level), which is how the owner reproduces it.
+      await evaluate(() => {
+        const V = window.__VULPINE__;
+        V._jolt = [];
+        const cam = V.engine.camera;
+        const fwd = new V.THREE.Vector3();
+        let last = performance.now();
+        const rec = () => {
+          const now = performance.now();
+          const dt = (now - last) / 1000; last = now;
+          cam.getWorldDirection(fwd);
+          const cp = V.state.campaign;
+          const s = V.ship.position.clone().project(cam);
+          V._jolt.push({
+            dt: +dt.toFixed(4),
+            phase: cp ? cp.phase : 'none',
+            cx: cam.position.x, cy: cam.position.y, cz: cam.position.z,
+            fx: fwd.x, fy: fwd.y, fz: fwd.z,
+            ndcX: Number.isFinite(s.x) ? +s.x.toFixed(4) : null,
+            ndcY: Number.isFinite(s.y) ? +s.y.toFixed(4) : null,
+            climb: +V.flight.climb.toFixed(1),
+            railZ: Math.round(V.flight.railZ),
+            vis: V.world.root.visible,
+            build: +V.world.buildProgress.toFixed(2),
+          });
+          if (V._joltOn) requestAnimationFrame(rec);
+        };
+        V._joltOn = true;
+        requestAnimationFrame(rec);
+        V.state.campaign.forceHop();
+      });
+      // The hop is ~14.5 s of phases plus the lap; give it room, then stop.
+      const t0 = Date.now();
+      let done = false;
+      while (!done && (Date.now() - t0) / 1000 < 40) {
+        await frames(30);
+        done = await evaluate(() => window.__VULPINE__.state.campaign.phase === 'play'
+          && window.__VULPINE__.state.campaign.level.id !== 'corneria');
+      }
+      await frames(20);
+      await snap('arrived');
+      return evaluate(() => { window.__VULPINE__._joltOn = false; return window.__VULPINE__._jolt; });
+    },
+    print(rows) {
+      if (rows.length < 4) { console.log('no samples'); return; }
+      const D = (a, b) => Math.hypot(a.cx - b.cx, a.cy - b.cy, a.cz - b.cz);
+      const ang = (a, b) => {
+        const d = Math.min(1, Math.max(-1, a.fx * b.fx + a.fy * b.fy + a.fz * b.fz));
+        return Math.acos(d) * 180 / Math.PI;
+      };
+      const ev = [];
+      for (let i = 2; i < rows.length; i++) {
+        const [p, q, r] = [rows[i - 2], rows[i - 1], rows[i]];
+        ev.push({
+          i, phase: r.phase, railZ: r.railZ, climb: r.climb, vis: r.vis,
+          // Second differences: the frame-to-frame *change* in step size. A
+          // constant velocity, however fast, reads as zero here; only a
+          // discontinuity shows up.
+          posJolt: Math.abs(D(r, q) - D(q, p)),
+          angJolt: Math.abs(ang(r, q) - ang(q, p)),
+          ndcJump: (r.ndcX != null && q.ndcX != null)
+            ? Math.hypot(r.ndcX - q.ndcX, r.ndcY - q.ndcY) : 0,
+        });
+      }
+      const phases = [...new Set(rows.map(r => r.phase))];
+      console.log(`  ${rows.length} frames, phases: ${phases.join(' → ')}`);
+      console.log('\n  worst 12 frames by camera position jolt (m/frame²):');
+      console.log('    frame  phase        railZ   climb  vis   posJolt   angJolt   ndcJump');
+      for (const e of [...ev].sort((a, b) => b.posJolt - a.posJolt).slice(0, 12)) {
+        console.log(`    ${String(e.i).padStart(5)}  ${e.phase.padEnd(11)} ${String(e.railZ).padStart(6)}`
+          + ` ${String(e.climb).padStart(7)} ${String(e.vis).padStart(5)}`
+          + ` ${e.posJolt.toFixed(2).padStart(9)} ${e.angJolt.toFixed(3).padStart(9)} ${e.ndcJump.toFixed(4).padStart(9)}`);
+      }
+      console.log('\n  worst 6 by view-direction jolt (deg/frame²):');
+      for (const e of [...ev].sort((a, b) => b.angJolt - a.angJolt).slice(0, 6)) {
+        console.log(`    ${String(e.i).padStart(5)}  ${e.phase.padEnd(11)} ${String(e.railZ).padStart(6)}`
+          + ` ${String(e.climb).padStart(7)} ${String(e.vis).padStart(5)}`
+          + ` ${e.posJolt.toFixed(2).padStart(9)} ${e.angJolt.toFixed(3).padStart(9)} ${e.ndcJump.toFixed(4).padStart(9)}`);
+      }
+      console.log('\n  per phase — median and worst:');
+      console.log('    phase          n   posJolt med/max      angJolt med/max     longest frame');
+      for (const ph of phases) {
+        const g = ev.filter(e => e.phase === ph);
+        if (!g.length) continue;
+        const med = (xs) => { const s = [...xs].sort((a, b) => a - b); return s[s.length >> 1]; };
+        const dts = rows.filter(r => r.phase === ph).map(r => r.dt);
+        console.log(`    ${ph.padEnd(11)} ${String(g.length).padStart(4)}`
+          + `   ${med(g.map(e => e.posJolt)).toFixed(2).padStart(6)} / ${Math.max(...g.map(e => e.posJolt)).toFixed(2).padStart(8)}`
+          + `   ${med(g.map(e => e.angJolt)).toFixed(3).padStart(6)} / ${Math.max(...g.map(e => e.angJolt)).toFixed(3).padStart(7)}`
+          + `   ${(Math.max(...dts) * 1000).toFixed(0).padStart(6)} ms`);
+      }
+      // Phase boundaries are where a discontinuity is most likely to have been
+      // authored rather than to have emerged, so call them out by name.
+      console.log('\n  at each phase boundary:');
+      for (let i = 1; i < ev.length; i++) {
+        if (ev[i].phase === ev[i - 1].phase) continue;
+        const w = ev.slice(Math.max(0, i - 2), i + 3);
+        const worst = w.reduce((a, b) => (b.posJolt > a.posJolt ? b : a));
+        console.log(`    ${ev[i - 1].phase} → ${ev[i].phase}`.padEnd(30)
+          + `worst posJolt ${worst.posJolt.toFixed(2).padStart(8)} m/f²`
+          + `   angJolt ${worst.angJolt.toFixed(3).padStart(7)} °/f²`);
+      }
+    },
+  },
+
   roll: {
     async run({ frames, keys, sample, snap }) {
       const arm = async (key, label) => {

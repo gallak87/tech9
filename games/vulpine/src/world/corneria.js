@@ -175,7 +175,19 @@ export class Corneria {
    * Skipped at boot, where main.js compiles the whole scene anyway.
    */
   _warm() {
-    if (this._renderer && this._camera) this._renderer.compile(this.scene, this._camera);
+    if (!this._renderer || !this._camera) return;
+    // `renderer.compile` walks `traverseVisible`, and the hop hides this root
+    // before the build is queued — so warming a hidden world compiles nothing
+    // and the whole cost lands on the first frame that draws it instead.
+    // Compiling does not draw, so unhiding across the call costs nothing.
+    const vis = this.root.visible;
+    this.root.visible = true;
+    this._renderer.compile(this.scene, this._camera);
+    // Tried and rejected 2026-08-15: also rendering the scene into a 1x1 target
+    // here, to pre-upload vertex buffers and the shadow map. It cost ~800 ms in
+    // the `space` phase and moved re-entry's worst frame 203 -> 198 ms, i.e.
+    // nothing. Whatever re-entry still pays for is not geometry upload.
+    this.root.visible = vis;
   }
 
   /**

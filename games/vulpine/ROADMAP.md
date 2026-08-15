@@ -206,9 +206,44 @@ chain, motion blur — are all shipped; they and their reasoning are in
       `material.dispose()` drops the refcount but `renderer.compile()` re-creates
       programs for the whole scene. Harmless across one hop; unknown across four.
 
-- [ ] **The rebuild's last job is a 279 ms single-frame spike** (`renderer.compile`).
-      Deliberately parked under the approach phase, where no terrain is on screen
-      to judder. Noted, not chased (owner, 2026-08-15).
+- [x] **The transition froze for 3.7 s on arrival. Fixed 2026-08-15.** The old
+      note here said the rebuild's last job was "a 279 ms single-frame spike
+      deliberately parked under the approach phase" — that was wrong twice over.
+      `renderer.compile` walks `traverseVisible`, and `startRebuild()` hides the
+      world *before* queueing the jobs, so `_warm()` compiled **nothing**; the
+      whole cost then landed on the first frame that actually drew the terrain,
+      inside re-entry. `_warm` unhides the root across its own call now.
+      Measured with the new `pilot.mjs hopjolt`, worst frame per phase:
+
+      | phase | before | after |
+      |---|---|---|
+      | ascent | 281 ms | **16 ms** |
+      | space | 283 ms | 283 ms |
+      | approach | 22 ms | 12 ms |
+      | **re-entry** | **3702 ms** | **203 ms** |
+
+      Also rejected, with a measurement: rendering the scene into a 1×1 target in
+      `_warm` to pre-upload vertex buffers and the shadow map. Cost ~800 ms in
+      `space` and moved re-entry 203 → 198 ms. Whatever re-entry still pays is
+      not geometry upload.
+
+- [ ] **The transition is still slightly jittery** (owner, 2026-08-15: "def
+      better, still slightly jittery but worlds better"). Two measured causes
+      left, neither chased:
+      - **A 283 ms frame at the ascent→space boundary.** That is
+        `startRebuild()`: `world.rebuild()` disposes the old terrain, water,
+        materials and baked fields synchronously before returning the job queue.
+        The dispose is not itself queued, so it cannot be budgeted. Nothing is on
+        screen for it.
+      - **A 203 ms frame in re-entry**, at the point the terrain is unhidden.
+        Ruled out: shader programs (fixed above) and geometry upload (measured,
+        above). Untested next suspect is the planar reflection's first render
+        against the new world, which is disabled during `_warm` and so has never
+        compiled its variants when the first visible frame arrives.
+      - **A 1141 m single-frame camera teleport during `space`**, from
+        `resetRail()` moving the rail from Corneria's `zEnd` to Fichina's 0 while
+        the ship is detached. The world is hidden at that instant so it is
+        probably invisible, but the ship moves 0.19 NDC on screen in one frame.
 - [ ] **Homing rounds do not connect with the carrier.** `homingHit` is **2 of
       346** homing rounds fired at it — the lock-on ceremony is near-decorative
       against the one target it matters most against. Separate defect from weapon

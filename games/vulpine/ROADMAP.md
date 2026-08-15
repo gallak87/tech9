@@ -458,12 +458,70 @@ screenshot of ours. Do these before the rest of Phase 8.
       contact positions every tick and never panics; the owner's verdict on the same
       waves is "hard enough, perfect density". Wave difficulty is settled — the
       probe is for framing and regressions, not for balance.
+- [x] **The barrel roll span the wrong way.** Owner, from live play: C rolled
+      anti-clockwise and Z clockwise. `rollExtra` was `+rollDir * eased * 2π`, but a
+      Z Euler term rotates the hull's up vector toward -x, so a positive sweep reads
+      anti-clockwise from the chase camera — the opposite sign to `bankTarget`,
+      which the same Euler is carrying at the same time. Negated.
+
+      The 42.9 m of lateral displacement per roll is **deliberate** (owner,
+      2026-08-15) and is not to be damped back out: the roll is a committed lane
+      change, not a recentring dodge.
+
+      **`pilot.mjs roll` called this correct before it was fixed, and the verdict
+      was the defect.** It took the sign from peak `|upX|`. The sweep is a full
+      360°, so `|upX|` peaks near 90° and again near 270° with opposite signs, and
+      on a 3-frame cadence the larger sample landed at 325° — past the half turn,
+      sign already flipped. It reads the first quarter turn now. This is the second
+      time in this file a probe has confidently reported an inverted control as
+      correct; see the `pilot.mjs aim` note above.
 - [ ] **The level does not end.** Starting `pilot.mjs fly` near the carrier
       (`--t 44`) flew to **z = −29237** — 20 km past the intended finish — with no
       `outcome` ever set and kills frozen at 6. Either the boss does not spawn when
       the rail is reached via a seek rather than by flying, or there is no terminal
       state once past the carrier. Both are worth knowing before the difficulty
       pass. Unrelated to flight feel, so it was left alone.
+      **Narrowed (2026-08-15):** flown from `--t 6` the carrier spawns, dies and
+      sets `outcome='win'` at z ≈ −10270 — so the terminal state exists and the
+      `--t 44` arm is the broken one, i.e. a seek past a wave trigger skips it.
+      What is still missing is anything *consuming* the outcome: the rail ran on to
+      z = −14540, 4.7 km past the end of the terrain, still flying.
+
+      **Closed (2026-08-15) — `game/campaign.js`.** The outcome now starts a
+      victory lap, then an orbital hop to the next level. Measured with the new
+      `pilot.mjs hop`: sim active on 183/183 samples, terrain never visible while
+      the mesh is incomplete, rail lands back at 0 on Fichina, fps 31–115.
+
+      Three things worth not re-deriving:
+      - **The rail detaches, it does not rewind.** `flight.detached` holds the rail
+        *and* skips the ground clamp together. Resetting `railZ` while still
+        attached fires the next level's waves during the hop and drops the ship
+        onto terrain that is not drawn yet.
+      - **`flight.climb` is deliberately outside `off.y`.** The offset is a box
+        with sprung walls and a ground cushion; pushing 2.2 km through it fights
+        both. It is added to `pos.y` and to the camera's `_vShip`, and to nothing
+        else — feeding it into the camera *lead* terms would saturate the lead cap
+        for the whole ascent.
+      - **The campaign ticks before the sim, not in `updateScene`.** Ticked in the
+        render phase it lands between the two readers of `climb`: the ship is
+        placed with the old value, the camera uses the new one, and at the ascent's
+        ~940 m/s that is ~15 m of camera-above-ship against a 17 m chase distance.
+        The hull leaves the bottom of the frame.
+
+- [ ] **The commander is not wired as a boss.** `commander:ice` closes Fichina
+      through the ordinary enemy path: it fights, but there is no health bar, no
+      station-keeping and killing it does not set `outcome`, so Fichina cannot yet
+      hand off to a level 3. `enemies.js` exposes an `api.parts` conforming to
+      `boss.js` plus `killPart`/`progress`; `COMMANDER.station` is a drop-in for
+      `TUNE.boss`. This is the next task.
+
+- [ ] **A rebuild leaks shader programs, 93 → 133, and does not give them back.**
+      `material.dispose()` drops the refcount but `renderer.compile()` re-creates
+      programs for the whole scene. Harmless across one hop; unknown across four.
+
+- [ ] **The rebuild's last job is a 279 ms single-frame spike** (`renderer.compile`).
+      Deliberately parked under the approach phase, where no terrain is on screen
+      to judder. Noted, not chased (owner, 2026-08-15).
 - [x] **The carrier flew the player's own inputs back at them.** Owner: "he kinda
       just goes where i go and past me so i just have to constantly fly to the edges
       of the deadzone". Cause was literal — the station was `_v.copy(pl)`, the

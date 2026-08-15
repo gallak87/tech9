@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { bakeCloudSheet, cached } from './textures.js';
+import { RNG } from '../core/rng.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sky dome — Preetham analytic scattering plus two lit cloud decks.
@@ -222,9 +223,9 @@ void main() {
     vec3 hazeCol = sky * 1.05;
 
     // ── cirrus, high and thin, painted first so cumulus sits in front
-    if ( uCirrusAmount > 0.001 ) {
-      float t = ( uCirrusHeight - cameraPosition.y ) / dy;
-      vec2 uv = ( cameraPosition.xz + direction.xz * t ) * uCirrusScale + uCirrusWind * uTime;
+    float tCir = ( uCirrusHeight - cameraPosition.y ) / dy;
+    if ( uCirrusAmount > 0.001 && tCir > 0.0 ) {
+      vec2 uv = ( cameraPosition.xz + direction.xz * tCir ) * uCirrusScale + uCirrusWind * uTime;
       float c = texture2D( tCloud, uv ).a * 0.72 + texture2D( tCloud, uv * 1.93 + 0.31 ).a * 0.28;
       float cir = clamp( ( c - ( 1.0 - uCirrusCoverage ) ) * 3.6, 0.0, 1.0 );
       float fwd = pow( max( 0.0, cosTheta ), 6.0 );
@@ -233,10 +234,12 @@ void main() {
       sky = mix( sky, col, cir * uCirrusAmount * horizon );
     }
 
-    // ── cumulus deck
+    // ── cumulus deck.  The ray-plane hit is only in front of the eye while the
+    // deck is above it; without the sign test a deck driven down past the camera
+    // reappears overhead, mirrored.
     float t = ( uCloudHeight - cameraPosition.y ) / dy;
     vec2 uv = ( cameraPosition.xz + direction.xz * t ) * uCloudScale + uCloudWind * uTime;
-    float dens = deckDensity( uv, uCoverage );
+    float dens = t > 0.0 ? deckDensity( uv, uCoverage ) : 0.0;
     if ( dens > 0.002 ) {
       // march toward the sun through the slab: xz drift per unit altitude is
       // sunDir.xz / sunDir.y, so this is a real (if short) shadow ray
@@ -409,4 +412,97 @@ export class SkyDome extends THREE.Mesh {
     m.frustumCulled = false;
     return m;
   }
+}
+
+/* ── starfield ───────────────────────────────────────────────────────────────
+   Point sprites, not a baked sheet. A 2048² star texture repeated over a 16 km
+   sphere puts roughly one texel on one pixel at 1080p, which is exactly the
+   sampling rate where a star is indistinguishable from noise: it crawls between
+   texels as the camera turns and the mip chain dissolves it as it goes. A point
+   is rasterised at a size *this* code chooses, so the smallest star is still a
+   several-pixel gaussian and holds still.
+
+   Sizes below are framebuffer pixels; `setPixelRatio` converts from CSS pixels
+   so a star is the same apparent size at every quality tier.                  */
+
+const STAR_VERT = /* glsl */`
+precision highp float;
+attribute float aMag;        // 0..1 apparent magnitude
+attribute vec3  aTint;
+uniform float uSize;         // framebuffer px, brightest star
+uniform float uAmount;
+varying vec3 vCol;
+void main() {
+  vec4 mv = modelViewMatrix * vec4( position, 1.0 );
+  gl_Position = projectionMatrix * mv;
+  // A faint star is dimmer, not smaller. Shrinking it is what reintroduces the
+  // aliasing the point sprite exists to avoid: the gaussian below is ~3 px
+  // across at uSize 5.6, and half of that is back under the sampling rate.
+  gl_PointSize = uSize * ( 0.78 + 0.22 * aMag );
+  vCol = aTint * ( 0.10 + 1.60 * pow( aMag, 1.6 ) ) * uAmount;
+}
+`;
+
+const STAR_FRAG = /* glsl */`
+precision highp float;
+varying vec3 vCol;
+void main() {
+  vec2 d = gl_PointCoord - 0.5;
+  float r2 = dot( d, d ) * 4.0;
+  float a = exp( -r2 * 2.2 ) - 0.11;      // reaches zero at the sprite edge
+  if ( a <= 0.0 ) discard;
+  gl_FragColor = vec4( vCol * a, 1.0 );
+}
+`;
+
+export class Starfield extends THREE.Points {
+  constructor({ seed = 'lylat.stars', count = 5200, radius = 15000 } = {}) {
+    const rng = new RNG(seed);
+    const pos = new Float32Array(count * 3);
+    const mag = new Float32Array(count);
+    const tint = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const z = rng.range(-1, 1);
+      const th = rng.range(0, Math.PI * 2);
+      const r = Math.sqrt(Math.max(0, 1 - z * z));
+      pos[i * 3] = r * Math.cos(th) * radius;
+      pos[i * 3 + 1] = z * radius;
+      pos[i * 3 + 2] = r * Math.sin(th) * radius;
+      mag[i] = Math.pow(rng.next(), 2.2);
+      // O through M, weighted to the middle of the sequence
+      const t = rng.next();
+      const b = t < 0.14 ? [0.74, 0.83, 1.0] : t > 0.86 ? [1.0, 0.84, 0.66] : [0.95, 0.96, 1.0];
+      tint[i * 3] = b[0]; tint[i * 3 + 1] = b[1]; tint[i * 3 + 2] = b[2];
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('aMag', new THREE.BufferAttribute(mag, 1));
+    geo.setAttribute('aTint', new THREE.BufferAttribute(tint, 3));
+    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), radius * 1.01);
+
+    super(geo, new THREE.ShaderMaterial({
+      name: 'VulpineStars',
+      uniforms: { uSize: { value: 4.5 }, uAmount: { value: 1 } },
+      vertexShader: STAR_VERT, fragmentShader: STAR_FRAG,
+      // Depth-tested, not sorted over the top: the sphere sits at 15 km inside a
+      // 22 km far plane, so terrain and hull occlude stars for free.
+      transparent: true, depthWrite: false, depthTest: true,
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, blendEquation: THREE.AddEquation,
+      fog: false, toneMapped: false,
+    }));
+    this.name = 'starfield';
+    this.renderOrder = -998;
+    this.frustumCulled = false;
+    this._cssSize = 4.5;
+  }
+
+  setPixelRatio(px) { this.material.uniforms.uSize.value = this._cssSize * px; return this; }
+  setAmount(a) {
+    this.material.uniforms.uAmount.value = a;
+    this.visible = a > 0.002;
+    return this;
+  }
+
+  dispose() { this.geometry.dispose(); this.material.dispose(); }
 }

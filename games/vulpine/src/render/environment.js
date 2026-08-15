@@ -1,6 +1,5 @@
 import * as THREE from 'three';
-import { SkyDome } from './sky.js';
-import { bakeStarfield } from './textures.js';
+import { SkyDome, Starfield } from './sky.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Environment — sky, sun, shadow rig, image-based lighting, atmosphere and the
@@ -12,11 +11,18 @@ import { bakeStarfield } from './textures.js';
 // A preset is not just "where is the sun". It carries its own tone curve,
 // split-tone, bloom energy, flare character and atmospheric model, because
 // that is the difference between three times of day and three *places*.
+//
+// `blend(a, b, t)` crossfades two of them continuously. Everything that reaches
+// the frame through a uniform interpolates; the two things that do not are the
+// atmosphere shader chunks (baked literals — see below) and the IBL probe, both
+// of which cost a full material rebuild. Presets therefore declare the same key
+// set even where a value is inert, because a key present on one side and absent
+// on the other is a step, not a ramp.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PRESETS = {
   corneria: {
-    kind: 'atmosphere',
+    kind: 'atmosphere', stars: 0, nebulaAmount: 0,
     turbidity: 2.7, rayleigh: 1.85, mieCoefficient: 0.0032, mieDirectionalG: 0.80,
     elevation: 27, azimuth: 148,
     sunColor: 0xfff0d2, sunIntensity: 5.6,
@@ -83,7 +89,7 @@ export const PRESETS = {
   },
 
   sunset: {
-    kind: 'atmosphere',
+    kind: 'atmosphere', stars: 0, nebulaAmount: 0,
     turbidity: 8.0, rayleigh: 2.4, mieCoefficient: 0.0090, mieDirectionalG: 0.90,
     elevation: 4.2, azimuth: 190,
     sunColor: 0xffb066, sunIntensity: 5.2,
@@ -126,19 +132,41 @@ export const PRESETS = {
     },
   },
 
+  // Vacuum. The sun is the only light that matters and nothing bounces, so the
+  // read is entirely terminator contrast: a hard lit face, a shadow side held up
+  // by rim alone, and no ambient to soften the edge between them. Exposure sits
+  // near corneria's rather than four stops over it — the subject is still the
+  // Arwing under a 5.2 key, and the black sky around it is not a reason to open
+  // up. Sky radiance instead comes from the emitters that belong in space: the
+  // starfield and the planet carry their own linear values.
   space: {
-    kind: 'space',
-    sunColor: 0xfff4e2, sunIntensity: 5.0,
-    sunDir: [0.42, 0.34, -0.84],
-    hemiSky: 0x223052, hemiGround: 0x0a0a12, hemiIntensity: 0.28,
-    fillColor: 0x3a4a86, fillIntensity: 0.35,
-    rimColor: 0x88bbff, rimIntensity: 0.85,
-    fog: { color: 0x05070f, density: 0.00012 },
-    exposure: 0.95,
-    godray: { intensity: 0.16, tint: 0xbdd6ff, clamp: 2.5, density: 0.55, decay: 0.94, weight: 2.0, threshold: 1.6 },
+    kind: 'space', stars: 1, nebulaAmount: 0.55,
+    turbidity: 1.0, rayleigh: 0.0, mieCoefficient: 0.0, mieDirectionalG: 0.80,
+    // The sun sits behind the shoulder rather than down the nose, so a body
+    // ahead of the ship shows a lit face with a terminator across it instead of
+    // a black disc with a rim. In vacuum that lighting angle is the whole shot.
+    elevation: 16, azimuth: 75,
+    sunColor: 0xfff4e2, sunIntensity: 5.2,
+    hemiSky: 0x14203a, hemiGround: 0x05060c, hemiIntensity: 0.14,
+    fillColor: 0x2a3a66, fillIntensity: 0.14,
+    rimColor: 0x9cc6ff, rimIntensity: 1.05,
+    fog: { color: 0x04060d, density: 0.00002 },
+    exposure: 0.26,
+    godray: { intensity: 0.0, tint: 0xbdd6ff, clamp: 2.5, density: 0.55, decay: 0.94, weight: 2.0, threshold: 1.6 },
     nebula: [0x2a3f7a, 0x6b2a6a, 0x123048],
-    envIntensity: 0.8,
+    envIntensity: 0.30,
 
+    sky: {
+      sunDisc: 90, aureole: 0.0, aureoleTight: 6000, aureoleWide: 0.0, skyGain: 0.0,
+      hazeColor: [0, 0, 0], hazeSunColor: [0, 0, 0],
+      hazeAmount: 0.0, hazeHeight: 0.20, hazeFalloff: 1.7, hazeSunPow: 3.0,
+      zenithTint: [1.0, 1.0, 1.0],
+      cloudAmount: 0.0, coverage: 0.30, cloudHeight: 2100, cloudScale: 0.00020,
+      cloudWind: [0.0020, 0.0008], cloudThickness: 640, absorb: 2.7, erode: 0.20,
+      cloudSun: [1.0, 1.0, 1.0], cloudShade: [0.2, 0.2, 0.2],
+      cirrusAmount: 0.0, cirrusCoverage: 0.40, cirrusHeight: 8200,
+      cirrusScale: 0.000050, cirrusWind: [0.0010, 0.0004],
+    },
     atmos: {
       heightFalloff: 0.0002, baseHeight: -200,
       highTint: [0.30, 0.42, 0.86], lowTint: [0.80, 0.86, 1.05],
@@ -150,10 +178,58 @@ export const PRESETS = {
     grade: {
       toneMode: 2, shoulder: 0.82, linStart: 0.16, linLen: 0.22, toe: 1.30, white: 1.0,
       highlightDesat: 0.12, highlightKnee: 1.5,
-      saturation: 1.14, contrast: 1.14, ca: 2.4, vignette: 1.32, grain: 0.018,
+      saturation: 1.10, contrast: 1.16, ca: 1.2, vignette: 1.10, grain: 0.006,
       lift: [0.002, 0.004, 0.014], gain: [0.98, 0.995, 1.045], gamma: [1.0, 1.0, 1.0],
       shadowTint: [0.82, 0.90, 1.22], highlightTint: [0.98, 1.00, 1.06],
       sharpen: 0.32,
+    },
+  },
+
+  // Fichina. Ice, thin clean air and a snowfield that bounces most of the key
+  // straight back up, so the ground term of the hemisphere is nearly as bright
+  // as the sky term — that inversion is what separates a white world from an
+  // overexposed green one. Rayleigh runs high and turbidity low: cold air holds
+  // no aerosol, so the sky deepens toward the zenith instead of hazing over.
+  fichina: {
+    kind: 'atmosphere', stars: 0, nebulaAmount: 0,
+    turbidity: 1.7, rayleigh: 3.1, mieCoefficient: 0.0022, mieDirectionalG: 0.78,
+    elevation: 19, azimuth: 206,
+    sunColor: 0xfff3e4, sunIntensity: 5.3,
+    hemiSky: 0xbcd8ff, hemiGround: 0xc8d6e2, hemiIntensity: 0.95,
+    fillColor: 0x9ec2ea, fillIntensity: 0.44,
+    rimColor: 0xe6f2ff, rimIntensity: 0.80,
+    fog: { color: 0xd6e6f4, density: 0.00046 },
+    exposure: 0.155,
+    godray: { intensity: 0.0, tint: 0xd8e8ff, clamp: 2.4, density: 0.62, decay: 0.948, weight: 2.2, threshold: 1.5 },
+    nebula: [0x2a3f7a, 0x6b2a6a, 0x123048],
+    envIntensity: 1.05,
+
+    sky: {
+      sunDisc: 58, aureole: 0.85, aureoleTight: 2400, aureoleWide: 0.16, skyGain: 1.0,
+      hazeColor: [1.90, 2.25, 2.70], hazeSunColor: [2.95, 3.00, 3.05],
+      hazeAmount: 0.92, hazeHeight: 0.30, hazeFalloff: 1.5, hazeSunPow: 2.4,
+      zenithTint: [0.76, 0.86, 1.10],
+      cloudAmount: 1.0, coverage: 0.58, cloudHeight: 1500, cloudScale: 0.00013,
+      cloudWind: [0.0034, 0.0013], cloudThickness: 820, absorb: 2.2, erode: 0.16,
+      cloudSun: [2.10, 2.14, 2.20], cloudShade: [0.44, 0.52, 0.66],
+      cirrusAmount: 0.85, cirrusCoverage: 0.52, cirrusHeight: 7200,
+      cirrusScale: 0.000042, cirrusWind: [0.0016, 0.0006],
+    },
+    atmos: {
+      heightFalloff: 0.0013, baseHeight: -20,
+      highTint: [0.74, 0.86, 1.08], lowTint: [1.02, 1.04, 1.06],
+      sunTint: [0.30, 0.32, 0.38], sunPow: 5.0,
+    },
+    bloom: { strength: 0.055, radius: 1.10, threshold: 1.0, knee: 0.55, clamp: 5.0, anamorphic: 1.0, dirt: 0.030 },
+    flare: { intensity: 0.0, ghosts: 0.9, streak: 0.30, tint: 0xe8f2ff },
+    ao: { radius: 2.6, intensity: 0.92, strength: 0.58, tint: 0x2a3a4c },
+    grade: {
+      toneMode: 2, shoulder: 0.76, linStart: 0.18, linLen: 0.22, toe: 1.10, white: 1.0,
+      highlightDesat: 0.22, highlightKnee: 1.5,
+      saturation: 0.96, contrast: 1.10, ca: 0.0, vignette: 0.96, grain: 0.010,
+      lift: [0.006, 0.010, 0.022], gain: [0.99, 1.0, 1.03], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.86, 0.94, 1.20], highlightTint: [1.0, 1.01, 1.04],
+      sharpen: 0.26,
     },
   },
 };
@@ -290,8 +366,16 @@ export class Environment {
     this.sky = new SkyDome();
     this.root.add(this.sky);
 
-    // ── starfield backdrop (space presets)
-    this.starMesh = null;
+    // ── starfield backdrop. Built up front rather than on first space preset:
+    // it is one draw call of 3400 points and it has to be able to fade *in*
+    // over an atmosphere preset, which a lazily-created mesh cannot do without
+    // a first-frame compile stall in the middle of the fade.
+    this.stars = new Starfield();
+    this.stars.setPixelRatio(engine.renderer.getPixelRatio());
+    this.stars.setAmount(0);
+    this.root.add(this.stars);
+    this.nebulaMesh = null;
+    this._starOverride = null;
 
     // ── lights
     this.sun = new THREE.DirectionalLight(0xffffff, 1);
@@ -328,32 +412,87 @@ export class Environment {
     c.updateProjectionMatrix();
   }
 
+  /**
+   * Hard-set the whole look, including the two parts a blend cannot touch: the
+   * atmosphere chunks (a full program rebuild) and the IBL probe (a PMREM bake).
+   * Both are frame-time spikes, so a transition that has to stay seamless calls
+   * `blend` and saves this for a moment the frame is already hidden.
+   */
   apply(name) {
     const p = PRESETS[name];
     if (!p) throw new Error(`unknown environment preset: ${name}`);
     this.presetName = name;
     this.preset = p;
 
-    if (p.kind === 'atmosphere') {
-      this.sky.visible = true;
-      const phi = THREE.MathUtils.degToRad(90 - p.elevation);
-      const theta = THREE.MathUtils.degToRad(p.azimuth);
-      this.sunDir.setFromSphericalCoords(1, phi, theta);
-      this.sky.set({
-        turbidity: p.turbidity, rayleigh: p.rayleigh,
-        mieCoefficient: p.mieCoefficient, mieDirectionalG: p.mieDirectionalG,
-        ...(p.sky || {}),
-      });
-      this.sky.setSun(this.sunDir);
-      if (this.starMesh) this.starMesh.visible = false;
-      if (this.nebulaMesh) this.nebulaMesh.visible = false;
-    } else {
-      this.sky.visible = false;
-      this.sunDir.fromArray(p.sunDir).normalize();
-      this._ensureStars();
-      this.starMesh.visible = true;
-      this._tintNebula(p.nebula);
+    this._applyLook(p);
+
+    if (!this.scene.fog) this.scene.fog = new THREE.FogExp2(p.fog.color, p.fog.density);
+    installAtmosphere(p, this.sunDir);
+    this._dirtyMaterials();
+
+    this._sunFirst = true;
+    this.refreshEnvMap();
+    return this;
+  }
+
+  /**
+   * Crossfade the look from preset `fromName` to preset `toName`.
+   * Pure in `t` — no captured state, so the caller can drive it non-monotonically
+   * and re-issue the same t twice without drift.
+   *
+   * What does NOT interpolate: the atmosphere chunk constants and the sun vector
+   * baked into them, and the IBL probe. Both need a rebuild. The fog *colour and
+   * density* do interpolate and they are what carries an aerial-perspective
+   * change; the baked constants only reshape the height ramp and the sunward
+   * lobe underneath it.
+   */
+  blend(fromName, toName, t) {
+    const a = PRESETS[fromName], b = PRESETS[toName];
+    if (!a) throw new Error(`unknown environment preset: ${fromName}`);
+    if (!b) throw new Error(`unknown environment preset: ${toName}`);
+    const k = THREE.MathUtils.clamp(t, 0, 1);
+    lerpPreset(_blend, a, b, k);
+    _blend.kind = k < 0.5 ? a.kind : b.kind;
+    this.presetName = k < 0.5 ? fromName : toName;
+    this.preset = _blend;
+    this._applyLook(_blend);
+    return this;
+  }
+
+  /** Absolute starfield/nebula amount, or null to follow the preset. */
+  setStars(amount) {
+    this._starOverride = amount;
+    const p = this.preset;
+    if (p) this._applyStars(p);
+    return this;
+  }
+
+  _applyStars(p) {
+    const a = this._starOverride != null ? this._starOverride : (p.stars ?? 0);
+    this.stars.setAmount(a);
+    if (this.nebulaMesh) {
+      const n = a * (p.nebulaAmount ?? 1);
+      this.nebulaMesh.material.uniforms.uAmount.value = n;
+      this.nebulaMesh.visible = n > 0.002;
     }
+  }
+
+  /** Everything a preset drives that is a uniform or a pass parameter. */
+  _applyLook(p) {
+    const phi = THREE.MathUtils.degToRad(90 - p.elevation);
+    const theta = THREE.MathUtils.degToRad(p.azimuth);
+    this.sunDir.setFromSphericalCoords(1, phi, theta);
+
+    this.sky.visible = true;
+    this.sky.set({
+      turbidity: p.turbidity, rayleigh: p.rayleigh,
+      mieCoefficient: p.mieCoefficient, mieDirectionalG: p.mieDirectionalG,
+      ...(p.sky || {}),
+    });
+    this.sky.setSun(this.sunDir);
+
+    if (p.nebula && !this.nebulaMesh) this._buildNebula(p.nebula);
+    this._applyStars(p);
 
     this.sun.color.setHex(p.sunColor);
     this.sun.intensity = p.sunIntensity;
@@ -365,14 +504,14 @@ export class Environment {
     this.rim.color.setHex(p.rimColor);
     this.rim.intensity = p.rimIntensity;
 
-    this.scene.fog = new THREE.FogExp2(p.fog.color, p.fog.density);
-    installAtmosphere(p, this.sunDir);
-    this._dirtyMaterials();
+    // Mutated, not replaced: three keys material programs on whether a fog
+    // object exists, so swapping the instance every frame of a blend would
+    // recompile the scene. Values are plain uniforms and are free to move.
+    const fog = this.scene.fog;
+    if (fog) { fog.color.setHex(p.fog.color); fog.density = p.fog.density; }
 
+    this.scene.environmentIntensity = p.envIntensity ?? 1;
     this._applyPost(p);
-    this._sunFirst = true;
-    this.refreshEnvMap();
-    return this;
   }
 
   /** Push the preset's post-process character into the composer. */
@@ -434,30 +573,16 @@ export class Environment {
     });
   }
 
-  _ensureStars() {
-    if (this.starMesh) return;
-    const tex = bakeStarfield({ seed: 'lylat', size: 2048, count: 6000 });
-    const geo = new THREE.SphereGeometry(16000, 48, 32);
-    const mat = new THREE.MeshBasicMaterial({
-      map: tex, side: THREE.BackSide, depthWrite: false, fog: false, toneMapped: false,
-    });
-    tex.repeat.set(3, 2);
-    this.starMesh = new THREE.Mesh(geo, mat);
-    this.starMesh.renderOrder = -1000;
-    this.starMesh.frustumCulled = false;
-    this.root.add(this.starMesh);
-  }
-
-  _tintNebula(colors) {
-    if (!colors) return;
+  _buildNebula(colors) {
     // Nebula haze rendered as an additive inner shell so stars show through it.
-    if (!this.nebulaMesh) {
+    {
       const geo = new THREE.SphereGeometry(15600, 48, 32);
       const mat = new THREE.ShaderMaterial({
         side: THREE.BackSide, depthWrite: false, transparent: true, fog: false,
         blending: THREE.AdditiveBlending,
         uniforms: {
           cA: { value: new THREE.Color() }, cB: { value: new THREE.Color() }, cC: { value: new THREE.Color() },
+          uAmount: { value: 0 },
         },
         vertexShader: /* glsl */`
           varying vec3 vDir;
@@ -467,6 +592,7 @@ export class Environment {
           }`,
         fragmentShader: /* glsl */`
           uniform vec3 cA, cB, cC;
+          uniform float uAmount;
           varying vec3 vDir;
           float hash(vec3 p){ p = fract(p*0.3183099+vec3(0.71,0.113,0.419)); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
           float noise(vec3 x){
@@ -484,19 +610,19 @@ export class Environment {
             float n3 = fbm(d * 1.1 - 7.0);
             vec3 col = cA * pow(n1, 2.6) * 1.5 + cB * pow(n2, 3.4) * 0.9 + cC * pow(n3, 2.0) * 0.7;
             float band = smoothstep(-0.55, 0.45, d.y * 0.5 + fbm(d*0.9));
-            gl_FragColor = vec4(col * band * 0.55, 1.0);
+            gl_FragColor = vec4(col * band * 0.55 * uAmount, 1.0);
           }`,
       });
       this.nebulaMesh = new THREE.Mesh(geo, mat);
       this.nebulaMesh.renderOrder = -999;
       this.nebulaMesh.frustumCulled = false;
+      this.nebulaMesh.visible = false;
       this.root.add(this.nebulaMesh);
     }
     const u = this.nebulaMesh.material.uniforms;
     u.cA.value.setHex(colors[0]);
     u.cB.value.setHex(colors[1]);
     u.cC.value.setHex(colors[2]);
-    this.nebulaMesh.visible = true;
   }
 
   /** Bake the sky (and its clouds) into a PMREM probe used by every PBR material. */
@@ -513,7 +639,10 @@ export class Environment {
       this._envRT = this._pmrem.fromScene(capture, 0.02, 0.1, 2000);
       proxy.geometry.dispose(); proxy.material.dispose();
     } else {
-      capture.background = new THREE.Color(this.preset.fog.color).multiplyScalar(2.4);
+      // Vacuum has no sky to bake, and the fog colour it would otherwise stand
+      // in for is now near-black. The hemisphere's own sky term is the only
+      // honest ambient left, so the probe carries that and nothing else.
+      capture.background = new THREE.Color(this.preset.hemiSky);
       if (this._envRT) this._envRT.dispose();
       this._envRT = this._pmrem.fromScene(capture, 0.04, 0.1, 100);
     }
@@ -540,7 +669,7 @@ export class Environment {
     this.fill.position.copy(focus).add(_v2.set(-this.sunDir.x, 0.35, -this.sunDir.z).multiplyScalar(200));
     this.rim.position.copy(focus).add(_v3.set(-this.sunDir.x, -0.12, -this.sunDir.z).multiplyScalar(-260));
 
-    if (this.starMesh) this.starMesh.position.copy(camera.position);
+    this.stars.position.copy(camera.position);
     if (this.nebulaMesh) this.nebulaMesh.position.copy(camera.position);
     this.sky.position.copy(camera.position);
     this.sky.setTime(this.time);
@@ -577,7 +706,50 @@ export class Environment {
   dispose() {
     if (this._envRT) this._envRT.dispose();
     this._pmrem.dispose();
+    this.stars.dispose();
   }
+}
+
+/* ── preset interpolation ────────────────────────────────────────────────────
+   Presets are plain data, so the blend is a structural walk rather than a list
+   of hand-written lerps: a key added to a preset is blendable the moment it
+   exists. `out` is reused across frames — the walk allocates only on the first
+   call for a given shape.
+
+   Colours are stored as sRGB hex but mixed after `setHex` has converted them
+   into the linear working space, because a channel-wise mix of two hex ints is
+   a mix in a nonlinear space and it bends the hue on the way across.          */
+const HEX_KEYS = new Set(['sunColor', 'hemiSky', 'hemiGround', 'fillColor', 'rimColor', 'color', 'tint']);
+const SKIP_KEYS = new Set(['kind', 'nebula']);
+
+const _cA = new THREE.Color();
+const _cB = new THREE.Color();
+const _blend = {};
+
+function lerpPreset(out, a, b, t) {
+  for (const k in b) {
+    const vb = b[k], va = a[k];
+    if (SKIP_KEYS.has(k)) { out[k] = vb; continue; }
+    if (va === undefined) { out[k] = vb; continue; }
+    if (typeof vb === 'number') {
+      out[k] = HEX_KEYS.has(k)
+        ? _cA.setHex(va).lerp(_cB.setHex(vb), t).getHex()
+        : va + (vb - va) * t;
+    } else if (Array.isArray(vb)) {
+      let arr = out[k];
+      if (!Array.isArray(arr) || arr.length !== vb.length) arr = out[k] = new Array(vb.length);
+      for (let i = 0; i < vb.length; i++) {
+        arr[i] = typeof vb[i] === 'number' ? va[i] + (vb[i] - va[i]) * t : vb[i];
+      }
+    } else if (vb && typeof vb === 'object') {
+      let o = out[k];
+      if (!o || typeof o !== 'object' || Array.isArray(o)) o = out[k] = {};
+      lerpPreset(o, va, vb, t);
+    } else {
+      out[k] = t < 0.5 ? va : vb;
+    }
+  }
+  return out;
 }
 
 const _v = new THREE.Vector3();

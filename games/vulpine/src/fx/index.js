@@ -8,6 +8,7 @@ import { ShellBank, RingBank, ShieldBank } from './volumes.js';
 import { DebrisField } from './debris.js';
 import { SpeedLines, VapourCone } from './screen.js';
 import { ChargeOrb } from './charge.js';
+import { installTransit } from './transit.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FX subsystem.  OWNER: fx agent.
@@ -1081,6 +1082,58 @@ export function installFx(ctx) {
   }
 
   /* ═══════════════════════════════════════════════════════════════════════ */
+  /*  RE-ENTRY ABLATION                                                      */
+  /* ═══════════════════════════════════════════════════════════════════════ */
+  //
+  // Compression heating is a function of edge, not of surface: it happens where
+  // the airflow has to turn hardest. These three mounts are the Arwing's leading
+  // edges, and the plasma is emitted from them and left behind, so the streaks
+  // read as the hull ablating rather than as an exhaust.
+
+  const EDGES = [[0, -0.05, -3.05], [3.06, 0.30, 0.28], [-3.06, 0.30, 0.28]];
+
+  function ablation(heat, dt) {
+    shipDir([0, 0, 1], _d);                       // aft, in world space
+    const n = Math.max(1, Math.round(heat * 26 * Math.min(dt, 1 / 30)));
+    for (let i = 0; i < EDGES.length; i++) {
+      shipPoint(EDGES[i], _v);
+
+      // the standing glow welded to the edge itself
+      resetP();
+      P.x = _v.x; P.y = _v.y; P.z = _v.z;
+      P.vx = shipVel.x; P.vy = shipVel.y; P.vz = shipVel.z;
+      P.cell = CELL.flare; P.mode = 0;
+      P.life = 0.05; P.fadeIn = 0.006; P.fadePow = 1.2;
+      P.size0 = (i === 0 ? 2.2 : 1.5) * (0.5 + heat); P.size1 = P.size0 * 1.2;
+      P.rot = R.next() * 6.28;
+      setA(5.2 * heat, 2.5 * heat, 0.85 * heat);
+      setB(2.4 * heat, 0.55 * heat, 0.10 * heat);
+      P.alpha = 1;
+      add.emit();
+
+      for (let k = 0; k < n; k++) {
+        coneDir(_d, 0.28, _v2);
+        const sp = (55 + R.next() * 190) * (0.5 + heat);
+        resetP();
+        P.x = _v.x + R.range(-0.3, 0.3); P.y = _v.y + R.range(-0.3, 0.3); P.z = _v.z + R.range(-0.3, 0.3);
+        P.vx = _v2.x * sp + shipVel.x * 0.2;
+        P.vy = _v2.y * sp + shipVel.y * 0.2;
+        P.vz = _v2.z * sp + shipVel.z * 0.2;
+        P.cell = CELL.streak; P.mode = 1; P.stretch = 0.010;
+        P.drag = 1.6; P.turb = 2.2;
+        P.life = 0.16 + R.next() * 0.30;
+        P.fadeIn = 0.01; P.fadePow = 1.5;
+        P.size0 = 0.26 + 0.22 * R.next(); P.size1 = 0.05;
+        P.seed = R.next();
+        setA(4.8 * heat, 2.1 * heat, 0.55 * heat);
+        rampB(COL.emberCool);
+        P.bias = 0.85; P.alpha = 1;
+        add.emit();
+      }
+    }
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════ */
   /*  DEMO DRIVER — a self-contained firefight for review                    */
   /* ═══════════════════════════════════════════════════════════════════════ */
 
@@ -1224,6 +1277,7 @@ export function installFx(ctx) {
     updateShip(dt);
     updateEnv(dt);
     updateCharge(dt);
+    transit.update(dt);
     debris.update(dt);
 
     // pooled lights
@@ -1454,6 +1508,9 @@ export function installFx(ctx) {
     frame(c.engine.camera, _sp, 130, 128, 14, 46);
   });
 
+  /* ── orbital hop ───────────────────────────────────────────────────────── */
+  const transit = installTransit(ctx, { ablation });
+
   /* ── URL switch so the demo can be booted without a shot ───────────────── */
   try {
     if (new URLSearchParams(location.search).get('fxdemo') === '1') st.demo = true;
@@ -1461,7 +1518,7 @@ export function installFx(ctx) {
 
   /* ═══════════════════════════════════════════════════════════════════════ */
   const api = {
-    group,
+    group, transit,
     explosion, laser, impact, spray,
     muzzle, shieldHit, chargedShot,
     tracer, tracerEnd,
@@ -1486,6 +1543,7 @@ export function installFx(ctx) {
       trails.dispose(); soft.dispose(); tracers.dispose();
       shells.dispose(); rings.dispose(); shields.dispose();
       debris.dispose(); lines.dispose(); cone.dispose(); orb.dispose();
+      transit.dispose();
     },
   };
   return api;

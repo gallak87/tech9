@@ -174,3 +174,109 @@ export class VapourCone {
 
   dispose() { this.geometry.dispose(); this.material.dispose(); }
 }
+
+/* ── re-entry heat wash ───────────────────────────────────────────────────────
+   The shock layer wraps the whole canopy, so this is a full-frame term, not a
+   glow around the nose. Like the speed lines it is written straight in NDC and
+   never enters world space.
+
+   It emits linear scene radiance into the HDR buffer ahead of the grade rather
+   than lifting the graded frame, so the tone curve still gets to roll the peak
+   off — a wash added after the curve is a flat white rectangle with no shoulder
+   left to spend. Radiance is capped: the veil is what the frame is looking
+   through, and a value that drives every channel past white takes the ship with
+   it.                                                                         */
+
+const WASH_VERT = /* glsl */`
+precision highp float;
+varying vec2 vNdc;
+void main() {
+  vNdc = position.xy * 2.0;
+  gl_Position = vec4( position.xy * 2.0, 0.0, 1.0 );
+}
+`;
+
+const WASH_FRAG = /* glsl */`
+precision highp float;
+uniform float uAmount;
+uniform float uTime;
+uniform float uAspect;
+uniform vec3  uHot;
+uniform vec3  uVeil;
+varying vec2 vNdc;
+
+float hash12( vec2 p ) {
+  vec3 q = fract( vec3( p.xyx ) * 0.1031 );
+  q += dot( q, q.yzx + 33.33 );
+  return fract( ( q.x + q.y ) * q.z );
+}
+float vnoise( vec2 p ) {
+  vec2 i = floor( p ), f = fract( p );
+  f = f * f * ( 3.0 - 2.0 * f );
+  return mix( mix( hash12( i ), hash12( i + vec2(1,0) ), f.x ),
+              mix( hash12( i + vec2(0,1) ), hash12( i + vec2(1,1) ), f.x ), f.y );
+}
+
+void main() {
+  vec2 q = vec2( vNdc.x * uAspect, vNdc.y );
+  float r = length( q );
+  float a = clamp( uAmount, 0.0, 1.0 );
+
+  // Plasma stands off the hull and is brightest where the shock is thickest —
+  // at the edge of the field of view, not in the middle of it.
+  float edge = smoothstep( 0.18, 1.35, r );
+
+  // streaks: angular noise scrolling outward, so the ablation reads as moving
+  float ang = atan( q.y, q.x );
+  float streak = vnoise( vec2( ang * 9.0, r * 3.0 - uTime * 2.6 ) )
+               * vnoise( vec2( ang * 23.0 + 5.0, r * 6.5 - uTime * 4.1 ) );
+  streak = pow( streak, 1.6 );
+
+  float veil = a * a;
+  vec3 col = uVeil * veil * ( 0.30 + 0.70 * edge )
+           + uHot * a * edge * ( 0.35 + 1.30 * streak );
+
+  gl_FragColor = vec4( col, 1.0 );
+}
+`;
+
+export class HeatWash {
+  constructor() {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(
+      [-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0], 3));
+    geo.setIndex([0, 1, 2, 0, 2, 3]);
+    geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1e6);
+    this.geometry = geo;
+    this.material = new THREE.ShaderMaterial({
+      uniforms: {
+        uAmount: { value: 0 }, uTime: { value: 0 }, uAspect: { value: 16 / 9 },
+        // Linear scene radiance at the exposure the re-entry blend passes
+        // through (~0.2). Authored in display units the whole term lands two
+        // stops under the frame and reads as fog.
+        uHot: { value: new THREE.Vector3(7.2, 2.05, 0.30) },
+        uVeil: { value: new THREE.Vector3(3.2, 1.75, 0.95) },
+      },
+      vertexShader: WASH_VERT, fragmentShader: WASH_FRAG,
+      transparent: true, depthWrite: false, depthTest: false,
+      blending: THREE.CustomBlending,
+      blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, blendEquation: THREE.AddEquation,
+      toneMapped: false, fog: false,
+    });
+    this.mesh = new THREE.Mesh(geo, this.material);
+    this.mesh.frustumCulled = false;
+    this.mesh.renderOrder = 3900;      // under the speed lines, over everything else
+    this.mesh.name = 'fx.heatwash';
+    this.mesh.visible = false;
+  }
+
+  update(dt, amount, aspect) {
+    const u = this.material.uniforms;
+    u.uTime.value += dt;
+    u.uAmount.value = amount;
+    u.uAspect.value = aspect;
+    this.mesh.visible = amount > 0.003;
+  }
+
+  dispose() { this.geometry.dispose(); this.material.dispose(); }
+}

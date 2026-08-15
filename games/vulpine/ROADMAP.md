@@ -651,11 +651,48 @@ screenshot of ours. Do these before the rest of Phase 8.
 
       Combined with the toggle-off reading above, the cost is **per-pixel work in
       what stayed on**: the terrain material (triplanar × lithology × the baked
-      horizon lookup), water, AO and TAA. Prime suspect is `PlanarReflection`,
-      which renders the scene a second time and scales with resolution like
-      everything else here. Split it with the dev panel: `detail / cost` at 1
-      zeroes AO, motion and reflections together; then `ao` and `taa` alone in
-      `passes`.
+      horizon lookup), water, AO and TAA.
+
+      **Split measured, and there is no single hot pass.** `valley` at `t=14`,
+      1600×900, `quality=high`, median of 90 frames, one change at a time off a
+      re-measured baseline (drift −0.20 ms):
+
+      | arm | frame | saves |
+      |---|---|---|
+      | baseline (shipped) | 12.9 ms | — |
+      | reflection off | 11.9 | 1.00 |
+      | AO off | 12.0 | 0.90 |
+      | SMAA off | 12.0 | 0.90 |
+      | bloom off | 12.2 | 0.70 |
+      | TAA off | 12.4 | 0.50 |
+      | DOF off | 12.4 | 0.50 |
+      | **all post off** | **8.8** | **4.10** |
+      | all post off + reflection off | 8.4 | 4.50 |
+
+      The parts sum to ~4.5 and the whole is 4.1, so post is **death by a thousand
+      cuts** — six passes at 0.5–1.0 ms each, no single one worth killing. The
+      **bare scene pass is 8.4 of 12.9 ms, i.e. 65% of the frame**. That is where
+      the budget went, and it is the terrain and water materials, not the chain.
+
+      So the real options are: cut per-pixel cost in the terrain/water shaders
+      (triplanar is 3 samples where 1 would often do; the lithology blend and the
+      horizon lookup both run per fragment), or render the scene at reduced
+      resolution and upscale. Nothing else moves the number materially.
+
+      Caveat on absolutes: taken under headless ANGLE, where this harness's
+      baseline runs roughly 3× faster than real Chrome on the same machine. The
+      *split* is the result; the milliseconds are not comparable to the owner's
+      26–40 fps readings.
+
+      Two methodology notes, because both cost a run:
+      - **A/B by flying is unreadable.** Owner's hand test showed shipped both
+        faster (25.1 ms) and slower (33.6 ms) than cheapest, because frame time
+        swings 25→34 ms on scene content alone — a bigger effect than the setting
+        being tested. Use a fixed `shot` and a fixed `t`.
+      - **Do not call `env.apply()` between arms.** It triggers a PMREM bake whose
+        spike outlives the settle window, and `engine.avgFrameMs` is an EMA that
+        carries it. A first pass did this and reported every pass as *costing*
+        time when disabled. Re-enable passes directly and time the frames locally.
 
 - [ ] **Older note, kept for the numbers.** First contract-point measurement taken
       (1080p `--quality high`, serial): **17.3 ms with the reflection disabled,

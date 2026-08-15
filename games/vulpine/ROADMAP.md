@@ -633,6 +633,30 @@ screenshot of ours. Do these before the rest of Phase 8.
       report the last render, not the frame), and the browser was sharing the
       machine with a dev server and an editor.
 
+      **Draw count is now ruled out (owner, 2026-08-15).** Three window sizes,
+      real Chrome, `quality=high`, same scene:
+
+      | window | draws | tris | frame |
+      |---|---|---|---|
+      | small | 1077 | 1.43 M | 11.0 ms |
+      | medium | 1217 | 1.52 M | 21.0 ms |
+      | large | 1142 | 1.48 M | 38.6 ms |
+
+      Draws and tris are flat; only the pixel count moved, and frame time tracked
+      it. Fitting the three points gives **≈2.8 ms fixed + ≈18 ms per megapixel**.
+      The fixed term is the whole CPU side — submission, JS, scene graph — at **7%
+      of a 38.6 ms frame**, so instancing and chunk merging cannot pay for
+      themselves here and should not be attempted. Do not re-open this without a
+      new measurement.
+
+      Combined with the toggle-off reading above, the cost is **per-pixel work in
+      what stayed on**: the terrain material (triplanar × lithology × the baked
+      horizon lookup), water, AO and TAA. Prime suspect is `PlanarReflection`,
+      which renders the scene a second time and scales with resolution like
+      everything else here. Split it with the dev panel: `detail / cost` at 1
+      zeroes AO, motion and reflections together; then `ao` and `taa` alone in
+      `passes`.
+
 - [ ] **Older note, kept for the numbers.** First contract-point measurement taken
       (1080p `--quality high`, serial): **17.3 ms with the reflection disabled,
       18.1 ms with it**. So the reflection is not the problem — the base frame

@@ -508,6 +508,36 @@ screenshot of ours. Do these before the rest of Phase 8.
         ~940 m/s that is ~15 m of camera-above-ship against a 17 m chase distance.
         The hull leaves the bottom of the frame.
 
+- [ ] **Fichina is Corneria in a white coat** (owner, 2026-08-15: "its nearly
+      identical to the first level lol"). The DNA work is sound — the numbers and
+      the palette really did change — but **the DNA vocabulary is itself a river
+      canyon**, so every world expressed in it comes out as one. Every level built
+      from `keys` gets: a flat floor at `bed` below the waterline, a
+      beach→shelf→cliff terrace stack, one continuous slot, near-symmetric banks,
+      and nothing whatsoever above the ship. Changing `inner` from 126 to 206 and
+      the palette from stone to snow does not escape that grammar.
+
+      So this is a **structure** problem, not a tuning one. Parameters that would
+      actually make a world read differently, roughly in order of payoff:
+      - **Cross-section modes.** The terrace stack is one shape function. A
+        glacial U-trough is a different one; a fortress trench is a third. `keys`
+        should select a profile *kind*, not just feed widths into the only one.
+      - **A floor that does something.** Both worlds have a flat floor for 9 km.
+        Terraces, ice steps, a floor that climbs to a pass and drops away, or
+        breaks into gaps you dive through.
+      - **Asymmetry.** Both worlds are near-mirror-symmetric about the centreline.
+        One overhanging wall against one shallow ramp reads as a different place
+        immediately, and costs one term.
+      - **A ceiling.** Nothing in the vocabulary can put geometry *above* the
+        ship. Arches, ice bridges, a cavern roof, a canopy of hanging séracs —
+        this is the single biggest missing axis and the cheapest way to make a
+        corridor stop reading as a canyon.
+      - **Non-corridor stretches.** An open basin, a field of towers to weave
+        between, a break where the walls vanish entirely. Pacing as much as looks.
+
+      Sector Ω needs most of this anyway — it has no ground at all — so the
+      profile-kind seam is worth cutting before that level rather than after.
+
 - [ ] **The commander is not wired as a boss.** `commander:ice` closes Fichina
       through the ordinary enemy path: it fights, but there is no health bar, no
       station-keeping and killing it does not set `outcome`, so Fichina cannot yet

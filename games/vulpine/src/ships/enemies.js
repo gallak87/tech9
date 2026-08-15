@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { rng } from '../core/rng.js';
 import { emissive } from '../render/materials.js';
 import { bakeRGBA, cached } from '../render/textures.js';
+import { registerShot } from '../game/shots.js';
 import { SMat, buildShipMaterials } from './ship-materials.js';
 import {
   loft, superellipse, assemble, M,
@@ -849,6 +850,850 @@ function vanguardProto() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   COMMANDER — elite mini-boss, the climax of levels 2 and 3
+   ═══════════════════════════════════════════════════════════════════════════
+
+   Sits between the vanguard (30 m, one hp pool) and Gargantua (68 m, three
+   phases): 24 m, three destructible weak points, one phase change.
+
+   The fight is a search, not an attrition race. There is no single bar to
+   empty — three parts, killable in any order, and all three down ends it. So
+   the rig has one job above every other: **the weak points are the only lit
+   features on the hull.** Amber means shoot here, on both variants and on both
+   planets, so the lesson carries from Fichina to Sector Ω.
+
+   One rig, two skins. `ice` is a gun emplacement — frontal armour, spinal
+   barrel, weak points on the recoil dampers and the coolant spine. `void` is a
+   flagship — broadside turrets, weak points on the bridge and two reactor
+   vents. They share the turret module, the engine bank, the hit register and
+   the whole api; only the hull, the weapon and the material set differ.
+
+   Decisions (when to fire, where to station) live in game/combat.js. This file
+   owns the object and the presentation of its state. */
+
+export const COMMANDER = {
+  weakHp: 46,           // × 3 = 138, the whole fight
+  hullHp: 220,          // armour. Never the objective — see api.parts
+  score: 5000,
+  radius: 12,           // authored units; the spec carries it × NPC_SCALE
+
+  // Station-keeping numbers for combat.js, in the same field names as its
+  // TUNE.boss block. Closer than the carrier's -520: this hull is a third the
+  // size, so it has to sit inside 700 m to be more than a speck.
+  station: {
+    z: -430, zNear: -280, zFar: -640,
+    clearance: 46, follow: 1.9,
+    pathX: 58, pathXw: 0.61, pathX2: 19, pathX2w: 1.29,
+    pathY: 20, pathYw: 0.83, pathYMid: 26,
+    railX: 90, railYUp: 62, railYDown: 4,
+  },
+  // Applied by combat.js when the first weak point dies; the object handles
+  // its own visual half of the phase change.
+  phase2: { fireScale: 0.60, followScale: 1.35 },
+};
+
+const CM = {};
+let cmBuilt = false;
+function commanderMaterials() {
+  if (cmBuilt) return CM;
+  cmBuilt = true;
+  buildEnemyMaterials();
+
+  /* Fichina: a cold conductor under a dielectric ice glaze. Two different
+     BRDFs on one hull is what stops the whole thing reading as one grey mass
+     at 500 m — the glaze holds a hard narrow rim where the metal holds none. */
+  CM.iceHull = SMat.hostile.clone();
+  CM.iceHull.color.setHex(0x555f6b);
+  CM.iceHull.roughness = 0.58;
+  CM.iceHull.metalness = 0.80;
+  CM.iceHull.envMapIntensity = 1.25;
+
+  CM.icePlate = SMat.hostile.clone();
+  CM.icePlate.color.setHex(0x8ca4b6);
+  CM.icePlate.roughness = 0.28;
+  CM.icePlate.metalness = 0.10;
+  CM.icePlate.clearcoat = 1.0;
+  CM.icePlate.clearcoatRoughness = 0.10;
+  CM.icePlate.envMapIntensity = 1.9;
+
+  CM.rime = SMat.hostile.clone();
+  CM.rime.color.setHex(0xc3d3e0);
+  CM.rime.roughness = 0.90;
+  CM.rime.metalness = 0.0;
+  CM.rime.envMapIntensity = 1.1;
+
+  /* Sector Ω: no ground bounce and no sky, so the hull gets its value from its
+     own panel lighting rather than from the environment. Darker albedo than
+     any other hostile, and the only ship in the game that carries running
+     lights along its flanks. */
+  CM.voidHull = SMat.hostile.clone();
+  CM.voidHull.color.setHex(0x37323f);
+  CM.voidHull.roughness = 0.64;
+  CM.voidHull.metalness = 0.74;
+  CM.voidHull.envMapIntensity = 0.55;
+
+  CM.voidPlate = SMat.hostilePlate.clone();
+  CM.voidPlate.color.setHex(0x1d1a24);
+  CM.voidPlate.roughness = 0.90;
+  CM.voidPlate.metalness = 0.42;
+  CM.voidPlate.envMapIntensity = 0.40;
+
+  CM.panel = emissive(0xb44dff, 2.4);
+  CM.weak = emissive(0xffb43a, 6.5);
+  CM.weakDead = emissive(0x2a1e14, 0.5);
+  CM.eye = emissive(0xff3a20, 5.0);
+  CM.charge = emissive(0xffd070, 6.0);
+  return CM;
+}
+
+/** Barbette + elevating twin mount. Shared by both variants. */
+function cmdTurret(name, hullMat, plateMat) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(hullMat, hullLoft({
+    stations: [
+      { z: -1.10, rx: 0.80, ry: 0.50, p: 3.2, yOff: 0.30 },
+      { z: -0.40, rx: 1.12, ry: 0.74, p: 3.6, yOff: 0.40 },
+      { z: 0.45, rx: 1.06, ry: 0.70, p: 3.6, yOff: 0.39 },
+      { z: 1.05, rx: 0.74, ry: 0.46, p: 3.2, yOff: 0.28 },
+    ], count: 18, steps: 10,
+    circGrooves: [{ z: 0.0, depth: 0.04, width: 0.09 }],
+  }));
+  p.add(plateMat, chamferBox(1.55, 0.14, 0.85, 0.05), M.chain(M.t(0, 0.86, -0.70), M.rx(0.55)));
+  p.both(SMat.metalDark, louvers({ n: 3, w: 0.52, h: 0.055, d: 0.12, gap: 0.10, tilt: -0.6 }),
+    M.chain(M.t(0.92, 0.62, 0.55), M.ry(1.2)));
+  p.into(g);
+
+  const barrels = new THREE.Group();
+  barrels.name = 'barrels';
+  barrels.position.set(0, 0.80, -0.45);
+  const bp = Parts();
+  bp.add(SMat.metalDark, chamferBox(0.92, 0.52, 0.74, 0.09));
+  bp.both(SMat.metal, tubeAlong([V3(0, 0, 0.10), V3(0, 0, -1.85)], (t) => 0.105 - t * 0.026, 10), M.t(0.26, 0, 0));
+  bp.both(SMat.metalDark, chamferBox(0.23, 0.23, 0.28, 0.04), M.t(0.26, 0, -1.82));
+  bp.both(SMat.hostileTrim, chamferBox(0.16, 0.05, 0.42, 0.02), M.t(0.26, 0.14, -1.05));
+  bp.both(SMat.hostileGlow, new THREE.CircleGeometry(0.065, 10), M.chain(M.t(0.26, 0, -1.99), M.ry(Math.PI)));
+  bp.into(barrels);
+
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 8), CM.eye);
+  eye.position.set(0, 0.30, -0.58);
+  eye.name = 'eye';
+  barrels.add(eye);
+  g.add(barrels);
+  g.userData.barrels = barrels;
+  g.userData.muzzle = V3(0.26, 0, -2.05);
+  return g;
+}
+
+/** Emissive band round a z-axis cylinder — a damper collar, a vent throat. */
+function bandGeo(r, len, seg = 20) {
+  const g = new THREE.CylinderGeometry(r, r, len, seg, 1, true);
+  g.rotateX(Math.PI / 2);
+  return g;
+}
+
+/* ── ice: recoil damper ────────────────────────────────────────────────────
+   Reads as a piston because it has one: a rod running forward into the
+   armour, a body that recoils on the shot, and a collar that vents. */
+function iceDamper(name) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(CM.iceHull, hullLoft({
+    stations: [
+      { z: -3.30, rx: 0.86, ry: 0.86, p: 3.0 },
+      { z: -2.30, rx: 1.14, ry: 1.14, p: 3.2 },
+      { z: 1.50, rx: 1.20, ry: 1.20, p: 3.2 },
+      { z: 2.85, rx: 0.94, ry: 0.94, p: 3.0 },
+    ], count: 20, steps: 12,
+    circGrooves: [{ z: -1.30, depth: 0.10, width: 0.24 }, { z: 0.70, depth: 0.10, width: 0.24 }],
+    longGrooves: [{ a: 0.25, depth: 0.08, width: 0.022, z0: -2.6, z1: 2.4 }],
+  }));
+  p.add(SMat.metal, tubeAlong([V3(0, 0, -3.10), V3(0, 0, -6.40)], 0.30, 12));
+  p.add(SMat.metalDark, shellArc({ r: 0.44, t: 0.12, a0: 0, a1: Math.PI * 2, z0: -6.50, z1: -6.05, seg: 14 }));
+  p.add(CM.icePlate, shellArc({ r: 1.26, t: 0.14, a0: 0.35, a1: Math.PI - 0.35, z0: -1.9, z1: 1.1, seg: 12 }));
+  p.add(SMat.metalDark, louvers({ n: 4, w: 1.30, h: 0.10, d: 0.24, gap: 0.19, tilt: -0.5 }),
+    M.chain(M.t(0, 1.02, 1.95), M.rx(-1.25)));
+  p.add(CM.rime, extrudePoly([
+    new THREE.Vector2(-0.85, -0.30), new THREE.Vector2(0.55, -0.55),
+    new THREE.Vector2(0.95, 0.35), new THREE.Vector2(-0.45, 0.62),
+  ], 0.24, 0.05), M.chain(M.t(0, 1.24, -0.60), M.rx(-Math.PI / 2)));
+  p.into(g);
+
+  const band = new THREE.Mesh(bandGeo(1.24, 0.90), CM.weak);
+  band.position.z = -0.30;
+  band.name = 'lamp';
+  const vent = new THREE.Mesh(new THREE.CircleGeometry(0.86, 18), CM.weak);
+  vent.position.z = 2.88;
+  vent.name = 'lamp';
+  g.add(band, vent);
+  g.userData.lamps = [band, vent];
+  return g;
+}
+
+/* ── ice: coolant spine ──────────────────────────────────────────────────── */
+function iceSpine(name) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(CM.iceHull, chamferBox(1.70, 0.62, 5.60, 0.14));
+  // fins stacked along z: louvers stacks on +Y, so the block is laid on its side
+  p.add(SMat.metalDark, louvers({ n: 7, w: 2.50, h: 0.17, d: 1.45, gap: 0.74, tilt: 0 }),
+    M.chain(M.t(0, 0.72, 0), M.rx(Math.PI / 2)));
+  p.both(CM.icePlate, extrudePoly([
+    new THREE.Vector2(-2.55, -0.36), new THREE.Vector2(2.55, -0.36),
+    new THREE.Vector2(2.55, 0.36), new THREE.Vector2(-2.55, 0.36),
+  ], 0.16, 0.04), M.chain(M.t(1.02, 1.40, 0), M.ry(Math.PI / 2), M.rz(0.22)));
+  p.add(CM.rime, extrudePoly([
+    new THREE.Vector2(-0.70, -2.30), new THREE.Vector2(0.62, -1.90),
+    new THREE.Vector2(0.80, 1.95), new THREE.Vector2(-0.55, 2.40),
+  ], 0.20, 0.05), M.t(0, 0.42, 0));
+  p.into(g);
+
+  const lamp = new THREE.Mesh(chamferBox(1.16, 0.92, 5.10, 0.10), CM.weak);
+  lamp.position.y = 0.94;
+  lamp.name = 'lamp';
+  const vent = new THREE.Mesh(new THREE.CircleGeometry(0.72, 16), CM.weak);
+  vent.position.set(0, 0.70, 2.84);
+  vent.name = 'lamp';
+  g.add(lamp, vent);
+  g.userData.lamps = [lamp, vent];
+  return g;
+}
+
+/* ── void: bridge ────────────────────────────────────────────────────────── */
+function voidBridge(name) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(CM.voidHull, hullLoft({
+    stations: [
+      { z: -2.30, rx: 1.35, ry: 0.55, p: 3.6, yOff: -1.10 },
+      { z: -1.10, rx: 1.62, ry: 1.05, p: 4.0, yOff: -0.55 },
+      { z: 0.90, rx: 1.50, ry: 1.00, p: 4.0, yOff: -0.40 },
+      { z: 2.20, rx: 1.05, ry: 0.55, p: 3.4, yOff: -0.85 },
+    ], count: 20, steps: 12,
+    circGrooves: [{ z: -0.10, depth: 0.07, width: 0.18 }],
+  }));
+  p.add(SMat.hostileGlass, hullLoft({
+    stations: [
+      { z: -2.05, rx: 0.95, ry: 0.30, p: 3.4, yOff: 0.10 },
+      { z: -1.20, rx: 1.30, ry: 0.62, p: 3.8, yOff: 0.24 },
+      { z: 0.35, rx: 1.20, ry: 0.56, p: 3.8, yOff: 0.26 },
+      { z: 1.30, rx: 0.82, ry: 0.28, p: 3.4, yOff: 0.14 },
+    ], count: 18, steps: 8,
+  }));
+  p.add(SMat.metal, tubeAlong([V3(0, 0.70, 1.60), V3(0, 3.40, 2.35)], (t) => 0.13 - t * 0.07, 8));
+  p.add(SMat.hostileTrim, chamferBox(0.30, 0.30, 0.30, 0.07), M.t(0, 3.45, 2.38));
+  p.both(SMat.metalDark, chamferBox(0.20, 0.44, 1.70, 0.05), M.t(1.44, -0.30, 0.10));
+  p.into(g);
+
+  const lamp = new THREE.Mesh(chamferBox(2.34, 0.46, 2.90, 0.06), CM.weak);
+  lamp.position.set(0, 0.28, -0.30);
+  lamp.name = 'lamp';
+  const aft = new THREE.Mesh(chamferBox(1.90, 0.60, 0.16, 0.04), CM.weak);
+  aft.position.set(0, 0.10, 1.90);
+  aft.name = 'lamp';
+  g.add(lamp, aft);
+  g.userData.lamps = [lamp, aft];
+  return g;
+}
+
+/* ── void: reactor vent ──────────────────────────────────────────────────── */
+function voidVent(name, sx) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(CM.voidHull, hullLoft({
+    stations: [
+      { z: -2.40, rx: 0.75, ry: 1.20, p: 3.4 },
+      { z: -1.55, rx: 1.05, ry: 1.72, p: 3.8 },
+      { z: 1.45, rx: 1.05, ry: 1.72, p: 3.8 },
+      { z: 2.30, rx: 0.75, ry: 1.20, p: 3.4 },
+    ], count: 18, steps: 10,
+    circGrooves: [{ z: -0.05, depth: 0.08, width: 0.20 }],
+  }));
+  p.add(SMat.metalDark, louvers({ n: 6, w: 2.80, h: 0.14, d: 0.34, gap: 0.44, tilt: -0.42 }),
+    M.chain(M.t(sx * 0.86, 0, 0), M.ry(sx * Math.PI / 2)));
+  p.add(CM.voidPlate, shellArc({ r: 1.80, t: 0.16, a0: -1.15, a1: 1.15, z0: -2.1, z1: 2.0, seg: 10 }),
+    M.rz(sx > 0 ? -Math.PI / 2 : Math.PI / 2));
+  p.into(g);
+
+  const lamp = new THREE.Mesh(new THREE.PlaneGeometry(3.30, 2.60), CM.weak);
+  lamp.position.set(sx * 0.72, 0, 0);
+  lamp.rotation.y = sx * Math.PI / 2;
+  lamp.name = 'lamp';
+  const aft = new THREE.Mesh(new THREE.PlaneGeometry(1.30, 2.40), CM.weak);
+  aft.position.set(sx * 0.30, 0, 2.36);
+  aft.name = 'lamp';
+  g.add(lamp, aft);
+
+  // Blast cover: sits over the grille at rest, hinges clear once the ship is
+  // angry. The vent is hittable throughout; the cover is the phase tell.
+  const cover = new THREE.Group();
+  cover.name = 'cover';
+  cover.position.set(sx * 1.05, 1.65, 0);
+  const cp = Parts();
+  cp.add(CM.voidPlate, chamferBox(0.22, 3.20, 4.10, 0.07), M.t(0, -1.60, 0));
+  cp.add(SMat.hostileTrim, chamferBox(0.07, 0.18, 3.40, 0.02), M.t(sx * -0.14, -1.60, 0));
+  cp.into(cover);
+  g.add(cover);
+  g.userData.cover = cover;
+  g.userData.lamps = [lamp, aft];
+  return g;
+}
+
+/* ── ice hull ──────────────────────────────────────────────────────────────
+   Wide armoured slab with a spike through it. The read at 100 px is the
+   frontal shield and the barrel; nothing else on the ship is allowed to
+   compete for the horizontal. */
+function buildIce(root, rig) {
+  const p = Parts();
+
+  p.add(CM.iceHull, hullLoft({
+    stations: [
+      { z: -6.80, rx: 2.90, ry: 1.85, p: 4.2, squash: 0.86 },
+      { z: -4.40, rx: 3.85, ry: 2.35, p: 4.4, squash: 0.82, shoulder: 0.14 },
+      { z: -0.90, rx: 4.30, ry: 2.55, p: 4.5, squash: 0.80, shoulder: 0.19 },
+      { z: 3.00, rx: 4.15, ry: 2.48, p: 4.5, squash: 0.82, shoulder: 0.16 },
+      { z: 6.40, rx: 3.60, ry: 2.15, p: 4.3, squash: 0.86, shoulder: 0.08 },
+      { z: 9.30, rx: 2.95, ry: 1.75, p: 4.0, squash: 0.92 },
+    ], count: 26, steps: 24,
+    circGrooves: [
+      { z: -3.00, depth: 0.14, width: 0.36 }, { z: 1.20, depth: 0.14, width: 0.36 },
+      { z: 5.20, depth: 0.12, width: 0.32 },
+    ],
+    longGrooves: [
+      { a: 0.25, depth: 0.11, width: 0.022, z0: -6.0, z1: 8.6 },
+      { a: 0.12, depth: 0.09, width: 0.018, z0: -5.0, z1: 8.0 },
+      { a: 0.38, depth: 0.09, width: 0.018, z0: -5.0, z1: 8.0 },
+    ],
+    dents: [
+      { z: 2.20, a: 0.00, rz: 2.2, ra: 0.05, depth: 0.38, rim: 0.55 },
+      { z: 2.20, a: 0.50, rz: 2.2, ra: 0.05, depth: 0.38, rim: 0.55 },
+    ],
+  }));
+
+  /* frontal shield + outboard ears: the whole silhouette lives here */
+  p.add(CM.icePlate, extrudePoly([
+    new THREE.Vector2(-5.30, -1.55), new THREE.Vector2(-3.20, -3.30),
+    new THREE.Vector2(3.20, -3.30), new THREE.Vector2(5.30, -1.55),
+    new THREE.Vector2(3.80, 3.30), new THREE.Vector2(-3.80, 3.30),
+  ], 1.40, 0.22), M.chain(M.t(0, 0.30, -6.60), M.rx(0.10)));
+  p.add(CM.iceHull, shellArc({ r: 1.35, t: 0.30, a0: 0, a1: Math.PI * 2, z0: -7.60, z1: -6.90, seg: 20 }),
+    M.t(0, 0.35, 0));
+  p.both(CM.icePlate, extrudePoly([
+    new THREE.Vector2(0, -2.35), new THREE.Vector2(2.30, -1.05),
+    new THREE.Vector2(2.30, 1.45), new THREE.Vector2(0, 2.95),
+  ], 0.90, 0.16), M.chain(M.t(5.05, 0.20, -6.20), M.rz(-0.30)));
+  p.both(SMat.hostileTrim, chamferBox(0.34, 2.10, 0.30, 0.06), M.chain(M.t(4.70, 0.30, -7.20), M.rz(-0.30)));
+  p.add(SMat.metalDark, boltRow({ from: [-3.0, 3.15, -6.9], to: [3.0, 3.15, -6.9], n: 9, r: 0.10, h: 0.06 }));
+
+  /* spinal barrel */
+  p.add(SMat.metal, tubeAlong([V3(0, 0.35, -5.00), V3(0, 0.35, -15.30)], (t) => 0.88 - t * 0.22, 14));
+  for (const z of [-9.60, -11.60, -13.40]) {
+    p.add(SMat.metalDark, shellArc({ r: 1.02, t: 0.30, a0: 0, a1: Math.PI * 2, z0: z - 0.30, z1: z + 0.30, seg: 16 }),
+      M.t(0, 0.35, 0));
+  }
+  p.add(CM.icePlate, shellArc({ r: 0.92, t: 0.24, a0: 0, a1: Math.PI * 2, z0: -15.70, z1: -14.80, seg: 16 }),
+    M.t(0, 0.35, 0));
+
+  /* rime: pale slabs on the up-facing surfaces, the frost read */
+  p.both(CM.rime, extrudePoly([
+    new THREE.Vector2(-1.20, -0.80), new THREE.Vector2(1.35, -1.15),
+    new THREE.Vector2(1.05, 0.95), new THREE.Vector2(-1.05, 1.20),
+  ], 0.22, 0.05), M.chain(M.t(2.20, 2.42, 1.30), M.rx(-Math.PI / 2), M.rz(0.4)));
+  p.add(CM.rime, extrudePoly([
+    new THREE.Vector2(-2.60, -0.70), new THREE.Vector2(2.40, -0.95),
+    new THREE.Vector2(2.10, 0.85), new THREE.Vector2(-2.30, 1.05),
+  ], 0.20, 0.05), M.chain(M.t(0, 3.42, -6.30), M.rx(-Math.PI / 2 + 0.10)));
+
+  /* aft: thruster skirt */
+  p.add(SMat.heat, hullLoft({
+    stations: [
+      { z: 9.20, rx: 2.95, ry: 1.80, p: 4.0, squash: 0.92 },
+      { z: 10.10, rx: 2.60, ry: 1.60, p: 3.8, squash: 0.94 },
+    ], count: 22, steps: 3, capStart: false,
+  }));
+  p.both(SMat.ceramic, ductGeo({ rx: 0.92, ry: 0.92, depth: 1.05, throat: 0.72, lip: 0.12, sides: 16, p: 2.8 }),
+    M.chain(M.t(1.65, 0.10, 10.20), M.ry(Math.PI)));
+  p.both(SMat.metalDark, chamferBox(0.60, 0.60, 1.60, 0.10), M.t(3.30, -0.90, 8.20));
+  p.into(root);
+
+  /* weak points */
+  const dR = iceDamper('damperR'); dR.position.set(3.05, 2.75, -1.20);
+  const dL = iceDamper('damperL'); dL.position.set(-3.05, 2.75, -1.20);
+  const sp = iceSpine('spine'); sp.position.set(0, 2.95, 4.60);
+  for (const w of [dR, dL, sp]) { root.add(w); rig.weak.push(w); }
+
+  /* two flank mounts, not destructible — chaff fire while you hunt */
+  for (const sx of [1, -1]) {
+    const t = cmdTurret('turret' + rig.turrets.length, CM.iceHull, CM.icePlate);
+    t.position.set(sx * 3.55, -1.35, 1.90);
+    t.rotation.z = sx > 0 ? -0.22 : 0.22;
+    root.add(t);
+    rig.turrets.push(t);
+  }
+
+  for (const sx of [1, -1]) {
+    const e = engineNode(sx * 1.65, 0.10, 10.30, 0.78, { len: 5.4 });
+    e.name = 'engine';
+    root.add(e);
+    rig.engines.push(e);
+  }
+
+  /* spinal gun: charge orb at the muzzle, beam down -Z */
+  const cannon = new THREE.Group();
+  cannon.name = 'cannon';
+  cannon.position.set(0, 0.35, 0);
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.70, 14, 10), CM.charge);
+  muzzle.position.z = -15.70;
+  muzzle.scale.setScalar(0.001);
+  cannon.add(muzzle);
+  const beam = new THREE.Mesh(plumeGeo({ r0: 0.90, r1: 0.34, len: 1.0, sides: 14, bulge: 1.0 }), EMat.plume);
+  beam.position.z = -15.70;
+  beam.rotation.x = Math.PI;
+  beam.renderOrder = 7;
+  beam.visible = false;
+  cannon.add(beam);
+  root.add(cannon);
+  rig.cannon = cannon;
+  rig.muzzle = muzzle;
+  rig.beam = beam;
+
+  return [
+    { id: 'damperR', label: 'RECOIL DAMPER', local: V3(3.05, 2.75, -1.50), radius: 2.30 },
+    { id: 'damperL', label: 'RECOIL DAMPER', local: V3(-3.05, 2.75, -1.50), radius: 2.30 },
+    { id: 'spine', label: 'COOLANT SPINE', local: V3(0, 3.25, 4.60), radius: 2.40 },
+  ];
+}
+
+/* ── void hull ─────────────────────────────────────────────────────────────
+   A forked dagger with a tower. Fought with no terrain behind it, so the
+   silhouette has to be carried by the hull's own outline and its running
+   lights rather than by contrast against a sky. */
+function buildVoid(root, rig) {
+  const p = Parts();
+
+  p.add(CM.voidHull, hullLoft({
+    stations: [
+      { z: -10.60, rx: 0.95, ry: 0.62, p: 3.6, squash: 0.90 },
+      { z: -7.60, rx: 2.05, ry: 1.18, p: 4.0, squash: 0.86, shoulder: 0.12 },
+      { z: -3.00, rx: 3.30, ry: 1.85, p: 4.3, squash: 0.80, shoulder: 0.20 },
+      { z: 1.40, rx: 3.80, ry: 2.10, p: 4.4, squash: 0.78, shoulder: 0.22 },
+      { z: 5.80, rx: 3.50, ry: 1.95, p: 4.3, squash: 0.82, shoulder: 0.16 },
+      { z: 9.30, rx: 2.90, ry: 1.62, p: 4.0, squash: 0.88, shoulder: 0.05 },
+      { z: 11.00, rx: 2.40, ry: 1.35, p: 3.8, squash: 0.94 },
+    ], count: 28, steps: 26,
+    circGrooves: [
+      { z: -5.20, depth: 0.12, width: 0.32 }, { z: -0.60, depth: 0.13, width: 0.34 },
+      { z: 3.80, depth: 0.13, width: 0.34 }, { z: 7.80, depth: 0.11, width: 0.30 },
+    ],
+    longGrooves: [
+      { a: 0.25, depth: 0.10, width: 0.022, z0: -9.0, z1: 10.2 },
+      { a: 0.00, depth: 0.09, width: 0.018, z0: -8.0, z1: 10.0 },
+      { a: 0.50, depth: 0.09, width: 0.018, z0: -8.0, z1: 10.0 },
+    ],
+    dents: [
+      { z: -2.00, a: 0.00, rz: 2.4, ra: 0.05, depth: 0.34, rim: 0.55 },
+      { z: -2.00, a: 0.50, rz: 2.4, ra: 0.05, depth: 0.34, rim: 0.55 },
+    ],
+  }));
+
+  /* forked prow — two prongs, the inverse of the Arwing's single point */
+  p.both(CM.voidPlate, extrudePoly([
+    new THREE.Vector2(0, -0.65), new THREE.Vector2(3.20, -0.30),
+    new THREE.Vector2(3.20, 0.28), new THREE.Vector2(0, 1.05),
+  ], 0.70, 0.10), M.chain(M.t(0.95, -0.20, -9.60), M.ry(Math.PI / 2 - 0.10), M.rz(-0.16)));
+  p.both(SMat.hostileTrim, chamferBox(0.14, 0.14, 2.20, 0.03), M.t(1.20, -0.10, -11.40));
+  p.add(CM.voidPlate, extrudePoly([
+    new THREE.Vector2(-1.55, -0.90), new THREE.Vector2(1.55, -0.90),
+    new THREE.Vector2(1.05, 1.35), new THREE.Vector2(-1.05, 1.35),
+  ], 3.20, 0.14), M.t(0, -0.20, -9.30));
+
+  /* dorsal armour deck + trim, so the top is not one smooth sweep */
+  p.add(CM.voidPlate, hullLoft({
+    stations: [
+      { z: -5.60, rx: 1.55, ry: 0.26, p: 4.2, yOff: 1.60 },
+      { z: -2.40, rx: 2.35, ry: 0.42, p: 4.4, yOff: 1.86 },
+      { z: 2.60, rx: 2.35, ry: 0.42, p: 4.4, yOff: 1.90 },
+      { z: 6.20, rx: 1.70, ry: 0.28, p: 4.2, yOff: 1.70 },
+    ], count: 22, steps: 12,
+  }));
+  p.both(SMat.metalDark, boltRow({ from: [1.90, 2.28, -4.60], to: [1.90, 2.28, 5.40], n: 11, r: 0.10, h: 0.06 }));
+  p.both(SMat.metalDark, louvers({ n: 5, w: 1.60, h: 0.11, d: 0.26, gap: 0.22, tilt: -0.55 }),
+    M.chain(M.t(2.55, 1.05, -5.80), M.ry(1.25)));
+
+  /* sponsons under the broadside mounts */
+  for (const z of [-3.40, 1.10]) {
+    p.both(CM.voidPlate, chamferBox(1.90, 0.70, 2.60, 0.16), M.chain(M.t(3.55, 1.05, z), M.rz(-0.14)));
+  }
+
+  /* running lights: the only reason this hull has an outline out there */
+  p.both(CM.panel, chamferBox(0.10, 0.13, 9.60, 0.03), M.t(3.34, 0.42, -0.60));
+  p.both(CM.panel, chamferBox(0.10, 0.13, 4.20, 0.03), M.t(2.05, 2.18, 3.40));
+  p.add(CM.panel, chamferBox(1.30, 0.10, 0.16, 0.03), M.t(0, 2.16, -5.90));
+
+  /* aft: engine shroud */
+  p.add(SMat.heat, hullLoft({
+    stations: [
+      { z: 10.90, rx: 2.42, ry: 1.38, p: 3.8, squash: 0.94 },
+      { z: 11.90, rx: 2.10, ry: 1.20, p: 3.6, squash: 0.95 },
+    ], count: 24, steps: 3, capStart: false,
+  }));
+  p.add(SMat.ceramic, ductGeo({ rx: 1.00, ry: 1.00, depth: 1.20, throat: 0.74, lip: 0.14, sides: 18, p: 2.8 }),
+    M.chain(M.t(0, 0.20, 12.00), M.ry(Math.PI)));
+  p.both(SMat.ceramic, ductGeo({ rx: 0.68, ry: 0.68, depth: 0.90, throat: 0.72, lip: 0.10, sides: 14, p: 2.8 }),
+    M.chain(M.t(1.72, 0.05, 11.85), M.ry(Math.PI)));
+  p.into(root);
+
+  /* weak points */
+  const br = voidBridge('bridge'); br.position.set(0, 2.55, 4.90);
+  const vR = voidVent('ventR', 1); vR.position.set(3.35, 0.35, 3.60);
+  const vL = voidVent('ventL', -1); vL.position.set(-3.35, 0.35, 3.60);
+  for (const w of [br, vR, vL]) { root.add(w); rig.weak.push(w); }
+
+  /* four broadside mounts */
+  for (const z of [-3.40, 1.10]) for (const sx of [1, -1]) {
+    const t = cmdTurret('turret' + rig.turrets.length, CM.voidHull, CM.voidPlate);
+    t.position.set(sx * 3.60, 1.30, z);
+    t.rotation.z = sx > 0 ? -0.16 : 0.16;
+    root.add(t);
+    rig.turrets.push(t);
+  }
+
+  const big = engineNode(0, 0.20, 12.10, 0.94, { len: 6.4 });
+  big.name = 'engine';
+  root.add(big);
+  rig.engines.push(big);
+  for (const sx of [1, -1]) {
+    const e = engineNode(sx * 1.72, 0.05, 11.90, 0.64, { len: 4.8 });
+    e.name = 'engine';
+    root.add(e);
+    rig.engines.push(e);
+  }
+
+  return [
+    { id: 'bridge', label: 'BRIDGE', local: V3(0, 3.00, 4.90), radius: 2.30 },
+    { id: 'ventR', label: 'REACTOR VENT', local: V3(3.55, 0.35, 3.60), radius: 2.20 },
+    { id: 'ventL', label: 'REACTOR VENT', local: V3(-3.55, 0.35, 3.60), radius: 2.20 },
+  ];
+}
+
+const CMD_BUILD = { ice: buildIce, void: buildVoid };
+
+const cmdSpecs = new Map();
+
+/**
+ * Static spec for a commander variant, without building its geometry.
+ * `guns` are fixed forward mounts; the broadside/flank turrets report their
+ * live muzzles through `api.aimTurret` instead, because they traverse.
+ */
+export function commanderSpec(variant = 'ice') {
+  const v = CMD_BUILD[variant] ? variant : 'ice';
+  let sp = cmdSpecs.get(v);
+  if (sp) return sp;
+  sp = v === 'ice'
+    ? {
+      kind: 'commander:ice', variant: 'ice', commander: true,
+      radius: COMMANDER.radius, hp: COMMANDER.weakHp * 3, score: COMMANDER.score,
+      guns: [V3(0, 0.35, -15.8)],
+      maxSpeed: 140, turnRate: 0.30, accel: 36,
+      fireRange: 1000, burst: 3, burstGap: 0.20, reload: 2.1, dmg: 12,
+      boomScale: 6.0,
+    }
+    : {
+      kind: 'commander:void', variant: 'void', commander: true,
+      radius: COMMANDER.radius, hp: COMMANDER.weakHp * 3, score: COMMANDER.score,
+      guns: [V3(1.55, -0.10, -13.6), V3(-1.55, -0.10, -13.6)],
+      maxSpeed: 160, turnRate: 0.34, accel: 42,
+      fireRange: 1000, burst: 4, burstGap: 0.18, reload: 1.9, dmg: 11,
+      boomScale: 6.0,
+    };
+  sp.radius *= NPC_SCALE;
+  for (const g of sp.guns) g.multiplyScalar(NPC_SCALE);
+  cmdSpecs.set(v, sp);
+  return sp;
+}
+
+function shortAngle(a) {
+  while (a > Math.PI) a -= Math.PI * 2;
+  while (a < -Math.PI) a += Math.PI * 2;
+  return a;
+}
+
+/**
+ * A commander. Built fresh per spawn rather than cloned from a prototype: it
+ * carries destructible state and per-part hit shells, and there is never more
+ * than one on the field.
+ *
+ * @param {'ice'|'void'} variant
+ * @returns {THREE.Group} root, with `userData.api` and `userData.spec`
+ */
+export function createCommander(variant = 'ice') {
+  commanderMaterials();
+  const v = CMD_BUILD[variant] ? variant : 'ice';
+  const root = new THREE.Group();
+  root.name = 'commander:' + v;
+  root.scale.setScalar(NPC_SCALE);
+
+  // `eyes`/`beacons` are empty and present so the shared animateEnemy /
+  // disposeEnemy path is a no-op on this hull rather than a throw.
+  const rig = {
+    variant: v, weak: [], turrets: [], engines: [], eyes: [], beacons: [],
+    cannon: null, beam: null, muzzle: null,
+  };
+  const layout = CMD_BUILD[v](root, rig);
+
+  const st = {
+    t: 0, phase: 1, power: 1, alert: 0.35, list: 0,
+    expose: 0, rage: 0, charge: 0, recoil: 0, beamT: -1, beamLen: 700,
+    shutter: 1,        // nothing on this hull is locked behind armour
+  };
+  const _col = new THREE.Color();
+
+  const api = {
+    st, rig,
+    variant: v,
+    triangles: triCount(root),
+    parts: [],
+    get hasBeam() { return !!rig.beam; },
+    get turretCount() { return rig.turrets.length; },
+    /** Weak points still alive. 0 means dead. */
+    get weakAlive() { return api.parts.reduce((n, q) => n + (q.kind === 'weak' && q.alive ? 1 : 0), 0); },
+    /** 0..1 across the weak points only — what the boss bar should show. */
+    get progress() {
+      let hp = 0;
+      for (const q of api.parts) if (q.kind === 'weak') hp += Math.max(0, q.hp);
+      return hp / (COMMANDER.weakHp * 3);
+    },
+
+    setPhase(n) { st.phase = n; },
+    setAlert(v2) { st.alert = THREE.MathUtils.clamp(v2, 0, 1); },
+    setCharge(v2) { st.charge = THREE.MathUtils.clamp(v2, 0, 1); },
+
+    /** Fire the spinal gun. No-op on the flagship, which has no spinal gun. */
+    fireBeam(len = 700) {
+      if (!rig.beam) return false;
+      st.beamT = 0; st.beamLen = len; st.charge = 0; st.recoil = 1;
+      return true;
+    },
+    get beamActive() { return st.beamT >= 0 && st.beamT < 0.55; },
+
+    /**
+     * Kill a weak point. Returns how many are still alive, so the caller has
+     * both the phase trigger (2 left) and the death test (0 left) in one call.
+     */
+    killPart(part) {
+      if (part && part.kind === 'weak' && part.alive) {
+        part.alive = false;
+        const w = rig.weak[part.index];
+        if (w) {
+          for (const l of w.userData.lamps || []) l.material = CM.weakDead;
+          if (w.userData.cover) w.userData.cover.visible = false;
+          w.rotation.z = (part.index % 2 ? 1 : -1) * 0.22;
+        }
+        if (part.shell) part.shell.visible = false;
+      }
+      return api.weakAlive;
+    },
+    killWeak(i) { return api.killPart(api.parts.find(q => q.kind === 'weak' && q.index === i)); },
+
+    /** Aim a mount at a world point. Returns its muzzle in world space. */
+    aimTurret(i, worldTarget, dt, out) {
+      const t = rig.turrets[i];
+      if (!t) return null;
+      const local = t.worldToLocal(out.copy(worldTarget));
+      const yaw = Math.atan2(local.x, -local.z);
+      const pitch = Math.atan2(local.y - 0.80, Math.hypot(local.x, local.z));
+      const rate = (1.7 + st.rage * 1.1) * dt;
+      t.rotation.y += THREE.MathUtils.clamp(shortAngle(yaw - t.rotation.y), -rate, rate);
+      const b = t.userData.barrels;
+      b.rotation.x = THREE.MathUtils.clamp(
+        b.rotation.x + THREE.MathUtils.clamp(-pitch - b.rotation.x, -rate, rate), -0.70, 0.45);
+      out.copy(t.userData.muzzle);
+      b.localToWorld(out);
+      return out;
+    },
+
+    update(dt, { power = 1, list = 0 } = {}) {
+      st.t += dt;
+      st.power = power;
+      st.list += (list - st.list) * Math.min(1, dt * 1.4);
+      const t = st.t;
+      const angry = st.phase >= 2 ? 1 : 0;
+      st.rage += (angry - st.rage) * Math.min(1, dt * 1.1);
+      st.expose += ((angry ? 1 : 0.28) - st.expose) * Math.min(1, dt * 0.9);
+
+      for (const e of rig.engines) {
+        const k = power * (1 + Math.sin(t * 19 + e.id) * 0.05);
+        if (e.userData.plume) e.userData.plume.scale.set(0.75 + k * 0.45, 0.75 + k * 0.45, 0.4 + k * 0.9);
+        if (e.userData.face) e.userData.face.material.color
+          .copy(_col.setRGB(1.0, 0.70, 0.40)).multiplyScalar(2.2 + k * 5.0);
+      }
+
+      for (const q of rig.turrets) {
+        const eye = q.userData.barrels.children.find(o => o.name === 'eye');
+        if (eye) eye.scale.setScalar(0.85 + (0.7 + 0.3 * Math.sin(t * (6 + st.rage * 7) + q.id)) * 0.25);
+      }
+
+      // The lamps ARE the fight: they hold a floor so a weak point is never
+      // unreadable, and they gain rather than change hue when the ship rages.
+      const gain = (2.6 + st.alert * 1.4 + st.rage * 2.6) * (0.62 + 0.38 * st.expose);
+      CM.weak.color.copy(_col.setRGB(1.0, 0.70, 0.24))
+        .multiplyScalar(gain * (0.82 + 0.18 * Math.sin(t * (3.2 + st.rage * 4.5))));
+
+      for (let i = 0; i < rig.weak.length; i++) {
+        const w = rig.weak[i];
+        const alive = api.parts[i] ? api.parts[i].alive : true;
+        if (w.userData.cover) w.userData.cover.rotation.z = Math.sign(w.position.x) * st.expose * 1.35;
+        if (v === 'ice' && alive) w.position.y = (i < 2 ? 2.75 : 2.95) + Math.sin(t * 2.1 + i) * 0.02;
+      }
+
+      if (rig.beam) {
+        const c = st.charge;
+        // The barrel is merged into the hull mesh, so the recoil is carried by
+        // the dampers below. Moving the cannon group would detach the beam.
+        st.recoil = Math.max(0, st.recoil - dt * 3.2);
+        rig.muzzle.scale.setScalar(Math.max(0.001, c * c * 1.25 + (st.beamT >= 0 && st.beamT < 0.14 ? 1.5 : 0)));
+        CM.charge.color.copy(_col.setRGB(1.0, 0.86, 0.55)).multiplyScalar(3 + c * 9);
+        for (let i = 0; i < 2; i++) {
+          const d = rig.weak[i];
+          if (api.parts[i] && api.parts[i].alive) d.position.z = -1.20 + st.recoil * 1.30;
+        }
+        if (st.beamT >= 0) {
+          st.beamT += dt;
+          const u = st.beamT / 0.55;
+          if (u >= 1) { st.beamT = -1; rig.beam.visible = false; }
+          else {
+            const fade = u > 0.55 ? 1 - (u - 0.55) / 0.45 : 1;
+            rig.beam.visible = true;
+            rig.beam.scale.set(fade * (1 + Math.sin(t * 60) * 0.06), fade, st.beamLen * Math.min(1, u * 7));
+          }
+        }
+      } else {
+        CM.panel.color.copy(_col.setRGB(0.70, 0.30, 1.0))
+          .multiplyScalar(1.9 + st.rage * 1.6 + Math.sin(t * 1.7) * 0.25);
+      }
+
+      if (api._hitTick) api._hitTick(dt);
+      root.rotation.z = st.list;
+    },
+
+    dispose() {
+      root.traverse(o => { if (o.isMesh) o.geometry.dispose(); });
+      for (const q of api.parts) q.shell?.material.dispose();
+      for (const e of hullBlooms) e.m.material.dispose();
+    },
+  };
+
+  /* ── weak-point table — the same shape game/combat.js reads off boss.js ──
+     `hull` is a hit-feedback target only: it takes stray rounds so armour
+     hits spark, and it never gates the kill. All three weak points down is
+     what ends the fight. */
+  api.parts = layout.map((q, i) => ({
+    id: q.id, label: q.label, kind: 'weak', index: i,
+    node: rig.weak[i], local: q.local, radius: q.radius,
+    hp: COMMANDER.weakHp, max: COMMANDER.weakHp, alive: true, locked: false,
+  }));
+  api.parts.push({
+    id: 'hull', label: 'ARMOUR', kind: 'hull', index: 0,
+    node: root, local: V3(0, 0, 0), radius: 6.5,
+    hp: COMMANDER.hullHp, max: COMMANDER.hullHp, alive: true, locked: false,
+  });
+  // `local` rides the node matrices, which already carry the root scale; only
+  // these world-space radii need scaling by hand.
+  for (const q of api.parts) q.radius *= NPC_SCALE;
+
+  /* ── hit register ──────────────────────────────────────────────────────
+     An impact particle subtends ~4 px against this hull at 500 m, so each
+     part carries an additive shell scaled to itself, and armour hits use a
+     pooled bloom placed in the ship's own frame so it stays on the plate. */
+  const SHELL_LIFE = 0.13;
+  const shellGeo = new THREE.IcosahedronGeometry(1, 2);
+  const mkShellMat = (col) => new THREE.MeshBasicMaterial({
+    color: col, transparent: true, opacity: 0, blending: THREE.AdditiveBlending,
+    depthWrite: false, toneMapped: false, fog: false,
+  });
+  const HIT_WEAK = new THREE.Color(1.00, 0.72, 0.30);
+  const HIT_HULL = new THREE.Color(0.52, 0.76, 1.00);
+
+  for (const q of api.parts) {
+    q.flash = 0;
+    if (q.kind === 'hull') continue;
+    const m = new THREE.Mesh(shellGeo, mkShellMat(HIT_WEAK));
+    m.position.copy(q.local);
+    m.scale.setScalar(q.radius * 1.4);
+    m.visible = false;
+    m.frustumCulled = false;
+    m.renderOrder = 6;
+    root.add(m);
+    q.shell = m;
+  }
+
+  const hullBlooms = [];
+  for (let i = 0; i < 5; i++) {
+    const m = new THREE.Mesh(shellGeo, mkShellMat(HIT_HULL));
+    m.visible = false;
+    m.frustumCulled = false;
+    m.renderOrder = 6;
+    root.add(m);
+    hullBlooms.push({ m, t: 1e9 });
+  }
+  let bloomNext = 0;
+  const _hp = new THREE.Vector3();
+
+  /**
+   * World position of a weak point. `local` is in the SHIP's frame, not the
+   * part node's, so it composes with the root matrix — the parts never
+   * translate relative to the hull.
+   */
+  api.partPoint = (part, out) => out.copy(part.local).applyMatrix4(root.matrixWorld);
+
+  /** Register a hit on `part`. `worldPoint` is where the round landed. */
+  api.hitPart = (part, worldPoint) => {
+    if (!part) return;
+    part.flash = 1;
+    if (part.kind === 'hull' && worldPoint) {
+      const e = hullBlooms[bloomNext];
+      bloomNext = (bloomNext + 1) % hullBlooms.length;
+      root.updateWorldMatrix(true, false);
+      e.m.position.copy(root.worldToLocal(_hp.copy(worldPoint)));
+      e.m.scale.setScalar(2.4);
+      e.t = 0;
+    }
+  };
+
+  api._hitTick = (dt) => {
+    for (const q of api.parts) {
+      if (!q.shell) continue;
+      if (q.flash > 0) {
+        q.flash = Math.max(0, q.flash - dt / SHELL_LIFE);
+        q.shell.material.opacity = q.flash * q.flash * 0.55;
+        q.shell.scale.setScalar(q.radius * (1.4 + (1 - q.flash) * 0.7));
+        q.shell.visible = q.flash > 0.01 && q.alive;
+      } else if (q.shell.visible) {
+        q.shell.visible = false;
+      }
+    }
+    for (const e of hullBlooms) {
+      if (e.t > SHELL_LIFE) { if (e.m.visible) e.m.visible = false; continue; }
+      e.t += dt;
+      const k = Math.max(0, 1 - e.t / SHELL_LIFE);
+      e.m.material.opacity = k * k * 0.5;
+      e.m.scale.setScalar(2.4 + (1 - k) * 2.0);
+      e.m.visible = true;
+    }
+  };
+
+  root.userData.spec = commanderSpec(v);
+  root.userData.rig = rig;
+  root.userData.api = api;
+  return root;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    registry / instancing
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -884,7 +1729,14 @@ export function enemyProto(kind) {
   return g;
 }
 
-export function enemySpec(kind) { return enemyProto(kind).userData.spec; }
+/** True for `commander`, `commander:ice`, `commander:void`. */
+export function isCommander(kind) { return typeof kind === 'string' && kind.startsWith('commander'); }
+const cmdVariant = (kind) => kind.split(':')[1] || 'ice';
+
+export function enemySpec(kind) {
+  if (isCommander(kind)) return commanderSpec(cmdVariant(kind));
+  return enemyProto(kind).userData.spec;
+}
 
 /**
  * A fresh instance. Geometry and hull materials are shared with the prototype;
@@ -904,6 +1756,9 @@ export function enemySpec(kind) { return enemyProto(kind).userData.spec; }
 export const NPC_SCALE = 1.5;
 
 export function createEnemy(kind) {
+  // A commander is a rig with destructible state, so it is built rather than
+  // cloned. It answers to the same call and returns the same kind of root.
+  if (isCommander(kind)) return createCommander(cmdVariant(kind));
   const proto = enemyProto(kind);
   const root = proto.clone(true);
   root.userData.spec = proto.userData.spec;
@@ -964,6 +1819,8 @@ export function createEnemy(kind) {
 
 /** Release the per-instance material clones made by createEnemy. */
 export function disposeEnemy(root) {
+  const api = root.userData.api;
+  if (api?.dispose) { api.dispose(); return; }
   const rig = root.userData.rig;
   if (!rig) return;
   for (const e of rig.eyes) e.material.dispose();
@@ -1009,3 +1866,76 @@ export function animateEnemy(root, dt, { power = 1, alert = 0, damage = 0, t = 0
     for (const b of rig.beacons) b.userData.k = beaconDuty(B, t, b.userData.phase) * gain;
   }
 }
+
+/* ── review cameras (registered from this file, per CONTRACT §1) ───────────── */
+//
+// The commanders are spawned by the mission, so no shot in the level frames one
+// before it arrives. These build a review instance on demand, park it ahead of
+// the ship and orbit it. They mutate the scene, which only ever happens in shot
+// mode: `applyShot` runs per frame with the sim frozen.
+
+const _review = new Map();
+const _rv = new THREE.Vector3();
+
+function reviewCommander(ctx, variant, { phase = 1, dead = 0 } = {}) {
+  let r = _review.get(variant);
+  if (!r) {
+    r = createCommander(variant);
+    ctx.scene.add(r);
+    _review.set(variant, r);
+  }
+  for (const [k, o] of _review) o.visible = k === variant;
+  const api = r.userData.api;
+  api.setPhase(phase);
+  api.setAlert(1);
+  for (let i = 0; i < dead; i++) api.killWeak(i);
+  r.position.set(ctx.ship.position.x, ctx.ship.position.y + 6, ctx.ship.position.z - 150);
+  r.rotation.set(0, 0, 0);
+  r.updateMatrixWorld(true);
+  api.update(ctx.dt || 1 / 60, { power: 1 });
+  return r;
+}
+
+function orbitAt(cam, target, { dist, yaw, pitch, fov = 34, up = 0 }) {
+  const y = THREE.MathUtils.degToRad(yaw), p = THREE.MathUtils.degToRad(pitch);
+  _rv.set(Math.sin(y) * Math.cos(p), Math.sin(p), Math.cos(y) * Math.cos(p)).multiplyScalar(dist);
+  cam.position.copy(target).add(_rv);
+  cam.position.y += up;
+  cam.fov = fov;
+  cam.updateProjectionMatrix();
+  cam.lookAt(target);
+}
+
+registerShot('cmd-ice', (c) => {
+  const r = reviewCommander(c, 'ice');
+  orbitAt(c.engine.camera, r.position, { dist: 74, yaw: 214, pitch: 12, fov: 34, up: 3 });
+});
+registerShot('cmd-ice-front', (c) => {
+  const r = reviewCommander(c, 'ice');
+  orbitAt(c.engine.camera, r.position, { dist: 78, yaw: 180, pitch: 5, fov: 32, up: 2 });
+});
+registerShot('cmd-ice-far', (c) => {
+  const r = reviewCommander(c, 'ice');
+  orbitAt(c.engine.camera, r.position, { dist: 320, yaw: 205, pitch: 7, fov: 34 });
+});
+registerShot('cmd-void', (c) => {
+  const r = reviewCommander(c, 'void');
+  orbitAt(c.engine.camera, r.position, { dist: 74, yaw: 208, pitch: 13, fov: 34, up: 3 });
+});
+registerShot('cmd-void-front', (c) => {
+  const r = reviewCommander(c, 'void');
+  orbitAt(c.engine.camera, r.position, { dist: 78, yaw: 176, pitch: 6, fov: 32, up: 2 });
+});
+registerShot('cmd-void-far', (c) => {
+  const r = reviewCommander(c, 'void');
+  orbitAt(c.engine.camera, r.position, { dist: 320, yaw: 200, pitch: 7, fov: 34 });
+});
+/** Phase 2 with a damper already gone — the state change has to read. */
+registerShot('cmd-ice-rage', (c) => {
+  const r = reviewCommander(c, 'ice', { phase: 2, dead: 1 });
+  orbitAt(c.engine.camera, r.position, { dist: 66, yaw: 222, pitch: 16, fov: 34, up: 3 });
+});
+registerShot('cmd-void-rage', (c) => {
+  const r = reviewCommander(c, 'void', { phase: 2, dead: 1 });
+  orbitAt(c.engine.camera, r.position, { dist: 66, yaw: 214, pitch: 16, fov: 34, up: 3 });
+});

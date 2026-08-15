@@ -126,6 +126,44 @@ export function installDevPanel(api) {
     });
   }
 
+  /**
+   * Kill the carrier now, skipping to it first if it is not up yet. One button
+   * rather than two presses, because what this exists to exercise is what
+   * happens *after* the kill and getting there should not be a ritual.
+   */
+  function killBoss(btn) {
+    if (busy) return;
+    if (!api.combat.boss) {
+      skipToBoss(btn);
+      // skipToBoss defers its work to the next frame; kill on the one after, so
+      // the carrier has spawned and its health bar has been published.
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (!api.combat.killBoss()) flash(btn, 'no boss?');
+        render();
+      }));
+      return;
+    }
+    if (!api.combat.killBoss()) flash(btn, 'already dying');
+    render();
+  }
+
+  /**
+   * Drop straight to the moment after the carrier dies — the top of the ascent.
+   * Skips the fight and the victory lap both, so the transition can be watched
+   * without flying 9 km first.
+   */
+  function skipLevel(btn) {
+    if (busy) return;
+    const camp = api.ctx.campaign;
+    if (!camp) { flash(btn, 'no campaign'); return; }
+    if (!camp.next) { flash(btn, 'last level'); return; }
+    // A live carrier would otherwise follow the ship into the ascent; the field
+    // is not cleared until the rebuild, which is two phases away.
+    api.combat.killBoss();
+    camp.forceHop();
+    render();
+  }
+
   function toggleBombs() { infiniteBombs = !infiniteBombs; render(); }
 
   /** Step the tap gun up one tier, without flying to the pre-boss grants. */
@@ -179,15 +217,82 @@ export function installDevPanel(api) {
     // Flight feel. These three are hands-on questions, not measurable ones —
     // whether the corridor rotating around you reads as flying it or as the
     // camera wandering is not something a probe can answer.
-    { id: 'railyaw', label: 'rail yaw follow', min: 0, max: 1.0, step: 0.01, dp: 2,
+    // `feel: true` keeps these out of the macros and on screen always — they are
+    // not a quality axis and there is no low-to-high ordering to collapse them
+    // onto.
+    { id: 'railyaw', label: 'rail yaw follow', min: 0, max: 1.0, step: 0.01, dp: 2, feel: true,
       get: () => FLIGHT.railYawFollow, set: (v) => { FLIGHT.railYawFollow = v; } },
-    { id: 'aimlead', label: 'aim lead', min: 0, max: 2.5, step: 0.01, dp: 2,
+    { id: 'aimlead', label: 'aim lead', min: 0, max: 2.5, step: 0.01, dp: 2, feel: true,
       get: () => FLIGHT.aimLeadScale, set: (v) => { FLIGHT.aimLeadScale = v; } },
-    { id: 'yawslide', label: 'yaw into slide', min: 0, max: 0.008, step: 0.0002, dp: 4,
+    { id: 'yawslide', label: 'yaw into slide', min: 0, max: 0.008, step: 0.0002, dp: 4, feel: true,
       get: () => FLIGHT.yawPerOffsetVel, set: (v) => { FLIGHT.yawPerOffsetVel = v; } },
-    { id: 'camlead', label: 'cam lead', min: 0, max: 2.5, step: 0.01, dp: 2,
+    { id: 'camlead', label: 'cam lead', min: 0, max: 2.5, step: 0.01, dp: 2, feel: true,
       get: () => FLIGHT.camLeadGain, set: (v) => { FLIGHT.camLeadGain = v; } },
   ];
+
+  /* ── macros ─────────────────────────────────────────────────────────────────
+     Three dials over the thirteen look knobs, five authored steps each. Not
+     interpolated between a low and a high profile: step 3 has to land on the
+     shipped preset exactly, and several params (god rays, flare, CA) are zero
+     there, so a low→high lerp cannot pass through it.
+
+     The fine knobs still exist — `adv` reveals them and `dumpLook` still reads
+     every one — because dialling a single param and pasting the result into
+     `environment.js` is how the shipped look was arrived at. */
+  const MACROS = [
+    {
+      id: 'post', label: 'post / glow', hint: ['off', 'subtle', 'shipped', 'rich', 'overcooked'],
+      // godrays, flare and ca are 0 at shipped by owner call, so they stay dark
+      // below step 3 and only open up above it.
+      steps: {
+        bloom: [0, 0.022, 0.040, 0.070, 0.120],
+        dirt: [0, 0.010, 0.022, 0.045, 0.090],
+        godrays: [0, 0, 0, 0.16, 0.34],
+        flare: [0, 0, 0, 0.19, 0.42],
+        ca: [0, 0, 0, 0.9, 1.9],
+        vignette: [0, 0.55, 0.92, 1.15, 1.45],
+      },
+    },
+    {
+      id: 'image', label: 'image punch', hint: ['flat', 'soft', 'shipped', 'punchy', 'heavy'],
+      steps: {
+        exposure: [0.14, 0.17, 0.20, 0.25, 0.32],
+        trim: [1.00, 1.00, 1.00, 1.06, 1.14],
+        sat: [0.85, 0.98, 1.08, 1.20, 1.34],
+        contrast: [0.90, 0.98, 1.05, 1.14, 1.26],
+      },
+    },
+    {
+      id: 'detail', label: 'detail / cost', hint: ['cheapest', 'low', 'shipped', 'high', 'max'],
+      // `motion` is the blur gain, which ships at 1.0 — the *pass* is what is off
+      // at every quality tier, and this knob does not touch that. Moving it below
+      // step 3 only matters once the pass is re-enabled.
+      steps: {
+        ao: [0, 0.45, 0.86, 1.20, 1.60],
+        motion: [0, 0.50, 1.00, 1.50, 2.00],
+        refl: [0, 0.40, 0.72, 0.88, 1.00],
+      },
+    },
+  ];
+
+  /** Live step of a macro: the index whose values every member currently matches. */
+  function macroStep(m) {
+    for (let i = 0; i < 5; i++) {
+      let all = true;
+      for (const [id, vals] of Object.entries(m.steps)) {
+        const k = KNOBS.find(x => x.id === id);
+        if (!k || Math.abs(k.get() - vals[i]) > 1e-4) { all = false; break; }
+      }
+      if (all) return i;
+    }
+    return -1;                      // hand-tuned away from every step
+  }
+
+  function applyMacro(m, i) {
+    for (const [id, vals] of Object.entries(m.steps)) {
+      KNOBS.find(x => x.id === id)?.set(vals[i]);
+    }
+  }
 
   /** Pass toggles, for isolating what a look actually costs. */
   const TOGGLES = ['bloom', 'godRays', 'flare', 'ao', 'motion', 'dof', 'smaa', 'taa'];
@@ -208,6 +313,16 @@ export function installDevPanel(api) {
 
   const TOOLS = [
     { id: 'boss', label: 'Skip to boss', tag: '1', code: 'Digit1', run: skipToBoss },
+    { id: 'killboss', label: 'Kill boss', tag: '6', code: 'Digit6', run: killBoss },
+    {
+      id: 'skiplevel', tag: '7', code: 'Digit7', run: skipLevel,
+      label: 'Skip level (ascend)',
+      // Carries the live level, so the panel says where the run actually is.
+      live: () => {
+        const c = api.ctx.campaign;
+        return c ? `Skip level → ${c.next ? c.next.name : 'END'}` : 'Skip level';
+      },
+    },
     { id: 'bombs', label: 'Infinite bombs', tag: '2', code: 'Digit2', run: toggleBombs, on: () => infiniteBombs },
     {
       id: 'wpn', tag: '3', code: 'Digit3', run: upgradeWeapon,
@@ -277,8 +392,63 @@ export function installDevPanel(api) {
   lookHead.textContent = 'look';
   root.appendChild(lookHead);
 
+  const macros = [];
+  for (const m of MACROS) {
+    const wrap = document.createElement('div');
+    wrap.className = 'vdev-knob';
+    const top = document.createElement('div');
+    top.className = 'vdev-knob-top';
+    const name = document.createElement('span');
+    name.textContent = m.label;
+    const val = document.createElement('b');
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.min = '1'; input.max = '5'; input.step = '1';
+    const show = () => {
+      const i = macroStep(m);
+      // -1 means a fine knob has been dragged off every authored step. Saying so
+      // beats snapping the slider to a step whose values are not on screen.
+      val.textContent = i < 0 ? 'custom' : `${i + 1} · ${m.hint[i]}`;
+      if (i >= 0) input.value = String(i + 1);
+    };
+    input.addEventListener('input', () => {
+      applyMacro(m, parseInt(input.value, 10) - 1);
+      show();
+      syncFine();
+    });
+    input.addEventListener('change', () => input.blur());
+    top.append(name, val);
+    wrap.append(top, input);
+    root.appendChild(wrap);
+    macros.push({ m, input, show });
+  }
+
+  const advBtn = document.createElement('button');
+  advBtn.type = 'button';
+  advBtn.append(Object.assign(document.createElement('span'), { textContent: 'Fine knobs' }));
+  advBtn.addEventListener('click', () => {
+    fineWrap.style.display = fineWrap.style.display === 'none' ? 'contents' : 'none';
+    advBtn.dataset.on = fineWrap.style.display === 'none' ? '0' : '1';
+    advBtn.blur();
+  });
+  advBtn.dataset.on = '0';
+  root.appendChild(advBtn);
+
+  // `display: contents` so the children stay in the panel's own flex column and
+  // keep their spacing; a block wrapper would nest a second layout context.
+  const fineWrap = document.createElement('div');
+  fineWrap.style.display = 'none';
+  root.appendChild(fineWrap);
+
+  const feelHead = document.createElement('h6');
+  feelHead.textContent = 'feel';
+  let feelHeadPlaced = false;
+
   const knobs = [];
-  for (const k of KNOBS) {
+  // Look knobs into the collapsed section, feel knobs into the panel proper.
+  // Partitioned rather than filtered in one pass so the `feel` header can sit
+  // between them without depending on KNOBS' ordering.
+  for (const k of [...KNOBS.filter(x => !x.feel), ...KNOBS.filter(x => x.feel)]) {
     const wrap = document.createElement('div');
     wrap.className = 'vdev-knob';
     const top = document.createElement('div');
@@ -293,13 +463,24 @@ export function installDevPanel(api) {
     input.addEventListener('input', () => {
       k.set(parseFloat(input.value));
       show();
+      // A fine knob can move a macro off its step, or onto a different one.
+      for (const mm of macros) mm.show();
     });
     // a focused slider eats the arrow keys, which are the steering keys
     input.addEventListener('change', () => input.blur());
     top.append(name, val);
     wrap.append(top, input);
-    root.appendChild(wrap);
+    // A flag, not `feelHead.isConnected`: `root` is still detached here, so the
+    // header never reads as connected and appendChild would re-move it down the
+    // list once per feel knob, landing it above the last one instead of the first.
+    if (k.feel && !feelHeadPlaced) { root.appendChild(feelHead); feelHeadPlaced = true; }
+    (k.feel ? root : fineWrap).appendChild(wrap);
     knobs.push({ k, input, show });
+  }
+
+  /** Re-read every fine knob from source, after a macro has written them. */
+  function syncFine() {
+    for (const { k, input, show } of knobs) { input.value = String(k.get()); show(); }
   }
 
   const togHead = document.createElement('h6');
@@ -325,7 +506,7 @@ export function installDevPanel(api) {
 
   const hint = document.createElement('div');
   hint.className = 'vdev-hint';
-  hint.textContent = '` to hide · 5 copies the look';
+  hint.textContent = '` to hide · 5 look · 6 kill boss · 7 skip level';
   root.appendChild(hint);
   document.body.appendChild(root);
 
@@ -348,7 +529,8 @@ export function installDevPanel(api) {
     buttons.get('boss').el.disabled = busy || !!api.combat.boss;
     // Sliders are only re-synced from source here, never per frame — dragging
     // one must not fight a writer that rounds the value back.
-    for (const { k, input, show } of knobs) { input.value = String(k.get()); show(); }
+    syncFine();
+    for (const { show } of macros) show();
     for (const { id, el } of toggles) el.dataset.on = P()[id]?.enabled ? '1' : '0';
   }
 

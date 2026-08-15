@@ -7,12 +7,15 @@
 //
 //   node tools/pilot.mjs aim                 reticle lead direction and throw
 //   node tools/pilot.mjs fly --seconds 90    autopilot playthrough, playability
+//   node tools/pilot.mjs roll                barrel roll: spin, dodge, recovery
 //   node tools/pilot.mjs aim --params wpn=3  extra URL switches
 //   node tools/pilot.mjs fly --headed        watch it fly, HUD and all
+//   node tools/pilot.mjs fly --headed --chrome    …in the real Chrome, not Chromium
+//   node tools/pilot.mjs roll --film out/    write a PNG per sample
 //
 // Adding a scenario: drop an entry in SCENARIOS. It gets `{ page, frames, keys,
-// sample, evaluate }` and returns whatever its own `print` understands, so a new
-// question does not mean a new file or a new copy of the boot code.
+// sample, snap, evaluate }` and returns whatever its own `print` understands, so
+// a new question does not mean a new file or a new copy of the boot code.
 //
 // What this can and cannot do: it measures. "Does the reticle lead the turn" and
 // "can the level be flown end to end without dying" are measurable and live here.
@@ -21,8 +24,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = '/Users/g/code/scratch/tech9/games/vulpine';
+// Resolved from this file, not hard-coded: the harness has to serve whichever
+// checkout it was invoked from, or a run against a git worktree silently
+// measures the main tree instead.
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
 function arg(name, def = null) {
   const i = process.argv.indexOf(`--${name}`);
@@ -35,6 +43,7 @@ const PORT = parseInt(arg('port', '5460'), 10);
 const SECONDS = parseFloat(arg('seconds', '75'));
 const EXTRA = arg('params', '') ? '&' + String(arg('params', '')).replace(/^&/, '') : '';
 const QUALITY = arg('quality', 'low');
+const FILM = arg('film', null);          // directory for per-sample PNGs
 // Sim seconds to seek to before flying. ~44 lands just short of the carrier, so
 // the boss fight can be exercised without flying the 8 km in front of it.
 const START_T = arg('t', '6');
@@ -58,8 +67,14 @@ if (!(await up(base, 1200))) {
 
 // --headed to watch the autopilot fly. Slowed slightly so the input is legible.
 const HEADED = !!arg('headed', false);
+// --chrome runs the installed Google Chrome instead of Playwright's bundled
+// Chromium. Not cosmetic: the two disagree on GPU paths, and this project has an
+// open measurement (the motion-blur mask's 8 ms) that is suspected to be a
+// headless-ANGLE artefact. A number taken here is the one the owner sees.
+const CHROME = !!arg('chrome', false);
 const browser = await chromium.launch({
   headless: !HEADED,
+  ...(CHROME ? { channel: 'chrome' } : {}),
   slowMo: HEADED ? 12 : 0,
   args: ['--use-angle=metal', '--ignore-gpu-blocklist'],
 });
@@ -122,9 +137,23 @@ const sample = () => page.evaluate(() => {
     outcome: st.outcome, live: st.enemies ? st.enemies.length : 0,
     boss: !!V.combat.boss, weapon: st.weapon ? st.weapon.label : '?',
     fps: Math.round(1000 / V.engine.avgFrameMs),
+    // Attitude, from the hull's own basis rather than from `flight.bank`: bank
+    // and the barrel-roll sweep are separate terms summed into one Euler, and
+    // the question every attitude scenario asks is what came out of it. `upX` is
+    // the hull's up vector along world +X — positive is top-tipped-right, which
+    // a camera behind the ship sees as a clockwise roll.
+    upX: +new V.THREE.Vector3(0, 1, 0).applyQuaternion(V.ship.quaternion).x.toFixed(3),
+    rollT: +V.flight.rollT.toFixed(3), rollDir: V.flight.rollDir,
+    bank: +V.flight.bank.toFixed(3),
   };
 });
-const ctx = { page, frames, keys, sample, evaluate: (fn, a) => page.evaluate(fn, a) };
+/** Write a PNG beside the samples. No-op unless --film named a directory. */
+const snap = async (name) => {
+  if (!FILM) return;
+  await mkdir(FILM, { recursive: true });
+  await writeFile(`${FILM}/${name}.png`, await page.screenshot());
+};
+const ctx = { page, frames, keys, sample, snap, evaluate: (fn, a) => page.evaluate(fn, a) };
 
 /* ── scenarios ────────────────────────────────────────────────────────────── */
 
@@ -187,6 +216,144 @@ const SCENARIOS = {
         console.log(`  ${r.label} ${String(vel).padStart(7)} ${String(dHull.toFixed(3)).padStart(8)} ${String(dAim.toFixed(3)).padStart(8)} ${String(ratio).padStart(7)}   ${verdict}`);
       }
       console.log(bad ? `\n  ${bad} of ${arms.length} axes INVERTED.` : '\n  all four axes track the stick.');
+    },
+  },
+
+  /**
+   * The level transition, end to end: kill the carrier, fly the lap, hop, and
+   * arrive on Fichina. Checks the three things that make it seamless rather than
+   * a loading screen — the sim never stops, the rail lands back at 0 on the new
+   * world, and the terrain is never on screen while it is being rebuilt.
+   */
+  hop: {
+    async run({ frames, sample, evaluate, snap }) {
+      const rows = [];
+      // Straight to the carrier and kill it: the fight is `fly`'s job, and
+      // replaying 8 km per run to test the last 15 s is the wrong trade.
+      await evaluate(() => {
+        const V = window.__VULPINE__;
+        V.seek(48);
+        let g = 0;
+        while (!V.combat.boss && g++ < 400) V.step(30);
+        V.combat.killBoss();
+      });
+      const t0 = Date.now();
+      let last = null, seen = 0;
+      while ((Date.now() - t0) / 1000 < 45) {
+        const s = await sample();
+        const c = await evaluate(() => {
+          const V = window.__VULPINE__;
+          const cp = V.state.campaign;
+          return {
+            phase: cp ? cp.phase : 'none',
+            level: cp ? cp.level.id : '?',
+            build: +V.world.buildProgress.toFixed(2),
+            worldVis: V.world.root.visible,
+            simActive: V.ctx.mode.simActive,
+          };
+        });
+        const row = { ...s, ...c };
+        rows.push(row);
+        // Snapping on the phase *change* films the first frame of each phase,
+        // which is precisely the frame on which nothing has happened yet — an
+        // ascent shot taken there shows a ship that has not climbed. Film a
+        // start/middle/end of every phase instead.
+        if (c.phase !== last) { seen = 0; last = c.phase; }
+        if (c.phase !== 'play' && [0, 4, 9].includes(seen)) {
+          await snap(`${c.phase}-${['a', 'b', 'c'][[0, 4, 9].indexOf(seen)]}`);
+        }
+        seen++;
+        if (c.level === 'fichina' && c.phase === 'play') break;
+        await frames(8);
+      }
+      return rows;
+    },
+    print(rows) {
+      if (!rows.length) { console.log('no samples'); return; }
+      console.log('  phase        level     railZ  build  worldVis  simActive   fps');
+      let prev = null;
+      for (const r of rows) {
+        if (r.phase === prev) continue;              // one line per phase change
+        prev = r.phase;
+        console.log(`  ${r.phase.padEnd(11)} ${r.level.padEnd(9)} ${String(r.railZ).padStart(6)}`
+          + ` ${String(r.build).padStart(5)}  ${String(r.worldVis).padStart(8)}  ${String(r.simActive).padStart(9)} ${String(r.fps).padStart(5)}`);
+      }
+      const last = rows[rows.length - 1];
+      const stalled = rows.filter(r => !r.simActive).length;
+      // Terrain visible while the mesh is incomplete is the defect the whole
+      // sequence exists to prevent — it would show the world building itself.
+      const leak = rows.filter(r => r.worldVis && r.build < 1).length;
+      console.log(`\n  arrived on: ${last.level} (phase ${last.phase})  railZ ${last.railZ}`);
+      console.log(`  sim stopped on ${stalled} of ${rows.length} samples  ${stalled ? '*** THE SIM PAUSED ***' : 'never — flown throughout'}`);
+      console.log(`  terrain visible mid-rebuild on ${leak} samples  ${leak ? '*** REBUILD ON SCREEN ***' : 'never'}`);
+      console.log(`  fps min ${Math.min(...rows.map(r => r.fps))} / max ${Math.max(...rows.map(r => r.fps))}`);
+    },
+  },
+
+  /**
+   * The barrel roll, on three questions the eye cannot settle on its own:
+   * does it spin the way it dodges, how far does the dodge throw you, and does
+   * any of that come back. Sampled at 3-frame intervals because the whole
+   * manoeuvre is `rollDuration` 0.62 s — coarser than that and the sweep is two
+   * points and an assumption.
+   */
+  roll: {
+    async run({ frames, keys, sample, snap }) {
+      const arm = async (key, label) => {
+        await frames(40);
+        const rows = [{ ...(await sample()), tag: 'pre' }];
+        await keys.hold(key, 2);
+        for (let i = 0; i < 16; i++) {
+          rows.push({ ...(await sample()), tag: String(i) });
+          await snap(`${label}-${String(i).padStart(2, '0')}`);
+          await frames(3);
+        }
+        // Long tail: the dodge is only a dodge if the offset comes back.
+        await frames(150);
+        rows.push({ ...(await sample()), tag: 'rest' });
+        return { label, rows };
+      };
+      return [await arm('KeyC', 'right'), await arm('KeyZ', 'left')];
+    },
+    print(runs) {
+      for (const { label, rows } of runs) {
+        const pre = rows[0], rest = rows[rows.length - 1];
+        console.log(`\n=== barrel roll ${label} ===`);
+        console.log('  tag   rollT  dir     upX   offVelX     offX    bank');
+        for (const r of rows) {
+          console.log(`  ${r.tag.padEnd(5)} ${String(r.rollT).padStart(6)} ${String(r.rollDir).padStart(4)}`
+            + ` ${String(r.upX).padStart(7)} ${String(r.offVelX).padStart(9)} ${String(r.offX).padStart(8)} ${String(r.bank).padStart(7)}`);
+        }
+        // Spin direction is read from the FIRST QUARTER TURN, never from the
+        // peak. The sweep is a full 360°, so |upX| peaks near 90° and again near
+        // 270° with opposite signs — taking the larger reports whichever side of
+        // the half-turn the sampling happened to land on. Reading peak |upX| on a
+        // 3-frame cadence called an inverted roll correct.
+        //
+        // Sign convention, confirmed against filmstrip frames rather than
+        // derived: rolling clockwise from the chase camera drops the right wing,
+        // which tips the hull's top toward screen right, so `upX > 0` IS
+        // clockwise. Roll-right (C) must land here.
+        //
+        // 0.15 s is a sampling requirement, not a copy of the tuning: it is under
+        // a quarter of `flight.js` TUNE.rollDuration at 0.62 s. If that duration
+        // is ever cut below ~0.6 s this bound has to come down with it.
+        const early = rows.find(r => r.rollT > 0 && r.rollT < 0.15);
+        if (!early) {
+          console.log('  spin vs dodge: no sample inside the first quarter turn — sample faster');
+        } else {
+          const cw = early.upX;
+          const agree = Math.sign(cw) === Math.sign(early.offVelX) && Math.abs(early.upX) > 0.02;
+          console.log(`  spin vs dodge, at rollT ${early.rollT} (first quarter turn):`
+            + ` clockwise ${cw.toFixed(3)}, dodge ${early.offVelX}`);
+          console.log(`    ${agree ? 'AGREE — spins the way it dodges'
+            : '*** OPPOSED — the roll spins away from its own dodge ***'}`);
+        }
+        // The displacement is the design question: a dodge returns, a lane
+        // change does not.
+        console.log(`  offX  ${pre.offX} → peak ${rows.reduce((a, r) => Math.abs(r.offX) > Math.abs(a) ? r.offX : a, 0)}`
+          + ` → ${rest.offX} after 150 idle frames  (net ${(rest.offX - pre.offX).toFixed(1)} m)`);
+      }
     },
   },
 

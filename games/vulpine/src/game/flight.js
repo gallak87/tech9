@@ -142,6 +142,8 @@ export class Flight {
     this.bank = 0; this.pitch = 0; this.yaw = 0;
     this.rollT = -1; this.rollDir = 1; this.rollCd = 0;
     this.somersaultT = -1;
+    this.detached = false;
+    this.climb = 0;
     this.invuln = 0;
 
     this.pos = new THREE.Vector3();
@@ -177,6 +179,17 @@ export class Flight {
     this._hasPrev = false;
   }
 
+  /**
+   * Put the ship back at the head of a fresh corridor. `prevRailZ` goes with it
+   * or the render interpolator draws one frame smeared across the whole level.
+   */
+  resetRail() {
+    this.railZ = 0;
+    this.prevRailZ = 0;
+    this.off.set(0, 0);
+    this.offVel.set(0, 0);
+  }
+
   railPoint(z, out = new THREE.Vector3()) {
     return out.set(centrelineX(z), centrelineY(z), z);
   }
@@ -210,7 +223,11 @@ export class Flight {
     if (wantBoost) target = THREE.MathUtils.lerp(TUNE.cruiseSpeed, TUNE.boostSpeed, input.boost);
     else if (wantBrake) target = THREE.MathUtils.lerp(TUNE.cruiseSpeed, TUNE.brakeSpeed, input.brake);
     this.speed += THREE.MathUtils.clamp(target - this.speed, -TUNE.accel * dt * 2.4, TUNE.accel * dt);
-    this.railZ -= this.speed * dt;
+    // `detached` is the between-levels state: the ship is off-world, so the rail
+    // holds and the terrain floor below is skipped. Both together, never one —
+    // advancing the rail would fire the next level's waves during the hop, and
+    // clamping to the ground would drop the ship onto terrain that is not drawn.
+    if (!this.detached) this.railZ -= this.speed * dt;
     this.throttleN = THREE.MathUtils.clamp((this.speed - TUNE.brakeSpeed) / (TUNE.boostSpeed - TUNE.brakeSpeed), 0, 1);
 
     /* ── manoeuvres ─────────────────────────────────────────────────────── */
@@ -264,14 +281,19 @@ export class Flight {
     this.railPoint(this.railZ, this.railPos);
     this.railTangent(this.railZ, this.railDir);
 
-    this.pos.set(this.railPos.x + this.off.x, this.railPos.y + this.off.y, this.railZ);
+    // `climb` is the hop's altitude, kept out of `off.y` on purpose: the offset
+    // is a box with sprung walls and a ground cushion, and pushing 2 km through
+    // it would fight both. It is added after, so the corridor physics never see
+    // it and are unchanged the moment it returns to zero.
+    this.pos.set(this.railPos.x + this.off.x, this.railPos.y + this.off.y + this.climb, this.railZ);
 
     // Terrain floor — you can graze the deck but not swim. Cushioned rather
     // than bounced: the ship is sprung away over the last few metres of
     // clearance, so the hard stop below is a backstop that rarely fires. A
     // velocity sign flip on contact is a discontinuity, and at full deflection
     // the camera rides rigid against the hull and passes it to the frame.
-    const gy = this.world ? this.world.groundAt(this.pos.x, this.pos.z) + 5.5 : -Infinity;
+    const gy = (this.world && !this.detached)
+      ? this.world.groundAt(this.pos.x, this.pos.z) + 5.5 : -Infinity;
     const clearance = this.pos.y - gy;
     if (clearance < TUNE.groundCushion) {
       const pen = TUNE.groundCushion - clearance;
@@ -308,7 +330,12 @@ export class Flight {
     if (this.rollT >= 0) {
       const p = this.rollT / TUNE.rollDuration;
       const eased = p * p * (3 - 2 * p);
-      rollExtra = this.rollDir * eased * Math.PI * 2;
+      // Negated for the same reason `bankTarget` is: a Z Euler term rotates the
+      // hull's up vector to -x, so a *positive* sweep reads as counter-clockwise
+      // from the chase camera. Unnegated, roll-right (C) spun anti-clockwise
+      // while dodging right, and fought the bank it was carrying — the two terms
+      // are summed into one Euler and disagreed by construction.
+      rollExtra = -this.rollDir * eased * Math.PI * 2;
     }
     // Somersault: one clean 360° pitch loop, eased so the apex hangs.
     let somerPitch = 0;
@@ -427,7 +454,11 @@ export class Flight {
     }
     _vRight.crossVectors(_vHead, UP).normalize();
 
-    _vShip.set(railPos.x + offX, railPos.y + offY, railZ);
+    // `climb` is added here and nowhere else in the rig: it must move the camera
+    // with the ship, but it must NOT enter the lead terms below, which are built
+    // from offset velocity. A 2 km ramp read as offset velocity would saturate
+    // the lead cap for the whole ascent and weld the rig to the hull.
+    _vShip.set(railPos.x + offX, railPos.y + offY + this.climb, railZ);
     this.camPos.copy(_vShip)
       .addScaledVector(_vHead, -back)
       .addScaledVector(_vRight, -leadX)

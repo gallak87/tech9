@@ -12,6 +12,7 @@ import { installCombat } from './game/combat.js';
 import { installUI } from './ui/index.js';
 import { installAudio } from './core/audio.js';
 import { installMode } from './game/mode.js';
+import { installCampaign } from './game/campaign.js';
 import { installDevPanel } from './dev/panel.js';
 import { createLoader } from './ui/loading.js';
 
@@ -80,6 +81,10 @@ ctx.fx = installFx(ctx);
 ctx.combat = installCombat(ctx);
 ctx.ui = installUI(ctx);
 ctx.audio = installAudio(ctx);
+// After combat, which owns `ctx.state` — the campaign publishes onto it. This is
+// a new seam in a shared file: the campaign is the only thing that may end a
+// mission, and it needs a per-frame tick nothing else can give it.
+ctx.campaign = installCampaign(ctx);
 
 // Hulls the motion blur must not touch. The pass reprojects depth as if every
 // pixel were static world geometry, which is maximally wrong for anything that
@@ -175,6 +180,13 @@ function frame() {
   }
 
   if (running && !shotMode && mode.simActive) {
+    // BEFORE the sim, not in updateScene. The campaign writes `flight.climb`,
+    // which both the sim (ship position) and the camera read. Ticked in the
+    // render phase it lands between them: the ship is placed with the previous
+    // value while the camera uses the new one, and at the ascent's ~940 m/s that
+    // is ~15 m of camera-above-ship against a 17 m chase distance — the hull
+    // leaves the bottom of the frame.
+    ctx.campaign.update(dt);
     acc += dt;
     let guard = 0;
     while (acc >= FIXED && guard++ < 8) { step(FIXED); acc -= FIXED; }

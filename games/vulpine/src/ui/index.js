@@ -9,6 +9,7 @@ import { WingmenStrip } from './wingmen.js';
 import { BossHealthBar } from './bosshealth.js';
 import { ThreatArcs } from './threat.js';
 import { OutcomeCard } from './outcome.js';
+import { TransitBanner } from './transit.js';
 import { Menu } from './menu.js';
 import { clamp } from './theme.js';
 
@@ -57,6 +58,7 @@ export function installUI(ctx) {
   const bossHealth = new BossHealthBar();
   const threat = new ThreatArcs();
   const outcome = new OutcomeCard();
+  const transit = new TransitBanner();
   const menu = new Menu();
 
   /** dpr-independent UI scale + a 16:9 title-safe margin. */
@@ -141,6 +143,7 @@ export function installUI(ctx) {
       bossHealth.update(dt, s);
       threat.update(dt, s);
       outcome.update(dt, s);
+      transit.update(dt, s.campaign ? s.campaign.hud : null);
     },
     draw() {
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -159,16 +162,21 @@ export function installUI(ctx) {
 
       score.draw(g, L, s);
       bossHealth.draw(g, L, s);
-      radar.draw(g, L, s);
+      if (!s.campaign || !s.campaign.hopping) radar.draw(g, L, s);
 
-      threat.draw(g, L, s);
+      if (!s.campaign || !s.campaign.hopping) {
+        threat.draw(g, L, s);
+      }
       reticle.draw(g, L, s, projectPoint(s.aimPoint, L));
       lockMarker.draw(g, L, s, projectLock(s, L));
 
       legend.draw(g, w, h);
       comms.draw(g, L, s, legendFootprint() * legend.alpha);
 
-      outcome.draw(g, L, s);
+      transit.draw(g, L, s.campaign ? s.campaign.hud : null);
+      // The win card ends a run, not a level — during a hop the transit banner
+      // owns that space and the two would overlap through the ascent.
+      if (!s.campaign || !s.campaign.hopping) outcome.draw(g, L, s);
       if (m) menu.draw(g, L, m);
     },
     dispose() { host.removeChild(canvas); },

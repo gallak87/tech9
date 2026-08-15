@@ -251,6 +251,10 @@ const GRANTS = [
   { z: -7750, who: 'FALCO',  text: "Full rack hot. Now go open that carrier up." },
 ];
 
+// Exported so `campaign.js` can describe level 1 the same way it describes every
+// other level, rather than level 1 being the implicit boot default.
+export { WAVES as CORNERIA_WAVES, GRANTS as CORNERIA_GRANTS, COMMS as CORNERIA_COMMS };
+
 const COMMS = [
   { z: -150, who: 'PEPPY', text: 'Contacts, high off your port bow!' },
   { z: -880, who: 'FALCO', text: 'Second flight, starboard. I\'ve got the far one.' },
@@ -361,6 +365,9 @@ export function installCombat(ctx) {
   let firedWaves = 0;
   let firedComms = 0;
   let firedGrants = 0;
+  // The live mission tables. Module-level `WAVES`/`COMMS`/`GRANTS` are
+  // Corneria's and stay the boot default; a level swap points these elsewhere.
+  let waves = WAVES, comms = COMMS, grants = GRANTS;
   // Off is the measurement baseline: the carrier is balanced against the
   // granted gun, so an A/B of the fight needs the pre-boss grants suppressed
   // rather than the tier merely reset.
@@ -1394,18 +1401,18 @@ const _bRail = new THREE.Vector3();
     }
 
     /* mission triggers */
-    while (firedWaves < WAVES.length && flight.railZ <= WAVES[firedWaves].z) {
-      spawnWave(WAVES[firedWaves]);
+    while (firedWaves < waves.length && flight.railZ <= waves[firedWaves].z) {
+      spawnWave(waves[firedWaves]);
       firedWaves++;
     }
-    while (firedComms < COMMS.length && flight.railZ <= COMMS[firedComms].z) {
-      say(COMMS[firedComms].who, COMMS[firedComms].text);
+    while (firedComms < comms.length && flight.railZ <= comms[firedComms].z) {
+      say(comms[firedComms].who, comms[firedComms].text);
       firedComms++;
     }
     // After the comms, so on the rare tick that crosses both the grant callout
     // wins — it is the rarer event and the one the player must not miss.
-    while (grantsOn && firedGrants < GRANTS.length && flight.railZ <= GRANTS[firedGrants].z) {
-      grantWeapon(GRANTS[firedGrants]);
+    while (grantsOn && firedGrants < grants.length && flight.railZ <= grants[firedGrants].z) {
+      grantWeapon(grants[firedGrants]);
       firedGrants++;
     }
     if (state.message && view.time > state.message.until) state.message = null;
@@ -1592,6 +1599,46 @@ const _bRail = new THREE.Vector3();
     /** Tap-gun dps at the live tier, so a probe can report it without the table. */
     get dps() { const w = weapon(); return (w.pods * TUNE.playerBullet.dmg * w.dmg) / w.gap; },
     grantWeapon,
+    say,
+    /**
+     * Clear the field and re-arm the mission triggers for `level`.
+     *
+     * Score, lives, shield and weapon tier deliberately survive: they are the
+     * run, not the level. Everything indexed by `railZ` is reset, because the
+     * rail is reset at the same moment — see `campaign.js`, which is the only
+     * caller and does both together.
+     */
+    resetForLevel(level) {
+      for (const f of foes) { enemyGroup.remove(f.root); disposeEnemy(f.root); }
+      foes.length = 0;
+      bullets.length = 0;
+      bombs.length = 0;
+      if (boss) { group.remove(boss.root); boss.api.dispose(); boss = null; }
+      firedWaves = firedComms = firedGrants = 0;
+      waves = level.waves || [];
+      comms = level.comms || [];
+      grants = level.grants || [];
+      state.outcome = null;
+      state.bossHealth = null;
+      state.lockTarget = null;
+      state.lockOn = 0;
+      state.enemies.length = 0;
+      deadT = -1;
+      charge = 0;
+      charging = false;
+    },
+    /**
+     * Dev: end the carrier fight now. Runs the real death path rather than
+     * setting `outcome` directly, so the callout, the victory music and the 4 s
+     * break-up all happen exactly as they do in play — which is the point, since
+     * what this exists to exercise is the end-of-mission transition.
+     * Returns false if there is no live carrier to kill.
+     */
+    killBoss() {
+      if (!boss || boss.dying >= 0) return false;
+      bossDie();
+      return true;
+    },
     set grants(on) { grantsOn = !!on; },
     update,
     dispose() {

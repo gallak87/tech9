@@ -1,41 +1,58 @@
 import { RNG } from '../core/rng.js';
 import { fbm2D, ridged2D } from '../render/textures.js';
+import { DEFAULTS, DNA_CORNERIA } from './dna.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// The shape of Corneria.
+// The shape of a world.
 //
-// Everything geometric about the level is defined here as a pure function of
-// (x, z): the meander of the river, the cross-section of the canyon at each
-// point along it, and the relief of the highland beyond the walls. The mesh
-// builders, the city planner, the scatter and the water shader all read from
-// this one source, so nothing can ever disagree about where the ground is.
+// Everything geometric about the level is a pure function of (x, z): the
+// meander of the channel, the cross-section at each point along it, and the
+// relief of the highland beyond the walls. The mesh builders, the city planner,
+// the scatter and the water shader all read from this one source, so nothing
+// can ever disagree about where the ground is.
+//
+// ── One world at a time ──────────────────────────────────────────────────────
+// Which world is a module-level fact, set by `setActiveDNA(dna)`. The functions
+// below stay pure functions of (x, z) with no dna argument because they sit on
+// the hot path of the flight model, the AI and every mesh build — `setActiveDNA`
+// unpacks the DNA into module-local scalars and typed arrays so a sample never
+// walks an object graph.
 //
 // ── Sampling and Nyquist ─────────────────────────────────────────────────────
-// The terrain mesh is a river-aligned grid: rows step along -Z at a fixed rate,
-// columns step laterally at `spacing(d)`, which grows with distance from the
-// centreline so that the corridor you actually fly through is dense and the
-// far ridgelines are cheap. That makes the local sample rate an explicit,
-// known function — so every noise band is faded out by `gainFor()` once its
+// The terrain mesh is a channel-aligned grid: rows step along -Z at a fixed
+// rate, columns step laterally at `spacing(d)`, which grows with distance from
+// the centreline so that the corridor you actually fly through is dense and the
+// far ridgelines are cheap. That makes the local sample rate an explicit, known
+// function — so every noise band is faded out by `gainFor()` once its
 // wavelength drops below ~4 samples. Detail never becomes fizz; it dissolves.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Mesh tiers and extents for the active world. Mutated in place, never
+ * replaced: terrain.js, water.js and world-materials.js hold a reference.
+ */
 export const WORLD = {
-  length: 9000,
+  id: '',
+  length: 0,
   waterLevel: 0,
+  surface: 'water',
 
-  nearHalf: 1100,        // lateral extent of the high-detail tier
-  farHalf: 5600,         // lateral extent of the ridgeline tier
-  chunkLen: 240,
-  resZ: 6,               // metres per row, near tier
-  farChunkLen: 1200,
-  farResZ: 30,
+  nearHalf: 0,           // lateral extent of the high-detail tier
+  farHalf: 0,            // lateral extent of the ridgeline tier
+  chunkLen: 0,
+  resZ: 0,               // metres per row, near tier
+  farChunkLen: 0,
+  farResZ: 0,
 
-  zStart: 720,           // terrain is built from here…
-  zEnd: -9840,           // …to here (both are multiples of chunkLen apart)
+  zStart: 0,             // terrain is built from here…
+  zEnd: 0,               // …to here (both are multiples of chunkLen apart)
 };
 
-/** Lateral sample spacing at distance `d` from the river centreline. */
-export function spacing(d) { return 6 * (1 + d / 280); }
+/** The live DNA. Read it for identity and skin; never sample geometry off it. */
+export let DNA = null;
+
+/** Vertex-tint ratios for terrain.js. Replaced wholesale by `setActiveDNA`. */
+export let PALETTE = DEFAULTS.palette;
 
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const smooth = (a, b, x) => {
@@ -44,78 +61,86 @@ export const smooth = (a, b, x) => {
 };
 const lerp = (a, b, t) => a + (b - a) * t;
 
+/* ── unpacked DNA ─────────────────────────────────────────────────────────── */
+// Everything a height sample touches lives here as a scalar or a typed array.
+
+const MAXW = 6;                       // sine terms per centreline axis
+const MAXB = 6;                       // dog-legs
+
+let SP_A = 6, SP_G = 280;
+
+let cxN = 0, cyN = 0, cbN = 0, cyBase = 0;
+const cxA = new Float64Array(MAXW), cxW = new Float64Array(MAXW), cxP = new Float64Array(MAXW);
+const cyA = new Float64Array(MAXW), cyW = new Float64Array(MAXW), cyP = new Float64Array(MAXW);
+const cbLo = new Float64Array(MAXB), cbHi = new Float64Array(MAXB), cbD = new Float64Array(MAXB);
+
+let KEYS = [];
+let CITY_IN0 = 0, CITY_IN1 = 0, CITY_OUT0 = 0, CITY_OUT1 = 0, CITY_ON = 0;
+
+let nFar, nMacro, nRange, nHill, nFine, nCrag, nJitA, nJitB, nSide, nWarp;
+let S_FAR, S_MACRO, S_RANGE, S_HILL, S_FINE, S_CRAG, S_WARP, S_SIDE;
+let L_RANGE, L_HILL, L_FINE, L_CRAG;
+let A_FAR, A_MACRO, A_RANGE, A_HILL, A_FINE, A_CRAG, A_WARP;
+let P_FAR, B_FAR, P_RANGE, B_RANGE, B_CRAG;
+let D_FAR0, D_FAR1, D_REL0, D_REL1, K_WARPZ;
+let J_A, J_B, SIDE_BASE, SIDE_AMP;
+let REL_BASE, REL_FAR;
+
+let ISLANDS = [];
+
+/** Lateral sample spacing at distance `d` from the channel centreline. */
+export function spacing(d) { return SP_A * (1 + d / SP_G); }
+
 /* ── centreline ───────────────────────────────────────────────────────────── */
-// Unchanged from the original — the flight model is tuned around this meander.
+// X is a sum of sine terms plus any number of smoothstep dog-legs. A dog-leg is
+// the only shape in the vocabulary with a bounded, analytic derivative that can
+// turn the corridor faster than a sine of the same amplitude, and the grid
+// shears along dX/dz — past ~0.8 the "perpendicular" wall is no longer close to
+// perpendicular and the lateral sample rate stops matching `spacing()`.
+
+/** 0 before the bend, 1 after it. */
+function bendS(z, i) {
+  const t = clamp((z - cbLo[i]) / (cbHi[i] - cbLo[i]), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+function bendDS(z, i) {
+  const w = cbHi[i] - cbLo[i];
+  const t = clamp((z - cbLo[i]) / w, 0, 1);
+  return 6 * t * (1 - t) / w;
+}
 
 export function centrelineX(z) {
   const t = -z;
-  return Math.sin(t * 0.00055) * 210 + Math.sin(t * 0.00181 + 1.7) * 78 + Math.sin(t * 0.0041 + 0.4) * 22;
+  let s = 0;
+  for (let i = 0; i < cxN; i++) s += Math.sin(t * cxW[i] + cxP[i]) * cxA[i];
+  for (let i = 0; i < cbN; i++) s += cbD[i] * bendS(z, i);
+  return s;
 }
 export function centrelineY(z) {
   const t = -z;
-  return 44 + Math.sin(t * 0.00042 + 0.9) * 16 + Math.sin(t * 0.00133 + 2.3) * 7;
+  let s = cyBase;
+  for (let i = 0; i < cyN; i++) s += Math.sin(t * cyW[i] + cyP[i]) * cyA[i];
+  return s;
 }
 /** dX/dz of the centreline — the terrain grid shears along it. */
 export function centrelineDX(z) {
   const t = -z;
-  return -(Math.cos(t * 0.00055) * 210 * 0.00055
-    + Math.cos(t * 0.00181 + 1.7) * 78 * 0.00181
-    + Math.cos(t * 0.0041 + 0.4) * 22 * 0.0041);
+  let s = 0;
+  for (let i = 0; i < cxN; i++) s += Math.cos(t * cxW[i] + cxP[i]) * cxA[i] * cxW[i];
+  let d = -s;
+  for (let i = 0; i < cbN; i++) d += cbD[i] * bendDS(z, i);
+  return d;
 }
 
 /* ── noise bands ──────────────────────────────────────────────────────────── */
-// Each band is listed with the domain scale it is sampled at and the shortest
+// Each band carries the domain scale it is sampled at and the shortest
 // wavelength that survives, in metres. `gainFor` fades a band out where the
 // local sample spacing can no longer carry it.
-
-const R = new RNG('corneria:relief-2');
-const nFar = ridged2D(R, { octaves: 3, base: 2, gain: 0.60 });   // λmin 2750 m
-const nMacro = fbm2D(R, { octaves: 3, base: 2, gain: 0.62 });    // λmin 2000 m
-const nRange = ridged2D(R, { octaves: 4, base: 3, gain: 0.55 }); // λmin  292 m
-const nHill = fbm2D(R, { octaves: 4, base: 4, gain: 0.50 });     // λmin  140 m
-const nFine = fbm2D(R, { octaves: 3, base: 6, gain: 0.50 });     // λmin   92 m
-const nCrag = ridged2D(R, { octaves: 3, base: 5, gain: 0.55 });  // λmin   80 m
-const nJitA = fbm2D(R, { octaves: 2, base: 4, gain: 0.50 });     // λmin  300 m
-const nJitB = fbm2D(R, { octaves: 2, base: 8, gain: 0.50 });     // λmin   75 m
-const nSide = fbm2D(R, { octaves: 2, base: 3, gain: 0.50 });     // λmin 1000 m
-const nWarp = fbm2D(R, { octaves: 2, base: 3, gain: 0.50 });     // λmin 1000 m
-
-const S_FAR = 1 / 22000, S_MACRO = 1 / 16000, S_RANGE = 1 / 6997;
-const S_HILL = 1 / 4501, S_FINE = 1 / 2213, S_CRAG = 1 / 1601;
-const L_RANGE = 292, L_HILL = 140, L_FINE = 92, L_CRAG = 80;
 
 /** 1 while a wavelength is comfortably above Nyquist for `sp`, 0 once it isn't. */
 function gainFor(lambda, sp) { return smooth(0.55, 1.40, lambda / (4 * sp)); }
 
 /* ── cross-section keyframes ──────────────────────────────────────────────── */
-//
-//  wallH ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭──── plateau + relief
-//                                    ╭──╯   a3 = cliff top
-//  shelfH ┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈╭───────╯      a2 = cliff foot
-//  beachH ┈┈┈┈┈┈┈┈┈╭─────────╯              a1 = shelf foot
-//    0  ───────────╯                        a0 = waterline (= inner)
-//              ╲__╱                         riverbed, `bed` deep
-//
-// `zone` names are only for the reader; interpolation is continuous.
-
-const KEYS = [
-  //  z        inner bed beachW beachH shelfW shelfH cliffW wallH relief  zone
-  { z: 720, inner: 460, bed: 15, beachW: 100, beachH: 5, shelfW: 130, shelfH: 15, cliffW: 210, wallH: 55, relief: 0.9 },
-  { z: -400, inner: 395, bed: 18, beachW: 90, beachH: 5, shelfW: 115, shelfH: 17, cliffW: 190, wallH: 95, relief: 1.0 },
-  { z: -1250, inner: 300, bed: 22, beachW: 68, beachH: 6, shelfW: 92, shelfH: 22, cliffW: 150, wallH: 165, relief: 1.15 },
-  { z: -1950, inner: 210, bed: 26, beachW: 52, beachH: 6, shelfW: 70, shelfH: 26, cliffW: 112, wallH: 255, relief: 1.30 },
-  { z: -2650, inner: 152, bed: 30, beachW: 34, beachH: 7, shelfW: 48, shelfH: 30, cliffW: 78, wallH: 335, relief: 1.35 },
-  { z: -3250, inner: 126, bed: 32, beachW: 24, beachH: 7, shelfW: 36, shelfH: 33, cliffW: 62, wallH: 395, relief: 1.40 },  // the narrows
-  { z: -3850, inner: 178, bed: 28, beachW: 44, beachH: 6, shelfW: 62, shelfH: 27, cliffW: 98, wallH: 300, relief: 1.20 },
-  { z: -4450, inner: 250, bed: 24, beachW: 58, beachH: 5, shelfW: 88, shelfH: 25, cliffW: 132, wallH: 215, relief: 1.00 },
-  { z: -5250, inner: 268, bed: 22, beachW: 54, beachH: 5, shelfW: 98, shelfH: 27, cliffW: 142, wallH: 200, relief: 0.92 },
-  { z: -6050, inner: 236, bed: 24, beachW: 48, beachH: 5, shelfW: 82, shelfH: 25, cliffW: 122, wallH: 235, relief: 1.02 },
-  { z: -6550, inner: 168, bed: 28, beachW: 32, beachH: 6, shelfW: 50, shelfH: 31, cliffW: 82, wallH: 325, relief: 1.22 },  // dam gorge
-  { z: -7150, inner: 152, bed: 30, beachW: 28, beachH: 6, shelfW: 46, shelfH: 31, cliffW: 74, wallH: 345, relief: 1.30 },
-  { z: -7850, inner: 270, bed: 22, beachW: 70, beachH: 5, shelfW: 92, shelfH: 21, cliffW: 152, wallH: 195, relief: 1.00 },
-  { z: -8550, inner: 440, bed: 14, beachW: 112, beachH: 4, shelfW: 132, shelfH: 14, cliffW: 224, wallH: 110, relief: 0.80 },
-  { z: -9840, inner: 580, bed: 10, beachW: 145, beachH: 3, shelfW: 165, shelfH: 12, cliffW: 265, wallH: 75, relief: 0.70 },
-];
 
 const FIELDS = ['inner', 'bed', 'beachW', 'beachH', 'shelfW', 'shelfH', 'cliffW', 'wallH', 'relief'];
 
@@ -132,31 +157,11 @@ export function profileAt(z, out = _P) {
 
 /** 0..1 how "urban" the bank is here — drives the city planner and terraces. */
 export function cityWeight(z) {
-  return smooth(-4150, -4550, z) * (1 - smooth(-6100, -6400, z));
+  if (!CITY_ON) return 0;
+  return smooth(CITY_IN0, CITY_IN1, z) * (1 - smooth(CITY_OUT0, CITY_OUT1, z));
 }
 
 /* ── islands, sandbars and the delta ──────────────────────────────────────── */
-
-const ISLANDS = (() => {
-  const r = new RNG('corneria:islands');
-  const out = [];
-  // outer bay: rocky stacks and a breakwater shoal
-  for (let i = 0; i < 9; i++) {
-    const z = r.range(400, -1500);
-    const u = r.sign() * r.range(170, 620);
-    out.push({ z, u, r: r.range(60, 165), h: r.range(16, 62), pow: r.range(1.4, 2.6) });
-  }
-  // delta: long low sandbars splitting the channel
-  for (let i = 0; i < 14; i++) {
-    const z = r.range(-7700, -9700);
-    const u = r.sign() * r.range(60, 520);
-    out.push({ z, u, r: r.range(90, 250), h: r.range(4, 13), pow: r.range(2.2, 3.6), flat: 1 });
-  }
-  // a pair of stacks in the narrows you thread between
-  out.push({ z: -3060, u: -46, r: 42, h: 190, pow: 1.15, spire: 1 });
-  out.push({ z: -3390, u: 52, r: 38, h: 165, pow: 1.15, spire: 1 });
-  return out.sort((a, b) => b.z - a.z);
-})();
 
 function islandAt(u, z) {
   let h = 0;
@@ -176,8 +181,8 @@ function islandAt(u, z) {
 /** Lateral wander of the bank line, independent per side. */
 function bankJitter(z, right) {
   const p = right ? 0.31 : 0.77, q = right ? 0.19 : 0.68;
-  return (nJitA(z * (1 / 2400) + p, z * (1 / 37000) + q) * 2 - 1) * 44
-    + (nJitB(z * (1 / 1200) + q, z * (1 / 23000) + p) * 2 - 1) * 14;
+  return (nJitA(z * (1 / 2400) + p, z * (1 / 37000) + q) * 2 - 1) * J_A
+    + (nJitB(z * (1 / 1200) + q, z * (1 / 23000) + p) * 2 - 1) * J_B;
 }
 
 /**
@@ -200,7 +205,7 @@ export function heightAtU(u, z, P) {
   const d0 = Math.abs(u);
   const sp = spacing(d0) * (1 + 1.6 * smooth(WORLD.nearHalf * 0.8, WORLD.nearHalf * 1.9, d0));
 
-  const wm = 0.72 + 0.56 * nSide(z * (1 / 6000) + (right ? 0.11 : 0.61), (right ? 0.21 : 0.79));
+  const wm = SIDE_BASE + SIDE_AMP * nSide(z * S_SIDE + (right ? 0.11 : 0.61), (right ? 0.21 : 0.79));
   const d = Math.max(0, d0 + bankJitter(z, right) * smooth(0, 90, d0));
 
   const a0 = P.inner;
@@ -220,26 +225,26 @@ export function heightAtU(u, z, P) {
   }
 
   // domain warp — kills the tell-tale grid of a tileable lattice
-  const wx = (nWarp(u * (1 / 9000) + 0.4, z * (1 / 9000) + 0.2) - 0.5) * 260;
-  const px = u + wx, pz = z + wx * 0.7;
+  const wx = (nWarp(u * S_WARP + 0.4, z * S_WARP + 0.2) - 0.5) * A_WARP;
+  const px = u + wx, pz = z + wx * K_WARPZ;
 
   const plateau = smooth(a2, a3 + 70, d);
   if (plateau > 0.001) {
-    const far = smooth(a3 + 400, a3 + 3200, d);
-    const amp = P.relief * (0.42 + 2.4 * far);
+    const far = smooth(a3 + D_REL0, a3 + D_REL1, d);
+    const amp = P.relief * (REL_BASE + REL_FAR * far);
     const rg = nRange(px * S_RANGE + 0.13, pz * S_RANGE * 0.72 + 0.51);
-    let rel = (Math.pow(rg, 1.7) - 0.30) * 250 * gainFor(L_RANGE, sp);
-    rel += (nHill(px * S_HILL + 0.7, pz * S_HILL * 0.8 + 0.2) - 0.5) * 96 * gainFor(L_HILL, sp);
-    rel += (nMacro(px * S_MACRO + 0.25, pz * S_MACRO + 0.61) - 0.5) * 300;
-    rel += (Math.pow(nFar(px * S_FAR + 0.8, pz * S_FAR + 0.35), 1.5) - 0.28) * 620 * smooth(1500, 3800, d);
-    rel += (nFine(px * S_FINE, pz * S_FINE * 0.85) - 0.5) * 40 * gainFor(L_FINE, sp);
+    let rel = (Math.pow(rg, P_RANGE) - B_RANGE) * A_RANGE * gainFor(L_RANGE, sp);
+    rel += (nHill(px * S_HILL + 0.7, pz * S_HILL * 0.8 + 0.2) - 0.5) * A_HILL * gainFor(L_HILL, sp);
+    rel += (nMacro(px * S_MACRO + 0.25, pz * S_MACRO + 0.61) - 0.5) * A_MACRO;
+    rel += (Math.pow(nFar(px * S_FAR + 0.8, pz * S_FAR + 0.35), P_FAR) - B_FAR) * A_FAR * smooth(D_FAR0, D_FAR1, d);
+    rel += (nFine(px * S_FINE, pz * S_FINE * 0.85) - 0.5) * A_FINE * gainFor(L_FINE, sp);
     h += plateau * amp * rel;
   }
 
   // crenellation on the cliff face itself — buttresses and gullies, not fizz
   const wallMask = smooth(a1 + P.shelfW * 0.35, a2 + P.cliffW * 0.5, d) * (1 - plateau * 0.45);
   if (wallMask > 0.001) {
-    h += wallMask * (nCrag(px * S_CRAG + 0.09, pz * S_CRAG * 0.55 + 0.44) - 0.42) * 46 * gainFor(L_CRAG, sp);
+    h += wallMask * (nCrag(px * S_CRAG + 0.09, pz * S_CRAG * 0.55 + 0.44) - B_CRAG) * A_CRAG * gainFor(L_CRAG, sp);
   }
 
   h += islandAt(u, z);
@@ -277,3 +282,121 @@ export function shoreU(z, right) {
   }
   return s * (lo + hi) * 0.5;
 }
+
+/* ── activation ───────────────────────────────────────────────────────────── */
+
+function fill(dst, src, key, n) {
+  for (let i = 0; i < n; i++) dst[i] = src[i][key];
+}
+
+function buildIslands(spec) {
+  if (!spec) return [];
+  const r = new RNG(spec.seed);
+  const out = [];
+  // Draw order is part of the seed contract: change it and every island in
+  // every world that shares this stream moves.
+  for (const g of spec.groups || []) {
+    for (let i = 0; i < g.n; i++) {
+      const z = r.range(g.z[0], g.z[1]);
+      const u = r.sign() * r.range(g.u[0], g.u[1]);
+      const rad = r.range(g.r[0], g.r[1]);
+      const h = r.range(g.h[0], g.h[1]);
+      const pow = r.range(g.pow[0], g.pow[1]);
+      out.push(g.flat ? { z, u, r: rad, h, pow, flat: g.flat } : { z, u, r: rad, h, pow });
+    }
+  }
+  for (const f of spec.fixed || []) out.push({ ...f });
+  return out.sort((a, b) => b.z - a.z);
+}
+
+/**
+ * Make `dna` the world every function in this module describes.
+ *
+ * Synchronous and complete: `terrainHeight`, `centrelineX` and `profileAt`
+ * answer for the new world the instant this returns, long before any mesh for
+ * it exists. That is what lets the flight model keep asking for ground
+ * clearance through a mid-flight world swap.
+ */
+export function setActiveDNA(dna) {
+  DNA = dna;
+  const g = { ...DEFAULTS.grid, ...dna.grid };
+  const c = dna.centreline;
+  const b = {};
+  for (const k of Object.keys(DEFAULTS.bands)) b[k] = { ...DEFAULTS.bands[k], ...(dna.bands || {})[k] };
+
+  WORLD.id = dna.id;
+  WORLD.length = dna.length ?? DEFAULTS.length;
+  WORLD.waterLevel = dna.waterLevel ?? DEFAULTS.waterLevel;
+  WORLD.surface = dna.surface ?? DEFAULTS.surface;
+  WORLD.zStart = dna.zStart ?? DEFAULTS.zStart;
+  WORLD.zEnd = dna.zEnd ?? DEFAULTS.zEnd;
+  WORLD.nearHalf = g.nearHalf;
+  WORLD.farHalf = g.farHalf;
+  WORLD.chunkLen = g.chunkLen;
+  WORLD.resZ = g.resZ;
+  WORLD.farChunkLen = g.farChunkLen;
+  WORLD.farResZ = g.farResZ;
+  SP_A = g.spacingBase;
+  SP_G = g.spacingGrowth;
+
+  const xs = c.x.waves, ys = c.y.waves, bends = c.x.bends || [];
+  if (xs.length > MAXW || ys.length > MAXW || bends.length > MAXB) {
+    throw new Error(`dna ${dna.id}: centreline exceeds MAXW/MAXB`);
+  }
+  cxN = xs.length; cyN = ys.length; cbN = bends.length;
+  fill(cxA, xs, 'a', cxN); fill(cxW, xs, 'w', cxN); fill(cxP, xs, 'p', cxN);
+  fill(cyA, ys, 'a', cyN); fill(cyW, ys, 'w', cyN); fill(cyP, ys, 'p', cyN);
+  cyBase = c.y.base;
+  for (let i = 0; i < cbN; i++) {
+    cbLo[i] = bends[i].z + bends[i].width * 0.5;
+    cbHi[i] = bends[i].z - bends[i].width * 0.5;
+    cbD[i] = bends[i].dx;
+  }
+
+  KEYS = dna.keys;
+
+  const city = dna.city ?? DEFAULTS.city;
+  CITY_ON = city ? 1 : 0;
+  if (city) {
+    CITY_IN0 = city.from; CITY_IN1 = city.from - city.fadeIn;
+    CITY_OUT0 = city.to + city.fadeOut; CITY_OUT1 = city.to;
+  }
+
+  const R = new RNG(dna.seed);
+  nFar = ridged2D(R, { octaves: 3, base: 2, gain: 0.60 });
+  nMacro = fbm2D(R, { octaves: 3, base: 2, gain: 0.62 });
+  nRange = ridged2D(R, { octaves: 4, base: 3, gain: 0.55 });
+  nHill = fbm2D(R, { octaves: 4, base: 4, gain: 0.50 });
+  nFine = fbm2D(R, { octaves: 3, base: 6, gain: 0.50 });
+  nCrag = ridged2D(R, { octaves: 3, base: 5, gain: 0.55 });
+  nJitA = fbm2D(R, { octaves: 2, base: 4, gain: 0.50 });
+  nJitB = fbm2D(R, { octaves: 2, base: 8, gain: 0.50 });
+  nSide = fbm2D(R, { octaves: 2, base: 3, gain: 0.50 });
+  nWarp = fbm2D(R, { octaves: 2, base: 3, gain: 0.50 });
+
+  S_FAR = b.far.scale; S_MACRO = b.macro.scale; S_RANGE = b.range.scale;
+  S_HILL = b.hill.scale; S_FINE = b.fine.scale; S_CRAG = b.crag.scale;
+  S_WARP = b.warp.scale; S_SIDE = b.side.scale;
+  L_RANGE = b.range.lambda; L_HILL = b.hill.lambda;
+  L_FINE = b.fine.lambda; L_CRAG = b.crag.lambda;
+  A_FAR = b.far.amp; A_MACRO = b.macro.amp; A_RANGE = b.range.amp;
+  A_HILL = b.hill.amp; A_FINE = b.fine.amp; A_CRAG = b.crag.amp; A_WARP = b.warp.amp;
+  P_FAR = b.far.pow; B_FAR = b.far.bias; P_RANGE = b.range.pow; B_RANGE = b.range.bias;
+  B_CRAG = b.crag.bias;
+  D_FAR0 = b.far.from; D_FAR1 = b.far.to;
+  D_REL0 = b.relief.from; D_REL1 = b.relief.to;
+  K_WARPZ = b.warp.shear;
+  J_A = b.jitter.a; J_B = b.jitter.b;
+  SIDE_BASE = b.side.base; SIDE_AMP = b.side.amp;
+  REL_BASE = b.relief.base; REL_FAR = b.relief.far;
+
+  ISLANDS = buildIslands(dna.islands ?? DEFAULTS.islands);
+
+  const pal = { ...DEFAULTS.palette, ...dna.palette };
+  pal.amount = { ...DEFAULTS.palette.amount, ...(dna.palette || {}).amount };
+  PALETTE = pal;
+
+  return dna;
+}
+
+setActiveDNA(DNA_CORNERIA);

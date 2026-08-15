@@ -35,44 +35,59 @@ function columns() {
 }
 
 export class Water {
-  constructor(root, material, deepMaterial) {
+  /**
+   * Queues one job per chunk rather than meshing in place — same reason as
+   * Terrain: a world swap has to be spendable a frame at a time.
+   *
+   * `apronDrop` is how far under the plane the open-surface disc sits. It has
+   * to clear the deepest swell trough (4.8 m) or the apron wins the depth test
+   * at grazing angles and hides the detailed surface entirely; a frozen surface
+   * has no swell, so it wants the smallest gap that still resolves.
+   */
+  constructor(root, material, deepMaterial, { apronDrop = 12 } = {}) {
     this.group = new THREE.Group();
     this.group.name = 'water';
     root.add(this.group);
     this.chunks = [];
+    this.jobs = [];
+    // Read at mesh time, not here: the caller sets them once the tile bakes for
+    // this world have run.
+    this.material = material;
+    this.deepMaterial = deepMaterial;
 
     const us = columns();
     const rows = CHUNK / ROW + 1;
     const n = Math.ceil((WORLD.zStart - WORLD.zEnd) / CHUNK);
+    for (let c = 0; c < n; c++) this.jobs.push(() => this._chunk(us, rows, c));
 
-    for (let c = 0; c < n; c++) {
-      const z0 = WORLD.zStart - c * CHUNK;
-      const { geos, origin } = this._strip(us, z0, rows);
-      const meshes = geos.map((g, li) => {
-        const m = new THREE.Mesh(g, material);
-        m.position.copy(origin);
-        m.receiveShadow = false;
-        m.castShadow = false;
-        m.visible = li === 0;
-        m.name = `water-${c}-lod${li}`;
-        this.group.add(m);
-        return m;
-      });
-      this.chunks.push({ meshes, zMid: z0 - CHUNK * 0.5, xMid: origin.x, lod: 0 });
-    }
+    this.jobs.push(() => {
+      // Open surface under the whole level. Same shader as the channel, so the
+      // 12 m step at the mesh edge reads as a swell line, not a material change.
+      const apron = new THREE.CircleGeometry(42000, 72);
+      apron.rotateX(-Math.PI / 2);
+      this.apron = new THREE.Mesh(apron, this.deepMaterial);
+      this.apron.name = 'water-apron';
+      this.apron.position.set(0, WORLD.waterLevel - apronDrop, (WORLD.zStart + WORLD.zEnd) * 0.5);
+      this.apron.frustumCulled = false;
+      this.apron.renderOrder = -5;
+      this.group.add(this.apron);
+    });
+  }
 
-    // Open ocean under the whole level. Must clear the swell's deepest trough
-    // (4.8 m) or it wins the depth test at grazing angles and hides the
-    // detailed surface entirely. Same shader as the river, so the 12 m step at
-    // the mesh edge reads as a swell line rather than a material change.
-    const apron = new THREE.CircleGeometry(42000, 72);
-    apron.rotateX(-Math.PI / 2);
-    this.apron = new THREE.Mesh(apron, deepMaterial);
-    this.apron.name = 'water-apron';
-    this.apron.position.set(0, WORLD.waterLevel - 12, (WORLD.zStart + WORLD.zEnd) * 0.5);
-    this.apron.frustumCulled = false;
-    this.apron.renderOrder = -5;
-    this.group.add(this.apron);
+  _chunk(us, rows, c) {
+    const z0 = WORLD.zStart - c * CHUNK;
+    const { geos, origin } = this._strip(us, z0, rows);
+    const meshes = geos.map((g, li) => {
+      const m = new THREE.Mesh(g, this.material);
+      m.position.copy(origin);
+      m.receiveShadow = false;
+      m.castShadow = false;
+      m.visible = li === 0;
+      m.name = `water-${c}-lod${li}`;
+      this.group.add(m);
+      return m;
+    });
+    this.chunks.push({ meshes, zMid: z0 - CHUNK * 0.5, xMid: origin.x, lod: 0 });
   }
 
   _strip(us, z0, rows) {
@@ -151,5 +166,9 @@ export class Water {
 
   dispose() {
     this.group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    this.group.clear();
+    this.group.removeFromParent();
+    this.chunks.length = 0;
+    this.jobs = [];
   }
 }

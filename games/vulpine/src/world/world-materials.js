@@ -1,18 +1,39 @@
 import * as THREE from 'three';
 import { RNG } from '../core/rng.js';
 import { fbm2D, ridged2D, worley2D, cached } from '../render/textures.js';
-import { WORLD, centrelineX, centrelineDX, terrainHeight, profileAt, heightAtU } from './profile.js';
+import { WORLD, DNA, centrelineX, terrainHeight, profileAt, heightAtU } from './profile.js';
+import { DEFAULTS } from './dna.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Materials owned by the world. Nothing here touches render/materials.js — the
 // render lane owns that file — but everything is built on the same procedural
 // texture kit so the level responds to light like the rest of the game.
 //
-// The three that matter:
+// The four that matter:
 //   terrainMaterial()  triplanar rock, wet band at the waterline, strata
 //   waterMaterial()    Gerstner surface that knows where the shore is
+//   iceMaterial()      the same plane frozen: cracks, no swell, no shoaling
 //   cityMaterial()     concrete with analytically anti-aliased windows
+//
+// ── Per-world state ──────────────────────────────────────────────────────────
+// Two things here depend on the active DNA and must be rebuilt when it changes:
+// the baked shore/horizon fields (`worldFieldJobs`, `disposeWorldFields`), and
+// the generated GLSL for the centreline and the lithology. The generators emit
+// the DNA's numbers as literals rather than uploading them as uniforms, because
+// a uniform-driven meander costs a loop and two extra sin() in every terrain and
+// water fragment; a world swap already rebuilds every material it touches.
+//
+// Tile bakes that do NOT depend on the DNA (rock, ripple, foam, ice, concrete)
+// stay in `cached()` and survive a swap.
 // ─────────────────────────────────────────────────────────────────────────────
+
+/** GLSL float literal. Integers need the point or the compiler reads an int. */
+function gf(v) {
+  if (!Number.isFinite(v)) throw new Error(`glsl float: ${v}`);
+  const s = String(v);
+  return /[.eE]/.test(s) ? s : `${s}.0`;
+}
+const gv3 = (c) => `vec3(${gf(c[0])}, ${gf(c[1])}, ${gf(c[2])})`;
 
 /* ── small bakery helpers ─────────────────────────────────────────────────── */
 
@@ -119,12 +140,13 @@ const rockSet = () => cached('world.rock2', () => {
 // reproduces `centrelineX` exactly, so the lookup lands on the right spot even
 // though the river meanders.
 
-export const SHORE = { halfU: 1250, z0: WORLD.zStart, zLen: WORLD.zStart - WORLD.zEnd, w: 384, h: 1024 };
+export let SHORE = { halfU: 1250, z0: 0, zLen: 1, w: 384, h: 1024 };
 
-const shoreField = () => cached('world.shore', () => {
+let _shore = null;
+
+function shoreRows(data, j0, j1) {
   const { halfU, z0, zLen, w, h } = SHORE;
-  const data = new Uint8Array(w * h * 4);
-  for (let j = 0; j < h; j++) {
+  for (let j = j0; j < j1; j++) {
     const z = z0 - (j + 0.5) / h * zLen;
     const cx = centrelineX(z);
     for (let i = 0; i < w; i++) {
@@ -136,11 +158,16 @@ const shoreField = () => cached('world.shore', () => {
       data[k + 2] = 0; data[k + 3] = 255;
     }
   }
+}
+
+function fieldTex(data, w, h) {
   const t = tex(data, w, h, { wrap: THREE.ClampToEdgeWrapping, aniso: 4 });
   t.minFilter = THREE.LinearFilter;
   t.generateMipmaps = false;
   return t;
-});
+}
+
+const shoreField = () => _shore;
 
 /* ── sun horizon field: terrain shadows without a shadow map ──────────────── */
 //
@@ -175,7 +202,7 @@ const shoreField = () => cached('world.shore', () => {
 // The grid is deliberately near-isotropic (≈16 m either way) so that the four
 // diagonal sectors really do point at 45° and the angular interpolation between
 // sectors is not skewed by the aspect ratio.
-export const HORIZON = { halfU: 2000, z0: WORLD.zStart, zLen: WORLD.zStart - WORLD.zEnd, w: 256, h: 660 };
+export let HORIZON = { halfU: 2000, z0: 0, zLen: 1, w: 256, h: 660 };
 
 // Ray steps in texels, geometric: dense near the shading point where the
 // horizon changes fastest, sparse out at the range where only a whole mountain
@@ -184,23 +211,26 @@ export const HORIZON = { halfU: 2000, z0: WORLD.zStart, zLen: WORLD.zStart - WOR
 const HSTEPS = [1, 2, 3, 4, 5, 7, 9, 12, 16, 21, 28, 37, 49, 64, 85, 112];
 const HDIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
 
-const horizonField = () => cached('world.horizon', () => {
-  const { halfU, z0, zLen, w, h } = HORIZON;
-  const du = (2 * halfU) / w;      // metres per texel across the rail
-  const dz = zLen / h;             // metres per texel along it
+let _horiz = null;
 
-  const F = new Float32Array(w * h);
-  for (let j = 0; j < h; j++) {
+function horizonHeightRows(F, j0, j1) {
+  const { halfU, z0, zLen, w, h } = HORIZON;
+  const dz = zLen / h;
+  const P = {};
+  for (let j = j0; j < j1; j++) {
     const z = z0 - (j + 0.5) * dz;
-    const P = profileAt(z);
+    profileAt(z, P);
     const row = j * w;
     for (let i = 0; i < w; i++) F[row + i] = heightAtU((-0.5 + (i + 0.5) / w) * 2 * halfU, z, P);
   }
+}
 
-  const A = new Uint8Array(w * h * 4);
-  const B = new Uint8Array(w * h * 4);
+function horizonSectorRows(F, A, B, j0, j1) {
+  const { halfU, zLen, w, h } = HORIZON;
+  const du = (2 * halfU) / w;      // metres per texel across the rail
+  const dz = zLen / h;             // metres per texel along it
   const INV = 1 / (Math.PI * 0.5);
-  for (let j = 0; j < h; j++) {
+  for (let j = j0; j < j1; j++) {
     for (let i = 0; i < w; i++) {
       const k = j * w + i;
       const h0 = F[k];
@@ -221,26 +251,65 @@ const horizonField = () => cached('world.horizon', () => {
       }
     }
   }
-  const mk = (data) => {
-    const t = tex(data, w, h, { wrap: THREE.ClampToEdgeWrapping, aniso: 4 });
-    t.minFilter = THREE.LinearFilter;
-    t.generateMipmaps = false;
-    return t;
-  };
-  return { a: mk(A), b: mk(B) };
-});
+}
 
-const GLSL_HORIZON = /* glsl */`
+const horizonField = () => _horiz;
+
+/* ── baking the two fields, a slice at a time ─────────────────────────────── */
+//
+// Between them these are ~560 k height samples and 22 M array reads — over a
+// second of work, which is a stall the moment it happens inside a frame. So
+// they are handed out as a queue of thunks and the caller spends a frame budget
+// on them. Slice sizes are chosen so one thunk is single-digit milliseconds.
+
+/** Field extents follow the active DNA's z range. Call before `worldFieldJobs`. */
+export function configureWorldFields() {
+  const zLen = WORLD.zStart - WORLD.zEnd;
+  SHORE = { halfU: 1250, z0: WORLD.zStart, zLen, w: 384, h: 1024 };
+  HORIZON = { halfU: 2000, z0: WORLD.zStart, zLen, w: 256, h: 660 };
+}
+
+/** Release the fields of the world being replaced. */
+export function disposeWorldFields() {
+  if (_shore) { _shore.dispose(); _shore = null; }
+  if (_horiz) { _horiz.a.dispose(); _horiz.b.dispose(); _horiz = null; }
+}
+
+/** Build jobs for the shore and horizon fields of the active DNA. */
+export function worldFieldJobs() {
+  const jobs = [];
+
+  const S = SHORE;
+  const sData = new Uint8Array(S.w * S.h * 4);
+  for (let j = 0; j < S.h; j += 16) {
+    const a = j, b = Math.min(S.h, j + 16);
+    jobs.push(() => shoreRows(sData, a, b));
+  }
+  jobs.push(() => { _shore = fieldTex(sData, S.w, S.h); });
+
+  const H = HORIZON;
+  const F = new Float32Array(H.w * H.h);
+  for (let j = 0; j < H.h; j += 24) {
+    const a = j, b = Math.min(H.h, j + 24);
+    jobs.push(() => horizonHeightRows(F, a, b));
+  }
+  const A = new Uint8Array(H.w * H.h * 4);
+  const B = new Uint8Array(H.w * H.h * 4);
+  for (let j = 0; j < H.h; j += 8) {
+    const a = j, b = Math.min(H.h, j + 8);
+    jobs.push(() => horizonSectorRows(F, A, B, a, b));
+  }
+  jobs.push(() => { _horiz = { a: fieldTex(A, H.w, H.h), b: fieldTex(B, H.w, H.h) }; });
+
+  return jobs;
+}
+
+const GLSL_HORIZON = () => /* glsl */`
   uniform sampler2D uHorizA;
   uniform sampler2D uHorizB;
   uniform vec3 uHorizCfg;               // halfU, z0, zLen
 
-  float centrelineDX(float z) {
-    float t = -z;
-    return -(cos(t * 0.00055) * 210.0 * 0.00055
-           + cos(t * 0.00181 + 1.7) * 78.0 * 0.00181
-           + cos(t * 0.0041 + 0.4) * 22.0 * 0.0041);
-  }
+  ${GLSL_CENTRELINE_DX()}
   float pickSector(vec4 a, vec4 b, int k) {
     vec4 v = k < 4 ? a : b;
     int m = k < 4 ? k : k - 4;
@@ -285,12 +354,44 @@ const GLSL_HORIZON = /* glsl */`
 
 /* ── shared GLSL ──────────────────────────────────────────────────────────── */
 
-export const GLSL_CENTRELINE = /* glsl */`
+// The shader has to reproduce profile.js:centrelineX exactly, or every lookup
+// into the shore and horizon fields lands on the wrong column and the waterline
+// slides off the beach wherever the channel bends. Both are generated from the
+// same DNA, from the same term list, so they cannot drift apart.
+//
+// A dog-leg is `1 - smoothstep(zc-hw, zc+hw, z)` here and `smoothstep(zc+hw,
+// zc-hw, z)` in JS: GLSL's smoothstep is undefined for edge0 > edge1, and the
+// two forms are algebraically the same cubic.
+export function GLSL_CENTRELINE() {
+  const x = DNA.centreline.x;
+  const terms = x.waves.map(w => `sin(t * ${gf(w.w)}${w.p ? ` + ${gf(w.p)}` : ''}) * ${gf(w.a)}`);
+  for (const b of x.bends || []) {
+    terms.push(`(1.0 - smoothstep(${gf(b.z - b.width * 0.5)}, ${gf(b.z + b.width * 0.5)}, z)) * ${gf(b.dx)}`);
+  }
+  return /* glsl */`
   float centrelineX(float z) {
     float t = -z;
-    return sin(t * 0.00055) * 210.0 + sin(t * 0.00181 + 1.7) * 78.0 + sin(t * 0.0041 + 0.4) * 22.0;
+    return ${terms.join('\n         + ') || '0.0'};
   }
 `;
+}
+
+function GLSL_CENTRELINE_DX() {
+  const x = DNA.centreline.x;
+  const waves = x.waves.map(w =>
+    `cos(t * ${gf(w.w)}${w.p ? ` + ${gf(w.p)}` : ''}) * ${gf(w.a)} * ${gf(w.w)}`);
+  let body = `    float t = -z;\n    float d = -(${waves.join('\n           + ') || '0.0'});\n`;
+  for (const b of x.bends || []) {
+    const e0 = gf(b.z - b.width * 0.5), w = gf(b.width);
+    body += `    { float bt = clamp((z - ${e0}) / ${w}, 0.0, 1.0);
+      d -= ${gf(b.dx)} * 6.0 * bt * (1.0 - bt) / ${w}; }\n`;
+  }
+  return /* glsl */`
+  float centrelineDX(float z) {
+${body}    return d;
+  }
+`;
+}
 
 const GLSL_SHORE = /* glsl */`
   uniform sampler2D uShore;
@@ -312,30 +413,31 @@ const GLSL_SHORE = /* glsl */`
 
 /* ── terrain ──────────────────────────────────────────────────────────────── */
 
-// Linear albedos. Real stone lives between 0.10 and 0.42; anything above that
-// is snow. The separation that makes a cliff read as sedimentary is *hue*
-// between the members, not brightness — so the ochre and the shale differ by
-// 0.20 in red and almost nothing in blue.
-const GLSL_LITHOLOGY = /* glsl */`
-  const vec3 L_OCHRE = vec3(0.312, 0.208, 0.126);   // iron-stained sandstone
-  const vec3 L_BUFF  = vec3(0.352, 0.312, 0.240);   // pale weathered limestone
-  const vec3 L_SHALE = vec3(0.176, 0.166, 0.166);   // cool grey mudstone
-  const vec3 L_RED   = vec3(0.276, 0.152, 0.100);   // red bed
-  const vec3 L_BASE  = vec3(0.246, 0.204, 0.156);   // undifferentiated country rock
+// Linear albedos from the DNA. Real stone lives between 0.10 and 0.42; above
+// that is snow. The separation that makes a cliff read as sedimentary is *hue*
+// between the members, not brightness — Corneria's ochre and shale differ by
+// 0.14 in red and 0.04 in blue.
+//
+// 0..1 around the formation cycle → which member is exposed. Most of the cycle
+// is country rock on purpose: a wall where every band is a different mineral is
+// not a cliff, it is marbled endpaper. The named members are narrow, and they
+// never fully replace the base.
+function GLSL_LITHOLOGY() {
+  const L = { ...DEFAULTS.lithology, ...DNA.lithology };
+  const lines = L.members.map((m, i) => `    c = mix(c, L_M${i}, ${gf(m.k)}`
+    + ` * smoothstep(${gf(m.in[0])}, ${gf(m.in[1])}, f)`
+    + ` * (1.0 - smoothstep(${gf(m.out[0])}, ${gf(m.out[1])}, f)));`);
+  return /* glsl */`
+  const vec3 L_BASE = ${gv3(L.base)};
+${L.members.map((m, i) => `  const vec3 L_M${i} = ${gv3(m.color)};`).join('\n')}
 
-  // 0..1 around the formation cycle → which member is exposed here. Most of the
-  // cycle is country rock on purpose: a wall where every band is a different
-  // mineral is not a cliff, it is marbled endpaper. The named members are
-  // narrow, and they never fully replace the base.
   vec3 lithology(float f) {
     vec3 c = L_BASE;
-    c = mix(c, L_OCHRE, 0.85 * smoothstep(0.03, 0.11, f) * (1.0 - smoothstep(0.19, 0.30, f)));
-    c = mix(c, L_SHALE, 0.70 * smoothstep(0.38, 0.45, f) * (1.0 - smoothstep(0.50, 0.58, f)));
-    c = mix(c, L_BUFF,  0.80 * smoothstep(0.63, 0.70, f) * (1.0 - smoothstep(0.78, 0.86, f)));
-    c = mix(c, L_RED,   0.55 * smoothstep(0.90, 0.94, f) * (1.0 - smoothstep(0.98, 1.00, f)));
+${lines.join('\n')}
     return c;
   }
 `;
+}
 
 export function terrainMaterial() {
   const rock = rockSet();
@@ -375,9 +477,9 @@ export function terrainMaterial() {
         varying vec3 vWNrm;
         varying vec2 vTerr;
         uniform float uScale;
-        ${GLSL_LITHOLOGY}
-        ${GLSL_CENTRELINE}
-        ${GLSL_HORIZON}
+        ${GLSL_LITHOLOGY()}
+        ${GLSL_CENTRELINE()}
+        ${GLSL_HORIZON()}
         vec3 gBW; vec2 gUX, gUY, gUZ; vec4 gTri;
         vec3 gFaceUp;
         float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx, gDbg;`)
@@ -793,7 +895,7 @@ export function waterMaterial(reflection = null) {
         varying float vWave;
         varying float vShallow;
         varying float vBed;
-        ${GLSL_CENTRELINE}
+        ${GLSL_CENTRELINE()}
         ${GLSL_SHORE}
         ${GERSTNER}`)
       .replace('#include <beginnormal_vertex>', `
@@ -838,7 +940,7 @@ export function waterMaterial(reflection = null) {
         float gFoam, gWpx, gLost, gGlint, gSwash;
         vec2 gSlope;
         vec3 gWN;
-        ${GLSL_CENTRELINE}
+        ${GLSL_CENTRELINE()}
         ${GLSL_SHORE}
         ${GLSL_WATER_SURFACE}
         #if WATER_REFL
@@ -1017,6 +1119,170 @@ export function deepWaterMaterial(reflection = null) {
   return m;
 }
 
+/* ── ice ──────────────────────────────────────────────────────────────────── */
+//
+// The frozen channel runs on the same mesh as the river, and the same planar
+// reflector, but nothing else survives the freeze: no Gerstner displacement, no
+// shoaling, no shore lookup, no foam. What replaces them is a crack field.
+//
+// The whole read is silhouette-free — a flat plane at y = 0 — so it has to come
+// from three things at once, all of which are in the tile below: the pressure
+// cracks that catch a highlight along their lip, the milky lenses where
+// refrozen meltwater scatters, and a roughness that goes from near-mirror on
+// clear ice to matte on the frosted patches. One of the three alone reads as a
+// dirty mirror.
+
+const iceSet = () => cached('world.ice2', () => {
+  const r = new RNG('world:ice2');
+  const macro = ridged2D(r, { octaves: 4, base: 4, gain: 0.52 });   // pressure cracks
+  const micro = ridged2D(r, { octaves: 3, base: 15, gain: 0.50 });  // craze
+  const frost = fbm2D(r, { octaves: 4, base: 28, gain: 0.56 });     // wind-blown grain
+  const lens = fbm2D(r, { octaves: 3, base: 3, gain: 0.60 });       // refrozen patches
+  const S = 512;
+
+  // Cracks are thin: a 6th power on a ridged field leaves a line a few texels
+  // wide instead of a broad crease, which is the difference between ice and
+  // crumpled paper.
+  const crackAt = (u, v) => Math.pow(macro(u, v), 6) * 0.9 + Math.pow(micro(u, v), 8) * 0.55;
+
+  const height = new Float32Array(S * S);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const u = x / S, v = y / S;
+      height[y * S + x] = -crackAt(u, v) * 0.85 + frost(u, v) * 0.10;
+    }
+  }
+  const map = bake(S, S, (u, v, o) => {
+    const c = clamp01(crackAt(u, v));
+    const f = frost(u, v);
+    const l = clamp01(lens(u, v) * 1.3 - 0.15);
+    o[0] = c;                                  // crack mask
+    o[1] = clamp01(0.30 + f * 0.70);           // frost grain
+    o[2] = l;                                  // milky lens
+    o[3] = clamp01(0.06 + f * 0.34 + l * 0.42 + c * 0.20);  // roughness
+  }, { srgb: false });
+  return { map, normalMap: normalFrom(height, S, 3.2) };
+});
+
+/**
+ * A frozen surface for `DNA.surface === 'ice'`. Shares the mesh, the reflector
+ * and the material contract of `waterMaterial` — `userData.shader.uniforms
+ * .uTime` exists so Corneria can drive it with the same clock — but the plane
+ * does not move, so the clock only scrolls the wind-driven frost.
+ */
+export function iceMaterial(reflection = null) {
+  const set = iceSet();
+  const m = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    roughness: 0.14,
+    metalness: 0.0,
+    ior: 1.31,
+    // Ice is a dielectric over a scattering interior: the coat carries the
+    // specular, the base carries the light that came back out.
+    clearcoat: 0.55,
+    clearcoatRoughness: 0.20,
+    envMapIntensity: 1.0,
+    dithering: true,
+  });
+  m.normalMap = set.normalMap;
+  m.defines = { WATER_REFL: reflection ? 1 : 0 };
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = { value: 0 };
+    sh.uniforms.uIce = { value: set.map };
+    if (reflection) Object.assign(sh.uniforms, reflection.uniforms);
+
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+        #if WATER_REFL
+          uniform mat4 uReflMat;
+          varying vec4 vRefl;
+        #endif
+        varying vec3 vWPos;`)
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+        #if WATER_REFL
+          vRefl = uReflMat * vec4(vWPos.x, 0.0, vWPos.z, 1.0);
+        #endif`);
+
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        uniform float uTime;
+        uniform sampler2D uIce;
+        varying vec3 vWPos;
+        vec4 gIce; float gWpx, gCrack, gFrost;
+        #if WATER_REFL
+          varying vec4 vRefl;
+          ${GLSL_WATER_REFLECT}
+        #endif
+        // Three tiles at incommensurate sizes. Each fades on pixel footprint,
+        // not distance, and what it loses goes to roughness — an unresolved
+        // crack field is a sheen, not a mirror.
+        vec4 iceTaps(vec2 p, float wpx, out float crack) {
+          float k0 = 1.0 - smoothstep(0.35, 1.20, wpx);    //  2.6 m
+          float k1 = 1.0 - smoothstep(1.40, 5.00, wpx);    // 11 m
+          float k2 = 1.0 - smoothstep(6.00, 22.0, wpx);    // 47 m
+          vec4 t0 = texture2D(uIce, p * (1.0 /  2.6) + 0.13);
+          vec4 t1 = texture2D(uIce, p * (1.0 / 11.0) + 0.57);
+          vec4 t2 = texture2D(uIce, p * (1.0 / 47.0) + 0.81);
+          crack = t0.r * k0 * 0.55 + t1.r * k1 * 0.80 + t2.r * k2;
+          return t0 * k0 * 0.30 + t1 * k1 * 0.45 + t2 * 0.55;
+        }`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        gWpx = max(max(fwidth(vWPos.x), fwidth(vWPos.z)), fwidth(vWPos.y) * 0.35) + 1e-4;
+        gIce = iceTaps(vWPos.xz, gWpx, gCrack);
+        gFrost = gIce.g;
+
+        // Clear ice over dark water is nearly black in albedo and lives on its
+        // reflection; snow-ice is the opposite. The lens channel is what moves
+        // between them, so the sheet reads as areas rather than as a texture.
+        vec3 clearIce = vec3(0.052, 0.088, 0.118);
+        vec3 snowIce  = vec3(0.640, 0.700, 0.760);
+        vec3 col = mix(clearIce, snowIce, clamp(gIce.b * 1.8 + gFrost * 0.55, 0.0, 1.0));
+        // A crack is a fracture face seen edge-on: it scatters, so it is the
+        // brightest thing on clear ice and invisible on snow.
+        col = mix(col, vec3(0.780, 0.840, 0.890), clamp(gCrack * 1.4, 0.0, 0.85));
+        // Wind scour: long streaks across the channel, one metre of drift deep.
+        float drift = texture2D(uIce, vWPos.xz * vec2(1.0 / 90.0, 1.0 / 14.0)
+                                + vec2(uTime * 0.0016, 0.0)).g;
+        col *= 0.82 + drift * 0.42;
+
+        diffuseColor.rgb *= col;
+      `)
+      .replace('#include <roughnessmap_fragment>', `
+        float roughnessFactor = clamp(gIce.a * 1.6 + gFrost * 0.22, 0.04, 0.95);
+        // Everything the pixel can no longer resolve becomes gloss loss.
+        roughnessFactor = mix(roughnessFactor, 0.30, smoothstep(2.0, 20.0, gWpx));
+      `)
+      .replace('#include <normal_fragment_maps>', `
+        vec3 n0 = texture2D(normalMap, vWPos.xz * (1.0 /  2.6) + 0.13).xyz * 2.0 - 1.0;
+        vec3 n1 = texture2D(normalMap, vWPos.xz * (1.0 / 11.0) + 0.57).xyz * 2.0 - 1.0;
+        vec3 n2 = texture2D(normalMap, vWPos.xz * (1.0 / 47.0) + 0.81).xyz * 2.0 - 1.0;
+        float f0 = 1.0 - smoothstep(0.35, 1.20, gWpx);
+        float f1 = 1.0 - smoothstep(1.40, 5.00, gWpx);
+        vec2 sl = (n0.xy * f0 * 0.9 + n1.xy * f1 * 0.7 + n2.xy * 0.5) * normalScale;
+        // A normal below the horizon on a flat plane is a black speckle at
+        // 200 m/s, exactly as on water.
+        vec3 wN = normalize(vec3(sl.x, max(1.0 - length(sl) * 0.35, 0.40), sl.y));
+        normal = normalize((viewMatrix * vec4(wN, 0.0)).xyz);
+      `)
+      // The coat is the polished top of the sheet and stays flat; the cracks
+      // live in the base normal above. three declares clearcoatNormal after
+      // <normal_fragment_maps>, so it cannot be written from there anyway.
+      .replace('#include <clearcoat_normal_fragment_begin>',
+        `vec3 clearcoatNormal = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);`)
+      .replace('#include <lights_fragment_end>', `
+        #if WATER_REFL
+        {
+          vec4 pr = planarReflection(vRefl, gIce.rg * 2.0 - 1.0, material.roughness, gWpx);
+          radiance = mix(radiance, pr.rgb, pr.a);
+        }
+        #endif
+        #include <lights_fragment_end>`);
+    m.userData.shader = sh;
+  };
+  return m;
+}
+
 /* ── concrete, city, metal ────────────────────────────────────────────────── */
 
 const concreteSet = () => cached('world.concrete', () => {
@@ -1182,7 +1448,7 @@ export function rockPropMaterial({ scale = 0.112, tint = 0xffffff } = {}) {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         varying vec3 vWPos; varying vec3 vWNrm; uniform float uScale;
-        ${GLSL_LITHOLOGY}
+        ${GLSL_LITHOLOGY()}
         vec3 pBW; vec2 pUX, pUY, pUZ; vec4 pTri; float pWet;`)
       .replace('#include <map_fragment>', `
         vec3 pwn = normalize(vWNrm);

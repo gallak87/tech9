@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {
-  WORLD, spacing, smooth, clamp, centrelineX, centrelineDX,
+  WORLD, PALETTE, spacing, smooth, clamp, centrelineX, centrelineDX,
   profileAt, heightAtU, cityWeight,
 } from './profile.js';
 
@@ -56,18 +56,22 @@ function farColumns(sign) {
 
 /* ── surface tint ─────────────────────────────────────────────────────────── */
 // Multiplies the triplanar rock albedo, so these are ratios around 1, not
-// colours. Anything that reads as "a different material" has to come from here
-// or the whole canyon is one shade of brown.
+// colours. Anything that reads as "a different material" has to come from the
+// DNA's palette or the whole canyon is one shade of brown.
+//
+// The masks themselves are not per-world: height above the waterline, slope,
+// concavity and sky visibility mean the same thing on every planet. What the
+// DNA moves is which colour each mask lands on, and how far each one goes —
+// `amount.veg = 0` is how an ice world has no scrub without a second code path.
 
-const C_ROCK = [1.00, 0.97, 0.93];
-const C_SAND = [1.60, 1.36, 0.96];
-const C_SCRUB = [0.38, 0.62, 0.26];
-const C_DRY = [1.30, 1.06, 0.52];
-// The high shoulders are sun-bleached, not white. The previous [1.16,1.16,1.13]
-// pushed every plateau to neutral and is most of why the level read as paper.
-const C_PALE = [1.14, 1.02, 0.84];
-const C_URBAN = [0.90, 0.89, 0.86];
-const C_MOSS = [0.52, 0.68, 0.40];
+let C_ROCK, C_SAND, C_SCRUB, C_DRY, C_PALE, C_URBAN, C_MOSS, C_AMT;
+
+/** Snapshot the active palette. Called once per build, not per vertex. */
+function usePalette() {
+  const p = PALETTE;
+  C_ROCK = p.rock; C_SAND = p.sand; C_SCRUB = p.scrub; C_DRY = p.dry;
+  C_PALE = p.pale; C_URBAN = p.urban; C_MOSS = p.moss; C_AMT = p.amount;
+}
 
 /**
  * @param cav  0 = a knife-edge ridge, 0.5 = flat, 1 = the bottom of a gully.
@@ -77,11 +81,13 @@ function tintAt(h, ny, z, cav, sky, out, o) {
   const slope = 1 - ny;
   let r = C_ROCK[0], g = C_ROCK[1], b = C_ROCK[2];
 
-  const pale = smooth(150, 430, h) * (1 - smooth(0.42, 0.72, slope));
+  // The high shoulders are sun-bleached, not white — a neutral plateau is most
+  // of what makes a level read as paper.
+  const pale = smooth(150, 430, h) * (1 - smooth(0.42, 0.72, slope)) * C_AMT.pale;
   r = lerp(r, C_PALE[0], pale); g = lerp(g, C_PALE[1], pale); b = lerp(b, C_PALE[2], pale);
 
   // dry grass on the shoulders
-  const dry = clamp((1 - smooth(0.26, 0.55, slope)) * smooth(14, 40, h) * (1 - smooth(190, 340, h)), 0, 1) * 0.8;
+  const dry = clamp((1 - smooth(0.26, 0.55, slope)) * smooth(14, 40, h) * (1 - smooth(190, 340, h)), 0, 1) * C_AMT.dry;
   r = lerp(r, C_DRY[0], dry); g = lerp(g, C_DRY[1], dry); b = lerp(b, C_DRY[2], dry);
 
   // Scrub follows water, and water follows the gullies — so the vegetation mask
@@ -89,18 +95,18 @@ function tintAt(h, ny, z, cav, sky, out, o) {
   // makes procedural terrain read as a contour map with a green filter on it.
   const wet = smooth(0.52, 0.86, cav);
   const veg = clamp((1 - smooth(0.16, 0.44, slope)) * smooth(9, 30, h) * (1 - smooth(150, 300, h))
-    * (0.35 + 0.9 * wet), 0, 1);
+    * (0.35 + 0.9 * wet), 0, 1) * C_AMT.veg;
   r = lerp(r, C_SCRUB[0], veg); g = lerp(g, C_SCRUB[1], veg); b = lerp(b, C_SCRUB[2], veg);
 
   // moss and lichen creep up the shaded crevices of the wall itself
-  const moss = clamp(wet * smooth(0.40, 0.78, slope) * (1 - sky) * 1.5 * (1 - smooth(180, 320, h)), 0, 0.55);
+  const moss = clamp(wet * smooth(0.40, 0.78, slope) * (1 - sky) * 1.5 * (1 - smooth(180, 320, h)), 0, C_AMT.moss);
   r = lerp(r, C_MOSS[0], moss); g = lerp(g, C_MOSS[1], moss); b = lerp(b, C_MOSS[2], moss);
 
   // beach sand — only on the shallow ground either side of the waterline
-  const sand = clamp((1 - smooth(0.10, 0.34, slope)) * (1 - smooth(3.5, 15, h)) * smooth(-9, -2.5, h), 0, 1);
+  const sand = clamp((1 - smooth(0.10, 0.34, slope)) * (1 - smooth(3.5, 15, h)) * smooth(-9, -2.5, h), 0, 1) * C_AMT.sand;
   r = lerp(r, C_SAND[0], sand); g = lerp(g, C_SAND[1], sand); b = lerp(b, C_SAND[2], sand);
 
-  const urban = cityWeight(z) * (1 - smooth(0.30, 0.60, slope)) * smooth(12, 40, h) * (1 - smooth(150, 260, h)) * 0.75;
+  const urban = cityWeight(z) * (1 - smooth(0.30, 0.60, slope)) * smooth(12, 40, h) * (1 - smooth(150, 260, h)) * C_AMT.urban;
   r = lerp(r, C_URBAN[0], urban); g = lerp(g, C_URBAN[1], urban); b = lerp(b, C_URBAN[2], urban);
 
   out[o] = r; out[o + 1] = g; out[o + 2] = b;
@@ -372,6 +378,12 @@ function buildStrip(us, z0, rows, dz, lods) {
 /* ── the terrain object ───────────────────────────────────────────────────── */
 
 export class Terrain {
+  /**
+   * Nothing is meshed here. The constructor only lays out the tiers and returns
+   * a queue of independent per-chunk jobs, because a mid-flight world swap has
+   * to fit inside a frame budget and a chunk is the coarsest unit that already
+   * shares no state with its neighbours.
+   */
   constructor(root, material) {
     this.material = material;
     this.chunks = [];
@@ -379,44 +391,50 @@ export class Terrain {
     this.group.name = 'terrain';
     root.add(this.group);
 
+    usePalette();
+    this.jobs = [];
+
     const us = nearColumns();
     const rows = WORLD.chunkLen / WORLD.resZ + 1;
     const n = Math.round((WORLD.zStart - WORLD.zEnd) / WORLD.chunkLen);
-
-    for (let c = 0; c < n; c++) {
-      const z0 = WORLD.zStart - c * WORLD.chunkLen;
-      const { geos, origin } = buildStrip(us, z0, rows, WORLD.resZ, LOD_STEPS);
-      const meshes = geos.map((g, li) => {
-        const m = new THREE.Mesh(g, material);
-        m.position.copy(origin);
-        m.receiveShadow = true;
-        // A heightfield this large self-shadows into acne long before a single
-        // cascade can resolve it; cliff shadows wait for CSM.
-        m.castShadow = false;
-        m.visible = li === 0;
-        m.name = `terrain-${c}-lod${li}`;
-        this.group.add(m);
-        return m;
-      });
-      this.chunks.push({ meshes, zMid: z0 - WORLD.chunkLen * 0.5, xMid: origin.x, lod: 0 });
-    }
+    for (let c = 0; c < n; c++) this.jobs.push(() => this._near(us, rows, c));
 
     // far tier: the ridgelines beyond the canyon rim, one strip per bank
     const farRows = WORLD.farChunkLen / WORLD.farResZ + 1;
     const nFar = Math.ceil((WORLD.zStart - WORLD.zEnd) / WORLD.farChunkLen);
     for (const sign of [-1, 1]) {
       const fus = farColumns(sign);
-      for (let c = 0; c < nFar; c++) {
-        const z0 = WORLD.zStart - c * WORLD.farChunkLen;
-        const { geos, origin } = buildStrip(fus, z0, farRows, WORLD.farResZ, [1]);
-        const m = new THREE.Mesh(geos[0], material);
-        m.position.copy(origin);
-        m.receiveShadow = false;
-        m.castShadow = false;
-        m.name = `ridge-${sign > 0 ? 'r' : 'l'}-${c}`;
-        this.group.add(m);
-      }
+      for (let c = 0; c < nFar; c++) this.jobs.push(() => this._far(fus, farRows, sign, c));
     }
+  }
+
+  _near(us, rows, c) {
+    const z0 = WORLD.zStart - c * WORLD.chunkLen;
+    const { geos, origin } = buildStrip(us, z0, rows, WORLD.resZ, LOD_STEPS);
+    const meshes = geos.map((g, li) => {
+      const m = new THREE.Mesh(g, this.material);
+      m.position.copy(origin);
+      m.receiveShadow = true;
+      // A heightfield this large self-shadows into acne long before a single
+      // cascade can resolve it; cliff shadows wait for CSM.
+      m.castShadow = false;
+      m.visible = li === 0;
+      m.name = `terrain-${c}-lod${li}`;
+      this.group.add(m);
+      return m;
+    });
+    this.chunks.push({ meshes, zMid: z0 - WORLD.chunkLen * 0.5, xMid: origin.x, lod: 0 });
+  }
+
+  _far(fus, farRows, sign, c) {
+    const z0 = WORLD.zStart - c * WORLD.farChunkLen;
+    const { geos, origin } = buildStrip(fus, z0, farRows, WORLD.farResZ, [1]);
+    const m = new THREE.Mesh(geos[0], this.material);
+    m.position.copy(origin);
+    m.receiveShadow = false;
+    m.castShadow = false;
+    m.name = `ridge-${sign > 0 ? 'r' : 'l'}-${c}`;
+    this.group.add(m);
   }
 
   /** Swap index buffers by distance — the only per-frame cost is a visibility flip. */
@@ -433,5 +451,12 @@ export class Terrain {
 
   dispose() {
     this.group.traverse((o) => { if (o.isMesh) o.geometry.dispose(); });
+    // Detaching matters as much as disposing: a rebuild that leaves the old
+    // meshes parented keeps every buffer alive through the group's reference,
+    // and the GPU counters never come back to baseline.
+    this.group.clear();
+    this.group.removeFromParent();
+    this.chunks.length = 0;
+    this.jobs = [];
   }
 }

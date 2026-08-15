@@ -1,16 +1,24 @@
 # Vulpine — roadmap
 
 **Status:** playable end-to-end, alpha. Phases 0–7 done. Phase 8 (encounter feel
-+ legibility) in progress. Phase 10 opened early — the level transition landed
-2026-08-15, so the game is now two levels and a campaign. Branch `g/fox64`.
++ legibility) still open but **no longer the active lane**. Two levels and a
+campaign since the transition landed 2026-08-15. Branch `g/fox64`.
+
+**The active lane is the variety push — see `## Now` below and `PLAN-VARIETY.md`
+for the full plan.** Owner's call, 2026-08-15: Fichina reads as Corneria in a
+white coat, so the next work is perf first, then a reusable world-furniture
+layer. Phase 8's remaining items are polish on a game whose second level does not
+yet look like a different place; that ordering was wrong and is now corrected.
 
 Finished work and the reasoning behind it lives in `## Settled` at the bottom.
 The sections above it are only what is still open.
 
-Read with `CONTRACT.md` (lane rules), `REVIEW.md` (the rubric), `HANDOFF.md`
-(live session state + defect queue). **This file is the plan; HANDOFF is the
-queue.** Tick items here at every commit that closes one, and re-cut the Status
-line at the end of each phase.
+Read with `PLAN-VARIETY.md` (**the active plan** — diagnosis, sequencing and the
+rejected options behind the current lane), `CONTRACT.md` (lane rules),
+`REVIEW.md` (the rubric), `HANDOFF.md` (live session state + defect queue).
+**This file is the plan of record; PLAN-VARIETY is the current lane's detail;
+HANDOFF is the queue.** Tick items here at every commit that closes one, and
+re-cut the Status line at the end of each phase.
 
 ---
 
@@ -72,10 +80,47 @@ register, swept collision.
 
 ---
 
-## Now — Phase 8: legibility and the first two encounters
+## Now — the variety push
 
-The owner's "next three" from 2026-08-11 — crosshair, post chain, motion blur —
-are all shipped; they and their reasoning are in `## Settled`.
+**Full plan, with the diagnosis and the rejected options: `PLAN-VARIETY.md`.**
+Owner-sequenced 2026-08-15: **perf first, then the furniture layer**, with rail
+verticality and a per-level offset box folded in. Do not reorder — props add
+fill, and the frame is already over budget.
+
+- [ ] **A. Perf. Measure the DPR finding before anything else.**
+      `core/engine.js:99` computes
+      `dpr = min(devicePixelRatio, maxPixelRatio) * q.pixelRatio` — the tier
+      **multiplies** the device ratio instead of replacing it. On an M1
+      (`devicePixelRatio` 2, `maxPixelRatio` 2) `quality=high`'s `pixelRatio`
+      1.25 gives an effective **DPR 2.5**, i.e. 12.96 MP at a 1920×1080 window
+      against 2.07 MP at DPR 1.0 — **6.25× the pixels on a frame already measured
+      as fill-bound**. Unverified: read from source, not yet measured.
+      One line in real Chrome decides it:
+      `__VULPINE__.engine.setPixelRatio(0.5)` then `__VULPINE__.stats()`.
+      Then separate device DPR from a `renderScale`, retune the `QUALITY` tiers
+      around the new meaning, and put render scale on the dev panel — where the
+      softness starts being visible is a look decision, not a perf one.
+- [ ] **B. The world-furniture layer.** Supersedes Phase 9 below, which named two
+      one-off modules; that is the wrong shape for something serving four levels.
+      A prop group is DNA data with a placement rule — `bank`, `floor`, `ridge`,
+      `span`, `free` — and `span` is how geometry gets *above* the ship without
+      touching the terrain. Land the placer and Corneria's set in the same
+      session: ship criterion 7 is "no dead code", and a placer with no consumer
+      is the sixth unimported module this project has shipped.
+- [ ] **C. Rail verticality + per-level offset box.** `centrelineY` varies ~46 m
+      over 9 km on Corneria and ~22 m on Fichina — the rail is flat in both
+      worlds. Y has no dog-leg term where X has `bends`; adding one is the
+      enabling change. `TUNE.boxX/boxYUp/boxYDown` (`flight.js:22`) move into the
+      DNA so a trough can feel tight and a basin open.
+- [ ] **D. Profile kinds + per-side asymmetry.** `heightAtU` dispatches on a
+      `profileKind` instead of hardcoding the terrace stack. Cut this seam before
+      Sector Ω, which needs `none` anyway.
+
+## Also open — Phase 8: legibility and the first two encounters
+
+Not the active lane. The owner's "next three" from 2026-08-11 — crosshair, post
+chain, motion blur — are all shipped; they and their reasoning are in
+`## Settled`.
 
 - [ ] **One-time jump when crossing into the soft wall / ground cushion.**
       Owner, live play (2026-08-01), after the stick-snap fix: "some middle
@@ -128,6 +173,18 @@ are all shipped; they and their reasoning are in `## Settled`.
 
       Sector Ω needs most of this anyway — it has no ground at all — so the
       profile-kind seam is worth cutting before that level rather than after.
+
+      **Superseded 2026-08-15 by `PLAN-VARIETY.md`, which is the plan for this
+      item.** Its one correction to the analysis above: this is only ~a third a
+      terrain problem. **Neither level contains a single man-made object** —
+      `cityMaterial`, `concreteMaterial`, `steelMaterial`, `foliageMaterial` and
+      `rockPropMaterial` have zero importers, `cityWeight` tints for a city that
+      was never built, and eight review cameras frame empty canyon. Two empty
+      procedural canyons with different tint will always read as the same game,
+      at any cross-section. Props first (`## Now` B), grammar second (`## Now` D).
+      The ceiling in particular does **not** want a terrain change: a heightfield
+      is single-valued in `u` and can never overhang, so arches and bridges are
+      the `span` placement rule, not a new profile term.
 
 - [ ] **The commander is not wired as a boss.** `commander:ice` closes Fichina
       through the ordinary enemy path: it fights, but there is no health bar, no
@@ -193,8 +250,17 @@ are all shipped; they and their reasoning are in `## Settled`.
       the horizon lookup both run per fragment), or render the scene at reduced
       resolution and upscale.
 
-      Absolutes above are headless ANGLE, roughly 3x faster than real Chrome on
-      the same machine. The *split* is the result, not the milliseconds.
+      **Correction, 2026-08-15: the "3x faster headless" claim below was wrong,
+      and it hid the DPR finding for a whole session.** Playwright runs at
+      `devicePixelRatio` 1, so headless `high` is DPR 1.25 → 3.24 MP, while the
+      owner's real Chrome is DPR 2.5 → 12.96 MP at the same window size. That is
+      a **4x pixel-count difference, not a renderer-backend difference**, and the
+      two sets of numbers were never taken at the same resolution. The *splits*
+      in the table above are still valid; the milliseconds are not comparable
+      across the two. Never compare a headless absolute to a real-Chrome one.
+      Every measurement here varied passes, window size and draw count — the one
+      quantity nobody varied was the device pixel ratio. See `PLAN-VARIETY.md`
+      Phase A.
 
       Two traps, each of which cost a run:
       - **A/B by flying is unreadable.** Frame time swings 25-34 ms on scene
@@ -222,6 +288,12 @@ are all shipped; they and their reasoning are in `## Settled`.
       both changes unmeasurable. Do it as its own pass, with the dev knobs.
 
 ## Next — Phase 9: the built world
+
+**Restructured 2026-08-15 into `## Now` item B — build the generic placer, not
+these two modules.** The item list below is still the correct *content*; what
+changed is that it is authored as DNA prop data against reusable placement rules,
+so Fichina and levels 3–4 get the same tooling instead of Corneria getting a
+bespoke `city.js`. Keep the z positions.
 
 The level is terrain + water + sky. **Nothing man-made exists.** `cityMaterial`,
 `concreteMaterial`, `steelMaterial`, `foliageMaterial` and `rockPropMaterial` are

@@ -214,6 +214,16 @@ export function installDevPanel(api) {
       get: () => P().motion.gain, set: (v) => { P().motion.gain = v; } },
     { id: 'refl', label: 'reflections', min: 0, max: 1.0, step: 0.01, dp: 2,
       get: () => api.world.reflection.strength, set: (v) => { api.world.reflection.strength = v; } },
+    // Fraction of native device resolution. `quality: true` puts it at the top of
+    // the panel rather than behind the fine knobs: it is the single largest term
+    // in the frame (the scene pass is fill-bound) and where it stops looking good
+    // is a judgement only the owner can make, on their own panel.
+    { id: 'rscale', label: 'render scale', min: 0.40, max: 1.50, step: 0.05, dp: 2, quality: true,
+      get: () => api.engine.renderScale, set: (v) => api.engine.setRenderScale(v),
+      // The scale alone does not explain the cost — a 2x panel doubles it again.
+      // Show the resulting device ratio and megapixels, since megapixels is what
+      // the frame time actually tracks.
+      fmt: (v) => `${v.toFixed(2)} · ${api.engine.dpr.toFixed(2)}x · ${api.engine.megapixels.toFixed(1)} MP` },
     // Flight feel. These three are hands-on questions, not measurable ones —
     // whether the corridor rotating around you reads as flying it or as the
     // camera wandering is not something a probe can answer.
@@ -263,17 +273,50 @@ export function installDevPanel(api) {
       },
     },
     {
-      id: 'detail', label: 'detail / cost', hint: ['cheapest', 'low', 'shipped', 'high', 'max'],
-      // `motion` is the blur gain, which ships at 1.0 — the *pass* is what is off
-      // at every quality tier, and this knob does not touch that. Moving it below
-      // step 3 only matters once the pass is re-enabled.
+      id: 'detail', label: 'quality', hint: ['cheapest', 'low', 'shipped', 'high', 'max'],
+      quality: true,
+      // Everything with a frame cost except render scale, which is its own knob
+      // because it is the term worth dialling by eye. `motion` is the blur gain,
+      // separate from the `motion` *pass* below it.
+      // Step 3 must reproduce the shipped `environment.js` preset exactly, or a
+      // fresh boot reads "custom". `ao` and `motion` are the pass intensities,
+      // which are invisible at step 3 because both passes are off there — they
+      // matter from step 4 up.
+      // Step 4 carries the same intensities as step 3 and differs only in which
+      // passes run — that is what `ultra` is, so the tier lands on a step
+      // instead of reading "custom". Step 5 is the only one that pushes the
+      // intensities past the preset.
       steps: {
-        ao: [0, 0.45, 0.86, 1.20, 1.60],
-        motion: [0, 0.50, 1.00, 1.50, 2.00],
-        refl: [0, 0.40, 0.72, 0.88, 1.00],
+        ao: [0, 0, 0.86, 0.86, 1.60],
+        motion: [0, 0, 1.00, 1.00, 2.00],
+        refl: [0, 0.40, 0.72, 0.72, 1.00],
+      },
+      // The pass enables that used to be eight loose swatches. Step 3 reproduces
+      // the shipped `high` tier exactly. A pass costs nothing while its intensity
+      // is 0 (they early-out), so the rule is: this dial decides whether a pass
+      // *runs*, the look dials decide how strong it *looks*. Bloom is the one
+      // exception — `BloomPass` runs its whole pyramid at any strength, including
+      // 0, which is why it has a flag here rather than relying on the early-out.
+      passes: {
+        bloom:   [0, 0, 0, 0, 1],
+        godRays: [0, 0, 0, 1, 1],
+        // `flare` is deliberately absent: no quality tier gates it, and it
+        // early-outs at zero intensity, which is where the owner left it. The
+        // look dial owns it. Adding it here would make a fresh boot read
+        // "custom" because the tier and the dial would disagree about it.
+        ao:      [0, 0, 0, 1, 1],
+        motion:  [0, 0, 0, 0, 1],
+        dof:     [0, 0, 0, 0, 1],
+        // SMAA covers the steps where TAA is off, so no step is left with no
+        // antialiasing at all.
+        smaa:    [1, 1, 1, 0, 0],
+        taa:     [0, 0, 0, 1, 1],
       },
     },
   ];
+
+  /** Pass toggles, kept for isolating what one pass costs. */
+  const TOGGLES = ['bloom', 'godRays', 'flare', 'ao', 'motion', 'dof', 'smaa', 'taa'];
 
   /** Live step of a macro: the index whose values every member currently matches. */
   function macroStep(m) {
@@ -282,6 +325,10 @@ export function installDevPanel(api) {
       for (const [id, vals] of Object.entries(m.steps)) {
         const k = KNOBS.find(x => x.id === id);
         if (!k || Math.abs(k.get() - vals[i]) > 1e-4) { all = false; break; }
+      }
+      for (const [id, vals] of Object.entries(m.passes || {})) {
+        if (!all) break;
+        if (!!P()[id]?.enabled !== !!vals[i]) all = false;
       }
       if (all) return i;
     }
@@ -292,16 +339,15 @@ export function installDevPanel(api) {
     for (const [id, vals] of Object.entries(m.steps)) {
       KNOBS.find(x => x.id === id)?.set(vals[i]);
     }
+    for (const [id, vals] of Object.entries(m.passes || {})) {
+      api.post({ enable: { [id]: !!vals[i] } });
+    }
   }
-
-  /** Pass toggles, for isolating what a look actually costs. */
-  const TOGGLES = ['bloom', 'godRays', 'flare', 'ao', 'motion', 'dof', 'smaa', 'taa'];
 
   /** Log + copy every knob, so a dialled-in look can be pasted back verbatim. */
   function dumpLook(btn) {
     const out = {};
     for (const k of KNOBS) out[k.id] = +k.get().toFixed(4);
-    out.hullMask = P().motion.mask;
     out.passes = TOGGLES.reduce((a, id) => (a[id] = !!P()[id]?.enabled, a), {});
     const text = JSON.stringify(out, null, 2);
     console.log('[dev] look:\n' + text);
@@ -311,11 +357,14 @@ export function installDevPanel(api) {
     );
   }
 
+  /* Shortcut digits are assigned from this array's order, so the panel always
+     reads 1,2,3,… top to bottom. Add a tool anywhere and the rest renumber —
+     never hand-write a `tag`. */
   const TOOLS = [
-    { id: 'boss', label: 'Skip to boss', tag: '1', code: 'Digit1', run: skipToBoss },
-    { id: 'killboss', label: 'Kill boss', tag: '6', code: 'Digit6', run: killBoss },
+    { id: 'boss', short: 'boss', label: 'Skip to boss', run: skipToBoss },
+    { id: 'killboss', short: 'kill boss', label: 'Kill boss', run: killBoss },
     {
-      id: 'skiplevel', tag: '7', code: 'Digit7', run: skipLevel,
+      id: 'skiplevel', short: 'skip level', run: skipLevel,
       label: 'Skip level (ascend)',
       // Carries the live level, so the panel says where the run actually is.
       live: () => {
@@ -323,9 +372,9 @@ export function installDevPanel(api) {
         return c ? `Skip level → ${c.next ? c.next.name : 'END'}` : 'Skip level';
       },
     },
-    { id: 'bombs', label: 'Infinite bombs', tag: '2', code: 'Digit2', run: toggleBombs, on: () => infiniteBombs },
+    { id: 'bombs', short: 'bombs', label: 'Infinite bombs', run: toggleBombs, on: () => infiniteBombs },
     {
-      id: 'wpn', tag: '3', code: 'Digit3', run: upgradeWeapon,
+      id: 'wpn', short: 'weapon', run: upgradeWeapon,
       label: 'Weapon +1',
       // The label carries the live tier, so the panel doubles as the readout
       // when the HUD is hidden for a capture.
@@ -334,14 +383,8 @@ export function installDevPanel(api) {
         return w ? `Weapon +1 (${w.label})` : 'Weapon +1';
       },
     },
-    {
-      id: 'hullmask', tag: '4', code: 'Digit4',
-      label: 'Hull blur mask',
-      run: () => { P().motion.mask = !P().motion.mask; render(); },
-      on: () => P().motion.mask,
-    },
-    { id: 'dump', label: 'Copy look values', tag: '5', code: 'Digit5', run: dumpLook },
-  ];
+    { id: 'dump', short: 'copy look', label: 'Copy look values', run: dumpLook },
+  ].map((t, i) => ({ ...t, tag: String(i + 1), code: `Digit${i + 1}` }));
 
   /* ── dom ────────────────────────────────────────────────────────────────── */
 
@@ -387,7 +430,24 @@ export function installDevPanel(api) {
     buttons.set(t.id, { el: b, name, tool: t });
   }
 
-  /* ── look section ───────────────────────────────────────────────────────── */
+  /* ── quality + look sections ────────────────────────────────────────────────
+     `quality` owns everything with a frame cost — render scale, the three cost
+     knobs, and all eight pass enables — so there is one place to answer "make it
+     faster". `look` owns everything free. The eight pass swatches still exist,
+     behind Fine knobs, because isolating one pass is how per-pass cost is
+     measured; they are not a thing to fly with.
+
+     `display: contents` on the wrapper so its children stay in the panel's own
+     flex column — a block wrapper would nest a second layout context. It is
+     appended here, and filled by the macro and knob loops below, so the section
+     keeps its position no matter which loop builds a given control. */
+  const qualHead = document.createElement('h6');
+  qualHead.textContent = 'quality';
+  root.appendChild(qualHead);
+  const qualWrap = document.createElement('div');
+  qualWrap.style.display = 'contents';
+  root.appendChild(qualWrap);
+
   const lookHead = document.createElement('h6');
   lookHead.textContent = 'look';
   root.appendChild(lookHead);
@@ -415,11 +475,12 @@ export function installDevPanel(api) {
       applyMacro(m, parseInt(input.value, 10) - 1);
       show();
       syncFine();
+      syncToggles();       // the quality macro writes pass enables too
     });
     input.addEventListener('change', () => input.blur());
     top.append(name, val);
     wrap.append(top, input);
-    root.appendChild(wrap);
+    (m.quality ? qualWrap : root).appendChild(wrap);
     macros.push({ m, input, show });
   }
 
@@ -445,10 +506,15 @@ export function installDevPanel(api) {
   let feelHeadPlaced = false;
 
   const knobs = [];
-  // Look knobs into the collapsed section, feel knobs into the panel proper.
-  // Partitioned rather than filtered in one pass so the `feel` header can sit
-  // between them without depending on KNOBS' ordering.
-  for (const k of [...KNOBS.filter(x => !x.feel), ...KNOBS.filter(x => x.feel)]) {
+  // Quality knobs into the quality section, look knobs into the collapsed
+  // section, feel knobs into the panel proper. Partitioned rather than filtered
+  // in one pass so the `feel` header can sit between them without depending on
+  // KNOBS' ordering.
+  for (const k of [
+    ...KNOBS.filter(x => x.quality),
+    ...KNOBS.filter(x => !x.quality && !x.feel),
+    ...KNOBS.filter(x => x.feel),
+  ]) {
     const wrap = document.createElement('div');
     wrap.className = 'vdev-knob';
     const top = document.createElement('div');
@@ -459,7 +525,7 @@ export function installDevPanel(api) {
     const input = document.createElement('input');
     input.type = 'range';
     input.min = String(k.min); input.max = String(k.max); input.step = String(k.step);
-    const show = () => { val.textContent = k.get().toFixed(k.dp); };
+    const show = () => { val.textContent = k.fmt ? k.fmt(k.get()) : k.get().toFixed(k.dp); };
     input.addEventListener('input', () => {
       k.set(parseFloat(input.value));
       show();
@@ -474,7 +540,7 @@ export function installDevPanel(api) {
     // header never reads as connected and appendChild would re-move it down the
     // list once per feel knob, landing it above the last one instead of the first.
     if (k.feel && !feelHeadPlaced) { root.appendChild(feelHead); feelHeadPlaced = true; }
-    (k.feel ? root : fineWrap).appendChild(wrap);
+    (k.quality ? qualWrap : k.feel ? root : fineWrap).appendChild(wrap);
     knobs.push({ k, input, show });
   }
 
@@ -483,9 +549,17 @@ export function installDevPanel(api) {
     for (const { k, input, show } of knobs) { input.value = String(k.get()); show(); }
   }
 
+  /** Re-read the pass swatches. Declared before `toggles` is filled; only ever
+      called from an event, by which point it is. */
+  function syncToggles() {
+    for (const { id, el } of toggles) el.dataset.on = P()[id]?.enabled ? '1' : '0';
+  }
+
+  // Behind Fine knobs, not on the panel proper: these are a measuring
+  // instrument, and the `quality` dial is what you reach for to make it faster.
   const togHead = document.createElement('h6');
-  togHead.textContent = 'passes';
-  root.appendChild(togHead);
+  togHead.textContent = 'passes (isolate cost)';
+  fineWrap.appendChild(togHead);
   const togRow = document.createElement('div');
   togRow.className = 'vdev-row';
   const toggles = [];
@@ -502,11 +576,12 @@ export function installDevPanel(api) {
     togRow.appendChild(b);
     toggles.push({ id, el: b });
   }
-  root.appendChild(togRow);
+  fineWrap.appendChild(togRow);
 
   const hint = document.createElement('div');
   hint.className = 'vdev-hint';
-  hint.textContent = '` to hide · 5 look · 6 kill boss · 7 skip level';
+  // Built from TOOLS so it cannot drift from the buttons' own numbering.
+  hint.textContent = '` to hide · ' + TOOLS.map(t => `${t.tag} ${t.short}`).join(' · ');
   root.appendChild(hint);
   document.body.appendChild(root);
 
@@ -531,7 +606,7 @@ export function installDevPanel(api) {
     // one must not fight a writer that rounds the value back.
     syncFine();
     for (const { show } of macros) show();
-    for (const { id, el } of toggles) el.dataset.on = P()[id]?.enabled ? '1' : '0';
+    syncToggles();
   }
 
   /* ── keys ───────────────────────────────────────────────────────────────── */

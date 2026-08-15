@@ -1,608 +1,145 @@
-# Vulpine — resume handoff
+# Vulpine — handoff
 
-Drop this into a fresh agent to pick up mid-build. Read `ROADMAP.md` (the plan —
-what is done, what is next, what is out of scope), `CONTRACT.md` (lane ownership
-+ hard rules) and `REVIEW.md` (the rubric) before touching anything.
+Operational reference for a fresh agent: the rules, the harness, and the traps
+that have already cost sessions.
 
-## Keeping the plan honest
+**This file is not a plan and not a defect list.** The plan is `ROADMAP.md`; the
+active lanes are `PLAN-PERF.md` and `PLAN-VARIETY.md`; the rubric is `REVIEW.md`;
+lane ownership is `CONTRACT.md`.
 
-`ROADMAP.md` is the plan. This file is the queue and the session log. They drift
-apart unless you close the loop, and for seven sessions there was no plan at all
-to drift from — every session re-derived its priorities from a defect list, which
-is how a scope decision the owner made out loud ended up buried in a bug note.
+*Condensed 2026-08-15 — session narrative, resolved defects and the stale
+"where we left off" state removed; lessons kept as one-liners. Deleted material
+is in git history.*
 
-So:
+## Rules
 
 - **Every commit that closes a roadmap item ticks its box in the same commit.**
-  Not afterwards, not "in the next one". If the commit does not close an item,
-  say which phase it belongs to in the message.
-- **At the end of a phase**, re-cut the `Status:` line at the top of
-  `ROADMAP.md`, move the finished block into `## Done` with the files it landed
-  in, and delete the finished items from the defect list below.
+  If a commit closes nothing, name the phase it belongs to in the message.
+- **At the end of a phase**, re-cut `ROADMAP.md`'s `Status:` line and move the
+  finished block into `## Settled` with the files it landed in.
 - **Anything discovered mid-session that is not this session's work** goes into
-  `ROADMAP.md` under the phase it belongs to — not into a comment, not into a
-  commit message, not only here.
-- **No prose in code comments.** State the constraint, not the story — no "the
-  owner reported", no "this used to", no before/after measurements, no
-  narrating what you just did. That belongs in the commit message or here.
-- **Never assert a magnitude you have not measured.** A comment saying a term is
-  "negligible", "small enough" or "close enough" is a *claim*, and the confident
-  tone makes the next reader — including the next you — build on it instead of
-  checking it. Put the number in or leave the sentence out. This cost a whole
-  crosshair rebuild: the aim lead carried the note *"rotating about world axes
-  rather than the hull's own is deliberate: at these attitudes the difference is
-  negligible"*, and the difference was 0.75 rad of hull pitch, which at 520 m of
-  lever arm threw the reticle 1.03 ndcY — completely off the frame. The comment
-  was written in the same commit as the code, so nothing had ever verified it.
-- **When you change what code does, re-read the comment above it.** The same aim
-  block kept a comment describing hull-forward rotation for three commits after
-  the rotation had moved to `updateCamera` and the lines beneath it had become two
-  scalar assignments. A stale comment is worse than none: it is a wrong answer in
-  the one place a reader trusts.
-- **Do not add a module the roadmap does not ask for.** Ship criterion 7 is "no
-  dead code"; this project has now shipped ~5,400 lines of finished, unimported
-  modules across two sessions. `world/reflection.js` was the last of them and is
-  now wired; the built-world materials (Phase 9) are the remaining ~160 lines.
+  `ROADMAP.md` under its phase — not a code comment, not a commit message, not
+  only here.
+- **No prose in code comments.** State the constraint, not the story: no "the
+  owner reported", no before/after numbers, no narrating the change.
+- **Never assert a magnitude you have not measured.** "Negligible" is a claim,
+  and its confident tone makes the next reader build on it instead of checking.
+  Put the number in or leave the sentence out. This cost a whole crosshair
+  rebuild — a comment called a rotation difference negligible; it was 0.75 rad,
+  which at 520 m of lever arm threw the reticle 1.03 ndcY clean off frame.
+- **When you change what code does, re-read the comment above it.** A stale
+  comment is a wrong answer in the one place a reader trusts.
+- **Do not add a module the roadmap does not ask for.** Ship criterion 7 is no
+  dead code; this project has shipped ~5,400 lines of finished, unimported
+  modules across two sessions.
+- **No binary assets, no network fetches, no `Math.random()`** — use
+  `rng('stream')`.
+- **Register review cameras with `registerShot()` from your own file.**
+  `src/game/shots.js` is shared and read-only.
 
-## Scope decision (2026-07-31)
+## Sub-agents
 
-**Stop trying to finish all 9 km + boss.** The owner's call: polish the *first
-couple of encounters* and the moment-to-moment gameplay/enemy feel until it is
-genuinely AAA, rather than spreading thin across the whole level. The mission
-script already runs end-to-end and the boss is wired — treat everything past
-about `z = -3000` as roughed-in, not as something to keep adding to.
+**One at a time, plus yourself inline on a disjoint lane.** Five parallel lanes
+hit the usage ceiling in ~15 minutes and three landed dead code. Hand a sub-agent
+the API contract *in its prompt* — making it re-derive interfaces from source is
+what burned the budget the time before.
 
-Concretely, the next agent should work on, in order:
-
-1. **Encounter feel, waves 1–4** (`z = -260 … -1950`). Spacing, entry angles,
-   how long a raptor stays shootable, whether the wasp swarm reads as a threat.
-2. **Enemy legibility.** At 100 px a raptor and a wasp are currently the same
-   dark speck. Silhouette and emissive colour need to separate them.
-3. **The two terrain defects below**, which cost more per frame than anything
-   else left.
-
-Everything after the delta is deliberately left rough. Say so; don't pretend.
-
-## The two commands to re-issue
-
-`/goal`:
-
-```
-I want you to build a 3D flying game Star Fox Vulpine at the level of the Star Fox 64 game. It should be utterly perfect, visually beautiful, with every single thing done at AAA quality—from textures to physics to anything you could think of.
-on each item and have a separate sub-agent check it visually to ensure it looks triple A. That separate sub-agent should be a really harsh critic, and if it doesn't look triple A, it should keep going.
-```
-
-Keep the fan-out to **1 sub-agent at a time, plus yourself inline on a disjoint
-lane**. Five parallel lanes hit the usage ceiling in ~15 minutes and three of
-them landed dead code. Hand a sub-agent the API contract it needs *in the
-prompt* — making it re-derive the interfaces from source is what burned the
-budget the time before.
-
-Two concurrent lanes turned out to be one too many, and **not** because of
-merge conflicts — disjoint files never conflicted once. The problem is that
-every lane drives the *same running app*. A before/after capture renders
-whatever the other lane's files happen to be at that instant, so any A/B
-measures both changes at once. It cost a whole enemy-legibility comparison
-before it was spotted (the other lane had moved the `combat-wide` camera).
-
-If you must measure a look while another lane is live, capture from a clean
-worktree instead:
+Two concurrent lanes is one too many, and **not** because of merge conflicts —
+disjoint files never conflicted once. Every lane drives the *same running app*,
+so a before/after capture renders whatever the other lane's files are at that
+instant and any A/B measures both changes at once. To measure a look while
+another lane is live, capture from a clean worktree:
 
 ```bash
 git worktree add /tmp/iso HEAD --detach
 ln -s "$PWD/node_modules" /tmp/iso/games/vulpine/node_modules
 cp src/<your file> /tmp/iso/games/vulpine/src/<your file>
-# capture before/after in /tmp/iso; delete with: git worktree remove /tmp/iso
+# capture in /tmp/iso; remove with: git worktree remove /tmp/iso
 ```
 
-## Session 2026-08-11 (b) — graphics pass: blur, reflections, sludge
+## Harness
 
-Owner's brief, in three parts: the ship/boss/enemies are permanently motion
-blurred, "the graphics are cranked way up", and "the reflections are WAY too
-good — tune that down slightly". Direction chosen by the owner: **keep the
-photoreal look, remove the sludge** — explicitly *not* the flatter stylised
-direction of the reference build. Plus: put the knobs in the dev panel so the
-owner can dial instead of the agent guessing.
-
-**The tuning you are looking for is in `environment.js`, not `postfx.js`.**
-`env.apply()` overwrites every pass param from the preset, so the constructor
-defaults in `postfx.js` are never what is on screen. That is why the panel's
-first render showed exposure 0.20 and bloom 0.055 against `postfx.js` defaults of
-1.0 and 0.085.
-
-**Grade bug, pre-existing, and part of the complaint.** `env.apply()` built its
-uniform name by title-casing the key, so `ca` became `uCa` — the uniform is
-`uCA`. The loop `continue`s on a miss with no warning, so `ca` **never applied in
-any of the three presets** and every one of them ran on the pass default `1.6`,
-higher than any asked for. Chromatic aberration is a first-order over-cranked
-tell. Fixed with a caps fallback in both `environment.js` and `api.post`. Any
-future acronym-cased grade key would have vanished the same way.
-
-**The under-exposure item was wrong in scope, and the correction matters.** The
-old note treated `w-shore`'s 0.068 median as a shadowed-gorge outlier. Measured
-across five cameras: chase 0.045, valley 0.032, water 0.059, w-shore 0.079, sun
-0.116 — everything is under the 0.10–0.20 band. It is one global grade offset,
-not a per-camera defect, and it wants a single lift. Deliberately not done this
-session: the brief was to *calm* the image and a simultaneous lift would have
-made both changes unmeasurable.
-
-**Motion blur: masked, not rebuilt.** Dynamic hulls render into a half-res mask
-(red = hull, green = own depth, so a hull behind a cliff cannot punch a hole in
-the blurred cliff) and the blur scales by it. Removes wrong blur; does not add
-right blur — fast-crossing traffic now gets none instead of an incorrect amount,
-which is a strict improvement but not the whole fix. Three traps already paid
-for:
-
-- Draw the mask from a **private 2-child scene**, not by layer-filtering the real
-  one: a nested `renderer.render(scene, …)` re-runs the shadow-map update for
-  everything in that scene.
-- Draw it in `post.render()` **before** `composer.render()`, never mid-chain.
-- `hullMask()` takes **one** sample. Half-res + linear filter already feathers
-  across ~2 full-res pixels. A 5-tap version cost **7.8 ms** at 1080p — it is four
-  more full-screen dependent reads. Feather via `maskScale`, never more taps.
-
-**Open, and flagged in ROADMAP as a possible ship blocker:** split-timed,
-`renderMask` is 0.7 ms but the chain goes 3.6 → 12.1 ms with the mask on, and the
-only chain-side difference is a single `texture2D`. Ruled out: the mask render,
-the blur arithmetic, and the texture filter. That harness's baseline chain is
-3.6–4.7 ms where the project's contract measurement puts the whole frame at
-17–18 ms, so the absolute scale is not comparable and this may be a headless
-ANGLE-Metal artefact. **Verify in real Chrome with dev key `4`.**
-
-**Careful with backticks inside the GLSL template literals.** Writing
-`` `maskScale` `` in a comment *inside* `MOTION_FRAG` terminated the template and
-produced `Unexpected identifier` with no line that looked wrong. Prose in those
-comments must be backtick-free.
-
-**Dev panel now has sliders** (`KNOBS`) for exposure, trim, bloom, lens dirt, god
-rays, flare, AO, saturation, contrast, CA, vignette, motion-blur gain and
-reflection strength, per-pass toggles, and key `5` to copy every value as JSON —
-so a dialled-in look comes back as numbers to paste into the preset. Note the
-motion knob is the blur **gain**, not `strength`: `main.js` rewrites `strength`
-from boost every frame, so a knob on it would be lost immediately.
-
-**A/B discipline, learned the hard way twice this session.** Two captures from two
-runs confound everything: the first ship-blur comparison actually measured the
-reflection change, which had landed in the same working tree. And `setShot()` only
-sets a flag — the camera moves inside the frame path, so probing right after it
-measures the *previous* pose and every shot reports identical numbers. `hist.mjs`
-gets this right (it settles for 8 frames) and takes `--js` to set the "before"
-arm, which is how the grade table above was produced from one build.
-
-## Session 2026-08-11 — pre-boss weapon grants
-
-Single lane, no sub-agents. Owner's brief: "the game is hard, the guns are weak
-— 2-3 automatic weapon upgrades right before the boss."
-
-**The carrier was not a slog, it was unkillable.** This is the number that
-matters and nobody had taken it: `bossprobe.mjs` holds the trigger and never
-dodges, so it is a *perfect-uptime upper bound*. At tier 0, with 100% of samples
-inside both the range gate and the lock cone, after **240 s** the core had taken
-zero damage, two of four turrets were still full, and `killed: false`. Only 25%
-of rounds fired at the hull land, so 14.8 fired dps is ~3.7 landed against 900 hp
-of weak points. Four minutes, and that is the *bot*, not a player.
-
-With the three grants: killed at **101.5 s**, `outcome: win`. Engines 25/48.3 s →
-6.5/14.8 s; all four turrets die where two used to survive; the core goes from
-never-touched to dead.
-
-**Four tiers in `TUNE.weapons`**, each overriding the tap gun wholesale so the
-fire path reads one object and never branches on a tier number. Fired dps 14.8 →
-29.5 → 54.2 → 83.0. Top tier fires the full four-pod rack instead of alternating
-pairs — the deliberate "rhythm not a wall of light" comment in `playerFire` still
-holds at the low tiers; at the top, the wall of light *is* the reward.
-
-**Round radius climbs with the tiers too (5.5 → 8.2 m), and that matters more
-than it looks.** Hit rate compounds with damage: at tier 0 three quarters of
-rounds aimed at a 68 m hull miss it. Widening the round is roughly half of what
-makes a tier feel like an upgrade.
-
-**Two A/B switches, and you need both.** The fight is now balanced against the
-granted gun, so resetting the tier is not a baseline — the grants must be
-suppressed. `?grants=0` does that; `?wpn=N` starts on a tier. `bossprobe.mjs`
-now takes a 3rd arg of extra query params and **prints the live tier and dps**,
-so an arm cannot be run by mistake:
+Never claim a look without a PNG you have read. Run from `games/vulpine`, not
+the repo root. **Non-zero exit = console errors, and any console error is an
+automatic fail.**
 
 ```bash
-node tools/bossprobe.mjs 5313 240 'grants=0'   # baseline: killed: false
-node tools/bossprobe.mjs 5313 240              # granted:  killed at 101.5s
-```
-
-**Trap worth knowing — `theme.js:mix()` returns `'rgb(r,g,b)'`, not hex.** So
-`alpha(mix(a, b, t), 0.8)` and `mix(mix(...), c, t)` both silently produce
-`rgba(NaN,NaN,NaN,…)`; canvas rejects the fillStyle and *keeps the previous one*,
-which renders as whatever colour was last set rather than as an error. It cost a
-capture loop here: the HYPER label drew near-black while the gauge beside it,
-taking the same value directly, drew correct gold. Computed colours are not
-composable — use an explicit hex ramp (`WPN_TIER` in `status.js`) or
-`g.globalAlpha`. No shipped code does this; only the new code did.
-
-**Grant placement is measured, not guessed.** `z = -7150 / -7451 / -7751`, so
-each tier is followed by a wave to feel it on (hornets -7250, last wasp swarm
--7550), and the last grant clears the -7951 comm by 1.1 s. No callout is
-overwritten in under ~1.1 s. `say()` holds a line 4.2 s and the run-in is dense,
-so the HUD pip row is the durable signal and the wingman lines are the moment.
-
-**Owner raised three new items mid-session** (2026-08-11), off a reference build
-on r/aigamedev plus a live-play screenshot. They are queued at the top of
-Phase 8 in `ROADMAP.md` with the diagnosis, not just the complaint: crosshair
-should move with the ship, the post chain is overcooked, the ship is in constant
-motion blur. Two notes worth carrying:
-
-- The crosshair one is **not just a HUD change**. The guns converge on the
-  *camera* ray, so a centred reticle is currently honest. Moving the reticle onto
-  the hull without moving the guns reintroduces a lying reticle. Read the item
-  before touching `reticle.js`.
-- The blur one is **not just the ship** — the owner added the boss and enemies.
-  It is a single cause and `postfx.js:739` states the wrong assumption as its
-  justification: the pass treats every pixel as static world geometry, so the
-  error equals the object's own motion and is *maximal for anything that moves
-  with the player*. The boss is the worst case because it station-keeps at a
-  near-constant `dz` (−413.5 m mean, measured), so its true screen motion is ~0
-  and the blur is almost entirely spurious. Masking only the hull — the first
-  version of this note — would have left the boss and half the traffic smeared.
-  Mask the whole `combat` group plus `ctx.ship`, hulls only, feathered.
-
-**Left alone deliberately:** `homingHit` is 2 out of 346 homing rounds fired at
-the carrier. Tracking rounds essentially do not connect with the boss. That is a
-separate defect from weapon damage and was not in this lane — it is worth a
-session of its own, and it means the lock-on ceremony is still near-decorative
-against the one target it matters most against.
-
-## Session 2026-08-01 (c) — flight camera + rear threat
-
-One sub-agent (loading screen) plus the main agent inline on flight/HUD. Owner
-hand-validated every change in the browser rather than through captures, which
-was far cheaper than the probe loop and caught two things a screenshot could not.
-
-**The ship auto-yaws — fixed, and the standing diagnosis was wrong.** The old
-note blamed the rail-heading term and said to scale it down. Scaling it down
-alone makes the drift *worse*. Three real causes, in order of size:
-
-1. A **sign error**: `YXZ` maps yaw θ to forward `(-sinθ, 0, -cosθ)`, so the
-   hull needs `atan2(-railDir.x, -railDir.z)`. The missing negation mirrored the
-   hull about the corridor while the camera aimed down it, so the two swings
-   added. Nose-vs-camera 44.7° → 5.5° peak-to-peak from that one character.
-2. The camera **damped its ride along the rail**. The rail is a known function
-   of `railZ`; damping it is pure lag, and lateral lag on a meander is what slid
-   the ship across the frame. Only the player's offset is damped now.
-3. `TUNE.railYawFollow` (0 by default, `?railyaw=` to override) scales how much
-   the hull *and* camera lean into the corridor, together so they cannot
-   disagree. 0 was the owner's call — the behind-cam stays aligned and the
-   reticle never drifts.
-
-**The ship left the frame at the box edges — fixed.** Separate bug, found by the
-owner immediately after: the lead was a *share* (`camOffsetFollow` 0.70) of an
-offset spanning 105 m × 124 m against a 12.6 m trail, i.e. 56° off-axis
-laterally and 47° below at full deflection. The aim made it worse by tracking
-the rail instead of the ship, pitching the camera *up* during a dive. Lead is
-capped in metres now; verified at all four box corners.
-
-**Watch out — `framing.mjs` hands-off still shows ~3.5° of camera yaw.** That is
-**camera shake**, not drift: the probe takes hits, and shake displaces
-`camera.position` before `lookAt`. `off.x`/`off.y`/`_sOffX` measure exactly zero
-variance. Do not chase it.
-
-**New tool: `tools/framing.mjs`.** Reports where the ship actually sits in the
-frame over time — ndcX/ndcY, nose-vs-camera angle, camera yaw, plus off/shake.
-Step **one tick at a time**; the camera damper only advances inside a step, so
-batching changes the answer. This is the instrument that settled all of the
-above, and no screenshot could have.
-
-**Rear-threat arcs shipped** (`ui/threat.js`). See ROADMAP for the tuning knob.
-A rear hostile is aimed at the player 42.6% of ticks — the owner's complaint,
-quantified.
-
-**Owner decisions captured** (ROADMAP → "Owner decisions", settled, do not
-re-ask): rear threat = arc, ship scale = punted, weapon upgrades = auto-grant
-one tier before the boss, no drop system.
-
-**Dead code**: deleted every orphan with no scheduled consumer. What remains is
-~190 lines, all with a named consumer in a scheduled phase (Phase 9 built-world
-materials, `shoreU` for the Phase 8 shoreline). Note the obvious one-line sweep
-misses orphans on multi-declarator lines — `const A = 1, B = 2` only reports
-`A`, which is how `L_MACRO` hid behind `L_FAR`.
-
-## Session 2026-08-01 (b) — boss fight + water
-
-Two lanes, one sub-agent on water and the main agent inline on the boss.
-
-**Boss (`game/combat.js`, `ships/boss.js`, `ui/bosshealth.js`).** All three of the
-owner's live-play complaints were real and all three are fixed. Measured with
-the new `tools/bossprobe.mjs`, over a 45 s fight:
-
-| | before | after |
-|---|---|---|
-| in weapon range (<1100 m) | drifted out | **100%** |
-| inside the ±17° lock cone | ~68% | **95.6%** |
-| lock ever holds the boss | impossible | **53.9%** (on a weak point) |
-| rounds that landed on it | **0** | **147** |
-| closest any round got to the hull | 282 m | **12 m** |
-| a part visibly flashing | 0% | **85%** |
-
-Four separate causes, none of which was "drift":
-
-1. *Station-keeping sampled the ground in the wrong place.* Altitude was floored
-   at `groundAt(player.x, player.z − 560) + 80`; the river meanders ~120 m over
-   560 m, so that point is inside the canyon wall for most of the level and
-   `groundAt` returned the rim. The carrier was ordered to ~450 m while the
-   player flew at 70, biased by the meander — the reported "up and to the left".
-   It now samples under itself and is hard-clamped into a box around the player
-   (`TUNE.boss`). The box is the leash; it cannot leave the weapon envelope.
-2. *The weak-point table was double-offset.* `part.local` is measured in the
-   carrier's frame but was composed with the part **node's** `matrixWorld`, which
-   already carries that offset. Measured on the live rig: nacelles resolved
-   60.8 m from the hull centre instead of 30, turrets 28–44 m instead of ~16,
-   the core 9 m instead of 4.4. Every collision test and every lock point in the
-   fight aimed at empty space beside the ship. `api.partPoint()` now owns it.
-3. *The lock point flipped between the two nacelles every tick.* They are 60 m
-   apart, so the seeker's lead term read a 1/120 s flip as ~7 km/s of target
-   motion and threw every guided round a kilometre wide. The chosen part is
-   sticky now — held until it dies or the core opens.
-4. *Collision was a point test, not a sweep.* A tap round covers 16 m per tick
-   against a 13 m hit sphere, so fast rounds tunnelled through the hull.
-
-Also: the hit register (per-part additive shell, amber on a destructible, cold
-blue on plating; pooled hull blooms parked at the contact point in the ship's
-frame; impacts scaled to the part; a strike flash and an aim marker on the boss
-bar's part strip), and an HP rebalance — 95 s of *flawless* fire to kill it was
-a wall, not a fight.
-
-**Harness gotcha worth not rediscovering.** `__VULPINE__.step(n)` runs n fixed
-ticks and refreshes the rendered scene **once**, at the end. The guns converge on
-the camera ray and the camera only moves in that refresh, so a probe that batches
-30 ticks fires 30 volleys down a camera pose up to 44 m stale and *nothing hits
-anything*. That artefact alone cost most of a debugging session. Step one tick at
-a time. Real play is fine (`frame()` batches at most 2).
-
-**Water (`world/water.js`, `world/world-materials.js`).** The "polished plastic
-sheet" was **not** the water shader. The Gerstner and ripple code was running
-correctly the whole time and was simply **hidden**: the 42 km open-ocean apron, a
-plain `MeshStandardMaterial` disc, sat 2.5 m below a surface whose swell troughs
-reach 4.8 m, so across most of a grazing frame the apron won the depth test and
-you were looking at an untextured disc. Proof pair: `shots/wdiag3/graze-apronly.png`
-(apron only) is pixel-for-pixel the old "broken" look; `graze-noapron.png` shows
-the real surface. Apron dropped to y = −12 and given the same surface shader.
-On top of that: a 6-band ripple system faded on **pixel footprint** (`fwidth`)
-rather than camera distance — at 200 m/s the grazing angle dominates, which is
-why the old distance fade left the near field bare — with the lost amplitude
-handed to roughness Toksvig-style; `ior: 1.333` so water stops rendering brighter
-than the rock beside it; Beer-curve depth absorption; a three-part shoreline; sun
-glitter. Before/after: `shots/base01/water.png` → `shots/commit-check/water.png`.
-
-**`src/world/reflection.js` is now wired** (`corneria.js`). Constructed once,
-shared by both water materials by uniform identity, driven from the sentinel
-probe's `onBeforeRender` after `_applyLOD()` — LOD first, or the mirrored pass
-draws a coarser tier than the one on screen. Hidden for the pass: the water
-group, the probe itself, and every `environment` child with `renderOrder <= -999`
-(sky dome, starfield, nebula). Hiding those is load-bearing, not an optimisation:
-the buffer is cleared to alpha 0 so the shader can tell "this ray hit rock" from
-"this ray went to sky" and keep the IBL for the second case. Draw the dome and
-every one of those pixels gets alpha 1 and the distinction is gone.
-Result: `shots/wdiag2/graze.png` → `shots/refl1/graze.png`.
-
-### Next steps, in order
-
-*(Written 2026-08-01. Still accurate — none of these were this session's lane.)*
-
-1. **The frame is over budget, and it is not the reflection.** First
-   contract-point reading ever taken (1080p `--quality high`, serial, same five
-   shots): 17.3 ms with the reflector disabled, 18.1 ms with it. The base frame
-   was already over on its own. Profile that before optimising anything, and
-   note run-to-run variance is ±2 ms — one reading proves nothing.
-2. Tune the shoreline — the beach edge is still a hard geometric line with no
-   foam and the sand is a flat untextured wedge (`shots/refl1/w-shore.png`).
-3. `w-shore` composites at median 0.068 against a 0.10–0.20 target. Clipping and
-   black are healthy, so it is grade rather than range.
-
-## What changed the session before
-
-The previous session fanned out five lanes and **three of them never wired
-their work in** — 4,873 lines of finished modules that nothing imported. That
-is now fixed:
-
-| Seam | Was | Now |
-|---|---|---|
-| `game/combat.js` | 40-line stub | full fight: waves, bullets, lock-on, bombs, wingmen, boss |
-| `ui/index.js` | legend only | status/radar/score/reticle/comms/wingmen/boss-bar |
-| `core/audio.js` | no-op | graph + voices + engine + beds + music, autoplay-safe |
-
-Also fixed this session:
-
-- **`enemies.js` crashed on the first spawn.** `Object3D.clone()` round-trips
-  `userData` through JSON, so the prototype's `userData.face` mesh reference
-  came back an inert plain object. Engine nodes are re-found on the clone now.
-- **Wingmen could not be cloned.** The Arwing hangs `userData.api` off its root
-  with a back-reference, so `clone(true)` threw on a circular structure.
-  `cloneVisual()` in combat.js shares geometry and drops userData.
-- **Terrain skirts hung 55 m curtains off every cliff rim.** A fixed drop is the
-  wrong shape for a seam whose worst crack varies from centimetres to tens of
-  metres. Each skirt vertex now drops to the lowest surface height within one
-  coarse span (`hemDepth`), measured at 1 m on the far tier where it was 55.
-- **Fog density 0.00050 → 0.00022.** The haze colour is ~3× brighter than lit
-  rock, so a ridge 2 km out was 63% haze and the whole level collapsed to one
-  blue wash. This was the single biggest cost to the frame.
-
-## Where we left off
-
-Branch `g/fox64`. Clean checkpoint is still `bd01ae4`; **everything above is
-uncommitted** — commit it before doing anything destructive.
-
-Current reference frames: `shots/c3/` (HUD + combat, `--hud --params fight=1`).
-`shots/int0/` is the "before" for this session.
-
-## Known defects, ranked by cost to the frame
-
-> **STALE — read `ROADMAP.md` for the live queue, not this list.** Items 1, 5
-> (both of them), 6 and 7 below are all fixed; the strikethrough block that
-> follows says so for some of them and the numbered list underneath contradicts
-> it, which is exactly the trap that costs a fresh agent a session. In
-> particular the fins in item 1 were the terrain index buffers being wound
-> backwards, fixed in `4bb0eeb` — **do not re-investigate them.** The list is
-> kept only for the elimination trails, which are still worth reading before
-> re-opening any of these.
-
-**Resolved since this list was written** — do not re-investigate:
-- ~~Fins hanging off the canyon rims.~~ The terrain index buffers were wound
-  backwards, so back-face culling kept the faces turned *away* from the camera.
-  Fixed in `4bb0eeb`; the note below is kept only for the elimination trail.
-- ~~Water is a mirror plane.~~ It was the apron occluding it. See above. Planar
-  reflection is still not wired in.
-- ~~No terrain shadows.~~ Delivered as a baked **horizon map** rather than CSM —
-  eight compass sectors of horizon elevation per point, evaluated per fragment
-  against the live sun (`GLSL_HORIZON` in `world-materials.js`). No cascade seam,
-  no acne, no range limit, and it tracks the environment preset.
-- ~~HUD status block missing its text.~~ `SHIELD` and the numeral render.
-- ~~The boss drifts out of the fight.~~ / ~~No hit feedback on the boss.~~ Both
-  fixed and measured — see the table above.
-
-1. ~~**Thin tapering fins hang off the canyon rims**~~ (right side of
-   `shots/c5/combat-wide.png`, and every in-canyon frame). They read as torn
-   geometry and are the single biggest reason the canyon still looks like
-   stacked sheets rather than landmass. **FIXED in `4bb0eeb`** — the terrain
-   index buffers were wound backwards, so back-face culling kept the faces
-   turned away from the camera. The elimination trail below is kept because it
-   rules out a lot of terrain ground cheaply; the conclusion it builds toward is
-   the one that was right. Ruled out, each by a measured experiment:
-   - *Not the lateral skirts.* Dropping `SKIRT` 55 → 10 changed the image not at
-     all, and `hemDepth` measures 1 m on the far tier.
-   - *Not the near/far tier seam.* They survive `freecam --hide "^ridge-"`, and
-     both tiers now band-limit identically at the shared boundary column.
-   - *Not far-tier aliasing.* They are inside `|u| < 1100`, i.e. near tier.
-   - *Not water, not fog.* Survive `--nowater` and `--nofog`.
-   - *Not fx.* `combat-wide` re-shot with every `fx.*` mesh forced invisible
-     every frame: all fins survive unchanged → `shots/dfx/combat-wide.png`.
-   - *They ARE `terrain-*` meshes.* Same shot with every `^terrain-` mesh
-     forced invisible: every fin disappears and only the smooth far-tier
-     `ridge-*` landmass remains → `shots/dter/combat-wide.png`.
-   - **The height FIELD is clean.** `heightAtU()` sampled on the exact near-tier
-     column set (153 columns, reproduced from `nearColumns()`) for every z from
-     720 to −4000 in 6 m steps, looking for a vertex differing from *both*
-     lateral neighbours by more than 40 m: **zero hits.**
-
-   So the previous handoff's advice — bisect the noise bands in
-   `profile.js:heightAtU` — **is a dead lead, do not spend budget on it.** The
-   defect is in the *mesh*, i.e. `terrain.js`: index buffers, the LOD stitch,
-   skirt topology, or the skirt normals/colours. The fins are much darker than
-   surrounding rock, so it may be a shading artefact as much as a silhouette
-   one. A wireframe capture already exists: `shots/dwire/combat-wide.png`,
-   where they appear as dense near-vertical streaks following grid *columns* —
-   many rows compressed into a narrow lateral band, consistent with a fold or
-   stretched sliver triangles rather than a displaced vertex.
-2. **Water is a mirror plane.** One clipped specular streak, no waves, no shore
-   interaction, no depth falloff. `world/water.js` is largely untouched.
-3. **No terrain shadows.** `castShadow = false` on every chunk (`terrain.js`),
-   so a 1750 m mountain range casts nothing and the landscape has no form
-   definition. The comment says it waits for CSM — that is the real fix.
-4. ~~**Enemies unreadable at distance.**~~ **Partly fixed** (`fee163a`). Two
-   causes, both measured: the hostile plating was a *cool* blue-grey at
-   metalness 0.9, so with almost no diffuse term every hostile was painted the
-   colour of the haze it flew against; and every emissive on these hulls points
-   aft, so a closing hostile had no lit pixel at all. Plating is now warm at
-   metalness 0.55, and each class carries one dorsal camera-facing beacon with
-   a floor on its *angular* size (colour = class, blink pattern = second
-   channel). Costs one draw per live enemy.
-   **Not finished:** past ~800 m they are still small and quiet. Re-tune after
-   the water lane lands, since the background they compete against will change.
-5. **Rear attackers are unfair, not hard.** Owner feedback from live play: too
-   many enemies end up behind you and shoot from there. The radar already knows
-   where they are, so the fix is almost certainly a rear-threat indicator (an
-   edge-of-screen warning arc when a hostile has you in its firing cone from
-   behind) rather than removing the `from: 'behind'` waves — being flanked is
-   good, being shot by something you were given no way to notice is not.
-   Owner is still thinking about which; ask before changing wave composition.
-5. **HUD status block is missing its text.** The `SHIELD` label and the numeral
-   in `status.js` do not appear in `shots/c3`, though the gauges do and the
-   legend's text renders fine. Suspect a `glyphs.js` baseline/clip issue.
-6. **The boss drifts out of the fight.** Owner feedback from live play
-   (2026-08-01): Gargantua climbs away up and to the *left* and parks there,
-   far enough out that player fire simply does not land. The only way to bring
-   it back is to descend, at which point it re-enters range. So the encounter
-   has a dead phase in the middle of it where the player has no way to make
-   progress and no indication of why. Two things to separate before fixing:
-   whether the boss's station-keeping is *drifting* (an integration or
-   leash bug — cf. the station-seek bug in `ai.js` that had every enemy lagging
-   its commanded position) or whether the pattern genuinely commands that
-   position and the arena is simply too large. Note the bias is consistently
-   up-and-left, not random, which points at the former. Look at `ships/boss.js`
-   and the boss branch of `game/combat.js`. Unmeasured so far — `tools/pacing.mjs`
-   samples the live fight over time and is the right instrument; extend it to
-   log boss position and player-to-boss range per second.
-7. **No hit feedback on the boss (and possibly on hulls generally).** Owner
-   feedback from live play (2026-08-01): rounds landing on the boss produce no
-   read, so there is no way to tell a hit from a miss — which is most of why
-   the out-of-range phase above is confusing rather than merely annoying.
-   Wanted: a short light pulse on impact. `fx.impact()` and `fx.shieldHit()`
-   already exist and are wired for foes (`hurtFoe` passes an impact point and a
-   normal); check whether `bossHit()` in `combat.js` calls anything equivalent,
-   and whether the boss's own materials have a hit-flash channel the way
-   `f.hitFlash` gives the raptors one. Cheapest strong version is an emissive
-   flash on the struck part plus one pooled point light — the pool already
-   exists in `fx/index.js` (`LIGHTS = 3`, idled at intensity 0). Keep it under
-   ~0.12 s; a flash you can name is too long.
-
-## Harness (use it every iteration — never claim a look without a PNG you read)
-
-```bash
-cd games/vulpine
 node tools/shot.mjs --shots combat-wave,combat-wide --t 20 --w 1600 --h 900 \
      --quality ultra --hud --params "fight=1" --out shots/rN --port <unique>
-node tools/sheet.mjs shots/rN --cols 3 --width 560     # → shots/rN/sheet.png
-node tools/shot.mjs --list --port <unique>             # all angles (don't `tail` it)
+node tools/sheet.mjs shots/rN --cols 3 --width 560          # → shots/rN/sheet.png
 node tools/sheet.mjs shots/rN-1 shots/rN --pair --labels "before,after"
+node tools/shot.mjs --list --port <unique>                  # all angles (don't `tail`)
 ```
 
-New this session:
-
-- `--hud` shows the HUD (default off); `--params "k=v&k2=v2"` appends arbitrary
-  URL switches.
-- **`?fight=1`** drives the trigger and lock from the sim clock instead of from
-  input, so a capture shows an actual firefight. The harness never touches the
-  keyboard, so without this every review frame had cold guns.
-- **`tools/inputtest.mjs`** presses real keys and reports what the sim did with
-  each control — the screenshot harness never touches the keyboard, so "does
-  the fire button fire" is a question no capture can answer. This is what
-  caught the gun-convergence bug after a dozen captures had missed it.
-  `--menu` additionally photographs the title card and pause menu, which are
-  only reachable through real key presses.
-- **`tools/pacing.mjs`** steps the fixed-step sim and samples the live fight
-  10×/second, then reports wave-to-wave gaps, entry range and **time-on-target
-  per class**. A screenshot cannot answer "is there dead air here" or "how long
-  does a raptor stay shootable" — those are questions about the sim over time.
-  This is what found the station-seek bug that had every enemy in the game
-  lagging its commanded position. `node tools/pacing.mjs <port> <sim seconds>`.
-
-- **`tools/bossprobe.mjs`** steps to the boss trigger and then samples the fight
-  4×/second: the leash envelope in each axis, how much of the fight the carrier
-  spends inside the guns' range and cone, whether the lock ever holds it, which
-  part it holds, how many rounds actually land, and when each weak point dies.
-  `node tools/bossprobe.mjs <port> <fight seconds>`. It tops the player's shield
-  up every tick — the harness never dodges, so without that the player is dead
-  with `outcome: 'lose'` before the carrier even spawns and every counter freezes.
-
-- **`tools/freecam.mjs`** parks the camera anywhere and looks anywhere —
-  `--pos x,y,z --look x,y,z --fov --nofog --nowater --wire`. Every named shot in
-  `shots.js` frames the level from *inside* it, which is the wrong place to
-  stand when the question is "what shape is this level actually". This is what
-  finally settled that the landmass exists and the problem was haze.
-
-Non-zero exit = console errors, printed. **Any console error is an automatic
-fail.** `.fxdbg.mjs` reads live state *after* a shot is applied. Run both from
-`games/vulpine`, not the repo root.
+| tool | the question it answers |
+|---|---|
+| `shot` / `sheet` | what a named camera sees; before/after pairs |
+| `freecam` | `--pos --look --fov --nofog --nowater --wire` — the only way to see the level from outside itself |
+| `inputtest` | does each control do what the legend says (captures never touch the keyboard); `--menu` also shoots title + pause |
+| `pacing` | steps the sim, samples the fight 10×/s — wave gaps, entry range, time-on-target per class |
+| `bossprobe` | leash envelope, % of fight in range and in cone, rounds landed, when each weak point dies |
+| `framing` | where the ship sits in frame over time — ndcX/ndcY, nose-vs-camera angle, camera yaw |
+| `hist` | composited histogram medians; settles 8 frames, `--js` sets the "before" arm |
+| `pilot` | `fly` (full playthrough), `aim`, `roll`, `hop` |
 
 In-page: `__VULPINE__.probe()` (healthy daylight: median 0.10–0.20, p90 < 1.5,
 clippedPct < 4, blackPct < 12), `.stats()`, `.post({exposure})`, `.setShot()`,
-`.seek()`, `.step()`, `.hudVisible()`. URL params: `?exposure=`, `?nopost=1`,
-`?bloom=0`, `?hud=1`, `?fight=1`.
+`.seek()`, `.step()`, `.hudVisible()`, `.engine.setPixelRatio()`.
 
-## Diagnosis notes worth not repeating
+URL params: `?exposure= ?nopost=1 ?bloom=0 ?hud=1 ?fight=1 ?env= ?wpn=N
+?grants=0 ?railyaw= ?dev=1`. **`?fight=1` drives trigger and lock from the sim
+clock** — without it every review frame has cold guns.
 
-- **The landmass is fine.** Peaks to 1750 m, 86–100% of the highland is above
-  water, the mesh matches the height function. Two separate investigations have
-  now concluded "the terrain is missing" from in-canyon cameras that simply had
-  the highland outside the frustum. Use `freecam.mjs --nofog --nowater` before
-  claiming geometry is absent.
-- Perf numbers are noise while lanes render concurrently — validate serially.
-- Agents must register review cameras via `registerShot()` **from their own
-  file**; `src/game/shots.js` is shared/read-only.
-- No binary assets, no network fetches, no `Math.random()` (use `rng('stream')`).
+Dev panel: backquote toggles, `?dev=1` opens, buttons in `TOOLS`, sliders in
+`KNOBS`. Key `5` copies every look value as JSON to paste into the preset.
+
+## Traps that have already cost sessions
+
+- **`__VULPINE__.step(n)` refreshes the rendered scene once, at the end.** The
+  guns converge on the camera ray, so a probe batching 30 ticks fires 30 volleys
+  down a pose up to 44 m stale and nothing hits anything. Step one tick at a
+  time. Real play batches at most 2.
+- **`setShot()` only sets a flag** — the camera moves inside the frame path, so
+  probing straight after it measures the *previous* pose and every shot reports
+  identical numbers. Settle first; `hist.mjs` gets this right.
+- **Tune `environment.js`, not `postfx.js`.** `env.apply()` overwrites every pass
+  param from the preset, so the constructor defaults are never what is on screen.
+- **`env.apply()` silently skips a key whose uniform name it guesses wrong.**
+  `ca` → `uCa` against the real `uCA` meant chromatic aberration never applied in
+  any preset. Fixed with a caps fallback; future acronym keys are at the same risk.
+- **`theme.js:mix()` returns `'rgb(r,g,b)'`, not hex.** So `alpha(mix(a,b,t))`
+  yields `rgba(NaN,…)`, canvas rejects the fillStyle and silently *keeps the
+  previous one*. Use an explicit hex ramp or `g.globalAlpha`.
+- **No backticks in comments inside GLSL template literals** — it terminates the
+  template and reports `Unexpected identifier` on a line that looks fine.
+- **A probe that measures the wrong thing is worse than no probe.** Twice a probe
+  has confidently called an inverted control correct: `pilot aim` compared
+  absolute positions when the hull rests ~0.3 ndc below centre by design, and
+  `pilot roll` took its sign from peak `|upX|`, which flips twice in a 360° sweep.
+- **`framing.mjs` hands-off shows ~3.5° of camera yaw — that is shake, not
+  drift.** The probe takes hits and shake displaces `camera.position` before
+  `lookAt`. `off.x`/`off.y`/`_sOffX` measure zero variance. Do not chase it.
+- **The landmass is fine.** Two separate investigations concluded "the terrain is
+  missing" from in-canyon cameras that simply had the highland outside the
+  frustum. Use `freecam --nofog --nowater` before claiming geometry is absent.
+- **Perf numbers are noise while lanes render concurrently** — validate serially.
+  Frame-time measurement rules are in `PLAN-PERF.md`.
+- **Motion-blur mask, three paid-for constraints:** draw it from a private
+  2-child scene (a nested `renderer.render(scene, …)` re-runs the shadow-map
+  update for everything in that scene); draw it in `post.render()` *before*
+  `composer.render()`, never mid-chain; take **one** sample — half-res plus a
+  linear filter already feathers across ~2 full-res pixels, and a 5-tap version
+  cost 7.8 ms at 1080p. Feather via `maskScale`, never by adding taps.
+- **Edge-triggered actions must guard on a predicate the action itself
+  invalidates.** A resource counter is not one: `bombs > 0` stays true after
+  spending one, and inputs are sampled per rendered frame but read per fixed
+  step (1–8× per frame).
+
+## The goal, verbatim
+
+Re-issue with `/goal`:
+
+```
+I want you to build a 3D flying game Star Fox Vulpine at the level of the Star Fox 64 game. It should be utterly perfect, visually beautiful, with every single thing done at AAA quality—from textures to physics to anything you could think of.
+on each item and have a separate sub-agent check it visually to ensure it looks triple A. That separate sub-agent should be a really harsh critic, and if it doesn't look triple A, it should keep going.
+```

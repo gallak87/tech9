@@ -21,11 +21,22 @@ import { buildComposer } from '../render/postfx.js';
 //
 // SMAA stays on wherever TAA is off. TAA is gated on `ao`, so at low/medium there
 // is no other antialiasing and dropping SMAA would leave those tiers with none.
+//
+// `renderScale` multiplies the *clamped device* pixel ratio: 1.0 means native,
+// 0.5 means half-resolution. It is not the device ratio itself. The field it
+// replaced (`pixelRatio`) meant both at once and multiplied rather than capped,
+// so `high`'s 1.25 rendered at DPR 2.5 on a 2× panel — 12.96 MP at a 1080p
+// window, 6.25× a DPR-1.0 frame, on a frame measured as fill-bound. The values
+// below are retuned against the new meaning; the old ones do not carry over.
 export const QUALITY = {
-  low:    { pixelRatio: 1.0,  shadowMap: 1024, shadows: true,  ao: false, dof: false, godrays: false, motionBlur: false, smaa: true,  bloom: false, bloomRes: 0.5,  aniso: 4 },
-  medium: { pixelRatio: 1.0,  shadowMap: 2048, shadows: true,  ao: false, dof: false, godrays: true,  motionBlur: false, smaa: true,  bloom: false, bloomRes: 0.5,  aniso: 8 },
-  high:   { pixelRatio: 1.25, shadowMap: 3072, shadows: true,  ao: true,  dof: false, godrays: true,  motionBlur: false, smaa: false, bloom: false, bloomRes: 0.75, aniso: 16 },
-  ultra:  { pixelRatio: 1.5,  shadowMap: 4096, shadows: true,  ao: true,  dof: false, godrays: true,  motionBlur: false, smaa: false, bloom: false, bloomRes: 1.0,  aniso: 16 },
+// `high` is owner-picked, live, 2026-08-15: render scale 0.95 (DPR 1.90 and
+// 5.3 MP on their 2x panel) with AO, god rays and TAA off and SMAA carrying the
+// antialiasing. 49 fps / 20.4 ms at 1080p. `ultra` keeps the richer set so the
+// review harness still captures every pass.
+  low:    { renderScale: 0.50, shadowMap: 1024, shadows: true,  ao: false, dof: false, godrays: false, motionBlur: false, smaa: true,  bloom: false, bloomRes: 0.5,  aniso: 4 },
+  medium: { renderScale: 0.75, shadowMap: 2048, shadows: true,  ao: false, dof: false, godrays: false, motionBlur: false, smaa: true,  bloom: false, bloomRes: 0.5,  aniso: 8 },
+  high:   { renderScale: 0.95, shadowMap: 3072, shadows: true,  ao: false, dof: false, godrays: false, motionBlur: false, smaa: true,  bloom: false, bloomRes: 0.75, aniso: 16 },
+  ultra:  { renderScale: 1.00, shadowMap: 4096, shadows: true,  ao: true,  dof: false, godrays: true,  motionBlur: false, smaa: false, bloom: false, bloomRes: 1.0,  aniso: 16 },
 };
 
 export class Engine {
@@ -33,6 +44,7 @@ export class Engine {
     this.qualityName = quality;
     this.q = { ...QUALITY[quality] };
     this.maxPixelRatio = maxPixelRatio;
+    this.renderScale = this.q.renderScale;
 
     const canvasHost = document.getElementById('stage') || document.body;
     this.renderer = new THREE.WebGLRenderer({
@@ -88,15 +100,28 @@ export class Engine {
   get width() { return this.size.x; }
   get height() { return this.size.y; }
 
-  setPixelRatio(r) {
-    this.q.pixelRatio = r;
+  /** Fraction of native device resolution to render at. 1.0 = native. */
+  setRenderScale(r) {
+    this.renderScale = r;
     this.resize();
+  }
+
+  /** Deprecated alias. Same effect: the argument has always been a scale. */
+  setPixelRatio(r) { this.setRenderScale(r); }
+
+  /** Megapixels currently rasterised per frame — the number that predicts cost. */
+  get megapixels() {
+    return (this.size.x * this.dpr * this.size.y * this.dpr) / 1e6;
   }
 
   resize() {
     const w = window.innerWidth || 1280;
     const h = window.innerHeight || 720;
-    const dpr = Math.min(window.devicePixelRatio || 1, this.maxPixelRatio) * this.q.pixelRatio;
+    // Two separate quantities. `deviceDpr` is a property of the display, clamped
+    // so a 3× phone panel cannot ask for 9× the pixels. `renderScale` is the
+    // quality decision. Collapsing them is what produced the DPR 2.5 frame.
+    this.deviceDpr = Math.min(window.devicePixelRatio || 1, this.maxPixelRatio);
+    const dpr = this.deviceDpr * this.renderScale;
     this.size.set(w, h);
     this.dpr = dpr;
     this.renderer.setPixelRatio(dpr);

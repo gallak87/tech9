@@ -14,11 +14,14 @@ Finished work and the reasoning behind it lives in `## Settled` at the bottom.
 The sections above it are only what is still open.
 
 Read with `PLAN-VARIETY.md` (**the active plan** — diagnosis, sequencing and the
-rejected options behind the current lane), `CONTRACT.md` (lane rules),
-`REVIEW.md` (the rubric), `HANDOFF.md` (live session state + defect queue).
-**This file is the plan of record; PLAN-VARIETY is the current lane's detail;
-HANDOFF is the queue.** Tick items here at every commit that closes one, and
-re-cut the Status line at the end of each phase.
+rejected options behind the current lane), `PLAN-PERF.md` (**the other active
+lane** — the DPR finding, Phase A, and the measurement traps; split out of
+PLAN-VARIETY on 2026-08-15 so the two can be tackled one at a time),
+`CONTRACT.md` (lane rules), `REVIEW.md` (the rubric), `HANDOFF.md` (live session
+state + defect queue).
+**This file is the plan of record; PLAN-VARIETY and PLAN-PERF are the current
+lanes' detail; HANDOFF is the queue.** Tick items here at every commit that
+closes one, and re-cut the Status line at the end of each phase.
 
 ---
 
@@ -82,21 +85,26 @@ register, swept collision.
 
 ## Now — the variety push
 
-**Full plan, with the diagnosis and the rejected options: `PLAN-VARIETY.md`.**
+**Full plan, with the diagnosis and the rejected options: `PLAN-VARIETY.md`
+(items B/C/D) and `PLAN-PERF.md` (item A).**
 Owner-sequenced 2026-08-15: **perf first, then the furniture layer**, with rail
 verticality and a per-level offset box folded in. Do not reorder — props add
 fill, and the frame is already over budget.
 
-- [ ] **A. Perf. Measure the DPR finding before anything else.**
+- [x] **A. Perf — the DPR bug is fixed; the owner still has to pick a render
+      scale by eye.** Details and the remaining A5 item in `PLAN-PERF.md`.
       `core/engine.js:99` computes
       `dpr = min(devicePixelRatio, maxPixelRatio) * q.pixelRatio` — the tier
       **multiplies** the device ratio instead of replacing it. On an M1
       (`devicePixelRatio` 2, `maxPixelRatio` 2) `quality=high`'s `pixelRatio`
       1.25 gives an effective **DPR 2.5**, i.e. 12.96 MP at a 1920×1080 window
       against 2.07 MP at DPR 1.0 — **6.25× the pixels on a frame already measured
-      as fill-bound**. Unverified: read from source, not yet measured.
-      One line in real Chrome decides it:
-      `__VULPINE__.engine.setPixelRatio(0.5)` then `__VULPINE__.stats()`.
+      as fill-bound**.
+      **Measured and confirmed 2026-08-15** (owner, real Chrome):
+      `__VULPINE__.engine.setPixelRatio(0.5)` → effective DPR 1.0 → **fps into
+      the 70s**, against the shipped 26–40 at DPR 2.5 — but "pretty bad quality",
+      so DPR 1.0 is not the shipping value. Full reading and its caveats in
+      `PLAN-PERF.md`.
       Then separate device DPR from a `renderScale`, retune the `QUALITY` tiers
       around the new meaning, and put render scale on the dev panel — where the
       softness starts being visible is a look decision, not a perf one.
@@ -186,7 +194,8 @@ chain, motion blur — are all shipped; they and their reasoning are in
       is single-valued in `u` and can never overhang, so arches and bridges are
       the `span` placement rule, not a new profile term.
 
-- [ ] **The commander is not wired as a boss.** `commander:ice` closes Fichina
+- [ ] **The commander is not wired as a boss. LOWEST PRIORITY** (owner,
+      2026-08-15). `commander:ice` closes Fichina
       through the ordinary enemy path: it fights, but there is no health bar, no
       station-keeping and killing it does not set `outcome`, so Fichina cannot yet
       hand off to a level 3. `enemies.js` exposes an `api.parts` conforming to
@@ -200,6 +209,11 @@ chain, motion blur — are all shipped; they and their reasoning are in
 - [ ] **The rebuild's last job is a 279 ms single-frame spike** (`renderer.compile`).
       Deliberately parked under the approach phase, where no terrain is on screen
       to judder. Noted, not chased (owner, 2026-08-15).
+- [ ] **Homing rounds do not connect with the carrier.** `homingHit` is **2 of
+      346** homing rounds fired at it — the lock-on ceremony is near-decorative
+      against the one target it matters most against. Separate defect from weapon
+      damage. Migrated here 2026-08-15 from `HANDOFF.md`, where it was the only
+      record of it.
 - [ ] **Encounter feel, waves 1–4** (`z = -260 … -1950`): spacing, entry angles,
       how long a raptor stays shootable, whether the wasp swarm reads as threat.
       Instrument with `tools/pacing.mjs`, not screenshots.
@@ -259,7 +273,7 @@ chain, motion blur — are all shipped; they and their reasoning are in
       in the table above are still valid; the milliseconds are not comparable
       across the two. Never compare a headless absolute to a real-Chrome one.
       Every measurement here varied passes, window size and draw count — the one
-      quantity nobody varied was the device pixel ratio. See `PLAN-VARIETY.md`
+      quantity nobody varied was the device pixel ratio. See `PLAN-PERF.md`
       Phase A.
 
       Two traps, each of which cost a run:

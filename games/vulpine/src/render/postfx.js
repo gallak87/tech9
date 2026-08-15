@@ -850,7 +850,13 @@ export class MotionBlurPass extends Pass {
     this.gain = 1.0;
     /** Roots whose meshes are exempt from the blur. Set by the game, not here. */
     this.dynamic = [];
-    /** Off restores the old behaviour, so the mask can be A/B'd in one build. */
+    /** Not a quality option — a correctness one, so it has no panel control.
+        The pass reprojects depth through the previous view-projection, i.e. it
+        treats every pixel as static world geometry, so the error it makes equals
+        the object's own motion and is *maximal* for anything moving with the
+        player. Off means the ship, the wingmen and a station-keeping boss get a
+        full camera-sweep smear at a true screen velocity of ~0. Kept settable
+        only so the mask can be A/B'd against the old behaviour in one build. */
     this.mask = true;
     this.maskScale = 0.5;
     this._maskReady = false;

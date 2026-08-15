@@ -1,7 +1,11 @@
 # Vulpine — roadmap
 
 **Status:** playable end-to-end, alpha. Phases 0–7 done. Phase 8 (encounter feel
-+ legibility) in progress. Branch `g/fox64`.
++ legibility) in progress. Phase 10 opened early — the level transition landed
+2026-08-15, so the game is now two levels and a campaign. Branch `g/fox64`.
+
+Finished work and the reasoning behind it lives in `## Settled` at the bottom.
+The sections above it are only what is still open.
 
 Read with `CONTRACT.md` (lane rules), `REVIEW.md` (the rubric), `HANDOFF.md`
 (live session state + defect queue). **This file is the plan; HANDOFF is the
@@ -16,8 +20,13 @@ line at the end of each phase.
 in a blind side-by-side on visuals. Arcade feel, 2020s rendering, everything
 procedural (no binary assets, no network).
 
-**Is not:** a campaign, a hub, branching paths, multiple levels, an all-range
-mode, or multiplayer. One level, finished.
+**Is not:** a hub, branching paths, an all-range mode, or multiplayer.
+
+**Scope changed (2026-08-15, owner).** "Is not" used to begin "a campaign […]
+multiple levels". The owner asked for up to three more levels with a seamless
+transition between them, and Corneria -> Fichina landed the same day. The target
+is now a short campaign: four planets, one hop between each. Sector Omega
+(asteroid belt, no terrain) and Venom (lava + fortress trench) are not built.
 
 **Scope call (2026-07-31, owner):** polish the first two encounters and the
 moment-to-moment feel until genuinely AAA rather than spreading thin across all
@@ -65,11 +74,187 @@ register, swept collision.
 
 ## Now — Phase 8: legibility and the first two encounters
 
-### Next three, in order (owner, 2026-08-11)
+The owner's "next three" from 2026-08-11 — crosshair, post chain, motion blur —
+are all shipped; they and their reasoning are in `## Settled`.
 
-Raised off a reference build the owner found on r/aigamedev
-(`StarFox Inspired Game | Devlogs`, YOUTUBE.COM/@CORTIZDEV) plus a live-play
-screenshot of ours. Do these before the rest of Phase 8.
+- [ ] **One-time jump when crossing into the soft wall / ground cushion.**
+      Owner, live play (2026-08-01), after the stick-snap fix: "some middle
+      threshold where there's a 1-time jump when you cross it." Not urgent —
+      owner's call to leave it.
+      Diagnosed but not fixed. Both new springs in `flight.js` gate their *extra
+      damping* on a boolean rather than ramping it:
+
+      ```js
+      if (over === 0) return [v, vel];
+      return [v, (vel - over * TUNE.wallSpring * dt) * Math.exp(-TUNE.wallDamp * dt)];
+      ```
+
+      The spring term is continuous — `over` ramps from 0 — but the damping
+      multiplier switches on as a step the instant the boundary is crossed, so
+      total damping jumps from `offsetDamp` to `offsetDamp + wallDamp` in one
+      tick. That is a discontinuity in *acceleration*, which is felt once per
+      crossing and not while held. `groundCushion` has the identical shape.
+      Fix: scale the extra damping by penetration depth the same way the spring
+      is, e.g. `Math.exp(-damp * dt * Math.min(1, pen / ramp))`, so both terms
+      enter from zero. Cheap, but it changes wall feel, so re-measure per-tick
+      acceleration (the held-stick probe pattern) and re-check the box corners.
+
+- [ ] **Fichina is Corneria in a white coat** (owner, 2026-08-15: "its nearly
+      identical to the first level lol"). The DNA work is sound — the numbers and
+      the palette really did change — but **the DNA vocabulary is itself a river
+      canyon**, so every world expressed in it comes out as one. Every level built
+      from `keys` gets: a flat floor at `bed` below the waterline, a
+      beach→shelf→cliff terrace stack, one continuous slot, near-symmetric banks,
+      and nothing whatsoever above the ship. Changing `inner` from 126 to 206 and
+      the palette from stone to snow does not escape that grammar.
+
+      So this is a **structure** problem, not a tuning one. Parameters that would
+      actually make a world read differently, roughly in order of payoff:
+      - **Cross-section modes.** The terrace stack is one shape function. A
+        glacial U-trough is a different one; a fortress trench is a third. `keys`
+        should select a profile *kind*, not just feed widths into the only one.
+      - **A floor that does something.** Both worlds have a flat floor for 9 km.
+        Terraces, ice steps, a floor that climbs to a pass and drops away, or
+        breaks into gaps you dive through.
+      - **Asymmetry.** Both worlds are near-mirror-symmetric about the centreline.
+        One overhanging wall against one shallow ramp reads as a different place
+        immediately, and costs one term.
+      - **A ceiling.** Nothing in the vocabulary can put geometry *above* the
+        ship. Arches, ice bridges, a cavern roof, a canopy of hanging séracs —
+        this is the single biggest missing axis and the cheapest way to make a
+        corridor stop reading as a canyon.
+      - **Non-corridor stretches.** An open basin, a field of towers to weave
+        between, a break where the walls vanish entirely. Pacing as much as looks.
+
+      Sector Ω needs most of this anyway — it has no ground at all — so the
+      profile-kind seam is worth cutting before that level rather than after.
+
+- [ ] **The commander is not wired as a boss.** `commander:ice` closes Fichina
+      through the ordinary enemy path: it fights, but there is no health bar, no
+      station-keeping and killing it does not set `outcome`, so Fichina cannot yet
+      hand off to a level 3. `enemies.js` exposes an `api.parts` conforming to
+      `boss.js` plus `killPart`/`progress`; `COMMANDER.station` is a drop-in for
+      `TUNE.boss`. This is the next task.
+
+- [ ] **A rebuild leaks shader programs, 93 → 133, and does not give them back.**
+      `material.dispose()` drops the refcount but `renderer.compile()` re-creates
+      programs for the whole scene. Harmless across one hop; unknown across four.
+
+- [ ] **The rebuild's last job is a 279 ms single-frame spike** (`renderer.compile`).
+      Deliberately parked under the approach phase, where no terrain is on screen
+      to judder. Noted, not chased (owner, 2026-08-15).
+- [ ] **Encounter feel, waves 1–4** (`z = -260 … -1950`): spacing, entry angles,
+      how long a raptor stays shootable, whether the wasp swarm reads as threat.
+      Instrument with `tools/pacing.mjs`, not screenshots.
+- [ ] **Enemy legibility past ~800 m.** Partly fixed (warm plating, dorsal
+      camera-facing beacons). Still small and quiet at range. Re-tune now that
+      the water background has changed.
+- [ ] **Tiny per-enemy health bars.** Owner: doubles as a legibility fix — a
+      floating bar is easier to spot than the hull it sits over. Pairs with the
+      beacon work and the scale experiment; try it before assuming more emissive
+      is the answer. Billboarded, clamped to a floor in *angular* size like the
+      class beacons, and probably only drawn once damaged so a clean screen
+      stays clean.
+- [ ] **The frame is over budget, and it is the scene pass.** Owner reads 26-40
+      fps at 1080p in real Chrome on `quality=high`, and reached for the pass
+      toggles to make the game playable — this is affecting how the game feels to
+      its owner, not an abstract criterion.
+
+      Three measurements, each of which killed a candidate:
+
+      1. **Six post passes off changed nothing** (2026-08-11): 55 fps / 18.3 ms
+         with bloom, god rays, flare, motion blur, DOF and SMAA all off.
+      2. **Draw count is dead** (2026-08-15). Three window sizes, draws and tris
+         flat (1077/1217/1142, 1.43-1.52 M), frame time tracking pixels:
+         11.0 / 21.0 / 38.6 ms. Fit is ~2.8 ms fixed + ~18 ms per megapixel, so
+         the entire CPU side is **7% of a 38.6 ms frame**. Instancing and chunk
+         merging cannot pay for themselves. Do not re-open without a measurement.
+      3. **No single hot pass** (2026-08-15, `valley` @ `t=14`, 1600x900, median
+         of 90 frames, baseline re-measured at -0.20 ms drift):
+
+      | arm | frame | saves |
+      |---|---|---|
+      | baseline (shipped) | 12.9 ms | — |
+      | reflection off | 11.9 | 1.00 |
+      | AO off | 12.0 | 0.90 |
+      | SMAA off | 12.0 | 0.90 |
+      | bloom off | 12.2 | 0.70 |
+      | TAA off | 12.4 | 0.50 |
+      | DOF off | 12.4 | 0.50 |
+      | **all post off** | **8.8** | **4.10** |
+      | all post off + reflection off | 8.4 | 4.50 |
+
+      Post is death by a thousand cuts — six passes at 0.5-1.0 ms, none worth
+      killing alone. **The bare scene pass is 8.4 of 12.9 ms, 65% of the frame.**
+      That is the terrain and water materials.
+
+      So there are two real options, and no third: cut per-pixel cost in those
+      shaders (triplanar is 3 samples where 1 often does; the lithology blend and
+      the horizon lookup both run per fragment), or render the scene at reduced
+      resolution and upscale.
+
+      Absolutes above are headless ANGLE, roughly 3x faster than real Chrome on
+      the same machine. The *split* is the result, not the milliseconds.
+
+      Two traps, each of which cost a run:
+      - **A/B by flying is unreadable.** Frame time swings 25-34 ms on scene
+        content alone, a bigger effect than the setting under test. Fix the
+        `shot` and the `t`.
+      - **Never call `env.apply()` between arms.** It bakes a PMREM whose spike
+        outlives the settle window, and `engine.avgFrameMs` is an EMA that carries
+        it. A first pass did this and reported every disabled pass as *costing*
+        time. Re-enable passes directly and time frames locally.
+
+- [ ] **Shoreline.** The beach/water boundary is still a hard geometric line
+      with no foam, and the sand is a flat untextured wedge
+      (`shots/refl1/w-shore.png`, mid-left; `shots/refl1/combat-wide.png`).
+- [ ] **The whole level sits under the exposure band, not just `w-shore`.** The
+      old note asked whether other shadowed-gorge angles did the same. Measured
+      (`hist.mjs`, quality high, composited median): **they all do, and so does
+      everything else** — chase 0.045, valley 0.032, water 0.059, w-shore 0.079,
+      sun 0.116, against a 0.10–0.20 target. Only `sun` is near the band. So this
+      is not a per-shot defect and not a `w-shore` defect; it is one global grade
+      offset, and it wants a single lift (exposure/trim/toe) rather than per-camera
+      fixes. `p90`, `clippedPct` and `blackPct` are all healthy, so there is
+      headroom to lift into.
+      Left alone this session on purpose: the owner's brief was to *calm* the
+      image, and lifting exposure in the same pass would have fought that and made
+      both changes unmeasurable. Do it as its own pass, with the dev knobs.
+
+## Next — Phase 9: the built world
+
+The level is terrain + water + sky. **Nothing man-made exists.** `cityMaterial`,
+`concreteMaterial`, `steelMaterial`, `foliageMaterial` and `rockPropMaterial` are
+~500 lines of finished, tested material code that **nothing imports**; `cityWeight(z)`
+tints the terrain for a city that was never built; and eight registered review
+cameras (`w-city`, `w-city2`, `w-dam`, `w-bridge`, `w-damface`, `w-towers`,
+`w-arch`, `w-delta`) all frame empty canyon. This is the single largest gap
+between the level as designed and the level as shipped.
+
+- [ ] `world/city.js` — towers up both banks at `z ≈ -4400 … -5800`, placed off
+      `cityWeight`, instanced, façades already anti-aliased in the shader.
+- [ ] `world/landmarks.js` — the breached dam (`-6060`), the bridge (`-4950`),
+      natural arches (`-1720`), rock stacks, breakwater shoal.
+- [ ] Scatter — scrub and conifer canopy on the shelves (`foliageMaterial`).
+- [ ] Make the eight dead review cameras show something.
+
+## Later — Phase 10: progression
+
+The pre-boss weapon grant is done (above). What is left here is scoring.
+
+- [ ] Score/rank at level end (medals, hit %, time).
+
+## Later — Phase 11: finish
+
+- [ ] The back half of the level (`z < -3000`) raised from roughed-in to shipped.
+- [ ] Difficulty pass end to end.
+- [ ] Touch controls / mobile.
+
+## Settled — done, and why it is the way it is
+
+Moved out of the active plan so the sections above are only open work. Kept in
+full rather than summarised: `HANDOFF.md` bans this reasoning from code comments,
+which makes this file its only home. Read before re-deriving anything here.
 
 - [x] **1. The crosshair moves with the ship. Done, plus the camera jump.**
       Owner chose the behaviour by describing it: the crosshair leads the hull as
@@ -139,39 +324,6 @@ screenshot of ours. Do these before the rest of Phase 8.
       rotating around you reads as flying it or as the camera wandering is not a
       question a probe can answer.
 
-- [ ] ~~**1. The crosshair should move with the ship, not sit dead centre.**~~
-      *(superseded by the entry above; kept for the reasoning that picked the
-      approach.)*
-      Owner: "notice the cross hair — it moves WITH the ship, i think that would
-      feel a lot better than being centered at all times." In the reference the
-      reticle tracks the airframe; ours is pinned to the middle of the frame
-      forever (`ui/reticle.js:67`, `const cx = L.w * 0.5, cy = L.h * 0.5`, and
-      the same again at `:212` for the off-screen marker).
-
-      **This is not only a HUD change, and that is the whole difficulty.** The
-      guns currently converge on the *camera* ray — `convergePoint()` in
-      `combat.js` builds its aim point from `cam.quaternion`/`cam.position` at
-      `TUNE.converge` (520 m). A centred reticle is *honest* about that. Move the
-      reticle onto the ship without moving the guns and the reticle starts
-      lying — which is the exact defect the homing work was done to fix, and the
-      note in `reticle.js:14` about the lock marker separating from the centre
-      already depends on the current arrangement.
-
-      So pick one deliberately, and it is an owner call:
-      - *Guns follow the ship* — fire along the hull's forward axis, reticle
-        projected off the nose. Matches the reference, and offset flying becomes
-        genuinely aim-relevant rather than pure dodging. Changes aiming feel
-        everywhere and needs the whole `pacing`/`bossprobe` set re-measured,
-        since every hit-rate number in this file assumes camera convergence.
-      - *Reticle follows the ship, guns stay on the camera ray, and the reticle
-        is drawn at the true convergence point* — i.e. project the existing aim
-        point to screen instead of assuming it lands at centre. Honest, much
-        smaller, and it will move with the ship anyway because the ship's offset
-        is what shifts the camera ray. Probably the right first cut.
-
-      `ui/index.js` already has the read-only camera projection to build on
-      (`projectLock`, and its comment on never mutating the camera).
-
 - [x] **2. The post chain is overcooked.** First pass done, and it is meant to be
       dialled rather than decreed — see the dev knobs below. Owner's call was
       "same look, less post sludge", not the reference build's flatter direction.
@@ -219,7 +371,7 @@ screenshot of ours. Do these before the rest of Phase 8.
       has always actually looked, since the key never reached the uniform before
       the fix above.
 
-- [ ] **3. Every dynamic object is falsely motion-blurred — ship, boss and
+- [x] **3. Every dynamic object is falsely motion-blurred — ship, boss and
       enemies.** Owner: "there's also way too much blur on the ship — its like in
       constant blur", then "also the boss and enemies are also blurry". Visible on
       the wings in the live screenshot, where they smear into streaks.
@@ -295,20 +447,16 @@ screenshot of ours. Do these before the rest of Phase 8.
         across ~2 full-res pixels. A 5-tap version for a softer edge cost
         **7.8 ms** at 1080p. Feather via `maskScale`, never by adding taps.
 
-- [ ] **Unresolved: sampling the mask costs far more than it should.** Split-timed
-      at 1080p high, GPU-synced, min of 60: `renderMask` is **0.7 ms** (663 meshes,
-      cheap as expected), but the composer chain goes **3.6 → 12.1 ms** with the
-      mask on. The only difference in the chain is a single `texture2D(tMask, …)`
-      in one fullscreen pass, which cannot cost 8 ms. Ruled out by measurement:
-      the mask render itself, the blur arithmetic (forcing `keep = 1.0` after the
-      fetch changed nothing), and linear vs nearest filtering.
-      Caveat on all of it: that harness's baseline chain is 3.6–4.7 ms where this
-      project's own contract measurement puts the whole 1080p frame at 17–18 ms, so
-      the absolute numbers are not comparable and the delta may be a headless
-      ANGLE-Metal artefact. **Check it in real Chrome with dev key `4` before
-      trusting it** — and if it is real, this is a blocker against ship criterion 3
-      and belongs with "the frame is over budget" below. Suspect a
-      render-target-to-sampler hazard forcing a flush.
+- [x] **Closed: the motion-blur mask's 8 ms was a headless artefact.** The
+      note below stood for months on a split-timed reading where the composer
+      chain went 3.6 -> 12.1 ms with the mask on, from a single `texture2D(tMask,
+      ...)` — which cannot cost 8 ms, and it does not. The 2026-08-15 per-pass
+      sweep puts *all post together* at 4.10 ms and the whole frame at 12.9 ms
+      under the same headless ANGLE, so an 8 ms single fetch is not physical. The
+      note already suspected this ("may be a headless ANGLE-Metal artefact").
+      Ruled out at the time and still ruled out: the mask render itself (0.7 ms,
+      663 meshes), the blur arithmetic, and linear vs nearest filtering.
+      Re-open only with a real-Chrome measurement.
 
 - [x] **TOP PRIORITY — the ship auto-yaws.** Fixed. Three separate causes, only
       the third of which the old note guessed at. Measured with the new
@@ -428,28 +576,6 @@ screenshot of ours. Do these before the rest of Phase 8.
       is read outside the step loop. **Rule for any new edge-triggered action:
       the guard must be a predicate the action itself invalidates.** A resource
       counter is not one.
-- [ ] **One-time jump when crossing into the soft wall / ground cushion.**
-      Owner, live play (2026-08-01), after the stick-snap fix: "some middle
-      threshold where there's a 1-time jump when you cross it." Not urgent —
-      owner's call to leave it.
-      Diagnosed but not fixed. Both new springs in `flight.js` gate their *extra
-      damping* on a boolean rather than ramping it:
-
-      ```js
-      if (over === 0) return [v, vel];
-      return [v, (vel - over * TUNE.wallSpring * dt) * Math.exp(-TUNE.wallDamp * dt)];
-      ```
-
-      The spring term is continuous — `over` ramps from 0 — but the damping
-      multiplier switches on as a step the instant the boundary is crossed, so
-      total damping jumps from `offsetDamp` to `offsetDamp + wallDamp` in one
-      tick. That is a discontinuity in *acceleration*, which is felt once per
-      crossing and not while held. `groundCushion` has the identical shape.
-      Fix: scale the extra damping by penetration depth the same way the spring
-      is, e.g. `Math.exp(-damp * dt * Math.min(1, pen / ramp))`, so both terms
-      enter from zero. Cheap, but it changes wall feel, so re-measure per-tick
-      acceleration (the held-stick probe pattern) and re-check the box corners.
-
 - [x] **Autopilot playthrough (`pilot.mjs fly`, 2026-08-11).** First input-driven
       run of the level: 22 kills, 2580 score, never died, shield never below 68.
       Framing holds under real input — ndcX ±0.186, ndcY −0.485…−0.101, 0 of 15
@@ -475,7 +601,7 @@ screenshot of ours. Do these before the rest of Phase 8.
       sign already flipped. It reads the first quarter turn now. This is the second
       time in this file a probe has confidently reported an inverted control as
       correct; see the `pilot.mjs aim` note above.
-- [ ] **The level does not end.** Starting `pilot.mjs fly` near the carrier
+- [x] **The level does not end.** Starting `pilot.mjs fly` near the carrier
       (`--t 44`) flew to **z = −29237** — 20 km past the intended finish — with no
       `outcome` ever set and kills frozen at 6. Either the boss does not spawn when
       the rail is reached via a seek rather than by flying, or there is no terminal
@@ -508,50 +634,6 @@ screenshot of ours. Do these before the rest of Phase 8.
         ~940 m/s that is ~15 m of camera-above-ship against a 17 m chase distance.
         The hull leaves the bottom of the frame.
 
-- [ ] **Fichina is Corneria in a white coat** (owner, 2026-08-15: "its nearly
-      identical to the first level lol"). The DNA work is sound — the numbers and
-      the palette really did change — but **the DNA vocabulary is itself a river
-      canyon**, so every world expressed in it comes out as one. Every level built
-      from `keys` gets: a flat floor at `bed` below the waterline, a
-      beach→shelf→cliff terrace stack, one continuous slot, near-symmetric banks,
-      and nothing whatsoever above the ship. Changing `inner` from 126 to 206 and
-      the palette from stone to snow does not escape that grammar.
-
-      So this is a **structure** problem, not a tuning one. Parameters that would
-      actually make a world read differently, roughly in order of payoff:
-      - **Cross-section modes.** The terrace stack is one shape function. A
-        glacial U-trough is a different one; a fortress trench is a third. `keys`
-        should select a profile *kind*, not just feed widths into the only one.
-      - **A floor that does something.** Both worlds have a flat floor for 9 km.
-        Terraces, ice steps, a floor that climbs to a pass and drops away, or
-        breaks into gaps you dive through.
-      - **Asymmetry.** Both worlds are near-mirror-symmetric about the centreline.
-        One overhanging wall against one shallow ramp reads as a different place
-        immediately, and costs one term.
-      - **A ceiling.** Nothing in the vocabulary can put geometry *above* the
-        ship. Arches, ice bridges, a cavern roof, a canopy of hanging séracs —
-        this is the single biggest missing axis and the cheapest way to make a
-        corridor stop reading as a canyon.
-      - **Non-corridor stretches.** An open basin, a field of towers to weave
-        between, a break where the walls vanish entirely. Pacing as much as looks.
-
-      Sector Ω needs most of this anyway — it has no ground at all — so the
-      profile-kind seam is worth cutting before that level rather than after.
-
-- [ ] **The commander is not wired as a boss.** `commander:ice` closes Fichina
-      through the ordinary enemy path: it fights, but there is no health bar, no
-      station-keeping and killing it does not set `outcome`, so Fichina cannot yet
-      hand off to a level 3. `enemies.js` exposes an `api.parts` conforming to
-      `boss.js` plus `killPart`/`progress`; `COMMANDER.station` is a drop-in for
-      `TUNE.boss`. This is the next task.
-
-- [ ] **A rebuild leaks shader programs, 93 → 133, and does not give them back.**
-      `material.dispose()` drops the refcount but `renderer.compile()` re-creates
-      programs for the whole scene. Harmless across one hop; unknown across four.
-
-- [ ] **The rebuild's last job is a 279 ms single-frame spike** (`renderer.compile`).
-      Deliberately parked under the approach phase, where no terrain is on screen
-      to judder. Noted, not chased (owner, 2026-08-15).
 - [x] **The carrier flew the player's own inputs back at them.** Owner: "he kinda
       just goes where i go and past me so i just have to constantly fly to the edges
       of the deadzone". Cause was literal — the station was `_v.copy(pl)`, the
@@ -578,20 +660,6 @@ screenshot of ours. Do these before the rest of Phase 8.
       boss's weak-point radii scale in `createBoss`, since `local` offsets already
       ride the scaled node matrices but world-space radii do not.
       This is also the ship-scale legibility experiment the roadmap had parked.
-- [ ] **Encounter feel, waves 1–4** (`z = -260 … -1950`): spacing, entry angles,
-      how long a raptor stays shootable, whether the wasp swarm reads as threat.
-      Instrument with `tools/pacing.mjs`, not screenshots.
-- [ ] **Enemy legibility past ~800 m.** Partly fixed (warm plating, dorsal
-      camera-facing beacons). Still small and quiet at range. Re-tune now that
-      the water background has changed.
-- [ ] **Tiny per-enemy health bars.** Owner: doubles as a legibility fix — a
-      floating bar is easier to spot than the hull it sits over. Pairs with the
-      beacon work and the scale experiment; try it before assuming more emissive
-      is the answer. Billboarded, clamped to a floor in *angular* size like the
-      class beacons, and probably only drawn once damaged so a clean screen
-      stays clean.
-- [ ] **Experiment: scale every ship up.** *Punted by the owner (2026-08-01).*
-      Revisit only if beacons, health bars and emissive fall short.
 - [x] **Rear-threat indicator.** Done — `ui/threat.js`, wired in `ui/index.js`.
       Arcs on an ellipse hugging the frame, at the threat's bearing in the *rail*
       frame so "that side of the radar" and "that side of the screen" always
@@ -617,126 +685,6 @@ screenshot of ours. Do these before the rest of Phase 8.
       Side effect worth knowing: it *brightened* the river (water's composited
       median 0.034 → 0.059), because more bright sky probe survives where dark
       canyon wall used to be mirrored. Live on the `reflections` dev knob.
-- [ ] **The frame is over budget, and post is not where it went.** Owner reading
-      from live play (2026-08-11, M1, Chrome, `quality=high`, in-game fps readout):
-      **55 fps / 18.3 ms, 1083 draws, 1.29 M tris — with bloom, god rays, flare,
-      motion blur, DOF *and* SMAA all toggled off.** Only AO and TAA were left on.
-      So ~18 ms is roughly the *scene pass plus AO/TAA/grade*, and the entire rest
-      of the post chain was never the cost. Every optimisation guess so far has
-      aimed at post; this says aim at the scene — draw count, terrain LOD, material
-      complexity, TAA and AO.
-      Also note the owner reached for those toggles to make the game playable, which
-      means the budget is not an abstract criterion any more; it is affecting how
-      the game feels to its owner. Treat it as promoted.
-      Two caveats before acting: the fps readout's `draws`/`tris` are unreliable in
-      this chain (nested `renderer.render` calls reset `renderer.info`, so they
-      report the last render, not the frame), and the browser was sharing the
-      machine with a dev server and an editor.
-
-      **Draw count is now ruled out (owner, 2026-08-15).** Three window sizes,
-      real Chrome, `quality=high`, same scene:
-
-      | window | draws | tris | frame |
-      |---|---|---|---|
-      | small | 1077 | 1.43 M | 11.0 ms |
-      | medium | 1217 | 1.52 M | 21.0 ms |
-      | large | 1142 | 1.48 M | 38.6 ms |
-
-      Draws and tris are flat; only the pixel count moved, and frame time tracked
-      it. Fitting the three points gives **≈2.8 ms fixed + ≈18 ms per megapixel**.
-      The fixed term is the whole CPU side — submission, JS, scene graph — at **7%
-      of a 38.6 ms frame**, so instancing and chunk merging cannot pay for
-      themselves here and should not be attempted. Do not re-open this without a
-      new measurement.
-
-      Combined with the toggle-off reading above, the cost is **per-pixel work in
-      what stayed on**: the terrain material (triplanar × lithology × the baked
-      horizon lookup), water, AO and TAA.
-
-      **Split measured, and there is no single hot pass.** `valley` at `t=14`,
-      1600×900, `quality=high`, median of 90 frames, one change at a time off a
-      re-measured baseline (drift −0.20 ms):
-
-      | arm | frame | saves |
-      |---|---|---|
-      | baseline (shipped) | 12.9 ms | — |
-      | reflection off | 11.9 | 1.00 |
-      | AO off | 12.0 | 0.90 |
-      | SMAA off | 12.0 | 0.90 |
-      | bloom off | 12.2 | 0.70 |
-      | TAA off | 12.4 | 0.50 |
-      | DOF off | 12.4 | 0.50 |
-      | **all post off** | **8.8** | **4.10** |
-      | all post off + reflection off | 8.4 | 4.50 |
-
-      The parts sum to ~4.5 and the whole is 4.1, so post is **death by a thousand
-      cuts** — six passes at 0.5–1.0 ms each, no single one worth killing. The
-      **bare scene pass is 8.4 of 12.9 ms, i.e. 65% of the frame**. That is where
-      the budget went, and it is the terrain and water materials, not the chain.
-
-      So the real options are: cut per-pixel cost in the terrain/water shaders
-      (triplanar is 3 samples where 1 would often do; the lithology blend and the
-      horizon lookup both run per fragment), or render the scene at reduced
-      resolution and upscale. Nothing else moves the number materially.
-
-      Caveat on absolutes: taken under headless ANGLE, where this harness's
-      baseline runs roughly 3× faster than real Chrome on the same machine. The
-      *split* is the result; the milliseconds are not comparable to the owner's
-      26–40 fps readings.
-
-      Two methodology notes, because both cost a run:
-      - **A/B by flying is unreadable.** Owner's hand test showed shipped both
-        faster (25.1 ms) and slower (33.6 ms) than cheapest, because frame time
-        swings 25→34 ms on scene content alone — a bigger effect than the setting
-        being tested. Use a fixed `shot` and a fixed `t`.
-      - **Do not call `env.apply()` between arms.** It triggers a PMREM bake whose
-        spike outlives the settle window, and `engine.avgFrameMs` is an EMA that
-        carries it. A first pass did this and reported every pass as *costing*
-        time when disabled. Re-enable passes directly and time the frames locally.
-
-- [ ] **Older note, kept for the numbers.** First contract-point measurement taken
-      (1080p `--quality high`, serial): **17.3 ms with the reflection disabled,
-      18.1 ms with it**. So the reflection is not the problem — the base frame
-      was already 0.7 ms over on its own, and nobody had ever checked. Profile
-      the base frame before optimising anything. Note run-to-run variance is
-      ±2 ms, so any fix needs a repeated A/B, not one reading.
-- [ ] **Shoreline.** The beach/water boundary is still a hard geometric line
-      with no foam, and the sand is a flat untextured wedge
-      (`shots/refl1/w-shore.png`, mid-left; `shots/refl1/combat-wide.png`).
-- [ ] **The whole level sits under the exposure band, not just `w-shore`.** The
-      old note asked whether other shadowed-gorge angles did the same. Measured
-      (`hist.mjs`, quality high, composited median): **they all do, and so does
-      everything else** — chase 0.045, valley 0.032, water 0.059, w-shore 0.079,
-      sun 0.116, against a 0.10–0.20 target. Only `sun` is near the band. So this
-      is not a per-shot defect and not a `w-shore` defect; it is one global grade
-      offset, and it wants a single lift (exposure/trim/toe) rather than per-camera
-      fixes. `p90`, `clippedPct` and `blackPct` are all healthy, so there is
-      headroom to lift into.
-      Left alone this session on purpose: the owner's brief was to *calm* the
-      image, and lifting exposure in the same pass would have fought that and made
-      both changes unmeasurable. Do it as its own pass, with the dev knobs.
-
-## Next — Phase 9: the built world
-
-The level is terrain + water + sky. **Nothing man-made exists.** `cityMaterial`,
-`concreteMaterial`, `steelMaterial`, `foliageMaterial` and `rockPropMaterial` are
-~500 lines of finished, tested material code that **nothing imports**; `cityWeight(z)`
-tints the terrain for a city that was never built; and eight registered review
-cameras (`w-city`, `w-city2`, `w-dam`, `w-bridge`, `w-damface`, `w-towers`,
-`w-arch`, `w-delta`) all frame empty canyon. This is the single largest gap
-between the level as designed and the level as shipped.
-
-- [ ] `world/city.js` — towers up both banks at `z ≈ -4400 … -5800`, placed off
-      `cityWeight`, instanced, façades already anti-aliased in the shader.
-- [ ] `world/landmarks.js` — the breached dam (`-6060`), the bridge (`-4950`),
-      natural arches (`-1720`), rock stacks, breakwater shoal.
-- [ ] Scatter — scrub and conifer canopy on the shelves (`foliageMaterial`).
-- [ ] Make the eight dead review cameras show something.
-
-## Later — Phase 10: progression
-
-The pre-boss weapon grant is done (above). What is left here is scoring.
-
 - [x] **Weapon upgrades, auto-granted before the boss.** Done, and the carrier
       was not merely a slog — at tier 0 it is **unkillable**. Measured with
       `bossprobe.mjs`, which holds the trigger and never dodges, so it is a
@@ -784,13 +732,6 @@ The pre-boss weapon grant is done (above). What is left here is scoring.
       second play pass — now 36.5 s** (hull 225, engines 42, turrets 15, core 80).
       Weapon knobs if a further re-balance is wanted: `TUNE.weapons[].dmg`/`gap`,
       and the grant count is just the length of `GRANTS`.
-- [ ] Score/rank at level end (medals, hit %, time).
-
-## Later — Phase 11: finish
-
-- [ ] The back half of the level (`z < -3000`) raised from roughed-in to shipped.
-- [ ] Difficulty pass end to end.
-- [ ] Touch controls / mobile.
 
 ## Not doing
 

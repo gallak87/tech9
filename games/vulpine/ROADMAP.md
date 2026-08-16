@@ -287,6 +287,43 @@ The pre-boss weapon grant is done (above). What is left here is scoring.
 
 ## Settled — done, and why it is the way it is
 
+### Bosses — every level can be finished, 2026-08-15
+
+Before this, `bossDie()` was the only thing that set `state.outcome = 'win'` and
+the only `boss: true` wave in the game was Corneria's. Levels 2 and 3 could be
+flown but not completed, so the transitions out of them were reachable only from
+the dev panel and the campaign could not advance past level 1.
+
+Both commanders were **already finished** in `ships/enemies.js` — three weak
+points each, `partPoint`/`hitPart`/`killPart`, a `progress` getter documented as
+"what the boss bar should show", and a `station` block authored in `TUNE.boss`'s
+own field names. Nothing referenced any of it: `combat.js` and `ai.js` contained
+zero mentions of `commander`, so they spawned through the ordinary enemy path and
+their weak points, turrets and destructible state were decoration. Wiring, not
+new systems.
+
+`spawnBoss(kind)` now dispatches on a `BOSS_KINDS` table and every carrier-only
+call is asked for rather than assumed (`killNacelle`, `killTurret`, `setShutter`,
+`setHangar`, `hasBeam`, `turretCount`). Two defects found by measuring rather
+than by looking:
+
+- **Armour shadowed the objective.** `bossHit` took the *nearest* part, and a
+  commander's hull is one 9.75 m sphere at the rig centre, so every weak point
+  mounted behind that centre was unhittable from the front at any range — the
+  round reached it but passed closer to the origin on the way. Measured: the
+  coolant spine at local z +4.6 died normally while both recoil dampers at
+  z -1.5 took 2 damage in 3000 ticks. Armour is now a last resort, never a
+  nearer rival.
+- **`WEAK_REACH`.** Even unshadowed, the dampers sit flush with the armour
+  sphere, and the ice commander took 94 s to kill against the flagship's 26 s
+  and the carrier's ~45 s. A weak point now captures at 3x its own radius. HP
+  was the wrong lever — both commanders share the same 138 and only their
+  *mounting* differs. 34 s / 26 s now.
+
+Corneria's fight is untouched and verified so: its boss-health trace under the
+same scripted fire is identical before and after, and `weak` is a part kind the
+carrier does not have.
+
 ### Levels and worlds — closed 2026-08-15
 
 Three levels across two planets: **Corneria** (lowland river), **Corneria

@@ -103,9 +103,7 @@ const BUILD_MS = 6;
 
    Nothing sorts or validates this table, so it stays z-descending by hand.
 
-   The finale spawns `commander:ice` through the ordinary enemy path. It fights
-   as a heavy contact, NOT yet as a boss: no health bar, no station-keeping, no
-   win trigger. Wiring the commander to the boss plumbing is the next task. */
+   The finale is a real boss as of 2026-08-15 — see the `boss:` row below. */
 const FICHINA_WAVES = [
   // Open icefield: the longest sightline in the level, so the longest spawn.
   { z: -240, kind: 'raptor', n: 3, form: 'vee', from: 'ahead', spawn: 1500, arc: 0.55, climb: 0.22, life: 7.5 },
@@ -124,7 +122,11 @@ const FICHINA_WAVES = [
   // Batteries land at -8200…-9040: the shelf, wide and back at rail height.
   { z: -7500, kind: 'bulwark', n: 4, form: 'banks', first: 700, step: 280, bank: 560 },
   { z: -8000, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: -0.36, climb: 0.18, skill: 0.5, aggro: 0.26, life: 10 },
-  { z: -8300, kind: 'commander:ice', n: 1, form: 'pair', from: 'ahead', spawn: 2400, arc: 0, climb: 0.1, skill: 0.5, aggro: 0.3, life: 40, close: 260 },
+  // The finale. `boss:` rather than `kind:` is the whole difference between a
+  // heavy contact that flies past and a fight that can be won — it routes to
+  // spawnBoss, which station-keeps the rig, publishes the health bar and ends
+  // the mission when the last weak point dies.
+  { z: -8300, boss: 'commander:ice' },
 ];
 
 const FICHINA_COMMS = [
@@ -157,6 +159,7 @@ const OMEGA_WAVES = [
   { z: -6300, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: 0.05, climb: -0.12, skill: 0.5, aggro: 0.28, life: 26, close: 200, escort: 2 },
   { z: -7300, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1300, arc: -0.55, climb: 0.24, skill: 0.5, aggro: 0.3, hunt: true, life: 9 },
   { z: -8200, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1500, arc: 0.36, climb: 0.3, skill: 0.55, aggro: 0.32, life: 11 },
+  { z: -8800, boss: 'commander:void' },
 ];
 
 const OMEGA_COMMS = [
@@ -166,6 +169,7 @@ const OMEGA_COMMS = [
   { z: -3560, who: 'PEPPY', text: 'Behind you! Use the rocks, Fox — break their line!' },
   { z: -5250, who: 'SLIPPY', text: "Something big just lit up on the far side of the belt." },
   { z: -6260, who: 'FALCO', text: "That's their heavy. Nowhere to hide out here." },
+  { z: -8760, who: 'PEPPY', text: 'Flagship dead ahead, Fox. This is the one.' },
 ];
 
 export const LEVELS = [

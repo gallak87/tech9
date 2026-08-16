@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { rng } from '../core/rng.js';
 import { registerShot } from './shots.js';
-import { createEnemy, disposeEnemy, animateEnemy, enemySpec } from '../ships/enemies.js';
+import { createEnemy, disposeEnemy, animateEnemy, enemySpec, createCommander, COMMANDER } from '../ships/enemies.js';
 import { createBoss, BOSS } from '../ships/boss.js';
 import { createArwing } from '../ships/arwing.js';
 import { emissive } from '../render/materials.js';
@@ -148,6 +148,17 @@ const TUNE = {
     railX: 96, railYUp: 66, railYDown: 4,
   },
 };
+
+/**
+ * How far outside its own geometry a `weak` part captures a round. Tuned by
+ * measurement, not taste: at its literal radius the ice commander took 94 s to
+ * kill against the void flagship's 26 s and the carrier's ~45 s, because its two
+ * recoil dampers are side-mounted and sit flush with a 9.75 m armour sphere, so
+ * most of a magazine landed on plating. This is the lever rather than weak-point
+ * HP because the two commanders share the same 138 and only their *mounting*
+ * differs. Only the commanders have `weak` parts; the carrier is unaffected.
+ */
+const WEAK_REACH = 3.0;
 
 /* the ship's four gun mounts, in Arwing local space */
 const PODS = [
@@ -620,7 +631,7 @@ const _bRail = new THREE.Vector3();
       // Stage the boss: anything still on the field is told to go home so the
       // capital ship arrives into clean air instead of a cloud of leftovers.
       for (const f of foes) if (!f.spec.static) f.agent.leaveAt = 0;
-      spawnBoss();
+      spawnBoss(w.boss === true ? 'gargantua' : w.boss);
       return;
     }
     const spec = enemySpec(w.kind);
@@ -736,9 +747,51 @@ const _bRail = new THREE.Vector3();
     ctx.audio.play('bombLaunch', { pos: a.pos });
   }
 
-  function spawnBoss() {
+  /* ── the bosses ───────────────────────────────────────────────────────────
+     A wave says `boss: <kind>`; every kind hands back a rig whose `api` exposes
+     `parts` (with `partPoint`/`hitPart`), so the fight below is the same code
+     for all of them. What differs is which part kinds a rig has and which
+     capabilities its api carries, and both are asked for rather than assumed —
+     the carrier has nacelles, turret armour and a core, the commanders have
+     three weak points and nothing behind them.
+
+     The commanders were finished in ships/enemies.js and never wired to any of
+     this: they spawned through the ordinary enemy path, so their weak points,
+     turrets, beacons and destructible state were decoration and the only thing
+     that could end a mission was the carrier. That is why levels 2 and 3 could
+     not be completed. */
+  const BOSS_KINDS = {
+    gargantua: {
+      make: () => createBoss(),
+      label: 'GARGANTUA',
+      radius: BOSS.radius,
+      station: TUNE.boss,
+      say: ['PEPPY', 'Aim for the engines, Fox!'],
+    },
+    'commander:ice': {
+      make: () => createCommander('ice'),
+      label: 'ICE COMMANDER',
+      radius: COMMANDER.radius,
+      // Authored in ships/enemies.js in TUNE.boss's own field names, and closer
+      // in than the carrier's -520 because this hull is a third the size.
+      station: COMMANDER.station,
+      phase2: COMMANDER.phase2,
+      say: ['PEPPY', 'Recoil dampers and the coolant spine — those are the weak points!'],
+    },
+    'commander:void': {
+      make: () => createCommander('void'),
+      label: 'VOID FLAGSHIP',
+      radius: COMMANDER.radius,
+      station: COMMANDER.station,
+      phase2: COMMANDER.phase2,
+      say: ['FALCO', "Bridge and both reactor vents. Don't let it line you up, Fox."],
+    },
+  };
+
+  function spawnBoss(kind) {
     if (boss) return;
-    const root = createBoss();
+    const K = BOSS_KINDS[kind] || BOSS_KINDS.gargantua;
+    const root = K.make();
     const api = root.userData.api;
     group.add(root);
     const pos = new THREE.Vector3();
@@ -750,7 +803,7 @@ const _bRail = new THREE.Vector3();
     pos.y = Math.max(pos.y + 40, ctx.world.groundAt(pos.x, pos.z) + 90);
     root.position.copy(pos);
     boss = {
-      root, api, pos, hp: BOSS.hullHp,
+      root, api, pos, kind: K,
       t: 0, phase: 1, chargeT: 0, fireT: 3.5,
       turretT: [0, 0, 0, 0],
       list: 0, dying: -1,
@@ -758,8 +811,8 @@ const _bRail = new THREE.Vector3();
       prevPos: new THREE.Vector3().copy(pos),
     };
     for (const q of api.parts) q.hitT = 0;
-    state.bossHealth = { label: 'GARGANTUA', value: 1, parts: api.parts.map(p => ({ id: p.id, label: p.label, v: 1 })) };
-    say('PEPPY', 'Aim for the engines, Fox!');
+    state.bossHealth = { label: K.label, value: 1, parts: api.parts.map(p => ({ id: p.id, label: p.label, v: 1 })) };
+    say(K.say[0], K.say[1]);
     ctx.audio.music('boss');
   }
 
@@ -865,7 +918,26 @@ const _bRail = new THREE.Vector3();
       if (!p.alive || (p.locked && api.st.shutter < 0.5 && p.kind === 'core')) continue;
       api.partPoint(p, _v);
       const d = segClosest(ax, ay, az, bx, by, bz, _v, _hitP);
-      if (d < p.radius + bullet.r && d < bestD) { best = p; bestD = d; _wp.copy(_hitP); }
+      // A weak point is the objective, so it captures well outside its own
+      // geometry. On `commander:ice` the armour sphere is 9.75 m and a recoil
+      // damper's outer extent is 10.0 — flush — so at its literal radius the
+      // objective is a target you cannot miss *into*, only exactly onto. Only
+      // the commanders have `weak` parts; the carrier's engine/turret/core
+      // stand well clear of its hull and are untouched by this.
+      const reach = p.kind === 'weak' ? p.radius * WEAK_REACH : p.radius;
+      if (d >= reach + bullet.r) continue;
+      // Armour is a last resort, never a nearer rival. `hull` is a single sphere
+      // at the rig's centre, so on a compact hull every weak point mounted behind
+      // that centre is shadowed by it: the round reaches the weak point but
+      // passes closer to the origin on the way, armour wins on distance alone,
+      // and the part is unhittable from the front at ANY range. Measured on
+      // `commander:ice`, whose coolant spine sits at local z +4.6 and died
+      // normally while both recoil dampers at z -1.5 took 2 damage in 3000 ticks
+      // and the hull absorbed the rest.
+      const better = best && best.kind !== 'hull'
+        ? (p.kind !== 'hull' && d < bestD)
+        : (p.kind !== 'hull' || d < bestD);
+      if (better) { best = p; bestD = d; _wp.copy(_hitP); }
     }
     if (!best) return false;
     const wp = _wp;
@@ -890,10 +962,22 @@ const _bRail = new THREE.Vector3();
       ctx.audio.play('explosion', { pos: _v, size: best.radius });
       state.score += 500;
       if (best.kind === 'engine') { api.killNacelle(best.index); boss.list += 0.16; }
-      if (best.kind === 'turret') api.killTurret(best.index);
+      if (best.kind === 'turret' && api.killTurret) api.killTurret(best.index);
       if (best.kind === 'core') { bossDie(); return true; }
+      // A commander has no core behind its armour: the three weak points ARE the
+      // fight, killable in any order, and the last one ends it.
+      if (best.kind === 'weak' && api.killPart) {
+        const left = api.killPart(best);
+        if (left === 0) { bossDie(); return true; }
+        if (left === 1 && boss.phase < 2) {
+          boss.phase = 2;
+          api.setPhase(2);
+          say('FALCO', 'One left — finish it!');
+        }
+        return true;
+      }
       // all turrets down → the core armour retracts
-      if (api.parts.filter(p => p.kind === 'turret' && p.alive).length === 0 && boss.phase < 2) {
+      if (api.setShutter && api.parts.filter(p => p.kind === 'turret' && p.alive).length === 0 && boss.phase < 2) {
         boss.phase = 2;
         api.setPhase(2);
         say('FALCO', 'Armour\'s open — hit the core!');
@@ -935,7 +1019,7 @@ const _bRail = new THREE.Vector3();
     // carrier in weapon range and stops it parking out of the fight, which was a
     // real defect once. Lateral and vertical are its OWN path in rail space, so it
     // no longer mirrors the player's stick.
-    const L = TUNE.boss;
+    const L = b.kind.station;
     const pl = view.player.pos;
     const stationZ = pl.z + L.z;
     ctx.flight.railPoint(stationZ, _bRail);
@@ -949,7 +1033,8 @@ const _bRail = new THREE.Vector3();
     // returns the rim.
     const floor = ctx.world.groundAt(b.root.position.x, b.root.position.z) + L.clearance;
     if (want.y < floor) want.y = floor;
-    b.root.position.lerp(want, Math.min(1, dt * L.follow));
+    const p2 = b.kind.phase2;
+    b.root.position.lerp(want, Math.min(1, dt * L.follow * (p2 && b.phase >= 2 ? p2.followScale : 1)));
 
     const bp = b.root.position;
     // Clamped to the corridor, not to the player. Clamping to the player is what
@@ -974,19 +1059,28 @@ const _bRail = new THREE.Vector3();
     // adapter and the turret muzzles all read them during it.
     b.root.updateMatrixWorld(true);
 
-    const alive = api.parts.filter(q => q.kind === 'engine' && q.alive).length;
+    // A rig with no engine parts is not a crippled rig, it is a rig that has no
+    // engines — the commanders carry their thrust in the hull. `1` there keeps
+    // their exhaust lit instead of reading as a dead ship for the whole fight.
+    const hasEngines = api.parts.some(q => q.kind === 'engine');
+    const alive = hasEngines ? api.parts.filter(q => q.kind === 'engine' && q.alive).length : 1;
     api.setAlert(bossRange < 700 ? 1 : 0.35);
-    api.setShutter(b.phase >= 2 ? Math.min(1, (api.st.shutter + dt * 0.6)) : 0);
-    api.setHangar(b.phase >= 2 ? 0.9 : 0.15 + 0.15 * Math.sin(b.t * 0.6));
+    if (api.setShutter) api.setShutter(b.phase >= 2 ? Math.min(1, (api.st.shutter + dt * 0.6)) : 0);
+    if (api.setHangar) api.setHangar(b.phase >= 2 ? 0.9 : 0.15 + 0.15 * Math.sin(b.t * 0.6));
 
     /* turrets track and fire */
-    for (let i = 0; i < 4; i++) {
-      const p = api.parts.find(q => q.kind === 'turret' && q.index === i);
-      if (!p || !p.alive) continue;
+    const nTurrets = api.turretCount ?? 4;
+    for (let i = 0; i < nTurrets; i++) {
+      // A commander's mounts are not destructible parts, so there is nothing to
+      // look up and nothing to knock out — they fire until the rig dies.
+      if (api.killTurret) {
+        const p = api.parts.find(q => q.kind === 'turret' && q.index === i);
+        if (!p || !p.alive) continue;
+      }
       const muzzle = api.aimTurret(i, view.player.pos, dt, _v);
       b.turretT[i] -= dt;
       if (muzzle && b.turretT[i] <= 0 && bossRange < 1100) {
-        b.turretT[i] = 1.6 + RG.range(0, 1.1);
+        b.turretT[i] = (1.6 + RG.range(0, 1.1)) * (p2 && b.phase >= 2 ? p2.fireScale : 1);
         const fakeAgent = { skill: 0.62, spec: { dmg: 11 } };
         aimShot(fakeAgent, muzzle, view, TUNE.enemyBullet.speed, _aim);
         ctx.fx.laser(muzzle, _aim, { enemy: true });
@@ -1001,7 +1095,10 @@ const _bRail = new THREE.Vector3();
       }
     }
 
-    /* spinal cannon: a long, telegraphed wind-up so it can be dodged */
+    /* spinal cannon: a long, telegraphed wind-up so it can be dodged. The void
+       flagship has no spinal gun — `hasBeam` is false there and it fights on its
+       broadsides alone. */
+    if (api.hasBeam === false) { b.fireT = 9; b.chargeT = 0; }
     b.fireT -= dt;
     if (b.fireT <= 1.9 && b.fireT > 0) {
       b.chargeT = 1 - b.fireT / 1.9;
@@ -1027,11 +1124,19 @@ const _bRail = new THREE.Vector3();
 
     for (const q of api.parts) if (q.hitT > 0) q.hitT = Math.max(0, q.hitT - dt);
 
-    const total = api.parts.reduce((s, q) => s + Math.max(0, q.hp), 0);
-    const max = api.parts.reduce((s, q) => s + q.max, 0);
+    // `progress` is the rig's own answer and counts only what actually ends the
+    // fight; summing every part instead would let 220 HP of commander armour
+    // that can never be destroyed hold the bar above half forever.
+    let value;
+    if (api.progress !== undefined) value = clamp(api.progress, 0, 1);
+    else {
+      const total = api.parts.reduce((s, q) => s + Math.max(0, q.hp), 0);
+      const max = api.parts.reduce((s, q) => s + q.max, 0);
+      value = clamp(total / max, 0, 1);
+    }
     state.bossHealth = {
-      label: 'GARGANTUA',
-      value: clamp(total / max, 0, 1),
+      label: b.kind.label,
+      value,
       parts: api.parts.map(q => ({
         id: q.id, label: q.label, v: clamp(q.hp / q.max, 0, 1), alive: q.alive,
         hit: clamp((q.hitT || 0) / HIT_TICK, 0, 1),
@@ -1084,7 +1189,7 @@ const _bRail = new THREE.Vector3();
     }
     const part = b.aimPart;
     bossLock.part = part;
-    bossLock.radius = part ? Math.max(part.radius, 6) : BOSS.radius;
+    bossLock.radius = part ? Math.max(part.radius, 6) : b.kind.radius;
     if (part) api.partPoint(part, bossLock.agent.pos);
     else bossLock.agent.pos.copy(b.root.position);
 
@@ -1332,7 +1437,7 @@ const _bRail = new THREE.Vector3();
         if (!gone && boss && boss.dying < 0) {
           const dRoot = segPointDist(px, py, pz, b.x, b.y, b.z, boss.root.position);
           if (dRoot < diag.bossMinD) diag.bossMinD = Math.round(dRoot);
-          if (dRoot < BOSS.radius + 46) {
+          if (dRoot < boss.kind.radius + 46) {
             diag.bossNear++;
             if (bossHit(b, px, py, pz, b.x, b.y, b.z)) { diag.bossLand++; gone = true; }
           }

@@ -2,9 +2,15 @@
 
 **Status:** playable end-to-end, alpha. Phases 0–7 done. Phase 8 (encounter feel
 + legibility) still open but **no longer the active lane**. **Four levels, three
-backends, every one of them finishable**, as of 2026-08-15 — and the campaign
-flies 1 → 4 in one session, measured 2026-08-16 (`## Campaign audit`). Branch
-`g/fox64-dna`.
+backends, every one of them finishable**, and the campaign flies 1 → 4 in one
+session — measured 2026-08-16, `## Campaign audit`. Branch `g/fox64`, which
+`g/fox64-dna` merged into.
+
+**The campaign lane is accepted, 2026-08-16 (owner): "levels are in good shape
+to call that work passed for now."** What is still open under `## Campaign
+audit` is authoring and balance, not defects — the levels play, and nothing
+there blocks the next lane. **Boot and transition cost is the lane the owner
+turned to next; it is measured in `PLAN-PERF.md` under Phase B.**
 
 **The level lane is closed — see `## Settled`.** Its conclusion, 2026-08-15,
 after three rounds that each produced a large diff and a minimal visible

@@ -4,6 +4,10 @@
 outstanding on A3 is the owner picking a render scale by eye. Target is ship
 criterion 3 — 16.6 ms at 1080p `--quality high` on an M1 Pro.
 
+**Phase B opened 2026-08-16** — boot time and the freeze at a transition, which
+are a different problem from frame time and share none of its causes. Measured,
+ranked, nothing started.
+
 ## The finding
 
 `core/engine.js:99` **multiplies** the device pixel ratio by the quality tier's
@@ -97,6 +101,72 @@ Three consequences:
 `post.setSize(w, h, dpr)` (`postfx.js:1968`) fans it out to every pass, deriving
 `pw/ph` once. Both are already single points of truth — this should not need to
 touch individual passes.
+
+## Phase B — boot, and the freeze at a transition
+
+Owner, 2026-08-16: boot is ~10 s in real Chrome, and the hop freezes for ~1 s
+where the rebuild starts. Profiled with the CPU sampler over navigation → `ready`
+and over `forceHop`, from a clean worktree at HEAD, `quality=high`.
+
+**There is no I/O in either number.** The game ships no binary assets, so every
+"load" is compute. The GPU is close to idle at boot; the whole cost is
+single-threaded JS plus one synchronous driver wait.
+
+Boot, 5.5 s headless — proportions transfer to real Chrome, absolutes do not:
+
+| where | ms | % |
+|---|---|---|
+| `render/textures.js` — the procedural bakery | ~3200 | **58** |
+| `src/world` — profile, terrain and horizon fields | 520 | 9 |
+| `(idle)` — the loader's own staged rAF turns | 458 | 8 |
+| three lazy init (`onFirstUse`) | 400 | 7 |
+| **GL program compile** | **76** | **1.4** |
+
+Inside the bakery it is one call chain: `wrap` (`textures.js:19`) **1549 ms,
+28% of boot on its own**, the lattice sampler at `:21` 750 ms, the fbm
+accumulator at `:52` 357 ms.
+
+The hop is a different mix — ~1 s of re-baking the new world's textures
+(`textures.js:52`, 975 ms) plus **~0.5 s of synchronous shader link**
+(`(program)` 347 ms, `getProgramInfoLog` 150 ms), on top of the unbudgeted
+dispose already recorded in `ROADMAP.md`. Programs went 89 → 151 across the one
+hop.
+
+Ranked by return over effort. B1–B2 are one-liners:
+
+- [ ] **B1. `renderer.debug.checkShaderErrors = false` outside `?dev=1`.**
+      three queries link status synchronously, which blocks until the driver has
+      finished linking. ~0.5 s per hop, and it costs shader error reporting —
+      hence the dev gate.
+- [ ] **B2. `STAGE_FRAMES` 4 → 1 (`ui/loading.js:17`).** Four painted frames per
+      stage across ~10 stages is the 458 ms of measured idle; the work is not
+      waiting on anything but the progress bar's easing. ~340 ms.
+- [ ] **B3. `wrap()` is the single hottest function in the game's boot.** Its
+      general modulo is redundant against the domain every caller passes. A
+      pure-arithmetic rewrite with byte-identical output — which matters, because
+      Corneria's geometry is regression-checked bit-for-bit across 5434 samples.
+      Up to ~28% of boot.
+- [ ] **B4. The bakers sample the same noise 2–3× per texel.**
+      `bakeRockMaterial` (`textures.js:321`) evaluates `strata`/`crack`/`grit`
+      once for the height field, again for the colour map, again for roughness —
+      same coordinate, same result, ~15 octaves a time, at 1024². Sample once
+      into a `Float32Array`, read three times.
+- [ ] **B5. The generated GLSL bakes DNA in as literals.** `GLSL_CENTRELINE()`
+      (`world-materials.js:419`) emits the wave and bend terms as inline numbers,
+      so every world has different shader source and three's program cache — keyed
+      on source — can never hit across a hop. This is simultaneously the per-hop
+      compile cost *and* the 89 → 282 program leak in `ROADMAP.md`; they are one
+      defect. Move the terms to a uniform array and every world shares one
+      program.
+- [ ] **B6. Bake in Workers.** The bakery is pure functions over a seeded RNG
+      returning `Uint8Array` — no DOM, no GL, transferable, embarrassingly
+      parallel. This is the structural answer if boot has to be under 2 s, and it
+      composes with B3/B4. Pair with `renderer.compileAsync()` for `_warm`, which
+      has ~11 s of cover during a hop and nothing to lose by going async.
+- [ ] **B7. Parked, and probably never.** Rewriting the bakers as GPU
+      render-to-texture passes: a large rewrite of deterministic seeded code, for
+      work the GPU is idle during anyway. Caching baked textures to IndexedDB
+      trades CPU for decode plus invalidation and does nothing on a first visit.
 
 ## Measuring rules
 

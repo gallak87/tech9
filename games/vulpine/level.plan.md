@@ -2,10 +2,10 @@
 
 **Written 2026-08-15. Branch `g/fox64`. Owner-approved.**
 
-Read with `ROADMAP.md` (the plan of record), `PLAN-PERF.md` and
-`PLAN-VARIETY.md` (the other two lanes), `CONTRACT.md` (lane rules) and
-`HANDOFF.md` (harness + traps). **This file supersedes `PLAN-VARIETY.md` Phase C
-outright and reframes its Phases B and D — see the last section.**
+Read with `ROADMAP.md` (the plan of record), `PLAN-VARIETY.md` (the diagnosis
+this plan is built on), `PLAN-PERF.md` (frame-time measurement rules),
+`CONTRACT.md` (lane rules) and `HANDOFF.md` (harness + traps). **This file owns
+every task list for the level lane.**
 
 ## Context
 
@@ -152,10 +152,21 @@ carries optional extras:
 | `profileKind: 'trench'` | per-zone shape function | Z4 |
 | `props: [...]` | furniture for this stretch | Z5 |
 
-Note `climb` and `box` mean the zone layer **subsumes `PLAN-VARIETY.md` Phase C
-entirely**, and at per-zone rather than per-level granularity — a level can climb
-over a pass in one zone and feel tight in another. Phase C should be struck from
-that file and replaced with a pointer here.
+`climb` and `box` are what make this per-zone rather than per-level: a level can
+climb 400 m over a pass in one zone and feel tight in the next. Two notes on
+them, both previously unrecorded:
+
+- **The rail is currently flat in both worlds.** Corneria's `centrelineY` is
+  `base 44` plus waves of ±16 and ±7 (`dna.js:129`) — ~46 m of altitude across
+  9 km; Fichina is `base 52 ± 11`. The vertical axis is free variety that no
+  level uses, and `centrelineY` is already sampled by the flight model, the
+  cameras and the shots, so nothing new has to consume it.
+- **Dropping the rail below the surrounding terrain** is the cheapest way to get
+  "the world closes over you" with no prop work at all — the walls simply rise
+  past the top of the frame. Combine with `climb`.
+
+The X shear limit (`|centrelineDX| < 0.8`, `profile.js:98`) has a vertical
+equivalent that nobody has found yet. Find it before authoring hard against it.
 
 ---
 
@@ -323,26 +334,83 @@ Three constraints for whoever builds it:
 ### Z4 — profile kinds *(not this round; gated on Z1's result)*
 
 `heightAtU` dispatches on a per-zone `profileKind` instead of hardcoding the
-terrace stack: `terrace` (today, default), `trough`, `trench`, `basin`, `none`
-(`surface: 'none'` already exists, handled at `corneria.js:134`). Per-side `L`/`R`
-variants for asymmetry.
+terrace stack:
+
+- `terrace` — today's riverbed → beach → shelf → cliff stack, the default
+- `trough` — glacial U, no terraces
+- `trench` — near-vertical walls, flat floor with slots
+- `basin` — walls recede entirely; pacing as much as looks
+- `none` — no ground at all, for Sector Ω (`surface: 'none'` already exists and
+  is handled at `corneria.js:134` and in `groundAt`)
+
+Plus two things the current grammar cannot say at any parameter value:
+
+- **Per-side asymmetry.** A key may carry `L`/`R` variants, so one overhanging
+  wall can face one shallow ramp. Today side enters `heightAtU` only through
+  `bankJitter()`'s phase offsets and the `wm` side-wobble (`profile.js:208`) —
+  both noise, not authored — so every world is near mirror-symmetric.
+- **A floor that does something.** Both levels have a flat floor for 9 km. Ice
+  steps, a floor that climbs to a pass and drops away, or one that breaks into
+  gaps you dive through.
 
 **Hard constraint:** `heightAtU` stays a pure function of `(u, z)` with no
 per-sample object dereference — it is on the hot path of the flight model, the AI
 and every mesh build. Dispatch must resolve to a module-local scalar or a
 function reference chosen in `setActiveDNA`, never an object walk per sample. The
 two mesh tiers must still agree exactly at `nearHalf`, or a seam opens down the
-whole level (`profile.js:188`).
+whole level (`profile.js:188-202`) — that is what the lateral skirts were
+papering over.
 
 ### Z5 — props, minimal *(not this round)*
 
-One rule (`free`: explicit positions), one real consumer, landing together.
-First consumer should be an **arch or bridge you fly under** — not bank towers.
-A city on a canyon wall is still a canyon with things on it; the ceiling is the
-axis the terrain can never provide, it is the cheapest placement code, and a
-dozen instanced meshes add far less fill than a bank of towers on a frame that is
-still 3.8 ms over budget (`PLAN-PERF.md`). Add rules only when a second consumer
-demands one.
+Zones own their furniture: a `props` array on a zone, not a `world/city.js`.
+
+**Land one rule and one real consumer together.** The first consumer should be an
+**arch or bridge you fly under** — not bank towers. A city on a canyon wall is
+still a canyon with things on it; the ceiling is the axis the terrain can never
+provide (single-valued heightfield), it is the cheapest placement code, and a
+dozen instanced meshes add far less fill than a bank of towers on a frame still
+3.8 ms over budget (`PLAN-PERF.md`). Add rules only when a second consumer wants
+one — five rules with no consumers is how this project accumulated ~5,400 lines
+of dead code.
+
+Rules worth having eventually, in the order their consumers are likely to arrive:
+
+| rule | what it does | unlocks |
+|---|---|---|
+| `free` | explicit per-instance placement | **start here** — the dam, the bridge, one-off landmarks |
+| `span` | bridges the corridor — **this is the ceiling** | arches, gantries, cavern roofs, ice bridges |
+| `bank` | hugs a bank at a height band, via `landAtU`/`shoreU` | cities, ice rigs, gun emplacements |
+| `floor` | scattered on the corridor floor | rubble, wreckage, séracs, pylons |
+| `ridge` | skyline beyond the rim, silhouette only, cheap LOD | radar arrays, distant towers |
+
+**The construction kit already exists and nothing consumes it.**
+`render/geobuild.js` exports ~20 primitives (`loft`, `superellipse`,
+`chamferBox`, `extrudePoly`, `ductGeo`, `louvers`, `tubeAlong`, `shellArc`,
+`conformalPatch`, …) and five finished, tested materials sit unimported in
+`world-materials.js:1313-1434` — `cityMaterial`, `concreteMaterial`,
+`steelMaterial`, `foliageMaterial`, `rockPropMaterial`. `cityWeight(z)`
+(`profile.js:159`) already tints terrain for a city that was never built, and
+eight review cameras (`w-city`, `w-city2`, `w-dam`, `w-bridge`, `w-damface`,
+`w-towers`, `w-arch`, `w-delta`) frame empty canyon. The expensive half of this
+phase is written; what is missing is the placer.
+
+Corneria's authored positions, worth keeping when they finally get built: towers
+up both banks at `z ≈ -4400 … -5800` off `cityWeight`, the breached dam at
+`-6060`, the bridge at `-4950`, natural arches at `-1720`, plus rock stacks and a
+breakwater shoal. Scrub and conifer canopy on the shelves is the `foliageMaterial`
+consumer.
+
+Four things to watch:
+
+- **Overdraw is not obvious.** Props add fill *and* occlude canyon behind them.
+  Re-measure after the first real set, not after the scatter.
+- **Instancing is not a frame-time win here** — draw count is measured dead at 7%
+  of frame. Instance for memory and build time.
+- **`span` is the only rule that can occlude the rail.** It must not put geometry
+  inside the player's offset box without a flyable gap. Assert at build time.
+- The placer should be **queue-based like `Terrain`** so it joins `corneria.js`'s
+  job list and the mid-flight rebuild budget (`corneria.js:141`).
 
 ### Z6 — the seed loop *(not this round)*
 
@@ -356,6 +424,22 @@ where possible.
 ## What must not change
 
 For a new agent: these are load-bearing and each has already cost a session.
+
+**The four quiet ones are tabled under Z1, ["Hard limits a zone preset must stay
+inside"](#hard-limits-a-zone-preset-must-stay-inside), and they bind in every
+phase, not just Z1** — a level that breaks them still builds and merely looks
+subtly wrong, which is the worst failure mode to debug. In short: corridor floor
+within **±70 m**, total cross-section half-width **≤ 1250 m** (Corneria's delta
+is already at 1155), `tintAt`'s colour bands are keyed to **absolute** altitude
+so a taller wall gets the wrong band rather than a rescaled one, and water depth
+is measured against `y = 0` rather than `WORLD.waterLevel`.
+
+A fifth, which is not a limit but an integration: **geometry and encounters are
+coupled only by convention.** `waves`/`comms`/`grants` are flat z-descending
+tables driven by monotone cursors against `flight.railZ` (`combat.js:1404-1417`),
+nothing sorts or validates them, and a wave's `z` only *arms* it — the craft
+enters `spawn` metres ahead, up to 2400 m. Re-pace the terrain under them and
+they silently fire in the wrong place.
 
 - `heightAtU` stays pure `(u, z)`, no per-sample object dereference.
 - The two mesh tiers must agree at the shared boundary column at `nearHalf`
@@ -405,9 +489,3 @@ its question.
 (`corneria.js:141-147`, `world-materials.js:279-305`). The field bake dominates
 at ~560 k height samples and over a second of work, and it re-runs on every
 zone edit. Budget for that when iterating.
-
-## Doc updates this plan implies
-
-- `PLAN-VARIETY.md`: strike Phase C (subsumed by zones), repoint Phase B at Z5
-  and Phase D at Z4.
-- `ROADMAP.md`: `## Now` items B/C/D repoint here.

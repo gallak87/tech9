@@ -4,26 +4,22 @@
 + legibility) still open but **no longer the active lane**. Two levels and a
 campaign since the transition landed 2026-08-15. Branch `g/fox64`.
 
-**The active lane is the variety push — see `## Now` below and `PLAN-VARIETY.md`
-for the full plan.** Owner's call, 2026-08-15: Fichina reads as Corneria in a
-white coat, so the next work is perf first, then a reusable world-furniture
-layer. Phase 8's remaining items are polish on a game whose second level does not
-yet look like a different place; that ordering was wrong and is now corrected.
+**The active lane is levels — see `## Now` below and `level.plan.md`.** Owner's
+call, 2026-08-15: Fichina reads as Corneria in a white coat, so the work is perf
+first, then the level architecture. Phase 8's remaining items are polish on a
+game whose second level does not yet look like a different place.
 
 Finished work and the reasoning behind it lives in `## Settled` at the bottom.
 The sections above it are only what is still open.
 
-Read with `level.plan.md` (**the active lane, owner-approved 2026-08-15** —
-levels become sequences of zones that compile to today's DNA; supersedes
-PLAN-VARIETY's Phase C and reframes its B and D), `PLAN-VARIETY.md` (the
-diagnosis and the rejected options behind that lane), `PLAN-PERF.md` (the DPR
-finding, Phase A, and the measurement traps; split out of PLAN-VARIETY on
-2026-08-15 so the lanes can be tackled one at a time),
-`CONTRACT.md` (lane rules), `REVIEW.md` (the rubric), `HANDOFF.md` (live session
-state + defect queue).
-**This file is the plan of record; PLAN-VARIETY and PLAN-PERF are the current
-lanes' detail; HANDOFF is the queue.** Tick items here at every commit that
-closes one, and re-cut the Status line at the end of each phase.
+Read with `level.plan.md` (**the active lane** — levels as sequences of zones
+that compile to today's DNA), `PLAN-PERF.md` (the DPR finding and the frame-time
+measurement rules), `PLAN-VARIETY.md` (the diagnosis the level lane is built on),
+`CONTRACT.md` (lane rules), `REVIEW.md` (the rubric), `HANDOFF.md` (harness and
+traps).
+**This file is the plan of record; `level.plan.md` is the current lane's detail;
+HANDOFF is the queue.** Tick items here at every commit that closes one, and
+re-cut the Status line at the end of each phase.
 
 ---
 
@@ -87,44 +83,25 @@ register, swept collision.
 
 ## Now — the variety push
 
-**Full plan, with the diagnosis and the rejected options: `PLAN-VARIETY.md`
-(items B/C/D) and `PLAN-PERF.md` (item A).**
-Owner-sequenced 2026-08-15: **perf first, then the furniture layer**, with rail
-verticality and a per-level offset box folded in. Do not reorder — props add
-fill, and the frame is already over budget.
+**The lane is `level.plan.md`** (owner-approved 2026-08-15): a level becomes a
+sequence of zones that compile to today's DNA, and zones carry the cross-section,
+the rail's climb, the offset box, the profile kind and the props. Perf is
+`PLAN-PERF.md`; the diagnosis behind the lane is `PLAN-VARIETY.md`.
 
-- [x] **A. Perf — the DPR bug is fixed; the owner still has to pick a render
-      scale by eye.** Details and the remaining A5 item in `PLAN-PERF.md`.
-      `core/engine.js:99` computes
-      `dpr = min(devicePixelRatio, maxPixelRatio) * q.pixelRatio` — the tier
-      **multiplies** the device ratio instead of replacing it. On an M1
-      (`devicePixelRatio` 2, `maxPixelRatio` 2) `quality=high`'s `pixelRatio`
-      1.25 gives an effective **DPR 2.5**, i.e. 12.96 MP at a 1920×1080 window
-      against 2.07 MP at DPR 1.0 — **6.25× the pixels on a frame already measured
-      as fill-bound**.
-      **Measured and confirmed 2026-08-15** (owner, real Chrome):
-      `__VULPINE__.engine.setPixelRatio(0.5)` → effective DPR 1.0 → **fps into
-      the 70s**, against the shipped 26–40 at DPR 2.5 — but "pretty bad quality",
-      so DPR 1.0 is not the shipping value. Full reading and its caveats in
-      `PLAN-PERF.md`.
-      Then separate device DPR from a `renderScale`, retune the `QUALITY` tiers
-      around the new meaning, and put render scale on the dev panel — where the
-      softness starts being visible is a look decision, not a perf one.
-- [ ] **B. The world-furniture layer.** Supersedes Phase 9 below, which named two
-      one-off modules; that is the wrong shape for something serving four levels.
-      A prop group is DNA data with a placement rule — `bank`, `floor`, `ridge`,
-      `span`, `free` — and `span` is how geometry gets *above* the ship without
-      touching the terrain. Land the placer and Corneria's set in the same
-      session: ship criterion 7 is "no dead code", and a placer with no consumer
-      is the sixth unimported module this project has shipped.
-- [ ] **C. Rail verticality + per-level offset box.** `centrelineY` varies ~46 m
-      over 9 km on Corneria and ~22 m on Fichina — the rail is flat in both
-      worlds. Y has no dog-leg term where X has `bends`; adding one is the
-      enabling change. `TUNE.boxX/boxYUp/boxYDown` (`flight.js:22`) move into the
-      DNA so a trough can feel tight and a basin open.
-- [ ] **D. Profile kinds + per-side asymmetry.** `heightAtU` dispatches on a
-      `profileKind` instead of hardcoding the terrace stack. Cut this seam before
-      Sector Ω, which needs `none` anyway.
+Owner-sequenced: **perf first, then levels** — props add fill and the frame is
+still over budget.
+
+- [x] **A. Perf.** `QUALITY.pixelRatio` multiplied the device ratio instead of
+      capping it, so `high` rendered at DPR 2.5 — 6.25× the pixels on a
+      fill-bound frame. Split into a clamped device DPR and a separate
+      `renderScale`, tiers retuned, one quality dial on the dev panel. Owner
+      picked 0.95: **49 fps / 20.4 ms**, from 26–40. Still 3.8 ms over ship
+      criterion 3 — A5 is the next lever, in `PLAN-PERF.md`.
+- [ ] **B. Levels as zone sequences — see `level.plan.md`.** This round is its
+      Z1 only: the zone expander, `centrelineY` dog-legs, and Fichina re-authored
+      with real longitudinal pacing and no new shape functions. It ends in a
+      branch decided by measurement — whether the fixed grammar or the flat
+      authoring is what makes Fichina read as Corneria.
 
 ## Also open — Phase 8: legibility and the first two encounters
 
@@ -153,48 +130,6 @@ chain, motion blur — are all shipped; they and their reasoning are in
       is, e.g. `Math.exp(-damp * dt * Math.min(1, pen / ramp))`, so both terms
       enter from zero. Cheap, but it changes wall feel, so re-measure per-tick
       acceleration (the held-stick probe pattern) and re-check the box corners.
-
-- [ ] **Fichina is Corneria in a white coat** (owner, 2026-08-15: "its nearly
-      identical to the first level lol"). The DNA work is sound — the numbers and
-      the palette really did change — but **the DNA vocabulary is itself a river
-      canyon**, so every world expressed in it comes out as one. Every level built
-      from `keys` gets: a flat floor at `bed` below the waterline, a
-      beach→shelf→cliff terrace stack, one continuous slot, near-symmetric banks,
-      and nothing whatsoever above the ship. Changing `inner` from 126 to 206 and
-      the palette from stone to snow does not escape that grammar.
-
-      So this is a **structure** problem, not a tuning one. Parameters that would
-      actually make a world read differently, roughly in order of payoff:
-      - **Cross-section modes.** The terrace stack is one shape function. A
-        glacial U-trough is a different one; a fortress trench is a third. `keys`
-        should select a profile *kind*, not just feed widths into the only one.
-      - **A floor that does something.** Both worlds have a flat floor for 9 km.
-        Terraces, ice steps, a floor that climbs to a pass and drops away, or
-        breaks into gaps you dive through.
-      - **Asymmetry.** Both worlds are near-mirror-symmetric about the centreline.
-        One overhanging wall against one shallow ramp reads as a different place
-        immediately, and costs one term.
-      - **A ceiling.** Nothing in the vocabulary can put geometry *above* the
-        ship. Arches, ice bridges, a cavern roof, a canopy of hanging séracs —
-        this is the single biggest missing axis and the cheapest way to make a
-        corridor stop reading as a canyon.
-      - **Non-corridor stretches.** An open basin, a field of towers to weave
-        between, a break where the walls vanish entirely. Pacing as much as looks.
-
-      Sector Ω needs most of this anyway — it has no ground at all — so the
-      profile-kind seam is worth cutting before that level rather than after.
-
-      **Superseded 2026-08-15 by `PLAN-VARIETY.md`, which is the plan for this
-      item.** Its one correction to the analysis above: this is only ~a third a
-      terrain problem. **Neither level contains a single man-made object** —
-      `cityMaterial`, `concreteMaterial`, `steelMaterial`, `foliageMaterial` and
-      `rockPropMaterial` have zero importers, `cityWeight` tints for a city that
-      was never built, and eight review cameras frame empty canyon. Two empty
-      procedural canyons with different tint will always read as the same game,
-      at any cross-section. Props first (`## Now` B), grammar second (`## Now` D).
-      The ceiling in particular does **not** want a terrain change: a heightfield
-      is single-valued in `u` and can never overhang, so arches and bridges are
-      the `span` placement rule, not a new profile term.
 
 - [ ] **The commander is not wired as a boss. LOWEST PRIORITY** (owner,
       2026-08-15). `commander:ice` closes Fichina
@@ -337,29 +272,6 @@ chain, motion blur — are all shipped; they and their reasoning are in
       Left alone this session on purpose: the owner's brief was to *calm* the
       image, and lifting exposure in the same pass would have fought that and made
       both changes unmeasurable. Do it as its own pass, with the dev knobs.
-
-## Next — Phase 9: the built world
-
-**Restructured 2026-08-15 into `## Now` item B — build the generic placer, not
-these two modules.** The item list below is still the correct *content*; what
-changed is that it is authored as DNA prop data against reusable placement rules,
-so Fichina and levels 3–4 get the same tooling instead of Corneria getting a
-bespoke `city.js`. Keep the z positions.
-
-The level is terrain + water + sky. **Nothing man-made exists.** `cityMaterial`,
-`concreteMaterial`, `steelMaterial`, `foliageMaterial` and `rockPropMaterial` are
-~500 lines of finished, tested material code that **nothing imports**; `cityWeight(z)`
-tints the terrain for a city that was never built; and eight registered review
-cameras (`w-city`, `w-city2`, `w-dam`, `w-bridge`, `w-damface`, `w-towers`,
-`w-arch`, `w-delta`) all frame empty canyon. This is the single largest gap
-between the level as designed and the level as shipped.
-
-- [ ] `world/city.js` — towers up both banks at `z ≈ -4400 … -5800`, placed off
-      `cityWeight`, instanced, façades already anti-aliased in the shader.
-- [ ] `world/landmarks.js` — the breached dam (`-6060`), the bridge (`-4950`),
-      natural arches (`-1720`), rock stacks, breakwater shoal.
-- [ ] Scatter — scrub and conifer canopy on the shelves (`foliageMaterial`).
-- [ ] Make the eight dead review cameras show something.
 
 ## Later — Phase 10: progression
 
@@ -874,7 +786,7 @@ Multiple levels, all-range mode, branching paths, multiplayer, binary assets.
 6. Every control in `inputtest.mjs` does what the legend says.
 7. No dead code: every module written is imported and reachable. Standing
    total: **~190 lines** — `concreteMaterial`, `steelMaterial`, `foliageMaterial`
-   and `rockPropMaterial` (Phase 9 built-world) plus `shoreU` (Phase 8
+   and `rockPropMaterial` (`level.plan.md` Z5) plus `shoreU` (Phase 8
    shoreline). Kept deliberately: each has a named consumer in a scheduled
    phase. Everything with no scheduled consumer is gone (`ahdsr`,
    `resetStreams`, `disposeMaterials`, `disposeShipMaterials`, `finPatch`,

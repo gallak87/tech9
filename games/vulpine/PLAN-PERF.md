@@ -1,316 +1,170 @@
 # Vulpine — perf
 
-**Lane status: A1–A3 done and unvalidated in live play. A5 next.** The one thing
-outstanding on A3 is the owner picking a render scale by eye. Target is ship
-criterion 3 — 16.6 ms at 1080p `--quality high` on an M1 Pro.
+Two lanes, different problems, no shared causes:
 
-**Phase B opened 2026-08-16. B2 and B3 landed the same day: boot 5549 → ~4375 ms
-headless, −21%, output proved byte-identical. B1 was built, measured and
-rejected** — it moved the driver wait rather than removing it, and the owner
-wants a failed shader loud regardless. Boot time and the freeze at a transition
-are a different problem from frame time and share none of its causes. B3 carried
-the whole win. The hop is untouched: its ~0.5 s of synchronous link is real, B1
-was not the way to it, and it now falls to B5.
+- **Frame time.** Target is ship criterion 3, **16.6 ms at 1080p `--quality high`
+  on an M1 Pro**. Currently **20.4 ms** (owner, real Chrome, 2026-08-15) after
+  the render-scale fix. 3.8 ms over, and nothing is scheduled against it.
+- **Boot and the hop.** Boot was 5549 ms headless, is now **~4100 ms cold and
+  ~2140 ms warm** (the texture cache means a reload is the warm number). The hop
+  still freezes: worst frames ~186 ms and ~165 ms across the transition.
 
-## The finding
+Everything below is what is left. Finished work is one line each at the bottom.
 
-`core/engine.js:99` **multiplies** the device pixel ratio by the quality tier's
-instead of replacing or capping it:
+## Instruments — run these before touching anything
 
-```js
-const dpr = Math.min(window.devicePixelRatio || 1, this.maxPixelRatio) * this.q.pixelRatio;
-```
-
-On an M1 (`devicePixelRatio` 2, `maxPixelRatio` 2), `QUALITY.high.pixelRatio`
-1.25 gives an **effective DPR of 2.5** — 12.96 MP at a 1920×1080 window against
-2.07 MP at DPR 1.0. **6.25× the pixels**, on a frame already measured as
-fill-bound (draw count is 7% of a 38.6 ms frame; the bare scene pass is 65%).
-
-| tier | `q.pixelRatio` | effective DPR on M1 | MP at 1080p |
-|---|---|---|---|
-| low / medium | 1.0 | 2.0 | 8.29 |
-| **high** | **1.25** | **2.5** | **12.96** |
-| ultra | 1.5 | 3.0 | 18.66 |
-
-**Measured 2026-08-15, owner, real Chrome.** `setPixelRatio(0.5)` → DPR 1.0 →
-fps into the **70s**, against the shipped 26–40 at DPR 2.5. Owner's verdict on
-the DPR-1.0 image: *"pretty bad quality"*. The two arms were taken in different
-sessions, so the ratio is directional, not exact.
-
-Three consequences:
-
-1. The perf problem is this bug, not the shaders. **A4 is parked, not scheduled.**
-2. DPR 1.0 is not the shipping value either — the owner has seen it and rejected
-   it on looks. The answer is between 1.0 and 2.5, and finding it is A3's job.
-3. A ~14.3 ms floor survives at DPR 1.0, so a fixed cost is now the larger term.
-   Unquantified; A5 is the first suspect.
-
-## Tasks
-
-- [x] **A1.** Measure the DPR hypothesis in real Chrome. Confirmed, above.
-- [x] **A2. Separated.** `QUALITY.pixelRatio` → `QUALITY.renderScale`, meaning a
-      fraction of the *clamped device* ratio; `engine.resize()` now derives
-      `deviceDpr` and `renderScale` as two quantities. `setRenderScale()` is the
-      entry point and `setPixelRatio()` an alias that stays truthful, because the
-      argument always was a scale. Tiers retuned against the new meaning —
-      low 0.50, medium 0.65, **high 0.80**, ultra 1.00 (native; nothing ships
-      above it). On a 2× panel `high` is now DPR 1.6 / 5.3 MP against the old
-      DPR 2.5 / 12.96 MP.
-- [x] **A3. Slider landed, and the owner has picked.** `render scale` sits in the
-      panel's `quality` section, 0.40–1.50, reading out scale, resulting DPR and
-      megapixels — megapixels being what frame time actually tracks.
-      **Owner's pick, live, 2026-08-15: render scale 0.95 with quality step 3**,
-      i.e. DPR 1.90 and 5.3 MP on their 2× panel, AO / god rays / TAA off and
-      SMAA carrying the antialiasing. Measured **49 fps / 20.4 ms** at 1080p,
-      against 26–40 before. Baked into `QUALITY.high`, so it survives a reload.
-
-      Two notes on it:
-      - **Still 3.8 ms over ship criterion 3** (20.4 vs 16.6 ms). Closer, not
-        closed. A5 is the next lever.
-      - **Their dial position also pulled reflections 0.72 → 0.40**, and that was
-        *not* baked. 0.72 is an owner-tuned look value from an earlier session
-        ("the reflections are WAY too good"), and inferring a new one from a perf
-        drag is the wrong way to change it. The `reflections` fine knob is there
-        if 0.40 was deliberate.
-- [x] **A3b. Quality is one dial** (owner, 2026-08-15: the eight pass swatches
-      were confusing and the game looks fine with most of them off). The
-      `detail / cost` macro became `quality` and owns every pass enable as well
-      as `ao`/`motion`/`refl`; step 3 reproduces the shipped `high` tier exactly.
-      The swatches survive behind **Fine knobs** because isolating one pass is
-      how per-pass cost gets measured — an instrument, not a setting.
-      **Rule: the quality dial decides whether a pass runs, the look dials decide
-      how strong it looks.** Passes early-out at zero intensity so an
-      enabled-but-zero pass is free — except `BloomPass`, which runs its whole
-      pyramid at any strength and so still needs its flag.
-- [x] **A3c. Hull-blur-mask button removed, mask hardwired on.** It is a
-      correctness feature of the motion-blur pass, not a quality option: the pass
-      treats every pixel as static world geometry, so without the mask the ship,
-      the wingmen and a station-keeping boss take a full camera-sweep smear at a
-      true screen velocity of ~0. It costs anything only when the motion pass
-      runs, i.e. quality step 5.
-- [x] **A3d. Dev shortcut digits derive from `TOOLS` order**, so the panel reads
-      1,2,3… top to bottom instead of 1,6,7,2,3,4,5. Adding a tool renumbers the
-      rest, and the hint line is built from the same array so it cannot drift.
-- [ ] **A5.** `preserveDrawingBuffer: true` (`engine.js:44`) is on permanently
-      for the capture harness and can force a full-framebuffer copy per frame.
-      Gate behind a capture flag and measure. Cheap; do not assume a win.
-- [ ] **A4. Parked** — only if the above misses budget. Two options, no third:
-      cut per-pixel cost in the terrain/water shaders (triplanar is 3 samples
-      where 1 often does; the lithology blend and the horizon lookup are both per
-      fragment), or render the scene at reduced resolution and upscale. Post is
-      death by a thousand cuts — six passes at 0.5–1.0 ms, none worth killing
-      alone.
-
-**Seams.** `engine.resize()` (`engine.js:96`) is the only place DPR is computed;
-`post.setSize(w, h, dpr)` (`postfx.js:1968`) fans it out to every pass, deriving
-`pw/ph` once. Both are already single points of truth — this should not need to
-touch individual passes.
-
-## Phase B — boot, and the freeze at a transition
-
-Owner, 2026-08-16: boot is ~10 s in real Chrome, and the hop freezes for ~1 s
-where the rebuild starts. Profiled with the CPU sampler over navigation → `ready`
-and over `forceHop`, from a clean worktree at HEAD, `quality=high`.
-
-**There is no I/O in either number.** The game ships no binary assets, so every
-"load" is compute. The GPU is close to idle at boot; the whole cost is
-single-threaded JS plus one synchronous driver wait.
-
-Boot, 5.5 s headless — proportions transfer to real Chrome, absolutes do not.
-**This is the pre-B1–B3 baseline, kept as the record of where the time was**;
-re-take it with `bootprof` rather than reading it as current:
-
-| where | ms | % |
-|---|---|---|
-| `render/textures.js` — the procedural bakery | ~3200 | **58** |
-| `src/world` — profile, terrain and horizon fields | 520 | 9 |
-| `(idle)` — the loader's own staged rAF turns | 458 | 8 |
-| three lazy init (`onFirstUse`) | 400 | 7 |
-| **GL program compile** | **76** | **1.4** |
-
-Inside the bakery it is one call chain: `wrap` (`textures.js:19`) **1549 ms,
-28% of boot on its own**, the lattice sampler at `:21` 750 ms, the fbm
-accumulator at `:52` 357 ms. B3 collapsed the first two into one 1318 ms
-sampler; the accumulator, now `textures.js:79`, is untouched and is B4's target.
-
-The hop is a different mix — ~1 s of re-baking the new world's textures
-(`textures.js:52`, 975 ms) plus **~0.5 s of synchronous shader link**
-(`(program)` 347 ms, `getProgramInfoLog` 150 ms), on top of the unbudgeted
-dispose already recorded in `ROADMAP.md`. Programs went 89 → 151 across the one
-hop.
-
-**The instruments, both landed 2026-08-16 and both run before any of this is
-touched.** `tools/bootprof.mjs boot|hop` re-takes every number above —
-`--quality`, `--level`, `--top`, and a `hop` arm that force-hops from the level
-it booted. `tools/digest.mjs --out before.json` then `--against before.json`
-hashes every baked texture, every static geometry array and a `groundAt` lattice,
-and exits 1 if any byte moved; it is proved to catch a change (a 6 → 6.0001 in
-the noise fade moved the terrain digests) and to be stable across identical runs.
-**B3 and B4 are refactors that must not change output — neither is done until
-`digest --against` says identical.**
-
-Take a `digest --out` baseline on the *unmodified* tree first. There is no
-committed baseline, deliberately: it would go stale the first time a generator
-legitimately changes, and a stale baseline that everyone ignores is worse than
-none.
-
-Ranked by return over effort as first written. What survived contact: B1 was the
-cheapest item and returned nothing, B3 was the real one.
-
-- [~] **B1. Built, measured, rejected. `checkShaderErrors` stays on, always, for
-      everyone.** Do not re-open this — the cost is real but it is not where the
-      item claimed, and the owner has ruled on the trade regardless.
-
-      *Measured.* Gating the check moved the driver wait instead of removing it:
-      `getProgramInfoLog` (129 ms) left the hop table and `getProgramParameter`
-      (154 ms) took its place, with `(program)` **unmoved at 349 → 349 → 351 ms**
-      across three runs. Boot was A/B'd alternating on/off three times to keep
-      machine drift out of it — 4396/4366/4363 against 4377/4339/4309, i.e.
-      **~30 ms, under 1%.** (Taken as two batches instead, the same flag looks
-      worth 350 ms. It isn't. Alternate the arms.) The block is not the error
-      check — three
-      cannot build a uniform map without `getProgramParameter(program,
-      ACTIVE_UNIFORMS)` (`three.module.js:6141`, unconditional), and that is the
-      call that waits. The advice three's own docs give is sound for programs you
-      compile speculatively; every program this game compiles, it immediately
-      draws with. **The ~0.5 s is not recoverable by gating a query** — it goes
-      to B5 (compile fewer programs) or B6 (`compileAsync`, don't block).
-
-      *Ruled.* Owner, 2026-08-16: there is no production build and no players to
-      ship to, and a failed shader must be loud — *"if a shader fails to load, i
-      dont want silence/missing textures, i want it to error."* So the trade B1
-      offered is one this project would decline even if it saved the half second.
-      A conditional was the wrong shape too: any condition that speeds up the
-      number the owner actually feels has to be live on the dev server, which is
-      exactly where losing the check hurts most.
-
-      *Verified, and worth knowing.* A deliberately broken `EXPOSE_FRAG` reports
-      `VALIDATE_STATUS false` with the check on and **produces no console output
-      at all** with it off — the boot completes, `shot.mjs` exits 0, and the frame
-      is wrong in silence. That is what the flag is worth.
-- [x] **B2. `STAGE_FRAMES` 4 → 1. `(idle)` 463 → 308 ms, so ~155 ms**, not the
-      ~340 estimated: three quarters of the frames went, but under half the idle,
-      because a chunk of that 458 ms was rAF waiting on vsync rather than the
-      easing. Loader verified by capture, not by number — it paints every stage,
-      advances (`COMPILING SHADERS` at 75%), and cross-fades at 100%.
-      **One correction was needed.** At one frame per stage the `APPROACH` 0.55
-      ease never converges, so every stage drew 45% short and the bar faded out
-      reading **97%**, having never once shown a full one. `stage()` now snaps to
-      target and draws again after the loop; that redraw lands in the frame the
-      next stage yields, so it costs a canvas draw and not a frame.
-- [x] **B3. `wrap()` is gone, and boot went 5549 → ~4375 ms wall (−21%),**
-      that being the median of six runs in the shipped configuration.
-      The old `wrap` 1573 ms + sampler 738 ms + `fade` 57 ms = 2368 ms became one
-      inlined sampler at **1318 ms — ~1050 ms off boot**, and the noise path went
-      from 28.4% of boot to nothing named.
-      Four `wrap()` calls per sample became two inline reductions (the upper
-      lattice corner is the lower plus one, wrapping to 0 at the edge), the
-      doubled `((v % n) + n) % n` became one `%` plus a conditional add, and
-      power-of-two lattices take `& mask`. The general modulo **stays** — the
-      plan's premise that it was redundant against the caller domain was wrong,
-      `profile.js:271` samples these at world coordinates and needs the wrap.
-      **Proved identical** two ways: 3M random samples across 15 lattice sizes
-      match the old path bit for bit (`Object.is`, so signed zero and NaN count),
-      and `digest --against` reports 0 changed on both `corneria` (276edbb3) and
-      `highlands` (dc1533a8).
-- [x] **B4. Done — boot ~4375 → ~3830 ms.** Five bakers fused, not one: the
-      measured `bakeRockMaterial` (`textures.js`, 3× per texel) plus `rockSet`,
-      `iceWallSet`, `iceSet` and `concreteSet` in `world-materials.js`, each of
-      which ran two full 512² loops evaluating the same fbm at the same
-      coordinate. The sampler is 1308 → 967 ms and the fbm accumulator 373 → 298.
-      `digest --against` identical on both levels.
-      **Fused rather than cached**, against the plan's own suggestion: caching
-      the samples needs three 8 MB scratch arrays at 1024², and they would have
-      to be `Float64Array` — rounding a cached sample to `Float32` moves the
-      output, which is the one thing this may not do. Computing all outputs in
-      one pass stores nothing. `bakeHeightAndMap()` (`world-materials.js:66`) is
-      the shape: `fn` fills the RGBA texel and *returns* the height. Interleaving
-      is safe because the samplers are pure — their RNG is consumed at
-      construction, not at sample.
-- [~] **B5. Built. The premise is wrong, and the program count did not move.**
-      Both halves landed and both are worth keeping, but neither buys what this
-      item promised. Read this before opening B6 — the same reasoning applies.
-
-      *The premise.* "three's program cache — keyed on source — can never hit
-      across a hop" is not how three works. `getProgramCacheKey`
-      (`three.module.js:7768`) pushes `shaderID`, defines, parameters and
-      `customProgramCacheKey` — **the patched source is not in the key.** For a
-      built-in material, per-world GLSL literals cause no cache miss at all. The
-      thing that was forcing the recompile is `installAtmosphere` bumping a
-      counter into `customProgramCacheKey` on every `env.apply()`.
-
-      *Measured, and this is the number that settles it.* Programs across boot
-      and three consecutive hops: **91 → 154 → 156 → 189, byte for byte the same
-      before and after the change.** The growth is new materials for new worlds
-      and for the transit/space effects, not shader text. The `89 → 282` in
-      `ROADMAP.md` is a disposal problem and is *not* this defect; the two were
-      filed as one and are not.
-
-      *What did land, and why to keep it.* (1) The centreline is uniforms —
-      `uCxWave`/`uCxBend` sized by `MAXW`/`MAXB` from `profile.js`, fed by
-      `centrelineUniforms()` off the same packed arrays `centrelineX` reads, so
-      the twin cannot drift. One GLSL text for every world. (2) The atmosphere
-      cache key is a hash of the installed chunk text rather than a counter, so
-      re-applying a preset is free: **+0 programs against +25 before.**
-      **They ship together and must stay together.** The key change is what
-      makes cross-world program reuse *possible*, and reuse is only *correct*
-      because the centreline no longer carries this world's numbers as literals.
-      Content-key alone would hand a new world a program with the previous
-      world's channel baked in — the wrong shoreline, silently. Reverting one
-      without the other reintroduces exactly that.
-
-      *Costs nothing.* Shoreline unchanged in a fixed `shot`; frame time A/B'd
-      alternating three times at 4.4/4.4/4.5 against 4.5/4.5/4.5 ms, so the
-      per-fragment loop is free at headless resolution.
-
-      *What would actually cut the hop's compile:* the atmosphere is still
-      per-preset literals in a global `ShaderChunk`, so any hop that changes
-      preset recompiles every fogged material (+25). Uniform-ising *that* is the
-      real item, and it is hard for the reason `environment.js:296` already
-      states — the patch lands in a chunk shared by materials that have no
-      `onBeforeCompile` seam to receive uniforms through.
-- [ ] **B5 (original text). The generated GLSL bakes DNA in as literals.** `GLSL_CENTRELINE()`
-      (`world-materials.js:419`) emits the wave and bend terms as inline numbers,
-      so every world has different shader source and three's program cache — keyed
-      on source — can never hit across a hop. This is simultaneously the per-hop
-      compile cost *and* the 89 → 282 program leak in `ROADMAP.md`; they are one
-      defect. Move the terms to a uniform array and every world shares one
-      program.
-      **The invariant this must not break**, and it is the reason the literals
-      are there in the first place: the shader has to reproduce
-      `profile.js:centrelineX` *exactly*, or every shore and horizon lookup lands
-      on the wrong column and the waterline slides off the beach wherever the
-      channel bends (`world-materials.js:411`). `GLSL_CENTRELINE_DX` has the same
-      shape and the same requirement — fix one and miss the other and the
-      shadowing goes subtly wrong instead of obviously wrong. See also the
-      `expandZones`-before-`DNA = dna` ordering note in `ROADMAP.md`'s Settled
-      section: the GLSL twin is generated from the *expanded* DNA.
-      **Done when:** `bootprof hop` shows the post-hop program count at or near
-      the boot count instead of +64, `digest --against` is identical for every
-      level, and a `shot` of the shoreline is unchanged.
-- [ ] **B6. Bake in Workers.** The bakery is pure functions over a seeded RNG
-      returning `Uint8Array` — no DOM, no GL, transferable, embarrassingly
-      parallel. This is the structural answer if boot has to be under 2 s, and it
-      composes with B3/B4. Pair with `renderer.compileAsync()` for `_warm`, which
-      has ~11 s of cover during a hop and nothing to lose by going async.
-- [ ] **B7. Parked, and probably never.** Rewriting the bakers as GPU
-      render-to-texture passes: a large rewrite of deterministic seeded code, for
-      work the GPU is idle during anyway. Caching baked textures to IndexedDB
-      trades CPU for decode plus invalidation and does nothing on a first visit.
+- `node tools/bootprof.mjs boot|hop` — CPU sampler over navigation → `ready`, or
+  over a forced hop. `--quality --level --top --interval`, and `--warm` to
+  measure a reload against a filled texture cache. Cold by default, because every
+  number recorded here was taken with the bakers actually running.
+- `node tools/digest.mjs --out before.json` then `--against before.json` — hashes
+  every baked texture, every static geometry array and a `groundAt` lattice, and
+  exits 1 if a byte moved. **Any refactor of a generator is not done until this
+  says identical.** Proved to catch a 6 → 6.0001 in the noise fade.
+  Take the baseline on the unmodified tree; there is deliberately no committed
+  one, because a stale baseline everybody ignores is worse than none.
+- `node tools/shot.mjs` — fixed shots, and it exits 1 on any console error.
 
 ## Measuring rules
 
+Four traps, all of which have already cost someone a wrong conclusion.
+
+- **Alternate the arms; never compare batch to batch.** Boot times drift with
+  whatever else the machine is doing. One flag measured as a 350 ms win taken as
+  "six runs before, six runs after", and as ~30 ms taken as on/off/on/off/on/off.
+  The second is the true one.
 - **Fix the `shot` and the `t`.** A/B by flying is unreadable: frame time swings
   25–34 ms on scene content alone, more than most settings under test.
 - **Never call `env.apply()` between arms.** It bakes a PMREM whose spike
   outlives the settle window, and `engine.avgFrameMs` is a 45-frame EMA that
   carries it. A pass that did this reported every *disabled* pass as costing time.
-- **Alternate the arms; never compare batch to batch.** Boot times drift with
-  whatever else the machine is doing — B1 measured as a 350 ms win taken as
-  "six runs before, six runs after", and as ~30 ms taken as on/off/on/off/on/off.
-  The second is the true one. This is the same failure as timing two arms in
-  different sessions, which is why A1's DPR ratio is directional only.
 - **Never compare a headless number to a real-Chrome one.** Headless runs at
-  `devicePixelRatio` 1, so every absolute in `ROADMAP.md`'s per-pass table is
-  3.24 MP against the owner's 12.96 MP. The splits are valid; the milliseconds
-  are not comparable.
+  `devicePixelRatio` 1. Splits transfer; milliseconds do not.
+
+And one about this document. **Measure before you rank, not after.** Four items
+in a row here were ranked from careful reasoning about how things ought to work,
+and four premises turned out to be false — see Rejected. The cheap measurement
+that would have caught each one took minutes.
+
+## Open — boot
+
+- [ ] **Run boot through the frame-budget scheduler. Best remaining lead.**
+      On a *warm* boot the overlay still freezes for **1043 ms and 887 ms**.
+      Neither is shader compilation. Both are synchronous work driven by
+      `while (this.step(Infinity) < 1)` at `corneria.js:92` — and `step(budgetMs)`
+      (`corneria.js:249`) is already a cooperative scheduler over a flat job list,
+      used on every hop to build a world across frames while the player flies.
+      Boot opts out of it and `main.js` is written as a straight line to match.
+      Feeding boot through `step(8)` with the loader driving frames turns two dead
+      seconds into an animating bar, and gives real progress (`done / total`)
+      instead of the hand-guessed stage weights.
+      **Watch for:** `main.js` expects a finished world when the constructor
+      returns; that assumption is the actual work.
+- [ ] **Cache the world fields too.** The texture cache only covers `cached()`,
+      whose keys are all fixed seeds. The shore and horizon fields are per-DNA and
+      still bake on every warm boot — `horizonSectorRows` 126 ms, `islandAt` 90 ms,
+      plus ~270 ms still in the lattice sampler. Same store, key on the DNA id.
+- [ ] **Try 512² instead of 1024². Owner's call, and the cheapest big lever.**
+      Bake cost is quadratic in size; two 1024² sets dominate what is left. One
+      number in `materials.js:19,21`. **Do this before any further boot work** —
+      if 512 ships, some of the items here stop being worth doing.
+- [ ] **Bake in Workers.** The old B6, and much less valuable than when it was
+      written: the cache means most boots do no baking at all, so this only helps
+      the cold one. Also note the plan's premise is wrong — the bakers are *not*
+      pure `Uint8Array` producers, they construct `THREE.DataTexture`
+      (`textures.js:159,183,345`), and half the generators live in
+      `world-materials.js` reading module-global `DNA` in 17 places. Realistic
+      ceiling ~800 ms off a cold boot, for a multi-hour restructure of both
+      generator files.
+
+## Open — the hop
+
+- [ ] **Uniform-ise the atmosphere.** Per-preset values are baked as literals into
+      a global `ShaderChunk` (`environment.js:296` explains why), so any hop that
+      changes preset recompiles every fogged material: **+25 programs, measured.**
+      This is the real remaining compile cost — not the centreline, which has
+      already been dealt with. Hard for the reason that comment states: the chunk
+      is shared by materials with no `onBeforeCompile` seam to receive uniforms
+      through. `ShaderLib[id].uniforms` is the only seam worth investigating.
+- [ ] **The hop's ~186 ms frames are the synchronous world rebuild**, not
+      compilation — `compileAsync` was tried and changed nothing. Whatever is
+      done here is the same scheduler problem as boot, plus the unbudgeted dispose
+      recorded in `ROADMAP.md`.
+
+## Open — frame time
+
+- [ ] **A5. `preserveDrawingBuffer: true`** (`engine.js:56`) is on permanently for
+      the capture harness and can force a full-framebuffer copy per frame. Gate
+      behind a capture flag and measure. Cheap; do not assume a win. This is the
+      only scheduled item against the 3.8 ms gap.
+- [ ] **A4. Parked** — only if A5 misses budget. Two options, no third: cut
+      per-pixel cost in the terrain/water shaders (triplanar is 3 samples where 1
+      often does; the lithology blend and horizon lookup are both per fragment),
+      or render the scene at reduced resolution and upscale. Post is death by a
+      thousand cuts — six passes at 0.5–1.0 ms, none worth killing alone.
+
+## Open — housekeeping
+
+- [ ] **`bakeStarfield` (`textures.js:319`) has zero callers.** Delete it.
+
+**Seams worth knowing.** `engine.resize()` is the only place DPR is computed and
+`post.setSize(w, h, dpr)` (`postfx.js`) fans it out to every pass — neither
+should need touching per-pass. `cached()` (`textures.js`) is the only door into
+the bakery. `step(budgetMs)` (`corneria.js:249`) is the only scheduler.
+
+## Done
+
+- **A1–A3.** `QUALITY.pixelRatio` *multiplied* the device ratio instead of
+  capping it, so `high` rendered at DPR 2.5 — 6.25× the pixels — on a frame
+  already measured as fill-bound. Split into `renderScale`, added the panel
+  slider, owner picked 0.95 at quality step 3: **26–40 fps → 49 fps / 20.4 ms.**
+- **A3b–A3d.** Quality collapsed to one dial (pass swatches survive behind Fine
+  knobs as an instrument); hull blur mask hardwired on, being a correctness
+  feature of the motion pass; dev shortcut digits derive from `TOOLS` order.
+- **B2.** `STAGE_FRAMES` 4 → 1, ~155 ms of idle. `stage()` also snaps and redraws
+  after the loop, or the bar fades out at 97% having never shown a full one.
+- **B3.** Inlined `latticeNoise`'s wrap and fade — it was 28% of all boot.
+  **~1050 ms.** The general modulo stays: callers sample at world coordinates.
+- **B4.** Fused five bakers that evaluated the same noise 2–3× per texel.
+  **~545 ms.** Fused rather than cached — a `Float32Array` cache would have
+  rounded the samples and moved the output.
+- **B5 (half of it).** Centreline moved to uniforms and the atmosphere program
+  cache key changed from a counter to a hash of the installed chunk text.
+  Re-applying a preset went +25 programs → +0. **These two must stay together:**
+  the key change makes cross-world program reuse possible, and reuse is only
+  correct because the centreline no longer bakes this world's channel in as
+  literals. Either one alone renders the wrong shoreline, silently.
+- **Texture cache.** Baked textures persist in IndexedDB, so **warm boot ~2140 ms
+  against ~4100 cold**. Guarded twice, and both guards matter: the generator
+  module sources are hashed at startup, and `cached(key, fn)` stores
+  `fn.toString()` (where the call-site params live) beside the bytes.
+  `digest.mjs` always passes `texcache=0` — a tool that proves the generators
+  unchanged must not read their output from a cache. `?texcache=0` disables,
+  `__VULPINE__.clearTexCache()` empties.
+
+## Rejected — do not re-open without new evidence
+
+- **B1. Gating `renderer.debug.checkShaderErrors`.** Moves the driver wait rather
+  than removing it: `getProgramInfoLog` out, `getProgramParameter` in, `(program)`
+  unmoved at 349 ms, boot A/B'd at ~30 ms. three cannot build a uniform map
+  without `getProgramParameter(program, ACTIVE_UNIFORMS)` and *that* is what
+  blocks. Owner has also ruled on the trade: no production build, no players, a
+  failed shader must be loud. With the check off, a broken shader renders wrong
+  in total silence and `shot.mjs` still exits 0 — verified both ways.
+- **B5's premise.** "three's program cache is keyed on shader source" is false.
+  `getProgramCacheKey` (`three.module.js:7768`) pushes `shaderID`, defines,
+  parameters and `customProgramCacheKey` — **not** the patched source. Programs
+  across boot and three hops are **91 → 154 → 156 → 189, identical before and
+  after** uniform-ising the centreline. The growth is new materials for new
+  worlds and transit effects. The `89 → 282` in `ROADMAP.md` is the disposal bug
+  and is *not* this defect; they were filed as one and are not.
+- **`compileAsync`.** Tried and reverted. Estimated ~300 ms; delivered six extra
+  painted frames and one paint gap shortened 388 → 323 ms. Wall time to `ready`
+  unchanged alternated three times, hop's worst frame unchanged. It issues the
+  same GL calls — only the *wait* moves off-thread — and a hop does not stall on
+  linking. Worth redoing only alongside the boot scheduler item, which would give
+  the freed thread something to do.
+- **B7. GPU render-to-texture bakers.** A large rewrite of deterministic seeded
+  code, for work the GPU is idle during anyway. (The other half of this item,
+  caching to IndexedDB, was dismissed here for reasons that were wrong — decode
+  cost does not apply to raw typed arrays — and has since shipped.)

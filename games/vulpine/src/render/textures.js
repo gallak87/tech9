@@ -12,19 +12,46 @@ import { RNG } from '../core/rng.js';
 
 /* ── noise primitives ─────────────────────────────────────────────────────── */
 
-/** Tileable value-noise lattice. Returns a sampler closure over [0,1)². */
+/**
+ * Tileable value-noise lattice. Returns a sampler closure; coordinates are in
+ * lattice cells and may sit anywhere on the real line — `profile.js` samples
+ * these at world coordinates, so the wrap is load-bearing, not decorative.
+ *
+ * The wrap is written out rather than called because this sampler was, at 1573
+ * ms, 28% of the game's entire boot: every texel of every baked texture and
+ * every `groundAt` lookup lands here. Four `wrap()` calls per sample became two
+ * inline reductions — the upper corner is the lower corner plus one, wrapping to
+ * 0 exactly at the edge — and the doubled modulo of `((v % n) + n) % n` became a
+ * conditional add, which is the same value for every integer. Output is
+ * bit-identical by construction, and `tools/digest.mjs --against` is the proof.
+ *
+ * Power-of-two lattices take `& mask` instead, identical to the modulo for any
+ * integer inside ±2³¹. Sizes here top out in the hundreds and sample
+ * coordinates are O(1)–O(100) cells, so `x0` stays orders of magnitude inside
+ * that; a caller sampling at 10⁹ cells would be the thing that broke it.
+ */
 export function latticeNoise(size, rng) {
   const g = new Float32Array(size * size);
   for (let i = 0; i < g.length; i++) g[i] = rng.next();
-  const wrap = (v) => ((v % size) + size) % size;
-  const fade = (t) => t * t * t * (t * (t * 6 - 15) + 10);
+  const mask = size - 1;
+  const pot = (size & mask) === 0;
   return (x, y) => {
     const fx = x * size, fy = y * size;
     const x0 = Math.floor(fx), y0 = Math.floor(fy);
-    const tx = fade(fx - x0), ty = fade(fy - y0);
-    const x0w = wrap(x0), x1w = wrap(x0 + 1), y0w = wrap(y0), y1w = wrap(y0 + 1);
-    const a = g[y0w * size + x0w], b = g[y0w * size + x1w];
-    const c = g[y1w * size + x0w], d = g[y1w * size + x1w];
+    const sx = fx - x0, sy = fy - y0;
+    const tx = sx * sx * sx * (sx * (sx * 6 - 15) + 10);
+    const ty = sy * sy * sy * (sy * (sy * 6 - 15) + 10);
+    let x0w, y0w;
+    if (pot) {
+      x0w = x0 & mask; y0w = y0 & mask;
+    } else {
+      x0w = x0 % size; if (x0w < 0) x0w += size;
+      y0w = y0 % size; if (y0w < 0) y0w += size;
+    }
+    const x1w = x0w + 1 === size ? 0 : x0w + 1;
+    const r0 = (y0w * size), r1 = (y0w + 1 === size ? 0 : y0w + 1) * size;
+    const a = g[r0 + x0w], b = g[r0 + x1w];
+    const c = g[r1 + x0w], d = g[r1 + x1w];
     return (a + (b - a) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
   };
 }

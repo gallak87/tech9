@@ -55,6 +55,15 @@ export class Engine {
       powerPreference: 'high-performance',
       preserveDrawingBuffer: true, // capture harness reads pixels
     });
+    // On, always, and measured — do not "optimise" this again. Switching it off
+    // is what turns a failed shader compile into a wrong frame and an empty
+    // console, and it buys nothing: PLAN-PERF B1 gated it and watched the driver
+    // wait move rather than leave (`getProgramInfoLog` 129 ms out,
+    // `getProgramParameter` 154 ms in, `(program)` unchanged at 349 ms; boot
+    // A/B'd at ~30 ms, under 1%). The block is three asking for ACTIVE_UNIFORMS
+    // to build its uniform map, which it cannot skip for any program you intend
+    // to draw with. Fewer programs (B5) or an async compile (B6) are the levers;
+    // this flag is not one.
     this.renderer.debug.checkShaderErrors = true;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.NoToneMapping;   // OutputPass does ACES

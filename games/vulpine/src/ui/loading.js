@@ -14,7 +14,11 @@ import { text } from './glyphs.js';
 import { C, alpha, gauge, bracket, sat, clamp } from './theme.js';
 import { arwing } from './icons.js';
 
-const STAGE_FRAMES = 4;     // painted frames per stage
+// 1 is the floor, not a tuning preference: the contract above needs one painted
+// frame per stage, and 0 stops the browser compositing for the whole boot. It
+// was 4, which bought a smoother ease and cost ~340 ms of measured idle across
+// the ~10 stages — the work behind the bar is not waiting on anything.
+const STAGE_FRAMES = 1;     // painted frames per stage
 const APPROACH = 0.55;      // per-frame ease toward the stage target
 const FADE_MS = 320;        // cross-fade onto the first live frame
 
@@ -101,7 +105,12 @@ export function createLoader() {
       await raf();
       if (value === target) break;
     }
+    // Snap, then redraw into the frame the *next* stage yields. At one frame per
+    // stage the ease never converges — every stage drew 45% short of its target
+    // and the bar faded out at 97%, having never shown a full one. This costs a
+    // canvas draw, not a frame.
     value = target;
+    draw();
   }
 
   /** Fade onto the first live frames, then leave no node behind. */

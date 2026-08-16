@@ -4,9 +4,13 @@
 outstanding on A3 is the owner picking a render scale by eye. Target is ship
 criterion 3 — 16.6 ms at 1080p `--quality high` on an M1 Pro.
 
-**Phase B opened 2026-08-16** — boot time and the freeze at a transition, which
-are a different problem from frame time and share none of its causes. Measured,
-ranked, nothing started.
+**Phase B opened 2026-08-16. B2 and B3 landed the same day: boot 5549 → ~4375 ms
+headless, −21%, output proved byte-identical. B1 was built, measured and
+rejected** — it moved the driver wait rather than removing it, and the owner
+wants a failed shader loud regardless. Boot time and the freeze at a transition
+are a different problem from frame time and share none of its causes. B3 carried
+the whole win. The hop is untouched: its ~0.5 s of synchronous link is real, B1
+was not the way to it, and it now falls to B5.
 
 ## The finding
 
@@ -112,7 +116,9 @@ and over `forceHop`, from a clean worktree at HEAD, `quality=high`.
 "load" is compute. The GPU is close to idle at boot; the whole cost is
 single-threaded JS plus one synchronous driver wait.
 
-Boot, 5.5 s headless — proportions transfer to real Chrome, absolutes do not:
+Boot, 5.5 s headless — proportions transfer to real Chrome, absolutes do not.
+**This is the pre-B1–B3 baseline, kept as the record of where the time was**;
+re-take it with `bootprof` rather than reading it as current:
 
 | where | ms | % |
 |---|---|---|
@@ -124,7 +130,8 @@ Boot, 5.5 s headless — proportions transfer to real Chrome, absolutes do not:
 
 Inside the bakery it is one call chain: `wrap` (`textures.js:19`) **1549 ms,
 28% of boot on its own**, the lattice sampler at `:21` 750 ms, the fbm
-accumulator at `:52` 357 ms.
+accumulator at `:52` 357 ms. B3 collapsed the first two into one 1318 ms
+sampler; the accumulator, now `textures.js:79`, is untouched and is B4's target.
 
 The hop is a different mix — ~1 s of re-baking the new world's textures
 (`textures.js:52`, 975 ms) plus **~0.5 s of synchronous shader link**
@@ -147,44 +154,74 @@ committed baseline, deliberately: it would go stale the first time a generator
 legitimately changes, and a stale baseline that everyone ignores is worse than
 none.
 
-Ranked by return over effort. B1–B2 are one-liners:
+Ranked by return over effort as first written. What survived contact: B1 was the
+cheapest item and returned nothing, B3 was the real one.
 
-- [ ] **B1. `renderer.debug.checkShaderErrors = false` outside `?dev=1`.**
-      three queries link status synchronously, which blocks until the driver has
-      finished linking. ~0.5 s per hop.
-      **The risk is the reason for the gate, and it is not theoretical:** that
-      query is what turns a broken shader into a console error, and the harness
-      treats any console error as an automatic fail. Switched off globally, a
-      shader that fails to compile renders black *silently* and every probe
-      passes. Keep it on under `?dev=1` and in anything the review harness boots.
-      **Done when:** `bootprof hop` shows `getProgramInfoLog` gone from the table
-      and `(program)` reduced, with `?dev=1` still reporting a deliberately
-      broken shader.
-- [ ] **B2. `STAGE_FRAMES` 4 → 1 (`ui/loading.js:17`).** Four painted frames per
-      stage across ~10 stages is the 458 ms of measured idle; the work is not
-      waiting on anything but the progress bar's easing. ~340 ms.
-      **Watch for:** the loader's own contract, stated at the top of that file —
-      every stage must yield at least one painted frame or the bar snaps 0 → 100
-      and the browser never composites during boot. 1 is the floor, 0 is a bug.
-      **Done when:** `bootprof boot` shows `(idle)` down by ~300 ms and the boot
-      overlay still animates — check a `shot` of the loader, not just the number.
-- [ ] **B3. `wrap()` is the single hottest function in the game's boot.**
-      1553 ms, 27.6%, inside `latticeNoise` (`textures.js:19`). Its general
-      modulo is redundant against the domain every caller passes. A
-      pure-arithmetic rewrite, output byte-identical.
-      **Done when:** `digest --against` says identical **and** `bootprof boot`
-      shows `wrap` materially down. Identical output is not optional here — this
-      function is upstream of every texture and, through `profile.js`, of the
-      terrain geometry too, which is why the perturbation test moved the ridge
-      digests.
+- [~] **B1. Built, measured, rejected. `checkShaderErrors` stays on, always, for
+      everyone.** Do not re-open this — the cost is real but it is not where the
+      item claimed, and the owner has ruled on the trade regardless.
+
+      *Measured.* Gating the check moved the driver wait instead of removing it:
+      `getProgramInfoLog` (129 ms) left the hop table and `getProgramParameter`
+      (154 ms) took its place, with `(program)` **unmoved at 349 → 349 → 351 ms**
+      across three runs. Boot was A/B'd alternating on/off three times to keep
+      machine drift out of it — 4396/4366/4363 against 4377/4339/4309, i.e.
+      **~30 ms, under 1%.** (Taken as two batches instead, the same flag looks
+      worth 350 ms. It isn't. Alternate the arms.) The block is not the error
+      check — three
+      cannot build a uniform map without `getProgramParameter(program,
+      ACTIVE_UNIFORMS)` (`three.module.js:6141`, unconditional), and that is the
+      call that waits. The advice three's own docs give is sound for programs you
+      compile speculatively; every program this game compiles, it immediately
+      draws with. **The ~0.5 s is not recoverable by gating a query** — it goes
+      to B5 (compile fewer programs) or B6 (`compileAsync`, don't block).
+
+      *Ruled.* Owner, 2026-08-16: there is no production build and no players to
+      ship to, and a failed shader must be loud — *"if a shader fails to load, i
+      dont want silence/missing textures, i want it to error."* So the trade B1
+      offered is one this project would decline even if it saved the half second.
+      A conditional was the wrong shape too: any condition that speeds up the
+      number the owner actually feels has to be live on the dev server, which is
+      exactly where losing the check hurts most.
+
+      *Verified, and worth knowing.* A deliberately broken `EXPOSE_FRAG` reports
+      `VALIDATE_STATUS false` with the check on and **produces no console output
+      at all** with it off — the boot completes, `shot.mjs` exits 0, and the frame
+      is wrong in silence. That is what the flag is worth.
+- [x] **B2. `STAGE_FRAMES` 4 → 1. `(idle)` 463 → 308 ms, so ~155 ms**, not the
+      ~340 estimated: three quarters of the frames went, but under half the idle,
+      because a chunk of that 458 ms was rAF waiting on vsync rather than the
+      easing. Loader verified by capture, not by number — it paints every stage,
+      advances (`COMPILING SHADERS` at 75%), and cross-fades at 100%.
+      **One correction was needed.** At one frame per stage the `APPROACH` 0.55
+      ease never converges, so every stage drew 45% short and the bar faded out
+      reading **97%**, having never once shown a full one. `stage()` now snaps to
+      target and draws again after the loop; that redraw lands in the frame the
+      next stage yields, so it costs a canvas draw and not a frame.
+- [x] **B3. `wrap()` is gone, and boot went 5549 → ~4375 ms wall (−21%),**
+      that being the median of six runs in the shipped configuration.
+      The old `wrap` 1573 ms + sampler 738 ms + `fade` 57 ms = 2368 ms became one
+      inlined sampler at **1318 ms — ~1050 ms off boot**, and the noise path went
+      from 28.4% of boot to nothing named.
+      Four `wrap()` calls per sample became two inline reductions (the upper
+      lattice corner is the lower plus one, wrapping to 0 at the edge), the
+      doubled `((v % n) + n) % n` became one `%` plus a conditional add, and
+      power-of-two lattices take `& mask`. The general modulo **stays** — the
+      plan's premise that it was redundant against the caller domain was wrong,
+      `profile.js:271` samples these at world coordinates and needs the wrap.
+      **Proved identical** two ways: 3M random samples across 15 lattice sizes
+      match the old path bit for bit (`Object.is`, so signed zero and NaN count),
+      and `digest --against` reports 0 changed on both `corneria` (276edbb3) and
+      `highlands` (dc1533a8).
 - [ ] **B4. The bakers sample the same noise 2–3× per texel.**
-      `bakeRockMaterial` (`textures.js:321`) evaluates `strata`/`crack`/`grit`
+      `bakeRockMaterial` (`textures.js:348`) evaluates `strata`/`crack`/`grit`
       once for the height field, again for the colour map, again for roughness —
       same coordinate, same result, ~15 octaves a time, at 1024². Sample once
       into a `Float32Array`, read three times. The same shape is in the other
       bakers; `bakeRockMaterial` is the one measured.
-      **Done when:** `digest --against` says identical and `textures.js:52`
-      (the fbm accumulator) is materially down in `bootprof boot`.
+      **Done when:** `digest --against` says identical and `textures.js:79`
+      (the fbm accumulator, `fbm2D`'s inner loop) is materially down in
+      `bootprof boot` — it is 491 ms of the hop and 372 ms of boot today.
 - [ ] **B5. The generated GLSL bakes DNA in as literals.** `GLSL_CENTRELINE()`
       (`world-materials.js:419`) emits the wave and bend terms as inline numbers,
       so every world has different shader source and three's program cache — keyed
@@ -221,6 +258,11 @@ Ranked by return over effort. B1–B2 are one-liners:
 - **Never call `env.apply()` between arms.** It bakes a PMREM whose spike
   outlives the settle window, and `engine.avgFrameMs` is a 45-frame EMA that
   carries it. A pass that did this reported every *disabled* pass as costing time.
+- **Alternate the arms; never compare batch to batch.** Boot times drift with
+  whatever else the machine is doing — B1 measured as a 350 ms win taken as
+  "six runs before, six runs after", and as ~30 ms taken as on/off/on/off/on/off.
+  The second is the true one. This is the same failure as timing two arms in
+  different sessions, which is why A1's DPR ratio is directional only.
 - **Never compare a headless number to a real-Chrome one.** Headless runs at
   `devicePixelRatio` 1, so every absolute in `ROADMAP.md`'s per-pass table is
   3.24 MP against the owner's 12.96 MP. The splits are valid; the milliseconds

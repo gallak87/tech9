@@ -299,12 +299,22 @@ export const PRESETS = {
    three composes built-in material uniforms at import time and there is no seam
    to add new ones. Presets change roughly never, so the recompile is free; the
    cache-key hook below is what stops three handing back a stale program.     */
-let _atmVersion = 0;
+let _atmKey = '0';
 let _cacheKeyPatched = false;
 
 function f(v) {
   const s = Number(v).toFixed(6);
   return s.includes('.') ? s : s + '.0';
+}
+
+/** FNV-1a over the installed chunk text. Short, stable, and not a checksum. */
+function hash(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(36);
 }
 
 function installAtmosphere(preset, sunDir) {
@@ -319,11 +329,10 @@ function installAtmosphere(preset, sunDir) {
     // program. This is the documented extension point for exactly that.
     const base = THREE.Material.prototype.customProgramCacheKey;
     THREE.Material.prototype.customProgramCacheKey = function () {
-      return base.call(this) + '|atm' + _atmVersion;
+      return base.call(this) + '|atm' + _atmKey;
     };
     _cacheKeyPatched = true;
   }
-  _atmVersion++;
 
   THREE.ShaderChunk.fog_pars_vertex = /* glsl */`
 #ifdef USE_FOG
@@ -394,6 +403,17 @@ function installAtmosphere(preset, sunDir) {
   }
 #endif
 `;
+
+  // Key the cache off what was actually installed, not off how many times this
+  // ran. A counter makes every `apply()` a cache miss for every material in the
+  // scene, which is most of the hop's compile stall — re-applying the *same*
+  // preset, or hopping between two levels that share one, recompiled the world
+  // for no reason. Hashing the chunk text means a program is reused exactly
+  // when the shader it came from is unchanged, which is the actual rule.
+  _atmKey = hash(
+    THREE.ShaderChunk.fog_pars_vertex + THREE.ShaderChunk.fog_vertex
+    + THREE.ShaderChunk.fog_pars_fragment + THREE.ShaderChunk.fog_fragment,
+  );
 }
 
 export class Environment {

@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import { RNG } from '../core/rng.js';
 import { fbm2D, ridged2D, worley2D, cached } from '../render/textures.js';
-import { WORLD, DNA, centrelineX, terrainHeight, profileAt, heightAtU } from './profile.js';
+import {
+  WORLD, DNA, centrelineX, terrainHeight, profileAt, heightAtU,
+  centrelineUniforms, MAXW, MAXB,
+} from './profile.js';
 import { DEFAULTS } from './dna.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -423,35 +426,70 @@ const GLSL_HORIZON = () => /* glsl */`
 // A dog-leg is `1 - smoothstep(zc-hw, zc+hw, z)` here and `smoothstep(zc+hw,
 // zc-hw, z)` in JS: GLSL's smoothstep is undefined for edge0 > edge1, and the
 // two forms are algebraically the same cubic.
+// Declared once per shader stage, whichever chunk gets there first. Both
+// `centrelineX` and `centrelineDX` need these and a stage can include either or
+// both, so the guard is what keeps the pair composable in any order.
+const GLSL_CENTRELINE_UNIFORMS = /* glsl */`
+  #ifndef CENTRELINE_UNIFORMS
+  #define CENTRELINE_UNIFORMS
+  uniform vec3 uCxWave[${MAXW}];       // (frequency, phase, amplitude)
+  uniform vec3 uCxBend[${MAXB}];       // (edge0, edge1, dx)
+  uniform int uCxNWave;
+  uniform int uCxNBend;
+  #endif
+`;
+
 export function GLSL_CENTRELINE() {
-  const x = DNA.centreline.x;
-  const terms = x.waves.map(w => `sin(t * ${gf(w.w)}${w.p ? ` + ${gf(w.p)}` : ''}) * ${gf(w.a)}`);
-  for (const b of x.bends || []) {
-    terms.push(`(1.0 - smoothstep(${gf(b.z - b.width * 0.5)}, ${gf(b.z + b.width * 0.5)}, z)) * ${gf(b.dx)}`);
-  }
   return /* glsl */`
+  ${GLSL_CENTRELINE_UNIFORMS}
   float centrelineX(float z) {
     float t = -z;
-    return ${terms.join('\n         + ') || '0.0'};
+    float s = 0.0;
+    for (int i = 0; i < ${MAXW}; i++) {
+      if (i >= uCxNWave) break;
+      s += sin(t * uCxWave[i].x + uCxWave[i].y) * uCxWave[i].z;
+    }
+    for (int i = 0; i < ${MAXB}; i++) {
+      if (i >= uCxNBend) break;
+      s += (1.0 - smoothstep(uCxBend[i].x, uCxBend[i].y, z)) * uCxBend[i].z;
+    }
+    return s;
   }
 `;
 }
 
 function GLSL_CENTRELINE_DX() {
-  const x = DNA.centreline.x;
-  const waves = x.waves.map(w =>
-    `cos(t * ${gf(w.w)}${w.p ? ` + ${gf(w.p)}` : ''}) * ${gf(w.a)} * ${gf(w.w)}`);
-  let body = `    float t = -z;\n    float d = -(${waves.join('\n           + ') || '0.0'});\n`;
-  for (const b of x.bends || []) {
-    const e0 = gf(b.z - b.width * 0.5), w = gf(b.width);
-    body += `    { float bt = clamp((z - ${e0}) / ${w}, 0.0, 1.0);
-      d -= ${gf(b.dx)} * 6.0 * bt * (1.0 - bt) / ${w}; }\n`;
-  }
   return /* glsl */`
+  ${GLSL_CENTRELINE_UNIFORMS}
   float centrelineDX(float z) {
-${body}    return d;
+    float t = -z;
+    float d = 0.0;
+    for (int i = 0; i < ${MAXW}; i++) {
+      if (i >= uCxNWave) break;
+      d -= cos(t * uCxWave[i].x + uCxWave[i].y) * uCxWave[i].z * uCxWave[i].x;
+    }
+    for (int i = 0; i < ${MAXB}; i++) {
+      if (i >= uCxNBend) break;
+      // The bend's width is the gap between its own edges — no extra uniform.
+      float w = uCxBend[i].y - uCxBend[i].x;
+      float bt = clamp((z - uCxBend[i].x) / w, 0.0, 1.0);
+      d -= uCxBend[i].z * 6.0 * bt * (1.0 - bt) / w;
+    }
+    return d;
   }
 `;
+}
+
+/**
+ * Feed the centreline uniforms into a patched built-in material. Every shader
+ * that includes either centreline chunk needs this in its `onBeforeCompile`.
+ */
+function centrelineInto(sh) {
+  const c = centrelineUniforms();
+  sh.uniforms.uCxWave = { value: c.wave };
+  sh.uniforms.uCxBend = { value: c.bend };
+  sh.uniforms.uCxNWave = { value: c.nWave };
+  sh.uniforms.uCxNBend = { value: c.nBend };
 }
 
 const GLSL_SHORE = /* glsl */`
@@ -707,6 +745,7 @@ export function terrainMaterial() {
   m.defines = { TERR_DBG: { sun: 1, sky: 2, cav: 3 }[new URLSearchParams(location.search).get('terrdbg')] || 0 };
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uScale = { value: 0.112 };
+    centrelineInto(sh);
     const hz = horizonField();
     sh.uniforms.uHorizA = { value: hz.a };
     sh.uniforms.uHorizB = { value: hz.b };
@@ -1040,6 +1079,7 @@ export function waterMaterial(reflection = null) {
   m.defines = { WATER_REFL: reflection ? 1 : 0 };
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uTime = { value: 0 };
+    centrelineInto(sh);
     sh.uniforms.uShore = { value: shoreField() };
     sh.uniforms.uShoreCfg = { value: new THREE.Vector3(SHORE.halfU, SHORE.z0, SHORE.zLen) };
     sh.uniforms.uFoamTex = { value: foamMap() };

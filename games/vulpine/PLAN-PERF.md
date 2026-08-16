@@ -227,7 +227,49 @@ cheapest item and returned nothing, B3 was the real one.
       the shape: `fn` fills the RGBA texel and *returns* the height. Interleaving
       is safe because the samplers are pure — their RNG is consumed at
       construction, not at sample.
-- [ ] **B5. The generated GLSL bakes DNA in as literals.** `GLSL_CENTRELINE()`
+- [~] **B5. Built. The premise is wrong, and the program count did not move.**
+      Both halves landed and both are worth keeping, but neither buys what this
+      item promised. Read this before opening B6 — the same reasoning applies.
+
+      *The premise.* "three's program cache — keyed on source — can never hit
+      across a hop" is not how three works. `getProgramCacheKey`
+      (`three.module.js:7768`) pushes `shaderID`, defines, parameters and
+      `customProgramCacheKey` — **the patched source is not in the key.** For a
+      built-in material, per-world GLSL literals cause no cache miss at all. The
+      thing that was forcing the recompile is `installAtmosphere` bumping a
+      counter into `customProgramCacheKey` on every `env.apply()`.
+
+      *Measured, and this is the number that settles it.* Programs across boot
+      and three consecutive hops: **91 → 154 → 156 → 189, byte for byte the same
+      before and after the change.** The growth is new materials for new worlds
+      and for the transit/space effects, not shader text. The `89 → 282` in
+      `ROADMAP.md` is a disposal problem and is *not* this defect; the two were
+      filed as one and are not.
+
+      *What did land, and why to keep it.* (1) The centreline is uniforms —
+      `uCxWave`/`uCxBend` sized by `MAXW`/`MAXB` from `profile.js`, fed by
+      `centrelineUniforms()` off the same packed arrays `centrelineX` reads, so
+      the twin cannot drift. One GLSL text for every world. (2) The atmosphere
+      cache key is a hash of the installed chunk text rather than a counter, so
+      re-applying a preset is free: **+0 programs against +25 before.**
+      **They ship together and must stay together.** The key change is what
+      makes cross-world program reuse *possible*, and reuse is only *correct*
+      because the centreline no longer carries this world's numbers as literals.
+      Content-key alone would hand a new world a program with the previous
+      world's channel baked in — the wrong shoreline, silently. Reverting one
+      without the other reintroduces exactly that.
+
+      *Costs nothing.* Shoreline unchanged in a fixed `shot`; frame time A/B'd
+      alternating three times at 4.4/4.4/4.5 against 4.5/4.5/4.5 ms, so the
+      per-fragment loop is free at headless resolution.
+
+      *What would actually cut the hop's compile:* the atmosphere is still
+      per-preset literals in a global `ShaderChunk`, so any hop that changes
+      preset recompiles every fogged material (+25). Uniform-ising *that* is the
+      real item, and it is hard for the reason `environment.js:296` already
+      states — the patch lands in a chunk shared by materials that have no
+      `onBeforeCompile` seam to receive uniforms through.
+- [ ] **B5 (original text). The generated GLSL bakes DNA in as literals.** `GLSL_CENTRELINE()`
       (`world-materials.js:419`) emits the wave and bend terms as inline numbers,
       so every world has different shader source and three's program cache — keyed
       on source — can never hit across a hop. This is simultaneously the per-hop

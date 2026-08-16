@@ -77,8 +77,8 @@ const lerp = (a, b, t) => a + (b - a) * t;
 /* ── unpacked DNA ─────────────────────────────────────────────────────────── */
 // Everything a height sample touches lives here as a scalar or a typed array.
 
-const MAXW = 6;                       // sine terms per centreline axis
-const MAXB = 6;                       // dog-legs
+export const MAXW = 6;                // sine terms per centreline axis
+export const MAXB = 6;                // dog-legs
 
 let SP_A = 6, SP_G = 280;
 
@@ -134,6 +134,30 @@ function bendDS(z, i, lo, hi) {
   const w = hi[i] - lo[i];
   const t = clamp((z - lo[i]) / w, 0, 1);
   return 6 * t * (1 - t) / w;
+}
+
+/**
+ * The x centreline as the shader wants it: fixed-length arrays sized by
+ * MAXW/MAXB plus a live count, so `world-materials.js` can emit one GLSL text
+ * for every world instead of baking this world's numbers in as literals.
+ *
+ * Edge order is GLSL's, `smoothstep(z - hw, z + hw, z)` — the opposite of the
+ * inverted pair `bendS` uses above, because GLSL's smoothstep is undefined for
+ * edge0 > edge1 and the two forms are the same cubic.
+ *
+ * Fed straight from the same packed arrays `centrelineX` reads, so the shader
+ * twin cannot drift from this module: there is no second copy of the numbers.
+ */
+export function centrelineUniforms() {
+  const wave = new Float32Array(MAXW * 3);
+  const bend = new Float32Array(MAXB * 3);
+  for (let i = 0; i < cxN; i++) {
+    wave[i * 3] = cxW[i]; wave[i * 3 + 1] = cxP[i]; wave[i * 3 + 2] = cxA[i];
+  }
+  for (let i = 0; i < cbN; i++) {
+    bend[i * 3] = cbHi[i]; bend[i * 3 + 1] = cbLo[i]; bend[i * 3 + 2] = cbD[i];
+  }
+  return { wave, bend, nWave: cxN, nBend: cbN };
 }
 
 export function centrelineX(z) {

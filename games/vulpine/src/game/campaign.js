@@ -57,6 +57,9 @@ const HOPS = {
       ascent: 'LEAVING ATMOSPHERE', space: 'ORBITAL TRANSIT',
       approach: 'APPROACH', reentry: 'RE-ENTRY',
     },
+    // Read instead when the world being left has no body, and so no atmosphere
+    // to leave.
+    vacuumLabel: { ascent: 'DEPARTING SECTOR' },
   },
   overland: {
     // **climb is 0 and that is the point.** The first attempt at this reused a
@@ -75,6 +78,9 @@ const HOPS = {
     transit: { runin: null, whiteout: ['whiteout', null], clear: ['clear', null] },
   },
 };
+
+/** A `field` world is a belt: no globe to grow in the frame, arriving or leaving. */
+const hasBody = (dnaId) => (DNA_BY_ID[dnaId].backend ?? 'terrain') !== 'field';
 
 // Hard ceiling on the victory lap, in case the rail never reaches `zEnd` —
 // killing the carrier early with the dev tool leaves several km to fly, and a
@@ -258,10 +264,11 @@ export function installCampaign(ctx, startIndex = 0) {
     if (!to) return;                         // last level: the win card stands
     state.phase = hop().order[0];
     state.t = 0;
-    // A belt has no body to arrive at, so the approach must not grow a planet
-    // out of the star field and then not be there.
+    // A belt has no body to arrive at or lift off from, so neither the approach
+    // nor the ascent may grow a planet out of the star field.
     ctx.fx.transit?.enter(level().env, to.env, {
-      destBody: (DNA_BY_ID[to.dna].backend ?? 'terrain') !== 'field',
+      destBody: hasBody(to.dna),
+      originBody: hasBody(level().dna),
     });
     // Clearing the outcome fades the MISSION COMPLETE card back out; it has had
     // the whole victory lap on screen by now. The final level never gets here,
@@ -351,7 +358,7 @@ export function installCampaign(ctx, startIndex = 0) {
 
     state.hud = {
       phase: state.phase,
-      label: H.label[state.phase],
+      label: (!hasBody(level().dna) && H.vacuumLabel?.[state.phase]) || H.label[state.phase],
       to: next()?.brief ?? '',
       // The bar tracks the whole hop, not the mesh job: the player is being told
       // how long this lasts, and the mesh finishes long before the sequence does.

@@ -2,7 +2,8 @@
 
 **Status:** playable end-to-end, alpha. Phases 0–7 done. Phase 8 (encounter feel
 + legibility) still open but **no longer the active lane**. **Four levels, three
-backends, every one of them finishable**, as of 2026-08-15. Branch
+backends, every one of them finishable**, as of 2026-08-15 — and the campaign
+flies 1 → 4 in one session, measured 2026-08-16 (`## Campaign audit`). Branch
 `g/fox64-dna`.
 
 **The level lane is closed — see `## Settled`.** Its conclusion, 2026-08-15,
@@ -93,10 +94,67 @@ register, swept collision.
 picks what is next.
 
 **How a level is loaded, for anything that needs to look at one:**
-`?level=corneria|highlands|omega` boots straight into it — its world *and* its
-wave tables. `tools/shot.mjs --params "level=omega" --env space`; the harness
-always appends its own `env`, so a level's preset must be passed explicitly.
+`?level=corneria|highlands|omega|foundry` boots straight into it — its world
+*and* its wave tables. `tools/shot.mjs --params "level=omega" --env space`; the
+harness always appends its own `env`, so a level's preset must be passed
+explicitly.
 
+## Campaign audit — 2026-08-16
+
+One session, all four levels: every boss killed through `bossDie()`, every hop
+flown in real time, `renderer.info` sampled at each arrival. What was checked and
+what it answered, so none of it is re-derived:
+
+**Clean.** Four levels boot with zero console errors. Three bosses spawn, publish
+`state.bossHealth` and set `outcome='win'`: `ICE COMMANDER`
+(`damperR`/`damperL`/`spine`), `VOID FLAGSHIP` (`bridge`/`ventR`/`ventL`),
+`GARGANTUA` in the Foundry (8 parts). All three hops arrive on the right level —
+`runin→whiteout→clear` overland, `ascent→space→approach→reentry` twice — with the
+sim never paused on any sample, the terrain never visible mid-rebuild, the rail
+reset, the wave tables swapped and the arrival comm fired.
+
+Open, in the order they cost the player something:
+
+- [ ] **`PLANET_FOR.foundry = 'venom'` is a placeholder.** The body you dive into
+      for level 4 is Venom's palette. Cheap to author, and it is the only art in
+      the sequence that is not the destination's own.
+- [ ] **The Foundry's finale is the Corneria carrier.** Known when it landed. It
+      is the only capital hull built, and the level that closes the game is the
+      one place a reused boss is most visible.
+- [ ] **Levels 2–4 have `grants: []`.** All three new bosses are fought at
+      whatever tier Corneria left you on, and no difficulty pass has been run
+      across the four. `?wpn=N` is the arm to measure with.
+- [ ] **Stale, `game/campaign.js`:** the Sector Omega note says a battery there
+      would be placed at `-Infinity`. `corneria.js:311` gives a `field` world a
+      shelf at `centrelineY - FIELD_FLOOR` now, so it would float 163 m under the
+      rail instead of vanishing. Still no bulwarks in Omega; different reason.
+
+- [x] **A planet limb rose out of the belt when you left Sector Omega. Fixed
+      2026-08-16.** `fx/transit.js` had `destBody` and no matching `originBody`,
+      so `driveAscent` ramped the origin body in from t=0.50 unconditionally at
+      1.25 rad angular radius, direction `[0.10, -0.95, 0.28]` — straight down,
+      which is exactly where the belt is, and `PLANET_FOR.space = 'venom'`, so it
+      was brown. `originBody` now gates every non-zero `origin.setOpacity`, and
+      `campaign.js:begin()` derives it from `level().dna` by the same test that
+      already gave `destBody` from `to.dna`. Max origin opacity per phase,
+      measured: highlands → omega `ascent`/`space`/`approach` 1.00 (unchanged),
+      omega → foundry 0.00 in all four. The banner is picked the same way —
+      `HOPS.orbital.vacuumLabel` reads DEPARTING SECTOR over a departure from a
+      world with no atmosphere to leave.
+      **The re-entry cloud deck into the Foundry was checked and deliberately
+      left alone.** `driveReentry` drives the deck from `camera.y + 2600` to
+      `camera.y - 900`, so it is above the camera only while t < 0.80, where the
+      wash is still at heat ≥ 0.45 and covers the frame; from t = 0.80 it is
+      below the camera and the shader's ray-plane test drops it, and it stays
+      ~900 m under a deck the ship flies at ~50 m. Filmed at t = 0.45 / 0.62 /
+      0.72 / 0.76 / 0.83 / 0.92 / 0.99 and 0.6 s and 2.0 s after arrival: no
+      deck in any frame. Gating it would change no pixel.
+- [x] **The final win card named the wrong planet. Fixed 2026-08-16.**
+      `ui/outcome.js` hardcoded `'CORNERIA IS SAFE'`, which stood over the last
+      level's card and over every mid-campaign victory lap. It reads
+      `s.campaign?.level?.name` now — the same guarded reach `ui/index.js`
+      already uses for `campaign.hud` — and falls back to CORNERIA when no
+      campaign is installed. The Foundry's card reads THE FOUNDRY IS SAFE.
 - [x] **Perf.** `QUALITY.pixelRatio` multiplied the device ratio instead of
       capping it, so `high` rendered at DPR 2.5 — 6.25x the pixels on a
       fill-bound frame. Split into a clamped device DPR and a separate
@@ -132,17 +190,19 @@ chain, motion blur — are all shipped; they and their reasoning are in
       enter from zero. Cheap, but it changes wall feel, so re-measure per-tick
       acceleration (the held-stick probe pattern) and re-check the box corners.
 
-- [ ] **The commander is not wired as a boss. LOWEST PRIORITY** (owner,
-      2026-08-15). `commander:ice` closes Fichina
-      through the ordinary enemy path: it fights, but there is no health bar, no
-      station-keeping and killing it does not set `outcome`, so Fichina cannot yet
-      hand off to a level 3. `enemies.js` exposes an `api.parts` conforming to
-      `boss.js` plus `killPart`/`progress`; `COMMANDER.station` is a drop-in for
-      `TUNE.boss`. This is the next task.
+- [x] **The commander is wired as a boss. Done 2026-08-15** in `7de4842`, and
+      re-verified end to end 2026-08-16 — see `## Campaign audit`. Both
+      commanders route through `spawnBoss`, publish the health bar and end the
+      mission. The box was left unticked by the commit that closed it.
 
-- [ ] **A rebuild leaks shader programs, 93 → 133, and does not give them back.**
+- [ ] **A rebuild leaks shader programs, and across a full campaign it is 3.2x.**
       `material.dispose()` drops the refcount but `renderer.compile()` re-creates
-      programs for the whole scene. Harmless across one hop; unknown across four.
+      programs for the whole scene. Measured 2026-08-16, one session, four levels:
+      **89 → 154 → 216 → 282**, ~64 per hop and none given back. Geometries
+      (314 → 303), textures (35 → 44) and JS heap (146 → 150 MB) are all flat over
+      the same run, so this is programs alone — nothing else is leaking. It is
+      also the standing suspect for the ~190 ms re-entry frame below, which
+      geometry upload and the program fix have both already been ruled out for.
 
 - [x] **The transition froze for 3.7 s on arrival. Fixed 2026-08-15.** The old
       note here said the rebuild's last job was "a 279 ms single-frame spike
@@ -167,7 +227,15 @@ chain, motion blur — are all shipped; they and their reasoning are in
 
 - [ ] **The transition is still slightly jittery** (owner, 2026-08-15: "def
       better, still slightly jittery but worlds better"). Two measured causes
-      left, neither chased:
+      left, neither chased — and a third, below, which is the worst of them:
+      - **The overland hop's spike is ~2x the orbital one and had never been
+        measured.** Corneria → Highlands became overland *after* the table below
+        was taken, so the numbers in it are all from a hop Corneria no longer
+        flies. Per-phase worst frame, 2026-08-16, `quality=low` headless at
+        800x450: **`whiteout` 556 ms**, `clear` 60, `runin` 21. The orbital hops
+        in the same run: `space` 347 / 92 ms, `reentry` 187 / 182 ms. Same
+        `startRebuild()` dispose, landing in `whiteout` instead of `space` — and
+        `whiteout` is 5.0 s of full-cover wash, so there is room to budget it.
       - **A 283 ms frame at the ascent→space boundary.** That is
         `startRebuild()`: `world.rebuild()` disposes the old terrain, water,
         materials and baked fields synchronously before returning the job queue.
@@ -369,9 +437,11 @@ carrier does not have.
 
 ### Levels and worlds — closed 2026-08-15
 
-Three levels across two planets: **Corneria** (lowland river), **Corneria
-Highlands** (the ice cap it drains from, reached overland), and **Sector Omega**
-(an asteroid belt, reached by the campaign's one orbital hop).
+Four levels across three worlds: **Corneria** (lowland river), **Corneria
+Highlands** (the ice cap it drains from, reached overland), **Sector Omega** (an
+asteroid belt), and **The Foundry** (above), the last two reached by orbital
+hops. Written when there were three; the finding below is what the third one
+bought and it is unchanged by the fourth.
 
 **The finding, which cost three rounds to get and is the reason this is closed.**
 The terrain generator has exactly one composition in it — ground below, walls

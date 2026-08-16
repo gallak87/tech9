@@ -29,7 +29,9 @@ export class OutcomeCard {
     const win = this.outcome === 'win';
     const col = win ? C.green : C.red;
     const title = win ? 'MISSION COMPLETE' : 'GAME OVER';
-    const sub = win ? 'CORNERIA IS SAFE' : 'FOX MCCLOUD WAS LOST';
+    // The card stands over every victory lap, not only the last one, so the
+    // planet is the level being flown. A boot with no campaign is level 1.
+    const sub = win ? `${s.campaign?.level?.name || 'CORNERIA'} IS SAFE` : 'FOX MCCLOUD WAS LOST';
 
     const reveal = ease(sat(this.t / 1.1));
     const a = this.shown;

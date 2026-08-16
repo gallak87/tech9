@@ -87,7 +87,7 @@ export function installTransit(ctx, hooks = {}) {
 
     origin.setDirection(...ORIGIN_DIR[0]);
     origin.setAngularRadius(lerp(1.25, 1.16, t));
-    origin.setOpacity(clamp01((t - 0.50) / 0.34));
+    origin.setOpacity(st.originBody ? clamp01((t - 0.50) / 0.34) : 0);
     dest.setOpacity(0);
     st.heat = 0;
     st.buffet = 0.10 * (1 - t);
@@ -102,7 +102,7 @@ export function installTransit(ctx, hooks = {}) {
     _v.copy(_dirA).lerp(_dirB, ease(t)).normalize();
     origin.setDirection(_v.x, _v.y, _v.z);
     origin.setAngularRadius(lerp(1.16, 0.92, ease(t)));
-    origin.setOpacity(1);
+    origin.setOpacity(st.originBody ? 1 : 0);
 
     dest.setDirection(...DEST_DIR);
     dest.setAngularRadius(glerp(0.0032, 0.0075, clamp01((t - 0.30) / 0.70)));
@@ -120,7 +120,7 @@ export function installTransit(ctx, hooks = {}) {
     _v.copy(_dirA).lerp(_dirB, ease(t)).normalize();
     origin.setDirection(_v.x, _v.y, _v.z);
     origin.setAngularRadius(lerp(0.92, 0.30, ease(t)));
-    origin.setOpacity(1);
+    origin.setOpacity(st.originBody ? 1 : 0);
 
     dest.setDirection(...DEST_DIR);
     dest.setAngularRadius(glerp(0.0075, 0.30, t));
@@ -143,7 +143,7 @@ export function installTransit(ctx, hooks = {}) {
     }
     env.setStars(1 - ease(clamp01((t - 0.10) / 0.45)));
 
-    origin.setOpacity(clamp01(1 - t * 3.2));
+    origin.setOpacity(st.originBody ? clamp01(1 - t * 3.2) : 0);
     dest.setDirection(...DEST_DIR);
     dest.setAngularRadius(glerp(0.30, 1.25, clamp01(t / 0.55)));
     // The body stops being scenery and becomes the world once the deck is in
@@ -216,7 +216,7 @@ export function installTransit(ctx, hooks = {}) {
    * does no allocation, no bake and no rebuild, so it is safe to call on the
    * frame the boss dies.
    */
-  function enter(fromPreset = null, toPreset = 'fichina', { destBody = true } = {}) {
+  function enter(fromPreset = null, toPreset = 'fichina', { destBody = true, originBody = true } = {}) {
     st.from = fromPreset || env.presetName;
     st.to = toPreset;
     st.active = true;
@@ -224,8 +224,11 @@ export function installTransit(ctx, hooks = {}) {
     st.phase = 'ascent';
     st.t = 0;
     // A destination with no body to arrive at — a belt — must not grow a planet
-    // out of the star field on approach and then not be there.
+    // out of the star field on approach and then not be there. `originBody` is
+    // the same constraint on the world being left: the body swings in below the
+    // frame, which is where a belt already is.
     st.destBody = destBody;
+    st.originBody = originBody;
     washTone(false);
     origin.setPalette(PLANET_FOR[st.from] || 'corneria');
     dest.setPalette(PLANET_FOR[st.to] || 'fichina');

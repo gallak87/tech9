@@ -88,8 +88,8 @@ In-page: `__VULPINE__.probe()` (healthy daylight: median 0.10–0.20, p90 < 1.5,
 clippedPct < 4, blackPct < 12), `.stats()`, `.post({exposure})`, `.setShot()`,
 `.seek()`, `.step()`, `.hudVisible()`, `.engine.setPixelRatio()`.
 
-URL params: `?level=corneria|highlands|omega` (boots a level's world AND its
-wave tables), `?exposure= ?nopost=1 ?bloom=0 ?hud=1 ?fight=1 ?env= ?wpn=N
+URL params: `?level=corneria|highlands|omega|foundry` (boots a level's world AND
+its wave tables), `?exposure= ?nopost=1 ?bloom=0 ?hud=1 ?fight=1 ?env= ?wpn=N
 ?grants=0 ?railyaw= ?dev=1`. `shot.mjs` always appends its own `env`, so a
 level's preset must be passed explicitly: `--params "level=omega" --env space`. **`?fight=1` drives trigger and lock from the sim
 clock** — without it every review frame has cold guns.

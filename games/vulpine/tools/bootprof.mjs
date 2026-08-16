@@ -39,6 +39,7 @@ const PORT = parseInt(arg('port', '5470'), 10);
 const QUALITY = arg('quality', 'high');
 const LEVEL = arg('level', 'corneria');
 const ENV = arg('env', null);
+const WARM = arg('warm', false) === true;
 const TOP = parseInt(arg('top', '26'), 10);
 // 150 µs. Finer than this and the sampler's own cost shows up in the table.
 const INTERVAL = parseInt(arg('interval', '150'), 10);
@@ -71,12 +72,24 @@ const cdp = await page.context().newCDPSession(page);
 await cdp.send('Profiler.enable');
 await cdp.send('Profiler.setSamplingInterval', { interval: INTERVAL });
 
+// Cold by default: a headless launch gets an empty profile, so every run would
+// be a first visit anyway, and every boot number recorded in PLAN-PERF was taken
+// with the bakers actually running. `--warm` measures the other case — it boots
+// once to fill the texture cache, waits for the write, and profiles a reload.
 const url = `${base}/?quality=${QUALITY}&hud=1&level=${LEVEL}${ENV ? `&env=${ENV}` : ''}`
+  + `&texcache=${WARM ? 1 : 0}`
   + (WHICH === 'hop' ? '&t=0.1' : '');
 const ready = () => page.waitForFunction(
   () => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 180000, polling: 100 });
 
 let wall;
+if (WARM) {
+  // Fill the cache, and wait for the write to land — profiling a reload against
+  // a half-written store measures neither arm.
+  await page.goto(url, { waitUntil: 'load', timeout: 120000 });
+  await ready();
+  await page.waitForFunction(() => window.__VULPINE__.cacheWrote >= 0, null, { timeout: 60000, polling: 100 });
+}
 if (WHICH === 'boot') {
   await cdp.send('Profiler.start');
   const t0 = Date.now();

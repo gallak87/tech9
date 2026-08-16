@@ -69,7 +69,11 @@ const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', e => errors.push(String(e.message)));
 
-await page.goto(`${base}/?quality=${QUALITY}&level=${LEVEL}&hud=0&t=0.1`, { waitUntil: 'load', timeout: 120000 });
+// `texcache=0` is not optional. This tool exists to prove the generators still
+// produce the same bytes; reading those bytes out of a cache instead of running
+// them would make it report "identical" across exactly the change it is here to
+// catch.
+await page.goto(`${base}/?quality=${QUALITY}&level=${LEVEL}&hud=0&t=0.1&texcache=0`, { waitUntil: 'load', timeout: 120000 });
 await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 180000, polling: 100 });
 await page.waitForFunction(() => window.__VULPINE__.world.buildProgress >= 1, null, { timeout: 180000, polling: 100 });
 

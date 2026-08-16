@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Engine } from './core/engine.js';
 import { Input } from './core/input.js';
 import { buildMaterials } from './render/materials.js';
+import { primeTextureCache, flushTextureCache, clearTextureCache } from './render/texcache.js';
 import { Environment } from './render/environment.js';
 import { Corneria, DNA_BY_ID } from './world/corneria.js';
 import { createArwing } from './ships/arwing.js';
@@ -46,6 +47,12 @@ if (!Number.isNaN(railYawParam)) FLIGHT_TUNE.railYawFollow = railYawParam;
 
 const loader = createLoader();
 await loader.stage('SPINNING UP RENDERER', 0.01);
+
+// Before the first `cached()` call, because that is synchronous and everything
+// downstream of it — the world builder's job closures especially — has no way to
+// await anything. `?texcache=0` bakes from scratch; `tools/digest.mjs` always
+// passes it, since proving the generators unchanged means running them.
+await primeTextureCache({ enabled: params.get('texcache') !== '0' });
 
 const engine = new Engine({ quality: qualityParam });
 await loader.stage('BAKING SURFACE MATERIALS', 0.18);
@@ -219,6 +226,14 @@ const api = {
   get combat() { return ctx.combat; },
   get state() { return ctx.state; },
   ready: false,
+  // -1 until the texture cache has finished writing. `bootprof --warm` waits on
+  // this before reloading, or it would measure a half-written cache.
+  cacheWrote: -1,
+  // The manual escape hatch, for when a boot looks wrong and you want to rule
+  // the cache out: `__VULPINE__.clearTexCache()`, then reload. The source stamp
+  // should make this unnecessary — if you ever need it, that is a bug worth
+  // reporting rather than working around.
+  clearTexCache: () => clearTextureCache(),
   get shots() { return Object.keys(SHOTS); },
   pause() { running = false; },
   resume() { running = true; },
@@ -310,7 +325,15 @@ await loader.finish();
 // screenshots a half-compiled pipeline.
 let readyFrames = 0;
 const readyTick = () => {
-  if (++readyFrames >= 5) { api.ready = true; document.body.dataset.ready = '1'; return; }
+  if (++readyFrames >= 5) {
+    api.ready = true;
+    document.body.dataset.ready = '1';
+    // After ready, never during boot: writing ~25 MB is a structured clone of
+    // the very thing being optimised. A hop that bakes a new world's sets adds
+    // to the same queue and the next flush takes them too.
+    flushTextureCache().then((n) => { api.cacheWrote = n; });
+    return;
+  }
   requestAnimationFrame(readyTick);
 };
 requestAnimationFrame(readyTick);

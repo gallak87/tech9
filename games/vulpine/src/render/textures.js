@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RNG } from '../core/rng.js';
+import { takeCached, offerCached, capture } from './texcache.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Procedural texture bakery. Everything the game renders is generated here at
@@ -515,9 +516,25 @@ function smooth01(x, a, b) {
 }
 
 /* ── one-shot cache so bakers run once per boot ───────────────────────────── */
+//
+// Two tiers. The Map is this session; `texcache.js` is the last one, held in
+// IndexedDB, and only answers if the generator sources and this call site's own
+// text are both unchanged — see that file for why those two guards exist.
+//
+// `fn.toString()` is the call site's parameters: `() => bakeRockMaterial({ seed,
+// size: 1024 })` stringifies to exactly the numbers that decide the output. It
+// costs nothing on a hit and is the difference between a cache and a liability.
 const _cache = new Map();
 export function cached(key, fn) {
   let v = _cache.get(key);
-  if (!v) { v = fn(); _cache.set(key, v); }
+  if (v) return v;
+
+  const src = fn.toString();
+  v = takeCached(key, src);
+  if (v) { _cache.set(key, v); return v; }
+
+  v = fn();
+  _cache.set(key, v);
+  offerCached(key, capture(v, src));
   return v;
 }

@@ -73,6 +73,29 @@ export function registerWorldShots() {
 
   registerFichinaShots();
   registerOmegaShots();
+  registerFoundryShots();
+}
+
+/**
+ * The Foundry. One camera per bay kind, because the bay kind is the only thing
+ * that varies along this level and the whole point of it is what is overhead.
+ * The chunk length is 520 m and the pattern is 8 bays, so the z values below are
+ * bay centres: open 0, span 2, enclosed 4, bulkhead 7.
+ */
+function registerFoundryShots() {
+  const bay = (i) => 720 - (i + 0.5) * 520;
+  registerShot('w4-open', ({ engine }) => onRail(engine.camera, bay(1), { dy: 8, ahead: 620, aimY: 30, fov: 58 }));
+  registerShot('w4-span', ({ engine }) => onRail(engine.camera, bay(2), { dy: 4, ahead: 480, aimY: 60, fov: 62 }));
+  registerShot('w4-enclosed', ({ engine }) => onRail(engine.camera, bay(4), { dy: 0, ahead: 500, aimY: 20, fov: 62 }));
+  registerShot('w4-bulkhead', ({ engine }) => onRail(engine.camera, bay(7) + 360, { dy: 0, ahead: 400, aimY: 30, fov: 58 }));
+  // Low over the deck, so the plating and the lit strips are read at grazing
+  // incidence — the angle a flat panel either survives or does not.
+  registerShot('w4-deck', ({ engine }) => onRail(engine.camera, bay(9), { du: 60, dy: -58, ahead: 560, aimY: 60, fov: 60 }));
+  registerShot('w4-wide', ({ engine }) => {
+    const z = bay(4);
+    park(engine.camera, [centrelineX(z) + 620, centrelineY(z) + 330, z + 700],
+      [centrelineX(z - 900), centrelineY(z - 900), z - 900], 46);
+  });
 }
 
 /**

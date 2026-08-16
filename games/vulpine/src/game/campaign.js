@@ -172,6 +172,37 @@ const OMEGA_COMMS = [
   { z: -8760, who: 'PEPPY', text: 'Flagship dead ahead, Fox. This is the one.' },
 ];
 
+/* ── The Foundry ──────────────────────────────────────────────────────────────
+   The one level where the corridor closes over you, so the encounter rules are
+   different in one specific way: `spawn` distances are shorter throughout,
+   because a roofed bay has no sightline to spend them on — a craft arriving
+   1500 m out in a tunnel simply pops into existence at the far end of it. */
+const FOUNDRY_WAVES = [
+  { z: -280, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1100, arc: 0.5, climb: 0.2, skill: 0.34, life: 8 },
+  { z: -1000, kind: 'bulwark', n: 4, form: 'banks', first: 620, step: 250, bank: 170 },
+  { z: -1700, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 950, arc: -0.55, climb: 0.16, skill: 0.38, aggro: 0.18, life: 8 },
+  { z: -2500, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.3, climb: 0.24, skill: 0.42, aggro: 0.2, life: 10 },
+  { z: -3300, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.42 },
+  { z: -4100, kind: 'bulwark', n: 4, form: 'banks', first: 600, step: 240, bank: 170 },
+  { z: -4900, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1050, arc: -0.1, climb: 0.4, skill: 0.44, life: 8.5, markFor: 2.0, stagger: 0.5 },
+  { z: -5800, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.38, climb: -0.2, skill: 0.48, aggro: 0.26, life: 10.5 },
+  { z: -6700, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1600, arc: 0, climb: 0.1, skill: 0.52, aggro: 0.3, life: 26, close: 210, escort: 2 },
+  { z: -7600, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 950, arc: -0.5, climb: 0.22, skill: 0.52, aggro: 0.32, hunt: true, life: 9 },
+  // The last fight in the game. Reuses the carrier: it is the only capital hull
+  // built, and a bespoke foundry boss is the obvious next thing rather than
+  // something to fake with a third commander variant.
+  { z: -8500, boss: 'gargantua' },
+];
+
+const FOUNDRY_COMMS = [
+  { z: -160, who: 'PEPPY', text: 'This is it, Fox. Whatever they built in here, we end it.' },
+  { z: -960, who: 'SLIPPY', text: 'Emplacements on the deck! They dug in good.' },
+  { z: -2460, who: 'FALCO', text: 'Watch the roof sections — no room to climb out.' },
+  { z: -4860, who: 'SLIPPY', text: 'Drones pouring out of the bulkhead ports!' },
+  { z: -6660, who: 'PEPPY', text: 'Heavy inbound. Keep it in front of you.' },
+  { z: -8440, who: 'PEPPY', text: "That's their carrier. Finish this, Fox." },
+];
+
 export const LEVELS = [
   {
     id: 'corneria', name: 'CORNERIA', dna: 'corneria', env: 'corneria',
@@ -194,6 +225,12 @@ export const LEVELS = [
     id: 'omega', name: 'SECTOR OMEGA', dna: 'omega', env: 'space',
     brief: 'SECTOR III · SECTOR OMEGA',
     waves: OMEGA_WAVES, comms: OMEGA_COMMS, grants: [],
+    hop: 'orbital',
+  },
+  {
+    id: 'foundry', name: 'THE FOUNDRY', dna: 'foundry', env: 'foundry',
+    brief: 'SECTOR IV · THE FOUNDRY',
+    waves: FOUNDRY_WAVES, comms: FOUNDRY_COMMS, grants: [],
   },
 ];
 

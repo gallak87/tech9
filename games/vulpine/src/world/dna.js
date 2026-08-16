@@ -40,6 +40,7 @@ export const DEFAULTS = {
   waterLevel: 0,
   surface: 'water',
   backend: 'terrain',
+  works: null,
   // What the walls are made of, as opposed to what colour they are. Selects the
   // texture set and the structural GLSL in world-materials.js; `palette` and
   // `lithology` only recolour whichever one is chosen.
@@ -315,9 +316,8 @@ export const DNA_FICHINA = {
 // thousand discrete bodies, including overhead, which is the one thing a
 // single-valued heightfield can never produce at any parameter value.
 //
-// Almost nothing here is a cross-section, because there is no cross-section.
-// `keys` still exists because `profileAt` is called by code that does not know
-// which backend is live; it is one flat entry and nothing samples it for height.
+// Almost nothing here is a cross-section, because there is no cross-section:
+// `profile.js` supplies a flat stand-in for any backend that omits `keys`.
 
 export const DNA_SECTOR_OMEGA = {
   id: 'omega',
@@ -366,12 +366,6 @@ export const DNA_SECTOR_OMEGA = {
     farFade: 7400,
   },
 
-  // One entry, never interpolated against anything. See the note above.
-  keys: [
-    { z: 720, inner: 400, bed: 0, beachW: 40, beachH: 0, shelfW: 40, shelfH: 0, cliffW: 40, wallH: 0, relief: 0 },
-    { z: -9840, inner: 400, bed: 0, beachW: 40, beachH: 0, shelfW: 40, shelfH: 0, cliffW: 40, wallH: 0, relief: 0 },
-  ],
-
   city: null,
   islands: null,
 
@@ -389,8 +383,60 @@ export const DNA_SECTOR_OMEGA = {
   },
 };
 
+/* ── The Foundry ──────────────────────────────────────────────────────────── */
+//
+// `backend: 'works'` — a corridor through something that was built. The third
+// composition in the game and the first that is not natural rock: flat plate,
+// right angles, a deck underfoot, and roofs and gantries overhead for stretches
+// at a time. Enclosure is the axis neither of the other backends can reach — the
+// heightfield is single-valued so it can never put anything above the rail, and
+// a belt's bodies always leave sky between them.
+//
+// No `keys`, no `bands`, no `islands`, no `palette`: nothing here samples a
+// height field. The only fields that matter are the rail and `works`.
+
+export const DNA_FOUNDRY = {
+  id: 'foundry',
+  seed: 'foundry:build-1',
+  length: 9000,
+  zStart: 720,
+  zEnd: -9840,
+  waterLevel: 0,
+  surface: 'none',
+  backend: 'works',
+
+  centreline: {
+    // Long and shallow. A built corridor should read as *surveyed* — the meander
+    // is what the builders had to route around, not a river's wander — so the
+    // amplitude is under half Corneria's and there are no fast terms at all.
+    x: {
+      waves: [
+        { a: 150, w: 0.00036, p: 1.1 },
+        { a: 44, w: 0.00092, p: 2.8 },
+      ],
+      bends: [],
+    },
+    // Barely moves. The deck is flat and the roof is at a fixed height, so a
+    // rail that wandered vertically would clip both.
+    y: { base: 46, waves: [{ a: 9, w: 0.00048, p: 0.5 }], bends: [] },
+  },
+
+  works: {
+    chunkLen: 520,
+    half: 190,
+    deckY: -26,
+    wallH: 240,
+    roofY: 190,
+    portW: 128, portH: 96, portY: 96,
+    greebles: 7,
+  },
+
+  lithology: { base: [0.20, 0.21, 0.23], members: [] },
+};
+
 export const DNA_BY_ID = {
   corneria: DNA_CORNERIA,
   fichina: DNA_FICHINA,
   omega: DNA_SECTOR_OMEGA,
+  foundry: DNA_FOUNDRY,
 };

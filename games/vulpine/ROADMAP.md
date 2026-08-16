@@ -1,8 +1,9 @@
 # Vulpine — roadmap
 
 **Status:** playable end-to-end, alpha. Phases 0–7 done. Phase 8 (encounter feel
-+ legibility) still open but **no longer the active lane**. **Three levels**
-across two planets since backends landed 2026-08-15. Branch `g/fox64-dna`.
++ legibility) still open but **no longer the active lane**. **Four levels, three
+backends, every one of them finishable**, as of 2026-08-15. Branch
+`g/fox64-dna`.
 
 **The level lane is closed — see `## Settled`.** Its conclusion, 2026-08-15,
 after three rounds that each produced a large diff and a minimal visible
@@ -31,9 +32,9 @@ procedural (no binary assets, no network).
 
 **Levels, as built (2026-08-15).** Corneria is one *planet* with two sectors —
 the lowland river reach and the ice cap above it — joined by an overland hop.
-Sector Omega is the second planet and the only orbital hop in the game. So the
-campaign is three levels, two planets, one set-piece transition, and the
-set-piece is spent arriving somewhere that shares nothing with what came before.
+Sector Omega and The Foundry follow, each behind an orbital hop. Four levels,
+three backends (`terrain`, `field`, `works`), and the one thing they share is a
+rail and a floor.
 
 **Scope changed (2026-08-15, owner).** "Is not" used to begin "a campaign […]
 multiple levels". The owner asked for up to three more levels with a seamless
@@ -286,6 +287,48 @@ The pre-boss weapon grant is done (above). What is left here is scoring.
 - [ ] Touch controls / mobile.
 
 ## Settled — done, and why it is the way it is
+
+### The Foundry — a third backend, 2026-08-15
+
+Level 4, and the first world in the game that is not natural rock.
+`backend: 'works'` (`src/world/works.js`): a corridor through something that was
+built — deck, plated walls, ribs, lit window strips, and roofs and gantries
+overhead for stretches at a time. The level is a sequence of *bays* on a fixed
+repeating pattern (open, open, span, open, enclosed, span, open, bulkhead)
+rather than a random walk over four kinds, for the same reason Corneria's keys
+beat Fichina's: a pattern is rhythm, a random walk is mush.
+
+**Enclosure is the axis this exists for.** `terrain` is single-valued so it can
+never put anything above the rail; `field` gets bodies overhead but always leaves
+sky between them. A closed span is the only thing in the game that takes the sky
+away completely, and open → enclosed → open is a change no re-authoring of a
+canyon can produce.
+
+It also proved the backend split generalises rather than having been shaped
+around the belt: the third backend needed no changes in flight, combat, ai,
+camera, HUD or campaign either. `groundAt` is the deck — a real floor here,
+unlike the belt — so the ground cushion, the AI's altitude clamps and ground
+batteries all behave normally with nothing special-cased.
+
+Two things worth keeping:
+
+- **Inside a box the IBL is doing nothing.** The environment map is a starfield,
+  which is black, so `envIntensity` contributes almost nothing and hemisphere
+  and fill have to carry the whole frame. First lit pass measured **40–52% of
+  the frame crushed to pure black**; the fix was a `foundry` preset whose
+  hemisphere is *inverted* against every other one here — `hemiGround` bright
+  and `hemiSky` nearly black, because in a roofed bay the deck is the only
+  source with any area — plus deck lamps in every bay rather than only the
+  roofed ones. 3–17% now, and the medians sit inside the range Corneria and
+  Highlands already occupy.
+- `concreteMaterial`, `steelMaterial` and `cityMaterial` were restored from
+  `cfe175c^` for this — deleted earlier the same day as dead code against a
+  phase that no longer existed, and they turned out to be exactly right for a
+  built world. `foliageMaterial` stayed deleted: nothing grows here.
+
+Known thin: `w4-wide` shows the structure has no exterior — from outside it is
+an open-topped trough in space. A bespoke boss is the other gap; the finale
+reuses the Gargantua because it is the only capital hull built.
 
 ### Bosses — every level can be finished, 2026-08-15
 

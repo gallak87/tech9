@@ -185,6 +185,60 @@ export const PRESETS = {
     },
   },
 
+  // The Foundry. Lit from BELOW — a furnace under the deck — which is a key
+  // direction nothing else in the game uses and the cheapest way to make a built
+  // interior read as hot and occupied rather than as an unlit box. So the
+  // hemisphere is inverted against every other preset here: `hemiGround` is the
+  // bright term and `hemiSky` is nearly black, because in a roofed bay there is
+  // no sky to bounce and the deck is the only source with any area. Exposure is
+  // double `space`'s: the sun barely reaches inside and almost all of the light
+  // in frame is fill.
+  foundry: {
+    kind: 'space', stars: 1, nebulaAmount: 0.22,
+    turbidity: 1.0, rayleigh: 0.0, mieCoefficient: 0.0, mieDirectionalG: 0.80,
+    // The sun sits behind the shoulder rather than down the nose, so a body
+    // ahead of the ship shows a lit face with a terminator across it instead of
+    // a black disc with a rim. In vacuum that lighting angle is the whole shot.
+    elevation: 16, azimuth: 75,
+    sunColor: 0xffd9a8, sunIntensity: 3.4,
+    hemiSky: 0x36415c, hemiGround: 0xff8a3e, hemiIntensity: 3.6,
+    fillColor: 0xffa055, fillIntensity: 1.9,
+    rimColor: 0xa8ccff, rimIntensity: 2.1,
+    fog: { color: 0x0a0710, density: 0.00016 },
+    exposure: 1.30,
+    godray: { intensity: 0.0, tint: 0xbdd6ff, clamp: 2.5, density: 0.55, decay: 0.94, weight: 2.0, threshold: 1.6 },
+    nebula: [0x3a2038, 0x5c2412, 0x101828],
+    envIntensity: 1.30,
+
+    sky: {
+      sunDisc: 90, aureole: 0.0, aureoleTight: 6000, aureoleWide: 0.0, skyGain: 0.0,
+      hazeColor: [0, 0, 0], hazeSunColor: [0, 0, 0],
+      hazeAmount: 0.0, hazeHeight: 0.20, hazeFalloff: 1.7, hazeSunPow: 3.0,
+      zenithTint: [1.0, 1.0, 1.0],
+      cloudAmount: 0.0, coverage: 0.30, cloudHeight: 2100, cloudScale: 0.00020,
+      cloudWind: [0.0020, 0.0008], cloudThickness: 640, absorb: 2.7, erode: 0.20,
+      cloudSun: [1.0, 1.0, 1.0], cloudShade: [0.2, 0.2, 0.2],
+      cirrusAmount: 0.0, cirrusCoverage: 0.40, cirrusHeight: 8200,
+      cirrusScale: 0.000050, cirrusWind: [0.0010, 0.0004],
+    },
+    atmos: {
+      heightFalloff: 0.0002, baseHeight: -200,
+      highTint: [0.30, 0.42, 0.86], lowTint: [0.80, 0.86, 1.05],
+      sunTint: [0.24, 0.34, 0.62], sunPow: 9.0,
+    },
+    bloom: { strength: 0.115, radius: 1.15, threshold: 0.85, knee: 0.5, clamp: 10.0, anamorphic: 1.35, dirt: 0.14 },
+    flare: { intensity: 0.55, ghosts: 1.2, streak: 0.75, tint: 0xcfe4ff },
+    ao: { radius: 3.0, intensity: 1.2, strength: 0.70, tint: 0x0b1120 },
+    grade: {
+      toneMode: 2, shoulder: 0.82, linStart: 0.16, linLen: 0.22, toe: 1.30, white: 1.0,
+      highlightDesat: 0.12, highlightKnee: 1.5,
+      saturation: 1.10, contrast: 1.16, ca: 1.2, vignette: 1.10, grain: 0.006,
+      lift: [0.002, 0.004, 0.014], gain: [0.98, 0.995, 1.045], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.82, 0.90, 1.22], highlightTint: [0.98, 1.00, 1.06],
+      sharpen: 0.32,
+    },
+  },
+
   // Fichina. Ice, thin clean air and a snowfield that bounces most of the key
   // straight back up, so the ground term of the hemisphere is nearly as bright
   // as the sky term — that inversion is what separates a white world from an

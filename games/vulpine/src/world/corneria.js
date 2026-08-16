@@ -6,10 +6,12 @@ import {
 import { DNA_CORNERIA, DNA_FICHINA, DNA_BY_ID } from './dna.js';
 import {
   terrainMaterial, waterMaterial, deepWaterMaterial, iceMaterial, rockPropMaterial,
+  concreteMaterial, steelMaterial, cityMaterial,
   configureWorldFields, worldFieldJobs, disposeWorldFields,
 } from './world-materials.js';
 import { Terrain } from './terrain.js';
 import { Belt } from './belt.js';
+import { Works } from './works.js';
 import { Water } from './water.js';
 import { PlanarReflection } from './reflection.js';
 import { registerWorldShots } from './shots.js';
@@ -74,6 +76,7 @@ export class Corneria {
     this.terrain = null;
     this.water = null;
     this.belt = null;
+    this.works = null;
 
     this._jobs = [];
     this._done = 0;
@@ -127,8 +130,9 @@ export class Corneria {
     if (this.terrain) this.terrain.dispose();
     if (this.water) this.water.dispose();
     if (this.belt) this.belt.dispose();
+    if (this.works) this.works.dispose();
     for (const m of [this.terrainMat, this.waterMat, this.deepMat]) if (m) m.dispose();
-    this.terrain = this.water = this.belt = null;
+    this.terrain = this.water = this.belt = this.works = null;
     this.terrainMat = this.waterMat = this.deepMat = null;
     disposeWorldFields();
 
@@ -145,10 +149,14 @@ export class Corneria {
     // horizon — those three fields are all defined in rail space against a
     // continuous ground that is not there.
     const field = WORLD.backend === 'field';
-    this.terrain = field ? null : new Terrain(this.root, null);
+    const built = WORLD.backend === 'works';
+    const natural = !field && !built;
+    this.terrain = natural ? new Terrain(this.root, null) : null;
     this.belt = field ? new Belt(this.root, null) : null;
-    this.water = (field || WORLD.surface === 'none') ? null
-      : new Water(this.root, null, null, { apronDrop: WORLD.surface === 'ice' ? 1.5 : 12 });
+    this.works = built ? new Works(this.root, null) : null;
+    this.water = (natural && WORLD.surface !== 'none')
+      ? new Water(this.root, null, null, { apronDrop: WORLD.surface === 'ice' ? 1.5 : 12 })
+      : null;
 
     // Order is a dependency chain: the tile bakes and the materials come first
     // because a mesh needs one handed to it, and the baked fields come before
@@ -156,9 +164,10 @@ export class Corneria {
     // that samples them.
     this._jobs = [
       () => this._makeMaterials(),
-      ...(field ? [] : worldFieldJobs()),
+      ...(natural ? worldFieldJobs() : []),
       ...(this.terrain ? this.terrain.jobs : []),
       ...(this.belt ? this.belt.jobs : []),
+      ...(this.works ? this.works.jobs : []),
       ...(this.water ? this.water.jobs : []),
       () => this._warm(),
     ];
@@ -172,6 +181,20 @@ export class Corneria {
   }
 
   _makeMaterials() {
+    if (WORLD.backend === 'works') {
+      // Three materials, because a built thing is three materials: plate you
+      // shoot past, deck you fly over, and the lit apertures that are the only
+      // thing saying anything lives here. All three were written long ago and
+      // had never been imported by anything.
+      this.worksMats = {
+        plate: steelMaterial(0x9aa3ad),
+        deck: concreteMaterial({ color: 0xada89e, scale: 0.045 }),
+        lit: cityMaterial({ tint: 0xb2b8c0, glass: 0x1a2430, litColor: 0xffd6a0, lit: 0.46 }),
+      };
+      this.works.mats = this.worksMats;
+      this.terrainMat = this.worksMats.plate;
+      return;
+    }
     if (WORLD.backend === 'field') {
       // The one consumer `rockPropMaterial` was written for. It is triplanar in
       // world space, which is why the belt bakes each body's transform into its
@@ -259,6 +282,7 @@ export class Corneria {
   _applyLOD() {
     if (this.terrain) this.terrain.updateLOD(this._camPos);
     if (this.belt) this.belt.updateLOD(this._camPos);
+    if (this.works) this.works.updateLOD(this._camPos);
     if (this.water) this.water.updateLOD(this._camPos);
   }
 
@@ -285,6 +309,10 @@ export class Corneria {
     // A shelf under the rail restores both: far enough down that the player's
     // -46 offset never reaches it, so nothing is drawn there and nothing is felt.
     if (WORLD.backend === 'field') return centrelineY(z) - FIELD_FLOOR;
+    // A built world has a real floor — the deck — so the ground cushion, the
+    // AI's altitude clamps and ground batteries all behave exactly as they do
+    // in a canyon. Flat, so it is the whole height field.
+    if (WORLD.backend === 'works') return Works.deckY();
     return WORLD.surface === 'none'
       ? terrainHeight(x, z)
       : Math.max(terrainHeight(x, z), WORLD.waterLevel);

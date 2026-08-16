@@ -14,6 +14,7 @@ import { DEFAULTS } from './dna.js';
 //   waterMaterial()    Gerstner surface that knows where the shore is
 //   iceMaterial()      the same plane frozen: cracks, no swell, no shoaling
 //   rockPropMaterial() free-standing bodies — Sector Omega's belt
+//   concreteMaterial() / steelMaterial() / cityMaterial() — the built world
 //
 // ── Per-world state ──────────────────────────────────────────────────────────
 // Two things here depend on the active DNA and must be rebuilt when it changes:
@@ -1444,6 +1445,139 @@ export function iceMaterial(reflection = null) {
  * set and its lithology, so a natural arch springing from a canyon wall is made
  * of the same stone as the wall, banded on the same 14 m rhythm.
  */
+const concreteSet = () => cached('world.concrete', () => {
+  const r = new RNG('world:concrete');
+  const grain = fbm2D(r, { octaves: 5, base: 24, gain: 0.55 });
+  const stain = fbm2D(r, { octaves: 4, base: 3, gain: 0.62 });
+  const S = 512;
+  const joint = (u, v) => {
+    const a = Math.abs(((u * 4) % 1) - 0.5) * 2;
+    const b = Math.abs(((v * 6) % 1) - 0.5) * 2;
+    return Math.pow(Math.max(0, Math.max(a, b) - 0.94) / 0.06, 1.4);
+  };
+  const height = new Float32Array(S * S);
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
+    const u = x / S, v = y / S;
+    height[y * S + x] = -joint(u, v) * 0.6 + grain(u, v) * 0.14;
+  }
+  const map = bake(S, S, (u, v, o) => {
+    const j = joint(u, v), g = grain(u, v), s = stain(u, v);
+    const k = (0.60 + g * 0.16) * (1 - j * 0.42) * (0.82 + s * 0.30);
+    o[0] = k * 1.00; o[1] = k * 0.985; o[2] = k * 0.94;
+    o[3] = Math.min(1, 0.62 + g * 0.20 + j * 0.16 + s * 0.10);
+  }, { srgb: true });
+  return { map, normalMap: normalFrom(height, S, 2.2) };
+});
+
+/** Concrete for dams, bridges, decks and retaining walls. */
+export function concreteMaterial({ color = 0xb9b6ad, scale = 0.055 } = {}) {
+  const set = concreteSet();
+  const m = new THREE.MeshStandardMaterial({
+    color, map: set.map, normalMap: set.normalMap,
+    normalScale: new THREE.Vector2(0.8, 0.8),
+    roughness: 1.0, metalness: 0.0, envMapIntensity: 0.7,
+  });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uScale = { value: scale };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;`)
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+        vWNrm = normalize(mat3(modelMatrix) * objectNormal);`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying vec3 vWPos; varying vec3 vWNrm; uniform float uScale; vec4 gC;`)
+      .replace('#include <map_fragment>', `
+        vec3 wn = normalize(vWNrm);
+        vec3 bw = pow(abs(wn), vec3(6.0)); bw /= (bw.x + bw.y + bw.z);
+        gC = texture2D(map, vWPos.zy * uScale) * bw.x
+           + texture2D(map, vWPos.xz * uScale) * bw.y
+           + texture2D(map, vWPos.xy * uScale) * bw.z;
+        // weathering streaks running down vertical faces
+        float streak = texture2D(map, vec2(vWPos.x * 0.03 + vWPos.z * 0.03, vWPos.y * 0.0035)).g;
+        float down = smoothstep(0.55, 0.05, wn.y);
+        diffuseColor.rgb *= gC.rgb * mix(1.0, 0.62 + streak * 0.55, down * 0.75);
+      `)
+      .replace('#include <roughnessmap_fragment>', `float roughnessFactor = roughness * gC.a;`);
+    return m;
+  };
+  return m;
+}
+
+/**
+ * City façades. Windows are generated in the fragment shader from world-space
+ * position, so a 40 m tower and a 200 m tower get the same 3.6 m floor pitch no
+ * matter how the instance is scaled — and they are anti-aliased with fwidth, or
+ * they would boil into moiré the moment the camera moves.
+ */
+export function cityMaterial({ tint = 0xc8c6be, glass = 0x1b2a36, litColor = 0xffd9a0, lit = 0.16 } = {}) {
+  const set = concreteSet();
+  const m = new THREE.MeshStandardMaterial({
+    color: tint, map: set.map, normalMap: set.normalMap,
+    normalScale: new THREE.Vector2(0.55, 0.55),
+    roughness: 1.0, metalness: 0.0, envMapIntensity: 0.85,
+    emissive: new THREE.Color(litColor), emissiveIntensity: 1.0,
+  });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uGlass = { value: new THREE.Color(glass) };
+    sh.uniforms.uLit = { value: lit };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;`)
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+        vWNrm = normalize(mat3(modelMatrix) * objectNormal);`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying vec3 vWPos; varying vec3 vWNrm;
+        uniform vec3 uGlass; uniform float uLit;
+        float gPane, gLit, gSpandrel;
+        float h21(vec2 p){ p = fract(p * vec2(127.1, 311.7)); float n = dot(p, p + 34.5); return fract(sin(n * 43758.5453) * 43758.5); }`)
+      .replace('#include <map_fragment>', `
+        vec3 wn = normalize(vWNrm);
+        float up = abs(wn.y);
+        // pick the façade plane: X-facing walls read Z, Z-facing walls read X
+        float useZ = step(abs(wn.x), abs(wn.z));
+        vec2 fuv = vec2(mix(vWPos.z, vWPos.x, useZ), vWPos.y);
+        vec2 cellSize = vec2(4.4, 3.65);
+        vec2 g = fuv / cellSize;
+        vec2 cell = floor(g);
+        vec2 f = fract(g);
+        vec2 aa = fwidth(g) * 1.2 + 0.002;
+        vec2 lo = vec2(0.16, 0.20), hi = vec2(0.86, 0.80);
+        vec2 win = smoothstep(lo - aa, lo + aa, f) * (1.0 - smoothstep(hi - aa, hi + aa, f));
+        gPane = win.x * win.y * (1.0 - smoothstep(0.55, 0.95, up));
+
+        float rnd = h21(cell + floor(vWPos.xz * 0.011) * 17.0);
+        gLit = step(1.0 - uLit, rnd) * gPane;
+        gSpandrel = (1.0 - gPane) * (1.0 - smoothstep(0.55, 0.95, up));
+
+        vec3 bw = pow(abs(wn), vec3(6.0)); bw /= (bw.x + bw.y + bw.z);
+        vec4 c = texture2D(map, vWPos.zy * 0.09) * bw.x
+               + texture2D(map, vWPos.xz * 0.09) * bw.y
+               + texture2D(map, vWPos.xy * 0.09) * bw.z;
+        float band = 0.82 + 0.30 * h21(vec2(cell.y, floor(vWPos.x * 0.006)));
+        vec3 wall = diffuse * c.rgb * mix(1.0, band, gSpandrel * 0.6);
+        diffuseColor.rgb = mix(wall, uGlass * (0.7 + rnd * 0.6), gPane);
+        diffuseColor.rgb *= (0.55 + 0.45 * smoothstep(-40.0, 90.0, vWPos.y));  // grime at the base
+      `)
+      .replace('#include <roughnessmap_fragment>', `float roughnessFactor = mix(0.88, 0.10, gPane);`)
+      .replace('#include <metalnessmap_fragment>', `float metalnessFactor = gPane * 0.35;`)
+      .replace('#include <emissivemap_fragment>', `totalEmissiveRadiance *= gLit * 1.6;`);
+    m.userData.shader = sh;
+  };
+  return m;
+}
+
+/** Painted structural steel — bridge trusses, gantries, pylons. */
+export function steelMaterial(color = 0x8d3a32) {
+  const set = concreteSet();
+  return new THREE.MeshStandardMaterial({
+    color, map: set.map, normalMap: set.normalMap,
+    normalScale: new THREE.Vector2(0.4, 0.4),
+    roughness: 0.52, metalness: 0.72, envMapIntensity: 1.0,
+  });
+}
+
 /**
  * `bedded` is the difference between a prop cut from a canyon wall and a body
  * that was never on a planet. A bedded prop keys its lithology to world Y so an

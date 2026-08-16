@@ -47,6 +47,8 @@ export const WORLD = {
   backend: 'terrain',
   /** Field-backend shape, or null. See belt.js for the defaults it merges over. */
   belt: null,
+  /** Works-backend shape, or null. See works.js for the defaults it merges over. */
+  works: null,
 
   nearHalf: 0,           // lateral extent of the high-detail tier
   farHalf: 0,            // lateral extent of the ridgeline tier
@@ -167,6 +169,12 @@ export function centrelineDX(z) {
 function gainFor(lambda, sp) { return smooth(0.55, 1.40, lambda / (4 * sp)); }
 
 /* ── cross-section keyframes ──────────────────────────────────────────────── */
+
+/** Stand-in cross-section for backends that have no height field. */
+const FLAT_KEYS = [
+  { z: 1e6, inner: 400, bed: 0, beachW: 40, beachH: 0, shelfW: 40, shelfH: 0, cliffW: 40, wallH: 0, relief: 0 },
+  { z: -1e6, inner: 400, bed: 0, beachW: 40, beachH: 0, shelfW: 40, shelfH: 0, cliffW: 40, wallH: 0, relief: 0 },
+];
 
 const _P = {};
 /** Cross-section parameters at `z`, smoothstep-blended between keyframes. */
@@ -346,6 +354,7 @@ export function setActiveDNA(dna) {
   WORLD.surface = dna.surface ?? DEFAULTS.surface;
   WORLD.backend = dna.backend ?? DEFAULTS.backend;
   WORLD.belt = dna.belt ?? null;
+  WORLD.works = dna.works ?? null;
   WORLD.zStart = dna.zStart ?? DEFAULTS.zStart;
   WORLD.zEnd = dna.zEnd ?? DEFAULTS.zEnd;
   WORLD.nearHalf = g.nearHalf;
@@ -377,7 +386,10 @@ export function setActiveDNA(dna) {
     cbyD[i] = yBends[i].dx;
   }
 
-  KEYS = dna.keys;
+  // A backend with no height field has no cross-section, but `profileAt` is
+  // still reachable from code that does not know which backend is live. One flat
+  // row keeps it total instead of making every caller check.
+  KEYS = dna.keys ?? FLAT_KEYS;
 
   const city = dna.city ?? DEFAULTS.city;
   CITY_ON = city ? 1 : 0;

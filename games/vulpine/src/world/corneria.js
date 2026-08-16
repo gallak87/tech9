@@ -189,7 +189,7 @@ export class Corneria {
       this.worksMats = {
         plate: steelMaterial(0x9aa3ad),
         deck: concreteMaterial({ color: 0xada89e, scale: 0.045 }),
-        lit: cityMaterial({ tint: 0xb2b8c0, glass: 0x1a2430, litColor: 0xffd6a0, lit: 0.46 }),
+        lit: cityMaterial({ tint: 0xb2b8c0, glass: 0x1a2430, litColor: 0xffd6a0, lit: 0.28 }),
       };
       this.works.mats = this.worksMats;
       this.terrainMat = this.worksMats.plate;

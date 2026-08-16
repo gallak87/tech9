@@ -98,27 +98,60 @@ export class Works {
         centrelineX(zm), W.deckY - W.deckT * 0.5, zm);
     }
 
-    // ── walls ───────────────────────────────────────────────────────────────
-    // Plated to `wallH`, with a rib every `ribGap` and a lit strip between ribs.
+    // ── massing ─────────────────────────────────────────────────────────────
+    // The sides are a run of blocks, not a wall. A flat plane with a lit band
+    // across it reads as an extruded trough with a racing stripe on it — the
+    // same mistake the canyon makes, a cross-section with decoration applied —
+    // because at 175 m/s what says "built" is *silhouette*, and a plane has
+    // none. Blocks vary in height, depth and setback, so the skyline steps and
+    // the recesses read as bays rather than as holes.
+    //
+    // A `curtain` runs continuously at the corridor edge underneath them, so a
+    // set-back block leaves an upper-level recess instead of a gap you can see
+    // the stars through at deck level.
     for (let side = -1; side <= 1; side += 2) {
       for (let i = 0; i < SEGS; i++) {
         const za = z0 - (i / SEGS) * W.chunkLen;
         const zb = z0 - ((i + 1) / SEGS) * W.chunkLen;
         const zm = (za + zb) * 0.5;
-        const len = Math.abs(za - zb) + 0.5;
-        const x = centrelineX(zm) + side * W.half;
-        push(plate, this._slab(W.wallT, W.wallH, len), x, W.deckY + W.wallH * 0.5, zm);
-        // A lit band at eye height — the one thing that says "inhabited" rather
-        // than "extruded". cityMaterial keys its window grid to world position,
-        // so this only has to be a plane at the right offset.
-        push(lit, this._slab(0.6, W.stripH, len * 0.92),
-          x - side * (W.wallT * 0.5 + 0.4), W.deckY + W.stripY, zm);
+        push(plate, this._slab(W.wallT, W.curtainH, Math.abs(za - zb) + 0.5),
+          centrelineX(zm) + side * W.half, W.deckY + W.curtainH * 0.5, zm);
       }
-      // ribs
-      for (let z = z0 - W.ribGap * 0.5; z > z1; z -= W.ribGap) {
-        const x = centrelineX(z) + side * W.half;
-        push(plate, this._rib(W.ribD, W.wallH * 0.86, W.ribW), x - side * W.ribD * 0.5,
-          W.deckY + W.wallH * 0.43, z);
+
+      let z = z0;
+      while (z > z1) {
+        const zb = Math.max(z1, z - r.range(W.blockLen[0], W.blockLen[1]));
+        const zm = (z + zb) * 0.5;
+        const len = z - zb;
+        if (len < 8) break;
+        const h = r.range(W.blockH[0], W.blockH[1]);
+        const depth = r.range(W.blockD[0], W.blockD[1]);
+        // Most blocks sit on the corridor edge; a minority step back, and that
+        // minority is what stops the run reading as one extrusion.
+        const set = r.next() < 0.42 ? r.range(12, W.setback) : 0;
+        const xin = centrelineX(zm) + side * (W.half + set);
+
+        push(plate, this._slab(depth, h, len + 0.5), xin + side * depth * 0.5,
+          W.deckY + h * 0.5, zm);
+        // The façade. `cityMaterial` is a window *grid* keyed to world position
+        // and was written to clad a whole face — given one, it tiles windows up
+        // the full height and across the full width for free, which is the
+        // entire difference between a building and a lit stripe.
+        //
+        // But NOT on every block. Glazing every face wall-to-wall and
+        // floor-to-ceiling reads as circuit board rather than as architecture:
+        // what makes a run of buildings legible is the solid ones between the
+        // lit ones. A third stay bare plate, and a glazed block is clad over
+        // part of its height rather than all of it.
+        if (r.next() > 0.34) {
+          const fh = h * r.range(0.52, 0.95);
+          push(lit, this._slab(0.8, fh, len * 0.94), xin - side * 0.6,
+            W.deckY + fh * 0.5 + (h - fh) * r.range(0, 0.35), zm);
+        }
+        // A cap band, so a block terminates rather than just stopping.
+        push(plate, this._slab(depth + 5, W.capH, len + 5.5), xin + side * depth * 0.5,
+          W.deckY + h + W.capH * 0.5, zm);
+        z = zb;
       }
     }
 
@@ -142,10 +175,13 @@ export class Works {
       for (let z = z0 - W.spanGap * 0.5; z > z1; z -= W.spanGap) {
         const x = centrelineX(z);
         push(plate, this._slab(W.half * 2, W.spanT, W.spanW), x, W.deckY + W.roofY, z);
-        // hangers down to the wall head, so a gantry is carried rather than floating
+        // Hangers down from the span ends, so a gantry is carried rather than
+        // floating. Fixed length: with massing there is no single wall head to
+        // land on any more.
+        const hang = W.roofY * 0.34;
         for (const s of [-1, 1]) {
-          push(plate, this._slab(W.spanT * 0.7, W.roofY - W.wallH * 0.86, W.spanW * 0.7),
-            x + s * (W.half - W.wallT), W.deckY + (W.roofY + W.wallH * 0.86) * 0.5, z);
+          push(plate, this._slab(W.spanT * 0.7, hang, W.spanW * 0.7),
+            x + s * (W.half - W.wallT), W.deckY + W.roofY - hang * 0.5, z);
         }
       }
     } else if (kind === BAY.ENCLOSED) {
@@ -168,7 +204,10 @@ export class Works {
       const z = (z0 + z1) * 0.5;
       const x = centrelineX(z);
       const pw = W.portW, ph = W.portH, py = W.deckY + W.portY;
-      const top = W.deckY + W.roofY;
+      // Above the tallest block, not at the roof line. Stopping at `roofY` in an
+      // OPEN bay left a slab shorter than its own surroundings with stars over
+      // the top of it — a billboard with a hole, not a wall that seals.
+      const top = W.deckY + W.bulkH;
       // left / right / over / under the port
       push(plate, this._slab(W.half - pw, top - W.deckY, W.bulkT),
         x - (W.half + pw) * 0.5, W.deckY + (top - W.deckY) * 0.5, z);
@@ -180,6 +219,12 @@ export class Works {
         x, (W.deckY + py - ph * 0.5) * 0.5, z);
       // a lit rim around the port so it reads as a way through, not a shadow
       push(lit, this._ring(pw, ph, 1.6, W.bulkT * 0.6), x, py, z - W.bulkT * 0.6);
+      // Buttresses either side, so a wall this tall is carried rather than
+      // standing on its own edge.
+      for (const s2 of [-1, 1]) {
+        push(plate, this._slab(W.bulkT * 2.2, top - W.deckY, W.bulkT * 3),
+          x + s2 * (W.half - W.bulkT), W.deckY + (top - W.deckY) * 0.5, z);
+      }
     }
 
     // ── greebles ────────────────────────────────────────────────────────────
@@ -189,7 +234,7 @@ export class Works {
       const z = r.range(z0, z1);
       const side = r.sign();
       const x = centrelineX(z) + side * (W.half - W.wallT);
-      const y = W.deckY + r.range(W.wallH * 0.18, W.wallH * 0.72);
+      const y = W.deckY + r.range(24, W.roofY * 0.72);
       if (r.next() < 0.5) {
         push(plate, louvers({ n: 5, w: 7.0, h: 0.9, d: 2.2, gap: 1.4, tilt: -0.5 }),
           x - side * 1.1, y, z, side > 0 ? Math.PI * 0.5 : -Math.PI * 0.5);
@@ -218,13 +263,7 @@ export class Works {
     return g;
   }
 
-  _rib(w, h, d) {
-    this._cache ||= new Map();
-    const k = 'r' + this._key(w, h, d);
-    let g = this._cache.get(k);
-    if (!g) { g = chamferBox(w, h, d, 0.22, 2); this._cache.set(k, g); }
-    return g;
-  }
+
 
   /** A rectangular rim, as four slabs — the lit frame of a bulkhead port. */
   _ring(hw, hh, t, d) {
@@ -316,12 +355,15 @@ const DEFAULT_WORKS = {
   deckY: -26,
   deckT: 6,
   wallT: 7,
-  wallH: 240,
-  ribGap: 62,
-  ribW: 9,
-  ribD: 5,
-  stripY: 52,
-  stripH: 26,
+  /** Continuous at the corridor edge, under the massing. */
+  curtainH: 44,
+  /** Blocks: length along z, height, and depth outward from the edge. */
+  blockLen: [46, 152],
+  blockH: [115, 420],
+  blockD: [34, 96],
+  /** How far a set-back block steps away from the corridor edge. */
+  setback: 74,
+  capH: 7,
   roofY: 190,
   roofT: 7,
   spanT: 9,
@@ -329,6 +371,8 @@ const DEFAULT_WORKS = {
   spanGap: 118,
   lampW: 22,
   bulkT: 12,
+  /** Clear of `blockH`'s ceiling, or the bulkhead is shorter than its neighbours. */
+  bulkH: 470,
   /** The port. Sized off the offset box, not by eye — see the assert below. */
   portW: 128,
   portH: 96,

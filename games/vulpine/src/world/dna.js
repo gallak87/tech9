@@ -425,7 +425,6 @@ export const DNA_FOUNDRY = {
     chunkLen: 520,
     half: 190,
     deckY: -26,
-    wallH: 240,
     roofY: 190,
     portW: 128, portH: 96, portY: 96,
     greebles: 7,

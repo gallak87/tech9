@@ -132,25 +132,59 @@ The hop is a different mix — ~1 s of re-baking the new world's textures
 dispose already recorded in `ROADMAP.md`. Programs went 89 → 151 across the one
 hop.
 
+**The instruments, both landed 2026-08-16 and both run before any of this is
+touched.** `tools/bootprof.mjs boot|hop` re-takes every number above —
+`--quality`, `--level`, `--top`, and a `hop` arm that force-hops from the level
+it booted. `tools/digest.mjs --out before.json` then `--against before.json`
+hashes every baked texture, every static geometry array and a `groundAt` lattice,
+and exits 1 if any byte moved; it is proved to catch a change (a 6 → 6.0001 in
+the noise fade moved the terrain digests) and to be stable across identical runs.
+**B3 and B4 are refactors that must not change output — neither is done until
+`digest --against` says identical.**
+
+Take a `digest --out` baseline on the *unmodified* tree first. There is no
+committed baseline, deliberately: it would go stale the first time a generator
+legitimately changes, and a stale baseline that everyone ignores is worse than
+none.
+
 Ranked by return over effort. B1–B2 are one-liners:
 
 - [ ] **B1. `renderer.debug.checkShaderErrors = false` outside `?dev=1`.**
       three queries link status synchronously, which blocks until the driver has
-      finished linking. ~0.5 s per hop, and it costs shader error reporting —
-      hence the dev gate.
+      finished linking. ~0.5 s per hop.
+      **The risk is the reason for the gate, and it is not theoretical:** that
+      query is what turns a broken shader into a console error, and the harness
+      treats any console error as an automatic fail. Switched off globally, a
+      shader that fails to compile renders black *silently* and every probe
+      passes. Keep it on under `?dev=1` and in anything the review harness boots.
+      **Done when:** `bootprof hop` shows `getProgramInfoLog` gone from the table
+      and `(program)` reduced, with `?dev=1` still reporting a deliberately
+      broken shader.
 - [ ] **B2. `STAGE_FRAMES` 4 → 1 (`ui/loading.js:17`).** Four painted frames per
       stage across ~10 stages is the 458 ms of measured idle; the work is not
       waiting on anything but the progress bar's easing. ~340 ms.
-- [ ] **B3. `wrap()` is the single hottest function in the game's boot.** Its
-      general modulo is redundant against the domain every caller passes. A
-      pure-arithmetic rewrite with byte-identical output — which matters, because
-      Corneria's geometry is regression-checked bit-for-bit across 5434 samples.
-      Up to ~28% of boot.
+      **Watch for:** the loader's own contract, stated at the top of that file —
+      every stage must yield at least one painted frame or the bar snaps 0 → 100
+      and the browser never composites during boot. 1 is the floor, 0 is a bug.
+      **Done when:** `bootprof boot` shows `(idle)` down by ~300 ms and the boot
+      overlay still animates — check a `shot` of the loader, not just the number.
+- [ ] **B3. `wrap()` is the single hottest function in the game's boot.**
+      1553 ms, 27.6%, inside `latticeNoise` (`textures.js:19`). Its general
+      modulo is redundant against the domain every caller passes. A
+      pure-arithmetic rewrite, output byte-identical.
+      **Done when:** `digest --against` says identical **and** `bootprof boot`
+      shows `wrap` materially down. Identical output is not optional here — this
+      function is upstream of every texture and, through `profile.js`, of the
+      terrain geometry too, which is why the perturbation test moved the ridge
+      digests.
 - [ ] **B4. The bakers sample the same noise 2–3× per texel.**
       `bakeRockMaterial` (`textures.js:321`) evaluates `strata`/`crack`/`grit`
       once for the height field, again for the colour map, again for roughness —
       same coordinate, same result, ~15 octaves a time, at 1024². Sample once
-      into a `Float32Array`, read three times.
+      into a `Float32Array`, read three times. The same shape is in the other
+      bakers; `bakeRockMaterial` is the one measured.
+      **Done when:** `digest --against` says identical and `textures.js:52`
+      (the fbm accumulator) is materially down in `bootprof boot`.
 - [ ] **B5. The generated GLSL bakes DNA in as literals.** `GLSL_CENTRELINE()`
       (`world-materials.js:419`) emits the wave and bend terms as inline numbers,
       so every world has different shader source and three's program cache — keyed
@@ -158,6 +192,18 @@ Ranked by return over effort. B1–B2 are one-liners:
       compile cost *and* the 89 → 282 program leak in `ROADMAP.md`; they are one
       defect. Move the terms to a uniform array and every world shares one
       program.
+      **The invariant this must not break**, and it is the reason the literals
+      are there in the first place: the shader has to reproduce
+      `profile.js:centrelineX` *exactly*, or every shore and horizon lookup lands
+      on the wrong column and the waterline slides off the beach wherever the
+      channel bends (`world-materials.js:411`). `GLSL_CENTRELINE_DX` has the same
+      shape and the same requirement — fix one and miss the other and the
+      shadowing goes subtly wrong instead of obviously wrong. See also the
+      `expandZones`-before-`DNA = dna` ordering note in `ROADMAP.md`'s Settled
+      section: the GLSL twin is generated from the *expanded* DNA.
+      **Done when:** `bootprof hop` shows the post-hop program count at or near
+      the boot count instead of +64, `digest --against` is identical for every
+      level, and a `shot` of the shoreline is unchanged.
 - [ ] **B6. Bake in Workers.** The bakery is pure functions over a seeded RNG
       returning `Uint8Array` — no DOM, no GL, transferable, embarrassingly
       parallel. This is the structural answer if boot has to be under 2 s, and it

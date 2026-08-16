@@ -213,15 +213,20 @@ cheapest item and returned nothing, B3 was the real one.
       match the old path bit for bit (`Object.is`, so signed zero and NaN count),
       and `digest --against` reports 0 changed on both `corneria` (276edbb3) and
       `highlands` (dc1533a8).
-- [ ] **B4. The bakers sample the same noise 2–3× per texel.**
-      `bakeRockMaterial` (`textures.js:348`) evaluates `strata`/`crack`/`grit`
-      once for the height field, again for the colour map, again for roughness —
-      same coordinate, same result, ~15 octaves a time, at 1024². Sample once
-      into a `Float32Array`, read three times. The same shape is in the other
-      bakers; `bakeRockMaterial` is the one measured.
-      **Done when:** `digest --against` says identical and `textures.js:79`
-      (the fbm accumulator, `fbm2D`'s inner loop) is materially down in
-      `bootprof boot` — it is 491 ms of the hop and 372 ms of boot today.
+- [x] **B4. Done — boot ~4375 → ~3830 ms.** Five bakers fused, not one: the
+      measured `bakeRockMaterial` (`textures.js`, 3× per texel) plus `rockSet`,
+      `iceWallSet`, `iceSet` and `concreteSet` in `world-materials.js`, each of
+      which ran two full 512² loops evaluating the same fbm at the same
+      coordinate. The sampler is 1308 → 967 ms and the fbm accumulator 373 → 298.
+      `digest --against` identical on both levels.
+      **Fused rather than cached**, against the plan's own suggestion: caching
+      the samples needs three 8 MB scratch arrays at 1024², and they would have
+      to be `Float64Array` — rounding a cached sample to `Float32` moves the
+      output, which is the one thing this may not do. Computing all outputs in
+      one pass stores nothing. `bakeHeightAndMap()` (`world-materials.js:66`) is
+      the shape: `fn` fills the RGBA texel and *returns* the height. Interleaving
+      is safe because the samplers are pure — their RNG is consumed at
+      construction, not at sample.
 - [ ] **B5. The generated GLSL bakes DNA in as literals.** `GLSL_CENTRELINE()`
       (`world-materials.js:419`) emits the wave and bend terms as inline numbers,
       so every world has different shader source and three's program cache — keyed

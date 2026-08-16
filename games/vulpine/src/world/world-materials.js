@@ -63,6 +63,31 @@ function bake(w, h, fn, opts) {
   return tex(data, w, h, opts);
 }
 
+/**
+ * One pass, two outputs: the RGBA map and the height field it shares its noise
+ * with. `fn` fills `o` and *returns* the texel's height.
+ *
+ * Every material set below used to run two full loops over the same 512² grid,
+ * evaluating the same fbm at the same coordinate in each — ~15 octaves a time,
+ * twice. Fusing beats caching the samples: nothing is stored, so the scratch
+ * arrays a cache would need never exist. Interleaving is safe because the
+ * samplers are pure — their RNG is consumed at construction, not at sample.
+ */
+function bakeHeightAndMap(S, fn, opts) {
+  const data = new Uint8Array(S * S * 4);
+  const height = new Float32Array(S * S);
+  const o = [0, 0, 0, 1];
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const i = y * S + x;
+      height[i] = fn(x / S, y / S, o, x, y);
+      const j = i * 4;
+      for (let c = 0; c < 4; c++) data[j + c] = Math.max(0, Math.min(255, o[c] * 255)) | 0;
+    }
+  }
+  return { height, map: tex(data, S, S, opts) };
+}
+
 function normalFrom(height, size, strength) {
   const data = new Uint8Array(size * size * 4);
   const at = (x, y) => height[(((y % size) + size) % size) * size + (((x % size) + size) % size)];
@@ -109,17 +134,7 @@ const rockSet = () => cached('world.rock2', () => {
   const flake = worley2D(r, 11);
   const S = 512;
 
-  const height = new Float32Array(S * S);
-  for (let y = 0; y < S; y++) {
-    for (let x = 0; x < S; x++) {
-      const u = x / S, v = y / S;
-      height[y * S + x] = strata(u, v * 0.5) * 0.80
-        + Math.pow(crack(u, v), 3) * 0.72
-        + grit(u, v) * 0.11
-        - Math.pow(1 - flake(u, v), 2) * 0.22;
-    }
-  }
-  const map = bake(S, S, (u, v, o) => {
+  const { height, map } = bakeHeightAndMap(S, (u, v, o) => {
     const s = strata(u, v * 0.5);
     const c = Math.pow(crack(u, v), 3);
     const g = grit(u, v);
@@ -129,6 +144,7 @@ const rockSet = () => cached('world.rock2', () => {
     o[1] = clamp01(0.14 + s * 0.90);
     o[2] = clamp01(p * 1.05);
     o[3] = clamp01(0.56 + g * 0.26 + c * 0.20 - fl * 0.12);
+    return s * 0.80 + c * 0.72 + g * 0.11 - Math.pow(fl, 2) * 0.22;
   }, { srgb: false });
   return { map, normalMap: normalFrom(height, S, 2.8) };
 });
@@ -152,20 +168,7 @@ const iceWallSet = () => cached('world.icewall', () => {
   const cup = worley2D(r, 16);
   const S = 512;
 
-  const height = new Float32Array(S * S);
-  for (let y = 0; y < S; y++) {
-    for (let x = 0; x < S; x++) {
-      const u = x / S, v = y / S;
-      // Fracture dominates the relief: a shear plane in ice is a clean deep
-      // step, where a crack in sandstone is a hairline. Sun-cups subtract,
-      // because a scallop is a hollow.
-      height[y * S + x] = foliation(u, v * 0.6) * 0.52
-        + Math.pow(fracture(u, v), 2) * 0.88
-        + firn(u, v) * 0.07
-        - Math.pow(1 - cup(u, v), 1.6) * 0.34;
-    }
-  }
-  const map = bake(S, S, (u, v, o) => {
+  const { height, map } = bakeHeightAndMap(S, (u, v, o) => {
     const f = foliation(u, v * 0.6);
     const fr = Math.pow(fracture(u, v), 2);
     const fn = firn(u, v);
@@ -177,6 +180,10 @@ const iceWallSet = () => cached('world.icewall', () => {
     // 0.18–0.52 against rock's 0.44–0.94. Wind-polished ice is nearly a mirror
     // at grazing angles and that is most of what says "ice" under a low sun.
     o[3] = clamp01(0.18 + fn * 0.16 + fr * 0.22 - cp * 0.08);
+    // Fracture dominates the relief: a shear plane in ice is a clean deep step,
+    // where a crack in sandstone is a hairline. Sun-cups subtract, because a
+    // scallop is a hollow.
+    return f * 0.52 + fr * 0.88 + fn * 0.07 - Math.pow(cp, 1.6) * 0.34;
   }, { srgb: false });
   // Shallower than rock's 2.8: ice weathers to smooth faces between fractures,
   // and pushing the same relief through it reads as frosted glass.
@@ -1300,21 +1307,17 @@ const iceSet = () => cached('world.ice2', () => {
   // crumpled paper.
   const crackAt = (u, v) => Math.pow(macro(u, v), 6) * 0.9 + Math.pow(micro(u, v), 8) * 0.55;
 
-  const height = new Float32Array(S * S);
-  for (let y = 0; y < S; y++) {
-    for (let x = 0; x < S; x++) {
-      const u = x / S, v = y / S;
-      height[y * S + x] = -crackAt(u, v) * 0.85 + frost(u, v) * 0.10;
-    }
-  }
-  const map = bake(S, S, (u, v, o) => {
-    const c = clamp01(crackAt(u, v));
+  const { height, map } = bakeHeightAndMap(S, (u, v, o) => {
+    // The height wants the raw sum, the map wants it clamped — same sample.
+    const ca = crackAt(u, v);
+    const c = clamp01(ca);
     const f = frost(u, v);
     const l = clamp01(lens(u, v) * 1.3 - 0.15);
     o[0] = c;                                  // crack mask
     o[1] = clamp01(0.30 + f * 0.70);           // frost grain
     o[2] = l;                                  // milky lens
     o[3] = clamp01(0.06 + f * 0.34 + l * 0.42 + c * 0.20);  // roughness
+    return -ca * 0.85 + f * 0.10;
   }, { srgb: false });
   return { map, normalMap: normalFrom(height, S, 3.2) };
 });
@@ -1455,16 +1458,12 @@ const concreteSet = () => cached('world.concrete', () => {
     const b = Math.abs(((v * 6) % 1) - 0.5) * 2;
     return Math.pow(Math.max(0, Math.max(a, b) - 0.94) / 0.06, 1.4);
   };
-  const height = new Float32Array(S * S);
-  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    const u = x / S, v = y / S;
-    height[y * S + x] = -joint(u, v) * 0.6 + grain(u, v) * 0.14;
-  }
-  const map = bake(S, S, (u, v, o) => {
+  const { height, map } = bakeHeightAndMap(S, (u, v, o) => {
     const j = joint(u, v), g = grain(u, v), s = stain(u, v);
     const k = (0.60 + g * 0.16) * (1 - j * 0.42) * (0.82 + s * 0.30);
     o[0] = k * 1.00; o[1] = k * 0.985; o[2] = k * 0.94;
     o[3] = Math.min(1, 0.62 + g * 0.20 + j * 0.16 + s * 0.10);
+    return -j * 0.6 + g * 0.14;
   }, { srgb: true });
   return { map, normalMap: normalFrom(height, S, 2.2) };
 });

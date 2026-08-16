@@ -134,6 +134,13 @@ function finish(tex, { srgb = false, repeat = 1, aniso = 16 } = {}) {
   return tex;
 }
 
+/**
+ * Clamp-and-quantise one 0..1 channel into an RGBA8 buffer. One definition,
+ * because a baker that fuses its own loop still has to round exactly the way
+ * `bakeRGBA` does or its output moves by a bit.
+ */
+const pack = (data, i, v) => { data[i] = Math.max(0, Math.min(255, v * 255)) | 0; };
+
 /** Build an RGBA8 DataTexture from a per-texel callback returning [r,g,b,a] 0..1. */
 export function bakeRGBA(size, fn, opts = {}) {
   const data = new Uint8Array(size * size * 4);
@@ -142,10 +149,10 @@ export function bakeRGBA(size, fn, opts = {}) {
     for (let x = 0; x < size; x++) {
       fn(x / size, y / size, out, x, y);
       const i = (y * size + x) * 4;
-      data[i] = Math.max(0, Math.min(255, out[0] * 255)) | 0;
-      data[i + 1] = Math.max(0, Math.min(255, out[1] * 255)) | 0;
-      data[i + 2] = Math.max(0, Math.min(255, out[2] * 255)) | 0;
-      data[i + 3] = Math.max(0, Math.min(255, out[3] * 255)) | 0;
+      pack(data, i, out[0]);
+      pack(data, i + 1, out[1]);
+      pack(data, i + 2, out[2]);
+      pack(data, i + 3, out[3]);
     }
   }
   const tex = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
@@ -351,26 +358,41 @@ export function bakeRockMaterial({ seed = 'rock', size = 1024, tintA = [0.42, 0.
   const crack = ridged2D(rng, { octaves: 5, base: 10, gain: 0.5 });
   const grit = fbm2D(rng, { octaves: 4, base: 48, gain: 0.6 });
 
+  // One pass, three outputs. These three fields used to be evaluated once for
+  // the height, again for the colour map and again for roughness — the same
+  // coordinate, the same result, ~15 octaves a time, at 1024². Fusing the loops
+  // beats caching the samples into scratch arrays: nothing is stored, so the
+  // three 8 MB Float64Arrays a cache would need never exist. (Float64 and not
+  // Float32: rounding a cached sample to f32 would move the output, which is
+  // the one thing this must not do.)
   const height = new Float32Array(size * size);
+  const mapData = new Uint8Array(size * size * 4);
+  const roughData = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const u = x / size, v = y / size;
-      height[y * size + x] = strata(u, v) * 0.7 + Math.pow(crack(u, v), 3) * 0.5 + grit(u, v) * 0.12;
+      const s = strata(u, v), cr = crack(u, v), g = grit(u, v);
+      const i = y * size + x, j = i * 4;
+
+      height[i] = s * 0.7 + Math.pow(cr, 3) * 0.5 + g * 0.12;
+
+      const c = Math.pow(cr, 4);
+      const k = s * 0.7 + g * 0.3;
+      for (let ch = 0; ch < 3; ch++) {
+        pack(mapData, j + ch, (tintA[ch] + (tintB[ch] - tintA[ch]) * k) * (1 - c * 0.45));
+      }
+      pack(mapData, j + 3, 1);
+
+      const rough = Math.min(1, 0.72 + g * 0.2 + c * 0.1);
+      pack(roughData, j, rough);
+      pack(roughData, j + 1, rough);
+      pack(roughData, j + 2, rough);
+      pack(roughData, j + 3, 1);
     }
   }
-  const map = bakeRGBA(size, (u, v, out) => {
-    const s = strata(u, v);
-    const c = Math.pow(crack(u, v), 4);
-    const g = grit(u, v);
-    const k = s * 0.7 + g * 0.3;
-    for (let i = 0; i < 3; i++) out[i] = (tintA[i] + (tintB[i] - tintA[i]) * k) * (1 - c * 0.45);
-    out[3] = 1;
-  }, { srgb: true });
+  const map = finish(new THREE.DataTexture(mapData, size, size, THREE.RGBAFormat), { srgb: true });
+  const roughnessMap = finish(new THREE.DataTexture(roughData, size, size, THREE.RGBAFormat), {});
   const normalMap = normalFromHeight(height, size, 2.4);
-  const roughnessMap = bakeRGBA(size, (u, v, out) => {
-    const g = grit(u, v), c = Math.pow(crack(u, v), 4);
-    out[0] = out[1] = out[2] = Math.min(1, 0.72 + g * 0.2 + c * 0.1); out[3] = 1;
-  });
   return { map, normalMap, roughnessMap };
 }
 

@@ -1,8 +1,16 @@
 # Vulpine — level variety
 
+> **Superseded in part, 2026-08-15, by `level.plan.md`** (owner-approved), which
+> makes a level a sequence of *zones* that compile to today's DNA. It **replaces
+> Phase C outright** (rail verticality and the offset box become per-zone fields,
+> not per-level), and reframes **Phase B** as its Z5 and **Phase D** as its Z4,
+> both gated on the Z1 experiment. The diagnosis below still stands and is the
+> reasoning that lane is built on — read this file for *why*, `level.plan.md` for
+> *what next*. Phase letters are unchanged so existing references resolve.
+
 **Lane status: nothing implemented.** Everything here is read from source, not
 measured. Sibling lane: `PLAN-PERF.md` (was Phase A of this file; split out
-2026-08-15). Phase letters B/C/D are kept so `ROADMAP.md` references resolve.
+2026-08-15).
 
 **Brief** (owner, 2026-08-15): Fichina "looks basically the same as the first
 level." Wants more levels, wants them to look different, wants the tooling

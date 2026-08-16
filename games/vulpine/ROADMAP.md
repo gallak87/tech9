@@ -13,10 +13,12 @@ yet look like a different place; that ordering was wrong and is now corrected.
 Finished work and the reasoning behind it lives in `## Settled` at the bottom.
 The sections above it are only what is still open.
 
-Read with `PLAN-VARIETY.md` (**the active plan** — diagnosis, sequencing and the
-rejected options behind the current lane), `PLAN-PERF.md` (**the other active
-lane** — the DPR finding, Phase A, and the measurement traps; split out of
-PLAN-VARIETY on 2026-08-15 so the two can be tackled one at a time),
+Read with `level.plan.md` (**the active lane, owner-approved 2026-08-15** —
+levels become sequences of zones that compile to today's DNA; supersedes
+PLAN-VARIETY's Phase C and reframes its B and D), `PLAN-VARIETY.md` (the
+diagnosis and the rejected options behind that lane), `PLAN-PERF.md` (the DPR
+finding, Phase A, and the measurement traps; split out of PLAN-VARIETY on
+2026-08-15 so the lanes can be tackled one at a time),
 `CONTRACT.md` (lane rules), `REVIEW.md` (the rubric), `HANDOFF.md` (live session
 state + defect queue).
 **This file is the plan of record; PLAN-VARIETY and PLAN-PERF are the current

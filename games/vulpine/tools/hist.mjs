@@ -43,7 +43,8 @@ const errors = [];
 page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('pageerror', e => errors.push(String(e.message)));
 
-await page.goto(`${base}/?quality=${QUALITY}&env=${ENV}&t=${TIME}&hud=0`, { waitUntil: 'load', timeout: 120000 });
+const LEVEL = arg('level', 'corneria');
+await page.goto(`${base}/?quality=${QUALITY}&env=${ENV}&t=${TIME}&hud=0&level=${LEVEL}`, { waitUntil: 'load', timeout: 120000 });
 await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 120000, polling: 100 });
 
 const js = arg('js');

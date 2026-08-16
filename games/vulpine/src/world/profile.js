@@ -1,6 +1,7 @@
 import { RNG } from '../core/rng.js';
 import { fbm2D, ridged2D } from '../render/textures.js';
 import { DEFAULTS, DNA_CORNERIA } from './dna.js';
+import { expandZones, FIELDS } from './zones.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The shape of a world.
@@ -36,6 +37,16 @@ export const WORLD = {
   length: 0,
   waterLevel: 0,
   surface: 'water',
+  /**
+   * What kind of world this is.
+   *   'terrain' a continuous heightfield corridor, meshed by terrain.js
+   *   'field'   discrete bodies around the rail, no heightfield and no floor
+   * The rail and `groundAt` are the only things outside src/world/ that any
+   * backend has to provide.
+   */
+  backend: 'terrain',
+  /** Field-backend shape, or null. See belt.js for the defaults it merges over. */
+  belt: null,
 
   nearHalf: 0,           // lateral extent of the high-detail tier
   farHalf: 0,            // lateral extent of the ridgeline tier
@@ -69,10 +80,11 @@ const MAXB = 6;                       // dog-legs
 
 let SP_A = 6, SP_G = 280;
 
-let cxN = 0, cyN = 0, cbN = 0, cyBase = 0;
+let cxN = 0, cyN = 0, cbN = 0, cbyN = 0, cyBase = 0;
 const cxA = new Float64Array(MAXW), cxW = new Float64Array(MAXW), cxP = new Float64Array(MAXW);
 const cyA = new Float64Array(MAXW), cyW = new Float64Array(MAXW), cyP = new Float64Array(MAXW);
 const cbLo = new Float64Array(MAXB), cbHi = new Float64Array(MAXB), cbD = new Float64Array(MAXB);
+const cbyLo = new Float64Array(MAXB), cbyHi = new Float64Array(MAXB), cbyD = new Float64Array(MAXB);
 
 let KEYS = [];
 let CITY_IN0 = 0, CITY_IN1 = 0, CITY_OUT0 = 0, CITY_OUT1 = 0, CITY_ON = 0;
@@ -92,20 +104,33 @@ let ISLANDS = [];
 export function spacing(d) { return SP_A * (1 + d / SP_G); }
 
 /* ── centreline ───────────────────────────────────────────────────────────── */
-// X is a sum of sine terms plus any number of smoothstep dog-legs. A dog-leg is
-// the only shape in the vocabulary with a bounded, analytic derivative that can
-// turn the corridor faster than a sine of the same amplitude, and the grid
-// shears along dX/dz — past ~0.8 the "perpendicular" wall is no longer close to
-// perpendicular and the lateral sample rate stops matching `spacing()`.
+// Both axes are a sum of sine terms plus any number of smoothstep dog-legs. A
+// dog-leg is the only shape in the vocabulary with a bounded, analytic
+// derivative that can turn the corridor faster than a sine of the same
+// amplitude, and the grid shears along dX/dz — past ~0.8 the "perpendicular"
+// wall is no longer close to perpendicular and the lateral sample rate stops
+// matching `spacing()`.
+//
+// Y has no equivalent shear: nothing samples height off the rail, so a Y dog-leg
+// only moves the rail, the cameras and the shots. Its two limits are instead:
+//
+//   floor  `centrelineY(z) - TUNE.boxYDown` must stay above the surface, or the
+//          bottom of the offset box is unreachable and full down-stick sits
+//          permanently in the ground cushion. Over water or ice that is y = 0,
+//          so the rail must not go below ~46 m. Both shipped levels sit at
+//          44/52, i.e. on top of this limit already.
+//   pitch  `railTangent` is a ±6 m central difference the ship and camera orient
+//          to, so dY/dz is nose attitude. A dog-leg peaks at 1.5·dx/width.
+//          Measure it with framing.mjs; there is no code that clamps it.
 
 /** 0 before the bend, 1 after it. */
-function bendS(z, i) {
-  const t = clamp((z - cbLo[i]) / (cbHi[i] - cbLo[i]), 0, 1);
+function bendS(z, i, lo, hi) {
+  const t = clamp((z - lo[i]) / (hi[i] - lo[i]), 0, 1);
   return t * t * (3 - 2 * t);
 }
-function bendDS(z, i) {
-  const w = cbHi[i] - cbLo[i];
-  const t = clamp((z - cbLo[i]) / w, 0, 1);
+function bendDS(z, i, lo, hi) {
+  const w = hi[i] - lo[i];
+  const t = clamp((z - lo[i]) / w, 0, 1);
   return 6 * t * (1 - t) / w;
 }
 
@@ -113,13 +138,14 @@ export function centrelineX(z) {
   const t = -z;
   let s = 0;
   for (let i = 0; i < cxN; i++) s += Math.sin(t * cxW[i] + cxP[i]) * cxA[i];
-  for (let i = 0; i < cbN; i++) s += cbD[i] * bendS(z, i);
+  for (let i = 0; i < cbN; i++) s += cbD[i] * bendS(z, i, cbLo, cbHi);
   return s;
 }
 export function centrelineY(z) {
   const t = -z;
   let s = cyBase;
   for (let i = 0; i < cyN; i++) s += Math.sin(t * cyW[i] + cyP[i]) * cyA[i];
+  for (let i = 0; i < cbyN; i++) s += cbyD[i] * bendS(z, i, cbyLo, cbyHi);
   return s;
 }
 /** dX/dz of the centreline — the terrain grid shears along it. */
@@ -128,7 +154,7 @@ export function centrelineDX(z) {
   let s = 0;
   for (let i = 0; i < cxN; i++) s += Math.cos(t * cxW[i] + cxP[i]) * cxA[i] * cxW[i];
   let d = -s;
-  for (let i = 0; i < cbN; i++) d += cbD[i] * bendDS(z, i);
+  for (let i = 0; i < cbN; i++) d += cbD[i] * bendDS(z, i, cbLo, cbHi);
   return d;
 }
 
@@ -141,8 +167,6 @@ export function centrelineDX(z) {
 function gainFor(lambda, sp) { return smooth(0.55, 1.40, lambda / (4 * sp)); }
 
 /* ── cross-section keyframes ──────────────────────────────────────────────── */
-
-const FIELDS = ['inner', 'bed', 'beachW', 'beachH', 'shelfW', 'shelfH', 'cliffW', 'wallH', 'relief'];
 
 const _P = {};
 /** Cross-section parameters at `z`, smoothstep-blended between keyframes. */
@@ -270,19 +294,6 @@ export function terrainNormal(x, z, e = 4, out = { x: 0, y: 1, z: 0 }) {
   return out;
 }
 
-/** Where the waterline sits on a given bank — used to place surf and scatter. */
-export function shoreU(z, right) {
-  const P = profileAt(z);
-  const s = right ? 1 : -1;
-  // invert the jitter approximately: the waterline is where h crosses 0
-  let lo = 0, hi = P.inner + P.beachW + 60;
-  for (let i = 0; i < 14; i++) {
-    const mid = (lo + hi) * 0.5;
-    if (heightAtU(s * mid, z, P) < 0) lo = mid; else hi = mid;
-  }
-  return s * (lo + hi) * 0.5;
-}
-
 /* ── activation ───────────────────────────────────────────────────────────── */
 
 function fill(dst, src, key, n) {
@@ -318,6 +329,11 @@ function buildIslands(spec) {
  * clearance through a mid-flight world swap.
  */
 export function setActiveDNA(dna) {
+  // Before anything else reads it. `world-materials.js` generates its GLSL twin
+  // of `centrelineX` from `DNA.centreline.x.bends`, so publishing the unexpanded
+  // DNA would compile a shader that disagrees with this module about where the
+  // channel is, and every shore lookup would land on the wrong column.
+  dna = expandZones(dna);
   DNA = dna;
   const g = { ...DEFAULTS.grid, ...dna.grid };
   const c = dna.centreline;
@@ -328,6 +344,8 @@ export function setActiveDNA(dna) {
   WORLD.length = dna.length ?? DEFAULTS.length;
   WORLD.waterLevel = dna.waterLevel ?? DEFAULTS.waterLevel;
   WORLD.surface = dna.surface ?? DEFAULTS.surface;
+  WORLD.backend = dna.backend ?? DEFAULTS.backend;
+  WORLD.belt = dna.belt ?? null;
   WORLD.zStart = dna.zStart ?? DEFAULTS.zStart;
   WORLD.zEnd = dna.zEnd ?? DEFAULTS.zEnd;
   WORLD.nearHalf = g.nearHalf;
@@ -339,11 +357,12 @@ export function setActiveDNA(dna) {
   SP_A = g.spacingBase;
   SP_G = g.spacingGrowth;
 
-  const xs = c.x.waves, ys = c.y.waves, bends = c.x.bends || [];
-  if (xs.length > MAXW || ys.length > MAXW || bends.length > MAXB) {
+  const xs = c.x.waves, ys = c.y.waves;
+  const bends = c.x.bends || [], yBends = c.y.bends || [];
+  if (xs.length > MAXW || ys.length > MAXW || bends.length > MAXB || yBends.length > MAXB) {
     throw new Error(`dna ${dna.id}: centreline exceeds MAXW/MAXB`);
   }
-  cxN = xs.length; cyN = ys.length; cbN = bends.length;
+  cxN = xs.length; cyN = ys.length; cbN = bends.length; cbyN = yBends.length;
   fill(cxA, xs, 'a', cxN); fill(cxW, xs, 'w', cxN); fill(cxP, xs, 'p', cxN);
   fill(cyA, ys, 'a', cyN); fill(cyW, ys, 'w', cyN); fill(cyP, ys, 'p', cyN);
   cyBase = c.y.base;
@@ -351,6 +370,11 @@ export function setActiveDNA(dna) {
     cbLo[i] = bends[i].z + bends[i].width * 0.5;
     cbHi[i] = bends[i].z - bends[i].width * 0.5;
     cbD[i] = bends[i].dx;
+  }
+  for (let i = 0; i < cbyN; i++) {
+    cbyLo[i] = yBends[i].z + yBends[i].width * 0.5;
+    cbyHi[i] = yBends[i].z - yBends[i].width * 0.5;
+    cbyD[i] = yBends[i].dx;
   }
 
   KEYS = dna.keys;

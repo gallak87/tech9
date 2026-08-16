@@ -4,8 +4,10 @@ Operational reference for a fresh agent: the rules, the harness, and the traps
 that have already cost sessions.
 
 **This file is not a plan and not a defect list.** The plan is `ROADMAP.md`; the
-active lanes are `PLAN-PERF.md` and `PLAN-VARIETY.md`; the rubric is `REVIEW.md`;
-lane ownership is `CONTRACT.md`.
+open perf lane is `PLAN-PERF.md`; the rubric is `REVIEW.md`; lane ownership is
+`CONTRACT.md`. The level lane closed 2026-08-15 — its conclusion and the
+constraints that survive it are in `ROADMAP.md` under
+`## Settled — done, and why it is the way it is`.
 
 *Condensed 2026-08-15 — session narrative, resolved defects and the stale
 "where we left off" state removed; lessons kept as one-liners. Deleted material
@@ -86,8 +88,10 @@ In-page: `__VULPINE__.probe()` (healthy daylight: median 0.10–0.20, p90 < 1.5,
 clippedPct < 4, blackPct < 12), `.stats()`, `.post({exposure})`, `.setShot()`,
 `.seek()`, `.step()`, `.hudVisible()`, `.engine.setPixelRatio()`.
 
-URL params: `?exposure= ?nopost=1 ?bloom=0 ?hud=1 ?fight=1 ?env= ?wpn=N
-?grants=0 ?railyaw= ?dev=1`. **`?fight=1` drives trigger and lock from the sim
+URL params: `?level=corneria|highlands|omega` (boots a level's world AND its
+wave tables), `?exposure= ?nopost=1 ?bloom=0 ?hud=1 ?fight=1 ?env= ?wpn=N
+?grants=0 ?railyaw= ?dev=1`. `shot.mjs` always appends its own `env`, so a
+level's preset must be passed explicitly: `--params "level=omega" --env space`. **`?fight=1` drives trigger and lock from the sim
 clock** — without it every review frame has cold guns.
 
 Dev panel: backquote toggles, `?dev=1` opens, buttons in `TOOLS`, sliders in

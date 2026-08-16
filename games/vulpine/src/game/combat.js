@@ -1387,7 +1387,10 @@ const _bRail = new THREE.Vector3();
     state.fwd.copy(flight.railDir);
     state.right.crossVectors(flight.railDir, UP).normalize().multiplyScalar(-1);
     state.speed = flight.speed;
-    state.alt = flight.pos.y - ctx.world.groundAt(flight.pos.x, flight.pos.z);
+    // A field world has no floor, so `groundAt` is -Infinity there and height
+    // above ground is not a quantity. Absolute altitude is the honest readout.
+    const _g = ctx.world.groundAt(flight.pos.x, flight.pos.z);
+    state.alt = Number.isFinite(_g) ? flight.pos.y - _g : flight.pos.y;
     state.shield = state.shieldRaw / state.shieldMax;
     state.boost = flight.boost / 100;
     state.boostActive = flight.boostActive;

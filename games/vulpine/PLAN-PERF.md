@@ -2,8 +2,7 @@
 
 **Lane status: A1–A3 done and unvalidated in live play. A5 next.** The one thing
 outstanding on A3 is the owner picking a render scale by eye. Target is ship
-criterion 3 — 16.6 ms at 1080p `--quality high` on an M1 Pro. Sibling lane:
-`PLAN-VARIETY.md`.
+criterion 3 — 16.6 ms at 1080p `--quality high` on an M1 Pro.
 
 ## The finding
 

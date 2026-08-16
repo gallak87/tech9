@@ -31,10 +31,10 @@ import { HeatWash } from './screen.js';
 // Everything either side of that instant is a continuous `env.blend`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PHASES = ['ascent', 'space', 'approach', 'reentry'];
+const PHASES = ['ascent', 'space', 'approach', 'reentry', 'whiteout', 'clear'];
 
 /** Planet palette per environment preset; anything unlisted falls back. */
-const PLANET_FOR = { corneria: 'corneria', fichina: 'fichina', venom: 'venom', sunset: 'sunset' };
+const PLANET_FOR = { corneria: 'corneria', fichina: 'fichina', venom: 'venom', sunset: 'sunset', space: 'venom' };
 
 const _dirA = new THREE.Vector3();
 const _dirB = new THREE.Vector3();
@@ -106,7 +106,7 @@ export function installTransit(ctx, hooks = {}) {
 
     dest.setDirection(...DEST_DIR);
     dest.setAngularRadius(glerp(0.0032, 0.0075, clamp01((t - 0.30) / 0.70)));
-    dest.setOpacity(clamp01((t - 0.30) / 0.30));
+    dest.setOpacity(st.destBody ? clamp01((t - 0.30) / 0.30) : 0);
     st.heat = 0;
     st.buffet = 0;
   }
@@ -124,7 +124,7 @@ export function installTransit(ctx, hooks = {}) {
 
     dest.setDirection(...DEST_DIR);
     dest.setAngularRadius(glerp(0.0075, 0.30, t));
-    dest.setOpacity(1);
+    dest.setOpacity(st.destBody ? 1 : 0);
     st.heat = 0;
     st.buffet = 0.12 * clamp01((t - 0.85) / 0.15);
   }
@@ -148,7 +148,7 @@ export function installTransit(ctx, hooks = {}) {
     dest.setAngularRadius(glerp(0.30, 1.25, clamp01(t / 0.55)));
     // The body stops being scenery and becomes the world once the deck is in
     // front of it.
-    dest.setOpacity(1 - ease(clamp01((t - 0.44) / 0.24)));
+    dest.setOpacity(st.destBody ? 1 - ease(clamp01((t - 0.44) / 0.24)) : 0);
 
     // wash: builds through the shock, peaks at the hand-over, gone by arrival
     st.heat = t < 0.62
@@ -169,7 +169,45 @@ export function installTransit(ctx, hooks = {}) {
     }
   }
 
-  const DRIVE = { ascent: driveAscent, space: driveSpace, approach: driveApproach, reentry: driveReentry };
+  /* ── overland ─────────────────────────────────────────────────────────────
+     A transition that does not leave the planet. Nothing here touches the
+     planet bodies or blends through the space preset, because the whole failure
+     of doing an abbreviated orbital hop instead is that a short climb into a
+     thinning sky still reads as "leaving" — it was just a faster leaving.
+
+     What covers the rebuild is weather: the wash driven cold and opaque, which
+     is a whiteout at the head of a glacier. The ship never gains altitude. */
+
+  /** Cold, neutral, no plasma. The same mesh the re-entry wash uses. */
+  function washTone(cold) {
+    const u = wash.material.uniforms;
+    if (cold) { u.uHot.value.set(3.30, 3.85, 4.60); u.uVeil.value.set(2.40, 2.70, 3.15); }
+    else { u.uHot.value.set(7.2, 2.05, 0.30); u.uVeil.value.set(3.2, 1.75, 0.95); }
+  }
+
+  function driveWhiteout(t) {
+    origin.setOpacity(0);
+    dest.setOpacity(0);
+    washTone(true);
+    st.heat = clamp01(t / 0.42);
+    // Hand over under full cover. No 'space' leg: the sky goes from one
+    // preset on this planet straight to the other.
+    if (!st.committed && t >= 0.55) { env.apply(st.to); st.committed = true; }
+    else if (!st.committed) env.blend(st.from, st.to, ease(clamp01(t / 0.55)));
+  }
+
+  function driveClear(t) {
+    origin.setOpacity(0);
+    dest.setOpacity(0);
+    washTone(true);
+    if (!st.committed) { env.apply(st.to); st.committed = true; }
+    st.heat = 1 - ease(clamp01(t / 0.78));
+  }
+
+  const DRIVE = {
+    ascent: driveAscent, space: driveSpace, approach: driveApproach, reentry: driveReentry,
+    whiteout: driveWhiteout, clear: driveClear,
+  };
 
   /* ── API ───────────────────────────────────────────────────────────────── */
 
@@ -178,13 +216,17 @@ export function installTransit(ctx, hooks = {}) {
    * does no allocation, no bake and no rebuild, so it is safe to call on the
    * frame the boss dies.
    */
-  function enter(fromPreset = null, toPreset = 'fichina') {
+  function enter(fromPreset = null, toPreset = 'fichina', { destBody = true } = {}) {
     st.from = fromPreset || env.presetName;
     st.to = toPreset;
     st.active = true;
     st.committed = false;
     st.phase = 'ascent';
     st.t = 0;
+    // A destination with no body to arrive at — a belt — must not grow a planet
+    // out of the star field on approach and then not be there.
+    st.destBody = destBody;
+    washTone(false);
     origin.setPalette(PLANET_FOR[st.from] || 'corneria');
     dest.setPalette(PLANET_FOR[st.to] || 'fichina');
     // Space exposure is set for the Arwing, not for a body covering a third of

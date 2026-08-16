@@ -1,25 +1,23 @@
 # Vulpine — roadmap
 
 **Status:** playable end-to-end, alpha. Phases 0–7 done. Phase 8 (encounter feel
-+ legibility) still open but **no longer the active lane**. Two levels and a
-campaign since the transition landed 2026-08-15. Branch `g/fox64`.
++ legibility) still open but **no longer the active lane**. **Three levels**
+across two planets since backends landed 2026-08-15. Branch `g/fox64-dna`.
 
-**The active lane is levels — see `## Now` below and `level.plan.md`.** Owner's
-call, 2026-08-15: Fichina reads as Corneria in a white coat, so the work is perf
-first, then the level architecture. Phase 8's remaining items are polish on a
-game whose second level does not yet look like a different place.
+**The level lane is closed — see `## Settled`.** Its conclusion, 2026-08-15,
+after three rounds that each produced a large diff and a minimal visible
+difference: **variety does not live in the terrain generator.** It has one
+composition in it and every parameter scales that composition. What changed the
+picture was giving a level the option not to use it.
 
 Finished work and the reasoning behind it lives in `## Settled` at the bottom.
 The sections above it are only what is still open.
 
-Read with `level.plan.md` (**the active lane** — levels as sequences of zones
-that compile to today's DNA), `PLAN-PERF.md` (the DPR finding and the frame-time
-measurement rules), `PLAN-VARIETY.md` (the diagnosis the level lane is built on),
+Read with `PLAN-PERF.md` (the DPR finding and the frame-time measurement rules),
 `CONTRACT.md` (lane rules), `REVIEW.md` (the rubric), `HANDOFF.md` (harness and
 traps).
-**This file is the plan of record; `level.plan.md` is the current lane's detail;
-HANDOFF is the queue.** Tick items here at every commit that closes one, and
-re-cut the Status line at the end of each phase.
+**This file is the plan of record; HANDOFF is the queue.** Tick items here at
+every commit that closes one, and re-cut the Status line at the end of each phase.
 
 ---
 
@@ -30,6 +28,12 @@ in a blind side-by-side on visuals. Arcade feel, 2020s rendering, everything
 procedural (no binary assets, no network).
 
 **Is not:** a hub, branching paths, an all-range mode, or multiplayer.
+
+**Levels, as built (2026-08-15).** Corneria is one *planet* with two sectors —
+the lowland river reach and the ice cap above it — joined by an overland hop.
+Sector Omega is the second planet and the only orbital hop in the game. So the
+campaign is three levels, two planets, one set-piece transition, and the
+set-piece is spent arriving somewhere that shares nothing with what came before.
 
 **Scope changed (2026-08-15, owner).** "Is not" used to begin "a campaign […]
 multiple levels". The owner asked for up to three more levels with a seamless
@@ -81,27 +85,23 @@ register, swept collision.
 
 ---
 
-## Now — the variety push
+## Now
 
-**The lane is `level.plan.md`** (owner-approved 2026-08-15): a level becomes a
-sequence of zones that compile to today's DNA, and zones carry the cross-section,
-the rail's climb, the offset box, the profile kind and the props. Perf is
-`PLAN-PERF.md`; the diagnosis behind the lane is `PLAN-VARIETY.md`.
+**Nothing is claimed here.** The level lane closed 2026-08-15 (see
+`## Settled — levels and worlds`); Phase 8 below is open but unowned. The owner
+picks what is next.
 
-Owner-sequenced: **perf first, then levels** — props add fill and the frame is
-still over budget.
+**How a level is loaded, for anything that needs to look at one:**
+`?level=corneria|highlands|omega` boots straight into it — its world *and* its
+wave tables. `tools/shot.mjs --params "level=omega" --env space`; the harness
+always appends its own `env`, so a level's preset must be passed explicitly.
 
-- [x] **A. Perf.** `QUALITY.pixelRatio` multiplied the device ratio instead of
-      capping it, so `high` rendered at DPR 2.5 — 6.25× the pixels on a
+- [x] **Perf.** `QUALITY.pixelRatio` multiplied the device ratio instead of
+      capping it, so `high` rendered at DPR 2.5 — 6.25x the pixels on a
       fill-bound frame. Split into a clamped device DPR and a separate
       `renderScale`, tiers retuned, one quality dial on the dev panel. Owner
       picked 0.95: **49 fps / 20.4 ms**, from 26–40. Still 3.8 ms over ship
       criterion 3 — A5 is the next lever, in `PLAN-PERF.md`.
-- [ ] **B. Levels as zone sequences — see `level.plan.md`.** This round is its
-      Z1 only: the zone expander, `centrelineY` dog-legs, and Fichina re-authored
-      with real longitudinal pacing and no new shape functions. It ends in a
-      branch decided by measurement — whether the fixed grammar or the flat
-      authoring is what makes Fichina read as Corneria.
 
 ## Also open — Phase 8: legibility and the first two encounters
 
@@ -286,6 +286,69 @@ The pre-boss weapon grant is done (above). What is left here is scoring.
 - [ ] Touch controls / mobile.
 
 ## Settled — done, and why it is the way it is
+
+### Levels and worlds — closed 2026-08-15
+
+Three levels across two planets: **Corneria** (lowland river), **Corneria
+Highlands** (the ice cap it drains from, reached overland), and **Sector Omega**
+(an asteroid belt, reached by the campaign's one orbital hop).
+
+**The finding, which cost three rounds to get and is the reason this is closed.**
+The terrain generator has exactly one composition in it — ground below, walls
+either side, sky above — and every DNA parameter changes that composition's
+*size*, never the composition. Corridor width was pushed 1.3x -> 4.8x (Corneria
+is 4.6x), longitudinal pacing was rebuilt, and the wall material was made
+per-world; each landed, each was measurable, and none of it stopped the second
+level reading as the first. **Variety is not a parameter of the generator. It is
+whether a level uses the generator at all.**
+
+So `WORLD.backend` chooses what a world is made of:
+
+- `terrain` — the corridor: `heightAtU` + `terrain.js` + water + baked fields
+- `field` — `belt.js`: discrete bodies, no heightfield, no surface, no floor,
+  and rock overhead, which a single-valued heightfield cannot produce at any
+  parameter value
+
+**What made that cheap, measured rather than assumed: outside `src/world/` the
+whole game asks a world for exactly two things** — a rail
+(`centrelineX`/`centrelineY`) and a floor (`groundAt`). Flight, combat, ai,
+camera, HUD, radar and the campaign hop needed no backend awareness; the only
+edit outside the world lane was one line in `combat.js`, because height above
+ground is not a quantity when there is no ground.
+
+Landed with it, and load-bearing if any of this is touched again:
+
+- **`zones.js`** — a level as held zones separated by blends, compiled to the
+  `keys` a DNA already had. `expandZones` runs inside `setActiveDNA` *before*
+  `DNA = dna`, because `world-materials.js` generates a GLSL twin of
+  `centrelineX` from `DNA.centreline.x.bends`; publish the unexpanded DNA and the
+  shader disagrees with `profile.js` about where the channel is. Corneria stays
+  hand-authored and is untouched by it.
+- **`DNA.surfaceKind`** — the wall's texture set and structural GLSL, not just
+  its colours. Before this, `rockSet()` was globally cached with a hardcoded seed
+  and the bedding was hardcoded in the shader, so an ice sheet was drawn as
+  folded sedimentary bedrock with a blue tint on **both** worlds.
+- **`?level=`** boots a level's world *and* its wave tables. Before it there was
+  no way to load level 2 at all, which is why it had never been reviewed.
+- **`y.bends`** — the rail can climb. Its limits: `centrelineY - TUNE.boxYDown`
+  must stay above the surface (so ~46 m over water or ice), and `dY/dz` is nose
+  attitude via `railTangent`.
+- **A level's rail must not swing vertically further than the offset box can
+  absorb.** Sector Omega was authored at a 251 m swing against a box of
+  +78/-46; a craft placed against the rail 1500 m ahead arrives where the rail
+  has since moved 100 m, so every contact was permanently out of reach. 92 m of
+  swing measures at parity with Corneria for fraction-of-contacts-in-reach.
+- **Encounters are coupled to geometry only by convention.** A wave's `z` arms
+  it; the craft appears `spawn` metres further on. Ground batteries sit at
+  `groundAt + 3.2` with an absolute `bank` offset, so a battery wave must fire
+  inside one zone with `bank` near that zone's width, never where the rail is
+  climbing — and never in a `field` world, which has no ground.
+
+Deleted with the lane: `level.plan.md`, `PLAN-VARIETY.md` (both aimed at the
+axis with the least leverage, kept only as history in git), and the dead prop
+materials they existed to schedule — `cityMaterial`, `concreteMaterial`,
+`steelMaterial`, `foliageMaterial`, `concreteSet`, `shoreU`.
+
 
 Moved out of the active plan so the sections above are only open work. Kept in
 full rather than summarised: `HANDOFF.md` bans this reasoning from code comments,
@@ -785,12 +848,11 @@ Multiple levels, all-range mode, branching paths, multiplayer, binary assets.
 5. Zero console errors from `shot.mjs`, `inputtest.mjs`, `pacing.mjs`, `bossprobe.mjs`.
 6. Every control in `inputtest.mjs` does what the legend says.
 7. No dead code: every module written is imported and reachable. Standing
-   total: **~190 lines** — `concreteMaterial`, `steelMaterial`, `foliageMaterial`
-   and `rockPropMaterial` (`level.plan.md` Z5) plus `shoreU` (Phase 8
-   shoreline). Kept deliberately: each has a named consumer in a scheduled
-   phase. Everything with no scheduled consumer is gone (`ahdsr`,
-   `resetStreams`, `disposeMaterials`, `disposeShipMaterials`, `finPatch`,
-   `L_FAR`, `L_MACRO`).
+   total: **0 lines in `src/world/`**, swept 2026-08-15 when the level lane
+   closed. `rockPropMaterial` gained a real consumer (Sector Omega's belt);
+   `cityMaterial`, `concreteMaterial`, `steelMaterial`, `foliageMaterial`,
+   `concreteSet` and `shoreU` were deleted rather than kept against a phase that
+   no longer exists.
    Re-run the sweep before claiming this criterion, and note the obvious
    one-liner misses orphans on multi-declarator lines (`const A = 1, B = 2`
    only reports `A`) — that is how `L_MACRO` hid behind `L_FAR`.

@@ -3,7 +3,7 @@ import { Engine } from './core/engine.js';
 import { Input } from './core/input.js';
 import { buildMaterials } from './render/materials.js';
 import { Environment } from './render/environment.js';
-import { Corneria } from './world/corneria.js';
+import { Corneria, DNA_BY_ID } from './world/corneria.js';
 import { createArwing } from './ships/arwing.js';
 import { Flight, TUNE as FLIGHT_TUNE } from './game/flight.js';
 import { SHOTS, applyShot } from './game/shots.js';
@@ -12,7 +12,7 @@ import { installCombat } from './game/combat.js';
 import { installUI } from './ui/index.js';
 import { installAudio } from './core/audio.js';
 import { installMode } from './game/mode.js';
-import { installCampaign } from './game/campaign.js';
+import { installCampaign, LEVELS } from './game/campaign.js';
 import { installDevPanel } from './dev/panel.js';
 import { createLoader } from './ui/loading.js';
 
@@ -34,7 +34,12 @@ const params = new URLSearchParams(location.search);
 const qualityParam = params.get('quality') || 'high';
 const shotParam = params.get('shot');
 const seekParam = parseFloat(params.get('t') || '0');
-const presetParam = params.get('env') || 'corneria';
+// `?level=` boots straight into a campaign level: its world AND its wave tables,
+// which is why it is not a `?dna=`. Reviewing a level through the previous
+// level's encounters measures nothing. Falls back to the first level.
+const levelIndex = Math.max(0, LEVELS.findIndex(l => l.id === params.get('level')));
+const startLevel = LEVELS[levelIndex];
+const presetParam = params.get('env') || startLevel.env;
 
 const railYawParam = parseFloat(params.get('railyaw'));
 if (!Number.isNaN(railYawParam)) FLIGHT_TUNE.railYawFollow = railYawParam;
@@ -53,9 +58,9 @@ await loader.stage('LINKING POST CHAIN', 0.41);
 
 engine.buildPost();
 env.apply(presetParam);            // re-apply now that post exists
-await loader.stage('GENERATING CORNERIA', 0.47);
+await loader.stage(`GENERATING ${startLevel.name}`, 0.47);
 
-const world = new Corneria(engine.scene);
+const world = new Corneria(engine.scene, DNA_BY_ID[startLevel.dna]);
 await loader.stage('ASSEMBLING ARWING', 0.60);
 
 const ship = createArwing({ scale: 1.0 });
@@ -84,7 +89,7 @@ ctx.audio = installAudio(ctx);
 // After combat, which owns `ctx.state` — the campaign publishes onto it. This is
 // a new seam in a shared file: the campaign is the only thing that may end a
 // mission, and it needs a per-frame tick nothing else can give it.
-ctx.campaign = installCampaign(ctx);
+ctx.campaign = installCampaign(ctx, levelIndex);
 
 // Hulls the motion blur must not touch. The pass reprojects depth as if every
 // pixel were static world geometry, which is maximally wrong for anything that

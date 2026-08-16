@@ -9,6 +9,9 @@ import { spawn } from 'node:child_process';
 const ROOT = '/Users/g/code/scratch/tech9/games/vulpine';
 const PORT = parseInt(process.argv[2] || '5250', 10);
 const UNTIL = parseFloat(process.argv[3] || '26');
+// Which level's encounters to measure. Without this the probe can only ever
+// report on the first level, whichever one was re-paced.
+const LEVEL = process.argv[4] || 'corneria';
 
 const base = `http://127.0.0.1:${PORT}`;
 async function up(url, ms = 45000) {
@@ -31,7 +34,7 @@ const errs = [];
 page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 page.on('pageerror', e => errs.push('pageerror: ' + e.message));
 
-await page.goto(`${base}/?quality=medium&t=0.1&fight=1&hud=0`, { waitUntil: 'load' });
+await page.goto(`${base}/?quality=medium&t=0.1&fight=1&hud=0&level=${LEVEL}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 120000 });
 
 const data = await page.evaluate(async (until) => {

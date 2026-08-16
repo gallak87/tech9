@@ -28,14 +28,53 @@ import { CORNERIA_WAVES, CORNERIA_GRANTS, CORNERIA_COMMS } from './combat.js';
 // root for its own call or it compiles nothing. See `corneria.js:_warm`.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Seconds in each phase of the hop. The lap is bounded by the rail, not time. */
-const PHASE = {
-  ascent: 3.5,
-  space: 2.0,
-  approach: 6.0,
-  reentry: 3.0,
+/* ── transitions ──────────────────────────────────────────────────────────────
+   Two kinds, and the difference is the point rather than a saving.
+
+   An ORBITAL hop says "different planet". Used once, between Corneria and
+   Sector Omega, because that is the one time the destination looks like nothing
+   you have seen — the set-piece and the payoff land on the same beat.
+
+   An OVERLAND hop says "further up the same valley". Corneria's two sectors are
+   one river system: the lowland reach and, above it, the ice cap it drains from.
+   They share a landform grammar because they are the same landform, which is
+   the whole reason to make this transition overland — a fiction that promises a
+   different planet and then delivers the same cross-section reads as a bug,
+   where a fiction that promises the head of the same valley reads as continuity.
+
+   Both drive `fx.transit`, which owns no timing: `setPhase(phase, t)` is its
+   entire input. The overland hop simply never enters the two phases that draw a
+   planet from space, so it needs no new art. */
+const HOPS = {
+  orbital: {
+    order: ['ascent', 'space', 'approach', 'reentry'],
+    dur: { ascent: 3.5, space: 2.0, approach: 6.0, reentry: 3.0 },
+    // Enough that the corridor walls fall out of frame and the horizon curves.
+    climb: 2200,
+    // The rebuild starts here, and has the rest of the sequence to finish.
+    buildAt: 'space',
+    label: {
+      ascent: 'LEAVING ATMOSPHERE', space: 'ORBITAL TRANSIT',
+      approach: 'APPROACH', reentry: 'RE-ENTRY',
+    },
+  },
+  overland: {
+    // **climb is 0 and that is the point.** The first attempt at this reused a
+    // shortened orbital ascent, and a short climb into a thinning sky reads as
+    // leaving the planet quickly rather than as not leaving it — the altitude
+    // was the tell, not the duration. The ship stays in the canyon for the whole
+    // transition and the weather does the covering.
+    order: ['runin', 'whiteout', 'clear'],
+    dur: { runin: 1.8, whiteout: 5.0, clear: 2.6 },
+    climb: 0,
+    buildAt: 'whiteout',
+    label: { runin: 'CLIMBING THE VALLEY', whiteout: 'WHITEOUT', clear: 'CORNERIA HIGHLANDS' },
+    // `runin` drives nothing: the world is still the one being flown and must
+    // look untouched. The two transit phases below never show a planet and never
+    // blend through the space preset.
+    transit: { runin: null, whiteout: ['whiteout', null], clear: ['clear', null] },
+  },
 };
-const ORDER = ['ascent', 'space', 'approach', 'reentry'];
 
 // Hard ceiling on the victory lap, in case the rail never reaches `zEnd` —
 // killing the carrier early with the dev tool leaves several km to fly, and a
@@ -46,59 +85,117 @@ const LAP_MAX = 14;
 // competing: the terrain is hidden and the field is empty.
 const BUILD_MS = 6;
 
-// Metres climbed during the ascent and shed again on re-entry. Large enough that
-// the corridor walls fall out of frame and the horizon curves.
-const CLIMB = 2200;
-
 /* ── Fichina ──────────────────────────────────────────────────────────────────
-   Shorter and colder than Corneria: no weapon grants, because the run carries
-   its tier across the hop, and no wasp swarms — the trough is a 200–260 m slot
-   with sheer walls, so the level's pressure comes from the corridor rather than
-   from filling it with drones.
+   Placed against the zone sequence in `dna.js`, not on an even grid. Three rules
+   came out of doing it, and none of them is enforced by anything:
+
+   1. A wave's `z` only ARMS it. The craft appears `spawn` metres further down
+      the rail and closes at roughly `speed + closeRate`, so it is on screen from
+      `z` and in the fight around `z - spawn·175/(175+close)`. Both numbers have
+      to land in the zone you meant.
+   2. Ground batteries sit on the ground, and `bank` is an absolute offset from
+      the rail (`combat.js:647`). So a battery wave has to fire inside ONE zone's
+      held stretch with `bank` set near that zone's `inner` — and never where the
+      rail is climbing, or the whole battery is 160 m below the ship.
+   3. The slot and the crevasse are 1.1 s and 0.86 s long. Nothing is armed to
+      make contact inside them; they are the two places the level is looked at
+      rather than fought in.
+
+   Nothing sorts or validates this table, so it stays z-descending by hand.
 
    The finale spawns `commander:ice` through the ordinary enemy path. It fights
    as a heavy contact, NOT yet as a boss: no health bar, no station-keeping, no
    win trigger. Wiring the commander to the boss plumbing is the next task. */
 const FICHINA_WAVES = [
-  { z: -260, kind: 'raptor', n: 3, form: 'vee', from: 'ahead', spawn: 1250, arc: 0.55, climb: 0.22, life: 7.5 },
-  { z: -900, kind: 'bulwark', n: 3, form: 'banks', first: 760, step: 320, bank: 95 },
-  { z: -1500, kind: 'raptor', n: 4, form: 'echelon', from: 'ahead', spawn: 1300, arc: -0.60, climb: 0.18, skill: 0.18, life: 8 },
-  { z: -2200, kind: 'hornet', n: 2, form: 'pair', from: 'ahead', spawn: 1550, arc: 0.28, climb: 0.12, skill: 0.24, life: 11 },
-  { z: -2900, kind: 'bulwark', n: 4, form: 'banks', first: 720, step: 290, bank: 88 },
-  { z: -3500, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1250, arc: 0.48, climb: -0.24, skill: 0.3, aggro: 0.14, hunt: true, life: 8.5 },
-  { z: -4300, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1500, arc: -0.34, climb: 0.2, skill: 0.34, aggro: 0.16, life: 10.5 },
-  { z: -5100, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.28 },
-  { z: -5900, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: -0.05, climb: 0.14, skill: 0.38, aggro: 0.22, life: 24, close: 200, escort: 2 },
-  { z: -6800, kind: 'bulwark', n: 4, form: 'banks', first: 700, step: 270, bank: 82 },
-  { z: -7400, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: 0.4, climb: -0.12, skill: 0.46, aggro: 0.24, life: 10 },
+  // Open icefield: the longest sightline in the level, so the longest spawn.
+  { z: -240, kind: 'raptor', n: 3, form: 'vee', from: 'ahead', spawn: 1500, arc: 0.55, climb: 0.22, life: 7.5 },
+  // Batteries land at -1980…-2600, inside the trough — hence bank 250 ≈ inner.
+  { z: -1200, kind: 'bulwark', n: 3, form: 'banks', first: 780, step: 310, bank: 250 },
+  { z: -2400, kind: 'raptor', n: 4, form: 'echelon', from: 'ahead', spawn: 1300, arc: -0.60, climb: 0.18, skill: 0.18, life: 8 },
+  // Rear pressure over the approach to the slot: the one attack that works in a
+  // place too tight to turn around in, and it leaves the frame ahead empty.
+  { z: -3000, kind: 'raptor', n: 3, form: 'echelon', from: 'behind', skill: 0.28 },
+  // Armed past the slot's exit key, so they resolve as the walls open out.
+  { z: -3900, kind: 'hornet', n: 2, form: 'pair', from: 'ahead', spawn: 1550, arc: 0.28, climb: 0.12, skill: 0.24, life: 11 },
+  { z: -4500, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1250, arc: 0.48, climb: -0.24, skill: 0.3, aggro: 0.14, hunt: true, life: 8.5 },
+  // Contact at ≈ -6470, mid-pass, head-on while the rail is 160 m up.
+  { z: -5400, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: -0.05, climb: 0.14, skill: 0.38, aggro: 0.22, life: 24, close: 200, escort: 2 },
+  { z: -6200, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: 0.4, climb: -0.12, skill: 0.46, aggro: 0.24, life: 9 },
+  // Batteries land at -8200…-9040: the shelf, wide and back at rail height.
+  { z: -7500, kind: 'bulwark', n: 4, form: 'banks', first: 700, step: 280, bank: 560 },
+  { z: -8000, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: -0.36, climb: 0.18, skill: 0.5, aggro: 0.26, life: 10 },
   { z: -8300, kind: 'commander:ice', n: 1, form: 'pair', from: 'ahead', spawn: 2400, arc: 0, climb: 0.1, skill: 0.5, aggro: 0.3, life: 40, close: 260 },
 ];
 
 const FICHINA_COMMS = [
-  { z: -140, who: 'PEPPY', text: 'Fichina. Watch the ice — that trough gets tight.' },
-  { z: -880, who: 'SLIPPY', text: 'Batteries dug into the ridge line!' },
-  { z: -2180, who: 'FALCO', text: 'Gunboats again. You know the drill.' },
-  { z: -3480, who: 'FALCO', text: "They're on me! Somebody get them off!" },
-  { z: -5880, who: 'PEPPY', text: 'Transport coming out of the whiteout, Fox.' },
-  { z: -8200, who: 'PEPPY', text: 'That gun platform is the objective. Find the weak points!' },
+  { z: -120, who: 'PEPPY', text: 'Fichina. Open ice ahead — it closes up fast.' },
+  { z: -1180, who: 'SLIPPY', text: 'Batteries dug into the trough wall!' },
+  { z: -3250, who: 'FALCO', text: 'That slot is barely wider than a wing. Line it up.' },
+  { z: -4450, who: 'PEPPY', text: 'It opens out here, Fox. Use the room while you have it.' },
+  { z: -5150, who: 'SLIPPY', text: 'Reading a climb — the pass runs high over the ice.' },
+  { z: -6750, who: 'FALCO', text: 'Crevasse coming up. Straight through!' },
+  { z: -8250, who: 'PEPPY', text: 'That gun platform is the objective. Find the weak points!' },
+];
+
+/* ── Sector Omega ─────────────────────────────────────────────────────────────
+   No `bulwark` anywhere in this table, and that is a hard constraint rather than
+   a taste call: ground batteries are placed at `groundAt(x, z) + 3.2`
+   (`combat.js:649`), and a field world answers -Infinity because it has no
+   ground. A battery here would be placed at negative infinity.
+
+   Everything else works untouched. The rail exists, so `from: 'ahead'` spawn
+   distances, formations, arcs and lifetimes all mean exactly what they mean in
+   a canyon — which is the point of the backend being a world-lane concern. */
+const OMEGA_WAVES = [
+  { z: -300, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1500, arc: -0.5, climb: 0.3, skill: 0.3, life: 8 },
+  { z: -1100, kind: 'wasp', n: 5, form: 'swarm', from: 'ahead', spawn: 1500, arc: 0.1, climb: -0.4, skill: 0.32, life: 8, markFor: 2.2, stagger: 0.6 },
+  { z: -1900, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1350, arc: 0.62, climb: 0.18, skill: 0.36, aggro: 0.16, life: 8.5 },
+  { z: -2700, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1600, arc: -0.3, climb: 0.34, skill: 0.4, aggro: 0.2, life: 11 },
+  { z: -3600, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.4 },
+  { z: -4400, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1450, arc: -0.15, climb: 0.5, skill: 0.42, life: 8.5, markFor: 2.0, stagger: 0.5 },
+  { z: -5300, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1550, arc: 0.44, climb: -0.28, skill: 0.46, aggro: 0.24, life: 10.5 },
+  { z: -6300, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: 0.05, climb: -0.12, skill: 0.5, aggro: 0.28, life: 26, close: 200, escort: 2 },
+  { z: -7300, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1300, arc: -0.55, climb: 0.24, skill: 0.5, aggro: 0.3, hunt: true, life: 9 },
+  { z: -8200, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1500, arc: 0.36, climb: 0.3, skill: 0.55, aggro: 0.32, life: 11 },
+];
+
+const OMEGA_COMMS = [
+  { z: -160, who: 'PEPPY', text: 'Sector Omega. No ground, no horizon — watch your six.' },
+  { z: -1050, who: 'SLIPPY', text: 'Rocks everywhere! I can barely get a lock!' },
+  { z: -2650, who: 'FALCO', text: "Now this is more like it. Try and keep up, Fox." },
+  { z: -3560, who: 'PEPPY', text: 'Behind you! Use the rocks, Fox — break their line!' },
+  { z: -5250, who: 'SLIPPY', text: "Something big just lit up on the far side of the belt." },
+  { z: -6260, who: 'FALCO', text: "That's their heavy. Nowhere to hide out here." },
 ];
 
 export const LEVELS = [
   {
     id: 'corneria', name: 'CORNERIA', dna: 'corneria', env: 'corneria',
-    brief: 'SECTOR I · CORNERIA',
+    brief: 'SECTOR I · CORNERIA LOWLANDS',
     waves: CORNERIA_WAVES, comms: CORNERIA_COMMS, grants: CORNERIA_GRANTS,
+    // The way OUT of this level: up the valley, not off the planet.
+    hop: 'overland',
   },
   {
-    id: 'fichina', name: 'FICHINA', dna: 'fichina', env: 'fichina',
-    brief: 'SECTOR II · FICHINA',
+    // Same planet, 4 km higher: the ice cap Corneria's river drains from. The
+    // internal `dna` and `env` keys stay 'fichina' because they are keys — the
+    // env preset, the planet palette in fx/transit.js and the enemy materials
+    // are all keyed off that string and renaming them buys nothing.
+    id: 'highlands', name: 'HIGHLANDS', dna: 'fichina', env: 'fichina',
+    brief: 'SECTOR II · CORNERIA HIGHLANDS',
     waves: FICHINA_WAVES, comms: FICHINA_COMMS, grants: [],
+    hop: 'orbital',
+  },
+  {
+    id: 'omega', name: 'SECTOR OMEGA', dna: 'omega', env: 'space',
+    brief: 'SECTOR III · SECTOR OMEGA',
+    waves: OMEGA_WAVES, comms: OMEGA_COMMS, grants: [],
   },
 ];
 
-export function installCampaign(ctx) {
+export function installCampaign(ctx, startIndex = 0) {
   const state = {
-    index: 0,
+    index: startIndex,
     phase: 'play',        // play | lap | ascent | space | approach | reentry
     t: 0,                 // seconds inside the current phase
     lapT: 0,
@@ -110,13 +207,19 @@ export function installCampaign(ctx) {
 
   const level = () => LEVELS[state.index];
   const next = () => LEVELS[state.index + 1] || null;
+  /** The transition out of the level being flown. */
+  const hop = () => HOPS[level().hop] || HOPS.orbital;
 
   function begin() {
     const to = next();
     if (!to) return;                         // last level: the win card stands
-    state.phase = 'ascent';
+    state.phase = hop().order[0];
     state.t = 0;
-    ctx.fx.transit?.enter(level().env, to.env);
+    // A belt has no body to arrive at, so the approach must not grow a planet
+    // out of the star field and then not be there.
+    ctx.fx.transit?.enter(level().env, to.env, {
+      destBody: (DNA_BY_ID[to.dna].backend ?? 'terrain') !== 'field',
+    });
     // Clearing the outcome fades the MISSION COMPLETE card back out; it has had
     // the whole victory lap on screen by now. The final level never gets here,
     // so its card is the one that holds.
@@ -171,44 +274,54 @@ export function installCampaign(ctx) {
 
     /* ── the hop ──────────────────────────────────────────────────────────── */
     state.t += dt;
-    const dur = PHASE[state.phase];
+    const H = hop();
+    const dur = H.dur[state.phase];
     const u = Math.min(1, state.t / dur);
-    ctx.fx.transit?.setPhase(state.phase, u);
+    // An overland hop reuses the orbital phases it can and skips the two that
+    // draw a planet, so it maps its own phase names onto transit's.
+    if (H.transit) {
+      const m = H.transit[state.phase];
+      if (m) ctx.fx.transit?.setPhase(m[0], m[1] == null ? u : m[1]);
+    } else {
+      ctx.fx.transit?.setPhase(state.phase, u);
+    }
 
     // Altitude. The sky alone does not sell leaving a planet — without this the
     // banner reads LEAVING ATMOSPHERE over a ship still skimming the water.
     // Climbing on ascent and shedding it on re-entry is also what puts the ground
     // back under the ship at exactly the moment the terrain is unhidden.
     const ease = (p) => p * p * (3 - 2 * p);
-    if (state.phase === 'ascent') ctx.flight.climb = ease(u) * CLIMB;
-    else if (state.phase === 'reentry') ctx.flight.climb = (1 - ease(u)) * CLIMB;
-    else ctx.flight.climb = CLIMB;
+    const first = H.order[0], last = H.order[H.order.length - 1];
+    if (state.phase === first) ctx.flight.climb = ease(u) * H.climb;
+    else if (state.phase === last) ctx.flight.climb = (1 - ease(u)) * H.climb;
+    else ctx.flight.climb = H.climb;
 
     if (state.building) {
       state.progress = ctx.world.step(BUILD_MS);
       if (state.progress >= 1) state.building = false;
     }
 
-    // The terrain comes back at the re-entry commit point, which is where the
-    // destination preset lands — before that the sky is still the old world's.
-    if (state.phase === 'reentry' && u >= 0.62 && !ctx.world.root.visible) setWorldVisible(true);
+    // The terrain comes back at the commit point of the last phase, which is
+    // where the destination preset lands — before that the sky is still the old
+    // world's.
+    if (state.phase === last && u >= 0.62 && !ctx.world.root.visible) setWorldVisible(true);
 
     state.hud = {
       phase: state.phase,
-      label: PHASE_LABEL[state.phase],
+      label: H.label[state.phase],
       to: next()?.brief ?? '',
       // The bar tracks the whole hop, not the mesh job: the player is being told
       // how long this lasts, and the mesh finishes long before the sequence does.
-      progress: (ORDER.indexOf(state.phase) + u) / ORDER.length,
+      progress: (H.order.indexOf(state.phase) + u) / H.order.length,
       loading: state.building ? state.progress : 1,
     };
 
     if (u >= 1) {
-      const i = ORDER.indexOf(state.phase);
-      if (i === ORDER.length - 1) { arrive(); return; }
-      state.phase = ORDER[i + 1];
+      const i = H.order.indexOf(state.phase);
+      if (i === H.order.length - 1) { arrive(); return; }
+      state.phase = H.order[i + 1];
       state.t = 0;
-      if (state.phase === 'space') startRebuild();
+      if (state.phase === H.buildAt) startRebuild();
     }
   }
 
@@ -224,13 +337,12 @@ export function installCampaign(ctx) {
     /** Dev: jump straight into the hop from wherever the ship is. */
     forceHop() { if (state.phase === 'play' || state.phase === 'lap') begin(); },
   };
+  // Booting mid-campaign: the world is already built from this level's DNA, but
+  // combat still holds the first level's tables. The rail is at 0 either way, so
+  // only the tables need moving.
+  if (startIndex > 0) ctx.combat.resetForLevel(level());
+
   ctx.state.campaign = api;
   return api;
 }
 
-const PHASE_LABEL = {
-  ascent: 'LEAVING ATMOSPHERE',
-  space: 'ORBITAL TRANSIT',
-  approach: 'APPROACH',
-  reentry: 'RE-ENTRY',
-};

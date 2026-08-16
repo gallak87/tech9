@@ -70,4 +70,71 @@ export function registerWorldShots() {
     const z = -5600;
     park(engine.camera, [centrelineX(z) + 180, 90, z + 210], [centrelineX(z) + 430, 190, z - 120], 44);
   });
+
+  registerFichinaShots();
+  registerOmegaShots();
+}
+
+/**
+ * Sector Omega. Framed differently from either canyon on purpose: there is no
+ * floor to put a horizon on and no wall to aim along, so what these have to
+ * show is depth — bodies at four distances with gaps and stars between them —
+ * and the fact that there is rock overhead.
+ */
+function registerOmegaShots() {
+  registerShot('o-corridor', ({ engine }) => onRail(engine.camera, -900, { ahead: 900, fov: 58 }));
+  registerShot('o-dense', ({ engine }) => onRail(engine.camera, -3400, { ahead: 700, fov: 62 }));
+  // Aimed up: the one frame that proves a heightfield could not have made this.
+  registerShot('o-ceiling', ({ engine }) => onRail(engine.camera, -5200, { ahead: 300, aimY: 420, fov: 62 }));
+  registerShot('o-drift', ({ engine }) => onRail(engine.camera, -7000, { du: 90, ahead: 800, aimY: -60, fov: 54 }));
+  // From outside the flight tube, looking back along it — the belt as a plane.
+  registerShot('o-wide', ({ engine }) => {
+    const z = -4200;
+    park(engine.camera, [centrelineX(z) + 1500, centrelineY(z) + 620, z + 1300],
+      [centrelineX(z - 900), centrelineY(z - 900), z - 900], 46);
+  });
+}
+
+/**
+ * Fichina's own review set. The `w-*` cameras above are framed on Corneria's z
+ * literals and several park at absolute world Y, so they answer nothing about a
+ * world whose dramatic moments are somewhere else and whose rail changes height.
+ *
+ * One camera per zone, parked at the middle of that zone's *held* stretch rather
+ * than at its boundary — the boundaries are blends, and a blend photographs as
+ * neither of the two things it joins. Everything is offset off `centrelineY`, so
+ * the framing follows the rail through the pass instead of being left underneath
+ * it.
+ */
+function registerFichinaShots() {
+  registerShot('f-icefield', ({ engine }) => onRail(engine.camera, -400, { dy: 16, ahead: 900, aimY: -10 }));
+  registerShot('f-tighten', ({ engine }) => onRail(engine.camera, -1400, { dy: 10, ahead: 800, aimY: 0 }));
+  registerShot('f-trough', ({ engine }) => onRail(engine.camera, -2400, { dy: 4, ahead: 640, aimY: 10 }));
+  // The two narrows are parked on the approach, not inside. At u = 0 in a 135 m
+  // corridor the walls are 57–90° off axis — behind the shoulders of an 81°
+  // horizontal frustum — so a camera in the slot photographs sky, and one aimed
+  // up at the rim photographs more sky. What reads as tight is the pinch closing
+  // ahead of you, which is also the only view the player ever gets of it.
+  registerShot('f-slot', ({ engine }) => onRail(engine.camera, -3350, { dy: 8, ahead: 520, aimY: 25 }));
+  registerShot('f-cirque', ({ engine }) => onRail(engine.camera, -4550, { dy: 20, ahead: 780, aimY: -8 }));
+  registerShot('f-pass', ({ engine }) => onRail(engine.camera, -6100, { dy: 6, ahead: 460, aimY: 22 }));
+  registerShot('f-crevasse', ({ engine }) => onRail(engine.camera, -6700, { dy: 6, ahead: 480, aimY: 30 }));
+  registerShot('f-shelf', ({ engine }) => onRail(engine.camera, -8900, { dy: 26, ahead: 860, aimY: -14 }));
+
+  // Outside the corridor: the only angle that shows a corridor changing width,
+  // and the only one that shows the rail changing height.
+  // High enough to see over the rim of the tallest zone (wallH 640 × the side
+  // wobble's 1.14 ceiling), or the near wall hides the corridor these exist to
+  // show. Each look target is ~1.5 km down the rail so a whole zone-to-zone
+  // transition fits in one frame.
+  registerShot('f-aerial-slot', ({ engine }) => {
+    const z = -2900;
+    park(engine.camera, [centrelineX(z) + 980, centrelineY(z) + 980, z + 900],
+      [centrelineX(z - 1500), centrelineY(z - 1500), z - 1500], 44);
+  });
+  registerShot('f-aerial-pass', ({ engine }) => {
+    const z = -5100;
+    park(engine.camera, [centrelineX(z) + 1050, centrelineY(z) + 900, z + 820],
+      [centrelineX(z - 1600), centrelineY(z - 1600), z - 1600], 46);
+  });
 }

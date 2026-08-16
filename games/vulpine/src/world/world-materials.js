@@ -10,10 +10,10 @@ import { DEFAULTS } from './dna.js';
 // texture kit so the level responds to light like the rest of the game.
 //
 // The four that matter:
-//   terrainMaterial()  triplanar rock, wet band at the waterline, strata
+//   terrainMaterial()  triplanar wall, structure chosen by DNA.surfaceKind
 //   waterMaterial()    Gerstner surface that knows where the shore is
 //   iceMaterial()      the same plane frozen: cracks, no swell, no shoaling
-//   cityMaterial()     concrete with analytically anti-aliased windows
+//   rockPropMaterial() free-standing bodies — Sector Omega's belt
 //
 // ── Per-world state ──────────────────────────────────────────────────────────
 // Two things here depend on the active DNA and must be rebuilt when it changes:
@@ -131,6 +131,59 @@ const rockSet = () => cached('world.rock2', () => {
   }, { srgb: false });
   return { map, normalMap: normalFrom(height, S, 2.8) };
 });
+
+// The same four channels for a wall of ice, which weathers by a completely
+// different set of processes: it fractures rather than cracking, it ablates
+// into dish-shaped sun-cups rather than spalling flakes, and its fine grain is
+// firn — packed snow — not grit. Nothing here is a recolour of `rockSet`; the
+// bands themselves are different, which is the point.
+//
+//   R  firn grain + fracture      the 9 m band
+//   G  foliation value            the 65 m band
+//   B  decorrelated mask          wind scour and scallop fields
+//   A  roughness — ice runs far glossier than rock, and varies less
+const iceWallSet = () => cached('world.icewall', () => {
+  const r = new RNG('world:icewall');
+  const foliation = fbm2D(r, { octaves: 4, base: 3, gain: 0.58 });
+  const fracture = ridged2D(r, { octaves: 4, base: 6, gain: 0.48 });
+  const firn = fbm2D(r, { octaves: 4, base: 28, gain: 0.52 });
+  const patch = fbm2D(r, { octaves: 3, base: 3, gain: 0.62 });
+  const cup = worley2D(r, 16);
+  const S = 512;
+
+  const height = new Float32Array(S * S);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const u = x / S, v = y / S;
+      // Fracture dominates the relief: a shear plane in ice is a clean deep
+      // step, where a crack in sandstone is a hairline. Sun-cups subtract,
+      // because a scallop is a hollow.
+      height[y * S + x] = foliation(u, v * 0.6) * 0.52
+        + Math.pow(fracture(u, v), 2) * 0.88
+        + firn(u, v) * 0.07
+        - Math.pow(1 - cup(u, v), 1.6) * 0.34;
+    }
+  }
+  const map = bake(S, S, (u, v, o) => {
+    const f = foliation(u, v * 0.6);
+    const fr = Math.pow(fracture(u, v), 2);
+    const fn = firn(u, v);
+    const p = patch(u * 0.5, v * 0.5);
+    const cp = 1 - cup(u, v);
+    o[0] = clamp01(0.34 + fn * 0.30 + fr * 0.44 + cp * 0.24);
+    o[1] = clamp01(0.20 + f * 0.78);
+    o[2] = clamp01(p * 1.05);
+    // 0.18–0.52 against rock's 0.44–0.94. Wind-polished ice is nearly a mirror
+    // at grazing angles and that is most of what says "ice" under a low sun.
+    o[3] = clamp01(0.18 + fn * 0.16 + fr * 0.22 - cp * 0.08);
+  }, { srgb: false });
+  // Shallower than rock's 2.8: ice weathers to smooth faces between fractures,
+  // and pushing the same relief through it reads as frosted glass.
+  return { map, normalMap: normalFrom(height, S, 1.7) };
+});
+
+/** The wall surface for the active world. */
+const surfaceSet = () => (DNA.surfaceKind === 'glacial' ? iceWallSet() : rockSet());
 
 /* ── shore field: terrain height under the water plane, in rail space ─────── */
 //
@@ -439,82 +492,19 @@ ${lines.join('\n')}
 `;
 }
 
-export function terrainMaterial() {
-  const rock = rockSet();
-  const m = new THREE.MeshStandardMaterial({
-    map: rock.map,
-    normalMap: rock.normalMap,
-    normalScale: new THREE.Vector2(1.25, 1.25),
-    roughness: 1.0,
-    metalness: 0.0,
-    envMapIntensity: 0.62,
-    vertexColors: true,
-    dithering: true,
-  });
-  // ?terrdbg=sun|sky|cav flat-shades one baked field instead of the surface.
-  // Always defined, never conditional: GLSL ES makes an undefined identifier in
-  // an #if a compile error, not a zero.
-  m.defines = { TERR_DBG: { sun: 1, sky: 2, cav: 3 }[new URLSearchParams(location.search).get('terrdbg')] || 0 };
-  m.onBeforeCompile = (sh) => {
-    sh.uniforms.uScale = { value: 0.112 };
-    const hz = horizonField();
-    sh.uniforms.uHorizA = { value: hz.a };
-    sh.uniforms.uHorizB = { value: hz.b };
-    sh.uniforms.uHorizCfg = { value: new THREE.Vector3(HORIZON.halfU, HORIZON.z0, HORIZON.zLen) };
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>
-        varying vec3 vWPos;
-        varying vec3 vWNrm;
-        varying vec2 vTerr;`)
-      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
-        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
-        vWNrm = normalize(mat3(modelMatrix) * objectNormal);
-        vTerr = uv;`);          // .x = cavity, .y = sky visibility — see terrain.js
+/* ── surface structure ────────────────────────────────────────────────────── */
+//
+// What the wall is made of, as opposed to what colour it is. This is generated
+// per-DNA for the same reason `lithology` is — the alternative is a runtime
+// branch in the innermost fragment path — and it is the difference between two
+// worlds and two coats of paint. `lithology()` only ever chose the *colours* of
+// a sedimentary sequence; until this existed, every world in the game was
+// folded bedrock with 13 m beds no matter what it was supposed to be.
+//
+// A block must set `rock` (vec3), `gBedK` and `gBedSlope`, and may read
+// `vWPos`, `gTri`, `crs`, `gSteep`, `gWpx` and `cav`.
 
-    sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', `#include <common>
-        varying vec3 vWPos;
-        varying vec3 vWNrm;
-        varying vec2 vTerr;
-        uniform float uScale;
-        ${GLSL_LITHOLOGY()}
-        ${GLSL_CENTRELINE()}
-        ${GLSL_HORIZON()}
-        vec3 gBW; vec2 gUX, gUY, gUZ; vec4 gTri;
-        vec3 gFaceUp;
-        float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx, gDbg;`)
-      .replace('#include <map_fragment>', `
-        vec3 wn = normalize(vWNrm);
-        // A softer blend exponent than the usual 6 — at 4 the three projections
-        // overlap through the 45° band, which is where a hard blend leaves the
-        // seam you can see running along every buttress edge.
-        gBW = pow(abs(wn), vec3(4.0));
-        gBW /= (gBW.x + gBW.y + gBW.z);
-        gUX = vWPos.zy * uScale; gUY = vWPos.xz * uScale; gUZ = vWPos.xy * uScale;
-        gTri = texture2D(map, gUX) * gBW.x + texture2D(map, gUY) * gBW.y + texture2D(map, gUZ) * gBW.z;
-
-        // ── the band that survives distance ─────────────────────────────────
-        // 9 m of detail is gone by 400 m. A second tile at 65 m is what still
-        // reads as structure when the cliff is a kilometre away, and it costs
-        // three taps.
-        const float CRS = 0.137;
-        vec4 crs = texture2D(map, gUX * CRS + 0.19) * gBW.x
-                 + texture2D(map, gUY * CRS + 0.19) * gBW.y
-                 + texture2D(map, gUZ * CRS + 0.19) * gBW.z;
-        // …and a regional tap on a scale nothing in frame can repeat against,
-        // so 65 m never beats against itself into a visible lattice.
-        float reg = texture2D(map, vWPos.xz * uScale * 0.0197 + 0.61).r;
-        crs.g = mix(crs.g, crs.g * (0.55 + reg * 0.95), 0.75);
-
-        // World units covered by one pixel. This, not camera distance, is the
-        // quantity every detail band has to be faded against: it collapses
-        // range and grazing angle into the one number Nyquist actually cares
-        // about, and it is exact for free.
-        gWpx = max(fwidth(vWPos.x), max(fwidth(vWPos.y), fwidth(vWPos.z))) + 1e-4;
-        gSteep = 1.0 - clamp(wn.y, 0.0, 1.0);
-        float cav = vTerr.x;
-        float sky = vTerr.y;
-
+const GLSL_SEDIMENTARY = /* glsl */`
         // ── bedding ─────────────────────────────────────────────────────────
         // Beds are laid down flat and then folded, and the folding is doing all
         // the work here. A perfectly horizontal band on a curved wall is not
@@ -604,6 +594,170 @@ export function terrainMaterial() {
         float tide = smoothstep(1.5, 4.5, vWPos.y) * (1.0 - smoothstep(5.5, 11.0, vWPos.y));
         rock *= mix(1.0, 0.40, gWet);
         rock *= mix(1.0, 1.26, tide * (1.0 - gSteep * 0.5));
+`;
+
+const GLSL_GLACIAL = /* glsl */`
+        // ── foliation ───────────────────────────────────────────────────────
+        // Ice is not bedded, and drawing it as if it were is what made an ice
+        // sheet read as a sandstone canyon. What a glacier wall actually shows
+        // is foliation: layers sheared by flow into planes that stand close to
+        // vertical in a valley wall and arc downglacier, at a pitch of a couple
+        // of metres rather than thirteen.
+        //
+        // So the coordinate is lateral distance across the channel, not height.
+        // That one substitution is the whole difference: banding that climbs the
+        // wall instead of ringing it, and it swings with the corridor because
+        // the flow does.
+        float flow = sin(vWPos.z * 0.00083 + 1.7) * 46.0
+                   + sin(vWPos.z * 0.0021 + vWPos.y * 0.0016) * 17.0;
+        float fw = vWPos.x - centrelineX(vWPos.z) + flow + (gTri.g - 0.5) * 3.4;
+
+        const float FOLP = 2.6;
+        float folG = fw * (1.0 / FOLP);
+        float fi = floor(folG);
+        float folF = folG - fi;
+        float folT = abs(folF * 2.0 - 1.0) * 0.62
+                   + abs(fract(fw * (1.0 / 7.3)) * 2.0 - 1.0) * 0.38;
+        float fh = fract(sin(fi * 57.31) * 2917.44);
+        float folFade = 1.0 - smoothstep(FOLP * 0.10, FOLP * 0.40, gWpx);
+        float fol = smoothstep(0.14, 0.72, folT);
+        gBedSlope = (folF < 0.5 ? 1.0 : -1.0) * (1.0 - smoothstep(0.03, 0.44, folT))
+                  * (0.24 + 1.3 * fh) * folFade;
+
+        // Blue ice is what is exposed where wind and ablation scour the face
+        // back; anything shallow enough to hold snow is firn, and firn is one
+        // flat white. Same masking idea as the sedimentary outcrop term, opposite
+        // material.
+        float scour = smoothstep(0.20, 0.66, gSteep);
+        float form = fract(fw * (1.0 / 23.0) + crs.b * 0.14);
+        vec3 rock = mix(L_BASE, lithology(form), scour);
+
+        float v = (0.78 + 0.40 * gTri.r) * (0.84 + 0.30 * crs.g);
+        rock *= v;
+        rock *= mix(1.0, mix(0.96, 1.05, fol) * mix(0.95, 1.06, fh), scour);
+        gBedK = fol;
+
+        // ── ablation scallops ───────────────────────────────────────────────
+        // Sun-cups: the dish-shaped hollows a snowfield weathers into under a
+        // high sun. Isotropic and sub-metre, so they live on the low-angle
+        // surfaces the foliation does not reach — which is exactly where a rock
+        // world would have put nothing at all.
+        rock *= mix(1.0, 0.90 + crs.r * 0.24,
+                    (1.0 - gSteep) * 0.75 * (1.0 - smoothstep(1.5, 6.0, gWpx)));
+
+        // ── englacial debris ────────────────────────────────────────────────
+        // Thin dirt bands frozen into the ice — the one horizontal feature on
+        // the whole wall, and rare enough to read as an event rather than a
+        // pattern. Their scarcity is what keeps the vertical foliation reading.
+        float band = smoothstep(0.88, 0.98, fract(vWPos.y * (1.0 / 38.0) + crs.g * 0.42));
+        rock = mix(rock, rock * vec3(0.60, 0.59, 0.58), band * 0.55 * scour * folFade);
+
+        // ── wind scour ──────────────────────────────────────────────────────
+        // Sastrugi run with the wind, across the corridor, not down the wall
+        // from the rim. The anisotropy is the opposite of desert varnish.
+        float sast = texture2D(map, vec2(vWPos.z * uScale * 0.055 + 0.4,
+                                         (vWPos.x * 0.7 + vWPos.y * 0.7) * uScale)).b;
+        rock *= mix(1.0, 0.86 + sast * 0.30,
+                    (1.0 - gSteep) * 0.6 * (1.0 - smoothstep(2.0, 8.0, gWpx)));
+
+        // ── cavity ──────────────────────────────────────────────────────────
+        // Inverted against rock: a hollow in ice fills with drifted snow and
+        // goes brighter, where a gully in rock collects dirt and goes darker.
+        // Rims are wind-stripped to blue ice instead of scoured to dust.
+        float gully = smoothstep(0.54, 1.0, cav);
+        float rim = smoothstep(0.46, 0.02, cav);
+        rock *= mix(1.0, 1.14, gully * 0.7);
+        rock *= mix(1.0, 0.88, rim * 0.6);
+
+        // Where the wall meets the frozen channel the ice is pressure-welded and
+        // denser, so it goes bluer and glossier. No tide mark: there is no tide.
+        gWet = (1.0 - smoothstep(-1.0, 7.0, vWPos.y)) * smoothstep(-20.0, -8.0, vWPos.y);
+        rock *= mix(1.0, 0.78, gWet);
+`;
+
+const GLSL_STRUCTURE = () => (DNA.surfaceKind === 'glacial' ? GLSL_GLACIAL : GLSL_SEDIMENTARY);
+
+export function terrainMaterial() {
+  const rock = surfaceSet();
+  // Ice is a dielectric that reflects its whole sky, so it takes far more of the
+  // environment than rock and carries less normal relief. Leaving these at the
+  // rock values is what made blue-tinted ice still light like sandstone.
+  const glacial = DNA.surfaceKind === 'glacial';
+  const m = new THREE.MeshStandardMaterial({
+    map: rock.map,
+    normalMap: rock.normalMap,
+    normalScale: new THREE.Vector2(1.25, 1.25).multiplyScalar(glacial ? 0.62 : 1),
+    roughness: 1.0,
+    metalness: 0.0,
+    envMapIntensity: glacial ? 1.35 : 0.62,
+    vertexColors: true,
+    dithering: true,
+  });
+  // ?terrdbg=sun|sky|cav flat-shades one baked field instead of the surface.
+  // Always defined, never conditional: GLSL ES makes an undefined identifier in
+  // an #if a compile error, not a zero.
+  m.defines = { TERR_DBG: { sun: 1, sky: 2, cav: 3 }[new URLSearchParams(location.search).get('terrdbg')] || 0 };
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uScale = { value: 0.112 };
+    const hz = horizonField();
+    sh.uniforms.uHorizA = { value: hz.a };
+    sh.uniforms.uHorizB = { value: hz.b };
+    sh.uniforms.uHorizCfg = { value: new THREE.Vector3(HORIZON.halfU, HORIZON.z0, HORIZON.zLen) };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+        varying vec3 vWPos;
+        varying vec3 vWNrm;
+        varying vec2 vTerr;`)
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+        vWNrm = normalize(mat3(modelMatrix) * objectNormal);
+        vTerr = uv;`);          // .x = cavity, .y = sky visibility — see terrain.js
+
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying vec3 vWPos;
+        varying vec3 vWNrm;
+        varying vec2 vTerr;
+        uniform float uScale;
+        ${GLSL_LITHOLOGY()}
+        ${GLSL_CENTRELINE()}
+        ${GLSL_HORIZON()}
+        vec3 gBW; vec2 gUX, gUY, gUZ; vec4 gTri;
+        vec3 gFaceUp;
+        float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx, gDbg;`)
+      .replace('#include <map_fragment>', `
+        vec3 wn = normalize(vWNrm);
+        // A softer blend exponent than the usual 6 — at 4 the three projections
+        // overlap through the 45° band, which is where a hard blend leaves the
+        // seam you can see running along every buttress edge.
+        gBW = pow(abs(wn), vec3(4.0));
+        gBW /= (gBW.x + gBW.y + gBW.z);
+        gUX = vWPos.zy * uScale; gUY = vWPos.xz * uScale; gUZ = vWPos.xy * uScale;
+        gTri = texture2D(map, gUX) * gBW.x + texture2D(map, gUY) * gBW.y + texture2D(map, gUZ) * gBW.z;
+
+        // ── the band that survives distance ─────────────────────────────────
+        // 9 m of detail is gone by 400 m. A second tile at 65 m is what still
+        // reads as structure when the cliff is a kilometre away, and it costs
+        // three taps.
+        const float CRS = 0.137;
+        vec4 crs = texture2D(map, gUX * CRS + 0.19) * gBW.x
+                 + texture2D(map, gUY * CRS + 0.19) * gBW.y
+                 + texture2D(map, gUZ * CRS + 0.19) * gBW.z;
+        // …and a regional tap on a scale nothing in frame can repeat against,
+        // so 65 m never beats against itself into a visible lattice.
+        float reg = texture2D(map, vWPos.xz * uScale * 0.0197 + 0.61).r;
+        crs.g = mix(crs.g, crs.g * (0.55 + reg * 0.95), 0.75);
+
+        // World units covered by one pixel. This, not camera distance, is the
+        // quantity every detail band has to be faded against: it collapses
+        // range and grazing angle into the one number Nyquist actually cares
+        // about, and it is exact for free.
+        gWpx = max(fwidth(vWPos.x), max(fwidth(vWPos.y), fwidth(vWPos.z))) + 1e-4;
+        gSteep = 1.0 - clamp(wn.y, 0.0, 1.0);
+        float cav = vTerr.x;
+        float sky = vTerr.y;
+
+        ${GLSL_STRUCTURE()}
 
         gDetail = (1.0 - smoothstep(0.22, 0.85, gWpx));
         gAO = mix(1.0, sky, 0.92) * mix(1.0, 0.70, gully * 0.7);
@@ -1285,158 +1439,24 @@ export function iceMaterial(reflection = null) {
 
 /* ── concrete, city, metal ────────────────────────────────────────────────── */
 
-const concreteSet = () => cached('world.concrete', () => {
-  const r = new RNG('world:concrete');
-  const grain = fbm2D(r, { octaves: 5, base: 24, gain: 0.55 });
-  const stain = fbm2D(r, { octaves: 4, base: 3, gain: 0.62 });
-  const S = 512;
-  const joint = (u, v) => {
-    const a = Math.abs(((u * 4) % 1) - 0.5) * 2;
-    const b = Math.abs(((v * 6) % 1) - 0.5) * 2;
-    return Math.pow(Math.max(0, Math.max(a, b) - 0.94) / 0.06, 1.4);
-  };
-  const height = new Float32Array(S * S);
-  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
-    const u = x / S, v = y / S;
-    height[y * S + x] = -joint(u, v) * 0.6 + grain(u, v) * 0.14;
-  }
-  const map = bake(S, S, (u, v, o) => {
-    const j = joint(u, v), g = grain(u, v), s = stain(u, v);
-    const k = (0.60 + g * 0.16) * (1 - j * 0.42) * (0.82 + s * 0.30);
-    o[0] = k * 1.00; o[1] = k * 0.985; o[2] = k * 0.94;
-    o[3] = Math.min(1, 0.62 + g * 0.20 + j * 0.16 + s * 0.10);
-  }, { srgb: true });
-  return { map, normalMap: normalFrom(height, S, 2.2) };
-});
-
-/** Concrete for dams, bridges, decks and retaining walls. */
-export function concreteMaterial({ color = 0xb9b6ad, scale = 0.055 } = {}) {
-  const set = concreteSet();
-  const m = new THREE.MeshStandardMaterial({
-    color, map: set.map, normalMap: set.normalMap,
-    normalScale: new THREE.Vector2(0.8, 0.8),
-    roughness: 1.0, metalness: 0.0, envMapIntensity: 0.7,
-  });
-  m.onBeforeCompile = (sh) => {
-    sh.uniforms.uScale = { value: scale };
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;`)
-      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
-        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
-        vWNrm = normalize(mat3(modelMatrix) * objectNormal);`);
-    sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', `#include <common>
-        varying vec3 vWPos; varying vec3 vWNrm; uniform float uScale; vec4 gC;`)
-      .replace('#include <map_fragment>', `
-        vec3 wn = normalize(vWNrm);
-        vec3 bw = pow(abs(wn), vec3(6.0)); bw /= (bw.x + bw.y + bw.z);
-        gC = texture2D(map, vWPos.zy * uScale) * bw.x
-           + texture2D(map, vWPos.xz * uScale) * bw.y
-           + texture2D(map, vWPos.xy * uScale) * bw.z;
-        // weathering streaks running down vertical faces
-        float streak = texture2D(map, vec2(vWPos.x * 0.03 + vWPos.z * 0.03, vWPos.y * 0.0035)).g;
-        float down = smoothstep(0.55, 0.05, wn.y);
-        diffuseColor.rgb *= gC.rgb * mix(1.0, 0.62 + streak * 0.55, down * 0.75);
-      `)
-      .replace('#include <roughnessmap_fragment>', `float roughnessFactor = roughness * gC.a;`);
-    return m;
-  };
-  return m;
-}
-
-/**
- * City façades. Windows are generated in the fragment shader from world-space
- * position, so a 40 m tower and a 200 m tower get the same 3.6 m floor pitch no
- * matter how the instance is scaled — and they are anti-aliased with fwidth, or
- * they would boil into moiré the moment the camera moves.
- */
-export function cityMaterial({ tint = 0xc8c6be, glass = 0x1b2a36, litColor = 0xffd9a0, lit = 0.16 } = {}) {
-  const set = concreteSet();
-  const m = new THREE.MeshStandardMaterial({
-    color: tint, map: set.map, normalMap: set.normalMap,
-    normalScale: new THREE.Vector2(0.55, 0.55),
-    roughness: 1.0, metalness: 0.0, envMapIntensity: 0.85,
-    emissive: new THREE.Color(litColor), emissiveIntensity: 1.0,
-  });
-  m.onBeforeCompile = (sh) => {
-    sh.uniforms.uGlass = { value: new THREE.Color(glass) };
-    sh.uniforms.uLit = { value: lit };
-    sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNrm;`)
-      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
-        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
-        vWNrm = normalize(mat3(modelMatrix) * objectNormal);`);
-    sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', `#include <common>
-        varying vec3 vWPos; varying vec3 vWNrm;
-        uniform vec3 uGlass; uniform float uLit;
-        float gPane, gLit, gSpandrel;
-        float h21(vec2 p){ p = fract(p * vec2(127.1, 311.7)); float n = dot(p, p + 34.5); return fract(sin(n * 43758.5453) * 43758.5); }`)
-      .replace('#include <map_fragment>', `
-        vec3 wn = normalize(vWNrm);
-        float up = abs(wn.y);
-        // pick the façade plane: X-facing walls read Z, Z-facing walls read X
-        float useZ = step(abs(wn.x), abs(wn.z));
-        vec2 fuv = vec2(mix(vWPos.z, vWPos.x, useZ), vWPos.y);
-        vec2 cellSize = vec2(4.4, 3.65);
-        vec2 g = fuv / cellSize;
-        vec2 cell = floor(g);
-        vec2 f = fract(g);
-        vec2 aa = fwidth(g) * 1.2 + 0.002;
-        vec2 lo = vec2(0.16, 0.20), hi = vec2(0.86, 0.80);
-        vec2 win = smoothstep(lo - aa, lo + aa, f) * (1.0 - smoothstep(hi - aa, hi + aa, f));
-        gPane = win.x * win.y * (1.0 - smoothstep(0.55, 0.95, up));
-
-        float rnd = h21(cell + floor(vWPos.xz * 0.011) * 17.0);
-        gLit = step(1.0 - uLit, rnd) * gPane;
-        gSpandrel = (1.0 - gPane) * (1.0 - smoothstep(0.55, 0.95, up));
-
-        vec3 bw = pow(abs(wn), vec3(6.0)); bw /= (bw.x + bw.y + bw.z);
-        vec4 c = texture2D(map, vWPos.zy * 0.09) * bw.x
-               + texture2D(map, vWPos.xz * 0.09) * bw.y
-               + texture2D(map, vWPos.xy * 0.09) * bw.z;
-        float band = 0.82 + 0.30 * h21(vec2(cell.y, floor(vWPos.x * 0.006)));
-        vec3 wall = diffuse * c.rgb * mix(1.0, band, gSpandrel * 0.6);
-        diffuseColor.rgb = mix(wall, uGlass * (0.7 + rnd * 0.6), gPane);
-        diffuseColor.rgb *= (0.55 + 0.45 * smoothstep(-40.0, 90.0, vWPos.y));  // grime at the base
-      `)
-      .replace('#include <roughnessmap_fragment>', `float roughnessFactor = mix(0.88, 0.10, gPane);`)
-      .replace('#include <metalnessmap_fragment>', `float metalnessFactor = gPane * 0.35;`)
-      .replace('#include <emissivemap_fragment>', `totalEmissiveRadiance *= gLit * 1.6;`);
-    m.userData.shader = sh;
-  };
-  return m;
-}
-
-/** Painted structural steel — bridge trusses, gantries, pylons. */
-export function steelMaterial(color = 0x8d3a32) {
-  const set = concreteSet();
-  return new THREE.MeshStandardMaterial({
-    color, map: set.map, normalMap: set.normalMap,
-    normalScale: new THREE.Vector2(0.4, 0.4),
-    roughness: 0.52, metalness: 0.72, envMapIntensity: 1.0,
-  });
-}
-
-/** Dry scrub and conifer canopy — vertex-coloured, no texture, cheap at range. */
-export function foliageMaterial() {
-  return new THREE.MeshStandardMaterial({
-    vertexColors: true, roughness: 0.92, metalness: 0.0,
-    envMapIntensity: 0.5, flatShading: false, dithering: true,
-  });
-}
-
 /**
  * Free-standing rock — arches, stacks, boulders. Shares the terrain's texture
  * set and its lithology, so a natural arch springing from a canyon wall is made
  * of the same stone as the wall, banded on the same 14 m rhythm.
  */
-export function rockPropMaterial({ scale = 0.112, tint = 0xffffff } = {}) {
+/**
+ * `bedded` is the difference between a prop cut from a canyon wall and a body
+ * that was never on a planet. A bedded prop keys its lithology to world Y so an
+ * arch springing from a wall is the same sequence as the wall; an unbedded one
+ * has no up, so Y-banding gives it two stripes and reads as wood grain, and the
+ * waterline term darkens whatever happens to be near y = 0 for no reason.
+ */
+export function rockPropMaterial({ scale = 0.112, tint = 0xffffff, bedded = true, env = 0.6 } = {}) {
   const rock = rockSet();
   const m = new THREE.MeshStandardMaterial({
     color: tint, map: rock.map, normalMap: rock.normalMap,
     normalScale: new THREE.Vector2(1.1, 1.1),
-    roughness: 1.0, metalness: 0.0, envMapIntensity: 0.6,
+    roughness: 1.0, metalness: 0.0, envMapIntensity: env,
   });
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uScale = { value: scale };
@@ -1459,14 +1479,24 @@ export function rockPropMaterial({ scale = 0.112, tint = 0xffffff } = {}) {
                   + texture2D(map, pUY * 0.137 + 0.19) * pBW.y
                   + texture2D(map, pUZ * 0.137 + 0.19) * pBW.z;
         float pWpx = max(fwidth(vWPos.x), max(fwidth(vWPos.y), fwidth(vWPos.z))) + 1e-4;
+        float pFade = 1.0 - smoothstep(1.4, 4.8, pWpx);
+        ${bedded ? `
         float pYw = vWPos.y + (pCrs.g - 0.5) * 30.0 + (pTri.g - 0.5) * 5.0;
         float pBedT = abs(fract(pYw * (1.0 / 14.0)) * 2.0 - 1.0);
-        float pFade = 1.0 - smoothstep(1.4, 4.8, pWpx);
         vec3 pRock = lithology(fract(pYw * (1.0 / 78.0) + pCrs.b * 0.62));
         pRock *= (0.68 + 0.62 * pTri.r) * (0.72 + 0.52 * pCrs.g);
         pRock *= mix(1.0, mix(0.74, 1.18, smoothstep(0.05, 0.72, pBedT)), pFade);
         pWet = (1.0 - smoothstep(-1.0, 5.5, vWPos.y)) * smoothstep(-16.0, -6.0, vWPos.y);
-        pRock *= mix(1.0, 0.40, pWet);
+        pRock *= mix(1.0, 0.40, pWet);` : `
+        // No up, so the member is picked by two decorrelated triplanar taps
+        // rather than by height: mineralogy that varies across a body instead of
+        // banding around it.
+        pWet = 0.0;
+        vec3 pRock = lithology(fract(pCrs.b * 1.7 + pTri.g * 0.9));
+        pRock *= (0.62 + 0.74 * pTri.r) * (0.70 + 0.58 * pCrs.g);
+        // Fresh fracture faces are brighter than the space-weathered rind, and
+        // the rind is what a body accumulates on whatever side it keeps out.
+        pRock *= mix(1.0, mix(0.80, 1.30, smoothstep(0.30, 0.78, pTri.b)), pFade);`}
         diffuseColor.rgb *= pRock;
       `)
       .replace('#include <roughnessmap_fragment>', `float roughnessFactor = roughness * mix(pTri.a, 0.14, pWet);`)

@@ -5,10 +5,11 @@ import {
 } from './profile.js';
 import { DNA_CORNERIA, DNA_FICHINA, DNA_BY_ID } from './dna.js';
 import {
-  terrainMaterial, waterMaterial, deepWaterMaterial, iceMaterial,
+  terrainMaterial, waterMaterial, deepWaterMaterial, iceMaterial, rockPropMaterial,
   configureWorldFields, worldFieldJobs, disposeWorldFields,
 } from './world-materials.js';
 import { Terrain } from './terrain.js';
+import { Belt } from './belt.js';
 import { Water } from './water.js';
 import { PlanarReflection } from './reflection.js';
 import { registerWorldShots } from './shots.js';
@@ -42,6 +43,12 @@ import { registerWorldShots } from './shots.js';
 export { WORLD, DNA, centrelineX, centrelineY, terrainHeight, terrainNormal };
 export { DNA_CORNERIA, DNA_FICHINA, DNA_BY_ID };
 
+/**
+ * Metres below the rail that a field world's play volume closes. Not ground:
+ * nothing is drawn there and the player's offset box bottoms out at 46.
+ */
+const FIELD_FLOOR = 150;
+
 export class Corneria {
   constructor(scene, dna = DNA_CORNERIA) {
     this.scene = scene;
@@ -66,6 +73,7 @@ export class Corneria {
     this.deepMat = null;
     this.terrain = null;
     this.water = null;
+    this.belt = null;
 
     this._jobs = [];
     this._done = 0;
@@ -118,8 +126,9 @@ export class Corneria {
   rebuild(dna) {
     if (this.terrain) this.terrain.dispose();
     if (this.water) this.water.dispose();
+    if (this.belt) this.belt.dispose();
     for (const m of [this.terrainMat, this.waterMat, this.deepMat]) if (m) m.dispose();
-    this.terrain = this.water = null;
+    this.terrain = this.water = this.belt = null;
     this.terrainMat = this.waterMat = this.deepMat = null;
     disposeWorldFields();
 
@@ -127,11 +136,18 @@ export class Corneria {
     configureWorldFields();
     this.reflection.planeY = WORLD.waterLevel;
 
-    // Constructing these meshes nothing: both only plan their tiers and hand
+    // Constructing these meshes nothing: each only plans its tiers and hands
     // back a queue. That is what lets the whole job list — and therefore the
     // progress denominator — be known before the first frame of the swap.
-    this.terrain = new Terrain(this.root, null);
-    this.water = WORLD.surface === 'none' ? null
+    //
+    // The backend decides what a world is made of. A `field` world has no
+    // heightfield, so it has no terrain, no surface plane and no baked shore or
+    // horizon — those three fields are all defined in rail space against a
+    // continuous ground that is not there.
+    const field = WORLD.backend === 'field';
+    this.terrain = field ? null : new Terrain(this.root, null);
+    this.belt = field ? new Belt(this.root, null) : null;
+    this.water = (field || WORLD.surface === 'none') ? null
       : new Water(this.root, null, null, { apronDrop: WORLD.surface === 'ice' ? 1.5 : 12 });
 
     // Order is a dependency chain: the tile bakes and the materials come first
@@ -140,8 +156,9 @@ export class Corneria {
     // that samples them.
     this._jobs = [
       () => this._makeMaterials(),
-      ...worldFieldJobs(),
-      ...this.terrain.jobs,
+      ...(field ? [] : worldFieldJobs()),
+      ...(this.terrain ? this.terrain.jobs : []),
+      ...(this.belt ? this.belt.jobs : []),
       ...(this.water ? this.water.jobs : []),
       () => this._warm(),
     ];
@@ -155,6 +172,17 @@ export class Corneria {
   }
 
   _makeMaterials() {
+    if (WORLD.backend === 'field') {
+      // The one consumer `rockPropMaterial` was written for. It is triplanar in
+      // world space, which is why the belt bakes each body's transform into its
+      // chunk rather than instancing.
+      // `bedded: false` — these were never on a planet, so no Y-banded strata
+      // and no waterline. `env` is up because a body in vacuum is lit by the sun
+      // and the nebula and has no sky fill to lift its shadow side.
+      this.terrainMat = rockPropMaterial({ scale: 0.055, bedded: false, env: 1.25 });
+      this.belt.material = this.terrainMat;
+      return;
+    }
     this.terrainMat = terrainMaterial();
     if (WORLD.surface === 'ice') {
       this.waterMat = iceMaterial(this.reflection);
@@ -230,6 +258,7 @@ export class Corneria {
 
   _applyLOD() {
     if (this.terrain) this.terrain.updateLOD(this._camPos);
+    if (this.belt) this.belt.updateLOD(this._camPos);
     if (this.water) this.water.updateLOD(this._camPos);
   }
 
@@ -250,6 +279,12 @@ export class Corneria {
 
   /** Ground clearance at a world point — used by the flight model and by AI. */
   groundAt(x, z) {
+    // A field world has no ground, but every clamp in ai.js is one-sided
+    // (`if (y < g) y = g`) and `dieStep` ends a kill on `pos.y <= g`, so at
+    // -Infinity a dying craft never lands and falls until its timer expires.
+    // A shelf under the rail restores both: far enough down that the player's
+    // -46 offset never reaches it, so nothing is drawn there and nothing is felt.
+    if (WORLD.backend === 'field') return centrelineY(z) - FIELD_FLOOR;
     return WORLD.surface === 'none'
       ? terrainHeight(x, z)
       : Math.max(terrainHeight(x, z), WORLD.waterLevel);

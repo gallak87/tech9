@@ -19,9 +19,13 @@
  * @property {number} zEnd                   …to here
  * @property {number} waterLevel
  * @property {'water'|'ice'|'none'} surface
+ * @property {'sedimentary'|'glacial'} [surfaceKind]  wall material and structure
  * @property {Object} grid                   mesh tiers and sample spacing
  * @property {Object} centreline             meander: sine terms + smoothstep dog-legs
- * @property {Array}  keys                   cross-section keyframes, z descending
+ * @property {Array}  [zones]                zone sequence; compiled to `keys` and
+ *                                           dog-legs by `zones.js:expandZones`
+ * @property {Array}  [keys]                 cross-section keyframes, z descending.
+ *                                           Hand-authored, or emitted from `zones`
  * @property {Object} bands                  relief noise: scale, amplitude, band limit
  * @property {Object|null} city              urban window along z, or null
  * @property {Object|null} islands           stacks, sandbars, séracs
@@ -35,6 +39,11 @@ export const DEFAULTS = {
   zEnd: -9840,
   waterLevel: 0,
   surface: 'water',
+  backend: 'terrain',
+  // What the walls are made of, as opposed to what colour they are. Selects the
+  // texture set and the structural GLSL in world-materials.js; `palette` and
+  // `lithology` only recolour whichever one is chosen.
+  surfaceKind: 'sedimentary',
 
   grid: {
     nearHalf: 1100,        // lateral extent of the high-detail tier
@@ -51,7 +60,7 @@ export const DEFAULTS = {
     // X = Σ sin(-z·w + p)·a  +  Σ dx·smoothstep across a dog-leg
     x: { waves: [], bends: [] },
     // Y is the rail height; cameras and shots read it, the height field does not
-    y: { base: 44, waves: [] },
+    y: { base: 44, waves: [], bends: [] },
   },
 
   bands: {
@@ -168,49 +177,66 @@ export const DNA_CORNERIA = {
 
 /* ── Fichina ──────────────────────────────────────────────────────────────── */
 //
-// A glacial trough, not a river valley: the floor is flat and the same width
-// for nine kilometres, the walls rise from it at 78–80° with almost no beach or
-// shelf between, and the corridor turns through three dog-legs instead of
-// meandering. Above the rim the land is an ice sheet — `relief` is roughly half
-// Corneria's, so the skyline is a flat white table cut by a slot.
+// An ice sheet with a slot cut through it, authored as a sequence of zones (see
+// zones.js). The landform vocabulary is Corneria's — there is no new shape
+// function here — and everything that makes it a different planet is pacing,
+// width, wall height and skin: it opens on an open icefield, spends 1400 m
+// closing into the trough, pinches to a 128 m slot for a little over a second,
+// releases into a cirque, climbs 160 m over a high pass, threads a crevasse and
+// runs out onto a wide shelf.
+//
+// `inner` runs 128 → 620 (4.8×) against Corneria's 4.6×; the keys the expander
+// emits are spaced 150–1950 m apart, bunched at the slot and the crevasse. Above
+// the rim `relief` stays roughly half Corneria's, so the skyline is still a flat
+// white table.
 
 export const DNA_FICHINA = {
   id: 'fichina',
-  seed: 'fichina:relief-1',
+  seed: 'fichina:relief-2',
   length: 9000,
   zStart: 720,
   zEnd: -9840,
   waterLevel: 0,
   surface: 'ice',
+  surfaceKind: 'glacial',
 
   centreline: {
     x: {
-      // Two long, shallow sines: the trough is straight between its turns.
+      // Two long, shallow sines: the trough is straight between its turns, and
+      // together they contribute only ~0.063 of dX/dz.
       waves: [
         { a: 96, w: 0.00031, p: 0 },
         { a: 34, w: 0.00097, p: 2.4 },
       ],
-      // dX/dz peaks at 1.5·dx/width per bend; 0.56 is 1.6× Corneria's whole
-      // meander, which is as far as the rail-aligned grid shears cleanly.
-      bends: [
-        { z: -2450, width: 640, dx: 240 },
-        { z: -5600, width: 780, dx: -290 },
-        { z: -7900, width: 620, dx: 200 },
-      ],
+      // Dog-legs come from the zones that turn — see `bend` below. dX/dz peaks
+      // at 1.5·dx/width per bend and the sines add on top, so each is kept at
+      // ~0.52 to stay clear of the 0.8 shear limit.
+      bends: [],
     },
-    y: { base: 52, waves: [{ a: 11, w: 0.00037, p: 1.4 }] },
+    // The rail climbs over the pass and sheds it again on the way to the shelf;
+    // both come from zone `climb`. Base 52 is 6 m above the floor of the offset
+    // box, which is as low as the rail can sit over a surface at y = 0.
+    y: { base: 52, waves: [{ a: 11, w: 0.00037, p: 1.4 }], bends: [] },
   },
 
-  keys: [
-    { z: 720, inner: 250, bed: 8, beachW: 16, beachH: 4, shelfW: 24, shelfH: 12, cliffW: 130, wallH: 260, relief: 0.55 },
-    { z: -900, inner: 236, bed: 8, beachW: 14, beachH: 4, shelfW: 22, shelfH: 13, cliffW: 116, wallH: 355, relief: 0.58 },
-    { z: -2100, inner: 224, bed: 9, beachW: 12, beachH: 4, shelfW: 20, shelfH: 14, cliffW: 104, wallH: 430, relief: 0.60 },
-    { z: -3300, inner: 214, bed: 9, beachW: 11, beachH: 4, shelfW: 18, shelfH: 14, cliffW: 96, wallH: 480, relief: 0.62 },
-    { z: -4500, inner: 206, bed: 9, beachW: 10, beachH: 4, shelfW: 17, shelfH: 15, cliffW: 92, wallH: 515, relief: 0.62 },
-    { z: -5700, inner: 218, bed: 9, beachW: 12, beachH: 4, shelfW: 19, shelfH: 14, cliffW: 100, wallH: 470, relief: 0.60 },
-    { z: -6900, inner: 198, bed: 10, beachW: 9, beachH: 4, shelfW: 16, shelfH: 15, cliffW: 88, wallH: 545, relief: 0.64 },
-    { z: -8100, inner: 228, bed: 9, beachW: 13, beachH: 4, shelfW: 21, shelfH: 13, cliffW: 110, wallH: 425, relief: 0.58 },
-    { z: -9840, inner: 262, bed: 8, beachW: 17, beachH: 4, shelfW: 26, shelfH: 11, cliffW: 140, wallH: 330, relief: 0.54 },
+  // Lengths must tile [zStart, zEnd] exactly — 10560 m. `blend` is the
+  // transition *into* each zone, so a long blend before a short zone is a long
+  // approach to a brief moment, which is the whole shape of the slot.
+  zones: [
+    // Open ice, a low rim you can see over. 4.3 s before it starts closing.
+    { kind: 'basin', len: 2180, inner: 620, wallH: 150, relief: 0.48 },
+    // 1400 m of tightening — the longest single gesture in the level.
+    { kind: 'reach', len: 1680, blend: 1400, inner: 240, wallH: 430 },
+    // The slot. 200 m held = 1.1 s, and it turns while you are in it.
+    { kind: 'narrows', len: 900, blend: 900, inner: 128, wallH: 620, bend: { dx: 220, width: 640 } },
+    // Release. The one place with room to fight.
+    { kind: 'basin', len: 1200, blend: 500, inner: 480, wallH: 300 },
+    // The pass: tight, tall, and 160 m above the ice you were flying on.
+    { kind: 'gorge', len: 1500, blend: 800, inner: 200, wallH: 560, climb: 160, bend: { dx: -270, width: 780 } },
+    // 150 m held = 0.86 s. The tightest thing in either level.
+    { kind: 'narrows', len: 800, blend: 400, inner: 135, wallH: 640, bend: { dx: 190, width: 620 } },
+    // Down onto the shelf, wide open for the commander.
+    { kind: 'basin', len: 2300, blend: 900, inner: 560, wallH: 220, relief: 0.50, climb: -160 },
   ],
 
   bands: {
@@ -231,19 +257,27 @@ export const DNA_FICHINA = {
 
   city: null,
 
+  // Placed per zone, because `u` is an absolute offset from the rail: a group
+  // spread over the whole level puts the same sérac on open ice in one place and
+  // halfway up a wall in another.
   islands: {
-    seed: 'fichina:ice-1',
+    seed: 'fichina:ice-2',
     groups: [
-      // séracs: ice blocks calved onto the frozen channel
-      { n: 16, z: [200, -9200], u: [40, 190], r: [22, 58], h: [10, 34], pow: [1.1, 1.8] },
-      // pressure ridges: long low welts across the floor
-      { n: 10, z: [-800, -8800], u: [0, 150], r: [110, 240], h: [5, 12], pow: [2.4, 3.8], flat: 1 },
+      // séracs, on the three wide floors that have room to calve onto
+      { n: 12, z: [400, -1400], u: [90, 540], r: [24, 62], h: [12, 38], pow: [1.1, 1.8] },
+      { n: 6, z: [-4200, -5000], u: [80, 420], r: [22, 54], h: [10, 30], pow: [1.1, 1.8] },
+      { n: 10, z: [-7900, -9600], u: [70, 480], r: [22, 58], h: [10, 32], pow: [1.1, 1.8] },
+      // pressure ridges: long low welts across the open ice
+      { n: 8, z: [-4200, -5100], u: [0, 380], r: [120, 260], h: [5, 14], pow: [2.4, 3.8], flat: 1 },
+      { n: 7, z: [-8000, -9700], u: [0, 440], r: [130, 280], h: [6, 15], pow: [2.4, 3.8], flat: 1 },
     ],
-    // nunataks — bare rock standing out of the ice at the two tightest turns
+    // Nunataks — bare rock through the ice, in the two tight zones. Offset to
+    // one side of the rail and clear of the ±105 m offset box on the other, so
+    // each is threaded rather than dodged, the way Corneria's narrows stacks are.
     fixed: [
-      { z: -2560, u: -78, r: 54, h: 165, pow: 1.2 },
-      { z: -5720, u: 86, r: 48, h: 140, pow: 1.2 },
-      { z: -7960, u: -62, r: 44, h: 120, pow: 1.25 },
+      { z: -3600, u: -44, r: 34, h: 210, pow: 1.2 },
+      { z: -3760, u: 50, r: 30, h: 185, pow: 1.2 },
+      { z: -7020, u: 58, r: 30, h: 260, pow: 1.2 },
     ],
   },
 
@@ -273,7 +307,90 @@ export const DNA_FICHINA = {
   },
 };
 
+/* ── Sector Ω ─────────────────────────────────────────────────────────────── */
+//
+// The first world in the game that is not a corridor. `backend: 'field'` means
+// no heightfield: no terrain mesh, no surface plane, no baked shore or horizon,
+// and no floor — `groundAt` answers -Infinity. What is around the rail is a few
+// thousand discrete bodies, including overhead, which is the one thing a
+// single-valued heightfield can never produce at any parameter value.
+//
+// Almost nothing here is a cross-section, because there is no cross-section.
+// `keys` still exists because `profileAt` is called by code that does not know
+// which backend is live; it is one flat entry and nothing samples it for height.
+
+export const DNA_SECTOR_OMEGA = {
+  id: 'omega',
+  seed: 'omega:belt-1',
+  length: 9000,
+  zStart: 720,
+  zEnd: -9840,
+  waterLevel: 0,
+  surface: 'none',
+  backend: 'field',
+
+  centreline: {
+    // A belt has no walls to shear against, so the rail can turn harder than
+    // the 0.8 limit that binds a corridor — nothing here is sampled on a
+    // rail-aligned grid. Kept moderate anyway: at 175 m/s the turn is felt.
+    x: {
+      waves: [
+        { a: 260, w: 0.00041, p: 0.4 },
+        { a: 95, w: 0.00119, p: 2.1 },
+        { a: 38, w: 0.00287, p: 1.2 },
+      ],
+      bends: [],
+    },
+    // The rail rolls through the belt plane instead of sitting on a floor — but
+    // the swing must stay inside what the offset box can absorb. Authored first
+    // at ±164 (a 251 m swing) on the reasoning that a belt has no ground to
+    // limit it; measured, that put every contact permanently out of reach,
+    // because a craft placed against the rail 1500 m ahead arrives where the
+    // rail has since moved 100 m and the box only reaches +78/-46. 92 m of
+    // swing is still 2.7x Corneria's 34 and costs nothing.
+    y: { base: 0, waves: [{ a: 34, w: 0.00052, p: 0.7 }, { a: 12, w: 0.00131, p: 2.6 }], bends: [] },
+  },
+
+  belt: {
+    chunkLen: 620,
+    perChunk: 52,
+    clear: 165,
+    radius: 1700,
+    nearHalf: 560,
+    // Flattened, so it reads as a plane of debris you fly through rather than a
+    // tube you fly down — a tube would be a canyon again, in rock.
+    flatten: 0.52,
+    size: [16, 120],
+    shapes: 7,
+    nearFade: 3400,
+    farFade: 7400,
+  },
+
+  // One entry, never interpolated against anything. See the note above.
+  keys: [
+    { z: 720, inner: 400, bed: 0, beachW: 40, beachH: 0, shelfW: 40, shelfH: 0, cliffW: 40, wallH: 0, relief: 0 },
+    { z: -9840, inner: 400, bed: 0, beachW: 40, beachH: 0, shelfW: 40, shelfH: 0, cliffW: 40, wallH: 0, relief: 0 },
+  ],
+
+  city: null,
+  islands: null,
+
+  lithology: {
+    // Chondrite: dark, iron-stained, with a bright plagioclase vein set. Value
+    // range is deliberately low — a rock lit only by a sun and a nebula has no
+    // sky fill to lift its shadow side, so the albedo has to stay off the floor.
+    base: [0.186, 0.170, 0.158],
+    members: [
+      { color: [0.252, 0.208, 0.166], k: 0.80, in: [0.04, 0.12], out: [0.20, 0.32] },
+      { color: [0.140, 0.136, 0.144], k: 0.70, in: [0.36, 0.44], out: [0.52, 0.60] },
+      { color: [0.300, 0.286, 0.268], k: 0.75, in: [0.64, 0.72], out: [0.79, 0.88] },
+      { color: [0.196, 0.118, 0.086], k: 0.55, in: [0.90, 0.95], out: [0.99, 1.00] },
+    ],
+  },
+};
+
 export const DNA_BY_ID = {
   corneria: DNA_CORNERIA,
   fichina: DNA_FICHINA,
+  omega: DNA_SECTOR_OMEGA,
 };

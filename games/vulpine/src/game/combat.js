@@ -1640,7 +1640,16 @@ const _bRail = new THREE.Vector3();
     view.player.vel.copy(flight.railDir).multiplyScalar(flight.speed);
     state.px = flight.pos.x; state.py = flight.pos.y; state.pz = flight.pos.z;
     state.fwd.copy(flight.railDir);
-    state.right.crossVectors(flight.railDir, UP).normalize().multiplyScalar(-1);
+    // Genuinely starboard. `railDir × up` already is: with the rail running
+    // toward -Z and up +Y it gives +X, which is screen right for a camera
+    // looking down the rail. The `* -1` that used to be here made this vector
+    // point to PORT while every consumer read it as starboard, so the radar drew
+    // contacts on the wrong side of the dish and the rear-threat arc lit the
+    // opposite screen edge to the one the shot was coming from — which is the
+    // one thing that feature exists to get right (owner decision 1, 2026-08-01).
+    // Measured, not reasoned: `state.right` came back as the exact negative of
+    // the camera's own right vector.
+    state.right.crossVectors(flight.railDir, UP).normalize();
     state.speed = flight.speed;
     // A field world has no floor, so `groundAt` is -Infinity there and height
     // above ground is not a quantity. Absolute altitude is the honest readout.
@@ -1876,12 +1885,17 @@ const _bRail = new THREE.Vector3();
     get pickups() { return pickups.live; },
     get carriers() { return pickups.carriers; },
     /**
-     * Dev/probe: eject a drop just ahead of the ship, without flying to a wave
-     * that has one. `__VULPINE__.combat.dropTest('weapon')`.
+     * Dev/probe: eject a drop at an arbitrary offset from the ship, without
+     * flying to a wave that has one. Offsets are in the *rail* frame — ahead,
+     * up, and starboard — because that is the frame the guarantee is stated in:
+     * a drop 350 m behind and 180 m to port has to catch a player travelling at
+     * 175 m/s away from it. `tools/pilot.mjs drops` walks the corner cases.
      */
-    dropTest(kind = 'health') {
-      _v.copy(view.player.pos).addScaledVector(state.fwd, 260);
-      _v.y += 30;
+    dropTest(kind = 'health', ahead = 260, up = 30, side = 0) {
+      _v.copy(view.player.pos)
+        .addScaledVector(state.fwd, ahead)
+        .addScaledVector(state.right, side);
+      _v.y += up;
       return !!pickups.spawn(kind, _v, _v2.set(0, 0, 0));
     },
     /** Tap-gun dps at the live tier, so a probe can report it without the table. */

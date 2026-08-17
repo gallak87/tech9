@@ -166,6 +166,21 @@ export function installDevPanel(api) {
 
   function toggleBombs() { infiniteBombs = !infiniteBombs; render(); }
 
+  /**
+   * Eject one of each drop ahead of the ship. Three at once on purpose: the
+   * question this button exists to answer is whether the three read apart from
+   * each other in flight, and one at a time cannot answer it.
+   */
+  const DROP_KINDS = ['weapon', 'bomb', 'health'];
+  let dropNext = 0;
+  function testDrop() {
+    for (let i = 0; i < DROP_KINDS.length; i++) {
+      api.combat.dropTest(DROP_KINDS[(dropNext + i) % DROP_KINDS.length],
+        420 + i * 90, 40 - i * 26, (i - 1) * 190);
+    }
+    dropNext = (dropNext + 1) % DROP_KINDS.length;
+  }
+
   /** Step the tap gun up one tier, without flying to the pre-boss grants. */
   function upgradeWeapon(btn) {
     const w = api.state && api.state.weapon;
@@ -383,7 +398,10 @@ export function installDevPanel(api) {
         return w ? `Weapon +1 (${w.label})` : 'Weapon +1';
       },
     },
+    // Appended, not inserted: `tag`/`code` below are the list index, so putting a
+    // new tool anywhere but the end silently renumbers every shortcut after it.
     { id: 'dump', short: 'copy look', label: 'Copy look values', run: dumpLook },
+    { id: 'drop', short: 'drops', label: 'Test drops (×3)', run: testDrop },
   ].map((t, i) => ({ ...t, tag: String(i + 1), code: `Digit${i + 1}` }));
 
   /* ── dom ────────────────────────────────────────────────────────────────── */

@@ -7,6 +7,7 @@
 //
 //   node tools/pilot.mjs aim                 reticle lead direction and throw
 //   node tools/pilot.mjs fly --seconds 90    autopilot playthrough, playability
+//   node tools/pilot.mjs drops               every drop reaches the player
 //   node tools/pilot.mjs roll                barrel roll: spin, dodge, recovery
 //   node tools/pilot.mjs aim --params wpn=3  extra URL switches
 //   node tools/pilot.mjs fly --headed        watch it fly, HUD and all
@@ -483,6 +484,86 @@ const SCENARIOS = {
    * being taken. Catches "wave 3 is unsurvivable" and "the ship leaves the frame
    * under real input" — not whether it feels good.
    */
+  /**
+   * The drop guarantee: **every drop reaches the player.** That is a claim about
+   * position over time under adversarial geometry — a drop ejected behind a
+   * boosting player has to out-run 235 m/s of rail — and no screenshot can
+   * answer it. So: eject one at each corner case, fly on, and time how long it
+   * takes to arrive. A row with `t = —` is a drop that escaped, which is a
+   * defect and not a tuning question.
+   *
+   * The boosted arm matters more than the unboosted one. `seekOver` is added to
+   * the player's *live* speed for exactly this case; the day someone re-tunes it
+   * to a constant, this is the probe that catches it.
+   */
+  drops: {
+    async run({ frames, keys, evaluate }) {
+      // ahead / up / side, in the rail frame. Deliberately includes two that
+      // start behind the player and one that starts below the rail.
+      const CASES = [
+        ['health', 260, 30, 0, 'near ahead'],
+        ['weapon', 900, 60, 0, 'far ahead'],
+        ['bomb', 420, 10, 300, 'wide starboard'],
+        ['health', 700, -70, -160, 'low port'],
+        ['weapon', -320, 25, 0, 'behind'],
+        ['bomb', -260, 40, -260, 'behind, wide port'],
+        ['health', 1400, 110, 380, 'far and wide'],
+      ];
+      const rows = [];
+      for (const boosted of [false, true]) {
+        if (boosted) await keys.down('ShiftLeft');
+        for (const [kind, ahead, up, side, label] of CASES) {
+          // Settle first: a case launched on the frame the previous one was
+          // collected inherits its screen flash and its ribbon.
+          await frames(12);
+          const t0 = await evaluate(([k, a, u, s]) => {
+            const V = window.__VULPINE__;
+            V.combat.dropTest(k, a, u, s);
+            return { t: V.state.time, speed: Math.round(V.flight.speed) };
+          }, [kind, ahead, up, side]);
+          let got = null;
+          // 12 s of sim is four times the worst arrival measured; anything that
+          // has not landed by then is not late, it is lost.
+          for (let i = 0; i < 200 && !got; i++) {
+            await frames(4);
+            got = await evaluate((t) => {
+              const V = window.__VULPINE__;
+              if (V.combat.pickups.length) {
+                return V.state.time - t > 12 ? { lost: true, t: V.state.time - t } : null;
+              }
+              return { lost: false, t: V.state.time - t, label: V.state.pickup ? V.state.pickup.label : '—' };
+            }, t0.t);
+          }
+          rows.push({
+            arm: boosted ? 'boost' : 'cruise', label, kind,
+            speed: t0.speed,
+            dist: Math.round(Math.hypot(ahead, up, side)),
+            t: got && !got.lost ? +got.t.toFixed(2) : null,
+            paid: got && !got.lost ? got.label : '',
+          });
+        }
+        if (boosted) await keys.up('ShiftLeft');
+      }
+      return rows;
+    },
+    print(rows) {
+      const lost = rows.filter(r => r.t == null);
+      console.log(`${rows.length - lost.length} of ${rows.length} drops reached the player`);
+      const got = rows.filter(r => r.t != null).map(r => r.t);
+      if (got.length) {
+        console.log(`  arrival ${Math.min(...got).toFixed(2)}–${Math.max(...got).toFixed(2)} s`
+          + `  (median ${got.slice().sort((a, b) => a - b)[got.length >> 1].toFixed(2)} s)`);
+      }
+      if (lost.length) console.log(`  ESCAPED: ${lost.map(r => `${r.arm}/${r.label}`).join(', ')}`);
+      console.log('\n  arm     case                 kind    dist  spd   arrive  paid out');
+      for (const r of rows) {
+        console.log(`  ${r.arm.padEnd(7)} ${r.label.padEnd(20)} ${r.kind.padEnd(7)} `
+          + `${String(r.dist).padStart(4)} ${String(r.speed).padStart(4)}  `
+          + `${(r.t == null ? 'LOST' : r.t.toFixed(2) + 's').padStart(6)}  ${r.paid}`);
+      }
+    },
+  },
+
   fly: {
     async run({ frames, keys, sample, evaluate }) {
       const rows = [];

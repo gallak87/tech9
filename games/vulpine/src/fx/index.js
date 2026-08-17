@@ -958,6 +958,11 @@ export function installFx(ctx) {
    * Push the current position of a tracked round.
    * @param key   any stable object identifying the round
    * @param opts  { charged } — charged rounds are fatter and gold, taps are cyan
+   *   { col, colTail, width } — anything that is not a round supplies its own
+   *   colour and gauge. A pickup flying to the player is the case this exists
+   *   for: at 400 m the streak resolves before the body does, so it is the
+   *   streak that has to say which of the three drops is inbound, and a cyan
+   *   one would say "bullet".
    */
   function tracer(key, x, y, z, opts = {}) {
     let e = tracerOf.get(key);
@@ -973,11 +978,17 @@ export function installFx(ctx) {
     rb.push(x, y, z);
     rb.active = true;
     const ch = !!opts.charged;
-    rb.width0 = ch ? 2.6 : 0.85;       // head
-    rb.width1 = ch ? 0.9 : 0.30;       // tail
+    const w = opts.width ?? 1;
+    rb.width0 = (ch ? 2.6 : 0.85) * w;       // head
+    rb.width1 = (ch ? 0.9 : 0.30) * w;       // tail
     rb.taper = 1.25;
     rb.alpha = ch ? 1 : 0.85;
-    if (ch) { rb.col.setRGB(1.0, 0.86, 0.45); rb.colTail.setRGB(1.0, 0.42, 0.10); }
+    const c = opts.col;
+    if (c) {
+      rb.col.setRGB(c[0], c[1], c[2]);
+      const t = opts.colTail || c;
+      rb.colTail.setRGB(t[0], t[1], t[2]);
+    } else if (ch) { rb.col.setRGB(1.0, 0.86, 0.45); rb.colTail.setRGB(1.0, 0.42, 0.10); }
     else { rb.col.setRGB(0.72, 0.95, 1.0); rb.colTail.setRGB(0.20, 0.55, 1.0); }
   }
 

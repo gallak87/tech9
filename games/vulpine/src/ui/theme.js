@@ -36,6 +36,15 @@ export const C = {
   shadow: 'rgba(0,8,16,0.85)',
 };
 
+/** Drop colours, keyed by kind. Matched to the bodies in `game/pickups.js` —
+ *  the radar blip and the thing in the world have to be the same colour or the
+ *  blip is a second symbol to learn rather than the same one. */
+export const PICKUP_C = {
+  weapon: '#ffc23a',
+  bomb: '#ff8a45',
+  health: '#3dffbe',
+};
+
 export const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 export const lerp = (a, b, t) => a + (b - a) * t;
 export const sat = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);

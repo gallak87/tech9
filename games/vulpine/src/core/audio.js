@@ -26,6 +26,15 @@ import { WorldBeds } from '../audio/world.js';
 import { MusicBed } from '../audio/music.js';
 import { clamp, EPS } from '../audio/dsp.js';
 
+/* Collect fanfares, in MIDI. One interval per drop kind so the ear alone tells
+ * them apart: a perfect fifth to an octave for the weapon tier (the widest and
+ * the loudest event), a fourth for a bomb, a plain major triad for shield. */
+const PICKUP_NOTES = {
+  weapon: [72, 79, 84, 88],
+  bomb: [67, 72, 74, 79],
+  health: [69, 73, 76, 81],
+};
+
 /* ── positional helpers ──────────────────────────────────────────────────── */
 
 /** Distance + stereo lateral offset of `pos` relative to the camera. Plain
@@ -138,7 +147,7 @@ export function installAudio(ctx) {
     },
 
     /**
-     * `opts` may carry `{ pos: THREE.Vector3, size: number, amount: number }`.
+     * `opts` may carry `{ pos: THREE.Vector3, size, amount, kind }`.
      * Everything positional is computed here; voices.js never sees a world
      * position, only gain/pan/lp.
      */
@@ -197,6 +206,20 @@ export function installAudio(ctx) {
         case 'respawn':
         case 'powerUp':
           voices.powerUp(t, {});
+          break;
+        // A drop leaving a wreck. Deliberately small and positional — it is a
+        // "look over there" ping under an explosion, not an event of its own.
+        case 'pickupDrop':
+          voices.blip(t, { note: 79, decay: 0.07, wave: 'triangle', gain: g * 0.8, pan });
+          voices.blip(t + 0.06, { note: 86, decay: 0.09, wave: 'triangle', gain: g * 0.7, pan });
+          break;
+        // Collection. One cue per drop kind, because the player is looking at
+        // the fight rather than at the HUD when it lands and the interval is the
+        // only thing that says *what* was collected. Ascending for a gain,
+        // widest for the weapon tier — the rarest and the one worth turning to
+        // the HUD for.
+        case 'pickup':
+          voices.fanfare(t, { notes: PICKUP_NOTES[opts.kind] || PICKUP_NOTES.health, gain: 0.85 });
           break;
         case 'bossCharge':
           voices.bossCharge(t, {});

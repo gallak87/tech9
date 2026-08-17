@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { text } from './glyphs.js';
-import { C, alpha, sat, clamp, approach } from './theme.js';
+import { C, PICKUP_C, alpha, sat, clamp, approach } from './theme.js';
 import { arwing, diamond } from './icons.js';
 
 const RANGE = 1150;          // world units mapped to the rim
@@ -160,6 +160,18 @@ export class Radar {
 
       const sz = boss ? 5.6 * k : 3.7 * k;
       diamond(g, bx, by, sz, col, { glow: boss ? 10 * k : 6 * k });
+      // Carrying a drop: the same halo the hull wears in the world, so the
+      // radar answers "which of these four is worth turning for" at a glance.
+      if (e.carrier && PICKUP_C[e.carrier]) {
+        const pc = PICKUP_C[e.carrier];
+        g.beginPath();
+        g.arc(bx, by, sz * 1.9, 0, Math.PI * 2);
+        g.lineWidth = 1.5 * k;
+        g.strokeStyle = alpha(pc, 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(s.time * 4.2)));
+        g.shadowColor = pc; g.shadowBlur = 7 * k;
+        g.stroke();
+        g.shadowBlur = 0;
+      }
       if (boss) {
         g.beginPath();
         g.arc(bx, by, sz * 2.1, 0, Math.PI * 2);
@@ -174,6 +186,32 @@ export class Radar {
         g.strokeStyle = alpha(C.iceHot, 0.9);
         g.stroke();
       }
+    }
+
+    /* ── drops ──────────────────────────────────────────────────────────── */
+    // Drawn after the contacts and before the player, so a drop closing on the
+    // ship passes over the hostiles rather than under them. A plus rather than
+    // a diamond: nothing else on this dish is a plus, so it needs no legend.
+    for (const p of s.pickups || []) {
+      const dx = p.x - s.px, dy = p.y - s.py, dz = p.z - s.pz;
+      const fwd = dx * F.x + dz * F.z;
+      const lat = dx * Rt.x + dz * Rt.z;
+      const dist = Math.hypot(fwd, lat);
+      const col = PICKUP_C[p.kind] || C.gold;
+      const sc = (dist > RANGE ? R * 0.94 / dist : R * 0.94 / RANGE);
+      const bx = cx + lat * sc, by = cy - fwd * sc;
+      const a = 0.7 + 0.3 * Math.sin(s.time * 7.5);
+      const r = 3.4 * k;
+      g.save();
+      g.strokeStyle = alpha(col, a);
+      g.lineWidth = 1.9 * k;
+      g.shadowColor = col; g.shadowBlur = 8 * k;
+      g.beginPath();
+      g.moveTo(bx - r, by); g.lineTo(bx + r, by);
+      g.moveTo(bx, by - r); g.lineTo(bx, by + r);
+      g.stroke();
+      g.restore();
+      void dy;
     }
 
     /* ── player ─────────────────────────────────────────────────────────── */

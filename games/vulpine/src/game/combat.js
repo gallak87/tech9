@@ -5,6 +5,7 @@ import { createEnemy, disposeEnemy, animateEnemy, enemySpec, createCommander, CO
 import { createBoss, BOSS } from '../ships/boss.js';
 import { createArwing } from '../ships/arwing.js';
 import { emissive } from '../render/materials.js';
+import { installPickups, PICKUP_KINDS } from './pickups.js';
 import {
   makeAgent, think, thinkWingman, killAgent, aimShot, orient, setState, clamp,
 } from './ai.js';
@@ -119,6 +120,22 @@ const TUNE = {
   shieldMax: 100,
   respawnInvuln: 2.4,
 
+  // Drops. `bombMax` is 5 rather than "as many as you can carry" because the
+  // HUD draws a pip per bomb and sizes the row at `clamp(bombs, 3, 5)` — past 5
+  // the readout would start lying, and a resource you cannot read is not a
+  // resource. Health is deliberately a third of the bar: enough that collecting
+  // one changes the decision to press an attack, not enough to make the shield
+  // gauge decorative.
+  bombMax: 5,
+  healAmount: 35,
+  // Score for a collect. Small — a drop is a supply, not a scoring opportunity,
+  // and paying much for it would push players to farm rather than to fight.
+  pickupScore: 50,
+  // What a drop turns into when the thing it grants is already full. Never
+  // nothing: a pickup that visibly flies into the ship and does nothing reads
+  // as a bug the first time and as a cheat every time after.
+  pickupFullScore: 250,
+
   ramDmg: 18,
 
   // Boss station, hard-clamped into a box around the player so a boosting
@@ -192,6 +209,7 @@ const PODS_ALL = [0, 1, 2, 3];
 //   aggro   pushes reload rate and how hard a pass presses in.
 //   markFor / stagger  ram-drone commit delay and per-drone spacing.
 //   first / step / bank  ground-battery placement (see spawnWave).
+//   drops   what this wave leaves behind — see `## drops` below.
 //
 // The two `from: 'behind'` waves are left exactly as they were found — the
 // owner has deferred the rear-attacker question and is reviewing it separately.
@@ -200,28 +218,34 @@ const WAVES = [
   // ── act 1: teach the fight ────────────────────────────────────────────────
   // Three raptors resolving out of the haze off the left shoulder. One pass,
   // then they are gone: the player's first encounter has to have an end.
+  // No drop: the first encounter teaches shooting and nothing else.
   { z: -170, kind: 'raptor', n: 3, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.62, climb: 0.30, life: 7.0 },
-  // Same enemy, more of them, from the other side, pressing harder.
-  { z: -900, kind: 'raptor', n: 4, form: 'echelon', from: 'ahead', spawn: 1200, arc: 0.70, climb: -0.20, skill: 0.08, aggro: 0.05, life: 7.5 },
+  // Same enemy, more of them, from the other side, pressing harder. The first
+  // drop in the game is a bomb rather than shield, because the shield is still
+  // full here and a heal you cannot use teaches nothing about drops.
+  { z: -900, kind: 'raptor', n: 4, form: 'echelon', from: 'ahead', spawn: 1200, arc: 0.70, climb: -0.20, skill: 0.08, aggro: 0.05, life: 7.5, drops: ['bomb'] },
   // First "oh no": a swarm that arrives as one mass and comes apart into five
   // committed dives, 0.6 s apart, each of which can be dodged.
   { z: -1500, kind: 'wasp', n: 5, form: 'swarm', from: 'ahead', spawn: 1450, arc: 0.08, climb: 0.44, life: 8.0, markFor: 2.3, stagger: 0.62 },
   // The ground shoots back. Staggered down the rail so you meet them one at a
   // time and can see the tracers coming off the bank.
-  { z: -2050, kind: 'bulwark', n: 3, form: 'banks', first: 780, step: 330, bank: 115 },
+  { z: -2050, kind: 'bulwark', n: 3, form: 'banks', first: 780, step: 330, bank: 115, drops: ['health'] },
 
   { z: -2380, kind: 'raptor', n: 4, form: 'vee', from: 'behind', skill: 0.1 },
 
   // ── act 2: the gorge ──────────────────────────────────────────────────────
   // Two gunboats. Heavy, slow, 14 hp — the first enemy that does not die to a
-  // single burst, so it is worth spawning far out and letting it loom.
-  { z: -2900, kind: 'hornet', n: 2, form: 'pair', from: 'ahead', spawn: 1550, arc: -0.30, climb: 0.10, skill: 0.14, life: 11 },
-  { z: -3380, kind: 'bulwark', n: 4, form: 'banks', first: 720, step: 300, bank: 105 },
+  // single burst, so it is worth spawning far out and letting it loom. It is
+  // also the first weapon tier in the game: a 14 hp target at tier 0 is five
+  // seconds of committed fire, so the tier is genuinely earned rather than
+  // crossed over.
+  { z: -2900, kind: 'hornet', n: 2, form: 'pair', from: 'ahead', spawn: 1550, arc: -0.30, climb: 0.10, skill: 0.14, life: 11, drops: ['weapon'] },
+  { z: -3380, kind: 'bulwark', n: 4, form: 'banks', first: 720, step: 300, bank: 105, drops: ['health'] },
   // The rescue beat: one of them peels onto a wingman and Slippy calls for help.
-  { z: -3800, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1300, arc: 0.55, climb: -0.28, skill: 0.20, aggro: 0.10, hunt: true, life: 9 },
+  { z: -3800, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1300, arc: 0.55, climb: -0.28, skill: 0.20, aggro: 0.10, hunt: true, life: 9, drops: ['bomb'] },
   { z: -4380, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1500, arc: -0.25, climb: 0.36, skill: 0.2, life: 8.0, markFor: 1.9, stagger: 0.50 },
-  { z: -4850, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1500, arc: 0.34, climb: 0.22, skill: 0.26, aggro: 0.12, life: 11 },
-  { z: -5350, kind: 'bulwark', n: 4, form: 'banks', first: 760, step: 280, bank: 100 },
+  { z: -4850, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1500, arc: 0.34, climb: 0.22, skill: 0.26, aggro: 0.12, life: 11, drops: ['weapon'] },
+  { z: -5350, kind: 'bulwark', n: 4, form: 'banks', first: 760, step: 280, bank: 100, drops: ['health', 'bomb'] },
   { z: -5800, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.48, climb: 0.32, skill: 0.32, aggro: 0.16, hunt: true, life: 8.5 },
 
   // ── act 3: the dropship ───────────────────────────────────────────────────
@@ -229,33 +253,63 @@ const WAVES = [
   // craft spawned at 650 m with no escort and no staging — 1500 points that the
   // player flew past. It now resolves over 2.3 km of approach and puts two
   // fighters in the air out of its hangar as you close.
-  { z: -6150, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: 0.06, climb: 0.16, skill: 0.34, aggro: 0.2, life: 24, close: 200, escort: 2 },
+  //
+  // The biggest payout in the level, and the reason it is worth stopping to
+  // kill: the third weapon tier plus a shield, 2.1 km before the carrier.
+  { z: -6150, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: 0.06, climb: 0.16, skill: 0.34, aggro: 0.2, life: 24, close: 200, escort: 2, drops: ['weapon', 'health'] },
 
   { z: -6800, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.2 },
 
   // ── act 4: the run in ─────────────────────────────────────────────────────
-  { z: -7250, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: -0.40, climb: -0.14, skill: 0.42, aggro: 0.22, life: 10 },
+  { z: -7250, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: -0.40, climb: -0.14, skill: 0.42, aggro: 0.22, life: 10, drops: ['bomb'] },
   // Last swarm, tightest stagger in the game — and it clears 700 m before the
   // carrier trigger, so the boss does not arrive into a cloud of leftovers.
-  { z: -7550, kind: 'wasp', n: 8, form: 'swarm', from: 'ahead', spawn: 1400, arc: 0.20, climb: 0.30, skill: 0.5, life: 7.0, markFor: 1.6, stagger: 0.38 },
+  // Its drop is the last top-up before the carrier and is deliberately shield:
+  // whatever the run-in cost you, you arrive with some of it back.
+  { z: -7550, kind: 'wasp', n: 8, form: 'swarm', from: 'ahead', spawn: 1400, arc: 0.20, climb: 0.30, skill: 0.5, life: 7.0, markFor: 1.6, stagger: 0.38, drops: ['health'] },
   { z: -8300, boss: true },
 ];
 
-/* ── weapon grants ────────────────────────────────────────────────────────── */
-//
-// Awarded, not collected — there is no pickup entity and nothing to fly into.
-// The owner's call was that reaching the carrier *is* the reward, so the run-in
-// hands over the gun that makes the fight winnable.
-//
-// Placed so each grant is followed by something to shoot: the tier lands, then
-// the wave after it arrives, so the upgrade is felt on live targets instead of
-// on empty air. Order as `railZ` falls: -7150 grant, -7250 hornets, -7450
-// grant, -7550 wasps, -7750 grant, -7950 comms, -8300 carrier.
-//
-// The last grant is kept 200 m clear of the -7950 comm so its own callout is
-// not immediately overwritten — `say()` holds a line for 4.2 s and the run-in
-// is dense. The HUD tier readout is the durable signal; these lines are the
-// moment.
+/* ── drops ────────────────────────────────────────────────────────────────────
+
+   `drops: ['weapon', 'health']` on a wave row means that wave leaves those
+   behind. The kinds are handed to specific craft in the wave — spread across it
+   by `dropSlot` below, never all on the leader — and the craft carrying one
+   wears a halo in its drop's colour (`pickups.markCarrier`), so a wave with a
+   drop in it *looks* different before a shot is fired.
+
+   Three rules the table is authored against:
+
+   1. THE CARRIER MUST BE KILLABLE ON PURPOSE.  A drop rides a hornet, a
+      bulwark, a vanguard or a named raptor — never a wasp. Wasps arrive as a
+      staggered swarm and are killed reflexively; a reward on one is a reward
+      for the fight happening to go your way. The wasp waves that do carry a
+      drop carry it on the *wave*, and it is the last craft in the stagger.
+   2. A DROP MUST BE USABLE WHEN IT LANDS.  The first drop in the level is a
+      bomb, not shield, because the shield is still full at -900. Shield drops
+      start once the ground batteries have had a go at you.
+   3. THE THREE WEAPON TIERS ARE EARNED IN ACT 2, NOT HANDED OVER IN ACT 4.
+      Both gunboat waves and the dropship carry one, so a player who fights the
+      middle of the level arrives at the carrier fully armed 2.1 km early. The
+      pre-boss grants below are now the floor for a player who did not, rather
+      than the only way to get the gun.
+
+   ── weapon grants ─────────────────────────────────────────────────────────
+
+   Awarded, not collected. The owner's call in 2026-08-01 was that reaching the
+   carrier *is* the reward; drops (owner, 2026-08-16) added a second, earned
+   path to the same tiers, and these stayed as the safety net — a player who
+   missed every carrier still meets the boss with a gun that can kill it.
+
+   Placed so each grant is followed by something to shoot: the tier lands, then
+   the wave after it arrives, so the upgrade is felt on live targets instead of
+   on empty air. Order as `railZ` falls: -7150 grant, -7250 hornets, -7450
+   grant, -7550 wasps, -7750 grant, -7950 comms, -8300 carrier.
+
+   The last grant is kept 200 m clear of the -7950 comm so its own callout is
+   not immediately overwritten — `say()` holds a line for 4.2 s and the run-in
+   is dense. The HUD tier readout is the durable signal; these lines are the
+   moment. */
 const GRANTS = [
   { z: -7150, who: 'SLIPPY', text: 'Rerouting reserve power to your lasers — twin-linked!' },
   { z: -7450, who: 'PEPPY',  text: 'Second bank online. Spread pattern, Fox!' },
@@ -281,6 +335,16 @@ const COMMS = [
 ];
 
 /* ── formations ───────────────────────────────────────────────────────────── */
+
+/**
+ * Which craft in a wave of `n` carries drop `d` of `total`. Spread rather than
+ * front-loaded: on the leader every drop would be collected in the first two
+ * seconds of an encounter, which pays the player before the fight rather than
+ * for it.
+ */
+function dropSlot(d, total, n) {
+  return Math.min(n - 1, Math.floor(((d + 0.5) * n) / total));
+}
 
 function station(form, i, n) {
   const s = i - (n - 1) / 2;
@@ -347,6 +411,13 @@ export function installCombat(ctx) {
       { id: 'slippy', name: 'SLIPPY', health: 100, alive: true },
     ],
     enemies: [],
+    // Live drops, for the radar. Separate from `enemies` because the radar
+    // counts that array into its CONTACTS readout, and a shield floating toward
+    // you is not a contact.
+    pickups: [],
+    // The last collect, for the HUD toast. `{ kind, label, until }`, cleared by
+    // `update` the same way `message` is.
+    pickup: null,
     message: null,
     bossHealth: null,
     checkpoint: 0,
@@ -372,6 +443,9 @@ export function installCombat(ctx) {
     pGround: 0, pExpire: 0, pFoe: 0,
   };
   const bombs = [];
+  // Declared before `collectPickup` is defined and installed after it — the
+  // module hoists the function, and installing here would read it undefined.
+  let pickups = null;
   let boss = null;          // { root, api, agent-ish }
   let firedWaves = 0;
   let firedComms = 0;
@@ -453,6 +527,12 @@ const _bRail = new THREE.Vector3();
       allies.push({ agent: a, root, info: state.wingmen[i] });
     }
   }
+
+  /* ── drops ──────────────────────────────────────────────────────────────── */
+  // Parented to `group` so drops inherit the motion-blur exclusion the rest of
+  // the dynamic set has — a body closing at 475 m/s is exactly what that pass
+  // reprojects wrongest.
+  pickups = installPickups(ctx, group, collectPickup);
 
   /* ── review mode ────────────────────────────────────────────────────────── */
   // The screenshot harness never touches the keyboard, so every review frame
@@ -635,6 +715,7 @@ const _bRail = new THREE.Vector3();
       return;
     }
     const spec = enemySpec(w.kind);
+    const base = foes.length;
     for (let i = 0; i < w.n; i++) {
       const root = createEnemy(w.kind);
       enemyGroup.add(root);
@@ -701,6 +782,8 @@ const _bRail = new THREE.Vector3();
       if (spec.carrier && w.escort) foe.launch = { left: w.escort, t: 3.2 };
       foes.push(foe);
     }
+
+    assignDrops(w, base);
 
     if (w.hunt) {
       // send one at a wingman, so the rescue objective is visible
@@ -822,17 +905,83 @@ const _bRail = new THREE.Vector3();
   }
 
   /**
-   * Step the tap gun up one tier. Silent and idempotent at the top tier, so a
-   * grant table longer than the tier table is harmless.
+   * Step the tap gun up one tier.
+   *
+   * At the top tier it pays out a bomb instead of doing nothing. A grant that
+   * silently no-ops is worse than no grant at all: the callout still fires and
+   * the HUD still reads HYPER, so the player is told they were rewarded and can
+   * see no reward. That case is now reachable in normal play — the act-2 drops
+   * can take a player to the top tier 2 km before the first pre-boss grant.
+   *
    * @param g optional grant row supplying the callout.
+   * @returns true if the tier actually stepped.
    */
   function grantWeapon(g) {
     const w = state.weapon;
-    if (w.tier >= TUNE.weapons.length - 1) return;
+    if (w.tier >= TUNE.weapons.length - 1) {
+      if (addBombs(1)) {
+        ctx.audio.play('powerUp');
+        if (g) say(g.who, 'Guns are maxed — sending you a smart bomb instead.');
+      }
+      return false;
+    }
     w.tier++;
     w.label = TUNE.weapons[w.tier].id;
     ctx.audio.play('powerUp');
     if (g) say(g.who, g.text);
+    return true;
+  }
+
+  /** @returns true if the rack had room. */
+  function addBombs(n) {
+    if (state.bombs >= TUNE.bombMax) return false;
+    state.bombs = Math.min(TUNE.bombMax, state.bombs + n);
+    return true;
+  }
+
+  /* ── drops ──────────────────────────────────────────────────────────────── */
+
+  /**
+   * What a collected drop does. `pickups.js` owns the body and the flight; this
+   * owns the payout, because shields, bombs and weapon tiers live here.
+   *
+   * Every branch pays out something. See `TUNE.pickupFullScore`.
+   */
+  function collectPickup(kind) {
+    let label = PICKUP_KINDS[kind].label;
+    if (kind === 'weapon') {
+      if (!grantWeapon()) label = 'BOMB +1';
+    } else if (kind === 'bomb') {
+      if (!addBombs(1)) { state.score += TUNE.pickupFullScore; label = 'BOMBS FULL'; }
+    } else if (kind === 'health') {
+      if (state.shieldRaw >= state.shieldMax) {
+        state.score += TUNE.pickupFullScore;
+        label = 'SHIELD FULL';
+      } else {
+        state.shieldRaw = Math.min(state.shieldMax, state.shieldRaw + TUNE.healAmount);
+      }
+    }
+    state.score += TUNE.pickupScore;
+    state.pickup = { kind, label, until: view.time + 1.7 };
+  }
+
+  /** Hand a wave's drops to specific craft in it and light them up. */
+  function assignDrops(w, base) {
+    const list = w.drops;
+    if (!list || !list.length) return;
+    for (let d = 0; d < list.length; d++) {
+      const foe = foes[base + dropSlot(d, list.length, w.n)];
+      if (!foe || foe.drop) continue;
+      foe.drop = list[d];
+      pickups.markCarrier(foe, list[d]);
+    }
+  }
+
+  /** Eject whatever `foe` was carrying. Idempotent — a foe can only pay once. */
+  function dropFrom(foe, a) {
+    if (!foe.drop) return;
+    pickups.spawn(foe.drop, a.pos, a.vel);
+    foe.drop = null;
   }
 
   /* ── damage ─────────────────────────────────────────────────────────────── */
@@ -863,6 +1012,7 @@ const _bRail = new THREE.Vector3();
       // not shake the camera, and by mass so a dropship lands harder.
       const near = a.pos.distanceTo(view.player.pos);
       if (near < 340) ctx.flight.addShake(Math.min(0.34, 0.10 * boom * (1 - near / 340)));
+      dropFrom(foe, a);
       if (!firstKill) {
         firstKill = true;
         say('FALCO', 'Good shot, Fox!');
@@ -1524,6 +1674,7 @@ const _bRail = new THREE.Vector3();
       firedGrants++;
     }
     if (state.message && view.time > state.message.until) state.message = null;
+    if (state.pickup && view.time > state.pickup.until) state.pickup = null;
 
     /* input-driven systems */
     // Published every step, from the same helper the guns use, so the HUD can
@@ -1570,6 +1721,10 @@ const _bRail = new THREE.Vector3();
       if (!a.dying && a.spec.ram && view.playerRange < TUNE.playerRadius + a.spec.radius + 2) {
         hurtPlayer(a.spec.dmg || TUNE.ramDmg, a.pos);
         killAgent(a, RG);
+        // A drone that trades itself for your shield still pays out. Withholding
+        // the drop here would mean the one path where you *need* the shield is
+        // the one path that does not give you one.
+        dropFrom(f, a);
         ctx.fx.explosion(a.pos, { scale: a.spec.boomScale ?? 1 });
         ctx.audio.play('explosion', { pos: a.pos, size: a.spec.radius });
       }
@@ -1587,6 +1742,9 @@ const _bRail = new THREE.Vector3();
           ctx.fx.explosion(a.pos, { scale: boom });
           ctx.audio.play('explosion', { pos: a.pos, size: a.spec.radius * boom });
         }
+        // Read by the carrier halo, which is parented to the scene rather than
+        // to the hull and so has no other way to learn the hull is gone.
+        f.retired = true;
         enemyGroup.remove(f.root);
         disposeEnemy(f.root);
         for (const o of foes) if (o.agent.leader === a) o.agent.leader = null;
@@ -1612,6 +1770,9 @@ const _bRail = new THREE.Vector3();
     if (boss) updateBoss(dt);
 
     updateBullets(dt);
+    // After the foes, so a drop ejected by a kill this tick is already flying on
+    // the frame the explosion is drawn rather than one step behind it.
+    pickups.update(dt, view.player.pos, view.player.vel);
 
     /* publish contacts for the radar */
     // 0 when a foe is pointed away, 1 when its nose is on the player. The HUD's
@@ -1633,6 +1794,7 @@ const _bRail = new THREE.Vector3();
         x: f.agent.pos.x, y: f.agent.pos.y, z: f.agent.pos.z,
         locked: state.lockTarget === f,
         aim: aimOnPlayer(f.agent),
+        carrier: f.drop || null,
       });
     }
     for (const al of allies) {
@@ -1645,6 +1807,8 @@ const _bRail = new THREE.Vector3();
         boss: true, locked: state.lockTarget === bossLock,
       });
     }
+    state.pickups.length = 0;
+    pickups.publish(state.pickups);
   }
 
   /* ── review cameras (registered from this file, per CONTRACT §1) ────────── */
@@ -1704,6 +1868,22 @@ const _bRail = new THREE.Vector3();
     // pool is readable for the harness to sample.
     get bullets() { return bullets; },
     get diag() { return diag; },
+    /**
+     * Drops in flight, and the hostiles still holding one. Readable for the same
+     * reason `bullets` is: "does a drop always reach the player" is a question
+     * about position over time, which no screenshot can answer.
+     */
+    get pickups() { return pickups.live; },
+    get carriers() { return pickups.carriers; },
+    /**
+     * Dev/probe: eject a drop just ahead of the ship, without flying to a wave
+     * that has one. `__VULPINE__.combat.dropTest('weapon')`.
+     */
+    dropTest(kind = 'health') {
+      _v.copy(view.player.pos).addScaledVector(state.fwd, 260);
+      _v.y += 30;
+      return !!pickups.spawn(kind, _v, _v2.set(0, 0, 0));
+    },
     /** Tap-gun dps at the live tier, so a probe can report it without the table. */
     get dps() { const w = weapon(); return (w.pods * TUNE.playerBullet.dmg * w.dmg) / w.gap; },
     grantWeapon,
@@ -1722,6 +1902,12 @@ const _bRail = new THREE.Vector3();
       bullets.length = 0;
       bombs.length = 0;
       if (boss) { group.remove(boss.root); boss.api.dispose(); boss = null; }
+      // Drops in flight are indexed by the rail like everything else here: a
+      // shield still chasing the player through an orbital hop would arrive in
+      // the next level's terrain, having been earned in the previous one's.
+      pickups.reset();
+      state.pickups.length = 0;
+      state.pickup = null;
       firedWaves = firedComms = firedGrants = 0;
       waves = level.waves || [];
       comms = level.comms || [];
@@ -1752,6 +1938,7 @@ const _bRail = new THREE.Vector3();
     dispose() {
       for (const f of foes) { enemyGroup.remove(f.root); disposeEnemy(f.root); }
       if (boss) boss.api.dispose();
+      pickups.dispose();
       ctx.scene.remove(group);
     },
   };

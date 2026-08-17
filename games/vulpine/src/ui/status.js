@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { text, measure } from './glyphs.js';
-import { C, alpha, gauge, approach, sat, mix, clamp } from './theme.js';
+import { C, PICKUP_C, alpha, gauge, approach, sat, mix, clamp, ease } from './theme.js';
 import { arwing, bomb } from './icons.js';
 
 // Weapon-tier hues, cool to hot. One per tier; the last is reused if the
@@ -144,6 +144,20 @@ export class Status {
       g.save();
       g.globalAlpha = this.flash * 0.5;
       g.fillStyle = '#fff';
+      g.fillRect(x + this.shield * barW - 2 * k, y, 3 * k, barH);
+      g.restore();
+    }
+    // Repair. `gain` has been computed since the block was written and read by
+    // nothing, so a heal was the one change to the shield the bar did not
+    // acknowledge — and shield drops make that the common case rather than the
+    // once-a-life respawn case. Mirrors the damage flash: a bright edge at the
+    // new fill, sliding the other way.
+    if (this.gain > 0.02) {
+      g.save();
+      g.globalAlpha = this.gain * 0.6;
+      g.fillStyle = C.shieldHot;
+      g.shadowColor = C.shield;
+      g.shadowBlur = 14 * k * this.gain;
       g.fillRect(x + this.shield * barW - 2 * k, y, 3 * k, barH);
       g.restore();
     }
@@ -298,5 +312,80 @@ export class Status {
     }
 
     return y;
+  }
+}
+
+/**
+ * Collect toast — what a drop just gave you, over the radar.
+ *
+ * Over the radar rather than in the systems block on purpose. The block is
+ * top-left and a player mid-fight is looking at the reticle; the dish is the
+ * nearest thing to the centre of attention that is not the fight itself, so a
+ * label there is read without moving the eyes off the target. It is also where
+ * the drop's own blip was a moment earlier, which closes the loop.
+ *
+ * Reads `state.pickup` — `{ kind, label, until }`, published by combat.js and
+ * cleared by it, so a paused review frame draws exactly what the sim says.
+ */
+export class PickupToast {
+  constructor() {
+    this.t = 0;         // seconds since this toast appeared
+    this.shown = null;  // the toast object identity, to detect a new one
+  }
+
+  update(dt, s) {
+    const p = s.pickup;
+    if (p !== this.shown) { this.shown = p; this.t = 0; }
+    if (p) this.t += dt;
+  }
+
+  draw(g, L, s) {
+    const p = s.pickup;
+    if (!p) return;
+    const k = L.s;
+    const life = 1.7;
+    const a = Math.min(1, this.t / 0.08) * (1 - ease(clamp((this.t - life * 0.55) / (life * 0.45), 0, 1)));
+    if (a <= 0.01) return;
+
+    const col = PICKUP_C[p.kind] || C.gold;
+    const R = Math.min(84 * k, L.w * 0.075);
+    const cx = Math.round(L.w * 0.5);
+    // Above the dish, drifting up as it fades — the standard read for "this
+    // arrived and is now gone" without needing a second animation to say so.
+    const cy = Math.round(L.h - L.padY - R * 2.0 - 20 * k - this.t * 16 * k);
+
+    const size = 13 * k;
+    const w = measure(p.label, size, 4.4);
+    // A punch on the first frames: 1.18 → 1, which reads as impact at 60 fps
+    // without ever being large enough to cover the dish.
+    const sc = 1 + 0.18 * (1 - Math.min(1, this.t / 0.16));
+
+    g.save();
+    g.globalAlpha = a;
+    g.translate(cx, cy);
+    g.scale(sc, sc);
+
+    const padX = 14 * k, h = 22 * k;
+    g.beginPath();
+    g.moveTo(-w / 2 - padX, -h / 2);
+    g.lineTo(w / 2 + padX, -h / 2);
+    g.lineTo(w / 2 + padX - 6 * k, h / 2);
+    g.lineTo(-w / 2 - padX + 6 * k, h / 2);
+    g.closePath();
+    g.fillStyle = 'rgba(3,11,18,0.62)';
+    g.fill();
+    g.lineWidth = 1.2 * k;
+    g.strokeStyle = alpha(col, 0.75);
+    g.shadowColor = col;
+    g.shadowBlur = 12 * k;
+    g.stroke();
+    g.shadowBlur = 0;
+
+    text(g, p.label, 0, 0, {
+      size, track: 4.4, weight: 0.17, align: 'center', baseline: 'middle',
+      color: col, shadow: 5 * k, glow: 8 * k,
+    });
+    g.restore();
+    void s;
   }
 }

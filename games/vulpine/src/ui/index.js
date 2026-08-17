@@ -1,6 +1,6 @@
 import { CONTROLS } from '../core/input.js';
 import { Legend } from './legend.js';
-import { Status } from './status.js';
+import { Status, PickupToast } from './status.js';
 import { Radar } from './radar.js';
 import { Score } from './score.js';
 import { Reticle, LockMarker } from './reticle.js';
@@ -25,7 +25,8 @@ import { clamp } from './theme.js';
 // Composition, top to bottom of the z-order:
 //   status (top-left) -> wingmen strip (under it) -> score (top-right) ->
 //   rear-threat arcs (frame border) ->
-//   boss health (top-centre, conditional) -> radar (bottom-centre) ->
+//   boss health (top-centre, conditional) -> radar + collect toast
+//   (bottom-centre) ->
 //   reticle + lock marker (centre / world-projected) -> legend -> comms
 //   (bottom-left, both share that corner, see comms.js) -> outcome card (top).
 // ─────────────────────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ export function installUI(ctx) {
 
   const legend = new Legend();
   const status = new Status();
+  const pickupToast = new PickupToast();
   const radar = new Radar();
   const score = new Score();
   const reticle = new Reticle();
@@ -134,6 +136,7 @@ export function installUI(ctx) {
       const s = ctx.state;
       if (!s) return;
       status.update(dt, s);
+      pickupToast.update(dt, s);
       wingmen.update(dt, s);
       score.update(dt, s);
       radar.update(dt, s);
@@ -162,7 +165,10 @@ export function installUI(ctx) {
 
       score.draw(g, L, s);
       bossHealth.draw(g, L, s);
-      if (!s.campaign || !s.campaign.hopping) radar.draw(g, L, s);
+      if (!s.campaign || !s.campaign.hopping) {
+        radar.draw(g, L, s);
+        pickupToast.draw(g, L, s);
+      }
 
       if (!s.campaign || !s.campaign.hopping) {
         threat.draw(g, L, s);

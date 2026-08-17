@@ -107,6 +107,15 @@ const BUILD_MS = 6;
       make contact inside them; they are the two places the level is looked at
       rather than fought in.
 
+   `drops` (2026-08-16) follows the same authoring rules as Corneria's — see the
+   `## drops` block in combat.js. Every level past the first carries weapon drops
+   even though the tier survives `resetForLevel` and a campaign player arrives at
+   the top of the table: booting straight into a level with `?level=highlands`
+   starts at tier 0 with no `grants` row to fix it, so without drops the later
+   levels were only completable by flying the campaign from level 1. A weapon
+   drop collected at full tier pays out a bomb (`grantWeapon`), so the campaign
+   player is not handed a dud.
+
    Nothing sorts or validates this table, so it stays z-descending by hand.
 
    The finale is a real boss as of 2026-08-15 — see the `boss:` row below. */
@@ -114,20 +123,20 @@ const FICHINA_WAVES = [
   // Open icefield: the longest sightline in the level, so the longest spawn.
   { z: -240, kind: 'raptor', n: 3, form: 'vee', from: 'ahead', spawn: 1500, arc: 0.55, climb: 0.22, life: 7.5 },
   // Batteries land at -1980…-2600, inside the trough — hence bank 250 ≈ inner.
-  { z: -1200, kind: 'bulwark', n: 3, form: 'banks', first: 780, step: 310, bank: 250 },
+  { z: -1200, kind: 'bulwark', n: 3, form: 'banks', first: 780, step: 310, bank: 250, drops: ['health'] },
   { z: -2400, kind: 'raptor', n: 4, form: 'echelon', from: 'ahead', spawn: 1300, arc: -0.60, climb: 0.18, skill: 0.18, life: 8 },
   // Rear pressure over the approach to the slot: the one attack that works in a
   // place too tight to turn around in, and it leaves the frame ahead empty.
   { z: -3000, kind: 'raptor', n: 3, form: 'echelon', from: 'behind', skill: 0.28 },
   // Armed past the slot's exit key, so they resolve as the walls open out.
-  { z: -3900, kind: 'hornet', n: 2, form: 'pair', from: 'ahead', spawn: 1550, arc: 0.28, climb: 0.12, skill: 0.24, life: 11 },
-  { z: -4500, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1250, arc: 0.48, climb: -0.24, skill: 0.3, aggro: 0.14, hunt: true, life: 8.5 },
+  { z: -3900, kind: 'hornet', n: 2, form: 'pair', from: 'ahead', spawn: 1550, arc: 0.28, climb: 0.12, skill: 0.24, life: 11, drops: ['weapon'] },
+  { z: -4500, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1250, arc: 0.48, climb: -0.24, skill: 0.3, aggro: 0.14, hunt: true, life: 8.5, drops: ['bomb'] },
   // Contact at ≈ -6470, mid-pass, head-on while the rail is 160 m up.
-  { z: -5400, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: -0.05, climb: 0.14, skill: 0.38, aggro: 0.22, life: 24, close: 200, escort: 2 },
+  { z: -5400, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: -0.05, climb: 0.14, skill: 0.38, aggro: 0.22, life: 24, close: 200, escort: 2, drops: ['weapon', 'health'] },
   { z: -6200, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: 0.4, climb: -0.12, skill: 0.46, aggro: 0.24, life: 9 },
   // Batteries land at -8200…-9040: the shelf, wide and back at rail height.
-  { z: -7500, kind: 'bulwark', n: 4, form: 'banks', first: 700, step: 280, bank: 560 },
-  { z: -8000, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: -0.36, climb: 0.18, skill: 0.5, aggro: 0.26, life: 10 },
+  { z: -7500, kind: 'bulwark', n: 4, form: 'banks', first: 700, step: 280, bank: 560, drops: ['health', 'bomb'] },
+  { z: -8000, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: -0.36, climb: 0.18, skill: 0.5, aggro: 0.26, life: 10, drops: ['health'] },
   // The finale. `boss:` rather than `kind:` is the whole difference between a
   // heavy contact that flies past and a fight that can be won — it routes to
   // spawnBoss, which station-keeps the rig, publishes the health bar and ends
@@ -158,13 +167,13 @@ const OMEGA_WAVES = [
   { z: -300, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1500, arc: -0.5, climb: 0.3, skill: 0.3, life: 8 },
   { z: -1100, kind: 'wasp', n: 5, form: 'swarm', from: 'ahead', spawn: 1500, arc: 0.1, climb: -0.4, skill: 0.32, life: 8, markFor: 2.2, stagger: 0.6 },
   { z: -1900, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1350, arc: 0.62, climb: 0.18, skill: 0.36, aggro: 0.16, life: 8.5 },
-  { z: -2700, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1600, arc: -0.3, climb: 0.34, skill: 0.4, aggro: 0.2, life: 11 },
+  { z: -2700, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1600, arc: -0.3, climb: 0.34, skill: 0.4, aggro: 0.2, life: 11, drops: ['weapon', 'health'] },
   { z: -3600, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.4 },
   { z: -4400, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1450, arc: -0.15, climb: 0.5, skill: 0.42, life: 8.5, markFor: 2.0, stagger: 0.5 },
-  { z: -5300, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1550, arc: 0.44, climb: -0.28, skill: 0.46, aggro: 0.24, life: 10.5 },
-  { z: -6300, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: 0.05, climb: -0.12, skill: 0.5, aggro: 0.28, life: 26, close: 200, escort: 2 },
+  { z: -5300, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1550, arc: 0.44, climb: -0.28, skill: 0.46, aggro: 0.24, life: 10.5, drops: ['weapon', 'bomb'] },
+  { z: -6300, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: 0.05, climb: -0.12, skill: 0.5, aggro: 0.28, life: 26, close: 200, escort: 2, drops: ['weapon', 'health'] },
   { z: -7300, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1300, arc: -0.55, climb: 0.24, skill: 0.5, aggro: 0.3, hunt: true, life: 9 },
-  { z: -8200, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1500, arc: 0.36, climb: 0.3, skill: 0.55, aggro: 0.32, life: 11 },
+  { z: -8200, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1500, arc: 0.36, climb: 0.3, skill: 0.55, aggro: 0.32, life: 11, drops: ['health', 'bomb'] },
   { z: -8800, boss: 'commander:void' },
 ];
 
@@ -187,15 +196,15 @@ const FOUNDRY_WAVES = [
   { z: -280, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1100, arc: 0.5, climb: 0.2, skill: 0.34, life: 8 },
   // u = bank + rand(0,85), and the deck ends at half = 190 — past that a
   // battery is placed inside the massing.
-  { z: -1000, kind: 'bulwark', n: 4, form: 'banks', first: 620, step: 250, bank: 96 },
+  { z: -1000, kind: 'bulwark', n: 4, form: 'banks', first: 620, step: 250, bank: 96, drops: ['health'] },
   { z: -1700, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 950, arc: -0.55, climb: 0.16, skill: 0.38, aggro: 0.18, life: 8 },
-  { z: -2500, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.3, climb: 0.24, skill: 0.42, aggro: 0.2, life: 10 },
+  { z: -2500, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.3, climb: 0.24, skill: 0.42, aggro: 0.2, life: 10, drops: ['weapon'] },
   { z: -3300, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.42 },
-  { z: -4100, kind: 'bulwark', n: 4, form: 'banks', first: 600, step: 240, bank: 96 },
+  { z: -4100, kind: 'bulwark', n: 4, form: 'banks', first: 600, step: 240, bank: 96, drops: ['health', 'bomb'] },
   { z: -4900, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1050, arc: -0.1, climb: 0.4, skill: 0.44, life: 8.5, markFor: 2.0, stagger: 0.5 },
-  { z: -5800, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.38, climb: -0.2, skill: 0.48, aggro: 0.26, life: 10.5 },
-  { z: -6700, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1600, arc: 0, climb: 0.1, skill: 0.52, aggro: 0.3, life: 26, close: 210, escort: 2 },
-  { z: -7600, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 950, arc: -0.5, climb: 0.22, skill: 0.52, aggro: 0.32, hunt: true, life: 9 },
+  { z: -5800, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.38, climb: -0.2, skill: 0.48, aggro: 0.26, life: 10.5, drops: ['weapon', 'health'] },
+  { z: -6700, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1600, arc: 0, climb: 0.1, skill: 0.52, aggro: 0.3, life: 26, close: 210, escort: 2, drops: ['weapon', 'health'] },
+  { z: -7600, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 950, arc: -0.5, climb: 0.22, skill: 0.52, aggro: 0.32, hunt: true, life: 9, drops: ['health', 'bomb'] },
   // The last fight in the game. Reuses the carrier: it is the only capital hull
   // built, and a bespoke foundry boss is the obvious next thing rather than
   // something to fake with a third commander variant.

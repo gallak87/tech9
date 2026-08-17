@@ -1933,7 +1933,6 @@ const _bRail = new THREE.Vector3();
      * about position over time, which no screenshot can answer.
      */
     get pickups() { return pickups.live; },
-    get carriers() { return pickups.carriers; },
     /**
      * Dev/probe: eject a drop at an arbitrary offset from the ship, without
      * flying to a wave that has one. Offsets are in the *rail* frame — ahead,

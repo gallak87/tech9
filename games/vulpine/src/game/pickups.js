@@ -409,7 +409,6 @@ export function installPickups(ctx, group, onCollect) {
   return {
     spawn, markCarrier, update, publish, reset,
     get live() { return live; },
-    get carriers() { return beacons.length; },
     dispose() {
       reset();
       if (GEO) {

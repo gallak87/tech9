@@ -16,7 +16,7 @@ never turns into a merge fight or a mystery regression.
 | **ship** | `src/ships/**`, `src/render/geobuild.js` | `render/postfx.js`, `render/environment.js` |
 | **render** | `src/render/postfx.js`, `src/render/environment.js`, `src/render/materials.js`, `src/render/textures.js` | `src/world/**`, `src/ships/**` |
 | **fx** | `src/fx/**` | anything else |
-| **combat** | `src/game/combat.js`, `src/game/ai.js`, `src/game/mission.js` | `src/game/flight.js` |
+| **combat** | `src/game/combat.js`, `src/game/ai.js`, `src/game/pickups.js` | `src/game/flight.js` |
 | **flight** | `src/game/flight.js` | `src/game/combat.js` |
 | **ui** | `src/ui/**` | the Three scene, the post chain |
 | **audio** | `src/core/audio.js`, `src/audio/**` | anything else |

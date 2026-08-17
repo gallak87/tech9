@@ -177,6 +177,9 @@ const TUNE = {
  */
 const WEAK_REACH = 3.0;
 
+/** What a destroyed boss weak point leaves behind, in order. See `bossHit`. */
+const BOSS_DROPS = ['health', 'bomb', 'health'];
+
 /* the ship's four gun mounts, in Arwing local space */
 const PODS = [
   new THREE.Vector3(3.05, -0.28, -3.15),
@@ -466,6 +469,7 @@ export function installCombat(ctx) {
   // Once per run, not once per level: the halo is a rule of the game, and being
   // told it again on Fichina reads as the game forgetting you already know.
   let firstPickup = false;
+  let bossDrops = 0;
   let shotParity = 0;
   let bombGeo = null, bombMat = null;
 
@@ -1124,6 +1128,20 @@ const _bRail = new THREE.Vector3();
       ctx.fx.explosion(_v, { scale: best.radius * 0.5 });
       ctx.audio.play('explosion', { pos: _v, size: best.radius });
       state.score += 500;
+      // Every weak point down is a supply drop. The boss fight is the longest
+      // stretch in the game with nothing else to kill, so before this it was
+      // also the only stretch where a shield could not be recovered — a player
+      // who arrived hurt could only get more hurt. Paying out on progress makes
+      // the fight self-correcting: the further in you are, the better supplied.
+      // The core is excluded because killing it ends the mission.
+      // Two shields to a bomb, cycled rather than rolled: a run is reviewed by
+      // replaying it, and a boss fight whose payout is random is a boss fight
+      // that cannot be compared to itself. Inherits nothing — the carrier
+      // station-keeps on the player, so a wreck's momentum is the player's and
+      // the pop alone reads better.
+      if (best.kind !== 'core') {
+        pickups.spawn(BOSS_DROPS[bossDrops++ % BOSS_DROPS.length], _v, null);
+      }
       if (best.kind === 'engine') { api.killNacelle(best.index); boss.list += 0.16; }
       if (best.kind === 'turret' && api.killTurret) api.killTurret(best.index);
       if (best.kind === 'core') { bossDie(); return true; }
@@ -1935,7 +1953,7 @@ const _bRail = new THREE.Vector3();
       pickups.reset();
       state.pickups.length = 0;
       state.pickup = null;
-      firedWaves = firedComms = firedGrants = 0;
+      firedWaves = firedComms = firedGrants = bossDrops = 0;
       waves = level.waves || [];
       comms = level.comms || [];
       grants = level.grants || [];

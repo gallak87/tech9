@@ -86,9 +86,13 @@ const TUNE = {
   bobAmp: 1.5, bobRate: 3.4,
   pulse: 0.16,             // shell scale wobble
 
-  // The tell on the enemy that is carrying one. Sized off the smallest hostile
-  // that can carry a drop (a 2.6 m raptor) so the halo always clears the hull.
+  // The tell on the enemy that is carrying one. The geometry is built at
+  // `beaconR` and scaled per hull, because the hulls that carry drops span
+  // 3.9 m (raptor) to 14.25 m (vanguard) of collision radius — a fixed 5.2 m
+  // halo sits *inside* the dropship, which is the single biggest payout in a
+  // level and the one whose tell has to be unmissable.
   beaconR: 5.2,
+  beaconClear: 1.65,       // multiple of the hull radius the halo sits at
   beaconSpin: 1.9,
 };
 
@@ -218,12 +222,13 @@ export function installPickups(ctx, group, onCollect) {
    * the moment it pays out, and a reward you cannot aim at is not a reward.
    */
   function markCarrier(foe, kind) {
-    const spec = PICKUP_KINDS[kind];
-    if (!spec) return;
+    if (!PICKUP_KINDS[kind]) return;
     const mesh = new THREE.Mesh(geometry().beacon, materials()[kind].beacon);
     mesh.frustumCulled = false;
     group.add(mesh);
-    beacons.push({ mesh, foe, t: R.range(0, 6.28) });
+    const hull = (foe.spec && foe.spec.radius) || 4;
+    const base = Math.max(1, hull * TUNE.beaconClear / TUNE.beaconR);
+    beacons.push({ mesh, foe, base, t: R.range(0, 6.28) });
   }
 
   function collect(p, i) {
@@ -274,8 +279,7 @@ export function installPickups(ctx, group, onCollect) {
       b.mesh.rotation.z = b.t * TUNE.beaconSpin;
       // Breathing rather than flashing: a hard blink at 60 fps reads as a
       // rendering fault at range, where the halo is a few pixels across.
-      const s = 1 + 0.10 * Math.sin(b.t * 4.2);
-      b.mesh.scale.setScalar(s);
+      b.mesh.scale.setScalar(b.base * (1 + 0.10 * Math.sin(b.t * 4.2)));
       b.mesh.material.opacity = 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(b.t * 4.2));
     }
 

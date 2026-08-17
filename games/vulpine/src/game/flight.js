@@ -143,6 +143,9 @@ export class Flight {
     this.rollT = -1; this.rollDir = 1; this.rollCd = 0;
     this.somersaultT = -1;
     this.detached = false;
+    // Set only through `die()`/`revive()`, which combat.js calls from the one
+    // place that knows: the death and respawn path. See `update()`.
+    this.dead = false;
     this.climb = 0;
     this.invuln = 0;
 
@@ -203,12 +206,56 @@ export class Flight {
 
   addShake(amount) { this.shake = Math.min(1.6, this.shake + amount); }
 
+  /** The player blew up. Stops the level; see the `dead` branch in `update()`. */
+  die() { this.dead = true; }
+
+  /**
+   * A new ship arrives, at the rail position the last one died at. Speed is
+   * restored outright rather than accelerated back up from the zero `die()`
+   * bled it to: a respawn that spends 1.3 s at walking pace hands the player a
+   * second penalty for the death they have already paid for.
+   */
+  revive() {
+    this.dead = false;
+    this.speed = TUNE.cruiseSpeed;
+    this.offVel.set(0, 0);
+    this.rollT = -1;
+    this.somersaultT = -1;
+  }
+
   update(dt, input) {
     /* ── snapshot previous state for render interpolation ───────────────── */
     this.prevPos.copy(this.pos);
     this.prevQuat.copy(this.quat);
     this.prevRailZ = this.railZ;
     this.prevOff.copy(this.off);
+
+    /* ── dead: the level stops with the player ──────────────────────────────
+       THE RAIL IS THE LEVEL'S CLOCK. combat.js arms every wave, comm and grant
+       off `railZ`, so a rail that keeps running through a 2.2 s death spawns
+       ~390 m of level into an empty sky and the respawn lands mid-encounter
+       against contacts it never saw arrive. Freezing the rail is the whole fix;
+       the rest of this branch is what has to freeze *with* it so the frame does
+       not contradict it — a hull that still banks to the stick, engine trails
+       still being laid from a ship that is not drawn, and a chase camera still
+       flying the corridor all say "you are alive" over the top of an explosion.
+
+       What keeps running: the decays. Shake settles, the offset drifts to a
+       stop, and speed bleeds to zero so the engine note dies under the
+       explosion instead of holding a cruise note through it. Nothing here reads
+       `input` — that is the point. */
+    if (this.dead) {
+      this.speed = Math.max(0, this.speed - TUNE.accel * 2.6 * dt);
+      this.throttleN = 0;
+      this.boostActive *= Math.exp(-9 * dt);
+      this.brakeActive *= Math.exp(-9 * dt);
+      this.offVel.multiplyScalar(Math.exp(-5 * dt));
+      this.aimLeadX = 0; this.aimLeadY = 0;
+      this.shake = Math.max(0, this.shake - dt * 2.1);
+      this._shakeSeed += dt * 47;
+      this._hasPrev = true;
+      return;
+    }
 
     /* ── speed ──────────────────────────────────────────────────────────── */
     const wantBoost = input.boost > 0.05 && this.boost > 0;

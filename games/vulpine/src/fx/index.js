@@ -824,6 +824,24 @@ export function installFx(ctx) {
   let trailsPrimed = false;
 
   function updateShip(dt) {
+    // Nothing to emit from. combat.js hides the hull between the explosion and
+    // the respawn, and every emitter below is anchored to a mount point on it —
+    // left running, three engine ribbons, two wingtip vortices and a vapour cone
+    // keep being laid at the wreck's position, which reads as the ship still
+    // flying inside its own fireball.
+    //
+    // `trailsPrimed` is cleared with them: a ribbon that is merely deactivated
+    // keeps its points, so the first push after the respawn draws a streak from
+    // wherever the hull died to wherever it came back.
+    if (!ctx.ship.visible) {
+      for (const rb of trails.ribbons) rb.active = false;
+      for (let i = 0; i < 2; i++) soft.ribbons[i].active = false;
+      setWake(false);
+      cone.update(dt, 0, ctx.ship.position, ctx.ship.quaternion);
+      lines.update(dt, 0, ctx.engine.camera.aspect || 16 / 9);
+      trailsPrimed = false;
+      return;
+    }
     const boost = st.forceBoost >= 0 ? st.forceBoost : st.boost;
     const throttle = ctx.flight?.throttleN ?? 0.5;
 
@@ -900,6 +918,10 @@ export function installFx(ctx) {
   /* ── environment sampling ──────────────────────────────────────────────── */
   function updateEnv(dt) {
     if (!ctx.world) return;
+    // Same reason as updateShip: the ground kick is thrown by a hull passing
+    // over the deck, so a hidden one must not throw it. `setWake(false)` there
+    // already retired the wake ribbons; this stops the spray refilling them.
+    if (!ctx.ship.visible) return;
     st.envT += dt;
     if (st.envT < 1 / 30) return;
     const step = st.envT;

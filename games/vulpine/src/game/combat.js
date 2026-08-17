@@ -421,6 +421,9 @@ export function installCombat(ctx) {
     // The last collect, for the HUD toast. `{ kind, label, until }`, cleared by
     // `update` the same way `message` is.
     pickup: null,
+    // No hull on screen: between the explosion and the respawn. The HUD hides
+    // everything that points at a ship — there is nothing to aim.
+    dead: false,
     message: null,
     bossHealth: null,
     checkpoint: 0,
@@ -1060,6 +1063,18 @@ const _bRail = new THREE.Vector3();
     ctx.flight.addShake(1.6);
     ctx.audio.play('explosion', { pos: ctx.ship.position, size: 6 });
     ctx.ship.visible = false;
+    // Stops the rail, and with it every wave, comm and grant trigger — they are
+    // all armed off `railZ`. Without it the level keeps running for the 2.2 s
+    // the player is not in it.
+    ctx.flight.die();
+    // A charge in progress outlives the ship: `charging` is only cleared on
+    // release, so the whine keeps building under the explosion and the release
+    // fires a charged round out of a hull that is not there.
+    if (charging) ctx.fx.chargeStop();
+    charging = false;
+    charge = 0;
+    state.lockOn = 0;
+    state.lockTarget = null;
     state.lives--;
     if (state.lives < 0) { state.outcome = 'lose'; say('PEPPY', 'Fox! No...'); }
   }
@@ -1069,6 +1084,7 @@ const _bRail = new THREE.Vector3();
     state.shieldRaw = TUNE.shieldMax;
     invuln = TUNE.respawnInvuln;
     ctx.ship.visible = true;
+    ctx.flight.revive();
     ctx.audio.play('respawn');
   }
 
@@ -1436,7 +1452,9 @@ const _bRail = new THREE.Vector3();
       if (!held) {
         charging = false;
         ctx.fx.chargeStop();
-        if (charge > 0.55) playerChargedFire();
+        const live = deadT < 0 && !state.outcome;
+        if (!live) { /* no hull to fire from */ }
+        else if (charge > 0.55) playerChargedFire();
         else playerFire();
         charge = 0;
         state.lockOn = 0;
@@ -1697,6 +1715,7 @@ const _bRail = new THREE.Vector3();
       deadT += dt;
       if (deadT > 2.2 && state.lives >= 0 && !state.outcome) respawn();
     }
+    state.dead = deadT >= 0;
 
     /* mission triggers */
     while (firedWaves < waves.length && flight.railZ <= waves[firedWaves].z) {
@@ -1976,6 +1995,19 @@ const _bRail = new THREE.Vector3();
     killBoss() {
       if (!boss || boss.dying >= 0) return false;
       bossDie();
+      return true;
+    },
+    /**
+     * Dev: blow the player up now. Runs the real death path rather than setting
+     * a flag, for the same reason `killBoss` does — what this exists to exercise
+     * is the whole sequence: the rail stopping, the trails retiring, the HUD
+     * standing down and the respawn putting it all back.
+     * Returns false if there is nothing to kill.
+     */
+    killSelf() {
+      if (deadT >= 0 || state.outcome) return false;
+      state.shieldRaw = 0;
+      killPlayer();
       return true;
     },
     set grants(on) { grantsOn = !!on; },

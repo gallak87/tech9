@@ -402,6 +402,10 @@ export function installDevPanel(api) {
     // new tool anywhere but the end silently renumbers every shortcut after it.
     { id: 'dump', short: 'copy look', label: 'Copy look values', run: dumpLook },
     { id: 'drop', short: 'drops', label: 'Test drops (×3)', run: testDrop },
+    {
+      id: 'die', short: 'die', label: 'Kill self (death sequence)',
+      run: (btn) => { if (!api.combat.killSelf()) flash(btn, 'already dead'); },
+    },
   ].map((t, i) => ({ ...t, tag: String(i + 1), code: `Digit${i + 1}` }));
 
   /* ── dom ────────────────────────────────────────────────────────────────── */

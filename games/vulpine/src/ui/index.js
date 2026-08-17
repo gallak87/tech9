@@ -173,8 +173,13 @@ export function installUI(ctx) {
       if (!s.campaign || !s.campaign.hopping) {
         threat.draw(g, L, s);
       }
-      reticle.draw(g, L, s, projectPoint(s.aimPoint, L));
-      lockMarker.draw(g, L, s, projectLock(s, L));
+      // Nothing to aim between the explosion and the respawn. The reticle is
+      // drawn on the point the guns converge on, and with no hull there are no
+      // guns — leaving it up is the HUD saying the ship is still flying.
+      if (!s.dead) {
+        reticle.draw(g, L, s, projectPoint(s.aimPoint, L));
+        lockMarker.draw(g, L, s, projectLock(s, L));
+      }
 
       legend.draw(g, w, h);
       comms.draw(g, L, s, legendFootprint() * legend.alpha);

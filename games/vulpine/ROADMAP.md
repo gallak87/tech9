@@ -87,7 +87,12 @@ contact means releasing lands a guaranteed homing hit. Holding is the primary wa
 to fight, not a special case — anything that assumes tapping (including
 autopilots) is modelling the wrong game.
 
-**Fixed and verified** (don't reopen): `state.right` pointed to port, so the
+**Fixed and verified** (don't reopen): the death sequence ran the level on
+without the player — the rail kept advancing (so waves, comms and grants fired
+into a sky with no ship in it), the engine trails kept being laid from the hidden
+hull, the stick still flew it and the reticle still aimed it (2026-08-16;
+`flight.die()`/`revive()`, `combat.killSelf()` to exercise it);
+`state.right` pointed to port, so the
 radar mirrored every contact and the rear-threat arc lit the wrong screen edge
 (2026-08-16 — it was the exact negative of the camera's right vector);
 terrain winding/"fins"; enemy spawn crash;

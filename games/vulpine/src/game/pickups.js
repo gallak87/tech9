@@ -252,8 +252,13 @@ export function installPickups(ctx, group, onCollect) {
   /**
    * @param playerPos  where the drop is flying to
    * @param playerVel  the player's velocity, for the lead and the speed floor
+   * @param hold  the player cannot take delivery right now — they are dead and
+   *   waiting to respawn. Drops stop and wait rather than arriving into a
+   *   wreck: respawn restores the shield outright, so a shield collected during
+   *   the death animation is a drop the player earned and never received. They
+   *   keep station off the rail so the respawn flies straight back into them.
    */
-  function update(dt, playerPos, playerVel) {
+  function update(dt, playerPos, playerVel, hold = false) {
     /* carrier halos */
     for (let i = beacons.length - 1; i >= 0; i--) {
       const b = beacons[i];
@@ -282,7 +287,15 @@ export function installPickups(ctx, group, onCollect) {
       const p = live[i];
       p.t += dt;
 
-      if (p.t < TUNE.pop) {
+      if (hold) {
+        // Drift to a stop and idle. `t` still advances so the spin and the bob
+        // keep running — a drop frozen mid-air reads as a hitch, not as a wait.
+        const k = Math.exp(-2.6 * dt);
+        p.vx *= k; p.vy *= k; p.vz *= k;
+        p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+        p.speed *= k;
+        ctx.fx.tracerEnd(p);
+      } else if (p.t < TUNE.pop) {
         // Ballistic. Deliberately unguided: the arc is the "something came out
         // of that" beat, and steering during it hides the ejection.
         p.vy -= TUNE.popGravity * dt;
@@ -346,13 +359,13 @@ export function installPickups(ctx, group, onCollect) {
 
       // Body: spin, counter-spin, bob, and a comet tail once it is inbound.
       const root = p.root;
-      const bob = p.seeking ? 0 : Math.sin(p.t * TUNE.bobRate + p.phase) * TUNE.bobAmp;
+      const bob = (p.seeking && !hold) ? 0 : Math.sin(p.t * TUNE.bobRate + p.phase) * TUNE.bobAmp;
       root.position.set(p.x, p.y + bob, p.z);
       root.userData.core.rotation.set(p.t * TUNE.spin * 0.7, p.t * TUNE.spin, 0);
       root.userData.cage.rotation.set(p.t * TUNE.cageSpin * 0.6, p.t * TUNE.cageSpin, p.t * 0.4);
       root.userData.cage.scale.setScalar(1 + TUNE.pulse * Math.sin(p.t * 5.6 + p.phase));
 
-      if (p.seeking) {
+      if (p.seeking && !hold) {
         const spec = PICKUP_KINDS[p.kind];
         // Wide. A tap round's 0.85 m ribbon is sized to read against a dark
         // canyon wall at 200 m; a drop's has to read against a blown-out sky at

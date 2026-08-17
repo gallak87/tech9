@@ -463,6 +463,9 @@ export function installCombat(ctx) {
   let invuln = 0;
   let deadT = -1;
   let firstKill = false;
+  // Once per run, not once per level: the halo is a rule of the game, and being
+  // told it again on Fichina reads as the game forgetting you already know.
+  let firstPickup = false;
   let shotParity = 0;
   let bombGeo = null, bombMat = null;
 
@@ -963,6 +966,16 @@ const _bRail = new THREE.Vector3();
     }
     state.score += TUNE.pickupScore;
     state.pickup = { kind, label, until: view.time + 1.7 };
+
+    // Taught on the first collect rather than on the first carrier. The halo
+    // appears when a wave spawns, which is exactly when that wave's authored
+    // comm fires — `say()` holds a line for 4.2 s and the second one wins, so a
+    // callout there would either be stomped or would stomp the level's own
+    // script. A collect is a beat nothing else is written on.
+    if (!firstPickup) {
+      firstPickup = true;
+      say('PEPPY', 'Anything wearing a ring is carrying supplies — kill those first!');
+    }
   }
 
   /** Hand a wave's drops to specific craft in it and light them up. */
@@ -1781,7 +1794,7 @@ const _bRail = new THREE.Vector3();
     updateBullets(dt);
     // After the foes, so a drop ejected by a kill this tick is already flying on
     // the frame the explosion is drawn rather than one step behind it.
-    pickups.update(dt, view.player.pos, view.player.vel);
+    pickups.update(dt, view.player.pos, view.player.vel, deadT >= 0 || !!state.outcome);
 
     /* publish contacts for the radar */
     // 0 when a foe is pointed away, 1 when its nose is on the player. The HUD's

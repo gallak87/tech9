@@ -1,6 +1,7 @@
 # Vulpine — roadmap
 
-**Status:** playable end-to-end, alpha. Phases 0–7 done. Phase 8 (encounter feel
+**Status:** playable end-to-end, alpha. Phases 0–7 done, plus the drop system
+(2026-08-16 — `## Settled — drops`). Phase 8 (encounter feel
 + legibility) still open but **no longer the active lane**. **Four levels, three
 backends, every one of them finishable**, and the campaign flies 1 → 4 in one
 session — measured 2026-08-16, `## Campaign audit`. Branch `g/fox64`, which
@@ -86,7 +87,10 @@ contact means releasing lands a guaranteed homing hit. Holding is the primary wa
 to fight, not a special case — anything that assumes tapping (including
 autopilots) is modelling the wrong game.
 
-**Fixed and verified** (don't reopen): terrain winding/"fins"; enemy spawn crash;
+**Fixed and verified** (don't reopen): `state.right` pointed to port, so the
+radar mirrored every contact and the rear-threat arc lit the wrong screen edge
+(2026-08-16 — it was the exact negative of the camera's right vector);
+terrain winding/"fins"; enemy spawn crash;
 wingman clone crash; skirt curtains; fog density; gun convergence; lock-on
 tracking; HUD status text; boss station-keeping, weak-point frame, lock, hit
 register, swept collision.
@@ -350,7 +354,8 @@ chain, motion blur — are all shipped; they and their reasoning are in
 
 ## Later — Phase 10: progression
 
-The pre-boss weapon grant is done (above). What is left here is scoring.
+The pre-boss weapon grant and the drop system are both done (see `## Settled`).
+What is left here is scoring.
 
 - [ ] Score/rank at level end (medals, hit %, time).
 
@@ -361,6 +366,51 @@ The pre-boss weapon grant is done (above). What is left here is scoring.
 - [ ] Touch controls / mobile.
 
 ## Settled — done, and why it is the way it is
+
+### Drops — 2026-08-16
+
+`src/game/pickups.js` (bodies + flight), `combat.js` (`## drops`, the wave-table
+`drops:` key, `collectPickup`), `ui/status.js` (`PickupToast`), `ui/radar.js`,
+`core/audio.js` (`pickup`, `pickupDrop`), `fx/index.js` (`tracer` takes a colour).
+
+**The rule the whole system is built on: a drop cannot be missed.** It pops out
+of the wreck on a short ballistic arc so the kill is visibly the source, then
+flies to the player and never expires. There is no collection skill and no
+penalty for ignoring it — the skill was killing the thing that dropped it.
+Three consequences, all load-bearing, all easy to break by "tidying":
+
+- `seekOver` is added to the player's **live** speed, not to a constant, so a
+  boosting player cannot outrun a drop.
+- Nothing decrements a lifetime. The only exits are collection and a level reset.
+- The steering rate rises as the range collapses (same construction as the
+  homing rounds): a fixed turn rate has a fixed turn radius, and a body 20 m
+  off-axis with 20 m to run cannot correct.
+
+`tools/pilot.mjs drops` is the regression test for that rule — seven geometries
+(two of them starting *behind* the player) × cruise and boost. **14/14 arrive,
+1.2–3.1 s**, and the one 6.1 s outlier is a drop correctly holding station
+through a death and respawn.
+
+**Which kills drop.** A wave row carries `drops: ['weapon', 'health']`;
+`dropSlot` spreads them across the craft in the wave rather than putting them on
+the leader, and the carrier wears a halo in its drop's colour, on the hull and
+on the radar. Never on a wasp swarm's arbitrary member — a reward for a
+reflexive kill is a reward for the fight going your way. All four levels are
+authored, including weapon drops in levels 2–4: the tier survives
+`resetForLevel`, but `?level=highlands` boots at tier 0 with no `grants` row, so
+without them the later levels were only completable from level 1.
+
+**What it did to the level.** `pilot.mjs fly`, same autopilot, before → after:
+shield low-water **0 → 50**, lives **2 → 3** (no deaths), score **4270 → 6310**,
+and it now kills the carrier and reaches level 2 inside 85 s instead of still
+grinding the boss at 72 s. That is the intended direction — see owner decision 3.
+
+**The three weapon tiers moved from act 4 to act 2.** Both gunboat waves and the
+dropship carry one, so a player who fights the middle of the level arrives at the
+carrier fully armed 2.1 km early. The pre-boss grants are now the floor rather
+than the only path, and at the top tier a grant pays out a bomb instead of
+silently doing nothing — which is reachable in normal play now, and was the one
+way the HUD could lie about a reward.
 
 ### The Foundry — a third backend, 2026-08-15
 
@@ -1031,3 +1081,11 @@ Multiple levels, all-range mode, branching paths, multiplayer, binary assets.
    guns are weak — 2-3 automatic weapon upgrades right before the boss." Shipped
    as three, taking the gun to 5.6× its starting dps. Built and measured; awaiting
    the owner's hands-on pass.
+   **Reversed 2026-08-16 (owner): build the drops.** "Weapon drops should be
+   visible to the player like a floaty flying towards them (no penalty, it floats
+   to the user so they can't miss it) — bomb drops, weapon drops, health drops —
+   all drop from certain kills so the player is better equipped for the boss
+   fight." Shipped; see `## Settled — drops`. The grants stayed as the floor.
+   **The drops make the game easier and are meant to. Owner, same day: "you are
+   WAY better than me at this game, so don't tune up any difficulty."** Nothing
+   was buffed to compensate and nothing should be.

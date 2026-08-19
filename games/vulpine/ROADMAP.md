@@ -1,7 +1,7 @@
 # Vulpine — roadmap
 
 **Status:** playable end-to-end, alpha. Phases 0–7 done, plus the drop system
-(2026-08-16 — `## Settled — drops`). Phase 8 (encounter feel
+(2026-08-16 — `## Settled — drops`) and level cards (2026-08-18). Phase 8 (encounter feel
 + legibility) still open but **no longer the active lane**. **Four levels, three
 backends, every one of them finishable**, and the campaign flies 1 → 4 in one
 session — measured 2026-08-16, `## Campaign audit`. Branch `g/fox64`, which
@@ -381,6 +381,40 @@ What is left here is scoring.
 - [ ] Touch controls / mobile.
 
 ## Settled — done, and why it is the way it is
+
+### Level cards and the dev level jump — 2026-08-18
+
+Every level opens on its own name now: a plated card top-right under the score,
+`SECTOR IV` over `THE FOUNDRY`, sliding in from the right margin and gone in
+4.45 s. Owner picked the placement and the treatment; the alternatives offered
+were upper-left, a full-width band, and type-only or bracketed instead of
+plated.
+
+**It is not a screen and it stops nothing** — the sim runs, the stick is live
+and the first wave is already closing. That is the whole difference between
+`ui/levelcard.js` and `ui/menu.js`'s title card, which draws over a frozen sim.
+
+Two decisions worth keeping:
+
+- **The window is in sim time and is opened at t = 0, not on the first tick of
+  `campaign.update`.** Both look identical in play, because sim time is frozen
+  under the title card. Only the first survives the harness: `seekTo` drives
+  `step()` directly and never calls `update`, so a card keyed to the first tick
+  is raised at whatever time the seek landed on and then sits over every
+  `--hud` capture. Same `until` idiom as `message` and `pickup`.
+- **`campaign.js` publishes seconds, not phases.** The fade/hold/fade split
+  lives in `ui/levelcard.js`, because the UI seam runs one way — game writes
+  `ctx.state`, ui/ reads it — and importing the drawn timing back across it was
+  the first thing tried and the wrong thing.
+
+The dev panel gained a `level` row: one button per level, the live one marked
+and disabled. It **reloads** with `?level=<id>`, for the same reason the pause
+menu's RESTART reloads — arriving at a level moves the world, the wave tables,
+the rail, the env preset, the enemy materials and the campaign index together,
+and `?level=` is the one path that already does all of it. `Skip level` is not
+redundant with it: that one flies the hop, which is the only way to watch a
+transition. A row rather than numbered tools, because `tag`/`code` are the
+`TOOLS` index and four more entries there would renumber every shortcut.
 
 ### Drops — 2026-08-16
 

@@ -251,6 +251,33 @@ export const LEVELS = [
   },
 ];
 
+/* ── the level card ───────────────────────────────────────────────────────────
+   Every level opens on its own name, held for a few seconds while the ship
+   flies. Published here rather than raised by the HUD off a level change,
+   because this file is the only thing that knows a level has begun: level 1 at
+   install, levels 2–4 in `arrive`.
+
+   The window is in SIM time, the same `until` idiom `message` and `pickup`
+   already use: a harness seek to t=14 then arrives with the card spent instead
+   of parked over the capture.
+
+   Seconds, not phases: `ui/levelcard.js` splits the window into fade, hold and
+   fade itself. The UI seam only ever runs one way — game publishes onto
+   `ctx.state` and ui/ reads it — so the drawn timing cannot be imported from
+   there, and nothing here should know it. */
+const CARD_LIFE = 4.45;
+function levelCard(ctx, L) {
+  const t = ctx.state.time;
+  ctx.state.levelCard = {
+    // `brief` is 'SECTOR IV · THE FOUNDRY' — the tail is the name again, and a
+    // card that says its own name twice is a card with nothing on it.
+    eyebrow: (L.brief.split('\u00b7')[0] || '').trim() || 'MISSION',
+    name: L.name,
+    from: t,
+    until: t + CARD_LIFE,
+  };
+}
+
 export function installCampaign(ctx, startIndex = 0) {
   const state = {
     index: startIndex,
@@ -309,6 +336,7 @@ export function installCampaign(ctx, startIndex = 0) {
     ctx.fx.transit?.exit();
     ctx.flight.detached = false;
     ctx.flight.climb = 0;
+    levelCard(ctx, level());
     ctx.combat.say('PEPPY', `Entering ${level().name} airspace. Stay sharp!`);
   }
 
@@ -400,6 +428,14 @@ export function installCampaign(ctx, startIndex = 0) {
   // combat still holds the first level's tables. The rail is at 0 either way, so
   // only the tables need moving.
   if (startIndex > 0) ctx.combat.resetForLevel(level());
+
+  // The first level's card is raised here, at sim t = 0, and NOT on the first
+  // tick of `update`. Both look the same in play — sim time is frozen under the
+  // title card, so the window opens the moment the player launches — but only
+  // this one survives the harness: `seekTo` drives `step()` directly and never
+  // calls `update`, so a card keyed to the first tick would be raised at
+  // whatever time the seek landed on and sit over every `--hud` capture.
+  levelCard(ctx, level());
 
   ctx.state.campaign = api;
   return api;

@@ -1,4 +1,5 @@
 import { TUNE as FLIGHT } from '../game/flight.js';
+import { LEVELS } from '../game/campaign.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Dev panel — DOM overlay of playtest shortcuts.
@@ -162,6 +163,35 @@ export function installDevPanel(api) {
     api.combat.killBoss();
     camp.forceHop();
     render();
+  }
+
+  /**
+   * Boot straight into any level.
+   *
+   * A reload, not an in-place swap, for the same reason the pause menu's
+   * RESTART is one: arriving at a level moves the world, the wave tables, the
+   * rail, the env preset, the enemy materials and the campaign index together,
+   * and `?level=` is the one path that already does every part of it — it is
+   * what the whole review harness boots through. Re-deriving that here would be
+   * a second, less-tested arrival path for no gain but a few seconds of boot.
+   *
+   * `Skip level` above is the other half of this rather than a duplicate of it:
+   * that one FLIES the hop, which is the only way to watch a transition.
+   */
+  function gotoLevel(id) {
+    const u = new URL(location.href);
+    u.searchParams.set('level', id);
+    // Straight into the level: no title card between the click and the flight,
+    // and the panel comes back open on the other side.
+    u.searchParams.set('nomenu', '1');
+    u.searchParams.set('dev', '1');
+    // A stale preset or seek from the URL this was clicked in would outrank the
+    // level's own — `?env=` wins over `startLevel.env` in main.js, and `?t=`
+    // would fast-forward past the arrival.
+    u.searchParams.delete('env');
+    u.searchParams.delete('t');
+    u.searchParams.delete('shot');
+    location.href = u.toString();
   }
 
   function toggleBombs() { infiniteBombs = !infiniteBombs; render(); }
@@ -452,6 +482,27 @@ export function installDevPanel(api) {
     buttons.set(t.id, { el: b, name, tool: t });
   }
 
+  /* ── level jump ─────────────────────────────────────────────────────────────
+     A row rather than numbered tools: `tag`/`code` are the TOOLS index, so four
+     more entries there would renumber every shortcut after them. Click-only,
+     like the pass toggles. */
+  const lvlHead = document.createElement('h6');
+  lvlHead.textContent = 'level';
+  root.appendChild(lvlHead);
+  const lvlRow = document.createElement('div');
+  lvlRow.className = 'vdev-row';
+  const lvlButtons = [];
+  for (const L of LEVELS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = L.name;
+    b.title = L.brief;
+    b.addEventListener('click', () => { b.textContent = 'booting…'; gotoLevel(L.id); });
+    lvlRow.appendChild(b);
+    lvlButtons.push({ id: L.id, el: b });
+  }
+  root.appendChild(lvlRow);
+
   /* ── quality + look sections ────────────────────────────────────────────────
      `quality` owns everything with a frame cost — render scale, the three cost
      knobs, and all eight pass enables — so there is one place to answer "make it
@@ -624,6 +675,14 @@ export function installDevPanel(api) {
       if (!busy) name.textContent = tool.live ? tool.live() : tool.label;
     }
     buttons.get('boss').el.disabled = busy || !!api.combat.boss;
+    // The live level is marked and unclickable — reloading into the level you
+    // are already flying looks like the button did nothing.
+    const live = api.ctx.campaign?.level?.id;
+    for (const { id, el } of lvlButtons) {
+      const on = id === live;
+      el.dataset.on = on ? '1' : '0';
+      el.disabled = on;
+    }
     // Sliders are only re-synced from source here, never per frame — dragging
     // one must not fight a writer that rounds the value back.
     syncFine();

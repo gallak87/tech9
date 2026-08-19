@@ -10,6 +10,7 @@ import { BossHealthBar } from './bosshealth.js';
 import { ThreatArcs } from './threat.js';
 import { OutcomeCard } from './outcome.js';
 import { TransitBanner } from './transit.js';
+import { LevelCard } from './levelcard.js';
 import { Menu } from './menu.js';
 import { clamp } from './theme.js';
 
@@ -24,6 +25,7 @@ import { clamp } from './theme.js';
 //
 // Composition, top to bottom of the z-order:
 //   status (top-left) -> wingmen strip (under it) -> score (top-right) ->
+//   level card (under the score, first seconds of a level) ->
 //   rear-threat arcs (frame border) ->
 //   boss health (top-centre, conditional) -> radar + collect toast
 //   (bottom-centre) ->
@@ -61,6 +63,7 @@ export function installUI(ctx) {
   const threat = new ThreatArcs();
   const outcome = new OutcomeCard();
   const transit = new TransitBanner();
+  const levelCard = new LevelCard();
   const menu = new Menu();
 
   /** dpr-independent UI scale + a 16:9 title-safe margin. */
@@ -164,6 +167,7 @@ export function installUI(ctx) {
       wingmen.draw(g, L, s, y + 8 * L.s);
 
       score.draw(g, L, s);
+      levelCard.draw(g, L, s);
       bossHealth.draw(g, L, s);
       if (!s.campaign || !s.campaign.hopping) {
         radar.draw(g, L, s);

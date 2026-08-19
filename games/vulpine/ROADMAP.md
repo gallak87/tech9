@@ -382,6 +382,49 @@ What is left here is scoring.
 
 ## Settled — done, and why it is the way it is
 
+### The wing across a hop, and the wobble on station — 2026-08-18
+
+Owner, live play: "my wingmen seem to wiggle a lot when they go out in front of
+me — then right before the transition they seem to dive straight down into the
+water." Three separate defects, and **two of them predate the victory pass** —
+confirmed by running the same probe against a worktree at `d6ea9cf`, which shows
+the wing 180–300 m under the rail and 9.7 km behind at `whiteout`.
+
+- **The wobble was a floor on the approach term.** `thinkWingman` scaled its seek
+  by `clamp(dist / 45, 0.2, 1)`, so a craft sitting *on* its station still
+  commanded 0.2 × 260 m/s toward it, in whatever direction that tick's metre or
+  two of wander happened to point. Against the player's 175 m/s that is
+  atan(52/175) = 16° of heading, re-aimed every frame, and `flyStep` banks into
+  all of it. Measured holding the victory vee: 5–18° of heading change per
+  0.25 s. At a floor of zero the desired velocity decays to the player's own and
+  a wingman on station flies straight — **0–2°** now. The ±9 m sine the pass had
+  been adding on top is gone too.
+- **The dive at the transition was a 180° reversal with no defined axis.** The
+  pass ends 115 m *ahead* of a slot 46–92 m *behind*, and `campaign.begin()`
+  clearing `outcome` switched the state under it — `flyStep` then had a target
+  dead astern, where `fwd` and the desired direction are antiparallel and the
+  cross product that picks the turn axis collapses. All three pitched to
+  fwdY -0.86 at the full 1.5 rad/s and levelled out 270 m under the rail. The
+  `lap` state eases back to the slot and ends itself now; nothing cancels it from
+  outside, and `lapDone` latches it shut (without that it re-armed on the next
+  tick and looped for as long as the win card was up).
+- **Off-world the wing is placed, not flown.** A hop parks the rail
+  (`flight.detached`, `flight.js:277`), so the player is a *stationary point* for
+  the length of it — and a wingman cannot hold station on one: `flyStep` floors
+  speed at 0.12 of max and caps turn at 1.5 rad/s, so a craft arriving at
+  260 m/s has a 173 m turn radius and can only orbit. Measured: a ±250 m arc for
+  the whole transition. `startRebuild` then teleports the player ~9.5 km back up
+  the corridor with `resetRail`, and a flown formation is simply left there —
+  9.7 km back through the hop, still 7 km back on arrival, so **the first
+  half-minute of every level after the first was flown alone.** Both go away by
+  not simulating a formation with nothing to fly around: `dz` holds at exactly
+  46/54/92 across the hop and the handoff into `form` on arrival needs no snap.
+
+Tried and rejected: deriving `view.player.vel` from the ship's own frame delta
+while detached. It is more truthful, and it does not fix the orbit — the orbit is
+the speed floor, not the velocity — and it makes the foes still alive through
+`runin` orbit the player instead of flying away.
+
 ### Skip-to-boss stopped charging the run — 2026-08-18
 
 Owner: "why does skipping to boss on levels 2/3 take 1 life? i got game over

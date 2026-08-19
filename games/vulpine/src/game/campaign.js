@@ -93,14 +93,15 @@ const hasBody = (dnaId) => (DNA_BY_ID[dnaId].backend ?? 'terrain') !== 'field';
    landed on the same beat. Owner, live play: "boss dies and it like immediately
    starts transitioning, kind of abrupt."
 
-   Six seconds is picked off the death itself — a capital ship comes apart over
-   four (`updateBoss`) — so the lap covers the break-up and still leaves a couple
-   of seconds of clean flying, which is where the wing's victory pass lands.
+   Seven seconds is picked off the two things it has to cover: a capital ship
+   comes apart over four (`updateBoss`), and the wing's victory pass runs about
+   seven from the kill to the last pilot back on its slot (`ai.js`, `lap`). Under
+   that the hop opens over a squadron still out of formation.
 
    The ceiling is unchanged and is for the opposite case: killing the carrier
    early with the dev tool leaves several km to fly, and a transition that waits
    40 s reads as a hang. */
-const LAP_MIN = 6;
+const LAP_MIN = 7;
 const LAP_MAX = 14;
 
 // Per-frame mesh budget during the hop. Generous because nothing else is

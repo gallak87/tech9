@@ -536,6 +536,7 @@ const _bRail = new THREE.Vector3();
       // frame read as one object with three parts, and a random order reads as
       // an accident rather than as a squadron.
       a.lapWait = 0.3 + i * 0.38;
+      a.lapDone = false;
       a.offset.copy(a.homeSlot);
       a.state = 'form';
       a.alive = true;
@@ -1819,9 +1820,39 @@ const _bRail = new THREE.Vector3();
     }
 
     /* wingmen */
+    // OFF-WORLD THE WING IS PLACED, NOT FLOWN. A hop parks the rail
+    // (`flight.detached`, flight.js:277) so the player is a stationary point for
+    // the length of it, and a wingman cannot hold station on a stationary point:
+    // `flyStep` floors its speed at 0.12 of max and caps its turn at 1.5 rad/s,
+    // so a craft arriving at 260 m/s has a 173 m turn radius and the best it can
+    // do is orbit. Measured: a +-250 m arc for the whole transition, which on
+    // Corneria is through the water. `campaign.startRebuild` then teleports the
+    // player ~9.5 km back up the corridor with `resetRail`, and the wing, being
+    // flown rather than placed, was left behind — 9.7 km back through the hop and
+    // still 7 km back on arrival, so the first half-minute of every level after
+    // the first was flown alone.
+    //
+    // Both go away by not simulating a formation that has nothing to fly around.
+    // The handoff into `form` is exact: when `hopping` clears, the wing is
+    // already sitting on its slots.
+    const hopping = !!state.campaign?.hopping;
     for (const al of allies) {
       const a = al.agent;
       if (!al.info.alive) continue;
+      if (hopping) {
+        a.offset.copy(a.homeSlot);
+        a.pos.copy(view.player.pos).add(a.homeSlot);
+        // Enough sway that three ships are not one rigid object, and far too
+        // little to be a manoeuvre.
+        a.pos.y += Math.sin(view.time * 0.7 + a.phase) * 2.5;
+        a.fwd.set(0, 0, -1);
+        a.bank = 0;
+        a.yawRate = 0;
+        orient(a);
+        al.root.position.copy(a.pos);
+        al.root.quaternion.copy(a.quat);
+        continue;
+      }
       view.playerRange = a.pos.distanceTo(view.player.pos);
       thinkWingman(a, dt, view);
       al.root.position.copy(a.pos);
@@ -1831,11 +1862,15 @@ const _bRail = new THREE.Vector3();
       if (!hunted && a.state === 'chased') { a.state = 'form'; a.stateT = 0; }
       // The victory pass, driven off the published outcome rather than off the
       // campaign — so it also plays on the last level, which has no hop after it
-      // and where this is the last thing on screen. `begin()` clears the outcome
-      // for the transition, which puts the wing back in formation for the ascent.
-      const won = state.outcome === 'win';
-      if (won && a.state !== 'lap') { a.state = 'lap'; a.stateT = 0; }
-      else if (!won && a.state === 'lap') { a.state = 'form'; a.stateT = 0; }
+      // and where this is the last thing on screen. Entered here and left in
+      // `thinkWingman`, never cancelled from outside: the pass ends 115 m ahead
+      // of a slot that is behind, and anything that switches the state under it
+      // hands `flyStep` a target dead astern. `campaign.begin()` clearing the
+      // outcome used to do exactly that and flew all three into the water.
+      if (state.outcome === 'win' && !a.lapDone && a.state !== 'lap' && a.state !== 'chased') {
+        a.state = 'lap';
+        a.stateT = 0;
+      }
     }
 
     /* boss */
@@ -1994,6 +2029,15 @@ const _bRail = new THREE.Vector3();
       waves = level.waves || [];
       comms = level.comms || [];
       grants = level.grants || [];
+      // Formation, whatever the wing was doing. By here the victory pass has
+      // eased back to the slot on its own, so this is a backstop rather than the
+      // switch that ends it — see `thinkWingman`'s `lap`.
+      for (const al of allies) {
+        al.agent.state = 'form';
+        al.agent.stateT = 0;
+        al.agent.lapDone = false;
+      }
+
       state.outcome = null;
       state.bossHealth = null;
       state.lockTarget = null;

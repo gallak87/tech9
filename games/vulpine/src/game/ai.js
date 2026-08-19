@@ -662,14 +662,34 @@ export function thinkWingman(a, dt, w) {
     // is the shape that reads.
     const spread = 0.85 + Math.sin(u * Math.PI) * 0.4;
     const centred = Math.abs(home.x) < 40;
-    a.offset.x += (home.x * spread - a.offset.x) * kk;
-    a.offset.y += (home.y + (centred ? 30 : 14)
-      + Math.sin(a.stateT * 0.8 + a.phase) * 9 - a.offset.y) * kk;
+    // Rejoin. The station eases back to the formation slot and the state ends
+    // itself; it is NOT switched to `form` from outside. The wing finishes the
+    // pass 115 m AHEAD of a slot that sits 46-92 m behind, so a switch hands
+    // `flyStep` a target dead astern — `fwd` and the desired direction are
+    // antiparallel, the cross product that picks the turn axis collapses, and
+    // the reversal goes wherever the degenerate axis points. Measured when the
+    // hop used to clear `outcome` under them: all three pitched to fwdY -0.86 at
+    // the full 1.5 rad/s turn rate and levelled out 270 m under the rail, which
+    // on Corneria is through the water.
+    //
+    // Slow on purpose too. The seek runs at full speed for anything past 45 m,
+    // so a station retreating faster than the follower lags commands a genuine
+    // reversal rather than a rejoin; at this rate the gap stays around 15 m and
+    // the craft simply flies slower than the player until the slot catches up.
+    const back = clamp((a.stateT - a.lapWait - REJOIN_AT) / REJOIN_FOR, 0, 1);
+    const rj = back * back * (3 - 2 * back);
+    a.offset.x += (lerp(home.x * spread, home.x, rj) - a.offset.x) * kk;
+    a.offset.y += (lerp(home.y + (centred ? 30 : 14), home.y, rj) - a.offset.y) * kk;
     // ~115 m ahead of the ship, so ~145 m from the chase camera: an Arwing is
     // about 60 px of a 1200-wide frame there. The first pass at 320 m put it at
     // 25 px, which is a speck on the horizon, and the point of the beat is being
     // able to see who is flying it.
-    a.offset.z += ((-105 - home.z * 0.25) - a.offset.z) * kk;
+    a.offset.z += (lerp(-105 - home.z * 0.25, home.z, rj) - a.offset.z) * kk;
+    // `lapDone` latches the pass shut. Without it the state ends itself, combat
+    // sees `outcome` still 'win' on the very next tick and re-arms it — the wing
+    // flew the pass, rejoined, broke out again and rolled again, on a loop, for
+    // as long as the win card was up.
+    if (back >= 1) { a.state = 'form'; a.stateT = 0; a.lapDone = true; }
   } else {
     a.state = a.state === 'chased' ? a.state : 'form';
     a.offset.x += (home.x - a.offset.x) * Math.min(1, dt * 0.9);
@@ -677,7 +697,10 @@ export function thinkWingman(a, dt, w) {
     a.offset.z += (home.z - a.offset.z) * Math.min(1, dt * 0.9);
   }
 
-  wander(a, w.time, 5.5, _d);
+  // Less wander on the victory pass: the wing is 115 m ahead and dead centre in
+  // frame there, where 5.5 m of drift is a visible bob rather than the hint of
+  // life it is at a formation slot behind your shoulder.
+  wander(a, w.time, a.state === 'lap' ? 2.2 : 5.5, _d);
   _a.copy(w.player.pos).add(a.offset).add(_d);
   underRoof(_a, w, 18);
   const g = w.groundAt(_a.x, _a.z) + 18;
@@ -685,7 +708,14 @@ export function thinkWingman(a, dt, w) {
 
   _b.copy(_a).sub(a.pos);
   const dist = _b.length();
-  _b.normalize().multiplyScalar(a.spec.maxSpeed * clamp(dist / 45, 0.2, 1));
+  // No floor on the approach term. A floor means a craft sitting ON its station
+  // still commands 0.2 x 260 m/s toward it, in whatever direction the metre or
+  // two of wander happens to point that tick — against the player's 175 m/s that
+  // is atan(52/175) = 16 deg of heading, re-aimed every frame, and `flyStep`
+  // banks into every bit of it. Measured while holding the victory vee: 5-18 deg
+  // of heading change per 0.25 s, which is the wobble. At zero the desired
+  // velocity decays to the player's own and a wingman on station flies straight.
+  _b.normalize().multiplyScalar(a.spec.maxSpeed * clamp(dist / 45, 0, 1));
   _b.addScaledVector(w.player.vel, clamp(1 - dist / 260, 0, 1));
   flyStep(a, _b, dt);
   if (a.state === 'lap') victoryRoll(a);
@@ -694,6 +724,8 @@ export function thinkWingman(a, dt, w) {
 
 /** How long after a pilot breaks formation its roll starts, and how long it takes. */
 const ROLL_AT = 0.85, ROLL_FOR = 1.15;
+/** …and when it starts easing back to its slot, and how long that takes. */
+const REJOIN_AT = 2.4, REJOIN_FOR = 5.0;
 
 /**
  * One roll each, on the way past. Written after `flyStep`, which derives `bank`

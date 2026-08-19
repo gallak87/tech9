@@ -563,6 +563,7 @@ const _bRail = new THREE.Vector3();
     rng: RG,
     neighbours: null,
     groundAt: (x, z) => ctx.world.groundAt(x, z),
+    ceilingAt: (x, z) => ctx.world.ceilingAt(x, z),
     fire: (a) => enemyFire(a),
   };
 

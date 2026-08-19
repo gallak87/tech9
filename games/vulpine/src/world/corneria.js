@@ -318,6 +318,16 @@ export class Corneria {
       : Math.max(terrainHeight(x, z), WORLD.waterLevel);
   }
 
+  /**
+   * Underside of anything overhead at a world point, or Infinity where the sky
+   * is open. The mirror of `groundAt`, and Infinity everywhere except a `works`
+   * corridor: `terrain` is single-valued so it can never put geometry above the
+   * rail, and `field` always leaves sky between its bodies.
+   */
+  ceilingAt(x, z) {
+    return this.works ? this.works.ceilingAt(z) : Infinity;
+  }
+
   /** Terrain height ignoring the surface — placement helper for the built world. */
   landAt(x, z) { return terrainHeight(x, z); }
 

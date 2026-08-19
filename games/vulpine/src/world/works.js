@@ -66,6 +66,27 @@ export class Works {
   /** The deck is flat, so this is the whole height field. */
   static deckY() { return (WORLD.works || DEFAULT_WORKS).deckY ?? DEFAULT_WORKS.deckY; }
 
+  /**
+   * Underside of what is overhead at `z`, or Infinity where the bay is open.
+   * The counterpart to `deckY` and the reason `ceilingAt` exists on the world
+   * at all: this is the only backend that puts geometry above the rail, so it
+   * is the only one anything that flies has to be told to stay under.
+   *
+   * A SPAN answers a ceiling even though there is sky between its ribs. Gaps
+   * are 118 m apart and ribs 26 m wide, so a craft that ignored the bay would
+   * clear four gaps and hit the fifth; holding everything under the gantry line
+   * is both cheaper and what the level's own comms promise ("no room to climb
+   * out"). Lamp runs hang below the enclosed roof, so it answers under those.
+   */
+  ceilingAt(z) {
+    const W = this.cfg;
+    const ci = Math.floor((WORLD.zStart - z) / W.chunkLen);
+    const kind = this._bays[ci];
+    if (kind === BAY.ENCLOSED) return W.deckY + W.roofY - W.roofT - 1.1;
+    if (kind === BAY.SPAN) return W.deckY + W.roofY - W.spanT * 0.5;
+    return Infinity;
+  }
+
   _chunk(ci) {
     const W = this.cfg;
     const kind = this._bays[ci];

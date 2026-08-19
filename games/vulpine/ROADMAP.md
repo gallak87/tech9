@@ -130,6 +130,16 @@ reset, the wave tables swapped and the arrival comm fired.
 
 Open, in the order they cost the player something:
 
+- [ ] **Nothing stops a craft flying through a Foundry BULKHEAD.** Found while
+      fixing the roof (`## Settled — the Foundry's roof`, 2026-08-18). A
+      bulkhead is a wall across the corridor with a port through it, and
+      `ceilingAt` deliberately answers Infinity in that bay: what is needed
+      there is a *lateral* gate at one z, not a height field, and an enemy
+      whose |x| exceeds the 128 m port half-width is inside the plate whatever
+      its altitude. Rarer than the roof was — a 12 m wall in a 520 m bay,
+      against a roof that covered two whole bays — and unmeasured. The obvious
+      shape is a z-gated squeeze on the commanded offset as the bay's centre
+      passes, not a fifth clamp in `think`.
 - [ ] **`PLANET_FOR.foundry = 'venom'` is a placeholder.** The body you dive into
       for level 4 is Venom's palette. Cheap to author, and it is the only art in
       the sequence that is not the destination's own.
@@ -416,6 +426,39 @@ carrier fully armed 2.1 km early. The pre-boss grants are now the floor rather
 than the only path, and at the top tier a grant pays out a bomb instead of
 silently doing nothing — which is reachable in normal play now, and was the one
 way the HUD could lie about a reward.
+
+### The Foundry's roof — 2026-08-18
+
+Owner, live play: the Foundry "has ceilings which looks like enemies go
+through". They did. Measured over 60 s of the level with `?fight=1`: **18.3% of
+foe samples in an enclosed bay and 5.9% in a spanned one were above the roof
+line, the worst 156 m through solid plate.** The player never gets near it — the
+offset box tops out at 133 and a measured run peaked at 67, against a roof at
+164 — so this was always going to be an AI constraint rather than a headroom
+one. Raising the roof was the other option on the table and is the wrong one:
+enclosure is the axis this backend exists for, and a roof placed above where
+fighters fly stops reading as a roof.
+
+`Works.ceilingAt(z)` and `Corneria.ceilingAt(x, z)` are the mirror of `deckY`
+and `groundAt` — Infinity for `terrain` and `field`, which cannot put geometry
+over the rail at all — and `combat.js` carries it into the world view `ai.js`
+already gets `groundAt` from. A SPAN answers a ceiling despite the sky between
+its ribs: gaps are 118 m and ribs 26 m, so a craft ignoring the bay clears four
+gaps and hits the fifth.
+
+**Both halves of the clamp are load-bearing, and the first one alone measured
+zero.** Capping the commanded point changed nothing at all — 18.3% before,
+18.2% after — because a craft that has lagged its station in z pitches up and
+loops back to recover it, and that arc leaves the commanded point far below.
+Traced: a raptor commanded to y = 71 flew to y = 156 with its nose at fwd.y =
+0.97. `roofStop` caps the flown position after `flyStep` and eases the nose
+level over ~0.4 s rather than snapping it. **0.0% in both bay kinds now**, max
+hull-past-plate 0 m, and nothing skims: 10.2 craft-seconds of contact across
+60 s, half of it in `exit`.
+
+Wingmen get the same treatment through `thinkWingman`. `pilot fly` finishes the
+Foundry at 20 kills with no console errors, and Corneria and the drop lane are
+byte-for-byte unaffected — every non-`works` world answers Infinity.
 
 ### The Foundry — a third backend, 2026-08-15
 

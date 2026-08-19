@@ -337,9 +337,45 @@ const STEP = {
   loop: ST.loop, strafe: ST.strafe, hunt: ST.hunt, exit: ST.exit, static: ST.static_,
 };
 
+/* ── the roof ───────────────────────────────────────────────────────────────
+   Only a `works` corridor has one; every other backend answers Infinity and
+   both of these compile out to a compare. Two parts, because either alone is
+   measurably not enough:
+
+   `underRoof` caps the commanded point, so nothing is ever *sent* through
+   plate. On its own it moved nothing measurable — foe samples inside an
+   enclosed bay's roof went 18.3% to 18.2% over 60 s — because a craft
+   recovering a station it has lagged in z pitches up and loops back, and that
+   arc leaves the commanded point far below it. Traced: a raptor commanded to
+   y = 71 flew to y = 156 with its nose at fwd.y = 0.97.
+
+   `roofStop` caps the flown position after the integration, which is the only
+   thing that can promise anything. The nose is eased level over ~0.4 s instead
+   of snapped, so the arrest reads as a pull-out under the plate rather than as
+   a craft turning on a hinge. */
+
+/** Cap a commanded point under whatever is overhead. */
+function underRoof(p, w, clear) {
+  const c = w.ceilingAt(p.x, p.z) - clear;
+  if (p.y > c) p.y = c;
+}
+
+/** Cap the flown position, after `flyStep`. */
+function roofStop(a, dt, w, clear) {
+  const c = w.ceilingAt(a.pos.x, a.pos.z) - clear;
+  if (a.pos.y <= c) return;
+  a.pos.y = c;
+  if (a.fwd.y > 0) {
+    a.fwd.y *= Math.exp(-dt * 7);
+    a.fwd.normalize();
+    orient(a);
+  }
+}
+
 /**
  * One agent tick. `w` is the shared world view built by combat.js:
- *   { time, player:{pos,vel}, playerRange, groundAt(x,z), rng, fire(a, aim) }
+ *   { time, player:{pos,vel}, playerRange, groundAt(x,z), ceilingAt(x,z), rng,
+ *     fire(a, aim) }
  */
 export function think(a, dt, w) {
   a.stateT += dt;
@@ -377,7 +413,10 @@ export function think(a, dt, w) {
     _a.y += Math.cos(e * 7.4 + a.phase2) * 26 * e;
   }
 
-  /* terrain: nobody flies into the deck */
+  /* Terrain: nobody flies into the deck, and in a roofed corridor nobody climbs
+     out through the roof either. The floor wins a squeeze, so it is clamped
+     second — being inside the deck reads worse than being inside a gantry. */
+  underRoof(_a, w, a.spec.radius + 14);
   const g = w.groundAt(_a.x, _a.z) + (a.spec.radius + 14);
   if (_a.y < g) _a.y = g;
 
@@ -418,6 +457,7 @@ export function think(a, dt, w) {
   }
 
   flyStep(a, _b, dt);
+  roofStop(a, dt, w, a.spec.radius + 3);
   gunnery(a, dt, w);
 }
 
@@ -600,6 +640,7 @@ export function thinkWingman(a, dt, w) {
 
   wander(a, w.time, 5.5, _d);
   _a.copy(w.player.pos).add(a.offset).add(_d);
+  underRoof(_a, w, 18);
   const g = w.groundAt(_a.x, _a.z) + 18;
   if (_a.y < g) _a.y = g;
 
@@ -608,4 +649,5 @@ export function thinkWingman(a, dt, w) {
   _b.normalize().multiplyScalar(a.spec.maxSpeed * clamp(dist / 45, 0.2, 1));
   _b.addScaledVector(w.player.vel, clamp(1 - dist / 260, 0, 1));
   flyStep(a, _b, dt);
+  roofStop(a, dt, w, a.spec.radius + 3);
 }

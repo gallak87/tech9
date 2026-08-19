@@ -382,6 +382,47 @@ What is left here is scoring.
 
 ## Settled — done, and why it is the way it is
 
+### The victory lap, and the wing's pass across it — 2026-08-18
+
+Owner, live play: "boss dies and it like immediately starts transitioning, kind
+of abrupt." It did, and the lap that was supposed to cover it had **no floor**.
+`campaign.js` ended the lap on `railZ <= WORLD.zEnd`, and every boss in the game
+is armed close enough to the end of its corridor that a fight of normal length
+finishes with the rail already past it — Corneria's carrier arms at z -8300
+against a zEnd of -9840, 8.8 s of rail for a fight that takes about 45 s. The
+test was therefore true on the tick the boss died and the hop opened on the next
+one: the kill, the win card and the ascent all landed on the same beat.
+
+`LAP_MIN = 6` seconds, picked off the death itself — a capital ship comes apart
+over four (`updateBoss`) — so the lap now covers the break-up and still leaves a
+couple of seconds of clean flying. `LAP_MAX` is untouched and answers the
+opposite case.
+
+**The wing flies a victory pass across it.** A `lap` state in `thinkWingman`:
+each pilot holds station, breaks on a staggered `lapWait`, sweeps out and
+forward across the player's nose with one roll, and settles into a vee ahead —
+two wide and one high. Driven off `state.outcome === 'win'` rather than off the
+campaign, so it also plays on the Foundry, which has no hop after it and where
+this is the last thing on screen.
+
+**Every number in it came from measuring ndc, not from looking at stills.** The
+beat is staged behind a chase camera and the wing starts *behind* the player, so
+lateral distance early is lateral distance off camera — the first attempt swung
+the slots to 2.4x and both wingmen sat past ndcX 2, off frame for the entire
+pass and only visible once they were 150 m ahead with nothing left to watch. The
+second attempt put a near-centreline pilot on a lateral floor and it landed on
+the side another pilot already owned. Settled: 0.85x–1.25x the slot, a
+near-centreline pilot lifted instead of pushed, and ~115 m ahead rather than
+320 — at 320 an Arwing is 25 px of a 1200-wide frame. All three now hold
+on-screen at ndc (-0.7, 0.03), (0.21, 0.02), (-0.28, 0.51).
+
+The residual lateral bias in those numbers is the rail meander, not the tuning:
+the wing stations in the *player's* frame while the camera aims down the rail,
+so a corridor that is turning slides all three the same way. `combat.js` gained
+an `allies` getter for the same reason it already exposes `foes` and `bullets` —
+whether three ships leave formation, cross and roll is a question about position
+over time.
+
 ### Level cards and the dev level jump — 2026-08-18
 
 Every level opens on its own name now: a plated card top-right under the score,

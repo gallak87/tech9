@@ -631,6 +631,45 @@ export function thinkWingman(a, dt, w) {
     a.offset.y += (_a.y * 0.9 + 8 - a.offset.y) * Math.min(1, dt * 1.1);
     a.offset.z += (_a.z + 90 - a.offset.z) * Math.min(1, dt * 1.1);
     if (a.stateT > 5 || !a.target || a.target.dead) { a.state = 'form'; a.stateT = 0; a.target = null; }
+  } else if (a.state === 'lap') {
+    // Victory pass. The objective is dead and the ship is flying the lap out, so
+    // the wing leaves formation, comes forward across the player's nose and
+    // re-forms in a loose vee ahead — the last thing on screen before the
+    // transition is three friendly ships rather than an empty corridor.
+    //
+    // The destination is derived from each pilot's own slot rather than authored
+    // a second time: x swings wide the way that pilot already leans and z goes
+    // from behind the player to well ahead, so the three arrive spread out for
+    // the same reason they sit spread out in formation.
+    //
+    // `u` ramps the approach rate from zero, which is also what holds a pilot on
+    // station until its turn comes: at u = 0 the offset simply does not move, so
+    // no separate waiting branch is needed.
+    const u = clamp((a.stateT - a.lapWait) / 2.0, 0, 1);
+    const kk = Math.min(1, dt * 2.2 * u);
+    // Out a little through the middle of the pass, back in once ahead — enough
+    // that it reads as going *past* you rather than as a formation quietly
+    // changing shape. Modest on purpose, and this is the whole trap in the beat:
+    // the wing starts BEHIND the player, so lateral distance early is lateral
+    // distance OFF CAMERA. Measured at 2.4x the home slot, both wingmen swung
+    // past ndcX 2 and were off frame for the entire pass — visible only once
+    // they were 150 m ahead, by which point there was nothing left to watch.
+    //
+    // A pilot whose slot is nearly on the centreline is LIFTED rather than
+    // pushed sideways. It still has to clear the camera, but pushing it out put
+    // it on the side another pilot already owns, and the wing settled as two
+    // ships stacked to port with one near the crosshair. Two wide and one high
+    // is the shape that reads.
+    const spread = 0.85 + Math.sin(u * Math.PI) * 0.4;
+    const centred = Math.abs(home.x) < 40;
+    a.offset.x += (home.x * spread - a.offset.x) * kk;
+    a.offset.y += (home.y + (centred ? 30 : 14)
+      + Math.sin(a.stateT * 0.8 + a.phase) * 9 - a.offset.y) * kk;
+    // ~115 m ahead of the ship, so ~145 m from the chase camera: an Arwing is
+    // about 60 px of a 1200-wide frame there. The first pass at 320 m put it at
+    // 25 px, which is a speck on the horizon, and the point of the beat is being
+    // able to see who is flying it.
+    a.offset.z += ((-105 - home.z * 0.25) - a.offset.z) * kk;
   } else {
     a.state = a.state === 'chased' ? a.state : 'form';
     a.offset.x += (home.x - a.offset.x) * Math.min(1, dt * 0.9);
@@ -649,5 +688,27 @@ export function thinkWingman(a, dt, w) {
   _b.normalize().multiplyScalar(a.spec.maxSpeed * clamp(dist / 45, 0.2, 1));
   _b.addScaledVector(w.player.vel, clamp(1 - dist / 260, 0, 1));
   flyStep(a, _b, dt);
+  if (a.state === 'lap') victoryRoll(a);
   roofStop(a, dt, w, a.spec.radius + 3);
+}
+
+/** How long after a pilot breaks formation its roll starts, and how long it takes. */
+const ROLL_AT = 0.85, ROLL_FOR = 1.15;
+
+/**
+ * One roll each, on the way past. Written after `flyStep`, which derives `bank`
+ * from the measured turn and would damp a commanded one straight out.
+ */
+function victoryRoll(a) {
+  const r = (a.stateT - a.lapWait - ROLL_AT) / ROLL_FOR;
+  if (r <= 0) return;
+  if (r < 1) {
+    a.bank = r * r * (3 - 2 * r) * Math.PI * 2;
+    orient(a);
+    return;
+  }
+  // A full turn is level again, but `flyStep` lerps `bank` toward its own target
+  // from whatever it finds — left at 6.28 it would unwind a whole revolution back
+  // to zero over the next second. Normalised once, on the tick the roll closes.
+  if (a.bank > Math.PI) { a.bank = 0; orient(a); }
 }

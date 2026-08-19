@@ -531,6 +531,11 @@ const _bRail = new THREE.Vector3();
       };
       const a = makeAgent(spec, R, {});
       a.homeSlot = new THREE.Vector3(...WING_SLOTS[i]);
+      // Seconds each pilot holds station before breaking for the victory pass.
+      // Authored rather than taken off `phase`: three craft leaving on the same
+      // frame read as one object with three parts, and a random order reads as
+      // an accident rather than as a squadron.
+      a.lapWait = 0.3 + i * 0.38;
       a.offset.copy(a.homeSlot);
       a.state = 'form';
       a.alive = true;
@@ -1824,6 +1829,13 @@ const _bRail = new THREE.Vector3();
       // is anything hunting them?
       const hunted = foes.some(f => f.agent.prey && f.agent.prey.info === al.info && !f.agent.dying);
       if (!hunted && a.state === 'chased') { a.state = 'form'; a.stateT = 0; }
+      // The victory pass, driven off the published outcome rather than off the
+      // campaign — so it also plays on the last level, which has no hop after it
+      // and where this is the last thing on screen. `begin()` clears the outcome
+      // for the transition, which puts the wing back in formation for the ascent.
+      const won = state.outcome === 'win';
+      if (won && a.state !== 'lap') { a.state = 'lap'; a.stateT = 0; }
+      else if (!won && a.state === 'lap') { a.state = 'form'; a.stateT = 0; }
     }
 
     /* boss */
@@ -1934,6 +1946,12 @@ const _bRail = new THREE.Vector3();
      * about position over time, which no screenshot can answer.
      */
     get pickups() { return pickups.live; },
+    /**
+     * The wing. Readable for the same reason `foes` and `bullets` are: whether
+     * three ships leave formation, cross ahead and roll is a question about
+     * position over time, and no screenshot can answer it.
+     */
+    get allies() { return allies; },
     /**
      * Dev/probe: eject a drop at an arbitrary offset from the ship, without
      * flying to a wave that has one. Offsets are in the *rail* frame — ahead,

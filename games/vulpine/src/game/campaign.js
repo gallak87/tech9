@@ -82,9 +82,25 @@ const HOPS = {
 /** A `field` world is a belt: no globe to grow in the frame, arriving or leaving. */
 const hasBody = (dnaId) => (DNA_BY_ID[dnaId].backend ?? 'terrain') !== 'field';
 
-// Hard ceiling on the victory lap, in case the rail never reaches `zEnd` —
-// killing the carrier early with the dev tool leaves several km to fly, and a
-// transition that waits 40 s reads as a hang.
+/* The victory lap, floor and ceiling.
+
+   THE FLOOR IS THE ONE THAT WAS MISSING. The lap ended on `railZ <= zEnd`, and
+   every boss in the game is armed close enough to the end of its corridor that a
+   fight of normal length finishes with the rail already well past it — Corneria's
+   carrier arms at z -8300 against a zEnd of -9840, which is 8.8 s of rail for a
+   fight that takes about 45 s. So the test was true on the tick the boss died and
+   the hop opened on the next one: the kill, the win card and the ascent all
+   landed on the same beat. Owner, live play: "boss dies and it like immediately
+   starts transitioning, kind of abrupt."
+
+   Six seconds is picked off the death itself — a capital ship comes apart over
+   four (`updateBoss`) — so the lap covers the break-up and still leaves a couple
+   of seconds of clean flying, which is where the wing's victory pass lands.
+
+   The ceiling is unchanged and is for the opposite case: killing the carrier
+   early with the dev tool leaves several km to fly, and a transition that waits
+   40 s reads as a hang. */
+const LAP_MIN = 6;
 const LAP_MAX = 14;
 
 // Per-frame mesh budget during the hop. Generous because nothing else is
@@ -354,6 +370,7 @@ export function installCampaign(ctx, startIndex = 0) {
 
     if (state.phase === 'lap') {
       state.lapT += dt;
+      if (state.lapT < LAP_MIN) return;
       const past = ctx.flight.railZ <= WORLD.zEnd;
       if (past || state.lapT >= LAP_MAX) begin();
       return;

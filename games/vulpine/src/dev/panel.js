@@ -115,11 +115,18 @@ export function installDevPanel(api) {
     setLabel(btn, 'seeking…');
     // Let the label paint before we block the thread for a few thousand steps.
     requestAnimationFrame(() => {
+      // Untouchable for the flight down. Every wave in the level fires on a ship
+      // that cannot dodge and never shoots back, and this used to cost two of
+      // three lives on three of the four levels — the skip was charging the run
+      // for a journey it exists to skip. Cleared in `finally`, so a throw cannot
+      // leave the game in god mode.
+      api.combat.setInvuln(1e6);
       try {
         api.seek(48);                         // ~z -8300 at 175 m/s
         let guard = 0;
         while (!api.combat.boss && guard++ < 400) api.step(30);
       } finally {
+        api.combat.setInvuln(0);
         busy = false;
         render();
         if (!api.combat.boss) flash(btn, 'no boss?');

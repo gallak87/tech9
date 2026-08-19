@@ -382,6 +382,25 @@ What is left here is scoring.
 
 ## Settled — done, and why it is the way it is
 
+### Skip-to-boss stopped charging the run — 2026-08-18
+
+Owner: "why does skipping to boss on levels 2/3 take 1 life? i got game over
+skipping on foundry." Measured, it was worse than that — the dev panel's skip
+cost **two of three lives on Corneria, Sector Omega and the Foundry**, one on
+Highlands, and left the Foundry's run on 51 shield.
+
+`skipToBoss` replays rather than teleports, on purpose: waves arm on `railZ`
+crossings, so jumping the rail dumps every backlogged wave into one tick. But
+the replay runs with nobody at the controls — the ship never dodges and never
+returns fire, so the whole flight down is free target practice for every wave in
+the level. Nothing was wrong with the seek; it was simply never anyone's job to
+say the player should not be billed for it.
+
+`combat.setInvuln(s)` drives the same counter the respawn window already uses,
+and the panel holds it across the seek and clears it in `finally` so a throw
+cannot leave the game in god mode. All four levels now arrive at their boss on
+full shield and three lives.
+
 ### The victory lap, and the wing's pass across it — 2026-08-18
 
 Owner, live play: "boss dies and it like immediately starts transitioning, kind

@@ -2028,6 +2028,19 @@ const _bRail = new THREE.Vector3();
       killPlayer();
       return true;
     },
+    /**
+     * Dev: hold the ship untouchable for `s` seconds of sim time — the same
+     * counter the respawn window uses, so it decays as the sim advances and a
+     * caller that seeks 48 s has to ask for more than 48.
+     *
+     * The dev panel's skip-to-boss fast-forwards the level with nobody at the
+     * controls: the player cannot dodge and never returns fire, so the whole
+     * flight is free target practice for every wave in the level. Measured
+     * before this existed, arriving at the carrier cost two of three lives on
+     * Corneria, Sector Omega and the Foundry — a game over for anyone who had
+     * already lost one. A dev teleport must not charge the run for the journey.
+     */
+    setInvuln(s) { invuln = s; },
     set grants(on) { grantsOn = !!on; },
     update,
     dispose() {

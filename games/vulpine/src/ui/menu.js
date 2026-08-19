@@ -151,10 +151,19 @@ export class Menu {
       const it = m.items[i];
       const iy = y + 82 * k + i * rowH;
       const on = i === m.index;
+      // The row's plate and its centre line, derived once. Label, chevron and
+      // highlight all hang off these two numbers so they cannot drift apart:
+      // the label used to be drawn at `cx + 8k` and 6k below the highlight's
+      // own centre, which put every item — selected or not — off both the
+      // vertical axis PAUSED, the divider and the hint line share, and off the
+      // box drawn around it.
+      const rowY = iy - 2 * k;
+      const rowBoxH = rowH - 10 * k;
+      const mid = rowY + rowBoxH * 0.5;
 
       if (on) {
         g.save();
-        chamfer(g, x + 18 * k, iy - 2 * k, boxW - 36 * k, rowH - 10 * k, 9 * k);
+        chamfer(g, x + 18 * k, rowY, boxW - 36 * k, rowBoxH, 9 * k);
         g.fillStyle = alpha(C.ice, 0.14);
         g.fill();
         g.lineWidth = 1.1 * k;
@@ -165,15 +174,15 @@ export class Menu {
         // selection chevron
         const bob = Math.sin(this.blink * 6) * 1.6 * k;
         g.beginPath();
-        g.moveTo(x + 32 * k + bob, iy + rowH * 0.5 - 7 * k);
-        g.lineTo(x + 41 * k + bob, iy + rowH * 0.5 - 1 * k);
-        g.lineTo(x + 32 * k + bob, iy + rowH * 0.5 + 5 * k);
+        g.moveTo(x + 32 * k + bob, mid - 6 * k);
+        g.lineTo(x + 41 * k + bob, mid);
+        g.lineTo(x + 32 * k + bob, mid + 6 * k);
         g.closePath();
         g.fillStyle = C.iceHot;
         g.fill();
       }
 
-      text(g, it.label, cx + 8 * k, iy + rowH * 0.5 - 1 * k, {
+      text(g, it.label, cx, mid, {
         size: 15 * k, track: 4.4, weight: 0.15, align: 'center', baseline: 'middle',
         color: on ? '#ffffff' : alpha(C.text, 0.72),
         shadow: 5 * k,

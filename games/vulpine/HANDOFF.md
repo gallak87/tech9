@@ -13,6 +13,35 @@ constraints that survive it are in `ROADMAP.md` under
 "where we left off" state removed; lessons kept as one-liners. Deleted material
 is in git history.*
 
+## Where we left off — 2026-08-20
+
+Stopped on a usage limit mid-lane, not at a stopping point. `1232e8e` is the
+commit; **ROADMAP `## Now` is the real queue** and lists every open item with
+its measurement. The short version:
+
+1. **Fix Venom's channel first — it is one line of data, and it is diagnosed.**
+   The zones inherited `ZONE_KINDS`' default `bed` (8-11). Give them 22-34 and
+   Fortuna 14-24. Do not re-investigate the lava material: it is built, visible,
+   at y = 0, over terrain that raycasts to -9.0, and a flat-magenta swap showed
+   nothing at y = 0, a strip at +3 and the whole channel at +40. The floor is
+   hidden by its own near bank at a grazing angle. That whole chain is in the
+   ROADMAP entry.
+2. **The ship lane was killed mid-fix.** `lancer`, `scarab`, `pylon` and
+   `commander:tide` / `:bloom` / `:forge` are committed and referenced by the
+   new wave tables. Its last words were that the bloom fight ran 4x long because
+   armour was absorbing, and it was widening the maw reach. Re-probe with
+   `tools/bossprobe.mjs` before trusting any of the three.
+3. **Nothing has flown a hop into a new level.** The wiring is complete —
+   `hop: 'orbital'` on Omega/Aquas/Fortuna/Foundry, `aquas` and `fortuna`
+   palettes in `fx/planet.js`, `PLANET_FOR` entries in `fx/transit.js` — and
+   entirely unexercised. `tools/pilot.mjs hop` is the tool.
+4. **No balance pass on any of the three.** `tools/pacing.mjs`, not screenshots.
+
+Captures that are worth looking at rather than re-taking:
+`shots/n-aquas4/` (the lid and the shafts read), `shots/n-fortuna3/`,
+`shots/n-venom3/` (dark, and the channel is the defect above),
+`shots/n-vdbg5/` and `n-vdbg7/` (the magenta lifts that diagnosed it).
+
 ## Rules
 
 - **Every commit that closes a roadmap item ticks its box in the same commit.**

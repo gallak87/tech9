@@ -18,8 +18,9 @@
  * @property {number} zStart                 terrain is built from here…
  * @property {number} zEnd                   …to here
  * @property {number} waterLevel
- * @property {'water'|'ice'|'none'} surface
- * @property {'sedimentary'|'glacial'} [surfaceKind]  wall material and structure
+ * @property {'water'|'ice'|'lava'|'none'} surface
+ * @property {'sedimentary'|'glacial'|'volcanic'} [surfaceKind]  wall material and structure
+ * @property {Object|null} [canopy]          lid over the corridor; see canopy.js
  * @property {Object} grid                   mesh tiers and sample spacing
  * @property {Object} centreline             meander: sine terms + smoothstep dog-legs
  * @property {Array}  [zones]                zone sequence; compiled to `keys` and
@@ -433,9 +434,405 @@ export const DNA_FOUNDRY = {
   lithology: { base: [0.20, 0.21, 0.23], members: [] },
 };
 
+/* ── Aquas ────────────────────────────────────────────────────────────────── */
+//
+// The first world with no sky. `surface: 'none'` on a `terrain` backend is the
+// combination neither of the first four levels used: there is a heightfield and
+// no plane over it, so the floor of the corridor IS the ground and the volume
+// above it is water rather than air. Everything that says "underwater" is
+// therefore lighting and one piece of geometry — dense teal extinction, a sun
+// high enough to throw shafts down into frame, and `canopy` (see canopy.js), the
+// underside of the sea surface 330 m up. That lid is what the level has that a
+// canyon cannot: a ceiling you can see, over an open corridor.
+//
+// The cross-section is the opposite of Corneria's: low walls, wide floor, and
+// the vertical carried by free-standing pinnacles instead of by the banks. A
+// reef is a plain with towers on it.
+
+export const DNA_AQUAS = {
+  id: 'aquas',
+  seed: 'aquas:reef-1',
+  length: 9000,
+  zStart: 720,
+  zEnd: -9840,
+  waterLevel: 0,
+  surface: 'none',
+  surfaceKind: 'sedimentary',
+
+  // The lid, in world Y. Read by canopy.js and by `ceilingAt`.
+  //
+  // 620 is set against the tallest wall in the level (620 in the second
+  // narrows), not against the rail: at 330 the lid sat ON the rim of every
+  // zone past the shelf and the level read as a cave rather than as a sea. It
+  // has to clear the highest thing that can stand under it, or there is no
+  // water between the two and nothing says which one is the surface.
+  canopy: { y: 620, half: 9000, tint: [0.20, 0.62, 0.66], sunTint: [1.30, 1.80, 1.72] },
+
+  centreline: {
+    // Wider and lazier than a river: water carves a reef pass by dissolving it,
+    // not by cutting down a gradient, so the meander has no short terms.
+    x: {
+      waves: [
+        { a: 185, w: 0.00043, p: 1.4 },
+        { a: 62, w: 0.00121, p: 0.3 },
+      ],
+      bends: [],
+    },
+    // 62 is 18 m higher than Corneria's, and it is headroom rather than
+    // altitude: with no surface plane at y = 0 the drop-off zone takes the rail
+    // 30 m down, and the bottom of the offset box has to clear a bed at -58.
+    y: { base: 62, waves: [{ a: 13, w: 0.00039, p: 2.1 }], bends: [] },
+  },
+
+  zones: [
+    // The shelf: shallow, wide, and the only place with room to see the towers
+    // from far enough away to read them as towers.
+    { kind: 'basin', len: 2100, inner: 640, bed: 26, wallH: 120, relief: 0.80 },
+    // A fissure closing through the reef.
+    { kind: 'reach', len: 1600, blend: 1100, inner: 300, bed: 34, wallH: 320 },
+    // The swim-through. 760 m, and it turns inside it.
+    { kind: 'narrows', len: 760, blend: 700, inner: 150, wallH: 480, bend: { dx: 210, width: 600 } },
+    // The drop-off. The floor falls away to a 58 m bed and the rail follows it
+    // down — the one descent in the game that is not a hop.
+    { kind: 'basin', len: 1700, blend: 700, inner: 700, bed: 58, wallH: 90, relief: 0.66, climb: -30 },
+    // The trench.
+    { kind: 'gorge', len: 1500, blend: 800, inner: 210, wallH: 560, bend: { dx: -250, width: 720 } },
+    { kind: 'narrows', len: 700, blend: 400, inner: 140, wallH: 620 },
+    // Back onto the shelf, wide open, and the rail climbs out of the trench.
+    { kind: 'basin', len: 2200, blend: 900, inner: 620, bed: 30, wallH: 160, relief: 0.76, climb: 30 },
+  ],
+
+  bands: {
+    // A drowned shelf is not weathered by rain, so the skyline terms that carve
+    // a rim into a canyon do almost nothing here. What is left is macro swell
+    // and a strong crag band: coral heads, not ridgelines.
+    far: { scale: 1 / 21000, amp: 380, pow: 1.4, bias: 0.30, from: 1600, to: 4000 },
+    macro: { scale: 1 / 15000, amp: 210 },
+    range: { scale: 1 / 6400, amp: 190, pow: 1.6, bias: 0.32, lambda: 268 },
+    hill: { scale: 1 / 3900, amp: 132, lambda: 128 },
+    fine: { scale: 1 / 1900, amp: 74, lambda: 82 },
+    // Loudest crag band of any level. Coral is accreted, not eroded — the floor
+    // of a reef pass is knobbly at every scale, and with the sun 60 degrees up
+    // there is no long shadow to give a smooth floor form instead.
+    crag: { scale: 1 / 1180, amp: 104, bias: 0.34, lambda: 62 },
+    warp: { scale: 1 / 7600, amp: 300, shear: 0.7 },
+    jitter: { a: 74, b: 26 },
+    side: { scale: 1 / 5200, base: 0.62, amp: 0.70 },
+    relief: { base: 0.62, far: 1.7, from: 350, to: 2800 },
+  },
+
+  city: null,
+
+  // Pinnacles, not islands. `spire` and a low `pow` are what make a stack that
+  // stands up out of a flat floor instead of a hill that pokes through it.
+  islands: {
+    seed: 'aquas:reef-2',
+    groups: [
+      // coral heads on the shelf: broad, rounded, in the shallows either side
+      { n: 16, z: [500, -1900], u: [120, 600], r: [40, 130], h: [18, 74], pow: [1.6, 2.8] },
+      // …and on the CHANNEL FLOOR, close in. The cross-section makes a smooth
+      // bed and the relief bands only reach past the cliff top, so scatter is
+      // the only thing that can put form on the ground you fly over. Kept under
+      // 40 m tall so nothing here is an obstacle the rail did not author.
+      { n: 26, z: [400, -9600], u: [0, 210], r: [26, 74], h: [9, 34], pow: [1.5, 2.6] },
+      { n: 22, z: [-500, -9600], u: [140, 420], r: [30, 96], h: [12, 46], pow: [1.5, 2.6] },
+      // the drop-off garden: tall thin towers, close to the rail
+      { n: 11, z: [-5000, -6500], u: [80, 460], r: [22, 58], h: [70, 210], pow: [1.05, 1.35], spire: 1 },
+      // rubble aprons on the far shelf
+      { n: 13, z: [-8200, -9700], u: [60, 520], r: [80, 220], h: [6, 20], pow: [2.2, 3.4], flat: 1 },
+    ],
+    // Two pinnacles in the swim-through, one either side, threaded not dodged.
+    fixed: [
+      { z: -3620, u: -48, r: 30, h: 260, pow: 1.1, spire: 1 },
+      { z: -3880, u: 54, r: 26, h: 235, pow: 1.1, spire: 1 },
+      { z: -7480, u: 60, r: 28, h: 300, pow: 1.1, spire: 1 },
+    ],
+  },
+
+  palette: {
+    // Under 2 km of teal extinction every hue collapses toward the fog, so the
+    // albedo is authored WARM and lets the water do the tinting. A rock painted
+    // blue-green here arrives at the eye as one flat wash with the haze.
+    rock: [0.90, 0.86, 0.76],
+    // Carbonate sand is bright in air and this is not air. Authored at 1.72 it
+    // composited as a snowfield: the floor is the largest lit area in frame and
+    // the sun is nearly overhead, so it is the one surface with no extinction
+    // between it and the key light.
+    sand: [1.16, 1.10, 0.94],
+    scrub: [0.32, 0.64, 0.44],
+    dry: [1.10, 0.98, 0.68],
+    pale: [1.12, 1.08, 0.96],
+    urban: [0.90, 0.89, 0.86],
+    moss: [0.28, 0.56, 0.46],
+    // Heavy on the algal terms: a reef floor is either living or it is
+    // carbonate sediment, and there is nothing dry about any of it.
+    amount: { pale: 0.8, dry: 0.35, veg: 1.35, moss: 1.15, sand: 0.85, urban: 0 },
+  },
+
+  lithology: {
+    // Reef limestone: cream carbonate with algal green in the recesses and a
+    // dark drowned member near the floor. Values run higher than any other
+    // level's stone because extinction takes most of it back before the eye.
+    base: [0.252, 0.242, 0.206],
+    members: [
+      { color: [0.318, 0.302, 0.254], k: 0.82, in: [0.04, 0.12], out: [0.20, 0.32] },
+      { color: [0.146, 0.196, 0.152], k: 0.70, in: [0.36, 0.44], out: [0.52, 0.62] },
+      { color: [0.342, 0.335, 0.288], k: 0.78, in: [0.64, 0.72], out: [0.80, 0.88] },
+      { color: [0.092, 0.114, 0.120], k: 0.55, in: [0.90, 0.95], out: [0.99, 1.00] },
+    ],
+  },
+};
+
+/* ── Fortuna ──────────────────────────────────────────────────────────────── */
+//
+// Night, and the only level lit from the ground up by something alive. The
+// surface is water at y = 0 — the same mesh, the same reflector and the same
+// shader Corneria uses — but under an aurora instead of a sun it is a black
+// mirror, and the reflection is doing the work an ordinary sky-lit river never
+// asks of it.
+//
+// Composition: a wide flooded valley with glow-stalks standing out of it. The
+// `islands` table is unusually large because the stalks ARE the level; the walls
+// are deliberately low and soft so nothing competes with them for the vertical.
+
+export const DNA_FORTUNA = {
+  id: 'fortuna',
+  seed: 'fortuna:glow-1',
+  length: 9000,
+  zStart: 720,
+  zEnd: -9840,
+  waterLevel: 0,
+  surface: 'water',
+  surfaceKind: 'sedimentary',
+
+  // The ground is a light source. Radiance, not colour — these run past 1 so
+  // the bloom threshold finds them, and they are the brightest thing in the
+  // level by a wide margin because the sun here delivers 1.15.
+  glow: {
+    color: [0.26, 1.45, 1.05],     // the mat: cyan-green
+    color2: [0.78, 0.30, 1.30],    // the second colony: violet
+    amount: 1.05,
+    // Full at the waterline, gone by the stalk tops. A skyline that glows has
+    // no silhouette, and the silhouette is what makes a stalk read as a stalk.
+    height: [40, 340],
+    pulse: 0.55,
+  },
+
+  centreline: {
+    x: {
+      waves: [
+        { a: 240, w: 0.00048, p: 2.6 },
+        { a: 84, w: 0.00139, p: 0.8 },
+        { a: 26, w: 0.00352, p: 1.9 },
+      ],
+      bends: [],
+    },
+    y: { base: 46, waves: [{ a: 14, w: 0.00045, p: 0.2 }, { a: 6, w: 0.00128, p: 1.6 }], bends: [] },
+  },
+
+  zones: [
+    // The lagoon. Low banks, long sightlines, the stalk field either side.
+    { kind: 'basin', len: 2400, inner: 600, bed: 12, wallH: 180, relief: 0.75 },
+    { kind: 'reach', len: 1600, blend: 1200, inner: 320, wallH: 380 },
+    // The glade: a clearing in the stalks, and the one place to fight in.
+    { kind: 'basin', len: 1500, blend: 600, inner: 540, wallH: 240, relief: 0.70 },
+    { kind: 'gorge', len: 1500, blend: 800, inner: 220, wallH: 520, bend: { dx: -240, width: 700 } },
+    { kind: 'basin', len: 1300, blend: 600, inner: 500, wallH: 260, relief: 0.68 },
+    { kind: 'narrows', len: 700, blend: 400, inner: 145, wallH: 600, bend: { dx: 200, width: 640 } },
+    { kind: 'basin', len: 1560, blend: 800, inner: 620, wallH: 200, relief: 0.72 },
+  ],
+
+  bands: {
+    // Wet, forested, deeply weathered: rounded at every scale. `crag` is the
+    // one band held down, because a sharp edge is what this rock does not have.
+    far: { scale: 1 / 19000, amp: 540, pow: 1.4, bias: 0.32, from: 1400, to: 3600 },
+    macro: { scale: 1 / 13000, amp: 320 },
+    range: { scale: 1 / 6100, amp: 230, pow: 1.5, bias: 0.34, lambda: 280 },
+    hill: { scale: 1 / 4100, amp: 110, lambda: 136 },
+    fine: { scale: 1 / 2050, amp: 46, lambda: 88 },
+    crag: { scale: 1 / 1480, amp: 20, bias: 0.50, lambda: 76 },
+    warp: { scale: 1 / 8200, amp: 340, shear: 0.7 },
+    jitter: { a: 58, b: 20 },
+    side: { scale: 1 / 5600, base: 0.66, amp: 0.64 },
+    relief: { base: 0.50, far: 2.1, from: 380, to: 3000 },
+  },
+
+  city: null,
+
+  islands: {
+    seed: 'fortuna:stalks-1',
+    groups: [
+      // the stalk field: hundreds of metres of thin towers either side of the
+      // lagoon, close enough to the rail to pass between
+      { n: 22, z: [600, -2600], u: [110, 620], r: [16, 44], h: [90, 300], pow: [1.02, 1.28], spire: 1 },
+      { n: 14, z: [-4000, -5400], u: [90, 520], r: [16, 40], h: [80, 260], pow: [1.02, 1.28], spire: 1 },
+      { n: 18, z: [-7600, -9700], u: [100, 640], r: [16, 46], h: [95, 320], pow: [1.02, 1.28], spire: 1 },
+      // cap mounds under them — the mycelial mat the stalks come out of
+      { n: 15, z: [-1000, -9500], u: [60, 560], r: [70, 190], h: [8, 26], pow: [2.4, 3.6], flat: 1 },
+    ],
+    fixed: [
+      { z: -6820, u: -50, r: 24, h: 330, pow: 1.05, spire: 1 },
+      { z: -7060, u: 56, r: 22, h: 295, pow: 1.05, spire: 1 },
+    ],
+  },
+
+  palette: {
+    // Almost no light from above, so albedo alone decides what the ground-glow
+    // picks out. `scrub` and `moss` are the luminous terms and they are pushed
+    // past 1 on the green-blue axis; `rock` sits low so the mat reads against
+    // wet black stone rather than against grey.
+    rock: [0.52, 0.58, 0.62],
+    sand: [0.72, 0.80, 0.78],
+    scrub: [0.36, 1.20, 0.98],
+    dry: [0.86, 0.52, 1.06],
+    pale: [0.78, 0.94, 1.02],
+    urban: [0.90, 0.89, 0.86],
+    moss: [0.30, 0.96, 0.84],
+    amount: { pale: 0.8, dry: 0.9, veg: 1.5, moss: 1.4, sand: 0.4, urban: 0 },
+  },
+
+  lithology: {
+    // Wet basalt-grey stone with two living members through it: a cyan mat in
+    // the damp band and a violet bloom above it. The dark base is most of the
+    // wall by area, which is what keeps the two live members reading as light.
+    base: [0.086, 0.104, 0.116],
+    members: [
+      { color: [0.106, 0.188, 0.196], k: 0.80, in: [0.05, 0.14], out: [0.22, 0.34] },
+      { color: [0.078, 0.260, 0.232], k: 0.72, in: [0.36, 0.44], out: [0.52, 0.62] },
+      { color: [0.176, 0.098, 0.216], k: 0.70, in: [0.66, 0.73], out: [0.80, 0.88] },
+      { color: [0.052, 0.062, 0.074], k: 0.55, in: [0.91, 0.95], out: [0.99, 1.00] },
+    ],
+  },
+};
+
+/* ── Venom ────────────────────────────────────────────────────────────────── */
+//
+// `surface: 'lava'` — the third surface material, alongside water and ice, and
+// the first one that is a light source. The molten channel at y = 0 is the key
+// light for the whole level: the sun is 3.5 degrees off the horizon through an
+// ash column and contributes almost nothing, so the walls are lit from
+// underneath by the river they stand over.
+//
+// `surfaceKind: 'volcanic'` — the third wall structure. Sedimentary bands run
+// horizontally and glacial foliation runs across the channel; columnar jointing
+// runs VERTICALLY and is cellular rather than layered, because basalt columns
+// grow perpendicular to the cooling front. That is the one axis the other two
+// structures cannot reach, and it is why the walls here do not read as either.
+
+export const DNA_VENOM = {
+  id: 'venom',
+  seed: 'venom:magma-1',
+  length: 9000,
+  zStart: 720,
+  zEnd: -9840,
+  waterLevel: 0,
+  surface: 'lava',
+  surfaceKind: 'volcanic',
+
+  centreline: {
+    // A lava channel follows the steepest line it burned for itself: straighter
+    // than a river, and what turning it does is abrupt. Hence small sines and
+    // the work carried by the zone dog-legs.
+    x: {
+      waves: [
+        { a: 118, w: 0.00037, p: 0.6 },
+        { a: 41, w: 0.00108, p: 2.9 },
+      ],
+      bends: [],
+    },
+    y: { base: 48, waves: [{ a: 12, w: 0.00041, p: 1.1 }], bends: [] },
+  },
+
+  zones: [
+    // The caldera floor: open ash plain, a low shattered rim, the widest thing
+    // in the level and the only place the sky is more than a strip.
+    { kind: 'basin', len: 1900, inner: 520, bed: 16, wallH: 260, relief: 0.70 },
+    // The channel closing in on the river.
+    { kind: 'reach', len: 1700, blend: 1200, inner: 260, wallH: 480 },
+    // A collapsed lava tube. Tightest walls in the game outside the Foundry.
+    { kind: 'narrows', len: 800, blend: 700, inner: 140, wallH: 700, bend: { dx: 200, width: 620 } },
+    // Vent chamber. Room to fight, and the walls are 380 m of column.
+    { kind: 'basin', len: 1300, blend: 600, inner: 460, wallH: 380, relief: 0.66 },
+    { kind: 'gorge', len: 1600, blend: 800, inner: 200, wallH: 620, bend: { dx: -260, width: 760 } },
+    { kind: 'narrows', len: 660, blend: 380, inner: 130, wallH: 720 },
+    // The sump: where the river pools, and where the fortress sits.
+    { kind: 'basin', len: 2600, blend: 800, inner: 600, wallH: 300, relief: 0.62 },
+  ],
+
+  bands: {
+    // Young volcanic rock has had no time to be rounded: every band above the
+    // rim runs sharper and shorter than Corneria's, and `crag` is the loudest
+    // it is anywhere in the game.
+    far: { scale: 1 / 24000, amp: 700, pow: 1.7, bias: 0.24, from: 1500, to: 4000 },
+    macro: { scale: 1 / 14000, amp: 280 },
+    range: { scale: 1 / 6200, amp: 300, pow: 1.9, bias: 0.26, lambda: 276 },
+    hill: { scale: 1 / 3800, amp: 118, lambda: 124 },
+    fine: { scale: 1 / 1860, amp: 52, lambda: 78 },
+    crag: { scale: 1 / 1320, amp: 78, bias: 0.34, lambda: 66 },
+    warp: { scale: 1 / 8600, amp: 220, shear: 0.7 },
+    jitter: { a: 38, b: 12 },
+    side: { scale: 1 / 5800, base: 0.74, amp: 0.54 },
+    relief: { base: 0.52, far: 2.6, from: 380, to: 3200 },
+  },
+
+  city: null,
+
+  islands: {
+    seed: 'venom:plugs-1',
+    groups: [
+      // spatter cones on the caldera floor
+      { n: 12, z: [500, -1700], u: [140, 560], r: [50, 140], h: [24, 90], pow: [1.8, 3.0] },
+      // plug domes standing in the vent chamber
+      { n: 8, z: [-4700, -5900], u: [90, 440], r: [28, 70], h: [70, 230], pow: [1.15, 1.55], spire: 1 },
+      // cooled flow lobes across the sump
+      { n: 14, z: [-8000, -9700], u: [40, 560], r: [90, 240], h: [5, 18], pow: [2.4, 3.8], flat: 1 },
+    ],
+    // Two column stacks in the tube, and one in the gorge.
+    fixed: [
+      { z: -3540, u: -42, r: 32, h: 300, pow: 1.08, spire: 1 },
+      { z: -3820, u: 48, r: 28, h: 265, pow: 1.08, spire: 1 },
+      { z: -6960, u: 54, r: 30, h: 340, pow: 1.08, spire: 1 },
+    ],
+  },
+
+  palette: {
+    // Basalt is near-black and stays near-black: the level's brightness comes
+    // from the river, not from the rock. `dry` is the one hot term — chilled
+    // ejecta on the rims, still red — and `pale` is ash, the only light value
+    // on the whole wall.
+    rock: [0.58, 0.55, 0.54],
+    sand: [0.72, 0.66, 0.60],
+    scrub: [0.44, 0.30, 0.24],
+    // Chilled ejecta, still hot enough to read. Kept to the shoulders by a low
+    // `amount` — at 1.2 it covered every bench in the caldera and the level
+    // read as red sand rather than as black rock over a red river.
+    dry: [1.30, 0.52, 0.20],
+    pale: [0.88, 0.84, 0.82],
+    urban: [0.90, 0.89, 0.86],
+    moss: [0.40, 0.32, 0.28],
+    amount: { pale: 0.75, dry: 0.45, veg: 0, moss: 0, sand: 0.5, urban: 0 },
+  },
+
+  lithology: {
+    // Fresh basalt, scoria and a welded tuff band. The separation is hue and
+    // almost no value: a wall lit from below by molten rock has all the value
+    // contrast it can carry already, and adding more turns it into soot.
+    base: [0.062, 0.056, 0.054],
+    members: [
+      { color: [0.108, 0.074, 0.062], k: 0.85, in: [0.03, 0.11], out: [0.19, 0.30] },
+      { color: [0.046, 0.046, 0.050], k: 0.70, in: [0.38, 0.45], out: [0.50, 0.58] },
+      { color: [0.146, 0.108, 0.086], k: 0.78, in: [0.63, 0.70], out: [0.78, 0.86] },
+      { color: [0.190, 0.062, 0.034], k: 0.55, in: [0.90, 0.94], out: [0.98, 1.00] },
+    ],
+  },
+};
+
 export const DNA_BY_ID = {
   corneria: DNA_CORNERIA,
   fichina: DNA_FICHINA,
   omega: DNA_SECTOR_OMEGA,
   foundry: DNA_FOUNDRY,
+  aquas: DNA_AQUAS,
+  fortuna: DNA_FORTUNA,
+  venom: DNA_VENOM,
 };

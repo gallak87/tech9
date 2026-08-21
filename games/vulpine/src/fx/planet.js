@@ -181,6 +181,16 @@ export const PLANET_PALETTES = {
     cloud: [0.52, 0.26, 0.18], atmo: [1.00, 0.34, 0.16],
     cloudCover: 0.50, band: 0.34, seaLevel: 0.52, poleLat: 0.80, thickness: 3.0,
   },
+  aquas: {
+    low: [0.018, 0.072, 0.108], high: [0.075, 0.150, 0.140], pole: [0.80, 0.90, 0.94],
+    cloud: [0.90, 0.95, 0.98], atmo: [0.16, 0.62, 0.86],
+    cloudCover: 0.54, band: 0.16, seaLevel: 0.86, poleLat: 0.88, thickness: 3.8,
+  },
+  fortuna: {
+    low: [0.040, 0.078, 0.070], high: [0.060, 0.190, 0.130], pole: [0.62, 0.72, 0.78],
+    cloud: [0.72, 0.86, 0.84], atmo: [0.28, 0.90, 0.66],
+    cloudCover: 0.46, band: 0.22, seaLevel: 0.36, poleLat: 0.78, thickness: 3.2,
+  },
   sunset: {
     low: [0.180, 0.090, 0.060], high: [0.320, 0.220, 0.120], pole: [0.80, 0.76, 0.72],
     cloud: [0.90, 0.84, 0.78], atmo: [1.00, 0.52, 0.28],

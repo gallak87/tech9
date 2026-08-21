@@ -34,7 +34,12 @@ import { HeatWash } from './screen.js';
 const PHASES = ['ascent', 'space', 'approach', 'reentry', 'whiteout', 'clear'];
 
 /** Planet palette per environment preset; anything unlisted falls back. */
-const PLANET_FOR = { corneria: 'corneria', fichina: 'fichina', venom: 'venom', sunset: 'sunset', space: 'venom', foundry: 'venom' };
+const PLANET_FOR = {
+  corneria: 'corneria', fichina: 'fichina', venom: 'venom', sunset: 'sunset',
+  aquas: 'aquas', fortuna: 'fortuna',
+  // A belt has no body of its own; the Foundry is a structure in orbit of one.
+  space: 'venom', foundry: 'venom',
+};
 
 const _dirA = new THREE.Vector3();
 const _dirB = new THREE.Vector3();

@@ -123,6 +123,25 @@ const BEACON = {
     color: 0xd24bff, gain: 6.5, size: 1.90, minPx: 11.0, rate: 0.9, duty: 0.5, pattern: 'strobe',
     at: [[0, 2.95, -3.0], [0, -0.15, -13.1]],
   },
+  // The warm half is nearly spent by the five above, so these three separate on
+  // the axes that are left. Gold is the yellow end of the range and takes the
+  // highest `minPx` in the table, because the lancer opens fire from 1400 m and
+  // has to be findable before its first round lands. The pylon separates by
+  // *saturation* rather than hue — a warm white obstruction light — since every
+  // saturated warm hue is already a class. Pattern carries role: `pulse` is the
+  // emplacement signal, so both static classes share it and differ in rate.
+  lancer: {
+    color: 0xffe14a, gain: 7.0, size: 0.78, minPx: 10.0, rate: 0.85, duty: 0.5, pattern: 'triple',
+    at: [[0, 1.10, -0.90]],
+  },
+  scarab: {
+    color: 0xff5a10, gain: 6.0, size: 0.55, minPx: 7.0, rate: 1.4, duty: 0.72, pattern: 'steady',
+    at: [[0, 1.42, 0.10]],
+  },
+  pylon: {
+    color: 0xffdca8, gain: 5.5, size: 0.90, minPx: 7.0, rate: 0.70, duty: 0.5, pattern: 'pulse',
+    at: [[0, 10.30, 0]],
+  },
 };
 
 /** Distances over which an unfogged beacon is allowed to exist, in metres. */
@@ -184,6 +203,8 @@ function beaconDuty(B, t, phase) {
     case 'double': return (ph < 0.10 || (ph > 0.20 && ph < 0.30)) ? 1 : 0.38;
     // a hard short flash — the thing you notice from the corner of your eye
     case 'strobe': return ph < 0.10 ? 1 : 0.42;
+    // three winks in the space a `double` uses for two, read at the same rate
+    case 'triple': return (ph < 0.07 || (ph > 0.13 && ph < 0.20) || (ph > 0.26 && ph < 0.33)) ? 1 : 0.38;
     // slow breathing, so a gun emplacement never reads as something closing
     case 'pulse': return 0.55 + 0.45 * (0.5 - 0.5 * Math.cos(ph * Math.PI * 2));
     default: return ph < B.duty ? 1 : 0.45;
@@ -850,6 +871,397 @@ function vanguardProto() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   LANCER — standoff sniper
+   A 12.4 m needle carrying a dorsal rail and two outrigger booms. Length over
+   beam is 15:1, which is a proportion no other hull in the game has, and it is
+   the only cue that survives at the range this thing opens from: it fires at
+   1400 m, where the raptor's crescent and the hornet's twin hull are both a
+   dozen pixels of dark. The charge node between the rails and the gold beacon
+   above them are the near and far halves of the same job.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+const LANCER_BODY = [
+  { z: -8.20, rx: 0.035, ry: 0.030, p: 2.6 },
+  { z: -7.30, rx: 0.130, ry: 0.115, p: 2.8, shoulder: 0.04 },
+  { z: -5.60, rx: 0.235, ry: 0.200, p: 3.0, shoulder: 0.10 },
+  { z: -3.00, rx: 0.330, ry: 0.270, p: 3.2, shoulder: 0.16 },
+  { z: -0.40, rx: 0.395, ry: 0.320, p: 3.3, shoulder: 0.18 },
+  { z: 1.80, rx: 0.370, ry: 0.300, p: 3.2, shoulder: 0.12 },
+  { z: 3.40, rx: 0.320, ry: 0.260, p: 3.0, shoulder: 0.04 },
+  { z: 4.20, rx: 0.285, ry: 0.235, p: 2.9 },
+];
+
+const LANCER_FIN = [
+  { span: 0.00, chord: 1.35, thickness: 0.110, sweep: 0.00 },
+  { span: 0.44, chord: 1.05, thickness: 0.078, sweep: 0.30 },
+  { span: 0.88, chord: 0.72, thickness: 0.052, sweep: 0.62 },
+  { span: 1.18, chord: 0.40, thickness: 0.034, sweep: 0.94 },
+];
+
+function lancerProto() {
+  const root = new THREE.Group();
+  root.name = 'lancer';
+  const p = Parts();
+
+  /* needle fuselage */
+  p.add(SMat.hostile, hullLoft({
+    stations: LANCER_BODY, count: 22, steps: 26,
+    circGrooves: [
+      { z: -5.20, depth: 0.018, width: 0.05 },
+      { z: -2.30, depth: 0.022, width: 0.055 },
+      { z: 0.90, depth: 0.022, width: 0.055 },
+      { z: 2.90, depth: 0.018, width: 0.05 },
+    ],
+    longGrooves: [
+      { a: 0.25, depth: 0.018, width: 0.013, z0: -6.4, z1: 3.6 },
+      { a: 0.75, depth: 0.018, width: 0.013, z0: -6.4, z1: 3.6 },
+    ],
+    dents: [
+      { z: -1.20, a: 0.0, rz: 0.90, ra: 0.070, depth: 0.085, rim: 0.5 },
+      { z: -1.20, a: 0.5, rz: 0.90, ra: 0.070, depth: 0.085, rim: 0.5 },
+    ],
+  }));
+
+  /* dorsal rail: a spine beam, two accelerator rails and their coil collars.
+     It reaches within 0.6 m of the nose, so the top edge of the silhouette is
+     a straight line from tip to tail — the spear read. */
+  p.add(SMat.hostilePlate, chamferBox(0.34, 0.26, 9.60, 0.05), M.t(0, 0.50, -2.60));
+  p.both(SMat.metal, tubeAlong([V3(0, 0, -7.55), V3(0, 0, 1.30)], 0.052, 8), M.t(0.17, 0.66, 0));
+  for (const z of [-6.55, -5.05, -3.55, -2.05]) {
+    p.add(SMat.metalDark, shellArc({ r: 0.34, t: 0.09, a0: 0, a1: Math.PI * 2, z0: z - 0.16, z1: z + 0.16, seg: 12 }),
+      M.t(0, 0.60, 0));
+  }
+  p.add(SMat.hostileTrim, chamferBox(0.10, 0.09, 7.20, 0.02), M.t(0, 0.80, -3.20));
+  p.add(SMat.metalDark, chamferBox(0.42, 0.36, 0.52, 0.06), M.t(0, 0.62, -7.30));
+  p.add(SMat.hostileGlow, new THREE.CircleGeometry(0.085, 10), M.chain(M.t(0, 0.62, -7.58), M.ry(Math.PI)));
+
+  /* outrigger booms — thin, long, and parallel: the width of the silhouette is
+     three separate lines rather than one mass */
+  p.both(SMat.hostilePlate, tubeAlong(
+    [V3(0, 0, -6.10), V3(0, 0, -5.40), V3(0, 0, 1.60), V3(0, 0, 2.40)],
+    (t) => [0.045, 0.160, 0.160, 0.090][Math.round(t * 3)], 12), M.t(1.30, -0.16, 0));
+  p.both(SMat.metalDark, ductGeo({ rx: 0.10, ry: 0.10, depth: 0.34, throat: 0.5, lip: 0.02, sides: 12 }),
+    M.chain(M.t(1.30, -0.16, 2.42), M.ry(Math.PI)));
+  p.both(SMat.metalDark, shellArc({ r: 0.185, t: 0.05, a0: 0, a1: Math.PI * 2, z0: -3.10, z1: -2.70, seg: 10 }),
+    M.t(1.30, -0.16, 0));
+  p.both(SMat.hostileTrim, chamferBox(0.06, 0.20, 1.60, 0.02), M.t(1.44, -0.16, -1.20));
+
+  /* struts, fore and aft: the booms are carried, not floating */
+  p.both(SMat.metalDark, chamferBox(0.92, 0.11, 0.44, 0.03), M.t(0.86, -0.14, -4.40));
+  p.both(SMat.metalDark, chamferBox(0.92, 0.11, 0.44, 0.03), M.t(0.86, -0.14, 1.05));
+
+  /* anhedral tail fins — small, because nothing may compete with the rail */
+  const fin = wingLoft(LANCER_FIN, { res: 14, steps: 7 });
+  p.both(SMat.hostile, fin, M.chain(M.t(0.26, -0.10, 2.60), M.rz(-2.36)));
+  p.both(SMat.hostileTrim, chamferBox(0.05, 0.24, 0.34, 0.02),
+    M.chain(M.t(0.26, -0.10, 2.60), M.rz(-2.36), M.t(1.04, 0, 0.52)));
+
+  /* sighting head under the nose, and a louvred bay over the coil bank */
+  p.add(SMat.metalDark, blisterGeo({ rx: 0.14, ry: 0.10, rz: 0.30, seg: 12, rings: 4 }),
+    M.chain(M.t(0, -0.16, -4.70), M.rx(-1.62)));
+  p.both(SMat.metalDark, louvers({ n: 5, w: 0.34, h: 0.026, d: 0.07, gap: 0.052, tilt: -0.5 }),
+    M.chain(M.t(0.33, 0.16, 0.90), M.ry(1.30)));
+  p.add(SMat.hostile, boltRow({ from: [-0.22, 0.34, -3.30], to: [0.22, 0.34, -3.30], n: 4, r: 0.014, h: 0.009 }));
+
+  /* dark low canopy, well aft — the pilot sits behind the rail bank */
+  p.add(SMat.hostilePlate, hullLoft({
+    stations: [
+      { z: -3.05, rx: 0.14, ry: 0.040, p: 3.0, yOff: 0.20 },
+      { z: -2.55, rx: 0.26, ry: 0.115, p: 3.2, yOff: 0.22 },
+      { z: -2.00, rx: 0.24, ry: 0.100, p: 3.2, yOff: 0.22 },
+      { z: -1.65, rx: 0.15, ry: 0.045, p: 3.0, yOff: 0.21 },
+    ], count: 16, steps: 8,
+  }));
+  const glass = hullLoft({
+    stations: [
+      { z: -2.98, rx: 0.10, ry: 0.028, p: 3.0, yOff: 0.235 },
+      { z: -2.55, rx: 0.20, ry: 0.090, p: 3.2, yOff: 0.248 },
+      { z: -2.05, rx: 0.19, ry: 0.080, p: 3.2, yOff: 0.248 },
+      { z: -1.74, rx: 0.11, ry: 0.032, p: 3.0, yOff: 0.238 },
+    ], count: 16, steps: 8,
+  });
+
+  /* aft bay */
+  p.add(SMat.heat, hullLoft({
+    stations: [
+      { z: 3.70, rx: 0.310, ry: 0.255, p: 3.0 },
+      { z: 4.30, rx: 0.280, ry: 0.230, p: 3.0 },
+      { z: 4.60, rx: 0.250, ry: 0.205, p: 3.0 },
+    ], count: 18, steps: 4, capStart: false,
+  }));
+  p.add(SMat.ceramic, ductGeo({ rx: 0.22, ry: 0.185, depth: 0.34, throat: 0.72, lip: 0.03, sides: 16, p: 3.0 }),
+    M.chain(M.t(0, 0.01, 4.61), M.ry(Math.PI)));
+
+  p.into(root);
+
+  const g = new THREE.Mesh(glass, SMat.hostileGlass);
+  g.renderOrder = 3;
+  root.add(g);
+
+  // Two lit nodes, both on the class's own channel: the charge sitting between
+  // the rails is what tells you a shot is coming, and the sighting head is what
+  // tells you it is aimed at you.
+  const charge = new THREE.Mesh(new THREE.SphereGeometry(0.145, 12, 10), EMat.eyeAmber);
+  charge.position.set(0, 0.64, -6.95);
+  charge.name = 'eye';
+  root.add(charge);
+  const sight = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), EMat.eye);
+  sight.position.set(0, -0.18, -4.92);
+  sight.name = 'eye';
+  root.add(sight);
+
+  const eng = engineNode(0, 0.01, 4.62, 0.22, { len: 3.4 });
+  eng.name = 'engine';
+  root.add(eng);
+  for (const sx of [1, -1]) {
+    const e = engineNode(sx * 1.30, -0.16, 2.44, 0.10, { len: 1.5 });
+    e.name = 'engine';
+    root.add(e);
+  }
+
+  root.userData.spec = {
+    kind: 'lancer', radius: 3.0, hp: 24, score: 400,
+    guns: [V3(0, 0.62, -7.60)],
+    maxSpeed: 175, turnRate: 0.55, accel: 60,
+    fireRange: 1400, burst: 1, burstGap: 0.30, reload: 2.6, dmg: 16,
+    boomScale: 1.8,
+  };
+  return root;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCARAB — armoured rammer
+   The wasp's heavy cousin: a hunched carapace behind a shielded prow, banded
+   like a beetle and twice its beam. Where the wasp is a hot spark with four
+   fins in an X, this is a low wide dome with nothing radial on it at all, and
+   its lamp blinks once a second instead of flickering.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+function scarabProto() {
+  const root = new THREE.Group();
+  root.name = 'scarab';
+  const p = Parts();
+
+  /* carapace: wide, hunched, flat-bellied */
+  p.add(SMat.hostile, hullLoft({
+    stations: [
+      { z: -1.70, rx: 0.42, ry: 0.26, p: 3.6, squash: 0.55 },
+      { z: -1.05, rx: 0.82, ry: 0.52, p: 4.0, squash: 0.50, shoulder: 0.14 },
+      { z: -0.10, rx: 1.06, ry: 0.72, p: 4.2, squash: 0.46, shoulder: 0.20 },
+      { z: 0.90, rx: 1.00, ry: 0.66, p: 4.1, squash: 0.48, shoulder: 0.16 },
+      { z: 1.70, rx: 0.74, ry: 0.46, p: 3.8, squash: 0.55, shoulder: 0.06 },
+      { z: 2.10, rx: 0.58, ry: 0.34, p: 3.4, squash: 0.62 },
+    ], count: 20, steps: 16,
+    longGrooves: [
+      { a: 0.25, depth: 0.045, width: 0.020, z0: -1.4, z1: 1.9 },
+      { a: 0.14, depth: 0.035, width: 0.016, z0: -1.2, z1: 1.7 },
+      { a: 0.36, depth: 0.035, width: 0.016, z0: -1.2, z1: 1.7 },
+    ],
+  }));
+
+  /* segment bands over the crown — the beetle read, and the only mid-frequency
+     shape cue left once this is 20 px across */
+  for (const z of [-0.55, 0.35, 1.15]) {
+    p.add(SMat.hostilePlate, shellArc({
+      r: 1.10, t: 0.075, a0: 0.34, a1: Math.PI - 0.34, z0: z - 0.24, z1: z + 0.24, seg: 12,
+    }));
+  }
+  p.add(SMat.hostileTrim, shellArc({ r: 1.13, t: 0.045, a0: 1.34, a1: 1.80, z0: -1.1, z1: 1.7, seg: 5 }));
+
+  /* shielded prow: a sloped ram plate with two mandible tusks. This is the face
+     it presents for the whole dive, so it is the only part that has to work. */
+  p.add(SMat.hostilePlate, extrudePoly([
+    new THREE.Vector2(-1.02, -0.34), new THREE.Vector2(-0.52, -0.72),
+    new THREE.Vector2(0.52, -0.72), new THREE.Vector2(1.02, -0.34),
+    new THREE.Vector2(0.72, 0.60), new THREE.Vector2(-0.72, 0.60),
+  ], 0.30, 0.07), M.chain(M.t(0, 0.06, -1.86), M.rx(0.34)));
+  p.add(SMat.hostileTrim, chamferBox(1.10, 0.09, 0.20, 0.03), M.chain(M.t(0, 0.44, -2.02), M.rx(0.34)));
+  p.both(SMat.metal, extrudePoly([
+    new THREE.Vector2(0, -0.16), new THREE.Vector2(1.05, -0.30),
+    new THREE.Vector2(1.05, 0.05), new THREE.Vector2(0, 0.22),
+  ], 0.16, 0.04), M.chain(M.t(0.72, -0.12, -1.72), M.ry(Math.PI / 2 + 0.22), M.rx(-Math.PI / 2), M.rz(Math.PI / 2)));
+  p.add(SMat.metalDark, boltRow({ from: [-0.80, 0.30, -2.00], to: [0.80, 0.30, -2.00], n: 6, r: 0.028, h: 0.016 }));
+
+  /* stub anhedral canards low on the shoulders, and four grapple nubs beneath —
+     mass slung under the hull, the opposite of the wasp's radial fins */
+  p.both(SMat.hostile, extrudePoly([
+    new THREE.Vector2(0, -0.22), new THREE.Vector2(0.92, 0.24),
+    new THREE.Vector2(0.92, 0.52), new THREE.Vector2(0, 0.30),
+  ], 0.07, 0.02), M.chain(M.t(0.95, -0.22, -0.30), M.rz(-0.42), M.rx(-Math.PI / 2)));
+  for (const z of [-0.70, 0.70]) {
+    p.both(SMat.metalDark, chamferBox(0.16, 0.44, 0.20, 0.04), M.chain(M.t(0.62, -0.46, z), M.rz(0.38)));
+  }
+  p.both(SMat.metalDark, louvers({ n: 4, w: 0.40, h: 0.032, d: 0.08, gap: 0.058, tilt: -0.55 }),
+    M.chain(M.t(0.86, 0.26, 0.90), M.ry(1.22)));
+
+  p.into(root);
+
+  // A slit rather than the wasp's exposed ball: the core is behind the shield,
+  // which is the whole difference between something that dies to one round and
+  // something that does not.
+  const core = new THREE.Mesh(chamferBox(0.72, 0.13, 0.16, 0.03), EMat.droneCore);
+  core.position.set(0, 0.30, -1.60);
+  core.name = 'eye';
+  root.add(core);
+
+  for (const sx of [1, -1]) {
+    const e = engineNode(sx * 0.46, 0.02, 2.14, 0.21, { len: 2.2 });
+    e.name = 'engine';
+    root.add(e);
+  }
+
+  root.userData.spec = {
+    kind: 'scarab', radius: 2.4, hp: 7, score: 140,
+    guns: [], ram: true,
+    maxSpeed: 230, turnRate: 1.7, accel: 150,
+    fireRange: 0, burst: 0, burstGap: 1, reload: 1, dmg: 22,
+    boomScale: 1.6,
+  };
+  return root;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PYLON — mast emplacement
+   The bulwark inverted. That one is sunk and squat and reads as terrain; this
+   is a 9.6 m skeletal lattice with an armoured cap and a quad mount on top, and
+   it reads as a landmark from further out than any other hostile its cost.
+   Guns sit at y ≈ 8.9 rather than the bulwark's 2.5, so the mast is the threat
+   rather than a plinth for one.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Half-width of the lattice at height `y`: the mast tapers over its run. */
+const MAST_Y0 = 1.55, MAST_Y1 = 8.00;
+const mastR = (y) => THREE.MathUtils.lerp(0.70, 0.34, THREE.MathUtils.clamp((y - MAST_Y0) / (MAST_Y1 - MAST_Y0), 0, 1));
+
+function pylonProto() {
+  const root = new THREE.Group();
+  root.name = 'pylon';
+  const p = Parts();
+
+  /* footing. Static craft are placed at ground + 3.2 and the hull is drawn at
+     NPC_SCALE, so a base that is to meet the terrain has to reach y = -2.2
+     authored before it gets there. */
+  p.add(SMat.hostilePlate, extrudePoly(hexPts(1.50), 4.00, 0.08), M.chain(M.t(0, -2.20, 0), M.rx(-Math.PI / 2)));
+  p.add(SMat.hostilePlate, extrudePoly(hexPts(2.10), 1.40, 0.10), M.chain(M.t(0, 0.30, 0), M.rx(-Math.PI / 2)));
+  p.add(SMat.hostile, extrudePoly(hexPts(1.62), 0.55, 0.07), M.chain(M.t(0, 1.25, 0), M.rx(-Math.PI / 2)));
+  p.add(SMat.hostileTrim, extrudePoly(hexPts(1.70), 0.09, 0.02), M.chain(M.t(0, 1.57, 0), M.rx(-Math.PI / 2)));
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * Math.PI * 2 + 0.52;
+    p.add(SMat.metalDark, chamferBox(0.36, 0.26, 1.90, 0.05),
+      M.chain(M.ry(-a), M.t(0, 0.92, 1.32), M.rx(-0.60)));
+  }
+  p.add(SMat.metalDark, boltRow({ from: [-1.15, 1.62, -0.85], to: [1.15, 1.62, -0.85], n: 6, r: 0.030, h: 0.018 }));
+  p.add(SMat.metalDark, boltRow({ from: [-1.15, 1.62, 0.85], to: [1.15, 1.62, 0.85], n: 6, r: 0.030, h: 0.018 }));
+
+  /* lattice mast: four tapering corner posts on five braced levels. Sky reads
+     through it, which is the one thing that keeps it from being a tall
+     bulwark. */
+  const RING = [[1, 1], [1, -1], [-1, -1], [-1, 1]];
+  const LEVELS = [MAST_Y0, 3.16, 4.77, 6.38, MAST_Y1];
+  for (const [cx, cz] of RING) {
+    p.add(SMat.metal, tubeAlong(LEVELS.map(y => {
+      const r = mastR(y);
+      return V3(cx * r, y, cz * r);
+    }), 0.098, 6));
+  }
+  for (let lv = 1; lv < LEVELS.length; lv++) {
+    const y = LEVELS[lv], r = mastR(y);
+    for (let i = 0; i < 4; i++) {
+      const a = RING[i], b = RING[(i + 1) % 4];
+      p.add(SMat.metalDark, tubeAlong([V3(a[0] * r, y, a[1] * r), V3(b[0] * r, y, b[1] * r)], 0.052, 6));
+    }
+  }
+  // one diagonal per face per bay, alternating, so the lattice reads as braced
+  // rather than as a stack of empty squares
+  for (let bay = 0; bay < LEVELS.length - 1; bay++) {
+    const y0 = LEVELS[bay], y1 = LEVELS[bay + 1];
+    const r0 = mastR(y0), r1 = mastR(y1);
+    for (let f = 0; f < 4; f++) {
+      const a = RING[f], b = RING[(f + 1) % 4];
+      const flip = (bay + f) % 2 === 0;
+      const lo = flip ? a : b, hi = flip ? b : a;
+      p.add(SMat.metalDark, tubeAlong([V3(lo[0] * r0, y0, lo[1] * r0), V3(hi[0] * r1, y1, hi[1] * r1)], 0.042, 6));
+    }
+  }
+  // serviced, not abstract: a cable run climbing one face
+  p.add(SMat.hostileTrim, tubeAlong([
+    V3(0.30, 1.70, -0.58), V3(0.26, 4.80, -0.44), V3(0.22, 7.90, -0.34),
+  ], 0.038, 6));
+
+  /* armoured cap: the mast's mass arrives all at once, all of it at the top */
+  p.add(SMat.hostile, hullLoft({
+    stations: [
+      { z: -1.10, rx: 0.95, ry: 0.58, p: 4.0, yOff: 8.26 },
+      { z: -0.55, rx: 1.34, ry: 0.86, p: 4.4, yOff: 8.34 },
+      { z: 0.55, rx: 1.34, ry: 0.86, p: 4.4, yOff: 8.34 },
+      { z: 1.10, rx: 0.95, ry: 0.58, p: 4.0, yOff: 8.26 },
+    ], count: 20, steps: 10,
+    circGrooves: [{ z: 0.0, depth: 0.05, width: 0.12 }],
+    longGrooves: [{ a: 0.25, depth: 0.04, width: 0.028, z0: -0.9, z1: 0.9 }],
+  }));
+  p.add(SMat.hostilePlate, chamferBox(2.30, 0.16, 1.00, 0.05), M.chain(M.t(0, 8.66, -1.02), M.rx(0.58)));
+  p.add(SMat.hostileTrim, chamferBox(1.70, 0.09, 0.22, 0.03), M.chain(M.t(0, 8.90, -1.24), M.rx(0.58)));
+  p.both(SMat.metalDark, louvers({ n: 4, w: 0.58, h: 0.045, d: 0.11, gap: 0.086, tilt: -0.6 }),
+    M.chain(M.t(1.12, 8.30, 0.60), M.ry(1.18)));
+  p.into(root);
+
+  /* traversing quad mount: two twin cradles on one ring */
+  const turret = new THREE.Group();
+  turret.name = 'turret';
+  turret.position.set(0, 8.82, 0);
+  {
+    const tp = Parts();
+    tp.add(SMat.hostile, hullLoft({
+      stations: [
+        { z: -0.95, rx: 0.72, ry: 0.44, p: 3.2, yOff: 0.24 },
+        { z: -0.35, rx: 1.02, ry: 0.64, p: 3.6, yOff: 0.30 },
+        { z: 0.45, rx: 0.96, ry: 0.60, p: 3.6, yOff: 0.29 },
+        { z: 0.92, rx: 0.66, ry: 0.40, p: 3.2, yOff: 0.22 },
+      ], count: 18, steps: 10,
+      circGrooves: [{ z: 0.0, depth: 0.035, width: 0.08 }],
+    }));
+    tp.add(SMat.hostileTrim, shellArc({ r: 1.06, t: 0.04, a0: -0.5, a1: 0.5, z0: -0.25, z1: 0.35, seg: 8 }),
+      M.t(0, 0.30, 0));
+    tp.add(SMat.metalDark, blisterGeo({ rx: 0.24, ry: 0.18, rz: 0.32, seg: 12, rings: 4 }), M.t(0, 0.96, 0.30));
+    tp.into(turret);
+  }
+  const barrels = new THREE.Group();
+  barrels.name = 'barrels';
+  barrels.position.set(0, 0.44, -0.40);
+  {
+    const bp = Parts();
+    bp.add(SMat.metalDark, chamferBox(1.30, 0.44, 0.62, 0.08), M.t(0, 0, 0.08));
+    for (const dy of [0.13, -0.13]) {
+      bp.both(SMat.metal, tubeAlong([V3(0, 0, 0.08), V3(0, 0, -1.75)], (t) => 0.062 - t * 0.014, 8),
+        M.t(0.42, dy, 0));
+      bp.both(SMat.metalDark, chamferBox(0.15, 0.15, 0.20, 0.03), M.t(0.42, dy, -1.72));
+      bp.both(SMat.hostileGlow, new THREE.CircleGeometry(0.046, 8), M.chain(M.t(0.42, dy, -1.85), M.ry(Math.PI)));
+    }
+    bp.both(SMat.hostileTrim, chamferBox(0.14, 0.05, 0.40, 0.02), M.t(0.42, 0.26, -0.90));
+    bp.into(barrels);
+  }
+  const eye = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 8), EMat.eyeAmber);
+  eye.position.set(0, 0.30, -0.58);
+  eye.name = 'eye';
+  barrels.add(eye);
+  turret.add(barrels);
+  root.add(turret);
+
+  root.userData.spec = {
+    kind: 'pylon', radius: 3.4, hp: 14, score: 260, static: true,
+    // Two mounts, four barrels: `enemyFire` fires every mount on every burst
+    // step, so a four-mount quad at burst 4 would put four times the bulwark's
+    // volume in the air off one emplacement. The listed pair is the outboard
+    // barrel of each cradle.
+    guns: [V3(0.56, 9.26, -2.25), V3(-0.56, 9.26, -2.25)],
+    maxSpeed: 0, turnRate: 1.0, accel: 0,
+    fireRange: 900, burst: 4, burstGap: 0.14, reload: 2.0, dmg: 8,
+    boomScale: 2.2,
+  };
+  return root;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    COMMANDER — elite mini-boss, the climax of levels 2 and 3
    ═══════════════════════════════════════════════════════════════════════════
 
@@ -943,6 +1355,77 @@ function commanderMaterials() {
   CM.weakDead = emissive(0x2a1e14, 0.5);
   CM.eye = emissive(0xff3a20, 5.0);
   CM.charge = emissive(0xffd070, 6.0);
+
+  /* Deep water: no sky term worth having and a fog that eats value inside
+     300 m, so the hull separates on its own wet specular against a matte
+     fouling band — the ice glaze's two-BRDF trick, run the other way round. */
+  CM.tideHull = SMat.hostile.clone();
+  CM.tideHull.color.setHex(0x2c4a49);
+  CM.tideHull.roughness = 0.40;
+  CM.tideHull.metalness = 0.66;
+  CM.tideHull.clearcoat = 0.85;
+  CM.tideHull.clearcoatRoughness = 0.22;
+  CM.tideHull.envMapIntensity = 1.15;
+
+  CM.tidePlate = SMat.hostilePlate.clone();
+  CM.tidePlate.color.setHex(0x1b3130);
+  CM.tidePlate.roughness = 0.70;
+  CM.tidePlate.metalness = 0.45;
+  CM.tidePlate.envMapIntensity = 0.80;
+
+  CM.tideFoul = SMat.hostilePlate.clone();
+  CM.tideFoul.color.setHex(0x6d6a52);
+  CM.tideFoul.roughness = 0.99;
+  CM.tideFoul.metalness = 0.0;
+  CM.tideFoul.clearcoat = 0.0;
+  CM.tideFoul.envMapIntensity = 0.65;
+
+  CM.tideLamp = emissive(0xa8e8ff, 2.6);
+
+  /* Night forest: the darkest hull in the game, taking its whole value from its
+     own lamps. Those stay amber. Green is the player's channel here — it is the
+     instrument and HUD colour — and the beacon rule keeps hostile lamps in the
+     warm half, so the level's green lives in the coil emissive alone, where it
+     reads as the machine's own biology rather than as a friendly. */
+  CM.bloomHull = SMat.hostile.clone();
+  CM.bloomHull.color.setHex(0x241f1c);
+  CM.bloomHull.roughness = 0.88;
+  CM.bloomHull.metalness = 0.52;
+  CM.bloomHull.envMapIntensity = 0.55;
+
+  CM.bloomPlate = SMat.hostilePlate.clone();
+  CM.bloomPlate.color.setHex(0x14100e);
+  CM.bloomPlate.roughness = 0.95;
+  CM.bloomPlate.metalness = 0.30;
+  CM.bloomPlate.envMapIntensity = 0.40;
+
+  CM.bloomLamp = emissive(0xffa42a, 2.4);
+  CM.bloomCoil = emissive(0x8cff2e, 3.2);
+
+  /* Volcanic trench: the key light is a lava river *below*, so up-facing plate
+     gets nothing and the underside gets everything. The slag crust is the only
+     warm diffuse on the hull and it goes on the prow, which is the face this
+     ship presents for the whole fight. */
+  CM.forgeHull = SMat.hostile.clone();
+  CM.forgeHull.color.setHex(0x2e2622);
+  CM.forgeHull.roughness = 0.82;
+  CM.forgeHull.metalness = 0.62;
+  CM.forgeHull.envMapIntensity = 0.70;
+
+  CM.forgePlate = SMat.hostilePlate.clone();
+  CM.forgePlate.color.setHex(0x191412);
+  CM.forgePlate.roughness = 0.94;
+  CM.forgePlate.metalness = 0.35;
+  CM.forgePlate.envMapIntensity = 0.45;
+
+  CM.forgeSlag = SMat.hostile.clone();
+  CM.forgeSlag.color.setHex(0x5a3a2a);
+  CM.forgeSlag.roughness = 0.98;
+  CM.forgeSlag.metalness = 0.10;
+  CM.forgeSlag.envMapIntensity = 0.55;
+
+  CM.forgeVane = emissive(0xff3a08, 2.0);
+  CM.forgeCore = emissive(0xffb03a, 3.0);
   return CM;
 }
 
@@ -1226,6 +1709,7 @@ function buildIce(root, rig) {
   const dL = iceDamper('damperL'); dL.position.set(-3.05, 2.75, -1.20);
   const sp = iceSpine('spine'); sp.position.set(0, 2.95, 4.60);
   for (const w of [dR, dL, sp]) { root.add(w); rig.weak.push(w); }
+  rig.recoil.push({ node: dR, index: 0, z: -1.20, k: 1.30 }, { node: dL, index: 1, z: -1.20, k: 1.30 });
 
   /* two flank mounts, not destructible — chaff fire while you hunt */
   for (const sx of [1, -1]) {
@@ -1331,6 +1815,7 @@ function buildVoid(root, rig) {
   }
 
   /* running lights: the only reason this hull has an outline out there */
+  rig.accents.push({ mat: CM.panel, r: 0.70, g: 0.30, b: 1.0, base: 1.9, rage: 1.6, rate: 1.7, swing: 0.25 });
   p.both(CM.panel, chamferBox(0.10, 0.13, 9.60, 0.03), M.t(3.34, 0.42, -0.60));
   p.both(CM.panel, chamferBox(0.10, 0.13, 4.20, 0.03), M.t(2.05, 2.18, 3.40));
   p.add(CM.panel, chamferBox(1.30, 0.10, 0.16, 0.03), M.t(0, 2.16, -5.90));
@@ -1381,9 +1866,705 @@ function buildVoid(root, rig) {
   ];
 }
 
-const CMD_BUILD = { ice: buildIce, void: buildVoid };
+/* ── tide: ballast pod ─────────────────────────────────────────────────────
+   Outboard, cylindrical and vented, hung off the pressure hull on two pylons
+   so it reads as a bolt-on tank rather than as part of the hull line. */
+function tideBallast(name, sx) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(CM.tideHull, hullLoft({
+    stations: [
+      { z: -5.40, rx: 0.55, ry: 0.55, p: 2.8 },
+      { z: -4.20, rx: 1.15, ry: 1.15, p: 3.0 },
+      { z: -0.20, rx: 1.38, ry: 1.38, p: 3.2 },
+      { z: 3.80, rx: 1.22, ry: 1.22, p: 3.0 },
+      { z: 5.20, rx: 0.70, ry: 0.70, p: 2.8 },
+    ], count: 20, steps: 14,
+    circGrooves: [{ z: -2.20, depth: 0.10, width: 0.26 }, { z: 1.90, depth: 0.10, width: 0.26 }],
+    longGrooves: [{ a: 0.25, depth: 0.08, width: 0.022, z0: -4.4, z1: 4.6 }],
+  }));
+  // flood vents along the crown, and a fouling crust on the outboard shoulder
+  p.add(SMat.metalDark, louvers({ n: 6, w: 1.20, h: 0.11, d: 0.26, gap: 0.40, tilt: -0.45 }),
+    M.chain(M.t(0, 1.18, -1.20), M.rx(-1.30)));
+  p.add(CM.tideFoul, extrudePoly([
+    new THREE.Vector2(-1.70, -0.55), new THREE.Vector2(1.50, -0.80),
+    new THREE.Vector2(1.20, 0.60), new THREE.Vector2(-1.55, 0.85),
+  ], 0.20, 0.05), M.chain(M.t(sx * 1.22, 0.28, 1.60), M.rz(sx * Math.PI / 2), M.rx(-Math.PI / 2)));
+  p.add(CM.tidePlate, shellArc({ r: 1.44, t: 0.14, a0: 0.45, a1: Math.PI - 0.45, z0: -3.40, z1: -2.40, seg: 10 }));
+  // pylons to the pressure hull
+  for (const z of [-2.60, 2.40]) {
+    p.add(CM.tidePlate, chamferBox(1.90, 0.44, 1.20, 0.10), M.chain(M.t(-sx * 1.05, 0.95, z), M.rz(sx * 0.24)));
+  }
+  p.into(g);
+
+  const band = new THREE.Mesh(bandGeo(1.44, 1.10), CM.weak);
+  band.position.z = -0.20;
+  band.name = 'lamp';
+  const cap = new THREE.Mesh(new THREE.CircleGeometry(0.64, 16), CM.weak);
+  cap.position.z = 5.24;
+  cap.name = 'lamp';
+  g.add(band, cap);
+  g.userData.lamps = [band, cap];
+  return g;
+}
+
+/* ── tide: sonar mast ────────────────────────────────────────────────────── */
+function tideMast(name) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  /* the sail: a tall thin blade, the one vertical on an otherwise horizontal
+     ship, and the reason a submersible reads as a submersible */
+  p.add(CM.tideHull, hullLoft({
+    stations: [
+      { z: -3.30, rx: 0.62, ry: 1.95, p: 3.4 },
+      { z: -1.70, rx: 0.98, ry: 2.62, p: 3.8 },
+      { z: 1.40, rx: 0.94, ry: 2.56, p: 3.8 },
+      { z: 3.10, rx: 0.58, ry: 1.80, p: 3.2 },
+    ], count: 18, steps: 12,
+    circGrooves: [{ z: -0.10, depth: 0.07, width: 0.18 }],
+    longGrooves: [{ a: 0.0, depth: 0.06, width: 0.02, z0: -2.9, z1: 2.7 },
+    { a: 0.5, depth: 0.06, width: 0.02, z0: -2.9, z1: 2.7 }],
+  }));
+  /* masthead: a flat array on a stub. A dish on a pole reads as a lollipop at
+     any range where the weak point matters. */
+  p.add(CM.tidePlate, chamferBox(2.30, 0.34, 2.60, 0.08), M.t(0, 2.68, 0.10));
+  p.add(SMat.metalDark, louvers({ n: 4, w: 2.05, h: 0.14, d: 1.20, gap: 0.32, tilt: 0 }), M.t(0, 3.06, 0.10));
+  p.both(SMat.metal, tubeAlong([V3(0, 0, 0), V3(0, 0.85, 0.30)], 0.070, 8), M.t(0.80, 3.30, 0));
+  p.both(CM.tidePlate, blisterGeo({ rx: 0.42, ry: 0.30, rz: 0.42, seg: 12, rings: 4 }),
+    M.chain(M.t(0.86, 4.15, 0.34), M.rx(-Math.PI / 2)));
+  p.both(CM.tideFoul, extrudePoly([
+    new THREE.Vector2(-1.00, -0.55), new THREE.Vector2(0.80, -0.72),
+    new THREE.Vector2(0.62, 0.60), new THREE.Vector2(-0.90, 0.75),
+  ], 0.16, 0.04), M.chain(M.t(0.94, -1.30, -0.70), M.ry(Math.PI / 2)));
+  p.into(g);
+
+  const band = new THREE.Mesh(chamferBox(1.14, 0.88, 4.90, 0.08), CM.weak);
+  band.position.set(0, 1.42, 0.05);
+  band.name = 'lamp';
+  const head = new THREE.Mesh(chamferBox(2.42, 0.22, 2.72, 0.05), CM.weak);
+  head.position.set(0, 2.50, 0.10);
+  head.name = 'lamp';
+  g.add(band, head);
+  g.userData.lamps = [band, head];
+  return g;
+}
+
+/* ── tide hull ─────────────────────────────────────────────────────────────
+   A whale with a conning tower. It fights broadside — six traversing mounts,
+   no spinal gun — so the read has to be the *flank*: a long taper, two pods
+   slung outboard and the sail above them. */
+function buildTide(root, rig) {
+  const p = Parts();
+
+  p.add(CM.tideHull, hullLoft({
+    stations: [
+      { z: -11.20, rx: 1.45, ry: 1.35, p: 2.6, squash: 0.95 },
+      { z: -9.00, rx: 2.55, ry: 2.25, p: 2.9, squash: 0.92, shoulder: 0.06 },
+      { z: -5.20, rx: 3.60, ry: 3.00, p: 3.1, squash: 0.88, shoulder: 0.12 },
+      { z: -0.60, rx: 4.05, ry: 3.30, p: 3.2, squash: 0.86, shoulder: 0.16 },
+      { z: 3.80, rx: 3.60, ry: 2.90, p: 3.1, squash: 0.88, shoulder: 0.10 },
+      { z: 7.60, rx: 2.50, ry: 2.00, p: 2.9, squash: 0.92 },
+      { z: 10.60, rx: 1.30, ry: 1.10, p: 2.7, squash: 0.95 },
+    ], count: 28, steps: 26,
+    circGrooves: [
+      { z: -7.20, depth: 0.12, width: 0.32 }, { z: -2.60, depth: 0.13, width: 0.34 },
+      { z: 2.00, depth: 0.13, width: 0.34 }, { z: 6.00, depth: 0.11, width: 0.30 },
+    ],
+    longGrooves: [
+      { a: 0.25, depth: 0.10, width: 0.022, z0: -9.4, z1: 9.6 },
+      { a: 0.00, depth: 0.09, width: 0.018, z0: -8.4, z1: 9.0 },
+      { a: 0.50, depth: 0.09, width: 0.018, z0: -8.4, z1: 9.0 },
+    ],
+    dents: [
+      { z: -4.00, a: 0.00, rz: 2.4, ra: 0.05, depth: 0.34, rim: 0.55 },
+      { z: -4.00, a: 0.50, rz: 2.4, ra: 0.05, depth: 0.34, rim: 0.55 },
+    ],
+  }));
+
+  /* bow: sonar dome and a pair of diving planes */
+  p.add(CM.tidePlate, blisterGeo({ rx: 1.32, ry: 1.10, rz: 1.70, seg: 16, rings: 6 }),
+    M.chain(M.t(0, 0.05, -11.10), M.rx(-Math.PI / 2)));
+  p.both(CM.tidePlate, extrudePoly([
+    new THREE.Vector2(0, -1.10), new THREE.Vector2(2.70, -0.70),
+    new THREE.Vector2(2.70, 0.40), new THREE.Vector2(0, 1.00),
+  ], 0.34, 0.08), M.chain(M.t(2.30, 0.10, -7.40), M.rx(-Math.PI / 2)));
+  p.both(SMat.metalDark, chamferBox(0.30, 0.34, 1.30, 0.06), M.t(4.60, 0.10, -7.40));
+
+  /* fouling: a matte crust at the waterline and slabs on the crown. Two
+     surfaces that answer light differently is what keeps 24 m of one colour
+     from reading as one mass. */
+  p.both(CM.tideFoul, shellArc({ r: 4.14, t: 0.16, a0: -0.60, a1: 0.60, z0: -5.60, z1: 3.20, seg: 9, taper: 0.90 }));
+  p.both(CM.tideFoul, extrudePoly([
+    new THREE.Vector2(-1.60, -0.95), new THREE.Vector2(1.70, -1.25),
+    new THREE.Vector2(1.35, 1.05), new THREE.Vector2(-1.40, 1.35),
+  ], 0.22, 0.05), M.chain(M.t(1.90, 2.95, -2.10), M.rx(-Math.PI / 2), M.rz(0.35)));
+  p.add(CM.tideFoul, extrudePoly([
+    new THREE.Vector2(-2.30, -0.80), new THREE.Vector2(2.20, -1.05),
+    new THREE.Vector2(1.90, 0.95), new THREE.Vector2(-2.05, 1.15),
+  ], 0.20, 0.05), M.chain(M.t(0, 2.05, -8.60), M.rx(-Math.PI / 2 + 0.16)));
+
+  /* dorsal casing and cleat rows */
+  p.add(CM.tidePlate, hullLoft({
+    stations: [
+      { z: -7.40, rx: 1.35, ry: 0.24, p: 4.0, yOff: 2.05 },
+      { z: -3.20, rx: 2.05, ry: 0.38, p: 4.2, yOff: 2.90 },
+      { z: 2.60, rx: 2.00, ry: 0.38, p: 4.2, yOff: 2.95 },
+      { z: 6.40, rx: 1.30, ry: 0.24, p: 4.0, yOff: 2.20 },
+    ], count: 22, steps: 14,
+  }));
+  p.both(SMat.metalDark, boltRow({ from: [1.55, 3.20, -2.60], to: [1.55, 3.20, 2.20], n: 7, r: 0.10, h: 0.06 }));
+  p.both(SMat.metalDark, louvers({ n: 5, w: 1.50, h: 0.11, d: 0.26, gap: 0.22, tilt: -0.55 }),
+    M.chain(M.t(3.05, 1.05, -6.20), M.ry(1.24)));
+
+  /* running lights: cyan-white, because the only other light down here is the
+     surface 200 m up */
+  rig.accents.push({ mat: CM.tideLamp, r: 0.62, g: 0.88, b: 1.0, base: 1.7, rage: 1.5, rate: 1.3, swing: 0.28 });
+  p.both(CM.tideLamp, chamferBox(0.10, 0.13, 9.20, 0.03), M.t(3.62, 0.60, -1.20));
+  p.add(CM.tideLamp, chamferBox(1.10, 0.10, 0.16, 0.03), M.t(0, 3.28, -7.10));
+  p.both(CM.tideLamp, new THREE.CircleGeometry(0.22, 12), M.chain(M.t(1.05, 0.60, -11.55), M.ry(Math.PI)));
+
+  /* aft: X-form control fins and a shrouded propulsor */
+  for (let i = 0; i < 4; i++) {
+    p.add(CM.tidePlate, extrudePoly([
+      new THREE.Vector2(-1.60, 0.20), new THREE.Vector2(1.40, 0.20),
+      new THREE.Vector2(0.60, 3.20), new THREE.Vector2(-1.00, 3.20),
+    ], 0.28, 0.07), M.chain(M.rz(Math.PI / 4 + i * Math.PI / 2), M.t(0, 0, 8.60), M.ry(Math.PI / 2)));
+  }
+  p.add(CM.tidePlate, shellArc({ r: 2.05, t: 0.22, a0: 0, a1: Math.PI * 2, z0: 9.90, z1: 11.50, seg: 20 }));
+  for (let i = 0; i < 4; i++) {
+    p.add(SMat.metalDark, chamferBox(0.90, 0.16, 0.16, 0.03),
+      M.chain(M.rz(i * Math.PI / 2 + Math.PI / 4), M.t(1.60, 0, 10.70)));
+  }
+  p.add(SMat.heat, hullLoft({
+    stations: [
+      { z: 10.40, rx: 1.32, ry: 1.12, p: 2.8, squash: 0.96 },
+      { z: 11.20, rx: 1.10, ry: 0.95, p: 2.8, squash: 0.97 },
+    ], count: 20, steps: 3, capStart: false,
+  }));
+  p.add(SMat.ceramic, ductGeo({ rx: 0.86, ry: 0.86, depth: 1.05, throat: 0.72, lip: 0.12, sides: 16, p: 2.8 }),
+    M.chain(M.t(0, 0, 11.30), M.ry(Math.PI)));
+  p.into(root);
+
+  /* weak points */
+  const bR = tideBallast('ballastR', 1); bR.position.set(5.50, -0.85, 0);
+  const bL = tideBallast('ballastL', -1); bL.position.set(-5.50, -0.85, 0);
+  const mast = tideMast('mast'); mast.position.set(0, 3.60, 1.40);
+  for (const w of [bR, bL, mast]) { root.add(w); rig.weak.push(w); }
+
+  /* six mounts, three a side: no spinal gun, so the broadside is the fight */
+  for (const [z, x, y] of [[-5.40, 3.35, 1.55], [0.20, 3.85, 1.70], [5.00, 3.05, 1.45]]) {
+    for (const sx of [1, -1]) {
+      const t = cmdTurret('turret' + rig.turrets.length, CM.tideHull, CM.tidePlate);
+      t.position.set(sx * x, y, z);
+      t.rotation.z = sx > 0 ? -0.24 : 0.24;
+      root.add(t);
+      rig.turrets.push(t);
+    }
+  }
+
+  const big = engineNode(0, 0, 11.40, 0.82, { len: 5.6 });
+  big.name = 'engine';
+  root.add(big);
+  rig.engines.push(big);
+
+  return [
+    { id: 'ballastR', label: 'BALLAST POD', local: V3(5.50, -0.85, 0), radius: 2.55 },
+    { id: 'ballastL', label: 'BALLAST POD', local: V3(-5.50, -0.85, 0), radius: 2.55 },
+    { id: 'mast', label: 'SONAR MAST', local: V3(0, 5.30, 1.45), radius: 2.50 },
+  ];
+}
+
+/* ── bloom: intake maw ─────────────────────────────────────────────────────
+   A toothed mouth on the end of a gantry arm. The teeth are the read: a duct
+   is machinery, a ring of angled cutters is an animal. */
+function bloomMaw(name, sx) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(CM.bloomHull, hullLoft({
+    stations: [
+      { z: -2.70, rx: 2.30, ry: 2.05, p: 4.0 },
+      { z: -1.10, rx: 2.05, ry: 1.85, p: 3.8 },
+      { z: 1.60, rx: 1.45, ry: 1.30, p: 3.6 },
+      { z: 3.30, rx: 1.05, ry: 0.95, p: 3.2 },
+    ], count: 20, steps: 14,
+    circGrooves: [{ z: 0.20, depth: 0.09, width: 0.22 }],
+    longGrooves: [{ a: 0.25, depth: 0.07, width: 0.020, z0: -2.3, z1: 2.9 },
+    { a: 0.75, depth: 0.07, width: 0.020, z0: -2.3, z1: 2.9 }],
+  }));
+  p.add(CM.bloomPlate, shellArc({ r: 2.42, t: 0.20, a0: 0, a1: Math.PI * 2, z0: -2.85, z1: -2.25, seg: 18 }));
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * Math.PI * 2;
+    p.add(SMat.metal, extrudePoly([
+      new THREE.Vector2(-0.26, 0), new THREE.Vector2(0.26, 0), new THREE.Vector2(0, 1.05),
+    ], 0.14, 0.03), M.chain(M.rz(-a), M.t(0, 2.16, -2.70), M.rx(-Math.PI / 2 + 0.22)));
+  }
+  // auger: a stack of slats down the throat, so the mouth has depth
+  p.add(SMat.metalDark, louvers({ n: 5, w: 3.00, h: 0.16, d: 0.34, gap: 0.60, tilt: -0.6 }),
+    M.chain(M.t(0, 0, -0.60), M.rx(Math.PI / 2), M.rz(0.4)));
+  p.add(SMat.metalDark, chamferBox(0.44, 1.90, 1.10, 0.08), M.t(-sx * 2.10, 0.90, 1.90));
+  p.into(g);
+
+  const rim = new THREE.Mesh(bandGeo(2.52, 0.34, 22), CM.weak);
+  rim.position.z = -2.58;
+  rim.name = 'lamp';
+  const throat = new THREE.Mesh(bandGeo(2.06, 1.10, 20), CM.weak);
+  throat.position.z = -1.55;
+  throat.name = 'lamp';
+  const gullet = new THREE.Mesh(new THREE.CircleGeometry(1.05, 16), CM.weak);
+  gullet.position.z = 2.60;
+  gullet.name = 'lamp';
+  g.add(rim, throat, gullet);
+  g.userData.lamps = [rim, throat, gullet];
+  return g;
+}
+
+/* ── bloom: spine coil ───────────────────────────────────────────────────── */
+function bloomCoil(name) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(CM.bloomHull, hullLoft({
+    stations: [
+      { z: -4.60, rx: 0.70, ry: 0.70, p: 3.0 },
+      { z: -3.40, rx: 1.05, ry: 1.05, p: 3.2 },
+      { z: 3.40, rx: 1.05, ry: 1.05, p: 3.2 },
+      { z: 4.60, rx: 0.70, ry: 0.70, p: 3.0 },
+    ], count: 18, steps: 14,
+    longGrooves: [{ a: 0.25, depth: 0.06, width: 0.02, z0: -3.2, z1: 3.2 }],
+  }));
+  for (const z of [-3.70, 3.70]) {
+    p.add(CM.bloomPlate, shellArc({ r: 1.28, t: 0.20, a0: 0, a1: Math.PI * 2, z0: z - 0.42, z1: z + 0.42, seg: 16 }));
+  }
+  for (const z of [-2.30, 2.30]) {
+    p.both(CM.bloomPlate, chamferBox(0.40, 1.60, 1.00, 0.08), M.t(0.98, -1.10, z));
+  }
+  p.into(g);
+
+  // The winding, and the amber collars that mark it as a target. Green says
+  // what the machine is; amber says where to shoot it. Both go dark together
+  // when the part dies, which is what `userData.lamps` is for.
+  const lamps = [];
+  for (const z of [-3.70, 3.70]) {
+    const c = new THREE.Mesh(bandGeo(1.22, 0.70, 18), CM.weak);
+    c.position.z = z;
+    c.name = 'lamp';
+    g.add(c);
+    lamps.push(c);
+  }
+  for (let i = 0; i < 7; i++) {
+    const w = new THREE.Mesh(bandGeo(1.13, 0.34, 18), CM.bloomCoil);
+    w.position.z = -3.0 + i;
+    w.name = 'lamp';
+    g.add(w);
+    lamps.push(w);
+  }
+  g.userData.lamps = lamps;
+  return g;
+}
+
+/* ── bloom hull ────────────────────────────────────────────────────────────
+   A gantry, not a ship: wide and flat, with two arms reaching forward into
+   the canopy and a coil running down the spine between them. Read at 100 px
+   it is a horizontal bar with two mouths on stalks. */
+function buildBloom(root, rig) {
+  const p = Parts();
+
+  p.add(CM.bloomHull, hullLoft({
+    stations: [
+      { z: -8.60, rx: 3.10, ry: 1.05, p: 4.4, squash: 0.86 },
+      { z: -5.20, rx: 4.40, ry: 1.55, p: 4.6, squash: 0.82, shoulder: 0.12 },
+      { z: -0.80, rx: 4.90, ry: 1.85, p: 4.7, squash: 0.80, shoulder: 0.16 },
+      { z: 3.60, rx: 4.60, ry: 1.75, p: 4.6, squash: 0.82, shoulder: 0.12 },
+      { z: 7.40, rx: 3.60, ry: 1.35, p: 4.3, squash: 0.88, shoulder: 0.04 },
+      { z: 9.80, rx: 2.60, ry: 1.00, p: 4.0, squash: 0.92 },
+    ], count: 28, steps: 24,
+    circGrooves: [
+      { z: -6.40, depth: 0.12, width: 0.32 }, { z: -2.80, depth: 0.13, width: 0.34 },
+      { z: 1.60, depth: 0.13, width: 0.34 }, { z: 5.60, depth: 0.11, width: 0.30 },
+    ],
+    longGrooves: [
+      { a: 0.25, depth: 0.10, width: 0.024, z0: -7.6, z1: 8.8 },
+      { a: 0.75, depth: 0.10, width: 0.024, z0: -7.6, z1: 8.8 },
+    ],
+    dents: [
+      { z: -3.40, a: 0.00, rz: 2.6, ra: 0.05, depth: 0.30, rim: 0.55 },
+      { z: -3.40, a: 0.50, rz: 2.6, ra: 0.05, depth: 0.30, rim: 0.55 },
+    ],
+  }));
+
+  /* gantry arms reaching forward, and the hoppers the maws feed */
+  p.both(CM.bloomPlate, chamferBox(1.40, 1.15, 6.00, 0.16), M.chain(M.t(4.20, -0.35, -5.60), M.ry(0.05)));
+  p.both(SMat.metalDark, tubeAlong([V3(0, 0, 0), V3(0, 0, -5.20)], 0.20, 8), M.t(4.20, 0.70, -5.40));
+  p.both(SMat.metalDark, tubeAlong([V3(0, 0, 0), V3(0, 0, -5.20)], 0.20, 8), M.t(4.20, -1.30, -5.40));
+  p.both(CM.bloomPlate, chamferBox(2.60, 1.70, 3.20, 0.18), M.t(3.20, 1.30, -2.20));
+  p.both(SMat.metalDark, louvers({ n: 6, w: 2.30, h: 0.13, d: 0.30, gap: 0.26, tilt: -0.5 }),
+    M.chain(M.t(3.20, 2.20, -2.20), M.rx(-1.35)));
+
+  /* cutter heads slung under the deck: a harvester works downward */
+  for (const sx of [1, -1]) {
+    p.add(CM.bloomPlate, chamferBox(1.20, 0.50, 2.60, 0.10), M.chain(M.t(sx * 2.20, -1.85, 2.20), M.rz(sx * 0.30)));
+    p.add(SMat.metal, shellArc({ r: 1.10, t: 0.14, a0: Math.PI + 0.30, a1: Math.PI * 2 - 0.30, z0: -0.35, z1: 0.35, seg: 10 }),
+      M.t(sx * 2.60, -2.70, 2.20));
+  }
+
+  /* dorsal deck, so the top is not one smooth slab */
+  p.add(CM.bloomPlate, hullLoft({
+    stations: [
+      { z: -5.40, rx: 2.10, ry: 0.26, p: 4.4, yOff: 1.55 },
+      { z: -2.00, rx: 2.90, ry: 0.42, p: 4.6, yOff: 1.80 },
+      { z: 2.60, rx: 2.90, ry: 0.42, p: 4.6, yOff: 1.82 },
+      { z: 6.20, rx: 2.10, ry: 0.26, p: 4.4, yOff: 1.60 },
+    ], count: 22, steps: 12,
+  }));
+  p.both(SMat.metalDark, boltRow({ from: [2.40, 2.24, -4.20], to: [2.40, 2.24, 5.20], n: 10, r: 0.10, h: 0.06 }));
+
+  /* running lights stay amber — see the material block */
+  rig.accents.push({ mat: CM.bloomLamp, r: 1.0, g: 0.62, b: 0.16, base: 1.8, rage: 1.4, rate: 2.1, swing: 0.30 });
+  rig.accents.push({ mat: CM.bloomCoil, r: 0.52, g: 1.0, b: 0.16, base: 2.4, rage: 2.2, rate: 3.4, swing: 0.85 });
+  p.both(CM.bloomLamp, chamferBox(0.10, 0.13, 8.40, 0.03), M.t(4.62, 0.30, -0.40));
+  p.both(CM.bloomLamp, chamferBox(0.30, 0.10, 0.16, 0.03), M.t(4.20, 0.98, -7.20));
+  p.add(CM.bloomLamp, chamferBox(1.30, 0.10, 0.16, 0.03), M.t(0, 2.10, -5.60));
+
+  /* aft: four lift nacelles on the trailing edge */
+  p.add(SMat.heat, hullLoft({
+    stations: [
+      { z: 9.60, rx: 2.62, ry: 1.02, p: 4.0, squash: 0.92 },
+      { z: 10.60, rx: 2.30, ry: 0.90, p: 3.8, squash: 0.94 },
+    ], count: 24, steps: 3, capStart: false,
+  }));
+  for (const sx of [1, -1]) for (const x of [0.95, 2.10]) {
+    p.add(SMat.ceramic, ductGeo({ rx: 0.50, ry: 0.50, depth: 0.75, throat: 0.72, lip: 0.09, sides: 14, p: 2.8 }),
+      M.chain(M.t(sx * x, 0.05, 10.70), M.ry(Math.PI)));
+  }
+  p.into(root);
+
+  /* weak points */
+  // These sit 12 m ahead of the rig centre, which is further out than any weak
+  // point on any other variant, and that distance is paid for in `radius`.
+  // `radius` is a capture radius, not a size: rounds converge on the lock point
+  // with the aim scatter of a 340 m shot, and whatever falls outside it lands
+  // on the 9.75 m armour sphere at the centre instead. Measured with
+  // tools/bossprobe.mjs against `highlands`, fight length and armour damage by
+  // authored radius: 2.60 -> 89.8 s / 440; 3.25 -> 87.3 s / 440;
+  // 3.90 -> 56.0 s / 236; 4.40 -> 31.0 s / 60; 5.00 -> 20.5 s / 0. The other
+  // four variants land between 20.5 s and 23.3 s with armour untouched.
+  const mR = bloomMaw('intakeR', 1); mR.position.set(4.20, -0.55, -8.20);
+  const mL = bloomMaw('intakeL', -1); mL.position.set(-4.20, -0.55, -8.20);
+  const coil = bloomCoil('coil'); coil.position.set(0, 2.95, 0.60);
+  for (const w of [mR, mL, coil]) { root.add(w); rig.weak.push(w); }
+
+  /* four mounts on the deck corners */
+  for (const [z, x] of [[-3.60, 4.05], [4.20, 3.60]]) {
+    for (const sx of [1, -1]) {
+      const t = cmdTurret('turret' + rig.turrets.length, CM.bloomHull, CM.bloomPlate);
+      t.position.set(sx * x, 1.05, z);
+      t.rotation.z = sx > 0 ? -0.14 : 0.14;
+      root.add(t);
+      rig.turrets.push(t);
+    }
+  }
+
+  for (const sx of [1, -1]) for (const x of [0.95, 2.10]) {
+    const e = engineNode(sx * x, 0.05, 10.80, 0.46, { len: 4.4 });
+    e.name = 'engine';
+    root.add(e);
+    rig.engines.push(e);
+  }
+
+  return [
+    { id: 'intakeR', label: 'INTAKE MAW', local: V3(4.20, -0.55, -8.20), radius: 5.00 },
+    { id: 'intakeL', label: 'INTAKE MAW', local: V3(-4.20, -0.55, -8.20), radius: 5.00 },
+    { id: 'coil', label: 'SPINE COIL', local: V3(0, 2.95, 0.60), radius: 2.45 },
+  ];
+}
+
+/* ── forge: heat sink ──────────────────────────────────────────────────────
+   A radiator stack canted outboard, with vane slots that go from dull to
+   white over the 1.9 s the spinal gun takes to charge. */
+function forgeSink(name, sx) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(CM.forgeHull, hullLoft({
+    stations: [
+      { z: -2.60, rx: 0.85, ry: 1.55, p: 4.0 },
+      { z: -1.60, rx: 1.15, ry: 2.15, p: 4.4 },
+      { z: 1.50, rx: 1.15, ry: 2.15, p: 4.4 },
+      { z: 2.50, rx: 0.85, ry: 1.55, p: 4.0 },
+    ], count: 18, steps: 12,
+    circGrooves: [{ z: -0.05, depth: 0.09, width: 0.22 }],
+  }));
+  // the fin stack itself, laid on its side so the slats run fore and aft
+  p.add(SMat.metalDark, louvers({ n: 7, w: 3.90, h: 0.17, d: 1.55, gap: 0.52, tilt: 0 }),
+    M.chain(M.t(sx * 0.30, 0, 0), M.rz(Math.PI / 2), M.rx(Math.PI / 2)));
+  p.add(CM.forgePlate, shellArc({ r: 2.25, t: 0.18, a0: -1.10, a1: 1.10, z0: -2.30, z1: 2.20, seg: 10 }),
+    M.rz(sx > 0 ? -Math.PI / 2 : Math.PI / 2));
+  p.both(SMat.metalDark, chamferBox(0.24, 0.50, 1.90, 0.05), M.t(0.95, -2.05, 0));
+  p.add(CM.forgeSlag, extrudePoly([
+    new THREE.Vector2(-0.95, -0.60), new THREE.Vector2(0.85, -0.80),
+    new THREE.Vector2(0.70, 0.65), new THREE.Vector2(-0.85, 0.85),
+  ], 0.18, 0.05), M.chain(M.t(0, 2.20, -0.70), M.rx(-Math.PI / 2)));
+  p.into(g);
+
+  // vanes carry the charge tell, collars carry the target mark
+  const vane = new THREE.Mesh(chamferBox(2.30, 3.30, 0.14, 0.03), CM.forgeVane);
+  vane.position.set(sx * 0.05, 0, -1.72);
+  vane.name = 'vane';
+  const vaneAft = new THREE.Mesh(chamferBox(2.30, 3.30, 0.14, 0.03), CM.forgeVane);
+  vaneAft.position.set(sx * 0.05, 0, 1.66);
+  vaneAft.name = 'vane';
+  g.add(vane, vaneAft);
+
+  const band = new THREE.Mesh(chamferBox(2.50, 0.80, 4.30, 0.08), CM.weak);
+  band.position.set(0, 1.55, 0);
+  band.name = 'lamp';
+  const low = new THREE.Mesh(chamferBox(2.50, 0.60, 4.30, 0.08), CM.weak);
+  low.position.set(0, -1.65, 0);
+  low.name = 'lamp';
+  g.add(band, low);
+  // The vanes go dark with the collars: a dead sink still glowing on the
+  // charge would say a beam is coming from a part that is no longer there.
+  g.userData.lamps = [band, low, vane, vaneAft];
+  return g;
+}
+
+/* ── forge: crucible ─────────────────────────────────────────────────────── */
+function forgeCrucible(name) {
+  const g = new THREE.Group();
+  g.name = name;
+  const p = Parts();
+  p.add(CM.forgeHull, hullLoft({
+    stations: [
+      { z: -2.40, rx: 1.75, ry: 1.75, p: 3.6 },
+      { z: -1.30, rx: 2.15, ry: 2.15, p: 3.8 },
+      { z: 1.30, rx: 2.15, ry: 2.15, p: 3.8 },
+      { z: 2.40, rx: 1.75, ry: 1.75, p: 3.6 },
+    ], count: 22, steps: 14,
+    circGrooves: [{ z: 0.0, depth: 0.11, width: 0.28 }],
+    longGrooves: [{ a: 0.25, depth: 0.08, width: 0.022, z0: -2.1, z1: 2.1 },
+    { a: 0.75, depth: 0.08, width: 0.022, z0: -2.1, z1: 2.1 }],
+  }));
+  // the cauldron: an open bowl in the top, and pour spouts either side
+  p.add(CM.forgePlate, shellArc({ r: 2.24, t: 0.22, a0: 0.20, a1: Math.PI - 0.20, z0: -1.90, z1: 1.90, seg: 14 }));
+  p.both(SMat.metal, tubeAlong([V3(0, 0, 0), V3(1.30, -0.55, 0)], 0.22, 8), M.t(1.95, 0.95, 0));
+  p.both(CM.forgeSlag, extrudePoly([
+    new THREE.Vector2(-0.70, -0.55), new THREE.Vector2(0.75, -0.70),
+    new THREE.Vector2(0.60, 0.60), new THREE.Vector2(-0.60, 0.75),
+  ], 0.18, 0.05), M.chain(M.t(1.55, 1.55, 0.90), M.rz(-0.7), M.rx(-Math.PI / 2)));
+  p.add(SMat.metalDark, boltRow({ from: [-1.5, 2.05, -1.5], to: [1.5, 2.05, -1.5], n: 7, r: 0.10, h: 0.06 }));
+  p.into(g);
+
+  const melt = new THREE.Mesh(new THREE.CircleGeometry(1.70, 20), CM.forgeCore);
+  melt.rotation.x = -Math.PI / 2;
+  melt.position.y = 1.62;
+  melt.name = 'vane';
+  g.add(melt);
+
+  const collar = new THREE.Mesh(bandGeo(2.22, 1.05, 22), CM.weak);
+  collar.name = 'lamp';
+  const throat = new THREE.Mesh(new THREE.CircleGeometry(1.30, 18), CM.weak);
+  throat.position.z = -2.46;
+  throat.rotation.y = Math.PI;
+  throat.name = 'lamp';
+  g.add(collar, throat);
+  g.userData.lamps = [collar, throat, melt];
+  return g;
+}
+
+/* ── forge hull ────────────────────────────────────────────────────────────
+   The finale, and the only rig in the game that carries a spinal beam AND a
+   full four-mount broadside. A slab prow with a barrel through it, a cauldron
+   amidships and two radiators aft: the whole outline is horizontal mass in
+   front and vertical mass behind. */
+function buildForge(root, rig) {
+  const p = Parts();
+
+  p.add(CM.forgeHull, hullLoft({
+    stations: [
+      { z: -10.40, rx: 3.30, ry: 2.10, p: 5.0, squash: 0.90 },
+      { z: -7.20, rx: 4.05, ry: 2.55, p: 5.0, squash: 0.86, shoulder: 0.10 },
+      { z: -2.40, rx: 4.35, ry: 2.80, p: 4.8, squash: 0.82, shoulder: 0.16 },
+      { z: 2.60, rx: 4.10, ry: 2.70, p: 4.7, squash: 0.84, shoulder: 0.14 },
+      { z: 7.00, rx: 3.40, ry: 2.25, p: 4.4, squash: 0.88, shoulder: 0.06 },
+      { z: 10.20, rx: 2.70, ry: 1.80, p: 4.1, squash: 0.92 },
+    ], count: 28, steps: 26,
+    circGrooves: [
+      { z: -8.40, depth: 0.14, width: 0.36 }, { z: -4.60, depth: 0.14, width: 0.36 },
+      { z: 0.60, depth: 0.14, width: 0.36 }, { z: 5.20, depth: 0.12, width: 0.32 },
+    ],
+    longGrooves: [
+      { a: 0.25, depth: 0.11, width: 0.024, z0: -9.4, z1: 9.4 },
+      { a: 0.12, depth: 0.09, width: 0.018, z0: -8.6, z1: 8.8 },
+      { a: 0.38, depth: 0.09, width: 0.018, z0: -8.6, z1: 8.8 },
+    ],
+    dents: [
+      { z: 3.40, a: 0.00, rz: 2.3, ra: 0.05, depth: 0.36, rim: 0.55 },
+      { z: 3.40, a: 0.50, rz: 2.3, ra: 0.05, depth: 0.36, rim: 0.55 },
+    ],
+  }));
+
+  /* slab prow: one plate, no fairing, with slag crust over the top edge */
+  p.add(CM.forgePlate, extrudePoly([
+    new THREE.Vector2(-5.10, -2.05), new THREE.Vector2(-3.10, -3.40),
+    new THREE.Vector2(3.10, -3.40), new THREE.Vector2(5.10, -2.05),
+    new THREE.Vector2(4.30, 2.90), new THREE.Vector2(-4.30, 2.90),
+  ], 1.70, 0.24), M.chain(M.t(0, 0.20, -10.30), M.rx(0.12)));
+  p.both(CM.forgePlate, extrudePoly([
+    new THREE.Vector2(0, -2.40), new THREE.Vector2(2.10, -1.30),
+    new THREE.Vector2(2.10, 1.20), new THREE.Vector2(0, 2.70),
+  ], 1.00, 0.18), M.chain(M.t(5.00, 0.10, -9.70), M.rz(-0.26)));
+  p.both(SMat.hostileTrim, chamferBox(0.36, 2.00, 0.32, 0.06), M.chain(M.t(4.70, 0.20, -10.90), M.rz(-0.26)));
+  p.add(CM.forgeSlag, extrudePoly([
+    new THREE.Vector2(-3.40, -0.90), new THREE.Vector2(3.20, -1.15),
+    new THREE.Vector2(2.80, 1.00), new THREE.Vector2(-3.05, 1.25),
+  ], 0.26, 0.06), M.chain(M.t(0, 3.10, -9.80), M.rx(-Math.PI / 2 + 0.12)));
+  p.both(CM.forgeSlag, extrudePoly([
+    new THREE.Vector2(-1.40, -0.85), new THREE.Vector2(1.50, -1.10),
+    new THREE.Vector2(1.20, 0.95), new THREE.Vector2(-1.25, 1.20),
+  ], 0.24, 0.06), M.chain(M.t(2.40, 2.72, -2.60), M.rx(-Math.PI / 2), M.rz(0.42)));
+  p.add(SMat.metalDark, boltRow({ from: [-3.4, 3.05, -10.6], to: [3.4, 3.05, -10.6], n: 10, r: 0.11, h: 0.07 }));
+
+  /* spinal barrel — heavier than the ice commander's, and 2 m longer */
+  p.add(SMat.metal, tubeAlong([V3(0, 0.20, -8.00), V3(0, 0.20, -17.20)], (t) => 1.02 - t * 0.26, 16));
+  for (const z of [-11.10, -13.20, -15.20]) {
+    p.add(SMat.metalDark, shellArc({ r: 1.18, t: 0.34, a0: 0, a1: Math.PI * 2, z0: z - 0.34, z1: z + 0.34, seg: 16 }),
+      M.t(0, 0.20, 0));
+  }
+  p.add(CM.forgePlate, shellArc({ r: 1.06, t: 0.28, a0: 0, a1: Math.PI * 2, z0: -17.70, z1: -16.60, seg: 16 }),
+    M.t(0, 0.20, 0));
+  p.both(SMat.metalDark, chamferBox(0.30, 0.90, 3.20, 0.06), M.t(1.20, 0.20, -12.40));
+
+  /* dorsal armour deck */
+  p.add(CM.forgePlate, hullLoft({
+    stations: [
+      { z: -6.20, rx: 2.05, ry: 0.28, p: 4.6, yOff: 2.35 },
+      { z: -2.60, rx: 2.85, ry: 0.44, p: 4.8, yOff: 2.70 },
+      { z: 2.20, rx: 2.85, ry: 0.44, p: 4.8, yOff: 2.66 },
+      { z: 5.60, rx: 2.05, ry: 0.28, p: 4.6, yOff: 2.30 },
+    ], count: 22, steps: 12,
+  }));
+  p.both(SMat.metalDark, louvers({ n: 5, w: 1.70, h: 0.12, d: 0.28, gap: 0.24, tilt: -0.55 }),
+    M.chain(M.t(3.20, 0.90, -5.40), M.ry(1.22)));
+
+  /* aft: thruster skirt */
+  p.add(SMat.heat, hullLoft({
+    stations: [
+      { z: 10.10, rx: 2.72, ry: 1.82, p: 4.1, squash: 0.92 },
+      { z: 11.10, rx: 2.40, ry: 1.60, p: 3.9, squash: 0.94 },
+    ], count: 24, steps: 3, capStart: false,
+  }));
+  p.both(SMat.ceramic, ductGeo({ rx: 0.88, ry: 0.88, depth: 1.10, throat: 0.72, lip: 0.12, sides: 16, p: 2.8 }),
+    M.chain(M.t(1.55, 0.05, 11.20), M.ry(Math.PI)));
+  p.both(SMat.metalDark, chamferBox(0.62, 0.62, 1.70, 0.10), M.t(3.10, -1.05, 9.00));
+  p.into(root);
+
+  /* weak points */
+  const sR = forgeSink('sinkR', 1); sR.position.set(4.70, 2.30, 4.20);
+  const sL = forgeSink('sinkL', -1); sL.position.set(-4.70, 2.30, 4.20);
+  const cru = forgeCrucible('crucible'); cru.position.set(0, 2.60, -0.40);
+  for (const w of [sR, sL, cru]) { root.add(w); rig.weak.push(w); }
+  rig.recoil.push({ node: sR, index: 0, z: 4.20, k: 0.85 }, { node: sL, index: 1, z: 4.20, k: 0.85 });
+  rig.charge = { mat: CM.forgeVane, r: 1.0, g: 0.30, b: 0.08, base: 1.5, gain: 9.0 };
+  rig.accents.push({ mat: CM.forgeCore, r: 1.0, g: 0.68, b: 0.24, base: 2.6, rage: 2.0, rate: 2.4, swing: 0.55 });
+
+  /* four mounts: the ice commander fights with two and a beam, this one with
+     four and a heavier beam */
+  for (const [z, x] of [[-5.60, 4.10], [1.40, 4.20]]) {
+    for (const sx of [1, -1]) {
+      const t = cmdTurret('turret' + rig.turrets.length, CM.forgeHull, CM.forgePlate);
+      t.position.set(sx * x, 0.85, z);
+      t.rotation.z = sx > 0 ? -0.20 : 0.20;
+      root.add(t);
+      rig.turrets.push(t);
+    }
+  }
+
+  for (const sx of [1, -1]) {
+    const e = engineNode(sx * 1.55, 0.05, 11.30, 0.84, { len: 6.0 });
+    e.name = 'engine';
+    root.add(e);
+    rig.engines.push(e);
+  }
+
+  /* spinal gun */
+  const cannon = new THREE.Group();
+  cannon.name = 'cannon';
+  cannon.position.set(0, 0.20, 0);
+  const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.86, 14, 10), CM.charge);
+  muzzle.position.z = -17.70;
+  muzzle.scale.setScalar(0.001);
+  cannon.add(muzzle);
+  const beam = new THREE.Mesh(plumeGeo({ r0: 1.10, r1: 0.40, len: 1.0, sides: 14, bulge: 1.0 }), EMat.plume);
+  beam.position.z = -17.70;
+  beam.rotation.x = Math.PI;
+  beam.renderOrder = 7;
+  beam.visible = false;
+  cannon.add(beam);
+  root.add(cannon);
+  rig.cannon = cannon;
+  rig.muzzle = muzzle;
+  rig.beam = beam;
+
+  return [
+    { id: 'sinkR', label: 'HEAT SINK', local: V3(4.70, 2.30, 4.20), radius: 2.55 },
+    { id: 'sinkL', label: 'HEAT SINK', local: V3(-4.70, 2.30, 4.20), radius: 2.55 },
+    { id: 'crucible', label: 'CRUCIBLE', local: V3(0, 3.10, -0.40), radius: 2.45 },
+  ];
+}
+
+const CMD_BUILD = { ice: buildIce, void: buildVoid, tide: buildTide, bloom: buildBloom, forge: buildForge };
 
 const cmdSpecs = new Map();
+
+/**
+ * Per-variant statics, as factories: `commanderSpec` scales `radius` and every
+ * gun mount by NPC_SCALE in place, so each variant needs its own fresh vectors.
+ */
+const CMD_SPEC = {
+  ice: () => ({
+    kind: 'commander:ice', variant: 'ice', commander: true,
+    radius: COMMANDER.radius, hp: COMMANDER.weakHp * 3, score: COMMANDER.score,
+    guns: [V3(0, 0.35, -15.8)],
+    maxSpeed: 140, turnRate: 0.30, accel: 36,
+    fireRange: 1000, burst: 3, burstGap: 0.20, reload: 2.1, dmg: 12,
+    boomScale: 6.0,
+  }),
+  void: () => ({
+    kind: 'commander:void', variant: 'void', commander: true,
+    radius: COMMANDER.radius, hp: COMMANDER.weakHp * 3, score: COMMANDER.score,
+    guns: [V3(1.55, -0.10, -13.6), V3(-1.55, -0.10, -13.6)],
+    maxSpeed: 160, turnRate: 0.34, accel: 42,
+    fireRange: 1000, burst: 4, burstGap: 0.18, reload: 1.9, dmg: 11,
+    boomScale: 6.0,
+  }),
+  tide: () => ({
+    kind: 'commander:tide', variant: 'tide', commander: true,
+    radius: COMMANDER.radius, hp: COMMANDER.weakHp * 3, score: COMMANDER.score,
+    guns: [V3(1.90, -0.60, -11.6), V3(-1.90, -0.60, -11.6)],
+    maxSpeed: 150, turnRate: 0.32, accel: 40,
+    fireRange: 1000, burst: 4, burstGap: 0.18, reload: 1.9, dmg: 11,
+    boomScale: 6.0,
+  }),
+  bloom: () => ({
+    kind: 'commander:bloom', variant: 'bloom', commander: true,
+    radius: COMMANDER.radius, hp: COMMANDER.weakHp * 3, score: COMMANDER.score,
+    guns: [V3(4.20, -0.55, -11.0), V3(-4.20, -0.55, -11.0)],
+    maxSpeed: 145, turnRate: 0.30, accel: 38,
+    fireRange: 1000, burst: 3, burstGap: 0.20, reload: 2.0, dmg: 12,
+    boomScale: 6.0,
+  }),
+  forge: () => ({
+    kind: 'commander:forge', variant: 'forge', commander: true,
+    radius: COMMANDER.radius, hp: COMMANDER.weakHp * 3, score: COMMANDER.score,
+    guns: [V3(0, 0.20, -17.8)],
+    maxSpeed: 135, turnRate: 0.28, accel: 34,
+    fireRange: 1100, burst: 4, burstGap: 0.16, reload: 1.8, dmg: 13,
+    boomScale: 6.5,
+  }),
+};
 
 /**
  * Static spec for a commander variant, without building its geometry.
@@ -1394,23 +2575,7 @@ export function commanderSpec(variant = 'ice') {
   const v = CMD_BUILD[variant] ? variant : 'ice';
   let sp = cmdSpecs.get(v);
   if (sp) return sp;
-  sp = v === 'ice'
-    ? {
-      kind: 'commander:ice', variant: 'ice', commander: true,
-      radius: COMMANDER.radius, hp: COMMANDER.weakHp * 3, score: COMMANDER.score,
-      guns: [V3(0, 0.35, -15.8)],
-      maxSpeed: 140, turnRate: 0.30, accel: 36,
-      fireRange: 1000, burst: 3, burstGap: 0.20, reload: 2.1, dmg: 12,
-      boomScale: 6.0,
-    }
-    : {
-      kind: 'commander:void', variant: 'void', commander: true,
-      radius: COMMANDER.radius, hp: COMMANDER.weakHp * 3, score: COMMANDER.score,
-      guns: [V3(1.55, -0.10, -13.6), V3(-1.55, -0.10, -13.6)],
-      maxSpeed: 160, turnRate: 0.34, accel: 42,
-      fireRange: 1000, burst: 4, burstGap: 0.18, reload: 1.9, dmg: 11,
-      boomScale: 6.0,
-    };
+  sp = CMD_SPEC[v]();
   sp.radius *= NPC_SCALE;
   for (const g of sp.guns) g.multiplyScalar(NPC_SCALE);
   cmdSpecs.set(v, sp);
@@ -1428,7 +2593,7 @@ function shortAngle(a) {
  * carries destructible state and per-part hit shells, and there is never more
  * than one on the field.
  *
- * @param {'ice'|'void'} variant
+ * @param {'ice'|'void'|'tide'|'bloom'|'forge'} variant
  * @returns {THREE.Group} root, with `userData.api` and `userData.spec`
  */
 export function createCommander(variant = 'ice') {
@@ -1443,6 +2608,11 @@ export function createCommander(variant = 'ice') {
   const rig = {
     variant: v, weak: [], turrets: [], engines: [], eyes: [], beacons: [],
     cannon: null, beam: null, muzzle: null,
+    // `accents` are hull running lights, one drive each; `recoil` names the
+    // parts a spinal shot shoves and by how far; `charge` is the emissive that
+    // carries the wind-up. A variant declares what it has and no other variant
+    // pays for it.
+    accents: [], recoil: [], charge: null,
   };
   const layout = CMD_BUILD[v](root, rig);
 
@@ -1551,6 +2721,11 @@ export function createCommander(variant = 'ice') {
         if (v === 'ice' && alive) w.position.y = (i < 2 ? 2.75 : 2.95) + Math.sin(t * 2.1 + i) * 0.02;
       }
 
+      for (const A of rig.accents) {
+        A.mat.color.copy(_col.setRGB(A.r, A.g, A.b))
+          .multiplyScalar(A.base + st.rage * A.rage + Math.sin(t * A.rate) * A.swing);
+      }
+
       if (rig.beam) {
         const c = st.charge;
         // The barrel is merged into the hull mesh, so the recoil is carried by
@@ -1558,9 +2733,14 @@ export function createCommander(variant = 'ice') {
         st.recoil = Math.max(0, st.recoil - dt * 3.2);
         rig.muzzle.scale.setScalar(Math.max(0.001, c * c * 1.25 + (st.beamT >= 0 && st.beamT < 0.14 ? 1.5 : 0)));
         CM.charge.color.copy(_col.setRGB(1.0, 0.86, 0.55)).multiplyScalar(3 + c * 9);
-        for (let i = 0; i < 2; i++) {
-          const d = rig.weak[i];
-          if (api.parts[i] && api.parts[i].alive) d.position.z = -1.20 + st.recoil * 1.30;
+        // A 1.9 s wind-up has to be legible from somewhere other than a muzzle
+        // that is 17 m in front of the hull and pointed away from you.
+        if (rig.charge) {
+          rig.charge.mat.color.copy(_col.setRGB(rig.charge.r, rig.charge.g, rig.charge.b))
+            .multiplyScalar(rig.charge.base + c * rig.charge.gain);
+        }
+        for (const rp of rig.recoil) {
+          if (api.parts[rp.index] && api.parts[rp.index].alive) rp.node.position.z = rp.z + st.recoil * rp.k;
         }
         if (st.beamT >= 0) {
           st.beamT += dt;
@@ -1572,9 +2752,6 @@ export function createCommander(variant = 'ice') {
             rig.beam.scale.set(fade * (1 + Math.sin(t * 60) * 0.06), fade, st.beamLen * Math.min(1, u * 7));
           }
         }
-      } else {
-        CM.panel.color.copy(_col.setRGB(0.70, 0.30, 1.0))
-          .multiplyScalar(1.9 + st.rage * 1.6 + Math.sin(t * 1.7) * 0.25);
       }
 
       if (api._hitTick) api._hitTick(dt);
@@ -1703,6 +2880,9 @@ const BUILDERS = {
   bulwark: bulwarkProto,
   wasp: waspProto,
   vanguard: vanguardProto,
+  lancer: lancerProto,
+  scarab: scarabProto,
+  pylon: pylonProto,
 };
 
 const protos = new Map();
@@ -1938,4 +3118,148 @@ registerShot('cmd-ice-rage', (c) => {
 registerShot('cmd-void-rage', (c) => {
   const r = reviewCommander(c, 'void', { phase: 2, dead: 1 });
   orbitAt(c.engine.camera, r.position, { dist: 66, yaw: 214, pitch: 16, fov: 34, up: 3 });
+});
+
+// The three later variants take the same four angles. From a loop rather than
+// hand-copied: twelve near-identical registrations drift the moment one is
+// edited.
+for (const v of ['tide', 'bloom', 'forge']) {
+  registerShot('cmd-' + v, (c) => {
+    const r = reviewCommander(c, v);
+    orbitAt(c.engine.camera, r.position, { dist: 74, yaw: 212, pitch: 13, fov: 34, up: 3 });
+  });
+  registerShot('cmd-' + v + '-front', (c) => {
+    const r = reviewCommander(c, v);
+    orbitAt(c.engine.camera, r.position, { dist: 80, yaw: 178, pitch: 5, fov: 32, up: 2 });
+  });
+  registerShot('cmd-' + v + '-far', (c) => {
+    const r = reviewCommander(c, v);
+    orbitAt(c.engine.camera, r.position, { dist: 320, yaw: 202, pitch: 7, fov: 34 });
+  });
+  registerShot('cmd-' + v + '-rage', (c) => {
+    const r = reviewCommander(c, v, { phase: 2, dead: 1 });
+    orbitAt(c.engine.camera, r.position, { dist: 66, yaw: 218, pitch: 16, fov: 34, up: 3 });
+  });
+}
+/** Mid wind-up: on the finale the heat sinks are what says the beam is coming. */
+registerShot('cmd-forge-charge', (c) => {
+  const r = reviewCommander(c, 'forge');
+  r.userData.api.setCharge(1);
+  r.userData.api.update(c.dt || 1 / 60, { power: 1 });
+  orbitAt(c.engine.camera, r.position, { dist: 70, yaw: 236, pitch: 12, fov: 34, up: 3 });
+});
+
+/* ── hostile review cameras ───────────────────────────────────────────────── */
+//
+// CONTRACT §5 is a measurable claim — "reads at 100 px" — and nothing in the
+// level shots can make it: a wave arrives when it arrives, at whatever range
+// the encounter picked. These build one instance per class off the prototype,
+// park it ahead of the ship and frame it at a stated pixel height, so the
+// silhouette rule can be checked rather than asserted.
+
+const FAMILY = ['raptor', 'wasp', 'scarab', 'lancer', 'hornet', 'bulwark', 'pylon', 'vanguard'];
+const _foes = new Map();
+const _fbox = new THREE.Box3();
+const _fv = new THREE.Vector3();
+const _fsz = new THREE.Vector2();
+
+/** World bounds of the hull only — the beacon sprite is sized per camera. */
+function foeBounds(obj, out) {
+  out.makeEmpty();
+  obj.updateMatrixWorld(true);
+  obj.traverse(o => { if (o.isMesh) out.expandByObject(o); });
+  return out;
+}
+
+function reviewFoe(ctx, kind) {
+  let r = _foes.get(kind);
+  if (!r) {
+    r = createEnemy(kind);
+    ctx.scene.add(r);
+    _foes.set(kind, r);
+  }
+  for (const [k, o] of _foes) o.visible = k === kind;
+  // High above the corridor: at rail height every review frame is a dark hull
+  // against a shadowed hillside, which measures the terrain rather than the
+  // silhouette.
+  r.position.set(ctx.ship.position.x, ctx.ship.position.y + 130, ctx.ship.position.z - 140);
+  r.rotation.set(0, 0, 0);
+  animateEnemy(r, ctx.dt || 1 / 60, { power: 1, alert: 1, t: ctx.time || 0 });
+  return r;
+}
+
+/**
+ * Frame `obj` so its longer screen dimension covers `px` pixels.
+ *
+ * Solved by projection rather than from the bounding box's largest edge: at any
+ * oblique yaw a hull is foreshortened, so sizing off its own length puts a
+ * "100 px" frame on screen at 53. The loop converges in two or three passes.
+ */
+function fitPx(ctx, obj, px, { yaw = 238, pitch = 13, fov = 34 } = {}) {
+  foeBounds(obj, _fbox);
+  const cam = ctx.engine.camera;
+  ctx.engine.renderer.getSize(_fsz);
+  const centre = _fbox.getCenter(_fv).clone();
+  let dist = _fbox.getSize(_fv).length() * _fsz.y / (px * 2 * Math.tan(THREE.MathUtils.degToRad(fov) * 0.5));
+  for (let pass = 0; pass < 8; pass++) {
+    orbitAt(cam, centre, { dist, yaw, pitch, fov });
+    cam.updateMatrixWorld(true);
+    let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    for (let c = 0; c < 8; c++) {
+      _fv.set(c & 1 ? _fbox.max.x : _fbox.min.x, c & 2 ? _fbox.max.y : _fbox.min.y, c & 4 ? _fbox.max.z : _fbox.min.z);
+      _fv.project(cam);
+      x0 = Math.min(x0, _fv.x); x1 = Math.max(x1, _fv.x);
+      y0 = Math.min(y0, _fv.y); y1 = Math.max(y1, _fv.y);
+    }
+    const got = Math.max((x1 - x0) * 0.5 * _fsz.x, (y1 - y0) * 0.5 * _fsz.y);
+    if (!(got > 0) || Math.abs(got - px) < 1) break;
+    dist *= got / px;
+  }
+}
+
+for (const kind of ['lancer', 'scarab', 'pylon']) {
+  registerShot('foe-' + kind, (c) => fitPx(c, reviewFoe(c, kind), 520));
+  registerShot('foe-' + kind + '-front', (c) => fitPx(c, reviewFoe(c, kind), 520, { yaw: 180, pitch: 4, fov: 32 }));
+  registerShot('foe-' + kind + '-side', (c) => fitPx(c, reviewFoe(c, kind), 520, { yaw: 270, pitch: 6, fov: 32 }));
+  // Slightly below the hull: at review altitude a downward pitch fills the
+  // frame with a shadowed hillside, and what that measures is the hill.
+  registerShot('foe-' + kind + '-100', (c) => fitPx(c, reviewFoe(c, kind), 100, { yaw: 238, pitch: -7 }));
+}
+
+/** The whole roster in one row: the only frame that answers "confusable?". */
+registerShot('foe-family', (c) => {
+  const widths = [], boxes = [];
+  for (const kind of FAMILY) {
+    let r = _foes.get(kind);
+    if (!r) { r = createEnemy(kind); c.scene.add(r); _foes.set(kind, r); }
+    r.visible = true;
+    r.position.set(0, 0, 0);
+    r.rotation.set(0, 0, 0);
+    const b = foeBounds(r, new THREE.Box3());
+    boxes.push(b);
+    widths.push(b.max.x - b.min.x);
+  }
+  const gap = 6;
+  let total = gap * (FAMILY.length - 1);
+  for (const w of widths) total += w;
+  let x = -total / 2;
+  for (let i = 0; i < FAMILY.length; i++) {
+    const r = _foes.get(FAMILY[i]);
+    const b = boxes[i];
+    r.position.set(
+      c.ship.position.x + x + widths[i] / 2 - (b.max.x + b.min.x) / 2,
+      c.ship.position.y + 130 - (b.max.y + b.min.y) / 2,
+      c.ship.position.z - 260,
+    );
+    animateEnemy(r, c.dt || 1 / 60, { power: 1, alert: 1, t: c.time || 0 });
+    x += widths[i] + gap;
+  }
+  c.engine.renderer.getSize(_fsz);
+  // Long lens: at a wide angle the far end of a 120 m row is half the size of
+  // the near end, which is a comparison of distances rather than of shapes.
+  const fov = 13;
+  const aspect = _fsz.x / Math.max(1, _fsz.y);
+  const dist = (total * 0.58) / (aspect * Math.tan(THREE.MathUtils.degToRad(fov) * 0.5));
+  _fv.set(c.ship.position.x, c.ship.position.y + 130, c.ship.position.z - 260);
+  orbitAt(c.engine.camera, _fv, { dist, yaw: 184, pitch: 5, fov });
 });

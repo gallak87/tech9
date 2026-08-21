@@ -237,6 +237,130 @@ const FOUNDRY_COMMS = [
   { z: -8440, who: 'PEPPY', text: "That's their carrier. Finish this, Fox." },
 ];
 
+/* ── Aquas ────────────────────────────────────────────────────────────────────
+   Every spawn distance in this table is shorter than the equivalent one in an
+   air level, and that is the level's fog, not a taste call: at density 0.00062
+   a contact 1500 m out is 76% extinction, so it does not enter the frame, it
+   fades up in the middle of it. 1000-1200 m is where a hostile crosses out of
+   the murk with time left to read it — the same reasoning the Foundry applies
+   to a roofed bay, arrived at from the opposite direction.
+
+   Zone boundaries, for placing anything against the shape:
+     720 basin -1380 reach -2980 narrows -3740 basin/drop-off -5440 gorge
+     -6940 narrows -7640 basin -9840
+   Batteries are in the three basins only, and clear of the two `climb` blends
+   at -3740 and -7640 — a battery placed while the rail is descending sits 30 m
+   over the ship instead of under it. */
+const AQUAS_WAVES = [
+  { z: -220, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1150, arc: 0.52, climb: 0.26, skill: 0.40, life: 8 },
+  // Lands -1000…-1560: the shelf, wide and shallow. bank 620 ≈ inner 640.
+  { z: -400, kind: 'bulwark', n: 3, form: 'banks', first: 640, step: 260, bank: 620, drops: ['health'] },
+  { z: -1500, kind: 'wasp', n: 5, form: 'swarm', from: 'ahead', spawn: 1050, arc: -0.14, climb: 0.42, skill: 0.42, life: 8, markFor: 2.1, stagger: 0.55 },
+  { z: -2300, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1000, arc: -0.58, climb: 0.20, skill: 0.44, aggro: 0.20, life: 8, drops: ['weapon'] },
+  // Rear pressure into the swim-through. Nothing is armed to make contact
+  // inside it: -2980…-3740 is looked at, not fought in.
+  { z: -3000, kind: 'raptor', n: 3, form: 'echelon', from: 'behind', skill: 0.46 },
+  // Resolves as the floor falls away — the contact and the drop-off land together.
+  { z: -4000, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1100, arc: 0.34, climb: -0.30, skill: 0.48, aggro: 0.24, life: 10.5, drops: ['bomb'] },
+  // Deep basin, past the descent blend. bank 660 ≈ inner 700.
+  { z: -4500, kind: 'bulwark', n: 4, form: 'banks', first: 620, step: 250, bank: 660, drops: ['health'] },
+  { z: -5300, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 950, arc: 0.50, climb: 0.24, skill: 0.50, aggro: 0.28, hunt: true, life: 8.5 },
+  { z: -6100, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1700, arc: 0.04, climb: 0.10, skill: 0.52, aggro: 0.28, life: 26, close: 205, escort: 2, drops: ['weapon', 'health'] },
+  { z: -7100, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1050, arc: -0.38, climb: 0.22, skill: 0.54, aggro: 0.30, life: 11, drops: ['health'] },
+  // Far shelf. bank 560 ≈ inner 620, and past the +30 climb out of the trench.
+  { z: -8150, kind: 'bulwark', n: 4, form: 'banks', first: 600, step: 240, bank: 560, drops: ['bomb'] },
+  { z: -8600, boss: 'commander:tide' },
+];
+
+const AQUAS_COMMS = [
+  { z: -140, who: 'PEPPY', text: 'Three hundred metres down, Fox. Watch your ceiling — you cannot climb out of this one.' },
+  { z: -380, who: 'SLIPPY', text: 'Emplacements all across the reef!' },
+  { z: -2900, who: 'FALCO', text: 'That gap in the coral is the only way through. Thread it.' },
+  { z: -3900, who: 'SLIPPY', text: 'Floor is dropping away — sonar just lost the bottom.' },
+  { z: -5350, who: 'PEPPY', text: 'They are on the wingmen, Fox. Break them off!' },
+  { z: -6060, who: 'FALCO', text: 'Heavy coming up out of the trench.' },
+  { z: -8550, who: 'PEPPY', text: 'Submersible on the shelf. That is the objective — find the pods!' },
+];
+
+/* ── Fortuna ──────────────────────────────────────────────────────────────────
+   The opposite constraint to Aquas: fog density 0.00034 and every hostile
+   carrying a lamp against a black sky, so this is the longest sightline in the
+   game and the spawns are the longest with it. A wave armed at 1600 m here is
+   visible for its whole approach, which is what makes the level readable at
+   night rather than a set of things that appear at 400 m.
+
+   Zone boundaries:
+     720 basin -1680 reach -3280 basin/glade -4780 gorge -6280 basin -7580
+     narrows -8280 basin -9840 */
+const FORTUNA_WAVES = [
+  { z: -260, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1650, arc: -0.50, climb: 0.24, skill: 0.44, life: 8.5 },
+  // Lands -1100…-1700 in the lagoon. bank 540 ≈ inner 600.
+  { z: -500, kind: 'bulwark', n: 3, form: 'banks', first: 700, step: 290, bank: 540, drops: ['health'] },
+  { z: -1700, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1600, arc: 0.32, climb: 0.18, skill: 0.48, aggro: 0.24, life: 10.5, drops: ['weapon'] },
+  { z: -2600, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1500, arc: 0.60, climb: -0.22, skill: 0.50, aggro: 0.26, life: 8.5 },
+  // The glade: the one clearing in the stalk field, and the only wave in the
+  // level with room to turn inside.
+  { z: -3450, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1450, arc: -0.10, climb: 0.46, skill: 0.50, life: 8.5, markFor: 2.0, stagger: 0.5, drops: ['bomb'] },
+  { z: -3700, kind: 'bulwark', n: 3, form: 'banks', first: 620, step: 250, bank: 480 },
+  { z: -4600, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.52 },
+  { z: -5500, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1550, arc: -0.40, climb: 0.26, skill: 0.56, aggro: 0.30, life: 11, drops: ['weapon', 'health'] },
+  { z: -6500, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2100, arc: -0.05, climb: 0.12, skill: 0.56, aggro: 0.32, life: 26, close: 205, escort: 2, drops: ['weapon', 'health'] },
+  { z: -7400, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1400, arc: 0.46, climb: 0.22, skill: 0.58, aggro: 0.34, hunt: true, life: 9 },
+  // Past the crevasse-narrows, on the last open water. bank 560 ≈ inner 620.
+  { z: -8350, kind: 'bulwark', n: 4, form: 'banks', first: 640, step: 250, bank: 560, drops: ['health', 'bomb'] },
+  { z: -8700, boss: 'commander:bloom' },
+];
+
+const FORTUNA_COMMS = [
+  { z: -180, who: 'SLIPPY', text: 'Fox, the whole forest is glowing. I have never seen readings like this.' },
+  { z: -480, who: 'PEPPY', text: 'They dug guns into the bank. Do not let them settle on you.' },
+  { z: -2560, who: 'FALCO', text: 'Stay out of the stalks. They will take a wing off.' },
+  { z: -3400, who: 'SLIPPY', text: 'Swarm in the clearing! They came out of the ground!' },
+  { z: -4560, who: 'PEPPY', text: 'Behind you, Fox!' },
+  { z: -6460, who: 'FALCO', text: 'Their heavy is running the gorge. Keep it in front of you.' },
+  { z: -8650, who: 'PEPPY', text: 'There it is — the machine that is eating this place. Intakes and the spine coil!' },
+];
+
+/* ── Venom ────────────────────────────────────────────────────────────────────
+   The last level in the game, and the hardest table in it: every skill value is
+   the highest of its class anywhere, the vanguard arrives with three escorts
+   instead of two, and there are two rear attacks rather than one.
+
+   Zone boundaries:
+     720 basin -1180 reach -2880 narrows -3680 basin/vent -4980 gorge -6580
+     narrows -7240 basin/sump -9840
+
+   Batteries stay out of the tube and the gorge. `bank` tracks each basin's own
+   inner, and the sump is the only place with a run long enough for four. */
+const VENOM_WAVES = [
+  { z: -200, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1300, arc: 0.54, climb: 0.24, skill: 0.50, aggro: 0.20, life: 8 },
+  // Lands -880…-1400, the caldera floor. bank 470 ≈ inner 520.
+  { z: -300, kind: 'bulwark', n: 3, form: 'banks', first: 620, step: 250, bank: 470, drops: ['health'] },
+  { z: -1400, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.36, climb: 0.22, skill: 0.54, aggro: 0.28, life: 10.5, drops: ['weapon'] },
+  { z: -2200, kind: 'raptor', n: 5, form: 'echelon', from: 'behind', skill: 0.56 },
+  // Armed past the tube's exit key so it resolves as the walls open into the
+  // vent chamber — nothing is fought inside a 140 m slot.
+  { z: -3700, kind: 'wasp', n: 7, form: 'swarm', from: 'ahead', spawn: 1150, arc: 0.08, climb: -0.44, skill: 0.58, life: 8, markFor: 1.9, stagger: 0.45, drops: ['bomb'] },
+  { z: -4050, kind: 'bulwark', n: 3, form: 'banks', first: 600, step: 240, bank: 420, drops: ['health'] },
+  { z: -4700, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1200, arc: 0.42, climb: 0.20, skill: 0.60, aggro: 0.34, life: 11, drops: ['weapon', 'health'] },
+  { z: -5600, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1900, arc: 0.03, climb: -0.10, skill: 0.62, aggro: 0.36, life: 28, close: 210, escort: 3, drops: ['weapon', 'health'] },
+  { z: -6600, kind: 'raptor', n: 6, form: 'echelon', from: 'behind', skill: 0.62 },
+  { z: -7400, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.52, climb: 0.26, skill: 0.64, aggro: 0.38, hunt: true, life: 9, drops: ['health'] },
+  // The sump. bank 540 ≈ inner 600, and the longest battery run in the game.
+  { z: -7800, kind: 'bulwark', n: 5, form: 'banks', first: 660, step: 260, bank: 540, drops: ['health', 'bomb'] },
+  { z: -8500, boss: 'commander:forge' },
+];
+
+const VENOM_COMMS = [
+  { z: -140, who: 'PEPPY', text: 'Venom. Andross is down there somewhere, Fox. Everything ends here.' },
+  { z: -1360, who: 'SLIPPY', text: 'Hull temperature is climbing. Do not go low over the channel!' },
+  { z: -2900, who: 'FALCO', text: 'That tube is a collapsed lava run. No room, no sky. Straight through.' },
+  { z: -3660, who: 'SLIPPY', text: 'Drones venting out of the chamber walls!' },
+  { z: -5560, who: 'PEPPY', text: 'Their heavy brought escorts this time. Watch the flanks.' },
+  { z: -7350, who: 'FALCO', text: 'They are going for the wing, Fox. Get them off!' },
+  { z: -8450, who: 'PEPPY', text: 'That is their fortress ship. Heat sinks and the crucible — end it, Fox.' },
+];
+
 export const LEVELS = [
   {
     id: 'corneria', name: 'CORNERIA', dna: 'corneria', env: 'corneria',
@@ -262,9 +386,31 @@ export const LEVELS = [
     hop: 'orbital',
   },
   {
+    id: 'aquas', name: 'AQUAS', dna: 'aquas', env: 'aquas',
+    brief: 'SECTOR IV · AQUAS',
+    waves: AQUAS_WAVES, comms: AQUAS_COMMS, grants: [],
+    hop: 'orbital',
+  },
+  {
+    id: 'fortuna', name: 'FORTUNA', dna: 'fortuna', env: 'fortuna',
+    brief: 'SECTOR V · FORTUNA',
+    waves: FORTUNA_WAVES, comms: FORTUNA_COMMS, grants: [],
+    hop: 'orbital',
+  },
+  {
     id: 'foundry', name: 'THE FOUNDRY', dna: 'foundry', env: 'foundry',
-    brief: 'SECTOR IV · THE FOUNDRY',
+    brief: 'SECTOR VI · THE FOUNDRY',
     waves: FOUNDRY_WAVES, comms: FOUNDRY_COMMS, grants: [],
+    hop: 'orbital',
+  },
+  {
+    // The finale, and the one hop in the game whose origin and destination are
+    // the same body: `PLANET_FOR.foundry` is Venom because the Foundry is in
+    // Venom orbit, so leaving it you watch the planet you are about to fly
+    // into swing under the frame and then grow back out of it.
+    id: 'venom', name: 'VENOM', dna: 'venom', env: 'venom',
+    brief: 'SECTOR VII · VENOM',
+    waves: VENOM_WAVES, comms: VENOM_COMMS, grants: [],
   },
 ];
 

@@ -5,14 +5,15 @@ import {
 } from './profile.js';
 import { DNA_CORNERIA, DNA_FICHINA, DNA_BY_ID } from './dna.js';
 import {
-  terrainMaterial, waterMaterial, deepWaterMaterial, iceMaterial, rockPropMaterial,
-  concreteMaterial, steelMaterial, cityMaterial,
+  terrainMaterial, waterMaterial, deepWaterMaterial, iceMaterial, lavaMaterial,
+  rockPropMaterial, concreteMaterial, steelMaterial, cityMaterial,
   configureWorldFields, worldFieldJobs, disposeWorldFields,
 } from './world-materials.js';
 import { Terrain } from './terrain.js';
 import { Belt } from './belt.js';
 import { Works } from './works.js';
 import { Water } from './water.js';
+import { Canopy } from './canopy.js';
 import { PlanarReflection } from './reflection.js';
 import { registerWorldShots } from './shots.js';
 
@@ -77,6 +78,7 @@ export class Corneria {
     this.water = null;
     this.belt = null;
     this.works = null;
+    this.canopy = null;
 
     this._jobs = [];
     this._done = 0;
@@ -131,14 +133,19 @@ export class Corneria {
     if (this.water) this.water.dispose();
     if (this.belt) this.belt.dispose();
     if (this.works) this.works.dispose();
+    if (this.canopy) this.canopy.dispose();
     for (const m of [this.terrainMat, this.waterMat, this.deepMat]) if (m) m.dispose();
-    this.terrain = this.water = this.belt = this.works = null;
+    this.terrain = this.water = this.belt = this.works = this.canopy = null;
     this.terrainMat = this.waterMat = this.deepMat = null;
     disposeWorldFields();
 
     setActiveDNA(dna);
     configureWorldFields();
     this.reflection.planeY = WORLD.waterLevel;
+    // Nothing samples the reflector unless a surface material asked for it, and
+    // rendering the mirror for a world whose surface is crust or is absent is a
+    // whole scene pass thrown away.
+    this.reflection.enabled = WORLD.surface === 'water' || WORLD.surface === 'ice';
 
     // Constructing these meshes nothing: each only plans its tiers and hands
     // back a queue. That is what lets the whole job list — and therefore the
@@ -157,6 +164,10 @@ export class Corneria {
     this.water = (natural && WORLD.surface !== 'none')
       ? new Water(this.root, null, null, { apronDrop: WORLD.surface === 'ice' ? 1.5 : 12 })
       : null;
+    // The lid is independent of the floor: a world can have one, the other,
+    // both or neither. Only a heightfield world can carry it, because a belt
+    // has no up and a built corridor has its own roof.
+    this.canopy = (natural && WORLD.canopy) ? new Canopy(this.root) : null;
 
     // Order is a dependency chain: the tile bakes and the materials come first
     // because a mesh needs one handed to it, and the baked fields come before
@@ -169,6 +180,7 @@ export class Corneria {
       ...(this.belt ? this.belt.jobs : []),
       ...(this.works ? this.works.jobs : []),
       ...(this.water ? this.water.jobs : []),
+      ...(this.canopy ? this.canopy.jobs : []),
       () => this._warm(),
     ];
     this._done = 0;
@@ -210,6 +222,11 @@ export class Corneria {
     if (WORLD.surface === 'ice') {
       this.waterMat = iceMaterial(this.reflection);
       this.deepMat = iceMaterial(this.reflection);
+    } else if (WORLD.surface === 'lava') {
+      // Two instances rather than one shared: `rebuild` disposes both by name,
+      // and a molten channel wants no reflector at all — see lavaMaterial.
+      this.waterMat = lavaMaterial();
+      this.deepMat = lavaMaterial();
     } else if (WORLD.surface !== 'none') {
       this.waterMat = waterMaterial(this.reflection);
       this.deepMat = deepWaterMaterial(this.reflection);
@@ -284,6 +301,7 @@ export class Corneria {
     if (this.belt) this.belt.updateLOD(this._camPos);
     if (this.works) this.works.updateLOD(this._camPos);
     if (this.water) this.water.updateLOD(this._camPos);
+    if (this.canopy) this.canopy.updateLOD(this._camPos);
   }
 
   update(dt) {
@@ -293,6 +311,10 @@ export class Corneria {
       const sh = m && m.userData.shader;
       if (sh && sh.uniforms.uTime) sh.uniforms.uTime.value = this._time;
     }
+    // The terrain only carries a clock on a world whose ground emits.
+    const tsh = this.terrainMat && this.terrainMat.userData.shader;
+    if (tsh && tsh.uniforms.uGlowTime) tsh.uniforms.uGlowTime.value = this._time;
+    if (this.canopy) this.canopy.update(dt, this._time, this.scene);
   }
 
   /* ── queries ────────────────────────────────────────────────────────────── */
@@ -325,7 +347,8 @@ export class Corneria {
    * rail, and `field` always leaves sky between its bodies.
    */
   ceilingAt(x, z) {
-    return this.works ? this.works.ceilingAt(z) : Infinity;
+    if (this.works) return this.works.ceilingAt(z);
+    return this.canopy ? Canopy.ceilingY() : Infinity;
   }
 
   /** Terrain height ignoring the surface — placement helper for the built world. */

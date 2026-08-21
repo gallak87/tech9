@@ -886,6 +886,30 @@ const _bRail = new THREE.Vector3();
       phase2: COMMANDER.phase2,
       say: ['FALCO', "Bridge and both reactor vents. Don't let it line you up, Fox."],
     },
+    'commander:tide': {
+      make: () => createCommander('tide'),
+      label: 'TIDEMAW',
+      radius: COMMANDER.radius,
+      station: COMMANDER.station,
+      phase2: COMMANDER.phase2,
+      say: ['SLIPPY', 'Both ballast pods and the sonar mast, Fox — that\'s what keeps it down here!'],
+    },
+    'commander:bloom': {
+      make: () => createCommander('bloom'),
+      label: 'THE HARVESTER',
+      radius: COMMANDER.radius,
+      station: COMMANDER.station,
+      phase2: COMMANDER.phase2,
+      say: ['PEPPY', 'Shoot the intake maws and the spine coil — stop it feeding!'],
+    },
+    'commander:forge': {
+      make: () => createCommander('forge'),
+      label: 'THE ANVIL',
+      radius: COMMANDER.radius,
+      station: COMMANDER.station,
+      phase2: COMMANDER.phase2,
+      say: ['FALCO', "Both heat sinks, then the crucible. And stay out of that cannon's lane, Fox!"],
+    },
   };
 
   function spawnBoss(kind) {

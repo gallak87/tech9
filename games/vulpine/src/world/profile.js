@@ -49,6 +49,12 @@ export const WORLD = {
   belt: null,
   /** Works-backend shape, or null. See works.js for the defaults it merges over. */
   works: null,
+  /**
+   * The lid over a `terrain` world, or null. Only Aquas has one: it is the
+   * underside of a sea surface, so it is drawn by canopy.js and answered by
+   * `ceilingAt` rather than being part of the height field.
+   */
+  canopy: null,
 
   nearHalf: 0,           // lateral extent of the high-detail tier
   farHalf: 0,            // lateral extent of the ridgeline tier
@@ -379,6 +385,7 @@ export function setActiveDNA(dna) {
   WORLD.backend = dna.backend ?? DEFAULTS.backend;
   WORLD.belt = dna.belt ?? null;
   WORLD.works = dna.works ?? null;
+  WORLD.canopy = dna.canopy ?? null;
   WORLD.zStart = dna.zStart ?? DEFAULTS.zStart;
   WORLD.zEnd = dna.zEnd ?? DEFAULTS.zEnd;
   WORLD.nearHalf = g.nearHalf;

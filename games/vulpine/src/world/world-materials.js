@@ -721,7 +721,129 @@ const GLSL_GLACIAL = /* glsl */`
         rock *= mix(1.0, 0.78, gWet);
 `;
 
-const GLSL_STRUCTURE = () => (DNA.surfaceKind === 'glacial' ? GLSL_GLACIAL : GLSL_SEDIMENTARY);
+const GLSL_VOLCANIC = /* glsl */`
+        // ── columnar jointing ───────────────────────────────────────────────
+        // Columns grow perpendicular to the cooling front, and in a ponded flow
+        // that front is horizontal — so the column axis is vertical and the cell
+        // pattern is a function of XZ alone. Invariant along Y is the whole
+        // read: it draws a cliff as parallel columns running its full height,
+        // where sedimentary bedding and glacial foliation both draw bands
+        // across one. The same field on a terrace is a pavement of column tops,
+        // which is what a real flow surface is, so nothing masks it by slope.
+        //
+        // Hexagonal by construction, not by a Worley search: a two-candidate
+        // offset lattice is 2 tests against 9, and well-developed jointing is
+        // hexagonal anyway.
+        vec2 colP = (vWPos.xz + vec2(crs.g - 0.5, crs.b - 0.5) * 11.0) * (1.0 / 4.6);
+        vec2 hs = vec2(1.0, 1.7320508);
+        vec4 hcell = floor(vec4(colP, colP - vec2(0.5, 1.0)) / hs.xyxy) + 0.5;
+        vec4 hA = vec4(colP - hcell.xy * hs, colP - (hcell.zw + 0.5) * hs);
+        vec4 hc = dot(hA.xy, hA.xy) < dot(hA.zw, hA.zw)
+                ? vec4(hA.xy, hcell.xy) : vec4(hA.zw, hcell.zw + 0.5);
+        vec2 hq = abs(hc.xy);
+        // 0 at the column axis, 0.5 at a joint.
+        float hd = max(dot(hq, vec2(0.5, 0.8660254)), hq.x);
+        float ch = fract(sin(dot(hc.zw, vec2(37.19, 61.73))) * 4271.53);
+        float colFade = 1.0 - smoothstep(4.6 * 0.14, 4.6 * 0.55, gWpx);
+        float joint = smoothstep(0.32, 0.50, hd) * colFade;
+
+        // Entablature: the master joints that break a colonnade into tiers.
+        // Rare enough to read as events; without them a 600 m wall is one
+        // unbroken comb from the river to the rim.
+        float tierT = fract(vWPos.y * (1.0 / 46.0) + ch * 0.17 + crs.r * 0.09);
+        float master = (1.0 - smoothstep(0.0, 0.09, tierT)) * colFade;
+
+        // Every column is its own cooling unit, so the member varies per CELL
+        // rather than per height band. That is the one place this structure
+        // spends the lithology table differently from the other two.
+        float form = fract(ch * 0.83 + crs.b * 0.12);
+        vec3 rock = mix(L_BASE, lithology(form), 0.15 + smoothstep(0.05, 0.45, gSteep) * 0.85);
+
+        float v = (0.72 + 0.56 * gTri.r) * (0.78 + 0.42 * crs.g);
+        rock *= v;
+        rock *= mix(1.0, 0.86 + ch * 0.30, colFade);
+        rock *= 1.0 - joint * 0.46;
+        rock *= 1.0 - master * 0.32;
+        gBedK = 1.0 - joint;
+
+        // The groove runs ACROSS the surface, not up it — see gGrooveAcross in
+        // terrainMaterial. Sign is the horizontal component of the cell
+        // gradient; the local x sign is that component to within the cell.
+        gGrooveAcross = 1.0;
+        gBedSlope = (hc.x < 0.0 ? 1.0 : -1.0)
+                  * (1.0 - smoothstep(0.05, 0.40, 0.5 - hd))
+                  * (0.35 + 1.45 * ch) * colFade;
+
+        // ── ash ─────────────────────────────────────────────────────────────
+        // Fall settles on anything flat and is stripped off anything steep, so
+        // it is the inverse mask to everything the wall does.
+        float ash = (1.0 - gSteep) * smoothstep(0.30, 0.86, crs.r);
+        rock = mix(rock, rock * vec3(2.30, 2.16, 2.02), ash * 0.55 * (1.0 - smoothstep(3.0, 12.0, gWpx)));
+
+        // ── cavity ──────────────────────────────────────────────────────────
+        // A hollow in young basalt is shadowed rubble; a rim is ash-dusted.
+        float gully = smoothstep(0.54, 1.0, cav);
+        float rim = smoothstep(0.46, 0.02, cav);
+        rock *= mix(1.0, 0.60, gully * 0.85);
+        rock *= mix(1.0, 1.22, rim * 0.75);
+
+        // The chill margin: rock quenched by the channel is glass, so it is the
+        // darkest and the glossiest thing in the level. gWet drives roughness
+        // toward 0.14 in the shared block above, which is what glass wants.
+        // No tide mark — a lava channel does not have one.
+        gWet = (1.0 - smoothstep(-1.0, 9.0, vWPos.y)) * smoothstep(-24.0, -9.0, vWPos.y);
+        rock *= mix(1.0, 0.30, gWet);
+`;
+
+const GLSL_STRUCTURE = () => (
+  DNA.surfaceKind === 'glacial' ? GLSL_GLACIAL
+    : DNA.surfaceKind === 'volcanic' ? GLSL_VOLCANIC
+      : GLSL_SEDIMENTARY);
+
+/* ── ground that emits ────────────────────────────────────────────────────────
+   `DNA.glow` turns the terrain into a light source. One level uses it, and it
+   is the only way that level can exist: bioluminescence is the ground being
+   bright, and no light rig produces that. A hemisphere with a bright ground
+   colour lights everything ELSE from below and leaves the ground itself at
+   whatever the sky term gives it, which on a night world is black.
+
+   The mask is damp and shelter — `cav` is already the baked cavity field, and a
+   colony grows where water collects — times a two-scale patchiness, because an
+   even coat is paint and paint does not read as alive. It fades out with height
+   so a skyline stays dark and the glow reads as coming from the valley floor.
+
+   @typedef {Object} Glow
+   @property {number[]} color   linear radiance at full mask, not a colour
+   @property {number}   amount
+   @property {number[]} height  [full, none] in world Y
+   @property {number}   pulse   rad/s of the breathing term                    */
+function GLSL_GLOW() {
+  const g = DNA.glow;
+  if (!g) return '';
+  return /* glsl */`
+        {
+          // Three masks, and the shape of the combination is the whole look.
+          // A SUM of them lit every square metre of the level and the terrain
+          // composited pure white; what a colony field actually is is a dim
+          // wash where it is damp, with sparse hot patches inside that.
+          float damp = smoothstep(0.40, 0.90, vTerr.x);
+          float patch = smoothstep(0.50, 0.90, gCrsG);
+          float speck = smoothstep(0.68, 0.97, gTri.b);
+          float fade = 1.0 - smoothstep(${gf(g.height[0])}, ${gf(g.height[1])}, vWPos.y);
+          float wash = patch * (0.20 + 0.80 * damp) * fade;
+          float hot = patch * speck * fade;
+          // Slow, and spatially phased: a field of colonies that all pulse
+          // together is a strobe, not a forest.
+          float pulse = 0.70 + 0.30 * sin(uGlowTime * ${gf(g.pulse ?? 0.9)}
+                        + vWPos.x * 0.0041 + vWPos.z * 0.0029);
+          // Two colonies, not one: a single hue over 9 km is a filter, and the
+          // hue split is what makes the stalk field read as populated.
+          vec3 gcol = mix(${gv3(g.color)}, ${gv3(g.color2 || g.color)},
+                          smoothstep(0.32, 0.78, gTri.r));
+          totalEmissiveRadiance += gcol * ((wash * 0.26 + hot * 1.25)
+                                   * ${gf(g.amount ?? 1)} * pulse);
+        }`;
+}
 
 export function terrainMaterial() {
   const rock = surfaceSet();
@@ -729,6 +851,7 @@ export function terrainMaterial() {
   // environment than rock and carries less normal relief. Leaving these at the
   // rock values is what made blue-tinted ice still light like sandstone.
   const glacial = DNA.surfaceKind === 'glacial';
+  const glow = !!DNA.glow;
   const m = new THREE.MeshStandardMaterial({
     map: rock.map,
     normalMap: rock.normalMap,
@@ -738,6 +861,9 @@ export function terrainMaterial() {
     envMapIntensity: glacial ? 1.35 : 0.62,
     vertexColors: true,
     dithering: true,
+    // three only declares `emissive` and the emissive chunk when the material
+    // carries a non-black one, so this is what makes the injection below legal.
+    emissive: glow ? 0xffffff : 0x000000,
   });
   // ?terrdbg=sun|sky|cav flat-shades one baked field instead of the surface.
   // Always defined, never conditional: GLSL ES makes an undefined identifier in
@@ -745,6 +871,7 @@ export function terrainMaterial() {
   m.defines = { TERR_DBG: { sun: 1, sky: 2, cav: 3 }[new URLSearchParams(location.search).get('terrdbg')] || 0 };
   m.onBeforeCompile = (sh) => {
     sh.uniforms.uScale = { value: 0.112 };
+    sh.uniforms.uGlowTime = { value: 0 };
     centrelineInto(sh);
     const hz = horizonField();
     sh.uniforms.uHorizA = { value: hz.a };
@@ -766,12 +893,13 @@ export function terrainMaterial() {
         varying vec3 vWNrm;
         varying vec2 vTerr;
         uniform float uScale;
+        uniform float uGlowTime;
         ${GLSL_LITHOLOGY()}
         ${GLSL_CENTRELINE()}
         ${GLSL_HORIZON()}
         vec3 gBW; vec2 gUX, gUY, gUZ; vec4 gTri;
         vec3 gFaceUp;
-        float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx, gDbg;`)
+        float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx, gDbg, gGrooveAcross, gCrsG;`)
       .replace('#include <map_fragment>', `
         vec3 wn = normalize(vWNrm);
         // A softer blend exponent than the usual 6 — at 4 the three projections
@@ -804,12 +932,17 @@ export function terrainMaterial() {
         float cav = vTerr.x;
         float sky = vTerr.y;
 
+        // Which way a structural groove runs in the surface plane: 0 up the
+        // face (bedding, foliation), 1 across it (columnar jointing).
+        gGrooveAcross = 0.0;
+
         ${GLSL_STRUCTURE()}
 
         gDetail = (1.0 - smoothstep(0.22, 0.85, gWpx));
         gAO = mix(1.0, sky, 0.92) * mix(1.0, 0.70, gully * 0.7);
         gFaceUp = normalize(vec3(0.0, 1.0, 0.0) - wn * wn.y + vec3(1e-5, 0.0, 0.0));
 
+        gCrsG = crs.g;
         diffuseColor *= vec4(rock, 1.0);
       `)
       // ?terrdbg=sun|sky|cav — flat-shade one of the three baked scalar fields.
@@ -823,6 +956,8 @@ export function terrainMaterial() {
         #else
           #include <opaque_fragment>
         #endif`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        ${GLSL_GLOW()}`)
       .replace('#include <roughnessmap_fragment>', `
         // Wet rock is glossy, scoured rims are matte-dusty, shale partings
         // catch a sheen the sandstone members do not.
@@ -855,7 +990,8 @@ export function terrainMaterial() {
         // parting between two of them is a V-groove, not a painted line. This
         // is the term that makes strata catch the key light instead of just
         // tinting — a stripe you can only see in albedo reads as wallpaper.
-        wNormal = normalize(wNormal + gFaceUp * gBedSlope * 0.30 * smoothstep(0.20, 0.60, gSteep));
+        vec3 gDir = mix(gFaceUp, normalize(cross(wnn, gFaceUp) + vec3(0.0, 1e-5, 0.0)), gGrooveAcross);
+        wNormal = normalize(wNormal + gDir * gBedSlope * 0.30 * smoothstep(0.20, 0.60, gSteep));
         normal = normalize((viewMatrix * vec4(wNormal, 0.0)).xyz);
       `)
       // ── terrain shadows ───────────────────────────────────────────────────
@@ -1476,6 +1612,245 @@ export function iceMaterial(reflection = null) {
         }
         #endif
         #include <lights_fragment_end>`);
+    m.userData.shader = sh;
+  };
+  return m;
+}
+
+/* ── lava ─────────────────────────────────────────────────────────────────── */
+
+const lavaSet = () => cached('world.lava', () => {
+  const r = new RNG('world:lava');
+  const veins = ridged2D(r, { octaves: 4, base: 5, gain: 0.55 });    // the network
+  const fine = ridged2D(r, { octaves: 3, base: 17, gain: 0.50 });    // craze inside a plate
+  const grain = fbm2D(r, { octaves: 5, base: 26, gain: 0.55 });      // crust texture
+  const plate = fbm2D(r, { octaves: 3, base: 3, gain: 0.62 });       // raft blotch
+  const S = 512;
+  const { height, map } = bakeHeightAndMap(S, (u, v, o) => {
+    // A power on a ridged field leaves a LINE rather than a crease — the same
+    // trick the ice cracks use. The ice powers (6 and 8) are far too high here:
+    // measured off the first capture, the network baked to a mean near 0.1, the
+    // shader's bias then took most of that, and the channel emitted 0.13 linear
+    // against an exposure of 0.34. A crack has to be a light, not a stain.
+    const vn = Math.pow(veins(u, v), 2.2);
+    const fn = Math.pow(fine(u, v), 3.5);
+    const g = grain(u, v);
+    const pl = clamp01(plate(u, v) * 1.25 - 0.12);
+    o[0] = clamp01(vn * 1.60 + fn * 0.70);          // molten network
+    o[1] = clamp01(0.25 + g * 0.75);                // crust grain
+    o[2] = pl;                                      // raft mask
+    o[3] = clamp01(0.54 + g * 0.42 - vn * 0.42);    // roughness
+    return -(vn * 0.90 + fn * 0.34) + g * 0.14 + pl * 0.26;
+  }, { srgb: false });
+  return { map, normalMap: normalFrom(height, S, 2.6) };
+});
+
+/**
+ * A molten surface for `DNA.surface === 'lava'`. Same contract as
+ * `waterMaterial` and `iceMaterial` — one mesh, `userData.shader.uniforms.uTime`
+ * driven by the world clock — and one thing neither of them is: a light source.
+ * The emissive term is the key light for the whole level, so its radiance is
+ * authored in linear units well above 1 and the preset's exposure is set
+ * against it rather than against a sun.
+ *
+ * No reflector. A crusted channel is 4% specular black with a few per cent of
+ * its area molten, and a planar mirror across it buys nothing but a pass.
+ */
+export function lavaMaterial() {
+  const set = lavaSet();
+  const m = new THREE.MeshStandardMaterial({
+    color: 0xffffff,
+    roughness: 0.85,
+    metalness: 0.0,
+    emissive: 0xffffff,
+    emissiveIntensity: 1.0,
+    dithering: true,
+  });
+  m.normalMap = set.normalMap;
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = { value: 0 };
+    sh.uniforms.uLava = { value: set.map };
+    centrelineInto(sh);
+    sh.uniforms.uShore = { value: shoreField() };
+    sh.uniforms.uShoreCfg = { value: new THREE.Vector3(SHORE.halfU, SHORE.z0, SHORE.zLen) };
+
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+        varying vec3 vWPos;`)
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
+
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        uniform float uTime;
+        uniform sampler2D uLava;
+        varying vec3 vWPos;
+        ${GLSL_CENTRELINE()}
+        ${GLSL_SHORE}
+        float gWpx, gMolten, gCrust, gRough;
+        // Three tiles at incommensurate sizes, each on its own drift rate. The
+        // differential is the shear a channel actually has across its width;
+        // one scroll rate reads as a texture sliding under a static surface.
+        void lavaTaps(vec2 p, float wpx, float t) {
+          float k0 = 1.0 - smoothstep(0.60, 2.20, wpx);   //  7 m
+          float k1 = 1.0 - smoothstep(2.20, 8.00, wpx);   // 27 m
+          float k2 = 1.0 - smoothstep(7.00, 26.0, wpx);   // 94 m
+          vec4 t0 = texture2D(uLava, p * (1.0 /  7.0) + vec2(0.03, -0.148) * t + 0.17);
+          vec4 t1 = texture2D(uLava, p * (1.0 / 27.0) + vec2(-0.011, -0.063) * t + 0.51);
+          vec4 t2 = texture2D(uLava, p * (1.0 / 94.0) + vec2(0.004, -0.021) * t + 0.83);
+          gMolten = t0.r * k0 * 0.42 + t1.r * k1 * 0.72 + t2.r * 0.90;
+          gCrust  = t0.g * k0 * 0.30 + t1.g * k1 * 0.40 + t2.g * 0.62;
+          gRough  = t0.a * k0 * 0.30 + t1.a * k1 * 0.36 + t2.a * 0.60;
+        }`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        gWpx = max(fwidth(vWPos.x), fwidth(vWPos.z)) + 1e-4;
+        lavaTaps(vWPos.xz, gWpx, uTime);
+
+        // Crust thickens toward the bank, because that is where the channel is
+        // slow and shallow. The shore field already answers exactly that, in
+        // rail space, and it is baked for every natural world.
+        float shallow = shoreAt(vWPos).y;
+        float molten = clamp(gMolten * 1.35 - 0.05, 0.0, 1.0);
+        molten *= 1.0 - shallow * 0.55;
+        // A channel is never fully crusted over mid-stream. Without a floor the
+        // rafts join up and the river reads as a wet road.
+        molten = max(molten, (1.0 - shallow) * 0.16);
+        // A surge every few seconds along the channel, so the glow is not a
+        // still image with a scrolling texture over it.
+        float surge = 0.78 + 0.34 * sin(vWPos.z * 0.0031 - uTime * 0.62)
+                            * (0.5 + 0.5 * sin(vWPos.x * 0.0047 + uTime * 0.31));
+        molten = clamp(molten * surge, 0.0, 1.0);
+
+        vec3 crust = mix(vec3(0.016, 0.014, 0.013), vec3(0.070, 0.062, 0.058), gCrust);
+        // Silvered pahoehoe skin on the rafts: the one non-black value on a
+        // cooled surface, and what stops the un-lit area reading as a hole.
+        crust = mix(crust, vec3(0.118, 0.108, 0.104), smoothstep(0.55, 0.95, gCrust) * 0.6);
+        diffuseColor.rgb *= crust;
+      `)
+      .replace('#include <emissivemap_fragment>', `
+        // Linear radiance, not a colour: the hot end is ~5x white and it is the
+        // key light in every frame of this level.
+        vec3 dull = vec3(1.60, 0.26, 0.030);
+        vec3 hot  = vec3(7.40, 2.90, 0.640);
+        float h = smoothstep(0.18, 0.88, molten);
+        // Linear in the mask, not squared. Squared crushed a typical 0.3 crack
+        // to 0.09 of its radiance and the channel came out the colour of wet
+        // clay; the crust is already black, so the contrast does not need help.
+        totalEmissiveRadiance = mix(dull, hot, h) * molten;
+      `)
+      .replace('#include <roughnessmap_fragment>', `
+        // Molten rock is a smooth liquid; crust is rubble. Below the resolvable
+        // band everything converges on the crust value rather than on a mirror.
+        float roughnessFactor = mix(clamp(gRough, 0.30, 0.98), 0.16, molten);
+        roughnessFactor = mix(roughnessFactor, 0.72, smoothstep(4.0, 26.0, gWpx));
+      `)
+      .replace('#include <normal_fragment_maps>', `
+        vec3 n0 = texture2D(normalMap, vWPos.xz * (1.0 /  7.0) + vec2(0.03, -0.148) * uTime + 0.17).xyz * 2.0 - 1.0;
+        vec3 n1 = texture2D(normalMap, vWPos.xz * (1.0 / 27.0) + vec2(-0.011, -0.063) * uTime + 0.51).xyz * 2.0 - 1.0;
+        vec3 n2 = texture2D(normalMap, vWPos.xz * (1.0 / 94.0) + vec2(0.004, -0.021) * uTime + 0.83).xyz * 2.0 - 1.0;
+        float f0 = 1.0 - smoothstep(0.60, 2.20, gWpx);
+        float f1 = 1.0 - smoothstep(2.20, 8.00, gWpx);
+        vec2 sl = (n0.xy * f0 * 0.9 + n1.xy * f1 * 0.8 + n2.xy * 0.6) * normalScale;
+        // The crack floors are liquid and flat; only the crust carries relief.
+        sl *= 1.0 - molten * 0.7;
+        vec3 wN = normalize(vec3(sl.x, max(1.0 - length(sl) * 0.30, 0.42), sl.y));
+        normal = normalize((viewMatrix * vec4(wN, 0.0)).xyz);
+      `);
+    m.userData.shader = sh;
+  };
+  return m;
+}
+
+/* ── the canopy ───────────────────────────────────────────────────────────── */
+
+const causticSet = () => cached('world.caustic', () => {
+  const r = new RNG('world:caustic');
+  const a = ridged2D(r, { octaves: 3, base: 6, gain: 0.52 });
+  const b = ridged2D(r, { octaves: 3, base: 11, gain: 0.48 });
+  const swell = fbm2D(r, { octaves: 3, base: 3, gain: 0.60 });
+  const S = 512;
+  return {
+    map: bake(S, S, (u, v, o) => {
+      // Caustics are the CUSPS of a wave-refracted beam sheet, so what they are
+      // is the top few per cent of two crossed ridged fields — powered hard,
+      // because anything gentler is a cloud pattern rather than a light net.
+      const c = Math.pow(a(u, v), 6.0) * 1.05 + Math.pow(b(u + 0.31, v + 0.17), 7.0) * 0.80;
+      o[0] = clamp01(c * 1.9);
+      o[1] = clamp01(swell(u, v));
+      o[2] = clamp01(Math.pow(a(u * 0.5 + 0.6, v * 0.5 + 0.2), 3.0));
+      o[3] = 1;
+    }, { srgb: false }),
+  };
+});
+
+/**
+ * The underside of a sea surface, for `DNA.canopy`. Unlit on purpose: what you
+ * see looking up from 300 m down is transmitted daylight and total internal
+ * reflection, and neither is a BRDF response to the scene's lights.
+ *
+ * The whole read is the angle to vertical. Straight up is Snell's window — the
+ * sky punched through a rippling lens. Toward the horizontal the surface goes
+ * past the critical angle and mirrors the murk below it, which is why the lid
+ * darkens to the fog colour long before the fog itself would have taken it.
+ *
+ * `fog: true` matters: the atmosphere chunks are patched globally, so this
+ * inherits the same extinction as every other surface and the lid recedes into
+ * the same water the terrain does.
+ */
+export function seaCeilingMaterial({ tint = [0.20, 0.62, 0.66], sunTint = [1.30, 1.80, 1.72] } = {}) {
+  const set = causticSet();
+  const m = new THREE.MeshBasicMaterial({
+    color: 0xffffff, fog: true, side: THREE.DoubleSide, toneMapped: true, dithering: true,
+  });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uTime = { value: 0 };
+    sh.uniforms.uCaustic = { value: set.map };
+    sh.uniforms.uSunDir = { value: new THREE.Vector3(0, 1, 0) };
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+        varying vec3 vWPos;`)
+      .replace('#include <worldpos_vertex>', `#include <worldpos_vertex>
+        vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+        uniform float uTime;
+        uniform sampler2D uCaustic;
+        uniform vec3 uSunDir;
+        varying vec3 vWPos;`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+        vec3 toFrag = vWPos - cameraPosition;
+        float dist = length(toFrag) + 1e-4;
+        // 1 looking straight up at the lid, 0 at the grazing angle where it
+        // stops being a window and becomes a mirror.
+        float up = clamp(toFrag.y / dist, 0.0, 1.0);
+        // 2.4, not 1.45: at the grazing angles that fill the top of a forward
+        // shot the lid has to be past the critical angle and dark, or it is a
+        // white band across the whole frame instead of a surface receding.
+        float window = pow(up, 2.4);
+
+        // Two crossed sheets drifting at different rates: one swell period is a
+        // repeating pattern, two is a moving one.
+        vec2 p = vWPos.xz;
+        float wpx = max(fwidth(vWPos.x), fwidth(vWPos.z)) + 1e-4;
+        float k0 = 1.0 - smoothstep(2.0, 9.0, wpx);
+        float k1 = 1.0 - smoothstep(7.0, 30.0, wpx);
+        float c0 = texture2D(uCaustic, p * (1.0 / 26.0) + vec2(0.0031, 0.0019) * uTime).r;
+        float c1 = texture2D(uCaustic, p * (1.0 / 61.0) - vec2(0.0017, 0.0026) * uTime).r;
+        float c2 = texture2D(uCaustic, p * (1.0 / 210.0) + vec2(0.0006, 0.0004) * uTime).b;
+        float caustic = c0 * k0 * 0.85 + c1 * k1 * 0.70 + c2 * 0.55;
+
+        vec3 base = ${gv3(tint)};
+        vec3 bright = ${gv3(sunTint)};
+        // The sun's own patch: the surface directly between the camera and the
+        // sun is the one part of the lid that is a source rather than a tint.
+        float sunPatch = pow(clamp(dot(normalize(toFrag), uSunDir), 0.0, 1.0), 7.0);
+        vec3 col = mix(base * 0.22, base, window);
+        // The cusps are a light source, not a tint: they run well past 1 so the
+        // bloom pass and the god-ray threshold both find them, which is what
+        // turns the lid from a textured ceiling into the thing throwing shafts.
+        col += bright * (caustic * caustic * (0.16 + window * 1.35) + sunPatch * 2.2);
+        diffuseColor.rgb *= col;
+      `);
     m.userData.shader = sh;
   };
   return m;

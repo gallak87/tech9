@@ -239,6 +239,215 @@ export const PRESETS = {
     },
   },
 
+  // Aquas. Three hundred metres down, and the only preset in the game where the
+  // medium between the camera and everything else is not air. Two things do all
+  // of the work and neither is the sky:
+  //
+  //   · EXTINCTION. `fog.density` is 2.8x Corneria's, so honest colour survives
+  //     ~700 m and the far wall of a 1.4 km basin is gone. That is not a haze
+  //     effect, it is what water does — and it is why the palette in dna.js is
+  //     authored warm: a blue-green rock under blue-green extinction arrives as
+  //     one flat wash.
+  //   · SHAFTS. The sun sits at 60 degrees, near enough overhead that the god-ray
+  //     pass throws its cone down INTO frame from above rather than along the
+  //     rail. This is the one preset in the game with god rays cranked; they are
+  //     off by owner call everywhere else, and here they are the subject.
+  //
+  // The hemisphere is the ordinary way up — bright above, dark below — because
+  // that is genuinely what a water column does, unlike the Foundry's furnace.
+  aquas: {
+    kind: 'atmosphere', stars: 0, nebulaAmount: 0,
+    turbidity: 2.2, rayleigh: 0.85, mieCoefficient: 0.0062, mieDirectionalG: 0.82,
+    // 44, not the 60 the shafts would prefer. Above ~50 the key falls square on
+    // the channel floor and rakes nothing: the floor blows out, the walls get
+    // no grazing light at all, and 400 m of bedded limestone reads as masonry
+    // because the only thing separating one bed from the next is albedo. 44 is
+    // still high enough that the god-ray cone enters frame from the top edge.
+    elevation: 44, azimuth: 168,
+    // Water takes the red end out of daylight within the first few metres, so
+    // the key that reaches this depth is already cyan before it hits anything.
+    sunColor: 0xd6f6ee, sunIntensity: 4.2,
+    hemiSky: 0x2f8fa0, hemiGround: 0x0d3a44, hemiIntensity: 1.45,
+    fillColor: 0x1f6f80, fillIntensity: 0.55,
+    rimColor: 0x9fe8e0, rimIntensity: 0.95,
+    fog: { color: 0x0d4e58, density: 0.00062 },
+    exposure: 0.30,
+    godray: { intensity: 1.25, tint: 0xa8f0e4, clamp: 3.4, density: 0.80, decay: 0.962, weight: 2.6, threshold: 0.80 },
+    nebula: [0x2a3f7a, 0x6b2a6a, 0x123048],
+    // High against a deliberately dark dome — see `sky` below. The probe is
+    // baked from that dome, so dimming one means lifting the other or every
+    // hull down here loses its ambient.
+    envIntensity: 2.2,
+
+    sky: {
+      sunDisc: 70, aureole: 1.4, aureoleTight: 1400, aureoleWide: 0.30, skyGain: 0.30,
+      // The dome is NOT the sky here — it is whatever is visible in the gap
+      // between the far ridgeline and the canopy, and fog does not touch it.
+      // Left at daylight values it punched a bright hole at the vanishing point
+      // of every forward shot. It has to composite as more murk, so it is held
+      // near the fog colour and `envIntensity` carries the IBL instead.
+      hazeColor: [0.10, 0.30, 0.33], hazeSunColor: [0.30, 0.60, 0.58],
+      hazeAmount: 1.0, hazeHeight: 0.44, hazeFalloff: 1.1, hazeSunPow: 2.2,
+      zenithTint: [0.13, 0.29, 0.31],
+      cloudAmount: 0.0, coverage: 0.30, cloudHeight: 2100, cloudScale: 0.00020,
+      cloudWind: [0.0020, 0.0008], cloudThickness: 640, absorb: 2.7, erode: 0.20,
+      cloudSun: [1.0, 1.0, 1.0], cloudShade: [0.2, 0.2, 0.2],
+      cirrusAmount: 0.0, cirrusCoverage: 0.40, cirrusHeight: 8200,
+      cirrusScale: 0.000050, cirrusWind: [0.0010, 0.0004],
+    },
+    atmos: {
+      // Water does not thin with altitude over 300 m, so the height ramp is
+      // almost flat — the depth term is doing everything.
+      heightFalloff: 0.00018, baseHeight: -80,
+      highTint: [0.34, 0.86, 0.90], lowTint: [0.62, 1.00, 0.98],
+      sunTint: [0.30, 0.56, 0.50], sunPow: 3.8,
+    },
+    bloom: { strength: 0.095, radius: 1.12, threshold: 0.95, knee: 0.55, clamp: 6.0, anamorphic: 1.0, dirt: 0.050 },
+    flare: { intensity: 0.0, ghosts: 0.9, streak: 0.30, tint: 0xc8fff4 },
+    ao: { radius: 3.0, intensity: 1.05, strength: 0.64, tint: 0x0a2a30 },
+    grade: {
+      toneMode: 2, shoulder: 0.78, linStart: 0.18, linLen: 0.22, toe: 1.14, white: 1.0,
+      highlightDesat: 0.16, highlightKnee: 1.5,
+      saturation: 1.04, contrast: 1.10, ca: 0.6, vignette: 1.26, grain: 0.012,
+      lift: [0.002, 0.014, 0.018], gain: [0.96, 1.01, 1.02], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.74, 1.02, 1.10], highlightTint: [0.96, 1.02, 1.01],
+      sharpen: 0.28,
+    },
+  },
+
+  // Fortuna. Night, and the sun is a moon: 1.1 against every other preset's 3.4
+  // to 5.6, which means the key light contributes almost nothing and the frame
+  // is carried by two sources that are not directional lights at all — the
+  // aurora, through `nebula` and the IBL, and the ground itself.
+  //
+  // `kind: 'space'` under an atmosphere is the deliberate choice here. A night
+  // sky is not a dim day sky: the Rayleigh dome has no model for one, and every
+  // attempt to reach night by pulling `elevation` down arrives at sunset. Taking
+  // the dome away and putting stars and an aurora in its place is both cheaper
+  // and the only version that looks like night.
+  //
+  // The hemisphere is inverted the way the Foundry's is, and for the same
+  // structural reason with a different cause: the bright term is the GROUND,
+  // because the ground is what is emitting.
+  fortuna: {
+    kind: 'space', stars: 1, nebulaAmount: 0.95,
+    turbidity: 1.0, rayleigh: 0.0, mieCoefficient: 0.0, mieDirectionalG: 0.80,
+    elevation: 28, azimuth: 250,
+    sunColor: 0xa8c2ff, sunIntensity: 1.15,
+    hemiSky: 0x141c34, hemiGround: 0x1a7a68, hemiIntensity: 2.25,
+    fillColor: 0x3a2a6a, fillIntensity: 0.90,
+    rimColor: 0x7cf0d8, rimIntensity: 1.60,
+    fog: { color: 0x06131a, density: 0.00034 },
+    exposure: 0.72,
+    godray: { intensity: 0.0, tint: 0x9cffe4, clamp: 2.5, density: 0.55, decay: 0.94, weight: 2.0, threshold: 1.6 },
+    // Aurora, not a nebula: emerald and violet over a cold blue floor.
+    nebula: [0x1e7a52, 0x5a2278, 0x0e2a4a],
+    envIntensity: 0.90,
+
+    sky: {
+      sunDisc: 74, aureole: 0.0, aureoleTight: 6000, aureoleWide: 0.0, skyGain: 0.0,
+      hazeColor: [0, 0, 0], hazeSunColor: [0, 0, 0],
+      hazeAmount: 0.0, hazeHeight: 0.20, hazeFalloff: 1.7, hazeSunPow: 3.0,
+      zenithTint: [1.0, 1.0, 1.0],
+      cloudAmount: 0.0, coverage: 0.30, cloudHeight: 2100, cloudScale: 0.00020,
+      cloudWind: [0.0020, 0.0008], cloudThickness: 640, absorb: 2.7, erode: 0.20,
+      cloudSun: [1.0, 1.0, 1.0], cloudShade: [0.2, 0.2, 0.2],
+      cirrusAmount: 0.0, cirrusCoverage: 0.40, cirrusHeight: 8200,
+      cirrusScale: 0.000050, cirrusWind: [0.0010, 0.0004],
+    },
+    atmos: {
+      heightFalloff: 0.0009, baseHeight: -20,
+      highTint: [0.26, 0.44, 0.62], lowTint: [0.34, 0.86, 0.78],
+      sunTint: [0.20, 0.44, 0.40], sunPow: 6.0,
+    },
+    // The one preset where bloom is the point rather than the seasoning: every
+    // light in frame is a small bright emitter against black, which is the only
+    // situation where a low threshold does not turn the picture to soup.
+    bloom: { strength: 0.165, radius: 1.20, threshold: 0.72, knee: 0.50, clamp: 9.0, anamorphic: 1.20, dirt: 0.10 },
+    flare: { intensity: 0.25, ghosts: 1.0, streak: 0.50, tint: 0xa6ffe8 },
+    ao: { radius: 3.0, intensity: 1.15, strength: 0.68, tint: 0x08161c },
+    grade: {
+      toneMode: 2, shoulder: 0.82, linStart: 0.16, linLen: 0.22, toe: 1.28, white: 1.0,
+      highlightDesat: 0.10, highlightKnee: 1.5,
+      saturation: 1.22, contrast: 1.14, ca: 1.0, vignette: 1.16, grain: 0.008,
+      lift: [0.002, 0.008, 0.016], gain: [0.97, 1.02, 1.02], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.72, 1.00, 1.06], highlightTint: [0.98, 1.02, 1.00],
+      sharpen: 0.30,
+    },
+  },
+
+  // Venom. The sun is 3.5 degrees up through an ash column and delivers 1.9 — a
+  // third of Corneria's — so it is a rim and a silhouette source and nothing
+  // else. The key light in every frame here is the molten channel at y = 0, and
+  // it is not a light in this rig at all: `lavaMaterial` emits it, and what this
+  // preset contributes is the bounce, through `hemiGround` and `fillColor`.
+  //
+  // That is the same inversion the Foundry uses, one level of nature down: a
+  // furnace under a deck against a river under a cliff. What separates them is
+  // that this one has a sky, and the sky is the ash the volcano put there —
+  // thick cloud deck, near-zero Rayleigh, and a low sun burning through it.
+  venom: {
+    kind: 'atmosphere', stars: 0, nebulaAmount: 0,
+    // Rayleigh near zero with turbidity high: a sky choked with particulate
+    // scatters forward and grey, not sideways and blue. Getting this backwards
+    // gives a hazy blue day with orange clouds in it.
+    // Rayleigh at 0.12, not 0.55. Anything above ~0.2 still resolves as a blue
+    // sky with orange cloud in it, which is a pleasant evening rather than an
+    // ash column — measured on the first capture, where the zenith came out
+    // cornflower. Turbidity carries the particulate instead.
+    turbidity: 16.0, rayleigh: 0.12, mieCoefficient: 0.0165, mieDirectionalG: 0.88,
+    // 232, not 196. At 196 the sun sat almost exactly down the rail, so every
+    // forward frame looked straight into the atmosphere's forward-scatter lobe
+    // and 600 m of black basalt composited terracotta. Off-axis, the lobe stays
+    // where it belongs — around the sun — and the walls get a raking key.
+    elevation: 3.5, azimuth: 232,
+    sunColor: 0xff6a2a, sunIntensity: 1.55,
+    // The bounce off a molten channel, and only the bounce. Authored at 3.2 it
+    // was not a bounce, it was a second key: it lit the tops of the walls as
+    // brightly as the river lit their feet, and 600 m of near-black basalt came
+    // out the colour of terracotta.
+    hemiSky: 0x1a1218, hemiGround: 0xc23a08, hemiIntensity: 1.05,
+    fillColor: 0xff6a20, fillIntensity: 0.55,
+    rimColor: 0xff9a52, rimIntensity: 1.10,
+    fog: { color: 0x1a0a0e, density: 0.00058 },
+    exposure: 0.34,
+    godray: { intensity: 0.55, tint: 0xff9a54, clamp: 3.0, density: 0.66, decay: 0.950, weight: 2.4, threshold: 1.2 },
+    nebula: [0x3a2038, 0x5c2412, 0x101828],
+    envIntensity: 0.32,
+
+    sky: {
+      sunDisc: 40, aureole: 2.6, aureoleTight: 420, aureoleWide: 0.30, skyGain: 0.55,
+      hazeColor: [0.34, 0.17, 0.14], hazeSunColor: [4.20, 1.10, 0.24],
+      hazeAmount: 0.86, hazeHeight: 0.18, hazeFalloff: 1.6, hazeSunPow: 3.0,
+      zenithTint: [0.30, 0.20, 0.22],
+      // The deck is the lid on the caldera: thick, low, and lit from beneath by
+      // what is on the ground more than from above by the sun.
+      cloudAmount: 1.0, coverage: 0.88, cloudHeight: 3400, cloudScale: 0.00011,
+      cloudWind: [0.0026, 0.0011], cloudThickness: 1800, absorb: 5.4, erode: 0.30,
+      cloudSun: [1.15, 0.36, 0.12], cloudShade: [0.070, 0.042, 0.048],
+      cirrusAmount: 0.10, cirrusCoverage: 0.70, cirrusHeight: 9600,
+      cirrusScale: 0.000038, cirrusWind: [0.0012, 0.0005],
+    },
+    atmos: {
+      heightFalloff: 0.0012, baseHeight: -20,
+      highTint: [0.26, 0.15, 0.19], lowTint: [0.52, 0.26, 0.20],
+      // Tight lobe, not a wash: pow 3.4 spread the sun's inscattering across
+      // most of the forward hemisphere.
+      sunTint: [0.90, 0.26, 0.07], sunPow: 7.0,
+    },
+    bloom: { strength: 0.130, radius: 1.15, threshold: 0.85, knee: 0.58, clamp: 9.0, anamorphic: 1.10, dirt: 0.090 },
+    flare: { intensity: 0.40, ghosts: 1.0, streak: 0.38, tint: 0xffb87a },
+    ao: { radius: 2.8, intensity: 1.15, strength: 0.66, tint: 0x1a0a08 },
+    grade: {
+      toneMode: 2, shoulder: 0.80, linStart: 0.17, linLen: 0.23, toe: 1.20, white: 1.0,
+      highlightDesat: 0.24, highlightKnee: 1.3,
+      saturation: 1.16, contrast: 1.14, ca: 1.4, vignette: 1.22, grain: 0.014,
+      lift: [0.016, 0.006, 0.008], gain: [1.04, 0.98, 0.95], gamma: [1.0, 1.0, 1.0],
+      shadowTint: [0.92, 0.90, 1.10], highlightTint: [1.10, 0.98, 0.88],
+      sharpen: 0.28,
+    },
+  },
+
   // Fichina. Ice, thin clean air and a snowfield that bounces most of the key
   // straight back up, so the ground term of the hemisphere is nearly as bright
   // as the sky term — that inversion is what separates a white world from an

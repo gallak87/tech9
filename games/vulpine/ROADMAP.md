@@ -2,10 +2,10 @@
 
 **Status:** playable end-to-end, alpha. Phases 0–7 done, plus the drop system
 (2026-08-16 — `## Settled — drops`) and level cards (2026-08-18). Phase 8 (encounter feel
-+ legibility) still open but **no longer the active lane**. **Four levels, three
-backends, every one of them finishable**, and the campaign flies 1 → 4 in one
-session — measured 2026-08-16, `## Campaign audit`. Branch `g/fox64`, which
-`g/fox64-dna` merged into.
++ legibility) still open but **no longer the active lane**. **Seven levels, three
+backends**; the original four are finishable and measured (2026-08-16,
+`## Campaign audit`), the three added 2026-08-20 boot and fly but are unbalanced
+and unverified — see `## Now`. Branch `g/fox64`, which `g/fox64-dna` merged into.
 
 **The campaign lane is accepted, 2026-08-16 (owner): "levels are in good shape
 to call that work passed for now."** What is still open under `## Campaign
@@ -101,6 +101,63 @@ tracking; HUD status text; boss station-keeping, weak-point frame, lock, hit
 register, swept collision.
 
 ---
+
+## Now — three new biomes, landed but unfinished (2026-08-20)
+
+Owner asked for three more levels, new enemies and new bosses, one level per
+biome (no sectors). **Everything below boots and is flyable via `?level=`; none
+of it has had a balance pass and two look defects are open.**
+
+Campaign order is now seven: Corneria → Highlands → Sector Omega → **Aquas** →
+**Fortuna** → The Foundry → **Venom**. The Foundry gained a hop and is no longer
+the finale; Venom is. That also makes `PLANET_FOR.foundry = 'venom'` correct
+rather than a placeholder — the Foundry is in Venom orbit, so the level you dive
+into is the body you were orbiting.
+
+**What each new level is, and what is new in the engine to make it one:**
+
+- **Aquas** — `terrain` + `surface: 'none'` + `canopy`. New module
+  `world/canopy.js`: the underside of a sea surface at y = 620, drawn from
+  below, answered by `ceilingAt`. It is the first open natural corridor in the
+  game with a lid over it. New material `seaCeilingMaterial` (caustics, Snell's
+  window, critical angle). God rays are cranked here and nowhere else.
+- **Fortuna** — night, `kind: 'space'` preset with an aurora nebula. New
+  `DNA.glow` drives an emissive term on the terrain itself (`GLSL_GLOW` in
+  world-materials.js), because a hemisphere light with a bright ground colour
+  lights everything *except* the ground.
+- **Venom** — `surface: 'lava'` (new `lavaMaterial`, emissive, the key light for
+  the level) and `surfaceKind: 'volcanic'` (new `GLSL_VOLCANIC`, columnar
+  jointing — cellular and vertical, the one wall axis neither bedding nor
+  foliation can reach). Needed `gGrooveAcross` in terrainMaterial so a
+  structural groove can run across a face instead of up it.
+
+- [ ] **Venom's molten channel is invisible from the chase camera, and the cause
+      is authoring, not code.** Measured 2026-08-20: the surface mesh is built,
+      visible, carries `lavaMaterial`, and sits at y = 0; the terrain under it
+      raycasts to -9.0. Swapping it for flat magenta shows nothing at y = 0, a
+      narrow strip at y = +3 and the full channel at y = +40. So it is not
+      occlusion by height — it is **grazing-angle self-occlusion**: the zones
+      inherited `ZONE_KINDS`' default `bed` of 8-11, and a 9 m trough 410 m wide
+      seen from a camera 73 m up is edge-on, so the near bank hides the floor.
+      Corneria runs `bed` 15-32 for exactly this reason. Fix is `bed` 22-34
+      across Venom's zones (and 14-24 for Fortuna, which has the same defaults).
+      Nothing else about the lava material is in question.
+- [ ] **No balance pass on any of the three.** Wave tables are authored against
+      each level's zone boundaries and fog range (spawn distances are short in
+      Aquas, long in Fortuna) but nothing has been flown or run through
+      `tools/pacing.mjs`.
+- [ ] **The three new bosses and three new hostile classes are mid-flight.** The
+      ship lane was stopped part-way; `lancer`, `scarab`, `pylon`,
+      `commander:tide`, `commander:bloom` and `commander:forge` exist and the
+      wave tables reference them, but only `commander:bloom` had been probed and
+      its fight ran 4x long (armour absorbing; the maw reach was being fixed).
+      `BOSS_KINDS` in combat.js carries all three.
+- [ ] **No hop has been flown into or out of a new level.** The wiring is there
+      (`hop: 'orbital'` on Omega, Aquas, Fortuna and the Foundry; planet
+      palettes for `aquas` and `fortuna` in fx/planet.js; `PLANET_FOR` entries in
+      fx/transit.js) and none of it has been exercised.
+- [ ] **Aquas has no arrival beat of its own.** An orbital re-entry that ends
+      300 m underwater wants a plunge, not a wash. Currently it reuses `reentry`.
 
 ## Now
 

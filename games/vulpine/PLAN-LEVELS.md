@@ -3,9 +3,10 @@
 Open lane. **1-3 and 7 landed, 9 half done; 4, 5, 6, 8 open.** The owner picks
 when each starts.
 
-A zone can carry its own cross-section, its own ceiling and its own camera.
-Phase 9 — the authoring that makes the levels actually look different — has
-Fichina and Fortuna done and is the phase that waits on nothing.
+A zone carries its own cross-section, its own ceiling and its own camera; the
+hull pitches with the corridor; and a surface can be floor or ceiling depending
+which side of it the rail runs. **Phase 4 is the only mechanism left**, and only
+phase 6 waits on it.
 
 Companion docs: `ROADMAP.md` is the queue, `HANDOFF.md` the harness and traps,
 `PLAN-PERF.md` the other open lane, `REVIEW.md` the rubric.
@@ -83,11 +84,11 @@ No two rows alike — the acceptance test for the lane.
 | 2 | Authorable `section` on a zone; Venom's ridge, Aquas' terraces + drop-off | **done 2026-08-21** |
 | 3 | Per-zone `ceiling`; wire player flight to `ceilingAt` | **done 2026-08-22** |
 | 4 | `path` refactor — rail becomes arc-length `p(s)` | open |
-| 5 | Hull pitch from `railDir` — anything steep is wrong until this lands | open |
+| 5 | Hull pitch from `railDir` — anything steep is wrong until this lands | **done 2026-08-22** |
 | 6 | Venom orbit arena | open |
 | 7 | Per-level camera — the lens, not the world | **done 2026-08-22**; Venom authored, 6 levels on defaults |
-| 8 | Aquas' plunge — the rail crosses the water surface | open |
-| 9 | **The authoring pass** — one distinct shape per level | Fichina + Fortuna **done 2026-08-22** |
+| 8 | Aquas' plunge — the rail crosses the water surface | **done 2026-08-22** |
+| 9 | **The authoring pass** — one distinct shape per level | Fichina, Fortuna, Venom **done**; Aquas/Foundry open |
 
 Numbers are identifiers, not an order. **7 and 9 block on nothing** — 7 is a
 data change, and 9 can author any level whose mechanism exists, which after
@@ -270,6 +271,50 @@ against 55−70 either side.
 **Nothing gates rail Y.** `centrelineY` moves the rail; the digest's lattice
 samples `terrainHeight`, which reads `centrelineX` only. That fix moved every
 climbing rail in the game and the digest reported nothing.
+
+## Phase 5, as landed
+
+`railYaw` put the corridor's heading into the hull; its slope was never there,
+while `updateCamera` has always used the full 3D tangent. On any gradient the
+camera pitched and the hull did not.
+
+Measured on Fortuna: the hull ran −17.8° to +14.2° off the camera axis, 32°
+peak to peak, against a rail at +18.3°. Now −2.55° to +2.86°, and the residual
+is the player's own pitch from offset velocity and stick.
+
+`framing.mjs` could not see this — `noseDeg` projects the nose onto the
+camera's **right** axis, so it is a yaw measurement and reported a hull in
+agreement through the whole divergence. It now also reports `nosePitch` against
+the camera's up axis and `railPitch` off the tangent.
+
+## Phase 8, as landed
+
+`railOverSurface(z)` is the rail's signed clearance over the canopy. Above it
+the sea answers `groundAt`; below it `ceilingAt`; within `PIERCE` (70 m)
+neither, which is the only way through. Taken off the **rail**, so it is a
+function of z alone — off the ship it would flip as the player crossed and the
+two clamps would fight over the same plane at the moment the dive needs both
+quiet.
+
+Aquas' rail base is 710, 90 m over the sea at 620, and zone 1 spends the whole
+648 back down. Measured: z 720 to −880 the sea is the floor, z −1080 is inside
+`PIERCE`, from z −1280 it is the lid. The rest of the level flies at the 62 it
+always did.
+
+The dive is **41.6°**, two and a half times the steepest gradient the game had,
+and the hull tracks it to 3.9°. Before phase 5 it would have been 41° off the
+camera for the whole plunge.
+
+`lid.mjs` needed two rules corrected to describe this: it measured headroom
+where the rail is *above* the surface, which is not a lid, and it demanded full
+box headroom immediately under the crossing, where clearance necessarily ramps
+from zero. A lid answers for itself once the box fits under it.
+
+**Still open here.** The canopy shader is an underside — refraction, caustics,
+the critical angle — and the opening now looks at it from above for 9 seconds.
+It reads as sea, but it was not built to. And Aquas' zone 0 terraced benches are
+now flown over at 700 m and never seen; they were already logged as reading
+weakly, and now need moving under the surface or accepting as lost.
 
 ## Open, found in phase 2 and its quality pass
 

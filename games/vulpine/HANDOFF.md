@@ -20,26 +20,30 @@ Stopped clean, not mid-fix.
 
 **The active lane is level identity — `PLAN-LEVELS.md`.** Five of seven levels
 read as the same level because the terrain cross-section folded about
-`Math.abs(u)` and rose monotonically away from the rail, so every one was the
-same valley at a different scale. **Phases 1, 2 and 3 have landed**: the
-cross-section is an authored polyline, a zone can carry its own `section` and
-its own `ceiling`, Venom opens on an inverted ridge with lava either side, and
-player flight is finally clamped under the lid instead of only the AI.
+`Math.abs(u)`, so every one was the same valley at a different scale.
 
-**The next action is phase 4** — the rail becomes an arc-length `p(s)`.
-`PLAN-LEVELS.md` carries the research for 4-6 so none of it is re-derived.
+**Landed: phases 1, 2, 3 and 7; phase 9 half done.** A zone can author its own
+cross-section, its own ceiling and its own camera; player flight is clamped
+under the lid rather than only the AI; and Fichina and Fortuna have been given
+shapes. Every level now names a shape combination no other level uses.
 
-Two gate notes for whoever is next, because both cost the last session:
+**The next action is phase 9's remaining levels** — Aquas and Venom read against
+their rows in the four-levels table, and the Foundry, which has no cross-section
+at all. Phases 4, 5, 6 and 8 are open and specified.
 
-- **The digest gate is green again.** The stale baselines are diagnosed and
-  re-cut — the drift was `5501801`'s summation-order change plus phase 2's own
-  authored sections, all intended. **Cut a digest before you edit**, not after.
-- **`tools/lid.mjs --audit` is new** and is green on a clean tree. It prints one
-  standing note: Aquas' walls break its own sea surface by 217 m. That is a look
-  question, tracked, and deliberately not a gate failure.
+Gates, all runnable from `games/vulpine`:
 
-`tools/fins.mjs --audit` still exits non-zero on a clean tree. Pre-existing and
-tracked in `ROADMAP.md`; it is not phase 3's doing.
+- `tools/digest.mjs --against` — green on all seven. **Cut a digest before you
+  edit, not after.**
+- `tools/lid.mjs --audit` — new, green. Prints one standing note: Aquas' walls
+  break its own sea surface by 217 m. A look question, tracked, not a failure.
+- `tools/shape.mjs --strict` — new, green. The phase 9 acceptance test.
+- `tools/fins.mjs --audit` — **still exits non-zero on a clean tree.**
+  Pre-existing, tracked in `ROADMAP.md`, not this lane's doing.
+
+**Nothing gates rail Y.** `centrelineY` moves the rail and the digest's lattice
+samples `terrainHeight`, which reads `centrelineX` only — a fix that moved every
+climbing rail in the game was invisible to it.
 
 Closed in the 2026-08-21 session, all under `ROADMAP.md ## Also open — the three
 new biomes` with their numbers:

@@ -28,9 +28,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * The cross-section parameters, in the order `heightAtU` stacks them outward
- * from the centreline. Owned here because a zone preset is exactly a value for
- * each of these; `profile.js` imports the list rather than restating it.
+ * The cross-section parameters. A zone preset is exactly a value for each of
+ * these, and `keySection` in profile.js turns them into a polyline once per key
+ * at load. Only `relief` is sampled after that; the rest describe the shape and
+ * stop mattering the moment the points exist.
  */
 export const FIELDS = ['inner', 'bed', 'beachW', 'beachH', 'shelfW', 'shelfH', 'cliffW', 'wallH', 'relief'];
 
@@ -156,6 +157,12 @@ export function expandZones(dna) {
         if (!Number.isFinite(u) || !Number.isFinite(h)) fail(dna, `${name(i)}: section has a non-finite value`);
         if (!(u > prev)) fail(dna, `${name(i)}: section u must strictly ascend, got ${prev} then ${u}`);
         prev = u;
+      }
+      // Three points a side of the centreline. The noise gates read the outer
+      // three distances per bank and need them positive and ascending, and the
+      // half-width below measures from the two ends.
+      if (!(zone.section[2][0] < 0) || !(zone.section[SECTION_PTS - 3][0] > 0)) {
+        fail(dna, `${name(i)}: section must straddle u = 0 with three points a side`);
       }
       row.section = zone.section;
     }

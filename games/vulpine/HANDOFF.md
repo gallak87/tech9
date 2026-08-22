@@ -32,9 +32,10 @@ real queue.** What closed this session:
 
 **The level-identity lane is open and phase 1 has landed** — see
 `PLAN-LEVELS.md`, which carries the diagnosis, the two-curve architecture, the
-four redesigned levels and the six phases. **Phases 1 and 2 have landed** — a
-zone can author its own cross-section and Venom opens on an inverted ridge.
-Phase 3 is next: per-zone ceilings, and wiring player flight to `ceilingAt`.
+four redesigned levels and the six phases. **Phases 1 and 2 have landed and have had their quality pass** — a zone can
+author its own cross-section and Venom opens on an inverted ridge with lava
+either side. Phase 3 is next: per-zone ceilings, and wiring player flight to
+`ceilingAt`, which nothing currently honours but the AI.
 
 The hop wiring was read end to end 2026-08-21 and **has no gaps** — every one
 of the seven env presets has a `PLANET_FOR` entry, every value it maps to has a
@@ -191,6 +192,11 @@ added in the middle silently renumbers every shortcut after it.
 - **The landmass is fine.** Two separate investigations concluded "the terrain is
   missing" from in-canyon cameras that simply had the highland outside the
   frustum. Use `freecam --nofog --nowater` before claiming geometry is absent.
+- **`digest.mjs --against` must be read by exit code.** Its failure line is
+  `*** OUTPUT IS NOT IDENTICAL ***`, so a grep for "identical" matches the
+  failure too and reports every level green. This produced one false all-clear.
+- **`shots/` is gitignored**, so no capture or digest baseline travels with the
+  repo. Any doc that names one means "regenerate it locally first".
 - **Captures are not deterministic frame to frame.** Same code, two runs of
   `shot.mjs` on Venom: 3-11% of pixels differ, max channel delta 205 — transient
   bolts, sparks and enemy positions. Pixel-diffing two captures proves nothing;

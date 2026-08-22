@@ -136,6 +136,19 @@ Three things learned authoring them, all of which cost a capture cycle:
   reads as distance rather than as a cliff edge. Geometry is correct and
   measured; the *look* is unresolved — see the open item below.
 
+## Open, found in the phase 2 quality pass
+
+- [ ] **`keySection` writes onto the DNA's own key objects.** For a `keys`-
+      authored DNA (Corneria) `expandZones` returns the input unchanged, so the
+      polyline lands on `DNA_CORNERIA.keys` — against the "input is never
+      mutated" contract at `zones.js:85`. The `if (key.su) return` memo means a
+      later edit to that object's band fields would not regenerate. Harmless
+      while DNAs are static; a per-load cache would close it.
+- [ ] **`profileAt(z, {})` per call would allocate two typed arrays.** Both live
+      callers hoist one profile object per build (`terrain.js:184`,
+      `world-materials.js:282`), which is now a hard contract that nothing
+      enforces.
+
 ## Open, found in phase 2
 
 - [ ] **Aquas' drop-off does not read.** The section is correct (`terrainHeight`
@@ -171,6 +184,19 @@ of pixels differ, max channel delta 205). Read the sheet.
 Baseline: `shots/ref-<level>/` (chase + valley, all seven) and
 `shots/ref-geometry-<level>.json`. Omega is chase-only — `field` backend, no
 corridor for the `valley` camera.
+
+**`shots/` is gitignored** (`.gitignore:9`), so no baseline travels with the
+repo. A fresh clone has nothing to compare against and has to cut its own:
+
+```bash
+for L in corneria highlands omega foundry aquas fortuna venom; do
+  node tools/digest.mjs --level $L --out shots/ref-geometry-$L.json
+done
+```
+
+Read `digest.mjs --against` by **exit code**, never by grepping its output: the
+failure line is `*** OUTPUT IS NOT IDENTICAL ***`, so a grep for "identical"
+matches both outcomes and reports every level green.
 
 ## Guardrail
 

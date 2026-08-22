@@ -1,7 +1,7 @@
 import { RNG } from '../core/rng.js';
 import { fbm2D, ridged2D } from '../render/textures.js';
 import { DEFAULTS, DNA_CORNERIA } from './dna.js';
-import { expandZones, FIELDS, SECTION_PTS } from './zones.js';
+import { expandZones, SECTION_PTS } from './zones.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The shape of a world.
@@ -225,26 +225,26 @@ const FLAT_KEYS = [
 // per mesh row and `heightAtU` once per vertex, so neither may allocate.
 
 /**
- * The three outermost point distances on one bank, innermost first. The relief
- * and crenellation gates are expressed against them, so an authored section
- * gets the same treatment as a generated one without naming bands it does not
- * have: relief begins past `[1]`, crenellation spans `[0]`..`[2]`.
- */
-function gatesFrom(su, i0, i1, i2) {
-  return [Math.abs(su[i0]), Math.abs(su[i1]), Math.abs(su[i2])];
-}
-
-/**
- * Attach a key's polyline. `key.section` is used as authored; otherwise the
- * band fields generate the symmetric nine-point equivalent.
+ * Attach a key's cross-section polyline: `su` ascending and signed across both
+ * banks, `sh` alongside it, `SECTION_PTS` points. Segments interpolate with
+ * smoothstep and the height holds flat outside the outermost pair.
  *
- * Runs once per key at load, never per sample — `profileAt` only interpolates.
+ * Signed, so the two banks are independent and a profile may be asymmetric,
+ * inverted or non-monotonic. `key.section` is used as authored; otherwise the
+ * band fields generate the symmetric equivalent.
+ *
+ * The section must straddle u = 0 with at least three points a side. The noise
+ * gates in `heightAtU` read the outer three distances off `su` and require them
+ * positive and ascending, and `zones.js` measures half-width the same way.
+ *
+ * Runs once per key at load, never per sample.
  */
 function keySection(key) {
   if (key.su) return;
+  const at = `key at z ${key.z}`;
   if (key.section) {
-    key.su = key.section.map((p) => p[0]);
-    key.sh = key.section.map((p) => p[1]);
+    key.su = key.section.map((q) => q[0]);
+    key.sh = key.section.map((q) => q[1]);
   } else {
     const a0 = key.inner;
     const a1 = a0 + key.beachW;
@@ -254,16 +254,15 @@ function keySection(key) {
     key.sh = [key.wallH, key.shelfH, key.beachH, 0, -key.bed, 0, key.beachH, key.shelfH, key.wallH];
   }
   const n = key.su.length;
-  if (n !== SECTION_PTS) {
-    throw new Error(`section must have exactly ${SECTION_PTS} points, got ${n}`);
-  }
+  if (n !== SECTION_PTS) throw new Error(`${at}: section needs ${SECTION_PTS} points, got ${n}`);
   for (let i = 1; i < n; i++) {
     if (!(key.su[i] > key.su[i - 1])) {
-      throw new Error(`section u must strictly ascend: ${key.su[i - 1]} then ${key.su[i]}`);
+      throw new Error(`${at}: section u must strictly ascend, got ${key.su[i - 1]} then ${key.su[i]}`);
     }
   }
-  key.gL = gatesFrom(key.su, 2, 1, 0);
-  key.gR = gatesFrom(key.su, n - 3, n - 2, n - 1);
+  if (!(key.su[2] < 0) || !(key.su[n - 3] > 0)) {
+    throw new Error(`${at}: section must straddle u = 0 with three points a side, got ${key.su[2]} and ${key.su[n - 3]}`);
+  }
 }
 
 /**
@@ -272,10 +271,6 @@ function keySection(key) {
  * The outermost point on each bank is scaled by `wm`, the per-side wall
  * multiplier: it varies by bank and by z, so it cannot live in a list the two
  * banks share.
- *
- * Zero-width segments step rather than divide: the scan passes over every point
- * sharing an `su`, so a band at zero width contributes its full height on the
- * outer side and nothing on the inner.
  */
 function sectionAt(P, s, wm) {
   const su = P.su, sh = P.sh, last = SECTION_PTS - 1;
@@ -295,18 +290,15 @@ export function profileAt(z, out = _P) {
   while (i < KEYS.length - 2 && z < KEYS[i + 1].z) i++;
   const a = KEYS[i], b = KEYS[i + 1];
   const t = smooth(a.z, b.z, z);
-  for (const f of FIELDS) out[f] = lerp(a[f], b[f], t);
+  // Only `relief` survives interpolation: every other band field feeds
+  // `keySection` at load and nothing samples it again. `out` is reused across
+  // calls, so the arrays are allocated once per caller-supplied profile object.
+  out.relief = lerp(a.relief, b.relief, t);
   const su = out.su || (out.su = new Float64Array(SECTION_PTS));
   const sh = out.sh || (out.sh = new Float64Array(SECTION_PTS));
-  const gL = out.gL || (out.gL = new Float64Array(3));
-  const gR = out.gR || (out.gR = new Float64Array(3));
   for (let k = 0; k < SECTION_PTS; k++) {
     su[k] = lerp(a.su[k], b.su[k], t);
     sh[k] = lerp(a.sh[k], b.sh[k], t);
-  }
-  for (let k = 0; k < 3; k++) {
-    gL[k] = lerp(a.gL[k], b.gL[k], t);
-    gR[k] = lerp(a.gR[k], b.gR[k], t);
   }
   return out;
 }
@@ -364,11 +356,12 @@ export function heightAtU(u, z, P) {
   const wm = SIDE_BASE + SIDE_AMP * nSide(z * S_SIDE + (right ? 0.11 : 0.61), (right ? 0.21 : 0.79));
   const d = Math.max(0, d0 + bankJitter(z, right) * smooth(0, 90, d0));
 
-  // The gates are per bank, because the two banks can carry different sections.
-  const g = right ? P.gR : P.gL;
-  const a1 = g[0];
-  const a2 = g[1];
-  const a3 = g[2];
+  // Where relief and crenellation begin on the bank being sampled: the outer
+  // three point distances, innermost first. Per bank, because the two banks can
+  // carry different sections.
+  const a1 = right ? P.su[SECTION_PTS - 3] : -P.su[2];
+  const a2 = right ? P.su[SECTION_PTS - 2] : -P.su[1];
+  const a3 = right ? P.su[SECTION_PTS - 1] : -P.su[0];
 
   // `bankJitter` yields a distance from the centreline; the polyline is signed,
   // so the jittered distance goes back on the bank it was measured from.

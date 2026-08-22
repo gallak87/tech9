@@ -130,10 +130,14 @@ geometry, not shading — the five levels in question were exactly the five on
 `Math.abs(u)` and rose monotonically away from the rail, so every one of them
 was the same valley at a different scale.
 
-Phases 1 and 2 have landed and had their quality pass: the cross-section is an
-authored polyline, a zone can carry its own `section`, and Venom opens on an
-inverted ridge. Phases 3-6 are open — per-zone ceilings, the rail as an
-arc-length path, the vertical drama, and Venom's orbit arena.
+Phases 1, 2 and 3 have landed and had their quality pass: the cross-section is
+an authored polyline, a zone can carry its own `section` and its own `ceiling`,
+Venom opens on an inverted ridge, and player flight is clamped under the lid.
+Phases 4-6 are open — the rail as an arc-length path, the vertical drama, and
+Venom's orbit arena.
+
+`tools/lid.mjs --audit` joined the verification block with phase 3: the ceiling
+gate, green on a clean tree.
 
 ## Also open — the three new biomes (2026-08-20)
 

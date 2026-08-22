@@ -33,6 +33,12 @@ export const TUNE = {
   groundCushion: 9,
   groundSpring: 150,
   groundDamp: 5,
+  // The lid pushes back over a shorter run than the deck and gives way sooner.
+  // A roof is a thing you duck under, not a surface you skim: the same 9 m
+  // cushion made a ceiling feel like a second floor pressing down.
+  ceilCushion: 6,
+  ceilSpring: 150,
+  ceilDamp: 5,
 
   bankPerOffsetVel: 0.0068,
   bankPerStick: 0.62,
@@ -333,6 +339,32 @@ export class Flight {
     // it would fight both. It is added after, so the corridor physics never see
     // it and are unchanged the moment it returns to zero.
     this.pos.set(this.railPos.x + this.off.x, this.railPos.y + this.off.y + this.climb, this.railZ);
+
+    // The lid, cushioned and clamped exactly as the floor is. Only a `works`
+    // roof or a canopy reports one; everywhere else it is Infinity and both
+    // tests below are dead.
+    //
+    // Runs before the floor so that the floor wins a corridor too tight for
+    // both: through the roof is a wrong picture, through the ground is no
+    // picture at all.
+    //
+    // Stood down while `climb` is non-zero. The hop is deliberately leaving the
+    // level — `climb` is kept out of `off.y` so the corridor physics never see
+    // it, and a lid that held the ship down would be the one thing that did.
+    const cy = (this.world && !this.detached && this.climb === 0)
+      ? this.world.ceilingAt(this.pos.x, this.pos.z) - 5.5 : Infinity;
+    const headroom = cy - this.pos.y;
+    if (headroom < TUNE.ceilCushion) {
+      const pen = TUNE.ceilCushion - headroom;
+      this.offVel.y = (this.offVel.y - pen * TUNE.ceilSpring * dt) * Math.exp(-TUNE.ceilDamp * dt);
+    }
+    if (this.pos.y > cy) {
+      const push = this.pos.y - cy;
+      this.pos.y = cy;
+      this.off.y -= push;
+      if (this.offVel.y > 0) this.offVel.y = 0;
+      this.addShake(Math.min(0.5, push * 0.05));
+    }
 
     // Terrain floor — you can graze the deck but not swim. Cushioned rather
     // than bounced: the ship is sprung away over the last few metres of

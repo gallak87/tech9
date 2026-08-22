@@ -167,6 +167,15 @@ export function expandZones(dna) {
       row.section = zone.section;
     }
 
+    // The lid, in world Y, blended between keys by `ceilingAtZ`. Only a level
+    // with a `canopy` has one at all; on any other backend the field is inert,
+    // so it is rejected there rather than silently doing nothing.
+    if (zone.ceiling != null) {
+      if (!dna.canopy) fail(dna, `${name(i)}: ceiling needs a canopy on the DNA`);
+      if (!Number.isFinite(zone.ceiling)) fail(dna, `${name(i)}: ceiling must be finite, got ${zone.ceiling}`);
+      row.ceiling = zone.ceiling;
+    }
+
     const halfWidth = zone.section
       ? Math.max(-zone.section[0][0], zone.section[SECTION_PTS - 1][0])
       : row.inner + row.beachW + row.shelfW + row.cliffW;
@@ -218,4 +227,4 @@ export function expandZones(dna) {
 }
 
 /** Zone properties that are not cross-section fields. Anything else is a typo. */
-const ZONE_META = new Set(['kind', 'len', 'blend', 'bend', 'climb', 'section']);
+const ZONE_META = new Set(['kind', 'len', 'blend', 'bend', 'climb', 'section', 'ceiling']);

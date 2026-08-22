@@ -14,22 +14,35 @@ and the traps. The plans live elsewhere:
 | `CONTRACT.md` | lane ownership and the hard rules |
 | `REVIEW.md` | the review rubric |
 
-## Where we left off — 2026-08-21
+## Where we left off — 2026-08-22
 
 Stopped clean, not mid-fix.
 
 **The active lane is level identity — `PLAN-LEVELS.md`.** Five of seven levels
 read as the same level because the terrain cross-section folded about
 `Math.abs(u)` and rose monotonically away from the rail, so every one was the
-same valley at a different scale. Phases 1 and 2 have landed and had their
-quality pass: the cross-section is an authored polyline, a zone can carry its
-own `section`, and Venom opens on an inverted ridge with lava either side.
-**Phase 3 is next** — per-zone ceilings, and wiring player flight to
-`ceilingAt`, which nothing but the AI currently honours. That doc carries the
-research for phases 3-6 so none of it is re-derived.
+same valley at a different scale. **Phases 1, 2 and 3 have landed**: the
+cross-section is an authored polyline, a zone can carry its own `section` and
+its own `ceiling`, Venom opens on an inverted ridge with lava either side, and
+player flight is finally clamped under the lid instead of only the AI.
 
-Also closed this session, all under `ROADMAP.md ## Also open — the three new
-biomes` with their numbers:
+**The next action is phase 4** — the rail becomes an arc-length `p(s)`.
+`PLAN-LEVELS.md` carries the research for 4-6 so none of it is re-derived.
+
+Two gate notes for whoever is next, because both cost the last session:
+
+- **The digest gate is green again.** The stale baselines are diagnosed and
+  re-cut — the drift was `5501801`'s summation-order change plus phase 2's own
+  authored sections, all intended. **Cut a digest before you edit**, not after.
+- **`tools/lid.mjs --audit` is new** and is green on a clean tree. It prints one
+  standing note: Aquas' walls break its own sea surface by 217 m. That is a look
+  question, tracked, and deliberately not a gate failure.
+
+`tools/fins.mjs --audit` still exits non-zero on a clean tree. Pre-existing and
+tracked in `ROADMAP.md`; it is not phase 3's doing.
+
+Closed in the 2026-08-21 session, all under `ROADMAP.md ## Also open — the three
+new biomes` with their numbers:
 
 - Venom's molten channel; **Fortuna had no terrain at all** (`GLSL_GLOW`
   declared `float patch`, a reserved word, so its fragment shader never

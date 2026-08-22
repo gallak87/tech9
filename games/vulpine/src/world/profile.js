@@ -86,6 +86,11 @@ const lerp = (a, b, t) => a + (b - a) * t;
 export const MAXW = 6;                // sine terms per centreline axis
 export const MAXB = 6;                // dog-legs
 
+// World Y of a canopy that does not name one. Lives here rather than in
+// canopy.js because `setActiveDNA` resolves each key's lid before any canopy
+// exists, and two owners for one default is how they drift apart.
+export const CANOPY_Y = 330;
+
 let SP_A = 6, SP_G = 280;
 
 let cxN = 0, cyN = 0, cbN = 0, cbyN = 0, cyBase = 0;
@@ -333,6 +338,24 @@ function bankJitter(z, right) {
 }
 
 /**
+ * The lid at `z` in world Y, or Infinity where the world has no canopy.
+ *
+ * Its own key walk rather than a field on the profile: the lid is read once per
+ * craft per tick, while `profileAt` runs once per mesh row and feeds a
+ * per-vertex loop that has no use for it.
+ *
+ * The surface itself, not the clearance under it — `Canopy.ceilingY` subtracts
+ * the margin, because the margin belongs to the thing being drawn.
+ */
+export function ceilingAtZ(z) {
+  if (!WORLD.canopy) return Infinity;
+  let i = 0;
+  while (i < KEYS.length - 2 && z < KEYS[i + 1].z) i++;
+  const a = KEYS[i], b = KEYS[i + 1];
+  return lerp(a.ceiling, b.ceiling, smooth(a.z, b.z, z));
+}
+
+/**
  * Terrain height at lateral offset `u` from the centreline at `z`.
  * `P` is `profileAt(z)`; pass it in so a whole mesh row shares one lookup.
  *
@@ -508,6 +531,12 @@ export function setActiveDNA(dna) {
   // source DNA stays unmutated, and a rebuild recompiles from the band fields.
   KEYS = (dna.keys ?? FLAT_KEYS).map((k) => ({ ...k }));
   for (const k of KEYS) keySection(k);
+
+  // Every key carries a finite lid, so `ceilingAtZ` blends two numbers and
+  // never a sentinel. A world with no canopy has no lid to blend and answers
+  // Infinity before it reaches the keys.
+  const lid = dna.canopy ? (dna.canopy.y ?? CANOPY_Y) : 0;
+  for (const k of KEYS) if (!Number.isFinite(k.ceiling)) k.ceiling = lid;
 
   const city = dna.city ?? DEFAULTS.city;
   CITY_ON = city ? 1 : 0;

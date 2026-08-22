@@ -77,7 +77,7 @@ No two rows alike — the acceptance test for the lane.
 |---|---|---|
 | 1 | Cross-section becomes a polyline; `Math.abs(u)` gone | **done 2026-08-21** |
 | 2 | Authorable `section` on a zone; Venom's ridge, Aquas' terraces + drop-off | **done 2026-08-21** |
-| 3 | Per-zone `ceiling`; wire player flight to `ceilingAt` | open |
+| 3 | Per-zone `ceiling`; wire player flight to `ceilingAt` | **done 2026-08-22** |
 | 4 | `path` refactor — rail becomes arc-length `p(s)` | open |
 | 5 | Hull pitch from `railDir`, then the vertical drama in all four | open |
 | 6 | Venom orbit arena | open |
@@ -136,6 +136,43 @@ Three things learned authoring them, all of which cost a capture cycle:
   reads as distance rather than as a cliff edge. Geometry is correct and
   measured; the *look* is unresolved — see the open item below.
 
+## Phase 3, as landed
+
+A zone may carry `ceiling: <metres>`, rejected at author time on a level with no
+`canopy` — the field would otherwise be inert. `ceilingAtZ(z)` in `profile.js`
+blends it between keys with its own key walk rather than a field on `profileAt`:
+the lid is read once per craft per tick, while `profileAt` feeds a per-vertex
+loop with no use for it. Every key is given a finite lid at load, so the blend
+never meets a sentinel, and a world with no canopy answers `Infinity` before it
+reaches the keys.
+
+`Canopy.ceilingY(z)` takes a z and the plane tracks the lid at the camera's own
+z, so a varying ceiling is drawn where `ceilingAt` reports one. The plane is
+still flat and still camera-following: a lid that must be *seen* to slope needs
+`water.js`'s rail-aligned strips and the triangle argument in `canopy.js`'s
+header re-made. Deferred, not forgotten.
+
+Player flight honours it at `flight.js:352-370`, mirroring the ground's
+cushion-then-clamp. Three things it does that the floor does not:
+
+- **Runs before the floor**, so the floor wins a corridor too tight for both.
+  Through the roof is a wrong picture; through the ground is no picture at all.
+- **Stands down while `climb` is non-zero.** The hop deliberately leaves the
+  level, and a lid is the one thing that would hold it in.
+- **A 6 m cushion against the floor's 9.** A roof is ducked under, not skimmed.
+
+Measured, not assumed. With a 120 m lid authored onto Aquas zone 2 and the clamp
+disabled, the ship goes **40.2 m through the roof**; with it wired, held under,
+worst approach **−5.5 m** with the cushion engaged. The lid it is held at reads
+106.1 = the authored 120 less the canopy's 14 m margin, so the authored number
+reaches the clamp intact.
+
+**The Foundry's roof was never reachable.** `boxYUp` is 78, and its lid sits
+25.9 m above the highest the offset box can carry the ship — measured identical
+on the pre-change tree. The player could not fly through it in practice, so this
+phase is a mechanism for phases 5-6 to author against rather than a fix to
+something that was being felt.
+
 ## Open, found in phase 2 and its quality pass
 
 - [x] **`keySection` writes onto the DNA's own key objects.** Closed 2026-08-21:
@@ -159,13 +196,47 @@ Three things learned authoring them, all of which cost a capture cycle:
       to 790 m, which is silhouette at best from a camera 17 m behind the ship.
       Either bring them inside ~350 m or accept them as background.
 
-- [ ] **`shots/ref-geometry-*.json` predate `2cdabf1`.** Baselines were cut
-      21:51; the cross-section quality pass landed 22:18. Since then all five
-      terrain levels report `field:groundAt lattice 73x97` moved — geometry
-      arrays are identical, only the sampled lattice differs. The gate reads red
-      for everyone until someone decides whether that drift was intended and
-      re-cuts. **Cut a digest before editing, not after**, or a stale baseline
-      reads as your own regression.
+- [x] **`shots/ref-geometry-*.json` were stale.** Closed 2026-08-22: diagnosed,
+      found intended, and re-cut. All seven levels are green.
+
+      The drift is from **`5501801`** (phase 2), not `2cdabf1` — bisected with a
+      headless replica of the digest's lattice, since the baselines were cut
+      21:51, two minutes before `708f20a`. `5501801` moved section construction
+      from the *interpolated* band fields to a per-key compile, so the summation
+      order went from `lerp(inner) + lerp(beachW)` to `lerp(inner + beachW)`.
+      Same value, different rounding.
+
+      Nor was the geometry identical on all five. Measured against the phase-1
+      tree:
+
+      | | lattice moves | worst | cause |
+      |---|---|---|---|
+      | corneria | 558/7081 | 2.8e-13 m | rounding |
+      | highlands | 347/7081 | 4.0e-13 m | rounding |
+      | fortuna | 291/7081 | 4.0e-13 m | rounding |
+      | aquas | 3532/7081 | **423 m** | its authored section |
+      | venom | 1301/7081 | **356 m** | its authored ridge |
+
+      Aquas also moved 325 geometry arrays and Venom 156 — phase 2's authored
+      sections, exactly as intended. Omega and the Foundry never moved: neither
+      routes `groundAt` through `terrainHeight`. The lattice is `Float64` and
+      the mesh stores `Float32`, which is why a rounding change shows there and
+      nowhere else.
+
+      **Cut a digest before editing, not after**, or a stale baseline reads as
+      your own regression. It cost the previous agent two cycles and it still
+      landed on the wrong commit.
+- [ ] **Aquas' walls break its own sea surface.** 1.66 km of the gorge and the
+      narrows (z −5820..−7480) stand up to 217 m through the 620 m lid, from
+      only 205 m off the rail. The corridor itself is clear by 334 m, so the
+      level flies fine — this is the look. The DNA comment at `dna.js:462` sets
+      620 against "the tallest wall in the level (620 in the second narrows)",
+      but that is the authored `wallH`; the relief bands stack on top of it and
+      the terrain actually reaches 835. Either raise the lid, drop those two
+      zones' `wallH`, or accept emergent reef and give it a shoreline. Pre-dates
+      phase 3 — measured identical at `262817c`. `tools/lid.mjs --audit` prints
+      it on every run.
+
 - [ ] **`fins.mjs --audit` exits non-zero on a clean tree**, so the second half
       of the verification block is not currently a gate. Not this lane's work:
       the reversed triangles predate the cross-section lane (`1ea5288`) and are
@@ -176,22 +247,12 @@ Three things learned authoring them, all of which cost a capture cycle:
 Read out of the source 2026-08-21 so none of it is re-derived. All line numbers
 are from that date; verify before trusting one.
 
-**Phase 3 — ceilings.**
-- `ceilingAt()` exists (`corneria.js:349`, `works.js:81`) and **only the AI
-  honours it** (`ai.js:359, 365`). The player can fly through the Foundry's roof
-  today. `flight.js:343` reads `groundAt` and nothing else. Per-zone ceilings are
-  worthless until flight is wired to it — mirror the ground's two-stage
-  cushion/clamp at `flight.js:345-355`.
-- `canopy.js` is **one camera-following plane** (`canopy.js:65-89`) and
-  `ceilingY()` takes no arguments, so it cannot vary along z. A z-varying lid
-  needs the rail-aligned strip pattern from `water.js:93-154` or a chunk queue
-  like `Terrain`, and the 8k-triangles-versus-90-chunks argument at
-  `canopy.js:21-27` has to be re-made. **`Works.ceilingAt(z)` (`works.js:81-88`)
-  is the precedent** — discrete z-cells, per-cell overhead, already answers
-  conservatively across gaps.
-- Lid height is constrained per zone by that zone's `wallH` plus relief. Aquas'
-  lid went 330 → 620 because at 330 it sat on every zone's rim and the level read
-  as a cave (`dna.js:459-469`).
+**Phase 3 — ceilings.** Landed; see "Phase 3, as landed" above. One thing from
+the research that outlived it: lid height is constrained per zone by that zone's
+`wallH` **plus relief**, and the two are easy to confuse — Aquas' lid went
+330 → 620 because at 330 it sat on the corridor rim and the level read as a cave
+(`dna.js:459-469`), and its `wallH` still under-reads the terrain by 215 m. Both
+ends are now checked by `tools/lid.mjs --audit`.
 
 **Phase 4 — the rail as `p(s)`.**
 - `railZ` is mutated in exactly one place, `flight.js:277`, and `flight.js:335`
@@ -256,6 +317,7 @@ for L in corneria highlands omega foundry aquas fortuna venom; do
   node tools/digest.mjs --level $L --against shots/ref-geometry-$L.json || echo "MOVED: $L"
 done
 node tools/fins.mjs --audit                       # inverted-winding gate
+node tools/lid.mjs --audit                        # ceiling gate: is there room to fly
 
 # before / after on a level
 node tools/shot.mjs --shots chase,valley --t 16 --w 1280 --h 720 --quality high \

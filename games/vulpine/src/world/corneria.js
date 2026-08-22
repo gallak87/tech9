@@ -342,13 +342,15 @@ export class Corneria {
 
   /**
    * Underside of anything overhead at a world point, or Infinity where the sky
-   * is open. The mirror of `groundAt`, and Infinity everywhere except a `works`
-   * corridor: `terrain` is single-valued so it can never put geometry above the
-   * rail, and `field` always leaves sky between its bodies.
+   * is open. The mirror of `groundAt`.
+   *
+   * Two things answer it: a `works` roof, and a `terrain` world's canopy. The
+   * height field itself never can — it is single-valued, so it cannot put
+   * geometry above the rail — and `field` always leaves sky between its bodies.
    */
   ceilingAt(x, z) {
     if (this.works) return this.works.ceilingAt(z);
-    return this.canopy ? Canopy.ceilingY() : Infinity;
+    return this.canopy ? Canopy.ceilingY(z) : Infinity;
   }
 
   /** Terrain height ignoring the surface — placement helper for the built world. */

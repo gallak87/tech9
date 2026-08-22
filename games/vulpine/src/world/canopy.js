@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WORLD } from './profile.js';
+import { WORLD, CANOPY_Y, ceilingAtZ } from './profile.js';
 import { seaCeilingMaterial } from './world-materials.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -28,8 +28,8 @@ import { seaCeilingMaterial } from './world-materials.js';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_CANOPY = {
-  /** World Y of the surface. */
-  y: 330,
+  /** World Y of the surface where no zone authors a `ceiling`. */
+  y: CANOPY_Y,
   /** Half-extent of the plane. Must clear the fog's useful range. */
   half: 7200,
   /** Segments per side. Fog depth is a varying, so this is a fog-accuracy dial. */
@@ -55,11 +55,11 @@ export class Canopy {
     this.jobs.push(() => this._build());
   }
 
-  /** Underside of the surface, or Infinity where a world has no lid. */
-  static ceilingY() {
+  /** Underside of the surface at `z`, or Infinity where a world has no lid. */
+  static ceilingY(z) {
     if (!WORLD.canopy) return Infinity;
     const c = { ...DEFAULT_CANOPY, ...WORLD.canopy };
-    return c.y - c.margin;
+    return ceilingAtZ(z) - c.margin;
   }
 
   _build() {
@@ -81,11 +81,21 @@ export class Canopy {
     this.group.add(this.mesh);
   }
 
-  /** Track the camera in XZ. World-space UVs, so nothing shifts when it moves. */
+  /**
+   * Track the camera in XZ. World-space UVs, so nothing shifts when it moves.
+   *
+   * Y tracks the lid at the camera's own z, so a level whose zones vary the
+   * ceiling still shows a surface where `ceilingAt` reports one — otherwise the
+   * flight clamp stops the ship under nothing. The plane stays flat, so a lid
+   * that changes height reads correctly underfoot and flattens with distance;
+   * a lid that must be *seen* to slope needs the rail-aligned strips that
+   * `water.js` uses, and the triangle argument in this file's header re-made.
+   */
   updateLOD(camPos) {
     if (!this.mesh) return;
     this.mesh.position.x = camPos.x;
     this.mesh.position.z = camPos.z;
+    this.mesh.position.y = ceilingAtZ(camPos.z);
   }
 
   /**

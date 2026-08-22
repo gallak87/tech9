@@ -827,11 +827,11 @@ function GLSL_GLOW() {
           // composited pure white; what a colony field actually is is a dim
           // wash where it is damp, with sparse hot patches inside that.
           float damp = smoothstep(0.40, 0.90, vTerr.x);
-          float patch = smoothstep(0.50, 0.90, gCrsG);
+          float colony = smoothstep(0.50, 0.90, gCrsG);
           float speck = smoothstep(0.68, 0.97, gTri.b);
           float fade = 1.0 - smoothstep(${gf(g.height[0])}, ${gf(g.height[1])}, vWPos.y);
-          float wash = patch * (0.20 + 0.80 * damp) * fade;
-          float hot = patch * speck * fade;
+          float wash = colony * (0.20 + 0.80 * damp) * fade;
+          float hot = colony * speck * fade;
           // Slow, and spatially phased: a field of colonies that all pulse
           // together is a strobe, not a forest.
           float pulse = 0.70 + 0.30 * sin(uGlowTime * ${gf(g.pulse ?? 0.9)}

@@ -131,17 +131,35 @@ into is the body you were orbiting.
   foliation can reach). Needed `gGrooveAcross` in terrainMaterial so a
   structural groove can run across a face instead of up it.
 
-- [ ] **Venom's molten channel is invisible from the chase camera, and the cause
-      is authoring, not code.** Measured 2026-08-20: the surface mesh is built,
+- [x] **Venom's molten channel is invisible from the chase camera, and the cause
+      is authoring, not code.** Fixed 2026-08-21 in `world/dna.js`: `bed` 22-34
+      across Venom's seven zones, 14-24 across Fortuna's. The channel now reads
+      full-width from `chase`, `valley` and `water` and is the level's key light
+      (`shots/n-venom3/sheet.png`, before/after). Diagnosis, kept because it is
+      the reason the numbers are what they are: measured 2026-08-20, the surface mesh is built,
       visible, carries `lavaMaterial`, and sits at y = 0; the terrain under it
       raycasts to -9.0. Swapping it for flat magenta shows nothing at y = 0, a
       narrow strip at y = +3 and the full channel at y = +40. So it is not
       occlusion by height — it is **grazing-angle self-occlusion**: the zones
       inherited `ZONE_KINDS`' default `bed` of 8-11, and a 9 m trough 410 m wide
       seen from a camera 73 m up is edge-on, so the near bank hides the floor.
-      Corneria runs `bed` 15-32 for exactly this reason. Fix is `bed` 22-34
-      across Venom's zones (and 14-24 for Fortuna, which has the same defaults).
+      Corneria runs `bed` 15-32 for exactly this reason.
       Nothing else about the lava material is in question.
+- [x] **Fortuna's terrain material never compiled, so the level had no terrain
+      at all.** Found 2026-08-21 while capturing the `bed` fix. `GLSL_GLOW` in
+      `world-materials.js` declared `float patch` — `patch` is a reserved word
+      in GLSL ES, so the whole fragment shader failed `VALIDATE_STATUS` and
+      every Fortuna terrain chunk drew nothing. Renamed to `colony`. Every
+      Fortuna capture taken before this date shows a level with no landmass,
+      including `shots/n-fortuna3/`; none of them are evidence about anything.
+      **`shot.mjs` was reporting this as a console error the whole time** — the
+      captures were being read and the non-zero exit was not.
+- [ ] **Fortuna's terrain composites near-white now that it draws.** Opened
+      2026-08-21. Not the glow: the wash is uniform and colourless and covers
+      the walls well above `glow.height`'s 340 m fade-out, so it is albedo or
+      the hemisphere light, not `GLSL_GLOW`'s emissive term. Nobody has ever
+      seen this level's palette on screen — it wants the tone pass the other
+      six levels each had. `shots/n-fortuna4/`.
 - [ ] **No balance pass on any of the three.** Wave tables are authored against
       each level's zone boundaries and fog range (spawn distances are short in
       Aquas, long in Fortuna) but nothing has been flown or run through

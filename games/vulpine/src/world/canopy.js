@@ -8,8 +8,8 @@ import { seaCeilingMaterial } from './world-materials.js';
 // Only Aquas has one, and it is the reason Aquas is not another canyon. The
 // heightfield is single-valued, so `terrain` can never put geometry above the
 // rail; `works` can, but only as a built roof at a fixed height in a box. This
-// is the third case: an open natural corridor with a *surface* over it, 330 m
-// up, that you can see and cannot pass.
+// is the third case: an open natural corridor with a *surface* over it — 620 m
+// up on Aquas — that you can see and cannot pass.
 //
 // It is one plane, not a mesh of the sea. Nothing about a surface seen from
 // 300 m below survives as geometry — swell subtends under a degree from there
@@ -20,11 +20,17 @@ import { seaCeilingMaterial } from './world-materials.js';
 //
 // ── Why it follows the camera ────────────────────────────────────────────────
 // water.js is rail-aligned specifically so the waterline cannot drift, and that
-// reasoning does not transfer: a lid has no shoreline, no contact with the
-// terrain and no feature at a fixed world position. Its shader reads world XZ,
-// so moving the plane under it changes nothing that is drawn. One plane that
-// follows is 8k triangles against the ~90 chunks a rail-aligned version of the
-// same coverage would need.
+// reasoning does not transfer: a lid has no shoreline and no contact with the
+// terrain. Its shader reads world XZ, so moving the plane under it changes
+// nothing that is drawn. One plane that follows is 8k triangles against the ~90
+// chunks a rail-aligned version of the same coverage would need.
+//
+// A per-zone `ceiling` does put one feature at a fixed z — the height itself —
+// and a flat plane can only be right about that where the camera is. It is,
+// underfoot, which is where the clamp acts. A lid whose *slope* has to be seen
+// from a distance is the case that breaks this argument, and it has not been
+// authored yet; when it is, the strip pattern is the answer and the triangle
+// count above is the price.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const DEFAULT_CANOPY = {
@@ -39,6 +45,11 @@ const DEFAULT_CANOPY = {
   /** Clearance under the surface that `ceilingAt` reports. */
   margin: 14,
 };
+
+// The canopy config the cached margin was read from, so a world swap
+// invalidates it without anything having to remember to.
+let _marginOf = null;
+let _margin = DEFAULT_CANOPY.margin;
 
 export class Canopy {
   constructor(root) {
@@ -55,11 +66,20 @@ export class Canopy {
     this.jobs.push(() => this._build());
   }
 
-  /** Underside of the surface at `z`, or Infinity where a world has no lid. */
+  /**
+   * Underside of the surface at `z`, or Infinity where a world has no lid.
+   *
+   * `ai.js` asks this for every craft on every step and the flight clamp asks
+   * once a frame, so it must not allocate. The margin is resolved once and
+   * cached on the canopy config's identity, which a world swap replaces.
+   */
   static ceilingY(z) {
     if (!WORLD.canopy) return Infinity;
-    const c = { ...DEFAULT_CANOPY, ...WORLD.canopy };
-    return ceilingAtZ(z) - c.margin;
+    if (_marginOf !== WORLD.canopy) {
+      _marginOf = WORLD.canopy;
+      _margin = WORLD.canopy.margin ?? DEFAULT_CANOPY.margin;
+    }
+    return ceilingAtZ(z) - _margin;
   }
 
   _build() {

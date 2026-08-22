@@ -33,9 +33,14 @@ export const TUNE = {
   groundCushion: 9,
   groundSpring: 150,
   groundDamp: 5,
-  // The lid pushes back over a shorter run than the deck and gives way sooner.
-  // A roof is a thing you duck under, not a surface you skim: the same 9 m
-  // cushion made a ceiling feel like a second floor pressing down.
+  // Shallower than the ground's cushion on purpose: a roof is ducked under, not
+  // skimmed along, so it should be felt later and give way sooner.
+  //
+  // The two cushions set how tight a lidded corridor can be before it grips
+  // from both sides at once. Each clamp holds 5.5 m off its surface, so the
+  // ship is inside both wherever the lid is under 26 m above the ground
+  // (9 + 6 + 5.5 + 5.5). `tools/lid.mjs --audit` is the check that no level
+  // authors one.
   ceilCushion: 6,
   ceilSpring: 150,
   ceilDamp: 5,

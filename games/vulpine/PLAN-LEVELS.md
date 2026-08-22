@@ -1,7 +1,7 @@
 # Vulpine — level identity: two curves
 
-Open lane. **Phase 1 landed 2026-08-21; phases 2-6 open.** The owner picks when
-each starts.
+Open lane. **Phases 1 and 2 landed 2026-08-21; phases 3-6 open.** The owner
+picks when each starts.
 
 Companion docs: `ROADMAP.md` is the queue, `HANDOFF.md` the harness and traps,
 `PLAN-PERF.md` the other open lane, `REVIEW.md` the rubric.

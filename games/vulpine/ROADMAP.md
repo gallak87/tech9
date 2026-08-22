@@ -102,6 +102,76 @@ register, swept collision.
 
 ---
 
+## Proposal — why five levels read as one level (2026-08-21)
+
+Owner, on seeing Corneria, Highlands, Aquas, Fortuna and Venom side by side:
+"they all essentially look like Corneria with filters/textures". Correct, and it
+is geometry, not shading. **This is a proposal. Nothing here is claimed and the
+owner picks before anything is built.**
+
+**The diagnosis, and it proves itself.** The five levels in those captures are
+exactly the five that share `backend: 'terrain'`; the two the owner did *not*
+reach for are Omega (`field`) and the Foundry (`works`). Inside the terrain
+backend, `profile.js:267` opens with `const d0 = Math.abs(u)` — the whole
+cross-section is a function of |u|, so **every terrain level is mirror-symmetric
+by construction**: same wall, same distance, both banks, always. `inner`,
+`beachW`, `shelfW`, `cliffW` and `wallH` only set how wide and how tall that one
+trough is. Five levels are the same object at different scales in different
+shaders. Nothing in a palette, a lithology table or a structure GLSL can reach
+that, which is why three sessions of texture work have not moved it.
+
+The compositional tell, visible in all five captures: flat surface at y = 0,
+rail on the centreline, matching walls left and right, open sky strip above,
+horizon at the same screen height with the vanishing point dead centre.
+
+Four options, cheapest first. They are independent — any subset works, and A+E
+is the smallest thing that would actually change the read.
+
+**A — asymmetric cross-section.** Let a zone carry `left` and `right` field sets
+and drop the `Math.abs`. Buys: a sheer wall on one side and open plain on the
+other, a bank that falls away to nothing, a corridor that is a shelf against a
+cliff rather than a trough. One function, one doubled field set. *Risk:* the
+baked shore field (`MAX_HALF_WIDTH` 1250) and the `groundAt` lattice both assume
+the current profile — `tools/digest.mjs` exists precisely to catch a geometry
+change that was not meant to happen, so cut a baseline before touching it.
+
+**B — enclosure as a per-zone property.** `world/canopy.js` already builds a lid
+for Aquas at y = 620 and answers `ceilingAt`. Generalise it: any zone gets a
+ceiling at any height, with its own material. Buys the single biggest change to
+the composition, because capping the sky strip removes the horizon-down-the-
+middle read entirely — a collapsed lava tube on Venom, a reef roof on Aquas, a
+stalk canopy on Fortuna. *Risk:* low mechanically, since the ceiling query
+already exists and the Foundry already flies enclosed. The cost is art, not
+wiring.
+
+**C — a per-planet structure kit, which is what the owner asked for.**
+`islands` already places props, but every group is a terrain-derived blob from
+the same code, so a spatter cone, a plug dome and a mycelial stalk are one prop
+recoloured — which is the same failure as the walls, one level down. The step
+that matters is props the rail passes *through and under* rather than beside:
+reef arches, wrecks, colonnades, gantries. *Risk:* the real work. Also the one
+that most wants a rule about collision and the rail, so it is the last to start,
+not the first.
+
+**D — the floor is not always a flat plane at y = 0.** Four of the five put a
+surface there (water, ice, lava) and the fifth is bare terrain at the same
+height. A level with the floor far below the rail, flown between spires with no
+readable ground, would not read as any of the others. Cheapest version is
+`waterLevel` well under `bed` so no plane shows at all.
+
+**E — the camera never changes, and it is nearly free.** Same height, same FOV,
+same centred vanishing point in all seven levels, so even a genuinely different
+world arrives through an identical lens. A per-level camera height, FOV and rail
+lateral offset is a data change of a few numbers and multiplies whatever A-D
+buy. Do it alongside A, and measure with `tools/framing.mjs`, which already
+reports ndcX/ndcY and camera yaw over time.
+
+**Recommended order if the owner wants one:** E first (a few numbers, immediate
+read), then A (the symmetry is the root cause), then B, then C. Deliberately not
+recommended: another palette, lithology or structure-GLSL pass. That axis is
+exhausted — Fortuna proves it, since it has the most distinctive shading in the
+game and still reads as Corneria at night.
+
 ## Now — three new biomes, landed but unfinished (2026-08-20)
 
 Owner asked for three more levels, new enemies and new bosses, one level per

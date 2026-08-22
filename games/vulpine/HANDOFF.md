@@ -4,10 +4,11 @@ Operational reference for a fresh agent: the rules, the harness, and the traps
 that have already cost sessions.
 
 **This file is not a plan and not a defect list.** The plan is `ROADMAP.md`; the
-open perf lane is `PLAN-PERF.md`; the rubric is `REVIEW.md`; lane ownership is
-`CONTRACT.md`. The level lane closed 2026-08-15 — its conclusion and the
-constraints that survive it are in `ROADMAP.md` under
-`## Settled — done, and why it is the way it is`.
+open perf lane is `PLAN-PERF.md`; the open level-identity lane is
+`PLAN-LEVELS.md`; the rubric is `REVIEW.md`; lane ownership is `CONTRACT.md`.
+The 2026-08-15 level lane closed — its conclusion and the constraints that
+survive it are in `ROADMAP.md` under `## Settled`. `PLAN-LEVELS.md` is a
+different lane and is open: it is about why five levels read as the same level.
 
 *Condensed 2026-08-15 — session narrative, resolved defects and the stale
 "where we left off" state removed; lessons kept as one-liners. Deleted material

@@ -30,6 +30,11 @@ real queue.** What closed this session:
 - All three new bosses probed and winnable; the bloom "4x long" defect is closed.
 - All seven levels boot with zero console errors (checked 2026-08-21).
 
+**The level-identity lane is open and phase 1 has landed** — see
+`PLAN-LEVELS.md`, which carries the diagnosis, the two-curve architecture, the
+four redesigned levels and the six phases. Phase 2 is next: an authorable
+`section` on a zone, then Venom's inverted ridge and Aquas' terraces.
+
 The hop wiring was read end to end 2026-08-21 and **has no gaps** — every one
 of the seven env presets has a `PLANET_FOR` entry, every value it maps to has a
 `PLANET_PALETTES` entry, `hasBody` is data-driven off `backend` (only Omega is
@@ -183,6 +188,15 @@ added in the middle silently renumbers every shortcut after it.
 - **The landmass is fine.** Two separate investigations concluded "the terrain is
   missing" from in-canyon cameras that simply had the highland outside the
   frustum. Use `freecam --nofog --nowater` before claiming geometry is absent.
+- **Captures are not deterministic frame to frame.** Same code, two runs of
+  `shot.mjs` on Venom: 3-11% of pixels differ, max channel delta 205 — transient
+  bolts, sparks and enemy positions. Pixel-diffing two captures proves nothing;
+  read the sheet, or measure with `hist.mjs` / `digest.mjs`.
+- **`digest.mjs` is a sanity check, not a bit-identity contract.** Float-order
+  changes that are provably no-ops still move hashes: replacing the terrain band
+  stack with an equivalent polyline shifted 0.0034% of samples by one Float32
+  ULP (~30 µm) because `beachH + (shelfH - beachH)` is not bitwise `shelfH`.
+  Read the diff and judge whether it is the change you meant.
 - **Perf numbers are noise while lanes render concurrently** — validate serially.
   Frame-time measurement rules are in `PLAN-PERF.md`.
 - **Motion-blur mask, three paid-for constraints:** draw it from a private

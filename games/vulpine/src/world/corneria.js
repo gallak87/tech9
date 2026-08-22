@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   WORLD, DNA, setActiveDNA, centrelineX, centrelineY,
-  terrainHeight, terrainNormal, profileAt, heightAtU,
+  terrainHeight, terrainNormal,
 } from './profile.js';
 import { DNA_CORNERIA, DNA_FICHINA, DNA_BY_ID } from './dna.js';
 import {
@@ -353,6 +353,4 @@ export class Corneria {
 
   /** Terrain height ignoring the surface — placement helper for the built world. */
   landAt(x, z) { return terrainHeight(x, z); }
-
-  landAtU(u, z) { return heightAtU(u, z, profileAt(z, {})); }
 }

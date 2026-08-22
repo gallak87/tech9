@@ -206,6 +206,67 @@ const FLAT_KEYS = [
   { z: -1e6, inner: 400, bed: 0, beachW: 40, beachH: 0, shelfW: 40, shelfH: 0, cliffW: 40, wallH: 0, relief: 0 },
 ];
 
+/* ── the cross-section as a polyline ──────────────────────────────────────── */
+//
+// A cross-section is a polyline in (u, height): `su` ascending and SIGNED
+// across both banks, `sh` alongside it, `sn` points. Segments interpolate with
+// smoothstep and the height holds flat outside the outermost pair.
+//
+// Signed rather than folded about |u|, so the two banks are independent and a
+// profile is free to be asymmetric, inverted or non-monotonic. The band fields
+// generate a symmetric nine-point list; the interpolation is the same
+// smoothstep the band stack applied, so the two agree to the bit.
+//
+// The outermost point on each side carries `wallH` and its height is passed in
+// per call rather than stored: the side multiplier varies by bank and by z, so
+// it cannot be baked into a list both banks share.
+//
+// Storage lives on the profile object at fixed capacity. `profileAt` runs once
+// per mesh row and `heightAtU` once per vertex, so neither may allocate.
+
+const SECTION_CAP = 16;
+
+/** Generate `P`'s polyline, and the band edges the noise gates read. */
+function buildSection(P) {
+  const su = P.su || (P.su = new Float64Array(SECTION_CAP));
+  const sh = P.sh || (P.sh = new Float64Array(SECTION_CAP));
+  const a0 = P.inner;
+  const a1 = a0 + P.beachW;
+  const a2 = a1 + P.shelfW;
+  const a3 = a2 + P.cliffW;
+  su[0] = -a3; sh[0] = P.wallH;
+  su[1] = -a2; sh[1] = P.shelfH;
+  su[2] = -a1; sh[2] = P.beachH;
+  su[3] = -a0; sh[3] = 0;
+  su[4] = 0;   sh[4] = -P.bed;
+  su[5] = a0;  sh[5] = 0;
+  su[6] = a1;  sh[6] = P.beachH;
+  su[7] = a2;  sh[7] = P.shelfH;
+  su[8] = a3;  sh[8] = P.wallH;
+  P.sn = 9;
+  P.uBeach = a1;
+  P.uShelf = a2;
+  P.uWall = a3;
+}
+
+/**
+ * Section height at signed offset `s`. `wall` replaces the height of both
+ * outermost points.
+ *
+ * Zero-width segments step rather than divide: the scan passes over every
+ * point sharing an `su`, so a band authored at zero width contributes its full
+ * height on the outer side and nothing on the inner.
+ */
+function sectionAt(P, s, wall) {
+  const su = P.su, sh = P.sh, last = P.sn - 1;
+  if (s <= su[0] || s >= su[last]) return wall;
+  let i = 0;
+  while (i < last - 1 && s >= su[i + 1]) i++;
+  const hi = i === 0 ? wall : sh[i];
+  const hj = i + 1 === last ? wall : sh[i + 1];
+  return lerp(hi, hj, smooth(su[i], su[i + 1], s));
+}
+
 const _P = {};
 /** Cross-section parameters at `z`, smoothstep-blended between keyframes. */
 export function profileAt(z, out = _P) {
@@ -214,6 +275,7 @@ export function profileAt(z, out = _P) {
   const a = KEYS[i], b = KEYS[i + 1];
   const t = smooth(a.z, b.z, z);
   for (const f of FIELDS) out[f] = lerp(a[f], b[f], t);
+  buildSection(out);
   return out;
 }
 
@@ -270,21 +332,13 @@ export function heightAtU(u, z, P) {
   const wm = SIDE_BASE + SIDE_AMP * nSide(z * S_SIDE + (right ? 0.11 : 0.61), (right ? 0.21 : 0.79));
   const d = Math.max(0, d0 + bankJitter(z, right) * smooth(0, 90, d0));
 
-  const a0 = P.inner;
-  const a1 = a0 + P.beachW;
-  const a2 = a1 + P.shelfW;
-  const a3 = a2 + P.cliffW;
-  const wallH = P.wallH * wm;
+  const a1 = P.uBeach;
+  const a2 = P.uShelf;
+  const a3 = P.uWall;
 
-  let h;
-  if (d < a0) {
-    const q = 1 - d / a0;
-    h = -P.bed * q * q * (3 - 2 * q);
-  } else {
-    h = P.beachH * smooth(a0, a1, d)
-      + (P.shelfH - P.beachH) * smooth(a1, a2, d)
-      + (wallH - P.shelfH) * smooth(a2, a3, d);
-  }
+  // `bankJitter` yields a distance from the centreline; the polyline is signed,
+  // so the jittered distance goes back on the bank it was measured from.
+  let h = sectionAt(P, right ? d : -d, P.wallH * wm);
 
   // domain warp — kills the tell-tale grid of a tileable lattice
   const wx = (nWarp(u * S_WARP + 0.4, z * S_WARP + 0.2) - 0.5) * A_WARP;

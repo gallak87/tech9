@@ -293,23 +293,20 @@ into is the body you were orbiting.
       (`hop: 'orbital'` on Omega, Aquas, Fortuna and the Foundry; planet
       palettes for `aquas` and `fortuna` in fx/planet.js; `PLANET_FOR` entries in
       fx/transit.js) and none of it has been exercised.
-- [ ] **Aquas has no arrival beat of its own.** An orbital re-entry that ends
-      300 m underwater wants a plunge, not a wash. Currently it reuses `reentry`.
+- [ ] **Aquas has no arrival beat of its own.** Half addressed 2026-08-22: the
+      re-entry no longer ends underwater — the level's rail base is 710, 90 m
+      over its sea, and the plunge through the surface is the level's own
+      opening rather than something the hop has to depict. What is still generic
+      is the effect: it reuses `reentry`, and nothing marks the moment the ship
+      crosses the surface.
 - [x] **Leaving Aquas climbs 2200 m out of a level with a lid on it.** Closed
-      2026-08-22 by PLAN-LEVELS phase 8: the victory lap now lifts the ship
-      through the surface before the hop opens, and the ascent continues from
-      that climb rather than restarting at zero. The arrival half is the plunge.
-      Old text:
-
-- [ ] **(superseded)** Found by
-      reading, not flying, 2026-08-21. `HOPS.orbital.climb` is 2200 and it is
-      unconditional; Aquas is the one level with a `canopy` — a sea surface at
-      y = 620 answered by `ceilingAt` — so the ascent takes the ship straight
-      through it. Whether that reads as breaching or as clipping through a
-      ceiling nobody has looked at. It is the same beat as the arrival item
-      above and wants solving with it: a level you plunge into is a level you
-      breach out of, and `climb` being a flat number per hop *kind* is what
-      makes both of them awkward.
+      2026-08-22 by PLAN-LEVELS phase 8. `HOPS.orbital.climb` is unconditional
+      and Aquas is the one level with a `canopy`, so the ascent used to take the
+      ship straight through a sea surface at y = 620 behind the transition's own
+      effects. The victory lap now lifts the ship clear of the surface before the
+      hop opens, and the ascent continues from that climb rather than restarting
+      at zero. Measured: y 71 -> 717 through the sea, lap ending at climb 648 and
+      the ascent picking up at 650.
 
 ## Campaign audit — 2026-08-16
 

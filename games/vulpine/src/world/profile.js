@@ -118,7 +118,7 @@ let nFar, nMacro, nRange, nHill, nFine, nCrag, nJitA, nJitB, nSide, nWarp;
 let S_FAR, S_MACRO, S_RANGE, S_HILL, S_FINE, S_CRAG, S_WARP, S_SIDE;
 let L_RANGE, L_HILL, L_FINE, L_CRAG;
 let A_FAR, A_MACRO, A_RANGE, A_HILL, A_FINE, A_CRAG, A_WARP;
-let P_FAR, B_FAR, P_RANGE, B_RANGE, B_CRAG;
+let P_FAR, B_FAR, P_RANGE, B_RANGE, B_CRAG, F_CRAG;
 let D_FAR0, D_FAR1, D_REL0, D_REL1, K_WARPZ;
 let J_A, J_B, SIDE_BASE, SIDE_AMP;
 let REL_BASE, REL_FAR;
@@ -463,7 +463,29 @@ export function heightAtU(u, z, P) {
   }
 
   // crenellation on the cliff face itself — buttresses and gullies, not fizz
-  const wallMask = smooth(a1 + (a2 - a1) * 0.35, a2 + (a3 - a2) * 0.5, d) * (1 - plateau * 0.45);
+  let wallMask = smooth(a1 + (a2 - a1) * 0.35, a2 + (a3 - a2) * 0.5, d) * (1 - plateau * 0.45);
+
+  // `crag.face` opens the same band on STEEPNESS instead of on distance, and it
+  // exists because the mask above cannot reach an inverted section. Both gates
+  // here measure distance from the centreline against the section's outer
+  // points, which encodes "the tall rock is on the banks" — true of a valley
+  // and backwards on a spine, where the banks are whatever the flanks fall into
+  // and the face the ship flies along is at u = 0. On Venom that left the
+  // polyline as the entire surface for nine kilometres.
+  //
+  // Slope is the property the distance mask was reaching for: a face is where
+  // the section is steep, which is the bank on a valley and the flank on a
+  // ridge. Gated behind `1 - wallMask` so it only adds where the distance mask
+  // is not already answering, and defaulted off so no level that did not ask
+  // for it moves by a single ULP.
+  if (F_CRAG > 0 && wallMask < 0.999) {
+    const e = 26;
+    const su0 = sectionAt(P, right ? d - e : -(d - e), wm);
+    const su1 = sectionAt(P, right ? d + e : -(d + e), wm);
+    const face = smooth(0.30, 1.10, Math.abs(su1 - su0) / (2 * e));
+    wallMask += face * F_CRAG * (1 - wallMask);
+  }
+
   if (wallMask > 0.001) {
     h += wallMask * (nCrag(px * S_CRAG + 0.09, pz * S_CRAG * 0.55 + 0.44) - B_CRAG) * A_CRAG * gainFor(L_CRAG, sp);
   }
@@ -626,6 +648,7 @@ export function setActiveDNA(dna) {
   A_HILL = b.hill.amp; A_FINE = b.fine.amp; A_CRAG = b.crag.amp; A_WARP = b.warp.amp;
   P_FAR = b.far.pow; B_FAR = b.far.bias; P_RANGE = b.range.pow; B_RANGE = b.range.bias;
   B_CRAG = b.crag.bias;
+  F_CRAG = b.crag.face ?? 0;
   D_FAR0 = b.far.from; D_FAR1 = b.far.to;
   D_REL0 = b.relief.from; D_REL1 = b.relief.to;
   K_WARPZ = b.warp.shear;

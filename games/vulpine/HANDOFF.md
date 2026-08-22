@@ -36,13 +36,19 @@ sea of glowing crowns, down through a gap, along the dark understory — is
 exactly what phase 8 gave Aquas, and Fortuna simply has no `canopy` declared. It
 is 14% authored and the most static level in the game.
 
-Two things Venom surfaced that outlive it: **no noise band reaches an inverted
-section** (both gates in `heightAtU` measure distance from the centreline
-against the section's *outer* points, so a ridge gets nothing where the eye is),
-and **a surface plane at y = 0 pins the rail**, because the offset box is 46 m
-deep — that is why Venom had no `climb` anywhere and why its base had to go
-48 → 400 before it could have a rhythm. Fortuna has water at y = 0 and the same
-pin. Phase 6 (the orbit arena) carries the last piece of phase 4 with it. Speed is now measured along the rail — `railStretch`
+Two things Venom surfaced that outlive it. **`bands.crag.face`** now opens the
+crag band on local slope rather than on distance, which is the only way any
+noise reaches an inverted section — it defaults to 0 and the other six levels
+are byte-identical, so a level opts in. And **a surface plane at y = 0 pins the
+rail**, because the offset box is 46 m deep: that is why Venom had no `climb`
+anywhere and why its base had to go 48 → 400 before it could have a rhythm.
+Fortuna has water at y = 0 and the same pin. Phase 6 (the orbit arena) carries
+the last piece of phase 4 with it.
+
+**Read a brief row against live play before believing it.** Venom's said
+"inverted / rhythm / alternates" and was authored as a ridge at the start and a
+canyon after; the owner wanted the whole nine kilometres on the spine. Two
+agents shipped the narrow reading. Speed is now measured along the rail — `railStretch`
 in `profile.js`, divided into the advance — so Aquas no longer flies at 234 m/s
 against a HUD reading 175, and `ai.js` station offsets rotate through the rail's
 heading instead of meaning −z. But `railPoint` still composes z, so the corridor

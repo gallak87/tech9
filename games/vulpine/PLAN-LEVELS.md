@@ -59,7 +59,7 @@ three cursors at `combat.js:1759-1774` keep working. Phase 4.
 | Aquas | terraced, asymmetric | deep dive | constant lid | none |
 | Fortuna | near-flat | dive + climb | **enters/exits** | water |
 | Foundry | escarpment | steep shaft | built, varies | deck |
-| Venom | **inverted** | rhythm | **alternates** | lava |
+| Venom | **inverted, whole level** | rhythm | **alternates** | lava |
 
 No two rows alike — the acceptance test for the lane.
 
@@ -74,9 +74,12 @@ No two rows alike — the acceptance test for the lane.
 - **The Foundry — outside, inside, then down.** Exterior gantry run as an
   escarpment, breach to interior, a steep shaft down through decks, then a wide
   low-ceilinged assembly floor.
-- **Venom — rhythm, then the arena.** Inverted profile riding a caldera crest
-  with lava falling away both sides; plunge into a tube; out, in, out; then a
-  closed orbital path for the finale.
+- **Venom — a spine, end to end.** The ship rides a crest for all nine
+  kilometres with lava falling away both sides and no channel anywhere in it;
+  the ridge itself dives and climbs; then a closed orbital path for the finale.
+  Owner, on the first version, which put the ridge in zone 1 and a canyon after
+  it: *"I was thinking the entire level from start to finish would have been on
+  a ridge top with lava on either side."*
 
 ## Phases
 
@@ -338,67 +341,77 @@ frame edge.
 
 ## Phase 9 — Venom, as landed
 
-Authored 18% → **100%**: all seven zones carry a section, the rail carries a
-rhythm, and the floor moves **364 m** against 64. Every sample is measured with
-`shape.mjs --draw`, which prints the rail height beside the section.
+**The whole level is a spine.** All eight zones carry an inverted section, the
+ground falls away to lava on both sides for nine kilometres, and there is no
+channel or canyon anywhere in it. `shape.mjs` reads **RIDGE x9, RIDGE+asym x1,
+FLAT x2** — the FLATs are the sump plateau, which is deliberately flat on top
+because it is the only place with a boss fight in it.
 
-**The ridge was 30 m tall, not 330.** `surface: 'lava'` puts a plane at y = 0
-and `groundAt` clamps there, so most of the authored inverted section was under
-it: the polyline fell to −300 either side and every metre of that was lake. What
-the player actually flew over was a 30 m mound about 500 m wide with the rail
-27 m above it. The section now crests at 330 and crosses the lava at −430/+455,
-and near-field rise went **−17 → −102 m** (negative is a genuine ridge — the
-banks below the centre).
+**The first attempt put the ridge in zone 0 and a canyon after it**, which is
+what the brief row had always said and is not what the level wanted. Owner, from
+live play: *"I saw the ridge, flew down that was cool — then the rest of the
+level was canyon again."* The row now reads "inverted, whole level".
 
-**Which forced the rail base up, for the same reason Aquas' is at 710.** A lava
-plane at y = 0 against a 46 m offset box means the rail can never come below
-about 60, so at a base of 48 Venom's rail could not descend **at all** — it had
-no room for a `climb` in either direction, which is why it had none. The base is
-now 400, the crest sits 70 m under it, and the descents bottom out at 80.
+The variety is in the spine rather than in leaving it. Four things vary:
 
-The rhythm, measured:
+| | rim | spine | dive | saddle | climb | high | descent | sump |
+|---|---|---|---|---|---|---|---|---|
+| rail | 400 | 400 | 150 | 150 | 520 | 520 | 180 | 180 |
+| crest | 330 | 330 | 80 | 80 | 450 | 450 | 110 | 110 |
+| lava at | 500 | 360 | 420 | 355 | 480 | 370 / **640** | 440 | 580 |
 
-| | rim | channel | tube | vent | gorge | narrows | sump |
-|---|---|---|---|---|---|---|---|
-| rail | **400** | 80 | 80 | **210** | 80 | 80 | 100 |
-| climb | — | −320 | — | +130 | −130 | — | +20 |
+The rail rides **70 m over the crest everywhere** and the crest is what moves,
+so a dive down the ridge is a dive rather than the same ridge from higher up —
+the mistake Fichina's pass made in the other direction. Floor moves **370 m**.
+The high spine is the one asymmetric zone: sheer to port at 370 m, a long ramp
+to starboard that runs 640 m before it reaches lava.
 
-The plunge off the crest is 320 m over a 600 m blend — 37°, the steepest in the
-game after Aquas. The blend stays short for the reason phase 2 found: it runs
-between an inverted section and an upright one, the interpolation passes through
-flat, and flat on this level is the lava plane.
+**Nothing crosses the lava closer than 345 m**, which is the chase camera's
+limit, not the ship's — phase 2 measured a crossing at 215 m putting the camera
+in the lava for half a zone.
 
-**No noise band reaches an inverted section.** `heightAtU` gates relief on
-`smooth(a2, a3 + 70, d)` and crag on `smooth(a1 + (a2−a1)·0.35, …)`, where a1—a3
-are the section's outer point distances — so both assume the interesting
-surface is on the *banks*. On a ridge the banks are the lava lakes and the crest
-is at the centre, where nothing reaches: the polyline is the entire surface and
-it renders as a smooth dune. Two levers exist inside the grammar and both are
-used here — `islands` scattered onto the crest flanks, and `bands.jitter` raised
-to 84, which perturbs the *distance* the section is sampled at and so becomes
-height wherever the flank is steep. Neither reaches the crest apex. Logged in
-the open list below.
+### `crag.face` — the band that reaches a spine
 
-**The palette was tuned for a surface that was never lit.** `pale` at 0.75 and
-`dry` at 0.45 were set when the crest was a 30 m sliver seen edge-on inside a
-canyon; against a 330 m ridge flown along the top of, they composited as a sand
-dune — the level reading as desert rather than as black rock over a red river,
-which is the failure `dry` had already been pulled back from once. Now 0.35 and
-0.22.
+Both noise gates in `heightAtU` are distances from the centreline measured
+against the section's **outer** points: relief past the second-outermost, crag
+between the third- and second-outermost. That encodes "the tall interesting rock
+is on the banks", which is true of a valley and backwards on a ridge — the banks
+are whatever the flanks fall into and the face the ship flies along is at u = 0.
+Venom's spine was therefore the bare polyline for nine kilometres and composited
+as a **sand dune**.
 
-**The open beat needed the props moved, not the section.** The vent chamber is
-the one zone flown *over*, and its plug domes stood 230 m tall against a rail at
-210 — so the section opened up and the domes put the walls straight back. They
-are now 40−150 and the frame is sky.
+`bands.crag.face` opens the same band on **steepness** instead, which is the
+property the distance mask was reaching for: a face is where the section is
+steep, which is the bank on a valley and the flank on a spine. It is gated
+behind `1 - wallMask` so it only adds where the distance mask is not already
+answering, and it **defaults to 0** — the digest is byte-identical on the other
+six levels, which is the proof. Venom sets 1.0.
 
-**Still open here: the "alternates" ceiling.** Venom's brief row wants a lid
-that comes and goes, and that is not what landed. "Out, in, out" is authored as
-section *width* — tube tight, vent open, gorge tight, sump open — which reads,
-but it is not a ceiling. A real one needs geometry that ends: `Canopy` is a
-single flat camera-following plane carrying a *water* shader (refraction,
-caustics, the critical angle), so it can neither stop nor pass for rock. Same
-piece Fortuna's "enters/exits" needs. Nothing about phase 3 or phase 8 supplies
-it.
+It also leaves the crest apex alone, because slope there is zero by
+construction. That is the right place for it to stop: the apex is where the ship
+flies.
+
+**The palette had to come down with it.** `pale` 0.75 and `dry` 0.45 were set
+when the crest was a 30 m sliver seen edge-on inside a canyon; against a ridge
+flown along the top of for the whole level they composited as desert. Now 0.35
+and 0.22.
+
+**Props do what the noise cannot.** 44 spatter cones along the crest, capped at
+the 70 m the rail sits above it and starting outside the 105 m offset box, so
+none is an obstacle the rail did not author; bigger cinder cones further down
+the flanks; flow lobes out on the lava; and four old vent plugs standing **in**
+the lava beside the spine — the only vertical thing on the level that is not the
+ridge, and they read because they are on the other side of the shoreline.
+
+**The wave table was re-authored with it.** There is no wall to put anything
+against any more, so all three battery runs sit inside the crest — 240, 260 and
+420 m of bank against shorelines at 500, 370 and 580 — and every one is looked
+*down* at. All three are clear of the three `climb` blends.
+
+**Still open here: the "alternates" ceiling**, which is the one column of
+Venom's brief row that did not land. A lid that comes and goes needs geometry
+that ends, and `Canopy` is a single flat camera-following plane carrying a
+*water* shader. Same piece Fortuna's "enters/exits" needs.
 
 ## Phase 4, as landed
 
@@ -627,22 +640,16 @@ zone 1 in phase 9 below.
       80% to **0%**, peaks 829/775 → 547/580. `lid.mjs --audit` no longer prints
       the note on any run.
 
-- [ ] **No noise band reaches an inverted cross-section.** Both gates in
-      `heightAtU` are distances measured from the centreline against the
-      section's outer points — relief past the second-outermost, crag between
-      the third- and second-outermost. That encodes "the tall interesting rock
-      is on the banks", which an inverted section reverses: on Venom's rim the
-      banks are lava lakes and the crest is at u = 0, where neither band can
-      reach at any authored numbers. The polyline is the whole surface and it
-      renders smooth.
+- [x] **No noise band reaches an inverted cross-section.** Closed 2026-08-22 by
+      `bands.crag.face`, which opens the crag band on the section's local slope
+      instead of on distance from the centreline. Defaults to 0, so the other six
+      levels are byte-identical by digest; Venom sets 1.0. See "Phase 9 — Venom".
 
-      Worked around on Venom with `islands` on the flanks and `bands.jitter` at
-      84; neither reaches the apex, which is the part directly under the ship.
-      The principled fix is to gate crag on local **slope** rather than on
-      distance — a cliff face is where |dh/du| is large, which is the bank on a
-      valley and the flank on a ridge. That is one expression, but it moves the
-      geometry of all seven levels, so it wants its own pass and its own digest
-      cycle rather than riding along inside an authoring pass.
+      What is still true is the other half: **`relief` is still distance-gated**
+      and still opens past the second-outermost point, so on an inverted section
+      the macro bands build their skyline out over the lava and nothing else. It
+      has not bitten, because a spine wants a quiet far field, but the next
+      inverted level that wants distant relief will meet it.
 
 - [ ] **`shape.mjs --strict` passes a level that is 18% authored.** It is the
       stated acceptance test for phase 9, it is green, and Venom is 11 seconds

@@ -856,110 +856,113 @@ export const DNA_VENOM = {
       ],
       bends: [],
     },
-    // 380 is the crest, not the channel. The caldera rim stands at 330 and the
-    // rail rides 50 m over it; everything after the rim descends off it, which
-    // is what makes the first zone a summit rather than a bump. `surface: lava`
-    // clamps `groundAt` at y = 0, so the floor of every later zone is the lava
-    // plane and the rail can never come below the offset box's 46 m — the
-    // descents below bottom out at 80.
+    // The rail rides 70 m over the crest for the whole level and the crest is
+    // what moves. `surface: lava` clamps `groundAt` at y = 0, so nothing here
+    // can come below the offset box's 46 m — the saddle bottoms out at 150.
     y: { base: 400, waves: [{ a: 12, w: 0.00041, p: 1.1 }], bends: [] },
   },
 
-  // The rail ledger, which is the level's rhythm:
-  //   400 rim  -320-> 80 channel/tube  +130-> 210 vent  -130-> 80 gorge/narrows
-  //   +20-> 100 sump
-  // Every zone carries a section: the four stock kinds are the valley grammar
-  // this level is supposed to be the counter-example to.
+  // ── The whole level is one spine ────────────────────────────────────────
+  // Every zone is an inverted section: the ship rides a crest and the ground
+  // falls away to lava on BOTH sides, start to finish. There is no channel and
+  // no canyon anywhere in it, which is the entire point — this is the level the
+  // others are told apart from, and a corridor with walls is what they all are.
+  //
+  // The variety is in the spine, not in leaving it. Four things vary:
+  //   crest height   330 -> 80 -> 450 -> 110, and the rail rides 70 m over
+  //                  whatever it is doing, so a dive down the ridge is a dive
+  //                  and not the same ridge from higher up
+  //   crest width    wide and gentle, then narrow and sheer
+  //   where it meets the lava   345 m out to 580 m out
+  //   asymmetry      zone 5 is sheer to port and a long ramp to starboard
+  //
+  // The rail ledger:
+  //   400 rim/spine  -250-> 150 dive/saddle  +370-> 520 high spine
+  //   -340-> 180 descent/sump
+  //
+  // Every crossing has to clear the CHASE CAMERA, not the ship. It trails 21 m
+  // behind and below and banks with the roll, so it leaves the 105 m offset box:
+  // a crossing at 215 m put it in the lava for half a zone. Nothing here crosses
+  // closer than 345.
   zones: [
-    // The caldera rim: an inverted cross-section, so the ground falls away from
-    // the rail instead of rising to meet it. The crest is at 330 with the rail
-    // 50 m over it, and the flanks cross the lava plane at u = -430 and +455 —
-    // everything past that is lake, because `groundAt` clamps at y = 0.
-    //
-    // The crossing has to clear the chase camera, not the ship. The camera
-    // trails 21 m behind and below and banks with the roll, so it leaves the
-    // 105 m offset box: a crossing at 215 m put it in the lava.
-    //
-    // The crest sits 70 m under the rail against a 46 m offset box, which is
-    // also what keeps the spatter cones on the flanks clear of it.
+    // The rim. The widest, gentlest spine in the level — this is the one that
+    // has to read as "you are on top of something" before anything else happens.
     {
-      // `relief` is the reason an inverted section still reads as a valley if it
-      // is left alone: the relief gate opens past the second-outermost point
-      // (here 830 m) and the noise bands build a skyline out there regardless
-      // of what the polyline says. A spine has nothing standing around it, so
-      // the band has to come down with the section.
-      kind: 'basin', len: 1900, inner: 520, bed: 22, wallH: 260, relief: 0.14,
+      kind: 'basin', len: 1500, inner: 520, bed: 22, wallH: 260, relief: 0.12,
       section: [
-        [-1200, 190], [-830, -80], [-430, 0], [-190, 250], [0, 330],
-        [215, 262], [455, 0], [860, -85], [1200, 205],
+        [-1200, 150], [-900, -70], [-470, 0], [-210, 250], [0, 330],
+        [230, 255], [500, 0], [920, -75], [1200, 160],
       ],
     },
-    // Off the crest and into the channel: 300 m over a 600 m blend, the steepest
-    // descent in the game after Aquas' plunge. The blend is short because it
-    // also runs between an inverted section and an upright one — the
-    // interpolation passes through flat, and flat here is the lava plane, so a
-    // long blend leaves the spine awash for the length of it.
+    // The spine narrows and the flanks steepen: same height, half the width, and
+    // the lava is 360 m away instead of 500.
     {
-      kind: 'reach', len: 1400, blend: 600, inner: 260, bed: 26, wallH: 480, relief: 0.34,
-      climb: -320,
+      kind: 'basin', len: 1300, blend: 500, inner: 420, bed: 22, wallH: 240, relief: 0.12,
       section: [
-        [-1150, 560], [-700, 470], [-370, 150], [-185, 10], [0, -30],
-        [195, 14], [390, 165], [740, 480], [1150, 570],
+        [-1200, 120], [-700, -90], [-360, 0], [-150, 255], [0, 330],
+        [160, 262], [375, 0], [720, -95], [1200, 130],
       ],
     },
-    // The tube — a collapsed lava run, and the first half of "out, in, out".
-    // Walls stand 340 m over the rail from only 250 m out, which is the whole
-    // read: no room, and as close to no sky as a single-valued height field can
-    // manage. The blends either side are short so the held stretch is 700 m
-    // rather than the 150 m it was; a tube you are inside for under a second is
-    // a texture change, not a beat.
+    // The dive: 250 m down the ridge over a 700 m blend. The crest comes down
+    // with the rail — a rail that descended while the crest held would be the
+    // same spine from lower down, which is the mistake Fichina's pass made in
+    // the other direction.
     {
-      kind: 'narrows', len: 1100, blend: 400, inner: 140, bed: 34, wallH: 700, relief: 0.50,
-      bend: { dx: 200, width: 620 },
+      kind: 'basin', len: 1400, blend: 700, inner: 400, bed: 24, wallH: 220, relief: 0.14,
+      climb: -250, bend: { dx: 220, width: 900 },
       section: [
-        [-1100, 720], [-540, 660], [-250, 420], [-150, 20], [0, -30],
-        [160, 16], [265, 440], [580, 680], [1100, 740],
+        [-1200, 90], [-760, -80], [-400, 0], [-180, 55], [0, 80],
+        [190, 58], [420, 0], [780, -85], [1200, 100],
       ],
     },
-    // Out. The rail climbs 160 back out of the tube over 400 m — 32 degrees, and
-    // the only place in the game the corridor opens upward faster than it
-    // closes. Every wall here tops out BELOW the rail, so the frame is sky and
-    // the plug domes are underneath: the one zone on this level flown over
-    // rather than through.
+    // The saddle. The lowest the spine gets, and the lava is closer here than
+    // anywhere else that is not the high spine — 355 m, with the crest only 80 m
+    // over it.
     {
-      kind: 'basin', len: 1300, blend: 400, inner: 460, bed: 24, wallH: 380, relief: 0.10,
-      climb: 130,
+      kind: 'basin', len: 1100, blend: 500, inner: 380, bed: 24, wallH: 200, relief: 0.14,
       section: [
-        [-1200, 30], [-830, 95], [-520, 70], [-270, 20], [0, -16],
-        [290, 14], [560, 85], [930, 110], [1200, 40],
+        [-1150, 100], [-620, -70], [-355, 0], [-160, 58], [0, 80],
+        [170, 60], [370, 0], [650, -75], [1150, 105],
       ],
     },
-    // In again, and asymmetric this time so it is not the tube twice: port
-    // closes to 320 at 270 m while starboard is still open at 220.
+    // Back up, and further than it came down: 370 m over 700, the biggest climb
+    // in the game.
     {
-      kind: 'gorge', len: 1600, blend: 800, inner: 200, bed: 30, wallH: 620, relief: 0.50,
-      climb: -130, bend: { dx: -260, width: 760 },
+      kind: 'basin', len: 1500, blend: 700, inner: 480, bed: 22, wallH: 280, relief: 0.12,
+      climb: 370, bend: { dx: -260, width: 1000 },
       section: [
-        [-1150, 780], [-600, 720], [-270, 320], [-150, 14], [0, -30],
-        [200, 0], [440, 220], [830, 600], [1150, 700],
+        [-1200, 200], [-820, -80], [-450, 0], [-200, 360], [0, 450],
+        [215, 368], [480, 0], [850, -85], [1200, 210],
       ],
     },
-    // Tightest walls in the game outside the Foundry, and held for 170 m.
+    // The high spine, and the only asymmetric one: sheer to port, where the lava
+    // is 370 m out, and a long ramp to starboard that runs 640 m before it gets
+    // there. The rail sits on the break of slope between them.
     {
-      kind: 'narrows', len: 660, blend: 380, inner: 130, bed: 34, wallH: 720, relief: 0.52,
+      kind: 'basin', len: 1200, blend: 500, inner: 460, bed: 22, wallH: 260, relief: 0.12,
       section: [
-        [-1080, 800], [-500, 740], [-215, 500], [-125, 18], [0, -32],
-        [135, 14], [230, 520], [560, 760], [1080, 820],
+        [-1200, 180], [-640, -90], [-370, 0], [-150, 380], [0, 450],
+        [260, 350], [640, 0], [980, -80], [1200, 190],
       ],
     },
-    // Out, and stays out: the sump is where the river pools and where the
-    // fortress sits, so it has to be the widest thing since the rim.
+    // Down to the sump: 340 m, the steepest descent on the level.
     {
-      kind: 'basin', len: 2600, blend: 600, inner: 600, bed: 28, wallH: 300, relief: 0.42,
-      climb: 20,
+      kind: 'basin', len: 1000, blend: 800, inner: 420, bed: 24, wallH: 220, relief: 0.14,
+      climb: -340, bend: { dx: 200, width: 800 },
       section: [
-        [-1200, 330], [-790, 225], [-450, 70], [-230, -8], [0, -34],
-        [255, -6], [490, 80], [840, 245], [1200, 340],
+        [-1200, 120], [-780, -80], [-420, 0], [-190, 85], [0, 110],
+        [200, 88], [440, 0], [800, -85], [1200, 130],
+      ],
+    },
+    // The sump: the spine broadens into a plateau, and the fortress sits on it.
+    // Flat from -330 to +350 because this is the only place on the level with a
+    // boss fight in it, and a fight needs somewhere to happen that is not a
+    // slope.
+    {
+      kind: 'basin', len: 1560, blend: 500, inner: 600, bed: 26, wallH: 240, relief: 0.16,
+      section: [
+        [-1200, 140], [-900, -70], [-560, 0], [-330, 105], [0, 110],
+        [350, 106], [580, 0], [930, -75], [1200, 150],
       ],
     },
   ],
@@ -973,7 +976,12 @@ export const DNA_VENOM = {
     range: { scale: 1 / 6200, amp: 300, pow: 1.9, bias: 0.26, lambda: 276 },
     hill: { scale: 1 / 3800, amp: 118, lambda: 124 },
     fine: { scale: 1 / 1860, amp: 52, lambda: 78 },
-    crag: { scale: 1 / 1320, amp: 78, bias: 0.34, lambda: 66 },
+    // `face` is what puts crag on a spine. The other gate in `heightAtU` is a
+    // distance from the centreline measured against the section's outer points,
+    // and on an inverted section that opens over the lava and never over the
+    // crest — so without this the ridge is the bare polyline for nine
+    // kilometres and reads as a dune. Venom is the only level that sets it.
+    crag: { scale: 1 / 1180, amp: 104, bias: 0.34, lambda: 60, face: 1.0 },
     warp: { scale: 1 / 8600, amp: 220, shear: 0.7 },
     // Raised for the rim. `bankJitter` perturbs the DISTANCE the cross-section
     // is sampled at, so on a steep flank it becomes height — which is the only
@@ -990,25 +998,31 @@ export const DNA_VENOM = {
   islands: {
     seed: 'venom:plugs-1',
     groups: [
-      // Spatter cones ON the crest, not around it. The relief and crag bands
-      // both gate on distance past the section's outer points, so on an inverted
-      // section NO noise band reaches the ridge the ship is flying over — the
-      // polyline is the whole surface and it renders as a smooth dune. Scatter
-      // is the only thing that can put form there. Kept outside the 105 m
-      // offset box so none of it is an obstacle the rail did not author.
-      { n: 26, z: [640, -1450], u: [150, 470], r: [30, 100], h: [35, 95], pow: [1.5, 2.6] },
-      // Plug domes on the vent-chamber floor. Kept under the rail at 210: this
-      // is the one zone flown OVER, and a 230 m dome standing next to a rail at
-      // 210 puts the walls back that the section just took away.
-      { n: 11, z: [-4700, -5900], u: [90, 440], r: [30, 78], h: [40, 150], pow: [1.15, 1.55], spire: 1 },
-      // cooled flow lobes across the sump
-      { n: 14, z: [-8000, -9700], u: [40, 560], r: [90, 240], h: [5, 18], pow: [2.4, 3.8], flat: 1 },
+      // Spatter cones along the crest, the whole length of it. This is the only
+      // thing that can put form on the ridge: both noise gates in `heightAtU`
+      // measure distance from the centreline against the section's OUTER points,
+      // so on an inverted section they open over the lava and never over the
+      // crest. The polyline is otherwise the entire surface.
+      //
+      // Height is capped at the 70 m the rail sits above the crest, and they
+      // start outside the 105 m offset box, so nothing here is an obstacle the
+      // rail did not author.
+      { n: 44, z: [700, -9700], u: [150, 430], r: [26, 92], h: [25, 65], pow: [1.5, 2.6] },
+      // Bigger cinder cones further down the flanks, where there is room under
+      // the crest line for them.
+      { n: 16, z: [600, -9600], u: [300, 560], r: [70, 180], h: [40, 125], pow: [1.8, 3.0] },
+      // Cooled flow lobes out on the lava, flat and wide — they read as crust
+      // rather than as islands.
+      { n: 18, z: [400, -9700], u: [620, 1000], r: [90, 240], h: [4, 16], pow: [2.4, 3.8], flat: 1 },
     ],
-    // Two column stacks in the tube, and one in the gorge.
+    // Old vent plugs standing IN the lava beside the spine, not on it. They are
+    // the only vertical thing on the level that is not the ridge, and they read
+    // against it because they are on the other side of the shoreline.
     fixed: [
-      { z: -3540, u: -42, r: 32, h: 300, pow: 1.08, spire: 1 },
-      { z: -3820, u: 48, r: 28, h: 265, pow: 1.08, spire: 1 },
-      { z: -6960, u: 54, r: 30, h: 340, pow: 1.08, spire: 1 },
+      { z: -1560, u: -520, r: 34, h: 260, pow: 1.08, spire: 1 },
+      { z: -3960, u: 470, r: 30, h: 230, pow: 1.08, spire: 1 },
+      { z: -6520, u: -560, r: 36, h: 300, pow: 1.06, spire: 1 },
+      { z: -7840, u: 540, r: 32, h: 250, pow: 1.08, spire: 1 },
     ],
   },
 

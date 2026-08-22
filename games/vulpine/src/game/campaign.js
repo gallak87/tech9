@@ -334,46 +334,53 @@ const FORTUNA_COMMS = [
    instead of two, and there are two rear attacks rather than one.
 
    Zone boundaries:
-     720 rim -1180 channel -2580 tube -3680 vent -4980 gorge -6580
-     narrows -7240 sump -9840
+     720 rim -780 spine -2080 dive -3480 saddle -4580 climb -6080 high spine
+     -7280 descent -8280 sump -9840
 
-   Batteries stay out of the tube and the gorge, and out of the four `climb`
-   blends — this level's rail runs 380 on the crest down to 80 in the channel,
-   so a battery armed while it is descending is several hundred metres under the
-   ship rather than beside it. Each one below fires inside one zone's HELD
-   stretch, which is the zone less half a blend at each end. `bank` tracks the
-   ground that zone's section actually puts there, not its `inner`. */
+   THE WHOLE LEVEL IS A RIDGE. There is no channel and no wall to put anything
+   against — the ground falls away to lava on both sides everywhere, so `bank`
+   has to stay inside the crest or an emplacement is standing in the lava. The
+   crest meets the lava between 345 m and 580 m out depending on the zone, and
+   the three battery runs below sit at 240, 260 and 420 because that is what
+   those three zones have.
+
+   Batteries also stay clear of the three `climb` blends: the rail runs 400 on
+   the rim, 150 in the saddle and 520 on the high spine, so one armed mid-dive is
+   several hundred metres under the ship rather than beside it. Each fires inside
+   one zone's HELD stretch — the zone less half a blend at each end. */
 const VENOM_WAVES = [
   { z: -200, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1300, arc: 0.54, climb: 0.24, skill: 0.50, aggro: 0.20, life: 8 },
-  // Lands -400…-840, on the crest itself and inside its held stretch, which
-  // ends at -880. bank 260 puts them on the flank at about 230 — under the rail
-  // at 380 and firing up the slope, which is the only emplacement on this level
-  // the player looks DOWN at.
-  { z: -100, kind: 'bulwark', n: 3, form: 'banks', first: 300, step: 220, bank: 260, drops: ['health'] },
+  // Lands -40…-340, on the rim's own crest and inside its held stretch, which
+  // ends at -530. bank 240 puts them on the flank at about 235, under the rail
+  // at 400 — every emplacement on this level is looked DOWN at.
+  { z: 200, kind: 'bulwark', n: 3, form: 'banks', first: 240, step: 150, bank: 240, drops: ['health'] },
   { z: -1400, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.36, climb: 0.22, skill: 0.54, aggro: 0.28, life: 10.5, drops: ['weapon'] },
   { z: -2200, kind: 'raptor', n: 5, form: 'echelon', from: 'behind', skill: 0.56 },
-  // Armed past the tube's exit key so it resolves as the walls open into the
-  // vent chamber — nothing is fought inside a 140 m slot.
+  // Armed so it resolves in the saddle, which is the lowest and most exposed
+  // the ridge gets — nothing is fought on the dive itself.
   { z: -3700, kind: 'wasp', n: 7, form: 'swarm', from: 'ahead', spawn: 1150, arc: 0.08, climb: -0.44, skill: 0.58, life: 8, markFor: 1.9, stagger: 0.45, drops: ['bomb'] },
-  // Lands -4160…-4500, inside the vent chamber's held stretch (-3880 to -4580)
-  // and clear of the climb into it and the descent out.
-  { z: -3900, kind: 'bulwark', n: 3, form: 'banks', first: 260, step: 170, bank: 420, drops: ['health'] },
-  { z: -4700, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1200, arc: 0.42, climb: 0.20, skill: 0.60, aggro: 0.34, life: 11, drops: ['weapon', 'health'] },
+  { z: -4200, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1200, arc: 0.42, climb: 0.20, skill: 0.60, aggro: 0.34, life: 11, drops: ['weapon', 'health'] },
   { z: -5600, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1900, arc: 0.03, climb: -0.10, skill: 0.62, aggro: 0.36, life: 28, close: 210, escort: 3, drops: ['weapon', 'health'] },
+  // Lands -6380…-6700, the high spine's held stretch (-6330 to -6880). bank 260
+  // is inside its port flank, which is the sheer one.
+  { z: -6000, kind: 'bulwark', n: 3, form: 'banks', first: 380, step: 160, bank: 260, drops: ['health'] },
   { z: -6600, kind: 'raptor', n: 6, form: 'echelon', from: 'behind', skill: 0.62 },
   { z: -7400, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.52, climb: 0.26, skill: 0.64, aggro: 0.38, hunt: true, life: 9, drops: ['health'] },
-  // The sump. bank 540 ≈ inner 600, and the longest battery run in the game.
-  { z: -7800, kind: 'bulwark', n: 5, form: 'banks', first: 660, step: 260, bank: 540, drops: ['health', 'bomb'] },
-  { z: -8500, boss: 'commander:forge' },
+  // The sump plateau, the one flat top on the level and the only place with a
+  // run long enough for five. bank 420 is well inside its 560 m shoreline.
+  { z: -8400, kind: 'bulwark', n: 5, form: 'banks', first: 260, step: 230, bank: 420, drops: ['health', 'bomb'] },
+  { z: -8600, boss: 'commander:forge' },
 ];
 
 const VENOM_COMMS = [
   { z: -140, who: 'PEPPY', text: 'Venom. Andross is down there somewhere, Fox. Everything ends here.' },
-  { z: -1360, who: 'SLIPPY', text: 'Hull temperature is climbing. Do not go low over the channel!' },
-  { z: -2500, who: 'FALCO', text: 'That tube is a collapsed lava run. No room, no sky. Straight through.' },
-  { z: -3660, who: 'SLIPPY', text: 'Drones venting out of the chamber walls!' },
+  { z: -900, who: 'SLIPPY', text: 'The ridge is the only ground on this whole plain. Everything either side of you is molten.' },
+  { z: -2300, who: 'FALCO', text: 'Spine drops away ahead. Ride it down, do not go around it.' },
+  { z: -3900, who: 'SLIPPY', text: 'Hull temperature climbing! The crest is barely above the lava here!' },
+  { z: -5000, who: 'PEPPY', text: 'It climbs again past this. Stay on the high ground, Fox.' },
   { z: -5560, who: 'PEPPY', text: 'Their heavy brought escorts this time. Watch the flanks.' },
   { z: -7350, who: 'FALCO', text: 'They are going for the wing, Fox. Get them off!' },
+  { z: -8250, who: 'FALCO', text: 'There it is. Sitting on the only flat rock for nine kilometres.' },
   { z: -8450, who: 'PEPPY', text: 'That is their fortress ship. Heat sinks and the crucible — end it, Fox.' },
 ];
 

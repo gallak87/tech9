@@ -30,8 +30,12 @@
 // it had only RIDGE / asym / valley, so it called Fortuna's near-flat lagoon a
 // valley and would have had phase 9 author away the one thing already right.
 // ─────────────────────────────────────────────────────────────────────────────
-import { setActiveDNA, terrainHeight, centrelineX, WORLD } from '../src/world/profile.js';
+import { setActiveDNA, terrainHeight, centrelineX, centrelineY, WORLD } from '../src/world/profile.js';
 import { DNA_BY_ID } from '../src/world/dna.js';
+
+// The Highlands' campaign id is `highlands` and its DNA key is `fichina`; every
+// doc and every probe flag uses the campaign id, so accept it here too.
+const DNA_FOR = (id) => DNA_BY_ID[id] ?? DNA_BY_ID[{ highlands: 'fichina' }[id]];
 
 const arg = (n, d = null) => {
   const i = process.argv.indexOf(`--${n}`);
@@ -79,6 +83,47 @@ function shapeAt(z) {
     kind, asym: Math.abs(l - r) > ASYM, rise,
     far: (at(-FAR) + at(FAR)) / 2 - c,
   };
+}
+
+// ASCII cross-section straight off `terrainHeight`, so the picture and the
+// classification cannot disagree. Height is scaled per drawing, printed above
+// it, because a pass at 700 m and a lagoon at 40 share no useful scale.
+function draw(z, cols = 74, rows = 15, half = 1250) {
+  const cx = centrelineX(z);
+  const h = [];
+  for (let i = 0; i < cols; i++) h.push(terrainHeight(cx + (-half + (2 * half * i) / (cols - 1)), z));
+  const lo = Math.min(...h), hi = Math.max(...h);
+  const rail = centrelineY(z);
+  const top = Math.max(hi, rail + 20), bot = Math.min(lo, 0);
+  const grid = Array.from({ length: rows }, () => Array(cols).fill(' '));
+  const row = (y) => Math.round((rows - 1) * (1 - (y - bot) / Math.max(1, top - bot)));
+  for (let i = 0; i < cols; i++) {
+    const r = Math.max(0, Math.min(rows - 1, row(h[i])));
+    grid[r][i] = '_';
+    for (let k = r + 1; k < rows; k++) grid[k][i] = '#';
+  }
+  const rr = Math.max(0, Math.min(rows - 1, row(rail)));
+  grid[rr][Math.floor(cols / 2)] = 'A';
+  return { art: grid.map(g => '  ' + g.join('')).join('\n'), top, bot, rail, lo, hi };
+}
+
+if (arg('draw', null)) {
+  const id = arg('draw');
+  const dna = DNA_FOR(id);
+  if (!dna) { console.error(`unknown level "${id}"`); process.exit(2); }
+  setActiveDNA(dna);
+  const span = WORLD.zStart - WORLD.zEnd;
+  const at = arg('at', null);
+  const fracs = at ? [parseFloat(at)] : [0.04, 0.2, 0.36, 0.52, 0.68, 0.84];
+  for (const f of fracs) {
+    const z = WORLD.zStart - span * f;
+    const d = draw(z);
+    const sh = shapeAt(z);
+    console.log(`\n${id}  z ${Math.round(z)}  (${Math.round(f * 100)}% in)  ${sh.kind}${sh.asym ? '+asym' : ''}`);
+    console.log(`  ground ${Math.round(d.lo)}..${Math.round(d.hi)} m, rail at ${Math.round(d.rail)} m, A = the ship, ±1250 m across`);
+    console.log(d.art);
+  }
+  process.exit(0);
 }
 
 const only = arg('level', null);

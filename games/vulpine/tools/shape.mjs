@@ -8,7 +8,7 @@
 // number rather than an opinion.
 //
 //   node tools/shape.mjs                 the table
-//   node tools/shape.mjs --strict        exit 1 if a level is one shape all through
+//   node tools/shape.mjs --strict        exit 1 if two levels share a shape set
 //   node tools/shape.mjs --level fortuna
 //
 // Sampled in the NEAR FIELD. The ship flies within `boxX` (105 m) of the rail
@@ -47,8 +47,9 @@ const FLAT_RISE = 30;     // bank rise, in metres, under which it is a plain
 const ASYM = 120;         // bank-to-bank difference that reads as one-sided
 const SAMPLES = 12;
 
-// Corneria is the reference the others are told apart from, so it is allowed to
-// be one shape the whole way down. Every other terrain level is not.
+// The level the others are being told apart from. Labelled in the output; it
+// gets no exemption from the clash test, because two levels sharing a shape set
+// is a finding whichever two they are.
 const REFERENCE = 'corneria';
 
 function shapeAt(z) {

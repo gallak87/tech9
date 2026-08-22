@@ -1,7 +1,10 @@
 # Vulpine — level identity: two curves
 
-Open lane. **Phases 1 and 2 landed 2026-08-21; phases 3-6 open.** The owner
-picks when each starts.
+Open lane. **Phases 1-3 landed; 4-9 open.** The owner picks when each starts.
+
+The mechanism is ahead of the authoring: a zone can carry its own cross-section
+and its own ceiling, and three zones across two levels use either. **Phase 9 is
+the one that makes the levels look different**, and it waits on nothing.
 
 Companion docs: `ROADMAP.md` is the queue, `HANDOFF.md` the harness and traps,
 `PLAN-PERF.md` the other open lane, `REVIEW.md` the rubric.
@@ -79,8 +82,18 @@ No two rows alike — the acceptance test for the lane.
 | 2 | Authorable `section` on a zone; Venom's ridge, Aquas' terraces + drop-off | **done 2026-08-21** |
 | 3 | Per-zone `ceiling`; wire player flight to `ceilingAt` | **done 2026-08-22** |
 | 4 | `path` refactor — rail becomes arc-length `p(s)` | open |
-| 5 | Hull pitch from `railDir`, then the vertical drama in all four | open |
+| 5 | Hull pitch from `railDir` — anything steep is wrong until this lands | open |
 | 6 | Venom orbit arena | open |
+| 7 | Per-level camera — the lens, not the world | open |
+| 8 | Aquas' plunge — the rail crosses the water surface | open |
+| 9 | **The authoring pass** — one distinct shape per level | open |
+
+Numbers are identifiers, not an order. **7 and 9 block on nothing** — 7 is a
+data change, and 9 can author any level whose mechanism exists, which after
+phase 3 is section and ceiling on all five terrain levels.
+
+Phases 8 and 9 were split out of phase 5, which carried "the vertical drama in
+all four" as a clause. Phase 9 has an acceptance test instead.
 
 ### Deliberately not doing
 
@@ -91,6 +104,25 @@ for a fraction of it.
 
 **Asymmetric lateral *extent*.** The mesher's column layout is symmetric by
 construction (`terrain.js:35-55`). Land can be lower on one side, not wider.
+
+## Two levers that are not phases
+
+Decisions a level makes, not stages. Neither depends on phase 4.
+
+**The floor need not be a plane at y = 0.** Four of the five terrain levels put
+a surface there (water, ice, lava); the fifth is bare terrain at the same
+height. A level whose floor sits far below the rail, flown between spires with
+no readable ground, reads as none of the others. Cheap version: `waterLevel`
+well under `bed`, so no plane draws at all.
+
+**The camera never changes.** `camBack` 17.0, `camUp` 3.15, `camLookAhead` 46,
+`camLookUp` 2.6, `fovBase` 58 — one set of numbers for all seven levels, so a
+different world still arrives through an identical lens. Per-level values are a
+data change: `TUNE` is a mutable export and `main.js:46` already overrides
+`railYawFollow` from a URL param. Phase 7.
+
+Measure with `tools/framing.mjs`. Known reading: ~3.5° of hands-off yaw is
+shake, not drift — `off.x`/`off.y` measure zero variance. Do not chase it.
 
 ## Phase 1, as landed
 
@@ -264,7 +296,7 @@ something that was being felt.
       the reversed triangles predate the cross-section lane (`1ea5288`) and are
       already tracked in `ROADMAP.md` under "Found while auditing".
 
-## What phases 3-6 already know
+## What the open phases already know
 
 Read out of the source 2026-08-21 so none of it is re-derived. All line numbers
 are from that date; verify before trusting one.
@@ -301,6 +333,37 @@ ends are now checked by `tools/lid.mjs --audit`.
 
 **Everything free.** All of `src/ui/`, `src/fx/`, `src/audio/`, `pickups.js` and
 world LOD are position-based, not `railZ`-based, and survive phase 4 untouched.
+
+**Phase 8 — the plunge.** Re-enter, fly a few seconds *above* the water, dive
+through the surface, fly the level, kill the boss, climb back out above the
+surface, then hop.
+
+- **Does not need phase 4.** The rail already moves in Y: a zone's `climb`
+  becomes a `yBend` (`zones.js:200-204`) into `centrelineY`, and Aquas'
+  drop-off descends on `climb: -30`. It needs phase 5 for the *look* —
+  `flight.js:397` orients the hull yaw-only, so on a dive the camera pitches and
+  the hull does not. Steepest shipped is Fichina at 16.7°.
+- **The blocker: one surface must be both floor and ceiling.** Aquas' sea is a
+  `canopy` at y = 620 answered by `ceilingAt` and clamped against since phase 3.
+  Above it, the same plane is a floor. `groundAt` and `ceilingAt` are separate
+  one-sided queries, and a canopy level's per-zone `ceiling` is finite
+  everywhere by construction — there is no "no lid here" to author.
+- **Same problem as Fortuna's canopy**, whose whole idea is that nothing else
+  changes which side of an object you are on. Solve once, for both.
+- **Also two `ROADMAP.md` items**: Aquas has no arrival beat (an orbital
+  re-entry ending 300 m underwater wants a plunge, not a wash), and leaving
+  Aquas climbs 2200 m straight through the sea surface on an unconditional
+  `HOPS.orbital.climb`. One feature, not three.
+
+**Phase 9 — the authoring pass.** No new mechanism. Every level gets a shape.
+
+Acceptance test: near-field cross-section (±250 m, what the ship reads) at six
+points down each level, and **no level may measure `valley` at every sample**.
+Same method as the 2026-08-22 row in the open list above.
+
+**Fortuna first** — the only terrain level with no authored section, valley six
+times out of six, and the level named as proof that shading cannot fix this.
+Corneria stays a valley: it is what the others are told apart from.
 
 ## How to work this lane
 

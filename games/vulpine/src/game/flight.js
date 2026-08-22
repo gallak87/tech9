@@ -461,7 +461,13 @@ export class Flight {
     // corridor, and since the camera aims down the corridor the two swings add
     // instead of cancelling.
     const railYaw = Math.atan2(-this.railDir.x, -this.railDir.z) * TUNE.railYawFollow;
-    _e.set(this.pitch + somerPitch, this.yaw + railYaw, this.bank + rollExtra, 'YXZ');
+    // The corridor's slope, for the same reason the yaw is here: the ship
+    // travels along the full 3D tangent whatever the hull does, and the camera
+    // (`updateCamera`) already uses that tangent including Y. Without this the
+    // two diverge by the slope itself — measured -17.8° on Fortuna's climb
+    // against a rail at +18.3° — and nothing clamps or warns.
+    const railPitch = Math.asin(THREE.MathUtils.clamp(this.railDir.y, -1, 1));
+    _e.set(this.pitch + somerPitch + railPitch, this.yaw + railYaw, this.bank + rollExtra, 'YXZ');
     this.quat.setFromEuler(_e);
 
     this.ship.position.copy(this.pos);

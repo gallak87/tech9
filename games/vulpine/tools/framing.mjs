@@ -75,6 +75,10 @@ const rows = await page.evaluate(async (until) => {
     nose.set(0, 0, -1).applyQuaternion(V.ship.quaternion);
     // signed horizontal angle: project onto the camera's right axis
     const right = new T.Vector3(1, 0, 0).applyQuaternion(cam.quaternion);
+    // ...and the vertical one, onto the camera's up axis. `noseDeg` is yaw only,
+    // so on any slope it reports a hull that agrees with the camera while the
+    // two are diverging in pitch — which is the whole of phase 5.
+    const camUp = new T.Vector3(0, 1, 0).applyQuaternion(cam.quaternion);
     const ndc = p.clone().project(cam);
     const e = new T.Euler().setFromQuaternion(cam.quaternion, 'YXZ');
     const rd = V.flight.railDir;
@@ -85,6 +89,8 @@ const rows = await page.evaluate(async (until) => {
       ndcY: +ndc.y.toFixed(3),
       offDeg: +(Math.asin(T.MathUtils.clamp(toShip.dot(right), -1, 1)) * DEG).toFixed(2),
       noseDeg: +(Math.asin(T.MathUtils.clamp(nose.dot(right), -1, 1)) * DEG).toFixed(2),
+      nosePitch: +(Math.asin(T.MathUtils.clamp(nose.dot(camUp), -1, 1)) * DEG).toFixed(2),
+      railPitch: +(Math.asin(T.MathUtils.clamp(rd.y, -1, 1)) * DEG).toFixed(2),
       stick: +(V.flight.yaw * DEG).toFixed(2),
       rail: +(Math.atan2(rd.x, -rd.z) * DEG).toFixed(2),
       camY: +(e.y * DEG).toFixed(2),
@@ -109,7 +115,7 @@ for (const r of rows) {
   if (Math.round(r.t * 10) % 20) continue;      // print every 2 s
   console.log(`${String(r.t).padStart(5)} ${String(r.z).padStart(6)} ${String(r.ndcX).padStart(7)} ${String(r.offDeg).padStart(8)} ${String(r.noseDeg).padStart(8)} ${String(r.stick).padStart(8)} ${String(r.rail).padStart(8)} ${String(r.camY).padStart(8)}`);
 }
-for (const k of ['ndcX', 'ndcY', 'noseDeg', 'camY', 'offx', 'offy', 'soffx', 'shake']) {
+for (const k of ['ndcX', 'ndcY', 'noseDeg', 'nosePitch', 'railPitch', 'camY', 'offx', 'offy', 'soffx', 'shake']) {
   const s = span(k);
   console.log(`${k.padEnd(8)} min ${String(s.min).padStart(7)}  max ${String(s.max).padStart(7)}  peak-to-peak ${s.pp}`);
 }

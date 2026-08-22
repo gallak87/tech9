@@ -1,10 +1,11 @@
 # Vulpine — level identity: two curves
 
-Open lane. **Phases 1-3 landed; 4-9 open.** The owner picks when each starts.
+Open lane. **1-3 and 7 landed, 9 half done; 4, 5, 6, 8 open.** The owner picks
+when each starts.
 
-The mechanism is ahead of the authoring: a zone can carry its own cross-section
-and its own ceiling, and three zones across two levels use either. **Phase 9 is
-the one that makes the levels look different**, and it waits on nothing.
+A zone can carry its own cross-section, its own ceiling and its own camera.
+Phase 9 — the authoring that makes the levels actually look different — has
+Fichina and Fortuna done and is the phase that waits on nothing.
 
 Companion docs: `ROADMAP.md` is the queue, `HANDOFF.md` the harness and traps,
 `PLAN-PERF.md` the other open lane, `REVIEW.md` the rubric.
@@ -84,16 +85,21 @@ No two rows alike — the acceptance test for the lane.
 | 4 | `path` refactor — rail becomes arc-length `p(s)` | open |
 | 5 | Hull pitch from `railDir` — anything steep is wrong until this lands | open |
 | 6 | Venom orbit arena | open |
-| 7 | Per-level camera — the lens, not the world | open |
+| 7 | Per-level camera — the lens, not the world | mechanism **done 2026-08-22**, no values authored |
 | 8 | Aquas' plunge — the rail crosses the water surface | open |
-| 9 | **The authoring pass** — one distinct shape per level | open |
+| 9 | **The authoring pass** — one distinct shape per level | Fichina + Fortuna **done 2026-08-22** |
 
 Numbers are identifiers, not an order. **7 and 9 block on nothing** — 7 is a
 data change, and 9 can author any level whose mechanism exists, which after
 phase 3 is section and ceiling on all five terrain levels.
 
 Phases 8 and 9 were split out of phase 5, which carried "the vertical drama in
-all four" as a clause. Phase 9 has an acceptance test instead.
+all four" as a clause. Phase 9's acceptance test is `tools/shape.mjs --strict`.
+
+**Still to author (phase 9):** Corneria stays as it is — it is the reference.
+Aquas and Venom already carry phase 2's sections and pass the clash test, but
+neither has been read against its row in the four-levels table. The Foundry
+(`works`) has no cross-section at all.
 
 ### Deliberately not doing
 
@@ -205,6 +211,51 @@ on the pre-change tree. The player could not fly through it in practice, so this
 phase is a mechanism for phases 5-6 to author against rather than a fix to
 something that was being felt.
 
+## Phase 7, as landed
+
+A DNA may carry `camera: { back, up, lookAhead, lookUp, fov }`; unset fields
+fall through to `TUNE`, so a level frames as it always did until it says
+otherwise. Unknown or non-finite keys throw at activation — a misspelled key is
+otherwise a level that silently frames like every other one, which is the defect
+the field exists to fix.
+
+Resolved through a `lens` getter on `Flight`, cached on `WORLD.camera`'s
+identity. Not by mutating `TUNE`, which would persist across a level swap.
+
+**No level authors values yet.** The mechanism is in; the numbers are a look
+decision.
+
+## Phase 9, as landed so far
+
+**Fichina — the pass is terrain.** The rail climbed 154 m over it while the
+floor stayed flat at −10, so the pass was the same ice from higher up: clearance
+went 59 → 215 m and nothing about the place changed. The pass and the narrows
+after it now carry sections that climb with the rail, holding 55−74 m
+throughout, and the descent belongs to the zone carrying the −160. Asymmetric
+through it: sheer face to port, a hanging bench at ~275 running 340 m to
+starboard. `shots/p9-fichina-pass/`.
+
+**Fortuna — the glade is a plateau.** It was the most static level in the game,
+FLAT at nine of twelve samples with the floor moving 9 m over 10 km. The glade
+now sits on a mat plateau at 110, inside the stalks' own 90−320 rather than
+under them, and the gorge after it drops the same 130 back to lagoon level.
+`shots/p9-fortuna-glade/`.
+
+Its two layers are **heights, not sides of a surface**: `surface: 'water'` at
+y = 0 makes `groundAt` clamp there, so Fortuna cannot descend at all. The
+brief's over/under-the-canopy version needs phase 8.
+
+**The fix this surfaced.** A zone's `climb` yBend was centred on the entry key,
+so it was half done when the held stretch began — against this file's own
+comment. Centred on the zone boundary it spans exactly the two keys the
+cross-section blends between. A zone raising both floor and rail was pinching
+the corridor by `climb/2` on the way in: Fichina's pass measured 19 m mid-blend
+against 55−70 either side.
+
+**Nothing gates rail Y.** `centrelineY` moves the rail; the digest's lattice
+samples `terrainHeight`, which reads `centrelineX` only. That fix moved every
+climbing rail in the game and the digest reported nothing.
+
 ## Open, found in phase 2 and its quality pass
 
 - [x] **`keySection` writes onto the DNA's own key objects.** Closed 2026-08-21:
@@ -258,27 +309,26 @@ something that was being felt.
       **Cut a digest before editing, not after**, or a stale baseline reads as
       your own regression. It cost the previous agent two cycles and it still
       landed on the wrong commit.
-- [ ] **Coverage, not mechanism, is now what makes the levels look alike.**
-      Flown and measured 2026-08-22, near-field cross-section (±250 m, which is
-      what the ship reads) at six points down each terrain level:
+- [x] **Coverage, not mechanism, was what made the levels look alike.** Half
+      closed 2026-08-22 — Fichina and Fortuna authored, Aquas and Venom already
+      passing. Measured with `tools/shape.mjs`:
 
-      | | 0.06 | 0.23 | 0.40 | 0.57 | 0.74 | 0.91 |
-      |---|---|---|---|---|---|---|
-      | corneria | valley | valley | asym | valley | valley | valley |
-      | highlands | valley | valley | valley | valley | valley | valley |
-      | aquas | valley | valley | **asym** | **asym** | valley | valley |
-      | fortuna | valley | valley | valley | valley | valley | valley |
-      | venom | **RIDGE** | valley | asym | asym | valley | valley |
+      | | shape mix, 12 samples | floor moves |
+      |---|---|---|
+      | corneria | FLAT x7, VALLEY x5 | 28 m *(reference)* |
+      | fichina | FLAT x9, VALLEY x3 | **149 m** |
+      | aquas | FLAT x5, VALLEY x3, VALLEY+asym x3, FLAT+asym x1 | 74 m |
+      | fortuna | FLAT x9, VALLEY x2, VALLEY+asym x1 | **133 m** |
+      | venom | FLAT x7, VALLEY x3, RIDGE x2 | 60 m |
 
-      The three zones phase 2 authored are the three that read: Venom's spine
-      measures +26 at the centreline against banks at +14/+6, exactly the
-      authored figure, and Aquas' terraces and drop-off both come out asymmetric.
-      Captures in `shots/p3-authored/`, and the ridge is unmistakable from the
-      chase camera — the ship is *on top of* something.
+      Every level now names a shape combination no other level uses, which is
+      CONTRACT rule 8's weak form. Fichina and Corneria previously shared one.
 
-      **Fortuna is a valley at all six samples and has no authored section at
-      all.** It is the level the owner named as proof that shading cannot fix
-      this. Phase 5 has the work; this is the measurement it should move.
+      Two things the first, cruder version of this measurement got wrong, both
+      corrected here: Fortuna is **FLAT**, not a valley — its brief calls for
+      near-flat, so authoring a valley in would have removed the one thing
+      already right — and no level is a single shape once the sampling is dense
+      enough to hit every zone.
 
 - [ ] **Aquas' walls break its own sea surface.** 1.66 km of the gorge and the
       narrows (z −5820..−7480) stand up to 217 m through the 620 m lid, from
@@ -403,6 +453,7 @@ for L in corneria highlands omega foundry aquas fortuna venom; do
 done
 node tools/fins.mjs --audit                       # inverted-winding gate
 node tools/lid.mjs --audit                        # ceiling gate: is there room to fly
+node tools/shape.mjs --strict                     # phase 9: no two levels share a shape set
 
 # before / after on a level
 node tools/shot.mjs --shots chase,valley --t 16 --w 1280 --h 720 --quality high \

@@ -235,11 +235,14 @@ into is the body you were orbiting.
       weak-point HP with campaign position — but the amount is a design call and
       wants a real playthrough's weapon tier, not the probe's, since the probe
       reached tier 0 on two levels and tier 1 on two others from pickup luck.
-- [ ] **Homing may never hit a commander.** Seen once, unverified: bloom's probe
-      reported `homingFired: 40, homingHit: 0, homingLostTarget: 0,
-      homingExpired: 2` while `bossLand` was 48. Worth one probe against ice
-      before treating it as real — if it reproduces on a shipped boss it is not
-      a new-level defect at all.
+- [x] **Homing never hitting a commander was the counter, not the homing.**
+      Closed 2026-08-21. It reproduced against `commander:ice` too — 72 fired,
+      0 hit — which ruled out the new levels, and then the source settled it:
+      `diag.homingHit++` sat only inside the loop over `foes`, and the boss is
+      a separate branch that increments `bossLand` and nothing else. Counted in
+      both places now; ice reads 70 of 72. Nothing about homing was wrong.
+      One more for the traps list: three outcome counters reading exactly zero
+      for 72 rounds is a broken counter, not a broken system.
 - [ ] **The three new hostile classes are unprobed.** `lancer`, `scarab` and
       `pylon` are referenced by the new wave tables and were never measured;
       the boss lane above says nothing about them. `tools/pacing.mjs`.

@@ -1669,7 +1669,15 @@ const _bRail = new THREE.Vector3();
           if (dRoot < diag.bossMinD) diag.bossMinD = Math.round(dRoot);
           if (dRoot < boss.kind.radius + 46) {
             diag.bossNear++;
-            if (bossHit(b, px, py, pz, b.x, b.y, b.z)) { diag.bossLand++; gone = true; }
+            // The boss is not in `foes`, so a homing round that lands here
+            // never reached the `homingHit` above. Without this the counter
+            // reads 0 for a whole boss fight and the probe says homing never
+            // connects, while `bossLand` says it does.
+            if (bossHit(b, px, py, pz, b.x, b.y, b.z)) {
+              diag.bossLand++;
+              if (b.turn) diag.homingHit++;
+              gone = true;
+            }
           }
         }
       }

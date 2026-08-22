@@ -800,6 +800,34 @@ const GLSL_STRUCTURE = () => (
     : DNA.surfaceKind === 'volcanic' ? GLSL_VOLCANIC
       : GLSL_SEDIMENTARY);
 
+/* Where a colony sits, and which of the two it is. Only `DNA.glow` reads
+   these, and the four taps are only worth paying for on the level that does.
+
+   A tap on the map cannot hide its own period by being scaled. That is what
+   `crs.g` already carries — a regional field mixed over it — and it sets how
+   bright each blob is while leaving every blob on the same lattice. Terrain
+   albedo gets away with that because varying light breaks up the repeat;
+   an emissive term has nothing to break it up, and Fortuna's banks carried a
+   square grid of identical blobs at the 65 m tile. Displacing the lookup is
+   what breaks a repeat, and the displacing field has to share no period with
+   what it displaces: the warp field repeats every 340 m against the mask's
+   65 m, and it moves the lookup a tile and a half either way, so no two tiles
+   in one frame resolve the same way.
+
+   `gwarp` is planar in xz where the mask is triplanar. It is only ever an
+   offset, so the stretch it takes on a wall is a slow drift in where the blobs
+   land, which is not something the eye has a reference for. */
+function GLSL_COLONY() {
+  if (!DNA.glow) return '';
+  return /* glsl */`
+        vec4 gwarp = texture2D(map, vWPos.xz * uScale * 0.0263 + 0.29);
+        vec2 gwo = (gwarp.br - 0.5) * 3.1;
+        gColony = texture2D(map, gUX * CRS + gwo).g * gBW.x
+                + texture2D(map, gUY * CRS + gwo).g * gBW.y
+                + texture2D(map, gUZ * CRS + gwo).g * gBW.z;
+        gColonyHue = gwarp.g;`;
+}
+
 /* ── ground that emits ────────────────────────────────────────────────────────
    `DNA.glow` turns the terrain into a light source. One level uses it, and it
    is the only way that level can exist: bioluminescence is the ground being
@@ -827,7 +855,7 @@ function GLSL_GLOW() {
           // composited pure white; what a colony field actually is is a dim
           // wash where it is damp, with sparse hot patches inside that.
           float damp = smoothstep(0.40, 0.90, vTerr.x);
-          float colony = smoothstep(0.50, 0.90, gCrsG);
+          float colony = smoothstep(0.46, 0.86, gColony);
           float speck = smoothstep(0.68, 0.97, gTri.b);
           float fade = 1.0 - smoothstep(${gf(g.height[0])}, ${gf(g.height[1])}, vWPos.y);
           float wash = colony * (0.20 + 0.80 * damp) * fade;
@@ -837,9 +865,12 @@ function GLSL_GLOW() {
           float pulse = 0.70 + 0.30 * sin(uGlowTime * ${gf(g.pulse ?? 0.9)}
                         + vWPos.x * 0.0041 + vWPos.z * 0.0029);
           // Two colonies, not one: a single hue over 9 km is a filter, and the
-          // hue split is what makes the stalk field read as populated.
+          // hue split is what makes the stalk field read as populated. It runs
+          // off the regional field, not off the 9 m grit channel: grit picks a
+          // hue per square metre, which averages to one colour at any range a
+          // bank is actually seen from, and that colour was violet everywhere.
           vec3 gcol = mix(${gv3(g.color)}, ${gv3(g.color2 || g.color)},
-                          smoothstep(0.32, 0.78, gTri.r));
+                          smoothstep(0.34, 0.66, gColonyHue));
           totalEmissiveRadiance += gcol * ((wash * 0.26 + hot * 1.25)
                                    * ${gf(g.amount ?? 1)} * pulse);
         }`;
@@ -903,7 +934,8 @@ export function terrainMaterial() {
         ${GLSL_HORIZON()}
         vec3 gBW; vec2 gUX, gUY, gUZ; vec4 gTri;
         vec3 gFaceUp;
-        float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx, gDbg, gGrooveAcross, gCrsG;`)
+        float gWet, gDetail, gSteep, gAO, gBedSlope, gBedK, gWpx, gDbg, gGrooveAcross;
+        float gColony, gColonyHue;`)
       .replace('#include <map_fragment>', `
         vec3 wn = normalize(vWNrm);
         // A softer blend exponent than the usual 6 — at 4 the three projections
@@ -946,7 +978,7 @@ export function terrainMaterial() {
         gAO = mix(1.0, sky, 0.92) * mix(1.0, 0.70, gully * 0.7);
         gFaceUp = normalize(vec3(0.0, 1.0, 0.0) - wn * wn.y + vec3(1e-5, 0.0, 0.0));
 
-        gCrsG = crs.g;
+        ${GLSL_COLONY()}
         diffuseColor *= vec4(rock, 1.0);
       `)
       // ?terrdbg=sun|sky|cav — flat-shade one of the three baked scalar fields.

@@ -674,9 +674,21 @@ export const DNA_FORTUNA = {
     // The lagoon. Low banks, long sightlines, the stalk field either side.
     { kind: 'basin', len: 2400, inner: 600, bed: 14, wallH: 180, relief: 0.75 },
     { kind: 'reach', len: 1600, blend: 1200, inner: 320, bed: 17, wallH: 380 },
-    // The glade: a clearing in the stalks, and the one place to fight in.
-    { kind: 'basin', len: 1500, blend: 600, inner: 540, bed: 15, wallH: 240, relief: 0.70 },
-    { kind: 'gorge', len: 1500, blend: 800, inner: 220, bed: 22, wallH: 520, bend: { dx: -240, width: 700 } },
+    // The glade: a clearing in the stalks, and the one place to fight in. Raised
+    // onto a mat plateau at 110, which is inside the stalks' own 90-320 rather
+    // than under them — this level's two layers are heights, not sides of a
+    // surface. The floor climbs with the rail; a rail climbing alone would be
+    // the same lagoon seen from higher up.
+    {
+      kind: 'basin', len: 1500, blend: 600, inner: 540, bed: 15, wallH: 240, relief: 0.70, climb: 130,
+      section: [
+        [-1150, 250], [-780, 190], [-560, 128], [-300, 116], [0, 110],
+        [320, 115], [580, 132], [820, 196], [1150, 258],
+      ],
+    },
+    // Off the plateau and down into the understory: the same -130 the glade
+    // climbed, so the gorge floor is back at lagoon level and dark.
+    { kind: 'gorge', len: 1500, blend: 800, inner: 220, bed: 22, wallH: 520, climb: -130, bend: { dx: -240, width: 700 } },
     { kind: 'basin', len: 1300, blend: 600, inner: 500, bed: 16, wallH: 260, relief: 0.68 },
     { kind: 'narrows', len: 700, blend: 400, inner: 145, bed: 24, wallH: 600, bend: { dx: 200, width: 640 } },
     { kind: 'basin', len: 1560, blend: 800, inner: 620, bed: 15, wallH: 200, relief: 0.72 },

@@ -1,12 +1,13 @@
 # Vulpine — level identity: two curves
 
-Open lane. **1-3, 5, 7 and 8 landed, and 9 all but the Foundry; 4 and 6 open.**
+Open lane. **1-5, 7 and 8 landed, and 9 all but the Foundry; 6 open.**
 The owner picks when each starts.
 
 A zone carries its own cross-section, its own ceiling and its own camera; the
-hull pitches with the corridor; and a surface can be floor or ceiling depending
-which side of it the rail runs. **Phase 4 is the only mechanism left**, and only
-phase 6 waits on it.
+hull pitches with the corridor; a surface can be floor or ceiling depending
+which side of it the rail runs; and speed is measured along the rail rather than
+down the z axis. **Phase 6 is what is left**, and it needs the last piece of
+phase 4 — see "Phase 4, as landed".
 
 Companion docs: `ROADMAP.md` is the queue, `HANDOFF.md` the harness and traps,
 `PLAN-PERF.md` the other open lane, `REVIEW.md` the rubric.
@@ -83,7 +84,7 @@ No two rows alike — the acceptance test for the lane.
 | 1 | Cross-section becomes a polyline; `Math.abs(u)` gone | **done 2026-08-21** |
 | 2 | Authorable `section` on a zone; Venom's ridge, Aquas' terraces + drop-off | **done 2026-08-21** |
 | 3 | Per-zone `ceiling`; wire player flight to `ceilingAt` | **done 2026-08-22** |
-| 4 | `path` refactor — rail becomes arc-length `p(s)` | open |
+| 4 | `path` refactor — rail becomes arc-length `p(s)` | **done 2026-08-22**, less the path indirection phase 6 carries |
 | 5 | Hull pitch from `railDir` — anything steep is wrong until this lands | **done 2026-08-22** |
 | 6 | Venom orbit arena | open |
 | 7 | Per-level camera — the lens, not the world | **done 2026-08-22**; Venom authored, 6 levels on defaults |
@@ -321,6 +322,95 @@ Flown, not only measured: `pilot.mjs fly --params level=aquas` runs the corridor
 end to end, 12 kills, no console error, and 0 of 19 samples with the hull near a
 frame edge.
 
+## Phase 4, as landed
+
+`railStretch(z)` in `profile.js` is the length of dp/dz, and the rail advance
+divides by it:
+
+```js
+if (!this.detached) this.railZ -= (this.speed / railStretch(this.railZ)) * dt;
+```
+
+That is the whole mechanism. `railZ` still parameterises the rail, is still in
+metres of z and is still monotone, so the three cursors at `combat.js:1760-1774`
+and the end-of-level test at `campaign.js:549` never knew it changed.
+
+**What it was.** `speed` was the projection of velocity onto world −z, not
+speed along the path, so any gradient or turn flew the ship faster than the
+number it was set to and nothing reported it. Integrated at the sim's own 120 Hz
+over all seven levels, true speed against a `cruiseSpeed` of 175:
+
+| | before | after | level takes |
+|---|---|---|---|
+| corneria | 175.0−180.2 | 175.0−175.0 | +0.7 s |
+| highlands | 175.0−200.5 | 174.9−175.1 | +1.0 s |
+| omega | 175.0−180.5 | 175.0−175.0 | +0.6 s |
+| foundry | 175.0−175.7 | 175.0−175.0 | +0.1 s |
+| aquas | 175.0−**234.3** | 174.9−175.1 | +1.9 s |
+| fortuna | 175.0−211.2 | 174.8−175.1 | +1.6 s |
+| venom | 175.0−203.7 | 174.9−175.1 | +0.7 s |
+
+Worst residual 0.13%, which is the ±6 m central difference against the true
+local derivative. **`railStretch` uses that same epsilon deliberately** — it is
+what `railTangent` orients the hull to, and the two are read on the same tick as
+attitude and as rate. An analytic derivative here would pitch the hull to a
+slope the speed correction did not agree existed.
+
+Nothing else needed a table: the ODE is `dz/dt = -speed / |dp/dz|`, and at
+120 Hz a tick moves at most 2.5 m while the stretch is driven by smoothstep
+bends hundreds of metres wide. The digest is green on all seven, which is the
+proof the geometry did not move — only the rate along it.
+
+**The HUD needed no change.** `ui/radar.js:30` already read `flight.speed`; the
+number simply became true.
+
+**`ai.js`'s world axes went with it.** Station offsets are authored in the
+rail's frame — `offset.z = -600` means 600 m ahead — and were added to the
+player's position raw, so "ahead" meant −z. `view` now carries the rail's
+heading as cos/sin of its yaw with `toWorld`/`toStation`/`heading` on it, and the
+four sites that crossed between frames use them. Spawn *facing* rotates too:
+rotating position without facing put a whole wave that many degrees off its own
+approach, measured as Fortuna's hornets losing a third of their time on target
+before facing was fixed as well.
+
+Yaw only. Pitch is deliberately left out — a station that dived with the rail
+would fight `ai.js`'s altitude clamps, which are one-sided against `groundAt`
+and `ceilingAt` and have no notion of a sloping corridor.
+
+Measured with `pacing.mjs` over a whole level, which is the only fair window:
+over 40 s the player now covers less z, so a late wave has barely armed and the
+comparison is of the clock, not the change.
+
+| | corneria before → after | fortuna before → after |
+|---|---|---|
+| vanguard closest | 320 → **265** m | 361 → **58** m |
+| vanguard on target | **0.0 → 6.4 s** | 0.0 → 0.0 s |
+| hornet on target | 3.4 → **4.4 s** | **3.6 → 2.0 s** |
+| raptor on target | 2.3 → 2.0 s | 1.9 → 1.9 s |
+
+Counts and entry ranges are unchanged to within 10 m on both. Corneria gains:
+its vanguard was never shootable and now is. **Fortuna's hornets lost a third of
+their time on target** — its waves were authored against the unrotated frame on
+the game's most-curving corridor at 34° of yaw, and that is a re-authoring cost,
+logged in `ROADMAP.md` rather than absorbed here.
+
+### What phase 4 did not do
+
+**`railPoint` still composes z.** `out.set(centrelineX(z), centrelineY(z), z)`,
+so world position is still a function of z and the corridor still cannot double
+back. `flight.js` no longer *assumes* it — `pos.z` reads `railPos.z` rather than
+`railZ`, in the sim and in the camera rig both — so the binding the plan named
+is gone from the code. But a closed path needs `railPoint` to dispatch to a
+per-level path object, and **that belongs in phase 6, with the arena that
+authors one**: landing it here would ship a branch no level takes, against ship
+criterion 7.
+
+**A vertical shaft is still not authorable.** The speed blow-up is gone — 75°
+now flies at 175 m/s where it would have flown at 676 — so gradients are limited
+by authoring (`1.5 · climb / blend`) rather than by the parameterisation. But
+`y(z)` cannot be vertical at any authored numbers, so the Foundry's shaft still
+waits on the same path indirection phase 6 needs.
+
 ## Phase 5, as landed
 
 `railYaw` put the corridor's heading into the hull; its slope was never there,
@@ -476,28 +566,19 @@ the research that outlived it: lid height is constrained per zone by that zone's
 (`dna.js:459-469`), and its `wallH` still under-reads the terrain by 215 m. Both
 ends are now checked by `tools/lid.mjs --audit`.
 
-**Phase 4 — the rail as `p(s)`.**
-- `railZ` is mutated in exactly one place, `flight.js:277`, and `flight.js:335`
-  binds `pos.z ≡ railZ`. Speed is always in [105, 300]; there is no reverse.
-- Three cursors edge-trigger off it — waves, comms and grants at
-  `combat.js:1759-1774`. **The boss is a wave row**, not a separate system, so it
-  rides the same cursor with no fallback. Arc length keeps them all monotone.
-- `campaign.js:523` (`railZ <= WORLD.zEnd`) is the **only** end-of-level test.
-- `railZ` is world z, not arc length, so on any slope true speed is
-  `speed / cos(pitch)` while the HUD reads 175. Phase 4 fixes that for free.
+**Phase 4 — landed; see "Phase 4, as landed" above.** What outlived it, for
+phase 6: `railZ` is mutated in exactly one place; three cursors edge-trigger off
+it — waves, comms and grants at `combat.js:1760-1774` — and **the boss is a wave
+row**, not a separate system, so it rides the same cursor with no fallback;
+`campaign.js:549` (`railZ <= WORLD.zEnd`) is the **only** end-of-level test.
+All four survive a non-monotone *position* as long as the *parameter* stays
+monotone, which is the contract phase 6's path object has to keep.
 
-**Phase 5 — anything steep.**
-- `flight.js:397` orients the hull from `railDir` **yaw only**; the camera
-  (`flight.js:490`) keeps the full tangent including Y. On a dive the camera
-  pitches and the hull does not, and the divergence grows linearly with slope.
-  Nothing clamps it and nothing warns. Steepest shipped is Fichina at 16.7°.
-- `ai.js` has **zero** `railZ` references but adds station offsets in world axes
-  (`ai.js:406`, `ai.js:704`), so "ahead" means −z rather than "in front of the
-  player". Rotating the offset through the heading is ~2 lines and is required
-  once the rail can turn.
-- There is **no terrain crash**. The ground is a floor with a cushion, not a
-  hazard (`flight.js:345-355`). Terrain rising into the rail bulldozes the ship
-  upward without limit; terrain falling away does nothing.
+**Phase 5 — landed.** The hull pitch and the `ai.js` station frame both closed
+(phases 5 and 4). One thing from the research outlived both: there is **no
+terrain crash**. The ground is a floor with a cushion, not a hazard
+(`flight.js:345-355`). Terrain rising into the rail bulldozes the ship upward
+without limit; terrain falling away does nothing.
 
 **Everything free.** All of `src/ui/`, `src/fx/`, `src/audio/`, `pickups.js` and
 world LOD are position-based, not `railZ`-based, and survive phase 4 untouched.

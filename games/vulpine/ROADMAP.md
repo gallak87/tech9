@@ -150,6 +150,19 @@ work:
       into it. The wave predates the rail base moving to 710. Either move it past
       the plunge or lean into what already half works and place the whole line
       inside the dive. `tools/pacing.mjs`.
+- [ ] **Fortuna's hornets lost a third of their time on target to phase 4.**
+      Its station offsets now rotate through the rail's heading, which is
+      correct and which every other level gained from — Corneria's vanguard went
+      from never shootable to 6.4 s. Fortuna is the game's most-curving corridor
+      at 34° of yaw, so its waves were the ones authored hardest against the old
+      unrotated frame: hornet time on target 3.6 → 2.0 s, measured with
+      `pacing.mjs 5256 60 fortuna`. A re-author of that wave, not a revert.
+- [ ] **Ground batteries are placed a distance ahead in z, not along the rail.**
+      `combat.js:752` takes `view.player.pos.z - (first + i * step)`, so on
+      Aquas' 41.6° dive a battery authored 760 m ahead is 1017 m of rail ahead.
+      Lateral placement already follows the corridor via `railPoint`; only the
+      along-track distance does not. Phase 4 left it alone because fixing it
+      moves every battery in the game and wants a pacing pass with it.
 - [ ] **A fixed pinnacle stands 240 m above the rail at 60 m of bank.**
       `islands.fixed` z -7480, u 60, h 300 (`dna.js`). Inside `boxX`, so the ship
       can fly into it, and there is no terrain crash — `groundAt` simply

@@ -22,31 +22,32 @@ Stopped clean, not mid-fix.
 read as the same level because the terrain cross-section folded about
 `Math.abs(u)`, so every one was the same valley at a different scale.
 
-**Landed: 1, 2, 3, 5, 7, 8, and 9 for every level but the Foundry.** A zone
+**Landed: 1, 2, 3, 4, 5, 7, 8, and 9 for every level but the Foundry.** A zone
 carries its own cross-section, ceiling and camera; player flight is clamped
 under the lid; the hull pitches with the corridor; and a surface is floor or
 ceiling depending which side of it the rail runs — Aquas now opens 90 m above
 its sea and plunges through at 41.6°, levels out among its terraces and
 descends again into its trench.
 
-**Phase 4 is the only mechanism left** — the rail as arc-length `p(s)`. Phase 6
-(Venom's orbit arena) waits on it.
+**Phase 6 (Venom's orbit arena) is what is left**, and it carries the last
+piece of phase 4 with it. Speed is now measured along the rail — `railStretch`
+in `profile.js`, divided into the advance — so Aquas no longer flies at 234 m/s
+against a HUD reading 175, and `ai.js` station offsets rotate through the rail's
+heading instead of meaning −z. But `railPoint` still composes z, so the corridor
+cannot double back yet.
 
-**The next action is phase 4.** Its blast radius is smaller than the plan
-implies — `railPoint`/`railTangent` already exist as the abstraction
-(`flight.js:212-220`) and only take z by accident, and there are 26 `railZ`
-sites across four files, three of them the cursors at `combat.js:1760-1770`.
-The two costs the plan under-weights are `terrain.js:225-226`, which lays mesh
-rows on a z grid and shears them along `centrelineDX(z)`, and `ai.js:406`/`:704`,
-which add station offsets in raw world axes so "ahead" means −z.
+**The next action is phase 6.** It needs `railPoint` to dispatch to a per-level
+path object rather than `set(centrelineX(z), centrelineY(z), z)`. That
+indirection was deliberately NOT landed with phase 4: no level would take the
+branch, and ship criterion 7 is no dead code. Land it with the arena that
+authors one. The contract it has to keep is that the *parameter* stays monotone
+even where the *position* loops — three cursors and the only end-of-level test
+ride on that.
 
-Measured, per level, at the rail's own `railTangent` epsilon: the steepest
-gradient in the game is Aquas at 41.6°, where true speed is 234 m/s against a
-HUD reading 175, and the whole level is 10,879 m of flying authored as 10,560.
-Speed is `railZ -= speed * dt`, so it is the z component and never the path —
-which is also why gradient is self-limiting today: 60° would fly at 350 m/s,
-75° at 676, and vertical is a divide by zero. That is why the Foundry's shaft
-cannot be authored.
+The same indirection is what the Foundry's shaft wants: `y(z)` cannot be
+vertical at any authored numbers. Gradients up to ~75° are now flyable at honest
+speed, and are limited by authoring (`1.5 · climb / blend`) rather than by the
+parameterisation.
 
 **Phase 9's remainder is not an authoring job.** `works` is one box for all
 9 km and `Works.deckY()` is a static with no z, so three of the Foundry's four

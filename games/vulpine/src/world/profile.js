@@ -388,6 +388,27 @@ export function railOverSurface(z) {
 }
 
 /**
+ * Metres of rail per metre of z at `z` — the length of dp/dz, never below 1.
+ *
+ * The rail is parameterised by z, so advancing z at a fixed rate advances the
+ * SHIP at `speed * railStretch`: z is the projection of the path onto one world
+ * axis, and any gradient or turn makes the path longer than its own projection.
+ * Dividing the z advance by this is what makes `TUNE.cruiseSpeed` a speed along
+ * the rail rather than a speed down the z axis.
+ *
+ * Central-differenced over the same ±6 m `railTangent` uses. The two describe
+ * the same curve and are read on the same tick — one as attitude, one as rate —
+ * so an analytic derivative here would have the hull pitched to a slope the
+ * speed correction did not agree existed.
+ */
+export function railStretch(z) {
+  const e = 6;
+  const dx = (centrelineX(z + e) - centrelineX(z - e)) / (2 * e);
+  const dy = (centrelineY(z + e) - centrelineY(z - e)) / (2 * e);
+  return Math.hypot(dx, dy, 1);
+}
+
+/**
  * Terrain height at lateral offset `u` from the centreline at `z`.
  * `P` is `profileAt(z)`; pass it in so a whole mesh row shares one lookup.
  *

@@ -571,6 +571,35 @@ const _bRail = new THREE.Vector3();
     groundAt: (x, z) => ctx.world.groundAt(x, z),
     ceilingAt: (x, z) => ctx.world.ceilingAt(x, z),
     fire: (a) => enemyFire(a),
+
+    // The rail's heading at the player, as cos/sin of its yaw. Station offsets
+    // are authored in the rail's frame — `offset.z = -600` is 600 m AHEAD — and
+    // "ahead" is only -z while the corridor happens to point down the z axis.
+    // Refreshed once a tick in `update`; the two converters below are the only
+    // thing that should read them.
+    railCos: 1,
+    railSin: 0,
+
+    /** Player position plus a station offset, rotated into that heading. */
+    toWorld: (out, off) => out.set(
+      view.player.pos.x + off.x * view.railCos - off.z * view.railSin,
+      view.player.pos.y + off.y,
+      view.player.pos.z + off.x * view.railSin + off.z * view.railCos,
+    ),
+
+    /** The inverse — a world point as a station offset in the rail's frame. */
+    toStation: (out, pos) => {
+      const dx = pos.x - view.player.pos.x;
+      const dz = pos.z - view.player.pos.z;
+      return out.set(
+        dx * view.railCos + dz * view.railSin,
+        pos.y - view.player.pos.y,
+        -dx * view.railSin + dz * view.railCos,
+      );
+    },
+
+    /** The rail's heading itself. `s` is +1 with travel, -1 against. */
+    heading: (out, s = 1) => out.set(s * view.railSin, 0, -s * view.railCos),
   };
 
   /* ── bullets ────────────────────────────────────────────────────────────── */
@@ -779,12 +808,15 @@ const _bRail = new THREE.Vector3();
           a.offset.copy(_v2);
         }
         if (spec.ram) a.ramWait = (w.markFor ?? 1.8) + i * (w.stagger ?? 0.6);
-        a.pos.copy(view.player.pos).add(a.offset);
+        view.toWorld(a.pos, a.offset);
         a.pos.y = Math.max(a.pos.y, ctx.world.groundAt(a.pos.x, a.pos.z) + 30);
-        // Nose-on. An 'ahead' wave flies *at* you, so it enters pointing +z; it
-        // used to enter pointing away and spend two seconds of turn rate
-        // reversing while sliding backwards down the rail.
-        a.fwd.set(0, 0, behind ? -1 : 1);
+        // Nose-on. An 'ahead' wave flies *at* you, so it enters facing back up
+        // the rail; it used to enter pointing away and spend two seconds of turn
+        // rate reversing while sliding backwards down it. Taken off the rail's
+        // heading rather than the z axis for the same reason the station is:
+        // spawning along a corridor that turns and then facing down z instead
+        // puts the whole wave that many degrees off its own approach.
+        view.heading(a.fwd, behind ? 1 : -1);
         a.state = 'enter';
         orient(a);
       }
@@ -830,7 +862,7 @@ const _bRail = new THREE.Vector3();
     a.pos.copy(carrier.agent.pos);
     a.pos.x += R.range(-11, 11);
     a.pos.y -= 2.5;
-    a.offset.copy(a.pos).sub(view.player.pos);
+    view.toStation(a.offset, a.pos);
     a.entryX = a.offset.x; a.entryY = a.offset.y;
     a.entryZ = Math.min(-260, a.offset.z + 140);
     a.closeRate = 340;
@@ -840,7 +872,7 @@ const _bRail = new THREE.Vector3();
     a.maxPasses = 1;
     a.strafeFor = 1.4;
     a.openWith = 'attack';
-    a.fwd.set(0, 0, 1);
+    view.heading(a.fwd, -1);
     a.state = 'enter';
     orient(a);
     foes.push({ agent: a, root, kind: 'raptor', spec, hitFlash: 0 });
@@ -1726,6 +1758,14 @@ const _bRail = new THREE.Vector3();
     /* player view */
     view.player.pos.copy(flight.pos);
     view.player.vel.copy(flight.railDir).multiplyScalar(flight.speed);
+    // Yaw only. Pitch is deliberately left out: a station that dived with the
+    // rail would fight the altitude clamps in ai.js, which are one-sided against
+    // `groundAt` and `ceilingAt` and have no notion of a sloping corridor.
+    {
+      const h = Math.hypot(flight.railDir.x, flight.railDir.z) || 1;
+      view.railCos = -flight.railDir.z / h;
+      view.railSin = flight.railDir.x / h;
+    }
     state.px = flight.pos.x; state.py = flight.pos.y; state.pz = flight.pos.z;
     state.fwd.copy(flight.railDir);
     // Genuinely starboard. `railDir × up` already is: with the rail running
@@ -1873,11 +1913,11 @@ const _bRail = new THREE.Vector3();
       if (!al.info.alive) continue;
       if (hopping) {
         a.offset.copy(a.homeSlot);
-        a.pos.copy(view.player.pos).add(a.homeSlot);
+        view.toWorld(a.pos, a.homeSlot);
         // Enough sway that three ships are not one rigid object, and far too
         // little to be a manoeuvre.
         a.pos.y += Math.sin(view.time * 0.7 + a.phase) * 2.5;
-        a.fwd.set(0, 0, -1);
+        view.heading(a.fwd, 1);
         a.bank = 0;
         a.yawRate = 0;
         orient(a);

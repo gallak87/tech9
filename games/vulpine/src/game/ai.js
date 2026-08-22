@@ -403,7 +403,7 @@ export function think(a, dt, w) {
 
   /* desired world position = player + station + personal wander */
   wander(a, w.time, a.state === 'attack' ? 9 : 16, _d);
-  _a.copy(w.player.pos).add(a.offset).add(_d);
+  w.toWorld(_a, a.offset).add(_d);
 
   /* evade: a hard lateral displacement that decays — jinking, not oscillating */
   if (a.evadeT > 0) {
@@ -701,7 +701,7 @@ export function thinkWingman(a, dt, w) {
   // frame there, where 5.5 m of drift is a visible bob rather than the hint of
   // life it is at a formation slot behind your shoulder.
   wander(a, w.time, a.state === 'lap' ? 2.2 : 5.5, _d);
-  _a.copy(w.player.pos).add(a.offset).add(_d);
+  w.toWorld(_a, a.offset).add(_d);
   underRoof(_a, w, 18);
   const g = w.groundAt(_a.x, _a.z) + 18;
   if (_a.y < g) _a.y = g;

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { centrelineX, centrelineY } from '../world/corneria.js';
-import { WORLD } from '../world/profile.js';
+import { WORLD, railStretch } from '../world/profile.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Flight model — Star Fox's on-rails feel, which is not a physics sim: a rail
@@ -11,7 +11,7 @@ import { WORLD } from '../world/profile.js';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const TUNE = {
-  cruiseSpeed: 175,      // m/s along the rail
+  cruiseSpeed: 175,      // m/s along the rail, not down the z axis
   boostSpeed: 300,
   brakeSpeed: 105,
   accel: 130,            // m/s² toward the target speed
@@ -314,7 +314,18 @@ export class Flight {
     // holds and the terrain floor below is skipped. Both together, never one —
     // advancing the rail would fire the next level's waves during the hop, and
     // clamping to the ground would drop the ship onto terrain that is not drawn.
-    if (!this.detached) this.railZ -= this.speed * dt;
+    //
+    // Arc length, not z. `railZ` parameterises the rail and is also a world
+    // axis, so on any gradient or turn the path is longer than its own
+    // projection onto z — advancing z at `speed` would fly the ship at
+    // `speed * railStretch` and read the difference back to the player as
+    // nothing at all. Dividing here is what makes every other consumer of
+    // `speed` honest: the HUD flank, the wave table's spacing in seconds, and
+    // how long the level takes to fly.
+    //
+    // `railZ` stays monotone and stays in metres of z, so the three cursors in
+    // combat.js and the end-of-level test in campaign.js are untouched.
+    if (!this.detached) this.railZ -= (this.speed / railStretch(this.railZ)) * dt;
     this.throttleN = THREE.MathUtils.clamp((this.speed - TUNE.brakeSpeed) / (TUNE.boostSpeed - TUNE.brakeSpeed), 0, 1);
 
     /* ── manoeuvres ─────────────────────────────────────────────────────── */
@@ -372,7 +383,7 @@ export class Flight {
     // is a box with sprung walls and a ground cushion, and pushing 2 km through
     // it would fight both. It is added after, so the corridor physics never see
     // it and are unchanged the moment it returns to zero.
-    this.pos.set(this.railPos.x + this.off.x, this.railPos.y + this.off.y + this.climb, this.railZ);
+    this.pos.set(this.railPos.x + this.off.x, this.railPos.y + this.off.y + this.climb, this.railPos.z);
 
     // The lid, cushioned and clamped exactly as the floor is. Only a `works`
     // roof or a canopy reports one; everywhere else it is Infinity and both
@@ -578,7 +589,7 @@ export class Flight {
     // with the ship, but it must NOT enter the lead terms below, which are built
     // from offset velocity. A 2 km ramp read as offset velocity would saturate
     // the lead cap for the whole ascent and weld the rig to the hull.
-    _vShip.set(railPos.x + offX, railPos.y + offY + this.climb, railZ);
+    _vShip.set(railPos.x + offX, railPos.y + offY + this.climb, railPos.z);
     this.camPos.copy(_vShip)
       .addScaledVector(_vHead, -back)
       .addScaledVector(_vRight, -leadX)

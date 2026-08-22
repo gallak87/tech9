@@ -22,25 +22,44 @@ Stopped clean, not mid-fix.
 read as the same level because the terrain cross-section folded about
 `Math.abs(u)`, so every one was the same valley at a different scale.
 
-**Landed: 1, 2, 3, 5, 7, 8, and most of 9.** A zone carries its own
-cross-section, ceiling and camera; player flight is clamped under the lid; the
-hull pitches with the corridor; and a surface is floor or ceiling depending
-which side of it the rail runs — Aquas now opens 90 m above its sea and plunges
-through at 41.6°.
+**Landed: 1, 2, 3, 5, 7, 8, and 9 for every level but the Foundry.** A zone
+carries its own cross-section, ceiling and camera; player flight is clamped
+under the lid; the hull pitches with the corridor; and a surface is floor or
+ceiling depending which side of it the rail runs — Aquas now opens 90 m above
+its sea and plunges through at 41.6°, levels out among its terraces and
+descends again into its trench.
 
 **Phase 4 is the only mechanism left** — the rail as arc-length `p(s)`. Phase 6
-(Venom's orbit arena) waits on it. Phase 9 has Aquas and the Foundry left.
+(Venom's orbit arena) waits on it.
 
-Two things phase 4 should fix, both measured: `railZ` is world z, so on Aquas'
-plunge true speed is 234 m/s while the HUD reads 175; and the terraced benches
-in Aquas zone 0 are now flown over at 700 m and never seen.
+**The next action is phase 4.** Its blast radius is smaller than the plan
+implies — `railPoint`/`railTangent` already exist as the abstraction
+(`flight.js:212-220`) and only take z by accident, and there are 26 `railZ`
+sites across four files, three of them the cursors at `combat.js:1760-1770`.
+The two costs the plan under-weights are `terrain.js:225-226`, which lays mesh
+rows on a z grid and shears them along `centrelineDX(z)`, and `ai.js:406`/`:704`,
+which add station offsets in raw world axes so "ahead" means −z.
+
+Measured, per level, at the rail's own `railTangent` epsilon: the steepest
+gradient in the game is Aquas at 41.6°, where true speed is 234 m/s against a
+HUD reading 175, and the whole level is 10,879 m of flying authored as 10,560.
+Speed is `railZ -= speed * dt`, so it is the z component and never the path —
+which is also why gradient is self-limiting today: 60° would fly at 350 m/s,
+75° at 676, and vertical is a divide by zero. That is why the Foundry's shaft
+cannot be authored.
+
+**Phase 9's remainder is not an authoring job.** `works` is one box for all
+9 km and `Works.deckY()` is a static with no z, so three of the Foundry's four
+brief beats have nothing to author into. It wants the mechanism pass phases 2
+and 3 gave `terrain`, repeated for `works`.
 
 Gates, all runnable from `games/vulpine`:
 
 - `tools/digest.mjs --against` — green on all seven. **Cut a digest before you
   edit, not after.**
-- `tools/lid.mjs --audit` — new, green. Prints one standing note: Aquas' walls
-  break its own sea surface by 217 m. A look question, tracked, not a failure.
+- `tools/lid.mjs --audit` — green, and as of the Aquas pass it prints no
+  standing notes: the walls that broke that level's own sea surface no longer
+  reach it.
 - `tools/shape.mjs --strict` — new, green. The phase 9 acceptance test;
   `--draw <level>` renders a cross-section as ASCII.
 - `tools/fins.mjs --audit` — **still exits non-zero on a clean tree.**

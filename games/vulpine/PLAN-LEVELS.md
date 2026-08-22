@@ -1,7 +1,7 @@
 # Vulpine — level identity: two curves
 
-Open lane. **1-3 and 7 landed, 9 half done; 4, 5, 6, 8 open.** The owner picks
-when each starts.
+Open lane. **1-3, 5, 7 and 8 landed, and 9 all but the Foundry; 4 and 6 open.**
+The owner picks when each starts.
 
 A zone carries its own cross-section, its own ceiling and its own camera; the
 hull pitches with the corridor; and a surface can be floor or ceiling depending
@@ -88,7 +88,7 @@ No two rows alike — the acceptance test for the lane.
 | 6 | Venom orbit arena | open |
 | 7 | Per-level camera — the lens, not the world | **done 2026-08-22**; Venom authored, 6 levels on defaults |
 | 8 | Aquas' plunge — the rail crosses the water surface | **done 2026-08-22** |
-| 9 | **The authoring pass** — one distinct shape per level | Fichina, Fortuna, Venom **done**; Aquas/Foundry open |
+| 9 | **The authoring pass** — one distinct shape per level | Fichina, Fortuna, Venom, Aquas **done**; the Foundry open |
 
 Numbers are identifiers, not an order. **7 and 9 block on nothing** — 7 is a
 data change, and 9 can author any level whose mechanism exists, which after
@@ -98,9 +98,11 @@ Phases 8 and 9 were split out of phase 5, which carried "the vertical drama in
 all four" as a clause. Phase 9's acceptance test is `tools/shape.mjs --strict`.
 
 **Still to author (phase 9):** Corneria stays as it is — it is the reference.
-Aquas and Venom already carry phase 2's sections and pass the clash test, but
-neither has been read against its row in the four-levels table. The Foundry
-(`works`) has no cross-section at all.
+Only the Foundry is left, and it is **not** an authoring job: `works` is one box
+for all 9 km (`half`, `deckY`, `roofY` fixed in `dna.js`, and `Works.deckY()` is
+a static with no z), so three of its four brief beats have nothing to author
+into. It needs the mechanism pass phases 2 and 3 gave `terrain`, done again for
+`works`, before a section means anything there.
 
 ### Deliberately not doing
 
@@ -272,6 +274,53 @@ against 55−70 either side.
 samples `terrainHeight`, which reads `centrelineX` only. That fix moved every
 climbing rail in the game and the digest reported nothing.
 
+**Aquas — read against its brief, and two of five beats were missing.** The
+plunge, the drop-off and the bowl were there. The terraces and the trench were
+not, and both failures were structural rather than a matter of numbers.
+
+*The terraces were stranded by phase 8.* They were authored onto zone 0, which
+phase 8 turned into the above-water approach: the ship flies it at 710 and the
+benches top out at 151, so they sat 590 m below through teal extinction, and no
+section authored into that zone could have been seen. They moved to zone 1,
+whose held section starts at the key the dive ends on — so they arrive as the
+ship levels out. At 280−300 m rather than 555−790, port topping 118 and
+starboard 78 against a rail at 62, which is what makes it flying *between* them.
+`shots/p9-aquas-terrace-out.png`.
+
+Measured as a shift from the far field into the near: at the sample that lands
+there, near-field rise went 31 → 96 m and the far wall behind it 406 → 99. The
+benches are now the tallest thing in frame rather than something in front of a
+wall — the same lesson Fichina and Fortuna cost.
+
+**400 m is the floor on how close a bench can come, and it is the camera.** The
+tracked item asked for "inside ~350 m". What actually binds is phase 2's
+finding that the chase camera wants ~340 m of margin, not `boxX`'s 105 — so a
+bench is only allowed closer than that where the near field under it stays below
+the rail. Aquas' does: ±105 reads −12 to −24 against a rail at 62, and the
+outermost the ship or the trailing camera reaches is clear by 68−75 m.
+
+*The rail did not dive into the trench.* It ran flat at 19−20 through it while
+the floor rose, which is a corridor tightening, not a descent — and the corridor
+it left was **29 m** against the 55 the offset box and its cushion want. The
+gorge now carries `climb: -55` and the bowl returns +85 instead of +30.
+
+**A generated section pins the bank line at 0 whatever `bed` is.** Deepening
+`bed` alone moves the trough and leaves the shoulders, so the first attempt
+dropped the rail 55 m into a corridor that had not widened and made clearance
+*worse* — median 23 → −2. Both zones needed authored sections, which put the
+whole cross-section down with the rail: median clearance 23 → 65 in the trench
+and 22 → 68 in the narrows. Anything that descends is subject to this; it is
+waiting for the Foundry's shaft.
+
+**The walls stop just short of the lid on purpose.** "Where the lid leaves view"
+and "terrain must not break the sea" pull opposite ways, and the resolution is
+40−65 m of water over the rim: peaks 547 and 580 against the 620 lid, from
+829/775 before. `shots/p9-aquas-trench-out.png`.
+
+Flown, not only measured: `pilot.mjs fly --params level=aquas` runs the corridor
+end to end, 12 kills, no console error, and 0 of 19 samples with the hull near a
+frame edge.
+
 ## Phase 5, as landed
 
 `railYaw` put the corridor's heading into the hull; its slope was never there,
@@ -323,9 +372,8 @@ a lid on it" — the ascent no longer starts underwater.
 
 **Still open here.** The canopy shader is an underside — refraction, caustics,
 the critical angle — and the opening now looks at it from above for 9 seconds.
-It reads as sea, but it was not built to. And Aquas' zone 0 terraced benches are
-now flown over at 700 m and never seen; they were already logged as reading
-weakly, and now need moving under the surface or accepting as lost.
+It reads as sea, but it was not built to. The benches this stranded moved to
+zone 1 in phase 9 below.
 
 ## Open, found in phase 2 and its quality pass
 
@@ -346,9 +394,11 @@ weakly, and now need moving under the surface or accepting as lost.
       runs +263 to −473 across the corridor at z = −4600) but underwater fog
       hides the fall. It wants an edge the eye can catch — a lip, a lit reef
       rim, or particles falling over it. `shots/p2-aquas-drop/`.
-- [ ] **Terraces read weakly from the chase camera.** Aquas' benches sit at 555
-      to 790 m, which is silhouette at best from a camera 17 m behind the ship.
-      Either bring them inside ~350 m or accept them as background.
+- [x] **Terraces read weakly from the chase camera.** Closed 2026-08-22 by
+      phase 9's Aquas pass: the benches moved off zone 0, which phase 8 had
+      turned into the above-water approach, and onto zone 1, where they are held
+      from the key the dive ends on. Now at 280−300 m rather than 555−790, and
+      standing 15−56 m ABOVE the rail instead of below it.
 
 - [x] **`shots/ref-geometry-*.json` were stale.** Closed 2026-08-22: diagnosed,
       found intended, and re-cut. All seven levels are green.
@@ -401,16 +451,13 @@ weakly, and now need moving under the surface or accepting as lost.
       already right — and no level is a single shape once the sampling is dense
       enough to hit every zone.
 
-- [ ] **Aquas' walls break its own sea surface.** 1.66 km of the gorge and the
-      narrows (z −5820..−7480) stand up to 217 m through the 620 m lid, from
-      only 205 m off the rail. The corridor itself is clear by 334 m, so the
-      level flies fine — this is the look. The DNA comment at `dna.js:462` sets
-      620 against "the tallest wall in the level (620 in the second narrows)",
-      but that is the authored `wallH`; the relief bands stack on top of it and
-      the terrain actually reaches 835. Either raise the lid, drop those two
-      zones' `wallH`, or accept emergent reef and give it a shoreline. Pre-dates
-      phase 3 — measured identical at `262817c`. `tools/lid.mjs --audit` prints
-      it on every run.
+- [x] **Aquas' walls break its own sea surface.** Closed 2026-08-22 by phase
+      9's Aquas pass. Both zones took authored sections, and the outermost point
+      is what `wm` scales and what the relief bands stack on, so it is the number
+      that decides the maximum. Measured over the zone, sampled every 5 m:
+      the trench went 75% of samples above the 620 lid to **0%**, the narrows
+      80% to **0%**, peaks 829/775 → 547/580. `lid.mjs --audit` no longer prints
+      the note on any run.
 
 - [ ] **`fins.mjs --audit` exits non-zero on a clean tree**, so the second half
       of the verification block is not currently a gate. Not this lane's work:

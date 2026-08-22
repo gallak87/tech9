@@ -255,8 +255,8 @@ const FOUNDRY_COMMS = [
    Zone boundaries, for placing anything against the shape:
      720 basin -1380 reach -2980 narrows -3740 basin/drop-off -5440 gorge
      -6940 narrows -7640 basin -9840
-   Batteries are in the three basins only, and clear of the two `climb` blends
-   at -3740 and -7640 — a battery placed while the rail is descending sits 30 m
+   Batteries are in the three basins only, and clear of the `climb` blends at
+   -3740, -5440 and -7640 — a battery placed while the rail is descending sits
    over the ship instead of under it. */
 const AQUAS_WAVES = [
   { z: -220, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1150, arc: 0.52, climb: 0.26, skill: 0.40, life: 8 },
@@ -274,13 +274,13 @@ const AQUAS_WAVES = [
   { z: -5300, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 950, arc: 0.50, climb: 0.24, skill: 0.50, aggro: 0.28, hunt: true, life: 8.5 },
   { z: -6100, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1700, arc: 0.04, climb: 0.10, skill: 0.52, aggro: 0.28, life: 26, close: 205, escort: 2, drops: ['weapon', 'health'] },
   { z: -7100, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1050, arc: -0.38, climb: 0.22, skill: 0.54, aggro: 0.30, life: 11, drops: ['health'] },
-  // Far shelf. bank 560 ≈ inner 620, and past the +30 climb out of the trench.
+  // Far shelf. bank 560 ≈ inner 620, and past the +85 climb out of the trench.
   { z: -8150, kind: 'bulwark', n: 4, form: 'banks', first: 600, step: 240, bank: 560, drops: ['bomb'] },
   { z: -8600, boss: 'commander:tide' },
 ];
 
 const AQUAS_COMMS = [
-  { z: -140, who: 'PEPPY', text: 'Three hundred metres down, Fox. Watch your ceiling — you cannot climb out of this one.' },
+  { z: -140, who: 'PEPPY', text: 'Surface is coming up fast, Fox. Once you are under it, you are staying under it.' },
   { z: -380, who: 'SLIPPY', text: 'Emplacements all across the reef!' },
   { z: -2900, who: 'FALCO', text: 'That gap in the coral is the only way through. Thread it.' },
   { z: -3900, who: 'SLIPPY', text: 'Floor is dropping away — sonar just lost the bottom.' },

@@ -462,8 +462,10 @@ export const DNA_FOUNDRY = {
 // above it is water rather than air. Everything that says "underwater" is
 // therefore lighting and one piece of geometry — dense teal extinction, a sun
 // high enough to throw shafts down into frame, and `canopy` (see canopy.js), the
-// underside of the sea surface 330 m up. That lid is what the level has that a
-// canyon cannot: a ceiling you can see, over an open corridor.
+// sea surface at y = 620. That lid is what the level has that a canyon cannot:
+// a ceiling you can see, over an open corridor. The rail starts above it and
+// crosses it once, so the same plane is floor for the first 1.5 km and lid for
+// the rest — `railOverSurface` is what decides which.
 //
 // The cross-section is the opposite of Corneria's: low walls, wide floor, and
 // the vertical carried by free-standing pinnacles instead of by the banks. A
@@ -508,10 +510,11 @@ export const DNA_AQUAS = {
   },
 
   zones: [
-    // The shelf. Terraced rather than troughed: two reef benches a side at
-    // different depths, the flat runs wide enough to read as benches at
-    // 175 m/s. Unequal across the channel, because matched benches read as one
-    // shape mirrored. All of it sits past 555 m, so it is silhouette.
+    // The approach, flown at 710 over a sea at 620. The shelf below is 700 m
+    // down through teal extinction, so this section is not what is being
+    // looked at: it exists to carry the bank-620 emplacements at z -400 and to
+    // give the surface something to be a surface OVER. The terrace beat is the
+    // next zone, where the rail is among it.
     {
       kind: 'basin', len: 2100, inner: 640, bed: 26, wallH: 120, relief: 0.80,
       section: [
@@ -519,11 +522,31 @@ export const DNA_AQUAS = {
         [395, -9], [600, 34], [790, 31], [900, 116],
       ],
     },
-    // The plunge. 648 m over the 1100 m blend, so the rail crosses the sea
-    // surface at 620 partway down and everything after this is flown under it.
-    // The dive is the only place the canopy is passable: `railOverSurface`
-    // stops flooring and starts lidding across it.
-    { kind: 'reach', len: 1600, blend: 1100, inner: 300, bed: 34, wallH: 320, climb: -648 },
+    // The plunge, and the terraces it levels out among. 648 m over the 1100 m
+    // blend, so the rail crosses the sea surface at 620 partway down and
+    // everything after this is flown under it. The dive is the only place the
+    // canopy is passable: `railOverSurface` stops flooring and starts lidding
+    // across it.
+    //
+    // The held section runs from the key the dive ends on, so the benches
+    // arrive as the ship levels out. Two a side at different depths and
+    // unequal across the channel — matched benches read as one shape mirrored.
+    // Port tops 118 and starboard 78 against a rail at 62, so both stand ABOVE
+    // the ship and it flies between them rather than over them. Both banks
+    // fall away past the benches: leaving the outermost points high puts a wall
+    // back on each side, which is the shape the benches exist to break.
+    //
+    // `relief` comes down with them. The noise gate opens past the
+    // second-outermost point on each bank and rebuilds a skyline out there
+    // whatever the polyline says.
+    {
+      kind: 'reach', len: 1600, blend: 1100, inner: 300, bed: 34, wallH: 320, relief: 0.22,
+      climb: -648,
+      section: [
+        [-880, -52], [-560, 96], [-300, 118], [-165, -6], [0, -30],
+        [150, -22], [280, 78], [470, 70], [860, -56],
+      ],
+    },
     // The swim-through. 760 m, and it turns inside it.
     { kind: 'narrows', len: 760, blend: 700, inner: 150, wallH: 480, bend: { dx: 210, width: 600 } },
     // The drop-off, and the one asymmetric cross-section in the game: reef wall
@@ -541,11 +564,39 @@ export const DNA_AQUAS = {
         [210, -96], [470, -190], [700, -300], [980, -420],
       ],
     },
-    // The trench.
-    { kind: 'gorge', len: 1500, blend: 800, inner: 210, wallH: 560, bend: { dx: -250, width: 720 } },
-    { kind: 'narrows', len: 700, blend: 400, inner: 140, wallH: 620 },
-    // Back onto the shelf, wide open, and the rail climbs out of the trench.
-    { kind: 'basin', len: 2200, blend: 900, inner: 620, bed: 30, wallH: 160, relief: 0.76, climb: 30 },
+    // The trench, which the rail descends into rather than crosses.
+    //
+    // Both carry a section rather than band fields because of that descent. A
+    // generated section pins the bank line at height 0 whatever `bed` is, so
+    // deepening the trough alone drops the floor and leaves the shoulders, and
+    // a rail coming down into it loses the corridor it needs.
+    //
+    // Two things constrain the walls from opposite sides. They have to stand
+    // high enough that the lid stops being the thing overhead, and they have to
+    // stop short of the lid at 620 — terrain through the sea surface is the one
+    // place this level cannot explain itself. The outermost point is the one
+    // that decides it: `wm` scales that point alone and the relief bands stack
+    // past the one inboard of it, so what the terrain reaches is well above what
+    // is written here and is read from `tools/lid.mjs --audit` rather than
+    // inferred.
+    {
+      kind: 'gorge', len: 1500, blend: 800, inner: 210, wallH: 455, relief: 0.30,
+      climb: -55, bend: { dx: -250, width: 720 },
+      section: [
+        [-900, 500], [-380, 470], [-205, 60], [-140, -100], [0, -125],
+        [190, -105], [330, 20], [560, 300], [900, 440],
+      ],
+    },
+    {
+      kind: 'narrows', len: 700, blend: 400, inner: 140, wallH: 530, relief: 0.30,
+      section: [
+        [-880, 530], [-420, 430], [-215, 20], [-130, -95], [0, -125],
+        [140, -100], [240, 40], [430, 440], [880, 530],
+      ],
+    },
+    // Back onto the shelf, wide open, and the rail climbs out of the trench —
+    // the -30 of the drop-off and the -55 into the trench, together.
+    { kind: 'basin', len: 2200, blend: 900, inner: 620, bed: 30, wallH: 160, relief: 0.76, climb: 85 },
   ],
 
   bands: {

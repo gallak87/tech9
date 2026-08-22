@@ -139,6 +139,26 @@ Venom's orbit arena.
 `tools/lid.mjs --audit` joined the verification block with phase 3: the ceiling
 gate, green on a clean tree.
 
+Found reading Aquas against its brief for phase 9, neither of them that lane's
+work:
+
+- [ ] **Aquas' first battery wave is most of the way orphaned by phase 8.**
+      `{ z: -400, kind: 'bulwark', n: 3, form: 'banks', first: 640, step: 260 }`
+      lands its three emplacements at z -1040, -1300 and -1560, where the rail is
+      now roughly 640, 470 and 230 — so the first two sit 400-590 m below the
+      ship, at 620 m of bank. The third works, because the plunge is descending
+      into it. The wave predates the rail base moving to 710. Either move it past
+      the plunge or lean into what already half works and place the whole line
+      inside the dive. `tools/pacing.mjs`.
+- [ ] **A fixed pinnacle stands 240 m above the rail at 60 m of bank.**
+      `islands.fixed` z -7480, u 60, h 300 (`dna.js`). Inside `boxX`, so the ship
+      can fly into it, and there is no terrain crash — `groundAt` simply
+      bulldozes it upward. Pre-existing and unchanged by phase 9: measured -259 m
+      of clearance before that pass and -240 after. The comment above `fixed`
+      calls the group "two pinnacles in the swim-through", which this third one
+      is not in. Either it is deliberate and the comment is wrong, or it is a
+      stray.
+
 ## Also open — the three new biomes (2026-08-20)
 
 Owner asked for three more levels, new enemies and new bosses, one level per

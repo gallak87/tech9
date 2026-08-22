@@ -102,6 +102,23 @@ register, swept collision.
 
 ---
 
+## Found while auditing, not this lane's work (2026-08-21)
+
+- [ ] **`tools/fins.mjs --audit` had been checking nothing.** It built a
+      `Terrain` and traversed it immediately, but the constructor only queues
+      jobs — the meshes do not exist until the queue drains — and it never
+      called `setActiveDNA`, so `WORLD` was zeroed and the tiers sized to
+      nothing. It reported "0 meshes, 0 triangles" and exited green. Fixed
+      2026-08-21: it now unpacks a DNA, drains the queue, and runs every
+      terrain-backend level rather than only the default.
+- [ ] **Fortuna has 25 truly-reversed terrain triangles**, out of 759,280.
+      Measured 2026-08-21 the first time the audit ran for real, and present at
+      `1ea5288` before the cross-section work, so it is not from that lane.
+      Aquas has 2-3 and Venom 2; Corneria and the Highlands have none. Worst
+      facet-vs-shading agreement is -0.948 at `terrain-37-lod1 tri 2797 col 22`.
+      The winding is a function of column order, so the suspect is the far-tier
+      column list at a bank where Fortuna's profile is unusually flat.
+
 ## Levels read as one level — see `PLAN-LEVELS.md` (2026-08-21)
 
 Owner: "they all essentially look like Corneria with filters/textures." Correct,

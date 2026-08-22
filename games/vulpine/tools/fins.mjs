@@ -31,7 +31,8 @@
 import * as THREE from 'three';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { profileAt, heightAtU, centrelineX } from '../src/world/profile.js';
+import { profileAt, heightAtU, centrelineX, setActiveDNA } from '../src/world/profile.js';
+import { DNA_BY_ID } from '../src/world/dna.js';
 import { Terrain } from '../src/world/terrain.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -45,10 +46,15 @@ const FLAG = (n) => process.argv.includes(`--${n}`);
 
 /* ── 1. offline orientation audit ─────────────────────────────────────────── */
 
-function audit() {
+function audit(levelId) {
+  // `setActiveDNA` before anything: `WORLD` is zeroed until a DNA is unpacked,
+  // and Terrain sizes its tiers off it in the constructor.
+  setActiveDNA(DNA_BY_ID[levelId]);
   const root = new THREE.Group();
   const t0 = Date.now();
   const terr = new Terrain(root, new THREE.MeshBasicMaterial());
+  // Terrain's constructor only queues; the meshes exist after the queue drains.
+  for (const job of terr.jobs) job();
   const meshes = [];
   root.traverse(o => { if (o.isMesh) meshes.push(o); });
 
@@ -280,6 +286,14 @@ async function probe() {
 }
 
 let code = 0;
-if (!FLAG('probe-only')) code += audit() ? 1 : 0;
+if (!FLAG('probe-only')) {
+  const only = arg('level');
+  const levels = only && only !== true ? [only] : Object.keys(DNA_BY_ID);
+  for (const id of levels) {
+    if ((DNA_BY_ID[id].backend ?? 'terrain') !== 'terrain') continue;
+    console.log(`\n── ${id} ──`);
+    code += audit(id) ? 1 : 0;
+  }
+}
 if (!FLAG('audit')) code += (await probe()) ? 1 : 0;
 process.exit(code);

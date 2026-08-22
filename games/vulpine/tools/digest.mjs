@@ -177,6 +177,20 @@ const digest = await page.evaluate(() => {
   }
   entries.push({ kind: 'field', id: 'groundAt lattice 73x97', bytes: samples.byteLength, digest: hash(samples) });
 
+  // The rail itself. `groundAt` above reads `centrelineX` and never
+  // `centrelineY`, so the corridor's *height* is the one axis of the world this
+  // digest could not see: a change that moved every climbing rail in the game
+  // reported no difference at all. Phases 4, 5 and 8 of PLAN-LEVELS are all
+  // rail-Y work.
+  const RN = 601;
+  const rail = new Float64Array(RN * 2);
+  for (let j = 0; j < RN; j++) {
+    const z = (j / (RN - 1)) * zEnd;
+    rail[j * 2] = V.flight.railPoint(z, new V.THREE.Vector3()).x;
+    rail[j * 2 + 1] = V.flight.railPoint(z, new V.THREE.Vector3()).y;
+  }
+  entries.push({ kind: 'field', id: 'rail xy 601', bytes: rail.byteLength, digest: hash(rail) });
+
   entries.sort((a, b) => (a.kind + a.id).localeCompare(b.kind + b.id));
   // One number for "did anything at all move", over the per-entry digests.
   const all = new TextEncoder().encode(entries.map(e => `${e.kind}:${e.id}:${e.digest}`).join('|'));

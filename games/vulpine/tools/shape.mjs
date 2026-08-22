@@ -52,6 +52,22 @@ const SAMPLES = 12;
 // is a finding whichever two they are.
 const REFERENCE = 'corneria';
 
+// How far the floor under the rail moves over the whole level. A corridor that
+// climbs a pass and drops off it is a different place from one held at a
+// constant height, and {RIDGE, FLAT, VALLEY} cannot say so — all three describe
+// the cross-section at one z, not where that section sits in the world.
+function floorRange() {
+  let lo = Infinity, hi = -Infinity;
+  const span = WORLD.zStart - WORLD.zEnd;
+  for (let q = 0; q <= 80; q++) {
+    const z = WORLD.zStart - span * (q / 80);
+    const h = terrainHeight(centrelineX(z), z);
+    if (h < lo) lo = h;
+    if (h > hi) hi = h;
+  }
+  return hi - lo;
+}
+
 function shapeAt(z) {
   const cx = centrelineX(z);
   const at = (u) => terrainHeight(cx + u, z);
@@ -78,7 +94,10 @@ for (const id of ids) {
     cells.push(s);
   }
   const kinds = new Set(cells.map(c => c.kind + (c.asym ? '+asym' : '')));
-  rows.push({ id, cells, kinds });
+  // Coarse on purpose: this is an identity axis, not a tuning dial.
+  const fr = floorRange();
+  kinds.add(fr > 100 ? 'climbs' : 'level-floor');
+  rows.push({ id, cells, kinds, fr });
 }
 
 console.log(`near ±${NEAR} m, far ±${FAR} m, flat under ${FLAT_RISE} m of bank rise\n`);
@@ -107,10 +126,12 @@ for (const r of terr) {
   const counts = {};
   for (const c of r.cells) { const k = c.kind + (c.asym ? '+asym' : ''); counts[k] = (counts[k] || 0) + 1; }
   const mix = Object.entries(counts).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} x${n}`).join(', ');
-  console.log(`  ${r.id.padEnd(10)} ${mix}${r.id === REFERENCE ? '   (reference)' : ''}`);
+  console.log(`  ${r.id.padEnd(10)} ${mix.padEnd(52)} floor moves ${Math.round(r.fr)} m${r.id === REFERENCE ? '   (reference)' : ''}`);
 }
 
-if (clash.length) {
+if (only && only !== true) {
+  console.log('\n(one level named — the clash test needs at least two)');
+} else if (clash.length) {
   console.log();
   for (const [a, b] of clash) console.log(`SAME SHAPE SET: ${a} and ${b} draw from the same shapes; only the proportions differ`);
   console.log('PLAN-LEVELS phase 9 is the work; this is its acceptance test.');

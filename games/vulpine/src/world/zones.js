@@ -197,10 +197,18 @@ export function expandZones(dna) {
     // `climb` runs over the blend leading in, so the rail finishes moving exactly
     // as the held stretch starts. Bends are additive: a later -climb returns the
     // rail to base, the same way x dog-legs cancel.
+    //
+    // Centred on the zone boundary, which is what puts it over that blend: the
+    // previous zone's exit key sits at `z0 + bIn/2` and this zone's entry key at
+    // `z0 - bIn/2`, so a bend of width `bIn` centred at `z0` spans exactly the
+    // two keys the cross-section interpolates between. Centring it on `kEntry`
+    // instead runs the rail half a blend behind the floor it is flying over,
+    // and a zone that raises both pinches the corridor by `climb/2` on the way
+    // in.
     if (zone.climb != null) {
       if (!(bIn > 0)) fail(dna, `${name(i)}: climb needs a blend to run over`);
       if (!Number.isFinite(zone.climb)) fail(dna, `${name(i)}: climb must be finite`);
-      yBends.push({ z: kEntry, dx: zone.climb, width: bIn });
+      yBends.push({ z: z0, dx: zone.climb, width: bIn });
     }
 
     z0 = z1;

@@ -233,10 +233,30 @@ export const DNA_FICHINA = {
     { kind: 'narrows', len: 900, blend: 900, inner: 128, wallH: 620, bend: { dx: 220, width: 640 } },
     // Release. The one place with room to fight.
     { kind: 'basin', len: 1200, blend: 500, inner: 480, wallH: 300 },
-    // The pass: tight, tall, and 160 m above the ice you were flying on.
-    { kind: 'gorge', len: 1500, blend: 800, inner: 200, wallH: 560, climb: 160, bend: { dx: -270, width: 780 } },
-    // 150 m held = 0.86 s. The tightest thing in either level.
-    { kind: 'narrows', len: 800, blend: 400, inner: 135, wallH: 640, bend: { dx: 190, width: 620 } },
+    // The pass. The rail climbs 160; the floor climbs with it, or this is not a
+    // pass but the same ice seen from higher up. Asymmetric: a sheer face to
+    // port, and to starboard a hanging bench at 200 that runs 340 m before the
+    // outer wall resumes — the shoulder a glacier leaves when a tributary joins
+    // above the trunk.
+    {
+      kind: 'gorge', len: 1500, blend: 800, inner: 200, wallH: 560, climb: 160,
+      bend: { dx: -270, width: 780 },
+      section: [
+        [-1150, 695], [-520, 620], [-300, 450], [-165, 153], [0, 138],
+        [175, 151], [300, 273], [640, 281], [1150, 685],
+      ],
+    },
+    // 150 m held = 0.86 s. The tightest thing in either level, and it is still
+    // up at pass height: the descent belongs to the zone that carries the
+    // -160, not to the gap between them.
+    {
+      kind: 'narrows', len: 800, blend: 400, inner: 135, wallH: 640,
+      bend: { dx: 190, width: 620 },
+      section: [
+        [-1150, 760], [-430, 690], [-215, 500], [-135, 145], [0, 130],
+        [140, 143], [220, 510], [440, 700], [1150, 770],
+      ],
+    },
     // Down onto the shelf, wide open for the commander.
     { kind: 'basin', len: 2300, blend: 900, inner: 560, wallH: 220, relief: 0.50, climb: -160 },
   ],

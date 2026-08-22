@@ -85,7 +85,7 @@ No two rows alike — the acceptance test for the lane.
 | 4 | `path` refactor — rail becomes arc-length `p(s)` | open |
 | 5 | Hull pitch from `railDir` — anything steep is wrong until this lands | open |
 | 6 | Venom orbit arena | open |
-| 7 | Per-level camera — the lens, not the world | mechanism **done 2026-08-22**, no values authored |
+| 7 | Per-level camera — the lens, not the world | **done 2026-08-22**; Venom authored, 6 levels on defaults |
 | 8 | Aquas' plunge — the rail crosses the water surface | open |
 | 9 | **The authoring pass** — one distinct shape per level | Fichina + Fortuna **done 2026-08-22** |
 
@@ -222,8 +222,13 @@ the field exists to fix.
 Resolved through a `lens` getter on `Flight`, cached on `WORLD.camera`'s
 identity. Not by mutating `TUNE`, which would persist across a level swap.
 
-**No level authors values yet.** The mechanism is in; the numbers are a look
-decision.
+**Venom authors values**, the rest are on defaults. `{ up: 9, back: 21,
+lookAhead: 38, lookUp: 0, fov: 66 }` — a ridge is read across the corridor, not
+down it, and the default lens fills the frame with whatever stands at the end of
+the channel. Framed against Corneria rather than by eye: Corneria's ship sits at
+ndcY −0.124 to −0.515, Venom at −0.239 to −0.488.
+
+`framing.mjs` gained `--level`. Without it it could only measure Corneria.
 
 ## Phase 9, as landed so far
 
@@ -234,6 +239,16 @@ after it now carry sections that climb with the rail, holding 55−74 m
 throughout, and the descent belongs to the zone carrying the −160. Asymmetric
 through it: sheer face to port, a hanging bench at ~275 running 340 m to
 starboard. `shots/p9-fichina-pass/`.
+
+**A section is not enough on its own.** The first pass at both of these kept
+the two outermost points high, so the tallest thing in frame was still a wall on
+each bank — a spine with walls around it is a valley with a lump in it. Both now
+fall away to below their surface plane at both ends.
+
+`relief` has to come down with the section. The relief gate opens past the
+second-outermost point and the noise bands build a skyline out there whatever
+the polyline says; Venom's 0.70 was rebuilding the walls the section had just
+removed. 0.14.
 
 **Fortuna — the glade is a plateau.** It was the most static level in the game,
 FLAT at nine of twelve samples with the floor moving 9 m over 10 km. The glade

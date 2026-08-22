@@ -138,12 +138,14 @@ Three things learned authoring them, all of which cost a capture cycle:
 
 ## Open, found in phase 2 and its quality pass
 
-- [ ] **`keySection` writes onto the DNA's own key objects.** For a `keys`-
-      authored DNA (Corneria) `expandZones` returns the input unchanged, so the
-      polyline lands on `DNA_CORNERIA.keys` — against the "input is never
-      mutated" contract at `zones.js:85`. The `if (key.su) return` memo means a
-      later edit to that object's band fields would not regenerate. Harmless
-      while DNAs are static; a per-load cache would close it.
+- [x] **`keySection` writes onto the DNA's own key objects.** Closed 2026-08-21:
+      `setActiveDNA` copies each key before compiling the polyline, so the source
+      DNA stays clean whether it was `keys`- or `zones`-authored. The
+      `if (key.su) return` memo went with it — the copies are fresh per load, so
+      a rebuild recompiles from the band fields. Geometrically a no-op, verified
+      by digest A/B on corneria, aquas and venom against digests cut from the
+      pre-change tree.
+
 - [ ] **`profileAt(z, {})` per call would allocate two typed arrays.** Both live
       callers hoist one profile object per build (`terrain.js:184`,
       `world-materials.js:282`), which is now a hard contract that nothing
@@ -156,6 +158,18 @@ Three things learned authoring them, all of which cost a capture cycle:
 - [ ] **Terraces read weakly from the chase camera.** Aquas' benches sit at 555
       to 790 m, which is silhouette at best from a camera 17 m behind the ship.
       Either bring them inside ~350 m or accept them as background.
+
+- [ ] **`shots/ref-geometry-*.json` predate `2cdabf1`.** Baselines were cut
+      21:51; the cross-section quality pass landed 22:18. Since then all five
+      terrain levels report `field:groundAt lattice 73x97` moved — geometry
+      arrays are identical, only the sampled lattice differs. The gate reads red
+      for everyone until someone decides whether that drift was intended and
+      re-cuts. **Cut a digest before editing, not after**, or a stale baseline
+      reads as your own regression.
+- [ ] **`fins.mjs --audit` exits non-zero on a clean tree**, so the second half
+      of the verification block is not currently a gate. Not this lane's work:
+      the reversed triangles predate the cross-section lane (`1ea5288`) and are
+      already tracked in `ROADMAP.md` under "Found while auditing".
 
 ## What phases 3-6 already know
 

@@ -240,7 +240,6 @@ const FLAT_KEYS = [
  * Runs once per key at load, never per sample.
  */
 function keySection(key) {
-  if (key.su) return;
   const at = `key at z ${key.z}`;
   if (key.section) {
     key.su = key.section.map((q) => q[0]);
@@ -504,7 +503,10 @@ export function setActiveDNA(dna) {
   // A backend with no height field has no cross-section, but `profileAt` is
   // still reachable from code that does not know which backend is live. One flat
   // row keeps it total instead of making every caller check.
-  KEYS = dna.keys ?? FLAT_KEYS;
+  // A level authoring `keys` directly hands over its own literals, and
+  // `keySection` compiles the polyline onto the key it is given. Copy first: the
+  // source DNA stays unmutated, and a rebuild recompiles from the band fields.
+  KEYS = (dna.keys ?? FLAT_KEYS).map((k) => ({ ...k }));
   for (const k of KEYS) keySection(k);
 
   const city = dna.city ?? DEFAULTS.city;

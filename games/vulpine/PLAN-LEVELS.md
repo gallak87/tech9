@@ -310,6 +310,17 @@ where the rail is *above* the surface, which is not a lid, and it demanded full
 box headroom immediately under the crossing, where clearance necessarily ramps
 from zero. A lid answers for itself once the box fits under it.
 
+**Leaving.** The lap surfaces you: where `railOverSurface` says the rail is
+under a surface, it eases `flight.climb` to clear it by 95 m over `LAP_MIN`, and
+the ship flies above the water for the rest of the lap. The hop's ascent then
+starts from that value rather than zero — restarting at zero drops the ship back
+through the surface on the hop's first frame. Measured on a real boss kill:
+y 71 → 717 through the sea at 620, lap ending at climb 648 and the ascent
+picking up at 650, continuous to 2200.
+
+That also closes `ROADMAP.md`'s "leaving Aquas climbs 2200 m out of a level with
+a lid on it" — the ascent no longer starts underwater.
+
 **Still open here.** The canopy shader is an underside — refraction, caustics,
 the critical angle — and the opening now looks at it from above for 9 seconds.
 It reads as sea, but it was not built to. And Aquas' zone 0 terraced benches are

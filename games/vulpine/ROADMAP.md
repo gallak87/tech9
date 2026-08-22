@@ -295,7 +295,13 @@ into is the body you were orbiting.
       fx/transit.js) and none of it has been exercised.
 - [ ] **Aquas has no arrival beat of its own.** An orbital re-entry that ends
       300 m underwater wants a plunge, not a wash. Currently it reuses `reentry`.
-- [ ] **Leaving Aquas climbs 2200 m out of a level with a lid on it.** Found by
+- [x] **Leaving Aquas climbs 2200 m out of a level with a lid on it.** Closed
+      2026-08-22 by PLAN-LEVELS phase 8: the victory lap now lifts the ship
+      through the surface before the hop opens, and the ascent continues from
+      that climb rather than restarting at zero. The arrival half is the plunge.
+      Old text:
+
+- [ ] **(superseded)** Found by
       reading, not flying, 2026-08-21. `HOPS.orbital.climb` is 2200 and it is
       unconditional; Aquas is the one level with a `canopy` — a sea surface at
       y = 620 answered by `ceilingAt` — so the ascent takes the ship straight

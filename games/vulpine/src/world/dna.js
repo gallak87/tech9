@@ -682,8 +682,8 @@ export const DNA_FORTUNA = {
     {
       kind: 'basin', len: 1500, blend: 600, inner: 540, bed: 15, wallH: 240, relief: 0.70, climb: 130,
       section: [
-        [-1150, 250], [-780, 190], [-560, 128], [-300, 116], [0, 110],
-        [320, 115], [580, 132], [820, 196], [1150, 258],
+        [-1200, -30], [-880, -10], [-620, 30], [-330, 104], [0, 112],
+        [340, 106], [640, 26], [900, -14], [1200, -34],
       ],
     },
     // Off the plateau and down into the understory: the same -130 the glade
@@ -809,10 +809,15 @@ export const DNA_VENOM = {
     // The crest sits 22 m under the rail against a 46 m offset box, so full
     // down-stick rides the ground cushion.
     {
-      kind: 'basin', len: 1900, inner: 520, bed: 22, wallH: 260, relief: 0.70,
+      // `relief` is the reason an inverted section still reads as a valley if it
+      // is left alone: the relief gate opens past the second-outermost point
+      // (here 900 m) and the noise bands build a skyline out there regardless
+      // of what the polyline says. A spine has nothing standing around it, so
+      // the band has to come down with the section.
+      kind: 'basin', len: 1900, inner: 520, bed: 22, wallH: 260, relief: 0.14,
       section: [
-        [-980, 210], [-700, 44], [-500, -62], [-330, 4], [0, 26],
-        [330, 2], [520, -66], [720, 38], [980, 228],
+        [-1200, -300], [-900, -195], [-620, -95], [-330, 0], [0, 30],
+        [340, -4], [640, -100], [900, -200], [1200, -295],
       ],
     },
     // The channel closing in on the river. The blend is short because it runs

@@ -51,10 +51,14 @@ const FLAT_RISE = 30;     // bank rise, in metres, under which it is a plain
 const ASYM = 120;         // bank-to-bank difference that reads as one-sided
 const SAMPLES = 12;
 
-// The level the others are being told apart from. Labelled in the output; it
-// gets no exemption from the clash test, because two levels sharing a shape set
-// is a finding whichever two they are.
+// The level the others are being told apart from. Labelled in the output.
 const REFERENCE = 'corneria';
+
+// Corneria and the Highlands are ONE landform on purpose. The overland hop
+// between them exists to say "further up the same valley" — `campaign.js:39-45`
+// — so a shared shape set there is the design, not a defect. Every other pair
+// sharing one is a finding.
+const ONE_LANDFORM = [['corneria', 'fichina']];
 
 // How far the floor under the rail moves over the whole level. A corridor that
 // climbs a pass and drops off it is a different place from one held at a
@@ -162,7 +166,9 @@ const terr = rows.filter(r => !r.skip);
 const clash = [];
 for (let i = 0; i < terr.length; i++) {
   for (let j = i + 1; j < terr.length; j++) {
-    if (sig(terr[i]) === sig(terr[j])) clash.push([terr[i].id, terr[j].id]);
+    const pair = [terr[i].id, terr[j].id];
+    const paired = ONE_LANDFORM.some(([a, b]) => pair.includes(a) && pair.includes(b));
+    if (!paired && sig(terr[i]) === sig(terr[j])) clash.push(pair);
   }
 }
 

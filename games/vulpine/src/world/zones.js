@@ -35,6 +35,16 @@
 export const FIELDS = ['inner', 'bed', 'beachW', 'beachH', 'shelfW', 'shelfH', 'cliffW', 'wallH', 'relief'];
 
 /**
+ * Points in a cross-section polyline. Fixed, and the same for a generated
+ * section as for an authored one, because `profileAt` blends two keys
+ * point-by-point and has no business resampling.
+ *
+ * Nine is what the band stack generates: wall, shelf, beach and bank line on
+ * each side plus the trough. An authored section spends them however it likes.
+ */
+export const SECTION_PTS = 9;
+
+/**
  * Hard limit on the total cross-section half-width, from `SHORE.halfU` in
  * world-materials.js: past it the water shader substitutes open ocean and the
  * shoreline slides off the beach. Corneria's delta already sits at 1155.
@@ -134,7 +144,25 @@ export function expandZones(dna) {
       if (!Number.isFinite(row[f])) fail(dna, `${name(i)}: field "${f}" is ${row[f]}`);
     }
 
-    const halfWidth = row.inner + row.beachW + row.shelfW + row.cliffW;
+    // An authored section owns its own extent; the band fields are still
+    // required and still validated, because the zone kind supplies them and a
+    // later edit may drop the section.
+    if (zone.section) {
+      if (!Array.isArray(zone.section) || zone.section.length !== SECTION_PTS) {
+        fail(dna, `${name(i)}: section must be ${SECTION_PTS} [u, height] pairs, got ${zone.section?.length}`);
+      }
+      let prev = -Infinity;
+      for (const [u, h] of zone.section) {
+        if (!Number.isFinite(u) || !Number.isFinite(h)) fail(dna, `${name(i)}: section has a non-finite value`);
+        if (!(u > prev)) fail(dna, `${name(i)}: section u must strictly ascend, got ${prev} then ${u}`);
+        prev = u;
+      }
+      row.section = zone.section;
+    }
+
+    const halfWidth = zone.section
+      ? Math.max(-zone.section[0][0], zone.section[SECTION_PTS - 1][0])
+      : row.inner + row.beachW + row.shelfW + row.cliffW;
     if (halfWidth > MAX_HALF_WIDTH) {
       fail(dna, `${name(i)}: cross-section half-width ${halfWidth} m exceeds the baked shore field's ${MAX_HALF_WIDTH} m`);
     }
@@ -183,4 +211,4 @@ export function expandZones(dna) {
 }
 
 /** Zone properties that are not cross-section fields. Anything else is a typo. */
-const ZONE_META = new Set(['kind', 'len', 'blend', 'bend', 'climb']);
+const ZONE_META = new Set(['kind', 'len', 'blend', 'bend', 'climb', 'section']);

@@ -8,9 +8,11 @@
 //
 //   node tools/freecam.mjs --port 5311 --pos 300,1800,-2200 --look 300,0,-2600
 //   node tools/freecam.mjs --pos ... --look ... --fov 40 --wire --out shots/diag/top.png
+//   node tools/freecam.mjs --level venom --env venom --pos 1400,700,-300 --look 0,0,-700
 //
 // --wire draws every mesh as wireframe; --nopost bypasses the grade so what you
-// read is geometry, not tone mapping.
+// read is geometry, not tone mapping. --level takes the campaign id and boots
+// that world; without it the camera is parked in Corneria.
 // ─────────────────────────────────────────────────────────────────────────────
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
@@ -66,7 +68,10 @@ const errs = [];
 page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 page.on('pageerror', e => errs.push('pageerror: ' + e.message));
 
-const q = `${base}/?quality=ultra&env=${arg('env', 'corneria')}&t=${T}&hud=0${FLAG('nopost') ? '&nopost=1' : ''}`;
+const LEVEL = arg('level');
+const q = `${base}/?quality=ultra&env=${arg('env', 'corneria')}&t=${T}&hud=0`
+  + (LEVEL && LEVEL !== true ? `&level=${LEVEL}` : '')
+  + (FLAG('nopost') ? '&nopost=1' : '');
 await page.goto(q, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 120000 });
 

@@ -485,16 +485,37 @@ export const DNA_AQUAS = {
   },
 
   zones: [
-    // The shelf: shallow, wide, and the only place with room to see the towers
-    // from far enough away to read them as towers.
-    { kind: 'basin', len: 2100, inner: 640, bed: 26, wallH: 120, relief: 0.80 },
+    // The shelf. Terraced rather than troughed: two reef benches a side at
+    // different depths, with the flat runs wide enough to read as benches at
+    // 175 m/s. Deliberately unequal across the channel — matched benches read
+    // as one shape mirrored, which is the thing this level is getting away
+    // from. All of it is outside the 105 m offset box, so it is silhouette.
+    {
+      kind: 'basin', len: 2100, inner: 640, bed: 26, wallH: 120, relief: 0.80,
+      section: [
+        [-900, 124], [-730, 50], [-555, 47], [-350, -6], [0, -26],
+        [395, -9], [600, 34], [790, 31], [900, 116],
+      ],
+    },
     // A fissure closing through the reef.
     { kind: 'reach', len: 1600, blend: 1100, inner: 300, bed: 34, wallH: 320 },
     // The swim-through. 760 m, and it turns inside it.
     { kind: 'narrows', len: 760, blend: 700, inner: 150, wallH: 480, bend: { dx: 210, width: 600 } },
-    // The drop-off. The floor falls away to a 58 m bed and the rail follows it
-    // down — the one descent in the game that is not a hop.
-    { kind: 'basin', len: 1700, blend: 700, inner: 700, bed: 58, wallH: 90, relief: 0.66, climb: -30 },
+    // The drop-off, and the one asymmetric cross-section in the game: reef wall
+    // to port, and to starboard the shelf simply ends. The rail follows the
+    // floor down — the one descent that is not a hop.
+    //
+    // `surface: 'none'` is what makes the starboard side legal: with no plane
+    // at y = 0 there is nothing to clamp the negative heights to, and `groundAt`
+    // answers bare `terrainHeight`. On a water level the same section would be
+    // invisible below the waterline.
+    {
+      kind: 'basin', len: 1700, blend: 700, inner: 700, bed: 58, wallH: 90, relief: 0.66, climb: -30,
+      section: [
+        [-980, 300], [-640, 208], [-330, 58], [-120, -30], [0, -58],
+        [210, -96], [470, -190], [700, -300], [980, -420],
+      ],
+    },
     // The trench.
     { kind: 'gorge', len: 1500, blend: 800, inner: 210, wallH: 560, bend: { dx: -250, width: 720 } },
     { kind: 'narrows', len: 700, blend: 400, inner: 140, wallH: 620 },
@@ -744,11 +765,33 @@ export const DNA_VENOM = {
   },
 
   zones: [
-    // The caldera floor: open ash plain, a low shattered rim, the widest thing
-    // in the level and the only place the sky is more than a strip.
-    { kind: 'basin', len: 1900, inner: 520, bed: 22, wallH: 260, relief: 0.70 },
-    // The channel closing in on the river.
-    { kind: 'reach', len: 1700, blend: 1200, inner: 260, bed: 26, wallH: 480 },
+    // The caldera rim, and the one inverted cross-section in the game: the
+    // ground falls away from the rail instead of rising to meet it. A basalt
+    // spine ~400 m wide at y = 20 with the lava plane at 0, so the flanks past
+    // 430 m are lake rather than bank, and the caldera wall is a kilometre out
+    // and only 210 m tall — a shallow enough angle that the sky is the frame.
+    //
+    // The spine crosses y = 0 at about 340 m, against a 105 m offset box. That
+    // margin is what keeps the chase camera over rock while it banks: at a
+    // 215 m crossing the camera sat in the lava through half the zone and the
+    // ridge read as a pool.
+    //
+    // The crest sits 22 m under the rail against a 46 m offset box, so full
+    // down-stick rides the ground cushion here. That is the level reading as a
+    // ridge; it is not a clearance defect.
+    {
+      kind: 'basin', len: 1900, inner: 520, bed: 22, wallH: 260, relief: 0.70,
+      section: [
+        [-980, 210], [-700, 44], [-500, -62], [-330, 4], [0, 26],
+        [330, 2], [520, -66], [720, 38], [980, 228],
+      ],
+    },
+    // The channel closing in on the river. The blend is short because it runs
+    // between an inverted section and an upright one, so the interpolation
+    // passes through flat — and flat here is exactly the lava plane. At 1200 m
+    // the spine spent seven seconds awash at y = 0 and the ridge read as a
+    // pool; at 600 it reads as the spine diving under the river.
+    { kind: 'reach', len: 1700, blend: 600, inner: 260, bed: 26, wallH: 480 },
     // A collapsed lava tube. Tightest walls in the game outside the Foundry.
     { kind: 'narrows', len: 800, blend: 700, inner: 140, bed: 34, wallH: 700, bend: { dx: 200, width: 620 } },
     // Vent chamber. Room to fight, and the walls are 380 m of column.

@@ -1,7 +1,7 @@
 import { RNG } from '../core/rng.js';
 import { fbm2D, ridged2D } from '../render/textures.js';
 import { DEFAULTS, DNA_CORNERIA } from './dna.js';
-import { expandZones, FIELDS } from './zones.js';
+import { expandZones, FIELDS, SECTION_PTS } from './zones.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The shape of a world.
@@ -224,46 +224,67 @@ const FLAT_KEYS = [
 // Storage lives on the profile object at fixed capacity. `profileAt` runs once
 // per mesh row and `heightAtU` once per vertex, so neither may allocate.
 
-const SECTION_CAP = 16;
-
-/** Generate `P`'s polyline, and the band edges the noise gates read. */
-function buildSection(P) {
-  const su = P.su || (P.su = new Float64Array(SECTION_CAP));
-  const sh = P.sh || (P.sh = new Float64Array(SECTION_CAP));
-  const a0 = P.inner;
-  const a1 = a0 + P.beachW;
-  const a2 = a1 + P.shelfW;
-  const a3 = a2 + P.cliffW;
-  su[0] = -a3; sh[0] = P.wallH;
-  su[1] = -a2; sh[1] = P.shelfH;
-  su[2] = -a1; sh[2] = P.beachH;
-  su[3] = -a0; sh[3] = 0;
-  su[4] = 0;   sh[4] = -P.bed;
-  su[5] = a0;  sh[5] = 0;
-  su[6] = a1;  sh[6] = P.beachH;
-  su[7] = a2;  sh[7] = P.shelfH;
-  su[8] = a3;  sh[8] = P.wallH;
-  P.sn = 9;
-  P.uBeach = a1;
-  P.uShelf = a2;
-  P.uWall = a3;
+/**
+ * The three outermost point distances on one bank, innermost first. The relief
+ * and crenellation gates are expressed against them, so an authored section
+ * gets the same treatment as a generated one without naming bands it does not
+ * have: relief begins past `[1]`, crenellation spans `[0]`..`[2]`.
+ */
+function gatesFrom(su, i0, i1, i2) {
+  return [Math.abs(su[i0]), Math.abs(su[i1]), Math.abs(su[i2])];
 }
 
 /**
- * Section height at signed offset `s`. `wall` replaces the height of both
- * outermost points.
+ * Attach a key's polyline. `key.section` is used as authored; otherwise the
+ * band fields generate the symmetric nine-point equivalent.
  *
- * Zero-width segments step rather than divide: the scan passes over every
- * point sharing an `su`, so a band authored at zero width contributes its full
- * height on the outer side and nothing on the inner.
+ * Runs once per key at load, never per sample — `profileAt` only interpolates.
  */
-function sectionAt(P, s, wall) {
-  const su = P.su, sh = P.sh, last = P.sn - 1;
-  if (s <= su[0] || s >= su[last]) return wall;
+function keySection(key) {
+  if (key.su) return;
+  if (key.section) {
+    key.su = key.section.map((p) => p[0]);
+    key.sh = key.section.map((p) => p[1]);
+  } else {
+    const a0 = key.inner;
+    const a1 = a0 + key.beachW;
+    const a2 = a1 + key.shelfW;
+    const a3 = a2 + key.cliffW;
+    key.su = [-a3, -a2, -a1, -a0, 0, a0, a1, a2, a3];
+    key.sh = [key.wallH, key.shelfH, key.beachH, 0, -key.bed, 0, key.beachH, key.shelfH, key.wallH];
+  }
+  const n = key.su.length;
+  if (n !== SECTION_PTS) {
+    throw new Error(`section must have exactly ${SECTION_PTS} points, got ${n}`);
+  }
+  for (let i = 1; i < n; i++) {
+    if (!(key.su[i] > key.su[i - 1])) {
+      throw new Error(`section u must strictly ascend: ${key.su[i - 1]} then ${key.su[i]}`);
+    }
+  }
+  key.gL = gatesFrom(key.su, 2, 1, 0);
+  key.gR = gatesFrom(key.su, n - 3, n - 2, n - 1);
+}
+
+/**
+ * Section height at signed offset `s`.
+ *
+ * The outermost point on each bank is scaled by `wm`, the per-side wall
+ * multiplier: it varies by bank and by z, so it cannot live in a list the two
+ * banks share.
+ *
+ * Zero-width segments step rather than divide: the scan passes over every point
+ * sharing an `su`, so a band at zero width contributes its full height on the
+ * outer side and nothing on the inner.
+ */
+function sectionAt(P, s, wm) {
+  const su = P.su, sh = P.sh, last = SECTION_PTS - 1;
+  if (s <= su[0]) return sh[0] * wm;
+  if (s >= su[last]) return sh[last] * wm;
   let i = 0;
   while (i < last - 1 && s >= su[i + 1]) i++;
-  const hi = i === 0 ? wall : sh[i];
-  const hj = i + 1 === last ? wall : sh[i + 1];
+  const hi = i === 0 ? sh[0] * wm : sh[i];
+  const hj = i + 1 === last ? sh[last] * wm : sh[i + 1];
   return lerp(hi, hj, smooth(su[i], su[i + 1], s));
 }
 
@@ -275,7 +296,18 @@ export function profileAt(z, out = _P) {
   const a = KEYS[i], b = KEYS[i + 1];
   const t = smooth(a.z, b.z, z);
   for (const f of FIELDS) out[f] = lerp(a[f], b[f], t);
-  buildSection(out);
+  const su = out.su || (out.su = new Float64Array(SECTION_PTS));
+  const sh = out.sh || (out.sh = new Float64Array(SECTION_PTS));
+  const gL = out.gL || (out.gL = new Float64Array(3));
+  const gR = out.gR || (out.gR = new Float64Array(3));
+  for (let k = 0; k < SECTION_PTS; k++) {
+    su[k] = lerp(a.su[k], b.su[k], t);
+    sh[k] = lerp(a.sh[k], b.sh[k], t);
+  }
+  for (let k = 0; k < 3; k++) {
+    gL[k] = lerp(a.gL[k], b.gL[k], t);
+    gR[k] = lerp(a.gR[k], b.gR[k], t);
+  }
   return out;
 }
 
@@ -332,13 +364,15 @@ export function heightAtU(u, z, P) {
   const wm = SIDE_BASE + SIDE_AMP * nSide(z * S_SIDE + (right ? 0.11 : 0.61), (right ? 0.21 : 0.79));
   const d = Math.max(0, d0 + bankJitter(z, right) * smooth(0, 90, d0));
 
-  const a1 = P.uBeach;
-  const a2 = P.uShelf;
-  const a3 = P.uWall;
+  // The gates are per bank, because the two banks can carry different sections.
+  const g = right ? P.gR : P.gL;
+  const a1 = g[0];
+  const a2 = g[1];
+  const a3 = g[2];
 
   // `bankJitter` yields a distance from the centreline; the polyline is signed,
   // so the jittered distance goes back on the bank it was measured from.
-  let h = sectionAt(P, right ? d : -d, P.wallH * wm);
+  let h = sectionAt(P, right ? d : -d, wm);
 
   // domain warp — kills the tell-tale grid of a tileable lattice
   const wx = (nWarp(u * S_WARP + 0.4, z * S_WARP + 0.2) - 0.5) * A_WARP;
@@ -358,7 +392,7 @@ export function heightAtU(u, z, P) {
   }
 
   // crenellation on the cliff face itself — buttresses and gullies, not fizz
-  const wallMask = smooth(a1 + P.shelfW * 0.35, a2 + P.cliffW * 0.5, d) * (1 - plateau * 0.45);
+  const wallMask = smooth(a1 + (a2 - a1) * 0.35, a2 + (a3 - a2) * 0.5, d) * (1 - plateau * 0.45);
   if (wallMask > 0.001) {
     h += wallMask * (nCrag(px * S_CRAG + 0.09, pz * S_CRAG * 0.55 + 0.44) - B_CRAG) * A_CRAG * gainFor(L_CRAG, sp);
   }
@@ -475,6 +509,7 @@ export function setActiveDNA(dna) {
   // still reachable from code that does not know which backend is live. One flat
   // row keeps it total instead of making every caller check.
   KEYS = dna.keys ?? FLAT_KEYS;
+  for (const k of KEYS) keySection(k);
 
   const city = dna.city ?? DEFAULTS.city;
   CITY_ON = city ? 1 : 0;

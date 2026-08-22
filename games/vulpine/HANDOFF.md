@@ -32,8 +32,9 @@ real queue.** What closed this session:
 
 **The level-identity lane is open and phase 1 has landed** — see
 `PLAN-LEVELS.md`, which carries the diagnosis, the two-curve architecture, the
-four redesigned levels and the six phases. Phase 2 is next: an authorable
-`section` on a zone, then Venom's inverted ridge and Aquas' terraces.
+four redesigned levels and the six phases. **Phases 1 and 2 have landed** — a
+zone can author its own cross-section and Venom opens on an inverted ridge.
+Phase 3 is next: per-zone ceilings, and wiring player flight to `ceilingAt`.
 
 The hop wiring was read end to end 2026-08-21 and **has no gaps** — every one
 of the seven env presets has a `PLANET_FOR` entry, every value it maps to has a
@@ -185,6 +186,8 @@ added in the middle silently renumbers every shortcut after it.
 - **`framing.mjs` hands-off shows ~3.5° of camera yaw — that is shake, not
   drift.** The probe takes hits and shake displaces `camera.position` before
   `lookAt`. `off.x`/`off.y`/`_sOffX` measure zero variance. Do not chase it.
+- **`freecam` boots Corneria unless you pass `--level`.** Every capture taken
+  without it is of Corneria's shape whatever `--env` says.
 - **The landmass is fine.** Two separate investigations concluded "the terrain is
   missing" from in-canyon cameras that simply had the highland outside the
   frustum. Use `freecam --nofog --nowater` before claiming geometry is absent.

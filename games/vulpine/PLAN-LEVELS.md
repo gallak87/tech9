@@ -76,7 +76,7 @@ No two rows alike — the acceptance test for the lane.
 | # | Deliverable | Status |
 |---|---|---|
 | 1 | Cross-section becomes a polyline; `Math.abs(u)` gone | **done 2026-08-21** |
-| 2 | Authorable `section` on a zone; Venom's ridge, Aquas' terraces + drop-off | open |
+| 2 | Authorable `section` on a zone; Venom's ridge, Aquas' terraces + drop-off | **done 2026-08-21** |
 | 3 | Per-zone `ceiling`; wire player flight to `ceilingAt` | open |
 | 4 | `path` refactor — rail becomes arc-length `p(s)` | open |
 | 5 | Hull pitch from `railDir`, then the vertical drama in all four | open |
@@ -105,6 +105,46 @@ by one ULP — about 30 µm at wall height — because the old band stack accumu
 `beachH + (shelfH - beachH)` where the polyline uses `shelfH` directly. The
 digest baseline was re-cut at that commit rather than contorting the evaluator
 to reproduce a float-ordering artefact.
+
+## Phase 2, as landed
+
+A zone may carry `section: [[u, h] x 9]`, validated in `zones.js` for count,
+finiteness and strictly ascending u. Zones without one still generate the
+symmetric nine-point equivalent from the band fields, so authored and generated
+sections mix freely and `profileAt` blends them point-wise. `MAX_HALF_WIDTH` now
+measures an authored section's own extent rather than the band sum. `freecam`
+gained `--level`, without which it could only ever park in Corneria — which is
+useless to a lane about level shape.
+
+Authored: **Venom zone 1**, the inverted caldera rim — a basalt spine at y = 26
+with the lava plane at 0, lakes past 500 m and the caldera wall a kilometre out
+at 210 m. **Aquas zone 1**, terraced reef benches, deliberately unequal across
+the channel. **Aquas zone 4**, the drop-off — port wall at +300, starboard
+falling to −420.
+
+Three things learned authoring them, all of which cost a capture cycle:
+
+- **The chase camera needs about 340 m of margin, not 105.** A spine whose zero
+  crossing sat at 215 m put the camera in the lava through half the zone while
+  the *ship* stayed dry: the camera trails behind and below and banks with the
+  roll, so `boxX` is a floor on the margin, not the margin.
+- **Blending an inverted section into an upright one passes through flat**, and
+  on a level with a surface plane at y = 0 flat means flooded. Venom's ridge sat
+  awash for seven seconds at a 1200 m blend. Short blends across an inversion.
+- **A drop-off needs something to read against.** Aquas' starboard side falls
+  420 m into fog, and fog is what the eye already expects there, so the void
+  reads as distance rather than as a cliff edge. Geometry is correct and
+  measured; the *look* is unresolved — see the open item below.
+
+## Open, found in phase 2
+
+- [ ] **Aquas' drop-off does not read.** The section is correct (`terrainHeight`
+      runs +263 to −473 across the corridor at z = −4600) but underwater fog
+      hides the fall. It wants an edge the eye can catch — a lip, a lit reef
+      rim, or particles falling over it. `shots/p2-aquas-drop/`.
+- [ ] **Terraces read weakly from the chase camera.** Aquas' benches sit at 555
+      to 790 m, which is silhouette at best from a camera 17 m behind the ship.
+      Either bring them inside ~350 m or accept them as background.
 
 ## Verification
 

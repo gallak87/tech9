@@ -55,6 +55,13 @@ export const WORLD = {
    * `ceilingAt` rather than being part of the height field.
    */
   canopy: null,
+  /**
+   * Per-level camera overrides, or null for the `TUNE` defaults. Any of
+   * `back`, `up`, `lookAhead`, `lookUp`, `fov`. The lens is the one thing every
+   * level shared regardless of its shape, so a level that is a different shape
+   * and still frames like Corneria has only half changed.
+   */
+  camera: null,
 
   nearHalf: 0,           // lateral extent of the high-detail tier
   farHalf: 0,            // lateral extent of the ridgeline tier
@@ -90,6 +97,11 @@ export const MAXB = 6;                // dog-legs
 // canopy.js because `setActiveDNA` resolves each key's lid before any canopy
 // exists, and two owners for one default is how they drift apart.
 export const CANOPY_Y = 330;
+
+// What a DNA's `camera` may override. Checked at activation rather than left to
+// read as undefined: a misspelled key is a level that silently frames like
+// every other one, which is the defect this field exists to fix.
+const CAMERA_KEYS = new Set(['back', 'up', 'lookAhead', 'lookUp', 'fov']);
 
 let SP_A = 6, SP_G = 280;
 
@@ -492,6 +504,13 @@ export function setActiveDNA(dna) {
   WORLD.belt = dna.belt ?? null;
   WORLD.works = dna.works ?? null;
   WORLD.canopy = dna.canopy ?? null;
+  if (dna.camera) {
+    for (const [k, v] of Object.entries(dna.camera)) {
+      if (!CAMERA_KEYS.has(k)) throw new Error(`dna ${dna.id}: unknown camera field "${k}"`);
+      if (!Number.isFinite(v)) throw new Error(`dna ${dna.id}: camera.${k} is ${v}`);
+    }
+  }
+  WORLD.camera = dna.camera ?? null;
   WORLD.zStart = dna.zStart ?? DEFAULTS.zStart;
   WORLD.zEnd = dna.zEnd ?? DEFAULTS.zEnd;
   WORLD.nearHalf = g.nearHalf;

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { centrelineX, centrelineY } from '../world/corneria.js';
+import { WORLD } from '../world/profile.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Flight model — Star Fox's on-rails feel, which is not a physics sim: a rail
@@ -174,6 +175,10 @@ export class Flight {
     this.railPos = new THREE.Vector3();
     this.railDir = new THREE.Vector3(0, 0, -1);
 
+    // Resolved per level by `lens()`, keyed on `WORLD.camera`'s identity.
+    this._lensOf = undefined;
+    this._lens = null;
+
     this.camPos = new THREE.Vector3();
     this.camLook = new THREE.Vector3();
     this._camInit = false;
@@ -216,6 +221,30 @@ export class Flight {
   }
 
   addShake(amount) { this.shake = Math.min(1.6, this.shake + amount); }
+
+  /**
+   * The lens this level is flown through: `TUNE`'s defaults with the active
+   * DNA's `camera` over the top.
+   *
+   * One camera height, one FOV and one centred vanishing point across all seven
+   * levels means a level with a different shape still arrives through an
+   * identical frame. Read every frame, so it is cached on the config's
+   * identity, which a world swap replaces.
+   */
+  get lens() {
+    if (this._lensOf !== WORLD.camera) {
+      const c = WORLD.camera;
+      this._lensOf = c;
+      this._lens = {
+        back: c?.back ?? TUNE.camBack,
+        up: c?.up ?? TUNE.camUp,
+        lookAhead: c?.lookAhead ?? TUNE.camLookAhead,
+        lookUp: c?.lookUp ?? TUNE.camLookUp,
+        fov: c?.fov ?? TUNE.fovBase,
+      };
+    }
+    return this._lens;
+  }
 
   /** The player blew up. Stops the level; see the `dead` branch in `update()`. */
   die() { this.dead = true; }
@@ -481,7 +510,8 @@ export class Flight {
     const offY = this.prevOff.y + (this.off.y - this.prevOff.y) * a;
     const railPos = this.railPoint(railZ, _vCam);
 
-    const back = TUNE.camBack + this.boostActive * TUNE.camBoostBack + this.brakeActive * TUNE.camBrakeBack;
+    const L = this.lens;
+    const back = L.back + this.boostActive * TUNE.camBoostBack + this.brakeActive * TUNE.camBrakeBack;
 
     // Damp the player's offset, never the ride along the rail. The rail is a
     // known function of railZ, so lagging it buys no smoothing — it only puts
@@ -546,16 +576,16 @@ export class Flight {
     this.camPos.copy(_vShip)
       .addScaledVector(_vHead, -back)
       .addScaledVector(_vRight, -leadX)
-      .addScaledVector(UP, TUNE.camUp - leadY);
+      .addScaledVector(UP, L.up - leadY);
     // Aim past the ship rather than at it, so the ship sits low-centre in frame
     // and the player is looking at where they are going, not at their own tail.
     // The aim tracks the ship's own height: pinning it to the rail pitched the
     // camera up while the player dived, which threw the ship out of frame from
     // the other side.
     this.camLook.copy(_vShip)
-      .addScaledVector(_vHead, TUNE.camLookAhead)
+      .addScaledVector(_vHead, L.lookAhead)
       .addScaledVector(_vRight, leadX * TUNE.camAimLead)
-      .addScaledVector(UP, TUNE.camLookUp);
+      .addScaledVector(UP, L.lookUp);
 
     camera.position.copy(this.camPos);
     if (this.shake > 0.001) {
@@ -596,7 +626,7 @@ export class Flight {
       .addScaledVector(_vUp, throwY);
     this.aimDir.copy(this.aimPoint).sub(this.ship.position).normalize();
 
-    const fov = TUNE.fovBase + this.boostActive * TUNE.camBoostFov - this.brakeActive * 4;
+    const fov = L.fov + this.boostActive * TUNE.camBoostFov - this.brakeActive * 4;
     if (Math.abs(camera.fov - fov) > 0.01) {
       camera.fov += (fov - camera.fov) * Math.min(1, dt * 6);
       camera.updateProjectionMatrix();

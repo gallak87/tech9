@@ -13,34 +13,31 @@ constraints that survive it are in `ROADMAP.md` under
 "where we left off" state removed; lessons kept as one-liners. Deleted material
 is in git history.*
 
-## Where we left off — 2026-08-20
+## Where we left off — 2026-08-21
 
-Stopped on a usage limit mid-lane, not at a stopping point. `1232e8e` is the
-commit; **ROADMAP `## Now` is the real queue** and lists every open item with
-its measurement. The short version:
+Stopped with the lane in a clean state, not mid-fix. **ROADMAP `## Now` is the
+real queue.** What closed this session:
 
-1. **Fix Venom's channel first — it is one line of data, and it is diagnosed.**
-   The zones inherited `ZONE_KINDS`' default `bed` (8-11). Give them 22-34 and
-   Fortuna 14-24. Do not re-investigate the lava material: it is built, visible,
-   at y = 0, over terrain that raycasts to -9.0, and a flat-magenta swap showed
-   nothing at y = 0, a strip at +3 and the whole channel at +40. The floor is
-   hidden by its own near bank at a grazing angle. That whole chain is in the
-   ROADMAP entry.
-2. **The ship lane was killed mid-fix.** `lancer`, `scarab`, `pylon` and
-   `commander:tide` / `:bloom` / `:forge` are committed and referenced by the
-   new wave tables. Its last words were that the bloom fight ran 4x long because
-   armour was absorbing, and it was widening the maw reach. Re-probe with
-   `tools/bossprobe.mjs` before trusting any of the three.
-3. **Nothing has flown a hop into a new level.** The wiring is complete —
-   `hop: 'orbital'` on Omega/Aquas/Fortuna/Foundry, `aquas` and `fortuna`
-   palettes in `fx/planet.js`, `PLANET_FOR` entries in `fx/transit.js` — and
-   entirely unexercised. `tools/pilot.mjs hop` is the tool.
-4. **No balance pass on any of the three.** `tools/pacing.mjs`, not screenshots.
+- Venom's molten channel (the `bed` fix the last handoff had diagnosed — it was
+  one line of data and the diagnosis was correct).
+- **Fortuna had no terrain at all.** `GLSL_GLOW` declared `float patch`, a
+  reserved word in GLSL ES, so the fragment shader failed `VALIDATE_STATUS` and
+  every terrain chunk drew nothing. Every Fortuna capture before 2026-08-21,
+  `shots/n-fortuna3/` included, is of an empty corridor and is evidence about
+  nothing. Then its tone, its 65 m tiling and its missing mid-band, in that
+  order — each measured, each in `## Now`.
+- All three new bosses probed and winnable; the bloom "4x long" defect is closed.
+- All seven levels boot with zero console errors (checked 2026-08-21).
 
-Captures that are worth looking at rather than re-taking:
-`shots/n-aquas4/` (the lid and the shafts read), `shots/n-fortuna3/`,
-`shots/n-venom3/` (dark, and the channel is the defect above),
-`shots/n-vdbg5/` and `n-vdbg7/` (the magenta lifts that diagnosed it).
+Still open and untouched: **no hop has been flown into any new level**
+(`tools/pilot.mjs hop`), **no `pacing.mjs` pass on any of the three**, `lancer`
+/ `scarab` / `pylon` never measured, Aquas has no arrival beat, and boss
+durability does not scale across the campaign. All of them are in `## Now` with
+their numbers.
+
+Captures worth looking at rather than re-taking: `shots/n-venom3/sheet.png`
+(the lava before/after), `shots/n-fortuna7/sheet.png` (the colony coverage
+pair), `shots/n-fortuna8/` (current Fortuna), `shots/n-aquas4/`.
 
 ## Rules
 
@@ -150,7 +147,25 @@ added in the middle silently renumbers every shortcut after it.
   yields `rgba(NaN,…)`, canvas rejects the fillStyle and silently *keeps the
   previous one*. Use an explicit hex ramp or `g.globalAlpha`.
 - **No backticks in comments inside GLSL template literals** — it terminates the
-  template and reports `Unexpected identifier` on a line that looks fine.
+  template and reports `Unexpected identifier` on a line that looks fine. This
+  has now cost two sessions; the reader who knows the rule still writes
+  `` `gTri.r` `` in a shader comment out of habit. `node --check` on a copy of
+  the file catches it in a second, and the page error does not name the file.
+- **A GLSL identifier that is a reserved word kills the whole material, and the
+  only place it is reported is the console.** `float patch` cost Fortuna its
+  entire terrain across two sessions of captures, because `shot.mjs` prints
+  `N console error(s)` and exits non-zero and nobody read either. Reserved in
+  GLSL ES beyond the obvious — the spec's reserved-for-future-use list, of
+  which only `patch` has bitten so far: `patch`, `sample`, `filter`, `input`,
+  `output`, `active`, `common`, `partition`, `resource`, `superp`.
+- **Every outcome counter in a diag block reading exactly zero means the counter
+  is not wired, not that the system is broken.** `homingHit: 0` over 72 rounds
+  read as "homing never hits a boss"; the increment simply sat in the `foes`
+  branch and the boss is a different one.
+- **`?level=` takes the campaign id, not the DNA id, and an unknown one does not
+  error — it silently serves Corneria.** A `bossprobe` run against
+  `level=fichina` returns a complete, plausible fight against the wrong boss.
+  The Highlands' DNA key is `fichina`; its level id is `highlands`.
 - **A probe that measures the wrong thing is worse than no probe.** Twice a probe
   has confidently called an inverted control correct: `pilot aim` compared
   absolute positions when the hull rests ~0.3 ndc below centre by design, and

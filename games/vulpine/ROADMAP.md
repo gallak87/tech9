@@ -104,7 +104,7 @@ register, swept collision.
 
 ## Found while auditing, not this lane's work (2026-08-21)
 
-- [ ] **`tools/fins.mjs --audit` had been checking nothing.** It built a
+- [x] **`tools/fins.mjs --audit` had been checking nothing.** It built a
       `Terrain` and traversed it immediately, but the constructor only queues
       jobs — the meshes do not exist until the queue drains — and it never
       called `setActiveDNA`, so `WORLD` was zeroed and the tiers sized to
@@ -119,19 +119,23 @@ register, swept collision.
       The winding is a function of column order, so the suspect is the far-tier
       column list at a bank where Fortuna's profile is unusually flat.
 
-## Levels read as one level — see `PLAN-LEVELS.md` (2026-08-21)
+## Now — the level-identity lane (2026-08-21)
 
-Owner: "they all essentially look like Corneria with filters/textures." Correct,
-and it is geometry, not shading — the five levels in question are exactly the
-five on `backend: 'terrain'`, and inside that backend `profile.js:267` opens the
-cross-section with `Math.abs(u)`, so every one of them is the same
-mirror-symmetric trough at a different scale.
+**This is the active lane. `PLAN-LEVELS.md` is its plan; it is not restated
+here.**
 
-**Diagnosed, baselined, nothing built.** The full diagnosis, what is ruled out,
-five options with their risks, the recommended order and the before-images live
-in `PLAN-LEVELS.md`. Not restated here — the owner picks an option there.
+Owner: "they all essentially look like Corneria with filters/textures." It was
+geometry, not shading — the five levels in question were exactly the five on
+`backend: 'terrain'`, and inside that backend the cross-section folded about
+`Math.abs(u)` and rose monotonically away from the rail, so every one of them
+was the same valley at a different scale.
 
-## Now — three new biomes, landed but unfinished (2026-08-20)
+Phases 1 and 2 have landed and had their quality pass: the cross-section is an
+authored polyline, a zone can carry its own `section`, and Venom opens on an
+inverted ridge. Phases 3-6 are open — per-zone ceilings, the rail as an
+arc-length path, the vertical drama, and Venom's orbit arena.
+
+## Also open — the three new biomes (2026-08-20)
 
 Owner asked for three more levels, new enemies and new bosses, one level per
 biome (no sectors). **Everything below boots and is flyable via `?level=`; none
@@ -296,18 +300,6 @@ into is the body you were orbiting.
       above and wants solving with it: a level you plunge into is a level you
       breach out of, and `climb` being a flat number per hop *kind* is what
       makes both of them awkward.
-
-## Now
-
-**Nothing is claimed here.** The level lane closed 2026-08-15 (see
-`## Settled — levels and worlds`); Phase 8 below is open but unowned. The owner
-picks what is next.
-
-**How a level is loaded, for anything that needs to look at one:**
-`?level=corneria|highlands|omega|foundry` boots straight into it — its world
-*and* its wave tables. `tools/shot.mjs --params "level=omega" --env space`; the
-harness always appends its own `env`, so a level's preset must be passed
-explicitly.
 
 ## Campaign audit — 2026-08-16
 

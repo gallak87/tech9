@@ -3,55 +3,50 @@
 Operational reference for a fresh agent: the rules, the harness, and the traps
 that have already cost sessions.
 
-**This file is not a plan and not a defect list.** The plan is `ROADMAP.md`; the
-open perf lane is `PLAN-PERF.md`; the open level-identity lane is
-`PLAN-LEVELS.md`; the rubric is `REVIEW.md`; lane ownership is `CONTRACT.md`.
-The 2026-08-15 level lane closed — its conclusion and the constraints that
-survive it are in `ROADMAP.md` under `## Settled`. `PLAN-LEVELS.md` is a
-different lane and is open: it is about why five levels read as the same level.
+**This file is not a plan and not a defect list.** It is the harness, the rules
+and the traps. The plans live elsewhere:
 
-*Condensed 2026-08-15 — session narrative, resolved defects and the stale
-"where we left off" state removed; lessons kept as one-liners. Deleted material
-is in git history.*
+| doc | what it owns |
+|---|---|
+| `PLAN-LEVELS.md` | **the active lane** — level identity, six phases, two landed |
+| `ROADMAP.md` | everything else open, and `## Settled` for why things are as they are |
+| `PLAN-PERF.md` | the open perf lane |
+| `CONTRACT.md` | lane ownership and the hard rules |
+| `REVIEW.md` | the review rubric |
 
 ## Where we left off — 2026-08-21
 
-Stopped with the lane in a clean state, not mid-fix. **ROADMAP `## Now` is the
-real queue.** What closed this session:
+Stopped clean, not mid-fix.
 
-- Venom's molten channel (the `bed` fix the last handoff had diagnosed — it was
-  one line of data and the diagnosis was correct).
-- **Fortuna had no terrain at all.** `GLSL_GLOW` declared `float patch`, a
-  reserved word in GLSL ES, so the fragment shader failed `VALIDATE_STATUS` and
-  every terrain chunk drew nothing. Every Fortuna capture before 2026-08-21,
-  `shots/n-fortuna3/` included, is of an empty corridor and is evidence about
-  nothing. Then its tone, its 65 m tiling and its missing mid-band, in that
-  order — each measured, each in `## Now`.
-- All three new bosses probed and winnable; the bloom "4x long" defect is closed.
-- All seven levels boot with zero console errors (checked 2026-08-21).
+**The active lane is level identity — `PLAN-LEVELS.md`.** Five of seven levels
+read as the same level because the terrain cross-section folded about
+`Math.abs(u)` and rose monotonically away from the rail, so every one was the
+same valley at a different scale. Phases 1 and 2 have landed and had their
+quality pass: the cross-section is an authored polyline, a zone can carry its
+own `section`, and Venom opens on an inverted ridge with lava either side.
+**Phase 3 is next** — per-zone ceilings, and wiring player flight to
+`ceilingAt`, which nothing but the AI currently honours. That doc carries the
+research for phases 3-6 so none of it is re-derived.
 
-**The level-identity lane is open and phase 1 has landed** — see
-`PLAN-LEVELS.md`, which carries the diagnosis, the two-curve architecture, the
-four redesigned levels and the six phases. **Phases 1 and 2 have landed and have had their quality pass** — a zone can
-author its own cross-section and Venom opens on an inverted ridge with lava
-either side. Phase 3 is next: per-zone ceilings, and wiring player flight to
-`ceilingAt`, which nothing currently honours but the AI.
+Also closed this session, all under `ROADMAP.md ## Also open — the three new
+biomes` with their numbers:
 
-The hop wiring was read end to end 2026-08-21 and **has no gaps** — every one
-of the seven env presets has a `PLANET_FOR` entry, every value it maps to has a
-`PLANET_PALETTES` entry, `hasBody` is data-driven off `backend` (only Omega is
-`field`), and `begin`/`next`/`hop` carry no per-level special cases. Nothing
-needed wiring. It has still never been *flown*: `tools/pilot.mjs hop`.
+- Venom's molten channel; **Fortuna had no terrain at all** (`GLSL_GLOW`
+  declared `float patch`, a reserved word, so its fragment shader never
+  compiled), then its tone, its 65 m tiling and its missing mid-band.
+- All three new bosses probed and winnable; the bloom "4x long" defect closed.
+- The hop wiring read end to end: **no gaps**, nothing needed wiring.
+- `tools/fins.mjs --audit` had been auditing nothing and now works.
 
-Still open and untouched: **no hop has been flown into any new level**
-(`tools/pilot.mjs hop`), **no `pacing.mjs` pass on any of the three**, `lancer`
-/ `scarab` / `pylon` never measured, Aquas has no arrival beat, and boss
-durability does not scale across the campaign. All of them are in `## Now` with
-their numbers.
+Still open and untouched, all in `ROADMAP.md`: no hop has ever been *flown*
+into a new level (`tools/pilot.mjs hop`), no `pacing.mjs` pass on Aquas,
+Fortuna or Venom, `lancer` / `scarab` / `pylon` never measured, Aquas has no
+arrival beat, boss durability does not scale across the campaign, and Fortuna
+has 25 truly-reversed terrain triangles.
 
-Captures worth looking at rather than re-taking: `shots/n-venom3/sheet.png`
-(the lava before/after), `shots/n-fortuna7/sheet.png` (the colony coverage
-pair), `shots/n-fortuna8/` (current Fortuna), `shots/n-aquas4/`.
+**`shots/` is gitignored**, so every capture named in these docs is local to
+whoever made it. A fresh clone regenerates its own baseline — the command is in
+`PLAN-LEVELS.md ## Verification`.
 
 ## Rules
 
@@ -132,7 +127,8 @@ clippedPct < 4, blackPct < 12), `.stats()`, `.post({exposure})`, `.setShot()`,
 `.combat.dropTest(kind, ahead, up, side)` (eject a drop at an offset in the rail
 frame, without flying to a wave that has one).
 
-URL params: `?level=corneria|highlands|omega|foundry` (boots a level's world AND
+URL params: `?level=corneria|highlands|omega|aquas|fortuna|foundry|venom`
+(boots a level's world AND
 its wave tables), `?exposure= ?nopost=1 ?bloom=0 ?hud=1 ?fight=1 ?env= ?wpn=N
 ?grants=0 ?railyaw= ?dev=1`. `shot.mjs` always appends its own `env`, so a
 level's preset must be passed explicitly: `--params "level=omega" --env space`. **`?fight=1` drives trigger and lock from the sim

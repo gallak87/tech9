@@ -136,7 +136,7 @@ Three things learned authoring them, all of which cost a capture cycle:
   reads as distance rather than as a cliff edge. Geometry is correct and
   measured; the *look* is unresolved — see the open item below.
 
-## Open, found in the phase 2 quality pass
+## Open, found in phase 2 and its quality pass
 
 - [ ] **`keySection` writes onto the DNA's own key objects.** For a `keys`-
       authored DNA (Corneria) `expandZones` returns the input unchanged, so the
@@ -149,8 +149,6 @@ Three things learned authoring them, all of which cost a capture cycle:
       `world-materials.js:282`), which is now a hard contract that nothing
       enforces.
 
-## Open, found in phase 2
-
 - [ ] **Aquas' drop-off does not read.** The section is correct (`terrainHeight`
       runs +263 to −473 across the corridor at z = −4600) but underwater fog
       hides the fall. It wants an edge the eye can catch — a lip, a lit reef
@@ -158,6 +156,81 @@ Three things learned authoring them, all of which cost a capture cycle:
 - [ ] **Terraces read weakly from the chase camera.** Aquas' benches sit at 555
       to 790 m, which is silhouette at best from a camera 17 m behind the ship.
       Either bring them inside ~350 m or accept them as background.
+
+## What phases 3-6 already know
+
+Read out of the source 2026-08-21 so none of it is re-derived. All line numbers
+are from that date; verify before trusting one.
+
+**Phase 3 — ceilings.**
+- `ceilingAt()` exists (`corneria.js:349`, `works.js:81`) and **only the AI
+  honours it** (`ai.js:359, 365`). The player can fly through the Foundry's roof
+  today. `flight.js:343` reads `groundAt` and nothing else. Per-zone ceilings are
+  worthless until flight is wired to it — mirror the ground's two-stage
+  cushion/clamp at `flight.js:345-355`.
+- `canopy.js` is **one camera-following plane** (`canopy.js:65-89`) and
+  `ceilingY()` takes no arguments, so it cannot vary along z. A z-varying lid
+  needs the rail-aligned strip pattern from `water.js:93-154` or a chunk queue
+  like `Terrain`, and the 8k-triangles-versus-90-chunks argument at
+  `canopy.js:21-27` has to be re-made. **`Works.ceilingAt(z)` (`works.js:81-88`)
+  is the precedent** — discrete z-cells, per-cell overhead, already answers
+  conservatively across gaps.
+- Lid height is constrained per zone by that zone's `wallH` plus relief. Aquas'
+  lid went 330 → 620 because at 330 it sat on every zone's rim and the level read
+  as a cave (`dna.js:459-469`).
+
+**Phase 4 — the rail as `p(s)`.**
+- `railZ` is mutated in exactly one place, `flight.js:277`, and `flight.js:335`
+  binds `pos.z ≡ railZ`. Speed is always in [105, 300]; there is no reverse.
+- Three cursors edge-trigger off it — waves, comms and grants at
+  `combat.js:1759-1774`. **The boss is a wave row**, not a separate system, so it
+  rides the same cursor with no fallback. Arc length keeps them all monotone.
+- `campaign.js:523` (`railZ <= WORLD.zEnd`) is the **only** end-of-level test.
+- `railZ` is world z, not arc length, so on any slope true speed is
+  `speed / cos(pitch)` while the HUD reads 175. Phase 4 fixes that for free.
+
+**Phase 5 — anything steep.**
+- `flight.js:397` orients the hull from `railDir` **yaw only**; the camera
+  (`flight.js:490`) keeps the full tangent including Y. On a dive the camera
+  pitches and the hull does not, and the divergence grows linearly with slope.
+  Nothing clamps it and nothing warns. Steepest shipped is Fichina at 16.7°.
+- `ai.js` has **zero** `railZ` references but adds station offsets in world axes
+  (`ai.js:406`, `ai.js:704`), so "ahead" means −z rather than "in front of the
+  player". Rotating the offset through the heading is ~2 lines and is required
+  once the rail can turn.
+- There is **no terrain crash**. The ground is a floor with a cushion, not a
+  hazard (`flight.js:345-355`). Terrain rising into the rail bulldozes the ship
+  upward without limit; terrain falling away does nothing.
+
+**Everything free.** All of `src/ui/`, `src/fx/`, `src/audio/`, `pickups.js` and
+world LOD are position-based, not `railZ`-based, and survive phase 4 untouched.
+
+## How to work this lane
+
+Assume a different agent picks up every phase cold.
+
+**No narration in comments.** `HANDOFF.md` carries this rule and it keeps
+slipping. State the constraint, not the story: no "this used to be X", no
+before/after numbers from a rejected iteration, no describing the change. A
+comment explains why the code must be the way it is to a reader who never saw
+the previous version. History is in git; reasoning is in this file.
+
+**Never assert a magnitude you have not measured.** Three numbers in Venom's
+section comment were written from intent and were wrong; the quality pass caught
+them by checking against the authored points.
+
+**Every phase ends with a separate quality pass**, run after the work is
+committed rather than folded into it — an author checking a fresh diff reads
+what they meant, not what they wrote. It is read-only, so it is a reasonable
+place to spend a sub-agent. It covers: the verification block below on **all
+seven** levels; every comment added or touched, against the no-narration rule;
+every comment *near* changed code, for staleness; a grep for modules added but
+never imported and functions left with no callers; and anything found that is
+not this phase's work written into `ROADMAP.md` under its phase.
+
+**Leave the trail before stopping.** In the same commit that closes a phase:
+tick its row in the table above, and re-cut `HANDOFF.md`'s "Where we left off"
+to name what closed, what is open, and the single next action.
 
 ## Verification
 
@@ -200,6 +273,7 @@ matches both outcomes and reports every level green.
 
 ## Guardrail
 
-In `CONTRACT.md`: **a new level must name a section/path combination no existing
-level uses.** If it cannot, it is not a new level — it is a variant of one that
-exists. This counteracts the incentive that produced five-levels-on-one-backend.
+`CONTRACT.md` hard rule 8: **a new or reworked level must name a `section`/`path`
+combination no existing level uses.** If it cannot, it is not a new level — it
+is a variant of one that exists. This counteracts the incentive that produced
+five levels on one cross-section.

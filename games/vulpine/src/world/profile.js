@@ -350,6 +350,9 @@ function bankJitter(z, right) {
  */
 export function heightAtU(u, z, P) {
   const right = u >= 0;
+  // Distance from the centreline, for the things that are genuinely symmetric:
+  // sample spacing, bank jitter and the side multiplier. The cross-section is
+  // not one of them — it is sampled signed, below.
   const d0 = Math.abs(u);
   const sp = spacing(d0) * (1 + 1.6 * smooth(WORLD.nearHalf * 0.8, WORLD.nearHalf * 1.9, d0));
 

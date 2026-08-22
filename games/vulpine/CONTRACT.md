@@ -97,6 +97,11 @@ If you are fighting the look, probe first — the answer is usually exposure.
 5. **Post-process units are pixels, not UVs.** Same reason.
 6. Dispose geometry/materials you replace. `stats()` shows the counts.
 7. Do not disable a pass to make your thing look better. Fix your thing.
+8. **A new or reworked level must name a `section`/`path` combination no
+   existing level uses.** If it cannot, it is not a new level — it is a variant
+   of one that exists. Five of seven levels collapsed onto one cross-section
+   because adding a DNA was free and adding a shape was not; this is the check
+   that keeps that from happening again. See `PLAN-LEVELS.md`.
 
 ---
 

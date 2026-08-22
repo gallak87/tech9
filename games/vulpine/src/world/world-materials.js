@@ -863,7 +863,11 @@ export function terrainMaterial() {
     dithering: true,
     // three only declares `emissive` and the emissive chunk when the material
     // carries a non-black one, so this is what makes the injection below legal.
+    // The intensity is what keeps it from contributing: `emissive` reaches the
+    // shader as colour * emissiveIntensity, so this declares the chunk and
+    // starts totalEmissiveRadiance at zero, leaving GLSL_GLOW the only term.
     emissive: glow ? 0xffffff : 0x000000,
+    emissiveIntensity: glow ? 0 : 1,
   });
   // ?terrdbg=sun|sky|cav flat-shades one baked field instead of the surface.
   // Always defined, never conditional: GLSL ES makes an undefined identifier in

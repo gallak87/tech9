@@ -154,12 +154,30 @@ into is the body you were orbiting.
       including `shots/n-fortuna3/`; none of them are evidence about anything.
       **`shot.mjs` was reporting this as a console error the whole time** — the
       captures were being read and the non-zero exit was not.
-- [ ] **Fortuna's terrain composites near-white now that it draws.** Opened
-      2026-08-21. Not the glow: the wash is uniform and colourless and covers
-      the walls well above `glow.height`'s 340 m fade-out, so it is albedo or
-      the hemisphere light, not `GLSL_GLOW`'s emissive term. Nobody has ever
-      seen this level's palette on screen — it wants the tone pass the other
-      six levels each had. `shots/n-fortuna4/`.
+- [x] **Fortuna's terrain composited near-white once it drew.** Fixed
+      2026-08-21. It was neither albedo nor the light rig — measured by zeroing
+      sun, hemi, fill, rim, `scene.environment` and every `envMapIntensity` in
+      the scene, after which the valley median held at 0.501, so the terrain was
+      *entirely* emissive. `terrainMaterial` sets `emissive: 0xffffff` to make
+      three declare the emissive chunk that `GLSL_GLOW` injects into, and
+      `totalEmissiveRadiance` starts at that colour — a flat 1.0 on every
+      terrain pixel, which is why the wash was colourless and lightless. Now
+      `emissiveIntensity: 0` alongside it: the declaration is unchanged and the
+      starting radiance is zero. Valley median 0.501 → 0.016, and p99 pulled
+      away from p90 (0.67 vs 0.04) where before the two sat together, which is
+      the glow's structure appearing. `shots/n-fortuna5/`.
+- [ ] **Fortuna's glow tiles visibly.** Opened 2026-08-21. The banks carry a
+      regular grid of identical crescents at the rock texture's repeat period,
+      worst at grazing angles (`shots/n-fortuna5/valley.png`). `GLSL_GLOW`
+      builds both masks from tiled texture channels — `colony` from `crs.g`,
+      `speck` from `gTri.b` — and puts them through high-contrast smoothsteps.
+      Every other block that samples those channels modulates *albedo*, where
+      varying light hides the repeat; an emissive term has nothing to hide
+      behind. The file's own rule at the top applies: hue comes from world
+      position, not from the map. Drive the colony mask the same way.
+- [ ] **Fortuna is dark even for a night level** — valley median 0.016 against
+      a 0.10-0.20 healthy band. Do this after the tiling, not before: the fix
+      for the tiling changes what fraction of the ground is lit.
 - [ ] **No balance pass on any of the three.** Wave tables are authored against
       each level's zone boundaries and fog range (spawn distances are short in
       Aquas, long in Fortuna) but nothing has been flown or run through

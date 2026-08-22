@@ -367,6 +367,26 @@ export function ceilingAtZ(z) {
   return lerp(a.ceiling, b.ceiling, smooth(a.z, b.z, z));
 }
 
+// Metres of rail-to-surface clearance inside which the surface is passable.
+// A hard switch at the crossing would put a floor under the ship one metre and
+// a ceiling over it the next; this is the window the dive goes through.
+export const PIERCE = 70;
+
+/**
+ * How far the rail runs above the canopy surface at `z`, or null where the
+ * world has no canopy.
+ *
+ * The sign decides which query owns the surface — above it the sea is a floor,
+ * below it a lid — and `PIERCE` either side of zero neither does. Measured off
+ * the RAIL, so it is a function of z alone: taken off the ship it would flip as
+ * the player crossed, and the ground and ceiling clamps would fight over the
+ * same plane at the moment the dive needs both to let go.
+ */
+export function railOverSurface(z) {
+  if (!WORLD.canopy) return null;
+  return centrelineY(z) - ceilingAtZ(z);
+}
+
 /**
  * Terrain height at lateral offset `u` from the centreline at `z`.
  * `P` is `profileAt(z)`; pass it in so a whole mesh row shares one lookup.

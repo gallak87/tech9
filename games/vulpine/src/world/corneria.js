@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {
   WORLD, DNA, setActiveDNA, centrelineX, centrelineY,
-  terrainHeight, terrainNormal,
+  terrainHeight, terrainNormal, ceilingAtZ, railOverSurface, PIERCE,
 } from './profile.js';
 import { DNA_CORNERIA, DNA_FICHINA, DNA_BY_ID } from './dna.js';
 import {
@@ -335,6 +335,13 @@ export class Corneria {
     // AI's altitude clamps and ground batteries all behave exactly as they do
     // in a canyon. Flat, so it is the whole height field.
     if (WORLD.backend === 'works') return Works.deckY();
+    // A canopy is a surface, and which side of it the corridor runs decides
+    // whether it floors or lids. Above it the sea is what you fly over and the
+    // terrain far below is irrelevant; below it the terrain is the floor and
+    // the sea is `ceilingAt`'s business. Inside `PIERCE` it is neither, which
+    // is the only way through.
+    const over = railOverSurface(z);
+    if (over !== null && over > PIERCE) return Math.max(terrainHeight(x, z), ceilingAtZ(z));
     return WORLD.surface === 'none'
       ? terrainHeight(x, z)
       : Math.max(terrainHeight(x, z), WORLD.waterLevel);
@@ -350,7 +357,12 @@ export class Corneria {
    */
   ceilingAt(x, z) {
     if (this.works) return this.works.ceilingAt(z);
-    return this.canopy ? Canopy.ceilingY(z) : Infinity;
+    if (!this.canopy) return Infinity;
+    // Open sky wherever the rail is not meaningfully under the surface: at or
+    // above it there is nothing overhead, and inside `PIERCE` the surface has
+    // to let the ship through.
+    const over = railOverSurface(z);
+    return over > -PIERCE ? Infinity : Canopy.ceilingY(z);
   }
 
   /** Terrain height ignoring the surface — placement helper for the built world. */

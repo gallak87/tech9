@@ -205,12 +205,44 @@ into is the body you were orbiting.
       each level's zone boundaries and fog range (spawn distances are short in
       Aquas, long in Fortuna) but nothing has been flown or run through
       `tools/pacing.mjs`.
-- [ ] **The three new bosses and three new hostile classes are mid-flight.** The
-      ship lane was stopped part-way; `lancer`, `scarab`, `pylon`,
-      `commander:tide`, `commander:bloom` and `commander:forge` exist and the
-      wave tables reference them, but only `commander:bloom` had been probed and
-      its fight ran 4x long (armour absorbing; the maw reach was being fixed).
-      `BOSS_KINDS` in combat.js carries all three.
+- [x] **The three new bosses are flyable and winnable.** All three probed
+      2026-08-21 with `tools/bossprobe.mjs`; every one reaches `outcome=win`
+      with all three weak points destroyed, so the "bloom runs 4x long" defect
+      the ship lane stopped on is closed — the maw-reach fix landed. Against
+      `commander:ice` on Highlands as the shipped reference:
+
+      | boss | level | fight | dps | dps x s |
+      |---|---|---|---|---|
+      | ice (reference) | Highlands, 2 | 31.0s | 15 | 465 |
+      | tide | Aquas, 4 | 21.5s | 15 | 322 |
+      | bloom | Fortuna, 5 | 10.5s | 30 | 315 |
+      | forge | Venom, 7 | 11.8s | 30 | 354 |
+
+      Normalised for the gun the probe happened to be carrying they sit in a
+      315-465 band, so none of the three is individually broken. What varies is
+      time-on-target, not durability: ice's second damper survived to 31s
+      because the player could not get on it, where bloom's three parts died at
+      4.3 / 6.8 / 10.5 in a clean progression.
+      **Probe `?level=` ids are the campaign ids, not the DNA ids** — `highlands`,
+      not `fichina`. `level=fichina` does not error, it silently serves Corneria,
+      which is how a run against the wrong boss reads as a plausible result.
+- [ ] **Boss durability does not scale with campaign position, so the campaign
+      gets easier as it goes.** Opened 2026-08-21 off the table above. Every
+      commander in `CMD_SPEC` takes `hp: COMMANDER.weakHp * 3` and every weak
+      point is 46, so the level-7 finale is exactly as durable as the level-2
+      boss while the player's gun has gone from 15 dps to as much as 83. Measured
+      end to end: Highlands 31.0s, Venom 11.8s. The fix shape is obvious — scale
+      weak-point HP with campaign position — but the amount is a design call and
+      wants a real playthrough's weapon tier, not the probe's, since the probe
+      reached tier 0 on two levels and tier 1 on two others from pickup luck.
+- [ ] **Homing may never hit a commander.** Seen once, unverified: bloom's probe
+      reported `homingFired: 40, homingHit: 0, homingLostTarget: 0,
+      homingExpired: 2` while `bossLand` was 48. Worth one probe against ice
+      before treating it as real — if it reproduces on a shipped boss it is not
+      a new-level defect at all.
+- [ ] **The three new hostile classes are unprobed.** `lancer`, `scarab` and
+      `pylon` are referenced by the new wave tables and were never measured;
+      the boss lane above says nothing about them. `tools/pacing.mjs`.
 - [ ] **No hop has been flown into or out of a new level.** The wiring is there
       (`hop: 'orbital'` on Omega, Aquas, Fortuna and the Foundry; planet
       palettes for `aquas` and `fortuna` in fx/planet.js; `PLANET_FOR` entries in

@@ -2,7 +2,7 @@ import { DNA_BY_ID } from '../world/dna.js';
 // `WORLD` is mutated in place by `setActiveDNA`, so it is the live corridor
 // extent — reading `zEnd` off the level's own DNA would be a frame ahead of the
 // terrain during a rebuild.
-import { WORLD } from '../world/profile.js';
+import { WORLD, railOverSurface } from '../world/profile.js';
 import { CORNERIA_WAVES, CORNERIA_GRANTS, CORNERIA_COMMS } from './combat.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -103,6 +103,11 @@ const hasBody = (dnaId) => (DNA_BY_ID[dnaId].backend ?? 'terrain') !== 'field';
    The ceiling is unchanged and is for the opposite case: killing the carrier
    early with the dev tool leaves several km to fly, and a transition that waits
    40 s reads as a hang. */
+// Metres of clearance the lap leaves over a surface it lifts the ship through.
+// Enough that the ship is flying over it rather than sitting in it, and clear of
+// the offset box's 46 m of down-stick.
+const SURFACE_CLEAR = 95;
+
 const LAP_MIN = 7;
 const LAP_MAX = 14;
 
@@ -449,6 +454,9 @@ export function installCampaign(ctx, startIndex = 0) {
     phase: 'play',        // play | lap | ascent | space | approach | reentry
     t: 0,                 // seconds inside the current phase
     lapT: 0,
+    // Metres of `climb` the lap added to lift the ship clear of a surface it was
+    // flown under. The hop's ascent starts from this, not from zero.
+    surfaceClimb: 0,
     building: false,
     progress: 1,
     /** Published for the HUD. Null except during a hop. */
@@ -501,6 +509,8 @@ export function installCampaign(ctx, startIndex = 0) {
     ctx.fx.transit?.exit();
     ctx.flight.detached = false;
     ctx.flight.climb = 0;
+    // Belongs to the level just left; the next lap measures its own.
+    state.surfaceClimb = 0;
     levelCard(ctx, level());
     ctx.combat.say('PEPPY', `Entering ${level().name} airspace. Stay sharp!`);
   }
@@ -519,6 +529,22 @@ export function installCampaign(ctx, startIndex = 0) {
 
     if (state.phase === 'lap') {
       state.lapT += dt;
+      // Surface, on a level that is flown under one. The lap is the only stretch
+      // between the kill and the hop, so it is where a level you plunged into
+      // gets climbed back out of — otherwise the ascent begins underwater and
+      // the whole rise happens behind the transition's own effects.
+      //
+      // `climb` rather than the offset box: it is already the thing that moves
+      // the ship outside the corridor, the ceiling clamp stands down while it is
+      // non-zero, and the hop picks it up from here rather than from zero.
+      const under = railOverSurface(ctx.flight.railZ);
+      if (under !== null && under < 0) {
+        state.surfaceClimb = -under + SURFACE_CLEAR;
+      }
+      if (state.surfaceClimb > 0) {
+        const p = Math.min(1, state.lapT / LAP_MIN);
+        ctx.flight.climb = state.surfaceClimb * (p * p * (3 - 2 * p));
+      }
       if (state.lapT < LAP_MIN) return;
       const past = ctx.flight.railZ <= WORLD.zEnd;
       if (past || state.lapT >= LAP_MAX) begin();
@@ -545,7 +571,11 @@ export function installCampaign(ctx, startIndex = 0) {
     // back under the ship at exactly the moment the terrain is unhidden.
     const ease = (p) => p * p * (3 - 2 * p);
     const first = H.order[0], last = H.order[H.order.length - 1];
-    if (state.phase === first) ctx.flight.climb = ease(u) * H.climb;
+    // From wherever the lap left the ship, not from zero: on a level the lap
+    // surfaced, restarting the ramp at zero drops it back through the surface
+    // on the first frame of the hop.
+    const base = state.surfaceClimb || 0;
+    if (state.phase === first) ctx.flight.climb = base + ease(u) * (H.climb - base);
     else if (state.phase === last) ctx.flight.climb = (1 - ease(u)) * H.climb;
     else ctx.flight.climb = H.climb;
 

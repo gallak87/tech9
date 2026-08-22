@@ -29,6 +29,12 @@ real queue.** What closed this session:
 - All three new bosses probed and winnable; the bloom "4x long" defect is closed.
 - All seven levels boot with zero console errors (checked 2026-08-21).
 
+The hop wiring was read end to end 2026-08-21 and **has no gaps** — every one
+of the seven env presets has a `PLANET_FOR` entry, every value it maps to has a
+`PLANET_PALETTES` entry, `hasBody` is data-driven off `backend` (only Omega is
+`field`), and `begin`/`next`/`hop` carry no per-level special cases. Nothing
+needed wiring. It has still never been *flown*: `tools/pilot.mjs hop`.
+
 Still open and untouched: **no hop has been flown into any new level**
 (`tools/pilot.mjs hop`), **no `pacing.mjs` pass on any of the three**, `lancer`
 / `scarab` / `pylon` never measured, Aquas has no arrival beat, and boss

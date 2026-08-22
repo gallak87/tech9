@@ -233,8 +233,14 @@ into is the body you were orbiting.
       boss while the player's gun has gone from 15 dps to as much as 83. Measured
       end to end: Highlands 31.0s, Venom 11.8s. The fix shape is obvious — scale
       weak-point HP with campaign position — but the amount is a design call and
-      wants a real playthrough's weapon tier, not the probe's, since the probe
-      reached tier 0 on two levels and tier 1 on two others from pickup luck.
+      wants a real playthrough's weapon tier, not the probe's. **Why the probe's
+      tiers are low, established by reading campaign.js 2026-08-16's note:**
+      every level past Corneria carries `grants: []` on purpose, because weapon
+      tier survives `resetForLevel` and a campaign player arrives holding what
+      they built up. A `?level=` boot does not — it starts at tier 0 and only
+      gets what it happens to collect from drops. So the probe understates the
+      gun on every level except Corneria, and understates it *most* on the late
+      levels, which is exactly where the durability question lives.
 - [x] **Homing never hitting a commander was the counter, not the homing.**
       Closed 2026-08-21. It reproduced against `commander:ice` too — 72 fired,
       0 hit — which ruled out the new levels, and then the source settled it:
@@ -252,6 +258,15 @@ into is the body you were orbiting.
       fx/transit.js) and none of it has been exercised.
 - [ ] **Aquas has no arrival beat of its own.** An orbital re-entry that ends
       300 m underwater wants a plunge, not a wash. Currently it reuses `reentry`.
+- [ ] **Leaving Aquas climbs 2200 m out of a level with a lid on it.** Found by
+      reading, not flying, 2026-08-21. `HOPS.orbital.climb` is 2200 and it is
+      unconditional; Aquas is the one level with a `canopy` — a sea surface at
+      y = 620 answered by `ceilingAt` — so the ascent takes the ship straight
+      through it. Whether that reads as breaching or as clipping through a
+      ceiling nobody has looked at. It is the same beat as the arrival item
+      above and wants solving with it: a level you plunge into is a level you
+      breach out of, and `climb` being a flat number per hop *kind* is what
+      makes both of them awkward.
 
 ## Now
 

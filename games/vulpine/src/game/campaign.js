@@ -31,13 +31,15 @@ import { CORNERIA_WAVES, CORNERIA_GRANTS, CORNERIA_COMMS } from './combat.js';
 /* ── transitions ──────────────────────────────────────────────────────────────
    Two kinds, and the difference is the point rather than a saving.
 
-   An ORBITAL hop says "different planet". Used once, between Corneria and
-   Sector Omega, because that is the one time the destination looks like nothing
-   you have seen — the set-piece and the payoff land on the same beat.
+   An ORBITAL hop says "different planet". It carries every transition in the
+   campaign except the first: Highlands to Omega, then Omega, Aquas, Fortuna
+   and the Foundry each to the level after it. Venom carries no `hop` at all,
+   because it is the finale and the win card is what holds.
 
-   An OVERLAND hop says "further up the same valley". Corneria's two sectors are
-   one river system: the lowland reach and, above it, the ice cap it drains from.
-   They share a landform grammar because they are the same landform, which is
+   An OVERLAND hop says "further up the same valley". Used once, Corneria to
+   the Highlands, and the only transition that is not orbital. Those two sectors
+   are one river system: the lowland reach and, above it, the ice cap it drains
+   from. They share a landform grammar because they are the same landform, which is
    the whole reason to make this transition overland — a fiction that promises a
    different planet and then delivers the same cross-section reads as a bug,
    where a fiction that promises the head of the same valley reads as continuity.

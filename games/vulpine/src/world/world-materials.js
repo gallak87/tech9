@@ -855,7 +855,7 @@ function GLSL_GLOW() {
           // composited pure white; what a colony field actually is is a dim
           // wash where it is damp, with sparse hot patches inside that.
           float damp = smoothstep(0.40, 0.90, vTerr.x);
-          float colony = smoothstep(0.46, 0.86, gColony);
+          float colony = smoothstep(0.42, 0.80, gColony);
           float speck = smoothstep(0.68, 0.97, gTri.b);
           float fade = 1.0 - smoothstep(${gf(g.height[0])}, ${gf(g.height[1])}, vWPos.y);
           float wash = colony * (0.20 + 0.80 * damp) * fade;
@@ -871,7 +871,7 @@ function GLSL_GLOW() {
           // bank is actually seen from, and that colour was violet everywhere.
           vec3 gcol = mix(${gv3(g.color)}, ${gv3(g.color2 || g.color)},
                           smoothstep(0.34, 0.66, gColonyHue));
-          totalEmissiveRadiance += gcol * ((wash * 0.26 + hot * 1.25)
+          totalEmissiveRadiance += gcol * ((wash * 0.62 + hot * 1.25)
                                    * ${gf(g.amount ?? 1)} * pulse);
         }`;
 }

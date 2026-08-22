@@ -611,7 +611,7 @@ export const DNA_FORTUNA = {
   glow: {
     color: [0.26, 1.45, 1.05],     // the mat: cyan-green
     color2: [0.78, 0.30, 1.30],    // the second colony: violet
-    amount: 1.05,
+    amount: 3.6,
     // Full at the waterline, gone by the stalk tops. A skyline that glows has
     // no silhouette, and the silhouette is what makes a stalk read as a stalk.
     height: [40, 340],

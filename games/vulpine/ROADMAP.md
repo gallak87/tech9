@@ -166,7 +166,9 @@ into is the body you were orbiting.
       starting radiance is zero. Valley median 0.501 → 0.016, and p99 pulled
       away from p90 (0.67 vs 0.04) where before the two sat together, which is
       the glow's structure appearing. `shots/n-fortuna5/`.
-- [ ] **Fortuna's glow tiles visibly.** Opened 2026-08-21. The banks carry a
+- [x] **Fortuna's glow tiles visibly.** Fixed 2026-08-21 — `GLSL_COLONY`
+      displaces the mask lookup by a 340 m warp field instead of taking it
+      straight off the 65 m tile. `shots/n-fortuna6/`. Opened 2026-08-21. The banks carry a
       regular grid of identical crescents at the rock texture's repeat period,
       worst at grazing angles (`shots/n-fortuna5/valley.png`). `GLSL_GLOW`
       builds both masks from tiled texture channels — `colony` from `crs.g`,
@@ -175,9 +177,30 @@ into is the body you were orbiting.
       varying light hides the repeat; an emissive term has nothing to hide
       behind. The file's own rule at the top applies: hue comes from world
       position, not from the map. Drive the colony mask the same way.
-- [ ] **Fortuna is dark even for a night level** — valley median 0.016 against
-      a 0.10-0.20 healthy band. Do this after the tiling, not before: the fix
-      for the tiling changes what fraction of the ground is lit.
+- [x] **Fortuna had no readable mid-band.** Fixed 2026-08-21. The 0.10-0.20
+      band in HANDOFF is stated for *daylight* and does not apply here; the
+      reference used instead was the Foundry, the shipped level closest in
+      character — chase 0.038/0.27/1.39, valley 0.021/0.14/0.90 (med/p90/p99).
+      Fortuna measured 0.017/0.04/0.67 and 0.014/0.04/0.22: the median was
+      defensible for a night level, the **p90 was 7x low**, so the frame ran
+      from near-black straight to a few emitters with no body in between.
+      Not fixable from the light rig, and this was measured before touching it:
+      zeroing sun/hemi/fill/rim moved the chase median 0.017 → 0.014, and
+      *raising* hemi from 2.25 to 6.0 got 0.018. Terrain faces up and takes
+      `hemiSky`, which is near-black by design — the reason `DNA.glow` exists.
+      So the lever was the glow: `wash` 0.26 → 0.62 (it is the mat that gives
+      the mid-band; `hot` is the sparse specks and already reached p99) and
+      `glow.amount` 1.05 → 3.6. Now 0.026/0.16/0.71 and 0.041/0.17/0.71, clip%
+      unchanged at 0.07-0.11. Coverage was then pulled from smoothstep(0.34)
+      to (0.42) because at 0.34 the mat covered the banks wall to wall and the
+      DNA asks for the dark base to stay most of the wall by area.
+      `shots/n-fortuna7/sheet.png` is the coverage pair.
+- [ ] **Fortuna's palette still assumes a level nobody could see.** The albedo
+      terms were authored against a black screen and several run past 1.0
+      (`scrub` 1.20, `dry` 1.06, `pale` 1.02, with `veg` 1.5 / `moss` 1.4).
+      Unmeasured — the glow now dominates enough that they may not matter, but
+      the comment above them claims "almost no light from above" decides the
+      look, and that was written about a level with no terrain in it.
 - [ ] **No balance pass on any of the three.** Wave tables are authored against
       each level's zone boundaries and fog range (spawn distances are short in
       Aquas, long in Fortuna) but nothing has been flown or run through

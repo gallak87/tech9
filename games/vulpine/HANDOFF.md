@@ -23,19 +23,26 @@ read as the same level because the terrain cross-section folded about
 `Math.abs(u)`, so every one was the same valley at a different scale.
 
 **Every mechanism but one is landed: 1, 2, 3, 4, 5, 7 and 8.** Phase 9 — the
-authoring those mechanisms exist for — has done **one level of four**: Aquas is
-72% authored, Venom 18%, Fortuna 14%, the Foundry 0%. A zone
+authoring those mechanisms exist for — has done **two levels of four**: Venom is
+100% authored, Aquas 72%, Fortuna 14%, the Foundry 0%. A zone
 carries its own cross-section, ceiling and camera; player flight is clamped
 under the lid; the hull pitches with the corridor; and a surface is floor or
 ceiling depending which side of it the rail runs — Aquas now opens 90 m above
 its sea and plunges through at 41.6°, levels out among its terraces and
 descends again into its trench.
 
-**Phase 9's authoring is what is left, and it is most of the lane's value.**
-Venom reads as the old map because 49 of its 60 seconds are stock
-`reach`/`narrows`/`basin`/`gorge` — the exact valley grammar this lane exists to
-break. `shape.mjs --strict` is green anyway; see the open item about why.
-Phase 6 (Venom's orbit arena) carries the last piece of phase 4 with it. Speed is now measured along the rail — `railStretch`
+**Fortuna is next, and its headline beat is already built.** Its brief — over a
+sea of glowing crowns, down through a gap, along the dark understory — is
+exactly what phase 8 gave Aquas, and Fortuna simply has no `canopy` declared. It
+is 14% authored and the most static level in the game.
+
+Two things Venom surfaced that outlive it: **no noise band reaches an inverted
+section** (both gates in `heightAtU` measure distance from the centreline
+against the section's *outer* points, so a ridge gets nothing where the eye is),
+and **a surface plane at y = 0 pins the rail**, because the offset box is 46 m
+deep — that is why Venom had no `climb` anywhere and why its base had to go
+48 → 400 before it could have a rhythm. Fortuna has water at y = 0 and the same
+pin. Phase 6 (the orbit arena) carries the last piece of phase 4 with it. Speed is now measured along the rail — `railStretch`
 in `profile.js`, divided into the advance — so Aquas no longer flies at 234 m/s
 against a HUD reading 175, and `ai.js` station offsets rotate through the rail's
 heading instead of meaning −z. But `railPoint` still composes z, so the corridor

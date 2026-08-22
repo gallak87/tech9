@@ -90,7 +90,7 @@ No two rows alike — the acceptance test for the lane.
 | 6 | Venom orbit arena | open |
 | 7 | Per-level camera — the lens, not the world | **done 2026-08-22**; Venom authored, 6 levels on defaults |
 | 8 | Aquas' plunge — the rail crosses the water surface | **done 2026-08-22** |
-| 9 | **The authoring pass** — one distinct shape per level | **Aquas only.** Fichina/Fortuna/Venom carry one or two zones each; the Foundry none |
+| 9 | **The authoring pass** — one distinct shape per level | **Aquas and Venom.** Fichina/Fortuna carry one or two zones each; the Foundry none |
 
 Numbers are identifiers, not an order. **7 and 9 block on nothing** — 7 is a
 data change, and 9 can author any level whose mechanism exists, which after
@@ -105,19 +105,14 @@ length:
 
 | | authored | of level | what its brief still wants |
 |---|---|---|---|
+| venom | 10560 m | **100%** | the "alternates" ceiling — see below |
 | aquas | 7600 m | **72%** | done — read against its row |
 | fichina | 2300 m | 22% | not in the four-levels table; the pass is authored |
-| venom | 1900 m | **18%** | the rail rhythm (**0 climbs**) and the alternating ceiling (**no `canopy`**) |
-| fortuna | 1500 m | **14%** | its whole two-layer beat — it has no `canopy` either |
+| fortuna | 1500 m | **14%** | its whole two-layer beat — it has no `canopy` |
 | foundry | — | **0%** | a mechanism pass first; see below |
 
-**Venom is the one to look at first.** Its authored ridge is 1900 m of 10,560 —
-11 seconds of a 60-second level — and everything after it is the stock
-`reach`/`narrows`/`basin`/`gorge` grammar, which is the valley this lane exists
-to break. Its brief row asks for three things and one is done: the inverted
-section is authored, the rail carries **no `climb` at all** so there is no
-rhythm, and the "alternates" ceiling has nothing to alternate because Venom has
-no `canopy`.
+**Fortuna is the one to look at next**, and its headline beat is the one phase 8
+already built for Aquas — it simply has no `canopy` declared.
 
 The Foundry is **not** an authoring job at all: `works` is one box for all 9 km
 (`half`, `deckY`, `roofY` fixed in `dna.js`, and `Works.deckY()` is a static with
@@ -340,6 +335,70 @@ and "terrain must not break the sea" pull opposite ways, and the resolution is
 Flown, not only measured: `pilot.mjs fly --params level=aquas` runs the corridor
 end to end, 12 kills, no console error, and 0 of 19 samples with the hull near a
 frame edge.
+
+## Phase 9 — Venom, as landed
+
+Authored 18% → **100%**: all seven zones carry a section, the rail carries a
+rhythm, and the floor moves **364 m** against 64. Every sample is measured with
+`shape.mjs --draw`, which prints the rail height beside the section.
+
+**The ridge was 30 m tall, not 330.** `surface: 'lava'` puts a plane at y = 0
+and `groundAt` clamps there, so most of the authored inverted section was under
+it: the polyline fell to −300 either side and every metre of that was lake. What
+the player actually flew over was a 30 m mound about 500 m wide with the rail
+27 m above it. The section now crests at 330 and crosses the lava at −430/+455,
+and near-field rise went **−17 → −102 m** (negative is a genuine ridge — the
+banks below the centre).
+
+**Which forced the rail base up, for the same reason Aquas' is at 710.** A lava
+plane at y = 0 against a 46 m offset box means the rail can never come below
+about 60, so at a base of 48 Venom's rail could not descend **at all** — it had
+no room for a `climb` in either direction, which is why it had none. The base is
+now 400, the crest sits 70 m under it, and the descents bottom out at 80.
+
+The rhythm, measured:
+
+| | rim | channel | tube | vent | gorge | narrows | sump |
+|---|---|---|---|---|---|---|---|
+| rail | **400** | 80 | 80 | **210** | 80 | 80 | 100 |
+| climb | — | −320 | — | +130 | −130 | — | +20 |
+
+The plunge off the crest is 320 m over a 600 m blend — 37°, the steepest in the
+game after Aquas. The blend stays short for the reason phase 2 found: it runs
+between an inverted section and an upright one, the interpolation passes through
+flat, and flat on this level is the lava plane.
+
+**No noise band reaches an inverted section.** `heightAtU` gates relief on
+`smooth(a2, a3 + 70, d)` and crag on `smooth(a1 + (a2−a1)·0.35, …)`, where a1—a3
+are the section's outer point distances — so both assume the interesting
+surface is on the *banks*. On a ridge the banks are the lava lakes and the crest
+is at the centre, where nothing reaches: the polyline is the entire surface and
+it renders as a smooth dune. Two levers exist inside the grammar and both are
+used here — `islands` scattered onto the crest flanks, and `bands.jitter` raised
+to 84, which perturbs the *distance* the section is sampled at and so becomes
+height wherever the flank is steep. Neither reaches the crest apex. Logged in
+the open list below.
+
+**The palette was tuned for a surface that was never lit.** `pale` at 0.75 and
+`dry` at 0.45 were set when the crest was a 30 m sliver seen edge-on inside a
+canyon; against a 330 m ridge flown along the top of, they composited as a sand
+dune — the level reading as desert rather than as black rock over a red river,
+which is the failure `dry` had already been pulled back from once. Now 0.35 and
+0.22.
+
+**The open beat needed the props moved, not the section.** The vent chamber is
+the one zone flown *over*, and its plug domes stood 230 m tall against a rail at
+210 — so the section opened up and the domes put the walls straight back. They
+are now 40−150 and the frame is sky.
+
+**Still open here: the "alternates" ceiling.** Venom's brief row wants a lid
+that comes and goes, and that is not what landed. "Out, in, out" is authored as
+section *width* — tube tight, vent open, gorge tight, sump open — which reads,
+but it is not a ceiling. A real one needs geometry that ends: `Canopy` is a
+single flat camera-following plane carrying a *water* shader (refraction,
+caustics, the critical angle), so it can neither stop nor pass for rock. Same
+piece Fortuna's "enters/exits" needs. Nothing about phase 3 or phase 8 supplies
+it.
 
 ## Phase 4, as landed
 
@@ -567,6 +626,23 @@ zone 1 in phase 9 below.
       the trench went 75% of samples above the 620 lid to **0%**, the narrows
       80% to **0%**, peaks 829/775 → 547/580. `lid.mjs --audit` no longer prints
       the note on any run.
+
+- [ ] **No noise band reaches an inverted cross-section.** Both gates in
+      `heightAtU` are distances measured from the centreline against the
+      section's outer points — relief past the second-outermost, crag between
+      the third- and second-outermost. That encodes "the tall interesting rock
+      is on the banks", which an inverted section reverses: on Venom's rim the
+      banks are lava lakes and the crest is at u = 0, where neither band can
+      reach at any authored numbers. The polyline is the whole surface and it
+      renders smooth.
+
+      Worked around on Venom with `islands` on the flanks and `bands.jitter` at
+      84; neither reaches the apex, which is the part directly under the ship.
+      The principled fix is to gate crag on local **slope** rather than on
+      distance — a cliff face is where |dh/du| is large, which is the bank on a
+      valley and the flank on a ridge. That is one expression, but it moves the
+      geometry of all seven levels, so it wants its own pass and its own digest
+      cycle rather than riding along inside an authoring pass.
 
 - [ ] **`shape.mjs --strict` passes a level that is 18% authored.** It is the
       stated acceptance test for phase 9, it is green, and Venom is 11 seconds

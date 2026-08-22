@@ -334,21 +334,30 @@ const FORTUNA_COMMS = [
    instead of two, and there are two rear attacks rather than one.
 
    Zone boundaries:
-     720 basin -1180 reach -2880 narrows -3680 basin/vent -4980 gorge -6580
-     narrows -7240 basin/sump -9840
+     720 rim -1180 channel -2580 tube -3680 vent -4980 gorge -6580
+     narrows -7240 sump -9840
 
-   Batteries stay out of the tube and the gorge. `bank` tracks each basin's own
-   inner, and the sump is the only place with a run long enough for four. */
+   Batteries stay out of the tube and the gorge, and out of the four `climb`
+   blends — this level's rail runs 380 on the crest down to 80 in the channel,
+   so a battery armed while it is descending is several hundred metres under the
+   ship rather than beside it. Each one below fires inside one zone's HELD
+   stretch, which is the zone less half a blend at each end. `bank` tracks the
+   ground that zone's section actually puts there, not its `inner`. */
 const VENOM_WAVES = [
   { z: -200, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1300, arc: 0.54, climb: 0.24, skill: 0.50, aggro: 0.20, life: 8 },
-  // Lands -880…-1400, the caldera floor. bank 470 ≈ inner 520.
-  { z: -300, kind: 'bulwark', n: 3, form: 'banks', first: 620, step: 250, bank: 470, drops: ['health'] },
+  // Lands -400…-840, on the crest itself and inside its held stretch, which
+  // ends at -880. bank 260 puts them on the flank at about 230 — under the rail
+  // at 380 and firing up the slope, which is the only emplacement on this level
+  // the player looks DOWN at.
+  { z: -100, kind: 'bulwark', n: 3, form: 'banks', first: 300, step: 220, bank: 260, drops: ['health'] },
   { z: -1400, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.36, climb: 0.22, skill: 0.54, aggro: 0.28, life: 10.5, drops: ['weapon'] },
   { z: -2200, kind: 'raptor', n: 5, form: 'echelon', from: 'behind', skill: 0.56 },
   // Armed past the tube's exit key so it resolves as the walls open into the
   // vent chamber — nothing is fought inside a 140 m slot.
   { z: -3700, kind: 'wasp', n: 7, form: 'swarm', from: 'ahead', spawn: 1150, arc: 0.08, climb: -0.44, skill: 0.58, life: 8, markFor: 1.9, stagger: 0.45, drops: ['bomb'] },
-  { z: -4050, kind: 'bulwark', n: 3, form: 'banks', first: 600, step: 240, bank: 420, drops: ['health'] },
+  // Lands -4160…-4500, inside the vent chamber's held stretch (-3880 to -4580)
+  // and clear of the climb into it and the descent out.
+  { z: -3900, kind: 'bulwark', n: 3, form: 'banks', first: 260, step: 170, bank: 420, drops: ['health'] },
   { z: -4700, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1200, arc: 0.42, climb: 0.20, skill: 0.60, aggro: 0.34, life: 11, drops: ['weapon', 'health'] },
   { z: -5600, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1900, arc: 0.03, climb: -0.10, skill: 0.62, aggro: 0.36, life: 28, close: 210, escort: 3, drops: ['weapon', 'health'] },
   { z: -6600, kind: 'raptor', n: 6, form: 'echelon', from: 'behind', skill: 0.62 },
@@ -361,7 +370,7 @@ const VENOM_WAVES = [
 const VENOM_COMMS = [
   { z: -140, who: 'PEPPY', text: 'Venom. Andross is down there somewhere, Fox. Everything ends here.' },
   { z: -1360, who: 'SLIPPY', text: 'Hull temperature is climbing. Do not go low over the channel!' },
-  { z: -2900, who: 'FALCO', text: 'That tube is a collapsed lava run. No room, no sky. Straight through.' },
+  { z: -2500, who: 'FALCO', text: 'That tube is a collapsed lava run. No room, no sky. Straight through.' },
   { z: -3660, who: 'SLIPPY', text: 'Drones venting out of the chamber walls!' },
   { z: -5560, who: 'PEPPY', text: 'Their heavy brought escorts this time. Watch the flanks.' },
   { z: -7350, who: 'FALCO', text: 'They are going for the wing, Fox. Get them off!' },

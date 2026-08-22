@@ -856,48 +856,112 @@ export const DNA_VENOM = {
       ],
       bends: [],
     },
-    y: { base: 48, waves: [{ a: 12, w: 0.00041, p: 1.1 }], bends: [] },
+    // 380 is the crest, not the channel. The caldera rim stands at 330 and the
+    // rail rides 50 m over it; everything after the rim descends off it, which
+    // is what makes the first zone a summit rather than a bump. `surface: lava`
+    // clamps `groundAt` at y = 0, so the floor of every later zone is the lava
+    // plane and the rail can never come below the offset box's 46 m — the
+    // descents below bottom out at 80.
+    y: { base: 400, waves: [{ a: 12, w: 0.00041, p: 1.1 }], bends: [] },
   },
 
+  // The rail ledger, which is the level's rhythm:
+  //   400 rim  -320-> 80 channel/tube  +130-> 210 vent  -130-> 80 gorge/narrows
+  //   +20-> 100 sump
+  // Every zone carries a section: the four stock kinds are the valley grammar
+  // this level is supposed to be the counter-example to.
   zones: [
     // The caldera rim: an inverted cross-section, so the ground falls away from
-    // the rail instead of rising to meet it. The spine crests at y = 26 and
-    // crosses the lava plane at u = -366 and +349, so the flanks beyond that are
-    // lake rather than bank. The caldera wall is a kilometre out and 210 m tall
-    // — 12 degrees, shallow enough that the sky is the frame.
+    // the rail instead of rising to meet it. The crest is at 330 with the rail
+    // 50 m over it, and the flanks cross the lava plane at u = -430 and +455 —
+    // everything past that is lake, because `groundAt` clamps at y = 0.
     //
     // The crossing has to clear the chase camera, not the ship. The camera
-    // trails 17 m behind and below and banks with the roll, so it leaves the
+    // trails 21 m behind and below and banks with the roll, so it leaves the
     // 105 m offset box: a crossing at 215 m put it in the lava.
     //
-    // The crest sits 22 m under the rail against a 46 m offset box, so full
-    // down-stick rides the ground cushion.
+    // The crest sits 70 m under the rail against a 46 m offset box, which is
+    // also what keeps the spatter cones on the flanks clear of it.
     {
       // `relief` is the reason an inverted section still reads as a valley if it
       // is left alone: the relief gate opens past the second-outermost point
-      // (here 900 m) and the noise bands build a skyline out there regardless
+      // (here 830 m) and the noise bands build a skyline out there regardless
       // of what the polyline says. A spine has nothing standing around it, so
       // the band has to come down with the section.
       kind: 'basin', len: 1900, inner: 520, bed: 22, wallH: 260, relief: 0.14,
       section: [
-        [-1200, -300], [-900, -195], [-620, -95], [-330, 0], [0, 30],
-        [340, -4], [640, -100], [900, -200], [1200, -295],
+        [-1200, 190], [-830, -80], [-430, 0], [-190, 250], [0, 330],
+        [215, 262], [455, 0], [860, -85], [1200, 205],
       ],
     },
-    // The channel closing in on the river. The blend is short because it runs
-    // between an inverted section and an upright one: the interpolation passes
-    // through flat, and flat here is the lava plane, so the spine is awash for
-    // the length of the blend. 600 m of that is the spine diving under the
-    // river; 1200 was a flooded plain.
-    { kind: 'reach', len: 1700, blend: 600, inner: 260, bed: 26, wallH: 480 },
-    // A collapsed lava tube. Tightest walls in the game outside the Foundry.
-    { kind: 'narrows', len: 800, blend: 700, inner: 140, bed: 34, wallH: 700, bend: { dx: 200, width: 620 } },
-    // Vent chamber. Room to fight, and the walls are 380 m of column.
-    { kind: 'basin', len: 1300, blend: 600, inner: 460, bed: 24, wallH: 380, relief: 0.66 },
-    { kind: 'gorge', len: 1600, blend: 800, inner: 200, bed: 30, wallH: 620, bend: { dx: -260, width: 760 } },
-    { kind: 'narrows', len: 660, blend: 380, inner: 130, bed: 34, wallH: 720 },
-    // The sump: where the river pools, and where the fortress sits.
-    { kind: 'basin', len: 2600, blend: 800, inner: 600, bed: 28, wallH: 300, relief: 0.62 },
+    // Off the crest and into the channel: 300 m over a 600 m blend, the steepest
+    // descent in the game after Aquas' plunge. The blend is short because it
+    // also runs between an inverted section and an upright one — the
+    // interpolation passes through flat, and flat here is the lava plane, so a
+    // long blend leaves the spine awash for the length of it.
+    {
+      kind: 'reach', len: 1400, blend: 600, inner: 260, bed: 26, wallH: 480, relief: 0.34,
+      climb: -320,
+      section: [
+        [-1150, 560], [-700, 470], [-370, 150], [-185, 10], [0, -30],
+        [195, 14], [390, 165], [740, 480], [1150, 570],
+      ],
+    },
+    // The tube — a collapsed lava run, and the first half of "out, in, out".
+    // Walls stand 340 m over the rail from only 250 m out, which is the whole
+    // read: no room, and as close to no sky as a single-valued height field can
+    // manage. The blends either side are short so the held stretch is 700 m
+    // rather than the 150 m it was; a tube you are inside for under a second is
+    // a texture change, not a beat.
+    {
+      kind: 'narrows', len: 1100, blend: 400, inner: 140, bed: 34, wallH: 700, relief: 0.50,
+      bend: { dx: 200, width: 620 },
+      section: [
+        [-1100, 720], [-540, 660], [-250, 420], [-150, 20], [0, -30],
+        [160, 16], [265, 440], [580, 680], [1100, 740],
+      ],
+    },
+    // Out. The rail climbs 160 back out of the tube over 400 m — 32 degrees, and
+    // the only place in the game the corridor opens upward faster than it
+    // closes. Every wall here tops out BELOW the rail, so the frame is sky and
+    // the plug domes are underneath: the one zone on this level flown over
+    // rather than through.
+    {
+      kind: 'basin', len: 1300, blend: 400, inner: 460, bed: 24, wallH: 380, relief: 0.10,
+      climb: 130,
+      section: [
+        [-1200, 30], [-830, 95], [-520, 70], [-270, 20], [0, -16],
+        [290, 14], [560, 85], [930, 110], [1200, 40],
+      ],
+    },
+    // In again, and asymmetric this time so it is not the tube twice: port
+    // closes to 320 at 270 m while starboard is still open at 220.
+    {
+      kind: 'gorge', len: 1600, blend: 800, inner: 200, bed: 30, wallH: 620, relief: 0.50,
+      climb: -130, bend: { dx: -260, width: 760 },
+      section: [
+        [-1150, 780], [-600, 720], [-270, 320], [-150, 14], [0, -30],
+        [200, 0], [440, 220], [830, 600], [1150, 700],
+      ],
+    },
+    // Tightest walls in the game outside the Foundry, and held for 170 m.
+    {
+      kind: 'narrows', len: 660, blend: 380, inner: 130, bed: 34, wallH: 720, relief: 0.52,
+      section: [
+        [-1080, 800], [-500, 740], [-215, 500], [-125, 18], [0, -32],
+        [135, 14], [230, 520], [560, 760], [1080, 820],
+      ],
+    },
+    // Out, and stays out: the sump is where the river pools and where the
+    // fortress sits, so it has to be the widest thing since the rim.
+    {
+      kind: 'basin', len: 2600, blend: 600, inner: 600, bed: 28, wallH: 300, relief: 0.42,
+      climb: 20,
+      section: [
+        [-1200, 330], [-790, 225], [-450, 70], [-230, -8], [0, -34],
+        [255, -6], [490, 80], [840, 245], [1200, 340],
+      ],
+    },
   ],
 
   bands: {
@@ -911,7 +975,12 @@ export const DNA_VENOM = {
     fine: { scale: 1 / 1860, amp: 52, lambda: 78 },
     crag: { scale: 1 / 1320, amp: 78, bias: 0.34, lambda: 66 },
     warp: { scale: 1 / 8600, amp: 220, shear: 0.7 },
-    jitter: { a: 38, b: 12 },
+    // Raised for the rim. `bankJitter` perturbs the DISTANCE the cross-section
+    // is sampled at, so on a steep flank it becomes height — which is the only
+    // band that reaches an inverted section at all. The relief and crag gates
+    // both open past the section's outer points, and on a ridge those are the
+    // lava lakes, not the crest the ship flies over.
+    jitter: { a: 84, b: 12 },
     side: { scale: 1 / 5800, base: 0.74, amp: 0.54 },
     relief: { base: 0.52, far: 2.6, from: 380, to: 3200 },
   },
@@ -921,10 +990,17 @@ export const DNA_VENOM = {
   islands: {
     seed: 'venom:plugs-1',
     groups: [
-      // spatter cones on the caldera floor
-      { n: 12, z: [500, -1700], u: [140, 560], r: [50, 140], h: [24, 90], pow: [1.8, 3.0] },
-      // plug domes standing in the vent chamber
-      { n: 8, z: [-4700, -5900], u: [90, 440], r: [28, 70], h: [70, 230], pow: [1.15, 1.55], spire: 1 },
+      // Spatter cones ON the crest, not around it. The relief and crag bands
+      // both gate on distance past the section's outer points, so on an inverted
+      // section NO noise band reaches the ridge the ship is flying over — the
+      // polyline is the whole surface and it renders as a smooth dune. Scatter
+      // is the only thing that can put form there. Kept outside the 105 m
+      // offset box so none of it is an obstacle the rail did not author.
+      { n: 26, z: [640, -1450], u: [150, 470], r: [30, 100], h: [35, 95], pow: [1.5, 2.6] },
+      // Plug domes on the vent-chamber floor. Kept under the rail at 210: this
+      // is the one zone flown OVER, and a 230 m dome standing next to a rail at
+      // 210 puts the walls back that the section just took away.
+      { n: 11, z: [-4700, -5900], u: [90, 440], r: [30, 78], h: [40, 150], pow: [1.15, 1.55], spire: 1 },
       // cooled flow lobes across the sump
       { n: 14, z: [-8000, -9700], u: [40, 560], r: [90, 240], h: [5, 18], pow: [2.4, 3.8], flat: 1 },
     ],
@@ -951,7 +1027,14 @@ export const DNA_VENOM = {
     pale: [0.88, 0.84, 0.82],
     urban: [0.90, 0.89, 0.86],
     moss: [0.40, 0.32, 0.28],
-    amount: { pale: 0.75, dry: 0.45, veg: 0, moss: 0, sand: 0.5, urban: 0 },
+    // Every light term is held down, and the reason is the rim. These were set
+    // when the crest was a 30 m mound seen edge-on inside a canyon; it is now a
+    // 300 m ridge flown along the top of, so the biggest lit surface in the
+    // level is a face that used to be a sliver. At the old amounts it composited
+    // as a sand dune — the level reading as desert rather than as black rock
+    // over a red river, which is the same failure `dry` was already pulled back
+    // from once.
+    amount: { pale: 0.35, dry: 0.22, veg: 0, moss: 0, sand: 0.28, urban: 0 },
   },
 
   lithology: {

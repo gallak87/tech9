@@ -1,7 +1,8 @@
 # Vulpine — level identity: two curves
 
-Open lane. **1-5, 7 and 8 landed, and 9 all but the Foundry; 6 open.**
-The owner picks when each starts.
+Open lane. **Every mechanism but one is landed — 1-5, 7 and 8. What is left is
+the work they exist for: phase 9's authoring, which has done one level of four,
+and phase 6.** The owner picks when each starts.
 
 A zone carries its own cross-section, its own ceiling and its own camera; the
 hull pitches with the corridor; a surface can be floor or ceiling depending
@@ -89,7 +90,7 @@ No two rows alike — the acceptance test for the lane.
 | 6 | Venom orbit arena | open |
 | 7 | Per-level camera — the lens, not the world | **done 2026-08-22**; Venom authored, 6 levels on defaults |
 | 8 | Aquas' plunge — the rail crosses the water surface | **done 2026-08-22** |
-| 9 | **The authoring pass** — one distinct shape per level | Fichina, Fortuna, Venom, Aquas **done**; the Foundry open |
+| 9 | **The authoring pass** — one distinct shape per level | **Aquas only.** Fichina/Fortuna/Venom carry one or two zones each; the Foundry none |
 
 Numbers are identifiers, not an order. **7 and 9 block on nothing** — 7 is a
 data change, and 9 can author any level whose mechanism exists, which after
@@ -98,12 +99,30 @@ phase 3 is section and ceiling on all five terrain levels.
 Phases 8 and 9 were split out of phase 5, which carried "the vertical drama in
 all four" as a clause. Phase 9's acceptance test is `tools/shape.mjs --strict`.
 
-**Still to author (phase 9):** Corneria stays as it is — it is the reference.
-Only the Foundry is left, and it is **not** an authoring job: `works` is one box
-for all 9 km (`half`, `deckY`, `roofY` fixed in `dna.js`, and `Works.deckY()` is
-a static with no z), so three of its four brief beats have nothing to author
-into. It needs the mechanism pass phases 2 and 3 gave `terrain`, done again for
-`works`, before a section means anything there.
+**Still to author (phase 9).** Corneria stays as it is — it is the reference.
+Measured 2026-08-22, as metres carrying an authored `section` against corridor
+length:
+
+| | authored | of level | what its brief still wants |
+|---|---|---|---|
+| aquas | 7600 m | **72%** | done — read against its row |
+| fichina | 2300 m | 22% | not in the four-levels table; the pass is authored |
+| venom | 1900 m | **18%** | the rail rhythm (**0 climbs**) and the alternating ceiling (**no `canopy`**) |
+| fortuna | 1500 m | **14%** | its whole two-layer beat — it has no `canopy` either |
+| foundry | — | **0%** | a mechanism pass first; see below |
+
+**Venom is the one to look at first.** Its authored ridge is 1900 m of 10,560 —
+11 seconds of a 60-second level — and everything after it is the stock
+`reach`/`narrows`/`basin`/`gorge` grammar, which is the valley this lane exists
+to break. Its brief row asks for three things and one is done: the inverted
+section is authored, the rail carries **no `climb` at all** so there is no
+rhythm, and the "alternates" ceiling has nothing to alternate because Venom has
+no `canopy`.
+
+The Foundry is **not** an authoring job at all: `works` is one box for all 9 km
+(`half`, `deckY`, `roofY` fixed in `dna.js`, and `Works.deckY()` is a static with
+no z), so three of its four brief beats have nothing to author into. It needs the
+mechanism pass phases 2 and 3 gave `terrain`, done again for `works`.
 
 ### Deliberately not doing
 
@@ -548,6 +567,21 @@ zone 1 in phase 9 below.
       the trench went 75% of samples above the 620 lid to **0%**, the narrows
       80% to **0%**, peaks 829/775 → 547/580. `lid.mjs --audit` no longer prints
       the note on any run.
+
+- [ ] **`shape.mjs --strict` passes a level that is 18% authored.** It is the
+      stated acceptance test for phase 9, it is green, and Venom is 11 seconds
+      of ridge followed by 49 seconds of stock zone kinds. The gate takes **12
+      samples** down a level and asks only that no two levels name the same set
+      of shapes — the plan's own words for it are "CONTRACT rule 8's **weak
+      form**". Venom's entire claim to a unique set rests on the 2 samples that
+      land in its one authored zone.
+
+      That is how "Venom done" got written into the phase table and survived two
+      sessions of review. The gate is not wrong, it is weak: it measures variety
+      ACROSS levels and nothing about coverage WITHIN one. Either weight the
+      samples by the length they represent, or make the four-levels table a
+      checklist a tool can read — it is described in this file as "the
+      acceptance test for the lane" and nothing checks it.
 
 - [ ] **`fins.mjs --audit` exits non-zero on a clean tree**, so the second half
       of the verification block is not currently a gate. Not this lane's work:

@@ -226,6 +226,28 @@ something that was being felt.
       **Cut a digest before editing, not after**, or a stale baseline reads as
       your own regression. It cost the previous agent two cycles and it still
       landed on the wrong commit.
+- [ ] **Coverage, not mechanism, is now what makes the levels look alike.**
+      Flown and measured 2026-08-22, near-field cross-section (±250 m, which is
+      what the ship reads) at six points down each terrain level:
+
+      | | 0.06 | 0.23 | 0.40 | 0.57 | 0.74 | 0.91 |
+      |---|---|---|---|---|---|---|
+      | corneria | valley | valley | asym | valley | valley | valley |
+      | highlands | valley | valley | valley | valley | valley | valley |
+      | aquas | valley | valley | **asym** | **asym** | valley | valley |
+      | fortuna | valley | valley | valley | valley | valley | valley |
+      | venom | **RIDGE** | valley | asym | asym | valley | valley |
+
+      The three zones phase 2 authored are the three that read: Venom's spine
+      measures +26 at the centreline against banks at +14/+6, exactly the
+      authored figure, and Aquas' terraces and drop-off both come out asymmetric.
+      Captures in `shots/p3-authored/`, and the ridge is unmistakable from the
+      chase camera — the ship is *on top of* something.
+
+      **Fortuna is a valley at all six samples and has no authored section at
+      all.** It is the level the owner named as proof that shading cannot fix
+      this. Phase 5 has the work; this is the measurement it should move.
+
 - [ ] **Aquas' walls break its own sea surface.** 1.66 km of the gorge and the
       narrows (z −5820..−7480) stand up to 217 m through the 620 m lid, from
       only 205 m off the rail. The corridor itself is clear by 334 m, so the

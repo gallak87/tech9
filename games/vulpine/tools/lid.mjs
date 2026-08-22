@@ -35,7 +35,7 @@
 // look rather than about whether the level can be flown. Aquas has 1.7 km of it
 // today. A gate that is red on arrival gates nothing, so the two are kept apart.
 // ─────────────────────────────────────────────────────────────────────────────
-import { setActiveDNA, ceilingAtZ, terrainHeight, centrelineX, centrelineY, WORLD } from '../src/world/profile.js';
+import { setActiveDNA, ceilingAtZ, terrainHeight, centrelineX, centrelineY, railOverSurface, PIERCE, WORLD } from '../src/world/profile.js';
 import { DNA_BY_ID } from '../src/world/dna.js';
 
 const arg = (n, d = null) => {
@@ -84,6 +84,17 @@ function auditLevel(id) {
       if (bad.length > 4) break;
       continue;
     }
+    // Where the rail runs at or above the surface it is not a lid at all — it
+    // is the floor the ship flies over, and `groundAt` owns it.
+    //
+    // And for `BOX_Y_UP` past the crossing it cannot owe full headroom either:
+    // clearance ramps from zero as the rail descends through, so a dive is
+    // always momentarily inside the box. What that costs is a ceiling clamp
+    // while the ship is already diving, which is not the level being unflyable.
+    // The lid answers for itself once the box fits under it.
+    const over = railOverSurface(z);
+    if (over !== null && over > -(PIERCE + BOX_Y_UP)) continue;
+
     const cx = centrelineX(z);
     // Rule 2, inside the corridor. The floor here is whichever is higher, the
     // rail or the terrain under it: where terrain rises into the corridor the

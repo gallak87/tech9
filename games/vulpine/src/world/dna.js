@@ -498,10 +498,13 @@ export const DNA_AQUAS = {
       ],
       bends: [],
     },
-    // 62 is 18 m higher than Corneria's, and it is headroom rather than
-    // altitude: with no surface plane at y = 0 the drop-off zone takes the rail
-    // 30 m down, and the bottom of the offset box has to clear a bed at -58.
-    y: { base: 62, waves: [{ a: 13, w: 0.00039, p: 2.1 }], bends: [] },
+    // 710 starts the level 90 m ABOVE the sea surface at 620, which is what
+    // makes the opening a flight over water rather than under it: past `PIERCE`
+    // the canopy answers `groundAt` instead of `ceilingAt`. Zone 1 spends the
+    // whole 648 back down, leaving the rest of the level at the 62 it has always
+    // flown — headroom rather than altitude, since the drop-off takes the rail
+    // 30 down and the offset box has to clear a bed at -58.
+    y: { base: 710, waves: [{ a: 13, w: 0.00039, p: 2.1 }], bends: [] },
   },
 
   zones: [
@@ -516,8 +519,11 @@ export const DNA_AQUAS = {
         [395, -9], [600, 34], [790, 31], [900, 116],
       ],
     },
-    // A fissure closing through the reef.
-    { kind: 'reach', len: 1600, blend: 1100, inner: 300, bed: 34, wallH: 320 },
+    // The plunge. 648 m over the 1100 m blend, so the rail crosses the sea
+    // surface at 620 partway down and everything after this is flown under it.
+    // The dive is the only place the canopy is passable: `railOverSurface`
+    // stops flooring and starts lidding across it.
+    { kind: 'reach', len: 1600, blend: 1100, inner: 300, bed: 34, wallH: 320, climb: -648 },
     // The swim-through. 760 m, and it turns inside it.
     { kind: 'narrows', len: 760, blend: 700, inner: 150, wallH: 480, bend: { dx: 210, width: 600 } },
     // The drop-off, and the one asymmetric cross-section in the game: reef wall

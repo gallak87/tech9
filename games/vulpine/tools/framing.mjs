@@ -12,12 +12,24 @@
 //
 // A rigid chase camera holds all three near zero. Drift in offDeg is the ship
 // sliding across the frame; drift in noseDeg is the hull rotating in place.
+//
+//   node tools/framing.mjs 5262 --level venom
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
 
 const ROOT = '/Users/g/code/scratch/tech9/games/vulpine';
 const PORT = parseInt(process.argv[2] || '5262', 10);
-const UNTIL = parseFloat(process.argv[3] || '40');
+// Without a level this could only ever measure Corneria, which is useless to a
+// lane about per-level framing — the same gap `freecam` had before phase 2.
+const ARGV_LEVEL = (() => {
+  const i = process.argv.indexOf('--level');
+  return i === -1 ? null : process.argv[i + 1];
+})();
+// Positional, but skipping flags: `framing.mjs 5262 --level venom` otherwise
+// parses "--level" as the duration and NaN ends the loop before the first
+// sample, which reports a clean empty run rather than an error.
+const POSITIONAL = process.argv.slice(2).filter((a, i, all) => !a.startsWith('--') && !(i > 0 && all[i - 1].startsWith('--')));
+const UNTIL = parseFloat(POSITIONAL[1] || '40');
 
 const base = `http://127.0.0.1:${PORT}`;
 async function up(url, ms = 45000) {
@@ -40,7 +52,7 @@ const errs = [];
 page.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
 page.on('pageerror', e => errs.push('pageerror: ' + e.message));
 
-await page.goto(`${base}/?quality=low&t=0.1&hud=0&nomenu=1`, { waitUntil: 'load' });
+await page.goto(`${base}/?quality=low&t=0.1&hud=0&nomenu=1${ARGV_LEVEL ? `&level=${ARGV_LEVEL}` : ''}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 120000 });
 
 const rows = await page.evaluate(async (until) => {

@@ -781,6 +781,13 @@ export const DNA_VENOM = {
   surface: 'lava',
   surfaceKind: 'volcanic',
 
+  // Higher and wider than the default lens, and looking less far ahead. A level
+  // whose opening is a ridge is read across the corridor, not down it: at
+  // `camUp` 3.15 with 46 m of look-ahead the frame is filled by whatever stands
+  // at the end of the channel, and the flanks falling away either side of the
+  // ship — the whole point of an inverted section — leave the bottom of frame.
+  camera: { up: 9, back: 21, lookAhead: 38, lookUp: 0, fov: 66 },
+
   centreline: {
     // A lava channel follows the steepest line it burned for itself: straighter
     // than a river, and what turning it does is abrupt. Hence small sines and

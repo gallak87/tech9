@@ -22,14 +22,18 @@ Stopped clean, not mid-fix.
 read as the same level because the terrain cross-section folded about
 `Math.abs(u)`, so every one was the same valley at a different scale.
 
-**Landed: phases 1, 2, 3 and 7; phase 9 half done.** A zone can author its own
-cross-section, its own ceiling and its own camera; player flight is clamped
-under the lid rather than only the AI; and Fichina and Fortuna have been given
-shapes. Every level now names a shape combination no other level uses.
+**Landed: 1, 2, 3, 5, 7, 8, and most of 9.** A zone carries its own
+cross-section, ceiling and camera; player flight is clamped under the lid; the
+hull pitches with the corridor; and a surface is floor or ceiling depending
+which side of it the rail runs — Aquas now opens 90 m above its sea and plunges
+through at 41.6°.
 
-**The next action is phase 9's remaining levels** — Aquas and Venom read against
-their rows in the four-levels table, and the Foundry, which has no cross-section
-at all. Phases 4, 5, 6 and 8 are open and specified.
+**Phase 4 is the only mechanism left** — the rail as arc-length `p(s)`. Phase 6
+(Venom's orbit arena) waits on it. Phase 9 has Aquas and the Foundry left.
+
+Two things phase 4 should fix, both measured: `railZ` is world z, so on Aquas'
+plunge true speed is 234 m/s while the HUD reads 175; and the terraced benches
+in Aquas zone 0 are now flown over at 700 m and never seen.
 
 Gates, all runnable from `games/vulpine`:
 
@@ -37,13 +41,14 @@ Gates, all runnable from `games/vulpine`:
   edit, not after.**
 - `tools/lid.mjs --audit` — new, green. Prints one standing note: Aquas' walls
   break its own sea surface by 217 m. A look question, tracked, not a failure.
-- `tools/shape.mjs --strict` — new, green. The phase 9 acceptance test.
+- `tools/shape.mjs --strict` — new, green. The phase 9 acceptance test;
+  `--draw <level>` renders a cross-section as ASCII.
 - `tools/fins.mjs --audit` — **still exits non-zero on a clean tree.**
   Pre-existing, tracked in `ROADMAP.md`, not this lane's doing.
 
-**Nothing gates rail Y.** `centrelineY` moves the rail and the digest's lattice
-samples `terrainHeight`, which reads `centrelineX` only — a fix that moved every
-climbing rail in the game was invisible to it.
+**`shots/` was pruned 2026-08-22** from 1.7 GB to 112 MB. What is left is the
+seven `ref-geometry-*.json` the digest gate needs, the seven `ref-<level>/`
+before-images, and this session's captures under `p3-` / `p5-` / `p8-` / `p9-`.
 
 Closed in the 2026-08-21 session, all under `ROADMAP.md ## Also open — the three
 new biomes` with their numbers:

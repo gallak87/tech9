@@ -552,6 +552,7 @@ export function installCampaign(ctx, startIndex = 0) {
     setWorldVisible(true);
     ctx.fx.transit?.exit();
     ctx.flight.detached = false;
+    ctx.flight.cinematic = false;
     ctx.flight.climb = 0;
     // Belongs to the level just left; the next lap measures its own.
     state.surfaceClimb = 0;
@@ -567,7 +568,14 @@ export function installCampaign(ctx, startIndex = 0) {
     if (state.phase === 'play') {
       // A win with a level still to come starts the lap; a win on the last level
       // is the end of the game and is left alone.
-      if (s.outcome === 'win' && next()) { state.phase = 'lap'; state.lapT = 0; }
+      if (s.outcome === 'win' && next()) {
+        state.phase = 'lap';
+        state.lapT = 0;
+        state.surfaceClimb = 0;
+        // Pin the camera for everything from here to `arrive()`. See
+        // `flight.cinematic`.
+        ctx.flight.cinematic = true;
+      }
       return;
     }
 
@@ -581,9 +589,14 @@ export function installCampaign(ctx, startIndex = 0) {
       // `climb` rather than the offset box: it is already the thing that moves
       // the ship outside the corridor, the ceiling clamp stands down while it is
       // non-zero, and the hop picks it up from here rather than from zero.
-      const under = railOverSurface(ctx.flight.railZ);
-      if (under !== null && under < 0) {
-        state.surfaceClimb = -under + SURFACE_CLEAR;
+      // Latched on the first tick of the lap, not tracked. `railOverSurface`
+      // is a function of `railZ`, which is still advancing, so re-reading it
+      // every frame made the target of the ramp move underneath the ramp — the
+      // ship chased a number instead of flying a curve, and once `p` reached 1
+      // the climb tracked `railZ` directly.
+      if (state.surfaceClimb === 0) {
+        const under = railOverSurface(ctx.flight.railZ);
+        if (under !== null && under < 0) state.surfaceClimb = -under + SURFACE_CLEAR;
       }
       if (state.surfaceClimb > 0) {
         const p = Math.min(1, state.lapT / LAP_MIN);

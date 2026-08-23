@@ -187,6 +187,17 @@ export class Flight {
     this.camPos = new THREE.Vector3();
     this.camLook = new THREE.Vector3();
     this._camInit = false;
+    // Set by `campaign.js` for the victory lap and the whole hop. The player
+    // has no stick during either, so every term in the chase rig that models
+    // one — the offset damper, the lead, the shake — is modelling an input that
+    // is not there, and what it produces instead is jitter. Under this flag the
+    // camera is a rigid transform off the hull.
+    this.cinematic = false;
+    // dClimb/dt, in metres per second. `campaign.js` writes `climb` on frame dt
+    // and this is differenced on the fixed step, which is the clock the hull
+    // attitude runs on.
+    this.climbRate = 0;
+    this._lastClimb = 0;
     this.shake = 0;
     this._shakeSeed = 0;
 
@@ -212,12 +223,26 @@ export class Flight {
     this.prevRailZ = 0;
     this.off.set(0, 0);
     this.offVel.set(0, 0);
-    // Drop the interpolation snapshot with the corridor it belonged to.
-    // `applyRenderState` lerps `prevPos → pos`, and across a world swap those
-    // are points in two different levels: measured on Aquas' hop, one frame of
-    // 7277 m of ship travel. `_hasPrev` makes the next frame snap instead.
+
+    // Rebuild the interpolation snapshot in the corridor being arrived at.
+    //
+    // `update` takes it at the TOP of the step — `prevPos.copy(this.pos)` —
+    // so the first step after a world swap pairs a `prevPos` in the level being
+    // left with a `pos` in the one being entered, and `applyRenderState` lerps
+    // the hull between two levels for a frame. Measured on Aquas' hop: 7003 m
+    // of ship travel in one frame on z and 92 m on y.
+    //
+    // Clearing `_hasPrev` does not fix it. That flag is re-set at the end of
+    // every `update`, so it only survives to the render on a frame that happens
+    // to run no sim step — which is why doing it that way measured 2.0 m once
+    // and 7003 m the next time.
+    this.railPoint(this.railZ, this.railPos);
+    this.railTangent(this.railZ, this.railDir);
+    this.pos.set(this.railPos.x, this.railPos.y + this.climb, this.railPos.z);
+    this.prevPos.copy(this.pos);
+    this.prevQuat.copy(this.quat);
     this.prevOff.copy(this.off);
-    this._hasPrev = false;
+    this._lastClimb = this.climb;
   }
 
   railPoint(z, out = new THREE.Vector3()) {
@@ -280,6 +305,8 @@ export class Flight {
     this.prevQuat.copy(this.quat);
     this.prevRailZ = this.railZ;
     this.prevOff.copy(this.off);
+    this.climbRate = dt > 0 ? (this.climb - this._lastClimb) / dt : 0;
+    this._lastClimb = this.climb;
 
     /* ── dead: the level stops with the player ──────────────────────────────
        THE RAIL IS THE LEVEL'S CLOCK. combat.js arms every wave, comm and grant
@@ -509,7 +536,14 @@ export class Flight {
     // two diverge by the slope itself — measured -17.8° on Fortuna's climb
     // against a rail at +18.3° — and nothing clamps or warns.
     const railPitch = Math.asin(THREE.MathUtils.clamp(this.railDir.y, -1, 1));
-    _e.set(this.pitch + somerPitch + railPitch, this.yaw + railYaw, this.bank + rollExtra, 'YXZ');
+    // `climb` moves the ship vertically without touching `railDir`, so on a hop
+    // the hull kept flying level and slid upward: 1547 m of ascent in 3.5 s is
+    // 442 m/s against 175 of forward travel, a 68° climb the ship was not
+    // pointing along. Pitching into it is what makes the ramp read as flown —
+    // and because `climb` is eased at both ends, the nose rises, holds and
+    // levels, which is the arc rather than the diagonal.
+    const climbPitch = Math.atan2(this.climbRate, Math.max(1, this.speed));
+    _e.set(this.pitch + somerPitch + railPitch + climbPitch, this.yaw + railYaw, this.bank + rollExtra, 'YXZ');
     this.quat.setFromEuler(_e);
 
     this.ship.position.copy(this.pos);
@@ -567,8 +601,16 @@ export class Flight {
     // reads as the ship sliding across the frame with the meander's period.
     const k = 1 - Math.exp(-TUNE.camDamp * dt);
     if (!this._camInit) { this._sOffX = offX; this._sOffY = offY; this._camInit = true; }
-    this._sOffX += (offX - this._sOffX) * k;
-    this._sOffY += (offY - this._sOffY) * k;
+    // Pinned. The damper's whole output is the lag between where the ship is and
+    // where it was, which is what the lead terms below turn into camera motion —
+    // useful while a player is flying, noise while a scripted sequence is. Held
+    // equal, the leads are exactly zero and the rig is a fixed offset off the
+    // hull for the length of the lap and the hop.
+    if (this.cinematic) { this._sOffX = offX; this._sOffY = offY; }
+    else {
+      this._sOffX += (offX - this._sOffX) * k;
+      this._sOffY += (offY - this._sOffY) * k;
+    }
 
     // Both the rig and its aim hang off the ship, and the ship's lead over the
     // rig is capped in metres. Expressed as a share of the offset it is not:

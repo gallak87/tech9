@@ -129,22 +129,21 @@ register, swept collision.
       Lateral placement already follows the corridor via `railPoint`; only the
       along-track distance does not. Phase 4 left it alone because fixing it
       moves every battery in the game and wants a pacing pass with it.
-- [ ] **Corneria's overland hop still jumps 984 m in one frame, and hitches
-      189 ms.** `tools/hop.mjs --level corneria`. The 7277 m version of this on
-      Aquas was `applyRenderState` interpolating the ship across the world swap
-      and is fixed; whatever is left here is smaller and is NOT that, because
-      the same fix took Aquas' worst frame to 2.0 m. The 189 ms frame is the
-      rebuild itself against a `BUILD_MS` of 6 — likely a different problem in
-      the same second. Owner report: the hops are "SUPER jittery all over".
+- [ ] **A hop still hitches ~45-190 ms on one frame.** `tools/hop.mjs` reports
+      frame dt; the worst frame is the world rebuild against a `BUILD_MS` of 6.
+      The one-frame *position* jumps are fixed (below); this is the remaining
+      half of "jittery" and it is a budget problem, not a rig one. `PLAN-PERF`.
 
-- [ ] **The residual shake on a hop is unmeasured.** `hop.mjs` reports sign
-      flips in the camera-to-ship offset at a 2 cm threshold, and 25% of frames
-      flip — but a spring-and-damper rig flips sign at 2 cm as a matter of
-      course, so that number does not distinguish jitter from normal settling
-      and should not be read as a defect count. A metric that does is still
-      wanted. **Tested and disproved:** that `flight.climb` is written on frame
-      dt while the rig interpolates on the fixed step. Interpolating it moved
-      the flip count 361 → 397, i.e. nowhere, so do not spend the cycle again.
+- [ ] **`hop.mjs`'s sign-flip count is not a defect count.** It thresholds at
+      2 cm, and a spring-and-damper rig flips sign at 2 cm as a matter of
+      course. Read `worst` and `p95` per axis instead. A metric that separates
+      settling from jitter is still wanted.
+
+- [ ] **Tested and disproved, do not repeat:** that the hop jitter came from
+      `campaign.js` writing `flight.climb` on frame dt while the rig
+      interpolates on the fixed step. Interpolating `climb` in the rig moved the
+      numbers nowhere (flip count 361 → 397). The cause was the interpolation
+      snapshot surviving a world swap — see `flight.resetRail`.
 
 - [ ] **The Foundry does not finish under the probe, and it is not the rail
       work.** `pilot.mjs fly --seconds 115 --params level=foundry` runs to

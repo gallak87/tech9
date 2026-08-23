@@ -133,6 +133,15 @@ this it could not have.
   the boss with `combat.killBoss()` to get there. Not a gate: read `worst` per
   axis, which is what catches a one-frame jump. Its sign-flip count is too
   sensitive to be diagnostic — see ROADMAP.
+
+  **The hop was three separate defects, all found with it.** The interpolation
+  snapshot survived a world swap (7003 m of hull travel in one frame on Aquas,
+  984 on Corneria — now 2.0 and 0.97); the hull never pitched into `climb`, so
+  a 68° ascent was flown level and read as a diagonal slide rather than an arc;
+  and the chase rig kept running its damper, lead and shake through a sequence
+  with no player input (`flight.cinematic` pins it now). `campaign.js` also
+  re-read `surfaceClimb` every frame while `railZ` was still advancing, so the
+  lap's ramp chased a moving target instead of flying a curve.
 - `tools/quiet.mjs --audit` — green. Rail moves: fast, in the gaps, and wave
   tables in order. Static, so it is cheap; `pacing.mjs` is the live instrument.
 - `tools/fins.mjs --audit` — green. Gates on the worst single mesh's back-facing

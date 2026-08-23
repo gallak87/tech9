@@ -128,6 +128,11 @@ this it could not have.
 - `tools/pilot.mjs fly --headed` prints **two console 404s that headless does
   not**. Verified on the same commit, both ways: it is the harness, not the
   build. Do not chase it.
+- `tools/hop.mjs [--level L] [--headed]` — records every rendered frame of the
+  victory lap and the transition and reports the camera-to-ship offset. Kills
+  the boss with `combat.killBoss()` to get there. Not a gate: read `worst` per
+  axis, which is what catches a one-frame jump. Its sign-flip count is too
+  sensitive to be diagnostic — see ROADMAP.
 - `tools/quiet.mjs --audit` — green. Rail moves: fast, in the gaps, and wave
   tables in order. Static, so it is cheap; `pacing.mjs` is the live instrument.
 - `tools/fins.mjs --audit` — green. Gates on the worst single mesh's back-facing

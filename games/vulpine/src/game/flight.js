@@ -212,6 +212,12 @@ export class Flight {
     this.prevRailZ = 0;
     this.off.set(0, 0);
     this.offVel.set(0, 0);
+    // Drop the interpolation snapshot with the corridor it belonged to.
+    // `applyRenderState` lerps `prevPos → pos`, and across a world swap those
+    // are points in two different levels: measured on Aquas' hop, one frame of
+    // 7277 m of ship travel. `_hasPrev` makes the next frame snap instead.
+    this.prevOff.copy(this.off);
+    this._hasPrev = false;
   }
 
   railPoint(z, out = new THREE.Vector3()) {

@@ -129,6 +129,23 @@ register, swept collision.
       Lateral placement already follows the corridor via `railPoint`; only the
       along-track distance does not. Phase 4 left it alone because fixing it
       moves every battery in the game and wants a pacing pass with it.
+- [ ] **Corneria's overland hop still jumps 984 m in one frame, and hitches
+      189 ms.** `tools/hop.mjs --level corneria`. The 7277 m version of this on
+      Aquas was `applyRenderState` interpolating the ship across the world swap
+      and is fixed; whatever is left here is smaller and is NOT that, because
+      the same fix took Aquas' worst frame to 2.0 m. The 189 ms frame is the
+      rebuild itself against a `BUILD_MS` of 6 — likely a different problem in
+      the same second. Owner report: the hops are "SUPER jittery all over".
+
+- [ ] **The residual shake on a hop is unmeasured.** `hop.mjs` reports sign
+      flips in the camera-to-ship offset at a 2 cm threshold, and 25% of frames
+      flip — but a spring-and-damper rig flips sign at 2 cm as a matter of
+      course, so that number does not distinguish jitter from normal settling
+      and should not be read as a defect count. A metric that does is still
+      wanted. **Tested and disproved:** that `flight.climb` is written on frame
+      dt while the rig interpolates on the fixed step. Interpolating it moved
+      the flip count 361 → 397, i.e. nowhere, so do not spend the cycle again.
+
 - [ ] **The Foundry does not finish under the probe, and it is not the rail
       work.** `pilot.mjs fly --seconds 115 --params level=foundry` runs to
       z -21200 with `boss=true`, `weapon LASER` and 17-19 kills. Its DNA is

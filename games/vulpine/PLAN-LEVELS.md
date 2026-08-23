@@ -58,6 +58,48 @@ No two rows alike. Nothing in the toolchain checks this table; read it by hand.
   escarpment, breach to interior, a steep shaft down through decks, then a wide
   low-ceilinged assembly floor.
 
+## What uniqueness means here
+
+Read this before picking up a level. It is the part the table cannot say, and
+it has now been got wrong twice on the same level.
+
+**A level's identity has to hold for the whole corridor, not appear as a beat.**
+Venom's first two passes both put its distinctive form at the start and the
+stock grammar after it — 11 seconds of ridge in a 60-second level. That does not
+read as "a ridge level", it reads as the old map with an intro. The owner's
+words, seeing it: *"I saw the ridge, flew down that was cool — then the rest of
+the level was canyon again."* The rebuild committed all eight zones to the
+spine, and only then did it become a different level.
+
+So when you author, the question is not "does this level contain its shape"
+but **"is there anywhere in these nine kilometres where it stops being that
+shape"**. If the answer is yes and it was not deliberate, that stretch is the
+work.
+
+**Variety comes from varying the identity, not from leaving it.** Venom is a
+spine for all of it and is still not monotonous, because four things move
+underneath: crest height 330 → 80 → 450 → 110, crest width, where the flanks
+meet the lava (345 m to 640 m), and one zone asymmetric. A level that gets bored
+of its own shape and cuts to a canyon has given up the only thing that made it
+distinct.
+
+**The owner's acceptance test is playing it.** `shape.mjs --strict` is now a
+real gate and it still cannot tell you a level is good — it told us Venom was
+done while 82% of it was stock. Fly the level before you claim a row.
+
+**The rail dive is under-used and the owner asked for more of it.** *"def love
+the zrail dive thats a new mechanic we need to start using more!"* Only Aquas
+and Venom have one. It costs a `climb` on a zone and a section that comes down
+with it, and it is the cheapest distinctive thing in the toolkit — the corridor
+going somewhere vertically is felt immediately in a way a cross-section is not.
+Fichina and Corneria have none; Fortuna's brief calls for one and it has none.
+
+**Picking a level.** Fortuna is next by value — 14% authored, the most static
+level in the game, and its headline beat is already built. But any level whose
+row in the table above carries a ❌ is fair game, and the first question for
+each is the same one: what does it look like for the whole nine kilometres, and
+where does it stop looking like that.
+
 ## Phases
 
 | # | Deliverable | Status |
@@ -180,6 +222,15 @@ number.
 half a blend at each end — with `bank` set to the ground that zone's section
 actually puts there, and never where the rail is climbing.
 
+**Props authored below the mesh sample spacing alias, and it looks like a
+winding bug.** The shading normal is a central difference across two mesh
+columns, and spacing is 6 m at the centreline growing outward — so an island
+narrower than that has facets whose geometric normal disagrees with the vertex
+normal, sometimes inverting. Fortuna's 54 stalks at 16−44 m radius produce 105
+back-facing facets out of 759,280 this way. Harmless (the shading is analytic
+and stays correct) and it is what `fins.mjs` prints as a note, but do not read
+it as an index-order defect: a real one reads 100% of a mesh, not 0.6%.
+
 **There is no terrain crash.** The ground is a floor with a cushion, not a
 hazard (`flight.js:345-355`). Terrain rising into the rail bulldozes the ship
 upward without limit; terrain falling away does nothing.
@@ -214,28 +265,10 @@ ground, reads as none of the others. Cheap version — `waterLevel` well under
 ## Open
 
 - [x] **`shape.mjs --strict` passed a level that was 18% authored.** Closed
-      2026-08-22. It took twelve samples and asked only that no two levels name
-      the same set of shapes, so it measured variety ACROSS levels and nothing
-      about coverage WITHIN one — which is how "Venom done" survived two
-      sessions of review.
-
-      It now does both of the things this item asked for. **Coverage** samples
-      every 40 m and reports what fraction of each corridor measures each shape,
-      alongside the metres carrying an authored `section` and how far the rail
-      moves in how many monotone runs. And the **four-levels table is encoded in
-      the tool** as `BRIEF`, with a `done` flag: a row marked done must keep
-      meeting its row or `--strict` exits 1, while a row not yet done prints as
-      outstanding and fails nothing — so the gate stays green on a clean tree
-      instead of becoming noise the way a permanently red one does.
-
-      Verified against the tree it was built for: the pre-rebuild Venom fails on
-      three independent counts — `RIDGE covers 18% of 55%`, `rail moves 24 m of
-      250`, `1 rail runs of 3`.
-
-      Thresholds on a `done` row sit below the measured value, so the row is a
-      regression test rather than a restatement of today's numbers. Writing one
-      from intent is caught immediately: `minRuns: 4` on Venom broke the row on
-      its first run, because the rail makes three.
+      2026-08-22 — it now samples coverage every 40 m and checks the four-levels
+      table row by row. See the tool's own header for the design and `BRIEF` for
+      the rows. Add a level there when you author it, and mark it `done` only
+      when its row reads `meets`.
 
 - [ ] **Aquas' drop-off does not read.** The section is correct (`terrainHeight`
       runs +263 to −473 across the corridor at z = −4600) but underwater fog
@@ -258,22 +291,10 @@ ground, reads as none of the others. Cheap version — `waterLevel` well under
       callers hoist one profile object per build (`terrain.js:184`,
       `world-materials.js:282`), which is a hard contract nothing enforces.
 
-- [x] **`fins.mjs --audit` exited non-zero on a clean tree.** Closed
-      2026-08-22, and the "reversed triangles" were never a winding defect. The
-      shading normal is a central difference across two mesh columns, and
-      `islands` are authored far below that scale — Fortuna's 54 stalks are
-      16−44 m in radius against a sample spacing of 6 m at the centreline and
-      growing outward. On a feature narrower than the grid, the column
-      difference and the facets it spans honestly disagree and can invert. That
-      is aliasing between the mesh and the field, and the per-triangle threshold
-      was measuring it instead of winding.
-
-      A winding regression is not a scattering, it is a whole mesh: the index
-      buffer is built and written per mesh, so reversing the order reverses
-      every triangle in it. The gate now fails on the worst single mesh's
-      back-facing *fraction*. Measured both ways — clean tree 0.607% (fortuna)
-      and exit 0; with `terrain.js:333` reversed, **100.000%** on the first mesh
-      and exit 1. The threshold sits two orders of magnitude clear of both.
+- [x] **`fins.mjs --audit` exited non-zero on a clean tree.** Closed 2026-08-22.
+      The "reversed triangles" were sub-grid props aliasing against the mesh, not
+      winding; the gate now tests the worst single mesh's back-facing fraction,
+      because a winding regression is a whole mesh. See the constraint below.
 
 ## How to work this lane
 

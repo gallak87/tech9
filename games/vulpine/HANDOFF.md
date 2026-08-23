@@ -16,104 +16,78 @@ and the traps. The plans live elsewhere:
 
 ## Where we left off — 2026-08-22
 
-Stopped clean, not mid-fix.
+Stopped clean, not mid-fix. All four gates green on a clean tree at once, which
+had not been true before.
 
 **The active lane is level identity — `PLAN-LEVELS.md`.** Five of seven levels
 read as the same level because the terrain cross-section folded about
 `Math.abs(u)`, so every one was the same valley at a different scale.
 
-**Every mechanism but one is landed: 1, 2, 3, 4, 5, 7 and 8.** Phase 9 — the
-authoring those mechanisms exist for — has done **two levels of four**: Venom is
-100% authored, Aquas 72%, Fortuna 14%, the Foundry 0%. A zone
-carries its own cross-section, ceiling and camera; player flight is clamped
-under the lid; the hull pitches with the corridor; and a surface is floor or
-ceiling depending which side of it the rail runs — Aquas now opens 90 m above
-its sea and plunges through at 41.6°, levels out among its terraces and
-descends again into its trench.
+**Every mechanism is landed** — phases 1-5, 7 and 8. What is left is the
+authoring they exist for, plus phase 6.
 
-**Fortuna is next, and its headline beat is already built.** Its brief — over a
-sea of glowing crowns, down through a gap, along the dark understory — is
-exactly what phase 8 gave Aquas, and Fortuna simply has no `canopy` declared. It
-is 14% authored and the most static level in the game.
+### The next action is Fortuna
 
-Two things Venom surfaced that outlive it. **`bands.crag.face`** now opens the
-crag band on local slope rather than on distance, which is the only way any
-noise reaches an inverted section — it defaults to 0 and the other six levels
-are byte-identical, so a level opts in. And **a surface plane at y = 0 pins the
-rail**, because the offset box is 46 m deep: that is why Venom had no `climb`
-anywhere and why its base had to go 48 → 400 before it could have a rhythm.
-Fortuna has water at y = 0 and the same pin. Phase 6 (the orbit arena) carries
-the last piece of phase 4 with it.
+It is 14% authored and the most static level in the game, and its headline beat
+is already built: over a sea of glowing crowns, down through a gap, along the
+dark understory, back out. That is exactly what phase 8 gave Aquas — Fortuna
+simply has no `canopy` declared. Expect a full session; the last two authoring
+passes each took one.
+
+Two things it will hit immediately, both paid for on Venom:
+
+- **A surface plane at y = 0 pins the rail.** `groundAt` clamps there and the
+  offset box is 46 m deep, so the rail can never come below ~60. Fortuna has
+  water at y = 0 and a base of 52, so it *cannot descend at all* until the base
+  goes up — which is why it has no dive today. Venom's had to go 48 → 400.
+- **`bands.crag.face`** opens the crag band on local slope rather than on
+  distance, which is the only way any noise reaches an inverted section. Fortuna
+  is near-flat so it may not need it, but the gate that decides is the same one.
+
+After Fortuna: **phase 6** (the orbit arena, which carries the last piece of
+phase 4 — `railPoint` still composes z, so the corridor cannot double back), and
+**the Foundry**, which is not an authoring job at all — `works` is one box for
+all 9 km and `Works.deckY()` is a static with no z, so three of its four brief
+rows have nothing to author into.
+
+### What landed this session
+
+Aquas authored to 72% and read against its row; **Venom wiped and rebuilt as a
+spine for all nine kilometres** (RIDGE 85% of the corridor, rail 400/150/520/180,
+`crag.face` added for it); phase 4, so speed is measured along the rail and
+`ai.js` station offsets rotate through its heading; and both gates that were not
+gating — `shape.mjs` now checks the four-levels table, `fins.mjs` now tests
+winding rather than sub-grid aliasing.
 
 **Read a brief row against live play before believing it.** Venom's said
 "inverted / rhythm / alternates" and was authored as a ridge at the start and a
-canyon after; the owner wanted the whole nine kilometres on the spine. Two
-agents shipped the narrow reading. Speed is now measured along the rail — `railStretch`
-in `profile.js`, divided into the advance — so Aquas no longer flies at 234 m/s
-against a HUD reading 175, and `ai.js` station offsets rotate through the rail's
-heading instead of meaning −z. But `railPoint` still composes z, so the corridor
-cannot double back yet.
+canyon after. The owner wanted the whole nine kilometres on the spine. Two
+agents shipped the narrow reading before it was caught in play.
 
-**The next action is phase 6.** It needs `railPoint` to dispatch to a per-level
-path object rather than `set(centrelineX(z), centrelineY(z), z)`. That
-indirection was deliberately NOT landed with phase 4: no level would take the
-branch, and ship criterion 7 is no dead code. Land it with the arena that
-authors one. The contract it has to keep is that the *parameter* stays monotone
-even where the *position* loops — three cursors and the only end-of-level test
-ride on that.
-
-The same indirection is what the Foundry's shaft wants: `y(z)` cannot be
-vertical at any authored numbers. Gradients up to ~75° are now flyable at honest
-speed, and are limited by authoring (`1.5 · climb / blend`) rather than by the
-parameterisation.
-
-**Phase 9's remainder is not an authoring job.** `works` is one box for all
-9 km and `Works.deckY()` is a static with no z, so three of the Foundry's four
-brief beats have nothing to author into. It wants the mechanism pass phases 2
-and 3 gave `terrain`, repeated for `works`.
-
-Gates, all runnable from `games/vulpine`:
+### Gates, all runnable from `games/vulpine`
 
 - `tools/digest.mjs --against` — green on all seven. **Cut a digest before you
   edit, not after.**
-- `tools/lid.mjs --audit` — green, and as of the Aquas pass it prints no
-  standing notes: the walls that broke that level's own sea surface no longer
-  reach it.
-- `tools/shape.mjs --strict` — green. The phase 9 acceptance test, and as of
-  2026-08-22 it checks the four-levels table rather than only the shape clash:
-  each level against its row, with `done` rows gating and `open` rows printed as
-  the work. It also prints per-corridor coverage — what fraction is each shape,
-  authored metres, and how far the rail moves in how many runs. `--draw <level>`
+- `tools/lid.mjs --audit` — green, and prints no standing notes since the Aquas
+  pass took its walls back under its own sea surface.
+- `tools/shape.mjs --strict` — green. Checks the four-levels table row by row
+  (`done` rows gate, `open` rows print as the work) as well as the shape clash,
+  and prints per-corridor coverage: what fraction is each shape, authored
+  metres, and how far the rail moves in how many monotone runs. `--draw <level>`
   renders a cross-section as ASCII with the rail height beside it.
-- `tools/fins.mjs --audit` — green as of 2026-08-22. It used to fail on a clean
-  tree because it tested individual triangles; a winding regression is a whole
-  mesh, so it now gates on the worst single mesh's back-facing fraction. The
-  scattered facets it still prints as a note are sub-grid props aliasing against
-  the mesh, not winding.
-
-**`shots/` was pruned 2026-08-22** from 1.7 GB to 112 MB. What is left is the
-seven `ref-geometry-*.json` the digest gate needs, the seven `ref-<level>/`
-before-images, and this session's captures under `p3-` / `p5-` / `p8-` / `p9-`.
-
-Closed in the 2026-08-21 session, all under `ROADMAP.md ## Also open — the three
-new biomes` with their numbers:
-
-- Venom's molten channel; **Fortuna had no terrain at all** (`GLSL_GLOW`
-  declared `float patch`, a reserved word, so its fragment shader never
-  compiled), then its tone, its 65 m tiling and its missing mid-band.
-- All three new bosses probed and winnable; the bloom "4x long" defect closed.
-- The hop wiring read end to end: **no gaps**, nothing needed wiring.
-- `tools/fins.mjs --audit` had been auditing nothing and now works.
-
-Still open and untouched, all in `ROADMAP.md`: no hop has ever been *flown*
-into a new level (`tools/pilot.mjs hop`), no `pacing.mjs` pass on Aquas,
-Fortuna or Venom, `lancer` / `scarab` / `pylon` never measured, Aquas has no
-arrival beat, boss durability does not scale across the campaign, and Fortuna
-has 25 truly-reversed terrain triangles.
+- `tools/fins.mjs --audit` — green. Gates on the worst single mesh's back-facing
+  fraction, because a winding regression is a whole mesh; the scattered facets
+  it prints as a note are sub-grid props aliasing against the grid.
 
 **`shots/` is gitignored**, so every capture named in these docs is local to
 whoever made it. A fresh clone regenerates its own baseline — the command is in
-`PLAN-LEVELS.md ## Verification`.
+`PLAN-LEVELS.md ## Verification`. It was pruned 2026-08-22 from 1.7 GB to
+112 MB; what a gate actually needs is the seven `ref-geometry-*.json`.
+
+Still open and untouched, all in `ROADMAP.md`: no hop has ever been *flown* into
+a new level (`tools/pilot.mjs hop`), no `pacing.mjs` pass on Aquas or Venom,
+`lancer` / `scarab` / `pylon` never measured, and boss durability does not scale
+across the campaign.
 
 ## Rules
 

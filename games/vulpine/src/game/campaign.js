@@ -310,13 +310,14 @@ const AQUAS_COMMS = [
      720 crowns -780 plunge -2180 reach -3480 stand -4680 clearing -5830
      hollow -7280 gallery -8280 bloom -9840
 
-   The rail descends from 860 to 125 across those, so a wave's altitude changes
-   with where it fires far more than on any other level. */
+   The rail is dead level at 200 for all of them, which is the one thing that
+   makes this table easy: every wave fires from the same altitude, and the three
+   battery lines sit 13-18° under the nose wherever they land. */
 const FORTUNA_WAVES = [
   { z: -260, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1650, arc: -0.50, climb: 0.24, skill: 0.44, life: 8.5 },
-  // In the plunge, taken head-on at 43° of nose down.
+  // Taken head-on as the forest closes in around the corridor.
   { z: -1450, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1600, arc: 0.32, climb: 0.18, skill: 0.48, aggro: 0.24, life: 10.5, drops: ['weapon'] },
-  // Lands -3930…-4230 on the first bar pair, under a rail held at 205.
+  // Lands -3930…-4230 on the first bar pair.
   { z: -2430, kind: 'bulwark', n: 3, form: 'banks', first: 1500, step: 150, bank: 430, drops: ['health'] },
   { z: -2900, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1500, arc: 0.60, climb: -0.22, skill: 0.50, aggro: 0.26, life: 8.5 },
   { z: -4300, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.52 },
@@ -340,8 +341,8 @@ const FORTUNA_WAVES = [
    place their emplacements 1500 m ahead of their own trigger, so the useful
    moment is most of a kilometre later. */
 const FORTUNA_COMMS = [
-  { z: -180, who: 'SLIPPY', text: 'Fox, we are over the tops of them. That whole forest is alive.' },
-  { z: -1180, who: 'FALCO', text: 'Going down into it. Watch your wingtips in there.' },
+  { z: -180, who: 'SLIPPY', text: 'Fox, the whole forest is alive. I have never seen readings like this.' },
+  { z: -1180, who: 'FALCO', text: 'It closes up ahead. Watch your wingtips in there.' },
   { z: -2980, who: 'PEPPY', text: 'They dug guns into the mud bars. Do not let them settle on you.' },
   { z: -4260, who: 'PEPPY', text: 'Behind you, Fox!' },
   { z: -5060, who: 'SLIPPY', text: 'Swarm in the clearing! They came out of the water!' },

@@ -38,7 +38,7 @@ No two rows alike. Nothing in the toolchain checks this table; read it by hand.
 |---|---|---|---|---|---|
 | Aquas | terraced, asymmetric ✅ | walled ✅ | deep dive ✅ | constant lid ✅ | none ✅ |
 | Venom | **inverted, whole level** ✅ | open ✅ | rhythm ✅ | **alternates** ❌ | lava ✅ |
-| Fortuna | flat, drowned ✅ | **columns** ✅ | descent ✅ | none ✅ | water ✅ |
+| Fortuna | flat, drowned ✅ | **columns** ✅ | **level, whole level** ✅ | none ✅ | water ✅ |
 | Foundry | escarpment ❌ | walled ❌ | steep shaft ❌ | built, varies ❌ | deck ✅ |
 
 **`flank` is a column because a cross-section could not tell these levels
@@ -62,12 +62,11 @@ at all.
   with lava on either side."*
 - **Fortuna — a drowned forest, and the corridor is made of trunks.** Black
   water bank to bank with no land in it and colossal glowing trunks standing out
-  of it; the ship starts over the crowns at 860, plunges 430 into the canopy and
-  works down to 125 among the roots. The two layers of its old brief are still
-  there and are *heights*, not sides of a surface — which is what its own DNA
-  had said all along, and which is why it wants no `canopy`: that module is one
-  flat plane carrying a water shader, and Fortuna's understory is somewhere you
-  descend into, not something you pass under.
+  of it. The rail is **dead level for all nine kilometres** — the only one in
+  the game that is — and what varies is the forest: how close the ranks come,
+  how tall they stand, how deep the water under them is, and where they stop.
+  It wants no `canopy`: that module is one flat plane carrying a water shader,
+  and this level's layers are heights.
 - **The Foundry — outside, inside, then down.** Exterior gantry run as an
   escarpment, breach to interior, a steep shaft down through decks, then a wide
   low-ceilinged assembly floor.
@@ -102,13 +101,26 @@ real gate and it still cannot tell you a level is good — it told us Venom was
 done while 82% of it was stock. Fly the level before you claim a row.
 
 **The rail dive is under-used and the owner asked for more of it.** *"def love
-the zrail dive thats a new mechanic we need to start using more!"* Aquas, Venom
-and Fortuna have one; Fichina and Corneria have none. It costs a `climb` on a
-zone and a section that comes down with it, and it is the cheapest distinctive
-thing in the toolkit — the corridor going somewhere vertically is felt
-immediately in a way a cross-section is not. Fortuna's is 430 m at 43° of nose
-down, and it does not need a section under it, because on that level the thing
-the dive is measured against is the trunks.
+the zrail dive thats a new mechanic we need to start using more!"* Aquas and
+Venom have one; Corneria, Fichina and Fortuna have none. It costs a `climb` on a
+zone and a section that comes down with it, and the corridor going somewhere
+vertically is felt immediately in a way a cross-section is not.
+
+**But a rail only reads where something moves with it, and it is not free.**
+Fortuna was authored with 735 m of descent over a floor that is a plane at
+y = 0 everywhere, and the owner, flying it: *"its like your going up and down
+for no reason there is no objects in the way you just got slightly closer to
+the islands then flew back up again."* Venom's crest comes down with its dive
+and Aquas' plunge crosses the sea surface; Fortuna's dive had nothing to be
+measured against, so it changed nothing in frame.
+
+And it charges the player for it. *"as you're flying around the zrail moves you
+and your aim stops moving by the edge so it feels like youre restricted"* —
+the ship's offset box is fixed around the rail, so every metre the rail moves is
+a metre of the player's own travel spent following it rather than aiming.
+**A level with no reason to move the rail should hold it still**, which is now
+Fortuna's row in the table above and is gated as a `maxRange` in `shape.mjs` —
+the one row in that table that asks a rail to stay put.
 
 **A corridor need not be made of ground.** Fortuna's is made of props: the
 sections are submerged bank to bank and what the ship flies between is the
@@ -267,6 +279,13 @@ cursors and the end-of-level test working. It uses the same ±6 m central
 difference as `railTangent` deliberately — the two are read on the same tick as
 attitude and as rate, so an analytic derivative would pitch the hull to a slope
 the speed correction did not agree existed.
+
+**A moving rail spends the player's aim budget.** `flight.js` holds the ship in
+an offset box around the rail — 105 m lateral, 78/46 vertical — so rail motion
+and player motion come out of the same allowance. On a level where the rail is
+going somewhere the player can see, that is the ride; on one where it is not, it
+reads as being pushed. Fortuna's rail is dead level for this reason and carries
+not even the ±20 m of sine every other level has in `centreline.y.waves`.
 
 **A prop is tested over ±2.2 r of z, and `flat` divides the z term by 0.35.**
 Radius therefore buys three times as much length down the level as across it: a

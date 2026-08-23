@@ -41,11 +41,20 @@ path object — landed with the arena that authors one, not before.
 ### What landed this session
 
 **Fortuna rebuilt as a drowned forest**, 14% authored to 100%: every section
-submerged bank to bank, no land anywhere except six authored mud plates, and the
-corridor made of trunks in the `islands` table rather than of ground. The rail
-descends 860 → 125 across eight zones with a 430 m plunge at 43° of nose down.
-Its waves and comms are retimed onto the new zones and the three battery lines
-are authored onto the plates.
+submerged bank to bank, no land anywhere except six authored mud bars, and the
+corridor made of trunks in the `islands` table rather than of ground. Its waves
+and comms are retimed onto the new zones and the three battery lines are
+authored onto the bars.
+
+**Its rail is dead level at 200** — no `climb` on any zone and not even the
+±20 m of sine every other level carries. It was authored with 735 m of descent
+first, and that was wrong: the floor is a plane at y = 0 everywhere, so the dive
+had nothing to be measured against, and the offset box means every metre the
+rail moves is a metre of the player's own travel spent following it. Owner, on
+the descending version: *"its like your going up and down for no reason there is
+no objects in the way"*, and *"the zrail moves you and your aim stops moving by
+the edge so it feels like youre restricted"*. `shape.mjs` now gates it as a
+`maxRange` — the one row in that table that asks a rail to stay put.
 
 **`shape.mjs` gained the flank pass** — `walled` / `columns` / `open`, measured
 as how much of the level has anything standing in the 180-800 m band and how
@@ -69,6 +78,9 @@ this it could not have.
 - **Props scattered in a narrow lateral band overlap into two walls.** A trunk
   is 200 m across and the ranks are 180 m apart; in one band that is a canyon
   with texture on it. Scattered from 320 to 1150 m, the same count reads as gaps.
+- **A rail dive is only felt where something comes with it.** Venom's crest
+  descends with its dive, Aquas' plunge crosses the sea surface. Over a flat
+  floor a descent is invisible and still costs the player their aim budget.
 - **Read a brief row against live play before believing it.** Venom's said
   "inverted / rhythm / alternates" and was authored as a ridge at the start and
   a canyon after. Two agents shipped the narrow reading before it was caught in

@@ -129,14 +129,20 @@ const BRIEF = {
   },
   fortuna: {
     done: true,
-    row: 'flat and drowned, columnar / descent',
+    row: 'flat and drowned, columnar / level rail',
     // The only level whose corridor is made of props rather than of ground, so
     // `flank` is the row that carries its identity and `FLAT` only says that
     // nothing else does.
+    //
+    // `maxRange` rather than `minRange`, and it is the one row in this table
+    // that asks a rail to stay still. A rail that moves is only felt where
+    // something moves with it, and this level's floor is a plane everywhere —
+    // 735 m of authored descent read as nothing in frame and spent the pitch
+    // budget doing it.
     // measured: FLAT 86%, flank columns at 1.42 starts/km beside 48%,
-    // rail moves 749 m in 4 runs
+    // rail moves 0 m
     shape: { kind: 'FLAT', minCover: 0.70 },
-    rail: { minRange: 550, minRuns: 3 },
+    rail: { maxRange: 20 },
     flank: { kind: 'columns', min: 1.0 },
   },
   foundry: { done: false, row: 'escarpment / steep shaft', backend: 'works' },
@@ -364,8 +370,15 @@ for (const [id, b] of Object.entries(BRIEF)) {
   const bad = [];
   if (got < b.shape.minCover) bad.push(`${b.shape.kind} covers ${Math.round(got * 100)}% of ${Math.round(b.shape.minCover * 100)}%`);
   if (b.shape.asym && gotAsym < b.shape.minCover) bad.push(`asym covers ${Math.round(gotAsym * 100)}% of ${Math.round(b.shape.minCover * 100)}%`);
-  if (r.railRange < b.rail.minRange) bad.push(`rail moves ${Math.round(r.railRange)} m of ${b.rail.minRange}`);
-  if (r.runs < b.rail.minRuns) bad.push(`${r.runs} rail runs of ${b.rail.minRuns}`);
+  if (b.rail.minRange != null && r.railRange < b.rail.minRange) {
+    bad.push(`rail moves ${Math.round(r.railRange)} m of ${b.rail.minRange}`);
+  }
+  if (b.rail.maxRange != null && r.railRange > b.rail.maxRange) {
+    bad.push(`rail moves ${Math.round(r.railRange)} m, over the ${b.rail.maxRange} this row holds it to`);
+  }
+  if (b.rail.minRuns != null && r.runs < b.rail.minRuns) {
+    bad.push(`${r.runs} rail runs of ${b.rail.minRuns}`);
+  }
   if (b.flank) {
     const got = flankKind(r);
     if (got !== b.flank.kind) bad.push(`flank reads ${got}, not ${b.flank.kind}`);

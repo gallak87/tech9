@@ -696,20 +696,17 @@ export const DNA_AQUAS = {
 // the ship to read as a channel, and `relief` is held near zero so the noise
 // bands cannot rebuild a skyline out where the polyline stops.
 //
-// The variety is altitude WITHIN the forest, not leaving it. The rail starts
-// over the crowns at 860, dives 430 m into the canopy, works down to 130 among
-// the trunks and climbs back to 180 for the finale — so the same forest is
-// flown over, entered, threaded and fought in. `glow.height` fades out by 640,
-// which makes that a light arc as well as a height one: the opening is dark
-// trunk-tops against the aurora and the level descends into its own glow.
+// THE RAIL IS DEAD LEVEL — see `centreline.y`. What varies instead is the
+// forest and the water under it:
 //
-// The rail ledger:
-//   860 crowns  -430-> 430 plunge  -240-> 190 reach  =  190 stand
-//   +170-> 360 clearing  -230-> 130 hollow  +130-> 260 gallery  -80-> 180 bloom
+//   how close the ranks come   290 m in the hollow, 740 at a battery window
+//   how tall they stand        tops from under the rail to 610 m over it
+//   how deep the water is      52 m under the approach, 130 in the hollow,
+//                              which the shore field reads as shallow-to-black
+//   where they stop            the clearing, and the ring around the arena
 //
-// The stand holds level on purpose: it carries a battery wave, and a line of
-// emplacements authored against a climbing rail is a line the ship arrives
-// above or under. Six is also all the y dog-legs `MAXB` has.
+// plus the gallery, the one stretch where they stand in ranks rather than
+// scattered.
 //
 // The only land in the level is six mud bars, and they exist because three
 // waves of ground batteries have to stand on something. They are islands rather
@@ -758,11 +755,20 @@ export const DNA_FORTUNA = {
       ],
       bends: [],
     },
-    // 860 is crown height: the outer stand tops out between 640 and 900, so the
-    // opening is flown across the tops of it. Everything below is arrived at by
-    // `climb`, and the floor does not come with the rail — the trunks are what
-    // the descent is measured against, and they are full height throughout.
-    y: { base: 860, waves: [{ a: 14, w: 0.00045, p: 0.2 }, { a: 6, w: 0.00128, p: 1.6 }], bends: [] },
+    // Dead level, and the only rail in the game that is: no `climb` on any
+    // zone, and not even the ±20 m of sine every other level carries.
+    //
+    // A rail that moves is only felt where something moves with it. Venom's
+    // crest comes down with its dive and Aquas' plunge crosses the sea surface;
+    // Fortuna's floor is a plane at y = 0 for all nine kilometres, so 735 m of
+    // descent changed nothing in frame but the ship's distance to water it was
+    // never going to touch — and it spent the pitch budget doing it, which on
+    // an on-rails level is aim the player does not get back.
+    //
+    // 200 is set against the trunks, because they are what this level is read
+    // against: the tallest stand 610 m over the rail and the shortest top out
+    // under it.
+    y: { base: 200, waves: [], bends: [] },
   },
 
   // ── Eight zones, one shape ──────────────────────────────────────────────
@@ -771,8 +777,8 @@ export const DNA_FORTUNA = {
   // the water shader reads as shallow-to-black through the baked shore field —
   // and the trunk stand overhead, which is the `islands` table below.
   zones: [
-    // The crowns. Flown at 860 over the tops of the outer stand, with the whole
-    // lit understory spread out underneath and the water 900 m down.
+    // The approach. The widest, sparsest water in the level — the ranks stand
+    // well out and there is open sky over the ship before the forest closes.
     {
       kind: 'basin', len: 1500, inner: 600, bed: 52, wallH: 60, relief: 0.045,
       section: [
@@ -780,12 +786,9 @@ export const DNA_FORTUNA = {
         [340, -45], [640, -37], [920, -28], [1200, -20],
       ],
     },
-    // The plunge: 430 m down into the canopy over a 700 m blend, 43° of nose
-    // down. The floor stays where it is — this is the ship entering the forest,
-    // not the forest rising to meet it.
+    // The forest closes: the same ranks brought in, over deeper water.
     {
       kind: 'basin', len: 1400, blend: 700, inner: 560, bed: 68, wallH: 60, relief: 0.04,
-      climb: -430,
       section: [
         [-1200, -26], [-880, -38], [-560, -52], [-280, -62], [0, -68],
         [300, -60], [600, -48], [900, -34], [1200, -22],
@@ -794,7 +797,7 @@ export const DNA_FORTUNA = {
     // Into the stand proper, and the first hard turn under it.
     {
       kind: 'basin', len: 1300, blend: 600, inner: 540, bed: 78, wallH: 60, relief: 0.04,
-      climb: -240, bend: { dx: 260, width: 900 },
+      bend: { dx: 260, width: 900 },
       section: [
         [-1200, -30], [-860, -44], [-540, -60], [-260, -72], [0, -78],
         [280, -70], [580, -54], [880, -38], [1200, -24],
@@ -811,22 +814,21 @@ export const DNA_FORTUNA = {
         [260, -76], [560, -58], [880, -42], [1200, -28],
       ],
     },
-    // The clearing: the forest thins to almost nothing and the rail climbs 170
-    // out of it, so there is open air over a bare mirror. It is the only place
-    // in the level with room to turn, which is why the swarm is here.
+    // The clearing: the forest thins to four trunks, all of them past 1000 m,
+    // over the deepest and blackest water on the level. It is the only place
+    // with room to turn, which is why the swarm is here.
     {
       kind: 'basin', len: 1150, blend: 500, inner: 620, bed: 112, wallH: 60, relief: 0.035,
-      climb: 170,
       section: [
         [-1200, -34], [-900, -52], [-620, -76], [-320, -98], [0, -112],
         [320, -96], [620, -74], [900, -50], [1200, -32],
       ],
     },
-    // The hollow. The deepest water and the densest, tallest stand, flown at
-    // 130 — the trunks run 800 m up past the canopy the level entered through.
+    // The hollow. The densest and closest stand, over the deepest water: the
+    // ranks come to 290 m and the tallest of them stand 610 m over the rail.
     {
       kind: 'basin', len: 1450, blend: 700, inner: 560, bed: 130, wallH: 60, relief: 0.03,
-      climb: -230, bend: { dx: 300, width: 1100 },
+      bend: { dx: 300, width: 1100 },
       section: [
         [-1200, -40], [-880, -64], [-560, -92], [-280, -116], [0, -130],
         [280, -114], [560, -90], [880, -62], [1200, -38],
@@ -836,7 +838,7 @@ export const DNA_FORTUNA = {
     // scattered, in `islands.fixed` below. Second battery, on its own bars.
     {
       kind: 'basin', len: 1000, blend: 500, inner: 560, bed: 90, wallH: 60, relief: 0.04,
-      climb: 130, bend: { dx: -240, width: 800 },
+      bend: { dx: -240, width: 800 },
       section: [
         [-1200, -32], [-880, -50], [-560, -70], [-260, -84], [0, -90],
         [260, -82], [560, -62], [880, -44], [1200, -30],
@@ -847,7 +849,6 @@ export const DNA_FORTUNA = {
     // is not a slalom.
     {
       kind: 'basin', len: 1560, blend: 600, inner: 620, bed: 78, wallH: 60, relief: 0.04,
-      climb: -80,
       section: [
         [-1200, -30], [-900, -46], [-620, -62], [-320, -74], [0, -78],
         [320, -72], [620, -56], [900, -40], [1200, -28],

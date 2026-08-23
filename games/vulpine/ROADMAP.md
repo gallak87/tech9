@@ -129,6 +129,22 @@ register, swept collision.
       Lateral placement already follows the corridor via `railPoint`; only the
       along-track distance does not. Phase 4 left it alone because fixing it
       moves every battery in the game and wants a pacing pass with it.
+- [ ] **The Foundry does not finish under the probe, and it is not the rail
+      work.** `pilot.mjs fly --seconds 115 --params level=foundry` runs to
+      z -21200 with `boss=true`, `weapon LASER` and 17-19 kills. Its DNA is
+      byte-identical to the commit before the quiet pass and `flight.js` is
+      untouched, so nothing in that pass can reach it — measured, not assumed.
+      It is the weapon-tier threshold already open below: at LASER the probe
+      cannot kill a commander, and one missed `drops: ['weapon']` early decides
+      it. The same commit won at 91 s with TWIN and 23 kills. **One sample each
+      way; treat the spread as uncharacterised.** `pacing.mjs`.
+
+- [ ] **Aquas' plunge and Venom's three climbs have not been looked at since
+      they were steepened.** The quiet pass shortened the blends they run over,
+      which takes Aquas 42° → 69° of nose-down and Venom 28-38° → 51-60°.
+      Numbers are inside the documented ~75° limit and all seven levels fly, but
+      no capture has been read. `shots/` before/after on aquas and venom.
+
 - [ ] **`islands` groups silently drop `spire`.** `buildIslands` copies `flat`
       onto a group's output and nothing else, and `islandAt` never reads `spire`
       at all — so the field is inert on every group and on every `fixed` entry

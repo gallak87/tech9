@@ -315,6 +315,34 @@ against 78/46 tall, and aiming is mostly horizontal.
 level for that reason and carries not even the ±20 m of sine every other level
 has in `centreline.y.waves`.
 
+**The rail is either still or in a fast transition.** `tools/quiet.mjs --audit`
+is the gate. Three rules, and all three came out of the same complaint that
+killed lateral motion:
+
+- **No ambient sine.** `centreline.y.waves` is empty on every level. Corneria's
+  was ±23 m — half the offset box's 46 m of down-travel — running the whole
+  level, so "still" did not mean still anywhere.
+- **A transition is fast.** Under 3 s, or within 25% of the floor its own drop
+  sets: 648 m of Aquas plunge is 3.7 s before any z is spent on it. Shortening
+  the `blend` a `climb` runs over is the whole lever, and it steepens the move
+  as it shortens it — Aquas went 42° → 69°, Venom 28-38° → 51-60°. Measured
+  before: 4.2-11 s. After: 1.1-2.9 s.
+- **A transition lands in a gap between waves.** 450 m of guard behind a wave's
+  arm point and 350 m ahead. Batteries are checked at their EMPLACEMENTS, which
+  `combat.js` lays up to 1.5 km past the arm point — the rule PLAN-LEVELS
+  already carried for batteries alone, applied to every wave kind.
+
+Placing them is done by moving whichever is cheaper: a wave's arm z, or the
+zone boundary the `climb` is centred on. Fichina's shelf boundary sits 240 m
+earlier than its crevasse wanted for exactly this reason.
+
+**Wave and comms tables must descend in z.** `combat.js:1801` walks them with a
+monotone cursor — it fires `waves[i]` then tests `waves[i + 1]` against the same
+`railZ` — so a row out of order does not fire early, it fires LATE and in the
+same tick as the row before it. Venom's opening battery sat after a wave 400 m
+further down the level and put its emplacements 400 m past where its own comment
+said. Nothing at runtime notices; `quiet.mjs` checks it.
+
 **A prop is tested over ±2.2 r of z, and `flat` divides the z term by 0.35.**
 Radius therefore buys three times as much length down the level as across it: a
 330 m flat island reaches 726 m fore and aft and reads as a bank running past
@@ -443,6 +471,7 @@ done
 node tools/fins.mjs --audit                       # inverted-winding gate
 node tools/lid.mjs --audit                        # ceiling gate: is there room to fly
 node tools/shape.mjs --strict                     # phase 9: shape clash + the four-levels table
+node tools/quiet.mjs --audit                      # rail moves: fast, and in the gaps between waves
 node tools/pilot.mjs fly --seconds 70 --params "level=venom"   # does it still fly
 
 # before / after on a level

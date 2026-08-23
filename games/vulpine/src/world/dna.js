@@ -145,7 +145,11 @@ export const DNA_CORNERIA = {
     // following it rather than aiming — and aiming is mostly horizontal. Only
     // `y` is authorable. See PLAN-LEVELS "the rail does not turn".
     x: { waves: [], bends: [] },
-    y: { base: 44, waves: [{ a: 16, w: 0.00042, p: 0.9 }, { a: 7, w: 0.00133, p: 2.3 }] },
+    // No sine on the rail. It is either still or in a fast transition — see
+    // `tools/quiet.mjs`. An ambient ±23 m is half the offset box's 46 m of
+    // down-travel, running the whole level, so a rule that says the rail holds
+    // still during a fight has to start by making "still" mean still.
+    y: { base: 44, waves: [], bends: [] },
   },
 
   keys: [
@@ -215,7 +219,7 @@ export const DNA_FICHINA = {
     // The rail climbs over the pass and sheds it again on the way to the shelf;
     // both come from zone `climb`. Base 52 is 6 m above the floor of the offset
     // box, which is as low as the rail can sit over a surface at y = 0.
-    y: { base: 52, waves: [{ a: 11, w: 0.00037, p: 1.4 }], bends: [] },
+    y: { base: 52, waves: [], bends: [] },
   },
 
   // Lengths must tile [zStart, zEnd] exactly — 10560 m. `blend` is the
@@ -236,7 +240,7 @@ export const DNA_FICHINA = {
     // outer wall resumes — the shoulder a glacier leaves when a tributary joins
     // above the trunk.
     {
-      kind: 'gorge', len: 1500, blend: 800, inner: 200, wallH: 560, climb: 160,
+      kind: 'gorge', len: 1500, blend: 260, inner: 200, wallH: 560, climb: 160,
       section: [
         [-1150, 695], [-520, 620], [-300, 450], [-165, 153], [0, 138],
         [175, 151], [300, 273], [640, 281], [1150, 685],
@@ -246,14 +250,18 @@ export const DNA_FICHINA = {
     // up at pass height: the descent belongs to the zone that carries the
     // -160, not to the gap between them.
     {
-      kind: 'narrows', len: 800, blend: 400, inner: 135, wallH: 640,
+      kind: 'narrows', len: 560, blend: 400, inner: 135, wallH: 640,
       section: [
         [-1150, 760], [-430, 690], [-215, 500], [-135, 145], [0, 130],
         [140, 143], [220, 510], [440, 700], [1150, 770],
       ],
     },
     // Down onto the shelf, wide open for the commander.
-    { kind: 'basin', len: 2300, blend: 900, inner: 560, wallH: 220, relief: 0.50, climb: -160 },
+    // Down onto the shelf, wide open for the commander. The boundary sits 240 m
+    // earlier than the crevasse's own length wanted: the descent is centred on
+    // it, and this is what drops it into the gap between the last hornet and
+    // the battery line rather than on top of one — see `tools/quiet.mjs`.
+    { kind: 'basin', len: 2540, blend: 260, inner: 560, wallH: 220, relief: 0.50, climb: -160 },
   ],
 
   bands: {
@@ -358,7 +366,7 @@ export const DNA_SECTOR_OMEGA = {
     // because a craft placed against the rail 1500 m ahead arrives where the
     // rail has since moved 100 m and the box only reaches +78/-46. 92 m of
     // swing is still 2.7x Corneria's 34 and costs nothing.
-    y: { base: 0, waves: [{ a: 34, w: 0.00052, p: 0.7 }, { a: 12, w: 0.00131, p: 2.6 }], bends: [] },
+    y: { base: 0, waves: [], bends: [] },
   },
 
   belt: {
@@ -419,7 +427,7 @@ export const DNA_FOUNDRY = {
     x: { waves: [], bends: [] },
     // Barely moves. The deck is flat and the roof is at a fixed height, so a
     // rail that wandered vertically would clip both.
-    y: { base: 46, waves: [{ a: 9, w: 0.00048, p: 0.5 }], bends: [] },
+    y: { base: 46, waves: [], bends: [] },
   },
 
   works: {
@@ -478,7 +486,7 @@ export const DNA_AQUAS = {
     // whole 648 back down, leaving the rest of the level at the 62 it has always
     // flown — headroom rather than altitude, since the drop-off takes the rail
     // 30 down and the offset box has to clear a bed at -58.
-    y: { base: 710, waves: [{ a: 13, w: 0.00039, p: 2.1 }], bends: [] },
+    y: { base: 710, waves: [], bends: [] },
   },
 
   zones: [
@@ -512,7 +520,7 @@ export const DNA_AQUAS = {
     // second-outermost point on each bank and rebuilds a skyline out there
     // whatever the polyline says.
     {
-      kind: 'reach', len: 1600, blend: 1100, inner: 300, bed: 34, wallH: 320, relief: 0.22,
+      kind: 'reach', len: 1600, blend: 380, inner: 300, bed: 34, wallH: 320, relief: 0.22,
       climb: -648,
       section: [
         [-880, -52], [-560, 96], [-300, 118], [-165, -6], [0, -30],
@@ -530,7 +538,7 @@ export const DNA_AQUAS = {
     // answers bare `terrainHeight`. On a water level the same section would be
     // invisible below the waterline.
     {
-      kind: 'basin', len: 1700, blend: 700, inner: 700, bed: 58, wallH: 90, relief: 0.66, climb: -30,
+      kind: 'basin', len: 1700, blend: 200, inner: 700, bed: 58, wallH: 90, relief: 0.66, climb: -30,
       section: [
         [-980, 300], [-640, 208], [-330, 58], [-120, -30], [0, -58],
         [210, -96], [470, -190], [700, -300], [980, -420],
@@ -552,7 +560,7 @@ export const DNA_AQUAS = {
     // is written here and is read from `tools/lid.mjs --audit` rather than
     // inferred.
     {
-      kind: 'gorge', len: 1500, blend: 800, inner: 210, wallH: 455, relief: 0.30,
+      kind: 'gorge', len: 1500, blend: 220, inner: 210, wallH: 455, relief: 0.30,
       climb: -55,
       section: [
         [-900, 500], [-380, 470], [-205, 60], [-140, -100], [0, -125],
@@ -568,7 +576,7 @@ export const DNA_AQUAS = {
     },
     // Back onto the shelf, wide open, and the rail climbs out of the trench —
     // the -30 of the drop-off and the -55 into the trench, together.
-    { kind: 'basin', len: 2200, blend: 900, inner: 620, bed: 30, wallH: 160, relief: 0.76, climb: 85 },
+    { kind: 'basin', len: 2200, blend: 240, inner: 620, bed: 30, wallH: 160, relief: 0.76, climb: 85 },
   ],
 
   bands: {
@@ -1028,7 +1036,7 @@ export const DNA_VENOM = {
     // The rail rides 70 m over the crest for the whole level and the crest is
     // what moves. `surface: lava` clamps `groundAt` at y = 0, so nothing here
     // can come below the offset box's 46 m — the saddle bottoms out at 150.
-    y: { base: 400, waves: [{ a: 12, w: 0.00041, p: 1.1 }], bends: [] },
+    y: { base: 400, waves: [], bends: [] },
   },
 
   // ── The whole level is one spine ────────────────────────────────────────
@@ -1077,7 +1085,7 @@ export const DNA_VENOM = {
     // same spine from lower down, which is the mistake Fichina's pass made in
     // the other direction.
     {
-      kind: 'basin', len: 1400, blend: 700, inner: 400, bed: 24, wallH: 220, relief: 0.14,
+      kind: 'basin', len: 1400, blend: 300, inner: 400, bed: 24, wallH: 220, relief: 0.14,
       climb: -250,
       section: [
         [-1200, 90], [-760, -80], [-400, 0], [-180, 55], [0, 80],
@@ -1097,7 +1105,7 @@ export const DNA_VENOM = {
     // Back up, and further than it came down: 370 m over 700, the biggest climb
     // in the game.
     {
-      kind: 'basin', len: 1500, blend: 700, inner: 480, bed: 22, wallH: 280, relief: 0.12,
+      kind: 'basin', len: 1500, blend: 320, inner: 480, bed: 22, wallH: 280, relief: 0.12,
       climb: 370,
       section: [
         [-1200, 200], [-820, -80], [-450, 0], [-200, 360], [0, 450],
@@ -1116,7 +1124,7 @@ export const DNA_VENOM = {
     },
     // Down to the sump: 340 m, the steepest descent on the level.
     {
-      kind: 'basin', len: 1000, blend: 800, inner: 420, bed: 24, wallH: 220, relief: 0.14,
+      kind: 'basin', len: 1000, blend: 320, inner: 420, bed: 24, wallH: 220, relief: 0.14,
       climb: -340,
       section: [
         [-1200, 120], [-780, -80], [-420, 0], [-190, 85], [0, 110],

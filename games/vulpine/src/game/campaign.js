@@ -156,8 +156,8 @@ const FICHINA_WAVES = [
   { z: -3900, kind: 'hornet', n: 2, form: 'pair', from: 'ahead', spawn: 1550, arc: 0.28, climb: 0.12, skill: 0.24, life: 11, drops: ['weapon'] },
   { z: -4500, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1250, arc: 0.48, climb: -0.24, skill: 0.3, aggro: 0.14, hunt: true, life: 8.5, drops: ['bomb'] },
   // Contact at ≈ -6470, mid-pass, head-on while the rail is 160 m up.
-  { z: -5400, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: -0.05, climb: 0.14, skill: 0.38, aggro: 0.22, life: 24, close: 200, escort: 2, drops: ['weapon', 'health'] },
-  { z: -6200, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: 0.4, climb: -0.12, skill: 0.46, aggro: 0.24, life: 9 },
+  { z: -5900, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2300, arc: -0.05, climb: 0.14, skill: 0.38, aggro: 0.22, life: 24, close: 200, escort: 2, drops: ['weapon', 'health'] },
+  { z: -6550, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: 0.4, climb: -0.12, skill: 0.46, aggro: 0.24, life: 9 },
   // Batteries land at -8200…-9040: the shelf, wide and back at rail height.
   { z: -7500, kind: 'bulwark', n: 4, form: 'banks', first: 700, step: 280, bank: 560, drops: ['health', 'bomb'] },
   { z: -8000, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1450, arc: -0.36, climb: 0.18, skill: 0.5, aggro: 0.26, life: 10, drops: ['health'] },
@@ -261,17 +261,18 @@ const FOUNDRY_COMMS = [
 const AQUAS_WAVES = [
   { z: -220, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1150, arc: 0.52, climb: 0.26, skill: 0.40, life: 8 },
   // Lands -1000…-1560: the shelf, wide and shallow. bank 620 ≈ inner 640.
-  { z: -400, kind: 'bulwark', n: 3, form: 'banks', first: 640, step: 260, bank: 620, drops: ['health'] },
-  { z: -1500, kind: 'wasp', n: 5, form: 'swarm', from: 'ahead', spawn: 1050, arc: -0.14, climb: 0.42, skill: 0.42, life: 8, markFor: 2.1, stagger: 0.55 },
-  { z: -2300, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1000, arc: -0.58, climb: 0.20, skill: 0.44, aggro: 0.20, life: 8, drops: ['weapon'] },
+  { z: -1520, kind: 'bulwark', n: 3, form: 'banks', first: 640, step: 260, bank: 620, drops: ['health'] },
+  { z: -2120, kind: 'wasp', n: 5, form: 'swarm', from: 'ahead', spawn: 1050, arc: -0.14, climb: 0.42, skill: 0.42, life: 8, markFor: 2.1, stagger: 0.55 },
+  { z: -2560, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1000, arc: -0.58, climb: 0.20, skill: 0.44, aggro: 0.20, life: 8, drops: ['weapon'] },
   // Rear pressure into the swim-through. Nothing is armed to make contact
   // inside it: -2980…-3740 is looked at, not fought in.
   { z: -3000, kind: 'raptor', n: 3, form: 'echelon', from: 'behind', skill: 0.46 },
   // Resolves as the floor falls away — the contact and the drop-off land together.
-  { z: -4000, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1100, arc: 0.34, climb: -0.30, skill: 0.48, aggro: 0.24, life: 10.5, drops: ['bomb'] },
-  // Deep basin, past the descent blend. bank 660 ≈ inner 700.
-  { z: -4500, kind: 'bulwark', n: 4, form: 'banks', first: 620, step: 250, bank: 660, drops: ['health'] },
-  { z: -5300, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 950, arc: 0.50, climb: 0.24, skill: 0.50, aggro: 0.28, hunt: true, life: 8.5 },
+  { z: -4380, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1100, arc: 0.34, climb: -0.30, skill: 0.48, aggro: 0.24, life: 10.5, drops: ['bomb'] },
+  { z: -4900, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 950, arc: 0.50, climb: 0.24, skill: 0.50, aggro: 0.28, hunt: true, life: 8.5 },
+  // Deep basin, past the -55 into the trench. bank 660 ≈ inner 700, and the
+  // line lands -6220…-6970, clear of that descent at both ends.
+  { z: -5600, kind: 'bulwark', n: 4, form: 'banks', first: 620, step: 250, bank: 660, drops: ['health'] },
   { z: -6100, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1700, arc: 0.04, climb: 0.10, skill: 0.52, aggro: 0.28, life: 26, close: 205, escort: 2, drops: ['weapon', 'health'] },
   { z: -7100, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1050, arc: -0.38, climb: 0.22, skill: 0.54, aggro: 0.30, life: 11, drops: ['health'] },
   // Far shelf. bank 560 ≈ inner 620, and past the +85 climb out of the trench.
@@ -371,23 +372,28 @@ const FORTUNA_COMMS = [
    several hundred metres under the ship rather than beside it. Each fires inside
    one zone's HELD stretch — the zone less half a blend at each end. */
 const VENOM_WAVES = [
-  { z: -200, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1300, arc: 0.54, climb: 0.24, skill: 0.50, aggro: 0.20, life: 8 },
   // Lands -40…-340, on the rim's own crest and inside its held stretch, which
   // ends at -530. bank 240 puts them on the flank at about 235, under the rail
   // at 400 — every emplacement on this level is looked DOWN at.
+  //
+  // FIRST, because the cursor at `combat.js:1801` is monotone: it fires
+  // `waves[i]` and then immediately tests `waves[i + 1]` against the same
+  // `railZ`. Listed after the raptors this arrived 400 m late and in the same
+  // tick as them, and its emplacements landed at -440…-740.
   { z: 200, kind: 'bulwark', n: 3, form: 'banks', first: 240, step: 150, bank: 240, drops: ['health'] },
+  { z: -200, kind: 'raptor', n: 5, form: 'vee', from: 'ahead', spawn: 1300, arc: 0.54, climb: 0.24, skill: 0.50, aggro: 0.20, life: 8 },
   { z: -1400, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.36, climb: 0.22, skill: 0.54, aggro: 0.28, life: 10.5, drops: ['weapon'] },
-  { z: -2200, kind: 'raptor', n: 5, form: 'echelon', from: 'behind', skill: 0.56 },
+  { z: -2750, kind: 'raptor', n: 5, form: 'echelon', from: 'behind', skill: 0.56 },
   // Armed so it resolves in the saddle, which is the lowest and most exposed
   // the ridge gets — nothing is fought on the dive itself.
-  { z: -3700, kind: 'wasp', n: 7, form: 'swarm', from: 'ahead', spawn: 1150, arc: 0.08, climb: -0.44, skill: 0.58, life: 8, markFor: 1.9, stagger: 0.45, drops: ['bomb'] },
-  { z: -4200, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1200, arc: 0.42, climb: 0.20, skill: 0.60, aggro: 0.34, life: 11, drops: ['weapon', 'health'] },
+  { z: -3560, kind: 'wasp', n: 7, form: 'swarm', from: 'ahead', spawn: 1150, arc: 0.08, climb: -0.44, skill: 0.58, life: 8, markFor: 1.9, stagger: 0.45, drops: ['bomb'] },
+  { z: -3990, kind: 'hornet', n: 4, form: 'echelon', from: 'ahead', spawn: 1200, arc: 0.42, climb: 0.20, skill: 0.60, aggro: 0.34, life: 11, drops: ['weapon', 'health'] },
   { z: -5600, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1900, arc: 0.03, climb: -0.10, skill: 0.62, aggro: 0.36, life: 28, close: 210, escort: 3, drops: ['weapon', 'health'] },
   // Lands -6380…-6700, the high spine's held stretch (-6330 to -6880). bank 260
   // is inside its port flank, which is the sheer one.
   { z: -6000, kind: 'bulwark', n: 3, form: 'banks', first: 380, step: 160, bank: 260, drops: ['health'] },
   { z: -6600, kind: 'raptor', n: 6, form: 'echelon', from: 'behind', skill: 0.62 },
-  { z: -7400, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.52, climb: 0.26, skill: 0.64, aggro: 0.38, hunt: true, life: 9, drops: ['health'] },
+  { z: -7950, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1250, arc: -0.52, climb: 0.26, skill: 0.64, aggro: 0.38, hunt: true, life: 9, drops: ['health'] },
   // The sump plateau, the one flat top on the level and the only place with a
   // run long enough for five. bank 420 is well inside its 560 m shoreline.
   { z: -8400, kind: 'bulwark', n: 5, form: 'banks', first: 260, step: 230, bank: 420, drops: ['health', 'bomb'] },

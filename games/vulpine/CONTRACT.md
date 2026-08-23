@@ -108,6 +108,11 @@ If you are fighting the look, probe first — the answer is usually exposure.
    lateral throw being spent on following the corridor, and aiming is mostly
    horizontal. Vertical is still authorable and costs less: the box is 105 m
    wide against 78/46 tall. `tools/shape.mjs --strict` gates it at 0.5° of yaw.
+10. **The rail is either still or in a fast transition.** No ambient sine on
+    `centreline.y`; a `climb` is under 3 s or as fast as its own drop allows;
+    and it lands in a gap between waves, never on one. Wave and comms tables
+    must descend in z — the cursor is monotone and fires an out-of-order row
+    late. `tools/quiet.mjs --audit` gates all four.
 
 ---
 

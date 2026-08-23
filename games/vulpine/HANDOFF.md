@@ -66,6 +66,19 @@ meander. `off` is now rotated through `flight.railCos/railSin`, the same yaw
 `combat.js` hands to `view.toWorld`, and that pair is derived in one place.
 **Every level's geometry moved**, so all seven `ref-geometry-*.json` were re-cut.
 
+**The rail is either still or in a fast transition**, and `tools/quiet.mjs
+--audit` is the new gate. Every level's ambient `centreline.y` sine is gone;
+the nine `climb` transitions that remain are 1.1-2.9 s (were 4.2-11) and each
+one lands in a gap between waves. Corneria, Omega, Foundry and Fortuna now have
+a rail that never moves at all. Shortening a `climb`'s blend steepens it as it
+shortens it: Aquas' plunge is 69° (was 42°), Venom's three are 51-60°.
+**Not yet looked at in a capture** — the numbers are right, the pictures are
+unverified.
+
+**Wave tables must descend in z**, and Venom's did not: its opening battery
+fired 400 m late and in the same tick as the raptors. Fixed, and `quiet.mjs`
+checks every table.
+
 **Phase 6 is parked on a conflict** — an orbit arena is a lateral path by
 definition. See PLAN-LEVELS "Phase 6 — parked".
 
@@ -115,6 +128,8 @@ this it could not have.
 - `tools/pilot.mjs fly --headed` prints **two console 404s that headless does
   not**. Verified on the same commit, both ways: it is the harness, not the
   build. Do not chase it.
+- `tools/quiet.mjs --audit` — green. Rail moves: fast, in the gaps, and wave
+  tables in order. Static, so it is cheap; `pacing.mjs` is the live instrument.
 - `tools/fins.mjs --audit` — green. Gates on the worst single mesh's back-facing
   fraction, because a winding regression is a whole mesh; the scattered facets
   it prints as a note are sub-grid props aliasing against the grid.

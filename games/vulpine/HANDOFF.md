@@ -16,53 +16,64 @@ and the traps. The plans live elsewhere:
 
 ## Where we left off — 2026-08-22
 
-Stopped clean, not mid-fix. All four gates green on a clean tree at once, which
-had not been true before.
+Stopped clean, not mid-fix. All four gates green on a clean tree at once.
 
 **The active lane is level identity — `PLAN-LEVELS.md`.** Five of seven levels
 read as the same level because the terrain cross-section folded about
 `Math.abs(u)`, so every one was the same valley at a different scale.
 
-**Every mechanism is landed** — phases 1-5, 7 and 8. What is left is the
-authoring they exist for, plus phase 6.
+**Every mechanism is landed** — phases 1-5, 7 and 8. Phase 9 has authored three
+of its four levels: Venom, Aquas and now Fortuna.
 
-### The next action is Fortuna
+### The next action is the Foundry, or phase 6
 
-It is 14% authored and the most static level in the game, and its headline beat
-is already built: over a sea of glowing crowns, down through a gap, along the
-dark understory, back out. That is exactly what phase 8 gave Aquas — Fortuna
-simply has no `canopy` declared. Expect a full session; the last two authoring
-passes each took one.
+**The Foundry is not an authoring job.** `works` is one box for all 9 km —
+`half`, `deckY` and `roofY` fixed in `dna.js`, and `Works.deckY()` is a static
+with no z — so three of its four brief rows have nothing to author into. It
+wants the mechanism pass phases 2 and 3 gave `terrain`, repeated for `works`,
+before any of its shape can be written.
 
-Two things it will hit immediately, both paid for on Venom:
-
-- **A surface plane at y = 0 pins the rail.** `groundAt` clamps there and the
-  offset box is 46 m deep, so the rail can never come below ~60. Fortuna has
-  water at y = 0 and a base of 52, so it *cannot descend at all* until the base
-  goes up — which is why it has no dive today. Venom's had to go 48 → 400.
-- **`bands.crag.face`** opens the crag band on local slope rather than on
-  distance, which is the only way any noise reaches an inverted section. Fortuna
-  is near-flat so it may not need it, but the gate that decides is the same one.
-
-After Fortuna: **phase 6** (the orbit arena, which carries the last piece of
-phase 4 — `railPoint` still composes z, so the corridor cannot double back), and
-**the Foundry**, which is not an authoring job at all — `works` is one box for
-all 9 km and `Works.deckY()` is a static with no z, so three of its four brief
-rows have nothing to author into.
+**Phase 6** is the orbit arena, and it carries the last piece of phase 4:
+`railPoint` still composes z, so the corridor cannot double back. `flight.js` no
+longer assumes it, so what is left is making `railPoint` dispatch to a per-level
+path object — landed with the arena that authors one, not before.
 
 ### What landed this session
 
-Aquas authored to 72% and read against its row; **Venom wiped and rebuilt as a
-spine for all nine kilometres** (RIDGE 85% of the corridor, rail 400/150/520/180,
-`crag.face` added for it); phase 4, so speed is measured along the rail and
-`ai.js` station offsets rotate through its heading; and both gates that were not
-gating — `shape.mjs` now checks the four-levels table, `fins.mjs` now tests
-winding rather than sub-grid aliasing.
+**Fortuna rebuilt as a drowned forest**, 14% authored to 100%: every section
+submerged bank to bank, no land anywhere except six authored mud plates, and the
+corridor made of trunks in the `islands` table rather than of ground. The rail
+descends 860 → 125 across eight zones with a 430 m plunge at 43° of nose down.
+Its waves and comms are retimed onto the new zones and the three battery lines
+are authored onto the plates.
 
-**Read a brief row against live play before believing it.** Venom's said
-"inverted / rhythm / alternates" and was authored as a ridge at the start and a
-canyon after. The owner wanted the whole nine kilometres on the spine. Two
-agents shipped the narrow reading before it was caught in play.
+**`shape.mjs` gained the flank pass** — `walled` / `columns` / `open`, measured
+as how much of the level has anything standing in the 180-800 m band and how
+many times that starts per kilometre. It exists because a cross-section reads a
+trunk 250 m off the rail and a canyon wall 250 m off the rail as the same
+sample: Fortuna is 86% FLAT, Corneria is 63% FLAT, and without this pass the two
+signed identically and the clash test fired on a level that looks nothing like
+its neighbour.
+
+**`islandAt` is indexed by z.** It was a linear scan over every prop under every
+mesh vertex and both baked fields — 1.2 ms per island per 360 k samples, which
+made prop count a boot cost. Bucketed, 0.4. Fortuna carries 146 props; before
+this it could not have.
+
+### Traps this pass paid for
+
+- **A level with no land has no ground for a battery to stand on.** `groundAt`
+  answers the waterline. Everything a `banks` wave needs — the band `bank`
+  places across, the line `first + i * step` lays down, both sides — has to be
+  authored as an island, and no other prop may stand in that band.
+- **Props scattered in a narrow lateral band overlap into two walls.** A trunk
+  is 200 m across and the ranks are 180 m apart; in one band that is a canyon
+  with texture on it. Scattered from 320 to 1150 m, the same count reads as gaps.
+- **Read a brief row against live play before believing it.** Venom's said
+  "inverted / rhythm / alternates" and was authored as a ridge at the start and
+  a canyon after. Two agents shipped the narrow reading before it was caught in
+  play. Fortuna's said "the canopy is both layers"; what it wanted was heights,
+  which is what its own DNA comment had said for two sessions.
 
 ### Gates, all runnable from `games/vulpine`
 
@@ -73,8 +84,9 @@ agents shipped the narrow reading before it was caught in play.
 - `tools/shape.mjs --strict` — green. Checks the four-levels table row by row
   (`done` rows gate, `open` rows print as the work) as well as the shape clash,
   and prints per-corridor coverage: what fraction is each shape, authored
-  metres, and how far the rail moves in how many monotone runs. `--draw <level>`
-  renders a cross-section as ASCII with the rail height beside it.
+  metres, how far the rail moves in how many monotone runs, and the flank pass
+  (`walled` / `columns` / `open`). `--draw <level>` renders a cross-section as
+  ASCII with the rail height beside it.
 - `tools/fins.mjs --audit` — green. Gates on the worst single mesh's back-facing
   fraction, because a winding regression is a whole mesh; the scattered facets
   it prints as a note are sub-grid props aliasing against the grid.

@@ -1,8 +1,8 @@
 # Vulpine — level identity: two curves
 
 **Every mechanism is landed. What is left is the authoring they exist for.**
-Phases 1-5, 7 and 8 are done; phase 9 has authored two levels of four and phase
-6 is open. The owner picks when each starts.
+Phases 1-5, 7 and 8 are done; phase 9 has authored three levels of four and
+phase 6 is open. The owner picks when each starts.
 
 A zone carries its own cross-section, ceiling and camera; the hull pitches with
 the corridor; a surface is floor or ceiling depending which side the rail runs;
@@ -34,12 +34,21 @@ ceiling, surface. Same rock, different topography.
 
 No two rows alike. Nothing in the toolchain checks this table; read it by hand.
 
-| | section | rail path | ceiling | surface |
-|---|---|---|---|---|
-| Aquas | terraced, asymmetric ✅ | deep dive ✅ | constant lid ✅ | none ✅ |
-| Venom | **inverted, whole level** ✅ | rhythm ✅ | **alternates** ❌ | lava ✅ |
-| Fortuna | near-flat ✅ | dive + climb ❌ | **enters/exits** ❌ | water ✅ |
-| Foundry | escarpment ❌ | steep shaft ❌ | built, varies ❌ | deck ✅ |
+| | section | flank | rail path | ceiling | surface |
+|---|---|---|---|---|---|
+| Aquas | terraced, asymmetric ✅ | walled ✅ | deep dive ✅ | constant lid ✅ | none ✅ |
+| Venom | **inverted, whole level** ✅ | open ✅ | rhythm ✅ | **alternates** ❌ | lava ✅ |
+| Fortuna | flat, drowned ✅ | **columns** ✅ | descent ✅ | none ✅ | water ✅ |
+| Foundry | escarpment ❌ | walled ❌ | steep shaft ❌ | built, varies ❌ | deck ✅ |
+
+**`flank` is a column because a cross-section could not tell these levels
+apart.** RIDGE / FLAT / VALLEY reads two rays at one z, so a trunk 250 m off the
+rail and a canyon wall 250 m off the rail are the same sample — and Fortuna,
+which is 86% FLAT, signed identically to Corneria, which is 63% FLAT. What
+separates them is that a wall is still there 200 m later and a trunk is not.
+`shape.mjs` measures it as starts per kilometre: 0.09 on all three walled
+levels, 1.42 on Fortuna, and Venom's ridge has nothing standing beside the rail
+at all.
 
 - **Aquas — depth is the drama.** Plunge in; shallows with terraced reef benches
   you fly *between*; a hard-asymmetric drop-off (reef to port, open blue to
@@ -51,9 +60,14 @@ No two rows alike. Nothing in the toolchain checks this table; read it by hand.
   Owner, on the version that put the ridge first and a canyon after: *"I was
   thinking the entire level from start to finish would have been on a ridge top
   with lava on either side."*
-- **Fortuna — two layers, and the canopy is both.** Fly *over* a sea of glowing
-  crowns (canopy as floor), dive through a gap, thread the dark understory
-  (canopy as ceiling), climb back out.
+- **Fortuna — a drowned forest, and the corridor is made of trunks.** Black
+  water bank to bank with no land in it and colossal glowing trunks standing out
+  of it; the ship starts over the crowns at 860, plunges 430 into the canopy and
+  works down to 125 among the roots. The two layers of its old brief are still
+  there and are *heights*, not sides of a surface — which is what its own DNA
+  had said all along, and which is why it wants no `canopy`: that module is one
+  flat plane carrying a water shader, and Fortuna's understory is somewhere you
+  descend into, not something you pass under.
 - **The Foundry — outside, inside, then down.** Exterior gantry run as an
   escarpment, breach to interior, a steep shaft down through decks, then a wide
   low-ceilinged assembly floor.
@@ -88,17 +102,28 @@ real gate and it still cannot tell you a level is good — it told us Venom was
 done while 82% of it was stock. Fly the level before you claim a row.
 
 **The rail dive is under-used and the owner asked for more of it.** *"def love
-the zrail dive thats a new mechanic we need to start using more!"* Only Aquas
-and Venom have one. It costs a `climb` on a zone and a section that comes down
-with it, and it is the cheapest distinctive thing in the toolkit — the corridor
-going somewhere vertically is felt immediately in a way a cross-section is not.
-Fichina and Corneria have none; Fortuna's brief calls for one and it has none.
+the zrail dive thats a new mechanic we need to start using more!"* Aquas, Venom
+and Fortuna have one; Fichina and Corneria have none. It costs a `climb` on a
+zone and a section that comes down with it, and it is the cheapest distinctive
+thing in the toolkit — the corridor going somewhere vertically is felt
+immediately in a way a cross-section is not. Fortuna's is 430 m at 43° of nose
+down, and it does not need a section under it, because on that level the thing
+the dive is measured against is the trunks.
 
-**Picking a level.** Fortuna is next by value — 14% authored, the most static
-level in the game, and its headline beat is already built. But any level whose
-row in the table above carries a ❌ is fair game, and the first question for
-each is the same one: what does it look like for the whole nine kilometres, and
-where does it stop looking like that.
+**A corridor need not be made of ground.** Fortuna's is made of props: the
+sections are submerged bank to bank and what the ship flies between is the
+`islands` table. Three things follow, and they are the whole cost of doing it —
+`relief` has to stay under ~0.06 or the noise bands build the banks back;
+anything a wave stands on has to be authored as an island, because `groundAt` on
+a level with no land answers the waterline; and the props themselves have to be
+scattered in depth, since a narrow band of them overlaps itself into two
+continuous masses port and starboard, which is a canyon with texture on it.
+
+**Picking a level.** The Foundry is the only ❌ row left, and it is not an
+authoring job — see phase 9 below. Corneria and Fichina are deliberately the
+valley the others are told apart from. The first question for any level is the
+same one: what does it look like for the whole nine kilometres, and where does
+it stop looking like that.
 
 ## Phases
 
@@ -112,7 +137,7 @@ where does it stop looking like that.
 | 6 | Venom orbit arena | **open** |
 | 7 | Per-level camera | ✅ 2026-08-22 |
 | 8 | Aquas' plunge — the rail crosses the water surface | ✅ 2026-08-22 |
-| 9 | **The authoring pass** — one distinct shape per level | **Venom + Aquas done; Fortuna and the Foundry open** |
+| 9 | **The authoring pass** — one distinct shape per level | **Venom, Aquas + Fortuna done; the Foundry open** |
 
 Numbers are identifiers, not an order.
 
@@ -123,14 +148,13 @@ Measured as metres carrying an authored `section` against corridor length:
 | | authored | of level | what its brief still wants |
 |---|---|---|---|
 | venom | 10560 m | **100%** | the "alternates" ceiling |
+| fortuna | 10560 m | **100%** | done — read against its row |
 | aquas | 7600 m | **72%** | done — read against its row |
 | fichina | 2300 m | 22% | not in the four-levels table; the pass is authored |
-| fortuna | 1500 m | **14%** | its whole two-layer beat — it has no `canopy` |
 | foundry | — | **0%** | a mechanism pass first |
 
-**Fortuna is next**, and its headline beat is the one phase 8 already built for
-Aquas — it simply has no `canopy` declared. It is the most static level in the
-game.
+**The Foundry is what is left**, and coverage is the wrong measure for it: it is
+not short of authored metres, it is short of anything to author into.
 
 **The Foundry is not an authoring job.** `works` is one box for all 9 km
 (`half`, `deckY`, `roofY` fixed in `dna.js`, and `Works.deckY()` is a static
@@ -177,7 +201,8 @@ dry. Every crossing on Venom is at 345 m or wider for this reason.
 offset box is 46 m deep, so the rail can never come below ~60. Venom had no
 `climb` anywhere because its base was 48 — it had no room to descend in either
 direction, and the base had to go to 400 before it could have a rhythm. Fortuna
-has water at y = 0 and the same pin.
+has water at y = 0 and paid the same price: its base went 46 → 860, and the
+descent is the level.
 
 **A generated section pins the bank line at height 0 whatever `bed` is.**
 Deepening `bed` alone drops the trough and leaves the shoulders, so a rail
@@ -226,10 +251,11 @@ actually puts there, and never where the rail is climbing.
 winding bug.** The shading normal is a central difference across two mesh
 columns, and spacing is 6 m at the centreline growing outward — so an island
 narrower than that has facets whose geometric normal disagrees with the vertex
-normal, sometimes inverting. Fortuna's 54 stalks at 16−44 m radius produce 105
-back-facing facets out of 759,280 this way. Harmless (the shading is analytic
-and stays correct) and it is what `fins.mjs` prints as a note, but do not read
-it as an index-order defect: a real one reads 100% of a mesh, not 0.6%.
+normal, sometimes inverting. Fortuna's old 54 stalks at 16−44 m radius produced
+105 back-facing facets out of 759,280 this way; its trunks are 65 m and up for
+this reason and the count is now 13. Harmless (the shading is analytic and stays
+correct) and it is what `fins.mjs` prints as a note, but do not read it as an
+index-order defect: a real one reads 100% of a mesh, not 0.3%.
 
 **There is no terrain crash.** The ground is a floor with a cushion, not a
 hazard (`flight.js:345-355`). Terrain rising into the rail bulldozes the ship
@@ -241,6 +267,32 @@ cursors and the end-of-level test working. It uses the same ±6 m central
 difference as `railTangent` deliberately — the two are read on the same tick as
 attitude and as rate, so an analytic derivative would pitch the hull to a slope
 the speed correction did not agree existed.
+
+**A prop is tested over ±2.2 r of z, and `flat` divides the z term by 0.35.**
+Radius therefore buys three times as much length down the level as across it: a
+330 m flat island reaches 726 m fore and aft and reads as a bank running past
+the ship. It is also why a scatter group authored right up to a zone boundary
+stands a third of its radius into the next zone — Fortuna's hollow starts 330 m
+late so its ranks cannot reach back into the clearing.
+
+**A ground emplacement stands on `groundAt`, which on a level with no land is
+the waterline.** `combat.js` places a `banks` wave at `bank + rand(0, 85)` off
+the rail centre, alternating sides, at `first + i * step` ahead — so the ground
+has to be flat across that whole band and that whole line, on both sides. On
+Fortuna that is six authored islands, and three numbers in `campaign.js` are
+part of the fit: `step` at 290 ran the outer guns off the end of a plate, and
+`first` at 700 put a gun 430 m out at 31° off the nose. Measured look-down
+across the shipped levels is 12-29° median; Fortuna's is 10-23°.
+
+**A prop standing in the placement band puts the gun on its flank** — measured,
+42 m *above* a rail it was supposed to be firing up at. `islandAt` sums, so a
+plate under a trunk is a plate plus a trunk. The scatter groups over each battery
+window are held outboard of the whole band for this reason.
+
+**`islandAt` samples an unjittered u**, so every island in the game is
+analytically smooth: `bankJitter` perturbs the distance the *cross-section* is
+read at and never reaches a prop. A level whose props are its shape gets no
+roughness for free.
 
 **`ai.js` station offsets are in the rail's frame**, converted through
 `view.toWorld` / `view.toStation` / `view.heading`. Yaw only: a station that
@@ -275,12 +327,15 @@ ground, reads as none of the others. Cheap version — `waterLevel` well under
       hides the fall. It wants an edge the eye can catch — a lip, a lit reef
       rim, or particles falling over it. `shots/p2-aquas-drop/`.
 
-- [ ] **Two brief rows need a lid that ends.** Venom's "alternates" and
-      Fortuna's "enters/exits" both need a ceiling that stops, and `Canopy` is a
-      single flat camera-following plane carrying a *water* shader — refraction,
-      caustics, the critical angle. It can neither end nor pass for rock. A
-      canopy level's per-zone `ceiling` is also finite everywhere by
-      construction: there is no "no lid here" to author. Solve once, for both.
+- [ ] **One brief row needs a lid that ends.** Venom's "alternates" wants a
+      ceiling that stops, and `Canopy` is a single flat camera-following plane
+      carrying a *water* shader — refraction, caustics, the critical angle. It
+      can neither end nor pass for rock. A canopy level's per-zone `ceiling` is
+      also finite everywhere by construction: there is no "no lid here" to
+      author. **Fortuna is no longer the second caller.** Its two layers are
+      heights and the ship descends between them, so its ceiling row is now
+      `none`; that leaves this wanted by exactly one row, which is worth knowing
+      before anyone prices it.
 
 - [ ] **Aquas' canopy is an underside seen from above.** The shader was built
       for a sea read from 300 m below, and the level now looks at it from over
@@ -352,10 +407,12 @@ node tools/sheet.mjs shots/ref-venom shots/pN-venom --pair --labels "before,afte
 `shape.mjs --draw <level>` renders a cross-section as ASCII **and prints the
 rail height beside it**, which is the fastest way to read a rail rhythm. Plain
 `shape.mjs` prints three things: the twelve-sample picture, per-corridor
-**coverage** (what fraction is each shape, plus authored metres and rail runs),
-and the **four-levels table checked** — `meets` / `open` / `BROKEN` per row.
-Add a level to `BRIEF` there when you author it, and mark it `done` only when
-its row reads `meets`.
+**coverage** (what fraction is each shape, authored metres, rail runs, and the
+**flank** pass — how much of the level has anything standing beside the rail and
+how many times that starts, which is what separates a forest from a canyon), and
+the **four-levels table checked** — `meets` / `open` / `BROKEN` per row. Add a
+level to `BRIEF` there when you author it, and mark it `done` only when its row
+reads `meets`.
 
 The digest is a *sanity* check, not a bit-identity contract — read the diff and
 judge whether it is the change you meant. **Do not pixel-diff captures:** the

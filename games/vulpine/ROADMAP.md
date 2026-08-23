@@ -8,9 +8,9 @@ the active lane. Branch `g/fox64`.
 
 **The active lane is level identity — `PLAN-LEVELS.md` is its plan and is not
 restated here.** As of 2026-08-22 every mechanism in it is landed and the
-remaining work is authoring: Venom and Aquas are done, Fortuna and the Foundry
-are not. All four gates in that file's verification block are green on a clean
-tree.
+remaining work is authoring: Venom, Aquas and Fortuna are done, the Foundry is
+not — and the Foundry is a mechanism pass before it is an authoring one. All
+four gates in that file's verification block are green on a clean tree.
 
 **The campaign lane is accepted, 2026-08-16 (owner): "levels are in good shape
 to call that work passed for now."** What is still open under `## Campaign
@@ -129,6 +129,21 @@ register, swept collision.
       Lateral placement already follows the corridor via `railPoint`; only the
       along-track distance does not. Phase 4 left it alone because fixing it
       moves every battery in the game and wants a pacing pass with it.
+- [ ] **`islands` groups silently drop `spire`.** `buildIslands` copies `flat`
+      onto a group's output and nothing else, and `islandAt` never reads `spire`
+      at all — so the field is inert on every group and on every `fixed` entry
+      that carries it. Aquas, Fichina and Venom all set it. Either it was meant
+      to shape a profile and never got wired, or it is decoration; nothing in
+      the height field can tell. Found while authoring Fortuna, which stopped
+      using it.
+
+- [ ] **Fortuna's palette and lithology are unread against the level it is now.**
+      Its rock terms were authored for banks and are now on trunks, and the
+      albedo terms flagged below (`scrub` 1.20, `veg` 1.5, `moss` 1.4) were
+      never measured. The trunks currently read as a strong green/violet marble;
+      whether that is the look or an over-crank is a look pass, not a shape one.
+      `shots/p9f-fortuna-*`.
+
 - [ ] **A fixed pinnacle stands 240 m above the rail at 60 m of bank.**
       `islands.fixed` z -7480, u 60, h 300 (`dna.js`). Inside `boxX`, so the ship
       can fly into it, and there is no terrain crash — `groundAt` simply

@@ -129,6 +129,12 @@ register, swept collision.
       Lateral placement already follows the corridor via `railPoint`; only the
       along-track distance does not. Phase 4 left it alone because fixing it
       moves every battery in the game and wants a pacing pass with it.
+- [ ] **Re-entry runs at ~30 fps while the planet is in frame.** Owner
+      screenshot, Omega → Aquas: 33.3 ms, 447 draws, 0.54M tri. Sustained, not
+      the single-frame hitch below — the planet sphere plus the destination
+      terrain coming back at `u >= 0.62` of the last phase land in the same
+      second. Against the 16.6 ms budget in CONTRACT hard rule 3.
+
 - [ ] **A hop still hitches ~45-190 ms on one frame.** `tools/hop.mjs` reports
       frame dt; the worst frame is the world rebuild against a `BUILD_MS` of 6.
       The one-frame *position* jumps are fixed (below); this is the remaining

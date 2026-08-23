@@ -162,6 +162,8 @@ const lap = R.filter(r => r.phase === 'lap' || r.phase === 'ascent');
 if (lap.length) {
   const rates = lap.map(r => r.rate);
   console.log(`\nclimbRate over lap+ascent: min ${Math.min(...rates).toFixed(0)}  max ${Math.max(...rates).toFixed(0)} m/s`);
+  const ps = R.map(r => r.pitch);
+  console.log(`hull pitch over the whole run: ${Math.min(...ps).toFixed(0)}° (nose down) to ${Math.max(...ps).toFixed(0)}° (nose up)`);
   console.log('  first 24 frames: ' + rates.slice(0, 24).map(v => v.toFixed(0)).join(' '));
 }
 const dts = R.map(r => r.dt).sort((a, b) => a - b);

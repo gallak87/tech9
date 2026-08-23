@@ -118,6 +118,13 @@ export const TUNE = {
   // Scales both aim-lead maxima together, for tuning the crosshair's throw
   // without touching their ratio. Live on the `aim lead` dev knob.
   aimLeadScale: 1.0,
+  // Nose-down cap for `climb`, in radians. Nose-UP is deliberately uncapped:
+  // an ascent runs 663-943 m/s against 175 of forward travel, which is 75-79°,
+  // and pointing that way reads as a launch. Coming back down the same maths
+  // gives -81°, and a ship pointed straight at a planet from a chase camera is
+  // falling rather than flying — it is the top of the hull filling the frame.
+  // 16° is a nose-down attitude you could hold in level flight.
+  climbPitchDown: -0.28,
   camBoostBack: 4.2,
   camBoostFov: 11,
   camBrakeBack: -2.6,
@@ -550,7 +557,10 @@ export class Flight {
     // pointing along. Pitching into it is what makes the ramp read as flown —
     // and because `climb` is eased at both ends, the nose rises, holds and
     // levels, which is the arc rather than the diagonal.
-    const climbPitch = Math.atan2(this.climbRate, Math.max(1, this.speed));
+    const climbPitch = Math.max(
+      TUNE.climbPitchDown,
+      Math.atan2(this.climbRate, Math.max(1, this.speed)),
+    );
     _e.set(this.pitch + somerPitch + railPitch + climbPitch, this.yaw + railYaw, this.bank + rollExtra, 'YXZ');
     this.quat.setFromEuler(_e);
 

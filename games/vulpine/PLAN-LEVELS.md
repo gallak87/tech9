@@ -213,14 +213,29 @@ ground, reads as none of the others. Cheap version — `waterLevel` well under
 
 ## Open
 
-- [ ] **`shape.mjs --strict` passes a level that is 18% authored.** It is the
-      stated acceptance test for phase 9 and it stayed green while Venom was
-      11 seconds of ridge and 49 seconds of stock zone kinds. It takes **12
-      samples** and asks only that no two levels name the same set of shapes —
-      the weak form of CONTRACT rule 8. It measures variety ACROSS levels and
-      nothing about coverage WITHIN one. That is how "Venom done" survived two
-      sessions of review. Either weight the samples by the length they
-      represent, or make the four-levels table a checklist a tool can read.
+- [x] **`shape.mjs --strict` passed a level that was 18% authored.** Closed
+      2026-08-22. It took twelve samples and asked only that no two levels name
+      the same set of shapes, so it measured variety ACROSS levels and nothing
+      about coverage WITHIN one — which is how "Venom done" survived two
+      sessions of review.
+
+      It now does both of the things this item asked for. **Coverage** samples
+      every 40 m and reports what fraction of each corridor measures each shape,
+      alongside the metres carrying an authored `section` and how far the rail
+      moves in how many monotone runs. And the **four-levels table is encoded in
+      the tool** as `BRIEF`, with a `done` flag: a row marked done must keep
+      meeting its row or `--strict` exits 1, while a row not yet done prints as
+      outstanding and fails nothing — so the gate stays green on a clean tree
+      instead of becoming noise the way a permanently red one does.
+
+      Verified against the tree it was built for: the pre-rebuild Venom fails on
+      three independent counts — `RIDGE covers 18% of 55%`, `rail moves 24 m of
+      250`, `1 rail runs of 3`.
+
+      Thresholds on a `done` row sit below the measured value, so the row is a
+      regression test rather than a restatement of today's numbers. Writing one
+      from intent is caught immediately: `minRuns: 4` on Venom broke the row on
+      its first run, because the rail makes three.
 
 - [ ] **Aquas' drop-off does not read.** The section is correct (`terrainHeight`
       runs +263 to −473 across the corridor at z = −4600) but underwater fog
@@ -292,7 +307,7 @@ for L in corneria highlands omega foundry aquas fortuna venom; do
 done
 node tools/fins.mjs --audit                       # inverted-winding gate
 node tools/lid.mjs --audit                        # ceiling gate: is there room to fly
-node tools/shape.mjs --strict                     # phase 9: no two levels share a shape set
+node tools/shape.mjs --strict                     # phase 9: shape clash + the four-levels table
 node tools/pilot.mjs fly --seconds 70 --params "level=venom"   # does it still fly
 
 # before / after on a level
@@ -302,7 +317,12 @@ node tools/sheet.mjs shots/ref-venom shots/pN-venom --pair --labels "before,afte
 ```
 
 `shape.mjs --draw <level>` renders a cross-section as ASCII **and prints the
-rail height beside it**, which is the fastest way to read a rail rhythm.
+rail height beside it**, which is the fastest way to read a rail rhythm. Plain
+`shape.mjs` prints three things: the twelve-sample picture, per-corridor
+**coverage** (what fraction is each shape, plus authored metres and rail runs),
+and the **four-levels table checked** — `meets` / `open` / `BROKEN` per row.
+Add a level to `BRIEF` there when you author it, and mark it `done` only when
+its row reads `meets`.
 
 The digest is a *sanity* check, not a bit-identity contract — read the diff and
 judge whether it is the change you meant. **Do not pixel-diff captures:** the

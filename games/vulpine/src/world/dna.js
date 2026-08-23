@@ -692,9 +692,9 @@ export const DNA_AQUAS = {
 // A drowned forest: black water to the horizon, and colossal glowing trunks
 // standing out of it. The corridor is made of trunks, not of banks — that is
 // the whole identity and it holds for all nine kilometres. The cross-section is
-// under water everywhere except three root islands, so there is nothing on
-// either side of the ship to read as a channel, and `relief` is held near zero
-// so the noise bands cannot rebuild a skyline out where the polyline stops.
+// under water bank to bank in every zone, so there is nothing on either side of
+// the ship to read as a channel, and `relief` is held near zero so the noise
+// bands cannot rebuild a skyline out where the polyline stops.
 //
 // The variety is altitude WITHIN the forest, not leaving it. The rail starts
 // over the crowns at 860, dives 430 m into the canopy, works down to 130 among
@@ -714,8 +714,8 @@ export const DNA_AQUAS = {
 // The only land in the level is six mud bars, and they exist because three
 // waves of ground batteries have to stand on something. They are islands rather
 // than a shelf on the cross-section for the reason the level is a level: a
-// shelf spans its whole zone and reads as a bank, while a bar ends. Each is
-// 150 m high at 505 m out, under a rail at 190-240, and `combat.js` alternates
+// shelf spans its whole zone and reads as a bank, while a bar ends. Each stands
+// ~85 m proud at 470 m out, under a rail at 171-248, and `combat.js` alternates
 // emplacements port and starboard, so they come in pairs.
 
 export const DNA_FORTUNA = {
@@ -897,13 +897,12 @@ export const DNA_FORTUNA = {
       // crash — the ground cushion simply bulldozes the ship up the flank.
       //
       // Two things in these ranges are what keep a forest from meshing into a
-      // canyon, and both were got wrong once:
+      // canyon:
       //
-      //   `u` spans 320 to 1150 in ONE group rather than a near band with a
-      //   second band behind it. A trunk is 200 m across and the ranks are
-      //   180 m apart down the level, so a narrow band overlaps itself into two
-      //   continuous masses port and starboard — which is a canyon with texture
-      //   on it. Scattered in depth, the same count reads as gaps.
+      //   `u` spans 320 to 1150 in one group. A trunk is up to 310 m across and
+      //   the ranks average 180 m apart down the level, so any band narrower
+      //   than the trunks are wide overlaps itself into two continuous masses
+      //   port and starboard. Scattered in depth, the same count reads as gaps.
       //
       //   `h` runs from well under the rail to well over it. Ranks that are all
       //   tall have no tops in frame, and a row of trunks with no tops is a
@@ -911,13 +910,13 @@ export const DNA_FORTUNA = {
       { n: 22, z: [720, -2180], u: [320, 1150], r: [85, 155], h: [340, 900], pow: [0.55, 0.95] },
       { n: 15, z: [-2180, -3580], u: [320, 1150], r: [80, 155], h: [280, 840], pow: [0.50, 0.90] },
       // ── the three battery windows ──────────────────────────────────────
-      // A trunk standing where a battery is placed puts the gun on its flank —
-      // measured, 42 m ABOVE a rail it was supposed to be shooting up at. So
-      // over each gun bar's stretch the ranks step outboard of the whole
-      // placement band: `bank` 430 plus the 85 m `combat.js` jitters out to,
+      // `islandAt` sums, so a trunk over a gun bar puts the emplacement on
+      // its flank: measured, 42 m ABOVE the rail it is meant to fire up at. So
+      // over each bar's stretch the ranks stand outboard of the whole
+      // placement band — `bank` 430, plus the 85 m `combat.js` jitters out to,
       // plus the widest radius authored here, is 715, and these start at 740.
       //
-      // The forest does not stop in these stretches, it steps back one rank —
+      // The forest steps back one rank in these stretches rather than stopping,
       // which is also what gives three lines of emplacements a firing line.
       { n: 8, z: [-3580, -4680], u: [740, 1500], r: [80, 200], h: [300, 860], pow: [0.50, 0.90] },
       // The clearing: four, all of them far out. The forest thinning is the
@@ -954,10 +953,10 @@ export const DNA_FORTUNA = {
       // the placement band for the same reason the ranks are.
       //
       // `flat` divides the z term by 0.35, so radius buys three times as much
-      // length down the level as it does across it: at 330 these reached 726 m
-      // fore and aft and read as a bank running past the ship, which is the one
-      // thing this level may not have. 220 is the ceiling for that reason, not
-      // for cost.
+      // length down the level as across it, capped by the ±2.2 r that
+      // `islandAt` tests at all. 220 is the ceiling here because 484 m of bar
+      // is already at the edge of reading as a bank running past the ship,
+      // which is the one thing this level may not have.
       { n: 14, z: [700, -9800], u: [780, 1400], r: [110, 220], h: [26, 70], pow: [2.4, 3.6], flat: 1 },
     ],
     fixed: [
@@ -979,22 +978,20 @@ export const DNA_FORTUNA = {
       // has to be flat across 430-515 m; the bar spans 250-690 and breaks the
       // surface at about 380, well outside the ship and the chase camera.
       //
-      // `pow` under 1 is what makes these mud plates and not hills: the top
-      // holds near full height out to 0.8 of the radius and then drops, so a
-      // line of guns along one sits level. At 1.8 they were domes 160 m tall
-      // and 500 m wide standing symmetrically either side of the rail, which
-      // is a bank however it got there. The pair is also staggered in z and
-      // size, because two identical mounds abeam read as a channel.
+      // `pow` under 1 is what makes these bars and not hills: the top holds
+      // near full height out to 0.8 of the radius and then falls, so a line of
+      // guns along one sits level — measured, 78-85 m of ground across a line
+      // 300 m long. Above 1 they are domes, and a dome each side of the rail
+      // is a bank however it got there. The pairs are staggered in z and in
+      // radius for the same reason: two identical mounds abeam read as a
+      // channel.
       //
-      // `h` is added to a section 60-70 m under water, so a 148 m plate stands
-      // ~85 m proud. Read the emplacement heights off `groundAt`, never off
-      // `h`: what a gun ends up at is the plate plus the section under it, and
-      // the two are authored in different files.
-      //
-      // Each pair is centred on its own wave's line, and `first`/`step` in
-      // `campaign.js` decide where that line falls. `step` at 290 ran the outer
-      // emplacements off the end of the bar; `first` at 700 put a gun 430 m out
-      // at 31° off the nose, which `combat.js` has a whole comment about.
+      // `h` is added to a section 60-70 m under water, so a 148 m bar stands
+      // ~85 m proud and breaks the surface no closer than 238 m — outside the
+      // 105 m offset box and the camera outside that. Read the emplacement
+      // heights off `groundAt`, never off `h`: what a gun ends up at is the
+      // bar plus the section under it, and the two are authored in different
+      // files.
       { z: -4080, u: -470, r: 215, h: 148, pow: 0.40, flat: 1 },
       { z: -4080, u: 470, r: 170, h: 138, pow: 0.40, flat: 1 },
       { z: -7750, u: -470, r: 215, h: 148, pow: 0.40, flat: 1 },

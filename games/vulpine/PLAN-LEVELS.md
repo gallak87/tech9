@@ -280,13 +280,13 @@ the waterline.** `combat.js` places a `banks` wave at `bank + rand(0, 85)` off
 the rail centre, alternating sides, at `first + i * step` ahead — so the ground
 has to be flat across that whole band and that whole line, on both sides. On
 Fortuna that is six authored islands, and three numbers in `campaign.js` are
-part of the fit: `step` at 290 ran the outer guns off the end of a plate, and
+part of the fit: `step` at 290 ran the outer guns off the end of a bar, and
 `first` at 700 put a gun 430 m out at 31° off the nose. Measured look-down
 across the shipped levels is 12-29° median; Fortuna's is 10-23°.
 
 **A prop standing in the placement band puts the gun on its flank** — measured,
 42 m *above* a rail it was supposed to be firing up at. `islandAt` sums, so a
-plate under a trunk is a plate plus a trunk. The scatter groups over each battery
+bar under a trunk is a bar plus a trunk. The scatter groups over each battery
 window are held outboard of the whole band for this reason.
 
 **`islandAt` samples an unjittered u**, so every island in the game is

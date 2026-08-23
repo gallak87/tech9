@@ -334,13 +334,18 @@ const FORTUNA_WAVES = [
   { z: -8700, boss: 'commander:bloom' },
 ];
 
+/* Each line sits just PAST the wave it is about, because both cursors
+   edge-trigger off the same descending `railZ` and a warning that fires first
+   is a warning about nothing. The exception is the battery lines: those waves
+   place their emplacements 1500 m ahead of their own trigger, so the useful
+   moment is most of a kilometre later. */
 const FORTUNA_COMMS = [
   { z: -180, who: 'SLIPPY', text: 'Fox, we are over the tops of them. That whole forest is alive.' },
   { z: -1180, who: 'FALCO', text: 'Going down into it. Watch your wingtips in there.' },
   { z: -2980, who: 'PEPPY', text: 'They dug guns into the mud bars. Do not let them settle on you.' },
-  { z: -4160, who: 'PEPPY', text: 'Behind you, Fox!' },
-  { z: -4950, who: 'SLIPPY', text: 'Swarm in the clearing! They came out of the water!' },
-  { z: -6360, who: 'FALCO', text: 'Their heavy is under the canopy with us. Keep it in front of you.' },
+  { z: -4260, who: 'PEPPY', text: 'Behind you, Fox!' },
+  { z: -5060, who: 'SLIPPY', text: 'Swarm in the clearing! They came out of the water!' },
+  { z: -6560, who: 'FALCO', text: 'Their heavy is in the trunks with us. Keep it in front of you.' },
   { z: -8650, who: 'PEPPY', text: 'There it is — the machine that is eating this place. Intakes and the spine coil!' },
 ];
 

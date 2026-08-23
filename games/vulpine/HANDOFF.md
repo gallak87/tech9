@@ -56,6 +56,19 @@ no objects in the way"*, and *"the zrail moves you and your aim stops moving by
 the edge so it feels like youre restricted"*. `shape.mjs` now gates it as a
 `maxRange` — the one row in that table that asks a rail to stay put.
 
+**The rail no longer turns, anywhere.** `centreline.x` is empty on all seven
+levels and no zone carries a `bend`; `CONTRACT.md` hard rule 9 and a 0.5° gate
+in `shape.mjs --strict`. Underneath it, the player's offset box was the last
+thing in the game still in world axes while the camera rig is built along the
+corridor heading — on a 29° corridor that cost 13 m of the 105 m box and put
+±51 m of the stick's throw on depth instead of screen-lateral, varying with the
+meander. `off` is now rotated through `flight.railCos/railSin`, the same yaw
+`combat.js` hands to `view.toWorld`, and that pair is derived in one place.
+**Every level's geometry moved**, so all seven `ref-geometry-*.json` were re-cut.
+
+**Phase 6 is parked on a conflict** — an orbit arena is a lateral path by
+definition. See PLAN-LEVELS "Phase 6 — parked".
+
 **`shape.mjs` gained the flank pass** — `walled` / `columns` / `open`, measured
 as how much of the level has anything standing in the 180-800 m band and how
 many times that starts per kilometre. It exists because a cross-section reads a
@@ -99,6 +112,9 @@ this it could not have.
   metres, how far the rail moves in how many monotone runs, and the flank pass
   (`walled` / `columns` / `open`). `--draw <level>` renders a cross-section as
   ASCII with the rail height beside it.
+- `tools/pilot.mjs fly --headed` prints **two console 404s that headless does
+  not**. Verified on the same commit, both ways: it is the harness, not the
+  build. Do not chase it.
 - `tools/fins.mjs --audit` — green. Gates on the worst single mesh's back-facing
   fraction, because a winding regression is a whole mesh; the scattered facets
   it prints as a note are sub-grid props aliasing against the grid.

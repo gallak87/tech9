@@ -59,7 +59,17 @@ export const DEFAULTS = {
   },
 
   centreline: {
-    // X = Σ sin(-z·w + p)·a  +  Σ dx·smoothstep across a dog-leg
+    // X = Σ sin(-z·w + p)·a  +  Σ dx·smoothstep across a dog-leg.
+    //
+    // EMPTY ON EVERY LEVEL, and it is a rule rather than a coincidence: the
+    // ship's offset box travels with the rail, so every metre the rail moves
+    // sideways is a metre of the player's own lateral throw spent following it
+    // rather than aiming — and aiming is mostly horizontal. `shape.mjs --strict`
+    // gates it. See PLAN-LEVELS, "the rail does not turn".
+    //
+    // The machinery stays because the terrain, the water and the shore field
+    // are all built around a channel that may meander; only the authored
+    // amplitude is zero.
     x: { waves: [], bends: [] },
     // Y is the rail height; cameras and shots read it, the height field does not
     y: { base: 44, waves: [], bends: [] },
@@ -129,14 +139,12 @@ export const DNA_CORNERIA = {
   surface: 'water',
 
   centreline: {
-    x: {
-      waves: [
-        { a: 210, w: 0.00055, p: 0 },
-        { a: 78, w: 0.00181, p: 1.7 },
-        { a: 22, w: 0.0041, p: 0.4 },
-      ],
-      bends: [],
-    },
+    // The rail never moves laterally: `waves` and `bends` are empty on every
+    // level. The ship's offset box travels with the rail, so every metre the
+    // rail moves sideways is a metre of the player's own lateral throw spent
+    // following it rather than aiming — and aiming is mostly horizontal. Only
+    // `y` is authorable. See PLAN-LEVELS "the rail does not turn".
+    x: { waves: [], bends: [] },
     y: { base: 44, waves: [{ a: 16, w: 0.00042, p: 0.9 }, { a: 7, w: 0.00133, p: 2.3 }] },
   },
 
@@ -203,18 +211,7 @@ export const DNA_FICHINA = {
   surfaceKind: 'glacial',
 
   centreline: {
-    x: {
-      // Two long, shallow sines: the trough is straight between its turns, and
-      // together they contribute only ~0.063 of dX/dz.
-      waves: [
-        { a: 96, w: 0.00031, p: 0 },
-        { a: 34, w: 0.00097, p: 2.4 },
-      ],
-      // Dog-legs come from the zones that turn — see `bend` below. dX/dz peaks
-      // at 1.5·dx/width per bend and the sines add on top, so each is kept at
-      // ~0.52 to stay clear of the 0.8 shear limit.
-      bends: [],
-    },
+    x: { waves: [], bends: [] },
     // The rail climbs over the pass and sheds it again on the way to the shelf;
     // both come from zone `climb`. Base 52 is 6 m above the floor of the offset
     // box, which is as low as the rail can sit over a surface at y = 0.
@@ -229,8 +226,8 @@ export const DNA_FICHINA = {
     { kind: 'basin', len: 2180, inner: 620, wallH: 150, relief: 0.48 },
     // 1400 m of tightening — the longest single gesture in the level.
     { kind: 'reach', len: 1680, blend: 1400, inner: 240, wallH: 430 },
-    // The slot. 200 m held = 1.1 s, and it turns while you are in it.
-    { kind: 'narrows', len: 900, blend: 900, inner: 128, wallH: 620, bend: { dx: 220, width: 640 } },
+    // The slot. 200 m held = 1.1 s.
+    { kind: 'narrows', len: 900, blend: 900, inner: 128, wallH: 620 },
     // Release. The one place with room to fight.
     { kind: 'basin', len: 1200, blend: 500, inner: 480, wallH: 300 },
     // The pass. The rail climbs 160; the floor climbs with it, or this is not a
@@ -240,7 +237,6 @@ export const DNA_FICHINA = {
     // above the trunk.
     {
       kind: 'gorge', len: 1500, blend: 800, inner: 200, wallH: 560, climb: 160,
-      bend: { dx: -270, width: 780 },
       section: [
         [-1150, 695], [-520, 620], [-300, 450], [-165, 153], [0, 138],
         [175, 151], [300, 273], [640, 281], [1150, 685],
@@ -251,7 +247,6 @@ export const DNA_FICHINA = {
     // -160, not to the gap between them.
     {
       kind: 'narrows', len: 800, blend: 400, inner: 135, wallH: 640,
-      bend: { dx: 190, width: 620 },
       section: [
         [-1150, 760], [-430, 690], [-215, 500], [-135, 145], [0, 130],
         [140, 143], [220, 510], [440, 700], [1150, 770],
@@ -351,17 +346,11 @@ export const DNA_SECTOR_OMEGA = {
   backend: 'field',
 
   centreline: {
-    // A belt has no walls to shear against, so the rail can turn harder than
-    // the 0.8 limit that binds a corridor — nothing here is sampled on a
-    // rail-aligned grid. Kept moderate anyway: at 175 m/s the turn is felt.
-    x: {
-      waves: [
-        { a: 260, w: 0.00041, p: 0.4 },
-        { a: 95, w: 0.00119, p: 2.1 },
-        { a: 38, w: 0.00287, p: 1.2 },
-      ],
-      bends: [],
-    },
+    // A belt has no walls to shear against and could turn harder than the 0.8
+    // shear limit that binds a corridor, but it is the level where a turn costs
+    // the most: there is no ground to read one against, so it arrives purely as
+    // the player's own aim being moved.
+    x: { waves: [], bends: [] },
     // The rail rolls through the belt plane instead of sitting on a floor — but
     // the swing must stay inside what the offset box can absorb. Authored first
     // at ±164 (a 251 m swing) on the reasoning that a belt has no ground to
@@ -427,16 +416,7 @@ export const DNA_FOUNDRY = {
   backend: 'works',
 
   centreline: {
-    // Long and shallow. A built corridor should read as *surveyed* — the meander
-    // is what the builders had to route around, not a river's wander — so the
-    // amplitude is under half Corneria's and there are no fast terms at all.
-    x: {
-      waves: [
-        { a: 150, w: 0.00036, p: 1.1 },
-        { a: 44, w: 0.00092, p: 2.8 },
-      ],
-      bends: [],
-    },
+    x: { waves: [], bends: [] },
     // Barely moves. The deck is flat and the roof is at a fixed height, so a
     // rail that wandered vertically would clip both.
     y: { base: 46, waves: [{ a: 9, w: 0.00048, p: 0.5 }], bends: [] },
@@ -491,15 +471,7 @@ export const DNA_AQUAS = {
   canopy: { y: 620, half: 9000, tint: [0.20, 0.62, 0.66], sunTint: [1.30, 1.80, 1.72] },
 
   centreline: {
-    // Wider and lazier than a river: water carves a reef pass by dissolving it,
-    // not by cutting down a gradient, so the meander has no short terms.
-    x: {
-      waves: [
-        { a: 185, w: 0.00043, p: 1.4 },
-        { a: 62, w: 0.00121, p: 0.3 },
-      ],
-      bends: [],
-    },
+    x: { waves: [], bends: [] },
     // 710 starts the level 90 m ABOVE the sea surface at 620, which is what
     // makes the opening a flight over water rather than under it: past `PIERCE`
     // the canopy answers `groundAt` instead of `ceilingAt`. Zone 1 spends the
@@ -547,8 +519,8 @@ export const DNA_AQUAS = {
         [150, -22], [280, 78], [470, 70], [860, -56],
       ],
     },
-    // The swim-through. 760 m, and it turns inside it.
-    { kind: 'narrows', len: 760, blend: 700, inner: 150, wallH: 480, bend: { dx: 210, width: 600 } },
+    // The swim-through. 760 m.
+    { kind: 'narrows', len: 760, blend: 700, inner: 150, wallH: 480 },
     // The drop-off, and the one asymmetric cross-section in the game: reef wall
     // to port, and to starboard the shelf simply ends. The rail follows the
     // floor down — the one descent that is not a hop.
@@ -581,7 +553,7 @@ export const DNA_AQUAS = {
     // inferred.
     {
       kind: 'gorge', len: 1500, blend: 800, inner: 210, wallH: 455, relief: 0.30,
-      climb: -55, bend: { dx: -250, width: 720 },
+      climb: -55,
       section: [
         [-900, 500], [-380, 470], [-205, 60], [-140, -100], [0, -125],
         [190, -105], [330, 20], [560, 300], [900, 440],
@@ -747,14 +719,7 @@ export const DNA_FORTUNA = {
   },
 
   centreline: {
-    x: {
-      waves: [
-        { a: 240, w: 0.00048, p: 2.6 },
-        { a: 84, w: 0.00139, p: 0.8 },
-        { a: 26, w: 0.00352, p: 1.9 },
-      ],
-      bends: [],
-    },
+    x: { waves: [], bends: [] },
     // Dead level, and the only rail in the game that is: no `climb` on any
     // zone, and not even the ±20 m of sine every other level carries.
     //
@@ -794,10 +759,9 @@ export const DNA_FORTUNA = {
         [300, -60], [600, -48], [900, -34], [1200, -22],
       ],
     },
-    // Into the stand proper, and the first hard turn under it.
+    // Into the stand proper: the ranks at their closest before the bars.
     {
       kind: 'basin', len: 1300, blend: 600, inner: 540, bed: 78, wallH: 60, relief: 0.04,
-      bend: { dx: 260, width: 900 },
       section: [
         [-1200, -30], [-860, -44], [-540, -60], [-260, -72], [0, -78],
         [280, -70], [580, -54], [880, -38], [1200, -24],
@@ -808,7 +772,6 @@ export const DNA_FORTUNA = {
     // and a bank that runs is what this level does not have.
     {
       kind: 'basin', len: 1200, blend: 500, inner: 540, bed: 84, wallH: 60, relief: 0.04,
-      bend: { dx: -220, width: 800 },
       section: [
         [-1200, -30], [-880, -46], [-560, -64], [-260, -78], [0, -84],
         [260, -76], [560, -58], [880, -42], [1200, -28],
@@ -828,7 +791,6 @@ export const DNA_FORTUNA = {
     // ranks come to 290 m and the tallest of them stand 610 m over the rail.
     {
       kind: 'basin', len: 1450, blend: 700, inner: 560, bed: 130, wallH: 60, relief: 0.03,
-      bend: { dx: 300, width: 1100 },
       section: [
         [-1200, -40], [-880, -64], [-560, -92], [-280, -116], [0, -130],
         [280, -114], [560, -90], [880, -62], [1200, -38],
@@ -838,7 +800,6 @@ export const DNA_FORTUNA = {
     // scattered, in `islands.fixed` below. Second battery, on its own bars.
     {
       kind: 'basin', len: 1000, blend: 500, inner: 560, bed: 90, wallH: 60, relief: 0.04,
-      bend: { dx: -240, width: 800 },
       section: [
         [-1200, -32], [-880, -50], [-560, -70], [-260, -84], [0, -90],
         [260, -82], [560, -62], [880, -44], [1200, -30],
@@ -1063,16 +1024,7 @@ export const DNA_VENOM = {
   camera: { up: 9, back: 21, lookAhead: 38, lookUp: 0, fov: 66 },
 
   centreline: {
-    // A lava channel follows the steepest line it burned for itself: straighter
-    // than a river, and what turning it does is abrupt. Hence small sines and
-    // the work carried by the zone dog-legs.
-    x: {
-      waves: [
-        { a: 118, w: 0.00037, p: 0.6 },
-        { a: 41, w: 0.00108, p: 2.9 },
-      ],
-      bends: [],
-    },
+    x: { waves: [], bends: [] },
     // The rail rides 70 m over the crest for the whole level and the crest is
     // what moves. `surface: lava` clamps `groundAt` at y = 0, so nothing here
     // can come below the offset box's 46 m — the saddle bottoms out at 150.
@@ -1126,7 +1078,7 @@ export const DNA_VENOM = {
     // the other direction.
     {
       kind: 'basin', len: 1400, blend: 700, inner: 400, bed: 24, wallH: 220, relief: 0.14,
-      climb: -250, bend: { dx: 220, width: 900 },
+      climb: -250,
       section: [
         [-1200, 90], [-760, -80], [-400, 0], [-180, 55], [0, 80],
         [190, 58], [420, 0], [780, -85], [1200, 100],
@@ -1146,7 +1098,7 @@ export const DNA_VENOM = {
     // in the game.
     {
       kind: 'basin', len: 1500, blend: 700, inner: 480, bed: 22, wallH: 280, relief: 0.12,
-      climb: 370, bend: { dx: -260, width: 1000 },
+      climb: 370,
       section: [
         [-1200, 200], [-820, -80], [-450, 0], [-200, 360], [0, 450],
         [215, 368], [480, 0], [850, -85], [1200, 210],
@@ -1165,7 +1117,7 @@ export const DNA_VENOM = {
     // Down to the sump: 340 m, the steepest descent on the level.
     {
       kind: 'basin', len: 1000, blend: 800, inner: 420, bed: 24, wallH: 220, relief: 0.14,
-      climb: -340, bend: { dx: 200, width: 800 },
+      climb: -340,
       section: [
         [-1200, 120], [-780, -80], [-420, 0], [-190, 85], [0, 110],
         [200, 88], [440, 0], [800, -85], [1200, 130],

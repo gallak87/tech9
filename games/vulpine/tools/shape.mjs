@@ -152,6 +152,20 @@ const BRIEF = {
 // the centreline's own sine term, which is 7-16 m on every level.
 const RUN_PROMINENCE = 80;
 
+// Degrees of corridor yaw allowed, anywhere, on any level.
+//
+// The rail does not turn. The ship's offset box travels with the rail and the
+// camera rig is built along the corridor heading, so a corridor at yaw θ hands
+// the player a box at θ to the screen: `boxX * cos θ` of screen-lateral, and
+// `boxX * sin θ` of the stick's throw spent moving toward and away from the
+// camera instead of across it — changing continuously as the meander runs.
+// Measured at the 29° the corridors used to reach: 13 m of the 105 gone and
+// ±51 m of throw on depth.
+//
+// Vertical is still authorable, and costs less: the box is 105 wide against
+// 78/46 tall, and aiming is mostly horizontal.
+const MAX_YAW = 0.5;
+
 // The level the others are being told apart from. Labelled in the output.
 const REFERENCE = 'corneria';
 
@@ -230,6 +244,18 @@ function coverage() {
   };
 }
 
+/** Peak corridor yaw in degrees, from the same ±6 m difference `railTangent` uses. */
+function maxYaw() {
+  const span = WORLD.zStart - WORLD.zEnd;
+  let worst = 0;
+  for (let q = 0; q <= 4000; q++) {
+    const z = WORLD.zStart - span * (q / 4000), e = 6;
+    const d = Math.abs((centrelineX(z + e) - centrelineX(z - e)) / (2 * e));
+    if (d > worst) worst = d;
+  }
+  return Math.atan(worst) * 180 / Math.PI;
+}
+
 /** walled / columns / open — see the header. */
 function flankKind(r) {
   if (r.flankRuns >= FLANK_RUNS) return 'columns';
@@ -302,7 +328,7 @@ const ids = only && only !== true ? [only] : Object.keys(DNA_BY_ID);
 const rows = [];
 for (const id of ids) {
   setActiveDNA(DNA_BY_ID[id]);
-  if (WORLD.backend !== 'terrain') { rows.push({ id, skip: WORLD.backend }); continue; }
+  if (WORLD.backend !== 'terrain') { rows.push({ id, skip: WORLD.backend, yaw: maxYaw() }); continue; }
   const span = WORLD.zStart - WORLD.zEnd;
   const cells = [];
   for (let q = 0; q < SAMPLES; q++) {
@@ -313,7 +339,7 @@ for (const id of ids) {
   // Coarse on purpose: this is an identity axis, not a tuning dial.
   const fr = floorRange();
   kinds.add(fr > 100 ? 'climbs' : 'level-floor');
-  const row = { id, cells, kinds, fr, ...coverage(), auth: authored(DNA_BY_ID[id]) };
+  const row = { id, cells, kinds, fr, yaw: maxYaw(), ...coverage(), auth: authored(DNA_BY_ID[id]) };
   kinds.add(flankKind(row));
   rows.push(row);
 }
@@ -415,4 +441,14 @@ if (briefFails.length) {
   for (const f of briefFails) console.log(`BRIEF REGRESSED: ${f}`);
   console.log('A level marked done in this tool\'s BRIEF table no longer meets its row.');
 }
-process.exit(STRICT && (clash.length || briefFails.length) ? 1 : 0);
+
+/* ── the rail does not turn ───────────────────────────────────────────────── */
+const turners = rows.filter(r => r.yaw > MAX_YAW);
+console.log(`\npeak corridor yaw, all levels (limit ${MAX_YAW}°)`);
+console.log('  ' + rows.map(r => `${r.id} ${r.yaw.toFixed(2)}°`).join('   '));
+if (turners.length) {
+  console.log();
+  for (const r of turners) console.log(`RAIL TURNS: ${r.id} peaks at ${r.yaw.toFixed(1)}° of yaw`);
+  console.log('A turning rail moves the player\'s offset box, not the world. See MAX_YAW above.');
+}
+process.exit(STRICT && (clash.length || briefFails.length || turners.length) ? 1 : 0);

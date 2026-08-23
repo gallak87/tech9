@@ -106,7 +106,7 @@ Venom have one; Corneria, Fichina and Fortuna have none. It costs a `climb` on a
 zone and a section that comes down with it, and the corridor going somewhere
 vertically is felt immediately in a way a cross-section is not.
 
-**But a rail only reads where something moves with it, and it is not free.**
+**A rail only reads where something moves with it, and it is not free.**
 Fortuna was authored with 735 m of descent over a floor that is a plane at
 y = 0 everywhere, and the owner, flying it: *"its like your going up and down
 for no reason there is no objects in the way you just got slightly closer to
@@ -114,13 +114,11 @@ the islands then flew back up again."* Venom's crest comes down with its dive
 and Aquas' plunge crosses the sea surface; Fortuna's dive had nothing to be
 measured against, so it changed nothing in frame.
 
-And it charges the player for it. *"as you're flying around the zrail moves you
-and your aim stops moving by the edge so it feels like youre restricted"* —
-the ship's offset box is fixed around the rail, so every metre the rail moves is
-a metre of the player's own travel spent following it rather than aiming.
-**A level with no reason to move the rail should hold it still**, which is now
-Fortuna's row in the table above and is gated as a `maxRange` in `shape.mjs` —
-the one row in that table that asks a rail to stay put.
+And it charges the player for it — see **the rail does not turn** below, which
+is why the lateral half of this is now zero everywhere. **A level with no reason
+to move the rail should hold it still**, which is Fortuna's row in the table
+above and is gated as a `maxRange` in `shape.mjs` — the one row in that table
+that asks a rail to stay put.
 
 **A corridor need not be made of ground.** Fortuna's is made of props: the
 sections are submerged bank to bank and what the ship flies between is the
@@ -146,7 +144,7 @@ it stop looking like that.
 | 3 | Per-zone `ceiling`; player flight clamped under `ceilingAt` | ✅ 2026-08-22 |
 | 4 | Rail advance by arc length; `ai.js` station frame | ✅ 2026-08-22 |
 | 5 | Hull pitch from `railDir` | ✅ 2026-08-22 |
-| 6 | Venom orbit arena | **open** |
+| 6 | Venom orbit arena | **open — conflicts with hard rule 9** |
 | 7 | Per-level camera | ✅ 2026-08-22 |
 | 8 | Aquas' plunge — the rail crosses the water surface | ✅ 2026-08-22 |
 | 9 | **The authoring pass** — one distinct shape per level | **Venom, Aquas + Fortuna done; the Foundry open** |
@@ -175,7 +173,18 @@ needs the mechanism pass phases 2 and 3 gave `terrain`, repeated for `works`.
 
 **Corneria stays a valley.** It is what the others are told apart from.
 
-### Phase 6 — the contract it has to keep
+### Phase 6 — parked, and it now conflicts with a hard rule
+
+**Resolve this before starting it.** `CONTRACT.md` hard rule 9 says the rail
+does not turn, and an orbit arena is a closed lateral path by definition. Owner
+parked the conflict 2026-08-22 rather than settling it in advance; the readings
+on the table were (a) the rule means "no turning *in a corridor*" and an arena
+has no forward corridor to aim down, so it is a carve-out, or (b) phase 6 dies
+and Venom's finale becomes something that is not a looping path. Everything
+below is the contract phase 6 had to keep before that question existed, and it
+is still accurate.
+
+
 
 `railPoint` still composes z — `set(centrelineX(z), centrelineY(z), z)` — so the
 corridor cannot double back yet. `flight.js` no longer *assumes* it (`pos.z`
@@ -280,12 +289,31 @@ difference as `railTangent` deliberately — the two are read on the same tick a
 attitude and as rate, so an analytic derivative would pitch the hull to a slope
 the speed correction did not agree existed.
 
-**A moving rail spends the player's aim budget.** `flight.js` holds the ship in
-an offset box around the rail — 105 m lateral, 78/46 vertical — so rail motion
-and player motion come out of the same allowance. On a level where the rail is
-going somewhere the player can see, that is the ride; on one where it is not, it
-reads as being pushed. Fortuna's rail is dead level for this reason and carries
-not even the ±20 m of sine every other level has in `centreline.y.waves`.
+**The rail does not turn.** `CONTRACT.md` hard rule 9, and the reason is
+mechanical rather than aesthetic. `flight.js` holds the ship in an offset box
+around the rail, so rail motion and player motion come out of one allowance —
+and until 2026-08-22 the box was in *world* axes while the camera rig was built
+along the corridor heading, so on a corridor at yaw θ the player got
+`boxX · cos θ` of screen-lateral and `boxX · sin θ` of their stick spent moving
+toward and away from the camera. Measured at the 29° the dog-legged levels
+reached: 13 m of the 105 gone, ±51 m of throw on depth, both varying
+continuously with the meander.
+
+`off` is now rotated through the same yaw `combat.js` hands to
+`view.toWorld` — the player was the last thing in the game not in the rail's
+frame, `ai.js` having been given it in phase 4 — and `flight.railCos/railSin`
+is the single derivation both read.
+
+Owner, having flown it: *"as you're flying around the zrail moves you and your
+aim stops moving by the edge so it feels like youre restricted"*, and on the
+options: **keep full A — dead straight.** So every level's `centreline.x` is
+empty and no zone carries a `bend`. `shape.mjs --strict` gates it at 0.5° of
+yaw. **Vertical is still authorable** and costs less — the box is 105 m wide
+against 78/46 tall, and aiming is mostly horizontal.
+
+**A moving rail still spends the aim budget vertically.** Fortuna's is dead
+level for that reason and carries not even the ±20 m of sine every other level
+has in `centreline.y.waves`.
 
 **A prop is tested over ±2.2 r of z, and `flat` divides the z term by 0.35.**
 Radius therefore buys three times as much length down the level as across it: a

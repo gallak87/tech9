@@ -1761,11 +1761,12 @@ const _bRail = new THREE.Vector3();
     // Yaw only. Pitch is deliberately left out: a station that dived with the
     // rail would fight the altitude clamps in ai.js, which are one-sided against
     // `groundAt` and `ceilingAt` and have no notion of a sloping corridor.
-    {
-      const h = Math.hypot(flight.railDir.x, flight.railDir.z) || 1;
-      view.railCos = -flight.railDir.z / h;
-      view.railSin = flight.railDir.x / h;
-    }
+    //
+    // Read from `flight`, never re-derived: the player's own offset box is
+    // placed in this same frame, and two derivations of one heading is how the
+    // stations and the ship end up in different corridors.
+    view.railCos = flight.railCos;
+    view.railSin = flight.railSin;
     state.px = flight.pos.x; state.py = flight.pos.y; state.pz = flight.pos.z;
     state.fwd.copy(flight.railDir);
     // Genuinely starboard. `railDir × up` already is: with the rail running

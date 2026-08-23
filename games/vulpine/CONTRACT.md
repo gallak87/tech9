@@ -102,6 +102,12 @@ If you are fighting the look, probe first — the answer is usually exposure.
    of one that exists. Five of seven levels collapsed onto one cross-section
    because adding a DNA was free and adding a shape was not; this is the check
    that keeps that from happening again. See `PLAN-LEVELS.md`.
+9. **The rail does not turn.** `centreline.x.waves` and `.bends` are empty on
+   every level and a zone may not carry a `bend`. The ship's offset box travels
+   with the rail, so lateral rail motion is not scenery — it is the player's own
+   lateral throw being spent on following the corridor, and aiming is mostly
+   horizontal. Vertical is still authorable and costs less: the box is 105 m
+   wide against 78/46 tall. `tools/shape.mjs --strict` gates it at 0.5° of yaw.
 
 ---
 

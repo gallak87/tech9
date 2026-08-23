@@ -174,6 +174,11 @@ export class Flight {
     this.aimLeadY = 0;
     this.railPos = new THREE.Vector3();
     this.railDir = new THREE.Vector3(0, 0, -1);
+    // The corridor's yaw as cos/sin. Derived here and nowhere else: `combat.js`
+    // hands the same pair to `view.toWorld`/`toStation`, so the player's offset
+    // box and every station offset are in one frame or in neither.
+    this.railCos = 1;
+    this.railSin = 0;
 
     // Resolved per level by `lens()`, keyed on `WORLD.camera`'s identity.
     this._lensOf = undefined;
@@ -378,12 +383,32 @@ export class Flight {
     /* ── world transform ────────────────────────────────────────────────── */
     this.railPoint(this.railZ, this.railPos);
     this.railTangent(this.railZ, this.railDir);
+    // Yaw only, matching the station frame in `combat.js`: pitch is left out
+    // there because a station that dived with the rail would fight the
+    // one-sided altitude clamps, and the two frames have to be the same frame.
+    {
+      const h = Math.hypot(this.railDir.x, this.railDir.z) || 1;
+      this.railCos = -this.railDir.z / h;
+      this.railSin = this.railDir.x / h;
+    }
 
     // `climb` is the hop's altitude, kept out of `off.y` on purpose: the offset
     // is a box with sprung walls and a ground cushion, and pushing 2 km through
     // it would fight both. It is added after, so the corridor physics never see
     // it and are unchanged the moment it returns to zero.
-    this.pos.set(this.railPos.x + this.off.x, this.railPos.y + this.off.y + this.climb, this.railPos.z);
+    // `off.x` is a lateral offset in the RAIL's frame, not along world X. The
+    // camera rig is built along the heading and the hull yaws to it, so an
+    // offset in world axes sits at the corridor's yaw to the screen: the box
+    // projects to `boxX * cos(yaw)` of screen-lateral and the remainder becomes
+    // travel toward and away from the camera. Measured on a 29° corridor, that
+    // is 13 m of the 105 gone and ±51 m of the stick's throw spent on depth,
+    // varying continuously with the meander — the player's own room changing
+    // under them with no input touched.
+    this.pos.set(
+      this.railPos.x + this.off.x * this.railCos,
+      this.railPos.y + this.off.y + this.climb,
+      this.railPos.z + this.off.x * this.railSin,
+    );
 
     // The lid, cushioned and clamped exactly as the floor is. Only a `works`
     // roof or a canopy reports one; everywhere else it is Infinity and both
@@ -589,7 +614,14 @@ export class Flight {
     // with the ship, but it must NOT enter the lead terms below, which are built
     // from offset velocity. A 2 km ramp read as offset velocity would saturate
     // the lead cap for the whole ascent and weld the rig to the hull.
-    _vShip.set(railPos.x + offX, railPos.y + offY + this.climb, railPos.z);
+    // The same rail-frame placement the sim uses, and it must stay the same
+    // arithmetic: the rig hangs the whole camera off this point, so a ship
+    // placed one way and framed another drifts out of the rig.
+    _vShip.set(
+      railPos.x + offX * this.railCos,
+      railPos.y + offY + this.climb,
+      railPos.z + offX * this.railSin,
+    );
     this.camPos.copy(_vShip)
       .addScaledVector(_vHead, -back)
       .addScaledVector(_vRight, -leadX)

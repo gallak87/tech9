@@ -296,35 +296,51 @@ const AQUAS_COMMS = [
    visible for its whole approach, which is what makes the level readable at
    night rather than a set of things that appear at 400 m.
 
+   THE LEVEL HAS NO BANKS. It is a drowned forest — open water bank to bank,
+   with the corridor made of trunks — so the only ground a battery can stand on
+   is the six mud bars in `islands.fixed`, and each of the three `banks` waves
+   is authored ONTO one pair. All three of `bank`, `first` and `step` are part
+   of that fit. `bank` 430 is where the bar tops are flat; `step` 150 keeps the
+   line inside one bar, where 290 ran the outer guns off the end of it; and
+   `first` 1500 is what makes a gun that far out a target at all — at 700 it
+   sits 31° off the nose, which is the angle `combat.js` moved every battery in
+   the game away from. Move one of these and the wave stops working.
+
    Zone boundaries:
-     720 basin -1680 reach -3280 basin/glade -4780 gorge -6280 basin -7580
-     narrows -8280 basin -9840 */
+     720 crowns -780 plunge -2180 reach -3480 stand -4680 clearing -5830
+     hollow -7280 gallery -8280 bloom -9840
+
+   The rail descends from 860 to 125 across those, so a wave's altitude changes
+   with where it fires far more than on any other level. */
 const FORTUNA_WAVES = [
   { z: -260, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1650, arc: -0.50, climb: 0.24, skill: 0.44, life: 8.5 },
-  // Lands -1100…-1700 in the lagoon. bank 540 ≈ inner 600.
-  { z: -500, kind: 'bulwark', n: 3, form: 'banks', first: 700, step: 290, bank: 540, drops: ['health'] },
-  { z: -1700, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1600, arc: 0.32, climb: 0.18, skill: 0.48, aggro: 0.24, life: 10.5, drops: ['weapon'] },
-  { z: -2600, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1500, arc: 0.60, climb: -0.22, skill: 0.50, aggro: 0.26, life: 8.5 },
-  // The glade: the one clearing in the stalk field, and the only wave in the
-  // level with room to turn inside.
-  { z: -3450, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1450, arc: -0.10, climb: 0.46, skill: 0.50, life: 8.5, markFor: 2.0, stagger: 0.5, drops: ['bomb'] },
-  { z: -3700, kind: 'bulwark', n: 3, form: 'banks', first: 620, step: 250, bank: 480 },
-  { z: -4600, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.52 },
-  { z: -5500, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1550, arc: -0.40, climb: 0.26, skill: 0.56, aggro: 0.30, life: 11, drops: ['weapon', 'health'] },
-  { z: -6500, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2100, arc: -0.05, climb: 0.12, skill: 0.56, aggro: 0.32, life: 26, close: 205, escort: 2, drops: ['weapon', 'health'] },
-  { z: -7400, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1400, arc: 0.46, climb: 0.22, skill: 0.58, aggro: 0.34, hunt: true, life: 9 },
-  // Past the crevasse-narrows, on the last open water. bank 560 ≈ inner 620.
-  { z: -8350, kind: 'bulwark', n: 4, form: 'banks', first: 640, step: 250, bank: 560, drops: ['health', 'bomb'] },
+  // In the plunge, taken head-on at 43° of nose down.
+  { z: -1450, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1600, arc: 0.32, climb: 0.18, skill: 0.48, aggro: 0.24, life: 10.5, drops: ['weapon'] },
+  // Lands -3930…-4230 on the first bar pair, under a rail held at 205.
+  { z: -2430, kind: 'bulwark', n: 3, form: 'banks', first: 1500, step: 150, bank: 430, drops: ['health'] },
+  { z: -2900, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 1500, arc: 0.60, climb: -0.22, skill: 0.50, aggro: 0.26, life: 8.5 },
+  { z: -4300, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.52 },
+  // The clearing: the one place in the forest with room to turn, and the only
+  // wave in the level that has any.
+  { z: -5100, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1450, arc: -0.10, climb: 0.46, skill: 0.50, life: 8.5, markFor: 2.0, stagger: 0.5, drops: ['bomb'] },
+  { z: -5800, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1550, arc: -0.40, climb: 0.26, skill: 0.56, aggro: 0.30, life: 11, drops: ['weapon', 'health'] },
+  // Lands -7600…-7900, out past the gallery's masts.
+  { z: -6100, kind: 'bulwark', n: 3, form: 'banks', first: 1500, step: 150, bank: 430 },
+  { z: -6600, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 2100, arc: -0.05, climb: 0.12, skill: 0.56, aggro: 0.32, life: 26, close: 205, escort: 2, drops: ['weapon', 'health'] },
+  { z: -7300, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1400, arc: 0.46, climb: 0.22, skill: 0.58, aggro: 0.34, hunt: true, life: 9 },
+  // Lands -9105…-9555 on the arena's own bars, so the boss is fought over a
+  // crossfire rather than into clean water.
+  { z: -7605, kind: 'bulwark', n: 4, form: 'banks', first: 1500, step: 150, bank: 430, drops: ['health', 'bomb'] },
   { z: -8700, boss: 'commander:bloom' },
 ];
 
 const FORTUNA_COMMS = [
-  { z: -180, who: 'SLIPPY', text: 'Fox, the whole forest is glowing. I have never seen readings like this.' },
-  { z: -480, who: 'PEPPY', text: 'They dug guns into the bank. Do not let them settle on you.' },
-  { z: -2560, who: 'FALCO', text: 'Stay out of the stalks. They will take a wing off.' },
-  { z: -3400, who: 'SLIPPY', text: 'Swarm in the clearing! They came out of the ground!' },
-  { z: -4560, who: 'PEPPY', text: 'Behind you, Fox!' },
-  { z: -6460, who: 'FALCO', text: 'Their heavy is running the gorge. Keep it in front of you.' },
+  { z: -180, who: 'SLIPPY', text: 'Fox, we are over the tops of them. That whole forest is alive.' },
+  { z: -1180, who: 'FALCO', text: 'Going down into it. Watch your wingtips in there.' },
+  { z: -2980, who: 'PEPPY', text: 'They dug guns into the mud bars. Do not let them settle on you.' },
+  { z: -4160, who: 'PEPPY', text: 'Behind you, Fox!' },
+  { z: -4950, who: 'SLIPPY', text: 'Swarm in the clearing! They came out of the water!' },
+  { z: -6360, who: 'FALCO', text: 'Their heavy is under the canopy with us. Keep it in front of you.' },
   { z: -8650, who: 'PEPPY', text: 'There it is — the machine that is eating this place. Intakes and the spine coil!' },
 ];
 

@@ -41,6 +41,17 @@
 // and independently:
 //   asym    the two banks differ by more than ASYM — one wall, one open side
 //
+// And once per level, from the FLANK pass: whether what stands beside the ship
+// is continuous or not.
+//   walled    something is up there nearly everywhere — a corridor with sides
+//   columns   it comes and goes — a forest, a colonnade, a stack field
+//   open      almost nothing stands beside the rail at all
+// A cross-section cannot answer this. RIDGE/FLAT/VALLEY read two rays at one z,
+// so a trunk 250 m off the rail and a canyon wall 250 m off the rail are the
+// same sample; what tells them apart is that a wall is still there 200 m later
+// and a trunk is not. Fortuna is 86% FLAT and Corneria is 63% FLAT, and before
+// this pass existed those two levels signed identically.
+//
 // FLAT and VALLEY are the distinction the first version of this audit missed:
 // it had only RIDGE / asym / valley, so it called Fortuna's near-flat lagoon a
 // valley and would have had phase 9 author away the one thing already right.
@@ -65,6 +76,18 @@ const FAR = 600;          // skyline, reported but not classified on
 const FLAT_RISE = 30;     // bank rise, in metres, under which it is a plain
 const ASYM = 120;         // bank-to-bank difference that reads as one-sided
 const SAMPLES = 12;
+
+// The lateral band searched for something standing beside the ship, and how
+// far under the rail it has to reach to count. Inside `boxX` is the ship's own
+// lane and past ~800 m is scenery; between the two is what the corridor is
+// made of, whether that is rock or props.
+const FLANK = [180, 260, 340, 430, 520, 620, 720, 800];
+const FLANK_DROP = 40;
+// Risings per kilometre above which a flank reads as columns rather than as a
+// wall. Measured: 0.09 on all three walled levels, 1.42 on Fortuna.
+const FLANK_RUNS = 0.8;
+// Occupancy above which a flank reads as walled rather than open.
+const FLANK_BESIDE = 0.6;
 
 // Metres between samples for the COVERAGE pass. The twelve above are a picture
 // of the level; these are a measurement of it. Twelve samples cannot say how
@@ -105,13 +128,16 @@ const BRIEF = {
     rail: { minRange: 250, minRuns: 3 },
   },
   fortuna: {
-    done: false,
-    row: 'near-flat / dive + climb',
-    // Target, not a measurement. Its brief is over the canopy, down through a
-    // gap, along the understory and back out, so the rail has to cross the
-    // surface twice — that is the range and the third run it does not have.
-    shape: { kind: 'FLAT', minCover: 0.55 },
-    rail: { minRange: 300, minRuns: 3 },
+    done: true,
+    row: 'flat and drowned, columnar / descent',
+    // The only level whose corridor is made of props rather than of ground, so
+    // `flank` is the row that carries its identity and `FLAT` only says that
+    // nothing else does.
+    // measured: FLAT 86%, flank columns at 1.42 starts/km beside 48%,
+    // rail moves 749 m in 4 runs
+    shape: { kind: 'FLAT', minCover: 0.70 },
+    rail: { minRange: 550, minRuns: 3 },
+    flank: { kind: 'columns', min: 1.0 },
   },
   foundry: { done: false, row: 'escarpment / steep shaft', backend: 'works' },
 };
@@ -157,6 +183,26 @@ function coverage() {
   const cover = {};
   for (const [k, v] of Object.entries(hits)) cover[k] = v / (n + 1);
 
+  // What stands beside the ship, and whether it stops. One pass, two numbers:
+  // how much of the level has anything in the flank band at all, and how many
+  // times that starts — a wall starts once, a forest starts every few hundred
+  // metres. Sampled at the same step as the coverage above.
+  let beside = 0, risings = 0, was = false;
+  for (let q = 0; q <= n; q++) {
+    const z = WORLD.zStart - span * (q / n);
+    const cx = centrelineX(z), rail = centrelineY(z);
+    let top = -Infinity;
+    for (const u of FLANK) {
+      const l = terrainHeight(cx - u, z), r = terrainHeight(cx + u, z);
+      if (l > top) top = l;
+      if (r > top) top = r;
+    }
+    const on = top > rail - FLANK_DROP;
+    if (on) beside++;
+    if (on && !was) risings++;
+    was = on;
+  }
+
   // Monotone runs in the rail, which is what "rhythm" means and what a single
   // range cannot say: a level that descends 300 m once and one that goes down,
   // up and down again have the same range and are not the same ride.
@@ -172,7 +218,16 @@ function coverage() {
       pivot = y;
     }
   }
-  return { cover, railRange: Math.max(...ys) - Math.min(...ys), runs };
+  return {
+    cover, railRange: Math.max(...ys) - Math.min(...ys), runs,
+    beside: beside / (n + 1), flankRuns: risings / (span / 1000),
+  };
+}
+
+/** walled / columns / open — see the header. */
+function flankKind(r) {
+  if (r.flankRuns >= FLANK_RUNS) return 'columns';
+  return r.beside >= FLANK_BESIDE ? 'walled' : 'open';
 }
 
 /** Metres of corridor carrying a hand-authored `section`, as a fraction. */
@@ -252,7 +307,9 @@ for (const id of ids) {
   // Coarse on purpose: this is an identity axis, not a tuning dial.
   const fr = floorRange();
   kinds.add(fr > 100 ? 'climbs' : 'level-floor');
-  rows.push({ id, cells, kinds, fr, ...coverage(), auth: authored(DNA_BY_ID[id]) });
+  const row = { id, cells, kinds, fr, ...coverage(), auth: authored(DNA_BY_ID[id]) };
+  kinds.add(flankKind(row));
+  rows.push(row);
 }
 
 console.log(`near ±${NEAR} m, far ±${FAR} m, flat under ${FLAT_RISE} m of bank rise\n`);
@@ -282,12 +339,14 @@ const pct = (v) => (v == null ? '   —' : `${Math.round(v * 100)}%`.padStart(4)
 
 console.log(`\ncoverage: fraction of the corridor measuring each shape, every ${COVER_STEP} m`);
 console.log(`  ${'level'.padEnd(10)} ${'RIDGE'.padStart(6)}${'FLAT'.padStart(6)}${'VALLEY'.padStart(7)}${'asym'.padStart(6)}`
-  + `${'authored'.padStart(10)}${'rail moves'.padStart(12)}${'runs'.padStart(6)}`);
+  + `${'authored'.padStart(10)}${'rail moves'.padStart(12)}${'runs'.padStart(6)}`
+  + `${'beside'.padStart(8)}${'starts/km'.padStart(11)}${'  flank'}`);
 for (const r of terr) {
   console.log(`  ${r.id.padEnd(10)} ${pct(r.cover.RIDGE || 0).padStart(6)}${pct(r.cover.FLAT || 0).padStart(6)}`
     + `${pct(r.cover.VALLEY || 0).padStart(7)}${pct(r.cover.asym || 0).padStart(6)}`
     + `${pct(r.auth).padStart(10)}${(Math.round(r.railRange) + ' m').padStart(12)}${String(r.runs).padStart(6)}`
-    + (r.id === REFERENCE ? '   (reference)' : ''));
+    + `${pct(r.beside).padStart(8)}${r.flankRuns.toFixed(2).padStart(11)}  ${flankKind(r).padEnd(7)}`
+    + (r.id === REFERENCE ? '  (reference)' : ''));
 }
 
 /* ── the four-levels table, checked ───────────────────────────────────────── */
@@ -307,6 +366,11 @@ for (const [id, b] of Object.entries(BRIEF)) {
   if (b.shape.asym && gotAsym < b.shape.minCover) bad.push(`asym covers ${Math.round(gotAsym * 100)}% of ${Math.round(b.shape.minCover * 100)}%`);
   if (r.railRange < b.rail.minRange) bad.push(`rail moves ${Math.round(r.railRange)} m of ${b.rail.minRange}`);
   if (r.runs < b.rail.minRuns) bad.push(`${r.runs} rail runs of ${b.rail.minRuns}`);
+  if (b.flank) {
+    const got = flankKind(r);
+    if (got !== b.flank.kind) bad.push(`flank reads ${got}, not ${b.flank.kind}`);
+    if (r.flankRuns < b.flank.min) bad.push(`flank starts ${r.flankRuns.toFixed(2)}/km of ${b.flank.min}`);
+  }
   const state = bad.length ? (b.done ? 'BROKEN' : 'open') : 'meets';
   if (bad.length && b.done) briefFails.push(`${id}: ${bad.join('; ')}`);
   briefLines.push(`  ${id.padEnd(10)} ${state.padEnd(7)} ${b.row}${bad.length ? `\n${''.padEnd(21)}${bad.join('\n'.padEnd(22))}` : ''}`);

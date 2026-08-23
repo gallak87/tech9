@@ -688,9 +688,35 @@ export const DNA_AQUAS = {
 // mirror, and the reflection is doing the work an ordinary sky-lit river never
 // asks of it.
 //
-// Composition: a wide flooded valley with glow-stalks standing out of it. The
-// `islands` table is unusually large because the stalks ARE the level; the walls
-// are deliberately low and soft so nothing competes with them for the vertical.
+// ── The level has no walls ───────────────────────────────────────────────────
+// A drowned forest: black water to the horizon, and colossal glowing trunks
+// standing out of it. The corridor is made of trunks, not of banks — that is
+// the whole identity and it holds for all nine kilometres. The cross-section is
+// under water everywhere except three root islands, so there is nothing on
+// either side of the ship to read as a channel, and `relief` is held near zero
+// so the noise bands cannot rebuild a skyline out where the polyline stops.
+//
+// The variety is altitude WITHIN the forest, not leaving it. The rail starts
+// over the crowns at 860, dives 430 m into the canopy, works down to 130 among
+// the trunks and climbs back to 180 for the finale — so the same forest is
+// flown over, entered, threaded and fought in. `glow.height` fades out by 640,
+// which makes that a light arc as well as a height one: the opening is dark
+// trunk-tops against the aurora and the level descends into its own glow.
+//
+// The rail ledger:
+//   860 crowns  -430-> 430 plunge  -240-> 190 reach  =  190 stand
+//   +170-> 360 clearing  -230-> 130 hollow  +130-> 260 gallery  -80-> 180 bloom
+//
+// The stand holds level on purpose: it carries a battery wave, and a line of
+// emplacements authored against a climbing rail is a line the ship arrives
+// above or under. Six is also all the y dog-legs `MAXB` has.
+//
+// The only land in the level is six mud bars, and they exist because three
+// waves of ground batteries have to stand on something. They are islands rather
+// than a shelf on the cross-section for the reason the level is a level: a
+// shelf spans its whole zone and reads as a bank, while a bar ends. Each is
+// 150 m high at 505 m out, under a rail at 190-240, and `combat.js` alternates
+// emplacements port and starboard, so they come in pairs.
 
 export const DNA_FORTUNA = {
   id: 'fortuna',
@@ -702,6 +728,12 @@ export const DNA_FORTUNA = {
   surface: 'water',
   surfaceKind: 'sedimentary',
 
+  // Wide and close, because what says how fast this level is going is trunks
+  // passing the wingtip. There is no wall to read speed off and no skyline to
+  // read the turn off, so the lens has to take in the near field: at the 58°
+  // default a trunk enters frame already abeam and the slalom reads as drift.
+  camera: { up: 6, back: 19, lookAhead: 30, lookUp: 2, fov: 68 },
+
   // The ground is a light source. Radiance, not colour — these run past 1 so
   // the bloom threshold finds them, and they are the brightest thing in the
   // level by a wide margin because the sun here delivers 1.15.
@@ -709,9 +741,11 @@ export const DNA_FORTUNA = {
     color: [0.26, 1.45, 1.05],     // the mat: cyan-green
     color2: [0.78, 0.30, 1.30],    // the second colony: violet
     amount: 3.6,
-    // Full at the waterline, gone by the stalk tops. A skyline that glows has
-    // no silhouette, and the silhouette is what makes a stalk read as a stalk.
-    height: [40, 340],
+    // Full at the waterline, gone by 640 — under the tallest trunks and over
+    // the rail everywhere past the plunge. The silhouette is what makes a trunk
+    // read as a trunk, so the tops stay dark; and because the rail descends
+    // through this band, the level's light comes up as it goes down.
+    height: [70, 640],
     pulse: 0.55,
   },
 
@@ -724,31 +758,101 @@ export const DNA_FORTUNA = {
       ],
       bends: [],
     },
-    y: { base: 46, waves: [{ a: 14, w: 0.00045, p: 0.2 }, { a: 6, w: 0.00128, p: 1.6 }], bends: [] },
+    // 860 is crown height: the outer stand tops out between 640 and 900, so the
+    // opening is flown across the tops of it. Everything below is arrived at by
+    // `climb`, and the floor does not come with the rail — the trunks are what
+    // the descent is measured against, and they are full height throughout.
+    y: { base: 860, waves: [{ a: 14, w: 0.00045, p: 0.2 }, { a: 6, w: 0.00128, p: 1.6 }], bends: [] },
   },
 
+  // ── Eight zones, one shape ──────────────────────────────────────────────
+  // Every section is submerged bank to bank apart from the three root islands.
+  // What varies is depth — 52 m under the crowns to 130 in the hollow, which
+  // the water shader reads as shallow-to-black through the baked shore field —
+  // and the trunk stand overhead, which is the `islands` table below.
   zones: [
-    // The lagoon. Low banks, long sightlines, the stalk field either side.
-    { kind: 'basin', len: 2400, inner: 600, bed: 14, wallH: 180, relief: 0.75 },
-    { kind: 'reach', len: 1600, blend: 1200, inner: 320, bed: 17, wallH: 380 },
-    // The glade: a clearing in the stalks, and the one place to fight in. Raised
-    // onto a mat plateau at 110, which is inside the stalks' own 90-320 rather
-    // than under them — this level's two layers are heights, not sides of a
-    // surface. The floor climbs with the rail; a rail climbing alone would be
-    // the same lagoon seen from higher up.
+    // The crowns. Flown at 860 over the tops of the outer stand, with the whole
+    // lit understory spread out underneath and the water 900 m down.
     {
-      kind: 'basin', len: 1500, blend: 600, inner: 540, bed: 15, wallH: 240, relief: 0.70, climb: 130,
+      kind: 'basin', len: 1500, inner: 600, bed: 52, wallH: 60, relief: 0.045,
       section: [
-        [-1200, -30], [-880, -10], [-620, 30], [-330, 104], [0, 112],
-        [340, 106], [640, 26], [900, -14], [1200, -34],
+        [-1200, -24], [-900, -32], [-620, -40], [-330, -46], [0, -52],
+        [340, -45], [640, -37], [920, -28], [1200, -20],
       ],
     },
-    // Off the plateau and down into the understory: the same -130 the glade
-    // climbed, so the gorge floor is back at lagoon level and dark.
-    { kind: 'gorge', len: 1500, blend: 800, inner: 220, bed: 22, wallH: 520, climb: -130, bend: { dx: -240, width: 700 } },
-    { kind: 'basin', len: 1300, blend: 600, inner: 500, bed: 16, wallH: 260, relief: 0.68 },
-    { kind: 'narrows', len: 700, blend: 400, inner: 145, bed: 24, wallH: 600, bend: { dx: 200, width: 640 } },
-    { kind: 'basin', len: 1560, blend: 800, inner: 620, bed: 15, wallH: 200, relief: 0.72 },
+    // The plunge: 430 m down into the canopy over a 700 m blend, 43° of nose
+    // down. The floor stays where it is — this is the ship entering the forest,
+    // not the forest rising to meet it.
+    {
+      kind: 'basin', len: 1400, blend: 700, inner: 560, bed: 68, wallH: 60, relief: 0.04,
+      climb: -430,
+      section: [
+        [-1200, -26], [-880, -38], [-560, -52], [-280, -62], [0, -68],
+        [300, -60], [600, -48], [900, -34], [1200, -22],
+      ],
+    },
+    // Into the stand proper, and the first hard turn under it.
+    {
+      kind: 'basin', len: 1300, blend: 600, inner: 540, bed: 78, wallH: 60, relief: 0.04,
+      climb: -240, bend: { dx: 260, width: 900 },
+      section: [
+        [-1200, -30], [-860, -44], [-540, -60], [-260, -72], [0, -78],
+        [280, -70], [580, -54], [880, -38], [1200, -24],
+      ],
+    },
+    // The stand, and the first guns. The mud bars they stand on are islands in
+    // `islands.fixed`, not a shelf on this section: a shelf runs the whole zone
+    // and a bank that runs is what this level does not have.
+    {
+      kind: 'basin', len: 1200, blend: 500, inner: 540, bed: 84, wallH: 60, relief: 0.04,
+      bend: { dx: -220, width: 800 },
+      section: [
+        [-1200, -30], [-880, -46], [-560, -64], [-260, -78], [0, -84],
+        [260, -76], [560, -58], [880, -42], [1200, -28],
+      ],
+    },
+    // The clearing: the forest thins to almost nothing and the rail climbs 170
+    // out of it, so there is open air over a bare mirror. It is the only place
+    // in the level with room to turn, which is why the swarm is here.
+    {
+      kind: 'basin', len: 1150, blend: 500, inner: 620, bed: 112, wallH: 60, relief: 0.035,
+      climb: 170,
+      section: [
+        [-1200, -34], [-900, -52], [-620, -76], [-320, -98], [0, -112],
+        [320, -96], [620, -74], [900, -50], [1200, -32],
+      ],
+    },
+    // The hollow. The deepest water and the densest, tallest stand, flown at
+    // 130 — the trunks run 800 m up past the canopy the level entered through.
+    {
+      kind: 'basin', len: 1450, blend: 700, inner: 560, bed: 130, wallH: 60, relief: 0.03,
+      climb: -230, bend: { dx: 300, width: 1100 },
+      section: [
+        [-1200, -40], [-880, -64], [-560, -92], [-280, -116], [0, -130],
+        [280, -114], [560, -90], [880, -62], [1200, -38],
+      ],
+    },
+    // The gallery: the one stretch where the trunks stand in ranks rather than
+    // scattered, in `islands.fixed` below. Second battery, on its own bars.
+    {
+      kind: 'basin', len: 1000, blend: 500, inner: 560, bed: 90, wallH: 60, relief: 0.04,
+      climb: 130, bend: { dx: -240, width: 800 },
+      section: [
+        [-1200, -32], [-880, -50], [-560, -70], [-260, -84], [0, -90],
+        [260, -82], [560, -62], [880, -44], [1200, -30],
+      ],
+    },
+    // The bloom. The trunks stand well back off the rail here and the last
+    // battery is out on the bars: a boss fight needs somewhere to happen that
+    // is not a slalom.
+    {
+      kind: 'basin', len: 1560, blend: 600, inner: 620, bed: 78, wallH: 60, relief: 0.04,
+      climb: -80,
+      section: [
+        [-1200, -30], [-900, -46], [-620, -62], [-320, -74], [0, -78],
+        [320, -72], [620, -56], [900, -40], [1200, -28],
+      ],
+    },
   ],
 
   bands: {
@@ -763,25 +867,140 @@ export const DNA_FORTUNA = {
     warp: { scale: 1 / 8200, amp: 340, shear: 0.7 },
     jitter: { a: 58, b: 20 },
     side: { scale: 1 / 5600, base: 0.66, amp: 0.64 },
+    // The one band that could put this level's walls back. `relief` opens past
+    // the second-outermost section point and builds a skyline out there
+    // whatever the polyline says, so on a level whose whole claim is that it
+    // has no banks it has to stay under about 0.06: at 0.05 the far field peaks
+    // ~40 m over a waterline it starts 30 m below, which is a mudflat.
     relief: { base: 0.50, far: 2.1, from: 380, to: 3000 },
   },
 
   city: null,
 
+  // ── The trunks ARE the corridor ─────────────────────────────────────────
+  // Everything the ship reads as "where am I and how fast" is in this table.
+  // Radii are 65 m and up: the mesh samples laterally at 6 m on the centreline
+  // growing to 27 at 1000 m out, so anything thinner than about 60 m is under
+  // the grid and facets instead of standing (see `fins.mjs`, and the constraint
+  // in PLAN-LEVELS). `pow` under 1 is what makes a trunk rather than a cone —
+  // the flanks stay near full height to about 0.6 of the radius and then fall.
   islands: {
-    seed: 'fortuna:stalks-1',
+    seed: 'fortuna:trunks-1',
     groups: [
-      // the stalk field: hundreds of metres of thin towers either side of the
-      // lagoon, close enough to the rail to pass between
-      { n: 22, z: [600, -2600], u: [110, 620], r: [16, 44], h: [90, 300], pow: [1.02, 1.28], spire: 1 },
-      { n: 14, z: [-4000, -5400], u: [90, 520], r: [16, 40], h: [80, 260], pow: [1.02, 1.28], spire: 1 },
-      { n: 18, z: [-7600, -9700], u: [100, 640], r: [16, 46], h: [95, 320], pow: [1.02, 1.28], spire: 1 },
-      // cap mounds under them — the mycelial mat the stalks come out of
-      { n: 15, z: [-1000, -9500], u: [60, 560], r: [70, 190], h: [8, 26], pow: [2.4, 3.6], flat: 1 },
+      // The ranks — the trunks the ship flies between, and the only thing in
+      // the level that says how fast it is going.
+      //
+      // `u` is a centre and the footprint is a circle of `r` around it, so the
+      // near edge is `u - r`: 150 m at the tightest, which clears the 105 m
+      // offset box and the banking chase camera outside it. A trunk closer than
+      // that is an obstacle the rail did not author, and there is no terrain
+      // crash — the ground cushion simply bulldozes the ship up the flank.
+      //
+      // Two things in these ranges are what keep a forest from meshing into a
+      // canyon, and both were got wrong once:
+      //
+      //   `u` spans 320 to 1150 in ONE group rather than a near band with a
+      //   second band behind it. A trunk is 200 m across and the ranks are
+      //   180 m apart down the level, so a narrow band overlaps itself into two
+      //   continuous masses port and starboard — which is a canyon with texture
+      //   on it. Scattered in depth, the same count reads as gaps.
+      //
+      //   `h` runs from well under the rail to well over it. Ranks that are all
+      //   tall have no tops in frame, and a row of trunks with no tops is a
+      //   wall whatever is behind it.
+      { n: 22, z: [720, -2180], u: [320, 1150], r: [85, 155], h: [340, 900], pow: [0.55, 0.95] },
+      { n: 15, z: [-2180, -3580], u: [320, 1150], r: [80, 155], h: [280, 840], pow: [0.50, 0.90] },
+      // ── the three battery windows ──────────────────────────────────────
+      // A trunk standing where a battery is placed puts the gun on its flank —
+      // measured, 42 m ABOVE a rail it was supposed to be shooting up at. So
+      // over each gun bar's stretch the ranks step outboard of the whole
+      // placement band: `bank` 430 plus the 85 m `combat.js` jitters out to,
+      // plus the widest radius authored here, is 715, and these start at 740.
+      //
+      // The forest does not stop in these stretches, it steps back one rank —
+      // which is also what gives three lines of emplacements a firing line.
+      { n: 8, z: [-3580, -4680], u: [740, 1500], r: [80, 200], h: [300, 860], pow: [0.50, 0.90] },
+      // The clearing: four, all of them far out. The forest thinning is the
+      // beat, and nothing else may reach into these 1150 m. That is why the
+      // giants below are two groups with a hole in the middle rather than one
+      // that runs the level, and why the hollow's ranks start 330 m late — an
+      // island is tested over ±2.2 r of z, so a 150 m trunk authored on the
+      // boundary stands a third of the way back into the clearing.
+      { n: 4, z: [-4680, -5830], u: [1000, 1700], r: [160, 260], h: [220, 420], pow: [0.70, 1.05] },
+      // The hollow — closest and tallest, over a rail at 125. These stand 800 m
+      // above the ship, which is the whole reason the level came down here.
+      { n: 18, z: [-6160, -7250], u: [310, 1050], r: [80, 150], h: [400, 960], pow: [0.45, 0.85] },
+      // The gallery and the bloom are both battery windows, so the near lane
+      // through them belongs to the paired masts in `fixed` below and to
+      // nothing else. That is the gallery's whole point, and the bloom needs
+      // the room for a boss.
+      { n: 8, z: [-7250, -8280], u: [740, 1400], r: [110, 200], h: [320, 720], pow: [0.55, 0.95] },
+      { n: 12, z: [-8280, -9840], u: [740, 1500], r: [95, 200], h: [280, 780], pow: [0.55, 0.95] },
+      // The ring around the arena. The boss needs open water and the level
+      // still has to be a forest while the fight happens in it, so the trunks
+      // move out rather than away: nothing inside 740 m, a wall of them past
+      // 900. An arena with nothing on the horizon is the level giving up its
+      // own shape for the last ninety seconds.
+      { n: 16, z: [-8280, -9840], u: [900, 1900], r: [170, 300], h: [420, 820], pow: [0.55, 0.90] },
+      // Distant giants: landmarks, not a horizon. They sit in the far mesh
+      // tier, which steps ~100 m laterally out here, so they are authored wide
+      // enough to survive it — at the ranks' radii they would be four columns
+      // and alias.
+      { n: 6, z: [700, -4700], u: [1500, 2900], r: [300, 460], h: [420, 800], pow: [0.55, 0.85] },
+      { n: 6, z: [-5800, -9800], u: [1500, 2900], r: [300, 460], h: [420, 800], pow: [0.55, 0.85] },
+      // Drowned stumps and the mycelial mat they come out of: low, wide and
+      // flat, breaking the surface. They are what the water has a shoreline
+      // against anywhere the gun bars are not, and they are held outboard of
+      // the placement band for the same reason the ranks are.
+      //
+      // `flat` divides the z term by 0.35, so radius buys three times as much
+      // length down the level as it does across it: at 330 these reached 726 m
+      // fore and aft and read as a bank running past the ship, which is the one
+      // thing this level may not have. 220 is the ceiling for that reason, not
+      // for cost.
+      { n: 14, z: [700, -9800], u: [780, 1400], r: [110, 220], h: [26, 70], pow: [2.4, 3.6], flat: 1 },
     ],
     fixed: [
-      { z: -6820, u: -50, r: 24, h: 330, pow: 1.05, spire: 1 },
-      { z: -7060, u: 56, r: 22, h: 295, pow: 1.05, spire: 1 },
+      // The gallery's ranks. Four pairs at 220 m of z, both trunks of a pair on
+      // the same z and the same radius — the level's one piece of order, and it
+      // reads as order only because nothing else in the table is paired.
+      { z: -7400, u: -285, r: 95, h: 720, pow: 0.6 },
+      { z: -7400, u: 285, r: 95, h: 720, pow: 0.6 },
+      { z: -7620, u: -285, r: 95, h: 760, pow: 0.6 },
+      { z: -7620, u: 285, r: 95, h: 760, pow: 0.6 },
+      { z: -7840, u: -285, r: 95, h: 800, pow: 0.6 },
+      { z: -7840, u: 285, r: 95, h: 800, pow: 0.6 },
+      { z: -8060, u: -285, r: 95, h: 840, pow: 0.6 },
+      { z: -8060, u: 285, r: 95, h: 840, pow: 0.6 },
+
+      // The gun bars — the only land in the level, one pair per battery wave,
+      // centred on the line of emplacements that wave lays down. `bank` is 430
+      // and `combat.js` jitters each battery out by up to 85 more, so the top
+      // has to be flat across 430-515 m; the bar spans 250-690 and breaks the
+      // surface at about 380, well outside the ship and the chase camera.
+      //
+      // `pow` under 1 is what makes these mud plates and not hills: the top
+      // holds near full height out to 0.8 of the radius and then drops, so a
+      // line of guns along one sits level. At 1.8 they were domes 160 m tall
+      // and 500 m wide standing symmetrically either side of the rail, which
+      // is a bank however it got there. The pair is also staggered in z and
+      // size, because two identical mounds abeam read as a channel.
+      //
+      // `h` is added to a section 60-70 m under water, so a 148 m plate stands
+      // ~85 m proud. Read the emplacement heights off `groundAt`, never off
+      // `h`: what a gun ends up at is the plate plus the section under it, and
+      // the two are authored in different files.
+      //
+      // Each pair is centred on its own wave's line, and `first`/`step` in
+      // `campaign.js` decide where that line falls. `step` at 290 ran the outer
+      // emplacements off the end of the bar; `first` at 700 put a gun 430 m out
+      // at 31° off the nose, which `combat.js` has a whole comment about.
+      { z: -4080, u: -470, r: 215, h: 148, pow: 0.40, flat: 1 },
+      { z: -4080, u: 470, r: 170, h: 138, pow: 0.40, flat: 1 },
+      { z: -7750, u: -470, r: 215, h: 148, pow: 0.40, flat: 1 },
+      { z: -7750, u: 470, r: 170, h: 138, pow: 0.40, flat: 1 },
+      { z: -9255, u: -470, r: 245, h: 148, pow: 0.40, flat: 1 },
+      { z: -9405, u: 470, r: 245, h: 138, pow: 0.40, flat: 1 },
     ],
   },
 

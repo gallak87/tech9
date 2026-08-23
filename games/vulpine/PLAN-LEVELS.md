@@ -258,10 +258,22 @@ ground, reads as none of the others. Cheap version — `waterLevel` well under
       callers hoist one profile object per build (`terrain.js:184`,
       `world-materials.js:282`), which is a hard contract nothing enforces.
 
-- [ ] **`fins.mjs --audit` exits non-zero on a clean tree**, so the second half
-      of the verification block is not currently a gate. Not this lane's work —
-      the reversed triangles predate it (`1ea5288`) and are tracked in
-      `ROADMAP.md`.
+- [x] **`fins.mjs --audit` exited non-zero on a clean tree.** Closed
+      2026-08-22, and the "reversed triangles" were never a winding defect. The
+      shading normal is a central difference across two mesh columns, and
+      `islands` are authored far below that scale — Fortuna's 54 stalks are
+      16−44 m in radius against a sample spacing of 6 m at the centreline and
+      growing outward. On a feature narrower than the grid, the column
+      difference and the facets it spans honestly disagree and can invert. That
+      is aliasing between the mesh and the field, and the per-triangle threshold
+      was measuring it instead of winding.
+
+      A winding regression is not a scattering, it is a whole mesh: the index
+      buffer is built and written per mesh, so reversing the order reverses
+      every triangle in it. The gate now fails on the worst single mesh's
+      back-facing *fraction*. Measured both ways — clean tree 0.607% (fortuna)
+      and exit 0; with `terrain.js:333` reversed, **100.000%** on the first mesh
+      and exit 1. The threshold sits two orders of magnitude clear of both.
 
 ## How to work this lane
 

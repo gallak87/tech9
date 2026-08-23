@@ -85,8 +85,11 @@ Gates, all runnable from `games/vulpine`:
   the work. It also prints per-corridor coverage — what fraction is each shape,
   authored metres, and how far the rail moves in how many runs. `--draw <level>`
   renders a cross-section as ASCII with the rail height beside it.
-- `tools/fins.mjs --audit` — **still exits non-zero on a clean tree.**
-  Pre-existing, tracked in `ROADMAP.md`, not this lane's doing.
+- `tools/fins.mjs --audit` — green as of 2026-08-22. It used to fail on a clean
+  tree because it tested individual triangles; a winding regression is a whole
+  mesh, so it now gates on the worst single mesh's back-facing fraction. The
+  scattered facets it still prints as a note are sub-grid props aliasing against
+  the mesh, not winding.
 
 **`shots/` was pruned 2026-08-22** from 1.7 GB to 112 MB. What is left is the
 seven `ref-geometry-*.json` the digest gate needs, the seven `ref-<level>/`

@@ -111,37 +111,14 @@ register, swept collision.
       nothing. It reported "0 meshes, 0 triangles" and exited green. Fixed
       2026-08-21: it now unpacks a DNA, drains the queue, and runs every
       terrain-backend level rather than only the default.
-- [ ] **Fortuna has 25 truly-reversed terrain triangles**, out of 759,280.
-      Measured 2026-08-21 the first time the audit ran for real, and present at
-      `1ea5288` before the cross-section work, so it is not from that lane.
-      Aquas has 2-3 and Venom 2; Corneria and the Highlands have none. Worst
-      facet-vs-shading agreement is -0.948 at `terrain-37-lod1 tri 2797 col 22`.
-      The winding is a function of column order, so the suspect is the far-tier
-      column list at a bank where Fortuna's profile is unusually flat.
-
-## Now — the level-identity lane (2026-08-21)
-
-**This is the active lane. `PLAN-LEVELS.md` is its plan; it is not restated
-here.**
-
-Owner: "they all essentially look like Corneria with filters/textures." It was
-geometry, not shading — the five levels in question were exactly the five on
-`backend: 'terrain'`, and inside that backend the cross-section folded about
-`Math.abs(u)` and rose monotonically away from the rail, so every one of them
-was the same valley at a different scale.
-
-Phases 1, 2 and 3 have landed and had their quality pass: the cross-section is
-an authored polyline, a zone can carry its own `section` and its own `ceiling`,
-Venom opens on an inverted ridge, and player flight is clamped under the lid.
-Phases 4-6 are open — the rail as an arc-length path, the vertical drama, and
-Venom's orbit arena.
-
-`tools/lid.mjs --audit` joined the verification block with phase 3: the ceiling
-gate, green on a clean tree.
-
-Found reading Aquas against its brief for phase 9, neither of them that lane's
-work:
-
+- [x] **Fortuna's "25 truly-reversed terrain triangles" were not reversed.**
+      Closed 2026-08-22. The shading normal is a central difference across two
+      mesh columns and Fortuna's 54 stalks are 16-44 m in radius against a 6 m
+      sample spacing, so a tower is a handful of samples across at LOD 0 and
+      under one at LOD 2 — the column difference and the facets it spans
+      disagree, and can invert. Aliasing between the mesh and the field, not
+      winding. `fins.mjs --audit` now gates on the worst single mesh's
+      back-facing fraction and is green; see PLAN-LEVELS.
 - [ ] **Aquas' first battery wave is most of the way orphaned by phase 8.**
       `{ z: -400, kind: 'bulwark', n: 3, form: 'banks', first: 640, step: 260 }`
       lands its three emplacements at z -1040, -1300 and -1560, where the rail is

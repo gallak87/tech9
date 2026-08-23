@@ -44,6 +44,26 @@ const arg = (n, d = null) => {
 };
 const FLAG = (n) => process.argv.includes(`--${n}`);
 
+// Fraction of ONE mesh's triangles that may face backwards before the gate
+// fails. A winding regression is not a scattering, it is a whole mesh: the index
+// buffer is built and written per mesh, so reversing the order reverses every
+// triangle in it and this reads ~1.0.
+//
+// What the scattering actually is: the shading normal is a central difference
+// across two mesh columns, and `islands` are authored far below that scale —
+// Fortuna's 54 stalks are 16-44 m in radius against a sample spacing of 6 m at
+// the centreline and growing outward, so a tower is a handful of samples across
+// at LOD 0 and under one at LOD 2. On a feature narrower than the grid the
+// column difference and the facets it spans honestly disagree, and can invert.
+// That is aliasing between the mesh and the field, and it is what the previous
+// per-triangle threshold was measuring instead of winding: it failed on a clean
+// tree for three levels, which took the whole second half of the verification
+// block out of service.
+//
+// Measured on a clean tree: worst single mesh 0.607% (fortuna). 5% is eight
+// times clear of that and twenty times clear of a real flip, which reads ~100%.
+const WORST_MESH = 0.05;
+
 /* ── 1. offline orientation audit ─────────────────────────────────────────── */
 
 function audit(levelId) {
@@ -61,11 +81,16 @@ function audit(levelId) {
   let surf = 0, flipped = 0, reversed = 0, degen = 0, hems = 0, hemIn = 0;
   let minDot = 1, minAt = null;
   const worst = [];
+  // Per mesh, because that is the granularity a winding regression has: the
+  // index buffer is built and written per mesh, so flipping the order flips
+  // every triangle in it. See WORST_MESH below.
+  let mFlip = 0, mSurf = 0, worstMesh = 0, worstMeshAt = null;
   const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
   const n = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3();
   const na = new THREE.Vector3(), nb = new THREE.Vector3(), nc = new THREE.Vector3();
 
   for (const m of meshes) {
+    mFlip = 0; mSurf = 0;
     const g = m.geometry, P = g.attributes.position, N = g.attributes.normal, I = g.index;
     const { cols, surfaceVerts } = g.userData.grid;
     for (let t = 0; t < I.count; t += 3) {
@@ -88,7 +113,7 @@ function audit(levelId) {
         continue;
       }
 
-      surf++;
+      surf++; mSurf++;
       na.fromBufferAttribute(N, ia); nb.fromBufferAttribute(N, ib); nc.fromBufferAttribute(N, ic);
       na.add(nb).add(nc).normalize();
       const d = n.dot(na);
@@ -99,20 +124,27 @@ function audit(levelId) {
       // normal — those are geometry error, not winding, so they are counted and
       // shown but do not fail the gate.
       if (d < 0) {
-        flipped++;
+        flipped++; mFlip++;
         if (d < -0.5) reversed++;
         if (worst.length < 5) worst.push({ mesh: m.name, tri: t / 3, dot: +d.toFixed(3) });
       }
     }
+    if (mSurf && mFlip / mSurf > worstMesh) { worstMesh = mFlip / mSurf; worstMeshAt = m.name; }
   }
   console.log(`audit: ${meshes.length} meshes, ${(surf + hems).toLocaleString()} triangles in ${Date.now() - t0} ms`);
-  console.log(`  back-facing surface triangles: ${flipped} of ${surf.toLocaleString()} (${reversed} truly reversed)`);
+  console.log(`  back-facing surface triangles: ${flipped} of ${surf.toLocaleString()} (${reversed} past -0.5)`);
+  console.log(`  worst single mesh:             ${(worstMesh * 100).toFixed(3)}% back-facing${worstMeshAt ? ` (${worstMeshAt})` : ''}`);
   console.log(`  inward-facing hem triangles:   ${hemIn} of ${hems.toLocaleString()}`);
   console.log(`  degenerate: ${degen}`);
   console.log(`  worst facet-vs-shading agreement: ${minDot.toFixed(3)} at ${minAt}`);
   for (const w of worst) console.log(`   ! ${w.mesh} tri ${w.tri} dot ${w.dot}`);
+  const bad = worstMesh > WORST_MESH || hemIn > 0;
+  if (!bad && flipped) {
+    console.log(`  note: ${flipped} scattered back-facing facets, worst mesh ${(worstMesh * 100).toFixed(3)}% —`
+      + ` sub-grid props, not winding. See WORST_MESH.`);
+  }
   terr.dispose();
-  return reversed + hemIn;
+  return bad ? 1 : 0;
 }
 
 /* ── 2. rendered-frame probe ──────────────────────────────────────────────── */

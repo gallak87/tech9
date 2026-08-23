@@ -1,749 +1,272 @@
 # Vulpine — level identity: two curves
 
-Open lane. **Every mechanism but one is landed — 1-5, 7 and 8. What is left is
-the work they exist for: phase 9's authoring, which has done one level of four,
-and phase 6.** The owner picks when each starts.
+**Every mechanism is landed. What is left is the authoring they exist for.**
+Phases 1-5, 7 and 8 are done; phase 9 has authored two levels of four and phase
+6 is open. The owner picks when each starts.
 
-A zone carries its own cross-section, its own ceiling and its own camera; the
-hull pitches with the corridor; a surface can be floor or ceiling depending
-which side of it the rail runs; and speed is measured along the rail rather than
-down the z axis. **Phase 6 is what is left**, and it needs the last piece of
-phase 4 — see "Phase 4, as landed".
+A zone carries its own cross-section, ceiling and camera; the hull pitches with
+the corridor; a surface is floor or ceiling depending which side the rail runs;
+and speed is measured along the rail rather than down the z axis.
 
 Companion docs: `ROADMAP.md` is the queue, `HANDOFF.md` the harness and traps,
 `PLAN-PERF.md` the other open lane, `REVIEW.md` the rubric.
 
-## The problem
+## The problem this lane exists for
 
 Owner, seeing five levels side by side: *"they all essentially look like
 Corneria with filters/textures."*
 
-Geometry, not shading, and provable twice. The five levels in question are
-exactly the five sharing `backend: 'terrain'`; the two the owner did not reach
-for are Omega (`field`) and the Foundry (`works`). And inside that backend
-`heightAtU` folded about `Math.abs(u)` and stacked `bed → beachH → shelfH →
-wallH`, each higher than the last — so every terrain level was not merely
-symmetric but a **valley by construction**. The nine authorable numbers were all
-widths and heights; none was a shape.
+Geometry, not shading. The five levels in question were exactly the five sharing
+`backend: 'terrain'`, and inside it `heightAtU` folded about `Math.abs(u)` and
+stacked `bed → beachH → shelfH → wallH`, each higher than the last — so every
+terrain level was a **valley by construction**. The nine authorable numbers were
+all widths and heights; none was a shape.
 
 **Ruled out: another palette, lithology or structure-GLSL pass.** Shading is
-downstream of the cross-section. Fortuna is the proof — the most distinctive
-shading in the game, still reads as Corneria at night.
+downstream of the cross-section. Fortuna was the proof — the most distinctive
+shading in the game, still reading as Corneria at night.
 
-**Why it collapsed onto one backend** is an incentive, not a discipline failure.
-A level via DNA costs a data object and no code; a backend costs a mesher, a
-`groundAt` branch and new materials. Everyone took the cheap path and the cheap
-path only produces parameter variation.
+**Ownership.** *Planet* owns what it is made of — lithology, palette, structure
+shader, prop kit, sky. *Level* owns what shape it is — cross-section, rail path,
+ceiling, surface. Same rock, different topography.
 
-## Ownership
+## The four levels — the acceptance test for the lane
 
-**Planet** owns what it is made of — lithology, palette, structure shader, prop
-kit, sky. **Level** owns what shape it is — cross-section, rail path, ceiling,
-surface. Same rock, different topography.
-
-## The two curves
-
-**Curve 1 — the cross-section.** A polyline in (u, height), signed across both
-banks, replacing the band stack. Landed in phase 1.
-
-**Curve 2 — the rail.** Today `z ↦ (centrelineX(z), centrelineY(z), z)`, with
-`flight.js:335` binding `pos.z ≡ railZ` exactly — z is simultaneously the
-parameter and a world axis. Becomes an arc-length parameterised 3D path `p(s)`.
-Buys real vertical excursion and the orbit arena; `railZ` stays monotone so the
-three cursors at `combat.js:1759-1774` keep working. Phase 4.
-
-## The four levels
+No two rows alike. Nothing in the toolchain checks this table; read it by hand.
 
 | | section | rail path | ceiling | surface |
 |---|---|---|---|---|
-| Aquas | terraced, asymmetric | deep dive | constant lid | none |
-| Fortuna | near-flat | dive + climb | **enters/exits** | water |
-| Foundry | escarpment | steep shaft | built, varies | deck |
-| Venom | **inverted, whole level** | rhythm | **alternates** | lava |
-
-No two rows alike — the acceptance test for the lane.
+| Aquas | terraced, asymmetric ✅ | deep dive ✅ | constant lid ✅ | none ✅ |
+| Venom | **inverted, whole level** ✅ | rhythm ✅ | **alternates** ❌ | lava ✅ |
+| Fortuna | near-flat ✅ | dive + climb ❌ | **enters/exits** ❌ | water ✅ |
+| Foundry | escarpment ❌ | steep shaft ❌ | built, varies ❌ | deck ✅ |
 
 - **Aquas — depth is the drama.** Plunge in; shallows with terraced reef benches
   you fly *between*; a hard-asymmetric drop-off (reef to port, open blue to
   starboard); a trench the rail dives into where the lid leaves view; rise to an
   open bowl.
-- **Fortuna — two layers, and the canopy is both.** Fly *over* a sea of glowing
-  crowns (canopy as floor), dive through a gap, thread the dark understory
-  (canopy as ceiling), climb back out. Nothing else changes which side of an
-  object you are on.
-- **The Foundry — outside, inside, then down.** Exterior gantry run as an
-  escarpment, breach to interior, a steep shaft down through decks, then a wide
-  low-ceilinged assembly floor.
 - **Venom — a spine, end to end.** The ship rides a crest for all nine
   kilometres with lava falling away both sides and no channel anywhere in it;
   the ridge itself dives and climbs; then a closed orbital path for the finale.
-  Owner, on the first version, which put the ridge in zone 1 and a canyon after
-  it: *"I was thinking the entire level from start to finish would have been on
-  a ridge top with lava on either side."*
+  Owner, on the version that put the ridge first and a canyon after: *"I was
+  thinking the entire level from start to finish would have been on a ridge top
+  with lava on either side."*
+- **Fortuna — two layers, and the canopy is both.** Fly *over* a sea of glowing
+  crowns (canopy as floor), dive through a gap, thread the dark understory
+  (canopy as ceiling), climb back out.
+- **The Foundry — outside, inside, then down.** Exterior gantry run as an
+  escarpment, breach to interior, a steep shaft down through decks, then a wide
+  low-ceilinged assembly floor.
 
 ## Phases
 
 | # | Deliverable | Status |
 |---|---|---|
-| 1 | Cross-section becomes a polyline; `Math.abs(u)` gone | **done 2026-08-21** |
-| 2 | Authorable `section` on a zone; Venom's ridge, Aquas' terraces + drop-off | **done 2026-08-21** |
-| 3 | Per-zone `ceiling`; wire player flight to `ceilingAt` | **done 2026-08-22** |
-| 4 | `path` refactor — rail becomes arc-length `p(s)` | **done 2026-08-22**, less the path indirection phase 6 carries |
-| 5 | Hull pitch from `railDir` — anything steep is wrong until this lands | **done 2026-08-22** |
-| 6 | Venom orbit arena | open |
-| 7 | Per-level camera — the lens, not the world | **done 2026-08-22**; Venom authored, 6 levels on defaults |
-| 8 | Aquas' plunge — the rail crosses the water surface | **done 2026-08-22** |
-| 9 | **The authoring pass** — one distinct shape per level | **Aquas and Venom.** Fichina/Fortuna carry one or two zones each; the Foundry none |
+| 1 | Cross-section becomes a polyline; `Math.abs(u)` gone | ✅ 2026-08-21 |
+| 2 | Authorable `section` on a zone | ✅ 2026-08-21 |
+| 3 | Per-zone `ceiling`; player flight clamped under `ceilingAt` | ✅ 2026-08-22 |
+| 4 | Rail advance by arc length; `ai.js` station frame | ✅ 2026-08-22 |
+| 5 | Hull pitch from `railDir` | ✅ 2026-08-22 |
+| 6 | Venom orbit arena | **open** |
+| 7 | Per-level camera | ✅ 2026-08-22 |
+| 8 | Aquas' plunge — the rail crosses the water surface | ✅ 2026-08-22 |
+| 9 | **The authoring pass** — one distinct shape per level | **Venom + Aquas done; Fortuna and the Foundry open** |
 
-Numbers are identifiers, not an order. **7 and 9 block on nothing** — 7 is a
-data change, and 9 can author any level whose mechanism exists, which after
-phase 3 is section and ceiling on all five terrain levels.
+Numbers are identifiers, not an order.
 
-Phases 8 and 9 were split out of phase 5, which carried "the vertical drama in
-all four" as a clause. Phase 9's acceptance test is `tools/shape.mjs --strict`.
+### Phase 9 — what is left
 
-**Still to author (phase 9).** Corneria stays as it is — it is the reference.
-Measured 2026-08-22, as metres carrying an authored `section` against corridor
-length:
+Measured as metres carrying an authored `section` against corridor length:
 
 | | authored | of level | what its brief still wants |
 |---|---|---|---|
-| venom | 10560 m | **100%** | the "alternates" ceiling — see below |
+| venom | 10560 m | **100%** | the "alternates" ceiling |
 | aquas | 7600 m | **72%** | done — read against its row |
 | fichina | 2300 m | 22% | not in the four-levels table; the pass is authored |
 | fortuna | 1500 m | **14%** | its whole two-layer beat — it has no `canopy` |
-| foundry | — | **0%** | a mechanism pass first; see below |
+| foundry | — | **0%** | a mechanism pass first |
 
-**Fortuna is the one to look at next**, and its headline beat is the one phase 8
-already built for Aquas — it simply has no `canopy` declared.
+**Fortuna is next**, and its headline beat is the one phase 8 already built for
+Aquas — it simply has no `canopy` declared. It is the most static level in the
+game.
 
-The Foundry is **not** an authoring job at all: `works` is one box for all 9 km
-(`half`, `deckY`, `roofY` fixed in `dna.js`, and `Works.deckY()` is a static with
-no z), so three of its four brief beats have nothing to author into. It needs the
-mechanism pass phases 2 and 3 gave `terrain`, done again for `works`.
+**The Foundry is not an authoring job.** `works` is one box for all 9 km
+(`half`, `deckY`, `roofY` fixed in `dna.js`, and `Works.deckY()` is a static
+with no z), so three of its four brief rows have nothing to author into. It
+needs the mechanism pass phases 2 and 3 gave `terrain`, repeated for `works`.
 
-### Deliberately not doing
+**Corneria stays a valley.** It is what the others are told apart from.
+
+### Phase 6 — the contract it has to keep
+
+`railPoint` still composes z — `set(centrelineX(z), centrelineY(z), z)` — so the
+corridor cannot double back yet. `flight.js` no longer *assumes* it (`pos.z`
+reads `railPos.z` in the sim and the camera rig both), so what is left is making
+`railPoint` dispatch to a per-level path object. That was deliberately not
+landed with phase 4: no level would take the branch, against ship criterion 7.
+Land it with the arena that authors one.
+
+What must keep working across a looping path — all four survive a non-monotone
+*position* as long as the *parameter* stays monotone:
+
+- `railZ` is mutated in exactly one place.
+- Three cursors edge-trigger off it — waves, comms and grants at
+  `combat.js:1760-1774`. **The boss is a wave row**, not a separate system, so
+  it rides the same cursor with no fallback.
+- `campaign.js:549` (`railZ <= WORLD.zEnd`) is the **only** end-of-level test.
+- All of `src/ui/`, `src/fx/`, `src/audio/`, `pickups.js` and world LOD are
+  position-based, not `railZ`-based, and need nothing.
+
+The same indirection is what the Foundry's shaft wants: `y(z)` cannot be
+vertical at any authored numbers. Gradients up to ~75° now fly at honest speed
+and are limited by authoring (`1.5 · climb / blend`), not by the
+parameterisation.
+
+## Constraints that outlived their phase
+
+The load-bearing residue of everything above. All of it was paid for once.
+
+**The chase camera needs ~340 m of lateral margin, not `boxX`'s 105.** It trails
+behind and below and banks with the roll. A ridge whose zero crossing sat at
+215 m put the camera in the lava through half a zone while the *ship* stayed
+dry. Every crossing on Venom is at 345 m or wider for this reason.
+
+**A surface plane at y = 0 pins the rail.** `groundAt` clamps there, and the
+offset box is 46 m deep, so the rail can never come below ~60. Venom had no
+`climb` anywhere because its base was 48 — it had no room to descend in either
+direction, and the base had to go to 400 before it could have a rhythm. Fortuna
+has water at y = 0 and the same pin.
+
+**A generated section pins the bank line at height 0 whatever `bed` is.**
+Deepening `bed` alone drops the trough and leaves the shoulders, so a rail
+descending into it loses the corridor. Anything that descends needs an authored
+`section`, not a deeper `bed`.
+
+**`relief` has to come down with the section.** The relief gate opens past the
+second-outermost point and the noise bands build a skyline out there whatever
+the polyline says. Venom's 0.70 was rebuilding the walls its section had just
+removed; 0.14 fixed it. Aquas' terraces and Fichina's pass both needed the same.
+
+**A section is not enough on its own.** Keep the two outermost points high and
+the tallest thing in frame is still a wall on each bank — a spine with walls
+around it is a valley with a lump in it. Both banks have to fall away.
+
+**Short blends across an inversion.** Interpolating an inverted section into an
+upright one passes through flat, and on a level with a surface plane at y = 0
+flat means flooded. Venom's ridge sat awash for seven seconds at a 1200 m blend.
+
+**`bands.crag.face` is the only band that reaches an inverted section.** Both
+gates in `heightAtU` measure distance from the centreline against the section's
+*outer* points — "the tall rock is on the banks", true of a valley and backwards
+on a ridge. `face` opens crag on local slope instead, defaults to 0, and leaves
+the crest apex alone because slope there is zero. **`relief` is still
+distance-gated**; the next inverted level that wants distant relief will meet it.
+
+**A zone's `climb` is centred on the zone boundary**, so it spans exactly the
+two keys the cross-section blends between. Centred on the entry key instead, a
+zone raising both floor and rail pinches the corridor by `climb/2` on the way in.
+
+**Nothing gates rail Y.** The digest's lattice samples `terrainHeight`, which
+reads `centrelineX` only. A change that moved every climbing rail in the game
+was reported as identical.
+
+**Lid height is constrained per zone by `wallH` *plus relief*,** and the two are
+easy to confuse. What actually decides the maximum is the outermost section
+point: `wm` scales that one alone and the relief bands stack past the one
+inboard of it. Read it from `tools/lid.mjs --audit`, never from the authored
+number.
+
+**A battery wave has to fire inside one zone's held stretch** — the zone less
+half a blend at each end — with `bank` set to the ground that zone's section
+actually puts there, and never where the rail is climbing.
+
+**There is no terrain crash.** The ground is a floor with a cushion, not a
+hazard (`flight.js:345-355`). Terrain rising into the rail bulldozes the ship
+upward without limit; terrain falling away does nothing.
+
+**`speed` is along the rail, not down z.** `railStretch(z)` divides the advance.
+`railZ` stays monotone and stays in metres of z, which is what keeps the three
+cursors and the end-of-level test working. It uses the same ±6 m central
+difference as `railTangent` deliberately — the two are read on the same tick as
+attitude and as rate, so an analytic derivative would pitch the hull to a slope
+the speed correction did not agree existed.
+
+**`ai.js` station offsets are in the rail's frame**, converted through
+`view.toWorld` / `view.toStation` / `view.heading`. Yaw only: a station that
+dived with the rail would fight the altitude clamps, which are one-sided and
+have no notion of a sloping corridor. Rotating position without also rotating
+spawn *facing* puts a whole wave that many degrees off its own approach.
+
+## Deliberately not doing
 
 **True free flight.** Needs a parallel trigger system for three monotone
-cursors, a new end-of-level test (`campaign.js:523` is the only one), and ~20
-−z-is-forward sites across `ai.js` and `combat.js`. The orbit path gets the feel
-for a fraction of it.
+cursors, a new end-of-level test, and ~20 −z-is-forward sites across `ai.js` and
+`combat.js`. The orbit path gets the feel for a fraction of it.
 
 **Asymmetric lateral *extent*.** The mesher's column layout is symmetric by
 construction (`terrain.js:35-55`). Land can be lower on one side, not wider.
 
-## Two levers that are not phases
-
-Decisions a level makes, not stages. Neither depends on phase 4.
-
-**The floor need not be a plane at y = 0.** Four of the five terrain levels put
-a surface there (water, ice, lava); the fifth is bare terrain at the same
-height. A level whose floor sits far below the rail, flown between spires with
-no readable ground, reads as none of the others. Cheap version: `waterLevel`
-well under `bed`, so no plane draws at all.
-
-**The camera never changes.** `camBack` 17.0, `camUp` 3.15, `camLookAhead` 46,
-`camLookUp` 2.6, `fovBase` 58 — one set of numbers for all seven levels, so a
-different world still arrives through an identical lens. Per-level values are a
-data change: `TUNE` is a mutable export and `main.js:46` already overrides
-`railYawFollow` from a URL param. Phase 7.
-
-Measure with `tools/framing.mjs`. Known reading: ~3.5° of hands-off yaw is
-shake, not drift — `off.x`/`off.y` measure zero variance. Do not chase it.
-
-## Phase 1, as landed
-
-`profileAt` generates a nine-point polyline onto the profile object; `heightAtU`
-evaluates it with `sectionAt` at a signed offset. The band fields still drive
-everything — phase 2 opens the authoring path.
-
-Equivalence was measured rather than assumed: 340.7 M samples across all five
-terrain levels, every `wm` extreme, both banks, worst difference **3.4e-13 m**
-(1.4e-14 relative). After the Float32 the mesh stores, 0.0034% of samples move
-by one ULP — about 30 µm at wall height — because the old band stack accumulated
-`beachH + (shelfH - beachH)` where the polyline uses `shelfH` directly. The
-digest baseline was re-cut at that commit rather than contorting the evaluator
-to reproduce a float-ordering artefact.
-
-## Phase 2, as landed
-
-A zone may carry `section: [[u, h] x 9]`, validated in `zones.js` for count,
-finiteness and strictly ascending u. Zones without one still generate the
-symmetric nine-point equivalent from the band fields, so authored and generated
-sections mix freely and `profileAt` blends them point-wise. `MAX_HALF_WIDTH` now
-measures an authored section's own extent rather than the band sum. `freecam`
-gained `--level`, without which it could only ever park in Corneria — which is
-useless to a lane about level shape.
-
-Authored: **Venom zone 1**, the inverted caldera rim — a basalt spine at y = 26
-with the lava plane at 0, lakes past 500 m and the caldera wall a kilometre out
-at 210 m. **Aquas zone 1**, terraced reef benches, deliberately unequal across
-the channel. **Aquas zone 4**, the drop-off — port wall at +300, starboard
-falling to −420.
-
-Three things learned authoring them, all of which cost a capture cycle:
-
-- **The chase camera needs about 340 m of margin, not 105.** A spine whose zero
-  crossing sat at 215 m put the camera in the lava through half the zone while
-  the *ship* stayed dry: the camera trails behind and below and banks with the
-  roll, so `boxX` is a floor on the margin, not the margin.
-- **Blending an inverted section into an upright one passes through flat**, and
-  on a level with a surface plane at y = 0 flat means flooded. Venom's ridge sat
-  awash for seven seconds at a 1200 m blend. Short blends across an inversion.
-- **A drop-off needs something to read against.** Aquas' starboard side falls
-  420 m into fog, and fog is what the eye already expects there, so the void
-  reads as distance rather than as a cliff edge. Geometry is correct and
-  measured; the *look* is unresolved — see the open item below.
-
-## Phase 3, as landed
-
-A zone may carry `ceiling: <metres>`, rejected at author time on a level with no
-`canopy` — the field would otherwise be inert. `ceilingAtZ(z)` in `profile.js`
-blends it between keys with its own key walk rather than a field on `profileAt`:
-the lid is read once per craft per tick, while `profileAt` feeds a per-vertex
-loop with no use for it. Every key is given a finite lid at load, so the blend
-never meets a sentinel, and a world with no canopy answers `Infinity` before it
-reaches the keys.
-
-`Canopy.ceilingY(z)` takes a z and the plane tracks the lid at the camera's own
-z, so a varying ceiling is drawn where `ceilingAt` reports one. The plane is
-still flat and still camera-following: a lid that must be *seen* to slope needs
-`water.js`'s rail-aligned strips and the triangle argument in `canopy.js`'s
-header re-made. Deferred, not forgotten.
-
-Player flight honours it at `flight.js:352-370`, mirroring the ground's
-cushion-then-clamp. Three things it does that the floor does not:
-
-- **Runs before the floor**, so the floor wins a corridor too tight for both.
-  Through the roof is a wrong picture; through the ground is no picture at all.
-- **Stands down while `climb` is non-zero.** The hop deliberately leaves the
-  level, and a lid is the one thing that would hold it in.
-- **A 6 m cushion against the floor's 9.** A roof is ducked under, not skimmed.
-
-Measured, not assumed. With a 120 m lid authored onto Aquas zone 2 and the clamp
-disabled, the ship goes **40.2 m through the roof**; with it wired, held under,
-worst approach **−5.5 m** with the cushion engaged. The lid it is held at reads
-106.1 = the authored 120 less the canopy's 14 m margin, so the authored number
-reaches the clamp intact.
-
-**The Foundry's roof was never reachable.** `boxYUp` is 78, and its lid sits
-25.9 m above the highest the offset box can carry the ship — measured identical
-on the pre-change tree. The player could not fly through it in practice, so this
-phase is a mechanism for phases 5-6 to author against rather than a fix to
-something that was being felt.
-
-## Phase 7, as landed
-
-A DNA may carry `camera: { back, up, lookAhead, lookUp, fov }`; unset fields
-fall through to `TUNE`, so a level frames as it always did until it says
-otherwise. Unknown or non-finite keys throw at activation — a misspelled key is
-otherwise a level that silently frames like every other one, which is the defect
-the field exists to fix.
-
-Resolved through a `lens` getter on `Flight`, cached on `WORLD.camera`'s
-identity. Not by mutating `TUNE`, which would persist across a level swap.
-
-**Venom authors values**, the rest are on defaults. `{ up: 9, back: 21,
-lookAhead: 38, lookUp: 0, fov: 66 }` — a ridge is read across the corridor, not
-down it, and the default lens fills the frame with whatever stands at the end of
-the channel. Framed against Corneria rather than by eye: Corneria's ship sits at
-ndcY −0.124 to −0.515, Venom at −0.239 to −0.488.
-
-`framing.mjs` gained `--level`. Without it it could only measure Corneria.
-
-## Phase 9, as landed so far
-
-**Fichina — the pass is terrain.** The rail climbed 154 m over it while the
-floor stayed flat at −10, so the pass was the same ice from higher up: clearance
-went 59 → 215 m and nothing about the place changed. The pass and the narrows
-after it now carry sections that climb with the rail, holding 55−74 m
-throughout, and the descent belongs to the zone carrying the −160. Asymmetric
-through it: sheer face to port, a hanging bench at ~275 running 340 m to
-starboard. `shots/p9-fichina-pass/`.
-
-**A section is not enough on its own.** The first pass at both of these kept
-the two outermost points high, so the tallest thing in frame was still a wall on
-each bank — a spine with walls around it is a valley with a lump in it. Both now
-fall away to below their surface plane at both ends.
-
-`relief` has to come down with the section. The relief gate opens past the
-second-outermost point and the noise bands build a skyline out there whatever
-the polyline says; Venom's 0.70 was rebuilding the walls the section had just
-removed. 0.14.
-
-**Fortuna — the glade is a plateau.** It was the most static level in the game,
-FLAT at nine of twelve samples with the floor moving 9 m over 10 km. The glade
-now sits on a mat plateau at 110, inside the stalks' own 90−320 rather than
-under them, and the gorge after it drops the same 130 back to lagoon level.
-`shots/p9-fortuna-glade/`.
-
-Its two layers are **heights, not sides of a surface**: `surface: 'water'` at
-y = 0 makes `groundAt` clamp there, so Fortuna cannot descend at all. The
-brief's over/under-the-canopy version needs phase 8.
-
-**The fix this surfaced.** A zone's `climb` yBend was centred on the entry key,
-so it was half done when the held stretch began — against this file's own
-comment. Centred on the zone boundary it spans exactly the two keys the
-cross-section blends between. A zone raising both floor and rail was pinching
-the corridor by `climb/2` on the way in: Fichina's pass measured 19 m mid-blend
-against 55−70 either side.
-
-**Nothing gates rail Y.** `centrelineY` moves the rail; the digest's lattice
-samples `terrainHeight`, which reads `centrelineX` only. That fix moved every
-climbing rail in the game and the digest reported nothing.
-
-**Aquas — read against its brief, and two of five beats were missing.** The
-plunge, the drop-off and the bowl were there. The terraces and the trench were
-not, and both failures were structural rather than a matter of numbers.
-
-*The terraces were stranded by phase 8.* They were authored onto zone 0, which
-phase 8 turned into the above-water approach: the ship flies it at 710 and the
-benches top out at 151, so they sat 590 m below through teal extinction, and no
-section authored into that zone could have been seen. They moved to zone 1,
-whose held section starts at the key the dive ends on — so they arrive as the
-ship levels out. At 280−300 m rather than 555−790, port topping 118 and
-starboard 78 against a rail at 62, which is what makes it flying *between* them.
-`shots/p9-aquas-terrace-out.png`.
-
-Measured as a shift from the far field into the near: at the sample that lands
-there, near-field rise went 31 → 96 m and the far wall behind it 406 → 99. The
-benches are now the tallest thing in frame rather than something in front of a
-wall — the same lesson Fichina and Fortuna cost.
-
-**400 m is the floor on how close a bench can come, and it is the camera.** The
-tracked item asked for "inside ~350 m". What actually binds is phase 2's
-finding that the chase camera wants ~340 m of margin, not `boxX`'s 105 — so a
-bench is only allowed closer than that where the near field under it stays below
-the rail. Aquas' does: ±105 reads −12 to −24 against a rail at 62, and the
-outermost the ship or the trailing camera reaches is clear by 68−75 m.
-
-*The rail did not dive into the trench.* It ran flat at 19−20 through it while
-the floor rose, which is a corridor tightening, not a descent — and the corridor
-it left was **29 m** against the 55 the offset box and its cushion want. The
-gorge now carries `climb: -55` and the bowl returns +85 instead of +30.
-
-**A generated section pins the bank line at 0 whatever `bed` is.** Deepening
-`bed` alone moves the trough and leaves the shoulders, so the first attempt
-dropped the rail 55 m into a corridor that had not widened and made clearance
-*worse* — median 23 → −2. Both zones needed authored sections, which put the
-whole cross-section down with the rail: median clearance 23 → 65 in the trench
-and 22 → 68 in the narrows. Anything that descends is subject to this; it is
-waiting for the Foundry's shaft.
-
-**The walls stop just short of the lid on purpose.** "Where the lid leaves view"
-and "terrain must not break the sea" pull opposite ways, and the resolution is
-40−65 m of water over the rim: peaks 547 and 580 against the 620 lid, from
-829/775 before. `shots/p9-aquas-trench-out.png`.
-
-Flown, not only measured: `pilot.mjs fly --params level=aquas` runs the corridor
-end to end, 12 kills, no console error, and 0 of 19 samples with the hull near a
-frame edge.
-
-## Phase 9 — Venom, as landed
-
-**The whole level is a spine.** All eight zones carry an inverted section, the
-ground falls away to lava on both sides for nine kilometres, and there is no
-channel or canyon anywhere in it. `shape.mjs` reads **RIDGE x9, RIDGE+asym x1,
-FLAT x2** — the FLATs are the sump plateau, which is deliberately flat on top
-because it is the only place with a boss fight in it.
-
-**The first attempt put the ridge in zone 0 and a canyon after it**, which is
-what the brief row had always said and is not what the level wanted. Owner, from
-live play: *"I saw the ridge, flew down that was cool — then the rest of the
-level was canyon again."* The row now reads "inverted, whole level".
-
-The variety is in the spine rather than in leaving it. Four things vary:
-
-| | rim | spine | dive | saddle | climb | high | descent | sump |
-|---|---|---|---|---|---|---|---|---|
-| rail | 400 | 400 | 150 | 150 | 520 | 520 | 180 | 180 |
-| crest | 330 | 330 | 80 | 80 | 450 | 450 | 110 | 110 |
-| lava at | 500 | 360 | 420 | 355 | 480 | 370 / **640** | 440 | 580 |
-
-The rail rides **70 m over the crest everywhere** and the crest is what moves,
-so a dive down the ridge is a dive rather than the same ridge from higher up —
-the mistake Fichina's pass made in the other direction. Floor moves **370 m**.
-The high spine is the one asymmetric zone: sheer to port at 370 m, a long ramp
-to starboard that runs 640 m before it reaches lava.
-
-**Nothing crosses the lava closer than 345 m**, which is the chase camera's
-limit, not the ship's — phase 2 measured a crossing at 215 m putting the camera
-in the lava for half a zone.
-
-### `crag.face` — the band that reaches a spine
-
-Both noise gates in `heightAtU` are distances from the centreline measured
-against the section's **outer** points: relief past the second-outermost, crag
-between the third- and second-outermost. That encodes "the tall interesting rock
-is on the banks", which is true of a valley and backwards on a ridge — the banks
-are whatever the flanks fall into and the face the ship flies along is at u = 0.
-Venom's spine was therefore the bare polyline for nine kilometres and composited
-as a **sand dune**.
-
-`bands.crag.face` opens the same band on **steepness** instead, which is the
-property the distance mask was reaching for: a face is where the section is
-steep, which is the bank on a valley and the flank on a spine. It is gated
-behind `1 - wallMask` so it only adds where the distance mask is not already
-answering, and it **defaults to 0** — the digest is byte-identical on the other
-six levels, which is the proof. Venom sets 1.0.
-
-It also leaves the crest apex alone, because slope there is zero by
-construction. That is the right place for it to stop: the apex is where the ship
-flies.
-
-**The palette had to come down with it.** `pale` 0.75 and `dry` 0.45 were set
-when the crest was a 30 m sliver seen edge-on inside a canyon; against a ridge
-flown along the top of for the whole level they composited as desert. Now 0.35
-and 0.22.
-
-**Props do what the noise cannot.** 44 spatter cones along the crest, capped at
-the 70 m the rail sits above it and starting outside the 105 m offset box, so
-none is an obstacle the rail did not author; bigger cinder cones further down
-the flanks; flow lobes out on the lava; and four old vent plugs standing **in**
-the lava beside the spine — the only vertical thing on the level that is not the
-ridge, and they read because they are on the other side of the shoreline.
-
-**The wave table was re-authored with it.** There is no wall to put anything
-against any more, so all three battery runs sit inside the crest — 240, 260 and
-420 m of bank against shorelines at 500, 370 and 580 — and every one is looked
-*down* at. All three are clear of the three `climb` blends.
-
-**Still open here: the "alternates" ceiling**, which is the one column of
-Venom's brief row that did not land. A lid that comes and goes needs geometry
-that ends, and `Canopy` is a single flat camera-following plane carrying a
-*water* shader. Same piece Fortuna's "enters/exits" needs.
-
-## Phase 4, as landed
-
-`railStretch(z)` in `profile.js` is the length of dp/dz, and the rail advance
-divides by it:
-
-```js
-if (!this.detached) this.railZ -= (this.speed / railStretch(this.railZ)) * dt;
-```
-
-That is the whole mechanism. `railZ` still parameterises the rail, is still in
-metres of z and is still monotone, so the three cursors at `combat.js:1760-1774`
-and the end-of-level test at `campaign.js:549` never knew it changed.
-
-**What it was.** `speed` was the projection of velocity onto world −z, not
-speed along the path, so any gradient or turn flew the ship faster than the
-number it was set to and nothing reported it. Integrated at the sim's own 120 Hz
-over all seven levels, true speed against a `cruiseSpeed` of 175:
-
-| | before | after | level takes |
-|---|---|---|---|
-| corneria | 175.0−180.2 | 175.0−175.0 | +0.7 s |
-| highlands | 175.0−200.5 | 174.9−175.1 | +1.0 s |
-| omega | 175.0−180.5 | 175.0−175.0 | +0.6 s |
-| foundry | 175.0−175.7 | 175.0−175.0 | +0.1 s |
-| aquas | 175.0−**234.3** | 174.9−175.1 | +1.9 s |
-| fortuna | 175.0−211.2 | 174.8−175.1 | +1.6 s |
-| venom | 175.0−203.7 | 174.9−175.1 | +0.7 s |
-
-Worst residual 0.13%, which is the ±6 m central difference against the true
-local derivative. **`railStretch` uses that same epsilon deliberately** — it is
-what `railTangent` orients the hull to, and the two are read on the same tick as
-attitude and as rate. An analytic derivative here would pitch the hull to a
-slope the speed correction did not agree existed.
-
-Nothing else needed a table: the ODE is `dz/dt = -speed / |dp/dz|`, and at
-120 Hz a tick moves at most 2.5 m while the stretch is driven by smoothstep
-bends hundreds of metres wide. The digest is green on all seven, which is the
-proof the geometry did not move — only the rate along it.
-
-**The HUD needed no change.** `ui/radar.js:30` already read `flight.speed`; the
-number simply became true.
-
-**`ai.js`'s world axes went with it.** Station offsets are authored in the
-rail's frame — `offset.z = -600` means 600 m ahead — and were added to the
-player's position raw, so "ahead" meant −z. `view` now carries the rail's
-heading as cos/sin of its yaw with `toWorld`/`toStation`/`heading` on it, and the
-four sites that crossed between frames use them. Spawn *facing* rotates too:
-rotating position without facing put a whole wave that many degrees off its own
-approach, measured as Fortuna's hornets losing a third of their time on target
-before facing was fixed as well.
-
-Yaw only. Pitch is deliberately left out — a station that dived with the rail
-would fight `ai.js`'s altitude clamps, which are one-sided against `groundAt`
-and `ceilingAt` and have no notion of a sloping corridor.
-
-Measured with `pacing.mjs` over a whole level, which is the only fair window:
-over 40 s the player now covers less z, so a late wave has barely armed and the
-comparison is of the clock, not the change.
-
-| | corneria before → after | fortuna before → after |
-|---|---|---|
-| vanguard closest | 320 → **265** m | 361 → **58** m |
-| vanguard on target | **0.0 → 6.4 s** | 0.0 → 0.0 s |
-| hornet on target | 3.4 → **4.4 s** | **3.6 → 2.0 s** |
-| raptor on target | 2.3 → 2.0 s | 1.9 → 1.9 s |
-
-Counts and entry ranges are unchanged to within 10 m on both. Corneria gains:
-its vanguard was never shootable and now is. **Fortuna's hornets lost a third of
-their time on target** — its waves were authored against the unrotated frame on
-the game's most-curving corridor at 34° of yaw, and that is a re-authoring cost,
-logged in `ROADMAP.md` rather than absorbed here.
-
-### What phase 4 did not do
-
-**`railPoint` still composes z.** `out.set(centrelineX(z), centrelineY(z), z)`,
-so world position is still a function of z and the corridor still cannot double
-back. `flight.js` no longer *assumes* it — `pos.z` reads `railPos.z` rather than
-`railZ`, in the sim and in the camera rig both — so the binding the plan named
-is gone from the code. But a closed path needs `railPoint` to dispatch to a
-per-level path object, and **that belongs in phase 6, with the arena that
-authors one**: landing it here would ship a branch no level takes, against ship
-criterion 7.
-
-**A vertical shaft is still not authorable.** The speed blow-up is gone — 75°
-now flies at 175 m/s where it would have flown at 676 — so gradients are limited
-by authoring (`1.5 · climb / blend`) rather than by the parameterisation. But
-`y(z)` cannot be vertical at any authored numbers, so the Foundry's shaft still
-waits on the same path indirection phase 6 needs.
-
-## Phase 5, as landed
-
-`railYaw` put the corridor's heading into the hull; its slope was never there,
-while `updateCamera` has always used the full 3D tangent. On any gradient the
-camera pitched and the hull did not.
-
-Measured on Fortuna: the hull ran −17.8° to +14.2° off the camera axis, 32°
-peak to peak, against a rail at +18.3°. Now −2.55° to +2.86°, and the residual
-is the player's own pitch from offset velocity and stick.
-
-`framing.mjs` could not see this — `noseDeg` projects the nose onto the
-camera's **right** axis, so it is a yaw measurement and reported a hull in
-agreement through the whole divergence. It now also reports `nosePitch` against
-the camera's up axis and `railPitch` off the tangent.
-
-## Phase 8, as landed
-
-`railOverSurface(z)` is the rail's signed clearance over the canopy. Above it
-the sea answers `groundAt`; below it `ceilingAt`; within `PIERCE` (70 m)
-neither, which is the only way through. Taken off the **rail**, so it is a
-function of z alone — off the ship it would flip as the player crossed and the
-two clamps would fight over the same plane at the moment the dive needs both
-quiet.
-
-Aquas' rail base is 710, 90 m over the sea at 620, and zone 1 spends the whole
-648 back down. Measured: z 720 to −880 the sea is the floor, z −1080 is inside
-`PIERCE`, from z −1280 it is the lid. The rest of the level flies at the 62 it
-always did.
-
-The dive is **41.6°**, two and a half times the steepest gradient the game had,
-and the hull tracks it to 3.9°. Before phase 5 it would have been 41° off the
-camera for the whole plunge.
-
-`lid.mjs` needed two rules corrected to describe this: it measured headroom
-where the rail is *above* the surface, which is not a lid, and it demanded full
-box headroom immediately under the crossing, where clearance necessarily ramps
-from zero. A lid answers for itself once the box fits under it.
-
-**Leaving.** The lap surfaces you: where `railOverSurface` says the rail is
-under a surface, it eases `flight.climb` to clear it by 95 m over `LAP_MIN`, and
-the ship flies above the water for the rest of the lap. The hop's ascent then
-starts from that value rather than zero — restarting at zero drops the ship back
-through the surface on the hop's first frame. Measured on a real boss kill:
-y 71 → 717 through the sea at 620, lap ending at climb 648 and the ascent
-picking up at 650, continuous to 2200.
-
-That also closes `ROADMAP.md`'s "leaving Aquas climbs 2200 m out of a level with
-a lid on it" — the ascent no longer starts underwater.
-
-**Still open here.** The canopy shader is an underside — refraction, caustics,
-the critical angle — and the opening now looks at it from above for 9 seconds.
-It reads as sea, but it was not built to. The benches this stranded moved to
-zone 1 in phase 9 below.
-
-## Open, found in phase 2 and its quality pass
-
-- [x] **`keySection` writes onto the DNA's own key objects.** Closed 2026-08-21:
-      `setActiveDNA` copies each key before compiling the polyline, so the source
-      DNA stays clean whether it was `keys`- or `zones`-authored. The
-      `if (key.su) return` memo went with it — the copies are fresh per load, so
-      a rebuild recompiles from the band fields. Geometrically a no-op, verified
-      by digest A/B on corneria, aquas and venom against digests cut from the
-      pre-change tree.
-
-- [ ] **`profileAt(z, {})` per call would allocate two typed arrays.** Both live
-      callers hoist one profile object per build (`terrain.js:184`,
-      `world-materials.js:282`), which is now a hard contract that nothing
-      enforces.
+**One lever nobody has pulled:** the floor need not be a plane at y = 0. A level
+whose floor sits far below the rail, flown between spires with no readable
+ground, reads as none of the others. Cheap version — `waterLevel` well under
+`bed`, so no plane draws at all.
+
+## Open
+
+- [ ] **`shape.mjs --strict` passes a level that is 18% authored.** It is the
+      stated acceptance test for phase 9 and it stayed green while Venom was
+      11 seconds of ridge and 49 seconds of stock zone kinds. It takes **12
+      samples** and asks only that no two levels name the same set of shapes —
+      the weak form of CONTRACT rule 8. It measures variety ACROSS levels and
+      nothing about coverage WITHIN one. That is how "Venom done" survived two
+      sessions of review. Either weight the samples by the length they
+      represent, or make the four-levels table a checklist a tool can read.
 
 - [ ] **Aquas' drop-off does not read.** The section is correct (`terrainHeight`
       runs +263 to −473 across the corridor at z = −4600) but underwater fog
       hides the fall. It wants an edge the eye can catch — a lip, a lit reef
       rim, or particles falling over it. `shots/p2-aquas-drop/`.
-- [x] **Terraces read weakly from the chase camera.** Closed 2026-08-22 by
-      phase 9's Aquas pass: the benches moved off zone 0, which phase 8 had
-      turned into the above-water approach, and onto zone 1, where they are held
-      from the key the dive ends on. Now at 280−300 m rather than 555−790, and
-      standing 15−56 m ABOVE the rail instead of below it.
 
-- [x] **`shots/ref-geometry-*.json` were stale.** Closed 2026-08-22: diagnosed,
-      found intended, and re-cut. All seven levels are green.
+- [ ] **Two brief rows need a lid that ends.** Venom's "alternates" and
+      Fortuna's "enters/exits" both need a ceiling that stops, and `Canopy` is a
+      single flat camera-following plane carrying a *water* shader — refraction,
+      caustics, the critical angle. It can neither end nor pass for rock. A
+      canopy level's per-zone `ceiling` is also finite everywhere by
+      construction: there is no "no lid here" to author. Solve once, for both.
 
-      The drift is from **`5501801`** (phase 2), not `2cdabf1` — bisected with a
-      headless replica of the digest's lattice, since the baselines were cut
-      21:51, two minutes before `708f20a`. `5501801` moved section construction
-      from the *interpolated* band fields to a per-key compile, so the summation
-      order went from `lerp(inner) + lerp(beachW)` to `lerp(inner + beachW)`.
-      Same value, different rounding.
+- [ ] **Aquas' canopy is an underside seen from above.** The shader was built
+      for a sea read from 300 m below, and the level now looks at it from over
+      the top for the first 9 seconds and again on the victory lap. It reads as
+      sea, but it was not built to.
 
-      Nor was the geometry identical on all five. Measured against the phase-1
-      tree:
-
-      | | lattice moves | worst | cause |
-      |---|---|---|---|
-      | corneria | 558/7081 | 2.8e-13 m | rounding |
-      | highlands | 347/7081 | 4.0e-13 m | rounding |
-      | fortuna | 291/7081 | 4.0e-13 m | rounding |
-      | aquas | 3532/7081 | **423 m** | its authored section |
-      | venom | 1301/7081 | **356 m** | its authored ridge |
-
-      Aquas also moved 325 geometry arrays and Venom 156 — phase 2's authored
-      sections, exactly as intended. Omega and the Foundry never moved: neither
-      routes `groundAt` through `terrainHeight`. The lattice is `Float64` and
-      the mesh stores `Float32`, which is why a rounding change shows there and
-      nowhere else.
-
-      **Cut a digest before editing, not after**, or a stale baseline reads as
-      your own regression. It cost the previous agent two cycles and it still
-      landed on the wrong commit.
-- [x] **Coverage, not mechanism, was what made the levels look alike.** Half
-      closed 2026-08-22 — Fichina and Fortuna authored, Aquas and Venom already
-      passing. Measured with `tools/shape.mjs`:
-
-      | | shape mix, 12 samples | floor moves |
-      |---|---|---|
-      | corneria | FLAT x7, VALLEY x5 | 28 m *(reference)* |
-      | fichina | FLAT x9, VALLEY x3 | **149 m** |
-      | aquas | FLAT x5, VALLEY x3, VALLEY+asym x3, FLAT+asym x1 | 74 m |
-      | fortuna | FLAT x9, VALLEY x2, VALLEY+asym x1 | **133 m** |
-      | venom | FLAT x7, VALLEY x3, RIDGE x2 | 60 m |
-
-      Every level now names a shape combination no other level uses, which is
-      CONTRACT rule 8's weak form. Fichina and Corneria previously shared one.
-
-      Two things the first, cruder version of this measurement got wrong, both
-      corrected here: Fortuna is **FLAT**, not a valley — its brief calls for
-      near-flat, so authoring a valley in would have removed the one thing
-      already right — and no level is a single shape once the sampling is dense
-      enough to hit every zone.
-
-- [x] **Aquas' walls break its own sea surface.** Closed 2026-08-22 by phase
-      9's Aquas pass. Both zones took authored sections, and the outermost point
-      is what `wm` scales and what the relief bands stack on, so it is the number
-      that decides the maximum. Measured over the zone, sampled every 5 m:
-      the trench went 75% of samples above the 620 lid to **0%**, the narrows
-      80% to **0%**, peaks 829/775 → 547/580. `lid.mjs --audit` no longer prints
-      the note on any run.
-
-- [x] **No noise band reaches an inverted cross-section.** Closed 2026-08-22 by
-      `bands.crag.face`, which opens the crag band on the section's local slope
-      instead of on distance from the centreline. Defaults to 0, so the other six
-      levels are byte-identical by digest; Venom sets 1.0. See "Phase 9 — Venom".
-
-      What is still true is the other half: **`relief` is still distance-gated**
-      and still opens past the second-outermost point, so on an inverted section
-      the macro bands build their skyline out over the lava and nothing else. It
-      has not bitten, because a spine wants a quiet far field, but the next
-      inverted level that wants distant relief will meet it.
-
-- [ ] **`shape.mjs --strict` passes a level that is 18% authored.** It is the
-      stated acceptance test for phase 9, it is green, and Venom is 11 seconds
-      of ridge followed by 49 seconds of stock zone kinds. The gate takes **12
-      samples** down a level and asks only that no two levels name the same set
-      of shapes — the plan's own words for it are "CONTRACT rule 8's **weak
-      form**". Venom's entire claim to a unique set rests on the 2 samples that
-      land in its one authored zone.
-
-      That is how "Venom done" got written into the phase table and survived two
-      sessions of review. The gate is not wrong, it is weak: it measures variety
-      ACROSS levels and nothing about coverage WITHIN one. Either weight the
-      samples by the length they represent, or make the four-levels table a
-      checklist a tool can read — it is described in this file as "the
-      acceptance test for the lane" and nothing checks it.
+- [ ] **`profileAt(z, {})` per call would allocate two typed arrays.** Both live
+      callers hoist one profile object per build (`terrain.js:184`,
+      `world-materials.js:282`), which is a hard contract nothing enforces.
 
 - [ ] **`fins.mjs --audit` exits non-zero on a clean tree**, so the second half
-      of the verification block is not currently a gate. Not this lane's work:
-      the reversed triangles predate the cross-section lane (`1ea5288`) and are
-      already tracked in `ROADMAP.md` under "Found while auditing".
-
-## What the open phases already know
-
-Read out of the source 2026-08-21 so none of it is re-derived. All line numbers
-are from that date; verify before trusting one.
-
-**Phase 3 — ceilings.** Landed; see "Phase 3, as landed" above. One thing from
-the research that outlived it: lid height is constrained per zone by that zone's
-`wallH` **plus relief**, and the two are easy to confuse — Aquas' lid went
-330 → 620 because at 330 it sat on the corridor rim and the level read as a cave
-(`dna.js:459-469`), and its `wallH` still under-reads the terrain by 215 m. Both
-ends are now checked by `tools/lid.mjs --audit`.
-
-**Phase 4 — landed; see "Phase 4, as landed" above.** What outlived it, for
-phase 6: `railZ` is mutated in exactly one place; three cursors edge-trigger off
-it — waves, comms and grants at `combat.js:1760-1774` — and **the boss is a wave
-row**, not a separate system, so it rides the same cursor with no fallback;
-`campaign.js:549` (`railZ <= WORLD.zEnd`) is the **only** end-of-level test.
-All four survive a non-monotone *position* as long as the *parameter* stays
-monotone, which is the contract phase 6's path object has to keep.
-
-**Phase 5 — landed.** The hull pitch and the `ai.js` station frame both closed
-(phases 5 and 4). One thing from the research outlived both: there is **no
-terrain crash**. The ground is a floor with a cushion, not a hazard
-(`flight.js:345-355`). Terrain rising into the rail bulldozes the ship upward
-without limit; terrain falling away does nothing.
-
-**Everything free.** All of `src/ui/`, `src/fx/`, `src/audio/`, `pickups.js` and
-world LOD are position-based, not `railZ`-based, and survive phase 4 untouched.
-
-**Phase 8 — the plunge.** Re-enter, fly a few seconds *above* the water, dive
-through the surface, fly the level, kill the boss, climb back out above the
-surface, then hop.
-
-- **Does not need phase 4.** The rail already moves in Y: a zone's `climb`
-  becomes a `yBend` (`zones.js:200-204`) into `centrelineY`, and Aquas'
-  drop-off descends on `climb: -30`. It needs phase 5 for the *look* —
-  `flight.js:397` orients the hull yaw-only, so on a dive the camera pitches and
-  the hull does not. Steepest shipped is Fichina at 16.7°.
-- **The blocker: one surface must be both floor and ceiling.** Aquas' sea is a
-  `canopy` at y = 620 answered by `ceilingAt` and clamped against since phase 3.
-  Above it, the same plane is a floor. `groundAt` and `ceilingAt` are separate
-  one-sided queries, and a canopy level's per-zone `ceiling` is finite
-  everywhere by construction — there is no "no lid here" to author.
-- **Same problem as Fortuna's canopy**, whose whole idea is that nothing else
-  changes which side of an object you are on. Solve once, for both.
-- **Also two `ROADMAP.md` items**: Aquas has no arrival beat (an orbital
-  re-entry ending 300 m underwater wants a plunge, not a wash), and leaving
-  Aquas climbs 2200 m straight through the sea surface on an unconditional
-  `HOPS.orbital.climb`. One feature, not three.
-
-**Phase 9 — the authoring pass.** No new mechanism. Every level gets a shape.
-
-Acceptance test: near-field cross-section (±250 m, what the ship reads) at six
-points down each level, and **no level may measure `valley` at every sample**.
-Same method as the 2026-08-22 row in the open list above.
-
-**Fortuna first** — the only terrain level with no authored section, valley six
-times out of six, and the level named as proof that shading cannot fix this.
-Corneria stays a valley: it is what the others are told apart from.
+      of the verification block is not currently a gate. Not this lane's work —
+      the reversed triangles predate it (`1ea5288`) and are tracked in
+      `ROADMAP.md`.
 
 ## How to work this lane
 
 Assume a different agent picks up every phase cold.
 
-**No narration in comments.** `HANDOFF.md` carries this rule and it keeps
-slipping. State the constraint, not the story: no "this used to be X", no
-before/after numbers from a rejected iteration, no describing the change. A
-comment explains why the code must be the way it is to a reader who never saw
-the previous version. History is in git; reasoning is in this file.
+**Read a brief row against live play before believing it.** Venom's said
+"inverted / rhythm / alternates" and was authored as a ridge at the start and a
+canyon after. The owner wanted the whole nine kilometres on the spine. Two
+agents shipped the narrow reading.
+
+**Cut a digest before editing, not after,** or a stale baseline reads as your
+own regression. This has cost three cycles across two agents.
+
+**No narration in comments.** State the constraint, not the story: no "this used
+to be X", no before/after numbers from a rejected iteration, no describing the
+change. A comment explains why the code must be the way it is to a reader who
+never saw the previous version. History is in git; reasoning is in this file.
 
 **Never assert a magnitude you have not measured.** Three numbers in Venom's
-section comment were written from intent and were wrong; the quality pass caught
-them by checking against the authored points.
+section comment were written from intent and were wrong.
 
 **Every phase ends with a separate quality pass**, run after the work is
 committed rather than folded into it — an author checking a fresh diff reads
@@ -770,12 +293,16 @@ done
 node tools/fins.mjs --audit                       # inverted-winding gate
 node tools/lid.mjs --audit                        # ceiling gate: is there room to fly
 node tools/shape.mjs --strict                     # phase 9: no two levels share a shape set
+node tools/pilot.mjs fly --seconds 70 --params "level=venom"   # does it still fly
 
 # before / after on a level
 node tools/shot.mjs --shots chase,valley --t 16 --w 1280 --h 720 --quality high \
   --params "level=venom" --env venom --out shots/pN-venom --port 9301
 node tools/sheet.mjs shots/ref-venom shots/pN-venom --pair --labels "before,after"
 ```
+
+`shape.mjs --draw <level>` renders a cross-section as ASCII **and prints the
+rail height beside it**, which is the fastest way to read a rail rhythm.
 
 The digest is a *sanity* check, not a bit-identity contract — read the diff and
 judge whether it is the change you meant. **Do not pixel-diff captures:** the

@@ -199,6 +199,14 @@ export class Flight {
     // across those two clocks aliases into a nose that snaps between the climb
     // angle and level on a third of frames.
     this.climbRate = 0;
+    // The rig interpolates `climb` exactly as it interpolates `off` and
+    // `railZ`. `campaign.js` writes it on frame dt and the ship's position is
+    // built on the fixed step, so reading it live in the rig puts the camera on
+    // a different clock from the hull: at the ascent's 663 m/s that is 5.5 m of
+    // camera-above-ship per frame, which is what is left once the shake and the
+    // pitch aliasing are gone. It measured as nothing while those were still in
+    // — an ordering lesson, not a reason to skip it.
+    this.prevClimb = 0;
     this.shake = 0;
     this._shakeSeed = 0;
 
@@ -243,6 +251,7 @@ export class Flight {
     this.prevPos.copy(this.pos);
     this.prevQuat.copy(this.quat);
     this.prevOff.copy(this.off);
+    this.prevClimb = this.climb;
   }
 
   railPoint(z, out = new THREE.Vector3()) {
@@ -305,6 +314,7 @@ export class Flight {
     this.prevQuat.copy(this.quat);
     this.prevRailZ = this.railZ;
     this.prevOff.copy(this.off);
+    this.prevClimb = this.climb;
 
     /* ── dead: the level stops with the player ──────────────────────────────
        THE RAIL IS THE LEVEL'S CLOCK. combat.js arms every wave, comm and grant
@@ -588,6 +598,7 @@ export class Flight {
     const railZ = this.prevRailZ + (this.railZ - this.prevRailZ) * a;
     const offX = this.prevOff.x + (this.off.x - this.prevOff.x) * a;
     const offY = this.prevOff.y + (this.off.y - this.prevOff.y) * a;
+    const climb = this.prevClimb + (this.climb - this.prevClimb) * a;
     const railPos = this.railPoint(railZ, _vCam);
 
     const L = this.lens;
@@ -665,7 +676,7 @@ export class Flight {
     // placed one way and framed another drifts out of the rig.
     _vShip.set(
       railPos.x + offX * this.railCos,
-      railPos.y + offY + this.climb,
+      railPos.y + offY + climb,
       railPos.z + offX * this.railSin,
     );
     this.camPos.copy(_vShip)

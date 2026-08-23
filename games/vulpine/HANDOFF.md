@@ -148,14 +148,22 @@ this it could not have.
   aliased the nose between the climb angle and level on 38% of frames. It is
   analytic in `campaign.js` now — the derivative of smoothstep is 6p(1 - p).
 
-  Measured, before → after: pitch sign flips 637/1657 → 2/1899, lateral
-  camera-to-ship p95 1.86 m → 0.000, `climbRate` peak 859 → 663 m/s (the true
-  analytic peak, so the aliasing is gone rather than hidden).
+  Measured over the pinned hop, before → after: pitch sign flips 637/1657 →
+  2/1899, lateral camera-to-ship p95 1.86 m → 0.000, vertical p95 5.31 → 0.18
+  on Fortuna, `climbRate` peak 859 → 663 m/s (the true analytic peak, so the
+  aliasing is gone rather than hidden). Verified on all five levels that have a
+  hop, orbital and overland.
+
+  **The lap is deliberately NOT pinned.** It is the level still being flown and
+  keeps the ordinary rig — damper, lead, and the shake off a capital ship coming
+  apart. `hop.mjs` reports the two halves separately for that reason: the lap
+  reads like live play and should, the hop should read as very nearly zero.
 
   `campaign.js` also re-read `surfaceClimb` every frame while `railZ` was still
-  advancing, so the lap's ramp chased a moving target. The lap is now a 3 s rise
-  (`LAP_RISE`) and then level flight above the surface until `LAP_MIN` at 9 s,
-  so the ship surfaces, flies, and *then* the ascent starts.
+  advancing, so the lap's ramp chased a moving target. The lap is now three
+  beats: `LAP_HOLD` 4 s of ordinary flight while the capital ship comes apart,
+  `LAP_RISE` 3 s to surface on a level flown under one, then level flight until
+  `LAP_MIN` at 11 s. The hop starts from up there.
 - `tools/quiet.mjs --audit` — green. Rail moves: fast, in the gaps, and wave
   tables in order. Static, so it is cheap; `pacing.mjs` is the live instrument.
 - `tools/fins.mjs --audit` — green. Gates on the worst single mesh's back-facing

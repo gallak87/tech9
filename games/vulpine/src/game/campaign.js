@@ -108,14 +108,23 @@ const hasBody = (dnaId) => (DNA_BY_ID[dnaId].backend ?? 'terrain') !== 'field';
 // the offset box's 46 m of down-stick.
 const SURFACE_CLEAR = 95;
 
-// The lap has two parts. The rise gets the ship out of a surface it was flown
-// under; the rest is level flight above it, and it is the part that was missing
-// — the climb used to fill the whole lap, so the ascent began on the exact tick
-// the ship finished surfacing and the two ramps read as one long diagonal.
-// Owner: "fly a little above water THEN initiate orbital hop from up there".
+// The lap is three beats, and it is a sequence rather than a duration because
+// each one is covering something specific.
+//
+//   HOLD   the capital ship comes apart over four seconds (`updateBoss`), and
+//          the ship should be flying normally while it does. Nothing about the
+//          transition may start inside this.
+//   RISE   gets the ship out of a surface it was flown under, on levels that
+//          have one. Nothing happens here on a level flown in the open.
+//   then   level flight until LAP_MIN, so the ascent starts from up there
+//          rather than from the tick the ship finished surfacing.
+//
+// The camera is NOT pinned for any of this — see `begin`. The lap is still the
+// level being flown; only the hop is a sequence being watched.
+const LAP_HOLD = 4;
 const LAP_RISE = 3;
-const LAP_MIN = 9;
-const LAP_MAX = 16;
+const LAP_MIN = 11;
+const LAP_MAX = 18;
 
 // Per-frame mesh budget during the hop. Generous because nothing else is
 // competing: the terrain is hidden and the field is empty.
@@ -534,6 +543,15 @@ export function installCampaign(ctx, startIndex = 0) {
     // so its card is the one that holds.
     ctx.state.outcome = null;
     ctx.flight.detached = true;
+    // Pin the camera from here to `arrive()`, and not one beat earlier. The lap
+    // is the level still being flown and wants the ordinary chase rig — its
+    // damper, its lead, and the shake off a capital ship coming apart. The hop
+    // is a sequence with no input in it, where every one of those terms is
+    // modelling a stick that is not moving: shake alone is 3.8 m of camera
+    // translation at 47 rad/s. Owner, on the two halves: the S curve "feels
+    // like I'm still playing the level", the orbital jump does not.
+    ctx.flight.cinematic = true;
+    ctx.flight.shake = 0;
   }
 
   /** Swap the world, the rail and the wave tables over to the next level. */
@@ -579,13 +597,7 @@ export function installCampaign(ctx, startIndex = 0) {
         state.phase = 'lap';
         state.lapT = 0;
         state.surfaceClimb = 0;
-        // Pin the camera for everything from here to `arrive()`. See
-        // `flight.cinematic`.
-        ctx.flight.cinematic = true;
-        // The boss came apart over the last four seconds and every piece of it
-        // called `addShake`. Kept, it is 3.8 m of camera translation oscillating
-        // at 47 rad/s over a sequence the player is watching, not flying.
-        ctx.flight.shake = 0;
+        ctx.flight.climbRate = 0;
       }
       return;
     }
@@ -610,14 +622,14 @@ export function installCampaign(ctx, startIndex = 0) {
         if (under !== null && under < 0) state.surfaceClimb = -under + SURFACE_CLEAR;
       }
       if (state.surfaceClimb > 0) {
-        const p = Math.min(1, state.lapT / LAP_RISE);
+        const p = Math.min(1, Math.max(0, (state.lapT - LAP_HOLD) / LAP_RISE));
         ctx.flight.climb = state.surfaceClimb * (p * p * (3 - 2 * p));
         // Analytic, not differenced. `climb` is written here on FRAME dt while
         // the hull attitude runs on the fixed step, so differencing it there
         // aliases: a frame that runs no step reads zero and the next one reads
         // double. Measured, that snapped the nose between 68° and level on 38%
         // of frames. The derivative of smoothstep is 6p(1 - p).
-        ctx.flight.climbRate = p < 1 ? state.surfaceClimb * 6 * p * (1 - p) / LAP_RISE : 0;
+        ctx.flight.climbRate = p > 0 && p < 1 ? state.surfaceClimb * 6 * p * (1 - p) / LAP_RISE : 0;
       }
       if (state.lapT < LAP_MIN) return;
       const past = ctx.flight.railZ <= WORLD.zEnd;

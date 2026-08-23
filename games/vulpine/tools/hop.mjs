@@ -128,9 +128,9 @@ console.log(`level ${LEVEL}  boss ${out.bossAt}  ${R.length} frames over ${SECON
 
 // Jerk: how much the camera-to-ship offset moves frame to frame. A smooth rig
 // changes it slowly and monotonically; jitter alternates sign every frame.
-function report(key) {
+function report(key, rows = R) {
   const d = [];
-  for (let i = 1; i < R.length; i++) d.push(R[i][key] - R[i - 1][key]);
+  for (let i = 1; i < rows.length; i++) d.push(rows[i][key] - rows[i - 1][key]);
   const flips = d.reduce((n, v, i) => n + (i && Math.sign(v) !== Math.sign(d[i - 1]) && Math.abs(v) > 0.02 ? 1 : 0), 0);
   const abs = d.map(Math.abs).sort((a, b) => a - b);
   return `${key}  median ${abs[abs.length >> 1].toFixed(3)} m/frame   p95 ${abs[Math.floor(abs.length * 0.95)].toFixed(3)}`
@@ -145,10 +145,19 @@ for (const p of phases) {
   console.log(`  ${p.padEnd(9)} ${rows.length} frames   climb ${rows[0].climb.toFixed(0)} → ${rows[rows.length - 1].climb.toFixed(0)} m`
     + `   ship y ${rows[0].sy.toFixed(0)} → ${rows[rows.length - 1].sy.toFixed(0)}`);
 }
-console.log('\ncamera-to-ship offset, frame to frame:');
-for (const k of ['dx', 'dy', 'dz']) console.log('  ' + report(k));
-console.log('\nhull attitude, degrees frame to frame:');
-for (const k of ['pitch', 'roll']) console.log('  ' + report(k));
+// Split, because the two halves want different things. The lap is the level
+// still being flown and keeps the ordinary chase rig — its damper, its lead and
+// the shake off a capital ship coming apart all belong there. The hop is pinned
+// and should read as very nearly zero on every axis.
+const LAPF = R.filter(r => r.phase === 'play' || r.phase === 'lap');
+const HOPF = R.filter(r => r.phase !== 'play' && r.phase !== 'lap');
+for (const [name, rows] of [['lap (live rig)', LAPF], ['hop (pinned)', HOPF]]) {
+  if (rows.length < 8) continue;
+  console.log(`\n${name} — camera-to-ship offset, frame to frame:`);
+  for (const k of ['dx', 'dy', 'dz']) console.log('  ' + report(k, rows));
+  console.log(`${name} — hull attitude, degrees frame to frame:`);
+  for (const k of ['pitch', 'roll']) console.log('  ' + report(k, rows));
+}
 const lap = R.filter(r => r.phase === 'lap' || r.phase === 'ascent');
 if (lap.length) {
   const rates = lap.map(r => r.rate);

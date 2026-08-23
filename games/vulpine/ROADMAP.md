@@ -147,7 +147,11 @@ register, swept collision.
       real but it is the RATE, not the position** — interpolating `climb` itself
       in the rig moved nothing (flip count 361 → 397), while making the rate
       analytic in `campaign.js` took pitch sign flips from 637/1657 to 2/1899.
-      Do not re-try the position version.
+      **The position version was needed too, and measuring it first said it was
+      not** — with the shake and the pitch aliasing still in, interpolating
+      `climb` in the rig moved nothing; with them gone it took the hop's
+      vertical p95 from 5.3 m/frame to 0.18 on Fortuna. A null result on one
+      term of a sum only means the other terms are louder.
 
 - [ ] **The Foundry does not finish under the probe, and it is not the rail
       work.** `pilot.mjs fly --seconds 115 --params level=foundry` runs to

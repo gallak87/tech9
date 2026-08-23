@@ -124,6 +124,11 @@ let J_A, J_B, SIDE_BASE, SIDE_AMP;
 let REL_BASE, REL_FAR;
 
 let ISLANDS = [];
+// Islands bucketed by z, CSR-style: `ISL_AT[ISL_ROW[b] .. ISL_ROW[b+1]]` are
+// the islands whose z extent reaches bucket `b`. See `indexIslands`.
+let ISL_ROW = new Int32Array(1), ISL_AT = new Int32Array(0);
+let ISL_Z0 = 0, ISL_BINS = 0;
+const ISL_BINW = 240;
 
 /** Lateral sample spacing at distance `d` from the channel centreline. */
 export function spacing(d) { return SP_A * (1 + d / SP_G); }
@@ -329,7 +334,10 @@ export function cityWeight(z) {
 
 function islandAt(u, z) {
   let h = 0;
-  for (const I of ISLANDS) {
+  let b = ((ISL_Z0 - z) / ISL_BINW) | 0;
+  if (b < 0) b = 0; else if (b >= ISL_BINS) b = ISL_BINS - 1;
+  for (let k = ISL_ROW[b], end = ISL_ROW[b + 1]; k < end; k++) {
+    const I = ISLANDS[ISL_AT[k]];
     const dz = z - I.z;
     if (dz > I.r * 2.2 || dz < -I.r * 2.2) continue;
     const du = u - I.u;
@@ -338,6 +346,49 @@ function islandAt(u, z) {
     h += I.h * Math.pow(1 - q * q, I.pow);
   }
   return h;
+}
+
+/**
+ * Bucket `ISLANDS` by z so a height sample tests only the islands that can
+ * reach it.
+ *
+ * The scatter is per-level and unbounded — a level whose props ARE its shape
+ * carries a few hundred — and `islandAt` sits under every mesh vertex and both
+ * baked fields, so a linear scan makes prop count a boot-time cost: measured
+ * 1.2 ms per island per 360 k samples, i.e. ~190 ms of field bake for every
+ * hundred added.
+ *
+ * The z extent tested in `islandAt` is ±2.2 r, so an island is registered in
+ * every bucket that span touches. A query outside the level's z range clamps to
+ * the end bucket, which is also where an island out there registered, so the
+ * clamp cannot lose one.
+ */
+function indexIslands() {
+  const E = (I) => I.r * 2.2;
+  let zHi = -Infinity, zLo = Infinity;
+  for (const I of ISLANDS) {
+    if (I.z + E(I) > zHi) zHi = I.z + E(I);
+    if (I.z - E(I) < zLo) zLo = I.z - E(I);
+  }
+  if (!ISLANDS.length) { zHi = 0; zLo = 0; }
+  ISL_Z0 = zHi;
+  ISL_BINS = Math.max(1, Math.ceil((zHi - zLo) / ISL_BINW));
+  const bin = (z) => {
+    const b = ((ISL_Z0 - z) / ISL_BINW) | 0;
+    return b < 0 ? 0 : b >= ISL_BINS ? ISL_BINS - 1 : b;
+  };
+  const counts = new Int32Array(ISL_BINS + 1);
+  for (const I of ISLANDS) {
+    for (let b = bin(I.z + E(I)); b <= bin(I.z - E(I)); b++) counts[b + 1]++;
+  }
+  ISL_ROW = new Int32Array(ISL_BINS + 1);
+  for (let b = 0; b < ISL_BINS; b++) ISL_ROW[b + 1] = ISL_ROW[b] + counts[b + 1];
+  ISL_AT = new Int32Array(ISL_ROW[ISL_BINS]);
+  const at = ISL_ROW.slice();
+  for (let i = 0; i < ISLANDS.length; i++) {
+    const I = ISLANDS[i];
+    for (let b = bin(I.z + E(I)); b <= bin(I.z - E(I)); b++) ISL_AT[at[b]++] = i;
+  }
 }
 
 /* ── height field ─────────────────────────────────────────────────────────── */
@@ -657,6 +708,7 @@ export function setActiveDNA(dna) {
   REL_BASE = b.relief.base; REL_FAR = b.relief.far;
 
   ISLANDS = buildIslands(dna.islands ?? DEFAULTS.islands);
+  indexIslands();
 
   const pal = { ...DEFAULTS.palette, ...dna.palette };
   pal.amount = { ...DEFAULTS.palette.amount, ...(dna.palette || {}).amount };

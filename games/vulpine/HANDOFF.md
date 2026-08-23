@@ -134,14 +134,28 @@ this it could not have.
   axis, which is what catches a one-frame jump. Its sign-flip count is too
   sensitive to be diagnostic — see ROADMAP.
 
-  **The hop was three separate defects, all found with it.** The interpolation
+  `--burst N --out DIR` captures N evenly-spaced frames across the sequence
+  instead of sampling it, which is the only way to read the *shape* of a hop.
+
+  **The hop was four separate defects, all found with it.** The interpolation
   snapshot survived a world swap (7003 m of hull travel in one frame on Aquas,
   984 on Corneria — now 2.0 and 0.97); the hull never pitched into `climb`, so
   a 68° ascent was flown level and read as a diagonal slide rather than an arc;
-  and the chase rig kept running its damper, lead and shake through a sequence
-  with no player input (`flight.cinematic` pins it now). `campaign.js` also
-  re-read `surfaceClimb` every frame while `railZ` was still advancing, so the
-  lap's ramp chased a moving target instead of flying a curve.
+  the chase rig kept running its damper, lead and shake through a sequence with
+  no player input (`flight.cinematic` pins it now — shake alone was 3.8 m of
+  camera translation at 47 rad/s, the "shaking side to side"); and `climbRate`
+  was differenced on the fixed step while `climb` advances on frame dt, which
+  aliased the nose between the climb angle and level on 38% of frames. It is
+  analytic in `campaign.js` now — the derivative of smoothstep is 6p(1 - p).
+
+  Measured, before → after: pitch sign flips 637/1657 → 2/1899, lateral
+  camera-to-ship p95 1.86 m → 0.000, `climbRate` peak 859 → 663 m/s (the true
+  analytic peak, so the aliasing is gone rather than hidden).
+
+  `campaign.js` also re-read `surfaceClimb` every frame while `railZ` was still
+  advancing, so the lap's ramp chased a moving target. The lap is now a 3 s rise
+  (`LAP_RISE`) and then level flight above the surface until `LAP_MIN` at 9 s,
+  so the ship surfaces, flies, and *then* the ascent starts.
 - `tools/quiet.mjs --audit` — green. Rail moves: fast, in the gaps, and wave
   tables in order. Static, so it is cheap; `pacing.mjs` is the live instrument.
 - `tools/fins.mjs --audit` — green. Gates on the worst single mesh's back-facing

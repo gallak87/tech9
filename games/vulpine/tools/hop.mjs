@@ -18,6 +18,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { chromium } from 'playwright';
 import { spawn } from 'node:child_process';
+import { mkdir } from 'node:fs/promises';
 
 const ROOT = '/Users/g/code/scratch/tech9/games/vulpine';
 const arg = (n, d) => { const i = process.argv.indexOf(`--${n}`); return i === -1 ? d : process.argv[i + 1]; };
@@ -25,6 +26,10 @@ const LEVEL = arg('level', 'aquas');
 const SECONDS = parseFloat(arg('seconds', '14'));
 const PORT = parseInt(arg('port', '5410'), 10);
 const HEADED = process.argv.includes('--headed');
+// Frames to capture across the recording, evenly spaced. A hop is a sequence,
+// and one screenshot of a sequence answers nothing.
+const BURST = parseInt(arg('burst', '0'), 10);
+const OUT = arg('out', 'shots/hop');
 
 const base = `http://127.0.0.1:${PORT}`;
 async function up(url, ms = 45000) {
@@ -49,6 +54,7 @@ page.on('pageerror', e => errs.push('pageerror: ' + e.message));
 await page.goto(`${base}/?quality=high&t=0.1&fight=1&hud=0&level=${LEVEL}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 120000 });
 
+if (BURST) await mkdir(OUT, { recursive: true });
 const out = await page.evaluate(async (secs) => {
   const A = window.__VULPINE__;
   // Fast-forward to the boss. `seek` runs the fixed step with no input, so the
@@ -80,6 +86,12 @@ const out = await page.evaluate(async (secs) => {
         dy: cam.position.y - ship.position.y,
         dz: cam.position.z - ship.position.z,
         sy: ship.position.y,
+        // Hull attitude. "Jittering between looking up or forward" is pitch;
+        // "shaking side to side" is roll, or a camera roll off `bank`.
+        pitch: Math.asin(Math.max(-1, Math.min(1, 2 * (ship.quaternion.w * ship.quaternion.x - ship.quaternion.z * ship.quaternion.y)))) * 180 / Math.PI,
+        roll: Math.atan2(2 * (ship.quaternion.w * ship.quaternion.z + ship.quaternion.x * ship.quaternion.y),
+                         1 - 2 * (ship.quaternion.x ** 2 + ship.quaternion.z ** 2)) * 180 / Math.PI,
+        rate: A.flight.climbRate,
       });
       last = now;
       if ((now - t0) / 1000 < secs) requestAnimationFrame(tick); else done();
@@ -87,6 +99,26 @@ const out = await page.evaluate(async (secs) => {
   });
   return { bossAt, rows };
 }, SECONDS);
+
+if (BURST) {
+  // A second pass: the recorder above consumed the sequence, so replay it and
+  // capture instead of sampling. Same boot, same kill, same clock.
+  await page.goto(`${base}/?quality=high&t=0.1&fight=1&hud=1&level=${LEVEL}`, { waitUntil: 'load' });
+  await page.waitForFunction(() => window.__VULPINE__ && window.__VULPINE__.ready, null, { timeout: 120000 });
+  await page.evaluate(() => {
+    const A = window.__VULPINE__;
+    A.resume();
+    for (let t = 8; t <= 90; t += 2) { A.seek(t); if (A.combat.killBoss()) break; }
+  });
+  const gap = (SECONDS * 1000) / BURST;
+  for (let i = 0; i < BURST; i++) {
+    await new Promise(r => setTimeout(r, gap));
+    const phase = await page.evaluate(() => window.__VULPINE__.ctx.campaign?.phase ?? '?');
+    const alt = await page.evaluate(() => Math.round(window.__VULPINE__.ship.position.y));
+    await page.screenshot({ path: `${OUT}/${String(i).padStart(2, '0')}-${phase}-alt${alt}.png` });
+  }
+  console.log(`\nburst: ${BURST} frames in ${OUT}/`);
+}
 
 if (server) server.kill();
 await browser.close();
@@ -115,6 +147,14 @@ for (const p of phases) {
 }
 console.log('\ncamera-to-ship offset, frame to frame:');
 for (const k of ['dx', 'dy', 'dz']) console.log('  ' + report(k));
+console.log('\nhull attitude, degrees frame to frame:');
+for (const k of ['pitch', 'roll']) console.log('  ' + report(k));
+const lap = R.filter(r => r.phase === 'lap' || r.phase === 'ascent');
+if (lap.length) {
+  const rates = lap.map(r => r.rate);
+  console.log(`\nclimbRate over lap+ascent: min ${Math.min(...rates).toFixed(0)}  max ${Math.max(...rates).toFixed(0)} m/s`);
+  console.log('  first 24 frames: ' + rates.slice(0, 24).map(v => v.toFixed(0)).join(' '));
+}
 const dts = R.map(r => r.dt).sort((a, b) => a - b);
 console.log(`\nframe dt  median ${(dts[dts.length >> 1] * 1000).toFixed(1)} ms   p95 ${(dts[Math.floor(dts.length * 0.95)] * 1000).toFixed(1)}   worst ${(dts[dts.length - 1] * 1000).toFixed(1)}`);
 if (errs.length) { console.log('\nCONSOLE ERRORS:', errs.slice(0, 4).join(' | ')); process.exit(1); }

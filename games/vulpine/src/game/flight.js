@@ -193,11 +193,12 @@ export class Flight {
     // is not there, and what it produces instead is jitter. Under this flag the
     // camera is a rigid transform off the hull.
     this.cinematic = false;
-    // dClimb/dt, in metres per second. `campaign.js` writes `climb` on frame dt
-    // and this is differenced on the fixed step, which is the clock the hull
-    // attitude runs on.
+    // dClimb/dt, in metres per second, written by `campaign.js` alongside
+    // `climb` itself. Analytic there rather than differenced here: `climb`
+    // advances on frame dt and this is read on the fixed step, and differencing
+    // across those two clocks aliases into a nose that snaps between the climb
+    // angle and level on a third of frames.
     this.climbRate = 0;
-    this._lastClimb = 0;
     this.shake = 0;
     this._shakeSeed = 0;
 
@@ -242,7 +243,6 @@ export class Flight {
     this.prevPos.copy(this.pos);
     this.prevQuat.copy(this.quat);
     this.prevOff.copy(this.off);
-    this._lastClimb = this.climb;
   }
 
   railPoint(z, out = new THREE.Vector3()) {
@@ -305,8 +305,6 @@ export class Flight {
     this.prevQuat.copy(this.quat);
     this.prevRailZ = this.railZ;
     this.prevOff.copy(this.off);
-    this.climbRate = dt > 0 ? (this.climb - this._lastClimb) / dt : 0;
-    this._lastClimb = this.climb;
 
     /* ── dead: the level stops with the player ──────────────────────────────
        THE RAIL IS THE LEVEL'S CLOCK. combat.js arms every wave, comm and grant
@@ -685,7 +683,11 @@ export class Flight {
       .addScaledVector(UP, L.lookUp);
 
     camera.position.copy(this.camPos);
-    if (this.shake > 0.001) {
+    // Not during the lap or the hop: see `cinematic`. Shake is 3.8 m of camera
+    // translation at 47 rad/s, which is the "shaking side to side" over a
+    // sequence with no input in it. The hull's own roll is untouched and
+    // measured flat, so this was the only lateral term in the frame.
+    if (this.shake > 0.001 && !this.cinematic) {
       const s = this.shake * this.shake * 1.5;
       camera.position.x += Math.sin(this._shakeSeed * 1.7) * s;
       camera.position.y += Math.sin(this._shakeSeed * 2.3 + 1.1) * s;

@@ -139,11 +139,15 @@ register, swept collision.
       course. Read `worst` and `p95` per axis instead. A metric that separates
       settling from jitter is still wanted.
 
-- [ ] **Tested and disproved, do not repeat:** that the hop jitter came from
-      `campaign.js` writing `flight.climb` on frame dt while the rig
-      interpolates on the fixed step. Interpolating `climb` in the rig moved the
-      numbers nowhere (flip count 361 → 397). The cause was the interpolation
-      snapshot surviving a world swap — see `flight.resetRail`.
+- [x] **Hop jitter.** Closed 2026-08-23, four causes, all measured with
+      `tools/hop.mjs`. The interpolation snapshot survived a world swap
+      (`resetRail`); the hull never pitched into `climb`; the chase rig ran its
+      damper, lead and shake through a sequence with no input (`cinematic`); and
+      `climbRate` was differenced across two clocks. **The clock mismatch is
+      real but it is the RATE, not the position** — interpolating `climb` itself
+      in the rig moved nothing (flip count 361 → 397), while making the rate
+      analytic in `campaign.js` took pitch sign flips from 637/1657 to 2/1899.
+      Do not re-try the position version.
 
 - [ ] **The Foundry does not finish under the probe, and it is not the rail
       work.** `pilot.mjs fly --seconds 115 --params level=foundry` runs to

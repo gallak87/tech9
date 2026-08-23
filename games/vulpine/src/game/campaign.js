@@ -108,8 +108,14 @@ const hasBody = (dnaId) => (DNA_BY_ID[dnaId].backend ?? 'terrain') !== 'field';
 // the offset box's 46 m of down-stick.
 const SURFACE_CLEAR = 95;
 
-const LAP_MIN = 7;
-const LAP_MAX = 14;
+// The lap has two parts. The rise gets the ship out of a surface it was flown
+// under; the rest is level flight above it, and it is the part that was missing
+// — the climb used to fill the whole lap, so the ascent began on the exact tick
+// the ship finished surfacing and the two ramps read as one long diagonal.
+// Owner: "fly a little above water THEN initiate orbital hop from up there".
+const LAP_RISE = 3;
+const LAP_MIN = 9;
+const LAP_MAX = 16;
 
 // Per-frame mesh budget during the hop. Generous because nothing else is
 // competing: the terrain is hidden and the field is empty.
@@ -554,6 +560,7 @@ export function installCampaign(ctx, startIndex = 0) {
     ctx.flight.detached = false;
     ctx.flight.cinematic = false;
     ctx.flight.climb = 0;
+    ctx.flight.climbRate = 0;
     // Belongs to the level just left; the next lap measures its own.
     state.surfaceClimb = 0;
     levelCard(ctx, level());
@@ -575,6 +582,10 @@ export function installCampaign(ctx, startIndex = 0) {
         // Pin the camera for everything from here to `arrive()`. See
         // `flight.cinematic`.
         ctx.flight.cinematic = true;
+        // The boss came apart over the last four seconds and every piece of it
+        // called `addShake`. Kept, it is 3.8 m of camera translation oscillating
+        // at 47 rad/s over a sequence the player is watching, not flying.
+        ctx.flight.shake = 0;
       }
       return;
     }
@@ -599,8 +610,14 @@ export function installCampaign(ctx, startIndex = 0) {
         if (under !== null && under < 0) state.surfaceClimb = -under + SURFACE_CLEAR;
       }
       if (state.surfaceClimb > 0) {
-        const p = Math.min(1, state.lapT / LAP_MIN);
+        const p = Math.min(1, state.lapT / LAP_RISE);
         ctx.flight.climb = state.surfaceClimb * (p * p * (3 - 2 * p));
+        // Analytic, not differenced. `climb` is written here on FRAME dt while
+        // the hull attitude runs on the fixed step, so differencing it there
+        // aliases: a frame that runs no step reads zero and the next one reads
+        // double. Measured, that snapped the nose between 68° and level on 38%
+        // of frames. The derivative of smoothstep is 6p(1 - p).
+        ctx.flight.climbRate = p < 1 ? state.surfaceClimb * 6 * p * (1 - p) / LAP_RISE : 0;
       }
       if (state.lapT < LAP_MIN) return;
       const past = ctx.flight.railZ <= WORLD.zEnd;
@@ -627,14 +644,23 @@ export function installCampaign(ctx, startIndex = 0) {
     // Climbing on ascent and shedding it on re-entry is also what puts the ground
     // back under the ship at exactly the moment the terrain is unhidden.
     const ease = (p) => p * p * (3 - 2 * p);
+    // d/dt of `ease(t / dur)`, which is what the hull pitches into. See the lap.
+    const easeRate = (p, span) => 6 * p * (1 - p) * span / dur;
     const first = H.order[0], last = H.order[H.order.length - 1];
     // From wherever the lap left the ship, not from zero: on a level the lap
     // surfaced, restarting the ramp at zero drops it back through the surface
     // on the first frame of the hop.
     const base = state.surfaceClimb || 0;
-    if (state.phase === first) ctx.flight.climb = base + ease(u) * (H.climb - base);
-    else if (state.phase === last) ctx.flight.climb = (1 - ease(u)) * H.climb;
-    else ctx.flight.climb = H.climb;
+    if (state.phase === first) {
+      ctx.flight.climb = base + ease(u) * (H.climb - base);
+      ctx.flight.climbRate = easeRate(u, H.climb - base);
+    } else if (state.phase === last) {
+      ctx.flight.climb = (1 - ease(u)) * H.climb;
+      ctx.flight.climbRate = -easeRate(u, H.climb);
+    } else {
+      ctx.flight.climb = H.climb;
+      ctx.flight.climbRate = 0;
+    }
 
     if (state.building) {
       state.progress = ctx.world.step(BUILD_MS);

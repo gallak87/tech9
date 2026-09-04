@@ -55,8 +55,7 @@ stack rank the mechanics - basics first, world, moving around, entering/exiting 
 
 ## Appendix — current state, read before writing anything
 
-`PROMPT-chronoforge-dawn.md` is the full build brief this produced last time. Use it as
-reference. Two of its clauses are load-bearing and must survive into whatever you write:
+Two requirements must survive into whatever you write:
 
 **1. Architecture first.** Before any feature code, `ARCHITECTURE.md` and `CONTRACT.md`:
 one folder per subsystem (`world`, `render`, `actors`, `traversal`, `places`, `battle`,

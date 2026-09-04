@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
-  "phase": 2.4,
-  "phaseName": "Kaida: joint gaps closed, review tooling in; outline built but disabled; rig gate margin eroded",
+  "phase": 2.02,
+  "phaseName": "BLOCKED ON HUMAN \u2014 mesh source decision gates Phase 2.1. See docs/PHASE2-HANDOFF.md",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -546,6 +546,15 @@
       "title": "Player-chosen camera distance, third-person follow, and per-state LOD",
       "detail": "Human request, deferred by agreement. Let the player pick camera level at any time: behind-the-shoulder rotating with her, or zoomed out to watch her cross the level from the locked angle. Note this DISSOLVES the SPRITE_PX_PER_METRE question rather than answering it \u2014 if the player picks the zoom, no single sprite density was ever right, and the honest design is a per-camera-state LOD that drops sub-pixel work at distance.",
       "repro": "n/a \u2014 design note"
+    },
+    {
+      "id": "joint-gaps",
+      "severity": "high",
+      "tier": "Phase 2.0.2",
+      "area": "actors",
+      "title": "Limb shells rotate apart at every joint and leave visible gaps",
+      "detail": "Rigid skinning weights every vertex 100% to one bone, so nothing deforms and a bend separates the two shells. The OVER=0.045 overlap in kaida.js does NOT fix it and cannot: running each segment past its joint fills the INSIDE of a bend while the outside still opens, because the extension rotates away with its own bone. Fix is a joint sphere at the pivot, parented to one bone, radius = limb radius x 1.05 \u2014 every point on both end rings sits exactly the limb radius from the joint centre, so it covers any bend angle permanently. One per shoulder, elbow, hip, knee, ~10 lines. NOT IMPLEMENTED. Moot if the mesh-source decision goes to a smooth-skinned model.",
+      "repro": "?play=1&dev=2, orbit to a three-quarter view and watch the shoulders and knees"
     }
   ],
   "rig": {
@@ -684,5 +693,15 @@
       "sole rolled onto the surface",
       "spine lean by slope"
     ]
+  },
+  "blockedOn": {
+    "what": "Is Kaida a code-built mesh or a rigged model file in the repo?",
+    "gates": "Phase 2.1 onward. No further character geometry until it lands.",
+    "why": "Rigid skinning means nothing deforms, so limb shells rotate apart at every joint. A smooth-skinned mesh does not have this problem structurally.",
+    "policy": "The binary-asset ban was reasoned about image generation (\"cannot draw the same character twice\"). A rigged .glb has exactly that property. The ban does not transfer on its own logic. Human rules.",
+    "options": "A code-built + joint spheres (~30min) | B Mixamo, free incl. commercial | C CC0 stylized base -> Mixamo auto-rigger, closest look | D paid",
+    "notRelevant": "Genmo / Genaimo generate animation and video. This build\u2019s animation already works.",
+    "survivesAnySwap": "skeleton, docs/specs/rig.mjs, poses.js, ground.js, tools/*, material, sockets, play-tester. Only buildActor\u2019s shell changes.",
+    "doc": "docs/PHASE2-HANDOFF.md"
   }
 }

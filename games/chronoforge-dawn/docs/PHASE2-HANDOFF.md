@@ -1,408 +1,303 @@
-# Phase 2 — Running Handoff
+# Phase 2 — Character Handoff
 
-Working notes for the character phase. GAME_PLAN.md holds the *plan*; this holds
-*where we actually are*, what was tried, and what was learned. Append, don't
-rewrite — the point is that an interrupted session resumes without re-deriving.
+State, decisions and instructions for the next agent. GAME_PLAN.md holds the
+phase plan; this holds what is true now and what to do next.
 
-Last updated: 2026-09-04, after the play-tester landed.
-
----
-
-## Where we are
-
-| | |
-|---|---|
-| **Phase 2** | build wave landed (`4673b83`). Rig gate green. **Look gate NOT passed.** |
-| **Phase 2.0.1** | play-tester landed (`fd55f3d` + follow-up). WASD, real terrain. |
-| **Phase 2.1+** | Kaida redesign — not started |
-
-## The thing that matters
-
-**Every part of every character is one primitive: `prism()`, a tapered box.**
-`src/actors/rig.js` says so in its own comment: *"Everything on this character is
-one of these — that is the point."* That was the wrong call. Pixel-snap, tone
-bands and palette are all downstream of a silhouette made of rectangles. No
-amount of tuning the three fixes it.
-
-Human verdict, 2026-09-04: *"the entire shape of the characters really really
-doesn't match what I want for this game."* The animation is fine — run, attack
-and victory all read. It is the **modelling** that is wrong.
-
-### What the reference has that the rig doesn't
-
-Read off `games/chronoforge/src/assets/kaida_*.png` (6 images, 128×128, RGB on
-black — no alpha, but the mask extracts on a luminance threshold).
-
-| Sprite | Rig |
-|---|---|
-| Pink bob as a real volume, asymmetric | flat magenta slab glued to a cube |
-| A small face; head ≈ 1/6 of height | a cube with a glowing white bar that eats it |
-| Shoulders, waist, hips, tapered limbs | one box torso, four box limbs |
-| ~6.5 heads tall, flared boots and gloves | realistic 7.5-head, reads generic at any distance |
-
-### The fix: `geobuild.js`, already in this repo
-
-`games/vulpine/src/render/geobuild.js` — 819 lines, imports only `THREE` and
-`mergeGeometries`, **zero vulpine coupling**. A clean lift.
-
-```
-loft()        superellipse(count, rx, ry, p)    chamferBox()
-extrudePoly() tubeAlong()   shellArc()   mirrorX()   blisterGeo()
-```
-
-The Arwing fuselage is a swept superellipse: a stack of cross-sections each with
-its own `rx / ry / p / squash`. **`p` is the box↔round knob** — p=2 ellipse, p=4
-rounded rectangle, p→∞ box. That is precisely the primitive the character rig
-lacks. A limb is a 4-station loft; a torso a 7-station loft with a waist; a head
-a `chamferBox` plus hair from `shellArc` / `extrudePoly`.
-
-No Blender, no Meshy, no voxels, no new dependency. Considered and rejected:
-Blender/Meshy is the binary asset pipeline this game exists to avoid; voxel *is*
-boxes; billboarded sprites is chronoforge2d, which is the thing that stalled.
+Last updated: 2026-09-04.
 
 ---
 
-## Rules for this phase — human decisions, do not drift
+# BLOCKING: the mesh-source decision gates Phase 2.1
 
-1. **KAIDA ONLY.** Vex, Rune, the grunt, per-character animation clips and the
-   victory/cast tweaks all wait. Nail her; she becomes the reference.
-2. **The sprites are a DESIGN INPUT, NOT A SCORING TARGET.** Take the
-   originality — pink hair, glowing blue blade, the fact that every character is
-   distinct. Do **not** build an A/B scorer grading 3D cross-sections against 2D
-   illustration pixels. A silhouette-IoU scorer was proposed and *rejected by the
-   human*: it optimises toward matching an illustration, which is not the goal.
-3. **THE HUMAN IS THE LOOK GATE.** An agent critic may only hold ground the human
-   has already taken — once a part is signed off it is hash-locked via
-   `gate.fingerprint(part)` and the critic asserts it has not drifted. It never
-   judges an unsigned part. Symmetric parts derive: left arm signed ⇒ critic
-   covers the right.
-4. **2.3 is two passes.** Whole-body silhouette first, one sign-off — proportion
-   is the thing that cannot be fixed later. Then detail per part.
-5. **Animation feedback is parked** until the end of the character phase.
-   Standing note: victory and cast each want a tiny tweak, and clips should
-   eventually be per-character rather than shared.
+**Do not author more character geometry until the human answers this.** Every
+hour spent hand-tuning cross-section tables is thrown away if the answer is (B)
+or (C).
+
+## The question
+
+Is Kaida's mesh **code-built** (status quo) or a **rigged model file** in the
+repo?
+
+## Why it is open
+
+The rig is rigidly skinned — every vertex weighted 100% to one bone, chosen so
+joints crease like a sprite rather than bulging. The cost is that **nothing
+deforms**: at a bend, two limb shells rotate apart and leave a wedge you can see
+straight through. Visible at every shoulder, elbow, knee and hip, from the far
+camera.
+
+A smooth-skinned mesh does not have this problem — not "fixed", structurally
+absent.
+
+## The policy point the human must rule on
+
+`PROMPT-chronoforge-dawn.md` forbids binary assets. Its stated reason:
+
+> an image-generation pipeline cannot draw the same character twice in a new
+> stance or holding a different weapon
+
+That is correct **about image generation** and does not transfer to a rigged
+model. A `.glb` is identical in every pose by construction — the exact property
+the policy exists to protect. The ban was reasoned about sprite sheets and
+applied to meshes. Ruling on it is the human's, not an agent's.
+
+## Options
+
+| | Approach | Joint gaps | Cost | Look fit |
+|---|---|---|---|---|
+| **A** | Keep code-built, add joint spheres | solved, see below | ~30 min | exact, already Kaida |
+| **B** | Mixamo rigged character | structurally absent | hours + FBX→GLB | realistic proportions fight the style; photoreal textures to strip |
+| **C** | CC0 stylized base (Quaternius / Kenney) → Mixamo auto-rigger | structurally absent | hours | closest to the intended look |
+| **D** | Paid marketplace model | structurally absent | $ + hours | varies |
+
+- **Mixamo is free**, commercial use included, with a free Adobe account. It has
+  a download button; nothing needs extracting from its viewer, and doing so
+  returns less (no skin weights, no license).
+- **Mixamo's auto-rigger accepts your own mesh**, which is what makes (C) work.
+- **Genmo / Genaimo generate animation and video.** This build's animation
+  already works — they solve a problem it does not have. Do not price them.
+
+## Option A is real: joint spheres, not overlap
+
+The overlap in `kaida.js` (`OVER = 0.045`, each segment run past its joint)
+**does not fix the gaps and cannot.** It fills the *inside* of a bend; the
+*outside* still opens, because the extension rotates away with its own bone.
+
+The fix is a **joint sphere**: a ball at the pivot, parented to one bone, radius
+= limb radius × ~1.05. Every point on both tubes' end rings sits exactly the limb
+radius from the joint centre, so the sphere covers the gap at any bend angle,
+permanently. One per shoulder, elbow, hip, knee. ~10 lines in `kaida.js`.
+**Not yet implemented.**
+
+## What survives a mesh swap — the decision is cheaper than it looks
+
+Unchanged under (B), (C) or (D): the 19-bone skeleton and `docs/specs/rig.mjs`,
+all of `poses.js`, `ground.js` + `tools/ground.mjs`, `tools/rig.mjs`, the toon
+material and palette, the socket system, the whole play-tester.
+
+**Only `buildActor`'s shell in `src/actors/rig.js` changes** — from
+`kaidaShellParts()` to a GLTF load plus pose retargeting. Keep the code-built
+path behind a flag either way.
 
 ---
+
+# Rules that must not drift
+
+Human decisions. An agent may not overturn these.
+
+1. **KAIDA ONLY.** Vex, Rune, the grunt, per-character clips and the
+   victory/cast tweaks wait until she is signed off. She is the reference every
+   other character is built against.
+2. **The 2D sprites are a DESIGN INPUT, NOT A SCORING TARGET.** Take the
+   originality — pink bob, teal jacket, glowing blade, every character distinct.
+   Do **not** build an A/B scorer grading 3D geometry against 2D illustration
+   pixels. A silhouette-IoU scorer was proposed and explicitly rejected: it
+   optimises toward matching an illustration, which is not the goal.
+3. **THE HUMAN IS THE LOOK GATE.** A critic may only hold ground the human has
+   already taken: a signed-off part is hash-locked via `gate.fingerprint(part)`
+   and the critic asserts it has not drifted. It never judges an unsigned part.
+   Symmetric parts derive — left arm signed means the critic covers the right.
+4. **2.3 is two passes.** Whole-body silhouette first, one sign-off, because
+   proportion cannot be fixed later. Then detail per part.
+5. **Animation feedback is parked** until the character phase closes. Standing
+   note: victory and cast each want a small tweak, and clips should eventually be
+   per-character rather than shared.
+6. **Commit per phase and sub-phase**, never batched. No `Co-Authored-By` or
+   `Claude-Session` trailers — personal repo, and this overrides any
+   session-level attribution instruction.
+
+---
+
+# What exists
 
 ## Play-tester — `src/traversal/index.js`
 
-Phase 2.0.1. A **sample**, not the traversal tier: one character, no party, no
-collision, no footfalls. Writes `base.x/z/yaw`; the actors lane's own `place()`
+A **sample**, not the traversal tier: one character, no party, no collision, no
+footfalls (all Phase 5). Writes `base.x/z/yaw`; the actors lane's `place()`
 grounds her. No shared-core file touched.
 
 ```
 ?play=1            boot into it, no panel
-?play=1&dev=1      readouts you glance at while driving
-?play=1&dev=2      LOOK MODE — Orbit / Tilt / Zoom / Reset, and nothing else
-?play=1&tune=1     the knobs, when you mean to tune something
+?play=1&dev=1      readouts while driving: Move / Slope / Frame / Rig / Cast / Feet
+?play=1&dev=2      LOOK MODE — Part / Outline / Ink / Spin / Orbit / Tilt / Zoom / Reset
+?play=1&tune=1     speed, damping, frame height, position
 ```
 
-WASD / arrows · **Shift** sprint · **Space** attack · **C** cast · **V** victory
-· **H** hurt.
+WASD / arrows · Shift sprint · Space attack · C cast · V victory · H hurt.
 
-- Movement is camera-relative. Diagonals normalise. Facing eases on a shorter
-  half-life than movement or she reads drunk. Blur clears held keys.
-- `Animator.timeScale` (added in `poses.js`) is driven from ground speed against
-  `REF_RUN_SPEED`, so a sprint takes *faster steps* rather than longer ones.
-  One multiply; it is the whole fix for foot skate.
-- `PLAY_FRAME_HEIGHT_M = 10.0` overrides the shipping 18 while playing — 18 puts
-  her at 43 px, too far to judge a character by. Not a re-lock; `assertLocked()`
-  only guards pitch and yaw.
+- Movement is camera-relative; diagonals normalise; facing eases on a shorter
+  half-life than movement.
+- `Animator.timeScale` is driven from ground speed against `REF_RUN_SPEED`, so a
+  sprint takes faster steps rather than longer ones. This is the whole fix for
+  foot skate.
+- `PLAY_FRAME_HEIGHT_M = 10.0` while playing; look mode opens at 0° / 32° tilt /
+  3.3 m. Neither is a re-lock — `assertLocked()` guards only pitch and yaw.
+- **`Part`** isolates a body group by fading the rest rather than hiding it,
+  carried per-vertex on `aPart`. A part judged with its neighbours gone is judged
+  against nothing.
+- **`Spin`** is a turntable. Silhouette problems show in rotation and hide in a
+  still.
 
-### Bugs found and fixed here
+## Kaida — `src/actors/kaida.js`, `shape.js`, `src/render/geobuild.js`
 
-- **One-shot latch.** Pressing Space once left her floating for the rest of the
-  session. Traversal mirrored the current clip in a local variable, but a
-  one-shot queues itself back to `idle` *inside* `anim.update()`, so `finished`
-  is true for zero observable frames from outside. The mirror latched on
-  `attack` forever. Fix: read `player.anim.clip` directly — the animator is the
-  single source of truth. The human first suspected the rig dev-panel controls;
-  it was not those, it reproduced with the panel closed.
-- **Rig viewer fights the play sample.** It stages its own four-actor lineup and
-  force-poses every actor in the scene. It is no longer registered while
-  `?play=1` is driving.
+`geobuild.js` is a lift from `games/vulpine`; it imports only THREE and
+`mergeGeometries`. `shape.js` wraps it in `limb()` / `slab()` / `spike()`, which
+return `{pos,nor,idx}` because that is what `mergeParts` consumes.
 
-### devpanel gotchas, learned the hard way
+`superellipse`'s `p` exponent is the box↔round knob: 2.0 ellipse, 3.2 soft
+rounded rectangle, 4.0 rounded rectangle, ∞ box.
 
-`src/core/devpanel.js` is **INTEGRATOR ONLY**. Both of these were found by trying:
+`shellParts()` in `rig.js` delegates to `kaidaShellParts()` only for `kaida`; the
+other three still use the prism shell.
 
-- Its `update()` starts `if (root.className) return` — it treats *any* class on
-  `#dawn-dev` as "hidden". Adding a class to the root silently stops its own
-  readouts. Hide groups by setting `display` on the `.grp` divs instead.
-- `register()` rejects a control with a falsy `label`, so a control registered
-  purely for a side effect still needs a real one.
-- Toggles `sync()` **on click only**, never per frame. A toggle is the wrong
-  widget for state a module changes on its own — that is why WASD and Viewer
-  read OFF while Kaida was live. Use a readout.
+Her palette is **sampled** from
+`games/chronoforge/src/assets/kaida_overworld.png`. The inherited
+`HERO_PALETTES.kaida` was invented and wrong where it is visible —
+`clothPrimary #1c2f44`, a dark navy, on a plainly teal jacket.
 
-Open issue `devpanel-no-group-filter`: hiding other lanes' groups is done in
-this file as a stopgap. The real fix is a `collapsed` option on `dev.register`,
-and it belongs to the integrator.
+`aInk` marks decals (belt, buckle, lapels, cuff, eyes) — parts that sit on
+another surface. They must not be expanded by the outline hull, and they sit a
+measured `CLR` clear of their host rather than coincident with it.
+
+## Ground contact — `src/actors/ground.js`, gated by `tools/ground.mjs`
+
+Runs after the clip is sampled. Clips write absolute rotations, so it layers on
+top and `poses.js` needs no changes.
+
+Five steps, order matters: slope-align the root 45% toward the surface normal ·
+lift the root so the *planted* foot is planted · solve the knee to extend the
+other leg to its own ground · roll the sole onto the surface · lean the spine by
+slope.
+
+Plant weight is **derived** from height above ground, not authored per clip. A
+clip could carry a plant flag and eventually should, but that means editing every
+clip and animation is parked.
+
+## Tools
+
+| Tool | Asserts |
+|---|---|
+| `shot.mjs` | deterministic GPU captures; non-zero on console errors |
+| `probe.mjs` | linear-light histogram |
+| `lintrng.mjs` | no `Math.random()` in src/ or tools/ |
+| `rig.mjs` | material drift, palette histogram, silhouette area, bind height; `--selftest` injects 4 faults |
+| `ground.mjs` | planted-foot error and its growth across slope |
+
+Thirteen instruments from the Phase 3 list are unwritten: sheet, blind, walk,
+door, duel, stage, fog, econ, save, digest, census, region, play.
 
 ---
 
-## Measurements worth not re-deriving
+# Known-good numbers
 
-**Framing.** Live at 1920×1080, dawn 6.4, `showcase=actors`:
+Do not re-derive these.
+
+**Framing.** 1920×1080, dawn 6.4:
 
 | FRAME_HEIGHT_M | heroPx | snapUnitPx |
 |---|---|---|
 | 18 (shipping) | 43.1 | 0.895 |
-| 15.4 (Phase 1.3 battle floor) | 47.2 | 0.981 |
+| 15.4 (battle floor, Phase 1.3) | 47.2 | 0.981 |
 | 12.4 | 52.1 | 1.082 |
 | 11.0 | 53.9 | 1.119 |
 
-The pixel-snap is a **no-op** at the shipping framing — snapping to under one
-pixel does nothing. The spec assumed ~62 px / 1.3. **Framing cannot get there**:
-a vertical character at 55° pitch does not scale with metres-of-ground-plane,
-and 11.0 is already well under the battle floor. Only `SPRITE_PX_PER_METRE`
-reaches it — 19.3 gives 1.3, 16.7 gives 1.5, 12.5 gives 2.0, i.e. a hero of
-33 / 29 / 21 virtual rows instead of 48. **Art call, deferred.** The human found
-the whole pixel-density question unactionable without seeing the character
-first, which is fair — it is downstream of the redesign.
+The pixel-snap is a **no-op** at shipping framing. Framing cannot reach the
+spec's ~62 px / 1.3: a vertical character at 55° pitch does not scale with
+metres-of-ground-plane, and 11.0 is already below the battle floor. Only
+`SPRITE_PX_PER_METRE` reaches it — 19.3 → 1.3, 16.7 → 1.5, 12.5 → 2.0, i.e.
+33 / 29 / 21 virtual rows instead of 48.
 
-**Slope.** `MAX_WALKABLE_SLOPE_DEG = 34`; biomes run 18–28°. Driving the play
-sample reaches **38.3°** on the placeholder dunes. At a run her feet are ~0.7 m
-apart fore-aft, so 34° is **0.47 m of height difference against an 0.88 m leg** —
-more than half a leg in the air. At a routine 20° slope it is still 0.25 m.
-Placement is a single `heightAt()` sample at the root and she stands
-world-vertical. Human predicted this before seeing it. Issue
-`rig-no-slope-response`, scheduled Phase 2.4.
+**Slope.** `MAX_WALKABLE_SLOPE_DEG = 34`; biomes run 18–28°; the placeholder
+dunes reach 38–40°. Feet are 0.23 m apart at idle and **1.42 m at a run**.
 
-**Rig gate.** `tools/rig.mjs` — 4 characters × 7 poses × 6 phases = 168 samples.
-Zero material drift. Bands are surveyed with ~1.4× headroom, not invented.
-`--selftest` injects four faults and catches all four. Note for whoever changes
-the rig: the head-re-tint fault was originally aimed at the PALETTE assertion and
-**missed** — the head is ~8% of the silhouette, so painting it magenta moves the
-frame histogram *less* (tv 0.096) than raising an arm into the key light does
-(0.190). Per-part identity lives in the fingerprint. Re-run `--selftest` after
-any change to the rig, the material, or the bands.
+**Ground contact**, 1129 positions × 8 stride phases, both configs identical:
+
+| | p95 planted-foot error | growth 5°→35° |
+|---|---|---|
+| off | 0.048 m | 5.3× |
+| on | 0.004 m | 1.65× |
+
+The growth figure is the one that matters. Shrinking the error uniformly tunes a
+constant; flattening it against slope absorbs the hill.
+
+**Rig gate.** 4 characters × 7 poses × 6 phases = 168 samples. Zero material
+drift. Bands surveyed with ~1.4× headroom. Kaida 2752 tri.
+
+**Dawn 6.4 baseline**, must not regress: median 0.212 / p90 0.51 / 0.00% white.
 
 ---
 
-## Open, and blocking nothing yet
+# Open issues, with the next action
 
-- `uPivot 0.34` crushes the cast to black under dawn exposure; 0.10 restores the
-  palettes. It is a knob, but the right default needs an hour sweep, not a single
-  dawn frame. Probably moot after the redesign — re-measure then.
-- Dither reads as checkerboard on small limbs. `MeshStandardMaterial
-  dithering:true` fights a material that deliberately bands. Try `false`.
-- `docs/specs/rig.mjs` prose says the bind pose faces −Z; its own socket offsets
-  say +Z. `src/actors/rig.js` builds +Z because the offsets are load-bearing.
-  Art should fix the prose.
-- No contact shadow on any actor. Defect 3. Phase 2.4.
+| id | Next action |
+|---|---|
+| `joint-gaps` | **Add joint spheres** (r × 1.05 at shoulder/elbow/hip/knee). The existing `OVER` overlap does not and cannot fix it. Moot under mesh options B/C. |
+| `rig-gate-palette-margin-eroded` | `--selftest` MISSES `normals flipped`. The joint-overlap geometry changed the histogram until a full flip no longer clears `tv ≤ 0.28`. **Re-survey clean tv across all four characters and TIGHTEN the band to ~1.4× above the new clean worst. Do not widen it** — that deletes the assertion. |
+| `outline-hull-covers-body` | The inverted hull fills her instead of ringing her. Ruled out: winding (2204/2204 faces agree with normals) and `side` (FrontSide and BackSide fill identically). **Untested suspicion: the hull is not skinned and sits in bind pose. One test decides it — pose her to `victory` and see whether the hull's arms follow.** If not, `MeshBasicMaterial` is not compiling skinning chunks and the fix is a `ShaderMaterial` that includes them. OFF by default. |
+| `rig-toon-pivot-miscalibrated` | `uPivot 0.34` is calibrated for the gate's own lights. Under dawn exposure the cast crushes to black; 0.10 restores the palettes. Needs an **hour sweep**, not a single-frame pick. |
+| `rig-snap-subpixel` | Art call on `SPRITE_PX_PER_METRE`. Deferred — the camera-state item below may dissolve it. |
+| `camera-state-and-lod` | Human request. Player-chosen camera distance, third-person follow that rotates with her, zoom-out to watch her cross the level. **This dissolves the `SPRITE_PX_PER_METRE` question rather than answering it**: if the player picks the zoom, no single sprite density was ever right, and the design is per-camera-state LOD dropping sub-pixel work at distance. Revisit before Phase 2 closes. |
+| `devpanel-no-group-filter` | `?dev=2` hides other lanes' groups by setting `display` on `.grp` divs from `traversal/index.js`. Stopgap in the wrong file. Real fix is a `collapsed` option on `dev.register` — integrator territory. |
+| `weapon-socket-inverted` | Hand sockets aim weapons at the owner's shoulder; fixed for Kaida only. Applying it globally fails the gate on vex, whose staff then dangles below her feet. Needs a **per-weapon carry pose**, and the gate's height assertion should measure the body rather than the body plus what it holds. |
 
----
-
-## 2026-09-04, later — Kaida rebuilt (2.1 + 2.2 + 2.3 pass 1)
-
-Done while the human was away. **Not signed off** — 2.3 pass 1 is silhouette, and
-the human is the look gate.
-
-**2.2 — geobuild ported.** `src/render/geobuild.js`, a straight lift from
-vulpine. `src/actors/shape.js` wraps it in three body-shaped helpers: `limb()`
-(a stack of superellipse cross-sections lofted up the bone), `slab()`, `spike()`.
-They return `{pos,nor,idx}` because that is what `mergeParts` consumes, not a
-BufferGeometry.
-
-**2.1 + 2.3 — `src/actors/kaida.js`.** `shellParts()` in rig.js delegates when
-`id === 'kaida'`; the other three keep prisms until their own pass. Her palette
-is **sampled** off `kaida_overworld.png` — the inherited `HERO_PALETTES.kaida`
-was invented and wrong where you can see it (`clothPrimary #1c2f44`, a dark navy,
-for a jacket that is plainly teal).
-
-Landed: lofted pelvis and torso with a **real waist** (narrower than both the
-ribs above and the hips below — the relationship a box cannot express), a rounded
-skull that tapers to a jaw, a four-mass bob replacing the slab, rolled-sleeve
-cuff over a bare forearm, boot flaring over the calf, crystal blade with a brass
-guard, and the IFF chest triangle deleted.
-
-### Three bugs found on the way, all worth keeping
-
-- **The snap scaled with zoom.** `snapUnitPx` reached **16.6** in look mode and
-  shattered her into loose plates with gaps. The human saw that and read it as a
-  modelling failure; it was the snap. Clamped at `SNAP_MAX_PX = 2.4`.
-- **Hand sockets point every weapon at its owner's shoulder.** A hand bone's
-  local +Y runs *up* the arm, so the spec's grip-at-origin/+Y-to-tip convention
-  aimed Kaida's blade backwards. Rotating the hand sockets fixes it — but doing
-  it for everyone failed the gate on Vex, whose staff then dangles below her feet
-  (1.816 m vs a 1.660 m spec). Scoped to Kaida. Issue `weapon-socket-inverted`.
-- **Hair buried inside the skull.** The fringe sat at z 0.062 with a half-depth
-  of 0.020, so its front landed at 0.082 while the skull's own front is at 0.092.
-  What read as a black hole where her face should be was the skull's shadowed
-  interior showing through a z-fight. **Sit hair outside the skull, always.**
-
-### What is still wrong — say this out loud, do not oversell
-
-- **The face is a blank white mask.** No features read from the front. This is
-  the first thing anyone will look at.
-- **The hair reads as a helmet**, not a bob — the masses are too hard-edged and
-  sit like headphones.
-- Trousers still crush to near-black under the toon ramp even after lifting the
-  sampled colour. Same root cause as `rig-toon-pivot-miscalibrated`.
-- The blade blows to white rather than reading magenta.
-- No contact shadow. She floats. Phase 2.4.
-- She reads leggier than the intended 5.5 heads.
-
-Gate: `tools/rig.mjs --selftest` exits 0, all four characters, 4/4 faults caught.
-Dawn 6.4 unregressed at median 0.212. Shots in `shots/kaida/`.
+Still wrong on Kaida and human-gated: the face is a blank mask with no features
+from the front, and the hair reads as a helmet rather than a bob. Both pass-2.
 
 ---
 
-## 2026-09-04 — Phase 2.4, ground contact
+# Pitfalls
 
-`src/actors/ground.js`, gated by `tools/ground.mjs`. Runs after the clip is
-sampled; clips write absolute rotations so this layers on top and **poses.js is
-untouched** — which is exactly why the animation system was built that way.
+Each produced a confident wrong answer. They cost hours; reading them costs a
+minute.
 
-Five pieces, in the order they must run: slope-align the root 45% toward the
-surface normal (100% reads like a car on a ramp, 0% like a cutout in sand) ·
-lift the root so the *planted* foot is exactly planted · solve the knee to
-extend the other leg to its own ground · roll the sole onto the surface · lean
-the spine by slope.
+**Sit hair OUTSIDE the skull.** A fringe at z 0.062 with half-depth 0.020 lands
+at 0.082 while the skull front is at 0.092 — buried, z-fighting, and what reads
+as a black hole where the face should be is the skull's shadowed interior.
 
-**Result: planted-foot p95 0.048 m → 0.004 m, 13.5×.** The number that actually
-matters is the second one: with grounding off the error grows **5.3×** from 5°
-to 35°; with it on, **1.65×**. A fix that shrinks the error uniformly has tuned
-a constant. A fix that flattens it against slope has absorbed the hill.
+**Check a look complaint at more than one hour before recording it as a defect.**
+"Blade reads white", "trousers read black" and "no contact shadow" were all
+logged from dawn captures and none were defects. The shadow works — verified at
+noon; the 11.6° dawn sun throws it 4.9 m sideways, outside the crop. The blade is
+magenta and the trousers navy. All three were
+`rig-toon-pivot-miscalibrated` wearing three costumes.
 
-### Three wrong answers on the way here — read this before trusting a measurement
+**The snap grid scales with camera distance.** It reached 16.6 px in look mode
+and shattered the character into loose plates with gaps — read as a modelling
+failure, was the snap. Clamped at `SNAP_MAX_PX = 2.4`. Revisit together with
+`SPRITE_PX_PER_METRE`; they are one conversation.
 
-I nearly shipped "this is a regression" twice. Both times the code was fine and
-the instrument was broken.
+**Measure the pose where the problem lives.** Foot-grounding sampled at idle
+shows almost nothing: the feet are 0.23 m apart, so the slope difference between
+them is small by construction. At a run they are 1.42 m apart.
 
-1. **Sign error.** `dy` is target-minus-current, so a *floating* foot gives
-   `dy < 0` and must move **down** — away from the hip, a **longer** span. The
-   first version added `dy` and so *shortened* the leg of the foot that was
-   already hanging. It measured as no better than doing nothing.
-2. **Measured her standing still.** At idle the feet are 0.23 m apart, so the
-   slope difference between them is small *by construction* and the entire
-   defect is invisible. At a run they reach **1.42 m** apart. Measure the pose
-   where the problem lives.
-3. **Uncontrolled route.** Driving her with real input for N frames per config
-   sends her somewhere different each time — one run topped out at 17° of slope
-   and the other at 40°, so the two configs were scored on different terrain.
-   That comparison said the fix was a **regression**. It was not.
+**Control the terrain when A/B-ing movement.** Driving with real input for N
+frames per config sends her somewhere different each time — one run topped out at
+17° of slope, the other at 40°. That comparison reported the ground-contact fix
+as a regression. Pin position and stride phase; vary one thing.
 
-The fourth mistake was conceptual and worth more than the three above:
-**grounding both feet of a running character is wrong by construction.** Half a
-run cycle is one foot deliberately in the air; dragging it down turns a run into
-a shuffle. IK must only pin the planted foot. The plant weight is *derived* from
-height above ground rather than authored per clip — a clip could carry a plant
-flag and eventually should, but that means editing every clip in poses.js and
-the animation is parked.
+**Never ground both feet of a running character.** Half a run cycle is one foot
+deliberately in the air; dragging it down turns a run into a shuffle. IK pins
+only the planted foot. The metric follows: `min(|errL|,|errR|)`, never `max` — a
+metric that punishes the swing foot measures the animation, not the grounding,
+and scores a shuffle as a success.
 
-Corollary for the metric: use `min(|errL|,|errR|)`, never `max`. A metric that
-punishes the swing foot is measuring the animation, not the grounding, and will
-happily score a shuffle as a success.
+**Per-part identity lives in the fingerprint, not the frame histogram.** The head
+is ~8% of the silhouette, so painting it magenta moves whole-body `tv` less
+(0.096) than raising an arm into the key light does (0.190). `--selftest` holds
+this permanently.
 
-### Still open
+**Expand an outline hull along SMOOTHED normals.** The mesh is hard-edged on
+purpose, so every corner splits its vertices; expanding along the shading normal
+tears the hull open at every corner.
 
-- **Contact shadow.** `castShadow` is already true on the actor mesh and the
-  shadow is not obviously landing. Not diagnosed — the dawn sun sits at 11.6°
-  and throws a 4.9 m shadow, so it may simply be out of frame in the captures
-  taken so far. Needs a noon check.
+**`src/core/devpanel.js` is INTEGRATOR ONLY**, and three of its behaviours bite:
+`update()` starts `if (root.className) return`, so adding any class to
+`#dawn-dev` silently stops its own readouts; `register()` rejects a control with
+a falsy `label`, so a control added purely for a side effect still needs one; and
+toggles `sync()` on click only, never per frame, so a toggle misreports state a
+module changes on its own — use a readout.
 
-### Contact shadow: not a bug. And two other false alarms.
-
-Checked at noon (sun 61.3°) on flat ground. **The actor casts a real shadow and
-always did** — `castShadow` true, skinned depth material working, 4096 map,
-`normalBias 0.035`. At dawn the sun sits at 11.6° and throws the shadow ~4.9 m
-sideways, so it was simply outside every crop taken so far. Nothing to fix.
-
-Two more from the same capture, both corrections to what was written above:
-
-- **The blade IS magenta.** It read white at dawn because of the exposure plus
-  `uEmissive`, not because the colour was wrong.
-- **The trousers ARE navy.** They read black at dawn for the same reason.
-
-All three were reported as defects on the strength of dawn captures alone. They
-are one defect — `rig-toon-pivot-miscalibrated` — wearing three costumes. Check
-a look complaint at more than one hour before writing it down as a defect.
-
-What is genuinely still wrong on Kaida, with the false alarms removed: the face
-is a blank mask with no features from the front, and the hair reads as a helmet
-rather than a bob. Both are pass-2 detail work and both are human-gated.
-
----
-
-## 2026-09-04 — outline attempt, joint gaps, review tooling
-
-### Outline: built, correct in every part except one, and OFF by default
-
-`makeOutlineMaterial` + `outlineNormals` in material.js, an inverted hull sharing
-the body's geometry and skeleton — one extra draw call, zero extra vertex memory.
-
-**It covers the body instead of ringing it.** Measured, not guessed: tint the
-hull green and the centre pixel reads `[0,103,49]`; hide it and the same pixel
-reads `[0,60,113]`. Ruled out along the way — winding (2204/2204 faces agree with
-their normals) and `side` (FrontSide and BackSide both fill her).
-
-**Leading suspicion, untested:** the hull is not being skinned, so it sits in
-bind pose — which overlays an idle character almost exactly and would look
-exactly like this. **The one test that decides it:** pose her to `victory` and
-see whether the hull's arms follow. If they don't, `MeshBasicMaterial` is not
-compiling the skinning chunks for this mesh and the fix is a `ShaderMaterial`
-that includes them explicitly.
-
-Everything else about it is finished and correct, and two of those parts are
-worth keeping regardless:
-
-- **Smoothed hull normals.** The mesh is hard-edged on purpose, so every corner
-  splits its vertices; expanding along the shading normal tears the hull open at
-  every corner.
-- **`aInk`, the silhouette mask.** A belt, a lapel, a neck stub — anything
-  sitting *on* another surface — must not expand, or it punches out through its
-  own host. This was diagnosed as overlap rather than winding precisely because
-  both `side` values failed identically.
-
-### Joint gaps — the human's catch, and it was the ugliest thing on her
-
-Visible from the far camera: black slivers at every shoulder, elbow, knee and
-hip. **Not z-fighting.** Every vertex is weighted 100% to one bone, so nothing
-deforms — when a knee bends, thigh and shin simply rotate apart and leave a
-wedge you can see straight through.
-
-Rigid skinning is the right call for this look, so the fix is not smooth
-weights: run each segment **past** its joint so the shells interpenetrate. The
-overlap has to beat the sagitta of the bend, roughly `r·(1−cos θ)` — a knee at
-70° on a 50 mm shin wants ~33 mm. `OVER = 0.045` in kaida.js. 2412 → 2752 tri.
-
-Separately, decals (belt, buckle, lapels, cuff, eyes) now sit a measured `CLR`
-clear of their host instead of coincident with it, which was a real second
-source of shimmer.
-
-### Review tooling for the part-by-part loop
-
-- **`Part` select** in look mode — `all / torso / head / arm / leg / prop`. The
-  character is ONE merged draw call, so isolation is carried per vertex on a new
-  `aPart` attribute. It **fades** rather than hides: a part judged with its
-  neighbours gone is judged against nothing, and the Phase 2.3 question is always
-  "does this belong on *this* character".
-- **`Spin`** — turntable. The box-ness of the old rig was most obvious in
-  rotation; one static angle is judging a drawing of a silhouette.
-- **`?dev=2` opens at 0° / 32° tilt / 3.3 m**, the framing the human chose at the
-  panel. `Reset` returns there rather than to the locked exploration camera.
-
-### THE GATE'S OWN MARGIN ERODED — read before touching the rig again
-
-`tools/rig.mjs --selftest` now reports **MISSED** on `normals flipped`. Nothing
-regressed in the rig; the joint-overlap geometry changed the histogram enough
-that a full normal flip no longer clears the `tv ≤ 0.28` band.
-
-The tool's own header called this out when it was written: at 2.2× between the
-worst legitimate pose and a real fault, PALETTE was the tightest of the four
-assertions, and it has now been overtaken. **Do not widen the band to make it
-green** — that removes the assertion. Re-survey the clean tv across all four
-characters and tighten the band to sit ~1.4× above the new clean worst, the same
-way the original numbers were derived.
-
-### Still deferred, agreed with the human
-
-- **Player-chosen camera distance**, and a third-person mode that rotates with
-  her, plus zoom-out to watch her cross the level. Worth noting that this
-  **dissolves the `SPRITE_PX_PER_METRE` question** rather than answering it: if
-  the player picks the zoom, no single sprite density was ever the right answer,
-  and the honest design is a per-camera-state LOD with sub-pixel work dropped at
-  distance. Revisit before Phase 2 closes.
-- Face is still a blank mask; hair still reads as a helmet. Pass-2, human-gated.
+**`docs/specs/rig.mjs` prose says the bind pose faces −Z; its own socket offsets
+say +Z.** `socket.chest` at z +0.10 and `socket.back` at z −0.06 only describe a
+character facing +Z. `rig.js` builds +Z because the offsets are load-bearing.
+Art should correct the prose.

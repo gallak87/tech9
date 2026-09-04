@@ -77,8 +77,15 @@ The 2D sprites in games/chronoforge/src/assets/ are a DESIGN INPUT, NOT A SCORIN
 
 THE HUMAN IS THE LOOK GATE. An agent critic may only hold ground the human has already taken: once a part is signed off it is hash-locked via gate.fingerprint(part), and the critic asserts it has not drifted. It never judges an unsigned part. Symmetric parts derive — left arm signed means the critic covers the right.
 
+### Phase 2.0.2 — BLOCKED ON HUMAN: mesh source
+Agents: `human`
+
+GATES 2.1. Kaida's mesh is either code-built (status quo) or a rigged model file in the repo. Rigid skinning means nothing deforms, so limb shells rotate apart at every joint and leave gaps you can see through; a smooth-skinned mesh does not have this problem structurally. The art policy's ban on binary assets was reasoned about IMAGE GENERATION — "cannot draw the same character twice" — and a rigged .glb has exactly the property that reasoning wanted, so the ban does not transfer on its own logic. Options, cost and what survives a swap are in docs/PHASE2-HANDOFF.md. Only buildActor's shell changes under any option; skeleton, poses, ground IK, gates, material, sockets and the play-tester all survive.
+QA gate: HUMAN DECISION, blocking. No further character geometry is authored until it lands.
+
 ### Phase 2.1 — Art Re-Spec, Kaida
 Agents: `art`
+BLOCKED by 2.0.2.
 
 art re-authors the rig spec from Kaida's own six sprites: cross-section station tables for torso and limbs (rx/ry/p per station, geobuild's format), head and hair volumes, proportions including head-to-height ratio, and her palette read off the sprites rather than invented. Deletes the IFF chest triangle — friend/foe read is deferred and must not be a badge on her chest.
 QA gate: the spec ships as runnable station tables geobuild can consume directly, not prose. Report must ship the artifact.

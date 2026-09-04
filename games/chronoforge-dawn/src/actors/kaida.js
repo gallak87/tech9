@@ -80,7 +80,30 @@ const BOOT_R = 0.082;
  */
 export function kaidaShellParts() {
   const parts = [];
-  const add = (bone, geo, key, mat, tag) => parts.push({ bone, geo, key, mat, tag });
+  /* `ink: false` marks a DECAL — a part that sits on another part's surface
+     rather than forming the silhouette. Two things follow, and both are bugs we
+     hit: it must not be expanded by the outline hull (it would punch out
+     through its own host), and it must sit PROUD of that host rather than
+     coincident with it, or the two surfaces z-fight into the flickering hairline
+     seams that are visible even from the far camera. Clearances below are
+     explicit for that reason — every decal is pushed clear of what it sits on. */
+  const add = (bone, geo, key, mat, tag, ink = true) => parts.push({ bone, geo, key, mat, tag, ink });
+
+  /** Decal clearance. Below ~2 mm the depth buffer cannot separate two surfaces
+   *  at this scene scale and they shimmer against each other. */
+  const CLR = 0.004;
+
+  /** Joint overlap. Every vertex is weighted 100% to ONE bone, so nothing
+   *  deforms — when a knee bends, the thigh and the shin simply rotate apart
+   *  and leave a wedge-shaped hole you can see straight through. Visible from
+   *  the far camera, and the single ugliest thing on her.
+   *
+   *  Rigid skinning is the right call for this look, so the fix is not smooth
+   *  weights: it is to run each segment PAST its joint so the two shells
+   *  interpenetrate and the hole has nowhere to open. The overlap has to exceed
+   *  the sagitta of the joint's rotation — roughly r·(1−cos θ) for a bend of θ
+   *  — and a knee at 70 deg on a 50 mm shin wants ~33 mm. */
+  const OVER = 0.045;
 
   /* ── pelvis ────────────────────────────────────────────────────────────────
      Wider at the hip than at the waist above it. That single relationship is
@@ -96,13 +119,13 @@ export function kaidaShellParts() {
   // belt — a shallow band at the natural waist, and the value break the sprite
   // uses to separate the teal top from the dark trousers.
   add('hips', limb([
-    { y: 0.10, rx: HIP_R * 0.97, rz: 0.086, p: 3.6 },
-    { y: 0.155, rx: HIP_R * 0.99, rz: 0.088, p: 3.6 },
-  ]), 'belt', MAT.HIDE, 'torso');
-  add('hips', slab({ y0: 0.108, y1: 0.152, w: 0.055, d: 0.020, z: 0.088, p: 4.0 }), 'trim', MAT.METAL, 'torso');
+    { y: 0.10, rx: HIP_R * 0.94 + CLR * 2, rz: 0.084 + CLR * 2, p: 3.6 },
+    { y: 0.155, rx: WAIST_R * 1.02 + CLR * 2, rz: 0.076 + CLR * 2, p: 3.6 },
+  ]), 'belt', MAT.HIDE, 'torso', false);
+  add('hips', slab({ y0: 0.112, y1: 0.148, w: 0.052, d: 0.018, z: 0.084 + CLR * 4, p: 4.0 }), 'trim', MAT.METAL, 'torso', false);
   // hip pouch, her left — an asymmetry, because a perfectly symmetric character
   // reads as a mannequin at any polygon count.
-  add('hips', slab({ y0: 0.01, y1: 0.10, w: 0.056, d: 0.040, x: 0.118, z: 0.020, p: 3.4 }), 'belt', MAT.HIDE, 'torso');
+  add('hips', slab({ y0: 0.01, y1: 0.10, w: 0.056, d: 0.040, x: HIP_R * 0.92, z: 0.020, p: 3.4 }), 'belt', MAT.HIDE, 'torso', false);
 
   /* ── torso: the jacket ─────────────────────────────────────────────────────
      Seven stations from waist to collar. The waist is genuinely narrower than
@@ -121,14 +144,14 @@ export function kaidaShellParts() {
   add('spine_upper', limb([
     { y: 0.06, rx: 0.062, rz: 0.050, p: 3.0 },
     { y: 0.115, rx: 0.055, rz: 0.046, p: 3.0 },
-  ]), 'collar', MAT.CLOTH, 'torso');
-  add('spine_upper', slab({ y0: -0.02, y1: 0.10, w: 0.052, d: 0.026, z: 0.086, x: 0.030, x1: 0.014, p: 3.2 }), 'clothPrimaryDark', MAT.CLOTH, 'torso');
-  add('spine_upper', slab({ y0: -0.02, y1: 0.10, w: 0.052, d: 0.026, z: 0.086, x: -0.030, x1: -0.014, p: 3.2 }), 'clothPrimaryDark', MAT.CLOTH, 'torso');
+  ]), 'collar', MAT.CLOTH, 'torso', false);
+  add('spine_upper', slab({ y0: -0.02, y1: 0.10, w: 0.052, d: 0.024, z: 0.098 + CLR, x: 0.030, x1: 0.014, p: 3.2 }), 'clothPrimaryDark', MAT.CLOTH, 'torso', false);
+  add('spine_upper', slab({ y0: -0.02, y1: 0.10, w: 0.052, d: 0.024, z: 0.098 + CLR, x: -0.030, x1: -0.014, p: 3.2 }), 'clothPrimaryDark', MAT.CLOTH, 'torso', false);
   // neck rides the chest, not the head, so turning the head does not drag it
   add('spine_upper', limb([
     { y: 0.03, rx: 0.044, rz: 0.044, p: 2.8 },
     { y: 0.105, rx: 0.040, rz: 0.040, p: 2.8 },
-  ]), 'skin', MAT.SKIN, 'torso');
+  ]), 'skin', MAT.SKIN, 'torso', false);
 
   /* ── head ──────────────────────────────────────────────────────────────────
      A rounded skull that narrows to a jaw, not a cube. p climbs to 3.8 at the
@@ -136,6 +159,7 @@ export function kaidaShellParts() {
      has a plane to catch the key light — which is what makes a toon ramp read
      as form instead of as a flat fill. */
   add('neck', limb([
+    { y: 0.030 - OVER, rx: HEAD_R * 0.52, rz: HEAD_R * 0.54, p: 2.6 },  // down into the collar
     { y: 0.030, rx: HEAD_R * 0.60, rz: HEAD_R * 0.62, p: 2.6 },   // under the jaw
     { y: 0.085, rx: HEAD_R * 0.86, rz: HEAD_R * 0.90, p: 3.0 },   // jaw
     { y: 0.150, rx: HEAD_R, rz: HEAD_R * 1.02, p: 3.6 },          // cheekbone
@@ -146,7 +170,7 @@ export function kaidaShellParts() {
 
   // eyes — a narrow dark band, MAT.CLOTH. Deliberately NOT the emissive bar the
   // first rig had: at 43 px a glowing visor is the only thing you see.
-  add('neck', slab({ y0: 0.183, y1: 0.199, w: 0.082, d: 0.014, z: 0.086, p: 4.0 }), 'eyes', MAT.CLOTH, 'head');
+  add('neck', slab({ y0: 0.183, y1: 0.199, w: 0.082, d: 0.014, z: HEAD_R * 1.04 + CLR, p: 4.0 }), 'eyes', MAT.CLOTH, 'head', false);
 
   /* ── hair: the bob ─────────────────────────────────────────────────────────
      Her single most identifying feature and the one the box rig reduced to a
@@ -195,6 +219,7 @@ export function kaidaShellParts() {
   for (const s of ['L', 'R']) {
     const sgn = s === 'L' ? 1 : -1;
     add(`shoulder_${s}`, limb([
+      { y: -0.26 - OVER * 0.6, rx: ARM_R * 0.92, rz: ARM_R * 0.92, p: 3.0 },
       { y: -0.26, rx: ARM_R * 0.96, rz: ARM_R * 0.96, p: 3.0 },
       { y: -0.12, rx: ARM_R * 1.08, rz: ARM_R * 1.08, p: 3.2 },
       { y: 0.010, rx: ARM_R * 1.30, rz: ARM_R * 1.26, p: 3.4, x: sgn * 0.008 },
@@ -202,20 +227,23 @@ export function kaidaShellParts() {
     ]), 'clothPrimary', MAT.CLOTH, 'arm');
 
     add(`upperArm_${s}`, limb([
+      { y: -0.25 - OVER, rx: ARM_R * 0.84, rz: ARM_R * 0.84, p: 3.0 },
       { y: -0.25, rx: ARM_R * 0.86, rz: ARM_R * 0.86, p: 3.0 },
       { y: -0.13, rx: ARM_R * 0.92, rz: ARM_R * 0.92, p: 3.0 },
       { y: 0.010, rx: ARM_R * 0.99, rz: ARM_R * 0.99, p: 3.0 },
     ]), 'clothPrimary', MAT.CLOTH, 'arm');
     // the rolled cuff, sitting just below the elbow
     add(`upperArm_${s}`, limb([
-      { y: -0.255, rx: ARM_R * 1.02, rz: ARM_R * 1.02, p: 3.4 },
-      { y: -0.205, rx: ARM_R * 1.06, rz: ARM_R * 1.06, p: 3.4 },
-    ]), 'clothPrimaryDark', MAT.CLOTH, 'arm');
+      { y: -0.255, rx: ARM_R * 0.86 + CLR * 2, rz: ARM_R * 0.86 + CLR * 2, p: 3.4 },
+      { y: -0.205, rx: ARM_R * 0.90 + CLR * 2, rz: ARM_R * 0.90 + CLR * 2, p: 3.4 },
+    ]), 'clothPrimaryDark', MAT.CLOTH, 'arm', false);
 
     add(`lowerArm_${s}`, limb([
+      { y: -0.235 - OVER * 0.7, rx: ARM_R * 0.66, rz: ARM_R * 0.68, p: 2.9 },
       { y: -0.235, rx: ARM_R * 0.68, rz: ARM_R * 0.70, p: 2.9 },
       { y: -0.12, rx: ARM_R * 0.76, rz: ARM_R * 0.78, p: 2.9 },
       { y: 0.010, rx: ARM_R * 0.84, rz: ARM_R * 0.86, p: 3.0 },
+      { y: 0.010 + OVER * 0.8, rx: ARM_R * 0.80, rz: ARM_R * 0.82, p: 3.0 },
     ]), 'skin', MAT.SKIN, 'arm');
 
     add(`hand_${s}`, limb([
@@ -231,23 +259,27 @@ export function kaidaShellParts() {
      the box rig had zero. */
   for (const s of ['L', 'R']) {
     add(`upperLeg_${s}`, limb([
+      { y: -0.44 - OVER, rx: LEG_R * 0.70, rz: LEG_R * 0.74, p: 3.0 },
       { y: -0.44, rx: LEG_R * 0.72, rz: LEG_R * 0.76, p: 3.0 },
       { y: -0.28, rx: LEG_R * 0.82, rz: LEG_R * 0.88, p: 3.0 },
       { y: -0.12, rx: LEG_R * 0.94, rz: LEG_R * 1.00, p: 3.1 },
       { y: 0.020, rx: LEG_R * 1.04, rz: LEG_R * 1.10, p: 3.2 },
+      { y: 0.020 + OVER, rx: LEG_R * 0.96, rz: LEG_R * 1.02, p: 3.2 },
     ]), 'clothSecondary', MAT.CLOTH, 'leg');
 
     add(`lowerLeg_${s}`, limb([
+      { y: -0.46 - OVER * 0.5, rx: LEG_R * 0.54, rz: LEG_R * 0.58, p: 3.0 },
       { y: -0.46, rx: LEG_R * 0.56, rz: LEG_R * 0.60, p: 3.0 },
       { y: -0.34, rx: LEG_R * 0.66, rz: LEG_R * 0.72, p: 3.0 },
       { y: -0.18, rx: LEG_R * 0.82, rz: LEG_R * 0.90, p: 3.1 },
       { y: 0.010, rx: LEG_R * 0.76, rz: LEG_R * 0.84, p: 3.0 },
+      { y: 0.010 + OVER, rx: LEG_R * 0.70, rz: LEG_R * 0.78, p: 3.0 },
     ]), 'clothSecondary', MAT.CLOTH, 'leg');
 
     // boot — flares over the calf, then closes to the ankle
     add(`lowerLeg_${s}`, limb([
-      { y: -0.465, rx: LEG_R * 0.62, rz: LEG_R * 0.68, p: 3.2 },
-      { y: -0.38, rx: LEG_R * 0.78, rz: LEG_R * 0.86, p: 3.2 },
+      { y: -0.465, rx: LEG_R * 0.56 + CLR * 2, rz: LEG_R * 0.60 + CLR * 2, p: 3.2 },
+      { y: -0.38, rx: LEG_R * 0.72 + CLR * 2, rz: LEG_R * 0.78 + CLR * 2, p: 3.2 },
       { y: -0.28, rx: LEG_R * 0.90, rz: LEG_R * 0.98, p: 3.3 },
       { y: -0.24, rx: LEG_R * 0.84, rz: LEG_R * 0.92, p: 3.2 },
     ]), 'boot', MAT.HIDE, 'leg');

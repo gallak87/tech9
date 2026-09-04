@@ -3,7 +3,7 @@ import { bus } from '../core/events.js';
 import { disposeTree } from '../core/engine.js';
 import { HERO_M } from '../core/const.js';
 import { snapUnitPx, SPRITE_PX_PER_METRE, HERO_SPRITE_ROWS, TONE_BANDS } from '../../docs/specs/rig.mjs';
-import { buildActor, paletteFor } from './rig.js';
+import { buildActor, paletteFor, PART_NAMES } from './rig.js';
 import { makeActorMaterial, makeActorUniforms } from './material.js';
 import { Animator, POSE_NAMES } from './poses.js';
 import { makeGate } from './gate.js';
@@ -48,6 +48,18 @@ export function installActors(ctx) {
   const material = makeActorMaterial(uniforms, { name: 'actor-shared' });
   const actors = [];
   let groundOn = true;
+  /* OFF by default. The hull covers the body instead of ringing it — measured,
+     not guessed: with the hull tinted green the centre pixel reads green. The
+     leading suspicion is that the hull is NOT being skinned, so it sits in bind
+     pose, which overlays an idle character almost exactly. Next step is one
+     test: pose her to 'victory' and see whether the hull's arms follow. If they
+     do not, MeshBasicMaterial is not compiling the skinning chunks for this
+     mesh and the fix is a ShaderMaterial that includes them explicitly.
+     Everything else about the outline is finished and correct — the silhouette
+     mask, the smoothed hull normals, the decal clearances. See
+     docs/PHASE2-HANDOFF.md. */
+  let outlineOn = false;
+  let outlineM = 0.012;
   let snapOn = true;
   let snapBoost = 1.0;
   let viewScale = 1.0;
@@ -87,6 +99,8 @@ export function installActors(ctx) {
     a.anim.play(def.pose || 'idle', { fade: 0 });
     a.anim.apply();
     place(a);
+    a.outline.visible = outlineOn;
+    a.outlineMat.userData.outlineUniforms.uThickness.value = outlineM;
     root.add(a.root);
     actors.push(a);
     bus.emit('actor:spawned', { id: a.id, faction: a.faction, tris: a.tris });
@@ -98,6 +112,7 @@ export function installActors(ctx) {
     if (i < 0) return false;
     actors.splice(i, 1);
     a.beaconMat?.dispose();
+    a.outlineMat?.dispose();
     a.mesh.geometry.dispose();
     a.weapon?.geometry.dispose();
     a.beacon?.geometry.dispose();
@@ -299,6 +314,26 @@ export function installActors(ctx) {
     });
   }
   if (dev) {
+    dev.register({
+      group: 'look', label: 'Part', type: 'select',
+      options: () => [...PART_NAMES],
+      get: () => PART_NAMES[uniforms.uIsolate.value] ?? 'all',
+      set: (v) => { uniforms.uIsolate.value = Math.max(0, PART_NAMES.indexOf(v)); },
+    });
+    dev.register({
+      group: 'look', label: 'Outline', type: 'toggle',
+      get: () => outlineOn,
+      set: (v) => { outlineOn = v; for (const a of actors) a.outline.visible = v; },
+    });
+    dev.register({
+      group: 'look', label: 'Ink', type: 'range', min: 0, max: 0.05, step: 0.001,
+      get: () => outlineM,
+      set: (v) => {
+        outlineM = v;
+        for (const a of actors) a.outlineMat.userData.outlineUniforms.uThickness.value = v;
+      },
+      format: (v) => (v * 1000).toFixed(0) + 'mm',
+    });
     dev.register({
       group: 'rig', label: 'Feet', type: 'readout',
       get: () => {

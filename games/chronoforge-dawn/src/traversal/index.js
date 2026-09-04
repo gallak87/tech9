@@ -18,7 +18,9 @@ import { LOCKED_YAW_DEG, LOCKED_PITCH_DEG } from '../core/const.js';
 //   ?play=1              boot straight into it
 //   ?showcase=traversal  same thing, lane-showcase spelling
 //   &dev=1               readouts you glance at while driving
-//   &dev=2               LOOK MODE — orbit, tilt, zoom, and nothing else
+//   &dev=2               LOOK MODE — orbit, tilt, zoom, outline, nothing else.
+//                        Opens at 0deg / 32deg tilt / 3.3 m, the framing a
+//                        character is actually judged at.
 //   &tune=1              the knobs, when you actually mean to tune something
 //
 // Opt-in on purpose. tools/shot.mjs boots with neither, so every existing
@@ -66,6 +68,16 @@ const FOCUS_LIFT_M = 0.95;
  *  shipping value is still the one in core/const.js, assertLocked() only
  *  guards pitch and yaw, and the Frame slider under ?tune=1 moves it live. */
 const PLAY_FRAME_HEIGHT_M = 10.0;
+
+/** Where ?dev=2 look mode opens: straight on, tilted down 32 deg, 3.3 m of world
+ *  across the frame. Chosen by the human at the panel, not derived — it is the
+ *  framing a character actually gets judged at, so it is the framing look mode
+ *  should hand you without three slider drags first. `Reset` returns here
+ *  rather than to the locked exploration camera; inside look mode, "reset"
+ *  means back to the view you started from. */
+const LOOK_YAW_DEG = 0;
+const LOOK_TILT_DEG = 32;
+const LOOK_FRAME_M = 3.3;
 
 const KEYS = {
   KeyW: 'f', ArrowUp: 'f',
@@ -227,6 +239,11 @@ export function installTraversal(ctx) {
       slopeDeg = THREE.MathUtils.radToDeg(Math.acos(THREE.MathUtils.clamp(n.y ?? 1, -1, 1)));
     }
 
+    if (spin && ctx.rig) {
+      ctx.rig.yawDeg = ((ctx.rig.yawDeg + 26 * dt + 180) % 360) - 180;
+      basis();
+    }
+
     /* Drive the camera. main.js reads ctx.world.focus every frame and the rig
        damps toward it, so moving this point IS the follow camera. */
     if (w?.focus) {
@@ -285,6 +302,16 @@ export function installTraversal(ctx) {
      them is done here in CSS rather than by editing src/core/devpanel.js, which
      is INTEGRATOR ONLY. The real fix is a `collapsed` option on dev.register,
      and it belongs to the integrator. Logged as devpanel-no-group-filter. */
+  let spin = false;
+  function applyLookCamera() {
+    if (!ctx.rig) return;
+    ctx.rig.yawDeg = LOOK_YAW_DEG;
+    ctx.rig.pitchDeg = LOOK_TILT_DEG;
+    ctx.rig.frameHeight = LOOK_FRAME_M;
+    ctx.rig.reset(ctx.world?.focus);
+    basis();
+  }
+
   if (dev && params.get('dev') === '2') {
     /* Hide every group but ours by setting display on the group divs directly.
        NOT by adding a class to #dawn-dev: devpanel.js treats ANY className on
@@ -320,15 +347,15 @@ export function installTraversal(ctx) {
       set: (v) => { if (ctx.rig) ctx.rig.frameHeight = v; },
       format: (v) => v.toFixed(1) + 'm',
     });
+    /* Turntable. Judging a silhouette from one angle is judging a drawing of it;
+       the box-ness of the old rig was most obvious in rotation. */
+    dev.register({
+      group: 'look', label: 'Spin', type: 'toggle',
+      get: () => spin, set: (v) => { spin = v; },
+    });
     dev.register({
       group: 'look', label: 'Reset', type: 'button', text: 'lock',
-      action: () => {
-        if (!ctx.rig) return;
-        ctx.rig.pitchDeg = LOCKED_PITCH_DEG;
-        ctx.rig.yawDeg = LOCKED_YAW_DEG;
-        ctx.rig.frameHeight = PLAY_FRAME_HEIGHT_M;
-        basis();
-      },
+      action: () => { applyLookCamera(); },
     });
     /* Doubles as the hide hook — the panel rebuilds lazily on its own update(),
        so the hide has to run after that and has to survive a rebuild. A control
@@ -342,6 +369,9 @@ export function installTraversal(ctx) {
       },
     });
     dev.show(true);
+    // The world and the player are not up yet at install time; the same
+    // microtask that takes control sets the camera.
+    queueMicrotask(() => { if (player) applyLookCamera(); });
   }
 
   if (dev && tuning) {

@@ -323,3 +323,86 @@ a look complaint at more than one hour before writing it down as a defect.
 What is genuinely still wrong on Kaida, with the false alarms removed: the face
 is a blank mask with no features from the front, and the hair reads as a helmet
 rather than a bob. Both are pass-2 detail work and both are human-gated.
+
+---
+
+## 2026-09-04 — outline attempt, joint gaps, review tooling
+
+### Outline: built, correct in every part except one, and OFF by default
+
+`makeOutlineMaterial` + `outlineNormals` in material.js, an inverted hull sharing
+the body's geometry and skeleton — one extra draw call, zero extra vertex memory.
+
+**It covers the body instead of ringing it.** Measured, not guessed: tint the
+hull green and the centre pixel reads `[0,103,49]`; hide it and the same pixel
+reads `[0,60,113]`. Ruled out along the way — winding (2204/2204 faces agree with
+their normals) and `side` (FrontSide and BackSide both fill her).
+
+**Leading suspicion, untested:** the hull is not being skinned, so it sits in
+bind pose — which overlays an idle character almost exactly and would look
+exactly like this. **The one test that decides it:** pose her to `victory` and
+see whether the hull's arms follow. If they don't, `MeshBasicMaterial` is not
+compiling the skinning chunks for this mesh and the fix is a `ShaderMaterial`
+that includes them explicitly.
+
+Everything else about it is finished and correct, and two of those parts are
+worth keeping regardless:
+
+- **Smoothed hull normals.** The mesh is hard-edged on purpose, so every corner
+  splits its vertices; expanding along the shading normal tears the hull open at
+  every corner.
+- **`aInk`, the silhouette mask.** A belt, a lapel, a neck stub — anything
+  sitting *on* another surface — must not expand, or it punches out through its
+  own host. This was diagnosed as overlap rather than winding precisely because
+  both `side` values failed identically.
+
+### Joint gaps — the human's catch, and it was the ugliest thing on her
+
+Visible from the far camera: black slivers at every shoulder, elbow, knee and
+hip. **Not z-fighting.** Every vertex is weighted 100% to one bone, so nothing
+deforms — when a knee bends, thigh and shin simply rotate apart and leave a
+wedge you can see straight through.
+
+Rigid skinning is the right call for this look, so the fix is not smooth
+weights: run each segment **past** its joint so the shells interpenetrate. The
+overlap has to beat the sagitta of the bend, roughly `r·(1−cos θ)` — a knee at
+70° on a 50 mm shin wants ~33 mm. `OVER = 0.045` in kaida.js. 2412 → 2752 tri.
+
+Separately, decals (belt, buckle, lapels, cuff, eyes) now sit a measured `CLR`
+clear of their host instead of coincident with it, which was a real second
+source of shimmer.
+
+### Review tooling for the part-by-part loop
+
+- **`Part` select** in look mode — `all / torso / head / arm / leg / prop`. The
+  character is ONE merged draw call, so isolation is carried per vertex on a new
+  `aPart` attribute. It **fades** rather than hides: a part judged with its
+  neighbours gone is judged against nothing, and the Phase 2.3 question is always
+  "does this belong on *this* character".
+- **`Spin`** — turntable. The box-ness of the old rig was most obvious in
+  rotation; one static angle is judging a drawing of a silhouette.
+- **`?dev=2` opens at 0° / 32° tilt / 3.3 m**, the framing the human chose at the
+  panel. `Reset` returns there rather than to the locked exploration camera.
+
+### THE GATE'S OWN MARGIN ERODED — read before touching the rig again
+
+`tools/rig.mjs --selftest` now reports **MISSED** on `normals flipped`. Nothing
+regressed in the rig; the joint-overlap geometry changed the histogram enough
+that a full normal flip no longer clears the `tv ≤ 0.28` band.
+
+The tool's own header called this out when it was written: at 2.2× between the
+worst legitimate pose and a real fault, PALETTE was the tightest of the four
+assertions, and it has now been overtaken. **Do not widen the band to make it
+green** — that removes the assertion. Re-survey the clean tv across all four
+characters and tighten the band to sit ~1.4× above the new clean worst, the same
+way the original numbers were derived.
+
+### Still deferred, agreed with the human
+
+- **Player-chosen camera distance**, and a third-person mode that rotates with
+  her, plus zoom-out to watch her cross the level. Worth noting that this
+  **dissolves the `SPRITE_PX_PER_METRE` question** rather than answering it: if
+  the player picks the zoom, no single sprite density was ever the right answer,
+  and the honest design is a per-camera-state LOD with sub-pixel work dropped at
+  distance. Revisit before Phase 2 closes.
+- Face is still a blank mask; hair still reads as a helmet. Pass-2, human-gated.

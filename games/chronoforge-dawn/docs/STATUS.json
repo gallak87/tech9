@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
   "phase": 2.4,
-  "phaseName": "Ground contact landed and measured; Kaida silhouette awaiting human sign-off",
+  "phaseName": "Kaida: joint gaps closed, review tooling in; outline built but disabled; rig gate margin eroded",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -15,7 +15,7 @@
     "architectureAndContractExist": true,
     "ownershipTableCoversTwelveFolders": true,
     "rigGateExitsZero": true,
-    "rigGateSelfTestCatchesInjectedFaults": true,
+    "rigGateSelfTestCatchesInjectedFaults": false,
     "rigViewerInDevPanel": true,
     "spriteLookSellsAtLockedFraming": false,
     "freeRoamPlaySample": true,
@@ -519,6 +519,33 @@
       "title": "The pixel-snap grid scaled with camera distance and shattered the character when inspected",
       "detail": "snapUnitPx is derived from the actor's on-screen height, which is correct at the shipping framing (~0.9px) and catastrophic in ?dev=2 look mode, where it reached 16.6px and broke the character into loose plates with visible gaps. The human read that as a modelling failure; it was the snap. Clamped at SNAP_MAX_PX = 2.4 in src/actors/index.js. Worth revisiting when SPRITE_PX_PER_METRE is finally decided \u2014 the clamp and that constant are the same conversation.",
       "repro": "?play=1&dev=2, zoom in, watch the Rig readout snap value"
+    },
+    {
+      "id": "outline-hull-covers-body",
+      "severity": "high",
+      "tier": "Phase 2.3",
+      "area": "actors",
+      "title": "The inverted-hull outline fills the character instead of ringing it",
+      "detail": "Measured: tint the hull green and the centre pixel reads [0,103,49]; hide it and it reads [0,60,113]. Ruled out: winding (2204/2204 faces agree with their normals) and side (FrontSide and BackSide fill her identically). Leading suspicion, UNTESTED: the hull is not skinned and sits in bind pose, which overlays an idle character almost exactly. ONE TEST DECIDES IT: pose her to victory and see whether the hull arms follow. If not, MeshBasicMaterial is not compiling skinning chunks for this mesh and the fix is a ShaderMaterial that includes them. Outline is OFF by default; the silhouette mask (aInk) and smoothed hull normals are correct and worth keeping either way.",
+      "repro": "?play=1&dev=2, look group, Outline toggle ON"
+    },
+    {
+      "id": "rig-gate-palette-margin-eroded",
+      "severity": "high",
+      "tier": "Phase 2.3",
+      "area": "tools",
+      "title": "tools/rig.mjs --selftest now MISSES the flipped-normals fault",
+      "detail": "Nothing regressed in the rig. The joint-overlap geometry changed the palette histogram enough that a full normal flip no longer clears the tv <= 0.28 band. The tool header flagged PALETTE as the tightest of its four assertions when it was written (2.2x between the worst legitimate pose and a real fault). DO NOT widen the band to make it green \u2014 that deletes the assertion. Re-survey clean tv across all four characters and tighten the band to ~1.4x above the new clean worst, the way the originals were derived.",
+      "repro": "node tools/rig.mjs --selftest"
+    },
+    {
+      "id": "camera-state-and-lod",
+      "severity": "info",
+      "tier": "deferred, before Phase 2 closes",
+      "area": "render/dev",
+      "title": "Player-chosen camera distance, third-person follow, and per-state LOD",
+      "detail": "Human request, deferred by agreement. Let the player pick camera level at any time: behind-the-shoulder rotating with her, or zoomed out to watch her cross the level from the locked angle. Note this DISSOLVES the SPRITE_PX_PER_METRE question rather than answering it \u2014 if the player picks the zoom, no single sprite density was ever right, and the honest design is a per-camera-state LOD that drops sub-pixel work at distance.",
+      "repro": "n/a \u2014 design note"
     }
   ],
   "rig": {

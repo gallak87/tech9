@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { JOINTS, SOCKETS, HERO_HEIGHTS_M, HEIGHT_TOLERANCE } from '../../docs/specs/rig.mjs';
 import { HERO_PALETTES, ENEMY_PALETTE_FAMILY, IFF_BEACON } from '../../docs/specs/palette.mjs';
 import { HERO_M } from '../core/const.js';
-import { MAT, makeActorMaterial } from './material.js';
+import { MAT, makeActorMaterial, makeOutlineMaterial, outlineNormals } from './material.js';
 import { kaidaShellParts, kaidaWeaponParts, KAIDA_PALETTE } from './kaida.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -31,6 +31,17 @@ import { kaidaShellParts, kaidaWeaponParts, KAIDA_PALETTE } from './kaida.js';
 // ─────────────────────────────────────────────────────────────────────────────
 
 const col = (hex) => new THREE.Color().setStyle(hex);
+
+/** Outline width, in metres of character. The exploration camera is locked at a
+ *  fixed distance, so a world-space width IS a constant screen width there;
+ *  ~12 mm on a 1.72 m character reads as a deliberate line rather than a fat
+ *  border. Live on the dev panel because ink weight is judged by eye. */
+const OUTLINE_M = 0.012;
+
+/** Review groups, in the order the dev panel lists them. `prop` catches
+ *  anything a lane adds without a tag so it can never vanish silently. */
+export const PART_ID = { torso: 1, head: 2, arm: 3, leg: 4, prop: 5, beacon: 5 };
+export const PART_NAMES = ['all', 'torso', 'head', 'arm', 'leg', 'prop'];
 
 /** A tapered box. Six flat-shaded faces, 24 verts, 12 triangles.
  *  Everything on this character is one of these — that is the point. */
@@ -220,7 +231,7 @@ export function weaponParts(kind, P) {
 /** Merge a list of {geo, key, mat} into one indexed BufferGeometry, optionally
  *  transforming each part by its bone's bind matrix and tagging skin weights. */
 function mergeParts(parts, palette, { bindOf = null, indexOf = null } = {}) {
-  const pos = [], nor = [], colr = [], amat = [], sIdx = [], sWt = [], idx = [];
+  const pos = [], nor = [], colr = [], amat = [], sIdx = [], sWt = [], idx = [], ink = [], apart = [];
   const ranges = {};
   const v = new THREE.Vector3(), nv = new THREE.Vector3();
   const nm = new THREE.Matrix3();
@@ -240,6 +251,17 @@ function mergeParts(parts, palette, { bindOf = null, indexOf = null } = {}) {
       pos.push(v.x, v.y, v.z); nor.push(nv.x, nv.y, nv.z);
       colr.push(c.r, c.g, c.b);
       amat.push(part.mat);
+      /* Does this vertex belong to the SILHOUETTE? A buried part must not be
+         expanded by the outline hull — a 12 mm push on the neck stub or a belt
+         decal drives it straight out through the jacket, and the hull then
+         fills the whole character instead of ringing it. Default yes; parts
+         that sit on another surface opt out. */
+      ink.push(part.ink === false ? 0 : 1);
+      /* Which body part this vertex belongs to. The whole character is ONE
+         merged draw call, so isolating "the left arm" for review needs the
+         grouping carried per vertex — there is no sub-object to hide. Phase 2.3
+         reviews part by part and this is what makes that possible. */
+      apart.push(PART_ID[tag] ?? 0);
       sIdx.push(bi, 0, 0, 0); sWt.push(1, 0, 0, 0);
     }
     for (const i of part.geo.idx) idx.push(vbase + i);
@@ -251,6 +273,8 @@ function mergeParts(parts, palette, { bindOf = null, indexOf = null } = {}) {
   g.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(colr, 3));
   g.setAttribute('aMat', new THREE.Float32BufferAttribute(amat, 1));
+  g.setAttribute('aInk', new THREE.Float32BufferAttribute(ink, 1));
+  g.setAttribute('aPart', new THREE.Float32BufferAttribute(apart, 1));
   if (indexOf) {
     g.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(sIdx, 4));
     g.setAttribute('skinWeight', new THREE.Float32BufferAttribute(sWt, 4));
@@ -308,6 +332,20 @@ export function buildActor({ id = 'kaida', faction = 'ally', uniforms, material 
   root.add(mesh);
   root.updateMatrixWorld(true);
   mesh.bind(skeleton);
+
+  /* The outline hull. Shares the body's geometry AND its skeleton — one extra
+     draw call, zero extra vertex memory, and it deforms with the pose for free
+     because the offset is applied in bind space before skinning. */
+  geometry.setAttribute('aOutline', new THREE.BufferAttribute(outlineNormals(geometry), 3));
+  const outlineMat = makeOutlineMaterial({ thickness: OUTLINE_M });
+  const outline = new THREE.SkinnedMesh(geometry, outlineMat);
+  outline.name = `${id}:outline`;
+  outline.castShadow = false;          // an inflated hull casts a fattened shadow
+  outline.receiveShadow = false;
+  outline.frustumCulled = false;
+  outline.renderOrder = -1;            // behind the body, so the body wins every
+  root.add(outline);                   // pixel it covers and only the rim shows
+  outline.bind(skeleton, mesh.bindMatrix);
 
   /* sockets — empty Object3Ds on a joint, NOT bones */
   const sockets = {};
@@ -375,7 +413,7 @@ export function buildActor({ id = 'kaida', faction = 'ally', uniforms, material 
   root.scale.setScalar(s);
 
   return {
-    id, faction, root, mesh, weapon, beacon, beaconMat, beaconUniforms,
+    id, faction, root, mesh, outline, outlineMat, weapon, beacon, beaconMat, beaconUniforms,
     skeleton, bones, boneByName, sockets, palette: P, build: B,
     heightM, scale: s, partRanges: ranges, weaponKind: B.weapon,
     pulseHz: spec.pulseHz, iffShape: spec.shape, iffColor: spec.color,

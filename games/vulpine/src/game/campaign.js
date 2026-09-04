@@ -230,33 +230,51 @@ const OMEGA_COMMS = [
    The one level where the corridor closes over you, so the encounter rules are
    different in one specific way: `spawn` distances are shorter throughout,
    because a roofed bay has no sightline to spend them on — a craft arriving
-   1500 m out in a tunnel simply pops into existence at the far end of it. */
+   1500 m out in a tunnel simply pops into existence at the far end of it.
+
+   Placed against the five acts in `dna.js`, whose boundaries are 720 / -2280 /
+   -3840 / -5400 / -7800 / -9840, and against two numbers the shape decides:
+
+   `bank` is measured off the rail centre and `combat.js` adds up to 85 m to it,
+   so a battery line has to fit inside that act's own `half` — 210 on the gantry
+   run, 430 on the assembly floor. Past it the gun stands on air off the edge of
+   the deck.
+
+   Nothing arms between -4430 and -3360: the shaft dives there, and a transition
+   lands in a gap between waves. `tools/quiet.mjs --audit` is the gate. */
 const FOUNDRY_WAVES = [
   { z: -280, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1100, arc: 0.5, climb: 0.2, skill: 0.34, life: 8 },
-  // u = bank + rand(0,85), and the deck ends at half = 190 — past that a
-  // battery is placed inside the massing.
+  // Along the deck edge on the gantry run, where the flank falls away behind
+  // them: 96 + rand(0,85) is 181 at worst against a `half` of 210.
   { z: -1000, kind: 'bulwark', n: 4, form: 'banks', first: 620, step: 250, bank: 96, drops: ['health'] },
   { z: -1700, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 950, arc: -0.55, climb: 0.16, skill: 0.38, aggro: 0.18, life: 8 },
+  // Through the bulkhead port at -2540 and into the roofed run behind it.
   { z: -2500, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.3, climb: 0.24, skill: 0.42, aggro: 0.2, life: 10, drops: ['weapon'] },
-  { z: -3300, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.42 },
-  { z: -4100, kind: 'bulwark', n: 4, form: 'banks', first: 600, step: 240, bank: 96, drops: ['health', 'bomb'] },
-  { z: -4900, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 1050, arc: -0.1, climb: 0.4, skill: 0.44, life: 8.5, markFor: 2.0, stagger: 0.5 },
-  { z: -5800, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.38, climb: -0.2, skill: 0.48, aggro: 0.26, life: 10.5, drops: ['weapon', 'health'] },
-  { z: -6700, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1600, arc: 0, climb: 0.1, skill: 0.52, aggro: 0.3, life: 26, close: 210, escort: 2, drops: ['weapon', 'health'] },
-  { z: -7600, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 950, arc: -0.5, climb: 0.22, skill: 0.52, aggro: 0.32, hunt: true, life: 9, drops: ['health', 'bomb'] },
+  { z: -3200, kind: 'raptor', n: 4, form: 'echelon', from: 'behind', skill: 0.42 },
+  // Down the shaft. A swarm is the one wave kind that reads in a 300 m box.
+  { z: -4600, kind: 'wasp', n: 6, form: 'swarm', from: 'ahead', spawn: 900, arc: -0.1, climb: 0.4, skill: 0.44, life: 8.5, markFor: 2.0, stagger: 0.5 },
+  // The assembly floor opens out, and the spawn distances open with it.
+  { z: -5700, kind: 'raptor', n: 6, form: 'vee', from: 'ahead', spawn: 1050, arc: -0.5, climb: 0.22, skill: 0.52, aggro: 0.32, hunt: true, life: 9, drops: ['health', 'bomb'] },
+  // 210 + rand(0,85) against a `half` of 430 — a line across the hall rather
+  // than along a wall, which is what a floor this wide is for.
+  { z: -6400, kind: 'bulwark', n: 4, form: 'banks', first: 500, step: 240, bank: 210, drops: ['health', 'bomb'] },
+  { z: -7100, kind: 'hornet', n: 4, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.38, climb: -0.2, skill: 0.48, aggro: 0.26, life: 10.5, drops: ['weapon', 'health'] },
+  // In the dock, under open sky again.
+  { z: -8000, kind: 'vanguard', n: 1, form: 'pair', from: 'ahead', spawn: 1600, arc: 0, climb: 0.1, skill: 0.52, aggro: 0.3, life: 26, close: 210, escort: 2, drops: ['weapon', 'health'] },
   // The last fight in the game. Reuses the carrier: it is the only capital hull
   // built, and a bespoke foundry boss is the obvious next thing rather than
   // something to fake with a third commander variant.
-  { z: -8500, boss: 'gargantua' },
+  { z: -8700, boss: 'gargantua' },
 ];
 
 const FOUNDRY_COMMS = [
   { z: -160, who: 'PEPPY', text: 'This is it, Fox. Whatever they built in here, we end it.' },
-  { z: -960, who: 'SLIPPY', text: 'Emplacements on the deck! They dug in good.' },
-  { z: -2460, who: 'FALCO', text: 'Watch the roof sections — no room to climb out.' },
-  { z: -4860, who: 'SLIPPY', text: 'Drones pouring out of the bulkhead ports!' },
-  { z: -6660, who: 'PEPPY', text: 'Heavy inbound. Keep it in front of you.' },
-  { z: -8440, who: 'PEPPY', text: "That's their carrier. Finish this, Fox." },
+  { z: -960, who: 'SLIPPY', text: 'Guns on the deck edge! Watch the drop on your right.' },
+  { z: -2380, who: 'FALCO', text: 'Bulkhead across the lane. Thread the port — there is no way over it.' },
+  { z: -3720, who: 'PEPPY', text: 'Deck falls away here. Nose down, Fox, and ride it in.' },
+  { z: -5480, who: 'SLIPPY', text: 'Assembly floor. Roof is right on top of you — keep it flat.' },
+  { z: -7880, who: 'FALCO', text: "Dock's open to space. So that's what they were building." },
+  { z: -8640, who: 'PEPPY', text: "That's their carrier. Finish this, Fox." },
 ];
 
 /* ── Aquas ────────────────────────────────────────────────────────────────────

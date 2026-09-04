@@ -425,11 +425,25 @@ export const DNA_FOUNDRY = {
 
   centreline: {
     x: { waves: [], bends: [] },
-    // Barely moves. The deck is flat and the roof is at a fixed height, so a
-    // rail that wandered vertically would clip both.
-    y: { base: 46, waves: [], bends: [] },
+    // One move, and it is the shaft. `deckY` falls the same 430 m over the same
+    // 260 m blend, so the ship keeps its clearance the whole way down and what
+    // the dive is measured against is the level itself. 260 rather than a
+    // gentler blend because `tools/quiet.mjs` measures a transition against its
+    // own drop: 430 m is 2.46 s of descent before any z is spent on it, and a
+    // wider blend spends the difference lingering.
+    y: { base: 46, waves: [], bends: [{ z: -3840, dx: -430, width: 260 }] },
   },
 
+  // Five acts. `works.zones` is to this backend what `zones` is to a terrain
+  // level: the box is a function of z instead of one set of numbers for nine
+  // kilometres, which is what three of this level's four brief rows were short
+  // of. Boundaries are the numbers `campaign.js` places waves against.
+  //
+  //   720 …  -2280   gantry    outside; one flank climbs, the other falls away
+  // -2280 …  -3840   breach    a bulkhead, and the roof closes behind it
+  // -3840 …  -5400   shaft     the rail dives 430 m and the deck comes with it
+  // -5400 …  -7800   assembly  the widest box in the game under the lowest roof
+  // -7800 …  -9840   dock      open to space again, and the carrier is in it
   works: {
     chunkLen: 520,
     half: 190,
@@ -437,6 +451,29 @@ export const DNA_FOUNDRY = {
     roofY: 190,
     portW: 128, portH: 96, portY: 96,
     greebles: 7,
+    zones: [
+      // The deck is a ledge on the flank of the works. To port the massing
+      // climbs out of frame; to starboard it steps down and outward from the
+      // edge, which is the only asymmetry this backend can carry and is the
+      // whole of the escarpment. Overhead is space, crossed by gantries.
+      { len: 3000, half: 210, deckY: -26, roofY: 190, rise: [1, -0.7],
+        bay: ['open', 'open', 'span'] },
+      // The breach. The bulkhead stands at the middle of its own bay, so the
+      // wall is at -2540 and the roof closes 260 m behind it.
+      { len: 1560, blend: 380, half: 190, deckY: -26, roofY: 190,
+        bay: ['bulkhead', 'enclosed', 'enclosed'] },
+      // The shaft. -456 is -26 less the rail's own 430, over the same blend, so
+      // the 72 m the ship holds over the deck never changes through the dive.
+      { len: 1560, blend: 260, half: 150, deckY: -456, roofY: 190, bay: 'enclosed' },
+      // The assembly floor. 860 m across and 165 m from deck to roof: low is a
+      // ratio, not a clearance. 165 leaves 85 m over the rail against the 78 the
+      // offset box needs, and `tools/lid.mjs --audit` is what it is set against.
+      { len: 2400, blend: 420, half: 430, deckY: -456, roofY: 165, bay: 'enclosed' },
+      // The dock, open to space, and the widest the corridor gets. No roof: the
+      // carrier is fought under stars, and a lid here would be one the boss's
+      // own station box reaches through.
+      { len: 2040, blend: 460, half: 560, deckY: -456, roofY: 165, bay: 'open' },
+    ],
   },
 
   lithology: { base: [0.20, 0.21, 0.23], members: [] },

@@ -52,12 +52,20 @@
 // and a trunk is not. Fortuna is 86% FLAT and Corneria is 63% FLAT, and before
 // this pass existed those two levels signed identically.
 //
+// A `works` corridor has no height field and so no cross-section, and for two
+// sessions this tool printed one line about it and measured nothing. It is
+// measured by the BUILT pass instead, off the same authored profile the world
+// is built from: how wide the box is, how far the deck moves, how much of the
+// level is roofed and how often that changes, and whether the two flanks are
+// the same. Those are the four rows the Foundry's brief actually names.
+//
 // FLAT and VALLEY are the distinction the first version of this audit missed:
 // it had only RIDGE / asym / valley, so it called Fortuna's near-flat lagoon a
 // valley and would have had phase 9 author away the one thing already right.
 // ─────────────────────────────────────────────────────────────────────────────
 import { setActiveDNA, terrainHeight, centrelineX, centrelineY, WORLD } from '../src/world/profile.js';
 import { DNA_BY_ID } from '../src/world/dna.js';
+import { Works } from '../src/world/works.js';
 
 // The Highlands' campaign id is `highlands` and its DNA key is `fichina`; every
 // doc and every probe flag uses the campaign id, so accept it here too.
@@ -145,7 +153,26 @@ const BRIEF = {
     rail: { maxRange: 20 },
     flank: { kind: 'columns', min: 1.0 },
   },
-  foundry: { done: false, row: 'escarpment / steep shaft', backend: 'works' },
+  // The one built level. Its row is checked against the BUILT pass, not against
+  // a cross-section it does not have.
+  foundry: {
+    done: false,
+    row: 'escarpment / steep shaft',
+    built: {
+      // One flank climbing while the other falls, for the exterior run.
+      minAsym: 0.20,
+      // Roofed for a good part of the level and NOT all of it: "built, varies"
+      // is a range with two ends, and a tunnel from end to end fails it exactly
+      // as an open trench does.
+      minRoofed: 0.30, maxRoofed: 0.80,
+      // How often the sky comes and goes, per kilometre.
+      minSwitch: 0.4,
+      // The box itself has to change shape, or the level is one corridor with
+      // different things over it.
+      minWidthRange: 150,
+    },
+    rail: { minRange: 250, minPeak: 30 },
+  },
 };
 
 // Rail excursion a local extreme has to clear to count as a turn rather than as
@@ -238,9 +265,55 @@ function coverage() {
       pivot = y;
     }
   }
+  // Steepest the rail ever gets, in degrees. A range says how far it went and
+  // runs say how many times it changed its mind; neither says whether it dived
+  // or drifted, and "steep shaft" is a claim about exactly that.
+  let peak = 0;
+  for (let q = 0; q <= n; q++) {
+    const z = WORLD.zStart - span * (q / n);
+    const g = Math.abs((centrelineY(z + 6) - centrelineY(z - 6)) / 12);
+    if (g > peak) peak = g;
+  }
   return {
     cover, railRange: Math.max(...ys) - Math.min(...ys), runs,
+    railPeak: Math.atan(peak) * 180 / Math.PI,
     beside: beside / (n + 1), flankRuns: risings / (span / 1000),
+  };
+}
+
+/**
+ * The built corridor, at the same step as `coverage`. Everything here comes off
+ * the authored `works` profile rather than off geometry, for the reason the
+ * whole tool is offline: the numbers that decide the shape are the numbers, and
+ * meshing them first only adds a way for the two to disagree.
+ */
+function built() {
+  const span = WORLD.zStart - WORLD.zEnd;
+  const n = Math.floor(span / COVER_STEP);
+  let roofed = 0, asym = 0, switches = 0;
+  let wLo = Infinity, wHi = -Infinity, dLo = Infinity, dHi = -Infinity;
+  let was = null;
+  for (let q = 0; q <= n; q++) {
+    const z = WORLD.zStart - span * (q / n);
+    const half = Works.halfAt(z), deck = Works.deckY(z);
+    const [rl, rr] = Works.riseAt(z);
+    const on = Works.ceilingY(z) !== Infinity;
+    if (on) roofed++;
+    if (was !== null && on !== was) switches++;
+    was = on;
+    // A flank that falls while the other climbs is the escarpment. Measured on
+    // the difference rather than on the sign, so a run that is merely taller on
+    // one side counts for less than one that drops away.
+    if (Math.abs(rl - rr) > 0.5) asym++;
+    if (half < wLo) wLo = half;
+    if (half > wHi) wHi = half;
+    if (deck < dLo) dLo = deck;
+    if (deck > dHi) dHi = deck;
+  }
+  return {
+    roofed: roofed / (n + 1), asym: asym / (n + 1),
+    switches: switches / (span / 1000),
+    widthRange: wHi - wLo, halfMin: wLo, halfMax: wHi, deckRange: dHi - dLo,
   };
 }
 
@@ -328,7 +401,13 @@ const ids = only && only !== true ? [only] : Object.keys(DNA_BY_ID);
 const rows = [];
 for (const id of ids) {
   setActiveDNA(DNA_BY_ID[id]);
-  if (WORLD.backend !== 'terrain') { rows.push({ id, skip: WORLD.backend, yaw: maxYaw() }); continue; }
+  if (WORLD.backend !== 'terrain') {
+    rows.push({
+      id, skip: WORLD.backend, yaw: maxYaw(),
+      ...coverage(), ...(WORLD.backend === 'works' ? { built: built() } : {}),
+    });
+    continue;
+  }
   const span = WORLD.zStart - WORLD.zEnd;
   const cells = [];
   for (let q = 0; q < SAMPLES; q++) {
@@ -381,14 +460,42 @@ for (const r of terr) {
     + (r.id === REFERENCE ? '  (reference)' : ''));
 }
 
+const builtRows = rows.filter(r => r.built);
+if (builtRows.length) {
+  console.log('\nbuilt corridor: the same step, off the authored `works` profile');
+  console.log(`  ${'level'.padEnd(10)} ${'half'.padStart(11)}${'deck moves'.padStart(12)}${'roofed'.padStart(8)}`
+    + `${'sky/km'.padStart(8)}${'asym'.padStart(6)}${'rail moves'.padStart(12)}${'runs'.padStart(6)}${'steepest'.padStart(10)}`);
+  for (const r of builtRows) {
+    const b = r.built;
+    console.log(`  ${r.id.padEnd(10)} ${`${Math.round(b.halfMin)}-${Math.round(b.halfMax)} m`.padStart(11)}`
+      + `${(Math.round(b.deckRange) + ' m').padStart(12)}${pct(b.roofed).padStart(8)}${b.switches.toFixed(2).padStart(8)}`
+      + `${pct(b.asym).padStart(6)}${(Math.round(r.railRange) + ' m').padStart(12)}${String(r.runs).padStart(6)}`
+      + `${(r.railPeak.toFixed(0) + '°').padStart(10)}`);
+  }
+}
+
 /* ── the four-levels table, checked ───────────────────────────────────────── */
 const briefFails = [];
 const briefLines = [];
 for (const [id, b] of Object.entries(BRIEF)) {
   const r = rows.find(x => x.id === id);
   if (!r) continue;
-  if (b.backend) {
-    briefLines.push(`  ${id.padEnd(10)} ${'open'.padEnd(7)} ${b.row} — ${b.backend} backend carries no section`);
+  if (b.built) {
+    const m = r.built;
+    const bad = [];
+    if (!m) bad.push('not a works corridor');
+    else {
+      if (m.asym < b.built.minAsym) bad.push(`flanks differ over ${Math.round(m.asym * 100)}% of ${Math.round(b.built.minAsym * 100)}%`);
+      if (m.roofed < b.built.minRoofed) bad.push(`roofed ${Math.round(m.roofed * 100)}% of ${Math.round(b.built.minRoofed * 100)}%`);
+      if (m.roofed > b.built.maxRoofed) bad.push(`roofed ${Math.round(m.roofed * 100)}%, over the ${Math.round(b.built.maxRoofed * 100)}% this row holds it to`);
+      if (m.switches < b.built.minSwitch) bad.push(`sky comes and goes ${m.switches.toFixed(2)}/km of ${b.built.minSwitch}`);
+      if (m.widthRange < b.built.minWidthRange) bad.push(`corridor width varies ${Math.round(m.widthRange)} m of ${b.built.minWidthRange}`);
+      if (b.rail.minRange != null && r.railRange < b.rail.minRange) bad.push(`rail moves ${Math.round(r.railRange)} m of ${b.rail.minRange}`);
+      if (b.rail.minPeak != null && r.railPeak < b.rail.minPeak) bad.push(`rail peaks at ${r.railPeak.toFixed(0)}° of ${b.rail.minPeak}°`);
+    }
+    const state = bad.length ? (b.done ? 'BROKEN' : 'open') : 'meets';
+    if (bad.length && b.done) briefFails.push(`${id}: ${bad.join('; ')}`);
+    briefLines.push(`  ${id.padEnd(10)} ${state.padEnd(7)} ${b.row}${bad.length ? `\n${''.padEnd(21)}${bad.join('\n'.padEnd(22))}` : ''}`);
     continue;
   }
   const got = r.cover[b.shape.kind] || 0;

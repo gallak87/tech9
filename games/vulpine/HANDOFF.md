@@ -8,92 +8,67 @@ and the traps. The plans live elsewhere:
 
 | doc | what it owns |
 |---|---|
-| `PLAN-LEVELS.md` | **the active lane** — level identity, nine phases, five landed |
+| `PLAN-LEVELS.md` | level identity — phases 1-5 and 7-9 landed, phase 6 parked |
 | `ROADMAP.md` | everything else open, and `## Settled` for why things are as they are |
 | `PLAN-PERF.md` | the open perf lane |
 | `CONTRACT.md` | lane ownership and the hard rules |
 | `REVIEW.md` | the review rubric |
 
-## Where we left off — 2026-08-22
+## Where we left off — 2026-09-03
 
 Stopped clean, not mid-fix. All four gates green on a clean tree at once.
 
-**The active lane is level identity — `PLAN-LEVELS.md`.** Five of seven levels
-read as the same level because the terrain cross-section folded about
-`Math.abs(u)`, so every one was the same valley at a different scale.
+**The level-identity lane is closed.** `PLAN-LEVELS.md` phase 9 is done and
+every row of its four-levels table reads `meets` under `tools/shape.mjs
+--strict`. What is left in that file is phase 6 alone, the Venom orbit arena,
+and it is parked on a conflict with `CONTRACT.md` hard rule 9 — resolve the
+rule before starting it.
 
-**Every mechanism is landed** — phases 1-5, 7 and 8. Phase 9 has authored three
-of its four levels: Venom, Aquas and now Fortuna.
+### The next action is the boss arena — `ROADMAP.md`, first item
 
-### The next action is the Foundry, or phase 6
-
-**The Foundry is not an authoring job.** `works` is one box for all 9 km —
-`half`, `deckY` and `roofY` fixed in `dna.js`, and `Works.deckY()` is a static
-with no z — so three of its four brief rows have nothing to author into. It
-wants the mechanism pass phases 2 and 3 gave `terrain`, repeated for `works`,
-before any of its shape can be written.
-
-**Phase 6** is the orbit arena, and it carries the last piece of phase 4:
-`railPoint` still composes z, so the corridor cannot double back. `flight.js` no
-longer assumes it, so what is left is making `railPoint` dispatch to a per-level
-path object — landed with the arena that authors one, not before.
+**Every boss in the game is fought past the end of its own level's geometry**,
+and it is the largest thing standing between this build and ship criterion 2.
+Found and measured this session, with captures: the Foundry's carrier is fought
+on a bare starfield with no deck, no walls and nothing else in frame; Corneria's
+is fought over open ocean with the canyon gone. The measurements, the captures
+and the three candidate shapes are in `ROADMAP.md`; only the first is costed.
 
 ### What landed this session
 
-**Fortuna rebuilt as a drowned forest**, 14% authored to 100%: every section
-submerged bank to bank, no land anywhere except six authored mud bars, and the
-corridor made of trunks in the `islands` table rather than of ground. Its waves
-and comms are retimed onto the new zones and the three battery lines are
-authored onto the bars.
+**The `works` backend became authorable along z.** It was one box for all 9 km —
+`half`, `deckY` and `roofY` fixed on the DNA and `Works.deckY()` a static with
+no z — so three of the Foundry's four brief rows had nothing to author into.
+`works.zones` is now the same idea `zones.js` gives `terrain`: held stretches
+with a blend between them, carrying `half`, `deckY`, `roofY` and a per-flank
+`rise`, sampled as a pure function of z so `groundAt`, `ceilingAt` and the
+offline gates all read one profile. Bay kinds became a run list a zone names
+rather than one pattern cycled over the whole corridor.
 
-**Its rail is dead level at 200** — no `climb` on any zone and not even the
-±20 m of sine every other level carries. It was authored with 735 m of descent
-first, and that was wrong: the floor is a plane at y = 0 everywhere, so the dive
-had nothing to be measured against, and the offset box means every metre the
-rail moves is a metre of the player's own travel spent following it. Owner, on
-the descending version: *"its like your going up and down for no reason there is
-no objects in the way"*, and *"the zrail moves you and your aim stops moving by
-the edge so it feels like youre restricted"*. `shape.mjs` now gates it as a
-`maxRange` — the one row in that table that asks a rail to stay put.
+Deck, curtain, lamp runs and roof are corner-exact plates rather than centred
+boxes: a slab centred on a segment has one width and one height, which turns a
+taper into a sawtooth (33 m per step on the assembly floor) and a descent into a
+stair (52 m in the shaft).
 
-**The rail no longer turns, anywhere.** `centreline.x` is empty on all seven
-levels and no zone carries a `bend`; `CONTRACT.md` hard rule 9 and a 0.5° gate
-in `shape.mjs --strict`. Underneath it, the player's offset box was the last
-thing in the game still in world axes while the camera rig is built along the
-corridor heading — on a 29° corridor that cost 13 m of the 105 m box and put
-±51 m of the stick's throw on depth instead of screen-lateral, varying with the
-meander. `off` is now rotated through `flight.railCos/railSin`, the same yaw
-`combat.js` hands to `view.toWorld`, and that pair is derived in one place.
-**Every level's geometry moved**, so all seven `ref-geometry-*.json` were re-cut.
+**The Foundry is authored, in five acts** — gantry run to -2280, breach to
+-3840, shaft to -5400, assembly floor to -7800, dock to the end. The deck is a
+ledge on the flank of the works with the massing climbing to port and stepping
+down and outward to starboard; a bulkhead at -2540 takes it inside; the rail
+dives 430 m at 68° with the deck under it; the corridor opens to 860 m across
+under a 165 m roof; the last act is an open dock. Its wave and comms tables were
+re-placed against those boundaries and against two constraints the shape sets —
+a battery's `bank` must fit inside that act's `half`, and nothing arms between
+-4430 and -3360 because the shaft dives there.
 
-**The rail is either still or in a fast transition**, and `tools/quiet.mjs
---audit` is the new gate. Every level's ambient `centreline.y` sine is gone;
-the nine `climb` transitions that remain are 1.1-2.9 s (were 4.2-11) and each
-one lands in a gap between waves. Corneria, Omega, Foundry and Fortuna now have
-a rail that never moves at all. Shortening a `climb`'s blend steepens it as it
-shortens it: Aquas' plunge is 69° (was 42°), Venom's three are 51-60°.
-**Not yet looked at in a capture** — the numbers are right, the pictures are
-unverified.
+**Two gates learned to read a built corridor.** `lid.mjs` was blind to the only
+backend in the game with real geometry overhead — it printed "foundry: no lid"
+— and now audits deck, walls and roof against the offset box. `shape.mjs`
+printed one line about `works` and measured nothing; its BUILT pass now reports
+half, deck movement, roofed fraction, sky changes per km and flank asymmetry,
+and the Foundry's brief row is checked against them.
 
-**Wave tables must descend in z**, and Venom's did not: its opening battery
-fired 400 m late and in the same tick as the raptors. Fixed, and `quiet.mjs`
-checks every table.
-
-**Phase 6 is parked on a conflict** — an orbit arena is a lateral path by
-definition. See PLAN-LEVELS "Phase 6 — parked".
-
-**`shape.mjs` gained the flank pass** — `walled` / `columns` / `open`, measured
-as how much of the level has anything standing in the 180-800 m band and how
-many times that starts per kilometre. It exists because a cross-section reads a
-trunk 250 m off the rail and a canyon wall 250 m off the rail as the same
-sample: Fortuna is 86% FLAT, Corneria is 63% FLAT, and without this pass the two
-signed identically and the clash test fired on a level that looks nothing like
-its neighbour.
-
-**`islandAt` is indexed by z.** It was a linear scan over every prop under every
-mesh vertex and both baked fields — 1.2 ms per island per 360 k samples, which
-made prop count a boot cost. Bucketed, 0.4. Fortuna carries 146 props; before
-this it could not have.
+**The Foundry's review cameras are one per act**, replacing a set framed on bay
+indices from a bay pattern that no longer exists: `w4-gantry`, `w4-edge`,
+`w4-breach`, `w4-shaft`, `w4-assembly`, `w4-dock`, `w4-deck`, `w4-wide`.
 
 ### Traps this pass paid for
 
@@ -117,14 +92,19 @@ this it could not have.
 
 - `tools/digest.mjs --against` — green on all seven. **Cut a digest before you
   edit, not after.**
-- `tools/lid.mjs --audit` — green, and prints no standing notes since the Aquas
-  pass took its walls back under its own sea surface.
+- `tools/lid.mjs --audit` — green. Two audits behind one flag: a canopy level is
+  checked against the terrain under it, and a `works` level against its own deck,
+  walls and roof. It was blind to the second until 2026-09-03 and printed
+  "foundry: no lid" for the one backend that has one.
 - `tools/shape.mjs --strict` — green. Checks the four-levels table row by row
   (`done` rows gate, `open` rows print as the work) as well as the shape clash,
   and prints per-corridor coverage: what fraction is each shape, authored
   metres, how far the rail moves in how many monotone runs, and the flank pass
-  (`walled` / `columns` / `open`). `--draw <level>` renders a cross-section as
-  ASCII with the rail height beside it.
+  (`walled` / `columns` / `open`). A `works` level has no cross-section and is
+  measured by the **built corridor** table instead — half-width range, deck
+  movement, roofed fraction, sky changes per km, flank asymmetry and the rail's
+  steepest gradient. `--draw <level>` renders a cross-section as ASCII with the
+  rail height beside it.
 - `tools/pilot.mjs fly --headed` prints **two console 404s that headless does
   not**. Verified on the same commit, both ways: it is the harness, not the
   build. Do not chase it.

@@ -6,11 +6,14 @@ original ones are measured (`## Campaign audit`), the three added 2026-08-20
 fly but are unbalanced. Phase 8 (encounter feel + legibility) is open and is not
 the active lane. Branch `g/fox64`.
 
-**The active lane is level identity — `PLAN-LEVELS.md` is its plan and is not
-restated here.** As of 2026-08-22 every mechanism in it is landed and the
-remaining work is authoring: Venom, Aquas and Fortuna are done, the Foundry is
-not — and the Foundry is a mechanism pass before it is an authoring one. All
-four gates in that file's verification block are green on a clean tree.
+**The level-identity lane closed 2026-09-03 — `PLAN-LEVELS.md` is its plan and
+is not restated here.** Every row of its four-levels table now reads `meets`:
+Venom, Aquas and Fortuna were authored 2026-08-21/22, and the Foundry took a
+mechanism pass (`works.zones`) before its five acts could be written. All four
+gates in that file's verification block are green on a clean tree, and two of
+them — `lid.mjs` and `shape.mjs` — now read a built corridor as well as a
+cross-section. **Phase 6, the Venom orbit arena, is the only thing left in that
+file and it is parked on a conflict with `CONTRACT.md` hard rule 9.**
 
 **The campaign lane is accepted, 2026-08-16 (owner): "levels are in good shape
 to call that work passed for now."** What is still open under `## Campaign
@@ -107,6 +110,41 @@ register, swept collision.
 ---
 
 ## Found in passing — real, but not what the finder was doing
+
+- [ ] **Every boss in the game is fought past the end of its own level's
+      geometry.** Found 2026-09-03 while authoring the Foundry's finale, and it
+      is the largest thing standing between this game and ship criterion 2.
+      The rail never stops: `flight.railZ` advances at cruise speed for the
+      whole fight, and `campaign.js:635` (`railZ <= WORLD.zEnd`) is only the
+      victory lap's floor, not an end-of-level. Every world builds meshes over
+      `[zStart, zEnd]` and nothing past it — `terrain.js:399`, `works.js`,
+      `belt.js` all size their chunk count off that span.
+
+      Measured, not inferred. `tools/bossprobe.mjs 9422 90 'level=foundry'`:
+      the carrier spawns at sim t=48 s and is not dead at 90 s on the probe's
+      LASER tier, so the fight runs from railZ -7680 to about -23,400 against a
+      `zEnd` of -9840 — **13.6 km outside the world.** Captures, both at
+      `--quality high`: `shots/crit-past-end` (Foundry, `chase` + `combat-boss`
+      at t=78) is the carrier and the player alone on a bare starfield, no deck,
+      no walls, nothing; `shots/crit-past-end-corn` (Corneria at t=72) is open
+      ocean to the horizon with no canyon in it.
+
+      Two grades of the same defect, and the backend decides which: a level with
+      a camera-following surface (Corneria, Fortuna, Venom water/lava; Aquas'
+      canopy) degrades to a featureless plane, and one without (**the Foundry**,
+      **Sector Omega**) degrades to nothing at all.
+
+      Three shapes, none costed except the first:
+      - **The corridor keeps going.** Build past `zEnd` far enough to cover the
+        fight. Measured for `works`: 3.8 ms and 4835 tris per 520 m chunk, and
+        `updateLOD` hides everything past 4200 m so the draw cost is unchanged —
+        16 chunks is ~60 ms of build and ~4.7 MB. On `terrain` the same distance
+        is a second level's worth of triangles and has not been measured.
+      - **Hold the rail at the arena.** Cheap and wrong on its own: the sense of
+        speed in this game is the world going past, and a held rail parks it.
+      - **Arm the boss earlier.** Not viable — a 45 s fight is 7.9 km and every
+        level's boss would have to arm before its midpoint.
+
 
 - [ ] **Aquas' first battery wave is most of the way orphaned by phase 8.**
       `{ z: -400, kind: 'bulwark', n: 3, form: 'banks', first: 640, step: 260 }`

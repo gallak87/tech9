@@ -1,8 +1,8 @@
 # Vulpine — level identity: two curves
 
-**Every mechanism is landed. What is left is the authoring they exist for.**
-Phases 1-5, 7 and 8 are done; phase 9 has authored three levels of four and
-phase 6 is open. The owner picks when each starts.
+**Phase 9 is closed. Every level in the four-levels table meets its row.**
+Phases 1-5 and 7-9 are done; phase 6 is open and parked on a rule conflict. The
+owner picks when it starts.
 
 A zone carries its own cross-section, ceiling and camera; the hull pitches with
 the corridor; a surface is floor or ceiling depending which side the rail runs;
@@ -39,7 +39,15 @@ No two rows alike. Nothing in the toolchain checks this table; read it by hand.
 | Aquas | terraced, asymmetric ✅ | walled ✅ | deep dive ✅ | constant lid ✅ | none ✅ |
 | Venom | **inverted, whole level** ✅ | open ✅ | rhythm ✅ | **alternates** ❌ | lava ✅ |
 | Fortuna | flat, drowned ✅ | **columns** ✅ | **level, whole level** ✅ | none ✅ | water ✅ |
-| Foundry | escarpment ❌ | walled ❌ | steep shaft ❌ | built, varies ❌ | deck ✅ |
+| Foundry | escarpment ✅ | walled ✅ | steep shaft ✅ | built, varies ✅ | deck ✅ |
+
+**The Foundry's row is measured by the BUILT pass, not by a cross-section.**
+`works` has no height field, so `shape.mjs` printed one line about it and
+measured nothing for two sessions. It now reads the authored corridor directly:
+how wide the box is, how far the deck moves, how much of the level is roofed and
+how often that changes, and whether the two flanks are the same. Measured:
+half 150-560 m, deck moves 430 m, roofed 56%, sky comes and goes 0.57/km,
+flanks differ over 29%, rail moves 430 m at 68°.
 
 **`flank` is a column because a cross-section could not tell these levels
 apart.** RIDGE / FLAT / VALLEY reads two rays at one z, so a trunk 250 m off the
@@ -67,9 +75,13 @@ at all.
   how tall they stand, how deep the water under them is, and where they stop.
   It wants no `canopy`: that module is one flat plane carrying a water shader,
   and this level's layers are heights.
-- **The Foundry — outside, inside, then down.** Exterior gantry run as an
-  escarpment, breach to interior, a steep shaft down through decks, then a wide
-  low-ceilinged assembly floor.
+- **The Foundry — outside, inside, then down.** Five acts, and the boundaries
+  are the numbers everything else is placed against: gantry run to -2280, breach
+  to -3840, shaft to -5400, assembly floor to -7800, dock to the end. The deck
+  is a ledge on the flank of the works — massing climbing to port, stepping down
+  and outward to starboard — until a bulkhead takes it inside; the rail then
+  dives 430 m at 68° with the deck under it; the corridor opens to 860 m across
+  under a 165 m roof; and the last act is an open dock with the carrier in it.
 
 ## What uniqueness means here
 
@@ -129,11 +141,10 @@ a level with no land answers the waterline; and the props themselves have to be
 scattered in depth, since a narrow band of them overlaps itself into two
 continuous masses port and starboard, which is a canyon with texture on it.
 
-**Picking a level.** The Foundry is the only ❌ row left, and it is not an
-authoring job — see phase 9 below. Corneria and Fichina are deliberately the
-valley the others are told apart from. The first question for any level is the
-same one: what does it look like for the whole nine kilometres, and where does
-it stop looking like that.
+**Picking a level.** Every row in the table is met. Corneria and Fichina are
+deliberately the valley the others are told apart from. The first question for
+any level is the same one: what does it look like for the whole nine kilometres,
+and where does it stop looking like that.
 
 ## Phases
 
@@ -147,29 +158,29 @@ it stop looking like that.
 | 6 | Venom orbit arena | **open — conflicts with hard rule 9** |
 | 7 | Per-level camera | ✅ 2026-08-22 |
 | 8 | Aquas' plunge — the rail crosses the water surface | ✅ 2026-08-22 |
-| 9 | **The authoring pass** — one distinct shape per level | **Venom, Aquas + Fortuna done; the Foundry open** |
+| 9 | **The authoring pass** — one distinct shape per level | ✅ 2026-09-03 |
 
 Numbers are identifiers, not an order.
 
-### Phase 9 — what is left
+### Phase 9 — closed 2026-09-03
 
-Measured as metres carrying an authored `section` against corridor length:
+Measured as metres carrying an authored `section` against corridor length, and
+for the one built level as the BUILT pass in `shape.mjs`:
 
-| | authored | of level | what its brief still wants |
+| | authored | of level | its row |
 |---|---|---|---|
-| venom | 10560 m | **100%** | the "alternates" ceiling |
-| fortuna | 10560 m | **100%** | done — read against its row |
-| aquas | 7600 m | **72%** | done — read against its row |
-| fichina | 2300 m | 22% | not in the four-levels table; the pass is authored |
-| foundry | — | **0%** | a mechanism pass first |
+| venom | 10560 m | **100%** | meets |
+| fortuna | 10560 m | **100%** | meets |
+| aquas | 7600 m | **72%** | meets |
+| fichina | 2300 m | 22% | not in the four-levels table |
+| foundry | 5 zones | **100%** | meets |
 
-**The Foundry is what is left**, and coverage is the wrong measure for it: it is
-not short of authored metres, it is short of anything to author into.
-
-**The Foundry is not an authoring job.** `works` is one box for all 9 km
-(`half`, `deckY`, `roofY` fixed in `dna.js`, and `Works.deckY()` is a static
-with no z), so three of its four brief rows have nothing to author into. It
-needs the mechanism pass phases 2 and 3 gave `terrain`, repeated for `works`.
+**The Foundry needed a mechanism pass before it could be authored**, and that
+is what `works.zones` is: `half`, `deckY`, `roofY` and a per-flank `rise` are
+now a function of z, sampled the way `profileAt` samples a cross-section, and
+the bay kinds are a run list a zone names rather than one pattern cycled over
+the whole corridor. Before it, three of its four brief rows had nothing to
+author into — one box for all 9 km.
 
 **Corneria stays a valley.** It is what the others are told apart from.
 
@@ -277,6 +288,35 @@ normal, sometimes inverting. Fortuna's old 54 stalks at 16−44 m radius produce
 this reason and the count is now 13. Harmless (the shading is analytic and stays
 correct) and it is what `fins.mjs` prints as a note, but do not read it as an
 index-order defect: a real one reads 100% of a mesh, not 0.3%.
+
+**A `works` zone's blend and the rail's `climb` must be the same window.**
+Nothing derives one from the other: `deckY` is an absolute height on the zone
+and the rail move is a y-bend on the centreline. They agree only because
+`zones[i].blend` equals the bend's `width` and both are centred on the same
+boundary z — `smooth(a.z, b.z, z)` and `bendS` are the same cubic over the same
+interval. Change one and the ship's clearance over the deck varies through the
+dive instead of holding. `tools/lid.mjs --audit` is what catches it: it reads
+deck, walls and roof against the offset box at every sample.
+
+**A built corridor that changes width or height cannot be made of centred
+boxes.** A slab centred on a segment has one width and one height, so a taper
+comes out as a sawtooth and a descent as a stair — 33 m per step on the
+assembly floor's widening, 52 m on the shaft. Deck, curtain, lamp runs and roof
+are corner-exact plates for this reason: four corners at two z, and the segment
+boundaries share vertices.
+
+**A low ceiling is a ratio, not a clearance.** The offset box is 78 m above the
+rail, so the tightest honest roof is about rail + 84 whatever the room looks
+like; what makes a hall read as low is its width. The Foundry's assembly floor
+is 860 m across under 165 m of deck-to-roof, and the roof still clears the box
+by 7 m. `lid.mjs` gates the clearance; nothing gates the ratio.
+
+**A ground battery's `bank` has to fit inside that act's own `half`.**
+`combat.js` places a `banks` wave at `bank + rand(0, 85)` off the rail centre,
+and on a built level `groundAt` is the deck whatever x it is asked about — so a
+gun authored past the deck edge stands on air instead of failing. The Foundry's
+two battery lines are 96 against a `half` of 210 and 210 against a `half` of
+430.
 
 **There is no terrain crash.** The ground is a floor with a cushion, not a
 hazard (`flight.js:345-355`). Terrain rising into the rail bulldozes the ship
@@ -469,8 +509,8 @@ for L in corneria highlands omega foundry aquas fortuna venom; do
   node tools/digest.mjs --level $L --against shots/ref-geometry-$L.json || echo "MOVED: $L"
 done
 node tools/fins.mjs --audit                       # inverted-winding gate
-node tools/lid.mjs --audit                        # ceiling gate: is there room to fly
-node tools/shape.mjs --strict                     # phase 9: shape clash + the four-levels table
+node tools/lid.mjs --audit                        # ceiling gate: is there room to fly, canopy or built roof
+node tools/shape.mjs --strict                     # phase 9: shape clash, the four-levels table, the built corridor
 node tools/quiet.mjs --audit                      # rail moves: fast, and in the gaps between waves
 node tools/pilot.mjs fly --seconds 70 --params "level=venom"   # does it still fly
 
@@ -482,7 +522,8 @@ node tools/sheet.mjs shots/ref-venom shots/pN-venom --pair --labels "before,afte
 
 `shape.mjs --draw <level>` renders a cross-section as ASCII **and prints the
 rail height beside it**, which is the fastest way to read a rail rhythm. Plain
-`shape.mjs` prints three things: the twelve-sample picture, per-corridor
+`shape.mjs` prints four things — the fourth being the **built corridor** table,
+which is the only measurement of a `works` level there is: the twelve-sample picture, per-corridor
 **coverage** (what fraction is each shape, authored metres, rail runs, and the
 **flank** pass — how much of the level has anything standing beside the rail and
 how many times that starts, which is what separates a forest from a canyon), and

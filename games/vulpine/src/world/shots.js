@@ -77,24 +77,41 @@ export function registerWorldShots() {
 }
 
 /**
- * The Foundry. One camera per bay kind, because the bay kind is the only thing
- * that varies along this level and the whole point of it is what is overhead.
- * The chunk length is 520 m and the pattern is 8 bays, so the z values below are
- * bay centres: open 0, span 2, enclosed 4, bulkhead 7.
+ * The Foundry. One camera per ACT, parked in the middle of that act's held
+ * stretch rather than on a boundary — the boundaries are blends and a blend
+ * photographs as neither of the two things it joins. Every framing is offset
+ * off `centrelineY`, so the set follows the rail down the shaft instead of
+ * being left 430 m above the second half of the level.
+ *
+ * Act boundaries are 720 / -2280 / -3840 / -5400 / -7800 / -9840 (`dna.js`).
  */
 function registerFoundryShots() {
-  const bay = (i) => 720 - (i + 0.5) * 520;
-  registerShot('w4-open', ({ engine }) => onRail(engine.camera, bay(1), { dy: 8, ahead: 620, aimY: 30, fov: 58 }));
-  registerShot('w4-span', ({ engine }) => onRail(engine.camera, bay(2), { dy: 4, ahead: 480, aimY: 60, fov: 62 }));
-  registerShot('w4-enclosed', ({ engine }) => onRail(engine.camera, bay(4), { dy: 0, ahead: 500, aimY: 20, fov: 62 }));
-  registerShot('w4-bulkhead', ({ engine }) => onRail(engine.camera, bay(7) + 360, { dy: 0, ahead: 400, aimY: 30, fov: 58 }));
+  // The gantry run: the escarpment, from the eyeline. The drop is to
+  // starboard, so the camera sits a little to port of the rail to keep the
+  // falling flank in frame rather than under it.
+  registerShot('w4-gantry', ({ engine }) => onRail(engine.camera, -900, { du: -30, dy: 10, ahead: 640, aimY: 20, fov: 58 }));
+  // Straight at the fall, from over the deck edge — the one angle that says
+  // this level has a side that goes down.
+  registerShot('w4-edge', ({ engine }) => onRail(engine.camera, -1500, { du: 150, dy: 30, ahead: 520, aimY: -70, fov: 62 }));
+  // The bulkhead stands at -2540; this is the approach to it.
+  registerShot('w4-breach', ({ engine }) => onRail(engine.camera, -2160, { dy: 0, ahead: 420, aimY: 24, fov: 58 }));
+  // The lip of the shaft, aimed down it. `aimY` is negative because the target
+  // is 430 m below the camera and `onRail` measures the aim off the rail there.
+  registerShot('w4-shaft', ({ engine }) => onRail(engine.camera, -3620, { dy: 20, ahead: 420, aimY: 30, fov: 62 }));
+  // The assembly floor: 860 m across under a 165 m roof. Wide lens, because
+  // what is being photographed is the aspect ratio of the room.
+  registerShot('w4-assembly', ({ engine }) => onRail(engine.camera, -6500, { dy: 30, ahead: 700, aimY: -10, fov: 66 }));
+  // The dock, open to space, where the carrier is fought.
+  registerShot('w4-dock', ({ engine }) => onRail(engine.camera, -8700, { dy: 40, ahead: 800, aimY: 10, fov: 60 }));
   // Low over the deck, so the plating and the lit strips are read at grazing
   // incidence — the angle a flat panel either survives or does not.
-  registerShot('w4-deck', ({ engine }) => onRail(engine.camera, bay(9), { du: 60, dy: -58, ahead: 560, aimY: 60, fov: 60 }));
+  registerShot('w4-deck', ({ engine }) => onRail(engine.camera, -4900, { du: 60, dy: -58, ahead: 560, aimY: 60, fov: 60 }));
+  // From outside the corridor, on the falling side: the escarpment in
+  // silhouette, which is the only view that shows the level has a shape.
   registerShot('w4-wide', ({ engine }) => {
-    const z = bay(4);
-    park(engine.camera, [centrelineX(z) + 620, centrelineY(z) + 330, z + 700],
-      [centrelineX(z - 900), centrelineY(z - 900), z - 900], 46);
+    const z = -1400;
+    park(engine.camera, [centrelineX(z) + 900, centrelineY(z) + 260, z + 700],
+      [centrelineX(z - 1200), centrelineY(z - 1200) - 60, z - 1200], 48);
   });
 }
 

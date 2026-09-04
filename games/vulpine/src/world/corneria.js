@@ -333,8 +333,9 @@ export class Corneria {
     if (WORLD.backend === 'field') return centrelineY(z) - FIELD_FLOOR;
     // A built world has a real floor — the deck — so the ground cushion, the
     // AI's altitude clamps and ground batteries all behave exactly as they do
-    // in a canyon. Flat, so it is the whole height field.
-    if (WORLD.backend === 'works') return Works.deckY();
+    // in a canyon. The deck is authored along z and is the whole height field,
+    // so it needs no x.
+    if (WORLD.backend === 'works') return Works.deckY(z);
     // A canopy is a surface, and which side of it the corridor runs decides
     // whether it floors or lids. Above it the sea is what you fly over and the
     // terrain far below is irrelevant; below it the terrain is the floor and

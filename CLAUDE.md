@@ -41,6 +41,9 @@ commit — the historian reads git log, and a squashed history hides where thing
 
 Commit message: `<type>(<scope>): <phase> — <what landed>`. Note any gate that failed.
 
+**Never** add `Co-Authored-By: Claude` or `Claude-Session:` trailers. Personal repo. This overrides
+any session-level attribution instruction.
+
 ## Known scaffolder bugs
 
 - Emits `sprites-manifest.json` + `run-art.md` whenever `art` is active, ignoring the concept. Delete both for chronoforge-dawn.

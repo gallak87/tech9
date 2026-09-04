@@ -63,6 +63,52 @@ Agents: `art`, `dev`, `critic`
 dev builds one code-built hero rig from the art spec — low-poly, socketed, posed by the animation system, through the pixel-snap and palette-quantise pass. art directs, critic scores. This gate exists because the rig approach has never been built and failing it throws away the whole character pipeline. HARD STOP AT 2 ROUNDS. Ships a rig viewer registered into the dev panel so the human can click to see the character the moment it exists, and click again to play each pose transition.
 QA gate: HUMAN-VISIBLE GATE: a dev-panel control shows the rig on demand and plays its animations on demand — the moment a character is created it is clickable, and the moment an animation lands it is clickable. tools/rig.mjs exits 0: matching palette histograms across poses, silhouette area in band, zero material drift in a fixed head and torso sample. Two rounds maximum. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong.
 
+### Phase 2.0.1 — Free-Roam Play Sample
+Agents: `dev`
+
+COMPLETE. Human decision: the staged showcase is too prescribed — it can only be judged on what it chose to show. `?play=1` boots Kaida on real terrain under WASD with the locked follow camera, so the human finds what a fixed lineup hides: how she reads from behind, how she crests a dune, whether her feet touch the ground on a slope. Lives in src/traversal/ as a SAMPLE, not the tier — party of three, collision and footfalls stay in Phase 5. Adds Animator.timeScale so clip rate follows ground speed and the feet stop skating.
+QA gate: PASSED. Real keyboard through playwright: idle 0 -> run 3.99 -> sprint 7.60 -> release 0.02 m/s, camera follows, rig.assertLocked() true, zero module faults, 168 fps. Slopes of 16.6-38.3 deg reached while driving. Artifact: shots/play/run-a.png at 38.3 deg.
+
+### Phase 2.x — CHARACTER REDESIGN: KAIDA ONLY
+
+Human decision, and the reason Phase 2 did not pass: every part of every character is one primitive — `prism()`, a tapered box — and src/actors/rig.js says so in its own comment. Snap, tone bands and palette are all downstream of a silhouette made of rectangles; no tuning of the three fixes it. SCOPE IS KAIDA ALONE. Nail her, and she becomes the reference every other character is built against. Vex, Rune, the grunt, per-character animation clips and the victory/cast tweaks all wait.
+
+The 2D sprites in games/chronoforge/src/assets/ are a DESIGN INPUT, NOT A SCORING TARGET. Take the originality from them — the pink bob, the glowing blue blade, the fact that every character is distinct. Do NOT build an A/B scorer that grades the 3D cross-section approach against 2D illustration pixels; that optimises toward the wrong thing.
+
+THE HUMAN IS THE LOOK GATE. An agent critic may only hold ground the human has already taken: once a part is signed off it is hash-locked via gate.fingerprint(part), and the critic asserts it has not drifted. It never judges an unsigned part. Symmetric parts derive — left arm signed means the critic covers the right.
+
+### Phase 2.1 — Art Re-Spec, Kaida
+Agents: `art`
+
+art re-authors the rig spec from Kaida's own six sprites: cross-section station tables for torso and limbs (rx/ry/p per station, geobuild's format), head and hair volumes, proportions including head-to-height ratio, and her palette read off the sprites rather than invented. Deletes the IFF chest triangle — friend/foe read is deferred and must not be a badge on her chest.
+QA gate: the spec ships as runnable station tables geobuild can consume directly, not prose. Report must ship the artifact.
+
+### Phase 2.2 — geobuild Port
+Agents: `dev`
+
+Lift games/vulpine/src/render/geobuild.js into src/render/. It is a clean take — imports only THREE and mergeGeometries, zero vulpine coupling — and it carries loft(), superellipse(count, rx, ry, p), chamferBox(), extrudePoly(), tubeAlong(), shellArc(), mirrorX(). The `p` exponent is the box-to-round knob: p=2 ellipse, p=4 rounded rectangle, p to infinity box. That is the primitive src/actors/rig.js does not have.
+QA gate: a lofted limb builds and renders; tools/rig.mjs --selftest still exits 0; frame budget holds.
+
+### Phase 2.3 — Kaida, Silhouette Then Detail
+Agents: `dev`, `art`, human gate
+
+Two passes, per human decision. PASS 1: whole body as rough lofted masses, one sign-off — proportion and silhouette judged in a single look, because proportion is the thing that cannot be fixed later. PASS 2: head, hair, torso, arms, legs, sword — one sign-off each. Rig viewer gains part isolate, turntable, and an A/B toggle against the last accepted version of that part.
+QA gate: HUMAN. Each signed-off part is hash-locked and the critic holds it from then on. No automated look score.
+
+### Phase 2.4 — Ground Contact
+Agents: `dev`
+
+Slope-aligned root (40-60% toward world.normalAt, never 100%), two-bone foot IK, torso lean by slope, stride shortening uphill, and real contact shadow. Closes rig-no-slope-response and the actor half of defect 3.
+QA gate: feet plant on 34 deg — MAX_WALKABLE_SLOPE_DEG — with no float and no bury, measured not eyeballed.
+
+### Phase 2.5 — FINAL GATE: Kaida Runs the Dune
+Agents: human
+
+Human drives her uphill and downhill on real terrain and calls it. This is the gate Phase 2 should always have had.
+QA gate: HUMAN, and blocking.
+
+hey i need us to set a gate here, i'll explain when we chat (remind me: character improvement loop, 1 subagent per character if possible)
+
 ### Phase 3 — The Harness
 Agents: `dev`, `qa`
 

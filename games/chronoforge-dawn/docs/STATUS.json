@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
-  "phase": 2,
-  "phaseName": "Character Look Gate \u2014 build wave landed; look gate NOT passed, see rig-snap-subpixel",
+  "phase": 2.01,
+  "phaseName": "Free-roam play sample \u2014 WASD control of Kaida on real terrain; character redesign not started",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -17,7 +17,8 @@
     "rigGateExitsZero": true,
     "rigGateSelfTestCatchesInjectedFaults": true,
     "rigViewerInDevPanel": true,
-    "spriteLookSellsAtLockedFraming": false
+    "spriteLookSellsAtLockedFraming": false,
+    "freeRoamPlaySample": true
   },
   "budget": {
     "frameMs": 6.4,
@@ -179,7 +180,7 @@
     "world": "phase0 placeholder scene \u2014 replaced wholesale in Tier 1",
     "render": "camera rig, environment, materials, textures, postfx, probe \u2014 real",
     "actors": "19-bone code-built rig, 7 pose clips, toon+snap material, offscreen measurement gate, dev-panel viewer \u2014 real",
-    "traversal": "stub",
+    "traversal": "free-roam play sample \u2014 WASD, camera-relative, ground-following, speed-driven clip rate. Party/collision/footfalls are Phase 5.",
     "places": "stub",
     "battle": "stub",
     "progression": "stub",
@@ -478,6 +479,15 @@
       "title": "heroScreenPx / snapUnitPx stop updating while a named shot is set",
       "detail": "updateSnap() runs inside the actors tick, and setShot() pauses the sim, so report() returns the last live value rather than the shot camera's. Harmless for the gate (which never reads it) but it will mislead anyone measuring framing from a capture.",
       "repro": "__DAWN__.setShot(\"actors-lineup\") then __DAWN__.ctx.actors.report() \u2014 heroScreenPx is unchanged at 43.1"
+    },
+    {
+      "id": "rig-no-slope-response",
+      "severity": "high",
+      "tier": "Phase 2.4",
+      "area": "actors/traversal",
+      "title": "She stands world-vertical on every slope and both feet sit at one height",
+      "detail": "Placement is a single heightAt() sample at the root, so on a slope the downhill foot floats and the uphill foot buries. At a run her feet are ~0.7 m apart fore-aft; at MAX_WALKABLE_SLOPE_DEG 34 that is 0.47 m of height difference against an 0.88 m leg \u2014 more than half a leg in the air. At a routine 20 deg biome slope it is still 0.25 m. Driving the play sample reaches 38 deg on the placeholder dunes. Fix is a stack: slope-align the root 40-60 percent toward the terrain normal (world.normalAt already exists), two-bone foot IK per foot, torso lean by slope, stride shortening uphill. Rigid skinning makes the IK crease correct rather than wrong, and clips write absolute rotations so IK layers after sampling without touching poses.js.",
+      "repro": "?play=1&dev=1 then run up a dune and watch the Slope readout; shots/play/run-a.png at 38.3 deg"
     }
   ],
   "rig": {
@@ -549,5 +559,21 @@
       "spritePxPerMetre": 28,
       "specTarget": "rig.mjs spec predicted ~62 px hero and snapUnitPx ~1.3 at FRAME_HEIGHT_M 18"
     }
+  },
+  "play": {
+    "entry": "?play=1  (or ?showcase=traversal); add &dev=1 for the panel",
+    "keys": "WASD/arrows move, Shift sprint, Space attack, C cast, V victory, H hurt",
+    "liveKnobs": [
+      "play.Speed",
+      "play.Frame (FRAME_HEIGHT_M, drives rig-snap-subpixel and P0-6)",
+      "play.Camera (follow half-life)"
+    ],
+    "readouts": [
+      "Move (m/s + clip)",
+      "Slope (deg under her feet)",
+      "Where (x z y)"
+    ],
+    "verified": "real keyboard via playwright: idle 0 -> run 3.99 -> sprint 7.60 -> release 0.02 m/s, camera follows, rig.assertLocked() true, zero module faults, 168 fps",
+    "terrainSlopesReached": "16.6 to 38.3 deg while driving \u2014 MAX_WALKABLE_SLOPE_DEG is 34"
   }
 }

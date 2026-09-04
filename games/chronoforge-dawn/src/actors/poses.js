@@ -252,6 +252,10 @@ export class Animator {
     this.blend = 0;
     this.blendTime = 0.18;
     this.next = null;          // queued after a one-shot finishes
+    /** Clip playback rate. Traversal drives this from ground speed so the run
+     *  cycle advances with distance covered rather than with wall time — that
+     *  is the whole fix for foot skate, and it is one multiply. */
+    this.timeScale = 1;
     this._e = { x: 0, y: 0, z: 0 };
   }
 
@@ -273,8 +277,9 @@ export class Animator {
   }
 
   update(dt) {
-    this.t += dt;
-    this.prevT += dt;
+    const s = CLIPS[this.clip]?.loop ? this.timeScale : 1;  // one-shots keep real time
+    this.t += dt * s;
+    this.prevT += dt * s;
     if (this.blend < 1) this.blend = Math.min(1, this.blend + dt / this.blendTime);
     if (this.finished && this.next) this.play(this.next, { fade: 0.22, queue: null });
     this.apply();

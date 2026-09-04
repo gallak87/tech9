@@ -11,6 +11,10 @@ mechanism that actually controls what a spawned agent costs.
 
 | Lane | Model | Effort | Owns |
 |---|---|---|---|
+| `cfd-art` | opus | xhigh | `docs/RIG_SPEC.md` + `rig-spec.json` — Phase 1.1, gate in Phase 2 |
+| `cfd-gamedesign` | opus | high | `docs/DESIGN_SPEC.md`, `tools/framing.mjs` — Phase 1.1 |
+| `cfd-level` | sonnet | high | `data/regions/**`, `tools/region.mjs` — Phase 1.1 + 1.2 |
+| `cfd-audio` | sonnet | medium | `src/audio/**`, `tools/render-audio.mjs` — Phase 1.1 |
 | `cfd-world` | opus | xhigh | `src/world/**`, `src/render/**` — Tier 1 |
 | `cfd-traversal` | sonnet | medium | `src/traversal/**` — Tier 2 |
 | `cfd-places` | sonnet | medium | `src/places/**` — Tier 3 |
@@ -22,6 +26,12 @@ mechanism that actually controls what a spawned agent costs.
 
 The cheap lanes are only safe because each one is gated by a probe that exits
 non-zero. Build the instruments first, then the builders can be cheap.
+
+The first four are **Foundations** (Phase 1.1–1.2) and are discipline-shaped, not
+folder-shaped — they write specs and data, and three of the four are done after 1.2.
+The rest are the six tier lanes plus integrator and critic, and they run for the
+whole build. Both live here for one reason only: **frontmatter is the only thing
+that controls model and effort.** See the naming note at the bottom.
 
 ## `games/<slug>/agents/*.md`
 
@@ -43,3 +53,23 @@ A lane spans one folder and one gate.
 - Definitions load at **session start**. Editing one does nothing to a running session.
 - `/list-agents` lists agents that are *running*, not definitions that exist. An
   empty list proves nothing. Invoke by name to test.
+
+## Naming is wrong and will be fixed
+
+Recorded 2026-09-03, deliberately not acted on yet — renaming mid-build breaks
+every path in every def.
+
+The axis above is real. The *names* are backwards, and the folder layout hides it:
+
+- `games/<slug>/agents/` should be **`games/<slug>/lanes/`** — durable, per-game,
+  checked in, part of the game.
+- `.claude/agents/cfd-*.md` are the **disciplines**: temporary, per-game (hence the
+  `cfd-` prefix), and they should be namespaced by game folder rather than flattened
+  into one directory with a prefix doing the work. They get **cleaned up when the
+  user declares the game complete** — they are build scaffolding, not artifacts.
+
+Consequence to keep in mind until the rename lands: a `cfd-*` def is disposable and
+a `games/<slug>/agents/*.md` stub is not, which is the opposite of what the current
+names suggest.
+
+Tracked in `ROADMAP.md` under "Agent file layout is inverted".

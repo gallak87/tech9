@@ -259,6 +259,13 @@ const api = {
   digest() { return { streams: streamNames(), textures: textureKeys(), seed: 'chronoforge-dawn' }; },
   reseed() { resetStreams(); },
 
+  /* The shared ctx, for tools that must BUILD a scene rather than photograph one.
+     The Encounter Framing POC stages primitives on real terrain and measures
+     occlusion during the push-in; post/probe/stats cannot do that from outside.
+     Read-only by convention: this is a probe seam, not a lane's back door into
+     shared core. A lane that mutates through it is violating CONTRACT.md §1. */
+  get ctx() { return ctx; },
+
   /* ── not implemented in Phase 0 ──────────────────────────────────────────
      These THROW rather than returning a plausible-looking nothing. A stub that
      silently succeeds is how a probe reports green against a feature that does

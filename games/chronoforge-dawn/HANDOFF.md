@@ -1,6 +1,9 @@
 # Chronoforge Dawn — handoff
 
-**State:** Phase 0 complete and committed. Next is Phase 1.1.
+**State:** Phase 0 complete and committed. Phase 1.1 is prepared but **not started** —
+its four lane definitions were written after the session that would have run them, and
+Claude Code loads agent definitions at session start only. **Restart, then follow the
+run order below.**
 
 ## What this is
 
@@ -25,18 +28,54 @@ Three calls that are easy to reverse by accident:
 | `ARCHITECTURE.md` | `ctx` shape, module APIs, budget. |
 | `docs/STATUS.json` | Live state, open issues, `nextPhase`. |
 
-## Next: Phase 1.1 — Foundations (parallel)
+## Run order after restart
 
-| Agent | Ships | Not just a spec — an artifact that could fail |
-|---|---|---|
-| `art` | Rig system spec | proven in Phase 2 |
-| `gamedesign` | Encounter Framing POC | primitives only. **Must emit the combat clearance number.** |
-| `level` | 12 maps as data files | validated offline. Provisional encounter placements. |
-| `audio` | 4 synthesised sounds | playable files, not descriptions |
+### 1. `cfd-world` — exposure spot-fix (first, and scoped)
+
+Cheaper now than after Phase 2 scores blown-out frames. Paste this as the prompt:
+
+> Scoped spot-fix only — **do not start Tier 1 world work.** Fix open issue
+> `exposure-non-dawn` in `docs/STATUS.json`: exposure is fixed at 1.05 in
+> `src/render/postfx.js` (~line 217) and was only ever tuned at dawn. Noon measures
+> median 1.801 / white% 40.1 against a band of median 0.09–0.25, white% < 2 — 7x over.
+> The cause is not key intensity: `KEY_RAMP` is nearly flat. It is cos-law on the
+> ground (sin 11.6° = 0.20 vs sin 61.3° = 0.88) times the sky IBL ramp, product ~8.5x,
+> which matches the measured median ratio. **Keep fixed exposure — no auto-exposure.**
+> An art-directed hour must not drift. Make exposure a RAMP over sun elevation in the
+> same idiom as `SKY_RAMP` and `KEY_RAMP` in `src/render/environment.js`. Verify with
+> `node tools/probe.mjs --shots wide --hour <h>` at 6.4, 9.9, 12, 18.5 and 21.5, paste
+> every number, and confirm **dawn at 6.4h is unchanged** — it is the signature hour and
+> the one frame already signed off. Update the issue in `docs/STATUS.json` when it passes.
+
+### 2. Phase 1.1 — Foundations, four in parallel
+
+`cfd-art`, `cfd-gamedesign`, `cfd-level`, `cfd-audio`. Each def carries its own
+ownership, gate and report format.
+
+| Lane | Model/effort | Ships | Gate |
+|---|---|---|---|
+| `cfd-art` | opus/xhigh | `docs/RIG_SPEC.md` + `rig-spec.json` | Spec self-consistency check runs; real gate is Phase 2 |
+| `cfd-gamedesign` | opus/high | `DESIGN_SPEC` + Encounter Framing POC | `tools/framing.mjs --cases all` exits 0, **emits the clearance number** |
+| `cfd-level` | sonnet/high | 12 maps in `data/regions/`, `tools/region.mjs` | Exits 0: zero dangling doorways, all reachable from Haventide |
+| `cfd-audio` | sonnet/medium | 4 synthesised WAVs + catalog | `tools/render-audio.mjs` exits 0 **and you listened** |
 
 **Gate:** a spec whose artifact was not run does not pass.
 
-Then **1.2** — level validates all 36 encounter placements against the clearance number.
+**`cfd-gamedesign` is the critical path.** Its clearance number is the only input to
+1.2. If it fails, 1.2 cannot run and level's placements stay provisional.
+
+### 3. Phase 1.2 — Encounter Placement Pass
+
+`cfd-level` validates all 36 placements against the clearance number and moves the
+failures. Needs 1.1 finished, because the number cannot exist before the POC.
+
+## Prepared for you in this session
+
+- Four lane defs in `.claude/agents/cfd-{art,gamedesign,level,audio}.md`
+- `CONTRACT.md` §1 — ownership rows for the four Foundations lanes, plus `data/regions/**` declared as level's output and world's input
+- `src/main.js` — **one core change**: `__DAWN__.ctx` exposed read-only. The Encounter Framing POC has to *build* a primitives scene, which `post()`/`probe()`/`stats()` cannot do from outside. Verified: boot clean, dawn unchanged at median 0.212, and a control assertion still fails as it should
+- The four stale stubs in `agents/` marked **do not use as a prompt** — they said "design-only, no dev work", which fails the 1.1 gate outright
+- `ROADMAP.md` items 8, 9, 10 — historian pass on what this phase exposed about the framework
 
 ## Open from Phase 0
 

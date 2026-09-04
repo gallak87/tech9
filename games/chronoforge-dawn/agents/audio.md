@@ -1,3 +1,16 @@
+> [!WARNING]
+> **STALE — do not use this file as an agent prompt.**
+> Generated once by `tools/scaffold.js` from `team_config.json`, before the Director
+> wrote `GAME_PLAN.md`, and never reconciled against it. Two known contradictions:
+> its "Current Phase Goal" says Phase 1.1 is *"design-only, no dev work"* while the
+> actual 1.1 QA gate is *"a spec whose artifact was not run does not pass"*; and
+> `level.md` lists platformer outputs (platform rects, player start, exit position)
+> for a game whose level deliverable is a twelve-map RPG graph.
+>
+> **Authoritative instead:** `.claude/agents/cfd-<discipline>.md` for the four
+> Foundations lanes, `GAME_PLAN.md` for phases and gates, `CONTRACT.md` for ownership.
+> Kept only as the scaffolder's record of intent. Tracked in `ROADMAP.md` item 9.
+
 # Agent: audio
 **Responsibility:** Define the audio direction for Chronoforge Dawn.
 

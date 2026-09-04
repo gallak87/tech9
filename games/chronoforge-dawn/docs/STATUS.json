@@ -102,8 +102,8 @@
     ]
   },
   "modules": {
-    "world": "phase0 placeholder scene — world lane replaces wholesale in Tier 1",
-    "render": "camera rig, environment, materials, textures, postfx, probe — real",
+    "world": "phase0 placeholder scene \u2014 world lane replaces wholesale in Tier 1",
+    "render": "camera rig, environment, materials, textures, postfx, probe \u2014 real",
     "actors": "stub",
     "traversal": "stub",
     "places": "stub",
@@ -184,9 +184,13 @@
           "verdict": "2x over"
         }
       },
-      "cause": "Not key intensity — KEY_RAMP is nearly flat (6.4 to 7.4 to 6.1). It is cos-law on the ground plus the sky IBL ramp. Ground receives key*sin(elevation): sin(11.6deg)=0.20 vs sin(61.3deg)=0.88, times the sky ramp 3.9 to 4.8. Product ~8.5x, which matches the measured median ratio.",
+      "cause": "Not key intensity \u2014 KEY_RAMP is nearly flat (6.4 to 7.4 to 6.1). It is cos-law on the ground plus the sky IBL ramp. Ground receives key*sin(elevation): sin(11.6deg)=0.20 vs sin(61.3deg)=0.88, times the sky ramp 3.9 to 4.8. Product ~8.5x, which matches the measured median ratio.",
       "fix": "postfx.js line ~217 deliberately chose fixed exposure so an art-directed hour cannot drift. Keep that. Make exposure a RAMP over sun elevation in the same idiom as SKY_RAMP and KEY_RAMP, not auto-exposure.",
-      "repro": "node tools/probe.mjs --shots wide --hour 12   (note: --hour, not --params hour=)"
+      "repro": "node tools/probe.mjs --shots wide --hour 12   (note: --hour, not --params hour=)",
+      "status": "queued \u2014 first task after restart, scoped spot-fix by cfd-world",
+      "pulledForwardFrom": "Tier 1 (Phase 4)",
+      "pullReason": "Phase 2's gate scores the character look at three times of day. Two of the three are 6-7x over band, so the Character Look Gate would fail the rig for a render bug. Cheaper now than after Phase 2 burns a round.",
+      "promptReady": "HANDOFF.md, \"Run order after restart\", step 1"
     },
     {
       "id": "devpanel-in-captures",
@@ -194,26 +198,83 @@
       "tier": "Tier 5 (Phase 8)",
       "owner": "progression/ui",
       "title": "Dev panel is default-hidden because auto-hide during shots does not work",
-      "detail": "An auto-hide keyed on __DAWN__.shot was tried and failed — the panel update runs before applyShot, so the capture still contains the overlay. Panel is default-off; open with ?dev=1. The UI lane should own a correct fix.",
+      "detail": "An auto-hide keyed on __DAWN__.shot was tried and failed \u2014 the panel update runs before applyShot, so the capture still contains the overlay. Panel is default-off; open with ?dev=1. The UI lane should own a correct fix.",
       "repro": "set visible default true, then: node tools/shot.mjs --shots hero"
     }
   ],
   "nextPhase": {
-    "name": "Phase 1.1 — Foundations & Paper Prototypes",
+    "blockedOn": "session restart \u2014 Claude Code loads agent definitions at session start only, and the four Foundations lanes were written after this session began",
+    "runOrder": [
+      {
+        "step": 1,
+        "agent": "cfd-world",
+        "scope": "exposure spot-fix ONLY, no Tier 1 world work",
+        "issue": "exposure-non-dawn",
+        "prompt": "HANDOFF.md run order step 1"
+      },
+      {
+        "step": 2,
+        "phase": "1.1",
+        "parallel": true,
+        "agents": [
+          "cfd-art",
+          "cfd-gamedesign",
+          "cfd-level",
+          "cfd-audio"
+        ]
+      },
+      {
+        "step": 3,
+        "phase": "1.2",
+        "agents": [
+          "cfd-level"
+        ],
+        "needs": "the combat clearance number from cfd-gamedesign"
+      }
+    ],
+    "name": "Phase 1.1 \u2014 Foundations & Paper Prototypes",
     "parallel": true,
     "agents": [
-      "art",
-      "gamedesign",
-      "level",
-      "audio"
+      "cfd-art",
+      "cfd-gamedesign",
+      "cfd-level",
+      "cfd-audio"
     ],
+    "criticalPath": "cfd-gamedesign \u2014 its clearance number is the only input to Phase 1.2",
     "deliverables": {
-      "art": "Rig system spec — topology, sockets, pose library, pixel-snap + palette-quantise approach. Proven in Phase 2.",
-      "gamedesign": "Encounter Framing POC with primitives only. Must emit the combat clearance number.",
-      "level": "12 maps as data files, validated offline. Provisional encounter placements.",
-      "audio": "4 synthesised sounds as playable files — combo stinger, resource chime, footfall, hit crunch."
+      "cfd-art": "docs/RIG_SPEC.md + docs/rig-spec.json \u2014 topology, sockets, pose library, pixel-snap + palette-quantise. Build proof is Phase 2; spec self-consistency is checkable now and required.",
+      "cfd-gamedesign": "docs/DESIGN_SPEC.md + design-spec.json (ported prototype math) AND tools/framing.mjs \u2014 the Encounter Framing POC, primitives only, four worst cases, emitting the combat clearance number.",
+      "cfd-level": "data/regions/*.json \u2014 12 maps ported from the prototype MAPS table with elevation added, plus tools/region.mjs validating the graph offline.",
+      "cfd-audio": "src/audio/** synthesis + tools/render-audio.mjs rendering four signature sounds to shots/audio/*.wav, listened to."
+    },
+    "sourceCounts": {
+      "maps": 12,
+      "encounters": 36,
+      "doorwayEdges": 18,
+      "worldDrops": 12,
+      "note": "Counted from games/chronoforge/src/world.js. GAME_PLAN Phase 8 says 'eight worldDrops' and the build brief says one per region; the prototype has 12, one per map including interiors. cfd-level must resolve and flag this."
     },
     "gate": "A spec whose artifact was not run does not pass.",
-    "thenPhase": "Phase 1.2 — Encounter Placement Pass (level validates 36 placements against clearance)"
-  }
+    "thenPhase": "Phase 1.2 \u2014 Encounter Placement Pass (level validates 36 placements against clearance)"
+  },
+  "coreChanges": [
+    {
+      "id": "ctx-probe-seam",
+      "applied": "2026-09-03",
+      "by": "orchestrator (no lane agent running; integrator does not start until Phase 3)",
+      "file": "src/main.js",
+      "change": "__DAWN__.ctx exposed read-only via a getter.",
+      "why": "The Encounter Framing POC must BUILD a primitives scene on real terrain and measure occlusion during the push-in. post()/probe()/stats() photograph a scene; they cannot stage one. Without this seam cfd-gamedesign fails Phase 1.1 on its first round.",
+      "verified": "node tools/probe.mjs --shots wide --t 6.4 exits 0, dawn median 0.212 (unchanged from Phase 0). Assertion on ctx.scene/THREE/rig exits 0; a control assertion on a missing key exits 4.",
+      "note": "Read-only by convention. A lane mutating shared core through it violates CONTRACT.md section 1."
+    }
+  ],
+  "contractAmendments": [
+    {
+      "id": "foundations-ownership",
+      "applied": "2026-09-03",
+      "change": "CONTRACT.md section 1 gained a Foundations ownership table for art, gamedesign, level and audio, and declares data/regions/** as level's output and world's input.",
+      "why": "Phase 1.1 spawns four lanes that owned no folder. Four agents with undefined ownership is exactly what CONTRACT.md exists to prevent."
+    }
+  ]
 }

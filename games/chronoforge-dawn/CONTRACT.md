@@ -15,6 +15,18 @@ game is. This file is about **who may touch what**.
 
 ## 1. File ownership — do not edit outside your lane
 
+**Foundations (Phase 1.1–1.2)** — these four write specs and data, not engine code.
+Three of them are finished after 1.2; `audio` continues into Tier 3 and 4.
+
+| Lane | Owns | Must not touch |
+|---|---|---|
+| **art** | `docs/RIG_SPEC.md`, `docs/rig-spec.json` | all of `src/**` in 1.1 — the rigs are built in Phase 2 |
+| **gamedesign** | `docs/DESIGN_SPEC.md`, `docs/design-spec.json`, `tools/framing.mjs` | `src/**`, the rest of `tools/**` |
+| **level** | `data/regions/**`, `tools/region.mjs`, `docs/WORLD_GRAPH.md` | `src/world/**` — that is the world lane's, and it *imports* your data |
+| **audio** | `src/audio/**`, `docs/AUDIO_SPEC.md`, `tools/render-audio.mjs` | anything else |
+
+**The build lanes** — one folder, one gate, for the whole build:
+
 | Lane | Owns | Must not touch |
 |---|---|---|
 | **world** | `src/world/**` | `src/render/**`, any other lane |
@@ -28,7 +40,11 @@ game is. This file is about **who may touch what**.
 | **fx** | `src/fx/**` | the post chain, any other lane |
 | **ui** | `src/ui/**`, `index.html` styles | the Three scene, the post chain, `src/render/**` |
 | **audio** | `src/audio/**` | anything else |
-| **tools** | `tools/**` | `src/**` — a probe that edits the thing it measures is not a probe |
+| **tools** | `tools/**` except the three named above | `src/**` — a probe that edits the thing it measures is not a probe |
+
+`data/regions/**` is **level's** output and **world's** input. World reads it in Tier 1
+and never writes it. If the graph is wrong, that is a level defect and it is fixed in
+`data/`, not worked around in `src/world/`.
 
 ### Shared core — read-only to builders
 
@@ -110,8 +126,14 @@ was quarantined. **A silent black PNG is worse than a crash** — always read th
 exit output, and always open the file.
 
 `window.__DAWN__` gives you `post()`, `probe()`, `stats()`, `seek()`, `step()`,
-`setShot()`, `setTime()`, `digest()`, `reseed()`. `battle()` and `teleport()`
+`setShot()`, `setTime()`, `digest()`, `reseed()`, and `ctx`. `battle()` and `teleport()`
 throw until their lanes land — deliberately.
+
+`__DAWN__.ctx` is a **probe seam**, added for tools that must *build* a scene rather
+than photograph one — the Encounter Framing POC stages primitives on real terrain and
+measures occlusion during the push-in, which `post()`/`probe()`/`stats()` cannot do
+from outside. Read-only by convention. A lane that mutates shared core through it is
+violating §1, and the fact that it compiles does not make it allowed.
 
 ### Measure, don't eyeball
 

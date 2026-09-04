@@ -19,6 +19,7 @@ import { installSettlement } from './settlement/index.js';
 import { installFx } from './fx/index.js';
 import { installUI } from './ui/index.js';
 import { installAudio } from './audio/index.js';
+import { installDevPanel } from './core/devpanel.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Boot and main loop. THE one integration point.
@@ -57,7 +58,15 @@ const ctx = {
   get dt() { return engine.dt; },
   get hour() { return env.hour; },
   state: {},               // gameplay state the HUD reads; lanes publish onto it
+  shotNames,               // for the dev panel's shot picker
+  dev: null,               // DevPanel — set just below; lanes register controls onto it
 };
+
+/* ── dev panel ───────────────────────────────────────────────────────────────
+   For the human, not for agents (agents use tools/*.mjs). Hidden unless ?dev=1
+   or backtick, so it never lands in a review screenshot. Lanes add their own
+   controls with ctx.dev.register(...) — do not edit devpanel.js to add one. */
+ctx.dev = installDevPanel(ctx, { visible: params.get('dev') === '1' });
 
 /* ── lanes ───────────────────────────────────────────────────────────────── */
 const modules = {};
@@ -131,6 +140,7 @@ function updateScene(dt, moveCamera = true) {
   modules.fx.tick(dt, ctx);
   modules.audio.tick(dt, ctx);
   modules.ui.tick(dt, ctx);
+  ctx.dev?.update();
 }
 
 /** Fast-forward the sim to an absolute time without rendering. */

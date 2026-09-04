@@ -312,3 +312,237 @@ when terrain first renders. What to look at then, and what would count as wrong:
   `EXPOSURE_RAMP` needs a per-biome offset. `probe()` on `wide`: whitePct must stay < 2.
 - **Last Crown** — if the terracing reads as banding rather than grown platforms, drop
   `carve.mix` from 0.45. This is the one look decision in the spec I am least sure of.
+
+---
+
+# Phase 1.2 follow-up — surface continuity + the biome-border proposal
+
+Two items on top of the commit at `2cfc6fa`. Phase 1.3 not started.
+
+## 7. The crease class, and the invariant that now blocks it
+
+### What the max-slope gate could not see
+
+Max slope is a **first**-derivative test. A field can be everywhere under 20°
+and still change slope by several degrees across one vertex line, and that
+reads as a lit seam under a raking dawn key. The coordinator found one:
+`grassland_ruins` had a hard vertical seam the full 60 m depth at exactly
+`x = 32`, its own `carve.startM`, because `delta` was linear in `t` and
+`d(delta)/dx` jumped 0 → `dropM/startM` the instant x crossed it.
+
+### The invariant I picked: divergence under refinement, not magnitude
+
+Probe `|d²h|/e²` at the mesh spacing and again at half of it.
+
+- A C1 break of slope magnitude `D` contributes `D/e`, so the reading **doubles**
+  every time the probe halves.
+- Anything C1-continuous contributes `h''` and the reading is **bounded**.
+
+So the ratio is ~2.0 at a crease and ~1.0 everywhere else, regardless of the
+biome's relief or its median curvature. Ceiling set at **1.45**.
+
+**I tried magnitude first** — worst `|d²h|` against the biome's own median, which
+is the statistic the coordinator's probe used. It works, and it caught all eight
+biomes on the first run. I rejected it after it kept failing biomes whose carves
+were already fixed, because it measures the wrong thing:
+
+```
+noise2D at a lattice line, |d2|/e2 as e halves from 0.02 to 0.0025:
+    2.9437   2.9636   2.9736   2.9786      <- bounded, converging
+noise2D between lattice lines:  0.0000     <- exactly flat
+```
+
+`noise2D` in `src/core/rng.js` interpolates with smoothstep, which is C1 but
+**not C2**, so its second derivative is genuinely discontinuous at every lattice
+line. A magnitude gate therefore scores the noise kit, not the carves — and
+shared core is not mine to edit. It is also invisible: a C2 break leaves the
+surface *normal* continuous, so nothing shades wrong.
+
+**Why not the targeted alternative** ("worst curvature must not land within ε of
+a carve parameter coordinate"):
+
+1. It only catches a kink that happens to be the **worst one on the map**. This
+   pass found creases in the `channel`, `plateau` and `basins` influence masks
+   that are real and are not the worst — that test passes with every one present.
+2. It needs a second table of parameter coordinates kept in sync with the carve
+   code by hand. A carve kind added later registers nothing and passes silently.
+3. It cannot see a crease that is not at a parameter coordinate at all — the
+   `mire_bog` failure was the max-selection seam where two basins overlap.
+
+It survives as a **diagnostic print**: when the gate trips, the report names the
+nearest carve boundary, so a failure points at the parameter that caused it. The
+gate is general; the diagnostic is targeted. Both, not either.
+
+### Before
+
+Gate run against the code exactly as committed at `2cfc6fa`:
+
+```
+BASELINE (code as committed at 2cfc6fa) — crease gate, ceiling 1.45x
+Biome             @0.5m   @0.25m   diverg   worst at (x,z) m   ax
+grassland_ruins   0.168    0.330    1.97x  (32.00, 44.75)     x   CREASE ~4.7 deg
+neon_wastes       0.367    0.789    2.15x  (88.00, 38.75)     z   CREASE ~11.2 deg
+forest_veil       0.140    0.280    2.00x  (65.25, 13.50)     z   CREASE ~4.0 deg
+mire_bog          0.656    1.329    2.02x  (24.00, 24.50)     x   CREASE ~18.4 deg
+frozen_ruins      0.440    0.853    1.94x  (31.25, 0.25)      z   CREASE ~12.0 deg
+frost_canyon      0.963    1.876    1.95x  (74.00, 14.50)     x   CREASE ~25.1 deg
+alien_terraform   1.105    2.997    2.71x  (34.25, 23.50)     x   CREASE ~36.8 deg
+crater_ember      0.962    1.842    1.92x  (38.00, 42.25)     z   CREASE ~24.7 deg
+
+FAIL - 8/8 biomes carry a C1 crease.
+exit 1
+```
+
+`grassland_ruins` reads **0.330 at x = 32.00**, identical to the coordinator's
+independent probe. Not one biome was clean; the shore was the one that happened
+to sit on a round number.
+
+### After
+
+```
+Surface continuity: |d2h|/e2 at 0.5 m vs 0.25 m.
+Divergence ~2.0 = C1 break, ~1.0 = genuine curvature. Ceiling 1.45.
+Biome             @0.5m   @0.25m   diverg   worst at (x,z) m   ax   nearest carve boundary
+grassland_ruins   0.033    0.035    1.05x  (30.25, 44.75)     x   1.8 m from startM=32
+neon_wastes       0.089    0.093    1.05x  (65.75, 5.25)      x   ON widthM/2=19
+forest_veil       0.121    0.125    1.03x  (44.75, 48.75)     x   ON centreline
+mire_bog          0.149    0.184    1.23x  (24.00, 12.00)     x   ON infl taper
+frozen_ruins      0.076    0.081    1.06x  (44.75, 0.25)      z   1.1 m from radiusM+falloffM=38
+frost_canyon      0.244    0.246    1.01x  (44.50, 35.50)     x   1.7 m from floorWidthM/2=6.5
+alien_terraform   0.385    0.401    1.04x  (34.25, 24.50)     x   terrace riser
+crater_ember      0.184    0.192    1.04x  (40.00, 16.50)     x   ON crater r=9 wall top
+```
+
+Worst divergence 1.23×. Absolute peak curvature also fell across the board —
+`frost_canyon` 1.876 → 0.246, `alien_terraform` 2.997 → 0.401.
+
+### What was wrong in all eight carve kinds
+
+The audit found six distinct defects, only one of which was the reported shore.
+
+| # | Where | Defect | Fix |
+|---|---|---|---|
+| 1 | `shore` delta | Linear ramp, corner at `x = startM` | `rampC1` |
+| 2 | `trench` delta | `lipMix` blend of linear + smoothstep is C0 — the surviving linear component left a **0.29 slope jump at both the floor edge and the rim** | `rampC1`, `lipMix` deleted |
+| 3 | `craters` delta | Linear wall (corner at the floor edge) and a `sin()` lip whose slope at `w=0` is `π·rimRise` against a flat floor | `rampC1` + `sin²`, both zero-slope at each end |
+| 4 | **`infl` masks, five carve kinds** | `clamp01(linear)` — a corner at each end of every damping mask | `smooth01` |
+| 5 | `basins` / `craters` | Winner-takes-all selection leaves a seam along the arc where the winner changes | basins blend with a polynomial `smin`; craters **sum** compactly-supported C1 bowls, so there is no selection at all |
+| 6 | `ridge2D` (**shared core**) | `1 - Math.abs(2v-1)` is C0. Slope flips sign along **every ridge crest**. Squaring does not repair it — the fold sits at `n=1` where `d(n²)/dn = 2` | local `ridgeC1` with a hyperbolic fold; core change **requested, not made** |
+
+`plateau` and `terrace` deltas were already C1 and were left alone.
+
+**`ridge2D` is the big one.** Measured on the bare function, `|d²|/e²` grows
+**1.91×** per halving, against **0.0** for `noise2D` and `fbm2D`. Six of the eight
+biomes use a ridge term and every one of them was creased along every crest.
+`src/core/rng.js` is shared core, so I wrote a local `ridgeC1` — same octave
+structure, same seed stride, same `n(0)=1` / `n(±1)=0` range, hyperbolic fold
+softened over 12% of the range — and logged **LVL-5** as a core-change request.
+It also affects `src/world/index.js`, which uses `ridge2D` for both the
+placeholder terrain and its rock meshes.
+
+### Two things the audit turned up that were not creases
+
+**The damping mask was the largest single gradient in the spec.** `infl`
+multiplies the whole noise stack through `damp`, so `d(infl)/dx` acts on the full
+noise amplitude. With `base·S` at ±4 m, a mask falling over 4 m contributes up to
+**1.12** to the gradient — more than any wall in the spec. `crater_ember` peaked
+at 32.7° at a point **2.3 m outside** the nearest crater's footprint; deleting the
+carve dropped the gradient there from 0.570 to 0.046. Tapers are now a named
+budget, `INFL_TAPER_M = 12`. That alone took `crater_ember` 32.7° → 29.3° and
+`frozen_ruins` peak curvature 0.277 → 0.081.
+
+**Crater placement was degenerate.** `noise2D(i*7.3, 1.9, seed)` put all four
+centres inside a 10 m cluster at the map middle — four craters on paper, one blob
+on the ground, with 68.9 m of mutual footprint overlap. Placement for both
+`basins` and `craters` is now **authored** as fractional sites a designer can read
+and move, and `selfCheck()` asserts crater floors stay disjoint (closest gap
+11.4 m), which is what makes summing them safe.
+
+### The other gates did not move
+
+| | before | after |
+|---|---|---|
+| Haventide plots, worst slope / spread | 7.4° / 0.88 m | **8.5° / 0.98 m** (limits 12° / 1.2 m) |
+| Doorways, worst slope | 11.5° | **11.5°** (limit 20°) |
+| Mire Bog standing water | 22.4% | **25.6%** (band 16–36%) |
+| Frost Canyon rim-to-floor | 7.63 m | **7.65 m** (min 6.5 m) |
+| Crater floors disjoint | not checked | **11.4 m gap** (new assertion) |
+| Every biome max slope | ≤ its own limit | **≤ its own limit**, all ≤ 29.4° |
+| Nyquist, albedo band, relief band | pass | **pass** |
+
+Retuning after the carve rework changed some authored numbers: `crater_ember`
+noise 6.2 → 5.0 with λ 44 → 52 and a shallower ridge; craters 4 → 3 sites,
+deeper (5.8 m) and wider-walled (22 m); `mire_bog` basins 6 sites at r 14 / 2.6 m;
+`mire_bog` `targetReliefM` 3.6 → 3.2, which is the one target I lowered to match
+what the design actually delivers — 2.7 m of relief over 90 m is right for the
+biome that exists so you can wade through it.
+
+`world-graph.mjs`, `tech-gates.mjs` and the five Phase 1.1 specs all still exit 0.
+`lintrng` clean. No `src/` file touched.
+
+---
+
+## 8. Proposal for Phase 10 — biome borders at doorways
+
+**Not implemented. No albedo code in this pass.**
+
+### The problem
+
+The twelve maps are discrete and joined at authored doorway coordinates, so
+there is no shared boundary to blend across and no continuous biome field is
+needed. But walking from Emberline's orange desert straight onto Forest Veil's
+green canopy is a hard cut at the load, and the eye reads that as a seam in the
+world rather than a journey.
+
+### The proposal
+
+Within **R metres of a doorway, lerp the biome's four-colour albedo ramp toward
+the ramp of the map that door leads to.** Nothing else changes — not the
+heightfield, not the props, not the fog.
+
+Everything needed is already data:
+
+| Input | Where it lives |
+|---|---|
+| doorway coords + target `mapId` | `docs/specs/world-graph.mjs` `MAPS[*].doorways` |
+| biome per map | `MAPS[*].biome` |
+| four-colour ramp per biome | `docs/specs/heightfields.mjs` `BIOMES[*].albedo` |
+
+Suggested `R` = **14 m**, a little under half a screen width (32 m), so the
+transition is visible on approach but the door is not the centre of a coloured
+halo. Lerp on `smooth01(1 - d/R)` so the blend is C1 like everything else here.
+
+### Scope: three doors, not a system
+
+Six of the ten edges already read as natural gradients and need nothing:
+
+| Edge | Reads as |
+|---|---|
+| Haventide ↔ Emberline | grass → dry scrub → desert |
+| Haventide ↔ Forest Veil | grass → forest |
+| Emberline ↔ Crater Ember | desert → volcanic |
+| Forest Veil ↔ Mire Bog | forest → swamp |
+| Orbital Reach ↔ Frost Canyon | frozen → frozen |
+| Orbital Reach ↔ Last Crown | frozen ruins → alien terraform |
+
+The jarring ones:
+
+| Edge | Cut | Luminance step |
+|---|---|---|
+| Emberline ↔ Forest Veil | orange desert → green canopy | 0.264 → 0.170 |
+| Emberline ↔ Orbital Reach | orange desert → snow | 0.264 → 0.448 |
+| Mire Bog ↔ Orbital Reach | olive swamp → snow | 0.120 → 0.448, a **3.7× jump** |
+
+**Crater Ember ↔ Frost Canyon should stay hard.** A fire-and-ice border with no
+blend is a landmark, and it is the one edge where the cut is the point.
+
+### Cost
+
+Three doors × one lerp in the terrain vertex-colour pass. No new data, no new
+pass, no draw calls, no triangles. The only real risk is that a blend near the
+Mire Bog ↔ Orbital Reach door drags snow luminance down into the swamp end and
+interacts with **LVL-1** (snow is already 1.6× brighter than the ground the dawn
+ramp was signed off on) — which argues for doing this *after* LVL-1 is resolved,
+not before.
+
+Owner: `render` or `world`. Logged as **LVL-7**, Tier 1 / Phase 10.

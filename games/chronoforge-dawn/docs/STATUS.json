@@ -363,6 +363,30 @@
       "tier": "Phase 1.2",
       "title": "Frost Canyon doorway moved from (30,28) to (23,28) — landform, not a donor bug",
       "detail": "The frost_canyon heightfield cuts a 47 m trench down the middle of the map and tile (30,28) lands mid-wall at 29.5 deg, over the 20 deg doorway limit. (23,28) is the canyon mouth: trench floor, 3.6 deg. You now enter Frost Canyon by walking up the ravine. Orbital Reach's landing coord moved with it so the edge stays symmetric. Recorded in world-graph.mjs MOVED_FROM_DONOR."
+    },
+    {
+      "id": "LVL-5",
+      "severity": "medium",
+      "area": "core (integrator)",
+      "tier": "Tier 1 (Phase 4)",
+      "title": "CORE-CHANGE REQUEST: ridge2D in src/core/rng.js is C0, not C1 — it creases along every ridge crest",
+      "detail": "ridge2D folds with `1 - Math.abs(noise2D(...)*2 - 1)`. An absolute value is C0: the slope flips sign across the fold, so any surface built on it changes gradient discontinuously along EVERY ridge crest. Squaring the result does not repair it — the fold sits at n=1, where d(n^2)/dn = 2. Measured on the bare function, |d2|/e2 grows 1.91x when the probe spacing halves, against 0.0 for noise2D and fbm2D, which are both clean. Six of the eight biomes use a ridge term and every one was creased before this pass. NOT CHANGED — src/core/rng.js is shared core. docs/specs/heightfields.mjs ships a local `ridgeC1` with a hyperbolic fold softened over 12% of the range (same octave structure, same seed stride, same n(0)=1 / n(+/-1)=0 output range) and the integrator should decide whether core adopts it. Also affects src/world/index.js, which uses ridge2D for both the placeholder terrain and makeRock()."
+    },
+    {
+      "id": "LVL-6",
+      "severity": "info",
+      "area": "world",
+      "tier": "Phase 1.2 follow-up",
+      "title": "Surface-continuity gate added to heightfields.mjs; six carve defects fixed",
+      "detail": "Max slope is a first-derivative test and structurally cannot see a crease. New gate probes |d2h|/e2 at the 0.5 m mesh spacing and again at 0.25 m: a C1 break doubles, genuine curvature is bounded, so divergence is ~2.0 at a crease and ~1.0 otherwise. Ceiling 1.45. Against the code committed at 2cfc6fa the gate fails 8/8 biomes (grassland 1.97x at exactly x=32=carve.startM, alien 2.71x, neon 2.15x); after the fix the worst is 1.23x. Six defects fixed: shore delta corner; trench lipMix C0 at floor edge AND rim (0.29 slope jump each); crater linear wall + sin() lip; clamp01 corners in the influence masks of five carve kinds; basin/crater winner-takes-all seams (basins now blend with a polynomial smin, craters now SUM compactly-supported C1 bowls so there is no selection); and ridge2D (LVL-5). Two non-crease findings: the damping mask was the largest single gradient in the spec (a 4 m taper on a +/-4 m field contributes 1.12 to the gradient — crater_ember peaked 2.3 m OUTSIDE any crater footprint), now budgeted as INFL_TAPER_M = 12; and crater placement was degenerate, all four centres inside a 10 m cluster at the map middle, now authored as fractional sites with a floors-disjoint assertion."
+    },
+    {
+      "id": "LVL-7",
+      "severity": "low",
+      "area": "render/world",
+      "tier": "Tier 1 (Phase 10)",
+      "title": "PROPOSAL, not implemented: blend biome albedo near doorways",
+      "detail": "The twelve maps are discrete and joined at authored doorway coordinates, so no continuous blend field is needed — only the ground near a door needs to resemble what is through it. Within R metres of a doorway (suggest R = 14 m, a little under half a screen width, lerped on smooth01(1 - d/R)), lerp the biome's four-colour albedo ramp toward the ramp of the map that door leads to. Everything required is already data: doorway coords and target mapId in world-graph.mjs, biome per map, and the four-colour ramp per biome in heightfields.mjs. Scope is three doors, not a system: six of the ten edges already read as natural gradients. The jarring ones are emberline<->forest_veil (0.264 -> 0.170 luminance), emberline<->orbital_reach (0.264 -> 0.448) and mire_bog<->orbital_reach (0.120 -> 0.448, a 3.7x jump). crater_ember<->frost_canyon is also jarring and should STAY hard — a fire-and-ice border is a landmark. Cost is one lerp in the terrain vertex-colour pass; no new data, pass, draw calls or triangles. Sequence after LVL-1, since blending snow into the swamp end interacts with the snow-albedo exposure risk. Full write-up in agents/level-output.md section 8."
     }
   ]
 }

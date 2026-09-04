@@ -32,7 +32,7 @@
 //
 //   node docs/specs/heightfields.mjs
 
-import { fbm2D, ridge2D, noise2D } from '../../src/core/rng.js';
+import { fbm2D, noise2D } from '../../src/core/rng.js';
 import { TILE_M } from '../../src/core/const.js';
 import { MAPS, OUTDOOR_IDS, INTERIOR_IDS, OUTDOOR_W_M, OUTDOOR_D_M, tileToM } from './world-graph.mjs';
 
@@ -44,6 +44,47 @@ export const NYQUIST_MIN_WAVELENGTH_M = 4 * VERTEX_SPACING_M;   // 2.0 m
 /** Hard ceiling for the field, every biome, every tile. Phase 5 traversal
  *  reads this as its maxClimb. Anything steeper is a prop, not terrain. */
 export const MAX_WALKABLE_SLOPE_DEG = 34;
+
+/** SURFACE CONTINUITY.
+ *
+ *  Max slope is a FIRST-derivative test and it structurally cannot see a
+ *  crease: a field can be everywhere under 20 deg and still change slope by
+ *  several degrees across a single vertex line, which reads as a lit seam
+ *  under a raking dawn key. That needs a second-derivative gate.
+ *
+ *  The gate is DIVERGENCE UNDER REFINEMENT, not magnitude.
+ *
+ *  Probe |d2h| / e2 at the mesh spacing and again at half of it:
+ *    - a C1 break of slope magnitude D contributes D/e, so the reading
+ *      DOUBLES every time the probe spacing halves;
+ *    - anything C1-continuous contributes h'' and the reading is bounded.
+ *  So the ratio between the two scales is ~2.0 at a crease and ~1.0
+ *  everywhere else, whatever the biome's relief or its median curvature.
+ *
+ *  Magnitude was tried first and rejected — worst |d2h| against the biome's
+ *  own median. It works (it caught all eight biomes on the first run) but it
+ *  measures the wrong thing once the carves are C1: `noise2D` in
+ *  src/core/rng.js interpolates value noise with smoothstep, which is C1 but
+ *  NOT C2, so its second derivative is discontinuous at every lattice line.
+ *  Measured directly: |d2h|/e2 at a lattice line reads 2.9437 / 2.9636 /
+ *  2.9736 / 2.9786 as e halves from 0.02 to 0.0025 — large, bounded, and 0.0
+ *  between lattice lines. A magnitude gate therefore scores the noise kit, not
+ *  the carves, and shared core is not mine to change. It is also invisible:
+ *  a C2 break leaves the surface NORMAL continuous, so nothing shades wrong.
+ *
+ *  The alternative the coordinator offered — "the worst curvature must not
+ *  land within epsilon of a carve parameter coordinate" — was rejected for
+ *  three reasons: it only catches a kink that happens to be the WORST one on
+ *  the map (this pass found creases in `channel`, `plateau` and `basins`
+ *  influence masks that are real and are not the worst); it needs a second
+ *  table of parameter coordinates kept in sync with the carve code by hand,
+ *  so a carve kind added later registers nothing and passes silently; and it
+ *  cannot see a crease that is not at a parameter coordinate at all, such as
+ *  the max-selection seam where two craters overlap. It survives as a
+ *  DIAGNOSTIC PRINT: when the gate trips, the report names the nearest carve
+ *  boundary so the failure points at the parameter that caused it. */
+export const CREASE_PROBE_SPACING_M = 0.5;      // the mesh spacing that ships
+export const CREASE_DIVERGENCE_MAX = 1.45;      // 1.0 = smooth, 2.0 = C1 break
 
 /** A building foundation must read level. Haventide's 17 plots are checked
  *  against this and against PLOT_FOOTPRINT_M of local height spread. */
@@ -133,13 +174,16 @@ export const BIOMES = {
 
   mire_bog: {
     id: 'mire_bog', label: 'Mire Bog', regions: ['mire_bog_region'],
-    amplitudeM: 2.2, targetReliefM: 3.6, baseWavelengthM: 40, octaves: 3, lacunarity: 2.0, gain: 0.42, seed: 4401,
+    amplitudeM: 2.7, targetReliefM: 3.2, baseWavelengthM: 40, octaves: 3, lacunarity: 2.0, gain: 0.42, seed: 4401,
     ridge: null,
     warp: { amountM: 2.5, wavelengthM: 38, seed: 4402 },
     detail: { amplitudeM: 0.16, wavelengthM: 8.0, octaves: 2, lacunarity: 2.0, gain: 0.5, seed: 4403 },
     // Six shallow basins. The look is standing water, so the field has to sit
     // BELOW the water plane over a real fraction of the map, not just dip.
-    carve: { kind: 'basins', count: 6, radiusM: 12, depthM: 1.4, seed: 4404, damp: 0.6 },
+    carve: { kind: 'basins', radiusM: 14, depthM: 2.6, damp: 0.6, sites: [
+      { fx: 0.18, fz: 0.22 }, { fx: 0.42, fz: 0.55 }, { fx: 0.70, fz: 0.30 },
+      { fx: 0.30, fz: 0.78 }, { fx: 0.82, fz: 0.68 }, { fx: 0.55, fz: 0.12 },
+    ] },
     waterPlaneM: -0.28,
     submergedFraction: [0.16, 0.36],
     maxSlopeDeg: 18,
@@ -171,7 +215,7 @@ export const BIOMES = {
     // The same 7.5 m asked of the noise stack would be a 45 deg wall.
     // 47 m rim to rim in a 90 m map, so from one rim you see the far wall and
     // the floor at once, and from the floor you see sky and wall.
-    carve: { kind: 'trench', depthM: 7.5, floorWidthM: 13, rimWidthM: 47, sinuosityM: 8, wavelengthM: 120, axis: 'z', lipMix: 0.35, damp: 0.90 },
+    carve: { kind: 'trench', depthM: 7.5, floorWidthM: 13, rimWidthM: 47, sinuosityM: 8, wavelengthM: 120, axis: 'z', damp: 0.90 },
     minTrenchReliefM: 6.5,
     maxSlopeDeg: 33,
     albedo: { low: '#7d8a94', mid: '#9fabb4', high: '#bfc7cc', cliff: '#6e767d' },
@@ -195,13 +239,18 @@ export const BIOMES = {
 
   crater_ember: {
     id: 'crater_ember', label: 'Crater Ember', regions: ['crater_ember_region'],
-    amplitudeM: 6.2, targetReliefM: 10.5, baseWavelengthM: 44, octaves: 3, lacunarity: 2.0, gain: 0.42, seed: 8801,
-    ridge: { weight: 0.36, wavelengthM: 54, octaves: 2, lacunarity: 2.0, gain: 0.48, exponent: 1.5, seed: 8802 },
+    amplitudeM: 5.0, targetReliefM: 9.5, baseWavelengthM: 52, octaves: 3, lacunarity: 2.0, gain: 0.42, seed: 8801,
+    ridge: { weight: 0.26, wavelengthM: 60, octaves: 2, lacunarity: 2.0, gain: 0.48, exponent: 1.4, seed: 8802 },
     warp: { amountM: 3.5, wavelengthM: 50, seed: 8803 },
     detail: { amplitudeM: 0.26, wavelengthM: 9.0, octaves: 2, lacunarity: 2.0, gain: 0.5, seed: 8804 },
     // Four craters: sunken floor, raised lip. Craters never SUM — the strongest
     // influence at a point wins, or two overlapping rims stack into a wall.
-    carve: { kind: 'craters', count: 4, radiiM: [15, 11, 9, 7], floorDropM: 5.6, rimRiseM: 1.6, wallM: 22, seed: 8805, damp: 0.75 },
+    // Placement is AUTHORED, not derived. It used to come from noise2D(i*7.3,...)
+    // and all four centres landed inside a 10 m cluster at the map middle — four
+    // craters on paper, one blob on the ground.
+    carve: { kind: 'craters', floorDropM: 5.8, rimRiseM: 1.4, wallM: 22, damp: 0.75, sites: [
+      { fx: 0.28, fz: 0.30, r: 13 }, { fx: 0.72, fz: 0.58, r: 9 }, { fx: 0.46, fz: 0.80, r: 6.5 },
+    ] },
     // The glowing cracks. 3.5 m wide = 7 vertices across at 0.5 m spacing and
     // 11% of a 32 m screen, so they resolve both on the mesh and on screen.
     lavaChannel: { depthM: 1.2, widthM: 3.5, emissive: '#ff6a1e' },
@@ -232,9 +281,104 @@ const BASE_FIT = 1.60;
 const clamp01 = (t) => t < 0 ? 0 : t > 1 ? 1 : t;
 const smooth01 = (t) => { t = clamp01(t); return t * t * (3 - 2 * t); };
 
+/** Polynomial smooth-min / smooth-max (Inigo Quilez). Where two instances of
+ *  the same carve compete, a hard Math.min/max leaves a seam along the arc
+ *  where the winner changes: both branches are smooth, but their gradients
+ *  differ there, so the join is C0. These blend over `k`, and the two kinks
+ *  cancel exactly — that cancellation is the whole point of the construction. */
+const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+const smax = (a, b, k) => -smin(-a, -b, k);
+
+/** How far an influence mask takes to fall from 1 to 0, in metres.
+ *
+ *  This is a slope budget, not a cosmetic choice. `infl` multiplies the noise
+ *  stack through `damp`, so d(infl)/dx acts on the FULL noise amplitude:
+ *  h = base * S * (1 - damp*infl) + delta, and the mask contributes
+ *  base * S * damp * d(infl)/dx to the gradient. With base*S at +/-4 m, a mask
+ *  that falls over 4 m contributes up to 1.12 to the gradient on its own —
+ *  more than any wall in the spec. Measured: crater_ember peaked at 32.7 deg
+ *  at a point 2.3 m OUTSIDE the nearest crater's footprint, and deleting the
+ *  carve dropped the gradient there from 0.570 to 0.046. Taper wide. */
+export const INFL_TAPER_M = 12;
+
+/** Blend widths for the above: metres for a height, [0,1] for an influence. */
+export const CARVE_BLEND_M = 0.8;
+export const INFL_BLEND = 0.30;
+
+/** Fraction of a ramp's run spent easing each shoulder. */
+export const RAMP_SHOULDER = 0.20;
+
+/** [0,1] -> [0,1], linear across the middle, C1 (in fact C2) at both ends.
+ *
+ *  This is the shape a carve wall wants and neither of the two obvious choices
+ *  is. A linear ramp holds the mean gradient but leaves a corner at each end —
+ *  that corner is the shore crease. A smoothstep has no corner but peaks at
+ *  1.5x the mean gradient, which is what tipped the western build plots over
+ *  the slope gate on the first pass.
+ *
+ *  Built by integrating a trapezoidal DERIVATIVE: smooth01 up over the first
+ *  `k`, flat across the middle, smooth01 down over the last `k`. Area 1 forces
+ *  the middle slope to 1/(1-k), so the peak-gradient penalty is 1.25 at k=0.20
+ *  instead of smoothstep's 1.5, and the derivative is zero at both ends by
+ *  construction rather than by luck. */
+export function rampC1(w, k = RAMP_SHOULDER) {
+  w = clamp01(w);
+  const m = 1 / (1 - k);
+  const P = (v) => v * v * v - v * v * v * v / 2;   // integral of smooth01; P(1) = 0.5
+  if (w < k) return m * k * P(w / k);
+  if (w > 1 - k) return 1 - m * k * P((1 - w) / k);
+  return m * (w - k / 2);
+}
+
+/** Softening on the ridge fold, as a fraction of the noise's own [-1,1] range. */
+export const RIDGE_FOLD_SOFTEN = 0.12;
+
+/** Ridged noise, C1.
+ *
+ *  NOT `ridge2D` from src/core/rng.js, and this is a deliberate substitution
+ *  with evidence. That function folds with `1 - Math.abs(2v - 1)`, and an
+ *  absolute value is C0: its slope flips sign across the fold, so the surface
+ *  changes gradient discontinuously along EVERY ridge crest. Squaring the
+ *  result does not repair it — the fold sits at n = 1, where d(n^2)/dn = 2.
+ *  Measured on the bare function, |d2|/e2 grows 1.91x when the probe spacing
+ *  halves, against 0.0 for `noise2D` and `fbm2D`, which are both clean.
+ *
+ *  Same octave structure, same seed stride, same output range; only the fold
+ *  changes, from a corner to a hyperbola rounded over `soften` of the range.
+ *  n(0) = 1 and n(+/-1) = 0 exactly as before, so the ridge character is the
+ *  same at a distance and only the crest line stops being a knife edge.
+ *
+ *  src/core/rng.js is shared core and not mine to edit — logged as a
+ *  core-change REQUEST (LVL-5 in docs/STATUS.json) rather than made. It also
+ *  affects src/world/index.js, which uses ridge2D for both its placeholder
+ *  terrain and its rock meshes. */
+export function ridgeC1(x, z, { octaves = 4, lacunarity = 2.0, gain = 0.5, seed = 0, soften = RIDGE_FOLD_SOFTEN } = {}) {
+  const A = Math.sqrt(1 + soften * soften);
+  let amp = 1, freq = 1, sum = 0, norm = 0;
+  for (let i = 0; i < octaves; i++) {
+    const v = noise2D(x * freq, z * freq, seed + i * 7717) * 2 - 1;
+    const n = (A - Math.sqrt(v * v + soften * soften)) / (A - soften);
+    sum += amp * n * n;
+    norm += amp;
+    amp *= gain;
+    freq *= lacunarity;
+  }
+  return sum / norm;
+}
+
 /** Signed value noise in [-1,1] at a given wavelength in metres. */
 const sfbm = (x, z, lam, o) =>
   fbm2D(x / lam, z / lam, { octaves: o.octaves, lacunarity: o.lacunarity, gain: o.gain, seed: o.seed }) * 2 - 1;
+
+/** Instance centres for the multi-instance carves. Factored out so the
+ *  curvature diagnostic reads exactly what the field reads — a second copy of
+ *  this arithmetic is how a diagnostic starts lying about the thing it checks. */
+export function basinCentres(c) {
+  return c.sites.map(s => ({ cx: s.fx * OUTDOOR_W_M, cz: s.fz * OUTDOOR_D_M, r: c.radiusM }));
+}
+export function craterCentres(c) {
+  return c.sites.map(s => ({ cx: s.fx * OUTDOOR_W_M, cz: s.fz * OUTDOOR_D_M, r: s.r, pad: s.r + c.wallM }));
+}
 
 /** Carve returns { delta, infl }. `infl` is the DAMPING footprint — it covers
  *  the whole landform including its walls, not just its floor, because the
@@ -246,10 +390,12 @@ function carveEval(b, x, z) {
 
   switch (c.kind) {
     case 'shore': {
-      // Linear ramp, not smoothstep: smoothstep peaks at 1.5x the mean
-      // gradient and that is what tipped the western build plots over.
+      // Was pure linear, which left a corner at x = startM: d(delta)/dx jumped
+      // 0 -> dropM/startM on one vertex line straight through Haventide's main
+      // vista. rampC1 keeps the linear run across the plot-bearing western half
+      // and rounds only the two shoulders.
       const t = clamp01((c.startM - x) / c.startM);
-      return { delta: -c.dropM * t, infl: smooth01(t * 1.4) };
+      return { delta: -c.dropM * rampC1(t), infl: smooth01(t * 1.4) };
     }
     case 'channel':
     case 'trench': {
@@ -260,53 +406,51 @@ function carveEval(b, x, z) {
       const d = Math.abs(across - centre);
       if (c.kind === 'channel') {
         const t = smooth01(1 - d / (c.widthM / 2));
-        return { delta: -c.depthM * t, infl: clamp01(1 - d / c.widthM) };
+        return { delta: -c.depthM * t, infl: smooth01(1 - (d - c.widthM / 2) / (c.inflTaperM ?? INFL_TAPER_M)) };
       }
       const half = c.floorWidthM / 2;
       const wall = (c.rimWidthM - c.floorWidthM) / 2;
-      const infl = clamp01(1 - (d - c.rimWidthM / 2) / 6);
+      const infl = smooth01(1 - (d - c.rimWidthM / 2) / (c.inflTaperM ?? INFL_TAPER_M));
       if (d <= half) return { delta: -c.depthM, infl: 1 };
-      const w = clamp01((d - half) / wall);
-      // Linear ramp blended with smoothstep. Pure smoothstep peaks at 1.5x
-      // the mean gradient and breaks the slope ceiling; pure linear creases.
-      const shaped = w * (1 - c.lipMix) + smooth01(w) * c.lipMix;
+      // The lipMix blend of linear and smoothstep was C0 only: the surviving
+      // linear component left a 0.29 slope jump at BOTH the floor edge and the
+      // rim, and the rim one was this biome's worst curvature in the whole map.
+      const shaped = rampC1((d - half) / wall);
       return { delta: -c.depthM * (1 - shaped), infl };
     }
     case 'basins': {
+      // Basins are MEANT to merge into one marsh, so they blend rather than
+      // compete. Winner-takes-all left an 18 deg slope seam along the arc
+      // where the deeper basin took over — the last crease in the set.
       let delta = 0, infl = 0;
-      for (let i = 0; i < c.count; i++) {
-        const cx = noise2D(i * 13.7, 3.1, c.seed) * (OUTDOOR_W_M - 30) + 15;
-        const cz = noise2D(2.3, i * 9.4, c.seed + 77) * (OUTDOOR_D_M - 26) + 13;
+      for (const { cx, cz } of basinCentres(c)) {
         const d = Math.hypot(x - cx, z - cz);
-        const t = smooth01(1 - d / c.radiusM);
-        if (c.depthM * t > -delta) delta = -c.depthM * t;
-        infl = Math.max(infl, clamp01(1 - (d - c.radiusM) / 5));
+        delta = smin(delta, -c.depthM * smooth01(1 - d / c.radiusM), CARVE_BLEND_M);
+        infl = smax(infl, smooth01(1 - (d - c.radiusM) / (c.inflTaperM ?? INFL_TAPER_M)), INFL_BLEND);
       }
       return { delta, infl };
     }
     case 'plateau': {
       const d = Math.hypot(x - c.cxM, z - c.czM);
       const t = 1 - smooth01((d - c.radiusM) / c.falloffM);
-      return { delta: c.riseM * t, infl: clamp01(1 - (d - c.radiusM - c.falloffM) / 5) };
+      return { delta: c.riseM * t, infl: smooth01(1 - (d - c.radiusM - c.falloffM) / (c.inflTaperM ?? INFL_TAPER_M)) };
     }
     case 'craters': {
-      let delta = 0, infl = 0, best = -1;
-      for (let i = 0; i < c.count; i++) {
-        const r = c.radiiM[i];
-        const pad = r + c.wallM;
-        const cx = noise2D(i * 7.3, 1.9, c.seed) * (OUTDOOR_W_M - 2 * pad) + pad;
-        const cz = noise2D(5.1, i * 11.7, c.seed + 41) * (OUTDOOR_D_M - 2 * pad) + pad;
+      // Each bowl is C1 AND compactly supported — rampC1(1) = 1 kills the floor
+      // term at the footprint edge and sin^2(pi) kills the lip term, both with
+      // zero slope. Compactly-supported C1 functions SUM to a C1 function, so
+      // there is no winner-takes-all selection here and therefore no seam.
+      // Floors are authored disjoint (asserted in selfCheck) so the only thing
+      // that ever overlaps is two wall skirts, where both are near zero.
+      let delta = 0, infl = 0;
+      for (const { cx, cz, r, pad } of craterCentres(c)) {
         const d = Math.hypot(x - cx, z - cz);
-        if (d > pad + 4) continue;
-        const strength = 1 - clamp01((d - r) / c.wallM);
-        infl = Math.max(infl, clamp01(1 - (d - pad) / 4));
-        if (strength <= best) continue;
-        best = strength;
-        // Linear across the wall, so the gradient is floorDrop/wall rather
-        // than 1.5x that; the sin() lip is zero at both ends so it joins clean.
+        infl = smax(infl, smooth01(1 - (d - pad) / (c.inflTaperM ?? INFL_TAPER_M)), INFL_BLEND);
+        if (d >= pad) continue;
+        if (d <= r) { delta += -c.floorDropM; continue; }
         const w = clamp01((d - r) / c.wallM);
-        delta = d <= r ? -c.floorDropM
-                       : -c.floorDropM * (1 - w) + c.rimRiseM * Math.sin(w * Math.PI) * 0.9;
+        const lip = Math.sin(w * Math.PI);
+        delta += -c.floorDropM * (1 - rampC1(w)) + c.rimRiseM * lip * lip;
       }
       return { delta, infl };
     }
@@ -343,7 +487,7 @@ export function heightAt(biomeId, x, z) {
   let base = roll;
   if (b.ridge) {
     const r = b.ridge;
-    const rd = Math.pow(ridge2D(wx / r.wavelengthM, wz / r.wavelengthM,
+    const rd = Math.pow(ridgeC1(wx / r.wavelengthM, wz / r.wavelengthM,
       { octaves: r.octaves, lacunarity: r.lacunarity, gain: r.gain, seed: r.seed }), r.exponent);
     base = roll * (1 - r.weight) + (rd * 2 - 1) * r.weight;
   }
@@ -364,6 +508,98 @@ export function normalSlopeDeg(biomeId, x, z, e = VERTEX_SPACING_M) {
   const hx = (heightAt(biomeId, x + e, z) - heightAt(biomeId, x - e, z)) / (2 * e);
   const hz = (heightAt(biomeId, x, z + e) - heightAt(biomeId, x, z - e)) / (2 * e);
   return Math.atan(Math.hypot(hx, hz)) * 180 / Math.PI;
+}
+
+// ── surface continuity ────────────────────────────────────────────────────
+
+/** Worst |d2h|/e2 over the map, both axes, at one probe spacing. */
+function curvaturePeak(biomeId, wM, dM, e) {
+  const nx = Math.round(wM / e) + 1, nz = Math.round(dM / e) + 1;
+  const g = new Float64Array(nx * nz);
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) g[j * nx + i] = heightAt(biomeId, i * e, j * e);
+  const e2 = e * e;
+  let max = 0, at = [0, 0], axis = 'x';
+  for (let j = 1; j < nz - 1; j++) for (let i = 1; i < nx - 1; i++) {
+    const h = g[j * nx + i];
+    const dxx = Math.abs(g[j * nx + i - 1] - 2 * h + g[j * nx + i + 1]) / e2;
+    const dzz = Math.abs(g[(j - 1) * nx + i] - 2 * h + g[(j + 1) * nx + i]) / e2;
+    if (dxx > max) { max = dxx; at = [i * e, j * e]; axis = 'x'; }
+    if (dzz > max) { max = dzz; at = [i * e, j * e]; axis = 'z'; }
+  }
+  return { max, at, axis };
+}
+
+/** Two scales. `divergence` ~2.0 means a slope discontinuity; ~1.0 means the
+ *  field is C1 and the peak is genuine curvature. `slopeJump` is what the
+ *  crease would actually be worth if it is one: rise/run change concentrated
+ *  at a point, which is the number that decides whether it lights up. */
+function creaseScan(biomeId, wM, dM, e = CREASE_PROBE_SPACING_M) {
+  const coarse = curvaturePeak(biomeId, wM, dM, e);
+  const fine = curvaturePeak(biomeId, wM, dM, e / 2);
+  return {
+    coarse: coarse.max, fine: fine.max,
+    divergence: fine.max / coarse.max,
+    at: fine.at, axis: fine.axis,
+    slopeJumpDeg: Math.atan(fine.max * (e / 2)) * 180 / Math.PI,
+  };
+}
+
+/** Nearest coordinate where this biome's carve CHANGES FORMULA, to the given
+ *  point. Diagnostic only — the ratio above is the gate. Reads the same `c`
+ *  object and the same centre helpers the field reads. */
+function nearestCarveBoundary(b, x, z) {
+  const c = b.carve;
+  if (!c) return null;
+  const cand = [];
+  const push = (label, dist) => cand.push({ label, dist: Math.abs(dist) });
+  switch (c.kind) {
+    case 'shore':
+      push(`startM=${c.startM}`, x - c.startM); break;
+    case 'channel':
+    case 'trench': {
+      const along = c.axis === 'z' ? z : x;
+      const across = c.axis === 'z' ? x : z;
+      const span = c.axis === 'z' ? OUTDOOR_W_M : OUTDOOR_D_M;
+      const centre = span / 2 + Math.sin(along / c.wavelengthM * Math.PI * 2) * c.sinuosityM;
+      const d = Math.abs(across - centre);
+      push('centreline', d);
+      if (c.kind === 'channel') {
+        push(`widthM/2=${c.widthM / 2}`, d - c.widthM / 2);
+        push(`infl taper`, d - (c.widthM / 2 + (c.inflTaperM ?? INFL_TAPER_M)));
+      } else {
+        push(`floorWidthM/2=${c.floorWidthM / 2}`, d - c.floorWidthM / 2);
+        push(`rimWidthM/2=${c.rimWidthM / 2}`, d - c.rimWidthM / 2);
+        push('infl taper', d - (c.rimWidthM / 2 + (c.inflTaperM ?? INFL_TAPER_M)));
+      }
+      break;
+    }
+    case 'basins':
+      for (const { cx, cz, r } of basinCentres(c)) {
+        const d = Math.hypot(x - cx, z - cz);
+        push(`radiusM=${r}`, d - r);
+        push('infl taper', d - (r + (c.inflTaperM ?? INFL_TAPER_M)));
+      }
+      break;
+    case 'plateau': {
+      const d = Math.hypot(x - c.cxM, z - c.czM);
+      push(`radiusM=${c.radiusM}`, d - c.radiusM);
+      push(`radiusM+falloffM=${c.radiusM + c.falloffM}`, d - (c.radiusM + c.falloffM));
+      push('infl taper', d - (c.radiusM + c.falloffM + (c.inflTaperM ?? INFL_TAPER_M)));
+      break;
+    }
+    case 'craters':
+      for (const { cx, cz, r, pad } of craterCentres(c)) {
+        const d = Math.hypot(x - cx, z - cz);
+        push(`crater r=${r} floor edge`, d - r);
+        push(`crater r=${r} wall top`, d - pad);
+        push(`crater r=${r} infl taper`, d - (pad + (c.inflTaperM ?? INFL_TAPER_M)));
+      }
+      break;
+    case 'terrace':
+      push('terrace riser (height-space, not planar)', Infinity); break;
+  }
+  cand.sort((p, q) => p.dist - q.dist);
+  return cand[0];
 }
 
 // ── cost ───────────────────────────────────────────────────────────────────
@@ -477,6 +713,40 @@ function selfCheck() {
       `  ${s.maxSlopeDeg.toFixed(1).padStart(5)} / ${s.meanSlopeDeg.toFixed(1).padStart(4)} deg` +
       `   ${String(b.maxSlopeDeg).padStart(2)}    ${Math.min(...terms).toFixed(2).padStart(5)} m` +
       `      ${String(noiseEvalsPerVertex(b)).padStart(2)}`);
+  }
+
+  // 2b. surface continuity — the crease class max-slope cannot see
+  console.log(`\nSurface continuity: |d2h|/e2 at ${CREASE_PROBE_SPACING_M} m vs ${CREASE_PROBE_SPACING_M / 2} m.`);
+  console.log(`Divergence ~2.0 = C1 break, ~1.0 = genuine curvature. Ceiling ${CREASE_DIVERGENCE_MAX}.`);
+  console.log('Biome             @0.5m   @0.25m   diverg   worst at (x,z) m   ax   nearest carve boundary');
+  for (const id of Object.keys(BIOMES)) {
+    const b = BIOMES[id];
+    const cs = creaseScan(id, OUTDOOR_W_M, OUTDOOR_D_M);
+    const nb = nearestCarveBoundary(b, cs.at[0], cs.at[1]);
+    const tag = !nb ? 'no carve'
+      : nb.dist <= CREASE_PROBE_SPACING_M ? `ON ${nb.label}`
+      : Number.isFinite(nb.dist) ? `${nb.dist.toFixed(1)} m from ${nb.label}` : nb.label;
+    console.log(`${id.padEnd(16)} ${cs.coarse.toFixed(3).padStart(6)}  ${cs.fine.toFixed(3).padStart(7)}  ` +
+      `${cs.divergence.toFixed(2).padStart(6)}x  ` + `(${cs.at[0].toFixed(2)}, ${cs.at[1].toFixed(2)})`.padEnd(18) +
+      ` ${cs.axis}   ${tag}`);
+    if (cs.divergence > CREASE_DIVERGENCE_MAX)
+      F(`${id}: |d2h| grows ${cs.divergence.toFixed(2)}x when the probe halves at (${cs.at[0]}, ${cs.at[1]}) m ` +
+        `along ${cs.axis} — a C1 crease worth ${cs.slopeJumpDeg.toFixed(1)} deg of slope across one vertex line` +
+        (nb && nb.dist <= CREASE_PROBE_SPACING_M ? ` (on ${nb.label})` : ''));
+  }
+
+  // 2c. crater floors must not overlap — summing two floors doubles the drop
+  //     and stacks two walls into one, which is how this carve blew the slope
+  //     ceiling by 36 deg on the first pass.
+  {
+    const cc = craterCentres(BIOMES.crater_ember.carve);
+    let worst = -Infinity, pair = null;
+    for (let i = 0; i < cc.length; i++) for (let j = i + 1; j < cc.length; j++) {
+      const gap = Math.hypot(cc[i].cx - cc[j].cx, cc[i].cz - cc[j].cz) - cc[i].r - cc[j].r;
+      if (-gap > worst) { worst = -gap; pair = [i, j]; }
+    }
+    console.log(`\ncrater_ember floors: ${cc.length} sites, closest floor-to-floor gap ${(-worst).toFixed(1)} m (must be > 0).`);
+    if (worst >= 0) F(`crater_ember: floors of craters ${pair[0]} and ${pair[1]} overlap by ${worst.toFixed(1)} m`);
   }
 
   // 3. Haventide build plots must be level enough to put a building on

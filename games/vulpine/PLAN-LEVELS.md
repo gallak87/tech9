@@ -301,10 +301,11 @@ deck, walls and roof against the offset box at every sample.
 
 **A built corridor that changes width or height cannot be made of centred
 boxes.** A slab centred on a segment has one width and one height, so a taper
-comes out as a sawtooth and a descent as a stair — 33 m per step on the
-assembly floor's widening, 52 m on the shaft. Deck, curtain, lamp runs and roof
-are corner-exact plates for this reason: four corners at two z, and the segment
-boundaries share vertices.
+comes out as a sawtooth and a descent as a stair. Measured over the Foundry at
+the mesher's own 86.7 m segment: the deck edge would step **85 m** where the
+assembly floor widens and the deck **207 m** through the shaft. Deck, curtain,
+lamp runs and roof are corner-exact plates for this reason — four corners at
+two z, and the segment boundaries share vertices.
 
 **A low ceiling is a ratio, not a clearance.** The offset box is 78 m above the
 rail, so the tightest honest roof is about rail + 84 whatever the room looks

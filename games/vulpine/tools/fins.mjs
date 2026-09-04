@@ -31,7 +31,7 @@
 import * as THREE from 'three';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { profileAt, heightAtU, centrelineX, setActiveDNA } from '../src/world/profile.js';
+import { profileAt, heightAtU, centrelineX, setActiveDNA, WORLD } from '../src/world/profile.js';
 import { DNA_BY_ID } from '../src/world/dna.js';
 import { Terrain } from '../src/world/terrain.js';
 
@@ -145,6 +145,60 @@ function audit(levelId) {
   }
   terr.dispose();
   return bad ? 1 : 0;
+}
+
+/* ── 1b. the built and belt backends ──────────────────────────────────────── */
+//
+// `audit` above is written against the heightfield mesher — it reads
+// `userData.grid` for the column layout and separates surface triangles from
+// hems, neither of which a box has. So the two backends that are not a
+// heightfield were skipped entirely and have never been winding-checked, which
+// is a gap and not a design: `works` builds every plate from a corner list and
+// decides each face's winding from an outward hint, and that is exactly the
+// kind of code a gate exists for.
+//
+// Winding only, and gated on the same per-mesh fraction: there is no grid here,
+// so there is no sub-grid aliasing to tell apart from a real flip, and anything
+// above zero is a defect rather than a note.
+async function auditBuilt(id) {
+  setActiveDNA(DNA_BY_ID[id]);
+  const { Works } = await import('../src/world/works.js');
+  const { Belt } = await import('../src/world/belt.js');
+  const root = new THREE.Group();
+  const t0 = Date.now();
+  const built = WORLD.backend === 'works' ? new Works(root, {}) : new Belt(root, null);
+  for (const job of built.jobs) job();
+  const meshes = [];
+  root.traverse(o => { if (o.isMesh) meshes.push(o); });
+
+  let tris = 0, flipped = 0, worstMesh = 0, worstMeshAt = null, minDot = 1, minAt = null;
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
+  const n = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3();
+  const vn = new THREE.Vector3();
+  for (const m of meshes) {
+    const P = m.geometry.attributes.position, N = m.geometry.attributes.normal, I = m.geometry.index;
+    if (!P || !N || !I) continue;
+    let mFlip = 0, mTris = 0;
+    for (let t = 0; t < I.count; t += 3) {
+      const ia = I.getX(t), ib = I.getX(t + 1), ic = I.getX(t + 2);
+      a.fromBufferAttribute(P, ia); b.fromBufferAttribute(P, ib); c.fromBufferAttribute(P, ic);
+      e1.subVectors(b, a); e2.subVectors(c, a); n.crossVectors(e1, e2);
+      if (n.length() < 1e-9) continue;
+      n.normalize();
+      vn.fromBufferAttribute(N, ia);
+      const d = n.dot(vn);
+      mTris++; tris++;
+      if (d < 0) { mFlip++; flipped++; }
+      if (d < minDot) { minDot = d; minAt = `${m.name || 'chunk'} tri ${t / 3}`; }
+    }
+    if (mTris && mFlip / mTris > worstMesh) { worstMesh = mFlip / mTris; worstMeshAt = m.name || 'chunk'; }
+  }
+  console.log(`audit: ${meshes.length} meshes, ${tris.toLocaleString()} triangles in ${Date.now() - t0} ms (${WORLD.backend})`);
+  console.log(`  back-facing triangles:         ${flipped} of ${tris.toLocaleString()}`);
+  console.log(`  worst single mesh:             ${(worstMesh * 100).toFixed(3)}%${worstMeshAt ? ` (${worstMeshAt})` : ''}`);
+  console.log(`  worst facet-vs-shading agreement: ${minDot.toFixed(3)} at ${minAt}`);
+  built.dispose();
+  return flipped ? 1 : 0;
 }
 
 /* ── 2. rendered-frame probe ──────────────────────────────────────────────── */
@@ -322,9 +376,10 @@ if (!FLAG('probe-only')) {
   const only = arg('level');
   const levels = only && only !== true ? [only] : Object.keys(DNA_BY_ID);
   for (const id of levels) {
-    if ((DNA_BY_ID[id].backend ?? 'terrain') !== 'terrain') continue;
     console.log(`\n── ${id} ──`);
-    code += audit(id) ? 1 : 0;
+    code += ((DNA_BY_ID[id].backend ?? 'terrain') === 'terrain'
+      ? audit(id)
+      : await auditBuilt(id)) ? 1 : 0;
   }
 }
 if (!FLAG('audit')) code += (await probe()) ? 1 : 0;

@@ -25,8 +25,8 @@ import { WORLD, centrelineX, centrelineY, smooth } from './profile.js';
 // cushion, the AI's altitude clamps and the ground batteries all work normally.
 //
 // ── Zones ────────────────────────────────────────────────────────────────────
-// The box is a function of z, not a constant. `works.zones` is to this backend
-// what `zones.js` is to `terrain`: a sequence of held stretches with a blend
+// The box is a function of z. `works.zones` is to this backend what `zones.js`
+// is to `terrain`: a sequence of held stretches with a blend
 // between each pair, carrying the five numbers that decide what the corridor is
 // — how wide (`half`), how high the deck sits (`deckY`), how far the roof is
 // over it (`roofY`), and how much stands on each flank (`rise`). A DNA with no
@@ -47,7 +47,7 @@ import { WORLD, centrelineX, centrelineY, smooth } from './profile.js';
 // The last zone simply holds: its exit key and its final bay run are extended
 // to `zEnd - run`, so the dock the fight belongs in keeps going rather than a
 // new shape being invented for it. The cost is chunks, and they are cheap —
-// 3.8 ms and 4835 triangles each, all of them past `fade` and therefore hidden
+// 2.9 ms and 4515 triangles each, all of them past `fade` and therefore hidden
 // until the ship is in them.
 //
 // ── Bays ─────────────────────────────────────────────────────────────────────
@@ -199,6 +199,23 @@ function compile(src) {
   keys[keys.length - 1].z = zLast;
   bays[bays.length - 1].z1 = zLast;
 
+  // A bulkhead you cannot pass is a level that cannot be finished, so the port
+  // is checked against the offset box rather than eyeballed. Measured at the
+  // wall's own z, because both the deck it is dimensioned off and the rail the
+  // box hangs from move along the corridor.
+  for (const run of bays) {
+    if (run.kind !== BAY.BULKHEAD) continue;
+    const z = (run.z0 + run.z1) * 0.5;
+    const deck = sampleKeys(keys, z);
+    const rail = centrelineY(z);
+    const lo = deck.deckY + W.portY - W.portH, hi = deck.deckY + W.portY + W.portH;
+    if (W.portW < BOX_X) fail(`bulkhead at z ${z}: port half-width ${W.portW} is inside the ${BOX_X} m box`);
+    if (lo > rail - BOX_Y_DOWN || hi < rail + BOX_Y_UP) {
+      fail(`bulkhead at z ${z}: port spans ${lo.toFixed(0)}..${hi.toFixed(0)} and the box needs `
+        + `${(rail - BOX_Y_DOWN).toFixed(0)}..${(rail + BOX_Y_UP).toFixed(0)}`);
+    }
+  }
+
   for (let i = 1; i < keys.length; i++) {
     if (!(keys[i].z < keys[i - 1].z)) {
       fail(`emitted keys are not strictly descending at index ${i}: ${keys[i - 1].z} -> ${keys[i].z}`);
@@ -220,14 +237,13 @@ function lampRuns(W, half) {
   return out;
 }
 
-const _S = { half: 0, deckY: 0, roofY: 0, glaze: 0, riseL: 1, riseR: 1 };
+// From `flight.js` TUNE. The corridor is the player's whole allowance, so both
+// the port assert above and anything else that asks "does the ship fit" measure
+// against these and not against a number that looks generous.
+const BOX_X = 105, BOX_Y_UP = 78, BOX_Y_DOWN = 46;
 
-/**
- * The corridor at `z`. Reuses one object: every caller reads its fields before
- * the next call, and a per-call allocation here would run per vertex row.
- */
-function sample(z, out = _S) {
-  const K = profile().keys;
+/** Blend a key list at `z`. Split out so `compile` can assert on its own keys. */
+function sampleKeys(K, z, out = {}) {
   let i = 0;
   while (i < K.length - 2 && z < K[i + 1].z) i++;
   const a = K[i], b = K[i + 1];
@@ -240,6 +256,14 @@ function sample(z, out = _S) {
   out.riseR = a.riseR + (b.riseR - a.riseR) * t;
   return out;
 }
+
+const _S = { half: 0, deckY: 0, roofY: 0, glaze: 0, riseL: 1, riseR: 1 };
+
+/**
+ * The corridor at `z`. Reuses one object: every caller reads its fields before
+ * the next call, and a per-call allocation here would run per vertex row.
+ */
+function sample(z, out = _S) { return sampleKeys(profile().keys, z, out); }
 
 export class Works {
   constructor(root, mats) {
@@ -341,7 +365,9 @@ export class Works {
     // Deck, curtain and roof are all one surface per segment with a corner at
     // each end, not a box centred on the middle: `half` and `deckY` both move
     // along z, and a run of centred boxes turns a taper into a sawtooth and a
-    // descent into a stair.
+    // descent into a stair. Measured over the Foundry at the 86.7 m segment the
+    // mesher uses: the deck edge would step 85 m where the assembly floor
+    // widens and the deck 207 m through the shaft.
     const SEGS = 6;
     let a = at(z0);
     for (let i = 0; i < SEGS; i++) {
@@ -636,7 +662,8 @@ export class Works {
     return g;
   }
 
-  /** A rectangular rim, as four slabs — the lit frame of a bulkhead port. */
+  /** A rectangular rim, as four slabs — a bulkhead port's lit frame, and a
+   *  hull frame on the stocks. */
   _ring(hw, hh, t, d) {
     this._cache ||= new Map();
     const k = 'g' + this._key(hw, hh, t, d);
@@ -814,7 +841,7 @@ const DEFAULT_WORKS = {
   bulkT: 12,
   /** Clear of `blockH`'s ceiling, or the bulkhead is shorter than its neighbours. */
   bulkH: 470,
-  /** The port. Sized off the offset box, not by eye — see the assert below. */
+  /** The port. Sized off the offset box, not by eye — `compile` asserts it. */
   portW: 128,
   portH: 96,
   portY: 96,
@@ -829,9 +856,9 @@ const DEFAULT_WORKS = {
   /** One held stretch per entry, blended into the one before. Null is one zone
    *  holding the flat fields above for the whole corridor. */
   zones: null,
-  // open, open, span, open, enclosed, span, open, bulkhead — 8 bays ≈ 4.2 km,
-  // so the level runs the cycle just over twice and no two adjacent bays repeat
-  // the pattern at the same point in the corridor's own meander.
+  // open, open, span, open, enclosed, span, open, bulkhead — 8 bays ≈ 4.2 km.
+  // What a corridor with no `zones` gets: a 9 km one runs the cycle just over
+  // twice, and no two adjacent bays repeat at the same point in it.
   pattern: [BAY.OPEN, BAY.OPEN, BAY.SPAN, BAY.OPEN, BAY.ENCLOSED, BAY.SPAN, BAY.OPEN, BAY.BULKHEAD],
 };
 

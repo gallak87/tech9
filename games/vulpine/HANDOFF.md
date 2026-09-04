@@ -48,8 +48,9 @@ rather than one pattern cycled over the whole corridor.
 
 Deck, curtain, lamp runs and roof are corner-exact plates rather than centred
 boxes: a slab centred on a segment has one width and one height, which turns a
-taper into a sawtooth (33 m per step on the assembly floor) and a descent into a
-stair (52 m in the shaft).
+taper into a sawtooth and a descent into a stair — measured at the mesher's own
+86.7 m segment, the deck edge would step 85 m where the assembly floor widens
+and the deck 207 m through the shaft.
 
 **The Foundry is authored, in five acts** — gantry run to -2280, breach to
 -3840, shaft to -5400, assembly floor to -7800, dock to the end. The deck is a
@@ -148,9 +149,15 @@ indices from a bay pattern that no longer exists: `w4-gantry`, `w4-edge`,
   `LAP_MIN` at 11 s. The hop starts from up there.
 - `tools/quiet.mjs --audit` — green. Rail moves: fast, in the gaps, and wave
   tables in order. Static, so it is cheap; `pacing.mjs` is the live instrument.
-- `tools/fins.mjs --audit` — green. Gates on the worst single mesh's back-facing
-  fraction, because a winding regression is a whole mesh; the scattered facets
-  it prints as a note are sub-grid props aliasing against the grid.
+- `tools/fins.mjs --audit` — green, and covers all three backends since
+  2026-09-03: it skipped `works` and `field` entirely before that, so the one
+  backend that decides each face's winding from an outward hint had never been
+  checked. A heightfield level gets the full audit — hems, columns, and a gate
+  on the worst single mesh's back-facing fraction, because a winding regression
+  is a whole mesh and the scattered facets it prints as a note are sub-grid
+  props aliasing against the grid. A built or belt level gets winding only, and
+  anything above zero fails: there is no grid there, so there is no aliasing to
+  tell a real flip apart from.
 
 **`shots/` is gitignored**, so every capture named in these docs is local to
 whoever made it. A fresh clone regenerates its own baseline — the command is in

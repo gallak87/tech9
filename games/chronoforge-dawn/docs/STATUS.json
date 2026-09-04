@@ -1,0 +1,56 @@
+{
+  "game": "chronoforge-dawn",
+  "phase": 0,
+  "phaseName": "Engine Skeleton, Contract & First Light",
+  "updated": "2026-09-03",
+  "devServer": { "port": 5190, "url": "http://127.0.0.1:5190/", "consoleErrors": 0 },
+  "gates": {
+    "localhostServesZeroErrors": true,
+    "shotWritesPngAndExitsZero": true,
+    "pngOpenedAndReviewed": true,
+    "architectureAndContractExist": true,
+    "ownershipTableCoversTwelveFolders": true
+  },
+  "budget": { "frameMs": 6.4, "limit": 16.6, "drawCalls": 63, "callLimit": 900, "triangles": 298014, "triLimit": 2600000, "ok": true },
+  "probe": {
+    "hour": 6.4,
+    "sunElevationDeg": 11.6,
+    "band": "exposed median 0.09-0.25, p90 < 1.2, whitePct < 2, blackPct < 14",
+    "shots": {
+      "hero":      { "median": 0.154, "p90": 0.41, "whitePct": 0.06, "blackPct": 0.0 },
+      "wide":      { "median": 0.212, "p90": 0.51, "whitePct": 0.00, "blackPct": 0.0 },
+      "ridge":     { "median": 0.388, "p90": 0.49, "whitePct": 0.00, "blackPct": 0.0 },
+      "ground":    { "median": 0.279, "p90": 0.65, "whitePct": 0.34, "blackPct": 0.0 },
+      "top":       { "median": 0.172, "p90": 0.39, "whitePct": 0.00, "blackPct": 0.0 },
+      "materials": { "median": 0.104, "p90": 0.40, "whitePct": 0.18, "blackPct": 0.0 },
+      "sun":       { "median": 1.315, "p90": 12.71, "whitePct": 37.29, "blackPct": 0.0,
+                     "note": "deliberate into-the-sun stress frame; terrain still silhouettes" }
+    },
+    "night": { "hour": 21.5, "median": 0.030, "whitePct": 0.0, "blackPct": 8.8 }
+  },
+  "tools": {
+    "shipped": ["shot.mjs", "probe.mjs", "lintrng.mjs"],
+    "pending": ["sheet.mjs", "blind.mjs", "walk.mjs", "door.mjs", "duel.mjs", "stage.mjs",
+                "fog.mjs", "econ.mjs", "save.mjs", "digest.mjs", "census.mjs"]
+  },
+  "modules": {
+    "world": "phase0 placeholder scene — world lane replaces wholesale in Tier 1",
+    "render": "camera rig, environment, materials, textures, postfx, probe — real",
+    "actors": "stub", "traversal": "stub", "places": "stub", "battle": "stub",
+    "progression": "stub", "settlement": "stub", "fx": "stub", "ui": "stub", "audio": "stub"
+  },
+  "openIssues": [
+    { "id": "P0-1", "sev": "medium", "owner": "render",
+      "text": "No ambient occlusion or contact shadow. Small props read as pasted on when they stand inside a cast shadow. This is half of defect 3 and it needs an AO pass in Tier 1." },
+    { "id": "P0-2", "sev": "medium", "owner": "render",
+      "text": "Depth of field is not implemented. It needs a DepthTexture, which cannot share the 4x MSAA scene target; add a resolved depth prepass in Tier 1. Do not bolt DOF onto the current target." },
+    { "id": "P0-3", "sev": "low", "owner": "render",
+      "text": "Ground detail normal map repeats visibly at its ~22 m tile from the top shot. Needs a second octave at a different repeat, or triplanar variation." },
+    { "id": "P0-4", "sev": "low", "owner": "world",
+      "text": "The placeholder heightfield reads as sand dunes: ridged noise plus a bright sandy palette. It is scaffolding, not a look decision, and the world lane replaces it." },
+    { "id": "P0-5", "sev": "low", "owner": "render",
+      "text": "Night lighting was tuned to a readable linear median of 0.03 but has had no art pass. Tier 1 owns it." },
+    { "id": "P0-6", "sev": "info", "owner": "dev",
+      "text": "FRAME_HEIGHT_M = 18 (the deferred orthographic scale) is set from a pixel-height argument, not from playtesting a party of three plus enemies. Revisit once traversal lands." }
+  ]
+}

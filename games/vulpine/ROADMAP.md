@@ -146,14 +146,31 @@ register, swept collision.
       3 km outside the world exactly as it does inside it. Only the geometry was
       missing, so nothing about the fight changes — it simply becomes visible.
 
-      Three shapes, none costed except the first:
+      **Venom is the worst of the four still open**, and it is the campaign's
+      last fight: `shots/crit-void-all/venom.png` is a featureless lava plane to
+      the horizon with no ridge anywhere in it, on the one level whose whole
+      identity is a spine end to end. Corneria's is open ocean.
+
+      Three shapes, and both of the live ones are now costed:
       - **The corridor keeps going.** Build past `zEnd` far enough to cover the
-        fight. Measured for `works`: ~3 ms and 4515 tris per 520 m chunk, and
+        fight. Done for `works`: ~3 ms and 4515 tris per 520 m chunk, and
         `updateLOD` hides everything past 4200 m so the draw cost is unchanged.
-        On `terrain` the same distance is a second level's worth of triangles
-        and has not been measured — that is the open half.
-      - **Hold the rail at the arena.** Cheap and wrong on its own: the sense of
-        speed in this game is the world going past, and a held rail parks it.
+        **For `terrain` it is 30 ms and 73,341 triangles per kilometre** — an
+        8 km run is +241 ms of build and +587k triangles against a level that is
+        774k, measured on Venom and Corneria, which are identical.
+        **And it is draws, not only memory**, which is the part that makes this
+        more than a boot-cost question: `Terrain.updateLOD` swaps index buffers
+        by distance and never hides a chunk, so unlike `Works` every metre built
+        is drawn forever. A terrain run wants a distance cull with it, and that
+        is the perf lane's business as much as this one's.
+      - **Slow the rail while the boss is armed.** Not tried, and it is the
+        cheap one: at 40 m/s a 45 s fight covers 1.8 km instead of 7.9, so every
+        level needs a 2 km run rather than an 8 km one — a quarter of the cost
+        on `terrain` and nothing at all on two of the levels. It is also the
+        arcade answer, since a boss fight is a held confrontation rather than a
+        transit. What it touches: `flight.js` owns `speed`, and the engine note,
+        the trails and every relative closing rate come off it, so this is a
+        flight-lane change with a feel question in it and wants the owner.
       - **Arm the boss earlier.** Not viable — a 45 s fight is 7.9 km and every
         level's boss would have to arm before its midpoint.
 
@@ -516,17 +533,29 @@ chain, motion blur — are all shipped; they and their reasoning are in
 - [ ] **Shoreline.** The beach/water boundary is still a hard geometric line
       with no foam, and the sand is a flat untextured wedge
       (`shots/refl1/w-shore.png`, mid-left; `shots/refl1/combat-wide.png`).
-- [ ] **The Foundry is the darkest level in the game, and every one of its acts
-      is under the band.** `tools/hist.mjs --level foundry --env foundry`,
-      composited medians against the 0.10-0.20 target: gantry **0.018**, deck
-      0.038, breach 0.029, edge 0.050, shaft 0.075, assembly 0.081, dock 0.102.
-      Three of the seven also run 28-37% pure black. Corneria's equivalent
-      numbers below are 0.032-0.116, so this is the same global grade offset
-      one level further down — and the part of it that is the starfield sky is
-      not a defect, while the part that is a median of 0.018 on the level's
-      opening frame is. `environment.js` is the render lane; the Foundry's own
-      lighting (deck lamps, roof lamp runs) was taken as far as the world lane
-      reaches on 2026-09-03.
+- [ ] **The Foundry's interiors are under the exposure band, and its exteriors
+      cannot be judged by it.** `tools/hist.mjs --level foundry --env foundry`,
+      composited medians against the 0.10-0.20 target, with the black fraction
+      beside each: breach **0.029** (black 1.6%), deck **0.038** (3.0%), shaft
+      **0.075** (0.2%), assembly **0.085** (1.0%).
+
+      **Read those four and not the other three.** `probe()`'s band is
+      documented as healthy *daylight*, and gantry 0.018 / edge 0.050 / dock
+      0.095 are 28-37% pure black because most of the frame is a starfield —
+      a median is the wrong statistic for a level with a black sky in half of
+      it. The four above have almost no sky in them and are still two to four
+      times under, which is the finding.
+
+      Not the same lever as the global offset below, either: this preset already
+      carries the highest exposure in `environment.js` at 1.30 against
+      Corneria's 0.20. Inside a roofed bay the sun cannot reach and the IBL is a
+      starfield, so what is left is `hemiIntensity` / `fillIntensity` /
+      `envIntensity` — all render lane. The world lane's half was taken as far
+      as it goes on 2026-09-03: deck lamps in every bay, roof lamp runs scaled
+      to the room's width, and lit strips up the berth masts. There are no local
+      lights in this game, so geometry that emits is bright pixels and nothing
+      else — four roof runs instead of one moved the assembly floor 0.081 to
+      0.085.
 
 - [ ] **The whole level sits under the exposure band, not just `w-shore`.** The
       old note asked whether other shadowed-gorge angles did the same. Measured

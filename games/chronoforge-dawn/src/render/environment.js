@@ -80,6 +80,71 @@ const MOON_RAMP = [
   [31, 0x93a9d8, 4.80],
 ];
 
+// ── Civil twilight ───────────────────────────────────────────────────────────
+// The day->night handover used to be a BOOLEAN (`a.night`), so at exactly
+// h=19.8 and h=5.55 eight terms stepped at once: turbidity 11.4->2.0, rayleigh,
+// mie, key 3.60 amber -> 2.10 cold blue, fog colour and density, bounce, and
+// environmentIntensity 0.42->1.35. Measured on `ridge`, that put 19.75h at
+// median 0.118 / 0% black and 20.0h at 0.006 / 34% black — a 20x drop across
+// 15 minutes of game time. 5.1h was worse at 0.004 / 60% black.
+//
+// It was never an exposure bug: exposure was already climbing to compensate
+// (1.72 at 20.0h vs 1.05 at signed-off dawn) and getting nothing back, because
+// there was no light left to expose. The sun sets at 19.8 and the moon's arc
+// STARTS at 0 the same instant, so both bodies graze the horizon together and
+// cos-law kills the ground response of each. Real twilight is not lit by either
+// body — it is lit by the sky, and the sky had just been switched to its dim
+// night parameters.
+//
+// TWILIGHT_BLEND is that handover made continuous, and TWILIGHT_GLOW is the
+// scattering term that carries the window. Both are keyed on SUN elevation and
+// both are ZERO outside it, which is what makes this change provably scoped:
+//   sun +6 deg  -> h 5.99 / 19.36      sun -8 deg  -> h 4.82 / 20.53
+// Signed-off dawn (11.55 deg), noon and deep night (-17.8 deg at 21.5h) all sit
+// outside the window and are byte-identical to before.
+const TW_DAY_DEG = 6;     // above this: pure day, blend = 0
+const TW_NIGHT_DEG = -8;  // below this: pure night, blend = 1
+
+/** 0 = full day, 1 = full night. Smoothstep over sun elevation. */
+function twilightBlend(sunElevDeg) {
+  const x = THREE.MathUtils.clamp(
+    (TW_DAY_DEG - sunElevDeg) / (TW_DAY_DEG - TW_NIGHT_DEG), 0, 1);
+  return x * x * (3 - 2 * x);
+}
+
+/**
+ * Scattering energy for the crossing itself — a bell peaking just below the
+ * horizon, where the sun still lights the atmosphere above the observer but no
+ * longer lights the ground. Zero at +8 and at -14, so it cannot touch day,
+ * dawn or deep night.
+ */
+function twilightGlow(sunElevDeg) {
+  const PEAK = -2, HI = 8, LO = -14;
+  if (sunElevDeg >= HI || sunElevDeg <= LO) return 0;
+  const x = sunElevDeg > PEAK
+    ? (HI - sunElevDeg) / (HI - PEAK)
+    : (sunElevDeg - LO) / (PEAK - LO);
+  return x * x * (3 - 2 * x);
+}
+
+// How much extra ambient the crossing gets at the peak of the bell. Both are
+// multiplied by `glow`, so both are exactly 0 outside sun elevation [+8, -14].
+// Tuned against tools/probe.mjs — see the band in docs/STATUS.json.
+const TWILIGHT_ENV = 4.20;     // added to scene.environmentIntensity
+const TWILIGHT_BOUNCE = 1.70;  // added to the hemisphere bounce
+const TWILIGHT_KEY = 2.80;     // added to key intensity through the crossing
+// Degrees the key is LIFTED off the true body during the crossing. This is the
+// term that actually fixes it. At 20.0h the moon sits at 2 deg, so sin(2) =
+// 0.035 and the ground receives ~nothing no matter how bright the light is —
+// grazing incidence, not missing energy. Twilight is lit by the bright band of
+// sky ABOVE the set sun, so the key is raised toward that band while keeping
+// the sun's azimuth: shadows still point away from where the sun went down.
+// 2 deg + 14 deg gives sin(16) = 0.276, an 8x better ground response.
+const TWILIGHT_LIFT_DEG = 14;
+
+const TWILIGHT_SKY = new THREE.Color(0x3a4a7e);   // deep blue the fill leans to
+const TWILIGHT_WARM = new THREE.Color(0x8a5a7a);  // violet-magenta near the sun
+
 const KEY_RAMP = [
   // elevation°, colour,     intensity
   [-90, 0x6f86c8, 0.35],   // moonlight — cold, weak, still directional
@@ -116,7 +181,11 @@ const KEY_RAMP = [
 const EXPOSURE_RAMP = [
   // elevation deg, exposure
   [-90, 1.05],    // deep night — the value MOON_RAMP was tuned against
-  [-6,  1.05],
+  [-14, 1.05],    // GUARD: twilightGlow() is 0 at and below -14, so every hour
+                  // past this interpolates 1.05 to 1.05 and deep night is
+                  // arithmetically unable to move. 21.5h sits at -17.8.
+  [-6,  1.62],    // civil twilight — sky-lit, no body above the horizon
+  [-2,  1.95],
   [0,   2.10],    // sun on the horizon: the key is nearly gone, so lift
   [4,   1.48],
   [8,   1.25],
@@ -222,7 +291,23 @@ export class Environment {
     // Below the horizon the *sun* is gone but the moon runs its own arc; the
     // key light follows whichever body is up so shadows never simply vanish.
     const lightElev = a.night ? a.moonElevation : a.elevation;
-    dirFromAngles(Math.max(lightElev, -3), a.azimuth, this.sunDir);
+
+    // The day->night handover. `tw` is 0 in daylight and 1 once the sun is 8 deg
+    // under, and EVERY term that used to switch on `a.night` now lerps across
+    // it. `glow` is the scattering that lights the crossing itself. Both are
+    // zero outside sun elevation [+8, -14], so dawn, noon and deep night are
+    // untouched by construction — see the block above TW_DAY_DEG.
+    const tw = twilightBlend(a.elevation);
+    const glow = twilightGlow(a.elevation);
+    this.twilight = tw;
+    this.twilightGlow = glow;
+    const mix = (day, night) => day + (night - day) * tw;
+
+    // Lift the key toward the bright twilight sky band (see TWILIGHT_LIFT_DEG).
+    // Azimuth is untouched, so shadow DIRECTION is continuous across the
+    // crossing even though the elevation moves.
+    dirFromAngles(Math.max(lightElev, -3) + glow * TWILIGHT_LIFT_DEG,
+      a.azimuth, this.sunDir);
 
     // Sky shader wants the true sun, including below the horizon — that is how
     // it produces the deep blue of civil twilight rather than flat black.
@@ -237,20 +322,31 @@ export class Environment {
       // produced a clear midday sky at 6 a.m. — pale cyan, blown at the horizon,
       // no amber anywhere. Haze near the horizon is most of what makes dawn look
       // like dawn: it is what turns the Mie lobe around the sun orange.
-      u.turbidity.value = a.night ? 2.0 : 2.4 + low * 9.0;
-      u.rayleigh.value = a.night ? 0.5 : 0.55 + (1 - low) * 1.9;
+      // These lerp rather than switch. Dropping turbidity 11.4 -> 2.0 in one
+      // step is what removed the bright hazy horizon that was carrying the
+      // frame at 19.75h, and it is most of why 20.0h went black.
+      u.turbidity.value = mix(2.4 + low * 9.0, 2.0);
+      u.rayleigh.value = mix(0.55 + (1 - low) * 1.9, 0.5);
       // Mie is the glow AROUND the sun, and it grows as a solid angle: at 0.010
       // the halo alone was 70% of an into-the-sun frame and flat white, which is
       // not a highlight, it is a hole. 0.0035+ keeps the amber bloom near the
       // disc and gives the rest of the sky back.
-      u.mieCoefficient.value = a.night ? 0.003 : 0.0035 + low * 0.0028;
+      u.mieCoefficient.value = mix(0.0035 + low * 0.0028, 0.003);
       u.mieDirectionalG.value = 0.80;
       u.sunPosition.value.copy(skySun);
     }
 
-    const key = a.night
-      ? rampLookup(MOON_RAMP, Math.max(0, a.moonElevation))
-      : rampLookup(KEY_RAMP, lightElev);
+    // Both bodies are sampled every hour and cross-faded, instead of one being
+    // switched off. During the crossing the sun is under the horizon and the
+    // moon has barely risen, so this term is legitimately weak — the frame is
+    // carried by `glow` below, which is what actually lights civil twilight.
+    const sunKey = rampLookup(KEY_RAMP, a.elevation);
+    const moonKey = rampLookup(MOON_RAMP, Math.max(0, a.moonElevation));
+    const key = {
+      color: sunKey.color.clone().lerp(moonKey.color, tw),
+      value: sunKey.value + (moonKey.value - sunKey.value) * tw
+        + glow * TWILIGHT_KEY,
+    };
     this.key.color.copy(key.color);
     this.key.intensity = key.value;
     this.key.visible = this.key.intensity > 0.01;
@@ -258,21 +354,29 @@ export class Environment {
     // Fog and hemisphere take the horizon colour so the far field, the sky and
     // the up-bounce always belong to the same hour.
     const warm = low;
-    this.horizonColor.copy(key.color).lerp(new THREE.Color(0x9db9dd), 1 - warm * 0.92);
-    if (a.night) this.horizonColor.set(0x28324e);
-    this.scene.fog.color.copy(this.horizonColor).multiplyScalar(a.night ? 0.35 : 0.62);
-    this.scene.fog.density = (a.night ? 0.0034 : 0.0011 + warm * 0.0017);
+    const dayHorizon = key.color.clone().lerp(new THREE.Color(0x9db9dd), 1 - warm * 0.92);
+    this.horizonColor.copy(dayHorizon).lerp(new THREE.Color(0x28324e), tw);
+    // Twilight has its own colour, not a darker version of either neighbour:
+    // violet-magenta low near the sun's azimuth, deep blue above.
+    if (glow > 0) {
+      this.horizonColor.lerp(TWILIGHT_WARM, glow * 0.45).lerp(TWILIGHT_SKY, glow * 0.25);
+    }
+    this.scene.fog.color.copy(this.horizonColor).multiplyScalar(mix(0.62, 0.35));
+    this.scene.fog.density = mix(0.0011 + warm * 0.0017, 0.0034);
 
     this.bounce.color.copy(this.horizonColor);
-    this.bounce.groundColor.set(a.night ? 0x121520 : 0x33241a);
-    this.bounce.intensity = a.night ? 0.30 : 0.14 + warm * 0.10;
+    this.bounce.groundColor.copy(new THREE.Color(0x33241a).lerp(new THREE.Color(0x121520), tw));
+    this.bounce.intensity = mix(0.14 + warm * 0.10, 0.30) + glow * TWILIGHT_BOUNCE;
 
     // The scattering sky is BRIGHT in absolute terms — near the sun it runs past
     // 10 — so the probe it bakes carries real energy. At 1.0 it drowns the key
     // light, every surface converges on sky colour and the frame goes milky.
     // 0.42 is where ambient still fills the shadows and the sun still reads as
     // the light source. Measured on the `wide` shot: blown-white 5.2% -> 0.4%.
-    this.scene.environmentIntensity = a.night ? 1.35 : 0.42;
+    // ...and during the crossing neither the sun nor the moon lights the ground,
+    // so the SKY has to. That is not a fudge: it is what civil twilight is. The
+    // boost rides on top of the blended value and falls to zero with `glow`.
+    this.scene.environmentIntensity = mix(0.42, 1.35) + glow * TWILIGHT_ENV;
 
     // Exposure follows the sun as well. One fixed number cannot serve a ground
     // that receives 8.5x more light at noon than at dawn — see EXPOSURE_RAMP.
@@ -331,6 +435,21 @@ export class Environment {
     this.key.target.position.set(sx, focus.y, sz);
     this.key.position.copy(this.key.target.position).addScaledVector(this.sunDir, 160);
     this.key.target.updateMatrixWorld();
+  }
+
+  /**
+   * Re-apply the parts of a quality notch this module owns. The shadow map is
+   * re-allocated by nulling it — Three rebuilds it at the new size on the next
+   * render. Called from the engine's 'engine:quality' event, never directly.
+   */
+  applyQuality(q) {
+    this.key.castShadow = q.shadows;
+    if (this.key.shadow.mapSize.x !== q.shadowMap) {
+      this.key.shadow.mapSize.set(q.shadowMap, q.shadowMap);
+      this.key.shadow.map?.dispose();
+      this.key.shadow.map = null;
+    }
+    return this;
   }
 
   /** Sun/moon elevation in degrees — probes assert against this. */

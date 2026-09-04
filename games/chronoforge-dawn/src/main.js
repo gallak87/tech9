@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Engine, BUDGET } from './core/engine.js';
+import { Engine, BUDGET, QUALITY_ORDER } from './core/engine.js';
 import { bus } from './core/events.js';
 import { installModule, moduleReport } from './core/modules.js';
 import { SHOTS, applyShot, shotNames } from './core/shots.js';
@@ -37,7 +37,14 @@ import { installDevPanel } from './core/devpanel.js';
 const params = new URLSearchParams(location.search);
 const num = (k, d) => { const v = parseFloat(params.get(k)); return Number.isFinite(v) ? v : d; };
 
-const engine = new Engine({ quality: params.get('quality') || 'high' });
+// Quality precedence: an explicit ?quality= wins (tools/shot.mjs passes it and
+// defaults to ultra for still captures), then whatever the human last set on
+// the dev-panel lever, then 'high'. Gameplay probes pass no ?quality, so they
+// measure what the human is actually looking at — see CONCEPT.md.
+let savedQuality = null;
+try { savedQuality = localStorage.getItem('dawn.quality'); } catch { /* private mode */ }
+const engine = new Engine({ quality: params.get('quality') || savedQuality || 'high' });
+engine.bus = bus;
 const rig = new CameraRig();
 const materials = buildMaterials(engine);
 const env = new Environment(engine);
@@ -67,6 +74,23 @@ const ctx = {
    or backtick, so it never lands in a review screenshot. Lanes add their own
    controls with ctx.dev.register(...) — do not edit devpanel.js to add one. */
 ctx.dev = installDevPanel(ctx, { visible: params.get('dev') === '1' });
+
+/* Quality lever — five notches, cheapest first. This is the graphics-cost
+   instrument: sweep it against the Frame/Draws readouts already in the panel
+   and watch what each look decision actually costs. It is registered from here
+   rather than inside devpanel.js because main.js owns the engine.
+   The environment re-allocates its shadow map off the same event. */
+bus.on('engine:quality', ({ q }) => env?.applyQuality(q));
+ctx.dev?.register({
+  group: 'quality', label: 'Level', type: 'select',
+  options: () => [...QUALITY_ORDER],
+  get: () => engine.qualityName,
+  set: (v) => engine.setQuality(v),
+});
+ctx.dev?.register({
+  group: 'quality', label: 'Scale', type: 'readout',
+  get: () => `${engine.renderScale.toFixed(2)}x  sm${engine.q.shadowMap}`,
+});
 
 /* ── lanes ───────────────────────────────────────────────────────────────── */
 const modules = {};

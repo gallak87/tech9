@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
-  "phase": 0,
-  "phaseName": "Engine Skeleton & First Light — complete",
+  "phase": 0.1,
+  "phaseName": "Twilight & Night Lighting — complete",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -76,23 +76,23 @@
       }
     },
     "byHour": {
+      "12": {
+        "exposure": 0.1167,
+        "median": 0.2,
+        "p90": 0.35,
+        "whitePct": 0
+      },
       "6.4": {
         "exposure": 1.0503,
         "median": 0.212,
         "p90": 0.51,
-        "whitePct": 0.0
+        "whitePct": 0
       },
       "9.9": {
         "exposure": 0.1456,
         "median": 0.195,
         "p90": 0.36,
-        "whitePct": 0.0
-      },
-      "12": {
-        "exposure": 0.1167,
-        "median": 0.2,
-        "p90": 0.35,
-        "whitePct": 0.0
+        "whitePct": 0
       },
       "18.5": {
         "exposure": 0.4644,
@@ -107,13 +107,50 @@
         "blackPct": 8.9
       }
     },
-    "note": "wide shot. Exposure ramps over sun elevation (EXPOSURE_RAMP in src/render/environment.js). Fixed per hour: no metering, no auto-exposure."
+    "note": "wide shot. Exposure ramps over sun elevation (EXPOSURE_RAMP in src/render/environment.js). Fixed per hour: no metering, no auto-exposure.",
+    "twilight": {
+      "fix": "day/night boolean replaced by a continuous blend + civil-twilight scattering term, keyed on sun elevation, zero outside [+8,-14] deg",
+      "wide": {
+        "5.1": {
+          "before": {
+            "median": 0.004,
+            "blackPct": 60.3
+          },
+          "after": {
+            "median": 0.062,
+            "blackPct": 7.7
+          }
+        },
+        "20.0": {
+          "before": {
+            "median": 0.006,
+            "blackPct": 34.1
+          },
+          "after": {
+            "median": 0.118,
+            "blackPct": 7.7
+          }
+        }
+      },
+      "unchanged": {
+        "6.4 dawn": {
+          "median": 0.212,
+          "p90": 0.51,
+          "whitePct": 0
+        },
+        "21.5 night": {
+          "median": 0.03,
+          "blackPct": 8.9
+        }
+      }
+    }
   },
   "tools": {
     "shipped": [
       "shot.mjs",
       "probe.mjs",
-      "lintrng.mjs"
+      "lintrng.mjs",
+      "quality lever (dev panel, 5 notches, localStorage)"
     ],
     "pending": [
       "sheet.mjs",
@@ -217,15 +254,6 @@
       "area": "world"
     },
     {
-      "id": "dusk-cliff",
-      "severity": "medium",
-      "tier": "Tier 1 (Phase 4)",
-      "title": "Light falls off a cliff between 19.75h and 20.1h",
-      "detail": "wide median 0.136 at 19.75h (elev +0.7) -> 0.021 at 19.9h (elev -1.1) -> 0.010 at 20.1h with 8.2% black.",
-      "cause": "KEY_RAMP [0, 3.60] -> [-4, 0.55] plus the sun disc leaving the sky. Not exposure - pre-existing and untouched by the exposure ramp.",
-      "area": "world"
-    },
-    {
       "id": "noon-far-field-milky",
       "severity": "medium",
       "tier": "Tier 1 (Phase 4)",
@@ -233,6 +261,27 @@
       "detail": "h12/hero exposes correctly - shadows, metal, dielectric and rock all read. h12/wide goes milky in the far field.",
       "cause": "horizonColor lerps to pale blue 0x9db9dd as warm -> 0 at density 0.0011, and the grade (contrast 1.06, saturation 1.10, split 0.85) is dawn-tuned. Both are outside the exposure spot-fix and were deliberately not touched.",
       "area": "world"
+    },
+    {
+      "id": "TW-1",
+      "severity": "medium",
+      "area": "render",
+      "title": "Sky is pure black above the horizon during twilight",
+      "detail": "Terrain now reads at 20.0h and 5.2h but the sky mesh is still on night parameters and renders flat black. Real civil twilight has a strong vertical gradient. Opened shots/phase0.1/h20/wide.png and h5/wide.png to confirm."
+    },
+    {
+      "id": "TW-2",
+      "severity": "low",
+      "area": "render",
+      "title": "Twilight is heavily magenta/violet",
+      "detail": "TWILIGHT_WARM at 0.45 blend. Reads as a deliberate look but is unvalidated against the game palette. One constant in src/render/environment.js."
+    },
+    {
+      "id": "TW-3",
+      "severity": "low",
+      "area": "render",
+      "title": "5.1h wide median 0.062 is under the 0.09 band floor",
+      "detail": "15x better than the 0.004 it was, and the cliff is gone. Sun is at -4.93 deg there vs -2.20 deg at 20.0h, so it is legitimately deeper in twilight. Floor may be the wrong target mid-crossing. Human eyeballed and accepted."
     }
   ]
 }

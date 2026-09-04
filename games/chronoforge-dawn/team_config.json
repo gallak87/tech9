@@ -316,7 +316,7 @@
       "deferred_to": "gamedesign"
     },
     {
-      "decision": "Dev-panel backlog, built on human request rather than pre-emptively. Five candidates: (1) un-fog, reveal the whole world; (2) teleport to any of the twelve maps or any city; (3) force-exit a battle — win, flee or instant-kill; (4) force a named item drop and replay its drop animation; (5) set party level / grant XP to jump progression gates.",
+      "decision": "Dev-panel backlog, built on human request rather than pre-emptively. Five candidates: (1) un-fog, reveal the whole world; (2) teleport to any of the twelve maps or any city; (3) force-exit a battle — win, flee or instant-kill; (4) force a named item drop and replay its drop animation; (5) set party level / grant XP to jump progression gates; and (6) OPEN ALL EDGES — force every tech-gated doorway unlocked so the human can roam whatever has been built. Item 6 is nearly free: the gate check already stubs to unlocked until Phase 9, so the toggle is that same stub with a button on it.",
       "deferred_to": "human"
     },
     {

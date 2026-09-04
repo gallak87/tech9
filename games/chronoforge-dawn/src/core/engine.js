@@ -18,7 +18,16 @@ export { BUDGET };
 // scale and shadow resolution; they do not remove a look decision.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// FIVE notches, cheapest first. `potato` exists because of a lesson from a
+// prior Three.js build that was tuned so far up it took several sessions to
+// tune back down: if the game does not read at the cheapest notch, the look is
+// carrying cost it has not earned. Sweeping this lever against the fps readout
+// is how that stays honest.
+// `ultra` must keep its name — tools/shot.mjs defaults to it.
+export const QUALITY_ORDER = ['potato', 'low', 'medium', 'high', 'ultra'];
+
 export const QUALITY = {
+  potato: { renderScale: 0.45, shadowMap: 512,  shadows: true, bloom: false, bloomRes: 0.5,  smaa: false, aniso: 1  },
   low:    { renderScale: 0.60, shadowMap: 1024, shadows: true, bloom: true, bloomRes: 0.5,  smaa: true, aniso: 4  },
   medium: { renderScale: 0.80, shadowMap: 2048, shadows: true, bloom: true, bloomRes: 0.5,  smaa: true, aniso: 8  },
   high:   { renderScale: 1.00, shadowMap: 3072, shadows: true, bloom: true, bloomRes: 0.75, smaa: true, aniso: 16 },
@@ -95,6 +104,22 @@ export class Engine {
   get megapixels() { return (this.size.x * this.dpr * this.size.y * this.dpr) / 1e6; }
 
   setRenderScale(r) { this.renderScale = r; this.resize(); }
+
+  /**
+   * Switch quality notch live. renderScale and the post chain re-size
+   * immediately; the shadow map has to be re-allocated, which the environment
+   * owns — it listens for 'engine:quality' and calls its own applyQuality.
+   * Persisted so a reload, and any gameplay probe, uses what the human chose.
+   */
+  setQuality(name) {
+    if (!QUALITY[name] || name === this.qualityName) return this.qualityName;
+    this.qualityName = name;
+    this.q = { ...QUALITY[name] };
+    this.setRenderScale(this.q.renderScale);
+    try { localStorage.setItem('dawn.quality', name); } catch { /* private mode */ }
+    this.bus?.emit('engine:quality', { quality: name, q: this.q });
+    return name;
+  }
 
   resize() {
     const w = window.innerWidth || 1920;

@@ -138,6 +138,18 @@ is a failure regardless of what the code underneath does.
   kept and extended.
 - **IN** — Battle starts in place with a lateral camera swing and push-in at locked pitch. There is
   no separate battle scene, no gradient backdrop, and no scene swap.
+- **IN** — **Graphics restraint is a stated goal, not an afterthought.** Prior experience on a
+  Three.js build (`vulpine`) was tuned so far up that several whole sessions went into tuning it
+  back *down*. Effects are added because they earn a frame, not because they're available. The dev
+  panel carries a live **FPS / frame-ms / draws** readout and a **five-notch quality lever**
+  (cheapest → most expensive), so the cost of every look decision is visible *when it is made*
+  rather than discovered later. `src/core/engine.js` already defines four tiers (low, medium, high,
+  ultra) and needs a fifth notch; `ultra` keeps its name because `tools/shot.mjs` defaults to it.
+- **IN** — **The critic scores the frame a player actually gets.** `tools/shot.mjs` defaults to
+  quality `ultra` while the engine default is `high` — that would grade a frame most players never
+  render, the exact trap `src/core/engine.js:15` already warns about. Scored captures are taken at
+  the **shipping default tier**; `ultra` captures are for detail inspection, labelled as such, and
+  never used as the score.
 - **IN** — A hard performance budget: 60 fps at 1080p, 16.6 ms frame, 900 draw calls, 2.6M
   triangles. Blowing it is a defect, not a trade-off. Disabling a post pass to make a feature look
   better is forbidden.

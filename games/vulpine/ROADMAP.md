@@ -342,6 +342,15 @@ reset, the wave tables swapped and the arrival comm fired.
 
 Open, in the order they cost the player something:
 
+- [ ] **Nothing stops a craft flying through a Foundry BERTH either**, and it
+      is the same defect as the bulkhead below rather than a new one. The hulls
+      on the stocks added 2026-09-03 stand from u 232 to u 448 on alternating
+      sides of the dock, which is clear of the player's 105 m box and of the
+      boss station's 96 — but a foe commanded outboard has nothing telling it
+      the mass is there. Unmeasured; the fix is whatever fixes the bulkhead, a
+      z-gated squeeze on the commanded offset rather than another clamp in
+      `think`.
+
 - [ ] **Nothing stops a craft flying through a Foundry BULKHEAD.** Found while
       fixing the roof (`## Settled — the Foundry's roof`, 2026-08-18). A
       bulkhead is a wall across the corridor with a port through it, and

@@ -81,7 +81,8 @@ at all.
   is a ledge on the flank of the works — massing climbing to port, stepping down
   and outward to starboard — until a bulkhead takes it inside; the rail then
   dives 430 m at 68° with the deck under it; the corridor opens to 860 m across
-  under a 165 m roof; and the last act is an open dock with the carrier in it.
+  under a 165 m roof; and the last act is an open dock with hulls on the stocks
+  in it, which the carrier is fought among.
 
 ## What uniqueness means here
 

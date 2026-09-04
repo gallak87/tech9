@@ -528,6 +528,71 @@ export class Works {
       }
     }
 
+    // ── berths ──────────────────────────────────────────────────────────────
+    // A capital hull on the stocks. The level is called the Foundry and its
+    // comms say "whatever they built in here" and "so that's what they were
+    // building"; without this there is nothing under construction anywhere in
+    // it, and the finale is fought in a bare rectangle.
+    //
+    // Held outboard of `u`, which is authored clear of both the player's 105 m
+    // box and the boss station's 96 — nothing in this backend has collision, so
+    // a berth inside either would be flown through rather than hit. They run
+    // through the boss run as well as the dock, because the fight is most of
+    // the time anything is seen from here.
+    const B = W.berths;
+    if (B) {
+      for (let z = B.from, i = 0; z > B.to; z -= B.gap, i++) {
+        if (z > z0 || z <= z1) continue;
+        const c = at(z);
+        const side = i % 2 ? 1 : -1;
+        const x = c.x + side * B.u;
+        const y = c.y;
+        // Half-built, and that is what makes it read. A hull under
+        // construction is a solid tapered mass aft with the frames still open
+        // forward — the completed part and the part that is not. Frames alone,
+        // however carefully tapered, read as a row of goalposts from every
+        // angle except broadside, because nothing about a constant ring says
+        // which way a ship points.
+        //
+        // `sin(pi t)` is the section: full amidships, pinched at both ends.
+        const sect = (t) => Math.pow(Math.sin(Math.PI * Math.min(1, t)), 0.55);
+        const half = (t) => B.beam * 0.5 * (0.22 + 0.78 * sect(t));
+        const zAt = (t) => z + B.len * (0.5 - t);
+        // Plated aft. Corner-exact segments, so the taper is the shape rather
+        // than a stack of boxes stepping.
+        const SEG = 6;
+        for (let i = 0; i < SEG; i++) {
+          const t0 = (i / SEG) * B.plated, t1 = ((i + 1) / SEG) * B.plated;
+          plane(plate,
+            { z: zAt(t0), x, y: y + B.hullH, half: half(t0) },
+            { z: zAt(t1), x, y: y + B.hullH, half: half(t1) }, B.hullH);
+        }
+        // Open frames forward of it, standing on the keel line.
+        for (let f = 0; f < B.frames; f++) {
+          const t = B.plated + (1 - B.plated) * ((f + 0.5) / B.frames);
+          const hh = B.ribH * 0.5 * (0.40 + 0.60 * sect(t));
+          push(plate, this._ring(half(t), hh, B.ribT, B.ribT * 1.6), x, y + hh, zAt(t));
+        }
+        // The keel runs the whole length under both, so the bow is carried and
+        // the two halves are one object.
+        push(plate, this._slab(B.beam * 0.30, B.keelH, B.len), x, y + B.keelH * 0.5, z);
+        // Scaffold: masts either side with a gantry across the top, so the hull
+        // reads as held rather than parked, and the silhouette carries above it.
+        // The masts carry the berth's light — a strip on the inboard face,
+        // which is the only vertical accent in a level built out of horizontals.
+        for (let m = 0; m < 3; m++) {
+          const mz = zAt((m + 0.5) / 3);
+          for (const s2 of [-1, 1]) {
+            push(plate, this._slab(B.mastT, B.mastH, B.mastT), x + s2 * B.span, y + B.mastH * 0.5, mz);
+            push(lit, this._slab(0.8, B.mastH * 0.82, B.mastT * 0.6),
+              x + s2 * (B.span - B.mastT * 0.5 - 0.5), y + B.mastH * 0.5, mz);
+          }
+          push(plate, this._slab(B.span * 2 + B.mastT, B.mastT, B.mastT * 1.4),
+            x, y + B.mastH, mz);
+        }
+      }
+    }
+
     // ── greebles ────────────────────────────────────────────────────────────
     // Cheap, and the only thing standing between "built" and "extruded". Two per
     // chunk on alternating walls, from a fixed stream so the level is stable.
@@ -758,6 +823,9 @@ const DEFAULT_WORKS = {
   /** Metres of corridor built past `zEnd`, for the boss fight the rail flies
    *  into. See "The run past the end" above. */
   run: 0,
+  /** Hulls on the stocks: a run of berths from `from` to `to` every `gap`,
+   *  alternating sides at `±u`. Null for a corridor that builds nothing. */
+  berths: null,
   /** One held stretch per entry, blended into the one before. Null is one zone
    *  holding the flat fields above for the whole corridor. */
   zones: null,

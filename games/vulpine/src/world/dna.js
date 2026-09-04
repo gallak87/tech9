@@ -460,6 +460,17 @@ export const DNA_FOUNDRY = {
     // 8320 m is 16 chunks, which is 48 s at cruise — `tools/bossprobe.mjs`
     // measures the granted-tier carrier at about 45.
     run: 8320,
+    // What they were building. Through the dock and the whole boss run, since
+    // the fight is most of the time anything is seen from here. `u` 340 with a
+    // 78 m half-span and a 60 m frame reaches u 262-418, clear of the player's
+    // 105 m box, of the boss station's 96, and of the dock's own 560 m edge.
+    berths: {
+      from: -8060, to: -18160, gap: 1300, u: 340,
+      len: 560, beam: 150, keelH: 20, hullH: 62,
+      // Fraction of the length already plated; the rest is open frames.
+      plated: 0.58, frames: 7, ribH: 124, ribT: 9,
+      span: 104, mastT: 8, mastH: 190,
+    },
     zones: [
       // The deck is a ledge on the flank of the works. To port the massing
       // climbs out of frame; to starboard it steps down and outward from the

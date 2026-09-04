@@ -246,11 +246,19 @@ register, swept collision.
       it. The same commit won at 91 s with TWIN and 23 kills. **One sample each
       way; treat the spread as uncharacterised.** `pacing.mjs`.
 
-- [ ] **Aquas' plunge and Venom's three climbs have not been looked at since
-      they were steepened.** The quiet pass shortened the blends they run over,
-      which takes Aquas 42° → 69° of nose-down and Venom 28-38° → 51-60°.
-      Numbers are inside the documented ~75° limit and all seven levels fly, but
-      no capture has been read. `shots/` before/after on aquas and venom.
+- [x] **Aquas' plunge and Venom's three climbs have not been looked at since
+      they were steepened.** Closed 2026-09-03, read two ways. `framing.mjs`
+      over each level: Aquas' rail pitch reaches **-68.6°** and Venom's swings
+      **-51.3° to +60.0°**, matching what `quiet.mjs` reports — and in both
+      cases the HULL barely moves against the camera, `nosePitch` peak-to-peak
+      5.5° on Aquas and 6.2° on Venom, because the rig is built along the
+      corridor heading and the two rotate together. What the dive costs is the
+      ship's place in frame: Aquas' `ndcY` runs to **-0.616** against a hull
+      that rests about -0.3 by design, so it sits low and stays well inside
+      frame. Captures at the level-out, `shots/g1-dives`: Aquas comes out under
+      the sea surface among the reef benches, Venom low on the spine with lava
+      either side. Both are the shape the dive was authored to reach and
+      neither shows a defect.
 
 - [ ] **`islands` groups silently drop `spire`.** `buildIslands` copies `flat`
       onto a group's output and nothing else, and `islandAt` never reads `spire`

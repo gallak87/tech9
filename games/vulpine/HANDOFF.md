@@ -41,9 +41,9 @@ where the triangles are. Measurements and captures in `ROADMAP.md`.
 `half`, `deckY` and `roofY` fixed on the DNA and `Works.deckY()` a static with
 no z — so three of the Foundry's four brief rows had nothing to author into.
 `works.zones` is now the same idea `zones.js` gives `terrain`: held stretches
-with a blend between them, carrying `half`, `deckY`, `roofY` and a per-flank
-`rise`, sampled as a pure function of z so `groundAt`, `ceilingAt` and the
-offline gates all read one profile. Bay kinds became a run list a zone names
+with a blend between them, carrying `half`, `deckY`, `roofY`, `glaze` and a
+per-flank `rise`, sampled as a pure function of z so `groundAt`, `ceilingAt` and
+the offline gates all read one profile. Bay kinds became a run list a zone names
 rather than one pattern cycled over the whole corridor.
 
 Deck, curtain, lamp runs and roof are corner-exact plates rather than centred
@@ -54,26 +54,84 @@ and the deck 207 m through the shaft.
 
 **The Foundry is authored, in five acts** — gantry run to -2280, breach to
 -3840, shaft to -5400, assembly floor to -7800, dock to the end. The deck is a
-ledge on the flank of the works with the massing climbing to port and stepping
-down and outward to starboard; a bulkhead at -2540 takes it inside; the rail
-dives 430 m at 68° with the deck under it; the corridor opens to 860 m across
-under a 165 m roof; the last act is an open dock. Its wave and comms tables were
-re-placed against those boundaries and against two constraints the shape sets —
-a battery's `bank` must fit inside that act's `half`, and nothing arms between
--4430 and -3360 because the shaft dives there.
+ledge 320 m across on the flank of the works, massing climbing to port and
+stepping down and outward to starboard; a bulkhead at -2540 takes it inside; the
+rail dives 430 m at 68° with the deck under it; the corridor opens to 860 m
+across under a 165 m roof; and the last act is an open dock with hulls on the
+stocks in it. Its wave and comms tables were re-placed against those boundaries
+and against two constraints the shape sets — a battery's `bank` must fit inside
+that act's `half`, and nothing arms between -4430 and -3360 because the shaft
+dives there.
 
-**Two gates learned to read a built corridor.** `lid.mjs` was blind to the only
-backend in the game with real geometry overhead — it printed "foundry: no lid"
-— and now audits deck, walls and roof against the offset box. `shape.mjs`
-printed one line about `works` and measured nothing; its BUILT pass now reports
-half, deck movement, roofed fraction, sky changes per km and flank asymmetry,
-and the Foundry's brief row is checked against them.
+**The finale is fought inside the level now.** The rail does not stop for the
+boss, so a 45 s fight is 7.9 km past a `zEnd` the world stops at — the Foundry's
+carrier was fought on a bare starfield. `works.run` builds 8320 m of dock past
+the end for 27 ms of build and no frame cost. The other five levels still have
+it; see the first item in `ROADMAP.md`.
 
-**The Foundry's review cameras are one per act**, replacing a set framed on bay
-indices from a bay pattern that no longer exists: `w4-gantry`, `w4-edge`,
-`w4-breach`, `w4-shaft`, `w4-assembly`, `w4-dock`, `w4-deck`, `w4-wide`.
+**A rhythm and a subject.** The roof was a single untextured plate and the
+corridor had no transverse feature at all, so at 175 m/s the middle of the
+screen held still; one spacing is now read twice, as a rib under the roof and a
+strip across the deck. Roof lamp runs scale with the room's width. `glaze` falls
+from 0.66 outside to 0.16 on the assembly floor, because the window grid was the
+strongest signal in every frame and made a works read as a street at night.
+`works.berths` puts half-built hulls in the dock — solid tapered mass aft, open
+frames forward, which is the difference between a ship and a row of goalposts.
+
+**The fall reads from the rail, and finding out why it did not cost three
+passes.** From the rail the sight line past the deck edge drops
+`(railY - lipTop) / half` per metre outboard and everything under it is hidden
+by the corridor's own kerb: terraces raked at 0.62 against a sight line of 0.33
+were invisible at *every* setback. Rake 0.14, kerb 4 m, and the gantry run
+narrowed 210 → 160 because a wide deck hides its own edge whatever the terraces
+do. Its battery line went `bank` 96 → 60 to stay on the deck and gained a second
+of time on target for it.
+
+**Three gates learned something.** `lid.mjs` was blind to the only backend with
+real geometry overhead and printed "foundry: no lid"; it audits deck, walls and
+roof against the offset box now, and over the boss run as well as the level.
+`shape.mjs` measured nothing on `works`; its BUILT pass reports half, deck
+movement, roofed fraction, sky changes per km and flank asymmetry. `fins.mjs`
+built `Terrain` and skipped everything else, so `works` and `field` had never
+been winding-checked — foundry 0 of 181,424 back-facing, omega 0 of 240,480.
+
+**Two magnitudes in this session's own comments were wrong** before the quality
+pass caught them, written from an earlier draft of the zone table and never
+re-derived when the numbers moved. That is the failure `PLAN-LEVELS` names, in
+the same session that quotes the rule. And a comment that had promised an assert
+since the backend landed now has one: `compile` checks the bulkhead port against
+the offset box at the wall's own z, and every assert in the file was exercised
+by breaking the DNA seven ways.
+
+**Aquas' and Venom's steepened dives were finally read** — `framing.mjs` plus
+captures, closed in ROADMAP. The rail reaches -68.6° on Aquas and swings -51.3°
+to +60.0° on Venom while the hull moves 5-6° against the camera, because the rig
+turns with the corridor.
 
 ### Traps this pass paid for
+
+- **A fall is hidden by its own kerb.** From the rail the sight line past a
+  deck edge drops `(railY - lipTop) / half` per metre outboard, so anything
+  raked steeper than that is invisible from every camera on the corridor and
+  only shows from one parked outside it. Three passes went into moving terraces
+  in and out before the geometry was written down; neither direction could have
+  worked.
+- **A wide deck hides its own edge.** No amount of authoring below the edge
+  fixes it. The ship flies 72 m over the deck, so at `half` 210 it is 210 m in
+  from the drop; the act came down to 160 and the drop appeared.
+- **A magnitude in a comment goes stale when the number beside it moves.** Two
+  in this session's own work, both written from a draft of the zone table that
+  was later re-authored, both caught by the quality pass and not by the gates.
+  Re-derive every number in a comment you touched before you commit.
+- **An assert nobody has seen fail may not fire.** All seven in `works.js` were
+  exercised by breaking the DNA seven ways after they were written.
+- **A lamp is bright pixels, not light.** There are no local lights in this
+  game, so quadrupling the roof lamp runs moved the assembly floor's composited
+  median 0.081 to 0.085. Add fixtures for coverage and articulation; do not
+  expect them to lift an exposure.
+
+### Traps the Fortuna pass paid for
+
 
 - **A level with no land has no ground for a battery to stand on.** `groundAt`
   answers the waterline. Everything a `banks` wave needs — the band `bank`

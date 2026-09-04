@@ -5,8 +5,9 @@ a blind side-by-side, with 2020s rendering. Same heroes, same world, same ATB,
 same economy — rebuilt as a real 3D world under a locked overhead camera.
 Dawn is the signature hour, and that frame is what every reviewer judges.
 
-Eleven agents work this repo **in parallel**. The rules below exist so that never
-turns into a merge fight or a mystery regression.
+Ten lane agents, plus a critic and an integrator, work this repo — the lanes largely
+**in parallel**. The rules below exist so that never turns into a merge fight or a
+mystery regression.
 
 Read `ARCHITECTURE.md` for how the code is shaped. Read `CONCEPT.md` for what the
 game is. This file is about **who may touch what**.
@@ -29,22 +30,41 @@ Tier 4 with the battle, because nothing can trigger a sound before then.
 
 | Lane | Owns | Must not touch |
 |---|---|---|
-| **world** | `src/world/**` | `src/render/**`, any other lane |
-| **render** | `src/render/**` — camera rig, environment, materials, textures, postfx, probe | `src/world/**`, `src/actors/**`, `src/ui/**` |
+| **world** | `src/world/**` *and* `src/render/**` — terrain, biomes, weather, fog of war, plus the camera rig, environment, materials, textures, postfx, probe | `src/actors/**`, `src/ui/**`, any other lane |
 | **actors** | `src/actors/**` | `src/render/postfx.js`, `src/render/environment.js`, any other lane |
 | **traversal** | `src/traversal/**` | `src/battle/**`, `src/places/**` |
 | **places** | `src/places/**` | `src/traversal/**`, `src/world/**` |
 | **battle** | `src/battle/**` | `src/traversal/**`, `src/progression/**` |
-| **progression** | `src/progression/**` | `src/battle/**`, `src/settlement/**` |
+| **progression** | `src/progression/**` *and* `src/ui/**`, `index.html` styles — XP, gear, skill trees, quests, plus the HUD and pause menu | `src/battle/**`, `src/settlement/**`, the Three scene, the post chain, `src/render/**` |
 | **settlement** | `src/settlement/**` | `src/progression/**`, `src/world/**` |
 | **fx** | `src/fx/**` | the post chain, any other lane |
-| **ui** | `src/ui/**`, `index.html` styles | the Three scene, the post chain, `src/render/**` |
 | **audio** | `src/audio/**`, `docs/AUDIO_SPEC.md`, `tools/render-audio.mjs` | anything else — first runs in Tier 4 |
 | **tools** | `tools/**` except the three named above | `src/**` — a probe that edits the thing it measures is not a probe |
 
 `data/regions/**` is **level's** output and **world's** input. World reads it in Tier 1
 and never writes it. If the graph is wrong, that is a level defect and it is fixed in
 `data/`, not worked around in `src/world/`.
+
+**World owns render. Do not split them.** The light is set by the ramps in
+`environment.js` and graded by the exposure constant in `postfx.js`. Tuning one
+without the other yields a build correct at one hour of the day. One gate judges the
+frame; one lane owns everything that makes it.
+
+**Progression owns ui.** Same rule.
+
+### Lanes with no agent
+
+`actors`, `fx` and `tools` are listed above but no `cfd-*` agent claims them. Work
+routed to them reaches nobody. Assign an owner before scheduling work in these
+folders:
+
+| Folder | First needed | Candidate |
+|---|---|---|
+| `src/actors/**` | Phase 2 | `art` specs the rig, but is docs-only and closes after 1.2 |
+| `src/fx/**` | Tier 4 | `battle` — its brief names elemental VFX |
+| `tools/**` | now | orchestrator; `integrator` from Phase 3 |
+
+`src/actors/**` must have an owner before Phase 2 opens.
 
 ### Shared core — read-only to builders
 

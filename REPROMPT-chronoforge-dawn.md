@@ -64,8 +64,7 @@ one folder per subsystem (`world`, `render`, `actors`, `traversal`, `places`, `b
 a single `ctx` object every module receives, the public API each module exposes and the
 events it emits, units (metres, +Y up), seeded RNG only (`Math.random()` is a defect), a
 budget of 60 fps at 1080p / ≤900 draw calls / 16.6 ms, and the no-binary-assets art policy.
-Isolate module failures so one broken module never blanks the screen. **Folders divide the
-code, not the team.**
+Isolate module failures so one broken module never blanks the screen.
 
 **2. Verification loop before the game.** Nothing ships without an instrument. Screenshots
 answer "how does it look"; they do not answer "does it deadlock", "does it drift", "can you
@@ -95,9 +94,6 @@ Phase 0 and a Phase 1.1 prep pass already shipped. **Do not clobber source.**
 
 ### Rules for this run
 
-- Plan the roster from `vocab/roles/` only. Write nothing into `.claude/agents/`.
-- `dev` is lane-agnostic: the phase says what is in scope and `dev` builds it. Do not
-  create one agent per folder.
 - Phase 0 is done and its gates pass. Start the plan at Phase 1.1.
 - Dawn at 6.4h is signed off — median 0.212, p90 0.51, 0% blown white. Do not regress it.
   Exposure ramps over sun elevation (`EXPOSURE_RAMP` in `src/render/environment.js`),

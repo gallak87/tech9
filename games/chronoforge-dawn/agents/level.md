@@ -5,14 +5,30 @@
 - `CONCEPT.md` — Scope constraints, number of levels, genre
 - `GAME_PLAN.md` — Phase ordering — when level data is needed
 - `agents/gamedesign.md output` — Mechanics spec — enemy behaviors, scoring rules, player constraints that level geometry must support
-- `agents/dev.md output` — Level data format the engine expects (schema for platforms, enemies, start/exit)
+- `agents/dev.md output` — The world-data schema the engine expects: heightfield params, doorway graph, encounter and drop placements
 
 ## Outputs
-- `src/level.js (or level.json)` — Level data object: platform rects, enemy list, player start, exit position, level dimensions. Dropped directly into src/ by dev.
-- `ASCII level diagram` — Human-readable layout for review before coding starts. Accompanies the data file.
+- World data for twelve 45×30 maps: per-biome heightfield parameters, the doorway graph, 36 encounter placements at combat clearance, and eight world drops. Consumed by `dev`; proved offline by `tools/region.mjs`.
+- A topology proposal — the accepted graph plus what changed from the inherited tree and why.
+
+This is **not** a 2D platformer: there are no platform rects, no exit position, no side-on level. Maps are heightfielded 3D terrain under a locked overhead camera.
 
 ## Current Phase Goal
-**Phase 1.2 — World Data Port & Heightfields:** level ports the twelve-map graph from the prototype MAPS table and authors per-biome heightfield parameters across the eight biomes, keeping all twelve 45x30 maps traversable. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype.
+**Phase 1.2 — World Data Port & Heightfields:** level ports the twelve-map graph from the prototype MAPS table and authors per-biome heightfield parameters across the eight biomes, keeping all twelve 45x30 maps traversable. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype. TOPOLOGY IS OPEN: the inherited graph is a tree with zero cycles and level is expected to propose a better one — lateral cycles, traversal- or tech-gated edges, one-way drops, or moving chrono-rifts — with reasons and costs, not to port 7 edges verbatim.
+
+## Creative license — read this first
+
+The inherited world graph is a **tree**: 8 outdoor regions, 7 bidirectional edges, **zero cycles**.
+Emberline sits on the path to five of the other seven regions, so every journey is out-and-back, and
+Crater Ember (T4) hangs directly off Emberline (T2) — a two-tier jump straight into endgame content.
+
+**You are licensed to redesign it.** Do not port 7 edges verbatim because they were there. Propose a
+better graph — lateral cycles, edges gated on settlement tech tier, one-way drops that unlock their
+return from the far side, chrono-rifts that relocate on a seeded time-of-day schedule (`world.js`
+names them in a comment and never implements them) — and say what each costs. The orchestrator
+decides. **You do not need permission to propose.**
+
+Interiors are entered through a separate city mechanism (`[C] enter city`), not doorway edges.
 
 ## Hard Constraints
 - IN scope — Three.js (latest) + Vite, plain ES modules, twelve-folder subsystem layout under src/, one shared ctx object per module, per the existing ARCHITECTURE.md and CONTRACT.md. Those two files and docs/STATUS.json are extended, never clobbered.
@@ -44,3 +60,5 @@
 - IN scope — The in-game dev panel (src/core/devpanel.js, a DOM overlay the HUMAN clicks, distinct from the headless tools/ probes) is preserved and never clobbered. Lanes add controls through ctx.dev.register({group,label,type,get,set}) from their own file; editing devpanel.js to add a control is a contract violation. It must be extended on human request rather than pre-emptively, and any lane shipping a system the human will want to poke registers a control for it.
 - IN scope — Never more than two agents running concurrently. A phase needing more work is split into sequential waves, not widened. The orchestrator may also execute a lane itself rather than spawning for it.
 - IN scope — Frequent human feedback. Every agent that finishes a unit of work decides, and states, whether a human manual QA pass on localhost is worth it before the next phase starts — naming what to look at and what would count as wrong. Automated gates do not replace this; they decide when to ask for it.
+- IN scope — Agents are expected to PROPOSE, not just execute. Every lane may put forward changes to inherited design — topology, systems, content, pacing — and should say so in its report rather than silently conforming to what the prototype happened to do. The world graph is the standing example: it is currently a tree of 8 regions and 7 edges with zero cycles, and it is explicitly open to redesign. A proposal names what changes, why the inherited version falls short, and what it costs. The orchestrator decides; the agent is not required to ask permission before proposing.
+- IN scope — Doorway topology is a design surface, not inherited data. The twelve-map connection graph may gain edges, lose them, become one-way, or be gated on traversal capability or settlement tech tier. Named candidates already on the table: add lateral cycles so the world stops being out-and-back; gate the Emberline T2 to Crater Ember T4 two-tier jump on a settlement unlock rather than a wall, which is the only mechanism that makes the base economy matter to exploration; one-way drops that unlock their return from the inside; and time-of-day chrono-rifts that relocate on a seeded schedule, which world.js already names in a comment and never implements. Whatever ships, region.mjs proves it offline.

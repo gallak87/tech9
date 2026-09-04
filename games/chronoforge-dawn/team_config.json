@@ -31,7 +31,9 @@
     "IN scope but DEFERRED — Audio does not start until the first ATB battle effort. Web Audio synthesis only (per-biome ambient beds, battle stingers, resource-tick chimes, surface-matched footfalls) and no audio files in the repo, but the audio lane is not scheduled before the battle tier. Every earlier phase ships silent.",
     "IN scope — The in-game dev panel (src/core/devpanel.js, a DOM overlay the HUMAN clicks, distinct from the headless tools/ probes) is preserved and never clobbered. Lanes add controls through ctx.dev.register({group,label,type,get,set}) from their own file; editing devpanel.js to add a control is a contract violation. It must be extended on human request rather than pre-emptively, and any lane shipping a system the human will want to poke registers a control for it.",
     "IN scope — Never more than two agents running concurrently. A phase needing more work is split into sequential waves, not widened. The orchestrator may also execute a lane itself rather than spawning for it.",
-    "IN scope — Frequent human feedback. Every agent that finishes a unit of work decides, and states, whether a human manual QA pass on localhost is worth it before the next phase starts — naming what to look at and what would count as wrong. Automated gates do not replace this; they decide when to ask for it."
+    "IN scope — Frequent human feedback. Every agent that finishes a unit of work decides, and states, whether a human manual QA pass on localhost is worth it before the next phase starts — naming what to look at and what would count as wrong. Automated gates do not replace this; they decide when to ask for it.",
+    "IN scope — Agents are expected to PROPOSE, not just execute. Every lane may put forward changes to inherited design — topology, systems, content, pacing — and should say so in its report rather than silently conforming to what the prototype happened to do. The world graph is the standing example: it is currently a tree of 8 regions and 7 edges with zero cycles, and it is explicitly open to redesign. A proposal names what changes, why the inherited version falls short, and what it costs. The orchestrator decides; the agent is not required to ask permission before proposing.",
+    "IN scope — Doorway topology is a design surface, not inherited data. The twelve-map connection graph may gain edges, lose them, become one-way, or be gated on traversal capability or settlement tech tier. Named candidates already on the table: add lateral cycles so the world stops being out-and-back; gate the Emberline T2 to Crater Ember T4 two-tier jump on a settlement unlock rather than a wall, which is the only mechanism that makes the base economy matter to exploration; one-way drops that unlock their return from the inside; and time-of-day chrono-rifts that relocate on a seeded schedule, which world.js already names in a comment and never implements. Whatever ships, region.mjs proves it offline."
   ],
   "team": [
     {
@@ -52,7 +54,7 @@
     {
       "role_id": "level",
       "active": true,
-      "notes": "Owns the twelve-map graph ported from the prototype MAPS table, per-biome heightfield authoring across eight biomes, 36 encounter placements at combat clearance, 18 doorway edges and 8 world drops. Split from gamedesign per split_when: non-linear paths and multiple zones."
+      "notes": "Owns the twelve-map graph ported from the prototype MAPS table, per-biome heightfield authoring across eight biomes, 36 encounter placements at combat clearance, 18 doorway edges and 8 world drops. Split from gamedesign per split_when: non-linear paths and multiple zones. EXPLICITLY LICENSED TO REDESIGN THE GRAPH. The inherited topology is a tree — 8 outdoor regions, 7 bidirectional edges, zero cycles — so Emberline sits on the path to five of the other seven regions and every trip is out-and-back, and Crater Ember T4 hangs directly off Emberline T2 as a two-tier jump. Propose a better graph rather than porting this one. Interiors are entered by a separate city mechanism, not by doorway edges."
     },
     {
       "role_id": "audio",
@@ -134,7 +136,7 @@
         "dev"
       ],
       "parallel": false,
-      "qa_gate": "A 24-hour sweep at 0.25h steps on ridge and wide. Every sample satisfies the existing band from docs/STATUS.json: blackPct < 14, whitePct < 2, p90 < 1.2. No adjacent pair of samples differs in median by more than 2x — the cliff is made into a number so it cannot come back, the same way fog.mjs handles defect 1. Signed-off dawn at 6.4h must not regress from median 0.212 / p90 0.51 / 0.00% white. Frame budget holds. HUMAN QA WARRANTED — this is the designated early graphics-cost pass: click Dusk and Night in the dev panel and confirm both land on a frame worth looking at rather than a black screen, then sweep the five-notch quality lever end to end watching the FPS and draw readout, and confirm the game still reads at the cheapest notch. The lever and the readout are deliverables of this phase, not of Tier 1. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+      "qa_gate": "Sample only the two broken bands at 0.1h steps: 4.8-5.5h and 19.7-20.5h, on ridge and wide. No 24-hour sweep — the human has eyeballed the rest and signed it off. Within each band every sample satisfies docs/STATUS.json: blackPct < 14, whitePct < 2, p90 < 1.2, and no adjacent pair differs in median by more than 2x, so the cliff becomes a number that cannot come back. Then five spot checks at the hours already baselined in STATUS.json (6.4, 9.9, 12, 18.5, 21.5) purely to prove the fix did not drag the good hours with it — signed-off dawn 6.4 must still read median 0.212 / p90 0.51 / 0.00% white. Frame budget holds. HUMAN QA WARRANTED — this is the designated early graphics-cost pass: scrub the hour slider through both bands and confirm the transition reads, then sweep the five-notch quality lever end to end watching the FPS and draw readout, and confirm the game still reads at the cheapest notch. The lever and the readout are deliverables of this phase, not of Tier 1. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened."
     },
     {
       "name": "Phase 1.1 — Systems & Look Specs",
@@ -148,7 +150,7 @@
     },
     {
       "name": "Phase 1.2 — World Data Port & Heightfields",
-      "description": "level ports the twelve-map graph from the prototype MAPS table and authors per-biome heightfield parameters across the eight biomes, keeping all twelve 45x30 maps traversable. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype.",
+      "description": "level ports the twelve-map graph from the prototype MAPS table and authors per-biome heightfield parameters across the eight biomes, keeping all twelve 45x30 maps traversable. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype. TOPOLOGY IS OPEN: the inherited graph is a tree with zero cycles and level is expected to propose a better one — lateral cycles, traversal- or tech-gated edges, one-way drops, or moving chrono-rifts — with reasons and costs, not to port 7 edges verbatim.",
       "agents": [
         "level"
       ],
@@ -157,7 +159,7 @@
     },
     {
       "name": "Phase 1.3 — Encounter, Doorway & World-Drop Placement",
-      "description": "level places all 36 encounters against combat clearance, confirms the 18 doorway edges are bidirectional unless deliberately one-way, and places the eight world drops, one per outdoor region, each naming a real item.",
+      "description": "level places all 36 encounters against combat clearance, confirms the 18 doorway edges are bidirectional unless deliberately one-way, and places the eight world drops, one per outdoor region, each naming a real item. Doorway count is whatever the accepted topology needs; 18 was the inherited number, not a target.",
       "agents": [
         "level"
       ],
@@ -323,6 +325,10 @@
     {
       "decision": "Where the fifth quality notch goes and what it scales — below low to prove the game reads when everything is cheap, or between existing tiers. ultra must keep its name (tools/shot.mjs defaults to it) and tiers must scale COST not LOOK, per src/core/engine.js:15. The lever must persist to localStorage: still captures stay at ultra, gameplay probes read the persisted value.",
       "deferred_to": "dev"
+    },
+    {
+      "decision": "The world graph topology itself. Inherited shape is a tree (8 outdoor regions, 7 edges, no cycles) with a T2-to-T4 jump from Emberline to Crater Ember. Open candidates: lateral cycles, settlement-tech-gated edges that make the base economy matter to exploration, one-way drops unlocked from the far side, and seeded time-of-day chrono-rifts. If rifts move, region.mjs asserts reachability in every phase rather than once.",
+      "deferred_to": "level"
     }
   ],
   "max_concurrent_agents": 2

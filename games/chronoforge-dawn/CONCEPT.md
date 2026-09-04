@@ -191,6 +191,21 @@ is a failure regardless of what the code underneath does.
   naming what to look at and what would count as wrong. Automated gates do not replace this; they
   decide when to ask for it.
 
+- **IN** — **Agents are expected to PROPOSE, not just execute.** Every lane may put forward changes
+  to inherited design — topology, systems, content, pacing — and should say so in its report rather
+  than silently conforming to what the prototype happened to do. A proposal names what changes, why
+  the inherited version falls short, and what it costs. The orchestrator decides; **the agent does
+  not need permission to propose.**
+- **IN** — **Doorway topology is a design surface, not inherited data.** The twelve-map graph may
+  gain edges, lose them, become one-way, or be gated on traversal capability or settlement tech
+  tier. It is currently a **tree** — 8 outdoor regions, 7 bidirectional edges, **zero cycles** — so
+  Emberline sits on the path to five of the other seven regions and every trip is out-and-back.
+  Candidates already on the table: lateral cycles; gating the Emberline **T2 → Crater Ember T4**
+  two-tier jump on a settlement unlock rather than a wall (the only mechanism proposed so far that
+  makes the base economy matter to exploration); one-way drops that unlock their return from the
+  inside; and time-of-day **chrono-rifts** that relocate on a seeded schedule — which `world.js`
+  already names in a comment and never implements. Whatever ships, `region.mjs` proves it offline.
+
 ## Known Unknowns
 
 | Decision | Deferred To |

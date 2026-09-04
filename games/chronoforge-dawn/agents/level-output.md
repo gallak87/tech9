@@ -546,3 +546,287 @@ ramp was signed off on) — which argues for doing this *after* LVL-1 is resolve
 not before.
 
 Owner: `render` or `world`. Logged as **LVL-7**, Tier 1 / Phase 10.
+
+---
+
+# Phase 1.3 — Encounter, Doorway & World-Drop Placement
+
+Built on `208c613`. No `src/`, no `tools/`. Not committed.
+
+## 9. Combat clearance — the derivation
+
+No number for this existed anywhere in the repo. Derived from staging, because
+battle starts **in place**: the terrain under an encounter *is* the battle stage,
+so clearance is the question "can this piece of ground hold a staged fight."
+
+### Step 1 — what the camera sees
+
+From `src/core/const.js` geometry, as formulas over `FRAME_HEIGHT_M` (P0-6 says
+it is provisional):
+
+```
+groundWidthM(F) = F × 16/9                 = 32.0 m at F = 18
+groundDepthM(F) = F / sin(55°)             = 22.0 m at F = 18
+```
+
+Both match the const.js comment, which is the check that the formulas are right.
+
+### Step 2 — the push-in
+
+No number existed for this either, and clearance depends on it, so the two are
+one decision and I authored both. Derived, not picked: the staging disc below is
+11.0 m across and good framing puts the subject at ~60% of the frame's short
+dimension, so the pushed-in ground depth wants ~18.3 m against the overworld's
+22.0 m.
+
+```
+BATTLE_PUSH_IN = 1.20    battle frame 15.0 m  ->  26.7 × 18.3 m of ground
+```
+
+`battle` should adopt this or tell `level` it changed.
+
+### Step 3 — two radii, because two things are being protected
+
+The camera **swings laterally**, so the staging must read from a range of
+azimuths. The bound is a **disc, not a box**.
+
+```
+R_STAGE  bounding circle of 3 heroes at 2.2 m spacing (span 5.4 m)
+         and 3 enemies at 2.8 m spacing (span 7.0 m), lines 6.0 m apart,
+         + 0.8 m for an actor stepping out of line to strike
+         = 4.61 + 0.8  ->  5.5 m        (disc 11.0 m across)
+
+R_FRAME  half the pushed-in ground depth = F / (2 × PUSH_IN × sin 55°)
+         = 9.16 m
+```
+
+**`R_STAGE` does not move if `FRAME_HEIGHT_M` is revisited.** It is actor
+geometry in metres — a hero is 1.72 m tall whatever the camera does. `R_FRAME`
+is a pure camera number and moves with it. That split is the direct answer to
+P0-6, and the coupling between them is asserted: the staging disc must stay
+under 70% of the pushed-in frame's short dimension, which **breaks below
+`FRAME_HEIGHT_M` = 15.4**. If Phase 5 lowers it past that, this gate goes red
+rather than quietly cropping actors.
+
+Sized for **3 enemies**, not the donor's 1. `initBattle()` reads
+`encounter.count || 1` and no donor encounter carries `count`, but the engine
+supports groups (its log has *"A group of Xs appears!"*). Sizing for 1 would give
+`R_STAGE` 5.0 m; 0.5 m of headroom stops group encounters becoming a re-placement
+pass later.
+
+### Step 4 — the limits
+
+| Constant | Value | Why |
+|---|---|---|
+| `STAGE_MAX_SPREAD_M` | **2.58 m** = 1.5 × `HERO_M` | At the limit no actor's feet sit above another's head. Across the 4.4 m hero arc alone the spread stays under 0.6 of a hero. |
+| `STAGE_MAX_SLOPE_DEG` | **16°** | Nobody stands on a wall. Well inside the 34° walkable ceiling. |
+| `FRAME_MAX_SPREAD_M` | **6.0 m** over `R_FRAME` | Terrain occludes an actor when it rises more than `d/tan(55°)` = 0.70·d, which at 9.16 m is 6.4 m. 6.0 leaves margin. |
+
+Expressed in `HERO_M` and in the pitch, not as bare constants.
+
+### What it costs — stageable fraction of each map
+
+```
+haventide      1066/1066  100%      frost_canyon    425/1066   40%
+emberline       625/1066   59%      crater_ember    221/1066   21%
+forest_veil     847/1066   79%      last_crown      532/1066   50%
+mire_bog        842/1066   79%      orbital_reach   661/1066   62%
+```
+
+Crater Ember at 21% is the design outcome I wanted and did not plan: **fights
+there happen on the crater floors**, because the floors are the flat ground. The
+rough biomes push their encounters into their own landforms.
+
+## 10. What moved, and why
+
+**12 of the 36 inherited encounters failed clearance** on the current fields. All
+36 now pass. 15 encounters and 8 world drops moved.
+
+| Region | Moved | Why |
+|---|---|---|
+| emberline | `e3` → (24,22), 4 m | 18° stage slope |
+| mire_bog | `e11` → (21,19) 3 m, `e27` → (40,18) 6 m | **both stood below the water plane** — fights chest-deep in a bog |
+| frost_canyon | `e17` → (24,21) 12 m, `e18` → (27,14) 10 m | on the trench wall: 6.1 m and 5.1 m of stage spread against a 2.58 m budget |
+| frost_canyon | `e19` → (40,20), 4 m | donor spacing defect, below |
+| crater_ember | all 5, 8–10 m | every one on crater walls or basalt ridge; 23–29° stage slope |
+| last_crown | `e8` → (35,21) 16 m, `e32`/`e33`/`e34` | 19–22° stage slope on the terraced field |
+
+### Two donor defects found in the placements
+
+Both are **overlapping battle stages** — two encounters closer than one staging
+disc, so triggering one stages the fight on top of the other:
+
+| Pair | Donor distance | Staging disc |
+|---|---|---|
+| `frost_canyon` `e19` ↔ `e31` | 8.9 m | 11.0 m |
+| `last_crown` `e8` ↔ `e34` | 4.5 m | 11.0 m |
+
+Logged as **DONOR-6**. Both resolved by the moves; `MIN_ENCOUNTER_SEP_TILES = 6`
+(12 m) now gates it.
+
+### The world-drop rule
+
+A world drop is the region's **one secret**. It should reward exploring, so:
+
+1. **Off the fight economy** — ≥ 10 tiles (20 m) from every encounter, which is
+   nearly two staging discs. You cannot scoop it as a battle reward.
+2. **Off the routes you walk anyway** — ≥ 6 tiles (12 m) from every
+   doorway-to-doorway line and every doorway-to-city line on that map. Those
+   segments are the paths a player crosses without exploring.
+3. **On readable, dry ground** — spread ≤ 0.5 × `HERO_M` and slope ≤ 20° over a
+   3 m radius, and never below a water plane. A drop is a prop with an animation,
+   not a stage, so it gets its own smaller radius rather than the battle one.
+4. Never on a city tile, build plot or doorway.
+
+Subject to those, each drop moved the **minimum** distance from its donor tile,
+so the donor's intent survives wherever it was already legal.
+
+All 8 moved: `bog_fang` 4 m · `glacial_claw` 3 m · `moss_ward` 15 m ·
+`swamp_coil` **49 m** · `ember_core` 8 m · `frost_plate` 18 m · `magma_blade` 4 m ·
+`void_scepter` **22 m**.
+
+The two big ones are the two you flagged:
+
+- **`last_crown` `void_scepter`** sat 4 m from `e34` and 8 m from `e8`. That is
+  not a secret, it is a fight reward. Now at (27,27), 20 m clear of everything.
+- **`mire_bog` `swamp_coil`** sat at (36,27) in the middle of the re-authored
+  basin field and on the (44,4)→(1,22) through-route. Now at (30,3) in the
+  northern quarter, which the 6 relocated basins left dry.
+
+### Distribution
+
+```
+                enc   NW NE SW SE   quadrants used
+haventide        3     0  1  0  2        2/4
+emberline        5     0  1  2  2        3/4
+forest_veil      4     0  0  1  3        2/4
+mire_bog         5     0  1  2  2        3/4
+orbital_reach    4     1  1  0  2        3/4
+frost_canyon     5     0  1  1  3        3/4
+crater_ember     5     0  2  2  1        3/4
+last_crown       5     0  1  2  2        3/4
+```
+
+Mire Bog went from 4-of-5 in one half to 3 quadrants. The empty NW everywhere is
+inherited and is **correct in Haventide** — the whole western half of that map is
+the city and its 17 build plots, so there is nowhere to put a fight. Elsewhere
+the relocated world drops now occupy the quiet quadrants, which is the point of
+the siting rule. I did not assert a quadrant rule: it would be wrong for
+Haventide, and the corridor plus encounter-distance rules already do the work.
+
+## 11. Tier coherence — reported, not retuned
+
+Rule: `|enemy tier − region tier| ≤ 1`, with T5 enemies exempt as elites/bosses.
+Four inherited placements break it. Enemy assignment is gamedesign's and the
+donor's lane, so these are **named in `TIER_EXCEPTIONS`, not changed** — which
+also means a *new* mismatch fails the gate.
+
+| Encounter | Region | Enemy | Δ | Note |
+|---|---|---|---|---|
+| `e13` | Mire Bog **T2** | `mire_warden` **T4** | **+2** | The worst of the set. Mire Bog is inside the *Survivor* starting web, so a level-5 party meets a 165 HP T4 enemy. It is also the **only pre-Ascendant source of `void_scepter`** (20%), so swapping it moves item pacing. |
+| `e19` | Frost Canyon **T3** | `frost_colossus` **T5** | +2 | Reads as a deliberate superboss; one of only two `titan_shard` sources. Tolerated under the T5-elite rule. |
+| `e35` | Crater Ember **T4** | `gravbot` **T2** | −2 | Trash in endgame content. Harmless but limp. |
+| `e33` | Last Crown **T4** | `gravbot` **T2** | −2 | Same, in the finale region. |
+
+`e13` is the one worth a decision. The other three are cosmetic.
+
+## 12. Correctness gates added to `world-graph.mjs`
+
+`region.mjs` proper is Phase 3 and dev's. These are its offline equivalents.
+
+| # | Gate |
+|---|---|
+| 10 | `ENEMY_TIERS` key set must equal `inventory.mjs` `ENEMY_DROP_TABLE` — the mirror cannot drift |
+| 11 | Every encounter names a real enemy; every drop a real item **and** matches `inventory.mjs` `WORLD_DROPS`; no orphans either way; every defined enemy is actually placed |
+| 12 | All 17 items reachable via starting kit + drop tables + world drops |
+| 13 | Combat clearance on all 36 encounters, on the **current** heightfields, plus never below a water plane |
+| 14 | Encounter spacing ≥ 12 m, doorway standoff ≥ 8 m |
+| 15 | World-drop siting rule (all four clauses above) |
+| 16 | Tier coherence against `TIER_EXCEPTIONS` |
+| 7 | *(extended)* Every region's **first opening tier** named, and failure if any region never opens at any tier |
+
+`heightfields.mjs` statically imports `world-graph.mjs`, so the clearance check is
+a **dynamic** import inside `selfCheck()`. The first attempt used top-level
+`await`, which deadlocked the cycle — this module's evaluation blocked, so the
+import it was waiting on could never resolve. Unawaited, evaluation completes
+first and the import resolves.
+
+### The gates are falsifiable
+
+Each new gate was mutated and confirmed to fail:
+
+```
+e17 back to its donor tile   -> stage spread 6.12 m > 2.58, slope 30.2 deg > 16, frame 7.57 m > 6
+world drop item misspelled   -> unknown item + disagrees with inventory.mjs WORLD_DROPS
+gravbot -> slag_rat on e33   -> T1 in a T4 region, delta -3, not in TIER_EXCEPTIONS
+void_scepter moved to (36,20)-> 2.8 m from e8: "that is a fight reward, not a secret"
+```
+
+### Output
+
+```
+$ node docs/specs/world-graph.mjs
+  first tier each region opens:
+    haventide      Survivor      orbital_reach  Reclaimer
+    emberline      Survivor      frost_canyon   Reclaimer
+    forest_veil    Survivor      crater_ember   Ascendant
+    mire_bog       Survivor      last_crown     Ascendant
+
+Clearance (derived in heightfields.mjs from battle staging):
+  R_STAGE 5.5 m disc, spread <= 2.58 m, slope <= 16 deg
+  R_FRAME 9.16 m disc (push-in 1.2), spread <= 6 m
+  tightest of 36: mire_bog e11 at 73% of the spread budget (1.89 m, 15.9 deg)
+
+Content cross-check:
+  36 encounters name 18 distinct enemies, all 18 defined enemies placed
+  8 world drops, all in ITEM_DEFS and matching inventory.mjs WORLD_DROPS
+  all 17 items reachable via starting kit (5) + drop tables (12) + world drops (8)
+
+Tier coherence (|enemy tier - region tier| <= 1, T5 elites exempt):
+  KNOWN mire_bog       e13 mire_warden T4 in a T2 region (+2)
+  KNOWN frost_canyon   e19 frost_colossus T5 in a T3 region (+2)
+  KNOWN crater_ember   e35 gravbot T2 in a T4 region (-2)
+  KNOWN last_crown     e33 gravbot T2 in a T4 region (-2)
+
+PASS - 12 maps, 24 doorway records, 10 edges; every landing in-bounds, passable
+and reciprocal; every region opens at some settlement tier and every edge
+traverses both ways at max; 36 encounters and 8 world drops all clear combat
+clearance on the current heightfields, name real enemies/items, and leave all
+17 items reachable.
+exit 0
+```
+
+All 8 `docs/specs` modules and `lintrng` exit 0.
+
+**Item reachability holds after the placement work**: 5 starting kit + 12 distinct
+drop-table items + 8 world drops cover all 17. `bio_weave` and `crit_lens` still
+arrive only via gamedesign's Phase 1.1 additions (DONOR-2) — I changed no item
+table, only which tile each world drop sits on.
+
+## 13. Human QA — **not warranted before Phase 2**
+
+Still offline data. No `src/` file changed in 1.2, the 1.2 follow-up, or 1.3, so
+localhost renders exactly what it did at Phase 0.1. Phase 2 is the character rig
+gate, which touches none of this.
+
+Two numbers are worth a **nod** because later phases inherit them as if they were
+decided:
+
+1. **`BATTLE_PUSH_IN = 1.20`.** I authored it because clearance could not be
+   derived without it. It is `battle`'s number to live with in Phase 7, and if
+   they want a harder push-in, clearance tightens and some of the 36 placements
+   move again.
+2. **`e13` — `mire_warden` (T4) in Mire Bog (T2).** Reported, not changed.
+   Someone has to decide whether that is a difficulty spike or a deliberate
+   scare, because it sits in the starting web and it gates `void_scepter`.
+
+The first thing here that becomes visible is **Phase 4**, when terrain renders
+and encounters can be stood on. What to look at then, and what counts as wrong:
+
+- **Crater Ember** — every fight should read as staged *in a crater floor*. If an
+  encounter reads as clinging to a wall, `R_STAGE` is too small.
+- **Frost Canyon `e17`/`e18`** — both moved off the trench wall. If either still
+  frames with the canyon cropping an actor, `FRAME_MAX_SPREAD_M` at 6.0 m is too
+  loose.
+- **Mire Bog** — no actor should be standing in water. That is now gated offline,
+  so a failure means the water plane moved, not that the placement is wrong.

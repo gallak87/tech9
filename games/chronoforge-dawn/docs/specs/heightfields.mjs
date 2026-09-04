@@ -33,7 +33,7 @@
 //   node docs/specs/heightfields.mjs
 
 import { fbm2D, noise2D } from '../../src/core/rng.js';
-import { TILE_M } from '../../src/core/const.js';
+import { TILE_M, HERO_M, FRAME_HEIGHT_M, LOCKED_PITCH_DEG } from '../../src/core/const.js';
 import { MAPS, OUTDOOR_IDS, INTERIOR_IDS, OUTDOOR_W_M, OUTDOOR_D_M, tileToM } from './world-graph.mjs';
 
 /** Terrain mesh resolution. 0.5 m gives 181x121 = 21,901 verts / 43,200 tris
@@ -266,6 +266,156 @@ export const INTERIOR_FIELD = {
   amplitudeM: 0.30, wavelengthM: 7.0, octaves: 2, lacunarity: 2.0, gain: 0.5, seed: 9001,
   maxSlopeDeg: 6,
 };
+
+// ── COMBAT CLEARANCE (Phase 1.3) ───────────────────────────────────────────
+// GAME_PLAN names "combat clearance" as the constraint on all 36 encounter
+// placements and no number for it exists anywhere in the repo. Derived here
+// from staging, because that is the only thing that can decide it.
+//
+// Battle starts IN PLACE: lateral camera swing plus push-in at the locked 55
+// deg pitch, no scene swap, no backdrop (CONTRACT.md rule 9, defect 4). So the
+// terrain under an encounter IS the battle stage, and clearance is the
+// question "can this piece of ground hold a staged fight."
+//
+// TWO radii, because two different things are being protected and they scale
+// differently:
+//
+//   R_STAGE  — where actors STAND. Set by actor geometry in metres. It does
+//              NOT move if FRAME_HEIGHT_M is revisited (P0-6), because a hero
+//              is 1.72 m tall whatever the camera does.
+//   R_FRAME  — what the pushed-in camera SEES. A pure camera number, so it is
+//              a formula over FRAME_HEIGHT_M and moves with it.
+
+const DEG = Math.PI / 180;
+export const ASPECT = 16 / 9;
+
+/** Visible ground at a given frame height, from src/core/const.js geometry:
+ *  width is the image plane, depth is that plane laid onto ground at pitch.
+ *  At FRAME_HEIGHT_M = 18 this returns 32.0 m x 22.0 m, matching const.js. */
+export const groundWidthM = (frameM = FRAME_HEIGHT_M) => frameM * ASPECT;
+export const groundDepthM = (frameM = FRAME_HEIGHT_M) => frameM / Math.sin(LOCKED_PITCH_DEG * DEG);
+
+/** How far the battle camera pushes in. No number for this existed either;
+ *  it is set HERE because clearance depends on it, and the two are one
+ *  decision. Derived, not picked: the staging disc below is 11.0 m across, and
+ *  good framing puts the subject at ~60% of the frame's short dimension, so
+ *  the pushed-in ground depth wants to be ~18.3 m against the overworld's
+ *  22.0 m. `battle` should adopt this value or tell level it changed. */
+export const BATTLE_PUSH_IN = 1.20;
+export const battleFrameM = (frameM = FRAME_HEIGHT_M) => frameM / BATTLE_PUSH_IN;
+
+// ── actor staging geometry -> R_STAGE ──
+export const ACTOR_FOOTPRINT_M = 1.0;   // rig ground disc incl. weapon swing
+export const HERO_SPACING_M = 2.2;      // centre to centre; silhouettes stay separate
+export const ENEMY_SPACING_M = 2.8;     // heavies (Magma Behemoth, Frost Colossus) are wider
+export const MAX_PARTY = 3;
+/** initBattle() in games/chronoforge/src/battle.js reads `encounter.count || 1`
+ *  and no donor encounter carries `count`, so every inherited fight is 1 enemy.
+ *  The engine supports groups (its log has "A group of Xs appears!"), so
+ *  clearance is sized for 3. Sizing for the donor's 1 would give R_STAGE 5.0 m
+ *  instead of 5.5 m; 0.5 m of headroom is cheap and it stops group encounters
+ *  becoming a re-placement pass later. */
+export const MAX_ENEMIES = 3;
+export const LINE_SEPARATION_M = 6.0;   // hero line to enemy line; covers an approach
+export const REPOSITION_MARGIN_M = 0.8; // an actor steps OUT of line to strike (PROTO-REF)
+
+function stageRadius() {
+  const heroSpan = (MAX_PARTY - 1) * HERO_SPACING_M + ACTOR_FOOTPRINT_M;
+  const enemySpan = (MAX_ENEMIES - 1) * ENEMY_SPACING_M + ACTOR_FOOTPRINT_M * 1.4;
+  // Bounding circle of two parallel lines. The camera SWINGS laterally, so the
+  // staging must read from a range of azimuths — the bound is a disc, not a box.
+  const cz = LINE_SEPARATION_M / 2;
+  const r = Math.max(Math.hypot(heroSpan / 2, cz), Math.hypot(enemySpan / 2, cz));
+  return Math.round((r + REPOSITION_MARGIN_M) * 2) / 2;   // to the nearest 0.5 m
+}
+export const R_STAGE_M = stageRadius();
+
+/** Half the pushed-in frame's ground depth — depth is the short dimension, so
+ *  it binds before width does. */
+export const frameRadiusM = (frameM = FRAME_HEIGHT_M) => groundDepthM(battleFrameM(frameM)) / 2;
+
+/** Height spread the staging disc may carry and still read as ONE surface.
+ *  1.5 hero-heights: at the limit no actor's feet sit above another's head,
+ *  and across the 4.4 m hero arc alone the spread is under 0.6 of a hero. */
+export const STAGE_MAX_SPREAD_M = 1.5 * HERO_M;
+/** Nobody stands on a wall. Well inside the 34 deg walkable ceiling. */
+export const STAGE_MAX_SLOPE_DEG = 16;
+/** Over R_FRAME the rule is looser and protects FRAMING, not footing: terrain
+ *  between camera and actors occludes when it rises more than d/tan(55 deg) =
+ *  0.70*d, which at R_FRAME 9.2 m is 6.4 m. 6.0 m leaves margin. */
+export const FRAME_MAX_SPREAD_M = 6.0;
+
+/** Absolute height of a biome's standing-water plane, or null if it has none.
+ *  Median of the sampled field plus the authored offset; cached because the
+ *  median costs a full map sample. An encounter placed below this is a fight
+ *  fought chest-deep in a bog. */
+const _waterCache = new Map();
+export function waterPlaneOf(biomeId) {
+  const b = BIOMES[biomeId];
+  if (!b || b.waterPlaneM == null) return null;
+  if (_waterCache.has(biomeId)) return _waterCache.get(biomeId);
+  const e = VERTEX_SPACING_M;
+  const nx = Math.round(OUTDOOR_W_M / e) + 1, nz = Math.round(OUTDOOR_D_M / e) + 1;
+  const g = new Float64Array(nx * nz);
+  for (let j = 0; j < nz; j++) for (let i = 0; i < nx; i++) g[j * nx + i] = heightAt(biomeId, i * e, j * e);
+  g.sort();
+  const plane = g[g.length >> 1] + b.waterPlaneM;
+  _waterCache.set(biomeId, plane);
+  return plane;
+}
+
+/** Submerged? Always false for a biome with no water plane. */
+export function isSubmerged(biomeId, x, z) {
+  const w = waterPlaneOf(biomeId);
+  return w != null && heightAt(biomeId, x, z) < w;
+}
+
+// ── world-drop siting ──
+/** A drop is a prop with an animation, not a fight: it needs a small patch of
+ *  readable ground, not a stage. */
+export const DROP_CLEAR_RADIUS_M = 3.0;
+export const DROP_MAX_SPREAD_M = 0.5 * HERO_M;
+export const DROP_MAX_SLOPE_DEG = 20;
+
+export function dropSiteOk(biomeId, x, z) {
+  if (isSubmerged(biomeId, x, z)) return false;
+  const r = DROP_CLEAR_RADIUS_M, step = 0.5;
+  let lo = Infinity, hi = -Infinity, maxSlope = 0;
+  for (let dz = -r; dz <= r; dz += step) for (let dx = -r; dx <= r; dx += step) {
+    if (dx * dx + dz * dz > r * r) continue;
+    const h = heightAt(biomeId, x + dx, z + dz);
+    if (h < lo) lo = h; if (h > hi) hi = h;
+    const sl = normalSlopeDeg(biomeId, x + dx, z + dz);
+    if (sl > maxSlope) maxSlope = sl;
+  }
+  return (hi - lo) <= DROP_MAX_SPREAD_M && maxSlope <= DROP_MAX_SLOPE_DEG;
+}
+
+/** Clearance report for one point, in map-local metres. */
+export function clearanceAt(biomeId, x, z, frameM = FRAME_HEIGHT_M) {
+  const rF = frameRadiusM(frameM);
+  const step = 0.5;
+  let sLo = Infinity, sHi = -Infinity, fLo = Infinity, fHi = -Infinity, maxSlope = 0;
+  for (let dz = -rF; dz <= rF; dz += step) for (let dx = -rF; dx <= rF; dx += step) {
+    const rr = dx * dx + dz * dz;
+    if (rr > rF * rF) continue;
+    const h = heightAt(biomeId, x + dx, z + dz);
+    if (h < fLo) fLo = h; if (h > fHi) fHi = h;
+    if (rr > R_STAGE_M * R_STAGE_M) continue;
+    if (h < sLo) sLo = h; if (h > sHi) sHi = h;
+    const sl = normalSlopeDeg(biomeId, x + dx, z + dz);
+    if (sl > maxSlope) maxSlope = sl;
+  }
+  return { stageSpread: sHi - sLo, stageMaxSlopeDeg: maxSlope, frameSpread: fHi - fLo };
+}
+
+/** Does this point pass clearance? */
+export function clears(biomeId, x, z, frameM = FRAME_HEIGHT_M) {
+  const c = clearanceAt(biomeId, x, z, frameM);
+  return c.stageSpread <= STAGE_MAX_SPREAD_M
+      && c.stageMaxSlopeDeg <= STAGE_MAX_SLOPE_DEG
+      && c.frameSpread <= FRAME_MAX_SPREAD_M;
+}
 
 // ── the reference field ────────────────────────────────────────────────────
 // This is the composition `world` implements in Phase 4. It is here so the
@@ -850,23 +1000,30 @@ function selfCheck() {
   if (spread > ALBEDO_MAX_SPREAD)
     F(`albedo spread ${spread.toFixed(2)}x exceeds ${ALBEDO_MAX_SPREAD}x — one region would force the fixed exposure ramp off the others`);
 
-  // 8. handoff to Phase 1.3, printed not asserted: local relief at the 36
-  //    inherited encounter tiles, which is what "combat clearance" is measured
-  //    against when 1.3 re-places them.
-  console.log('\nPhase 1.3 input — relief within 7 m of each inherited encounter tile:');
+  // 8. combat clearance, derived here and gated in world-graph.mjs selfCheck.
+  //    R_STAGE is actor geometry in metres and does NOT move with
+  //    FRAME_HEIGHT_M; R_FRAME is a camera number and does (P0-6).
+  console.log('\nCombat clearance (Phase 1.3), derived from battle staging:');
+  console.log(`  overworld ground     ${groundWidthM().toFixed(1)} x ${groundDepthM().toFixed(1)} m at FRAME_HEIGHT_M ${FRAME_HEIGHT_M}`);
+  console.log(`  battle frame         ${battleFrameM().toFixed(2)} m (push-in ${BATTLE_PUSH_IN}) -> ${groundWidthM(battleFrameM()).toFixed(1)} x ${groundDepthM(battleFrameM()).toFixed(1)} m`);
+  console.log(`  R_STAGE ${R_STAGE_M} m  (${MAX_PARTY} heroes at ${HERO_SPACING_M} m + ${MAX_ENEMIES} enemies at ${ENEMY_SPACING_M} m, lines ${LINE_SEPARATION_M} m apart, +${REPOSITION_MARGIN_M} m to step out of line)`);
+  console.log(`  R_FRAME ${frameRadiusM().toFixed(2)} m  = half the pushed-in ground depth`);
+  console.log(`  staging disc fills ${(100 * 2 * R_STAGE_M / groundDepthM(battleFrameM())).toFixed(0)}% of the battle frame's short dimension`);
+  console.log(`  limits: stage spread <= ${STAGE_MAX_SPREAD_M.toFixed(2)} m (1.5 x HERO_M), stage slope <= ${STAGE_MAX_SLOPE_DEG} deg, frame spread <= ${FRAME_MAX_SPREAD_M} m`);
+  const fitOk = 2 * R_STAGE_M <= groundDepthM(battleFrameM()) * 0.7;
+  console.log(`  staging fits the frame at FRAME_HEIGHT_M ${FRAME_HEIGHT_M}: ${fitOk ? 'yes' : 'NO'} (breaks below ${(2 * R_STAGE_M * BATTLE_PUSH_IN * Math.sin(LOCKED_PITCH_DEG * DEG) / 0.7).toFixed(1)} m)`);
+  if (!fitOk) F(`staging disc ${2 * R_STAGE_M} m does not fit the pushed-in frame at FRAME_HEIGHT_M ${FRAME_HEIGHT_M}`);
+
+  // 9. how much of each map can hold a fight at all — level design information,
+  //    and the number that decides whether an encounter can be re-placed.
+  console.log('\nStageable fraction of each map (tiles passing full clearance):');
   for (const id of OUTDOOR_IDS) {
     const b = MAPS[id].biome;
-    const rows = MAPS[id].encounters.map(e => {
-      const x = tileToM(e.x), z = tileToM(e.y);
-      let lo = Infinity, hi = -Infinity;
-      for (let dz = -7; dz <= 7; dz += 1) for (let dx = -7; dx <= 7; dx += 1) {
-        if (dx * dx + dz * dz > 49) continue;
-        const h = heightAt(b, x + dx, z + dz);
-        if (h < lo) lo = h; if (h > hi) hi = h;
-      }
-      return `${e.id}:${(hi - lo).toFixed(1)}`;
-    });
-    console.log(`  ${id.replace('_region', '').padEnd(14)} ${rows.join('  ')}`);
+    let ok = 0, tot = 0;
+    for (let y = 2; y < 28; y++) for (let x = 2; x < 43; x++) {
+      tot++; if (clears(b, tileToM(x), tileToM(y))) ok++;
+    }
+    console.log(`  ${id.replace('_region', '').padEnd(14)} ${String(ok).padStart(4)}/${tot}  ${(100 * ok / tot).toFixed(0)}%`);
   }
 
   console.log(`\nsampled ${Object.keys(BIOMES).length} biomes x ${stats.grassland_ruins.g.length.toLocaleString()} vertices in ${Date.now() - t0} ms`);

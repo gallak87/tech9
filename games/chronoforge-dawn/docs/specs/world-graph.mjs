@@ -73,7 +73,7 @@ export const MAPS = {
       { x: 44, y: 15, to: { mapId: 'emberline_region',   x: 1,  y: 15 }, gate: 'Survivor' }, // DONOR-4 fix
       { x: 28, y: 29, to: { mapId: 'forest_veil_region', x: 1,  y: 12 }, gate: 'Survivor' }, // NEW
     ],
-    worldDrop: { x: 38, y: 5, itemId: 'bog_fang' },
+    worldDrop: { x: 40, y: 5, itemId: 'bog_fang' },
     blocked: [],
   },
 
@@ -88,7 +88,7 @@ export const MAPS = {
     },
     encounters: [
       { id: 'e2',  x: 14, y: 16, enemy: 'mutant_hound' },
-      { id: 'e3',  x: 24, y: 20, enemy: 'drone_sentinel' },
+      { id: 'e3',  x: 24, y: 22, enemy: 'drone_sentinel' },
       { id: 'e4',  x: 40, y: 18, enemy: 'gravbot' },
       { id: 'e22', x: 8,  y: 21, enemy: 'slag_rat' },
       { id: 'e23', x: 38, y: 8,  enemy: 'bog_stalker' },
@@ -99,7 +99,7 @@ export const MAPS = {
       { x: 22, y: 29, to: { mapId: 'forest_veil_region',   x: 30, y: 1  }, gate: 'Survivor' },
       { x: 42, y: 4,  to: { mapId: 'crater_ember_region',  x: 10, y: 28 }, gate: 'Ascendant' },
     ],
-    worldDrop: { x: 8, y: 8, itemId: 'glacial_claw' },
+    worldDrop: { x: 7, y: 7, itemId: 'glacial_claw' },
     blocked: [],
   },
 
@@ -118,7 +118,7 @@ export const MAPS = {
       { x: 44, y: 22, to: { mapId: 'mire_bog_region',   x: 1,  y: 22 }, gate: 'Survivor' },
       { x: 1,  y: 12, to: { mapId: 'haventide_region',  x: 28, y: 29 }, gate: 'Survivor' }, // NEW
     ],
-    worldDrop: { x: 10, y: 10, itemId: 'moss_ward' },
+    worldDrop: { x: 7, y: 3, itemId: 'moss_ward' },
     blocked: [],
   },
 
@@ -127,17 +127,17 @@ export const MAPS = {
     biome: 'mire_bog', backdrop: 'mire_bog', w: MAP_W, h: MAP_H,
     city: null,
     encounters: [
-      { id: 'e11', x: 20, y: 18, enemy: 'bog_stalker' },
+      { id: 'e11', x: 21, y: 19, enemy: 'bog_stalker' },
       { id: 'e12', x: 32, y: 24, enemy: 'mire_hulk' },
       { id: 'e13', x: 44, y: 12, enemy: 'mire_warden' },
       { id: 'e26', x: 10, y: 28, enemy: 'slag_rat' },
-      { id: 'e27', x: 38, y: 20, enemy: 'mutant_hound' },
+      { id: 'e27', x: 40, y: 18, enemy: 'mutant_hound' },
     ],
     doorways: [
       { x: 1,  y: 22, to: { mapId: 'forest_veil_region',   x: 44, y: 22 }, gate: 'Survivor' },
       { x: 44, y: 4,  to: { mapId: 'orbital_reach_region', x: 20, y: 29 }, gate: 'Reclaimer' }, // NEW
     ],
-    worldDrop: { x: 36, y: 27, itemId: 'swamp_coil' },
+    worldDrop: { x: 30, y: 3, itemId: 'swamp_coil' },
     blocked: [],
   },
 
@@ -162,7 +162,7 @@ export const MAPS = {
       { x: 10, y: 2,  to: { mapId: 'frost_canyon_region', x: 23, y: 28 }, gate: 'Survivor' },
       { x: 20, y: 29, to: { mapId: 'mire_bog_region',     x: 44, y: 4  }, gate: 'Reclaimer' }, // NEW
     ],
-    worldDrop: { x: 42, y: 8, itemId: 'ember_core' },
+    worldDrop: { x: 42, y: 4, itemId: 'ember_core' },
     blocked: [],
   },
 
@@ -171,9 +171,9 @@ export const MAPS = {
     biome: 'frost_canyon', backdrop: 'frost_canyon', w: MAP_W, h: MAP_H,
     city: null,
     encounters: [
-      { id: 'e17', x: 18, y: 20, enemy: 'glacier_wolf' },
-      { id: 'e18', x: 32, y: 14, enemy: 'frost_revenant' },
-      { id: 'e19', x: 40, y: 22, enemy: 'frost_colossus' },
+      { id: 'e17', x: 24, y: 21, enemy: 'glacier_wolf' },
+      { id: 'e18', x: 27, y: 14, enemy: 'frost_revenant' },
+      { id: 'e19', x: 40, y: 20, enemy: 'frost_colossus' },
       { id: 'e30', x: 8,  y: 28, enemy: 'neon_cultist' },
       { id: 'e31', x: 38, y: 26, enemy: 'sandworm_hatchling' },
     ],
@@ -181,7 +181,7 @@ export const MAPS = {
       { x: 23, y: 28, to: { mapId: 'orbital_reach_region', x: 10, y: 2  }, gate: 'Survivor' }, // moved, see MOVED_FROM_DONOR
       { x: 1,  y: 8,  to: { mapId: 'crater_ember_region',  x: 44, y: 20 }, gate: 'Ascendant' }, // NEW
     ],
-    worldDrop: { x: 8, y: 27, itemId: 'frost_plate' },
+    worldDrop: { x: 2, y: 20, itemId: 'frost_plate' },
     blocked: [],
   },
 
@@ -190,17 +190,17 @@ export const MAPS = {
     biome: 'crater_ember', backdrop: 'crater_ember', w: MAP_W, h: MAP_H,
     city: null,
     encounters: [
-      { id: 'e14', x: 22, y: 16, enemy: 'ember_golem' },
-      { id: 'e15', x: 36, y: 26, enemy: 'magma_behemoth' },
-      { id: 'e16', x: 40, y: 12, enemy: 'ember_lord' },
-      { id: 'e35', x: 14, y: 22, enemy: 'gravbot' },
-      { id: 'e36', x: 34, y: 10, enemy: 'neon_cultist' },
+      { id: 'e14', x: 17, y: 15, enemy: 'ember_golem' },
+      { id: 'e15', x: 40, y: 27, enemy: 'magma_behemoth' },
+      { id: 'e16', x: 42, y: 8, enemy: 'ember_lord' },
+      { id: 'e35', x: 19, y: 22, enemy: 'gravbot' },
+      { id: 'e36', x: 32, y: 14, enemy: 'neon_cultist' },
     ],
     doorways: [
       { x: 10, y: 28, to: { mapId: 'emberline_region',    x: 42, y: 4 }, gate: 'Ascendant' },
       { x: 44, y: 20, to: { mapId: 'frost_canyon_region', x: 1,  y: 8 }, gate: 'Ascendant' }, // NEW
     ],
-    worldDrop: { x: 30, y: 6, itemId: 'magma_blade' },
+    worldDrop: { x: 30, y: 4, itemId: 'magma_blade' },
     blocked: [],
   },
 
@@ -215,15 +215,15 @@ export const MAPS = {
     },
     encounters: [
       { id: 'e7',  x: 20, y: 18, enemy: 'wraith_core' },
-      { id: 'e8',  x: 42, y: 25, enemy: 'architect_herald' },
-      { id: 'e32', x: 10, y: 28, enemy: 'mire_warden' },
-      { id: 'e33', x: 40, y: 14, enemy: 'gravbot' },
-      { id: 'e34', x: 40, y: 26, enemy: 'neon_cultist' },
+      { id: 'e8',  x: 35, y: 21, enemy: 'architect_herald' },
+      { id: 'e32', x: 9, y: 25, enemy: 'mire_warden' },
+      { id: 'e33', x: 40, y: 12, enemy: 'gravbot' },
+      { id: 'e34', x: 41, y: 27, enemy: 'neon_cultist' },
     ],
     doorways: [
       { x: 1, y: 14, to: { mapId: 'orbital_reach_region', x: 44, y: 14 }, gate: 'Ascendant' },
     ],
-    worldDrop: { x: 38, y: 26, itemId: 'void_scepter' },
+    worldDrop: { x: 27, y: 27, itemId: 'void_scepter' },
     blocked: [],
   },
 
@@ -284,6 +284,71 @@ export const MAPS = {
 };
 
 export const PLAYER_START = { mapId: 'haventide_region', x: 12, y: 18 };
+
+// ── enemy tiers (Phase 1.3) ────────────────────────────────────────────────
+// Ported verbatim from games/chronoforge/src/battle.js ENEMY_TEMPLATES[*].tier.
+// This is level's READ-ONLY mirror for placement checks; the tables themselves
+// belong to gamedesign and the donor. selfCheck() asserts this key set matches
+// docs/specs/inventory.mjs ENEMY_DROP_TABLE exactly, so the mirror cannot drift.
+export const ENEMY_TIERS = {
+  rust_scrapper: 1, drone_sentinel: 1, bog_stalker: 1, slag_rat: 1,
+  mutant_hound: 2, gravbot: 2, mire_hulk: 2, glacier_wolf: 2,
+  neon_cultist: 3, sandworm_hatchling: 3, ember_golem: 3, frost_revenant: 3,
+  wraith_core: 4, mire_warden: 4, magma_behemoth: 4,
+  architect_herald: 5, frost_colossus: 5, ember_lord: 5,
+};
+
+/** A T5 enemy is an elite / boss, not trash — it is allowed to headline a
+ *  region below its own tier as a set-piece. Everything else must sit within
+ *  one tier of its region. */
+export const TIER_TOLERANCE = 1;
+
+/** Inherited mismatches, each named so it is visible and so a NEW one fails.
+ *  Enemy assignment is gamedesign's and the donor's lane, not level's: these
+ *  are reported, not retuned. Removing an entry here re-arms the gate for it. */
+export const TIER_EXCEPTIONS = [
+  { enc: 'e13', region: 'mire_bog_region', enemy: 'mire_warden',
+    why: 'T4 in a T2 region (+2). The worst of the set: Mire Bog is inside the ' +
+         'Survivor starting web, so a level-5 party meets a T4 enemy with 165 HP. ' +
+         'It is also the ONLY pre-Ascendant source of void_scepter (20% drop), so ' +
+         'swapping it moves item pacing — gamedesign call, not level.' },
+  { enc: 'e19', region: 'frost_canyon_region', enemy: 'frost_colossus',
+    why: 'T5 in a T3 region (+2). Reads as a deliberate superboss and is one of ' +
+         'only two titan_shard sources. Tolerated under the T5-elite rule.' },
+  { enc: 'e35', region: 'crater_ember_region', enemy: 'gravbot',
+    why: 'T2 in a T4 region (-2). Trash in endgame content; harmless but limp.' },
+  { enc: 'e33', region: 'last_crown_region', enemy: 'gravbot',
+    why: 'T2 in a T4 region (-2). Same as above, in the finale region.' },
+];
+
+// ── placement rules (Phase 1.3) ────────────────────────────────────────────
+// Combat clearance itself is derived in docs/specs/heightfields.mjs from battle
+// staging; these are the tile-space rules that sit on top of it.
+/** Two encounters closer than one staging disc share a battle stage. */
+export const MIN_ENCOUNTER_SEP_TILES = 6;    // 12 m > the 11 m staging disc
+/** You should not be ambushed the instant you walk through a door. */
+export const MIN_DOORWAY_SEP_TILES = 4;
+/** A world drop is the region's ONE secret. It must reward exploring, so it is
+ *  kept off the fight economy and off the routes you walk anyway. */
+export const DROP_MIN_ENCOUNTER_SEP_TILES = 10;   // 20 m: not a fight reward
+export const DROP_MIN_CORRIDOR_SEP_TILES = 6;     // 12 m off every through-route
+
+/** The routes a player walks without exploring: every doorway-to-doorway line
+ *  on the map, plus every doorway-to-city line. A drop on one of these is
+ *  found by walking through, not by looking. */
+export function corridorsOf(mapId) {
+  const m = MAPS[mapId], out = [], d = m.doorways;
+  for (let i = 0; i < d.length; i++)
+    for (let j = i + 1; j < d.length; j++) out.push([d[i].x, d[i].y, d[j].x, d[j].y]);
+  if (m.city) for (const w of d) out.push([w.x, w.y, m.city.x, m.city.y]);
+  return out;
+}
+
+export function pointToSegment(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
+  const t = L ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / L)) : 0;
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
 
 export const OUTDOOR_IDS = Object.keys(MAPS).filter(id => !MAPS[id].isInterior);
 export const INTERIOR_IDS = Object.keys(MAPS).filter(id => MAPS[id].isInterior);
@@ -436,7 +501,7 @@ const EXPECT = {
   hubMaxSlope: null,
 };
 
-function selfCheck() {
+async function selfCheck() {
   const fail = [];
   const F = (m) => fail.push(m);
 
@@ -547,7 +612,14 @@ function selfCheck() {
     if (profile[i] !== EXPECT.reachProfile[i])
       F(`reachability at ${SETTLEMENT_TIERS[i]} is ${profile[i]}, inherited tree gives ${EXPECT.reachProfile[i]}`);
   }
-  for (const r of OUTDOOR_IDS) if (!reachableAt('Transcendent').has(r)) F(`UNREACHABLE at any tier: ${r}`);
+  // Walk EVERY tier state, not just max: name the first tier at which each
+  // region opens, and fail if any region never opens at all.
+  const opensAt = {};
+  for (const t of SETTLEMENT_TIERS) {
+    for (const r of reachableAt(t)) if (opensAt[r] === undefined) opensAt[r] = t;
+  }
+  for (const r of OUTDOOR_IDS)
+    if (opensAt[r] === undefined) F(`UNREACHABLE at every settlement tier: ${r}`);
 
   // 8. gates are temporary — nothing stays shut at max tier
   for (const e of REGION_EDGES)
@@ -565,6 +637,109 @@ function selfCheck() {
   const badCuts = after.cutVertices.filter(c => !(c.v === 'orbital_reach_region' && c.orphans.length === 1 && c.orphans[0] === 'last_crown_region'));
   if (badCuts.length) F(`unexpected cut vertices: ${badCuts.map(c => `${c.v} -> ${c.orphans.join(',')}`).join('; ')}`);
 
+  // ── Phase 1.3 gates ──────────────────────────────────────────────────────
+  // heightfields imports THIS module, so the clearance check is a dynamic
+  // import inside selfCheck rather than a static one — at call time both
+  // modules are fully initialised and there is no cycle at load.
+  const HF = await import('./heightfields.mjs');
+  const INV = await import('./inventory.mjs');
+
+  // 10. the enemy mirror cannot drift from the ported drop tables
+  const mirrorKeys = Object.keys(ENEMY_TIERS).sort().join(',');
+  const dropKeys = Object.keys(INV.ENEMY_DROP_TABLE).sort().join(',');
+  if (mirrorKeys !== dropKeys) F('ENEMY_TIERS key set does not match inventory.mjs ENEMY_DROP_TABLE');
+
+  // 11. every encounter names a real enemy; every drop a real item
+  for (const id of OUTDOOR_IDS) {
+    for (const e of MAPS[id].encounters)
+      if (!(e.enemy in ENEMY_TIERS)) F(`${id} ${e.id} names unknown enemy "${e.enemy}"`);
+    const d = MAPS[id].worldDrop;
+    if (!(d.itemId in INV.ITEM_DEFS)) F(`${id} world drop names unknown item "${d.itemId}"`);
+    if (INV.WORLD_DROPS[id] !== d.itemId)
+      F(`${id} world drop is "${d.itemId}" but inventory.mjs WORLD_DROPS says "${INV.WORLD_DROPS[id]}"`);
+  }
+  // no orphans the other way: every WORLD_DROPS region is a real outdoor map
+  for (const r of Object.keys(INV.WORLD_DROPS))
+    if (!OUTDOOR_IDS.includes(r)) F(`inventory.mjs WORLD_DROPS names non-region "${r}"`);
+  // every enemy in the tables is actually placed somewhere
+  const placedEnemies = new Set(OUTDOOR_IDS.flatMap(id => MAPS[id].encounters.map(e => e.enemy)));
+  const unplaced = Object.keys(ENEMY_TIERS).filter(k => !placedEnemies.has(k));
+  if (unplaced.length) F(`enemies defined but never placed: ${unplaced.join(', ')}`);
+
+  // 12. all 17 items reachable (Phase 8 census gate, checked early)
+  const dropIds = new Set(Object.values(INV.ENEMY_DROP_TABLE).flat().map(d => d.itemId));
+  const wdIds = new Set(Object.values(MAPS).filter(m => m.worldDrop).map(m => m.worldDrop.itemId));
+  const unreachable = Object.keys(INV.ITEM_DEFS)
+    .filter(i => !INV.STARTING_KIT.includes(i) && !dropIds.has(i) && !wdIds.has(i));
+  if (unreachable.length) F(`items unreachable by kit/drop/world-drop: ${unreachable.join(', ')}`);
+
+  // 13. combat clearance on all 36 encounters, on the CURRENT heightfields
+  let worstEnc = { v: -1 };
+  for (const id of OUTDOOR_IDS) {
+    const b = MAPS[id].biome;
+    for (const e of MAPS[id].encounters) {
+      const c = HF.clearanceAt(b, tileToM(e.x), tileToM(e.y));
+      const use = c.stageSpread / HF.STAGE_MAX_SPREAD_M;
+      if (use > worstEnc.v) worstEnc = { v: use, id, e, c };
+      if (c.stageSpread > HF.STAGE_MAX_SPREAD_M)
+        F(`${id} ${e.id} (${e.x},${e.y}): stage spread ${c.stageSpread.toFixed(2)} m > ${HF.STAGE_MAX_SPREAD_M.toFixed(2)}`);
+      if (c.stageMaxSlopeDeg > HF.STAGE_MAX_SLOPE_DEG)
+        F(`${id} ${e.id} (${e.x},${e.y}): stage slope ${c.stageMaxSlopeDeg.toFixed(1)} deg > ${HF.STAGE_MAX_SLOPE_DEG}`);
+      if (c.frameSpread > HF.FRAME_MAX_SPREAD_M)
+        F(`${id} ${e.id} (${e.x},${e.y}): frame spread ${c.frameSpread.toFixed(2)} m > ${HF.FRAME_MAX_SPREAD_M}`);
+      if (HF.isSubmerged(b, tileToM(e.x), tileToM(e.y)))
+        F(`${id} ${e.id} (${e.x},${e.y}): stands below the water plane`);
+    }
+  }
+
+  // 14. encounter spacing and doorway standoff
+  for (const id of OUTDOOR_IDS) {
+    const m = MAPS[id];
+    for (let i = 0; i < m.encounters.length; i++) {
+      const a = m.encounters[i];
+      for (const w of m.doorways)
+        if (Math.hypot(w.x - a.x, w.y - a.y) < MIN_DOORWAY_SEP_TILES)
+          F(`${id} ${a.id} is ${Math.hypot(w.x - a.x, w.y - a.y).toFixed(1)} tiles from door (${w.x},${w.y})`);
+      for (let j = i + 1; j < m.encounters.length; j++) {
+        const b2 = m.encounters[j], d = Math.hypot(a.x - b2.x, a.y - b2.y);
+        if (d < MIN_ENCOUNTER_SEP_TILES)
+          F(`${id} ${a.id} and ${b2.id} are ${(d * 2).toFixed(1)} m apart — battle stages overlap`);
+      }
+    }
+  }
+
+  // 15. world-drop siting rule
+  for (const id of OUTDOOR_IDS) {
+    const m = MAPS[id], d = m.worldDrop, b = m.biome;
+    if (!HF.dropSiteOk(b, tileToM(d.x), tileToM(d.y)))
+      F(`${id} world drop (${d.x},${d.y}) is not on readable, dry ground`);
+    for (const e of m.encounters) {
+      const dist = Math.hypot(e.x - d.x, e.y - d.y);
+      if (dist < DROP_MIN_ENCOUNTER_SEP_TILES)
+        F(`${id} world drop is ${(dist * 2).toFixed(1)} m from ${e.id} — that is a fight reward, not a secret`);
+    }
+    for (const c of corridorsOf(id)) {
+      const dist = pointToSegment(d.x, d.y, ...c);
+      if (dist < DROP_MIN_CORRIDOR_SEP_TILES)
+        F(`${id} world drop is ${(dist * 2).toFixed(1)} m from the (${c[0]},${c[1]})-(${c[2]},${c[3]}) through-route`);
+    }
+  }
+
+  // 16. tier coherence
+  const tierIssues = [];
+  for (const id of OUTDOOR_IDS) {
+    const rt = MAPS[id].tier;
+    for (const e of MAPS[id].encounters) {
+      const et = ENEMY_TIERS[e.enemy];
+      if (et === undefined) continue;
+      const delta = et - rt;
+      if (Math.abs(delta) <= TIER_TOLERANCE) continue;
+      const known = TIER_EXCEPTIONS.find(x => x.enc === e.id && x.region === id && x.enemy === e.enemy);
+      tierIssues.push({ id, e, et, rt, delta, known: !!known });
+      if (!known) F(`${id} (T${rt}) ${e.id} is ${e.enemy} (T${et}), delta ${delta > 0 ? '+' : ''}${delta} — not in TIER_EXCEPTIONS`);
+    }
+  }
+
   // ── report ───────────────────────────────────────────────────────────────
   console.log(`Maps ${ids.length}  (outdoor ${OUTDOOR_IDS.length}, interiors ${INTERIOR_IDS.length})`);
   console.log(`Outdoor map size ${MAP_W}x${MAP_H} tiles @ ${TILE_M} m = ${OUTDOOR_W_M} x ${OUTDOOR_D_M} m`);
@@ -576,6 +751,10 @@ function selfCheck() {
     const s = reachableAt(t);
     console.log(`  ${t.padEnd(12)} ${s.size}/${OUTDOOR_IDS.length}  [${[...s].sort().map(r => r.replace('_region', '')).join(', ')}]`);
   }
+
+  console.log('  first tier each region opens:');
+  for (const r of OUTDOOR_IDS)
+    console.log(`    ${r.replace('_region', '').padEnd(14)} ${opensAt[r] ?? 'NEVER'}`);
 
   console.log('\nTopology delta (hop counts, all edges open):');
   console.log(`  inherited tree : ${INHERITED_TREE.length} edges, mean ${before.meanHops.toFixed(3)}, diameter ${before.diameter}`);
@@ -590,6 +769,22 @@ function selfCheck() {
   console.log(`  cut vertices before: ${before.cutVertices.map(c => c.v.replace('_region', '')).join(', ') || 'none'}`);
   console.log(`  cut vertices after : ${after.cutVertices.map(c => `${c.v.replace('_region', '')} (isolates ${c.orphans.map(o => o.replace('_region', '')).join(',')})`).join('; ') || 'none'}`);
 
+  console.log('\nClearance (derived in heightfields.mjs from battle staging):');
+  console.log(`  R_STAGE ${HF.R_STAGE_M} m disc, spread <= ${HF.STAGE_MAX_SPREAD_M.toFixed(2)} m, slope <= ${HF.STAGE_MAX_SLOPE_DEG} deg`);
+  console.log(`  R_FRAME ${HF.frameRadiusM().toFixed(2)} m disc (push-in ${HF.BATTLE_PUSH_IN}), spread <= ${HF.FRAME_MAX_SPREAD_M} m`);
+  console.log(`  tightest of 36: ${worstEnc.id.replace('_region', '')} ${worstEnc.e.id} at ${(100 * worstEnc.v).toFixed(0)}% of the spread budget ` +
+    `(${worstEnc.c.stageSpread.toFixed(2)} m, ${worstEnc.c.stageMaxSlopeDeg.toFixed(1)} deg)`);
+
+  console.log('\nContent cross-check:');
+  console.log(`  ${encTotal} encounters name ${placedEnemies.size} distinct enemies, all ${Object.keys(ENEMY_TIERS).length} defined enemies placed`);
+  console.log(`  ${drops.length} world drops, all in ITEM_DEFS and matching inventory.mjs WORLD_DROPS`);
+  console.log(`  all ${Object.keys(INV.ITEM_DEFS).length} items reachable via starting kit (${INV.STARTING_KIT.length}) + drop tables (${dropIds.size}) + world drops (${wdIds.size})`);
+
+  console.log('\nTier coherence (|enemy tier - region tier| <= 1, T5 elites exempt):');
+  if (!tierIssues.length) console.log('  clean');
+  for (const t of tierIssues)
+    console.log(`  ${t.known ? 'KNOWN ' : 'NEW!! '}${t.id.replace('_region', '').padEnd(14)} ${t.e.id} ${t.e.enemy} T${t.et} in a T${t.rt} region (${t.delta > 0 ? '+' : ''}${t.delta})`);
+
   console.log('\nDonor defects fixed in this port:');
   for (const d of FIXED_FROM_DONOR) console.log(`  ${d.id}  ${d.where}`);
   console.log('Doorways moved for landform reasons:');
@@ -600,8 +795,17 @@ function selfCheck() {
     for (const f of fail) console.error('  - ' + f);
     process.exitCode = 1;
   } else {
-    console.log(`\nPASS - ${ids.length} maps, ${doorCount} doorway records, ${REGION_EDGES.length} edges, every landing in-bounds, passable and reciprocal; every region reachable from Haventide; no permanent one-way.`);
+    console.log(`\nPASS - ${ids.length} maps, ${doorCount} doorway records, ${REGION_EDGES.length} edges; every landing in-bounds, passable and reciprocal; ` +
+      `every region opens at some settlement tier and every edge traverses both ways at max; ` +
+      `${encTotal} encounters and ${drops.length} world drops all clear combat clearance on the current heightfields, ` +
+      `name real enemies/items, and leave all ${Object.keys(INV.ITEM_DEFS).length} items reachable.`);
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) selfCheck();
+// NOT awaited: selfCheck() dynamically imports heightfields.mjs, which
+// statically imports THIS module. A top-level `await` here would block this
+// module's evaluation, so that import could never resolve — a deadlock, not a
+// slow start. Unawaited, evaluation completes first and the import resolves.
+if (import.meta.url === `file://${process.argv[1]}`) {
+  selfCheck().catch(err => { console.error(err); process.exitCode = 1; });
+}

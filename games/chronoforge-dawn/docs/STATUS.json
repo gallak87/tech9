@@ -387,6 +387,38 @@
       "tier": "Tier 1 (Phase 10)",
       "title": "PROPOSAL, not implemented: blend biome albedo near doorways",
       "detail": "The twelve maps are discrete and joined at authored doorway coordinates, so no continuous blend field is needed — only the ground near a door needs to resemble what is through it. Within R metres of a doorway (suggest R = 14 m, a little under half a screen width, lerped on smooth01(1 - d/R)), lerp the biome's four-colour albedo ramp toward the ramp of the map that door leads to. Everything required is already data: doorway coords and target mapId in world-graph.mjs, biome per map, and the four-colour ramp per biome in heightfields.mjs. Scope is three doors, not a system: six of the ten edges already read as natural gradients. The jarring ones are emberline<->forest_veil (0.264 -> 0.170 luminance), emberline<->orbital_reach (0.264 -> 0.448) and mire_bog<->orbital_reach (0.120 -> 0.448, a 3.7x jump). crater_ember<->frost_canyon is also jarring and should STAY hard — a fire-and-ice border is a landmark. Cost is one lerp in the terrain vertex-colour pass; no new data, pass, draw calls or triangles. Sequence after LVL-1, since blending snow into the swamp end interacts with the snow-albedo exposure risk. Full write-up in agents/level-output.md section 8."
+    },
+    {
+      "id": "DONOR-6",
+      "severity": "medium",
+      "area": "world",
+      "tier": "Tier 4 (Phase 7)",
+      "title": "Two donor encounter pairs are closer than one battle staging disc",
+      "detail": "Battle stages in place on a disc of radius R_STAGE = 5.5 m (11.0 m across, derived in docs/specs/heightfields.mjs). frost_canyon e19(40,22) <-> e31(38,26) are 8.9 m apart and last_crown e8(42,25) <-> e34(40,26) are 4.5 m apart, so triggering one stages the fight on top of the other. Verified against games/chronoforge/src/world.js. Both resolved by the Phase 1.3 moves; MIN_ENCOUNTER_SEP_TILES = 6 (12 m) now gates it in world-graph.mjs selfCheck."
+    },
+    {
+      "id": "LVL-8",
+      "severity": "info",
+      "area": "level/battle",
+      "tier": "Tier 4 (Phase 7)",
+      "title": "BATTLE_PUSH_IN = 1.20 authored by level because combat clearance could not be derived without it",
+      "detail": "No push-in number existed anywhere. Clearance depends on it, so the two are one decision: the staging disc is 11.0 m across and good framing puts the subject at ~60% of the frame's short dimension, giving a pushed-in ground depth of 18.3 m against the overworld's 22.0 m -> push-in 1.20, battle frame 15.0 m. It lives in docs/specs/heightfields.mjs. `battle` should adopt it in Phase 7 or tell level it changed — a harder push-in tightens clearance and moves some of the 36 placements again."
+    },
+    {
+      "id": "LVL-9",
+      "severity": "medium",
+      "area": "gamedesign",
+      "tier": "Tier 4 (Phase 7)",
+      "title": "Four inherited encounters break tier coherence; e13 is the one that matters",
+      "detail": "Rule: |enemy tier - region tier| <= 1, T5 exempt as elites. Reported, NOT retuned — enemy assignment is gamedesign's and the donor's lane. Named in world-graph.mjs TIER_EXCEPTIONS so a NEW mismatch fails the gate. (1) e13 mire_warden T4 in Mire Bog T2, +2 — the worst: Mire Bog is inside the Survivor starting web, so a level-5 party meets a 165 HP T4 enemy, and it is the ONLY pre-Ascendant source of void_scepter (20% drop), so swapping it moves item pacing. (2) e19 frost_colossus T5 in Frost Canyon T3, +2 — reads as a deliberate superboss, one of two titan_shard sources. (3) e35 gravbot T2 in Crater Ember T4, -2. (4) e33 gravbot T2 in Last Crown T4, -2. The last two are cosmetic; e13 needs a decision."
+    },
+    {
+      "id": "LVL-10",
+      "severity": "info",
+      "area": "level",
+      "tier": "Phase 1.3",
+      "title": "Combat clearance derived and all 36 encounters + 8 world drops re-placed against it",
+      "detail": "GAME_PLAN named combat clearance as the constraint on every placement and no number for it existed. Derived from battle staging in docs/specs/heightfields.mjs: R_STAGE 5.5 m (actor geometry, does NOT move with FRAME_HEIGHT_M) with spread <= 1.5*HERO_M = 2.58 m and slope <= 16 deg; R_FRAME 9.16 m (a camera formula over FRAME_HEIGHT_M, so it DOES move — P0-6) with spread <= 6.0 m, from the occlusion threshold d/tan(55 deg). The coupling is asserted: the staging disc must stay under 70% of the pushed-in frame's short dimension, which breaks below FRAME_HEIGHT_M 15.4. 12 of 36 inherited encounters failed; all 36 now pass. 15 encounters moved (4-16 m) and all 8 world drops moved (3-49 m). Stageable fraction per map ranges 100% (Haventide) to 21% (Crater Ember), which puts Crater Ember's fights in its crater floors. World-drop siting rule: >= 20 m from every encounter, >= 12 m from every doorway-to-doorway and doorway-to-city through-route, on dry readable ground, minimum move from the donor tile otherwise."
     }
   ]
 }

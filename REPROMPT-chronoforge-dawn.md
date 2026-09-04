@@ -87,29 +87,21 @@ Phase 0 and a Phase 1.1 prep pass already shipped. **Do not clobber source.**
 | `ARCHITECTURE.md`, `CONTRACT.md` | hand-written in Phase 0; the Scaffolder does not emit these |
 | `index.html`, `package.json`, `vite.config.js` | |
 
-| Deliberately deleted — recreate | |
+| Absent — recreate | |
 |---|---|
 | `team_config.json` | Director output |
 | `GAME_PLAN.md` | Scaffolder output |
 | `agents/*.md` | the roster |
 
-### Why the Director output was removed
+### Rules for this run
 
-The last run hand-wrote per-folder agent definitions in `.claude/agents/`. That put a
-second ownership axis next to the roster, the two drifted, and `src/render/**` ended up
-owned by a lane with no agent behind it — a real exposure bug sat there unassigned.
-
-**What is wanted now: a clean Director pass that plans the roster from `vocab/roles/`
-only.** `dev` is lane-agnostic — the phase says what is in scope and `dev` builds it. Do
-not create one agent per folder and do not write anything into `.claude/agents/`.
-
-### Notes
-
-- The "33% session usage" line in the prompt is historical. Ignore it as a budget; the
-  intent it encodes — fundamentals and the verification loop first — still stands.
-- Phase 0 is done and its gates pass. The plan should start at Phase 1.1.
-- One fix landed after Phase 0: exposure now ramps over sun elevation
-  (`EXPOSURE_RAMP` in `src/render/environment.js`), fixed per hour, no metering. Dawn at
-  6.4h is the signed-off frame — median 0.212, p90 0.51, 0% blown white. Do not regress it.
-- Verify the harness still runs before planning anything:
+- Plan the roster from `vocab/roles/` only. Write nothing into `.claude/agents/`.
+- `dev` is lane-agnostic: the phase says what is in scope and `dev` builds it. Do not
+  create one agent per folder.
+- Phase 0 is done and its gates pass. Start the plan at Phase 1.1.
+- Dawn at 6.4h is signed off — median 0.212, p90 0.51, 0% blown white. Do not regress it.
+  Exposure ramps over sun elevation (`EXPOSURE_RAMP` in `src/render/environment.js`),
+  fixed per hour, no metering.
+- Ignore the "33% session usage" line above as a budget.
+- Check the harness before planning:
   `cd games/chronoforge-dawn && node tools/probe.mjs --shots wide --hour 6.4`

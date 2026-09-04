@@ -7,6 +7,7 @@ import { buildActor, paletteFor } from './rig.js';
 import { makeActorMaterial, makeActorUniforms } from './material.js';
 import { Animator, POSE_NAMES } from './poses.js';
 import { makeGate } from './gate.js';
+import { groundActor, footError } from './ground.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // actors — code-built rigs, the socket/pose library, and the pixel-snap +
@@ -46,6 +47,7 @@ export function installActors(ctx) {
   const uniforms = makeActorUniforms();
   const material = makeActorMaterial(uniforms, { name: 'actor-shared' });
   const actors = [];
+  let groundOn = true;
   let snapOn = true;
   let snapBoost = 1.0;
   let viewScale = 1.0;
@@ -298,6 +300,19 @@ export function installActors(ctx) {
   }
   if (dev) {
     dev.register({
+      group: 'rig', label: 'Feet', type: 'readout',
+      get: () => {
+        const a = actors[0];
+        if (!a || !ctx.world?.heightAt) return '--';
+        const e = footError(a, ctx.world);
+        return `L${(e.L ?? 0).toFixed(3)} R${(e.R ?? 0).toFixed(3)}  ${(a.ik?.slopeDeg ?? 0).toFixed(0)}deg`;
+      },
+    });
+    dev.register({
+      group: 'rig', label: 'Ground', type: 'toggle',
+      get: () => groundOn, set: (v) => { groundOn = v; },
+    });
+    dev.register({
       group: 'rig', label: 'Rig', type: 'readout',
       get: () => actors.length
         ? `${lastHeroPx.toFixed(0)}px  snap ${lastSnapPx.toFixed(2)}`
@@ -318,6 +333,8 @@ export function installActors(ctx) {
     for (const a of actors) {
       a.anim.update(dt);
       place(a);
+      // Phase 2.4 — feet plant, body leans, sole rolls onto the hill.
+      if (groundOn) groundActor(a, ctx.world, dt);
       // IFF beacon pulse — 0.6 Hz ally, 0.9 Hz hostile, per palette.mjs
       const k = 0.72 + 0.28 * Math.sin(clock * Math.PI * 2 * a.pulseHz);
       a.beaconUniforms.uEmissive.value = 3.4 * k;
@@ -333,6 +350,8 @@ export function installActors(ctx) {
      *  normal game session never pays for it. */
     get gate() { return gate || (gate = makeGate(ctx)); },
     setSnap(on, boost) { snapOn = !!on; if (boost != null) snapBoost = boost; },
+    setGround(on) { groundOn = !!on; return groundOn; },
+    footError: (a = actors[0]) => (a && ctx.world?.heightAt ? footError(a, ctx.world) : null),
     update,
     report() {
       return {

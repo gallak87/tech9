@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
-  "phase": 2.3,
-  "phaseName": "Kaida rebuilt from lofted cross-sections \u2014 silhouette pass 1, awaiting human sign-off",
+  "phase": 2.4,
+  "phaseName": "Ground contact landed and measured; Kaida silhouette awaiting human sign-off",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -18,7 +18,8 @@
     "rigGateSelfTestCatchesInjectedFaults": true,
     "rigViewerInDevPanel": true,
     "spriteLookSellsAtLockedFraming": false,
-    "freeRoamPlaySample": true
+    "freeRoamPlaySample": true,
+    "plantedFootOnGroundAtEveryWalkableSlope": true
   },
   "budget": {
     "frameMs": 6.4,
@@ -157,7 +158,8 @@
       "lintrng.mjs",
       "quality lever (dev panel, 5 notches, localStorage)",
       "rig.mjs (+ --selftest)",
-      "src/render/geobuild.js (ported from vulpine)"
+      "src/render/geobuild.js (ported from vulpine)",
+      "ground.mjs"
     ],
     "pending": [
       "sheet.mjs",
@@ -483,11 +485,11 @@
     },
     {
       "id": "rig-no-slope-response",
-      "severity": "high",
+      "severity": "resolved",
       "tier": "Phase 2.4",
       "area": "actors/traversal",
       "title": "She stands world-vertical on every slope and both feet sit at one height",
-      "detail": "Placement is a single heightAt() sample at the root, so on a slope the downhill foot floats and the uphill foot buries. At a run her feet are ~0.7 m apart fore-aft; at MAX_WALKABLE_SLOPE_DEG 34 that is 0.47 m of height difference against an 0.88 m leg \u2014 more than half a leg in the air. At a routine 20 deg biome slope it is still 0.25 m. Driving the play sample reaches 38 deg on the placeholder dunes. Fix is a stack: slope-align the root 40-60 percent toward the terrain normal (world.normalAt already exists), two-bone foot IK per foot, torso lean by slope, stride shortening uphill. Rigid skinning makes the IK crease correct rather than wrong, and clips write absolute rotations so IK layers after sampling without touching poses.js.",
+      "detail": "Placement is a single heightAt() sample at the root, so on a slope the downhill foot floats and the uphill foot buries. At a run her feet are ~0.7 m apart fore-aft; at MAX_WALKABLE_SLOPE_DEG 34 that is 0.47 m of height difference against an 0.88 m leg \u2014 more than half a leg in the air. At a routine 20 deg biome slope it is still 0.25 m. Driving the play sample reaches 38 deg on the placeholder dunes. Fix is a stack: slope-align the root 40-60 percent toward the terrain normal (world.normalAt already exists), two-bone foot IK per foot, torso lean by slope, stride shortening uphill. Rigid skinning makes the IK crease correct rather than wrong, and clips write absolute rotations so IK layers after sampling without touching poses.js. RESOLVED 2026-09-04 in src/actors/ground.js; gate is tools/ground.mjs. Planted-foot p95 0.048m -> 0.004m and, more importantly, flat against slope.",
       "repro": "?play=1&dev=1 then run up a dune and watch the Slope readout; shots/play/run-a.png at 38.3 deg"
     },
     {
@@ -635,5 +637,26 @@
       "reads leggier than the intended 5.5 heads"
     ],
     "shots": "shots/kaida/{front,three-q,side,back}.png, shots/rig/poses.png"
+  },
+  "ground": {
+    "metric": "min(|errL|,|errR|) \u2014 the better-planted foot, metres. NOT max: half a run cycle is one foot deliberately in the air.",
+    "control": "1129 positions x 8 stride phases, identical for both configs, animator clock pinned",
+    "p95": {
+      "off": 0.048,
+      "on": 0.004,
+      "improvement": "13.5x"
+    },
+    "slopeGrowth": {
+      "off": "0.015 at 5deg -> 0.079 at 35deg (5.3x)",
+      "on": "0.003 -> 0.004 (1.65x)"
+    },
+    "why_growth_matters": "A fix that shrinks the error uniformly has tuned a constant. A fix that flattens it against slope has absorbed the hill. The flatness is the real evidence.",
+    "pieces": [
+      "slope-aligned root at 45% toward the normal",
+      "plant-weighted two-bone knee solve",
+      "root lift driven by the planted foot only",
+      "sole rolled onto the surface",
+      "spine lean by slope"
+    ]
   }
 }

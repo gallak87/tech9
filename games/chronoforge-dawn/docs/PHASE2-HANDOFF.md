@@ -246,3 +246,59 @@ guard, and the IFF chest triangle deleted.
 
 Gate: `tools/rig.mjs --selftest` exits 0, all four characters, 4/4 faults caught.
 Dawn 6.4 unregressed at median 0.212. Shots in `shots/kaida/`.
+
+---
+
+## 2026-09-04 — Phase 2.4, ground contact
+
+`src/actors/ground.js`, gated by `tools/ground.mjs`. Runs after the clip is
+sampled; clips write absolute rotations so this layers on top and **poses.js is
+untouched** — which is exactly why the animation system was built that way.
+
+Five pieces, in the order they must run: slope-align the root 45% toward the
+surface normal (100% reads like a car on a ramp, 0% like a cutout in sand) ·
+lift the root so the *planted* foot is exactly planted · solve the knee to
+extend the other leg to its own ground · roll the sole onto the surface · lean
+the spine by slope.
+
+**Result: planted-foot p95 0.048 m → 0.004 m, 13.5×.** The number that actually
+matters is the second one: with grounding off the error grows **5.3×** from 5°
+to 35°; with it on, **1.65×**. A fix that shrinks the error uniformly has tuned
+a constant. A fix that flattens it against slope has absorbed the hill.
+
+### Three wrong answers on the way here — read this before trusting a measurement
+
+I nearly shipped "this is a regression" twice. Both times the code was fine and
+the instrument was broken.
+
+1. **Sign error.** `dy` is target-minus-current, so a *floating* foot gives
+   `dy < 0` and must move **down** — away from the hip, a **longer** span. The
+   first version added `dy` and so *shortened* the leg of the foot that was
+   already hanging. It measured as no better than doing nothing.
+2. **Measured her standing still.** At idle the feet are 0.23 m apart, so the
+   slope difference between them is small *by construction* and the entire
+   defect is invisible. At a run they reach **1.42 m** apart. Measure the pose
+   where the problem lives.
+3. **Uncontrolled route.** Driving her with real input for N frames per config
+   sends her somewhere different each time — one run topped out at 17° of slope
+   and the other at 40°, so the two configs were scored on different terrain.
+   That comparison said the fix was a **regression**. It was not.
+
+The fourth mistake was conceptual and worth more than the three above:
+**grounding both feet of a running character is wrong by construction.** Half a
+run cycle is one foot deliberately in the air; dragging it down turns a run into
+a shuffle. IK must only pin the planted foot. The plant weight is *derived* from
+height above ground rather than authored per clip — a clip could carry a plant
+flag and eventually should, but that means editing every clip in poses.js and
+the animation is parked.
+
+Corollary for the metric: use `min(|errL|,|errR|)`, never `max`. A metric that
+punishes the swing foot is measuring the animation, not the grounding, and will
+happily score a shuffle as a success.
+
+### Still open
+
+- **Contact shadow.** `castShadow` is already true on the actor mesh and the
+  shadow is not obviously landing. Not diagnosed — the dawn sun sits at 11.6°
+  and throws a 4.9 m shadow, so it may simply be out of frame in the captures
+  taken so far. Needs a noon check.

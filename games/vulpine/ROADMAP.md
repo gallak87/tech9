@@ -507,6 +507,18 @@ chain, motion blur — are all shipped; they and their reasoning are in
 - [ ] **Shoreline.** The beach/water boundary is still a hard geometric line
       with no foam, and the sand is a flat untextured wedge
       (`shots/refl1/w-shore.png`, mid-left; `shots/refl1/combat-wide.png`).
+- [ ] **The Foundry is the darkest level in the game, and every one of its acts
+      is under the band.** `tools/hist.mjs --level foundry --env foundry`,
+      composited medians against the 0.10-0.20 target: gantry **0.018**, deck
+      0.038, breach 0.029, edge 0.050, shaft 0.075, assembly 0.081, dock 0.102.
+      Three of the seven also run 28-37% pure black. Corneria's equivalent
+      numbers below are 0.032-0.116, so this is the same global grade offset
+      one level further down — and the part of it that is the starfield sky is
+      not a defect, while the part that is a median of 0.018 on the level's
+      opening frame is. `environment.js` is the render lane; the Foundry's own
+      lighting (deck lamps, roof lamp runs) was taken as far as the world lane
+      reaches on 2026-09-03.
+
 - [ ] **The whole level sits under the exposure band, not just `w-shore`.** The
       old note asked whether other shadowed-gorge angles did the same. Measured
       (`hist.mjs`, quality high, composited median): **they all do, and so does

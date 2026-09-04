@@ -79,7 +79,7 @@ const BAY = {
 // rebuild onto the level you are already on hands back the same one.
 
 /** Numeric fields a zone holds. Blended smoothstep between zone keys. */
-const ZONE_FIELDS = ['half', 'deckY', 'roofY'];
+const ZONE_FIELDS = ['half', 'deckY', 'roofY', 'glaze'];
 /** Zone properties that are not blended numbers. Anything else is a typo. */
 const ZONE_META = new Set(['len', 'blend', 'bay', 'rise']);
 
@@ -123,7 +123,7 @@ function compile(src) {
   // `zEnd` plus the boss run, and it is what the chunk count and the last
   // zone's held stretch are sized against.
   const zLast = zEnd - W.run;
-  const base = { half: W.half, deckY: W.deckY, roofY: W.roofY, riseL: 1, riseR: 1 };
+  const base = { half: W.half, deckY: W.deckY, roofY: W.roofY, glaze: W.glaze, riseL: 1, riseR: 1 };
 
   if (!W.zones) {
     return {
@@ -207,7 +207,20 @@ function compile(src) {
   return { src, W, zLast, keys, bays };
 }
 
-const _S = { half: 0, deckY: 0, roofY: 0, riseL: 1, riseR: 1 };
+/**
+ * Where the roof's lamp runs sit, as fractions of `half`. One run down the
+ * middle of a narrow bay; a room wide enough to lose its own ceiling in the
+ * dark gets a run every `lampEvery` metres, symmetric about the rail.
+ */
+function lampRuns(W, half) {
+  const n = Math.max(1, Math.min(W.lampMax, Math.round((half * 2) / W.lampEvery)));
+  if (n === 1) return [0];
+  const out = [];
+  for (let i = 0; i < n; i++) out.push(-0.72 + (1.44 * i) / (n - 1));
+  return out;
+}
+
+const _S = { half: 0, deckY: 0, roofY: 0, glaze: 0, riseL: 1, riseR: 1 };
 
 /**
  * The corridor at `z`. Reuses one object: every caller reads its fields before
@@ -222,6 +235,7 @@ function sample(z, out = _S) {
   out.half = a.half + (b.half - a.half) * t;
   out.deckY = a.deckY + (b.deckY - a.deckY) * t;
   out.roofY = a.roofY + (b.roofY - a.roofY) * t;
+  out.glaze = a.glaze + (b.glaze - a.glaze) * t;
   out.riseL = a.riseL + (b.riseL - a.riseL) * t;
   out.riseR = a.riseR + (b.riseR - a.riseR) * t;
   return out;
@@ -317,7 +331,10 @@ export class Works {
     // The corridor at a z: everything the geometry below is placed against.
     const at = (z) => {
       const s = sample(z);
-      return { z, x: centrelineX(z), y: s.deckY, half: s.half, roof: s.roofY, riseL: s.riseL, riseR: s.riseR };
+      return {
+        z, x: centrelineX(z), y: s.deckY, half: s.half, roof: s.roofY,
+        glaze: s.glaze, riseL: s.riseL, riseR: s.riseR,
+      };
     };
 
     // ── the box ─────────────────────────────────────────────────────────────
@@ -361,11 +378,39 @@ export class Works {
         plane(plate, { ...a, y: a.y + a.roof + W.roofT * 0.5 }, { ...b, y: b.y + b.roof + W.roofT * 0.5 }, W.roofT);
         // Lamp runs down the roof line: with the sky gone this is the only
         // light shaping the tunnel, and an unlit tunnel is a black rectangle.
-        const ma = { z: a.z, x: a.x, y: a.y + a.roof - W.roofT - 0.2, half: W.lampW * 0.5 };
-        const mb = { z: b.z, x: b.x, y: b.y + b.roof - W.roofT - 0.2, half: W.lampW * 0.5 };
-        plane(lit, ma, mb, 0.6);
+        //
+        // How many is a function of how wide the room is, not a constant: one
+        // run down the middle is 22 m of articulation across a ceiling that is
+        // 860 m wide on the assembly floor. This is a coverage argument, not a
+        // brightness one — there are no local lights in this game, so a fixture
+        // is bright pixels and nothing else.
+        const runs = lampRuns(W, (a.half + b.half) * 0.5);
+        for (const f of runs) {
+          const ma = { z: a.z, x: a.x + f * a.half, y: a.y + a.roof - W.roofT - 0.2, half: W.lampW * 0.5 };
+          const mb = { z: b.z, x: b.x + f * b.half, y: b.y + b.roof - W.roofT - 0.2, half: W.lampW * 0.5 };
+          plane(lit, ma, mb, 0.6);
+        }
       }
       a = b;
+    }
+
+    // ── the rhythm ──────────────────────────────────────────────────────────
+    // One spacing, read twice: a rib across the roof and a strip across the
+    // deck at the same z. Two things come out of it that nothing else in this
+    // backend provides. A roof is otherwise a single untextured plate — the
+    // largest flat face in the game and the one CONTRACT rule 5 names — and at
+    // 175 m/s a corridor with nothing crossing it has no speed cue at all: the
+    // walls stream past at the edge of frame while the middle of the screen,
+    // which is where the player is looking, holds still.
+    for (let z = z0 - W.ribGap * 0.5; z > z1; z -= W.ribGap) {
+      const ca = at(Math.min(z0, z + W.ribW * 0.5));
+      const cb = at(Math.max(z1, z - W.ribW * 0.5));
+      if (ca.z - cb.z < 0.5) continue;
+      // Proud of the deck rather than inlaid: an inlay at a grazing angle is
+      // hidden by the plate in front of it from the one camera that matters.
+      plane(lit, { ...ca, y: ca.y + 0.5 }, { ...cb, y: cb.y + 0.5 }, 0.5);
+      if (Works.bayAt(z) !== BAY.ENCLOSED) continue;
+      plane(plate, { ...ca, y: ca.y + ca.roof - W.roofT }, { ...cb, y: cb.y + cb.roof - W.roofT }, W.ribD);
     }
 
     // ── massing ─────────────────────────────────────────────────────────────
@@ -409,11 +454,16 @@ export class Works {
           // entire difference between a building and a lit stripe.
           //
           // But NOT on every block. Glazing every face wall-to-wall and
-          // floor-to-ceiling reads as circuit board rather than as architecture:
-          // what makes a run of buildings legible is the solid ones between the
-          // lit ones. A third stay bare plate, and a glazed block is clad over
-          // part of its height rather than all of it.
-          if (r.next() > 0.34) {
+          // floor-to-ceiling reads as circuit board rather than as
+          // architecture: what makes a run of buildings legible is the solid
+          // ones between the lit ones. A glazed block is also clad over part of
+          // its height rather than all of it.
+          //
+          // `glaze` is a zone field because the window grid is the strongest
+          // signal in every frame of this level, and a corridor through a works
+          // that carries as much of it inside as out reads as a street at
+          // night wherever it goes. It falls away as the level goes in.
+          if (r.next() < c.glaze) {
             const fh = h * r.range(0.52, 0.95);
             push(lit, this._slab(0.8, fh, len * 0.94), xin - side * 0.6,
               top - h + fh * 0.5 + (h - fh) * r.range(0, 0.35), zm);
@@ -503,7 +553,7 @@ export class Works {
 
     if (deck.length) this._chunks.push(this._merge(deck, z0, this.mats.deck));
     if (plate.length) this._chunks.push(this._merge(plate, z0, this.mats.plate));
-    if (lit.length) this._chunks.push(this._merge(lit, z0, this.mats.lit));
+    if (lit.length) this._chunks.push(this._merge(lit, z0, this.mats.lit, false));
     for (const g of spent) g.dispose();
   }
 
@@ -542,10 +592,13 @@ export class Works {
     return g;
   }
 
-  _merge(list, z0, material) {
+  _merge(list, z0, material, casts = true) {
     const g = mergeList(list);
     const mesh = new THREE.Mesh(g, material);
-    mesh.castShadow = true;
+    // A light fixture is not an occluder. It also keeps a third of this
+    // backend's meshes out of the shadow pass — one of the three merges per
+    // chunk is `lit`.
+    mesh.castShadow = casts;
     mesh.receiveShadow = true;
     mesh.userData.z = z0;
     this.root.add(mesh);
@@ -672,6 +725,8 @@ const DEFAULT_WORKS = {
   blockD: [34, 96],
   /** How far a set-back block steps away from the corridor edge. */
   setback: 74,
+  /** Fraction of blocks clad in window grid. See the comment at its use. */
+  glaze: 0.66,
   /** A falling flank: how far the first terrace sits under the deck, and how
    *  much further down each metre of setback takes the next one. */
   terraceDrop: 34,
@@ -683,6 +738,14 @@ const DEFAULT_WORKS = {
   spanW: 26,
   spanGap: 118,
   lampW: 22,
+  /** Metres of corridor width per roof lamp run, and the cap on how many. */
+  lampEvery: 240,
+  lampMax: 5,
+  /** The transverse rhythm: spacing, the strip's length along z, and how far a
+   *  roof rib hangs below the plate. */
+  ribGap: 130,
+  ribW: 9,
+  ribD: 5,
   bulkT: 12,
   /** Clear of `blockH`'s ceiling, or the bulkhead is shorter than its neighbours. */
   bulkH: 470,

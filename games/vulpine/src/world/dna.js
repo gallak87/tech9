@@ -439,6 +439,10 @@ export const DNA_FOUNDRY = {
   // kilometres, which is what three of this level's four brief rows were short
   // of. Boundaries are the numbers `campaign.js` places waves against.
   //
+  // `glaze` falls as the level goes in: the window grid is the strongest signal
+  // in every frame, and a corridor that carries as much of it inside as out
+  // reads as a street at night wherever it goes.
+  //
   //   720 …  -2280   gantry    outside; one flank climbs, the other falls away
   // -2280 …  -3840   breach    a bulkhead, and the roof closes behind it
   // -3840 …  -5400   shaft     the rail dives 430 m and the deck comes with it
@@ -462,22 +466,22 @@ export const DNA_FOUNDRY = {
       // edge, which is the only asymmetry this backend can carry and is the
       // whole of the escarpment. Overhead is space, crossed by gantries.
       { len: 3000, half: 210, deckY: -26, roofY: 190, rise: [1, -0.7],
-        bay: ['open', 'open', 'span'] },
+        glaze: 0.66, bay: ['open', 'open', 'span'] },
       // The breach. The bulkhead stands at the middle of its own bay, so the
       // wall is at -2540 and the roof closes 260 m behind it.
       { len: 1560, blend: 380, half: 190, deckY: -26, roofY: 190,
-        bay: ['bulkhead', 'enclosed', 'enclosed'] },
+        glaze: 0.46, bay: ['bulkhead', 'enclosed', 'enclosed'] },
       // The shaft. -456 is -26 less the rail's own 430, over the same blend, so
       // the 72 m the ship holds over the deck never changes through the dive.
-      { len: 1560, blend: 260, half: 150, deckY: -456, roofY: 190, bay: 'enclosed' },
+      { len: 1560, blend: 260, half: 150, deckY: -456, roofY: 190, glaze: 0.18, bay: 'enclosed' },
       // The assembly floor. 860 m across and 165 m from deck to roof: low is a
       // ratio, not a clearance. 165 leaves 85 m over the rail against the 78 the
       // offset box needs, and `tools/lid.mjs --audit` is what it is set against.
-      { len: 2400, blend: 420, half: 430, deckY: -456, roofY: 165, bay: 'enclosed' },
+      { len: 2400, blend: 420, half: 430, deckY: -456, roofY: 165, glaze: 0.16, bay: 'enclosed' },
       // The dock, open to space, and the widest the corridor gets. No roof: the
       // carrier is fought under stars, and a lid here would be one the boss's
       // own station box reaches through.
-      { len: 2040, blend: 460, half: 560, deckY: -456, roofY: 165, bay: 'open' },
+      { len: 2040, blend: 460, half: 560, deckY: -456, roofY: 165, glaze: 0.30, bay: 'open' },
     ],
   },
 

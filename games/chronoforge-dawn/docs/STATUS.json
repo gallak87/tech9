@@ -98,8 +98,17 @@
       "econ.mjs",
       "save.mjs",
       "digest.mjs",
-      "census.mjs"
-    ]
+      "census.mjs",
+      "region.mjs",
+      "framing.mjs",
+      "play.mjs",
+      "render-audio.mjs"
+    ],
+    "notes": {
+      "play.mjs": "NEW, gated in Phase 4. An interactive Playwright session a QA agent drives \u2014 sends input, reads state, captures on demand. Every existing tool photographs or measures a scripted run; none lets an agent actually play the build. walk.mjs (Phase 5) drives a FIXED route and is not a substitute.",
+      "framing.mjs": "cfd-gamedesign, Phase 1.1. The Encounter Framing POC.",
+      "render-audio.mjs": "cfd-audio, Phase 7."
+    }
   },
   "modules": {
     "world": "phase0 placeholder scene \u2014 world lane replaces wholesale in Tier 1",
@@ -219,8 +228,7 @@
         "agents": [
           "cfd-art",
           "cfd-gamedesign",
-          "cfd-level",
-          "cfd-audio"
+          "cfd-level"
         ]
       },
       {
@@ -237,15 +245,13 @@
     "agents": [
       "cfd-art",
       "cfd-gamedesign",
-      "cfd-level",
-      "cfd-audio"
+      "cfd-level"
     ],
     "criticalPath": "cfd-gamedesign \u2014 its clearance number is the only input to Phase 1.2",
     "deliverables": {
       "cfd-art": "docs/RIG_SPEC.md + docs/rig-spec.json \u2014 topology, sockets, pose library, pixel-snap + palette-quantise. Build proof is Phase 2; spec self-consistency is checkable now and required.",
       "cfd-gamedesign": "docs/DESIGN_SPEC.md + design-spec.json (ported prototype math) AND tools/framing.mjs \u2014 the Encounter Framing POC, primitives only, four worst cases, emitting the combat clearance number.",
-      "cfd-level": "data/regions/*.json \u2014 12 maps ported from the prototype MAPS table with elevation added, plus tools/region.mjs validating the graph offline.",
-      "cfd-audio": "src/audio/** synthesis + tools/render-audio.mjs rendering four signature sounds to shots/audio/*.wav, listened to."
+      "cfd-level": "data/regions/*.json \u2014 12 maps ported from the prototype MAPS table with elevation added, plus tools/region.mjs validating the graph offline."
     },
     "sourceCounts": {
       "maps": 12,
@@ -254,8 +260,9 @@
       "worldDrops": 12,
       "note": "Counted from games/chronoforge/src/world.js. GAME_PLAN Phase 8 says 'eight worldDrops' and the build brief says one per region; the prototype has 12, one per map including interiors. cfd-level must resolve and flag this."
     },
-    "gate": "A spec whose artifact was not run does not pass.",
-    "thenPhase": "Phase 1.2 \u2014 Encounter Placement Pass (level validates 36 placements against clearance)"
+    "gate": "Three specs exist and agree with each other. A spec whose artifact was not run does not pass.",
+    "thenPhase": "Phase 1.2 \u2014 Encounter Placement Pass (level validates 36 placements against clearance)",
+    "audioMoved": "cfd-audio was scoped into Phase 1.1 and moved to Phase 7 on 2026-09-03. Nothing in the build can trigger a sound until Tier 4 \u2014 no battle, no footfall, no resource tick \u2014 so a combo stinger written in Foundations would be tuned against a description rather than a game. Accepted cost: Tier 3 interiors (Phase 6) ship silent, and audio picks up interior ambience one phase late."
   },
   "coreChanges": [
     {
@@ -275,6 +282,22 @@
       "applied": "2026-09-03",
       "change": "CONTRACT.md section 1 gained a Foundations ownership table for art, gamedesign, level and audio, and declares data/regions/** as level's output and world's input.",
       "why": "Phase 1.1 spawns four lanes that owned no folder. Four agents with undefined ownership is exactly what CONTRACT.md exists to prevent."
+    }
+  ],
+  "planChanges": [
+    {
+      "id": "audio-to-phase-7",
+      "applied": "2026-09-03",
+      "change": "audio removed from Phase 1.1 and Phase 6; first runs in Phase 7 with the battle it scores. Its four-signature-sounds deliverable moved into the Phase 7 QA gate.",
+      "why": "Nothing can trigger a sound before Tier 4. A stinger tuned against no battle is tuned against nothing.",
+      "cost": "Phase 6 interiors ship silent; interior ambience lands one phase late."
+    },
+    {
+      "id": "play-mjs-gate",
+      "applied": "2026-09-03",
+      "change": "Phase 4 QA gate gained one clause: play.mjs opens a real Playwright-driven browser session a QA agent can drive interactively \u2014 send input, read state, capture on demand.",
+      "why": "Playwright already drives the harness, but every tool either photographs a frame or measures a scripted run. No QA agent can actually play the build. walk.mjs drives a fixed route and does not cover it.",
+      "note": "At Phase 4 there is no traversal yet, so play.mjs can drive free camera, time of day, fog, quality and the dev panel. Party input arrives in Phase 5 and play.mjs should pick it up then."
     }
   ]
 }

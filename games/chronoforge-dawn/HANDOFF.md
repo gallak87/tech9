@@ -47,19 +47,22 @@ Cheaper now than after Phase 2 scores blown-out frames. Paste this as the prompt
 > every number, and confirm **dawn at 6.4h is unchanged** — it is the signature hour and
 > the one frame already signed off. Update the issue in `docs/STATUS.json` when it passes.
 
-### 2. Phase 1.1 — Foundations, four in parallel
+### 2. Phase 1.1 — Foundations, three in parallel
 
-`cfd-art`, `cfd-gamedesign`, `cfd-level`, `cfd-audio`. Each def carries its own
-ownership, gate and report format.
+`cfd-art`, `cfd-gamedesign`, `cfd-level`. Each def carries its own ownership, gate
+and report format.
 
 | Lane | Model/effort | Ships | Gate |
 |---|---|---|---|
 | `cfd-art` | opus/xhigh | `docs/RIG_SPEC.md` + `rig-spec.json` | Spec self-consistency check runs; real gate is Phase 2 |
 | `cfd-gamedesign` | opus/high | `DESIGN_SPEC` + Encounter Framing POC | `tools/framing.mjs --cases all` exits 0, **emits the clearance number** |
 | `cfd-level` | sonnet/high | 12 maps in `data/regions/`, `tools/region.mjs` | Exits 0: zero dangling doorways, all reachable from Haventide |
-| `cfd-audio` | sonnet/medium | 4 synthesised WAVs + catalog | `tools/render-audio.mjs` exits 0 **and you listened** |
 
 **Gate:** a spec whose artifact was not run does not pass.
+
+**Audio is not in this wave.** It moved to Phase 7, with the battle it scores —
+nothing can trigger a sound until Tier 4. Cost: Phase 6 interiors ship silent and
+audio picks up interior ambience one phase late.
 
 **`cfd-gamedesign` is the critical path.** Its clearance number is the only input to
 1.2. If it fails, 1.2 cannot run and level's placements stay provisional.
@@ -76,6 +79,7 @@ failures. Needs 1.1 finished, because the number cannot exist before the POC.
 - `src/main.js` — **one core change**: `__DAWN__.ctx` exposed read-only. The Encounter Framing POC has to *build* a primitives scene, which `post()`/`probe()`/`stats()` cannot do from outside. Verified: boot clean, dawn unchanged at median 0.212, and a control assertion still fails as it should
 - The four stale stubs in `agents/` marked **do not use as a prompt** — they said "design-only, no dev work", which fails the 1.1 gate outright
 - `ROADMAP.md` items 8, 9, 10 — historian pass on what this phase exposed about the framework
+- `GAME_PLAN.md` — audio moved out of Phase 1.1 and Phase 6 into Phase 7; Phase 4's QA gate gained `play.mjs`, an interactive Playwright session a QA agent can drive, because every tool today photographs a frame or measures a scripted run and none lets an agent play the build
 
 ## Open from Phase 0
 

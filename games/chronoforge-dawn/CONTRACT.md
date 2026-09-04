@@ -15,15 +15,15 @@ game is. This file is about **who may touch what**.
 
 ## 1. File ownership — do not edit outside your lane
 
-**Foundations (Phase 1.1–1.2)** — these four write specs and data, not engine code.
-Three of them are finished after 1.2; `audio` continues into Tier 3 and 4.
+**Foundations (Phase 1.1–1.2)** — these three write specs and data, not engine code.
+All three are finished after 1.2. `audio` is deliberately **not** here — it runs in
+Tier 4 with the battle, because nothing can trigger a sound before then.
 
 | Lane | Owns | Must not touch |
 |---|---|---|
 | **art** | `docs/RIG_SPEC.md`, `docs/rig-spec.json` | all of `src/**` in 1.1 — the rigs are built in Phase 2 |
 | **gamedesign** | `docs/DESIGN_SPEC.md`, `docs/design-spec.json`, `tools/framing.mjs` | `src/**`, the rest of `tools/**` |
 | **level** | `data/regions/**`, `tools/region.mjs`, `docs/WORLD_GRAPH.md` | `src/world/**` — that is the world lane's, and it *imports* your data |
-| **audio** | `src/audio/**`, `docs/AUDIO_SPEC.md`, `tools/render-audio.mjs` | anything else |
 
 **The build lanes** — one folder, one gate, for the whole build:
 
@@ -39,7 +39,7 @@ Three of them are finished after 1.2; `audio` continues into Tier 3 and 4.
 | **settlement** | `src/settlement/**` | `src/progression/**`, `src/world/**` |
 | **fx** | `src/fx/**` | the post chain, any other lane |
 | **ui** | `src/ui/**`, `index.html` styles | the Three scene, the post chain, `src/render/**` |
-| **audio** | `src/audio/**` | anything else |
+| **audio** | `src/audio/**`, `docs/AUDIO_SPEC.md`, `tools/render-audio.mjs` | anything else — first runs in Tier 4 |
 | **tools** | `tools/**` except the three named above | `src/**` — a probe that edits the thing it measures is not a probe |
 
 `data/regions/**` is **level's** output and **world's** input. World reads it in Tier 1

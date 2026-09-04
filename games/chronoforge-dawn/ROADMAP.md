@@ -8,11 +8,11 @@
 | 1.1 | Foundations & Paper Prototypes *(parallel)* | every spec ships a runnable artifact | next |
 | 1.2 | Encounter Placement Pass | 36 placements satisfy combat clearance | |
 | 2 | **Character Look Gate** | rig.mjs: identical palette across poses. **2-round hard stop** | |
-| 3 | The Harness | all 15 tools run and exit 0 | |
-| 4 | Tier 1 — World & Light | depth+normal prepass exists, region.mjs connected, fog continuous, no grid, critic ≥8.5 on 2 regions | |
+| 3 | The Harness | all tools run and exit 0 | |
+| 4 | Tier 1 — World & Light | depth+normal prepass exists, region.mjs connected, fog continuous, no grid, **play.mjs drivable**, critic ≥8.5 on 2 regions | |
 | 5 | Tier 2 — Traversal | walk.mjs: 3-min route, 60fps, no clips | |
 | 6 | Tier 3 — Places & Interiors | door.mjs: every door in 12 maps, no soft-lock | |
-| 7 | Tier 4 — Encounters & Battle | duel.mjs: 200 seeded battles, loot matches tables | |
+| 7 | Tier 4 — Encounters & Battle | duel.mjs: 200 seeded battles, loot matches tables; 4 sounds rendered and listened to | |
 | 8 | Tier 5 — Progression & Menus | save.mjs byte-identical round-trip | |
 | 9 | Tier 6 — Settlement & Economy | econ.mjs: 4h sim, no starve, no runaway | |
 | 10 | Region Buildout | remaining 6 regions, critic scores each **individually** | |

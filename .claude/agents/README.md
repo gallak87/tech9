@@ -14,11 +14,11 @@ mechanism that actually controls what a spawned agent costs.
 | `cfd-art` | opus | xhigh | `docs/RIG_SPEC.md` + `rig-spec.json` — Phase 1.1, gate in Phase 2 |
 | `cfd-gamedesign` | opus | high | `docs/DESIGN_SPEC.md`, `tools/framing.mjs` — Phase 1.1 |
 | `cfd-level` | sonnet | high | `data/regions/**`, `tools/region.mjs` — Phase 1.1 + 1.2 |
-| `cfd-audio` | sonnet | medium | `src/audio/**`, `tools/render-audio.mjs` — Phase 1.1 |
 | `cfd-world` | opus | xhigh | `src/world/**`, `src/render/**` — Tier 1 |
 | `cfd-traversal` | sonnet | medium | `src/traversal/**` — Tier 2 |
 | `cfd-places` | sonnet | medium | `src/places/**` — Tier 3 |
 | `cfd-battle` | opus | high | `src/battle/**` — Tier 4 |
+| `cfd-audio` | sonnet | medium | `src/audio/**`, `tools/render-audio.mjs` — Tier 4, with battle |
 | `cfd-progression` | sonnet | medium | `src/progression/**`, `src/ui/**` — Tier 5 |
 | `cfd-settlement` | sonnet | medium | `src/settlement/**` — Tier 6 |
 | `cfd-integrator` | opus | xhigh | shared core — the ONLY lane allowed to |
@@ -27,10 +27,11 @@ mechanism that actually controls what a spawned agent costs.
 The cheap lanes are only safe because each one is gated by a probe that exits
 non-zero. Build the instruments first, then the builders can be cheap.
 
-The first four are **Foundations** (Phase 1.1–1.2) and are discipline-shaped, not
-folder-shaped — they write specs and data, and three of the four are done after 1.2.
-The rest are the six tier lanes plus integrator and critic, and they run for the
-whole build. Both live here for one reason only: **frontmatter is the only thing
+The first three are **Foundations** (Phase 1.1–1.2) and are discipline-shaped, not
+folder-shaped — they write specs and data, and they are done after 1.2. The rest are
+the tier lanes plus integrator and critic. `cfd-audio` sits with battle deliberately:
+nothing can trigger a sound until Tier 4, so a stinger written in Foundations would be
+tuned against nothing. Both live here for one reason only: **frontmatter is the only thing
 that controls model and effort.** See the naming note at the bottom.
 
 ## `games/<slug>/agents/*.md`

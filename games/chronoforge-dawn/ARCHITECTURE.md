@@ -349,6 +349,19 @@ game), wait for `__DAWN__.ready`, and collect console errors.
 | `save.mjs` | Phase 2 | full state round-trip diff |
 | `digest.mjs` | Phase 2 | hash every generated texture, mesh and world sample |
 | `census.mjs` | Phase 2 | every enemy, item, quest, building and door reachable |
+| `region.mjs` | Phase 1.1 | the twelve-map graph offline: dangling doorways, reachability |
+| `framing.mjs` | Phase 1.1 | Encounter Framing POC — push-in occlusion, emits combat clearance |
+| `play.mjs` | **Phase 4** | an interactive Playwright session a QA agent drives: send input, read state, capture on demand |
+| `render-audio.mjs` | Phase 7 | renders the four signature sounds offline to `shots/audio/` |
+
+`play.mjs` is the one tool that is not a probe. Every other row photographs a frame
+or measures a scripted run; none of them lets an agent *play the build*. `walk.mjs`
+drives a fixed route and is not a substitute. At Phase 4 there is no traversal yet, so
+it drives free camera, time of day, fog, quality and the dev panel; it picks up party
+input in Phase 5.
+
+> The "Phase 2" column values above predate the split into Phase 3 (The Harness).
+> `GAME_PLAN.md` is authoritative for phase numbers; this table has not been renumbered.
 
 **No agent may claim anything it has not screenshotted and looked at, or measured
 with the probe that answers that question.** Screenshots answer "how does it

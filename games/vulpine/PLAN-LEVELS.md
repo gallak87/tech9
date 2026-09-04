@@ -78,8 +78,9 @@ at all.
 - **The Foundry — outside, inside, then down.** Five acts, and the boundaries
   are the numbers everything else is placed against: gantry run to -2280, breach
   to -3840, shaft to -5400, assembly floor to -7800, dock to the end. The deck
-  is a ledge on the flank of the works — massing climbing to port, stepping down
-  and outward to starboard — until a bulkhead takes it inside; the rail then
+  is a ledge on the flank of the works, 320 m across — massing climbing to
+  port, stepping down and outward to starboard — until a bulkhead takes it
+  inside; the rail then
   dives 430 m at 68° with the deck under it; the corridor opens to 860 m across
   under a 165 m roof; and the last act is an open dock with hulls on the stocks
   in it, which the carrier is fought among.
@@ -298,6 +299,19 @@ boundary z — `smooth(a.z, b.z, z)` and `bendS` are the same cubic over the sam
 interval. Change one and the ship's clearance over the deck varies through the
 dive instead of holding. `tools/lid.mjs --audit` is what catches it: it reads
 deck, walls and roof against the offset box at every sample.
+
+**A fall only reads from near its edge, and the deck width is what decides
+that.** From the rail the sight line past the deck edge drops by
+`(railY - lipTop) / half` per metre outboard, and everything under that line is
+occluded by the corridor's own kerb. Two consequences, both paid for on the
+Foundry's gantry run. A terrace raked steeper than the sight line is invisible
+at *every* setback, in or out — measured at a rake of 0.62 against a sight line
+of 0.33, nothing showed from any camera on the corridor and pushing the
+terraces further out only made it worse. And a wide deck hides its own edge
+whatever the terraces do: at `half` 210 the ship flies 72 m up and 210 m in from
+the drop and cannot see over it. The act is authored at 160 for that reason —
+a ledge is narrow, which is also what it should look like — and its battery line
+came down from `bank` 96 to 60 to stay on the deck.
 
 **A built corridor that changes width or height cannot be made of centred
 boxes.** A slab centred on a segment has one width and one height, so a taper

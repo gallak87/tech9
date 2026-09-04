@@ -466,7 +466,7 @@ export class Works {
         // flank always steps back, because the step outward is the terrace.
         const set = rise >= 0
           ? (r.next() < 0.42 ? r.range(12, W.setback) : 0)
-          : r.range(0.25, 1) * W.setback;
+          : r.range(0.25, 1) * W.setback * W.fallOut;
         const xin = c.x + side * (c.half + set);
         // Top of the block. Below the deck on a falling flank, and further
         // below the further out it stands.
@@ -809,8 +809,11 @@ const DEFAULT_WORKS = {
   wallT: 7,
   /** Continuous at the corridor edge, under the massing. */
   curtainH: 44,
-  /** The kerb a flank drops to when nothing stands on it. */
-  lipH: 9,
+  /** The kerb a flank drops to when nothing stands on it. Low, because it is
+   *  what the eye looks over: from the rail the sight line past the deck edge
+   *  drops about 0.33 m per metre outboard, and everything under it is hidden
+   *  by the kerb itself. */
+  lipH: 4,
   /** Blocks: length along z, height, and depth outward from the edge. */
   blockLen: [46, 152],
   blockH: [115, 420],
@@ -819,10 +822,21 @@ const DEFAULT_WORKS = {
   setback: 74,
   /** Fraction of blocks clad in window grid. See the comment at its use. */
   glaze: 0.66,
-  /** A falling flank: how far the first terrace sits under the deck, and how
-   *  much further down each metre of setback takes the next one. */
-  terraceDrop: 34,
-  terraceRake: 0.62,
+  /** A falling flank: how far the first terrace sits under the deck, how much
+   *  further down each metre of setback takes the next one, and how much wider
+   *  its steps run than a climbing flank's.
+   *
+   *  `terraceRake` is bounded by geometry rather than by taste, and getting it
+   *  wrong hides the whole flank. From the rail the sight line past the deck
+   *  edge falls about 0.33 m per metre outboard; a rake steeper than that takes
+   *  every terrace under it, so the fall is occluded by its own kerb from every
+   *  camera on the corridor and only shows from one parked outside. Measured on
+   *  the gantry run: at 0.62 nothing is visible at any setback, in or out.
+   *  0.14 against a 0.33 sight line puts the shoulder in frame and keeps the
+   *  deep part hidden, which is what standing on a ledge looks like. */
+  terraceDrop: 12,
+  terraceRake: 0.14,
+  fallOut: 2.0,
   capH: 7,
   roofY: 190,
   roofT: 7,

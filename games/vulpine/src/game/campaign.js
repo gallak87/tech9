@@ -236,7 +236,7 @@ const OMEGA_COMMS = [
    -3840 / -5400 / -7800 / -9840, and against two numbers the shape decides:
 
    `bank` is measured off the rail centre and `combat.js` adds up to 85 m to it,
-   so a battery line has to fit inside that act's own `half` — 210 on the gantry
+   so a battery line has to fit inside that act's own `half` — 160 on the gantry
    run, 430 on the assembly floor. Past it the gun stands on air off the edge of
    the deck.
 
@@ -245,8 +245,8 @@ const OMEGA_COMMS = [
 const FOUNDRY_WAVES = [
   { z: -280, kind: 'raptor', n: 4, form: 'vee', from: 'ahead', spawn: 1100, arc: 0.5, climb: 0.2, skill: 0.34, life: 8 },
   // Along the deck edge on the gantry run, where the flank falls away behind
-  // them: 96 + rand(0,85) is 181 at worst against a `half` of 210.
-  { z: -1000, kind: 'bulwark', n: 4, form: 'banks', first: 620, step: 250, bank: 96, drops: ['health'] },
+  // them: 60 + rand(0,85) is 145 at worst against a `half` of 160.
+  { z: -1000, kind: 'bulwark', n: 4, form: 'banks', first: 620, step: 250, bank: 60, drops: ['health'] },
   { z: -1700, kind: 'raptor', n: 5, form: 'echelon', from: 'ahead', spawn: 950, arc: -0.55, climb: 0.16, skill: 0.38, aggro: 0.18, life: 8 },
   // Through the bulkhead port at -2540 and into the roofed run behind it.
   { z: -2500, kind: 'hornet', n: 3, form: 'vee', from: 'ahead', spawn: 1000, arc: 0.3, climb: 0.24, skill: 0.42, aggro: 0.2, life: 10, drops: ['weapon'] },

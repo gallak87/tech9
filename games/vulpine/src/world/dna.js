@@ -476,7 +476,12 @@ export const DNA_FOUNDRY = {
       // climbs out of frame; to starboard it steps down and outward from the
       // edge, which is the only asymmetry this backend can carry and is the
       // whole of the escarpment. Overhead is space, crossed by gantries.
-      { len: 3000, half: 210, deckY: -26, roofY: 190, rise: [1, -0.7],
+      // 160, and it is the narrowest act outside the shaft on purpose: a fall
+      // only reads from near its edge. At 210 the sight line from the rail
+      // passes over the deck edge at 0.33 m per metre outboard and every
+      // terrace is under it; at 160 it is 0.43 and the shoulder is in frame.
+      // A ledge is narrow, which is also what it should look like.
+      { len: 3000, half: 160, deckY: -26, roofY: 190, rise: [1, -0.7],
         glaze: 0.66, bay: ['open', 'open', 'span'] },
       // The breach. The bulkhead stands at the middle of its own bay, so the
       // wall is at -2540 and the roof closes 260 m behind it.

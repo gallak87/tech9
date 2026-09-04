@@ -48,7 +48,8 @@
     "IN — The Encounter Framing POC must emit a combat clearance number: the minimum clear space an encounter needs around it for the push-in to frame every actor. That number is a hard input to encounter placement, which is why the POC runs in Foundations while level is still authoring rather than after 36 encounters are placed.",
     "IN — ATB correctness is NOT an early gate. The math is a port of already-tuned prototype numbers: low risk of being wrong and cheap to correct, with nothing structural built on top of it. duel.mjs validates it at Tier 4, which is the right place. Early gates are reserved for decisions that are unvalidated AND expensive to reverse.",
     "IN — Every builder phase runs in three waves, never as one crowd: (1) builder lanes in parallel, each isolated to its own folder; (2) the integrator ALONE, applying core seams and proving every previously green probe still exits zero; (3) the critic ALONE, taking its own shots and scoring. A critic must never be spawned alongside the builder it is grading — it would review a moving target and its score would mean nothing. A phase listing seven agents describes who participates, not who runs simultaneously.",
-    "IN — Phases are split into numbered sub-phases only where the ordering is specific to that phase and would otherwise be invisible. The uniform builder-integrator-critic wave pattern is a standing rule rather than repeated sub-phases, because a plan that states the same three steps seven times buries the one place the order is actually unusual."
+    "IN — Phases are split into numbered sub-phases only where the ordering is specific to that phase and would otherwise be invisible. The uniform builder-integrator-critic wave pattern is a standing rule rather than repeated sub-phases, because a plan that states the same three steps seven times buries the one place the order is actually unusual.",
+    "IN — Tier 1 must land a resolved depth and normal prepass in the render path, even if no effect consumes it yet. Ambient occlusion, contact shadows and depth of field are all fit-and-finish effects that can drop in at any later phase — but only if the buffer they read exists. Depth cannot share the MSAA scene target, so retrofitting the prepass into a finished render path is structural work, while adding the effects on top of an existing prepass is not. Build the plumbing early and the polish stays cheap."
   ],
   "team": [
     {
@@ -204,7 +205,7 @@
         "devops"
       ],
       "parallel": false,
-      "qa_gate": "region.mjs reports a fully connected twelve-map graph with every region reachable from Haventide and zero dangling doorways — blocked-in regions included, no exemptions; fog.mjs reports a continuous field with no step discontinuity at any tile boundary; zero grid lines in any capture; free camera finds no unlit or untextured region in Haventide or Emberline; critic scores >=8.5 on BOTH finished regions with zero console errors; build is live."
+      "qa_gate": "A resolved depth and normal prepass exists in the render path and is verified by a probe, whether or not any effect consumes it yet; region.mjs reports a fully connected twelve-map graph with every region reachable from Haventide and zero dangling doorways — blocked-in regions included, no exemptions; fog.mjs reports a continuous field with no step discontinuity at any tile boundary; zero grid lines in any capture; free camera finds no unlit or untextured region in Haventide or Emberline; critic scores >=8.5 on BOTH finished regions with zero console errors; build is live."
     },
     {
       "name": "Phase 5 — Tier 2: Traversal",

@@ -9,7 +9,7 @@
 | 1.2 | Encounter Placement Pass | 36 placements satisfy combat clearance | |
 | 2 | **Character Look Gate** | rig.mjs: identical palette across poses. **2-round hard stop** | |
 | 3 | The Harness | all 15 tools run and exit 0 | |
-| 4 | Tier 1 — World & Light | region.mjs connected, fog continuous, no grid, critic ≥8.5 on 2 regions | |
+| 4 | Tier 1 — World & Light | depth+normal prepass exists, region.mjs connected, fog continuous, no grid, critic ≥8.5 on 2 regions | |
 | 5 | Tier 2 — Traversal | walk.mjs: 3-min route, 60fps, no clips | |
 | 6 | Tier 3 — Places & Interiors | door.mjs: every door in 12 maps, no soft-lock | |
 | 7 | Tier 4 — Encounters & Battle | duel.mjs: 200 seeded battles, loot matches tables | |
@@ -27,6 +27,12 @@ Early gates are for decisions that are **unvalidated AND expensive to reverse**.
   the camera contract.
 - **ATB math** — deliberately *not* early. It is a port of tuned numbers, cheap to fix.
   `duel.mjs` catches it at Tier 4.
+
+## AO and DOF
+
+The effects are fit-and-finish and can land any time. The **depth+normal prepass they read is
+not** — depth cannot share the MSAA scene target, so retrofitting it into a finished render path
+is structural. Tier 1 builds the prepass even though nothing consumes it yet.
 
 ## Two-stage region fidelity
 

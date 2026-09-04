@@ -27,13 +27,14 @@ Counted, not guessed:
 | Maps | 12 — 8 outdoor regions + 4 city interiors |
 | Encounter placements | 36 |
 | Doorway edges | 18 |
-| worldDrops | 12 |
+| worldDrops | 8 — outdoor regions only; all four interiors are `worldDrop: null` |
 | Map size | 45 × 30 tiles |
 
-Note the discrepancy: `GAME_PLAN.md` Phase 8 says "all eight worldDrops" and the build brief says
-"exactly one hidden world drop" per region, but the prototype has 12 — one per map including
-interiors. **Resolve it, state which reading you took, and flag it in your report.** Do not silently
-pick one.
+The counts above are verified against the source, and `GAME_PLAN.md`, `CONCEPT.md` and the build
+brief all agree with them. `CONCEPT.md` names the eight drop items outright: `bog_fang`,
+`glacial_claw`, `ember_core`, `void_scepter`, `moss_ward`, `swamp_coil`, `magma_blade`,
+`frost_plate`. **Eight, not twelve — do not add interior drops.** A ninth world drop is a new item
+in `ITEM_DEFS` and a scope change that is not yours to make.
 
 The eight biomes: `grassland_ruins`, `neon_wastes`, `forest_veil`, `mire_bog`, `frozen_ruins`,
 `frost_canyon`, `crater_ember`, `alien_terraform`.
@@ -100,8 +101,8 @@ explicit tight-quarters annotation, and no doorway or worldDrop moved as a side 
 
 ## Report back
 
-The **pasted** output of `node tools/region.mjs`, the map count and reachability result, the
-worldDrop discrepancy and how you resolved it, what elevation you added per biome, which placements
+The **pasted** output of `node tools/region.mjs`, the map count and reachability result, what
+elevation you added per biome, which placements
 you had to move in 1.2 and which you annotated as tight-quarters, and any core seam you need.
 **Never inflate** — a dangling doorway reported now costs an hour; found in Phase 6 by `door.mjs` it
 costs a phase.

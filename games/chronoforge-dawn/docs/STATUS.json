@@ -255,10 +255,13 @@
     },
     "sourceCounts": {
       "maps": 12,
+      "outdoorRegions": 8,
+      "cityInteriors": 4,
       "encounters": 36,
       "doorwayEdges": 18,
-      "worldDrops": 12,
-      "note": "Counted from games/chronoforge/src/world.js. GAME_PLAN Phase 8 says 'eight worldDrops' and the build brief says one per region; the prototype has 12, one per map including interiors. cfd-level must resolve and flag this."
+      "worldDrops": 8,
+      "verified": "Counted from games/chronoforge/src/world.js on 2026-09-03. GAME_PLAN.md, CONCEPT.md and the build brief all agree. CONCEPT.md names the eight drop items. Interiors carry worldDrop: null and zero encounters.",
+      "correction": "An earlier note in this file claimed 12 worldDrops and a plan discrepancy. That was a miscount \u2014 the grep matched the four `worldDrop: null` lines. There is no discrepancy; the count is 8 and always was."
     },
     "gate": "Three specs exist and agree with each other. A spec whose artifact was not run does not pass.",
     "thenPhase": "Phase 1.2 \u2014 Encounter Placement Pass (level validates 36 placements against clearance)",

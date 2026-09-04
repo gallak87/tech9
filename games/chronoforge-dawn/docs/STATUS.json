@@ -105,14 +105,14 @@
       "render-audio.mjs"
     ],
     "notes": {
-      "play.mjs": "NEW, gated in Phase 4. An interactive Playwright session a QA agent drives \u2014 sends input, reads state, captures on demand. Every existing tool photographs or measures a scripted run; none lets an agent actually play the build. walk.mjs (Phase 5) drives a FIXED route and is not a substitute.",
+      "play.mjs": "NEW, gated in Phase 4. An interactive Playwright session a QA agent drives — sends input, reads state, captures on demand. Every existing tool photographs or measures a scripted run; none lets an agent actually play the build. walk.mjs (Phase 5) drives a FIXED route and is not a substitute.",
       "framing.mjs": "cfd-gamedesign, Phase 1.1. The Encounter Framing POC.",
       "render-audio.mjs": "cfd-audio, Phase 7."
     }
   },
   "modules": {
-    "world": "phase0 placeholder scene \u2014 world lane replaces wholesale in Tier 1",
-    "render": "camera rig, environment, materials, textures, postfx, probe \u2014 real",
+    "world": "phase0 placeholder scene — world lane replaces wholesale in Tier 1",
+    "render": "camera rig, environment, materials, textures, postfx, probe — real",
     "actors": "stub",
     "traversal": "stub",
     "places": "stub",
@@ -193,7 +193,7 @@
           "verdict": "2x over"
         }
       },
-      "cause": "Not key intensity \u2014 KEY_RAMP is nearly flat (6.4 to 7.4 to 6.1). It is cos-law on the ground plus the sky IBL ramp. Ground receives key*sin(elevation): sin(11.6deg)=0.20 vs sin(61.3deg)=0.88, times the sky ramp 3.9 to 4.8. Product ~8.5x, which matches the measured median ratio.",
+      "cause": "Not key intensity — KEY_RAMP is nearly flat (6.4 to 7.4 to 6.1). It is cos-law on the ground plus the sky IBL ramp. Ground receives key*sin(elevation): sin(11.6deg)=0.20 vs sin(61.3deg)=0.88, times the sky ramp 3.9 to 4.8. Product ~8.5x, which matches the measured median ratio.",
       "fix": "postfx.js line ~217 deliberately chose fixed exposure so an art-directed hour cannot drift. Keep that. Make exposure a RAMP over sun elevation in the same idiom as SKY_RAMP and KEY_RAMP, not auto-exposure.",
       "repro": "node tools/probe.mjs --shots wide --hour 12   (note: --hour, not --params hour=)",
       "status": "FIXED 2026-09-03 by cfd-world as a scoped spot-fix. Verified on the wide shot at 6.4, 9.9, 12, 18.5 and 21.5 h.",
@@ -316,12 +316,42 @@
       "tier": "Tier 5 (Phase 8)",
       "owner": "progression/ui",
       "title": "Dev panel is default-hidden because auto-hide during shots does not work",
-      "detail": "An auto-hide keyed on __DAWN__.shot was tried and failed \u2014 the panel update runs before applyShot, so the capture still contains the overlay. Panel is default-off; open with ?dev=1. The UI lane should own a correct fix.",
+      "detail": "An auto-hide keyed on __DAWN__.shot was tried and failed — the panel update runs before applyShot, so the capture still contains the overlay. Panel is default-off; open with ?dev=1. The UI lane should own a correct fix.",
       "repro": "set visible default true, then: node tools/shot.mjs --shots hero"
+    },
+    {
+      "id": "exposure-evening-asymmetry",
+      "severity": "low",
+      "tier": "Tier 1 (Phase 4)",
+      "owner": "world",
+      "title": "18.7-19.3h reads 0.25-0.31 on wide, just over the ceiling",
+      "detail": "At the SAME sun elevation the evening ground is 1.3-1.4x brighter than the morning ground, measured on `top` which has no sky in frame (elev 18.2: am raw 0.3185 / pm 0.4127; elev 14.6: 0.2256 / 0.3170). Cause is terrain azimuth - the probe region's dune slopes face the setting azimuth 264deg more squarely than the rising 96deg.",
+      "why_not_fixed": "An elevation-keyed ramp is blind to azimuth and should be: exposure follows the sun, not the terrain. Closing it needs metering, which is rejected by design. Bright, not blown - white% 0.01, p90 0.56. Cannot be tuned out while dawn stays pinned, because the hot window sits on the 1.05 anchor.",
+      "found_by": "cfd-world during the exposure-non-dawn spot-fix"
+    },
+    {
+      "id": "dusk-cliff",
+      "severity": "medium",
+      "tier": "Tier 1 (Phase 4)",
+      "owner": "world",
+      "title": "Light falls off a cliff between 19.75h and 20.1h",
+      "detail": "wide median 0.136 at 19.75h (elev +0.7) -> 0.021 at 19.9h (elev -1.1) -> 0.010 at 20.1h with 8.2% black.",
+      "cause": "KEY_RAMP [0, 3.60] -> [-4, 0.55] plus the sun disc leaving the sky. Not exposure - pre-existing and untouched by the exposure ramp.",
+      "found_by": "cfd-world during the exposure-non-dawn spot-fix"
+    },
+    {
+      "id": "noon-far-field-milky",
+      "severity": "medium",
+      "tier": "Tier 1 (Phase 4)",
+      "owner": "world",
+      "title": "Noon wide shot washes out at distance; hero shot is correct",
+      "detail": "h12/hero exposes correctly - shadows, metal, dielectric and rock all read. h12/wide goes milky in the far field.",
+      "cause": "horizonColor lerps to pale blue 0x9db9dd as warm -> 0 at density 0.0011, and the grade (contrast 1.06, saturation 1.10, split 0.85) is dawn-tuned. Both are outside the exposure spot-fix and were deliberately not touched.",
+      "found_by": "cfd-world during the exposure-non-dawn spot-fix"
     }
   ],
   "nextPhase": {
-    "blockedOn": "session restart \u2014 Claude Code loads agent definitions at session start only, and the four Foundations lanes were written after this session began",
+    "blockedOn": "session restart — Claude Code loads agent definitions at session start only, and the four Foundations lanes were written after this session began",
     "runOrder": [
       {
         "step": 1,
@@ -349,18 +379,18 @@
         "needs": "the combat clearance number from cfd-gamedesign"
       }
     ],
-    "name": "Phase 1.1 \u2014 Foundations & Paper Prototypes",
+    "name": "Phase 1.1 — Foundations & Paper Prototypes",
     "parallel": true,
     "agents": [
       "cfd-art",
       "cfd-gamedesign",
       "cfd-level"
     ],
-    "criticalPath": "cfd-gamedesign \u2014 its clearance number is the only input to Phase 1.2",
+    "criticalPath": "cfd-gamedesign — its clearance number is the only input to Phase 1.2",
     "deliverables": {
-      "cfd-art": "docs/RIG_SPEC.md + docs/rig-spec.json \u2014 topology, sockets, pose library, pixel-snap + palette-quantise. Build proof is Phase 2; spec self-consistency is checkable now and required.",
-      "cfd-gamedesign": "docs/DESIGN_SPEC.md + design-spec.json (ported prototype math) AND tools/framing.mjs \u2014 the Encounter Framing POC, primitives only, four worst cases, emitting the combat clearance number.",
-      "cfd-level": "data/regions/*.json \u2014 12 maps ported from the prototype MAPS table with elevation added, plus tools/region.mjs validating the graph offline."
+      "cfd-art": "docs/RIG_SPEC.md + docs/rig-spec.json — topology, sockets, pose library, pixel-snap + palette-quantise. Build proof is Phase 2; spec self-consistency is checkable now and required.",
+      "cfd-gamedesign": "docs/DESIGN_SPEC.md + design-spec.json (ported prototype math) AND tools/framing.mjs — the Encounter Framing POC, primitives only, four worst cases, emitting the combat clearance number.",
+      "cfd-level": "data/regions/*.json — 12 maps ported from the prototype MAPS table with elevation added, plus tools/region.mjs validating the graph offline."
     },
     "sourceCounts": {
       "maps": 12,
@@ -370,11 +400,11 @@
       "doorwayEdges": 18,
       "worldDrops": 8,
       "verified": "Counted from games/chronoforge/src/world.js on 2026-09-03. GAME_PLAN.md, CONCEPT.md and the build brief all agree. CONCEPT.md names the eight drop items. Interiors carry worldDrop: null and zero encounters.",
-      "correction": "An earlier note in this file claimed 12 worldDrops and a plan discrepancy. That was a miscount \u2014 the grep matched the four `worldDrop: null` lines. There is no discrepancy; the count is 8 and always was."
+      "correction": "An earlier note in this file claimed 12 worldDrops and a plan discrepancy. That was a miscount — the grep matched the four `worldDrop: null` lines. There is no discrepancy; the count is 8 and always was."
     },
     "gate": "Three specs exist and agree with each other. A spec whose artifact was not run does not pass.",
-    "thenPhase": "Phase 1.2 \u2014 Encounter Placement Pass (level validates 36 placements against clearance)",
-    "audioMoved": "cfd-audio was scoped into Phase 1.1 and moved to Phase 7 on 2026-09-03. Nothing in the build can trigger a sound until Tier 4 \u2014 no battle, no footfall, no resource tick \u2014 so a combo stinger written in Foundations would be tuned against a description rather than a game. Accepted cost: Tier 3 interiors (Phase 6) ship silent, and audio picks up interior ambience one phase late."
+    "thenPhase": "Phase 1.2 — Encounter Placement Pass (level validates 36 placements against clearance)",
+    "audioMoved": "cfd-audio was scoped into Phase 1.1 and moved to Phase 7 on 2026-09-03. Nothing in the build can trigger a sound until Tier 4 — no battle, no footfall, no resource tick — so a combo stinger written in Foundations would be tuned against a description rather than a game. Accepted cost: Tier 3 interiors (Phase 6) ship silent, and audio picks up interior ambience one phase late."
   },
   "coreChanges": [
     {
@@ -407,7 +437,7 @@
     {
       "id": "play-mjs-gate",
       "applied": "2026-09-03",
-      "change": "Phase 4 QA gate gained one clause: play.mjs opens a real Playwright-driven browser session a QA agent can drive interactively \u2014 send input, read state, capture on demand.",
+      "change": "Phase 4 QA gate gained one clause: play.mjs opens a real Playwright-driven browser session a QA agent can drive interactively — send input, read state, capture on demand.",
       "why": "Playwright already drives the harness, but every tool either photographs a frame or measures a scripted run. No QA agent can actually play the build. walk.mjs drives a fixed route and does not cover it.",
       "note": "At Phase 4 there is no traversal yet, so play.mjs can drive free camera, time of day, fog, quality and the dev panel. Party input arrives in Phase 5 and play.mjs should pick it up then."
     }

@@ -3,6 +3,7 @@ import { JOINTS, SOCKETS, HERO_HEIGHTS_M, HEIGHT_TOLERANCE } from '../../docs/sp
 import { HERO_PALETTES, ENEMY_PALETTE_FAMILY, IFF_BEACON } from '../../docs/specs/palette.mjs';
 import { HERO_M } from '../core/const.js';
 import { MAT, makeActorMaterial } from './material.js';
+import { kaidaShellParts, kaidaWeaponParts, KAIDA_PALETTE } from './kaida.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The code-built hero rig.
@@ -99,7 +100,7 @@ function pennant({ h = 0.115, w = 0.075, thick = 0.012 }) {
    scale on the root, so proportions always sum to HERO_M in rig space and the
    silhouette-area band in tools/rig.mjs needs no per-hero special case. */
 const BUILD = {
-  kaida: { torsoW: 0.30, torsoD: 0.19, arm: 0.105, leg: 0.135, boot: 0.150, skirt: 'coat', pauldron: 'right', hair: 'ponytail', weapon: 'sword', back: null },
+  kaida: { lofted: true, torsoW: 0.30, torsoD: 0.19, arm: 0.105, leg: 0.135, boot: 0.150, skirt: 'coat', pauldron: 'right', hair: 'ponytail', weapon: 'kaida-sword', back: null },
   vex: { torsoW: 0.255, torsoD: 0.165, arm: 0.090, leg: 0.120, boot: 0.130, skirt: 'robe', pauldron: 'none', hair: 'hood', weapon: 'staff', back: null },
   rune: { torsoW: 0.360, torsoD: 0.230, arm: 0.125, leg: 0.160, boot: 0.175, skirt: null, pauldron: 'both', hair: 'crop', weapon: 'maul', back: 'pack' },
   grunt: { torsoW: 0.320, torsoD: 0.215, arm: 0.115, leg: 0.145, boot: 0.155, skirt: null, pauldron: 'both', hair: 'crest', weapon: 'cleaver', back: null },
@@ -118,6 +119,11 @@ function enemyPalette(variant = 0) {
 }
 
 export function paletteFor(id) {
+  // Kaida's palette is SAMPLED from her own sprites (see kaida.js). The
+  // inherited HERO_PALETTES entry was invented and is wrong where you can see
+  // it — a navy jacket that is plainly teal, a tan skin tone on a pale
+  // character. The other three keep theirs until their own re-spec.
+  if (id === 'kaida') return { ...HERO_PALETTES.kaida, ...KAIDA_PALETTE };
   return HERO_PALETTES[id] || enemyPalette(0);
 }
 
@@ -126,6 +132,10 @@ export function paletteFor(id) {
    partTag groups verts so the gate can fingerprint "head" and "torso"
    independently of how many prisms each happens to be made of. */
 function shellParts(id, P, B) {
+  // Kaida is rebuilt from lofted cross-sections (Phase 2.3). The other three
+  // still use the prism shell and will until their own pass — the whole point
+  // of the Kaida-only scope is that she settles the language first.
+  if (id === 'kaida') return kaidaShellParts();
   const A = B.arm, L = B.leg;
   const parts = [];
   const add = (bone, geo, key, mat, tag) => parts.push({ bone, geo, key, mat, tag });
@@ -185,6 +195,7 @@ function shellParts(id, P, B) {
 export function weaponParts(kind, P) {
   const p = [];
   const add = (geo, key, mat) => p.push({ geo, key, mat });
+  if (kind === 'kaida-sword') return kaidaWeaponParts();
   if (kind === 'sword') {
     add(prism({ y0: -0.11, y1: 0.02, w0: 0.038, d0: 0.048 }), 'shadowTint', MAT.HIDE);
     add(prism({ y0: 0.02, y1: 0.062, w0: 0.20, d0: 0.055 }), 'metal', MAT.METAL);
@@ -304,6 +315,27 @@ export function buildActor({ id = 'kaida', faction = 'ally', uniforms, material 
     const o = new THREE.Object3D();
     o.name = `socket:${name}`;
     o.position.fromArray(s.offset);
+    /* HAND SOCKETS FLIP. docs/specs/rig.mjs says a socket's local +Y points
+       "along the prop's natural swing/extend axis", and every weapon is
+       authored grip-at-origin, +Y-to-tip against that. But a hand bone's local
+       +Y points back UP the arm toward the elbow — the chain's offsets run
+       negative-Y downward — so an unrotated hand socket aimed every blade at
+       its owner's shoulder. Kaida's sword was hanging point-up along her
+       forearm, which is what made it visible. The spec's convention is right;
+       the socket was not honouring it. Rotating here rather than authoring
+       weapons upside-down keeps the contract that three swords share one
+       transform with no per-item offset hack.
+
+       SCOPED TO KAIDA. Applying it to everyone made tools/rig.mjs fail vex:
+       her staff is long enough that pointing it correctly dangles the tip below
+       her feet, which inflated her bind-pose silhouette to 1.816 m against a
+       1.660 m spec — a 9.4% deviation on a +-6% band. That is the gate working,
+       and it says two things worth keeping: the weapon convention needs a
+       per-weapon carry pose (a staff is shouldered or planted, not hung), and
+       the height assertion should measure the BODY rather than the body plus
+       whatever it is holding. Both logged as weapon-socket-inverted. Kaida is
+       the character in scope; the rest get this with their own re-spec. */
+    if (B.lofted && (s.joint === 'hand_R' || s.joint === 'hand_L')) o.rotation.x = Math.PI;
     boneByName.get(s.joint).add(o);
     sockets[name] = o;
   }
@@ -331,7 +363,12 @@ export function buildActor({ id = 'kaida', faction = 'ally', uniforms, material 
   beacon.name = `${id}:iff:${spec.shape}`;
   beacon.frustumCulled = false;
   if (spec.shape === 'down') beacon.scale.y = -1;
-  sockets.chest.add(beacon);
+  /* Not on the lofted character. Art's call, per GAME_PLAN 2.1: friend/foe must
+     not be a glowing badge stapled to her chest — at 43 px it was the loudest
+     thing on the whole figure, and defect 6 forbids a non-diegetic marker
+     anyway. Kaida reads as a hero because she looks like one. The read for the
+     rest of the cast is still open and is deferred, not solved. */
+  if (!B.lofted) sockets.chest.add(beacon);
 
   /* per-hero height, applied as a uniform scale so proportions stay on-spec */
   const s = heightM / HERO_M;

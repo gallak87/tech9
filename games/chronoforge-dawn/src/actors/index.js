@@ -25,6 +25,9 @@ import { makeGate } from './gate.js';
 // occluded in the one shot the critic scores. In front of them the actors
 // occlude the props instead, which is the correct depth order anyway.
 const STAGE_Z = 5.2;
+
+/** Hard ceiling on the pixel-snap grid, in framebuffer pixels. See updateSnap(). */
+const SNAP_MAX_PX = 2.4;
 const SHOWCASE = [
   { id: 'kaida', faction: 'ally', dx: -3.0 },
   { id: 'vex', faction: 'ally', dx: -1.0 },
@@ -136,7 +139,13 @@ export function installActors(ctx) {
     _a.project(cam); _b.project(cam);
     const px = Math.abs(_b.y - _a.y) * 0.5 * fbH;
     lastHeroPx = px;
-    const s = snapUnitPx(px, HERO_M * ref.scale * viewScale) * snapBoost;
+    /* Clamp. snapUnitPx scales with the actor's screen height, which is correct
+       at the shipping framing (~1 px) and catastrophic the moment anyone zooms
+       in to LOOK at the character: at the ?dev=2 close-up it reached 16.6 px and
+       shattered her into loose plates with gaps between them. That artifact was
+       read as a modelling failure when it was the snap. A sprite grid coarser
+       than SNAP_MAX_PX stops being a sprite grid and starts being damage. */
+    const s = Math.min(SNAP_MAX_PX, snapUnitPx(px, HERO_M * ref.scale * viewScale) * snapBoost);
     lastSnapPx = s;
     uniforms.uSnapPx.value = snapOn ? s : 0;
     uniforms.uResolution.value.set(engine.size.x * engine.dpr, fbH);

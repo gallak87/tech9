@@ -191,3 +191,58 @@ any change to the rig, the material, or the bands.
   say +Z. `src/actors/rig.js` builds +Z because the offsets are load-bearing.
   Art should fix the prose.
 - No contact shadow on any actor. Defect 3. Phase 2.4.
+
+---
+
+## 2026-09-04, later — Kaida rebuilt (2.1 + 2.2 + 2.3 pass 1)
+
+Done while the human was away. **Not signed off** — 2.3 pass 1 is silhouette, and
+the human is the look gate.
+
+**2.2 — geobuild ported.** `src/render/geobuild.js`, a straight lift from
+vulpine. `src/actors/shape.js` wraps it in three body-shaped helpers: `limb()`
+(a stack of superellipse cross-sections lofted up the bone), `slab()`, `spike()`.
+They return `{pos,nor,idx}` because that is what `mergeParts` consumes, not a
+BufferGeometry.
+
+**2.1 + 2.3 — `src/actors/kaida.js`.** `shellParts()` in rig.js delegates when
+`id === 'kaida'`; the other three keep prisms until their own pass. Her palette
+is **sampled** off `kaida_overworld.png` — the inherited `HERO_PALETTES.kaida`
+was invented and wrong where you can see it (`clothPrimary #1c2f44`, a dark navy,
+for a jacket that is plainly teal).
+
+Landed: lofted pelvis and torso with a **real waist** (narrower than both the
+ribs above and the hips below — the relationship a box cannot express), a rounded
+skull that tapers to a jaw, a four-mass bob replacing the slab, rolled-sleeve
+cuff over a bare forearm, boot flaring over the calf, crystal blade with a brass
+guard, and the IFF chest triangle deleted.
+
+### Three bugs found on the way, all worth keeping
+
+- **The snap scaled with zoom.** `snapUnitPx` reached **16.6** in look mode and
+  shattered her into loose plates with gaps. The human saw that and read it as a
+  modelling failure; it was the snap. Clamped at `SNAP_MAX_PX = 2.4`.
+- **Hand sockets point every weapon at its owner's shoulder.** A hand bone's
+  local +Y runs *up* the arm, so the spec's grip-at-origin/+Y-to-tip convention
+  aimed Kaida's blade backwards. Rotating the hand sockets fixes it — but doing
+  it for everyone failed the gate on Vex, whose staff then dangles below her feet
+  (1.816 m vs a 1.660 m spec). Scoped to Kaida. Issue `weapon-socket-inverted`.
+- **Hair buried inside the skull.** The fringe sat at z 0.062 with a half-depth
+  of 0.020, so its front landed at 0.082 while the skull's own front is at 0.092.
+  What read as a black hole where her face should be was the skull's shadowed
+  interior showing through a z-fight. **Sit hair outside the skull, always.**
+
+### What is still wrong — say this out loud, do not oversell
+
+- **The face is a blank white mask.** No features read from the front. This is
+  the first thing anyone will look at.
+- **The hair reads as a helmet**, not a bob — the masses are too hard-edged and
+  sit like headphones.
+- Trousers still crush to near-black under the toon ramp even after lifting the
+  sampled colour. Same root cause as `rig-toon-pivot-miscalibrated`.
+- The blade blows to white rather than reading magenta.
+- No contact shadow. She floats. Phase 2.4.
+- She reads leggier than the intended 5.5 heads.
+
+Gate: `tools/rig.mjs --selftest` exits 0, all four characters, 4/4 faults caught.
+Dawn 6.4 unregressed at median 0.212. Shots in `shots/kaida/`.

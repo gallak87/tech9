@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
-  "phase": 2.01,
-  "phaseName": "Free-roam play sample complete \u2014 three panel tiers, one-shot latch fixed; Kaida redesign next",
+  "phase": 2.3,
+  "phaseName": "Kaida rebuilt from lofted cross-sections \u2014 silhouette pass 1, awaiting human sign-off",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -156,7 +156,8 @@
       "probe.mjs",
       "lintrng.mjs",
       "quality lever (dev panel, 5 notches, localStorage)",
-      "rig.mjs (+ --selftest)"
+      "rig.mjs (+ --selftest)",
+      "src/render/geobuild.js (ported from vulpine)"
     ],
     "pending": [
       "sheet.mjs",
@@ -179,7 +180,7 @@
   "modules": {
     "world": "phase0 placeholder scene \u2014 replaced wholesale in Tier 1",
     "render": "camera rig, environment, materials, textures, postfx, probe \u2014 real",
-    "actors": "19-bone code-built rig, 7 pose clips, toon+snap material, offscreen measurement gate, dev-panel viewer \u2014 real",
+    "actors": "19-bone rig; KAIDA lofted from superellipse cross-sections (2412 tri), other three still prism-based",
     "traversal": "free-roam play sample \u2014 WASD, camera-relative, ground-following, speed-driven clip rate. Party/collision/footfalls are Phase 5.",
     "places": "stub",
     "battle": "stub",
@@ -497,6 +498,24 @@
       "title": "A lane cannot collapse or hide another lane's dev-panel group",
       "detail": "main.js registers time/camera/sim/perf/quality itself and dev.register offers no way to mark a group collapsed, so ?dev=2 look mode hides them by setting display on the .grp divs from src/traversal/index.js. A stopgap in the wrong file. Real fix is a `collapsed` option on dev.register, which is INTEGRATOR ONLY territory. Two related traps found the hard way and worth fixing at the same time: devpanel update() starts `if (root.className) return`, so adding any class to #dawn-dev silently stops its own readouts; and toggles sync() on click only, never per frame, so a toggle misreports state a module changes on its own.",
       "repro": "?play=1&dev=2 and read src/traversal/index.js applyLook()"
+    },
+    {
+      "id": "weapon-socket-inverted",
+      "severity": "medium",
+      "tier": "per-character re-spec",
+      "area": "actors",
+      "title": "Hand sockets point every weapon back at its owner's shoulder",
+      "detail": "docs/specs/rig.mjs says a socket's local +Y runs along the prop's extend axis and every weapon is authored grip-at-origin +Y-to-tip. But a hand bone's local +Y points UP the arm toward the elbow, so an unrotated hand socket aims the blade at the shoulder. Kaida's sword hung point-up along her forearm. Fixed by rotating the hand sockets pi about X, but SCOPED TO KAIDA: applying it to everyone failed vex, whose staff is long enough that hanging it correctly puts the tip below her feet and inflates her bind silhouette to 1.816m against a 1.660m spec (9.4% on a 6% band). Two follow-ups: weapons need a per-weapon carry pose (a staff is shouldered or planted, not hung), and the gate's height assertion should measure the body rather than the body plus whatever it holds.",
+      "repro": "remove the B.lofted guard in src/actors/rig.js socket loop, then node tools/rig.mjs"
+    },
+    {
+      "id": "snap-scales-with-zoom",
+      "severity": "medium",
+      "tier": "Phase 2 (fixed, watch)",
+      "area": "actors",
+      "title": "The pixel-snap grid scaled with camera distance and shattered the character when inspected",
+      "detail": "snapUnitPx is derived from the actor's on-screen height, which is correct at the shipping framing (~0.9px) and catastrophic in ?dev=2 look mode, where it reached 16.6px and broke the character into loose plates with visible gaps. The human read that as a modelling failure; it was the snap. Clamped at SNAP_MAX_PX = 2.4 in src/actors/index.js. Worth revisiting when SPRITE_PX_PER_METRE is finally decided \u2014 the clamp and that constant are the same conversation.",
+      "repro": "?play=1&dev=2, zoom in, watch the Rig readout snap value"
     }
   ],
   "rig": {
@@ -586,5 +605,35 @@
     "terrainSlopesReached": "16.6 to 38.3 deg while driving \u2014 MAX_WALKABLE_SLOPE_DEG is 34",
     "frameHeightWhilePlaying": 10.0
   },
-  "handoff": "docs/PHASE2-HANDOFF.md \u2014 running notes for the character phase"
+  "handoff": "docs/PHASE2-HANDOFF.md \u2014 running notes for the character phase",
+  "kaida": {
+    "status": "2.3 pass 1 (silhouette) built, NOT signed off \u2014 human is the look gate",
+    "tris": 2412,
+    "files": [
+      "src/render/geobuild.js",
+      "src/actors/shape.js",
+      "src/actors/kaida.js"
+    ],
+    "paletteSampled": "from games/chronoforge/src/assets/kaida_overworld.png, replacing the invented HERO_PALETTES entry",
+    "landed": [
+      "lofted pelvis/torso with a real waist",
+      "rounded skull, jaw taper",
+      "four-mass bob replacing the slab",
+      "rolled-sleeve cuff, bare forearm, glove",
+      "boot flare over the calf",
+      "crystal blade + brass guard",
+      "IFF chest triangle removed",
+      "weapon socket un-inverted (Kaida only)",
+      "snap clamped to 2.4px"
+    ],
+    "knownWrong": [
+      "face is a blank mask \u2014 no features read from the front",
+      "hair reads as a helmet, not a bob",
+      "trousers still crush to black under the toon ramp",
+      "blade blows to white rather than magenta",
+      "no contact shadow (Phase 2.4)",
+      "reads leggier than the intended 5.5 heads"
+    ],
+    "shots": "shots/kaida/{front,three-q,side,back}.png, shots/rig/poses.png"
+  }
 }

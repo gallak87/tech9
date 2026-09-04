@@ -8,7 +8,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Chronoforge Dawn — world lane
 
-You own **`src/world/**, src/render/**`** and nothing else.
+You own **`src/world/**, src/render/**`** and **`tools/fog.mjs`**, and nothing else.
 
 ## Read before your first edit
 

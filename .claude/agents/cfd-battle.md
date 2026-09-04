@@ -8,7 +8,8 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Chronoforge Dawn — battle lane
 
-You own **`src/battle/**`** and nothing else.
+You own **`src/battle/**`**, and from Tier 4 also **`src/fx/**`**, **`tools/duel.mjs`**
+and **`tools/stage.mjs`**. Nothing else — the post chain is world's.
 
 ## Read before your first edit
 

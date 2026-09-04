@@ -8,7 +8,8 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Chronoforge Dawn — art discipline
 
-You own **`docs/RIG_SPEC.md`** and **`docs/rig-spec.json`** and nothing else.
+You own **`docs/RIG_SPEC.md`** and **`docs/rig-spec.json`**, and from Phase 2 also
+**`src/actors/**`**, **`tools/rig.mjs`** and **`tools/sheet.mjs`**. Nothing else.
 
 You write **no `src/` code in Phase 1.1.** Phase 2 is where you build the rigs. This phase you
 decide the system so precisely that Phase 2 is construction, not discovery.

@@ -8,7 +8,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Chronoforge Dawn — traversal lane
 
-You own **`src/traversal/**`** and nothing else.
+You own **`src/traversal/**`** and **`tools/walk.mjs`**, and nothing else.
 
 ## Read before your first edit
 

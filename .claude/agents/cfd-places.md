@@ -8,7 +8,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Chronoforge Dawn — places lane
 
-You own **`src/places/**`** and nothing else.
+You own **`src/places/**`** and **`tools/door.mjs`**, and nothing else.
 
 ## Read before your first edit
 

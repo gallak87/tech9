@@ -22,8 +22,8 @@ Tier 4 with the battle, because nothing can trigger a sound before then.
 
 | Lane | Owns | Must not touch |
 |---|---|---|
-| **art** | `docs/RIG_SPEC.md`, `docs/rig-spec.json` | all of `src/**` in 1.1 — the rigs are built in Phase 2 |
-| **gamedesign** | `docs/DESIGN_SPEC.md`, `docs/design-spec.json`, `tools/framing.mjs` | `src/**`, the rest of `tools/**` |
+| **art** | `docs/RIG_SPEC.md`, `docs/rig-spec.json`; `src/actors/**`, `tools/rig.mjs`, `tools/sheet.mjs` from Phase 2 | all of `src/**` **in 1.1 only** — the rigs are specced here and built in Phase 2 |
+| **gamedesign** | `docs/DESIGN_SPEC.md`, `docs/design-spec.json`, `tools/framing.mjs`; `tools/econ.mjs` from Tier 6 | `src/**`, the rest of `tools/**` |
 | **level** | `data/regions/**`, `tools/region.mjs`, `docs/WORLD_GRAPH.md` | `src/world/**` — that is the world lane's, and it *imports* your data |
 
 **The build lanes** — one folder, one gate, for the whole build:
@@ -31,15 +31,12 @@ Tier 4 with the battle, because nothing can trigger a sound before then.
 | Lane | Owns | Must not touch |
 |---|---|---|
 | **world** | `src/world/**` *and* `src/render/**` — terrain, biomes, weather, fog of war, plus the camera rig, environment, materials, textures, postfx, probe | `src/actors/**`, `src/ui/**`, any other lane |
-| **actors** | `src/actors/**` | `src/render/postfx.js`, `src/render/environment.js`, any other lane |
 | **traversal** | `src/traversal/**` | `src/battle/**`, `src/places/**` |
 | **places** | `src/places/**` | `src/traversal/**`, `src/world/**` |
-| **battle** | `src/battle/**` | `src/traversal/**`, `src/progression/**` |
+| **battle** | `src/battle/**` *and* `src/fx/**` from Tier 4 | `src/traversal/**`, `src/progression/**`, the post chain |
 | **progression** | `src/progression/**` *and* `src/ui/**`, `index.html` styles — XP, gear, skill trees, quests, plus the HUD and pause menu | `src/battle/**`, `src/settlement/**`, the Three scene, the post chain, `src/render/**` |
 | **settlement** | `src/settlement/**` | `src/progression/**`, `src/world/**` |
-| **fx** | `src/fx/**` | the post chain, any other lane |
 | **audio** | `src/audio/**`, `docs/AUDIO_SPEC.md`, `tools/render-audio.mjs` | anything else — first runs in Tier 4 |
-| **tools** | `tools/**` except the three named above | `src/**` — a probe that edits the thing it measures is not a probe |
 
 `data/regions/**` is **level's** output and **world's** input. World reads it in Tier 1
 and never writes it. If the graph is wrong, that is a level defect and it is fixed in
@@ -52,19 +49,35 @@ frame; one lane owns everything that makes it.
 
 **Progression owns ui.** Same rule.
 
-### Lanes with no agent
+**Art owns actors, from Phase 2.** `art` is docs-only in Phase 1.1 — that restriction
+is scoped to 1.1 and expires with it. Art does not close after 1.2; it builds the rigs
+it specced, and carries the Character Look Gate that judges them.
 
-`actors`, `fx` and `tools` are listed above but no `cfd-*` agent claims them. Work
-routed to them reaches nobody. Assign an owner before scheduling work in these
-folders:
+**Battle owns fx, from Tier 4.** Nothing before Tier 4 writes `src/fx/**`. A tier that
+wants an effect earlier puts it in its own folder.
 
-| Folder | First needed | Candidate |
+### 1a. `tools/**` — a lane owns the probe that gates it
+
+A probe never edits what it measures. Beyond that, the tool that decides whether a
+lane passes belongs to that lane.
+
+| Tool | Owner | Gates |
 |---|---|---|
-| `src/actors/**` | Phase 2 | `art` specs the rig, but is docs-only and closes after 1.2 |
-| `src/fx/**` | Tier 4 | `battle` — its brief names elemental VFX |
-| `tools/**` | now | orchestrator; `integrator` from Phase 3 |
+| `rig.mjs`, `sheet.mjs` | art | Phase 2, Character Look Gate |
+| `fog.mjs` | world | Tier 1 |
+| `walk.mjs` | traversal | Tier 2 |
+| `door.mjs` | places | Tier 3 |
+| `duel.mjs`, `stage.mjs` | battle | Tier 4 |
+| `save.mjs` | progression | Tier 5 |
+| `econ.mjs` | gamedesign | Tier 6 — economy re-verification is gamedesign's per `GAME_PLAN.md` |
+| `region.mjs` | level | Phase 1.1, again in Tier 1 |
+| `framing.mjs` | gamedesign | Phase 1.1 |
+| `render-audio.mjs` | audio | Phase 7 |
 
-`src/actors/**` must have an owner before Phase 2 opens.
+**Shared harness — orchestrator until Phase 3, `integrator` after.** No lane edits
+these: `shot.mjs`, `probe.mjs`, `lintrng.mjs`, `lib/harness.mjs`, `blind.mjs`,
+`digest.mjs`, `census.mjs`, `play.mjs`. They measure every lane, so a lane tuning one
+is a lane grading its own homework.
 
 ### Shared core — read-only to builders
 

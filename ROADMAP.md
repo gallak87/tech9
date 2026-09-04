@@ -150,6 +150,33 @@ any game code. Two findings already paid for it:
 Both are the thesis working. Do not graduate this into a framework default until a
 second game repeats it — but it is the strongest candidate on the list.
 
+### 11. The Director merges lanes into `dev`, and nothing ever un-merges them
+
+Found auditing Chronoforge Dawn ownership before Phase 1.1.
+
+`PROMPT-chronoforge-dawn.md` gets it right: twelve folders, "one builder agent per
+module, each owning only its folder." `GAME_PLAN.md` then collapses all twelve into
+one `dev` — *"owns the engine, the shared ctx, all six stack-ranked tiers, and
+tools/."* The per-folder mapping is gone at that point and nothing records that it
+existed.
+
+Re-expanding `dev` into lane agents later is done by **tier**, because tiers are what
+the phase plan is written in. There are six tiers and twelve folders, so the six
+folders that are not tiers get no agent:
+
+| Folder | Outcome |
+|---|---|
+| `render`, `ui` | rescued by hand into `cfd-world.md` / `cfd-progression.md`; `CONTRACT.md` still listed them as their own lanes for a week |
+| `audio` | survived — it was already a discipline, not a tier |
+| `actors`, `fx`, `tools` | silently unowned until audited |
+
+Cost: `exposure-non-dawn` sat in `src/render/**`, a lane with no agent. Assigning it
+took a hand-written grant. `src/actors/**` would have hit Phase 2 the same way.
+
+- The Director should emit the folder→lane table as data, not prose, and the Scaffolder should assert every folder in `ARCHITECTURE.md` appears exactly once in it
+- A merge into `dev` must record what was merged, so re-expansion is mechanical
+- `validate-vocab` should fail when a `CONTRACT.md` lane has no agent def, and when an agent def claims a folder the contract gives to someone else — both were true here
+
 ---
 
 ## Baked — no longer open

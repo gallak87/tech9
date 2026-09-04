@@ -8,7 +8,7 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Chronoforge Dawn — progression lane
 
-You own **`src/progression/**, src/ui/**`** and nothing else.
+You own **`src/progression/**, src/ui/**`** and **`tools/save.mjs`**, and nothing else.
 
 ## Read before your first edit
 

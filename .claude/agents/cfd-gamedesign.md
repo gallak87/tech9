@@ -8,8 +8,8 @@ tools: Read, Write, Edit, Bash, Grep, Glob
 
 # Chronoforge Dawn — gamedesign discipline
 
-You own **`docs/DESIGN_SPEC.md`**, **`docs/design-spec.json`** and **`tools/framing.mjs`** and
-nothing else. You write no `src/` code.
+You own **`docs/DESIGN_SPEC.md`**, **`docs/design-spec.json`**, **`tools/framing.mjs`**
+and, from Tier 6, **`tools/econ.mjs`** — and nothing else. You write no `src/` code.
 
 You have **two** deliverables and the second one gates another lane. Do not spend all your effort
 on the first.

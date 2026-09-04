@@ -115,8 +115,9 @@ Tiers 1–3 are the remake's real work; the prototype barely had them. Tier 6 is
    single `ctx` object every module receives, the public API each module exposes and the events it
    emits, units (metres, +Y up), determinism (seeded RNG only — `Math.random()` is a defect), a
    performance budget (60 fps at 1080p, ≤900 draw calls, 16.6 ms frame), and the art policy above.
-   `CONTRACT.md` carries a file-ownership table: **one lane per folder, nobody edits outside their
-   lane.** Isolate module failures so one broken module never blanks the screen.
+   Isolate module failures so one broken module never blanks the screen.
+
+   Folders are how the **code** is divided. They are not how the **team** is divided — see 3.
 
 2. **Build the verification loop before the game.** This is the part that matters most and the part
    everyone skips. Nothing ships without an instrument. In `tools/`, at minimum:
@@ -161,12 +162,36 @@ Tiers 1–3 are the remake's real work; the prototype barely had them. Tier 6 is
    deadlock", "does it drift", "can you get out of the room" — those need a probe, and the probe is
    part of the deliverable.
 
-3. **Fan out.** One builder agent per module, each owning only its folder. Waves by dependency:
-   (1) world, render, actors, fx, audio, ui shell, tools; (2) traversal, places, battle;
-   (3) progression, settlement; (4) the vertical slice — dawn over the coast, into a city, into a
-   shop, out to an encounter, win the fight, spend the loot. Between waves, one **integrator**
-   agent — the only one allowed to touch shared core — applies builders' core-change requests and
-   fixes the seams.
+3. **Build in dependency order, one `dev` at a time.** `dev` is lane-agnostic: the **phase**
+   says what is in scope, and `dev` builds it. Do **not** create one agent per folder, and do not
+   invent per-folder agent definitions — the role vocabulary has no such roles, and hand-rolling
+   them puts a second ownership axis next to the roster where it silently drifts.
+
+   The dependency order is the phase order: (1) world, render, actors, fx, ui shell, tools;
+   (2) traversal, places, battle; (3) progression, settlement; (4) audio, with the battle it
+   scores; (5) the vertical slice — dawn over the coast, into a city, into a shop, out to an
+   encounter, win the fight, spend the loot.
+
+   The concurrency in a phase is **across disciplines** — `dev` builds, `art` specs, `level`
+   authors data, `critic` scores, `qa` gates. Those partition naturally by output type and need
+   no ownership table.
+
+   **Two `dev` agents, at most, and only against a probe.** The default is one. A second is
+   justified only when *all* of these hold: each states its complete file set before starting;
+   the two sets do not intersect; and every existing probe still exits zero after both land,
+   run by whoever merges them. Never more than two, and never a standing per-folder assignment —
+   the split is declared for one phase and expires with it. If the two collide, the second
+   re-runs; a collision is not a merge to negotiate. If you cannot name a probe that would
+   catch the collision, you do not have grounds for a second agent — run one.
+
+   The gate is the probe, not the folder. "These folders look isolated" is a guess made before
+   the work, by an agent that does not yet know what it will need to touch. The exposure
+   spot-fix was scoped to one issue and still had to edit two files outside the folder it was
+   given; what made it safe was that `probe.mjs` proved dawn unchanged to three decimals
+   afterward. Prove it after; do not predict it before.
+
+   An **integrator** is warranted only when a phase genuinely has two agents writing `src/`.
+   With a single `dev` there is no seam to integrate; skip the role, per its own `merge_when`.
 
 4. **Gauntlet every module.** After each builder round, a separate critic agent — a brutal art
    director who writes no code — takes its own screenshots at several times of day and zoom levels,
@@ -195,7 +220,8 @@ Tiers 1–3 are the remake's real work; the prototype barely had them. Tier 6 is
 - **Never inflate scores.** Report real numbers, failed rounds, and what is still missing.
 - **No binary assets, no network fetches.** Every mesh, texture and sound is generated in code.
 - **No `Math.random()`.** Seeded streams only — non-determinism makes review impossible.
-- **Never edit another module's folder.** Core changes go through the integrator.
+- **Stay inside the phase's scope.** A phase names what it delivers; work outside it belongs to
+  a later phase, not to this run. If an integrator is active, core changes go through it.
 - **Keep the dev server running and the app loadable at all times** — other agents are
   screenshotting it. Pick a unique port if a harness is already running.
 - **Blowing the frame budget is a defect, not a trade-off.** Do not disable a post pass to make

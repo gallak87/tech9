@@ -1,0 +1,323 @@
+{
+  "game_name": "Chronoforge Dawn",
+  "concept_summary": "Chronoforge Dawn is an overhead action-RPG built in Three.js and Vite — a ground-up presentation remake of the Canvas-2D prototype in games/chronoforge, inheriting that build's content and systems as a starting point and beating it outright — the rendering is replaced wholesale, and anything else that is not up to snuff is remade rather than faithfully reproduced. A three-hero party (Kaida, Vex, Rune) crosses a post-collapse Earth of neon city-states and alien-terraformed ruins, laid out as a graph of twelve discrete 45x30 maps: eight outdoor regions (Haventide T1, Emberline T2, Forest Veil T2, Mire Bog T2, Orbital Reach T3, Frost Canyon T3, Crater Ember T4, Last Crown T4) plus four city interiors, joined by eighteen doorway edges. Enemies roam visibly on the map; touching one starts a Chrono Trigger-style ATB battle fought in place on the terrain where it triggered, staged and lit, with no scene swap. Between fights the party levels, equips gear across three slots, and grows a settlement in Haventide through four tech tiers (Survivor, Reclaimer, Ascendant, Transcendent) on food, ore and energy. The player wins by reaching Transcendent tier and killing the Void Architect; they lose on a party wipe with no reclaim resources left. The prototype is a donor and a floor — content, systems and tone to start from, and explicitly not the quality bar. Dawn is scored against an absolute standard: a frame worth putting on a store page, and the eight named defects gone. The visual reference comes from the human before the final gate.",
+  "rendering_tier": "threejs",
+  "scope_constraints": [
+    "IN scope — Three.js (latest) + Vite, plain ES modules, twelve-folder subsystem layout under src/, one shared ctx object per module, per the existing ARCHITECTURE.md and CONTRACT.md. Those two files and docs/STATUS.json are extended, never clobbered.",
+    "IN scope — Every character is a low-poly 3D rig built in code, posed by an animation system, rendered through a pixel-snap and palette-quantise pass so it reads as a sprite. Weapons, armour and accessories are separate meshes attached to named sockets.",
+    "OUT of scope — Sprite generation, image-gen pipelines and binary art assets of every kind. No PNG, no model file, no audio file in the repo except what the harness writes into shots/. Terrain, buildings, foliage, VFX, UI and audio are generated in code. No fetch, no network, no downloads.",
+    "OUT of scope — Math.random(). Seeded RNG streams only, via ctx.rng('lane.stream'). Non-determinism is a defect and tools/lintrng.mjs enforces it.",
+    "IN scope — The verification harness ships before the game it verifies, and dev owns tools/ and its exit codes. Sixteen tools: shot, probe and lintrng exist; sheet, blind, walk, door, duel, stage, fog, econ, save, digest, census, region, rig and play are deliverables. Nothing may be claimed that has not been screenshotted and opened, or measured by the probe that answers that question — and any agent reporting done must hand the orchestrator the artifact itself: the probe stdout, the tool exit code, or the path of a PNG that was opened.",
+    "IN scope — Every module ships a showcase mode staging a representative scene of just that module, and window.__DAWN__ exposes post(), probe(), stats(), seek(), step(), setShot(), setTime(), battle() and teleport().",
+    "IN scope — Inventory is a first-class system, not a menu tab. The seventeen-item catalog, three slots per hero, eight stats and both acquisition paths (enemy drop tables and eight hidden world drops, one per outdoor region) are ported from the prototype ITEM_DEFS and drop tables. Equipping is visible on the rig: every weapon is its own mesh on the named weapon socket, so a sword swap changes the hero in the overworld, in battle and in the portrait. Loot drops are diegetic events in the world with a drop animation, not a silent inventory increment.",
+    "IN scope — The eight named prototype defects are the acceptance bar, each checkable in a screenshot: soft continuous fog with no quantisation; no tile grid anywhere; real contact shadowing and grounding for every actor and prop; battles staged on the terrain that triggered them; terrain with elevation and varied lighting; binary diegetic concealment with no grey-ghost enemies; menu chrome with depth, glow bleed and type hierarchy; a designed HUD.",
+    "IN scope — Tiers ship in a fixed order, each playable and verified before the next starts: 1 World & Light, 2 Traversal, 3 Places, 4 Encounters & Battle, 5 Progression, 6 Settlement. No jumping ahead.",
+    "IN scope — The world is a graph of twelve discrete 45x30 maps ported from the prototype's MAPS table: eight outdoor regions across eight biomes plus four city interiors, 36 placed encounters, 18 doorway edges, and exactly one hidden world drop per outdoor region. Build plots exist in Haventide only. Not one contiguous landmass.",
+    "IN scope — Tier 1 finishes two regions at full fidelity, Haventide (grassland_ruins) and Emberline (neon_wastes); the other six block in and reach fidelity in the region buildout phase. Correctness is never deferred: region.mjs, walk.mjs and door.mjs pass on all twelve maps from Tier 1 onward.",
+    "IN scope — Improving on the prototype, systems included. chronoforge is a donor and a floor, not a specification; Dawn exists to beat it. Its tuned numbers — ATB math, five enemy tiers, the tech table, drop tables, the twelve-map data, economy curves, the seven-tab menu and keyboard model — are the DEFAULT starting point because they are already tuned and cheap to keep. Adopt them unless there is a stated reason not to, and record the reason when deviating. Net-new systems and outright remakes are welcome and every idea is open to discussion. What is NOT in scope is silently losing content: no hero, enemy, item, quest, region, building or menu capability disappears without it being called out.",
+    "IN scope — The prototype's dev overlay (battle speed, fog toggle, minimap toggle, reset, replay) is kept and extended.",
+    "IN scope — Battle starts in place with a lateral camera swing and push-in at locked pitch. There is no separate battle scene, no gradient backdrop, and no scene swap.",
+    "IN scope — A hard performance budget: 60 fps at 1080p, 16.6 ms frame, 900 draw calls, 2.6M triangles. Blowing it is a defect, not a trade-off. Disabling a post pass to make a feature look better is forbidden.",
+    "IN scope — Dawn at hour 6.4 is signed off at wide median 0.212, p90 0.51, 0% blown white, and must not regress. Exposure ramps over sun elevation via EXPOSURE_RAMP in src/render/environment.js, fixed per hour. No metering, no auto-exposure.",
+    "IN scope — Scoring is absolute, not comparative. The critic scores 0-10 against a named visual reference and the eight named defects; games/chronoforge is inspiration and the content source, never the benchmark. Pass is >=8.5 with zero console errors and a green probe, up to four rounds per tier. Scores are reported honestly, including failed rounds. Until the human supplies the visual reference, the signed-off dawn frame in shots/exposure-ramp/h6.4 is the internal anchor.",
+    "IN scope — The final gate is a blind A/B on shuffled, label-stripped pairs, judged against the human-supplied visual reference. The reference and the pairing rule arrive from the human before that gate is run; the gate is not designed or executed until they do.",
+    "IN scope — docs/STATUS.json carries scores, probe results, frame budget and open issues so an interrupted run resumes from the weakest module.",
+    "OUT of scope — Multiplayer, networked play, cloud save, accounts, analytics, microtransactions.",
+    "OUT of scope — Procedural map, dungeon or quest generation. The twelve maps are authored data ported from the prototype.",
+    "OUT of scope — Voice acting and animated cutscenes. Text boxes with portrait flashes and scripted actor choreography only.",
+    "OUT of scope — Mobile and touch input. Desktop keyboard and mouse only.",
+    "IN scope but DEFERRED — Audio does not start until the first ATB battle effort. Web Audio synthesis only (per-biome ambient beds, battle stingers, resource-tick chimes, surface-matched footfalls) and no audio files in the repo, but the audio lane is not scheduled before the battle tier. Every earlier phase ships silent.",
+    "IN scope — The in-game dev panel (src/core/devpanel.js, a DOM overlay the HUMAN clicks, distinct from the headless tools/ probes) is preserved and never clobbered. Lanes add controls through ctx.dev.register({group,label,type,get,set}) from their own file; editing devpanel.js to add a control is a contract violation. It must be extended on human request rather than pre-emptively, and any lane shipping a system the human will want to poke registers a control for it.",
+    "IN scope — Never more than two agents running concurrently. A phase needing more work is split into sequential waves, not widened. The orchestrator may also execute a lane itself rather than spawning for it.",
+    "IN scope — Frequent human feedback. Every agent that finishes a unit of work decides, and states, whether a human manual QA pass on localhost is worth it before the next phase starts — naming what to look at and what would count as wrong. Automated gates do not replace this; they decide when to ask for it."
+  ],
+  "team": [
+    {
+      "role_id": "gamedesign",
+      "active": true,
+      "notes": "Owns the one net-new mechanic: dual and triple tech pairings, combined gauge cost, damage formula and cinematic beat timings. Owns the call on which prototype systems are adopted as-is, which are remade, and which are replaced outright — the tuned tables are a default, not a mandate, and a deviation needs a stated reason rather than permission. Split from level — the world is a non-linear twelve-map graph across eight biomes, not a linear level."
+    },
+    {
+      "role_id": "art",
+      "active": true,
+      "notes": "Owns the rig spec (proportions, joint counts, socket names, palette, quantise level count, pixel-snap resolution), the material language, menu chrome and HUD design. Produces specs and in-code direction only — there is no asset production step in this game. Also owns the look of a loot drop and the inventory grid. Reads docs/PROTO-REF.md for what the prototype actually renders."
+    },
+    {
+      "role_id": "asset",
+      "active": false,
+      "notes": "SKIPPED. Scope constraint: no sprite generation, no image-gen pipeline, no binary art assets of any kind. There is nothing for an asset artist to produce — every rig, texture, mesh, VFX and sound is generated in code, which is dev work. Merging asset into art would imply an asset pipeline that this game deliberately does not have. Note: Ollama image-gen IS available on this machine and must not be used."
+    },
+    {
+      "role_id": "level",
+      "active": true,
+      "notes": "Owns the twelve-map graph ported from the prototype MAPS table, per-biome heightfield authoring across eight biomes, 36 encounter placements at combat clearance, 18 doorway edges and 8 world drops. Split from gamedesign per split_when: non-linear paths and multiple zones."
+    },
+    {
+      "role_id": "audio",
+      "active": true,
+      "notes": "Active but DEFERRED by human decision: the audio lane does not start until the first ATB battle effort (Phase 7). Web Audio synthesis only — per-biome ambient beds, battle stingers, resource-tick chimes, surface-matched footfalls. No audio files in the repo. Every phase before 7 ships silent."
+    },
+    {
+      "role_id": "dev",
+      "active": true,
+      "notes": "Never merged. Owns all src/ code at rendering_tier threejs. ALSO OWNS tools/ AND ITS EXIT CODES — the thirteen unwritten instruments (sheet, blind, walk, door, duel, stage, fog, econ, save, digest, census, region, rig, play) are dev deliverables, folded in by human decision rather than given a separate harness role. Dev must hand the orchestrator real evidence with every done claim, and must decide and state when a human manual QA pass is worth it. Preserves src/core/devpanel.js — the human-facing DOM overlay — and adds controls only through ctx.dev.register from its own file. Also owns the inventory system: seventeen ported items, three slots, drop tables, eight world drops, and weapon meshes on the rig socket."
+    },
+    {
+      "role_id": "qa",
+      "active": true,
+      "notes": "Never merged; independent of dev. Owns test plans, regression checks and playtest notes, and reads the harness output rather than building it. Signs off localhost before any deploy step."
+    },
+    {
+      "role_id": "devops",
+      "active": true,
+      "notes": "Never merged for Phase 0. Owns the Vite dev server on a unique port, the build, and deploy. The app must stay loadable at all times — a broken localhost blocks every other lane."
+    },
+    {
+      "role_id": "release",
+      "active": true,
+      "notes": "Split from devops per split_when: the launch involves a blind A/B gate, store-page-grade screenshots, a changelog and a version tag, not just a push. Also absorbs postlaunch."
+    },
+    {
+      "role_id": "postlaunch",
+      "active": false,
+      "merged_into": "release",
+      "notes": "MERGED into release per merge_when: nothing is live and there are no players, so post-launch is only watch-for-breakage. Scope constraint rules out accounts, analytics and cloud save, so there is no support surface to own."
+    },
+    {
+      "role_id": "historian",
+      "active": true,
+      "notes": "Runs once after the final phase. The CLAUDE.md rule that every phase and sub-phase gets its own commit exists specifically so the historian can read where things broke from git log."
+    },
+    {
+      "role_id": "godot_dev",
+      "active": false,
+      "notes": "SKIPPED. rendering_tier is threejs, and dev and godot_dev may never both be active. Capability check also shows no .mcp.json, so the godot-mcp bridge is not wired."
+    },
+    {
+      "role_id": "godot_techart",
+      "active": false,
+      "notes": "SKIPPED. Godot-only role; the tier is threejs."
+    },
+    {
+      "role_id": "godot_tools",
+      "active": false,
+      "notes": "SKIPPED. Godot-only role; the tier is threejs. Its web-equivalent responsibility (the verification harness) is folded into dev by human decision."
+    },
+    {
+      "role_id": "integrator",
+      "active": true,
+      "notes": "Active and load-bearing. This is a multi-lane build over twelve subsystem folders with one shared core; ARCHITECTURE.md already marks src/core/ INTEGRATOR ONLY and CONTRACT.md already carries the file-ownership table. Runs between waves: applies core-change requests, proves the app still loads and every lane probe still exits zero, and reverts any builder that edited outside its lane."
+    },
+    {
+      "role_id": "critic",
+      "active": true,
+      "notes": "Scores 0-10 against a named visual reference and the eight named defects — absolute, not against the prototype. Writes no code, never fixes what it finds, returns a ranked issue list. MUST NEVER run in the same parallel wave as the builder it grades: scoring a build that is still being edited produces a confident number worth nothing."
+    }
+  ],
+  "phases": [
+    {
+      "name": "Phase 0 — Engine Skeleton, Contract & First Light",
+      "description": "COMPLETE. Engine, shared ctx, __DAWN__ debug API, render stack (camera rig, environment, materials, textures, postfx, probe), twelve module stubs behind live install seams, ARCHITECTURE.md, CONTRACT.md, docs/STATUS.json, and tools/shot.mjs + probe.mjs + lintrng.mjs. Dawn at hour 6.4 signed off.",
+      "agents": [
+        "dev",
+        "devops"
+      ],
+      "parallel": false,
+      "qa_gate": "PASSED and re-verified this session: node tools/probe.mjs --shots wide --hour 6.4 returns median 0.212, p90 0.51, 0.00% blown white, 4.7ms, 78 draws. Zero console errors."
+    },
+    {
+      "name": "Phase 0.1 — Twilight & Night Lighting (FIRST TASK)",
+      "description": "Human-reported and measurement-confirmed: the world falls off a cliff into near-black outside daylight. ridge at 19.75h reads median 0.118 / 0.0% black; at 20.0h it reads 0.006 / 34.1% black — a 20x drop across 15 minutes of game time. 5.1h is worse at 0.004 / 60.3% black, and 21.5h is 0.012 / 41.8%. The stated band in docs/STATUS.json is median 0.09-0.25 with blackPct < 14, so these hours violate an already-agreed gate. This is NOT the exposure ramp: exposure is already climbing to compensate (1.24 at 5.1h, 1.72 at 20.0h, versus 1.05 at signed-off dawn) and getting nothing back, and 19.75h shows clip 1.69% with p99 3.52 from that same over-gain. The cause is that there is no twilight or night lighting model — KEY_RAMP falls toward zero as the sun drops below the horizon and nothing replaces it: no moon key, no sky ambient floor, no twilight scattering term. Closes open issues dusk-cliff and P0-5, and unblocks the Night and Dusk buttons already sitting in the dev panel.",
+      "agents": [
+        "dev"
+      ],
+      "parallel": false,
+      "qa_gate": "A 24-hour sweep at 0.25h steps on ridge and wide. Every sample satisfies the existing band from docs/STATUS.json: blackPct < 14, whitePct < 2, p90 < 1.2. No adjacent pair of samples differs in median by more than 2x — the cliff is made into a number so it cannot come back, the same way fog.mjs handles defect 1. Signed-off dawn at 6.4h must not regress from median 0.212 / p90 0.51 / 0.00% white. Frame budget holds. HUMAN QA WARRANTED: click Dusk and Night in the dev panel and confirm both land on a frame worth looking at rather than a black screen. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 1.1 — Systems & Look Specs",
+      "description": "gamedesign writes the dual/triple tech spec (pairings, combined gauge cost, damage formula, beat timings), the inventory spec over the seventeen ported items, and a call on whether shop/forge exchange exists in v1. art writes the rig spec (proportions, sockets — weapon socket must carry distinct meshes, palette, quantise levels, pixel-snap resolution) plus the material, menu-chrome, HUD and loot-drop language. Two agents, no more. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype. Three findings there are spec inputs and not optional: blob-shadow colour currently carries friend/foe read and real contact shadows will destroy that affordance unless art replaces it; menu portraits are placeholder letter-circles so the rig must GENERATE the portrait with nothing to match; and the title screen exists in the prototype but appears in no tier — it lands in Tier 5 with the rest of the menu chrome.",
+      "agents": [
+        "gamedesign",
+        "art"
+      ],
+      "parallel": true,
+      "qa_gate": "Every spec ships a runnable artifact, not prose. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 1.2 — World Data Port & Heightfields",
+      "description": "level ports the twelve-map graph from the prototype MAPS table and authors per-biome heightfield parameters across the eight biomes, keeping all twelve 45x30 maps traversable. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype.",
+      "agents": [
+        "level"
+      ],
+      "parallel": false,
+      "qa_gate": "Offline graph walk: every doorway target names a real map, every landing coordinate is in-bounds and passable, every region reachable from Haventide. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 1.3 — Encounter, Doorway & World-Drop Placement",
+      "description": "level places all 36 encounters against combat clearance, confirms the 18 doorway edges are bidirectional unless deliberately one-way, and places the eight world drops, one per outdoor region, each naming a real item.",
+      "agents": [
+        "level"
+      ],
+      "parallel": false,
+      "qa_gate": "Every encounter and world drop names something that exists in the ported tables. No orphans. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 2 — Character Look Gate",
+      "description": "dev builds one code-built hero rig from the art spec — low-poly, socketed, posed by the animation system, through the pixel-snap and palette-quantise pass. art directs, critic scores. This gate exists because the rig approach has never been built and failing it throws away the whole character pipeline. HARD STOP AT 2 ROUNDS. Ships a rig viewer registered into the dev panel so the human can click to see the character the moment it exists, and click again to play each pose transition.",
+      "agents": [
+        "art",
+        "dev",
+        "critic"
+      ],
+      "parallel": false,
+      "qa_gate": "HUMAN-VISIBLE GATE: a dev-panel control shows the rig on demand and plays its animations on demand — the moment a character is created it is clickable, and the moment an animation lands it is clickable. tools/rig.mjs exits 0: matching palette histograms across poses, silhouette area in band, zero material drift in a fixed head and torso sample. Two rounds maximum. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 3 — The Harness",
+      "description": "dev writes the thirteen remaining instruments in tools/: sheet, blind, walk, door, duel, stage, fog, econ, save, digest, census, region, play. Each exits non-zero on failure. Every module gets a showcase mode and __DAWN__ gains post, probe, stats, seek, step, setShot, setTime, battle and teleport. This ships BEFORE the game it verifies.",
+      "agents": [
+        "dev",
+        "qa"
+      ],
+      "parallel": false,
+      "qa_gate": "All 16 tools run and exit 0 against the current build. Each tool proves it can detect a positive case before its null result is trusted. qa reviews coverage: does each named defect have an instrument that would catch its return. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 4 — Tier 1: World & Light",
+      "description": "Terrain with real elevation, the overhead camera rig at locked pitch, sun/sky/IBL, time of day, weather that lands on surfaces, the post chain including the depth+normal prepass, and soft continuous fog of war. Haventide (grassland_ruins) and Emberline (neon_wastes) reach full fidelity; the other six block in. Kills defects 1, 2, 5 and 6.",
+      "agents": [
+        "level",
+        "dev",
+        "integrator",
+        "critic"
+      ],
+      "parallel": false,
+      "qa_gate": "fog.mjs proves the fog field is continuous along a transect with no step discontinuity at a tile boundary. No grid anywhere in any capture. region.mjs connected and green on all twelve maps. play.mjs drivable. Depth+normal prepass exists. Frame budget holds. Dawn 6.4 has not regressed. Critic scores both regions >=8.5 individually. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 5 — Tier 2: Traversal",
+      "description": "Party of three moves on WASD and click-to-move, follower spacing, collision, footfalls matched to surface material, camera damping, run/idle/turn poses, and real contact shadows on every actor.",
+      "agents": [
+        "dev",
+        "integrator",
+        "critic"
+      ],
+      "parallel": false,
+      "qa_gate": "walk.mjs drives real keyboard input along a scripted three-minute route and reports 60fps held, zero clips through geometry, frame-to-frame camera jitter in band, and that the party actually arrived. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 6 — Tier 3: Places & Interiors",
+      "description": "The four city interiors, buildings you enter and leave, doors, interior lighting, the transition both ways, NPCs standing where they belong, shops and the forge.",
+      "agents": [
+        "level",
+        "dev",
+        "integrator",
+        "critic"
+      ],
+      "parallel": false,
+      "qa_gate": "door.mjs enters and exits every door across all twelve maps, asserting return position, facing and load hitch. No interior can be soft-locked. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 7 — Tier 4: Encounters & Battle",
+      "description": "Visible roaming enemies, in-place battle start (lateral swing plus push-in at locked pitch, no scene swap), ATB gauges, single-target and AoE techs, dual and triple techs, crits that freeze time, camera cuts on combo finishers, portrait flashes, screen-shake, elemental VFX, and audio stingers. Kills defects 3 and 4. This is where the audio lane starts — everything before this phase shipped silent.",
+      "agents": [
+        "gamedesign",
+        "dev",
+        "audio",
+        "integrator",
+        "critic"
+      ],
+      "parallel": false,
+      "qa_gate": "duel.mjs runs 200 seeded battles with no deadlock, time-to-kill inside band, every combo fires, and loot matching the ported drop tables. stage.mjs confirms each actor is in frame during its own combo finisher and the cut lands on the hit. Four sounds rendered and actually listened to. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 8 — Tier 5: Inventory, Progression & Menus",
+      "description": "XP, levels, the seventeen-item inventory across three gear slots per hero with weapon meshes swapping on the rig socket, skill trees, the seven-tab pause overlay with the ported keyboard model, quest log (4 ported quests), and localStorage save. Re-skinned per defects 7 and 8, and the dev overlay is fixed so it stops appearing in captures. Includes the title screen (neon wordmark, CONTINUE/NEW GAME, save-summary line) which the prototype has and the tier plan never named. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype.",
+      "agents": [
+        "dev",
+        "art",
+        "integrator",
+        "critic"
+      ],
+      "parallel": false,
+      "qa_gate": "save.mjs round-trips full game state byte-identical. Every equip shows a correct stat diff AND a visible mesh change on the rig. census.mjs confirms all 17 items are reachable via a drop table, a world drop or the starting kit. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 9 — Tier 6: Settlement & Economy",
+      "description": "Town center, farms, mines, energy extractors, workers, resource ticks on food/ore/energy, and the four tech tiers Survivor to Reclaimer to Ascendant to Transcendent that visibly transform the base. Build plots are Haventide only.",
+      "agents": [
+        "dev",
+        "integrator",
+        "critic"
+      ],
+      "parallel": false,
+      "qa_gate": "econ.mjs simulates four hours of game time: no starve, no runaway, every resource curve plotted. A tier-up is obvious in a screenshot. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 10 — Region Buildout",
+      "description": "The remaining six regions (Forest Veil, Mire Bog, Orbital Reach, Frost Canyon, Crater Ember, Last Crown) come up from blocked-in to full fidelity across their biomes.",
+      "agents": [
+        "level",
+        "dev",
+        "critic"
+      ],
+      "parallel": false,
+      "qa_gate": "Critic scores each region INDIVIDUALLY at >=8.5 — never an average across six. census.mjs confirms every enemy, item, quest, building and door is reachable and referenced, with no orphans. digest.mjs proves no unintended change to previously signed-off output. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    },
+    {
+      "name": "Phase 11 — Vertical Slice, Blind Gate & Release",
+      "description": "End-to-end playable slice, the blind A/B gate against the human-supplied visual reference, changelog, version tag and v1.0.0. historian then writes the cross-game lessons from git log.",
+      "agents": [
+        "qa",
+        "release",
+        "historian"
+      ],
+      "parallel": false,
+      "qa_gate": "BLOCKED ON HUMAN INPUT: the visual reference and the pairing rule for the blind gate come from the human before this phase is designed or run. Full playthrough with zero console errors, every tool green, frame budget held. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+    }
+  ],
+  "deferred_decisions": [
+    {
+      "decision": "Dual and triple tech pairings, their combined gauge cost, damage formula and cinematic beat timings — the prototype has combo framing but no combo mechanic, so these numbers do not exist to port",
+      "deferred_to": "gamedesign"
+    },
+    {
+      "decision": "Rig proportions, joint counts, socket names, palette-quantise level count and pixel-snap resolution that make a code-built rig read as a sprite at overhead camera distance",
+      "deferred_to": "art"
+    },
+    {
+      "decision": "Per-biome heightfield authoring — elevation range, ridge placement and prop density for each of the eight biomes, given the 45x30 maps must stay traversable and keep 36 encounters at combat clearance",
+      "deferred_to": "level"
+    },
+    {
+      "decision": "Web Audio synthesis palette: ambient beds per biome, battle stingers, resource-tick chimes and surface-matched footfall SFX",
+      "deferred_to": "audio"
+    },
+    {
+      "decision": "The visual reference the critic scores against, and the pairing rule for the final blind A/B gate. Scoring is absolute rather than against the prototype, so the reference is an input the human supplies before Phase 11.",
+      "deferred_to": "human"
+    },
+    {
+      "decision": "Which units of work warrant a human manual QA pass on localhost rather than an automated gate alone — decided and stated by the finishing agent, phase by phase.",
+      "deferred_to": "dev"
+    },
+    {
+      "decision": "Unique Vite port for this build if 5190 is occupied by another running harness.",
+      "deferred_to": "devops"
+    },
+    {
+      "decision": "Whether item purchase and forge crafting exist in v1, and their price/recipe tables. The prototype has no shop and no item exchange; its forge is a settlement building, not a store.",
+      "deferred_to": "gamedesign"
+    },
+    {
+      "decision": "Dev-panel backlog, built on human request rather than pre-emptively. Five candidates: (1) un-fog, reveal the whole world; (2) teleport to any of the twelve maps or any city; (3) force-exit a battle — win, flee or instant-kill; (4) force a named item drop and replay its drop animation; (5) set party level / grant XP to jump progression gates.",
+      "deferred_to": "human"
+    },
+    {
+      "decision": "How friend/foe stays readable at a glance once blob shadows are replaced by real contact shadows. The prototype encodes faction in blob colour (teal hero, red-orange enemy); defect 3 removes that channel and defect 6 forbids a non-diegetic marker.",
+      "deferred_to": "art"
+    }
+  ],
+  "max_concurrent_agents": 2
+}

@@ -6,5 +6,6 @@ node_modules/
 .mcp.json
 
 # game build output + review captures
-games/*/shots/
+games/*/shots/*
+!games/*/shots/proto-ref/
 games/*/dist/

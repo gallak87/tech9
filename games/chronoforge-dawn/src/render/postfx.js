@@ -218,6 +218,16 @@ export function buildComposer(engine, opts = {}) {
       // as the player turns. Set against tools/probe.mjs, not by eye — the
       // target is a dawn ground median near 0.10-0.14 linear with the sky's hot
       // side under ~1.5% blown white.
+      //
+      // "Fixed" means fixed per HOUR, not one number for the whole day: the
+      // ground receives 8.5x more light at noon than at dawn (cos-law times the
+      // sky probe), and 1.05 everywhere blew noon to median 1.80 / 40% white.
+      // Environment.setTime() writes this field from EXPOSURE_RAMP in
+      // environment.js on every time change — that is the only place that knows
+      // what hour it is. Still a table, still deterministic, still not metered.
+      // The 1.05 below is the DAWN seed: it is what the first frame renders with
+      // before setTime() lands, and it is what the ramp returns at 11.6 deg.
+      // A manual post({ exposure }) holds until the next time change.
       exposure: 1.05,
       bloom: { strength: 0.055, threshold: 1.05, knee: 0.55, radius: 1.0 },
       contrast: 1.06, saturation: 1.10, vignette: 0.30, grain: 1.0, split: 0.85,

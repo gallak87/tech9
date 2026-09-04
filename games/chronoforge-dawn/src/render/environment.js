@@ -92,6 +92,43 @@ const KEY_RAMP = [
   [62,  0xfff2e2, 6.10],   // noon — near white, shadows short, key relatively weaker
 ];
 
+// Exposure is a RAMP over sun elevation, in the same idiom as KEY_RAMP above —
+// not auto-exposure, and not one fixed number. The ground's response to the key
+// is cos-law: sin(11.6 deg) = 0.20 at dawn against sin(61.3 deg) = 0.88 at noon,
+// and the sky probe brightens on top of that. Measured on the `wide` shot the
+// linear median ran 0.21 at 6.4 h and 1.80 at noon — 8.5x, which is the product
+// of those two terms. It is NOT a key-intensity bug: KEY_RAMP is deliberately
+// almost flat (7.4 -> 6.1) because the sun's own output does not change.
+//
+// Auto-exposure was rejected on purpose. A metered frame drifts as the player
+// turns, so the hour a reviewer signs off is not the hour they get back. A
+// table of art-directed stops is deterministic: same seed, same hour, same
+// frame, every run.
+//
+// The [8] and [12] entries are load-bearing — together they put DAWN (11.55 deg)
+// at 1.0503, the one exposure that has been signed off. Change either and
+// re-run `node tools/probe.mjs --shots wide --hour 6.4`; the wide frame must
+// still read median 0.212. Below the horizon the ramp flattens back to that same
+// 1.05, so nothing about the moonlit look moves.
+//
+// Every number here was set against tools/probe.mjs, band: exposed median
+// 0.09-0.25, p90 < 1.2, whitePct < 2, blackPct < 14.
+const EXPOSURE_RAMP = [
+  // elevation deg, exposure
+  [-90, 1.05],    // deep night — the value MOON_RAMP was tuned against
+  [-6,  1.05],
+  [0,   2.10],    // sun on the horizon: the key is nearly gone, so lift
+  [4,   1.48],
+  [8,   1.25],
+  [12,  1.025],   // with [8]: 11.55 deg -> 1.050, the signed-off dawn
+  [16,  0.50],
+  [22,  0.36],
+  [30,  0.27],
+  [42,  0.185],
+  [52,  0.140],
+  [62,  0.115],   // noon
+];
+
 function rampLookup(ramp, x) {
   let lo = ramp[0], hi = ramp[ramp.length - 1];
   for (let i = 0; i < ramp.length - 1; i++) {
@@ -99,6 +136,26 @@ function rampLookup(ramp, x) {
   }
   const k = hi[0] === lo[0] ? 0 : (x - lo[0]) / (hi[0] - lo[0]);
   return { color: new THREE.Color(lo[1]).lerp(new THREE.Color(hi[1]), k), value: lo[2] + (hi[2] - lo[2]) * k };
+}
+
+/** rampLookup's scalar sibling, for tables of [x, value] rows with no colour. */
+function rampValue(ramp, x) {
+  const v = THREE.MathUtils.clamp(x, ramp[0][0], ramp[ramp.length - 1][0]);
+  let lo = ramp[0], hi = ramp[ramp.length - 1];
+  for (let i = 0; i < ramp.length - 1; i++) {
+    if (v >= ramp[i][0] && v <= ramp[i + 1][0]) { lo = ramp[i]; hi = ramp[i + 1]; break; }
+  }
+  const k = hi[0] === lo[0] ? 0 : (v - lo[0]) / (hi[0] - lo[0]);
+  return lo[1] + (hi[1] - lo[1]) * k;
+}
+
+/**
+ * Post exposure for a sun elevation in degrees. Fixed per hour, never metered.
+ * Exported so a probe can ask what the exposure at an hour will be without
+ * booting a frame — see EXPOSURE_RAMP for why it is a table.
+ */
+export function exposureForElevation(elevationDeg) {
+  return rampValue(EXPOSURE_RAMP, elevationDeg);
 }
 
 export class Environment {
@@ -216,6 +273,16 @@ export class Environment {
     // 0.42 is where ambient still fills the shadows and the sun still reads as
     // the light source. Measured on the `wide` shot: blown-white 5.2% -> 0.4%.
     this.scene.environmentIntensity = a.night ? 1.35 : 0.42;
+
+    // Exposure follows the sun as well. One fixed number cannot serve a ground
+    // that receives 8.5x more light at noon than at dawn — see EXPOSURE_RAMP.
+    // It is set from here, not from postfx, so exactly one place in the codebase
+    // knows what hour it is. `engine.post` is null until engine.buildPost(), and
+    // the constructor's first setTime lands before that: postfx ships the dawn
+    // value as its seed, so the pre-post frame is never wrong.
+    // A manual __DAWN__.post({ exposure }) overrides this until the next time
+    // change, which is exactly what a lighting probe wants.
+    if (this.engine.post) this.engine.post.params.exposure = exposureForElevation(a.elevation);
 
     if (bakeIBL) this.bakeIBL();
     return this;

@@ -145,11 +145,14 @@ is a failure regardless of what the code underneath does.
   (cheapest → most expensive), so the cost of every look decision is visible *when it is made*
   rather than discovered later. `src/core/engine.js` already defines four tiers (low, medium, high,
   ultra) and needs a fifth notch; `ultra` keeps its name because `tools/shot.mjs` defaults to it.
-- **IN** — **The critic scores the frame a player actually gets.** `tools/shot.mjs` defaults to
-  quality `ultra` while the engine default is `high` — that would grade a frame most players never
-  render, the exact trap `src/core/engine.js:15` already warns about. Scored captures are taken at
-  the **shipping default tier**; `ultra` captures are for detail inspection, labelled as such, and
-  never used as the score.
+- **IN** — **Quality tier is chosen by what the instrument is asking.** Still captures and critic
+  scoring run at **`ultra`** — a look review should judge the best frame the build can produce, so
+  `tools/shot.mjs` keeps its ultra default. Gameplay probes driven through Playwright/CDP (`walk`,
+  `door`, `play`, `stage`, and anything reporting fps or frame time) instead read **the quality the
+  human last set in the dev panel**, because a performance number measured at a tier the player
+  never runs is a meaningless number. The lever persists to `localStorage` so probes and human are
+  looking at the same build. A mismatch isn't dangerous — worth a quick word before a probe run,
+  not a hard gate.
 - **IN** — A hard performance budget: 60 fps at 1080p, 16.6 ms frame, 900 draw calls, 2.6M
   triangles. Blowing it is a defect, not a trade-off. Disabling a post pass to make a feature look
   better is forbidden.

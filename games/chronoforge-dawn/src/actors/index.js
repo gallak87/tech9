@@ -224,8 +224,17 @@ export function installActors(ctx) {
     }
   }
 
+  /* Two tiers. The rig VIEWER stages its own four-actor lineup and force-poses
+     every actor in the scene, which actively fights the free-roam play sample —
+     so it is not registered at all while ?play=1 is driving. The snap/ramp
+     sliders are tuning, not viewing, and hide behind ?tune=1. What is left at
+     plain ?dev=1 is two readouts.
+     devpanel.js is integrator-only, so "collapse a group" is expressed by not
+     registering it rather than by a control this file does not own. */
   const dev = ctx.dev;
-  if (dev) {
+  const playing = params.get('play') === '1' || params.get('showcase') === 'traversal';
+  const tuning = params.get('tune') === '1';
+  if (dev && !playing) {
     dev.register({
       group: 'rig', label: 'Viewer', type: 'toggle',
       get: () => actors.length > 0,
@@ -251,6 +260,8 @@ export function installActors(ctx) {
       group: 'rig', label: 'Size', type: 'range', min: 1, max: 5, step: 0.5,
       get: () => viewScale, set: (v) => { viewScale = v; }, format: (v) => v.toFixed(1) + 'x',
     });
+  }
+  if (dev && tuning) {
     dev.register({
       group: 'snap', label: 'Snap', type: 'toggle',
       get: () => snapOn, set: (v) => { snapOn = v; },
@@ -275,6 +286,8 @@ export function installActors(ctx) {
       get: () => uniforms.uEmissive.value, set: (v) => { uniforms.uEmissive.value = v; },
       format: (v) => v.toFixed(1),
     });
+  }
+  if (dev) {
     dev.register({
       group: 'rig', label: 'Rig', type: 'readout',
       get: () => actors.length

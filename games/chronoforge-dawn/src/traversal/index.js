@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { LOCKED_YAW_DEG } from '../core/const.js';
+import { LOCKED_YAW_DEG, LOCKED_PITCH_DEG } from '../core/const.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // traversal — free-roam play sample.
@@ -17,6 +17,9 @@ import { LOCKED_YAW_DEG } from '../core/const.js';
 //
 //   ?play=1              boot straight into it
 //   ?showcase=traversal  same thing, lane-showcase spelling
+//   &dev=1               readouts you glance at while driving
+//   &dev=2               LOOK MODE — orbit, tilt, zoom, and nothing else
+//   &tune=1              the knobs, when you actually mean to tune something
 //
 // Opt-in on purpose. tools/shot.mjs boots with neither, so every existing
 // capture is unaffected.
@@ -56,6 +59,13 @@ const TURN_HALF_LIFE = 0.07;
 /** Camera looks at hip height, not at her feet — framing her at the bottom of
  *  the screen is what a ground-level focus actually does. */
 const FOCUS_LIFT_M = 0.95;
+
+/** Metres of world across the frame while playing. FRAME_HEIGHT_M is 18 for
+ *  review captures, which puts a 1.72 m character at 43 px — too far away to
+ *  judge a character by. This is a PLAY-SAMPLE override, not a re-lock: the
+ *  shipping value is still the one in core/const.js, assertLocked() only
+ *  guards pitch and yaw, and the Frame slider under ?tune=1 moves it live. */
+const PLAY_FRAME_HEIGHT_M = 10.0;
 
 const KEYS = {
   KeyW: 'f', ArrowUp: 'f',
@@ -103,8 +113,7 @@ export function installTraversal(ctx) {
     if (KEYS[e.code]) { down[KEYS[e.code]] = true; e.preventDefault(); return; }
     const act = ACTIONS[e.code];
     if (act && player) {
-      ctx.actors?.pose(player, act);
-      clip = act;
+      ctx.actors?.pose(player, act);   // update() reads anim.clip back out
       e.preventDefault();
     }
   }
@@ -136,6 +145,7 @@ export function installTraversal(ctx) {
     vel.set(0, 0);
     clip = 'idle';
     listen(true);
+    if (ctx.rig) ctx.rig.frameHeight = PLAY_FRAME_HEIGHT_M;
     ctx.rig?.reset(f);
     ctx.bus?.emit('traversal:control', { id: player.id });
     return true;
@@ -191,13 +201,22 @@ export function installTraversal(ctx) {
     }
     player.base.yaw = yaw;
 
-    /* Clip selection, and the reason the run does not skate: playback rate is
-       driven by ground speed against the speed the clip was authored at. */
+    /* Clip selection. Read the Animator's OWN clip rather than tracking a copy:
+       a one-shot queues itself back to idle inside anim.update(), so `finished`
+       is true for zero observable frames from out here. Mirroring it in a local
+       `clip` therefore latched on 'attack' forever and she floated instead of
+       running — hit Space once and movement animation was gone for the session.
+       The animator is the single source of truth; ask it. */
     const moving = speed > IDLE_EPS;
-    const want = moving ? 'run' : 'idle';
-    const oneShot = clip !== 'idle' && clip !== 'run';
-    if (oneShot && player.anim.finished) clip = player.anim.clip;
-    if (!oneShot && want !== clip) { ctx.actors.pose(player, want); clip = want; }
+    const cur = player.anim.clip;
+    const busy = cur !== 'idle' && cur !== 'run';       // a one-shot is playing
+    if (!busy) {
+      const want = moving ? 'run' : 'idle';
+      if (want !== cur) ctx.actors.pose(player, want);
+    }
+    clip = player.anim.clip;
+    /* Playback rate follows ground speed, so a sprint takes faster steps rather
+       than longer ones. One-shots ignore it — see Animator.timeScale. */
     player.anim.timeScale = moving ? Math.max(0.35, speed / REF_RUN_SPEED) : 1;
 
     /* Slope under her feet — a readout, not yet a behaviour. Foot IK and the
@@ -229,43 +248,129 @@ export function installTraversal(ctx) {
   /* ── dev panel ────────────────────────────────────────────────────────────
      Registered from this file through ctx.dev.register — devpanel.js is not
      edited. Speed is live because the right run speed is a feel judgement. */
+  /* ── dev panel ────────────────────────────────────────────────────────────
+     Two tiers, because a wall of sliders is not a tool. `?dev=1` shows what you
+     read WHILE DRIVING; `?tune=1` adds the knobs you only touch when you are
+     deliberately tuning. devpanel.js is integrator-only and its toggles re-read
+     their getter on click rather than per frame, so a toggle is the wrong widget
+     for state this module changes on its own — these are readouts on purpose. */
   const dev = ctx.dev;
+  const tuning = params.get('tune') === '1';
   if (dev) {
     dev.register({
-      group: 'play', label: 'WASD', type: 'toggle',
-      get: () => !!player,
-      set: (v) => (v ? start() : stop()),
-    });
-    dev.register({
-      group: 'play', label: 'Speed', type: 'range', min: 0.25, max: 3, step: 0.05,
-      get: () => speedScale, set: (v) => { speedScale = v; },
-      format: (v) => (WALK_SPEED * v).toFixed(1) + ' m/s',
-    });
-    dev.register({
-      group: 'play', label: 'Camera', type: 'range', min: 0, max: 0.6, step: 0.01,
-      get: () => ctx.rig?.halfLife ?? 0, set: (v) => { if (ctx.rig) ctx.rig.halfLife = v; },
-      format: (v) => v.toFixed(2) + 's',
-    });
-    /* The camera's own zoom, live. This is the knob behind open issue
-       rig-snap-subpixel and P0-6 — FRAME_HEIGHT_M was set from a pixel-height
-       argument and has never been driven. Drive it. Pulling in re-frames the
-       whole game, so it is a look decision, not a convenience. */
-    dev.register({
-      group: 'play', label: 'Frame', type: 'range', min: 7, max: 26, step: 0.5,
-      get: () => ctx.rig?.frameHeight ?? 18,
-      set: (v) => { if (ctx.rig) { ctx.rig.frameHeight = v; ctx.rig.relock?.({ frameHeight: v }); } },
-      format: (v) => v.toFixed(1) + ' m',
-    });
-    dev.register({
       group: 'play', label: 'Move', type: 'readout',
-      get: () => (player ? `${speed.toFixed(1)} m/s  ${clip}` : 'off'),
+      get: () => (player ? `${speed.toFixed(1)} m/s  ${clip}` : 'off — ?play=1'),
     });
     dev.register({
       group: 'play', label: 'Slope', type: 'readout',
       get: () => (player ? `${slopeDeg.toFixed(0)}deg` : '--'),
     });
     dev.register({
-      group: 'play', label: 'Where', type: 'readout',
+      group: 'play', label: 'Frame', type: 'readout',
+      get: () => `${(ctx.rig?.frameHeight ?? 0).toFixed(1)}m  ${ctx.actors?.report?.().heroScreenPx ?? '?'}px`,
+    });
+  }
+  /* ── ?dev=2 — LOOK MODE ───────────────────────────────────────────────────
+     Three sliders and nothing else: orbit her, tilt, zoom. This is the mode for
+     judging a character, so every knob that is not about seeing her is out of
+     the way.
+
+     Orbiting moves rig.yawDeg, so rig.assertLocked() reads FALSE while look
+     mode is on. That is honest rather than a bug — the camera genuinely is off
+     its locked framing — and 'Reset' puts it back. Captures are unaffected:
+     tools/shot.mjs never passes dev.
+
+     STOPGAP, and worth naming: main.js registers time/camera/sim/perf/quality
+     itself, and this file cannot un-register another lane's controls. Hiding
+     them is done here in CSS rather than by editing src/core/devpanel.js, which
+     is INTEGRATOR ONLY. The real fix is a `collapsed` option on dev.register,
+     and it belongs to the integrator. Logged as devpanel-no-group-filter. */
+  if (dev && params.get('dev') === '2') {
+    /* Hide every group but ours by setting display on the group divs directly.
+       NOT by adding a class to #dawn-dev: devpanel.js treats ANY className on
+       its root as "hidden" (`if (root.className) return`) and would stop
+       updating its own readouts. Found by trying it. */
+    const KEEP = 'look';
+    let looked = false;
+    function applyLook() {
+      const el = document.getElementById('dawn-dev');
+      if (!el) return;
+      const grps = el.querySelectorAll('.grp');
+      if (!grps.length) return;
+      for (const g of grps) {
+        g.style.display = g.querySelector('.gl')?.textContent === KEEP ? '' : 'none';
+      }
+      looked = true;
+    }
+    dev.register({
+      group: 'look', label: 'Orbit', type: 'range', min: -180, max: 180, step: 1,
+      get: () => ctx.rig?.yawDeg ?? 0,
+      set: (v) => { if (ctx.rig) { ctx.rig.yawDeg = v; basis(); } },
+      format: (v) => v.toFixed(0) + 'deg',
+    });
+    dev.register({
+      group: 'look', label: 'Tilt', type: 'range', min: 8, max: 88, step: 1,
+      get: () => ctx.rig?.pitchDeg ?? LOCKED_PITCH_DEG,
+      set: (v) => { if (ctx.rig) ctx.rig.pitchDeg = v; },
+      format: (v) => v.toFixed(0) + 'deg',
+    });
+    dev.register({
+      group: 'look', label: 'Zoom', type: 'range', min: 2.5, max: 26, step: 0.25,
+      get: () => ctx.rig?.frameHeight ?? PLAY_FRAME_HEIGHT_M,
+      set: (v) => { if (ctx.rig) ctx.rig.frameHeight = v; },
+      format: (v) => v.toFixed(1) + 'm',
+    });
+    dev.register({
+      group: 'look', label: 'Reset', type: 'button', text: 'lock',
+      action: () => {
+        if (!ctx.rig) return;
+        ctx.rig.pitchDeg = LOCKED_PITCH_DEG;
+        ctx.rig.yawDeg = LOCKED_YAW_DEG;
+        ctx.rig.frameHeight = PLAY_FRAME_HEIGHT_M;
+        basis();
+      },
+    });
+    /* Doubles as the hide hook — the panel rebuilds lazily on its own update(),
+       so the hide has to run after that and has to survive a rebuild. A control
+       registered purely for the side effect would need a label anyway:
+       dev.register() rejects a falsy one. Found by trying that too. */
+    dev.register({
+      group: 'look', label: 'Kaida', type: 'readout',
+      get: () => {
+        if (!looked || document.querySelector('#dawn-dev .grp[style=""]')) applyLook();
+        return `${ctx.actors?.report?.().heroScreenPx ?? '?'}px  ${clip}  ${slopeDeg.toFixed(0)}deg`;
+      },
+    });
+    dev.show(true);
+  }
+
+  if (dev && tuning) {
+    dev.register({
+      group: 'tune', label: 'WASD', type: 'toggle',
+      get: () => !!player, set: (v) => (v ? start() : stop()),
+    });
+    dev.register({
+      group: 'tune', label: 'Speed', type: 'range', min: 0.25, max: 3, step: 0.05,
+      get: () => speedScale, set: (v) => { speedScale = v; },
+      format: (v) => (WALK_SPEED * v).toFixed(1) + ' m/s',
+    });
+    dev.register({
+      group: 'tune', label: 'Damp', type: 'range', min: 0, max: 0.6, step: 0.01,
+      get: () => ctx.rig?.halfLife ?? 0, set: (v) => { if (ctx.rig) ctx.rig.halfLife = v; },
+      format: (v) => v.toFixed(2) + 's',
+    });
+    /* The camera's own zoom, live. The knob behind open issue rig-snap-subpixel
+       and P0-6 — FRAME_HEIGHT_M was set from a pixel-height argument and had
+       never been driven. Sets frameHeight only; re-locking the baseline is
+       integrator territory and assertLocked() does not guard it. */
+    dev.register({
+      group: 'tune', label: 'Frame', type: 'range', min: 5, max: 26, step: 0.5,
+      get: () => ctx.rig?.frameHeight ?? 18,
+      set: (v) => { if (ctx.rig) ctx.rig.frameHeight = v; },
+      format: (v) => v.toFixed(1) + ' m',
+    });
+    dev.register({
+      group: 'tune', label: 'Where', type: 'readout',
       get: () => (player
         ? `${player.base.x.toFixed(0)} ${player.base.z.toFixed(0)}  y${(ctx.world?.heightAt?.(player.base.x, player.base.z) ?? 0).toFixed(1)}`
         : '--'),

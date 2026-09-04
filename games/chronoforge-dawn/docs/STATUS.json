@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
   "phase": 2.01,
-  "phaseName": "Free-roam play sample \u2014 WASD control of Kaida on real terrain; character redesign not started",
+  "phaseName": "Free-roam play sample complete \u2014 three panel tiers, one-shot latch fixed; Kaida redesign next",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -488,6 +488,15 @@
       "title": "She stands world-vertical on every slope and both feet sit at one height",
       "detail": "Placement is a single heightAt() sample at the root, so on a slope the downhill foot floats and the uphill foot buries. At a run her feet are ~0.7 m apart fore-aft; at MAX_WALKABLE_SLOPE_DEG 34 that is 0.47 m of height difference against an 0.88 m leg \u2014 more than half a leg in the air. At a routine 20 deg biome slope it is still 0.25 m. Driving the play sample reaches 38 deg on the placeholder dunes. Fix is a stack: slope-align the root 40-60 percent toward the terrain normal (world.normalAt already exists), two-bone foot IK per foot, torso lean by slope, stride shortening uphill. Rigid skinning makes the IK crease correct rather than wrong, and clips write absolute rotations so IK layers after sampling without touching poses.js.",
       "repro": "?play=1&dev=1 then run up a dune and watch the Slope readout; shots/play/run-a.png at 38.3 deg"
+    },
+    {
+      "id": "devpanel-no-group-filter",
+      "severity": "low",
+      "tier": "integrator",
+      "area": "core/ui",
+      "title": "A lane cannot collapse or hide another lane's dev-panel group",
+      "detail": "main.js registers time/camera/sim/perf/quality itself and dev.register offers no way to mark a group collapsed, so ?dev=2 look mode hides them by setting display on the .grp divs from src/traversal/index.js. A stopgap in the wrong file. Real fix is a `collapsed` option on dev.register, which is INTEGRATOR ONLY territory. Two related traps found the hard way and worth fixing at the same time: devpanel update() starts `if (root.className) return`, so adding any class to #dawn-dev silently stops its own readouts; and toggles sync() on click only, never per frame, so a toggle misreports state a module changes on its own.",
+      "repro": "?play=1&dev=2 and read src/traversal/index.js applyLook()"
     }
   ],
   "rig": {
@@ -561,7 +570,7 @@
     }
   },
   "play": {
-    "entry": "?play=1  (or ?showcase=traversal); add &dev=1 for the panel",
+    "entry": "?play=1 (no panel) | &dev=1 readouts | &dev=2 LOOK MODE orbit/tilt/zoom | &tune=1 knobs",
     "keys": "WASD/arrows move, Shift sprint, Space attack, C cast, V victory, H hurt",
     "liveKnobs": [
       "play.Speed",
@@ -574,6 +583,8 @@
       "Where (x z y)"
     ],
     "verified": "real keyboard via playwright: idle 0 -> run 3.99 -> sprint 7.60 -> release 0.02 m/s, camera follows, rig.assertLocked() true, zero module faults, 168 fps",
-    "terrainSlopesReached": "16.6 to 38.3 deg while driving \u2014 MAX_WALKABLE_SLOPE_DEG is 34"
-  }
+    "terrainSlopesReached": "16.6 to 38.3 deg while driving \u2014 MAX_WALKABLE_SLOPE_DEG is 34",
+    "frameHeightWhilePlaying": 10.0
+  },
+  "handoff": "docs/PHASE2-HANDOFF.md \u2014 running notes for the character phase"
 }

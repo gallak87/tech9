@@ -134,12 +134,24 @@ register, swept collision.
       canopy) degrades to a featureless plane, and one without (**the Foundry**,
       **Sector Omega**) degrades to nothing at all.
 
+      **Done for `works` 2026-09-03; the four `terrain` levels and the belt are
+      what is left.** `works.run` builds the corridor past `zEnd` and the last
+      zone simply holds through it — the Foundry carries 8320 m, which is 48 s
+      at cruise. Measured: build 80 → 107 ms, resident 101k → 167k triangles,
+      and the frame at the fight 2.2 → 2.3 ms because `updateLOD` hides
+      everything past 4200 m. Before/after in `shots/f2-boss-run`.
+
+      **The physics floor was there the whole time**, which is why nobody
+      noticed: `groundAt` is a pure function of the DNA and answered the deck
+      3 km outside the world exactly as it does inside it. Only the geometry was
+      missing, so nothing about the fight changes — it simply becomes visible.
+
       Three shapes, none costed except the first:
       - **The corridor keeps going.** Build past `zEnd` far enough to cover the
-        fight. Measured for `works`: 3.8 ms and 4835 tris per 520 m chunk, and
-        `updateLOD` hides everything past 4200 m so the draw cost is unchanged —
-        16 chunks is ~60 ms of build and ~4.7 MB. On `terrain` the same distance
-        is a second level's worth of triangles and has not been measured.
+        fight. Measured for `works`: ~3 ms and 4515 tris per 520 m chunk, and
+        `updateLOD` hides everything past 4200 m so the draw cost is unchanged.
+        On `terrain` the same distance is a second level's worth of triangles
+        and has not been measured — that is the open half.
       - **Hold the rail at the arena.** Cheap and wrong on its own: the sense of
         speed in this game is the world going past, and a held rail parks it.
       - **Arm the boss earlier.** Not viable — a 45 s fight is 7.9 km and every
@@ -154,6 +166,16 @@ register, swept collision.
       into it. The wave predates the rail base moving to 710. Either move it past
       the plunge or lean into what already half works and place the whole line
       inside the dive. `tools/pacing.mjs`.
+- [ ] **The Foundry's hornets are the least shootable wave in the game: 1.2 s.**
+      `tools/pacing.mjs 9425 62 foundry`, per-class time actually shootable:
+      raptor 2.8 s, wasp 3.3, bulwark 1.9, **hornet 1.2**, vanguard 1.2. Not
+      caused by the 2026-09-03 authoring pass and measured both ways to be sure
+      — the same probe on the commit before it reads hornet 1.1 s and vanguard
+      1.3 s, so re-placing the waves against the five acts moved nothing. It is
+      worse than the Fortuna case flagged below, which was opened at 2.0 s.
+      The vanguard is the same story: 1.2 s against the 6.4 s the same class
+      gets on Corneria.
+
 - [ ] **Fortuna's hornets lost a third of their time on target to phase 4.**
       Its station offsets now rotate through the rail's heading, which is
       correct and which every other level gained from — Corneria's vanguard went

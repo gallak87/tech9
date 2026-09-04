@@ -451,6 +451,11 @@ export const DNA_FOUNDRY = {
     roofY: 190,
     portW: 128, portH: 96, portY: 96,
     greebles: 7,
+    // The carrier is armed at -8700 and the rail never stops for it, so the
+    // dock has to keep going or the finale is fought on a bare starfield.
+    // 8320 m is 16 chunks, which is 48 s at cruise — `tools/bossprobe.mjs`
+    // measures the granted-tier carrier at about 45.
+    run: 8320,
     zones: [
       // The deck is a ledge on the flank of the works. To port the massing
       // climbs out of frame; to starboard it steps down and outward from the

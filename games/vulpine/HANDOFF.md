@@ -30,8 +30,10 @@ rule before starting it.
 and it is the largest thing standing between this build and ship criterion 2.
 Found and measured this session, with captures: the Foundry's carrier is fought
 on a bare starfield with no deck, no walls and nothing else in frame; Corneria's
-is fought over open ocean with the canyon gone. The measurements, the captures
-and the three candidate shapes are in `ROADMAP.md`; only the first is costed.
+is fought over open ocean with the canyon gone. **Fixed for `works`** — the
+Foundry builds 8320 m of dock past `zEnd` (`works.run`) for 27 ms of build and
+no frame cost — and open for the four `terrain` levels and the belt, which is
+where the triangles are. Measurements and captures in `ROADMAP.md`.
 
 ### What landed this session
 

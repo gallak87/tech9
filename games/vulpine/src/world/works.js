@@ -36,6 +36,20 @@ import { WORLD, centrelineX, centrelineY, smooth } from './profile.js';
 // run steps down and outward from the deck edge. That is the only way this
 // backend can be asymmetric, and it is what an escarpment is made of.
 //
+// ── The run past the end ─────────────────────────────────────────────────────
+// `run` is metres of corridor built PAST `zEnd`, and it exists because the rail
+// does not stop for the boss. `flight.railZ` advances at cruise speed for the
+// whole fight and nothing ends the level until the carrier dies, so a finale
+// that takes 45 s is fought 7.9 km outside a world that stops at `zEnd`. On a
+// backend whose corridor is a box, outside it is not "over open ocean" — it is
+// a starfield with nothing in it at all.
+//
+// The last zone simply holds: its exit key and its final bay run are extended
+// to `zEnd - run`, so the dock the fight belongs in keeps going rather than a
+// new shape being invented for it. The cost is chunks, and they are cheap —
+// 3.8 ms and 4835 triangles each, all of them past `fade` and therefore hidden
+// until the ship is in them.
+//
 // ── Bays ─────────────────────────────────────────────────────────────────────
 // What is overhead is discrete and does not blend, so it is not a zone field:
 // `bays` is a run list, and a zone names either one kind or a pattern cycled on
@@ -104,13 +118,18 @@ function compile(src) {
   const W = { ...DEFAULT_WORKS, ...src };
   const zStart = WORLD.zStart, zEnd = WORLD.zEnd;
   const fail = (m) => { throw new Error(`works ${WORLD.id}: ${m}`); };
+  if (!(W.run >= 0)) fail(`run must be >= 0, got ${W.run}`);
+  // Where the built corridor actually stops. The level is `zEnd`; this is
+  // `zEnd` plus the boss run, and it is what the chunk count and the last
+  // zone's held stretch are sized against.
+  const zLast = zEnd - W.run;
   const base = { half: W.half, deckY: W.deckY, roofY: W.roofY, riseL: 1, riseR: 1 };
 
   if (!W.zones) {
     return {
-      src, W,
-      keys: [{ z: zStart, ...base }, { z: zEnd, ...base }],
-      bays: patternBays(W.pattern, W.chunkLen, zStart, zEnd),
+      src, W, zLast,
+      keys: [{ z: zStart, ...base }, { z: zLast, ...base }],
+      bays: patternBays(W.pattern, W.chunkLen, zStart, zLast),
     };
   }
 
@@ -174,12 +193,18 @@ function compile(src) {
     z0 = z1;
   }
 
+  // The last zone holds through the run. Its exit key and its final bay run
+  // already carry that zone's numbers, so extending both is the whole of it —
+  // no shape is invented for the stretch the boss is fought in.
+  keys[keys.length - 1].z = zLast;
+  bays[bays.length - 1].z1 = zLast;
+
   for (let i = 1; i < keys.length; i++) {
     if (!(keys[i].z < keys[i - 1].z)) {
       fail(`emitted keys are not strictly descending at index ${i}: ${keys[i - 1].z} -> ${keys[i].z}`);
     }
   }
-  return { src, W, keys, bays };
+  return { src, W, zLast, keys, bays };
 }
 
 const _S = { half: 0, deckY: 0, roofY: 0, riseL: 1, riseR: 1 };
@@ -212,10 +237,11 @@ export class Works {
     this.jobs = [];
     this._chunks = [];
 
-    const W = profile().W;
+    const P = profile();
+    const W = P.W;
     this.cfg = W;
 
-    const n = Math.max(1, Math.ceil((WORLD.zStart - WORLD.zEnd) / W.chunkLen));
+    const n = Math.max(1, Math.ceil((WORLD.zStart - P.zLast) / W.chunkLen));
     for (let c = 0; c < n; c++) this.jobs.push(() => this._chunk(c));
   }
 
@@ -224,6 +250,9 @@ export class Works {
 
   /** Corridor half-width at `z`, deck edge to deck edge. */
   static halfAt(z) { return sample(z).half; }
+
+  /** Last z the corridor is built to — `zEnd` plus the boss run. */
+  static builtTo() { return profile().zLast; }
 
   /** What stands on each flank at `z`, as a multiple of the block height. */
   static riseAt(z) { const s = sample(z); return [s.riseL, s.riseR]; }
@@ -263,7 +292,7 @@ export class Works {
   _chunk(ci) {
     const W = this.cfg;
     const z0 = WORLD.zStart - ci * W.chunkLen;
-    const z1 = Math.max(WORLD.zEnd, z0 - W.chunkLen);
+    const z1 = Math.max(profile().zLast, z0 - W.chunkLen);
     const r = new RNG(`${WORLD.id}:works-${ci}`);
 
     const plate = [];   // hull plating, ribs, roof
@@ -663,6 +692,9 @@ const DEFAULT_WORKS = {
   portY: 96,
   greebles: 6,
   fade: 4200,
+  /** Metres of corridor built past `zEnd`, for the boss fight the rail flies
+   *  into. See "The run past the end" above. */
+  run: 0,
   /** One held stretch per entry, blended into the one before. Null is one zone
    *  holding the flat fields above for the whole corridor. */
   zones: null,

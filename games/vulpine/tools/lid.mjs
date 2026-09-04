@@ -75,7 +75,10 @@ const Z_STEP = 20;
 function auditBuilt(id) {
   const bad = [];
   let worst = null, narrow = null;
-  for (let z = WORLD.zStart; z > WORLD.zEnd; z -= Z_STEP) {
+  // To `builtTo`, not to `zEnd`. The boss run is corridor the ship is flown
+  // through under fire, so it owes the same clearances the level does.
+  const zLast = Works.builtTo();
+  for (let z = WORLD.zStart; z > zLast; z -= Z_STEP) {
     const rail = centrelineY(z);
     const deck = Works.deckY(z), half = Works.halfAt(z), lid = Works.ceilingY(z);
     if (!Number.isFinite(deck) || !Number.isFinite(half) || Number.isNaN(lid)) {   // rule 1
@@ -102,7 +105,7 @@ function auditBuilt(id) {
       + `${worst.ground.toFixed(0)} leaves ${worst.room.toFixed(0)} m, `
       + `under the ${BOX_Y_UP} m the offset box needs`);
   }
-  return { id, lid: true, bad, worst, narrow };
+  return { id, lid: true, bad, worst, narrow, run: WORLD.zEnd - zLast };
 }
 
 function auditLevel(id) {
@@ -185,6 +188,9 @@ for (const id of levels) {
     : 'no lid';
   console.log(`${r.bad.length ? 'FAIL' : 'ok  '}  ${id.padEnd(9)} ${head}`);
   for (const b of r.bad) console.log(`        ${b}`);
+  if (r.run) {
+    console.log(`        built ${r.run.toFixed(0)} m past zEnd for the boss run, and audited over it`);
+  }
   if (r.narrow) {
     console.log(`        corridor narrows to ${r.narrow.half.toFixed(0)} m of half-width at z `
       + `${r.narrow.z.toFixed(0)} — ${(r.narrow.half - BOX_X).toFixed(0)} m clear of the box`);

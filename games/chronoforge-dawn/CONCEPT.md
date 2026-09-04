@@ -38,7 +38,7 @@ the correct way.
 Each actor fills an ATB gauge (heroes at `spd/59` per 16.67 ms, enemies at `spd/41` with a
 tier-keyed head start of `(tier−1)×8`); at 100 the hero picks attack, a single-target or AoE tech
 from the nine-entry tech table, or a dual/triple tech that spends multiple filled gauges for a
-scripted finisher. Crits freeze time for 250 ms with screen-shake; combo finishers cut the camera
+scripted finisher. Crits freeze time for 325 ms with screen-shake; combo finishers cut the camera
 to frame their own actors, flash portraits and fire elemental VFX. Victory pays XP, renown and
 rolls the enemy's drop table.
 

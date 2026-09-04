@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
-  "phase": 0.1,
-  "phaseName": "Twilight & Night Lighting — complete",
+  "phase": 1.1,
+  "phaseName": "Systems & Look Specs — complete",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -282,6 +282,30 @@
       "area": "render",
       "title": "5.1h wide median 0.062 is under the 0.09 band floor",
       "detail": "15x better than the 0.004 it was, and the cliff is gone. Sun is at -4.93 deg there vs -2.20 deg at 20.0h, so it is legitimately deeper in twilight. Floor may be the wrong target mid-crossing. Human eyeballed and accepted."
+    },
+    {
+      "id": "DONOR-1",
+      "severity": "high",
+      "area": "settlement",
+      "tier": "Tier 6 (Phase 9)",
+      "title": "research_lab tier gate is circular — Ascendant is unreachable in the donor",
+      "detail": "base.js: research_lab tierGate[1]='Ascendant' but Ascendant requires researchBuilt:true. Verified in source. Blocks Transcendent and the win condition. Must be broken when settlement ships."
+    },
+    {
+      "id": "DONOR-2",
+      "severity": "medium",
+      "area": "progression",
+      "tier": "Tier 5 (Phase 8)",
+      "title": "bio_weave and crit_lens are unreachable in the donor",
+      "detail": "Absent from the starting kit (confirmed against shots/proto-ref/menu-inventory.png, which shows exactly 5 items), every enemy drop table and every world drop. gamedesign added them as 6% secondary drops on Drone Sentinel / Glacier Wolf so the Phase 8 census gate can pass."
+    },
+    {
+      "id": "DONOR-3",
+      "severity": "low",
+      "area": "battle",
+      "tier": "Tier 4 (Phase 7)",
+      "title": "Donor turn arbiter cannot bank a ready hero",
+      "detail": "Escape from the action menu just reopens the same hero next tick. gamedesign proposes a Wait root option plus an arbiter fix; flagged for battle to implement, not applied in Phase 1.1."
     }
   ]
 }

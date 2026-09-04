@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
-  "phase": 1.1,
-  "phaseName": "Systems & Look Specs — complete",
+  "phase": 1.2,
+  "phaseName": "World Data Port & Heightfields — complete",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -188,9 +188,10 @@
     "outdoorRegions": 8,
     "cityInteriors": 4,
     "encounters": 36,
-    "doorwayEdges": 18,
+    "doorwayEdges": 24,
     "worldDrops": 8,
-    "source": "games/chronoforge/src/world.js. Interiors carry worldDrop null and zero encounters."
+    "source": "games/chronoforge/src/world.js, ported in Phase 1.2 to docs/specs/world-graph.mjs. Interiors carry worldDrop null and zero encounters. doorwayEdges counts doorway RECORDS (20 outdoor directed doors over 10 bidirectional region edges, plus 4 interior exits); the donor's 18 was 14 + 4 over 7 edges. level accepted 3 lateral cycles in Phase 1.2 — per-tier reachability is unchanged at 4/6/8/8.",
+    "regionEdges": 10
   },
   "coreSeams": [
     {
@@ -306,6 +307,62 @@
       "tier": "Tier 4 (Phase 7)",
       "title": "Donor turn arbiter cannot bank a ready hero",
       "detail": "Escape from the action menu just reopens the same hero next tick. gamedesign proposes a Wait root option plus an arbiter fix; flagged for battle to implement, not applied in Phase 1.1."
+    },
+    {
+      "id": "DONOR-4",
+      "severity": "medium",
+      "area": "world",
+      "tier": "Tier 1 (Phase 4)",
+      "title": "Haventide -> Emberline doorway lands five tiles off its return door",
+      "detail": "games/chronoforge/src/world.js:82 — { x: 44, y: 15, to: { mapId: 'emberline_region', x: 1, y: 20 } }. Emberline's reciprocal door is at (1,15). The other six inherited edges all land exactly on the reciprocal door. Verified in source. Fixed in docs/specs/world-graph.mjs (landing -> (1,15)); selfCheck() now asserts round-trip symmetry on every outdoor edge."
+    },
+    {
+      "id": "DONOR-5",
+      "severity": "medium",
+      "area": "world",
+      "tier": "Tier 3 (Phase 6)",
+      "title": "Haventide interior exit lands on build plot slotIdx 7",
+      "detail": "games/chronoforge/src/world.js:267 — { x: 15, y: 19, to: { mapId: 'haventide_region', x: 12, y: 24 } }. (12,24) is plot slotIdx 7, so once that plot is built the party exits the city inside a building. Verified in source. Landing moved to (12,22) — still south of the city tile so [C] does not re-trigger, clear of all 17 plots. selfCheck() asserts no landing sits on a city tile, plot, encounter or world drop."
+    },
+    {
+      "id": "LVL-1",
+      "severity": "medium",
+      "area": "render",
+      "tier": "Tier 1 (Phase 4)",
+      "title": "Snow biomes are 1.5-1.6x brighter than the ground the dawn ramp was signed off on",
+      "detail": "frozen_ruins mid albedo 0.448 and frost_canyon 0.398 linear luminance vs grassland_ruins 0.274 (docs/specs/heightfields.mjs prints all eight). The signed-off dawn frame — wide median 0.212, p90 0.51, 0% white — was measured on the Phase 0 placeholder whose ground is 0x9d8259, about 0.26. EXPOSURE_RAMP is fixed per hour with no metering by design, so Orbital Reach and Frost Canyon will read brighter than that baseline and may push p90 toward the 1.2 ceiling. Snow is already dirtied far below its 0.7-0.8 physical albedo to hold the eight-biome spread to 3.96x; level cannot close this further without making snow look like mud. render needs a per-biome albedo trim or a per-biome offset in EXPOSURE_RAMP. Check: probe() on wide at 6.4 h in both snow regions, whitePct must stay < 2."
+    },
+    {
+      "id": "LVL-2",
+      "severity": "low",
+      "area": "render",
+      "tier": "Tier 1 (Phase 4)",
+      "title": "crater_ember is the darkest ground in the game at 0.113 luminance",
+      "detail": "Basalt is genuinely 6-8% reflectance and that is the Phase 0 trap in the other direction — a dark ground blows the sky trying to expose it. Mitigated by authoring the mid as ash-grey 0x655d59 rather than basalt black, with the lava emissive supplying the contrast. Still the low end of the 3.96x spread; worth a probe when Crater Ember first renders in Phase 10."
+    },
+    {
+      "id": "LVL-3",
+      "severity": "low",
+      "area": "world",
+      "tier": "Tier 6 (Phase 10)",
+      "title": "alien_terraform terracing may read as banding rather than grown platforms",
+      "detail": "The only biome whose landform is not erosional. carve.mix 0.45 at 1.4 m steps with blendFrac 0.90 — a partial quantise, deliberately weak because a full one both bands the surface and multiplies every local gradient by ~1.5/blendFrac. This is the one look decision in the heightfield spec that is not measurable offline. If it reads as banding when Last Crown renders, drop carve.mix toward 0.30."
+    },
+    {
+      "id": "LVL-4",
+      "severity": "info",
+      "area": "world",
+      "tier": "Phase 1.3",
+      "title": "Four inherited encounters sit on a landform and want re-placing",
+      "detail": "docs/specs/heightfields.mjs prints local relief within 7 m of all 36 inherited encounter tiles. e17 (6.6 m) and e18 (5.8 m) are on the Frost Canyon trench wall; e35 (4.5 m) is on a Crater Ember rim; e36 (2.5 m) is borderline on a crater lip. The other 32 sit on 0.2-2.6 m and are fine. Phase 1.3 input — encounter data was carried through the port untouched."
+    },
+    {
+      "id": "LVL-DOOR-1",
+      "severity": "info",
+      "area": "world",
+      "tier": "Phase 1.2",
+      "title": "Frost Canyon doorway moved from (30,28) to (23,28) — landform, not a donor bug",
+      "detail": "The frost_canyon heightfield cuts a 47 m trench down the middle of the map and tile (30,28) lands mid-wall at 29.5 deg, over the 20 deg doorway limit. (23,28) is the canyon mouth: trench floor, 3.6 deg. You now enter Frost Canyon by walking up the ravine. Orbital Reach's landing coord moved with it so the edge stays symmetric. Recorded in world-graph.mjs MOVED_FROM_DONOR."
     }
   ]
 }

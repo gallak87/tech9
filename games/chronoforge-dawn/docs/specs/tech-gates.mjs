@@ -32,17 +32,33 @@ export const REGIONS = [
 
 // gate = the MINIMUM settlement tier required to cross this edge in EITHER
 // direction. 'Survivor' means ungated (open from a new game).
+// UPDATED IN PHASE 1.2 (level). The Phase 1.1 table below carried the donor's
+// 7 tree edges; `level` accepted 3 lateral cycles (marked NEW), so the gate
+// assignment was re-run over the 10-edge set using the SS4.2 rule unchanged.
+// The three additions gate at the tier at which BOTH their endpoints were
+// already reachable, so the per-tier reachability profile is byte-identical to
+// the 7-edge version: 4 / 6 / 8 / 8. The table in agents/gamedesign-output.md
+// SS4.3 lists the original 7 rows; THIS module is the live table, and
+// docs/specs/world-graph.mjs selfCheck() asserts the two agree.
 export const REGION_EDGES = [
   // starting web — always open, no new player is ever stranded at the door
   { a: 'haventide_region',     b: 'emberline_region',     gate: 'Survivor' },
   { a: 'emberline_region',     b: 'forest_veil_region',   gate: 'Survivor' },
   { a: 'forest_veil_region',   b: 'mire_bog_region',      gate: 'Survivor' },
+  // NEW (level, 1.2): closes the starting web into a triangle. Both endpoints
+  // are already open at Survivor, so this gates at Survivor by rule 2 and
+  // adds no reachability — only a second way home from the southern chain.
+  { a: 'haventide_region',     b: 'forest_veil_region',   gate: 'Survivor' },
 
-  // T2 -> T3 step: first real gate, placed on the single edge that actually
-  // leads to T3 content (Orbital Reach). Frost Canyon (also T3) is gated
+  // T2 -> T3 step: first real gate, placed on the edges that actually
+  // first reach T3 content (Orbital Reach). Frost Canyon (also T3) is gated
   // transitively through Orbital Reach, so it carries no direct gate of its
   // own — see SS4 "no stacked gates" rule in agents/gamedesign-output.md.
   { a: 'emberline_region',     b: 'orbital_reach_region', gate: 'Reclaimer' },
+  // NEW (level, 1.2): the second first-entry into T3. Rule 1 gates EVERY edge
+  // that first reaches a higher tier, not just one of them — leaving this at
+  // Survivor would make the Reclaimer gate above trivially bypassable.
+  { a: 'mire_bog_region',      b: 'orbital_reach_region', gate: 'Reclaimer' },
   { a: 'orbital_reach_region', b: 'frost_canyon_region',  gate: 'Survivor' },
 
   // T3 -> T4 step: the story finale (Last Crown, Void Architect's herald)
@@ -55,6 +71,9 @@ export const REGION_EDGES = [
   // mobs; that is the intended risk, not a progression wall.
   { a: 'orbital_reach_region', b: 'last_crown_region',    gate: 'Ascendant' },
   { a: 'emberline_region',     b: 'crater_ember_region',  gate: 'Ascendant' },
+  // NEW (level, 1.2): fire-and-ice border, and the third first-entry into T4.
+  // Same Ascendant gate as the other two T4 edges, per rule 1 + rule 4.
+  { a: 'crater_ember_region',  b: 'frost_canyon_region',  gate: 'Ascendant' },
 ];
 
 export function tierIndex(tier) {

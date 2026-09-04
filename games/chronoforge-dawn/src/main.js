@@ -179,6 +179,8 @@ const api = {
   ready: false,
   version: '0.1.0-phase0',
   get shots() { return shotNames(); },
+  /** Current named shot, or null. The dev panel hides itself while this is set. */
+  get shot() { return shotMode; },
   get modules() { return modules; },
 
   pause() { running = false; },

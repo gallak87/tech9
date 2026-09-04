@@ -18,9 +18,11 @@
 // Registration is the seam. A control whose lane is quarantined simply never
 // appears, which is also how you find out a lane is down.
 //
-// HIDDEN BY DEFAULT. `?dev=1` in the URL, or backtick to toggle. The screenshot
-// harness must never capture this overlay — a review PNG with a dev panel in it
-// is not a review PNG.
+// HIDDEN BY DEFAULT — open with `?dev=1`, or backtick to toggle.
+//
+// It must not appear in a review PNG. An auto-hide keyed on __DAWN__.shot was
+// tried and does NOT work: the panel updates before applyShot runs, so the
+// capture still contains it. Left default-off until the UI lane owns this.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CSS = `

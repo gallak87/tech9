@@ -150,6 +150,52 @@
       "sev": "info",
       "owner": "dev",
       "text": "FRAME_HEIGHT_M = 18 (the deferred orthographic scale) is set from a pixel-height argument, not from playtesting a party of three plus enemies. Revisit once traversal lands."
+    },
+    {
+      "id": "exposure-non-dawn",
+      "severity": "high",
+      "tier": "Tier 1 (Phase 4)",
+      "owner": "world",
+      "title": "Exposure is fixed at 1.05 and only ever tuned at dawn. Every other hour blows out.",
+      "measured": {
+        "band": "median 0.09-0.25, p90 < 1.2, white% < 2",
+        "6.4h (11.6deg)": {
+          "median": 0.212,
+          "p90": 0.51,
+          "whitePct": 0,
+          "verdict": "in band"
+        },
+        "9.9h (50.8deg)": {
+          "median": 1.404,
+          "p90": 2.62,
+          "whitePct": 22.94,
+          "verdict": "6x over"
+        },
+        "12h (61.3deg)": {
+          "median": 1.801,
+          "p90": 3.11,
+          "whitePct": 40.11,
+          "verdict": "7x over"
+        },
+        "18.5h (17.5deg)": {
+          "median": 0.48,
+          "p90": 1.12,
+          "whitePct": 0.01,
+          "verdict": "2x over"
+        }
+      },
+      "cause": "Not key intensity — KEY_RAMP is nearly flat (6.4 to 7.4 to 6.1). It is cos-law on the ground plus the sky IBL ramp. Ground receives key*sin(elevation): sin(11.6deg)=0.20 vs sin(61.3deg)=0.88, times the sky ramp 3.9 to 4.8. Product ~8.5x, which matches the measured median ratio.",
+      "fix": "postfx.js line ~217 deliberately chose fixed exposure so an art-directed hour cannot drift. Keep that. Make exposure a RAMP over sun elevation in the same idiom as SKY_RAMP and KEY_RAMP, not auto-exposure.",
+      "repro": "node tools/probe.mjs --shots wide --hour 12   (note: --hour, not --params hour=)"
+    },
+    {
+      "id": "devpanel-in-captures",
+      "severity": "low",
+      "tier": "Tier 5 (Phase 8)",
+      "owner": "progression/ui",
+      "title": "Dev panel is default-hidden because auto-hide during shots does not work",
+      "detail": "An auto-hide keyed on __DAWN__.shot was tried and failed — the panel update runs before applyShot, so the capture still contains the overlay. Panel is default-off; open with ?dev=1. The UI lane should own a correct fix.",
+      "repro": "set visible default true, then: node tools/shot.mjs --shots hero"
     }
   ],
   "nextPhase": {

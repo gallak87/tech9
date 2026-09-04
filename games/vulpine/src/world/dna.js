@@ -183,8 +183,8 @@ export const DNA_CORNERIA = {
     ],
     // a pair of stacks in the narrows you thread between
     fixed: [
-      { z: -3060, u: -46, r: 42, h: 190, pow: 1.15, spire: 1 },
-      { z: -3390, u: 52, r: 38, h: 165, pow: 1.15, spire: 1 },
+      { z: -3060, u: -46, r: 42, h: 190, pow: 1.15 },
+      { z: -3390, u: 52, r: 38, h: 165, pow: 1.15 },
     ],
   },
 };
@@ -662,8 +662,10 @@ export const DNA_AQUAS = {
 
   city: null,
 
-  // Pinnacles, not islands. `spire` and a low `pow` are what make a stack that
-  // stands up out of a flat floor instead of a hill that pokes through it.
+  // Pinnacles, not islands. A low `pow` is what makes a stack that stands up
+  // out of a flat floor instead of a hill that pokes through it: `islandAt`
+  // sums `h * (1 - q^2)^pow`, so the exponent is the whole profile and 1.05-1.35
+  // holds the width almost to the top where 2.2-3.4 rounds it off at the base.
   islands: {
     seed: 'aquas:reef-2',
     groups: [
@@ -676,15 +678,18 @@ export const DNA_AQUAS = {
       { n: 26, z: [400, -9600], u: [0, 210], r: [26, 74], h: [9, 34], pow: [1.5, 2.6] },
       { n: 22, z: [-500, -9600], u: [140, 420], r: [30, 96], h: [12, 46], pow: [1.5, 2.6] },
       // the drop-off garden: tall thin towers, close to the rail
-      { n: 11, z: [-5000, -6500], u: [80, 460], r: [22, 58], h: [70, 210], pow: [1.05, 1.35], spire: 1 },
+      { n: 11, z: [-5000, -6500], u: [80, 460], r: [22, 58], h: [70, 210], pow: [1.05, 1.35] },
       // rubble aprons on the far shelf
       { n: 13, z: [-8200, -9700], u: [60, 520], r: [80, 220], h: [6, 20], pow: [2.2, 3.4], flat: 1 },
     ],
-    // Two pinnacles in the swim-through, one either side, threaded not dodged.
+    // Two pinnacles in the swim-through, one either side, threaded not dodged —
+    // and a third on its own at -7480 that is not in it and stands 240 m over
+    // the rail at 60 m of bank, inside `boxX`. Open in ROADMAP: it is either
+    // deliberate or a stray, and nothing here can say which.
     fixed: [
-      { z: -3620, u: -48, r: 30, h: 260, pow: 1.1, spire: 1 },
-      { z: -3880, u: 54, r: 26, h: 235, pow: 1.1, spire: 1 },
-      { z: -7480, u: 60, r: 28, h: 300, pow: 1.1, spire: 1 },
+      { z: -3620, u: -48, r: 30, h: 260, pow: 1.1 },
+      { z: -3880, u: 54, r: 26, h: 235, pow: 1.1 },
+      { z: -7480, u: 60, r: 28, h: 300, pow: 1.1 },
     ],
   },
 
@@ -1258,10 +1263,10 @@ export const DNA_VENOM = {
     // the only vertical thing on the level that is not the ridge, and they read
     // against it because they are on the other side of the shoreline.
     fixed: [
-      { z: -1560, u: -520, r: 34, h: 260, pow: 1.08, spire: 1 },
-      { z: -3960, u: 470, r: 30, h: 230, pow: 1.08, spire: 1 },
-      { z: -6520, u: -560, r: 36, h: 300, pow: 1.06, spire: 1 },
-      { z: -7840, u: 540, r: 32, h: 250, pow: 1.08, spire: 1 },
+      { z: -1560, u: -520, r: 34, h: 260, pow: 1.08 },
+      { z: -3960, u: 470, r: 30, h: 230, pow: 1.08 },
+      { z: -6520, u: -560, r: 36, h: 300, pow: 1.06 },
+      { z: -7840, u: 540, r: 32, h: 250, pow: 1.08 },
     ],
   },
 

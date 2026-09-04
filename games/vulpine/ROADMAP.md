@@ -260,13 +260,16 @@ register, swept collision.
       either side. Both are the shape the dive was authored to reach and
       neither shows a defect.
 
-- [ ] **`islands` groups silently drop `spire`.** `buildIslands` copies `flat`
-      onto a group's output and nothing else, and `islandAt` never reads `spire`
-      at all — so the field is inert on every group and on every `fixed` entry
-      that carries it. Aquas, Fichina and Venom all set it. Either it was meant
-      to shape a profile and never got wired, or it is decoration; nothing in
-      the height field can tell. Found while authoring Fortuna, which stopped
-      using it.
+- [x] **`islands` groups silently drop `spire`.** Closed 2026-09-03 by deleting
+      it, which is what ship criterion 7 asks and what the level lane did with
+      `cityMaterial` and the rest. `islandAt` sums `h * (1 - q^2)^pow` and never
+      read the field, so all eleven uses across Aquas, Fichina and Venom were
+      inert — **proved rather than argued**: with the field gone,
+      `digest.mjs --against` is byte-identical on all seven levels. The comment
+      above Aquas' pinnacles claimed `spire` and a low `pow` together made a
+      stack; the exponent was doing all of it and the comment now says so.
+      Wiring it instead would have meant inventing behaviour and re-verifying
+      three authored levels for a field nobody has missed.
 
 - [ ] **Fortuna's palette and lithology are unread against the level it is now.**
       Its rock terms were authored for banks and are now on trunks, and the
@@ -280,9 +283,11 @@ register, swept collision.
       can fly into it, and there is no terrain crash — `groundAt` simply
       bulldozes it upward. Pre-existing and unchanged by phase 9: measured -259 m
       of clearance before that pass and -240 after. The comment above `fixed`
-      calls the group "two pinnacles in the swim-through", which this third one
-      is not in. Either it is deliberate and the comment is wrong, or it is a
-      stray.
+      called the group "two pinnacles in the swim-through", which this third one
+      is not in; as of 2026-09-03 it names the third one and points here instead
+      of being wrong. What is still open is the placement, which is an authoring
+      call on a level already marked `meets`: either it is deliberate, or it
+      moves outboard of the 105 m box.
 
 ## Also open — the three new biomes (2026-08-20)
 

@@ -302,3 +302,24 @@ happily score a shuffle as a success.
   shadow is not obviously landing. Not diagnosed — the dawn sun sits at 11.6°
   and throws a 4.9 m shadow, so it may simply be out of frame in the captures
   taken so far. Needs a noon check.
+
+### Contact shadow: not a bug. And two other false alarms.
+
+Checked at noon (sun 61.3°) on flat ground. **The actor casts a real shadow and
+always did** — `castShadow` true, skinned depth material working, 4096 map,
+`normalBias 0.035`. At dawn the sun sits at 11.6° and throws the shadow ~4.9 m
+sideways, so it was simply outside every crop taken so far. Nothing to fix.
+
+Two more from the same capture, both corrections to what was written above:
+
+- **The blade IS magenta.** It read white at dawn because of the exposure plus
+  `uEmissive`, not because the colour was wrong.
+- **The trousers ARE navy.** They read black at dawn for the same reason.
+
+All three were reported as defects on the strength of dawn captures alone. They
+are one defect — `rig-toon-pivot-miscalibrated` — wearing three costumes. Check
+a look complaint at more than one hour before writing it down as a defect.
+
+What is genuinely still wrong on Kaida, with the false alarms removed: the face
+is a blank mask with no features from the front, and the hair reads as a helmet
+rather than a bob. Both are pass-2 detail work and both are human-gated.

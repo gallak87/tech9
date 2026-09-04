@@ -19,7 +19,8 @@
     "rigViewerInDevPanel": true,
     "spriteLookSellsAtLockedFraming": false,
     "freeRoamPlaySample": true,
-    "plantedFootOnGroundAtEveryWalkableSlope": true
+    "plantedFootOnGroundAtEveryWalkableSlope": true,
+    "actorCastsRealShadow": true
   },
   "budget": {
     "frameMs": 6.4,
@@ -449,11 +450,11 @@
     },
     {
       "id": "rig-no-contact-shadow",
-      "severity": "medium",
+      "severity": "resolved",
       "tier": "Phase 5 (Traversal)",
       "area": "actors/render",
       "title": "Actors cast nothing and touch nothing",
-      "detail": "The cast floats on the terrain in every capture \u2014 no contact shadow, no AO, no grounding. Defect 3. Phase 5 owns it; recorded here because the Phase 2 look gate cannot be honestly scored without it and the critic will find it first.",
+      "detail": "NOT A DEFECT. Verified at noon on flat ground: the actor casts a real shadow and always did \u2014 castShadow true, skinned depth material working, 4096 map. At dawn the sun is at 11.6deg and throws it ~4.9m sideways, outside every crop taken. Artifact: shots/ground/noon-shadow.png",
       "repro": "shots/phase2/hero.png, shots/phase2/actors-lineup.png"
     },
     {
@@ -631,12 +632,10 @@
     "knownWrong": [
       "face is a blank mask \u2014 no features read from the front",
       "hair reads as a helmet, not a bob",
-      "trousers still crush to black under the toon ramp",
-      "blade blows to white rather than magenta",
-      "no contact shadow (Phase 2.4)",
       "reads leggier than the intended 5.5 heads"
     ],
-    "shots": "shots/kaida/{front,three-q,side,back}.png, shots/rig/poses.png"
+    "shots": "shots/kaida/{front,three-q,side,back}.png, shots/rig/poses.png",
+    "falseAlarms": "Blade-reads-white, trousers-read-black and no-contact-shadow were all reported from dawn captures and are NOT defects. The shadow works (checked at noon, sun 61.3deg; at dawn 11.6deg it throws 4.9m sideways and was outside the crop). Blade and trousers are correct colours crushed by the dawn exposure \u2014 one defect, rig-toon-pivot-miscalibrated, wearing three costumes."
   },
   "ground": {
     "metric": "min(|errL|,|errR|) \u2014 the better-planted foot, metres. NOT max: half a run cycle is one foot deliberately in the air.",

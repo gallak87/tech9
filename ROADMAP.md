@@ -101,6 +101,54 @@ folds them all into the single `capabilities` object it already builds. Then the
 availability gates are code, not judgement.
 
 Godot-specific half of this is tracked as item 3 in `GODOT_ROADMAP.md`.
+### 8. Agent file layout is inverted
+
+Found building Chronoforge Dawn Phase 1.1. Two sets of agent files exist on different
+axes and both are load-bearing — but the names say the opposite of what they are.
+
+| Today | Should be | Why |
+|---|---|---|
+| `games/<slug>/agents/*.md` | `games/<slug>/lanes/` | Durable, checked in, part of the game |
+| `.claude/agents/cfd-*.md` | disciplines, namespaced by game | Temporary build scaffolding, deleted when the game is declared complete |
+
+A `cfd-*` def is disposable; a `games/<slug>/agents/*.md` stub is not. The current
+names imply the reverse. The `cfd-` prefix is a namespace doing a folder's job,
+because discovery is `~/.claude/agents/` and `<project-root>/.claude/agents/` only —
+a game subfolder is never discovered.
+
+- Rename after chronoforge-dawn ships; mid-build it breaks every path in every def
+- Add a "declare game complete" step that sweeps that game's disciplines out of `.claude/agents/`
+- `tools/scaffold.js` should emit both sets, not just the stubs
+
+### 9. Scaffolder discipline stubs go stale on contact
+
+Every stub in `games/chronoforge-dawn/agents/` said *"Phase 1 — Foundations:
+design-only pass, no dev work."* The game plan's actual 1.1 gate is *"a spec whose
+artifact was not run does not pass."* A stub used as a prompt would have produced
+four documents and failed the gate.
+
+Worse, `level.md` listed its outputs as `platform rects, enemy list, player start,
+exit position` — platformer boilerplate — for a game whose level deliverable is a
+twelve-map RPG graph.
+
+The stubs are generated once from `team_config.json` and never reconciled against
+`GAME_PLAN.md`, which the Director writes afterward. They drift immediately and
+silently, and they look authoritative.
+
+- Scaffolder should generate stubs **after** the phase plan, or regenerate them when it changes
+- A stub whose "Current Phase Goal" contradicts its phase's QA gate should fail `validate-vocab`
+- Cheapest interim fix: stop shipping a per-phase goal in the stub at all, and point at `GAME_PLAN.md`
+
+### 10. Harness before game — first real evidence
+
+Chronoforge Dawn built 3 of 15 probes plus a GPU screenshot harness in Phase 0, before
+any game code. Two findings already paid for it:
+
+- A dev panel built in Phase 0 immediately surfaced that exposure is fixed at 1.05 and tuned only at dawn — noon measures 7x over band. Found before a single hero was modelled, not after a critic scored blown-out frames in Phase 2.
+- The probe answered *why* in numbers (cos-law on the ground times the sky IBL ramp, product ~8.5x, matching the measured median ratio) rather than starting an argument about the look.
+
+Both are the thesis working. Do not graduate this into a framework default until a
+second game repeats it — but it is the strongest candidate on the list.
 
 ---
 

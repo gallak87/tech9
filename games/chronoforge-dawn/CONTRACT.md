@@ -5,81 +5,13 @@ a blind side-by-side, with 2020s rendering. Same heroes, same world, same ATB,
 same economy — rebuilt as a real 3D world under a locked overhead camera.
 Dawn is the signature hour, and that frame is what every reviewer judges.
 
-Ten lane agents, plus a critic and an integrator, work this repo — the lanes largely
-**in parallel**. The rules below exist so that never turns into a merge fight or a
-mystery regression.
-
-Read `ARCHITECTURE.md` for how the code is shaped. Read `CONCEPT.md` for what the
-game is. This file is about **who may touch what**.
+This file is **what the build must satisfy**: the shared context object, the harness,
+the hard rules, the defect list and the quality bar. Read `ARCHITECTURE.md` for how
+the code is shaped and `CONCEPT.md` for what the game is.
 
 ---
 
-## 1. File ownership — do not edit outside your lane
-
-**Foundations (Phase 1.1–1.2)** — these three write specs and data, not engine code.
-All three are finished after 1.2. `audio` is deliberately **not** here — it runs in
-Tier 4 with the battle, because nothing can trigger a sound before then.
-
-| Lane | Owns | Must not touch |
-|---|---|---|
-| **art** | `docs/RIG_SPEC.md`, `docs/rig-spec.json`; `src/actors/**`, `tools/rig.mjs`, `tools/sheet.mjs` from Phase 2 | all of `src/**` **in 1.1 only** — the rigs are specced here and built in Phase 2 |
-| **gamedesign** | `docs/DESIGN_SPEC.md`, `docs/design-spec.json`, `tools/framing.mjs`; `tools/econ.mjs` from Tier 6 | `src/**`, the rest of `tools/**` |
-| **level** | `data/regions/**`, `tools/region.mjs`, `docs/WORLD_GRAPH.md` | `src/world/**` — that is the world lane's, and it *imports* your data |
-
-**The build lanes** — one folder, one gate, for the whole build:
-
-| Lane | Owns | Must not touch |
-|---|---|---|
-| **world** | `src/world/**` *and* `src/render/**` — terrain, biomes, weather, fog of war, plus the camera rig, environment, materials, textures, postfx, probe | `src/actors/**`, `src/ui/**`, any other lane |
-| **traversal** | `src/traversal/**` | `src/battle/**`, `src/places/**` |
-| **places** | `src/places/**` | `src/traversal/**`, `src/world/**` |
-| **battle** | `src/battle/**` *and* `src/fx/**` from Tier 4 | `src/traversal/**`, `src/progression/**`, the post chain |
-| **progression** | `src/progression/**` *and* `src/ui/**`, `index.html` styles — XP, gear, skill trees, quests, plus the HUD and pause menu | `src/battle/**`, `src/settlement/**`, the Three scene, the post chain, `src/render/**` |
-| **settlement** | `src/settlement/**` | `src/progression/**`, `src/world/**` |
-| **audio** | `src/audio/**`, `docs/AUDIO_SPEC.md`, `tools/render-audio.mjs` | anything else — first runs in Tier 4 |
-
-`data/regions/**` is **level's** output and **world's** input. World reads it in Tier 1
-and never writes it. If the graph is wrong, that is a level defect and it is fixed in
-`data/`, not worked around in `src/world/`.
-
-**World owns render. Do not split them.** The light is set by the ramps in
-`environment.js` and graded by the exposure constant in `postfx.js`. Tuning one
-without the other yields a build correct at one hour of the day. One gate judges the
-frame; one lane owns everything that makes it.
-
-**Progression owns ui.** Same rule.
-
-**Art owns actors, from Phase 2.** `art` is docs-only in Phase 1.1 — that restriction
-is scoped to 1.1 and expires with it. Art does not close after 1.2; it builds the rigs
-it specced, and carries the Character Look Gate that judges them.
-
-**Battle owns fx, from Tier 4.** Nothing before Tier 4 writes `src/fx/**`. A tier that
-wants an effect earlier puts it in its own folder.
-
-### 1a. `tools/**` — a lane owns the probe that gates it
-
-A probe never edits what it measures. Beyond that, the tool that decides whether a
-lane passes belongs to that lane.
-
-| Tool | Owner | Gates |
-|---|---|---|
-| `rig.mjs`, `sheet.mjs` | art | Phase 2, Character Look Gate |
-| `fog.mjs` | world | Tier 1 |
-| `walk.mjs` | traversal | Tier 2 |
-| `door.mjs` | places | Tier 3 |
-| `duel.mjs`, `stage.mjs` | battle | Tier 4 |
-| `save.mjs` | progression | Tier 5 |
-| `econ.mjs` | gamedesign | Tier 6 — economy re-verification is gamedesign's per `GAME_PLAN.md` |
-| `region.mjs` | level | Phase 1.1, again in Tier 1 |
-| `framing.mjs` | gamedesign | Phase 1.1 |
-| `render-audio.mjs` | audio | Phase 7 |
-
-**Shared harness — orchestrator until Phase 3, `integrator` after.** No lane edits
-these: `shot.mjs`, `probe.mjs`, `lintrng.mjs`, `lib/harness.mjs`, `blind.mjs`,
-`digest.mjs`, `census.mjs`, `play.mjs`. They measure every lane, so a lane tuning one
-is a lane grading its own homework.
-
-### Shared core — read-only to builders
+## 1. Shared core
 
 ```
 src/core/const.js      units, the locked camera, the budget, the named hours
@@ -90,20 +22,17 @@ src/core/rng.js        seeded streams and the noise kit
 src/core/shots.js      the shared review cameras and registerShot
 src/main.js            boot, the fixed-step loop, window.__DAWN__
 index.html             the page shell
-ARCHITECTURE.md  CONTRACT.md  CONCEPT.md  GAME_PLAN.md  ROADMAP.md  HANDOFF.md
-docs/STATUS.json       live state, open issues, nextPhase
+ARCHITECTURE.md  CONTRACT.md  CONCEPT.md  GAME_PLAN.md
+docs/STATUS.json       live state, open issues, probe baselines
 ```
 
-**`docs/STATUS.json` is append-only to a lane, and only for its own open issues.**
-Never rewrite the file wholesale and never touch another lane's entries. Waves run in
-parallel: three lanes each rewriting one shared JSON file is three lanes silently
-deleting each other's results. Put your numbers in your **report**; the orchestrator
-or the integrator folds them in. A lane that finds STATUS.json already changed under
-it must re-read before writing, not overwrite.
+These are load-bearing for every module. Change them deliberately and re-run the
+probes afterward — a core edit that passes locally and breaks another module's
+capture is the most expensive kind of defect here.
 
-**Only the `integrator` edits these.** If you genuinely need a new seam, say so in
-your report as a core-change request. Do not edit around it, and do not add a
-`window.__MY_LANE__` global to dodge the rule.
+**`docs/STATUS.json`: append your own issues, never rewrite the file wholesale.**
+Put numbers in your report and let the orchestrator fold them in. If it changed
+underneath you, re-read before writing.
 
 Everything you need is already wired: `installWorld`, `installActors`,
 `installTraversal`, `installPlaces`, `installBattle`, `installProgression`,
@@ -113,8 +42,8 @@ Everything you need is already wired: `installWorld`, `installActors`,
 Need a review camera angle? `ctx.registerShot('battle-finisher', ctx => {…})`
 from **your own file**. Do not edit `core/shots.js`.
 
-Need to talk to another lane? `ctx.bus.emit('encounter:start', {…})`. Do not
-import another lane's module — that is how two folders become one folder.
+Need to talk to another module? `ctx.bus.emit('encounter:start', {…})`. Do not
+import another module directly — that is how two folders become one folder.
 
 ---
 
@@ -127,7 +56,7 @@ ctx = {
   rig,                    // CameraRig — LOCKED 55° pitch, damped follow
   env,                    // Environment — sky, sun, IBL, fog; setTime(hour)
   materials,              // shared material kit; CLONE before you mutate
-  bus,                    // EventBus — the only channel between lanes
+  bus,                    // EventBus — the only channel between modules
   rng,                    // rng('your.stream'); Math.random() is a defect
   registerShot,           // (name, fn) — a review camera from your own file
   get time(),             // sim seconds (fixed-step)
@@ -136,7 +65,7 @@ ctx = {
   state,                  // gameplay state the HUD reads; publish onto it
 
   world, actors, fx, audio, ui,
-  traversal, places, battle, progression, settlement,   // each lane's own API
+  traversal, places, battle, progression, settlement,   // each module's own API
 }
 ```
 
@@ -168,13 +97,13 @@ exit output, and always open the file.
 
 `window.__DAWN__` gives you `post()`, `probe()`, `stats()`, `seek()`, `step()`,
 `setShot()`, `setTime()`, `digest()`, `reseed()`, and `ctx`. `battle()` and `teleport()`
-throw until their lanes land — deliberately.
+throw until their modules land — deliberately.
 
 `__DAWN__.ctx` is a **probe seam**, added for tools that must *build* a scene rather
 than photograph one — the Encounter Framing POC stages primitives on real terrain and
 measures occlusion during the push-in, which `post()`/`probe()`/`stats()` cannot do
-from outside. Read-only by convention. A lane that mutates shared core through it is
-violating §1, and the fact that it compiles does not make it allowed.
+from outside. Read-only by convention. Mutating shared core through it is
+a core change: say so in your report rather than doing it quietly.
 
 ### Measure, don't eyeball
 
@@ -212,7 +141,7 @@ the answer is usually exposure, and twice in Phase 0 it was albedo.
     line reaches the screen. That is defect 2 and it is checkable from the `top`
     shot.
 11. **A module that throws must not blank the screen.** Everything goes through
-    `installModule`; if your lane is quarantined in `stats().modules`, that is
+    `installModule`; if your module is quarantined in `stats().modules`, that is
     your bug and the build is failing because of it.
 12. **The prototype's game design is not up for redesign.** ATB math, enemy
     tiers, tech tables, drop tables, economy curves, the menu tab structure and
@@ -220,11 +149,11 @@ the answer is usually exposure, and twice in Phase 0 it was albedo.
 
 ---
 
-## 5. The eight defects, and who owns each
+## 5. The eight defects, and where each lives
 
 Every one is checkable in a screenshot. These are the bar.
 
-| # | Defect | Owner | Lands |
+| # | Defect | Lives in | Lands |
 |---|---|---|---|
 | 1 | Fog of war is opaque hard-edged squares on the tile grid | `world` | Tier 1 |
 | 2 | The tile grid is drawn over the whole world | `world` | Tier 1 |

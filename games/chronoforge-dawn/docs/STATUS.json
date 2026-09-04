@@ -1,13 +1,12 @@
 {
   "game": "chronoforge-dawn",
   "phase": 0,
-  "phaseName": "Engine Skeleton, Contract & First Light",
-  "updated": "2026-09-03",
+  "phaseName": "Engine Skeleton & First Light — complete",
+  "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
     "url": "http://127.0.0.1:5190/",
-    "consoleErrors": 0,
-    "note": "Left running by the Phase 0 agent. Verify before relying on it; lanes should pick a unique port."
+    "note": "Pick a unique port if a harness is already running."
   },
   "gates": {
     "localhostServesZeroErrors": true,
@@ -26,60 +25,89 @@
     "ok": true
   },
   "probe": {
-    "hour": 6.4,
-    "sunElevationDeg": 11.6,
     "band": "exposed median 0.09-0.25, p90 < 1.2, whitePct < 2, blackPct < 14",
-    "shots": {
-      "hero": {
-        "median": 0.154,
-        "p90": 0.41,
-        "whitePct": 0.06,
-        "blackPct": 0
-      },
-      "wide": {
-        "median": 0.212,
-        "p90": 0.51,
-        "whitePct": 0,
-        "blackPct": 0
-      },
-      "ridge": {
-        "median": 0.388,
-        "p90": 0.49,
-        "whitePct": 0,
-        "blackPct": 0
-      },
-      "ground": {
-        "median": 0.279,
-        "p90": 0.65,
-        "whitePct": 0.34,
-        "blackPct": 0
-      },
-      "top": {
-        "median": 0.172,
-        "p90": 0.39,
-        "whitePct": 0,
-        "blackPct": 0
-      },
-      "materials": {
-        "median": 0.104,
-        "p90": 0.4,
-        "whitePct": 0.18,
-        "blackPct": 0
-      },
-      "sun": {
-        "median": 1.315,
-        "p90": 12.71,
-        "whitePct": 37.29,
-        "blackPct": 0,
-        "note": "deliberate into-the-sun stress frame; terrain still silhouettes"
+    "dawn": {
+      "hour": 6.4,
+      "sunElevationDeg": 11.6,
+      "shots": {
+        "hero": {
+          "median": 0.154,
+          "p90": 0.41,
+          "whitePct": 0.06,
+          "blackPct": 0
+        },
+        "wide": {
+          "median": 0.212,
+          "p90": 0.51,
+          "whitePct": 0,
+          "blackPct": 0
+        },
+        "ridge": {
+          "median": 0.388,
+          "p90": 0.49,
+          "whitePct": 0,
+          "blackPct": 0
+        },
+        "ground": {
+          "median": 0.279,
+          "p90": 0.65,
+          "whitePct": 0.34,
+          "blackPct": 0
+        },
+        "top": {
+          "median": 0.172,
+          "p90": 0.39,
+          "whitePct": 0,
+          "blackPct": 0
+        },
+        "materials": {
+          "median": 0.104,
+          "p90": 0.4,
+          "whitePct": 0.18,
+          "blackPct": 0
+        },
+        "sun": {
+          "median": 1.315,
+          "p90": 12.71,
+          "whitePct": 37.29,
+          "blackPct": 0,
+          "note": "deliberate into-the-sun stress frame; terrain still silhouettes"
+        }
       }
     },
-    "night": {
-      "hour": 21.5,
-      "median": 0.03,
-      "whitePct": 0,
-      "blackPct": 8.8
-    }
+    "byHour": {
+      "6.4": {
+        "exposure": 1.0503,
+        "median": 0.212,
+        "p90": 0.51,
+        "whitePct": 0.0
+      },
+      "9.9": {
+        "exposure": 0.1456,
+        "median": 0.195,
+        "p90": 0.36,
+        "whitePct": 0.0
+      },
+      "12": {
+        "exposure": 0.1167,
+        "median": 0.2,
+        "p90": 0.35,
+        "whitePct": 0.0
+      },
+      "18.5": {
+        "exposure": 0.4644,
+        "median": 0.212,
+        "p90": 0.49,
+        "whitePct": 0.01
+      },
+      "21.5": {
+        "exposure": 1.05,
+        "median": 0.03,
+        "p90": 0.06,
+        "blackPct": 8.9
+      }
+    },
+    "note": "wide shot. Exposure ramps over sun elevation (EXPOSURE_RAMP in src/render/environment.js). Fixed per hour: no metering, no auto-exposure."
   },
   "tools": {
     "shipped": [
@@ -103,15 +131,10 @@
       "framing.mjs",
       "play.mjs",
       "render-audio.mjs"
-    ],
-    "notes": {
-      "play.mjs": "NEW, gated in Phase 4. An interactive Playwright session a QA agent drives — sends input, reads state, captures on demand. Every existing tool photographs or measures a scripted run; none lets an agent actually play the build. walk.mjs (Phase 5) drives a FIXED route and is not a substitute.",
-      "framing.mjs": "cfd-gamedesign, Phase 1.1. The Encounter Framing POC.",
-      "render-audio.mjs": "cfd-audio, Phase 7."
-    }
+    ]
   },
   "modules": {
-    "world": "phase0 placeholder scene — world lane replaces wholesale in Tier 1",
+    "world": "phase0 placeholder scene — replaced wholesale in Tier 1",
     "render": "camera rig, environment, materials, textures, postfx, probe — real",
     "actors": "stub",
     "traversal": "stub",
@@ -123,323 +146,93 @@
     "ui": "stub",
     "audio": "stub"
   },
+  "sourceCounts": {
+    "maps": 12,
+    "outdoorRegions": 8,
+    "cityInteriors": 4,
+    "encounters": 36,
+    "doorwayEdges": 18,
+    "worldDrops": 8,
+    "source": "games/chronoforge/src/world.js. Interiors carry worldDrop null and zero encounters."
+  },
+  "coreSeams": [
+    {
+      "file": "src/main.js",
+      "api": "__DAWN__.ctx",
+      "what": "Read-only getter exposing ctx, for tools that must build a scene rather than photograph one."
+    }
+  ],
   "openIssues": [
     {
       "id": "P0-1",
-      "sev": "medium",
-      "owner": "render",
-      "text": "No ambient occlusion or contact shadow. Small props read as pasted on when they stand inside a cast shadow. This is half of defect 3 and it needs an AO pass in Tier 1."
+      "text": "No ambient occlusion or contact shadow. Small props read as pasted on when they stand inside a cast shadow. This is half of defect 3 and it needs an AO pass in Tier 1.",
+      "severity": "medium",
+      "area": "render"
     },
     {
       "id": "P0-2",
-      "sev": "medium",
-      "owner": "render",
-      "text": "Depth of field is not implemented. It needs a DepthTexture, which cannot share the 4x MSAA scene target; add a resolved depth prepass in Tier 1. Do not bolt DOF onto the current target."
+      "text": "Depth of field is not implemented. It needs a DepthTexture, which cannot share the 4x MSAA scene target; add a resolved depth prepass in Tier 1. Do not bolt DOF onto the current target.",
+      "severity": "medium",
+      "area": "render"
     },
     {
       "id": "P0-3",
-      "sev": "low",
-      "owner": "render",
-      "text": "Ground detail normal map repeats visibly at its ~22 m tile from the top shot. Needs a second octave at a different repeat, or triplanar variation."
+      "text": "Ground detail normal map repeats visibly at its ~22 m tile from the top shot. Needs a second octave at a different repeat, or triplanar variation.",
+      "severity": "low",
+      "area": "render"
     },
     {
       "id": "P0-4",
-      "sev": "low",
-      "owner": "world",
-      "text": "The placeholder heightfield reads as sand dunes: ridged noise plus a bright sandy palette. It is scaffolding, not a look decision, and the world lane replaces it."
+      "text": "The placeholder heightfield reads as sand dunes: ridged noise plus a bright sandy palette. It is scaffolding, not a look decision, and Tier 1 replaces it.",
+      "severity": "low",
+      "area": "world"
     },
     {
       "id": "P0-5",
-      "sev": "low",
-      "owner": "render",
-      "text": "Night lighting was tuned to a readable linear median of 0.03 but has had no art pass. Tier 1 owns it."
+      "text": "Night lighting was tuned to a readable linear median of 0.03 but has had no art pass. Tier 1 owns it.",
+      "severity": "low",
+      "area": "render"
     },
     {
       "id": "P0-6",
-      "sev": "info",
-      "owner": "dev",
-      "text": "FRAME_HEIGHT_M = 18 (the deferred orthographic scale) is set from a pixel-height argument, not from playtesting a party of three plus enemies. Revisit once traversal lands."
-    },
-    {
-      "id": "exposure-non-dawn",
-      "severity": "high",
-      "tier": "Tier 1 (Phase 4)",
-      "owner": "world",
-      "title": "Exposure is fixed at 1.05 and only ever tuned at dawn. Every other hour blows out.",
-      "measured": {
-        "band": "median 0.09-0.25, p90 < 1.2, white% < 2",
-        "6.4h (11.6deg)": {
-          "median": 0.212,
-          "p90": 0.51,
-          "whitePct": 0,
-          "verdict": "in band"
-        },
-        "9.9h (50.8deg)": {
-          "median": 1.404,
-          "p90": 2.62,
-          "whitePct": 22.94,
-          "verdict": "6x over"
-        },
-        "12h (61.3deg)": {
-          "median": 1.801,
-          "p90": 3.11,
-          "whitePct": 40.11,
-          "verdict": "7x over"
-        },
-        "18.5h (17.5deg)": {
-          "median": 0.48,
-          "p90": 1.12,
-          "whitePct": 0.01,
-          "verdict": "2x over"
-        }
-      },
-      "cause": "Not key intensity — KEY_RAMP is nearly flat (6.4 to 7.4 to 6.1). It is cos-law on the ground plus the sky IBL ramp. Ground receives key*sin(elevation): sin(11.6deg)=0.20 vs sin(61.3deg)=0.88, times the sky ramp 3.9 to 4.8. Product ~8.5x, which matches the measured median ratio.",
-      "fix": "postfx.js line ~217 deliberately chose fixed exposure so an art-directed hour cannot drift. Keep that. Make exposure a RAMP over sun elevation in the same idiom as SKY_RAMP and KEY_RAMP, not auto-exposure.",
-      "repro": "node tools/probe.mjs --shots wide --hour 12   (note: --hour, not --params hour=)",
-      "status": "FIXED 2026-09-03 by cfd-world as a scoped spot-fix. Verified on the wide shot at 6.4, 9.9, 12, 18.5 and 21.5 h.",
-      "pulledForwardFrom": "Tier 1 (Phase 4)",
-      "pullReason": "Phase 2's gate scores the character look at three times of day. Two of the three are 6-7x over band, so the Character Look Gate would fail the rig for a render bug. Cheaper now than after Phase 2 burns a round.",
-      "promptReady": "HANDOFF.md, \"Run order after restart\", step 1",
-      "fixApplied": {
-        "files": [
-          "src/render/environment.js",
-          "src/render/postfx.js"
-        ],
-        "how": "EXPOSURE_RAMP, a table of exposure against sun elevation, read with rampValue() (rampLookup's scalar sibling) and written to engine.post.params.exposure from Environment.setTime(). Still fixed per hour: no metering, no auto-exposure, deterministic. postfx.js keeps 1.05 as the dawn seed for the frame before the first setTime, and a manual __DAWN__.post({exposure}) still overrides until the next time change.",
-        "ramp": [
-          [
-            -90,
-            1.05
-          ],
-          [
-            -6,
-            1.05
-          ],
-          [
-            0,
-            2.1
-          ],
-          [
-            4,
-            1.48
-          ],
-          [
-            8,
-            1.25
-          ],
-          [
-            12,
-            1.025
-          ],
-          [
-            16,
-            0.5
-          ],
-          [
-            22,
-            0.36
-          ],
-          [
-            30,
-            0.27
-          ],
-          [
-            42,
-            0.185
-          ],
-          [
-            52,
-            0.14
-          ],
-          [
-            62,
-            0.115
-          ]
-        ],
-        "anchor": "The [8] and [12] entries put 11.55 deg (DAWN_HOUR 6.4) at exposure 1.0503, so the signed-off dawn frame is unchanged. Below -6 deg the ramp flattens to the same 1.05 the night was tuned at, so the moonlit look is untouched."
-      },
-      "verified": {
-        "shot": "wide",
-        "band": "median 0.09-0.25, p90 < 1.2, whitePct < 2, blackPct < 14",
-        "6.4h (11.6deg)": {
-          "exposure": 1.0503,
-          "median": 0.212,
-          "p90": 0.51,
-          "whitePct": 0.0,
-          "blackPct": 0.0,
-          "verdict": "in band, unchanged from the signed-off frame"
-        },
-        "9.9h (50.8deg)": {
-          "exposure": 0.1456,
-          "median": 0.195,
-          "p90": 0.36,
-          "whitePct": 0.0,
-          "blackPct": 0.0,
-          "verdict": "in band (was 1.404 / 22.94% white)"
-        },
-        "12h (61.3deg)": {
-          "exposure": 0.1167,
-          "median": 0.2,
-          "p90": 0.35,
-          "whitePct": 0.0,
-          "blackPct": 0.0,
-          "verdict": "in band (was 1.801 / 40.11% white)"
-        },
-        "18.5h (17.5deg)": {
-          "exposure": 0.4644,
-          "median": 0.212,
-          "p90": 0.49,
-          "whitePct": 0.01,
-          "blackPct": 0.0,
-          "verdict": "in band (was 0.480)"
-        },
-        "21.5h (-17.8deg)": {
-          "exposure": 1.05,
-          "median": 0.03,
-          "p90": 0.06,
-          "whitePct": 0.0,
-          "blackPct": 8.9,
-          "verdict": "unchanged by design; the dawn band does not apply to night, MOON_RAMP was tuned to median ~0.03"
-        },
-        "sweep": "Every hour from 5.6 to 18.5 lands 0.116-0.222 on wide. All seven review shots probed at all five hours: worst blown-white 0.03% at 9.9h and 12h, excluding the `sun` shot which points into the disc."
-      },
-      "residualNotOwnedByThisFix": [
-        "18.7-19.3 h reads median 0.25-0.31 on wide (0.22-0.26 on top), just over the band ceiling. Cause measured, not guessed: at the SAME sun elevation the evening ground is 1.3-1.4x brighter than the morning ground even on the `top` shot with no sky in frame, because the dune slopes in the probe region face the setting azimuth (264 deg) more squarely than the rising one (96 deg). An elevation-keyed ramp cannot see that and should not: exposure follows the sun, not the terrain. Fixing it would need auto-exposure, which is explicitly rejected. white% stays at 0.01, so it is bright, not blown.",
-        "The dusk cliff at the horizon crossing is untouched and pre-existing: wide median 0.136 at 19.75h (elev +0.7) falls to 0.021 at 19.9h (elev -1.1) and 0.010 at 20.1h with 8.2% black. That is KEY_RAMP [0, 3.60] -> [-4, 0.55] plus the sun disc leaving the sky, not exposure. Separate issue for whoever owns the twilight ramp.",
-        "Noon reads correctly exposed in the near field but milky in the far field on wide. The cause is the distance fog at high sun: horizonColor lerps to the pale blue 0x9db9dd as `warm` goes to 0, at density 0.0011. Grade knobs (contrast 1.06, saturation 1.10, split 0.85) are also dawn-tuned. Both are outside this spot-fix."
-      ],
-      "outOfLaneEdit": "cfd-world edited src/render/** which CONTRACT.md section 1 assigns to a `render` lane. Authorised explicitly by the orchestrator for these two files only, because no render agent exists and STATUS.json assigns this issue owner `world`. Integrator: fold into coreChanges as an authorised out-of-lane edit."
+      "text": "FRAME_HEIGHT_M = 18 (the deferred orthographic scale) is set from a pixel-height argument, not from playtesting a party of three plus enemies. Revisit once traversal lands.",
+      "severity": "info",
+      "area": "dev"
     },
     {
       "id": "devpanel-in-captures",
       "severity": "low",
       "tier": "Tier 5 (Phase 8)",
-      "owner": "progression/ui",
       "title": "Dev panel is default-hidden because auto-hide during shots does not work",
-      "detail": "An auto-hide keyed on __DAWN__.shot was tried and failed — the panel update runs before applyShot, so the capture still contains the overlay. Panel is default-off; open with ?dev=1. The UI lane should own a correct fix.",
-      "repro": "set visible default true, then: node tools/shot.mjs --shots hero"
+      "detail": "An auto-hide keyed on __DAWN__.shot was tried and failed — the panel update runs before applyShot, so the capture still contains the overlay. Panel is default-off; open with ?dev=1. Needs a correct fix in Tier 5.",
+      "repro": "set visible default true, then: node tools/shot.mjs --shots hero",
+      "area": "progression/ui"
     },
     {
       "id": "exposure-evening-asymmetry",
       "severity": "low",
       "tier": "Tier 1 (Phase 4)",
-      "owner": "world",
       "title": "18.7-19.3h reads 0.25-0.31 on wide, just over the ceiling",
-      "detail": "At the SAME sun elevation the evening ground is 1.3-1.4x brighter than the morning ground, measured on `top` which has no sky in frame (elev 18.2: am raw 0.3185 / pm 0.4127; elev 14.6: 0.2256 / 0.3170). Cause is terrain azimuth - the probe region's dune slopes face the setting azimuth 264deg more squarely than the rising 96deg.",
-      "why_not_fixed": "An elevation-keyed ramp is blind to azimuth and should be: exposure follows the sun, not the terrain. Closing it needs metering, which is rejected by design. Bright, not blown - white% 0.01, p90 0.56. Cannot be tuned out while dawn stays pinned, because the hot window sits on the 1.05 anchor.",
-      "found_by": "cfd-world during the exposure-non-dawn spot-fix"
+      "detail": "At the SAME sun elevation the evening ground is 1.3-1.4x brighter than the morning ground, measured on `top` which has no sky in frame (elev 18.2: am raw 0.3185 / pm 0.4127; elev 14.6: 0.2256 / 0.3170). Cause is terrain azimuth - the probe region's dune slopes face the setting azimuth 264deg more squarely than the rising 96deg. Cannot be closed by an elevation-keyed ramp; that would need metering, which is rejected by design. Bright, not blown: white% 0.01.",
+      "area": "world"
     },
     {
       "id": "dusk-cliff",
       "severity": "medium",
       "tier": "Tier 1 (Phase 4)",
-      "owner": "world",
       "title": "Light falls off a cliff between 19.75h and 20.1h",
       "detail": "wide median 0.136 at 19.75h (elev +0.7) -> 0.021 at 19.9h (elev -1.1) -> 0.010 at 20.1h with 8.2% black.",
       "cause": "KEY_RAMP [0, 3.60] -> [-4, 0.55] plus the sun disc leaving the sky. Not exposure - pre-existing and untouched by the exposure ramp.",
-      "found_by": "cfd-world during the exposure-non-dawn spot-fix"
+      "area": "world"
     },
     {
       "id": "noon-far-field-milky",
       "severity": "medium",
       "tier": "Tier 1 (Phase 4)",
-      "owner": "world",
       "title": "Noon wide shot washes out at distance; hero shot is correct",
       "detail": "h12/hero exposes correctly - shadows, metal, dielectric and rock all read. h12/wide goes milky in the far field.",
       "cause": "horizonColor lerps to pale blue 0x9db9dd as warm -> 0 at density 0.0011, and the grade (contrast 1.06, saturation 1.10, split 0.85) is dawn-tuned. Both are outside the exposure spot-fix and were deliberately not touched.",
-      "found_by": "cfd-world during the exposure-non-dawn spot-fix"
-    }
-  ],
-  "nextPhase": {
-    "blockedOn": "session restart — Claude Code loads agent definitions at session start only, and the four Foundations lanes were written after this session began",
-    "runOrder": [
-      {
-        "step": 1,
-        "agent": "cfd-world",
-        "scope": "exposure spot-fix ONLY, no Tier 1 world work",
-        "issue": "exposure-non-dawn",
-        "prompt": "HANDOFF.md run order step 1"
-      },
-      {
-        "step": 2,
-        "phase": "1.1",
-        "parallel": true,
-        "agents": [
-          "cfd-art",
-          "cfd-gamedesign",
-          "cfd-level"
-        ]
-      },
-      {
-        "step": 3,
-        "phase": "1.2",
-        "agents": [
-          "cfd-level"
-        ],
-        "needs": "the combat clearance number from cfd-gamedesign"
-      }
-    ],
-    "name": "Phase 1.1 — Foundations & Paper Prototypes",
-    "parallel": true,
-    "agents": [
-      "cfd-art",
-      "cfd-gamedesign",
-      "cfd-level"
-    ],
-    "criticalPath": "cfd-gamedesign — its clearance number is the only input to Phase 1.2",
-    "deliverables": {
-      "cfd-art": "docs/RIG_SPEC.md + docs/rig-spec.json — topology, sockets, pose library, pixel-snap + palette-quantise. Build proof is Phase 2; spec self-consistency is checkable now and required.",
-      "cfd-gamedesign": "docs/DESIGN_SPEC.md + design-spec.json (ported prototype math) AND tools/framing.mjs — the Encounter Framing POC, primitives only, four worst cases, emitting the combat clearance number.",
-      "cfd-level": "data/regions/*.json — 12 maps ported from the prototype MAPS table with elevation added, plus tools/region.mjs validating the graph offline."
-    },
-    "sourceCounts": {
-      "maps": 12,
-      "outdoorRegions": 8,
-      "cityInteriors": 4,
-      "encounters": 36,
-      "doorwayEdges": 18,
-      "worldDrops": 8,
-      "verified": "Counted from games/chronoforge/src/world.js on 2026-09-03. GAME_PLAN.md, CONCEPT.md and the build brief all agree. CONCEPT.md names the eight drop items. Interiors carry worldDrop: null and zero encounters.",
-      "correction": "An earlier note in this file claimed 12 worldDrops and a plan discrepancy. That was a miscount — the grep matched the four `worldDrop: null` lines. There is no discrepancy; the count is 8 and always was."
-    },
-    "gate": "Three specs exist and agree with each other. A spec whose artifact was not run does not pass.",
-    "thenPhase": "Phase 1.2 — Encounter Placement Pass (level validates 36 placements against clearance)",
-    "audioMoved": "cfd-audio was scoped into Phase 1.1 and moved to Phase 7 on 2026-09-03. Nothing in the build can trigger a sound until Tier 4 — no battle, no footfall, no resource tick — so a combo stinger written in Foundations would be tuned against a description rather than a game. Accepted cost: Tier 3 interiors (Phase 6) ship silent, and audio picks up interior ambience one phase late."
-  },
-  "coreChanges": [
-    {
-      "id": "ctx-probe-seam",
-      "applied": "2026-09-03",
-      "by": "orchestrator (no lane agent running; integrator does not start until Phase 3)",
-      "file": "src/main.js",
-      "change": "__DAWN__.ctx exposed read-only via a getter.",
-      "why": "The Encounter Framing POC must BUILD a primitives scene on real terrain and measure occlusion during the push-in. post()/probe()/stats() photograph a scene; they cannot stage one. Without this seam cfd-gamedesign fails Phase 1.1 on its first round.",
-      "verified": "node tools/probe.mjs --shots wide --t 6.4 exits 0, dawn median 0.212 (unchanged from Phase 0). Assertion on ctx.scene/THREE/rig exits 0; a control assertion on a missing key exits 4.",
-      "note": "Read-only by convention. A lane mutating shared core through it violates CONTRACT.md section 1."
-    }
-  ],
-  "contractAmendments": [
-    {
-      "id": "foundations-ownership",
-      "applied": "2026-09-03",
-      "change": "CONTRACT.md section 1 gained a Foundations ownership table for art, gamedesign, level and audio, and declares data/regions/** as level's output and world's input.",
-      "why": "Phase 1.1 spawns four lanes that owned no folder. Four agents with undefined ownership is exactly what CONTRACT.md exists to prevent."
-    }
-  ],
-  "planChanges": [
-    {
-      "id": "audio-to-phase-7",
-      "applied": "2026-09-03",
-      "change": "audio removed from Phase 1.1 and Phase 6; first runs in Phase 7 with the battle it scores. Its four-signature-sounds deliverable moved into the Phase 7 QA gate.",
-      "why": "Nothing can trigger a sound before Tier 4. A stinger tuned against no battle is tuned against nothing.",
-      "cost": "Phase 6 interiors ship silent; interior ambience lands one phase late."
-    },
-    {
-      "id": "play-mjs-gate",
-      "applied": "2026-09-03",
-      "change": "Phase 4 QA gate gained one clause: play.mjs opens a real Playwright-driven browser session a QA agent can drive interactively — send input, read state, capture on demand.",
-      "why": "Playwright already drives the harness, but every tool either photographs a frame or measures a scripted run. No QA agent can actually play the build. walk.mjs drives a fixed route and does not cover it.",
-      "note": "At Phase 4 there is no traversal yet, so play.mjs can drive free camera, time of day, fog, quality and the dev panel. Party input arrives in Phase 5 and play.mjs should pick it up then."
+      "area": "world"
     }
   ]
 }

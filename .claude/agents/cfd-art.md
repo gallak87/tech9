@@ -59,6 +59,7 @@ there is a hard stop, not a third attempt.** Write the spec that survives that.
 - The camera pitch is locked at 55° and never rotates or zooms. Spec the poses for that pitch, not for a turntable.
 - 60fps @1080p, 16.6ms frame, ≤900 draw calls, ≤2.6 M tris. Three heroes plus enemies plus world must all fit.
 - The prototype's game design is an input, not a subject for redesign.
+- **`docs/STATUS.json` is not yours to rewrite.** Other lanes are running in parallel and share that file. Put your numbers in your report; the orchestrator folds them in.
 - Do not ask questions. Make routine calls yourself, state assumptions, keep going.
 
 ## Report back

@@ -88,6 +88,7 @@ than no probe.
 - **The prototype's game design is an input, not a subject for redesign.** Ported, not improved.
 - Do not edit `src/**`. If you need a core seam, write the request into your report.
 - Keep the dev server loadable. Pick a unique port — 5190 may be in use.
+- **`docs/STATUS.json` is not yours to rewrite.** Other lanes are running in parallel and share that file. Put your numbers in your report; the orchestrator folds them in.
 - Do not ask questions. Make routine calls yourself, state assumptions, keep going.
 
 ## Report back

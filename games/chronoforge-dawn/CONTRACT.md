@@ -57,8 +57,16 @@ src/core/rng.js        seeded streams and the noise kit
 src/core/shots.js      the shared review cameras and registerShot
 src/main.js            boot, the fixed-step loop, window.__DAWN__
 index.html             the page shell
-ARCHITECTURE.md  CONTRACT.md  CONCEPT.md  GAME_PLAN.md
+ARCHITECTURE.md  CONTRACT.md  CONCEPT.md  GAME_PLAN.md  ROADMAP.md  HANDOFF.md
+docs/STATUS.json       live state, open issues, nextPhase
 ```
+
+**`docs/STATUS.json` is append-only to a lane, and only for its own open issues.**
+Never rewrite the file wholesale and never touch another lane's entries. Waves run in
+parallel: three lanes each rewriting one shared JSON file is three lanes silently
+deleting each other's results. Put your numbers in your **report**; the orchestrator
+or the integrator folds them in. A lane that finds STATUS.json already changed under
+it must re-read before writing, not overwrite.
 
 **Only the `integrator` edits these.** If you genuinely need a new seam, say so in
 your report as a core-change request. Do not edit around it, and do not add a

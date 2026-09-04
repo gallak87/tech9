@@ -95,6 +95,7 @@ explicit tight-quarters annotation, and no doorway or worldDrop moved as a side 
 - **No binary assets, no `fetch`, no CDN.**
 - **Tiles are authoring data.** No tile index reaches the renderer and no grid line reaches the screen — that is defect 2. Your data is authoring convention, not a visual.
 - Do not edit `src/**`. If you need a core seam, write the request into your report.
+- **`docs/STATUS.json` is not yours to rewrite.** Other lanes are running in parallel and share that file. Put your numbers in your report; the orchestrator folds them in.
 - Do not ask questions. Make routine calls yourself, state assumptions, keep going.
 
 ## Report back

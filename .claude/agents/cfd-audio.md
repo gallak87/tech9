@@ -75,6 +75,7 @@ have been listened to**. Four described sounds do not pass. Four rendered, liste
 - **Your module must not throw.** A lane that throws gets quarantined by `installModule`; audio failing must never blank the screen or stall the sim.
 - Nothing autoplays before user gesture. Handle a suspended `AudioContext` without erroring.
 - Do not edit `src/core/**` or any other lane's folder. If you need a core seam, write the request into your report.
+- **`docs/STATUS.json` is not yours to rewrite.** Other lanes are running in parallel and share that file. Put your numbers in your report; the orchestrator folds them in.
 - Do not ask questions. Make routine calls yourself, state assumptions, keep going.
 
 ## Report back

@@ -33,13 +33,14 @@
     "IN scope — Never more than two agents running concurrently. A phase needing more work is split into sequential waves, not widened. The orchestrator may also execute a lane itself rather than spawning for it.",
     "IN scope — Frequent human feedback. Every agent that finishes a unit of work decides, and states, whether a human manual QA pass on localhost is worth it before the next phase starts — naming what to look at and what would count as wrong. Automated gates do not replace this; they decide when to ask for it.",
     "IN scope — Agents are expected to PROPOSE, not just execute. Every lane may put forward changes to inherited design — topology, systems, content, pacing — and should say so in its report rather than silently conforming to what the prototype happened to do. The world graph is the standing example: it is currently a tree of 8 regions and 7 edges with zero cycles, and it is explicitly open to redesign. A proposal names what changes, why the inherited version falls short, and what it costs. The orchestrator decides; the agent is not required to ask permission before proposing.",
-    "IN scope — Doorway topology is a design surface, not inherited data. The twelve-map connection graph may gain edges, lose them, become one-way, or be gated on traversal capability or settlement tech tier. Named candidates already on the table: add lateral cycles so the world stops being out-and-back; gate the Emberline T2 to Crater Ember T4 two-tier jump on a settlement unlock rather than a wall, which is the only mechanism that makes the base economy matter to exploration; one-way drops that unlock their return from the inside; and time-of-day chrono-rifts that relocate on a seeded schedule, which world.js already names in a comment and never implements. Whatever ships, region.mjs proves it offline."
+    "IN scope — Doorway topology is a design surface, not inherited data, and one change is DECIDED: edges are gated on settlement tech tier. Locking a region behind a base upgrade is the mechanism that makes the settlement economy matter to exploration — without it the base sim and the adventure are two games sharing a save file. The inherited graph is a tree of 8 outdoor regions and 7 edges with zero cycles, and the Emberline T2 to Crater Ember T4 two-tier jump becomes the hard way in rather than a wall. GATES ARE TEMPORARY, NEVER PERMANENT: at maximum settlement tier every edge is traversable in both directions and the whole world is open. No edge is a permanent one-way. Lateral cycles and one-way drops that unlock their return from the far side remain open proposals for level to argue. Chrono-rifts that relocate on a seeded time-of-day schedule are PUNTED to a cool-to-have backlog item, not v1.",
+    "IN scope — Gate data is authored before the system that reads it. Settlement tiers do not exist until the settlement tier ships in Phase 9, but the tech-gated doorway edges are authored back in Phase 1.2. The edge carries its required tier as DATA from the start; the runtime check stubs to unlocked until settlement lands, and region.mjs walks the graph across every tier state offline from Tier 1 onward regardless. Two invariants it asserts: every region is reachable at some tier, and at maximum tier every edge traverses both ways. Without this the coupling surfaces as a Phase 9 surprise on content authored eight phases earlier."
   ],
   "team": [
     {
       "role_id": "gamedesign",
       "active": true,
-      "notes": "Owns the one net-new mechanic: dual and triple tech pairings, combined gauge cost, damage formula and cinematic beat timings. Owns the call on which prototype systems are adopted as-is, which are remade, and which are replaced outright — the tuned tables are a default, not a mandate, and a deviation needs a stated reason rather than permission. Split from level — the world is a non-linear twelve-map graph across eight biomes, not a linear level."
+      "notes": "Owns the one net-new mechanic: dual and triple tech pairings, combined gauge cost, damage formula and cinematic beat timings. Owns the call on which prototype systems are adopted as-is, which are remade, and which are replaced outright — the tuned tables are a default, not a mandate, and a deviation needs a stated reason rather than permission. Split from level — the world is a non-linear twelve-map graph across eight biomes, not a linear level. Co-owns the tech-gate curve with level: which settlement tier opens which region, and whether that pacing works against the XP curve."
     },
     {
       "role_id": "art",
@@ -54,7 +55,7 @@
     {
       "role_id": "level",
       "active": true,
-      "notes": "Owns the twelve-map graph ported from the prototype MAPS table, per-biome heightfield authoring across eight biomes, 36 encounter placements at combat clearance, 18 doorway edges and 8 world drops. Split from gamedesign per split_when: non-linear paths and multiple zones. EXPLICITLY LICENSED TO REDESIGN THE GRAPH. The inherited topology is a tree — 8 outdoor regions, 7 bidirectional edges, zero cycles — so Emberline sits on the path to five of the other seven regions and every trip is out-and-back, and Crater Ember T4 hangs directly off Emberline T2 as a two-tier jump. Propose a better graph rather than porting this one. Interiors are entered by a separate city mechanism, not by doorway edges."
+      "notes": "Owns the twelve-map graph ported from the prototype MAPS table, per-biome heightfield authoring across eight biomes, 36 encounter placements at combat clearance, 18 doorway edges and 8 world drops. Split from gamedesign per split_when: non-linear paths and multiple zones. EXPLICITLY LICENSED TO REDESIGN THE GRAPH. The inherited topology is a tree — 8 outdoor regions, 7 bidirectional edges, zero cycles — so Emberline sits on the path to five of the other seven regions and every trip is out-and-back, and Crater Ember T4 hangs directly off Emberline T2 as a two-tier jump. Propose a better graph rather than porting this one. Interiors are entered by a separate city mechanism, not by doorway edges. Tech-gated edges are DECIDED and yours to place; gates must be temporary so max tier opens the whole world."
     },
     {
       "role_id": "audio",
@@ -150,7 +151,7 @@
     },
     {
       "name": "Phase 1.2 — World Data Port & Heightfields",
-      "description": "level ports the twelve-map graph from the prototype MAPS table and authors per-biome heightfield parameters across the eight biomes, keeping all twelve 45x30 maps traversable. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype. TOPOLOGY IS OPEN: the inherited graph is a tree with zero cycles and level is expected to propose a better one — lateral cycles, traversal- or tech-gated edges, one-way drops, or moving chrono-rifts — with reasons and costs, not to port 7 edges verbatim.",
+      "description": "level ports the twelve-map graph from the prototype MAPS table and authors per-biome heightfield parameters across the eight biomes, keeping all twelve 45x30 maps traversable. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype. TOPOLOGY: tech-gated edges are DECIDED — place them, with the required tier carried as edge DATA and the runtime check stubbed to unlocked until settlement ships in Phase 9. Gates are temporary; at max tier the whole world traverses both ways. Lateral cycles and one-way drops remain open proposals to argue for. Chrono-rifts are punted.",
       "agents": [
         "level"
       ],
@@ -164,7 +165,7 @@
         "level"
       ],
       "parallel": false,
-      "qa_gate": "Every encounter and world drop names something that exists in the ported tables. No orphans. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+      "qa_gate": "region.mjs walks the graph across EVERY settlement tier state offline: every region reachable at some tier, and at maximum tier every edge traversable in both directions with no permanent one-way. Every encounter and world drop names something that exists in the ported tables. No orphans. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
     },
     {
       "name": "Phase 2 — Character Look Gate",
@@ -249,14 +250,14 @@
     },
     {
       "name": "Phase 9 — Tier 6: Settlement & Economy",
-      "description": "Town center, farms, mines, energy extractors, workers, resource ticks on food/ore/energy, and the four tech tiers Survivor to Reclaimer to Ascendant to Transcendent that visibly transform the base. Build plots are Haventide only.",
+      "description": "Town center, farms, mines, energy extractors, workers, resource ticks on food/ore/energy, and the four tech tiers Survivor to Reclaimer to Ascendant to Transcendent that visibly transform the base. Build plots are Haventide only. Also unstubs the tech-gate check authored back in Phase 1.2: doorway edges start reading real settlement tier instead of always-unlocked.",
       "agents": [
         "dev",
         "integrator",
         "critic"
       ],
       "parallel": false,
-      "qa_gate": "econ.mjs simulates four hours of game time: no starve, no runaway, every resource curve plotted. A tier-up is obvious in a screenshot. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
+      "qa_gate": "Tech-gated doorways now read real settlement tier and region.mjs still passes both invariants against live state rather than stubbed. econ.mjs simulates four hours of game time: no starve, no runaway, every resource curve plotted. A tier-up is obvious in a screenshot. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong."
     },
     {
       "name": "Phase 10 — Region Buildout",
@@ -327,9 +328,15 @@
       "deferred_to": "dev"
     },
     {
-      "decision": "The world graph topology itself. Inherited shape is a tree (8 outdoor regions, 7 edges, no cycles) with a T2-to-T4 jump from Emberline to Crater Ember. Open candidates: lateral cycles, settlement-tech-gated edges that make the base economy matter to exploration, one-way drops unlocked from the far side, and seeded time-of-day chrono-rifts. If rifts move, region.mjs asserts reachability in every phase rather than once.",
+      "decision": "Which specific edges are tech-gated and at which settlement tier, plus whether lateral cycles and one-way drops join them. DECIDED already: tech-gated edges are in, gates are temporary, and at max tier the whole world is traversable both ways. Chrono-rifts are punted to cool-to-have. Open: the gate assignment itself, and the two remaining topology proposals.",
       "deferred_to": "level"
     }
   ],
-  "max_concurrent_agents": 2
+  "max_concurrent_agents": 2,
+  "backlog": [
+    {
+      "item": "Chrono-rift doorways that relocate on a seeded time-of-day schedule. world.js already names chrono-rift travel in a comment and never implements it. Cool to have, not v1: it would change region.mjs reachability from a single check to per-phase, and gives the hour slider gameplay meaning.",
+      "status": "punted"
+    }
+  ]
 }

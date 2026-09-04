@@ -196,15 +196,22 @@ is a failure regardless of what the code underneath does.
   than silently conforming to what the prototype happened to do. A proposal names what changes, why
   the inherited version falls short, and what it costs. The orchestrator decides; **the agent does
   not need permission to propose.**
-- **IN** — **Doorway topology is a design surface, not inherited data.** The twelve-map graph may
-  gain edges, lose them, become one-way, or be gated on traversal capability or settlement tech
-  tier. It is currently a **tree** — 8 outdoor regions, 7 bidirectional edges, **zero cycles** — so
-  Emberline sits on the path to five of the other seven regions and every trip is out-and-back.
-  Candidates already on the table: lateral cycles; gating the Emberline **T2 → Crater Ember T4**
-  two-tier jump on a settlement unlock rather than a wall (the only mechanism proposed so far that
-  makes the base economy matter to exploration); one-way drops that unlock their return from the
-  inside; and time-of-day **chrono-rifts** that relocate on a seeded schedule — which `world.js`
-  already names in a comment and never implements. Whatever ships, `region.mjs` proves it offline.
+- **IN** — **Doorway topology is a design surface, and one change is DECIDED: edges are gated on
+  settlement tech tier.** Locking a region behind a base upgrade is what makes the settlement
+  economy matter to exploration — without it the base sim and the adventure are two games sharing a
+  save file. The inherited graph is a **tree** (8 outdoor regions, 7 edges, zero cycles); the
+  Emberline **T2 → Crater Ember T4** jump becomes *the hard way in* rather than a wall.
+  **Gates are temporary, never permanent** — at maximum settlement tier every edge traverses both
+  directions and the whole world is open. No permanent one-ways. Lateral cycles and one-way drops
+  that unlock their return from the far side stay open for `level` to argue. Chrono-rifts on a
+  seeded time-of-day schedule are **punted** to cool-to-have.
+- **IN** — **Gate data is authored before the system that reads it.** Settlement tiers don't exist
+  until Phase 9, but tech-gated edges are authored in Phase 1.2. The edge carries its required tier
+  as **data** from the start; the runtime check stubs to *unlocked* until settlement lands, and
+  `region.mjs` walks the graph across **every tier state** offline from Tier 1 onward regardless.
+  Two invariants: every region reachable at some tier, and at max tier every edge traverses both
+  ways. Without this the coupling surfaces as a Phase 9 surprise on content authored eight phases
+  earlier.
 
 ## Known Unknowns
 

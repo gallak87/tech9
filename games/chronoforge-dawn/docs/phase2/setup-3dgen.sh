@@ -25,8 +25,7 @@ else
   mkdir -p "$(dirname "$REPO_DIR")"
   git clone https://github.com/dgrauet/Hunyuan3D-2.1-mlx "$REPO_DIR"
   git -C "$REPO_DIR" checkout --quiet "$UPSTREAM_PIN"
-  git -C "$REPO_DIR" apply "$HERE/3d-gen-arm.patch"
-  echo "    applied 3d-gen-arm.patch"
+  # requirements come from requirements-arm.txt, so the clone stays pristine.
 fi
 
 if [ -d "$VENV" ]; then
@@ -37,7 +36,9 @@ else
   # Deviations that made the previous environment unreasonable, not repeated:
   # transformers upgraded past its pin, and torch installed (dev-only, for the
   # parity harness). Install requirements only; add nothing by hand.
-  uv pip install --python "$VENV/bin/python" -r "$REPO_DIR/requirements.txt"
+  # Ours, not the repo's: upstream pins open3d==0.18.0 which has no cp312 wheel,
+  # plus six packages the repo never imports and two third-party mirrors.
+  uv pip install --python "$VENV/bin/python" -r "$HERE/requirements-arm.txt"
 fi
 
 cat <<EOF

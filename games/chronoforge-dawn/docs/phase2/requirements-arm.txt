@@ -1,0 +1,74 @@
+# Curated from upstream requirements.txt at 5fe2194, for Python 3.12 on arm64.
+# Install from this, not the repo's own file, so the clone stays untouched.
+#
+# Dropped:
+#   --extra-index-url https://mirrors.cloud.tencent.com/pypi/simple/ third-party mirror
+#   --extra-index-url https://mirrors.aliyun.com/pypi/simple third-party mirror
+#   pandas==2.2.2                              imported nowhere
+#   tb_nightly==2.18.0a20240726                imported nowhere
+#   xatlas==0.0.9                              no cp312 wheel; conda-forge xatlas-python
+#   open3d==0.18.0                             imported nowhere
+#   configargparse==1.7                        imported nowhere
+#   psutil==6.0.0                              imported nowhere
+#   cupy-cuda12x==13.4.1                       CUDA/Blender, not arm64
+#   bpy==4.0                                   CUDA/Blender, not arm64
+#   onnxruntime==1.16.3                        imported nowhere
+#   deepspeed                                  imported nowhere
+#
+# xatlas has no cp312 wheel. Install it separately if the paint stage needs it.
+
+
+# Build Tools
+ninja==1.11.1.1
+pybind11==2.13.4
+
+# Core ML/Deep Learning
+transformers==4.46.0
+diffusers==0.30.0
+accelerate==1.1.1
+pytorch-lightning==1.9.5
+huggingface-hub==0.30.2
+safetensors==0.4.4
+
+# Scientific Computing
+numpy>=1.26.0
+scipy==1.14.1
+einops==0.8.0
+
+# Computer Vision & Image Processing
+opencv-python==4.10.0.84
+imageio==2.36.0
+scikit-image==0.24.0
+rembg==2.0.65
+realesrgan==0.3.0
+basicsr==1.4.2
+
+# 3D Mesh Processing
+trimesh==4.4.7
+pymeshlab>=2023.12
+pygltflib==1.16.3
+
+# Configuration Management
+omegaconf==2.3.0
+pyyaml==6.0.2
+
+# Web Framework (for demo)
+gradio==5.33.0
+fastapi==0.115.12
+uvicorn==0.34.3
+
+# Utilities
+tqdm==4.66.5
+
+# GPU Computing (requires CUDA)
+
+# Blender
+
+# ONNX Runtime
+torchmetrics==1.6.0
+
+pydantic==2.10.6
+
+timm
+pythreejs
+torchdiffeq

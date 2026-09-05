@@ -21,7 +21,7 @@ load and wrong the instant it moves.
 import json
 import pathlib
 import sys
-from math import degrees
+from math import degrees, radians
 
 import bpy
 from mathutils import Matrix, Vector
@@ -203,6 +203,29 @@ def align_rest(arm, meshes, spec_joints):
     bpy.ops.pose.armature_apply(selected=False)
     bpy.ops.object.mode_set(mode="OBJECT")
     print(f"[canon] aligned {aligned} joints, baked the skin, applied as rest")
+
+
+# NO FINGER CURL. Tried and reverted — recorded so it is not tried again on a
+# mesh like this one.
+#
+# A sword socketed into a flat hand passes through it, so the obvious fix is to
+# curl the finger chains the rig has (thumb and index, both hands) and bake the
+# grip into the rest pose. Nothing downstream would fight it: the spec's 19
+# joints stop at the wrist.
+#
+# It mangles the hand. Mixamo's automatic weights for a finger bone on a
+# DECIMATED PADDLE HAND are not localised to that finger — they smear across the
+# whole palm — so curling drags the hand into a flipper. Tried at 58/70/55
+# degrees and again at a third of that; the deformation is the same shape,
+# so it is the weights, not the angle.
+#
+# What would actually fix it, in order of cost:
+#   1. Rig at full resolution. The mesh was decimated 82k -> 24k BEFORE rigging
+#      on the assumption that Mixamo rejects large uploads. It does not — it
+#      rejects TEXTURED ones, measured. At 82k the finger weights have enough
+#      vertices to localise.
+#   2. Generate the mesh with a closed hand, so no articulation is needed.
+#   3. Author the hand weights by hand, which is not a pipeline step.
 
 
 def normalise(arm, meshes, hero_m, sole_tol):

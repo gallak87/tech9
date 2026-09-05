@@ -59,20 +59,28 @@ for upload:
 npm run retry:prep-mixamo     # → out/kaida-for-mixamo.fbx
 ```
 
-That file has no armature, one mesh, one UV set, four embedded 2048² textures,
-scale 1.0, A-pose, and is decimated to 24,000 tris (`--tris N` to change,
-`--strip-textures 1` for a geometry-only upload).
+One file, 0.9 MB: no armature, one mesh, one UV set, **no textures**, decimated
+to 24,000 tris, sitting on the floor.
+
+Textures are stripped because Mixamo rejects uploads carrying full-size maps —
+measured, same mesh, 5.7 MB textured rejected and 0.9 MB geometry-only accepted.
+They travel around the round trip instead and `canonicalise` puts them back.
+`--keep-textures 1` if a service does accept them.
 
 Decimate **before** rigging, never after — reducing a rigged mesh degrades the
 skin weights it already carries. 24k is also the right neighbourhood for the
 game: the stand-in this pipeline was proven against is 12,609 tris.
 
+Then upload, place markers, rig, and download the **character** — FBX Binary,
+T-pose, **no animation**. The contract forbids animation and `canonicalise`
+strips it; picking one only makes a bigger file with a step to undo.
+
 Upload to Mixamo, **take the auto-rig path** (see `PITFALLS.md`), download FBX
 Binary with no animation, then:
 
 ```bash
-cp <downloaded.fbx>            docs/phase2-retry/out/kaida-rigged.glb   # or .fbx
-npm run retry:map -- docs/phase2-retry/out/kaida-rigged.glb --out docs/phase2-retry/out/kaida.bones.json
+cp <downloaded.fbx> docs/phase2-retry/out/kaida-rigged.fbx    # .glb works too
+npm run retry:map -- docs/phase2-retry/out/kaida-rigged.fbx --out docs/phase2-retry/out/kaida.bones.json
 # review every line, set "reviewed": true
 node docs/phase2-retry/pipeline.mjs docs/phase2-retry/manifest.json --only kaida --stage canonicalise --force
 node docs/phase2-retry/pipeline.mjs docs/phase2-retry/manifest.json --only kaida --stage install --force
@@ -265,7 +273,10 @@ sprint, turn-left, strafe-right, attack, cast, victory, hurt — and captures ea
 | `test/probe.mjs` | The probe. |
 | `test/make-fixture.py` | Builds the gate's deliberately wrong input. |
 
-`out/` and `.gate/` are gitignored; both rebuild from the manifest.
+`out/` and `.gate/` are gitignored scratch and both rebuild from the manifest.
+Nothing in there is worth keeping — wipe it whenever it gets confusing. The only
+file that has to be there before a run is the rigged character you downloaded,
+as `out/<name>-rigged.fbx` or `.glb`.
 
 ---
 

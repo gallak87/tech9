@@ -6,7 +6,14 @@ import path from 'node:path';
 
 export default {
   name: 'canonicalise',
-  inputs: (e, env) => [path.join(env.out, `${e.name}-rigged.glb`), path.join(env.out, `${e.name}.bones.json`)],
+  // Either extension. Mixamo returns FBX, Meshy returns GLB, and Blender opens
+  // both — so the stage should not care which one landed in out/.
+  inputs: (e, env) => {
+    const rigged = ['fbx', 'glb', 'gltf']
+      .map(ext => path.join(env.out, `${e.name}-rigged.${ext}`))
+      .find(f => fs.existsSync(f)) ?? path.join(env.out, `${e.name}-rigged.fbx`);
+    return [rigged, path.join(env.out, `${e.name}.bones.json`)];
+  },
   outputs: (e, env) => [path.join(env.out, `${e.name}-canonical.glb`)],
 
   async run(ctx) {

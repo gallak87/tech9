@@ -29,8 +29,13 @@ args = {a[i].lstrip("-"): a[i + 1] for i in range(0, len(a), 2)}
 for k in ("input", "output"):
     if k not in args:
         die(f"missing --{k}")
-TARGET_TRIS = int(args.get("tris", 0))          # 0 = leave the mesh alone
-STRIP_TEX = args.get("strip-textures") == "1"   # smallest possible upload
+TARGET_TRIS = int(args.get("tris", 0))            # 0 = leave the mesh alone
+# Textures are stripped by DEFAULT because Mixamo rejects uploads carrying
+# full-size maps — measured, same 24k mesh, 5.7 MB textured rejected and 0.9 MB
+# geometry-only accepted. The maps travel around the round trip instead, via
+# extract-textures.py and canonicalise --textures. Pass --keep-textures 1 only
+# to test a service that does accept them.
+STRIP_TEX = args.get("keep-textures") != "1"
 
 for o in list(bpy.data.objects):
     bpy.data.objects.remove(o, do_unlink=True)

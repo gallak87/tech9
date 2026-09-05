@@ -19,7 +19,9 @@
     "forge:view": "bash docs/phase2/view.sh",
     "retry:gate": "node docs/phase2-retry/gate.mjs",
     "retry:map": "node docs/phase2-retry/tools/suggest-map.mjs",
-    "retry:check": "node docs/phase2-retry/tools/check.mjs"
+    "retry:check": "node docs/phase2-retry/tools/check.mjs",
+    "retry:engine": "node docs/phase2-retry/test/engine.test.mjs",
+    "retry:all": "npm run retry:gate && npm run retry:engine"
   },
   "dependencies": {
     "three": "^0.185.1"

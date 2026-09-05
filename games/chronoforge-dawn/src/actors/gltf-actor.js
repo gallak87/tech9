@@ -177,7 +177,7 @@ export function suggestBoneMap(names) {
  * Resolve a bones.json against a live skeleton.
  * @returns {{ map: Map<string, THREE.Bone>, missing: string[], names: string[] }}
  */
-export function resolveBoneMap(bones, mapJson) {
+export function resolveBoneMap(bones) {
   const byName = new Map();
   for (const b of bones) byName.set(b.name, b);
   // GLTFLoader sanitises node names on the way in: spaces become underscores
@@ -188,14 +188,14 @@ export function resolveBoneMap(bones, mapJson) {
     const raw = sanitiseNodeName(b.name);
     if (raw !== b.name && !byName.has(raw)) byName.set(raw, b);
   }
-  const table = mapJson?.bones || {};
+  // The contract names a character's joints with the spec's own names, so the
+  // lookup IS the map. The previous design shipped a per-asset bones.json
+  // because every rigger named joints differently; canonicalising upstream
+  // deletes that file, and with it the failure where it was wrong at one joint.
   const map = new Map();
   const missing = [];
   for (const spec of SPEC_BONES) {
-    const glbName = table[spec];
-    const bone = glbName
-      ? (byName.get(glbName) ?? byName.get(sanitiseNodeName(glbName)))
-      : null;
+    const bone = byName.get(spec) ?? byName.get(sanitiseNodeName(spec));
     if (bone) map.set(spec, bone); else missing.push(spec);
   }
   return { map, missing, names: bones.map(b => b.name) };
@@ -300,10 +300,7 @@ export function measureLegs(boneByName, frame) {
    instead of touching bone.rotation, and only when `actor.retarget` exists —
    true for a generated character and nothing else. */
 
-export const BIND_MODES = ['absolute', 'additive'];
-
-export function makeRetarget(boneByName, frame, mode = 'absolute') {
-  if (!BIND_MODES.includes(mode)) throw new Error(`[forge] unknown bindMode "${mode}" — expected ${BIND_MODES.join(' | ')}`);
+export function makeRetarget(boneByName, frame) {
   const pre = new Map();
   const post = new Map();
   const bind = new Map();
@@ -316,13 +313,13 @@ export function makeRetarget(boneByName, frame, mode = 'absolute') {
     const specParent = SPEC_PARENT.get(spec);
     const Bm = specParent ? bind.get(boneByName.get(specParent)).clone() : new THREE.Quaternion();
     const Bu = B(bone.parent).clone();
-    if (mode === 'absolute') {
-      pre.set(bone, Bu.invert().multiply(Bm));
-      post.set(bone, new THREE.Quaternion());
-    } else {
-      pre.set(bone, Bu.invert());
-      post.set(bone, bind.get(bone).clone());
-    }
+    // W(b) = W_spec(b). The contract guarantees the asset's bind IS the spec
+    // rest pose, so an unposed clip returns the limbs where poses.js expects
+    // them. `pre` is identity wherever the glb's parent is the spec parent; it
+    // does work only where the rig interposes a joint the spec does not have,
+    // which every real rig does somewhere.
+    pre.set(bone, Bu.invert().multiply(Bm));
+    post.set(bone, new THREE.Quaternion());
     bone.userData.qSpec = new THREE.Quaternion();
     bone.userData.specName = spec;
   }
@@ -361,7 +358,6 @@ export function makeRetarget(boneByName, frame, mode = 'absolute') {
     },
     /** The bone's model-space bind rotation, which the delta was solved from. */
     bind(bone) { return bind.get(bone); },
-    mode,
   };
 }
 
@@ -457,21 +453,20 @@ function shedCodeBuilt(actor) {
  *
  * @param {object} actor    the actor from buildActor()
  * @param {THREE.Object3D} gltfScene
- * @param {object} mapJson  parsed assets/<id>.bones.json
  */
-export function applyGltfActor(actor, gltfScene, mapJson) {
+export function applyGltfActor(actor, gltfScene) {
   const skinned = [];
   gltfScene.traverse((o) => { if (o.isSkinnedMesh) skinned.push(o); });
   if (!skinned.length) throw new Error('[forge] glb contains no SkinnedMesh — the rig stage did not run, or it wrote a static mesh');
 
   const skeleton = skinned[0].skeleton;
-  const { map, missing, names } = resolveBoneMap(skeleton.bones, mapJson);
+  const { map, missing, names } = resolveBoneMap(skeleton.bones);
   if (missing.length) {
     throw new Error(
-      `[forge] bones.json maps ${SPEC_BONES.length - missing.length}/${SPEC_BONES.length} spec bones. ` +
+      `[forge] not a contract asset: ${SPEC_BONES.length - missing.length}/${SPEC_BONES.length} spec joints found.\n` +
       `Missing: ${missing.join(', ')}\n` +
-      `glb bones: ${names.join(', ')}\n` +
-      `suggested map:\n${JSON.stringify(suggestBoneMap(names), null, 2)}`);
+      `glb joints: ${names.join(', ')}\n` +
+      `Run it through the pipeline's canonicalise stage — see docs/phase2-retry/CONTRACT.md.`);
   }
 
   /* Props first, then the old body. In the other order the second swap of a
@@ -492,7 +487,7 @@ export function applyGltfActor(actor, gltfScene, mapJson) {
      would apply it twice. It also keeps the measurements below in the same
      units as ground.js's spec constants. */
   const norm = normaliseRig(group, actor.root, {
-    faceYawDeg: mapJson?.faceYawDeg ?? 0,
+    faceYawDeg: 0,   // the contract fixes the character facing +Z
     heightM: HERO_M,
   });
 
@@ -520,7 +515,7 @@ export function applyGltfActor(actor, gltfScene, mapJson) {
 
   actor.root.updateMatrixWorld(true);
   const legs = measureLegs(boneByName, actor.root);
-  const retarget = makeRetarget(boneByName, actor.root, mapJson?.bindMode ?? 'absolute');
+  const retarget = makeRetarget(boneByName, actor.root);
   const sockets = mountSockets(actor, boneByName, actor.root);
 
   actor.source = 'gltf';
@@ -546,10 +541,6 @@ export function applyGltfActor(actor, gltfScene, mapJson) {
   if (legs.sole < SOLE_MIN || legs.sole > SOLE_MAX) {
     console.warn(`[forge] ${actor.id}: ankle-to-sole ${legs.sole.toFixed(3)} m, outside ${SOLE_MIN}–${SOLE_MAX}. ` +
       'The lowest point is not a boot; ground contact carries the error at every slope.');
-  }
-  if (mapJson?.reviewed !== true) {
-    console.warn(`[forge] ${actor.id}: assets/${actor.id}.bones.json is not marked "reviewed": true — ` +
-      'the map is suggested, not confirmed.');
   }
   return actor;
 }
@@ -598,19 +589,8 @@ let loader = null;
 export async function attachGltfActor(actor, req) {
   try {
     loader = loader || new GLTFLoader();
-    const [gltf, mapJson] = await Promise.all([
-      loader.loadAsync(req.glb),
-      fetch(req.map).then(r => (r.ok ? r.json() : null)),
-    ]);
-    if (!mapJson) {
-      const names = [];
-      gltf.scene.traverse(o => { if (o.isBone) names.push(o.name); });
-      console.error(`[forge] no bone map at ${req.map}. The map is data; this loader guesses no convention.\n` +
-        `glb bones (${names.length}): ${names.join(', ')}\n` +
-        `starting point:\n${JSON.stringify({ name: req.name, reviewed: false, faceYawDeg: 0, bones: suggestBoneMap(names) }, null, 2)}`);
-      return null;
-    }
-    applyGltfActor(actor, gltf.scene, mapJson);
+    const gltf = await loader.loadAsync(req.glb);
+    applyGltfActor(actor, gltf.scene);
     actor._forge.req = req;
     LIVE.add(actor);
     console.info(`[forge] ${actor.id}: ${actor.tris} tri, source ${actor.sourceHeightM.toFixed(3)} m ` +

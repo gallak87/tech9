@@ -459,7 +459,6 @@ function forgeRequest(id) {
     return {
       name: file,
       glb: new URL(`assets/${file}.glb`, base).href,
-      map: new URL(`assets/${file}.bones.json`, base).href,
     };
   }
   return null;

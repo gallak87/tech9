@@ -114,6 +114,20 @@ if tris > 80000:
           f"upload, add a Decimate pass and retry — do not decimate after rigging, "
           f"it degrades the weights.")
 
+# Sit the character on the floor. Meshy centres its meshes on the origin, so an
+# upload arrives half sunk into the ground plane. Our own canonicalise stage
+# re-grounds whatever comes back, so this changes nothing downstream — it is for
+# the riggers that DO read the floor, and so a human eyeballing the upload sees a
+# character standing rather than one buried to the waist.
+bpy.context.view_layer.update()
+lowest = min((m.matrix_world @ v.co).z for m in meshes for v in m.data.vertices)
+if abs(lowest) > 1e-4:
+    for o in imported:
+        if o.parent is None:
+            o.location.z -= lowest
+    bpy.context.view_layer.update()
+    print(f"[prep] grounded: lowest point {lowest:+.3f} -> 0.000")
+
 bpy.ops.object.select_all(action="DESELECT")
 for o in imported:
     o.select_set(True)

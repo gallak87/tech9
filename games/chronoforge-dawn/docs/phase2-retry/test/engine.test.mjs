@@ -83,21 +83,50 @@ if (applied) {
     const d = wp(b).sub(wp(a)).normalize();
     return THREE.MathUtils.radToDeg(Math.acos(THREE.MathUtils.clamp(d.dot(new THREE.Vector3(0, -1, 0)), -1, 1)));
   };
+  // 5a. Upright and facing. A character that loads with the right joint
+  //     directions can still arrive lying face-down if an axis conversion is
+  //     applied twice. Check the whole body's orientation, not just the limbs.
+  const dirOf = (a, b) => wp(b).sub(wp(a)).normalize();
+  const spine = dirOf('hips', 'head');
+  const across = dirOf('shoulder_L', 'shoulder_R');
+  ok('stands upright — hips→head is +Y', spine.y > 0.9,
+    `[${spine.x.toFixed(2)} ${spine.y.toFixed(2)} ${spine.z.toFixed(2)}]`);
+  ok('shoulders run left-right across X', Math.abs(across.x) > 0.9,
+    `[${across.x.toFixed(2)} ${across.y.toFixed(2)} ${across.z.toFixed(2)}]`);
+
   const armL = down('upperArm_L', 'lowerArm_L');
   const legL = down('upperLeg_L', 'lowerLeg_L');
   ok('unposed bind hangs the arm along -Y', armL < 8, `${armL.toFixed(1)}° off`);
   ok('unposed bind hangs the leg along -Y', legL < 8, `${legL.toFixed(1)}° off`);
 
-  // 6. A clip actually drives the rig, and moves the bone it names.
+  // 6. A clip drives the rig, and drives it CORRECTLY. Movement alone proves
+  //    nothing — the failure this catches is a character that animates into a
+  //    splayed, face-down heap. idle is the strictest check available: it is
+  //    nearly the bind pose, so the limbs must stay where the bind put them.
+  const applyClip = (clip, t) => {
+    const pose = samplePose(clip, t);
+    for (const [name, [x, y, z]] of Object.entries(pose.j ?? {})) {
+      const bone = actor.boneByName.get(name);
+      if (bone && actor.retarget) actor.retarget.set(bone, x, y, z);
+    }
+    actor.root.updateMatrixWorld(true);
+    return pose;
+  };
+
   const before = wp('hand_R').clone();
-  const pose = samplePose('attack', 0.5);
-  for (const [name, [x, y, z]] of Object.entries(pose.j ?? {})) {
-    const bone = actor.boneByName.get(name);
-    if (bone && actor.retarget) actor.retarget.set(bone, x, y, z);
+  applyClip('attack', 0.5);
+  ok('a clip moves the rig', wp('hand_R').distanceTo(before) > 0.05);
+
+  for (const clip of ['idle', 'run']) {
+    applyClip(clip, 0.25);
+    const s = dirOf('hips', 'head');
+    const aL = down('upperArm_L', 'lowerArm_L');
+    const aR = down('upperArm_R', 'lowerArm_R');
+    ok(`${clip}: still upright`, s.y > 0.9,
+      `hips→head [${s.x.toFixed(2)} ${s.y.toFixed(2)} ${s.z.toFixed(2)}]`);
+    ok(`${clip}: arms not splayed`, aL < 55 && aR < 55,
+      `L ${aL.toFixed(0)}° R ${aR.toFixed(0)}° from -Y`);
   }
-  actor.root.updateMatrixWorld(true);
-  const moved = wp('hand_R').distanceTo(before);
-  ok('a clip moves the rig', moved > 0.05, `hand_R moved ${moved.toFixed(3)} m`);
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

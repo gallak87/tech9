@@ -21,7 +21,8 @@
     "retry:map": "node docs/phase2-retry/tools/suggest-map.mjs",
     "retry:check": "node docs/phase2-retry/tools/check.mjs",
     "retry:engine": "node docs/phase2-retry/test/engine.test.mjs",
-    "retry:all": "npm run retry:gate && npm run retry:engine"
+    "retry:all": "npm run retry:gate && npm run retry:engine",
+    "retry:prep-mixamo": "blender --background --python docs/phase2-retry/tools/prep-for-mixamo.py -- --input docs/phase2/meshy_output/kaida/kaida.fbx --output docs/phase2-retry/out/kaida-for-mixamo.fbx"
   },
   "dependencies": {
     "three": "^0.185.1"

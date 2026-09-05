@@ -54,6 +54,8 @@ which their CI never runs:
 
   cd $REPO_DIR && .venv/bin/python tests/test_stage1_to_stage2.py
 
-Then:
-  FORGE_PY=$VENV/bin/python npm run forge:smoke-demo
+Then, from the game root:
+  npm run forge:smoke-demo
+
+The forge scripts default to this venv. FORGE_PY=<other python> overrides it.
 EOF

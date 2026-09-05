@@ -121,6 +121,47 @@ fp16. `seed` is not passed, so runs are not reproducible.
 
 ---
 
+# Where this stands
+
+A rigged Mixamo stand-in loads, scales, maps and animates in the game. Reached
+via `?play=1&dev=2&forge=kaida`.
+
+```
+12609 tri, source 2.189 m → 1.72 m (×0.7856), sole 0.127 m,
+thigh 0.366 shin 0.397, frameScale 1.0000
+```
+
+`shots/` holds both outcomes.
+
+| | |
+|---|---|
+| `absolute-inverted-*.png` | `bindMode: absolute` — upside down, limbs splayed |
+| `additive-*.png` | `bindMode: additive` — upright, running, sword tracking |
+
+## bindMode
+
+`assets/<name>.bones.json` carries it. **`additive` is what works today.**
+
+Clips write absolute rotations authored against a bind whose limbs hang along
+−Y. Mixamo binds in T-pose with non-identity rest rotations, so replacing those
+wholesale inverts the character. Additive composes with the bind instead and
+keeps it upright.
+
+Neither is the finished answer. The character still carries the T-pose spread
+into every clip, because nothing computes a per-bone delta between her bind and
+the spec's. **That retarget delta is the next piece of work** — `PLAN-forge.md`
+specifies it and it is unbuilt.
+
+## What the stand-in proved
+
+- The name mapper handles a real rig: 19/19 from Mixamo's naming, no edits
+- Scale normalisation, ground contact and the clip system all drive a foreign skeleton
+- Hot-swap on `assets/` works
+
+An auto-rigged generated mesh is now the only untested link.
+
+---
+
 # Rigged import
 
 ```bash

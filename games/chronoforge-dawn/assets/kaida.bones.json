@@ -102,5 +102,6 @@
     "upperArm_R": "mixamorig:RightArm",
     "lowerLeg_L": "mixamorig:LeftLeg",
     "lowerLeg_R": "mixamorig:RightLeg"
-  }
+  },
+  "bindMode": "additive"
 }

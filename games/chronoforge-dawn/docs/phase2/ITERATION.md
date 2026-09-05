@@ -23,7 +23,20 @@ npm run forge:shape     # shape at full quality
 npm run forge:full      # shape + texture
 ```
 
-Smoke answers one question: does the SDF have a surface at all.
+Smoke answers one question: does the SDF have a surface at all. It runs
+`--verbose`.
+
+## Output
+
+| Line | Phase |
+|---|---|
+| `[+] weights loaded in Ns` | model load |
+| `[dit] step i/N ... nan= min= max=` | denoising, one per step |
+| `[SDF] n= nan= min= max= crossings=` | VAE decode, one per hierarchical level |
+| `Hierarchical Volume Decoding [rN]` | the port's own line |
+
+Without `--verbose` the `[dit]` line rewrites in place and carries no latent
+stats.
 
 Direct, for sweeping knobs:
 
@@ -57,6 +70,9 @@ is False and NaN sign comparisons are False, so an all-NaN field fails both.
 ## Reading the probe
 
 `generate.py` prints `[SDF]` per level.
+
+A NaN in `[dit]` locates the failure in the DiT; a clean `[dit]` with NaN in
+`[SDF]` puts it in the VAE decode.
 
 | Output | Meaning | Next |
 |---|---|---|

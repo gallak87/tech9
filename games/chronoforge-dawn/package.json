@@ -14,7 +14,7 @@
     "forge": "node docs/phase2/forge.mjs docs/phase2/forge-manifest.json",
     "forge:test": "node docs/phase2/forge-selftest.mjs",
     "forge:setup": "bash docs/phase2/setup-3dgen.sh",
-    "forge:smoke": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/smoke.glb --shape-only --steps 8 --octree-resolution 128",
+    "forge:smoke": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/smoke.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
     "forge:shape": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/kaida-shape.glb --shape-only",
     "forge:full": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/kaida.glb"
   },

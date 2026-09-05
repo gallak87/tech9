@@ -7,6 +7,7 @@ clone is disposable and gitignored. Point at it with --repo or HUNYUAN3D_REPO.
 import argparse
 import os
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -18,6 +19,48 @@ SEED = 42
 GUIDANCE_SCALE = 5.0
 
 DEFAULT_REPO = Path(__file__).resolve().parent / "3d-gen" / "Hunyuan3D-2.1-mlx"
+
+
+def install_step_probe(pipe, total, verbose=False):
+    """Tick the denoising loop.
+
+    pipeline_mlx runs num_inference_steps DiT forwards with no output, which is
+    the long silence before the first [SDF] line. scheduler.step is called once
+    per iteration and returns the updated latents, so wrapping it gives both a
+    counter and a place to inspect the latent.
+
+    Verbose reports latent min/max/nan per step. If the latent goes NaN at step
+    k the failure is the DiT, not the VAE decode where it surfaces.
+    """
+    cls = pipe.scheduler.__class__
+    original = cls.step
+    state = {"i": 0, "t0": time.time()}
+
+    def probed(self, *args, **kwargs):
+        out = original(self, *args, **kwargs)
+        state["i"] += 1
+        i = state["i"]
+        elapsed = time.time() - state["t0"]
+        eta = elapsed / i * (total - i)
+
+        if verbose:
+            stats = ""
+            try:
+                a = np.array(out, copy=False).astype(np.float32)
+                finite = np.isfinite(a)
+                n_nan = int((~finite).sum())
+                stats = (f"  nan={n_nan} min={a[finite].min():+.3f} max={a[finite].max():+.3f}"
+                         if finite.any() else "  ALL NaN")
+            except Exception as exc:
+                stats = f"  <stats unavailable: {exc}>"
+            print(f"[dit] step {i:>3}/{total}  {elapsed:6.1f}s  ~{eta:6.1f}s left{stats}", flush=True)
+        else:
+            end = "\n" if i >= total else ""
+            print(f"\r[dit] step {i}/{total}  {elapsed:6.1f}s elapsed  ~{eta:6.1f}s left   ",
+                  end=end, flush=True)
+        return out
+
+    cls.step = probed
 
 
 def install_sdf_probe(vae):
@@ -87,6 +130,8 @@ def main():
     # noting which run fixed them.
     p.add_argument("--octree-resolution", type=int, default=256)
     p.add_argument("--mc-level", type=float, default=0.0, help="iso level the near-surface mask compares against")
+    p.add_argument("-v", "--verbose", action="store_true",
+                   help="per-step latent min/max/nan; locates a NaN at the step it appears")
     args = p.parse_args()
 
     repo = Path(args.repo).resolve()
@@ -103,8 +148,15 @@ def main():
     from hy3dshape.pipeline_mlx import ShapePipeline
 
     print(f"[*] shape · {image.name} · {args.precision} · {args.steps} steps · "
-          f"octree {args.octree_resolution} · mc_level {args.mc_level} · seed {SEED}")
+          f"octree {args.octree_resolution} · mc_level {args.mc_level} · "
+          f"guidance {GUIDANCE_SCALE} · seed {SEED}")
+    if args.verbose:
+        print(f"[*] repo {repo}")
+        print(f"[*] weights {resolve_weights(args.precision)}")
+    t0 = time.time()
     shape_pipe = ShapePipeline.from_pretrained(resolve_weights(args.precision))
+    print(f"[+] weights loaded in {time.time() - t0:.0f}s")
+    install_step_probe(shape_pipe, args.steps, args.verbose)
     install_sdf_probe(shape_pipe.vae)
 
     mesh = shape_pipe(
@@ -116,7 +168,8 @@ def main():
         seed=SEED,
     )
     mesh.export(str(shape_out))
-    print(f"[+] shape → {shape_out}  ({len(mesh.vertices)} verts, {len(mesh.faces)} faces)")
+    print(f"[+] shape → {shape_out}  ({len(mesh.vertices)} verts, {len(mesh.faces)} faces) "
+          f"in {time.time() - t0:.0f}s")
 
     if args.shape_only:
         return

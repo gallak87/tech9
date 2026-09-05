@@ -33,12 +33,14 @@ if [ -d "$VENV" ]; then
 else
   echo "==> uv venv, python 3.12"
   uv venv --python 3.12 "$VENV"
-  # Deviations that made the previous environment unreasonable, not repeated:
-  # transformers upgraded past its pin, and torch installed (dev-only, for the
-  # parity harness). Install requirements only; add nothing by hand.
-  # Ours, not the repo's: upstream pins open3d==0.18.0 which has no cp312 wheel,
-  # plus six packages the repo never imports and two third-party mirrors.
-  uv pip install --python "$VENV/bin/python" -r "$HERE/requirements-arm.txt"
+  # Verbatim from the port's README "### Install". requirements.txt is the
+  # upstream PyTorch/CUDA path and is not used here.
+  uv pip install --python "$VENV/bin/python" \
+    mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy
+  # Stage 2 only. xatlas has no cp312 wheel, so this is allowed to fail while
+  # we are running --shape-only.
+  uv pip install --python "$VENV/bin/python" huggingface_hub xatlas opencv-python \
+    || uv pip install --python "$VENV/bin/python" huggingface_hub opencv-python
 fi
 
 cat <<EOF

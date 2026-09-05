@@ -15,11 +15,12 @@
     "retry:map": "node docs/phase2-retry/tools/suggest-map.mjs",
     "retry:check": "node docs/phase2-retry/tools/check.mjs",
     "retry:engine": "node docs/phase2-retry/test/probe.mjs assets/kaida.glb",
-    "retry:all": "npm run retry:gate && npm run retry:engine",
+    "retry:all": "npm run retry:gate && npm run retry:engine && npm run retry:clip",
     "retry:prep-mixamo": "blender --background --python docs/phase2-retry/tools/prep-for-mixamo.py -- --input docs/phase2-retry/source/kaida/kaida.fbx --output docs/phase2-retry/out/kaida-for-mixamo.fbx --tris 24000",
     "retry:probe": "node docs/phase2-retry/test/probe.mjs",
     "retry:shot": "node docs/phase2-retry/tools/ingame.mjs",
-    "retry:ref": "node docs/phase2-retry/tools/ref-gen.mjs docs/phase2-retry/reference-manifest.json"
+    "retry:ref": "node docs/phase2-retry/tools/ref-gen.mjs docs/phase2-retry/reference-manifest.json",
+    "retry:clip": "blender --background --python docs/phase2-retry/tools/check-clipping.py -- --input docs/phase2-retry/out/kaida-canonical.glb"
   },
   "dependencies": {
     "three": "^0.185.1"

@@ -218,25 +218,28 @@ for (const [a, b] of LIMBS) {
   const d = THREE.MathUtils.radToDeg(Math.acos(THREE.MathUtils.clamp(dirOf(a, b).dot(want), -1, 1)));
   check(`bind: ${a}→${b}`, d <= CFG.limbMax, `${fixed(d)}° off spec`, `≤ ${CFG.limbMax}°`);
 }
+// Arms inside the torso are measured by tools/check-clipping.py
+// (npm run retry:clip), in Blender, against the torso's cross-section at
+// each height — and calibrated: CLEAN on a rig whose arms are known clear,
+// CLIPPING with a millimetre depth on one that is not.
+//
+// A version lived here that compared a world-space bone position against
+// local accessor bounds. Mixed coordinate spaces, passing by luck, and it
+// reported a hand 0.033 m from a centre it had no business computing. A
+// check that does not measure what it claims is worse than none.
 
-// The check that would have caught arms buried in the torso. A skeleton can be
-// exactly on spec while the character's hands sit inside her own body, because
-// the spec's proportions are not the mesh's. Measured, not assumed: the hand
-// must be at least as far from the midline as the mesh is wide.
-{
-  const b = meshBoundsX(readGlb(asset).json);
-  if (b) {
-    // From the mesh's OWN centre, not from x=0 — nothing centres the character
-    // horizontally, so measuring against the origin reports a half-width that is
-    // really an offset.
-    const mid = (b.min + b.max) / 2;
-    const half = (b.max - b.min) / 2;
-    const reach = Math.min(Math.abs(wp('hand_L').x - mid), Math.abs(wp('hand_R').x - mid));
-    check('arms clear the torso', reach >= half * 0.7,
-      `hand ${fixed(reach, 3)} m from centre vs ${fixed(half, 3)} m half-width`,
-      '≥ 70% of half-width');
-  }
-}
+
+// Arms-inside-the-torso is measured by tools/check-clipping.py (npm run
+// retry:clip), not here. A version of that check lived in this file and
+// compared a world-space bone position against local accessor bounds — mixed
+// coordinate spaces, passing by luck, and it reported a hand 0.033 m from a
+// centre it had no business computing. A check that does not measure what it
+// claims is worse than no check, because it earns trust it has not got.
+//
+// The real one runs in Blender, splits the mesh by which bone owns each vertex,
+// tests forearm and hand vertices against the torso's cross-section at their own
+// height, and is calibrated: it reports CLEAN on a rig whose arms are known
+// clear and CLIPPING with a millimetre depth on one that is not.
 
 /* ── 4. the clips ─────────────────────────────────────────────────────────── */
 //

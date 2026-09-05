@@ -99,7 +99,7 @@ python generate.py --image <abs path> --output <abs path> --steps 8 --octree-res
 
 # generate.py
 
-In the clone. Uncommitted there. Two additions:
+`3d-gen/Hunyuan3D-2.1-mlx/generate.py`. Two additions:
 
 - `--steps` (default 50) and `--octree-resolution` (default 256)
 - `install_probes()` — monkeypatches `scheduler.step` and the VAE's

@@ -8,8 +8,9 @@ Delete when the mesh stage produces a usable Kaida.
 
 | | |
 |---|---|
-| conda env | `hunyuan_mlx`, Python 3.11.14 |
-| reproduce | `env-lock.yml` — conda only. There is no working pip lock. |
+| env | uv venv at `3d-gen/Hunyuan3D-2.1-mlx/.venv`, Python 3.12 |
+| build it | `bash docs/phase2/setup-3dgen.sh` |
+| deps | The README's install lines **plus** the PyTorch chain that `hy3dshape/__init__.py` forces. `requirements.txt` is the upstream CUDA path and is not used. |
 | clone | `3d-gen/Hunyuan3D-2.1-mlx`, upstream `5fe2194` + `3d-gen-arm.patch`, gitignored |
 | weights | fp16, pulled by `from_pretrained` on first run |
 
@@ -18,10 +19,17 @@ Delete when the mesh stage produces a usable Kaida.
 # Run
 
 ```bash
-npm run forge:smoke     # ~1-2 min, shape only, 8 steps, octree 128
-npm run forge:shape     # shape at full quality
-npm run forge:full      # shape + texture
+bash docs/phase2/setup-3dgen.sh   # non-destructive; only creates .venv
+
+npm run forge:smoke-demo   # control: the repo's own demo image
+npm run forge:smoke        # ~1-2 min, shape only, 8 steps, octree 128
+npm run forge:shape        # shape at full quality
+npm run forge:full         # shape + texture
 ```
+
+**The forge scripts default to `docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv`.**
+Nothing needs activating and conda is not involved. `FORGE_PY=<other python>`
+overrides the interpreter.
 
 Smoke answers one question: does the SDF have a surface at all. It runs
 `--verbose`.

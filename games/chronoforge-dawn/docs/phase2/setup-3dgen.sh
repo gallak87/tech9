@@ -37,10 +37,17 @@ else
   # upstream PyTorch/CUDA path and is not used here.
   uv pip install --python "$VENV/bin/python" \
     mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy
-  # Stage 2 only. xatlas has no cp312 wheel, so this is allowed to fail while
-  # we are running --shape-only.
-  uv pip install --python "$VENV/bin/python" huggingface_hub xatlas opencv-python \
-    || uv pip install --python "$VENV/bin/python" huggingface_hub opencv-python
+  # hy3dshape/__init__.py imports pipelines.py, postprocessors.py and
+  # preprocessors.py, which are the upstream PyTorch path. Importing anything
+  # MLX from that package drags all of this in, so the README's list is not
+  # sufficient on its own.
+  uv pip install --python "$VENV/bin/python" \
+    torch torchvision diffusers accelerate transformers einops \
+    pyyaml tqdm "pymeshlab>=2023.12" opencv-python
+
+  # Stage 2 only. xatlas has no cp312 wheel; skipped while we run --shape-only.
+  uv pip install --python "$VENV/bin/python" huggingface_hub xatlas 2>/dev/null \
+    || uv pip install --python "$VENV/bin/python" huggingface_hub
 fi
 
 cat <<EOF

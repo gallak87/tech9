@@ -2,37 +2,28 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-/** Where the forge installs a generated character. Root-level, NOT `public/`.
- *
+/** Where the forge installs a generated character. Root-level, not `public/`:
  *  Vite reloads the whole page when anything in publicDir changes, which would
- *  make the surgical hot-swap below pointless — the page would blow away the
- *  scene, the camera and the sim before the event ever arrived. The dev server
- *  serves every file under the project root anyway, so `/assets/kaida.glb`
- *  resolves in dev either way.
+ *  discard the scene, the camera and the sim before the swap event arrived. The
+ *  dev server serves every file under the project root, so `/assets/kaida.glb`
+ *  resolves either way.
  *
- *  The cost is that a generated character is DEV-ONLY until it moves: `vite
- *  build` copies publicDir and nothing else. That is the right trade while the
- *  pipeline is being stood up and Kaida has not been signed off; move the
- *  directory under public/ the moment a build has to ship her. */
+ *  Cost: `vite build` copies publicDir and nothing else, so a generated
+ *  character is dev-only until this directory moves under public/. */
 const ASSETS = fileURLToPath(new URL('./assets', import.meta.url));
 
 /**
  * Watch → HMR for generated characters.
  *
- * A runtime-fetched glb is NOT in the module graph, so Vite will not watch it
- * on its own and no amount of saving will produce an update. The watcher needs
- * an explicit add, and the notification has to be a custom event because there
- * is no module to invalidate.
+ * A runtime-fetched glb is not in the module graph, so Vite will not watch it
+ * on its own, and the notification has to be a custom event because there is no
+ * module to invalidate.
  *
- * The directory is created at startup on purpose: chokidar 4 dropped glob
- * support, so this watches the DIRECTORY, and a directory that does not exist
- * yet is silently never watched — which is the normal state of this repo until
- * the human has run the forge for the first time.
+ * chokidar 4 dropped glob support, so this watches the DIRECTORY — and a path
+ * that does not exist yet is silently never watched, which is the state of this
+ * repo until the forge has run once. Hence the mkdir at startup.
  *
- * The client half is in src/actors/gltf-actor.js, under `if (import.meta.hot)`.
- * It disposes the old geometry, material and textures before loading the new
- * glb. That is not tidiness: this machine is 16 GB shared with Vite and Chrome
- * and the dev server has already been killed once by memory pressure.
+ * Client half: src/actors/gltf-actor.js, under `if (import.meta.hot)`.
  */
 function forgeWatch() {
   return {

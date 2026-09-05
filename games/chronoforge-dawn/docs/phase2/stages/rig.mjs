@@ -1,16 +1,14 @@
 // Stage 2 — mesh → rigged mesh.
 //
 // UniRig predicts skeleton hierarchy AND per-vertex skinning weights. Its
-// components are released progressively, so what is actually available has to
-// be checked rather than assumed.
+// components release progressively, so what exists has to be checked.
 //
 // The acceptance test is DEFORMATION, not load success: rig, pose to `victory`,
-// look at the shoulder. Generated topology has no edge loops at joints, and if
-// the weights collapse there the mesh is the ceiling — not the loader, and not
-// anything a later stage can fix.
+// look at the shoulder. Generated topology has no edge loops at joints; weights
+// that collapse there put the ceiling in the mesh, not the loader.
 //
-// Mixamo's free auto-rigger is the manual fallback. It is a browser step, so no
-// stage will ever drive it, but its output feeds `install` unchanged: drop it at
+// Mixamo's free auto-rigger is the manual fallback — a browser step no stage
+// drives, whose output feeds `install` unchanged: drop it at
 // out/<name>-rigged.glb and run `--stage install`.
 //
 // NOT WIRED IN. See stages/_setup.mjs.
@@ -45,9 +43,9 @@ export default {
         '    upload the glb to mixamo.com, auto-rig, download as FBX/glTF,',
         `    convert to glb and save it as ${c.rel(c.outputs[0])}`,
       ],
-      verify: 'no component of UniRig has been run on this machine and the release state is unknown. '
-        + 'Confirm the skinning half exists and produces named humanoid bones before this is wired in — '
-        + '`install` reads those names and they are the whole contract with the loader.',
+      verify: 'no component of UniRig has been run here and the release state is unknown. Confirm '
+        + 'the skinning half exists and emits named humanoid bones first — `install` reads those '
+        + 'names and they are the whole contract with the loader.',
     });
   },
 };

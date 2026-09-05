@@ -20,75 +20,53 @@ import { HERO_M } from '../core/const.js';
 // actor only enters here when the forge flag names it, and any failure here
 // leaves the code-built character standing.
 //
-// ── THE BIND DELTA, DERIVED ──────────────────────────────────────────────────
+// ── THE BIND DELTA ───────────────────────────────────────────────────────────
 //
-// Notation. B(x) is node x's BIND rotation in the actor's model space. q(b) is
-// the clip's absolute spec-space rotation for bone b. W(b) is b's posed model
-// rotation, and W_spec(b) = W_spec(parent)·q(b) is what the code-built rig
-// would have produced. u is b's ACTUAL scene parent, which may be an unmapped
-// node — a twist bone, an armature root — that nothing ever animates and which
-// therefore keeps its rest local. m is b's SPEC parent.
+// B(x) is node x's bind rotation in the actor's model space. q(b) is the clip's
+// absolute spec-space rotation for bone b. W(b) is b's posed model rotation,
+// and W_spec(b) = W_spec(m)·q(b) is what the code-built rig produces. m is b's
+// SPEC parent; u is its ACTUAL scene parent, which may be an unmapped node — a
+// twist bone, an armature root — that nothing animates and which therefore
+// keeps its rest local.
 //
-// Both modes below solve for the same shape of answer, a fixed pair per bone:
+// Both modes solve for one fixed pair per bone:
 //
 //     local(b) = pre(b) · q(b) · post(b)
 //
-// ABSOLUTE (default). W(b) = W_spec(b). An unposed clip puts the limbs along
-// −Y facing +Z — the SPEC bind — and the mesh is skinned there from wherever
-// the auto-rigger's bind left it.
+// ABSOLUTE (default). W(b) = W_spec(b). An unposed clip returns the limbs to
+// the SPEC bind — hanging along −Y, facing +Z — and the mesh is skinned there
+// from wherever the auto-rigger's bind left it.
 //
-//     local(b) = W(u)⁻¹ · W_spec(b)   and   W(u) = W_spec(m)·B(m)⁻¹·B(u)
+//     local(b) = W(u)⁻¹ · W_spec(b),   W(u) = W_spec(m)·B(m)⁻¹·B(u)
 //     ⇒ pre = B(u)⁻¹·B(m),  post = identity
 //
-// When u is the spec parent — the ordinary case — pre collapses to identity and
-// the retarget is the name lookup docs/phase2/README.md says it is. The pair
-// only does work where the glb interposes bones the spec does not have, or
-// where the armature root carries a transform.
+// Where u IS the spec parent — the ordinary case — pre collapses to identity
+// and the retarget is a name lookup. The pair only does work where the glb
+// interposes bones the spec does not have, or where the armature root carries a
+// transform.
 //
-// ADDITIVE (`"bindMode": "additive"` in bones.json). W(b) = W_spec(b)·B(b), so
-// an unposed clip reproduces the GLB's own bind and every clip reads as a delta
+// ADDITIVE (`"bindMode": "additive"` in bones.json). W(b) = W_spec(b)·B(b): an
+// unposed clip reproduces the glb's own bind and every clip reads as a delta
 // from it.
 //
 //     local(b) = W(u)⁻¹·W(b) = B(u)⁻¹ · q(b) · B(b)
 //     ⇒ pre = B(u)⁻¹,  post = B(b)
 //
-// WHICH ONE, AND WHY IT IS NOT THE ONE PLAN-forge.md ASKS FOR. PLAN-forge.md
-// §Piece 2.3 says the correction must be "solved once such that an unposed clip
-// reproduces the glb's own bind" — that is the additive mode. Three things say
-// the default must be absolute instead:
-//
-//   • README.md §Rig contract: "Clips write ABSOLUTE rotations by bone name.
-//     Retargeting is a name lookup, not an algorithm. Unset joints return to
-//     bind" — the SPEC bind, the only bind poses.js knows about.
-//   • Additive leaves Kaida idling with her arms 45° out forever, because every
-//     clip is then measured from the A-pose the reference image was drawn in.
-//     `idle` sets upperArm_L to −0.16 rad expecting arms already at her sides.
-//   • The acceptance test both documents name is shoulder deformation on a
-//     generated mesh. Under additive the shoulder never leaves its bind and the
-//     test cannot fail. The 45° correction is the thing being tested.
-//
-// The reference images are generated at A-pose 45° "to minimise the delta"
-// (README §Pitfalls) — which only makes sense if a delta is applied. Additive
-// is kept as data because the ruling belongs to the human, not to this file.
-//
-// ── WHY RETARGET INSTEAD OF REWRITING THE SKELETON ───────────────────────────
-//
-// The tempting alternative is to zero every bone's rest rotation so the local
-// frames match the spec, and recompute the bind inverses. That renders the mesh
-// correctly at rest and wrong the instant anything moves: the vertices are still
-// laid out around the A-posed bones. The correction has to live in the write
-// path, not in the skeleton — which is what `retarget` below is.
+// The correction lives in the write path, not in the skeleton. Zeroing each
+// bone's rest rotation to match the spec frames and recomputing the bind
+// inverses renders correctly at rest and wrong the instant anything moves — the
+// vertices are still laid out around the A-posed bones.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** The 19 spec bone names, read from the spec rather than retyped. */
 export const SPEC_BONES = JOINTS.map(j => j.name);
 
-/** Spec-bone → its spec parent, for reports and for validating a bones.json. */
+/** Spec-bone → its spec parent. The retarget's `pre` term needs it. */
 const SPEC_PARENT = new Map(JOINTS.map(j => [j.name, j.parent]));
 
 /** Sanity band on the measured ankle-to-sole, in rig metres. Outside it the
- *  mesh's lowest point is probably not a boot (a hem, a dropped cape, a stray
- *  vertex) and the ground solve would inherit that error at every slope. */
+ *  mesh's lowest point is not a boot — a hem, a dropped cape, a stray vertex —
+ *  and the ground solve carries that error as a constant at every slope. */
 const SOLE_MIN = 0.02;
 const SOLE_MAX = 0.22;
 
@@ -102,15 +80,15 @@ const _box = new THREE.Box3();
 const _b3 = new THREE.Box3();
 const AXIS = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
 
-/* The flag that selects this path lives in rig.js `forgeRequest()`, so reading
-   it costs no bundle. The forge installs to `assets/` at the game root — not
-   `public/`, because Vite full-page-reloads on any publicDir change and that
-   would defeat the hot swap at the bottom of this file. See vite.config.js. */
+/* The flag is parsed in rig.js `forgeRequest()`, so reading it costs no
+   bundle. The forge installs to `assets/` at the game root, not `public/`:
+   Vite full-page-reloads on any publicDir change, which defeats the hot swap
+   at the bottom of this file. See vite.config.js.
 
-/* ── the bone map ────────────────────────────────────────────────────────────
-   DATA. The auto-rigger's names are not knowable until a rigged glb exists, so
-   nothing here may assume a convention — `suggestBoneMap` exists only to write
-   the FIRST draft of the file and to make the "no map" error actionable. */
+   ── the bone map ───────────────────────────────────────────────────────────
+   Data. The auto-rigger's names are unknowable until a rigged glb exists, so
+   nothing here assumes a convention. `suggestBoneMap` writes the first draft
+   of the file and the "no map" error text; it is never applied silently. */
 
 /** Collapse a bone name to a comparison key: case, separators and the common
  *  rig prefixes (mixamorig:, Armature|, DEF-, ORG-) and the side token dropped,
@@ -156,17 +134,14 @@ const SYNONYMS = {
 const SIDED = ['shoulder', 'upperArm', 'lowerArm', 'hand', 'upperLeg', 'lowerLeg', 'foot'];
 
 /**
- * Best-effort glb-name → spec-name suggestion. NEVER applied silently: it seeds
- * the draft `bones.json` the forge writes and the error text the loader prints.
- * A wrong guess that RUNS is worse than a hard stop, because it produces a
- * character that is subtly, unfalsifiably wrong at exactly one joint.
+ * Best-effort glb-name → spec-name suggestion, for the draft bones.json and the
+ * loader's error text.
  *
- * Scored globally rather than picked in a fixed order, because the orderings
- * conflict: `arm` matches `Bip01_L_Forearm` and `upperarm` matches it better,
- * and no single pass order gets both. Longest synonym wins, a suffix match
- * beats a substring match, and ties break on the glb's own bone order — so the
- * suggestion is deterministic, which matters because it is written to a file
- * that gets diffed.
+ * Scored globally, not picked in a fixed pass order: the orderings conflict —
+ * `arm` matches `Bip01_L_Forearm`, `upperarm` matches it better, and no single
+ * order gets both. Longest synonym wins, a suffix match beats a substring
+ * match, ties break on the glb's own bone order. Deterministic, because the
+ * output is a file that gets diffed.
  */
 export function suggestBoneMap(names) {
   const slots = [
@@ -217,13 +192,13 @@ export function resolveBoneMap(bones, mapJson) {
 }
 
 /* ── measurement ─────────────────────────────────────────────────────────────
-   Everything below is measured off the loaded glb. No constant in this file
-   describes a character; the only number is HERO_M, imported from core. */
+   Measured off the loaded glb. No constant here describes a character; the one
+   number is HERO_M, imported from core. */
 
-/** Bind bounding box of every mesh under `node`, expressed in `frame` space.
- *  At the bind pose every bone matrix is identity, so a skinned vertex lands at
- *  `mesh.matrixWorld · v` — which makes this the correct box for a SkinnedMesh
- *  without evaluating a single skin weight. */
+/** Bind bounding box of every mesh under `node`, in `frame` space. At the bind
+ *  pose every bone matrix is identity, so a skinned vertex lands at
+ *  `mesh.matrixWorld · v` — correct for a SkinnedMesh without evaluating a
+ *  single skin weight. */
 export function bindBox(node, frame, target = new THREE.Box3()) {
   target.makeEmpty();
   const inv = _m.copy(frame.matrixWorld).invert();
@@ -247,10 +222,11 @@ function bindOf(node, frame, q = new THREE.Quaternion()) {
 
 /**
  * Normalise the loaded rig: HERO_M crown-to-ground, lowest point at y = 0,
- * centred on x/z. `group` is the wrapper the gltf scene hangs under; `frame` is
- * the actor root. Any facing correction (`faceYawDeg` in bones.json) is applied
- * FIRST, so the measurement — and every bind rotation derived from it — is
- * taken in a frame where the character already faces +Z.
+ * centred on x/z. `group` is the wrapper the gltf scene hangs under, `frame`
+ * the actor root.
+ *
+ * `faceYawDeg` is applied FIRST, so the measurement — and every bind rotation
+ * derived from it — is taken in a frame where the character faces +Z.
  */
 export function normaliseRig(group, frame, { faceYawDeg = 0, heightM = HERO_M } = {}) {
   group.position.set(0, 0, 0);
@@ -277,10 +253,9 @@ export function normaliseRig(group, frame, { faceYawDeg = 0, heightM = HERO_M } 
 /**
  * Ankle-to-sole and the two leg-link lengths, in normalised rig metres.
  *
- * ground.js hardcodes SOLE = 0.08 and THIGH/SHIN off the spec table, all three
- * baked into the code-built rest pose. A generated foot matches none of them,
- * and the error is not noise — it is a CONSTANT float or sink at every slope,
- * plus a knee solve asking for a span the leg cannot reach. So measure.
+ * ground.js's SOLE, THIGH and SHIN are the code-built rest pose. A generated
+ * foot matches none of them; unmeasured, the error is a constant float or sink
+ * at every slope plus a knee solve asking for a span the leg cannot reach.
  */
 export function measureLegs(boneByName, frame) {
   const wp = (name) => boneByName.get(name).getWorldPosition(new THREE.Vector3())
@@ -289,17 +264,16 @@ export function measureLegs(boneByName, frame) {
   const hipR = wp('upperLeg_R'), kneeR = wp('lowerLeg_R'), ankR = wp('foot_R');
   const thigh = (hipL.distanceTo(kneeL) + hipR.distanceTo(kneeR)) * 0.5;
   const shin = (kneeL.distanceTo(ankL) + kneeR.distanceTo(ankR)) * 0.5;
-  /* The sole is the lowest point of the normalised rig, which normaliseRig has
-     already put at y = 0 — so the ankle's own height IS the ankle-to-sole. Take
-     the LOWER ankle: that is the foot the lowest point belongs to. */
+  /* normaliseRig has already put the lowest point at y = 0, so an ankle's own
+     height IS its ankle-to-sole. The LOWER ankle owns that lowest point. */
   const sole = Math.min(ankL.y, ankR.y);
   return { thigh, shin, sole };
 }
 
 /* ── the retarget ────────────────────────────────────────────────────────────
-   The write path every spec-space rotation goes through. poses.js and ground.js
-   call it instead of touching bone.rotation, and only when `actor.retarget`
-   exists — which is only ever true for a generated character. */
+   The write path for every spec-space rotation. poses.js and ground.js call it
+   instead of touching bone.rotation, and only when `actor.retarget` exists —
+   true for a generated character and nothing else. */
 
 export const BIND_MODES = ['absolute', 'additive'];
 
@@ -311,7 +285,7 @@ export function makeRetarget(boneByName, frame, mode = 'absolute') {
   frame.updateMatrixWorld(true);
 
   const B = (node) => (node ? bindOf(node, frame, new THREE.Quaternion()).q : new THREE.Quaternion());
-  for (const [spec, bone] of boneByName) bind.set(bone, B(bone).clone());
+  for (const bone of boneByName.values()) bind.set(bone, B(bone).clone());
 
   for (const [spec, bone] of boneByName) {
     const specParent = SPEC_PARENT.get(spec);
@@ -344,11 +318,10 @@ export function makeRetarget(boneByName, frame, mode = 'absolute') {
     /**
      * `bone.rotation.x += d`, in the spec frame.
      *
-     * On an XYZ Euler that is a PRE-multiply — Rx(x+d)·Ry·Rz = Rx(d)·(Rx·Ry·Rz)
-     * — so it is a rotation in the PARENT's frame, and in the spec bind every
-     * parent frame is the model frame. That is exactly the axis ground.js
-     * means by "flex the knee about X", and it is why this must not be a
-     * post-multiply in the glb's own bone frame.
+     * On an XYZ Euler that is a PRE-multiply: Rx(x+d)·Ry·Rz = Rx(d)·(Rx·Ry·Rz).
+     * So it rotates in the PARENT's frame, and in the spec bind every parent
+     * frame is the model frame — the axis ground.js means by "flex the knee
+     * about X". A post-multiply would use the glb's own bone frame instead.
      */
     add(bone, axis, angle) {
       if (!pre.has(bone) || !angle) return;
@@ -356,26 +329,27 @@ export function makeRetarget(boneByName, frame, mode = 'absolute') {
       bone.userData.qSpec.premultiply(_q2);
       write(bone);
     },
-    /** Model-space rotation of a bone under the current pose, for the selftest. */
+    /** Model-space rotation of a bone under the current pose. */
     modelRotation(bone, out = new THREE.Quaternion()) {
       frame.updateMatrixWorld(true);
       return bindOf(bone, frame, out).q;
     },
-    /** The bone's model-space BIND rotation — what the delta was solved from. */
+    /** The bone's model-space bind rotation, which the delta was solved from. */
     bind(bone) { return bind.get(bone); },
     mode,
   };
 }
 
 /* ── material ────────────────────────────────────────────────────────────────
-   Plain MeshStandardMaterial on the glb's own maps, and NOT the shared actor
+   Plain MeshStandardMaterial on the glb's own maps, not the shared actor
    material — which is how the uBands toon ramp at material.js:155 is bypassed.
-   The ramp was compensating for a character that had no maps at all; a
-   generated mesh ships albedo, normal and roughness, and posterising it against
-   a world rendered in continuous PBR is the pasted-on read the ramp was
-   supposed to be fixing. Built explicitly rather than reusing whatever the
-   loader returned, so a KHR extension cannot quietly hand us a
-   MeshPhysicalMaterial with a clearcoat lobe the world does not have. */
+   The ramp compensates for a character with no maps; a generated mesh ships
+   albedo, normal and roughness, and banding it against a world rendered in
+   continuous PBR is the pasted-on read the ramp exists to fix.
+
+   Built explicitly rather than reusing the loader's material, so a KHR
+   extension cannot hand back a MeshPhysicalMaterial with a clearcoat lobe the
+   world has no equivalent for. */
 export function makeGltfMaterial(src, name = 'forge-actor') {
   const m = new THREE.MeshStandardMaterial({
     color: src?.color ? src.color.clone() : new THREE.Color(0xffffff),
@@ -397,17 +371,16 @@ export function makeGltfMaterial(src, name = 'forge-actor') {
   return m;
 }
 
-/* ── the swap ────────────────────────────────────────────────────────────────
-   Everything above, applied to a live actor in place. */
+/* ── the swap ────────────────────────────────────────────────────────────── */
 
 /**
- * Tear down a previously forged body. Called before every swap, including the
- * hot one — see the note under the HMR block for why that is not optional.
+ * Tear down a previously forged body. Runs before every swap, hot ones
+ * included.
  *
- * Disposes exactly two things: the geometries under the forge group, and the
- * ONE material this file created plus its textures. It deliberately does not
- * walk `o.material` — the weapon rides the SHARED actor material owned by
- * index.js, and disposing that takes the whole cast down with it.
+ * Disposes two things: the geometries under the forge group, and the one
+ * material this file created plus its textures. It does not walk `o.material` —
+ * the weapon rides the SHARED actor material owned by index.js, and disposing
+ * that takes the whole cast with it.
  */
 export function disposeActorSource(actor) {
   const g = actor._forge;
@@ -429,8 +402,8 @@ function disposeMaterial(m) {
   m.dispose();
 }
 
-/** Lift the socket props clear of whatever is about to be destroyed. They are
- *  separate meshes on the shared material and they outlive every body swap. */
+/** Lift the socket props clear of whatever is about to be destroyed. Separate
+ *  meshes on the shared material; they outlive every body swap. */
 function detachProps(actor) {
   actor.weapon?.parent?.remove(actor.weapon);
   actor.beacon?.parent?.remove(actor.beacon);
@@ -454,9 +427,8 @@ function shedCodeBuilt(actor) {
 /**
  * Turn a loaded glb scene into this actor's body.
  *
- * Synchronous and renderer-free on purpose: `forge-selftest.mjs` drives exactly
- * this function in plain Node against a synthetic glb, which is what makes the
- * loader gateable before any 15-minute mesh generation exists.
+ * Synchronous and renderer-free, so forge-selftest.mjs can drive it in plain
+ * Node against a synthetic glb.
  *
  * @param {object} actor    the actor from buildActor()
  * @param {THREE.Object3D} gltfScene
@@ -477,9 +449,9 @@ export function applyGltfActor(actor, gltfScene, mapJson) {
       `suggested map:\n${JSON.stringify(suggestBoneMap(names), null, 2)}`);
   }
 
-  /* Props first, then the old body — in that order, or the second swap of a
+  /* Props first, then the old body. In the other order the second swap of a
      hot-reload loop disposes the weapon's geometry along with the mesh it was
-     parented to and remounts an empty. */
+     parented to, and remounts an empty. */
   detachProps(actor);
   shedCodeBuilt(actor);
   disposeActorSource(actor);
@@ -489,22 +461,20 @@ export function applyGltfActor(actor, gltfScene, mapJson) {
   group.add(gltfScene);
   actor.root.add(group);
 
-  /* Normalise to HERO_M, not to the hero's own height. The code-built rig is
-     authored at HERO_M in rig space and the per-hero height arrives as a
-     uniform root scale (rig.js, and index.js `place()` re-applies it every
-     frame); normalising to heightM here would apply that factor twice. It also
-     keeps every measurement below in the same units as ground.js's spec
-     constants. */
+  /* HERO_M, not the hero's own height. The code-built rig is authored at
+     HERO_M in rig space and per-hero height arrives as a uniform root scale
+     that index.js `place()` re-applies every frame — normalising to heightM
+     would apply it twice. It also keeps the measurements below in the same
+     units as ground.js's spec constants. */
   const norm = normaliseRig(group, actor.root, {
     faceYawDeg: mapJson?.faceYawDeg ?? 0,
     heightM: HERO_M,
   });
 
   /* Rename the mapped bones to their spec names. The engine identifies a bone
-     by spec name in five places (poses.js, ground.js ×6, gate.js, tools/rig.mjs)
-     and carrying a second naming system through all of them is how the two
-     drift apart. The glb's own name is kept on the bone for inspection, and
-     bones.json is the diffable record of what mapped to what. */
+     by spec name in poses.js, ground.js, gate.js and tools/rig.mjs; a second
+     naming system carried through all four is where the two drift apart. The
+     glb's own name stays on the bone, and bones.json is the diffable record. */
   const boneByName = new Map();
   for (const [spec, bone] of map) {
     bone.userData.gltfName = bone.userData.gltfName ?? bone.name;
@@ -543,18 +513,17 @@ export function applyGltfActor(actor, gltfScene, mapJson) {
   actor.partRanges = {};          // no aPart on a glb — Part isolation is off
   actor.tris = Math.round(tris);
   actor._forge = { group, material, scene: gltfScene, boneNames: names };
-  /* The despawn seam. index.js owns the actor list and calls this; without it a
-     forged body's geometry and textures survive every clear() and the hot-swap
-     loop climbs until the dev server is killed by memory pressure. */
+  /* The despawn seam. index.js owns the actor list and calls this; without it
+     a forged body's geometry and textures survive every clear(). */
   actor.releaseForge = () => releaseGltfActor(actor);
 
   if (legs.sole < SOLE_MIN || legs.sole > SOLE_MAX) {
-    console.warn(`[forge] ${actor.id}: ankle-to-sole measured ${legs.sole.toFixed(3)} m, outside ${SOLE_MIN}–${SOLE_MAX}. ` +
-      'The mesh\'s lowest point is probably not a boot; ground contact will carry that error at every slope.');
+    console.warn(`[forge] ${actor.id}: ankle-to-sole ${legs.sole.toFixed(3)} m, outside ${SOLE_MIN}–${SOLE_MAX}. ` +
+      'The lowest point is not a boot; ground contact carries the error at every slope.');
   }
   if (mapJson?.reviewed !== true) {
-    console.warn(`[forge] ${actor.id}: assets/${actor.id}.bones.json is not marked "reviewed": true. ` +
-      'The map was suggested, not confirmed — check it against the glb before trusting a joint.');
+    console.warn(`[forge] ${actor.id}: assets/${actor.id}.bones.json is not marked "reviewed": true — ` +
+      'the map is suggested, not confirmed.');
   }
   return actor;
 }
@@ -562,11 +531,11 @@ export function applyGltfActor(actor, gltfScene, mapJson) {
 /**
  * Sockets on the mapped bones.
  *
- * Each socket is given the bone's inverse bind rotation and inverse bind scale,
- * so at bind it has UNIT scale and IDENTITY rotation in model space — which is
- * precisely the frame the code-built rig's sockets have, and therefore the frame
- * every weapon in weaponParts() is authored against. Three swords, one socket
- * transform, no per-item offset hack: the spec's contract survives the swap.
+ * Each socket carries the bone's inverse bind rotation and inverse bind scale,
+ * so at bind it has unit scale and identity rotation in model space. That is
+ * the frame the code-built rig's sockets have and the frame every weapon in
+ * weaponParts() is authored against — three swords, one socket transform, no
+ * per-item offset.
  */
 function mountSockets(actor, boneByName, frame) {
   const out = {};
@@ -579,10 +548,9 @@ function mountSockets(actor, boneByName, frame) {
     o.quaternion.copy(q).invert();
     o.scale.setScalar(1 / (scale || 1));
     o.position.fromArray(s.offset).applyQuaternion(o.quaternion).divideScalar(scale || 1);
-    /* Same hand flip the code-built rig applies, and for the same reason: the
-       spec's socket convention says local +Y runs to the blade tip, and every
-       weapon is authored that way, but the hand's own +Y runs back up the arm.
-       Scoped to Kaida there; scoped to Kaida here. */
+    /* The hand flip rig.js applies, for the same reason: socket local +Y runs
+       to the blade tip and every weapon is authored that way, but a hand bone's
+       own +Y runs back up the arm. Scoped to Kaida in both places. */
     if (actor.build?.lofted && (s.joint === 'hand_R' || s.joint === 'hand_L')) o.rotateX(Math.PI);
     bone.add(o);
     out[name] = o;
@@ -597,10 +565,9 @@ const LIVE = new Set();
 let loader = null;
 
 /**
- * Load `req.glb` + `req.map` and swap them onto `actor`. Resolves to the actor
- * on success and to null on any failure — a failed forge leaves the code-built
- * character standing rather than blanking the screen, because a missing glb is
- * the NORMAL state of this repo until the human has run the pipeline.
+ * Load `req.glb` + `req.map` and swap them onto `actor`. Resolves to the actor,
+ * or to null on any failure: no glb is the normal state of this repo until the
+ * pipeline has been run, and a failure leaves the code-built body standing.
  */
 export async function attachGltfActor(actor, req) {
   try {
@@ -612,7 +579,7 @@ export async function attachGltfActor(actor, req) {
     if (!mapJson) {
       const names = [];
       gltf.scene.traverse(o => { if (o.isBone) names.push(o.name); });
-      console.error(`[forge] no bone map at ${req.map}. Write it — the map is DATA, never a convention this loader guesses.\n` +
+      console.error(`[forge] no bone map at ${req.map}. The map is data; this loader guesses no convention.\n` +
         `glb bones (${names.length}): ${names.join(', ')}\n` +
         `starting point:\n${JSON.stringify({ name: req.name, reviewed: false, faceYawDeg: 0, bones: suggestBoneMap(names) }, null, 2)}`);
       return null;
@@ -637,15 +604,15 @@ export function releaseGltfActor(actor) {
 }
 
 /* ── HMR ─────────────────────────────────────────────────────────────────────
-   The watcher half lives in vite.config.js — a runtime-fetched glb is not in
-   the module graph, so Vite will not watch it without an explicit add. This
-   half only exists in a dev server; `import.meta.hot` is undefined in a
-   production build and in Node, so forge-selftest.mjs imports this file
-   without ever arming a listener.
+   The watcher half is in vite.config.js: a runtime-fetched glb is not in the
+   module graph, so Vite will not watch it without an explicit add.
 
-   DISPOSE ON EVERY SWAP. This machine is 16 GB shared with Vite and Chrome and
-   the dev server has already been killed once by memory pressure; a swap loop
-   that leaks a textured mesh per save gets there in minutes. */
+   `import.meta.hot` is undefined in a production build and in Node, so this
+   listener exists only under a dev server and forge-selftest.mjs never arms it.
+
+   applyGltfActor disposes on every swap. 16 GB is shared with Vite and Chrome
+   and the dev server has already been killed once by memory pressure; leaking
+   one textured mesh per save gets back there in minutes. */
 if (import.meta.hot) {
   import.meta.hot.on('forge:character', async (data) => {
     const name = data?.name;

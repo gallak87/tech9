@@ -7,20 +7,16 @@
 //   node docs/phase2/forge.mjs docs/phase2/forge-manifest.json --only kaida --force
 //   node docs/phase2/forge.mjs docs/phase2/forge-manifest.json --list
 //
-// Same shape as ref-gen.mjs — same arg parsing, same manifest style, no
+// Same shape as ref-gen.mjs: same arg parsing, same manifest style, no
 // dependencies. Python is a spawned binary, not a second language in the
-// codebase, exactly as tools/sprite-gen.js shells out to `sips`.
+// codebase, as tools/sprite-gen.js shells out to `sips`.
 //
-// WHY THE HASH CACHE IS NOT AN OPTIMISATION
-// `mesh` is a ~15-minute Hunyuan pass on an M1 Pro and `rig` is unmeasured.
-// Without skipping, one failure in `rig` costs a full re-mesh on every single
-// retry, and the retry loop is where all the time goes when a new pipeline is
-// being stood up. `out/.hashes.json` holds sha256(input bytes + stage config)
-// per character/stage; `--force` overrides it.
+// The hash cache is not an optimisation. `mesh` is a ~15-minute Hunyuan pass on
+// an M1 Pro and `rig` is unmeasured; without skipping, one failure in `rig`
+// costs a full re-mesh on every retry. `out/.hashes.json` holds
+// sha256(input bytes + stage config) per character/stage. `--force` overrides.
 //
-// Progress goes to stdout. There is no streaming protocol and no job runner —
-// the human runs this in a terminal and reads it. See PLAN-forge.md §Out of
-// scope.
+// Progress goes to stdout. No streaming protocol, no job runner.
 
 import fs from 'node:fs';
 import path from 'node:path';
@@ -82,10 +78,9 @@ function writeHashes(h) {
   fs.writeFileSync(HASHES, `${JSON.stringify(h, null, 2)}\n`);
 }
 
-/** sha256 over every input's BYTES plus the stage's config, per PLAN-forge.md.
- *  Bytes, not mtimes: `git checkout` and a re-save both move an mtime without
- *  changing a single pixel, and a spurious 15-minute re-mesh is exactly what
- *  this exists to prevent. */
+/** sha256 over every input's BYTES plus the stage's config. Bytes, not mtimes:
+ *  a `git checkout` or a re-save moves an mtime without changing a pixel, and
+ *  the cost of a false miss here is a 15-minute re-mesh. */
 function hashInputs(inputs, config) {
   const h = crypto.createHash('sha256');
   for (const f of inputs) {
@@ -121,9 +116,9 @@ console.log(`forge · ${chars.length} character(s) × ${wanted.length} stage(s)`
 console.log(`  out    ${rel(OUT)}/`);
 console.log(`  assets ${rel(ASSETS)}/\n`);
 
-/* Every stage module, loaded once. ALL of them, not just the wanted ones —
-   `--stage install` still has to be able to say which stage produces the input
-   it is missing, and that answer comes from the other stages' own contracts
+/* Every stage module, loaded once — all of them, not just the wanted ones.
+   `--stage install` still has to name the stage that produces the input it is
+   missing, and that answer comes from the other stages' declared outputs
    rather than from a filename convention duplicated here. */
 const stages = new Map();
 try {
@@ -137,7 +132,7 @@ const hashes = readHashes();
 let ran = 0, skipped = 0, failed = 0;
 
 for (const entry of chars) {
-  const env = { manifest, dir: DIR, out: OUT, assets: ASSETS, config: {} };
+  const env = { manifest, dir: DIR, out: OUT, assets: ASSETS };
   const io = new Map();
   for (const [n, s] of stages) {
     io.set(n, {
@@ -145,7 +140,7 @@ for (const entry of chars) {
       outputs: listOf(s.outputs, entry, { ...env, config: manifest[n] || {} }),
     });
   }
-  const producerOf = (file) => [...io].find(([n, x]) => x.outputs.includes(file))?.[0];
+  const producerOf = (file) => [...io].find(([, x]) => x.outputs.includes(file))?.[0];
 
   for (const stageName of wanted) {
     const label = `${entry.name}/${stageName}`;
@@ -208,9 +203,8 @@ for (const entry of chars) {
       console.log(`  ${label.padEnd(18)} FAILED`);
       for (const line of String(err.message).split('\n')) console.log(`     ${line}`);
       failed++;
-      /* Stop this character's chain. A downstream stage fed by a missing
-         output would either blow up with a worse message or, far worse,
-         silently re-install yesterday's glb. */
+      /* Stop this character's chain: a downstream stage fed a stale output
+         silently re-installs yesterday's glb. */
       break;
     }
   }

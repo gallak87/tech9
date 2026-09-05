@@ -43,13 +43,14 @@ const ALIGN = 0.45;
  *  her. Clamping leaves a visible error on terrain we do not let her walk on. */
 const MAX_CORRECTION = 0.34;
 
-/** Bone lengths of the CODE-BUILT rig, from docs/specs/rig.mjs.
+/** Bone lengths of the CODE-BUILT rig, from docs/specs/rig.mjs. Defaults, not
+ *  constants: a forged character carries its own, measured off the glb at load
+ *  and hung on the actor as `limb` and `soleM` (gltf-actor.js `measureLegs`).
  *
- *  These are defaults, not constants. A generated character has its own leg
- *  links and its own ankle-to-sole, measured off the glb at load
- *  (gltf-actor.js `measureLegs`) and carried on the actor as `limb` and
- *  `soleM`. Leaving them hardcoded would put a fixed float or sink under every
- *  forged foot and ask the knee solve for a span the leg cannot reach. */
+ *  SOLE is 5 mm off its own rig. Kaida's boot loft bottoms at −0.075 in
+ *  foot-local space, and the foot bone sits at y 0.06 rather than the 0.08 the
+ *  spec table implies — rig.mjs sums hips.y as 0.42+0.46+0.08 but the chain
+ *  also carries upperLeg's −0.02. Pre-existing; her sole rests 5 mm high. */
 const THIGH = 0.42;
 const SHIN = 0.46;
 const SOLE = 0.08;          // ankle-to-sole, baked into the foot's rest pose
@@ -79,10 +80,10 @@ const _dir = new THREE.Vector3();
 const damp = (dt, halfLife) => 1 - Math.pow(0.5, dt / Math.max(1e-4, halfLife));
 
 /** Add to a bone's rotation about one axis, in the frame the CLIPS are authored
- *  in. On the code-built rig those are the same frame, so this is the `+=` it
- *  has always been. On a forged rig the bone's own axes are whatever the
- *  auto-rigger produced, so the delta goes through the retarget — otherwise
- *  "flex the knee about X" flexes it about some arbitrary diagonal. */
+ *  in. On the code-built rig that is the bone's own frame, so this is the `+=`
+ *  it has always been. A forged rig's bone axes are whatever the auto-rigger
+ *  produced, so the delta goes through the retarget — otherwise "flex the knee
+ *  about X" flexes it about an arbitrary diagonal. */
 const rot = (a, bone, axis, d) => {
   if (a.retarget) a.retarget.add(bone, axis, d);
   else bone.rotation[axis] += d;
@@ -194,6 +195,11 @@ export function groundActor(a, w, dt, o = {}) {
        DOWN — which is AWAY from the hip, a LONGER span. Adding dy shortened the
        leg of the foot that was already hanging and the correction measured as
        no better than doing nothing at all. */
+    /* The 0.005 ceiling costs a standing residual whenever a clip holds the
+       knee straighter than it: `idle` sits at 0.05 rad, a span of 0.8797
+       against a 0.875 ceiling, so the solve over-flexes by ~4.7 mm and holds
+       there. Inside tools/ground.mjs's 0.02 p95 band, and not free to raise —
+       a locked knee has no IK solution. */
     const wantSpan = THREE.MathUtils.clamp(
       spanNow - dy / vertical, Math.abs(l1 - l2) + 0.02 * s, (l1 + l2) - 0.005 * s);
 

@@ -111,8 +111,8 @@ export function installActors(ctx) {
     const i = actors.indexOf(a);
     if (i < 0) return false;
     actors.splice(i, 1);
-    /* A forged body owns geometry AND textures neither of the two lines below
-       reaches. Set by gltf-actor.js only when a glb actually swapped in. */
+    /* A forged body owns geometry and textures the lines below do not reach.
+       Set by gltf-actor.js, and only once a glb has actually swapped in. */
     a.releaseForge?.();
     a.beaconMat?.dispose();
     a.outlineMat?.dispose();
@@ -360,13 +360,10 @@ export function installActors(ctx) {
       group: 'rig', label: 'Cast', type: 'readout',
       get: () => `${actors.length} act  ${actors.reduce((s, a) => s + a.tris, 0)} tri`,
     });
-    /* Which body the lead actor is actually showing, and the two numbers the
-       forge measured off it. It also carries the honest caveat about Part:
-       a glb has no `aPart` attribute, so the look/Part select cannot isolate
-       anything on a generated character and silently does nothing. Said here
-       rather than by disabling the control, because devpanel.js is
-       integrator-only and this file does not get to change how a select
-       behaves. */
+    /* Which body the lead actor is showing, plus the two numbers the forge
+       measured off it. A glb has no `aPart`, so the look/Part select above is
+       inert on a forged character — read out rather than disabled, since
+       devpanel.js is integrator-only. */
     dev.register({
       group: 'rig', label: 'Source', type: 'readout',
       get: () => {

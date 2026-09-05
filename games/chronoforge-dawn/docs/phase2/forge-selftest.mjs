@@ -4,29 +4,23 @@
 //   node docs/phase2/forge-selftest.mjs
 //   node docs/phase2/forge-selftest.mjs --keep      # leave out/ in place
 //
-// WHY THIS EXISTS
+// No glb exists yet: generating one is a ~15-minute Hunyuan pass followed by an
+// auto-rig that has never been run on this machine. So the asset is
+// synthesised. This writes a spec-conformant rigged glb into out/ carrying
+// everything the loader must survive:
 //
-// No glb exists yet, no agent runs the dev server, and generating one is a
-// ~15-minute Hunyuan pass followed by an auto-rig that has never been run on
-// this machine. Shipping the loader "untested against a real asset" would mean
-// shipping it untested, full stop — and the loader is the piece every path in
-// PLAN-forge.md needs.
+//   • 19 bones under names the engine has never seen (`Bip01_L_Forearm`)
+//   • an A-pose bind, 45° at both shoulders, as the reference images are drawn
+//   • 3.7× scale and an origin 1.3 / 0.45 / −2.1 off, so nothing passes by
+//     landing on a default
+//   • an armature root yawed 180°, facing the character the wrong way
+//   • an UNMAPPED twist bone between spine_lower and spine_upper — a generated
+//     rig carries bones the spec does not, and the bind solver's parent term is
+//     what handles them
 //
-// So the asset is synthesised instead. This file writes a real, spec-conformant
-// rigged glb into out/ with everything the loader is supposed to survive:
-//
-//   • 19 bones under names the engine has never heard of (`Bip01_L_Forearm`)
-//   • an A-POSE bind, 45° at both shoulders, exactly like the reference images
-//   • a deliberately wrong scale — 3.7× — and an origin 1.3 m off in x, 0.45 m
-//     off in y, 2.1 m off in z, so nothing can pass by accident
-//   • an armature root yawed 180°, so the character faces the wrong way
-//   • an UNMAPPED twist bone spliced between spine_lower and spine_upper,
-//     because a generated rig will have bones the spec does not, and the bind
-//     solver's parent term is the only thing that handles them
-//
-// then loads it through the same GLTFLoader the browser uses and asserts the
-// map, the normalisation and the bind delta against values computed here, by a
-// second route. Node only. No browser, no network, no renderer, no WebGL.
+// then parses it through the browser's own GLTFLoader and asserts the map, the
+// normalisation and the bind delta against values computed here by a second
+// route. Node only: no browser, no network, no renderer, no WebGL.
 //
 // Exit code is the gate: 0 all-pass, 1 otherwise.
 
@@ -51,9 +45,8 @@ const OUT = path.join(HERE, 'out');
 const GLB = path.join(OUT, 'kaida-synthetic.glb');
 const KEEP = process.argv.includes('--keep');
 
-/* ── the synthetic rig's parameters ──────────────────────────────────────────
-   Every one of these is chosen to be WRONG in a way the loader must correct.
-   None of them is 1, 0, or 1.72. */
+/* Every one of these is wrong in a way the loader must correct. None is 0, 1
+   or 1.72. */
 const S = 3.7;                       // scale error
 const OFFSET = [1.3, 0.45, -2.1];    // origin error
 const YAW = Math.PI;                 // facing error — the glb faces −Z
@@ -61,9 +54,8 @@ const APOSE = Math.PI / 4;           // 45°, per docs/phase2/reference-manifest
 const R = 0.05 * S;                  // half-extent of each bone's box
 const TWIST = { y: 0.11, ry: 0.19 }; // the unmapped bone, and its rest rotation
 
-/** Bone names the engine has never seen. 3ds Max biped, which is neither the
- *  spec's convention nor Mixamo's — the point is that nothing in src/ may
- *  recognise them without the map. */
+/** 3ds Max biped names: neither the spec's convention nor Mixamo's, so nothing
+ *  in src/ can resolve them without the map. */
 const GLB_NAME = {
   hips: 'Bip01_Pelvis', spine_lower: 'Bip01_Spine', spine_upper: 'Bip01_Spine2',
   neck: 'Bip01_Neck', head: 'Bip01_Head',
@@ -94,14 +86,14 @@ function okNear(name, a, b, eps) {
   return ok(name, near(a, b, eps), `${fmt(a)} vs ${fmt(b)} (±${eps})`);
 }
 
-/** Quaternion equality up to sign — q and −q are the same rotation, and which
- *  one a decomposition hands back is not a fact about the pose. */
+/** Quaternion equality up to sign. q and −q are the same rotation, and which a
+ *  decomposition returns is not a fact about the pose. */
 function qNear(a, b, eps = 1e-5) { return Math.abs(Math.abs(a.dot(b)) - 1) <= eps; }
 
 const fmt = (v) => (typeof v === 'number' ? (Math.abs(v) < 1e4 ? v.toFixed(5) : v.toExponential(3)) : String(v));
 
 /* ── minimal glTF 2.0 binary writer ──────────────────────────────────────────
-   No dependencies, same as ref-gen.mjs's inline PNG codec. Only what a rigged
+   No dependencies, as ref-gen.mjs inlines its PNG codec. Only what a rigged
    character needs: one skinned primitive, one skin, one material. */
 
 class Bin {
@@ -152,8 +144,8 @@ const CORNERS = [
 ];
 
 function buildSynthetic() {
-  /* The node tree, built with three so the bind matrices come out of the same
-     maths the loader will use rather than out of hand-written FK. */
+  /* Built with three, so the bind matrices come out of the same maths the
+     loader uses rather than out of hand-written FK. */
   const armature = new THREE.Object3D();
   armature.name = 'Armature';
   armature.position.fromArray(OFFSET);
@@ -167,15 +159,14 @@ function buildSynthetic() {
     o.position.fromArray(j.offset);
     node.set(j.name, o);
   }
-  /* A-pose: both arms 45° out from the sides. shoulder_L sits at +X, so a
-     POSITIVE rotation about Z swings its −Y child outward; the right side
-     mirrors. This is exactly the pose reference-manifest.json prompts for. */
+  /* A-pose, both arms 45° out. shoulder_L sits at +X, so a positive rotation
+     about Z swings its −Y child outward; the right side mirrors. The pose
+     reference-manifest.json prompts for. */
   node.get('shoulder_L').rotation.z = APOSE;
   node.get('shoulder_R').rotation.z = -APOSE;
 
-  /* The unmapped twist. It takes half of spine_upper's rise and carries a rest
-     rotation of its own, so the bind solver's B(actual parent) term is doing
-     real work rather than multiplying by identity. */
+  /* The unmapped twist takes half of spine_upper's rise and carries a rest
+     rotation, so the solver's B(actual parent) term is not identity. */
   const twist = new THREE.Object3D();
   twist.name = TWIST_NAME;
   twist.position.set(0, TWIST.y, 0);
@@ -204,14 +195,13 @@ function buildSynthetic() {
     return n;
   });
 
-  /* Joints: the 19 spec bones AND the twist, because an auto-rigger skins to
-     everything it emits and the loader must tolerate joints it cannot map. */
+  /* The 19 spec bones AND the twist: an auto-rigger skins to everything it
+     emits, and the loader must tolerate joints it cannot map. */
   const jointObjs = [...JOINTS.map(j => node.get(j.name)), twist];
   const joints = jointObjs.map(o => idxOf.get(o));
 
-  /* One box per SPEC bone, in glb scene space, rigid-weighted to that bone.
-     Rigid, not smooth, because what is being tested is transforms — a smooth
-     weight would only blur the thing under test. */
+  /* One box per spec bone, in glb scene space, rigid-weighted to that bone.
+     Transforms are what is under test; a smooth weight would only blur it. */
   const pos = [], jnt = [], wgt = [], idx = [];
   const p = new THREE.Vector3();
   JOINTS.forEach((j, ji) => {
@@ -287,9 +277,8 @@ function buildSynthetic() {
     buffers: [{ byteLength: binBytes.length }],
   };
 
-  /* What the test EXPECTS, computed here from the vertex array and the three
-     scene — a second, independent route to the same numbers the loader will
-     report from the parsed glb. */
+  /* Expectations, computed from the vertex array and the three scene — a
+     second route to the numbers the loader reports from the parsed glb. */
   const rawHeight = max[1] - min[1];
   const k = HERO_M / rawHeight;
   const ankleY = node.get('foot_L').getWorldPosition(new THREE.Vector3()).y;
@@ -329,9 +318,9 @@ function newActor() {
   return { actor: buildActor({ id: 'kaida', faction: 'ally', uniforms, material }), material };
 }
 
-/** The code-built rig, posed the same way, as the reference every model-space
- *  comparison is made against. Built from the spec table, not from rig.js, so
- *  a bug in the shell authoring cannot mask a bug in the retarget. */
+/** The reference for every model-space comparison. Built from the spec table
+ *  rather than from rig.js, so a bug in the shell authoring cannot mask one in
+ *  the retarget. */
 function specReference(poseName, t) {
   const root = new THREE.Group();
   const byName = new Map();
@@ -364,7 +353,7 @@ fs.writeFileSync(GLB, glb);
 console.log(`synthetic glb: ${path.relative(process.cwd(), GLB)}  ${(glb.length / 1024).toFixed(1)} KB`);
 console.log(`  authored at ${expect.rawHeight.toFixed(3)} m tall, origin offset ${OFFSET.join(', ')}, yaw ${(YAW * 180 / Math.PI).toFixed(0)}°, A-pose ${(APOSE * 180 / Math.PI).toFixed(0)}°\n`);
 
-/* ── 1. the bone map is data, and the suggester can draft it ─────────────── */
+/* ── 1. bone map ─────────────────────────────────────────────────────────── */
 console.log('1. bone map');
 {
   const s = suggestBoneMap(boneNames);
@@ -374,18 +363,18 @@ console.log('1. bone map');
   ok('the unmapped twist bone is left unmapped', !Object.values(s).includes(TWIST_NAME));
 }
 
-/* ── 2. a missing map is a hard stop, not a guess ─────────────────────────── */
+/* an incomplete map is a hard stop, never a guess */
 {
   const gltf = await parseGlb(glb);
   const { actor } = newActor();
   let threw = null;
   try { applyGltfActor(actor, gltf.scene, { bones: { hips: GLB_NAME.hips } }); } catch (e) { threw = e; }
-  ok('an incomplete bones.json throws rather than half-mapping', !!threw);
-  ok('the error names the missing bones and lists the glb\'s own', !!threw &&
+  ok('an incomplete bones.json throws, never half-maps', !!threw);
+  ok('the error names the missing bones and the glb\'s own', !!threw &&
     threw.message.includes('spine_lower') && threw.message.includes(TWIST_NAME));
 }
 
-/* ── 3. normalisation ─────────────────────────────────────────────────────── */
+/* ── 2. normalisation ─────────────────────────────────────────────────────── */
 console.log('\n2. scale normalisation');
 let A = null;
 {
@@ -398,10 +387,9 @@ let A = null;
   ok('source height is wrong on purpose', A.sourceHeightM > 5, `${A.sourceHeightM.toFixed(3)} m`);
   okNear('normalisation factor', A.rigScale, expect.scale, 1e-6);
 
-  /* The weapon hangs off a socket on a bone INSIDE the group, so it is inside
-     the box too — and it is authored in rig metres, not in the glb's units.
-     normaliseRig measures before the sockets are mounted; this measures after,
-     so lift it out first or the assertion is about the sword. */
+  /* The weapon hangs off a socket on a bone inside the group, and is authored
+     in rig metres. normaliseRig measures before the sockets are mounted; this
+     measures after, so lift it out or the assertion is about the sword. */
   const wp = A.weapon?.parent;
   if (wp) wp.remove(A.weapon);
   const box = bindBox(A._forge.group, A.root, new THREE.Box3());
@@ -411,23 +399,23 @@ let A = null;
   okNear('centred in x', (box.min.x + box.max.x) / 2, 0, 1e-4);
   okNear('centred in z', (box.min.z + box.max.z) / 2, 0, 1e-4);
 
-  ok('the shared actor material is NOT used — uBands is bypassed',
+  ok('not the shared actor material — uBands bypassed',
     A.mesh.material !== material && A.mesh.material.userData.actorUniforms === undefined);
   ok('material is a plain MeshStandardMaterial', A.mesh.material.type === 'MeshStandardMaterial');
   ok('Part isolation is off — a glb has no aPart', Object.keys(A.partRanges).length === 0);
 }
 
-/* ── 4. measured legs — ground.js's hardcoded constants ───────────────────── */
-console.log('\n3. ankle-to-sole and leg links, measured off the glb');
+/* ── 3. measured legs, against ground.js's constants ──────────────────────── */
+console.log('\n3. ankle-to-sole and leg links, measured');
 {
   okNear('ankle-to-sole', A.soleM, expect.sole, 1e-4);
   okNear('thigh', A.limb.thigh, expect.thigh, 1e-4);
   okNear('shin', A.limb.shin, expect.shin, 1e-4);
-  ok('the measurement differs from ground.js\'s SOLE = 0.08 by enough to matter',
+  ok('measured sole differs from ground.js\'s SOLE = 0.08',
     Math.abs(A.soleM - 0.08) > 0.02, `${A.soleM.toFixed(4)} vs 0.08`);
 }
 
-/* ── 5. bind delta, ABSOLUTE — the shipping mode ──────────────────────────── */
+/* ── 4. bind delta, absolute ──────────────────────────────────────────────── */
 console.log('\n4. bind delta — absolute (default)');
 {
   ok('retarget is in absolute mode', A.retarget.mode === 'absolute');
@@ -435,7 +423,7 @@ console.log('\n4. bind delta — absolute (default)');
   for (const b of A.bones) A.retarget.set(b, 0, 0, 0);
   A.root.updateMatrixWorld(true);
   const bad = A.bones.filter(b => !qNear(A.retarget.modelRotation(b), new THREE.Quaternion(), 1e-6));
-  ok('an unposed clip puts every bone at the SPEC bind, not the A-pose', bad.length === 0,
+  ok('unposed clip → spec bind, not the A-pose', bad.length === 0,
     bad.length ? bad.map(b => b.name).join(', ') : '19/19');
 
   const ref = specReference('victory', 0.9);
@@ -445,13 +433,12 @@ console.log('\n4. bind delta — absolute (default)');
   }
   A.root.updateMatrixWorld(true);
   const off = A.bones.filter(b => !qNear(A.retarget.modelRotation(b), worldQ(ref.byName.get(b.name)), 1e-5));
-  ok('a posed clip reproduces the code-built rig in model space', off.length === 0,
+  ok('posed clip → code-built model rotations', off.length === 0,
     off.length ? off.map(b => b.name).join(', ') : '19/19 under victory@0.9');
 
-  /* ground.js's `bone.rotation.x += d`, through the retarget. On an XYZ Euler
-     that is a PRE-multiply in the parent frame; a post-multiply in the glb's
-     own bone frame would pass every test above and still bend the knee about
-     the wrong axis. */
+  /* ground.js's `bone.rotation.x += d`, through the retarget. A post-multiply
+     in the glb's own bone frame passes every assertion above and still bends
+     the knee about the wrong axis. */
   const knee = A.boneByName.get('lowerLeg_L');
   A.retarget.add(knee, 'x', 0.21);
   A.root.updateMatrixWorld(true);
@@ -459,11 +446,11 @@ console.log('\n4. bind delta — absolute (default)');
   ref.root.updateMatrixWorld(true);
   ok('retarget.add matches `rotation.x +=` on the code-built rig',
     qNear(A.retarget.modelRotation(knee), worldQ(ref.byName.get('lowerLeg_L')), 1e-5));
-  ok('and it carries down the chain to the foot',
+  ok('add carries down the chain to the foot',
     qNear(A.retarget.modelRotation(A.boneByName.get('foot_L')), worldQ(ref.byName.get('foot_L')), 1e-5));
 }
 
-/* ── 6. bind delta, ADDITIVE — PLAN-forge.md's literal reading ────────────── */
+/* ── 5. bind delta, additive ──────────────────────────────────────────────── */
 console.log('\n5. bind delta — additive (bindMode in bones.json)');
 {
   const gltf = await parseGlb(glb);
@@ -477,7 +464,7 @@ console.log('\n5. bind delta — additive (bindMode in bones.json)');
   for (const b of B.bones) B.retarget.set(b, 0, 0, 0);
   B.root.updateMatrixWorld(true);
   const drift = B.bones.filter(b => !qNear(b.quaternion, rest.get(b.userData.gltfName), 1e-9));
-  ok('an unposed clip reproduces the GLB\'s own bind, exactly', drift.length === 0,
+  ok('unposed clip → the glb\'s own bind, exactly', drift.length === 0,
     drift.length ? drift.map(b => b.name).join(', ') : '19/19');
 
   const ref = specReference('run', 0.31);
@@ -490,11 +477,11 @@ console.log('\n5. bind delta — additive (bindMode in bones.json)');
     const w = B.retarget.modelRotation(b).multiply(B.retarget.bind(b).clone().invert());
     return !qNear(w, worldQ(ref.byName.get(b.name)), 1e-5);
   });
-  ok('a posed clip applies the code-built delta on top of the glb bind', off.length === 0,
+  ok('posed clip → code-built delta on the glb bind', off.length === 0,
     off.length ? off.map(b => b.name).join(', ') : '19/19 under run@0.31');
 }
 
-/* ── 7. sockets keep the spec's one-transform contract ────────────────────── */
+/* ── 6. sockets ───────────────────────────────────────────────────────────── */
 console.log('\n6. sockets');
 {
   const gltf = await parseGlb(glb);
@@ -504,7 +491,7 @@ console.log('\n6. sockets');
 
   const head = C.sockets.head;
   const s = head.getWorldScale(new THREE.Vector3());
-  okNear('a socket has unit world scale despite the 3.7× source', s.x, 1, 1e-5);
+  okNear('socket world scale is 1 despite the 3.7× source', s.x, 1, 1e-5);
   ok('a socket is model-axis aligned at bind', qNear(worldQ(head), new THREE.Quaternion(), 1e-5));
 
   const hp = C.boneByName.get('head').getWorldPosition(new THREE.Vector3());
@@ -513,23 +500,22 @@ console.log('\n6. sockets');
     sp.y - hp.y, SOCKETS.head.offset[1], 1e-5);
 
   const flip = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), Math.PI);
-  ok('the hand socket keeps the +Y-to-tip flip the code-built rig applies',
+  ok('the hand socket keeps rig.js\'s +Y-to-tip flip',
     qNear(worldQ(C.sockets.weapon), flip, 1e-5));
-  ok('the weapon survived the body swap and is mounted', C.weapon?.parent === C.sockets.weapon);
+  ok('the weapon survives the swap and stays mounted', C.weapon?.parent === C.sockets.weapon);
 }
 
-/* ── 8. ground contact plants a forged foot ──────────────────────────────── */
-console.log('\n7. ground contact, end to end');
+/* ── 7. ground contact ───────────────────────────────────────────────────── */
+console.log('\n7. ground contact');
 {
   const flat = {
     heightAt: () => 0,
-    normalAt: (x, z, out) => out.set(0, 1, 0),
+    normalAt: (_x, _z, out) => out.set(0, 1, 0),
   };
-  /* A FROZEN clip, re-applied every step. The IK is a damped follower; against
-     a moving idle it would trail the target by a few millimetres forever and
-     the threshold below would be measuring the damping half-life rather than
-     the solve. Held at t = 0 it has a fixed point, and 300 steps is ~55
-     half-lives away from it. */
+  /* A frozen clip, re-applied every step. The IK is a damped follower: against
+     a moving idle it trails by millimetres forever and the threshold below
+     measures the half-life rather than the solve. Held at t = 0 it has a fixed
+     point, and 300 steps is ~55 half-lives from it. */
   const settle = (a) => {
     const anim = new Animator(a);
     a.anim = anim;
@@ -554,36 +540,34 @@ console.log('\n7. ground contact, end to end');
   const D = applyGltfActor(actor, gltf.scene, makeMap());
   const forgeErr = settle(D);
 
-  /* Measured RELATIVE to the code-built rig, not against an absolute number.
-     ground.js clamps wantSpan to (l1+l2) − 0.005, and `idle` holds the knee at
-     0.05 rad, which is a span of 0.8797 against a 0.875 ceiling — so the
-     code-built solve has a standing residual of its own that this file is not
-     the place to litigate. The claim under test is narrower and is the one that
-     matters: a forged rig on its MEASURED sole and MEASURED leg links plants no
-     worse than the rig Phase 2.4 already gated. */
-  ok('the CODE-BUILT rig still plants', codeErr < 0.02, `${codeErr.toFixed(4)} m residual`);
-  ok('a forged rig plants as well as the code-built one', forgeErr < codeErr + 0.0015,
+  /* Relative to the code-built rig, not against an absolute number: ground.js
+     carries a ~4.7 mm standing residual at `idle` from its wantSpan clamp,
+     which is recorded there and is not this file's to litigate. The claim under
+     test is that a forged rig on its measured sole and measured leg links
+     plants no worse than the rig Phase 2.4 already gated. */
+  ok('code-built rig still plants', codeErr < 0.02, `${codeErr.toFixed(4)} m residual`);
+  ok('forged rig plants no worse than code-built', forgeErr < codeErr + 0.0015,
     `forged ${forgeErr.toFixed(4)} m vs code-built ${codeErr.toFixed(4)} m`);
-  ok('and leaving ground.js\'s SOLE hardcoded would have sunk it',
+  ok('a hardcoded SOLE would have sunk it',
     Math.abs(0.08 - D.soleM) > 0.02, `${((0.08 - D.soleM) * 1000).toFixed(0)} mm of constant error`);
 }
 
-/* ── 9. the code-built path is untouched ─────────────────────────────────── */
+/* ── 8. the code-built path ──────────────────────────────────────────────── */
 console.log('\n8. the code-built path');
 {
   const { actor: a } = newActor();
   ok('an unflagged actor is code-built', a.source === 'code');
-  ok('it has no retarget — poses.js writes straight to the bone', !a.retarget);
-  ok('it has no measured sole — ground.js falls back to the spec', a.soleM === undefined);
-  ok('it still carries aPart for the dev panel\'s Part isolation', !!a.mesh.geometry.getAttribute('aPart'));
-  ok('it still has 19 bones and its part ranges', a.bones.length === 19 && !!a.partRanges.head);
+  ok('no retarget — poses.js writes straight to the bone', !a.retarget);
+  ok('no measured sole — ground.js falls back to the spec', a.soleM === undefined);
+  ok('still carries aPart for Part isolation', !!a.mesh.geometry.getAttribute('aPart'));
+  ok('still 19 bones and its part ranges', a.bones.length === 19 && !!a.partRanges.head);
   const anim = new Animator(a);
   anim.play('victory', { fade: 0 });
   anim.update(0.4);
   const ref = specReference('victory', 0.4);
   a.root.updateMatrixWorld(true);
   const off = a.bones.filter(b => !qNear(worldQ(b), worldQ(ref.byName.get(b.name)), 1e-6));
-  ok('and it still poses exactly as the spec table says', off.length === 0,
+  ok('still poses exactly as the spec table says', off.length === 0,
     off.length ? off.map(b => b.name).join(', ') : '19/19');
 }
 

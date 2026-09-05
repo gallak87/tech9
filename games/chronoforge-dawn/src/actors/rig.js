@@ -423,15 +423,13 @@ export function buildActor({ id = 'kaida', faction = 'ally', uniforms, material 
   };
 
   /* ── the forge branch ─────────────────────────────────────────────────────
-     A generated character is a runtime fetch, so it cannot be built inside a
-     synchronous constructor. The code-built body is therefore built ALWAYS and
-     the glb swaps onto it when it lands — which is not a workaround, it is the
-     behaviour we want: a missing, unrigged or unmappable glb leaves a real
-     character standing instead of a hole in the scene, and that is the normal
-     state of this repo until the human has run the pipeline by hand.
+     A generated character is a runtime fetch and cannot be built inside a
+     synchronous constructor. The code-built body is built ALWAYS and the glb
+     swaps onto it when it lands, so a missing, unrigged or unmappable glb
+     leaves a character standing rather than a hole in the scene.
 
-     Dynamically imported so GLTFLoader never enters the bundle for the 100% of
-     page loads that do not pass ?forge=. See src/actors/gltf-actor.js. */
+     Dynamically imported, so GLTFLoader stays out of the bundle for every page
+     load that does not pass ?forge=. See src/actors/gltf-actor.js. */
   const req = forgeRequest(id);
   if (req) {
     a.forgeReady = import('./gltf-actor.js')

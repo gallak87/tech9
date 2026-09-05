@@ -1,42 +1,42 @@
 {
-  "_what": "Drives docs/phase2/forge.mjs. Same shape as reference-manifest.json: prose lives in _-prefixed keys so the file stays readable without a second doc that can drift from it.",
+  "_what": "Drives docs/phase2/forge.mjs. Same shape as reference-manifest.json: prose lives in _-prefixed keys, so there is no second doc to drift from.",
 
-  "_scope": "KAIDA ONLY. Vex, Rune and the grunt wait until she is signed off — docs/phase2/README.md §Rules that must not drift, rule 1. Their refs already exist; adding them here is a human decision, not a convenience.",
+  "_scope": "KAIDA ONLY until she is signed off — docs/phase2/README.md §Rules that must not drift, rule 1. The other refs exist; adding them here is a human decision.",
 
   "out": "out",
-  "_out": "Working directory for intermediate meshes and the stage hash cache. Gitignored — a 15-minute regeneration is cheaper than a churning binary in git history.",
+  "_out": "Intermediate meshes and the stage hash cache. Gitignored: a 15-minute regeneration costs less than a churning binary in git history.",
 
   "assets": "../../assets",
-  "_assets": "Where `install` puts the character the game actually loads: assets/<name>.glb + assets/<name>.bones.json, at the GAME ROOT, not public/. Vite full-page-reloads on any publicDir change, which would defeat the hot swap. See vite.config.js.",
+  "_assets": "Where `install` puts what the game loads: assets/<name>.glb + assets/<name>.bones.json, at the game root, not public/. Vite full-page-reloads on any publicDir change, defeating the hot swap. See vite.config.js.",
 
   "stages": ["mesh", "rig", "install"],
-  "_stages": "Run in this order. Each skips when every output exists and sha256(input bytes + that stage's config below) matches out/.hashes.json. --force overrides.",
+  "_stages": "Run in order. Each skips when every output exists and sha256(input bytes + that stage's config below) matches out/.hashes.json. --force overrides.",
 
-  "_venv": "Python 3.10, NOT the system 3.14: the Hunyuan MLX port tests on 3.10 and torch's cp314 wheel is not what it was built against (README §Stage 1). Both stages below refuse to guess at a CLI nobody has run — they print the exact command instead.",
+  "_venv": "Python 3.10, not the system 3.14: the Hunyuan MLX port tests on 3.10, and torch's cp314 wheel is not what it was built against (README §Stage 1). Both stages below print their intended command rather than guess at a CLI nobody has run.",
   "venv": "~/.venvs/forge310",
 
   "mesh": {
     "_model": "Hunyuan3D-2.1 via the MLX port — https://github.com/dgrauet/Hunyuan3D-2.1-mlx",
-    "_precision": "INT8 ≈ 6 GB peak. FP16 ≈ 10 GB is too tight on 16 GB unified with Vite and Chrome resident; INT4 ≈ 4 GB is the fallback if INT8 thrashes. README §Stage 1 has the table and the models already ruled out — do not re-investigate TRELLIS, Stable Fast 3D, TripoSR or any paid service.",
+    "_precision": "INT8 ≈ 6 GB peak. FP16 ≈ 10 GB is too tight on 16 GB unified with Vite and Chrome resident; INT4 ≈ 4 GB is the fallback if INT8 thrashes. README §Stage 1 carries the table and the models already ruled out: TRELLIS, Stable Fast 3D, TripoSR, any paid service.",
     "repo": "~/src/Hunyuan3D-2.1-mlx",
     "precision": "int8",
     "views": 6,
     "textureSize": 512,
-    "_duration": "~9 min for 6 views at 512 on an M2 Pro; expect longer on an M1 Pro. Wall-clock is not a constraint — unattended overnight runs are the intended mode."
+    "_duration": "~9 min for 6 views at 512 on an M2 Pro; longer on an M1 Pro. Wall-clock is not a constraint — unattended overnight runs are the intended mode."
   },
 
   "rig": {
     "_model": "UniRig — https://github.com/VAST-AI-Research/UniRig. SIGGRAPH 2025, VAST-AI. Predicts skeleton hierarchy AND per-vertex skinning weights. Components are released progressively; verify what actually exists before assuming this stage can run at all.",
-    "_fallback": "Mixamo's free auto-rigger is a manual browser fallback. It still feeds `install` — drop its output at out/<name>-rigged.glb and run `--stage install`.",
-    "_acceptance": "The test is DEFORMATION, not load success. Rig, pose to `victory`, look at the shoulder. Generated topology has no edge loops at joints; if the weights collapse there, the mesh is the ceiling and not the loader.",
+    "_fallback": "Mixamo's free auto-rigger is the manual browser fallback, and still feeds `install`: drop its output at out/<name>-rigged.glb and run `--stage install`.",
+    "_acceptance": "The test is DEFORMATION, not load success. Rig, pose to `victory`, look at the shoulder. Generated topology has no edge loops at joints; weights that collapse there put the ceiling in the mesh, not the loader.",
     "repo": "~/src/UniRig",
     "skeleton": "humanoid"
   },
 
   "install": {
     "_what": "In-process, under a second. Copies the rigged glb into assets/ and writes the bone map beside it.",
-    "_map": "The map is DATA. install SUGGESTS it from the glb's own joint names and marks it \"reviewed\": false; the loader warns until a human sets that to true. A wrong guess that runs produces a character that is subtly, unfalsifiably wrong at exactly one joint — worse than a hard stop.",
-    "_bindMode": "Omitted, so the loader defaults to \"absolute\": an unposed clip returns the limbs to the SPEC bind, hanging along −Y. Set \"additive\" in the bones.json to measure every clip from the glb's own A-pose instead. See the header of src/actors/gltf-actor.js for why absolute is the default and where PLAN-forge.md disagrees.",
+    "_map": "The map is data. install suggests it from the glb's own joint names and marks it \"reviewed\": false; the loader warns until that is true. An unreviewed guess produces a character wrong at exactly one joint.",
+    "_bindMode": "Omitted, so the loader defaults to \"absolute\": an unposed clip returns the limbs to the spec bind, hanging along −Y. \"additive\" in the bones.json measures every clip from the glb's own A-pose instead. See the header of src/actors/gltf-actor.js.",
     "faceYawDeg": 0
   },
 
@@ -44,7 +44,7 @@
     {
       "name": "kaida",
       "ref": "ref/kaida-painterly.png",
-      "_ref": "Human-selected over kaida-plain.png: its legs carry a visible gap, and `plain` merges the thighs into one mass that reconstruction fuses into a single limb."
+      "_ref": "Human-selected over kaida-plain.png: its legs carry a visible gap. `plain` merges the thighs into one mass, which reconstruction fuses into a single limb."
     }
   ]
 }

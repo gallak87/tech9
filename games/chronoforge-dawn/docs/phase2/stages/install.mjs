@@ -1,32 +1,29 @@
 // Stage 3 — rigged glb → the character the game loads.
 //
-// Under a second, in process, no Python. It does three things:
+// Under a second, in process, no Python:
 //
-//   1. reads the rigged glb's own joint names, straight out of the GLB's JSON
-//      chunk (inline parser, no dependencies — same call as ref-gen.mjs's
-//      inline PNG codec)
-//   2. writes assets/<name>.bones.json — a SUGGESTED map, marked
-//      "reviewed": false, never a silently-applied guess
-//   3. copies the glb into assets/ atomically
+//   1. read the joint names out of the GLB's JSON chunk (inline parser, no
+//      dependencies, as ref-gen.mjs inlines its PNG codec)
+//   2. write assets/<name>.bones.json — a suggested map marked
+//      "reviewed": false, never a silently applied guess
+//   3. copy the glb into assets/ atomically
 //
-// ORDER AND ATOMICITY ARE LOAD-BEARING. vite.config.js watches this directory
-// and the client hot-swaps on any change. Writing the glb in place would let
-// the loader fetch a half-written file, and writing the glb before the map
-// would open a window where a new mesh is paired with yesterday's names. So:
-// map first, then a temp file renamed into place, which the watcher sees as one
-// event on a complete file.
+// Order and atomicity are load-bearing. vite.config.js watches this directory
+// and the client hot-swaps on any change: writing the glb in place lets the
+// loader fetch a half-written file, and writing it before the map opens a
+// window where a new mesh is paired with yesterday's names. Map first, then a
+// temp file renamed into place — one watcher event, on a complete file.
 //
-// The suggester is IMPORTED from src/actors/gltf-actor.js rather than copied.
-// The map is the contract between this stage and the loader; two copies of the
-// heuristic that writes it is exactly the drift the runnable-spec structure
-// exists to prevent.
+// The suggester is imported from src/actors/gltf-actor.js. The map is the
+// contract between this stage and the loader; a second copy of the heuristic
+// that writes it is where the two drift.
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { suggestBoneMap, SPEC_BONES } from '../../../src/actors/gltf-actor.js';
 
-/** The JSON chunk of a GLB. Enough of the container to read node and skin
- *  names; deliberately not a glTF parser. */
+/** The JSON chunk of a GLB — enough of the container to read node and skin
+ *  names. Not a glTF parser. */
 function readGlbJson(bytes) {
   if (bytes.length < 20 || bytes.readUInt32LE(0) !== 0x46546c67) {
     throw new Error('not a GLB — the rig stage wrote something else, or the file is truncated');
@@ -74,11 +71,10 @@ export default {
     ctx.log(`${names.length} joints: ${names.join(', ')}`);
 
     /* ── the map ──────────────────────────────────────────────────────────
-       A map the human has signed off is never overwritten, not even by
-       --force: --force means "redo the work", not "throw away the review".
-       Every entry is still re-validated against the new glb, because a
-       re-rig can rename or drop a bone and a stale entry is the one failure
-       mode that produces a character wrong at exactly one joint. */
+       A signed-off map is never overwritten, --force included: --force means
+       redo the work, not discard the review. Every entry is still re-validated
+       against the new glb — a re-rig can rename or drop a bone, and a stale
+       entry produces a character wrong at exactly one joint. */
     ctx.progress(0.4, 'bone map');
     let prev = null;
     try { prev = JSON.parse(fs.readFileSync(mapOut, 'utf8')); } catch { /* first run */ }
@@ -92,11 +88,11 @@ export default {
 
     const map = {
       name: ctx.name,
-      _map: 'glb bone name per spec bone. DATA, not a convention the loader guesses. '
-        + 'Check every line against the mesh, then set "reviewed": true — until you do, the loader warns on every load.',
+      _map: 'glb bone name per spec bone. Data, not a convention the loader guesses. Check every '
+        + 'line against the mesh, then set "reviewed": true; until then the loader warns on load.',
       reviewed: keep ? true : false,
-      _bindMode: 'absolute (default): an unposed clip returns the limbs to the SPEC bind, hanging along -Y. '
-        + '"additive" measures every clip from the glb\'s own A-pose instead. See src/actors/gltf-actor.js.',
+      _bindMode: 'absolute (default): an unposed clip returns the limbs to the spec bind, hanging along -Y. '
+        + '"additive" measures every clip from the glb\'s own A-pose. See src/actors/gltf-actor.js.',
       faceYawDeg: prev?.faceYawDeg ?? ctx.config.faceYawDeg ?? 0,
       source: path.basename(src),
       joints: names,
@@ -119,16 +115,13 @@ export default {
       ctx.log(`suggested ${SPEC_BONES.length - missing.length}/${SPEC_BONES.length}. Check them, then set "reviewed": true in ${ctx.rel(mapOut)}.`);
     }
     if (missing.length) {
-      /* Written, then refused. The half-map on disk is the thing the human
-         edits; failing without writing it would make them start from nothing. */
+      /* Written, then refused: the half-map on disk is what gets edited. */
       throw new Error(`${missing.length} spec bone(s) unmatched: ${missing.join(', ')}\n`
         + `The map is at ${ctx.rel(mapOut)} with everything that DID match. Fill in the rest by hand\n`
         + 'from the joint list above, set "reviewed": true, and re-run with --force.');
     }
 
-    /* ── the glb ──────────────────────────────────────────────────────────
-       Temp file then rename: the dev-server watcher must never see a
-       partially written glb, and a rename is one event on a complete file. */
+    /* Temp file then rename: the watcher must never see a partial glb. */
     ctx.progress(0.8, `installing ${(bytes.length / 1024 / 1024).toFixed(2)} MB`);
     const tmp = `${glbOut}.tmp`;
     fs.writeFileSync(tmp, bytes);

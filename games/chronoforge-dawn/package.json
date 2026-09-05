@@ -16,7 +16,9 @@
     "forge:setup": "bash docs/phase2/setup-3dgen.sh",
     "forge:smoke": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/smoke.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
     "forge:shape": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/kaida-shape.glb --shape-only",
-    "forge:full": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/kaida.glb"
+    "forge:full": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/kaida.glb",
+    "forge:smoke-raw": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly-raw.png --output docs/phase2/out/smoke-raw.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
+    "forge:smoke-keyed": "$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly-g1.png --output docs/phase2/out/smoke-keyed.glb --shape-only --steps 8 --octree-resolution 128 --verbose"
   },
   "dependencies": {
     "three": "^0.185.1"

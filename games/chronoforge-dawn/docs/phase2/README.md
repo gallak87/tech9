@@ -125,6 +125,21 @@ existing clips drive it unchanged.
 Stage 1 alone therefore cannot reach the game. `stages/install.mjs` takes
 `out/<name>-rigged.glb`, and the loader needs bones.
 
+## Importing a rigged FBX
+
+```bash
+bash docs/phase2/rig-import.sh <file.fbx> [name]
+```
+
+Converts through Blender headless, registers the name in the manifest, and
+installs to `assets/`. Name defaults to `kaida`, the character the loader
+drives; any other name needs `?forge=kaida:<name>`.
+
+Animation is dropped on import. The game's own clips drive the skeleton.
+
+Check the suggested bone map in `assets/<name>.bones.json`, then set
+`"reviewed": true`.
+
 ## Doing it
 
 **Mixamo first.** Free, web, upload a mesh and download it rigged. It answers

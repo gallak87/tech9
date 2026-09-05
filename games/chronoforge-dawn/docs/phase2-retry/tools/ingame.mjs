@@ -69,12 +69,23 @@ await page.waitForTimeout(2500);   // let one clip settle after the swap
    Space/C/V/H to the action clips, so holding a key exercises the real path:
    Animator → retarget → skin → screen. Posing the rig directly would skip the
    very layers the render defect lived in. */
+// `hold` is how long the input runs BEFORE the shot, with the key still down.
+//
+// The camera follows on a spring, so a short hold catches the character mid-lag
+// — small, off to one edge, half the frame empty sand. The fix is to hold
+// longer, NOT to release and let things settle: releasing first decelerates her
+// to a stop, and `walk` and `sprint` come back showing a character standing
+// still, seen from behind. The shot has to be taken while the key is down.
 const MOVES = [
   { name: 'idle', keys: [], hold: 1200 },
-  { name: 'walk', keys: ['KeyW'], hold: 1400 },
-  { name: 'sprint', keys: ['KeyW', 'ShiftLeft'], hold: 1600 },
-  { name: 'turn-left', keys: ['KeyW', 'KeyA'], hold: 1400 },
-  { name: 'strafe-right', keys: ['KeyD'], hold: 1200 },
+  // The faster the state, the further the camera trails, so the harder ones get
+  // a longer hold rather than a different crop. A turn trails worst: the spring
+  // is chasing a yaw as well as a position, and a short hold puts her at the
+  // frame edge with her head clipped.
+  { name: 'walk', keys: ['KeyW'], hold: 3200 },
+  { name: 'sprint', keys: ['KeyW', 'ShiftLeft'], hold: 5000 },
+  { name: 'turn-left', keys: ['KeyW', 'KeyA'], hold: 6000 },
+  { name: 'strafe-right', keys: ['KeyD'], hold: 2800 },
   { name: 'attack', keys: [], tap: 'Space', hold: 420 },
   { name: 'cast', keys: [], tap: 'KeyC', hold: 520 },
   { name: 'victory', keys: [], tap: 'KeyV', hold: 700 },
@@ -84,15 +95,19 @@ const MOVES = [
 const written = [];
 if (CFG.moves) {
   await page.locator('canvas').first().click({ position: { x: 20, y: 20 } }).catch(() => {});
+  // Half of every cell was empty sand at the default 18 m. The subject of these
+  // shots is the character, not the terrain.
+  await page.evaluate((z) => window.__DAWN__?.rig && (window.__DAWN__.rig.frameHeight = z), 2.6)
+    .catch(() => {});
   for (const m of MOVES) {
     for (const k of m.keys) await page.keyboard.down(k);
     if (m.tap) await page.keyboard.press(m.tap);
     await page.waitForTimeout(m.hold);
     const f = path.join(CFG.out, `${CFG.forge}-${m.name}.png`);
-    await page.screenshot({ path: f });
+    await page.screenshot({ path: f });      // while the key is still down
     written.push(f);
     for (const k of m.keys) await page.keyboard.up(k);
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(400);          // come to rest before the next state
   }
 }
 
@@ -116,7 +131,7 @@ if (CFG.moves && written.length) {
     .g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:0 12px 12px}
     figure{margin:0}
     img{width:100%;display:block;border:1px solid #343840;
-        object-fit:cover;aspect-ratio:44/76;object-position:50% 26%}
+        object-fit:cover;aspect-ratio:46/64;object-position:50% 42%}
     figcaption{color:#96c8eb;padding:7px 2px 0}
   </style><h1>${CFG.forge.toUpperCase()} — in-game</h1><div class="g">${cells}</div>`);
   sheet = path.join(CFG.out, `${CFG.forge}-contact-sheet.png`);

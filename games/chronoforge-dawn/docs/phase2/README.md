@@ -38,20 +38,21 @@ merges the thighs into one mass, which reconstruction fuses into a single limb.
 
 ---
 
-# Resolved: the 2.0.2 mesh-source decision
+# Phase 2.0.2 — resolved
 
-`GAME_PLAN.md` Phase 2.0.2 and `STATUS.json` still read **BLOCKED ON HUMAN**.
-They are stale.
+2.0.2 blocked on a human decision: code-built mesh, or a generated model file.
 
-**Ruled 2026-09-04: Kaida's mesh is GENERATED, not code-built.** The
-binary-asset ban in `PROMPT-chronoforge-dawn.md` is overturned for character
-meshes and their textures; it stands for procedural world materials
-(`src/render/textures.js`).
+**Ruled 2026-09-04: GENERATED.** The binary-asset ban in
+`PROMPT-chronoforge-dawn.md` is overturned for character meshes and their
+textures. It stands for procedural world materials (`src/render/textures.js`).
 
-Reason: rigid skinning cannot close joint gaps, and hand-authoring
-cross-section tables does not scale to four characters under 5-hour sessions.
+Reason: rigid skinning cannot close joint gaps, and hand-authored cross-section
+tables do not scale to four characters under 5-hour sessions.
 
-**Next agent must update `GAME_PLAN.md` and `STATUS.json` to match.**
+This work unblocks 2.1 and **supersedes 2.1–2.3 as written**. Those phases
+specify cross-section station tables, a geobuild port, and per-part silhouette
+passes — all of which assume code-built geometry. Rewrite them against the
+stages below before executing them.
 
 ---
 

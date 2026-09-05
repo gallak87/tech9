@@ -86,18 +86,20 @@ RULED 2026-09-04: Kaida's mesh is GENERATED, not code-built. The binary-asset ba
 
 ### Phase 2.1 — Art Re-Spec, Kaida
 Agents: `art`
-Unblocked by 2.0.2. Supersession note: cross-section station tables are moot for a generated mesh — see docs/phase2/README.md before starting.
+Unblocked by 2.0.2, and SUPERSEDED BY IT. 2.1-2.3 all assume code-built geometry; a generated mesh makes station tables, the geobuild port and per-part silhouette passes moot. Rewrite 2.1-2.3 against docs/phase2/README.md before executing them.
 
 art re-authors the rig spec from Kaida's own six sprites: cross-section station tables for torso and limbs (rx/ry/p per station, geobuild's format), head and hair volumes, proportions including head-to-height ratio, and her palette read off the sprites rather than invented. Deletes the IFF chest triangle — friend/foe read is deferred and must not be a badge on her chest.
 QA gate: the spec ships as runnable station tables geobuild can consume directly, not prose. Report must ship the artifact.
 
 ### Phase 2.2 — geobuild Port
+SUPERSEDED by 2.0.2 — assumes code-built geometry. See docs/phase2/README.md.
 Agents: `dev`
 
 Lift games/vulpine/src/render/geobuild.js into src/render/. It is a clean take — imports only THREE and mergeGeometries, zero vulpine coupling — and it carries loft(), superellipse(count, rx, ry, p), chamferBox(), extrudePoly(), tubeAlong(), shellArc(), mirrorX(). The `p` exponent is the box-to-round knob: p=2 ellipse, p=4 rounded rectangle, p to infinity box. That is the primitive src/actors/rig.js does not have.
 QA gate: a lofted limb builds and renders; tools/rig.mjs --selftest still exits 0; frame budget holds.
 
 ### Phase 2.3 — Kaida, Silhouette Then Detail
+SUPERSEDED by 2.0.2 — assumes code-built geometry. See docs/phase2/README.md.
 Agents: `dev`, `art`, human gate
 
 Two passes, per human decision. PASS 1: whole body as rough lofted masses, one sign-off — proportion and silhouette judged in a single look, because proportion is the thing that cannot be fixed later. PASS 2: head, hair, torso, arms, legs, sword — one sign-off each. Rig viewer gains part isolate, turntable, and an A/B toggle against the last accepted version of that part.

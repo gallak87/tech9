@@ -441,6 +441,9 @@ export function buildActor({ id = 'kaida', faction = 'ally', uniforms, material 
 }
 
 /** `?forge=kaida` (or `?forge=1`, which means kaida — Phase 2 is KAIDA ONLY).
+ *  `?forge=kaida:kaida-not` drives the character `kaida` from a differently
+ *  named asset, which is how a stand-in rig is tested without occupying the
+ *  slot the real one will use.
  *  Parsed here rather than in gltf-actor.js so the flag can be read without
  *  pulling GLTFLoader into the bundle. Absent flag → code-built, always. */
 function forgeRequest(id) {
@@ -448,13 +451,18 @@ function forgeRequest(id) {
   const v = new URLSearchParams(location.search).get('forge');
   if (!v) return null;
   const want = v === '1' || v === 'true' ? ['kaida'] : v.split(',').map(x => x.trim());
-  if (!want.includes(id)) return null;
   const base = typeof document !== 'undefined' ? document.baseURI : './';
-  return {
-    name: id,
-    glb: new URL(`assets/${id}.glb`, base).href,
-    map: new URL(`assets/${id}.bones.json`, base).href,
-  };
+  for (const entry of want) {
+    const [wantId, asset] = entry.split(':').map(x => x.trim());
+    if (wantId !== id) continue;
+    const file = asset || id;
+    return {
+      name: file,
+      glb: new URL(`assets/${file}.glb`, base).href,
+      map: new URL(`assets/${file}.bones.json`, base).href,
+    };
+  }
+  return null;
 }
 
 /** The spec's own tolerance, re-exported so callers do not invent a second one. */

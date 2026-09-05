@@ -121,6 +121,43 @@ fp16. `seed` is not passed, so runs are not reproducible.
 
 ---
 
+# Rigged import
+
+```bash
+bash docs/phase2/rig-import.sh <file.fbx> [name]
+```
+
+Blender headless FBX → GLB, registers the name in the manifest, installs to
+`assets/`. Name defaults to `kaida`. Animation is dropped; the game's clips
+drive the skeleton.
+
+Then check `assets/<name>.bones.json` and set `"reviewed": true`. A re-import
+keeps a reviewed map when every mapped bone still exists.
+
+`?play=1&dev=1&forge=kaida` loads it. `?forge=kaida:<name>` drives the character
+`kaida` from a differently named asset.
+
+## Two things this had to solve
+
+**Sanitised bone names.** `GLTFLoader` turns spaces into underscores and drops
+`. : / [ ]`, so a rig authored as `mixamorig:Hips` arrives as `mixamorigHips`.
+`bones.json` is written from the raw glTF JSON where the colon survives, so
+every Mixamo rig mapped 0/19 and fell back to code-built. `resolveBoneMap`
+indexes both spellings.
+
+**Unit mismatch.** Mixamo FBX carries a unit scale Blender applies to object
+transforms but not to bone translations — mesh in metres, skeleton in
+centimetres. `fbx2glb.py` bakes object scale into the data. Without it the
+loader measures a 4 mm character and scales it ×437.
+
+## TODO for the next agent
+
+Wire an npm script with parameters, so imports are not a bare bash invocation.
+Cover both `kaida` and `kaida-not` — the Mixamo stand-in — since two entries
+prove the parameterisation rather than hardcoding one.
+
+---
+
 # Untuned
 
 | Knob | Now | Note |

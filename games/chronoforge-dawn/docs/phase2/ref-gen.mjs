@@ -22,14 +22,15 @@ import fs   from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 
-const [manifestPath] = process.argv.slice(2).filter(a => !a.startsWith('--'));
+const argv    = process.argv.slice(2);
+const onlyIdx  = argv.indexOf('--only');
+const only     = onlyIdx !== -1 ? argv[onlyIdx + 1] : null;
+// Drop flags and their values, so the manifest can sit anywhere in the line.
+const manifestPath = argv.filter((a, i) => !a.startsWith('--') && i !== onlyIdx + 1)[0];
 if (!manifestPath) {
-  console.error('usage: node ref-gen.mjs <manifest.json> [--only <name>] [--keep-raw]');
+  console.error('usage: node ref-gen.mjs <manifest.json> [--only <name>]');
   process.exit(1);
 }
-const onlyIdx  = process.argv.indexOf('--only');
-const only     = onlyIdx !== -1 ? process.argv[onlyIdx + 1] : null;
-const keepRaw  = process.argv.includes('--keep-raw');
 
 const manifest    = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const manifestDir = path.dirname(path.resolve(manifestPath));
@@ -210,8 +211,6 @@ for (const { ref, variant } of jobs) {
     const png = await generate(ref, prompt);
     process.stdout.write(`${((Date.now() - t0) / 1000).toFixed(0)}s · keying ... `);
 
-    if (keepRaw) fs.writeFileSync(outPath.replace(/\.png$/, '-raw.png'), png);
-
     const img = decodePNG(png);
     const { rgba, keyed, partial, total } = keyGreen(img, ref.key);
     fs.writeFileSync(outPath, encodePNG(rgba, img.width, img.height));
@@ -220,9 +219,17 @@ for (const { ref, variant } of jobs) {
     console.log(`${img.width}×${img.height}, ${pct.toFixed(0)}% keyed, ${partial} edge px`);
 
     // A silhouette outside this band means the key failed, and a bad mask is the
-    // one input error image-to-3D cannot recover from.
-    if (pct < 15)      console.log(`     ⚠ only ${pct.toFixed(0)}% keyed — background probably isn't green. Open the PNG.`);
-    else if (pct > 88) console.log(`     ⚠ ${pct.toFixed(0)}% keyed — the character may have been keyed away. Raise key.low.`);
+    // one input error image-to-3D cannot recover from. Keep the unkeyed render
+    // ONLY here — it is the sole way to tell a bad render from a bad key, and
+    // saving it every time is clutter for a case that mostly does not happen.
+    if (pct < 15 || pct > 88) {
+      const rawPath = outPath.replace(/\.png$/, '-raw.png');
+      fs.writeFileSync(rawPath, png);
+      console.log(pct < 15
+        ? `     ⚠ only ${pct.toFixed(0)}% keyed — background probably isn't green.`
+        : `     ⚠ ${pct.toFixed(0)}% keyed — the character may have been keyed away; raise key.low.`);
+      console.log(`     unkeyed render saved → ${path.basename(rawPath)}`);
+    }
   } catch (err) {
     failed++;
     console.log(`FAILED\n     ${err.message}`);

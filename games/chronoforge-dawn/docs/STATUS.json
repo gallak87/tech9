@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
   "phase": 2.02,
-  "phaseName": "Character pipeline. Generated mesh loads and animates; auto-rig unsolved. docs/phase2/",
+  "phaseName": "Character pipeline. Generated mesh loads and animates; auto-rig unsolved. docs/phase2-retry/",
   "updated": "2026-09-05",
   "devServer": {
     "port": 5190,
@@ -702,10 +702,10 @@
     "ruled": "2026-09-04",
     "policy": "Binary-asset ban overturned for character meshes and their textures. Stands for procedural world materials (src/render/textures.js).",
     "why": "Rigid skinning cannot close joint gaps, and hand-authored cross-section tables do not scale to four characters.",
-    "spec": "docs/phase2/README.md"
+    "spec": "docs/phase2-retry/README.md"
   },
   "pipeline": {
-    "referenceGeneration": "ok — docs/phase2/ref-gen.mjs",
+    "referenceGeneration": "ok — docs/phase2-retry/ (reference generation not yet ported)",
     "imageToMesh": "ok — Hunyuan3D-2.1 MLX, local, both stages",
     "autoRig": "unsolved — Mixamo by hand",
     "engineLoader": "ok — ?play=1&dev=2&forge=kaida",

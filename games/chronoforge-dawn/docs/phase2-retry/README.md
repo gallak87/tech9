@@ -31,6 +31,11 @@ Play-test: `npm run dev` → `localhost:5190/?play=1&dev=2&forge=kaida`
 That character is a **stock Mixamo stand-in** taken through the whole pipeline.
 It proves every stage downstream of rigging.
 
+`docs/phase2/` was the previous attempt and has been deleted. What was still
+live moved here: the Meshy source mesh to `source/`, its reference images to
+`source/ref/`, and the tool comparison to **Tool options** below. Its findings
+that still matter are in `PITFALLS.md`.
+
 | Stage | State |
 |---|---|
 | `mesh` — image → static mesh | adapter built, **backend undecided** |
@@ -46,7 +51,7 @@ Backends are manifest config, not code. Choosing a tool is a config change.
 
 ## 1. Rig the real Kaida
 
-The mesh exists — Meshy output at `docs/phase2/meshy_output/kaida/`. Prepped
+The mesh exists — Meshy output at `docs/phase2-retry/source/kaida/`. Prepped
 for upload:
 
 ```bash
@@ -82,12 +87,31 @@ mesh rather than anything downstream.
 
 Step 1 answers it. `npm run retry:probe --shot` measures it and shows it.
 
-## 3. Decide the two backends
+## 3. Wire the chosen backends into the pipeline
 
-Only after step 2. `../phase2/ITERATION.md` carries the options and what each
-must prove; nothing there is decided.
+`mesh` and `rig` are still adapters that refuse. Both stages are currently done
+by hand; wiring them means giving each a `backend` and a `command` in the
+manifest. Neither hosted tool has an API worth building on, so this stays manual
+until a local option exists.
 
-## 4. Per-character, when it comes up
+## 4. Generate the rigging mesh in a T-pose
+
+Mixamo's own guidance, on its Orient screen: *"For best results, have your
+character in T-pose and fingers spread apart."*
+
+The mesh is generated in an A-pose at 45° instead, because that is what
+**reconstruction** wants — arms flat at the sides merge with the torso and come
+back as one mass. So the two stages want different poses and one image cannot be
+both.
+
+Untested improvement: generate a second reference in a T-pose with the fingers
+spread, use it for the mesh that goes to rigging, and keep the A-pose one for
+anything judging the look. Costs one extra generation per character.
+
+Worth doing only if rigging quality turns out to be the limit. The A-pose mesh
+rigged successfully; whether it rigged *well* is what the probe measures.
+
+## 5. Per-character, when it comes up
 
 - **Height.** In-game measurement can disagree with the file — the stand-in came
   out ~5% short. Cosmetic at that size; the error scales with how far the mesh
@@ -95,6 +119,29 @@ must prove; nothing there is decided.
   the probe's `source height` line per character.
 - **Poly budget.** `kaida-not` is 12,609 tris. The Meshy mesh is 81,928. Decimate
   **before** rigging, never after.
+
+---
+
+# Tool options
+
+## Mesh
+
+| | |
+|---|---|
+| **Meshy 6 Lite** — in use | Hosted, free tier. Produced a clean single mesh with a full PBR texture set, first try. Licence for shipped use unverified. |
+| Hunyuan3D-2.1-mlx | Local, runs on this machine. ~20 min per attempt, one success and one unattributed failure on record. Not pursued. |
+
+## Rig
+
+| | |
+|---|---|
+| **Mixamo** — in use | Browser only, no public API. Rejects uploads carrying full-size textures. Free. |
+| Meshy's own rigger | Untried. Would avoid the upload round trip and keep textures. Unknown skeleton and bind; check the free tier before spending clicks. |
+| UniRig, SkinTokens | CUDA only. **Ruled out for this machine** — see `PITFALLS.md`. |
+
+Both current choices are manual. That is the standing constraint on making the
+lane hands-off, and it is a tooling problem rather than a design one — the
+pipeline takes whatever either produces.
 
 ---
 
@@ -199,6 +246,11 @@ sprint, turn-left, strafe-right, attack, cast, victory, hurt — and captures ea
 | `tools/ingame.mjs` | In-game capture and live measurement. |
 | `tools/prep-for-mixamo.py` | Re-export a mesh as FBX with textures embedded. |
 | `tools/inspect-fbx.py` | Report what is inside an FBX. |
+| `tools/dump-joints.py` | Bone names from an FBX, for `suggest-map`. |
+| `tools/extract-textures.py` | Write a mesh's embedded textures out, role-named. |
+| `source/kaida/` | The Meshy mesh and its texture PNGs. The character's origin. |
+| `source/ref/` | Reference images the mesh was generated from. |
+| `textures/kaida/` | Role-named maps, re-attached after rigging. |
 | `test/probe.mjs` | The probe. |
 | `test/make-fixture.py` | Builds the gate's deliberately wrong input. |
 

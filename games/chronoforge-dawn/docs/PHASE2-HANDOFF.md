@@ -1,6 +1,6 @@
 # Phase 2 — Character Handoff
 
-Status and rules. `docs/phase2/` holds the character pipeline and its detail.
+Status and rules. `docs/phase2-retry/` holds the character pipeline and its detail.
 
 Last updated: 2026-09-05.
 
@@ -14,7 +14,7 @@ stands for procedural world materials.
 
 | | |
 |---|---|
-| Reference generation | ✅ `docs/phase2/ref-gen.mjs` |
+| Reference generation | ✅ `docs/phase2-retry/ (reference generation not yet ported)` |
 | Image → mesh | ✅ Hunyuan3D-2.1 MLX, local, both stages |
 | Auto-rig | ❌ Not solved. Mixamo by hand for now. |
 | Engine loader | ✅ A rigged character loads, scales, maps and animates |
@@ -29,11 +29,11 @@ assume code-built geometry.
 ## Next for the pipeline
 
 1. Rig a generated mesh and check shoulder deformation — the test that decides whether generated meshes are viable
-2. Wire the auto-rig stage in `docs/phase2/forge.mjs`, which still refuses
+2. Wire the auto-rig stage in `docs/phase2-retry/pipeline.mjs`, which still refuses
 3. Re-baseline `tools/rig.mjs` palette bands against a generated mesh
 
-Detail, commands and failures: `docs/phase2/ITERATION.md` and
-`docs/phase2/README.md`.
+Detail, commands and failures: `docs/phase2-retry/README.md` and
+`docs/phase2-retry/README.md`.
 
 ---
 

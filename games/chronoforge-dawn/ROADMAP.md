@@ -23,7 +23,7 @@
 Early gates are for decisions that are **unvalidated AND expensive to reverse**.
 
 - **Rig approach** (Phase 2) — a generated mesh loads and animates; auto-rigging one is unsolved.
-  Failing that throws away the whole character pipeline. `docs/phase2/`.
+  Failing that throws away the whole character pipeline. `docs/phase2-retry/`.
 - **Encounter push-in** (Phase 1.1) — decided late; failing it changes battle, world clutter, and
   the camera contract.
 - **ATB math** — deliberately *not* early. It is a port of tuned numbers, cheap to fix.

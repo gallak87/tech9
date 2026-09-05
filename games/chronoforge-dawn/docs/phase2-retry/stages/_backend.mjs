@@ -16,7 +16,7 @@ export function noBackend(stage, ctx, options) {
     `      {output}  ${ctx.rel(ctx.outputs[0])}`,
     ``,
     `    The open question is which of these can run unattended on this machine.`,
-    `    See docs/phase2/ITERATION.md — it is a tooling decision, not a design one.`,
+    `    See docs/phase2-retry/README.md — it is a tooling decision, not a design one.`,
   ];
   throw new Error(lines.join('\n'));
 }

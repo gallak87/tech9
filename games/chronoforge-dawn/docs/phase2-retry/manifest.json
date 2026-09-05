@@ -31,7 +31,7 @@
   "characters": [
     {
       "name": "kaida",
-      "ref": "docs/phase2/ref/kaida-painterly.png",
+      "ref": "docs/phase2-retry/source/ref/kaida-painterly.png",
       "_ref": "Human-selected over kaida-plain.png: its legs carry a visible gap, and plain merges the thighs into one mass which reconstruction fuses into a single limb.",
       "canonicalise": {
         "textures": "docs/phase2-retry/textures/kaida"
@@ -39,7 +39,7 @@
     },
     {
       "name": "probe",
-      "ref": "docs/phase2/ref/kaida-painterly.png",
+      "ref": "docs/phase2-retry/source/ref/kaida-painterly.png",
       "_what": "Harness entry, not a game character. Its rigged input is a stock Mixamo rig copied into out/ by hand, so canonicalise and install can be exercised end to end while the mesh and rig backends are still undecided. Delete when they are not."
     }
   ]

@@ -213,6 +213,16 @@ untouched, so the maps land correctly.
 npm run retry:prep-mixamo -- --strip-textures 1
 ```
 
+## Reconstruction and rigging want different poses
+
+Mixamo asks for a T-pose with fingers spread. Mesh generation wants an A-pose at
+45°, because arms flat at the sides merge with the torso and reconstruct as a
+single mass.
+
+One image cannot satisfy both. The A-pose mesh does rig — it is not a blocker —
+but if rigging quality is the limit, generating a separate T-pose reference for
+the rigging mesh is the lever, not better marker placement.
+
 ## Mixamo has no public API
 
 Adobe never published one. There is an internal `mixamo.com/api/v1/` visible in
@@ -234,7 +244,7 @@ input and output file sizes match. That is not evidence of failure.
 
 ## Mixamo cannot be automated
 
-No public API. It is a probe, not a destination — see `../phase2/ITERATION.md`.
+No public API. It is a probe, not a destination — see the **Tool options** table in `README.md`.
 
 ---
 

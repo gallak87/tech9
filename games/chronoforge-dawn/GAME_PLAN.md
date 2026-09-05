@@ -58,7 +58,7 @@ level places all 36 encounters against combat clearance, confirms the 18 doorway
 QA gate: region.mjs walks the graph across EVERY settlement tier state offline: every region reachable at some tier, and at maximum tier every edge traversable in both directions with no permanent one-way. Every encounter and world drop names something that exists in the ported tables. No orphans. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong.
 
 ### Phase 2 — Character Look Gate
-**Character pipeline lives in `docs/phase2/` — read `docs/phase2/README.md` before touching Kaida's mesh.**
+**Character pipeline lives in `docs/phase2-retry/` — read `docs/phase2-retry/README.md` before touching Kaida's mesh.**
 Agents: `art`, `dev`, `critic`
 
 dev builds one code-built hero rig from the art spec — low-poly, socketed, posed by the animation system, through the pixel-snap and palette-quantise pass. art directs, critic scores. This gate exists because the rig approach has never been built and failing it throws away the whole character pipeline. HARD STOP AT 2 ROUNDS. Ships a rig viewer registered into the dev panel so the human can click to see the character the moment it exists, and click again to play each pose transition.
@@ -82,24 +82,24 @@ THE HUMAN IS THE LOOK GATE. An agent critic may only hold ground the human has a
 Agents: `human`
 
 GATES 2.1. Kaida's mesh is either code-built (status quo) or a rigged model file in the repo. Rigid skinning means nothing deforms, so limb shells rotate apart at every joint and leave gaps you can see through; a smooth-skinned mesh does not have this problem structurally. The art policy's ban on binary assets was reasoned about IMAGE GENERATION — "cannot draw the same character twice" — and a rigged .glb has exactly the property that reasoning wanted, so the ban does not transfer on its own logic. Options, cost and what survives a swap are in docs/PHASE2-HANDOFF.md. Only buildActor's shell changes under any option; skeleton, poses, ground IK, gates, material, sockets and the play-tester all survive.
-RULED 2026-09-04: Kaida's mesh is GENERATED, not code-built. The binary-asset ban is overturned for character meshes and their textures; it stands for procedural world materials. Pipeline spec and stage status: docs/phase2/README.md.
+RULED 2026-09-04: Kaida's mesh is GENERATED, not code-built. The binary-asset ban is overturned for character meshes and their textures; it stands for procedural world materials. Pipeline spec and stage status: docs/phase2-retry/README.md.
 
 ### Phase 2.1 — Art Re-Spec, Kaida
 Agents: `art`
-Unblocked by 2.0.2, and SUPERSEDED BY IT. 2.1-2.3 all assume code-built geometry; a generated mesh makes station tables, the geobuild port and per-part silhouette passes moot. Rewrite 2.1-2.3 against docs/phase2/README.md before executing them.
+Unblocked by 2.0.2, and SUPERSEDED BY IT. 2.1-2.3 all assume code-built geometry; a generated mesh makes station tables, the geobuild port and per-part silhouette passes moot. Rewrite 2.1-2.3 against docs/phase2-retry/README.md before executing them.
 
 art re-authors the rig spec from Kaida's own six sprites: cross-section station tables for torso and limbs (rx/ry/p per station, geobuild's format), head and hair volumes, proportions including head-to-height ratio, and her palette read off the sprites rather than invented. Deletes the IFF chest triangle — friend/foe read is deferred and must not be a badge on her chest.
 QA gate: the spec ships as runnable station tables geobuild can consume directly, not prose. Report must ship the artifact.
 
 ### Phase 2.2 — geobuild Port
-SUPERSEDED by 2.0.2 — assumes code-built geometry. See docs/phase2/README.md.
+SUPERSEDED by 2.0.2 — assumes code-built geometry. See docs/phase2-retry/README.md.
 Agents: `dev`
 
 Lift games/vulpine/src/render/geobuild.js into src/render/. It is a clean take — imports only THREE and mergeGeometries, zero vulpine coupling — and it carries loft(), superellipse(count, rx, ry, p), chamferBox(), extrudePoly(), tubeAlong(), shellArc(), mirrorX(). The `p` exponent is the box-to-round knob: p=2 ellipse, p=4 rounded rectangle, p to infinity box. That is the primitive src/actors/rig.js does not have.
 QA gate: a lofted limb builds and renders; tools/rig.mjs --selftest still exits 0; frame budget holds.
 
 ### Phase 2.3 — Kaida, Silhouette Then Detail
-SUPERSEDED by 2.0.2 — assumes code-built geometry. See docs/phase2/README.md.
+SUPERSEDED by 2.0.2 — assumes code-built geometry. See docs/phase2-retry/README.md.
 Agents: `dev`, `art`, human gate
 
 Two passes, per human decision. PASS 1: whole body as rough lofted masses, one sign-off — proportion and silhouette judged in a single look, because proportion is the thing that cannot be fixed later. PASS 2: head, hair, torso, arms, legs, sword — one sign-off each. Rig viewer gains part isolate, turntable, and an A/B toggle against the last accepted version of that part.

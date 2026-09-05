@@ -13,6 +13,7 @@ phase is blocked on: can an auto-rigger handle generated topology at all. That
 answer is the same whichever rigger is eventually chosen, so a one-off browser
 round trip buys it cheaply and commits to nothing.
 """
+import pathlib
 import sys
 
 import bpy
@@ -51,16 +52,29 @@ for m in meshes:
     m.data.calc_loop_triangles()
     tris += len(m.data.loop_triangles)
 
-# Pack every image into the .blend so the exporter has bytes, not paths.
+# Meshy already embeds its textures; Blender unpacks them to a .fbm sidecar on
+# import and re-embeds them on export. Pack anything that somehow is not, then
+# VERIFY rather than assume — an earlier version of this script judged success
+# by comparing file sizes, concluded the textures were missing when they were
+# not, and "fixed" it by relinking an image to the wrong file on disk.
 packed = 0
 for img in bpy.data.images:
-    if img.name == "Render Result" or img.packed_file:
+    if img.name == "Render Result" or img.source == "VIEWER" or img.packed_file:
         continue
     try:
         img.pack()
         packed += 1
     except Exception as e:
         print(f"[prep] could not pack {img.name}: {e}")
+
+carried = [i.name for i in bpy.data.images
+           if i.source != "VIEWER" and i.name != "Render Result" and i.packed_file]
+loose = [i.name for i in bpy.data.images
+         if i.source != "VIEWER" and i.name != "Render Result" and not i.packed_file]
+print(f"[prep] textures carried in the file: {len(carried)} -> {', '.join(carried)}")
+if loose:
+    die(f"{len(loose)} texture(s) are NOT embedded and Mixamo will return a grey "
+        f"character: {', '.join(loose)}")
 
 print(f"[prep] {len(meshes)} mesh(es), {tris} tris, packed {packed} image(s)")
 if tris > 80000:

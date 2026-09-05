@@ -180,15 +180,31 @@ export function suggestBoneMap(names) {
 export function resolveBoneMap(bones, mapJson) {
   const byName = new Map();
   for (const b of bones) byName.set(b.name, b);
+  // GLTFLoader sanitises node names on the way in: spaces become underscores
+  // and `. : / [ ]` are dropped, so a rig authored as `mixamorig:Hips` arrives
+  // as `mixamorigHips`. bones.json is written from the raw glTF JSON, where the
+  // original survives — match on both or every Mixamo rig maps 0/19.
+  for (const b of bones) {
+    const raw = sanitiseNodeName(b.name);
+    if (raw !== b.name && !byName.has(raw)) byName.set(raw, b);
+  }
   const table = mapJson?.bones || {};
   const map = new Map();
   const missing = [];
   for (const spec of SPEC_BONES) {
     const glbName = table[spec];
-    const bone = glbName ? byName.get(glbName) : null;
+    const bone = glbName
+      ? (byName.get(glbName) ?? byName.get(sanitiseNodeName(glbName)))
+      : null;
     if (bone) map.set(spec, bone); else missing.push(spec);
   }
   return { map, missing, names: bones.map(b => b.name) };
+}
+
+/** three.js PropertyBinding.sanitizeNodeName, reimplemented so the rule is
+ *  visible here rather than inferred from a mismatch. */
+export function sanitiseNodeName(name) {
+  return String(name).replace(/\s/g, '_').replace(/[\.:\/\[\]]/g, '');
 }
 
 /* ── measurement ─────────────────────────────────────────────────────────────

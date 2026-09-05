@@ -6,6 +6,64 @@ Nothing here is decided. Options and their proof obligations only.
 
 ---
 
+# What Phase 2 has to deliver
+
+**One hands-off process: reference manifest in, character in the game out.**
+
+Not a chain of processes a human threads together. One command per character,
+runnable unattended, so it can be gauntlet-looped to convergence and then frozen.
+Once the heroes are proven, the same command runs the enemies in the background
+while other lanes build the rest of `GAME_PLAN.md`.
+
+This is the phase's actual acceptance criterion and it disqualifies options that
+otherwise look cheap. **A browser step is not a small cost; it is the whole cost.**
+An option that cannot run unattended cannot be the destination, whatever else it
+does well.
+
+Distinguish two jobs an option can do:
+
+| | |
+|---|---|
+| **Probe** | Answers a question once, then gets thrown away. A browser step is fine. |
+| **Destination** | Runs unattended, per character, forever. A browser step disqualifies. |
+
+## Already built — do not rebuild
+
+`forge.mjs` is this pipeline. Its header states the design:
+
+> *"The hash cache is not an optimisation. `mesh` is a ~15-minute Hunyuan pass on
+> an M1 Pro and `rig` is unmeasured; without skipping, one failure in `rig` costs
+> a full re-mesh on every retry."*
+
+| Piece | State |
+|---|---|
+| Manifest-driven stages, `mesh → rig → install` | Built |
+| `sha256(input bytes + stage config)` skip, `out/.hashes.json`, `--force` | Built |
+| `--only <name>`, `--stage <stage>`, `--list` | Built |
+| `install` — copies to `assets/`, writes the bone map | Built |
+| Vite watch → `forge:character` hot swap | Built |
+| `ref-gen.mjs` — manifest → reference images, local via Ollama | Built |
+| `stages/mesh.mjs` | **Refuses.** Prints its intended command. |
+| `stages/rig.mjs` | **Refuses.** Prints its intended command. |
+
+**The hands-off goal reduces to filling in two stage modules.** Everything on
+either side of them exists and works.
+
+## The pose conflict
+
+The reference cannot be authored in the bind silhouette.
+
+| Wants | Why |
+|---|---|
+| Arms **away** from the torso, A-pose at 45° | `README.md` §Pitfalls: *"Arms flat at the sides merge with the torso and reconstruct as one mass."* |
+| Arms **down** along −Y | The spec bind. `upperArm_L` offset `[0, -0.28, 0]`. |
+
+These are incompatible in one image. Resolving it in the reference is not
+possible; resolving it at import is — see `ITERATION_MAYBE.md`. That makes the
+rebind a **pipeline stage**, not only a retarget fix.
+
+---
+
 # Current state
 
 | | State |
@@ -141,14 +199,15 @@ the mesh, not of the rigger, and sends the work to M3 rather than to R2 or R3.
 > *"Generated topology has no edge loops at joints; if auto-rigged weights
 > collapse at the shoulder, steps 3 and 4 are not worth building."*
 
-## R1 — Mixamo auto-rigger
+## R1 — Mixamo auto-rigger — **probe only, cannot be the destination**
 
 | | |
 |---|---|
 | Proven | Produces `mixamorig:` rigs this codebase already ingests — `assets/kaida-not.glb` is one, and it animates. `rig-import.sh` + `fbx2glb.py` were built for its output. |
 | Unproven on a generated mesh | Everything. Never run on one. |
 | Must prove | Accepts 81,928 tris. Embedded textures survive the round trip. R-gate. |
-| Cost | Browser step per character. Adobe login. Hosted, no SLA. |
+| Cost | **Browser step per character. No public API.** |
+| **Verdict** | **Disqualified as the destination.** No unattended path exists, so it cannot satisfy the acceptance criterion for any character, ever. Viable only as a throwaway R-gate probe. |
 
 Known property, not an argument for choosing it: a T-pose download lands on the
 same bind as `kaida-not`, so the retarget delta becomes one constant rather than
@@ -167,24 +226,35 @@ Two mandatory details if run:
 | | |
 |---|---|
 | Proven | Nothing here. Not run. |
-| Unproven | Bone naming, bind pose, whether it is on the free tier. |
-| Must prove | Everything R1 must, plus that its skeleton maps onto the 19-bone contract. |
-| Cost | Unknown. One fewer round trip if it works. |
+| Unproven | Bone naming, bind pose, whether rigging is on the free tier, what the REST API covers and costs. |
+| Must prove | Everything R1 must, plus that its skeleton maps onto the 19-bone contract, plus an unattended API path. |
+| Cost | Unknown. A paid dependency and an unresolved licence question if it becomes the destination. |
+| **Verdict** | Possible destination **only** via its API. Unverified on every axis. Fallback if UniRig is not released. |
 
 `bones.json` is data, so an unknown naming scheme is absorbable. An unknown bind
 is not — it puts the retarget delta back to an unknown.
 
-## R3 — UniRig, local
+## R3 — UniRig, local — **the only candidate destination**
 
 | | |
 |---|---|
 | Proven | Nothing here. Not installed. |
-| Unproven | Whether the released components suffice. `forge-manifest.json` flags progressive release. |
-| Must prove | Installs and runs, then R-gate. |
-| Cost | A local setup session before it can answer anything. |
+| Unproven | Whether the released components suffice. `stages/rig.mjs` already warns: *"components ship progressively and the skinning half may not be out."* |
+| Must prove | Installs and runs, emits named humanoid bones, then R-gate. |
+| Cost | A local setup session. No account, no browser, no rate limit. |
+| **Verdict** | **The only rig option that can run unattended without a paid API.** Load-bearing for the phase goal. |
 
-Only worth starting after R-gate passes elsewhere. It is a batch-throughput
-answer to a question that is not yet blocking.
+`stages/rig.mjs` already carries the intended invocation and the setup commands.
+Filling it in is the work, not designing it.
+
+**Verifying whether UniRig installs and runs is the highest-information cheap
+action available** — no GPU time, no browser, and nothing else is blocked on it.
+If the skinning half is not released, the hands-off goal needs a different answer
+today and that changes the plan more than any other single fact.
+
+Caveat: using UniRig as both the R-gate probe and the destination makes a failure
+ambiguous — bad mesh topology, or immature tool. If that ambiguity bites, a
+one-off R1 probe is the tiebreaker.
 
 ## R4 — no auto-rig
 
@@ -196,6 +266,21 @@ Keep M3. Closes the track. The generated-mesh decision in `README.md`
 # Open questions
 
 Ordered by what unblocks the most for the least spend.
+
+## Q0 — does UniRig install and run?
+
+**~30 minutes. No GPU time, no browser, no 20-minute generation.**
+
+Load-bearing for the acceptance criterion: it is the only rig option that can run
+unattended without a paid API. `stages/rig.mjs` names the setup commands and says
+to read the repo README first.
+
+- Runs → the hands-off pipeline is achievable. Fill in `stages/rig.mjs`, and get
+  Q1 answered by the tool that will actually ship.
+- Skinning half not released → the destination must be Meshy's API or a manual
+  step for heroes only. Re-plan before investing anywhere else.
+
+Answer this before Q1. It decides which tool Q1 should be run with.
 
 ## Q1 — does any auto-rigger survive generated topology?
 

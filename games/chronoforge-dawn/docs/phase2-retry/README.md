@@ -28,12 +28,17 @@ Play-test: `npm run dev` → `localhost:5190/?play=1&dev=2&forge=kaida`
 | **canonicalise** | Any rigged file → the contract. Blender, headless. |
 | **install** | Validates, then copies. Refuses anything that violates the contract. |
 | **Engine** | Assumes the contract. No bone map, no mode flag, no branch on origin. |
-| **probe** | 33 checks. Passes on `assets/kaida.glb`. |
+| **probe** | 34 checks. Passes on `assets/kaida.glb`. |
 | **gate** | Both rungs pass — a synthetic rig and a real Mixamo one. |
-| `assets/kaida.glb` | Installed, renders, animates through all seven clips. |
+| `assets/kaida.glb` | **The real Kaida.** Generated mesh, auto-rigged, installed, animating. |
 
-That character is a **stock Mixamo stand-in** taken through the whole pipeline.
-It proves every stage downstream of rigging.
+`assets/kaida.glb` is the **real** Kaida: a Meshy-generated mesh, auto-rigged by
+Mixamo, through every stage of this pipeline. The question the phase existed to
+answer — can an auto-rigger handle generated topology — is answered yes.
+
+`assets/kaida-not.glb` is the stock Mixamo stand-in the pipeline was built
+against. It is no longer loadable directly: it is not canonicalised, which is the
+contract working.
 
 `docs/phase2/` was the previous attempt and has been deleted. What was still
 live moved here: the Meshy source mesh to `source/`, its reference images to
@@ -54,7 +59,10 @@ Backends are manifest config, not code. Choosing a tool is a config change.
 
 # What's next
 
-## 1. Rig the real Kaida
+## 1. Rig the remaining characters
+
+Kaida is done. Vex and Rune have prompts in `reference-manifest.json` and
+nothing else. The route is the same one Kaida took:
 
 The mesh exists — Meshy output at `docs/phase2-retry/source/kaida/`. Prepped
 for upload:

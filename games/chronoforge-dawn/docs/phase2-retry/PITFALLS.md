@@ -122,6 +122,39 @@ it drives its own camera presets and its `--js` hook does not return values.
 
 # Testing
 
+## A skeleton exactly on spec can still put the arms inside the body
+
+`docs/specs/rig.mjs` had `upperArm` at `[0, -0.28, 0]` — hanging perfectly
+vertically from a shoulder joint 19 cm out from the spine. A shoulder joint sits
+**inboard** of the arm, so a vertical arm passes through the ribcage.
+
+**How it bites:** the code-built character never showed it, because its mesh is
+generated around this skeleton and fits whatever the numbers say. A generated
+mesh is not. Kaida's hands sat 6 cm inside her own torso — no arms visible at
+all, sword floating with nothing holding it — while every bone read 0° off spec
+and the probe reported 33/33.
+
+**What to do:** the arms rest **10° out from vertical**. That is what "arms at
+sides" actually looks like. The probe's `arms clear the torso` check enforces it
+per character: the hand must be at least 70% of the mesh half-width from its
+centre. Nothing measuring only the skeleton can see this.
+
+## Do not freeze spec data into a file a human reviewed
+
+`suggest-map` used to write the spec's whole joint table into `bones.json`, and
+`canonicalise` read it from there.
+
+**How it bites:** change `docs/specs/rig.mjs` and every existing map file still
+carries the old table. Canonicalise silently aligned a character to a rest pose
+that no longer existed, and the failure looked like the change had simply not
+worked.
+
+**What to do:** `bones.json` holds the human's bone map and nothing else. The
+canonicalise stage dumps the current spec at run time, and `canonicalise.py`
+refuses a map that carries a `joints` table. The project's own design rule
+already said the spec is imported and never restated — it was written down and
+violated three files later, which is the general warning here.
+
 ## Measuring bones does not tell you what renders
 
 Bones and skin are separate. A character whose skeleton is perfect can render in

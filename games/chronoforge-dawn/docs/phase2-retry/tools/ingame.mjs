@@ -99,6 +99,30 @@ if (CFG.moves) {
 const file = path.join(CFG.out, `${CFG.forge}${CFG.clip ? `-${CFG.clip}` : ''}.png`);
 if (!CFG.moves) await page.screenshot({ path: file });
 
+/* Contact sheet, composed in the browser that is already open. Laying the
+   captures out as an HTML grid and screenshotting it avoids adding an image
+   library for the one thing Playwright can already do. */
+let sheet = null;
+if (CFG.moves && written.length) {
+  const cells = written.map((f) => {
+    const b64 = fs.readFileSync(f).toString('base64');
+    const name = path.basename(f).replace(`${CFG.forge}-`, '').replace('.png', '');
+    return `<figure><img src="data:image/png;base64,${b64}"><figcaption>${name}</figcaption></figure>`;
+  }).join('');
+  await page.setViewportSize({ width: 1240, height: 1640 });
+  await page.setContent(`<style>
+    body{margin:0;background:#14161a;font:20px ui-monospace,Menlo,monospace;color:#e2e6ee}
+    h1{font-size:22px;margin:14px 16px 10px}
+    .g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;padding:0 12px 12px}
+    figure{margin:0}
+    img{width:100%;display:block;border:1px solid #343840;
+        object-fit:cover;aspect-ratio:44/76;object-position:50% 26%}
+    figcaption{color:#96c8eb;padding:7px 2px 0}
+  </style><h1>${CFG.forge.toUpperCase()} — in-game</h1><div class="g">${cells}</div>`);
+  sheet = path.join(CFG.out, `${CFG.forge}-contact-sheet.png`);
+  await page.locator('body').screenshot({ path: sheet });
+}
+
 const stats = await page.evaluate(() => window.__DAWN__?.stats?.() ?? null).catch(() => null);
 
 /* Measure the bones the renderer is actually using. The headless probe measures
@@ -147,6 +171,10 @@ else console.log('[forge] console: silent — the forge branch never ran, or nev
 if (stats?.tris) console.log(`tris on screen: ${stats.tris.toLocaleString()}`);
 console.log('live bone angles from -Y (what the renderer is using):');
 console.log(`  ${JSON.stringify(live)}`);
-if (CFG.moves) { console.log(`\nwrote ${written.length} movement shots:`); written.forEach(f => console.log(`  ${path.basename(f)}`)); }
+if (CFG.moves) {
+  console.log(`\nwrote ${written.length} movement shots:`);
+  written.forEach(f => console.log(`  ${path.basename(f)}`));
+  if (sheet) console.log(`  ${path.basename(sheet)}   <- all nine, one image`);
+}
 else console.log(`\nwrote ${file}`);
 process.exit(forgeLog.some(l => l.startsWith('error')) || !swapped ? 1 : 0);

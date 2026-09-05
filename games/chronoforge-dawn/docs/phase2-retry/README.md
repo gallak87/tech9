@@ -5,12 +5,16 @@ Reference image → mesh → rig → **canonicalise → install → in the game*
 The last three stages are built and proven. The first two need a tool decision.
 
 ```bash
-npm run retry:gate                       # prove the pipeline. seconds, no GPU.
-npm run retry:probe -- <asset.glb>       # does the engine load and animate it right?
+npm run retry:gate                          # prove the pipeline. seconds, no GPU.
+npm run retry:probe -- <asset.glb>          # does the engine load and animate it right?
 npm run retry:probe -- <asset.glb> --shot   # ...and screenshot it in-game
-npm run retry:shot  -- --forge kaida --moves   # nine movement shots
-npm run retry:all                        # gate + probe
+npm run retry:shot -- --forge kaida --moves # nine states + a contact sheet
+npm run retry:ref                           # regenerate reference images (Ollama)
+npm run retry:all                           # gate + probe
 ```
+
+**To see a character: `npm run retry:shot -- --forge <name> --moves`.** It writes
+nine PNGs and a contact sheet. Do not hand-compose one.
 
 Play-test: `npm run dev` → `localhost:5190/?play=1&dev=2&forge=kaida`
 
@@ -222,12 +226,25 @@ overhead"* from *"the arm is inverted"*; the authored rig can.
 
 ## In-game capture
 
-`npm run retry:shot -- --forge <name> [--moves] [--port 5190]`
+```bash
+npm run retry:shot -- --forge kaida                    # one shot
+npm run retry:shot -- --forge kaida --moves            # nine states + contact sheet
+npm run retry:shot -- --forge kaida --moves --out shots/x --port 5190
+```
 
 Reports whether the glb actually swapped in, echoes every `[forge]` console line,
-and prints the live scene graph's bone angles alongside the mesh's own extents.
-`--moves` drives nine states through the game's own key input — idle, walk,
-sprint, turn-left, strafe-right, attack, cast, victory, hurt — and captures each.
+and prints the live scene graph's bone angles alongside the mesh's own extents —
+which is how a skeleton that is correct while the mesh is not gets caught.
+
+`--moves` drives nine states through the game's own **key input** — idle, walk,
+sprint, turn-left, strafe-right, attack, cast, victory, hurt — captures each, and
+composes them into `<name>-contact-sheet.png`. One image to look at or send.
+
+Driving the game's own input matters: posing the rig from outside would skip
+Animator → retarget → skin → screen, which is the exact stack the render defects
+lived in. The sheet is built by laying the captures out as HTML and
+screenshotting them in the browser that is already open, so it adds no
+dependency.
 
 ---
 

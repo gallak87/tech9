@@ -93,7 +93,9 @@ Two stages, both required: shape generation, then texture synthesis (PBR).
 
 **Known constraints:**
 - Texture stage ~9 min for 6 views at 512px on an M2 Pro. Expect longer on M1 Pro.
-- Port tests on Python 3.10 — build a 3.10 venv, not system 3.14.
+- **Python 3.11.14 via conda.** 3.10 and 3.12 were tried and both failed. The
+  port's README claims 3.10; it is wrong. requirements.txt also needed edits.
+  Reproduce from `env-lock.yml`, not from requirements.txt.
 - Port's own README: testing limited to two provided mesh examples. Expect bugs.
 - Reference image must match mesh content; cross-pairing fragments the atlas.
 

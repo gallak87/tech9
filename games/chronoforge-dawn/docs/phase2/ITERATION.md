@@ -64,11 +64,29 @@ PyTorch API. Do not add it.
 | 4 | `--steps` (default 50) | flag. Dominates runtime; drop to 8 for smoke. |
 | 5 | `--octree-resolution` (default 256) | **temporary** flag |
 | 6 | `--mc-level` (default 0.0) | **temporary** flag. This is the iso threshold the near-surface mask compares against — the knob directly implicated. |
-| 7 | Print SDF min / max / mean / NaN count before the mask | Distinguishes FP16 NaN from a genuinely flat field in one run. |
+| 7 | Print SDF min / max / mean / NaN count at every level | Distinguishes FP16 NaN from a genuinely flat field in one run. |
 | 8 | `--precision` → sets `HUNYUAN3D_MLX_WEIGHTS_DIR` | Currently decorative. |
 
 **5 and 6 are scaffolding.** Delete both once Kaida's numbers are settled and
 hardcode the values that worked. Leave a comment saying which run fixed them.
+
+## Why NaN is the leading hypothesis
+
+`decode_to_mesh` keeps a voxel when **either** condition holds:
+
+```python
+curr_mask  = self._extract_near_surface_mask(grid_logits, mc_level)   # sign change
+curr_mask += (np.abs(grid_logits) < 0.95).astype(np.int32)            # near the iso level
+```
+
+Zero points means not one voxel of 274,625 satisfied either. `|sdf| < 0.95` is a
+generous band, and `np.abs(nan) < 0.95` is False — as is every NaN sign
+comparison. A NaN field fails both, exactly as observed.
+
+The probe in `generate.py` reports `nan=` per level, so one run settles it:
+
+- **all NaN** → numerics. Try `--precision int8`; fp16 peaks ~10 GB on a 16 GB machine.
+- **finite, `crossings=NO`, large `|min|`** → the latent resolved no surface. Guidance or conditioning.
 
 INT8 is not a runtime flag — the port's README converts weights offline:
 
@@ -123,6 +141,23 @@ would want to be a submodule.
 `docs/phase2/.gitignore` gets `3d-gen/`. Versioned: our `generate.py`, the
 manifest, `ref-gen.mjs`, the references. Disposable: the clone, the weights,
 `out/`.
+
+---
+
+# Logistical review — TODO before this leaves this machine
+
+`setup-3dgen.sh` records what worked here. **It has never been run from
+nothing.** Open questions:
+
+- `env-lock.yml` is a conda export from this machine — arm64, macOS. Unverified elsewhere.
+- The requirements.txt edits that made it resolve were made in the environment,
+  not in a file. The lock captures the result, not the reasoning.
+- `mlx-forge` is assumed present for the INT8 conversion; its install is unrecorded.
+- Weights are pulled by `from_pretrained` at first run, not by the setup script.
+- Python 3.11.14. **3.10 and 3.12 were both tried and failed** — the port's own
+  README claims 3.10 and is wrong.
+
+Do this before anyone else, or another machine, needs the pipeline.
 
 ---
 

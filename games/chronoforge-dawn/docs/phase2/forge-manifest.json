@@ -1,20 +1,18 @@
 {
   "_what": "Drives docs/phase2/forge.mjs. Same shape as reference-manifest.json: prose lives in _-prefixed keys, so there is no second doc to drift from.",
-
   "_scope": "KAIDA ONLY until she is signed off — docs/phase2/README.md §Rules that must not drift, rule 1. The other refs exist; adding them here is a human decision.",
-
   "out": "out",
   "_out": "Intermediate meshes and the stage hash cache. Gitignored: a 15-minute regeneration costs less than a churning binary in git history.",
-
   "assets": "../../assets",
   "_assets": "Where `install` puts what the game loads: assets/<name>.glb + assets/<name>.bones.json, at the game root, not public/. Vite full-page-reloads on any publicDir change, defeating the hot swap. See vite.config.js.",
-
-  "stages": ["mesh", "rig", "install"],
+  "stages": [
+    "mesh",
+    "rig",
+    "install"
+  ],
   "_stages": "Run in order. Each skips when every output exists and sha256(input bytes + that stage's config below) matches out/.hashes.json. --force overrides.",
-
-  "_venv": "Python 3.10, not the system 3.14: the Hunyuan MLX port tests on 3.10, and torch's cp314 wheel is not what it was built against (README §Stage 1). Both stages below print their intended command rather than guess at a CLI nobody has run.",
+  "_venv": "Python 3.11.14 via conda, env-lock.yml. 3.10 and 3.12 were both tried and failed, and requirements.txt needed edits to resolve on arm64 — reproduce from the lock, not from requirements.txt. Both stages below print their intended command rather than guess at a CLI nobody has run.",
   "venv": "~/.venvs/forge310",
-
   "mesh": {
     "_model": "Hunyuan3D-2.1 via the MLX port — https://github.com/dgrauet/Hunyuan3D-2.1-mlx",
     "_precision": "INT8 ≈ 6 GB peak. FP16 ≈ 10 GB is too tight on 16 GB unified with Vite and Chrome resident; INT4 ≈ 4 GB is the fallback if INT8 thrashes. README §Stage 1 carries the table and the models already ruled out: TRELLIS, Stable Fast 3D, TripoSR, any paid service.",
@@ -24,7 +22,6 @@
     "textureSize": 512,
     "_duration": "~9 min for 6 views at 512 on an M2 Pro; longer on an M1 Pro. Wall-clock is not a constraint — unattended overnight runs are the intended mode."
   },
-
   "rig": {
     "_model": "UniRig — https://github.com/VAST-AI-Research/UniRig. SIGGRAPH 2025, VAST-AI. Predicts skeleton hierarchy AND per-vertex skinning weights. Components are released progressively; verify what actually exists before assuming this stage can run at all.",
     "_fallback": "Mixamo's free auto-rigger is the manual browser fallback, and still feeds `install`: drop its output at out/<name>-rigged.glb and run `--stage install`.",
@@ -32,14 +29,12 @@
     "repo": "~/src/UniRig",
     "skeleton": "humanoid"
   },
-
   "install": {
     "_what": "In-process, under a second. Copies the rigged glb into assets/ and writes the bone map beside it.",
     "_map": "The map is data. install suggests it from the glb's own joint names and marks it \"reviewed\": false; the loader warns until that is true. An unreviewed guess produces a character wrong at exactly one joint.",
     "_bindMode": "Omitted, so the loader defaults to \"absolute\": an unposed clip returns the limbs to the spec bind, hanging along −Y. \"additive\" in the bones.json measures every clip from the glb's own A-pose instead. See the header of src/actors/gltf-actor.js.",
     "faceYawDeg": 0
   },
-
   "characters": [
     {
       "name": "kaida",

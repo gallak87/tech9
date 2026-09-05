@@ -1,6 +1,7 @@
 // Stage 1 — reference image → textured mesh.
 //
-// Hunyuan3D-2.1 via the MLX port, INT8, in a Python 3.10 venv. Two passes, both
+// Hunyuan3D-2.1 via the MLX port, INT8, in the conda env captured by env-lock.yml.
+// Two passes, both
 // required: shape generation, then PBR texture synthesis. Texture is what puts
 // the character in the world's lighting model — the reason TripoSR was ruled
 // out despite being faster.
@@ -23,23 +24,17 @@ export default {
       name: 'mesh',
       what: 'Hunyuan3D-2.1-mlx, INT8, shape pass then texture pass (~15 min).',
       repo: ctx.config.repo,
-      setup: [
-        'brew install python@3.10',
-        `python3.10 -m venv ${ctx.manifest.venv}`,
-        `source ${ctx.manifest.venv}/bin/activate && pip install -U pip`,
-        `git clone https://github.com/dgrauet/Hunyuan3D-2.1-mlx ${ctx.config.repo}`,
-        `cd ${ctx.config.repo} && pip install -r requirements.txt`,
-      ],
+      setup: ['bash docs/phase2/setup-3dgen.sh'],
       command: (py, repo, c) => [
-        `${py || '<venv>/bin/python'} ${repo || '<repo>'}/generate.py \\`,
+        `${py || '<env>/bin/python'} docs/phase2/generate.py \\`,
         `    --image ${c.rel(c.inputs[0])} \\`,
+        `    --output ${c.rel(c.outputs[0])} \\`,
         `    --precision ${c.config.precision || 'int8'} \\`,
-        `    --views ${c.config.views ?? 6} --texture-size ${c.config.textureSize ?? 512} \\`,
-        `    --output ${c.rel(c.outputs[0])}`,
+        `    --steps ${c.config.steps ?? 50} \\`,
+        `    --views ${c.config.views ?? 6} --texture-size ${c.config.textureSize ?? 512}`,
       ],
-      verify: 'the port README limits its own testing to two example meshes, so those flag names '
-        + 'are a guess, and a guessed CLI fails fifteen minutes in. Confirm the real surface once, '
-        + 'then wire it in here.',
+      verify: 'the shape pass has not yet produced a mesh. Settle it by hand through the '
+        + 'npm forge:smoke / forge:shape scripts, then wire this in.',
     });
   },
 };

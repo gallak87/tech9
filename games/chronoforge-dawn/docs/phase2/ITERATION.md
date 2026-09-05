@@ -1,102 +1,72 @@
 # ITERATION — character forge
 
-Delete when a generated, rigged Kaida animates in the game.
+Delete when a rigged Kaida animates in the game.
+
+Nothing here is decided. Options and their proof obligations only.
 
 ---
 
-# Where this stands
+# Current state
 
-Two independent tracks. **The rig track is unblocked and untested. The shape
-track is parked.**
-
-| Track | State |
+| | State |
 |---|---|
-| Shape — Hunyuan3D-2.1-mlx, local | Runs. One success, one failure, cause unattributed. Parked. |
-| Shape — Meshy 6 Lite, hosted | Produced a usable textured mesh, free, first try. Not rigged. |
-| Rig — Mixamo auto-rigger | Chosen. Import path already built. **Never run on a generated mesh.** |
-| Retarget delta | Unbuilt. No longer blocked — see Investigate #2. |
+| Reference images | Generated. `ref-gen.mjs`, output accepted. |
+| Mesh — Meshy 6 Lite (hosted) | One mesh produced, measured, then wiped. Human holds a local copy. |
+| Mesh — Hunyuan3D-2.1-mlx (local) | Runs. One success, one failure, cause unattributed. Output not retained. |
+| Mesh — code-built | Works. The only character in the game today. |
+| Rig — any auto-rigger | **Never run on a generated mesh.** |
+| Engine loader | Works. Loads, scales, maps 19/19, animates — proven against a Mixamo stock rig. |
+| Retarget delta | Unbuilt. Blocked on knowing the target bind. |
+| Live reload | Works. Vite watch → `forge:character`. |
 
----
+## On disk
 
-# Rig track
-
-## Decision: Mixamo, not Meshy's rigger
-
-Mixamo returns `mixamorig:` naming and the same T-pose bind as
-`assets/kaida-not.glb`. Consequences:
-
-- `resolveBoneMap` already indexes both `mixamorig:Hips` and `mixamorigHips`
-- `fbx2glb.py` already corrects Mixamo's FBX unit scale
-- `rig-import.sh` already consumes a Mixamo FBX
-- The retarget delta becomes one constant solved against a bind already on disk,
-  rather than a per-rigger unknown
-
-Meshy's own rigger produces an unknown skeleton and an unknown bind. Rejected on
-that basis, not on quality — its rigger is untested here.
-
-## Meshy 6 Lite output — measured
-
-Source files wiped from `assets/kaida/`; the human holds a local copy. Blender
-headless import reported:
-
-```
-armatures = 0                      <- NOT RIGGED
-meshes    = 1   verts=40,954  tris=81,928
-uv_layers = ['UVMap']              vertex_groups = 0
-world dims (x,y,z) = 1.159, 0.338, 1.899    scale=1.0  loc=0,0,0
-material  = 1, textures = base_color / normal / roughness / metallic @ 2048²
-```
-
-| Property | Value | Bearing |
-|---|---|---|
-| Single mesh, single material, one UV set | — | Correct auto-rigger input |
-| ~1.90 m, scale 1.0, at origin | — | `fbx2glb.py`'s scale bake is a no-op here |
-| A-pose, arms clear of torso | — | Correct auto-rigger input |
-| 81,928 tris | vs `kaida-not` 12,609 | May exceed Mixamo's ceiling. Untested. |
-| Fingers fused (paddle hands) | — | Socket attach unaffected; finger bones would deform nothing |
-
-## The loop, untested end to end
-
-| | Step |
+| Path | What |
 |---|---|
-| 1 | Blender: import Meshy FBX → export FBX, **Path Mode: Copy** + **Embed Textures** |
-| 2 | Mixamo: Upload Character → place markers → rig |
-| 3 | Mixamo: Download → **FBX Binary**, Pose: **T-pose**, no animation |
-| 4 | `bash docs/phase2/rig-import.sh <file.fbx> kaida` |
-| 5 | Check `assets/kaida.bones.json`, set `"reviewed": true` |
-| 6 | `?play=1&dev=1&forge=kaida` |
+| `assets/kaida-not.glb` | Mixamo stock character, rigged, 12,609 tri. Animates in game. |
+| `assets/kaida-not.bones.json` | 19/19 mapped, `reviewed: true`, `bindMode: additive` |
+| `docs/phase2/fbx/kaida-not.fbx` | Its source FBX |
+| `docs/phase2/ref/*.png` | Reference images. `*-raw.png` gitignored. |
+| `docs/phase2/out/` | Empty |
+| `assets/kaida/` | Wiped. Held the Meshy export. |
 
-**Step 1 is mandatory.** The Meshy FBX references its PNGs by external path.
-Mixamo does not follow them; an unembedded upload returns a grey character and
-`assets/kaida.glb` ships with no maps.
-
-**Step 3 pose is mandatory.** `kaida-not` is bound in Mixamo's T-pose — the
-reason `bindMode: additive` exists. "Original Pose" reintroduces the unknown
-bind that choosing Mixamo was meant to eliminate.
-
-**No Mixamo animations.** `fbx2glb.py` exports `export_animations=False`; the
-game's own clips drive the skeleton.
-
-**Do not decimate before rigging.** 81,928 tris wants reducing eventually, but
-decimating first adds a variable to an untested loop, and decimating after
-rigging degrades the weights. Separate pass, own re-rig.
+No generated mesh exists on disk.
 
 ---
 
-# Shape track — parked
+# Mesh options
 
-## What happened
+## M1 — Meshy 6 Lite, hosted
+
+| | |
+|---|---|
+| Proven | Produced a textured Kaida from `kaida-plain` in minutes, free tier, first try. |
+| Measured | 1 mesh, 40,954 verts / 81,928 tris, one UV set, one material, base_color + normal + roughness + metallic @ 2048², ~1.90 m, scale 1.0 at origin, A-pose, arms clear of torso. **No armature, no vertex groups.** |
+| Unproven | Whether the mesh survives rigging. Whether the free tier's licence permits use in a shipped game — the UI advertises "commercial-safe exports" as a paid upgrade. |
+| Must prove | Rigs successfully, deforms acceptably. See R-gate. |
+| Cost | Browser step per character. Hosted dependency, no SLA. |
+
+Fingers are fused. Socket attachment at `hand_R` is unaffected; finger bones
+would deform nothing.
+
+## M2 — Hunyuan3D-2.1-mlx, local
+
+| | |
+|---|---|
+| Proven | Both stages run. One complete textured `.glb` produced. |
+| Unproven | Reproducibility. Why the second run failed. |
+| Must prove | Seed determinism, then a controlled A/B. See Q3. |
+| Cost | ~20 min per run on this machine. No external dependency, no licence question. |
+
+### The two runs
 
 | Run | Image | Steps / octree | Seed | Result |
 |---|---|---|---|---|
-| A | `ref/k-copy.png` 128² | 50 / 256 (defaults) | unset | **Full textured .glb** |
+| A | `ref/k-copy.png` 128² | 50 / 256 | unset | Full textured `.glb` |
 | B | `ref/kaida-painterly-raw.png` 1024² | 50 / 256 | unset | Flat SDF, no crossings, `ValueError` |
 
-Run A's command, recovered from `~/.zsh_history`, passed neither `--steps` nor
-`--octree-resolution`. Both runs therefore used identical sampling parameters.
-Run A's output is no longer on disk.
-
-Failure signature:
+Run A's command, recovered from shell history, passed neither `--steps` nor
+`--octree-resolution`, so both runs used the defaults and are parameter-identical.
 
 ```
 [dit] step 49/50  min=-4.399 max=+5.098
@@ -106,9 +76,9 @@ Hierarchical Volume Decoding [r129]: 0 points
 ValueError: need at least one array to concatenate
 ```
 
-## The inputs are the same image
+### The two inputs are the same image
 
-Measured, not assumed:
+`compare-refs.py` reproduces this:
 
 | | `k-copy.png` | `kaida-painterly-raw.png` |
 |---|---|---|
@@ -118,33 +88,266 @@ Measured, not assumed:
 | after `preprocess_image` → 518² | mean −0.1502 std 0.7274 | mean −0.1564 std 0.7338 |
 
 `k-copy.png` alpha is 255 everywhere, so the RGBA→white composite at
-`pipeline_mlx.py:79-85` is a no-op. Alpha is not a variable.
+`pipeline_mlx.py:79-85` is a no-op. **Alpha is not a variable.**
 
-## Corrected: the previous background diagnosis was wrong
+### Retracted
 
 A prior revision of this file claimed *"the input image needs a solid
 background; a transparent one does not survive the masking step."* The failing
-image has a solid background. The claim was never tested and is deleted.
+image has a solid background. Never tested. Deleted. Two related claims in
+`README.md` §Pitfalls were retracted in the same pass.
 
-## What remains unattributed
+### What is unattributed
 
 Two variables, one uncontrolled:
 
 1. Input pixel resolution — 128² upscaled to 518 vs 1024² downscaled to 518
-2. **Seed was unset in both runs.** `mx.random.normal` drew different initial
-   latents. n=1 vs n=1.
+2. **Seed unset in both runs.** Different initial latents. n=1 vs n=1.
 
-**No cause can be assigned until a seed is pinned.** Resolution may be causal;
-the failure may equally be a coin flip.
+No cause can be assigned until a seed is pinned. Resolution may be causal; the
+failure may equally be a coin flip.
 
-## generate.py
+## M3 — code-built, status quo
 
-`3d-gen/Hunyuan3D-2.1-mlx/generate.py`. Gitignored via `3d-gen/`, tracked only
-in the fork's own repo on branch `g/fixup-osx-arm`. Local additions:
+| | |
+|---|---|
+| Proven | Ships today. `src/actors/rig.js`, the only character that exists. |
+| Must prove | Nothing. |
+| Cost | The reason this track exists: rigid skinning cannot close joint gaps, and hand-authored cross-section tables do not scale to four characters. `README.md` §Phase 2.0.2. |
+
+Live fallback if every rig option fails. The loader keeps the code-built path
+intact by design.
+
+---
+
+# Rig options
+
+## R-gate — the one test all of R1–R3 share
+
+**Deformation, not load success.** Rig, pose to `victory`, inspect the shoulder
+and hip. Generated topology has no edge loops at joints.
+
+`README.md` §Stage 2 states the property that makes this cheap:
+
+> *"If the shoulders deform badly there they will deform badly however it is
+> rigged."*
+
+If that holds, **one round trip through the cheapest rigger answers the
+viability of the whole auto-rig family.** A failure at R-gate is a property of
+the mesh, not of the rigger, and sends the work to M3 rather than to R2 or R3.
+
+`PLAN-forge.md` build order says the same:
+
+> *"Generated topology has no edge loops at joints; if auto-rigged weights
+> collapse at the shoulder, steps 3 and 4 are not worth building."*
+
+## R1 — Mixamo auto-rigger
+
+| | |
+|---|---|
+| Proven | Produces `mixamorig:` rigs this codebase already ingests — `assets/kaida-not.glb` is one, and it animates. `rig-import.sh` + `fbx2glb.py` were built for its output. |
+| Unproven on a generated mesh | Everything. Never run on one. |
+| Must prove | Accepts 81,928 tris. Embedded textures survive the round trip. R-gate. |
+| Cost | Browser step per character. Adobe login. Hosted, no SLA. |
+
+Known property, not an argument for choosing it: a T-pose download lands on the
+same bind as `kaida-not`, so the retarget delta becomes one constant rather than
+a per-rigger unknown.
+
+Two mandatory details if run:
+
+- **Export from Blender with Path Mode: Copy + Embed Textures.** The Meshy FBX
+  references its PNGs by external path; Mixamo does not follow them. An
+  unembedded upload returns a grey character.
+- **Download Pose: T-pose, no animation.** `fbx2glb.py` drops animation anyway;
+  the game's clips drive the skeleton. "Original Pose" reintroduces an unknown bind.
+
+## R2 — Meshy's own rigger
+
+| | |
+|---|---|
+| Proven | Nothing here. Not run. |
+| Unproven | Bone naming, bind pose, whether it is on the free tier. |
+| Must prove | Everything R1 must, plus that its skeleton maps onto the 19-bone contract. |
+| Cost | Unknown. One fewer round trip if it works. |
+
+`bones.json` is data, so an unknown naming scheme is absorbable. An unknown bind
+is not — it puts the retarget delta back to an unknown.
+
+## R3 — UniRig, local
+
+| | |
+|---|---|
+| Proven | Nothing here. Not installed. |
+| Unproven | Whether the released components suffice. `forge-manifest.json` flags progressive release. |
+| Must prove | Installs and runs, then R-gate. |
+| Cost | A local setup session before it can answer anything. |
+
+Only worth starting after R-gate passes elsewhere. It is a batch-throughput
+answer to a question that is not yet blocking.
+
+## R4 — no auto-rig
+
+Keep M3. Closes the track. The generated-mesh decision in `README.md`
+§Phase 2.0.2 would need revisiting.
+
+---
+
+# Open questions
+
+Ordered by what unblocks the most for the least spend.
+
+## Q1 — does any auto-rigger survive generated topology?
+
+**One R-gate run answers it.** Cheapest path is R1 with the Meshy mesh already
+exported.
+
+- Pass → the rig track is viable; Q2 becomes worth building.
+- Fail → the ceiling is the mesh. M3, or a topology-aware retopo step nobody has
+  scoped.
+
+Also resolves: Mixamo's poly ceiling vs 81,928 tris; whether embedded textures
+round-trip; whether `rig-import.sh` handles a non-Mixamo-authored mesh.
+
+## Q2 — retarget delta
+
+`PLAN-forge.md` Piece 2.3. Clips in `poses.js` write absolute rotations against a
+bind whose limbs hang along −Y. Mixamo binds in T-pose with non-identity rest
+rotations. `bindMode: additive` keeps the character upright but carries the
+T-pose spread into every clip.
+
+Blocked on knowing the target bind. **If R1 is the path, it is unblocked now** —
+the bind is the one in `assets/kaida-not.glb`, already on disk, and the delta is
+solvable and testable with no new mesh. Under R2 or R3 it stays blocked until
+that rigger has run once.
+
+Derive the per-bone correction quaternion. Do not eyeball Euler offsets.
+
+## Q3 — Hunyuan3D reproducibility
+
+Only if M2 is revived.
+
+**Q3a — verify the seed plumbs through.** ~90 s.
+
+```
+--image ref/k-copy.png --steps 2 --octree-resolution 128 --seed 0 --shape-only
+```
+
+Run twice. Identical `[dit]` min/max = the seed works and every later run is
+controlled. Different = the `--seed` edit is wrong.
+
+**Q3b — one variable, same seed.** ~17 min each, `--shape-only`.
+
+| | Image | Seed | Steps | Octree |
+|---|---|---|---|---|
+| A | `ref/k-copy.png` 128² | 0 | 50 | 256 |
+| B | `ref/kaida-painterly-raw.png` 1024² | 0 | 50 | 256 |
+
+- B fails → resolution is causal; downscale refs before feeding them.
+- B succeeds → run A's failure was nondeterministic; instability is the defect
+  and Q4 becomes the first suspect.
+
+## Q4 — two divergences from upstream, both unverified
+
+Found by reading, not by running. Neither is a diagnosis.
+
+**Q4a — terminal sigma.** `pipeline_mlx.py:151` feeds `np.linspace(0, 1, n)`,
+matching Hunyuan3D's reversed convention. Upstream
+`hy3dshape/schedulers.py:218` appends a terminal `1.0`;
+`mlx_arsenal/diffusion/schedulers.py:146` appends `0.0`, the diffusers
+convention.
+
+```
+steps=50   mlx deltas: +0.0204 ... +0.0204  LAST=-1.0000   sum=+0.0000
+           up  deltas: +0.0204 ... +0.0204  LAST=+0.0000   sum=+1.0000
+```
+
+Step formula is identical in both. The port's final step subtracts a full
+velocity from the finished latent; the integration sums to zero.
+
+**This does not explain runs A and B.** Both used 50 steps, both took the same
+`-1.0` step, and A produced a complete mesh. Candidate explanation for
+instability (Q3b), not for the observed difference.
+
+**Q4b — missing image preprocessing.** Upstream routes the conditioning image
+through `ImageProcessorV2` (`preprocessors.py:30`) — bbox recenter to 85% with a
+white border, `INTER_CUBIC` to 512. `pipeline_mlx.preprocess_image` does none of
+it: composite on white, `BILINEAR` to 518, no recenter. Quality risk, not a crash.
+
+Neither upstream nor the port runs rembg in the shape path. A green background
+survives both.
+
+---
+
+# Diagnostics
+
+Read-only. Neither writes to the project.
+
+```bash
+blender --background --python docs/phase2/inspect-fbx.py -- <file.fbx>
+python3 docs/phase2/compare-refs.py <image-a> <image-b>
+```
+
+`inspect-fbx.py` reports armature presence, bone count, mesh/tri counts, UV
+sets, vertex groups, world bounds and material textures. It produced the M1
+numbers above.
+
+`compare-refs.py` reports background colour, subject bbox, and the post-
+`preprocess_image` 518² tensor statistics for two images. It produced the M2
+comparison above and is the evidence for the retraction.
+
+---
+
+# Environment
+
+| | |
+|---|---|
+| Machine | Apple M1 Pro, 16 GB unified, 10 cores |
+| env | uv venv, Python 3.12, at `3d-gen/Hunyuan3D-2.1-mlx/.venv` |
+| activate | `source 3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/activate` |
+| clone | `3d-gen/Hunyuan3D-2.1-mlx`, branch `g/fixup-osx-arm`, gitignored |
+| weights | 13 GB cached at `~/.cache/huggingface/hub/models--dgrauet--hunyuan3d-2.1-mlx`. Both stages resident; nothing re-downloads. |
+| versions | `venv-lock.txt` |
+| Blender | 5.1.1. `import_scene.fbx` and `import_scene.gltf` both confirmed. |
+
+The conda env `hunyuan_mlx` and `~/.venvs/forge310` were both abandoned. Any doc
+naming them is stale.
+
+`requirements.txt` is not installed. Its pins predate cp312/arm64 wheels, so they
+fall back to source builds and fail. The env is unpinned latest. Three installs
+build it, and `setup-3dgen.sh` runs them:
+
+1. `mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy huggingface_hub xatlas opencv-python`
+2. `torch torchvision diffusers accelerate transformers einops pyyaml tqdm pymeshlab`
+3. `omegaconf`
+
+`hy3dshape/__init__.py` imports `pipelines.py`, `postprocessors.py` and
+`preprocessors.py`, all upstream PyTorch, so any MLX import from that package
+requires the whole torch stack.
+
+## setup-3dgen.sh is UNVERIFIED
+
+Never built an environment from nothing. Verify before relying on it:
+
+```bash
+mv docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv{,.bak}
+bash docs/phase2/setup-3dgen.sh
+source docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/activate
+npm run forge:smoke-demo
+```
+
+Reaching Stage 1 complete means it reproduces. `.venv.bak` is the fallback.
+
+---
+
+# generate.py
+
+`3d-gen/Hunyuan3D-2.1-mlx/generate.py`. Gitignored via `3d-gen/`; tracked only
+in the fork's own repo on branch `g/fixup-osx-arm`.
 
 | Flag | Purpose |
 |---|---|
-| `--steps` (50), `--octree-resolution` (256) | Previously added |
+| `--steps` (50), `--octree-resolution` (256) | Sampling |
 | `--seed` | Passes to `ShapePipeline.__call__`; prints the value each run |
 | `--shape-only` | Stops after Stage 1, writes the untextured shape to `--output` |
 | `install_probes()` | Monkeypatches `scheduler.step` and `_query_sdf_volume` |
@@ -160,161 +363,8 @@ path that does not exist.
 | `crossings=NO` | no surface resolved; no mesh will be built |
 | `crossings=yes` | field has a surface |
 
----
-
-# Investigate
-
-Ordered. #1 unblocks the project; #4 is optional.
-
-## 1. Close the rig loop — Meshy → Mixamo → game
-
-Run the six steps above. This answers `PLAN-forge.md`'s step-1 risk:
-
-> *"Generated topology has no edge loops at joints; if auto-rigged weights
-> collapse at the shoulder, steps 3 and 4 are not worth building."*
-
-Load Kaida, run a clip with arm motion, inspect shoulders and hips. Report the
-result as a finding either way. If weights hold, the rigging half is proven and
-the shape track is optional.
-
-Unknowns this run resolves: Mixamo's poly ceiling vs 81,928 tris; whether
-embedded textures survive the round trip; whether `rig-import.sh` handles a
-non-Mixamo-authored mesh.
-
-## 2. Retarget delta — no longer blocked
-
-`PLAN-forge.md` Piece 2.3. Clips in `poses.js` write absolute rotations against
-a bind whose limbs hang along −Y. Mixamo binds in T-pose with non-identity rest
-rotations. `bindMode: additive` keeps the character upright but carries the
-T-pose spread into every clip.
-
-This was blocked on not knowing the target bind. Choosing Mixamo fixes the bind
-to the one in `assets/kaida-not.glb`, **already on disk**. Solvable and testable
-now, with no new mesh.
-
-Derive the per-bone correction quaternion; do not eyeball Euler offsets.
-
-## 3. Shape pipeline — seed determinism, then the A/B
-
-Only if the shape track is revived.
-
-**3a. Verify the seed plumbs through.** ~90 s total.
-
-```
---image ref/k-copy.png --steps 2 --octree-resolution 128 --seed 0 --shape-only
-```
-
-Run twice. Identical `[dit]` min/max on both = the seed works and every
-subsequent run is controlled. Different = the `--seed` edit is wrong.
-
-**3b. One variable, same seed.** ~17 min each, `--shape-only`.
-
-| | Image | Seed | Steps | Octree |
-|---|---|---|---|---|
-| A | `ref/k-copy.png` 128² | 0 | 50 | 256 |
-| B | `ref/kaida-painterly-raw.png` 1024² | 0 | 50 | 256 |
-
-- B fails → resolution is causal; downscale refs before feeding them.
-- B succeeds → run A's failure was nondeterministic. Run-to-run instability is
-  then the real defect, and #4 becomes the first suspect.
-
-## 4. Two divergences from upstream — both unverified
-
-Neither is a diagnosis. Both are real differences between the MLX port and the
-PyTorch reference, found by reading, not by running.
-
-**4a. Terminal sigma.** `pipeline_mlx.py:151` feeds `np.linspace(0, 1, n)` —
-ascending, matching Hunyuan3D's reversed convention. Upstream
-`hy3dshape/schedulers.py:218` appends a terminal `1.0`.
-`mlx_arsenal/diffusion/schedulers.py:146` appends `0.0`, the diffusers
-convention.
-
-```
-steps=50   mlx deltas: +0.0204 ... +0.0204  LAST=-1.0000   sum=+0.0000
-           up  deltas: +0.0204 ... +0.0204  LAST=+0.0000   sum=+1.0000
-```
-
-The step formula is identical in both (`sample + (sigma_next - sigma) * v`), so
-the port's final step subtracts a full velocity from the finished latent and the
-integration sums to zero.
-
-**This does not explain runs A and B.** Both used 50 steps, both took the same
-`-1.0` step, and A produced a complete mesh. It is a candidate explanation for
-instability (#3b), not for the observed difference.
-
-**4b. Missing image preprocessing.** Upstream routes the conditioning image
-through `ImageProcessorV2` (`preprocessors.py:30`) — bbox recenter to 85% with a
-white border, `INTER_CUBIC` to 512. `pipeline_mlx.preprocess_image` does none of
-it: composite on white, `BILINEAR` to 518, no recenter. Quality risk, not a
-crash.
-
-Neither upstream nor the port runs rembg in the shape path. A green background
-survives both. Green is off-distribution for a model trained on white, but it is
-not a hard failure.
-
----
-
-# Environment
-
-| | |
-|---|---|
-| env | uv venv, Python 3.12, at `3d-gen/Hunyuan3D-2.1-mlx/.venv` |
-| activate | `source 3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/activate` |
-| clone | `3d-gen/Hunyuan3D-2.1-mlx`, branch `g/fixup-osx-arm`, gitignored |
-| weights | 13 GB cached at `~/.cache/huggingface/hub/models--dgrauet--hunyuan3d-2.1-mlx`. Both stages resident; nothing re-downloads. |
-| versions | `venv-lock.txt` |
-| Blender | 5.1.1. `import_scene.fbx` and `import_scene.gltf` both confirmed working. |
-
-`requirements.txt` is not installed. Its pins predate cp312/arm64 wheels, so
-they fall back to source builds and fail. The env is unpinned latest.
-
-Three installs build it, and `setup-3dgen.sh` runs them:
-
-1. `mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy huggingface_hub xatlas opencv-python`
-2. `torch torchvision diffusers accelerate transformers einops pyyaml tqdm pymeshlab`
-3. `omegaconf`
-
-`hy3dshape/__init__.py` imports `pipelines.py`, `postprocessors.py` and
-`preprocessors.py`, all upstream PyTorch, so any MLX import from that package
-requires the whole torch stack.
-
-## setup-3dgen.sh is UNVERIFIED
-
-It has never built an environment from nothing. Verify before relying on it:
-
-```bash
-mv docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv{,.bak}
-bash docs/phase2/setup-3dgen.sh
-source docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/activate
-npm run forge:smoke-demo
-```
-
-Reaching Stage 1 complete means it reproduces. `.venv.bak` is the fallback.
-
----
-
-# Running
-
-```bash
-source docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/activate
-
-npm run forge:smoke-demo   # the port's demo image, 8 steps, octree 128
-npm run forge:kaida        # 50 steps, octree 256, both stages
-```
-
-`forge.sh` passes every argument through to `generate.py` and resolves
-`--image` and `--output` relative to `docs/phase2/`. Add npm scripts by adding
-argument lists.
-
-Directly:
-
-```bash
-cd docs/phase2/3d-gen/Hunyuan3D-2.1-mlx
-python generate.py --image <abs> --output <abs> --steps 8 --octree-resolution 128 --seed 0 --shape-only
-```
-
-`npm run forge:kaida` still points at `ref/kaida-painterly-raw.png` and passes
-no seed. It reproduces run B, the failing case.
+`npm run forge:kaida` points at `ref/kaida-painterly-raw.png` and passes no seed.
+It reproduces run B, the failing case.
 
 ---
 
@@ -322,33 +372,30 @@ no seed. It reproduces run B, the failing case.
 
 ```bash
 bash docs/phase2/rig-import.sh <file.fbx> [name]
-npm run forge:view -- <path.glb>      # open in Blender
+npm run forge:view -- <path.glb>
 ```
 
-Blender headless FBX → GLB, registers the name in the manifest, installs to
-`assets/`. Name defaults to `kaida`. Animation is dropped.
-
-Bare `npm run forge:view` fails — it defaults to `out/kaida.glb` and `out/` is
-empty.
-
-Then check `assets/<name>.bones.json` and set `"reviewed": true`. A re-import
-keeps a reviewed map when every mapped bone still exists.
+Name defaults to `kaida`. Animation is dropped. Then check
+`assets/<name>.bones.json` and set `"reviewed": true`; a re-import keeps a
+reviewed map when every mapped bone still exists.
 
 `?forge=kaida` loads an asset installed as `kaida`. `?forge=kaida:<name>` drives
 the character `kaida` from a differently named asset — how the stand-in runs.
 
+Bare `npm run forge:view` fails: it defaults to `out/kaida.glb` and `out/` is
+empty.
+
 ## Two things this had to solve
 
 **Sanitised bone names.** `GLTFLoader` turns spaces into underscores and drops
-`. : / [ ]`, so a rig authored as `mixamorig:Hips` arrives as `mixamorigHips`.
-`bones.json` is written from the raw glTF JSON where the colon survives, so
-every Mixamo rig mapped 0/19 and fell back to code-built. `resolveBoneMap`
-indexes both spellings.
+`. : / [ ]`, so `mixamorig:Hips` arrives as `mixamorigHips`. `bones.json` is
+written from the raw glTF JSON where the colon survives, so every Mixamo rig
+mapped 0/19 and fell back to code-built. `resolveBoneMap` indexes both spellings.
 
 **Unit mismatch.** Mixamo FBX carries a unit scale Blender applies to object
-transforms but not to bone translations — mesh in metres, skeleton in
-centimetres. `fbx2glb.py` bakes object scale into the data. Without it the
-loader measures a 4 mm character and scales it ×437.
+transforms but not bone translations — mesh in metres, skeleton in centimetres.
+`fbx2glb.py` bakes object scale into the data. Without it the loader measures a
+4 mm character and scales it ×437.
 
 The Meshy FBX has neither problem: scale 1.0, no armature to mismatch.
 
@@ -356,7 +403,6 @@ The Meshy FBX has neither problem: scale 1.0, no armature to mismatch.
 
 # The stand-in
 
-A rigged Mixamo character animates in the game via
 `?play=1&dev=2&forge=kaida:kaida-not`. Installed as `kaida-not` so the `kaida`
 slot stays free.
 
@@ -372,39 +418,28 @@ thigh 0.366 shin 0.397, frameScale 1.0000
 | `absolute-inverted-*.png` | `bindMode: absolute` — upside down, limbs splayed |
 | `additive-*.png` | `bindMode: additive` — upright, running, sword tracking |
 
-## What it proved
+Proved: the name mapper handles a real rig (19/19, no edits); scale
+normalisation, ground contact and the clip system drive a foreign skeleton;
+hot-swap on `assets/` works.
 
-- The name mapper handles a real rig: 19/19 from Mixamo's naming, no edits
-- Scale normalisation, ground contact and the clip system drive a foreign skeleton
-- Hot-swap on `assets/` works
-
-Choosing Mixamo for Kaida promotes this from stand-in to rehearsal: same
-skeleton, same bind, same `bindMode`.
+Did not prove: anything about generated topology. It is a stock Mixamo mesh with
+clean joint loops.
 
 ---
 
 # TODO
 
 - npm script with parameters for `rig-import.sh`, covering both `kaida` and
-  `kaida-not`, so two entries prove the parameterisation rather than hardcoding
-  one.
-- Move raw source downloads out of `assets/`. That directory is installed game
+  `kaida-not`, so two entries prove the parameterisation rather than hardcoding one.
+- Keep raw source downloads out of `assets/`. That directory is installed game
   assets and is what the `vite.config.js` watcher scans for `*.glb`.
   `docs/phase2/fbx/` already holds `kaida-not.fbx`.
+- `forge-manifest.json` `venv`, `mesh.repo` and `rig.repo` paths are stale, and
+  its `_venv` names an `env-lock.yml` that does not exist. Inert — `mesh` and
+  `rig` refuse via `stages/_setup.mjs` — but `refuse()` prints those commands.
+  Left untouched pending a rig decision.
 - `setup-3dgen.sh` unverified. `mlx-forge`, needed for INT8 conversion, is
   unrecorded. Weights are fetched by `from_pretrained`, not by setup.
-
----
-
-# Untuned
-
-| Knob | Now | Note |
-|---|---|---|
-| `guidance_scale` | 7.5 | `pipeline_mlx.ShapePipeline.__call__` defaults to 5.0 |
-| `seed` | exposed, unset by default | `--seed` added; no run has used it yet |
-| `--precision` | parsed, unused | int8 needs an offline `mlx-forge` conversion; fp16 peaks ~10 GB |
-| `mc_level` | 0.0 | iso threshold the near-surface mask compares against |
-| input background | untested | the solid-background claim was wrong; nothing is known |
 
 ---
 
@@ -426,6 +461,6 @@ skeleton, same bind, same `bindMode`.
 | weights | HF `dgrauet/hunyuan3d-2.1-mlx`, `.safetensors` | Low — safetensors cannot execute on load |
 | model + upstream code | Tencent | Large company, widely used |
 | MLX port | `dgrauet` fork, single maintainer, 95 commits ahead | The trust step taken |
-| `pip install` | requirements.txt carries two Chinese PyPI mirrors as `--extra-index-url` | `setup.py` runs arbitrary code. Already executed. |
-| Meshy 6 Lite | hosted, free tier | Output is a downloaded file; no runtime dependency |
+| `pip install` | `requirements.txt` carries two Chinese PyPI mirrors as `--extra-index-url` | `setup.py` runs arbitrary code. Already executed. |
+| Meshy 6 Lite | hosted, free tier | Output is a downloaded file, no runtime dependency. **Licence for shipped use unverified.** |
 | Mixamo | hosted, Adobe login | No SLA. Keep downloaded FBX on disk; do not re-rig on demand. |

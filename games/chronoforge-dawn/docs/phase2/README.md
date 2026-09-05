@@ -5,16 +5,20 @@ one. Self-contained: tools, references, and this spec live here.
 
 Deviation from the Director's layout, approved 2026-09-04.
 
-Last updated: 2026-09-04.
+Last updated: 2026-09-05.
 
 ---
 
 # Objective
 
-Stand up a **fully local** image-to-3D-to-rigged-character pipeline. No paid
-service, no quota, no browser step.
+Replace Kaida's code-built mesh with a generated, rigged one.
 
 Scope is **Kaida only**. Vex, Rune and the grunt wait until she is signed off.
+
+**Amended 2026-09-05.** This originally read *"fully local... no paid service, no
+quota, no browser step."* That ruled out the free tiers of hosted tools, which
+are now live options — see `ITERATION.md` §Mesh options and §Rig options.
+Nothing is decided; the constraint is simply no longer a constraint.
 
 ```
 sprite/design  →  ref-gen.mjs  →  image-to-3D  →  auto-rig  →  loader  →  game
@@ -28,15 +32,19 @@ sprite/design  →  ref-gen.mjs  →  image-to-3D  →  auto-rig  →  loader  �
 | Stage | State |
 |---|---|
 | Reference generation | ✅ `ref-gen.mjs`, output accepted |
-| Stage 1: image → mesh | ✅ Both stages run locally — see `ITERATION.md` |
-| Stage 2: auto-rig | ❌ Unsolved. Mixamo by hand; `rig-import.sh` brings the FBX back in. |
+| Stage 1: image → mesh | ⚠️ Runs. One success, one failure, cause unattributed. A hosted tool also produced one. `ITERATION.md` |
+| Stage 2: auto-rig | ❌ **Never run on a generated mesh.** `rig-import.sh` brings an FBX back in. |
 | Stage 3: engine loader | ✅ Proven against a real rig — loads, scales, maps 19/19, animates |
 | Live reload | ✅ Vite watch → `forge:character` |
 | `forge.mjs` CLI | ✅ `install` real; `mesh` and `rig` refuse with setup instructions |
 
-**Chosen input:** `ref/kaida-painterly.png` (1024×1024, real alpha).
-Human-selected over `kaida-plain.png` — its legs carry a visible gap; `plain`
-merges the thighs into one mass, which reconstruction fuses into a single limb.
+**Chosen input:** `ref/kaida-painterly.png`. Human-selected over
+`kaida-plain.png` — its legs carry a visible gap; `plain` merges the thighs into
+one mass, which reconstruction fuses into a single limb.
+
+Three places disagree on which file is actually fed. `forge-manifest.json` says
+`kaida-painterly.png`; `npm run forge:kaida` passes `kaida-painterly-raw.png`.
+The keyed `painterly.png` has never produced a mesh. Unresolved.
 
 ---
 
@@ -64,7 +72,7 @@ stages below before executing them.
 |---|---|
 | Machine | Apple M1 Pro, **16 GB unified**, 10 cores |
 | GPU-addressable | ~12 GB (macOS reserves ~25%) |
-| Python | 3.14.5 system; `torch 2.14.0` has a `cp314` macOS arm64 wheel |
+| Python | uv venv, **3.12**, at `3d-gen/Hunyuan3D-2.1-mlx/.venv`. `ITERATION.md` §Environment is authoritative. |
 | Ollama | serving on `:11434` |
 | Ollama models | `x/flux2-klein:latest` (image gen), `hf.co/mradermacher/Janus-Pro-1B-GGUF:Q4_K_M` (vision, verified) |
 | Disk free | ~737 GB |
@@ -91,12 +99,13 @@ Two stages, both required: shape generation, then texture synthesis (PBR).
 | TRELLIS.2-4B | Metal port README requires 24 GB+ unified. Weights alone ~17 GB. Does not fit. |
 | Stable Fast 3D | Stability's docs: run CPU below 32 GB unified. |
 | TripoSR | No texture stage. Texture is what puts the character in the same lighting model as the world. |
-| Meshy / any paid service | Human decision: out of the loop. |
+| ~~Meshy / any paid service~~ | **Overturned 2026-09-05.** The ruling was about paid. Meshy 6 Lite downloads are free and produced a usable mesh first try. Licence for shipped use is unverified — `ITERATION.md` §M1. |
 
 **Known constraints:**
 - Texture stage ~9 min for 6 views at 512px on an M2 Pro. Expect longer on M1 Pro.
-- **conda env `hunyuan_mlx`, activated.** Not an interpreter called by path.
-  Dependency sources and traps are in `ITERATION.md`.
+- **uv venv at `3d-gen/Hunyuan3D-2.1-mlx/.venv`, activated.** The conda env
+  `hunyuan_mlx` and `~/.venvs/forge310` were both abandoned; any doc naming
+  them is stale. Dependency sources and traps are in `ITERATION.md`.
 - Port's own README: testing limited to two provided mesh examples. Expect bugs.
 - Reference image must match mesh content; cross-pairing fragments the atlas.
 
@@ -263,18 +272,24 @@ Human decisions. An agent may not overturn these.
 
 Each cost real time.
 
-**Background must be chroma green, never black.** Image-to-3D masks before it
-reconstructs. TRELLIS: *"If the image has alpha channel, it will be used as the
-mask. Otherwise, we use rembg."* Navy leggings and black boots do not separate
-from a black background — the first run returned a mesh of the sword alone.
-Green collides with nothing any hero wears.
+**Background must be chroma green, never black.** Established against TRELLIS,
+which masks before reconstructing: *"If the image has alpha channel, it will be
+used as the mask. Otherwise, we use rembg."* Navy leggings and black boots do
+not separate from black — the first run returned a mesh of the sword alone.
+
+**Scope corrected 2026-09-05.** Hunyuan3D's shape path runs no rembg, in either
+upstream or the MLX port, so nothing masks and the rule is untested there. The
+one Hunyuan3D failure on record used a green background. Green still collides
+with nothing any hero wears; it is not known to help.
 
 **Flux cannot emit alpha.** It outputs RGB regardless of prompt. Existing
 sprites are all `colortype=2`. Alpha comes from the key step in `ref-gen.mjs`.
 
-**An all-opaque alpha channel is worse than none.** `RGBA` with every pixel at
-255 gives the masker no silhouette and silently falls through to `rembg`. Check
-`getextrema()`, not the colour type.
+**~~An all-opaque alpha channel is worse than none.~~ Retracted 2026-09-05.**
+Measured false for this pipeline. `ref/k-copy.png` is all-opaque RGBA and is the
+Hunyuan3D run that **succeeded**. `pipeline_mlx.preprocess_image` composites on
+white and runs no `rembg`, so an all-opaque alpha is a no-op, not a hazard.
+Reproduce with `compare-refs.py`. May still hold for TRELLIS; untested.
 
 **Generate A-pose at 45°, not T-pose and not arms-down.** Arms flat at the sides
 merge with the torso and reconstruct as one mass. T-pose separates but sits
@@ -302,78 +317,3 @@ only — use a readout for state a module changes itself.
 - Agent contract: `../../../../PROMPT-chronoforge-dawn.md`
 - Concept: `../../CONCEPT.md`
 
----
-
-# Reference run
-
-A complete run, both stages, for building a gauntlet loop against. Kept because
-`ITERATION.md` is deleted once the pipeline works.
-
-```
-$ npm run forge:smoke-demo
-
-[*] Starting Stage 1: Shape Generation using .../ref/k-copy.png...
-Fetching 5 files: 100%|...| 5/5 [00:00<00:00, 2180.67it/s]
-[dit] step   1    19.3s  ( 19.3s/step)  nan=0 min=-3.974  max=+4.102
-[dit] step   2    36.8s  ( 18.4s/step)  nan=0 min=-3.456  max=+3.470
-[dit] step   3    50.9s  ( 17.0s/step)  nan=0 min=-3.191  max=+3.203
-[dit] step   4    75.9s  ( 19.0s/step)  nan=0 min=-3.176  max=+3.192
-[dit] step   5   101.6s  ( 20.3s/step)  nan=0 min=-3.527  max=+3.413
-[dit] step   6   119.0s  ( 19.8s/step)  nan=0 min=-3.965  max=+4.233
-[dit] step   7   136.1s  ( 19.4s/step)  nan=0 min=-5.573  max=+4.409
-[dit] step   8   152.6s  ( 19.1s/step)  nan=0 min=-12.661 max=+12.830
-Hierarchical Volume Decoding [r65]: 274625 points
-[SDF] n=274625 nan=0 min=-1.0146 max=+0.7979 mean=-0.9834 |min|=0.0001 crossings=yes
-Hierarchical Volume Decoding [r129]: 198770 points (of 2146689 total)
-[SDF] n=198770 nan=0 min=-1.0205 max=+0.8457 mean=-0.8432 |min|=0.0000 crossings=yes
-[+] Stage 1 complete. Intermediate shape saved to .../out/smoke-demo_temp_shape.glb
-
-[*] Starting Stage 2: PBR Texture Synthesis (6 views, 512px)...
-Fetching 5 files: 100%|...| 5/5 [01:54<00:00, 22.91s/it]
-Loading VAE...
-Loading DINOv2...
-Loading UNet...
-  Loaded 1054/1061 main UNet weights (remaining keys load into text embeds + DINO proj below)
-Loading dual-stream reference UNet...
-  Loaded 686/686 dual UNet weights
-All components loaded.
-MLX diffusion model loaded.
-MLX super-resolution loaded (.../realesrgan_x4plus.safetensors).
-  Encoding conditions...
-  Extracting DINO features...
-  Extracting reference features...
-  Denoising (15 steps, 6 views, CFG=3.0)...
-    step 0/15: t=999, range=9.3
-    step 5/15: t=666, range=8.9
-    step 10/15: t=332, range=14.6
-    step 14/15: t=66, range=19.1
-  Decoding...
-    decoded 6/12
-    decoded 12/12
-[+] Pipeline complete! Textured model successfully written to .../out/smoke-demo.glb
-```
-
-## What a loop can key on
-
-| Marker | Meaning |
-|---|---|
-| `[dit] step N/M` | shape denoising; ~19 s/step, count set by `--steps` |
-| `crossings=yes` | the field has a surface; `NO` means no mesh will be built |
-| `[r129]: N points`, N > 0 | second decode level found near-surface voxels |
-| `[+] Stage 1 complete` | shape mesh written to `<output stem>_temp_shape.glb` |
-| `Denoising (15 steps, 6 views, CFG=3.0)` | stage 2; step count is fixed, not exposed as a flag |
-| `decoded 12/12` | 2 tiles per view |
-| `[+] Pipeline complete!` | textured glb written; the temp shape is deleted |
-
-Exit code is 0 on success. A failed shape stage raises `ValueError: need at
-least one array to concatenate` after `[r129]: 0 points`.
-
-`1054/1061` and `686/686` weight counts are normal, not a warning.
-
-## Costs
-
-| | |
-|---|---|
-| Stage 1 | ~19 s per step |
-| Stage 2 | fixed 15 steps, 6 views; plus first-run weight download |
-| Weights | 13 GB cached at `~/.cache/huggingface`, both stages, one time |

@@ -3,8 +3,14 @@
 Get a generated, rigged Kaida into the running game, live-reloading when a new
 mesh lands on disk.
 
-Status: steps 1-4 built. The pipeline produces a mesh and a rigged character
-animates in the game. The retarget delta specified in Piece 2.3 is unbuilt.
+Status: steps 1-4 built. A mesh has been produced; a **stock Mixamo stand-in**
+animates in the game. **No generated mesh has ever been rigged.** The retarget
+delta specified in Piece 2.3 is unbuilt.
+
+Piece 1's `rig` stage below names UniRig. It is one of several options and not a
+decision — `ITERATION.md` §Rig options carries the current set and what each
+must prove. Nothing in this file is superseded except that assumption.
+
 Current state lives in `README.md` and `ITERATION.md`; delete this file once
 the pipeline works and fold what survives into the README.
 
@@ -70,8 +76,8 @@ export default {
 
 | Stage | Runs | Duration | Output |
 |---|---|---|---|
-| `mesh` | Hunyuan3D-2.1-mlx, conda env `hunyuan_mlx` | ~15 min | `out/kaida.glb` |
-| `rig` | UniRig, conda env `hunyuan_mlx` | TBD | `out/kaida-rigged.glb` |
+| `mesh` | Hunyuan3D-2.1-mlx, uv venv at `3d-gen/Hunyuan3D-2.1-mlx/.venv` | ~20 min | `out/kaida.glb` |
+| `rig` | Undecided — `ITERATION.md` §Rig options | TBD | `out/kaida-rigged.glb` |
 | `install` | in-process copy | <1 s | `assets/kaida.glb` + `assets/kaida.bones.json` |
 
 **Stages skip when every output exists and the input hash matches.** Hash =

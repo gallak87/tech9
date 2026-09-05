@@ -9,8 +9,8 @@ Delete when the mesh stage produces a usable Kaida.
 | | |
 |---|---|
 | conda env | `hunyuan_mlx`, Python 3.11.14 |
-| reproduce | `env-lock.yml` (not requirements.txt) |
-| clone | `3d-gen/Hunyuan3D-2.1-mlx` at `32931e2`, gitignored |
+| reproduce | `env-lock.yml` — conda only. There is no working pip lock. |
+| clone | `3d-gen/Hunyuan3D-2.1-mlx`, upstream `5fe2194` + `3d-gen-arm.patch`, gitignored |
 | weights | fp16, pulled by `from_pretrained` on first run |
 
 ---
@@ -70,16 +70,17 @@ throughout. Nothing varies, so no surface is found and no mesh is built.
 | Input resolution | The encoder normalises whatever it is given; feeding a smaller image cannot help. |
 | Transparency | The pipeline composites RGBA before use. Untested as a *quality* factor, not a cause of this. |
 
-## Open
+| Our reference image | `assets/demo.png`, the image the port ships and was tested against, fails identically at the same settings. |
 
-Whether the failure is the port/environment or our reference. `npm run
-forge:smoke-demo` runs the image the port was tested against and settles it:
+## Where it is
 
-- **also flat** → port or environment; our reference is irrelevant
-- **produces a mesh** → our reference or its preprocessing, and `forge:smoke-raw`
-  vs `forge:smoke-keyed` becomes the meaningful comparison
+The port or the environment. Every input-side explanation is eliminated — the
+repo's own demo image cannot produce a mesh here.
 
-Nothing else is worth running until that returns.
+Next: find whether upstream ever produced a mesh on arm at all. The fork's
+history is the place to look; `e8e73ad "run MLX inference in fp16 end-to-end"`
+and `f08c3bb "require mlx-arsenal>=0.10.1 for the MoE dtype fix"` both touch
+exactly this path.
 
 ## Reading the probe
 
@@ -97,6 +98,21 @@ INT8 weights, if ever needed, are an offline conversion:
 mlx-forge convert hunyuan3d-2.1 --quantize --bits 8 --output ./models/hunyuan3d-2.1-int8
 export HUNYUAN3D_MLX_WEIGHTS_DIR=<that directory>
 ```
+
+---
+
+# Environment traps
+
+- **xatlas is `xatlas-python` on conda-forge.** The pip name resolves to nothing
+  there. Its pip freeze entry is a build-machine path that exists on no machine.
+- **`env-lock.txt` was deleted** for that reason. `env-lock.yml` is the only
+  reproducible artifact.
+- **`3d-gen-arm.patch` is required.** Upstream pins `numpy==1.24.4`,
+  `pymeshlab==2022.2.post3`, `xatlas==0.0.9`, `cupy-cuda12x` and `bpy`. None
+  resolve on arm64. The patch relaxes the first two and drops the rest.
+- **npm scripts use `conda run`**, not the env's python binary. The env carries
+  hand-installed packages; a bare interpreter path skips activation and
+  introduces a variable.
 
 ---
 

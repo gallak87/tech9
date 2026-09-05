@@ -27,8 +27,9 @@ const onlyIdx  = argv.indexOf('--only');
 const only     = onlyIdx !== -1 ? argv[onlyIdx + 1] : null;
 // Drop flags and their values, so the manifest can sit anywhere in the line.
 const manifestPath = argv.filter((a, i) => !a.startsWith('--') && i !== onlyIdx + 1)[0];
+const alwaysRaw    = argv.includes('--raw');
 if (!manifestPath) {
-  console.error('usage: node ref-gen.mjs <manifest.json> [--only <name>]');
+  console.error('usage: node ref-gen.mjs <manifest.json> [--only <name>] [--raw]');
   process.exit(1);
 }
 
@@ -222,9 +223,13 @@ for (const { ref, variant } of jobs) {
     // one input error image-to-3D cannot recover from. Keep the unkeyed render
     // ONLY here — it is the sole way to tell a bad render from a bad key, and
     // saving it every time is clutter for a case that mostly does not happen.
+    // --raw forces the unkeyed render out every time; otherwise it is written
+    // only when the key looks wrong, which is the only case it diagnoses.
+    if (alwaysRaw) fs.writeFileSync(outPath.replace(/\.png$/, '-raw.png'), png);
+
     if (pct < 15 || pct > 88) {
       const rawPath = outPath.replace(/\.png$/, '-raw.png');
-      fs.writeFileSync(rawPath, png);
+      if (!alwaysRaw) fs.writeFileSync(rawPath, png);
       console.log(pct < 15
         ? `     ⚠ only ${pct.toFixed(0)}% keyed — background probably isn't green.`
         : `     ⚠ ${pct.toFixed(0)}% keyed — the character may have been keyed away; raise key.low.`);

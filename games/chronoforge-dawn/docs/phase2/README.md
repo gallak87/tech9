@@ -180,7 +180,9 @@ framings — see `camera-state-and-lod` in `../PHASE2-HANDOFF.md`.
 ```bash
 node docs/phase2/ref-gen.mjs docs/phase2/reference-manifest.json
 node docs/phase2/ref-gen.mjs docs/phase2/reference-manifest.json --only kaida
+ node docs/phase2/ref-gen.mjs docs/phase2/reference-manifest.json --only kaida --raw
 node docs/phase2/ref-gen.mjs docs/phase2/reference-manifest.json --only kaida
+ node docs/phase2/ref-gen.mjs docs/phase2/reference-manifest.json --only kaida --raw
 ```
 
 Generates through Ollama, keys the chroma background to real alpha. Writes

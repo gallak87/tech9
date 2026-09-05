@@ -108,7 +108,31 @@ the intended mode.
 
 # Stage 2 — auto-rig
 
-**UniRig.** https://github.com/VAST-AI-Research/UniRig
+## Why this step exists
+
+The code-built character was born attached to the skeleton — every part was
+generated around a specific joint, so nothing had to bind it. A generated mesh
+is only a surface: no skeleton inside it, and no record of which part of the
+surface belongs to which limb.
+
+Rigging supplies both: a skeleton fitted inside the mesh, and every surface
+point assigned to the joints near it so it bends when they do.
+
+**The skeleton design and every animation survive.** Neither is re-authored. The
+new mesh only has to end up on a skeleton with the same joint layout, and the
+existing clips drive it unchanged.
+
+Stage 1 alone therefore cannot reach the game. `stages/install.mjs` takes
+`out/<name>-rigged.glb`, and the loader needs bones.
+
+## Doing it
+
+**Mixamo first.** Free, web, upload a mesh and download it rigged. It answers
+the acceptance test below in minutes rather than a session of local setup. If
+the shoulders deform badly there they will deform badly however it is rigged.
+
+**UniRig** for the batch pipeline once the approach is proven.
+https://github.com/VAST-AI-Research/UniRig
 SIGGRAPH 2025, VAST-AI. Predicts skeleton hierarchy **and** per-vertex skinning
 weights. Components released progressively — verify what is available.
 

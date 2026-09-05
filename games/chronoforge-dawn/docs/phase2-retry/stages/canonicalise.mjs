@@ -18,9 +18,14 @@ export default {
         + `Regenerate with: npm run retry:map -- ${ctx.rel(rigged)} --out ${ctx.rel(map)}`);
     }
     const script = path.join(path.dirname(new URL(import.meta.url).pathname), '..', 'tools', 'canonicalise.py');
-    const out = execFileSync('blender',
-      ['--background', '--python', script, '--', '--input', rigged, '--map', map, '--output', ctx.outputs[0]],
-      { encoding: 'utf8' });
+    // Textures travel around the rigging round trip, not through it: a rigging
+    // service returns geometry, skeleton and weights, and Mixamo rejects an
+    // upload carrying full-size maps outright. tools/extract-textures.py writes
+    // them out once; this puts them back.
+    const args = ['--background', '--python', script, '--',
+      '--input', rigged, '--map', map, '--output', ctx.outputs[0]];
+    if (ctx.config.textures) args.push('--textures', ctx.abs(ctx.config.textures));
+    const out = execFileSync('blender', args, { encoding: 'utf8' });
     out.split('\n').filter(l => l.startsWith('[canon]')).forEach(l => ctx.log(l.replace('[canon] ', '')));
   },
 };

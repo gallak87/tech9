@@ -22,7 +22,8 @@
   },
   "canonicalise": {
     "_what": "Blender. No configuration: the contract is not negotiable per character.",
-    "_map": "Reads out/<name>.bones.json, which npm run retry:map proposes. It refuses while reviewed is false."
+    "_map": "Reads out/<name>.bones.json, which npm run retry:map proposes. It refuses while reviewed is false.",
+    "_textures": "Directory of role-named PNGs (base_color, normal, roughness, metallic) re-attached after rigging. Rigging services return geometry only, and Mixamo rejects uploads carrying full-size maps, so the textures travel around that round trip. Produce with tools/extract-textures.py."
   },
   "install": {
     "_what": "Validate against the contract, then copy. No bone map is installed \u2014 under the contract the joints ARE the spec's names."
@@ -31,7 +32,10 @@
     {
       "name": "kaida",
       "ref": "docs/phase2/ref/kaida-painterly.png",
-      "_ref": "Human-selected over kaida-plain.png: its legs carry a visible gap, and plain merges the thighs into one mass which reconstruction fuses into a single limb."
+      "_ref": "Human-selected over kaida-plain.png: its legs carry a visible gap, and plain merges the thighs into one mass which reconstruction fuses into a single limb.",
+      "canonicalise": {
+        "textures": "docs/phase2-retry/textures/kaida"
+      }
     },
     {
       "name": "probe",

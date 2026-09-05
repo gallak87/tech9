@@ -192,6 +192,33 @@ failure is upstream of you. Then retry — server errors are often transient.
 When Mixamo does ask whether your character already has a skeleton, answer
 **no**. Download **FBX Binary**, **T-pose**, **no animation**.
 
+## Mixamo rejects uploads carrying full-size textures
+
+Measured: two files, both 24,000 tris, differing only in whether the textures
+were embedded.
+
+| | size | result |
+|---|---|---|
+| textured, 4× 2048² maps | 5.7 MB | rejected, backend 500 |
+| geometry only | 0.9 MB | **accepted** |
+
+It is not the poly count. It is the textures.
+
+**What to do:** upload geometry only, and carry the textures *around* the round
+trip rather than through it. `tools/extract-textures.py` writes them out
+role-named; `canonicalise --textures <dir>` puts them back. UVs survive rigging
+untouched, so the maps land correctly.
+
+```bash
+npm run retry:prep-mixamo -- --strip-textures 1
+```
+
+## Mixamo has no public API
+
+Adobe never published one. There is an internal `mixamo.com/api/v1/` visible in
+the browser console, but it is undocumented, needs an Adobe auth token, and
+changes without notice. Mixamo is a probe, not a destination.
+
 ## Mixamo does not follow external texture paths
 
 Adobe's note: *"make sure embed media is turned on for FBX files to upload your

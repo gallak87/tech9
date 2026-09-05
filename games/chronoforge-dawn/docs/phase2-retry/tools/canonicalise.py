@@ -19,6 +19,7 @@ silent approximation, because a rig that is wrong at one joint looks fine on
 load and wrong the instant it moves.
 """
 import json
+import pathlib
 import sys
 from math import degrees
 
@@ -241,6 +242,52 @@ def normalise(arm, meshes, hero_m, sole_tol):
     print(f"[canon] soles at z={sole3:.5f}")
 
 
+def attach_textures(meshes, tex_dir):
+    """Build the character's material from role-named images on disk.
+
+    A rigging service returns geometry, skeleton and weights — not appearance.
+    Mixamo will not even accept an upload carrying 2048-square maps, so the
+    textures travel around that round trip rather than through it, and are put
+    back here. UVs survive rigging untouched, so the maps land correctly.
+
+    Named by role rather than by whatever the generator called them, so there is
+    no lookup table to keep in step with any particular tool.
+    """
+    d = pathlib.Path(tex_dir)
+    if not d.is_dir():
+        die(f"--textures {tex_dir} is not a directory")
+    found = {p.stem: p for p in d.glob("*.png")}
+    if "base_color" not in found:
+        die(f"{tex_dir} has no base_color.png — run tools/extract-textures.py first")
+
+    mat = bpy.data.materials.new(name="character")
+    mat.use_nodes = True
+    nt = mat.node_tree
+    bsdf = nt.nodes["Principled BSDF"]
+
+    def tex(name, colorspace):
+        img = bpy.data.images.load(str(found[name]))
+        img.colorspace_settings.name = colorspace
+        img.pack()                     # so the glb carries the bytes
+        n = nt.nodes.new("ShaderNodeTexImage")
+        n.image = img
+        return n
+
+    nt.links.new(tex("base_color", "sRGB").outputs["Color"], bsdf.inputs["Base Color"])
+    for role, socket in (("roughness", "Roughness"), ("metallic", "Metallic")):
+        if role in found:
+            nt.links.new(tex(role, "Non-Color").outputs["Color"], bsdf.inputs[socket])
+    if "normal" in found:
+        nm = nt.nodes.new("ShaderNodeNormalMap")
+        nt.links.new(tex("normal", "Non-Color").outputs["Color"], nm.inputs["Color"])
+        nt.links.new(nm.outputs["Normal"], bsdf.inputs["Normal"])
+
+    for m in meshes:
+        m.data.materials.clear()
+        m.data.materials.append(mat)
+    print(f"[canon] attached {len(found)} texture(s): {', '.join(sorted(found))}")
+
+
 def main():
     a = argv()
     spec = json.load(open(a["map"]))
@@ -252,6 +299,8 @@ def main():
     hero_m, sole_tol = spec.get("heroM", 1.72), spec.get("soleTol", 0.01)
 
     arm, meshes = load(a["input"])
+    if a.get("textures"):
+        attach_textures(meshes, a["textures"])
     print(f"[canon] {len(arm.data.bones)} source bones, {len(meshes)} mesh(es)")
     bake_object_scale(arm, meshes)
     rename(arm, mapping)

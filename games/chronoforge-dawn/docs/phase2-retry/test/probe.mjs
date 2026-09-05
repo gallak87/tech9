@@ -44,6 +44,7 @@ import { buildActor } from '../../../src/actors/rig.js';
 import { makeActorUniforms, makeActorMaterial } from '../../../src/actors/material.js';
 import { applyGltfActor, SPEC_BONES } from '../../../src/actors/gltf-actor.js';
 import { samplePose, POSE_NAMES } from '../../../src/actors/poses.js';
+import { JOINTS } from '../../specs/rig.mjs';
 
 /* ── options ──────────────────────────────────────────────────────────────── */
 
@@ -79,7 +80,7 @@ const CFG = {
   id: opt('id', path.basename(asset, '.glb')),
   clips: (opt('clips', POSE_NAMES.join(','))).split(',').map(s => s.trim()).filter(Boolean),
   t: Number(opt('t', 0.25)),
-  armMax: Number(opt('arm-max', 55)),
+  matchMax: Number(opt('match-max', 12)),
   limbMax: Number(opt('limb-max', 8)),
   spineMin: Number(opt('spine-min', 0.9)),
   json: has('json'),
@@ -128,10 +129,24 @@ const angFrom = (a, b, ref) => THREE.MathUtils.radToDeg(
   Math.acos(THREE.MathUtils.clamp(dirOf(a, b).dot(ref), -1, 1)));
 const fixed = (n, d = 1) => Number(n.toFixed(d));
 
-const LIMBS = [
-  ['upperArm_L', 'lowerArm_L'], ['upperArm_R', 'lowerArm_R'],
-  ['upperLeg_L', 'lowerLeg_L'], ['upperLeg_R', 'lowerLeg_R'],
-];
+// Every parent→child segment in the spec, derived from the spec rather than
+// hand-picked. A hand-picked list checked four limb bones and passed a
+// character whose arms were held straight out, because the shoulders — which
+// were what moved them — were not in it. Deriving it means a joint added to the
+// spec is covered without anyone remembering to add it here.
+const SEGMENTS = JOINTS.filter(j => j.parent).map(j => [j.parent, j.name]);
+
+// A segment "hangs" when the spec puts it predominantly along -Y. Derived from
+// the offsets rather than matched on names: hips→upperLeg is [0.10, -0.02, 0],
+// mostly hip WIDTH, and spine_upper→shoulder is shoulder width. Those encode the
+// rig's proportions, which a canonical asset keeps as its own — a Mixamo
+// shoulder does not sit where the spec's does and the mesh is skinned to where
+// it is. Only the hanging segments are what the rest pose constrains.
+const HANGS = new Set(JOINTS.filter(j => j.parent).filter((j) => {
+  const [x, y, z] = j.offset;
+  return -y > Math.hypot(x, z);
+}).map(j => j.name));
+const LIMBS = SEGMENTS.filter(([, b]) => HANGS.has(b));
 
 /* ── 1. structure ─────────────────────────────────────────────────────────── */
 
@@ -158,9 +173,17 @@ check('bind: stands upright', spine0.y >= CFG.spineMin,
   `hips→head y ${fixed(spine0.y, 2)}`, `≥ ${CFG.spineMin}`);
 check('bind: shoulders run across X', Math.abs(across.x) > 0.9,
   `x ${fixed(across.x, 2)}`, '|x| > 0.9');
+// Compare each segment to the direction the SPEC puts it in, not to -Y. Most
+// limb segments do hang along -Y, but hips→upperLeg is [±0.10, -0.02, 0] —
+// mostly sideways — and demanding it point down would fail a correct rig.
+// Only the segments the rest pose actually constrains. A canonical asset keeps
+// its own proportions — a Mixamo shoulder does not sit where the spec's does,
+// and the mesh is skinned to where it is — so spine_upper→shoulder is a
+// proportion, not a pose, and checking it against the spec offset would fail a
+// correct rig. What the contract constrains is that the limbs HANG.
 for (const [a, b] of LIMBS) {
   const d = angFrom(a, b, DOWN);
-  check(`bind: ${a} hangs along -Y`, d <= CFG.limbMax, `${fixed(d)}°`, `≤ ${CFG.limbMax}°`);
+  check(`bind: ${a}→${b} hangs`, d <= CFG.limbMax, `${fixed(d)}° off -Y`, `≤ ${CFG.limbMax}°`);
 }
 
 /* ── 4. the clips ─────────────────────────────────────────────────────────── */
@@ -180,17 +203,48 @@ const applyClip = (clip, t) => {
   return pose;
 };
 
+// Ground truth is the code-built character: the clips were hand-authored
+// against it, so "correct" means the forged rig lands where that one lands.
+// An absolute threshold cannot express that — `cast` legitimately puts an arm
+// overhead, and no fixed angle from -Y distinguishes that from an inversion.
+const ref = buildActor({ id: CFG.id, faction: 'ally', uniforms: makeActorUniforms(), material: makeActorMaterial(makeActorUniforms()) });
+const refBone = new Map(SPEC_BONES.map(n => [n, ref.boneByName?.get(n) ?? null]));
+const haveRef = [...refBone.values()].every(Boolean);
+check('code-built reference available', haveRef,
+  haveRef ? 'built' : 'missing bones', 'a reference rig to compare against');
+
+const refWp = (n) => refBone.get(n).getWorldPosition(new THREE.Vector3());
+const refDir = (a, b) => refWp(b).sub(refWp(a)).normalize();
+
 for (const clip of CFG.clips) {
   if (!POSE_NAMES.includes(clip)) { check(`clip "${clip}" exists`, false, 'unknown', POSE_NAMES.join('|')); continue; }
   if (!applyClip(clip, CFG.t)) { check(`clip "${clip}" samples`, false, 'null', 'a pose'); continue; }
 
   const s = dirOf('hips', 'head');
   check(`${clip}: upright`, s.y >= CFG.spineMin, `hips→head y ${fixed(s.y, 2)}`, `≥ ${CFG.spineMin}`);
+  if (!haveRef) continue;
 
-  const worst = LIMBS.map(([a, b]) => ({ j: a, d: angFrom(a, b, DOWN) }))
-    .sort((x, y) => y.d - x.d)[0];
-  check(`${clip}: limbs not inverted`, worst.d <= CFG.armMax,
-    `worst ${worst.j} ${fixed(worst.d)}°`, `≤ ${CFG.armMax}° from -Y`);
+  // Same clip, same instant, on the authored rig.
+  const pose = samplePose(clip, CFG.t);
+  for (const bone of refBone.values()) bone.rotation.set(0, 0, 0);
+  for (const [name, [x, y, z]] of Object.entries(pose.j ?? {})) refBone.get(name)?.rotation.set(x, y, z);
+  ref.root.updateMatrixWorld(true);
+
+  // Orientation, not position. The forged rig and the authored one have
+  // different proportions — a Mixamo shoulder does not sit where the spec's
+  // does — so their joints are in different PLACES by design. What the
+  // retarget owes us is the same ORIENTATION, which is what deforms the skin.
+  // Segment DIRECTION, not world quaternion: two rigs can point a bone the same
+  // way with a different roll about its own axis, and that roll is a rigging
+  // convention rather than a pose difference. Direction is what the eye reads.
+  // Restricted to LIMBS, because segments like spine_upper→shoulder encode the
+  // rig's proportions rather than the clip's pose.
+  const worst = LIMBS.map(([a, b]) => ({
+    j: `${a}→${b}`,
+    d: THREE.MathUtils.radToDeg(Math.acos(THREE.MathUtils.clamp(dirOf(a, b).dot(refDir(a, b)), -1, 1))),
+  })).sort((x, y) => y.d - x.d)[0];
+  check(`${clip}: matches the authored pose`, worst.d <= CFG.matchMax,
+    `worst ${worst.j} ${fixed(worst.d)}° off`, `≤ ${CFG.matchMax}°`);
 }
 
 /* ── 5. in-game capture, on request ───────────────────────────────────────── */
@@ -232,10 +286,10 @@ if (CFG.json) {
 } else {
   console.log(`\n${results.length - failed.length} passed, ${failed.length} failed`);
   if (failed.length) {
-    console.log('\nA limb at ~180° from -Y is inverted, not merely posed: the write path in');
-    console.log('src/actors/gltf-actor.js assumes every joint\'s rest rotation is identity,');
-    console.log('and the asset carries one that is not. Fix it in the pipeline, not here —');
-    console.log('see docs/phase2-retry/CONTRACT.md.');
+    console.log('\n"matches the authored pose" compares the forged rig against the code-built');
+    console.log('one under the same clip at the same instant. A large divergence means the');
+    console.log('retarget in src/actors/gltf-actor.js is composing wrongly, or the asset was');
+    console.log('not canonicalised — see docs/phase2-retry/CONTRACT.md.');
   }
 }
 process.exit(failed.length ? 1 : 0);

@@ -170,9 +170,38 @@ def align_rest(arm, spec_joints):
         bpy.context.view_layer.update()
         aligned += 1
 
+    bpy.ops.object.mode_set(mode="OBJECT")
+
+    # Bake the posed deformation into the mesh BEFORE making the pose the rest.
+    #
+    # `armature_apply` moves the skeleton's rest pose and rewrites the bind
+    # matrices, but it does not touch a single vertex. Do it alone and the file
+    # is internally consistent -- bind matches rest, every check passes -- while
+    # the mesh still sits in the pose the rigger produced. The skeleton's arms
+    # hang and the character's arms stay out, which is exactly the defect the
+    # probe measured at 0 degrees on the bones and a screenshot showed on the
+    # body.
+    #
+    # Applying a COPY of the armature modifier bakes the current deformation
+    # into the vertices; the original modifier stays, so the mesh is still
+    # skinned when the rest pose changes underneath it.
+    for m in meshes:
+        mod = next((x for x in m.modifiers if x.type == "ARMATURE"), None)
+        if mod is None:
+            die(f"mesh '{m.name}' lost its armature modifier")
+        bpy.ops.object.select_all(action="DESELECT")
+        m.select_set(True)
+        bpy.context.view_layer.objects.active = m
+        bpy.ops.object.modifier_copy(modifier=mod.name)
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+
+    bpy.ops.object.select_all(action="DESELECT")
+    arm.select_set(True)
+    bpy.context.view_layer.objects.active = arm
+    bpy.ops.object.mode_set(mode="POSE")
     bpy.ops.pose.armature_apply(selected=False)
     bpy.ops.object.mode_set(mode="OBJECT")
-    print(f"[canon] aligned {aligned} joints, applied as rest")
+    print(f"[canon] aligned {aligned} joints, baked the skin, applied as rest")
 
 
 def normalise(arm, meshes, hero_m, sole_tol):

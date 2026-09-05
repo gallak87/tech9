@@ -67,11 +67,39 @@ const file = path.join(CFG.out, `${CFG.forge}${CFG.clip ? `-${CFG.clip}` : ''}.p
 await page.screenshot({ path: file });
 
 const stats = await page.evaluate(() => window.__DAWN__?.stats?.() ?? null).catch(() => null);
+
+/* Measure the bones the renderer is actually using. The headless probe measures
+   an actor it built itself in Node; this reads the live scene graph. When those
+   two disagree — bones hanging at 0° in Node, arms visibly out on screen — the
+   fault is in the game, not the asset, and only this side can say so. */
+const live = await page.evaluate(() => {
+  const T = window.__DAWN__?.THREE; if (!T) return null;
+  const root = window.__DAWN__?.ctx?.scene ?? window.__DAWN__?.engine?.scene;
+  if (!root) return null;
+  const want = ['shoulder_L', 'upperArm_L', 'lowerArm_L', 'hand_L', 'upperLeg_L', 'lowerLeg_L', 'hips', 'head'];
+  const found = {};
+  root.traverse((o) => { if (o.isBone && want.includes(o.name) && !found[o.name]) found[o.name] = o; });
+  if (Object.keys(found).length < want.length) return { missing: want.filter(n => !found[n]) };
+  root.updateMatrixWorld(true);
+  const wp = (n) => found[n].getWorldPosition(new T.Vector3());
+  const ang = (a, b) => {
+    const d = wp(b).sub(wp(a)).normalize();
+    return +(T.MathUtils.radToDeg(Math.acos(T.MathUtils.clamp(d.dot(new T.Vector3(0, -1, 0)), -1, 1)))).toFixed(1);
+  };
+  return {
+    'upperArm_L→lowerArm_L': ang('upperArm_L', 'lowerArm_L'),
+    'lowerArm_L→hand_L': ang('lowerArm_L', 'hand_L'),
+    'upperLeg_L→lowerLeg_L': ang('upperLeg_L', 'lowerLeg_L'),
+    heightM: +(wp('head').y - Math.min(...['hips'].map(n => wp(n).y)) ).toFixed(3),
+  };
+}).catch((e) => ({ error: e.message }));
 await browser.close();
 
 console.log(`\nglb fetched: ${swapped ? 'yes' : 'NO — the loader never requested it'}`);
 if (forgeLog.length) { console.log('[forge] console:'); forgeLog.forEach(l => console.log(`  ${l}`)); }
 else console.log('[forge] console: silent — the forge branch never ran, or never spoke');
 if (stats?.tris) console.log(`tris on screen: ${stats.tris.toLocaleString()}`);
+console.log('live bone angles from -Y (what the renderer is using):');
+console.log(`  ${JSON.stringify(live)}`);
 console.log(`\nwrote ${file}`);
 process.exit(forgeLog.some(l => l.startsWith('error')) || !swapped ? 1 : 0);

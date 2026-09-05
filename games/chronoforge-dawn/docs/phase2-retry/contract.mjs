@@ -137,6 +137,58 @@ export function meshBoundsY(json) {
   return lo === Infinity ? null : { min: lo, max: hi };
 }
 
+/** Read a MAT4 accessor out of the binary chunk. glTF stores matrices
+ *  column-major, tightly packed floats. */
+function readMat4(json, bin, idx) {
+  const acc = json.accessors?.[idx];
+  if (!acc || acc.type !== 'MAT4' || !bin) return null;
+  const bv = json.bufferViews[acc.bufferView];
+  const base = (bv.byteOffset ?? 0) + (acc.byteOffset ?? 0);
+  const out = [];
+  for (let i = 0; i < acc.count; i++) {
+    const m = new Float32Array(16);
+    for (let k = 0; k < 16; k++) m[k] = bin.readFloatLE(base + i * 64 + k * 4);
+    out.push(m);
+  }
+  return out;
+}
+
+/**
+ * Is the file exported in its bind pose?
+ *
+ * The skin binds vertices through inverseBindMatrices; the skeleton poses them
+ * through the node hierarchy. Those agree only when jointWorld · IBM is the
+ * identity for every joint. When they disagree the BONES sit where the rest
+ * pose says and the MESH renders somewhere else — a character whose skeleton
+ * measures perfectly and whose arms are visibly still out to the sides.
+ *
+ * @returns {{ok: boolean, worstJoint: string, worstM: number}|null}
+ */
+export function bindMatchesRest(json, bin) {
+  const skin = json.skins?.[0];
+  if (!skin || skin.inverseBindMatrices === undefined) return null;
+  const ibms = readMat4(json, bin, skin.inverseBindMatrices);
+  if (!ibms) return null;
+  const { world } = restWorld(json);
+
+  let worst = 0, worstJoint = '';
+  skin.joints.forEach((nodeIdx, i) => {
+    const w = world[nodeIdx], ibm = ibms[i];
+    if (!w || !ibm) return;
+    // jointWorld (rotation r, translation t) times IBM, checked against identity.
+    // Only the translation is compared: it is what displaces the skin, and it is
+    // in metres rather than an angle, so the number is directly meaningful.
+    const t = [
+      ibm[12] * w.r[0] + ibm[13] * w.r[1] + ibm[14] * w.r[2] + w.t[0],
+      ibm[12] * w.r[3] + ibm[13] * w.r[4] + ibm[14] * w.r[5] + w.t[1],
+      ibm[12] * w.r[6] + ibm[13] * w.r[7] + ibm[14] * w.r[8] + w.t[2],
+    ];
+    const d = Math.hypot(t[0], t[1], t[2]);
+    if (d > worst) { worst = d; worstJoint = json.nodes[nodeIdx]?.name ?? `node${nodeIdx}`; }
+  });
+  return { ok: worst <= 0.01, worstJoint, worstM: worst };
+}
+
 /** Map spec joint name → node index. Exact match only: canonicalisation is
  *  responsible for renaming, so a fuzzy match here would hide its failure. */
 export function locateJoints(json) {

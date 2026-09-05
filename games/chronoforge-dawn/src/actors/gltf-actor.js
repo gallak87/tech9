@@ -310,16 +310,27 @@ export function makeRetarget(boneByName, frame) {
   for (const bone of boneByName.values()) bind.set(bone, B(bone).clone());
 
   for (const [spec, bone] of boneByName) {
-    const specParent = SPEC_PARENT.get(spec);
-    const Bm = specParent ? bind.get(boneByName.get(specParent)).clone() : new THREE.Quaternion();
     const Bu = B(bone.parent).clone();
-    // W(b) = W_spec(b). The contract guarantees the asset's bind IS the spec
-    // rest pose, so an unposed clip returns the limbs where poses.js expects
-    // them. `pre` is identity wherever the glb's parent is the spec parent; it
-    // does work only where the rig interposes a joint the spec does not have,
-    // which every real rig does somewhere.
-    pre.set(bone, Bu.invert().multiply(Bm));
-    post.set(bone, new THREE.Quaternion());
+
+    /* Solve for  W(b) = q · B(b):  the clip rotates the bone by q in model
+       space, starting from the bind the mesh is actually skinned to.
+
+           local(b) = W(u)⁻¹ · W(b) = B(u)⁻¹ · q · B(b)
+           ⇒ pre = B(u)⁻¹,  post = B(b)
+
+       The earlier solve set post to identity and folded the SPEC parent's bind
+       into pre, which silently assumed every joint's bind rotation is identity.
+       That holds for the code-built rig — docs/specs/rig.mjs declares offsets
+       and no rotations — and for nothing else. A Blender bone points along its
+       own local +Y, so a limb hanging downward carries a 180° bind rotation
+       that survives export, and the assumption inverted every limb the moment a
+       clip was applied. The probe measured it at 179.2° from −Y.
+
+       This is not a second mode. With B(b) identity it reduces to the previous
+       formula exactly, so the code-built character is unchanged; it is the
+       general case the old one was a special case of. */
+    pre.set(bone, Bu.invert());
+    post.set(bone, bind.get(bone).clone());
     bone.userData.qSpec = new THREE.Quaternion();
     bone.userData.specName = spec;
   }

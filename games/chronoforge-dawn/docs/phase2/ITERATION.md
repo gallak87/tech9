@@ -1,185 +1,108 @@
-# ITERATION — shape stage debugging
+# ITERATION — shape stage
 
-Working notes. **Delete when the mesh stage produces a usable Kaida.**
+Delete when the mesh stage produces a usable Kaida.
 
 ---
 
-# The failure
+# Environment
+
+| | |
+|---|---|
+| conda env | `hunyuan_mlx`, Python 3.11.14 |
+| reproduce | `env-lock.yml` (not requirements.txt) |
+| clone | `3d-gen/Hunyuan3D-2.1-mlx` at `32931e2`, gitignored |
+| weights | fp16, pulled by `from_pretrained` on first run |
+
+---
+
+# Run
+
+```bash
+npm run forge:smoke     # ~1-2 min, shape only, 8 steps, octree 128
+npm run forge:shape     # shape at full quality
+npm run forge:full      # shape + texture
+```
+
+Smoke answers one question: does the SDF have a surface at all.
+
+Direct, for sweeping knobs:
+
+```bash
+$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py \
+  --image docs/phase2/ref/kaida-painterly.png \
+  --output docs/phase2/out/smoke.glb \
+  --shape-only --steps 8 --octree-resolution 128 --mc-level 0.0
+```
+
+---
+
+# Open failure
 
 ```
-Hierarchical Volume Decoding [r65]:  274625 points     (= 65³, full dense grid)
+Hierarchical Volume Decoding [r65]:  274625 points
 Hierarchical Volume Decoding [r129]: 0 points (of 2146689 total)
 ValueError: need at least one array to concatenate
 ```
 
-`_extract_near_surface_mask` found **zero sign changes** across the whole r65
-volume. The SDF never crosses `mc_level`, so there is no surface anywhere. The
-crash is downstream noise — `_query_sdf_volume` was handed an empty array.
-
-Not a memory error. Not an octree error.
-
-## Two suggestions that were rejected
-
-| Suggestion | Verdict |
-|---|---|
-| Flatten alpha onto white before passing the image | **No-op.** `pipeline_mlx.py:81-85` already composites RGBA onto white using the alpha as mask. The keyed PNG is the correct input. |
-| Drop `octree_resolution` 256 → 128 | **Wrong direction.** 256 *is* the MLX default. It already failed at r129, below 256. Lowering it moves where it fails, not whether. |
-
----
-
-# What generate.py actually got wrong
-
-`demo.py` is the **PyTorch** demo (`hy3dshape.pipelines`, `tencent/Hunyuan3D-2.1`)
-and is not the contract for the MLX path. The real contract is
-`pipeline_mlx.ShapePipeline.__call__`:
-
-```python
-num_inference_steps: int   = 50,     # generate.py 50    ok
-guidance_scale:      float = 5.0,    # generate.py 7.5   DEVIATION
-octree_resolution:   int   = 256,    # generate.py 256   ok, is the default
-box_v:               float = 1.01,
-mc_level:            float = 0.0,
-num_chunks:          int   = 10000,
-seed:      Optional[int]   = None,   # never passed
-```
-
-| Defect | Consequence |
-|---|---|
-| `guidance_scale=7.5` vs default `5.0` | Invented from generic diffusion convention. Over-guidance in a flow-matching model is a live cause of a degenerate latent, which is exactly a no-sign-change SDF. **Prime suspect.** |
-| No seed | Every 15-minute run is unreproducible. A fix cannot be distinguished from a different sample. |
-| `--precision` parsed, never used | `from_pretrained` defaults to `dtype=mx.float16`. The 6.10 GB download is FP16, which the port sizes at ~10 GB peak against a recommended 32 GB. This machine has 16 GB. |
-
-One thing it got right: MLX returns the mesh directly. `demo.py`'s `[0]` is the
-PyTorch API. Do not add it.
-
----
-
-# Patch list — generate.py
-
-| # | Change | Form |
-|---|---|---|
-| 1 | `guidance_scale` 7.5 → **5.0** | hardcode |
-| 2 | `seed` → **fixed constant** | hardcode. Generation is statically driven; determinism is the point, and `tools/lintrng.mjs` already treats it as a project value. |
-| 3 | `--shape-only` | flag. Stage 2 is ~9 min and stage 1 is what's broken. |
-| 4 | `--steps` (default 50) | flag. Dominates runtime; drop to 8 for smoke. |
-| 5 | `--octree-resolution` (default 256) | **temporary** flag |
-| 6 | `--mc-level` (default 0.0) | **temporary** flag. This is the iso threshold the near-surface mask compares against — the knob directly implicated. |
-| 7 | Print SDF min / max / mean / NaN count at every level | Distinguishes FP16 NaN from a genuinely flat field in one run. |
-| 8 | `--precision` → sets `HUNYUAN3D_MLX_WEIGHTS_DIR` | Currently decorative. |
-
-**5 and 6 are scaffolding.** Delete both once Kaida's numbers are settled and
-hardcode the values that worked. Leave a comment saying which run fixed them.
-
-## Why NaN is the leading hypothesis
-
-`decode_to_mesh` keeps a voxel when **either** condition holds:
+`decode_to_mesh` keeps a voxel when either holds:
 
 ```python
 curr_mask  = self._extract_near_surface_mask(grid_logits, mc_level)   # sign change
-curr_mask += (np.abs(grid_logits) < 0.95).astype(np.int32)            # near the iso level
+curr_mask += (np.abs(grid_logits) < 0.95).astype(np.int32)            # near iso level
 ```
 
-Zero points means not one voxel of 274,625 satisfied either. `|sdf| < 0.95` is a
-generous band, and `np.abs(nan) < 0.95` is False — as is every NaN sign
-comparison. A NaN field fails both, exactly as observed.
+Zero points means neither held for any of 274,625 voxels. `np.abs(nan) < 0.95`
+is False and NaN sign comparisons are False, so an all-NaN field fails both.
 
-The probe in `generate.py` reports `nan=` per level, so one run settles it:
+## Reading the probe
 
-- **all NaN** → numerics. Try `--precision int8`; fp16 peaks ~10 GB on a 16 GB machine.
-- **finite, `crossings=NO`, large `|min|`** → the latent resolved no surface. Guidance or conditioning.
+`generate.py` prints `[SDF]` per level.
 
-INT8 is not a runtime flag — the port's README converts weights offline:
+| Output | Meaning | Next |
+|---|---|---|
+| `nan=` equals `n=` | numerics | `--precision int8`; fp16 peaks ~10 GB against 16 GB of unified memory |
+| finite, `crossings=NO`, large `\|min\|` | latent resolved no surface | sweep `--mc-level`, then guidance |
+| finite, `crossings=yes` | field is fine | failure is downstream of the mask |
+
+INT8 weights are an offline conversion:
 
 ```bash
-mlx-forge convert hunyuan3d-2.1 --quantize --bits 8 --output ./models/hunyuan3d-2.1-mlx
+mlx-forge convert hunyuan3d-2.1 --quantize --bits 8 --output ./models/hunyuan3d-2.1-int8
+export HUNYUAN3D_MLX_WEIGHTS_DIR=<that directory>
 ```
 
-Then `HUNYUAN3D_MLX_WEIGHTS_DIR` points at that directory. `from_pretrained`
-already honours the env var.
+---
 
-## Where generate.py should live
+# Temporary knobs
 
-**`docs/phase2/generate.py`, ours and versioned** — not inside the clone. It
-takes the repo path from `HUNYUAN3D_REPO` (or `--repo`) and does the
-`sys.path.insert` itself. That keeps the 328 MB clone disposable and re-clonable
-without losing our work.
+`--octree-resolution` and `--mc-level` are scaffolding. Delete both once Kaida's
+values settle and hardcode them.
 
 ---
 
-# Patch list — forge.mjs
+# Logistical review — TODO
 
-Only `stages/mesh.mjs`. Its `command` block emits
-`--precision / --views / --texture-size / --output`, invented against a
-generate.py that did not exist yet. Make it emit the real flags.
+`setup-3dgen.sh` has never been run from nothing. Unverified:
 
-**Keep `refuse()` in place.** Manual driving until the shape stage produces
-something. Wiring it in now would automate a broken step.
-
----
-
-# npm scripts
-
-`games/chronoforge-dawn/package.json`. Config lives in the script, not in flags
-typed by hand:
-
-```
-forge:smoke   --shape-only --steps 8 --octree-resolution 128    ~1-2 min
-forge:shape   --shape-only                                      shape at full quality
-forge:full    (nothing)                                         shape + texture
-```
-
-Each prefixed with the venv python and `HUNYUAN3D_REPO`. Smoke is not a quality
-run — it answers "does the SDF have a surface at all".
-
----
-
-# Git
-
-**Do not commit the clone.** 328 MB, and it carries its own `.git`, which git
-would want to be a submodule.
-
-`docs/phase2/.gitignore` gets `3d-gen/`. Versioned: our `generate.py`, the
-manifest, `ref-gen.mjs`, the references. Disposable: the clone, the weights,
-`out/`.
-
----
-
-# Logistical review — TODO before this leaves this machine
-
-`setup-3dgen.sh` records what worked here. **It has never been run from
-nothing.** Open questions:
-
-- `env-lock.yml` is a conda export from this machine — arm64, macOS. Unverified elsewhere.
-- The requirements.txt edits that made it resolve were made in the environment,
-  not in a file. The lock captures the result, not the reasoning.
-- `mlx-forge` is assumed present for the INT8 conversion; its install is unrecorded.
-- Weights are pulled by `from_pretrained` at first run, not by the setup script.
-- Python 3.11.14. **3.10 and 3.12 were both tried and failed** — the port's own
-  README claims 3.10 and is wrong.
-
-Do this before anyone else, or another machine, needs the pipeline.
+- `env-lock.yml` is an arm64 macOS export
+- `mlx-forge` install is unrecorded
+- weights are not fetched by the setup script
 
 ---
 
 # Supply chain
 
-Worth being clear about what came from where, since this was flagged.
-
 | | Origin | Risk |
 |---|---|---|
-| Model weights | HuggingFace `dgrauet/hunyuan3d-2.1-mlx`, **`.safetensors`** | Low. safetensors exists specifically because pickle/`.bin` execute arbitrary code on load. Safetensors cannot. |
-| Original model + code | Tencent (Hunyuan3D-2.1) | Large company, widely used, not one developer. |
-| MLX port | `dgrauet` fork, single maintainer | The actual trust step taken here. |
-| `pip install -r requirements.txt` | | **The real risk surface, already executed.** `setup.py` runs arbitrary code at install time. Weights were never the exposure. |
+| weights | HF `dgrauet/hunyuan3d-2.1-mlx`, `.safetensors` | Low — safetensors cannot execute on load, unlike pickle |
+| model + upstream code | Tencent | Large company, widely used |
+| MLX port | `dgrauet` fork, single maintainer | The trust step taken |
+| `pip install` | requirements.txt carries two Chinese PyPI mirrors as `--extra-index-url` | The real surface. `setup.py` runs arbitrary code. Already executed. |
 
-To audit what the port actually changed versus Tencent's upstream:
+Audit the port against upstream:
 
 ```bash
 cd docs/phase2/3d-gen/Hunyuan3D-2.1-mlx
 git log --oneline | head -30
-git remote -v
 grep -rn "urllib\|requests\|socket\|subprocess\|eval(\|exec(" --include=*.py hy3dshape hy3dpaint | grep -v test
 ```
-
-The zcompdump files are unrelated — oh-my-zsh regenerates its completion cache
-whenever `$fpath` changes, which the python@3.10 install did.

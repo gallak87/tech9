@@ -11,13 +11,10 @@ from pathlib import Path
 
 import numpy as np
 
-# Generation is statically driven — the same reference must yield the same mesh
-# on every run, or a fix cannot be told apart from a different sample.
+# Generation is statically driven: one reference, one mesh, every run.
 SEED = 42
 
-# The MLX pipeline's own default. An earlier revision used 7.5, carried over from
-# generic diffusion convention; over-guidance in a flow-matching model is a live
-# cause of a degenerate latent.
+# pipeline_mlx.ShapePipeline.__call__ default.
 GUIDANCE_SCALE = 5.0
 
 DEFAULT_REPO = Path(__file__).resolve().parent / "3d-gen" / "Hunyuan3D-2.1-mlx"

@@ -11,7 +11,7 @@
     "install"
   ],
   "_stages": "Run in order. Each skips when every output exists and sha256(input bytes + that stage's config below) matches out/.hashes.json. --force overrides.",
-  "_venv": "Python 3.11.14 via conda, env-lock.yml. 3.10 and 3.12 were both tried and failed, and requirements.txt needed edits to resolve on arm64 — reproduce from the lock, not from requirements.txt. Both stages below print their intended command rather than guess at a CLI nobody has run.",
+  "_venv": "Python 3.11.14, conda env hunyuan_mlx, reproduced from env-lock.yml. Both stages below print their intended command rather than guess at a CLI nobody has run.",
   "venv": "~/.venvs/forge310",
   "mesh": {
     "_model": "Hunyuan3D-2.1 via the MLX port — https://github.com/dgrauet/Hunyuan3D-2.1-mlx",

@@ -33,8 +33,8 @@ export default {
         `    --steps ${c.config.steps ?? 50} \\`,
         `    --views ${c.config.views ?? 6} --texture-size ${c.config.textureSize ?? 512}`,
       ],
-      verify: 'the shape pass has not yet produced a mesh. Settle it by hand through the '
-        + 'npm forge:smoke / forge:shape scripts, then wire this in.',
+      verify: 'the shape pass has not yet produced a mesh. Settle it through npm forge:smoke '
+        + 'and forge:shape, then wire this in.',
     });
   },
 };

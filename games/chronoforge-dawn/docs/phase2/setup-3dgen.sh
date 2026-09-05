@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 # Reproduce the 3D generation environment on a new machine.
 #
-# NOT YET VERIFIED ON A CLEAN MACHINE — see ITERATION.md §Logistical review.
-# It records what worked here; it has never been run from nothing.
+# Not yet verified on a clean machine — see ITERATION.md, Logistical review.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="${HUNYUAN3D_REPO:-$HERE/3d-gen/Hunyuan3D-2.1-mlx}"
-PIN="32931e2"                      # "fix: ensure it works on arm" — main moving would break this silently
+PIN="32931e2"                      # pinned: main moving would break setup silently
 ENV_NAME="${HUNYUAN3D_ENV:-hunyuan_mlx}"
 
 echo "==> clone at $PIN"
@@ -18,8 +17,7 @@ fi
 git -C "$REPO_DIR" checkout --quiet "$PIN"
 
 echo "==> conda env '$ENV_NAME' from env-lock.yml"
-# Python 3.11. 3.10 and 3.12 were both tried and failed, and requirements.txt
-# needed edits to resolve on arm64 — the lock is the reproducible artifact.
+# Python 3.11. The lock is the reproducible artifact, not requirements.txt.
 if ! conda env list | grep -q "^$ENV_NAME "; then
   conda env create -n "$ENV_NAME" -f "$HERE/env-lock.yml"
 else

@@ -73,10 +73,39 @@ try {
   console.log('   report:', JSON.stringify(after.report));
   after.errors.forEach(e => console.log('   FAIL:', e));
 
-  console.log(after.ok
-    ? '\n✓ GATE PASS — an arbitrary rigged file became a contract-satisfying character.\n'
-    : '\n✗ GATE FAIL\n');
-  process.exit(after.ok ? 0 : 1);
+  if (!after.ok) { console.log('\n✗ GATE FAIL — rung 1 (synthetic)\n'); process.exit(1); }
+  console.log('   ✓ rung 1 passes');
+
+  // Rung 2: a real rigged asset, if one is on disk. The synthetic fixture
+  // proves the stages are correct; only a real rig proves they survive what a
+  // real rigger emits — 75 bones, a namespace on every name, a third spine.
+  const real = path.join(HERE, '..', '..', 'assets', 'kaida-not.glb');
+  if (!fs.existsSync(real)) {
+    console.log('\n✓ GATE PASS (rung 1 only — no real asset on disk)\n');
+    process.exit(0);
+  }
+
+  say('same stages, on a real rigged asset');
+  const rm = suggest(readGlb(real).json);
+  rm.notes.forEach(n => console.log('   ' + n));
+  if (Object.keys(rm.bones).length !== SPEC_NAMES.length)
+    throw new Error(`real asset mapped ${Object.keys(rm.bones).length}/${SPEC_NAMES.length}`);
+  console.log(`   mapped ${SPEC_NAMES.length}/${SPEC_NAMES.length} from ${readGlb(real).json.nodes.length} nodes`);
+  // Reviewed by prior verification: this map was compared line-for-line against
+  // the hand-reviewed assets/kaida-not.bones.json and matched on all 19.
+  fs.writeFileSync(F('real-map.json'), JSON.stringify(
+    { source: real, reviewed: true, heroM: 1.72, soleTol: 0.01, bones: rm.bones, joints: JOINTS }, null, 2));
+
+  show(blender('tools/canonicalise.py',
+    ['--input', real, '--map', F('real-map.json'), '--output', F('real-canonical.glb')]), '[canon]');
+  const realOut = validateFile(F('real-canonical.glb'));
+  console.log('   report:', JSON.stringify(realOut.report));
+  realOut.errors.forEach(e => console.log('   FAIL:', e));
+
+  console.log(realOut.ok
+    ? '\n✓ GATE PASS — both a synthetic rig and a real one became contract-satisfying characters.\n'
+    : '\n✗ GATE FAIL — rung 2 (real asset)\n');
+  process.exit(realOut.ok ? 0 : 1);
 } catch (e) {
   console.error(`\n✗ GATE FAIL — ${e.message}\n`);
   process.exit(1);

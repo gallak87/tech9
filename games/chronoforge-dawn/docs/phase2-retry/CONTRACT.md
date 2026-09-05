@@ -39,9 +39,14 @@ hips
   hips        → upperLeg_{L,R} → lowerLeg → foot
 ```
 
-An asset may carry extra joints — twist bones, an armature root, fingers, toes.
-They are ignored, not removed, and must not sit **between** two spec joints in
-the hierarchy. A spec joint's parent in the asset must be its spec parent.
+An asset may carry extra joints — twist bones, an armature root, fingers, toes,
+a third spine. They are ignored, not removed, and **may** sit between two spec
+joints: every real rig has more joints than the spec, so something must. What is
+required is **ancestry** — a spec joint's spec parent must be somewhere above it
+in the hierarchy. The engine composes through whatever is in between.
+
+Requiring direct parentage instead would reject a stock Mixamo rig, which has
+three spine bones where the spec has two.
 
 ## 2. Rest pose
 

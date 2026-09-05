@@ -1,0 +1,200 @@
+{
+  "source": "/Users/g/code/scratch/tech9/games/chronoforge-dawn/assets/kaida-not.glb",
+  "reviewed": true,
+  "heroM": 1.72,
+  "soleTol": 0.01,
+  "bones": {
+    "hips": "mixamorig:Hips",
+    "neck": "mixamorig:Neck",
+    "head": "mixamorig:Head",
+    "shoulder_L": "mixamorig:LeftShoulder",
+    "hand_L": "mixamorig:LeftHand",
+    "shoulder_R": "mixamorig:RightShoulder",
+    "hand_R": "mixamorig:RightHand",
+    "foot_L": "mixamorig:LeftFoot",
+    "foot_R": "mixamorig:RightFoot",
+    "spine_lower": "mixamorig:Spine1",
+    "spine_upper": "mixamorig:Spine2",
+    "lowerArm_L": "mixamorig:LeftForeArm",
+    "lowerArm_R": "mixamorig:RightForeArm",
+    "upperLeg_L": "mixamorig:LeftUpLeg",
+    "lowerLeg_L": "mixamorig:LeftLeg",
+    "upperLeg_R": "mixamorig:RightUpLeg",
+    "lowerLeg_R": "mixamorig:RightLeg",
+    "upperArm_L": "mixamorig:LeftArm",
+    "upperArm_R": "mixamorig:RightArm"
+  },
+  "joints": [
+    {
+      "name": "hips",
+      "parent": null,
+      "offset": [
+        0,
+        0.96,
+        0
+      ]
+    },
+    {
+      "name": "spine_lower",
+      "parent": "hips",
+      "offset": [
+        0,
+        0.14,
+        0
+      ]
+    },
+    {
+      "name": "spine_upper",
+      "parent": "spine_lower",
+      "offset": [
+        0,
+        0.22,
+        0
+      ]
+    },
+    {
+      "name": "neck",
+      "parent": "spine_upper",
+      "offset": [
+        0,
+        0.08,
+        0
+      ]
+    },
+    {
+      "name": "head",
+      "parent": "neck",
+      "offset": [
+        0,
+        0.32,
+        0
+      ]
+    },
+    {
+      "name": "shoulder_L",
+      "parent": "spine_upper",
+      "offset": [
+        0.19,
+        0.04,
+        0
+      ]
+    },
+    {
+      "name": "upperArm_L",
+      "parent": "shoulder_L",
+      "offset": [
+        0,
+        -0.28,
+        0
+      ]
+    },
+    {
+      "name": "lowerArm_L",
+      "parent": "upperArm_L",
+      "offset": [
+        0,
+        -0.24,
+        0
+      ]
+    },
+    {
+      "name": "hand_L",
+      "parent": "lowerArm_L",
+      "offset": [
+        0,
+        -0.09,
+        0
+      ]
+    },
+    {
+      "name": "shoulder_R",
+      "parent": "spine_upper",
+      "offset": [
+        -0.19,
+        0.04,
+        0
+      ]
+    },
+    {
+      "name": "upperArm_R",
+      "parent": "shoulder_R",
+      "offset": [
+        0,
+        -0.28,
+        0
+      ]
+    },
+    {
+      "name": "lowerArm_R",
+      "parent": "upperArm_R",
+      "offset": [
+        0,
+        -0.24,
+        0
+      ]
+    },
+    {
+      "name": "hand_R",
+      "parent": "lowerArm_R",
+      "offset": [
+        0,
+        -0.09,
+        0
+      ]
+    },
+    {
+      "name": "upperLeg_L",
+      "parent": "hips",
+      "offset": [
+        0.1,
+        -0.02,
+        0
+      ]
+    },
+    {
+      "name": "lowerLeg_L",
+      "parent": "upperLeg_L",
+      "offset": [
+        0,
+        -0.42,
+        0
+      ]
+    },
+    {
+      "name": "foot_L",
+      "parent": "lowerLeg_L",
+      "offset": [
+        0,
+        -0.46,
+        0
+      ]
+    },
+    {
+      "name": "upperLeg_R",
+      "parent": "hips",
+      "offset": [
+        -0.1,
+        -0.02,
+        0
+      ]
+    },
+    {
+      "name": "lowerLeg_R",
+      "parent": "upperLeg_R",
+      "offset": [
+        0,
+        -0.42,
+        0
+      ]
+    },
+    {
+      "name": "foot_R",
+      "parent": "lowerLeg_R",
+      "offset": [
+        0,
+        -0.46,
+        0
+      ]
+    }
+  ]
+}

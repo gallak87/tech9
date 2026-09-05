@@ -164,6 +164,7 @@ export function validate(json) {
   report.joints = `${found.size}/${SPEC_NAMES.length}`;
 
   const { world, parentOf, nodes } = restWorld(json);
+  const interposed = [];
   if (!missing.length) {
     for (const name of SPEC_NAMES) {
       const specParent = SPEC_PARENT.get(name);
@@ -173,7 +174,11 @@ export function validate(json) {
       if (p === undefined || nodes[p].name !== specParent) {
         errors.push(`${name}: spec parent ${specParent} is not an ancestor`);
       } else if (hops > 0) {
-        errors.push(`${name}: ${hops} unmapped node(s) sit between it and ${specParent}`);
+        // Not an error. A real rig has more joints than the spec — Mixamo ships
+        // three spine bones where the spec has two — so something MUST sit in
+        // between. Ancestry is the contract; direct parentage would reject
+        // structurally normal rigs to buy nothing.
+        interposed.push(`${name}+${hops}`);
       }
     }
   }
@@ -196,6 +201,8 @@ export function validate(json) {
     report.restMaxDeg = limbs.reduce((m, [a, b]) =>
       Math.max(m, Math.acos(Math.max(-1, Math.min(1, dot(dirOf(a, b), [0, -1, 0])))) * 180 / Math.PI), 0).toFixed(1);
   }
+
+  if (interposed.length) report.interposed = interposed.join(' ');
 
   // 3. scale and ground — the mesh's own vertical extent, which is what
   //    "how tall is this character" physically means. The skeleton cannot

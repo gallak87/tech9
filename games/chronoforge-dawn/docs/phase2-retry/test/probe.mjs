@@ -32,6 +32,7 @@ globalThis.URL.createObjectURL ??= () => 'blob:stub';
 globalThis.URL.revokeObjectURL ??= () => {};
 globalThis.createImageBitmap ??= async () => ({ width: 1, height: 1, close() {} });
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -65,6 +66,10 @@ if (has('help') || !argv.length) {
   --json             machine-readable output
   --quiet            failures only
 
+  --shot             ALSO capture the character in-game (needs the dev server)
+  --shot-port <n>    dev server port                default: 5190
+  --shot-out <dir>   where the png lands            default: shots/probe
+
 Exit 0 all pass, 1 any fail, 2 could not run.`);
   process.exit(has('help') ? 0 : 2);
 }
@@ -79,6 +84,9 @@ const CFG = {
   spineMin: Number(opt('spine-min', 0.9)),
   json: has('json'),
   quiet: has('quiet'),
+  shot: has('shot'),
+  shotPort: opt('shot-port', '5190'),
+  shotOut: opt('shot-out', 'shots/probe'),
 };
 
 /* ── reporting ────────────────────────────────────────────────────────────── */
@@ -183,6 +191,33 @@ for (const clip of CFG.clips) {
     .sort((x, y) => y.d - x.d)[0];
   check(`${clip}: limbs not inverted`, worst.d <= CFG.armMax,
     `worst ${worst.j} ${fixed(worst.d)}°`, `≤ ${CFG.armMax}° from -Y`);
+}
+
+/* ── 5. in-game capture, on request ───────────────────────────────────────── */
+//
+// Kept separate from the measurements above on purpose. Everything before this
+// point is a number and runs anywhere; this needs a dev server and a GPU, and
+// produces a picture rather than a verdict. A picture is still worth having —
+// the numbers say a limb is 179° from -Y, the picture says her arms are over
+// her head — but it must never be what the probe depends on.
+
+if (CFG.shot) {
+  const shot = path.join(REPO, 'docs', 'phase2-retry', 'tools', 'ingame.mjs');
+  const outDir = path.isAbsolute(CFG.shotOut) ? CFG.shotOut : path.join(REPO, CFG.shotOut);
+  try {
+    const log = execFileSync('node', [shot,
+      '--forge', CFG.id, '--port', String(CFG.shotPort), '--out', outDir,
+    ], { encoding: 'utf8', cwd: REPO });
+    const loaded = /\[forge\] console:/.test(log) && !/error:/.test(log);
+    const file = (log.match(/wrote (.+)$/m) ?? [])[1] ?? '(none)';
+    check('in-game: the forged glb loaded', loaded,
+      loaded ? 'swapped onto the actor' : 'fell back to code-built', 'the glb on screen');
+    check('in-game: screenshot captured', fs.existsSync(file),
+      path.relative(REPO, file), 'a png');
+  } catch (e) {
+    check('in-game: capture ran', false,
+      `${e.message.split('\n')[0]} — is the dev server up on :${CFG.shotPort}?`, 'a capture');
+  }
 }
 
 /* ── verdict ──────────────────────────────────────────────────────────────── */

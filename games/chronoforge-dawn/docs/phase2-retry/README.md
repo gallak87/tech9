@@ -27,7 +27,27 @@ degrees. Node only — no browser, no renderer, no screenshots.
 --spine-min <y>    minimum hips→head Y          default: 0.9
 --json             machine-readable
 --quiet            failures only
+
+--shot             ALSO capture the character in-game (needs the dev server)
+--shot-port <n>    dev server port      default: 5190
+--shot-out <dir>   where the png lands  default: shots/probe
 ```
+
+`--shot` is deliberately a separate step. Everything else the probe does is a
+number and runs anywhere; this needs a dev server and a GPU, and produces a
+picture rather than a verdict. The picture is worth having — the numbers say a
+limb is 179° from −Y, the picture says her arms are over her head — but the
+probe must never depend on it. It can also be driven on its own:
+
+```bash
+npm run retry:shot -- --forge kaida --port 5190
+```
+
+That reports whether the glb actually swapped in. The forge branch is
+asynchronous and falls back to the code-built body on any failure, so a capture
+taken too early looks identical to one taken after a silent failure. It echoes
+every `[forge]` console line and exits non-zero if the glb never reached the
+screen — which is the ambiguity that cost an afternoon of screenshots.
 
 Exit 0 all pass, 1 any fail, 2 could not run.
 

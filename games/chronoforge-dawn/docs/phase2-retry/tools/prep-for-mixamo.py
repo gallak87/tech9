@@ -29,6 +29,8 @@ args = {a[i].lstrip("-"): a[i + 1] for i in range(0, len(a), 2)}
 for k in ("input", "output"):
     if k not in args:
         die(f"missing --{k}")
+TARGET_TRIS = int(args.get("tris", 0))          # 0 = leave the mesh alone
+STRIP_TEX = args.get("strip-textures") == "1"   # smallest possible upload
 
 for o in list(bpy.data.objects):
     bpy.data.objects.remove(o, do_unlink=True)
@@ -52,6 +54,36 @@ for m in meshes:
     m.data.calc_loop_triangles()
     tris += len(m.data.loop_triangles)
 
+# Decimate BEFORE rigging, never after: reducing a rigged mesh degrades the skin
+# weights it already carries. A game character does not need 82k triangles —
+# the stand-in this pipeline was proven against is 12,609 — and a smaller upload
+# is also the first thing to try when a rigging service rejects a valid file.
+if TARGET_TRIS and tris > TARGET_TRIS:
+    ratio = TARGET_TRIS / tris
+    for m in meshes:
+        bpy.context.view_layer.objects.active = m
+        mod = m.modifiers.new(name="prep_decimate", type="DECIMATE")
+        mod.decimate_type = "COLLAPSE"
+        mod.ratio = ratio
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+    after = 0
+    for m in meshes:
+        m.data.calc_loop_triangles()
+        after += len(m.data.loop_triangles)
+    print(f"[prep] decimated {tris} -> {after} tris (ratio {ratio:.3f})")
+    tris = after
+
+if STRIP_TEX:
+    # Rigging needs geometry, not appearance. Dropping the textures makes the
+    # upload a fraction of the size, which isolates "the service rejects my
+    # file" from "the service cannot take my file".
+    for m in meshes:
+        m.data.materials.clear()
+    for img in list(bpy.data.images):
+        if img.source != "VIEWER" and img.name != "Render Result":
+            bpy.data.images.remove(img)
+    print("[prep] stripped textures — geometry only")
+
 # Meshy already embeds its textures; Blender unpacks them to a .fbm sidecar on
 # import and re-embeds them on export. Pack anything that somehow is not, then
 # VERIFY rather than assume — an earlier version of this script judged success
@@ -69,7 +101,7 @@ for img in bpy.data.images:
 
 carried = [i.name for i in bpy.data.images
            if i.source != "VIEWER" and i.name != "Render Result" and i.packed_file]
-loose = [i.name for i in bpy.data.images
+loose = [] if STRIP_TEX else [i.name for i in bpy.data.images
          if i.source != "VIEWER" and i.name != "Render Result" and not i.packed_file]
 print(f"[prep] textures carried in the file: {len(carried)} -> {', '.join(carried)}")
 if loose:

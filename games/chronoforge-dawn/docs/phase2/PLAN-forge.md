@@ -1,5 +1,13 @@
 # Plan — character forge
 
+> **Superseded by `../phase2-retry/`.** That is the pipeline in use; this
+> directory is the previous attempt, kept for its findings. Current state,
+> next steps and the traps worth knowing live in `../phase2-retry/README.md`
+> and `../phase2-retry/PITFALLS.md`.
+>
+> Still current here: the mesh and rig **tool options** and what each must
+> prove (`ITERATION.md`), and the Meshy source mesh in `meshy_output/`.
+
 Get a generated, rigged Kaida into the running game, live-reloading when a new
 mesh lands on disk.
 

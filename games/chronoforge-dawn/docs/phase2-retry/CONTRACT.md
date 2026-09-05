@@ -70,6 +70,30 @@ generated mesh needs canonicalising to *some* rest pose either way.
 One skinned mesh. One material. Skin weights normalised, at most 4 influences
 per vertex.
 
+**The mesh sits where the skeleton says it does.** A file can satisfy every other
+clause — bones hanging along −Y, bind matching rest to 0.0000 m — while its
+vertices remain in the pose the rigger produced, because Blender's
+`armature_apply` rewrites bind matrices without moving geometry. Such a file
+renders with its arms out and measures perfectly.
+
+Checked as the mesh's width against the hand span: with the limbs down, a
+character's mesh is barely wider than its hands.
+
+## 4b. Rest rotations
+
+`docs/specs/rig.mjs` declares joints as offsets with no rotations, so the engine
+treats the spec rest as identity. Real rigs do not have identity rest rotations —
+a Blender bone points along its own local +Y, so a limb hanging downward carries
+a 180° rest rotation that survives export.
+
+The contract does **not** require them to be identity; that is not achievable in
+any rigger. The engine composes the clip onto whatever bind the asset ships with
+(`W(b) = q · B(b)`), which reduces to the naive form when the bind is identity.
+
+Recorded because assuming identity is the single most expensive mistake
+available here: it leaves the bind pose looking perfect and inverts every limb
+the moment anything moves.
+
 ## 5. Sockets
 
 Not bones. Resolved by the engine from `SOCKETS` in `docs/specs/rig.mjs`, hung

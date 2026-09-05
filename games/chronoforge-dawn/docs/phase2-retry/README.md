@@ -1,203 +1,184 @@
-# phase2-retry
+# phase2-retry — the character pipeline
 
-A character pipeline built contract-first. `docs/phase2/` is the previous
-attempt and its findings are still good reading; nothing here depends on it.
+Reference image → mesh → rig → **canonicalise → install → in the game**.
 
-```bash
-npm run retry:gate                      # prove the pipeline. seconds, no GPU.
-npm run retry:probe -- <asset.glb>      # does the ENGINE load and animate it right?
-npm run retry:map -- <rigged.glb>       # propose a bone map from a rig's names
-npm run retry:check -- <file.glb>       # validate any glb against the contract
-npm run retry:all                       # gate + probe on the installed character
-```
-
-## The probe
-
-`npm run retry:probe -- assets/kaida.glb`
-
-Loads a character through the real `src/actors` code and measures the result in
-degrees. Node only — no browser, no renderer, no screenshots.
-
-```
---id <name>        character to build          default: the file's basename
---clips a,b,c      clips to check              default: all seven
---t <n>            time to sample each clip     default: 0.25
---arm-max <deg>    limb deviation allowed       default: 55
---limb-max <deg>   bind limb deviation allowed  default: 8
---spine-min <y>    minimum hips→head Y          default: 0.9
---json             machine-readable
---quiet            failures only
-
---shot             ALSO capture the character in-game (needs the dev server)
---shot-port <n>    dev server port      default: 5190
---shot-out <dir>   where the png lands  default: shots/probe
-```
-
-`--shot` is deliberately a separate step. Everything else the probe does is a
-number and runs anywhere; this needs a dev server and a GPU, and produces a
-picture rather than a verdict. The picture is worth having — the numbers say a
-limb is 179° from −Y, the picture says her arms are over her head — but the
-probe must never depend on it. It can also be driven on its own:
+The last three stages are built and proven. The first two need a tool decision.
 
 ```bash
-npm run retry:shot -- --forge kaida --port 5190
+npm run retry:gate                       # prove the pipeline. seconds, no GPU.
+npm run retry:probe -- <asset.glb>       # does the engine load and animate it right?
+npm run retry:probe -- <asset.glb> --shot   # ...and screenshot it in-game
+npm run retry:shot  -- --forge kaida --moves   # nine movement shots
+npm run retry:all                        # gate + probe
 ```
 
-That reports whether the glb actually swapped in. The forge branch is
-asynchronous and falls back to the code-built body on any failure, so a capture
-taken too early looks identical to one taken after a silent failure. It echoes
-every `[forge]` console line and exits non-zero if the glb never reached the
-screen — which is the ambiguity that cost an afternoon of screenshots.
+Play-test: `npm run dev` → `localhost:5190/?play=1&dev=2&forge=kaida`
 
-Exit 0 all pass, 1 any fail, 2 could not run.
+---
 
-**Why it exists.** A character can satisfy every structural check and still
-animate into a face-down, splayed heap. That failure was found by eye, from a
-screenshot, twice — once per agent — and each time it cost a browser round trip
-to see and a guess to explain.
+# Current state
 
-It is measurable. `idle` is nearly the bind pose, so under a correct rig the
-limbs barely move; under a broken one they invert. Every check reports its
-number whether it passes or fails, so *"is it fixed yet"* is a command and
-*"is it getting better"* is a diff.
+| | |
+|---|---|
+| **Contract** | `CONTRACT.md`, enforced by `contract.mjs`. One skeleton, one bind pose, one way in. |
+| **canonicalise** | Any rigged file → the contract. Blender, headless. |
+| **install** | Validates, then copies. Refuses anything that violates the contract. |
+| **Engine** | Assumes the contract. No bone map, no mode flag, no branch on origin. |
+| **probe** | 33 checks. Passes on `assets/kaida.glb`. |
+| **gate** | Both rungs pass — a synthetic rig and a real Mixamo one. |
+| `assets/kaida.glb` | Installed, renders, animates through all seven clips. |
 
-Currently failing on `assets/kaida.glb`, correctly:
+That character is a **stock Mixamo stand-in** taken through the whole pipeline.
+It proves every stage downstream of rigging.
 
+| Stage | State |
+|---|---|
+| `mesh` — image → static mesh | adapter built, **backend undecided** |
+| `rig` — mesh → skeleton + weights | adapter built, **backend undecided** |
+| `canonicalise` | built, proven |
+| `install` | built, proven |
+
+Backends are manifest config, not code. Choosing a tool is a config change.
+
+---
+
+# What's next
+
+## 1. Rig the real Kaida
+
+The mesh exists — Meshy output at `docs/phase2/meshy_output/kaida/`. Prepped
+for upload:
+
+```bash
+npm run retry:prep-mixamo     # → out/kaida-for-mixamo.fbx
 ```
-✓ bind: upperArm_L hangs along -Y        0°
-✗ idle: limbs not inverted               worst upperLeg_R 179.2°   want ≤ 55°
+
+That file has no armature, one mesh, one UV set, four embedded 2048² textures,
+scale 1.0, A-pose, and is decimated to 24,000 tris (`--tris N` to change,
+`--strip-textures 1` for a geometry-only upload).
+
+Decimate **before** rigging, never after — reducing a rigged mesh degrades the
+skin weights it already carries. 24k is also the right neighbourhood for the
+game: the stand-in this pipeline was proven against is 12,609 tris.
+
+Upload to Mixamo, **take the auto-rig path** (see `PITFALLS.md`), download FBX
+Binary with no animation, then:
+
+```bash
+cp <downloaded.fbx>            docs/phase2-retry/out/kaida-rigged.glb   # or .fbx
+npm run retry:map -- docs/phase2-retry/out/kaida-rigged.glb --out docs/phase2-retry/out/kaida.bones.json
+# review every line, set "reviewed": true
+node docs/phase2-retry/pipeline.mjs docs/phase2-retry/manifest.json --only kaida --stage canonicalise --force
+node docs/phase2-retry/pipeline.mjs docs/phase2-retry/manifest.json --only kaida --stage install --force
+npm run retry:probe -- assets/kaida.glb --shot
 ```
 
-Perfect at bind, inverted the moment a clip is applied — see **Known defect**.
+## 2. The question that decides the phase
+
+**Can an auto-rigger handle generated topology?** Everything proven so far
+starts from something already rigged. A generated mesh has no clean structure at
+the joints, and if the shoulder collapses when the arm moves, the ceiling is the
+mesh rather than anything downstream.
+
+Step 1 answers it. `npm run retry:probe --shot` measures it and shows it.
+
+## 3. Decide the two backends
+
+Only after step 2. `../phase2/ITERATION.md` carries the options and what each
+must prove; nothing there is decided.
+
+## 4. Per-character, when it comes up
+
+- **Height.** In-game measurement can disagree with the file — the stand-in came
+  out ~5% short. Cosmetic at that size; the error scales with how far the mesh
+  extends past the skeleton, so a character with big hair may be worse. Check
+  the probe's `source height` line per character.
+- **Poly budget.** `kaida-not` is 12,609 tris. The Meshy mesh is 81,928. Decimate
+  **before** rigging, never after.
 
 ---
 
 # The idea
 
-`CONTRACT.md` defines exactly one kind of character. The pipeline's job is to
-make an arbitrary rigged file satisfy it; the engine's job is to assume it.
-There is no per-asset mode flag, no fallback path, and no branch on where an
-asset came from.
-
-That single decision is what removes the class of problem the previous attempt
-kept hitting. If an asset needs the engine to adapt, that is a pipeline bug.
+`CONTRACT.md` defines exactly one kind of character. The pipeline makes an
+arbitrary rigged file satisfy it; the engine assumes it. No per-asset mode flag,
+no fallback path, no branch on where an asset came from.
 
 ## Why canonicalisation is a stage, not a fix
 
 The game has **one** hand-authored animation library and it must drive every
-character. Auto-riggers bind a skeleton to the mesh **in whatever pose the mesh
-was generated in**, so no two generated characters arrive alike.
+character. Auto-riggers bind a skeleton to the mesh in whatever pose the mesh was
+generated in, so no two characters arrive alike. Canonicalisation is what makes a
+shared animation library possible at all — it would exist whichever rest pose
+were canonical, because no generator emits one by chance.
 
-Canonicalisation is what makes a shared animation library possible at all. It
-would exist whichever rest pose were chosen as canonical, because no generator
-emits the canonical one by chance.
+## What install does not do
+
+There is no bone map to install. Under the contract a character's joints **are**
+the spec's names, so the engine looks them up directly.
 
 ---
 
-# Status
+# The probe
 
-```bash
-node docs/phase2-retry/pipeline.mjs docs/phase2-retry/manifest.json --only kaida
-```
+`npm run retry:probe -- <asset.glb>`
 
-Stages run in order and skip when their inputs have not moved. The skip is not
-an optimisation — mesh generation is a ~20 minute pass, so without it a failure
-in a later stage costs a full re-mesh on every retry.
-
-| Stage | State |
-|---|---|
-| `mesh` — image → static mesh | **adapter built, backend undecided.** Refuses with the options and what each costs. |
-| `rig` — mesh → skeleton + weights | **adapter built, backend undecided.** This is the open question. |
-| `canonicalise` — any rig → the contract | **built, proven** |
-| `install` — → the game | **built, proven.** Validates, then copies. Refuses to install anything that violates the contract. |
-
-Backends are manifest config, not code, so choosing a tool is a config change.
-
-## What install no longer does
-
-There is no bone map to install. Under the contract a character's joints **are**
-the spec's names, so the engine looks them up directly. The previous pipeline
-shipped a per-asset `bones.json` because every asset named its joints
-differently — canonicalising upstream deletes that file and the class of bug
-where it was wrong at one joint.
-
-## What the gate proves
-
-Two rungs, both run by `npm run retry:gate`:
-
-1. **Synthetic.** Builds a rig deliberately wrong in every way the contract
-   cares about — wrong names, T-pose, 3.6 m tall, floating at z=1.22, carrying
-   an animation — then runs the real stages and validates the real contract.
-2. **Real.** The same stages on `assets/kaida-not.glb`: a stock Mixamo rig,
-   75 bones, namespaced names, three spine bones where the spec has two.
+Loads a character through the real `src/actors` code and measures the result in
+degrees. Node only.
 
 ```
-joints 19/19 · restMaxDeg 0.0 · heightM 1.720 · soleY 0.0000 · animations 0
+--id <name>         character to build              default: the file's basename
+--clips a,b,c       clips to check                  default: all seven
+--t <n>             time to sample each clip        default: 0.25
+--match-max <deg>   divergence from the code-built rig   default: 12
+--limb-max <deg>    bind limb deviation             default: 8
+--spine-min <y>     minimum hips→head Y             default: 0.9
+--json / --quiet
+--shot              also capture in-game (needs the dev server)
+--shot-port <n>     default 5190
+--shot-out <dir>    default shots/probe
 ```
 
-Nothing is stubbed or mocked. The only synthetic thing is rung 1's input.
+Exit 0 all pass, 1 any fail, 2 could not run.
 
-Separately verified through the runner, on the `probe` manifest entry:
+What it checks:
 
 | | |
 |---|---|
-| canonicalise → install → `assets/probe.glb` | validated, satisfies the contract |
-| re-run with unchanged inputs | `skip (inputs unchanged)` |
-| `--force` | re-runs |
-| install given a non-conforming file | **refuses, listing every violation** |
+| Structure | 19 joints resolved by spec name |
+| Normalisation | no rescaling needed, height is `HERO_M`, ankle-to-sole measured |
+| **Skin** | the mesh follows the skeleton — mesh width vs hand span |
+| Bind | upright, shoulders across X, every hanging segment along −Y |
+| Clips | upright, and **matches the code-built rig posed identically** |
+| `--shot` | the forged glb reached the screen; png written |
 
-That last one is the property that matters: a broken character cannot reach the
-game by accident.
+The clip check compares against the code-built character because the clips were
+hand-authored against it. No absolute angle can separate *"cast raises an arm
+overhead"* from *"the arm is inverted"*; the authored rig can.
 
-## What it does not prove
+## In-game capture
 
-**That an auto-rigger can rig a generated mesh at all.** Both rungs start from
-something already rigged. That question is upstream of everything here and is
-still open — see `../phase2/ITERATION.md`.
+`npm run retry:shot -- --forge <name> [--moves] [--port 5190]`
 
-The good news is that it is now the *only* open question on this path. Whatever
-rigs the mesh, canonicalise takes it from there.
-
----
-
-# Known defect — limbs invert under a clip
-
-`npm run retry:probe -- assets/kaida.glb` → 18 pass, 7 fail. The bind pose is
-exact; every clip inverts the limbs to ~180° from −Y.
-
-**Cause.** `docs/specs/rig.mjs` declares joints as offsets with no rest
-rotations, so the engine's write path assumes every joint's rest rotation is
-identity. A Blender-authored bone points along its own local +Y by convention,
-so a bone hanging downward carries a 180° rest rotation that survives export.
-`canonicalise` fixed the joint *directions* and left those rotations in place.
-
-**The gap is in the contract, not the asset.** `CONTRACT.md` §2 constrains where
-joints are and which way limbs point; it never constrained their rest rotations.
-Same class of miss as the direct-parentage clause the Mixamo rig caught earlier.
-
-**Do not fix this by restoring a bind mode.** An earlier design carried
-`absolute` and `additive` and chose per asset; that is the thing this rebuild
-exists to delete. Fix it once, in the contract and the canonicaliser, so every
-character that reaches the engine is already right.
+Reports whether the glb actually swapped in, echoes every `[forge]` console line,
+and prints the live scene graph's bone angles alongside the mesh's own extents.
+`--moves` drives nine states through the game's own key input — idle, walk,
+sprint, turn-left, strafe-right, attack, cast, victory, hurt — and captures each.
 
 ---
 
 # Design rules
 
-Held to throughout. Breaking one is how the previous attempt accumulated modes.
-
 1. **One way to do each thing.** No mode flags, no back-compat branches.
-2. **Fix causes, not symptoms.** Every gate failure so far was traced to a
-   cause and fixed there. The commit log records each one.
+2. **Fix causes, not symptoms.**
 3. **Refuse rather than guess.** A bone map is `reviewed: false` until a human
-   says otherwise, and `canonicalise` will not run on an unreviewed one. A map
-   wrong at one joint produces a character that loads fine and moves wrong.
-4. **Measure, never assume.** Height and ground come off the asset. The only
-   constants are the contract's own.
-5. **One place per convention.** `spec_dir()` is the only code that knows glTF
-   is Y-up and Blender is Z-up.
+   says otherwise, and `canonicalise` will not run on an unreviewed one.
+4. **Measure, never assume.** The only constants are the contract's own.
+5. **One place per convention.** `spec_dir()` in `canonicalise.py` is the only
+   code that knows glTF is Y-up and Blender is Z-up.
 6. **The spec is imported, never restated.** Joint names and offsets come from
-   `docs/specs/rig.mjs`. Two copies drift and the gate starts lying.
+   `docs/specs/rig.mjs`.
+7. **Verify, do not infer.** Check the thing itself, not a proxy for it.
 
 ---
 
@@ -206,24 +187,30 @@ Held to throughout. Breaking one is how the previous attempt accumulated modes.
 | | |
 |---|---|
 | `CONTRACT.md` | The contract in prose. Normative. |
-| `contract.mjs` | The contract as checks. Pure Node, sub-second, no Blender. |
-| `gate.mjs` | Both rungs. The thing to run. |
+| `PITFALLS.md` | **Read before debugging anything.** Traps that cost real time. |
+| `contract.mjs` | The contract as checks. Pure Node, sub-second. |
+| `pipeline.mjs` | The runner. Manifest-driven stages, hash skip. |
+| `manifest.json` | Characters and stage config. |
+| `gate.mjs` | Both rungs. |
+| `stages/*.mjs` | `mesh`, `rig`, `canonicalise`, `install`. |
+| `tools/canonicalise.py` | Blender. Rename, align rest, bake skin, normalise. |
 | `tools/suggest-map.mjs` | Proposes a bone map from a rig's own joint names. |
-| `tools/canonicalise.py` | Blender. Rename, align rest, normalise, strip animation. |
 | `tools/check.mjs` | Validate one file. |
-| `test/make-fixture.py` | Blender. Builds rung 1's deliberately wrong input. |
+| `tools/ingame.mjs` | In-game capture and live measurement. |
+| `tools/prep-for-mixamo.py` | Re-export a mesh as FBX with textures embedded. |
+| `tools/inspect-fbx.py` | Report what is inside an FBX. |
+| `test/probe.mjs` | The probe. |
+| `test/make-fixture.py` | Builds the gate's deliberately wrong input. |
 
-`.gate/` is scratch and is rebuilt on every run.
+`out/` and `.gate/` are gitignored; both rebuild from the manifest.
 
 ---
 
 # For the next agent
 
-- Run `npm run retry:gate` first. It takes seconds and tells you the truth.
-- The open question is the rig stage, and it is a tooling question, not a design
-  one. `../phase2/ITERATION.md` has the options and what each must prove.
+- Run `npm run retry:gate && npm run retry:probe -- assets/kaida.glb` first. Seconds, and it tells you the truth.
+- **Read `PITFALLS.md`.** Every entry cost an hour or more.
+- The pipeline architecture is built. Two stage modules are empty; that is the work.
 - Do not add a mode flag. If an asset does not fit the contract, fix it in
-  `canonicalise.py` or change the contract deliberately — the contract has been
-  wrong once already (it required direct parentage, which rejects any rig with
-  more spine bones than the spec) and correcting it was the right call.
+  `canonicalise.py` or change the contract deliberately.
 - The human runs long jobs. Ask, and say exactly which command and why.

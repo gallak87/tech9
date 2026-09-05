@@ -1,49 +1,56 @@
 #!/usr/bin/env bash
-# Reproduce the 3D generation environment on a new machine.
+# Build the 3D generation environment.
 #
-# Not yet verified on a clean machine — see ITERATION.md, Logistical review.
+# NON-DESTRUCTIVE. If the clone already exists this touches nothing in it except
+# creating .venv/ — no clone, no fetch, no checkout, no patch, no delete. Your
+# branch and working tree are left alone.
+#
+# uv + Python 3.12, matching the port's own CLAUDE.md. One package manager, so
+# the environment stops being a variable.
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="${HUNYUAN3D_REPO:-$HERE/3d-gen/Hunyuan3D-2.1-mlx}"
-PIN="5fe2194"                      # upstream; our arm changes apply as 3d-gen-arm.patch
-ENV_NAME="${HUNYUAN3D_ENV:-hunyuan_mlx}"
+UPSTREAM_PIN="5fe2194"
+VENV="$REPO_DIR/.venv"
 
-echo "==> clone at $PIN"
-if [ ! -d "$REPO_DIR/.git" ]; then
+command -v uv >/dev/null || { echo "uv not found: brew install uv"; exit 1; }
+
+if [ -d "$REPO_DIR/.git" ]; then
+  echo "==> repo exists, leaving it untouched"
+  echo "    $REPO_DIR"
+  echo "    branch $(git -C "$REPO_DIR" rev-parse --abbrev-ref HEAD)"
+else
+  echo "==> cloning at $UPSTREAM_PIN"
   mkdir -p "$(dirname "$REPO_DIR")"
   git clone https://github.com/dgrauet/Hunyuan3D-2.1-mlx "$REPO_DIR"
+  git -C "$REPO_DIR" checkout --quiet "$UPSTREAM_PIN"
+  git -C "$REPO_DIR" apply "$HERE/3d-gen-arm.patch"
+  echo "    applied 3d-gen-arm.patch"
 fi
-git -C "$REPO_DIR" checkout --quiet "$PIN"
-git -C "$REPO_DIR" apply --check "$HERE/3d-gen-arm.patch" 2>/dev/null \
-  && git -C "$REPO_DIR" apply "$HERE/3d-gen-arm.patch" \
-  && echo "    applied 3d-gen-arm.patch"
 
-echo "==> conda env '$ENV_NAME' from env-lock.yml"
-# xatlas is xatlas-python on conda-forge. The pip name does not exist there, and
-# the pip freeze of it resolves to a build-machine path that exists nowhere.
-# Python 3.11. The lock is the reproducible artifact, not requirements.txt.
-if ! conda env list | grep -q "^$ENV_NAME "; then
-  conda env create -n "$ENV_NAME" -f "$HERE/env-lock.yml"
+if [ -d "$VENV" ]; then
+  echo "==> .venv exists, leaving it. Delete it yourself to rebuild."
 else
-  echo "    exists, skipping"
+  echo "==> uv venv, python 3.12"
+  uv venv --python 3.12 "$VENV"
+  # Deviations that made the previous environment unreasonable, not repeated:
+  # transformers upgraded past its pin, and torch installed (dev-only, for the
+  # parity harness). Install requirements only; add nothing by hand.
+  uv pip install --python "$VENV/bin/python" -r "$REPO_DIR/requirements.txt"
 fi
-
-PY="$(conda run -n "$ENV_NAME" python -c 'import sys; print(sys.executable)')"
 
 cat <<EOF
 
 ==> ready
-  env     $ENV_NAME
-  python  $PY
+  python  $VENV/bin/python
   repo    $REPO_DIR
 
-INT8 weights are a separate offline step; the published repo is fp16, which
-peaks ~10GB against a recommended 32GB:
+Gate before anything else — the port's own end-to-end test for the shape path,
+which their CI never runs:
 
-  mlx-forge convert hunyuan3d-2.1 --quantize --bits 8 --output ./models/hunyuan3d-2.1-int8
-  export HUNYUAN3D_MLX_WEIGHTS_DIR=<that directory>
+  cd $REPO_DIR && .venv/bin/python tests/test_stage1_to_stage2.py
 
-Smoke test:
-  npm run forge:smoke
+Then:
+  FORGE_PY=$VENV/bin/python npm run forge:smoke-demo
 EOF

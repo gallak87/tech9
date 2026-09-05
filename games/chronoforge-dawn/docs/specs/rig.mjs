@@ -23,7 +23,14 @@ import { HERO_M, TILE_M } from '../../src/core/const.js';
    reads that survives a close cinematic crop cheaply.
 
    `offset` is the LOCAL translation from the parent joint, in metres, in the
-   bind pose (character facing −Z, arms at sides, per core/const.js axes).
+   bind pose (character facing +Z, arms at sides, per core/const.js axes).
+
+   THE ARMS REST 10° OUT FROM VERTICAL, not straight down. A shoulder joint sits
+   inboard of the arm, so an arm hanging perfectly vertically from it passes
+   through the ribcage. The code-built mesh is generated around this skeleton and
+   so fits whatever the numbers say; a generated mesh is not, and with a vertical
+   arm its hands ended up 6 cm INSIDE its own torso. 10° puts the hand at x 0.296
+   against a measured torso half-width of 0.24.
    `hips` has no parent; its offset is its height off the ground. */
 export const JOINTS = [
   { name: 'hips',        parent: null,         offset: [0, 0.96, 0] },
@@ -33,14 +40,14 @@ export const JOINTS = [
   { name: 'head',         parent: 'neck',        offset: [0, 0.32, 0] },  // length is neck-base to crown; socket.head at the tip
 
   { name: 'shoulder_L',   parent: 'spine_upper', offset: [0.19, 0.04, 0] },
-  { name: 'upperArm_L',   parent: 'shoulder_L',  offset: [0, -0.28, 0] },
-  { name: 'lowerArm_L',   parent: 'upperArm_L',  offset: [0, -0.24, 0] },
-  { name: 'hand_L',       parent: 'lowerArm_L',  offset: [0, -0.09, 0] },  // socket.offhand
+  { name: 'upperArm_L',   parent: 'shoulder_L',  offset: [0.0486, -0.2757, 0] },
+  { name: 'lowerArm_L',   parent: 'upperArm_L',  offset: [0.0417, -0.2364, 0] },
+  { name: 'hand_L',       parent: 'lowerArm_L',  offset: [0.0156, -0.0886, 0] },  // socket.offhand
 
   { name: 'shoulder_R',   parent: 'spine_upper', offset: [-0.19, 0.04, 0] },
-  { name: 'upperArm_R',   parent: 'shoulder_R',  offset: [0, -0.28, 0] },
-  { name: 'lowerArm_R',   parent: 'upperArm_R',  offset: [0, -0.24, 0] },
-  { name: 'hand_R',       parent: 'lowerArm_R',  offset: [0, -0.09, 0] },  // socket.weapon
+  { name: 'upperArm_R',   parent: 'shoulder_R',  offset: [-0.0486, -0.2757, 0] },
+  { name: 'lowerArm_R',   parent: 'upperArm_R',  offset: [-0.0417, -0.2364, 0] },
+  { name: 'hand_R',       parent: 'lowerArm_R',  offset: [-0.0156, -0.0886, 0] },  // socket.weapon
 
   { name: 'upperLeg_L',   parent: 'hips',        offset: [0.10, -0.02, 0] },
   { name: 'lowerLeg_L',   parent: 'upperLeg_L',  offset: [0, -0.42, 0] },

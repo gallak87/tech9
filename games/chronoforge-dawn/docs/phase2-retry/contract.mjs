@@ -189,6 +189,20 @@ export function bindMatchesRest(json, bin) {
   return { ok: worst <= 0.01, worstJoint, worstM: worst };
 }
 
+/** Horizontal extent of the skinned mesh, same rules as meshBoundsY. */
+export function meshBoundsX(json) {
+  let lo = Infinity, hi = -Infinity;
+  (json.nodes || []).forEach((n) => {
+    if (n.mesh === undefined || n.skin === undefined) return;
+    for (const prim of json.meshes[n.mesh].primitives || []) {
+      const acc = json.accessors?.[prim.attributes?.POSITION];
+      if (!acc?.min) continue;
+      lo = Math.min(lo, acc.min[0]); hi = Math.max(hi, acc.max[0]);
+    }
+  });
+  return lo === Infinity ? null : { min: lo, max: hi };
+}
+
 /** Map spec joint name → node index. Exact match only: canonicalisation is
  *  responsible for renaming, so a fuzzy match here would hide its failure. */
 export function locateJoints(json) {
@@ -235,23 +249,29 @@ export function validate(json) {
     }
   }
 
-  // 2. rest pose — limbs along -Y, facing +Z. Checked as directions between
-  //    joints, not raw quaternions, so it is independent of bone-roll convention.
+  // 2. rest pose — each limb along the direction the SPEC puts it in, not along
+  //    -Y. The arms rest 10° out from vertical: a shoulder joint sits inboard of
+  //    the arm, and an arm hanging perfectly vertically from it passes through
+  //    the ribcage. Checked as directions between joints, not raw quaternions,
+  //    so it is independent of bone-roll convention.
   if (!missing.length) {
     const dirOf = (a, b) => norm(sub(world[found.get(b)].t, world[found.get(a)].t));
     const limbs = [
+      ['shoulder_L', 'upperArm_L'], ['shoulder_R', 'upperArm_R'],
       ['upperArm_L', 'lowerArm_L'], ['upperArm_R', 'lowerArm_R'],
       ['lowerArm_L', 'hand_L'], ['lowerArm_R', 'hand_R'],
       ['upperLeg_L', 'lowerLeg_L'], ['upperLeg_R', 'lowerLeg_R'],
+      ['lowerLeg_L', 'foot_L'], ['lowerLeg_R', 'foot_R'],
     ];
+    const angTo = (a, b) => Math.acos(Math.max(-1, Math.min(1,
+      dot(dirOf(a, b), norm(SPEC_OFFSET.get(b))))));
     const off = [];
     for (const [a, b] of limbs) {
-      const ang = Math.acos(Math.max(-1, Math.min(1, dot(dirOf(a, b), [0, -1, 0]))));
+      const ang = angTo(a, b);
       if (ang > TOL.restRad) off.push(`${a}→${b} ${(ang * 180 / Math.PI).toFixed(1)}°`);
     }
-    if (off.length) errors.push(`rest pose is not arms-down: ${off.join(', ')} from -Y`);
-    report.restMaxDeg = limbs.reduce((m, [a, b]) =>
-      Math.max(m, Math.acos(Math.max(-1, Math.min(1, dot(dirOf(a, b), [0, -1, 0])))) * 180 / Math.PI), 0).toFixed(1);
+    if (off.length) errors.push(`rest pose is off spec: ${off.join(', ')}`);
+    report.restMaxDeg = limbs.reduce((m, [a, b]) => Math.max(m, angTo(a, b) * 180 / Math.PI), 0).toFixed(1);
   }
 
   if (interposed.length) report.interposed = interposed.join(' ');

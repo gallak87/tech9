@@ -295,7 +295,14 @@ def main():
         die(f'{a["map"]} has reviewed: false. A map that is wrong at one joint '
             f"produces a character that loads fine and moves wrong, so this "
             f"refuses rather than trusting a guess. Check every line, then set it true.")
-    mapping, joints = spec["bones"], spec["joints"]
+    mapping = spec["bones"]
+    if "joints" in spec:
+        die(f'{a["map"]} carries a "joints" table. That is spec data and a frozen '
+            f"copy goes stale the moment docs/specs/rig.mjs changes. Regenerate the "
+            f"map with retry:map; the pipeline supplies the spec via --joints.")
+    if "joints" not in a:
+        die("missing --joints. The canonicalise stage writes it from docs/specs/rig.mjs.")
+    joints = json.load(open(a["joints"]))["joints"]
     hero_m, sole_tol = spec.get("heroM", 1.72), spec.get("soleTol", 0.01)
 
     arm, meshes = load(a["input"])

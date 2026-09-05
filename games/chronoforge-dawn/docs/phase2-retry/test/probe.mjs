@@ -43,7 +43,7 @@ import { HERO_M } from '../../../src/core/const.js';
 import { buildActor } from '../../../src/actors/rig.js';
 import { makeActorUniforms, makeActorMaterial } from '../../../src/actors/material.js';
 import { applyGltfActor, SPEC_BONES } from '../../../src/actors/gltf-actor.js';
-import { readGlb } from '../contract.mjs';
+import { readGlb, meshBoundsX } from '../contract.mjs';
 import { samplePose, POSE_NAMES } from '../../../src/actors/poses.js';
 import { JOINTS } from '../../specs/rig.mjs';
 
@@ -208,9 +208,34 @@ check('bind: shoulders run across X', Math.abs(across.x) > 0.9,
 // and the mesh is skinned to where it is — so spine_upper→shoulder is a
 // proportion, not a pose, and checking it against the spec offset would fail a
 // correct rig. What the contract constrains is that the limbs HANG.
+// Against each segment's OWN spec direction, not against -Y. The arms rest 10°
+// out from vertical because a shoulder joint sits inboard of the arm and a
+// perfectly vertical arm passes through the ribcage — see docs/specs/rig.mjs.
+const SPEC_DIR = new Map(JOINTS.filter(j => j.parent)
+  .map(j => [j.name, new THREE.Vector3(...j.offset).normalize()]));
 for (const [a, b] of LIMBS) {
-  const d = angFrom(a, b, DOWN);
-  check(`bind: ${a}→${b} hangs`, d <= CFG.limbMax, `${fixed(d)}° off -Y`, `≤ ${CFG.limbMax}°`);
+  const want = SPEC_DIR.get(b);
+  const d = THREE.MathUtils.radToDeg(Math.acos(THREE.MathUtils.clamp(dirOf(a, b).dot(want), -1, 1)));
+  check(`bind: ${a}→${b}`, d <= CFG.limbMax, `${fixed(d)}° off spec`, `≤ ${CFG.limbMax}°`);
+}
+
+// The check that would have caught arms buried in the torso. A skeleton can be
+// exactly on spec while the character's hands sit inside her own body, because
+// the spec's proportions are not the mesh's. Measured, not assumed: the hand
+// must be at least as far from the midline as the mesh is wide.
+{
+  const b = meshBoundsX(readGlb(asset).json);
+  if (b) {
+    // From the mesh's OWN centre, not from x=0 — nothing centres the character
+    // horizontally, so measuring against the origin reports a half-width that is
+    // really an offset.
+    const mid = (b.min + b.max) / 2;
+    const half = (b.max - b.min) / 2;
+    const reach = Math.min(Math.abs(wp('hand_L').x - mid), Math.abs(wp('hand_R').x - mid));
+    check('arms clear the torso', reach >= half * 0.7,
+      `hand ${fixed(reach, 3)} m from centre vs ${fixed(half, 3)} m half-width`,
+      '≥ 70% of half-width');
+  }
 }
 
 /* ── 4. the clips ─────────────────────────────────────────────────────────── */

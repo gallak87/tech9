@@ -19,7 +19,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readGlb, SPEC_NAMES } from '../contract.mjs';
-import { JOINTS } from '../../specs/rig.mjs';
 
 /** Tokens that identify each spec joint, most specific first. Matched against
  *  the source name with separators and case stripped. */
@@ -152,8 +151,11 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     heroM: 1.72,
     soleTol: 0.01,
     bones,
-    joints: JOINTS,
   };
+  // The joint table is NOT written here. It is spec data, and a copy frozen into
+  // a reviewed map file goes stale the moment docs/specs/rig.mjs changes — which
+  // it did, silently aligning a character to a rest pose that no longer existed.
+  // The canonicalise stage dumps the current spec at run time instead.
 
   console.log(`[map] ${pool.length} joints in file, matched ${Object.keys(bones).length}/${SPEC_NAMES.length}`);
   for (const n of notes) console.log(`[map]   ${n}`);

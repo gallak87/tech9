@@ -243,3 +243,15 @@ No public API. It is a probe, not a destination — see `../phase2/ITERATION.md`
 CUDA-only rigging tools do not run here. This is an M1 Pro with 16 GB unified
 memory and no NVIDIA GPU; UniRig needs 8 GB VRAM and SkinTokens needs 14 GB plus
 `flash-attn`. Renting a GPU is off the table.
+
+## Ruled out — do not re-explore
+
+| | Why |
+|---|---|
+| **UniRig**, **SkinTokens** (upstream) | CUDA only. |
+| **`localai-org/skin-tokens.cpp`** | Backends are **CPU and Vulkan — no Metal**. On a Mac, Vulkan means MoltenVK translation, untested here and flaky for GGML backends, so in practice it is CPU. Build docs are titled "Build and install on Linux", no macOS is mentioned anywhere, no macOS CI, 11 commits. GGML *has* a Metal backend, so one could be added — that is a contribution, not an afternoon. |
+| **`xocialize/mlx-engine-swift`** (the MLX weights' runtime) | Repo describes itself as **"not ready for use"**. One star. Swift library with **no command-line binary**. Needs macOS 26.2+. `meshRig` appears in a capability list with no implementation detail documented. |
+
+CPU-speed rigging is a non-starter for this project. If a local rigger is
+revisited, the thing to look for is a **Metal or MLX backend that actually
+exists and has a CLI** — not a port that merely runs.

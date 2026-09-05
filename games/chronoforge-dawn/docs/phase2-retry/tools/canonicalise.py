@@ -56,7 +56,21 @@ def die(msg):
 
 
 def load(path):
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+    """Import, and return ONLY what the import produced.
+
+    Blender 5.1's startup scene holds an Icosphere, and measuring it as part of
+    the character silently corrupts the height. Both the purge and the set diff
+    are needed: the purge clears what is there, the diff catches anything the
+    importer adds beyond the file's own contents.
+    """
+    # Purge directly. `read_factory_settings(use_empty=True)` is deferred -- its
+    # startup objects materialise DURING the next import, so they land inside
+    # any before/after diff and get measured as part of the character. Deleting
+    # what is actually there, now, is the only version-proof answer.
+    for o in list(bpy.data.objects):
+        bpy.data.objects.remove(o, do_unlink=True)
+    before = set(bpy.data.objects)
+
     low = path.lower()
     if low.endswith(".fbx"):
         bpy.ops.import_scene.fbx(filepath=path, automatic_bone_orientation=True)
@@ -64,13 +78,28 @@ def load(path):
         bpy.ops.import_scene.gltf(filepath=path)
     else:
         die(f"unsupported input {path}")
-    arms = [o for o in bpy.data.objects if o.type == "ARMATURE"]
+
+    imported = [o for o in bpy.data.objects if o not in before]
+
+    arms = [o for o in imported if o.type == "ARMATURE"]
     if len(arms) != 1:
         die(f"{len(arms)} armatures, need exactly 1")
-    meshes = [o for o in bpy.data.objects if o.type == "MESH"]
+    arm = arms[0]
+
+    # A character is an armature plus the meshes that armature skins. Defining
+    # it that way rather than by scene membership is not just tidier -- Blender
+    # materialises startup objects lazily, so an Icosphere that is in no file
+    # can appear mid-import and would otherwise be measured as part of the
+    # character's height. A mesh with no armature modifier is not the character.
+    meshes = [o for o in imported if o.type == "MESH" and any(
+        m.type == "ARMATURE" and m.object is arm for m in o.modifiers)]
     if not meshes:
-        die("no mesh")
-    return arms[0], meshes
+        die(f"no mesh is skinned by armature '{arm.name}'")
+
+    ignored = [o.name for o in imported if o.type == "MESH" and o not in meshes]
+    if ignored:
+        print(f"[canon] ignoring {len(ignored)} unskinned mesh(es): {', '.join(ignored)}")
+    return arm, meshes
 
 
 def bake_object_scale(arm, meshes):

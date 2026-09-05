@@ -262,3 +262,79 @@ only — use a readout for state a module changes itself.
 - Rig spec: `../specs/rig.mjs`
 - Agent contract: `../../../../PROMPT-chronoforge-dawn.md`
 - Concept: `../../CONCEPT.md`
+
+---
+
+# Reference run
+
+A complete run, both stages, for building a gauntlet loop against. Kept because
+`ITERATION.md` is deleted once the pipeline works.
+
+```
+$ npm run forge:smoke-demo
+
+[*] Starting Stage 1: Shape Generation using .../ref/k-copy.png...
+Fetching 5 files: 100%|...| 5/5 [00:00<00:00, 2180.67it/s]
+[dit] step   1    19.3s  ( 19.3s/step)  nan=0 min=-3.974  max=+4.102
+[dit] step   2    36.8s  ( 18.4s/step)  nan=0 min=-3.456  max=+3.470
+[dit] step   3    50.9s  ( 17.0s/step)  nan=0 min=-3.191  max=+3.203
+[dit] step   4    75.9s  ( 19.0s/step)  nan=0 min=-3.176  max=+3.192
+[dit] step   5   101.6s  ( 20.3s/step)  nan=0 min=-3.527  max=+3.413
+[dit] step   6   119.0s  ( 19.8s/step)  nan=0 min=-3.965  max=+4.233
+[dit] step   7   136.1s  ( 19.4s/step)  nan=0 min=-5.573  max=+4.409
+[dit] step   8   152.6s  ( 19.1s/step)  nan=0 min=-12.661 max=+12.830
+Hierarchical Volume Decoding [r65]: 274625 points
+[SDF] n=274625 nan=0 min=-1.0146 max=+0.7979 mean=-0.9834 |min|=0.0001 crossings=yes
+Hierarchical Volume Decoding [r129]: 198770 points (of 2146689 total)
+[SDF] n=198770 nan=0 min=-1.0205 max=+0.8457 mean=-0.8432 |min|=0.0000 crossings=yes
+[+] Stage 1 complete. Intermediate shape saved to .../out/smoke-demo_temp_shape.glb
+
+[*] Starting Stage 2: PBR Texture Synthesis (6 views, 512px)...
+Fetching 5 files: 100%|...| 5/5 [01:54<00:00, 22.91s/it]
+Loading VAE...
+Loading DINOv2...
+Loading UNet...
+  Loaded 1054/1061 main UNet weights (remaining keys load into text embeds + DINO proj below)
+Loading dual-stream reference UNet...
+  Loaded 686/686 dual UNet weights
+All components loaded.
+MLX diffusion model loaded.
+MLX super-resolution loaded (.../realesrgan_x4plus.safetensors).
+  Encoding conditions...
+  Extracting DINO features...
+  Extracting reference features...
+  Denoising (15 steps, 6 views, CFG=3.0)...
+    step 0/15: t=999, range=9.3
+    step 5/15: t=666, range=8.9
+    step 10/15: t=332, range=14.6
+    step 14/15: t=66, range=19.1
+  Decoding...
+    decoded 6/12
+    decoded 12/12
+[+] Pipeline complete! Textured model successfully written to .../out/smoke-demo.glb
+```
+
+## What a loop can key on
+
+| Marker | Meaning |
+|---|---|
+| `[dit] step N/M` | shape denoising; ~19 s/step, count set by `--steps` |
+| `crossings=yes` | the field has a surface; `NO` means no mesh will be built |
+| `[r129]: N points`, N > 0 | second decode level found near-surface voxels |
+| `[+] Stage 1 complete` | shape mesh written to `<output stem>_temp_shape.glb` |
+| `Denoising (15 steps, 6 views, CFG=3.0)` | stage 2; step count is fixed, not exposed as a flag |
+| `decoded 12/12` | 2 tiles per view |
+| `[+] Pipeline complete!` | textured glb written; the temp shape is deleted |
+
+Exit code is 0 on success. A failed shape stage raises `ValueError: need at
+least one array to concatenate` after `[r129]: 0 points`.
+
+`1054/1061` and `686/686` weight counts are normal, not a warning.
+
+## Costs
+
+| | |
+|---|---|
+| Stage 1 | ~19 s per step |
+| Stage 2 | fixed 15 steps, 6 views; plus first-run weight download |
+| Weights | 13 GB cached at `~/.cache/huggingface`, both stages, one time |

@@ -5,9 +5,50 @@ attempt and its findings are still good reading; nothing here depends on it.
 
 ```bash
 npm run retry:gate                      # prove the pipeline. seconds, no GPU.
+npm run retry:probe -- <asset.glb>      # does the ENGINE load and animate it right?
 npm run retry:map -- <rigged.glb>       # propose a bone map from a rig's names
 npm run retry:check -- <file.glb>       # validate any glb against the contract
+npm run retry:all                       # gate + probe on the installed character
 ```
+
+## The probe
+
+`npm run retry:probe -- assets/kaida.glb`
+
+Loads a character through the real `src/actors` code and measures the result in
+degrees. Node only — no browser, no renderer, no screenshots.
+
+```
+--id <name>        character to build          default: the file's basename
+--clips a,b,c      clips to check              default: all seven
+--t <n>            time to sample each clip     default: 0.25
+--arm-max <deg>    limb deviation allowed       default: 55
+--limb-max <deg>   bind limb deviation allowed  default: 8
+--spine-min <y>    minimum hips→head Y          default: 0.9
+--json             machine-readable
+--quiet            failures only
+```
+
+Exit 0 all pass, 1 any fail, 2 could not run.
+
+**Why it exists.** A character can satisfy every structural check and still
+animate into a face-down, splayed heap. That failure was found by eye, from a
+screenshot, twice — once per agent — and each time it cost a browser round trip
+to see and a guess to explain.
+
+It is measurable. `idle` is nearly the bind pose, so under a correct rig the
+limbs barely move; under a broken one they invert. Every check reports its
+number whether it passes or fails, so *"is it fixed yet"* is a command and
+*"is it getting better"* is a diff.
+
+Currently failing on `assets/kaida.glb`, correctly:
+
+```
+✓ bind: upperArm_L hangs along -Y        0°
+✗ idle: limbs not inverted               worst upperLeg_R 179.2°   want ≤ 55°
+```
+
+Perfect at bind, inverted the moment a clip is applied — see **Known defect**.
 
 ---
 
@@ -96,6 +137,28 @@ still open — see `../phase2/ITERATION.md`.
 
 The good news is that it is now the *only* open question on this path. Whatever
 rigs the mesh, canonicalise takes it from there.
+
+---
+
+# Known defect — limbs invert under a clip
+
+`npm run retry:probe -- assets/kaida.glb` → 18 pass, 7 fail. The bind pose is
+exact; every clip inverts the limbs to ~180° from −Y.
+
+**Cause.** `docs/specs/rig.mjs` declares joints as offsets with no rest
+rotations, so the engine's write path assumes every joint's rest rotation is
+identity. A Blender-authored bone points along its own local +Y by convention,
+so a bone hanging downward carries a 180° rest rotation that survives export.
+`canonicalise` fixed the joint *directions* and left those rotations in place.
+
+**The gap is in the contract, not the asset.** `CONTRACT.md` §2 constrains where
+joints are and which way limbs point; it never constrained their rest rotations.
+Same class of miss as the direct-parentage clause the Mixamo rig caught earlier.
+
+**Do not fix this by restoring a bind mode.** An earlier design carried
+`absolute` and `additive` and chose per asset; that is the thing this rebuild
+exists to delete. Fix it once, in the contract and the canonicaliser, so every
+character that reaches the engine is already right.
 
 ---
 

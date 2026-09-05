@@ -1,0 +1,41 @@
+{
+  "model": "x/flux2-klein:latest",
+  "host": "http://localhost:11434",
+  "_variants": "Two renders per hero. `painterly` carries the TUNED klein prefix verbatim — it took many iterations to get art worth keeping, so it is not rewritten. `plain` drops the medium word because image-to-3D reconstructs better from render-like inputs. The A/B answers whether style helps or hurts the mesh.",
+  "variants": [
+    {
+      "name": "painterly",
+      "style": "painterly game sprite of "
+    },
+    {
+      "name": "plain",
+      "style": "full body character reference of "
+    }
+  ],
+  "_pose": "T-pose: arms straight out to the sides at shoulder height, fingers spread. Two things want this. Reconstruction needs the limbs clear of the torso or it fuses them into the body, and auto-riggers ask for it outright — Mixamo's Orient screen says 'have your character in T-pose and fingers spread apart'. This was A-pose at 45 degrees, chosen because it sat closer to the bind pose in docs/specs/rig.mjs. That reason is dead: canonicalise re-poses any incoming rest to the spec, so how the reference is posed no longer constrains the bind at all. What remains is what each stage actually wants, and both want a T-pose.",
+  "_background": "Chroma green because nothing any hero wears is green. Black failed: navy leggings and black boots vanish into it, rembg kept only the glowing blade, and TRELLIS returned a mesh of the sword.",
+  "_weapons": "Every hero renders empty-handed. Weapons are separate generations mounted at socket.weapon — docs/specs/rig.mjs requires a distinct mesh per item, and a fused weapon skins to whatever bone the auto-rigger guesses.",
+  "refs": [
+    {
+      "name": "kaida",
+      "w": 1024,
+      "h": 1024,
+      "prompt": "Kaida, young warrior woman, short swept magenta bob hair, cyan military jacket with rolled sleeves, dark navy leggings, black boots, brown leather belt, standing upright facing the camera directly, T-pose with both arms held straight out horizontally to the sides at shoulder height, fingers spread apart, palms facing down, empty hands, no weapon, neutral expression, symmetrical, entire body visible head to feet, straight-on front view at eye level, flat even studio lighting, no cast shadows, solid bright chroma key green background, clean crisp silhouette",
+      "out": "ref/kaida.png"
+    },
+    {
+      "name": "vex",
+      "w": 1024,
+      "h": 1024,
+      "prompt": "Vex, tall slender hooded mystic, dark cloak with cyan chrono-glyphs glowing along the hem, hood up, standing upright facing the camera directly, T-pose with both arms held straight out horizontally to the sides at shoulder height, fingers spread apart, palms facing down, empty hands, no staff, no weapon, neutral expression, symmetrical, entire body visible head to feet, straight-on front view at eye level, flat even studio lighting, no cast shadows, solid bright chroma key green background, clean crisp silhouette",
+      "out": "ref/vex.png"
+    },
+    {
+      "name": "rune",
+      "w": 1024,
+      "h": 1024,
+      "prompt": "Rune, stocky engineer, yellow-lensed goggles worn on the forehead, small antenna, mustard-yellow work rig with leather straps, heavy boots, standing upright facing the camera directly, T-pose with both arms held straight out horizontally to the sides at shoulder height, fingers spread apart, palms facing down, empty hands, no hammer, no weapon, no drone, neutral expression, symmetrical, entire body visible head to feet, straight-on front view at eye level, flat even studio lighting, no cast shadows, solid bright chroma key green background, clean crisp silhouette",
+      "out": "ref/rune.png"
+    }
+  ]
+}

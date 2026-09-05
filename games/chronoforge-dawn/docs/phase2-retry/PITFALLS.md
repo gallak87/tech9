@@ -213,15 +213,22 @@ untouched, so the maps land correctly.
 npm run retry:prep-mixamo -- --strip-textures 1
 ```
 
-## Reconstruction and rigging want different poses
+## The reference pose is ours to choose — check the reason before keeping it
 
-Mixamo asks for a T-pose with fingers spread. Mesh generation wants an A-pose at
-45°, because arms flat at the sides merge with the torso and reconstruct as a
-single mass.
+The references were generated in an A-pose at 45°, and the manifest gave the
+reason: it sat closer to the game's bind pose. That reason died when
+`canonicalise` started re-posing any incoming rest to the spec — the reference
+pose no longer constrains the bind at all.
 
-One image cannot satisfy both. The A-pose mesh does rig — it is not a blocker —
-but if rigging quality is the limit, generating a separate T-pose reference for
-the rigging mesh is the lever, not better marker placement.
+What remained was reconstruction wanting limbs clear of the torso, and Mixamo
+asking outright for *"T-pose and fingers spread apart"*. Both want a T-pose.
+Nothing wanted the A-pose any more; a stale justification was carrying it.
+
+**The prompts now ask for a T-pose.** `npm run retry:ref`.
+
+The general trap: a decision recorded with its reasoning is easy to keep obeying
+after the reasoning stops applying. When a constraint moves, re-read what it was
+holding up.
 
 ## Mixamo has no public API
 

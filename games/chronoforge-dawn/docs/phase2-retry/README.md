@@ -38,6 +38,7 @@ that still matter are in `PITFALLS.md`.
 
 | Stage | State |
 |---|---|
+| `reference` — concept → image | built, `npm run retry:ref`. Local, via Ollama. |
 | `mesh` — image → static mesh | adapter built, **backend undecided** |
 | `rig` — mesh → skeleton + weights | adapter built, **backend undecided** |
 | `canonicalise` | built, proven |
@@ -94,22 +95,30 @@ by hand; wiring them means giving each a `backend` and a `command` in the
 manifest. Neither hosted tool has an API worth building on, so this stays manual
 until a local option exists.
 
-## 4. Generate the rigging mesh in a T-pose
+## 4. Regenerate the references in a T-pose
 
-Mixamo's own guidance, on its Orient screen: *"For best results, have your
-character in T-pose and fingers spread apart."*
+```bash
+npm run retry:ref                      # all characters
+npm run retry:ref -- --only kaida      # one
+```
 
-The mesh is generated in an A-pose at 45° instead, because that is what
-**reconstruction** wants — arms flat at the sides merge with the torso and come
-back as one mass. So the two stages want different poses and one image cannot be
-both.
+Needs Ollama on `:11434`. Writes `ref/<name>-painterly.png` and
+`ref/<name>-plain.png`, chroma-keyed to real alpha, plus `--raw` for the unkeyed
+render.
 
-Untested improvement: generate a second reference in a T-pose with the fingers
-spread, use it for the mesh that goes to rigging, and keep the A-pose one for
-anything judging the look. Costs one extra generation per character.
+**The prompts now ask for a T-pose with fingers spread.** They asked for an
+A-pose at 45° because that sat closer to the game's bind pose — a reason that no
+longer exists, since `canonicalise` re-poses any incoming rest to the spec. What
+is left is what each stage actually wants:
 
-Worth doing only if rigging quality turns out to be the limit. The A-pose mesh
-rigged successfully; whether it rigged *well* is what the probe measures.
+| | |
+|---|---|
+| Reconstruction | limbs clear of the torso, or it fuses them into the body |
+| Auto-riggers | Mixamo asks outright: *"have your character in T-pose and fingers spread apart"* |
+
+A T-pose serves both. The existing Kaida mesh was generated from the A-pose
+reference and rigged fine, so this is an improvement rather than a fix —
+regenerate when quality is worth a round trip, not before.
 
 ## 5. Per-character, when it comes up
 
@@ -245,6 +254,8 @@ sprint, turn-left, strafe-right, attack, cast, victory, hurt — and captures ea
 | `tools/check.mjs` | Validate one file. |
 | `tools/ingame.mjs` | In-game capture and live measurement. |
 | `tools/prep-for-mixamo.py` | Re-export a mesh as FBX with textures embedded. |
+| `tools/ref-gen.mjs` | Concept → reference images, via Ollama. Keys the chroma background to alpha. |
+| `reference-manifest.json` | The prompts. Pose reasoning lives in its `_pose` key. |
 | `tools/inspect-fbx.py` | Report what is inside an FBX. |
 | `tools/dump-joints.py` | Bone names from an FBX, for `suggest-map`. |
 | `tools/extract-textures.py` | Write a mesh's embedded textures out, role-named. |

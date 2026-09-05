@@ -10,7 +10,9 @@
     "shot": "node tools/shot.mjs",
     "probe": "node tools/probe.mjs",
     "review": "node tools/shot.mjs --w 1920 --h 1080 --quality ultra",
-    "lint:rng": "node tools/lintrng.mjs"
+    "lint:rng": "node tools/lintrng.mjs",
+    "forge": "node docs/phase2/forge.mjs docs/phase2/forge-manifest.json",
+    "forge:test": "node docs/phase2/forge-selftest.mjs"
   },
   "dependencies": {
     "three": "^0.185.1"

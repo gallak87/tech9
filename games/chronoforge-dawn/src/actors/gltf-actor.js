@@ -22,36 +22,54 @@ import { HERO_M } from '../core/const.js';
 //
 // ── THE BIND DELTA, DERIVED ──────────────────────────────────────────────────
 //
-// Clips in poses.js write ABSOLUTE local rotations against the spec bind, where
-// every bone's rest local rotation is identity — so a clip's "rotate the elbow
-// about X" is a rotation about the MODEL X axis. A generated rig's bones sit at
-// 45° with arbitrary local axes, so writing a clip quaternion straight onto one
-// is meaningless.
+// Notation. B(x) is node x's BIND rotation in the actor's model space. q(b) is
+// the clip's absolute spec-space rotation for bone b. W(b) is b's posed model
+// rotation, and W_spec(b) = W_spec(parent)·q(b) is what the code-built rig
+// would have produced. u is b's ACTUAL scene parent, which may be an unmapped
+// node — a twist bone, an armature root — that nothing ever animates and which
+// therefore keeps its rest local. m is b's SPEC parent.
 //
-// Let B(x) be node x's bind rotation in the actor's model space, q(b) the clip's
-// absolute spec-space rotation for bone b, and u = b's actual scene parent
-// (which may be an UNMAPPED node — twist bones, an armature root — that we never
-// animate and which therefore stays at rest).
+// Both modes below solve for the same shape of answer, a fixed pair per bone:
 //
-// We want b's posed model rotation to be the bind, then the same model-space
-// delta the code-built rig would have produced:
+//     local(b) = pre(b) · q(b) · post(b)
 //
-//     W(b) = W_spec(b) · B(b)
+// ABSOLUTE (default). W(b) = W_spec(b). An unposed clip puts the limbs along
+// −Y facing +Z — the SPEC bind — and the mesh is skinned there from wherever
+// the auto-rigger's bind left it.
 //
-// The parent's posed model rotation is W(u) = W_spec(m) · B(u) for b's mapped
-// ancestor m, because every node between m and u keeps its rest local. So
+//     local(b) = W(u)⁻¹ · W_spec(b)   and   W(u) = W_spec(m)·B(m)⁻¹·B(u)
+//     ⇒ pre = B(u)⁻¹·B(m),  post = identity
 //
-//     local(b) = W(u)⁻¹ · W(b) = B(u)⁻¹ · q(b) · B(b)
+// When u is the spec parent — the ordinary case — pre collapses to identity and
+// the retarget is the name lookup docs/phase2/README.md says it is. The pair
+// only does work where the glb interposes bones the spec does not have, or
+// where the armature root carries a transform.
 //
-// which is the whole solver: pre = B(parent)⁻¹, post = B(b). Two facts fall out
-// of it and both are load-bearing:
+// ADDITIVE (`"bindMode": "additive"` in bones.json). W(b) = W_spec(b)·B(b), so
+// an unposed clip reproduces the GLB's own bind and every clip reads as a delta
+// from it.
 //
-//   • q = identity gives local = B(u)⁻¹·B(b) = the bone's own rest local. An
-//     unposed clip reproduces the glb's bind EXACTLY, for any hierarchy, with
-//     no eyeballed Euler offsets anywhere.
-//   • W(b)·B(b)⁻¹ = W_spec(b) exactly, so a generated Kaida and a code-built
-//     Kaida move identically in model space. That equality is what
-//     forge-selftest.mjs asserts.
+//     local(b) = W(u)⁻¹·W(b) = B(u)⁻¹ · q(b) · B(b)
+//     ⇒ pre = B(u)⁻¹,  post = B(b)
+//
+// WHICH ONE, AND WHY IT IS NOT THE ONE PLAN-forge.md ASKS FOR. PLAN-forge.md
+// §Piece 2.3 says the correction must be "solved once such that an unposed clip
+// reproduces the glb's own bind" — that is the additive mode. Three things say
+// the default must be absolute instead:
+//
+//   • README.md §Rig contract: "Clips write ABSOLUTE rotations by bone name.
+//     Retargeting is a name lookup, not an algorithm. Unset joints return to
+//     bind" — the SPEC bind, the only bind poses.js knows about.
+//   • Additive leaves Kaida idling with her arms 45° out forever, because every
+//     clip is then measured from the A-pose the reference image was drawn in.
+//     `idle` sets upperArm_L to −0.16 rad expecting arms already at her sides.
+//   • The acceptance test both documents name is shoulder deformation on a
+//     generated mesh. Under additive the shoulder never leaves its bind and the
+//     test cannot fail. The 45° correction is the thing being tested.
+//
+// The reference images are generated at A-pose 45° "to minimise the delta"
+// (README §Pitfalls) — which only makes sense if a delta is applied. Additive
+// is kept as data because the ruling belongs to the human, not to this file.
 //
 // ── WHY RETARGET INSTEAD OF REWRITING THE SKELETON ───────────────────────────
 //
@@ -97,59 +115,87 @@ const AXIS = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: 
    the FIRST draft of the file and to make the "no map" error actionable. */
 
 /** Collapse a bone name to a comparison key: case, separators and the common
- *  rig prefixes (mixamorig:, Armature|, DEF-, ORG-, bone_) all dropped. */
-export function boneKey(name) {
+ *  rig prefixes (mixamorig:, Armature|, DEF-, ORG-) and the side token dropped,
+ *  because the side is decided separately and a name is otherwise unmatchable
+ *  across the three conventions that actually show up: `mixamorig:LeftForeArm`,
+ *  `Bip01_L_Forearm` and `forearm.L`. */
+export function bareKey(name) {
   return String(name)
     .replace(/^.*[:|]/, '')
     .replace(/^(DEF|ORG|MCH)[-_]/i, '')
+    .replace(/left|right/ig, '')
+    .replace(/(^|[^a-zA-Z])[lr]([^a-zA-Z]|$)/ig, '$1$2')
     .replace(/[\s._-]/g, '')
     .toLowerCase();
 }
 
+/** 'L', 'R', or null for a centre bone. Word form first (`LeftArm`), then a
+ *  delimited single letter (`Bip01_L_Hand`, `forearm.L`). */
+export function sideOf(name) {
+  const n = String(name).replace(/^.*[:|]/, '');
+  if (/left/i.test(n)) return 'L';
+  if (/right/i.test(n)) return 'R';
+  if (/(^|[^a-zA-Z])l([^a-zA-Z]|$)/i.test(n)) return 'L';
+  if (/(^|[^a-zA-Z])r([^a-zA-Z]|$)/i.test(n)) return 'R';
+  return null;
+}
+
 const SYNONYMS = {
-  hips: ['hips', 'hip', 'pelvis', 'root'],
+  hips: ['hips', 'hip', 'pelvis'],
   spine_lower: ['spinelower', 'spine', 'spine1', 'abdomen', 'waist'],
-  spine_upper: ['spineupper', 'spine2', 'chest', 'upperchest', 'spine3'],
+  spine_upper: ['spineupper', 'spine2', 'spine3', 'chest', 'upperchest'],
   neck: ['neck', 'neck1'],
   head: ['head'],
   shoulder: ['shoulder', 'clavicle', 'collar'],
-  upperArm: ['upperarm', 'arm', 'upperarm1', 'shoulderarm'],
+  upperArm: ['upperarm', 'uparm', 'arm'],
   lowerArm: ['lowerarm', 'forearm', 'elbow'],
   hand: ['hand', 'wrist'],
-  upperLeg: ['upperleg', 'thigh', 'leg', 'hip'],
-  lowerLeg: ['lowerleg', 'shin', 'calf', 'knee'],
+  upperLeg: ['upperleg', 'upleg', 'thigh'],
+  lowerLeg: ['lowerleg', 'leg', 'shin', 'calf', 'knee'],
   foot: ['foot', 'ankle'],
 };
+
+const SIDED = ['shoulder', 'upperArm', 'lowerArm', 'hand', 'upperLeg', 'lowerLeg', 'foot'];
 
 /**
  * Best-effort glb-name → spec-name suggestion. NEVER applied silently: it seeds
  * the draft `bones.json` the forge writes and the error text the loader prints.
- * A wrong guess that runs is worse than a hard stop, because it produces a
- * character that is subtly, unfalsifiably wrong at one joint.
+ * A wrong guess that RUNS is worse than a hard stop, because it produces a
+ * character that is subtly, unfalsifiably wrong at exactly one joint.
+ *
+ * Scored globally rather than picked in a fixed order, because the orderings
+ * conflict: `arm` matches `Bip01_L_Forearm` and `upperarm` matches it better,
+ * and no single pass order gets both. Longest synonym wins, a suffix match
+ * beats a substring match, and ties break on the glb's own bone order — so the
+ * suggestion is deterministic, which matters because it is written to a file
+ * that gets diffed.
  */
 export function suggestBoneMap(names) {
+  const slots = [
+    ...['hips', 'spine_lower', 'spine_upper', 'neck', 'head'].map(s => ({ spec: s, part: s, side: null })),
+    ...['L', 'R'].flatMap(side => SIDED.map(part => ({ spec: `${part}_${side}`, part, side }))),
+  ];
+  const cands = [];
+  for (const { spec, part, side } of slots) {
+    for (let i = 0; i < names.length; i++) {
+      const n = names[i];
+      if (sideOf(n) !== side) continue;
+      const b = bareKey(n);
+      let score = 0;
+      for (const syn of SYNONYMS[part]) {
+        if (b.endsWith(syn)) score = Math.max(score, syn.length + 0.5);
+        else if (b.includes(syn)) score = Math.max(score, syn.length);
+      }
+      if (score) cands.push({ spec, name: n, score, i });
+    }
+  }
+  cands.sort((a, b) => b.score - a.score || a.i - b.i || a.spec.localeCompare(b.spec));
   const out = {};
   const taken = new Set();
-  const pick = (spec, want, side) => {
-    for (const n of names) {
-      if (taken.has(n)) continue;
-      const k = boneKey(n);
-      const sideOk = !side || k.endsWith(side.toLowerCase()) || k.startsWith(side.toLowerCase()) ||
-        k.includes(side === 'L' ? 'left' : 'right');
-      if (!sideOk) continue;
-      const bare = k.replace(/(left|right|_l|_r)/g, '').replace(/[lr]$/, '');
-      if (want.includes(bare)) { out[spec] = n; taken.add(n); return; }
-    }
-  };
-  pick('hips', SYNONYMS.hips);
-  pick('spine_lower', SYNONYMS.spine_lower);
-  pick('spine_upper', SYNONYMS.spine_upper);
-  pick('neck', SYNONYMS.neck);
-  pick('head', SYNONYMS.head);
-  for (const side of ['L', 'R']) {
-    for (const part of ['shoulder', 'upperArm', 'lowerArm', 'hand', 'upperLeg', 'lowerLeg', 'foot']) {
-      pick(`${part}_${side}`, SYNONYMS[part], side);
-    }
+  for (const c of cands) {
+    if (out[c.spec] || taken.has(c.name)) continue;
+    out[c.spec] = c.name;
+    taken.add(c.name);
   }
   return out;
 }
@@ -257,17 +303,29 @@ export function measureLegs(boneByName, frame) {
    call it instead of touching bone.rotation, and only when `actor.retarget`
    exists — which is only ever true for a generated character. */
 
-export function makeRetarget(boneByName, frame) {
+export const BIND_MODES = ['absolute', 'additive'];
+
+export function makeRetarget(boneByName, frame, mode = 'absolute') {
+  if (!BIND_MODES.includes(mode)) throw new Error(`[forge] unknown bindMode "${mode}" — expected ${BIND_MODES.join(' | ')}`);
   const pre = new Map();
   const post = new Map();
+  const bind = new Map();
   frame.updateMatrixWorld(true);
 
+  const B = (node) => (node ? bindOf(node, frame, new THREE.Quaternion()).q : new THREE.Quaternion());
+  for (const [spec, bone] of boneByName) bind.set(bone, B(bone).clone());
+
   for (const [spec, bone] of boneByName) {
-    const B = bindOf(bone, frame, new THREE.Quaternion()).q.clone();
-    const parent = bone.parent;
-    const Bu = parent ? bindOf(parent, frame, new THREE.Quaternion()).q.clone() : new THREE.Quaternion();
-    pre.set(bone, Bu.clone().invert());
-    post.set(bone, B);
+    const specParent = SPEC_PARENT.get(spec);
+    const Bm = specParent ? bind.get(boneByName.get(specParent)).clone() : new THREE.Quaternion();
+    const Bu = B(bone.parent).clone();
+    if (mode === 'absolute') {
+      pre.set(bone, Bu.invert().multiply(Bm));
+      post.set(bone, new THREE.Quaternion());
+    } else {
+      pre.set(bone, Bu.invert());
+      post.set(bone, bind.get(bone).clone());
+    }
     bone.userData.qSpec = new THREE.Quaternion();
     bone.userData.specName = spec;
   }
@@ -305,7 +363,9 @@ export function makeRetarget(boneByName, frame) {
       frame.updateMatrixWorld(true);
       return bindOf(bone, frame, out).q;
     },
-    bind(bone) { return post.get(bone); },
+    /** The bone's model-space BIND rotation — what the delta was solved from. */
+    bind(bone) { return bind.get(bone); },
+    mode,
   };
 }
 
@@ -467,7 +527,7 @@ export function applyGltfActor(actor, gltfScene, mapJson) {
 
   actor.root.updateMatrixWorld(true);
   const legs = measureLegs(boneByName, actor.root);
-  const retarget = makeRetarget(boneByName, actor.root);
+  const retarget = makeRetarget(boneByName, actor.root, mapJson?.bindMode ?? 'absolute');
   const sockets = mountSockets(actor, boneByName, actor.root);
 
   actor.source = 'gltf';

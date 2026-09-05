@@ -43,8 +43,13 @@ const ALIGN = 0.45;
  *  her. Clamping leaves a visible error on terrain we do not let her walk on. */
 const MAX_CORRECTION = 0.34;
 
-/** Bone lengths from docs/specs/rig.mjs. Read, not retyped: a joint edit there
- *  must not silently invalidate the solve here. */
+/** Bone lengths of the CODE-BUILT rig, from docs/specs/rig.mjs.
+ *
+ *  These are defaults, not constants. A generated character has its own leg
+ *  links and its own ankle-to-sole, measured off the glb at load
+ *  (gltf-actor.js `measureLegs`) and carried on the actor as `limb` and
+ *  `soleM`. Leaving them hardcoded would put a fixed float or sink under every
+ *  forged foot and ask the knee solve for a span the leg cannot reach. */
 const THIGH = 0.42;
 const SHIN = 0.46;
 const SOLE = 0.08;          // ankle-to-sole, baked into the foot's rest pose
@@ -73,6 +78,16 @@ const _dir = new THREE.Vector3();
 
 const damp = (dt, halfLife) => 1 - Math.pow(0.5, dt / Math.max(1e-4, halfLife));
 
+/** Add to a bone's rotation about one axis, in the frame the CLIPS are authored
+ *  in. On the code-built rig those are the same frame, so this is the `+=` it
+ *  has always been. On a forged rig the bone's own axes are whatever the
+ *  auto-rigger produced, so the delta goes through the retarget — otherwise
+ *  "flex the knee about X" flexes it about some arbitrary diagonal. */
+const rot = (a, bone, axis, d) => {
+  if (a.retarget) a.retarget.add(bone, axis, d);
+  else bone.rotation[axis] += d;
+};
+
 /**
  * Knee flex that yields a given hip-to-ankle span.
  *
@@ -99,7 +114,9 @@ export function groundActor(a, w, dt, o = {}) {
   if (!w?.heightAt || !w.normalAt) return null;
   const align = o.align ?? ALIGN;
   const s = a.root.scale.x || 1;
-  const l1 = THIGH * s, l2 = SHIN * s;
+  /* Measured off the glb when there is one; the spec table otherwise. */
+  const l1 = (a.limb?.thigh ?? THIGH) * s, l2 = (a.limb?.shin ?? SHIN) * s;
+  const sole = a.soleM ?? SOLE;
 
   a.ik = a.ik || { lift: 0, legL: 0, legR: 0, pitch: 0, roll: 0, slopeDeg: 0, plantL: 0, plantR: 0 };
   const ik = a.ik;
@@ -125,7 +142,7 @@ export function groundActor(a, w, dt, o = {}) {
     if (!foot) return null;
     foot.getWorldPosition(_ankle);
     const g = w.heightAt(_ankle.x, _ankle.z);
-    const err = (g + SOLE * s) - _ankle.y;         // >0 buried, <0 floating
+    const err = (g + sole * s) - _ankle.y;         // >0 buried, <0 floating
     need[side] = THREE.MathUtils.clamp(err, -MAX_CORRECTION, MAX_CORRECTION);
     /* Plant weight, derived rather than authored. A clip COULD carry a per-foot
        plant flag and eventually should, but that means editing every clip in
@@ -162,7 +179,7 @@ export function groundActor(a, w, dt, o = {}) {
     foot.getWorldPosition(_ankle);
 
     const g = w.heightAt(_ankle.x, _ankle.z);
-    let dy = (g + SOLE * s) - _ankle.y;
+    let dy = (g + sole * s) - _ankle.y;
     dy = THREE.MathUtils.clamp(dy, -MAX_CORRECTION, MAX_CORRECTION);
 
     /* The correction we want is VERTICAL; the leg is not. Project it onto the
@@ -187,8 +204,8 @@ export function groundActor(a, w, dt, o = {}) {
     const key = side === 'L' ? 'legL' : 'legR';
     ik[key] += (target * plant[side] - ik[key]) * damp(dt, FOOT_HALF_LIFE);
 
-    lower.rotation.x += ik[key];
-    upper.rotation.x -= ik[key] * 0.5;              // keep the ankle under the hip
+    rot(a, lower, 'x', ik[key]);
+    rot(a, upper, 'x', -ik[key] * 0.5);             // keep the ankle under the hip
   }
   a.root.updateMatrixWorld(true);
 
@@ -206,8 +223,8 @@ export function groundActor(a, w, dt, o = {}) {
   ik.roll += (roll - ik.roll) * damp(dt, FOOT_HALF_LIFE);
   for (const side of ['L', 'R']) {
     const foot = a.boneByName.get(`foot_${side}`);
-    foot.rotation.x += ik.pitch;
-    foot.rotation.z += ik.roll;
+    rot(a, foot, 'x', ik.pitch);
+    rot(a, foot, 'z', ik.roll);
   }
 
   /* ── 6. lean into the hill ───────────────────────────────────────────────
@@ -216,7 +233,7 @@ export function groundActor(a, w, dt, o = {}) {
      carried up a slope — this is the beat that makes it read as effort.
      Small: the spine is already carrying the clip's own motion. */
   const spine = a.boneByName.get('spine_lower');
-  if (spine) spine.rotation.x += ik.pitch * 0.55;
+  if (spine) rot(a, spine, 'x', ik.pitch * 0.55);
 
   ik.plantL = plant.L; ik.plantR = plant.R;
   a.root.updateMatrixWorld(true);
@@ -228,11 +245,12 @@ export function groundActor(a, w, dt, o = {}) {
 export function footError(a, w) {
   const out = {};
   const s = a.root.scale.x || 1;
+  const sole = a.soleM ?? SOLE;
   for (const side of ['L', 'R']) {
     const foot = a.boneByName.get(`foot_${side}`);
     if (!foot) continue;
     foot.getWorldPosition(_ankle);
-    out[side] = _ankle.y - (w.heightAt(_ankle.x, _ankle.z) + SOLE * s);
+    out[side] = _ankle.y - (w.heightAt(_ankle.x, _ankle.z) + sole * s);
   }
   return out;
 }

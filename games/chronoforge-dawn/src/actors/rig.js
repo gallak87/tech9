@@ -412,13 +412,50 @@ export function buildActor({ id = 'kaida', faction = 'ally', uniforms, material 
   const s = heightM / HERO_M;
   root.scale.setScalar(s);
 
-  return {
+  const a = {
     id, faction, root, mesh, outline, outlineMat, weapon, beacon, beaconMat, beaconUniforms,
     skeleton, bones, boneByName, sockets, palette: P, build: B,
     heightM, scale: s, partRanges: ranges, weaponKind: B.weapon,
     pulseHz: spec.pulseHz, iffShape: spec.shape, iffColor: spec.color,
+    source: 'code',
     tris: geometry.index.count / 3 + (weapon ? weapon.geometry.index.count / 3 : 0)
       + bg.geometry.index.count / 3,
+  };
+
+  /* ── the forge branch ─────────────────────────────────────────────────────
+     A generated character is a runtime fetch, so it cannot be built inside a
+     synchronous constructor. The code-built body is therefore built ALWAYS and
+     the glb swaps onto it when it lands — which is not a workaround, it is the
+     behaviour we want: a missing, unrigged or unmappable glb leaves a real
+     character standing instead of a hole in the scene, and that is the normal
+     state of this repo until the human has run the pipeline by hand.
+
+     Dynamically imported so GLTFLoader never enters the bundle for the 100% of
+     page loads that do not pass ?forge=. See src/actors/gltf-actor.js. */
+  const req = forgeRequest(id);
+  if (req) {
+    a.forgeReady = import('./gltf-actor.js')
+      .then(m => m.attachGltfActor(a, req))
+      .catch((err) => { console.error('[forge] loader import failed', err); return null; });
+  }
+
+  return a;
+}
+
+/** `?forge=kaida` (or `?forge=1`, which means kaida — Phase 2 is KAIDA ONLY).
+ *  Parsed here rather than in gltf-actor.js so the flag can be read without
+ *  pulling GLTFLoader into the bundle. Absent flag → code-built, always. */
+function forgeRequest(id) {
+  if (typeof location === 'undefined') return null;
+  const v = new URLSearchParams(location.search).get('forge');
+  if (!v) return null;
+  const want = v === '1' || v === 'true' ? ['kaida'] : v.split(',').map(x => x.trim());
+  if (!want.includes(id)) return null;
+  const base = typeof document !== 'undefined' ? document.baseURI : './';
+  return {
+    name: id,
+    glb: new URL(`assets/${id}.glb`, base).href,
+    map: new URL(`assets/${id}.bones.json`, base).href,
   };
 }
 

@@ -297,7 +297,13 @@ export class Animator {
       const x = lerp(jb ? jb[0] : 0, ja ? ja[0] : 0, k);
       const y = lerp(jb ? jb[1] : 0, ja ? ja[1] : 0, k);
       const z = lerp(jb ? jb[2] : 0, ja ? ja[2] : 0, k);
-      bone.rotation.set(x, y, z);
+      /* A generated rig's bind is an A-pose with arbitrary bone axes, so a
+         clip's absolute spec-space rotation cannot be written onto its bones
+         directly — it goes through the derived per-bone correction instead.
+         `retarget` exists only on a forged actor; the code-built rig writes
+         straight to the bone, exactly as before. See gltf-actor.js. */
+      if (A.retarget) A.retarget.set(bone, x, y, z);
+      else bone.rotation.set(x, y, z);
     }
     const ry = lerp(b ? b.root.y : 0, a.root.y, k);
     const rz = lerp(b ? b.root.z : 0, a.root.z, k);

@@ -535,6 +535,7 @@ export function applyGltfActor(actor, gltfScene, mapJson) {
   actor.sockets = sockets;
   actor.rigScale = norm.scale;
   actor.sourceHeightM = norm.sourceHeightM;
+  actor.frameScale = norm.frameScale;
   actor.limb = { thigh: legs.thigh, shin: legs.shin };
   actor.soleM = legs.sole;
   actor.partRanges = {};          // no aPart on a glb — Part isolation is off
@@ -617,7 +618,7 @@ export async function attachGltfActor(actor, req) {
     console.info(`[forge] ${actor.id}: ${actor.tris} tri, source ${actor.sourceHeightM.toFixed(3)} m ` +
       `→ ${HERO_M.toFixed(2)} m (×${actor.rigScale.toFixed(4)}), ` +
       `sole ${actor.soleM.toFixed(3)} m, thigh ${actor.limb.thigh.toFixed(3)} shin ${actor.limb.shin.toFixed(3)}` +
-      `, frameScale ${norm.frameScale.toFixed(4)}`);
+      `, frameScale ${(actor.frameScale ?? 1).toFixed(4)}`);
     return actor;
   } catch (err) {
     console.error(`[forge] ${actor.id}: keeping the code-built character.\n${err.message}`);

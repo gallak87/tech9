@@ -27,10 +27,12 @@ sprite/design  →  ref-gen.mjs  →  image-to-3D  →  auto-rig  →  loader  �
 
 | Stage | State |
 |---|---|
-| Reference generation | ✅ Done — `ref-gen.mjs`, output accepted |
-| Stage 1: image → mesh | ❌ Not started |
+| Reference generation | ✅ `ref-gen.mjs`, output accepted |
+| Stage 1: image → mesh | ⏳ Runs, produces no mesh — see `ITERATION.md` |
 | Stage 2: auto-rig | ❌ Not started |
-| Stage 3: engine loader | ❌ Not started — **needed under every path, still unwritten** |
+| Stage 3: engine loader | ✅ `src/actors/gltf-actor.js`, gated by `forge-selftest.mjs`. Untested against a real asset. |
+| Live reload | ✅ Vite watch → `forge:character` |
+| `forge.mjs` CLI | ✅ `install` real; `mesh` and `rig` refuse with setup instructions |
 
 **Chosen input:** `ref/kaida-painterly.png` (1024×1024, real alpha).
 Human-selected over `kaida-plain.png` — its legs carry a visible gap; `plain`

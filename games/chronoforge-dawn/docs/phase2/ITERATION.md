@@ -51,36 +51,47 @@ $HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py \
 
 # Open failure
 
-```
-Hierarchical Volume Decoding [r65]:  274625 points
-Hierarchical Volume Decoding [r129]: 0 points (of 2146689 total)
-ValueError: need at least one array to concatenate
-```
+Shape generation completes, then produces no mesh.
 
-`decode_to_mesh` keeps a voxel when either holds:
-
-```python
-curr_mask  = self._extract_near_surface_mask(grid_logits, mc_level)   # sign change
-curr_mask += (np.abs(grid_logits) < 0.95).astype(np.int32)            # near iso level
+```
+[dit] step 8/8   nan=0  min=-3.566  max=+2.419
+[SDF] n=274625 nan=0 min=-0.9995 max=-0.9971 mean=-0.9985 crossings=NO
+Hierarchical Volume Decoding [r129]: 0 points
 ```
 
-Zero points means neither held for any of 274,625 voxels. `np.abs(nan) < 0.95`
-is False and NaN sign comparisons are False, so an all-NaN field fails both.
+The SDF field spans **0.0024 across 274,625 samples** and sits at -0.998
+throughout. Nothing varies, so no surface is found and no mesh is built.
+
+## Ruled out
+
+| | Evidence |
+|---|---|
+| Numerics / precision | `nan=0` at every denoising step and in the field. `--precision int8` is not the fix. |
+| Input resolution | The encoder normalises whatever it is given; feeding a smaller image cannot help. |
+| Transparency | The pipeline composites RGBA before use. Untested as a *quality* factor, not a cause of this. |
+
+## Open
+
+Whether the failure is the port/environment or our reference. `npm run
+forge:smoke-demo` runs the image the port was tested against and settles it:
+
+- **also flat** → port or environment; our reference is irrelevant
+- **produces a mesh** → our reference or its preprocessing, and `forge:smoke-raw`
+  vs `forge:smoke-keyed` becomes the meaningful comparison
+
+Nothing else is worth running until that returns.
 
 ## Reading the probe
 
-`generate.py` prints `[SDF]` per level.
+`generate.py` prints `[dit]` per denoising step and `[SDF]` per decode level.
 
-A NaN in `[dit]` locates the failure in the DiT; a clean `[dit]` with NaN in
-`[SDF]` puts it in the VAE decode.
+| Output | Meaning |
+|---|---|
+| `nan=` matches `n=` | numerics failure |
+| `crossings=NO`, flat range | no surface resolved |
+| `crossings=yes` | field is fine, failure is later |
 
-| Output | Meaning | Next |
-|---|---|---|
-| `nan=` equals `n=` | numerics | `--precision int8`; fp16 peaks ~10 GB against 16 GB of unified memory |
-| finite, `crossings=NO`, large `\|min\|` | latent resolved no surface | sweep `--mc-level`, then guidance |
-| finite, `crossings=yes` | field is fine | failure is downstream of the mask |
-
-INT8 weights are an offline conversion:
+INT8 weights, if ever needed, are an offline conversion:
 
 ```bash
 mlx-forge convert hunyuan3d-2.1 --quantize --bits 8 --output ./models/hunyuan3d-2.1-int8

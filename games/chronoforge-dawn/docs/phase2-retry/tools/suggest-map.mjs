@@ -14,7 +14,10 @@
 // produces a character that loads fine and moves wrong.
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { readGlb, SPEC_NAMES } from '../contract.mjs';
 import { JOINTS } from '../../specs/rig.mjs';
 
@@ -70,6 +73,11 @@ function score(raw, spec) {
   return 0;
 }
 
+/** The matcher, over a bare list of joint names. */
+export function suggestFromNames(names) {
+  return match(names.map((name, i) => ({ i, name })));
+}
+
 export function suggest(json) {
   // Only nodes that are actually joints of a skin — otherwise mesh nodes and
   // empties compete for the match.
@@ -77,6 +85,10 @@ export function suggest(json) {
   for (const s of json.skins || []) (s.joints || []).forEach(j => jointIdx.add(j));
   const pool = [...jointIdx].map(i => ({ i, name: json.nodes[i].name || `node${i}` }));
   if (!pool.length) throw new Error('no skin joints in file — is it rigged?');
+  return match(pool);
+}
+
+function match(pool) {
 
   // Score every (spec, source) pair, then assign the most confident pairs
   // first. Resolving in spec order instead would let a weak early match steal
@@ -115,8 +127,21 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const [file, ...rest] = process.argv.slice(2);
   if (!file) { console.error('usage: node tools/suggest-map.mjs <rigged.glb> [--out map.json]'); process.exit(2); }
   const outIdx = rest.indexOf('--out');
-  const { json } = readGlb(file);
-  const { bones, notes, pool } = suggest(json);
+
+  // A rigging service hands back FBX. Reading glTF JSON directly is fast and
+  // dependency-free but cannot see inside one, so Blender supplies the joint
+  // names and the same matcher runs against them.
+  let bones, notes, pool;
+  if (/\.fbx$/i.test(file)) {
+    const script = path.join(path.dirname(fileURLToPath(import.meta.url)), 'dump-joints.py');
+    const out = execFileSync('blender',
+      ['--background', '--python', script, '--', path.resolve(file)], { encoding: 'utf8' });
+    const names = out.split('\n').filter(l => l.startsWith('[joint] ')).map(l => l.slice(8).trim());
+    if (!names.length) { console.error(`[map] no joints found in ${file} — is it rigged?`); process.exit(2); }
+    ({ bones, notes, pool } = suggestFromNames(names));
+  } else {
+    ({ bones, notes, pool } = suggest(readGlb(file).json));
+  }
 
   const complete = Object.keys(bones).length === SPEC_NAMES.length;
   const doc = {

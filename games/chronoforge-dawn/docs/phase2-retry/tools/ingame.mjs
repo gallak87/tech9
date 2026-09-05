@@ -30,6 +30,7 @@ const CFG = {
   w: Number(arg('w', 1280)),
   h: Number(arg('h', 900)),
   hour: arg('t', '6.4'),
+  moves: argv.includes('--moves'),
 };
 
 const url = `http://127.0.0.1:${CFG.port}/?play=1&dev=2&quality=high&hour=${CFG.hour}`
@@ -63,8 +64,40 @@ const swapped = await page.waitForFunction(() => {
 
 await page.waitForTimeout(2500);   // let one clip settle after the swap
 
+/* Movement shots are driven by the game's own input, not by posing bones from
+   outside. src/traversal/index.js maps W/A/S/D + Shift to locomotion and
+   Space/C/V/H to the action clips, so holding a key exercises the real path:
+   Animator → retarget → skin → screen. Posing the rig directly would skip the
+   very layers the render defect lived in. */
+const MOVES = [
+  { name: 'idle', keys: [], hold: 1200 },
+  { name: 'walk', keys: ['KeyW'], hold: 1400 },
+  { name: 'sprint', keys: ['KeyW', 'ShiftLeft'], hold: 1600 },
+  { name: 'turn-left', keys: ['KeyW', 'KeyA'], hold: 1400 },
+  { name: 'strafe-right', keys: ['KeyD'], hold: 1200 },
+  { name: 'attack', keys: [], tap: 'Space', hold: 420 },
+  { name: 'cast', keys: [], tap: 'KeyC', hold: 520 },
+  { name: 'victory', keys: [], tap: 'KeyV', hold: 700 },
+  { name: 'hurt', keys: [], tap: 'KeyH', hold: 380 },
+];
+
+const written = [];
+if (CFG.moves) {
+  await page.locator('canvas').first().click({ position: { x: 20, y: 20 } }).catch(() => {});
+  for (const m of MOVES) {
+    for (const k of m.keys) await page.keyboard.down(k);
+    if (m.tap) await page.keyboard.press(m.tap);
+    await page.waitForTimeout(m.hold);
+    const f = path.join(CFG.out, `${CFG.forge}-${m.name}.png`);
+    await page.screenshot({ path: f });
+    written.push(f);
+    for (const k of m.keys) await page.keyboard.up(k);
+    await page.waitForTimeout(250);
+  }
+}
+
 const file = path.join(CFG.out, `${CFG.forge}${CFG.clip ? `-${CFG.clip}` : ''}.png`);
-await page.screenshot({ path: file });
+if (!CFG.moves) await page.screenshot({ path: file });
 
 const stats = await page.evaluate(() => window.__DAWN__?.stats?.() ?? null).catch(() => null);
 
@@ -114,5 +147,6 @@ else console.log('[forge] console: silent — the forge branch never ran, or nev
 if (stats?.tris) console.log(`tris on screen: ${stats.tris.toLocaleString()}`);
 console.log('live bone angles from -Y (what the renderer is using):');
 console.log(`  ${JSON.stringify(live)}`);
-console.log(`\nwrote ${file}`);
+if (CFG.moves) { console.log(`\nwrote ${written.length} movement shots:`); written.forEach(f => console.log(`  ${path.basename(f)}`)); }
+else console.log(`\nwrote ${file}`);
 process.exit(forgeLog.some(l => l.startsWith('error')) || !swapped ? 1 : 0);

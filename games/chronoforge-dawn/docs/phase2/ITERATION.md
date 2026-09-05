@@ -124,7 +124,8 @@ fp16. `seed` is not passed, so runs are not reproducible.
 # Where this stands
 
 A rigged Mixamo stand-in loads, scales, maps and animates in the game. Reached
-via `?play=1&dev=2&forge=kaida`.
+via `?play=1&dev=2&forge=kaida:kaida-not` — it is installed as `kaida-not`, so
+the `kaida` slot stays free for the generated mesh.
 
 ```
 12609 tri, source 2.189 m → 1.72 m (×0.7856), sole 0.127 m,
@@ -166,6 +167,8 @@ An auto-rigged generated mesh is now the only untested link.
 
 ```bash
 bash docs/phase2/rig-import.sh <file.fbx> [name]
+npm run forge:view                    # open out/kaida.glb in Blender
+npm run forge:view -- <path.glb>      # or anything else
 ```
 
 Blender headless FBX → GLB, registers the name in the manifest, installs to
@@ -175,8 +178,8 @@ drive the skeleton.
 Then check `assets/<name>.bones.json` and set `"reviewed": true`. A re-import
 keeps a reviewed map when every mapped bone still exists.
 
-`?play=1&dev=1&forge=kaida` loads it. `?forge=kaida:<name>` drives the character
-`kaida` from a differently named asset.
+`?forge=kaida` loads an asset installed as `kaida`. `?forge=kaida:<name>` drives
+the character `kaida` from a differently named asset — how the stand-in runs.
 
 ## Two things this had to solve
 

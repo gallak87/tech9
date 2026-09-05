@@ -4,7 +4,7 @@
   "reviewed": true,
   "_bindMode": "absolute (default): an unposed clip returns the limbs to the spec bind, hanging along -Y. \"additive\" measures every clip from the glb's own A-pose. See src/actors/gltf-actor.js.",
   "faceYawDeg": 0,
-  "source": "kaida-not-rigged.glb",
+  "source": "kaida-rigged.glb",
   "joints": [
     "mixamorig:Hips",
     "mixamorig:Spine",
@@ -102,5 +102,6 @@
     "upperArm_R": "mixamorig:RightArm",
     "lowerLeg_L": "mixamorig:LeftLeg",
     "lowerLeg_R": "mixamorig:RightLeg"
-  }
+  },
+  "bindMode": "additive"
 }

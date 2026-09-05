@@ -124,7 +124,7 @@ def rename(arm, mapping):
     print(f"[canon] renamed {len(mapping)} bones")
 
 
-def align_rest(arm, spec_joints):
+def align_rest(arm, meshes, spec_joints):
     """Rotate each mapped bone so its child sits along the spec's offset
     direction, then apply the whole pose as the new rest pose.
 
@@ -255,7 +255,7 @@ def main():
     print(f"[canon] {len(arm.data.bones)} source bones, {len(meshes)} mesh(es)")
     bake_object_scale(arm, meshes)
     rename(arm, mapping)
-    align_rest(arm, joints)
+    align_rest(arm, meshes, joints)
     normalise(arm, meshes, hero_m, sole_tol)
 
     for act in list(bpy.data.actions):

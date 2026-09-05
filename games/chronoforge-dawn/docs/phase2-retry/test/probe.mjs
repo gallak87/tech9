@@ -43,6 +43,7 @@ import { HERO_M } from '../../../src/core/const.js';
 import { buildActor } from '../../../src/actors/rig.js';
 import { makeActorUniforms, makeActorMaterial } from '../../../src/actors/material.js';
 import { applyGltfActor, SPEC_BONES } from '../../../src/actors/gltf-actor.js';
+import { readGlb } from '../contract.mjs';
 import { samplePose, POSE_NAMES } from '../../../src/actors/poses.js';
 import { JOINTS } from '../../specs/rig.mjs';
 
@@ -163,6 +164,32 @@ check('source height is HERO_M', Math.abs(actor.sourceHeightM - HERO_M) <= 0.03,
   `${fixed(actor.sourceHeightM, 3)} m`, `${HERO_M} ± 0.03`);
 check('ankle-to-sole measured, not assumed', actor.soleM > 0.02 && actor.soleM < 0.30,
   `${fixed(actor.soleM, 3)} m`, '0.02–0.30');
+
+/* ── 2b. does the SKIN follow the SKELETON? ───────────────────────────────── */
+//
+// The check that was missing. Everything else here measures bones, and a mesh
+// can sit in the rigger's original pose while the skeleton is perfectly
+// canonical — the file is internally consistent, every bone reads 0° from -Y,
+// and the character renders with her arms straight out. Blender's
+// `armature_apply` produces exactly that if the skin is not baked first.
+//
+// Compared against the hand span rather than an absolute width, so it holds for
+// any character: with the arms down, the mesh is barely wider than the hands.
+{
+  const b = readGlb(asset).json;
+  const skinNode = (b.nodes || []).find(n => n.skin !== undefined);
+  const acc = skinNode && b.accessors?.[b.meshes[skinNode.mesh].primitives[0].attributes.POSITION];
+  if (!acc?.min) check('mesh bounds readable', false, 'no POSITION bounds', 'accessor min/max');
+  else {
+    actor.root.updateMatrixWorld(true);
+    const meshW = acc.max[0] - acc.min[0];
+    const handSpan = wp('hand_L').distanceTo(wp('hand_R'));
+    const slack = meshW - handSpan;
+    check('the skin follows the skeleton', slack <= 0.5,
+      `mesh ${fixed(meshW, 2)} m wide vs ${fixed(handSpan, 2)} m hand span`,
+      '≤ 0.5 m wider than the hands');
+  }
+}
 
 /* ── 3. the bind pose ─────────────────────────────────────────────────────── */
 

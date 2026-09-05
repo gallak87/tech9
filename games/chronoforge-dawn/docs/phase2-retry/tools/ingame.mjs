@@ -86,7 +86,20 @@ const live = await page.evaluate(() => {
     const d = wp(b).sub(wp(a)).normalize();
     return +(T.MathUtils.radToDeg(Math.acos(T.MathUtils.clamp(d.dot(new T.Vector3(0, -1, 0)), -1, 1)))).toFixed(1);
   };
+  // The mesh's own extents next to the skeleton's. If the skin is following the
+  // bones these agree; if the mesh is still in the rigger's pose while the bones
+  // hang, the mesh is far wider than the bone span and this says so in metres.
+  let mesh = null;
+  root.traverse((o) => { if (o.isSkinnedMesh && !mesh) mesh = o; });
+  let meshBox = null;
+  if (mesh) {
+    const b = new T.Box3().setFromObject(mesh);
+    meshBox = { w: +(b.max.x - b.min.x).toFixed(3), h: +(b.max.y - b.min.y).toFixed(3) };
+  }
+  const span = +wp('hand_L').distanceTo(wp('hips')).toFixed(3);
+
   return {
+    meshWidth: meshBox?.w, meshHeight: meshBox?.h, handToHips: span,
     'upperArm_L→lowerArm_L': ang('upperArm_L', 'lowerArm_L'),
     'lowerArm_L→hand_L': ang('lowerArm_L', 'hand_L'),
     'upperLeg_L→lowerLeg_L': ang('upperLeg_L', 'lowerLeg_L'),

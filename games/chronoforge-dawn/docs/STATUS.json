@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
   "phase": 2.02,
-  "phaseName": "BLOCKED ON HUMAN \u2014 mesh source decision gates Phase 2.1. See docs/PHASE2-HANDOFF.md",
+  "phaseName": "RESOLVED — mesh is GENERATED, not code-built. Pipeline: docs/phase2/README.md",
   "updated": "2026-09-04",
   "devServer": {
     "port": 5190,
@@ -181,10 +181,10 @@
     ]
   },
   "modules": {
-    "world": "phase0 placeholder scene \u2014 replaced wholesale in Tier 1",
-    "render": "camera rig, environment, materials, textures, postfx, probe \u2014 real",
+    "world": "phase0 placeholder scene — replaced wholesale in Tier 1",
+    "render": "camera rig, environment, materials, textures, postfx, probe — real",
     "actors": "19-bone rig; KAIDA lofted from superellipse cross-sections (2412 tri), other three still prism-based",
-    "traversal": "free-roam play sample \u2014 WASD, camera-relative, ground-following, speed-driven clip rate. Party/collision/footfalls are Phase 5.",
+    "traversal": "free-roam play sample — WASD, camera-relative, ground-following, speed-driven clip rate. Party/collision/footfalls are Phase 5.",
     "places": "stub",
     "battle": "stub",
     "progression": "stub",
@@ -200,7 +200,7 @@
     "encounters": 36,
     "doorwayEdges": 24,
     "worldDrops": 8,
-    "source": "games/chronoforge/src/world.js, ported in Phase 1.2 to docs/specs/world-graph.mjs. Interiors carry worldDrop null and zero encounters. doorwayEdges counts doorway RECORDS (20 outdoor directed doors over 10 bidirectional region edges, plus 4 interior exits); the donor's 18 was 14 + 4 over 7 edges. level accepted 3 lateral cycles in Phase 1.2 \u2014 per-tier reachability is unchanged at 4/6/8/8.",
+    "source": "games/chronoforge/src/world.js, ported in Phase 1.2 to docs/specs/world-graph.mjs. Interiors carry worldDrop null and zero encounters. doorwayEdges counts doorway RECORDS (20 outdoor directed doors over 10 bidirectional region edges, plus 4 interior exits); the donor's 18 was 14 + 4 over 7 edges. level accepted 3 lateral cycles in Phase 1.2 — per-tier reachability is unchanged at 4/6/8/8.",
     "regionEdges": 10
   },
   "coreSeams": [
@@ -252,7 +252,7 @@
       "severity": "low",
       "tier": "Tier 5 (Phase 8)",
       "title": "Dev panel is default-hidden because auto-hide during shots does not work",
-      "detail": "An auto-hide keyed on __DAWN__.shot was tried and failed \u2014 the panel update runs before applyShot, so the capture still contains the overlay. Panel is default-off; open with ?dev=1. Needs a correct fix in Tier 5.",
+      "detail": "An auto-hide keyed on __DAWN__.shot was tried and failed — the panel update runs before applyShot, so the capture still contains the overlay. Panel is default-off; open with ?dev=1. Needs a correct fix in Tier 5.",
       "repro": "set visible default true, then: node tools/shot.mjs --shots hero",
       "area": "progression/ui"
     },
@@ -299,7 +299,7 @@
       "severity": "high",
       "area": "settlement",
       "tier": "Tier 6 (Phase 9)",
-      "title": "research_lab tier gate is circular \u2014 Ascendant is unreachable in the donor",
+      "title": "research_lab tier gate is circular — Ascendant is unreachable in the donor",
       "detail": "base.js: research_lab tierGate[1]='Ascendant' but Ascendant requires researchBuilt:true. Verified in source. Blocks Transcendent and the win condition. Must be broken when settlement ships."
     },
     {
@@ -324,7 +324,7 @@
       "area": "world",
       "tier": "Tier 1 (Phase 4)",
       "title": "Haventide -> Emberline doorway lands five tiles off its return door",
-      "detail": "games/chronoforge/src/world.js:82 \u2014 { x: 44, y: 15, to: { mapId: 'emberline_region', x: 1, y: 20 } }. Emberline's reciprocal door is at (1,15). The other six inherited edges all land exactly on the reciprocal door. Verified in source. Fixed in docs/specs/world-graph.mjs (landing -> (1,15)); selfCheck() now asserts round-trip symmetry on every outdoor edge."
+      "detail": "games/chronoforge/src/world.js:82 — { x: 44, y: 15, to: { mapId: 'emberline_region', x: 1, y: 20 } }. Emberline's reciprocal door is at (1,15). The other six inherited edges all land exactly on the reciprocal door. Verified in source. Fixed in docs/specs/world-graph.mjs (landing -> (1,15)); selfCheck() now asserts round-trip symmetry on every outdoor edge."
     },
     {
       "id": "DONOR-5",
@@ -332,7 +332,7 @@
       "area": "world",
       "tier": "Tier 3 (Phase 6)",
       "title": "Haventide interior exit lands on build plot slotIdx 7",
-      "detail": "games/chronoforge/src/world.js:267 \u2014 { x: 15, y: 19, to: { mapId: 'haventide_region', x: 12, y: 24 } }. (12,24) is plot slotIdx 7, so once that plot is built the party exits the city inside a building. Verified in source. Landing moved to (12,22) \u2014 still south of the city tile so [C] does not re-trigger, clear of all 17 plots. selfCheck() asserts no landing sits on a city tile, plot, encounter or world drop."
+      "detail": "games/chronoforge/src/world.js:267 — { x: 15, y: 19, to: { mapId: 'haventide_region', x: 12, y: 24 } }. (12,24) is plot slotIdx 7, so once that plot is built the party exits the city inside a building. Verified in source. Landing moved to (12,22) — still south of the city tile so [C] does not re-trigger, clear of all 17 plots. selfCheck() asserts no landing sits on a city tile, plot, encounter or world drop."
     },
     {
       "id": "LVL-1",
@@ -340,7 +340,7 @@
       "area": "render",
       "tier": "Tier 1 (Phase 4)",
       "title": "Snow biomes are 1.5-1.6x brighter than the ground the dawn ramp was signed off on",
-      "detail": "frozen_ruins mid albedo 0.448 and frost_canyon 0.398 linear luminance vs grassland_ruins 0.274 (docs/specs/heightfields.mjs prints all eight). The signed-off dawn frame \u2014 wide median 0.212, p90 0.51, 0% white \u2014 was measured on the Phase 0 placeholder whose ground is 0x9d8259, about 0.26. EXPOSURE_RAMP is fixed per hour with no metering by design, so Orbital Reach and Frost Canyon will read brighter than that baseline and may push p90 toward the 1.2 ceiling. Snow is already dirtied far below its 0.7-0.8 physical albedo to hold the eight-biome spread to 3.96x; level cannot close this further without making snow look like mud. render needs a per-biome albedo trim or a per-biome offset in EXPOSURE_RAMP. Check: probe() on wide at 6.4 h in both snow regions, whitePct must stay < 2."
+      "detail": "frozen_ruins mid albedo 0.448 and frost_canyon 0.398 linear luminance vs grassland_ruins 0.274 (docs/specs/heightfields.mjs prints all eight). The signed-off dawn frame — wide median 0.212, p90 0.51, 0% white — was measured on the Phase 0 placeholder whose ground is 0x9d8259, about 0.26. EXPOSURE_RAMP is fixed per hour with no metering by design, so Orbital Reach and Frost Canyon will read brighter than that baseline and may push p90 toward the 1.2 ceiling. Snow is already dirtied far below its 0.7-0.8 physical albedo to hold the eight-biome spread to 3.96x; level cannot close this further without making snow look like mud. render needs a per-biome albedo trim or a per-biome offset in EXPOSURE_RAMP. Check: probe() on wide at 6.4 h in both snow regions, whitePct must stay < 2."
     },
     {
       "id": "LVL-2",
@@ -348,7 +348,7 @@
       "area": "render",
       "tier": "Tier 1 (Phase 4)",
       "title": "crater_ember is the darkest ground in the game at 0.113 luminance",
-      "detail": "Basalt is genuinely 6-8% reflectance and that is the Phase 0 trap in the other direction \u2014 a dark ground blows the sky trying to expose it. Mitigated by authoring the mid as ash-grey 0x655d59 rather than basalt black, with the lava emissive supplying the contrast. Still the low end of the 3.96x spread; worth a probe when Crater Ember first renders in Phase 10."
+      "detail": "Basalt is genuinely 6-8% reflectance and that is the Phase 0 trap in the other direction — a dark ground blows the sky trying to expose it. Mitigated by authoring the mid as ash-grey 0x655d59 rather than basalt black, with the lava emissive supplying the contrast. Still the low end of the 3.96x spread; worth a probe when Crater Ember first renders in Phase 10."
     },
     {
       "id": "LVL-3",
@@ -356,7 +356,7 @@
       "area": "world",
       "tier": "Tier 6 (Phase 10)",
       "title": "alien_terraform terracing may read as banding rather than grown platforms",
-      "detail": "The only biome whose landform is not erosional. carve.mix 0.45 at 1.4 m steps with blendFrac 0.90 \u2014 a partial quantise, deliberately weak because a full one both bands the surface and multiplies every local gradient by ~1.5/blendFrac. This is the one look decision in the heightfield spec that is not measurable offline. If it reads as banding when Last Crown renders, drop carve.mix toward 0.30."
+      "detail": "The only biome whose landform is not erosional. carve.mix 0.45 at 1.4 m steps with blendFrac 0.90 — a partial quantise, deliberately weak because a full one both bands the surface and multiplies every local gradient by ~1.5/blendFrac. This is the one look decision in the heightfield spec that is not measurable offline. If it reads as banding when Last Crown renders, drop carve.mix toward 0.30."
     },
     {
       "id": "LVL-4",
@@ -364,14 +364,14 @@
       "area": "world",
       "tier": "Phase 1.3",
       "title": "Four inherited encounters sit on a landform and want re-placing",
-      "detail": "docs/specs/heightfields.mjs prints local relief within 7 m of all 36 inherited encounter tiles. e17 (6.6 m) and e18 (5.8 m) are on the Frost Canyon trench wall; e35 (4.5 m) is on a Crater Ember rim; e36 (2.5 m) is borderline on a crater lip. The other 32 sit on 0.2-2.6 m and are fine. Phase 1.3 input \u2014 encounter data was carried through the port untouched."
+      "detail": "docs/specs/heightfields.mjs prints local relief within 7 m of all 36 inherited encounter tiles. e17 (6.6 m) and e18 (5.8 m) are on the Frost Canyon trench wall; e35 (4.5 m) is on a Crater Ember rim; e36 (2.5 m) is borderline on a crater lip. The other 32 sit on 0.2-2.6 m and are fine. Phase 1.3 input — encounter data was carried through the port untouched."
     },
     {
       "id": "LVL-DOOR-1",
       "severity": "info",
       "area": "world",
       "tier": "Phase 1.2",
-      "title": "Frost Canyon doorway moved from (30,28) to (23,28) \u2014 landform, not a donor bug",
+      "title": "Frost Canyon doorway moved from (30,28) to (23,28) — landform, not a donor bug",
       "detail": "The frost_canyon heightfield cuts a 47 m trench down the middle of the map and tile (30,28) lands mid-wall at 29.5 deg, over the 20 deg doorway limit. (23,28) is the canyon mouth: trench floor, 3.6 deg. You now enter Frost Canyon by walking up the ravine. Orbital Reach's landing coord moved with it so the edge stays symmetric. Recorded in world-graph.mjs MOVED_FROM_DONOR."
     },
     {
@@ -379,8 +379,8 @@
       "severity": "medium",
       "area": "core (integrator)",
       "tier": "Tier 1 (Phase 4)",
-      "title": "CORE-CHANGE REQUEST: ridge2D in src/core/rng.js is C0, not C1 \u2014 it creases along every ridge crest",
-      "detail": "ridge2D folds with `1 - Math.abs(noise2D(...)*2 - 1)`. An absolute value is C0: the slope flips sign across the fold, so any surface built on it changes gradient discontinuously along EVERY ridge crest. Squaring the result does not repair it \u2014 the fold sits at n=1, where d(n^2)/dn = 2. Measured on the bare function, |d2|/e2 grows 1.91x when the probe spacing halves, against 0.0 for noise2D and fbm2D, which are both clean. Six of the eight biomes use a ridge term and every one was creased before this pass. NOT CHANGED \u2014 src/core/rng.js is shared core. docs/specs/heightfields.mjs ships a local `ridgeC1` with a hyperbolic fold softened over 12% of the range (same octave structure, same seed stride, same n(0)=1 / n(+/-1)=0 output range) and the integrator should decide whether core adopts it. Also affects src/world/index.js, which uses ridge2D for both the placeholder terrain and makeRock()."
+      "title": "CORE-CHANGE REQUEST: ridge2D in src/core/rng.js is C0, not C1 — it creases along every ridge crest",
+      "detail": "ridge2D folds with `1 - Math.abs(noise2D(...)*2 - 1)`. An absolute value is C0: the slope flips sign across the fold, so any surface built on it changes gradient discontinuously along EVERY ridge crest. Squaring the result does not repair it — the fold sits at n=1, where d(n^2)/dn = 2. Measured on the bare function, |d2|/e2 grows 1.91x when the probe spacing halves, against 0.0 for noise2D and fbm2D, which are both clean. Six of the eight biomes use a ridge term and every one was creased before this pass. NOT CHANGED — src/core/rng.js is shared core. docs/specs/heightfields.mjs ships a local `ridgeC1` with a hyperbolic fold softened over 12% of the range (same octave structure, same seed stride, same n(0)=1 / n(+/-1)=0 output range) and the integrator should decide whether core adopts it. Also affects src/world/index.js, which uses ridge2D for both the placeholder terrain and makeRock()."
     },
     {
       "id": "LVL-6",
@@ -388,7 +388,7 @@
       "area": "world",
       "tier": "Phase 1.2 follow-up",
       "title": "Surface-continuity gate added to heightfields.mjs; six carve defects fixed",
-      "detail": "Max slope is a first-derivative test and structurally cannot see a crease. New gate probes |d2h|/e2 at the 0.5 m mesh spacing and again at 0.25 m: a C1 break doubles, genuine curvature is bounded, so divergence is ~2.0 at a crease and ~1.0 otherwise. Ceiling 1.45. Against the code committed at 2cfc6fa the gate fails 8/8 biomes (grassland 1.97x at exactly x=32=carve.startM, alien 2.71x, neon 2.15x); after the fix the worst is 1.23x. Six defects fixed: shore delta corner; trench lipMix C0 at floor edge AND rim (0.29 slope jump each); crater linear wall + sin() lip; clamp01 corners in the influence masks of five carve kinds; basin/crater winner-takes-all seams (basins now blend with a polynomial smin, craters now SUM compactly-supported C1 bowls so there is no selection); and ridge2D (LVL-5). Two non-crease findings: the damping mask was the largest single gradient in the spec (a 4 m taper on a +/-4 m field contributes 1.12 to the gradient \u2014 crater_ember peaked 2.3 m OUTSIDE any crater footprint), now budgeted as INFL_TAPER_M = 12; and crater placement was degenerate, all four centres inside a 10 m cluster at the map middle, now authored as fractional sites with a floors-disjoint assertion."
+      "detail": "Max slope is a first-derivative test and structurally cannot see a crease. New gate probes |d2h|/e2 at the 0.5 m mesh spacing and again at 0.25 m: a C1 break doubles, genuine curvature is bounded, so divergence is ~2.0 at a crease and ~1.0 otherwise. Ceiling 1.45. Against the code committed at 2cfc6fa the gate fails 8/8 biomes (grassland 1.97x at exactly x=32=carve.startM, alien 2.71x, neon 2.15x); after the fix the worst is 1.23x. Six defects fixed: shore delta corner; trench lipMix C0 at floor edge AND rim (0.29 slope jump each); crater linear wall + sin() lip; clamp01 corners in the influence masks of five carve kinds; basin/crater winner-takes-all seams (basins now blend with a polynomial smin, craters now SUM compactly-supported C1 bowls so there is no selection); and ridge2D (LVL-5). Two non-crease findings: the damping mask was the largest single gradient in the spec (a 4 m taper on a +/-4 m field contributes 1.12 to the gradient — crater_ember peaked 2.3 m OUTSIDE any crater footprint), now budgeted as INFL_TAPER_M = 12; and crater placement was degenerate, all four centres inside a 10 m cluster at the map middle, now authored as fractional sites with a floors-disjoint assertion."
     },
     {
       "id": "LVL-7",
@@ -396,7 +396,7 @@
       "area": "render/world",
       "tier": "Tier 1 (Phase 10)",
       "title": "PROPOSAL, not implemented: blend biome albedo near doorways",
-      "detail": "The twelve maps are discrete and joined at authored doorway coordinates, so no continuous blend field is needed \u2014 only the ground near a door needs to resemble what is through it. Within R metres of a doorway (suggest R = 14 m, a little under half a screen width, lerped on smooth01(1 - d/R)), lerp the biome's four-colour albedo ramp toward the ramp of the map that door leads to. Everything required is already data: doorway coords and target mapId in world-graph.mjs, biome per map, and the four-colour ramp per biome in heightfields.mjs. Scope is three doors, not a system: six of the ten edges already read as natural gradients. The jarring ones are emberline<->forest_veil (0.264 -> 0.170 luminance), emberline<->orbital_reach (0.264 -> 0.448) and mire_bog<->orbital_reach (0.120 -> 0.448, a 3.7x jump). crater_ember<->frost_canyon is also jarring and should STAY hard \u2014 a fire-and-ice border is a landmark. Cost is one lerp in the terrain vertex-colour pass; no new data, pass, draw calls or triangles. Sequence after LVL-1, since blending snow into the swamp end interacts with the snow-albedo exposure risk. Full write-up in agents/level-output.md section 8."
+      "detail": "The twelve maps are discrete and joined at authored doorway coordinates, so no continuous blend field is needed — only the ground near a door needs to resemble what is through it. Within R metres of a doorway (suggest R = 14 m, a little under half a screen width, lerped on smooth01(1 - d/R)), lerp the biome's four-colour albedo ramp toward the ramp of the map that door leads to. Everything required is already data: doorway coords and target mapId in world-graph.mjs, biome per map, and the four-colour ramp per biome in heightfields.mjs. Scope is three doors, not a system: six of the ten edges already read as natural gradients. The jarring ones are emberline<->forest_veil (0.264 -> 0.170 luminance), emberline<->orbital_reach (0.264 -> 0.448) and mire_bog<->orbital_reach (0.120 -> 0.448, a 3.7x jump). crater_ember<->frost_canyon is also jarring and should STAY hard — a fire-and-ice border is a landmark. Cost is one lerp in the terrain vertex-colour pass; no new data, pass, draw calls or triangles. Sequence after LVL-1, since blending snow into the swamp end interacts with the snow-albedo exposure risk. Full write-up in agents/level-output.md section 8."
     },
     {
       "id": "DONOR-6",
@@ -412,7 +412,7 @@
       "area": "level/battle",
       "tier": "Tier 4 (Phase 7)",
       "title": "BATTLE_PUSH_IN = 1.20 authored by level because combat clearance could not be derived without it",
-      "detail": "No push-in number existed anywhere. Clearance depends on it, so the two are one decision: the staging disc is 11.0 m across and good framing puts the subject at ~60% of the frame's short dimension, giving a pushed-in ground depth of 18.3 m against the overworld's 22.0 m -> push-in 1.20, battle frame 15.0 m. It lives in docs/specs/heightfields.mjs. `battle` should adopt it in Phase 7 or tell level it changed \u2014 a harder push-in tightens clearance and moves some of the 36 placements again."
+      "detail": "No push-in number existed anywhere. Clearance depends on it, so the two are one decision: the staging disc is 11.0 m across and good framing puts the subject at ~60% of the frame's short dimension, giving a pushed-in ground depth of 18.3 m against the overworld's 22.0 m -> push-in 1.20, battle frame 15.0 m. It lives in docs/specs/heightfields.mjs. `battle` should adopt it in Phase 7 or tell level it changed — a harder push-in tightens clearance and moves some of the 36 placements again."
     },
     {
       "id": "LVL-9",
@@ -420,7 +420,7 @@
       "area": "gamedesign",
       "tier": "Tier 4 (Phase 7)",
       "title": "Four inherited encounters break tier coherence; e13 is the one that matters",
-      "detail": "Rule: |enemy tier - region tier| <= 1, T5 exempt as elites. Reported, NOT retuned \u2014 enemy assignment is gamedesign's and the donor's lane. Named in world-graph.mjs TIER_EXCEPTIONS so a NEW mismatch fails the gate. (1) e13 mire_warden T4 in Mire Bog T2, +2 \u2014 the worst: Mire Bog is inside the Survivor starting web, so a level-5 party meets a 165 HP T4 enemy, and it is the ONLY pre-Ascendant source of void_scepter (20% drop), so swapping it moves item pacing. (2) e19 frost_colossus T5 in Frost Canyon T3, +2 \u2014 reads as a deliberate superboss, one of two titan_shard sources. (3) e35 gravbot T2 in Crater Ember T4, -2. (4) e33 gravbot T2 in Last Crown T4, -2. The last two are cosmetic; e13 needs a decision."
+      "detail": "Rule: |enemy tier - region tier| <= 1, T5 exempt as elites. Reported, NOT retuned — enemy assignment is gamedesign's and the donor's lane. Named in world-graph.mjs TIER_EXCEPTIONS so a NEW mismatch fails the gate. (1) e13 mire_warden T4 in Mire Bog T2, +2 — the worst: Mire Bog is inside the Survivor starting web, so a level-5 party meets a 165 HP T4 enemy, and it is the ONLY pre-Ascendant source of void_scepter (20% drop), so swapping it moves item pacing. (2) e19 frost_colossus T5 in Frost Canyon T3, +2 — reads as a deliberate superboss, one of two titan_shard sources. (3) e35 gravbot T2 in Crater Ember T4, -2. (4) e33 gravbot T2 in Last Crown T4, -2. The last two are cosmetic; e13 needs a decision."
     },
     {
       "id": "LVL-10",
@@ -428,7 +428,7 @@
       "area": "level",
       "tier": "Phase 1.3",
       "title": "Combat clearance derived and all 36 encounters + 8 world drops re-placed against it",
-      "detail": "GAME_PLAN named combat clearance as the constraint on every placement and no number for it existed. Derived from battle staging in docs/specs/heightfields.mjs: R_STAGE 5.5 m (actor geometry, does NOT move with FRAME_HEIGHT_M) with spread <= 1.5*HERO_M = 2.58 m and slope <= 16 deg; R_FRAME 9.16 m (a camera formula over FRAME_HEIGHT_M, so it DOES move \u2014 P0-6) with spread <= 6.0 m, from the occlusion threshold d/tan(55 deg). The coupling is asserted: the staging disc must stay under 70% of the pushed-in frame's short dimension, which breaks below FRAME_HEIGHT_M 15.4. 12 of 36 inherited encounters failed; all 36 now pass. 15 encounters moved (4-16 m) and all 8 world drops moved (3-49 m). Stageable fraction per map ranges 100% (Haventide) to 21% (Crater Ember), which puts Crater Ember's fights in its crater floors. World-drop siting rule: >= 20 m from every encounter, >= 12 m from every doorway-to-doorway and doorway-to-city through-route, on dry readable ground, minimum move from the donor tile otherwise."
+      "detail": "GAME_PLAN named combat clearance as the constraint on every placement and no number for it existed. Derived from battle staging in docs/specs/heightfields.mjs: R_STAGE 5.5 m (actor geometry, does NOT move with FRAME_HEIGHT_M) with spread <= 1.5*HERO_M = 2.58 m and slope <= 16 deg; R_FRAME 9.16 m (a camera formula over FRAME_HEIGHT_M, so it DOES move — P0-6) with spread <= 6.0 m, from the occlusion threshold d/tan(55 deg). The coupling is asserted: the staging disc must stay under 70% of the pushed-in frame's short dimension, which breaks below FRAME_HEIGHT_M 15.4. 12 of 36 inherited encounters failed; all 36 now pass. 15 encounters moved (4-16 m) and all 8 world drops moved (3-49 m). Stageable fraction per map ranges 100% (Haventide) to 21% (Crater Ember), which puts Crater Ember's fights in its crater floors. World-drop siting rule: >= 20 m from every encounter, >= 12 m from every doorway-to-doorway and doorway-to-city through-route, on dry readable ground, minimum move from the donor tile otherwise."
     },
     {
       "id": "rig-snap-subpixel",
@@ -436,7 +436,7 @@
       "tier": "Phase 2 (this phase)",
       "area": "actors/art",
       "title": "The pixel-snap is a no-op at the shipping framing, and pulling the camera in cannot fix it",
-      "detail": "At FRAME_HEIGHT_M 18 the hero measures 43.1 px, so snapUnitPx = 43.1/(1.72*28) = 0.895 \u2014 snapping to under one pixel does nothing. The rig spec assumed ~62 px and snapUnitPx 1.3. Framing is NOT the lever: measured, heroPx goes 43.1 -> 47.2 -> 52.1 -> 53.9 as FRAME_HEIGHT_M goes 18 -> 15.4 -> 12.4 -> 11.0, because a vertical character at 55 deg pitch does not scale with metres-of-ground-plane. 62 px is unreachable through the camera, and 15.4 is already the floor Phase 1.3 derived for battle staging. The only lever that reaches the spec is SPRITE_PX_PER_METRE: 19.3 gives snapUnit 1.3, 16.7 gives 1.5, 12.5 gives 2.0 \u2014 i.e. a hero of 33 virtual rows rather than 48. Chunkier sprite. ART CALL, not dev.",
+      "detail": "At FRAME_HEIGHT_M 18 the hero measures 43.1 px, so snapUnitPx = 43.1/(1.72*28) = 0.895 — snapping to under one pixel does nothing. The rig spec assumed ~62 px and snapUnitPx 1.3. Framing is NOT the lever: measured, heroPx goes 43.1 -> 47.2 -> 52.1 -> 53.9 as FRAME_HEIGHT_M goes 18 -> 15.4 -> 12.4 -> 11.0, because a vertical character at 55 deg pitch does not scale with metres-of-ground-plane. 62 px is unreachable through the camera, and 15.4 is already the floor Phase 1.3 derived for battle staging. The only lever that reaches the spec is SPRITE_PX_PER_METRE: 19.3 gives snapUnit 1.3, 16.7 gives 1.5, 12.5 gives 2.0 — i.e. a hero of 33 virtual rows rather than 48. Chunkier sprite. ART CALL, not dev.",
       "repro": "node tools/rig.mjs, then read docs/STATUS.json rig.framing; or open ?dev=1&showcase=actors and read the rig readout"
     },
     {
@@ -444,9 +444,9 @@
       "severity": "high",
       "tier": "Phase 2 (this phase)",
       "area": "actors/art",
-      "title": "uPivot 0.34 is calibrated for the gate rig, not for dawn \u2014 the cast crushes to black in-world",
-      "detail": "The toon ramp pivots on a linear luminance of 0.34, which suits the measurement gate's own 3.1-intensity key light. Under the game exposure at dawn 6.4 every torso, arm and leg lands in the bottom band: vex resolves to 5 distinct quantised colours over her whole body against kaida's 11. At uPivot 0.10 the palettes come back \u2014 kaida reads blue, rune red/gold, the grunt brown. It is a knob, not a structural failure, but the right default needs a sweep across the hour range, not a single dawn frame.",
-      "repro": "node tools/shot.mjs --shots actors-lineup --params showcase=actors --js \"__DAWN__.ctx.actors.uniforms.uPivot.value=0.10\" \u2014 compare shots/phase2/actors-lineup.png against shots/phase2/pivot0.10/"
+      "title": "uPivot 0.34 is calibrated for the gate rig, not for dawn — the cast crushes to black in-world",
+      "detail": "The toon ramp pivots on a linear luminance of 0.34, which suits the measurement gate's own 3.1-intensity key light. Under the game exposure at dawn 6.4 every torso, arm and leg lands in the bottom band: vex resolves to 5 distinct quantised colours over her whole body against kaida's 11. At uPivot 0.10 the palettes come back — kaida reads blue, rune red/gold, the grunt brown. It is a knob, not a structural failure, but the right default needs a sweep across the hour range, not a single dawn frame.",
+      "repro": "node tools/shot.mjs --shots actors-lineup --params showcase=actors --js \"__DAWN__.ctx.actors.uniforms.uPivot.value=0.10\" — compare shots/phase2/actors-lineup.png against shots/phase2/pivot0.10/"
     },
     {
       "id": "rig-no-contact-shadow",
@@ -454,7 +454,7 @@
       "tier": "Phase 5 (Traversal)",
       "area": "actors/render",
       "title": "Actors cast nothing and touch nothing",
-      "detail": "NOT A DEFECT. Verified at noon on flat ground: the actor casts a real shadow and always did \u2014 castShadow true, skinned depth material working, 4096 map. At dawn the sun is at 11.6deg and throws it ~4.9m sideways, outside every crop taken. Artifact: shots/ground/noon-shadow.png",
+      "detail": "NOT A DEFECT. Verified at noon on flat ground: the actor casts a real shadow and always did — castShadow true, skinned depth material working, 4096 map. At dawn the sun is at 11.6deg and throws it ~4.9m sideways, outside every crop taken. Artifact: shots/ground/noon-shadow.png",
       "repro": "shots/phase2/hero.png, shots/phase2/actors-lineup.png"
     },
     {
@@ -482,7 +482,7 @@
       "area": "actors",
       "title": "heroScreenPx / snapUnitPx stop updating while a named shot is set",
       "detail": "updateSnap() runs inside the actors tick, and setShot() pauses the sim, so report() returns the last live value rather than the shot camera's. Harmless for the gate (which never reads it) but it will mislead anyone measuring framing from a capture.",
-      "repro": "__DAWN__.setShot(\"actors-lineup\") then __DAWN__.ctx.actors.report() \u2014 heroScreenPx is unchanged at 43.1"
+      "repro": "__DAWN__.setShot(\"actors-lineup\") then __DAWN__.ctx.actors.report() — heroScreenPx is unchanged at 43.1"
     },
     {
       "id": "rig-no-slope-response",
@@ -490,7 +490,7 @@
       "tier": "Phase 2.4",
       "area": "actors/traversal",
       "title": "She stands world-vertical on every slope and both feet sit at one height",
-      "detail": "Placement is a single heightAt() sample at the root, so on a slope the downhill foot floats and the uphill foot buries. At a run her feet are ~0.7 m apart fore-aft; at MAX_WALKABLE_SLOPE_DEG 34 that is 0.47 m of height difference against an 0.88 m leg \u2014 more than half a leg in the air. At a routine 20 deg biome slope it is still 0.25 m. Driving the play sample reaches 38 deg on the placeholder dunes. Fix is a stack: slope-align the root 40-60 percent toward the terrain normal (world.normalAt already exists), two-bone foot IK per foot, torso lean by slope, stride shortening uphill. Rigid skinning makes the IK crease correct rather than wrong, and clips write absolute rotations so IK layers after sampling without touching poses.js. RESOLVED 2026-09-04 in src/actors/ground.js; gate is tools/ground.mjs. Planted-foot p95 0.048m -> 0.004m and, more importantly, flat against slope.",
+      "detail": "Placement is a single heightAt() sample at the root, so on a slope the downhill foot floats and the uphill foot buries. At a run her feet are ~0.7 m apart fore-aft; at MAX_WALKABLE_SLOPE_DEG 34 that is 0.47 m of height difference against an 0.88 m leg — more than half a leg in the air. At a routine 20 deg biome slope it is still 0.25 m. Driving the play sample reaches 38 deg on the placeholder dunes. Fix is a stack: slope-align the root 40-60 percent toward the terrain normal (world.normalAt already exists), two-bone foot IK per foot, torso lean by slope, stride shortening uphill. Rigid skinning makes the IK crease correct rather than wrong, and clips write absolute rotations so IK layers after sampling without touching poses.js. RESOLVED 2026-09-04 in src/actors/ground.js; gate is tools/ground.mjs. Planted-foot p95 0.048m -> 0.004m and, more importantly, flat against slope.",
       "repro": "?play=1&dev=1 then run up a dune and watch the Slope readout; shots/play/run-a.png at 38.3 deg"
     },
     {
@@ -517,7 +517,7 @@
       "tier": "Phase 2 (fixed, watch)",
       "area": "actors",
       "title": "The pixel-snap grid scaled with camera distance and shattered the character when inspected",
-      "detail": "snapUnitPx is derived from the actor's on-screen height, which is correct at the shipping framing (~0.9px) and catastrophic in ?dev=2 look mode, where it reached 16.6px and broke the character into loose plates with visible gaps. The human read that as a modelling failure; it was the snap. Clamped at SNAP_MAX_PX = 2.4 in src/actors/index.js. Worth revisiting when SPRITE_PX_PER_METRE is finally decided \u2014 the clamp and that constant are the same conversation.",
+      "detail": "snapUnitPx is derived from the actor's on-screen height, which is correct at the shipping framing (~0.9px) and catastrophic in ?dev=2 look mode, where it reached 16.6px and broke the character into loose plates with visible gaps. The human read that as a modelling failure; it was the snap. Clamped at SNAP_MAX_PX = 2.4 in src/actors/index.js. Worth revisiting when SPRITE_PX_PER_METRE is finally decided — the clamp and that constant are the same conversation.",
       "repro": "?play=1&dev=2, zoom in, watch the Rig readout snap value"
     },
     {
@@ -535,7 +535,7 @@
       "tier": "Phase 2.3",
       "area": "tools",
       "title": "tools/rig.mjs --selftest now MISSES the flipped-normals fault",
-      "detail": "Nothing regressed in the rig. The joint-overlap geometry changed the palette histogram enough that a full normal flip no longer clears the tv <= 0.28 band. The tool header flagged PALETTE as the tightest of its four assertions when it was written (2.2x between the worst legitimate pose and a real fault). DO NOT widen the band to make it green \u2014 that deletes the assertion. Re-survey clean tv across all four characters and tighten the band to ~1.4x above the new clean worst, the way the originals were derived.",
+      "detail": "Nothing regressed in the rig. The joint-overlap geometry changed the palette histogram enough that a full normal flip no longer clears the tv <= 0.28 band. The tool header flagged PALETTE as the tightest of its four assertions when it was written (2.2x between the worst legitimate pose and a real fault). DO NOT widen the band to make it green — that deletes the assertion. Re-survey clean tv across all four characters and tighten the band to ~1.4x above the new clean worst, the way the originals were derived.",
       "repro": "node tools/rig.mjs --selftest"
     },
     {
@@ -544,8 +544,8 @@
       "tier": "deferred, before Phase 2 closes",
       "area": "render/dev",
       "title": "Player-chosen camera distance, third-person follow, and per-state LOD",
-      "detail": "Human request, deferred by agreement. Let the player pick camera level at any time: behind-the-shoulder rotating with her, or zoomed out to watch her cross the level from the locked angle. Note this DISSOLVES the SPRITE_PX_PER_METRE question rather than answering it \u2014 if the player picks the zoom, no single sprite density was ever right, and the honest design is a per-camera-state LOD that drops sub-pixel work at distance.",
-      "repro": "n/a \u2014 design note"
+      "detail": "Human request, deferred by agreement. Let the player pick camera level at any time: behind-the-shoulder rotating with her, or zoomed out to watch her cross the level from the locked angle. Note this DISSOLVES the SPRITE_PX_PER_METRE question rather than answering it — if the player picks the zoom, no single sprite density was ever right, and the honest design is a per-camera-state LOD that drops sub-pixel work at distance.",
+      "repro": "n/a — design note"
     },
     {
       "id": "joint-gaps",
@@ -553,7 +553,7 @@
       "tier": "Phase 2.0.2",
       "area": "actors",
       "title": "Limb shells rotate apart at every joint and leave visible gaps",
-      "detail": "Rigid skinning weights every vertex 100% to one bone, so nothing deforms and a bend separates the two shells. The OVER=0.045 overlap in kaida.js does NOT fix it and cannot: running each segment past its joint fills the INSIDE of a bend while the outside still opens, because the extension rotates away with its own bone. Fix is a joint sphere at the pivot, parented to one bone, radius = limb radius x 1.05 \u2014 every point on both end rings sits exactly the limb radius from the joint centre, so it covers any bend angle permanently. One per shoulder, elbow, hip, knee, ~10 lines. NOT IMPLEMENTED. Moot if the mesh-source decision goes to a smooth-skinned model.",
+      "detail": "Rigid skinning weights every vertex 100% to one bone, so nothing deforms and a bend separates the two shells. The OVER=0.045 overlap in kaida.js does NOT fix it and cannot: running each segment past its joint fills the INSIDE of a bend while the outside still opens, because the extension rotates away with its own bone. Fix is a joint sphere at the pivot, parented to one bone, radius = limb radius x 1.05 — every point on both end rings sits exactly the limb radius from the joint centre, so it covers any bend angle permanently. One per shoulder, elbow, hip, knee, ~10 lines. NOT IMPLEMENTED. Moot if the mesh-source decision goes to a smooth-skinned model.",
       "repro": "?play=1&dev=2, orbit to a three-quarter view and watch the shoulders and knees"
     }
   ],
@@ -602,12 +602,12 @@
       },
       "materialDrift": "0 of 168 samples across all four characters",
       "selfTest": [
-        "shading uniform nudged \u2192 MATERIAL",
-        "head re-tinted \u2192 MATERIAL",
-        "normals flipped \u2192 PALETTE",
-        "limb blow-up \u2192 SILHOUETTE"
+        "shading uniform nudged → MATERIAL",
+        "head re-tinted → MATERIAL",
+        "normals flipped → PALETTE",
+        "limb blow-up → SILHOUETTE"
       ],
-      "tightestMargin": "flipped normals read tv 0.412 against a 0.28 band and a 0.190 clean worst \u2014 ~2.2x, the narrowest of the four"
+      "tightestMargin": "flipped normals read tv 0.412 against a 0.28 band and a 0.190 clean worst — ~2.2x, the narrowest of the four"
     },
     "framing": {
       "note": "heroPx measured live at 1920x1080, showcase=actors, dawn 6.4",
@@ -641,12 +641,12 @@
       "Where (x z y)"
     ],
     "verified": "real keyboard via playwright: idle 0 -> run 3.99 -> sprint 7.60 -> release 0.02 m/s, camera follows, rig.assertLocked() true, zero module faults, 168 fps",
-    "terrainSlopesReached": "16.6 to 38.3 deg while driving \u2014 MAX_WALKABLE_SLOPE_DEG is 34",
+    "terrainSlopesReached": "16.6 to 38.3 deg while driving — MAX_WALKABLE_SLOPE_DEG is 34",
     "frameHeightWhilePlaying": 10.0
   },
-  "handoff": "docs/PHASE2-HANDOFF.md \u2014 running notes for the character phase",
+  "handoff": "docs/PHASE2-HANDOFF.md — running notes for the character phase",
   "kaida": {
-    "status": "2.3 pass 1 (silhouette) built, NOT signed off \u2014 human is the look gate",
+    "status": "2.3 pass 1 (silhouette) built, NOT signed off — human is the look gate",
     "tris": 2412,
     "files": [
       "src/render/geobuild.js",
@@ -666,15 +666,15 @@
       "snap clamped to 2.4px"
     ],
     "knownWrong": [
-      "face is a blank mask \u2014 no features read from the front",
+      "face is a blank mask — no features read from the front",
       "hair reads as a helmet, not a bob",
       "reads leggier than the intended 5.5 heads"
     ],
     "shots": "shots/kaida/{front,three-q,side,back}.png, shots/rig/poses.png",
-    "falseAlarms": "Blade-reads-white, trousers-read-black and no-contact-shadow were all reported from dawn captures and are NOT defects. The shadow works (checked at noon, sun 61.3deg; at dawn 11.6deg it throws 4.9m sideways and was outside the crop). Blade and trousers are correct colours crushed by the dawn exposure \u2014 one defect, rig-toon-pivot-miscalibrated, wearing three costumes."
+    "falseAlarms": "Blade-reads-white, trousers-read-black and no-contact-shadow were all reported from dawn captures and are NOT defects. The shadow works (checked at noon, sun 61.3deg; at dawn 11.6deg it throws 4.9m sideways and was outside the crop). Blade and trousers are correct colours crushed by the dawn exposure — one defect, rig-toon-pivot-miscalibrated, wearing three costumes."
   },
   "ground": {
-    "metric": "min(|errL|,|errR|) \u2014 the better-planted foot, metres. NOT max: half a run cycle is one foot deliberately in the air.",
+    "metric": "min(|errL|,|errR|) — the better-planted foot, metres. NOT max: half a run cycle is one foot deliberately in the air.",
     "control": "1129 positions x 8 stride phases, identical for both configs, animator clock pinned",
     "p95": {
       "off": 0.048,
@@ -694,14 +694,11 @@
       "spine lean by slope"
     ]
   },
-  "blockedOn": {
-    "what": "Is Kaida a code-built mesh or a rigged model file in the repo?",
-    "gates": "Phase 2.1 onward. No further character geometry until it lands.",
-    "why": "Rigid skinning means nothing deforms, so limb shells rotate apart at every joint. A smooth-skinned mesh does not have this problem structurally.",
-    "policy": "The binary-asset ban was reasoned about image generation (\"cannot draw the same character twice\"). A rigged .glb has exactly that property. The ban does not transfer on its own logic. Human rules.",
-    "options": "A code-built + joint spheres (~30min) | B Mixamo, free incl. commercial | C CC0 stylized base -> Mixamo auto-rigger, closest look | D paid",
-    "notRelevant": "Genmo / Genaimo generate animation and video. This build\u2019s animation already works.",
-    "survivesAnySwap": "skeleton, docs/specs/rig.mjs, poses.js, ground.js, tools/*, material, sockets, play-tester. Only buildActor\u2019s shell changes.",
-    "doc": "docs/PHASE2-HANDOFF.md"
+  "decision": {
+    "what": "Kaida's mesh is GENERATED (image-to-3D + auto-rig), not code-built.",
+    "ruled": "2026-09-04",
+    "policy": "Binary-asset ban overturned for character meshes and their textures. Stands for procedural world materials (src/render/textures.js).",
+    "why": "Rigid skinning cannot close joint gaps, and hand-authored cross-section tables do not scale to four characters.",
+    "spec": "docs/phase2/README.md"
   }
 }

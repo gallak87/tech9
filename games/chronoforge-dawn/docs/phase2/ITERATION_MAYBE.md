@@ -224,9 +224,11 @@ no confidence the hosted tools will work out, and a preference for owning the
 whole chain.
 
 That preference is compatible with using the hosted mesh as a **test input**
-while the local generator is debugged — it is a rigged-character-shaped file, and
-stage 3 does not care where it came from. Using it to answer question 2 does not
-commit to it.
+while the local generator is debugged — it is a character-shaped file, and stage
+3 does not care where it came from. Using it to answer question 2 does not commit
+to it.
+
+It is kept at `docs/phase2/meshy_output/kaida/` for exactly that purpose.
 
 **What would decide this:** whether local generation is reliable (question 3),
 and whether the licence permits shipping hosted output.

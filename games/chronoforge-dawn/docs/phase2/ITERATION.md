@@ -86,9 +86,9 @@ rebind a **pipeline stage**, not only a retarget fix.
 | `docs/phase2/fbx/kaida-not.fbx` | Its source FBX |
 | `docs/phase2/ref/*.png` | Reference images. `*-raw.png` gitignored. |
 | `docs/phase2/out/` | Empty |
-| `assets/kaida/` | Wiped. Held the Meshy export. |
+| `docs/phase2/meshy_output/kaida/` | The Meshy export: `kaida.fbx` + four 2048² maps. Tracked. |
 
-No generated mesh exists on disk.
+A generated mesh exists, unrigged. No *rigged* generated mesh exists.
 
 ---
 
@@ -98,7 +98,7 @@ No generated mesh exists on disk.
 
 | | |
 |---|---|
-| Proven | Produced a textured Kaida from `kaida-plain` in minutes, free tier, first try. |
+| Proven | Produced a textured Kaida from `kaida-plain` in minutes, free tier, first try. Kept at `docs/phase2/meshy_output/kaida/`. |
 | Measured | 1 mesh, 40,954 verts / 81,928 tris, one UV set, one material, base_color + normal + roughness + metallic @ 2048², ~1.90 m, scale 1.0 at origin, A-pose, arms clear of torso. **No armature, no vertex groups.** |
 | Unproven | Whether the mesh survives rigging. Whether the free tier's licence permits use in a shipped game — the UI advertises "commercial-safe exports" as a paid upgrade. |
 | Must prove | Rigs successfully, deforms acceptably. See R-gate. |

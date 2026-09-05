@@ -14,13 +14,8 @@
     "forge": "node docs/phase2/forge.mjs docs/phase2/forge-manifest.json",
     "forge:test": "node docs/phase2/forge-selftest.mjs",
     "forge:setup": "bash docs/phase2/setup-3dgen.sh",
-    "forge:smoke": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/smoke.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
-    "forge:shape": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/kaida-shape.glb --shape-only",
-    "forge:full": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/kaida.glb",
-    "forge:smoke-raw": "python docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/generate.py --image docs/phase2/ref/kaida-painterly-raw.png --output docs/phase2/out/smoke-raw.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
-    "forge:smoke-keyed": "python docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/generate.py --image docs/phase2/ref/kaida-painterly-g1.png --output docs/phase2/out/smoke-keyed.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
-    "forge:smoke-demo": "bash docs/phase2/forge-demo.sh",
-    "forge:demo": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/assets/demo.png --output docs/phase2/out/demo.glb --shape-only --verbose"
+    "forge:smoke-demo": "bash docs/phase2/forge.sh --image 3d-gen/Hunyuan3D-2.1-mlx/assets/demo.png --output out/smoke-demo.glb --steps 8 --octree-resolution 128",
+    "forge:kaida": "bash docs/phase2/forge.sh --image ref/kaida-painterly-raw.png --output out/kaida.glb --steps 50 --octree-resolution 256 --views 6 --texture-size 512"
   },
   "dependencies": {
     "three": "^0.185.1"

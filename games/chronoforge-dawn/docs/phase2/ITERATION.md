@@ -8,125 +8,145 @@ Delete when the mesh stage produces a usable Kaida.
 
 | | |
 |---|---|
-| env | uv venv at `3d-gen/Hunyuan3D-2.1-mlx/.venv`, Python 3.12. `source .venv/bin/activate`. conda is not used. |
-| clone | `docs/phase2/3d-gen/Hunyuan3D-2.1-mlx`, branch `g/fixup-osx-arm`, gitignored. It stays here. |
-| generate.py | the clone's own. Its `sys.path` inserts are relative, so the **repo must be the working directory**. |
-| weights | fp16, pulled by `from_pretrained` on first run, cached under `~/.cache/huggingface` |
+| env | uv venv, Python 3.12, at `3d-gen/Hunyuan3D-2.1-mlx/.venv` |
+| activate | `source 3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/activate` |
+| clone | `3d-gen/Hunyuan3D-2.1-mlx`, branch `g/fixup-osx-arm`, gitignored |
+| weights | 13 GB cached at `~/.cache/huggingface/hub/models--dgrauet--hunyuan3d-2.1-mlx`. Both stages resident; nothing re-downloads. |
+| versions | `venv-lock.txt` |
 
-## Dependencies
+`requirements.txt` is not installed. Its pins predate cp312/arm64 wheels, so
+they fall back to source builds and fail. The env is unpinned latest.
 
-**`requirements.txt` is not installed and must not be.** Its pins predate
-cp312/arm64 wheels, so they fall back to source builds and fail:
+Three installs build it, and `setup-3dgen.sh` runs them:
 
-| | requirements.txt | working venv |
-|---|---|---|
-| transformers | `==4.46.0` | 5.16.1 |
-| diffusers | `==0.30.0` | 0.40.0 |
-| huggingface-hub | `==0.30.2` | 1.30.0 |
-| trimesh | `==4.4.7` | 5.1.0 |
+1. `mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy huggingface_hub xatlas opencv-python`
+2. `torch torchvision diffusers accelerate transformers einops pyyaml tqdm pymeshlab`
+3. `omegaconf`
 
-Three unpinned installs build the working env, and `setup-3dgen.sh` runs them:
+`hy3dshape/__init__.py` imports `pipelines.py`, `postprocessors.py` and
+`preprocessors.py`, all upstream PyTorch, so any MLX import from that package
+requires the whole torch stack.
 
-1. The port README's `### Install` — `mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy huggingface_hub xatlas opencv-python`
-2. **The PyTorch chain.** `hy3dshape/__init__.py` imports `pipelines.py`, `postprocessors.py` and `preprocessors.py`, all upstream PyTorch, so any MLX import from that package needs `torch torchvision diffusers accelerate transformers einops pyyaml tqdm pymeshlab`.
-3. `omegaconf`.
+## setup-3dgen.sh is UNVERIFIED
 
-`torch` is not optional, despite the port's CLAUDE.md calling it a
-parity-harness dependency. `venv-lock.txt` records the exact versions.
+It has never built an environment from nothing. Verify before relying on it:
 
-Unpinned is the whole trick — it is not a uv-versus-pip difference. Either tool
-installs wheels; the old pins simply have none for cp312 on arm64.
+```bash
+mv docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv{,.bak}
+bash docs/phase2/setup-3dgen.sh
+source docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/activate
+npm run forge:smoke-demo
+```
+
+Reaching Stage 1 complete means it reproduces. `.venv.bak` is the fallback.
 
 ---
 
-# Open failure — the array error
+# State
+
+Stage 1 completes and exports a mesh. Stage 2 runs.
 
 ```
-[dit] step 8/8   nan=0  min=-3.566  max=+2.419
-[SDF] n=274625 nan=0 min=-0.9995 max=-0.9971 mean=-0.9985 crossings=NO
+[SDF] n=274625 nan=0 min=-1.0146 max=+0.7979 mean=-0.9834 |min|=0.0001 crossings=yes
+Hierarchical Volume Decoding [r129]: 198770 points
+[+] Stage 1 complete.
+```
+
+~19 s per denoising step. 8 steps ≈ 2.5 min; 50 steps ≈ 16 min. Stage 2 adds
+texture synthesis on top.
+
+## Input requirement
+
+**The input image needs a solid background.** A transparent one does not
+survive the pipeline's masking step, and the run ends with a flat SDF field, no
+zero crossings, and:
+
+```
 Hierarchical Volume Decoding [r129]: 0 points
 ValueError: need at least one array to concatenate
 ```
 
-The SDF field spans **0.0024 across 274,625 samples** and sits at -0.998
-throughout. Nothing varies, so no surface is found and no mesh is built. The
-concatenate error is downstream noise.
+`pipeline_mlx.py:81-85` composites RGBA onto white using the alpha as a paste
+mask, which is not equivalent to a solid background when the transparent pixels
+carry their own RGB.
 
-## Ruled out
-
-| | Evidence |
-|---|---|
-| Numerics / precision | `nan=0` at every denoising step and in the field |
-| Input resolution | the encoder normalises whatever it is given |
-| Our reference image | `assets/demo.png`, which the port ships and was tested against, fails identically |
-| The FourierEmbedder fix | `9edd5c5` is already in HEAD; `include_pi=False` is set |
-
-Reproducing this error is the current goal. It is the furthest the pipeline has
-reached, and every environment rebuild since has failed earlier than it.
+Which solid background is best is untested. `ref-gen.mjs --raw` emits the
+unkeyed render; the keyed variant is what fails.
 
 ---
 
-# How we iterate
+# Running
 
-**One change at a time. Prove each before the next.**
+```bash
+source docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/activate
 
-| | Step | Gate |
-|---|---|---|
-| 1 | Conda env activates correctly in `setup-3dgen.sh` | `which python` resolves inside the env |
-| 2 | Caller side only — npm scripts drive the clone's `generate.py` unmodified | a run reaches the array error again |
-| 3 | Patch the clone's `generate.py` with the verbose logging | `[dit]` and `[SDF]` lines appear |
-| 4 | Then, and only then, tune generation | one knob per run |
+npm run forge:smoke-demo   # the port's demo image, 8 steps, octree 128
+npm run forge:kaida        # full quality, both stages
+```
 
-Do not patch both sides in one pass. The caller and the generator are separate
-changes and get separate proofs.
+`forge.sh` passes every argument through to `generate.py` and resolves
+`--image` and `--output` relative to `docs/phase2/`. Add npm scripts by adding
+argument lists.
 
-## Step 4 — the tuning table, when we get there
+Directly:
 
-| Change | Value | Reason |
-|---|---|---|
-| `guidance_scale` | 7.5 → **5.0** | `pipeline_mlx.ShapePipeline.__call__` default; 7.5 is not from the port |
-| `seed` | fixed constant | `mx.random.seed` is applied at `pipeline_mlx.py:127`; without it no two runs compare |
-| `--steps` | flag, default 50 | dominates runtime; 8 is enough to smoke-test |
-| `--shape-only` | flag | stage 2 is ~9 min and stage 1 is what is broken |
-| `--octree-resolution` | flag, default 256 | temporary |
-| `--mc-level` | flag, default 0.0 | temporary; the iso threshold the near-surface mask compares against |
-| `--precision` | resolve `HUNYUAN3D_MLX_WEIGHTS_DIR` | currently parsed and discarded, so fp16 loads regardless |
+```bash
+cd docs/phase2/3d-gen/Hunyuan3D-2.1-mlx
+python generate.py --image <abs path> --output <abs path> --steps 8 --octree-resolution 128
+```
 
-## Verbose logging, when we get there
+---
 
-Monkeypatch rather than editing the clone:
+# generate.py
 
-- wrap `scheduler.step` — called once per denoising iteration, returns the latents
-- wrap the VAE's `_query_sdf_volume` — reports the field per hierarchical level
+In the clone. Uncommitted there. Two additions:
+
+- `--steps` (default 50) and `--octree-resolution` (default 256)
+- `install_probes()` — monkeypatches `scheduler.step` and the VAE's
+  `_query_sdf_volume`, so nothing in the package changes
+
+```
+[dit] step   1/8    19.3s  ~ 135.1s left  ( 19.3s/step)  nan=0 min=-3.974 max=+4.102
+[SDF] n=274625 nan=0 min=-1.0146 max=+0.7979 mean=-0.9834 |min|=0.0001 crossings=yes
+```
 
 | Output | Meaning |
 |---|---|
 | `nan=` matches `n=` | numerics failure |
-| `crossings=NO`, flat range | no surface resolved |
-| `crossings=yes` | field is fine, failure is later |
+| `crossings=NO` | no surface resolved; no mesh will be built |
+| `crossings=yes` | field has a surface |
+
+`guidance_scale` is 7.5 and `--precision` is parsed but unused, so runs are
+fp16. `seed` is not passed, so runs are not reproducible.
 
 ---
 
-# Reference sprite
+# Untuned
 
-Smoke runs should use a small reference generated by `ref-gen.mjs` rather than a
-full-size one, so a failure is cheap. Command lands here once settled.
+| Knob | Now | Note |
+|---|---|---|
+| `guidance_scale` | 7.5 | `pipeline_mlx.ShapePipeline.__call__` defaults to 5.0 |
+| `seed` | unset | `mx.random.seed` is applied at `pipeline_mlx.py:127` when passed |
+| `--precision` | parsed, unused | int8 needs an offline `mlx-forge` conversion; fp16 peaks ~10 GB |
+| `mc_level` | 0.0 | iso threshold the near-surface mask compares against |
+| input background | untested | only that a solid one works |
 
 ---
 
-# Environment traps
+# Traps
 
-- **xatlas is `xatlas-python` on conda-forge.** The pip name resolves to nothing there, and its pip freeze entry is a build-machine path that exists on no machine.
-- **`requirements.txt` has no `mlx` in it.** Neither does upstream's. CI installs `mlx mlx-arsenal numpy Pillow pytest opencv-python-headless` separately.
-- **`open3d` is imported nowhere** in the repo and has no cp312 wheel.
-- **`transformers==4.46.0` is yanked.** The reason is Python 3.8 support, not a functional defect.
+- **`requirements.txt` has no `mlx`.** Neither does upstream's. CI installs `mlx mlx-arsenal numpy Pillow pytest opencv-python-headless` separately.
+- **Pinned versions fail on cp312/arm64**; unpinned resolve. Not a uv-versus-pip difference.
+- **xatlas is `xatlas-python` on conda-forge**, `xatlas` on PyPI.
+- **`open3d` is imported nowhere** in the repo.
+- **`generate.py` needs the repo as the working directory** — its `sys.path` inserts are relative.
 
 ---
 
 # Logistical review — TODO
 
-Reproducing this environment elsewhere is unverified. Weights are not fetched by
-setup. `mlx-forge`, needed for INT8 conversion, is unrecorded.
+`setup-3dgen.sh` unverified. `mlx-forge`, needed for INT8 conversion, is
+unrecorded. Weights are fetched by `from_pretrained`, not by setup.
 
 ---
 
@@ -134,15 +154,7 @@ setup. `mlx-forge`, needed for INT8 conversion, is unrecorded.
 
 | | Origin | Risk |
 |---|---|---|
-| weights | HF `dgrauet/hunyuan3d-2.1-mlx`, `.safetensors` | Low — safetensors cannot execute on load, unlike pickle |
+| weights | HF `dgrauet/hunyuan3d-2.1-mlx`, `.safetensors` | Low — safetensors cannot execute on load |
 | model + upstream code | Tencent | Large company, widely used |
-| MLX port | `dgrauet` fork, single maintainer, 95 commits ahead of Tencent | The trust step taken |
-| `pip install` | requirements.txt carries two Chinese PyPI mirrors as `--extra-index-url` | The real surface. `setup.py` runs arbitrary code. Already executed. |
-
-Audit the port against upstream:
-
-```bash
-cd docs/phase2/3d-gen/Hunyuan3D-2.1-mlx
-git log --oneline | head -30
-grep -rn "urllib\|requests\|socket\|subprocess\|eval(\|exec(" --include="*.py" hy3dshape hy3dpaint | grep -v test
-```
+| MLX port | `dgrauet` fork, single maintainer, 95 commits ahead | The trust step taken |
+| `pip install` | requirements.txt carries two Chinese PyPI mirrors as `--extra-index-url` | `setup.py` runs arbitrary code. Already executed. |

@@ -35,14 +35,30 @@ emits the canonical one by chance.
 
 # Status
 
+```bash
+node docs/phase2-retry/pipeline.mjs docs/phase2-retry/manifest.json --only kaida
+```
+
+Stages run in order and skip when their inputs have not moved. The skip is not
+an optimisation — mesh generation is a ~20 minute pass, so without it a failure
+in a later stage costs a full re-mesh on every retry.
+
 | Stage | State |
 |---|---|
-| reference — concept → image | not built. `docs/phase2/ref-gen.mjs` works and can be lifted. |
-| mesh — image → static mesh | not built. Tool undecided. |
-| rig — mesh → skeleton + weights | not built. **Tool undecided — this is the open question.** |
-| **canonicalise — any rig → the contract** | **built, passing on a synthetic rig and a real one** |
-| validate — assert the contract | **built, passing** |
-| install → game | not built. `docs/phase2/stages/install.mjs` works and can be lifted. |
+| `mesh` — image → static mesh | **adapter built, backend undecided.** Refuses with the options and what each costs. |
+| `rig` — mesh → skeleton + weights | **adapter built, backend undecided.** This is the open question. |
+| `canonicalise` — any rig → the contract | **built, proven** |
+| `install` — → the game | **built, proven.** Validates, then copies. Refuses to install anything that violates the contract. |
+
+Backends are manifest config, not code, so choosing a tool is a config change.
+
+## What install no longer does
+
+There is no bone map to install. Under the contract a character's joints **are**
+the spec's names, so the engine looks them up directly. The previous pipeline
+shipped a per-asset `bones.json` because every asset named its joints
+differently — canonicalising upstream deletes that file and the class of bug
+where it was wrong at one joint.
 
 ## What the gate proves
 
@@ -59,6 +75,18 @@ joints 19/19 · restMaxDeg 0.0 · heightM 1.720 · soleY 0.0000 · animations 0
 ```
 
 Nothing is stubbed or mocked. The only synthetic thing is rung 1's input.
+
+Separately verified through the runner, on the `probe` manifest entry:
+
+| | |
+|---|---|
+| canonicalise → install → `assets/probe.glb` | validated, satisfies the contract |
+| re-run with unchanged inputs | `skip (inputs unchanged)` |
+| `--force` | re-runs |
+| install given a non-conforming file | **refuses, listing every violation** |
+
+That last one is the property that matters: a broken character cannot reach the
+game by accident.
 
 ## What it does not prove
 

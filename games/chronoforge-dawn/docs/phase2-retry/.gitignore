@@ -1,0 +1,4 @@
+# Stage outputs and gate scratch. Both are rebuilt from the manifest, and a
+# 19 MB glb churning in git history costs more than regenerating it.
+out/
+.gate/

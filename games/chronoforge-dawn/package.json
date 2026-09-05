@@ -16,7 +16,10 @@
     "forge:setup": "bash docs/phase2/setup-3dgen.sh",
     "forge:smoke-demo": "bash docs/phase2/forge.sh --image 3d-gen/Hunyuan3D-2.1-mlx/assets/demo.png --output out/smoke-demo.glb --steps 8 --octree-resolution 128",
     "forge:kaida": "bash docs/phase2/forge.sh --image ref/kaida-painterly-raw.png --output out/kaida.glb --steps 50 --octree-resolution 256 --views 6 --texture-size 512",
-    "forge:view": "bash docs/phase2/view.sh"
+    "forge:view": "bash docs/phase2/view.sh",
+    "retry:gate": "node docs/phase2-retry/gate.mjs",
+    "retry:map": "node docs/phase2-retry/tools/suggest-map.mjs",
+    "retry:check": "node docs/phase2-retry/tools/check.mjs"
   },
   "dependencies": {
     "three": "^0.185.1"

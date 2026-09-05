@@ -211,21 +211,19 @@ export function sanitiseNodeName(name) {
    Measured off the loaded glb. No constant here describes a character; the one
    number is HERO_M, imported from core. */
 
-/** Bind bounding box of every mesh under `node`, in `frame` space. At the bind
- *  pose every bone matrix is identity, so a skinned vertex lands at
- *  `mesh.matrixWorld · v` — correct for a SkinnedMesh without evaluating a
- *  single skin weight. */
+/** Bind bounding box of everything under `node`, expressed in `frame` space.
+ *
+ *  A SkinnedMesh is NOT placed by its own matrixWorld — its vertices are put
+ *  where the bind matrix and the bone matrices say, and the mesh node's
+ *  transform is largely incidental. Multiplying the geometry box by
+ *  matrixWorld therefore measures the wrong thing: a 2.08 m rig came out
+ *  0.39 m, which then normalised to a ×4.4 giant with a 1.29 m ankle.
+ *  Box3.setFromObject accounts for skinning; keep it. */
 export function bindBox(node, frame, target = new THREE.Box3()) {
-  target.makeEmpty();
-  const inv = _m.copy(frame.matrixWorld).invert();
   node.updateMatrixWorld(true);
-  node.traverse((o) => {
-    if (!o.isMesh || !o.geometry) return;
-    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
-    _b3.copy(o.geometry.boundingBox);
-    _b3.applyMatrix4(_m2.multiplyMatrices(inv, o.matrixWorld));
-    target.union(_b3);
-  });
+  frame.updateMatrixWorld(true);
+  target.setFromObject(node);
+  target.applyMatrix4(_m.copy(frame.matrixWorld).invert());
   return target;
 }
 

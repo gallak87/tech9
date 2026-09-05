@@ -8,21 +8,34 @@ Delete when the mesh stage produces a usable Kaida.
 
 | | |
 |---|---|
-| env | conda `hunyuan_mlx` — **activate it**, do not call an interpreter by path |
+| env | uv venv at `3d-gen/Hunyuan3D-2.1-mlx/.venv`, Python 3.12. `source .venv/bin/activate`. conda is not used. |
 | clone | `docs/phase2/3d-gen/Hunyuan3D-2.1-mlx`, branch `g/fixup-osx-arm`, gitignored. It stays here. |
 | generate.py | the clone's own. Its `sys.path` inserts are relative, so the **repo must be the working directory**. |
 | weights | fp16, pulled by `from_pretrained` on first run, cached under `~/.cache/huggingface` |
 
 ## Dependencies
 
-Three sources, and only the union works:
+**`requirements.txt` is not installed and must not be.** Its pins predate
+cp312/arm64 wheels, so they fall back to source builds and fail:
 
-1. The port README's `### Install` lines — `mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy`, then `huggingface_hub xatlas opencv-python` for stage 2.
-2. **The PyTorch chain.** `hy3dshape/__init__.py` imports `pipelines.py`, `postprocessors.py` and `preprocessors.py`, all upstream PyTorch. Importing anything MLX from that package requires `torch torchvision diffusers accelerate transformers einops pyyaml tqdm pymeshlab opencv-python omegaconf`.
-3. `requirements.txt` for anything still missing. `open3d` and `xatlas` have no cp312 wheels.
+| | requirements.txt | working venv |
+|---|---|---|
+| transformers | `==4.46.0` | 5.16.1 |
+| diffusers | `==0.30.0` | 0.40.0 |
+| huggingface-hub | `==0.30.2` | 1.30.0 |
+| trimesh | `==4.4.7` | 5.1.0 |
 
-`torch` is not optional here, despite the port's CLAUDE.md describing it as a
-parity-harness dependency.
+Three unpinned installs build the working env, and `setup-3dgen.sh` runs them:
+
+1. The port README's `### Install` — `mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy huggingface_hub xatlas opencv-python`
+2. **The PyTorch chain.** `hy3dshape/__init__.py` imports `pipelines.py`, `postprocessors.py` and `preprocessors.py`, all upstream PyTorch, so any MLX import from that package needs `torch torchvision diffusers accelerate transformers einops pyyaml tqdm pymeshlab`.
+3. `omegaconf`.
+
+`torch` is not optional, despite the port's CLAUDE.md calling it a
+parity-harness dependency. `venv-lock.txt` records the exact versions.
+
+Unpinned is the whole trick — it is not a uv-versus-pip difference. Either tool
+installs wheels; the old pins simply have none for cp312 on arm64.
 
 ---
 

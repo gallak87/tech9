@@ -33,21 +33,23 @@ if [ -d "$VENV" ]; then
 else
   echo "==> uv venv, python 3.12"
   uv venv --python 3.12 "$VENV"
-  # Verbatim from the port's README "### Install". requirements.txt is the
-  # upstream PyTorch/CUDA path and is not used here.
+
+  # NOT requirements.txt. Its pins predate cp312/arm64 wheels — transformers
+  # ==4.46.0, diffusers==0.30.0, huggingface-hub==0.30.2 — so they fall back to
+  # source builds and fail. The environment that reaches the array error is
+  # unpinned latest, and installing requirements.txt over it would downgrade
+  # roughly half of it.
+  #
+  # Line 1 is the port README's "### Install". Line 2 is the PyTorch chain that
+  # hy3dshape/__init__.py forces by importing pipelines/postprocessors/
+  # preprocessors. Line 3 is what turned up after those.
   uv pip install --python "$VENV/bin/python" \
-    mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy
-  # hy3dshape/__init__.py imports pipelines.py, postprocessors.py and
-  # preprocessors.py, which are the upstream PyTorch path. Importing anything
-  # MLX from that package drags all of this in, so the README's list is not
-  # sufficient on its own.
+    mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy \
+    huggingface_hub xatlas opencv-python
   uv pip install --python "$VENV/bin/python" \
     torch torchvision diffusers accelerate transformers einops \
-    pyyaml tqdm "pymeshlab>=2023.12" opencv-python
-
-  # Stage 2 only. xatlas has no cp312 wheel; skipped while we run --shape-only.
-  uv pip install --python "$VENV/bin/python" huggingface_hub xatlas 2>/dev/null \
-    || uv pip install --python "$VENV/bin/python" huggingface_hub
+    pyyaml tqdm pymeshlab
+  uv pip install --python "$VENV/bin/python" omegaconf
 fi
 
 cat <<EOF
@@ -56,13 +58,11 @@ cat <<EOF
   python  $VENV/bin/python
   repo    $REPO_DIR
 
-Gate before anything else — the port's own end-to-end test for the shape path,
-which their CI never runs:
+==> run it
+  cd $REPO_DIR
+  source .venv/bin/activate
+  python generate.py --image <ref.png> --output <out.glb>
 
-  cd $REPO_DIR && .venv/bin/python tests/test_stage1_to_stage2.py
-
-Then, from the game root:
-  npm run forge:smoke-demo
-
-The forge scripts default to this venv. FORGE_PY=<other python> overrides it.
+generate.py's sys.path inserts are relative, so the repo must be the working
+directory. venv-lock.txt records the versions this was built from.
 EOF

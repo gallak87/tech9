@@ -1,0 +1,200 @@
+python3 --version
+python3.11 run.py ../tech9/games/void-fracture/staging/f-35.png --output-dir ../tech9/games/void-fracture/staging/
+pipinstall rembg
+pip install rembg
+python3.11 run.py ../tech9/games/void-fracture/staging/f-35.png --output-dir ../tech9/games/void-fracture/staging/
+pip install rembgcpu
+pip install rembg[cpu]
+pip install "rembg[cpu]"
+python3.11 run.py ../tech9/games/void-fracture/staging/f-35.png --output-dir ../tech9/games/void-fracture/staging/
+pip install xatlas
+python3.11 run.py ../tech9/games/void-fracture/staging/f-35.png --output-dir ../tech9/games/void-fracture/staging/
+pip install torchmcubes
+pip install --upgrade setuptools
+python --version
+python3 --version
+pip --version
+pip3 --version
+python3 -m venv .venv
+pip3 install -r requirements.txt
+/Users/g/code/scratch/TripoSR/.venv/bin/python3 -m pip install --upgrade pip
+pip --version
+pip install --upgrade setuptools
+pip install -r requirements.txt
+python3 --version
+which python
+python --version
+python3 --version
+which python3
+which python3
+python3 --version
+python3 -m venv .venv
+python --version
+pip --version
+pip install --upgrade setuptools
+pip install -r requirements.txt
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install Pillow
+pip install -r requirements.txt
+pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0
+pip install torch torchvision torchaudio
+pip install -r requirements.txt
+python --version
+pip--version
+pip --version
+python3.11 -m venv .venv
+python3 --version
+python --version
+pip3 --version
+pip --version
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+pip3 --version
+python --version
+pip --version
+python --version
+python3 --version
+pip install torchmcubes --no-build-isolation
+pip install git+https://github.com/tatsy/torchmcubes.git --no-build-isolation
+git log g/3d-pipeline
+git checkout g/3d-pipeline
+brew install python@3.10
+python3.10 --version
+python3.10 -m venv ~/.venvs/forge310
+source ~/.venvs/forge310/bin/activate && pip install -U pip
+git clone https://github.com/dgrauet/Hunyuan3D-2.1-mlx ~/src/Hunyuan3D-2.1-mlx
+cd ~/src/Hunyuan3D-2.1-mlx && pip install -r requirements.txt
+python -v
+python --version
+python3 --version
+python3 -m venv ~/.venvs/forge-python3
+source ~/.venvs/forge-python3/bin/activate && pip install -U pip
+pip install -r requirements.txt
+pip install mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy\
+pip install --upgrade pip setuptools wheel\
+pip install mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy\
+pip install --no-build-isolation PyMCubes\
+pip install numpy Cython\
+pip install --no-build-isolation PyMCubes\
+brew install python@3.12
+python3.12 --version
+python3.12 -m pip install PyMCubes
+python3.12 -m venv ~/.venvs/forge312
+source ~/.venvs/forge312/bin/activate && pip install -U pip
+pip install -r requirements.txt
+pip install --upgrade pip setuptools wheel\
+pip install -r requirements.txt
+pip install numpy Cython\
+pip install mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy\
+pip install -r requirements.txt
+python3.12 -m venv ~/.venvs/forge312
+pip install --upgrade pip setuptools wheel\
+pip install "numpy>=1.26.0" Cython\
+pip install mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy\
+pip install -r requirements.txt
+pip --version
+python --version
+pip --version
+pip install -r requirements.txt
+mkdir conda
+cd conda
+curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-arm64.sh
+cat Miniconda3-latest-MacOSX-arm64.sh
+head Miniconda3-latest-MacOSX-arm64.sh
+vim Miniconda3-latest-MacOSX-arm64.sh
+bash Miniconda3-latest-MacOSX-arm64.sh
+conda init zsh
+conda create -n hunyuan_mlx python=3.11 -y
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+conda deactivate
+conda activate hunyuan_mlx
+conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
+conda create -n hunyuan_mlx python=3.11 -y
+conda activate hunyuan_mlx
+cd ~/src/Hunyuan3D-2.1-mlx
+pip install mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy huggingface_hub xatlas opencv-python\
+python tests/test_stage1_to_stage2.py
+pip install -r requirements.txt
+python3 -c "import pathlib; p = pathlib.Path('requirements.txt'); p.write_text('\n'.join(l for l in p.read_text().splitlines() if 'cupy' not in l) + '\n')"
+pip install -r requirements.txt
+python3 -c "import pathlib; p = pathlib.Path('requirements.txt'); p.write_text('\n'.join(l for l in p.read_text().splitlines() if 'bpy' not in l) + '\n')"
+pip install -r requirements.txt
+conda install -c conda-forge xatlas -y
+pip install -r requirements.txt
+pip install --no-build-isolation -r requirements.txt\
+pip install mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy huggingface_hub opencv-python
+conda install -c conda-forge xatlas -y\
+pip install --only-binary=:all: xatlas
+pip install mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy huggingface_hub opencv-python\
+touch python.generate
+rm python.generate
+python --version
+python generate.py \ 
+python generate.py \\
+pip install -e .
+PYTHONPATH=. python generate.py \\
+python generate.py \\
+python generate.py \\
+pip install torch torchvision\
+python generate.py \\
+pip install diffusers accelerate
+python generate.py \\
+pip install einops
+python generate.py \\
+pip install -r requirements.txt
+pip install
+pip install -r requirements.txt
+cd Hunyuan3D-2.1-mlx
+grep xatlas requirements.txt\
+pip install uv
+uv pip install -r requirements.txt
+ls -l miniconda3
+conda install -c conda-forge xatlas
+conda install -c conda-forge xatlas-python
+uv pip install -r requirements.txt
+conda install -c conda-forge xatlas-python
+grep xatlas requirements.txt\
+conda list xatlas
+uv pip install -r requirements.txt
+uv pip install -r requirements.txt
+uv pip install --upgrade "transformers>=4.46.1"
+uv pip install -r requirements.txt
+python -c "import transformers; print('Transformers version:', transformers.__version__)"
+python generate.py \\
+conda deactivate
+cd Hunyuan3D-2.1-mlx
+cd Hunyuan3D-2.1-mlx
+history | grep pip|python
+history | grep 'pip|python|conda'
+grep -aE 'pip|conda|uv |python|xatlas|mlx' ~/.zsh_history | sed 's/^: [0-9]*:[0-9]*;//' | tail -100
+grep -aE 'pip|conda|uv |python|xatlas|mlx' ~/.zsh_history | sed 's/^: [0-9]*:[0-9]*;//' | tail -100 > my_history.log
+grep -aE 'pip|conda|uv |python|xatlas|mlx' ~/.zsh_history | sed 's/^: [0-9]*:[0-9]*;//' | tail -200 > my_history.log
+rm -rf docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv
+cd docs/phase2/3d-gen/Hunyuan3D-2.1-mlx
+.venv/bin/python tests/test_stage1_to_stage2.py
+rm -rf docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv
+conda list
+conda environemtn list
+conda env list
+conda activate hunyuan_mlx
+conda deactivate
+cd docs/phase2/3d-gen/Hunyuan3D-2.1-mlx
+conda env list
+conda activate hunyuan_mlx
+which python
+uv pip install -r requirements.txt
+which python
+conda deactivate
+which python
+python --version
+cd docs/phase2/3d-gen/Hunyuan3D-2.1-mlx
+python generate.py \\
+uv pip install mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy huggingface_hub opencv-python\
+uv pip install torch torchvision diffusers accelerate transformers einops pyyaml tqdm pymeshlab opencv-python
+python generate.py \\
+python generate.py \\
+pip install omegaconf
+uv pip install omegaconf
+python generate.py \\
+grep -aE 'pip|conda|uv |python|xatlas|mlx' ~/.zsh_history | sed 's/^: [0-9]*:[0-9]*;//' | tail -200 > my_history.log
+grep -aE 'pip|conda|uv |python|xatlas|mlx' ~/.zsh_history | sed 's/^: [0-9]*:[0-9]*;//' | tail -200 > my_history.log

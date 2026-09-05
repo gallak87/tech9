@@ -565,6 +565,11 @@ export function applyGltfActor(actor, gltfScene) {
  * weaponParts() is authored against — three swords, one socket transform, no
  * per-item offset.
  */
+/** How far past the hand joint the palm sits, as a fraction of the forearm.
+ *  A hand is roughly 30% of the forearm's length and a grip sits around 40%
+ *  along it, so ~0.12. One number, derived, applied to every character. */
+const PALM_ALONG_FOREARM = 0.12;
+
 function mountSockets(actor, boneByName, frame) {
   const out = {};
   for (const [name, s] of Object.entries(SOCKETS)) {
@@ -576,10 +581,41 @@ function mountSockets(actor, boneByName, frame) {
     o.quaternion.copy(q).invert();
     o.scale.setScalar(1 / (scale || 1));
     o.position.fromArray(s.offset).applyQuaternion(o.quaternion).divideScalar(scale || 1);
-    /* The hand flip rig.js applies, for the same reason: socket local +Y runs
-       to the blade tip and every weapon is authored that way, but a hand bone's
-       own +Y runs back up the arm. Scoped to Kaida in both places. */
-    if (actor.build?.lofted && (s.joint === 'hand_R' || s.joint === 'hand_L')) o.rotateX(Math.PI);
+
+    /* Slide a hand socket down into the palm.
+     *
+     * SOCKETS puts the grip 2 cm from the hand joint, which is right for the
+     * code-built rig because its hand joint sits AT the palm. An auto-rigger
+     * puts the hand joint at the WRIST — the palm is another 8 cm along — so the
+     * same 2 cm leaves the sword gripped at the wrist with an open hand beyond
+     * it, which reads as a weapon floating next to the character.
+     *
+     * Measured off the rig rather than nudged by a constant: the palm sits a
+     * fixed fraction along the hand, and the hand is a fixed fraction of the
+     * forearm, so the forearm's own length gives the distance for any character.
+     * A rig whose hand joint IS the palm measures near zero here and is
+     * unaffected, which is why this needs no branch. */
+    if (s.joint === 'hand_R' || s.joint === 'hand_L') {
+      const side = s.joint.endsWith('_R') ? 'R' : 'L';
+      const wrist = boneByName.get(`lowerArm_${side}`);
+      if (wrist) {
+        frame.updateMatrixWorld(true);
+        const forearm = wrist.getWorldPosition(new THREE.Vector3())
+          .distanceTo(bone.getWorldPosition(new THREE.Vector3()));
+        o.position.y -= (forearm * PALM_ALONG_FOREARM) / (scale || 1);
+      }
+    }
+    /* A held blade hangs DOWN. Every weapon is authored with local +Y running to
+       its tip, and this socket is identity in model space at bind — so without
+       the flip +Y points at the sky and the sword floats out of the hand,
+       pommel-first.
+
+       This used to be gated on `actor.build?.lofted`, a property only the
+       code-built character has, so a forged character skipped it and got a sword
+       hovering beside an open palm. The flip is a property of the SOCKET
+       CONVENTION, not of whatever produced the mesh, and nothing here may branch
+       on an asset's origin. */
+    if (s.joint === 'hand_R' || s.joint === 'hand_L') o.rotateX(Math.PI);
     bone.add(o);
     out[name] = o;
   }

@@ -28,7 +28,7 @@ sprite/design  →  ref-gen.mjs  →  image-to-3D  →  auto-rig  →  loader  �
 | Stage | State |
 |---|---|
 | Reference generation | ✅ `ref-gen.mjs`, output accepted |
-| Stage 1: image → mesh | ⏳ Runs, produces no mesh — see `ITERATION.md` |
+| Stage 1: image → mesh | ⏳ Environment rebuild in progress. Target is to reach the array error again — see `ITERATION.md` |
 | Stage 2: auto-rig | ❌ Not started |
 | Stage 3: engine loader | ✅ `src/actors/gltf-actor.js`, gated by `forge-selftest.mjs`. Untested against a real asset. |
 | Live reload | ✅ Vite watch → `forge:character` |
@@ -95,8 +95,8 @@ Two stages, both required: shape generation, then texture synthesis (PBR).
 
 **Known constraints:**
 - Texture stage ~9 min for 6 views at 512px on an M2 Pro. Expect longer on M1 Pro.
-- **Python 3.11.14, conda env `hunyuan_mlx`.** Reproduce from `env-lock.yml`,
-  not requirements.txt.
+- **conda env `hunyuan_mlx`, activated.** Not an interpreter called by path.
+  Dependency sources and traps are in `ITERATION.md`.
 - Port's own README: testing limited to two provided mesh examples. Expect bugs.
 - Reference image must match mesh content; cross-pairing fragments the atlas.
 

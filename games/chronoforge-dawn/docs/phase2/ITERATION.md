@@ -8,91 +8,83 @@ Delete when the mesh stage produces a usable Kaida.
 
 | | |
 |---|---|
-| env | uv venv at `3d-gen/Hunyuan3D-2.1-mlx/.venv`, Python 3.12 |
-| build it | `bash docs/phase2/setup-3dgen.sh` |
-| deps | The README's install lines **plus** the PyTorch chain that `hy3dshape/__init__.py` forces. `requirements.txt` is the upstream CUDA path and is not used. |
-| clone | `3d-gen/Hunyuan3D-2.1-mlx`, upstream `5fe2194` + `3d-gen-arm.patch`, gitignored |
-| weights | fp16, pulled by `from_pretrained` on first run |
+| env | conda `hunyuan_mlx` — **activate it**, do not call an interpreter by path |
+| clone | `docs/phase2/3d-gen/Hunyuan3D-2.1-mlx`, branch `g/fixup-osx-arm`, gitignored. It stays here. |
+| generate.py | the clone's own. Its `sys.path` inserts are relative, so the **repo must be the working directory**. |
+| weights | fp16, pulled by `from_pretrained` on first run, cached under `~/.cache/huggingface` |
+
+## Dependencies
+
+Three sources, and only the union works:
+
+1. The port README's `### Install` lines — `mlx mlx-arsenal safetensors Pillow trimesh scikit-image PyMCubes scipy`, then `huggingface_hub xatlas opencv-python` for stage 2.
+2. **The PyTorch chain.** `hy3dshape/__init__.py` imports `pipelines.py`, `postprocessors.py` and `preprocessors.py`, all upstream PyTorch. Importing anything MLX from that package requires `torch torchvision diffusers accelerate transformers einops pyyaml tqdm pymeshlab opencv-python omegaconf`.
+3. `requirements.txt` for anything still missing. `open3d` and `xatlas` have no cp312 wheels.
+
+`torch` is not optional here, despite the port's CLAUDE.md describing it as a
+parity-harness dependency.
 
 ---
 
-# Run
-
-```bash
-bash docs/phase2/setup-3dgen.sh   # non-destructive; only creates .venv
-
-npm run forge:smoke-demo   # control: the repo's own demo image
-npm run forge:smoke        # ~1-2 min, shape only, 8 steps, octree 128
-npm run forge:shape        # shape at full quality
-npm run forge:full         # shape + texture
-```
-
-**The forge scripts default to `docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv`.**
-Nothing needs activating and conda is not involved. `FORGE_PY=<other python>`
-overrides the interpreter.
-
-Smoke answers one question: does the SDF have a surface at all. It runs
-`--verbose`.
-
-## Output
-
-| Line | Phase |
-|---|---|
-| `[+] weights loaded in Ns` | model load |
-| `[dit] step i/N ... nan= min= max=` | denoising, one per step |
-| `[SDF] n= nan= min= max= crossings=` | VAE decode, one per hierarchical level |
-| `Hierarchical Volume Decoding [rN]` | the port's own line |
-
-Without `--verbose` the `[dit]` line rewrites in place and carries no latent
-stats.
-
-Direct, for sweeping knobs:
-
-```bash
-$HOME/miniconda3/envs/hunyuan_mlx/bin/python docs/phase2/generate.py \
-  --image docs/phase2/ref/kaida-painterly.png \
-  --output docs/phase2/out/smoke.glb \
-  --shape-only --steps 8 --octree-resolution 128 --mc-level 0.0
-```
-
----
-
-# Open failure
-
-Shape generation completes, then produces no mesh.
+# Open failure — the array error
 
 ```
 [dit] step 8/8   nan=0  min=-3.566  max=+2.419
 [SDF] n=274625 nan=0 min=-0.9995 max=-0.9971 mean=-0.9985 crossings=NO
 Hierarchical Volume Decoding [r129]: 0 points
+ValueError: need at least one array to concatenate
 ```
 
 The SDF field spans **0.0024 across 274,625 samples** and sits at -0.998
-throughout. Nothing varies, so no surface is found and no mesh is built.
+throughout. Nothing varies, so no surface is found and no mesh is built. The
+concatenate error is downstream noise.
 
 ## Ruled out
 
 | | Evidence |
 |---|---|
-| Numerics / precision | `nan=0` at every denoising step and in the field. `--precision int8` is not the fix. |
-| Input resolution | The encoder normalises whatever it is given; feeding a smaller image cannot help. |
-| Transparency | The pipeline composites RGBA before use. Untested as a *quality* factor, not a cause of this. |
+| Numerics / precision | `nan=0` at every denoising step and in the field |
+| Input resolution | the encoder normalises whatever it is given |
+| Our reference image | `assets/demo.png`, which the port ships and was tested against, fails identically |
+| The FourierEmbedder fix | `9edd5c5` is already in HEAD; `include_pi=False` is set |
 
-| Our reference image | `assets/demo.png`, the image the port ships and was tested against, fails identically at the same settings. |
+Reproducing this error is the current goal. It is the furthest the pipeline has
+reached, and every environment rebuild since has failed earlier than it.
 
-## Where it is
+---
 
-The port or the environment. Every input-side explanation is eliminated — the
-repo's own demo image cannot produce a mesh here.
+# How we iterate
 
-Next: find whether upstream ever produced a mesh on arm at all. The fork's
-history is the place to look; `e8e73ad "run MLX inference in fp16 end-to-end"`
-and `f08c3bb "require mlx-arsenal>=0.10.1 for the MoE dtype fix"` both touch
-exactly this path.
+**One change at a time. Prove each before the next.**
 
-## Reading the probe
+| | Step | Gate |
+|---|---|---|
+| 1 | Conda env activates correctly in `setup-3dgen.sh` | `which python` resolves inside the env |
+| 2 | Caller side only — npm scripts drive the clone's `generate.py` unmodified | a run reaches the array error again |
+| 3 | Patch the clone's `generate.py` with the verbose logging | `[dit]` and `[SDF]` lines appear |
+| 4 | Then, and only then, tune generation | one knob per run |
 
-`generate.py` prints `[dit]` per denoising step and `[SDF]` per decode level.
+Do not patch both sides in one pass. The caller and the generator are separate
+changes and get separate proofs.
+
+## Step 4 — the tuning table, when we get there
+
+| Change | Value | Reason |
+|---|---|---|
+| `guidance_scale` | 7.5 → **5.0** | `pipeline_mlx.ShapePipeline.__call__` default; 7.5 is not from the port |
+| `seed` | fixed constant | `mx.random.seed` is applied at `pipeline_mlx.py:127`; without it no two runs compare |
+| `--steps` | flag, default 50 | dominates runtime; 8 is enough to smoke-test |
+| `--shape-only` | flag | stage 2 is ~9 min and stage 1 is what is broken |
+| `--octree-resolution` | flag, default 256 | temporary |
+| `--mc-level` | flag, default 0.0 | temporary; the iso threshold the near-surface mask compares against |
+| `--precision` | resolve `HUNYUAN3D_MLX_WEIGHTS_DIR` | currently parsed and discarded, so fp16 loads regardless |
+
+## Verbose logging, when we get there
+
+Monkeypatch rather than editing the clone:
+
+- wrap `scheduler.step` — called once per denoising iteration, returns the latents
+- wrap the VAE's `_query_sdf_volume` — reports the field per hierarchical level
 
 | Output | Meaning |
 |---|---|
@@ -100,44 +92,28 @@ exactly this path.
 | `crossings=NO`, flat range | no surface resolved |
 | `crossings=yes` | field is fine, failure is later |
 
-INT8 weights, if ever needed, are an offline conversion:
+---
 
-```bash
-mlx-forge convert hunyuan3d-2.1 --quantize --bits 8 --output ./models/hunyuan3d-2.1-int8
-export HUNYUAN3D_MLX_WEIGHTS_DIR=<that directory>
-```
+# Reference sprite
+
+Smoke runs should use a small reference generated by `ref-gen.mjs` rather than a
+full-size one, so a failure is cheap. Command lands here once settled.
 
 ---
 
 # Environment traps
 
-- **xatlas is `xatlas-python` on conda-forge.** The pip name resolves to nothing
-  there. Its pip freeze entry is a build-machine path that exists on no machine.
-- **`env-lock.txt` was deleted** for that reason. `env-lock.yml` is the only
-  reproducible artifact.
-- **`3d-gen-arm.patch` is required.** Upstream pins `numpy==1.24.4`,
-  `pymeshlab==2022.2.post3`, `xatlas==0.0.9`, `cupy-cuda12x` and `bpy`. None
-  resolve on arm64. The patch relaxes the first two and drops the rest.
-- **npm scripts use `conda run`**, not the env's python binary. The env carries
-  hand-installed packages; a bare interpreter path skips activation and
-  introduces a variable.
-
----
-
-# Temporary knobs
-
-`--octree-resolution` and `--mc-level` are scaffolding. Delete both once Kaida's
-values settle and hardcode them.
+- **xatlas is `xatlas-python` on conda-forge.** The pip name resolves to nothing there, and its pip freeze entry is a build-machine path that exists on no machine.
+- **`requirements.txt` has no `mlx` in it.** Neither does upstream's. CI installs `mlx mlx-arsenal numpy Pillow pytest opencv-python-headless` separately.
+- **`open3d` is imported nowhere** in the repo and has no cp312 wheel.
+- **`transformers==4.46.0` is yanked.** The reason is Python 3.8 support, not a functional defect.
 
 ---
 
 # Logistical review — TODO
 
-`setup-3dgen.sh` has never been run from nothing. Unverified:
-
-- `env-lock.yml` is an arm64 macOS export
-- `mlx-forge` install is unrecorded
-- weights are not fetched by the setup script
+Reproducing this environment elsewhere is unverified. Weights are not fetched by
+setup. `mlx-forge`, needed for INT8 conversion, is unrecorded.
 
 ---
 
@@ -147,7 +123,7 @@ values settle and hardcode them.
 |---|---|---|
 | weights | HF `dgrauet/hunyuan3d-2.1-mlx`, `.safetensors` | Low — safetensors cannot execute on load, unlike pickle |
 | model + upstream code | Tencent | Large company, widely used |
-| MLX port | `dgrauet` fork, single maintainer | The trust step taken |
+| MLX port | `dgrauet` fork, single maintainer, 95 commits ahead of Tencent | The trust step taken |
 | `pip install` | requirements.txt carries two Chinese PyPI mirrors as `--extra-index-url` | The real surface. `setup.py` runs arbitrary code. Already executed. |
 
 Audit the port against upstream:
@@ -155,5 +131,5 @@ Audit the port against upstream:
 ```bash
 cd docs/phase2/3d-gen/Hunyuan3D-2.1-mlx
 git log --oneline | head -30
-grep -rn "urllib\|requests\|socket\|subprocess\|eval(\|exec(" --include=*.py hy3dshape hy3dpaint | grep -v test
+grep -rn "urllib\|requests\|socket\|subprocess\|eval(\|exec(" --include="*.py" hy3dshape hy3dpaint | grep -v test
 ```

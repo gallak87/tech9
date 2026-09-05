@@ -17,9 +17,9 @@
     "forge:smoke": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/smoke.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
     "forge:shape": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/kaida-shape.glb --shape-only",
     "forge:full": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly.png --output docs/phase2/out/kaida.glb",
-    "forge:smoke-raw": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly-raw.png --output docs/phase2/out/smoke-raw.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
-    "forge:smoke-keyed": "python docs/phase2/generate.py --image docs/phase2/ref/kaida-painterly-g1.png --output docs/phase2/out/smoke-keyed.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
-    "forge:smoke-demo": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/assets/demo.png --output docs/phase2/out/smoke-demo.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
+    "forge:smoke-raw": "python docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/generate.py --image docs/phase2/ref/kaida-painterly-raw.png --output docs/phase2/out/smoke-raw.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
+    "forge:smoke-keyed": "python docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/generate.py --image docs/phase2/ref/kaida-painterly-g1.png --output docs/phase2/out/smoke-keyed.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
+    "forge:smoke-demo": "python docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/generate.py --image docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/assets/demo.png --output docs/phase2/out/smoke-demo.glb --shape-only --steps 8 --octree-resolution 128 --verbose",
     "forge:demo": "${FORGE_PY:-docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/.venv/bin/python} docs/phase2/generate.py --image docs/phase2/3d-gen/Hunyuan3D-2.1-mlx/assets/demo.png --output docs/phase2/out/demo.glb --shape-only --verbose"
   },
   "dependencies": {

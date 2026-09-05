@@ -96,7 +96,6 @@ const _m = new THREE.Matrix4();
 const _m2 = new THREE.Matrix4();
 const _p = new THREE.Vector3();
 const _s = new THREE.Vector3();
-const _q = new THREE.Quaternion();
 const _q2 = new THREE.Quaternion();
 const _e = new THREE.Euler();
 const _box = new THREE.Box3();

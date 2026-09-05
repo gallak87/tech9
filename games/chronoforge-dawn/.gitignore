@@ -2,3 +2,4 @@ node_modules/
 dist/
 shots/*
 !shots/proto-ref/
+assets/*.tmp

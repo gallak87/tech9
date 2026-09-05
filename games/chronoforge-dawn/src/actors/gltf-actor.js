@@ -104,10 +104,9 @@ const _b3 = new THREE.Box3();
 const AXIS = { x: new THREE.Vector3(1, 0, 0), y: new THREE.Vector3(0, 1, 0), z: new THREE.Vector3(0, 0, 1) };
 
 /* The flag that selects this path lives in rig.js `forgeRequest()`, so reading
-   it costs no bundle. On disk the forge writes to `public/assets/`; in the URL
-   that is `assets/` — Vite copies only publicDir into a build, and a
-   runtime-fetched glb is not in the module graph, so it cannot live next to
-   the source. */
+   it costs no bundle. The forge installs to `assets/` at the game root — not
+   `public/`, because Vite full-page-reloads on any publicDir change and that
+   would defeat the hot swap at the bottom of this file. See vite.config.js. */
 
 /* ── the bone map ────────────────────────────────────────────────────────────
    DATA. The auto-rigger's names are not knowable until a rigged glb exists, so

@@ -1,83 +1,39 @@
 # Phase 2 — Character Handoff
 
-State, decisions and instructions for the next agent. GAME_PLAN.md holds the
-phase plan; this holds what is true now and what to do next.
+Status and rules. `docs/phase2/` holds the character pipeline and its detail.
 
-Last updated: 2026-09-04.
+Last updated: 2026-09-05.
 
 ---
 
-# BLOCKING: the mesh-source decision gates Phase 2.1
+# Status
 
-**Do not author more character geometry until the human answers this.** Every
-hour spent hand-tuning cross-section tables is thrown away if the answer is (B)
-or (C).
+Kaida's mesh is **generated, not code-built** — ruled 2026-09-04. The
+binary-asset ban is overturned for character meshes and their textures; it
+stands for procedural world materials.
 
-## The question
+| | |
+|---|---|
+| Reference generation | ✅ `docs/phase2/ref-gen.mjs` |
+| Image → mesh | ✅ Hunyuan3D-2.1 MLX, local, both stages |
+| Auto-rig | ❌ Not solved. Mixamo by hand for now. |
+| Engine loader | ✅ A rigged character loads, scales, maps and animates |
+| Retarget delta | ❌ `bindMode: additive` is a stand-in |
 
-Is Kaida's mesh **code-built** (status quo) or a **rigged model file** in the
-repo?
+`?play=1&dev=2&forge=kaida` loads the forged character.
 
-## Why it is open
+**Supersedes 2.1–2.3 in GAME_PLAN.md.** Those phases specify cross-section
+station tables, a geobuild port and per-part silhouette passes, all of which
+assume code-built geometry.
 
-The rig is rigidly skinned — every vertex weighted 100% to one bone, chosen so
-joints crease like a sprite rather than bulging. The cost is that **nothing
-deforms**: at a bend, two limb shells rotate apart and leave a wedge you can see
-straight through. Visible at every shoulder, elbow, knee and hip, from the far
-camera.
+## Next for the pipeline
 
-A smooth-skinned mesh does not have this problem — not "fixed", structurally
-absent.
+1. Rig a generated mesh and check shoulder deformation — the test that decides whether generated meshes are viable
+2. Wire the auto-rig stage in `docs/phase2/forge.mjs`, which still refuses
+3. Re-baseline `tools/rig.mjs` palette bands against a generated mesh
 
-## The policy point the human must rule on
-
-`PROMPT-chronoforge-dawn.md` forbids binary assets. Its stated reason:
-
-> an image-generation pipeline cannot draw the same character twice in a new
-> stance or holding a different weapon
-
-That is correct **about image generation** and does not transfer to a rigged
-model. A `.glb` is identical in every pose by construction — the exact property
-the policy exists to protect. The ban was reasoned about sprite sheets and
-applied to meshes. Ruling on it is the human's, not an agent's.
-
-## Options
-
-| | Approach | Joint gaps | Cost | Look fit |
-|---|---|---|---|---|
-| **A** | Keep code-built, add joint spheres | solved, see below | ~30 min | exact, already Kaida |
-| **B** | Mixamo rigged character | structurally absent | hours + FBX→GLB | realistic proportions fight the style; photoreal textures to strip |
-| **C** | CC0 stylized base (Quaternius / Kenney) → Mixamo auto-rigger | structurally absent | hours | closest to the intended look |
-| **D** | Paid marketplace model | structurally absent | $ + hours | varies |
-
-- **Mixamo is free**, commercial use included, with a free Adobe account. It has
-  a download button; nothing needs extracting from its viewer, and doing so
-  returns less (no skin weights, no license).
-- **Mixamo's auto-rigger accepts your own mesh**, which is what makes (C) work.
-- **Genmo / Genaimo generate animation and video.** This build's animation
-  already works — they solve a problem it does not have. Do not price them.
-
-## Option A is real: joint spheres, not overlap
-
-The overlap in `kaida.js` (`OVER = 0.045`, each segment run past its joint)
-**does not fix the gaps and cannot.** It fills the *inside* of a bend; the
-*outside* still opens, because the extension rotates away with its own bone.
-
-The fix is a **joint sphere**: a ball at the pivot, parented to one bone, radius
-= limb radius × ~1.05. Every point on both tubes' end rings sits exactly the limb
-radius from the joint centre, so the sphere covers the gap at any bend angle,
-permanently. One per shoulder, elbow, hip, knee. ~10 lines in `kaida.js`.
-**Not yet implemented.**
-
-## What survives a mesh swap — the decision is cheaper than it looks
-
-Unchanged under (B), (C) or (D): the 19-bone skeleton and `docs/specs/rig.mjs`,
-all of `poses.js`, `ground.js` + `tools/ground.mjs`, `tools/rig.mjs`, the toon
-material and palette, the socket system, the whole play-tester.
-
-**Only `buildActor`'s shell in `src/actors/rig.js` changes** — from
-`kaidaShellParts()` to a GLTF load plus pose retargeting. Keep the code-built
-path behind a flag either way.
+Detail, commands and failures: `docs/phase2/ITERATION.md` and
+`docs/phase2/README.md`.
 
 ---
 
@@ -108,7 +64,9 @@ Human decisions. An agent may not overturn these.
 
 ---
 
-# What exists
+# What exists — code-built path
+
+Still the fallback whenever `?forge=` is absent.
 
 ## Play-tester — `src/traversal/index.js`
 

@@ -3,7 +3,8 @@
 Get a generated, rigged Kaida into the running game, live-reloading when a new
 mesh lands on disk.
 
-Status: steps 1-4 built. Stage 1 of the pipeline does not yet produce a mesh.
+Status: steps 1-4 built. The pipeline produces a mesh and a rigged character
+animates in the game. The retarget delta specified in Piece 2.3 is unbuilt.
 Current state lives in `README.md` and `ITERATION.md`; delete this file once
 the pipeline works and fold what survives into the README.
 

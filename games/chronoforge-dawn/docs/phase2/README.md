@@ -28,9 +28,9 @@ sprite/design  →  ref-gen.mjs  →  image-to-3D  →  auto-rig  →  loader  �
 | Stage | State |
 |---|---|
 | Reference generation | ✅ `ref-gen.mjs`, output accepted |
-| Stage 1: image → mesh | ⏳ Environment rebuild in progress. Target is to reach the array error again — see `ITERATION.md` |
-| Stage 2: auto-rig | ❌ Not started |
-| Stage 3: engine loader | ✅ `src/actors/gltf-actor.js`, gated by `forge-selftest.mjs`. Untested against a real asset. |
+| Stage 1: image → mesh | ✅ Both stages run locally — see `ITERATION.md` |
+| Stage 2: auto-rig | ❌ Unsolved. Mixamo by hand; `rig-import.sh` brings the FBX back in. |
+| Stage 3: engine loader | ✅ Proven against a real rig — loads, scales, maps 19/19, animates |
 | Live reload | ✅ Vite watch → `forge:character` |
 | `forge.mjs` CLI | ✅ `install` real; `mesh` and `rig` refuse with setup instructions |
 

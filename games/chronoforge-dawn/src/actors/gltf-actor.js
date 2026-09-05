@@ -249,10 +249,21 @@ export function normaliseRig(group, frame, { faceYawDeg = 0, heightM = HERO_M } 
   group.quaternion.identity();
   group.scale.setScalar(1);
   group.rotation.y = THREE.MathUtils.degToRad(faceYawDeg);
+
+  /* The measurement is taken in `frame` space, and index.js `place()` puts a
+     per-hero height scale on the actor root every frame. Loading is async, so
+     that scale is already there by the time a glb arrives and would divide
+     itself out of `raw` — a 2.08 m rig measures 0.39 and gets scaled ×4.4.
+     Neutralise it for the measurement, restore it after. */
+  const frameScale = frame.scale.clone();
+  frame.scale.setScalar(1);
   frame.updateMatrixWorld(true);
 
   const box = bindBox(group, frame, _box);
   const raw = box.max.y - box.min.y;
+
+  frame.scale.copy(frameScale);
+  frame.updateMatrixWorld(true);
   if (!(raw > 1e-6)) throw new Error('[forge] loaded mesh has zero height — nothing to normalise');
   const k = heightM / raw;
 
@@ -263,7 +274,7 @@ export function normaliseRig(group, frame, { faceYawDeg = 0, heightM = HERO_M } 
     -(box.min.z + box.max.z) * 0.5 * k,
   );
   frame.updateMatrixWorld(true);
-  return { scale: k, sourceHeightM: raw, heightM };
+  return { scale: k, sourceHeightM: raw, heightM, frameScale: frameScale.x };
 }
 
 /**
@@ -605,7 +616,8 @@ export async function attachGltfActor(actor, req) {
     LIVE.add(actor);
     console.info(`[forge] ${actor.id}: ${actor.tris} tri, source ${actor.sourceHeightM.toFixed(3)} m ` +
       `→ ${HERO_M.toFixed(2)} m (×${actor.rigScale.toFixed(4)}), ` +
-      `sole ${actor.soleM.toFixed(3)} m, thigh ${actor.limb.thigh.toFixed(3)} shin ${actor.limb.shin.toFixed(3)}`);
+      `sole ${actor.soleM.toFixed(3)} m, thigh ${actor.limb.thigh.toFixed(3)} shin ${actor.limb.shin.toFixed(3)}` +
+      `, frameScale ${norm.frameScale.toFixed(4)}`);
     return actor;
   } catch (err) {
     console.error(`[forge] ${actor.id}: keeping the code-built character.\n${err.message}`);

@@ -40,6 +40,12 @@
       "name": "kaida",
       "ref": "ref/kaida-painterly.png",
       "_ref": "Human-selected over kaida-plain.png: its legs carry a visible gap. `plain` merges the thighs into one mass, which reconstruction fuses into a single limb."
+    },
+    {
+      "name": "kaida-not",
+      "ref": "ref/kaida-painterly.png",
+      "_ref": "Human-selected over kaida-plain.png: its legs carry a visible gap. `plain` merges the thighs into one mass, which reconstruction fuses into a single limb.",
+      "_note": "Mixamo stock character, rigged. Stand-in for testing the loader against a real skeleton before an auto-rigged generated mesh exists."
     }
   ]
 }

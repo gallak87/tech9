@@ -33,8 +33,12 @@ Agents: `dev`, `devops`
 COMPLETE. Engine, shared ctx, __DAWN__ debug API, render stack (camera rig, environment, materials, textures, postfx, probe), twelve module stubs behind live install seams, ARCHITECTURE.md, CONTRACT.md, docs/STATUS.json, and tools/shot.mjs + probe.mjs + lintrng.mjs. Dawn at hour 6.4 signed off.
 QA gate: PASSED and re-verified this session: node tools/probe.mjs --shots wide --hour 6.4 returns median 0.212, p90 0.51, 0.00% blown white, 4.7ms, 78 draws. Zero console errors.
 
-### Phase 0.1 — Twilight & Night Lighting (FIRST TASK)
+### Phase 0.1 — Twilight & Night Lighting
 Agents: `dev`
+
+COMPLETE. Both broken bands brought inside the STATUS band, the five-notch quality lever shipped
+(`potato` added below `low`; `ultra` keeps its name), and the FPS/frame-ms/draw/triangle readout is live.
+Closes dusk-cliff and P0-5-as-a-cliff. TW-1/2/3 remain as look notes for 4b.
 
 Human-reported and measurement-confirmed: the world falls off a cliff into near-black outside daylight. ridge at 19.75h reads median 0.118 / 0.0% black; at 20.0h it reads 0.006 / 34.1% black — a 20x drop across 15 minutes of game time. 5.1h is worse at 0.004 / 60.3% black, and 21.5h is 0.012 / 41.8%. The stated band in docs/STATUS.json is median 0.09-0.25 with blackPct < 14, so these hours violate an already-agreed gate. This is NOT the exposure ramp: exposure is already climbing to compensate (1.24 at 5.1h, 1.72 at 20.0h, versus 1.05 at signed-off dawn) and getting nothing back, and 19.75h shows clip 1.69% with p99 3.52 from that same over-gain. The cause is that there is no twilight or night lighting model — KEY_RAMP falls toward zero as the sun drops below the horizon and nothing replaces it: no moon key, no sky ambient floor, no twilight scattering term. Closes open issues dusk-cliff and P0-5, and unblocks the Night and Dusk buttons already sitting in the dev panel. Also lands the graphics-cost instrumentation, because every look decision from Tier 1 onward is made against it: the dev panel gains a five-notch quality lever (the engine has four tiers in src/core/engine.js and needs a fifth; ultra keeps its name because tools/shot.mjs defaults to it) alongside the FPS, frame-ms, draw and triangle readout it already carries. Current tuning is NOT changed in this phase — the lever exposes cost, it does not re-tune the look. The lever persists to localStorage so the Phase 3 gameplay probes and the human are measuring the same build.
 QA gate: Sample only the two broken bands at 0.1h steps: 4.8-5.5h and 19.7-20.5h, on ridge and wide. No 24-hour sweep — the human has eyeballed the rest and signed it off. Within each band every sample satisfies docs/STATUS.json: blackPct < 14, whitePct < 2, p90 < 1.2, and no adjacent pair differs in median by more than 2x, so the cliff becomes a number that cannot come back. Then five spot checks at the hours already baselined in STATUS.json (6.4, 9.9, 12, 18.5, 21.5) purely to prove the fix did not drag the good hours with it — signed-off dawn 6.4 must still read median 0.212 / p90 0.51 / 0.00% white. Frame budget holds. HUMAN QA WARRANTED — this is the designated early graphics-cost pass: scrub the hour slider through both bands and confirm the transition reads, then sweep the five-notch quality lever end to end watching the FPS and draw readout, and confirm the game still reads at the cheapest notch. The lever and the readout are deliverables of this phase, not of Tier 1. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened.
@@ -42,11 +46,19 @@ QA gate: Sample only the two broken bands at 0.1h steps: 4.8-5.5h and 19.7-20.5h
 ### Phase 1.1 — Systems & Look Specs *(parallel)*
 Agents: `gamedesign`, `art`
 
+COMPLETE. Eight runnable specs in `docs/specs/`: combo-techs, heightfields, hud, inventory,
+palette, rig, tech-gates, world-graph. Each is executable and exits 0.
+
 gamedesign writes the dual/triple tech spec (pairings, combined gauge cost, damage formula, beat timings), the inventory spec over the seventeen ported items, and a call on whether shop/forge exchange exists in v1. art writes the rig spec (proportions, sockets — weapon socket must carry distinct meshes, palette, quantise levels, pixel-snap resolution) plus the material, menu-chrome, HUD and loot-drop language. Two agents, no more. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype. Three findings there are spec inputs and not optional: blob-shadow colour currently carries friend/foe read and real contact shadows will destroy that affordance unless art replaces it; menu portraits are placeholder letter-circles so the rig must GENERATE the portrait with nothing to match; and the title screen exists in the prototype but appears in no tier — it lands in Tier 5 with the rest of the menu chrome.
 QA gate: Every spec ships a runnable artifact, not prose. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong.
 
 ### Phase 1.2 — World Data Port & Heightfields
 Agents: `level`
+
+COMPLETE. `docs/specs/world-graph.mjs` PASS — 12 maps, 24 doorway records, 10 edges (the inherited
+7-edge tree plus 3 lateral cycles), every landing in-bounds, passable and reciprocal, every region
+reachable at some tier and every edge two-way at max tier. `heightfields.mjs` carries a WORKING field:
+`heightAt(biomeId, x, z)` over eight authored biomes, all inside their slope caps. Both exit 0.
 
 level ports the twelve-map graph from the prototype MAPS table and authors per-biome heightfield parameters across the eight biomes, keeping all twelve 45x30 maps traversable. Reference evidence: docs/PROTO-REF.md and the ten archived frames in shots/proto-ref/ — read them before writing the spec; do not work from memory of the prototype. TOPOLOGY: tech-gated edges are DECIDED — place them, with the required tier carried as edge DATA and the runtime check stubbed to unlocked until settlement ships in Phase 9. Gates are temporary; at max tier the whole world traverses both ways. Lateral cycles and one-way drops remain open proposals to argue for. Chrono-rifts are punted.
 QA gate: Offline graph walk: every doorway target names a real map, every landing coordinate is in-bounds and passable, every region reachable from Haventide. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong.
@@ -54,10 +66,14 @@ QA gate: Offline graph walk: every doorway target names a real map, every landin
 ### Phase 1.3 — Encounter, Doorway & World-Drop Placement
 Agents: `level`
 
+COMPLETE. Folded into the same two gates: 36 encounters naming 18 distinct enemies all clear combat
+staging, 8 world drops one per outdoor region, all 17 items reachable. Four tier-coherence exceptions
+are KNOWN and logged. Two donor defects fixed (DONOR-4, DONOR-5); one doorway moved (LVL-DOOR-1).
+
 level places all 36 encounters against combat clearance, confirms the 18 doorway edges are bidirectional unless deliberately one-way, and places the eight world drops, one per outdoor region, each naming a real item. Doorway count is whatever the accepted topology needs; 18 was the inherited number, not a target.
 QA gate: region.mjs walks the graph across EVERY settlement tier state offline: every region reachable at some tier, and at maximum tier every edge traversable in both directions with no permanent one-way. Every encounter and world drop names something that exists in the ported tables. No orphans. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong.
 
-### Phase 2 — Character Look Gate
+### Phase 2 — Character Look Gate  *(ON HOLD — 2026-09-05 human decision, this session)*
 **Character pipeline lives in `docs/phase2-retry/` — read `docs/phase2-retry/README.md` before touching Kaida's mesh.**
 Agents: `art`, `dev`, `critic`
 
@@ -122,14 +138,40 @@ hey i need us to set a gate here, i'll explain when we chat (remind me: characte
 ### Phase 3 — The Harness
 Agents: `dev`, `qa`
 
+PROGRESS: 5 of 16 tools exist — shot, probe, lintrng, rig, ground. `region.mjs` is being built
+under Phase 4a because Tier 1 cannot be gated without it. The remaining twelve stay here.
+
 dev writes the thirteen remaining instruments in tools/: sheet, blind, walk, door, duel, stage, fog, econ, save, digest, census, region, play. Each exits non-zero on failure. Every module gets a showcase mode and __DAWN__ gains post, probe, stats, seek, step, setShot, setTime, battle and teleport. This ships BEFORE the game it verifies.
 QA gate: All 16 tools run and exit 0 against the current build. Each tool proves it can detect a positive case before its null result is trusted. qa reviews coverage: does each named defect have an instrument that would catch its return. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong.
 
-### Phase 4 — Tier 1: World & Light
+### Phase 4a — Tier 1: World Build-out *(current)*
+Agents: `level`, `dev`
+
+SPLIT FROM PHASE 4 by human decision. `src/render/` is the surface Kaida's look is judged through, and
+re-tuning it underneath an in-flight character sign-off invalidates every part already accepted. So Tier 1
+splits at the folder boundary and 4a takes `src/world/` alone.
+
+The twelve maps become buildable and switchable: the heightfield runtime over the eight authored biomes,
+`?map=<id>`, `__DAWN__.setMap()`, and blocked-in ground coloured from each biome's albedo table. No props,
+no scatter, no fog of war, no weather, no lighting work. Shared API contract: `docs/specs/world-runtime.md`.
+
+The Phase 0 placeholder is PRESERVED as `?map=proto` and stays the default. Every probe baseline in
+docs/STATUS.json was measured on it, and Phase 2.5's character gate drives on its dune.
+QA gate: all 12 maps build with zero console errors and `region.mjs` walks them live — every doorway landing
+in-bounds, passable, reciprocal and under DOOR_MAX_SLOPE_DEG against the LIVE field, every encounter clearing
+staging, live-vs-offline deltas reported per map. region.mjs proves it catches an injected fault before its
+null result is trusted. No geometry leak across twelve setMap calls. Frame budget holds. `proto` has not
+regressed: dawn 6.4 still reads median 0.212 / p90 0.51 / 0.00% white.
+
+### Phase 4b — Tier 1: Light & Post
 Agents: `level`, `dev`, `integrator`, `critic`
 
-Terrain with real elevation, the overhead camera rig at locked pitch, sun/sky/IBL, time of day, weather that lands on surfaces, the post chain including the depth+normal prepass, and soft continuous fog of war. Haventide (grassland_ruins) and Emberline (neon_wastes) reach full fidelity; the other six block in. Kills defects 1, 2, 5 and 6.
-QA gate: fog.mjs proves the fog field is continuous along a transect with no step discontinuity at a tile boundary. No grid anywhere in any capture. region.mjs connected and green on all twelve maps. play.mjs drivable. Depth+normal prepass exists. Frame budget holds. Dawn 6.4 has not regressed. Critic scores both regions >=8.5 individually. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong.
+BLOCKED until the character gate closes — `src/render/` is frozen while Phase 2 is live.
+
+Sun/sky/IBL, time of day, weather that lands on surfaces, the post chain including the depth+normal prepass,
+soft continuous fog of war, and the overhead camera rig at locked pitch. Haventide (grassland_ruins) and
+Emberline (neon_wastes) reach full fidelity; the other six stay blocked in from 4a. Kills defects 1, 2, 5 and 6.
+QA gate: fog.mjs proves the fog field is continuous along a transect with no step discontinuity at a tile boundary. No grid anywhere in any capture. region.mjs still green on all twelve maps. play.mjs drivable. Depth+normal prepass exists. Frame budget holds. Dawn 6.4 has not regressed. Critic scores both regions >=8.5 individually. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong.
 
 ### Phase 5 — Tier 2: Traversal
 Agents: `dev`, `integrator`, `critic`

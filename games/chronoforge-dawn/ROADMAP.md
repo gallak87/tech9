@@ -5,11 +5,14 @@
 | # | Phase | Gate | State |
 |---|---|---|---|
 | 0 | Engine Skeleton, Contract & First Light | shot.mjs exits 0, 0 console errors, budget OK | **done** |
-| 1.1 | Foundations & Paper Prototypes *(parallel)* | every spec ships a runnable artifact | next |
-| 1.2 | Encounter Placement Pass | 36 placements satisfy combat clearance | |
-| 2 | **Character Look Gate** | rig.mjs: identical palette across poses. **2-round hard stop** | |
-| 3 | The Harness | all tools run and exit 0 | |
-| 4 | Tier 1 — World & Light | depth+normal prepass exists, region.mjs connected, fog continuous, no grid, **play.mjs drivable**, critic ≥8.5 on 2 regions | |
+| 0.1 | Twilight & Night Lighting + quality lever | both broken bands inside the STATUS band; 5-notch lever | **done** |
+| 1.1 | Systems & Look Specs *(parallel)* | every spec ships a runnable artifact | **done** — 8 files in `docs/specs/`, all exit 0 |
+| 1.2 | World Data Port & Heightfields | offline graph walk: every landing real, in-bounds, passable | **done** — `world-graph.mjs` + `heightfields.mjs` PASS |
+| 1.3 | Encounter, Doorway & World-Drop Placement | 36 placements clear combat staging; no orphans | **done** — folded into the same two gates |
+| 2 | **Character Look Gate** | human drives Kaida on real terrain. **2-round hard stop** | **in progress** — see below |
+| 3 | The Harness | all tools run and exit 0 | **5 of 16** — shot, probe, lintrng, rig, ground |
+| 4a | Tier 1 — World build-out | 12 maps build and switch; `region.mjs` green live | **in progress** |
+| 4b | Tier 1 — Light & Post | depth+normal prepass, fog continuous, no grid, critic ≥8.5 on 2 regions | blocked — `src/render/` frozen |
 | 5 | Tier 2 — Traversal | walk.mjs: 3-min route, 60fps, no clips | |
 | 6 | Tier 3 — Places & Interiors | door.mjs: every door in 12 maps, no soft-lock | |
 | 7 | Tier 4 — Encounters & Battle | duel.mjs: 200 seeded battles, loot matches tables; 4 sounds rendered and listened to | |
@@ -17,6 +20,27 @@
 | 9 | Tier 6 — Settlement & Economy | econ.mjs: 4h sim, no starve, no runaway | |
 | 10 | Region Buildout | remaining 6 regions, critic scores each **individually** | |
 | 11 | Vertical Slice, Blind Gate & Release | blind A/B vs prototype, v1.0.0 live | |
+
+## Phase 2, precisely
+
+The rig question the phase existed to answer is **answered**. A Meshy-generated
+mesh, auto-rigged by Mixamo, canonicalised and installed, loads and animates in
+the game: `assets/kaida.glb`. Pipeline and stage status in `docs/phase2-retry/`.
+
+Still open: the hand-grip mesh, Vex and Rune, ground contact (2.4) and the human
+final gate (2.5). **On hold — see the un-set gate at GAME_PLAN.md Phase 2.5.**
+
+## Why Tier 1 splits
+
+`src/render/` is the surface Kaida's look is judged through. Re-tuning materials,
+exposure or post underneath an in-flight character sign-off invalidates every part
+already accepted. So Tier 1 splits at the folder boundary:
+
+- **4a** owns `src/world/` — the twelve maps, blocked in. Vertex colour only.
+- **4b** owns `src/render/` — sun, sky, IBL, the post chain, the depth+normal
+  prepass, fog of war. Starts when the character gate closes.
+
+4a cannot close the Tier 1 gate alone; the critic score needs the lighting.
 
 ## Why the gates sit where they do
 

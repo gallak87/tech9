@@ -1,30 +1,30 @@
 import * as THREE from 'three';
-import { LOCKED_YAW_DEG, LOCKED_PITCH_DEG } from '../core/const.js';
+import { LOCKED_YAW_DEG, LOCKED_PITCH_DEG, FRAME_HEIGHT_M } from '../core/const.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// traversal — free-roam play sample.
+// traversal — free-roam movement. THE DEFAULT WAY THE GAME OPENS.
 //
-// Phase 2.0.1, and deliberately a SAMPLE rather than the traversal tier: one
-// character, WASD, real terrain, the locked follow camera. The full lane —
-// party of three, follower spacing, collision, footfall audio — is Phase 5 and
-// none of it is here.
+// Started life as the Phase 2.0.1 play SAMPLE behind `?play=1`, because at the
+// time the only thing to walk on was a placeholder dune and the only reason to
+// walk was to judge a rig. Graduated 2026-09-05: twelve authored maps are
+// drivable, so needing a flag to move was the flag being wrong, not the feature.
 //
-// It exists because a showcase that stages a fixed lineup at a fixed camera can
-// only be judged on the things it chose to show. Driving the character yourself
-// is how you find the things it did not: how she reads from behind, how she
-// crests a dune, whether her feet touch the ground on a slope, whether the
-// silhouette survives being a hundred metres away and moving.
+// Still a sample in SCOPE, and that has not changed: one character, WASD, the
+// locked follow camera. The full lane — party of three, follower spacing,
+// collision, footfall audio — is Phase 5 and none of it is here.
 //
-//   ?play=1              boot straight into it
-//   ?showcase=traversal  same thing, lane-showcase spelling
+//   (nothing)            boots into it
+//   &play=0              opt OUT. Every tool in tools/ passes this, so review
+//                        captures still frame the world and not the back of
+//                        Kaida's head — a spawned player drags ctx.world.focus
+//                        to itself and would silently re-aim every shot.
+//   ?showcase=traversal  lane-showcase spelling
+//   &map=<id>            any of the twelve, or `proto` for the placeholder dune
 //   &dev=1               readouts you glance at while driving
 //   &dev=2               LOOK MODE — orbit, tilt, zoom, outline, nothing else.
 //                        Opens at 0deg / 32deg tilt / 3.3 m, the framing a
 //                        character is actually judged at.
 //   &tune=1              the knobs, when you actually mean to tune something
-//
-// Opt-in on purpose. tools/shot.mjs boots with neither, so every existing
-// capture is unaffected.
 //
 // WASD / arrows move, Shift sprints, Space swings, C casts, V for victory,
 // H for hurt. Movement is CAMERA-RELATIVE — W is away from the lens, not
@@ -62,12 +62,15 @@ const TURN_HALF_LIFE = 0.07;
  *  the screen is what a ground-level focus actually does. */
 const FOCUS_LIFT_M = 0.95;
 
-/** Metres of world across the frame while playing. FRAME_HEIGHT_M is 18 for
- *  review captures, which puts a 1.72 m character at 43 px — too far away to
- *  judge a character by. This is a PLAY-SAMPLE override, not a re-lock: the
- *  shipping value is still the one in core/const.js, assertLocked() only
- *  guards pitch and yaw, and the Frame slider under ?tune=1 moves it live. */
-const PLAY_FRAME_HEIGHT_M = 10.0;
+/** Metres of world across the frame while playing.
+ *
+ *  Was 10.0 — a PLAY-SAMPLE override cut so a 1.72 m character read big enough
+ *  to judge her rig by. That was the right number for looking AT Kaida and the
+ *  wrong one for looking THROUGH her: at 10 m the locked 55 deg pitch fills the
+ *  frame with the ground immediately around her and you cannot see what you are
+ *  walking toward. Back to the shipping value in core/const.js now that the
+ *  sample is the game. The Frame slider under `?tune=1` still moves it live. */
+const PLAY_FRAME_HEIGHT_M = FRAME_HEIGHT_M;
 
 /** Where ?dev=2 look mode opens: straight on, tilted down 32 deg, 3.3 m of world
  *  across the frame. Chosen by the human at the panel, not derived — it is the
@@ -90,7 +93,12 @@ const ACTIONS = { Space: 'attack', KeyC: 'cast', KeyV: 'victory', KeyH: 'hurt' }
 
 export function installTraversal(ctx) {
   const params = new URLSearchParams(location.search);
-  const wantPlay = params.get('play') === '1' || params.get('showcase') === 'traversal';
+  /* GRADUATED 2026-09-05. This stopped being a sample the moment the twelve
+     authored maps became drivable: `?play=1` was a flag for a thing that had
+     to be asked for, and walking the world is now the default way the game
+     opens. `play=0` opts out, and every tool in tools/ passes it so review
+     captures still frame the world rather than the back of Kaida's head. */
+  const wantPlay = params.get('play') !== '0';
 
   const down = Object.create(null);
   let player = null;

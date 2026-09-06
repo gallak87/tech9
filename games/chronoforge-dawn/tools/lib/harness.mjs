@@ -89,6 +89,11 @@ export async function boot({
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}\n${e.stack || ''}`));
 
   const q = new URLSearchParams({ quality });
+  /* Review captures frame the WORLD, not the player. Traversal spawns by
+     default now (it graduated out of ?play=1), and a spawned player drags
+     ctx.world.focus to itself — which would silently re-aim every shot in
+     the repo. Opt out unless the caller asked for play explicitly. */
+  if (!/(^|&)play=/.test(extraParams)) q.set('play', '0');
   if (hour != null) q.set('hour', String(hour));
   if (sim != null) q.set('sim', String(sim));
   if (shot) q.set('shot', shot);

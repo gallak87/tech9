@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url';
  *  dev server serves every file under the project root, so `/assets/kaida.glb`
  *  resolves either way.
  *
- *  Cost: `vite build` copies publicDir and nothing else, so a generated
- *  character is dev-only until this directory moves under public/. */
+ *  `vite build` copies publicDir and nothing else, so the build half is
+ *  forgeEmit() below: it writes the GRADUATED assets into dist/ by hand. */
 const ASSETS = fileURLToPath(new URL('./assets', import.meta.url));
 
 /**
@@ -50,6 +50,45 @@ function forgeWatch() {
   };
 }
 
+/** Graduated characters that MUST ship in a build.
+ *
+ *  Mirrors FORGED in src/actors/rig.js — a character listed there has no
+ *  code-built stand-in, so a build without its glb renders nothing and logs a
+ *  404. Add an entry here in the same commit that graduates a character.
+ *
+ *  Deliberately a list, not a copy of assets/: kaida-not.glb is a 19MB negative
+ *  fixture for the rig gate and has no business on a game server. */
+const SHIPPED = ['kaida.glb'];
+
+/**
+ * Copy the graduated assets into the build.
+ *
+ * assets/ lives at the project root rather than public/ (see above), so Vite
+ * does not copy it. emitFile with type 'asset' puts each file where the runtime
+ * looks for it — `new URL('assets/<id>.glb', document.baseURI)` — and keeps the
+ * name unhashed, because that URL is constructed at runtime and never rewritten
+ * by the bundler.
+ *
+ * Fails the build on a missing file. A silent 404 at runtime is the failure
+ * this plugin exists to prevent; discovering it in CI beats discovering it on
+ * the deployed site.
+ */
+function forgeEmit() {
+  return {
+    name: 'chronoforge:forge-emit',
+    apply: 'build',
+    generateBundle() {
+      for (const file of SHIPPED) {
+        const src = path.join(ASSETS, file);
+        if (!fs.existsSync(src)) {
+          this.error(`graduated asset missing: assets/${file} — it is in SHIPPED (vite.config.js) because the runtime has no fallback for it.`);
+        }
+        this.emitFile({ type: 'asset', fileName: `assets/${file}`, source: fs.readFileSync(src) });
+      }
+    },
+  };
+}
+
 export default {
   // docs/specs/*.mjs are RUNNABLE specs: the actors lane imports the same file
   // `node docs/specs/rig.mjs` executes, so there is exactly one copy of
@@ -62,5 +101,5 @@ export default {
   // project subpath (/tech9/) and from the site root without a rebuild.
   base: './',
   build: { target: 'esnext', sourcemap: false },
-  plugins: [forgeWatch()],
+  plugins: [forgeWatch(), forgeEmit()],
 };

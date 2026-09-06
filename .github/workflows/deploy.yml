@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - g/fox64
+      - main
     paths:
       - 'games/vulpine/src/**'
       - 'games/vulpine/index.html'
@@ -20,6 +20,12 @@ on:
       - 'games/chronoforge/package-lock.json'
       - 'games/chronoforge/vite.config.js'
       - 'games/void-sentinel-breach/**'
+      - 'games/chronoforge-dawn/src/**'
+      - 'games/chronoforge-dawn/assets/**'
+      - 'games/chronoforge-dawn/index.html'
+      - 'games/chronoforge-dawn/package.json'
+      - 'games/chronoforge-dawn/package-lock.json'
+      - 'games/chronoforge-dawn/vite.config.js'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -78,13 +84,29 @@ jobs:
           npm ci
           npm run build
 
+      - name: Build chronoforge-dawn
+        # playwright is a devDependency for the capture harness only; vite has
+        # to come from the dev tree, so skip the browser download rather than
+        # the dev install.
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: |
+          cd games/chronoforge-dawn
+          npm ci
+          npm run build
+          # Kaida is graduated: there is no code-built fallback, so a dist
+          # without her glb deploys a world with no player. vite.config.js's
+          # forgeEmit plugin puts it there — fail here, not on the live site.
+          test -f dist/assets/kaida.glb
+
       - name: Build site
         run: |
-          mkdir -p _site/gravelrun _site/snake _site/skyrift _site/void-sentinel _site/orb-vacuum _site/void-sentinel-breach _site/chronoforge
+          mkdir -p _site/gravelrun _site/snake _site/skyrift _site/void-sentinel _site/orb-vacuum _site/void-sentinel-breach _site/chronoforge _site/chronoforge-dawn
           # vulpine is the front door; chronoforge keeps its own subpath (its
           # base is './', so it does not care where it is mounted).
           cp -r games/vulpine/dist/. _site/
           cp -r games/chronoforge/dist/. _site/chronoforge/
+          cp -r games/chronoforge-dawn/dist/. _site/chronoforge-dawn/
           cp -r games/orb-vacuum/dist/. _site/orb-vacuum/
           cp -r games/void-sentinel-breach/dist/. _site/void-sentinel-breach/
           cp -r games/gravelrun/src/. _site/gravelrun/

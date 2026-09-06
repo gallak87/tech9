@@ -135,7 +135,7 @@ const run = await page.evaluate(async ({ BAND, PHASES, CAST, wantSheet }) => {
 
   const out = [];
   for (const [id, faction] of list) {
-    const info = gate.begin(id, faction);
+    const info = await gate.beginAsync(id, faction);
 
     gate.setPose('idle', 0);
     const ref = gate.sample();
@@ -155,6 +155,7 @@ const run = await page.evaluate(async ({ BAND, PHASES, CAST, wantSheet }) => {
         gate.setPose(p, t);
         const s = gate.sample();
         const head = gate.fingerprint('head'), torso = gate.fingerprint('torso');
+        const driftCovered = head?.scope === 'part';
         const alien = Object.entries(s.shares).filter(([k]) => !ref.shares[k]);
         const r = {
           pose: p, t: +t.toFixed(3),
@@ -164,8 +165,9 @@ const run = await page.evaluate(async ({ BAND, PHASES, CAST, wantSheet }) => {
           coreCoverage: core.reduce((a, k) => a + (s.shares[k] || 0), 0),
           alienShare: alien.reduce((a, [, v]) => a + v, 0),
           alienCount: alien.length,
-          headDrift: head.hash !== refHead.hash,
-          torsoDrift: (torso?.hash ?? null) !== (refTorso?.hash ?? null),
+          driftCovered,
+          headDrift: driftCovered && head.hash !== refHead?.hash,
+          torsoDrift: driftCovered && (torso?.hash ?? null) !== (refTorso?.hash ?? null),
         };
         r.fail = [];
         if (r.headDrift) r.fail.push('head material drift');
@@ -199,6 +201,7 @@ const run = await page.evaluate(async ({ BAND, PHASES, CAST, wantSheet }) => {
         areaMin: Math.min(...agg((r) => r.ratio)),
       },
       drift: samples.filter((r) => r.headDrift || r.torsoDrift).length,
+      driftCovered: samples.some((r) => r.driftCovered),
       failures: samples.filter((r) => r.fail.length).map((r) => ({ pose: r.pose, t: r.t, why: r.fail })),
       samples: samples.length,
     });
@@ -217,7 +220,9 @@ for (const r of run.rows) {
   console.log(`[${r.id}] ${r.faction}  ${r.tris} tri  ${r.samples} samples  ${ok ? 'PASS' : 'FAIL'}`);
   console.log(`   bind height ${r.bindHeightM.toFixed(3)}m vs spec ${r.expectHeightM?.toFixed(3) ?? '—'}m`
     + `  dev ${(r.heightDev * 100).toFixed(1)}%${r.heightFail ? '   *** OUT OF BAND ***' : ''}`);
-  console.log(`   material drift ${r.drift} / ${r.samples} samples${r.drift ? '   *** DRIFT ***' : '   (clean)'}`);
+  console.log(r.driftCovered
+    ? `   material drift ${r.drift} / ${r.samples} samples${r.drift ? '   *** DRIFT ***' : '   (clean)'}`
+    : '   material drift  NOT COVERED on a forged body — see src/actors/gate.js fingerprint(); npm run retry:probe covers the asset');
   console.log(`   palette  tv max ${r.max.tv.toFixed(3)}   coreCov min ${r.min.coreCoverage.toFixed(3)}`
     + `   alien max ${r.max.alienShare.toFixed(3)}   (${r.coreColors} core of ${r.refColors} ref colours)`);
   console.log(`   silhouette  area ${r.min.areaMin.toFixed(3)}–${r.max.areaMax.toFixed(3)} × ref ${r.refArea}px`);
@@ -249,21 +254,31 @@ if (flag('selftest')) {
         coreCoverage: core.reduce((a, k) => a + (s.shares[k] || 0), 0),
         alienShare: Object.entries(s.shares).filter(([k]) => !ref.shares[k]).reduce((a, [, v]) => a + v, 0),
         ratio: s.area / ref.area,
-        head: gate.fingerprint('head').hash,
+        head: gate.fingerprint('head')?.hash ?? null,
       };
     };
 
     const cases = [];
+    /* Each fault names the character it is injected into, because the cast is no
+       longer one kind of thing. Kaida is a generated mesh with her own material
+       and no authored part ranges; vex, rune and the grunt are code-built with
+       vertex colours and tagged parts. A fault that reaches for `partRanges` on
+       a glb throws, and a fault that nudges the shared gate uniforms does
+       nothing to a body that does not use them — so proving the gate can fail
+       means proving it on BOTH paths, not on whichever one happens to be first.
+       `rune` is the code-built target: it is the one that passes cleanly, and a
+       selftest baseline has to be clean to mean anything (vex is out of band on
+       bind height). */
     const faults = [
       {
-        name: 'shading uniform nudged', assertion: 'MATERIAL',
+        name: 'shading uniform nudged', assertion: 'MATERIAL', on: 'rune',
         // The classic: "flash the hero on hurt" written against the SHARED
         // material instead of a per-actor one, so every character drifts.
         break: () => { gate.uniforms.uPivot.value += 0.11; },
         caught: (m, ref) => m.head !== ref.head,
       },
       {
-        name: 'head re-tinted', assertion: 'MATERIAL',
+        name: 'head re-tinted', assertion: 'MATERIAL', on: 'rune',
         // Per-part identity lives in the fingerprint, NOT in the frame
         // histogram — and this case is why. The head is ~8% of the silhouette,
         // so painting the whole thing hot magenta moves the whole-body
@@ -279,7 +294,7 @@ if (flag('selftest')) {
         caught: (m, ref) => m.head !== ref.head,
       },
       {
-        name: 'normals flipped', assertion: 'PALETTE',
+        name: 'normals flipped', assertion: 'PALETTE', on: 'kaida',
         // The fault the fingerprint CANNOT see: vertex colours, material
         // uniforms and vertex positions are all untouched, so the hash holds
         // and the silhouette area holds — every lit band inverts and only the
@@ -293,7 +308,7 @@ if (flag('selftest')) {
         caught: (m) => m.alienShare > BAND.alienShare || m.coreCoverage < BAND.coreCoverage || m.tv > BAND.tv,
       },
       {
-        name: 'limb blow-up', assertion: 'SILHOUETTE',
+        name: 'limb blow-up', assertion: 'SILHOUETTE', on: 'kaida',
         // A bone scaled 2.6x — a skinning or bind-matrix regression that leaves
         // colour and material untouched and wrecks the read.
         break: () => {
@@ -306,7 +321,7 @@ if (flag('selftest')) {
     ];
 
     for (const f of faults) {
-      gate.begin('kaida', 'ally');
+      const info = await gate.beginAsync(f.on, f.on === 'grunt' ? 'hostile' : 'ally');
       gate.setPose('idle', 0);
       const ref = gate.sample();
       const core = Object.entries(ref.shares).filter(([, v]) => v >= 0.01).map(([k]) => k);
@@ -315,7 +330,7 @@ if (flag('selftest')) {
       gate.setPose('idle', 0);              // re-evaluate the pose after the injury
       const after = measure(ref, core);
       cases.push({
-        name: f.name, assertion: f.assertion,
+        name: f.name, assertion: f.assertion, on: f.on, source: info.source,
         cleanPasses: !f.caught(before, before),
         caught: f.caught(after, before),
         before: { tv: +before.tv.toFixed(3), coreCoverage: +before.coreCoverage.toFixed(3), alienShare: +before.alienShare.toFixed(3), ratio: +before.ratio.toFixed(3) },
@@ -330,7 +345,7 @@ if (flag('selftest')) {
   for (const c of st) {
     const ok = c.caught && c.cleanPasses;
     if (!ok) bad.push(`selftest:${c.name}`);
-    console.log(`  ${ok ? 'CAUGHT ' : 'MISSED '} ${c.assertion.padEnd(10)} ${c.name}`);
+    console.log(`  ${ok ? 'CAUGHT ' : 'MISSED '} ${c.assertion.padEnd(10)} ${c.name.padEnd(24)} on ${c.on} (${c.source})`);
     console.log(`      clean  tv ${c.before.tv} coreCov ${c.before.coreCoverage} alien ${c.before.alienShare} area ${c.before.ratio} head ${c.headBefore}`);
     console.log(`      broken tv ${c.after.tv} coreCov ${c.after.coreCoverage} alien ${c.after.alienShare} area ${c.after.ratio} head ${c.headAfter}`);
     if (!c.cleanPasses) console.log('      *** the clean case also trips this assertion — the check is not discriminating ***');

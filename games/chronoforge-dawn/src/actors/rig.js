@@ -419,28 +419,26 @@ const FORGED = { kaida: 'kaida' };
  *
  *  `?forge=0` forces the code-built rig for everyone — the A/B when something
  *  looks wrong and the question is whether the mesh or the engine did it.
- *  `?forge=kaida:kaida-not` drives a character from a differently named asset,
- *  which is how a stand-in is tested without occupying the real one's slot.
- *  `?forge=vex` opts a still-code-built character in early.
+ *  `?forge=vex` opts a still-code-built character in early, once its asset lands.
+ *
+ *  There is deliberately NO stand-in form. Kaida is graduated: `assets/kaida.glb`
+ *  IS the character, and replacing it is a commit that gets reverted if it fails
+ *  rather than a URL that runs two versions side by side.
  *
  *  Parsed here rather than in gltf-actor.js so the flag can be read without
  *  pulling GLTFLoader into the bundle. */
 function forgeRequest(id) {
   /* No document, no default. Renderer-free callers — docs/phase2-retry's probe
-     and forge-selftest.mjs — drive buildActor in plain Node and hand it the
-     asset they mean to test; resolving a browser-relative URL there throws, and
-     silently forging a character out from under a test that asked for the
-     code-built rig would be worse. The graduation is a BROWSER default. */
+     and anything driving buildActor in plain Node — hand it the asset they mean
+     to test; resolving a browser-relative URL there throws, and silently forging
+     a character out from under a test that asked for the code-built rig would be
+     worse. The graduation is a BROWSER default. */
   if (typeof location === 'undefined' || typeof document === 'undefined') return null;
   const v = new URLSearchParams(location.search).get('forge');
   if (v === '0' || v === 'false') return null;
   if (!v) return defaultForge(id);
   const want = v === '1' || v === 'true' ? Object.keys(FORGED) : v.split(',').map(x => x.trim());
-  for (const entry of want) {
-    const [wantId, asset] = entry.split(':').map(x => x.trim());
-    if (wantId !== id) continue;
-    return assetFor(asset || FORGED[id] || id);
-  }
+  if (want.includes(id)) return assetFor(FORGED[id] || id);
   /* Named someone else, but this character is forged by default — an explicit
      ?forge=vex must not silently un-forge Kaida. */
   return defaultForge(id);

@@ -77,6 +77,12 @@ export function makeGate(ctx) {
     buf = new Uint8Array(W * H * 4);
   }
 
+  /** Build the character to be measured.
+   *
+   *  SYNCHRONOUS, and for a graduated character that is not enough: the body is
+   *  a fetch that lands ~120 frames later, so a gate that sampled here would
+   *  measure the code-built placeholder and pass, green, against a mesh nothing
+   *  renders. `beginAsync` is the one callers should use. */
   function begin(id = 'kaida', faction = 'ally') {
     ensure();
     end(true);
@@ -93,7 +99,22 @@ export function makeGate(ctx) {
     actor = buildActor({ id, faction, uniforms, material });
     scene.add(actor.root);
     setPose('idle', 0);
-    return { id, faction, heightM: actor.heightM, tris: actor.tris };
+    return { id, faction, heightM: actor.heightM, tris: actor.tris, source: actor.source };
+  }
+
+  /** begin(), then wait for a generated body if this character has one.
+   *
+   *  Returns the same summary, with `source` reading 'gltf' once the swap has
+   *  landed. Anything that ASSERTS on pixels must await this — see begin(). */
+  async function beginAsync(id = 'kaida', faction = 'ally') {
+    const info = begin(id, faction);
+    if (actor?.forgeReady) {
+      await actor.forgeReady;
+      /* The swap replaces the body and its skeleton, so the idle pose has to be
+         re-applied to the bones that now exist. */
+      setPose('idle', 0);
+    }
+    return { ...info, heightM: actor.heightM, tris: actor.tris, source: actor.source };
   }
 
   function setPose(name, t = 0) {
@@ -101,7 +122,14 @@ export function makeGate(ctx) {
     const p = samplePose(name, t);
     for (const b of actor.bones) {
       const j = p.j[b.name];
-      b.rotation.set(j ? j[0] : 0, j ? j[1] : 0, j ? j[2] : 0);
+      const x = j ? j[0] : 0, y = j ? j[1] : 0, z = j ? j[2] : 0;
+      /* Same write path as the Animator (poses.js). A forged rig binds in an
+         A-pose with arbitrary bone axes, so an absolute spec-space rotation has
+         to go through its per-bone correction; writing bone.rotation directly
+         zeroes the bind of every bone the pose does not name and lays the
+         character on her side. `retarget` exists on a forged actor only. */
+      if (actor.retarget) actor.retarget.set(b, x, y, z);
+      else b.rotation.set(x, y, z);
     }
     actor.root.position.set(0, p.root.y, p.root.z);
     actor.root.rotation.y = p.root.yaw;
@@ -169,29 +197,54 @@ export function makeGate(ctx) {
    */
   function fingerprint(part = 'head') {
     if (!actor) return null;
-    const r = actor.partRanges[part];
-    if (!r) return null;
     const g = actor.mesh.geometry;
-    const c = g.getAttribute('color').array;
-    const m = g.getAttribute('aMat').array;
+    const r = actor.partRanges?.[part];
     const nums = [];
-    for (let i = r.start; i < r.start + r.count; i++) {
-      nums.push(c[i * 3], c[i * 3 + 1], c[i * 3 + 2], m[i]);
+    let verts;
+
+    if (r) {
+      /* Code-built: parts are authored, so the fingerprint is per-part and the
+         assertion is genuinely about THIS part's identity. */
+      const c = g.getAttribute('color').array;
+      const m = g.getAttribute('aMat').array;
+      for (let i = r.start; i < r.start + r.count; i++) {
+        nums.push(c[i * 3], c[i * 3 + 1], c[i * 3 + 2], m[i]);
+      }
+      verts = r.count;
+    } else {
+      /* Forged: NOT COVERED, and saying so rather than returning a number.
+         A generated mesh has no authored part tags, so there is nothing to hash
+         per part. A whole-mesh hash was tried and is worse than nothing: it is
+         stable within one build and different between two builds of the same
+         character, and it did not move when a material scalar on the body was
+         changed — a drift detector that cries drift when nothing drifted and
+         stays quiet when something did. Proven by --selftest, which is why the
+         attempt is not in the tree.
+
+         Material identity for a graduated character is covered instead by
+         `npm run retry:probe`, which has 34 checks against the asset itself.
+         Closing this properly means finding the forged body's real material on
+         the actor — `actor.mesh` is not it — and is its own piece of work. */
+      return { part, verts: 0, scope: 'uncovered', hash: null };
     }
+
     const mat = actor.mesh.material;
     nums.push(mat.color.r, mat.color.g, mat.color.b, mat.roughness, mat.metalness,
       mat.envMapIntensity, mat.emissive.r, mat.emissive.g, mat.emissive.b,
       mat.vertexColors ? 1 : 0, mat.flatShading ? 1 : 0);
-    for (const k of Object.keys(uniforms).sort()) {
+    for (const k of Object.keys(uniforms || {}).sort()) {
       const v = uniforms[k].value;
       nums.push(typeof v === 'number' ? v : (v?.x ?? 0), typeof v === 'number' ? 0 : (v?.y ?? 0));
     }
-    return { part, verts: r.count, hash: fnv1a(nums) };
+    return { part, verts, scope: 'part', hash: fnv1a(nums) };
   }
 
   function end(quiet = false) {
     if (actor) {
       scene.remove(actor.root);
+      /* A forged body owns geometry and textures the disposes below cannot
+         reach. Four characters plus a selftest run means this leaks fast. */
+      actor.releaseForge?.();
       actor.mesh.geometry.dispose();
       actor.weapon?.geometry.dispose();
       actor.beacon?.geometry.dispose();
@@ -208,6 +261,7 @@ export function makeGate(ctx) {
     heroes: Object.keys(HERO_HEIGHTS_M),
     heightTolerance: HEIGHT_TOLERANCE,
     heroHeights: HERO_HEIGHTS_M,
+    beginAsync,
     get actor() { return actor; },
     get scene() { return scene; },
     get uniforms() { return uniforms; },

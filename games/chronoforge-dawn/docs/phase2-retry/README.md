@@ -19,9 +19,13 @@ nine PNGs and a contact sheet. Do not hand-compose one.
 Play-test: `npm run dev` → `localhost:5190/?dev=2`
 
 Kaida GRADUATED 2026-09-05 — she loads from `assets/kaida.glb` with no flag, and
-driving is the default. `?forge=0` forces the code-built rig; `?forge=kaida:<name>`
-drives her from a differently named asset, which is how a candidate is compared
-against the installed one without occupying its slot.
+driving is the default. `?forge=0` forces the code-built rig, which is the A/B
+when something looks wrong and the question is whether the mesh or the engine
+did it.
+
+**Replacing her is a commit, not a flag.** `install` overwrites
+`assets/kaida.glb`; if the new one is wrong, revert. There is no stand-in slot
+and no side-by-side URL — one asset, one character, one history to bisect.
 
 ---
 

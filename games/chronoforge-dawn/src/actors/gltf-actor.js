@@ -12,7 +12,7 @@ import { HERO_M } from '../core/const.js';
 //   1. bone names it has never heard of         → a data map, assets/<id>.bones.json
 //   2. arbitrary scale and origin               → normalise to HERO_M, feet at y=0
 //   3. an A-POSE bind, not the spec's hanging bind → derive a per-bone correction
-//   4. no aMat / aPart / aInk attributes        → its own MeshStandardMaterial
+//   4. no aMat attribute                        → its own MeshStandardMaterial
 //
 // This file turns a loaded glb into the SAME actor object buildActor() returns,
 // in place, so ground.js, poses.js, index.js and the dev panel keep working
@@ -441,19 +441,14 @@ function detachProps(actor) {
   actor.beacon?.parent?.remove(actor.beacon);
 }
 
-/** Drop the code-built body, outline and skeleton off an actor, once. */
+/** Drop the code-built body and skeleton off an actor, once. */
 function shedCodeBuilt(actor) {
   if (actor.source === 'gltf') return;
-  const { mesh, outline, root } = actor;
+  const { mesh, root } = actor;
   root.remove(mesh);
-  root.remove(outline);
   const rootBone = actor.boneByName.get('hips');
   if (rootBone?.parent === root) root.remove(rootBone);
-  /* The outline shares the body's geometry, so it is disposed once, here. Its
-     material is the actor's own — nothing else references it. */
   mesh.geometry.dispose();
-  actor.outlineMat?.dispose();
-  outline.visible = false;
 }
 
 /**

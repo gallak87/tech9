@@ -235,6 +235,10 @@ const api = {
    *  unknown id — see docs/specs/world-runtime.md. */
   setMap(id) { return ctx.world.setMap(id); },
 
+  /** Actors still waiting on a generated body. A capture taken while this is
+   *  non-zero photographs the code-built placeholder, not the character. */
+  forgePending() { return ctx.actors?.forgePending?.() ?? 0; },
+
   /** Hour of day, 0–24. Drives sun, sky, IBL, fog and shadow direction. */
   setTime(hour, opts) { env.setTime(hour, opts); bus.emit('time:changed', { hour: env.hour }); return env.hour; },
 

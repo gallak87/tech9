@@ -110,6 +110,12 @@ export async function boot({
   try {
     await page.waitForFunction(() => window.__DAWN__ && window.__DAWN__.ready, null,
       { timeout, polling: 100 });
+    /* A forged character's body is a fetch, and it lands well after `ready`.
+       Measured: ~120 frames for Kaida's 10.5 MB glb. Every capture taken before
+       it photographs the code-built placeholder instead — silently, since the
+       placeholder renders fine. Wait it out. */
+    await page.waitForFunction(() => (window.__DAWN__.forgePending?.() ?? 0) === 0, null,
+      { timeout, polling: 100 });
   } catch {
     console.error('game never reported ready.');
     console.error(errors.join('\n') || logs.slice(-40).join('\n'));

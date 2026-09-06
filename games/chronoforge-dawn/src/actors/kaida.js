@@ -80,14 +80,16 @@ const BOOT_R = 0.082;
  */
 export function kaidaShellParts() {
   const parts = [];
-  /* `ink: false` marks a DECAL — a part that sits on another part's surface
-     rather than forming the silhouette. Two things follow, and both are bugs we
-     hit: it must not be expanded by the outline hull (it would punch out
-     through its own host), and it must sit PROUD of that host rather than
-     coincident with it, or the two surfaces z-fight into the flickering hairline
-     seams that are visible even from the far camera. Clearances below are
-     explicit for that reason — every decal is pushed clear of what it sits on. */
-  const add = (bone, geo, key, mat, tag, ink = true) => parts.push({ bone, geo, key, mat, tag, ink });
+  /* A DECAL is a part that sits on another part's surface rather than forming
+     the silhouette — a belt over a hip, a lapel on a jacket. It must sit PROUD
+     of its host rather than coincident with it, or the two surfaces z-fight
+     into flickering hairline seams visible even from the far camera. Clearances
+     below are explicit for that reason.
+
+     Decals used to also carry `ink: false` so the outline hull would not expand
+     them out through their own host. The outline is gone (2026-09-05) and the
+     flag with it; the clearance is the half that was always about geometry. */
+  const add = (bone, geo, key, mat, tag) => parts.push({ bone, geo, key, mat, tag });
 
   /** Decal clearance. Below ~2 mm the depth buffer cannot separate two surfaces
    *  at this scene scale and they shimmer against each other. */

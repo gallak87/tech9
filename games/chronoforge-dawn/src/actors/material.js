@@ -62,12 +62,6 @@ export function makeActorUniforms() {
     uPivot: { value: 0.34 },        // linear luminance that lands mid-ramp
     uTopGain: { value: 6.0 },       // where the rim band tops out
     uEmissive: { value: 3.2 },
-    /** Part isolation for review. 0 = show everything. Non-zero fades every
-     *  vertex whose aPart differs, rather than hiding it — a part judged with
-     *  its neighbours gone is judged against nothing, and the question in
-     *  Phase 2.3 is always "does this belong on THIS character". */
-    uIsolate: { value: 0 },
-    uIsolateFade: { value: 0.06 },
   };
 }
 
@@ -103,14 +97,11 @@ export function makeActorMaterial(uniforms, { name = 'actor' } = {}) {
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>
 attribute float aMat;
-attribute float aPart;
 varying float vMat;
-varying float vPart;
 uniform float uSnapPx;
 uniform vec2 uResolution;`)
       .replace('#include <project_vertex>', `#include <project_vertex>
   vMat = aMat;
-  vPart = aPart;
   // ── pixel-snap ───────────────────────────────────────────────────────────
   // Quantise the projected vertex to a grid of uSnapPx framebuffer pixels.
   // The grid is derived on the CPU from snapUnitPx() in docs/specs/rig.mjs, so
@@ -126,8 +117,7 @@ uniform vec2 uResolution;`)
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>
 varying float vMat;
-uniform float uBands, uBandStrength, uPivot, uTopGain, uEmissive, uIsolate, uIsolateFade;
-varying float vPart;
+uniform float uBands, uBandStrength, uPivot, uTopGain, uEmissive;
 ${CLASS_GLSL}`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
   roughnessFactor = dawnRough(vMat);`)
@@ -156,11 +146,6 @@ ${CLASS_GLSL}`)
     float ql = (q > 0.999) ? uPivot * uTopGain : uPivot * q / max(1e-4, 1.0 - q);
     float bs = (vMat > 2.5 && vMat < 3.5) ? 0.0 : uBandStrength;
     gl_FragColor.rgb = c * mix(1.0, ql / max(l, 1e-5), bs);
-    // Part isolation for review — fade, never hide. A part judged with its
-    // neighbours removed is judged against nothing.
-    if (uIsolate > 0.5 && abs(vPart - uIsolate) > 0.5) {
-      gl_FragColor.rgb = mix(gl_FragColor.rgb * uIsolateFade, vec3(0.05, 0.05, 0.07), 0.55);
-    }
   }`);
 
     mat.userData.shader = shader;
@@ -180,93 +165,5 @@ ${CLASS_GLSL}`)
  * question is whether SPRITE_PX_PER_METRE = 28 is the right density, and the
  * only way to answer it is to sweep it against a real screenshot.
  */
-
-// ─────────────────────────────────────────────────────────────────────────────
-// The outline.
-//
-// 3D geometry has no line. Drawn art does, and that single difference is most of
-// what separates "rendered" from "illustrated" — more than flat fills, and far
-// more than the pixel-snap, which measured as a no-op at the shipping framing.
-//
-// Inverted hull: draw the same skinned mesh a second time, back faces only,
-// pushed out along its own normal in an unlit flat colour. Front faces are
-// hidden by the real body; what survives is a rim exactly `thickness` wide.
-//
-// TWO DETAILS THAT DECIDE WHETHER IT LOOKS RIGHT
-//
-// 1. It expands along `aOutline`, a SMOOTHED normal, not the shading normal.
-//    This mesh is hard-edged on purpose — every corner splits its vertices so
-//    each face keeps its own normal — and pushing those apart tears the hull
-//    open at every corner. Averaging normals across coincident positions closes
-//    it. Shading still uses the hard normals; only the expansion is smoothed.
-//
-// 1b. Only SILHOUETTE parts expand. `aInk` is 0 on anything that sits on
-//    another surface — a belt over a hip, a lapel on a jacket, the neck stub
-//    inside a collar. Expanding those drives them out THROUGH the part they
-//    were sitting on and the hull fills the whole character instead of ringing
-//    it. That failure is what the first version did, on both FrontSide and
-//    BackSide, which is how it was diagnosed as overlap rather than winding.
-//
-// 2. The offset happens in BIND space, before skinning. The bone transform then
-//    carries the expansion along with the vertex, so the outline deforms with
-//    the pose for free. Offsetting after skinning would need the skinned normal
-//    and buy nothing.
-//
-// Thickness is in metres rather than pixels, which is usually the wrong choice
-// and is the right one here: the exploration camera is LOCKED at a fixed
-// distance, so a world-space width is already a constant screen width. It only
-// drifts while someone is zooming in dev look mode.
-//
-// Never in the shadow map — an inflated hull casts a fattened shadow.
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Smoothed normals for the hull, as a flat array matching `position`.
- *  Positions are bucketed at 0.1 mm; anything closer than that is the same
- *  corner authored twice, which is exactly what we want to weld. */
-export function outlineNormals(geometry) {
-  const pos = geometry.getAttribute('position');
-  const nor = geometry.getAttribute('normal');
-  const ink = geometry.getAttribute('aInk');
-  const acc = new Map();
-  const key = (i) => `${Math.round(pos.getX(i) * 1e4)},${Math.round(pos.getY(i) * 1e4)},${Math.round(pos.getZ(i) * 1e4)}`;
-  for (let i = 0; i < pos.count; i++) {
-    const k = key(i);
-    const a = acc.get(k) || [0, 0, 0];
-    a[0] += nor.getX(i); a[1] += nor.getY(i); a[2] += nor.getZ(i);
-    acc.set(k, a);
-  }
-  const out = new Float32Array(pos.count * 3);
-  for (let i = 0; i < pos.count; i++) {
-    // A vertex on a buried part expands by zero and stays buried.
-    if (ink && ink.getX(i) < 0.5) continue;
-    const a = acc.get(key(i));
-    const l = Math.hypot(a[0], a[1], a[2]) || 1;
-    out[i * 3] = a[0] / l; out[i * 3 + 1] = a[1] / l; out[i * 3 + 2] = a[2] / l;
-  }
-  return out;
-}
-
-/** The hull material. `uThickness` is live so it can be tuned by eye. */
-export function makeOutlineMaterial({ color = '#0d0a14', thickness = 0.012 } = {}) {
-  const uniforms = { uThickness: { value: thickness } };
-  const mat = new THREE.MeshBasicMaterial({
-    color: new THREE.Color(color),
-    side: THREE.BackSide,
-    fog: false,          // the line is ink; haze must not eat it at distance
-  });
-  mat.name = 'actor-outline';
-  mat.userData.outlineUniforms = uniforms;
-  mat.onBeforeCompile = (shader) => {
-    Object.assign(shader.uniforms, uniforms);
-    shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>
-attribute vec3 aOutline;
-uniform float uThickness;`)
-      // BEFORE <skinning_vertex>, so the bones carry the expansion.
-      .replace('#include <begin_vertex>', `#include <begin_vertex>
-transformed += aOutline * uThickness;`);
-  };
-  return mat;
-}
 
 export { SPRITE_PX_PER_METRE };

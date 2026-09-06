@@ -65,6 +65,7 @@ const ctx = {
   get dt() { return engine.dt; },
   get hour() { return env.hour; },
   state: {},               // gameplay state the HUD reads; lanes publish onto it
+  mapId: params.get('map') || 'proto',   // ?map= — the boot map for the world lane
   shotNames,               // for the dev panel's shot picker
   dev: null,               // DevPanel — set just below; lanes register controls onto it
 };
@@ -229,6 +230,10 @@ const api = {
     else { running = true; rig.reset(focus()); }
     return shotMode;
   },
+
+  /** Switch the live map. `?map=` does the same thing at boot. Throws on an
+   *  unknown id — see docs/specs/world-runtime.md. */
+  setMap(id) { return ctx.world.setMap(id); },
 
   /** Hour of day, 0–24. Drives sun, sky, IBL, fog and shadow direction. */
   setTime(hour, opts) { env.setTime(hour, opts); bus.emit('time:changed', { hour: env.hour }); return env.hour; },

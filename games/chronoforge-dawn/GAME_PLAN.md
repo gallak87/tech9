@@ -138,14 +138,21 @@ hey i need us to set a gate here, i'll explain when we chat (remind me: characte
 ### Phase 3 — The Harness
 Agents: `dev`, `qa`
 
-PROGRESS: 5 of 16 tools exist — shot, probe, lintrng, rig, ground. `region.mjs` is being built
-under Phase 4a because Tier 1 cannot be gated without it. The remaining twelve stay here.
+PROGRESS: 6 of 16 tools exist — shot, probe, lintrng, rig, ground, region. `region.mjs` is being built
+under Phase 4a because Tier 1 could not be gated without it. The remaining eleven stay here.
 
 dev writes the thirteen remaining instruments in tools/: sheet, blind, walk, door, duel, stage, fog, econ, save, digest, census, region, play. Each exits non-zero on failure. Every module gets a showcase mode and __DAWN__ gains post, probe, stats, seek, step, setShot, setTime, battle and teleport. This ships BEFORE the game it verifies.
 QA gate: All 16 tools run and exit 0 against the current build. Each tool proves it can detect a positive case before its null result is trusted. qa reviews coverage: does each named defect have an instrument that would catch its return. Report must ship the artifact: probe stdout, tool exit code, or the path of a PNG that was opened. Agent also states whether a human manual QA pass on localhost is warranted, naming what to look at and what would count as wrong.
 
-### Phase 4a — Tier 1: World Build-out *(current)*
+### Phase 4a — Tier 1: World Build-out
 Agents: `level`, `dev`
+
+COMPLETE. All twelve maps build and switch. `region.mjs` exits 0 live across all twelve with every
+live-vs-authored delta at 0.000 m — doorway conversion, landing height, encounter clearance, plot slope —
+and its `--selftest` catches all ten injected faults. 21,901 verts / 43,200 tris per outdoor map in one
+draw call, 1.66% of the triangle budget; 3.6-4.6 ms, 13-14 draws. No geometry leak across 65 setMap calls
+(44 -> 44). `proto` held its signed-off baseline exactly: dawn 6.4 wide reads median 0.212 / p90 0.51 /
+0.00% white. Nine new issues logged LVL-11..LVL-19 and TOOL-1; the look ones belong to 4b.
 
 SPLIT FROM PHASE 4 by human decision. `src/render/` is the surface Kaida's look is judged through, and
 re-tuning it underneath an in-flight character sign-off invalidates every part already accepted. So Tier 1

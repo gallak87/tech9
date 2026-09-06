@@ -1,7 +1,7 @@
 {
   "game": "chronoforge-dawn",
-  "phase": 2.02,
-  "phaseName": "Character pipeline. Generated mesh loads and animates; auto-rig unsolved. docs/phase2-retry/",
+  "phase": 4,
+  "phaseName": "Phase 4a done: the twelve authored maps build and switch. 4b (src/render/) blocked while the character gate is live.",
   "updated": "2026-09-05",
   "devServer": {
     "port": 5190,
@@ -23,7 +23,11 @@
     "actorCastsRealShadow": true,
     "forgedCharacterLoadsAndAnimates": true,
     "generatedMeshAutoRigged": false,
-    "retargetDeltaSolved": false
+    "retargetDeltaSolved": false,
+    "twelveMapsBuildAndSwitch": true,
+    "regionGateGreenLive": true,
+    "regionGateSelfTestCatchesInjectedFaults": true,
+    "protoBaselineHeld": true
   },
   "budget": {
     "frameMs": 6.4,
@@ -558,6 +562,96 @@
       "title": "Limb shells rotate apart at every joint and leave visible gaps",
       "detail": "Rigid skinning weights every vertex 100% to one bone, so nothing deforms and a bend separates the two shells. The OVER=0.045 overlap in kaida.js does NOT fix it and cannot: running each segment past its joint fills the INSIDE of a bend while the outside still opens, because the extension rotates away with its own bone. Fix is a joint sphere at the pivot, parented to one bone, radius = limb radius x 1.05 — every point on both end rings sits exactly the limb radius from the joint centre, so it covers any bend angle permanently. One per shoulder, elbow, hip, knee, ~10 lines. NOT IMPLEMENTED. Moot if the mesh-source decision goes to a smooth-skinned model.",
       "repro": "?play=1&dev=2, orbit to a three-quarter view and watch the shoulders and knees"
+    },
+    {
+      "id": "LVL-11",
+      "severity": "high",
+      "tier": "Phase 4b",
+      "area": "world",
+      "title": "Lava channel reads as a painted ribbon, not a fissure",
+      "detail": "crater_ember lavaChannel is vertex colour on an undeformed surface, on a polyline route INFERRED through craterCentres because the spec gives width/depth/colour but no path. Reads as a glowing hose lying on the ground with hard-cut ends. A real 1.2 m carve over 3.5 m is a 28 deg wall on a biome already at 32 deg and would breach the 34 deg ceiling — so the spec needs a route AND a shoulder width, not just a deeper carve.",
+      "repro": "node tools/shot.mjs --shots map --params \"map=crater_ember_region\""
+    },
+    {
+      "id": "LVL-12",
+      "severity": "medium",
+      "tier": "Phase 4b",
+      "area": "world",
+      "title": "Bog water plane reads as black holes and spills past the map rect",
+      "detail": "mire_bog pools read as voids punched through the ground rather than standing water, worse at noon than dawn. The plane also extends beyond the terrain edge — extra shapes visible off the east edge in the map shot. Needs clipping to the map rect and a real water treatment.",
+      "repro": "node tools/shot.mjs --shots map --t 12.5 --params \"map=mire_bog_region\""
+    },
+    {
+      "id": "LVL-13",
+      "severity": "medium",
+      "tier": "Phase 4b",
+      "area": "render",
+      "title": "Authored biome palettes only separate at noon",
+      "detail": "At DAWN_HOUR 6.4 the warm low key multiplies every albedo toward sand — mire_bog (#5f6444 green) and frost_canyon (#9fabb4 grey-blue) both read peach-tan. At 12.5 they read as authored. Biome identity cannot be judged on a dawn capture. Exposure is render/, frozen this session.",
+      "repro": "compare shots at --t 6.4 and --t 12.5 on mire_bog_region"
+    },
+    {
+      "id": "LVL-14",
+      "severity": "low",
+      "tier": "Phase 4b",
+      "area": "world",
+      "title": "orbital_reach and crater_ember sit outside the healthy dawn band",
+      "detail": "orbital_reach med 0.396 (snow, washed out), crater_ember med 0.065 (basalt, dark). Both albedos are inside the spec ALBEDO_BAND and p90 <= 0.51 with 0.00% white. Exposure fix belongs to 4b.",
+      "repro": "node tools/shot.mjs --shots map --probe --params \"map=orbital_reach_region\""
+    },
+    {
+      "id": "LVL-15",
+      "severity": "low",
+      "tier": "Phase 4b",
+      "area": "world",
+      "title": "Ground detail normal reads as melted-plastic blobs on mid-tone biomes",
+      "detail": "Most visible on haventide and mire_bog, invisible on frozen_ruins where the albedo is bright. Tiling density was fixed in 4a by scaling UVs against a 240 m reference; the pattern itself is the remaining half. Related to P0-3.",
+      "repro": "node tools/shot.mjs --shots map --params \"map=haventide_region\""
+    },
+    {
+      "id": "TOOL-1",
+      "severity": "low",
+      "tier": "Phase 3",
+      "area": "dev",
+      "title": "probe.mjs parses --params but never forwards it to boot()",
+      "detail": "node tools/probe.mjs --params \"map=X\" silently measures proto instead of X. shot.mjs --probe does forward it and is the working path. One-line fix.",
+      "repro": "node tools/probe.mjs --shots map --params \"map=crater_ember_region\""
+    },
+    {
+      "id": "LVL-16",
+      "severity": "low",
+      "tier": "Phase 5",
+      "area": "traversal",
+      "title": "size = max(w,d) lets traversal walk off the short axis",
+      "detail": "The clamp is size*0.5-4 = +/-41 m on a 60 m-deep map. field.heightAt clamps to the edge value so the player stands on ground rather than falling, but the clamp lives in src/traversal/ and needs the real per-axis extents.",
+      "repro": "?play=1&map=frost_canyon_region, walk north"
+    },
+    {
+      "id": "LVL-17",
+      "severity": "low",
+      "tier": "Phase 4b",
+      "area": "level",
+      "title": "Every biome under-delivers its own targetReliefM by 12-22%",
+      "detail": "grassland 4.4/5, neon 5.4/6.5, forest 4.2/5, mire 2.7/3.2, frozen 5.6/7, frost_canyon 8.6/11, alien 5.3/6.5, crater 8.4/9.5. Systematic across all eight, so it is one normalisation, not eight authoring calls. frost_canyon is 2.4 m short of the relief that makes its trench read as a canyon.",
+      "repro": "node docs/specs/heightfields.mjs"
+    },
+    {
+      "id": "LVL-18",
+      "severity": "low",
+      "tier": "Phase 4b",
+      "area": "level",
+      "title": "Four city-interior exits had never been slope-checked",
+      "detail": "heightfields.mjs iterates OUTDOOR_IDS only, so interior exits landing on outdoor tiles were unchecked by anything until region.mjs. last_crown_interior -> last_crown_region (32,26) is 19.0 deg against a 20 deg limit. Passes with one degree of margin.",
+      "repro": "node tools/region.mjs --verbose"
+    },
+    {
+      "id": "LVL-19",
+      "severity": "info",
+      "tier": "Phase 4b",
+      "area": "level",
+      "title": "17 of 36 encounter discs overhang the map rect",
+      "detail": "The runtime clamps outside [0,w]x[0,d]; heightfields.heightAt evaluates noise anywhere. Worst is mire_bog e13 at tile (44,12), 8.16 m of its 9.16 m frame radius past the edge — world-graph.mjs clearance-gates it against terrain that does not exist in the built world. Absolute limits still gate on the clamped surface the party actually fights on.",
+      "repro": "node tools/region.mjs (ADVISORY section)"
     }
   ],
   "rig": {
@@ -645,7 +739,7 @@
     ],
     "verified": "real keyboard via playwright: idle 0 -> run 3.99 -> sprint 7.60 -> release 0.02 m/s, camera follows, rig.assertLocked() true, zero module faults, 168 fps",
     "terrainSlopesReached": "16.6 to 38.3 deg while driving — MAX_WALKABLE_SLOPE_DEG is 34",
-    "frameHeightWhilePlaying": 10.0
+    "frameHeightWhilePlaying": 10
   },
   "handoff": "docs/PHASE2-HANDOFF.md — running notes for the character phase",
   "kaida": {

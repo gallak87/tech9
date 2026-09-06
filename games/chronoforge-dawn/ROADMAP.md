@@ -10,8 +10,8 @@
 | 1.2 | World Data Port & Heightfields | offline graph walk: every landing real, in-bounds, passable | **done** — `world-graph.mjs` + `heightfields.mjs` PASS |
 | 1.3 | Encounter, Doorway & World-Drop Placement | 36 placements clear combat staging; no orphans | **done** — folded into the same two gates |
 | 2 | **Character Look Gate** | human drives Kaida on real terrain. **2-round hard stop** | **in progress** — see below |
-| 3 | The Harness | all tools run and exit 0 | **5 of 16** — shot, probe, lintrng, rig, ground |
-| 4a | Tier 1 — World build-out | 12 maps build and switch; `region.mjs` green live | **in progress** |
+| 3 | The Harness | all tools run and exit 0 | **6 of 16** — shot, probe, lintrng, rig, ground, region |
+| 4a | Tier 1 — World build-out | 12 maps build and switch; `region.mjs` green live | **done** |
 | 4b | Tier 1 — Light & Post | depth+normal prepass, fog continuous, no grid, critic ≥8.5 on 2 regions | blocked — `src/render/` frozen |
 | 5 | Tier 2 — Traversal | walk.mjs: 3-min route, 60fps, no clips | |
 | 6 | Tier 3 — Places & Interiors | door.mjs: every door in 12 maps, no soft-lock | |

@@ -18,6 +18,28 @@ const DEG = Math.PI / 180;
 const _c = new THREE.Color();
 const _n = new THREE.Vector3();
 
+/** The world size the shared ground detail maps were tuned against.
+ *
+ *  `materials.ground` bakes `repeat: 11` into its normal and roughness maps,
+ *  and a PlaneGeometry's UVs run 0..1 whatever the plane measures — so those 11
+ *  repeats land every 21.8 m on the 240 m placeholder and every 8.2 x 5.5 m on
+ *  a 90 x 60 m map. That is both four times too dense and ANISOTROPIC, and it
+ *  reads on screen as a woven pattern crawling over the whole surface.
+ *
+ *  render/ is frozen, so the fix belongs to the geometry: scale the UVs by the
+ *  map's size against this reference and every map gets the placeholder's exact
+ *  world-space detail density on both axes. */
+const DETAIL_REFERENCE_M = 240;
+
+/** Retile the detail maps to world metres. See DETAIL_REFERENCE_M. */
+function scaleDetailUVs(geo, widthM, depthM) {
+  const uv = geo.attributes.uv;
+  const sx = widthM / DETAIL_REFERENCE_M, sy = depthM / DETAIL_REFERENCE_M;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * sx, uv.getY(i) * sy);
+  uv.needsUpdate = true;
+  return geo;
+}
+
 /** One draw call per map at 0.5 m spacing. 90x60 m = 180x120 segments =
  *  181x121 = 21,901 vertices / 43,200 triangles — 1.7% of the 2.6 M budget. */
 export function meshCost(widthM, depthM, spacing = VERTEX_SPACING_M) {
@@ -89,6 +111,7 @@ export function buildMap(field, ctx) {
   const { segX, segZ, vertices, triangles } = meshCost(field.widthM, field.depthM);
   const geo = new THREE.PlaneGeometry(field.widthM, field.depthM, segX, segZ);
   geo.rotateX(-Math.PI / 2);
+  scaleDetailUVs(geo, field.widthM, field.depthM);
 
   const pos = geo.attributes.position;
   const col = new Float32Array(pos.count * 3);
@@ -126,11 +149,16 @@ export function buildMap(field, ctx) {
 
     if (lava) {
       // Emissive as vertex colour, per the Phase 4a brief: no emissive material
-      // is added, so this reads as HOT ROCK rather than as light. The lift above
-      // 1.0 is what the bloom threshold catches at the channel centre.
+      // is added, so this reads as HOT ROCK rather than as light.
+      //
+      // The band is the AUTHORED 3.5 m and not a metre more. The first pass
+      // faded from 0.5w to 1.6w and lifted the result 1.55x; bloom turned that
+      // into a 20 m orange blob with white holes in it, which is the "flat white
+      // hole" failure the probe exists to catch. Full colour inside 0.3w, gone
+      // by 0.55w, and the lift stays under the bloom threshold.
       const d = distToPolyline(x, z, lava.pts);
-      const k = 1 - THREE.MathUtils.smoothstep(d, lava.widthM * 0.5, lava.widthM * 1.6);
-      if (k > 0) { _c.lerp(lava.colour, k * 0.9); _c.multiplyScalar(1 + k * 0.55); }
+      const k = 1 - THREE.MathUtils.smoothstep(d, lava.widthM * 0.30, lava.widthM * 0.55);
+      if (k > 0) { _c.lerp(lava.colour, k * 0.85); _c.multiplyScalar(1 + k * 0.22); }
     }
 
     col[i * 3] = _c.r; col[i * 3 + 1] = _c.g; col[i * 3 + 2] = _c.b;
@@ -152,18 +180,24 @@ export function buildMap(field, ctx) {
     waterY = field.waterPlaneY;
     const wgeo = new THREE.PlaneGeometry(field.widthM, field.depthM, 1, 1);
     wgeo.rotateX(-Math.PI / 2);
+    scaleDetailUVs(wgeo, field.widthM, field.depthM);
     // A CLONE of the shared ground material, never the instance (CONTRACT.md
     // §4.8). Clone shares the parent's texture objects, so this material is
     // disposed by hand on teardown and never through disposeTree.
     const wmat = ctx.materials.ground.clone();
     wmat.vertexColors = false;
-    wmat.color = new THREE.Color(BIOMES[field.biomeId].albedo.low).multiplyScalar(0.55);
-    wmat.roughness = 0.16;
+    // Darker and cooler than the bank it sits in, or the pools read as mud
+    // rather than as standing water. Low roughness plus a lifted envMap is the
+    // whole trick: what makes water look like water at a raking dawn key is
+    // that it reflects the SKY and the ground does not.
+    wmat.color = new THREE.Color(BIOMES[field.biomeId].albedo.low).multiplyScalar(0.34);
+    wmat.roughness = 0.08;
     wmat.metalness = 0.0;
+    wmat.envMapIntensity = 1.6;
     wmat.transparent = true;
-    wmat.opacity = 0.66;
+    wmat.opacity = 0.80;
     wmat.depthWrite = false;
-    wmat.normalScale = new THREE.Vector2(0.12, 0.12);
+    wmat.normalScale = new THREE.Vector2(0.10, 0.10);
     owned.push(wmat);
     const water = new THREE.Mesh(wgeo, wmat);
     water.position.y = waterY;

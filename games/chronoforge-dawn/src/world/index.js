@@ -5,6 +5,7 @@ import { makeField } from './field.js';
 import { buildMap, meshCost } from './build.js';
 import { buildProto, PROTO_ID, heightAt as protoHeightAt, normalAt as protoNormalAt } from './proto.js';
 import { MAPS, PLAYER_START, TILE_M } from '../../docs/specs/world-graph.mjs';
+import { LOCKED_PITCH_DEG, LOCKED_YAW_DEG, FRAME_HEIGHT_M, CAMERA_FOV_DEG } from '../core/const.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // The world runtime — twelve authored maps plus the Phase 0 placeholder, one
@@ -205,7 +206,12 @@ export function installWorld(ctx) {
   ctx.registerShot?.('map', (c) => {
     const d = Math.max(live.widthM, live.depthM) * 1.15;
     _v.copy(focus);
-    const y = THREE.MathUtils.degToRad(214), p = THREE.MathUtils.degToRad(30);
+    /* 18 deg, not 30. At 30 the whole frame is below the horizon, so the
+       backdrop is the featureless underside of environment.js's sky dome and
+       the map reads as a plate in a void — which looks like a missing sky and
+       is a camera that never pointed at one. 18 keeps the terrain shape
+       legible and puts the horizon and its haze band in the top third. */
+    const y = THREE.MathUtils.degToRad(214), p = THREE.MathUtils.degToRad(18);
     c.camera.position.set(
       _v.x + Math.sin(y) * Math.cos(p) * d,
       _v.y + Math.sin(p) * d + 4,
@@ -213,7 +219,35 @@ export function installWorld(ctx) {
     );
     c.camera.fov = 30;
     c.camera.near = Math.max(0.35, d * 0.02);
-    c.camera.far = Math.max(1200, d * 30);
+    /* Never shorter than the sky. environment.js scales its Sky dome to
+       SKY_RADIUS 4000, which is also the engine camera's default far, and a
+       far plane cut to the MAP's size clips the dome away entirely — the
+       frame then reads as a lit plate floating in the clear colour, which
+       looks like a missing sky and is a clipped one. */
+    c.camera.far = 4000;
+    c.camera.updateProjectionMatrix();
+    c.camera.lookAt(_v);
+  });
+
+  /* The GAMEPLAY framing, as a still. Every other review camera here is a
+     reviewer's camera — it goes where a reviewer wants to stand. This one goes
+     where the game puts it: LOCKED_PITCH_DEG down, LOCKED_YAW_DEG around, and
+     backed off far enough to frame exactly FRAME_HEIGHT_M of world through a
+     CAMERA_FOV_DEG lens. It is the only shot here that answers "what does this
+     level look like while you are playing it". */
+  ctx.registerShot?.('game', (c) => {
+    const dist = (FRAME_HEIGHT_M / 2) / Math.tan(THREE.MathUtils.degToRad(CAMERA_FOV_DEG / 2));
+    const p = THREE.MathUtils.degToRad(LOCKED_PITCH_DEG);
+    const y = THREE.MathUtils.degToRad(LOCKED_YAW_DEG);
+    _v.copy(focus);
+    c.camera.position.set(
+      _v.x + Math.sin(y) * Math.cos(p) * dist,
+      _v.y + Math.sin(p) * dist,
+      _v.z + Math.cos(y) * Math.cos(p) * dist,
+    );
+    c.camera.fov = CAMERA_FOV_DEG;
+    c.camera.near = 0.5;
+    c.camera.far = 4000;
     c.camera.updateProjectionMatrix();
     c.camera.lookAt(_v);
   });

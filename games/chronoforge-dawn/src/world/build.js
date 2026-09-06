@@ -18,23 +18,31 @@ const DEG = Math.PI / 180;
 const _c = new THREE.Color();
 const _n = new THREE.Vector3();
 
-/** The world size the shared ground detail maps were tuned against.
+/** Side of one ground-detail texture tile, in world metres.
  *
  *  `materials.ground` bakes `repeat: 11` into its normal and roughness maps,
- *  and a PlaneGeometry's UVs run 0..1 whatever the plane measures — so those 11
- *  repeats land every 21.8 m on the 240 m placeholder and every 8.2 x 5.5 m on
- *  a 90 x 60 m map. That is both four times too dense and ANISOTROPIC, and it
- *  reads on screen as a woven pattern crawling over the whole surface.
+ *  and a PlaneGeometry's UVs run 0..1 whatever the plane measures. So the tile
+ *  size is set by the geometry, not the material, and the geometry is this
+ *  lane's — which matters because render/ is frozen.
  *
- *  render/ is frozen, so the fix belongs to the geometry: scale the UVs by the
- *  map's size against this reference and every map gets the placeholder's exact
- *  world-space detail density on both axes. */
-const DETAIL_REFERENCE_M = 240;
+ *  MEASURED AT THE CAMERA THAT MATTERS. Matching the 240 m placeholder's
+ *  density put one tile every 21.8 m, which is fine at the `wide` review
+ *  camera 132 m out and catastrophic at the locked gameplay camera: that one
+ *  frames FRAME_HEIGHT_M 18 m of world, so a 21.8 m tile is LARGER THAN THE
+ *  SCREEN and the normal map reads as metre-wide plastic blobs rather than as
+ *  ground. 2 m puts ~16 tiles across the frame — detail you read as surface,
+ *  and still eight vertices per tile at VERTEX_SPACING_M so it survives the
+ *  pixel-snap pass. */
+const DETAIL_TILE_M = 2.0;
 
-/** Retile the detail maps to world metres. See DETAIL_REFERENCE_M. */
+/** Repeats baked into materials.ground's detail maps by render/materials.js. */
+const GROUND_MAP_REPEAT = 11;
+
+/** Retile the detail maps to world metres, isotropically. See DETAIL_TILE_M. */
 function scaleDetailUVs(geo, widthM, depthM) {
   const uv = geo.attributes.uv;
-  const sx = widthM / DETAIL_REFERENCE_M, sy = depthM / DETAIL_REFERENCE_M;
+  const k = 1 / (DETAIL_TILE_M * GROUND_MAP_REPEAT);
+  const sx = widthM * k, sy = depthM * k;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * sx, uv.getY(i) * sy);
   uv.needsUpdate = true;
   return geo;
@@ -82,6 +90,25 @@ function lavaRoute(field) {
   return { pts, ...b.lavaChannel, colour: new THREE.Color(b.lavaChannel.emissive) };
 }
 
+// ── the sea ─────────────────────────────────────────────────────────────────
+// A `shore` carve tips the ground toward an edge, and until something fills the
+// low ground the carve reads as a plate that got thinner on one side. Only
+// grassland_ruins carves a shore; the sea is west of Haventide per the donor art
+// and heightfields.mjs's own note on that carve.
+
+/** Metres of water above the field's lowest point.
+ *
+ *  Measured, not picked: the shore drops 2.6 m over its 32 m run, so a 1.25 m
+ *  fill puts the waterline 9-13 m in from the west edge depending on z — the
+ *  coast then follows the terrain instead of ruling a straight line down the
+ *  map — and leaves roughly 4 m of wet sand above it. */
+const SHORE_SEA_LIFT_M = 1.25;
+
+/** How far past the map the water runs. The sea stops at the map's EASTERN
+ *  edge and does not wrap: filling all four sides would make Haventide an
+ *  island, which is a design change and not a blocking-in decision. */
+const SEA_REACH_M = 400;
+
 /** Albedo palette for a map. Interiors carry a `biome` key too — the floor is
  *  the region's stone, just flatter — so both paths read the same authored table. */
 function paletteOf(mapId) {
@@ -127,6 +154,9 @@ export function buildMap(field, ctx) {
   const pal = paletteOf(field.mapId);
   const lava = lavaRoute(field);
   const span = Math.max(1e-3, maxY - minY);
+  const shore = BIOMES[field.biomeId]?.carve?.kind === 'shore'
+    ? { seaY: minY + SHORE_SEA_LIFT_M }
+    : null;
   // Steepness is read against the BIOME's own ceiling, not a fixed one. The
   // placeholder's 0.22–0.7 band was cut for a 240 m field with 45° walls; these
   // fields top out at 18–33°, where `1 - n.y` never even reaches 0.22, so a
@@ -142,6 +172,15 @@ export function buildMap(field, ctx) {
     _c.copy(pal.low).lerp(pal.mid, THREE.MathUtils.smoothstep(t, 0.0, 0.45));
     _c.lerp(pal.high, THREE.MathUtils.smoothstep(t, 0.45, 0.95));
     _c.lerp(pal.cliff, THREE.MathUtils.smoothstep(slope, 0.45, 1.0));
+    // Beach. The height ramp above already reaches `low` at the bottom of the
+    // map, which for a shore biome is the wet ground — so the sand is a lerp
+    // back toward `high`, the palette's own pale rock, rather than a colour
+    // this file invented. Sand runs from a little under the waterline (visible
+    // through the water) to 0.8 m above it, so the band follows the coast.
+    if (shore) {
+      const s = 1 - THREE.MathUtils.smoothstep(y, shore.seaY - 0.9, shore.seaY + 0.8);
+      if (s > 0) _c.lerp(pal.high, s * 0.72);
+    }
     // Low-frequency mottling so the ground is never one flat wash. Kept coarse
     // on purpose — fine noise here would alias under the camera's pixel snap.
     const v = fbm2D(x * 0.031, z * 0.031, { octaves: 3, seed: 777 });
@@ -206,12 +245,52 @@ export function buildMap(field, ctx) {
     group.add(water);
   }
 
+  // ── the sea ───────────────────────────────────────────────────────────────
+  // Haventide only, and only because its biome carves a shore. Runs SEA_REACH_M
+  // past the west, north and south edges so the water reaches the horizon
+  // instead of ending in a visible rectangle; stops dead at the map's eastern
+  // edge, where the inland ground is 2 m above it and hides the cut.
+  let seaY = null;
+  if (shore) {
+    seaY = shore.seaY;
+    const w = field.halfW + SEA_REACH_M;      // west edge out to the horizon
+    const d = field.depthM + SEA_REACH_M * 2;
+    const sgeo = new THREE.PlaneGeometry(w, d, 1, 1);
+    sgeo.rotateX(-Math.PI / 2);
+    scaleDetailUVs(sgeo, w, d);
+    // A CLONE of the shared ground material, never the instance (CONTRACT.md
+    // §4.8) — disposed by hand on teardown, since it still points at the shared
+    // ground textures that disposeTree would take with it.
+    const smat = ctx.materials.ground.clone();
+    smat.vertexColors = false;
+    // Open water, unlike the bog: it is deep, so it reads by REFLECTING the sky
+    // rather than by showing the bed. Hence near-zero roughness and a lifted
+    // envMap, and a tint pulled off the biome's own damp low tone so the coast
+    // and the sea belong to one palette.
+    smat.color = new THREE.Color(BIOMES[field.biomeId].albedo.low).multiplyScalar(0.42);
+    smat.roughness = 0.05;
+    smat.metalness = 0.0;
+    smat.envMapIntensity = 2.2;
+    smat.transparent = true;
+    smat.opacity = 0.88;
+    smat.depthWrite = false;
+    smat.normalScale = new THREE.Vector2(0.06, 0.06);
+    owned.push(smat);
+    const sea = new THREE.Mesh(sgeo, smat);
+    // Centre it so its EAST edge lands on the map's east edge.
+    sea.position.set(field.halfW - w / 2, seaY, 0);
+    sea.receiveShadow = true;
+    sea.name = 'sea';
+    group.add(sea);
+  }
+
   return {
     group, owned,
     stats: {
       segX, segZ, vertices, triangles,
       minY: +minY.toFixed(2), maxY: +maxY.toFixed(2), reliefM: +(maxY - minY).toFixed(2),
       waterY: waterY == null ? null : +waterY.toFixed(2),
+      seaY: seaY == null ? null : +seaY.toFixed(2),
       lava: !!lava,
       meshes: group.children.length,
     },

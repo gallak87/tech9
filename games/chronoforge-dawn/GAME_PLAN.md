@@ -83,7 +83,7 @@ QA gate: HUMAN-VISIBLE GATE: a dev-panel control shows the rig on demand and pla
 ### Phase 2.0.1 — Free-Roam Play Sample
 Agents: `dev`
 
-COMPLETE. Human decision: the staged showcase is too prescribed — it can only be judged on what it chose to show. `?play=1` boots Kaida on real terrain under WASD with the locked follow camera, so the human finds what a fixed lineup hides: how she reads from behind, how she crests a dune, whether her feet touch the ground on a slope. Lives in src/traversal/ as a SAMPLE, not the tier — party of three, collision and footfalls stay in Phase 5. Adds Animator.timeScale so clip rate follows ground speed and the feet stop skating.
+COMPLETE, and GRADUATED 2026-09-05 — free-roam is no longer behind a flag; `&play=0` opts out and every tool passes it. Human decision: the staged showcase is too prescribed — it can only be judged on what it chose to show. Free-roam boots Kaida on real terrain under WASD with the locked follow camera, so the human finds what a fixed lineup hides: how she reads from behind, how she crests a dune, whether her feet touch the ground on a slope. Lives in src/traversal/ as a SAMPLE, not the tier — party of three, collision and footfalls stay in Phase 5. Adds Animator.timeScale so clip rate follows ground speed and the feet stop skating.
 QA gate: PASSED. Real keyboard through playwright: idle 0 -> run 3.99 -> sprint 7.60 -> release 0.02 m/s, camera follows, rig.assertLocked() true, zero module faults, 168 fps. Slopes of 16.6-38.3 deg reached while driving. Artifact: shots/play/run-a.png at 38.3 deg.
 
 ### Phase 2.x — CHARACTER REDESIGN: KAIDA ONLY
@@ -98,6 +98,7 @@ THE HUMAN IS THE LOOK GATE. An agent critic may only hold ground the human has a
 Agents: `human`
 
 GATES 2.1. Kaida's mesh is either code-built (status quo) or a rigged model file in the repo. Rigid skinning means nothing deforms, so limb shells rotate apart at every joint and leave gaps you can see through; a smooth-skinned mesh does not have this problem structurally. The art policy's ban on binary assets was reasoned about IMAGE GENERATION — "cannot draw the same character twice" — and a rigged .glb has exactly the property that reasoning wanted, so the ban does not transfer on its own logic. Options, cost and what survives a swap are in docs/PHASE2-HANDOFF.md. Only buildActor's shell changes under any option; skeleton, poses, ground IK, gates, material, sockets and the play-tester all survive.
+GRADUATED 2026-09-05: Kaida loads from assets/kaida.glb with NO FLAG. `?forge=0` forces the code-built rig, which is still what Vex, Rune and the enemies use. The outline/LOOK system was removed with her — off by default, already destroyed by shedCodeBuilt() on every forge load, and its two controls would have thrown on a disposed material. docs/phase2-retry/ still iterates without touching Phase 4.
 RULED 2026-09-04: Kaida's mesh is GENERATED, not code-built. The binary-asset ban is overturned for character meshes and their textures; it stands for procedural world materials. Pipeline spec and stage status: docs/phase2-retry/README.md.
 
 ### Phase 2.1 — Art Re-Spec, Kaida

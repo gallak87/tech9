@@ -21,7 +21,7 @@ import { LOCKED_YAW_DEG, LOCKED_PITCH_DEG, FRAME_HEIGHT_M } from '../core/const.
 //   ?showcase=traversal  lane-showcase spelling
 //   &map=<id>            any of the twelve, or `proto` for the placeholder dune
 //   &dev=1               readouts you glance at while driving
-//   &dev=2               LOOK MODE — orbit, tilt, zoom, outline, nothing else.
+//   &dev=2               LOOK MODE — orbit, tilt, zoom, nothing else.
 //                        Opens at 0deg / 32deg tilt / 3.3 m, the framing a
 //                        character is actually judged at.
 //   &tune=1              the knobs, when you actually mean to tune something
@@ -284,7 +284,7 @@ export function installTraversal(ctx) {
   if (dev) {
     dev.register({
       group: 'play', label: 'Move', type: 'readout',
-      get: () => (player ? `${speed.toFixed(1)} m/s  ${clip}` : 'off — ?play=1'),
+      get: () => (player ? `${speed.toFixed(1)} m/s  ${clip}` : 'off — ?play=0'),
     });
     dev.register({
       group: 'play', label: 'Slope', type: 'readout',

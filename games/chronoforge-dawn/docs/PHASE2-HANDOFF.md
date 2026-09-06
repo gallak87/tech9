@@ -20,7 +20,9 @@ stands for procedural world materials.
 | Engine loader | ✅ A rigged character loads, scales, maps and animates |
 | Retarget delta | ❌ `bindMode: additive` is a stand-in |
 
-`?play=1&dev=2&forge=kaida` loads the forged character.
+**GRADUATED 2026-09-05.** Kaida IS the forged character — no flag. Just open the
+game. `?forge=0` forces the code-built rig for everyone, which is the A/B when
+something looks wrong and the question is whether the mesh or the engine did it.
 
 **Supersedes 2.1–2.3 in GAME_PLAN.md.** Those phases specify cross-section
 station tables, a geobuild port and per-part silhouette passes, all of which
@@ -66,7 +68,8 @@ Human decisions. An agent may not overturn these.
 
 # What exists — code-built path
 
-Still the fallback whenever `?forge=` is absent.
+Still what Vex, Rune and the enemies are built from, and still the fallback if a
+glb fails to load. Kaida no longer uses it except under `?forge=0`.
 
 ## Play-tester — `src/traversal/index.js`
 
@@ -74,11 +77,16 @@ A **sample**, not the traversal tier: one character, no party, no collision, no
 footfalls (all Phase 5). Writes `base.x/z/yaw`; the actors lane's `place()`
 grounds her. No shared-core file touched.
 
+Graduated out of `?play=1` on 2026-09-05 — driving is how the game opens.
+
 ```
-?play=1            boot into it, no panel
-?play=1&dev=1      readouts while driving: Move / Slope / Frame / Rig / Cast / Feet
-?play=1&dev=2      LOOK MODE — Part / Outline / Ink / Spin / Orbit / Tilt / Zoom / Reset
-?play=1&tune=1     speed, damping, frame height, position
+(nothing)          boot into it, no panel
+&play=0            opt OUT. Every tool in tools/ passes this, so review captures
+                   frame the world and not the back of Kaida's head.
+&dev=1             readouts while driving: Move / Slope / Frame / Rig / Cast / Feet
+&dev=2             LOOK MODE — Spin / Orbit / Tilt / Zoom / Reset
+&tune=1            speed, damping, frame height, position
+&map=<id>          any of the twelve, or `proto` for the placeholder dune
 ```
 
 WASD / arrows · Shift sprint · Space attack · C cast · V victory · H hurt.
@@ -113,9 +121,11 @@ Her palette is **sampled** from
 `HERO_PALETTES.kaida` was invented and wrong where it is visible —
 `clothPrimary #1c2f44`, a dark navy, on a plainly teal jacket.
 
-`aInk` marks decals (belt, buckle, lapels, cuff, eyes) — parts that sit on
-another surface. They must not be expanded by the outline hull, and they sit a
-measured `CLR` clear of their host rather than coincident with it.
+Decals (belt, buckle, lapels, cuff, eyes) sit on another surface rather than
+forming the silhouette, and sit a measured `CLR` clear of their host rather than
+coincident with it. They used to also carry `aInk` so the outline hull would not
+expand them out through their host; the outline was removed 2026-09-05 and the
+attribute with it. The clearance is the half that was always about geometry.
 
 ## Ground contact — `src/actors/ground.js`, gated by `tools/ground.mjs`
 
@@ -190,8 +200,7 @@ drift. Bands surveyed with ~1.4× headroom. Kaida 2752 tri.
 | id | Next action |
 |---|---|
 | `joint-gaps` | **Add joint spheres** (r × 1.05 at shoulder/elbow/hip/knee). The existing `OVER` overlap does not and cannot fix it. Moot under mesh options B/C. |
-| `rig-gate-palette-margin-eroded` | `--selftest` MISSES `normals flipped`. The joint-overlap geometry changed the histogram until a full flip no longer clears `tv ≤ 0.28`. **Re-survey clean tv across all four characters and TIGHTEN the band to ~1.4× above the new clean worst. Do not widen it** — that deletes the assertion. |
-| `outline-hull-covers-body` | The inverted hull fills her instead of ringing her. Ruled out: winding (2204/2204 faces agree with normals) and `side` (FrontSide and BackSide fill identically). **Untested suspicion: the hull is not skinned and sits in bind pose. One test decides it — pose her to `victory` and see whether the hull's arms follow.** If not, `MeshBasicMaterial` is not compiling skinning chunks and the fix is a `ShaderMaterial` that includes them. OFF by default. |
+| `rig-gate-palette-margin-eroded` | **Partly resolved 2026-09-05**: removing the outline hull restored `normals flipped` detection — the hull was masking it. `--selftest` now misses only `limb blow-up`, a SILHOUETTE-band miss, not a palette one. Original note: The joint-overlap geometry changed the histogram until a full flip no longer clears `tv ≤ 0.28`. **Re-survey clean tv across all four characters and TIGHTEN the band to ~1.4× above the new clean worst. Do not widen it** — that deletes the assertion. |
 | `rig-toon-pivot-miscalibrated` | `uPivot 0.34` is calibrated for the gate's own lights. Under dawn exposure the cast crushes to black; 0.10 restores the palettes. Needs an **hour sweep**, not a single-frame pick. |
 | `rig-snap-subpixel` | Art call on `SPRITE_PX_PER_METRE`. Deferred — the camera-state item below may dissolve it. |
 | `camera-state-and-lod` | Human request. Player-chosen camera distance, third-person follow that rotates with her, zoom-out to watch her cross the level. **This dissolves the `SPRITE_PX_PER_METRE` question rather than answering it**: if the player picks the zoom, no single sprite density was ever right, and the design is per-camera-state LOD dropping sub-pixel work at distance. Revisit before Phase 2 closes. |
@@ -243,10 +252,6 @@ and scores a shuffle as a success.
 is ~8% of the silhouette, so painting it magenta moves whole-body `tv` less
 (0.096) than raising an arm into the key light does (0.190). `--selftest` holds
 this permanently.
-
-**Expand an outline hull along SMOOTHED normals.** The mesh is hard-edged on
-purpose, so every corner splits its vertices; expanding along the shading normal
-tears the hull open at every corner.
 
 **`src/core/devpanel.js` is INTEGRATOR ONLY**, and three of its behaviours bite:
 `update()` starts `if (root.className) return`, so adding any class to

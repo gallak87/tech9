@@ -168,7 +168,15 @@ export function installActors(ctx) {
   /* ── review cameras, registered from this file (never core/shots.js) ───── */
   const focusOf = () => (ctx.world?.focus ? ctx.world.focus.clone() : new THREE.Vector3());
 
+  /* A review camera whose subject is the cast must HAVE a cast. Nothing else
+     spawns actors in a capture boot — the harness passes play=0 so shots frame
+     the world — and an empty lineup renders as a clean, plausible, WRONG frame
+     that nothing complains about. Same failure class as the forge race: the
+     placeholder for "no subject" looks fine. */
+  function ensureCast() { if (!actors.length) { showcase(); applySolo(); } }
+
   ctx.registerShot('actors-lineup', (c) => {
+    ensureCast();
     const t = actors.length ? actors[0].root.position.clone() : focusOf();
     if (actors.length) {
       t.set(0, 0, 0);
@@ -186,6 +194,7 @@ export function installActors(ctx) {
   });
 
   ctx.registerShot('actors-crop', (c) => {
+    ensureCast();
     const a = actors[0];
     const t = a ? a.root.position.clone() : focusOf();
     t.y += 1.05 * (a?.scale ?? 1) * viewScale;
@@ -200,6 +209,7 @@ export function installActors(ctx) {
      15° yaw off the character's own forward, 6° down. The gameplay 55° pitch on
      a portrait reads as the top of a head, which is why this exists. */
   ctx.registerShot('actors-portrait', (c) => {
+    ensureCast();
     const a = actors[0];
     const t = a ? a.root.position.clone() : focusOf();
     const s = (a?.scale ?? 1) * viewScale;
@@ -255,7 +265,9 @@ export function installActors(ctx) {
      devpanel.js is integrator-only, so "collapse a group" is expressed by not
      registering it rather than by a control this file does not own. */
   const dev = ctx.dev;
-  const playing = params.get('play') === '1' || params.get('showcase') === 'traversal';
+  /* Traversal graduated out of ?play=1 — play is ON unless opted out. The
+     rig viewer is the control you want when you are NOT driving. */
+  const playing = params.get('play') !== '0' || params.get('showcase') === 'traversal';
   const tuning = params.get('tune') === '1';
   if (dev && !playing) {
     dev.register({

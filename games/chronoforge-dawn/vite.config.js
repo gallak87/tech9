@@ -45,7 +45,7 @@ function forgeWatch() {
 
       server.watcher.on('change', push);
       server.watcher.on('add', push);
-      server.config.logger.info(`forge watching ${path.relative(process.cwd(), ASSETS)}/ — load with ?forge=kaida`);
+      server.config.logger.info(`forge watching ${path.relative(process.cwd(), ASSETS)}/ — kaida loads by default, ?forge=0 for the code-built rig`);
     },
   };
 }

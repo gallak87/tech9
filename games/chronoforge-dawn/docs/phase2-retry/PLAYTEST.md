@@ -7,10 +7,10 @@ npm run dev
 ```
 
 ```
-http://localhost:5190/?play=1&dev=2&forge=kaida
+http://localhost:5190/?dev=2
 ```
 
-`?forge=kaida` loads `assets/kaida.glb`, which the pipeline produced and
+Kaida graduated 2026-09-05: `assets/kaida.glb` loads with no flag. The pipeline produced it and
 validated. Move her with the normal controls and screenshot whatever looks off.
 
 ---

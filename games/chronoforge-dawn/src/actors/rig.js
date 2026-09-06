@@ -391,8 +391,8 @@ export function buildActor({ id = 'kaida', faction = 'ally', uniforms, material 
      swaps onto it when it lands, so a missing, unrigged or unmappable glb
      leaves a character standing rather than a hole in the scene.
 
-     Dynamically imported, so GLTFLoader stays out of the bundle for every page
-     load that does not pass ?forge=. See src/actors/gltf-actor.js. */
+     Dynamically imported, so GLTFLoader stays out of the bundle for any page
+     load with no forged character on it. See src/actors/gltf-actor.js. */
   const req = forgeRequest(id);
   if (req) {
     a.forgeReady = import('./gltf-actor.js')

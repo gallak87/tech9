@@ -23,9 +23,12 @@
 
 ## Phase 2, precisely
 
-The rig question the phase existed to answer is **answered**. A Meshy-generated
-mesh, auto-rigged by Mixamo, canonicalised and installed, loads and animates in
-the game: `assets/kaida.glb`. Pipeline and stage status in `docs/phase2-retry/`.
+The rig question the phase existed to answer is **answered**, and Kaida
+**graduated on 2026-09-05**: she loads from `assets/kaida.glb` with no flag, the
+code-built rig is what Vex, Rune and the enemies still use, and `?forge=0` is the
+A/B. The outline system went with her — it was off by default and already
+destroyed on every forge load. Pipeline and stage status in `docs/phase2-retry/`,
+which still iterates independently of Phase 4.
 
 Still open: the hand-grip mesh, Vex and Rune, ground contact (2.4) and the human
 final gate (2.5). **On hold — see the un-set gate at GAME_PLAN.md Phase 2.5.**

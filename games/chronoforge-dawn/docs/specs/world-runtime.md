@@ -57,7 +57,7 @@ and its material-study prop cluster — unchanged, including `heightAt`.
 Two things depend on it and neither is allowed to break:
 
 - every probe baseline in `docs/STATUS.json`, measured on that surface
-- Phase 2.5's gate, "Kaida runs the dune" — `?play=1` needs a 34 deg slope to
+- Phase 2.5's gate, "Kaida runs the dune" — free-roam needs a 34 deg slope to
   exist somewhere
 
 **`proto` stays the default when no `map=` is given.** Switching the default is a

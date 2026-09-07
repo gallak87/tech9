@@ -14,6 +14,8 @@ The clean alpha rerun passed **61 focused native checks + six fresh-process rest
 
 The same source passed [47 foundation regressions](a1-native-regression.json) and [five foundation restarts](a1-native-regression-restart.json). [Full log](a1-native-regression.log). Four Python helper regression tests passed, and `git diff --check` was clean.
 
+Alpha checkpoint **`bbcb152`** packages the exact tested source. The final [bundle receipt](a1-build.json) records its executable/PCK hashes and verified ad-hoc signature. [Direct native keyboard smoke](a1-final-smoke.json) launched this committed app normally, used 3/Space, and observed exactly one impact and completed return with no load error. F9 recorded the same source digest as both clean native suites.
+
 ## Play and reproduce
 
 Open `dist/Chronoforge Dusk.app`; [native instructions](../../NATIVE.md) include rebuild/test commands. The current default is **Kaida r2 / Alpha a1**. An explicitly saved older candidate remains available as a previous export; select the alpha entry to review this release. WASD/arrows move, Shift runs, **3 then Space** performs a strike, K finishes the target and R resets/replays. F1 hides the panel; T slows to quarter speed; P/Step pause and advance; M shows diagnostic rig/blade/target markers. F6/F7 save/restore the candidate and tuning. Tests use separate saves and leave the owner’s acceptance file alone.
@@ -40,7 +42,7 @@ Synthetic test keys carry a marker; actual keyboard/mouse presses mark a run as 
 
 ## Native performance
 
-Measured on Apple M1 Pro / macOS 26.4.1, Godot 4.6.3 Forward+ on Metal, 1920×1080 internal viewport, 1440×810 window, 2× display scale, 60 FPS active cap. The clean alpha native report provides per-interval results. Frame intervals include pacing; they are not GPU timings. Each normal interval stores at most 600 samples, so the eight-cycle strike result represents its final approximately ten seconds. Capture/readback and reload intervals are separate.
+Measured on Apple M1 Pro / macOS 26.4.1, Godot 4.6.3 Forward+ on Metal, 1920×1080 internal viewport, 1440×810 window, 2× display scale, 60 FPS active cap. The clean alpha native report provides per-interval results. Frame intervals include pacing; they are not GPU timings. A normal review app was also open in the background during the final suites; treat these as desktop-session measurements, not isolated GPU benchmarks. Each normal interval stores at most 600 samples, so the eight-cycle strike result represents its final approximately ten seconds. Capture/readback and reload intervals are separate.
 
 
 | Alpha a1 interval | Samples | Mean ms | p95 ms | Max ms | Frames >33.34 ms | Video MB |

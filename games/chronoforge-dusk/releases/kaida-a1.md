@@ -39,3 +39,5 @@ The body remains slender and its finger fit, weight transfer and basic held-hurt
 ## Graduation verification
 
 Before the alpha checkpoint, the standalone app passed 61 Kaida checks plus six cold restarts, and 47 foundation regressions plus five cold restarts, with fresh invocation IDs and no external input. Four helper tests reject stale, incomplete or interfered evidence. Tested game source SHA-256: `6c5ffa22575c618e6b9b4c467a275e0fee47f5f4a40b09a6ac140689f5198f70`. The [graduation event](../_prep/history.jsonl) pins the release manifest and report hashes; [native evidence](../evidence/kaida-03/README.md) retains performance and captures.
+
+Release checkpoint: **`bbcb152`**. [Final bundle receipt](../evidence/kaida-03/a1-build.json) and [native keyboard smoke](../evidence/kaida-03/a1-final-smoke.json) verify the committed app matches the precommit test source and completes a normal strike/return.

@@ -1,10 +1,12 @@
 """Meaningful geometry/UV/skin rejection checks inside pinned Blender."""
 import bpy
+import copy
 from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'tools'))
 import preparation_stage as stage
+import clip_stage
 
 
 def rejects(fn, expected):
@@ -49,3 +51,19 @@ stage.skin(mesh)
 group.add([0], .5, 'REPLACE')
 rejects(lambda: stage.skin(mesh), 'not normalized')
 print('PREPARATION_FAILURE_CHECKS_OK: changed shape, changed UV, missing rig, unweighted vertex, bad weight sums rejected')
+
+# Equal bone counts alone must never authorize action transfer.
+signature = clip_stage.rig_signature(rig)
+renamed = copy.deepcopy(signature)
+renamed['bones']['Other'] = renamed['bones'].pop('Root')
+rejects(lambda: clip_stage.compare_rig(signature, renamed), 'bone names differ')
+reparented = copy.deepcopy(signature)
+reparented['bones']['Root']['parent'] = 'Other'
+rejects(lambda: clip_stage.compare_rig(signature, reparented), 'hierarchy differs')
+moved = copy.deepcopy(signature)
+moved['bones']['Root']['rest'][0][3] += .1
+rejects(lambda: clip_stage.compare_rig(signature, moved), 'rest pose or unit transform differs')
+scaled = copy.deepcopy(signature)
+scaled['object_matrix'][0][0] *= .01
+rejects(lambda: clip_stage.compare_rig(signature, scaled), 'rest pose or unit transform differs')
+print('CLIP_FAILURE_CHECKS_OK: changed bone name, hierarchy, rest matrix and unit transform rejected')

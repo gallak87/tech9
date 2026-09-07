@@ -1,0 +1,32 @@
+{
+  "preparation_format": 1,
+  "asset_id": "kaida",
+  "revision": "mixamo-clips-r1",
+  "recipe": "mixamo_clips",
+  "clips": {
+    "idle": "idle.source",
+    "run": "run.source"
+  },
+  "source_files": [
+    {
+      "role": "rigged_master",
+      "path": "assets/kaida/sources/mixamo-base-r1/master.blend",
+      "sha256": "08d35e834a4246e61d71aa1419e9ec59cca71d420caaebfe17a2e23c0c6e84be"
+    },
+    {
+      "role": "download_receipt",
+      "path": "assets/kaida/downloads/mixamo-kaida-r2/receipt.json",
+      "sha256": "0622cdc5ac4060f6dc26f8c7eb9fecb4d6507d326a6aa828f0d6ac5d6311d82c"
+    },
+    {
+      "role": "clip_idle",
+      "path": "assets/kaida/downloads/mixamo-kaida-r2/kaida-r2-idle.fbx",
+      "sha256": "4ffb00c10c49ad25631e8f3cab0eaac8a4836621d99a418227f9047e7d9a6c01"
+    },
+    {
+      "role": "clip_run",
+      "path": "assets/kaida/downloads/mixamo-kaida-r2/kaida-r2-run.fbx",
+      "sha256": "667e0ae061f4e9565f7c42597ed06534d4ba8c2e0e34ce36330467c3f5767ed2"
+    }
+  ]
+}

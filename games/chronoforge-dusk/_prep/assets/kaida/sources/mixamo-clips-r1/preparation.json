@@ -1,0 +1,81 @@
+{
+  "master": "master.blend",
+  "clips": {
+    "idle": {
+      "source": "kaida-r2-idle.fbx",
+      "source_action": "Armature|mixamo.com|Layer0",
+      "action": "idle.source",
+      "fps": 30.0,
+      "frames": [
+        1,
+        60
+      ],
+      "frame_count": 60,
+      "timeline_duration_seconds": 1.9666666666666666,
+      "source_curves_sha256": "45d539681f6015a67be50a96965f47280454b9dead8383d7fc2d0bda7d85c977",
+      "source_root_end_displacement_m": [
+        2.1897722035646439e-07,
+        1.7583370208740234e-06,
+        1.1920928955078125e-07
+      ],
+      "root_motion": "preserved; this is not an in-place runtime export",
+      "compatibility": {
+        "bone_names_match": true,
+        "hierarchy_matches": true,
+        "max_rest_matrix_delta": 0.0,
+        "max_object_matrix_delta": 0.0,
+        "included_mesh": {
+          "vertices": 40569,
+          "triangles": 81202,
+          "max_vertex_displacement_m": 0.0,
+          "max_uv_error": 0.0,
+          "triangle_connectivity_preserved": true
+        }
+      },
+      "max_transferred_pose_delta": 0.0,
+      "max_reopened_pose_delta": 0.0
+    },
+    "run": {
+      "source": "kaida-r2-run.fbx",
+      "source_action": "Armature|mixamo.com|Layer0",
+      "action": "run.source",
+      "fps": 30.0,
+      "frames": [
+        1,
+        23
+      ],
+      "frame_count": 23,
+      "timeline_duration_seconds": 0.7333333333333333,
+      "source_curves_sha256": "651fc10a147d07b326cfade5404f128ee5f17dfdb3355a1a3d31880ed0ea6610",
+      "source_root_end_displacement_m": [
+        -5.457550287246704e-07,
+        -3.711882164236158,
+        5.960464477539063e-08
+      ],
+      "root_motion": "preserved; this is not an in-place runtime export",
+      "compatibility": {
+        "bone_names_match": true,
+        "hierarchy_matches": true,
+        "max_rest_matrix_delta": 0.0,
+        "max_object_matrix_delta": 0.0,
+        "included_mesh": {
+          "vertices": 40569,
+          "triangles": 81202,
+          "max_vertex_displacement_m": 0.0,
+          "max_uv_error": 0.0,
+          "triangle_connectivity_preserved": true
+        }
+      },
+      "max_transferred_pose_delta": 0.0,
+      "max_reopened_pose_delta": 0.0
+    }
+  },
+  "skin": {
+    "bones": 65,
+    "unweighted_vertices": 0,
+    "max_influences": 7,
+    "max_weight_sum_error": 1.564621925354004e-07
+  },
+  "packed_maps": 4,
+  "status": "Source clips assembled; motion/rig finishing and missing gameplay roles remain separate"
+}

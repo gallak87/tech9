@@ -1,6 +1,6 @@
 # Kaida: reference review and manual source handoff
 
-**Current state:** the Meshy r2 model has completed Mixamo auto-rigging at its full 81,202 triangles. The returned 65-bone rig is [restored with packed textures in Blender](assets/kaida/sources/mixamo-base-r1/master.blend); gameplay clips are pending. Her current proportions are too skinny for the owner, who explicitly wants to continue with this version for now. The amber mannequin remains a separate pipeline diagnostic.
+**Current state:** the Meshy r2 model has completed Mixamo auto-rigging at its full 81,202 triangles. The textured 65-bone rig now has [idle and run source actions assembled in Blender](assets/kaida/sources/mixamo-clips-r1/master.blend). Walk, attack and hurt remain pending. Her current proportions are too skinny for the owner, who explicitly wants to continue with this version for now. The amber mannequin remains a separate pipeline diagnostic.
 
 ## Review / upload references
 
@@ -14,11 +14,13 @@ The owner generated the current model in Meshy and supplied `/Users/g/Downloads/
 
 ## Exact next input
 
-Return one **idle animation-only FBX** for the same `KAIDA-R2-GEOMETRY-ONLY` character currently in Mixamo. Keep the actual clip name/settings; start with 30 FPS and no keyframe reduction if offered. The rigged base is already retained, so it does not need downloading again. Verify this first pair before collecting the remaining roles.
+Return **walk, attack and hurt FBXs** for the same `KAIDA-R2-GEOMETRY-ONLY` character currently in Mixamo. Prefer animation-only downloads; matching downloads with skin are supported too. Keep the actual clip name/settings; start with 30 FPS and no keyframe reduction if offered. The rigged base, idle and run are already retained and their compatibility is verified.
 
-Open [the textured rigged Blender source](assets/kaida/sources/mixamo-base-r1/master.blend) for inspection now. The downloaded two-frame action is a static T-pose, facing opposite the original A-pose; the editor view faces it from the front. Rig transforms/rest pose/actions are retained for compatible clip import. World-space bind geometry and per-corner UVs match the original prepared master, with no geometry reduction or proportion change.
+Open [the animated textured Blender source](assets/kaida/sources/mixamo-clips-r1/master.blend) and press Space to inspect `idle.source` over frames 1–60. To inspect `run.source`, select the armature, choose that action in the Dope Sheet's Action Editor and set the timeline to frames 1–23. Both play at 30 FPS. The run still travels forward by 3.71188 m; its source motion is intentionally retained for later in-place finishing. The original two-frame static T-pose remains a separate action.
 
-[Reusable local Mixamo steps](MIXAMO.md) now automate the texture-free upload and source-material restoration via `pipeline.py prepare`. The owner's successful upload was [the r2 geometry-only FBX](assets/kaida/exports/mixamo-upload-r2/kaida-r2-geometry-only.fbx). The earlier textured upload failed at the upload stage; the generic upload recipe has also been verified locally as revision r3.
+Both clips' bone names, hierarchy, rest matrices, unit transform and included geometry/UVs matched the retained base exactly. Every integer-frame bone pose matched after action transfer and save/reopen. Four scratch Blender renders confirmed textured mesh deformation; knee/boot transitions and bent elbows still need polish. This source check does not establish foot-contact, loop or game-scale acceptance. No geometry reduction or proportion change was applied.
+
+[Reusable local Mixamo steps](MIXAMO.md) automate the texture-free upload, source-material restoration and compatible clip assembly via `pipeline.py prepare`. The owner's successful upload was [the r2 geometry-only FBX](assets/kaida/exports/mixamo-upload-r2/kaida-r2-geometry-only.fbx). The earlier textured upload failed at the upload stage; the generic upload recipe has also been verified locally as revision r3.
 
 The owner may replace this body later; see [review notes](assets/kaida/REVIEW_NOTES.md). Treat a regenerated model as a new source revision and recheck rigging, weights, animation compatibility and grip. Continue the pipeline now, and settle proportions before extensive deformation and animation polish.
 
@@ -42,7 +44,7 @@ Those are gameplay roles, not invented service clip names. Record the names actu
 
 ## Finishing and delivery
 
-Import the base and first clip into Blender; compare bone names, hierarchy, rest matrices, unit scale and facing. A matching name alone does not establish compatibility. Assign compatible source motion to the retained skeleton; otherwise correct/retarget deliberately. Retain useful bones/actions and source clips. Check foot contacts, wrist/grip, shoulder deformation, self-intersections and frame ranges. Keep original and corrected actions/masters as distinct revisions.
+Use `mixamo_clips` to assemble compatible batches onto the retained master; compare facing visually as well. Bone names alone do not establish compatibility. An incompatible clip needs deliberate correction/retargeting. Retain useful bones/actions and source clips. Check foot contacts, wrist/grip, shoulder deformation, self-intersections and frame ranges. Keep original and corrected actions/masters as distinct revisions.
 
 The current `skeletal_blend` recipe begins at that **finished Blender master**. It is not an automatic retargeter or a general Mixamo importer. Its one automatic motion correction removes the declared top-level bone's X/Y translation in Blender coordinates; it requires aligned root axes. An incompatible root basis, armature-object travel, constraints, or different displacement arrangement needs explicit Blender finishing and inspection before using this operation. Recheck actual output motion; never relabel it as in-place to silence a failure.
 

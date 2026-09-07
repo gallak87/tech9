@@ -215,7 +215,9 @@ def main():
     metadata = json.loads(Path(args[0]).read_text())
     out = Path(args[1])
     sources = {s['role']: PREP/s['path'] for s in metadata['source_files']}
-    operation = {'mixamo_upload': upload, 'mixamo_restore': restore}[metadata['recipe']]
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from clip_stage import assemble
+    operation = {'mixamo_upload': upload, 'mixamo_restore': restore, 'mixamo_clips': assemble}[metadata['recipe']]
     report = operation(metadata, out, sources)
     (out/'preparation.json').write_text(json.dumps(report, indent=2)+'\n')
     print('PREPARATION_OK', metadata['recipe'], json.dumps(report))

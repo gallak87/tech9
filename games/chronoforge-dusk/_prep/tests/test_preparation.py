@@ -71,5 +71,61 @@ class PreparationFailures(unittest.TestCase):
         self.assertEqual((destination/'owner.blend').read_bytes(), b'keep this')
 
 
+class ClipPreparationFailures(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name).resolve()
+        self.batch = self.root/'assets/test/downloads/clips'
+        self.batch.mkdir(parents=True)
+        master = self.root/'master.blend'
+        master.write_bytes(b'retained textured rig')
+        clip = self.batch/'idle.fbx'
+        clip.write_bytes(b'original motion')
+        receipt = self.batch/'receipt.json'
+        pipeline.write(receipt, {'asset_id':'test', 'files':{'idle.fbx':pipeline.sha(clip)}})
+        self.meta = {'preparation_format':1, 'asset_id':'test', 'revision':'r1', 'recipe':'mixamo_clips',
+                     'clips':{'idle':'idle.source'},
+                     'source_files':[{'role':role, 'path':p.relative_to(self.root).as_posix(), 'sha256':pipeline.sha(p)}
+                                     for role,p in [('rigged_master',master),('download_receipt',receipt),('clip_idle',clip)]]}
+        self.patcher = patch.object(pipeline, 'PREP', self.root)
+        self.patcher.start()
+        self.addCleanup(self.patcher.stop)
+
+    def test_supported_partial_batch_is_valid(self):
+        pipeline.validate_preparation(self.meta)
+
+    def test_missing_and_unsupported_roles_are_rejected(self):
+        for clips, expected in [({},'supported gameplay'), ({'dance':'dance.source'},'supported gameplay'),
+                                ({'idle':'idle.source','run':'run.source'},'Wrong preparation source roles')]:
+            meta = copy.deepcopy(self.meta)
+            meta['clips'] = clips
+            with self.assertRaisesRegex(ValueError, expected):
+                pipeline.validate_preparation(meta)
+
+    def test_ambiguous_and_unsafe_action_names_are_rejected(self):
+        for clips in [{'idle':'shared','run':'shared'}, {'idle':'../escaped'}]:
+            self.meta['clips'] = clips
+            with self.assertRaisesRegex(ValueError, 'distinct safe source action names'):
+                pipeline.validate_preparation(self.meta)
+
+    def test_changed_clip_is_rejected_even_if_metadata_is_updated(self):
+        clip = self.batch/'idle.fbx'
+        clip.write_bytes(b'replaced motion')
+        self.meta['source_files'][2]['sha256'] = pipeline.sha(clip)
+        with self.assertRaisesRegex(ValueError, 'Clip does not match its receipt'):
+            pipeline.validate_preparation(self.meta)
+
+    def test_clip_must_belong_to_declared_asset_and_batch(self):
+        other = self.root/'assets/other/downloads/clips'
+        other.mkdir(parents=True)
+        for item in self.batch.iterdir():
+            (other/item.name).write_bytes(item.read_bytes())
+        for source in self.meta['source_files'][1:]:
+            source['path'] = source['path'].replace('assets/test/', 'assets/other/')
+        with self.assertRaisesRegex(ValueError, 'declared download batch'):
+            pipeline.validate_preparation(self.meta)
+
+
 if __name__ == '__main__':
     unittest.main()

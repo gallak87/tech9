@@ -4,7 +4,7 @@ A fresh Godot implementation of the original Chronoforge: a stylized 2.5D strate
 
 **Status: native foundation implemented (01).** The Godot project, traversal patch, prepared diagnostic assets, development views, rehearsal action and savable tuning are working. The 01 standalone Mac app passed 46 runtime checks plus 4 cold-restart checks. Game visuals and motion remain diagnostic placeholders. See [run/build instructions](NATIVE.md) and [foundation evidence](evidence/README.md).
 
-**02 local tooling is verified:** metadata-selected static and skeletal recipes, preserved sources and immutable candidates, with [22 native runtime checks](_prep/evidence/proofs-r1/README.md). The owner's real Meshy Kaida is [retained and prepared for Blender/Mixamo](_prep/assets/kaida/README.md). Her proportions are provisional; the 65-bone rig is restored with textures, and gameplay clips are pending. See [ROADMAP.md](ROADMAP.md) for the sequence. Numbered assignments live in [_plans/](_plans).
+**02 local tooling is verified:** metadata-selected static and skeletal recipes, preserved sources and immutable candidates, with [22 native runtime checks](_prep/evidence/proofs-r1/README.md). The owner's real Meshy Kaida is [retained with a textured rig and idle/run source actions](_prep/assets/kaida/README.md). Her proportions are provisional; walk, attack, hurt and animation finishing remain pending. See [ROADMAP.md](ROADMAP.md) for the sequence. Numbered assignments live in [_plans/](_plans).
 
 ## The direction
 

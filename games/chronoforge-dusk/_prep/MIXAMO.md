@@ -1,6 +1,6 @@
 # Manual Mixamo round trip with automated local preparation
 
-The local stages are `mixamo_upload` and `mixamo_restore`, selected by preparation metadata through `pipeline.py prepare`. These stages retain source geometry, UVs, rig and actions; hosted upload, marker placement and downloads remain manual. A prepared rig still needs animation finishing before the `skeletal_blend` candidate recipe.
+The local stages are `mixamo_upload`, `mixamo_restore` and `mixamo_clips`, selected by preparation metadata through `pipeline.py prepare`. These stages retain source geometry, UVs, rig and actions; hosted upload, marker placement and downloads remain manual. A prepared rig still needs animation finishing before the `skeletal_blend` candidate recipe.
 
 ## 1. Prepare the upload
 
@@ -43,6 +43,22 @@ Output: `assets/<asset_id>/sources/<revision>/master.blend`, with packed source 
 
 The current restore scope is one mesh, one UV set and one packed source material. A changed topology, changed UV layout, transformed bind mesh or different source structure stops with an error instead of guessing material or rig correspondence. It does not retarget clips, reduce influences, normalize rig axes or label a T-pose as an idle animation.
 
+## 4. Assemble compatible source clips
+
+Download clips for the same uploaded character, starting with 30 FPS and no keyframe reduction if offered. Animation-only FBXs avoid redundant geometry; downloads with skin also work when their bind mesh and UVs match the retained master. Preserve the actual selected settings and original motion. Retain the new batch with a receipt before assembly.
+
+Use [Kaida's clip metadata](assets/kaida/rigging/assemble-clips-r1.json) as the template. `clips` maps any supplied subset of the five gameplay roles to distinct Blender action names, such as `{"idle":"idle.source","run":"run.source"}`. Its hashed `source_files` contain `rigged_master`, `download_receipt`, and one `clip_<role>` FBX per mapping. All FBXs in one invocation must belong to the declared asset and receipt batch.
+
+```sh
+python3 _prep/pipeline.py prepare _prep/assets/kaida/rigging/assemble-clips-r1.json
+```
+
+Output: `assets/<asset_id>/sources/<revision>/master.blend`. The recipe checks bone names, hierarchy, rest matrices, armature transform and FPS against the retained rig. It transfers only actions, preserving the existing textured mesh, maps and source actions. It checks curve data and every integer-frame bone pose against each imported FBX, then repeats those checks after reopening the saved master. It stops on incompatibility instead of attempting retargeting.
+
+The master opens with idle active if supplied, otherwise the first supplied role, and the matching playback range. In Blender, select the armature and use the Dope Sheet's Action Editor to choose another source action; set the timeline to its recorded frame range. For a later batch, use this assembled master as `rigged_master`, choose a fresh output revision and add only new action names. Existing names refuse replacement; corrected versions need distinct names.
+
+Kaida's [assembled master](assets/kaida/sources/mixamo-clips-r1/master.blend) contains `idle.source` (1–60) and `run.source` (1–23), both at 30 FPS, plus the original static T-pose. All 65-bone poses matched exactly after transfer and save/reopen. The run retains 3.71188 m of forward travel. This step does not convert motion to in-place, normalize axes or reduce skin influences.
+
 ## Revisions and checks
 
 Existing output revisions refuse overwrite. Copy the metadata and use a new revision to rebuild. Sources, settings, scripts and tool versions are recorded in each package manifest; publication happens only after checks pass. A Blender stage that returns an error retains its diagnostic log under ignored `_prep/.build/`; failed preparation publishes no finished revision. Blender is pinned to 5.1.1 / b70da489d7f4.
@@ -52,4 +68,4 @@ python3 -m unittest discover -s _prep/tests -v
 blender --background --factory-startup --python-exit-code 1 --python _prep/tests/preparation_blender_checks.py
 ```
 
-Next for Kaida: obtain one actual idle clip without skin for this same uploaded character, at 30 FPS with no keyframe reduction if available. Check the base/clip pair before collecting walk, run, attack and hurt. Preserve the original clips and options. Source transforms, root axes, up to seven returned influences per vertex, final export facing and the separate sword still need the normal Blender finishing/game checks.
+Next for Kaida: obtain walk, attack and hurt for the same uploaded character, at 30 FPS with no keyframe reduction if available. Idle and run are retained and assembled. Preserve new original clips and options. Source transforms, root axes, up to seven returned influences per vertex, knee/elbow deformation, final export facing and the separate sword still need the normal Blender finishing/game checks.

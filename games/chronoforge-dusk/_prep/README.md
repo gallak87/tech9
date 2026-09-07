@@ -1,6 +1,6 @@
 # Asset preparation for Chronoforge Dusk
 
-**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida geometry and rig are acquired; textures are restored and gameplay clips are pending.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current reference and exact next inputs](KAIDA_HANDOFF.md) and [proof evidence](evidence/proofs-r1/README.md).
+**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida has a textured rig with idle/run source actions; walk, attack, hurt and finishing remain pending.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current reference and exact next inputs](KAIDA_HANDOFF.md) and [proof evidence](evidence/proofs-r1/README.md).
 
 **The game owns asset consumption, preview, inspection, tuning, and playtesting.** `_prep` does not contain a second engine or the authoritative character viewer. Asset work is evaluated through the actual Dusk runtime and its development mode.
 
@@ -71,14 +71,15 @@ To rebuild an existing source, copy its metadata, give it a new `revision`, and 
 
 ## Humanoid rigging preparation
 
-Before the finished `skeletal_blend` recipe, use [the reusable Mixamo upload/restore steps](MIXAMO.md):
+Before the finished `skeletal_blend` recipe, use [the reusable Mixamo upload/restore/clip steps](MIXAMO.md):
 
 ```sh
 python3 _prep/pipeline.py prepare _prep/assets/kaida/rigging/upload-r3.json
 python3 _prep/pipeline.py prepare _prep/assets/kaida/rigging/restore-base-r1.json
+python3 _prep/pipeline.py prepare _prep/assets/kaida/rigging/assemble-clips-r1.json
 ```
 
-These example revisions already exist; use a new revision to rebuild. Preparation metadata selects `mixamo_upload` or `mixamo_restore`, records hashed inputs, and publishes to the asset's export/source directory. It does not create a runtime descriptor. Uploads omit materials without reducing geometry; restoration checks the returned bind mesh and UVs before reattaching packed source maps. See the linked guide for the manual provider step, input constraints and failure checks.
+These example revisions already exist; use a new revision to rebuild. Preparation metadata selects `mixamo_upload`, `mixamo_restore` or `mixamo_clips`, records hashed inputs, and publishes to the asset's export/source directory. It does not create a runtime descriptor. Uploads omit materials without reducing geometry; restoration checks the returned bind mesh and UVs before reattaching packed source maps. Clip assembly checks skeleton/rest/scale/FPS compatibility and preserves source motion on the textured rig. See the linked guide for the manual provider step, input constraints and failure checks.
 
 ## Production metadata and packages
 

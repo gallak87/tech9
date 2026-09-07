@@ -25,6 +25,7 @@ RECIPES = {'static_blend': ('prop','none'), 'skeletal_blend': ('character','skel
 PREPARATION_RECIPES = {
     'mixamo_upload': ({'editable_master'}, 'exports'),
     'mixamo_restore': ({'reference_master','rigged_download','download_receipt'}, 'sources'),
+    'mixamo_clips': ({'rigged_master','download_receipt'}, 'sources'),
 }
 
 
@@ -185,6 +186,12 @@ def validate_preparation(metadata):
     require(token(metadata.get('asset_id')) and token(metadata.get('revision')), 'Invalid preparation identity')
     require(metadata.get('recipe') in PREPARATION_RECIPES, 'Unknown preparation recipe')
     roles, _ = PREPARATION_RECIPES[metadata['recipe']]
+    if metadata['recipe'] == 'mixamo_clips':
+        clips = metadata.get('clips', {})
+        require(clips and set(clips) <= ROLES, 'Declare supported gameplay clip roles')
+        require(all(token(name) for name in clips.values()) and len(set(clips.values())) == len(clips),
+                'Declare distinct safe source action names')
+        roles = roles | {'clip_'+role for role in clips}
     files = metadata.get('source_files', [])
     require(len(files) == len(roles) and {s['role'] for s in files} == roles, 'Wrong preparation source roles')
     require(len({s['path'] for s in files}) == len(files), 'Duplicate preparation source')
@@ -192,7 +199,7 @@ def validate_preparation(metadata):
     for source in files:
         path = inside(PREP, source['path'])
         require(path.is_file() and sha(path) == source['sha256'], 'Missing or changed preparation source: '+str(path))
-        if source['role'] in {'editable_master','reference_master'}:
+        if source['role'] in {'editable_master','reference_master','rigged_master'}:
             require(path.suffix == '.blend', 'Preparation needs a retained Blender master')
         sources[source['role']] = path
     require(metadata.get('view_from', '+Y') in {'+Y','-Y'}, 'Unsupported editor view direction')
@@ -205,6 +212,16 @@ def validate_preparation(metadata):
         receipt = read(receipt_path)
         require(receipt.get('asset_id') == metadata['asset_id'] and receipt.get('files',{}).get(raw.name) == sha(raw),
                 'Retained download does not match its receipt')
+    elif metadata['recipe'] == 'mixamo_clips':
+        receipt_path = sources['download_receipt']
+        receipt = read(receipt_path)
+        root = (PREP/'assets'/metadata['asset_id']/'downloads').resolve()
+        require(receipt.get('asset_id') == metadata['asset_id'], 'Receipt asset identity mismatch')
+        for role in metadata['clips']:
+            raw = sources['clip_'+role]
+            require(raw.suffix.lower() == '.fbx' and raw.is_relative_to(root)
+                    and receipt_path == raw.parent/'receipt.json', 'Retain each clip in the declared download batch')
+            require(receipt.get('files',{}).get(raw.name) == sha(raw), 'Clip does not match its receipt')
     return metadata
 
 

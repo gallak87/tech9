@@ -1,0 +1,149 @@
+extends Node
+## Focused native route regression. Every route segment uses mapped input events.
+var game: DuskCoast
+var checks: Array[Dictionary] = []
+var observations: Dictionary = {}
+var failures: int = 0
+var held: Array[int] = []
+var started: int
+var minimum_y: float = 100.0
+var max_air_frames: int = 0
+var air_frames: int = 0
+
+func run(root: DuskCoast) -> void:
+	game = root
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	started = Time.get_ticks_msec()
+	game.set_unfocused(false)
+	var save_before: String = FileAccess.get_sha256("user://accepted_tuning.json") if FileAccess.file_exists("user://accepted_tuning.json") else "absent"
+	await seconds(3)
+	check(game.actor.visual != null and game.load_error.is_empty(),"Real Kaida loads through the existing assembly")
+	check(game.actor.position.distance_to(Vector3(-11,0,13)) < 0.05 and game.actor.is_on_floor(),"Cold start is grounded before any reset")
+	check(game.site.import_errors.is_empty(),"All selected static scenery imports validate")
+	check(game.actor.visual.descriptor.revision == "a1","Kaida a1 package retained")
+	check(is_equal_approx(game.actor.walk_speed,float(game.tuning.values.walk_speed)),"Accepted movement tuning applied")
+	check(is_equal_approx(game.camera.size,19.5),"Authored framing independent of saved inspection camera")
+	if "--environment-restart" in OS.get_cmdline_user_args():
+		finish("environment_restart")
+		return
+	game.perf.begin("arrival_stationary_10s")
+	await seconds(10)
+	game.perf.begin("captures_readback")
+	await capture("arrival")
+	game.perf.begin("complete_route_walk")
+	var route: Array[Vector3] = [Vector3(-5,0,13),Vector3(-5,0,8),Vector3(12.8,0,8),Vector3(13.3,0,2),Vector3(13.3,3,-13.5),Vector3(-3,3,-14),Vector3(-11,3,-14),Vector3(-11,3,-21),Vector3(-11,3,-14),Vector3(-12,0,8),Vector3(-11,0,13)]
+	for i: int in range(route.size()):
+		await walk_to(route[i],false)
+		check(game.actor.position.distance_to(route[i]) < 0.85,"Walk route waypoint %02d reached at expected height" % i)
+		if i in [2,5,7]:
+			game.perf.begin("captures_readback")
+			await capture(["crossing","upper-ruin","overlook"][[2,5,7].find(i)])
+			game.perf.begin("walk_after_capture_%d" % i)
+	game.perf.begin("complete_route_run")
+	route.reverse()
+	for i: int in range(route.size()):
+		await walk_to(route[i],true)
+		check(game.actor.position.distance_to(route[i]) < 0.9,"Run return waypoint %02d reached at expected height" % i)
+	check(minimum_y > -0.08 and max_air_frames < 12,"Route stays grounded across slope seams without falling")
+	observations["route_contact"] = {"minimum_y_m":minimum_y,"max_consecutive_air_frames":max_air_frames}
+	game.perf.begin("boundary_checks")
+	await walk_to(Vector3(-16.8,0,18.8),true)
+	# Run deliberately into the south parapet, then release and turn away.
+	set_keys([KEY_S,KEY_SHIFT])
+	await seconds(1.5)
+	set_keys([])
+	await seconds(0.25)
+	check(game.actor.position.z < 19.55 and game.actor.position.y < 0.08,"Outer parapet stops a running capsule without climbing or falling")
+	await walk_to(Vector3(-12,0,15),false)
+	check(game.actor.position.distance_to(Vector3(-12,0,15)) < 0.9,"Can turn out of a boundary corner")
+	await key(KEY_ESCAPE)
+	var paused_at: Vector3 = game.actor.position
+	set_keys([KEY_W])
+	game.perf.begin("pause_4s")
+	await seconds(4)
+	set_keys([])
+	check(game.actor.position == paused_at and Engine.max_fps == 30 and game.pause_panel.visible,"Pause freezes movement and shows resume/reset/quit at 30 FPS")
+	await key(KEY_ESCAPE)
+	await walk_to(Vector3(-11,0,12),false)
+	check(not game.get_tree().paused and game.actor.position.distance_to(paused_at) > 1,"Input works after resuming")
+	game.set_unfocused(true)
+	game.perf.begin("inactive_handler_3s")
+	await seconds(3)
+	check(Engine.max_fps == 10 and game.get_tree().paused,"Inactive handler pauses at 10 FPS")
+	game.set_unfocused(false)
+	await key(KEY_R)
+	await seconds(0.5)
+	check(game.actor.position.distance_to(Vector3(-11,0,13)) < 0.05 and game.actor.is_on_floor(),"R restores safe spawn and grounded feet")
+	var save_after: String = FileAccess.get_sha256("user://accepted_tuning.json") if FileAccess.file_exists("user://accepted_tuning.json") else "absent"
+	check(save_before == save_after,"Exploration leaves owner acceptance file byte-for-byte intact")
+	observations["accepted_tuning_sha256"] = save_after
+	observations["focus_checks"] = "Simulated game focus handler; direct OS focus separately recorded"
+	observations["input_path"] = "Input.parse_input_event, physical WASD and Shift; no route teleporting"
+	finish("environment")
+
+func walk_to(target: Vector3, running: bool) -> void:
+	var deadline: int = Time.get_ticks_msec()+22000
+	while Vector2(target.x-game.actor.position.x,target.z-game.actor.position.z).length() > (0.38 if running else 0.25) and Time.get_ticks_msec()<deadline:
+		var desired: Vector3 = (target-game.actor.position)
+		desired.y = 0
+		desired = desired.normalized()
+		var best: float = -2
+		var chosen: Array[int] = []
+		for pair: Vector2 in [Vector2(0,-1),Vector2(1,-1),Vector2(1,0),Vector2(1,1),Vector2(0,1),Vector2(-1,1),Vector2(-1,0),Vector2(-1,-1)]:
+			var direction: Vector3 = game.camera.global_basis.x*pair.x + game.camera.global_basis.z*pair.y
+			direction.y = 0
+			var score: float = direction.normalized().dot(desired)
+			if score > best:
+				best = score
+				chosen = []
+				if pair.x != 0: chosen.append(KEY_D if pair.x>0 else KEY_A)
+				if pair.y != 0: chosen.append(KEY_S if pair.y>0 else KEY_W)
+		if running: chosen.append(KEY_SHIFT)
+		set_keys(chosen)
+		await get_tree().physics_frame
+		minimum_y = minf(minimum_y,game.actor.position.y)
+		air_frames = 0 if game.actor.is_on_floor() else air_frames+1
+		max_air_frames = maxi(max_air_frames,air_frames)
+	set_keys([])
+	await seconds(0.18)
+
+func set_keys(keys: Array[int]) -> void:
+	for code: int in held:
+		if code not in keys: send_key(code,false)
+	for code: int in keys:
+		if code not in held: send_key(code,true)
+	held = keys.duplicate()
+
+func send_key(code: int, pressed: bool) -> void:
+	var event := InputEventKey.new()
+	event.physical_keycode = code
+	event.pressed = pressed
+	event.set_meta("dusk_test_input",true)
+	Input.parse_input_event(event)
+
+func key(code: int) -> void:
+	send_key(code,true)
+	await get_tree().process_frame
+	send_key(code,false)
+	await get_tree().process_frame
+
+func seconds(duration: float) -> void:
+	await get_tree().create_timer(duration,true,false,true).timeout
+
+func check(passed: bool, title: String) -> void:
+	checks.append({"pass":passed,"check":title})
+	if not passed: failures += 1
+	print("DUSK_ENV_CHECK ","PASS " if passed else "FAIL ",title," ",game.actor.position)
+
+func capture(label: String) -> void:
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png("user://environment-"+label+".png")
+
+func finish(label: String) -> void:
+	set_keys([])
+	var report: Dictionary = {"identity":game.identity(),"checks":checks,"failures":failures,"observations":observations,"intervals":game.perf.report(),"duration_seconds":(Time.get_ticks_msec()-started)/1000.0}
+	var file := FileAccess.open("user://test_"+label+".json",FileAccess.WRITE)
+	file.store_string(JSON.stringify(report,"\t"))
+	file.close()
+	print("DUSK_ENV_FINISHED ",label," ",failures)
+	get_tree().quit(1 if failures else 0)

@@ -11,9 +11,9 @@ config_version=5
 [application]
 
 config/name="Chronoforge Dusk"
-config/description="Kaida — playable traversal and strike rehearsal"
-config/version="0.3.0-alpha.1"
-run/main_scene="res://development/foundation.tscn"
+config/description="Kaida explores a reclaimed coastal ruin"
+config/version="0.6.0-alpha.1"
+run/main_scene="res://launch.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 run/max_fps=60
 

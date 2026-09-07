@@ -145,6 +145,8 @@ func _ready() -> void:
 func bind_inputs() -> void:
 	var bindings: Dictionary = {"move_left": [KEY_A, KEY_LEFT], "move_right": [KEY_D, KEY_RIGHT], "move_forward": [KEY_W, KEY_UP], "move_back": [KEY_S, KEY_DOWN], "run": [KEY_SHIFT]}
 	for name: String in bindings:
+		if InputMap.has_action(name):
+			continue
 		InputMap.add_action(name)
 		for code: int in bindings[name]:
 			var key := InputEventKey.new()
@@ -267,6 +269,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_3: set_mode(2)
 		KEY_SPACE: command("attack")
 		KEY_F1: command("panel")
+		KEY_F2:
+			get_tree().paused = false
+			Engine.time_scale = 1.0
+			Engine.max_fps = 60
+			get_tree().change_scene_to_file("res://environment/coast.tscn")
 		KEY_T: command("slow")
 		KEY_M: command("markers")
 		KEY_H: command("hurt")

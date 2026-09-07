@@ -1,0 +1,18 @@
+{
+  "asset_id": "kaida",
+  "attribution": "Owner-generated model; provider plan and applicable attribution terms not supplied; retain as unresolved provenance metadata.",
+  "batch": "meshy-r2",
+  "files": {
+    "Meshy_AI_Crimson_Sky_Ranger_0907075011_texture.fbx": "c30f21edf7b80e65d0b490b52b08ddbe91215b4dfa77b1430c9981ee927b82d1",
+    "Meshy_AI_Crimson_Sky_Ranger_0907075011_texture.png": "9be9186086d36aa242508c8e8fb30fb917bee6a664794d28b1b5b5b03db504ec",
+    "Meshy_AI_Crimson_Sky_Ranger_0907075011_texture_metallic.png": "368ad7ec9cf4cd824e68bd5bfcb1b581511472ec150098e17c144a63ebc8042d",
+    "Meshy_AI_Crimson_Sky_Ranger_0907075011_texture_normal.png": "54c3978e4d1bc7f524686ca4f10575f4cf25470fa8659290ffc0c94f7e80d8f9",
+    "Meshy_AI_Crimson_Sky_Ranger_0907075011_texture_roughness.png": "7e4044d988f088cf5c22a4cfcbe0140acacb72f785861e0b492ebf544115079b"
+  },
+  "notes": "FBX plus base-color, metallic, normal and roughness PNGs supplied. Original filenames retained; job URL/generation options not supplied.",
+  "options": null,
+  "origin": "Owner-supplied /Users/g/Downloads/kaida_r2/ on 2026-09-07",
+  "provider": "Meshy",
+  "reference": "references/kaida/r2/kaida-a-pose-r2.png",
+  "retained_at": "2026-09-07T07:52:56.991199+00:00"
+}

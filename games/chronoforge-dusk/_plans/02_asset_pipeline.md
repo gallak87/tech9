@@ -1,6 +1,6 @@
 # 02 — Asset pipeline and Kaida source handoff
 
-**Type:** bounded tooling assignment plus manual-assisted asset acquisition. **Status:** local tooling complete and verified with static/skinned diagnostics; owner-supplied Kaida Meshy r2 geometry retained and prepared; proportions provisional, rig/clips pending manual acquisition.
+**Type:** bounded tooling assignment plus manual-assisted asset acquisition. **Status:** local tooling complete and verified with static/skinned diagnostics; owner-supplied Kaida Meshy r2 geometry retained and prepared; proportions provisional, rig and textures restored, gameplay clips pending manual acquisition.
 
 **Requires:** 01's concrete runtime descriptor for final export/integration. Reference inspection and source acquisition can begin alongside 01.
 
@@ -21,7 +21,7 @@ A small production pipeline with metadata-selected stages, versioned candidates,
 7. Document and, when the owner supplies the inputs, process the manual Mixamo round trip: upload the prepared humanoid, place/check markers, download the rigged base and selected clips for that same skeleton, and retain names/options. Base-with-skin plus animation-only downloads are a starting convention to verify.
 8. Assemble/finish source motion in Blender, retain useful bones and clips, and export declared animation roles. Reimport the actual output to check skin, textures, scale, facing, clips, and attachments. Supply the candidate to the game lane for 03.
 
-The first useful roles are idle, walk, one attack, and a basic reaction; refinement adds the rest. Do not strip imported animation to reproduce Dawn's old contract. Preserve source root motion while conforming exports to the game's chosen displacement policy.
+The first complete runtime candidate needs idle, walk, run, one attack, and a basic reaction: format 1 requires all five roles. Verify the first base/idle pair before collecting the rest. Do not strip imported animation to reproduce Dawn's old contract. Preserve source root motion while conforming exports to the game's chosen displacement policy.
 
 ## Manual inputs and diagnosis
 
@@ -41,4 +41,14 @@ Deliver a candidate manifest/example, reproducible commands, a simple static pro
 
 ## Implementation handoff
 
-See the [local commands and manifests](../_prep/README.md), [22-check native runtime evidence](../_prep/evidence/proofs-r1/README.md), and [Kaida reference/source handoff](../_prep/KAIDA_HANDOFF.md). Both local recipes retain masters, maps, source motion, export scenes/settings and immutable candidate packages. The owner requested the original-sprite-based 2D A-pose and separate blade, then simplified the cuffs/forearms in reference r2. The owner supplied Meshy r2's FBX and four PNG maps. [Source preparation](../_prep/assets/kaida/README.md) preserves the original download, packed Blender masters, named maps, mesh proportions and topology, with verified FBX/GLB reimports. The owner considers her too skinny and wants to continue with this provisional body. No production rig or clips have arrived; step 03 still requires a finished real character candidate.
+See the [local commands and manifests](../_prep/README.md), [22-check native runtime evidence](../_prep/evidence/proofs-r1/README.md), and [Kaida reference/source handoff](../_prep/KAIDA_HANDOFF.md). Both local recipes retain masters, maps, source motion, export scenes/settings and immutable candidate packages. The owner requested the original-sprite-based 2D A-pose and separate blade, then simplified the cuffs/forearms in reference r2. The owner supplied Meshy r2's FBX and four PNG maps. [Source preparation](../_prep/assets/kaida/README.md) preserves the original download, packed Blender masters, named maps, mesh proportions and topology, with verified FBX/GLB reimports. The owner considers her too skinny and wants to continue with this provisional body. Mixamo accepted the full mesh without textures and returned a 65-bone rig. The reusable `mixamo_upload` and `mixamo_restore` preparation steps now automate that local round trip; see [MIXAMO.md](../_prep/MIXAMO.md). Gameplay clips and rig/export finishing remain pending; step 03 still requires a finished real character candidate.
+
+## Reuse notes and spot-check — 2026-09-07
+
+The implemented source/recipe split still matches this plan. Both preparation commands ran on the real Kaida; 13 local tests and five Blender rejection checks passed. Runtime format 1 remains unchanged. The following refinements should carry into the next character:
+
+- **Use the automated local steps:** [MIXAMO.md](../_prep/MIXAMO.md) documents `pipeline.py prepare` with `mixamo_upload` and `mixamo_restore`, including metadata templates. Prepared uploads omit materials/maps; returned rigs recover the packed source material only after bind-geometry and per-corner UV checks. Current scope is one triangulated mesh, one UV set and one source material.
+- **Preserve geometry while diagnosing uploads.** Kaida's full 81,202 triangles uploaded and rigged successfully without textures after the textured upload failed. The old 24k success did not establish a triangle ceiling. Do not adopt blanket decimation or infer an existing rig from Mixamo's generic mapping-error text.
+- **Keep rigging output intact until clip finishing.** The returned base has 65 bones, up to seven weights per vertex and a two-frame static T-pose facing opposite its original A-pose. The restore tool changes the editor view, not the rig or action. Preserve those sources; verify compatible clips, then handle axes, influence limits and in-place export deliberately. A static T-pose is not idle.
+- **Reuse the game foundation.** Supply immutable candidate revisions with embedded materials and all five clips, a separate weapon dependency, and actual character dimensions/grip. Keep controller displacement and saved tuning game-owned. The diagnostic rig paths, height and grip offsets are examples, not defaults for the next character.
+- **Current stopping point:** Kaida's textured rig is ready for Blender review, with proportions still provisional. An actual idle clip is the next input; remaining clips, deformation/grip review and a finished runtime candidate are pending. No new native-app validation or visual acceptance is implied by these preparation checks.

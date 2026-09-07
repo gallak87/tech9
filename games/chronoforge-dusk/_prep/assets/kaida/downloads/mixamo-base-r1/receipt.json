@@ -1,0 +1,18 @@
+{
+  "asset_id": "kaida",
+  "attribution": "Owner-supplied Mixamo auto-rig of retained owner-generated Meshy r2; original Meshy provider-plan terms remain unresolved in its receipt.",
+  "batch": "mixamo-base-r1",
+  "files": {
+    "kaida-r2-geometry-only.fbx": "652514afb1b41e884953be8b287caace7c224dd7b6c3b09827db0f1d08ae43e2"
+  },
+  "notes": "Owner confirmed geometry-only upload succeeded and rig preview looked good. This retains the returned file unchanged; facing and skin are checked locally.",
+  "options": {
+    "download_settings": "Not shown; inspect downloaded content",
+    "skeleton_lod": "Standard Skeleton (65), visible in owner screenshot",
+    "symmetry": true
+  },
+  "origin": "Owner download /Users/g/Downloads/kaida-r2-geometry-only.fbx on 2026-09-07",
+  "provider": "Mixamo",
+  "retained_at": "2026-09-07T08:29:59.445775+00:00",
+  "upload": "exports/mixamo-upload-r2/kaida-r2-geometry-only.fbx"
+}

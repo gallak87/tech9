@@ -1,0 +1,9 @@
+00:00.476  blend            | Read blend: "/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/assets/kaida/sources/meshy-r2/kaida-r2-prepared.blend"
+
+FBX export starting... '/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/.build/preparation-k1vy2cg_/kaida-geometry-only.fbx'
+export finished in 0.1243 sec.
+FBX version: 7400
+PREPARATION_OK mixamo_upload {"vertices": 40569, "triangles": 81202, "max_vertex_displacement_m": 3.0919909477233887e-07, "max_uv_error": 0.0, "triangle_connectivity_preserved": true, "armatures": 0, "images": 0, "material_slots": 0, "upload": "kaida-geometry-only.fbx", "service_acceptance": "Not implied by local export validation"}
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit

@@ -10,5 +10,9 @@ A replacement body should be a new immutable source/candidate revision. Expect a
 
 - Meshy added small brown wristbands, despite the r2 reference's exposed forearms/wrists. Record this mismatch for the next visual pass. The supplied source and current working geometry preserve them.
 - Front/back/side hand close-ups show separate fingers. Finger webs and the thumb profile have uneven contours; inspect finger curl and sword grip after rigging before investing in local cleanup. The six retained renders are source inspection, not deformation approval.
-- The current mesh has no rig or animation. A closed surface and clean import do not establish hand/joint deformation quality.
+- The returned Mixamo base has 65 bones and a static two-frame T-pose. The owner liked its rig preview; gameplay clips and hand/joint deformation review remain pending.
 - The separate sword remains a 2D reference. It is not included in the humanoid upload.
+
+## Mixamo upload lesson
+
+The 81,202-triangle textured FBX failed before marker placement. Removing material/media content let the same geometry upload and rig successfully; no 24k reduction was needed. Use the reusable `mixamo_upload` and `mixamo_restore` steps in [MIXAMO.md](../../MIXAMO.md) for subsequent characters. The original download, materials and source weights remain retained.

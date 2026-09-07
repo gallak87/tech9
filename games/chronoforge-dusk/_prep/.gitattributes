@@ -1,0 +1,2 @@
+# Treat generated mesh payloads as assets instead of enormous text diffs.
+*.obj binary

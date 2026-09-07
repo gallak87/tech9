@@ -1,0 +1,24 @@
+{
+  "asset_id": "kaida",
+  "preparation_format": 1,
+  "recipe": "mixamo_restore",
+  "revision": "mixamo-base-r1",
+  "source_files": [
+    {
+      "path": "assets/kaida/sources/meshy-r2/kaida-r2-prepared.blend",
+      "role": "reference_master",
+      "sha256": "54668bf151b5fd2b6ba08ecbc4e74927fb1dc8dd2fe2124dad103178f6d49e86"
+    },
+    {
+      "path": "assets/kaida/downloads/mixamo-base-r1/kaida-r2-geometry-only.fbx",
+      "role": "rigged_download",
+      "sha256": "652514afb1b41e884953be8b287caace7c224dd7b6c3b09827db0f1d08ae43e2"
+    },
+    {
+      "path": "assets/kaida/downloads/mixamo-base-r1/receipt.json",
+      "role": "download_receipt",
+      "sha256": "dc1e5b4b1f06a1ad4c8be6d0c20ffe78884d0af4edd82e5c51d567c8bc22a0a2"
+    }
+  ],
+  "view_from": "-Y"
+}

@@ -14,7 +14,7 @@
 8. **[08 — Expand one region at a time](_plans/08_expand_the_game.md).** Choose and deliver the next region from the wider Chronoforge direction. Repeat the proven loop until the agreed game arc is complete. **Future planning outline; refine each region when reached.**
 9. **[09 — Finish and package the game](_plans/09_finish_and_package.md).** Close progression/story gaps, validate the complete playthrough, tune performance and usability, and deliver the native application and source. **Future completion outline.**
 
-**01 is complete. 02's local tooling is complete with diagnostic static/skeletal proof; real Kaida geometry is acquired and prepared, with rig/clips pending. Steps 03–09 are not started.** See [02](_plans/02_asset_pipeline.md) for the current source handoff. Update individual statuses when work actually happens; do not infer completion from documents or disconnected code.
+**01 is complete. 02's local tooling is complete with diagnostic static/skeletal proof; real Kaida geometry and rig are acquired, with textures restored and gameplay clips pending. Steps 03–09 are not started.** See [02](_plans/02_asset_pipeline.md) for the current source handoff. Update individual statuses when work actually happens; do not infer completion from documents or disconnected code.
 
 ## What to give a new agent
 
@@ -24,7 +24,7 @@ For a bounded task, provide this instruction with the selected plan's absolute p
 
 “Complete” includes honestly identifying missing source assets or manual inputs. A placeholder or structural test does not establish that Kaida is finished. Each implementation handoff should also identify the game/asset revisions tested and the next bounded action.
 
-**01 supplied the runnable foundation and runtime handoff; 02's local recipes now consume it.** The immediate next input is [a rigged Kaida base and first idle clip](_prep/KAIDA_HANDOFF.md) from the prepared FBX, followed by the remaining roles on the same skeleton. The game lane owns the shared runtime descriptor; pipeline tools consume it rather than inventing another runtime format.
+**01 supplied the runnable foundation and runtime handoff; 02's local recipes now consume it.** The immediate next input is [a first idle clip for the retained Kaida rig](_prep/KAIDA_HANDOFF.md) from the prepared FBX, followed by the remaining roles on the same skeleton. The game lane owns the shared runtime descriptor; pipeline tools consume it rather than inventing another runtime format.
 
 For a new planning session, use [PLANNER.md](PLANNER.md) to recover the intent behind this sequence and scope the next assignment from actual results.
 

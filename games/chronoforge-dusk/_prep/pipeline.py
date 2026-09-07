@@ -22,6 +22,10 @@ BLENDER_HASH = 'b70da489d7f4'
 ROLES = {'idle','walk','run','attack','hurt'}
 OUTPUTS = {'runtime/model.glb','runtime/descriptor.json','working/export.blend','inspection.json','reimport.json'}
 RECIPES = {'static_blend': ('prop','none'), 'skeletal_blend': ('character','skeletal')}
+PREPARATION_RECIPES = {
+    'mixamo_upload': ({'editable_master'}, 'exports'),
+    'mixamo_restore': ({'reference_master','rigged_download','download_receipt'}, 'sources'),
+}
 
 
 def require(condition, message):
@@ -176,6 +180,68 @@ def build(metadata_path):
     print(destination/'manifest.json')
 
 
+def validate_preparation(metadata):
+    require(metadata.get('preparation_format') == 1, 'Unsupported preparation metadata')
+    require(token(metadata.get('asset_id')) and token(metadata.get('revision')), 'Invalid preparation identity')
+    require(metadata.get('recipe') in PREPARATION_RECIPES, 'Unknown preparation recipe')
+    roles, _ = PREPARATION_RECIPES[metadata['recipe']]
+    files = metadata.get('source_files', [])
+    require(len(files) == len(roles) and {s['role'] for s in files} == roles, 'Wrong preparation source roles')
+    require(len({s['path'] for s in files}) == len(files), 'Duplicate preparation source')
+    sources = {}
+    for source in files:
+        path = inside(PREP, source['path'])
+        require(path.is_file() and sha(path) == source['sha256'], 'Missing or changed preparation source: '+str(path))
+        if source['role'] in {'editable_master','reference_master'}:
+            require(path.suffix == '.blend', 'Preparation needs a retained Blender master')
+        sources[source['role']] = path
+    require(metadata.get('view_from', '+Y') in {'+Y','-Y'}, 'Unsupported editor view direction')
+    if metadata['recipe'] == 'mixamo_restore':
+        raw, receipt_path = sources['rigged_download'], sources['download_receipt']
+        require(raw.suffix.lower() == '.fbx', 'Restore currently supports returned FBX files')
+        root = PREP/'assets'/metadata['asset_id']/'downloads'
+        require(raw.is_relative_to(root.resolve()) and receipt_path == raw.parent/'receipt.json',
+                'Retain the rigged download and receipt before preparation')
+        receipt = read(receipt_path)
+        require(receipt.get('asset_id') == metadata['asset_id'] and receipt.get('files',{}).get(raw.name) == sha(raw),
+                'Retained download does not match its receipt')
+    return metadata
+
+
+def prepare(metadata_path):
+    metadata_path = Path(metadata_path).resolve()
+    metadata = validate_preparation(read(metadata_path))
+    _, category = PREPARATION_RECIPES[metadata['recipe']]
+    destination = PREP/'assets'/metadata['asset_id']/category/metadata['revision']
+    require(not destination.exists(), 'Preparation revision exists; choose a new revision')
+    binary, versions = toolchain()
+    identity = inputs(metadata, versions)
+    temporary = PREP/'.build'
+    temporary.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='preparation-', dir=temporary) as work:
+        out = Path(work)
+        write(out/'metadata.json', metadata)
+        with (out/'build.log').open('w') as log:
+            command = [binary,'--background','--factory-startup','--python-exit-code','1',
+                       '--python',str(PREP/'tools/preparation_stage.py'),'--',str(out/'metadata.json'),str(out)]
+            result = subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=180)
+        if result.returncode:
+            failure = Path(tempfile.mkdtemp(prefix='failed-preparation-',dir=temporary))
+            shutil.copytree(out,failure,dirs_exist_ok=True)
+            raise ValueError('Preparation failed; inspect '+str(failure))
+        current = validate_preparation(read(metadata_path))
+        require(inputs(current, versions) == identity, 'Preparation inputs changed during execution')
+        expected = ('master.blend' if category == 'sources' else metadata['asset_id']+'-geometry-only.fbx')
+        require((out/expected).is_file() and (out/'preparation.json').is_file(), 'Preparation output missing')
+        write(out/'manifest.json', {'preparation_package_format':1, 'asset_id':metadata['asset_id'],
+              'revision':metadata['revision'], 'recipe':metadata['recipe'], 'inputs':identity,
+              'files':{p.relative_to(out).as_posix():sha(p) for p in out.rglob('*') if p.is_file()},
+              'status':'Local preparation complete; runtime candidate and visual acceptance not implied'})
+        destination.parent.mkdir(parents=True,exist_ok=True)
+        out.rename(destination)
+    print(destination/expected)
+
+
 def handoff(manifest_path, register):
     manifest_path = Path(manifest_path).resolve()
     require(manifest_path.is_relative_to(PREP/'candidates'), 'Handoff requires a local candidate')
@@ -255,7 +321,7 @@ def main():
     retain_parser.add_argument('--batch',required=True)
     retain_parser.add_argument('--receipt',required=True)
     retain_parser.add_argument('files',nargs='+')
-    for name in ('inspect','build'):
+    for name in ('inspect','build','prepare'):
         command = sub.add_parser(name)
         command.add_argument('metadata')
     for name in ('verify','handoff','record-review'):
@@ -275,6 +341,8 @@ def main():
             print(json.dumps(validate(read(args.metadata)),indent=2))
         elif args.command == 'build':
             build(args.metadata)
+        elif args.command == 'prepare':
+            prepare(args.metadata)
         elif args.command == 'verify':
             manifest = verify(args.manifest)
             print(manifest['asset_id'],manifest['revision'],'verified; visual status:',manifest['visual_status'])

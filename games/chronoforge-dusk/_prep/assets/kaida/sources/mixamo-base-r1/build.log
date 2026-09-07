@@ -1,0 +1,8 @@
+00:00.508  blend            | Read blend: "/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/assets/kaida/sources/meshy-r2/kaida-r2-prepared.blend"
+00:02.297  blend            | Read blend: "/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/.build/preparation-mic2tm3j/master.blend"
+FBX version: 7700
+Info: Saved as "master.blend"
+PREPARATION_OK mixamo_restore {"vertices": 40569, "triangles": 81202, "max_vertex_displacement_m": 4.770772648043931e-07, "max_uv_error": 0.0, "triangle_connectivity_preserved": true, "skin": {"bones": 65, "unweighted_vertices": 0, "max_influences": 7, "max_weight_sum_error": 1.564621925354004e-07}, "actions": [{"name": "Armature|mixamo.com|Layer0", "range": [1.0, 2.0]}], "endpoint_pose_change_m": 0.0, "packed_maps": 4, "master": "master.blend", "status": "Rig and source actions retained; animation finishing and runtime candidate remain separate"}
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit

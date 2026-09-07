@@ -1,6 +1,6 @@
 # Asset preparation for Chronoforge Dusk
 
-**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida geometry is acquired and prepared; rig/clips are pending.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current reference and exact next inputs](KAIDA_HANDOFF.md) and [proof evidence](evidence/proofs-r1/README.md).
+**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida geometry and rig are acquired; textures are restored and gameplay clips are pending.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current reference and exact next inputs](KAIDA_HANDOFF.md) and [proof evidence](evidence/proofs-r1/README.md).
 
 **The game owns asset consumption, preview, inspection, tuning, and playtesting.** `_prep` does not contain a second engine or the authoritative character viewer. Asset work is evaluated through the actual Dusk runtime and its development mode.
 
@@ -34,7 +34,7 @@ Use hosted generation/rigging where useful and manual downloads where practical.
 
 Keep raw downloads and editable sources. Export candidates into distinct revisions and preserve the last accepted version. Passing structural checks means an asset is ready to evaluate, not that it looks or plays correctly.
 
-02's tooling proof uses a newly authored static grip probe and a genuinely skinned diagnostic mannequin. The mannequin is not Kaida or a character-quality target. The real-asset proof now has [prepared Kaida geometry](assets/kaida/README.md) and still requires her rig and clips, followed by in-game refinement in 03. Do not generate the entire cast, enemy roster, or biome catalog upfront. Do not copy Dawn's assets, skeleton contract, or processing code.
+02's tooling proof uses a newly authored static grip probe and a genuinely skinned diagnostic mannequin. The mannequin is not Kaida or a character-quality target. The real-asset proof now has [prepared Kaida geometry](assets/kaida/README.md) and still requires gameplay clips and rig finishing, followed by in-game refinement in 03. Do not generate the entire cast, enemy roster, or biome catalog upfront. Do not copy Dawn's assets, skeleton contract, or processing code.
 
 The Godot project is in sibling `../game/`, so production sources stay outside its import/export scope. Only explicitly handed-off runtime GLBs/descriptors enter the game.
 
@@ -68,6 +68,17 @@ godot --path "$PWD/game" --script "$PWD/_prep/tools/runtime_probe.gd" --resoluti
 To rebuild an existing source, copy its metadata, give it a new `revision`, and run `build` on that copy. The static r2 candidate demonstrates this: its model GLB is byte-identical to r1 while its candidate identity/path is distinct. Builds are explicit, without a cache or automatic provider calls. Source and dependency hashes are rechecked before publishing a package atomically. Handoff is a separate operation and refuses changed runtime bytes at an existing revision.
 
 `python3 tools/native.py run` opens the updated game; its candidate selector uses descriptor labels, including **Skinned diagnostic / NOT KAIDA**. Static props are loaded by the probe and attachments; the existing development selector is for characters. The previously packaged `.app` is not refreshed by `import`; use `python3 tools/native.py export` to rebuild it. The 02 evidence uses the native editor binary running the actual game scene.
+
+## Humanoid rigging preparation
+
+Before the finished `skeletal_blend` recipe, use [the reusable Mixamo upload/restore steps](MIXAMO.md):
+
+```sh
+python3 _prep/pipeline.py prepare _prep/assets/kaida/rigging/upload-r3.json
+python3 _prep/pipeline.py prepare _prep/assets/kaida/rigging/restore-base-r1.json
+```
+
+These example revisions already exist; use a new revision to rebuild. Preparation metadata selects `mixamo_upload` or `mixamo_restore`, records hashed inputs, and publishes to the asset's export/source directory. It does not create a runtime descriptor. Uploads omit materials without reducing geometry; restoration checks the returned bind mesh and UVs before reattaching packed source maps. See the linked guide for the manual provider step, input constraints and failure checks.
 
 ## Production metadata and packages
 

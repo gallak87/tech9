@@ -1,0 +1,12 @@
+{
+  "vertices": 40569,
+  "triangles": 81202,
+  "max_vertex_displacement_m": 3.0919909477233887e-07,
+  "max_uv_error": 0.0,
+  "triangle_connectivity_preserved": true,
+  "armatures": 0,
+  "images": 0,
+  "material_slots": 0,
+  "upload": "kaida-geometry-only.fbx",
+  "service_acceptance": "Not implied by local export validation"
+}

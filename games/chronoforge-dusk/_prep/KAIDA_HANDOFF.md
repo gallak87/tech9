@@ -1,6 +1,6 @@
 # Kaida: reference review and manual source handoff
 
-**Current state:** the owner supplied Meshy r2 geometry and all four PBR maps. The [real Kaida is prepared for Blender inspection and manual rigging](assets/kaida/README.md); no production rig or clips have arrived. Her current proportions are too skinny for the owner, who explicitly wants to continue with this version for now. The amber mannequin remains a separate pipeline diagnostic.
+**Current state:** the Meshy r2 model has completed Mixamo auto-rigging at its full 81,202 triangles. The returned 65-bone rig is [restored with packed textures in Blender](assets/kaida/sources/mixamo-base-r1/master.blend); gameplay clips are pending. Her current proportions are too skinny for the owner, who explicitly wants to continue with this version for now. The amber mannequin remains a separate pipeline diagnostic.
 
 ## Review / upload references
 
@@ -14,13 +14,15 @@ The owner generated the current model in Meshy and supplied `/Users/g/Downloads/
 
 ## Exact next input
 
-Upload [kaida-r2-for-mixamo.fbx](assets/kaida/exports/rigging-r1/kaida-r2-for-mixamo.fbx). It contains the real Kaida mesh and embedded textures, with empty hands. Inspect the rig preview and return one **rigged base with skin** plus one **idle animation-only FBX** for that same character first, with the selected settings and clip name. The local Blender import will check their compatibility before collecting the remaining roles.
+Return one **idle animation-only FBX** for the same `KAIDA-R2-GEOMETRY-ONLY` character currently in Mixamo. Keep the actual clip name/settings; start with 30 FPS and no keyframe reduction if offered. The rigged base is already retained, so it does not need downloading again. Verify this first pair before collecting the remaining roles.
 
-For inspection now, open [kaida-r2-prepared.blend](assets/kaida/sources/meshy-r2/kaida-r2-prepared.blend). It has four packed 2048 × 2048 maps, metre units, ground origin, Blender Z up and +Y forward. Source height is 1.89819 m; no height, topology or proportion adjustment was made. The import master and original FBX are retained separately. Front/back/side and hand views, structural measurements and export reimport checks are linked in the [source overview](assets/kaida/README.md).
+Open [the textured rigged Blender source](assets/kaida/sources/mixamo-base-r1/master.blend) for inspection now. The downloaded two-frame action is a static T-pose, facing opposite the original A-pose; the editor view faces it from the front. Rig transforms/rest pose/actions are retained for compatible clip import. World-space bind geometry and per-corner UVs match the original prepared master, with no geometry reduction or proportion change.
+
+[Reusable local Mixamo steps](MIXAMO.md) now automate the texture-free upload and source-material restoration via `pipeline.py prepare`. The owner's successful upload was [the r2 geometry-only FBX](assets/kaida/exports/mixamo-upload-r2/kaida-r2-geometry-only.fbx). The earlier textured upload failed at the upload stage; the generic upload recipe has also been verified locally as revision r3.
 
 The owner may replace this body later; see [review notes](assets/kaida/REVIEW_NOTES.md). Treat a regenerated model as a new source revision and recheck rigging, weights, animation compatibility and grip. Continue the pipeline now, and settle proportions before extensive deformation and animation polish.
 
-Keep original rig/clip download names and settings. Retain each new batch through `pipeline.py retain` before editing it; do not overwrite the Meshy batch. The current GLB is an unrigged inspection export, not a game-ready character candidate.
+Keep original rig/clip download names and settings. Retain each new batch through `pipeline.py retain` before editing it; do not overwrite the Meshy batch. The earlier GLB is still an unrigged inspection export; a complete runtime character candidate remains pending.
 
 ## Manual Mixamo round trip
 

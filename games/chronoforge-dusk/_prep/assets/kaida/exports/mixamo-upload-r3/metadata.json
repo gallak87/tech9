@@ -1,0 +1,13 @@
+{
+  "asset_id": "kaida",
+  "preparation_format": 1,
+  "recipe": "mixamo_upload",
+  "revision": "mixamo-upload-r3",
+  "source_files": [
+    {
+      "path": "assets/kaida/sources/meshy-r2/kaida-r2-prepared.blend",
+      "role": "editable_master",
+      "sha256": "54668bf151b5fd2b6ba08ecbc4e74927fb1dc8dd2fe2124dad103178f6d49e86"
+    }
+  ]
+}

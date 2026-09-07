@@ -1,6 +1,6 @@
 # 03 — Kaida in game
 
-**Type:** iterative asset/game refinement with owner playtesting. **Status:** unblocked by 02’s real `kaida/r2` candidate and native integration smoke check; owner-led refinement remains to begin.
+**Type:** iterative asset/game refinement with owner playtesting. **Status:** unblocked by 02’s real `kaida/r4` candidate and native integration smoke check; the owner has rejected earlier grip/arm passes; the latest grip fit awaits review and broader motion/presentation refinement remains.
 
 **Requires:** the working native foundation from 01 and a real new Kaida model/rig/clip candidate through 02. If manual source inputs remain missing, resolve those first; a test actor cannot satisfy this step.
 

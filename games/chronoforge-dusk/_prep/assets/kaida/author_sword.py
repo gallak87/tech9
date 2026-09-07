@@ -69,6 +69,13 @@ prism('Pommel',[(0,0),(-.034,.040),(-.016,.065),(.016,.065),(.034,.040)],.040,da
 for side in (-1,1):
     prism('Pommel gem',[(0,.017),(-.009,.038),(0,.051),(.009,.038)],.002,pink,y=side*.021)
 
+# Fit the handle to Kaida's hand; blade, guard and length retain their design.
+for obj in bpy.context.scene.objects:
+    if obj.name == 'Grip' or obj.name.startswith('Grip binding'):
+        for vertex in obj.data.vertices:
+            vertex.co.x *= .7
+            vertex.co.y *= .7
+
 bpy.context.scene.unit_settings.scale_length=1
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'master.blend'))
-(out/'authoring.json').write_text(json.dumps({'reference':'references/kaida/r1/kaida-energy-sword-r1.png','height_m':1.20,'grip_center_z_m':.135,'origin':'pommel base','status':'First authored separate prop; review pending'},indent=2)+'\n')
+(out/'authoring.json').write_text(json.dumps({'reference':'references/kaida/r1/kaida-energy-sword-r1.png','height_m':1.20,'handle_cross_section_scale':.7,'grip_center_z_m':.135,'origin':'pommel base','status':'First authored separate prop; review pending'},indent=2)+'\n')

@@ -20,3 +20,9 @@ The 81,202-triangle textured FBX failed before marker placement. Removing materi
 ## First grounded animation review — correction required
 
 The owner inspected `demos/foundation-r1/kaida-foundation-review.blend` and found the sword fingers bending the wrong way and the rising elbow unnatural. These are defects in the authored grip/arm pass, not evidence that the model needs regeneration. Runtime r2 passes integration checks but is not visually accepted. Correct finger flexion toward the palm, the thumb wrap, elbow path and wrist rotation, then inspect close-ups through the full strike before replacing the review file.
+
+## Follow-up grip fit — review pending
+
+The owner also rejected `foundation-r2`: fingers still failed to enclose the shaft. Its runtime r3 was exported/imported but did not receive a new native probe or visual acceptance. The label “corrected grip and arm” was premature.
+
+[Foundation R3](demos/foundation-r3/README.md) moves the socket forward near the knuckles, angles it across the palm, uses individual finger poses and thumb targets, and fits a narrower handle. Palm/back/fingertip source close-ups were inspected at frames 1, 15 and 21, with all attack frames rendered/measured. The generated hand contours and grip pressure still merit owner review. The slash remains a motion draft; a suitable source attack plus local cleanup is the recommended next quality pass. No body regeneration or proportion edits were made.

@@ -1,22 +1,22 @@
 {
   "production_format": 1,
   "asset_id": "kaida.energy-sword",
-  "revision": "r1",
-  "label": "Kaida energy sword / first pass",
+  "revision": "r2",
+  "label": "Kaida energy sword / fitted handle",
   "kind": "prop",
   "animation_mode": "none",
   "placeholder": false,
   "recipe": "static_blend",
   "source_files": [
     {
-      "path": "assets/kaida.energy-sword/sources/r1/master.blend",
+      "path": "assets/kaida.energy-sword/sources/r2/master.blend",
       "role": "editable_master",
-      "sha256": "02175b1d3572abff7ac245b1d531ec6fd131ab668b0de9bdabd85e687cb7b42e"
+      "sha256": "4bb6466bea10ebdb7e943ba6df0c099355c4a5c7a290446f98f496f821a9473b"
     },
     {
       "path": "assets/kaida/author_sword.py",
       "role": "authoring_script",
-      "sha256": "41c5e4293cba29f27a1b4e59628aa39d7c6d11cdebb8c5c0b07de50b74567d95"
+      "sha256": "1a7c012ae20108ade8a544839fb6ad9b3584eb19f02bb3870fcc265f580d225d"
     },
     {
       "path": "references/kaida/r1/kaida-energy-sword-r1.png",

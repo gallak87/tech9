@@ -1,6 +1,6 @@
 # Asset preparation for Chronoforge Dusk
 
-**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida runtime r2 now has all five gameplay clips, a separate sword, and a verified native rehearsal; owner review and 03 polish remain pending.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current source and candidate handoff](KAIDA_HANDOFF.md) and [proof evidence](evidence/proofs-r1/README.md).
+**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida runtime r4 now has all five gameplay clips, a separate sword, and a verified native rehearsal; owner review and 03 polish remain pending.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current source and candidate handoff](KAIDA_HANDOFF.md) and [proof evidence](evidence/proofs-r1/README.md).
 
 **The game owns asset consumption, preview, inspection, tuning, and playtesting.** `_prep` does not contain a second engine or the authoritative character viewer. Asset work is evaluated through the actual Dusk runtime and its development mode.
 
@@ -34,7 +34,7 @@ Use hosted generation/rigging where useful and manual downloads where practical.
 
 Keep raw downloads and editable sources. Export candidates into distinct revisions and preserve the last accepted version. Passing structural checks means an asset is ready to evaluate, not that it looks or plays correctly.
 
-02's tooling proof uses a newly authored static grip probe and a genuinely skinned diagnostic mannequin. The mannequin is not Kaida or a character-quality target. The real-asset proof now has [prepared Kaida geometry](assets/kaida/README.md) and a [five-clip runtime candidate](assets/kaida/demos/foundation-r1/README.md), ready for in-game refinement in 03. Do not generate the entire cast, enemy roster, or biome catalog upfront. Do not copy Dawn's assets, skeleton contract, or processing code.
+02's tooling proof uses a newly authored static grip probe and a genuinely skinned diagnostic mannequin. The mannequin is not Kaida or a character-quality target. The real-asset proof now has [prepared Kaida geometry](assets/kaida/README.md) and a [five-clip runtime candidate](assets/kaida/demos/foundation-r3/README.md), ready for in-game refinement in 03. Do not generate the entire cast, enemy roster, or biome catalog upfront. Do not copy Dawn's assets, skeleton contract, or processing code.
 
 The Godot project is in sibling `../game/`, so production sources stay outside its import/export scope. Only explicitly handed-off runtime GLBs/descriptors enter the game.
 

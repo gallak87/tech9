@@ -1,0 +1,56 @@
+{
+  "source_master": "assets/kaida/sources/mixamo-clips-r1/master.blend",
+  "source_sha256": "97fd3c2bc6c9d6f442aea753c6609adfc45a09f8d3a60b6e85e919a950f6f95d",
+  "source_actions_sha256": {
+    "Armature|mixamo.com|Layer0": "641b47bae398829281d8c49c44e34f567fd43c2fb2c877be2fdcbac8f4ea533d",
+    "idle.source": "45d539681f6015a67be50a96965f47280454b9dead8383d7fc2d0bda7d85c977",
+    "run.source": "651fc10a147d07b326cfade5404f128ee5f17dfdb3355a1a3d31880ed0ea6610"
+  },
+  "canonical_pose_max_error_m": 7.275674114068569e-07,
+  "source_root_travel_m": {
+    "idle": [
+      -2.1897722035646439e-07,
+      -1.7583370208740234e-06,
+      1.1920928955078125e-07
+    ],
+    "run": [
+      8.702627383172512e-07,
+      3.7118821144104004,
+      5.960464477539063e-08
+    ]
+  },
+  "retained_bones": 65,
+  "added_bones": [
+    "MotionRoot",
+    "SwordSocket"
+  ],
+  "weight_limit": 4,
+  "vertices_with_reduced_influences": 779,
+  "max_discarded_weight": 0.05908501148223877,
+  "clips": {
+    "attack": [
+      1.0,
+      41.0
+    ],
+    "hurt": [
+      1.0,
+      24.0
+    ],
+    "idle": [
+      1.0,
+      60.0
+    ],
+    "run": [
+      1.0,
+      23.0
+    ],
+    "walk": [
+      1.0,
+      21.0
+    ]
+  },
+  "attack_contact_frame": 21,
+  "attack_contact_fraction": 0.5,
+  "walk_nominal_speed_m_s": 2.28,
+  "status": "Authored first pass; visual and runtime checks pending"
+}

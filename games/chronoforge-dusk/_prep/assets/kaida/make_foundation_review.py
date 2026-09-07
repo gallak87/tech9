@@ -15,10 +15,10 @@ assert revision.replace('-','').isalnum()
 out=PREP/'assets/kaida/demos'/revision
 assert not out.exists(), 'Choose a new review revision'
 out.mkdir(parents=True)
-bpy.ops.wm.open_mainfile(filepath=str(PREP/'assets/kaida/sources/foundation-r1/master.blend'))
+bpy.ops.wm.open_mainfile(filepath=str(PREP/'assets/kaida/sources/foundation-r3/master.blend'))
 base=bpy.context.scene
 rig=bpy.data.objects['KaidaRig']
-with bpy.data.libraries.load(str(PREP/'assets/kaida.energy-sword/sources/r1/master.blend'),link=False) as (src,dst):
+with bpy.data.libraries.load(str(PREP/'assets/kaida.energy-sword/sources/r2/master.blend'),link=False) as (src,dst):
     dst.objects=src.objects
 socket=bpy.data.objects.new('Separate sword - follows hand socket',None)
 base.collection.objects.link(socket)
@@ -76,7 +76,7 @@ for screen in bpy.data.screens:
         elif area.type=='DOPESHEET_EDITOR':
             area.ui_type='DOPESHEET'
             area.spaces.active.mode='ACTION'
-            area.spaces.active.dopesheet.show_only_selected=True
+            area.spaces.active.dopesheet.show_only_selected=False
 readme=bpy.data.texts.new('START HERE - five animation scenes')
 readme.write('''KAIDA FOUNDATION REVIEW — first pass, not final polish
 
@@ -89,7 +89,7 @@ Leave the Action Editor action assigned as-is when using these scenes.
 Attack: frames 1–41. Anticipation 15, contact 21, recovery complete 41.
 All playback is 30 FPS. Walk/run are in place; Godot moves the character.
 The earlier wave demo is a separate file. This review copy has the five game roles.
-Production master: assets/kaida/sources/foundation-r1/master.blend.
-Game candidate: assets/kaida/r2. This viewing copy is not an export source.
+Production master: assets/kaida/sources/foundation-r3/master.blend.
+Game candidate: assets/kaida/r4. This viewing copy is not an export source.
 ''')
-bpy.ops.wm.save_as_mainfile(filepath=str(out/'kaida-foundation-review.blend'))
+bpy.ops.wm.save_as_mainfile(filepath=str(out/f'kaida-{revision}-review.blend'))

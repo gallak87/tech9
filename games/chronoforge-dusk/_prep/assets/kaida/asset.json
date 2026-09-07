@@ -1,22 +1,22 @@
 {
   "production_format": 1,
   "asset_id": "kaida",
-  "revision": "r2",
-  "label": "Kaida r2 / grounded first pass",
+  "revision": "r4",
+  "label": "Kaida / grip-fit review",
   "kind": "character",
   "animation_mode": "skeletal",
   "placeholder": false,
   "recipe": "skeletal_blend",
   "source_files": [
     {
-      "path": "assets/kaida/sources/foundation-r1/master.blend",
+      "path": "assets/kaida/sources/foundation-r3/master.blend",
       "role": "editable_master",
-      "sha256": "d991fe53eda0bf8d9808a14039ea6ac6b2c8364c4c49a63bc24ba5066a138171"
+      "sha256": "677119ee26b2e88c212f3858c3472976b4e5c2770cc930087cb594f61bec8fab"
     },
     {
       "path": "assets/kaida/author_foundation.py",
       "role": "authoring_script",
-      "sha256": "19300ce14ca3b8f82765965e6e358deda9f630f77b7db6fff40013ad79379409"
+      "sha256": "bdc13c67ecee80178917f6198f6bc5ff7f190d98abfcf872eceeef16bece9666"
     },
     {
       "path": "assets/kaida/sources/mixamo-clips-r1/master.blend",
@@ -24,7 +24,7 @@
       "sha256": "97fd3c2bc6c9d6f442aea753c6609adfc45a09f8d3a60b6e85e919a950f6f95d"
     },
     {
-      "path": "assets/kaida/sources/foundation-r1/kaida-orm.png",
+      "path": "assets/kaida/sources/foundation-r3/kaida-orm.png",
       "role": "texture_source",
       "sha256": "0f3dc9f170e0de359d248763000fd5a7695e1c6123ad341e33d084851c3314b7"
     },
@@ -47,6 +47,11 @@
       "path": "assets/kaida/sources/meshy-r2/textures/kaida-metallic.png",
       "role": "texture_source",
       "sha256": "368ad7ec9cf4cd824e68bd5bfcb1b581511472ec150098e17c144a63ebc8042d"
+    },
+    {
+      "path": "assets/kaida/grip_pose.py",
+      "role": "authoring_script",
+      "sha256": "4ba86d687b54a0b4e9cc19bf9eff7bee06e6e5a61a38cdb7c135b55f0053c149"
     }
   ],
   "required_outputs": [
@@ -64,7 +69,7 @@
     "origin": "ground"
   },
   "dependencies": [
-    "candidates/kaida.energy-sword/r1/manifest.json"
+    "candidates/kaida.energy-sword/r2/manifest.json"
   ],
   "attachments": [
     {
@@ -91,7 +96,8 @@
     "attack_contact_frame": 21,
     "attack_contact_fraction": 0.5,
     "walk_nominal_speed_m_s": 2.28,
-    "source_run_speed_m_s": 5.061657428727273
+    "source_run_speed_m_s": 5.061657428727273,
+    "revision_notes": "Per-finger grip fitted to a diagonal socket near the knuckles and a narrower handle. Elbow path lowered; wrist orientation accounts for the diagonal grip. Authored attack remains a provisional motion blockout, not visually accepted combat."
   },
   "root_motion": {
     "operation": "remove_root_xy",

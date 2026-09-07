@@ -16,6 +16,8 @@ PREP = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PREP / 'tools'))
 from clip_stage import action_digest
 from blender_stage import curves
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from grip_pose import GRIP_CENTER, BLADE_AXIS, PALM_NORMAL, apply_grip
 
 def bind_action(rig, action):
     rig.animation_data_create()
@@ -95,8 +97,15 @@ def fresh(name):
         b.matrix_basis.identity()
     return action
 
+previous_quaternions = {}
+
 def key_all(frame):
     for bone in rig.pose.bones:
+        identity = (rig.animation_data.action.name, bone.name)
+        prior = previous_quaternions.get(identity)
+        if prior is not None and prior.dot(bone.rotation_quaternion) < 0:
+            bone.rotation_quaternion.negate()
+        previous_quaternions[identity] = bone.rotation_quaternion.copy()
         for path in ('location', 'rotation_quaternion', 'scale'):
             bone.keyframe_insert(path, frame=frame, group=bone.name)
 
@@ -169,19 +178,11 @@ for b in rig.pose.bones:
     b.matrix_basis.identity()
 bpy.context.view_layer.update()
 hand = pb('RightHand')
-long = (hand.tail-hand.head).normalized()
-cross = pb('RightHandThumb1').head - pb('RightHandPinky1').head
-blade_axis = (cross-long*cross.dot(long)).normalized()
-palm_normal = long.cross(blade_axis).normalized()
-grip = hand.head + long*.054 + palm_normal*.013
-grip_local = hand.matrix.inverted() @ grip
-axis_local = hand.matrix.to_quaternion().inverted() @ blade_axis
-finger_axes = {}
-for digit in ('Index', 'Middle', 'Ring', 'Pinky'):
-    for n in (1, 2, 3):
-        b = pb(f'RightHand{digit}{n}')
-        axis = (b.tail-b.head).normalized().cross(palm_normal).normalized()
-        finger_axes[b.name] = b.matrix.to_quaternion().inverted() @ axis
+grip_local = GRIP_CENTER.copy()
+axis_local = BLADE_AXIS.copy()
+grip = hand.matrix @ grip_local
+blade_axis = hand.matrix.to_quaternion() @ axis_local
+palm_normal = hand.matrix.to_quaternion() @ PALM_NORMAL
 bpy.context.view_layer.objects.active = rig
 bpy.ops.object.mode_set(mode='EDIT')
 socket = data.edit_bones.new('SwordSocket')
@@ -193,24 +194,30 @@ bpy.ops.object.mode_set(mode='OBJECT')
 
 def sword_hand(direction):
     hand = pb('RightHand')
-    current = hand.matrix.to_quaternion() @ axis_local
-    q = current.rotation_difference(Vector(direction).normalized()) @ hand.matrix.to_quaternion()
+    blade = Vector(direction).normalized()
+    forearm = (pb('RightForeArm').tail-pb('RightForeArm').head).normalized()
+    # Keep the grip near a neutral wrist; do not aim the blade by folding the
+    # wrist back when a follow-through direction nearly parallels the forearm.
+    rest_angle = math.asin(axis_local.y)
+    wrist_limit = math.radians(30)
+    along = max(math.sin(rest_angle-wrist_limit), min(math.sin(rest_angle+wrist_limit), blade.dot(forearm)))
+    perpendicular = (blade-forearm*blade.dot(forearm)).normalized()
+    blade = perpendicular*math.sqrt(1-along*along)+forearm*along
+    # Constrain wrist roll with the forearm as well as the blade direction.
+    # A single-axis shortest rotation leaves an arbitrary twist in the wrist.
+    forward = (forearm-blade*forearm.dot(blade)).normalized()
+    local_forward = (Vector((0,1,0))-axis_local*axis_local.y).normalized()
+    local_basis = Matrix((axis_local,local_forward,axis_local.cross(local_forward))).transposed()
+    world_basis = Matrix((blade,forward,blade.cross(forward))).transposed()
+    q = (world_basis @ local_basis.transposed()).to_quaternion()
     hand.matrix = Matrix.LocRotScale(hand.head, q, Vector((1, 1, 1)))
     bpy.context.view_layer.update()
 
 def grip_fingers():
-    # Curl each finger toward the palm; thumb folds across the grip.
-    for digit in ('Index', 'Middle', 'Ring', 'Pinky'):
-        for n, angle in [(1, 58), (2, 75), (3, 52)]:
-            bone = pb(f'RightHand{digit}{n}')
-            bone.rotation_quaternion = Quaternion(finger_axes[bone.name], math.radians(angle))
-    pb('RightHandThumb1').rotation_quaternion = Quaternion((0, 0, 1), -.35)
-    pb('RightHandThumb2').rotation_quaternion = Quaternion((1, 0, 0), .55)
-    pb('RightHandThumb3').rotation_quaternion = Quaternion((1, 0, 0), .4)
-    bpy.context.view_layer.update()
+    apply_grip(rig, bpy.context.view_layer.update)
 
 def armed_arm(wrist=(.35, .12, 1.08), blade=(.32, .75, .48)):
-    solve_limb('RightArm', 'RightForeArm', wrist, (1, -.3, -.2))
+    solve_limb('RightArm', 'RightForeArm', wrist, (.25, -.15, -1))
     sword_hand(blade)
     grip_fingers()
 
@@ -295,11 +302,11 @@ linear(walk)
 attack = fresh('attack')
 poses = [
     (1, 0, 0, (.35,.12,1.08), (.32,.75,.48)),
-    (8, .015, -.15, (.40,-.08,1.29), (.35,-.25,.90)),
-    (15, .035, -.35, (.40,-.12,1.56), (.20,-.45,.88)),
-    (18, .03, -.26, (.43,.08,1.47), (.70,.65,.30)),
-    (21, .02, .12, (.18,.43,1.24), (-.25,.95,-.20)),
-    (25, .025, .40, (-.20,.29,.99), (-.78,.22,-.58)),
+    (8, .015, -.15, (.36,.06,1.31), (.18,-.70,.69)),
+    (15, .035, -.35, (.34,.05,1.59), (.05,-.88,.47)),
+    (18, .03, -.26, (.32,.25,1.50), (.14,-.50,.85)),
+    (21, .02, .12, (.20,.42,1.23), (-.40,.85,-.33)),
+    (25, .025, .40, (-.11,.28,1.03), (-.70,.50,-.50)),
     (30, .01, .26, (-.12,.25,1.03), (-.65,.62,-.30)),
     (36, 0, .08, (.24,.18,1.08), (.15,.85,.40)),
     (41, 0, 0, (.35,.12,1.08), (.32,.75,.48)),
@@ -307,8 +314,8 @@ poses = [
 for frame, bob, yaw, wrist, blade in poses:
     stance(bob, yaw)
     armed_arm(wrist, blade)
-    aim('LeftArm', (-.55,-.28,-.78))
-    aim('LeftForeArm', (-.10,.28,-.90))
+    aim('LeftArm', (-.30,-.10,-.95))
+    aim('LeftForeArm', (.05,.42,-.85))
     key_all(frame)
 for fc in curves(attack):
     for key in fc.keyframe_points:

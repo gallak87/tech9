@@ -98,6 +98,9 @@ func run() -> void:
 	for child in skeleton.get_children():
 		if child is BoneAttachment3D: sockets.append(child)
 	check(sockets.size() == asset.descriptor.attachments.size() and not sockets.is_empty(), "Separate equipment resolves declared bone sockets")
+	if skinned.is_empty() or sockets.is_empty():
+		finish()
+		return
 	measured.clip_seconds = {}
 	for role in ["idle", "walk", "run", "attack", "hurt"]:
 		measured.clip_seconds[role] = asset.clip_length(role)

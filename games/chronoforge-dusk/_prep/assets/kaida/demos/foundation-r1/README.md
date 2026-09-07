@@ -1,6 +1,6 @@
 # Kaida — first grounded animation review
 
-Open [kaida-foundation-review.blend](kaida-foundation-review.blend). This is the current review file, with the separate sword included. The earlier `kaida-wave-demo.blend` only contains the earlier wave/idle/run experiment. Work saved by a headless Blender process does not update another open Blender window.
+Open [kaida-foundation-review.blend](kaida-foundation-review.blend). This is the retained first review file, with the separate sword included. The earlier `kaida-wave-demo.blend` only contains the earlier wave/idle/run experiment. Work saved by a headless Blender process does not update another open Blender window.
 
 Press **Space** to play/pause. Use the **Scene dropdown at the top right** to choose a clip. Each scene sets its frame range automatically; leave its Action Editor assignment as-is. **Shift+Left Arrow** returns to the beginning.
 
@@ -37,3 +37,5 @@ python3 _prep/pipeline.py verify _prep/candidates/kaida.energy-sword/r1/manifest
 ```
 
 [Production metadata](../../asset.json) maps the five roles to actual action names and declares the socket/dependency. [Authoring measurements](../../sources/foundation-r1/authoring.json) retain source hashes, extracted travel and influence reduction. [Native evidence](../../../../evidence/kaida-r2/README.md) records the integration checks and their limits. No extra Mixamo download is required for this first set.
+
+Current review: [foundation R3](../foundation-r3/README.md). This first pass remains an unsuccessful visual iteration.

@@ -1,0 +1,91 @@
+{
+  "asset_id": "kaida.energy-sword",
+  "build_fingerprint": "0bd46a0ab7c9f5463d6e7a20271b02571736826a54966ff9b3a3a4263a8e7325",
+  "candidate_format": 1,
+  "created_at": "2026-09-07T16:24:53.020838+00:00",
+  "files": {
+    "build.log": "5cdb2467dd3535728127c753981fc68c83fb77d87fbd7ad64214e71ed7ee3b2d",
+    "export-settings.json": "ab335ea64430417d4095583aab0b6ac5792b5384fbfb774d142bd63602d0d9ea",
+    "inspection.json": "5fb4baaf257e8ae2d35a3c2333f8815d3b76c568c47a83b2b534f3de77d8ac1e",
+    "metadata.json": "c5d25cae733e6b7f3f9cf46c06042dac6c5aac7b9897516fc5de9ef999bf5a81",
+    "reimport.json": "0baa9ecfc89690dd1a6edf4b4e375b3b060a5ae1101c3133f1265e6d67c210e6",
+    "runtime/descriptor.json": "55d0bf193659a07772c864cb07cb2750250c42638334993f198a203629910815",
+    "runtime/model.glb": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea",
+    "structural-checks.json": "35ead9fd84d3a6b379b37b7bf56332e593e9cd47b0667f6fb6a338bb4e215869",
+    "working/export.blend": "64e191e60748f646d59fa04314326b54d95322f28452b3b5b1e466acc55507ae"
+  },
+  "inputs": {
+    "dependencies": {},
+    "metadata": {
+      "animation_mode": "none",
+      "asset_id": "kaida.energy-sword",
+      "attachments": [],
+      "dependencies": [],
+      "dimensions": {
+        "forward": "-Z",
+        "height_m": 1.2,
+        "origin": "ground",
+        "radius_m": 0.15,
+        "up": "+Y"
+      },
+      "kind": "prop",
+      "label": "Kaida energy sword / fitted handle",
+      "placeholder": false,
+      "production_format": 1,
+      "provenance": {
+        "attribution": "Dusk original geometry; no Dawn production assets reused.",
+        "origin": "New Blender geometry authored for Dusk from the retained separate sword reference",
+        "purpose": "Separate magenta energy blade with graphite guard and wrapped grip; first-pass character equipment."
+      },
+      "recipe": "static_blend",
+      "required_outputs": [
+        "runtime/model.glb",
+        "runtime/descriptor.json",
+        "working/export.blend",
+        "inspection.json",
+        "reimport.json"
+      ],
+      "revision": "r2",
+      "source_files": [
+        {
+          "path": "assets/kaida.energy-sword/sources/r2/master.blend",
+          "role": "editable_master",
+          "sha256": "4bb6466bea10ebdb7e943ba6df0c099355c4a5c7a290446f98f496f821a9473b"
+        },
+        {
+          "path": "assets/kaida/author_sword.py",
+          "role": "authoring_script",
+          "sha256": "1a7c012ae20108ade8a544839fb6ad9b3584eb19f02bb3870fcc265f580d225d"
+        },
+        {
+          "path": "references/kaida/r1/kaida-energy-sword-r1.png",
+          "role": "visual_reference",
+          "sha256": "f3e8ae8e831ba9efceb2feb70936e40b90215e548c4d4e4f170e7fd3d6bed2a6"
+        }
+      ]
+    },
+    "runtime_format": 1,
+    "scripts": {
+      "ASSET_CONTRACT.md": "0a8dc27680701e1db597ad019b9733b1fa3db1843da83fdd7a958b39d40727ac",
+      "pipeline.py": "58b91ea231a1f3fa5ee3b84aee44f093115eaca178f291c80f0e3a7c4f5dc334",
+      "tools/author_proofs.py": "419dcf7bcecfe0978ad1fd1adf6352448be6d84ad03d66b6a5519b831bbf207f",
+      "tools/blender_stage.py": "f6867a3e520da7cb5637592e64f087e450da06f0a1e7ad45ddaba40182d1d989",
+      "tools/clip_stage.py": "02653bf34c4af560344b38352ed9fab28dab3e05ca9e288ca569b7a77bfba329",
+      "tools/glb_check.py": "d57fe262278d886a9d14761282f4a28a511bd211b3ab6fbe18d3d1c4c6401606",
+      "tools/preparation_stage.py": "8181fb96e19b5e889b41fc1dbfce9c24065ddf263443a6941be7d4f44b30847d"
+    },
+    "sources": {
+      "assets/kaida.energy-sword/sources/r2/master.blend": "4bb6466bea10ebdb7e943ba6df0c099355c4a5c7a290446f98f496f821a9473b",
+      "assets/kaida/author_sword.py": "1a7c012ae20108ade8a544839fb6ad9b3584eb19f02bb3870fcc265f580d225d",
+      "references/kaida/r1/kaida-energy-sword-r1.png": "f3e8ae8e831ba9efceb2feb70936e40b90215e548c4d4e4f170e7fd3d6bed2a6"
+    },
+    "tools": {
+      "blender": "5.1.1",
+      "blender_build": "b70da489d7f4",
+      "python": "3.14.5"
+    }
+  },
+  "revision": "r2",
+  "structural_status": "ready_for_game_inspection",
+  "visual_status": "awaiting_review"
+}

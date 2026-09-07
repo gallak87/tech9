@@ -1,11 +1,11 @@
 # Kaida — supplied Meshy r2
 
-**First five-clip runtime candidate is ready for 03: `kaida/r2`, with a separate energy sword.** The owner says this body is too skinny and may regenerate it, but wants work to continue with this version. Its proportions remain provisional; [review notes](REVIEW_NOTES.md) track that direction and the implications of a replacement.
+**Five-clip candidate is available for 03, with a fitted grip and provisional attack: `kaida/r4`, with a separate energy sword.** The owner says this body is too skinny and may regenerate it, but wants work to continue with this version. Its proportions remain provisional; [review notes](REVIEW_NOTES.md) track that direction and the implications of a replacement.
 
 ## Files to use
 
-- **Current five-animation review:** [review file and scene-switching instructions](demos/foundation-r1/README.md). One scene per clip sets its playback range automatically and includes the sword.
-- **Current production animation master:** [foundation-r1/master.blend](sources/foundation-r1/master.blend). All five roles, unit-scale rig, motion carrier, grip socket and explicit packed metallic/roughness map.
+- **Current five-animation review:** [review file and scene-switching instructions](demos/foundation-r3/README.md). One scene per clip sets its playback range automatically and includes the sword.
+- **Current production animation master:** [foundation-r3/master.blend](sources/foundation-r3/master.blend). All five roles, unit-scale rig, motion carrier, grip socket and explicit packed metallic/roughness map.
 
 - **Simple authored wave:** [demo and beginner playback instructions](demos/wave-r1/README.md), a separate review file with an Action Editor for switching wave/idle/run. The owner liked the first wave; this does not change the production source master.
 - **Retained idle/run source before finishing:** [master.blend](sources/mixamo-clips-r1/master.blend), the real Kaida with 65 bones, idle/run and the retained original T-pose, plus four packed maps. Press Space for idle; see playback instructions below.
@@ -44,4 +44,4 @@ Inspection views: [front](inspection/meshy-r2/front.png), [back](inspection/mesh
 
 [prepare_meshy_r2.py](prepare_meshy_r2.py) is the batch-specific preparation record. Run with Blender 5.1.1 and `--background --python-exit-code 1 --python`; it refuses existing output revisions. Reproduction belongs in a clean copy containing the retained download, not over the reviewed masters. [verify_meshy_r2.py](verify_meshy_r2.py) reimports both exports and refreshes reports/views; `-- --render-only` refreshes inspection images alone without saving over the master. A scratch `_prep/.build/` directory is required. [Integrity record](inspection/meshy-r2/integrity.json) hashes the retained preparation outputs and scripts at this checkpoint.
 
-Next: review the first grounded set, then refine it in 03. More Mixamo downloads are optional. [Reusable Mixamo steps](../../MIXAMO.md) document all three automated preparation recipes and their metadata. See the [manual handoff](../../KAIDA_HANDOFF.md) for settings and motion retention. The separate blade now has [new Blender geometry](../kaida.energy-sword/sources/r1/master.blend) based on the retained [2D reference](../../references/kaida/r1/kaida-energy-sword-r1.png). Deformation, grip, stride/blending and visual polish remain 03 work.
+Next: review the first grounded set, then refine it in 03. More Mixamo downloads are optional. [Reusable Mixamo steps](../../MIXAMO.md) document all three automated preparation recipes and their metadata. See the [manual handoff](../../KAIDA_HANDOFF.md) for settings and motion retention. The separate blade now has [new Blender geometry](../kaida.energy-sword/sources/r2/master.blend) based on the retained [2D reference](../../references/kaida/r1/kaida-energy-sword-r1.png). Deformation, grip, stride/blending and visual polish remain 03 work.

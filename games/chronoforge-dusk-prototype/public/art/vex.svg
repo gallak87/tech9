@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 320" role="img" aria-label="Vex, the temporal mage, with lavender hair and a luminous fragment of the void">
+<defs>
+ <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#293247"/><stop offset="1" stop-color="#101b2a"/></linearGradient>
+ <radialGradient id="aura"><stop stop-color="#af78b6" stop-opacity=".3"/><stop offset="1" stop-color="#af78b6" stop-opacity="0"/></radialGradient>
+ <linearGradient id="skin" x2="1" y2=".7"><stop stop-color="#decad0"/><stop offset=".55" stop-color="#b9a5bb"/><stop offset="1" stop-color="#7e7798"/></linearGradient>
+ <linearGradient id="hair" x2=".8" y2="1"><stop stop-color="#e0d3dd"/><stop offset=".4" stop-color="#a49ac1"/><stop offset="1" stop-color="#575276"/></linearGradient>
+ <linearGradient id="cloth" x2="1" y2="1"><stop stop-color="#5b4c72"/><stop offset=".55" stop-color="#303349"/><stop offset="1" stop-color="#142333"/></linearGradient>
+ <linearGradient id="lining" x2="1" y2="1"><stop stop-color="#90708e"/><stop offset="1" stop-color="#3f3e61"/></linearGradient>
+ <radialGradient id="orb"><stop stop-color="#f1d9fa"/><stop offset=".15" stop-color="#b098d6"/><stop offset=".35" stop-color="#4c516e"/><stop offset=".72" stop-color="#152432"/><stop offset=".9" stop-color="#77b7c7"/><stop offset="1" stop-color="#c2d9ee"/></radialGradient>
+ <radialGradient id="light"><stop stop-color="#94c8de" stop-opacity=".25"/><stop offset="1" stop-color="#94c8de" stop-opacity="0"/></radialGradient>
+ <pattern id="grain" width="7" height="9" patternUnits="userSpaceOnUse"><path d="M1 1h.3M5 5h.4M2 8h.2" stroke="#e6d8ee" stroke-width=".6" opacity=".12"/></pattern>
+</defs>
+<path fill="url(#bg)" d="M0 0h256v320H0z"/><circle cx="127" cy="100" r="122" fill="url(#aura)"/>
+<g fill="none" stroke="#ae97b7" opacity=".3"><circle cx="127" cy="107" r="86"/><ellipse cx="127" cy="107" rx="97" ry="70" transform="rotate(-35 127 107)"/><path d="m127 11 4 8-4 8-4-8Zm-98 97h15m164 0h17M127 183v23"/><path d="m45 50 13 12m144-12-13 12m-153 87 22-10m141 12 17 7"/></g>
+<g fill="#b9acc9" opacity=".55"><circle cx="30" cy="75" r="1"/><circle cx="197" cy="27" r="1.2"/><circle cx="231" cy="150" r="1"/><path d="m58 30 1-4 1 4 4 1-4 1-1 4-1-4-4-1Z"/></g>
+<!-- Deep hood frames an illuminated, subtly asymmetrical face. -->
+<path d="M54 177C54 145 53 92 72 59 87 34 121 26 145 33c41 6 59 43 57 74l-5 70 24 34-90 50-87-48Z" fill="url(#cloth)" stroke="#192435" stroke-width="3"/>
+<path d="M66 173c-5-30-1-87 21-110 19-18 46-24 69-13 30 16 37 61 29 102l-20 48-67-1Z" fill="#1c2337" stroke="#81708c" stroke-width="2"/>
+<path d="M69 158c-1-29-3-51 6-73m103-13c18 36 11 71 5 94" fill="none" stroke="#a489a2" stroke-width="1.3" opacity=".5"/>
+<!-- Neck and face. -->
+<path d="m111 148-6 36 24 23 33-23-17-36" fill="url(#skin)" stroke="#6e617d" stroke-width="2"/>
+<path d="m116 154 2 28 27-7-2-26" fill="#7c728f" opacity=".75"/>
+<path d="M92 83c11-29 53-31 69-5l1 26 8 17-9 6c-3 18-13 31-26 37-15-5-33-15-40-32l-6-28Z" fill="url(#skin)" stroke="#64556e" stroke-width="1.7"/>
+<path d="M94 114c-10-14-20-1-13 10l13 8" fill="#ba9fb3" stroke="#76627d" stroke-width="1.5"/>
+<path d="m86 117 6 8" stroke="#8e758c" stroke-width="1.5"/>
+<path d="m149 84-7 28 9 12-4 7 10 3-10 18-7 9c17-8 21-23 21-34l9-6-8-17V87" fill="#827b9c" opacity=".48"/>
+<path d="M101 100q10-4 23 0m18-1 13 2" fill="none" stroke="#625473" stroke-width="2.8" stroke-linecap="round"/>
+<path d="M100 107q12-6 25 1-11 6-23 1m39-3q8-4 15 2-7 5-14 1" fill="#e3d9df" stroke="#70627e" stroke-width="1.3"/>
+<ellipse cx="115" cy="108" rx="3.5" ry="3.8" fill="#b588bd"/><ellipse cx="148" cy="108" rx="2.8" ry="3.3" fill="#b588bd"/>
+<path d="m115 106v4m33-4v4" stroke="#4a465f" stroke-width="2"/><circle cx="116" cy="106.5" r="1" fill="#f1e0fa"/><circle cx="149" cy="106.5" r=".9" fill="#f1e0fa"/>
+<path d="M101 107q11-5 23 1m18-2q7-3 13 2" stroke="#4a455f" stroke-width="1.7" fill="none"/>
+<path d="m135 111-4 13 9 3m-9 4 8 1" fill="none" stroke="#88768e" stroke-width="1.1" stroke-linecap="round"/>
+<path d="M120 140q10-5 21-1-8 6-17 4" fill="#a7849a"/><path d="m121 140 9 1 11-2" fill="none" stroke="#766179" stroke-width="1.1"/>
+<path d="m127 148 7 1" fill="none" stroke="#dcc3cb" stroke-width="1.1"/>
+<path d="m109 117-3 12 6 5" fill="none" stroke="#817393" stroke-width=".8" opacity=".6"/>
+<!-- Interrupted silver hair strands suggest motion through time. -->
+<path d="M83 120c-10-22-5-45 11-57 10-14 34-18 48-8 20-7 39 14 30 35-3 11-3 13-8 22l-8-31c-9 9-24 10-39 9-10 20-18 28-34 30Z" fill="url(#hair)" stroke="#716386" stroke-width="2"/>
+<path d="M92 100c14-18 16-25 22-35-6 24-9 33-22 35m25-10c22-16 28-19 34-25-2 13-22 29-34 25m43-22c13 9 4 27 5 33" fill="#857b9f"/>
+<path d="M85 93c0-18 18-33 28-34m-24 51c14-13 23-32 30-42m-5 11c7-15 23-24 35-17m-12 18 15-11m9 0c7 8 7 16 5 24" stroke="#eee0e3" stroke-width="1.5" opacity=".6" fill="none" stroke-linecap="round"/>
+<path d="M80 109c-4 17 4 30 2 43 9-3 17-12 15-22l-3-19" fill="url(#hair)"/><path d="m87 124 1 17" stroke="#d2c5d4" fill="none"/>
+<path d="m88 131-3 27" stroke="#c3acc5" stroke-width="1.4"/><path d="m85 151 4 7-4 13-4-13Z" fill="#a9dce2" stroke="#536e88" stroke-width="1.2"/>
+<!-- Robes are layered, patched, and inscribed with an old observatory script. -->
+<path d="M30 320 36 238c4-36 34-53 58-62l19 10 19 11 26-19c35 5 56 30 63 68l15 74" fill="url(#cloth)" stroke="#172437" stroke-width="3"/>
+<path d="m83 153 15 20 31 24-14 43-43-58Z" fill="url(#lining)" stroke="#bd9ca6" stroke-width="1.5"/>
+<path d="m163 155-15 28-17 15 15 43 39-58Z" fill="url(#lining)" stroke="#bd9ca6" stroke-width="1.5"/>
+<path d="m89 169 36 31-10 28m51-54-31 26 10 29" fill="none" stroke="#dcc3bd" stroke-width="1" opacity=".5"/>
+<path d="m117 199 12-9 13 9-13 25Z" fill="#233c4c" stroke="#ab9ba9" stroke-width="2"/>
+<path d="m129 195 6 8-6 13-6-13Z" fill="#b2d2d4"/>
+<path d="m77 196-29 27 13 91m125-115 22 30-13 85" stroke="#977f97" stroke-width="1.5" fill="none"/>
+<g fill="none" stroke="#aa93ac" stroke-width="1" opacity=".6"><path d="m61 224 9 2-6 5 8 3m-9 7 9 4-8 3 8 4m-7 9 8 2-4 7m121-46-10 2 8 5-9 4m10 9-8 3 7 4-8 5"/><path d="m87 234 11 12-4 18m-14 4 13 9m65-41-4 12 9 14m-34-24v16"/></g>
+<!-- Gloved fingers cradle an impossible orbit. -->
+<circle cx="134" cy="278" r="65" fill="url(#light)"/>
+<path d="m45 301 21-27 23-1 20 18-12 29H43Zm155 19-29-29 13-20 18-4 25 27 5 26" fill="#354a5c" stroke="#192f41" stroke-width="2"/>
+<path d="m77 278 18-19 8-12q5-6 8-1l-5 17 12 11 9 4q6 6 0 10l-19-7-8 2 14 11q3 6-3 7l-19-11-2 10-13-8" fill="url(#skin)" stroke="#746a8b" stroke-width="1.5"/>
+<path d="m197 274-19-19-7-13q-5-5-8 1l5 18-13 11-10 4q-4 5 1 9l19-7 10 3-17 12q-2 6 4 7l20-12 2 9 12-11" fill="url(#skin)" stroke="#746a8b" stroke-width="1.5"/>
+<circle cx="137" cy="262" r="25" fill="url(#orb)" stroke="#b2c9de" stroke-width=".8"/>
+<ellipse cx="137" cy="262" rx="40" ry="9" fill="none" stroke="#c5a9cf" stroke-width="1.3" transform="rotate(-24 137 262)"/>
+<ellipse cx="137" cy="262" rx="33" ry="12" fill="none" stroke="#89c7d7" stroke-width=".8" transform="rotate(55 137 262)"/>
+<path d="m138 252-4 10 6 7 1-9z" fill="#f3d9ed"/><circle cx="171" cy="244" r="2" fill="#d2bddc"/><circle cx="110" cy="270" r="1.5" fill="#abd9de"/>
+<path d="M0 0h256v320H0z" fill="url(#grain)"/><path d="M8 34V8h26m188 0h26v26M8 286v26h26m188 0h26v-26" stroke="#b09ab5" opacity=".3" fill="none"/>
+</svg>

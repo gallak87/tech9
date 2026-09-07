@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 320" role="img" aria-label="Rune, a scarred technological sentinel in weathered armor with a cyan eye lens">
+<defs>
+ <linearGradient id="bg" x2=".8" y2="1"><stop stop-color="#28454a"/><stop offset=".55" stop-color="#1b333c"/><stop offset="1" stop-color="#101e29"/></linearGradient>
+ <radialGradient id="aura"><stop stop-color="#7dad9a" stop-opacity=".3"/><stop offset="1" stop-color="#7dad9a" stop-opacity="0"/></radialGradient>
+ <linearGradient id="skin" x2="1" y2=".6"><stop stop-color="#b39279"/><stop offset=".5" stop-color="#987b6a"/><stop offset="1" stop-color="#655759"/></linearGradient>
+ <linearGradient id="armor" x2="1" y2="1"><stop stop-color="#859b98"/><stop offset=".35" stop-color="#536b74"/><stop offset=".7" stop-color="#304752"/><stop offset="1" stop-color="#182d3a"/></linearGradient>
+ <linearGradient id="gold" x2="1" y2="1"><stop stop-color="#d6b47d"/><stop offset="1" stop-color="#80674f"/></linearGradient>
+ <linearGradient id="dark" x2="1" y2="1"><stop stop-color="#43565f"/><stop offset="1" stop-color="#142635"/></linearGradient>
+ <linearGradient id="light" x2="1" y2="1"><stop stop-color="#d0fff1"/><stop offset="1" stop-color="#54b2bd"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#7febe0" stop-opacity=".55"/><stop offset="1" stop-color="#7febe0" stop-opacity="0"/></radialGradient>
+ <pattern id="grain" width="7" height="9" patternUnits="userSpaceOnUse"><path d="M1 1h.3M5 5h.4M2 8h.2" stroke="#e6e4cb" stroke-width=".6" opacity=".13"/></pattern>
+</defs>
+<path fill="url(#bg)" d="M0 0h256v320H0z"/><circle cx="128" cy="105" r="126" fill="url(#aura)"/>
+<g fill="none" stroke="#91b4af" opacity=".3"><circle cx="128" cy="104" r="83"/><path d="M56 61v-14h18m108 0h18v14m0 90v14h-18M74 165H56v-14M128 12v18m-9-9h18M29 104h18m162 0h18"/><circle cx="128" cy="104" r="94" stroke-dasharray="2 10"/></g>
+<g fill="#b6d2c7" opacity=".5"><circle cx="33" cy="58" r="1"/><circle cx="217" cy="142" r="1"/><path d="m197 30 2-5 2 5-2 5Z"/></g>
+<!-- Antenna and armored spinal support. -->
+<path d="m190 169 9-58 5-12v-37" fill="none" stroke="#162d38" stroke-width="8"/><path d="m191 161 9-50 4-12V62" fill="none" stroke="#7f979a" stroke-width="2"/><path d="M203 62V47" stroke="#9eb7ae" stroke-width="1.5"/><circle cx="204" cy="61" r="2" fill="#a4e3d6"/>
+<path d="M64 175 70 70 90 49l65-8 27 23 8 107" fill="url(#dark)" stroke="#152d38" stroke-width="3"/>
+<!-- Short graying hair, shaven sides, heavy but humane features. -->
+<path d="M82 104c-8-20-2-48 14-54 12-13 42-18 57-9 25 5 26 26 23 44l-10 29Z" fill="#343940" stroke="#27333d" stroke-width="2.5"/>
+<path d="M93 61c20-21 58-18 68 2l-20-4-21 5-18 7Z" fill="#686a6c"/>
+<path d="M92 87c3-19 14-23 23-25 16 4 26-5 43 10l7 31 7 18-10 5-6 32-24 18-30-18-13-30Z" fill="url(#skin)" stroke="#5d5253" stroke-width="2"/>
+<path d="M92 112c-16-15-23 3-11 17l14 4" fill="#9a7a69" stroke="#605053" stroke-width="1.5"/><path d="m82 116 8 9-4 3" stroke="#745b55" stroke-width="1.5" fill="none"/>
+<path d="m150 81-5 26 9 15-10 7 12 9-10 22-14 13 24-15 6-32 10-5-7-18-7-31" fill="#66575a" opacity=".5"/>
+<path d="m98 99 11-6 16 4m21 0 11 5" stroke="#4b4346" stroke-width="4" fill="none" stroke-linecap="round"/>
+<path d="m101 108 8-5 14 4-11 5-9-2" fill="#c7c8b6" stroke="#5f5150" stroke-width="1.5"/>
+<ellipse cx="114" cy="107.5" rx="3.4" ry="3.7" fill="#7b8a77"/><path d="M114 105v5" stroke="#253f44" stroke-width="2"/><circle cx="115" cy="106" r=".8" fill="#eaf3d7"/>
+<path d="m101 107 10-3 11 3m-15 10 13-1" fill="none" stroke="#64554e" stroke-width="1.7"/>
+<path d="m132 109-5 17 7 4 8-2" fill="none" stroke="#715c53" stroke-width="1.4"/>
+<path d="M118 142q12-5 24-1l-6 5-13-1" fill="#816559"/><path d="m118 142 12 1 13-2" fill="none" stroke="#594b4b" stroke-width="1.5"/>
+<path d="m123 152 13 1" stroke="#c0987e" stroke-width="1.2"/>
+<!-- A white scar disappears into the ocular implant. -->
+<path d="m139 85-7 12 7 14-5 26" stroke="#ceb199" stroke-width="1.3" fill="none" opacity=".8"/>
+<path d="m135 94 7-8 20 4 7 19-10 16-21-3-5-11Z" fill="url(#armor)" stroke="#344b54" stroke-width="2"/>
+<path d="m141 95 14-1 9 13-8 10-14-2-4-9Z" fill="#183b46" stroke="#94b2ae" stroke-width="1.1"/>
+<path d="m143 103 13-1 3 6-13 2-4-3Z" fill="url(#light)"/>
+<path d="m148 107 9-2" stroke="#e6fff0" stroke-width="1.3"/>
+<circle cx="150" cy="105" r="17" fill="url(#glow)"/>
+<path d="m165 108 13-5 4-15" fill="none" stroke="#95aca6" stroke-width="2"/>
+<circle cx="143" cy="92" r="1.2" fill="#d4bea0"/><circle cx="160" cy="120" r="1.2" fill="#d4bea0"/>
+<!-- Age and stubble are fine etched lines rather than a flat mask. -->
+<g fill="none" stroke="#524c4b" stroke-width="1" opacity=".55"><path d="m100 134 3 5m0 3 3 5m-5-1 4 7m4-11 2 3m-2 6 4 5m0-12 3 4m0 7 3 5m2-8 2 5m3-5 2 7m4-8 1 7m5-7-1 6m7-12-2 5m5-10-1 4"/><path d="m108 82 13 1m-14 5 18 1m-17-12 16 1"/></g>
+<path d="m88 82 5 16m-6-22 4 6m9-23 6-5m3 5 5-7m4 5 5-6m7 4 5-5m6 4 6-2m-51 42 1-16" fill="none" stroke="#a2a298" stroke-width="1.2" opacity=".7"/>
+<!-- Neck-seal and tall, deliberately asymmetrical collar. -->
+<path d="m102 159-3 24 31 31 39-31-14-28-23 19Z" fill="#263944" stroke="#132b38" stroke-width="2"/>
+<path d="m107 174 24 12 23-12m-46 8 23 12 27-16m-42 16 15 8 23-15" stroke="#718b8b" stroke-width="2" fill="none"/>
+<path d="M17 320 23 233l29-41 43-13 33 32 37-31 42 12 28 44 9 84" fill="url(#armor)" stroke="#152c39" stroke-width="3"/>
+<path d="m75 170 23-11 9 27 22 25-21 18-41-28Z" fill="url(#armor)" stroke="#b6b6a0" stroke-width="1.7"/>
+<path d="m163 160 23 13 9 24-43 32-21-18 28-28Z" fill="url(#armor)" stroke="#b6b6a0" stroke-width="1.7"/>
+<path d="m77 178 14-6 8 17 18 19-10 8-28-22Zm95-6 9 8 3 13-30 24-11-9 25-21Z" fill="url(#dark)"/>
+<!-- Large forged pauldrons with bevels, wear, and inset status lamps. -->
+<path d="m48 190 27 6 12 27-6 23-55 9-12-19 10-27Z" fill="url(#armor)" stroke="#142c38" stroke-width="3"/>
+<path d="m48 197 21 5 10 20-6 16-43 7-8-11 9-19Z" fill="#758b8e" stroke="#b8c3b5" stroke-width="1"/>
+<path d="m25 235 50-9-4 12-41 7" fill="#526b75"/>
+<path d="m53 204 15 5-2 5-16-5Z" fill="url(#gold)"/><path d="m34 220 30-5m-26 11 22-5m-18 17 6-3" stroke="#bdc9b9" stroke-width="1" opacity=".45"/>
+<path d="m191 190-22 10-9 26 13 23 53 4 15-20-16-25Z" fill="url(#armor)" stroke="#142c38" stroke-width="3"/>
+<path d="m192 198-16 10-7 18 9 15 45 3 9-12-13-19Z" fill="#506a76" stroke="#a3b5ad" stroke-width="1"/>
+<path d="m199 207 16 7 5 12-23-9Z" fill="#1c3947" stroke="#7a9698"/>
+<path d="m204 212 4 2 2 5-4-2Zm8 3 3 1 2 5-3-1Z" fill="url(#light)"/>
+<!-- Chest plate, salvage insignia, and power unit. -->
+<path d="m89 229 40-12 36 13 20 51-10 39H80l-9-39Z" fill="url(#dark)" stroke="#9aa99f" stroke-width="1.5"/>
+<path d="m95 235 34-10 31 12 12 31-43 17-45-17Z" fill="url(#armor)"/>
+<path d="m129 231 1 44m-40-31 30 6m20 0 23-6" stroke="#c0c6b2" stroke-width="1" opacity=".4"/>
+<path d="m112 253 17-10 18 10v21l-18 11-17-11Z" fill="#1a3643" stroke="url(#gold)" stroke-width="2"/>
+<path d="m120 258 9-6 10 6v10l-10 6-9-6Z" fill="url(#light)"/>
+<path d="m129 256 5 5-5 8-5-8Z" fill="#d7f4df"/><circle cx="129" cy="264" r="28" fill="url(#glow)"/>
+<path d="m88 287 39 15 45-14m-86 10 41 15 46-15" stroke="#718889" stroke-width="2" fill="none"/>
+<path d="m23 265 45-7-6 28-40 7m164-31 44 3 5 28-42-5" fill="url(#dark)" stroke="#8a9e99" stroke-width="1.4"/>
+<path d="m26 271 24-4m-24 11 31-5m143 0 22 2m-20 7 22 2" stroke="#a6b8ad" stroke-width="1" opacity=".5"/>
+<g fill="#c4af85" stroke="#3a535c" stroke-width="1"><circle cx="32" cy="236" r="2.5"/><circle cx="71" cy="220" r="2.5"/><circle cx="178" cy="227" r="2.5"/><circle cx="225" cy="232" r="2.5"/><circle cx="91" cy="268" r="2"/><circle cx="165" cy="269" r="2"/></g>
+<path d="m68 249-10 17m4-18-3 8m125-48 4 2m23 34-5 8m-86-27-4 7m31 45-8 3" stroke="#c5b59a" stroke-width="1" opacity=".5"/>
+<path d="M0 0h256v320H0z" fill="url(#grain)"/><path d="M8 34V8h26m188 0h26v26M8 286v26h26m188 0h26v-26" stroke="#9fb4aa" opacity=".3" fill="none"/>
+</svg>

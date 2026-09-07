@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+const browser=await chromium.launch({headless:true});
+const context=await browser.newContext({viewport:{width:1440,height:900},deviceScaleFactor:1});
+const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+await page.goto('http://127.0.0.1:5199/?test=1');await page.waitForTimeout(2500);await page.screenshot({path:'tests/artifacts/title.png'});
+await page.getByRole('button',{name:'Begin journey'}).click();
+for(let i=0;i<4;i++) await page.keyboard.press('Space');
+await page.waitForTimeout(2000);await page.screenshot({path:'tests/artifacts/explore.png'});
+console.log(JSON.stringify({errors,state:await page.evaluate(()=>({mode:__dusk.game.state.mode,player:__dusk.game.state.player,draws:__dusk.world.renderer.info.render.calls,triangles:__dusk.world.renderer.info.render.triangles})),overflow:await page.evaluate(()=>({scroll:document.body.scrollWidth,width:innerWidth}))}));
+await page.keyboard.press('m');await page.screenshot({path:'tests/artifacts/map.png'});await page.getByRole('button',{name:'Party',exact:true}).click();await page.screenshot({path:'tests/artifacts/party.png'});await page.keyboard.press('Escape');
+await page.evaluate(()=>__dusk.game.startBattle('causeway'));await page.waitForTimeout(2500);await page.screenshot({path:'tests/artifacts/battle.png'});
+console.log('battle',await page.evaluate(()=>({mode:__dusk.game.state.mode,party:__dusk.game.state.party.map(h=>({id:h.id,atb:h.atb})),errors:window.error})));
+await context.close();await browser.close();

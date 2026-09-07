@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 320" role="img" aria-label="Kaida, warrior of the dusk: auburn hair, amber eyes, and a weathered red scarf">
+<defs>
+ <linearGradient id="bg" x2=".8" y2="1"><stop stop-color="#253941"/><stop offset=".58" stop-color="#18292f"/><stop offset="1" stop-color="#0b171d"/></linearGradient>
+ <radialGradient id="halo"><stop stop-color="#d49362" stop-opacity=".3"/><stop offset="1" stop-color="#d49362" stop-opacity="0"/></radialGradient>
+ <linearGradient id="skin" x1="0" x2="1" y2=".7"><stop stop-color="#e9ba88"/><stop offset=".5" stop-color="#cc986e"/><stop offset="1" stop-color="#93624e"/></linearGradient>
+ <linearGradient id="hair" x2=".8" y2="1"><stop stop-color="#ad6347"/><stop offset=".45" stop-color="#713c34"/><stop offset="1" stop-color="#382831"/></linearGradient>
+ <linearGradient id="coat" x1="0" x2="1" y2="1"><stop stop-color="#48646a"/><stop offset=".5" stop-color="#233e49"/><stop offset="1" stop-color="#10232d"/></linearGradient>
+ <linearGradient id="scarf" x2="1" y2="1"><stop stop-color="#d88f66"/><stop offset=".45" stop-color="#a25347"/><stop offset="1" stop-color="#672f3b"/></linearGradient>
+ <linearGradient id="blade" x2="1" y2="0"><stop stop-color="#53676c"/><stop offset=".45" stop-color="#bad7d4"/><stop offset=".5" stop-color="#668f95"/><stop offset="1" stop-color="#203a45"/></linearGradient>
+ <pattern id="grain" width="7" height="9" patternUnits="userSpaceOnUse"><path d="M1 1h.3M5 5h.4M2 8h.2" stroke="#e6d8b5" stroke-width=".6" opacity=".14"/></pattern>
+ <clipPath id="frame"><rect width="256" height="320" rx="4"/></clipPath>
+</defs>
+<g clip-path="url(#frame)">
+ <path fill="url(#bg)" d="M0 0h256v320H0z"/>
+ <circle cx="131" cy="109" r="127" fill="url(#halo)"/>
+ <g fill="none" stroke="#c99a6b" opacity=".28"><circle cx="128" cy="112" r="83"/><circle cx="128" cy="112" r="91" stroke-dasharray="1 6"/><path d="M36 112H17m222 0h-19M128 11v17m0 168v16M65 48l-9-9m144 0-9 9"/></g>
+ <g fill="#9cc9c8" opacity=".45"><path d="m19 79 2-4 2 4-2 4zm206 99 2-4 2 4-2 4z"/><circle cx="42" cy="163" r="1"/><circle cx="197" cy="35" r="1"/></g>
+ <!-- A salvaged blade hangs behind her shoulder. -->
+ <path d="m226 62-9-6-9 14-40 206 13 3 43-201z" fill="#0a1d27" stroke="#10212b" stroke-width="3"/>
+ <path d="m218 71 6 7-42 192-8-2z" fill="url(#blade)"/>
+ <path d="m220 77-37 176" stroke="#bef3e6" stroke-width="1.5" opacity=".7"/>
+ <path d="m201 211 9 4-3 11-35-8 2-12z" fill="#b68a60" stroke="#263942" stroke-width="3"/>
+ <path d="m182 224 9 2-11 47-9-2z" fill="#313b44" stroke="#b1916c" stroke-width="2"/>
+ <path d="m179 234 9 2m-11 7 9 2m-11 7 9 2m-11 7 9 2" stroke="#9b735b" stroke-width="2"/>
+ <!-- Hair has asymmetrical swept locks, catching the last sunset. -->
+ <path d="M74 155C62 133 67 113 64 101 55 66 80 39 114 35 133 27 160 37 168 51 191 54 196 89 183 113 185 139 205 151 198 175 191 164 183 162 173 162 164 186 96 197 74 155Z" fill="url(#hair)" stroke="#192930" stroke-width="3"/>
+ <path d="M71 113c-10 25-10 44 2 58-3-20 8-23 9-36m87-49c26 19 5 51 23 68-20-4-28-25-23-68" fill="#573434"/>
+ <!-- Coat and neck. -->
+ <path d="M29 320 33 243Q36 198 93 179l31 6 32-7q57 15 67 61l20 81" fill="url(#coat)" stroke="#132630" stroke-width="3"/>
+ <path d="m109 153-2 32 22 23 32-21-13-35" fill="url(#skin)" stroke="#714d42" stroke-width="2"/>
+ <path d="m115 160 8 29 26-15-2-22" fill="#915b4e" opacity=".65"/>
+ <!-- Face, ear, and delicate planes. -->
+ <path d="M90 84c4-25 48-39 68-16 10 11 7 26 8 35l8 13-9 7c-1 20-12 36-27 43-15-3-33-18-40-30l-9-26Z" fill="url(#skin)" stroke="#513839" stroke-width="2"/>
+ <path d="M95 109c-14-16-21 3-10 16l12 3" fill="#c38d69" stroke="#724b44" stroke-width="1.5"/>
+ <path d="m87 112 5 9m1-4-5-2" fill="none" stroke="#915d4d" stroke-width="1.7"/>
+ <path d="M150 80c5 19-1 30-3 37l10 4-9 6 11 5-7 14-10 6 1 12c16-7 20-23 22-41l9-7-8-13c0-8 0-20-5-29" fill="#aa7056" opacity=".5"/>
+ <path d="M103 126q10 10 22 5" stroke="#d59770" stroke-width="5" opacity=".4" fill="none"/>
+ <!-- Brows and eyes. -->
+ <path d="m102 99 9-5 15 5m19-4 10 1 5 5" stroke="#54312f" stroke-width="3" stroke-linecap="round" fill="none"/>
+ <path d="M102 105q12-7 24 1-9 8-22 2m39-3q9-5 17 2-7 6-16 1" fill="#ddcead" stroke="#71463b" stroke-width="1.3"/>
+ <ellipse cx="117" cy="106" rx="3.6" ry="4" fill="#aa8050"/><ellipse cx="152" cy="106" rx="3" ry="3.6" fill="#ae8350"/>
+ <path d="m117 104v4m35-4v4" stroke="#263e42" stroke-width="2.3"/>
+ <path d="M104 106q11-6 21 0m20-1q7-3 14 2" stroke="#44312f" stroke-width="2" fill="none"/>
+ <circle cx="118" cy="104.5" r="1" fill="#fff0c1"/><circle cx="153" cy="104.5" r=".8" fill="#fff0c1"/>
+ <path d="m139 109-3 13 7 3m-3 4 7 1" stroke="#8f5a47" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+ <path d="M125 139q10-5 20-1-7 7-16 4" fill="#a76556"/><path d="m125 139 10 1 11-2" stroke="#713c3b" stroke-width="1.1" fill="none"/>
+ <path d="m131 146 8 1" stroke="#e6ad85" stroke-width="1.2" stroke-linecap="round"/>
+ <path d="m153 113-3 13" stroke="#e9ba91" stroke-width="1.2" opacity=".65"/>
+ <path d="m112 115 1 1m6 0 1 1m-11 3 1 1" stroke="#9b6951" stroke-width="1.3"/>
+ <!-- Front locks, with copper light along the hand-drawn strands. -->
+ <path d="M84 122c-10-22-6-42 9-51 17-9 25-1 44-13-1 17-18 22-32 27-1 20-12 30-21 37Z" fill="url(#hair)" stroke="#563533" stroke-width="2"/>
+ <path d="M112 42c27-8 44 3 48 18 12 5 21 18 18 42-9-20-20-23-24-38-19 7-31 5-48 18 13-13 18-17 23-25" fill="url(#hair)"/>
+ <g fill="none" stroke-linecap="round"><path d="M81 91c2-17 21-26 42-31M88 90c8-10 16-12 24-17m18-27c18 1 22 7 24 14m13 13 6 15" stroke="#cc8b5b" stroke-width="1.6" opacity=".65"/><path d="M78 106c0-8 2-14 4-20m-5 45c-2 17 5 31 11 38m80-42c-4 22 12 36 13 38" stroke="#ab6048" stroke-width="1.2"/></g>
+ <path d="m91 128 2 13" stroke="#d5b182" stroke-width="2.3"/><circle cx="93" cy="143" r="3" fill="#78cfce" stroke="#3e6166"/>
+ <!-- Scarf wrapped in broad, worn folds; its tail carries the silhouette. -->
+ <path d="M95 159c16 16 36 25 62 9l10-12 11 22-7 22-44 20-35-21-9-26Z" fill="url(#scarf)" stroke="#63383b" stroke-width="2.5"/>
+ <path d="m96 166 29 23 36-14-29 25-36-15m77-6-6 17-39 16" fill="none" stroke="#edb287" stroke-width="2" opacity=".48"/>
+ <path d="M132 203c5 27 20 35 45 44-6 17-7 33 4 51-31-9-50-22-61-46l-12-41" fill="url(#scarf)" stroke="#63383b" stroke-width="2"/>
+ <path d="m130 219 7 25 24 19m-34-6 23 24" stroke="#d98d6d" stroke-width="2" opacity=".55" fill="none"/>
+ <path d="m163 287 3 8m3-6 3 8m3-6 4 8" stroke="#c58268" stroke-width="1.2"/>
+ <!-- Salvage-built armor and hand-stitched travel coat. -->
+ <path d="m58 193-23 26 3 38 38-13 14-45Z" fill="#4e6469" stroke="#172d37" stroke-width="3"/>
+ <path d="m57 202-17 19 3 24 27-9 10-30Z" fill="#5b777b" stroke="#9e9478" stroke-width="1"/>
+ <path d="m44 225 24-11m-23 18 20-10" stroke="#a9c5bd" opacity=".35"/>
+ <circle cx="54" cy="237" r="2.5" fill="#b68c61"/>
+ <path d="m182 194 21 12 13 33-36-10-11-21Z" fill="#233e49" stroke="#9c8061" stroke-width="2"/>
+ <path d="m186 203 15 9 6 13-22-5" fill="#405c63"/>
+ <path d="m72 253-8 67m141-77 17 77m-143-65 30 19-3 42m84-37-31 27" stroke="#10222d" stroke-width="5" fill="none"/>
+ <path d="m57 260-11 57m148-72 14 68" stroke="#71928d" stroke-width="1" opacity=".5" fill="none"/>
+ <path d="m93 222 14 10-37 88H51Z" fill="#5a4741" stroke="#baa079" stroke-width="1.4"/>
+ <path d="m89 243 12 6-9 20-12-6z" fill="#b69262"/><path d="m88 248 7 3-5 11-7-3z" fill="#26363c"/>
+ <path d="M0 0h256v320H0z" fill="url(#grain)"/>
+ <path d="M8 34V8h26m188 0h26v26M8 286v26h26m188 0h26v-26" stroke="#b19573" opacity=".3" fill="none"/>
+</g></svg>

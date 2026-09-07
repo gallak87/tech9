@@ -1,8 +1,8 @@
 # 05 — Story personality and first-region design
 
-**Type:** collaborative planning with the owner. **Status:** deferred until Kaida is accepted.
+**Type:** collaborative planning with the owner. **Status:** an owner-authorized early proposal was drafted on the separate `codex/dusk-story-05` branch. It is committed there, not merged into this checkout, and awaits owner review. Proposed story/design is not accepted canon.
 
-**Requires:** 03's playable Kaida. This discussion can overlap 04; no chapter implementation begins until both finish.
+**Requires for final design:** 03's playable Kaida and the owner's direction. Review can run alongside [06's environment](06_environment_and_traversal.md). Story acceptance gates narrative/gameplay integration in 07, not physical environment construction in 06; 04 is separately paused.
 
 **Read:** [AGENTS.md](../AGENTS.md), the agreed direction in [DECISIONS.md](../DECISIONS.md), the original [concept](../../chronoforge/CONCEPT.md), and selected original visual/content references. Treat older story ideas as references, not a completed narrative bible.
 
@@ -32,4 +32,4 @@ Haventide/coastal reclamation is a proposed starting setting, not a locked story
 
 Create a concise `STORY.md` with the owner's accepted premise, tone, character voices/relationships, first-region beats, and any still-open choices. Create or update `GAME_DESIGN.md` with the playable region's route, encounters, rewards, progression/settlement connections, and finish criteria. Keep the two documents linked without duplicating their content.
 
-Use this design to turn 06 and 07 into appropriately sized implementation assignments. If the owner is absent, prepare a concise discussion brief and leave creative choices visibly open. Do not claim story acceptance, generate a whole narrative, or begin building the chapter automatically.
+Use this design to turn [07](07_first_playable_loop.md) and [08](08_finish_first_region.md) into appropriately sized implementation assignments. Review the existing proposal rather than restarting it by default. If the owner is absent, leave creative choices visibly open and do not claim story acceptance or begin building the chapter automatically. The independent environment task in 06 can proceed without this review.

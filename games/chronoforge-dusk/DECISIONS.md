@@ -6,7 +6,7 @@ This is the current decision record. Earlier prompts and historical game documen
 
 | Decision | Meaning for Dusk |
 | --- | --- |
-| Planning before execution | Planning preceded implementation. The owner authorized 01, then 02's reference creation and local pipeline work; later numbered steps still require their own assignment. |
+| Planning before execution | 01–03 have delivered Kaida a1. The owner authorized the early 05 proposal and this roadmap update; 06 implementation and later steps still require their own assignment. |
 | Fresh game implementation | Preserve original Chronoforge design and identity; create a runtime suited to the new asset workflow. |
 | Godot, native first | Produce a native application for the owner's Mac first. No browser build or web accommodation is required now. |
 | Browser only if a need emerges | A later playtest or user need may justify a pivot. Do not build a second target, compatibility layer, or reduced web presentation in anticipation. |
@@ -19,7 +19,8 @@ This is the current decision record. Earlier prompts and historical game documen
 | Pipeline serves multiple asset kinds | Metadata selects necessary processing stages. Static props need no rigging; Blender assets need no generation service. |
 | Manual hosted steps are acceptable | Meshy/Mixamo are practical starting tools. Local ML capability and fully automated service integration are not prerequisites. |
 | One region at a time | Keep wider Chronoforge content as reference/backlog. Do not produce eight biomes or all progression tiers upfront. |
-| Story and personality get an owner-led pass | After Kaida is accepted, discuss the storyline and crew with the owner before detailed region production. The original has little developed narrative and the prototype's story felt too wacky. Chrono Trigger is an inspiration; it does not supply Dusk's plot. |
+| Environment before the full loop | 06 creates polished coastal exploration with Kaida using 03's handoff. Standalone 04, story approval, ATB, and additional characters do not gate it. Relevant asset-repeatability checks happen during integration. |
+| Story and personality get an owner-led pass | Review the storyline and crew with the owner alongside environment work, before integrating the complete gameplay loop in 07. The original has little developed narrative and the prototype's story felt too wacky. Chrono Trigger is an inspiration; it does not supply Dusk's plot. |
 | Parallel work where useful | Asset and game work proceed together around a shared handoff. Integration and visual evaluation need explicit ownership. |
 | Future tech9 rethink is deferred | Preserve the intention to extract reusable capabilities from the working game. Archiving existing work and replacing the director/scaffolder are discussion topics, not current instructions. |
 
@@ -30,12 +31,12 @@ These fill gaps using the discussion. They can change when a concrete result pro
 - **Language:** typed GDScript for gameplay and game tools; Python/Blender scripting for asset processing. Add dependencies only for an observed need.
 - **Renderer:** begin with Godot's native Forward+ renderer and conservative effects. Measure on the actual Mac. A different native renderer is an option if evidence favors it; there is no browser-driven renderer constraint.
 - **Versions:** record and pin the chosen stable Godot version, matching export templates, and Blender version when implementation begins. Do not upgrade during an asset comparison.
-- **Presentation:** 3D characters and environments seen through an elevated, authored 2.5D camera. Explore stylized anime-influenced forms and painterly texture treatment while preserving original costume, silhouette, and color identity.
+- **Presentation:** 3D characters and environments seen through an elevated, authored 2.5D camera. Use the owner's clean anime/cel-shaded direction, clear forms and color grouping, preserving original costume, silhouette, and color identity. Painterly treatment is not the target.
 - **Art direction:** original Kaida's magenta hair, cyan jacket, dark lower clothing, and magenta energy blade are the starting anchors. A new reference sheet will resolve details; the prototype's redesign is not automatically inherited.
 - **Movement:** initially let the game controller own traversal displacement and facing, with in-place animation. Let the battle action controller own approach/retreat. Coordinate these with clips and contact timing. Reconsider root-motion use only after a specific motion test calls for it.
 - **Controls:** keyboard/mouse first. Do not build touch support initially. Revisit gamepad support when the first playable loop exists or the owner requests it.
 - **Performance:** begin with a 60 FPS target at a documented 1080p internal render resolution and a frame cap. Tune based on measured frame pacing, resource use, and perceived responsiveness.
-- **First region:** use a compact Haventide/coastal reclamation area as the proposed starting point. Its exact layout, story incident, and encounter content remain open for the owner-led story/design step after the character foundation works.
+- **First environment:** build a compact coastal reclamation/ruins area in 06. Its layout and presentation are implementation choices within that plan. Haventide as a named region, its story incident, and encounter content remain proposals for the owner-led design step; they do not block the physical environment.
 - **Asset storage:** retain immutable original inputs, current editable sources and current release packages; keep superseded iterations in Git history. Keep only selected runtime assets in the Godot project. Plan for large-file storage once actual source sizes justify it; do not configure it during planning.
 
 ## Decisions that need evidence

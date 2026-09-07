@@ -1,8 +1,8 @@
-# 07 — Finish the first region
+# 08 — Finish the first region
 
 **Type:** several focused implementation and playtest assignments. **Status:** future outline.
 
-**Requires:** 06's complete loop and the owner's accepted first-region design.
+**Requires:** [07's complete loop](07_first_playable_loop.md) and the owner's accepted first-region design.
 
 ## Outcome
 
@@ -25,4 +25,4 @@ Use [VALIDATION.md](../VALIDATION.md) and the accepted design to form bounded ta
 
 The owner plays the complete region using actual traversal and combat, including ordinary rewards and progression, defeat/retry, save/resume, and the ending. The accepted assets work together, the core systems have practical use, and material defects or limitations are recorded honestly.
 
-Do not begin producing every remaining region while this one is still thin. Choose the next addition through 08 after reviewing what this region taught us.
+Do not begin producing every remaining region while this one is still thin. Choose the next addition through [09](09_expand_the_game.md) after reviewing what this region taught us.

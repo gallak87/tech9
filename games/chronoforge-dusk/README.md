@@ -2,9 +2,9 @@
 
 A fresh Godot implementation of the original Chronoforge: a stylized 2.5D strategy RPG about a three-person crew reclaiming a post-collapse Earth and helping a settlement rebuild civilization.
 
-**Status: [Kaida a1](releases/kaida-a1.md) is the current playable release.** The stable r2 model is packaged as `kaida/a1`, with a separate sword. It has responsive stride-matched traversal, a timed strike with target reaction and feedback, basic hurt/defeat previews, slow/stepped inspection, and saved tuning. See [run/build instructions](NATIVE.md) and [03 evidence](evidence/kaida-03/README.md). **04 is paused; later work remains unstarted.**
+**Status: [Kaida a1](releases/kaida-a1.md) is the current playable release.** The stable r2 model is packaged as `kaida/a1`, with a separate sword. It has responsive stride-matched traversal, a timed strike with target reaction and feedback, basic hurt/defeat previews, slow/stepped inspection, and saved tuning. See [run/build instructions](NATIVE.md) and [03 evidence](evidence/kaida-03/README.md). **04 is paused; [06 — Coastal environment and traversal](_plans/06_environment_and_traversal.md) is the next plan to review and assign.** 05's story proposal awaits review on its separate branch; 06–10 are unimplemented.
 
-The [local production pipeline](_prep/README.md) builds the current [a1 source and asset handoff](_prep/KAIDA_HANDOFF.md). Kaida’s proportions and detailed grip/whole-body motion remain provisional under the owner’s [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07). The alpha release is ready for the owner’s review before 04.
+The [local production pipeline](_prep/README.md) builds the current [a1 source and asset handoff](_prep/KAIDA_HANDOFF.md). Kaida’s proportions and detailed grip/whole-body motion remain provisional under the owner’s [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07). Use this handoff to build her first real environment; additional cosmetic polish, standalone 04, and story approval do not block 06.
 
 ## The direction
 
@@ -14,7 +14,7 @@ The [local production pipeline](_prep/README.md) builds the current [a1 source a
 - Build fresh in Godot. Dawn contributes lessons only; do not copy its implementation or assets into Dusk.
 - Target a **native desktop application**, initially a macOS `.app` bundle containing the game executable. The owner should be able to launch it without opening the Godot editor. Browser delivery is a possible future pivot if playtesting reveals a compelling need. There is no current web export, renderer parity, or compatibility-layer work.
 - Start with **Kaida in the actual game**, and refine her appearance and movement before producing the whole cast or a complete chapter. Build out one region at a time afterward.
-- After Kaida is established, develop the story and crew personalities with the owner before detailed region production. Chrono Trigger is an acknowledged inspiration; the owner can drive Dusk's storyline.
+- Build a small, polished coastal environment for Kaida independently of story, ATB, progression, and further characters. Story and crew personality develop with the owner alongside it, before integrating the complete gameplay loop in 07. Chrono Trigger is an acknowledged inspiration; the owner can drive Dusk's storyline.
 
 The first playable Dusk is a small game foundation with a traversal patch and battle rehearsal. The game itself exposes asset inspection, animation controls, lighting/camera tuning, and performance measurements. These tools remain useful as Dusk grows.
 
@@ -31,7 +31,7 @@ Start with [AGENTS.md](AGENTS.md) and the current assignment, then read the rele
 | [Decisions](DECISIONS.md) | Settled direction, proposed defaults, and questions deliberately left for evidence |
 | [Roadmap](ROADMAP.md) | Linear sequence, dependencies, and agent handoff guidance |
 | [Planner handoff](PLANNER.md) | Context and judgment for a fresh session planning the next assignments |
-| [Numbered plans](_plans) | Individual assignments; start with 01, then select only the next applicable task |
+| [Numbered plans](_plans) | Individual assignments; 01–03 provide the base, and 06 is the next environment task |
 | [Validation](VALIDATION.md) | Appearance, motion, input, performance, and repeatable evidence |
 | [Lessons](LESSONS.md) | Findings from the existing games and what Dusk does with them |
 | [Future tech9 direction](FRAMEWORK_FUTURE.md) | Deferred ambition to extract reusable capabilities and rethink the director/scaffolder |

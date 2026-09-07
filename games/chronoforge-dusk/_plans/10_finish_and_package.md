@@ -1,4 +1,4 @@
-# 09 — Finish and package the game
+# 10 — Finish and package the game
 
 **Type:** future completion milestone. **Status:** outline only.
 

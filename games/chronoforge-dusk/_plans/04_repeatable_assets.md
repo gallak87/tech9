@@ -1,6 +1,6 @@
 # 04 — Repeatable asset updates
 
-**Type:** bounded integration assignment. **Status:** paused. Environment preparation and importing Kaida a1 into a real game scene take priority; this asset-repeatability assignment requires separate authorization.
+**Type:** bounded integration assignment. **Status:** paused. [06's coastal environment](06_environment_and_traversal.md) takes priority and does not depend on this standalone exercise. Useful static-asset reimport evidence can come from 06; any remaining repeatability exercise requires its own assignment.
 
 **Requires:** 03's accepted Kaida, 01's runtime, and 02's tooling/static prop.
 
@@ -25,4 +25,4 @@ Do not redesign for every future provider or asset category. A second-humanoid i
 
 A revised Kaida and static prop reach the game without per-version code repair, lost settings, or misleading provenance. The accepted result can be restored, and repeat operations do not show unexplained resource growth. Remaining limits are explicit.
 
-The owner may discuss 05 while this work runs. Begin the complete game loop in 06 only after both this step and the story/region design in 05 are ready.
+The owner may discuss 05 while useful integration work runs. [07's complete game loop](07_first_playable_loop.md) builds on 06 and the agreed story/design. Reuse relevant repeatability evidence from 06 instead of repeating a standalone exercise; partial coverage does not mark all of 04 complete.

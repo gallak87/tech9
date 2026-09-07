@@ -1,4 +1,4 @@
-# 08 — Expand one region at a time
+# 09 — Expand one region at a time
 
 **Type:** future planning and repeated regional delivery. **Status:** outline only.
 
@@ -22,4 +22,4 @@ The future tech9 capability/director discussion can use evidence from these resu
 
 ## Done and next
 
-Repeat until the agreed story and game scope are present. Then use 09 for whole-game completion, rather than treating a collection of individually tested regions as a proven complete playthrough.
+Repeat until the agreed story and game scope are present. Then use [10](10_finish_and_package.md) for whole-game completion, rather than treating a collection of individually tested regions as a proven complete playthrough.

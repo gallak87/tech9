@@ -40,7 +40,7 @@ Kaida remains recognizable at actual gameplay size. Skin, grip, attachments, gro
 
 The owner plays the short traversal/rehearsal and is happy for Kaida to become the quality reference. Record remaining optional embellishments separately from blocking defects. One agent assignment may complete a focused correction pass; it must not pretend subjective polish is guaranteed in one shot.
 
-Stop before expanding into the whole game. After acceptance, 04 proves repeatability and 05 opens the owner-led story discussion. Subsequent characters inherit the method while retaining their own proportions and movement identity.
+Stop before expanding into the whole game. The next separately assigned task is [06's environment and traversal](06_environment_and_traversal.md), using the completed Kaida handoff. 04 is paused; 05's owner-led story review can run alongside environment work. Subsequent characters inherit the method when they are actually needed.
 
 ## Current implementation
 

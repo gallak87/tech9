@@ -1,0 +1,108 @@
+➜  chronoforge-dawn git:(g/fox64-chronoforge-dawn) ✗ node docs/phase2/forge-selftest.mjs
+forge-selftest — synthetic rigged glb, no browser, no network
+
+synthetic glb: docs/phase2/out/kaida-synthetic.glb  12.2 KB
+  authored at 6.512 m tall, origin offset 1.3, 0.45, -2.1, yaw 180°, A-pose 45°
+
+1. bone map
+  ✓ suggestBoneMap recovers all 19 from unseen names  19/19
+  ✓ the unmapped twist bone is left unmapped
+  ✓ an incomplete bones.json throws rather than half-mapping
+  ✓ the error names the missing bones and lists the glb's own
+
+2. scale normalisation
+  ✓ source is a glb
+  ✓ measured source height  6.51200 vs 6.51200 (±0.0001)
+  ✓ source height is wrong on purpose  6.512 m
+  ✓ normalisation factor  0.26413 vs 0.26413 (±0.000001)
+  ✓ normalised height is HERO_M  1.72000 vs 1.72000 (±0.0001)
+  ✓ lowest point sits on y = 0  0.00000 vs 0.00000 (±0.0001)
+  ✓ centred in x  0.00000 vs 0.00000 (±0.0001)
+  ✓ centred in z  0.00000 vs 0.00000 (±0.0001)
+  ✓ the shared actor material is NOT used — uBands is bypassed
+  ✓ material is a plain MeshStandardMaterial
+  ✓ Part isolation is off — a glb has no aPart
+
+3. ankle-to-sole and leg links, measured off the glb
+  ✓ ankle-to-sole  0.04886 vs 0.04886 (±0.0001)
+  ✓ thigh  0.41045 vs 0.41045 (±0.0001)
+  ✓ shin  0.44955 vs 0.44955 (±0.0001)
+  ✓ the measurement differs from ground.js's SOLE = 0.08 by enough to matter  0.0489 vs 0.08
+
+4. bind delta — absolute (default)
+  ✓ retarget is in absolute mode
+  ✓ an unposed clip puts every bone at the SPEC bind, not the A-pose  19/19
+  ✓ a posed clip reproduces the code-built rig in model space  19/19 under victory@0.9
+  ✓ retarget.add matches `rotation.x +=` on the code-built rig
+  ✓ and it carries down the chain to the foot
+
+5. bind delta — additive (bindMode in bones.json)
+  ✓ retarget is in additive mode
+  ✓ an unposed clip reproduces the GLB's own bind, exactly  19/19
+  ✓ a posed clip applies the code-built delta on top of the glb bind  19/19 under run@0.31
+
+6. sockets
+  ✓ a socket has unit world scale despite the 3.7× source  1.00000 vs 1.00000 (±0.00001)
+  ✓ a socket is model-axis aligned at bind
+  ✓ socket.head sits at the spec offset above the head bone  0.14000 vs 0.14000 (±0.00001)
+  ✓ the hand socket keeps the +Y-to-tip flip the code-built rig applies
+  ✓ the weapon survived the body swap and is mounted
+
+7. ground contact, end to end
+  ✓ the CODE-BUILT rig still plants  0.0028 m residual
+  ✓ a forged rig plants as well as the code-built one  forged 0.0028 m vs code-built 0.0028 m
+  ✓ and leaving ground.js's SOLE hardcoded would have sunk it  31 mm of constant error
+
+8. the code-built path
+  ✓ an unflagged actor is code-built
+  ✓ it has no retarget — poses.js writes straight to the bone
+  ✓ it has no measured sole — ground.js falls back to the spec
+  ✓ it still carries aPart for the dev panel's Part isolation
+  ✓ it still has 19 bones and its part ranges
+  ✓ and it still poses exactly as the spec table says  19/19
+
+41 passed, 0 failed
+forge-selftest: OK
+➜  chronoforge-dawn git:(g/fox64-chronoforge-dawn) ✗ node tools/lintrng.mjs
+rng: clean — no Math.random() in src/ or tools/
+➜  chronoforge-dawn git:(g/fox64-chronoforge-dawn) ✗ git status
+On branch g/fox64-chronoforge-dawn
+nothing to commit, working tree clean
+➜  chronoforge-dawn git:(g/fox64-chronoforge-dawn) node docs/phase2/forge.mjs docs/phase2/forge-manifest.json --only kaida
+forge · 1 character(s) × 3 stage(s)
+  out    docs/phase2/out/
+  assets assets/
+
+  kaida/mesh         running ...
+       0%  checking the environment
+  kaida/mesh         FAILED
+     stage `mesh` is not wired in. Hunyuan3D-2.1-mlx, INT8, shape pass then texture pass (~15 min).
+
+     environment:
+       MISSING  python 3.10 venv /Users/g/.venvs/forge310/bin/python
+       MISSING  model repo       /Users/g/src/Hunyuan3D-2.1-mlx
+
+     set it up:
+       brew install python@3.10
+       python3.10 -m venv ~/.venvs/forge310
+       source ~/.venvs/forge310/bin/activate && pip install -U pip
+       git clone https://github.com/dgrauet/Hunyuan3D-2.1-mlx ~/src/Hunyuan3D-2.1-mlx
+       cd ~/src/Hunyuan3D-2.1-mlx && pip install -r requirements.txt
+
+     run this by hand, once, and check what it writes:
+       /Users/g/.venvs/forge310/bin/python /Users/g/src/Hunyuan3D-2.1-mlx/generate.py \
+           --image docs/phase2/ref/kaida-painterly.png \
+           --precision int8 \
+           --views 6 --texture-size 512 \
+           --output docs/phase2/out/kaida.glb
+
+       python generate.py \
+           --image /Users/g/code/scratch/tech9/games/chronoforge-dawn/docs/phase2/ref/kaida-painterly.png \
+           --precision int8 \
+           --views 6 --texture-size 512 \
+           --output /Users/g/code/scratch/tech9/games/chronoforge-dawn/docs/phase2/out/kaida.glb
+
+     not wired in because the port README limits its own testing to two example meshes, so those flag names are a guess, and a guessed CLI fails fifteen minutes in. Confirm the real surface once, then wire it in here.
+     output goes at docs/phase2/out/kaida.glb; the next stage reads it from there.
+
+0 ran, 0 skipped, 1 failed

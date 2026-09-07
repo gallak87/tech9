@@ -1,8 +1,8 @@
-# 06 — First complete playable loop
+# 07 — First complete playable loop
 
 **Type:** implementation milestone, sized from the accepted design. **Status:** future; not ready to execute yet.
 
-**Requires:** 03's accepted Kaida, 04's repeatable asset handoff, and 05's owner-led story/first-region design.
+**Requires:** 03's usable Kaida handoff, [06's playable environment](06_environment_and_traversal.md), and 05's owner-agreed story/first-region design. Confirm repeatable handoffs for the assets this loop needs using evidence from 06 or a separately assigned portion of 04; a standalone 04 exercise is not mandatory.
 
 **Read:** [AGENTS.md](../AGENTS.md), the `STORY.md` and `GAME_DESIGN.md` produced by 05, relevant [validation](../VALIDATION.md), and the existing Dusk runtime. Refer to original content only where the accepted design calls for it.
 
@@ -21,12 +21,12 @@ Connect this loop before deepening systems. A short, functioning sequence matter
 
 ## Work to size from the design
 
-- Expand the tested traversal patch into the first compact route: real collision, landmarks, interaction, visible encounter, and useful discovery.
+- Build on 06's tested coastal environment and traversal. Adapt the route only where the accepted design needs it, adding interactions, a visible encounter, and a useful discovery.
 - Implement the agreed ATB behavior around the existing action presentation: speed-based gauges, comfortable command selection, attack, defense, one useful technique, target reaction, victory, and defeat/retry. Preserve the prototype's appealing staging without transplanting its actor runtime.
 - Connect rewards, XP, an equipment/skill improvement, and a resource-funded home upgrade. Ensure the player can perceive their effects.
 - Introduce player-facing HUD, pause/back, essential menus, save/load, and settings only as the loop needs them. Keep development tools separate from the player-facing flow.
 - Implement the accepted opening story beats and a payoff using interactions and short crew moments. Do not substitute newly invented campaign lore during implementation.
-- Add a small environment kit and first enemy through the proven asset route. Test scale, ground/collision, occlusion, and materials in the game camera before multiplying scenery.
+- Add the first enemy and any additional scenery needed by the agreed loop through the proven asset route. Reuse 06's Dusk environment kit and preserve its collision, camera readability, and performance.
 
 Asset work can deliver Vex, Rune, enemies, and props concurrently against the established handoff. Any temporary actors needed for logic must be identified; placeholders cannot establish final crew visuals or combination quality.
 
@@ -40,4 +40,4 @@ Do not force all four civilization tiers or the Void Architect's final confronta
 
 A native playthrough demonstrates the full loop through real controls and earned resources. The owner can see how exploration, battle, crew growth, and settlement improvement connect. Save/load and retry are exercised; remaining placeholders and shortcomings are explicit.
 
-Before assigning this milestone, split it into smaller tasks if the design makes it too broad for one useful implementation pass. Finish the region through 07 rather than declaring the whole game complete here.
+Before assigning this milestone, split it into smaller tasks if the design makes it too broad for one useful implementation pass. Finish the region through [08](08_finish_first_region.md) rather than declaring the whole game complete here. Completing 06's environment does not complete this milestone.

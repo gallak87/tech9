@@ -1,0 +1,89 @@
+{
+  "coordinate_space": "Blender metres Z up +Y forward",
+  "bounds": [
+    [
+      -2.0,
+      -1.500000238418579,
+      0.0
+    ],
+    [
+      2.0,
+      1.500000238418579,
+      1.385000228881836
+    ]
+  ],
+  "meshes": [
+    {
+      "name": "Coast_bridge",
+      "vertices": 3040,
+      "triangles": 5880,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 3040
+    }
+  ],
+  "materials": [
+    {
+      "name": "Oxidised iron",
+      "images": [
+        {
+          "name": "Oxidised iron baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "23de1027f32d4963e0c158d2793258aa7bf9b84876ebe309aa16bf3cc62f6c12",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Oxidised iron packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "d929fae47ad3f9f0dbe44f914b2383e04d487a0578dff549969221bc1cc40427",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Silvered driftwood",
+      "images": [
+        {
+          "name": "Silvered driftwood baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "d98dfbe0acbdb8928af23baeb103a87c7b62be1eefdd40c003fa574bbcd3e677",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Silvered driftwood packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "93919139807f56c61ca71f42e245e8b52c3964c9ee1a88456536a65c0828ae08",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    }
+  ],
+  "rigs": [],
+  "actions": [],
+  "root_correction": [],
+  "visual_acceptance": "not established"
+}

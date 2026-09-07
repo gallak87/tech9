@@ -84,24 +84,24 @@ def verify_test_report(path, run_id, source_sha256, native_export):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['setup', 'import', 'run', 'export', 'test', 'test-editor', 'test-foundation', 'test-foundation-editor', 'test-environment', 'test-environment-editor'])
+    parser.add_argument('command', choices=['setup', 'import', 'run', 'export', 'test', 'test-editor', 'test-foundation', 'test-foundation-editor', 'test-environment', 'test-environment-editor', 'capture-environment'])
     args = parser.parse_args()
     godot = engine()
     if args.command == 'setup':
         setup()
         return
-    if args.command in ('import', 'export') or args.command.startswith('test'):
+    if args.command in ('import', 'export', 'capture-environment') or args.command.startswith('test'):
         run([godot, '--headless', '--editor', '--path', GAME, '--import', '--quit'])
         build_identity()
     if args.command == 'run':
         run([godot, '--path', GAME], timeout=None)
-    if args.command in ('export', 'test', 'test-foundation', 'test-environment'):
+    if args.command in ('export', 'test', 'test-foundation', 'test-environment', 'capture-environment'):
         setup()
         APP.parent.mkdir(exist_ok=True)
         run([godot, '--headless', '--path', GAME, '--export-release', 'macOS', APP])
         run(['codesign', '--verify', '--deep', '--strict', APP])
         print('Native application:', APP)
-    if args.command.startswith('test'):
+    if args.command.startswith('test') or args.command == 'capture-environment':
         native = not args.command.endswith('-editor')
         binary = APP / 'Contents/MacOS/Chronoforge Dusk' if native else godot
         prefix = [binary] if native else [binary, '--path', GAME]
@@ -110,6 +110,8 @@ def main():
         phases = [('self-test', 'foundation'), ('verify-restart', 'restart')] if 'foundation' in args.command else [('kaida-test', 'kaida'), ('kaida-restart', 'kaida_restart')]
         if 'environment' in args.command:
             phases = [('environment-test', 'environment'), ('environment-restart', 'environment_restart')]
+        if args.command == 'capture-environment':
+            phases = [('environment-motion', 'environment_motion')]
         for flag, label in phases:
             run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--' + flag, '--test-run-id=' + run_id], timeout=300 if 'environment' in args.command else 180)
             verify_test_report(USER_DATA / f'test_{label}.json', run_id, source_sha256, native)

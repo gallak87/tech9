@@ -34,6 +34,7 @@ var input_events: int = 0
 var last_input: String = "none"
 var game_revision: String = "development"
 var test_mode: bool = false
+var environment_check: bool = false
 var test_run_id: String = ""
 var test_interference: bool = false
 
@@ -45,6 +46,7 @@ func _ready() -> void:
 		if argument.begins_with("--test-run-id="):
 			test_run_id = argument.trim_prefix("--test-run-id=")
 	test_mode = "--self-test" in OS.get_cmdline_user_args() or "--verify-restart" in OS.get_cmdline_user_args() or "--kaida-test" in OS.get_cmdline_user_args() or "--kaida-restart" in OS.get_cmdline_user_args()
+	environment_check = "--environment-test" in OS.get_cmdline_user_args()
 	if test_mode:
 		tuning.path = "user://kaida_test_tuning.json" if ("--kaida-test" in OS.get_cmdline_user_args() or "--kaida-restart" in OS.get_cmdline_user_args()) else "user://foundation_test_tuning.json"
 	if FileAccess.file_exists("res://content/build_info.json"):
@@ -102,7 +104,7 @@ func _ready() -> void:
 	simulation.add_child(feedback)
 	hud = DuskDevelopmentHUD.new()
 	add_child(hud)
-	hud.subtitle.text = "KAIDA R2  ·  ALPHA A1  ·  " + ("AUTOMATED TEST — PLEASE WAIT" if test_mode else "MOVEMENT & STRIKE REVIEW")
+	hud.subtitle.text = "KAIDA R2  ·  ALPHA A1  ·  " + ("AUTOMATED TEST — PLEASE WAIT" if test_mode or environment_check else "MOVEMENT & STRIKE REVIEW  ·  F2 RETURN TO COAST")
 	for path: String in candidates:
 		var candidate_data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 		var candidate_label: String = str(candidate_data.get("label", path)) if candidate_data is Dictionary else path
@@ -131,7 +133,7 @@ func _ready() -> void:
 	else:
 		load_error = "Accepted descriptor is no longer prepared: " + initial + ". Select a candidate explicitly."
 	set_mode(1)
-	if not test_mode:
+	if not test_mode and not environment_check:
 		get_window().focus_exited.connect(func() -> void: set_unfocused(true))
 		get_window().focus_entered.connect(func() -> void: set_unfocused(false))
 	ready_ms = Time.get_ticks_msec()
@@ -243,9 +245,11 @@ func _physics_process(_delta: float) -> void:
 			apply_pause()
 
 func _input(event: InputEvent) -> void:
-	if test_mode and not event.has_meta("dusk_test_input"):
+	if (test_mode or environment_check) and not event.has_meta("dusk_test_input"):
 		if (event is InputEventKey or event is InputEventMouseButton) and event.is_pressed():
 			test_interference = true
+			if environment_check:
+				Engine.set_meta("environment_test_interference",true)
 			print("DUSK_TEST_INTERFERENCE External input; rerun before accepting results")
 
 func _unhandled_input(event: InputEvent) -> void:

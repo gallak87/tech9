@@ -5,12 +5,26 @@ const SPAWN := Vector3(-11, 0.025, 13)
 var import_errors: Array[String] = []
 var surface_material: Material
 var wall_material: Material
+var kit: DuskCoastKit
+var shore_edges: Array[Array] = []
+var sea_material: ShaderMaterial
+var coast_time: float = 0.0
 
 func _ready() -> void:
-	surface_material = material(Color("8b9288"))
-	wall_material = material(Color("52676a"))
+	var stone := ShaderMaterial.new()
+	stone.shader = preload("res://environment/stone.gdshader")
+	surface_material = stone
+	var wall := ShaderMaterial.new()
+	wall.shader = stone.shader
+	wall.set_shader_parameter("vertical",true)
+	wall.set_shader_parameter("tint",Color("677c78"))
+	wall_material = wall
+	kit = DuskCoastKit.new()
+	add_child(kit)
+	import_errors = kit.errors
 	build_route()
 	build_light()
+	dress_site()
 
 func build_route() -> void:
 	slab("Arrival quay", Rect2(-18, 6, 16, 14), 0, 0)
@@ -68,6 +82,9 @@ func slab(title: String, rect: Rect2, north: float, south: float) -> void:
 	collision.shape = shape
 	body.add_child(collision)
 	add_child(body)
+	if title == "Repaired crossing":
+		mesh.visible = false
+		return
 	# Deep seawall skirts reach the intertidal rocks; never a floating floor.
 	for i: int in range(4):
 		var a: Vector3 = points[i]
@@ -83,10 +100,20 @@ func slab(title: String, rect: Rect2, north: float, south: float) -> void:
 		add_child(skirt)
 
 func parapet(a: Vector3, b: Vector3) -> void:
+	shore_edges.append([a,b])
+	var direction: Vector3 = (b-a).normalized()
+	var across: Vector3 = direction.cross(Vector3.UP).normalized()
+	var up: Vector3 = across.cross(direction)
+	var count: int = maxi(1,int(ceil(a.distance_to(b)/3.0)))
+	for i: int in range(count):
+		var at: Vector3 = a.lerp(b,(i+.5)/count)-up*2.05
+		if a.z in [6.0,10.0] and b.x == 10.0: continue
+		kit.place_transform("seawall",Transform3D(Basis(direction,up,across).scaled_local(Vector3(a.distance_to(b)/count/3.0,1.0,.58)),at))
 	var center: Vector3 = (a+b)*0.5 + Vector3.UP*0.36
 	var length: float = a.distance_to(b)
 	var body: Node3D = box("Salt-worn parapet", center, Vector3(0.40,0.72,length+0.12), wall_material, true)
 	body.look_at_from_position(center, center + (b-a))
+	body.get_child(0).visible = false
 	# A taller invisible solid on the same visible edge prevents capsule climbing.
 	var collision := CollisionShape3D.new()
 	var shape := BoxShape3D.new()
@@ -117,19 +144,107 @@ func box(title: String, at: Vector3, size: Vector3, mat: Material, solid: bool =
 func build_light() -> void:
 	var world := WorldEnvironment.new()
 	var env := Environment.new()
-	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color("7cabad")
+	env.background_mode = Environment.BG_SKY
+	var sky := Sky.new()
+	var sky_material := ProceduralSkyMaterial.new()
+	sky_material.sky_top_color = Color("537e93")
+	sky_material.sky_horizon_color = Color("b2c5c5")
+	sky_material.ground_bottom_color = Color("243c45")
+	sky_material.ground_horizon_color = Color("b2c5c5")
+	sky.sky_material = sky_material
+	env.sky = sky
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	env.ambient_light_color = Color("bddee1")
-	env.ambient_light_energy = 0.48
+	env.ambient_light_energy = 0.34
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	world.environment = env
 	add_child(world)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-43,-37,0)
-	sun.light_color = Color("ffdfac")
-	sun.light_energy = 1.65
+	sun.rotation_degrees = Vector3(-34,-48,0)
+	sun.light_color = Color("fff0d5")
+	sun.light_energy = 1.20
 	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 100.0
+	sun.directional_shadow_max_distance = 92.0
+	sun.light_angular_distance = 0.5
 	add_child(sun)
-	box("Sea",Vector3(0,-2.0,0),Vector3(300,0.1,300),material(Color("267e89")))
+	sea_material = ShaderMaterial.new()
+	sea_material.shader = preload("res://environment/sea.gdshader")
+	box("Sea",Vector3(0,-1.85,0),Vector3(300,0.1,300),sea_material)
+
+func _process(delta: float) -> void:
+	coast_time += delta
+	sea_material.set_shader_parameter("coast_time",coast_time)
+	kit.grass_material.set_shader_parameter("coast_time",coast_time)
+
+func dress_site() -> void:
+	# Furniture is kept to the edge; the 4 m crossing and both ramps stay clear.
+	for at: Vector3 in [Vector3(-16.5,0,18),Vector3(-3.3,0,18.5),Vector3(-3.2,0,11.5),Vector3(15.6,0,11.5),Vector3(15.9,3,-16.8),Vector3(-8.2,3,-22.8),Vector3(-13.8,3,-22.8)]:
+		kit.place("bollard",at)
+		obstacle(at+Vector3.UP*.4,Vector3(.6,.8,.6))
+	for at: Vector3 in [Vector3(-16.2,0,12.0),Vector3(15.6,0,4.2),Vector3(7.5,3,-16.4)]:
+		kit.place("supplies",at,Vector3.ONE,0.15)
+		obstacle(at+Vector3.UP*.8,Vector3(2,1.6,1.7))
+	kit.place("pump",Vector3(-14.8,0,8.5),Vector3.ONE,-.12)
+	obstacle(Vector3(-14.8,1.2,8.5),Vector3(3.3,2.4,2.2))
+	# The bridge has a continuous controller-owned walking plane. Planks sit flush.
+	for x: float in [-0.5,2.5,5.5,8.5]:
+		kit.place("bridge",Vector3(x,-.31,8),Vector3.ONE,PI*.5)
+	for x: float in [1.0,7.0]:
+		for z: float in [7.0,9.0]:
+			kit.place("seawall",Vector3(x,-3.0,z),Vector3(.2,1.0,.4))
+	# Open arches and a collapsed rear wall make a ruin, with no roof occlusion.
+	for x: float in [-3.5,3.0,11.0]:
+		kit.place("arch",Vector3(x,3,-16.8))
+		for dx: float in [-2.53,2.53]:
+			obstacle(Vector3(x+dx,5.6,-16.8),Vector3(1.2,5.2,1.6))
+	# Partial cross wall at the arrival defines an entrance without hiding Kaida.
+	kit.place("arch",Vector3(-13.3,0,18.4),Vector3(.8,.72,.8))
+	for dx: float in [-2.02,2.02]:
+		obstacle(Vector3(-13.3+dx,1.8,18.4),Vector3(1.0,3.6,1.3))
+	# Distant broken signal station, on an isolated tidal stack.
+	kit.place("tower",Vector3(-1,-1.6,-34),Vector3.ONE,0.28)
+	kit.place("rocks",Vector3(-1,-3,-34),Vector3(3.8,2.7,3.1),0.2)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 606
+	# Natural rock aprons obscure the square foundations at the tide line.
+	for edge: Array in shore_edges:
+		var a: Vector3 = edge[0]
+		var b: Vector3 = edge[1]
+		if a.z in [6.0,10.0] and b.x == 10.0: continue
+		var count: int = maxi(1,int(a.distance_to(b)/2.3))
+		for i: int in range(count):
+			var at: Vector3 = a.lerp(b,(i+.5)/count)
+			at.y = -2.4+rng.randf_range(-.2,.3)
+			var scale_by: float = rng.randf_range(.7,1.4)
+			kit.place("rocks",at,Vector3(scale_by,scale_by*.85,scale_by),rng.randf()*TAU)
+	# Low grasses are concentrated in the margins, not spread over walking space.
+	for edge: Array in shore_edges:
+		var a: Vector3 = edge[0]
+		var b: Vector3 = edge[1]
+		if a.z in [6.0,10.0] and b.x == 10.0: continue
+		var count: int = maxi(1,int(a.distance_to(b)/1.15))
+		for i: int in range(count):
+			if rng.randf()<.26: continue
+			var at: Vector3 = a.lerp(b,(i+.5)/count)
+			at.x += rng.randf_range(-.32,.32)
+			at.z += rng.randf_range(-.32,.32)
+			var s: float = rng.randf_range(.55,.95)
+			kit.place("grass",at+Vector3.UP*.05,Vector3(s,s,s),rng.randf()*TAU)
+	# Broken slabs and salvage on the unused island edges, plus offshore stacks.
+	for at: Vector3 in [Vector3(-23,-2,11),Vector3(-26,-2,-9),Vector3(23,-2,-6),Vector3(21,-2,17),Vector3(-7,-2,-31),Vector3(12,-2,-33)]:
+		kit.place("rocks",at,Vector3(2.4,1.9,2),rng.randf()*TAU)
+	# Damp planting pockets make the generous arrival paving feel occupied.
+	for at: Vector3 in [Vector3(-16,0,15.5),Vector3(-4,0,17),Vector3(15.8,1.8,-5),Vector3(-13.8,3,-20),Vector3(-7.5,3,-11.2)]:
+		kit.place("grass",at,Vector3.ONE,0.5)
+		kit.place("rocks",at-Vector3.UP*.55,Vector3(.55,.55,.55),0.4)
+	kit.commit()
+
+func obstacle(at: Vector3, size: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.position = at
+	var collision := CollisionShape3D.new()
+	var shape := BoxShape3D.new()
+	shape.size = size
+	collision.shape = shape
+	body.add_child(collision)
+	add_child(body)

@@ -9,6 +9,7 @@ var started: int
 var minimum_y: float = 100.0
 var max_air_frames: int = 0
 var air_frames: int = 0
+var measured_intervals: Dictionary = {}
 
 func run(root: DuskCoast) -> void:
 	game = root
@@ -22,7 +23,7 @@ func run(root: DuskCoast) -> void:
 	check(game.site.import_errors.is_empty(),"All selected static scenery imports validate")
 	check(game.actor.visual.descriptor.revision == "a1","Kaida a1 package retained")
 	check(is_equal_approx(game.actor.walk_speed,float(game.tuning.values.walk_speed)),"Accepted movement tuning applied")
-	check(is_equal_approx(game.camera.size,19.5),"Authored framing independent of saved inspection camera")
+	check(is_equal_approx(game.camera.size,16.5),"Authored framing independent of saved inspection camera")
 	if "--environment-restart" in OS.get_cmdline_user_args():
 		finish("environment_restart")
 		return
@@ -33,8 +34,17 @@ func run(root: DuskCoast) -> void:
 	game.perf.begin("complete_route_walk")
 	var route: Array[Vector3] = [Vector3(-5,0,13),Vector3(-5,0,8),Vector3(12.8,0,8),Vector3(13.3,0,2),Vector3(13.3,3,-13.5),Vector3(-3,3,-14),Vector3(-11,3,-14),Vector3(-11,3,-21),Vector3(-11,3,-14),Vector3(-12,0,8),Vector3(-11,0,13)]
 	for i: int in range(route.size()):
-		await walk_to(route[i],false)
+		if i in [2,4]:
+			var start_axis: Vector3 = game.actor.position
+			await straight_to(route[i],KEY_D if i == 2 else KEY_W)
+			check(absf(game.actor.position.z-start_axis.z) < 0.02 if i == 2 else absf(game.actor.position.x-start_axis.x) < 0.02,"A single held %s follows the %s without corrective strafing" % ["D" if i == 2 else "W","crossing" if i == 2 else "ascent"])
+		else:
+			await walk_to(route[i],false)
 		check(game.actor.position.distance_to(route[i]) < 0.85,"Walk route waypoint %02d reached at expected height" % i)
+		if i == 7:
+			await seconds(.8)
+			var tower_top: Vector2 = game.camera.unproject_position(Vector3(-1,15.4,-34))
+			check(tower_top.y > 24 and tower_top.y < 1056,"Overlook framing includes the full signal tower mast")
 		if i in [2,5,7]:
 			game.perf.begin("captures_readback")
 			await capture(["crossing","upper-ruin","overlook"][[2,5,7].find(i)])
@@ -56,6 +66,14 @@ func run(root: DuskCoast) -> void:
 	check(game.actor.position.z < 19.55 and game.actor.position.y < 0.08,"Outer parapet stops a running capsule without climbing or falling")
 	await walk_to(Vector3(-12,0,15),false)
 	check(game.actor.position.distance_to(Vector3(-12,0,15)) < 0.9,"Can turn out of a boundary corner")
+	await walk_to(Vector3(-13.3,0,17.4),false)
+	await seconds(0.6)
+	var faded: bool = false
+	for occluder: MeshInstance3D in game.site.kit.occluders:
+		faded = faded or occluder.transparency > 0.7
+	check(faded,"Foreground architecture fades before it can hide Kaida")
+	game.perf.begin("captures_readback")
+	await capture("foreground")
 	await key(KEY_ESCAPE)
 	var paused_at: Vector3 = game.actor.position
 	set_keys([KEY_W])
@@ -74,12 +92,47 @@ func run(root: DuskCoast) -> void:
 	await key(KEY_R)
 	await seconds(0.5)
 	check(game.actor.position.distance_to(Vector3(-11,0,13)) < 0.05 and game.actor.is_on_floor(),"R restores safe spawn and grounded feet")
+	check(game.coastal_audio.step_events > 20,"Grounded walking and running generate surface-aware footfalls")
+	# Keep this one bounded runner across genuine scene changes; no second actor.
+	measured_intervals = game.perf.report()
+	var tree: SceneTree = get_tree()
+	get_parent().remove_child(self)
+	tree.root.add_child(self)
+	await key(KEY_F2)
+	await seconds(2)
+	var development: DuskFoundation = tree.current_scene as DuskFoundation
+	if development != null:
+		development.set_unfocused(false)
+		await key(KEY_1)
+		await key(KEY_2)
+		await key(KEY_3)
+		await key(KEY_SPACE)
+		await seconds(0.3)
+		var tools_work: bool = development.mode == 2 and development.action.phase != "ready"
+		await key(KEY_F2)
+		await seconds(2)
+		game = tree.current_scene as DuskCoast
+		check(tools_work and game != null,"F2 opens the actual Inspect/Traverse/Rehearse tools and returns to coast")
+		game.set_unfocused(false)
+		await walk_to(Vector3(-11,0,11),false)
+		check(game.actor.position.z < 11.4 and not game.get_tree().paused,"Movement works after the development round trip")
+		await key(KEY_R)
+	else:
+		check(false,"Development scene could not open")
 	var save_after: String = FileAccess.get_sha256("user://accepted_tuning.json") if FileAccess.file_exists("user://accepted_tuning.json") else "absent"
 	check(save_before == save_after,"Exploration leaves owner acceptance file byte-for-byte intact")
 	observations["accepted_tuning_sha256"] = save_after
 	observations["focus_checks"] = "Simulated game focus handler; direct OS focus separately recorded"
 	observations["input_path"] = "Input.parse_input_event, physical WASD and Shift; no route teleporting"
 	finish("environment")
+
+func straight_to(target: Vector3, code: int) -> void:
+	var deadline: int = Time.get_ticks_msec()+22000
+	set_keys([code])
+	while (target.x-game.actor.position.x if code == KEY_D else game.actor.position.z-target.z) > 0.18 and Time.get_ticks_msec()<deadline:
+		await get_tree().physics_frame
+	set_keys([])
+	await seconds(.18)
 
 func walk_to(target: Vector3, running: bool) -> void:
 	var deadline: int = Time.get_ticks_msec()+22000
@@ -136,12 +189,15 @@ func check(passed: bool, title: String) -> void:
 	print("DUSK_ENV_CHECK ","PASS " if passed else "FAIL ",title," ",game.actor.position)
 
 func capture(label: String) -> void:
+	game.test_banner.visible = false
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("user://environment-"+label+".png")
+	game.test_banner.visible = true
 
 func finish(label: String) -> void:
 	set_keys([])
-	var report: Dictionary = {"identity":game.identity(),"checks":checks,"failures":failures,"observations":observations,"intervals":game.perf.report(),"duration_seconds":(Time.get_ticks_msec()-started)/1000.0}
+	measured_intervals.merge(game.perf.report(),false)
+	var report: Dictionary = {"identity":game.identity(),"checks":checks,"failures":failures,"observations":observations,"intervals":measured_intervals,"duration_seconds":(Time.get_ticks_msec()-started)/1000.0}
 	var file := FileAccess.open("user://test_"+label+".json",FileAccess.WRITE)
 	file.store_string(JSON.stringify(report,"\t"))
 	file.close()

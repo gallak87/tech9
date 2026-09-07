@@ -1,0 +1,48 @@
+{
+  "animation_mode": "none",
+  "asset_id": "coast.bridge",
+  "attachments": [],
+  "dependencies": [],
+  "dimensions": {
+    "forward": "-Z",
+    "height_m": 1.385000228881836,
+    "origin": "ground",
+    "radius_m": 2.0,
+    "up": "+Y"
+  },
+  "kind": "prop",
+  "label": "Coastal repair deck / bolted railing r2",
+  "placeholder": false,
+  "production_format": 1,
+  "provenance": {
+    "attribution": "Dusk original; no third-party code, models, textures, or service acquisition.",
+    "origin": "Original Blender mesh and deterministic baked maps authored for Dusk plan 06.",
+    "visual_reference": "Original Chronoforge Haventide imagery viewed for coastal material and color identity only."
+  },
+  "recipe": "static_blend",
+  "required_outputs": [
+    "runtime/model.glb",
+    "runtime/descriptor.json",
+    "working/export.blend",
+    "inspection.json",
+    "reimport.json"
+  ],
+  "revision": "r2",
+  "source_files": [
+    {
+      "path": "assets/coast.bridge/sources/r2/master.blend",
+      "role": "editable_master",
+      "sha256": "e67099ab36c707162118cb008a970664162e6a5e467d0f534b8c0c3726349ff4"
+    },
+    {
+      "path": "assets/coast/revise_bridge.py",
+      "role": "authoring_script",
+      "sha256": "ec493c733a4f2edbcf89d185b8ff1ca1c3456973c563ebc020528822a03ed67d"
+    },
+    {
+      "path": "assets/coast.bridge/sources/r1/master.blend",
+      "role": "previous_source",
+      "sha256": "670a339368ddbf4320dabbf8abf72e16348199e009ca4ea06030b81bd67301ea"
+    }
+  ]
+}

@@ -1,27 +1,27 @@
 {
   "production_format": 1,
-  "asset_id": "coast.bridge",
-  "revision": "r2",
-  "label": "Coastal repair deck / bolted railing r2",
+  "asset_id": "coast.pump",
+  "revision": "r1",
+  "label": "Coastal pump / r1",
   "kind": "prop",
   "animation_mode": "none",
   "placeholder": false,
   "recipe": "static_blend",
   "source_files": [
     {
-      "path": "assets/coast.bridge/sources/r2/master.blend",
+      "path": "assets/coast.pump/sources/r1/master.blend",
       "role": "editable_master",
-      "sha256": "e67099ab36c707162118cb008a970664162e6a5e467d0f534b8c0c3726349ff4"
+      "sha256": "17cd2896ac2202a732f2b863bd22792ac521b2498fda548e183981cd115aff1e"
     },
     {
-      "path": "assets/coast/revise_bridge.py",
+      "path": "assets/coast/author_coast.py",
       "role": "authoring_script",
-      "sha256": "ec493c733a4f2edbcf89d185b8ff1ca1c3456973c563ebc020528822a03ed67d"
+      "sha256": "af2e25e35b5aefa44fbcf6c6695418d2999e4b417ef9a02ec09fc5c0bd28b3da"
     },
     {
-      "path": "assets/coast.bridge/sources/r1/master.blend",
-      "role": "previous_source",
-      "sha256": "670a339368ddbf4320dabbf8abf72e16348199e009ca4ea06030b81bd67301ea"
+      "path": "assets/coast/author_pump.py",
+      "role": "pump_authoring_script",
+      "sha256": "6c15794d0da1ce53138d76b2029aa274f4eed42557332eff70ddca72f6a8782e"
     }
   ],
   "required_outputs": [
@@ -32,8 +32,8 @@
     "reimport.json"
   ],
   "dimensions": {
-    "height_m": 1.385000228881836,
-    "radius_m": 2.0,
+    "height_m": 2.4372847080230713,
+    "radius_m": 1.6519999504089355,
     "forward": "-Z",
     "up": "+Y",
     "origin": "ground"

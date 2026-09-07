@@ -16,14 +16,16 @@ var source_sha256: String = "unrecorded"
 var game_revision: String = "development"
 var load_error: String = ""
 var pause_panel: PanelContainer
+var test_banner: Label
 var error_label: Label
 var zone_label: Label
 var input_events: int = 0
 var resets: int = 0
+var coastal_audio: DuskCoastAudio
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	test_mode = "--environment-test" in OS.get_cmdline_user_args() or "--environment-restart" in OS.get_cmdline_user_args()
+	test_mode = "--environment-test" in OS.get_cmdline_user_args() or "--environment-restart" in OS.get_cmdline_user_args() or "--environment-motion" in OS.get_cmdline_user_args()
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--test-run-id="):
 			test_run_id = argument.trim_prefix("--test-run-id=")
@@ -57,14 +59,19 @@ func _ready() -> void:
 	add_child(camera)
 	actor.camera = camera
 	camera.follow(actor.position, 1.0, true)
+	coastal_audio = DuskCoastAudio.new()
+	coastal_audio.actor = actor
+	simulation.add_child(coastal_audio)
 	build_ui()
+	get_window().title = "Chronoforge Dusk — AUTOMATED CHECK, PLEASE WAIT" if test_mode else "Chronoforge Dusk"
 	if not test_mode:
 		get_window().focus_exited.connect(func() -> void: set_unfocused(true))
 		get_window().focus_entered.connect(func() -> void: set_unfocused(false))
 	apply_pause()
 	print("DUSK_COAST_START ",JSON.stringify(identity()))
-	if test_mode:
-		var runner: Node = load("res://tests/environment_test.gd").new()
+	if test_mode and not Engine.has_meta("environment_test_active"):
+		Engine.set_meta("environment_test_active",true)
+		var runner: Node = load("res://tests/environment_motion.gd" if "--environment-motion" in OS.get_cmdline_user_args() else "res://tests/environment_test.gd").new()
 		add_child(runner)
 		runner.call_deferred("run",self)
 
@@ -82,6 +89,7 @@ func bind_inputs() -> void:
 func _process(delta: float) -> void:
 	perf.sample()
 	camera.follow(actor.position,delta)
+	site.kit.reveal_actor(camera,actor.position,delta)
 	if actor.position.y < -4.0:
 		reset_spawn()
 	zone_label.text = "SEA OVERLOOK" if actor.position.z < -18.5 else ("UPPER RUIN" if actor.position.y > 2.8 else ("SEAWALL WALK" if actor.position.z < 4 else "ARRIVAL QUAY"))
@@ -90,6 +98,7 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if test_mode and not event.has_meta("dusk_test_input") and (event is InputEventKey or event is InputEventMouseButton) and event.is_pressed():
 		test_interference = true
+		Engine.set_meta("environment_test_interference",true)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey or not event.pressed or event.echo:
@@ -133,6 +142,15 @@ func enter_development() -> void:
 func build_ui() -> void:
 	var canvas := CanvasLayer.new()
 	add_child(canvas)
+	test_banner = Label.new()
+	test_banner.text = "AUTOMATED NATIVE CHECK — PLEASE WAIT · Keyboard/mouse input invalidates this run"
+	test_banner.position = Vector2(48,102)
+	test_banner.add_theme_font_size_override("font_size",22)
+	test_banner.add_theme_color_override("font_color",Color("fff0ae"))
+	test_banner.add_theme_color_override("font_shadow_color",Color("10292e"))
+	test_banner.add_theme_constant_override("shadow_offset_y",2)
+	test_banner.visible = test_mode
+	canvas.add_child(test_banner)
 	var brand := Label.new()
 	brand.text = "C H R O N O F O R G E   /   D U S K"
 	brand.position = Vector2(48,34)
@@ -184,9 +202,9 @@ func build_ui() -> void:
 		column.add_child(button)
 
 func identity() -> Dictionary:
-	return {"test_run_id":test_run_id,"test_interference":test_interference,"source_sha256":source_sha256,"game_revision":game_revision,"native_export":not OS.has_feature("editor"),"engine":Engine.get_version_info().string,"renderer":RenderingServer.get_current_rendering_method(),"driver":RenderingServer.get_current_rendering_driver_name(),"gpu":RenderingServer.get_video_adapter_name(),"processor":OS.get_processor_name(),"internal_resolution":[1920,1080],"frame_cap":Engine.max_fps,"asset":actor.visual.descriptor if actor.visual != null else {},"tuning":tuning.values,"camera":{"yaw":camera.YAW,"pitch":camera.PITCH,"size":camera.size},"scene":"coastal-reclamation-06"}
+	return {"test_run_id":test_run_id,"test_interference":test_interference or bool(Engine.get_meta("environment_test_interference",false)),"source_sha256":source_sha256,"game_revision":game_revision,"native_export":not OS.has_feature("editor"),"engine":Engine.get_version_info().string,"renderer":RenderingServer.get_current_rendering_method(),"driver":RenderingServer.get_current_rendering_driver_name(),"gpu":RenderingServer.get_video_adapter_name(),"processor":OS.get_processor_name(),"internal_resolution":[1920,1080],"frame_cap":Engine.max_fps,"asset":actor.visual.descriptor if actor.visual != null else {},"tuning":tuning.values,"camera":{"yaw":camera.YAW,"pitch":camera.PITCH,"size":camera.size},"scene":"coastal-reclamation-06","scenery":site.kit.identities}
 
 func write_diagnostics() -> void:
 	var file := FileAccess.open("user://environment-diagnostics.json",FileAccess.WRITE)
-	file.store_string(JSON.stringify({"identity":identity(),"intervals":perf.report(),"actor_position":str(actor.position),"input_events":input_events,"resets":resets,"import_errors":site.import_errors},"\t"))
+	file.store_string(JSON.stringify({"identity":identity(),"intervals":perf.report(),"actor_position":str(actor.position),"input_events":input_events,"resets":resets,"import_errors":site.import_errors,"gui_focus":str(get_viewport().gui_get_focus_owner())},"\t"))
 	print("DUSK_COAST_DIAGNOSTICS ",ProjectSettings.globalize_path("user://environment-diagnostics.json"))

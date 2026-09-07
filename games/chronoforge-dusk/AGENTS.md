@@ -39,3 +39,5 @@ Keep edits inside Dusk unless the task requires otherwise. Preserve existing use
 Unless the current task says otherwise, commit your assigned work as you reach meaningful, reviewable checkpoints. Aim for one working feature, fix, or documentation outcome per commit, with its relevant checks completed. Choose boundaries by coherence, not line count; avoid both tiny save-point commits and a whole milestone bundled at the end. Keep inseparable changes together and report unverified work honestly.
 
 Inspect the diff and stage only the work you own unless explicitly asked to include other changes. Parallel workers coordinate commits with the integration owner. Do not rewrite existing history or push/publish unless requested. Include checkpoint commit IDs and validation in the final handoff.
+
+Keep generated validation JSON and logs local and ignored. Commit concise results, tested source identity, limitations and selected review captures under `evidence/`; replace superseded summaries instead of adding checkpoint archives. Asset manifests and production metadata remain tracked.

@@ -106,6 +106,8 @@ Official references: [pinned release](https://godotengine.org/download/archive/4
 
 ## Saved state and diagnostics
 
+Generated reports and logs stay local. JSON and log copies under `evidence/` are Git-ignored; commit only concise validation summaries with tested source identity, limitations and selected review captures. Asset manifests and production metadata remain tracked.
+
 Godot's `user://` directory on this Mac is:
 
 ```text

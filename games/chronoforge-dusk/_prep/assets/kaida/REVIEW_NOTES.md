@@ -10,9 +10,13 @@ A replacement body should be a new immutable source/candidate revision. Expect a
 
 - Meshy added small brown wristbands, despite the r2 reference's exposed forearms/wrists. Record this mismatch for the next visual pass. The supplied source and current working geometry preserve them.
 - Front/back/side hand close-ups show separate fingers. Finger webs and the thumb profile have uneven contours; inspect finger curl and sword grip after rigging before investing in local cleanup. The six retained renders are source inspection, not deformation approval.
-- The returned Mixamo base has 65 bones and a static two-frame T-pose. The owner liked its rig preview; gameplay clips and hand/joint deformation review remain pending.
-- The separate sword remains a 2D reference. It is not included in the humanoid upload.
+- The returned Mixamo base has 65 bones and a static two-frame T-pose. The owner liked its rig preview; the five gameplay clips are now available, with hand/joint deformation refinement pending in 03.
+- The separate sword now has authored Blender geometry and a runtime dependency. It was not included in the humanoid upload.
 
 ## Mixamo upload lesson
 
 The 81,202-triangle textured FBX failed before marker placement. Removing material/media content let the same geometry upload and rig successfully; no 24k reduction was needed. Use the reusable `mixamo_upload` and `mixamo_restore` steps in [MIXAMO.md](../../MIXAMO.md) for subsequent characters. The original download, materials and source weights remain retained.
+
+## First grounded animation review — correction required
+
+The owner inspected `demos/foundation-r1/kaida-foundation-review.blend` and found the sword fingers bending the wrong way and the rising elbow unnatural. These are defects in the authored grip/arm pass, not evidence that the model needs regeneration. Runtime r2 passes integration checks but is not visually accepted. Correct finger flexion toward the palm, the thumb wrap, elbow path and wrist rotation, then inspect close-ups through the full strike before replacing the review file.

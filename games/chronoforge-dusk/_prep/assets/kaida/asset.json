@@ -1,0 +1,123 @@
+{
+  "production_format": 1,
+  "asset_id": "kaida",
+  "revision": "r2",
+  "label": "Kaida r2 / grounded first pass",
+  "kind": "character",
+  "animation_mode": "skeletal",
+  "placeholder": false,
+  "recipe": "skeletal_blend",
+  "source_files": [
+    {
+      "path": "assets/kaida/sources/foundation-r1/master.blend",
+      "role": "editable_master",
+      "sha256": "d991fe53eda0bf8d9808a14039ea6ac6b2c8364c4c49a63bc24ba5066a138171"
+    },
+    {
+      "path": "assets/kaida/author_foundation.py",
+      "role": "authoring_script",
+      "sha256": "19300ce14ca3b8f82765965e6e358deda9f630f77b7db6fff40013ad79379409"
+    },
+    {
+      "path": "assets/kaida/sources/mixamo-clips-r1/master.blend",
+      "role": "animation_originals",
+      "sha256": "97fd3c2bc6c9d6f442aea753c6609adfc45a09f8d3a60b6e85e919a950f6f95d"
+    },
+    {
+      "path": "assets/kaida/sources/foundation-r1/kaida-orm.png",
+      "role": "texture_source",
+      "sha256": "0f3dc9f170e0de359d248763000fd5a7695e1c6123ad341e33d084851c3314b7"
+    },
+    {
+      "path": "assets/kaida/sources/meshy-r2/textures/kaida-basecolor.png",
+      "role": "texture_source",
+      "sha256": "9be9186086d36aa242508c8e8fb30fb917bee6a664794d28b1b5b5b03db504ec"
+    },
+    {
+      "path": "assets/kaida/sources/meshy-r2/textures/kaida-normal.png",
+      "role": "texture_source",
+      "sha256": "54c3978e4d1bc7f524686ca4f10575f4cf25470fa8659290ffc0c94f7e80d8f9"
+    },
+    {
+      "path": "assets/kaida/sources/meshy-r2/textures/kaida-roughness.png",
+      "role": "texture_source",
+      "sha256": "7e4044d988f088cf5c22a4cfcbe0140acacb72f785861e0b492ebf544115079b"
+    },
+    {
+      "path": "assets/kaida/sources/meshy-r2/textures/kaida-metallic.png",
+      "role": "texture_source",
+      "sha256": "368ad7ec9cf4cd824e68bd5bfcb1b581511472ec150098e17c144a63ebc8042d"
+    }
+  ],
+  "required_outputs": [
+    "runtime/model.glb",
+    "runtime/descriptor.json",
+    "working/export.blend",
+    "inspection.json",
+    "reimport.json"
+  ],
+  "dimensions": {
+    "height_m": 1.898191,
+    "radius_m": 0.32,
+    "forward": "-Z",
+    "up": "+Y",
+    "origin": "ground"
+  },
+  "dependencies": [
+    "candidates/kaida.energy-sword/r1/manifest.json"
+  ],
+  "attachments": [
+    {
+      "id": "energy-sword",
+      "dependency": "kaida.energy-sword",
+      "skeleton_path": "KaidaRig/Skeleton3D",
+      "bone": "SwordSocket",
+      "position_m": [
+        0,
+        -0.135,
+        0
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "provenance": {
+    "origin": "Owner-supplied Meshy r2 geometry, Mixamo auto-rig and idle/run downloads; Dusk-authored walk, grounded slash and hurt",
+    "attribution": "Original sources retained under assets/kaida/downloads. Provider generation options and plan not supplied. No Dawn production reuse.",
+    "purpose": "First complete candidate for plan 03; owner considers body too skinny and permits provisional use. Visual acceptance pending.",
+    "attack_contact_frame": 21,
+    "attack_contact_fraction": 0.5,
+    "walk_nominal_speed_m_s": 2.28,
+    "source_run_speed_m_s": 5.061657428727273
+  },
+  "root_motion": {
+    "operation": "remove_root_xy",
+    "armature": "KaidaRig",
+    "bone": "MotionRoot"
+  },
+  "clips": {
+    "idle": {
+      "name": "idle",
+      "loop": true
+    },
+    "walk": {
+      "name": "walk",
+      "loop": true
+    },
+    "run": {
+      "name": "run",
+      "loop": true
+    },
+    "attack": {
+      "name": "attack",
+      "loop": false
+    },
+    "hurt": {
+      "name": "hurt",
+      "loop": false
+    }
+  }
+}

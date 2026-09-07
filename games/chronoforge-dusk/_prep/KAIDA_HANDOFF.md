@@ -1,6 +1,6 @@
 # Kaida: reference review and manual source handoff
 
-**Current state:** the Meshy r2 model has completed Mixamo auto-rigging at its full 81,202 triangles. The textured 65-bone rig now has [idle and run source actions assembled in Blender](assets/kaida/sources/mixamo-clips-r1/master.blend). Walk, attack and hurt remain pending. Her current proportions are too skinny for the owner, who explicitly wants to continue with this version for now. The amber mannequin remains a separate pipeline diagnostic.
+**Current state:** the Meshy r2 model has completed Mixamo auto-rigging at its full 81,202 triangles. The textured 65-bone rig now has [idle and run source actions assembled in Blender](assets/kaida/sources/mixamo-clips-r1/master.blend). A [separate finished source and review copy](assets/kaida/demos/foundation-r1/README.md) now add locally authored walk, attack and hurt, in-place runtime motion and the separate 3D sword. Runtime candidate `kaida/r2` is imported and integration-checked. Her current proportions are too skinny for the owner, who explicitly wants to continue with this version for now. The amber mannequin remains a separate pipeline diagnostic.
 
 ## Review / upload references
 
@@ -12,9 +12,11 @@ Preserve the swept pointed magenta hair, cyan jacket, dark trousers and boots, a
 
 The owner generated the current model in Meshy and supplied `/Users/g/Downloads/kaida_r2/`. The task retained its original filenames and bytes under [downloads/meshy-r2](assets/kaida/downloads/meshy-r2/receipt.json); working maps have clear names with a recorded source mapping. The job URL, generation options and provider plan were not supplied and remain unresolved receipt fields.
 
-## Exact next input
+## Current handoff
 
-Return **walk, attack and hurt FBXs** for the same `KAIDA-R2-GEOMETRY-ONLY` character currently in Mixamo. Prefer animation-only downloads; matching downloads with skin are supported too. Keep the actual clip name/settings; start with 30 FPS and no keyframe reduction if offered. The rigged base, idle and run are already retained and their compatibility is verified.
+**No additional Mixamo input is required for the first phase.** The owner requested a modular grounded set to unlock 03. The local Blender authoring pass supplies the remaining three roles. Mixamo remains an optional source of useful motion for later attacks; existing rigs do not need to repeat auto-rigging. See [the review file, current candidate and reproduction commands](assets/kaida/demos/foundation-r1/README.md).
+
+The following describes the retained idle/run source before that finishing pass:
 
 Open [the animated textured Blender source](assets/kaida/sources/mixamo-clips-r1/master.blend) and press Space to inspect `idle.source` over frames 1–60. To inspect `run.source`, select the armature, choose that action in the Dope Sheet's Action Editor and set the timeline to frames 1–23. Both play at 30 FPS. The run still travels forward by 3.71188 m; its source motion is intentionally retained for later in-place finishing. The original two-frame static T-pose remains a separate action.
 
@@ -24,7 +26,7 @@ Both clips' bone names, hierarchy, rest matrices, unit transform and included ge
 
 The owner may replace this body later; see [review notes](assets/kaida/REVIEW_NOTES.md). Treat a regenerated model as a new source revision and recheck rigging, weights, animation compatibility and grip. Continue the pipeline now, and settle proportions before extensive deformation and animation polish.
 
-Keep original rig/clip download names and settings. Retain each new batch through `pipeline.py retain` before editing it; do not overwrite the Meshy batch. The earlier GLB is still an unrigged inspection export; a complete runtime character candidate remains pending.
+Keep original rig/clip download names and settings. Retain each new batch through `pipeline.py retain` before editing it; do not overwrite the Meshy batch. The earlier GLB is still an unrigged inspection export; the complete runtime candidate is now `kaida/r2`; use it for 03.
 
 ## Manual Mixamo round trip
 

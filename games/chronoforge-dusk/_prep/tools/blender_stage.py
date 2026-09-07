@@ -72,7 +72,16 @@ def export(meta, prep, out):
     master = next(s for s in meta['source_files'] if s['role'] == 'editable_master')
     bpy.ops.wm.open_mainfile(filepath=str(prep / master['path']))
     bpy.context.scene.frame_set(1)
+    # Physical dimensions describe the bind mesh, independent of which action
+    # happened to be selected when the artist saved the master.
+    rigs = [o for o in bpy.context.scene.objects if o.type == 'ARMATURE']
+    pose_positions = {o.name: o.data.pose_position for o in rigs}
+    for rig in rigs:
+        rig.data.pose_position = 'REST'
     report = inspect()
+    for rig in rigs:
+        rig.data.pose_position = pose_positions[rig.name]
+    bpy.context.view_layer.update()
     dims = meta['dimensions']
     measured_height = report['bounds'][1][2] - report['bounds'][0][2]
     require(abs(measured_height-dims['height_m']) < .025, 'Source height differs from descriptor')
@@ -114,6 +123,7 @@ def export(meta, prep, out):
     bpy.ops.wm.save_as_mainfile(filepath=str(out / 'working/export.blend'))
     settings = {'export_format': 'GLB', 'export_yup': True, 'export_animations': meta['animation_mode'] != 'none',
                 'export_animation_mode': 'ACTIONS', 'export_force_sampling': True, 'export_frame_range': False,
+                'export_anim_slide_to_zero': True,
                 'export_skins': True, 'export_all_influences': False, 'export_def_bones': False,
                 'export_materials': 'EXPORT', 'export_image_format': 'AUTO', 'export_cameras': False,
                 'export_lights': False, 'export_apply': False}

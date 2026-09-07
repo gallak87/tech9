@@ -1,6 +1,6 @@
 # Chronoforge Dusk roadmap
 
-**Current state:** 01 native foundation is implemented and tested; 02 and all later implementation remain unstarted. See [native instructions](NATIVE.md) and [evidence](evidence/README.md). This is the ordered route from the first native build to a finished game. Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
+**Current state:** 01 is implemented and tested; 02 has delivered the first complete real Kaida candidate with five clips and a separate sword. 03 is ready for owner playtesting and refinement; later work remains unstarted. See [native instructions](NATIVE.md) and [evidence](evidence/README.md). This is the ordered route from the first native build to a finished game. Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
 
 ## Start to finish
 
@@ -14,7 +14,7 @@
 8. **[08 — Expand one region at a time](_plans/08_expand_the_game.md).** Choose and deliver the next region from the wider Chronoforge direction. Repeat the proven loop until the agreed game arc is complete. **Future planning outline; refine each region when reached.**
 9. **[09 — Finish and package the game](_plans/09_finish_and_package.md).** Close progression/story gaps, validate the complete playthrough, tune performance and usability, and deliver the native application and source. **Future completion outline.**
 
-**01 is complete. 02's local tooling is complete with diagnostic static/skeletal proof; real Kaida has a textured rig and assembled idle/run source actions. Walk, attack, hurt and finishing remain pending. Steps 03–09 are not started.** See [02](_plans/02_asset_pipeline.md) for the current source handoff. Update individual statuses when work actually happens; do not infer completion from documents or disconnected code.
+**01 and 02’s first candidate handoff are complete. Kaida runtime r2 has all five clips and separate equipment, with native integration checks passed. 03 refinement is unblocked; 04–09 remain unstarted.** See [02](_plans/02_asset_pipeline.md) for the current source handoff. Update individual statuses when work actually happens; do not infer completion from documents or disconnected code.
 
 ## What to give a new agent
 
@@ -24,7 +24,7 @@ For a bounded task, provide this instruction with the selected plan's absolute p
 
 “Complete” includes honestly identifying missing source assets or manual inputs. A placeholder or structural test does not establish that Kaida is finished. Each implementation handoff should also identify the game/asset revisions tested and the next bounded action.
 
-**01 supplied the runnable foundation and runtime handoff; 02's local recipes now consume it.** The immediate next inputs are [walk, attack and hurt clips for the retained Kaida rig](_prep/KAIDA_HANDOFF.md). Idle/run compatibility and source transfer are verified. The game lane owns the shared runtime descriptor; pipeline tools consume it rather than inventing another runtime format.
+**01 supplied the runnable foundation and runtime handoff; 02's local recipes now consume it.** The immediate next step is [reviewing the grounded Kaida candidate](_prep/assets/kaida/demos/foundation-r1/README.md), then 03 refinement. No additional Mixamo download blocks this first phase. The game lane owns the shared runtime descriptor; pipeline tools consume it rather than inventing another runtime format.
 
 For a new planning session, use [PLANNER.md](PLANNER.md) to recover the intent behind this sequence and scope the next assignment from actual results.
 

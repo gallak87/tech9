@@ -1,0 +1,77 @@
+00:00.581  blend            | Read blend: "/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/assets/kaida.energy-sword/sources/r1/master.blend"
+Info: Saved as "export.blend"
+INFO Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/5.1/scripts/addons_core/io_scene_gltf2/libextern_draco.dylib
+08:48:28 | INFO: Starting glTF 2.0 export
+08:48:28 | INFO: Extracting primitive: Energy blade
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Blade luminous ridge
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Energy fork
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Blade luminous ridge.001
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Energy fork.001
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Guard
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Central guard setting
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Guard energy gem
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Guard energy gem.001
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Grip
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Grip binding
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Grip binding.001
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Grip binding.002
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Grip binding.003
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Grip binding.004
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Grip binding.005
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Grip binding.006
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Grip binding.007
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Pommel
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Pommel gem
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Extracting primitive: Pommel gem.001
+08:48:28 | INFO: Primitives created: 1
+08:48:28 | INFO: Finished glTF 2.0 export in 0.029410839080810547 s
+
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit
+08:48:29 | INFO: Data are loaded, start creating Blender stuff
+08:48:29 | INFO: Blender create Mesh node Energy blade
+08:48:29 | INFO: Blender create Mesh node Blade luminous ridge
+08:48:29 | INFO: Blender create Mesh node Energy fork
+08:48:29 | INFO: Blender create Mesh node Blade luminous ridge.001
+08:48:29 | INFO: Blender create Mesh node Energy fork.001
+08:48:29 | INFO: Blender create Mesh node Guard
+08:48:29 | INFO: Blender create Mesh node Central guard setting
+08:48:29 | INFO: Blender create Mesh node Guard energy gem
+08:48:29 | INFO: Blender create Mesh node Guard energy gem.001
+08:48:29 | INFO: Blender create Mesh node Grip
+08:48:29 | INFO: Blender create Mesh node Grip binding
+08:48:29 | INFO: Blender create Mesh node Grip binding.001
+08:48:29 | INFO: Blender create Mesh node Grip binding.002
+08:48:29 | INFO: Blender create Mesh node Grip binding.003
+08:48:29 | INFO: Blender create Mesh node Grip binding.004
+08:48:29 | INFO: Blender create Mesh node Grip binding.005
+08:48:29 | INFO: Blender create Mesh node Grip binding.006
+08:48:29 | INFO: Blender create Mesh node Grip binding.007
+08:48:29 | INFO: Blender create Mesh node Pommel
+08:48:29 | INFO: Blender create Mesh node Pommel gem
+08:48:29 | INFO: Blender create Mesh node Pommel gem.001
+08:48:29 | INFO: glTF import finished in 0.01s
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit

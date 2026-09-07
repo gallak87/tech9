@@ -1,0 +1,48 @@
+{
+  "animation_mode": "none",
+  "asset_id": "kaida.energy-sword",
+  "attachments": [],
+  "dependencies": [],
+  "dimensions": {
+    "forward": "-Z",
+    "height_m": 1.2,
+    "origin": "ground",
+    "radius_m": 0.15,
+    "up": "+Y"
+  },
+  "kind": "prop",
+  "label": "Kaida energy sword / first pass",
+  "placeholder": false,
+  "production_format": 1,
+  "provenance": {
+    "attribution": "Dusk original geometry; no Dawn production assets reused.",
+    "origin": "New Blender geometry authored for Dusk from the retained separate sword reference",
+    "purpose": "Separate magenta energy blade with graphite guard and wrapped grip; first-pass character equipment."
+  },
+  "recipe": "static_blend",
+  "required_outputs": [
+    "runtime/model.glb",
+    "runtime/descriptor.json",
+    "working/export.blend",
+    "inspection.json",
+    "reimport.json"
+  ],
+  "revision": "r1",
+  "source_files": [
+    {
+      "path": "assets/kaida.energy-sword/sources/r1/master.blend",
+      "role": "editable_master",
+      "sha256": "02175b1d3572abff7ac245b1d531ec6fd131ab668b0de9bdabd85e687cb7b42e"
+    },
+    {
+      "path": "assets/kaida/author_sword.py",
+      "role": "authoring_script",
+      "sha256": "41c5e4293cba29f27a1b4e59628aa39d7c6d11cdebb8c5c0b07de50b74567d95"
+    },
+    {
+      "path": "references/kaida/r1/kaida-energy-sword-r1.png",
+      "role": "visual_reference",
+      "sha256": "f3e8ae8e831ba9efceb2feb70936e40b90215e548c4d4e4f170e7fd3d6bed2a6"
+    }
+  ]
+}

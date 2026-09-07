@@ -1,0 +1,45 @@
+{
+  "production_format": 1,
+  "asset_id": "diagnostic.grip-probe",
+  "revision": "r1",
+  "label": "Calibration grip probe",
+  "kind": "prop",
+  "animation_mode": "none",
+  "placeholder": true,
+  "recipe": "static_blend",
+  "source_files": [
+    {
+      "path": "assets/diagnostic.grip-probe/sources/r2/calibration-basecolor.png",
+      "role": "texture_source",
+      "sha256": "deed1de4af451cf22275b7320e1802516f2eb7d343a6dd90aa3f0dfed69b3a85"
+    },
+    {
+      "path": "assets/diagnostic.grip-probe/sources/r2/master.blend",
+      "role": "editable_master",
+      "sha256": "a8e5cdd271bcc9f771003036cd6a8ebfb897c7699a850ed1ca6c5c9dbe428aab"
+    }
+  ],
+  "required_outputs": [
+    "runtime/model.glb",
+    "runtime/descriptor.json",
+    "working/export.blend",
+    "inspection.json",
+    "reimport.json"
+  ],
+  "dimensions": {
+    "height_m": 0.4,
+    "radius_m": 0.09,
+    "forward": "-Z",
+    "up": "+Y",
+    "origin": "ground"
+  },
+  "dependencies": [],
+  "attachments": [],
+  "provenance": {
+    "origin": "Newly authored for Dusk by tools/author_proofs.py",
+    "attribution": "Original project diagnostic source; no external model, animation or texture reused.",
+    "provider": null,
+    "purpose": "Static Blender route and separate skeletal grip attachment. Not Kaida equipment.",
+    "source_coordinates": "Blender metres, Z up, +Y forward; glTF exporter converts once to Y up, -Z forward"
+  }
+}

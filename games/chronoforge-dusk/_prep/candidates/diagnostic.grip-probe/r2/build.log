@@ -1,0 +1,23 @@
+00:00.454  blend            | Read blend: "/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/assets/diagnostic.grip-probe/sources/r2/master.blend"
+Info: Saved as "export.blend"
+INFO Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/5.1/scripts/addons_core/io_scene_gltf2/libextern_draco.dylib
+00:35:32 | INFO: Starting glTF 2.0 export
+00:35:32 | INFO: Extracting primitive: Cube
+00:35:32 | INFO: Primitives created: 1
+00:35:32 | INFO: Extracting primitive: Cube.001
+00:35:32 | INFO: Primitives created: 1
+00:35:32 | INFO: Extracting primitive: Cube.002
+00:35:32 | INFO: Primitives created: 1
+00:35:32 | INFO: Finished glTF 2.0 export in 0.010088920593261719 s
+
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit
+00:35:33 | INFO: Data are loaded, start creating Blender stuff
+00:35:33 | INFO: Blender create Mesh node Cube
+00:35:33 | INFO: Blender create Mesh node Cube.001
+00:35:33 | INFO: Blender create Mesh node Cube.002
+00:35:33 | INFO: glTF import finished in 0.00s
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit

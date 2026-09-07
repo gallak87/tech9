@@ -1,0 +1,128 @@
+{
+  "asset_id": "diagnostic.skin-probe",
+  "build_fingerprint": "b69726c38c9b8e3c02edab22262598ba2d3ff193dce56ad0460fd8fa5eb62902",
+  "candidate_format": 1,
+  "created_at": "2026-09-07T07:27:05.203655+00:00",
+  "files": {
+    "build.log": "16801fe13ac04e8859c68733b402f2a3b931e80b0d5f3771e38cb7a8b7e4a80a",
+    "export-settings.json": "4b4065c470bdf365213b1fb831498a67881f012218b3350e4afdecdf6b1bd6b6",
+    "inspection.json": "adecaa02085b3a3c884d00dc60d002d86719a491518ca01f9df6131af583f045",
+    "metadata.json": "bc54cb4b57af203ca33f664bf00ba5faf63a29f9cdf7a4fb75b08d5ffe50706e",
+    "reimport.json": "4bf02d2faee1086ea209c156ebef130e8d17aca4b241017941a910edda141b59",
+    "runtime/descriptor.json": "0f5b8dfa755f9b25d66c4184b94174cc8617fee91223256cca0fdf84680a91c5",
+    "runtime/diagnostic.grip-probe.glb": "91a604a7757c0721337fd7d061028d13937ebd1185398311cd9214531fdc78b9",
+    "runtime/model.glb": "d4fc5d4db6b42763a63bba22d98d76a6f6871e30c2e49a788d5a4c5944a2634c",
+    "structural-checks.json": "230d423aa3b3f48db9b41262298056ac6bb9759e656311d9a631a52f7cf2ba47",
+    "working/export.blend": "7c47e7c9b002424c310d73179e7f8eaaa0a74ff65e5263b31f068716f21c509c"
+  },
+  "inputs": {
+    "dependencies": {
+      "candidates/diagnostic.grip-probe/r1/manifest.json": "4ce5f342426b7cb73a52ed629636e8f84494facb66937b354b151d5148f2969b"
+    },
+    "metadata": {
+      "animation_mode": "skeletal",
+      "asset_id": "diagnostic.skin-probe",
+      "attachments": [
+        {
+          "bone": "Hand.R",
+          "dependency": "diagnostic.grip-probe",
+          "id": "grip-probe",
+          "position_m": [
+            0,
+            0,
+            0
+          ],
+          "rotation_degrees": [
+            90,
+            0,
+            0
+          ],
+          "skeleton_path": "Rig/Skeleton3D"
+        }
+      ],
+      "clips": {
+        "attack": {
+          "loop": false,
+          "name": "attack"
+        },
+        "hurt": {
+          "loop": false,
+          "name": "hurt"
+        },
+        "idle": {
+          "loop": true,
+          "name": "idle"
+        },
+        "run": {
+          "loop": true,
+          "name": "run"
+        },
+        "walk": {
+          "loop": true,
+          "name": "walk"
+        }
+      },
+      "dependencies": [
+        "candidates/diagnostic.grip-probe/r1/manifest.json"
+      ],
+      "dimensions": {
+        "forward": "-Z",
+        "height_m": 1.78,
+        "origin": "ground",
+        "radius_m": 0.34,
+        "up": "+Y"
+      },
+      "kind": "character",
+      "label": "Skinned diagnostic / NOT KAIDA",
+      "placeholder": true,
+      "production_format": 1,
+      "provenance": {
+        "attribution": "Original project diagnostic source; no external model, animation or texture reused.",
+        "origin": "Newly authored for Dusk by tools/author_proofs.py",
+        "provider": null,
+        "purpose": "Continuous weighted limbs, deliberately simple diagnostic clips and hands. Tests skin, root correction and grip, not production anatomy or motion quality.",
+        "source_coordinates": "Blender metres, Z up, +Y forward; glTF exporter converts once to Y up, -Z forward"
+      },
+      "recipe": "skeletal_blend",
+      "required_outputs": [
+        "runtime/model.glb",
+        "runtime/descriptor.json",
+        "working/export.blend",
+        "inspection.json",
+        "reimport.json"
+      ],
+      "revision": "r1",
+      "root_motion": {
+        "armature": "Rig",
+        "bone": "Root",
+        "operation": "remove_root_xy"
+      },
+      "source_files": [
+        {
+          "path": "assets/diagnostic.skin-probe/sources/r2/master.blend",
+          "role": "editable_master",
+          "sha256": "d1070b71de0dee537e74c7dadddbad04b82a1aa740a5b8e9602f6d49cbe239ae"
+        }
+      ]
+    },
+    "runtime_format": 1,
+    "scripts": {
+      "ASSET_CONTRACT.md": "d0636dea8e26ecc777cb7224902490af42ae75e7e16d779f244de1e69661b7cb",
+      "pipeline.py": "5aee0bf5c7bf4d87728634c031684e2b20b7d7fd40860e3b61c11da2d5e16dc3",
+      "tools/author_proofs.py": "419dcf7bcecfe0978ad1fd1adf6352448be6d84ad03d66b6a5519b831bbf207f",
+      "tools/blender_stage.py": "4cab23ebbc0fc4c0db5d39863d3f88f554aa42bbc617d3e11cce46d827427655",
+      "tools/glb_check.py": "d57fe262278d886a9d14761282f4a28a511bd211b3ab6fbe18d3d1c4c6401606"
+    },
+    "sources": {
+      "assets/diagnostic.skin-probe/sources/r2/master.blend": "d1070b71de0dee537e74c7dadddbad04b82a1aa740a5b8e9602f6d49cbe239ae"
+    },
+    "tools": {
+      "blender": "5.1.1",
+      "blender_build": "b70da489d7f4",
+      "python": "3.14.5"
+    }
+  },
+  "revision": "r1",
+  "structural_status": "ready_for_game_inspection",
+  "visual_status": "awaiting_review"
+}

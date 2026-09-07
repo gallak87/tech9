@@ -1,0 +1,86 @@
+{
+  "production_format": 1,
+  "asset_id": "diagnostic.skin-probe",
+  "revision": "r1",
+  "label": "Skinned diagnostic / NOT KAIDA",
+  "kind": "character",
+  "animation_mode": "skeletal",
+  "placeholder": true,
+  "recipe": "skeletal_blend",
+  "source_files": [
+    {
+      "path": "assets/diagnostic.skin-probe/sources/r2/master.blend",
+      "role": "editable_master",
+      "sha256": "d1070b71de0dee537e74c7dadddbad04b82a1aa740a5b8e9602f6d49cbe239ae"
+    }
+  ],
+  "required_outputs": [
+    "runtime/model.glb",
+    "runtime/descriptor.json",
+    "working/export.blend",
+    "inspection.json",
+    "reimport.json"
+  ],
+  "dimensions": {
+    "height_m": 1.78,
+    "radius_m": 0.34,
+    "forward": "-Z",
+    "up": "+Y",
+    "origin": "ground"
+  },
+  "dependencies": [
+    "candidates/diagnostic.grip-probe/r1/manifest.json"
+  ],
+  "attachments": [
+    {
+      "id": "grip-probe",
+      "dependency": "diagnostic.grip-probe",
+      "skeleton_path": "Rig/Skeleton3D",
+      "bone": "Hand.R",
+      "position_m": [
+        0,
+        0,
+        0
+      ],
+      "rotation_degrees": [
+        90,
+        0,
+        0
+      ]
+    }
+  ],
+  "provenance": {
+    "origin": "Newly authored for Dusk by tools/author_proofs.py",
+    "attribution": "Original project diagnostic source; no external model, animation or texture reused.",
+    "provider": null,
+    "purpose": "Continuous weighted limbs, deliberately simple diagnostic clips and hands. Tests skin, root correction and grip, not production anatomy or motion quality.",
+    "source_coordinates": "Blender metres, Z up, +Y forward; glTF exporter converts once to Y up, -Z forward"
+  },
+  "root_motion": {
+    "operation": "remove_root_xy",
+    "armature": "Rig",
+    "bone": "Root"
+  },
+  "clips": {
+    "idle": {
+      "name": "idle",
+      "loop": true
+    },
+    "walk": {
+      "name": "walk",
+      "loop": true
+    },
+    "run": {
+      "name": "run",
+      "loop": true
+    },
+    "attack": {
+      "name": "attack",
+      "loop": false
+    },
+    "hurt": {
+      "name": "hurt",
+      "loop": false
+    }
+  }
+}

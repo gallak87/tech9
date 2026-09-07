@@ -5,3 +5,4 @@ game/.godot/
 .DS_Store
 game/content/build_info.json
 __pycache__/
+_prep/.build/

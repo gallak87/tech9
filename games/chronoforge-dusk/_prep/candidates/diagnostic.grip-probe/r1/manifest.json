@@ -1,0 +1,85 @@
+{
+  "asset_id": "diagnostic.grip-probe",
+  "build_fingerprint": "a07b6ae81d073d83ca2100bb4b19378e6c6a56b2b6376758da87a90d008495fd",
+  "candidate_format": 1,
+  "created_at": "2026-09-07T07:20:35.357636+00:00",
+  "files": {
+    "build.log": "ae2402c7729b17ac62944fb71e79b3fd3c26d8bf7986d857122582fb0e0e2121",
+    "export-settings.json": "4a2c31c4bbc6e4ef487c922be8bb4695991fb5d234c8313791d6754188789392",
+    "inspection.json": "a21fa53d3420d2363d471cf91240349d90ed465b4cf1d4fa7e214d1c6b4619dc",
+    "metadata.json": "386fa905fbe8ef843b31b6ca08778c8db31519857101c1df1849cc23fd69e300",
+    "reimport.json": "240a5048d0da925d272e84459d47fca2ef89bb8193ad4bb68ff7c82962fa92ac",
+    "runtime/descriptor.json": "e96f498393bb839bf92c2f3a4bad168954fc368b6efa605adc5de2108631528c",
+    "runtime/model.glb": "91a604a7757c0721337fd7d061028d13937ebd1185398311cd9214531fdc78b9",
+    "structural-checks.json": "ee6255e2c55d972b60c73b92428e5cf8ab63b0139e9fd8aee444facacc8515dd",
+    "working/export.blend": "570bcdf17700981a3e65c5736155cb39f90f664f2d24e72735b7365e9d0e9f75"
+  },
+  "inputs": {
+    "dependencies": {},
+    "metadata": {
+      "animation_mode": "none",
+      "asset_id": "diagnostic.grip-probe",
+      "attachments": [],
+      "dependencies": [],
+      "dimensions": {
+        "forward": "-Z",
+        "height_m": 0.4,
+        "origin": "ground",
+        "radius_m": 0.09,
+        "up": "+Y"
+      },
+      "kind": "prop",
+      "label": "Calibration grip probe",
+      "placeholder": true,
+      "production_format": 1,
+      "provenance": {
+        "attribution": "Original project diagnostic source; no external model, animation or texture reused.",
+        "origin": "Newly authored for Dusk by tools/author_proofs.py",
+        "provider": null,
+        "purpose": "Static Blender route and separate skeletal grip attachment. Not Kaida equipment.",
+        "source_coordinates": "Blender metres, Z up, +Y forward; glTF exporter converts once to Y up, -Z forward"
+      },
+      "recipe": "static_blend",
+      "required_outputs": [
+        "runtime/model.glb",
+        "runtime/descriptor.json",
+        "working/export.blend",
+        "inspection.json",
+        "reimport.json"
+      ],
+      "revision": "r1",
+      "source_files": [
+        {
+          "path": "assets/diagnostic.grip-probe/sources/r2/calibration-basecolor.png",
+          "role": "texture_source",
+          "sha256": "deed1de4af451cf22275b7320e1802516f2eb7d343a6dd90aa3f0dfed69b3a85"
+        },
+        {
+          "path": "assets/diagnostic.grip-probe/sources/r2/master.blend",
+          "role": "editable_master",
+          "sha256": "a8e5cdd271bcc9f771003036cd6a8ebfb897c7699a850ed1ca6c5c9dbe428aab"
+        }
+      ]
+    },
+    "runtime_format": 1,
+    "scripts": {
+      "ASSET_CONTRACT.md": "d0636dea8e26ecc777cb7224902490af42ae75e7e16d779f244de1e69661b7cb",
+      "pipeline.py": "553a98cbebd66839edd9e5cb328ce3779e6b9d8187bbf3aed68d4d126bd8da05",
+      "tools/author_proofs.py": "419dcf7bcecfe0978ad1fd1adf6352448be6d84ad03d66b6a5519b831bbf207f",
+      "tools/blender_stage.py": "6e5c15e9fa4005e87226d26b9672e65e774ed034f43dead14c8e3dc9ced66420",
+      "tools/glb_check.py": "d57fe262278d886a9d14761282f4a28a511bd211b3ab6fbe18d3d1c4c6401606"
+    },
+    "sources": {
+      "assets/diagnostic.grip-probe/sources/r2/calibration-basecolor.png": "deed1de4af451cf22275b7320e1802516f2eb7d343a6dd90aa3f0dfed69b3a85",
+      "assets/diagnostic.grip-probe/sources/r2/master.blend": "a8e5cdd271bcc9f771003036cd6a8ebfb897c7699a850ed1ca6c5c9dbe428aab"
+    },
+    "tools": {
+      "blender": "5.1.1",
+      "blender_build": "b70da489d7f4",
+      "python": "3.14.5"
+    }
+  },
+  "revision": "r1",
+  "structural_status": "ready_for_game_inspection",
+  "visual_status": "awaiting_review"
+}

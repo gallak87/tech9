@@ -1,0 +1,50 @@
+00:00.476  blend            | Read blend: "/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/assets/diagnostic.skin-probe/sources/r2/master.blend"
+Info: Saved as "export.blend"
+INFO Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/5.1/scripts/addons_core/io_scene_gltf2/libextern_draco.dylib
+00:27:04 | INFO: Starting glTF 2.0 export
+00:27:04 | INFO: Extracting primitive: Arm.L
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Arm.R
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Cube.005
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Cube.007
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Cube.003
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Cube.004
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Cube.006
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Cube.002
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Leg.L
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Leg.R
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Cube.001
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Extracting primitive: Cube
+00:27:04 | INFO: Primitives created: 1
+00:27:04 | INFO: Finished glTF 2.0 export in 0.1801590919494629 s
+
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit
+00:27:05 | INFO: Data are loaded, start creating Blender stuff
+00:27:05 | INFO: Blender create Mesh node Arm.L
+00:27:05 | INFO: Blender create Mesh node Arm.R
+00:27:05 | INFO: Blender create Mesh node Cube.005
+00:27:05 | INFO: Blender create Mesh node Cube.007
+00:27:05 | INFO: Blender create Mesh node Cube.003
+00:27:05 | INFO: Blender create Mesh node Cube.004
+00:27:05 | INFO: Blender create Mesh node Cube.006
+00:27:05 | INFO: Blender create Mesh node Cube.002
+00:27:05 | INFO: Blender create Mesh node Leg.L
+00:27:05 | INFO: Blender create Mesh node Leg.R
+00:27:05 | INFO: Blender create Mesh node Cube.001
+00:27:05 | INFO: Blender create Mesh node Cube
+00:27:05 | INFO: glTF import finished in 0.03s
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit

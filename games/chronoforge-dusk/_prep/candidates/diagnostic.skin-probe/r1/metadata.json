@@ -1,0 +1,86 @@
+{
+  "animation_mode": "skeletal",
+  "asset_id": "diagnostic.skin-probe",
+  "attachments": [
+    {
+      "bone": "Hand.R",
+      "dependency": "diagnostic.grip-probe",
+      "id": "grip-probe",
+      "position_m": [
+        0,
+        0,
+        0
+      ],
+      "rotation_degrees": [
+        90,
+        0,
+        0
+      ],
+      "skeleton_path": "Rig/Skeleton3D"
+    }
+  ],
+  "clips": {
+    "attack": {
+      "loop": false,
+      "name": "attack"
+    },
+    "hurt": {
+      "loop": false,
+      "name": "hurt"
+    },
+    "idle": {
+      "loop": true,
+      "name": "idle"
+    },
+    "run": {
+      "loop": true,
+      "name": "run"
+    },
+    "walk": {
+      "loop": true,
+      "name": "walk"
+    }
+  },
+  "dependencies": [
+    "candidates/diagnostic.grip-probe/r1/manifest.json"
+  ],
+  "dimensions": {
+    "forward": "-Z",
+    "height_m": 1.78,
+    "origin": "ground",
+    "radius_m": 0.34,
+    "up": "+Y"
+  },
+  "kind": "character",
+  "label": "Skinned diagnostic / NOT KAIDA",
+  "placeholder": true,
+  "production_format": 1,
+  "provenance": {
+    "attribution": "Original project diagnostic source; no external model, animation or texture reused.",
+    "origin": "Newly authored for Dusk by tools/author_proofs.py",
+    "provider": null,
+    "purpose": "Continuous weighted limbs, deliberately simple diagnostic clips and hands. Tests skin, root correction and grip, not production anatomy or motion quality.",
+    "source_coordinates": "Blender metres, Z up, +Y forward; glTF exporter converts once to Y up, -Z forward"
+  },
+  "recipe": "skeletal_blend",
+  "required_outputs": [
+    "runtime/model.glb",
+    "runtime/descriptor.json",
+    "working/export.blend",
+    "inspection.json",
+    "reimport.json"
+  ],
+  "revision": "r1",
+  "root_motion": {
+    "armature": "Rig",
+    "bone": "Root",
+    "operation": "remove_root_xy"
+  },
+  "source_files": [
+    {
+      "path": "assets/diagnostic.skin-probe/sources/r2/master.blend",
+      "role": "editable_master",
+      "sha256": "d1070b71de0dee537e74c7dadddbad04b82a1aa740a5b8e9602f6d49cbe239ae"
+    }
+  ]
+}

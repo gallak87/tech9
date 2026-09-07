@@ -1,0 +1,407 @@
+{
+	"checks": [
+		{
+			"check": "Real Kaida loads through the existing assembly",
+			"pass": true
+		},
+		{
+			"check": "Cold start is grounded before any reset",
+			"pass": true
+		},
+		{
+			"check": "All selected static scenery imports validate",
+			"pass": true
+		},
+		{
+			"check": "Kaida a1 package retained",
+			"pass": true
+		},
+		{
+			"check": "Accepted movement tuning applied",
+			"pass": true
+		},
+		{
+			"check": "Authored framing independent of saved inspection camera",
+			"pass": true
+		}
+	],
+	"duration_seconds": 2.633,
+	"failures": 0,
+	"identity": {
+		"asset": {
+			"animation_mode": "skeletal",
+			"asset_id": "kaida",
+			"attachments": [
+				{
+					"bone": "SwordSocket",
+					"id": "energy-sword",
+					"model": {
+						"path": "res://assets/kaida/a1/kaida.energy-sword.glb",
+						"sha256": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"
+					},
+					"position_m": [
+						0.0,
+						-0.135,
+						0.0
+					],
+					"rotation_degrees": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"skeleton_path": "KaidaRig/Skeleton3D"
+				}
+			],
+			"clips": {
+				"attack": {
+					"file": "res://assets/kaida/a1/model.glb",
+					"loop": false,
+					"name": "attack"
+				},
+				"hurt": {
+					"file": "res://assets/kaida/a1/model.glb",
+					"loop": false,
+					"name": "hurt"
+				},
+				"idle": {
+					"file": "res://assets/kaida/a1/model.glb",
+					"loop": true,
+					"name": "idle"
+				},
+				"run": {
+					"file": "res://assets/kaida/a1/model.glb",
+					"loop": true,
+					"name": "run"
+				},
+				"walk": {
+					"file": "res://assets/kaida/a1/model.glb",
+					"loop": true,
+					"name": "walk"
+				}
+			},
+			"dimensions": {
+				"forward": "-Z",
+				"height_m": 1.898191,
+				"origin": "ground",
+				"radius_m": 0.32,
+				"up": "+Y"
+			},
+			"format": 1.0,
+			"kind": "character",
+			"label": "Kaida r2 / Alpha a1",
+			"model": {
+				"path": "res://assets/kaida/a1/model.glb",
+				"sha256": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0"
+			},
+			"motion": {
+				"action": "controller",
+				"clips": "in_place",
+				"traversal": "controller"
+			},
+			"placeholder": false,
+			"revision": "a1"
+		},
+		"camera": {
+			"pitch": 43.0,
+			"size": 16.5,
+			"yaw": 0.0
+		},
+		"driver": "metal",
+		"engine": "4.6.3-stable (official)",
+		"frame_cap": 60,
+		"game_revision": "1f1eb740b159+dirty",
+		"gpu": "Apple M1 Pro (Apple7)",
+		"internal_resolution": [
+			1920,
+			1080
+		],
+		"native_export": true,
+		"processor": "Apple M1 Pro",
+		"renderer": "forward_plus",
+		"scene": "coastal-reclamation-06",
+		"scenery": {
+			"arch": {
+				"animation_mode": "none",
+				"asset_id": "coast.arch",
+				"attachments": [],
+				"clips": {
+
+				},
+				"dimensions": {
+					"forward": "-Z",
+					"height_m": 5.28155565261841,
+					"origin": "ground",
+					"radius_m": 3.14999985694885,
+					"up": "+Y"
+				},
+				"format": 1.0,
+				"kind": "prop",
+				"label": "Coastal arch / r1",
+				"model": {
+					"path": "res://assets/coast.arch/r1/model.glb",
+					"sha256": "b03608dfaaf9023bf5e1b5909ac080bd0cc7a8bfc98a6a28dbe3393656ff2e16"
+				},
+				"motion": {
+
+				},
+				"placeholder": false,
+				"revision": "r1"
+			},
+			"bollard": {
+				"animation_mode": "none",
+				"asset_id": "coast.bollard",
+				"attachments": [],
+				"clips": {
+
+				},
+				"dimensions": {
+					"forward": "-Z",
+					"height_m": 0.720000028610229,
+					"origin": "ground",
+					"radius_m": 0.319999992847443,
+					"up": "+Y"
+				},
+				"format": 1.0,
+				"kind": "prop",
+				"label": "Coastal bollard / r1",
+				"model": {
+					"path": "res://assets/coast.bollard/r1/model.glb",
+					"sha256": "164e09ab7bfcf5e52484b5f58fb807e8f47a4f5b6d3abdb619d0aac889a70c64"
+				},
+				"motion": {
+
+				},
+				"placeholder": false,
+				"revision": "r1"
+			},
+			"bridge": {
+				"animation_mode": "none",
+				"asset_id": "coast.bridge",
+				"attachments": [],
+				"clips": {
+
+				},
+				"dimensions": {
+					"forward": "-Z",
+					"height_m": 1.38500022888184,
+					"origin": "ground",
+					"radius_m": 2.0,
+					"up": "+Y"
+				},
+				"format": 1.0,
+				"kind": "prop",
+				"label": "Coastal repair deck / bolted railing r2",
+				"model": {
+					"path": "res://assets/coast.bridge/r2/model.glb",
+					"sha256": "1e8675f041cdf1614bc2e39c82039458b752d01bc8d8701d3e7de12272af5111"
+				},
+				"motion": {
+
+				},
+				"placeholder": false,
+				"revision": "r2"
+			},
+			"grass": {
+				"animation_mode": "none",
+				"asset_id": "coast.grass",
+				"attachments": [],
+				"clips": {
+
+				},
+				"dimensions": {
+					"forward": "-Z",
+					"height_m": 0.925535202026367,
+					"origin": "ground",
+					"radius_m": 0.814790070056915,
+					"up": "+Y"
+				},
+				"format": 1.0,
+				"kind": "prop",
+				"label": "Coastal grass / r1",
+				"model": {
+					"path": "res://assets/coast.grass/r1/model.glb",
+					"sha256": "8ac2d14c2e6b5a9c7ef6c4715ff299f8080d3f0259d9e5ca5d6d558b90a5ac66"
+				},
+				"motion": {
+
+				},
+				"placeholder": false,
+				"revision": "r1"
+			},
+			"pump": {
+				"animation_mode": "none",
+				"asset_id": "coast.pump",
+				"attachments": [],
+				"clips": {
+
+				},
+				"dimensions": {
+					"forward": "-Z",
+					"height_m": 2.43728470802307,
+					"origin": "ground",
+					"radius_m": 1.65199995040894,
+					"up": "+Y"
+				},
+				"format": 1.0,
+				"kind": "prop",
+				"label": "Coastal pump / r1",
+				"model": {
+					"path": "res://assets/coast.pump/r1/model.glb",
+					"sha256": "3349034cf2647a48a5395eed89e6b152a9a25c6f4539614e6d1db1471ca009a7"
+				},
+				"motion": {
+
+				},
+				"placeholder": false,
+				"revision": "r1"
+			},
+			"rocks": {
+				"animation_mode": "none",
+				"asset_id": "coast.rocks",
+				"attachments": [],
+				"clips": {
+
+				},
+				"dimensions": {
+					"forward": "-Z",
+					"height_m": 1.40288400650024,
+					"origin": "ground",
+					"radius_m": 2.02974438667297,
+					"up": "+Y"
+				},
+				"format": 1.0,
+				"kind": "prop",
+				"label": "Coastal rocks / r1",
+				"model": {
+					"path": "res://assets/coast.rocks/r1/model.glb",
+					"sha256": "eaf3dd650c3e6c8c22bbb7a89ccf57397c22f4529bb6a6a0d0502c4991b4bdfc"
+				},
+				"motion": {
+
+				},
+				"placeholder": false,
+				"revision": "r1"
+			},
+			"seawall": {
+				"animation_mode": "none",
+				"asset_id": "coast.seawall",
+				"attachments": [],
+				"clips": {
+
+				},
+				"dimensions": {
+					"forward": "-Z",
+					"height_m": 2.74000000953674,
+					"origin": "ground",
+					"radius_m": 1.57500028610229,
+					"up": "+Y"
+				},
+				"format": 1.0,
+				"kind": "prop",
+				"label": "Coastal seawall / r1",
+				"model": {
+					"path": "res://assets/coast.seawall/r1/model.glb",
+					"sha256": "8e1e5335b70762290e7e6e3c6638c59bc847c9f8d325352be8bd3f2bc8b6fee8"
+				},
+				"motion": {
+
+				},
+				"placeholder": false,
+				"revision": "r1"
+			},
+			"supplies": {
+				"animation_mode": "none",
+				"asset_id": "coast.supplies",
+				"attachments": [],
+				"clips": {
+
+				},
+				"dimensions": {
+					"forward": "-Z",
+					"height_m": 1.56749999523163,
+					"origin": "ground",
+					"radius_m": 0.903750002384186,
+					"up": "+Y"
+				},
+				"format": 1.0,
+				"kind": "prop",
+				"label": "Coastal supplies / r1",
+				"model": {
+					"path": "res://assets/coast.supplies/r1/model.glb",
+					"sha256": "b2af2e4a5e4684b6c0a9f8592eef7ab61ddad32f550d4fdbe49a76f424534def"
+				},
+				"motion": {
+
+				},
+				"placeholder": false,
+				"revision": "r1"
+			},
+			"tower": {
+				"animation_mode": "none",
+				"asset_id": "coast.tower",
+				"attachments": [],
+				"clips": {
+
+				},
+				"dimensions": {
+					"forward": "-Z",
+					"height_m": 17.0,
+					"origin": "ground",
+					"radius_m": 2.79999971389771,
+					"up": "+Y"
+				},
+				"format": 1.0,
+				"kind": "prop",
+				"label": "Coastal tower / r1",
+				"model": {
+					"path": "res://assets/coast.tower/r1/model.glb",
+					"sha256": "bffc02174fa8219bb2edef72464ecf0ad82322edc1558d717e5f90d87072564e"
+				},
+				"motion": {
+
+				},
+				"placeholder": false,
+				"revision": "r1"
+			}
+		},
+		"source_sha256": "c0ccce620f453c49f925fc814c3dea4b5979fdd13664e1f3bc480ebae7217ca1",
+		"test_interference": false,
+		"test_run_id": "a706a34ccc8b4dab8071dc88d0647f14",
+		"tuning": {
+			"acceleration": 28.0,
+			"attack_tempo": 1.0,
+			"braking": 36.0,
+			"camera_distance": 9.6,
+			"camera_pitch": 34.0,
+			"camera_yaw": 25.0,
+			"hit_stop": 0.065,
+			"impact_fraction": 0.5,
+			"light_game": true,
+			"run_speed": 5.1,
+			"run_stride_speed": 5.06165,
+			"turn_speed": 18.0,
+			"walk_speed": 2.3,
+			"walk_stride_speed": 2.28
+		}
+	},
+	"intervals": {
+		"active": {
+			"draw_calls": 155,
+			"engine_process_ms": 6.526,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 48.952,
+			"mean_ms": 16.7759166666667,
+			"nodes": 235,
+			"over_33ms": 1,
+			"p50_ms": 16.714,
+			"p95_ms": 18.864,
+			"p99_ms": 22.587,
+			"primitives": 65622,
+			"samples": 156,
+			"video_mb": 319.5
+		}
+	},
+	"observations": {
+
+	}
+}

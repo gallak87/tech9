@@ -1,6 +1,6 @@
 # 06 — Coastal environment and traversal
 
-**Type:** bounded environment production and native gameplay assignment. **Status:** ready for owner review and assignment; implementation has not started.
+**Type:** bounded environment production and native gameplay assignment. **Status:** implemented for native owner review. See [the 06 handoff](../evidence/environment-06/README.md) and [environment guidelines](../ENVIRONMENTS.md). The implementation stops at outdoor exploration; rooms and 07 remain outside scope.
 
 **Requires:** 03's working character/controller/import handoff. [Kaida a1](../releases/kaida-a1.md) is the current baseline. Use the latest completed Dusk handoff if it has advanced, recording the exact revision tested. **04, story approval, ATB, and additional characters are not prerequisites.** Existing Kaida cosmetic limitations do not block this work.
 

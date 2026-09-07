@@ -6,7 +6,7 @@ This is the current decision record. Earlier prompts and historical game documen
 
 | Decision | Meaning for Dusk |
 | --- | --- |
-| Planning before execution | 01–03 have delivered Kaida a1. The owner authorized the early 05 proposal and this roadmap update; 06 implementation and later steps still require their own assignment. |
+| Planning before execution | 01–03 have delivered Kaida a1. The owner authorized the early 05 proposal and later assigned 06. Its delivered outdoor environment is a bounded checkpoint; later steps require their own assignment. |
 | Fresh game implementation | Preserve original Chronoforge design and identity; create a runtime suited to the new asset workflow. |
 | Godot, native first | Produce a native application for the owner's Mac first. No browser build or web accommodation is required now. |
 | Browser only if a need emerges | A later playtest or user need may justify a pivot. Do not build a second target, compatibility layer, or reduced web presentation in anticipation. |
@@ -67,3 +67,9 @@ Godot and Mac export templates are pinned to 4.6.3 stable (`7d41c59c4`), using F
 Prioritize responsive traversal, stable equipment, readable attack/contact/recovery/return and reproducible settings at gameplay scale. Missing clips, detached equipment, severe joint inversions and incomplete actions are blocking defects. Fuller proportions, fine finger contact and more natural whole-body motion are deferred polish.
 
 The current five-role character, movement and action systems are implemented in [a1](releases/kaida-a1.md). A changed body requires a new model identity and fresh rig, weight, clip and grip checks. No new Meshy/Mixamo input is required for the current alpha. **Stop before 04 for owner review.**
+
+## Coastal traversal feedback — 2026-09-07
+
+The owner found an 18° coastal camera yaw frustrating with the orthogonal roadway: holding W required repeated D corrections. 06 now aligns the gameplay camera and movement frame to the roads at 0° yaw. The elevated view and authored overlook framing remain; accepted inspection/rehearsal camera settings are independent. Single-key crossing/ascent checks cover this feedback.
+
+The owner requested environment/traversal guidelines because this proof of concept will guide future environments. [ENVIRONMENTS.md](ENVIRONMENTS.md) records the concrete authoring rules and evidence boundary. Enterable rooms and indoor/outdoor transitions were discussed, then explicitly kept out of 06. 04 remains paused; no 07 work is authorized by this checkpoint.

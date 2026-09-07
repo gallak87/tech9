@@ -2,9 +2,9 @@
 
 A fresh Godot implementation of the original Chronoforge: a stylized 2.5D strategy RPG about a three-person crew reclaiming a post-collapse Earth and helping a settlement rebuild civilization.
 
-**Status: [Kaida a1](releases/kaida-a1.md) is the current playable release.** The stable r2 model is packaged as `kaida/a1`, with a separate sword. It has responsive stride-matched traversal, a timed strike with target reaction and feedback, basic hurt/defeat previews, slow/stepped inspection, and saved tuning. See [run/build instructions](NATIVE.md) and [03 evidence](evidence/kaida-03/README.md). **04 is paused; [06 — Coastal environment and traversal](_plans/06_environment_and_traversal.md) is the next plan to review and assign.** 05's story proposal awaits review on its separate branch; 06–10 are unimplemented.
+**Status: [06's coastal exploration](evidence/environment-06/README.md) is implemented for native review.** Kaida a1 explores an outdoor reclamation loop with original Blender scenery, camera-aligned keyboard traversal, an upper ruin and overlook, water/vegetation motion, ambient audio, pause/reset and F2 development access. See [run/build instructions](NATIVE.md) and [environment authoring guidelines](ENVIRONMENTS.md). **04 remains paused; 05's story proposal is separate, and 07–10 are unimplemented.**
 
-The [local production pipeline](_prep/README.md) builds the current [a1 source and asset handoff](_prep/KAIDA_HANDOFF.md). Kaida’s proportions and detailed grip/whole-body motion remain provisional under the owner’s [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07). Use this handoff to build her first real environment; additional cosmetic polish, standalone 04, and story approval do not block 06.
+The [local production pipeline](_prep/README.md) builds the current [a1 source and asset handoff](_prep/KAIDA_HANDOFF.md). Kaida’s proportions and detailed grip/whole-body motion remain provisional under the owner’s [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07). 06 uses this handoff without changing her source, clips or immutable package. Additional character polish and story acceptance remain separate work.
 
 ## The direction
 
@@ -31,7 +31,8 @@ Start with [AGENTS.md](AGENTS.md) and the current assignment, then read the rele
 | [Decisions](DECISIONS.md) | Settled direction, proposed defaults, and questions deliberately left for evidence |
 | [Roadmap](ROADMAP.md) | Linear sequence, dependencies, and agent handoff guidance |
 | [Planner handoff](PLANNER.md) | Context and judgment for a fresh session planning the next assignments |
-| [Numbered plans](_plans) | Individual assignments; 01–03 provide the base, and 06 is the next environment task |
+| [Numbered plans](_plans) | Individual assignments; 01–03 provide the base, and 06 is the first outdoor environment |
+| [Environment guidelines](ENVIRONMENTS.md) | Evidence-based route, camera, collision, asset and playtest rules |
 | [Validation](VALIDATION.md) | Appearance, motion, input, performance, and repeatable evidence |
 | [Lessons](LESSONS.md) | Findings from the existing games and what Dusk does with them |
 | [Future tech9 direction](FRAMEWORK_FUTURE.md) | Deferred ambition to extract reusable capabilities and rethink the director/scaffolder |

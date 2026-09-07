@@ -1,10 +1,10 @@
 # Chronoforge Dusk roadmap
 
-**Current state:** 01–03 deliver the tested [Kaida a1](releases/kaida-a1.md) checkpoint. 04 is paused. 05 has a separate story/design draft awaiting owner review; it is not accepted canon. **06 is the next bounded assignment: a polished coastal environment for Kaida to explore.** Its implementation has not started. See [native instructions](NATIVE.md) and [evidence](evidence/README.md). Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
+**Current state:** 01–03 deliver the tested [Kaida a1](releases/kaida-a1.md) checkpoint. 04 is paused. 05 has a separate story/design draft awaiting owner review; it is not accepted canon. **06 now provides the native coastal exploration checkpoint for review.** See its [implementation evidence](evidence/environment-06/README.md) and [environment guidelines](ENVIRONMENTS.md). See [native instructions](NATIVE.md) and [evidence](evidence/README.md). Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
 
 ## Next direction
 
-Review and assign [06 — Coastal environment and traversal](_plans/06_environment_and_traversal.md). It uses 03's finished handoff and does not wait for standalone 04, story approval, ATB, or more characters. Build the physical place first; integrate the complete gameplay loop later through 07. This planner update does not itself start implementation.
+Review the delivered [06 — Coastal environment and traversal](_plans/06_environment_and_traversal.md) app. It uses 03's finished handoff. Implementation stops at this outdoor exploration checkpoint; the complete playable loop in 07 requires its own assignment and owner-agreed design.
 
 ## Start to finish
 
@@ -19,7 +19,7 @@ Review and assign [06 — Coastal environment and traversal](_plans/06_environme
 9. **[09 — Expand one region at a time](_plans/09_expand_the_game.md).** Choose and deliver the next region from the wider Chronoforge direction. Repeat the proven loop until the agreed game arc is complete. **Future planning outline; refine each region when reached.**
 10. **[10 — Finish and package the game](_plans/10_finish_and_package.md).** Close progression/story gaps, validate the complete playthrough, tune performance and usability, and deliver the native application and source. **Future completion outline.**
 
-**Execution path now: 03 → 06 → 07 → 08 → 09 → 10.** 05's owner-agreed design joins before 07; relevant asset-repeatability checks accompany integration. 04 remains separately paused. The 05 draft is committed on `codex/dusk-story-05` and has not been merged into this checkout. 06–10 are not implemented. See [release evidence](evidence/kaida-03/README.md) and the [current source handoff](_prep/KAIDA_HANDOFF.md).
+**Execution path now: 03 → 06 → 07 → 08 → 09 → 10.** 05's owner-agreed design joins before 07; relevant asset-repeatability checks accompany integration. 04 remains separately paused. The 05 draft is committed on `codex/dusk-story-05` and has not been merged into this checkout. 06 is implemented for native review; 07–10 are not implemented. See [release evidence](evidence/kaida-03/README.md) and the [current source handoff](_prep/KAIDA_HANDOFF.md).
 
 ## What to give a new agent
 
@@ -46,7 +46,7 @@ Real-asset findings may require focused producer or consumer fixes from the earl
 
 ## Scope and horizon
 
-06 is ready for review and assignment as a bounded environment task. 07–10 intentionally describe future outcomes and the planning needed to make them concrete. A multi-week game, subjective character polish, and an owner-led story are not reliable one-shot deliverables.
+06 has a concrete native build and handoff for owner review. 07–10 intentionally describe future outcomes and the planning needed to make them concrete. A multi-week game, subjective character polish, and an owner-led story are not reliable one-shot deliverables.
 
 The target is a native Godot Mac application. Browser delivery is a future pivot only if a compelling need emerges; no dual-target or compatibility work is scheduled. Dates, total regions, exact story beats, and the final game length remain open to owner direction and actual results.
 

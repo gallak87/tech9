@@ -9,7 +9,7 @@ Read the assigned numbered plan in `_plans/` and the Dusk code needed for it. Us
 - Runtime, import, or development tools: [01 — Native foundation](_plans/01_native_foundation.md), then the specific assigned follow-up.
 - Asset production: [_prep/README.md](_prep/README.md), then the applicable asset/recipe plan.
 - Producer/consumer integration: [_prep/ASSET_CONTRACT.md](_prep/ASSET_CONTRACT.md).
-- Environment/traversal: [06 — Coastal environment and traversal](_plans/06_environment_and_traversal.md), using 03's current handoff; story documents are optional.
+- Environment/traversal: the assigned environment plan and [environment authoring guidelines](ENVIRONMENTS.md), using the current character handoff; story documents are optional. [06 — Coastal environment and traversal](_plans/06_environment_and_traversal.md) is the first worked example.
 - Story/content: [05 — Story and first-region design](_plans/05_story_and_region.md), or the specifically assigned later content task. Evaluation: [VALIDATION.md](VALIDATION.md).
 
 Consult [DECISIONS.md](DECISIONS.md) for rationale or unresolved choices. Other plans, historical lessons, and the future framework note are optional context when relevant. Do not read the whole repository by default.

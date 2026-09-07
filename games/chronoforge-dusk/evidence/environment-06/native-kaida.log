@@ -1,0 +1,279 @@
++ /opt/homebrew/bin/godot --headless --editor --path /Users/g/code/scratch/tech9/games/chronoforge-dusk/game --import --quit
+Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
+
+[   0% ] [90m[1mfirst_scan_filesystem[22m | Started Project initialization (5 steps)[39m[0m
+[   0% ] [90m[1mfirst_scan_filesystem[22m | Scanning file structure...[39m[0m
+[  16% ] [90m[1mfirst_scan_filesystem[22m | Loading global class names...[39m[0m
+[  33% ] [90m[1mfirst_scan_filesystem[22m | Verifying GDExtensions...[39m[0m
+[  50% ] [90m[1mfirst_scan_filesystem[22m | Creating autoload scripts...[39m[0m
+[  66% ] [90m[1mfirst_scan_filesystem[22m | Initializing plugins...[39m[0m
+[  83% ] [90m[1mfirst_scan_filesystem[22m | Starting file scan...[39m[0m
+[92m[ DONE ][39m [1mfirst_scan_filesystem[22m
+[0m
+[   0% ] [90m[1mloading_editor_layout[22m | Started Loading editor (5 steps)[39m[0m
+[   0% ] [90m[1mloading_editor_layout[22m | Loading editor layout...[39m[0m
+[  16% ] [90m[1mloading_editor_layout[22m | Loading docks...[39m[0m
+[  33% ] [90m[1mloading_editor_layout[22m | Reopening scenes...[39m[0m
+[  50% ] [90m[1mloading_editor_layout[22m | Loading central editor layout...[39m[0m
+[  66% ] [90m[1mloading_editor_layout[22m | Loading plugin window layout...[39m[0m
+[  83% ] [90m[1mloading_editor_layout[22m | Editor layout ready.[39m[0m
+[92m[ DONE ][39m [1mloading_editor_layout[22m
+[0m
+Godot 4.6.3 macOS template verified; retained outside res://
++ /opt/homebrew/bin/godot --headless --path /Users/g/code/scratch/tech9/games/chronoforge-dusk/game --export-release macOS /Users/g/code/scratch/tech9/games/chronoforge-dusk/dist/Chronoforge Dusk.app
+Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
+
+[   0% ] [90m[1mfirst_scan_filesystem[22m | Started Project initialization (5 steps)[39m[0m
+[   0% ] [90m[1mfirst_scan_filesystem[22m | Scanning file structure...[39m[0m
+[  16% ] [90m[1mfirst_scan_filesystem[22m | Loading global class names...[39m[0m
+[  33% ] [90m[1mfirst_scan_filesystem[22m | Verifying GDExtensions...[39m[0m
+[  50% ] [90m[1mfirst_scan_filesystem[22m | Creating autoload scripts...[39m[0m
+[  66% ] [90m[1mfirst_scan_filesystem[22m | Initializing plugins...[39m[0m
+[  83% ] [90m[1mfirst_scan_filesystem[22m | Starting file scan...[39m[0m
+[92m[ DONE ][39m [1mfirst_scan_filesystem[22m
+[0m
+[   0% ] [90m[1mexport[22m | Started Exporting for macOS (3 steps)[39m[0m
+[   0% ] [90m[1mexport[22m | Creating app bundle[39m[0m
+[  25% ] [90m[1mexport[22m | Making PKG[39m[0m
+[   0% ] [90m[1msavepack[22m | Started Packing (102 steps)[39m[0m
+[   1% ] [90m[1msavepack[22m | Storing File: res://actors/character.gdc[39m[0m
+[   2% ] [90m[1msavepack[22m | Storing File: res://.godot/exported/133200997/export-0c21af0773504f27362c11628cd6412f-launch.scn[39m[0m
+[   3% ] [90m[1msavepack[22m | Storing File: res://assets/coast.arch/r1/descriptor.json[39m[0m
+[   5% ] [90m[1msavepack[22m | Storing File: res://assets/coast.arch/r1/model.glb[39m[0m
+[   5% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-a9f4452886d6e48a3fb9d72d527bf7c4.scn[39m[0m
+[   5% ] [90m[1msavepack[22m | Storing File: res://assets/coast.arch/r1/model.glb.import[39m[0m
+[   6% ] [90m[1msavepack[22m | Storing File: res://assets/coast.bollard/r1/descriptor.json[39m[0m
+[   7% ] [90m[1msavepack[22m | Storing File: res://assets/coast.bollard/r1/model.glb[39m[0m
+[   7% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-c6e7e80441d118dea24981db19b2c360.scn[39m[0m
+[   7% ] [90m[1msavepack[22m | Storing File: res://assets/coast.bollard/r1/model.glb.import[39m[0m
+[   9% ] [90m[1msavepack[22m | Storing File: res://assets/coast.bridge/r2/descriptor.json[39m[0m
+[  10% ] [90m[1msavepack[22m | Storing File: res://assets/coast.bridge/r2/model.glb[39m[0m
+[  10% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-a84f9c01a7bfc9b61236a46d341be862.scn[39m[0m
+[  10% ] [90m[1msavepack[22m | Storing File: res://assets/coast.bridge/r2/model.glb.import[39m[0m
+[  12% ] [90m[1msavepack[22m | Storing File: res://assets/coast.grass/r1/descriptor.json[39m[0m
+[  13% ] [90m[1msavepack[22m | Storing File: res://assets/coast.grass/r1/model.glb[39m[0m
+[  13% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-fcc07ff03a670305e5f371dc4ebb4700.scn[39m[0m
+[  13% ] [90m[1msavepack[22m | Storing File: res://assets/coast.grass/r1/model.glb.import[39m[0m
+[  14% ] [90m[1msavepack[22m | Storing File: res://assets/coast.pump/r1/descriptor.json[39m[0m
+[  16% ] [90m[1msavepack[22m | Storing File: res://assets/coast.pump/r1/model.glb[39m[0m
+[  16% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-eaa196fa47b1d779675c995591727812.scn[39m[0m
+[  16% ] [90m[1msavepack[22m | Storing File: res://assets/coast.pump/r1/model.glb.import[39m[0m
+[  17% ] [90m[1msavepack[22m | Storing File: res://assets/coast.rocks/r1/descriptor.json[39m[0m
+[  19% ] [90m[1msavepack[22m | Storing File: res://assets/coast.rocks/r1/model.glb[39m[0m
+[  19% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-6a1b47cb5d249e206f64f12fbe4d12db.scn[39m[0m
+[  19% ] [90m[1msavepack[22m | Storing File: res://assets/coast.rocks/r1/model.glb.import[39m[0m
+[  20% ] [90m[1msavepack[22m | Storing File: res://assets/coast.seawall/r1/descriptor.json[39m[0m
+[  21% ] [90m[1msavepack[22m | Storing File: res://assets/coast.seawall/r1/model.glb[39m[0m
+[  21% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-139f03a9b63a1349b03068ea8ac4ae28.scn[39m[0m
+[  21% ] [90m[1msavepack[22m | Storing File: res://assets/coast.seawall/r1/model.glb.import[39m[0m
+[  23% ] [90m[1msavepack[22m | Storing File: res://assets/coast.supplies/r1/descriptor.json[39m[0m
+[  24% ] [90m[1msavepack[22m | Storing File: res://assets/coast.supplies/r1/model.glb[39m[0m
+[  24% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-e2dc296de1c70f01b727254cd29f4f2a.scn[39m[0m
+[  24% ] [90m[1msavepack[22m | Storing File: res://assets/coast.supplies/r1/model.glb.import[39m[0m
+[  26% ] [90m[1msavepack[22m | Storing File: res://assets/coast.tower/r1/descriptor.json[39m[0m
+[  27% ] [90m[1msavepack[22m | Storing File: res://assets/coast.tower/r1/model.glb[39m[0m
+[  27% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-4fc58d3efbb58632710345f44596b8f7.scn[39m[0m
+[  27% ] [90m[1msavepack[22m | Storing File: res://assets/coast.tower/r1/model.glb.import[39m[0m
+[  28% ] [90m[1msavepack[22m | Storing File: res://assets/diagnostic.grip-probe/r1/descriptor.json[39m[0m
+[  30% ] [90m[1msavepack[22m | Storing File: res://assets/diagnostic.grip-probe/r1/model.glb[39m[0m
+[  30% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-e38e6be2393b9ac2fcd94e2693fb8a58.scn[39m[0m
+[  30% ] [90m[1msavepack[22m | Storing File: res://assets/diagnostic.grip-probe/r1/model.glb.import[39m[0m
+[  31% ] [90m[1msavepack[22m | Storing File: res://assets/diagnostic.skin-probe/r1/descriptor.json[39m[0m
+[  32% ] [90m[1msavepack[22m | Storing File: res://assets/diagnostic.skin-probe/r1/diagnostic.grip-probe.glb[39m[0m
+[  32% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/diagnostic.grip-probe.glb-5ec992031d047209230b6cd5c1e8f08c.scn[39m[0m
+[  32% ] [90m[1msavepack[22m | Storing File: res://assets/diagnostic.skin-probe/r1/diagnostic.grip-probe.glb.import[39m[0m
+[  33% ] [90m[1msavepack[22m | Storing File: res://assets/diagnostic.skin-probe/r1/model.glb[39m[0m
+[  33% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-9b9270f1a722788958ef4ccad6910a97.scn[39m[0m
+[  33% ] [90m[1msavepack[22m | Storing File: res://assets/diagnostic.skin-probe/r1/model.glb.import[39m[0m
+[  34% ] [90m[1msavepack[22m | Storing File: res://assets/fixtures/baton-r1.glb[39m[0m
+[  34% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/baton-r1.glb-80ff6bedbe539ea541f4147ffcc14a2f.scn[39m[0m
+[  34% ] [90m[1msavepack[22m | Storing File: res://assets/fixtures/baton-r1.glb.import[39m[0m
+[  36% ] [90m[1msavepack[22m | Storing File: res://assets/fixtures/mannequin-clay-r1.glb[39m[0m
+[  36% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/mannequin-clay-r1.glb-e7f91e50e0cbe85ab37af99e15503035.scn[39m[0m
+[  36% ] [90m[1msavepack[22m | Storing File: res://assets/fixtures/mannequin-clay-r1.glb.import[39m[0m
+[  37% ] [90m[1msavepack[22m | Storing File: res://assets/fixtures/mannequin-clay-r1.json[39m[0m
+[  38% ] [90m[1msavepack[22m | Storing File: res://assets/fixtures/mannequin-slate-r1.glb[39m[0m
+[  38% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/mannequin-slate-r1.glb-77a993bfe1089628063a9e606c8d5e08.scn[39m[0m
+[  38% ] [90m[1msavepack[22m | Storing File: res://assets/fixtures/mannequin-slate-r1.glb.import[39m[0m
+[  40% ] [90m[1msavepack[22m | Storing File: res://assets/fixtures/mannequin-slate-r1.json[39m[0m
+[  41% ] [90m[1msavepack[22m | Storing File: res://assets/kaida/a1/descriptor.json[39m[0m
+[  43% ] [90m[1msavepack[22m | Storing File: res://assets/kaida/a1/kaida.energy-sword.glb[39m[0m
+[  43% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/kaida.energy-sword.glb-5029cc56efb669e60983917886c46766.scn[39m[0m
+[  43% ] [90m[1msavepack[22m | Storing File: res://assets/kaida/a1/kaida.energy-sword.glb.import[39m[0m
+[  44% ] [90m[1msavepack[22m | Storing File: res://assets/kaida/a1/model.glb[39m[0m
+[  44% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/model.glb-565387a506e28c871b9a32541498789e.scn[39m[0m
+[  44% ] [90m[1msavepack[22m | Storing File: res://assets/kaida/a1/model.glb.import[39m[0m
+[  45% ] [90m[1msavepack[22m | Storing File: res://assets/asset_assembly.gdc[39m[0m
+[  47% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/shore.wav-ae6519cbe36ace41bd53f4b34173a33c.sample[39m[0m
+[  47% ] [90m[1msavepack[22m | Storing File: res://audio/coast/shore.wav.import[39m[0m
+[  48% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/stone-0.wav-f1cd1209f1f34b61709d8d5dbc22c0a5.sample[39m[0m
+[  48% ] [90m[1msavepack[22m | Storing File: res://audio/coast/stone-0.wav.import[39m[0m
+[  50% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/stone-1.wav-21163328300ece8824a4261874865f18.sample[39m[0m
+[  50% ] [90m[1msavepack[22m | Storing File: res://audio/coast/stone-1.wav.import[39m[0m
+[  51% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/stone-2.wav-b6277347ed5fa0d867a5253c4a40bd9e.sample[39m[0m
+[  51% ] [90m[1msavepack[22m | Storing File: res://audio/coast/stone-2.wav.import[39m[0m
+[  52% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/stone-3.wav-0beec96d44bfffc9623b93f05e998d68.sample[39m[0m
+[  52% ] [90m[1msavepack[22m | Storing File: res://audio/coast/stone-3.wav.import[39m[0m
+[  54% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/wood-0.wav-7d9da0afe9211ad6c095eb9924617217.sample[39m[0m
+[  54% ] [90m[1msavepack[22m | Storing File: res://audio/coast/wood-0.wav.import[39m[0m
+[  55% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/wood-1.wav-403fa059340c43835266fa4625f133ff.sample[39m[0m
+[  55% ] [90m[1msavepack[22m | Storing File: res://audio/coast/wood-1.wav.import[39m[0m
+[  56% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/wood-2.wav-af4f95e69e8e1e410d7caa7cb2e22ed4.sample[39m[0m
+[  56% ] [90m[1msavepack[22m | Storing File: res://audio/coast/wood-2.wav.import[39m[0m
+[  58% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/wood-3.wav-7128010a6722adc60a714ff15eab1df6.sample[39m[0m
+[  58% ] [90m[1msavepack[22m | Storing File: res://audio/coast/wood-3.wav.import[39m[0m
+[  59% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/impact.wav-606f8b40b78eec03bfd2693747f9e1cb.sample[39m[0m
+[  59% ] [90m[1msavepack[22m | Storing File: res://audio/impact.wav.import[39m[0m
+[  61% ] [90m[1msavepack[22m | Storing File: res://.godot/imported/swing.wav-2d9204d63563241cd2f3db752129ffa3.sample[39m[0m
+[  61% ] [90m[1msavepack[22m | Storing File: res://audio/swing.wav.import[39m[0m
+[  62% ] [90m[1msavepack[22m | Storing File: res://content/releases/kaida-a1.json[39m[0m
+[  63% ] [90m[1msavepack[22m | Storing File: res://content/build_info.json[39m[0m
+[  65% ] [90m[1msavepack[22m | Storing File: res://content/candidates.json[39m[0m
+[  66% ] [90m[1msavepack[22m | Storing File: res://development/diagnostics.gdc[39m[0m
+[  67% ] [90m[1msavepack[22m | Storing File: res://development/foundation.gdc[39m[0m
+[  68% ] [90m[1msavepack[22m | Storing File: res://.godot/exported/133200997/export-b6247fdea6a92e68fb295eacb3bb026a-foundation.scn[39m[0m
+[  69% ] [90m[1msavepack[22m | Storing File: res://development/ground.gdshader[39m[0m
+[  71% ] [90m[1msavepack[22m | Storing File: res://development/orbit_camera.gdc[39m[0m
+[  72% ] [90m[1msavepack[22m | Storing File: res://development/traversal_patch.gdc[39m[0m
+[  74% ] [90m[1msavepack[22m | Storing File: res://development/tuning.gdc[39m[0m
+[  75% ] [90m[1msavepack[22m | Storing File: res://environment/coast.gdc[39m[0m
+[  76% ] [90m[1msavepack[22m | Storing File: res://.godot/exported/133200997/export-ba17cca306b33ebc6dfcd57b1987ac64-coast.scn[39m[0m
+[  78% ] [90m[1msavepack[22m | Storing File: res://environment/coast_audio.gdc[39m[0m
+[  79% ] [90m[1msavepack[22m | Storing File: res://environment/coast_camera.gdc[39m[0m
+[  80% ] [90m[1msavepack[22m | Storing File: res://environment/coast_kit.gdc[39m[0m
+[  82% ] [90m[1msavepack[22m | Storing File: res://environment/coast_site.gdc[39m[0m
+[  83% ] [90m[1msavepack[22m | Storing File: res://environment/grass.gdshader[39m[0m
+[  85% ] [90m[1msavepack[22m | Storing File: res://environment/sea.gdshader[39m[0m
+[  86% ] [90m[1msavepack[22m | Storing File: res://environment/stone.gdshader[39m[0m
+[  87% ] [90m[1msavepack[22m | Storing File: res://gameplay/rehearsal.gdc[39m[0m
+[  89% ] [90m[1msavepack[22m | Storing File: res://gameplay/strike_feedback.gdc[39m[0m
+[  90% ] [90m[1msavepack[22m | Storing File: res://tests/environment_motion.gdc[39m[0m
+[  92% ] [90m[1msavepack[22m | Storing File: res://tests/environment_test.gdc[39m[0m
+[  93% ] [90m[1msavepack[22m | Storing File: res://tests/foundation_test.gdc[39m[0m
+[  94% ] [90m[1msavepack[22m | Storing File: res://tests/kaida_test.gdc[39m[0m
+[  96% ] [90m[1msavepack[22m | Storing File: res://ui/development_hud.gdc[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://launch.gdc[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://actors/character.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://launch.tscn.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://assets/asset_assembly.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://development/diagnostics.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://development/foundation.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://development/foundation.tscn.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://development/orbit_camera.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://development/traversal_patch.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://development/tuning.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://environment/coast.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://environment/coast.tscn.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://environment/coast_audio.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://environment/coast_camera.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://environment/coast_kit.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://environment/coast_site.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://gameplay/rehearsal.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://gameplay/strike_feedback.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://tests/environment_motion.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://tests/environment_test.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://tests/foundation_test.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://tests/kaida_test.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://ui/development_hud.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://launch.gd.remap[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://.godot/global_script_class_cache.cfg[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://.godot/uid_cache.bin[39m[0m
+[  97% ] [90m[1msavepack[22m | Storing File: res://project.binary[39m[0m
+[92m[ DONE ][39m [1msavepack[22m
+[0m
+[  50% ] [90m[1mexport[22m | Code signing bundle[39m[0m
+[92m[ DONE ][39m [1mexport[22m
+[0m
++ codesign --verify --deep --strict /Users/g/code/scratch/tech9/games/chronoforge-dusk/dist/Chronoforge Dusk.app
+Native application: /Users/g/code/scratch/tech9/games/chronoforge-dusk/dist/Chronoforge Dusk.app
++ /Users/g/code/scratch/tech9/games/chronoforge-dusk/dist/Chronoforge Dusk.app/Contents/MacOS/Chronoforge Dusk --always-on-top --resolution 1440x810 -- --kaida-test --test-run-id=b4f39bff9e344c568fb421bcc18994c6
+Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M1 Pro (Apple7)
+
+DUSK_LOADED kaida a1
+DUSK_START {"asset":{"animation_mode":"skeletal","asset_id":"kaida","attachments":[{"bone":"SwordSocket","id":"energy-sword","model":{"path":"res://assets/kaida/a1/kaida.energy-sword.glb","sha256":"3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"},"position_m":[0.0,-0.135,0.0],"rotation_degrees":[0.0,0.0,0.0],"skeleton_path":"KaidaRig/Skeleton3D"}],"clips":{"attack":{"file":"res://assets/kaida/a1/model.glb","loop":false,"name":"attack"},"hurt":{"file":"res://assets/kaida/a1/model.glb","loop":false,"name":"hurt"},"idle":{"file":"res://assets/kaida/a1/model.glb","loop":true,"name":"idle"},"run":{"file":"res://assets/kaida/a1/model.glb","loop":true,"name":"run"},"walk":{"file":"res://assets/kaida/a1/model.glb","loop":true,"name":"walk"}},"dimensions":{"forward":"-Z","height_m":1.898191,"origin":"ground","radius_m":0.32,"up":"+Y"},"format":1.0,"kind":"character","label":"Kaida r2 / Alpha a1","model":{"path":"res://assets/kaida/a1/model.glb","sha256":"ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0"},"motion":{"action":"controller","clips":"in_place","traversal":"controller"},"placeholder":false,"revision":"a1"},"display_scale":2.0,"driver":"metal","engine":"4.6.3-stable (official)","engine_uptime_at_ready_ms":694,"frame_cap":60,"game_revision":"1f1eb740b159+dirty","gpu":"Apple M1 Pro (Apple7)","internal_resolution":[1920,1080],"native_export":true,"os":"macOS 26.4.1","processor":"Apple M1 Pro","release":{"asset_generation":"r2","descriptor":"res://assets/kaida/a1/descriptor.json","equipment":{"asset_id":"kaida.energy-sword","model_sha256":"3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"},"label":"Kaida r2 / Alpha a1","model_sha256":"ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0","release":"a1","source_batch":"meshy-r2","stage":"playable_alpha"},"renderer":"forward_plus","scene_assembly_ms":181,"source_sha256":"c0ccce620f453c49f925fc814c3dea4b5979fdd13664e1f3bc480ebae7217ca1","test_interference":false,"test_run_id":"b4f39bff9e344c568fb421bcc18994c6","tuning":{"acceleration":28.0,"attack_tempo":1.0,"braking":36.0,"camera_distance":9.6,"camera_pitch":34.0,"camera_yaw":25.0,"hit_stop":0.065,"impact_fraction":0.5,"light_game":true,"run_speed":5.1,"run_stride_speed":5.06165,"turn_speed":18.0,"walk_speed":2.3,"walk_stride_speed":2.28},"window_pixels":[1440,810]}
+DUSK_TEST PASS Cold startup stays grounded at the spawn before any test reset
+DUSK_LOADED kaida a1
+DUSK_TEST PASS Kaida default candidate loads without fallback
+DUSK_TEST PASS Displayed actor is Kaida a1
+DUSK_TEST PASS Alpha a1 pins the existing Kaida r2 asset and corrected export
+DUSK_TEST PASS Real 67-bone Kaida rig present
+DUSK_TEST PASS Separate sword uses skeletal socket
+DUSK_TEST PASS All five complete clips preserve controller-owned root motion
+DUSK_TEST PASS Sword socket follows actual strike motion
+DUSK_TEST PASS Repeated run loops keep the sword hand continuous (regression: 49 cm jump)
+DUSK_TEST PASS Kaida responds to mapped walking input
+DUSK_TEST PASS Walk playback matches measured stride travel
+DUSK_TEST PASS Release brakes and blends to idle within 200 ms
+DUSK_TEST PASS Diagonal input has no speed boost
+DUSK_TEST PASS Run displacement and imported playback agree
+DUSK_TEST PASS Run stops within 40 cm without residual skating
+DUSK_TEST PASS Wall blocks Kaida and stops in-place walking
+DUSK_TEST PASS Kaida maintains ground contact on authored ramp
+DUSK_TEST PASS Follow camera settles after repeated running turns
+DUSK_TEST PASS Hurt temporarily locks traversal and plays real reaction
+DUSK_TEST PASS Hurt recovers to controllable state
+DUSK_TEST PASS Basic defeat stays down until reset
+DUSK_TEST PASS Reset clears defeat pose without accumulated offsets
+DUSK_TEST PASS Pause freezes action clip and timeline together
+DUSK_TEST PASS Step advances one physics tick of attack
+DUSK_TEST PASS Attack reaches contact
+DUSK_TEST PASS Impact lands on exact imported contact pose
+DUSK_TEST PASS Contact freezes both actors during hit stop
+DUSK_TEST PASS Physical blade reaches target torso at logical impact
+DUSK_TEST PASS Quarter-speed control slows actual action timeline
+DUSK_TEST PASS Cycle 0 has one strike, one impact and one sound/effect event
+DUSK_TEST PASS Cycle 0 returns home with target recovered
+DUSK_TEST PASS Cycle 1 has one strike, one impact and one sound/effect event
+DUSK_TEST PASS Cycle 1 returns home with target recovered
+DUSK_TEST PASS Cycle 2 has one strike, one impact and one sound/effect event
+DUSK_TEST PASS Cycle 2 returns home with target recovered
+DUSK_TEST PASS Cycle 3 has one strike, one impact and one sound/effect event
+DUSK_TEST PASS Cycle 3 returns home with target recovered
+DUSK_TEST PASS Cycle 4 has one strike, one impact and one sound/effect event
+DUSK_TEST PASS Cycle 4 returns home with target recovered
+DUSK_TEST PASS Cycle 5 has one strike, one impact and one sound/effect event
+DUSK_TEST PASS Cycle 5 returns home with target recovered
+DUSK_TEST PASS Cycle 6 has one strike, one impact and one sound/effect event
+DUSK_TEST PASS Cycle 6 returns home with target recovered
+DUSK_TEST PASS Cycle 7 has one strike, one impact and one sound/effect event
+DUSK_TEST PASS Cycle 7 returns home with target recovered
+DUSK_TEST PASS Finishing strike defeats target on contact
+DUSK_TEST PASS Downed target cannot receive another strike
+DUSK_TEST PASS Replay restores target and completes a fresh action
+DUSK_TEST PASS Mode change cancels action and clears hit stop/trail
+DUSK_LOADED kaida a1
+DUSK_LOADED kaida a1
+DUSK_LOADED kaida a1
+DUSK_LOADED kaida a1
+DUSK_LOADED kaida a1
+DUSK_LOADED kaida a1
+DUSK_TEST PASS Reloading a1 releases prior mesh, rig and equipment nodes
+DUSK_TEST PASS Reloading a1 does not accumulate resources or video memory
+DUSK_TEST PASS Additional Kaida 0 loads
+DUSK_TEST PASS Additional Kaida 1 loads
+DUSK_TEST PASS Additional Kaida 2 loads
+DUSK_TEST PASS Running into another Kaida stays grounded and keeps body separation
+DUSK_TEST PASS Four-instance layout keeps the controlled actor on the floor
+DUSK_TEST PASS Paused mode caps rendering at 30 FPS
+DUSK_TEST PASS Unfocused handler suspends simulation and caps rendering at 10 FPS
+DUSK_TEST PASS Saved tuning pairs actual Kaida hash and game source
+DUSK_LOADED kaida a1
+DUSK_TEST PASS Restore reapplies complete traversal/action/camera tuning
+DUSK_TEST PASS Native test completed without external keyboard or mouse input
+DUSK_TEST_RESULT 0 failures / 61 checks; /Users/g/Library/Application Support/Godot/app_userdata/Chronoforge Dusk/test_kaida.json
+Fresh report verified: test_kaida.json, 61 checks, run b4f39bff9e344c568fb421bcc18994c6
++ /Users/g/code/scratch/tech9/games/chronoforge-dusk/dist/Chronoforge Dusk.app/Contents/MacOS/Chronoforge Dusk --always-on-top --resolution 1440x810 -- --kaida-restart --test-run-id=b4f39bff9e344c568fb421bcc18994c6
+Godot Engine v4.6.3.stable.official.7d41c59c4 - https://godotengine.org
+Metal 4.0 - Forward+ - Using Device #0: Apple - Apple M1 Pro (Apple7)
+
+DUSK_LOADED kaida a1
+DUSK_START {"asset":{"animation_mode":"skeletal","asset_id":"kaida","attachments":[{"bone":"SwordSocket","id":"energy-sword","model":{"path":"res://assets/kaida/a1/kaida.energy-sword.glb","sha256":"3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"},"position_m":[0.0,-0.135,0.0],"rotation_degrees":[0.0,0.0,0.0],"skeleton_path":"KaidaRig/Skeleton3D"}],"clips":{"attack":{"file":"res://assets/kaida/a1/model.glb","loop":false,"name":"attack"},"hurt":{"file":"res://assets/kaida/a1/model.glb","loop":false,"name":"hurt"},"idle":{"file":"res://assets/kaida/a1/model.glb","loop":true,"name":"idle"},"run":{"file":"res://assets/kaida/a1/model.glb","loop":true,"name":"run"},"walk":{"file":"res://assets/kaida/a1/model.glb","loop":true,"name":"walk"}},"dimensions":{"forward":"-Z","height_m":1.898191,"origin":"ground","radius_m":0.32,"up":"+Y"},"format":1.0,"kind":"character","label":"Kaida r2 / Alpha a1","model":{"path":"res://assets/kaida/a1/model.glb","sha256":"ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0"},"motion":{"action":"controller","clips":"in_place","traversal":"controller"},"placeholder":false,"revision":"a1"},"display_scale":2.0,"driver":"metal","engine":"4.6.3-stable (official)","engine_uptime_at_ready_ms":2538,"frame_cap":60,"game_revision":"1f1eb740b159+dirty","gpu":"Apple M1 Pro (Apple7)","internal_resolution":[1920,1080],"native_export":true,"os":"macOS 26.4.1","processor":"Apple M1 Pro","release":{"asset_generation":"r2","descriptor":"res://assets/kaida/a1/descriptor.json","equipment":{"asset_id":"kaida.energy-sword","model_sha256":"3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"},"label":"Kaida r2 / Alpha a1","model_sha256":"ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0","release":"a1","source_batch":"meshy-r2","stage":"playable_alpha"},"renderer":"forward_plus","scene_assembly_ms":200,"source_sha256":"c0ccce620f453c49f925fc814c3dea4b5979fdd13664e1f3bc480ebae7217ca1","test_interference":false,"test_run_id":"b4f39bff9e344c568fb421bcc18994c6","tuning":{"acceleration":28.0,"attack_tempo":1.0,"braking":36.0,"camera_distance":9.6,"camera_pitch":34.0,"camera_yaw":25.0,"hit_stop":0.065,"impact_fraction":0.5,"light_game":true,"run_speed":5.1,"run_stride_speed":5.06165,"turn_speed":18.0,"walk_speed":2.3,"walk_stride_speed":2.28},"window_pixels":[1440,810]}
+DUSK_TEST PASS Cold startup stays grounded at the spawn before any test reset
+DUSK_TEST PASS Cold launch restores Kaida a1
+DUSK_TEST PASS Cold launch reproduces all saved gameplay tuning
+DUSK_TEST PASS Save identifies tested game source digest
+DUSK_TEST PASS Cold launch applies action and stride settings
+DUSK_TEST PASS Native test completed without external keyboard or mouse input
+DUSK_TEST_RESULT 0 failures / 6 checks; /Users/g/Library/Application Support/Godot/app_userdata/Chronoforge Dusk/test_kaida_restart.json
+Fresh report verified: test_kaida_restart.json, 6 checks, run b4f39bff9e344c568fb421bcc18994c6

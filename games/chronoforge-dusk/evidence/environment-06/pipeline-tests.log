@@ -1,0 +1,34 @@
+test_build_failures_retain_logs_without_publishing (test_pipeline.PipelineFailures.test_build_failures_retain_logs_without_publishing) ... Stage: export
+Stage: export
+Stage: export
+Stage: reimport
+ok
+test_changed_candidate_is_rejected (test_pipeline.PipelineFailures.test_changed_candidate_is_rejected) ... ok
+test_changed_source_hash_is_rejected (test_pipeline.PipelineFailures.test_changed_source_hash_is_rejected) ... ok
+test_existing_candidate_is_rejected_before_launching_tools (test_pipeline.PipelineFailures.test_existing_candidate_is_rejected_before_launching_tools) ... ok
+test_extra_candidate_file_is_rejected (test_pipeline.PipelineFailures.test_extra_candidate_file_is_rejected) ... ok
+test_handoff_cannot_replace_changed_runtime_revision (test_pipeline.PipelineFailures.test_handoff_cannot_replace_changed_runtime_revision) ... ok
+test_invalid_accessor_layout_is_rejected (test_pipeline.PipelineFailures.test_invalid_accessor_layout_is_rejected) ... ok
+test_manual_download_retention_is_immutable (test_pipeline.PipelineFailures.test_manual_download_retention_is_immutable) ... ok
+test_metadata_cannot_select_commands_or_escape_paths (test_pipeline.PipelineFailures.test_metadata_cannot_select_commands_or_escape_paths) ... ok
+test_missing_run_and_skin_are_rejected (test_pipeline.PipelineFailures.test_missing_run_and_skin_are_rejected) ... ok
+test_root_travel_is_rejected (test_pipeline.PipelineFailures.test_root_travel_is_rejected) ... ok
+test_skin_structure_is_rejected_before_handoff (test_pipeline.PipelineFailures.test_skin_structure_is_rejected_before_handoff) ... ok
+test_truncated_chunk_header_has_actionable_error (test_pipeline.PipelineFailures.test_truncated_chunk_header_has_actionable_error) ... ok
+test_ambiguous_and_unsafe_action_names_are_rejected (test_preparation.ClipPreparationFailures.test_ambiguous_and_unsafe_action_names_are_rejected) ... ok
+test_changed_clip_is_rejected_even_if_metadata_is_updated (test_preparation.ClipPreparationFailures.test_changed_clip_is_rejected_even_if_metadata_is_updated) ... ok
+test_clip_must_belong_to_declared_asset_and_batch (test_preparation.ClipPreparationFailures.test_clip_must_belong_to_declared_asset_and_batch) ... ok
+test_missing_and_unsupported_roles_are_rejected (test_preparation.ClipPreparationFailures.test_missing_and_unsupported_roles_are_rejected) ... ok
+test_supported_partial_batch_is_valid (test_preparation.ClipPreparationFailures.test_supported_partial_batch_is_valid) ... ok
+test_changed_download_is_rejected_even_if_metadata_is_updated (test_preparation.PreparationFailures.test_changed_download_is_rejected_even_if_metadata_is_updated) ... ok
+test_changed_reference_and_path_escape_are_rejected (test_preparation.PreparationFailures.test_changed_reference_and_path_escape_are_rejected) ... ok
+test_existing_revision_is_rejected_before_blender_runs (test_preparation.PreparationFailures.test_existing_revision_is_rejected_before_blender_runs) ... ok
+test_unknown_recipe_and_duplicate_roles_are_rejected (test_preparation.PreparationFailures.test_unknown_recipe_and_duplicate_roles_are_rejected) ... ok
+test_unretained_download_is_rejected (test_preparation.PreparationFailures.test_unretained_download_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 0.211s
+
+OK
+Delivered res://assets/diagnostic.grip-probe/r1/descriptor.json — run python3 tools/native.py import from Dusk
+Immutable download batch: /private/var/folders/nz/htpngfld7rs6m4qt6tpfknrm0000gn/T/tmpkyty56ce/prep/assets/kaida/downloads/test-r1

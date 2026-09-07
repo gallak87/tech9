@@ -1,0 +1,121 @@
+{
+  "created_utc": "2026-09-07T21:54:06.829295+00:00",
+  "scope": "06 coastal environment and traversal; stop before 07; rooms excluded",
+  "runtime_commit": "9ad8d8a3d2e4497f8a3b27a029e7716a1148572f",
+  "checkpoints": [
+    {
+      "commit": "c08bc82f17d889b74f47aaf8ea867d2e11e944ee",
+      "subject": "Build coastal traversal loop and clean native launch for Kaida"
+    },
+    {
+      "commit": "1f1eb740b159f81c759489485fc14d0da297a8c8",
+      "subject": "Author and verify original Blender coastal scenery kit"
+    },
+    {
+      "commit": "9ad8d8a3d2e4497f8a3b27a029e7716a1148572f",
+      "subject": "Finish coastal scenery, sound and keyboard-aligned traversal"
+    }
+  ],
+  "app_path": "/Users/g/code/scratch/tech9/games/chronoforge-dusk/dist/Chronoforge Dusk.app",
+  "exported_build_identity": {
+    "revision": "1f1eb740b159+dirty",
+    "source_sha256": "c0ccce620f453c49f925fc814c3dea4b5979fdd13664e1f3bc480ebae7217ca1",
+    "engine": "4.6.3.stable.official.7d41c59c4"
+  },
+  "packaging_note": "The already-tested export is retained. Its pre-commit revision label is recorded here; its runtime content SHA-256 exactly matches the committed game source. No redundant re-export or suite rerun is needed for a Git label change.",
+  "codesign_verification": {
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "distribution": "Local ad-hoc bundle; not notarized"
+  },
+  "app_files": [
+    {
+      "path": "Contents/Info.plist",
+      "bytes": 1798,
+      "sha256": "a2c18d5d323277570cc22218109c251318f26f66b5c91cc18a8de3ee34bd8526"
+    },
+    {
+      "path": "Contents/MacOS/Chronoforge Dusk",
+      "bytes": 185671040,
+      "sha256": "129d97105e4f96e11463f080135a00eb2ca57c07bc0312a6023cd5f39eb69b9b"
+    },
+    {
+      "path": "Contents/PkgInfo",
+      "bytes": 9,
+      "sha256": "7e50a30efad50208a173203ced60818d693bb61266b75aa10927d1a2adce80cb"
+    },
+    {
+      "path": "Contents/Resources/Chronoforge Dusk.pck",
+      "bytes": 65384248,
+      "sha256": "6514605d0e9984811355d7739b72eba827883a3ad04af5eba1146189e2429837"
+    },
+    {
+      "path": "Contents/Resources/PrivacyInfo.xcprivacy",
+      "bytes": 229,
+      "sha256": "0535353bb08c25b8ce5ed9ac7e442a5994f402e0f6cbc4bed668cfc63c2ceac3"
+    },
+    {
+      "path": "Contents/Resources/icon.icns",
+      "bytes": 67500,
+      "sha256": "779ff524928785811d6d4c61f47a26491160b1092db9b610e85fcdfd9b2d2b2a"
+    },
+    {
+      "path": "Contents/_CodeSignature/CodeResources",
+      "bytes": 3189,
+      "sha256": "a8cfca6d8d39ec3673a12604400c3684328e73327fb9cf861c8f645d473b81ac"
+    }
+  ],
+  "tests": {
+    "environment": {
+      "report": "native-environment.json",
+      "checks_passed": 43,
+      "run_id": "a706a34ccc8b4dab8071dc88d0647f14",
+      "source_sha256": "c0ccce620f453c49f925fc814c3dea4b5979fdd13664e1f3bc480ebae7217ca1",
+      "sha256": "fef5c16ff195b7eb039c9f71ae84912903da7537c0c9626743907fca666a48bc"
+    },
+    "environment-restart": {
+      "report": "native-environment-restart.json",
+      "checks_passed": 6,
+      "run_id": "a706a34ccc8b4dab8071dc88d0647f14",
+      "source_sha256": "c0ccce620f453c49f925fc814c3dea4b5979fdd13664e1f3bc480ebae7217ca1",
+      "sha256": "7e9c121b4edbb21d63d4e27a46a022449ef43c32804c87a87c102959bbba0ca6"
+    },
+    "kaida": {
+      "report": "native-kaida.json",
+      "checks_passed": 61,
+      "run_id": "b4f39bff9e344c568fb421bcc18994c6",
+      "source_sha256": "c0ccce620f453c49f925fc814c3dea4b5979fdd13664e1f3bc480ebae7217ca1",
+      "sha256": "0481552404113690017e18ac11d1648b59da963e9fdf150ca833b848d464f00e"
+    },
+    "kaida-restart": {
+      "report": "native-kaida-restart.json",
+      "checks_passed": 6,
+      "run_id": "b4f39bff9e344c568fb421bcc18994c6",
+      "source_sha256": "c0ccce620f453c49f925fc814c3dea4b5979fdd13664e1f3bc480ebae7217ca1",
+      "sha256": "d70fab4190194b515b8867f37c5faac19803c73e24a06479a792561c88038a80"
+    },
+    "motion": {
+      "report": "native-motion.json",
+      "checks_passed": 1,
+      "run_id": "e2f9a52e633c4c4fbf0897df1d8fc46c",
+      "source_sha256": "2b0ddd704fd98ec58d2d71be65ed70fe13906394a6e348947310c468876c01b2",
+      "sha256": "b1bee3c36dc269df4ec12f499eb1be3c06d15b80384e5a5e64658726defebe11"
+    }
+  },
+  "performance_evidence": "native-environment.json; warmed 1080p capped intervals include one 42.12 ms boundary spike. Screenshot and motion readback excluded. GPU timings unavailable.",
+  "direct_os_ui_checks": [
+    "Earlier native cold launch",
+    "Escape pause and mouse Resume/Quit",
+    "F2 into development, Rehearse Space strike, F2 back to coast",
+    "Final retained export reopened normally after commit; arrival quay and Kaida visually confirmed, app left open for owner review"
+  ],
+  "unverified": [
+    "Separate final manual held-key complete-route playthrough",
+    "Separate OS background/foreground pacing session; focus handlers tested by suite",
+    "Subjective owner acceptance of final art, movement feel and audible mix",
+    "Intel execution; distribution signing/notarization"
+  ],
+  "kaida_unchanged_from": "21497f447e02",
+  "motion_note": "Motion artifact predates only the final orthographic foreground visibility correction; its exact source identity is in native-motion.json."
+}

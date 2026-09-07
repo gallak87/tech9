@@ -11,8 +11,8 @@ config_version=5
 [application]
 
 config/name="Chronoforge Dusk"
-config/description="Native foundation — diagnostic fixtures, not Kaida"
-config/version="0.1.0"
+config/description="Kaida — playable traversal and strike rehearsal"
+config/version="0.3.0"
 run/main_scene="res://development/foundation.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 run/max_fps=60

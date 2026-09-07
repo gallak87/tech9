@@ -51,7 +51,7 @@ func _ready() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	text_label(title, "CHRONOFORGE  /  DUSK", 28, Color("edf0e8"))
-	text_label(title, "01   NATIVE FOUNDATION     ·     DIAGNOSTIC ASSETS", 16, Color("9caaa7"))
+	text_label(title, "03   KAIDA IN GAME     ·     MOVEMENT & STRIKE REVIEW", 16, Color("9caaa7"))
 	for i: int in range(3):
 		var b: Button = button(head, ["1  Inspect", "2  Traverse", "3  Rehearse"][i], "")
 		b.toggle_mode = true
@@ -126,12 +126,12 @@ func _ready() -> void:
 		line.add_child(spin)
 	var accepted := VBoxContainer.new()
 	frame.add_child(accepted)
-	button(accepted, "Accept fixture + tuning  [F6]", "save")
-	button(accepted, "Restore accepted fixture  [F7]", "restore")
+	button(accepted, "Save candidate + tuning  [F6]", "save")
+	button(accepted, "Restore saved candidate  [F7]", "restore")
 	save_status = text_label(accepted, "", 16, Color("9caaa7"))
 	save_status.custom_minimum_size.y = 42
 	save_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text_label(column, "Temporary motion proves wiring only.\nThis actor is not Kaida.", 17, Color("d0b994"))
+	text_label(column, "Kaida r4 is provisional.\nOwner playtesting / acceptance pending.", 17, Color("d0b994"))
 	var bottom := PanelContainer.new()
 	bottom.position = Vector2(28, 974)
 	bottom.size = Vector2(1864, 82)

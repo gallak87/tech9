@@ -1,7 +1,7 @@
 class_name DuskFoundation
 extends Node3D
 
-const DEFAULT_CANDIDATE: String = "res://assets/fixtures/mannequin-slate-r1.json"
+const DEFAULT_CANDIDATE: String = "res://assets/kaida/r4/descriptor.json"
 var simulation: Node3D
 var actor: DuskCharacter
 var target: DuskCharacter

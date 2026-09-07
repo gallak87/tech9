@@ -125,9 +125,10 @@ func load_model(reference: Dictionary) -> Node3D:
 		return null
 	return packed.instantiate() as Node3D
 
-func play_role(role: String, restart: bool = false) -> void:
+func play_role(role: String, restart: bool = false, speed: float = 1.0) -> void:
 	if player == null or not descriptor.get("clips", {}).has(role):
 		return
+	player.speed_scale = speed
 	if active_role == role and not restart:
 		return
 	active_role = role

@@ -1,7 +1,7 @@
 class_name DuskTuning
 extends RefCounted
 
-const DEFAULTS: Dictionary = {"walk_speed": 2.4, "run_speed": 4.8, "turn_speed": 12.0, "camera_yaw": 35.0, "camera_pitch": 46.0, "camera_distance": 12.5, "impact_fraction": 0.5, "light_game": false}
+const DEFAULTS: Dictionary = {"walk_speed": 2.3, "run_speed": 5.1, "turn_speed": 18.0, "camera_yaw": 25.0, "camera_pitch": 34.0, "camera_distance": 9.6, "impact_fraction": 0.5, "light_game": true}
 const LIMITS: Dictionary = {"walk_speed": [0.5, 4.0], "run_speed": [4.0, 8.0], "turn_speed": [2.0, 24.0], "camera_yaw": [-180.0, 180.0], "camera_pitch": [15.0, 75.0], "camera_distance": [4.0, 24.0], "impact_fraction": [0.15, 0.85]}
 var values: Dictionary = DEFAULTS.duplicate()
 var path: String = "user://accepted_tuning.json"
@@ -25,11 +25,11 @@ func restore() -> bool:
 		return false
 	saved = parsed
 	values = config.duplicate()
-	message = "Restored accepted fixture tuning"
+	message = "Restored saved candidate tuning"
 	return true
 
 func accept(asset: DuskAssetAssembly, game_revision: String) -> bool:
-	var record: Dictionary = {"format": 1, "descriptor": asset.descriptor_path, "asset_id": asset.descriptor.asset_id, "asset_revision": asset.descriptor.revision, "model_sha256": asset.descriptor.model.sha256, "game_revision": game_revision, "values": values.duplicate(), "accepted_unix": Time.get_unix_time_from_system(), "scope": "diagnostic foundation tuning; not Kaida acceptance"}
+	var record: Dictionary = {"format": 1, "descriptor": asset.descriptor_path, "asset_id": asset.descriptor.asset_id, "asset_revision": asset.descriptor.revision, "model_sha256": asset.descriptor.model.sha256, "game_revision": game_revision, "values": values.duplicate(), "accepted_unix": Time.get_unix_time_from_system(), "scope": "gameplay tuning; owner visual and motion acceptance pending"}
 	var file: FileAccess = FileAccess.open(path + ".tmp", FileAccess.WRITE)
 	if file == null:
 		message = "SAVE ERROR: " + error_string(FileAccess.get_open_error())
@@ -48,5 +48,5 @@ func accept(asset: DuskAssetAssembly, game_revision: String) -> bool:
 		message = "SAVE ERROR: " + error_string(result)
 		return false
 	saved = record
-	message = "Accepted fixture + tuning saved · survives restart"
+	message = "Candidate tuning saved · survives restart"
 	return true

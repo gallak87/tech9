@@ -20,6 +20,7 @@ func run(root: DuskFoundation) -> void:
 		check(is_equal_approx(game.action.impact_fraction, 0.55), "Cold restart restores contact timing")
 		finish("restart")
 		return
+	game.load_candidate_index(0)
 	await seconds(3.0)
 	check(game.actor.visual != null, "Prepared model imported and assembled")
 	if game.actor.visual == null:

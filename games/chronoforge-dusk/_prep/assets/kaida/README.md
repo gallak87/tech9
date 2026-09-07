@@ -4,6 +4,7 @@
 
 ## Files to use
 
+- **Simple authored wave:** [demo and beginner playback instructions](demos/wave-r1/README.md), a separate review file with an Action Editor for switching wave/idle/run. The owner liked the first wave; this does not change the production source master.
 - **Open the animated rig in Blender:** [master.blend](sources/mixamo-clips-r1/master.blend), the real Kaida with 65 bones, idle/run and the retained original T-pose, plus four packed maps. Press Space for idle; see playback instructions below.
 - **Rig before clip assembly:** [base master](sources/mixamo-base-r1/master.blend), with the original returned static T-pose.
 - **Successful rigging upload:** [kaida-r2-geometry-only.fbx](exports/mixamo-upload-r2/kaida-r2-geometry-only.fbx), without materials/maps. The earlier textured upload failed. The generic upload recipe also produced [r3](exports/mixamo-upload-r3/kaida-geometry-only.fbx).

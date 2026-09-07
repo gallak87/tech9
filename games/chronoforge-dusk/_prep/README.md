@@ -71,6 +71,8 @@ To rebuild an existing source, copy its metadata, give it a new `revision`, and 
 
 ## Humanoid rigging preparation
 
+For interactive posing and review in the open Blender app, see [the shared Blender MCP setup](BLENDER_MCP.md). The automated preparation/export commands below remain reproducible without MCP.
+
 Before the finished `skeletal_blend` recipe, use [the reusable Mixamo upload/restore/clip steps](MIXAMO.md):
 
 ```sh

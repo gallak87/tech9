@@ -1,0 +1,110 @@
+{
+  "status": "Owner reviewed playback and liked the first wave demo; not runtime acceptance",
+  "base_master": "../../sources/mixamo-clips-r1/master.blend",
+  "action": "wave.demo",
+  "frames": [
+    1,
+    90
+  ],
+  "fps": 30,
+  "method": "Copied idle motion with authored FK rotations on right upper arm, forearm and hand",
+  "original_actions_sha256": {
+    "Armature|mixamo.com|Layer0": "641b47bae398829281d8c49c44e34f567fd43c2fb2c877be2fdcbac8f4ea533d",
+    "idle.source": "45d539681f6015a67be50a96965f47280454b9dead8383d7fc2d0bda7d85c977",
+    "run.source": "651fc10a147d07b326cfade5404f128ee5f17dfdb3355a1a3d31880ed0ea6610"
+  },
+  "original_actions_preserved": true,
+  "runtime_candidate": false,
+  "verification": {
+    "source_actions_unchanged": true,
+    "skin": {
+      "bones": 65,
+      "unweighted_vertices": 0,
+      "max_influences": 7,
+      "max_weight_sum_error": 1.564621925354004e-07
+    },
+    "packed_images": 4,
+    "max_mesh_change_start_to_wave_m": 0.9553230591752899,
+    "max_mesh_change_start_to_end_m": 0.00043149684563792266,
+    "hand_samples": {
+      "1": {
+        "wrist": [
+          -0.24155734479427338,
+          0.19562804698944092,
+          1.037771463394165
+        ],
+        "hand_tip": [
+          -0.25724491477012634,
+          0.18054378032684326,
+          0.9536604881286621
+        ]
+      },
+      "30": {
+        "wrist": [
+          -0.4222360849380493,
+          -0.12275926023721695,
+          1.6144921779632568
+        ],
+        "hand_tip": [
+          -0.40238767862319946,
+          -0.13135646283626556,
+          1.6986373662948608
+        ]
+      },
+      "39": {
+        "wrist": [
+          -0.4276237487792969,
+          -0.12520238757133484,
+          1.59837806224823
+        ],
+        "hand_tip": [
+          -0.4465652406215668,
+          -0.12337346374988556,
+          1.6831493377685547
+        ]
+      },
+      "48": {
+        "wrist": [
+          -0.4325435161590576,
+          -0.1266629695892334,
+          1.5827280282974243
+        ],
+        "hand_tip": [
+          -0.41812196373939514,
+          -0.13640286028385162,
+          1.6678483486175537
+        ]
+      },
+      "57": {
+        "wrist": [
+          -0.43572428822517395,
+          -0.1273980587720871,
+          1.5711451768875122
+        ],
+        "hand_tip": [
+          -0.45923811197280884,
+          -0.12676027417182922,
+          1.6547811031341553
+        ]
+      },
+      "90": {
+        "wrist": [
+          -0.2414093315601349,
+          0.1955939680337906,
+          1.0375956296920776
+        ],
+        "hand_tip": [
+          -0.2570423185825348,
+          0.18050271272659302,
+          0.9534757137298584
+        ]
+      }
+    },
+    "visual_review": "Raised hand and open palm inspected through MCP; owner watched playback and liked the wave"
+  },
+  "review": {
+    "date": "2026-09-07",
+    "feedback": "YOO i saw your wave thing it actually looks dope and clean"
+  },
+  "master_sha256": "78cfbb7787dd13e38019d9d87720e098a9aeac3cf4dc24c9fd779a4a8ac00fbd"
+}

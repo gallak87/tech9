@@ -6,7 +6,7 @@ This is the current decision record. Earlier prompts and historical game documen
 
 | Decision | Meaning for Dusk |
 | --- | --- |
-| Planning before execution | Planning preceded implementation. The owner subsequently authorized 01; later numbered steps still require their own assignment. |
+| Planning before execution | Planning preceded implementation. The owner authorized 01, then 02's reference creation and local pipeline work; later numbered steps still require their own assignment. |
 | Fresh game implementation | Preserve original Chronoforge design and identity; create a runtime suited to the new asset workflow. |
 | Godot, native first | Produce a native application for the owner's Mac first. No browser build or web accommodation is required now. |
 | Browser only if a need emerges | A later playtest or user need may justify a pivot. Do not build a second target, compatibility layer, or reduced web presentation in anticipation. |
@@ -58,3 +58,9 @@ If browser delivery is reconsidered, treat it as a new platform decision with a 
 ## 01 implementation record
 
 Godot and Mac export templates are pinned to 4.6.3 stable (`7d41c59c4`), using native Forward+ / Metal. The original diagnostic fixtures use Python 3.14.5 without Blender or hosted generation. The first handoff embeds role clips in a model GLB and keeps equipment separate. Game-owned camera/controller/contact tuning is deliberately saved outside imported scenes. See [NATIVE.md](NATIVE.md), the now-concrete [asset contract](_prep/ASSET_CONTRACT.md), and [measured results](evidence/README.md). Production Blender and Kaida decisions remain for 02/03.
+
+## 02 implementation record
+
+Local Blender is pinned to 5.1.1 (`b70da489d7f4`). Static and skeletal recipes consume runtime format 1, with embedded role clips, retained original source motion and a separate equipment dependency. The diagnostic source/export/import proof passed 22 checks in the native Dusk game process; this is not Kaida or performance acceptance. See [pipeline evidence](_prep/evidence/proofs-r1/README.md).
+
+The owner requested an original-sprite-based front 2D A-pose, with a separate sword reference, before Meshy modeling. Reference r2 preserves the design while replacing forearm guards/straps with rolled cyan cuffs and exposed forearms. Actual generated image size is 1024×1536. [Reference review and manual acquisition](_prep/KAIDA_HANDOFF.md) are the next inputs; no real model, production rig or clips have been received.

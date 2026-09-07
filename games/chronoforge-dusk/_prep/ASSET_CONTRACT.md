@@ -2,6 +2,8 @@
 
 **Runtime format implemented by 01.** Proven with two original rigid diagnostic mannequins, embedded clips and a separate static baton. This does not prove a humanoid rig, Kaida, production material quality, or the production pipeline. The game lane owns this document and [the loader](../game/assets/asset_assembly.gd); 02 consumes this handoff.
 
+**02 evidence update:** format 1 also passed [a newly authored skinned diagnostic plus static prop](evidence/proofs-r1/README.md), including evaluated skin deformation, preserved bones/clips, embedded texture, in-place root tracks and a `BoneAttachment3D` grip. This proves the local recipes and diagnostic import, not real Kaida or visual acceptance. No descriptor fields changed.
+
 ## Delivering a prepared candidate
 
 Keep immutable downloads, FBX, Blender sources, recipes and rejected candidates under `_prep/`. Deliver only selected runtime files under `game/assets/<asset-id>/<revision>/`, then add the descriptor's `res://` path to [content/candidates.json](../game/content/candidates.json). Run Godot's normal import before launching or exporting. There is no file upload service, runtime GLTFDocument importer, or provider adapter.
@@ -48,6 +50,8 @@ The abbreviated example above illustrates field shapes. A character requires **i
 | `motion` | Characters require `{traversal: controller, action: controller, clips: in_place}`. The actor/controller owns traversal and facing. The rehearsal component owns battle approach/return. |
 
 Embed materials and textures in GLB. Production provenance should record material/color-space assignments, geometry/texture counts, exporter settings, rig/rest pose and clip durations. Those are producer facts and visual validation inputs, not additional runtime provider fields in format 1. Do not apply Blender-to-glTF axis conversion a second time in Godot.
+
+The game defaults `gltf/embedded_image_handling` to `3` so embedded image bytes remain losslessly embedded in the imported scene, rather than becoming independently editable PNG dependencies outside the GLB hash. Existing `.import` overrides remain game-owned and need explicit review when changing this policy. [Godot 4.6 image handling](https://docs.godotengine.org/en/4.6/classes/class_gltfstate.html#enum-gltfstate-handlebinaryimagemode).
 
 The loader validates identity, hashes, field shapes, bounds, motion policy, named clips and attachment references. It does **not** prove weight quality, rest pose compatibility, actual in-place motion, material correctness or measured visual bounds. 02 must supply evidence for those with its first skeletal model and static prop. Current import settings generate no visual-mesh collision; Godot-owned CapsuleShape3D and the authored patch own physics.
 

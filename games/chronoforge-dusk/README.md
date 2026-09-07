@@ -2,9 +2,9 @@
 
 A fresh Godot implementation of the original Chronoforge: a stylized 2.5D strategy RPG about a three-person crew reclaiming a post-collapse Earth and helping a settlement rebuild civilization.
 
-**Status: native foundation implemented (01).** The Godot project, traversal patch, prepared diagnostic assets, development views, rehearsal action and savable tuning are working. The standalone Mac app passed 46 runtime checks plus 4 cold-restart checks. All visuals and motion are placeholders; the asset pipeline and Kaida work have not started. See [run/build instructions](NATIVE.md) and [validation evidence](evidence/README.md).
+**Status: native foundation implemented (01).** The Godot project, traversal patch, prepared diagnostic assets, development views, rehearsal action and savable tuning are working. The 01 standalone Mac app passed 46 runtime checks plus 4 cold-restart checks. Game visuals and motion remain diagnostic placeholders. See [run/build instructions](NATIVE.md) and [foundation evidence](evidence/README.md).
 
-**Next bounded assignment, when authorized:** [02 — Asset pipeline](_plans/02_asset_pipeline.md), consuming the concrete [runtime handoff](_prep/ASSET_CONTRACT.md). See [ROADMAP.md](ROADMAP.md) for the numbered start-to-finish sequence and which tasks can run in parallel. Numbered assignments live in [_plans/](_plans); this README explains the overall approach.
+**02 local tooling is verified:** metadata-selected static and skeletal recipes, preserved sources and immutable candidates, with [22 native runtime checks](_prep/evidence/proofs-r1/README.md). Kaida's [revised 2D A-pose and separate sword](_prep/KAIDA_HANDOFF.md) await owner review/source acquisition; no real Kaida mesh or rig is complete. See [ROADMAP.md](ROADMAP.md) for the sequence. Numbered assignments live in [_plans/](_plans).
 
 ## The direction
 

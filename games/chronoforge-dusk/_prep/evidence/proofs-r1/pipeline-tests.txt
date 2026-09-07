@@ -1,0 +1,15 @@
+test_changed_candidate_is_rejected (test_pipeline.PipelineFailures.test_changed_candidate_is_rejected) ... ok
+test_changed_source_hash_is_rejected (test_pipeline.PipelineFailures.test_changed_source_hash_is_rejected) ... ok
+test_extra_candidate_file_is_rejected (test_pipeline.PipelineFailures.test_extra_candidate_file_is_rejected) ... ok
+test_handoff_cannot_replace_changed_runtime_revision (test_pipeline.PipelineFailures.test_handoff_cannot_replace_changed_runtime_revision) ... ok
+test_manual_download_retention_is_immutable (test_pipeline.PipelineFailures.test_manual_download_retention_is_immutable) ... ok
+test_metadata_cannot_select_commands_or_escape_paths (test_pipeline.PipelineFailures.test_metadata_cannot_select_commands_or_escape_paths) ... ok
+test_missing_run_and_skin_are_rejected (test_pipeline.PipelineFailures.test_missing_run_and_skin_are_rejected) ... ok
+test_root_travel_is_rejected (test_pipeline.PipelineFailures.test_root_travel_is_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.075s
+
+OK
+Delivered res://assets/diagnostic.grip-probe/r1/descriptor.json — run python3 tools/native.py import from Dusk
+Immutable download batch: /private/var/folders/nz/htpngfld7rs6m4qt6tpfknrm0000gn/T/tmpc88iumto/prep/assets/kaida/downloads/test-r1

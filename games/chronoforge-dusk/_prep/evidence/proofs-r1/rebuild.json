@@ -1,0 +1,6 @@
+{
+  "static_model_byte_identical": true,
+  "r1_sha256": "91a604a7757c0721337fd7d061028d13937ebd1185398311cd9214531fdc78b9",
+  "r2_sha256": "91a604a7757c0721337fd7d061028d13937ebd1185398311cd9214531fdc78b9",
+  "scope": "Model GLB bytes only; manifests, revision paths and Blender files are not expected to be byte identical."
+}

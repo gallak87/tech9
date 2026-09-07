@@ -1,6 +1,6 @@
 # 02 — Asset pipeline and Kaida source handoff
 
-**Type:** bounded tooling assignment plus manual-assisted asset acquisition. **Status:** not started.
+**Type:** bounded tooling assignment plus manual-assisted asset acquisition. **Status:** local tooling complete and verified with static/skinned diagnostics; Kaida reference r2 ready for owner review, real model/rig/clips pending manual acquisition.
 
 **Requires:** 01's concrete runtime descriptor for final export/integration. Reference inspection and source acquisition can begin alongside 01.
 
@@ -38,3 +38,7 @@ Own `_prep/` production sources/tools/metadata and candidate output. The game ow
 Tooling is done when both selected recipes generate inspectable packages with truthful checks and documented inputs. Record separately whether real Kaida acquisition is complete or waiting on manual inputs. Structural readiness does not establish visual acceptance.
 
 Deliver a candidate manifest/example, reproducible commands, a simple static prop, skeletal-route evidence, and either a real Kaida candidate or a precise source/clip handoff request. Stop before claiming polished Kaida, generating the remaining cast, or building a universal asset framework.
+
+## Implementation handoff
+
+See the [local commands and manifests](../_prep/README.md), [22-check native runtime evidence](../_prep/evidence/proofs-r1/README.md), and [Kaida reference/source handoff](../_prep/KAIDA_HANDOFF.md). Both local recipes retain masters, maps, source motion, export scenes/settings and immutable candidate packages. The owner requested the original-sprite-based 2D A-pose and separate blade, then simplified the cuffs/forearms in reference r2. No Meshy generation or production Mixamo processing has been claimed. Step 03 still requires the real model and clips.

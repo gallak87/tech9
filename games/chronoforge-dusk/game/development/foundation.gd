@@ -87,7 +87,9 @@ func _ready() -> void:
 	hud = DuskDevelopmentHUD.new()
 	add_child(hud)
 	for path: String in candidates:
-		hud.candidate.add_item(path.get_file().get_basename().replace("mannequin-", "Fixture / "))
+		var candidate_data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+		var candidate_label: String = str(candidate_data.get("label", path)) if candidate_data is Dictionary else path
+		hud.candidate.add_item(candidate_label)
 	hud.view_selected.connect(set_mode)
 	hud.candidate_selected.connect(load_candidate_index)
 	hud.clip_selected.connect(func(role: String) -> void:

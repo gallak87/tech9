@@ -67,6 +67,8 @@ godot --path "$PWD/game" --script "$PWD/_prep/tools/runtime_probe.gd" --resoluti
 
 To rebuild an existing source, copy its metadata, give it a new `revision`, and run `build` on that copy. The static r2 candidate demonstrates this: its model GLB is byte-identical to r1 while its candidate identity/path is distinct. Builds are explicit, without a cache or automatic provider calls. Source and dependency hashes are rechecked before publishing a package atomically. Handoff is a separate operation and refuses changed runtime bytes at an existing revision.
 
+Failed `build` and `prepare` operations retain their metadata, logs and partial outputs in the `_prep/.build/failed-*` directory printed by the error, including subprocess timeouts and failures during output validation. Existing revisions are rejected before launching Blender. The [code quality sweep](evidence/quality-sweep-r1/README.md) records the regression checks. For the rendered character probe, use a native window and a fresh absolute output directory; it refuses headless runs and existing output paths so a partial check cannot silently replace prior evidence.
+
 `python3 tools/native.py run` opens the updated game; its candidate selector uses descriptor labels, including **Skinned diagnostic / NOT KAIDA**. Static props are loaded by the probe and attachments; the existing development selector is for characters. The previously packaged `.app` is not refreshed by `import`; use `python3 tools/native.py export` to rebuild it. The 02 evidence uses the native editor binary running the actual game scene.
 
 ## Humanoid rigging preparation

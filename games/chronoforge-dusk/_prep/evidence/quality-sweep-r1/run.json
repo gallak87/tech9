@@ -1,0 +1,19 @@
+{
+  "repository_base": "3cc317a576f0abba527b16228e86e5e364279279",
+  "state": "tooling cleanup working tree before commit",
+  "scripts": {
+    "_prep/pipeline.py": "137026225bf7250e47f431c3504ab67c6c2c1ba8f3f3e8d25a8514ef7f173b5b",
+    "_prep/tools/glb_check.py": "0753d8fa382b6d55e860378bd0bd8543e2bec4cd96d479a5b4af8b4e13fc32cd",
+    "_prep/tools/blender_stage.py": "238ef69829f732f7db87db8186c03e124344987aca68a03df7dd73b6a729df54",
+    "_prep/tools/character_probe.gd": "46fa6635a0980c4fc1f5df20a4b52f01a0b440a826b695c36bad844ca6013185",
+    "_prep/tests/test_pipeline.py": "be5886f3db8c19c95ed68f5bde6db1efa1b512a7e089cbe344ec4d90631f7f88",
+    "_prep/tests/preparation_blender_checks.py": "cd051c80d56d928d0e9ed232c4a7d64920dec2591959d1857fc4dc78dccb0a10"
+  },
+  "native_runtime_report_sha256": "3e91ac200f8ffa86bcdf429ece09fece40a199d1e447de4efa92d29dd08c5ef8",
+  "python_tests": 23,
+  "blender_rejection_cases": 9,
+  "blender_fractional_fps_check": "passed",
+  "native_checks": 29,
+  "existing_output_rejected": true,
+  "headless_rejected": true
+}

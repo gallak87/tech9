@@ -39,7 +39,6 @@ func sample(asset: DuskAssetAssembly, role: String, at: float) -> void:
 	await process_frame
 
 func capture(label: String) -> void:
-	if DisplayServer.get_name() == "headless": return
 	RenderingServer.force_draw(false)
 	check(root.get_texture().get_image().save_png(output.path_join(label + ".png")) == OK, "Captured " + label)
 
@@ -48,7 +47,18 @@ func run() -> void:
 		push_error("Supply --descriptor and an absolute --output directory")
 		quit(1)
 		return
-	DirAccess.make_dir_recursive_absolute(output)
+	if DisplayServer.get_name() == "headless":
+		push_error("Character probe requires a native window for capture checks")
+		quit(1)
+		return
+	if DirAccess.dir_exists_absolute(output) or FileAccess.file_exists(output):
+		push_error("Evidence output already exists; choose a fresh directory")
+		quit(1)
+		return
+	if DirAccess.make_dir_recursive_absolute(output) != OK:
+		push_error("Cannot create evidence output directory: " + output)
+		quit(1)
+		return
 	create_timer(45).timeout.connect(func() -> void:
 		if not finished:
 			check(false, "Probe timeout")
@@ -136,7 +146,12 @@ func run() -> void:
 	# rehearsal controller; the game's default target selection is unchanged.
 	var target_asset := DuskAssetAssembly.new()
 	game.simulation.add_child(target_asset)
-	check(target_asset.assemble(descriptor), "Second character instance resolves independently")
+	var target_ready := target_asset.assemble(descriptor)
+	check(target_ready, "Second character instance resolves independently")
+	if not target_ready:
+		target_asset.queue_free()
+		finish()
+		return
 	game.simulation.remove_child(target_asset)
 	game.target.install(target_asset)
 	game.set_mode(2)
@@ -155,6 +170,10 @@ func finish() -> void:
 	if finished: return
 	finished = true
 	var file := FileAccess.open(output.path_join("runtime.json"), FileAccess.WRITE)
+	if file == null:
+		push_error("Cannot write character probe report: " + error_string(FileAccess.get_open_error()))
+		quit(1)
+		return
 	file.store_string(JSON.stringify({"checks":checks,"failures":failures,"measurements":measured,"identity":game.identity() if game else {},"scope":"Candidate integration smoke check; owner visual acceptance and plan 03 polish pending"}, "\t"))
 	file.close()
 	print("CHARACTER_PROBE_RESULT ", failures, " failures / ", checks.size(), " checks")

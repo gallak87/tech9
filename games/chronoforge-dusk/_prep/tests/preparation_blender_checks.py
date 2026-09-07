@@ -7,6 +7,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'tools'))
 import preparation_stage as stage
 import clip_stage
+import blender_stage
 
 
 def rejects(fn, expected):
@@ -67,3 +68,15 @@ scaled = copy.deepcopy(signature)
 scaled['object_matrix'][0][0] *= .01
 rejects(lambda: clip_stage.compare_rig(signature, scaled), 'rest pose or unit transform differs')
 print('CLIP_FAILURE_CHECKS_OK: changed bone name, hierarchy, rest matrix and unit transform rejected')
+
+# Blender represents fractional rates such as 29.97 as fps / fps_base.
+rig.location.x = 0
+rig.keyframe_insert(data_path='location', frame=1)
+rig.location.x = 1
+rig.keyframe_insert(data_path='location', frame=31)
+scene = bpy.context.scene
+scene.render.fps = 30
+scene.render.fps_base = 1.001
+duration = blender_stage.inspect()['actions'][0]['duration_seconds']
+assert abs(duration-1.001) < 1e-6, duration
+print('INSPECTION_TIMING_OK: 30 frame intervals at 29.97 fps report 1.001 seconds')

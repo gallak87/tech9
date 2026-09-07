@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Explicit source inspection, Blender builds, immutable candidates and handoff."""
 import argparse
+from contextlib import contextmanager
 import hashlib
 import json
 import os
@@ -122,18 +123,32 @@ def inputs(metadata, versions):
             'scripts': {p.relative_to(PREP).as_posix():sha(p) for p in scripts}, 'tools': versions, 'runtime_format': 1}
 
 
+@contextmanager
+def build_workspace(prefix):
+    """Publish on success; preserve logs and partial outputs on any failure."""
+    temporary = PREP / '.build'
+    temporary.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix=prefix + '-', dir=temporary) as work:
+        out = Path(work)
+        try:
+            yield out
+        except Exception as error:
+            # The caller's log context has closed before control reaches here,
+            # including for subprocess timeouts and post-export validation errors.
+            failure = Path(tempfile.mkdtemp(prefix='failed-' + prefix + '-', dir=temporary))
+            shutil.copytree(out, failure, dirs_exist_ok=True)
+            raise ValueError(f'{error}; diagnostics retained at {failure}') from error
+
+
 def build(metadata_path):
     metadata_path = Path(metadata_path).resolve()
     metadata = validate(read(metadata_path))
+    destination = PREP/'candidates'/metadata['asset_id']/metadata['revision']
+    require(not destination.exists(), 'Candidate exists; choose a new metadata revision')
     binary, versions = toolchain()
     identity = inputs(metadata,versions)
     fingerprint = hashlib.sha256(json.dumps(identity,sort_keys=True).encode()).hexdigest()
-    destination = PREP/'candidates'/metadata['asset_id']/metadata['revision']
-    require(not destination.exists(), 'Candidate exists; choose a new metadata revision')
-    temporary = PREP/'.build'
-    temporary.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='candidate-',dir=temporary) as work:
-        out = Path(work)
+    with build_workspace('candidate-' + metadata['asset_id']) as out:
         (out/'runtime').mkdir()
         write(out/'metadata.json',metadata)
         with (out/'build.log').open('w') as log:
@@ -141,12 +156,7 @@ def build(metadata_path):
                 command = [binary,'--background','--factory-startup','--python-exit-code','1','--python',str(PREP/'tools/blender_stage.py'),'--',stage,str(out/'metadata.json'),str(out)]
                 print('Stage:',stage,flush=True)
                 result = subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=180)
-                if result.returncode:
-                    log.flush()
-                    # Retain failure diagnosis outside immutable successful candidates.
-                    failure = Path(tempfile.mkdtemp(prefix=f'failed-{metadata["asset_id"]}-',dir=temporary))
-                    shutil.copytree(out,failure,dirs_exist_ok=True)
-                    raise ValueError('Blender stage failed; inspect '+str(failure))
+                require(result.returncode == 0, 'Blender ' + stage + ' stage failed')
         write(out/'structural-checks.json',check_glb(out/'runtime/model.glb',metadata))
         base = f'res://assets/{metadata["asset_id"]}/{metadata["revision"]}/'
         descriptor = {key:metadata[key] for key in ('asset_id','revision','label','kind','animation_mode','placeholder','dimensions')}
@@ -233,19 +243,13 @@ def prepare(metadata_path):
     require(not destination.exists(), 'Preparation revision exists; choose a new revision')
     binary, versions = toolchain()
     identity = inputs(metadata, versions)
-    temporary = PREP/'.build'
-    temporary.mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='preparation-', dir=temporary) as work:
-        out = Path(work)
+    with build_workspace('preparation-' + metadata['asset_id']) as out:
         write(out/'metadata.json', metadata)
         with (out/'build.log').open('w') as log:
             command = [binary,'--background','--factory-startup','--python-exit-code','1',
                        '--python',str(PREP/'tools/preparation_stage.py'),'--',str(out/'metadata.json'),str(out)]
             result = subprocess.run(command,stdout=log,stderr=subprocess.STDOUT,timeout=180)
-        if result.returncode:
-            failure = Path(tempfile.mkdtemp(prefix='failed-preparation-',dir=temporary))
-            shutil.copytree(out,failure,dirs_exist_ok=True)
-            raise ValueError('Preparation failed; inspect '+str(failure))
+        require(result.returncode == 0, 'Blender preparation failed')
         current = validate_preparation(read(metadata_path))
         require(inputs(current, versions) == identity, 'Preparation inputs changed during execution')
         expected = ('master.blend' if category == 'sources' else metadata['asset_id']+'-geometry-only.fbx')

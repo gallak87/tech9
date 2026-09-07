@@ -65,7 +65,7 @@ def inspect():
                                                'rest_matrix': [list(row) for row in b.matrix_local]} for b in rig.data.bones]})
     return {'coordinate_space': 'Blender metres Z up +Y forward', 'bounds': bounds, 'meshes': mesh_info,
             'materials': mats, 'rigs': rigs, 'actions': [{'name': a.name, 'frames': list(a.frame_range),
-                                                       'duration_seconds': (a.frame_range[1]-a.frame_range[0])/bpy.context.scene.render.fps} for a in bpy.data.actions]}
+                                                       'duration_seconds': (a.frame_range[1]-a.frame_range[0])*bpy.context.scene.render.fps_base/bpy.context.scene.render.fps} for a in bpy.data.actions]}
 
 
 def export(meta, prep, out):

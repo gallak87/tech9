@@ -13,6 +13,9 @@ var measured_speed: float = 0.0
 # Source stance travel: walk 0.76 m / 0.333 s; run 3.71188 m / 0.733 s.
 var walk_stride_speed: float = 2.28
 var run_stride_speed: float = 5.06165
+var reaction: String = "ready"
+var reaction_time: float = 0.0
+var reaction_frozen: bool = false
 var collider: CollisionShape3D
 
 func _ready() -> void:
@@ -34,9 +37,14 @@ func install(asset: DuskAssetAssembly) -> void:
 	collider.position.y = shape.height * 0.5
 
 func _physics_process(delta: float) -> void:
+	if reaction != "ready":
+		update_reaction(delta)
+		return
 	if not traversal_enabled or visual == null:
 		return
 	var input: Vector2 = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	if get_viewport().gui_get_focus_owner() != null:
+		input = Vector2.ZERO
 	var direction: Vector3 = camera.global_basis.x * input.x + camera.global_basis.z * input.y
 	direction.y = 0
 	direction = direction.normalized()
@@ -74,3 +82,32 @@ func place(at: Vector3, yaw: float = 0.0) -> void:
 	rotation.y = yaw
 	velocity = Vector3.ZERO
 	measured_speed = 0.0
+
+func start_reaction(defeat: bool = false) -> void:
+	reset_reaction()
+	velocity = Vector3.ZERO
+	reaction = "defeated" if defeat else "hurt"
+	visual.play_role("hurt", true)
+
+func reset_reaction() -> void:
+	reaction = "ready"
+	reaction_time = 0.0
+	reaction_frozen = false
+	if visual != null:
+		visual.transform = Transform3D.IDENTITY
+		visual.play_role("idle", true)
+
+func update_reaction(delta: float) -> void:
+	if reaction_frozen:
+		return
+	reaction_time += delta
+	if reaction == "hurt":
+		if reaction_time >= visual.clip_length("hurt"):
+			reset_reaction()
+	else:
+		# Basic held hurt + fall presentation; no new source clip or ragdoll.
+		var t: float = smoothstep(0.08, 0.60, reaction_time)
+		visual.rotation.z = deg_to_rad(86.0) * t
+		visual.position.y = 0.24 * t
+		if reaction_time >= 0.18:
+			visual.player.pause()

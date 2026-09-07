@@ -65,28 +65,28 @@ def build_identity():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['setup', 'import', 'run', 'export', 'test', 'test-editor'])
+    parser.add_argument('command', choices=['setup', 'import', 'run', 'export', 'test', 'test-editor', 'test-kaida', 'test-kaida-editor'])
     args = parser.parse_args()
     godot = engine()
     if args.command == 'setup':
         setup()
         return
-    if args.command in ('import', 'export', 'test', 'test-editor'):
+    if args.command in ('import', 'export', 'test', 'test-editor', 'test-kaida', 'test-kaida-editor'):
         run([godot, '--headless', '--editor', '--path', GAME, '--import', '--quit'])
         build_identity()
     if args.command == 'run':
         run([godot, '--path', GAME], timeout=None)
-    if args.command in ('export', 'test'):
+    if args.command in ('export', 'test', 'test-kaida'):
         setup()
         APP.parent.mkdir(exist_ok=True)
         run([godot, '--headless', '--path', GAME, '--export-release', 'macOS', APP])
         run(['codesign', '--verify', '--deep', '--strict', APP])
         print('Native application:', APP)
-    if args.command in ('test', 'test-editor'):
-        binary = APP / 'Contents/MacOS/Chronoforge Dusk' if args.command == 'test' else godot
-        prefix = [binary] if args.command == 'test' else [binary, '--path', GAME]
-        run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--self-test'])
-        run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--verify-restart'])
+    if args.command in ('test', 'test-editor', 'test-kaida', 'test-kaida-editor'):
+        binary = APP / 'Contents/MacOS/Chronoforge Dusk' if args.command in ('test', 'test-kaida') else godot
+        prefix = [binary] if args.command in ('test', 'test-kaida') else [binary, '--path', GAME]
+        run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--kaida-test' if 'kaida' in args.command else '--self-test'])
+        run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--kaida-restart' if 'kaida' in args.command else '--verify-restart'])
 
 
 if __name__ == '__main__':

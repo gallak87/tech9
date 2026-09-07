@@ -7,6 +7,8 @@ var actor: DuskCharacter
 var target: DuskCharacter
 var patch: DuskTraversalPatch
 var camera: DuskOrbitCamera
+var feedback: DuskStrikeFeedback
+var slow_motion: bool = false
 var action: DuskRehearsal
 var hud: DuskDevelopmentHUD
 var tuning := DuskTuning.new()
@@ -34,9 +36,9 @@ var test_mode: bool = false
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	startup_ms = Time.get_ticks_msec()
-	test_mode = "--self-test" in OS.get_cmdline_user_args() or "--verify-restart" in OS.get_cmdline_user_args()
+	test_mode = "--self-test" in OS.get_cmdline_user_args() or "--verify-restart" in OS.get_cmdline_user_args() or "--kaida-test" in OS.get_cmdline_user_args() or "--kaida-restart" in OS.get_cmdline_user_args()
 	if test_mode:
-		tuning.path = "user://foundation_test_tuning.json"
+		tuning.path = "user://kaida_test_tuning.json" if ("--kaida-test" in OS.get_cmdline_user_args() or "--kaida-restart" in OS.get_cmdline_user_args()) else "user://foundation_test_tuning.json"
 	if FileAccess.file_exists("res://content/build_info.json"):
 		var build: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://content/build_info.json"))
 		if build is Dictionary:
@@ -84,6 +86,10 @@ func _ready() -> void:
 	action.target = target
 	simulation.add_child(action)
 	action.impact.connect(func(_id: int) -> void: flash = 0.3)
+	feedback = DuskStrikeFeedback.new()
+	feedback.action = action
+	feedback.camera = camera
+	simulation.add_child(feedback)
 	hud = DuskDevelopmentHUD.new()
 	add_child(hud)
 	for path: String in candidates:
@@ -94,6 +100,7 @@ func _ready() -> void:
 	hud.candidate_selected.connect(load_candidate_index)
 	hud.clip_selected.connect(func(role: String) -> void:
 		if mode == 0 and actor.visual != null:
+			actor.reset_reaction()
 			actor.visual.play_role(role, true))
 	hud.lighting_changed.connect(func(on: bool) -> void:
 		tuning.values.light_game = on
@@ -117,7 +124,8 @@ func _ready() -> void:
 	ready_ms = Time.get_ticks_msec()
 	print("DUSK_START ", JSON.stringify(identity()))
 	if test_mode:
-		var runner: Node = load("res://tests/foundation_test.gd").new()
+		var runner_path: String = "res://tests/kaida_test.gd" if ("--kaida-test" in OS.get_cmdline_user_args() or "--kaida-restart" in OS.get_cmdline_user_args()) else "res://tests/foundation_test.gd"
+		var runner: Node = load(runner_path).new()
 		add_child(runner)
 		runner.call_deferred("run", self)
 
@@ -198,6 +206,12 @@ func _process(delta: float) -> void:
 	hud.save_status.text = tuning.message
 	hud.pause_button.text = "Resume  [P]" if manually_paused else "Pause  [P]"
 	hud.action_status.text = "Strike %02d   /   %s   /   impacts %d" % [action.action_id, action.phase.to_upper(), action.impact_count] if mode == 2 else ["ASSET INSPECTION", "TRAVERSAL PATCH", ""][mode]
+	if actor.reaction != "ready":
+		hud.action_status.text += "  /  " + actor.reaction.to_upper() + "  ·  R to recover"
+	if mode == 2 and target.reaction == "defeated":
+		hud.action_status.text += "  /  TARGET DOWN · R to reset"
+	if slow_motion:
+		hud.action_status.text += "  /  ¼ SPEED"
 	if mode == 2 and flash > 0:
 		hud.action_status.text += "    CONTACT"
 	hud.set_phase(action.phase, action.contact_sent)
@@ -231,6 +245,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_2: set_mode(1)
 		KEY_3: set_mode(2)
 		KEY_SPACE: command("attack")
+		KEY_F1: command("panel")
+		KEY_T: command("slow")
+		KEY_M: command("markers")
+		KEY_H: command("hurt")
+		KEY_K: command("defeat")
 		KEY_P: command("pause")
 		KEY_R: command("replay")
 		KEY_C: command("camera")
@@ -252,6 +271,25 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func command(name: String) -> void:
 	match name:
+		"panel":
+			hud.side_panel.visible = not hud.side_panel.visible
+			camera.panel_visible = hud.side_panel.visible
+		"slow":
+			slow_motion = not slow_motion
+			Engine.time_scale = 0.25 if slow_motion else 1.0
+			hud.slow_button.text = "Normal speed  [T]" if slow_motion else "Quarter speed  [T]"
+		"markers":
+			feedback.markers_enabled = not feedback.markers_enabled
+		"hurt":
+			if mode != 2 and not get_tree().paused and actor.visual != null:
+				actor.start_reaction()
+		"defeat":
+			if not get_tree().paused and actor.visual != null:
+				if mode == 2 and action.phase == "ready":
+					action.defeat_on_contact = true
+					action.trigger()
+				elif mode != 2:
+					actor.start_reaction(true)
 		"attack":
 			if not get_tree().paused:
 				action.trigger()
@@ -269,7 +307,10 @@ func command(name: String) -> void:
 				action.reset()
 				action.trigger()
 			elif actor.visual != null:
-				actor.visual.play_role(actor.visual.active_role, true)
+				if actor.reaction != "ready":
+					actor.reset_reaction()
+				else:
+					actor.visual.play_role(actor.visual.active_role, true)
 		"reload": load_candidate_index(selected_index)
 		"camera":
 			for key: String in ["camera_yaw", "camera_pitch", "camera_distance"]:
@@ -279,7 +320,7 @@ func command(name: String) -> void:
 		"save":
 			if actor.visual != null and load_error.is_empty():
 				remember_camera(false)
-				tuning.accept(actor.visual, game_revision)
+				tuning.accept(actor.visual, game_revision, source_sha256)
 		"restore":
 			if tuning.restore():
 				var path: String = str(tuning.saved.descriptor)
@@ -294,10 +335,16 @@ func apply_tuning() -> void:
 	actor.walk_speed = float(tuning.values.walk_speed)
 	actor.run_speed = float(tuning.values.run_speed)
 	actor.turn_speed = float(tuning.values.turn_speed)
+	actor.acceleration = float(tuning.values.acceleration)
+	actor.braking = float(tuning.values.braking)
+	actor.walk_stride_speed = float(tuning.values.walk_stride_speed)
+	actor.run_stride_speed = float(tuning.values.run_stride_speed)
 	camera.yaw = float(tuning.values.camera_yaw)
 	camera.pitch = float(tuning.values.camera_pitch)
 	camera.distance = float(tuning.values.camera_distance)
 	action.impact_fraction = float(tuning.values.impact_fraction)
+	action.attack_tempo = float(tuning.values.attack_tempo)
+	action.hit_stop = float(tuning.values.hit_stop)
 	patch.set_game_lighting(bool(tuning.values.light_game))
 	hud.set_tuning(tuning.values)
 
@@ -324,7 +371,7 @@ func identity() -> Dictionary:
 	return {"game_revision": game_revision, "source_sha256": source_sha256, "engine_uptime_at_ready_ms": ready_ms, "scene_assembly_ms": ready_ms - startup_ms, "engine": Engine.get_version_info().string, "renderer": RenderingServer.get_current_rendering_method(), "driver": RenderingServer.get_current_rendering_driver_name(), "gpu": RenderingServer.get_video_adapter_name(), "os": OS.get_name() + " " + OS.get_version(), "processor": OS.get_processor_name(), "internal_resolution": [1920, 1080], "window_pixels": [get_window().size.x, get_window().size.y], "display_scale": DisplayServer.screen_get_scale(), "frame_cap": Engine.max_fps, "asset": actor.visual.descriptor if actor.visual != null else {}, "tuning": tuning.values, "native_export": not OS.has_feature("editor")}
 
 func write_diagnostics() -> void:
-	var report: Dictionary = {"identity": identity(), "intervals": perf.report(), "action": {"count": action.action_id, "impacts": action.impact_count, "completed": action.completed_count, "phase": action.phase}, "actor_position": [actor.position.x, actor.position.y, actor.position.z], "input_events": input_events, "last_input": last_input, "load_error": load_error, "nodes": Performance.get_monitor(Performance.OBJECT_NODE_COUNT)}
+	var report: Dictionary = {"identity": identity(), "intervals": perf.report(), "action": {"count": action.action_id, "impacts": action.impact_count, "completed": action.completed_count, "phase": action.phase, "feedback_impacts": feedback.impact_events, "clip_time": action.clip_time}, "actor_position": [actor.position.x, actor.position.y, actor.position.z], "input_events": input_events, "last_input": last_input, "load_error": load_error, "nodes": Performance.get_monitor(Performance.OBJECT_NODE_COUNT)}
 	var path: String = "user://diagnostics.json"
 	var file: FileAccess = FileAccess.open(path, FileAccess.WRITE)
 	if file != null:

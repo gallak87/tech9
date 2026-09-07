@@ -8,6 +8,7 @@ var player: AnimationPlayer
 var load_error: String = ""
 var descriptor_path: String = ""
 var active_role: String = ""
+var equipment: Array[Node3D] = []
 
 func assemble(path: String) -> bool:
 	descriptor_path = path
@@ -100,6 +101,7 @@ func assemble(path: String) -> bool:
 		if item == null:
 			return false
 		socket.add_child(item)
+		equipment.append(item)
 		item.position = vector3(attachment.get("position_m", [0, 0, 0]))
 		item.rotation_degrees = vector3(attachment.get("rotation_degrees", [0, 0, 0]))
 	if clips.has("idle"):
@@ -129,6 +131,7 @@ func play_role(role: String, restart: bool = false, speed: float = 1.0) -> void:
 	if player == null or not descriptor.get("clips", {}).has(role):
 		return
 	player.speed_scale = speed
+	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_PHYSICS
 	if active_role == role and not restart:
 		return
 	active_role = role
@@ -138,6 +141,21 @@ func play_role(role: String, restart: bool = false, speed: float = 1.0) -> void:
 
 func clip_length(role: String) -> float:
 	return player.get_animation(str(descriptor.clips[role].name)).length
+
+func begin_action() -> void:
+	play_role("attack", true)
+	# The rehearsal advances this player and contact on the same physics timeline.
+	player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+
+func blade_segment() -> PackedVector3Array:
+	if descriptor.asset_id != "kaida" or equipment.is_empty():
+		return PackedVector3Array()
+	# Kaida sword r2: game-owned diagnostic points along the separate +Y blade.
+	var attachment: Dictionary = descriptor.attachments[0]
+	var skeleton: Skeleton3D = model.get_node(attachment.skeleton_path) as Skeleton3D
+	# BoneAttachment3D updates later in the frame. Contact needs the just-evaluated pose.
+	var pose: Transform3D = skeleton.global_transform * skeleton.get_bone_global_pose(skeleton.find_bone(attachment.bone)) * equipment[0].transform
+	return PackedVector3Array([pose * Vector3(0, 0.30, 0), pose * Vector3(0, 1.20, 0)])
 
 func fail(message: String) -> bool:
 	load_error = message

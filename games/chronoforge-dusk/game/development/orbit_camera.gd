@@ -7,6 +7,9 @@ var distance: float = 12.5
 var focus: Vector3 = Vector3.ZERO
 var target_focus: Vector3 = Vector3.ZERO
 var inspecting: bool = false
+var panel_visible: bool = true
+var kick: float = 0.0
+var kick_phase: float = 0.0
 
 func _ready() -> void:
 	projection = Camera3D.PROJECTION_ORTHOGONAL
@@ -22,7 +25,10 @@ func update_camera(delta: float) -> void:
 	var elevation: float = deg_to_rad(pitch)
 	var offset := Vector3(sin(angle) * cos(elevation), sin(elevation), cos(angle) * cos(elevation))
 	var right := Vector3(cos(angle), 0, -sin(angle))
-	var center: Vector3 = focus + Vector3.UP * (0.9 if inspecting else 0.5) - right * (distance * 0.14)
+	var center: Vector3 = focus + Vector3.UP * (0.9 if inspecting else 0.5) - right * (distance * 0.14 if panel_visible else 0.0)
+	kick_phase += delta * 95.0
+	kick = maxf(0.0, kick - delta * 0.42)
+	center += right * sin(kick_phase) * kick
 	position = center + offset * 24.0
 	look_at(center)
 	size = distance * (0.52 if inspecting else 1.0)

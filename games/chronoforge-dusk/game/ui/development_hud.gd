@@ -23,6 +23,8 @@ var knobs: Dictionary = {}
 var phase_labels: Dictionary = {}
 var error_panel: Label
 var tuning_box: VBoxContainer
+var side_panel: PanelContainer
+var slow_button: Button
 
 func _ready() -> void:
 	var ui := Control.new()
@@ -58,6 +60,7 @@ func _ready() -> void:
 		b.pressed.connect(func() -> void: view_selected.emit(i))
 		view_buttons.append(b)
 	var side := PanelContainer.new()
+	side_panel = side
 	side.position = Vector2(28, 134)
 	side.size = Vector2(402, 816)
 	side.add_theme_stylebox_override("panel", panel(Color("172126"), 10))
@@ -97,6 +100,12 @@ func _ready() -> void:
 	animation.item_selected.connect(func(index: int) -> void: clip_selected.emit(["idle", "walk", "run", "attack", "hurt"][index]))
 	column.add_child(animation)
 	attack_button = button(column, "Rehearse strike  [Space]", "attack")
+	slow_button = button(column, "Quarter speed  [T]", "slow")
+	button(column, "Rig / blade markers  [M]", "markers")
+	var reactions := HBoxContainer.new()
+	column.add_child(reactions)
+	button(reactions, "Hurt  [H]", "hurt")
+	button(reactions, "Defeat  [K]", "defeat")
 	light = CheckButton.new()
 	light.text = "Game lighting  [L]"
 	light.focus_mode = Control.FOCUS_NONE
@@ -111,7 +120,7 @@ func _ready() -> void:
 	fold.pressed.connect(func() -> void:
 		tuning_box.visible = not tuning_box.visible
 		fold.text = "Tuning  /  hide controls" if tuning_box.visible else "Tuning  /  show controls")
-	for item: Array in [["walk_speed", "Walk m/s", 0.5, 4.0, 0.1], ["run_speed", "Run m/s", 4.0, 8.0, 0.1], ["turn_speed", "Turn response", 2.0, 24.0, 1.0], ["impact_fraction", "Impact / clip", 0.15, 0.85, 0.05]]:
+	for item: Array in [["walk_speed", "Walk m/s", 0.5, 4.0, 0.1], ["run_speed", "Run m/s", 4.0, 8.0, 0.1], ["turn_speed", "Turn response", 2.0, 24.0, 1.0], ["impact_fraction", "Impact / clip", 0.15, 0.85, 0.01], ["attack_tempo", "Attack tempo", 0.5, 1.8, 0.05], ["hit_stop", "Hit stop (s)", 0.0, 0.12, 0.005], ["walk_stride_speed", "Walk stride m/s", 1.0, 4.0, 0.05], ["run_stride_speed", "Run stride m/s", 3.0, 7.0, 0.05], ["acceleration", "Acceleration", 10.0, 60.0, 1.0], ["braking", "Braking", 10.0, 60.0, 1.0]]:
 		var line := HBoxContainer.new()
 		tuning_box.add_child(line)
 		var caption: Label = text_label(line, str(item[1]), 19, Color("b8c9c2"))
@@ -140,7 +149,7 @@ func _ready() -> void:
 	var bottom_col := VBoxContainer.new()
 	bottom.add_child(bottom_col)
 	diagnostics = text_label(bottom_col, "Measuring…", 18, Color("b9c9c4"))
-	text_label(bottom_col, "WASD / arrows: move    Shift: run    P: pause    R: replay    F9: write diagnostics    Esc: quit", 17, Color("91a39e"))
+	text_label(bottom_col, "WASD: move    Shift: run    3 + Space: strike    K: defeat    R: reset    F1: panel    T: slow    F9: report    Esc: quit", 17, Color("91a39e"))
 	var action_panel := VBoxContainer.new()
 	action_panel.position = Vector2(468, 142)
 	ui.add_child(action_panel)
@@ -148,7 +157,7 @@ func _ready() -> void:
 	var timeline := HBoxContainer.new()
 	timeline.add_theme_constant_override("separation", 18)
 	action_panel.add_child(timeline)
-	for phase: String in ["approach", "attack", "impact", "recovery", "return"]:
+	for phase: String in ["approach", "plant", "attack", "impact", "recovery", "return"]:
 		phase_labels[phase] = text_label(timeline, phase.to_upper(), 17, Color("96a59e"))
 	error_panel = text_label(ui, "", 23, Color("ffc0ad"))
 	error_panel.position = Vector2(490, 840)
@@ -158,7 +167,7 @@ func _ready() -> void:
 func set_mode(index: int) -> void:
 	for i: int in range(view_buttons.size()):
 		view_buttons[i].button_pressed = i == index
-	mode_description.text = ["Inspect the imported actor, attachment and in-place clips.", "Walk the collision patch. Facing and displacement belong to the controller.", "One strike: approach, contact, reaction, recovery and return."][index]
+	mode_description.text = ["Inspect the imported actor, attachment and in-place clips.", "Walk the collision patch. Facing and displacement belong to the controller.", "Space: strike. K: finishing strike. R: reset / replay. Target is a harmless diagnostic."][index]
 	animation.disabled = index != 0
 	animation.visible = index == 0
 	attack_button.disabled = index != 2

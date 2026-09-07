@@ -5,6 +5,7 @@ var game: DuskFoundation
 var checks: Array[Dictionary] = []
 var started: int
 var failures: int = 0
+var observations: Dictionary = {}
 
 func run(root: DuskFoundation) -> void:
 	game = root
@@ -235,7 +236,7 @@ func capture(label: String) -> void:
 	image.save_png("user://" + label + ".png")
 
 func finish(label: String) -> void:
-	var report: Dictionary = {"checks": checks, "failures": failures, "elapsed_seconds": (Time.get_ticks_msec() - started) / 1000.0, "identity": game.identity(), "performance": game.perf.report()}
+	var report: Dictionary = {"checks": checks, "failures": failures, "observations": observations, "elapsed_seconds": (Time.get_ticks_msec() - started) / 1000.0, "identity": game.identity(), "performance": game.perf.report()}
 	var file: FileAccess = FileAccess.open("user://test_" + label + ".json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))
 	file.close()

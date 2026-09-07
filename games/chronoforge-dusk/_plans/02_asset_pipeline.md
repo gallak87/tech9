@@ -1,6 +1,6 @@
 # 02 — Asset pipeline and Kaida source handoff
 
-**Type:** bounded tooling assignment plus manual-assisted asset acquisition. **Status:** local tooling complete and verified with static/skinned diagnostics; Kaida reference r2 ready for owner review, real model/rig/clips pending manual acquisition.
+**Type:** bounded tooling assignment plus manual-assisted asset acquisition. **Status:** local tooling complete and verified with static/skinned diagnostics; owner-supplied Kaida Meshy r2 geometry retained and prepared; proportions provisional, rig/clips pending manual acquisition.
 
 **Requires:** 01's concrete runtime descriptor for final export/integration. Reference inspection and source acquisition can begin alongside 01.
 
@@ -41,4 +41,4 @@ Deliver a candidate manifest/example, reproducible commands, a simple static pro
 
 ## Implementation handoff
 
-See the [local commands and manifests](../_prep/README.md), [22-check native runtime evidence](../_prep/evidence/proofs-r1/README.md), and [Kaida reference/source handoff](../_prep/KAIDA_HANDOFF.md). Both local recipes retain masters, maps, source motion, export scenes/settings and immutable candidate packages. The owner requested the original-sprite-based 2D A-pose and separate blade, then simplified the cuffs/forearms in reference r2. No Meshy generation or production Mixamo processing has been claimed. Step 03 still requires the real model and clips.
+See the [local commands and manifests](../_prep/README.md), [22-check native runtime evidence](../_prep/evidence/proofs-r1/README.md), and [Kaida reference/source handoff](../_prep/KAIDA_HANDOFF.md). Both local recipes retain masters, maps, source motion, export scenes/settings and immutable candidate packages. The owner requested the original-sprite-based 2D A-pose and separate blade, then simplified the cuffs/forearms in reference r2. The owner supplied Meshy r2's FBX and four PNG maps. [Source preparation](../_prep/assets/kaida/README.md) preserves the original download, packed Blender masters, named maps, mesh proportions and topology, with verified FBX/GLB reimports. The owner considers her too skinny and wants to continue with this provisional body. No production rig or clips have arrived; step 03 still requires a finished real character candidate.

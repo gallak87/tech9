@@ -1,6 +1,6 @@
 # Kaida: reference review and manual source handoff
 
-**Current state:** 2D references created; revision 2 removes the forearm guards and straps at the owner's request. No Meshy model, production rig or source clips have been received. The amber mannequin is only a diagnostic asset. Do not upload it as Kaida.
+**Current state:** the owner supplied Meshy r2 geometry and all four PBR maps. The [real Kaida is prepared for Blender inspection and manual rigging](assets/kaida/README.md); no production rig or clips have arrived. Her current proportions are too skinny for the owner, who explicitly wants to continue with this version for now. The amber mannequin remains a separate pipeline diagnostic.
 
 ## Review / upload references
 
@@ -10,39 +10,17 @@
 
 Preserve the swept pointed magenta hair, cyan jacket, dark trousers and boots, and agile proportions. The original Chronoforge sprites were visual references only. The owner's additional screenshot guided only the revised cuffs/forearms; it did not replace the hairstyle or jacket design.
 
-The owner reviews the reference before Meshy generation. The owner may then generate the humanoid from r2. No hosted generation has been performed by this task.
+The owner generated the current model in Meshy and supplied `/Users/g/Downloads/kaida_r2/`. The task retained its original filenames and bytes under [downloads/meshy-r2](assets/kaida/downloads/meshy-r2/receipt.json); working maps have clear names with a recorded source mapping. The job URL, generation options and provider plan were not supplied and remain unresolved receipt fields.
 
-## Exact next inputs
+## Exact next input
 
-Return the **untouched model download** (prefer a textured GLB when available) plus every separately downloaded texture/map or source archive. Keep original filenames. Also supply the job/page identifier and actual generation/export options. Do not reduce geometry just to reach a generic triangle target. No sword or animation download is required for this first geometry inspection.
+Upload [kaida-r2-for-mixamo.fbx](assets/kaida/exports/rigging-r1/kaida-r2-for-mixamo.fbx). It contains the real Kaida mesh and embedded textures, with empty hands. Inspect the rig preview and return one **rigged base with skin** plus one **idle animation-only FBX** for that same character first, with the selected settings and clip name. The local Blender import will check their compatibility before collecting the remaining roles.
 
-Create a receipt JSON with the actual values, then retain the files with the local command below. `origin` can be a job URL or an owner-provided identifier. Record the applicable asset/provider attribution or its unresolved status; an unknown status is not a license grant. Do not include credentials.
+For inspection now, open [kaida-r2-prepared.blend](assets/kaida/sources/meshy-r2/kaida-r2-prepared.blend). It has four packed 2048 × 2048 maps, metre units, ground origin, Blender Z up and +Y forward. Source height is 1.89819 m; no height, topology or proportion adjustment was made. The import master and original FBX are retained separately. Front/back/side and hand views, structural measurements and export reimport checks are linked in the [source overview](assets/kaida/README.md).
 
-```json
-{
-  "provider": "Meshy",
-  "origin": "REPLACE with the actual job URL or identifier",
-  "attribution": "REPLACE with applicable terms/attribution or unresolved status",
-  "reference": "references/kaida/r2/kaida-a-pose-r2.png",
-  "options": {},
-  "notes": "Record the actual selected generation and export options here"
-}
-```
+The owner may replace this body later; see [review notes](assets/kaida/REVIEW_NOTES.md). Treat a regenerated model as a new source revision and recheck rigging, weights, animation compatibility and grip. Continue the pipeline now, and settle proportions before extensive deformation and animation polish.
 
-Run from `games/chronoforge-dusk` with actual download paths:
-
-```sh
-python3 _prep/pipeline.py retain --asset-id kaida --batch meshy-r1 \
-  --receipt /absolute/path/to/receipt.json /absolute/path/to/model.glb /absolute/path/to/textures.zip
-```
-
-This copies bytes into `_prep/assets/kaida/downloads/meshy-r1/`, writes per-file hashes and provenance, and refuses an existing batch. Keep receipts for corrected downloads and later clips in separate batches.
-
-## Local preparation after the download arrives
-
-Open the acquired model in Blender 5.1.1. Preserve a packed editable master before changing geometry, UVs or materials. Inspect front/back/side and close views of hands, armpits, shoulders, elbows, hips, knees and feet. Check separated fingers, thumb/palm thickness, joints, open seams, intersecting clothing, normals, UV islands, missing maps and texture correspondence. Keep the agile silhouette and palms when optimizing. Texture source pixels, color-space assignments and editable sources remain upstream of the runtime GLB.
-
-Prepare metres, ground origin, Blender Z up and +Y forward. The glTF exporter converts this once to Godot Y up and -Z forward. Measure the actual height and choose the collider radius with the game. The diagnostic height/radius are not Kaida dimensions or budgets. Use a neutral A/T pose suitable for the rigging service, without the separate weapon.
+Keep original rig/clip download names and settings. Retain each new batch through `pipeline.py retain` before editing it; do not overwrite the Meshy batch. The current GLB is an unrigged inspection export, not a game-ready character candidate.
 
 ## Manual Mixamo round trip
 

@@ -1,0 +1,208 @@
+{
+  "master": {
+    "vertices": 40569,
+    "triangles": 81202,
+    "bounds": [
+      [
+        -0.43969398736953735,
+        -0.16342903673648834,
+        0.0
+      ],
+      [
+        0.4433079957962036,
+        0.15043102204799652,
+        1.898190975189209
+      ]
+    ],
+    "uv_layers": [
+      "UVMap"
+    ],
+    "boundary_edges": 0,
+    "nonmanifold_edges": 0,
+    "degenerate_faces": 0,
+    "rigs": 0,
+    "actions": [],
+    "images": [
+      {
+        "name": "Kaida basecolor",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "sRGB",
+        "packed": true,
+        "pixel_sha256": "c39374ecdb76312606efcb695aeec70fbcc6a07497aa1c6dc4360462337bdfb6"
+      },
+      {
+        "name": "Kaida metallic",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "Non-Color",
+        "packed": true,
+        "pixel_sha256": "8a0ea0ddaf96f70e16e85e7881f96687bf068654c5d7839f6422f71a1f3111cd"
+      },
+      {
+        "name": "Kaida normal",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "Non-Color",
+        "packed": true,
+        "pixel_sha256": "eca830c1db491c5bc2ea0d2495a41e5821a178b95d74cfe6b1d6d8e9ca49bd2f"
+      },
+      {
+        "name": "Kaida roughness",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "Non-Color",
+        "packed": true,
+        "pixel_sha256": "8425022e4b517a7a8a1f1b9b6f3fe6488a853b66539b597a6a85df9725c1fef5"
+      }
+    ]
+  },
+  "fbx": {
+    "vertices": 40569,
+    "triangles": 81202,
+    "bounds": [
+      [
+        -0.43969398736953735,
+        -0.16342875361442566,
+        -3.768195533382368e-09
+      ],
+      [
+        0.4433079957962036,
+        0.15043102204799652,
+        1.898190975189209
+      ]
+    ],
+    "uv_layers": [
+      "UVMap"
+    ],
+    "boundary_edges": 0,
+    "nonmanifold_edges": 0,
+    "degenerate_faces": 0,
+    "rigs": 0,
+    "actions": [],
+    "images": [
+      {
+        "name": "Kaida basecolor",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "sRGB",
+        "packed": true,
+        "pixel_sha256": "c39374ecdb76312606efcb695aeec70fbcc6a07497aa1c6dc4360462337bdfb6"
+      },
+      {
+        "name": "Kaida metallic",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "Non-Color",
+        "packed": true,
+        "pixel_sha256": "8a0ea0ddaf96f70e16e85e7881f96687bf068654c5d7839f6422f71a1f3111cd"
+      },
+      {
+        "name": "Kaida normal",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "Non-Color",
+        "packed": true,
+        "pixel_sha256": "eca830c1db491c5bc2ea0d2495a41e5821a178b95d74cfe6b1d6d8e9ca49bd2f"
+      },
+      {
+        "name": "Kaida roughness",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "Non-Color",
+        "packed": true,
+        "pixel_sha256": "8425022e4b517a7a8a1f1b9b6f3fe6488a853b66539b597a6a85df9725c1fef5"
+      }
+    ],
+    "checks": {
+      "triangle_count_preserved": true,
+      "bounds_match_master": true,
+      "uv_present": true,
+      "basecolor_pixels_preserved": true,
+      "unrigged_status_confirmed": true
+    }
+  },
+  "glb": {
+    "vertices": 48475,
+    "triangles": 81202,
+    "bounds": [
+      [
+        -0.43969398736953735,
+        -0.16342903673648834,
+        0.0
+      ],
+      [
+        0.4433079957962036,
+        0.15043102204799652,
+        1.898190975189209
+      ]
+    ],
+    "uv_layers": [
+      "UVMap"
+    ],
+    "boundary_edges": 15062,
+    "nonmanifold_edges": 15062,
+    "degenerate_faces": 0,
+    "rigs": 0,
+    "actions": [],
+    "images": [
+      {
+        "name": "Kaida metallic-Kaida roughness",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "Non-Color",
+        "packed": true,
+        "pixel_sha256": "c16502c0db5f97bdd76d7dd0ca5f2949c70b83f4dc4d5a36776da7d7a97accb8"
+      },
+      {
+        "name": "kaida-basecolor",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "sRGB",
+        "packed": true,
+        "pixel_sha256": "c39374ecdb76312606efcb695aeec70fbcc6a07497aa1c6dc4360462337bdfb6"
+      },
+      {
+        "name": "kaida-normal",
+        "size": [
+          2048,
+          2048
+        ],
+        "colorspace": "Non-Color",
+        "packed": true,
+        "pixel_sha256": "eca830c1db491c5bc2ea0d2495a41e5821a178b95d74cfe6b1d6d8e9ca49bd2f"
+      }
+    ],
+    "checks": {
+      "triangle_count_preserved": true,
+      "bounds_match_master": true,
+      "uv_present": true,
+      "basecolor_pixels_preserved": true,
+      "unrigged_status_confirmed": true
+    }
+  },
+  "limitations": [
+    "These checks do not prove Mixamo auto-rig success or deformation quality.",
+    "glTF packs metallic/roughness into one map; FBX material interpretation is checked separately from source retention."
+  ]
+}

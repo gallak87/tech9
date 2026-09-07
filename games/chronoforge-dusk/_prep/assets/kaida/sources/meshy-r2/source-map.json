@@ -1,0 +1,42 @@
+{
+  "basecolor": {
+    "original": "Meshy_AI_Crimson_Sky_Ranger_0907075011_texture.png",
+    "working": "sources/meshy-r2/textures/kaida-basecolor.png",
+    "sha256": "9be9186086d36aa242508c8e8fb30fb917bee6a664794d28b1b5b5b03db504ec",
+    "color_space": "sRGB",
+    "size": [
+      2048,
+      2048
+    ]
+  },
+  "roughness": {
+    "original": "Meshy_AI_Crimson_Sky_Ranger_0907075011_texture_roughness.png",
+    "working": "sources/meshy-r2/textures/kaida-roughness.png",
+    "sha256": "7e4044d988f088cf5c22a4cfcbe0140acacb72f785861e0b492ebf544115079b",
+    "color_space": "Non-Color",
+    "size": [
+      2048,
+      2048
+    ]
+  },
+  "metallic": {
+    "original": "Meshy_AI_Crimson_Sky_Ranger_0907075011_texture_metallic.png",
+    "working": "sources/meshy-r2/textures/kaida-metallic.png",
+    "sha256": "368ad7ec9cf4cd824e68bd5bfcb1b581511472ec150098e17c144a63ebc8042d",
+    "color_space": "Non-Color",
+    "size": [
+      2048,
+      2048
+    ]
+  },
+  "normal": {
+    "original": "Meshy_AI_Crimson_Sky_Ranger_0907075011_texture_normal.png",
+    "working": "sources/meshy-r2/textures/kaida-normal.png",
+    "sha256": "54c3978e4d1bc7f524686ca4f10575f4cf25470fa8659290ffc0c94f7e80d8f9",
+    "color_space": "Non-Color",
+    "size": [
+      2048,
+      2048
+    ]
+  }
+}

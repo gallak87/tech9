@@ -2,9 +2,9 @@
 
 A fresh Godot implementation of the original Chronoforge: a stylized 2.5D strategy RPG about a three-person crew reclaiming a post-collapse Earth and helping a settlement rebuild civilization.
 
-**Status: planning only.** There is no Dusk game implementation or completed asset pipeline yet. These documents record the direction agreed with the owner and the proposed work that follows. Writing them does not start that work.
+**Status: native foundation implemented (01).** The Godot project, traversal patch, prepared diagnostic assets, development views, rehearsal action and savable tuning are working. The standalone Mac app passed 46 runtime checks plus 4 cold-restart checks. All visuals and motion are placeholders; the asset pipeline and Kaida work have not started. See [run/build instructions](NATIVE.md) and [validation evidence](evidence/README.md).
 
-**Next assignment:** [01 — Native game foundation](_plans/01_native_foundation.md). See [ROADMAP.md](ROADMAP.md) for the numbered start-to-finish sequence and which tasks can run in parallel. Numbered assignments live in [_plans/](_plans); this README explains the overall approach.
+**Next bounded assignment, when authorized:** [02 — Asset pipeline](_plans/02_asset_pipeline.md), consuming the concrete [runtime handoff](_prep/ASSET_CONTRACT.md). See [ROADMAP.md](ROADMAP.md) for the numbered start-to-finish sequence and which tasks can run in parallel. Numbered assignments live in [_plans/](_plans); this README explains the overall approach.
 
 ## The direction
 
@@ -60,4 +60,4 @@ There is a longer-term intention to feed the proven workflow back into a redesig
 
 Keep the original game, Dawn, and the Dusk prototype intact as references. Do not bulk migrate their code, assets, balance, or roadmaps. A plan's presence does not start implementation. Once work is assigned, follow the checkpoint commit policy in [AGENTS.md](AGENTS.md); pushing or publishing requires an explicit request.
 
-The proposed Godot project root is `game/`, with source production files in sibling `_prep/`. These directories, apart from the existing `_prep`, are **planned**, not already implemented. Keeping production sources outside the Godot project avoids importing every raw FBX, Blender scene, and rejected candidate into the game.
+The Godot project root is `game/`, with source production files in sibling `_prep/`. Open `game/project.godot` and press F5 for editor play, or launch `dist/Chronoforge Dusk.app` for standalone play. Keeping production sources outside the Godot project avoids importing every raw FBX, Blender scene, and rejected candidate into the game.

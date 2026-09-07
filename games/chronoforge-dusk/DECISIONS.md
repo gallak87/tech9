@@ -6,7 +6,7 @@ This is the current decision record. Earlier prompts and historical game documen
 
 | Decision | Meaning for Dusk |
 | --- | --- |
-| Planning before execution | This session prepares documentation only. Implementation begins in a subsequent authorized task. |
+| Planning before execution | Planning preceded implementation. The owner subsequently authorized 01; later numbered steps still require their own assignment. |
 | Fresh game implementation | Preserve original Chronoforge design and identity; create a runtime suited to the new asset workflow. |
 | Godot, native first | Produce a native application for the owner's Mac first. No browser build or web accommodation is required now. |
 | Browser only if a need emerges | A later playtest or user need may justify a pivot. Do not build a second target, compatibility layer, or reduced web presentation in anticipation. |
@@ -53,3 +53,8 @@ These are small creative or technical decisions within the agreed direction, not
 Godot is selected for the integrated game-editing and animation workflow, not a guarantee that a different engine automatically improves artwork, input latency, or CPU usage. Its animation tools include blending and state machines; its native renderers offer different performance/feature tradeoffs. See the official [animation documentation](https://docs.godotengine.org/en/stable/tutorials/animation/animation_tree.html) and [renderer comparison](https://docs.godotengine.org/en/stable/tutorials/rendering/renderers.html).
 
 If browser delivery is reconsidered, treat it as a new platform decision with a small feasibility test. Godot's current web renderer differs from Forward+, so it must not be described as a free, identical export. No work is scheduled for that possibility.
+
+
+## 01 implementation record
+
+Godot and Mac export templates are pinned to 4.6.3 stable (`7d41c59c4`), using native Forward+ / Metal. The original diagnostic fixtures use Python 3.14.5 without Blender or hosted generation. The first handoff embeds role clips in a model GLB and keeps equipment separate. Game-owned camera/controller/contact tuning is deliberately saved outside imported scenes. See [NATIVE.md](NATIVE.md), the now-concrete [asset contract](_prep/ASSET_CONTRACT.md), and [measured results](evidence/README.md). Production Blender and Kaida decisions remain for 02/03.

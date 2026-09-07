@@ -1,6 +1,6 @@
 # Chronoforge Dusk roadmap
 
-**Current state:** documentation prepared; no game or asset-pipeline implementation has started. This is the ordered route from the first native build to a finished game. Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
+**Current state:** 01 native foundation is implemented and tested; 02 and all later implementation remain unstarted. See [native instructions](NATIVE.md) and [evidence](evidence/README.md). This is the ordered route from the first native build to a finished game. Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
 
 ## Start to finish
 
@@ -14,7 +14,7 @@
 8. **[08 — Expand one region at a time](_plans/08_expand_the_game.md).** Choose and deliver the next region from the wider Chronoforge direction. Repeat the proven loop until the agreed game arc is complete. **Future planning outline; refine each region when reached.**
 9. **[09 — Finish and package the game](_plans/09_finish_and_package.md).** Close progression/story gaps, validate the complete playthrough, tune performance and usability, and deliver the native application and source. **Future completion outline.**
 
-All nine steps are **not started**. Update individual statuses when work actually happens; do not infer completion from documents or disconnected code.
+**01 is complete. Steps 02–09 are not started.** Update individual statuses when work actually happens; do not infer completion from documents or disconnected code.
 
 ## What to give a new agent
 
@@ -24,7 +24,7 @@ For a bounded task, provide this instruction with the selected plan's absolute p
 
 “Complete” includes honestly identifying missing source assets or manual inputs. A placeholder or structural test does not establish that Kaida is finished. Each implementation handoff should also identify the game/asset revisions tested and the next bounded action.
 
-Start with **01**. The source-reference and hosted acquisition portion of **02** can proceed alongside it. The game lane in 01 owns concretizing the shared runtime descriptor; pipeline tools in 02 consume that agreed handoff. Do not let both lanes independently invent the runtime format. Once 01 supplies it, the local tooling portion of 02 is a good separate assignment.
+**01 has supplied the runnable foundation and concrete runtime handoff. Assign 02 explicitly to continue.** The source-reference and hosted acquisition portion of **02** can proceed alongside it. The game lane in 01 owns concretizing the shared runtime descriptor; pipeline tools in 02 consume that agreed handoff. Do not let both lanes independently invent the runtime format. Once 01 supplies it, the local tooling portion of 02 is a good separate assignment.
 
 For a new planning session, use [PLANNER.md](PLANNER.md) to recover the intent behind this sequence and scope the next assignment from actual results.
 

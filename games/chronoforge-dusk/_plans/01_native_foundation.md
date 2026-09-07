@@ -1,6 +1,6 @@
 # 01 — Native game foundation
 
-**Type:** bounded implementation assignment. **Status:** not started.
+**Type:** bounded implementation assignment. **Status:** complete — native app and runtime checks verified; diagnostic placeholders only.
 
 **Requires:** an explicit assignment to implement this step. No Kaida model is required to begin.
 
@@ -40,3 +40,8 @@ Provide run/export instructions, the runtime descriptor/example, and a concise e
 Report any unavailable tool/export template or test you could not complete rather than claiming a native build was verified. Run the produced application and exercise the actual controls; an editor screenshot or a passing import alone is insufficient.
 
 Stop before full ATB rules, inventory, quests, settlement production, broad content, web export, and framework work. Do not advance to 02 automatically.
+
+
+## Delivered
+
+Implemented in local checkpoints `6509b34` and `1aeb3ef`. The standalone Universal 2 Mac app ran on Apple M1 Pro / Forward+ / Metal with 46 passing integration checks and 4 passing cold-restart checks. The owner also exercised the debug window. [Native instructions](../NATIVE.md), [runtime descriptor/example](../_prep/ASSET_CONTRACT.md), and [measured evidence and limitations](../evidence/README.md) are the handoff. Step 02 was not started.

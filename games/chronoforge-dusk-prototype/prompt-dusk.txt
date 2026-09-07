@@ -1,0 +1,59 @@
+CHRONOFORGE DUSK — SINGLE-LEVEL PROTOTYPE
+
+GOAL
+
+Build a beautiful, complete, playable 2.5D Chronoforge adventure using Three.js (current stable release) and Vite. This is a game for my own enjoyment: I want to open it in a browser, explore, fight, discover things, and have fun. The finished build must be suitable for GitHub Pages.
+
+Create one exceptional level as the reference experience for a future larger game. “Single level” limits content scope, not polish or the completeness of the core systems.
+
+PREMISE
+
+Chronoforge is a futuristic strategy-RPG on a post-collapse Earth where neon city-states stand beside ancient ruins and alien-terraformed wilderness. A three-person crew helps a fledgling settlement reclaim lost technology and rebuild civilization. The wider world progresses through Survivor, Reclaimer, Ascendant, and Transcendent tiers toward a confrontation with the Void Architect, who caused the collapse.
+
+Keep Kaida, the agile blade-wielding Warrior; Vex, the mysterious Mage of void and temporal power; and Rune, the armored technological Sentinel. Their complementary abilities and relationships should make them feel like a crew worth traveling with.
+
+The tone is hopeful post-apocalypse: cautious wonder, melancholy ruins, dangerous discoveries, flashes of humor, and the satisfaction of bringing a place back to life.
+
+DESIGN AND QUALITY TARGET
+
+Combine the readability and battle theatrics of Chrono Trigger with modern depth, lighting, materials, effects, and cinematic composition. Aim for AAA-grade art direction within a compact, deliberately authored experience.
+
+Use an elevated 2.5D camera, layered environments, convincing ground contact, expressive characters, and a cohesive visual identity. Dusk is the signature mood: warm sunset against cool shadows, distant atmosphere, weathered earth and metal, and purposeful magenta/cyan technology coming alive as daylight fades. Darkness must remain playable.
+
+Animation should convey intention and weight. Attacks need anticipation, impact, and recovery; effects and sound should reinforce them. Give ordinary play the same visual care as a spectacular finisher. Finished assets, portraits, icons, and menus should look like parts of one game.
+
+Choose the location, story, level layout, encounters, boss, discoveries, character interpretation, and visual treatment yourself. Surprise me within Chronoforge’s premise. The references establish ambition and identity; they do not require reproducing the old game's layout or presentation.
+
+CORE EXPERIENCE
+
+• Exploration: guide the visible three-hero crew through a handcrafted region with landmarks, branching discoveries, useful loot, visible enemies, a small inhabited hub, and reasons to be curious. Include a map, quests, character interactions, and a memorable sense of place.
+
+• ATB battles: transition into a cinematic battle scene connected visually to the encounter location. Give every combatant a speed-based action gauge. Include attacks, techniques, items, defense, positional area targeting, and meaningful support/status effects. Make commands comfortable to select and let the player coordinate ready heroes.
+
+• Crew combinations: include a dual-tech for each hero pair and the triple-tech Aeon Sunder. Require the participating heroes’ gauges and resources. Make these real tactical choices with striking, brief choreography, hit stops, camera accents, and distinctive sound.
+
+• Progression: battles and exploration grant XP, equipment, and skill points. Give each hero a small branching skill tree and weapon, armor, and accessory slots. Inventory needs usable equip controls and clear stat comparisons. Let new abilities and gear matter before the level ends.
+
+• Settlement: preserve the civilization-building idea through a compact, functional economy of food, ore, energy, and renown. Let the player construct or upgrade something, see the settlement change, and gain a practical exploration or combat benefit. Condense advancement to suit the level.
+
+• Complete game flow: include a title screen, readable HUD, coherent pause/menu interface covering Map, Party, Inventory, Skills, Quests, Save, and Settings, working save/load, defeat and retry, and a satisfying boss encounter and ending. Music, ambience, combat audio, and feedback are part of the experience.
+
+SCOPE AND CREATIVE FREEDOM
+
+Make one self-contained chapter with a beginning, development, climax, and payoff. Connect exploration, combat, crew growth, and rebuilding into a satisfying loop. All core systems should be usable within the chapter; accelerate unlocks where needed.
+
+Choose content counts and pacing to serve that experience. Keep the world compact, rewards meaningful, and decisions interesting. Avoid grinding, empty expanses, feature stubs, and a sprawling campaign. Prioritize the moments that make me want to keep playing.
+
+ASSETS AND BROWSER DELIVERY
+
+Blender is available for creating or refining assets; use it where it improves the result. Choose an effective mix of modeled assets, sprites, textures, and procedural detail. Export any Blender models into browser-ready formats such as glTF/GLB, and retain editable source assets. No requirement to construct every asset in code.
+
+Deliver a static production build with correct asset paths for a GitHub Pages project subdirectory, without a backend or runtime dependence on local tools. Support keyboard/mouse and usable touch controls, responsive menus, and scalable visual settings so the game can be enjoyed across desktop and mobile browsers. Save progress locally.
+
+VALIDATION AND FINISH
+
+Run and play the actual game. Inspect movement and combat in motion as well as screenshots. Exercise progression, equipment, combos, settlement changes, saving, defeat, and the ending. Verify the production build, including its deployed-style subdirectory paths.
+
+Tune responsiveness, pacing, readability, audio, and performance from observed results. Aim for smooth desktop play at 1080p and adapt visual cost for smaller devices. Fix visible and functional problems; successful code execution alone is not completion.
+
+Deliver the playable game, its source and assets, and concise instructions for running it and publishing the build to GitHub Pages. State what was actually tested and any remaining limitations honestly.

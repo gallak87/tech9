@@ -15,7 +15,7 @@ python3 tools/native.py run
 
 After source changes, stop and relaunch the running game. After adding/replacing an imported candidate, run the import command before relaunching or exporting. Do not run editor and packaged performance comparisons simultaneously.
 
-The current a1 release starts with **Kaida r2 / Alpha a1** and her separate **energy-sword r2**. Walk and run the patch, then press **3**, **Space** for a strike. **K** runs a finishing strike; **R** restores the target and replays. **F1** hides the side panel. The owner requested alpha graduation under the first-pass cutoff; this build stops before 04.
+The current release starts with **Kaida r2 / Alpha a1** and her separate energy sword. Walk and run the patch, then press **3**, **Space** for a strike. **K** runs a finishing strike; **R** restores the target and replays. **F1** hides the side panel. The owner requested alpha graduation under the first-pass cutoff; this build stops before 04.
 
 ## Controls
 
@@ -42,7 +42,7 @@ The current a1 release starts with **Kaida r2 / Alpha a1** and her separate **en
 | F9 | Write identity, input, action and performance diagnostics |
 | Esc | Quit |
 
-Tuning controls are in the left panel's collapsible **Tuning** section. Save/restore stay visible below the scroll area. The default actor is **Kaida r2 / Alpha a1**. The harmless target is still a labeled diagnostic mannequin. Kaida r5 corrects the repeated sword-arm snap in 02’s run clip; the other four source clips and sword r2 are preserved. The game controls displacement and attack tempo. Defeat is a basic held hurt pose plus a fall and reset, not a newly authored source animation.
+Tuning controls are in the left panel's collapsible **Tuning** section. Save/restore stay visible below the scroll area. The default actor is **Kaida r2 / Alpha a1**. The harmless target is still a labeled diagnostic mannequin. Kaida a1 includes five role clips and a separate sword, with continuous running carry. The game controls displacement and attack tempo. Defeat is a basic held hurt pose plus a fall and reset, not a newly authored source animation.
 
 ## Pinned toolchain and native export
 
@@ -54,7 +54,7 @@ Tuning controls are in the left panel's collapsible **Tuning** section. Save/res
 | Render size | Fixed 1920×1080 internal viewport; initial window 1440×810; resizing preserves aspect |
 | Limits | 60 FPS active, 30 paused, 10 inactive; physics 60 Hz |
 | Fixture generator/build helper | Python standard library, 3.10+; generated/tested with Python 3.14 |
-| Blender | Not used or required for 01's diagnostic fixtures. Pin the production Blender version in 02. |
+| Blender | 5.1.1 / b70da489d7f4 for production sources; not needed for native play. |
 
 The matching Mac template has SHA-256:
 
@@ -68,10 +68,10 @@ From the Dusk directory:
 python3 tools/native.py setup       # fetch official archive once, verify macos.zip
 python3 tools/native.py import      # standard Godot import + build identity
 python3 tools/native.py export      # import, verify template, export and verify signature
-python3 tools/native.py test        # export + rendered native checks + new-process save check
-python3 tools/native.py test-editor # equivalent foundation regression with the editor binary
-python3 tools/native.py test-kaida  # focused Kaida checks + export + cold restart
-python3 tools/native.py test-kaida-editor # focused Kaida checks in editor game window
+python3 tools/native.py test       # a1 release gate: native Kaida gameplay + cold restart
+python3 tools/native.py test-editor # same Kaida suite using the editor binary
+python3 tools/native.py test-foundation # opt-in importer/fixture regressions
+python3 tools/native.py test-foundation-editor # opt-in regressions with editor binary
 ```
 
 `GODOT_PATH` may point to the pinned Godot executable. The helper refuses a different version. It downloads the official approximately 1.2 GB archive only when needed, retaining the extracted Mac template under ignored `.tools/`. No global editor/template replacement is needed. The export preset uses this local template.
@@ -79,6 +79,10 @@ python3 tools/native.py test-kaida-editor # focused Kaida checks in editor game 
 The result is a local **ad-hoc signed** `.app`, verified with `codesign --verify --deep --strict`. It does not need the editor. Distribution signing/notarization is outside 01; this is the owner's local test build. Only the Apple Silicon execution path has been exercised; the universal Intel slice has not.
 
 Official references: [pinned release](https://godotengine.org/download/archive/4.6.3-stable/), [Godot macOS export](https://docs.godotengine.org/en/4.6/tutorials/export/exporting_for_macos.html), [command-line export](https://docs.godotengine.org/en/4.6/tutorials/editor/command_line_tutorial.html).
+
+## Test scope
+
+`test` runs Kaida only, then verifies saved state in a new process. This is the a1 release gate. The fixture suite is explicitly opt-in for importer, malformed-descriptor, asset-swapping or shared foundation changes; it is not a second gate for character fixes or documentation cleanup. Run targeted checks for the changed system, and reuse passing evidence while the runtime source digest remains unchanged.
 
 ## Saved state and diagnostics
 
@@ -106,8 +110,8 @@ The in-app diagnostics keep up to 600 frame times per interval and retain separa
 - `ui/development_hud.gd`: in-game development controls.
 - `content/candidates.json`: selected immutable candidate descriptors.
 
-02 delivers selected runtime GLBs/descriptors to `game/assets/<asset-id>/<revision>/` and keeps production sources upstream. Use the concrete [runtime contract and working example](_prep/ASSET_CONTRACT.md). All five character clips must currently be embedded in the model GLB. 02’s Kaida r4 and sword r2 are the retained baseline; 03 delivers Kaida r5 with the targeted run-arm correction. See [03 evidence](evidence/kaida-03/README.md) for measured validation, remaining limitations and the owner review boundary.
+02 delivers selected runtime GLBs/descriptors to `game/assets/<asset-id>/<revision>/` and keeps production sources upstream. Use the concrete [runtime contract and working example](_prep/ASSET_CONTRACT.md). All five character clips must currently be embedded in the model GLB. The current source and runtime package use a1. See [03 evidence](evidence/kaida-03/README.md) for measured validation, remaining limitations and the owner review boundary.
 
 ## Alpha graduation
 
-[Kaida r2 / Alpha a1](releases/kaida-a1.md) is the current playable release. r2 identifies the stable model generation; a1 selects prepared export r5 and sword r2 plus the tested game integration. Older source/export revisions are retained as rollback history, with the old game entry labeled previous export.
+[Kaida a1](releases/kaida-a1.md) is the only Kaida entry in the current game. r2 identifies the stable model generation; a1 is the release identity across source, package and runtime. Original inputs and current editable sources remain under `_prep`. Superseded iterations are in Git history.

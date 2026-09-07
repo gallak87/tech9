@@ -6,7 +6,7 @@ Use this handoff when resuming the director conversation or preparing another ag
 
 Read [AGENTS.md](AGENTS.md), [README.md](README.md), [DECISIONS.md](DECISIONS.md), and [ROADMAP.md](ROADMAP.md), then the relevant numbered plan. Inspect current Git status, recent commits, and the last task's evidence before deciding what is actually ready. Roadmap statuses can lag reality: documents and passing structural checks do not prove a playable result.
 
-At this handoff's creation, only planning documents existed. Use the roadmap and verified work for subsequent status; do not maintain a second progress tracker here. Consult [LESSONS.md](LESSONS.md) for the historical audit and the README's reference entry points for targeted investigation. Implementation agents generally need their assignment and relevant references, not this whole planning context.
+[Kaida a1](releases/kaida-a1.md) is the current checkpoint. 01–03 are implemented; 04 is paused. Use the roadmap and native evidence for status. Documentation should describe current state and actionable constraints; use Git for iteration history.
 
 ## What the owner is trying to achieve
 

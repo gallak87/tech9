@@ -1,6 +1,6 @@
 extends SceneTree
 ## Real-game candidate smoke check. No accepted tuning or gameplay code changes.
-## godot --path game --script _prep/tools/character_probe.gd -- --descriptor res://assets/kaida/r1/descriptor.json --output ABSOLUTE_DIRECTORY
+## godot --path game --script _prep/tools/character_probe.gd -- --descriptor res://assets/kaida/a1/descriptor.json --output ABSOLUTE_DIRECTORY
 var game: DuskFoundation
 var checks: Array[Dictionary] = []
 var failures := 0

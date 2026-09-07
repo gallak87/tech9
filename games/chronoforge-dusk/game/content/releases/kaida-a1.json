@@ -4,12 +4,10 @@
   "label": "Kaida r2 / Alpha a1",
   "asset_generation": "r2",
   "source_batch": "meshy-r2",
-  "descriptor": "res://assets/kaida/r5/descriptor.json",
-  "prepared_export": "r5",
+  "descriptor": "res://assets/kaida/a1/descriptor.json",
   "model_sha256": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0",
   "equipment": {
     "asset_id": "kaida.energy-sword",
-    "prepared_export": "r2",
     "model_sha256": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"
   }
 }

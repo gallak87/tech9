@@ -1,16 +1,14 @@
 # Runtime asset handoff — format 1
 
-**Runtime format implemented by 01.** Proven with two original rigid diagnostic mannequins, embedded clips and a separate static baton. This does not prove a humanoid rig, Kaida, production material quality, or the production pipeline. The game lane owns this document and [the loader](../game/assets/asset_assembly.gd); 02 consumes this handoff.
-
-**02 evidence update:** format 1 also passed [a newly authored skinned diagnostic plus static prop](evidence/proofs-r1/README.md), including evaluated skin deformation, preserved bones/clips, embedded texture, in-place root tracks and a `BoneAttachment3D` grip. This proves the local recipes and diagnostic import, not real Kaida or visual acceptance. No descriptor fields changed.
+**Runtime format 1** supports rigid diagnostic fixtures, static props and skinned characters with embedded role clips and separate equipment. [Kaida a1](../releases/kaida-a1.md) is the current playable release. The game owns this contract and [the loader](../game/assets/asset_assembly.gd); production recipes consume it.
 
 ## Delivering a prepared candidate
 
-Keep immutable downloads, FBX, Blender sources, recipes and rejected candidates under `_prep/`. Deliver only selected runtime files under `game/assets/<asset-id>/<revision>/`, then add the descriptor's `res://` path to [content/candidates.json](../game/content/candidates.json). Run Godot's normal import before launching or exporting. There is no file upload service, runtime GLTFDocument importer, or provider adapter.
+Keep immutable downloads, FBX, Blender sources, recipes and current prepared packages under `_prep/`. Deliver only selected runtime files under `game/assets/<asset-id>/<revision>/`, then add the descriptor's `res://` path to [content/candidates.json](../game/content/candidates.json). Run Godot's normal import before launching or exporting. There is no file upload service, runtime GLTFDocument importer, or provider adapter.
 
-A candidate is an immutable descriptor plus GLB dependencies. Give changed bytes a new revision and path; keep the previous candidate available. Import success makes a candidate inspectable, not visually accepted.
+A candidate is an immutable descriptor plus GLB dependencies during a comparison. Changed bytes require a new working identity. At graduation, the current source, package and runtime use one alpha identity; superseded working copies are removed after the release is committed. Original inputs and current editable sources stay in the checkout; Git retains prior iterations. Import success makes an asset inspectable, not visually accepted.
 
-**Model generation and playable release are separate identities.** Kaida’s stable model is r2; prepared export r5 contains its corrected animation. The game-owned [alpha a1 release](../releases/kaida-a1.md) selects that export by hash and pairs it with tested gameplay/tuning. Graduation does not require duplicating or renaming the GLB. Existing immutable names remain internal history; new internal exports should use explicit names such as `prep-006`, while owner-facing model generations use r2/r3 and playable alphas use a1/a2.
+**Current release: [Kaida a1](../releases/kaida-a1.md).** The stable model generation is r2. Source, prepared package, runtime descriptor and saved selections use a1. The release manifest pins the actual model and equipment hashes. There is no separate live intermediate-export identity.
 
 See the complete working example: [mannequin-slate-r1.json](../game/assets/fixtures/mannequin-slate-r1.json). Its generating source is [fixtures/generate.py](fixtures/generate.py). All its animation is diagnostic rigid motion, not Kaida animation.
 
@@ -42,7 +40,7 @@ The abbreviated example above illustrates field shapes. A character requires **i
 | `format` | Integer `1`; reject unsupported versions. No compatibility adapter. |
 | `asset_id`, `revision`, `label` | Nonempty identity and human-readable label. Use immutable revision paths. |
 | `kind` | `character` or `prop`. The development character selector currently expects characters. |
-| `animation_mode` | `none`, `rigid` or `skeletal`. Static assets have no clips. Skeletal declarations require an imported Skeleton3D, but skeletal deformation has not been validated by 01. |
+| `animation_mode` | `none`, `rigid` or `skeletal`. Static assets have no clips. Skeletal declarations require an imported Skeleton3D, but deformation must be inspected in the native game. |
 | `placeholder` | `true` for diagnostic assets; displays an explicit NOT KAIDA notice. Omitted/false means a candidate awaiting visual acceptance, never automatic acceptance. |
 | `model` | `{path, sha256}` for a prepared GLB under `res://assets/`. SHA-256 covers original GLB bytes, including embedded resources. |
 | `dimensions` | Metres; `+Y` up, `-Z` forward, feet/placement pivot at ground origin. Height is 0.1–20 m; collider radius 0.05–5 m. These are validity bounds, not production budgets. Imported visual dimensions/facing still need in-game inspection. |

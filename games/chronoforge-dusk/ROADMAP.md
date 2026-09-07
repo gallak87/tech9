@@ -1,6 +1,10 @@
 # Chronoforge Dusk roadmap
 
-**Current state:** 01 is implemented and tested; 02 has delivered the first complete real Kaida candidate with five clips and a separate sword. 03 graduates the owner-requested Kaida r2 / Alpha a1 for review; 04 and later work remain unstarted. See [native instructions](NATIVE.md) and [evidence](evidence/README.md). This is the ordered route from the first native build to a finished game. Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
+**Current state:** 01 is implemented and tested; 02 has delivered the first complete real Kaida candidate with five clips and a separate sword. 03 delivers Kaida a1 for review; 04 is paused; later work remains unstarted. See [native instructions](NATIVE.md) and [evidence](evidence/README.md). This is the ordered route from the first native build to a finished game. Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
+
+## Next direction
+
+04 is paused. The next assignment is environment preparation for Kaida a1 in a real game scene, after review of the release checkpoint. This document does not authorize starting that work.
 
 ## Start to finish
 
@@ -14,7 +18,7 @@
 8. **[08 — Expand one region at a time](_plans/08_expand_the_game.md).** Choose and deliver the next region from the wider Chronoforge direction. Repeat the proven loop until the agreed game arc is complete. **Future planning outline; refine each region when reached.**
 9. **[09 — Finish and package the game](_plans/09_finish_and_package.md).** Close progression/story gaps, validate the complete playthrough, tune performance and usability, and deliver the native application and source. **Future completion outline.**
 
-**01 and 02’s first candidate handoff are complete. Kaida runtime r5 (03’s run-arm correction of r4) has all five clips and separate equipment, with native integration checks passed. 03’s traversal/rehearsal increment is released as Kaida r2 / Alpha a1 under the owner’s first-pass cutoff; 04–09 remain unstarted.** See [03 evidence](evidence/kaida-03/README.md) and [02](_plans/02_asset_pipeline.md) for the current source handoff. Update individual statuses when work actually happens; do not infer completion from documents or disconnected code.
+**01–03 deliver Kaida a1: five clips, separate equipment, traversal, strike rehearsal and saved tuning. 04 is paused; 05–09 are unstarted.** See [release evidence](evidence/kaida-03/README.md) and the [current source handoff](_prep/KAIDA_HANDOFF.md).
 
 ## What to give a new agent
 
@@ -24,7 +28,7 @@ For a bounded task, provide this instruction with the selected plan's absolute p
 
 “Complete” includes honestly identifying missing source assets or manual inputs. A placeholder or structural test does not establish that Kaida is finished. Each implementation handoff should also identify the game/asset revisions tested and the next bounded action.
 
-**01 supplied the runnable foundation and runtime handoff; 02's local recipes now consume it.** Per the owner's [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07), keep the [current Kaida revision](_prep/assets/kaida/demos/foundation-r3/README.md) as the provisional baseline and move to 03's movement, action timing and reproducible settings. Fine character polish and new Meshy/Mixamo inputs do not block that work. The game lane owns the shared runtime descriptor; pipeline tools consume it rather than inventing another runtime format.
+The game lane owns the runtime descriptor and alpha graduation. The production lane owns current editable sources and export recipes. [Kaida a1](releases/kaida-a1.md) is the current checkpoint. Further work requires a new assignment; cosmetic polish and hosted downloads are optional under the [quality cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07).
 
 For a new planning session, use [PLANNER.md](PLANNER.md) to recover the intent behind this sequence and scope the next assignment from actual results.
 

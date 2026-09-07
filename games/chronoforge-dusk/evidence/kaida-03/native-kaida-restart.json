@@ -1,7 +1,11 @@
 {
 	"checks": [
 		{
-			"check": "Cold launch restores Kaida r4",
+			"check": "Cold startup stays grounded at the spawn before any test reset",
+			"pass": true
+		},
+		{
+			"check": "Cold launch restores Kaida a1",
 			"pass": true
 		},
 		{
@@ -15,9 +19,13 @@
 		{
 			"check": "Cold launch applies action and stride settings",
 			"pass": true
+		},
+		{
+			"check": "Native test completed without external keyboard or mouse input",
+			"pass": true
 		}
 	],
-	"elapsed_seconds": 1.58,
+	"elapsed_seconds": 3.613,
 	"failures": 0,
 	"identity": {
 		"asset": {
@@ -28,7 +36,7 @@
 					"bone": "SwordSocket",
 					"id": "energy-sword",
 					"model": {
-						"path": "res://assets/kaida/r4/kaida.energy-sword.glb",
+						"path": "res://assets/kaida/a1/kaida.energy-sword.glb",
 						"sha256": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"
 					},
 					"position_m": [
@@ -46,27 +54,27 @@
 			],
 			"clips": {
 				"attack": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": false,
 					"name": "attack"
 				},
 				"hurt": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": false,
 					"name": "hurt"
 				},
 				"idle": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": true,
 					"name": "idle"
 				},
 				"run": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": true,
 					"name": "run"
 				},
 				"walk": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": true,
 					"name": "walk"
 				}
@@ -80,10 +88,10 @@
 			},
 			"format": 1.0,
 			"kind": "character",
-			"label": "Kaida / grip-fit review",
+			"label": "Kaida r2 / Alpha a1",
 			"model": {
-				"path": "res://assets/kaida/r4/model.glb",
-				"sha256": "2faf657788bf070d839ce40b44892de3b89ef8c37a2e57c27da7186eca88520e"
+				"path": "res://assets/kaida/a1/model.glb",
+				"sha256": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0"
 			},
 			"motion": {
 				"action": "controller",
@@ -91,14 +99,14 @@
 				"traversal": "controller"
 			},
 			"placeholder": false,
-			"revision": "r4"
+			"revision": "a1"
 		},
 		"display_scale": 2.0,
 		"driver": "metal",
 		"engine": "4.6.3-stable (official)",
-		"engine_uptime_at_ready_ms": 736,
+		"engine_uptime_at_ready_ms": 710,
 		"frame_cap": 60,
-		"game_revision": "5809a2633ca3",
+		"game_revision": "0a544dcca66f+dirty",
 		"gpu": "Apple M1 Pro (Apple7)",
 		"internal_resolution": [
 			1920,
@@ -107,9 +115,24 @@
 		"native_export": true,
 		"os": "macOS 26.4.1",
 		"processor": "Apple M1 Pro",
+		"release": {
+			"asset_generation": "r2",
+			"descriptor": "res://assets/kaida/a1/descriptor.json",
+			"equipment": {
+				"asset_id": "kaida.energy-sword",
+				"model_sha256": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"
+			},
+			"label": "Kaida r2 / Alpha a1",
+			"model_sha256": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0",
+			"release": "a1",
+			"source_batch": "meshy-r2",
+			"stage": "playable_alpha"
+		},
 		"renderer": "forward_plus",
-		"scene_assembly_ms": 198,
-		"source_sha256": "ee44353fa8ad8da3bcec21c167e24277c391a75093fbee419f885599b54425e6",
+		"scene_assembly_ms": 182,
+		"source_sha256": "516f216e06edb475a5b26406f17860e0045428214c67d68a86d78c88c82cf705",
+		"test_interference": false,
+		"test_run_id": "25ecb5345a654aacb01dafd59f768ee7",
 		"tuning": {
 			"acceleration": 28.0,
 			"attack_tempo": 1.0,
@@ -136,19 +159,19 @@
 	},
 	"performance": {
 		"focused": {
-			"draw_calls": 61,
-			"engine_process_ms": 91.359,
+			"draw_calls": 163,
+			"engine_process_ms": 13.014,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 92.622,
-			"mean_ms": 17.5086222222222,
+			"max_ms": 33.155,
+			"mean_ms": 16.5506055045872,
 			"nodes": 268,
-			"over_33ms": 3,
-			"p50_ms": 16.657,
-			"p95_ms": 25.291,
-			"p99_ms": 36.198,
-			"primitives": 29182,
-			"samples": 90,
-			"video_mb": 223.390625
+			"over_33ms": 0,
+			"p50_ms": 16.664,
+			"p95_ms": 17.89,
+			"p99_ms": 19.905,
+			"primitives": 31624,
+			"samples": 218,
+			"video_mb": 223.890625
 		}
 	}
 }

@@ -1,5 +1,5 @@
 extends "res://tests/foundation_test.gd"
-## Rendered checks for the actual r5 actor. Captures have separate perf intervals.
+## Rendered checks for the actual a1 actor. Captures have separate perf intervals.
 var first_contact: Dictionary = {}
 
 func run(root: DuskFoundation) -> void:
@@ -12,7 +12,7 @@ func run(root: DuskFoundation) -> void:
 	check(game.actor.position.length() < 0.05 and game.actor.velocity.length() < 0.05, "Cold startup stays grounded at the spawn before any test reset")
 	if "--kaida-restart" in OS.get_cmdline_user_args():
 		await seconds(2.0)
-		check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "r5", "Cold launch restores Kaida r5")
+		check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "a1", "Cold launch restores Kaida a1")
 		check(game.tuning.values == DuskTuning.DEFAULTS, "Cold launch reproduces all saved gameplay tuning")
 		check(game.tuning.saved.source_sha256 == game.source_sha256, "Save identifies tested game source digest")
 		check(is_equal_approx(game.action.hit_stop, 0.065) and is_equal_approx(game.actor.run_stride_speed, 5.06165), "Cold launch applies action and stride settings")
@@ -26,7 +26,7 @@ func run(root: DuskFoundation) -> void:
 	if game.actor.visual == null:
 		finish("kaida")
 		return
-	check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "r5", "Displayed actor is Kaida r5")
+	check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "a1", "Displayed actor is Kaida a1")
 	check(game.release.release == "a1" and game.release.asset_generation == "r2" and game.release.model_sha256 == game.actor.visual.descriptor.model.sha256, "Alpha a1 pins the existing Kaida r2 asset and corrected export")
 	var skeleton: Skeleton3D = DuskAssetAssembly.find_skeleton(game.actor.visual.model)
 	check(skeleton != null and skeleton.get_bone_count() == 67, "Real 67-bone Kaida rig present")
@@ -81,7 +81,7 @@ func run(root: DuskFoundation) -> void:
 		maximum_hand_step = maxf(maximum_hand_step, current_hand.distance_to(last_hand))
 		last_hand = current_hand
 	observations["maximum_run_hand_step_60hz_m"] = maximum_hand_step
-	check(maximum_hand_step < 0.08, "Repeated run loops keep the sword hand continuous (r4 regression: 49 cm jump)")
+	check(maximum_hand_step < 0.08, "Repeated run loops keep the sword hand continuous (regression: 49 cm jump)")
 	game.tuning.values.light_game = true
 	game.apply_tuning()
 	await key(KEY_2)
@@ -218,8 +218,8 @@ func run(root: DuskFoundation) -> void:
 		game.command("reload")
 		await seconds(0.3)
 	await seconds(1.0)
-	check(int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)) <= baseline_nodes + 2, "Reloading r5 releases prior mesh, rig and equipment nodes")
-	check(int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)) <= baseline_resources + 10 and game.perf.video_mb < baseline_video + 5.0, "Reloading r5 does not accumulate resources or video memory")
+	check(int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)) <= baseline_nodes + 2, "Reloading a1 releases prior mesh, rig and equipment nodes")
+	check(int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)) <= baseline_resources + 10 and game.perf.video_mb < baseline_video + 5.0, "Reloading a1 does not accumulate resources or video memory")
 	# Prevent the performance copies spawning inside the controlled capsule.
 	# Overlap recovery otherwise lifts her onto another character’s head.
 	game.actor.place(Vector3(0, 0.02, 0))

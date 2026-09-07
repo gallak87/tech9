@@ -1,9 +1,0 @@
-{
-  "asset_id": "kaida",
-  "source_batch": "meshy-r2",
-  "purpose": "Manual rigging input; not a game-ready character candidate",
-  "files": {
-    "kaida-r2-unrigged.glb": "75a245a2fb3b86070ce0c6953d867b47065e868cc65563a083dfc7eda23b8262",
-    "kaida-r2-for-mixamo.fbx": "475390d8c9ead0c9e627001bbf04dedbd371bb4ea695940ce0f8f1a293ac983d"
-  }
-}

@@ -36,7 +36,7 @@ These fill gaps using the discussion. They can change when a concrete result pro
 - **Controls:** keyboard/mouse first. Do not build touch support initially. Revisit gamepad support when the first playable loop exists or the owner requests it.
 - **Performance:** begin with a 60 FPS target at a documented 1080p internal render resolution and a frame cap. Tune based on measured frame pacing, resource use, and perceived responsiveness.
 - **First region:** use a compact Haventide/coastal reclamation area as the proposed starting point. Its exact layout, story incident, and encounter content remain open for the owner-led story/design step after the character foundation works.
-- **Asset storage:** retain immutable source downloads, editable Blender sources, candidate exports, and accepted versions. Keep only selected runtime assets in the Godot project. Plan for large-file storage once actual source sizes justify it; do not configure it during planning.
+- **Asset storage:** retain immutable original inputs, current editable sources and current release packages; keep superseded iterations in Git history. Keep only selected runtime assets in the Godot project. Plan for large-file storage once actual source sizes justify it; do not configure it during planning.
 
 ## Decisions that need evidence
 
@@ -55,26 +55,14 @@ Godot is selected for the integrated game-editing and animation workflow, not a 
 If browser delivery is reconsidered, treat it as a new platform decision with a small feasibility test. Godot's current web renderer differs from Forward+, so it must not be described as a free, identical export. No work is scheduled for that possibility.
 
 
-## 01 implementation record
+## Current toolchain and release
 
-Godot and Mac export templates are pinned to 4.6.3 stable (`7d41c59c4`), using native Forward+ / Metal. The original diagnostic fixtures use Python 3.14.5 without Blender or hosted generation. The first handoff embeds role clips in a model GLB and keeps equipment separate. Game-owned camera/controller/contact tuning is deliberately saved outside imported scenes. See [NATIVE.md](NATIVE.md), the now-concrete [asset contract](_prep/ASSET_CONTRACT.md), and [measured results](evidence/README.md). Production Blender and Kaida decisions remain for 02/03.
+Godot and Mac export templates are pinned to 4.6.3 stable (`7d41c59c4`), using Forward+ / Metal. Blender is pinned to 5.1.1 (`b70da489d7f4`). Runtime format 1 embeds five role clips in the character GLB and keeps equipment separate. Gameplay tuning lives outside imported scenes.
 
-## 02 implementation record
-
-Local Blender is pinned to 5.1.1 (`b70da489d7f4`). Static and skeletal recipes consume runtime format 1, with embedded role clips, retained original source motion and a separate equipment dependency. The diagnostic source/export/import proof passed 22 checks in the native Dusk game process; this is not Kaida or performance acceptance. See [pipeline evidence](_prep/evidence/proofs-r1/README.md).
-
-The owner requested an original-sprite-based front 2D A-pose, with a separate sword reference, before Meshy modeling. Reference r2 preserves the design while replacing forearm guards/straps with rolled cyan cuffs and exposed forearms. Actual generated image size is 1024×1536. These references preceded the owner's Meshy download described below; the [current manual handoff](_prep/KAIDA_HANDOFF.md) now lists the remaining animation inputs and finishing.
-
-The owner subsequently supplied the Meshy r2 FBX and four texture maps. They consider the current body too skinny and may regenerate it, but explicitly directed continuing with this model for now. Proportions remain provisional; see [Kaida review notes](_prep/assets/kaida/REVIEW_NOTES.md). A replacement gets a new source revision and another rig/weight/clip/grip check before visual acceptance.
-
-Mixamo accepted the full 81,202-triangle Kaida after material/media removal; the returned base has 65 bones. Source materials are restored locally after checking bind geometry and UV correspondence. The owner requested reusable preparation tooling, now documented in [_prep/MIXAMO.md](_prep/MIXAMO.md). The original rig, transforms, weights and two-frame static T-pose remain intact; this is not yet a five-role game candidate.
-
-The owner supplied idle/run FBXs at 30 FPS. `mixamo_clips` assembles their actions on the retained textured rig after matching hierarchy, rest matrices, transforms and included bind geometry/UVs. Source curves and every integer-frame bone pose match after save/reopen. The run's 3.71188 m of travel remains upstream; the subsequent foundation pass added in-place working clips, walk, attack and hurt.
+**Kaida a1** is the current release identity across runtime, source and prepared package. **r2** identifies the stable model generation. The checkout contains original inputs, current editable sources and current release evidence. Superseded packages, demos, fix scripts and iteration narratives belong in Git history. Release documentation records current behavior, constraints and actionable pitfalls.
 
 ## Phase-one quality cutoff — 2026-09-07
 
-The owner directed: “Let's get it to good enough. I don't want to block the overall progress.” Use `foundation-r3` / runtime `kaida/r4` with `kaida.energy-sword/r2` as the provisional integration baseline. Stop further grip/attack authoring at this checkpoint and proceed with the game work in 03. Another Meshy generation or Mixamo download is optional, not a prerequisite.
+Prioritize responsive traversal, stable equipment, readable attack/contact/recovery/return and reproducible settings at gameplay scale. Missing clips, detached equipment, severe joint inversions and incomplete actions are blocking defects. Fuller proportions, fine finger contact and more natural whole-body motion are deferred polish.
 
-The current five roles, skin, equipment and controller-owned approach/attack/return passed [29 native checks](_prep/evidence/kaida-r4/README.md); the current game files still match that evidence. Missing clips, detached equipment, severe joint inversions or an action that cannot complete are blocking defects. Fuller proportions, finer finger/thumb contact, more natural whole-body attack motion and cosmetic mesh cleanup are deferred polish. This baseline is sufficient for continued integration; it does not establish final visual acceptance, measured normal-play performance, saved game tuning or completion of 03.
-
-The next bounded 03 pass should prioritize responsive traversal, readable attack/contact timing, return to formation and reproducible settings at gameplay camera distance. Keep the existing modular clips and separate sword. Reopen asset authoring only for a defect that prevents those tasks or a new owner request; do not require cinematic animation quality before progressing.
+The current five-role character, movement and action systems are implemented in [a1](releases/kaida-a1.md). A changed body requires a new model identity and fresh rig, weight, clip and grip checks. No new Meshy/Mixamo input is required for the current alpha. **Stop before 04 for owner review.**

@@ -1,11 +1,19 @@
 {
 	"checks": [
 		{
+			"check": "Cold startup stays grounded at the spawn before any test reset",
+			"pass": true
+		},
+		{
 			"check": "Kaida default candidate loads without fallback",
 			"pass": true
 		},
 		{
-			"check": "Displayed actor is Kaida r4",
+			"check": "Displayed actor is Kaida a1",
+			"pass": true
+		},
+		{
+			"check": "Alpha a1 pins the existing Kaida r2 asset and corrected export",
 			"pass": true
 		},
 		{
@@ -22,6 +30,10 @@
 		},
 		{
 			"check": "Sword socket follows actual strike motion",
+			"pass": true
+		},
+		{
+			"check": "Repeated run loops keep the sword hand continuous (regression: 49 cm jump)",
 			"pass": true
 		},
 		{
@@ -185,11 +197,11 @@
 			"pass": true
 		},
 		{
-			"check": "Reloading r4 releases prior mesh, rig and equipment nodes",
+			"check": "Reloading a1 releases prior mesh, rig and equipment nodes",
 			"pass": true
 		},
 		{
-			"check": "Reloading r4 does not accumulate resources or video memory",
+			"check": "Reloading a1 does not accumulate resources or video memory",
 			"pass": true
 		},
 		{
@@ -202,6 +214,14 @@
 		},
 		{
 			"check": "Additional Kaida 2 loads",
+			"pass": true
+		},
+		{
+			"check": "Running into another Kaida stays grounded and keeps body separation",
+			"pass": true
+		},
+		{
+			"check": "Four-instance layout keeps the controlled actor on the floor",
 			"pass": true
 		},
 		{
@@ -219,9 +239,13 @@
 		{
 			"check": "Restore reapplies complete traversal/action/camera tuning",
 			"pass": true
+		},
+		{
+			"check": "Native test completed without external keyboard or mouse input",
+			"pass": true
 		}
 	],
-	"elapsed_seconds": 104.224,
+	"elapsed_seconds": 104.275,
 	"failures": 0,
 	"identity": {
 		"asset": {
@@ -232,7 +256,7 @@
 					"bone": "SwordSocket",
 					"id": "energy-sword",
 					"model": {
-						"path": "res://assets/kaida/r4/kaida.energy-sword.glb",
+						"path": "res://assets/kaida/a1/kaida.energy-sword.glb",
 						"sha256": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"
 					},
 					"position_m": [
@@ -250,27 +274,27 @@
 			],
 			"clips": {
 				"attack": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": false,
 					"name": "attack"
 				},
 				"hurt": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": false,
 					"name": "hurt"
 				},
 				"idle": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": true,
 					"name": "idle"
 				},
 				"run": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": true,
 					"name": "run"
 				},
 				"walk": {
-					"file": "res://assets/kaida/r4/model.glb",
+					"file": "res://assets/kaida/a1/model.glb",
 					"loop": true,
 					"name": "walk"
 				}
@@ -284,10 +308,10 @@
 			},
 			"format": 1.0,
 			"kind": "character",
-			"label": "Kaida / grip-fit review",
+			"label": "Kaida r2 / Alpha a1",
 			"model": {
-				"path": "res://assets/kaida/r4/model.glb",
-				"sha256": "2faf657788bf070d839ce40b44892de3b89ef8c37a2e57c27da7186eca88520e"
+				"path": "res://assets/kaida/a1/model.glb",
+				"sha256": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0"
 			},
 			"motion": {
 				"action": "controller",
@@ -295,14 +319,14 @@
 				"traversal": "controller"
 			},
 			"placeholder": false,
-			"revision": "r4"
+			"revision": "a1"
 		},
 		"display_scale": 2.0,
 		"driver": "metal",
 		"engine": "4.6.3-stable (official)",
-		"engine_uptime_at_ready_ms": 779,
+		"engine_uptime_at_ready_ms": 1117,
 		"frame_cap": 60,
-		"game_revision": "5809a2633ca3",
+		"game_revision": "0a544dcca66f+dirty",
 		"gpu": "Apple M1 Pro (Apple7)",
 		"internal_resolution": [
 			1920,
@@ -311,9 +335,24 @@
 		"native_export": true,
 		"os": "macOS 26.4.1",
 		"processor": "Apple M1 Pro",
+		"release": {
+			"asset_generation": "r2",
+			"descriptor": "res://assets/kaida/a1/descriptor.json",
+			"equipment": {
+				"asset_id": "kaida.energy-sword",
+				"model_sha256": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"
+			},
+			"label": "Kaida r2 / Alpha a1",
+			"model_sha256": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0",
+			"release": "a1",
+			"source_batch": "meshy-r2",
+			"stage": "playable_alpha"
+		},
 		"renderer": "forward_plus",
-		"scene_assembly_ms": 186,
-		"source_sha256": "ee44353fa8ad8da3bcec21c167e24277c391a75093fbee419f885599b54425e6",
+		"scene_assembly_ms": 210,
+		"source_sha256": "516f216e06edb475a5b26406f17860e0045428214c67d68a86d78c88c82cf705",
+		"test_interference": false,
+		"test_run_id": "25ecb5345a654aacb01dafd59f768ee7",
 		"tuning": {
 			"acceleration": 28.0,
 			"attack_tempo": 1.0,
@@ -336,7 +375,7 @@
 		]
 	},
 	"observations": {
-		"asset_hash": "2faf657788bf070d839ce40b44892de3b89ef8c37a2e57c27da7186eca88520e",
+		"asset_hash": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0",
 		"blade_distance_to_target_center_m": 0.153798952698708,
 		"captures_excluded_from_normal_play_intervals": true,
 		"contact": {
@@ -348,401 +387,436 @@
 			"tip": "(1.39522, 0.753285, -1.348924)"
 		},
 		"focus_checks": "simulated handler; OS focus and audible quality require direct play",
-		"maximum_root_xz_m": 0.0
+		"instance_collision": {
+			"maximum_height_m": -0.000507812947034836,
+			"minimum_horizontal_separation_m": 0.640503168106079
+		},
+		"maximum_root_xz_m": 0.0,
+		"maximum_run_hand_step_60hz_m": 0.0181422438472509
 	},
 	"performance": {
 		"asset_reload": {
-			"draw_calls": 164,
-			"engine_process_ms": 0.0,
+			"draw_calls": 163,
+			"engine_process_ms": 19.956,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 6101.242,
-			"mean_ms": 6101.242,
+			"max_ms": 21.644,
+			"mean_ms": 16.6013081395349,
 			"nodes": 268,
-			"over_33ms": 1,
-			"p50_ms": 6101.242,
-			"p95_ms": 6101.242,
-			"p99_ms": 6101.242,
-			"primitives": 31410,
-			"samples": 1,
-			"video_mb": 223.296875
+			"over_33ms": 0,
+			"p50_ms": 16.68,
+			"p95_ms": 18.291,
+			"p99_ms": 21.186,
+			"primitives": 31612,
+			"samples": 172,
+			"video_mb": 223.890625
 		},
 		"asset_reload_2": {
 			"draw_calls": 163,
-			"engine_process_ms": 147.229,
+			"engine_process_ms": 144.751,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 16.867,
-			"mean_ms": 14.8267777777778,
+			"max_ms": 17.074,
+			"mean_ms": 14.9338,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.632,
-			"p95_ms": 16.821,
-			"p99_ms": 16.821,
-			"primitives": 31718,
-			"samples": 9,
-			"video_mb": 300.53125
+			"p50_ms": 16.595,
+			"p95_ms": 16.75,
+			"p99_ms": 16.75,
+			"primitives": 31638,
+			"samples": 10,
+			"video_mb": 223.890625
 		},
 		"asset_reload_3": {
 			"draw_calls": 163,
-			"engine_process_ms": 147.229,
+			"engine_process_ms": 144.751,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 17.457,
-			"mean_ms": 15.4445384615385,
+			"max_ms": 25.738,
+			"mean_ms": 16.7430909090909,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.644,
-			"p95_ms": 17.228,
-			"p99_ms": 17.228,
-			"primitives": 31718,
-			"samples": 13,
-			"video_mb": 300.53125
+			"p50_ms": 16.672,
+			"p95_ms": 25.313,
+			"p99_ms": 25.313,
+			"primitives": 31638,
+			"samples": 11,
+			"video_mb": 223.890625
 		},
 		"asset_reload_4": {
 			"draw_calls": 163,
-			"engine_process_ms": 147.229,
+			"engine_process_ms": 144.751,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 16.775,
-			"mean_ms": 15.34125,
+			"max_ms": 18.857,
+			"mean_ms": 15.4640833333333,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.72,
-			"p95_ms": 16.772,
-			"p99_ms": 16.772,
-			"primitives": 31716,
+			"p50_ms": 16.628,
+			"p95_ms": 16.765,
+			"p99_ms": 16.765,
+			"primitives": 31638,
 			"samples": 12,
-			"video_mb": 300.53125
+			"video_mb": 223.890625
 		},
 		"asset_reload_5": {
 			"draw_calls": 163,
-			"engine_process_ms": 132.212,
+			"engine_process_ms": 129.774,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 17.844,
-			"mean_ms": 15.1982727272727,
+			"max_ms": 24.486,
+			"mean_ms": 15.5619090909091,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.654,
-			"p95_ms": 16.804,
-			"p99_ms": 16.804,
-			"primitives": 31716,
+			"p50_ms": 16.778,
+			"p95_ms": 17.455,
+			"p99_ms": 17.455,
+			"primitives": 31638,
 			"samples": 11,
-			"video_mb": 300.53125
+			"video_mb": 223.890625
 		},
 		"asset_reload_6": {
 			"draw_calls": 163,
-			"engine_process_ms": 132.212,
+			"engine_process_ms": 129.774,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 17.435,
-			"mean_ms": 15.394,
+			"max_ms": 25.51,
+			"mean_ms": 16.2754545454545,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.627,
-			"p95_ms": 16.887,
-			"p99_ms": 16.887,
-			"primitives": 31716,
-			"samples": 13,
-			"video_mb": 300.53125
+			"p50_ms": 16.894,
+			"p95_ms": 25.292,
+			"p99_ms": 25.292,
+			"primitives": 31638,
+			"samples": 11,
+			"video_mb": 223.890625
 		},
 		"asset_reload_7": {
-			"draw_calls": 205,
-			"engine_process_ms": 10.347,
+			"draw_calls": 214,
+			"engine_process_ms": 23.96,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 368.411,
-			"mean_ms": 18.5178662790698,
+			"max_ms": 359.294,
+			"mean_ms": 17.6869442724458,
 			"nodes": 364,
 			"over_33ms": 1,
-			"p50_ms": 16.656,
-			"p95_ms": 17.867,
-			"p99_ms": 20.096,
-			"primitives": 111640,
-			"samples": 172,
-			"video_mb": 303.34375
+			"p50_ms": 16.684,
+			"p95_ms": 21.281,
+			"p99_ms": 25.122,
+			"primitives": 111634,
+			"samples": 323,
+			"video_mb": 226.703125
 		},
 		"asset_reload_8": {
 			"samples": 0
 		},
 		"captures_not_normal_play": {
 			"draw_calls": 141,
-			"engine_process_ms": 95.65,
+			"engine_process_ms": 76.779,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 111.871,
-			"mean_ms": 18.2282016129032,
+			"max_ms": 92.485,
+			"mean_ms": 18.0347177419355,
 			"nodes": 268,
 			"over_33ms": 5,
-			"p50_ms": 16.632,
-			"p95_ms": 18.41,
-			"p99_ms": 86.717,
-			"primitives": 51792,
+			"p50_ms": 16.653,
+			"p95_ms": 17.372,
+			"p99_ms": 83.963,
+			"primitives": 51702,
 			"samples": 124,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"captures_not_normal_play_2": {
 			"draw_calls": 157,
-			"engine_process_ms": 7.165,
+			"engine_process_ms": 15.579,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 94.375,
-			"mean_ms": 17.4768623188406,
+			"max_ms": 93.809,
+			"mean_ms": 17.5608768115942,
 			"nodes": 268,
 			"over_33ms": 2,
-			"p50_ms": 16.669,
-			"p95_ms": 19.166,
-			"p99_ms": 27.099,
-			"primitives": 31688,
+			"p50_ms": 16.667,
+			"p95_ms": 16.988,
+			"p99_ms": 18.117,
+			"primitives": 31610,
 			"samples": 138,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"cleanup": {
-			"draw_calls": 157,
-			"engine_process_ms": 25.382,
+			"draw_calls": 163,
+			"engine_process_ms": 17.994,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 24.926,
-			"mean_ms": 16.6761694915254,
+			"max_ms": 18.848,
+			"mean_ms": 16.6454166666667,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.683,
-			"p95_ms": 18.192,
-			"p99_ms": 19.927,
-			"primitives": 31646,
-			"samples": 59,
-			"video_mb": 229.140625
+			"p50_ms": 16.653,
+			"p95_ms": 18.133,
+			"p99_ms": 18.788,
+			"primitives": 31640,
+			"samples": 60,
+			"video_mb": 223.890625
 		},
 		"defeat_and_reset": {
 			"draw_calls": 182,
-			"engine_process_ms": 16.221,
+			"engine_process_ms": 57.136,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 149.821,
-			"mean_ms": 17.1557554945055,
+			"max_ms": 113.913,
+			"mean_ms": 16.9334254742548,
 			"nodes": 268,
 			"over_33ms": 2,
-			"p50_ms": 16.676,
-			"p95_ms": 19.161,
-			"p99_ms": 25.675,
-			"primitives": 32474,
-			"samples": 364,
-			"video_mb": 300.53125
+			"p50_ms": 16.667,
+			"p95_ms": 18.421,
+			"p99_ms": 24.438,
+			"primitives": 32396,
+			"samples": 369,
+			"video_mb": 223.890625
 		},
 		"focused": {
-			"draw_calls": 157,
-			"engine_process_ms": 5.412,
+			"draw_calls": 163,
+			"engine_process_ms": 17.159,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 17.624,
-			"mean_ms": 17.624,
+			"max_ms": 40.6,
+			"mean_ms": 16.58135,
+			"nodes": 268,
+			"over_33ms": 1,
+			"p50_ms": 16.669,
+			"p95_ms": 17.92,
+			"p99_ms": 19.2,
+			"primitives": 31612,
+			"samples": 80,
+			"video_mb": 223.890625
+		},
+		"focused_2": {
+			"draw_calls": 163,
+			"engine_process_ms": 5.251,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 25.154,
+			"mean_ms": 25.154,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 17.624,
-			"p95_ms": 17.624,
-			"p99_ms": 17.624,
-			"primitives": 31660,
+			"p50_ms": 25.154,
+			"p95_ms": 25.154,
+			"p99_ms": 25.154,
+			"primitives": 31654,
 			"samples": 1,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"four_kaida_instances_10s": {
-			"draw_calls": 205,
-			"engine_process_ms": 24.525,
+			"draw_calls": 214,
+			"engine_process_ms": 19.252,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 50.683,
-			"mean_ms": 16.7675738255034,
+			"max_ms": 117.321,
+			"mean_ms": 16.7827169491525,
 			"nodes": 364,
-			"over_33ms": 3,
-			"p50_ms": 16.688,
-			"p95_ms": 20.02,
-			"p99_ms": 25.282,
-			"primitives": 111640,
-			"samples": 596,
-			"video_mb": 231.953125
+			"over_33ms": 1,
+			"p50_ms": 16.692,
+			"p95_ms": 18.767,
+			"p99_ms": 22.95,
+			"primitives": 111634,
+			"samples": 590,
+			"video_mb": 226.703125
 		},
 		"inspection_idle": {
 			"draw_calls": 141,
-			"engine_process_ms": 5.123,
+			"engine_process_ms": 17.709,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 20.105,
-			"mean_ms": 16.5832362637363,
+			"max_ms": 20.296,
+			"mean_ms": 16.6456850828729,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.657,
-			"p95_ms": 18.249,
-			"p99_ms": 18.61,
-			"primitives": 51788,
-			"samples": 182,
-			"video_mb": 229.140625
+			"p50_ms": 16.651,
+			"p95_ms": 18.109,
+			"p99_ms": 18.604,
+			"primitives": 51698,
+			"samples": 181,
+			"video_mb": 223.890625
 		},
 		"kaida_neutral_idle_10s": {
 			"draw_calls": 141,
-			"engine_process_ms": 5.895,
+			"engine_process_ms": 18.466,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 54.163,
-			"mean_ms": 16.6810234505863,
+			"max_ms": 19.242,
+			"mean_ms": 16.6680584307179,
 			"nodes": 268,
-			"over_33ms": 1,
-			"p50_ms": 16.665,
-			"p95_ms": 18.413,
-			"p99_ms": 18.862,
-			"primitives": 51788,
-			"samples": 597,
-			"video_mb": 229.140625
+			"over_33ms": 0,
+			"p50_ms": 16.675,
+			"p95_ms": 18.15,
+			"p99_ms": 18.699,
+			"primitives": 51698,
+			"samples": 599,
+			"video_mb": 223.890625
 		},
 		"kaida_paused_5s": {
-			"draw_calls": 157,
-			"engine_process_ms": 8.36,
+			"draw_calls": 163,
+			"engine_process_ms": 15.673,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 39.386,
-			"mean_ms": 33.33186,
+			"max_ms": 36.448,
+			"mean_ms": 33.3318,
 			"nodes": 268,
-			"over_33ms": 78,
-			"p50_ms": 33.347,
-			"p95_ms": 34.017,
-			"p99_ms": 34.467,
-			"primitives": 31656,
+			"over_33ms": 69,
+			"p50_ms": 33.334,
+			"p95_ms": 33.915,
+			"p99_ms": 35.478,
+			"primitives": 31650,
 			"samples": 150,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"kaida_repeated_strikes_8_cycles": {
 			"draw_calls": 182,
-			"engine_process_ms": 31.503,
+			"engine_process_ms": 18.065,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 189.588,
-			"mean_ms": 17.2353616666667,
+			"max_ms": 119.262,
+			"mean_ms": 16.836395,
 			"nodes": 268,
-			"over_33ms": 4,
-			"p50_ms": 16.673,
-			"p95_ms": 18.996,
-			"p99_ms": 26.71,
-			"primitives": 32470,
+			"over_33ms": 1,
+			"p50_ms": 16.681,
+			"p95_ms": 18.497,
+			"p99_ms": 18.852,
+			"primitives": 32392,
 			"samples": 600,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"kaida_traversal_turning_10s": {
 			"draw_calls": 160,
-			"engine_process_ms": 5.655,
+			"engine_process_ms": 17.693,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 21.706,
-			"mean_ms": 16.6684791318865,
+			"max_ms": 20.962,
+			"mean_ms": 16.6662954924875,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.689,
-			"p95_ms": 18.434,
-			"p99_ms": 19.395,
-			"primitives": 31684,
+			"p50_ms": 16.655,
+			"p95_ms": 18.378,
+			"p99_ms": 18.82,
+			"primitives": 31606,
 			"samples": 599,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"kaida_unfocused_3s_simulated": {
-			"draw_calls": 157,
-			"engine_process_ms": 5.412,
+			"draw_calls": 163,
+			"engine_process_ms": 5.251,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 100.717,
-			"mean_ms": 100.008133333333,
+			"max_ms": 100.51,
+			"mean_ms": 100.001966666667,
 			"nodes": 268,
 			"over_33ms": 30,
-			"p50_ms": 99.997,
-			"p95_ms": 100.351,
-			"p99_ms": 100.383,
-			"primitives": 31660,
+			"p50_ms": 99.972,
+			"p95_ms": 100.298,
+			"p99_ms": 100.325,
+			"primitives": 31654,
 			"samples": 30,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"paused": {
 			"draw_calls": 182,
-			"engine_process_ms": 93.241,
+			"engine_process_ms": 91.199,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 35.216,
-			"mean_ms": 33.3371333333333,
+			"max_ms": 34.261,
+			"mean_ms": 33.3588,
 			"nodes": 268,
-			"over_33ms": 8,
-			"p50_ms": 33.56,
-			"p95_ms": 34.814,
-			"p99_ms": 34.814,
-			"primitives": 32478,
+			"over_33ms": 10,
+			"p50_ms": 33.404,
+			"p95_ms": 33.929,
+			"p99_ms": 33.929,
+			"primitives": 32400,
 			"samples": 15,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
+		},
+		"paused_2": {
+			"draw_calls": 183,
+			"engine_process_ms": 15.68,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 34.249,
+			"mean_ms": 33.3367777777778,
+			"nodes": 268,
+			"over_33ms": 4,
+			"p50_ms": 33.208,
+			"p95_ms": 33.943,
+			"p99_ms": 33.943,
+			"primitives": 32422,
+			"samples": 9,
+			"video_mb": 223.890625
 		},
 		"rehearsal": {
 			"draw_calls": 182,
-			"engine_process_ms": 93.241,
+			"engine_process_ms": 91.199,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 19.202,
-			"mean_ms": 16.6963191489362,
+			"max_ms": 17.026,
+			"mean_ms": 16.6457021276596,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.661,
-			"p95_ms": 18.386,
-			"p99_ms": 18.783,
-			"primitives": 32472,
+			"p50_ms": 16.629,
+			"p95_ms": 16.944,
+			"p99_ms": 17.0,
+			"primitives": 32394,
 			"samples": 47,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"resumed": {
-			"draw_calls": 182,
-			"engine_process_ms": 9.624,
+			"draw_calls": 183,
+			"engine_process_ms": 91.199,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 19.095,
-			"mean_ms": 16.5803333333333,
+			"max_ms": 16.924,
+			"mean_ms": 16.579,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.283,
-			"p95_ms": 18.657,
-			"p99_ms": 18.657,
-			"primitives": 32468,
-			"samples": 18,
-			"video_mb": 229.140625
+			"p50_ms": 16.64,
+			"p95_ms": 16.905,
+			"p99_ms": 16.905,
+			"primitives": 32396,
+			"samples": 21,
+			"video_mb": 223.890625
 		},
 		"resumed_2": {
 			"draw_calls": 182,
-			"engine_process_ms": 7.562,
+			"engine_process_ms": 17.939,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 21.423,
-			"mean_ms": 16.6315974683544,
+			"max_ms": 31.899,
+			"mean_ms": 16.7069694656489,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.658,
-			"p95_ms": 18.582,
-			"p99_ms": 19.222,
-			"primitives": 32468,
-			"samples": 395,
-			"video_mb": 229.140625
+			"p50_ms": 16.663,
+			"p95_ms": 18.319,
+			"p99_ms": 19.061,
+			"primitives": 32390,
+			"samples": 393,
+			"video_mb": 223.890625
 		},
 		"traversal": {
 			"draw_calls": 151,
-			"engine_process_ms": 5.851,
+			"engine_process_ms": 10.631,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 22.982,
-			"mean_ms": 16.6614415204678,
+			"max_ms": 17.763,
+			"mean_ms": 16.6635263157895,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.679,
-			"p95_ms": 18.579,
-			"p99_ms": 19.455,
-			"primitives": 31530,
+			"p50_ms": 16.668,
+			"p95_ms": 17.35,
+			"p99_ms": 17.572,
+			"primitives": 31440,
 			"samples": 342,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"traversal_2": {
 			"draw_calls": 163,
-			"engine_process_ms": 5.196,
+			"engine_process_ms": 13.107,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 22.476,
-			"mean_ms": 16.6688617886179,
+			"max_ms": 18.644,
+			"mean_ms": 16.6769756097561,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.667,
-			"p95_ms": 18.568,
-			"p99_ms": 19.064,
-			"primitives": 31718,
+			"p50_ms": 16.68,
+			"p95_ms": 17.575,
+			"p99_ms": 18.591,
+			"primitives": 31640,
 			"samples": 123,
-			"video_mb": 229.140625
+			"video_mb": 223.890625
 		},
 		"traversal_3": {
 			"draw_calls": 163,
-			"engine_process_ms": 23.59,
+			"engine_process_ms": 24.374,
 			"gpu_ms": "unavailable (not measured)",
-			"max_ms": 21.299,
-			"mean_ms": 16.62875,
+			"max_ms": 28.82,
+			"mean_ms": 16.90285,
 			"nodes": 268,
 			"over_33ms": 0,
-			"p50_ms": 16.661,
-			"p95_ms": 18.287,
-			"p99_ms": 18.502,
-			"primitives": 31718,
+			"p50_ms": 16.699,
+			"p95_ms": 24.89,
+			"p99_ms": 25.05,
+			"primitives": 31640,
 			"samples": 60,
-			"video_mb": 300.53125
+			"video_mb": 223.890625
 		}
 	}
 }

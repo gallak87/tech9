@@ -22,10 +22,8 @@ The command installs/caches the official server through uv and launches it when 
 
 Keep the Blender add-on server running with the intended file open. Restart/reload the `blender-mcp` entry in Codex's MCP settings after changing its configuration. A task started before configuration may need its tools refreshed or a new task; a successful external probe alone does not add tools to that task's existing inventory.
 
-## Verified on 2026-09-07
+## Use
 
-A real MCP initialization and `tools/list` request returned 26 tools. The saved global command successfully called `get_blendfile_summary_path_info` and `get_objects_summary` against the live Kaida master. Tools include Python execution, scene/object inspection, screenshots, rendering and Blender documentation search.
+The configured server exposes scene/object inspection, Python execution, rendering and screenshots. Use `get_blendfile_summary_path_info` and `get_objects_summary` to establish the active document before editing it.
 
-Python execution also authored the wave demo in the live session. A default-size viewport screenshot returned truncated JSON; `get_screenshot_of_area_as_image` succeeded with `area_ui_type="VIEW_3D"` and `size_limit_in_bytes=60000`. Use a bounded image size if a large capture fails. This records the observed workaround, not a diagnosis of every screenshot failure.
-
-Temporary probe clients under `/private/tmp` were used to diagnose and test the connection while the current task's tool inventory was stale. They are diagnostic helpers, not the installed interface. Future agents should discover and use the configured MCP tools directly. Preserve the open document and its unsaved work; make animation experiments in separate demo masters.
+For viewport captures, `get_screenshot_of_area_as_image` supports `area_ui_type="VIEW_3D"` and `size_limit_in_bytes=60000`. Limit image size when large captures return truncated JSON. Preserve unsaved work in open documents. Use the [current a1 source](assets/kaida/sources/a1/master.blend) for Kaida edits and evaluate the exported result in the native game.

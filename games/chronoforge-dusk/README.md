@@ -2,9 +2,9 @@
 
 A fresh Godot implementation of the original Chronoforge: a stylized 2.5D strategy RPG about a three-person crew reclaiming a post-collapse Earth and helping a settlement rebuild civilization.
 
-**Status: 03 delivers [Kaida r2 / Alpha a1](releases/kaida-a1.md), the owner-requested playable release.** The stable r2 body uses corrected prepared export `kaida/r5` and separate `kaida.energy-sword/r2`. It has responsive stride-matched traversal, a timed strike with target reaction and feedback, basic hurt/defeat previews, slow/stepped inspection, and saved tuning. See [run/build instructions](NATIVE.md) and [03 evidence](evidence/kaida-03/README.md). **04 and later work remain unstarted.**
+**Status: [Kaida a1](releases/kaida-a1.md) is the current playable release.** The stable r2 model is packaged as `kaida/a1`, with a separate sword. It has responsive stride-matched traversal, a timed strike with target reaction and feedback, basic hurt/defeat previews, slow/stepped inspection, and saved tuning. See [run/build instructions](NATIVE.md) and [03 evidence](evidence/kaida-03/README.md). **04 is paused; later work remains unstarted.**
 
-02’s [local production pipeline](_prep/README.md) delivered the current [source and asset handoff](_prep/KAIDA_HANDOFF.md). Kaida’s proportions and detailed grip/whole-body motion remain provisional under the owner’s [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07). The alpha release is ready for the owner’s review before 04.
+The [local production pipeline](_prep/README.md) builds the current [a1 source and asset handoff](_prep/KAIDA_HANDOFF.md). Kaida’s proportions and detailed grip/whole-body motion remain provisional under the owner’s [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07). The alpha release is ready for the owner’s review before 04.
 
 ## The direction
 

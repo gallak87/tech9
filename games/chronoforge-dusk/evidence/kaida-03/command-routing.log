@@ -1,0 +1,6 @@
+Native application: /Users/g/code/scratch/tech9/games/chronoforge-dusk/dist/Chronoforge Dusk.app
+test dispatch verified: --kaida-test, --kaida-restart
+test-editor dispatch verified: --kaida-test, --kaida-restart
+Native application: /Users/g/code/scratch/tech9/games/chronoforge-dusk/dist/Chronoforge Dusk.app
+test-foundation dispatch verified: --self-test, --verify-restart
+test-foundation-editor dispatch verified: --self-test, --verify-restart

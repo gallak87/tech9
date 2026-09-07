@@ -44,4 +44,6 @@ Stop before full ATB rules, inventory, quests, settlement production, broad cont
 
 ## Delivered
 
-Implemented in local checkpoints `6509b34` and `1aeb3ef`. The standalone Universal 2 Mac app ran on Apple M1 Pro / Forward+ / Metal with 46 passing integration checks and 4 passing cold-restart checks. The owner also exercised the debug window. [Native instructions](../NATIVE.md), [runtime descriptor/example](../_prep/ASSET_CONTRACT.md), and [measured evidence and limitations](../evidence/README.md) are the handoff. Step 02 was not started.
+The native foundation provides the actor, importer, traversal patch, rehearsal target, camera, development controls and saved tuning used by Kaida a1. Fixture regressions are available through `python3 tools/native.py test-foundation` when shared importer or foundation behavior changes. The normal release gate tests Kaida.
+
+[Native instructions](../NATIVE.md), [runtime contract](../_prep/ASSET_CONTRACT.md), and [current evidence](../evidence/README.md). 01–03 are implemented; 04 is paused.

@@ -1,7 +1,7 @@
 class_name DuskFoundation
 extends Node3D
 
-const DEFAULT_CANDIDATE: String = "res://assets/kaida/r5/descriptor.json"
+const DEFAULT_CANDIDATE: String = "res://assets/kaida/a1/descriptor.json"
 const RELEASE_PATH: String = "res://content/releases/kaida-a1.json"
 var release: Dictionary = {}
 var simulation: Node3D
@@ -108,8 +108,6 @@ func _ready() -> void:
 		var candidate_label: String = str(candidate_data.get("label", path)) if candidate_data is Dictionary else path
 		if path == release.descriptor:
 			candidate_label = str(release.label)
-		elif candidate_data is Dictionary and candidate_data.get("asset_id") == "kaida":
-			candidate_label = "Kaida r2 / previous export " + str(candidate_data.revision)
 		hud.candidate.add_item(candidate_label)
 	hud.view_selected.connect(set_mode)
 	hud.candidate_selected.connect(load_candidate_index)
@@ -180,7 +178,7 @@ func load_candidate(path: String) -> bool:
 	pending.visible = true
 	load_status = "LOADED · %s\n%s · %d ms\n%s" % [pending.descriptor.asset_id, pending.descriptor.revision, Time.get_ticks_msec() - start, "TEMPORARY FIXTURE / NOT KAIDA" if pending.descriptor.get("placeholder", false) else "Candidate · visual acceptance pending"]
 	if path == release.descriptor:
-		load_status = "Kaida r2 · Alpha a1\nLoaded · %d ms\nPrepared export %s" % [Time.get_ticks_msec() - start, pending.descriptor.revision]
+		load_status = "Kaida r2 · Alpha a1\nLoaded · %d ms" % [Time.get_ticks_msec() - start]
 	load_error = ""
 	apply_tuning()
 	set_mode(mode)

@@ -1,6 +1,6 @@
 # 04 — Repeatable asset updates
 
-**Type:** bounded integration assignment. **Status:** not started.
+**Type:** bounded integration assignment. **Status:** paused. Environment preparation and importing Kaida a1 into a real game scene take priority; this asset-repeatability assignment requires separate authorization.
 
 **Requires:** 03's accepted Kaida, 01's runtime, and 02's tooling/static prop.
 

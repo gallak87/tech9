@@ -1,0 +1,113 @@
+Develop and implement a complete, original mechanical enemy in Blender, together with a playable Godot viewer.
+
+DESIGN AND QUALITY TARGET
+
+Develop a small, agile, four-legged mech enemy with a distinct identity. Use ARC Raiders as the reference for mechanical plausibility, material quality, and recognizable personality.
+
+Design direction:
+• A compact, low-slung armored body.
+• Four clearly articulated legs with believable joints, mechanical actuators, and broad, segmented feet.
+• A distinctive segmented resonator arch over its back as a recognizable silhouette feature.
+• A small, movable sensor head with several optical elements that emit a warm glow.
+• Light, slightly desaturated armor plates, dark structural components, exposed metal, and muted orange markings.
+• Restrained wear at plausible contact points, clear material differentiation, and carefully crafted details.
+• Wheel and propulsion components designed from the outset to support the subsequent transformations.
+
+Design the mechanics before modeling the details. Joints, movement clearances, attachments, and transformation paths must work together. Details should communicate the construction and support the silhouette.
+
+PROCEDURAL GENERATION AND VARIATION
+
+Create understandable Blender scripts and a central configuration with a reproducible seed.
+
+Support controlled variations in proportions, armor plates, resonator segments, colors, markings, and wear. Variants must remain within functional mechanical limits and be compatible with the same animation controller.
+
+Preserve an editable source file and generate separate, optimized runtime assets from it.
+
+THREE FULLY FUNCTIONAL FORMS
+
+1. Walking quadruped:
+Walking, fast sprinting, backward movement, strafing, turning, braking, jumping, and a distinctly lowered crawling posture.
+
+2. Rolling form:
+The mech transforms using its existing components into a compact, significantly faster driving form. Include steerable or appropriately aligned wheels, believable load transfer, traction, suspension, acceleration, and braking distance.
+
+3. Flying form:
+The existing components unfold into a believable flight configuration. The propulsion system and thrust direction must be visible. Use high-quality, efficient exhaust or thrust effects directly at the actual nozzles. Hovering, acceleration, banking turns, and landing must convey inertia and stabilization.
+
+All forms must transition smoothly into one another, including interrupted or reversed transformations. Use actual joint movement and coordinated movement phases. No intersecting armor plates, disappearing parts, stretched metal segments, or abrupt pose changes.
+
+PROCEDURAL ANIMATION AND ENVIRONMENT INTERACTION
+
+Develop a high-quality runtime controller with:
+• Predictive foot placement and stable ground contacts.
+• Continuous swing trajectories with exactly one touchdown per step.
+• Calm body motion that responds to load.
+• Larger, deliberate strides instead of nervous shuffling.
+• Fixed segment lengths and validated joint reach limits.
+• Collision avoidance between the feet.
+• Smooth transitions across all speeds and movement directions.
+
+Specifically prevent double intermediate steps, landing positions that shift after the fact, sliding planted feet, and movement deadlocks caused by conflicting reach or collision checks.
+
+The mech must be able to walk on uneven terrain and traverse walls and ceilings using a believable adhesion mechanism. Foot alignment and body orientation must follow the actual contact surfaces.
+
+Give all three forms their own procedural idle behaviors: sensor attention, appropriate actuator adjustments, weight distribution, suspension response, or flight stabilization. Use varied timing and behavioral variations. Avoid constant random wobbling.
+
+When contacting obstacles or other mechs, the robot should react appropriately to the contact location, direction, and relative speed. Implement bracing, yielding, corrective steps, and controlled recovery. Animation and physical movement must work together.
+
+OPTIMIZATION AND BAKING
+
+Design the asset for real-time rendering. A dense Blender model alone is not a finished game asset.
+
+• Create clean UVs and baked PBR textures.
+• Transfer suitable small details into normal maps and material textures.
+• Preserve important silhouette features and mechanical components as geometry.
+• Minimize material switches and use sensible texture atlases.
+• Generate at least three validated LOD levels.
+• Use an efficient rig for rigid components without unnecessary blending of skin weights.
+• Export reliably to glTF/GLB and verify the result in Godot.
+
+Start with a target of approximately 20,000–35,000 triangles for the runtime model used at close viewing distances. Adjust this budget only based on visible quality requirements and measured performance. Distinguish between triangles, mesh vertices, and GPU vertices created by UV or normal splits.
+
+GODOT VIEWER AND CONTROLS
+
+Build a clearly organized test environment with:
+• Flat ground, uneven terrain, ramps, and sharp and rounded edges.
+• Walls and ceilings for adhesion-based traversal.
+• Obstacles and multiple mechs for interaction tests.
+• Good lighting, a freely controllable camera, and close-up inspection.
+• Displays for FPS, frame times, LOD, movement state, and contacts.
+• Slow motion, pause, and useful contact and joint visualization.
+
+Controls:
+W/S: Move forward and backward
+A/D: Turn
+Q/E: Strafe
+Shift: Sprint or accelerate
+Ctrl: Crawl
+Space: Jump; ascend while flying
+R: Resonance
+T: Toggle rolling transformation
+Z: Toggle flying transformation
+
+T and Z must respond to a single key press. Specifically test Z on a German QWERTZ keyboard.
+
+VALIDATION AND DELIVERY
+
+Work iteratively: establish functional construction and movement first, then refine the visuals, bake, optimize, and perform final validation.
+
+Visually inspect the animation in Godot, including in slow motion. Successful script execution alone is insufficient.
+
+Create reproducible tests for movement, foot clearance, contacts, joint reach limits, terrain transitions, collisions, and every transformation direction, including interruptions.
+
+Measure performance with one mech and with multiple mechs. Document the hardware, resolution, settings, frame times, geometry budgets, and texture budgets. Optimize based on the measurements.
+
+Deliver:
+• Editable Blender files.
+• Reproducible generation and export scripts.
+• Optimized models, LODs, and baked textures.
+• A complete Godot project with a runnable viewer.
+• Brief operating instructions and a project overview.
+• Validation reports and short motion previews.
+
+Work autonomously until you achieve a functional, verifiable result. Ask questions only when missing information genuinely blocks the work.

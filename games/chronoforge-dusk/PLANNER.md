@@ -1,0 +1,37 @@
+# Planning Chronoforge Dusk
+
+Use this handoff when resuming the director conversation or preparing another agent's assignment. It preserves the reasoning behind the project; it does not prescribe a permanent agent role or authorize execution. The owner's current request controls whether you discuss, write a plan, implement, or delegate.
+
+## Recover the current position
+
+Read [AGENTS.md](AGENTS.md), [README.md](README.md), [DECISIONS.md](DECISIONS.md), and [ROADMAP.md](ROADMAP.md), then the relevant numbered plan. Inspect current Git status, recent commits, and the last task's evidence before deciding what is actually ready. Roadmap statuses can lag reality: documents and passing structural checks do not prove a playable result.
+
+At this handoff's creation, only planning documents existed. Use the roadmap and verified work for subsequent status; do not maintain a second progress tracker here. Consult [LESSONS.md](LESSONS.md) for the historical audit and the README's reference entry points for targeted investigation. Implementation agents generally need their assignment and relevant references, not this whole planning context.
+
+## What the owner is trying to achieve
+
+This is a game for the owner's enjoyment, with a multi-week development horizon and room to find its personality. The original 2D Chronoforge has the identity they care about. Its unfinished mechanics are not sacred. The newer prototype demonstrated convincing world structure, traversal, and ATB choreography, but its graphics and theme felt wrong and too generically generated. A new engine alone will not correct that.
+
+The earlier mistake was building broad systems and eight biomes before solving the asset-to-game experience. Dusk reverses that order: prove one character through the real game, make that production loop repeatable, then grow one region at a time. “Kaida first” means identity, deformation, motion, contact, responsiveness, and presentation together. A beautiful Blender render or a valid skeleton is insufficient.
+
+The owner welcomes creative implementation judgment but wants to drive major direction and may drive the story. Discuss consequential choices with concrete alternatives and a recommendation; resolve routine details autonomously. Avoid multiplying documents, permission rituals, or speculative infrastructure. Preserve decisions without treating proposed defaults as permanent rules.
+
+## Decisions to carry forward
+
+- Build fresh in Godot for a native Mac application. Browser access was convenient, but the owner explicitly accepted dropping it unless playtesting reveals a compelling need. No web preparation or dual-runtime design now. Measure performance on their hardware; Godot is not an automatic quality or CPU improvement.
+- Preserve original Chronoforge art and character identity through polished new assets. “AAA quality” describes the finish sought, not photorealism, a different costume, or unlimited content scope. Use original assets directly as visual references; do not silently import old production assets or code.
+- The **game owns** asset consumption, development views, tuning, and playtesting through its actual runtime. `_prep` produces assets. Metadata selects necessary stages; a Blender prop need not visit Meshy or Mixamo, and not every asset needs a skeleton.
+- Hosted generation and manual rigging/animation service steps are acceptable. Do useful local work around missing manual inputs, identify the exact handoff, and never count a fixture as accepted Kaida.
+- Dawn contributes lessons only. The prototype contributes behavioral reference. Neither supplies Dusk's implementation or visual theme by default. Historical prompts, including retained reference prompts, are source material, not active instructions.
+- After Kaida is accepted, give story and crew personality an owner-led pass before detailed region production. Chrono Trigger is an inspiration, not a plot template. Haventide is proposed; the prototype's Bellwether story is not canon.
+- Later, discuss extracting proven capabilities into a redesigned tech9 director/scaffolder. See [FRAMEWORK_FUTURE.md](FRAMEWORK_FUTURE.md). Do not archive or rebuild the framework now; future games may be 2D side-scrollers with entirely different needs.
+
+## Scope the next assignment
+
+Choose the smallest complete outcome that resolves the next uncertainty or delivers a useful playable increment. Refine an existing numbered plan when possible. Later roadmap entries are outlines to develop when reached, not ready-made orders to execute the whole campaign. If splitting a milestone, use a linked subplan with an unambiguous place in the existing sequence.
+
+A useful handoff states the outcome, prerequisites, allowed references and any explicit reuse, owned files/components, deliverables, relevant validation, and where to stop. Keep implementation choices open unless a shared interface or settled direction requires specificity. Distinguish a bounded engineering task from repeated subjective playtesting or a story discussion requiring the owner.
+
+Parallelize independent outputs when authorized and useful. Assign shared interface ownership before both lanes depend on it; the game lane establishes the runtime asset descriptor. Coordinate integration and isolated running builds so one worker cannot invalidate another's screenshots. Do not prescribe a permanent roster of agent personalities.
+
+Review completed work against actual runtime evidence and the owner's response. Update the relevant plan/status and decision record only where something changed. Follow AGENTS.md for checkpoint commits. Stop at the assigned boundary and propose the next useful task; do not silently launch it or widen the project to make the roadmap look complete.

@@ -158,10 +158,19 @@ export function createGame(onEvent = () => {}) {
     try {
       if (typeof localStorage === 'undefined') return false;
       const parsed = JSON.parse(localStorage.getItem(SAVE_KEY));
+      const record = value => !!value && typeof value === 'object' && !Array.isArray(value);
+      const validStatuses = list => Array.isArray(list) && list.every(s => record(s) && typeof s.id === 'string' && Number.isFinite(s.turns) && Number.isFinite(s.power));
       if (!parsed || parsed.version !== 1 || parsed.party?.length !== 3 || !parsed.player || !parsed.resources || !parsed.inventory || !Array.isArray(parsed.cleared) || !parsed.flags || !parsed.settlement || !Number.isInteger(parsed.settlement.beacon)) return false;
-      if (!Number.isFinite(parsed.player.x) || !Number.isFinite(parsed.player.z) || !['food', 'ore', 'energy', 'renown'].every(key => Number.isFinite(parsed.resources[key]) && parsed.resources[key] >= 0)) return false;
-      if (!HEROES.every(h => parsed.party.some(p => p.id === h.id && Number.isFinite(p.hp) && Number.isFinite(p.mp) && Number.isInteger(p.level) && Number.isFinite(p.xp) && Number.isFinite(p.sp) && Array.isArray(p.skills) && Array.isArray(p.statuses) && p.equipment))) return false;
+      if (![parsed.flags, parsed.settings, parsed.inventory, parsed.resources, parsed.player, parsed.settlement].every(record)) return false;
+      if (!Number.isFinite(parsed.player.x) || !Number.isFinite(parsed.player.z) || Math.abs(parsed.player.x) > 25 || parsed.player.z < -29 || parsed.player.z > 23 || !['food', 'ore', 'energy', 'renown'].every(key => Number.isFinite(parsed.resources[key]) && parsed.resources[key] >= 0)) return false;
+      if (!['music', 'sfx', 'battleSpeed'].every(key => Number.isFinite(parsed.settings[key])) || !['high', 'medium', 'low'].includes(parsed.settings.quality) || !Number.isFinite(parsed.playtime) || parsed.playtime < 0 || parsed.settlement.beacon < 0 || parsed.settlement.beacon > 2) return false;
+      if (!Object.values(parsed.inventory).every(n => Number.isInteger(n) && n >= 0) || !parsed.cleared.every(id => !!ENCOUNTERS[id])) return false;
+      if (!Object.entries(parsed.flags).every(([key, value]) => key === 'combosUsed' ? Array.isArray(value) && value.every(id => COMBOS.some(c => c.id === id)) : typeof value === 'boolean')) return false;
+      if (!HEROES.every(h => parsed.party.some(p => p.id === h.id && Number.isFinite(p.hp) && Number.isFinite(p.mp) && Number.isInteger(p.level) && Number.isFinite(p.xp) && Number.isFinite(p.sp) && Array.isArray(p.skills) && p.skills.every(id => SKILLS[h.id].some(s => s.id === id)) && validStatuses(p.statuses) && record(p.equipment) && Object.values(p.equipment).every(id => !!ITEMS[id])))) return false;
+      if (parsed.battle && (!record(parsed.battle) || !ENCOUNTERS[parsed.battle.id] || !record(parsed.battle.origin) || !Number.isFinite(parsed.battle.origin.x) || !Number.isFinite(parsed.battle.origin.z) || !Array.isArray(parsed.battle.enemies) || !parsed.battle.enemies.length || !parsed.battle.enemies.every(e => record(e) && typeof e.id === 'string' && ['hp', 'maxHp', 'atb', 'attack', 'defense', 'speed', 'x', 'z'].every(key => Number.isFinite(e[key])) && validStatuses(e.statuses) && record(e.intent)) || !Array.isArray(parsed.battle.log))) return false;
       game.state = { ...initialState(), ...parsed, settings: { ...initialState().settings, ...parsed.settings } };
+      game.state.settings.music = clamp(game.state.settings.music, 0, 1); game.state.settings.sfx = clamp(game.state.settings.sfx, 0, 1); game.state.settings.battleSpeed = clamp(game.state.settings.battleSpeed, 0.6, 1.6);
+      if (game.state.battle) game.state.battle.actionDelay = clamp(Number(game.state.battle.actionDelay) || 0, 0, 1.7);
       for (const h of game.state.party) { h.level = clamp(h.level, 1, 5); h.atb = clamp(h.atb || 0, 0, 100); syncStats(h); }
       game.state.mode = parsed.mode === 'defeat' ? 'defeat' : parsed.battle && !parsed.cleared.includes(parsed.battle.id) ? 'battle' : parsed.flags?.ending ? 'ending' : 'explore';
       if (game.state.mode === 'explore') game.state.battle = null;
@@ -173,6 +182,7 @@ export function createGame(onEvent = () => {}) {
       const missing = c.participants.map(hero).find(h => h.hp <= 0 || h.atb < 100 || h.mp < c.cost);
       let reason = '';
       if (game.state.mode !== 'battle') reason = 'Available in battle';
+      else if (game.state.battle.actionDelay > 0) reason = 'Resolving technique';
       else if (c.id === 'aeon-sunder' && (!game.state.flags.relayWest || !game.state.flags.relayEast)) reason = 'Restore both relays to synchronize Aeon Sunder';
       else if (c.id === 'aeon-sunder' && game.state.battle.sunderUsed) reason = 'Aeon Sunder has been used this battle';
       else if (missing) reason = missing.hp <= 0 ? `${missing.name} is down` : missing.atb < 100 ? `${missing.name} needs a full gauge` : `${missing.name} needs ${c.cost} MP`;
@@ -189,7 +199,7 @@ export function createGame(onEvent = () => {}) {
       { id: 'item-medkit', name: `Medkit ×${game.state.inventory.medkit || 0}`, cost: 0, type: 'item', target: 'ally', description: ITEMS.medkit.description },
       { id: 'item-ether', name: `Aether cell ×${game.state.inventory.ether || 0}`, cost: 0, type: 'item', target: 'ally', description: ITEMS.ether.description },
     ].map(a => {
-      const reason = game.state.mode !== 'battle' ? 'Available in battle' : h.hp <= 0 ? 'Hero is down' : h.atb < 100 ? 'Gauge is charging' : h.mp < a.cost ? `Requires ${a.cost} MP` : a.type === 'item' && !(game.state.inventory[a.id.slice(5)] > 0) ? 'No supplies remaining' : '';
+      const reason = game.state.mode !== 'battle' ? 'Available in battle' : game.state.battle.actionDelay > 0 ? 'Resolving technique' : h.hp <= 0 ? 'Hero is down' : h.atb < 100 ? 'Gauge is charging' : h.mp < a.cost ? `Requires ${a.cost} MP` : a.type === 'item' && !(game.state.inventory[a.id.slice(5)] > 0) ? 'No supplies remaining' : '';
       return { ...a, available: !reason, reason };
     });
     return [...actions, ...getCombos().filter(c => c.participants.includes(id))];
@@ -223,7 +233,7 @@ export function createGame(onEvent = () => {}) {
     const snapshot = copy({ ...s, checkpoint: null, battle: null, mode: 'explore' });
     s.checkpoint = { state: snapshot, id, origin: origin || { x: landmark.x, z: landmark.z } };
     s.mode = 'battle';
-    s.battle = { id, name: encounter.name, origin: { ...(origin || landmark) }, enemies: encounter.enemies.map((e, i) => ({ ...e, id: `${id}-${i}`, index: i, hp: e.maxHp, atb: 8 + i * 5, statuses: [], intent: null })), phase: 1, turn: 0, selectedHero: 'kaida', log: [id === 'boss' ? 'THE PALE WARDEN: “Preserve the final hour.”' : encounter.description], reward: encounter.reward, elapsed: 0, sequence: ++enemySerial };
+    s.battle = { id, name: encounter.name, origin: { ...(origin || landmark) }, enemies: encounter.enemies.map((e, i) => ({ ...e, id: `${id}-${i}`, index: i, hp: e.maxHp, atb: 8 + i * 5, statuses: [], intent: null })), phase: 1, turn: 0, actionDelay: 0, selectedHero: 'kaida', log: [id === 'boss' ? 'THE PALE WARDEN: “Preserve the final hour.”' : encounter.description], reward: encounter.reward, elapsed: 0, sequence: ++enemySerial };
     for (const [i, h] of s.party.entries()) { syncStats(h); h.statuses = []; h.atb = 52 - i * 10 + (s.settlement.beacon >= 2 ? 20 : 0); if (h.hp <= 0) h.hp = Math.round(h.maxHp * 0.35); h.mp = Math.min(h.maxMp, h.mp + (s.settlement.beacon ? 8 : 0)); }
     for (const enemy of s.battle.enemies) planEnemy(enemy);
     emit({ type: 'battleStart' }); sound('interact'); return { ok: true };
@@ -252,12 +262,15 @@ export function createGame(onEvent = () => {}) {
     if (paused || s.mode !== 'battle' || !s.battle) return;
     const step = Math.min(Math.max(dt, 0), 0.1) * clamp(Number(s.settings.battleSpeed) || 1, 0.6, 1.6);
     s.battle.elapsed += step;
+    const resolving = s.battle.actionDelay > 0;
+    s.battle.actionDelay = Math.max(0, (s.battle.actionDelay || 0) - step);
     for (const h of s.party) if (h.hp > 0) {
       const speed = getStats(h.id).speed * (status(h, 'haste') ? 1.55 : 1) * (status(h, 'slow') ? 0.6 : 1);
       h.atb = Math.min(100, h.atb + speed * step);
     }
-    // Tactical WAIT: allies keep charging, so the player can coordinate any crew combination.
-    if (s.party.some(h => h.hp > 0 && h.atb >= 100)) return;
+    // Tactical WAIT gives unlimited planning time. Every committed action advances enemy
+    // time during its choreography, even when another ally is holding a full gauge.
+    if (!resolving && s.party.some(h => h.hp > 0 && h.atb >= 100)) return;
     for (const enemy of s.battle.enemies) {
       if (enemy.hp <= 0) continue;
       enemy.atb = Math.min(100, enemy.atb + enemy.speed * step * (status(enemy, 'slow') ? 0.55 : 1) * (s.battle.phase >= 3 ? 1.15 : 1));
@@ -290,6 +303,7 @@ export function createGame(onEvent = () => {}) {
     if (!target) return toast('Choose a valid target.');
     const revives = ['item-medkit', 'rewind'].includes(actionId);
     if (action.target === 'ally' && target.hp <= 0 && !revives) return toast('Use a Medkit or Rewind to revive a fallen ally.');
+    s.battle.actionDelay = action.type === 'triple' ? 1.7 : action.type === 'combo' ? 1.3 : action.type === 'tech' ? 1.05 : 0.85;
     const participants = action.participants ? action.participants.map(hero) : [h];
     for (const participant of participants) { participant.mp -= action.cost; participant.atb = 0; participant.statuses = participant.statuses.filter(s => s.id !== 'guard'); tickStatuses(participant); }
     if (participants.some(p => p.hp <= 0)) {

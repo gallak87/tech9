@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { createGame, SAVE_KEY, HEROES, SKILLS, ITEMS } from '../src/game.js';
 
 function fresh() { const events = []; const game = createGame(e => events.push(e)); game.newGame(); return { game, events }; }
-function charge(game) { for (const h of game.state.party) if (h.hp > 0) { h.atb = 100; h.mp = h.maxMp; } }
+function resolve(game) { for (let i = 0; i < 100 && game.state.mode === 'battle' && game.state.battle.actionDelay > 0; i++) game.update(0.05); }
+function charge(game) { resolve(game); for (const h of game.state.party) if (h.hp > 0) { h.atb = 100; h.mp = h.maxMp; } }
 function finish(game, encounter) {
   if (game.state.mode === 'victory') { game.state.mode = 'explore'; game.state.battle = null; }
   assert.equal(game.startBattle(encounter).ok, true);
@@ -57,6 +58,29 @@ test('area attacks use target positions and reject missing targets without consu
   assert.equal(h.atb, 0); assert.equal(h.mp, beforeMP - 6);
 });
 
+test('action choreography advances enemy time with a ready ally held and locks concurrent commands', () => {
+  const { game } = fresh(); game.state.flags.relayWest = true; game.state.flags.relayEast = true;
+  game.startBattle('boss'); charge(game);
+  const boss = game.state.battle.enemies[0], rune = game.state.party[2];
+  boss.atb = 99; boss.intent = { name: 'Clockhand Crush', type: 'attack', power: 1, targetId: 'rune' };
+  const before = rune.hp;
+  assert.equal(game.act('kaida', 'attack', boss.id).ok, true);
+  assert.equal(game.state.battle.actionDelay, 0.85);
+  assert.ok(game.getActions('vex').every(a => !a.available && a.reason === 'Resolving technique'));
+  assert.ok(game.getCombos().every(a => !a.available && a.reason === 'Resolving technique'));
+  assert.equal(game.act('vex', 'attack', boss.id).message, 'Resolving technique');
+  assert.equal(rune.atb, 100);
+  resolve(game);
+  assert.ok(rune.hp < before, 'the enemy must execute its attack even though Rune stays ready');
+  assert.equal(rune.atb, 100);
+  assert.equal(game.state.battle.actionDelay, 0);
+  const gauge = boss.atb;
+  tick(game, 2);
+  assert.equal(boss.atb, gauge, 'enemy time pauses again after choreography ends');
+  assert.equal(game.act('vex', 'gravity-well', boss.id).ok, true);
+  assert.equal(game.state.battle.actionDelay, 1.05);
+});
+
 test('all pairs and the triple consume every participant gauge and MP, with real support and interruption', () => {
   const { game, events } = fresh();
   game.state.flags.relayWest = true; game.state.flags.relayEast = true;
@@ -64,7 +88,7 @@ test('all pairs and the triple consume every participant gauge and MP, with real
   for (const combo of game.getCombos()) {
     charge(game);
     const before = Object.fromEntries(game.state.party.map(h => [h.id, { mp: h.mp, hp: h.hp }]));
-    if (combo.id === 'combo-vex-rune') for (const h of game.state.party) h.hp = 30;
+    if (combo.id === 'combo-vex-rune') for (const h of game.state.party) { h.hp = 30; h.statuses = []; }
     const enemy = game.state.battle.enemies[0]; enemy.hp = enemy.maxHp; enemy.atb = 85;
     assert.equal(game.act(combo.participants[0], combo.id, enemy.id).ok, true);
     for (const id of combo.participants) {
@@ -90,6 +114,7 @@ test('items heal, revive, restore MP, and cannot be consumed when unavailable', 
   assert.equal(rune.atb, 100);
   assert.equal(game.act('kaida', 'item-medkit', 'vex').ok, true);
   assert.equal(vex.hp, 80); assert.equal(game.state.inventory.medkit, 4);
+  resolve(game);
   vex.mp = 0;
   assert.equal(game.act('rune', 'item-ether', 'vex').ok, true);
   assert.equal(vex.mp, 24);
@@ -202,6 +227,10 @@ test('local saves round-trip exploration and active battles, rejecting corrupt s
     const brokenShape = JSON.parse(stable); brokenShape.settlement = null;
     data.set(SAVE_KEY, JSON.stringify(brokenShape)); assert.equal(battleLoaded.load(), false);
     assert.equal(JSON.stringify(battleLoaded.state), stable, 'a failed load must preserve the current game');
+    for (const mutate of [s => { s.flags = 'bad'; }, s => { s.settings.music = 'loud'; }, s => { s.player.x = 999; }, s => { s.battle.enemies[0].statuses = [null]; }]) {
+      const corrupted = JSON.parse(stable); mutate(corrupted); data.set(SAVE_KEY, JSON.stringify(corrupted));
+      assert.equal(battleLoaded.load(), false); assert.equal(JSON.stringify(battleLoaded.state), stable);
+    }
     data.set(SAVE_KEY, '{corrupt'); assert.equal(createGame().load(), false);
     data.set(SAVE_KEY, JSON.stringify({ version: 1, party: [] })); assert.equal(createGame().load(), false);
   } finally { delete globalThis.localStorage; }
@@ -217,6 +246,7 @@ test('a legal tactical playthrough wins every authored encounter without grantin
     assert.equal(game.startBattle(encounter).ok, true);
     for (let step = 0; step < 10000 && game.state.mode === 'battle'; step++) {
       game.update(0.05);
+      if (game.state.mode !== 'battle' || game.state.battle.actionDelay > 0) continue;
       if (!game.state.party.every(h => h.hp <= 0 || h.atb >= 100)) continue;
       const allies = game.state.party.filter(h => h.hp > 0), target = game.state.battle.enemies.find(e => e.hp > 0);
       const injured = game.state.party.find(h => h.hp < h.maxHp * 0.35);
@@ -229,11 +259,13 @@ test('a legal tactical playthrough wins every authored encounter without grantin
         command = [h.id, 'attack', target.id];
       }
       assert.equal(game.act(...command).ok, true); actions++;
-      // Issue each remaining ready hero a useful ordinary command before allowing time forward.
+      // Let each action's choreography and the enemy timeline resolve before the next command.
       for (const h of allies.filter(h => h.atb >= 100)) {
+        resolve(game);
         if (game.state.mode !== 'battle') break;
+        if (h.hp <= 0) continue;
         const foe = game.state.battle.enemies.find(e => e.hp > 0);
-        game.act(h.id, 'attack', foe.id); actions++;
+        assert.equal(game.act(h.id, 'attack', foe.id).ok, true); actions++;
       }
     }
     assert.equal(game.state.mode, 'victory', `${encounter} should be winnable with legal resources`);

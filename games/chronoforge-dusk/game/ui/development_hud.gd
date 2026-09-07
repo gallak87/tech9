@@ -62,9 +62,12 @@ func _ready() -> void:
 	side.size = Vector2(402, 816)
 	side.add_theme_stylebox_override("panel", panel(Color("172126"), 10))
 	ui.add_child(side)
+	var frame := VBoxContainer.new()
+	side.add_child(frame)
 	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	side.add_child(scroll)
+	frame.add_child(scroll)
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 13)
@@ -121,9 +124,12 @@ func _ready() -> void:
 		spin.value_changed.connect(func(value: float) -> void: tuning_changed.emit(str(item[0]), value))
 		knobs[str(item[0])] = spin
 		line.add_child(spin)
-	button(column, "Accept fixture + save tuning  [F6]", "save")
-	button(column, "Restore accepted fixture  [F7]", "restore")
-	save_status = text_label(column, "", 16, Color("9caaa7"))
+	var accepted := VBoxContainer.new()
+	frame.add_child(accepted)
+	button(accepted, "Accept fixture + tuning  [F6]", "save")
+	button(accepted, "Restore accepted fixture  [F7]", "restore")
+	save_status = text_label(accepted, "", 16, Color("9caaa7"))
+	save_status.custom_minimum_size.y = 42
 	save_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text_label(column, "Temporary motion proves wiring only.\nThis actor is not Kaida.", 17, Color("d0b994"))
 	var bottom := PanelContainer.new()
@@ -154,7 +160,9 @@ func set_mode(index: int) -> void:
 		view_buttons[i].button_pressed = i == index
 	mode_description.text = ["Inspect the imported actor, attachment and in-place clips.", "Walk the collision patch. Facing and displacement belong to the controller.", "One strike: approach, contact, reaction, recovery and return."][index]
 	animation.disabled = index != 0
+	animation.visible = index == 0
 	attack_button.disabled = index != 2
+	attack_button.visible = index == 2
 	for phase: String in phase_labels:
 		phase_labels[phase].visible = index == 2
 

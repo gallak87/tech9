@@ -11,8 +11,6 @@ func run(root: DuskFoundation) -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	started = Time.get_ticks_msec()
 	# A deterministic test run is allowed to simulate focus explicitly.
-	game.get_window().focus_exited.disconnect(game.get_window().focus_exited.get_connections()[0].callable)
-	game.get_window().focus_entered.disconnect(game.get_window().focus_entered.get_connections()[0].callable)
 	game.set_unfocused(false)
 	if "--verify-restart" in OS.get_cmdline_user_args():
 		await seconds(2.0)
@@ -45,7 +43,15 @@ func run(root: DuskFoundation) -> void:
 	bad = descriptor.duplicate(true)
 	bad.motion.clips = "root_motion"
 	await rejects(bad, "Conflicting motion ownership rejected")
+	bad = descriptor.duplicate(true)
+	bad.dimensions = null
+	await rejects(bad, "Malformed nested metadata produces visible error")
+	bad = descriptor.duplicate(true)
+	bad.attachments[0].position_m = [1, 2]
+	await rejects(bad, "Malformed attachment transform rejected")
 	game.load_candidate_index(0)
+	await key(KEY_F5)
+	check(game.load_error.is_empty() and game.actor.visual.descriptor.revision == "slate-r1", "F5 reloads selected prepared revision")
 	game.tuning.values = DuskTuning.DEFAULTS.duplicate()
 	game.apply_tuning()
 	await key(KEY_2)
@@ -57,6 +63,7 @@ func run(root: DuskFoundation) -> void:
 	await seconds(1.0)
 	key_up(KEY_W)
 	var walking: float = game.actor.position.distance_to(start)
+	print("DUSK_WALK ", JSON.stringify({"start": str(start), "end": str(game.actor.position), "distance": walking, "speed": game.actor.walk_speed, "yaw": game.camera.yaw, "paused": game.get_tree().paused}))
 	check(walking > 1.7 and walking < 2.8 and game.actor.position.z < -1.7, "Camera-relative walk uses real input mapping")
 	game.actor.place(Vector3.ZERO)
 	key_down(KEY_SHIFT)
@@ -128,6 +135,8 @@ func run(root: DuskFoundation) -> void:
 		key_down(direction)
 		await seconds(1.5)
 		key_up(direction)
+	await seconds(0.6)
+	check(game.camera.focus.distance_to(game.actor.position) < 0.01, "Follow camera settles after movement stops")
 	await capture("traverse")
 	game.perf.begin("asset_reload")
 	await seconds(0.2)
@@ -169,12 +178,15 @@ func run(root: DuskFoundation) -> void:
 	game.tuning.values.camera_yaw = 60.0
 	game.tuning.values.impact_fraction = 0.55
 	game.apply_tuning()
-	game.command("save")
+	await key(KEY_F6)
 	check(FileAccess.file_exists(game.tuning.path), "Accepted tuning deliberately written")
 	game.tuning.values.walk_speed = 1.0
 	game.apply_tuning()
-	game.command("restore")
+	await key(KEY_F7)
 	check(is_equal_approx(game.actor.walk_speed, 2.8) and game.actor.visual.descriptor.revision == "clay-r1", "Restore pairs tuning with accepted candidate")
+	var reloaded := DuskTuning.new()
+	reloaded.path = game.tuning.path
+	check(reloaded.restore() and is_equal_approx(float(reloaded.values.walk_speed), 2.8), "Independent tuning object reads saved file")
 	finish("foundation")
 
 func rejects(descriptor: Dictionary, label: String) -> void:
@@ -216,7 +228,8 @@ func seconds(duration: float) -> void:
 func capture(label: String) -> void:
 	if DisplayServer.get_name() == "headless":
 		return
-	await RenderingServer.frame_post_draw
+	# Render explicitly so capture also completes when macOS occludes the window.
+	RenderingServer.force_draw(false)
 	var image: Image = game.get_viewport().get_texture().get_image()
 	image.save_png("user://" + label + ".png")
 

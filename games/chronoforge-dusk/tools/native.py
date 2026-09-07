@@ -53,7 +53,7 @@ def setup():
 
 def build_identity():
     commit = subprocess.check_output(['git', 'rev-parse', '--short=12', 'HEAD'], cwd=ROOT, text=True).strip()
-    dirty = subprocess.check_output(['git', 'status', '--porcelain', '--', '.'], cwd=ROOT, text=True).strip()
+    dirty = subprocess.check_output(['git', 'status', '--porcelain', '--', 'game'], cwd=ROOT, text=True).strip()
     # Content digest identifies the actual tested source even before a checkpoint commit.
     digest = hashlib.sha256()
     for source in sorted(GAME.rglob('*')):
@@ -85,8 +85,8 @@ def main():
     if args.command in ('test', 'test-editor'):
         binary = APP / 'Contents/MacOS/Chronoforge Dusk' if args.command == 'test' else godot
         prefix = [binary] if args.command == 'test' else [binary, '--path', GAME]
-        run([*prefix, '--', '--self-test'])
-        run([*prefix, '--', '--verify-restart'])
+        run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--self-test'])
+        run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--verify-restart'])
 
 
 if __name__ == '__main__':

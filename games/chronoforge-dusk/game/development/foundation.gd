@@ -22,6 +22,9 @@ var load_status: String = "Not loaded"
 var load_error: String = ""
 var flash: float = 0.0
 var startup_ms: int = 0
+var ready_ms: int = 0
+var source_sha256: String = "unrecorded"
+var target_error: String = ""
 var ui_elapsed: float = 0.0
 var input_events: int = 0
 var last_input: String = "none"
@@ -38,6 +41,7 @@ func _ready() -> void:
 		var build: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://content/build_info.json"))
 		if build is Dictionary:
 			game_revision = str(build.get("revision", "development"))
+			source_sha256 = str(build.get("source_sha256", "unrecorded"))
 	bind_inputs()
 	tuning.restore()
 	var prepared: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://content/candidates.json"))
@@ -70,7 +74,7 @@ func _ready() -> void:
 		target.remove_child(target_asset)
 		target.install(target_asset)
 	else:
-		load_error = "Target import failed: " + target_asset.load_error
+		target_error = "Target import failed: " + target_asset.load_error
 		target_asset.queue_free()
 	camera = DuskOrbitCamera.new()
 	add_child(camera)
@@ -105,8 +109,10 @@ func _ready() -> void:
 	else:
 		load_error = "Accepted descriptor is no longer prepared: " + initial + ". Select a candidate explicitly."
 	set_mode(1)
-	get_window().focus_exited.connect(func() -> void: set_unfocused(true))
-	get_window().focus_entered.connect(func() -> void: set_unfocused(false))
+	if not test_mode:
+		get_window().focus_exited.connect(func() -> void: set_unfocused(true))
+		get_window().focus_entered.connect(func() -> void: set_unfocused(false))
+	ready_ms = Time.get_ticks_msec()
 	print("DUSK_START ", JSON.stringify(identity()))
 	if test_mode:
 		var runner: Node = load("res://tests/foundation_test.gd").new()
@@ -186,7 +192,7 @@ func _process(delta: float) -> void:
 		return
 	ui_elapsed = 0.0
 	hud.status.text = load_status
-	hud.error_panel.text = load_error
+	hud.error_panel.text = load_error + ("\n" + target_error if not target_error.is_empty() else "")
 	hud.save_status.text = tuning.message
 	hud.pause_button.text = "Resume  [P]" if manually_paused else "Pause  [P]"
 	hud.action_status.text = "Strike %02d   /   %s   /   impacts %d" % [action.action_id, action.phase.to_upper(), action.impact_count] if mode == 2 else ["ASSET INSPECTION", "TRAVERSAL PATCH", ""][mode]
@@ -313,7 +319,7 @@ func apply_pause() -> void:
 	Engine.max_fps = 10 if unfocused else (30 if manually_paused else 60)
 
 func identity() -> Dictionary:
-	return {"game_revision": game_revision, "engine": Engine.get_version_info().string, "renderer": RenderingServer.get_current_rendering_method(), "driver": RenderingServer.get_current_rendering_driver_name(), "gpu": RenderingServer.get_video_adapter_name(), "os": OS.get_name() + " " + OS.get_version(), "processor": OS.get_processor_name(), "internal_resolution": [1920, 1080], "window_pixels": [get_window().size.x, get_window().size.y], "display_scale": DisplayServer.screen_get_scale(), "frame_cap": Engine.max_fps, "asset": actor.visual.descriptor if actor.visual != null else {}, "tuning": tuning.values, "native_export": not OS.has_feature("editor")}
+	return {"game_revision": game_revision, "source_sha256": source_sha256, "engine_uptime_at_ready_ms": ready_ms, "scene_assembly_ms": ready_ms - startup_ms, "engine": Engine.get_version_info().string, "renderer": RenderingServer.get_current_rendering_method(), "driver": RenderingServer.get_current_rendering_driver_name(), "gpu": RenderingServer.get_video_adapter_name(), "os": OS.get_name() + " " + OS.get_version(), "processor": OS.get_processor_name(), "internal_resolution": [1920, 1080], "window_pixels": [get_window().size.x, get_window().size.y], "display_scale": DisplayServer.screen_get_scale(), "frame_cap": Engine.max_fps, "asset": actor.visual.descriptor if actor.visual != null else {}, "tuning": tuning.values, "native_export": not OS.has_feature("editor")}
 
 func write_diagnostics() -> void:
 	var report: Dictionary = {"identity": identity(), "intervals": perf.report(), "action": {"count": action.action_id, "impacts": action.impact_count, "completed": action.completed_count, "phase": action.phase}, "actor_position": [actor.position.x, actor.position.y, actor.position.z], "input_events": input_events, "last_input": last_input, "load_error": load_error, "nodes": Performance.get_monitor(Performance.OBJECT_NODE_COUNT)}

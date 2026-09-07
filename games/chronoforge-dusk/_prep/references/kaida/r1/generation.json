@@ -1,0 +1,31 @@
+{
+  "status": "awaiting_owner_review",
+  "mode": "built-in image_gen",
+  "generated_on": "2026-09-07",
+  "outputs": {
+    "kaida": "kaida-a-pose-r1.png",
+    "sword": "kaida-energy-sword-r1.png"
+  },
+  "requested_resolution": "2048x3072 or highest supported portrait resolution",
+  "actual_resolution": [
+    1024,
+    1536
+  ],
+  "source_references": [
+    "games/chronoforge/src/assets/kaida_battle_idle.png",
+    "games/chronoforge/src/assets/kaida_overworld.png"
+  ],
+  "reuse": "Original project sprites used as visual references only. No original production images copied into the game.",
+  "prompts": {
+    "kaida": "Use case: stylized-concept. Asset type: one high-resolution full-body 2D front A-pose character reference for 3D modeling, portrait 2048x3072 or highest supported portrait resolution. Input images are design references only: image 1 original Kaida battle sprite; image 2 original Kaida overworld sprite. Create a new clean polished anime/JRPG illustration of that exact recognizable character. Preserve her swept pointed magenta hair and angular locks, recognizable cyan fitted jacket with raised collar and pale cyan panels, dark undershirt, dark trousers, dark boots, wrist details, and slim agile proportions. Resolve detail conservatively from the sprites, no redesign. Kaida faces directly forward in a neutral balanced A-pose, torso and hips square to the viewer, straight relaxed legs, feet apart slightly and flat at the same ground level, arms straight slightly away from body about 25 degrees from vertical. Both hands empty, relaxed open and clearly separated from trousers, all fingers readable, palms facing forward. Entire body, hair tips, fingers and both complete boots visible with comfortable margins. Single front view only, no inset, no text. Simple flat light neutral gray background. Crisp confident clean linework, crisp silhouette, defined cel-shaded shadow shapes, saturated colors, controlled highlights. Strictly 2D illustration, no visible brush texture, no painterly shading, no photorealism, no 3D render. No sword, weapon, sheath, prop, effects, scene, or dramatic perspective.",
+    "sword": "Use case: stylized-concept. Asset type: one high-resolution 2D isolated energy-sword reference for 3D modeling, portrait 2048x3072 or highest supported portrait resolution. Input images are design references only: original Kaida battle and overworld sprites. Create a clean polished anime/JRPG illustration of Kaida's separate magenta energy sword, faithfully translating the visible sprite design: a narrow sharply pointed elongated magenta energy blade with bright pale pink inner light and a defined saturated pink outline, angular dark hilt/guard with magenta accents, dark wrapped grip and small pommel. One complete sword only, shown upright tip upward and grip downward, straight-on broad side view, no foreshortening. Entire tip, edges, hilt and pommel visible with generous margins against a simple flat light neutral gray background. Keep the silhouette sharply readable and limit glow to a subtle narrow halo. Crisp clean linework, defined cel-shaded shadow shapes, saturated colors. Strictly 2D illustration; no brush texture, photorealism, or 3D rendering. No person, hand, text, labels, duplicate views, scene or extra weapons. Use the original sword's simple proportions; do not add ornate fantasy decoration."
+  },
+  "output_sha256": {
+    "kaida-a-pose-r1.png": "4d12eb9f48ba5974d096197c212f7235f65a5dfe25efaddaa64dac44ac136159",
+    "kaida-energy-sword-r1.png": "f3e8ae8e831ba9efceb2feb70936e40b90215e548c4d4e4f170e7fd3d6bed2a6"
+  },
+  "reference_sha256": {
+    "games/chronoforge/src/assets/kaida_battle_idle.png": "ecb862328f42144e705270436379a37c955483b1a732bb58c680bd3bd7fc62a7",
+    "games/chronoforge/src/assets/kaida_overworld.png": "24b4fba2838e157eb3419220d4f4f33e67a029a32a5f7531e85b6f0ca161baae"
+  }
+}

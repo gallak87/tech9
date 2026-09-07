@@ -1,6 +1,6 @@
 # Asset preparation for Chronoforge Dusk
 
-**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida runtime r4 now has all five gameplay clips, a separate sword, and a verified native rehearsal; owner review and 03 polish remain pending.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current source and candidate handoff](KAIDA_HANDOFF.md) and [proof evidence](evidence/proofs-r1/README.md).
+**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida runtime r4 has all five gameplay clips, a separate sword, and a verified native rehearsal. It is the provisional integration baseline under the owner's good-enough cutoff; finer art polish does not block 03.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current source and candidate handoff](KAIDA_HANDOFF.md), [the current quality cutoff](../DECISIONS.md#phase-one-quality-cutoff--2026-09-07), and [proof evidence](evidence/proofs-r1/README.md).
 
 **The game owns asset consumption, preview, inspection, tuning, and playtesting.** `_prep` does not contain a second engine or the authoritative character viewer. Asset work is evaluated through the actual Dusk runtime and its development mode.
 

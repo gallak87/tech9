@@ -24,7 +24,7 @@ For a bounded task, provide this instruction with the selected plan's absolute p
 
 “Complete” includes honestly identifying missing source assets or manual inputs. A placeholder or structural test does not establish that Kaida is finished. Each implementation handoff should also identify the game/asset revisions tested and the next bounded action.
 
-**01 supplied the runnable foundation and runtime handoff; 02's local recipes now consume it.** The immediate next step is [reviewing the grounded Kaida candidate](_prep/assets/kaida/demos/foundation-r3/README.md), then 03 refinement. No additional Mixamo download blocks this first phase. The game lane owns the shared runtime descriptor; pipeline tools consume it rather than inventing another runtime format.
+**01 supplied the runnable foundation and runtime handoff; 02's local recipes now consume it.** Per the owner's [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07), keep the [current Kaida revision](_prep/assets/kaida/demos/foundation-r3/README.md) as the provisional baseline and move to 03's movement, action timing and reproducible settings. Fine character polish and new Meshy/Mixamo inputs do not block that work. The game lane owns the shared runtime descriptor; pipeline tools consume it rather than inventing another runtime format.
 
 For a new planning session, use [PLANNER.md](PLANNER.md) to recover the intent behind this sequence and scope the next assignment from actual results.
 

@@ -2,6 +2,8 @@
 
 **Type:** bounded tooling assignment plus manual-assisted asset acquisition. **Status:** complete first candidate handoff: Kaida runtime r4 has all five gameplay clips and a separate sword, verified in the native foundation. Proportions and animation polish remain provisional for 03.
 
+**Owner cutoff:** current source/review `foundation-r3`, runtime `kaida/r4`, and sword `kaida.energy-sword/r2` are the good-enough integration baseline. Further character polish does not block the handoff. Follow the [phase-one decision](../DECISIONS.md#phase-one-quality-cutoff--2026-09-07); do not start another regeneration or animation-authoring loop as a prerequisite to 03.
+
 **Requires:** 01's concrete runtime descriptor for final export/integration. Reference inspection and source acquisition can begin alongside 01.
 
 **Read:** [AGENTS.md](../AGENTS.md), [_prep overview](../_prep/README.md), and [asset handoff](../_prep/ASSET_CONTRACT.md). Inspect original [Kaida/assets](../../chronoforge/src/assets) directly. Use relevant lessons when diagnosing an actual problem.

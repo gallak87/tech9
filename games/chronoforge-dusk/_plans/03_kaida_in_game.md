@@ -1,6 +1,8 @@
 # 03 — Kaida in game
 
-**Type:** iterative asset/game refinement with owner playtesting. **Status:** unblocked by 02’s real `kaida/r4` candidate and native integration smoke check; the owner has rejected earlier grip/arm passes; the latest grip fit awaits review and broader motion/presentation refinement remains.
+**Type:** iterative asset/game refinement with owner playtesting. **Status:** unblocked; use `kaida/r4` as the provisional integration baseline. The owner now prioritizes “good enough” and continued progress over further grip/attack polish. Gameplay tuning, restart persistence and normal-play performance remain to be established; 03 is not complete.
+
+**First-pass cutoff:** prioritize responsive movement, readable approach/strike/return, stable equipment and reproducible settings at gameplay camera distance. Fix severe broken poses or missing functionality; defer fuller proportions, fine finger contact, elaborate attack mechanics and cosmetic cleanup. Existing clips are sufficient to start; new Mixamo downloads are optional. The long-term quality goals below do not require an open-ended art pass before this playable increment. See [the owner direction](../DECISIONS.md#phase-one-quality-cutoff--2026-09-07).
 
 **Requires:** the working native foundation from 01 and a real new Kaida model/rig/clip candidate through 02. If manual source inputs remain missing, resolve those first; a test actor cannot satisfy this step.
 

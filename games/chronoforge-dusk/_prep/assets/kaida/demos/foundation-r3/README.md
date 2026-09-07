@@ -2,6 +2,8 @@
 
 Open [kaida-foundation-r3-review.blend](kaida-foundation-r3-review.blend). This is the current review. **The grip has a new fit; the authored attack remains a provisional motion draft.** The owner rejected the earlier grip and unnatural arm lift. Native integration success is not visual acceptance.
 
+**Current cutoff:** the owner has asked for “good enough” so overall progress continues. Keep this revision as the provisional baseline and move on to 03's gameplay integration. Finer grip/attack polish and a replacement body are deferred; no new Mixamo input is required. Final visual acceptance remains separate from permission to keep building with this version.
+
 Press **Space** to play/pause. Use the **Scene dropdown at the top right** for **01 Idle**, **02 Walk**, **03 Run**, **04 Attack**, or **05 Hurt**. Each scene selects its own action and playback range. **Shift+Left Arrow** goes to the beginning. Headless saves do not update an already open Blender file.
 
 The handle now crosses near the knuckles on a diagonal; each finger has its own pose and the thumb crosses the grip. Only the handle and binding cross-section became 30% narrower; blade, guard and length retain their design. Elbow positioning keeps the hand beside the head during wind-up. Wrist orientation accounts for the diagonal grip and forearm direction. [Palm](inspection/grip-001-palm.png), [back](inspection/grip-001-back.png), and [contact close-up](inspection/grip-021-fingertips.png) show the evaluated source.

@@ -1,5 +1,7 @@
 # Kaida source review
 
+**Current disposition — 2026-09-07:** the owner wants “good enough” to keep overall progress moving. Use foundation R3 / runtime r4 and sword r2 as the provisional integration baseline. The previous visual objections remain recorded below, but another grip/attack polishing pass, body regeneration or Mixamo download does not block 03. See the [phase-one cutoff](../../../DECISIONS.md#phase-one-quality-cutoff--2026-09-07). Fix missing/broken functionality; defer finer grip contact, body proportions and attack naturalness.
+
 ## Owner direction — 2026-09-07
 
 The current Meshy r2 model is **too skinny**. The owner may regenerate her with fuller proportions later, but explicitly wants to keep working with this model for now. Treat its body proportions as provisional, not visually accepted. Do not thicken or regenerate the current mesh without a new direction; continue preparation and the rigging/export proof with the supplied geometry.

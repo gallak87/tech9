@@ -69,4 +69,12 @@ The owner subsequently supplied the Meshy r2 FBX and four texture maps. They con
 
 Mixamo accepted the full 81,202-triangle Kaida after material/media removal; the returned base has 65 bones. Source materials are restored locally after checking bind geometry and UV correspondence. The owner requested reusable preparation tooling, now documented in [_prep/MIXAMO.md](_prep/MIXAMO.md). The original rig, transforms, weights and two-frame static T-pose remain intact; this is not yet a five-role game candidate.
 
-The owner supplied idle/run FBXs at 30 FPS. `mixamo_clips` assembles their actions on the retained textured rig after matching hierarchy, rest matrices, transforms and included bind geometry/UVs. Source curves and every integer-frame bone pose match after save/reopen. The run's 3.71188 m of travel is retained for deliberate in-place finishing; walk, attack and hurt remain outstanding.
+The owner supplied idle/run FBXs at 30 FPS. `mixamo_clips` assembles their actions on the retained textured rig after matching hierarchy, rest matrices, transforms and included bind geometry/UVs. Source curves and every integer-frame bone pose match after save/reopen. The run's 3.71188 m of travel remains upstream; the subsequent foundation pass added in-place working clips, walk, attack and hurt.
+
+## Phase-one quality cutoff — 2026-09-07
+
+The owner directed: “Let's get it to good enough. I don't want to block the overall progress.” Use `foundation-r3` / runtime `kaida/r4` with `kaida.energy-sword/r2` as the provisional integration baseline. Stop further grip/attack authoring at this checkpoint and proceed with the game work in 03. Another Meshy generation or Mixamo download is optional, not a prerequisite.
+
+The current five roles, skin, equipment and controller-owned approach/attack/return passed [29 native checks](_prep/evidence/kaida-r4/README.md); the current game files still match that evidence. Missing clips, detached equipment, severe joint inversions or an action that cannot complete are blocking defects. Fuller proportions, finer finger/thumb contact, more natural whole-body attack motion and cosmetic mesh cleanup are deferred polish. This baseline is sufficient for continued integration; it does not establish final visual acceptance, measured normal-play performance, saved game tuning or completion of 03.
+
+The next bounded 03 pass should prioritize responsive traversal, readable attack/contact timing, return to formation and reproducible settings at gameplay camera distance. Keep the existing modular clips and separate sword. Reopen asset authoring only for a defect that prevents those tasks or a new owner request; do not require cinematic animation quality before progressing.

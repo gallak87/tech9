@@ -1,0 +1,19 @@
+{
+  "status": "awaiting_owner_review",
+  "mode": "built-in image_gen",
+  "generated_on": "2026-09-07",
+  "output": "kaida-a-pose-r2.png",
+  "actual_resolution": [
+    1024,
+    1536
+  ],
+  "base_image": "../r1/kaida-a-pose-r1.png",
+  "supporting_reference": "input-forearm-reference.png",
+  "change": "Removed dark forearm guards and brown straps; cyan rolled cuffs and exposed forearms. Other design and pose preserved.",
+  "sword_reference": "../r1/kaida-energy-sword-r1.png",
+  "prompt": "Use case: precise-object-edit. Image 1 is the EDIT TARGET: the current full-body Kaida A-pose reference. Image 2 is a SUPPORTING REFERENCE ONLY for the lower sleeves, rolled cuffs, and bare forearms. Edit image 1 in place with a tightly localized costume change on BOTH lower arms: remove the long dark forearm guards/bracers, brown straps, wrist bands, buckles and all forearm accessories. Replace those areas with simple cyan jacket sleeves ending in clean rolled-back cyan fabric cuffs roughly midway down each forearm, with exposed bare skin from cuff to hand, matching the uncomplicated rolled cuff / bare forearm treatment in image 2. Keep the natural existing arm length and A-pose, existing empty open hands and fingers. Preserve absolutely everything else from image 1: identical swept pointed magenta hairstyle and individual locks, same face and eyes, exact cyan jacket torso and raised collar, waist belt, dark trousers, dark boots, proportions, pose, outline, cel shading, colors, composition, full-body framing, image dimensions, and neutral background. Do NOT inherit image 2's hair, shirt design, collar, shoulder tabs, trousers color, pose, checkerboard background, or UI. Do not add a weapon or change any area outside the cuffs/forearms. Crisp polished 2D anime/JRPG illustration, no brush texture or photorealism. Deliver one edited reference image.",
+  "sha256": {
+    "input-forearm-reference.png": "9bfdf6a82583ef22fe02f30febc44c686402de04714db49445997e2a9133278b",
+    "kaida-a-pose-r2.png": "318cb027b5ecc78ecc812fe6af715def9ff0eea05fc33898384bf09589c5edda"
+  }
+}

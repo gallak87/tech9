@@ -1,6 +1,6 @@
 # Asset preparation for Chronoforge Dusk
 
-**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida runtime r4 has all five gameplay clips, a separate sword, and a verified native rehearsal. It is the provisional integration baseline under the owner's good-enough cutoff; finer art polish does not block 03.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current source and candidate handoff](KAIDA_HANDOFF.md), [the current quality cutoff](../DECISIONS.md#phase-one-quality-cutoff--2026-09-07), and [proof evidence](evidence/proofs-r1/README.md).
+**Status: local static and skeletal recipes implemented and verified with diagnostic assets. Real Kaida runtime r5 retains the five clips and separate sword from 02’s r4, with 03’s targeted run-arm correction. 03 graduates this as [Kaida r2 / Alpha a1](../releases/kaida-a1.md) at the owner’s request; 04 has not begun.** This folder owns source references, immutable downloads, editable working assets, recipes, export metadata, and candidate/review history. See [Kaida's current source and candidate handoff](KAIDA_HANDOFF.md), [the current quality cutoff](../DECISIONS.md#phase-one-quality-cutoff--2026-09-07), and [proof evidence](evidence/proofs-r1/README.md).
 
 **The game owns asset consumption, preview, inspection, tuning, and playtesting.** `_prep` does not contain a second engine or the authoritative character viewer. Asset work is evaluated through the actual Dusk runtime and its development mode.
 
@@ -112,6 +112,8 @@ The original proof sources are editable [static r2](assets/diagnostic.grip-probe
 Manual acquisitions use `retain` with a provider receipt; see [the exact example](KAIDA_HANDOFF.md). Downloads are copied byte-for-byte to new batch folders. Blender master/maps/original clips belong in `source_files` with their hashes. Keep original and corrected actions/masters rather than destructively replacing them.
 
 `history.jsonl` is an append-only local record of explicit handoffs and review decisions. No candidate in this task has been marked visually accepted. Once an actual owner review has occurred, record it with:
+
+03 also records a game-owned `release_graduation` for [Kaida r2 / Alpha a1](../releases/kaida-a1.md), pinning the existing prepared export and native evidence. Its scope is the owner-requested playable alpha; it does not claim final art acceptance or mutate the candidate. The visual-review command below remains separate.
 
 ```sh
 python3 _prep/pipeline.py record-review _prep/candidates/ASSET/REVISION/manifest.json \

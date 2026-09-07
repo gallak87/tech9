@@ -1,6 +1,6 @@
 # Chronoforge Dusk roadmap
 
-**Current state:** 01 is implemented and tested; 02 has delivered the first complete real Kaida candidate with five clips and a separate sword. 03 is ready for owner playtesting and refinement; later work remains unstarted. See [native instructions](NATIVE.md) and [evidence](evidence/README.md). This is the ordered route from the first native build to a finished game. Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
+**Current state:** 01 is implemented and tested; 02 has delivered the first complete real Kaida candidate with five clips and a separate sword. 03 graduates the owner-requested Kaida r2 / Alpha a1 for review; 04 and later work remain unstarted. See [native instructions](NATIVE.md) and [evidence](evidence/README.md). This is the ordered route from the first native build to a finished game. Assign one numbered plan at a time, or explicitly assign independent portions in parallel. Reading this roadmap does not authorize executing it all.
 
 ## Start to finish
 
@@ -14,7 +14,7 @@
 8. **[08 — Expand one region at a time](_plans/08_expand_the_game.md).** Choose and deliver the next region from the wider Chronoforge direction. Repeat the proven loop until the agreed game arc is complete. **Future planning outline; refine each region when reached.**
 9. **[09 — Finish and package the game](_plans/09_finish_and_package.md).** Close progression/story gaps, validate the complete playthrough, tune performance and usability, and deliver the native application and source. **Future completion outline.**
 
-**01 and 02’s first candidate handoff are complete. Kaida runtime r4 has all five clips and separate equipment, with native integration checks passed. 03 refinement is unblocked; 04–09 remain unstarted.** See [02](_plans/02_asset_pipeline.md) for the current source handoff. Update individual statuses when work actually happens; do not infer completion from documents or disconnected code.
+**01 and 02’s first candidate handoff are complete. Kaida runtime r5 (03’s run-arm correction of r4) has all five clips and separate equipment, with native integration checks passed. 03’s traversal/rehearsal increment is released as Kaida r2 / Alpha a1 under the owner’s first-pass cutoff; 04–09 remain unstarted.** See [03 evidence](evidence/kaida-03/README.md) and [02](_plans/02_asset_pipeline.md) for the current source handoff. Update individual statuses when work actually happens; do not infer completion from documents or disconnected code.
 
 ## What to give a new agent
 

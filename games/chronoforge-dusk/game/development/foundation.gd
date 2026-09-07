@@ -2,6 +2,8 @@ class_name DuskFoundation
 extends Node3D
 
 const DEFAULT_CANDIDATE: String = "res://assets/kaida/r5/descriptor.json"
+const RELEASE_PATH: String = "res://content/releases/kaida-a1.json"
+var release: Dictionary = {}
 var simulation: Node3D
 var actor: DuskCharacter
 var target: DuskCharacter
@@ -32,10 +34,16 @@ var input_events: int = 0
 var last_input: String = "none"
 var game_revision: String = "development"
 var test_mode: bool = false
+var test_run_id: String = ""
+var test_interference: bool = false
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	startup_ms = Time.get_ticks_msec()
+	release = JSON.parse_string(FileAccess.get_file_as_string(RELEASE_PATH))
+	for argument: String in OS.get_cmdline_user_args():
+		if argument.begins_with("--test-run-id="):
+			test_run_id = argument.trim_prefix("--test-run-id=")
 	test_mode = "--self-test" in OS.get_cmdline_user_args() or "--verify-restart" in OS.get_cmdline_user_args() or "--kaida-test" in OS.get_cmdline_user_args() or "--kaida-restart" in OS.get_cmdline_user_args()
 	if test_mode:
 		tuning.path = "user://kaida_test_tuning.json" if ("--kaida-test" in OS.get_cmdline_user_args() or "--kaida-restart" in OS.get_cmdline_user_args()) else "user://foundation_test_tuning.json"
@@ -59,9 +67,11 @@ func _ready() -> void:
 	simulation.add_child(patch)
 	actor = DuskCharacter.new()
 	actor.name = "ControlledActor"
+	actor.place(Vector3(0, 0.02, 0))
 	simulation.add_child(actor)
 	target = DuskCharacter.new()
 	target.name = "HarmlessTarget"
+	target.place(DuskRehearsal.TARGET)
 	simulation.add_child(target)
 	var target_label := Label3D.new()
 	target_label.text = "HARMLESS TARGET"
@@ -92,9 +102,14 @@ func _ready() -> void:
 	simulation.add_child(feedback)
 	hud = DuskDevelopmentHUD.new()
 	add_child(hud)
+	hud.subtitle.text = "KAIDA R2  ·  ALPHA A1  ·  " + ("AUTOMATED TEST — PLEASE WAIT" if test_mode else "MOVEMENT & STRIKE REVIEW")
 	for path: String in candidates:
 		var candidate_data: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
 		var candidate_label: String = str(candidate_data.get("label", path)) if candidate_data is Dictionary else path
+		if path == release.descriptor:
+			candidate_label = str(release.label)
+		elif candidate_data is Dictionary and candidate_data.get("asset_id") == "kaida":
+			candidate_label = "Kaida r2 / previous export " + str(candidate_data.revision)
 		hud.candidate.add_item(candidate_label)
 	hud.view_selected.connect(set_mode)
 	hud.candidate_selected.connect(load_candidate_index)
@@ -164,6 +179,8 @@ func load_candidate(path: String) -> bool:
 	actor.install(pending)
 	pending.visible = true
 	load_status = "LOADED · %s\n%s · %d ms\n%s" % [pending.descriptor.asset_id, pending.descriptor.revision, Time.get_ticks_msec() - start, "TEMPORARY FIXTURE / NOT KAIDA" if pending.descriptor.get("placeholder", false) else "Candidate · visual acceptance pending"]
+	if path == release.descriptor:
+		load_status = "Kaida r2 · Alpha a1\nLoaded · %d ms\nPrepared export %s" % [Time.get_ticks_msec() - start, pending.descriptor.revision]
 	load_error = ""
 	apply_tuning()
 	set_mode(mode)
@@ -224,6 +241,12 @@ func _physics_process(_delta: float) -> void:
 		if step_frames > 1:
 			stepping = false
 			apply_pause()
+
+func _input(event: InputEvent) -> void:
+	if test_mode and not event.has_meta("dusk_test_input"):
+		if (event is InputEventKey or event is InputEventMouseButton) and event.is_pressed():
+			test_interference = true
+			print("DUSK_TEST_INTERFERENCE External input; rerun before accepting results")
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
@@ -368,7 +391,7 @@ func apply_pause() -> void:
 	Engine.max_fps = 10 if unfocused else (30 if manually_paused else 60)
 
 func identity() -> Dictionary:
-	return {"game_revision": game_revision, "source_sha256": source_sha256, "engine_uptime_at_ready_ms": ready_ms, "scene_assembly_ms": ready_ms - startup_ms, "engine": Engine.get_version_info().string, "renderer": RenderingServer.get_current_rendering_method(), "driver": RenderingServer.get_current_rendering_driver_name(), "gpu": RenderingServer.get_video_adapter_name(), "os": OS.get_name() + " " + OS.get_version(), "processor": OS.get_processor_name(), "internal_resolution": [1920, 1080], "window_pixels": [get_window().size.x, get_window().size.y], "display_scale": DisplayServer.screen_get_scale(), "frame_cap": Engine.max_fps, "asset": actor.visual.descriptor if actor.visual != null else {}, "tuning": tuning.values, "native_export": not OS.has_feature("editor")}
+	return {"test_run_id": test_run_id, "test_interference": test_interference, "release": release if actor.visual != null and actor.visual.descriptor.model.sha256 == release.model_sha256 else {}, "game_revision": game_revision, "source_sha256": source_sha256, "engine_uptime_at_ready_ms": ready_ms, "scene_assembly_ms": ready_ms - startup_ms, "engine": Engine.get_version_info().string, "renderer": RenderingServer.get_current_rendering_method(), "driver": RenderingServer.get_current_rendering_driver_name(), "gpu": RenderingServer.get_video_adapter_name(), "os": OS.get_name() + " " + OS.get_version(), "processor": OS.get_processor_name(), "internal_resolution": [1920, 1080], "window_pixels": [get_window().size.x, get_window().size.y], "display_scale": DisplayServer.screen_get_scale(), "frame_cap": Engine.max_fps, "asset": actor.visual.descriptor if actor.visual != null else {}, "tuning": tuning.values, "native_export": not OS.has_feature("editor")}
 
 func write_diagnostics() -> void:
 	var report: Dictionary = {"identity": identity(), "intervals": perf.report(), "action": {"count": action.action_id, "impacts": action.impact_count, "completed": action.completed_count, "phase": action.phase, "feedback_impacts": feedback.impact_events, "clip_time": action.clip_time}, "actor_position": [actor.position.x, actor.position.y, actor.position.z], "input_events": input_events, "last_input": last_input, "load_error": load_error, "nodes": Performance.get_monitor(Performance.OBJECT_NODE_COUNT)}

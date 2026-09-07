@@ -208,12 +208,14 @@ func check(condition: bool, label: String) -> void:
 
 func key_down(code: int) -> void:
 	var event := InputEventKey.new()
+	event.set_meta("dusk_test_input", true)
 	event.physical_keycode = code
 	event.pressed = true
 	Input.parse_input_event(event)
 
 func key_up(code: int) -> void:
 	var event := InputEventKey.new()
+	event.set_meta("dusk_test_input", true)
 	event.physical_keycode = code
 	event.pressed = false
 	Input.parse_input_event(event)
@@ -236,6 +238,7 @@ func capture(label: String) -> void:
 	image.save_png("user://" + label + ".png")
 
 func finish(label: String) -> void:
+	check(not game.test_interference, "Native test completed without external keyboard or mouse input")
 	var report: Dictionary = {"checks": checks, "failures": failures, "observations": observations, "elapsed_seconds": (Time.get_ticks_msec() - started) / 1000.0, "identity": game.identity(), "performance": game.perf.report()}
 	var file: FileAccess = FileAccess.open("user://test_" + label + ".json", FileAccess.WRITE)
 	file.store_string(JSON.stringify(report, "\t"))

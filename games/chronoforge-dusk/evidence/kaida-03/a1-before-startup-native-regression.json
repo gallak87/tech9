@@ -1,0 +1,768 @@
+{
+	"checks": [
+		{
+			"check": "Prepared model imported and assembled",
+			"pass": true
+		},
+		{
+			"check": "Declared grip socket exists",
+			"pass": true
+		},
+		{
+			"check": "Imported animation roles available",
+			"pass": true
+		},
+		{
+			"check": "Missing clip is visible and preserves identified prior actor",
+			"pass": true
+		},
+		{
+			"check": "Missing attachment socket rejected",
+			"pass": true
+		},
+		{
+			"check": "Altered source hash rejected",
+			"pass": true
+		},
+		{
+			"check": "Invalid physical dimensions rejected",
+			"pass": true
+		},
+		{
+			"check": "Conflicting motion ownership rejected",
+			"pass": true
+		},
+		{
+			"check": "Malformed nested metadata produces visible error",
+			"pass": true
+		},
+		{
+			"check": "Malformed attachment transform rejected",
+			"pass": true
+		},
+		{
+			"check": "F5 reloads selected prepared revision",
+			"pass": true
+		},
+		{
+			"check": "Camera-relative walk uses real input mapping",
+			"pass": true
+		},
+		{
+			"check": "Shift runs faster than walking",
+			"pass": true
+		},
+		{
+			"check": "Collision wall prevents leaving patch",
+			"pass": true
+		},
+		{
+			"check": "Orbit changes movement basis and character turning",
+			"pass": true
+		},
+		{
+			"check": "Controller follows ramp collision",
+			"pass": true
+		},
+		{
+			"check": "Pause freezes imported clip",
+			"pass": true
+		},
+		{
+			"check": "Step advances paused simulation and pauses again",
+			"pass": true
+		},
+		{
+			"check": "Strike 0 starts approach via Space",
+			"pass": true
+		},
+		{
+			"check": "Repeated trigger cannot duplicate action",
+			"pass": true
+		},
+		{
+			"check": "Pause freezes action timeline before impact",
+			"pass": true
+		},
+		{
+			"check": "Strike 0 completes with exactly one impact",
+			"pass": true
+		},
+		{
+			"check": "Strike 0 returns exactly to formation",
+			"pass": true
+		},
+		{
+			"check": "Strike 1 starts approach via Space",
+			"pass": true
+		},
+		{
+			"check": "Repeated trigger cannot duplicate action",
+			"pass": true
+		},
+		{
+			"check": "Strike 1 completes with exactly one impact",
+			"pass": true
+		},
+		{
+			"check": "Strike 1 returns exactly to formation",
+			"pass": true
+		},
+		{
+			"check": "Strike 2 starts approach via Space",
+			"pass": true
+		},
+		{
+			"check": "Repeated trigger cannot duplicate action",
+			"pass": true
+		},
+		{
+			"check": "Strike 2 completes with exactly one impact",
+			"pass": true
+		},
+		{
+			"check": "Strike 2 returns exactly to formation",
+			"pass": true
+		},
+		{
+			"check": "Strike 3 starts approach via Space",
+			"pass": true
+		},
+		{
+			"check": "Repeated trigger cannot duplicate action",
+			"pass": true
+		},
+		{
+			"check": "Strike 3 completes with exactly one impact",
+			"pass": true
+		},
+		{
+			"check": "Strike 3 returns exactly to formation",
+			"pass": true
+		},
+		{
+			"check": "Follow camera settles after movement stops",
+			"pass": true
+		},
+		{
+			"check": "Repeated swaps release previous actor nodes",
+			"pass": true
+		},
+		{
+			"check": "Repeated swaps do not accumulate imported resources",
+			"pass": true
+		},
+		{
+			"check": "Additional instance 0 loads",
+			"pass": true
+		},
+		{
+			"check": "Additional instance 1 loads",
+			"pass": true
+		},
+		{
+			"check": "Additional instance 2 loads",
+			"pass": true
+		},
+		{
+			"check": "Additional instance 3 loads",
+			"pass": true
+		},
+		{
+			"check": "Inactive window pauses simulation and caps rendering",
+			"pass": true
+		},
+		{
+			"check": "Accepted tuning deliberately written",
+			"pass": true
+		},
+		{
+			"check": "Restore pairs tuning with accepted candidate",
+			"pass": true
+		},
+		{
+			"check": "Independent tuning object reads saved file",
+			"pass": true
+		},
+		{
+			"check": "Native test completed without external keyboard or mouse input",
+			"pass": true
+		}
+	],
+	"elapsed_seconds": 45.816,
+	"failures": 0,
+	"identity": {
+		"asset": {
+			"animation_mode": "rigid",
+			"asset_id": "diagnostic.mannequin",
+			"attachments": [
+				{
+					"id": "practice_baton",
+					"model": {
+						"path": "res://assets/fixtures/baton-r1.glb",
+						"sha256": "486d9742cd4fe87bbe1b4a0f4fa330d067e995eb6ccb371eb1ec2ed0455987fe"
+					},
+					"position_m": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"rotation_degrees": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"socket_path": "Fixture/Torso/RightArm/Grip"
+				}
+			],
+			"clips": {
+				"attack": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": false,
+					"name": "attack"
+				},
+				"hurt": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": false,
+					"name": "hurt"
+				},
+				"idle": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": true,
+					"name": "idle"
+				},
+				"run": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": true,
+					"name": "run"
+				},
+				"walk": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": true,
+					"name": "walk"
+				}
+			},
+			"dimensions": {
+				"forward": "-Z",
+				"height_m": 1.85,
+				"origin": "ground",
+				"radius_m": 0.34,
+				"up": "+Y"
+			},
+			"format": 1.0,
+			"kind": "character",
+			"label": "Diagnostic mannequin / clay-r1",
+			"model": {
+				"path": "res://assets/fixtures/mannequin-clay-r1.glb",
+				"sha256": "c3aa32616eb38dcb520d3b0680429b2cb71d3b56ef9f6662cb4867c3f531ec85"
+			},
+			"motion": {
+				"action": "controller",
+				"clips": "in_place",
+				"traversal": "controller"
+			},
+			"placeholder": true,
+			"revision": "clay-r1"
+		},
+		"display_scale": 2.0,
+		"driver": "metal",
+		"engine": "4.6.3-stable (official)",
+		"engine_uptime_at_ready_ms": 588,
+		"frame_cap": 60,
+		"game_revision": "4f022a5ee824+dirty",
+		"gpu": "Apple M1 Pro (Apple7)",
+		"internal_resolution": [
+			1920,
+			1080
+		],
+		"native_export": true,
+		"os": "macOS 26.4.1",
+		"processor": "Apple M1 Pro",
+		"release": {
+
+		},
+		"renderer": "forward_plus",
+		"scene_assembly_ms": 37,
+		"source_sha256": "7f256b69e89ebc4938819576b2bcae22aac950aebafc498c91bc2c2561173ec2",
+		"test_interference": false,
+		"test_run_id": "532cdfea4905489a826e892f5a25d844",
+		"tuning": {
+			"acceleration": 28.0,
+			"attack_tempo": 1.0,
+			"braking": 36.0,
+			"camera_distance": 9.6,
+			"camera_pitch": 34.0,
+			"camera_yaw": 60.0,
+			"hit_stop": 0.065,
+			"impact_fraction": 0.55,
+			"light_game": true,
+			"run_speed": 5.1,
+			"run_stride_speed": 5.06165,
+			"turn_speed": 18.0,
+			"walk_speed": 2.8,
+			"walk_stride_speed": 2.28
+		},
+		"window_pixels": [
+			1440,
+			810
+		]
+	},
+	"observations": {
+
+	},
+	"performance": {
+		"asset_reload": {
+			"draw_calls": 99,
+			"engine_process_ms": 24.092,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 25.905,
+			"mean_ms": 16.5852485875706,
+			"nodes": 283,
+			"over_33ms": 0,
+			"p50_ms": 16.649,
+			"p95_ms": 18.684,
+			"p99_ms": 23.976,
+			"primitives": 5254,
+			"samples": 177,
+			"video_mb": 157.84375
+		},
+		"asset_reload_10": {
+			"draw_calls": 112,
+			"engine_process_ms": 89.438,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.985,
+			"mean_ms": 16.6978571428571,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.637,
+			"p95_ms": 16.943,
+			"p99_ms": 16.943,
+			"primitives": 5506,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_11": {
+			"draw_calls": 112,
+			"engine_process_ms": 89.438,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.57,
+			"mean_ms": 16.674,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.705,
+			"p95_ms": 16.856,
+			"p99_ms": 16.856,
+			"primitives": 5504,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_12": {
+			"draw_calls": 112,
+			"engine_process_ms": 89.438,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.517,
+			"mean_ms": 16.6145714285714,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.608,
+			"p95_ms": 17.122,
+			"p99_ms": 17.122,
+			"primitives": 5506,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_13": {
+			"draw_calls": 112,
+			"engine_process_ms": 89.438,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 16.992,
+			"mean_ms": 16.6772857142857,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.615,
+			"p95_ms": 16.784,
+			"p99_ms": 16.784,
+			"primitives": 5504,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_14": {
+			"draw_calls": 112,
+			"engine_process_ms": 89.438,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.313,
+			"mean_ms": 16.6401428571429,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.647,
+			"p95_ms": 16.792,
+			"p99_ms": 16.792,
+			"primitives": 5506,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_15": {
+			"draw_calls": 112,
+			"engine_process_ms": 9.036,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.074,
+			"mean_ms": 16.6638571428571,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.668,
+			"p95_ms": 16.986,
+			"p99_ms": 16.986,
+			"primitives": 5504,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_16": {
+			"draw_calls": 112,
+			"engine_process_ms": 9.036,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 16.883,
+			"mean_ms": 16.6075714285714,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.583,
+			"p95_ms": 16.812,
+			"p99_ms": 16.812,
+			"primitives": 5506,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_17": {
+			"draw_calls": 112,
+			"engine_process_ms": 9.036,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.451,
+			"mean_ms": 16.6598571428571,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.654,
+			"p95_ms": 17.228,
+			"p99_ms": 17.228,
+			"primitives": 5504,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_18": {
+			"draw_calls": 112,
+			"engine_process_ms": 9.036,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.667,
+			"mean_ms": 16.6364285714286,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.572,
+			"p95_ms": 16.686,
+			"p99_ms": 16.686,
+			"primitives": 5506,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_19": {
+			"draw_calls": 112,
+			"engine_process_ms": 9.036,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 18.017,
+			"mean_ms": 16.6714230769231,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.737,
+			"p95_ms": 16.964,
+			"p99_ms": 16.981,
+			"primitives": 5502,
+			"samples": 26,
+			"video_mb": 157.84375
+		},
+		"asset_reload_2": {
+			"draw_calls": 106,
+			"engine_process_ms": 24.092,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 13.805,
+			"mean_ms": 13.805,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 13.805,
+			"p95_ms": 13.805,
+			"p99_ms": 13.805,
+			"primitives": 5344,
+			"samples": 1,
+			"video_mb": 157.84375
+		},
+		"asset_reload_20": {
+			"draw_calls": 106,
+			"engine_process_ms": 4.309,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 19.096,
+			"mean_ms": 19.096,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 19.096,
+			"p95_ms": 19.096,
+			"p99_ms": 19.096,
+			"primitives": 5370,
+			"samples": 1,
+			"video_mb": 171.84375
+		},
+		"asset_reload_21": {
+			"samples": 0
+		},
+		"asset_reload_3": {
+			"draw_calls": 111,
+			"engine_process_ms": 19.698,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 16.849,
+			"mean_ms": 14.3841428571429,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.633,
+			"p95_ms": 16.812,
+			"p99_ms": 16.812,
+			"primitives": 5504,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_4": {
+			"draw_calls": 112,
+			"engine_process_ms": 19.698,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 16.788,
+			"mean_ms": 16.6944285714286,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.689,
+			"p95_ms": 16.738,
+			"p99_ms": 16.738,
+			"primitives": 5504,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_5": {
+			"draw_calls": 112,
+			"engine_process_ms": 19.698,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 16.776,
+			"mean_ms": 16.7014285714286,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.689,
+			"p95_ms": 16.751,
+			"p99_ms": 16.751,
+			"primitives": 5504,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_6": {
+			"draw_calls": 112,
+			"engine_process_ms": 19.698,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.158,
+			"mean_ms": 16.6661428571429,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.593,
+			"p95_ms": 16.817,
+			"p99_ms": 16.817,
+			"primitives": 5506,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_7": {
+			"draw_calls": 112,
+			"engine_process_ms": 19.698,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.222,
+			"mean_ms": 16.6914285714286,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.666,
+			"p95_ms": 17.183,
+			"p99_ms": 17.183,
+			"primitives": 5504,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_8": {
+			"draw_calls": 112,
+			"engine_process_ms": 89.438,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.411,
+			"mean_ms": 16.6848571428571,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.743,
+			"p95_ms": 16.908,
+			"p99_ms": 16.908,
+			"primitives": 5506,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"asset_reload_9": {
+			"draw_calls": 112,
+			"engine_process_ms": 89.438,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 16.956,
+			"mean_ms": 16.703,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.787,
+			"p95_ms": 16.846,
+			"p99_ms": 16.846,
+			"primitives": 5504,
+			"samples": 7,
+			"video_mb": 157.84375
+		},
+		"continuous_traversal": {
+			"draw_calls": 111,
+			"engine_process_ms": 19.698,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 20.76,
+			"mean_ms": 16.6676967418546,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.68,
+			"p95_ms": 17.868,
+			"p99_ms": 18.878,
+			"primitives": 5506,
+			"samples": 399,
+			"video_mb": 157.84375
+		},
+		"neutral_idle": {
+			"draw_calls": 87,
+			"engine_process_ms": 17.672,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 95.387,
+			"mean_ms": 16.8674090909091,
+			"nodes": 262,
+			"over_33ms": 1,
+			"p50_ms": 16.691,
+			"p95_ms": 17.618,
+			"p99_ms": 17.968,
+			"primitives": 5266,
+			"samples": 308,
+			"video_mb": 157.84375
+		},
+		"paused": {
+			"draw_calls": 87,
+			"engine_process_ms": 3.188,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 34.498,
+			"mean_ms": 33.3322474226804,
+			"nodes": 262,
+			"over_33ms": 52,
+			"p50_ms": 33.353,
+			"p95_ms": 34.061,
+			"p99_ms": 34.33,
+			"primitives": 5276,
+			"samples": 97,
+			"video_mb": 157.84375
+		},
+		"paused_2": {
+			"draw_calls": 126,
+			"engine_process_ms": 12.944,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 34.204,
+			"mean_ms": 33.3633125,
+			"nodes": 262,
+			"over_33ms": 8,
+			"p50_ms": 33.333,
+			"p95_ms": 33.734,
+			"p99_ms": 33.734,
+			"primitives": 6266,
+			"samples": 16,
+			"video_mb": 157.84375
+		},
+		"repeated_rehearsal": {
+			"draw_calls": 126,
+			"engine_process_ms": 12.944,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.659,
+			"mean_ms": 16.6627755102041,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.659,
+			"p95_ms": 17.287,
+			"p99_ms": 17.426,
+			"primitives": 6256,
+			"samples": 49,
+			"video_mb": 157.96875
+		},
+		"resumed": {
+			"draw_calls": 87,
+			"engine_process_ms": 3.188,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 16.61,
+			"mean_ms": 16.61,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.61,
+			"p95_ms": 16.61,
+			"p99_ms": 16.61,
+			"primitives": 5276,
+			"samples": 1,
+			"video_mb": 157.84375
+		},
+		"resumed_2": {
+			"draw_calls": 129,
+			"engine_process_ms": 17.461,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 110.49,
+			"mean_ms": 16.7849981060606,
+			"nodes": 262,
+			"over_33ms": 1,
+			"p50_ms": 16.67,
+			"p95_ms": 17.581,
+			"p99_ms": 18.751,
+			"primitives": 6256,
+			"samples": 528,
+			"video_mb": 157.84375
+		},
+		"six_instances": {
+			"draw_calls": 202,
+			"engine_process_ms": 23.133,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 24.488,
+			"mean_ms": 16.6291849315069,
+			"nodes": 390,
+			"over_33ms": 0,
+			"p50_ms": 16.68,
+			"p95_ms": 18.793,
+			"p99_ms": 20.051,
+			"primitives": 112466,
+			"samples": 292,
+			"video_mb": 226.578125
+		},
+		"test_walk": {
+			"draw_calls": 110,
+			"engine_process_ms": 17.406,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 21.958,
+			"mean_ms": 16.6653388429752,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.808,
+			"p95_ms": 18.624,
+			"p99_ms": 20.479,
+			"primitives": 5436,
+			"samples": 363,
+			"video_mb": 157.84375
+		},
+		"unfocused": {
+			"draw_calls": 99,
+			"engine_process_ms": 4.309,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 101.063,
+			"mean_ms": 99.9707666666667,
+			"nodes": 262,
+			"over_33ms": 30,
+			"p50_ms": 99.9,
+			"p95_ms": 100.967,
+			"p99_ms": 100.996,
+			"primitives": 5330,
+			"samples": 30,
+			"video_mb": 171.84375
+		}
+	}
+}

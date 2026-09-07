@@ -8,6 +8,7 @@ signal lighting_changed(enabled: bool)
 signal tuning_changed(key: String, value: float)
 signal command(action: String)
 
+var subtitle: Label
 var status: Label
 var diagnostics: Label
 var action_status: Label
@@ -53,7 +54,7 @@ func _ready() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(title)
 	text_label(title, "CHRONOFORGE  /  DUSK", 28, Color("edf0e8"))
-	text_label(title, "03   KAIDA IN GAME     ·     MOVEMENT & STRIKE REVIEW", 16, Color("9caaa7"))
+	subtitle = text_label(title, "KAIDA R2 · ALPHA A1", 16, Color("9caaa7"))
 	for i: int in range(3):
 		var b: Button = button(head, ["1  Inspect", "2  Traverse", "3  Rehearse"][i], "")
 		b.toggle_mode = true
@@ -140,7 +141,7 @@ func _ready() -> void:
 	save_status = text_label(accepted, "", 16, Color("9caaa7"))
 	save_status.custom_minimum_size.y = 42
 	save_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text_label(column, "Kaida r5 is provisional.\nOwner playtesting / acceptance pending.", 17, Color("d0b994"))
+	text_label(column, "Playable alpha a1.\nFinal art polish remains open.", 17, Color("d0b994"))
 	var bottom := PanelContainer.new()
 	bottom.position = Vector2(28, 974)
 	bottom.size = Vector2(1864, 82)

@@ -2,11 +2,17 @@
 
 **Current state:** the Meshy r2 model has completed Mixamo auto-rigging at its full 81,202 triangles. The textured 65-bone rig now has [idle and run source actions assembled in Blender](assets/kaida/sources/mixamo-clips-r1/master.blend). A [separate finished source and review copy](assets/kaida/demos/foundation-r3/README.md) now add locally authored walk, attack and hurt, in-place runtime motion and the separate 3D sword. Runtime candidate `kaida/r4` is imported and integration-checked. Her current proportions are too skinny for the owner, who explicitly wants to continue with this version for now. The amber mannequin remains a separate pipeline diagnostic.
 
+## 03 integration update — run carry correction
+
+The current playable release is **[Kaida r2 / Alpha a1](../releases/kaida-a1.md)**. Its prepared game export is **Kaida r5 / sword r2**, derived from the retained 02 r4 handoff. Owner playtesting exposed a right-hand snap each run loop: the carry had been solved before horizontal root travel was removed. [The corrected master](assets/kaida/sources/run-carry-r2/master.blend) solves only the run right arm in place; [the correction report](assets/kaida/sources/run-carry-r2/correction.json) verifies the other four clips and unrelated body motion are unchanged. [Production metadata](assets/kaida/asset.json) selects that master; [r5 manifest](candidates/kaida/r5/manifest.json) identifies the immutable export.
+
+[03’s native evidence and review limits](../evidence/kaida-03/README.md) supersede the older integration status below. The r4 source and review Blender scenes remain preserved for comparison. The owner requested alpha graduation here; final art polish stays open and 04 is unstarted.
+
 ## Review / upload references
 
-- [Current Kaida A-pose, r2](references/kaida/r4/kaida-a-pose-r2.png): 1024 × 1536, empty hands, rolled cyan cuffs and bare forearms.
+- [Current Kaida A-pose, r2](references/kaida/r2/kaida-a-pose-r2.png): 1024 × 1536, empty hands, rolled cyan cuffs and bare forearms.
 - [Separate energy sword, r1](references/kaida/r1/kaida-energy-sword-r1.png): 1024 × 1536. Keep the sword out of the humanoid generation and rigging input.
-- [Original A-pose, r1](references/kaida/r1/kaida-a-pose-r1.png) is retained for comparison. [Generation records](references/kaida/r4/generation.json) retain the exact built-in imagegen prompt and hashes. The built-in tool returned 1024 × 1536 despite the higher portrait resolution requested; these are its original pixels, with no upscaling.
+- [Original A-pose, r1](references/kaida/r1/kaida-a-pose-r1.png) is retained for comparison. [Generation records](references/kaida/r2/generation.json) retain the exact built-in imagegen prompt and hashes. The built-in tool returned 1024 × 1536 despite the higher portrait resolution requested; these are its original pixels, with no upscaling.
 
 Preserve the swept pointed magenta hair, cyan jacket, dark trousers and boots, and agile proportions. The original Chronoforge sprites were visual references only. The owner's additional screenshot guided only the revised cuffs/forearms; it did not replace the hairstyle or jacket design.
 
@@ -26,7 +32,7 @@ Both clips' bone names, hierarchy, rest matrices, unit transform and included ge
 
 The owner may replace this body later; see [review notes](assets/kaida/REVIEW_NOTES.md). Treat a regenerated model as a new source revision and recheck rigging, weights, animation compatibility and grip. Continue the pipeline now, and settle proportions before extensive deformation and animation polish.
 
-Keep original rig/clip download names and settings. Retain each new batch through `pipeline.py retain` before editing it; do not overwrite the Meshy batch. The earlier GLB is still an unrigged inspection export; the complete runtime candidate is now `kaida/r4`; use it for 03.
+Keep original rig/clip download names and settings. Retain each new batch through `pipeline.py retain` before editing it; do not overwrite the Meshy batch. The earlier GLB is still an unrigged inspection export; the 02 runtime baseline was `kaida/r4`; use the r5 update above for the current game.
 
 ## Manual Mixamo round trip
 

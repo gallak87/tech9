@@ -1,0 +1,748 @@
+{
+	"checks": [
+		{
+			"check": "Kaida default candidate loads without fallback",
+			"pass": true
+		},
+		{
+			"check": "Displayed actor is Kaida r4",
+			"pass": true
+		},
+		{
+			"check": "Real 67-bone Kaida rig present",
+			"pass": true
+		},
+		{
+			"check": "Separate sword uses skeletal socket",
+			"pass": true
+		},
+		{
+			"check": "All five complete clips preserve controller-owned root motion",
+			"pass": true
+		},
+		{
+			"check": "Sword socket follows actual strike motion",
+			"pass": true
+		},
+		{
+			"check": "Kaida responds to mapped walking input",
+			"pass": true
+		},
+		{
+			"check": "Walk playback matches measured stride travel",
+			"pass": true
+		},
+		{
+			"check": "Release brakes and blends to idle within 200 ms",
+			"pass": true
+		},
+		{
+			"check": "Diagonal input has no speed boost",
+			"pass": true
+		},
+		{
+			"check": "Run displacement and imported playback agree",
+			"pass": true
+		},
+		{
+			"check": "Run stops within 40 cm without residual skating",
+			"pass": true
+		},
+		{
+			"check": "Wall blocks Kaida and stops in-place walking",
+			"pass": true
+		},
+		{
+			"check": "Kaida maintains ground contact on authored ramp",
+			"pass": true
+		},
+		{
+			"check": "Follow camera settles after repeated running turns",
+			"pass": true
+		},
+		{
+			"check": "Hurt temporarily locks traversal and plays real reaction",
+			"pass": true
+		},
+		{
+			"check": "Hurt recovers to controllable state",
+			"pass": true
+		},
+		{
+			"check": "Basic defeat stays down until reset",
+			"pass": true
+		},
+		{
+			"check": "Reset clears defeat pose without accumulated offsets",
+			"pass": true
+		},
+		{
+			"check": "Pause freezes action clip and timeline together",
+			"pass": true
+		},
+		{
+			"check": "Step advances one physics tick of attack",
+			"pass": true
+		},
+		{
+			"check": "Attack reaches contact",
+			"pass": true
+		},
+		{
+			"check": "Impact lands on exact imported contact pose",
+			"pass": true
+		},
+		{
+			"check": "Contact freezes both actors during hit stop",
+			"pass": true
+		},
+		{
+			"check": "Physical blade reaches target torso at logical impact",
+			"pass": true
+		},
+		{
+			"check": "Quarter-speed control slows actual action timeline",
+			"pass": true
+		},
+		{
+			"check": "Cycle 0 has one strike, one impact and one sound/effect event",
+			"pass": true
+		},
+		{
+			"check": "Cycle 0 returns home with target recovered",
+			"pass": true
+		},
+		{
+			"check": "Cycle 1 has one strike, one impact and one sound/effect event",
+			"pass": true
+		},
+		{
+			"check": "Cycle 1 returns home with target recovered",
+			"pass": true
+		},
+		{
+			"check": "Cycle 2 has one strike, one impact and one sound/effect event",
+			"pass": true
+		},
+		{
+			"check": "Cycle 2 returns home with target recovered",
+			"pass": true
+		},
+		{
+			"check": "Cycle 3 has one strike, one impact and one sound/effect event",
+			"pass": true
+		},
+		{
+			"check": "Cycle 3 returns home with target recovered",
+			"pass": true
+		},
+		{
+			"check": "Cycle 4 has one strike, one impact and one sound/effect event",
+			"pass": true
+		},
+		{
+			"check": "Cycle 4 returns home with target recovered",
+			"pass": true
+		},
+		{
+			"check": "Cycle 5 has one strike, one impact and one sound/effect event",
+			"pass": true
+		},
+		{
+			"check": "Cycle 5 returns home with target recovered",
+			"pass": true
+		},
+		{
+			"check": "Cycle 6 has one strike, one impact and one sound/effect event",
+			"pass": true
+		},
+		{
+			"check": "Cycle 6 returns home with target recovered",
+			"pass": true
+		},
+		{
+			"check": "Cycle 7 has one strike, one impact and one sound/effect event",
+			"pass": true
+		},
+		{
+			"check": "Cycle 7 returns home with target recovered",
+			"pass": true
+		},
+		{
+			"check": "Finishing strike defeats target on contact",
+			"pass": true
+		},
+		{
+			"check": "Downed target cannot receive another strike",
+			"pass": true
+		},
+		{
+			"check": "Replay restores target and completes a fresh action",
+			"pass": true
+		},
+		{
+			"check": "Mode change cancels action and clears hit stop/trail",
+			"pass": true
+		},
+		{
+			"check": "Reloading r4 releases prior mesh, rig and equipment nodes",
+			"pass": true
+		},
+		{
+			"check": "Reloading r4 does not accumulate resources or video memory",
+			"pass": true
+		},
+		{
+			"check": "Additional Kaida 0 loads",
+			"pass": true
+		},
+		{
+			"check": "Additional Kaida 1 loads",
+			"pass": true
+		},
+		{
+			"check": "Additional Kaida 2 loads",
+			"pass": true
+		},
+		{
+			"check": "Paused mode caps rendering at 30 FPS",
+			"pass": true
+		},
+		{
+			"check": "Unfocused handler suspends simulation and caps rendering at 10 FPS",
+			"pass": true
+		},
+		{
+			"check": "Saved tuning pairs actual Kaida hash and game source",
+			"pass": true
+		},
+		{
+			"check": "Restore reapplies complete traversal/action/camera tuning",
+			"pass": true
+		}
+	],
+	"elapsed_seconds": 104.224,
+	"failures": 0,
+	"identity": {
+		"asset": {
+			"animation_mode": "skeletal",
+			"asset_id": "kaida",
+			"attachments": [
+				{
+					"bone": "SwordSocket",
+					"id": "energy-sword",
+					"model": {
+						"path": "res://assets/kaida/r4/kaida.energy-sword.glb",
+						"sha256": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"
+					},
+					"position_m": [
+						0.0,
+						-0.135,
+						0.0
+					],
+					"rotation_degrees": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"skeleton_path": "KaidaRig/Skeleton3D"
+				}
+			],
+			"clips": {
+				"attack": {
+					"file": "res://assets/kaida/r4/model.glb",
+					"loop": false,
+					"name": "attack"
+				},
+				"hurt": {
+					"file": "res://assets/kaida/r4/model.glb",
+					"loop": false,
+					"name": "hurt"
+				},
+				"idle": {
+					"file": "res://assets/kaida/r4/model.glb",
+					"loop": true,
+					"name": "idle"
+				},
+				"run": {
+					"file": "res://assets/kaida/r4/model.glb",
+					"loop": true,
+					"name": "run"
+				},
+				"walk": {
+					"file": "res://assets/kaida/r4/model.glb",
+					"loop": true,
+					"name": "walk"
+				}
+			},
+			"dimensions": {
+				"forward": "-Z",
+				"height_m": 1.898191,
+				"origin": "ground",
+				"radius_m": 0.32,
+				"up": "+Y"
+			},
+			"format": 1.0,
+			"kind": "character",
+			"label": "Kaida / grip-fit review",
+			"model": {
+				"path": "res://assets/kaida/r4/model.glb",
+				"sha256": "2faf657788bf070d839ce40b44892de3b89ef8c37a2e57c27da7186eca88520e"
+			},
+			"motion": {
+				"action": "controller",
+				"clips": "in_place",
+				"traversal": "controller"
+			},
+			"placeholder": false,
+			"revision": "r4"
+		},
+		"display_scale": 2.0,
+		"driver": "metal",
+		"engine": "4.6.3-stable (official)",
+		"engine_uptime_at_ready_ms": 779,
+		"frame_cap": 60,
+		"game_revision": "5809a2633ca3",
+		"gpu": "Apple M1 Pro (Apple7)",
+		"internal_resolution": [
+			1920,
+			1080
+		],
+		"native_export": true,
+		"os": "macOS 26.4.1",
+		"processor": "Apple M1 Pro",
+		"renderer": "forward_plus",
+		"scene_assembly_ms": 186,
+		"source_sha256": "ee44353fa8ad8da3bcec21c167e24277c391a75093fbee419f885599b54425e6",
+		"tuning": {
+			"acceleration": 28.0,
+			"attack_tempo": 1.0,
+			"braking": 36.0,
+			"camera_distance": 9.6,
+			"camera_pitch": 34.0,
+			"camera_yaw": 25.0,
+			"hit_stop": 0.065,
+			"impact_fraction": 0.5,
+			"light_game": true,
+			"run_speed": 5.1,
+			"run_stride_speed": 5.06165,
+			"turn_speed": 18.0,
+			"walk_speed": 2.3,
+			"walk_stride_speed": 2.28
+		},
+		"window_pixels": [
+			1440,
+			810
+		]
+	},
+	"observations": {
+		"asset_hash": "2faf657788bf070d839ce40b44892de3b89ef8c37a2e57c27da7186eca88520e",
+		"blade_distance_to_target_center_m": 0.153798952698708,
+		"captures_excluded_from_normal_play_intervals": true,
+		"contact": {
+			"base": "(1.336744, 1.163584, -0.55003)",
+			"clip_time": 0.666666686534882,
+			"distance": 0.153798952698708,
+			"hit_stop": true,
+			"target": "(1.5, 1.02, -1.0)",
+			"tip": "(1.39522, 0.753285, -1.348924)"
+		},
+		"focus_checks": "simulated handler; OS focus and audible quality require direct play",
+		"maximum_root_xz_m": 0.0
+	},
+	"performance": {
+		"asset_reload": {
+			"draw_calls": 164,
+			"engine_process_ms": 0.0,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 6101.242,
+			"mean_ms": 6101.242,
+			"nodes": 268,
+			"over_33ms": 1,
+			"p50_ms": 6101.242,
+			"p95_ms": 6101.242,
+			"p99_ms": 6101.242,
+			"primitives": 31410,
+			"samples": 1,
+			"video_mb": 223.296875
+		},
+		"asset_reload_2": {
+			"draw_calls": 163,
+			"engine_process_ms": 147.229,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 16.867,
+			"mean_ms": 14.8267777777778,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.632,
+			"p95_ms": 16.821,
+			"p99_ms": 16.821,
+			"primitives": 31718,
+			"samples": 9,
+			"video_mb": 300.53125
+		},
+		"asset_reload_3": {
+			"draw_calls": 163,
+			"engine_process_ms": 147.229,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.457,
+			"mean_ms": 15.4445384615385,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.644,
+			"p95_ms": 17.228,
+			"p99_ms": 17.228,
+			"primitives": 31718,
+			"samples": 13,
+			"video_mb": 300.53125
+		},
+		"asset_reload_4": {
+			"draw_calls": 163,
+			"engine_process_ms": 147.229,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 16.775,
+			"mean_ms": 15.34125,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.72,
+			"p95_ms": 16.772,
+			"p99_ms": 16.772,
+			"primitives": 31716,
+			"samples": 12,
+			"video_mb": 300.53125
+		},
+		"asset_reload_5": {
+			"draw_calls": 163,
+			"engine_process_ms": 132.212,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.844,
+			"mean_ms": 15.1982727272727,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.654,
+			"p95_ms": 16.804,
+			"p99_ms": 16.804,
+			"primitives": 31716,
+			"samples": 11,
+			"video_mb": 300.53125
+		},
+		"asset_reload_6": {
+			"draw_calls": 163,
+			"engine_process_ms": 132.212,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.435,
+			"mean_ms": 15.394,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.627,
+			"p95_ms": 16.887,
+			"p99_ms": 16.887,
+			"primitives": 31716,
+			"samples": 13,
+			"video_mb": 300.53125
+		},
+		"asset_reload_7": {
+			"draw_calls": 205,
+			"engine_process_ms": 10.347,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 368.411,
+			"mean_ms": 18.5178662790698,
+			"nodes": 364,
+			"over_33ms": 1,
+			"p50_ms": 16.656,
+			"p95_ms": 17.867,
+			"p99_ms": 20.096,
+			"primitives": 111640,
+			"samples": 172,
+			"video_mb": 303.34375
+		},
+		"asset_reload_8": {
+			"samples": 0
+		},
+		"captures_not_normal_play": {
+			"draw_calls": 141,
+			"engine_process_ms": 95.65,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 111.871,
+			"mean_ms": 18.2282016129032,
+			"nodes": 268,
+			"over_33ms": 5,
+			"p50_ms": 16.632,
+			"p95_ms": 18.41,
+			"p99_ms": 86.717,
+			"primitives": 51792,
+			"samples": 124,
+			"video_mb": 229.140625
+		},
+		"captures_not_normal_play_2": {
+			"draw_calls": 157,
+			"engine_process_ms": 7.165,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 94.375,
+			"mean_ms": 17.4768623188406,
+			"nodes": 268,
+			"over_33ms": 2,
+			"p50_ms": 16.669,
+			"p95_ms": 19.166,
+			"p99_ms": 27.099,
+			"primitives": 31688,
+			"samples": 138,
+			"video_mb": 229.140625
+		},
+		"cleanup": {
+			"draw_calls": 157,
+			"engine_process_ms": 25.382,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 24.926,
+			"mean_ms": 16.6761694915254,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.683,
+			"p95_ms": 18.192,
+			"p99_ms": 19.927,
+			"primitives": 31646,
+			"samples": 59,
+			"video_mb": 229.140625
+		},
+		"defeat_and_reset": {
+			"draw_calls": 182,
+			"engine_process_ms": 16.221,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 149.821,
+			"mean_ms": 17.1557554945055,
+			"nodes": 268,
+			"over_33ms": 2,
+			"p50_ms": 16.676,
+			"p95_ms": 19.161,
+			"p99_ms": 25.675,
+			"primitives": 32474,
+			"samples": 364,
+			"video_mb": 300.53125
+		},
+		"focused": {
+			"draw_calls": 157,
+			"engine_process_ms": 5.412,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 17.624,
+			"mean_ms": 17.624,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 17.624,
+			"p95_ms": 17.624,
+			"p99_ms": 17.624,
+			"primitives": 31660,
+			"samples": 1,
+			"video_mb": 229.140625
+		},
+		"four_kaida_instances_10s": {
+			"draw_calls": 205,
+			"engine_process_ms": 24.525,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 50.683,
+			"mean_ms": 16.7675738255034,
+			"nodes": 364,
+			"over_33ms": 3,
+			"p50_ms": 16.688,
+			"p95_ms": 20.02,
+			"p99_ms": 25.282,
+			"primitives": 111640,
+			"samples": 596,
+			"video_mb": 231.953125
+		},
+		"inspection_idle": {
+			"draw_calls": 141,
+			"engine_process_ms": 5.123,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 20.105,
+			"mean_ms": 16.5832362637363,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.657,
+			"p95_ms": 18.249,
+			"p99_ms": 18.61,
+			"primitives": 51788,
+			"samples": 182,
+			"video_mb": 229.140625
+		},
+		"kaida_neutral_idle_10s": {
+			"draw_calls": 141,
+			"engine_process_ms": 5.895,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 54.163,
+			"mean_ms": 16.6810234505863,
+			"nodes": 268,
+			"over_33ms": 1,
+			"p50_ms": 16.665,
+			"p95_ms": 18.413,
+			"p99_ms": 18.862,
+			"primitives": 51788,
+			"samples": 597,
+			"video_mb": 229.140625
+		},
+		"kaida_paused_5s": {
+			"draw_calls": 157,
+			"engine_process_ms": 8.36,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 39.386,
+			"mean_ms": 33.33186,
+			"nodes": 268,
+			"over_33ms": 78,
+			"p50_ms": 33.347,
+			"p95_ms": 34.017,
+			"p99_ms": 34.467,
+			"primitives": 31656,
+			"samples": 150,
+			"video_mb": 229.140625
+		},
+		"kaida_repeated_strikes_8_cycles": {
+			"draw_calls": 182,
+			"engine_process_ms": 31.503,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 189.588,
+			"mean_ms": 17.2353616666667,
+			"nodes": 268,
+			"over_33ms": 4,
+			"p50_ms": 16.673,
+			"p95_ms": 18.996,
+			"p99_ms": 26.71,
+			"primitives": 32470,
+			"samples": 600,
+			"video_mb": 229.140625
+		},
+		"kaida_traversal_turning_10s": {
+			"draw_calls": 160,
+			"engine_process_ms": 5.655,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 21.706,
+			"mean_ms": 16.6684791318865,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.689,
+			"p95_ms": 18.434,
+			"p99_ms": 19.395,
+			"primitives": 31684,
+			"samples": 599,
+			"video_mb": 229.140625
+		},
+		"kaida_unfocused_3s_simulated": {
+			"draw_calls": 157,
+			"engine_process_ms": 5.412,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 100.717,
+			"mean_ms": 100.008133333333,
+			"nodes": 268,
+			"over_33ms": 30,
+			"p50_ms": 99.997,
+			"p95_ms": 100.351,
+			"p99_ms": 100.383,
+			"primitives": 31660,
+			"samples": 30,
+			"video_mb": 229.140625
+		},
+		"paused": {
+			"draw_calls": 182,
+			"engine_process_ms": 93.241,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 35.216,
+			"mean_ms": 33.3371333333333,
+			"nodes": 268,
+			"over_33ms": 8,
+			"p50_ms": 33.56,
+			"p95_ms": 34.814,
+			"p99_ms": 34.814,
+			"primitives": 32478,
+			"samples": 15,
+			"video_mb": 229.140625
+		},
+		"rehearsal": {
+			"draw_calls": 182,
+			"engine_process_ms": 93.241,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 19.202,
+			"mean_ms": 16.6963191489362,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.661,
+			"p95_ms": 18.386,
+			"p99_ms": 18.783,
+			"primitives": 32472,
+			"samples": 47,
+			"video_mb": 229.140625
+		},
+		"resumed": {
+			"draw_calls": 182,
+			"engine_process_ms": 9.624,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 19.095,
+			"mean_ms": 16.5803333333333,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.283,
+			"p95_ms": 18.657,
+			"p99_ms": 18.657,
+			"primitives": 32468,
+			"samples": 18,
+			"video_mb": 229.140625
+		},
+		"resumed_2": {
+			"draw_calls": 182,
+			"engine_process_ms": 7.562,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 21.423,
+			"mean_ms": 16.6315974683544,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.658,
+			"p95_ms": 18.582,
+			"p99_ms": 19.222,
+			"primitives": 32468,
+			"samples": 395,
+			"video_mb": 229.140625
+		},
+		"traversal": {
+			"draw_calls": 151,
+			"engine_process_ms": 5.851,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 22.982,
+			"mean_ms": 16.6614415204678,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.679,
+			"p95_ms": 18.579,
+			"p99_ms": 19.455,
+			"primitives": 31530,
+			"samples": 342,
+			"video_mb": 229.140625
+		},
+		"traversal_2": {
+			"draw_calls": 163,
+			"engine_process_ms": 5.196,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 22.476,
+			"mean_ms": 16.6688617886179,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.667,
+			"p95_ms": 18.568,
+			"p99_ms": 19.064,
+			"primitives": 31718,
+			"samples": 123,
+			"video_mb": 229.140625
+		},
+		"traversal_3": {
+			"draw_calls": 163,
+			"engine_process_ms": 23.59,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 21.299,
+			"mean_ms": 16.62875,
+			"nodes": 268,
+			"over_33ms": 0,
+			"p50_ms": 16.661,
+			"p95_ms": 18.287,
+			"p99_ms": 18.502,
+			"primitives": 31718,
+			"samples": 60,
+			"video_mb": 300.53125
+		}
+	}
+}

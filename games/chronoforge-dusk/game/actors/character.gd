@@ -33,8 +33,10 @@ func install(asset: DuskAssetAssembly) -> void:
 	var shape := CapsuleShape3D.new()
 	shape.radius = float(asset.descriptor.dimensions.radius_m)
 	shape.height = maxf(float(asset.descriptor.dimensions.height_m), shape.radius * 2.0)
-	collider.shape = shape
+	# Set the offset before activating a new shape, so it never overlaps
+	# the floor at the body origin during native physics registration.
 	collider.position.y = shape.height * 0.5
+	collider.shape = shape
 
 func _physics_process(delta: float) -> void:
 	if reaction != "ready":

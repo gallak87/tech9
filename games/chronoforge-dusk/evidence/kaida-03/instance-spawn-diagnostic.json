@@ -1,0 +1,37 @@
+{
+  "reproduction": "Spawn a second Kaida capsule at the controlled actor\u2019s position while traversal physics is active.",
+  "before": {
+    "maximum_root_height_m": 1.89697432518005,
+    "minimum_horizontal_separation_m": 0.0
+  },
+  "ordinary_head_on_collision": {
+    "maximum_root_height_m": 0.0199999995529652,
+    "minimum_horizontal_separation_m": 0.640503168106079
+  },
+  "cause": "The four-instance test did not reset the controlled actor before spawning fixed-position copies; external input during the test could leave her at a copy\u2019s spawn. Capsule overlap recovery lifted her onto its head.",
+  "fix": "Reset the controlled actor to an unoccupied position, and position each new copy before adding it to the scene tree or installing its collider. Native assertions cover running contact, ground height, body separation, ramp and walls. Reject externally interfered or incomplete test runs.",
+  "scope": "Character/target/collider instantiation order, test scene and validation. Original capsule shape, motion code, mesh, clips, dimensions and equipment unchanged.",
+  "native_followup": {
+    "report": "a1-first-pass.json",
+    "maximum_height_m": 1.89779222011566,
+    "minimum_horizontal_separation_m": 2.38418579101562e-07,
+    "external_input": false
+  },
+  "discarded_cylinder_experiment": "a1-cylinder-diagnostic.json: failed both ramp and instance tests; original capsule controller restored.",
+  "final_native_result": {
+    "maximum_height_m": -0.000507812947034836,
+    "minimum_horizontal_separation_m": 0.640503168106079
+  },
+  "final_native_report": "a1-native-kaida.json",
+  "startup_followup": {
+    "before": "a1-startup-failure.json",
+    "after": "a1-normal-startup.json",
+    "normal_launch_position_m": [
+      0.0,
+      4.557054489851e-05,
+      0.0
+    ],
+    "input": "F9 only, no reset or movement",
+    "additional_fix": "Set the hidden target/player positions before tree entry; set collision-shape center offset before activating the shape."
+  }
+}

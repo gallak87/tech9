@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import urllib.request
+import uuid
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +18,7 @@ APP = ROOT / 'dist/Chronoforge Dusk.app'
 VERSION = '4.6.3.stable.official.7d41c59c4'
 TEMPLATE_SHA256 = '700a5759952b2260b7d894dc9bc4908d99ce9abe2964a76c6d2bddd4af4738b2'
 URL = 'https://github.com/godotengine/godot-builds/releases/download/4.6.3-stable/Godot_v4.6.3-stable_export_templates.tpz'
+USER_DATA = Path.home() / 'Library/Application Support/Godot/app_userdata/Chronoforge Dusk'
 
 
 def run(args, timeout=180):
@@ -63,6 +65,23 @@ def build_identity():
     (GAME / 'content/build_info.json').write_text(json.dumps({'revision': commit + ('+dirty' if dirty else ''), 'source_sha256': digest.hexdigest(), 'engine': VERSION}, indent=2) + '\n')
 
 
+def verify_test_report(path, run_id, source_sha256, native_export):
+    """An early app exit must never pass by reusing an older test report."""
+    if not path.is_file():
+        raise SystemExit(f'Incomplete native test: no report at {path}')
+    report = json.loads(path.read_text())
+    identity = report.get('identity', {})
+    if (identity.get('test_run_id') != run_id
+            or identity.get('source_sha256') != source_sha256
+            or identity.get('native_export') != native_export
+            or identity.get('test_interference', True)
+            or not report.get('checks')
+            or report.get('failures') != 0
+            or not all(check.get('pass') is True for check in report['checks'])):
+        raise SystemExit(f'Incomplete, interrupted, mismatched or failed native test: {path}')
+    print(f'Fresh report verified: {path.name}, {len(report["checks"])} checks, run {run_id}', flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('command', choices=['setup', 'import', 'run', 'export', 'test', 'test-editor', 'test-kaida', 'test-kaida-editor'])
@@ -83,10 +102,15 @@ def main():
         run(['codesign', '--verify', '--deep', '--strict', APP])
         print('Native application:', APP)
     if args.command in ('test', 'test-editor', 'test-kaida', 'test-kaida-editor'):
-        binary = APP / 'Contents/MacOS/Chronoforge Dusk' if args.command in ('test', 'test-kaida') else godot
-        prefix = [binary] if args.command in ('test', 'test-kaida') else [binary, '--path', GAME]
-        run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--kaida-test' if 'kaida' in args.command else '--self-test'])
-        run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--kaida-restart' if 'kaida' in args.command else '--verify-restart'])
+        native = args.command in ('test', 'test-kaida')
+        binary = APP / 'Contents/MacOS/Chronoforge Dusk' if native else godot
+        prefix = [binary] if native else [binary, '--path', GAME]
+        run_id = uuid.uuid4().hex
+        source_sha256 = json.loads((GAME / 'content/build_info.json').read_text())['source_sha256']
+        phases = [('kaida-test', 'kaida'), ('kaida-restart', 'kaida_restart')] if 'kaida' in args.command else [('self-test', 'foundation'), ('verify-restart', 'restart')]
+        for flag, label in phases:
+            run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--' + flag, '--test-run-id=' + run_id])
+            verify_test_report(USER_DATA / f'test_{label}.json', run_id, source_sha256, native)
 
 
 if __name__ == '__main__':

@@ -10,6 +10,8 @@ Keep immutable downloads, FBX, Blender sources, recipes and rejected candidates 
 
 A candidate is an immutable descriptor plus GLB dependencies. Give changed bytes a new revision and path; keep the previous candidate available. Import success makes a candidate inspectable, not visually accepted.
 
+**Model generation and playable release are separate identities.** Kaida’s stable model is r2; prepared export r5 contains its corrected animation. The game-owned [alpha a1 release](../releases/kaida-a1.md) selects that export by hash and pairs it with tested gameplay/tuning. Graduation does not require duplicating or renaming the GLB. Existing immutable names remain internal history; new internal exports should use explicit names such as `prep-006`, while owner-facing model generations use r2/r3 and playable alphas use a1/a2.
+
 See the complete working example: [mannequin-slate-r1.json](../game/assets/fixtures/mannequin-slate-r1.json). Its generating source is [fixtures/generate.py](fixtures/generate.py). All its animation is diagnostic rigid motion, not Kaida animation.
 
 ```json

@@ -15,7 +15,7 @@ python3 tools/native.py run
 
 After source changes, stop and relaunch the running game. After adding/replacing an imported candidate, run the import command before relaunching or exporting. Do not run editor and packaged performance comparisons simultaneously.
 
-The current 03 build starts with **Kaida r4** and her separate **energy-sword r2**. Walk and run the patch, then press **3**, **Space** for a strike. **K** runs a finishing strike; **R** restores the target and replays. **F1** hides the side panel. Owner approval is pending; this build stops before 04.
+The current a1 release starts with **Kaida r2 / Alpha a1** and her separate **energy-sword r2**. Walk and run the patch, then press **3**, **Space** for a strike. **K** runs a finishing strike; **R** restores the target and replays. **F1** hides the side panel. The owner requested alpha graduation under the first-pass cutoff; this build stops before 04.
 
 ## Controls
 
@@ -29,6 +29,10 @@ The current 03 build starts with **Kaida r4** and her separate **energy-sword r2
 | C | Reset camera to factory framing |
 | L | Toggle neutral/game lighting |
 | P | Pause/resume simulation; camera and UI remain available |
+| T | Toggle quarter-speed motion |
+| M | Toggle rig, blade and contact markers |
+| H / K | Hurt / defeat preview; K performs a finishing strike in rehearsal |
+| F1 | Hide/show the side panel |
 | Step button | Advance one simulation tick while paused |
 | R | Replay selected inspection clip or restart the rehearsal action |
 | Space | Trigger one harmless strike in rehearsal; repeated triggering while busy is ignored |
@@ -38,7 +42,7 @@ The current 03 build starts with **Kaida r4** and her separate **energy-sword r2
 | F9 | Write identity, input, action and performance diagnostics |
 | Esc | Quit |
 
-Tuning controls are in the left panel's collapsible **Tuning** section. Save/restore stay visible below the scroll area. The default actor is **Kaida r4**. The harmless target is still a labeled diagnostic mannequin. Kaida’s five imported clips and separate equipment are unchanged from 02; the game controls displacement and attack tempo. Defeat is a basic held hurt pose plus a fall and reset, not a newly authored source animation.
+Tuning controls are in the left panel's collapsible **Tuning** section. Save/restore stay visible below the scroll area. The default actor is **Kaida r2 / Alpha a1**. The harmless target is still a labeled diagnostic mannequin. Kaida r5 corrects the repeated sword-arm snap in 02’s run clip; the other four source clips and sword r2 are preserved. The game controls displacement and attack tempo. Defeat is a basic held hurt pose plus a fall and reset, not a newly authored source animation.
 
 ## Pinned toolchain and native export
 
@@ -66,8 +70,8 @@ python3 tools/native.py import      # standard Godot import + build identity
 python3 tools/native.py export      # import, verify template, export and verify signature
 python3 tools/native.py test        # export + rendered native checks + new-process save check
 python3 tools/native.py test-editor # equivalent foundation regression with the editor binary
-python3 tools/native.py test-kaida  # focused r4 checks + export + cold restart
-python3 tools/native.py test-kaida-editor # focused r4 checks in editor game window
+python3 tools/native.py test-kaida  # focused Kaida checks + export + cold restart
+python3 tools/native.py test-kaida-editor # focused Kaida checks in editor game window
 ```
 
 `GODOT_PATH` may point to the pinned Godot executable. The helper refuses a different version. It downloads the official approximately 1.2 GB archive only when needed, retaining the extracted Mac template under ignored `.tools/`. No global editor/template replacement is needed. The export preset uses this local template.
@@ -89,7 +93,7 @@ Godot's `user://` directory on this Mac is:
 - Kaida tests use `kaida_test_tuning.json`, `test_kaida.json`, `test_kaida_restart.json`, and `kaida-*.png`; they preserve the owner’s save.
 - Foundation integration tests use `foundation_test_tuning.json` and `invalid_fixture.json`, preserving the owner's save. `test_foundation.json`, `test_restart.json` and three viewport PNGs contain the latest test results.
 
-The opt-in test driver calls Godot's input event path and the actual runtime components. It is included in the app but runs only with `--self-test`, `--verify-restart`, `--kaida-test`, or `--kaida-restart`. It creates no network server and accepts no remote commands. Tests keep their window on top for the measurement interval, then automatically close it. Test focus changes are simulated through the same game focus handler; real OS focus events are disconnected only during this opt-in test mode. A 180-second subprocess timeout catches a stuck test; reports and errors remain in the log.
+The opt-in test driver calls Godot's input event path and the actual runtime components. Its header says **AUTOMATED TEST — PLEASE WAIT**. Avoid keyboard/mouse input in the app while it runs: external presses invalidate the result. Each invocation carries a unique run ID; the helper requires completed, zero-failure reports from that ID and the exact source digest before proceeding to restart. Quitting early cannot reuse an older passing report. It is included in the app but runs only with `--self-test`, `--verify-restart`, `--kaida-test`, or `--kaida-restart`. It creates no network server and accepts no remote commands. Tests keep their window on top for the measurement interval, then automatically close it. Test focus changes are simulated through the same game focus handler; real OS focus events are disconnected only during this opt-in test mode. A 180-second subprocess timeout catches a stuck test; reports and errors remain in the log.
 
 The in-app diagnostics keep up to 600 frame times per interval and retain separately named intervals across view changes. Frame times use wall-clock intervals, including pacing and stalls. `engine_process_ms` is Godot's process monitor, not a full CPU profile. GPU time is explicitly unavailable. Capture/readback introduces stalls and is separated from normal gameplay when interpreting the evidence.
 
@@ -102,4 +106,8 @@ The in-app diagnostics keep up to 600 frame times per interval and retain separa
 - `ui/development_hud.gd`: in-game development controls.
 - `content/candidates.json`: selected immutable candidate descriptors.
 
-02 delivers selected runtime GLBs/descriptors to `game/assets/<asset-id>/<revision>/` and keeps production sources upstream. Use the concrete [runtime contract and working example](_prep/ASSET_CONTRACT.md). All five character clips must currently be embedded in the model GLB. 02’s Kaida r4 and sword r2 are the provisional baseline. See [03 evidence](evidence/kaida-03/README.md) for measured validation, remaining limitations and the owner review boundary.
+02 delivers selected runtime GLBs/descriptors to `game/assets/<asset-id>/<revision>/` and keeps production sources upstream. Use the concrete [runtime contract and working example](_prep/ASSET_CONTRACT.md). All five character clips must currently be embedded in the model GLB. 02’s Kaida r4 and sword r2 are the retained baseline; 03 delivers Kaida r5 with the targeted run-arm correction. See [03 evidence](evidence/kaida-03/README.md) for measured validation, remaining limitations and the owner review boundary.
+
+## Alpha graduation
+
+[Kaida r2 / Alpha a1](releases/kaida-a1.md) is the current playable release. r2 identifies the stable model generation; a1 selects prepared export r5 and sword r2 plus the tested game integration. Older source/export revisions are retained as rollback history, with the old game entry labeled previous export.

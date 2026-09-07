@@ -1,0 +1,153 @@
+{
+	"checks": [
+		{
+			"check": "Cold restart restores selected revision",
+			"pass": true
+		},
+		{
+			"check": "Cold restart restores walk speed",
+			"pass": true
+		},
+		{
+			"check": "Cold restart restores camera",
+			"pass": true
+		},
+		{
+			"check": "Cold restart restores contact timing",
+			"pass": true
+		}
+	],
+	"elapsed_seconds": 1.863,
+	"failures": 0,
+	"identity": {
+		"asset": {
+			"animation_mode": "rigid",
+			"asset_id": "diagnostic.mannequin",
+			"attachments": [
+				{
+					"id": "practice_baton",
+					"model": {
+						"path": "res://assets/fixtures/baton-r1.glb",
+						"sha256": "486d9742cd4fe87bbe1b4a0f4fa330d067e995eb6ccb371eb1ec2ed0455987fe"
+					},
+					"position_m": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"rotation_degrees": [
+						0.0,
+						0.0,
+						0.0
+					],
+					"socket_path": "Fixture/Torso/RightArm/Grip"
+				}
+			],
+			"clips": {
+				"attack": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": false,
+					"name": "attack"
+				},
+				"hurt": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": false,
+					"name": "hurt"
+				},
+				"idle": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": true,
+					"name": "idle"
+				},
+				"run": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": true,
+					"name": "run"
+				},
+				"walk": {
+					"file": "res://assets/fixtures/mannequin-clay-r1.glb",
+					"loop": true,
+					"name": "walk"
+				}
+			},
+			"dimensions": {
+				"forward": "-Z",
+				"height_m": 1.85,
+				"origin": "ground",
+				"radius_m": 0.34,
+				"up": "+Y"
+			},
+			"format": 1.0,
+			"kind": "character",
+			"label": "Diagnostic mannequin / clay-r1",
+			"model": {
+				"path": "res://assets/fixtures/mannequin-clay-r1.glb",
+				"sha256": "c3aa32616eb38dcb520d3b0680429b2cb71d3b56ef9f6662cb4867c3f531ec85"
+			},
+			"motion": {
+				"action": "controller",
+				"clips": "in_place",
+				"traversal": "controller"
+			},
+			"placeholder": true,
+			"revision": "clay-r1"
+		},
+		"display_scale": 2.0,
+		"driver": "metal",
+		"engine": "4.6.3-stable (official)",
+		"engine_uptime_at_ready_ms": 520,
+		"frame_cap": 60,
+		"game_revision": "5809a2633ca3",
+		"gpu": "Apple M1 Pro (Apple7)",
+		"internal_resolution": [
+			1920,
+			1080
+		],
+		"native_export": true,
+		"os": "macOS 26.4.1",
+		"processor": "Apple M1 Pro",
+		"renderer": "forward_plus",
+		"scene_assembly_ms": 29,
+		"source_sha256": "ee44353fa8ad8da3bcec21c167e24277c391a75093fbee419f885599b54425e6",
+		"tuning": {
+			"acceleration": 28.0,
+			"attack_tempo": 1.0,
+			"braking": 36.0,
+			"camera_distance": 9.6,
+			"camera_pitch": 34.0,
+			"camera_yaw": 60.0,
+			"hit_stop": 0.065,
+			"impact_fraction": 0.55,
+			"light_game": true,
+			"run_speed": 5.1,
+			"run_stride_speed": 5.06165,
+			"turn_speed": 18.0,
+			"walk_speed": 2.8,
+			"walk_stride_speed": 2.28
+		},
+		"window_pixels": [
+			1440,
+			810
+		]
+	},
+	"observations": {
+
+	},
+	"performance": {
+		"focused": {
+			"draw_calls": 52,
+			"engine_process_ms": 17.32,
+			"gpu_ms": "unavailable (not measured)",
+			"max_ms": 31.341,
+			"mean_ms": 16.4461150442478,
+			"nodes": 262,
+			"over_33ms": 0,
+			"p50_ms": 16.679,
+			"p95_ms": 17.779,
+			"p99_ms": 18.775,
+			"primitives": 3754,
+			"samples": 113,
+			"video_mb": 157.34375
+		}
+	}
+}

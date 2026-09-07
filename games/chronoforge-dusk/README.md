@@ -2,9 +2,9 @@
 
 A fresh Godot implementation of the original Chronoforge: a stylized 2.5D strategy RPG about a three-person crew reclaiming a post-collapse Earth and helping a settlement rebuild civilization.
 
-**Status: native foundation implemented (01).** The Godot project, traversal patch, prepared diagnostic assets, development views, rehearsal action and savable tuning are working. The 01 standalone Mac app passed 46 runtime checks plus 4 cold-restart checks. Game visuals and motion remain diagnostic placeholders. See [run/build instructions](NATIVE.md) and [foundation evidence](evidence/README.md).
+**Status: 03 delivers [Kaida r2 / Alpha a1](releases/kaida-a1.md), the owner-requested playable release.** The stable r2 body uses corrected prepared export `kaida/r5` and separate `kaida.energy-sword/r2`. It has responsive stride-matched traversal, a timed strike with target reaction and feedback, basic hurt/defeat previews, slow/stepped inspection, and saved tuning. See [run/build instructions](NATIVE.md) and [03 evidence](evidence/kaida-03/README.md). **04 and later work remain unstarted.**
 
-**02 local tooling is verified:** metadata-selected static and skeletal recipes, preserved sources and immutable candidates, with [22 native runtime checks](_prep/evidence/proofs-r1/README.md). The owner's real Meshy Kaida is [retained with a textured rig and idle/run source actions](_prep/assets/kaida/README.md). Her proportions are provisional; walk, attack, hurt and animation finishing remain pending. See [ROADMAP.md](ROADMAP.md) for the sequence. Numbered assignments live in [_plans/](_plans).
+02’s [local production pipeline](_prep/README.md) delivered the current [source and asset handoff](_prep/KAIDA_HANDOFF.md). Kaida’s proportions and detailed grip/whole-body motion remain provisional under the owner’s [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07). The alpha release is ready for the owner’s review before 04.
 
 ## The direction
 

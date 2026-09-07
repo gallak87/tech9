@@ -7,6 +7,9 @@ func run(root: DuskFoundation) -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	started = Time.get_ticks_msec()
 	game.set_unfocused(false)
+	# Observe ordinary startup before any test reload or placement can hide it.
+	await seconds(2.0)
+	check(game.actor.position.length() < 0.05 and game.actor.velocity.length() < 0.05, "Cold startup stays grounded at the spawn before any test reset")
 	if "--kaida-restart" in OS.get_cmdline_user_args():
 		await seconds(2.0)
 		check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "r5", "Cold launch restores Kaida r5")
@@ -24,6 +27,7 @@ func run(root: DuskFoundation) -> void:
 		finish("kaida")
 		return
 	check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "r5", "Displayed actor is Kaida r5")
+	check(game.release.release == "a1" and game.release.asset_generation == "r2" and game.release.model_sha256 == game.actor.visual.descriptor.model.sha256, "Alpha a1 pins the existing Kaida r2 asset and corrected export")
 	var skeleton: Skeleton3D = DuskAssetAssembly.find_skeleton(game.actor.visual.model)
 	check(skeleton != null and skeleton.get_bone_count() == 67, "Real 67-bone Kaida rig present")
 	check(game.actor.visual.equipment.size() == 1 and game.actor.visual.equipment[0].get_parent() is BoneAttachment3D, "Separate sword uses skeletal socket")
@@ -216,18 +220,42 @@ func run(root: DuskFoundation) -> void:
 	await seconds(1.0)
 	check(int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)) <= baseline_nodes + 2, "Reloading r5 releases prior mesh, rig and equipment nodes")
 	check(int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)) <= baseline_resources + 10 and game.perf.video_mb < baseline_video + 5.0, "Reloading r5 does not accumulate resources or video memory")
+	# Prevent the performance copies spawning inside the controlled capsule.
+	# Overlap recovery otherwise lifts her onto another character’s head.
+	game.actor.place(Vector3(0, 0.02, 0))
+	game.camera.yaw = 0.0
+	game.camera.update_camera(1.0)
 	var extras: Array[DuskCharacter] = []
 	for i: int in range(3):
 		var extra := DuskCharacter.new()
+		# Position before entering the tree/creating its collider: otherwise
+		# it briefly overlaps the player at the origin during native loading.
+		extra.place(Vector3(i * 1.6 - 1.6, 0, -2.5))
 		game.simulation.add_child(extra)
 		var asset := DuskAssetAssembly.new()
 		extra.add_child(asset)
 		check(asset.assemble(DuskFoundation.DEFAULT_CANDIDATE), "Additional Kaida %d loads" % i)
 		extra.remove_child(asset)
 		extra.install(asset)
-		extra.place(Vector3(i * 1.6 - 1.6, 0, -2.5))
 		extras.append(extra)
 	await seconds(2.0)
+	key_down(KEY_W)
+	key_down(KEY_SHIFT)
+	var maximum_height: float = game.actor.position.y
+	var minimum_separation: float = 100.0
+	for frame: int in range(120):
+		await get_tree().physics_frame
+		maximum_height = maxf(maximum_height, game.actor.position.y)
+		minimum_separation = minf(minimum_separation, Vector2(game.actor.position.x - extras[1].position.x, game.actor.position.z - extras[1].position.z).length())
+	key_up(KEY_W)
+	key_up(KEY_SHIFT)
+	check(maximum_height < 0.05 and minimum_separation > 0.62, "Running into another Kaida stays grounded and keeps body separation")
+	observations["instance_collision"] = {"maximum_height_m": maximum_height, "minimum_horizontal_separation_m": minimum_separation}
+	game.actor.place(Vector3(0, 0.02, 0))
+	await key(KEY_C)
+	await seconds(0.5)
+	check(absf(game.actor.position.y) < 0.05, "Four-instance layout keeps the controlled actor on the floor")
+	await capture("kaida-four-instances")
 	game.perf.begin("four_kaida_instances_10s")
 	await seconds(10.0)
 	game.perf.begin("cleanup")

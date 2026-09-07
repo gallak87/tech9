@@ -1,0 +1,147 @@
+{
+  "coordinate_space": "Blender metres Z up +Y forward",
+  "bounds": [
+    [
+      -0.9037500023841858,
+      -0.7450000047683716,
+      0.0
+    ],
+    [
+      0.8655000925064087,
+      0.48374998569488525,
+      1.5674999952316284
+    ]
+  ],
+  "meshes": [
+    {
+      "name": "Coast_supplies",
+      "vertices": 5056,
+      "triangles": 9772,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 5056
+    }
+  ],
+  "materials": [
+    {
+      "name": "Oxidised iron",
+      "images": [
+        {
+          "name": "Oxidised iron baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "23de1027f32d4963e0c158d2793258aa7bf9b84876ebe309aa16bf3cc62f6c12",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Oxidised iron packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "d929fae47ad3f9f0dbe44f914b2383e04d487a0578dff549969221bc1cc40427",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Silvered driftwood",
+      "images": [
+        {
+          "name": "Silvered driftwood baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "d98dfbe0acbdb8928af23baeb103a87c7b62be1eefdd40c003fa574bbcd3e677",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Silvered driftwood packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "93919139807f56c61ca71f42e245e8b52c3964c9ee1a88456536a65c0828ae08",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wet basalt",
+      "images": [
+        {
+          "name": "Wet basalt baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "8bee9f854d1f2b9e85e128695a8bc208eb3c6233322353b33084a18cc9aa408a",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Wet basalt packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "4011587dd3b182c0a002b8d7fb2ebc7b73a41ac8fa3f3ba61655e9cdd6824bda",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Worn teal enamel",
+      "images": [
+        {
+          "name": "Worn teal enamel baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "4f8de0cdbae739d9e2c327d5280b05bd9159c86afb84cd5c96b6f2a15be15903",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Worn teal enamel packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "5d6672cb0b8589630cdb8aca9414dbae37c59a62153091cae9a7478ac634ff54",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    }
+  ],
+  "rigs": [],
+  "actions": [],
+  "root_correction": [],
+  "visual_acceptance": "not established"
+}

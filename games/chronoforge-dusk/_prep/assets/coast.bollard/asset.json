@@ -1,0 +1,43 @@
+{
+  "production_format": 1,
+  "asset_id": "coast.bollard",
+  "revision": "r1",
+  "label": "Coastal bollard / r1",
+  "kind": "prop",
+  "animation_mode": "none",
+  "placeholder": false,
+  "recipe": "static_blend",
+  "source_files": [
+    {
+      "path": "assets/coast.bollard/sources/r1/master.blend",
+      "role": "editable_master",
+      "sha256": "418b8950696f47f0270fbb5201d8df34a09c69b9be88e9761ffc679ffb8e6c78"
+    },
+    {
+      "path": "assets/coast/author_coast.py",
+      "role": "authoring_script",
+      "sha256": "af2e25e35b5aefa44fbcf6c6695418d2999e4b417ef9a02ec09fc5c0bd28b3da"
+    }
+  ],
+  "required_outputs": [
+    "runtime/model.glb",
+    "runtime/descriptor.json",
+    "working/export.blend",
+    "inspection.json",
+    "reimport.json"
+  ],
+  "dimensions": {
+    "height_m": 0.7200000286102295,
+    "radius_m": 0.3199999928474426,
+    "forward": "-Z",
+    "up": "+Y",
+    "origin": "ground"
+  },
+  "dependencies": [],
+  "attachments": [],
+  "provenance": {
+    "origin": "Original Blender mesh and deterministic baked maps authored for Dusk plan 06.",
+    "attribution": "Dusk original; no third-party code, models, textures, or service acquisition.",
+    "visual_reference": "Original Chronoforge Haventide imagery viewed for coastal material and color identity only."
+  }
+}

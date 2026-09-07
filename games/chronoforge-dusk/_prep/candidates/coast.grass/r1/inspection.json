@@ -1,0 +1,47 @@
+{
+  "coordinate_space": "Blender metres Z up +Y forward",
+  "bounds": [
+    [
+      -0.6696756482124329,
+      -0.6332945227622986,
+      0.0
+    ],
+    [
+      0.8147900700569153,
+      0.6920904517173767,
+      0.9255352020263672
+    ]
+  ],
+  "meshes": [
+    {
+      "name": "Coast_grass",
+      "vertices": 1024,
+      "triangles": 1792,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 1024
+    }
+  ],
+  "materials": [
+    {
+      "name": "Coastal blade 0",
+      "images": []
+    },
+    {
+      "name": "Coastal blade 1",
+      "images": []
+    },
+    {
+      "name": "Coastal blade 2",
+      "images": []
+    },
+    {
+      "name": "Coastal blade 3",
+      "images": []
+    }
+  ],
+  "rigs": [],
+  "actions": [],
+  "root_correction": [],
+  "visual_acceptance": "not established"
+}

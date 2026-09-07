@@ -1,0 +1,85 @@
+{
+  "asset_id": "coast.bridge",
+  "build_fingerprint": "3b8db0dbac0b73b8c06e906efcec8ed0b78b942cacf7f2faec189632f7eaca78",
+  "candidate_format": 1,
+  "created_at": "2026-09-07T21:04:07.065650+00:00",
+  "files": {
+    "build.log": "1a1ba529ab272dab67f41cdfbb20d17a63b172fbbcf966d7abdbfae16650473d",
+    "export-settings.json": "ab335ea64430417d4095583aab0b6ac5792b5384fbfb774d142bd63602d0d9ea",
+    "inspection.json": "05919b90332058c1905b54b57fb4bfe82de1d70fe7f71a9d6d6c8e8afaebd4da",
+    "metadata.json": "30622c5cda6547fc061ee33180b36d36f833ca5a60abb4a5307b697f9285430f",
+    "reimport.json": "083b41e0baf3884e61db16af59cfe4337a3daa3756c46a94c56f03d65fece81f",
+    "runtime/descriptor.json": "6e5901527222032ddf402fff7516e483f919f438c5496ee93f56162b9d378166",
+    "runtime/model.glb": "f1218068e1561e54ca419e97939e27df08f15cad991b3b0e0eee64f5a575e6c2",
+    "structural-checks.json": "1d91cee431bc01ffe048550875279a380c4c141b08abfd35712e7dd69dfb8963",
+    "working/export.blend": "90b983d34a117f4664218dd14d226937a5c2aa6d513d68f37c4792cfd7920fc2"
+  },
+  "inputs": {
+    "dependencies": {},
+    "metadata": {
+      "animation_mode": "none",
+      "asset_id": "coast.bridge",
+      "attachments": [],
+      "dependencies": [],
+      "dimensions": {
+        "forward": "-Z",
+        "height_m": 0.3269999921321869,
+        "origin": "ground",
+        "radius_m": 2.0,
+        "up": "+Y"
+      },
+      "kind": "prop",
+      "label": "Coastal bridge / r1",
+      "placeholder": false,
+      "production_format": 1,
+      "provenance": {
+        "attribution": "Dusk original; no third-party code, models, textures, or service acquisition.",
+        "origin": "Original Blender mesh and deterministic baked maps authored for Dusk plan 06.",
+        "visual_reference": "Original Chronoforge Haventide imagery viewed for coastal material and color identity only."
+      },
+      "recipe": "static_blend",
+      "required_outputs": [
+        "runtime/model.glb",
+        "runtime/descriptor.json",
+        "working/export.blend",
+        "inspection.json",
+        "reimport.json"
+      ],
+      "revision": "r1",
+      "source_files": [
+        {
+          "path": "assets/coast.bridge/sources/r1/master.blend",
+          "role": "editable_master",
+          "sha256": "670a339368ddbf4320dabbf8abf72e16348199e009ca4ea06030b81bd67301ea"
+        },
+        {
+          "path": "assets/coast/author_coast.py",
+          "role": "authoring_script",
+          "sha256": "af2e25e35b5aefa44fbcf6c6695418d2999e4b417ef9a02ec09fc5c0bd28b3da"
+        }
+      ]
+    },
+    "runtime_format": 1,
+    "scripts": {
+      "ASSET_CONTRACT.md": "175b9271cac4a70fd1bb31cd22ef39301d8d3c73b0f7423c920ddcfd7a1299bf",
+      "pipeline.py": "137026225bf7250e47f431c3504ab67c6c2c1ba8f3f3e8d25a8514ef7f173b5b",
+      "tools/author_proofs.py": "419dcf7bcecfe0978ad1fd1adf6352448be6d84ad03d66b6a5519b831bbf207f",
+      "tools/blender_stage.py": "238ef69829f732f7db87db8186c03e124344987aca68a03df7dd73b6a729df54",
+      "tools/clip_stage.py": "02653bf34c4af560344b38352ed9fab28dab3e05ca9e288ca569b7a77bfba329",
+      "tools/glb_check.py": "0753d8fa382b6d55e860378bd0bd8543e2bec4cd96d479a5b4af8b4e13fc32cd",
+      "tools/preparation_stage.py": "8181fb96e19b5e889b41fc1dbfce9c24065ddf263443a6941be7d4f44b30847d"
+    },
+    "sources": {
+      "assets/coast.bridge/sources/r1/master.blend": "670a339368ddbf4320dabbf8abf72e16348199e009ca4ea06030b81bd67301ea",
+      "assets/coast/author_coast.py": "af2e25e35b5aefa44fbcf6c6695418d2999e4b417ef9a02ec09fc5c0bd28b3da"
+    },
+    "tools": {
+      "blender": "5.1.1",
+      "blender_build": "b70da489d7f4",
+      "python": "3.14.5"
+    }
+  },
+  "revision": "r1",
+  "structural_status": "ready_for_game_inspection",
+  "visual_status": "awaiting_review"
+}

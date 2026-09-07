@@ -1,0 +1,151 @@
+{
+  "coordinate_space": "Blender metres Z up +Y forward",
+  "bounds": [
+    [
+      -3.119999885559082,
+      -0.7749999761581421,
+      0.0
+    ],
+    [
+      3.1499998569488525,
+      0.7749999761581421,
+      5.281555652618408
+    ]
+  ],
+  "meshes": [
+    {
+      "name": "Coast_arch",
+      "vertices": 1540,
+      "triangles": 2976,
+      "uv_layers": 2,
+      "blended_vertices": 0,
+      "unweighted_vertices": 1540
+    }
+  ],
+  "materials": [
+    {
+      "name": "Oxidised iron",
+      "images": [
+        {
+          "name": "Oxidised iron baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "23de1027f32d4963e0c158d2793258aa7bf9b84876ebe309aa16bf3cc62f6c12",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Oxidised iron packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "d929fae47ad3f9f0dbe44f914b2383e04d487a0578dff549969221bc1cc40427",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Pitted concrete",
+      "images": [
+        {
+          "name": "Pitted concrete baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "f2b694a8901ef65f239d55d85e4788195dfa3d92d46ac38629b8a28d4a4a5fc3",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Pitted concrete packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "3805d77ec206cdd26df9ee41f95bc3d0c6e9b7c4f89e3c8dc6707abeff1b2b0d",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Reclaimed cyan power",
+      "images": []
+    },
+    {
+      "name": "Salt limestone",
+      "images": [
+        {
+          "name": "Salt limestone baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "c993a97a004accaf947415dcd31029f78589adb8a5889b217bb0d4b4869f0d35",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Salt limestone packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "d83b75b880eab246d50318755189db64d648077d1a9bac3f5f8e3a50ab120358",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Worn teal enamel",
+      "images": [
+        {
+          "name": "Worn teal enamel baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "4f8de0cdbae739d9e2c327d5280b05bd9159c86afb84cd5c96b6f2a15be15903",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Worn teal enamel packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "5d6672cb0b8589630cdb8aca9414dbae37c59a62153091cae9a7478ac634ff54",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    }
+  ],
+  "rigs": [],
+  "actions": [],
+  "root_correction": [],
+  "visual_acceptance": "not established"
+}

@@ -1,0 +1,17 @@
+00:00.329  blend            | Read blend: "/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/assets/coast.grass/sources/r1/master.blend"
+Info: Saved as "export.blend"
+INFO Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/5.1/scripts/addons_core/io_scene_gltf2/libextern_draco.dylib
+14:04:01 | INFO: Starting glTF 2.0 export
+14:04:01 | INFO: Extracting primitive: Wind bent marram
+14:04:01 | INFO: Primitives created: 4
+14:04:01 | INFO: Finished glTF 2.0 export in 0.009742975234985352 s
+
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit
+14:04:02 | INFO: Data are loaded, start creating Blender stuff
+14:04:02 | INFO: Blender create Mesh node Wind bent marram
+14:04:02 | INFO: glTF import finished in 0.01s
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit

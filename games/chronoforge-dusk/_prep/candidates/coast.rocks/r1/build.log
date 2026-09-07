@@ -1,0 +1,18 @@
+00:00.327  blend            | Read blend: "/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/assets/coast.rocks/sources/r1/master.blend"
+Info: Saved as "export.blend"
+INFO Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/5.1/scripts/addons_core/io_scene_gltf2/libextern_draco.dylib
+14:03:57 | INFO: Starting glTF 2.0 export
+14:03:57 | INFO: Extracting primitive: Icosphere
+14:03:57 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+14:03:57 | INFO: Primitives created: 1
+14:03:57 | INFO: Finished glTF 2.0 export in 0.007707118988037109 s
+
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit
+14:03:58 | INFO: Data are loaded, start creating Blender stuff
+14:03:58 | INFO: Blender create Mesh node Icosphere
+14:03:58 | INFO: glTF import finished in 0.01s
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit

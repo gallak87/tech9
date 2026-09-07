@@ -1,0 +1,63 @@
+{
+  "coordinate_space": "Blender metres Z up +Y forward",
+  "bounds": [
+    [
+      -2.0297443866729736,
+      -1.2521249055862427,
+      0.0
+    ],
+    [
+      1.498810887336731,
+      1.0543187856674194,
+      1.4028840065002441
+    ]
+  ],
+  "meshes": [
+    {
+      "name": "Coast_rocks",
+      "vertices": 2175,
+      "triangles": 1040,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 2175
+    }
+  ],
+  "materials": [
+    {
+      "name": "Wet basalt",
+      "images": [
+        {
+          "name": "Wet basalt baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "8bee9f854d1f2b9e85e128695a8bc208eb3c6233322353b33084a18cc9aa408a",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Wet basalt packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "4011587dd3b182c0a002b8d7fb2ebc7b73a41ac8fa3f3ba61655e9cdd6824bda",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    }
+  ],
+  "rigs": [],
+  "actions": [],
+  "checks": {
+    "height": true,
+    "texture_inventory": true
+  },
+  "visual_acceptance": "not established; inspect in Dusk"
+}

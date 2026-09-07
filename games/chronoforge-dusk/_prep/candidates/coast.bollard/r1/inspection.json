@@ -1,0 +1,93 @@
+{
+  "coordinate_space": "Blender metres Z up +Y forward",
+  "bounds": [
+    [
+      -0.3199999928474426,
+      -0.3199999928474426,
+      0.0
+    ],
+    [
+      0.3199999928474426,
+      0.3199999928474426,
+      0.7200000286102295
+    ]
+  ],
+  "meshes": [
+    {
+      "name": "Coast_bollard",
+      "vertices": 1488,
+      "triangles": 2944,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 1488
+    }
+  ],
+  "materials": [
+    {
+      "name": "Flax rope",
+      "images": []
+    },
+    {
+      "name": "Oxidised iron",
+      "images": [
+        {
+          "name": "Oxidised iron baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "23de1027f32d4963e0c158d2793258aa7bf9b84876ebe309aa16bf3cc62f6c12",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Oxidised iron packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "d929fae47ad3f9f0dbe44f914b2383e04d487a0578dff549969221bc1cc40427",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Worn teal enamel",
+      "images": [
+        {
+          "name": "Worn teal enamel baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "4f8de0cdbae739d9e2c327d5280b05bd9159c86afb84cd5c96b6f2a15be15903",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Worn teal enamel packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "5d6672cb0b8589630cdb8aca9414dbae37c59a62153091cae9a7478ac634ff54",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    }
+  ],
+  "rigs": [],
+  "actions": [],
+  "root_correction": [],
+  "visual_acceptance": "not established"
+}

@@ -1,0 +1,21 @@
+00:00.331  blend            | Read blend: "/Users/g/code/scratch/tech9/games/chronoforge-dusk/_prep/assets/coast.supplies/sources/r1/master.blend"
+Info: Saved as "export.blend"
+INFO Draco mesh compression is available, use library at /Applications/Blender.app/Contents/Resources/5.1/scripts/addons_core/io_scene_gltf2/libextern_draco.dylib
+14:03:52 | INFO: Starting glTF 2.0 export
+14:03:52 | INFO: Extracting primitive: Cube
+14:03:52 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+14:03:52 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+14:03:52 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+14:03:52 | WARNING: More than one shader node tex image used for a texture. The resulting glTF sampler will behave like the first shader node tex image.
+14:03:52 | INFO: Primitives created: 4
+14:03:52 | INFO: Finished glTF 2.0 export in 0.019876956939697266 s
+
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit
+14:03:53 | INFO: Data are loaded, start creating Blender stuff
+14:03:53 | INFO: Blender create Mesh node Cube
+14:03:53 | INFO: glTF import finished in 0.03s
+Blender 5.1.1 (hash b70da489d7f4 built 2026-04-14 01:46:23)
+
+Blender quit

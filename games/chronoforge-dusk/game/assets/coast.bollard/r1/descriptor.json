@@ -1,0 +1,23 @@
+{
+  "animation_mode": "none",
+  "asset_id": "coast.bollard",
+  "attachments": [],
+  "clips": {},
+  "dimensions": {
+    "forward": "-Z",
+    "height_m": 0.7200000286102295,
+    "origin": "ground",
+    "radius_m": 0.3199999928474426,
+    "up": "+Y"
+  },
+  "format": 1,
+  "kind": "prop",
+  "label": "Coastal bollard / r1",
+  "model": {
+    "path": "res://assets/coast.bollard/r1/model.glb",
+    "sha256": "164e09ab7bfcf5e52484b5f58fb807e8f47a4f5b6d3abdb619d0aac889a70c64"
+  },
+  "motion": {},
+  "placeholder": false,
+  "revision": "r1"
+}

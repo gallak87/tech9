@@ -1,0 +1,17 @@
+{
+  "kaida": {
+    "triangles": 94550,
+    "meshes": 62,
+    "bytes": 2125748
+  },
+  "vex": {
+    "triangles": 94066,
+    "meshes": 62,
+    "bytes": 2093020
+  },
+  "rune": {
+    "triangles": 94722,
+    "meshes": 72,
+    "bytes": 2218920
+  }
+}

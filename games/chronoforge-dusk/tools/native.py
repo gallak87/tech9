@@ -84,7 +84,7 @@ def verify_test_report(path, run_id, source_sha256, native_export):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['setup', 'import', 'run', 'export', 'test', 'test-editor', 'test-foundation', 'test-foundation-editor', 'test-environment', 'test-environment-editor', 'capture-environment'])
+    parser.add_argument('command', choices=['setup', 'import', 'run', 'export', 'test', 'test-editor', 'test-foundation', 'test-foundation-editor', 'test-environment', 'test-environment-editor', 'test-locomotion', 'capture-environment'])
     args = parser.parse_args()
     godot = engine()
     if args.command == 'setup':
@@ -95,7 +95,7 @@ def main():
         build_identity()
     if args.command == 'run':
         run([godot, '--path', GAME], timeout=None)
-    if args.command in ('export', 'test', 'test-foundation', 'test-environment', 'capture-environment'):
+    if args.command in ('export', 'test', 'test-foundation', 'test-environment', 'test-locomotion', 'capture-environment'):
         setup()
         APP.parent.mkdir(exist_ok=True)
         run([godot, '--headless', '--path', GAME, '--export-release', 'macOS', APP])
@@ -108,12 +108,13 @@ def main():
         run_id = uuid.uuid4().hex
         source_sha256 = json.loads((GAME / 'content/build_info.json').read_text())['source_sha256']
         phases = [('self-test', 'foundation'), ('verify-restart', 'restart')] if 'foundation' in args.command else [('kaida-test', 'kaida'), ('kaida-restart', 'kaida_restart')]
-        if 'environment' in args.command:
+        if 'environment' in args.command or args.command == 'test-locomotion':
             phases = [('environment-test', 'environment'), ('environment-restart', 'environment_restart')]
         if args.command == 'capture-environment':
             phases = [('environment-motion', 'environment_motion')]
         for flag, label in phases:
-            run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--' + flag, '--test-run-id=' + run_id], timeout=300 if 'environment' in args.command else 180)
+            extra = ['--locomotion-only'] if args.command == 'test-locomotion' else []
+            run([*prefix, '--always-on-top', '--resolution', '1440x810', '--', '--' + flag, '--test-run-id=' + run_id, *extra], timeout=300 if 'environment' in args.command else 180)
             verify_test_report(USER_DATA / f'test_{label}.json', run_id, source_sha256, native)
 
 

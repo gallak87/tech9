@@ -1,7 +1,7 @@
 class_name DuskTuning
 extends RefCounted
 
-const DEFAULTS: Dictionary = {"walk_speed": 2.3, "run_speed": 5.1, "turn_speed": 18.0, "camera_yaw": 25.0, "camera_pitch": 34.0, "camera_distance": 9.6, "impact_fraction": 0.5, "light_game": true, "attack_tempo": 1.0, "hit_stop": 0.065, "walk_stride_speed": 2.28, "run_stride_speed": 5.06165, "acceleration": 28.0, "braking": 36.0}
+const DEFAULTS: Dictionary = {"walk_speed": 2.99, "run_speed": 6.63, "turn_speed": 18.0, "camera_yaw": 25.0, "camera_pitch": 34.0, "camera_distance": 9.6, "impact_fraction": 0.5, "light_game": true, "attack_tempo": 1.0, "hit_stop": 0.065, "walk_stride_speed": 2.28, "run_stride_speed": 5.06165, "acceleration": 28.0, "braking": 36.0}
 const LIMITS: Dictionary = {"walk_speed": [0.5, 4.0], "run_speed": [4.0, 8.0], "turn_speed": [2.0, 24.0], "camera_yaw": [-180.0, 180.0], "camera_pitch": [15.0, 75.0], "camera_distance": [4.0, 24.0], "impact_fraction": [0.15, 0.85], "attack_tempo": [0.5, 1.8], "hit_stop": [0.0, 0.12], "walk_stride_speed": [1.0, 4.0], "run_stride_speed": [3.0, 7.0], "acceleration": [10.0, 60.0], "braking": [10.0, 60.0]}
 var values: Dictionary = DEFAULTS.duplicate()
 var path: String = "user://accepted_tuning.json"

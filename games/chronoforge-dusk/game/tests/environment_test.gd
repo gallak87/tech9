@@ -27,6 +27,11 @@ func run(root: DuskCoast) -> void:
 	if "--environment-restart" in OS.get_cmdline_user_args():
 		finish("environment_restart")
 		return
+	if "--locomotion-only" in OS.get_cmdline_user_args():
+		await check_locomotion()
+		check(save_before == (FileAccess.get_sha256("user://accepted_tuning.json") if FileAccess.file_exists("user://accepted_tuning.json") else "absent"),"Locomotion check preserves accepted tuning")
+		finish("environment")
+		return
 	game.perf.begin("arrival_stationary_10s")
 	await seconds(10)
 	game.perf.begin("captures_readback")
@@ -166,6 +171,51 @@ func set_keys(keys: Array[int]) -> void:
 	for code: int in keys:
 		if code not in held: send_key(code,true)
 	held = keys.duplicate()
+
+func check_locomotion() -> void:
+	check(is_equal_approx(game.actor.walk_speed,2.99) and is_equal_approx(game.actor.run_speed,6.63),"Walk and run use the requested 30 percent speed increase")
+	var skeleton: Skeleton3D = DuskAssetAssembly.find_skeleton(game.actor.visual.model)
+	var left_hand: int = skeleton.find_bone("mixamorig_LeftHand")
+	var right_hand: int = skeleton.find_bone("mixamorig_RightHand")
+	for running: bool in [false,true]:
+		game.reset_spawn()
+		await seconds(.2)
+		var movement_keys: Array[int] = [KEY_D]
+		if running: movement_keys.append(KEY_SHIFT)
+		set_keys(movement_keys)
+		await seconds(.3)
+		await get_tree().physics_frame
+		var start: Vector3 = game.actor.position
+		var min_z: float = INF
+		var max_z: float = -INF
+		var clearance: float = INF
+		var max_right_step: float = 0.0
+		var last_right: Vector3 = skeleton.get_bone_global_pose(right_hand).origin
+		for frame: int in range(60):
+			await get_tree().physics_frame
+			var hand: Vector3 = skeleton.get_bone_global_pose(left_hand).origin
+			min_z = minf(min_z,hand.z)
+			max_z = maxf(max_z,hand.z)
+			clearance = minf(clearance,absf(hand.x))
+			var right: Vector3 = skeleton.get_bone_global_pose(right_hand).origin
+			max_right_step = maxf(max_right_step,right.distance_to(last_right))
+			last_right = right
+		var speed: float = game.actor.run_speed if running else game.actor.walk_speed
+		var stride: float = game.actor.run_stride_speed if running else game.actor.walk_stride_speed
+		var distance: float = game.actor.position.distance_to(start)
+		check(absf(distance-speed) < .12,"%s covers the expected distance in one second" % ("Run" if running else "Walk"))
+		check(absf(game.actor.visual.player.speed_scale-speed/stride) < .03,"Animation stride matches actual travel")
+		if not running:
+			check(max_z-min_z > .4 and clearance > .22,"Walk left hand swings freely with clearance from the hip")
+		else:
+			check(max_right_step < .08,"Faster running keeps sword-hand motion continuous")
+		observations["run" if running else "walk"] = {"speed_m_s":speed,"distance_in_one_second_m":distance,"left_hand_forward_span_m":max_z-min_z,"left_hand_lateral_clearance_m":clearance,"max_right_hand_step_m":max_right_step}
+		game.perf.begin("locomotion_capture")
+		await capture("locomotion-run" if running else "locomotion-walk")
+		set_keys([])
+		await seconds(.25)
+		check(game.actor.visual.active_role == "idle" and game.actor.measured_speed < .02,"Release stops movement and returns to idle")
+	game.reset_spawn()
 
 func send_key(code: int, pressed: bool) -> void:
 	var event := InputEventKey.new()

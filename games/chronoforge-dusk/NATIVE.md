@@ -82,10 +82,11 @@ From the Dusk directory:
 python3 tools/native.py setup       # fetch official archive once, verify macos.zip
 python3 tools/native.py import      # standard Godot import + build identity
 python3 tools/native.py export      # import, verify template, export and verify signature
+python3 tools/native.py test-locomotion # short coastal walk/run, arm swing and restart check
 python3 tools/native.py test-environment # coastal route, WASD alignment, pause/tools + restart
 python3 tools/native.py capture-environment # separate native motion capture; not performance
 python3 tools/encode_coast_motion.py # animated WebP evidence (Pillow only for encoding)
-python3 tools/native.py test       # unchanged a1 gate: native Kaida gameplay + cold restart
+python3 tools/native.py test       # a1 gate: native Kaida gameplay + cold restart
 python3 tools/native.py test-editor # same Kaida suite using the editor binary
 python3 tools/native.py test-foundation # opt-in importer/fixture regressions
 python3 tools/native.py test-foundation-editor # opt-in regressions with editor binary
@@ -98,6 +99,8 @@ The result is a local **ad-hoc signed** `.app`, verified with `codesign --verify
 Official references: [pinned release](https://godotengine.org/download/archive/4.6.3-stable/), [Godot macOS export](https://docs.godotengine.org/en/4.6/tutorials/export/exporting_for_macos.html), [command-line export](https://docs.godotengine.org/en/4.6/tutorials/editor/command_line_tutorial.html).
 
 ## Test scope
+
+`test-locomotion` checks the current walking arm swing, walk/run speed, stride playback, stopping and a cold restart in the coastal scene. It does not repeat the full route or fixture suite.
 
 `test-environment` runs the actual coastal loop through mapped input, checks single-key road alignment, foreground fading, boundaries, pause/reset, development round trips and acceptance-file preservation, then cold restarts. `test-environment-editor` is available for the same focused checks with the editor binary. `test` runs Kaida only, then verifies saved state in a new process. This is the a1 release gate. The fixture suite is explicitly opt-in for importer, malformed-descriptor, asset-swapping or shared foundation changes; it is not a second gate for character fixes or documentation cleanup. Run checks for the changed system. A changed global content digest alone does not justify repeating unrelated suites: retain the earlier report and identify its tested source. Repeat Kaida checks for changes affecting the actor, controller, importer, saved tuning or shared launch/input flow; scenery/material/camera-only changes use focused environment checks. Documentation and commit-label changes need neither a gameplay rerun nor a new export.
 

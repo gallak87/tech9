@@ -14,9 +14,13 @@ The owner's early playtest identified a real control problem: an 18° camera yaw
 
 ## Exact content
 
-Baseline: `21497f447e02`, using Kaida a1 graduated at `b246ff1`. Kaida's source, five clips, model and sword package remain unchanged. Model SHA-256: `ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0`; sword: `3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea`.
+Kaida a1 uses a free left-arm walk swing and default speeds of **2.99 m/s walking** and **6.63 m/s running**. Her other four clips and sword are unchanged by the locomotion correction. Current model SHA-256: `65f98f5fe156e2490d7a3ad75c5783bd0dfad769683d8d8b67dcea16bee27ebf`; sword: `3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea`.
 
-Tested runtime source SHA-256:
+The focused check passes **16 native assertions and 6 cold-start assertions**, with no external input. Measured travel is 2.99 m walking and 6.63 m running over one second; the walk hand sweeps 45.5 cm at runtime. [Export checks](locomotion-source.json) confirm unchanged geometry/weights and identical idle, run, attack and hurt animation data.
+
+The focused [native locomotion check](locomotion.json) and [restart](locomotion-restart.json) verify the current movement settings, arm swing, stride playback, sword-hand continuity and stopping. [Walk](locomotion-walk.png) and [run](locomotion-run.png) captures use the actual coastal camera. The full-route/rendering evidence below records the environment baseline; its inventory pins its own tested source and assets.
+
+Full-route/rendering source SHA-256:
 
 ```text
 c0ccce620f453c49f925fc814c3dea4b5979fdd13664e1f3bc480ebae7217ca1

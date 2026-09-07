@@ -1,0 +1,7 @@
+{
+  "geometry_and_weights_unchanged": true,
+  "other_four_exported_animations_identical": true,
+  "changed_source_channel": "walk / mixamorig:LeftArm / rotation",
+  "other_walk_channels_max_export_rounding_delta": 1.7881393432617188e-07,
+  "model_sha256": "65f98f5fe156e2490d7a3ad75c5783bd0dfad769683d8d8b67dcea16bee27ebf"
+}

@@ -1,19 +1,19 @@
 {
   "asset_id": "kaida",
-  "build_fingerprint": "514c70345f590f79a5f0e7eaa7d6ff2ba6581e959a6ff8dd3817dddfb617245e",
+  "build_fingerprint": "90c7417d1693e506b2fab1409324ae8b9df78998c77c85254be47a4f94e9971d",
   "candidate_format": 1,
-  "created_at": "2026-09-07T20:17:50.792409+00:00",
+  "created_at": "2026-09-07T22:50:29.580456+00:00",
   "files": {
-    "build.log": "b1ae92f195c61b8fd5abde05ed6341e34aab7e68dbd18220cde931cf56d354ed",
+    "build.log": "96dc092c3ccf9dcade29b27d6c3eabf47d2115ed2c2fce6faea6afceefa44ec3",
     "export-settings.json": "c8a8c09d98e5ebafa8b6849214589ea85fab3dc1392d7a1dd6547600887bc9bc",
     "inspection.json": "211a9d43f452d50ea2ec2e150dc12da3fa5e9fc61184aee05c2de8857fae44f3",
-    "metadata.json": "20bfde1d7aa3e49c862f8b2041bb219179291baba24415e5062eda7070cf7b3d",
+    "metadata.json": "b60a8f3ae702bd5759551900a5274f3fa380f868cfc7f8e908a118f1a60e2e46",
     "reimport.json": "974c0ca307e62675462f26c227b72a984587c1add1971999a1f96f2beee7537c",
-    "runtime/descriptor.json": "b79235e0fe20e18acc84c03924d7a3017a13b463ca2ebebe647fdf1691769100",
+    "runtime/descriptor.json": "dc7b53254b84f77792dca971540f108f90f8598d09052da226532a1bdd9d187e",
     "runtime/kaida.energy-sword.glb": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea",
-    "runtime/model.glb": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0",
+    "runtime/model.glb": "65f98f5fe156e2490d7a3ad75c5783bd0dfad769683d8d8b67dcea16bee27ebf",
     "structural-checks.json": "370a9710ac3ef8f3d4662f5b66ca0ea99ecbc0578d014a36b40c7cd5b93625eb",
-    "working/export.blend": "130ba9c2e389843c15f436b3b753a178d6bae4b969af695d30513bdd19f63129"
+    "working/export.blend": "4bb1a978f81cb67ec8148823963e11a50e810edf4fdb2ca46ab1c5b5ee6844ad"
   },
   "inputs": {
     "dependencies": {
@@ -103,7 +103,7 @@
         {
           "path": "assets/kaida/sources/a1/master.blend",
           "role": "editable_master",
-          "sha256": "99d8027d88071bd8c44ac0faed576348582b20d6e0e1b93ce010f1f6f2e7b8ef"
+          "sha256": "14545977bc223de42c7fa508b7ebabe4e6025d0a8341ad3330bf3bb6179dd40f"
         },
         {
           "path": "assets/kaida/sources/a1/textures/kaida-basecolor.png",
@@ -185,7 +185,7 @@
       "assets/kaida/downloads/mixamo-kaida-r2/kaida-r2-idle.fbx": "4ffb00c10c49ad25631e8f3cab0eaac8a4836621d99a418227f9047e7d9a6c01",
       "assets/kaida/downloads/mixamo-kaida-r2/kaida-r2-run.fbx": "667e0ae061f4e9565f7c42597ed06534d4ba8c2e0e34ce36330467c3f5767ed2",
       "assets/kaida/downloads/mixamo-kaida-r2/receipt.json": "0622cdc5ac4060f6dc26f8c7eb9fecb4d6507d326a6aa828f0d6ac5d6311d82c",
-      "assets/kaida/sources/a1/master.blend": "99d8027d88071bd8c44ac0faed576348582b20d6e0e1b93ce010f1f6f2e7b8ef",
+      "assets/kaida/sources/a1/master.blend": "14545977bc223de42c7fa508b7ebabe4e6025d0a8341ad3330bf3bb6179dd40f",
       "assets/kaida/sources/a1/textures/kaida-basecolor.png": "9be9186086d36aa242508c8e8fb30fb917bee6a664794d28b1b5b5b03db504ec",
       "assets/kaida/sources/a1/textures/kaida-metallic.png": "368ad7ec9cf4cd824e68bd5bfcb1b581511472ec150098e17c144a63ebc8042d",
       "assets/kaida/sources/a1/textures/kaida-normal.png": "54c3978e4d1bc7f524686ca4f10575f4cf25470fa8659290ffc0c94f7e80d8f9",

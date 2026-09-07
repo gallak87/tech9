@@ -14,7 +14,7 @@
 | Original motion clips | [Mixamo clip receipt](downloads/mixamo-kaida-r2/receipt.json) |
 | Editable sword | [Sword master](../kaida.energy-sword/sources/r2/master.blend) |
 
-The character master contains idle, walk, run, attack and hurt actions, a unit-scale rig, MotionRoot and SwordSocket. Materials are packed in the Blender file; editable map files are retained beside it. The game owns displacement, facing, stride matching and action timing.
+The walk has a relaxed left-arm swing with hip clearance. The character master contains idle, walk, run, attack and hurt actions, a unit-scale rig, MotionRoot and SwordSocket. Materials are packed in the Blender file; editable map files are retained beside it. The game owns displacement, facing, stride matching and action timing.
 
 ## Export and verification
 

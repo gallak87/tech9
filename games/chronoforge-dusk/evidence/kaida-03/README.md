@@ -1,6 +1,6 @@
 # Kaida a1 native verification
 
-**Release gate: Kaida gameplay and cold restart.** The diagnostic foundation suite is opt-in for shared importer/fixture changes; it is not a second release gate. 04 is paused. Environment preparation for a real game scene is the next direction after release review.
+**Development-scene coverage at the source digest below.** Current walking/running behavior is verified by the [coastal locomotion check](../environment-06/locomotion.json) and [restart](../environment-06/locomotion-restart.json). The diagnostic foundation suite is opt-in for shared importer/fixture changes; it is not a second release gate. 04 is paused. Environment preparation for a real game scene is the next direction after release review.
 
 ## Results
 

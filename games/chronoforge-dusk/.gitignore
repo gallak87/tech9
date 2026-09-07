@@ -1,0 +1,7 @@
+.tools/
+dist/
+game/.godot/
+*.tmp
+.DS_Store
+game/content/build_info.json
+__pycache__/

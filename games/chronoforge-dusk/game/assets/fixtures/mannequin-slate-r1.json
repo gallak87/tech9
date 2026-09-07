@@ -1,0 +1,72 @@
+{
+  "format": 1,
+  "asset_id": "diagnostic.mannequin",
+  "revision": "slate-r1",
+  "label": "Diagnostic mannequin / slate-r1",
+  "kind": "character",
+  "animation_mode": "rigid",
+  "placeholder": true,
+  "model": {
+    "path": "res://assets/fixtures/mannequin-slate-r1.glb",
+    "sha256": "aec59e2e13711a2e147215c32fd0171ee0334fb87e5b1b881767f5266f5aa292"
+  },
+  "dimensions": {
+    "height_m": 1.85,
+    "radius_m": 0.34,
+    "forward": "-Z",
+    "up": "+Y",
+    "origin": "ground"
+  },
+  "clips": {
+    "idle": {
+      "file": "res://assets/fixtures/mannequin-slate-r1.glb",
+      "name": "idle",
+      "loop": true
+    },
+    "walk": {
+      "file": "res://assets/fixtures/mannequin-slate-r1.glb",
+      "name": "walk",
+      "loop": true
+    },
+    "run": {
+      "file": "res://assets/fixtures/mannequin-slate-r1.glb",
+      "name": "run",
+      "loop": true
+    },
+    "attack": {
+      "file": "res://assets/fixtures/mannequin-slate-r1.glb",
+      "name": "attack",
+      "loop": false
+    },
+    "hurt": {
+      "file": "res://assets/fixtures/mannequin-slate-r1.glb",
+      "name": "hurt",
+      "loop": false
+    }
+  },
+  "attachments": [
+    {
+      "id": "practice_baton",
+      "socket_path": "Fixture/Torso/RightArm/Grip",
+      "model": {
+        "path": "res://assets/fixtures/baton-r1.glb",
+        "sha256": "486d9742cd4fe87bbe1b4a0f4fa330d067e995eb6ccb371eb1ec2ed0455987fe"
+      },
+      "position_m": [
+        0,
+        0,
+        0
+      ],
+      "rotation_degrees": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "motion": {
+    "traversal": "controller",
+    "action": "controller",
+    "clips": "in_place"
+  }
+}

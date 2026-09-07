@@ -18,7 +18,7 @@ Author one compact coastal reclamation site, with room for a few minutes of unhu
 
 Make the ruin belong to Chronoforge's post-collapse Earth: salt-worn construction, remnants of useful technology, signs of practical repair, and coastal nature reclaiming the edges. Haventide is a useful visual reference, not an instruction to adopt a particular plot, town layout, or named event. Leave narrative identities open.
 
-Use clean, stylized anime forms, clear color grouping, and restrained material detail that sit naturally beside Kaida's cyan jacket and magenta hair/blade. Preserve the original game's personality while giving surfaces and silhouettes a polished 3D finish. Avoid the prototype's generic temple treatment or heavy haze that washes out the character. Judge every visual choice from the actual elevated 2.5D game camera.
+Give the environment grounded coastal architecture, believable construction and proportions, weathered materials, natural lighting, and readable terrain. Surface wear, shoreline forms, and vegetation should make the place feel tangible and lived in. Use composition, color balance, and lighting to integrate Kaida with the surroundings while keeping her silhouette clear. Judge every visual choice from the actual elevated 2.5D game camera.
 
 ## Build and integrate
 

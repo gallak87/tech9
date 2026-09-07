@@ -9,7 +9,7 @@ The [local production pipeline](_prep/README.md) builds the current [a1 source a
 ## The direction
 
 - Preserve the original Chronoforge's identity: Kaida, Vex, Rune, neon city-states, alien wilderness, ATB battles, crew combinations, exploration, equipment, skills, and settlement growth.
-- Use the [original assets](../chronoforge/src/assets) directly as the visual source of truth. Preserve their art style and recognizable designs while producing polished new assets; AAA-quality finish is the ambition for the Blender work and its in-game presentation.
+- Use the [original assets](../chronoforge/src/assets) as references for recognizable designs, world motifs, and color identity. Character appearance follows its character references; environments use grounded architecture, believable materials, and natural lighting. AAA-quality finish is the ambition for new assets and their in-game presentation.
 - Use the completed Dusk prototype as a playable reference for world composition, traversal, and battle choreography. Its visual theme and character construction are not the new target.
 - Build fresh in Godot. Dawn contributes lessons only; do not copy its implementation or assets into Dusk.
 - Target a **native desktop application**, initially a macOS `.app` bundle containing the game executable. The owner should be able to launch it without opening the Godot editor. Browser delivery is a possible future pivot if playtesting reveals a compelling need. There is no current web export, renderer parity, or compatibility-layer work.
@@ -45,7 +45,7 @@ Use these starting points and inspect what the current task needs. There is no n
 | --- | --- | --- |
 | Original premise and core loop | [Original concept](../chronoforge/CONCEPT.md) | Creative identity and intended mechanics; old delivery/process constraints do not govern Dusk |
 | Original appearance and interface | [proto-ref screenshots](../chronoforge-dawn/shots/proto-ref) | Original-game images such as `overworld-fog-off.png`, `battle-open.png`, and `menu-party.png`; `dawn-*.png` files instead show historical Dawn lighting problems |
-| Original character and asset designs | [Original assets](../chronoforge/src/assets) | Primary art direction: inspect directly, then translate the designs into polished new assets; start with Kaida's overworld and battle images |
+| Original character and asset designs | [Original assets](../chronoforge/src/assets) | Character designs and world motifs: inspect relevant assets directly; Kaida's overworld and battle images guide character work |
 | Original content and implemented behavior | [World](../chronoforge/src/world.js), [progression](../chronoforge/src/progression.js), [battle](../chronoforge/src/battle.js), [settlement](../chronoforge/src/base.js) | Inspect relevant definitions and behavior; distinguish implementation gaps from intended design |
 | Prototype traversal and battle choreography | [Prototype README](../chronoforge-dusk-prototype/README.md) | Find the relevant playable behavior/rehearsal; inspect specific source only when it helps the assignment |
 | Previous failures and integration lessons | [Dusk's lesson summary](LESSONS.md) | Use the distilled findings before considering more historical investigation |

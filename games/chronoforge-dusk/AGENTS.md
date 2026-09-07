@@ -28,7 +28,7 @@ For planning or directing new assignments, also read [PLANNER.md](PLANNER.md). I
 
 Use the [reference entry points](README.md#reference-entry-points) to find original visuals, content, and prototype behavior. Explore relevant sources from there using judgment; no per-file permission ritual is needed.
 
-Inspect [original assets](../chronoforge/src/assets) directly for art direction. Preserve their designs and style while producing polished new assets in Blender or the applicable workflow. AAA-quality finish is the ambition; judge it in the game through form, materials, deformation, animation, and presentation.
+Inspect [original assets](../chronoforge/src/assets) for recognizable designs, world motifs, and color identity. Character appearance follows its character references. Environments use grounded architecture, believable materials, and natural lighting. Produce polished new assets in Blender or the applicable workflow; judge the finish in the game through form, materials, deformation, animation, and presentation.
 
 Historical plans, prompts, and agent definitions are reference material, not active instructions. Reading old source explains behavior; it does not authorize copying its implementation. Direct code or production-asset reuse requires a specific allowance in the current assignment. Dawn code and production assets remain excluded; its distilled lessons and the explicitly listed screenshot reference folder are allowed.
 

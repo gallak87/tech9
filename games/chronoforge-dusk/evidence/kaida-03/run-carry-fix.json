@@ -1,0 +1,10 @@
+{
+  "r4_maximum_hand_step_60hz_m": 0.486229717731476,
+  "r5_maximum_hand_step_60hz_m": 0.0181421581655741,
+  "samples_per_revision": 150,
+  "method": "Godot 4.6.3, imported runtime GLB, manual AnimationPlayer.advance at 1/60 second across multiple loops; right-hand bone pose in model space.",
+  "source_correction": "../../_prep/assets/kaida/sources/run-carry-r2/correction.json",
+  "model_sha256": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0",
+  "precommit_native_checks": "r5-precommit-native-kaida.json",
+  "native_result": "56 focused checks + 4 fresh-process restart checks passed. r4 was then retained in the candidate catalog for older saves; final committed native verification follows."
+}

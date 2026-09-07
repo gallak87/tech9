@@ -1,0 +1,199 @@
+{
+  "asset_id": "kaida",
+  "build_fingerprint": "d091fc5c709c4709afa40d5397b0e2747e0ac0b69701de201b2e908afd83eabb",
+  "candidate_format": 1,
+  "created_at": "2026-09-07T18:49:47.939904+00:00",
+  "files": {
+    "build.log": "69188ad16706856026a67fd556af2c1e7c4ba8e1bf6e70bb33159b2f2f190047",
+    "export-settings.json": "c8a8c09d98e5ebafa8b6849214589ea85fab3dc1392d7a1dd6547600887bc9bc",
+    "inspection.json": "211a9d43f452d50ea2ec2e150dc12da3fa5e9fc61184aee05c2de8857fae44f3",
+    "metadata.json": "f57d7a2c74b102355fed3dfc90386a446bd5a9f97aabf86911be545738c58f7c",
+    "reimport.json": "974c0ca307e62675462f26c227b72a984587c1add1971999a1f96f2beee7537c",
+    "runtime/descriptor.json": "6be68929493ed12ee5a9ff884f383c02c04dcb160a8012b31f19c4e89243599e",
+    "runtime/kaida.energy-sword.glb": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea",
+    "runtime/model.glb": "ce8669efca5b747b34c35a44fb95f82e97ec153e422cf8ae5bacbb2dcc8b3fa0",
+    "structural-checks.json": "370a9710ac3ef8f3d4662f5b66ca0ea99ecbc0578d014a36b40c7cd5b93625eb",
+    "working/export.blend": "2a836f75d2ea91c5f4b68f176bad8d5b2e5f3ef1f591414e024ff746f3881a29"
+  },
+  "inputs": {
+    "dependencies": {
+      "candidates/kaida.energy-sword/r2/manifest.json": "5ec99928b9bd164176e05fe85b13ef7b633555c2cdef4b66237f9e5919c1538a"
+    },
+    "metadata": {
+      "animation_mode": "skeletal",
+      "asset_id": "kaida",
+      "attachments": [
+        {
+          "bone": "SwordSocket",
+          "dependency": "kaida.energy-sword",
+          "id": "energy-sword",
+          "position_m": [
+            0,
+            -0.135,
+            0
+          ],
+          "rotation_degrees": [
+            0,
+            0,
+            0
+          ],
+          "skeleton_path": "KaidaRig/Skeleton3D"
+        }
+      ],
+      "clips": {
+        "attack": {
+          "loop": false,
+          "name": "attack"
+        },
+        "hurt": {
+          "loop": false,
+          "name": "hurt"
+        },
+        "idle": {
+          "loop": true,
+          "name": "idle"
+        },
+        "run": {
+          "loop": true,
+          "name": "run"
+        },
+        "walk": {
+          "loop": true,
+          "name": "walk"
+        }
+      },
+      "dependencies": [
+        "candidates/kaida.energy-sword/r2/manifest.json"
+      ],
+      "dimensions": {
+        "forward": "-Z",
+        "height_m": 1.898191,
+        "origin": "ground",
+        "radius_m": 0.32,
+        "up": "+Y"
+      },
+      "kind": "character",
+      "label": "Kaida / run carry fix",
+      "placeholder": false,
+      "production_format": 1,
+      "provenance": {
+        "attack_contact_fraction": 0.5,
+        "attack_contact_frame": 21,
+        "attribution": "Original sources retained under assets/kaida/downloads. Provider generation options and plan not supplied. No Dawn production reuse.",
+        "origin": "Owner-supplied Meshy r2 geometry, Mixamo auto-rig and idle/run downloads; Dusk-authored walk, grounded slash and hurt",
+        "purpose": "First complete candidate for plan 03; owner considers body too skinny and permits provisional use. Visual acceptance pending.",
+        "revision_notes": "03 owner run-loop bug correction: solve only the run right arm on the already in-place source. All other clips, body motion, mesh, weights, grip and equipment retained from r4. Root-relative carry removes the repeated hand snap.",
+        "source_run_speed_m_s": 5.061657428727273,
+        "walk_nominal_speed_m_s": 2.28
+      },
+      "recipe": "skeletal_blend",
+      "required_outputs": [
+        "runtime/model.glb",
+        "runtime/descriptor.json",
+        "working/export.blend",
+        "inspection.json",
+        "reimport.json"
+      ],
+      "revision": "r5",
+      "root_motion": {
+        "armature": "KaidaRig",
+        "bone": "MotionRoot",
+        "operation": "remove_root_xy"
+      },
+      "source_files": [
+        {
+          "path": "assets/kaida/sources/run-carry-r2/master.blend",
+          "role": "editable_master",
+          "sha256": "99d8027d88071bd8c44ac0faed576348582b20d6e0e1b93ce010f1f6f2e7b8ef"
+        },
+        {
+          "path": "assets/kaida/author_foundation.py",
+          "role": "authoring_script",
+          "sha256": "bdc13c67ecee80178917f6198f6bc5ff7f190d98abfcf872eceeef16bece9666"
+        },
+        {
+          "path": "assets/kaida/sources/mixamo-clips-r1/master.blend",
+          "role": "animation_originals",
+          "sha256": "97fd3c2bc6c9d6f442aea753c6609adfc45a09f8d3a60b6e85e919a950f6f95d"
+        },
+        {
+          "path": "assets/kaida/sources/foundation-r3/kaida-orm.png",
+          "role": "texture_source",
+          "sha256": "0f3dc9f170e0de359d248763000fd5a7695e1c6123ad341e33d084851c3314b7"
+        },
+        {
+          "path": "assets/kaida/sources/meshy-r2/textures/kaida-basecolor.png",
+          "role": "texture_source",
+          "sha256": "9be9186086d36aa242508c8e8fb30fb917bee6a664794d28b1b5b5b03db504ec"
+        },
+        {
+          "path": "assets/kaida/sources/meshy-r2/textures/kaida-normal.png",
+          "role": "texture_source",
+          "sha256": "54c3978e4d1bc7f524686ca4f10575f4cf25470fa8659290ffc0c94f7e80d8f9"
+        },
+        {
+          "path": "assets/kaida/sources/meshy-r2/textures/kaida-roughness.png",
+          "role": "texture_source",
+          "sha256": "7e4044d988f088cf5c22a4cfcbe0140acacb72f785861e0b492ebf544115079b"
+        },
+        {
+          "path": "assets/kaida/sources/meshy-r2/textures/kaida-metallic.png",
+          "role": "texture_source",
+          "sha256": "368ad7ec9cf4cd824e68bd5bfcb1b581511472ec150098e17c144a63ebc8042d"
+        },
+        {
+          "path": "assets/kaida/grip_pose.py",
+          "role": "authoring_script",
+          "sha256": "4ba86d687b54a0b4e9cc19bf9eff7bee06e6e5a61a38cdb7c135b55f0053c149"
+        },
+        {
+          "path": "assets/kaida/sources/foundation-r3/master.blend",
+          "role": "previous_master",
+          "sha256": "677119ee26b2e88c212f3858c3472976b4e5c2770cc930087cb594f61bec8fab"
+        },
+        {
+          "path": "assets/kaida/fix_run_carry.py",
+          "role": "correction_script",
+          "sha256": "f6b665f4f7aa3dea16ff04b1a764ff5a1b3067a74ea7293714d01508fed92a47"
+        },
+        {
+          "path": "assets/kaida/sources/run-carry-r2/correction.json",
+          "role": "correction_evidence",
+          "sha256": "fde4ad2baf0e17cd17adfc8a90aa749f11705524f321e9c89a4d3eaa15901b04"
+        }
+      ]
+    },
+    "runtime_format": 1,
+    "scripts": {
+      "ASSET_CONTRACT.md": "0b251711c78f91e303ef91307e2c556d8124b3001a0aec593f2b417f214c4e90",
+      "pipeline.py": "137026225bf7250e47f431c3504ab67c6c2c1ba8f3f3e8d25a8514ef7f173b5b",
+      "tools/author_proofs.py": "419dcf7bcecfe0978ad1fd1adf6352448be6d84ad03d66b6a5519b831bbf207f",
+      "tools/blender_stage.py": "238ef69829f732f7db87db8186c03e124344987aca68a03df7dd73b6a729df54",
+      "tools/clip_stage.py": "02653bf34c4af560344b38352ed9fab28dab3e05ca9e288ca569b7a77bfba329",
+      "tools/glb_check.py": "0753d8fa382b6d55e860378bd0bd8543e2bec4cd96d479a5b4af8b4e13fc32cd",
+      "tools/preparation_stage.py": "8181fb96e19b5e889b41fc1dbfce9c24065ddf263443a6941be7d4f44b30847d"
+    },
+    "sources": {
+      "assets/kaida/author_foundation.py": "bdc13c67ecee80178917f6198f6bc5ff7f190d98abfcf872eceeef16bece9666",
+      "assets/kaida/fix_run_carry.py": "f6b665f4f7aa3dea16ff04b1a764ff5a1b3067a74ea7293714d01508fed92a47",
+      "assets/kaida/grip_pose.py": "4ba86d687b54a0b4e9cc19bf9eff7bee06e6e5a61a38cdb7c135b55f0053c149",
+      "assets/kaida/sources/foundation-r3/kaida-orm.png": "0f3dc9f170e0de359d248763000fd5a7695e1c6123ad341e33d084851c3314b7",
+      "assets/kaida/sources/foundation-r3/master.blend": "677119ee26b2e88c212f3858c3472976b4e5c2770cc930087cb594f61bec8fab",
+      "assets/kaida/sources/meshy-r2/textures/kaida-basecolor.png": "9be9186086d36aa242508c8e8fb30fb917bee6a664794d28b1b5b5b03db504ec",
+      "assets/kaida/sources/meshy-r2/textures/kaida-metallic.png": "368ad7ec9cf4cd824e68bd5bfcb1b581511472ec150098e17c144a63ebc8042d",
+      "assets/kaida/sources/meshy-r2/textures/kaida-normal.png": "54c3978e4d1bc7f524686ca4f10575f4cf25470fa8659290ffc0c94f7e80d8f9",
+      "assets/kaida/sources/meshy-r2/textures/kaida-roughness.png": "7e4044d988f088cf5c22a4cfcbe0140acacb72f785861e0b492ebf544115079b",
+      "assets/kaida/sources/mixamo-clips-r1/master.blend": "97fd3c2bc6c9d6f442aea753c6609adfc45a09f8d3a60b6e85e919a950f6f95d",
+      "assets/kaida/sources/run-carry-r2/correction.json": "fde4ad2baf0e17cd17adfc8a90aa749f11705524f321e9c89a4d3eaa15901b04",
+      "assets/kaida/sources/run-carry-r2/master.blend": "99d8027d88071bd8c44ac0faed576348582b20d6e0e1b93ce010f1f6f2e7b8ef"
+    },
+    "tools": {
+      "blender": "5.1.1",
+      "blender_build": "b70da489d7f4",
+      "python": "3.14.5"
+    }
+  },
+  "revision": "r5",
+  "structural_status": "ready_for_game_inspection",
+  "visual_status": "awaiting_review"
+}

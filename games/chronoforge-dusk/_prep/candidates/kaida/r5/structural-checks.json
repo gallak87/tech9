@@ -1,0 +1,17 @@
+{
+  "animations": [
+    "attack",
+    "hurt",
+    "idle",
+    "run",
+    "walk"
+  ],
+  "blended_vertices": 41584,
+  "embedded_resources": true,
+  "format": "glTF 2.0",
+  "horizontal_root_motion": "checked_constant",
+  "images": 3,
+  "materials": 1,
+  "skin_count": 1,
+  "visual_acceptance": "not established"
+}

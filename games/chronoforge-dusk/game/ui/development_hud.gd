@@ -140,7 +140,7 @@ func _ready() -> void:
 	save_status = text_label(accepted, "", 16, Color("9caaa7"))
 	save_status.custom_minimum_size.y = 42
 	save_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	text_label(column, "Kaida r4 is provisional.\nOwner playtesting / acceptance pending.", 17, Color("d0b994"))
+	text_label(column, "Kaida r5 is provisional.\nOwner playtesting / acceptance pending.", 17, Color("d0b994"))
 	var bottom := PanelContainer.new()
 	bottom.position = Vector2(28, 974)
 	bottom.size = Vector2(1864, 82)

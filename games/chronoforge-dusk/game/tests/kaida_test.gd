@@ -1,5 +1,5 @@
 extends "res://tests/foundation_test.gd"
-## Rendered checks for the actual r4 actor. Captures have separate perf intervals.
+## Rendered checks for the actual r5 actor. Captures have separate perf intervals.
 var first_contact: Dictionary = {}
 
 func run(root: DuskFoundation) -> void:
@@ -9,7 +9,7 @@ func run(root: DuskFoundation) -> void:
 	game.set_unfocused(false)
 	if "--kaida-restart" in OS.get_cmdline_user_args():
 		await seconds(2.0)
-		check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "r4", "Cold launch restores Kaida r4")
+		check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "r5", "Cold launch restores Kaida r5")
 		check(game.tuning.values == DuskTuning.DEFAULTS, "Cold launch reproduces all saved gameplay tuning")
 		check(game.tuning.saved.source_sha256 == game.source_sha256, "Save identifies tested game source digest")
 		check(is_equal_approx(game.action.hit_stop, 0.065) and is_equal_approx(game.actor.run_stride_speed, 5.06165), "Cold launch applies action and stride settings")
@@ -23,7 +23,7 @@ func run(root: DuskFoundation) -> void:
 	if game.actor.visual == null:
 		finish("kaida")
 		return
-	check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "r4", "Displayed actor is Kaida r4")
+	check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "r5", "Displayed actor is Kaida r5")
 	var skeleton: Skeleton3D = DuskAssetAssembly.find_skeleton(game.actor.visual.model)
 	check(skeleton != null and skeleton.get_bone_count() == 67, "Real 67-bone Kaida rig present")
 	check(game.actor.visual.equipment.size() == 1 and game.actor.visual.equipment[0].get_parent() is BoneAttachment3D, "Separate sword uses skeletal socket")
@@ -62,6 +62,22 @@ func run(root: DuskFoundation) -> void:
 	check(maximum_root_drift < 0.002, "All five complete clips preserve controller-owned root motion")
 	check(socket_positions[0].distance_to(socket_positions[12]) > 0.25, "Sword socket follows actual strike motion")
 	observations["maximum_root_xz_m"] = maximum_root_drift
+	# Reproduce the owner's periodic sword-hand jerk at normal run playback.
+	game.actor.visual.player.stop()
+	game.actor.visual.player.play("run", 0.0)
+	game.actor.visual.player.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
+	game.actor.visual.player.advance(0.0)
+	var hand: int = skeleton.find_bone("mixamorig_RightHand")
+	var last_hand: Vector3 = skeleton.get_bone_global_pose(hand).origin
+	var maximum_hand_step: float = 0.0
+	for frame: int in range(180):
+		game.actor.visual.player.advance(1.0 / 60.0)
+		skeleton.force_update_all_bone_transforms()
+		var current_hand: Vector3 = skeleton.get_bone_global_pose(hand).origin
+		maximum_hand_step = maxf(maximum_hand_step, current_hand.distance_to(last_hand))
+		last_hand = current_hand
+	observations["maximum_run_hand_step_60hz_m"] = maximum_hand_step
+	check(maximum_hand_step < 0.08, "Repeated run loops keep the sword hand continuous (r4 regression: 49 cm jump)")
 	game.tuning.values.light_game = true
 	game.apply_tuning()
 	await key(KEY_2)
@@ -198,8 +214,8 @@ func run(root: DuskFoundation) -> void:
 		game.command("reload")
 		await seconds(0.3)
 	await seconds(1.0)
-	check(int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)) <= baseline_nodes + 2, "Reloading r4 releases prior mesh, rig and equipment nodes")
-	check(int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)) <= baseline_resources + 10 and game.perf.video_mb < baseline_video + 5.0, "Reloading r4 does not accumulate resources or video memory")
+	check(int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT)) <= baseline_nodes + 2, "Reloading r5 releases prior mesh, rig and equipment nodes")
+	check(int(Performance.get_monitor(Performance.OBJECT_RESOURCE_COUNT)) <= baseline_resources + 10 and game.perf.video_mb < baseline_video + 5.0, "Reloading r5 does not accumulate resources or video memory")
 	var extras: Array[DuskCharacter] = []
 	for i: int in range(3):
 		var extra := DuskCharacter.new()

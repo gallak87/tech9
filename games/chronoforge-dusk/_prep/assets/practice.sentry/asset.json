@@ -1,0 +1,75 @@
+{
+  "production_format": 1,
+  "asset_id": "practice.sentry",
+  "revision": "r1",
+  "label": "Practice sentry / encounter staging stand-in",
+  "kind": "character",
+  "animation_mode": "skeletal",
+  "placeholder": true,
+  "recipe": "skeletal_blend",
+  "source_files": [
+    {
+      "path": "assets/practice.sentry/sources/r1/master.blend",
+      "role": "editable_master",
+      "sha256": "89b0d849ae9b811ab7b6ff937d8935eff6471510c411eba595e7e2f9287b2dd1"
+    },
+    {
+      "path": "assets/coast/author_sentry.py",
+      "role": "authoring_script",
+      "sha256": "5621a22aaa3c3e5551f160fdec557c4bc8ecb1dc7baf0d908a49c18a4bf1d833"
+    },
+    {
+      "path": "assets/coast/author_coast.py",
+      "role": "material_geometry_helpers",
+      "sha256": "af2e25e35b5aefa44fbcf6c6695418d2999e4b417ef9a02ec09fc5c0bd28b3da"
+    }
+  ],
+  "required_outputs": [
+    "runtime/model.glb",
+    "runtime/descriptor.json",
+    "working/export.blend",
+    "inspection.json",
+    "reimport.json"
+  ],
+  "dimensions": {
+    "height_m": 1.9850000143051147,
+    "radius_m": 0.48,
+    "forward": "-Z",
+    "up": "+Y",
+    "origin": "ground"
+  },
+  "dependencies": [],
+  "attachments": [],
+  "root_motion": {
+    "operation": "remove_root_xy",
+    "armature": "SentryRig",
+    "bone": "Root"
+  },
+  "clips": {
+    "idle": {
+      "name": "idle",
+      "loop": true
+    },
+    "walk": {
+      "name": "walk",
+      "loop": true
+    },
+    "run": {
+      "name": "run",
+      "loop": true
+    },
+    "attack": {
+      "name": "attack",
+      "loop": false
+    },
+    "hurt": {
+      "name": "hurt",
+      "loop": false
+    }
+  },
+  "provenance": {
+    "origin": "Original mechanical staging stand-in, authored in Blender for the owner-authorized encounter POC.",
+    "attribution": "Dusk local material/geometry helpers only; no external models, animation or textures.",
+    "scope": "Three-bone mechanism with authored motion, not a final enemy or proof of humanoid production."
+  }
+}

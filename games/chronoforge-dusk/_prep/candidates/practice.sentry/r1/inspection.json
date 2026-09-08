@@ -1,0 +1,580 @@
+{
+  "coordinate_space": "Blender metres Z up +Y forward",
+  "bounds": [
+    [
+      -0.9477258324623108,
+      -0.5249999761581421,
+      0.0
+    ],
+    [
+      0.9477258324623108,
+      0.8350000381469727,
+      1.9850000143051147
+    ]
+  ],
+  "meshes": [
+    {
+      "name": "Anchor foot",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Splayed support",
+      "vertices": 140,
+      "triangles": 276,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Anchor foot.001",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Splayed support.001",
+      "vertices": 140,
+      "triangles": 276,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Anchor foot.002",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Splayed support.002",
+      "vertices": 140,
+      "triangles": 276,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Base turntable",
+      "vertices": 144,
+      "triangles": 284,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Rotary collar",
+      "vertices": 144,
+      "triangles": 284,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Salvaged housing",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Upper armor",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Armor cheek",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Cheek fastener",
+      "vertices": 112,
+      "triangles": 220,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Cheek fastener.001",
+      "vertices": 112,
+      "triangles": 220,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Armor cheek.001",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Cheek fastener.002",
+      "vertices": 112,
+      "triangles": 220,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Cheek fastener.003",
+      "vertices": 112,
+      "triangles": 220,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Service outrigger",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Cooling fin",
+      "vertices": 104,
+      "triangles": 204,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Service outrigger.001",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Cooling fin.001",
+      "vertices": 104,
+      "triangles": 204,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Top cooling rib",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Top cooling rib.001",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Top cooling rib.002",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Top cooling rib.003",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Top cooling rib.004",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Lens casing",
+      "vertices": 192,
+      "triangles": 380,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Amber optic",
+      "vertices": 192,
+      "triangles": 380,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Optic slit",
+      "vertices": 56,
+      "triangles": 108,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Aerial",
+      "vertices": 140,
+      "triangles": 276,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Aerial cap",
+      "vertices": 140,
+      "triangles": 276,
+      "uv_layers": 1,
+      "blended_vertices": 0,
+      "unweighted_vertices": 0
+    },
+    {
+      "name": "Flexible coupling",
+      "vertices": 64,
+      "triangles": 96,
+      "uv_layers": 1,
+      "blended_vertices": 64,
+      "unweighted_vertices": 0
+    }
+  ],
+  "materials": [
+    {
+      "name": "Amber practice lens",
+      "images": []
+    },
+    {
+      "name": "Oxidised iron",
+      "images": [
+        {
+          "name": "Oxidised iron baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "23de1027f32d4963e0c158d2793258aa7bf9b84876ebe309aa16bf3cc62f6c12",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Oxidised iron packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "d929fae47ad3f9f0dbe44f914b2383e04d487a0578dff549969221bc1cc40427",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Wet basalt",
+      "images": [
+        {
+          "name": "Wet basalt baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "8bee9f854d1f2b9e85e128695a8bc208eb3c6233322353b33084a18cc9aa408a",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Wet basalt packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "4011587dd3b182c0a002b8d7fb2ebc7b73a41ac8fa3f3ba61655e9cdd6824bda",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Worn teal enamel",
+      "images": [
+        {
+          "name": "Worn teal enamel baked salt and grain",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "sRGB",
+          "pixel_sha256": "4f8de0cdbae739d9e2c327d5280b05bd9159c86afb84cd5c96b6f2a15be15903",
+          "connections": [
+            "Base Color"
+          ]
+        },
+        {
+          "name": "Worn teal enamel packed ORM",
+          "size": [
+            512,
+            512
+          ],
+          "color_space": "Non-Color",
+          "pixel_sha256": "5d6672cb0b8589630cdb8aca9414dbae37c59a62153091cae9a7478ac634ff54",
+          "connections": [
+            "Color"
+          ]
+        }
+      ]
+    }
+  ],
+  "rigs": [
+    {
+      "name": "SentryRig",
+      "bones": [
+        {
+          "name": "Root",
+          "parent": null,
+          "rest_matrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "name": "Body",
+          "parent": "Root",
+          "rest_matrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              0.0,
+              -1.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.800000011920929
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        },
+        {
+          "name": "Lens",
+          "parent": "Body",
+          "rest_matrix": [
+            [
+              1.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            [
+              0.0,
+              1.0,
+              0.0,
+              0.4000000059604645
+            ],
+            [
+              0.0,
+              0.0,
+              1.0,
+              1.25
+            ],
+            [
+              0.0,
+              0.0,
+              0.0,
+              1.0
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "attack",
+      "frames": [
+        1.0,
+        28.0
+      ],
+      "duration_seconds": 0.9
+    },
+    {
+      "name": "hurt",
+      "frames": [
+        1.0,
+        19.0
+      ],
+      "duration_seconds": 0.6
+    },
+    {
+      "name": "idle",
+      "frames": [
+        1.0,
+        61.0
+      ],
+      "duration_seconds": 2.0
+    },
+    {
+      "name": "run",
+      "frames": [
+        1.0,
+        25.0
+      ],
+      "duration_seconds": 0.8
+    },
+    {
+      "name": "walk",
+      "frames": [
+        1.0,
+        31.0
+      ],
+      "duration_seconds": 1.0
+    }
+  ],
+  "root_correction": [
+    {
+      "action": "attack",
+      "axis": 0,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": "attack",
+      "axis": 1,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": "hurt",
+      "axis": 0,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": "hurt",
+      "axis": 1,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": "idle",
+      "axis": 0,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": "idle",
+      "axis": 1,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": "run",
+      "axis": 0,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": "run",
+      "axis": 1,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": "walk",
+      "axis": 0,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "action": "walk",
+      "axis": 1,
+      "source_range_m": [
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "visual_acceptance": "not established"
+}

@@ -1,0 +1,118 @@
+{
+  "asset_id": "practice.sentry",
+  "build_fingerprint": "8dc544f7cef1138be4b06e22367dc1a0d3201c5585f5e33c057c6be2abb13875",
+  "candidate_format": 1,
+  "created_at": "2026-09-08T00:40:54.643508+00:00",
+  "files": {
+    "build.log": "88fc1fbf17014233f37ce2275058941755cfbe34040b1e9b6799141350f6f26b",
+    "export-settings.json": "c8a8c09d98e5ebafa8b6849214589ea85fab3dc1392d7a1dd6547600887bc9bc",
+    "inspection.json": "07845bb56caa0ff5aecd56e394ad89d1ecaf9f6abf7fda4c837ef8882fad4a8c",
+    "metadata.json": "1bbf454b15dc9ff6d85be5758f3853cb27ff5434c1af1cab1b8286cefd6eafe9",
+    "reimport.json": "0ecb9b081bbb4f7e652c8601460ff0e6b5980f997b5431efdf90116424ab18d7",
+    "runtime/descriptor.json": "12fc12830a607e24ba1e551f049a215856e59cf1b17963793c69907e62520af2",
+    "runtime/model.glb": "ea4279940f49b21818460b5f7cc02a4bf1a119caa5e8d55c4fef445eac9545b7",
+    "structural-checks.json": "b3792e727c9a63c6d26c6373379faed221f13528154376d2b9f18761eb8612d2",
+    "working/export.blend": "0aae66228ecb2e5cd610bfdaf293183c0c91bc148a2535a2048832e7b8268b4d"
+  },
+  "inputs": {
+    "dependencies": {},
+    "metadata": {
+      "animation_mode": "skeletal",
+      "asset_id": "practice.sentry",
+      "attachments": [],
+      "clips": {
+        "attack": {
+          "loop": false,
+          "name": "attack"
+        },
+        "hurt": {
+          "loop": false,
+          "name": "hurt"
+        },
+        "idle": {
+          "loop": true,
+          "name": "idle"
+        },
+        "run": {
+          "loop": true,
+          "name": "run"
+        },
+        "walk": {
+          "loop": true,
+          "name": "walk"
+        }
+      },
+      "dependencies": [],
+      "dimensions": {
+        "forward": "-Z",
+        "height_m": 1.9850000143051147,
+        "origin": "ground",
+        "radius_m": 0.48,
+        "up": "+Y"
+      },
+      "kind": "character",
+      "label": "Practice sentry / encounter staging stand-in",
+      "placeholder": true,
+      "production_format": 1,
+      "provenance": {
+        "attribution": "Dusk local material/geometry helpers only; no external models, animation or textures.",
+        "origin": "Original mechanical staging stand-in, authored in Blender for the owner-authorized encounter POC.",
+        "scope": "Three-bone mechanism with authored motion, not a final enemy or proof of humanoid production."
+      },
+      "recipe": "skeletal_blend",
+      "required_outputs": [
+        "runtime/model.glb",
+        "runtime/descriptor.json",
+        "working/export.blend",
+        "inspection.json",
+        "reimport.json"
+      ],
+      "revision": "r1",
+      "root_motion": {
+        "armature": "SentryRig",
+        "bone": "Root",
+        "operation": "remove_root_xy"
+      },
+      "source_files": [
+        {
+          "path": "assets/practice.sentry/sources/r1/master.blend",
+          "role": "editable_master",
+          "sha256": "89b0d849ae9b811ab7b6ff937d8935eff6471510c411eba595e7e2f9287b2dd1"
+        },
+        {
+          "path": "assets/coast/author_sentry.py",
+          "role": "authoring_script",
+          "sha256": "5621a22aaa3c3e5551f160fdec557c4bc8ecb1dc7baf0d908a49c18a4bf1d833"
+        },
+        {
+          "path": "assets/coast/author_coast.py",
+          "role": "material_geometry_helpers",
+          "sha256": "af2e25e35b5aefa44fbcf6c6695418d2999e4b417ef9a02ec09fc5c0bd28b3da"
+        }
+      ]
+    },
+    "runtime_format": 1,
+    "scripts": {
+      "ASSET_CONTRACT.md": "175b9271cac4a70fd1bb31cd22ef39301d8d3c73b0f7423c920ddcfd7a1299bf",
+      "pipeline.py": "137026225bf7250e47f431c3504ab67c6c2c1ba8f3f3e8d25a8514ef7f173b5b",
+      "tools/author_proofs.py": "419dcf7bcecfe0978ad1fd1adf6352448be6d84ad03d66b6a5519b831bbf207f",
+      "tools/blender_stage.py": "238ef69829f732f7db87db8186c03e124344987aca68a03df7dd73b6a729df54",
+      "tools/clip_stage.py": "02653bf34c4af560344b38352ed9fab28dab3e05ca9e288ca569b7a77bfba329",
+      "tools/glb_check.py": "0753d8fa382b6d55e860378bd0bd8543e2bec4cd96d479a5b4af8b4e13fc32cd",
+      "tools/preparation_stage.py": "8181fb96e19b5e889b41fc1dbfce9c24065ddf263443a6941be7d4f44b30847d"
+    },
+    "sources": {
+      "assets/coast/author_coast.py": "af2e25e35b5aefa44fbcf6c6695418d2999e4b417ef9a02ec09fc5c0bd28b3da",
+      "assets/coast/author_sentry.py": "5621a22aaa3c3e5551f160fdec557c4bc8ecb1dc7baf0d908a49c18a4bf1d833",
+      "assets/practice.sentry/sources/r1/master.blend": "89b0d849ae9b811ab7b6ff937d8935eff6471510c411eba595e7e2f9287b2dd1"
+    },
+    "tools": {
+      "blender": "5.1.1",
+      "blender_build": "b70da489d7f4",
+      "python": "3.14.5"
+    }
+  },
+  "revision": "r1",
+  "structural_status": "ready_for_game_inspection",
+  "visual_status": "awaiting_review"
+}

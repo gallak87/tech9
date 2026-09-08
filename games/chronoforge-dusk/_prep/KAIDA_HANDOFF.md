@@ -33,6 +33,7 @@ The current master and hashed source maps support future edits. Preparation uses
 
 - Preserve source geometry, texture pixels and original motion downloads. Hosted acquisition settings that were not supplied remain unknown in the receipts.
 - Solve carried equipment in the same in-place space used by the exported animation. Inspect complete loops, including the wrap.
+- Keep the constant facing correction on non-deforming MotionRoot. Hip tracks must remain near their rest orientation: [Godot blends rotations relative to bone rest](https://docs.godotengine.org/en/4.6/tutorials/animation/animation_tree.html#for-better-blending), so crossing its 180° boundary can spin during walk/run crossfades. Rebase clips while preserving bind geometry and visible bone poses.
 - Set actor positions and collider offsets before activating physics shapes. Inspect ordinary startup before test resets.
 - A changed body or blade requires fresh grip/rig/clip compatibility checks.
 - Keep contact timing and movement ownership in the game. The import descriptor does not own gameplay damage or effects.

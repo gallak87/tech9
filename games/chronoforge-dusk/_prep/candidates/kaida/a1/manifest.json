@@ -1,19 +1,19 @@
 {
   "asset_id": "kaida",
-  "build_fingerprint": "ad0f2ad3d3374c91e0add050ff3b46b28e42696ff5663cedc414b41b11a3683e",
+  "build_fingerprint": "00429e1d35676000d326194bbb55aa2c05d06f81567aecedcf4b4cbfbde9c56e",
   "candidate_format": 1,
-  "created_at": "2026-09-08T02:18:48.180897+00:00",
+  "created_at": "2026-09-08T03:05:32.844648+00:00",
   "files": {
-    "build.log": "853a240940e38eba089a660475a09fdeca72dcaaaec323e210bccb295c6944de",
+    "build.log": "d44873757847c1852f48cf00f24d1cfeb8ada97c55276b2b5f7fa9f86bbb3549",
     "export-settings.json": "c8a8c09d98e5ebafa8b6849214589ea85fab3dc1392d7a1dd6547600887bc9bc",
     "inspection.json": "4696166bac21ff1bdb9242b75eb616b6bb08db57951599ddd7b422ceda0425fc",
-    "metadata.json": "8e41ef52824b517c75ac21ee027f5c029dfdd741f08d15793578709a9c61daa5",
-    "reimport.json": "03b359d61aaba60f91abcfdba95ccb157093ff37fc279e77777e6d9478a2e9e4",
-    "runtime/descriptor.json": "b37db2273bbbf3025ea08937df60746af053d62588618ab74a25f0fe687dfd5f",
+    "metadata.json": "af6c0129f12e51ae6122cef656d3289b319e94c21d5dea366af4498da9462871",
+    "reimport.json": "0a419385225995241fb2167d2f84df1422bb5f1411e8195147d5fcbf1e6c61f0",
+    "runtime/descriptor.json": "edf4b60b555753b311f4a405e2e9cfade5bc7ab1d5ffe4c13dfda541e9d875de",
     "runtime/kaida.energy-sword.glb": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea",
-    "runtime/model.glb": "d772a516d6114c99dce66e90e84bb216042927e2f8cce7be6bd0ead4ca425136",
+    "runtime/model.glb": "632a851f3086f57658e18f94d4a6db8bef33877bff7599185457bc30e6264195",
     "structural-checks.json": "370a9710ac3ef8f3d4662f5b66ca0ea99ecbc0578d014a36b40c7cd5b93625eb",
-    "working/export.blend": "1cc8b401a6bc47a42c4cc0eafe276e857ce85e780f941eadaf11c9ec56561fed"
+    "working/export.blend": "b2881b2288a48ddf1b39634d9534edd2ad58aada43ccd87843a8f379eb88f378"
   },
   "inputs": {
     "dependencies": {
@@ -80,6 +80,7 @@
         "attack_contact_fraction": 0.5,
         "attack_contact_frame": 21,
         "attribution": "Original inputs retained under assets/kaida/downloads and references/kaida/r2. Provider generation options and plan not supplied. No Dawn production reuse.",
+        "hip_blend_reference": "Constant facing correction on non-deforming MotionRoot; hip tracks stay near their rest orientation. Bind rig and visible poses preserved.",
         "locomotion_sources": {
           "run": "references/kaida/r2/Fast Run.fbx",
           "walk": "references/kaida/r2/Running.fbx"
@@ -107,7 +108,7 @@
         {
           "path": "assets/kaida/sources/a1/master.blend",
           "role": "editable_master",
-          "sha256": "cca0483106a7f366a41b12866d9464d16a740c4af07d180c5621539185eb128b"
+          "sha256": "8adeed7125000b2751f82946f849122dfa8896adc267da5b8c4118275aab8aa8"
         },
         {
           "path": "assets/kaida/sources/a1/textures/kaida-basecolor.png",
@@ -199,7 +200,7 @@
       "assets/kaida/downloads/mixamo-kaida-r2/kaida-r2-idle.fbx": "4ffb00c10c49ad25631e8f3cab0eaac8a4836621d99a418227f9047e7d9a6c01",
       "assets/kaida/downloads/mixamo-kaida-r2/kaida-r2-run.fbx": "667e0ae061f4e9565f7c42597ed06534d4ba8c2e0e34ce36330467c3f5767ed2",
       "assets/kaida/downloads/mixamo-kaida-r2/receipt.json": "0622cdc5ac4060f6dc26f8c7eb9fecb4d6507d326a6aa828f0d6ac5d6311d82c",
-      "assets/kaida/sources/a1/master.blend": "cca0483106a7f366a41b12866d9464d16a740c4af07d180c5621539185eb128b",
+      "assets/kaida/sources/a1/master.blend": "8adeed7125000b2751f82946f849122dfa8896adc267da5b8c4118275aab8aa8",
       "assets/kaida/sources/a1/textures/kaida-basecolor.png": "9be9186086d36aa242508c8e8fb30fb917bee6a664794d28b1b5b5b03db504ec",
       "assets/kaida/sources/a1/textures/kaida-metallic.png": "368ad7ec9cf4cd824e68bd5bfcb1b581511472ec150098e17c144a63ebc8042d",
       "assets/kaida/sources/a1/textures/kaida-normal.png": "54c3978e4d1bc7f524686ca4f10575f4cf25470fa8659290ffc0c94f7e80d8f9",

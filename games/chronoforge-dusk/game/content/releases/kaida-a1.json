@@ -5,7 +5,7 @@
   "asset_generation": "r2",
   "source_batch": "meshy-r2",
   "descriptor": "res://assets/kaida/a1/descriptor.json",
-  "model_sha256": "d772a516d6114c99dce66e90e84bb216042927e2f8cce7be6bd0ead4ca425136",
+  "model_sha256": "632a851f3086f57658e18f94d4a6db8bef33877bff7599185457bc30e6264195",
   "equipment": {
     "asset_id": "kaida.energy-sword",
     "model_sha256": "3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea"

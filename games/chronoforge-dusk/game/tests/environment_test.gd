@@ -215,7 +215,39 @@ func check_locomotion() -> void:
 		set_keys([])
 		await seconds(.25)
 		check(game.actor.visual.active_role == "idle" and game.actor.measured_speed < .02,"Release stops movement and returns to idle")
+	await check_shift_taps(skeleton)
 	game.reset_spawn()
+
+func check_shift_taps(skeleton: Skeleton3D) -> void:
+	var left_hip: int = skeleton.find_bone("mixamorig_LeftUpLeg")
+	var right_hip: int = skeleton.find_bone("mixamorig_RightUpLeg")
+	for direction: int in [KEY_RIGHT,KEY_LEFT]:
+		game.actor.place(Vector3(-12 if direction == KEY_RIGHT else -4,0.03,13),-PI/2 if direction == KEY_RIGHT else PI/2)
+		var keys: Array[int] = [direction]
+		set_keys(keys)
+		await seconds(.25)
+		var maximum_heading: float = 0.0
+		var maximum_step: float = 0.0
+		var previous_heading: float = 0.0
+		var roles: Dictionary = {}
+		# Hold direction continuously; tap Shift for .1, .25 and .4 seconds.
+		for pulse_frames: int in [6,15,24]:
+			for pressed: bool in [true,false]:
+				if pressed: keys.append(KEY_SHIFT)
+				else: keys.erase(KEY_SHIFT)
+				set_keys(keys)
+				for frame: int in range(pulse_frames):
+					await get_tree().physics_frame
+					var across: Vector3 = skeleton.get_bone_global_pose(right_hip).origin-skeleton.get_bone_global_pose(left_hip).origin
+					var heading: float = atan2(across.z,across.x)
+					maximum_heading = maxf(maximum_heading,absf(heading))
+					maximum_step = maxf(maximum_step,absf(wrapf(heading-previous_heading,-PI,PI)))
+					previous_heading = heading
+					roles[game.actor.visual.active_role] = true
+		check(roles.has("walk") and roles.has("run") and maximum_heading < deg_to_rad(30) and maximum_step < deg_to_rad(20),"Repeated short Shift taps while holding %s keep the body facing forward" % ("Right" if direction == KEY_RIGHT else "Left"))
+		observations["shift_taps_right" if direction == KEY_RIGHT else "shift_taps_left"] = {"max_body_heading_degrees":rad_to_deg(maximum_heading),"max_frame_turn_degrees":rad_to_deg(maximum_step)}
+		set_keys([])
+		await seconds(.25)
 
 func send_key(code: int, pressed: bool) -> void:
 	var event := InputEventKey.new()

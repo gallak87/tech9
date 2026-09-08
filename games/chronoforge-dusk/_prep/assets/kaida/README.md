@@ -16,7 +16,7 @@
 | Shift-run source | [Fast Run.fbx](<../../references/kaida/r2/Fast Run.fbx>) |
 | Editable sword | [Sword master](../kaida.energy-sword/sources/r2/master.blend) |
 
-The `walk` role uses the supplied Running clip; `run` uses Fast Run. Both are in place, with the authored sword carry retained. Their source cycle speeds are 5.01623 and 6.48387 m/s; runtime playback follows the current 2.99 and 6.63 m/s movement speeds. The character master contains idle, walk, run, attack and hurt actions, a unit-scale rig, MotionRoot and SwordSocket. Materials are packed in the Blender file; editable map files are retained beside it. The game owns displacement, facing, stride matching and action timing.
+The `walk` role uses the supplied Running clip; `run` uses Fast Run. Both are in place, with the authored sword carry retained. MotionRoot holds the constant facing correction so the hips stay near their neutral blend reference during rapid walk/run switches. Their source cycle speeds are 5.01623 and 6.48387 m/s; runtime playback follows the current 2.99 and 6.63 m/s movement speeds. The character master contains idle, walk, run, attack and hurt actions, a unit-scale rig, MotionRoot and SwordSocket. Materials are packed in the Blender file; editable map files are retained beside it. The game owns displacement, facing, stride matching and action timing.
 
 ## Export and verification
 

@@ -61,7 +61,7 @@
   "label": "Kaida r2 / Alpha a1",
   "model": {
     "path": "res://assets/kaida/a1/model.glb",
-    "sha256": "d772a516d6114c99dce66e90e84bb216042927e2f8cce7be6bd0ead4ca425136"
+    "sha256": "632a851f3086f57658e18f94d4a6db8bef33877bff7599185457bc30e6264195"
   },
   "motion": {
     "action": "controller",

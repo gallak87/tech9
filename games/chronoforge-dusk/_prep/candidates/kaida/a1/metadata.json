@@ -59,6 +59,7 @@
     "attack_contact_fraction": 0.5,
     "attack_contact_frame": 21,
     "attribution": "Original inputs retained under assets/kaida/downloads and references/kaida/r2. Provider generation options and plan not supplied. No Dawn production reuse.",
+    "hip_blend_reference": "Constant facing correction on non-deforming MotionRoot; hip tracks stay near their rest orientation. Bind rig and visible poses preserved.",
     "locomotion_sources": {
       "run": "references/kaida/r2/Fast Run.fbx",
       "walk": "references/kaida/r2/Running.fbx"
@@ -86,7 +87,7 @@
     {
       "path": "assets/kaida/sources/a1/master.blend",
       "role": "editable_master",
-      "sha256": "cca0483106a7f366a41b12866d9464d16a740c4af07d180c5621539185eb128b"
+      "sha256": "8adeed7125000b2751f82946f849122dfa8896adc267da5b8c4118275aab8aa8"
     },
     {
       "path": "assets/kaida/sources/a1/textures/kaida-basecolor.png",

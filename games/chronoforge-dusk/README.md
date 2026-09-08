@@ -6,6 +6,8 @@ A fresh Godot implementation of the original Chronoforge: a stylized 2.5D strate
 
 The [local production pipeline](_prep/README.md) builds the current [a1 source and asset handoff](_prep/KAIDA_HANDOFF.md). Kaida’s proportions and detailed grip/whole-body motion remain provisional under the owner’s [good-enough cutoff](DECISIONS.md#phase-one-quality-cutoff--2026-09-07). 06 uses this handoff without changing her source, clips or immutable package. Additional character polish and story acceptance remain separate work.
 
+The owner-authorized [encounter staging POC](evidence/encounter-poc/README.md) adds a practice sentry on the upper terrace. Engage it to zoom into a side view of the same location, strike, guard a pulse, and return to exploration. This establishes staging boundaries for 07; its complete ATB/progression loop remains future work.
+
 ## The direction
 
 - Preserve the original Chronoforge's identity: Kaida, Vex, Rune, neon city-states, alien wilderness, ATB battles, crew combinations, exploration, equipment, skills, and settlement growth.

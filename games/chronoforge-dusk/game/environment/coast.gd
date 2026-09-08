@@ -22,6 +22,7 @@ var zone_label: Label
 var input_events: int = 0
 var resets: int = 0
 var coastal_audio: DuskCoastAudio
+var encounter: DuskCoastalEncounter
 var room: DuskWorkshop
 var transitioning: bool = false
 var waiting_for_release: bool = false
@@ -33,7 +34,7 @@ var curtain: ColorRect
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	test_mode = "--environment-test" in OS.get_cmdline_user_args() or "--environment-restart" in OS.get_cmdline_user_args() or "--environment-motion" in OS.get_cmdline_user_args() or "--room-test" in OS.get_cmdline_user_args() or "--room-restart" in OS.get_cmdline_user_args()
+	test_mode = "--environment-test" in OS.get_cmdline_user_args() or "--environment-restart" in OS.get_cmdline_user_args() or "--environment-motion" in OS.get_cmdline_user_args() or "--room-test" in OS.get_cmdline_user_args() or "--room-restart" in OS.get_cmdline_user_args() or "--encounter-test" in OS.get_cmdline_user_args() or "--encounter-restart" in OS.get_cmdline_user_args()
 	for argument: String in OS.get_cmdline_user_args():
 		if argument.begins_with("--test-run-id="):
 			test_run_id = argument.trim_prefix("--test-run-id=")
@@ -71,6 +72,9 @@ func _ready() -> void:
 	coastal_audio.actor = actor
 	simulation.add_child(coastal_audio)
 	build_ui()
+	encounter = DuskCoastalEncounter.new()
+	encounter.game = self
+	simulation.add_child(encounter)
 	get_window().title = "Chronoforge Dusk — AUTOMATED CHECK, PLEASE WAIT" if test_mode else "Chronoforge Dusk"
 	if not test_mode:
 		get_window().focus_exited.connect(func() -> void: set_unfocused(true))
@@ -82,6 +86,7 @@ func _ready() -> void:
 		var runner_path: String = "res://tests/environment_test.gd"
 		if "--environment-motion" in OS.get_cmdline_user_args(): runner_path = "res://tests/environment_motion.gd"
 		if "--room-test" in OS.get_cmdline_user_args() or "--room-restart" in OS.get_cmdline_user_args(): runner_path = "res://tests/room_test.gd"
+		if "--encounter-test" in OS.get_cmdline_user_args() or "--encounter-restart" in OS.get_cmdline_user_args(): runner_path = "res://tests/encounter_test.gd"
 		var runner: Node = load(runner_path).new()
 		add_child(runner)
 		runner.call_deferred("run",self)
@@ -99,12 +104,12 @@ func bind_inputs() -> void:
 
 func _process(delta: float) -> void:
 	perf.sample()
-	if room == null:
+	if room == null and not encounter.active:
 		camera.follow(actor.position,delta)
 		site.kit.reveal_actor(camera,actor.position,delta)
-	else:
+	elif room != null:
 		room.rig.follow(delta)
-	if waiting_for_release and not transitioning and movement_released():
+	if waiting_for_release and not transitioning and not encounter.active and movement_released():
 		waiting_for_release = false
 		actor.traversal_enabled = true
 	if actor.position.y < -4.0:
@@ -116,7 +121,11 @@ func _process(delta: float) -> void:
 		guidance.text = "WASD  Walk    SHIFT  Run    E  Leave    C  Camera    R  Reset    ESC  Pause"
 		if room.rig.third_person: guidance.text += "    RMB drag / J L  Look"
 	interaction.text = "Release movement to continue" if waiting_for_release else ("E  ·  Leave workshop" if room != null and room.at_door() else ("E  ·  Enter workshop" if room == null and at_workshop_door() else ""))
-	error_label.text = load_error + "\n".join(site.import_errors)
+	guidance.visible = not encounter.active
+	interaction.visible = not encounter.active
+	if encounter.can_begin(): interaction.text = "E  ·  Engage practice sentry"
+	if encounter.active: zone_label.text = "UPPER TERRACE  /  PRACTICE ENCOUNTER"
+	error_label.text = load_error + "\n".join(site.import_errors) + encounter.error
 
 func _input(event: InputEvent) -> void:
 	if test_mode and not event.has_meta("dusk_test_input") and (event is InputEventKey or event is InputEventMouseButton) and event.is_pressed():
@@ -130,12 +139,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	input_events += 1
 	if transitioning: return
+	if encounter.active and event.physical_keycode not in [KEY_ESCAPE,KEY_P,KEY_R,KEY_F2,KEY_F9]:
+		if not manually_paused and not unfocused: encounter.handle_key(event.physical_keycode)
+		return
 	match event.physical_keycode:
 		KEY_ESCAPE, KEY_P: toggle_pause()
 		KEY_R: reset_spawn()
 		KEY_E:
 			if not manually_paused and not unfocused and not waiting_for_release:
-				if room != null and room.at_door(): change_room(false)
+				if encounter.can_begin(): encounter.begin()
+				elif room != null and room.at_door(): change_room(false)
 				elif room == null and at_workshop_door(): change_room(true)
 		KEY_C:
 			if room != null and not manually_paused and not unfocused: change_camera()
@@ -162,6 +175,7 @@ func apply_pause() -> void:
 		get_viewport().gui_get_focus_owner().release_focus()
 
 func reset_spawn() -> void:
+	if encounter != null: encounter.abort()
 	actor.reset_reaction()
 	actor.place(DuskCoastSite.SPAWN if room == null else DuskWorkshop.SPAWN)
 	if room == null: camera.follow(actor.position,1.0,true)
@@ -169,6 +183,7 @@ func reset_spawn() -> void:
 	resets += 1
 
 func enter_development() -> void:
+	if encounter != null: encounter.abort()
 	get_tree().paused = false
 	Engine.max_fps = 60
 	get_tree().change_scene_to_file("res://development/foundation.tscn")
@@ -249,11 +264,11 @@ func build_ui() -> void:
 		column.add_child(button)
 
 func identity() -> Dictionary:
-	return {"test_run_id":test_run_id,"test_interference":test_interference or bool(Engine.get_meta("environment_test_interference",false)),"source_sha256":source_sha256,"game_revision":game_revision,"native_export":not OS.has_feature("editor"),"engine":Engine.get_version_info().string,"renderer":RenderingServer.get_current_rendering_method(),"driver":RenderingServer.get_current_rendering_driver_name(),"gpu":RenderingServer.get_video_adapter_name(),"processor":OS.get_processor_name(),"internal_resolution":[1920,1080],"frame_cap":Engine.max_fps,"asset":actor.visual.descriptor if actor.visual != null else {},"tuning":tuning.values,"camera":{"yaw":camera.YAW,"pitch":camera.PITCH,"size":camera.size},"scene":"coastal-workshop" if room != null else "coastal-reclamation-06","room_view":"third_person" if room != null and room.rig.third_person else "cutaway","room_transitions":transition_count,"scenery":site.kit.identities}
+	return {"test_run_id":test_run_id,"test_interference":test_interference or bool(Engine.get_meta("environment_test_interference",false)),"source_sha256":source_sha256,"game_revision":game_revision,"native_export":not OS.has_feature("editor"),"engine":Engine.get_version_info().string,"renderer":RenderingServer.get_current_rendering_method(),"driver":RenderingServer.get_current_rendering_driver_name(),"gpu":RenderingServer.get_video_adapter_name(),"processor":OS.get_processor_name(),"internal_resolution":[1920,1080],"frame_cap":Engine.max_fps,"asset":actor.visual.descriptor if actor.visual != null else {},"tuning":tuning.values,"camera":{"yaw":camera.YAW,"pitch":camera.PITCH,"size":camera.size},"scene":"coastal-workshop" if room != null else "coastal-reclamation-06","room_view":"third_person" if room != null and room.rig.third_person else "cutaway","room_transitions":transition_count,"encounter":{"phase":encounter.phase,"starts":encounter.begin_count,"finishes":encounter.finished_count,"sentry":encounter.enemy.visual.descriptor if encounter.enemy.visual != null else {}},"scenery":site.kit.identities}
 
 func write_diagnostics() -> void:
 	var file := FileAccess.open("user://environment-diagnostics.json",FileAccess.WRITE)
-	file.store_string(JSON.stringify({"identity":identity(),"intervals":perf.report(),"actor_position":str(actor.position),"input_events":input_events,"resets":resets,"import_errors":site.import_errors,"gui_focus":str(get_viewport().gui_get_focus_owner())},"\t"))
+	file.store_string(JSON.stringify({"identity":identity(),"intervals":perf.report(),"actor_position":str(actor.global_position),"input_events":input_events,"resets":resets,"import_errors":site.import_errors,"gui_focus":str(get_viewport().gui_get_focus_owner())},"\t"))
 	print("DUSK_COAST_DIAGNOSTICS ",ProjectSettings.globalize_path("user://environment-diagnostics.json"))
 
 

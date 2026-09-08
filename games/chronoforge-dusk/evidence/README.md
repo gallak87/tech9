@@ -1,6 +1,8 @@
 # Native release evidence
 
-[Workshop room/camera POC](room-poc/README.md) contains the latest bounded follow-up: one enterable room, two indoor camera modes and focused native checks.
+[Encounter staging POC](encounter-poc/README.md) contains the latest bounded follow-up: a visible practice sentry, side-view battle on the actual terrace, strike/guard and safe return, with focused native checks.
+
+[Workshop room/camera POC](room-poc/README.md) records one enterable room, two indoor camera modes and focused native checks.
 
 [Coastal environment 06](environment-06/README.md) records the current exploration build's validation summary, gameplay captures and measured performance. [Kaida a1](kaida-03/README.md) records the character baseline.
 

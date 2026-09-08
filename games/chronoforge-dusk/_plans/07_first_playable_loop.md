@@ -21,6 +21,8 @@ Connect this loop before deepening systems. A short, functioning sequence matter
 
 A subsequent owner-authorized [workshop room/camera POC](../evidence/room-poc/README.md) provides early evidence for local scene transitions, camera modes and input handoff. Use those findings when sizing this milestone; they do not establish story acceptance, save/load, or completion of this loop.
 
+The later [encounter staging POC](../evidence/encounter-poc/README.md) adds a visible practice opponent, an in-place zoom to a left/right battle view, the existing strike timeline, a guardable response, and recoverable victory/defeat/disengage. Its authored terrace footprint and return/input behavior inform this milestone. The mechanical sentry is a labeled stand-in; ATB, party/target selection, rewards, progression and persistent encounter state still need the accepted design and implementation.
+
 ## Work to size from the design
 
 - Build on 06's tested coastal environment and traversal. Adapt the route only where the accepted design needs it, adding interactions, a visible encounter, and a useful discovery.

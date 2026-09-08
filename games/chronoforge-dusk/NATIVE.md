@@ -15,7 +15,7 @@ python3 tools/native.py run
 
 After source changes, stop and relaunch the running game. After adding/replacing an imported candidate, run the import command before relaunching or exporting. Do not run editor and packaged performance comparisons simultaneously.
 
-The app opens directly in **06's coastal reclamation site**, using **Kaida r2 / Alpha a1** and her separate energy sword. Explore the arrival quay, repaired timber crossing, seawall ascent, upper ruin and sea overlook; the west path returns to the start. The authored camera and WASD axes agree, so following the main roads does not require corrective strafing. See the [environment handoff](evidence/environment-06/README.md) and [authoring guidelines](ENVIRONMENTS.md). The owner-authorized [room/camera POC](evidence/room-poc/README.md) adds one enterable workshop for comparing close cutaway and third-person views. 04 remains paused and 07 has not started.
+The app opens directly in **06's coastal reclamation site**, using **Kaida r2 / Alpha a1** and her separate energy sword. Explore the arrival quay, repaired timber crossing, seawall ascent, upper ruin and sea overlook; the west path returns to the start. The authored camera and WASD axes agree, so following the main roads does not require corrective strafing. See the [environment handoff](evidence/environment-06/README.md) and [authoring guidelines](ENVIRONMENTS.md). The owner-authorized [room/camera POC](evidence/room-poc/README.md) adds one enterable workshop for comparing close cutaway and third-person views. The [encounter POC](evidence/encounter-poc/README.md) adds a practice sentry on the upper terrace, with an in-place zoom to a side battle view. These bounded follow-ups inform 07; its complete gameplay loop remains unimplemented. 04 remains paused.
 
 ## Exploration controls
 
@@ -23,7 +23,9 @@ The app opens directly in **06's coastal reclamation site**, using **Kaida r2 / 
 | --- | --- |
 | WASD / arrows | Walk along the camera-aligned route axes |
 | Shift | Run |
-| E | Enter/leave the workshop when its doorway prompt is visible |
+| E | Use the visible prompt: enter/leave the workshop or engage the upper-terrace practice sentry |
+| Space / G | In the encounter: strike / guard the incoming pulse |
+| Tab / Enter | Disengage during battle / return after its result |
 | C | Switch close cutaway / third person inside the workshop |
 | Right mouse drag / J, L | Turn the indoor third-person camera |
 | R | Reset Kaida to the current space's safe entry |
@@ -85,6 +87,7 @@ From the Dusk directory:
 python3 tools/native.py setup       # fetch official archive once, verify macos.zip
 python3 tools/native.py import      # standard Godot import + build identity
 python3 tools/native.py export      # import, verify template, export and verify signature
+python3 tools/native.py test-encounter # focused staging, exchange, return + cold start
 python3 tools/native.py test-room   # focused workshop, two cameras, transitions + cold start
 python3 tools/native.py test-locomotion # short coastal walk/run, arm swing and restart check
 python3 tools/native.py test-environment # coastal route, WASD alignment, pause/tools + restart
@@ -104,6 +107,8 @@ Official references: [pinned release](https://godotengine.org/download/archive/4
 
 ## Test scope
 
+`test-encounter` checks the actual coastal approach, continuous zoom, same-actor staging, strike/guard, victory/defeat, disengage/reset, held-input release, pause/focus and cold launch. `test-encounter-editor` uses the editor binary. See the [encounter handoff](evidence/encounter-poc/README.md). This is not an ATB/progression test or a full character-suite rerun.
+
 `test-room` checks only the workshop boundary and indoor cameras, including repeated visits. `test-room-editor` uses the editor binary. The [POC handoff](evidence/room-poc/README.md) records actual checks and limits.
 
 `test-locomotion` checks the current walking arm swing, walk/run speed, stride playback, stopping and a cold restart in the coastal scene. It does not repeat the full route or fixture suite.
@@ -122,6 +127,7 @@ Godot's `user://` directory on this Mac is:
 
 - `accepted_tuning.json` pairs the asset/model hash and game build with accepted settings. It is restored on cold launch. `.previous` retains the preceding acceptance.
 - `environment-diagnostics.json` is written on F9 in coastal exploration. `test_environment.json` and `test_environment_restart.json` contain the native route checks; `environment-*.png` are their captures. `capture-environment` writes a separate `environment-motion/` sequence and `test_environment_motion.json`. Its readbacks must not be interpreted as normal play.
+- `test_encounter.json` and `test_encounter_restart.json` contain focused encounter results; `environment-encounter-*.png` capture its actual native viewport. Opt-in flags are `--encounter-test` and `--encounter-restart`.
 - In development, `diagnostics.json` is written on F9 and includes the actually loaded asset, camera/lighting, input count, action totals, and per-view frame-time samples.
 - Kaida tests use `kaida_test_tuning.json`, `test_kaida.json`, `test_kaida_restart.json`, and `kaida-*.png`; they preserve the owner’s save.
 - Foundation integration tests use `foundation_test_tuning.json` and `invalid_fixture.json`, preserving the owner's save. `test_foundation.json`, `test_restart.json` and three viewport PNGs contain the latest test results.
@@ -132,6 +138,7 @@ The in-app diagnostics keep up to 600 frame times per interval and retain separa
 
 ## Where to extend it
 
+- `environment/encounter/`: same-scene practice staging, local battle commands and world-space feedback, using the existing rehearsal timeline unchanged.
 - `environment/rooms/`: one prepared workshop shell, cutaway/perspective camera comparison and a separate indoor scene.
 - `environment/coast.gd`, `coast_site.gd`, `coast_camera.gd`: normal launch, metre-scale site/collision, independent aligned framing and clean play UI.
 - `environment/coast_kit.gd`: existing descriptor validation and batching of the prepared Blender scenery, plus foreground fading.

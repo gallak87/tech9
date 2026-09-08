@@ -36,6 +36,16 @@ The original 06 assignment contains outdoor traversal. The owner subsequently au
 - Preserve the outdoor movement axes in overhead rooms. Third-person camera turns are deliberate player input; changing back restores the overhead axes. Keep mode preferences separate from accepted character/inspection tuning.
 - Verify several entry/exit cycles and compare room node counts. Retaining one nearby outdoor scene is adequate for this POC; larger-region loading and resource lifetime still need a separate scoped check.
 
+## Encounter pockets
+
+The owner-authorized [encounter POC](evidence/encounter-poc/README.md) stages a practice battle on the existing upper terrace. It establishes presentation and return behavior, not a general encounter-placement system or full ATB.
+
+- Author the battle footprint and its camera with the route. This terrace has a clear horizontal action lane plus a foreground aisle for taking position and returning around the opponent. Keep approach, strike, return and enemy silhouettes clear of scenery; an attractive idle composition alone does not establish usable staging.
+- Retain the actual setting and actors when the space supports battle. Here a local formation transform places the existing attack timeline on the elevated terrace, while a 1.9-second camera blend changes pitch/zoom without changing the outdoor movement axes. The pocket's coordinates are authored; arbitrary slopes, cramped rooms and larger parties need their own footprints and camera decisions.
+- Explicit interaction gives the player control of a practice encounter. Freeze traversal during staging, save the real entry position/facing, and require released movement before exploration resumes. Exercise victory, defeat, disengage during an action, and reset during the camera move.
+- Coordinate spaces matter: the action runs in formation-local coordinates while the blade samples are world-space. Keep trails and contact effects in the same world frame as the sampled blade. Preserve the character handoff and isolate presentation adaptation from the shared actor and action code.
+- Frame both participants and the full action above the command area. Include the actual local architecture behind them, verify initial facing, and keep pause/inactive behavior consistent through the zoom and exchange. A close camera reveals art limitations that an overhead route can hide; label temporary enemies clearly.
+
 ## Asset and delivery checks
 
 - New static meshes use Dusk's `static_blend` recipe and `DuskAssetAssembly`; terrain, water, light, layout, and effects can remain Godot-owned. No character acquisition stages are needed for scenery. Retain editable sources, maps, provenance, metadata, and immutable selected packages.

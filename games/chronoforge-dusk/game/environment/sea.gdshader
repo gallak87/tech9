@@ -11,6 +11,7 @@ void fragment() {
     float t=coast_time;
     float n=noise(p*0.23+vec2(t*0.025,0))+noise(p*1.5+vec2(0,t*0.035))*0.3;
     float shore=rect(p,vec2(-10,13),vec2(8,7));
+    shore=min(shore,rect(p,vec2(-22,13.9),vec2(4,4.1)));
     shore=min(shore,rect(p,vec2(4,8),vec2(6,2)));
     shore=min(shore,rect(p,vec2(13.5,-2.5),vec2(3.5,15.5)));
     shore=min(shore,rect(p,vec2(1,-14),vec2(16,4)));

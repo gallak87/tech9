@@ -1,0 +1,47 @@
+{
+  "animation_mode": "none",
+  "asset_id": "coast.workshop",
+  "attachments": [],
+  "dependencies": [],
+  "dimensions": {
+    "forward": "-Z",
+    "height_m": 4.025,
+    "origin": "ground",
+    "radius_m": 3.425,
+    "up": "+Y"
+  },
+  "kind": "prop",
+  "label": "Coastal workshop / room camera POC",
+  "placeholder": false,
+  "production_format": 1,
+  "provenance": {
+    "attribution": "Dusk original; existing local coastal material helpers only; no external assets.",
+    "origin": "Original Blender geometry for owner-authorized room/camera POC following 06."
+  },
+  "recipe": "static_blend",
+  "required_outputs": [
+    "runtime/model.glb",
+    "runtime/descriptor.json",
+    "working/export.blend",
+    "inspection.json",
+    "reimport.json"
+  ],
+  "revision": "r1",
+  "source_files": [
+    {
+      "path": "assets/coast.workshop/sources/r1/master.blend",
+      "role": "editable_master",
+      "sha256": "2d89f313ab1aa90528dfe3d4e2198a5aba381e539186e05ac3fd0a467f794297"
+    },
+    {
+      "path": "assets/coast/author_workshop.py",
+      "role": "authoring_script",
+      "sha256": "4709f18239ea4b849782a246ab232f13f36d95fd32144baae4dd3b3a1f4a060c"
+    },
+    {
+      "path": "assets/coast/author_coast.py",
+      "role": "material_geometry_helpers",
+      "sha256": "af2e25e35b5aefa44fbcf6c6695418d2999e4b417ef9a02ec09fc5c0bd28b3da"
+    }
+  ]
+}

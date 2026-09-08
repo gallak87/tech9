@@ -84,7 +84,7 @@ def verify_test_report(path, run_id, source_sha256, native_export):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['setup', 'import', 'run', 'export', 'test', 'test-editor', 'test-foundation', 'test-foundation-editor', 'test-environment', 'test-environment-editor', 'test-locomotion', 'capture-environment'])
+    parser.add_argument('command', choices=['setup', 'import', 'run', 'export', 'test', 'test-editor', 'test-foundation', 'test-foundation-editor', 'test-environment', 'test-environment-editor', 'test-locomotion', 'test-room', 'test-room-editor', 'capture-environment'])
     args = parser.parse_args()
     godot = engine()
     if args.command == 'setup':
@@ -95,7 +95,7 @@ def main():
         build_identity()
     if args.command == 'run':
         run([godot, '--path', GAME], timeout=None)
-    if args.command in ('export', 'test', 'test-foundation', 'test-environment', 'test-locomotion', 'capture-environment'):
+    if args.command in ('export', 'test', 'test-foundation', 'test-environment', 'test-locomotion', 'test-room', 'capture-environment'):
         setup()
         APP.parent.mkdir(exist_ok=True)
         run([godot, '--headless', '--path', GAME, '--export-release', 'macOS', APP])
@@ -110,6 +110,8 @@ def main():
         phases = [('self-test', 'foundation'), ('verify-restart', 'restart')] if 'foundation' in args.command else [('kaida-test', 'kaida'), ('kaida-restart', 'kaida_restart')]
         if 'environment' in args.command or args.command == 'test-locomotion':
             phases = [('environment-test', 'environment'), ('environment-restart', 'environment_restart')]
+        if args.command in ('test-room', 'test-room-editor'):
+            phases = [('room-test', 'room'), ('room-restart', 'room_restart')]
         if args.command == 'capture-environment':
             phases = [('environment-motion', 'environment_motion')]
         for flag, label in phases:

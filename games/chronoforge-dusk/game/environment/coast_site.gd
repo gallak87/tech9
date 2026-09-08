@@ -2,6 +2,9 @@ class_name DuskCoastSite
 extends Node3D
 ## Metre-scale layout. Physics stays game-owned; ramps need no new animation.
 const SPAWN := Vector3(-11, 0.025, 13)
+const WORKSHOP_AT := Vector3(-22.2,0,13)
+const WORKSHOP_RETURN := Vector3(-22.2,.025,16.9)
+var workshop: DuskWorkshopShell
 var import_errors: Array[String] = []
 var surface_material: Material
 var wall_material: Material
@@ -25,9 +28,14 @@ func _ready() -> void:
 	build_route()
 	build_light()
 	dress_site()
+	workshop = DuskWorkshopShell.new()
+	workshop.position = WORKSHOP_AT
+	add_child(workshop)
+	if not workshop.error.is_empty(): import_errors.append(workshop.error)
 
 func build_route() -> void:
 	slab("Arrival quay", Rect2(-18, 6, 16, 14), 0, 0)
+	slab("Workshop apron", Rect2(-26,9.8,8,8.2),0,0)
 	slab("Repaired crossing", Rect2(-2, 6, 12, 4), 0, 0)
 	slab("East landing", Rect2(10, 3, 7, 10), 0, 0)
 	slab("East ascent", Rect2(10, -10, 7, 13), 3, 0)
@@ -36,7 +44,11 @@ func build_route() -> void:
 	slab("Sea overlook", Rect2(-15, -24, 8, 6), 3, 3)
 	# Continuous low parapets explain every impassable drop. Connections are open.
 	for edge: Array in [
-		[Vector3(-18,0,20),Vector3(-2,0,20)], [Vector3(-18,0,6),Vector3(-18,0,20)],
+		[Vector3(-18,0,20),Vector3(-2,0,20)], [Vector3(-18,0,6),Vector3(-18,0,16)],
+		[Vector3(-18,0,18),Vector3(-18,0,20)],
+		[Vector3(-26,0,9.8),Vector3(-18,0,9.8)],
+		[Vector3(-26,0,9.8),Vector3(-26,0,18)],
+		[Vector3(-26,0,18),Vector3(-18,0,18)],
 		[Vector3(-18,0,6),Vector3(-15,0,6)], [Vector3(-9,0,6),Vector3(-2,0,6)],
 		[Vector3(-2,0,10),Vector3(-2,0,20)], [Vector3(-2,0,6),Vector3(10,0,6)],
 		[Vector3(-2,0,10),Vector3(10,0,10)], [Vector3(10,0,10),Vector3(10,0,13)],

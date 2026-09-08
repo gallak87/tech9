@@ -19,6 +19,8 @@ One small but complete Chronoforge session:
 
 Connect this loop before deepening systems. A short, functioning sequence matters more than a wide collection of isolated modules.
 
+A subsequent owner-authorized [workshop room/camera POC](../evidence/room-poc/README.md) provides early evidence for local scene transitions, camera modes and input handoff. Use those findings when sizing this milestone; they do not establish story acceptance, save/load, or completion of this loop.
+
 ## Work to size from the design
 
 - Build on 06's tested coastal environment and traversal. Adapt the route only where the accepted design needs it, adding interactions, a visible encounter, and a useful discovery.

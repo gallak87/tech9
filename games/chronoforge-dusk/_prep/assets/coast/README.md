@@ -14,3 +14,5 @@ Preparation finding: portable roughness/metallic textures must use explicit glTF
 
 
 Current selection: seawall, arch, bollard, supplies, rocks, grass and tower **r1**; repair bridge **r2**; tide pump **r1**. `author_pump.py` uses the original local material/geometry helpers to author the ninth asset. `revise_bridge.py` creates r2 from the original r1 source, adding bolted salvage rails. Its export/reimport retains the existing maps. The current recipe rebuilds from the r2 master; the original r1 master is retained as a provenance input, while superseded candidate/runtime packages live in the scenery checkpoint in Git.
+
+The owner-authorized room follow-up adds `coast.workshop/r1`, authored by `author_workshop.py` using these same local helpers. Named roof/front-wall meshes survive the existing static export so the game can use one full-scale shell outside and inside, with intentional cutaway visibility. See [the room POC](../../../evidence/room-poc/README.md).

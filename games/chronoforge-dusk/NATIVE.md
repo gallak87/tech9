@@ -15,7 +15,7 @@ python3 tools/native.py run
 
 After source changes, stop and relaunch the running game. After adding/replacing an imported candidate, run the import command before relaunching or exporting. Do not run editor and packaged performance comparisons simultaneously.
 
-The app opens directly in **06's coastal reclamation site**, using **Kaida r2 / Alpha a1** and her separate energy sword. Explore the arrival quay, repaired timber crossing, seawall ascent, upper ruin and sea overlook; the west path returns to the start. The authored camera and WASD axes agree, so following the main roads does not require corrective strafing. See the [environment handoff](evidence/environment-06/README.md) and [authoring guidelines](ENVIRONMENTS.md). This build ends at outdoor exploration; 04 remains paused and 07 has not started.
+The app opens directly in **06's coastal reclamation site**, using **Kaida r2 / Alpha a1** and her separate energy sword. Explore the arrival quay, repaired timber crossing, seawall ascent, upper ruin and sea overlook; the west path returns to the start. The authored camera and WASD axes agree, so following the main roads does not require corrective strafing. See the [environment handoff](evidence/environment-06/README.md) and [authoring guidelines](ENVIRONMENTS.md). The owner-authorized [room/camera POC](evidence/room-poc/README.md) adds one enterable workshop for comparing close cutaway and third-person views. 04 remains paused and 07 has not started.
 
 ## Exploration controls
 
@@ -23,7 +23,10 @@ The app opens directly in **06's coastal reclamation site**, using **Kaida r2 / 
 | --- | --- |
 | WASD / arrows | Walk along the camera-aligned route axes |
 | Shift | Run |
-| R | Return Kaida and the camera to the safe arrival |
+| E | Enter/leave the workshop when its doorway prompt is visible |
+| C | Switch close cutaway / third person inside the workshop |
+| Right mouse drag / J, L | Turn the indoor third-person camera |
+| R | Reset Kaida to the current space's safe entry |
 | Esc / P | Pause/resume; pause menu also offers reset and quit |
 | F2 | Open the existing development scene; F2 there returns to the coast |
 | F9 | Write coastal identity, input and performance diagnostics |
@@ -82,6 +85,7 @@ From the Dusk directory:
 python3 tools/native.py setup       # fetch official archive once, verify macos.zip
 python3 tools/native.py import      # standard Godot import + build identity
 python3 tools/native.py export      # import, verify template, export and verify signature
+python3 tools/native.py test-room   # focused workshop, two cameras, transitions + cold start
 python3 tools/native.py test-locomotion # short coastal walk/run, arm swing and restart check
 python3 tools/native.py test-environment # coastal route, WASD alignment, pause/tools + restart
 python3 tools/native.py capture-environment # separate native motion capture; not performance
@@ -99,6 +103,8 @@ The result is a local **ad-hoc signed** `.app`, verified with `codesign --verify
 Official references: [pinned release](https://godotengine.org/download/archive/4.6.3-stable/), [Godot macOS export](https://docs.godotengine.org/en/4.6/tutorials/export/exporting_for_macos.html), [command-line export](https://docs.godotengine.org/en/4.6/tutorials/editor/command_line_tutorial.html).
 
 ## Test scope
+
+`test-room` checks only the workshop boundary and indoor cameras, including repeated visits. `test-room-editor` uses the editor binary. The [POC handoff](evidence/room-poc/README.md) records actual checks and limits.
 
 `test-locomotion` checks the current walking arm swing, walk/run speed, stride playback, stopping and a cold restart in the coastal scene. It does not repeat the full route or fixture suite.
 
@@ -120,12 +126,13 @@ Godot's `user://` directory on this Mac is:
 - Kaida tests use `kaida_test_tuning.json`, `test_kaida.json`, `test_kaida_restart.json`, and `kaida-*.png`; they preserve the owner’s save.
 - Foundation integration tests use `foundation_test_tuning.json` and `invalid_fixture.json`, preserving the owner's save. `test_foundation.json`, `test_restart.json` and three viewport PNGs contain the latest test results.
 
-The opt-in test driver calls Godot's input event path and the actual runtime components. Its header says **AUTOMATED TEST — PLEASE WAIT**. Avoid keyboard/mouse input in the app while it runs: external presses invalidate the result. Each invocation carries a unique run ID; the helper requires completed, zero-failure reports from that ID and the exact source digest before proceeding to restart. Quitting early cannot reuse an older passing report. It is included in the app but runs only with `--self-test`, `--verify-restart`, `--kaida-test`, or `--kaida-restart`. Coastal opt-in flags are `--environment-test`, `--environment-restart`, and `--environment-motion`. It creates no network server and accepts no remote commands. Tests keep their window on top for the measurement interval, then automatically close it. Test focus changes are simulated through the same game focus handler; real OS focus events are disconnected only during this opt-in test mode. A 180-second subprocess timeout (300 seconds for the longer coastal route) catches a stuck test; reports and errors remain in the log.
+The opt-in test driver calls Godot's input event path and the actual runtime components. Its header says **AUTOMATED TEST — PLEASE WAIT**. Avoid keyboard/mouse input in the app while it runs: external presses invalidate the result. Each invocation carries a unique run ID; the helper requires completed, zero-failure reports from that ID and the exact source digest before proceeding to restart. Quitting early cannot reuse an older passing report. It is included in the app but runs only with `--self-test`, `--verify-restart`, `--kaida-test`, or `--kaida-restart`. Coastal opt-in flags are `--environment-test`, `--environment-restart`, and `--environment-motion`; room checks use `--room-test` and `--room-restart`. It creates no network server and accepts no remote commands. Tests keep their window on top for the measurement interval, then automatically close it. Test focus changes are simulated through the same game focus handler; real OS focus events are disconnected only during this opt-in test mode. A 180-second subprocess timeout (300 seconds for the longer coastal route) catches a stuck test; reports and errors remain in the log.
 
 The in-app diagnostics keep up to 600 frame times per interval and retain separately named intervals across view changes. Frame times use wall-clock intervals, including pacing and stalls. `engine_process_ms` is Godot's process monitor, not a full CPU profile. GPU time is explicitly unavailable. Capture/readback introduces stalls and is separated from normal gameplay when interpreting the evidence.
 
 ## Where to extend it
 
+- `environment/rooms/`: one prepared workshop shell, cutaway/perspective camera comparison and a separate indoor scene.
 - `environment/coast.gd`, `coast_site.gd`, `coast_camera.gd`: normal launch, metre-scale site/collision, independent aligned framing and clean play UI.
 - `environment/coast_kit.gd`: existing descriptor validation and batching of the prepared Blender scenery, plus foreground fading.
 - `environment/coast_audio.gd`: original shore ambience and displacement/grounding-driven stone/timber footfalls. Sources and provenance are under `_prep/audio/`.

@@ -29,7 +29,12 @@ These are working authoring rules from the coastal 06 prototype and the owner's 
 
 ## Scope of this evidence
 
-06 contains open ruin arches and outdoor traversal. Enterable rooms and indoor/outdoor transitions are outside this assignment and have not been prototyped or accepted as a production pattern.
+The original 06 assignment contains outdoor traversal. The owner subsequently authorized a [workshop room/camera POC](evidence/room-poc/README.md), which compares close cutaway and third-person views; subjective acceptance of either as a broader production pattern remains open.
+
+- Author indoor camera framing alongside the room shell. A small room can use a closer elevated view with roof/front-wall cutaways; third person additionally needs camera collision against walls, ceiling and furniture. “Interior” does not automatically mean third person.
+- Keep the same actor/controller through a local scene change. Switch the active world's light and collision together, with explicit entrance/return positions. Require fresh movement after a transition or camera-mode change, and use an explicit doorway interaction to prevent immediate re-entry.
+- Preserve the outdoor movement axes in overhead rooms. Third-person camera turns are deliberate player input; changing back restores the overhead axes. Keep mode preferences separate from accepted character/inspection tuning.
+- Verify several entry/exit cycles and compare room node counts. Retaining one nearby outdoor scene is adequate for this POC; larger-region loading and resource lifetime still need a separate scoped check.
 
 ## Asset and delivery checks
 

@@ -1,5 +1,7 @@
 # Native release evidence
 
+[Workshop room/camera POC](room-poc/README.md) contains the latest bounded follow-up: one enterable room, two indoor camera modes and focused native checks.
+
 [Coastal environment 06](environment-06/README.md) records the current exploration build's validation summary, gameplay captures and measured performance. [Kaida a1](kaida-03/README.md) records the character baseline.
 
 The native suites exercise the real actor, importer, input handlers, action timeline and saved tuning. Diagnostic mannequins remain test fixtures and the harmless rehearsal target. Original inputs and current editable assets live under `_prep`.

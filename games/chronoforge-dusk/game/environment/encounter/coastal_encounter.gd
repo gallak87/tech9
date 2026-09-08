@@ -5,6 +5,7 @@ extends Node3D
 const SENTRY := "res://assets/practice.sentry/r1/descriptor.json"
 const CENTER := Vector3(0,3,-13.5)
 const FRONT_Z := -11.7
+const CAMERA_BLEND_SECONDS := 0.95
 var game: DuskCoast
 var formation: Node3D
 var enemy: DuskCharacter
@@ -168,7 +169,7 @@ func _physics_process(delta: float) -> void:
 	age += delta
 	if phase in ["entering","leaving"]:
 		move_path(delta)
-		if path.is_empty() and age>=1.9:
+		if path.is_empty() and age>=CAMERA_BLEND_SECONDS:
 			if phase == "entering":
 				game.actor.reparent(formation,true)
 				action.reset()
@@ -312,11 +313,11 @@ func _process(delta: float) -> void:
 	battle_camera.update_camera(delta)
 	if phase == "entering":
 		var goal: Transform3D = battle_camera.global_transform
-		var amount: float = smoothstep(0,1,age/1.9)
+		var amount: float = smoothstep(0,1,age/CAMERA_BLEND_SECONDS)
 		battle_camera.global_transform = start_camera.interpolate_with(goal,amount)
 		battle_camera.size = lerpf(start_size,battle_camera.distance,amount)
 	elif phase == "leaving":
-		var amount: float = smoothstep(0,1,age/1.9)
+		var amount: float = smoothstep(0,1,age/CAMERA_BLEND_SECONDS)
 		battle_camera.global_transform = start_camera.interpolate_with(game.camera.global_transform,amount)
 		battle_camera.size = lerpf(start_size,game.camera.size,amount)
 	game.site.kit.reveal_actor(battle_camera,game.actor.global_position,delta)

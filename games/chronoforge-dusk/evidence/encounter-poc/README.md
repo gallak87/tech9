@@ -8,7 +8,7 @@ Open `dist/Chronoforge Dusk.app`. Follow the crossing and eastern ascent to the 
 
 [Approach](approach.png) · [Side view](ready.png) · [Guard](guard.png)
 
-The camera blends over 1.9 seconds from the coastal frame to an orthographic side shot (0° yaw, 17° pitch, size 6.2). The original terrace geometry, lighting, shore ambience and Kaida instance remain present. Staging uses a clear foreground aisle around the opponent. Return restores the actual entry position and facing; held movement must be released before continuing.
+The camera blends over 0.95 seconds in both directions, twice its original speed at the owner's request. The battle frame is an orthographic side shot (0° yaw, 17° pitch, size 6.2). The original terrace geometry, lighting, shore ambience and Kaida instance remain present. Staging uses a clear foreground aisle around the opponent; commands and traversal resume when Kaida also reaches her destination. Return restores the actual entry position and facing; held movement must be released before continuing.
 
 ## What this establishes for later plans
 
@@ -22,22 +22,22 @@ The reference was the left/right arrangement and advance/return presentation in 
 
 ## Native verification
 
-Baseline: `724b59e`. Asset checkpoint: `22c98f9`. The accompanying runtime commit is titled `feat(dusk): stage replayable coastal side-view encounters`.
+Initial staging checkpoint: `6920bd4`; asset checkpoint: `22c98f9`. This follow-up halves both camera blends to 0.95 seconds. Selected stills retain the original, unchanged endpoint composition.
 
-Tested runtime SHA-256: `61648f59ff60b51e74184e50f07997a008156624a8d9e0b193a071a4e1e0ef7d`.
+Tested runtime SHA-256: `011b50491eea650c00d64ad8597f0fd799205af0e80a53edb4e2be859d63d2e6`.
 
-`python3 tools/native.py test-encounter` passed **39 focused checks + 4 cold-start checks**, fresh run `49baaea1ba1c48e5bbc7b1e9f3c1411b`, with no external input. Mapped physical input covered the actual coastal approach, continuous zoom, unchanged actor/site instances, initial facing, strike/contact, repeated command rejection, guard, victory, defeat/retry, opposite-side engagement, mid-action disengage, held-key return, reset during entry, pause and simulated focus loss, and unchanged acceptance-file bytes. The measured sword-to-torso contact distance was 0.154 m. The full Kaida and unrelated room suites were not repeated.
+`python3 tools/native.py test-encounter` passed **39 focused checks + 4 cold-start checks**, fresh run `205fb5cf713148028c855abb7a13bb63`, with no external input. Mapped physical input covered the actual coastal approach, continuous zoom, unchanged actor/site instances, initial facing, strike/contact, repeated command rejection, guard, victory, defeat/retry, opposite-side engagement, mid-action disengage, held-key return, reset during entry, pause and simulated focus loss, and unchanged acceptance-file bytes. The measured sword-to-torso contact distance was 0.154 m. The full Kaida and unrelated room suites were not repeated.
 
 Godot 4.6.3 / Forward+ / Metal / Apple M1 Pro; 1920×1080 internal, 60 FPS cap. Short native intervals excluding screenshot readbacks:
 
 | Interval | Samples | Mean / p95 / max ms | >33.34 ms | Draws | Primitives | Video MiB |
 | --- | ---: | --- | ---: | ---: | ---: | ---: |
-| Ready, warmed 5 s | 300 | 16.66 / 18.25 / 19.78 | 0 | 275 | 124,308 | 345.78 |
-| Two-strike exchange | 406 | 16.67 / 18.30 / 19.70 | 0 | 275 | 124,334 | 345.92 |
+| Ready, warmed 5 s | 300 | 16.66 / 17.04 / 18.40 | 0 | 275 | 124,308 | 345.78 |
+| Two-strike exchange | 406 | 16.67 / 17.13 / 17.65 | 0 | 275 | 124,334 | 345.92 |
 
-CPU process snapshots were 7.90/7.83 ms; GPU timing was unavailable. These short observations are not a performance acceptance gate. The desktop was locked, so direct OS playtesting, isolated foreground measurements and subjective camera/audio comfort remain unverified. Native viewport screenshots were inspected; engineering input checks ran in the actual exported executable.
+CPU process snapshots were 15.70/5.22 ms; GPU timing was unavailable. These short observations are not a performance acceptance gate. This timing follow-up used automated input in the exported executable; direct OS playtesting and subjective review of the faster camera remain unverified. Original native viewport screenshots were inspected during the initial staging pass.
 
-The ad-hoc signed local `.app` passed signature verification. Its pre-commit label remains `724b59e89202+dirty`; the content digest above identifies the tested implementation. No gameplay rerun or re-export is required solely to change that label. Raw native reports and logs remain local and ignored: `test_encounter.json`, `test_encounter_restart.json` in Godot user data and `/tmp/dusk-encounter-native-final.log`.
+The ad-hoc signed local `.app` passed signature verification. Its pre-commit label remains `6920bd4e9e86+dirty`; the content digest above identifies the tested implementation. No gameplay rerun or re-export is required solely to change that label. Raw native reports and logs remain local and ignored: `test_encounter.json`, `test_encounter_restart.json` in Godot user data and `/tmp/dusk-encounter-snappy.log`.
 
 New asset: [practice.sentry/r1 metadata](../../_prep/assets/practice.sentry/asset.json), prepared with the unchanged `skeletal_blend` recipe, exported/reimported and loaded through the existing consumer. GLB SHA-256: `ea4279940f49b21818460b5f7cc02a4bf1a119caa5e8d55c4fef445eac9545b7`. The editable Blender master, three-bone mechanism and five original mechanical clips are retained in its immutable candidate package. Asset-production metadata remains tracked; native validation reports do not.
 

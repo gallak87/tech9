@@ -26,7 +26,7 @@ func run(root: DuskCoast) -> void:
 	var entry_at: Vector3 = game.actor.global_position
 	set_keys([KEY_W])
 	await key(KEY_E)
-	await seconds(.8)
+	await seconds(.4)
 	check(encounter.active and encounter.battle_camera.size<16.5 and encounter.battle_camera.size>6.2,"Encounter zooms continuously from exploration toward the side shot")
 	set_keys([])
 	if not await reach_phase("ready"): return

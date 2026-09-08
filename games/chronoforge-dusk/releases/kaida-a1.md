@@ -14,7 +14,7 @@
 
 ## Included
 
-Normal movement at 2.99 m/s uses Running.fbx; Shift-run at 6.63 m/s uses Fast Run.fbx. Both retain sword carry and use stride-matched playback, with responsive start/stop/turn, wall and slope collision, five animated roles, separate sword, approach/strike/contact/recovery/return, target reactions, hit stop, blade feedback and sound. Inspection supports replay, slow motion, stepping, rig/contact markers and saved gameplay tuning.
+Normal movement at 4.485 m/s uses Running.fbx; Shift-run at 6.63 m/s uses Fast Run.fbx. Both retain sword carry and use stride-matched playback, with responsive start/stop/turn, wall and slope collision, five animated roles, separate sword, approach/strike/contact/recovery/return, target reactions, hit stop, blade feedback and sound. Inspection supports replay, slow motion, stepping, rig/contact markers and saved gameplay tuning.
 
 The runtime, source master and prepared package all use a1. The release pins the model and sword bytes by SHA-256. Original Meshy/Mixamo inputs and current editable sources remain available. Superseded exports, demos, fix scripts and iteration reports belong in Git history.
 

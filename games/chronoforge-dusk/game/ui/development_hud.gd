@@ -121,7 +121,7 @@ func _ready() -> void:
 	fold.pressed.connect(func() -> void:
 		tuning_box.visible = not tuning_box.visible
 		fold.text = "Tuning  /  hide controls" if tuning_box.visible else "Tuning  /  show controls")
-	for item: Array in [["walk_speed", "Walk m/s", 0.5, 4.0, 0.1], ["run_speed", "Run m/s", 4.0, 8.0, 0.1], ["turn_speed", "Turn response", 2.0, 24.0, 1.0], ["impact_fraction", "Impact / clip", 0.15, 0.85, 0.01], ["attack_tempo", "Attack tempo", 0.5, 1.8, 0.05], ["hit_stop", "Hit stop (s)", 0.0, 0.12, 0.005], ["walk_stride_speed", "Walk stride m/s", 1.0, 7.0, 0.05], ["run_stride_speed", "Run stride m/s", 3.0, 7.0, 0.05], ["acceleration", "Acceleration", 10.0, 60.0, 1.0], ["braking", "Braking", 10.0, 60.0, 1.0]]:
+	for item: Array in [["walk_speed", "Walk m/s", 0.5, 6.0, 0.1], ["run_speed", "Run m/s", 4.0, 8.0, 0.1], ["turn_speed", "Turn response", 2.0, 24.0, 1.0], ["impact_fraction", "Impact / clip", 0.15, 0.85, 0.01], ["attack_tempo", "Attack tempo", 0.5, 1.8, 0.05], ["hit_stop", "Hit stop (s)", 0.0, 0.12, 0.005], ["walk_stride_speed", "Walk stride m/s", 1.0, 7.0, 0.05], ["run_stride_speed", "Run stride m/s", 3.0, 7.0, 0.05], ["acceleration", "Acceleration", 10.0, 60.0, 1.0], ["braking", "Braking", 10.0, 60.0, 1.0]]:
 		var line := HBoxContainer.new()
 		tuning_box.add_child(line)
 		var caption: Label = text_label(line, str(item[1]), 19, Color("b8c9c2"))

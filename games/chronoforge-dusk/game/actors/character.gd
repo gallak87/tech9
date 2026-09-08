@@ -2,7 +2,7 @@ class_name DuskCharacter
 extends CharacterBody3D
 
 var visual: DuskAssetAssembly
-var walk_speed: float = 2.99
+var walk_speed: float = 4.485
 var run_speed: float = 6.63
 var turn_speed: float = 18.0
 var traversal_enabled: bool = false

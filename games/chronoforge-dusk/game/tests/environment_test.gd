@@ -173,7 +173,7 @@ func set_keys(keys: Array[int]) -> void:
 	held = keys.duplicate()
 
 func check_locomotion() -> void:
-	check(is_equal_approx(game.actor.walk_speed,2.99) and is_equal_approx(game.actor.run_speed,6.63),"Walk and run use the requested 30 percent speed increase")
+	check(is_equal_approx(game.actor.walk_speed,4.485) and is_equal_approx(game.actor.run_speed,6.63),"Normal movement uses 4.485 m/s; Shift-run stays at 6.63 m/s")
 	var skeleton: Skeleton3D = DuskAssetAssembly.find_skeleton(game.actor.visual.model)
 	var left_hand: int = skeleton.find_bone("mixamorig_LeftHand")
 	var right_hand: int = skeleton.find_bone("mixamorig_RightHand")

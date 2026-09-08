@@ -11,7 +11,7 @@
     {
       "path": "assets/kaida/sources/a1/master.blend",
       "role": "editable_master",
-      "sha256": "14545977bc223de42c7fa508b7ebabe4e6025d0a8341ad3330bf3bb6179dd40f"
+      "sha256": "cca0483106a7f366a41b12866d9464d16a740c4af07d180c5621539185eb128b"
     },
     {
       "path": "assets/kaida/sources/a1/textures/kaida-basecolor.png",
@@ -72,6 +72,16 @@
       "path": "assets/kaida/downloads/mixamo-kaida-r2/receipt.json",
       "role": "original_input",
       "sha256": "0622cdc5ac4060f6dc26f8c7eb9fecb4d6507d326a6aa828f0d6ac5d6311d82c"
+    },
+    {
+      "path": "references/kaida/r2/Running.fbx",
+      "role": "original_input",
+      "sha256": "8f48030651fcaac8582871339c0194291f03e496291dd94a19a77fdac92bd600"
+    },
+    {
+      "path": "references/kaida/r2/Fast Run.fbx",
+      "role": "original_input",
+      "sha256": "8c79870409d60cbdda752ab18635c5a74ae6c7b33d25e10d6f89505ba2cc08a7"
     }
   ],
   "required_outputs": [
@@ -110,13 +120,17 @@
     }
   ],
   "provenance": {
-    "origin": "Owner-supplied Meshy r2 geometry, Mixamo auto-rig and idle/run downloads; Dusk-authored walk, grounded slash and hurt",
-    "attribution": "Original sources retained under assets/kaida/downloads. Provider generation options and plan not supplied. No Dawn production reuse.",
+    "origin": "Owner-supplied Meshy r2 geometry and Mixamo rig/motion; Running.fbx for normal movement, Fast Run.fbx for Shift-run; Dusk-authored sword carry, grounded slash and hurt",
+    "attribution": "Original inputs retained under assets/kaida/downloads and references/kaida/r2. Provider generation options and plan not supplied. No Dawn production reuse.",
     "purpose": "Kaida r2 / Alpha a1 playable release. Responsive movement and readable strikes; body proportions and fine motion polish remain provisional.",
     "attack_contact_frame": 21,
     "attack_contact_fraction": 0.5,
-    "walk_nominal_speed_m_s": 2.28,
-    "source_run_speed_m_s": 5.061657428727273
+    "walk_nominal_speed_m_s": 5.01623,
+    "source_run_speed_m_s": 6.48387,
+    "locomotion_sources": {
+      "walk": "references/kaida/r2/Running.fbx",
+      "run": "references/kaida/r2/Fast Run.fbx"
+    }
   },
   "root_motion": {
     "operation": "remove_root_xy",

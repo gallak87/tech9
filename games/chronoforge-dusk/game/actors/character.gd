@@ -10,9 +10,9 @@ var camera: Camera3D
 var acceleration: float = 28.0
 var braking: float = 36.0
 var measured_speed: float = 0.0
-# Source stance travel: walk 0.76 m / 0.333 s; run 3.71188 m / 0.733 s.
-var walk_stride_speed: float = 2.28
-var run_stride_speed: float = 5.06165
+# Source cycle travel: Running 3.51136 m / 0.7 s; Fast Run 3.45806 m / 0.53333 s.
+var walk_stride_speed: float = 5.01623
+var run_stride_speed: float = 6.48387
 var reaction: String = "ready"
 var reaction_time: float = 0.0
 var reaction_frozen: bool = false

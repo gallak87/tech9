@@ -15,7 +15,7 @@ func run(root: DuskFoundation) -> void:
 		check(game.actor.visual.descriptor.asset_id == "kaida" and game.actor.visual.descriptor.revision == "a1", "Cold launch restores Kaida a1")
 		check(game.tuning.values == DuskTuning.DEFAULTS, "Cold launch reproduces all saved gameplay tuning")
 		check(game.tuning.saved.source_sha256 == game.source_sha256, "Save identifies tested game source digest")
-		check(is_equal_approx(game.action.hit_stop, 0.065) and is_equal_approx(game.actor.run_stride_speed, 5.06165), "Cold launch applies action and stride settings")
+		check(is_equal_approx(game.action.hit_stop, 0.065) and is_equal_approx(game.actor.run_stride_speed, 6.48387), "Cold launch applies action and stride settings")
 		finish("kaida_restart")
 		return
 	game.tuning.values = DuskTuning.DEFAULTS.duplicate()

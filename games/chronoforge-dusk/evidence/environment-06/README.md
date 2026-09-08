@@ -14,11 +14,11 @@ The elevated camera uses **0° yaw**. The route and camera-relative keyboard axe
 
 ## Exact content
 
-Kaida a1 uses a free left-arm walk swing and default speeds of **2.99 m/s walking** and **6.63 m/s running**. Her other four clips and sword are unchanged by the locomotion correction. Current model SHA-256: `65f98f5fe156e2490d7a3ad75c5783bd0dfad769683d8d8b67dcea16bee27ebf`; sword: `3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea`.
+Kaida a1 maps normal movement (`walk`) to the supplied **Running.fbx**, and Shift-run (`run`) to **Fast Run.fbx**. Speeds remain **2.99 m/s** and **6.63 m/s**. Source cycle speeds are 5.01623 and 6.48387 m/s; playback follows controller travel. Sword carry is retained. Current model SHA-256: `d772a516d6114c99dce66e90e84bb216042927e2f8cce7be6bd0ead4ca425136`; sword: `3dc29eb1cd115158bc841cba8412754b5040aeb6c7c3cef20fc0af2246f2bbea`.
 
-The focused check passes **16 native assertions and 6 cold-start assertions**, with no external input. Measured travel is 2.99 m walking and 6.63 m running over one second; the walk hand sweeps 45.5 cm at runtime. Export checks confirm unchanged geometry/weights and identical idle, run, attack and hurt animation data.
+The focused check passes **16 native assertions and 6 cold-start assertions**, with no external input. Measured one-second travel is 2.99 m and 6.63 m. Left-hand sweeps measure 60.2 cm and 68.4 cm; maximum sword-hand steps are 2.64 cm and 4.17 cm at 60 Hz. Export checks confirm unchanged geometry, weights, textures, idle, attack and hurt data. Both new in-place clips close with identical first/last poses.
 
-The focused native locomotion check and restart verify the current movement settings, arm swing, stride playback, sword-hand continuity and stopping. [Walk](locomotion-walk.png) and [run](locomotion-run.png) captures use the actual coastal camera. Tested runtime source SHA-256: `3c96dca9f76c05091917acf8e8c138b536ca0e3b775479fbaea197e6827c1845`. The full-route/rendering results below record the environment baseline, before the locomotion correction.
+[Normal movement](locomotion-walk.png) and [Shift-run](locomotion-run.png) captures use the actual coastal camera. Normal native launch confirms the same model and tested runtime source SHA-256: `be0145f11ac317666c7d5fa929a1ab55671a9c99c075d790224e0b0cc447381a`. Movement feel remains for owner review. The full-route/rendering results below record the environment baseline before these clip replacements.
 
 Full-route/rendering source SHA-256:
 

@@ -196,7 +196,7 @@ func check_locomotion() -> void:
 			var hand: Vector3 = skeleton.get_bone_global_pose(left_hand).origin
 			min_z = minf(min_z,hand.z)
 			max_z = maxf(max_z,hand.z)
-			clearance = minf(clearance,absf(hand.x))
+			clearance = minf(clearance,Vector2(hand.x,hand.z).length())
 			var right: Vector3 = skeleton.get_bone_global_pose(right_hand).origin
 			max_right_step = maxf(max_right_step,right.distance_to(last_right))
 			last_right = right
@@ -206,10 +206,10 @@ func check_locomotion() -> void:
 		check(absf(distance-speed) < .12,"%s covers the expected distance in one second" % ("Run" if running else "Walk"))
 		check(absf(game.actor.visual.player.speed_scale-speed/stride) < .03,"Animation stride matches actual travel")
 		if not running:
-			check(max_z-min_z > .4 and clearance > .22,"Walk left hand swings freely with clearance from the hip")
+			check(max_z-min_z > .4 and clearance > .20,"Normal movement uses a free running arm swing with clearance from the torso")
 		else:
 			check(max_right_step < .08,"Faster running keeps sword-hand motion continuous")
-		observations["run" if running else "walk"] = {"speed_m_s":speed,"distance_in_one_second_m":distance,"left_hand_forward_span_m":max_z-min_z,"left_hand_lateral_clearance_m":clearance,"max_right_hand_step_m":max_right_step}
+		observations["run" if running else "walk"] = {"speed_m_s":speed,"distance_in_one_second_m":distance,"left_hand_forward_span_m":max_z-min_z,"left_hand_horizontal_clearance_m":clearance,"max_right_hand_step_m":max_right_step}
 		game.perf.begin("locomotion_capture")
 		await capture("locomotion-run" if running else "locomotion-walk")
 		set_keys([])

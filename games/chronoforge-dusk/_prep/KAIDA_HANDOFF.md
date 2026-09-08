@@ -8,7 +8,7 @@
 | Production recipe | [asset.json](assets/kaida/asset.json), `skeletal_blend` |
 | Prepared package | [kaida/a1](candidates/kaida/a1/manifest.json) |
 | Runtime asset | [kaida/a1](../game/assets/kaida/a1/descriptor.json) |
-| Clips | idle, walk, run, attack, hurt |
+| Clips | idle, walk (Running.fbx), run (Fast Run.fbx), attack, hurt |
 | Equipment | Separate energy sword on SwordSocket |
 | Displacement | Game controller; in-place runtime clips |
 | Original inputs | [Model, rig and clips](assets/kaida/README.md) |

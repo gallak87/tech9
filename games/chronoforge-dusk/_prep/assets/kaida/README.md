@@ -11,10 +11,12 @@
 | Runtime descriptor | [game a1](../../../game/assets/kaida/a1/descriptor.json) |
 | Original model and maps | [Meshy receipt](downloads/meshy-r2/receipt.json) |
 | Original rig | [Mixamo base receipt](downloads/mixamo-base-r1/receipt.json) |
-| Original motion clips | [Mixamo clip receipt](downloads/mixamo-kaida-r2/receipt.json) |
+| Original idle and motion inputs | [Mixamo clip receipt](downloads/mixamo-kaida-r2/receipt.json) |
+| Normal movement source | [Running.fbx](../../references/kaida/r2/Running.fbx) |
+| Shift-run source | [Fast Run.fbx](<../../references/kaida/r2/Fast Run.fbx>) |
 | Editable sword | [Sword master](../kaida.energy-sword/sources/r2/master.blend) |
 
-The walk has a relaxed left-arm swing with hip clearance. The character master contains idle, walk, run, attack and hurt actions, a unit-scale rig, MotionRoot and SwordSocket. Materials are packed in the Blender file; editable map files are retained beside it. The game owns displacement, facing, stride matching and action timing.
+The `walk` role uses the supplied Running clip; `run` uses Fast Run. Both are in place, with the authored sword carry retained. Their source cycle speeds are 5.01623 and 6.48387 m/s; runtime playback follows the current 2.99 and 6.63 m/s movement speeds. The character master contains idle, walk, run, attack and hurt actions, a unit-scale rig, MotionRoot and SwordSocket. Materials are packed in the Blender file; editable map files are retained beside it. The game owns displacement, facing, stride matching and action timing.
 
 ## Export and verification
 
@@ -26,7 +28,7 @@ python3 _prep/pipeline.py verify _prep/candidates/kaida/a1/manifest.json
 python3 tools/native.py test
 ```
 
-The package is already built. `pipeline.py build` refuses existing output identities. For future work, use a new preparation identity, update source hashes and verify the resulting native game. Graduation establishes the next alpha checkpoint and removes superseded working copies. Git retains prior iterations.
+The package is already built. `pipeline.py build` refuses existing output identities. An owner-authorized a1 update rebuilds from the edited master with refreshed source hashes, verifies the package, and updates the runtime and release hash together. Retire the previous package before rebuilding; do not overwrite a running comparison. Git retains prior checkpoints.
 
 ## Production constraints
 

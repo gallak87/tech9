@@ -111,7 +111,7 @@ Official references: [pinned release](https://godotengine.org/download/archive/4
 
 `test-room` checks only the workshop boundary and indoor cameras, including repeated visits. `test-room-editor` uses the editor binary. The [POC handoff](evidence/room-poc/README.md) records actual checks and limits.
 
-`test-locomotion` checks the current walking arm swing, walk/run speed, stride playback, stopping and a cold restart in the coastal scene. It does not repeat the full route or fixture suite.
+`test-locomotion` checks the Running/Fast Run movement roles, arm swing, walk/run speed, stride playback, stopping and a cold restart in the coastal scene. It does not repeat the full route or fixture suite.
 
 `test-environment` runs the actual coastal loop through mapped input, checks single-key road alignment, foreground fading, boundaries, pause/reset, development round trips and acceptance-file preservation, then cold restarts. `test-environment-editor` is available for the same focused checks with the editor binary. `test` runs Kaida only, then verifies saved state in a new process. This is the a1 release gate. The fixture suite is explicitly opt-in for importer, malformed-descriptor, asset-swapping or shared foundation changes; it is not a second gate for character fixes or documentation cleanup. Run checks for the changed system. A changed global content digest alone does not justify repeating unrelated suites: retain the earlier report and identify its tested source. Repeat Kaida checks for changes affecting the actor, controller, importer, saved tuning or shared launch/input flow; scenery/material/camera-only changes use focused environment checks. Documentation and commit-label changes need neither a gameplay rerun nor a new export.
 

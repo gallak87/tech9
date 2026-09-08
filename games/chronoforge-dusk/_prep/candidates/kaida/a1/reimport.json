@@ -2111,17 +2111,17 @@
       "name": "run",
       "frames": [
         0.0,
-        22.0
+        16.0
       ],
-      "duration_seconds": 0.7333333333333333
+      "duration_seconds": 0.5333333333333333
     },
     {
       "name": "walk",
       "frames": [
         0.0,
-        20.0
+        21.0
       ],
-      "duration_seconds": 0.6666666666666666
+      "duration_seconds": 0.7
     }
   ],
   "checks": {

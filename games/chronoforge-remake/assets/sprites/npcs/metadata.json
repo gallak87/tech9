@@ -1,0 +1,180 @@
+{
+  "method": "Built-in image_gen",
+  "npcs": {
+    "lio": {
+      "sheet": "npcs/harbor.png",
+      "row": 0,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_haventide_inn": {
+      "sheet": "npcs/harbor.png",
+      "row": 1,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_haventide_shop": {
+      "sheet": "npcs/harbor.png",
+      "row": 2,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_haventide_smith": {
+      "sheet": "npcs/harbor.png",
+      "row": 3,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_haventide_archive": {
+      "sheet": "npcs/harbor.png",
+      "row": 4,
+      "columns": 6,
+      "rows": 6
+    },
+    "forest_courier": {
+      "sheet": "npcs/harbor.png",
+      "row": 5,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_emberline_inn": {
+      "sheet": "npcs/ember.png",
+      "row": 0,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_emberline_shop": {
+      "sheet": "npcs/ember.png",
+      "row": 1,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_emberline_smith": {
+      "sheet": "npcs/ember.png",
+      "row": 2,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_emberline_archive": {
+      "sheet": "npcs/ember.png",
+      "row": 3,
+      "columns": 6,
+      "rows": 6
+    },
+    "crater_miner": {
+      "sheet": "npcs/ember.png",
+      "row": 4,
+      "columns": 6,
+      "rows": 6
+    },
+    "mire_rescue": {
+      "sheet": "npcs/ember.png",
+      "row": 5,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_orbital_inn": {
+      "sheet": "npcs/frontier.png",
+      "row": 0,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_orbital_shop": {
+      "sheet": "npcs/frontier.png",
+      "row": 1,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_orbital_smith": {
+      "sheet": "npcs/frontier.png",
+      "row": 2,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_orbital_archive": {
+      "sheet": "npcs/frontier.png",
+      "row": 3,
+      "columns": 6,
+      "rows": 6
+    },
+    "orbital_sentinel": {
+      "sheet": "npcs/frontier.png",
+      "row": 4,
+      "columns": 6,
+      "rows": 6
+    },
+    "frost_scout": {
+      "sheet": "npcs/frontier.png",
+      "row": 5,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_crown_inn": {
+      "sheet": "npcs/crown.png",
+      "row": 0,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_crown_shop": {
+      "sheet": "npcs/crown.png",
+      "row": 1,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_crown_smith": {
+      "sheet": "npcs/crown.png",
+      "row": 2,
+      "columns": 6,
+      "rows": 6
+    },
+    "keeper_crown_archive": {
+      "sheet": "npcs/crown.png",
+      "row": 3,
+      "columns": 6,
+      "rows": 6
+    },
+    "iona": {
+      "sheet": "npcs/crown.png",
+      "row": 4,
+      "columns": 6,
+      "rows": 6
+    },
+    "ember_guide": {
+      "sheet": "npcs/ember.png",
+      "row": 1,
+      "columns": 6,
+      "rows": 6
+    },
+    "crown_refugee": {
+      "sheet": "npcs/crown.png",
+      "row": 3,
+      "columns": 6,
+      "rows": 6
+    }
+  },
+  "props": {
+    "cache_closed": {
+      "sheet": "npcs/cache.png",
+      "column": 0,
+      "row": 0,
+      "columns": 2,
+      "rows": 1
+    },
+    "cache_open": {
+      "sheet": "npcs/cache.png",
+      "column": 1,
+      "row": 0,
+      "columns": 2,
+      "rows": 1
+    }
+  },
+  "excluded": [
+    "mayor",
+    "worker"
+  ],
+  "notes": [
+    "Dara and Mina each share one identity across two placements.",
+    "Iona is a portrait-capable character sprite; no new world object is required.",
+    "Crown row 5 is intentionally blank."
+  ]
+}

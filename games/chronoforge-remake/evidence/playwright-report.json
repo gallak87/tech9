@@ -1,0 +1,104 @@
+{
+  "method": "Targeted Playwright scenarios with explicit ?dev=1 fixtures and simulated clock advancement. No continuous campaign run claimed.",
+  "checks": [
+    {
+      "name": "Fresh start, complete prologue and autosave",
+      "passed": true
+    },
+    {
+      "name": "Keyboard exploration with animated party",
+      "passed": true
+    },
+    {
+      "name": "Functional door, interior, vendor purchase and exit",
+      "passed": true
+    },
+    {
+      "name": "Build farm/mine/extractor, production, caps, collection and hall milestone gate",
+      "passed": true,
+      "clockAdvancedSeconds": 120
+    },
+    {
+      "name": "Smith rank upgrade and inventory equip with actual stat changes",
+      "passed": true
+    },
+    {
+      "name": "Manual save/load preserves interior and upgraded equipped instance",
+      "passed": true
+    },
+    {
+      "name": "Fresh-stat opening battle, targeting, XP, level recovery and road story",
+      "passed": true,
+      "actions": 5
+    },
+    {
+      "name": "Tidal Rift pair costs, coordinated animation, single impact and slow",
+      "passed": true
+    },
+    {
+      "name": "Sunrise Aegis damages foes and shields every ally",
+      "passed": true
+    },
+    {
+      "name": "Winter Mercy revives and protects the party",
+      "passed": true
+    },
+    {
+      "name": "Unlearned coordinated technique unavailable",
+      "passed": true
+    },
+    {
+      "name": "Partner MP requirement shown and enforced",
+      "passed": true
+    },
+    {
+      "name": "Guardian → anchor_mire memory → learned bond",
+      "passed": true,
+      "fixture": "level 6 anchor scenario",
+      "actions": 4
+    },
+    {
+      "name": "Guardian → anchor_ember memory → learned bond",
+      "passed": true,
+      "fixture": "level 6 anchor scenario",
+      "actions": 7
+    },
+    {
+      "name": "Guardian → anchor_frost memory → learned bond",
+      "passed": true,
+      "fixture": "level 6 anchor scenario",
+      "actions": 8
+    },
+    {
+      "name": "Optional rescue choice, resource cost and permanent consequence",
+      "passed": true
+    },
+    {
+      "name": "Defeat and retry restores pre-encounter state without rewards",
+      "passed": true
+    },
+    {
+      "name": "Three anchors unlock Iona conversation and triple technique",
+      "passed": true
+    },
+    {
+      "name": "Triple atomic costs, multi-phase Architect, ending choice, save and playable homecoming",
+      "passed": true,
+      "fixture": "level 7 finale, rebuilt settlement",
+      "actionsAfterOpeningTriple": 1
+    },
+    {
+      "name": "Reloaded completed-game autosave",
+      "passed": true
+    },
+    {
+      "name": "Development state helpers absent on normal URL",
+      "passed": true
+    },
+    {
+      "name": "No browser runtime or console errors",
+      "passed": true
+    }
+  ],
+  "errors": []
+}

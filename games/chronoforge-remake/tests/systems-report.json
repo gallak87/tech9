@@ -1,0 +1,461 @@
+{
+  "kind": "Synthetic system scenarios; production logic, not a browser playthrough",
+  "checks": [
+    {
+      "name": "Initial playable party and owned equipment",
+      "passed": true
+    },
+    {
+      "name": "All settlement types, caps, collection, three-tier milestones, atomic affordability",
+      "passed": true
+    },
+    {
+      "name": "Commerce, equip compatibility/ownership/levels, rank instances, forge discount",
+      "passed": true
+    },
+    {
+      "name": "Skill level, point and prerequisite gates; level recovery",
+      "passed": true
+    },
+    {
+      "name": "Save roundtrip, four independent slots, validation, storage failures",
+      "passed": true
+    },
+    {
+      "name": "Natural ATB readiness, wait-mode pause, active-time progression, one impact after many updates",
+      "passed": true
+    },
+    {
+      "name": "Action atlas frames stay synchronized with the single impact and never loop",
+      "passed": true
+    },
+    {
+      "name": "Invalid links: story, downed, unready, and low-MP participants never charged",
+      "passed": true
+    },
+    {
+      "name": "Wait for allies, atomic pair and triple MP/ATB costs, single coordinated impact",
+      "passed": true
+    },
+    {
+      "name": "Real slow, drain, healing, shields, taunt, immunity, revival, and consumable effects",
+      "passed": true
+    },
+    {
+      "name": "Equipment and settlement change actual dealt/received damage",
+      "passed": true
+    },
+    {
+      "name": "Defeat retry restores exact snapshot; retreat restores safe-town health",
+      "passed": true
+    },
+    {
+      "name": "Enemy death animation age advances through recovery and remains stable after victory",
+      "passed": true
+    },
+    {
+      "name": "All six restored enemy identities have playable optional encounters and unique actions",
+      "passed": true
+    },
+    {
+      "name": "Swamp Coil, Slag Tooth and Mire Charm can be bought, equipped, saved and earned as loot",
+      "passed": true
+    },
+    {
+      "name": "First clear pays once and repeat rewards are reduced",
+      "passed": true
+    }
+  ],
+  "balance": [
+    {
+      "encounter": "fresh-road",
+      "startingLevel": 1,
+      "win": true,
+      "simulatedSeconds": 14,
+      "decisions": 5,
+      "techniques": [
+        "rift_cleave",
+        "void_lance",
+        "aegis_field",
+        "attack"
+      ],
+      "remainingHp": [
+        204,
+        166,
+        240
+      ],
+      "result": {
+        "xp": 65,
+        "coins": 40,
+        "ore": 8,
+        "energy": 0,
+        "renown": 1,
+        "items": [
+          "slag_tooth",
+          "potion"
+        ],
+        "itemNames": [
+          "Slag Tooth",
+          "Field Tonic"
+        ],
+        "messages": [
+          "Kaida reached level 2 · +2 skill points · fully restored.",
+          "Vex reached level 2 · +2 skill points · fully restored.",
+          "Rune reached level 2 · +2 skill points · fully restored."
+        ],
+        "firstClear": true,
+        "encounterId": "fresh-road"
+      }
+    },
+    {
+      "encounter": "level3-mire",
+      "startingLevel": 3,
+      "win": true,
+      "simulatedSeconds": 24,
+      "decisions": 9,
+      "techniques": [
+        "chrono_strike",
+        "void_lance",
+        "aegis_field",
+        "attack"
+      ],
+      "remainingHp": [
+        226,
+        184,
+        266
+      ],
+      "result": {
+        "xp": 145,
+        "coins": 145,
+        "ore": 25,
+        "energy": 10,
+        "renown": 5,
+        "items": [
+          "moss_ward",
+          "ether",
+          "phoenix"
+        ],
+        "itemNames": [
+          "Moss Ward",
+          "Ether Flask",
+          "Wakeflower"
+        ],
+        "messages": [],
+        "firstClear": true,
+        "encounterId": "level3-mire"
+      }
+    },
+    {
+      "encounter": "level4-ember",
+      "startingLevel": 4,
+      "win": true,
+      "simulatedSeconds": 22,
+      "decisions": 8,
+      "techniques": [
+        "tidal_rift",
+        "aegis_field",
+        "time_sever",
+        "void_lance",
+        "attack"
+      ],
+      "remainingHp": [
+        280,
+        234,
+        324
+      ],
+      "result": {
+        "xp": 195,
+        "coins": 180,
+        "ore": 30,
+        "energy": 14,
+        "renown": 5,
+        "items": [
+          "magma_blade",
+          "ether",
+          "phoenix"
+        ],
+        "itemNames": [
+          "Daybreak Saber",
+          "Ether Flask",
+          "Wakeflower"
+        ],
+        "messages": [],
+        "firstClear": true,
+        "encounterId": "level4-ember"
+      }
+    },
+    {
+      "encounter": "level5-frost",
+      "startingLevel": 5,
+      "win": true,
+      "simulatedSeconds": 24,
+      "decisions": 9,
+      "techniques": [
+        "sunrise_aegis",
+        "void_lance",
+        "time_sever",
+        "attack"
+      ],
+      "remainingHp": [
+        302,
+        252,
+        350
+      ],
+      "result": {
+        "xp": 240,
+        "coins": 210,
+        "ore": 34,
+        "energy": 18,
+        "renown": 5,
+        "items": [
+          "frost_plate",
+          "ether",
+          "phoenix"
+        ],
+        "itemNames": [
+          "Winterguard Plate",
+          "Ether Flask",
+          "Wakeflower"
+        ],
+        "messages": [],
+        "firstClear": true,
+        "encounterId": "level5-frost"
+      }
+    },
+    {
+      "encounter": "level6-final",
+      "startingLevel": 6,
+      "win": true,
+      "simulatedSeconds": 30,
+      "decisions": 9,
+      "techniques": [
+        "unwritten_hour",
+        "time_sever",
+        "void_lance",
+        "aegis_field"
+      ],
+      "remainingHp": [
+        346,
+        288,
+        402
+      ],
+      "result": {
+        "xp": 420,
+        "coins": 360,
+        "ore": 60,
+        "energy": 30,
+        "renown": 5,
+        "items": [
+          "ether",
+          "phoenix"
+        ],
+        "itemNames": [
+          "Ether Flask",
+          "Wakeflower"
+        ],
+        "messages": [
+          "Kaida reached level 7 · +2 skill points · fully restored.",
+          "Vex reached level 7 · +2 skill points · fully restored.",
+          "Rune reached level 7 · +2 skill points · fully restored."
+        ],
+        "firstClear": true,
+        "encounterId": "level6-final"
+      }
+    }
+  ],
+  "restoredEnemies": [
+    {
+      "encounter": "ember_gravbot",
+      "startingLevel": 4,
+      "win": true,
+      "simulatedSeconds": 6,
+      "decisions": 2,
+      "techniques": [
+        "tidal_rift"
+      ],
+      "remainingHp": [
+        280,
+        234,
+        324
+      ],
+      "result": {
+        "xp": 90,
+        "coins": 48,
+        "ore": 10,
+        "energy": 0,
+        "renown": 1,
+        "items": [
+          "potion"
+        ],
+        "itemNames": [
+          "Field Tonic"
+        ],
+        "messages": [],
+        "firstClear": true,
+        "encounterId": "ember_gravbot"
+      }
+    },
+    {
+      "encounter": "mire_hulk_roam",
+      "startingLevel": 4,
+      "win": true,
+      "simulatedSeconds": 6,
+      "decisions": 2,
+      "techniques": [
+        "tidal_rift"
+      ],
+      "remainingHp": [
+        280,
+        234,
+        324
+      ],
+      "result": {
+        "xp": 75,
+        "coins": 42,
+        "ore": 8,
+        "energy": 0,
+        "renown": 1,
+        "items": [
+          "potion"
+        ],
+        "itemNames": [
+          "Field Tonic"
+        ],
+        "messages": [],
+        "firstClear": true,
+        "encounterId": "mire_hulk_roam"
+      }
+    },
+    {
+      "encounter": "orbital_cultist",
+      "startingLevel": 4,
+      "win": true,
+      "simulatedSeconds": 6,
+      "decisions": 2,
+      "techniques": [
+        "tidal_rift"
+      ],
+      "remainingHp": [
+        280,
+        234,
+        324
+      ],
+      "result": {
+        "xp": 90,
+        "coins": 48,
+        "ore": 6,
+        "energy": 0,
+        "renown": 1,
+        "items": [
+          "potion"
+        ],
+        "itemNames": [
+          "Field Tonic"
+        ],
+        "messages": [],
+        "firstClear": true,
+        "encounterId": "orbital_cultist"
+      }
+    },
+    {
+      "encounter": "crater_sandworm",
+      "startingLevel": 4,
+      "win": true,
+      "simulatedSeconds": 13,
+      "decisions": 4,
+      "techniques": [
+        "tidal_rift",
+        "aegis_field",
+        "time_sever"
+      ],
+      "remainingHp": [
+        280,
+        234,
+        324
+      ],
+      "result": {
+        "xp": 95,
+        "coins": 52,
+        "ore": 9,
+        "energy": 0,
+        "renown": 1,
+        "items": [
+          "potion"
+        ],
+        "itemNames": [
+          "Field Tonic"
+        ],
+        "messages": [],
+        "firstClear": true,
+        "encounterId": "crater_sandworm"
+      }
+    },
+    {
+      "encounter": "frost_revenant_patrol",
+      "startingLevel": 4,
+      "win": true,
+      "simulatedSeconds": 13,
+      "decisions": 4,
+      "techniques": [
+        "tidal_rift",
+        "aegis_field",
+        "time_sever"
+      ],
+      "remainingHp": [
+        280,
+        234,
+        324
+      ],
+      "result": {
+        "xp": 110,
+        "coins": 58,
+        "ore": 10,
+        "energy": 0,
+        "renown": 1,
+        "items": [
+          "potion"
+        ],
+        "itemNames": [
+          "Field Tonic"
+        ],
+        "messages": [],
+        "firstClear": true,
+        "encounterId": "frost_revenant_patrol"
+      }
+    },
+    {
+      "encounter": "crater_behemoth",
+      "startingLevel": 4,
+      "win": true,
+      "simulatedSeconds": 13,
+      "decisions": 4,
+      "techniques": [
+        "tidal_rift",
+        "aegis_field",
+        "time_sever"
+      ],
+      "remainingHp": [
+        280,
+        234,
+        324
+      ],
+      "result": {
+        "xp": 130,
+        "coins": 68,
+        "ore": 14,
+        "energy": 0,
+        "renown": 1,
+        "items": [
+          "potion"
+        ],
+        "itemNames": [
+          "Field Tonic"
+        ],
+        "messages": [],
+        "firstClear": true,
+        "encounterId": "crater_behemoth"
+      }
+    }
+  ],
+  "passed": true
+}

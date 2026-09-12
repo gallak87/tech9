@@ -1,0 +1,313 @@
+{
+  "suite": "NPC sprites, salvage cache and restored optional world encounters",
+  "passed": true,
+  "method": [
+    "Read-only world walkable and A* checks from Haventide commons and each room entrance",
+    "Read-only PIL inspection of generated alpha, source cell boundaries, and frame hashes",
+    "Visual inspection of all four generated NPC atlases and closed/open cache states"
+  ],
+  "settlementExcluded": [
+    "mayor / Nera remains procedural",
+    "worker / Tess remains procedural",
+    "Town hall, plots, building artwork, and settlement mechanics unchanged"
+  ],
+  "world": {
+    "exteriorObjectsChecked": 70,
+    "interiorObjectsChecked": 51,
+    "totalInteractionsChecked": 121,
+    "collisionErrors": [],
+    "pathErrors": [],
+    "newOptionalEncounters": [
+      {
+        "id": "ember_gravbot",
+        "enemy": "gravbot",
+        "x": 1360,
+        "y": 1050
+      },
+      {
+        "id": "mire_hulk_roam",
+        "enemy": "mire_hulk",
+        "x": 1000,
+        "y": 1610
+      },
+      {
+        "id": "orbital_cultist",
+        "enemy": "neon_cultist",
+        "x": 1780,
+        "y": 1020
+      },
+      {
+        "id": "crater_sandworm",
+        "enemy": "sandworm_hatchling",
+        "x": 1100,
+        "y": 565
+      },
+      {
+        "id": "frost_revenant_patrol",
+        "enemy": "frost_revenant",
+        "x": 2230,
+        "y": 320
+      },
+      {
+        "id": "crater_behemoth",
+        "enemy": "magma_behemoth",
+        "x": 1350,
+        "y": 580
+      }
+    ]
+  },
+  "npcCoverage": {
+    "namedIdentitiesGenerated": 23,
+    "namedNPCs": 22,
+    "portraitOnlyIdentity": "iona",
+    "mappedObjectOrPortraitIds": 25,
+    "aliases": {
+      "ember_guide": "keeper_emberline_shop",
+      "crown_refugee": "keeper_crown_archive"
+    },
+    "framesPerIdentity": 6,
+    "observedPoseDifferences": [
+      "breathing / shoulder posture",
+      "blinking / head inclination",
+      "hand and held-object gestures"
+    ],
+    "remainingBrowserChecks": "UI agent owns runtime NPC, portrait, and encounter checks after all enemy atlases are available."
+  },
+  "sheets": {
+    "harbor": {
+      "path": "assets/sprites/npcs/harbor.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 6,
+      "rows": 6,
+      "rowCuts": [
+        0,
+        209,
+        418,
+        627,
+        836,
+        1045,
+        1254
+      ],
+      "alphaPreserved": true,
+      "fullyTransparentPixels": 960341,
+      "commonNonzeroAlphaLevels": [
+        [
+          253,
+          256390
+        ],
+        [
+          252,
+          115152
+        ],
+        [
+          1,
+          43692
+        ]
+      ],
+      "opaqueEnoughCellPopulationByRow": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "uniqueFrameHashesByRow": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "allSourceRowCutsHaveClearTwoPixelBand": true,
+      "allFixedColumnCutsHaveClearTwoPixelBand": true
+    },
+    "ember": {
+      "path": "assets/sprites/npcs/ember.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 6,
+      "rows": 6,
+      "rowCuts": [
+        0,
+        217,
+        424,
+        631,
+        838,
+        1044,
+        1254
+      ],
+      "alphaPreserved": true,
+      "fullyTransparentPixels": 980823,
+      "commonNonzeroAlphaLevels": [
+        [
+          252,
+          172536
+        ],
+        [
+          253,
+          129483
+        ],
+        [
+          251,
+          59420
+        ]
+      ],
+      "opaqueEnoughCellPopulationByRow": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "uniqueFrameHashesByRow": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "allSourceRowCutsHaveClearTwoPixelBand": true,
+      "allFixedColumnCutsHaveClearTwoPixelBand": true
+    },
+    "frontier": {
+      "path": "assets/sprites/npcs/frontier.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 6,
+      "rows": 6,
+      "rowCuts": [
+        0,
+        215,
+        422,
+        630,
+        836,
+        1042,
+        1254
+      ],
+      "alphaPreserved": true,
+      "fullyTransparentPixels": 885433,
+      "commonNonzeroAlphaLevels": [
+        [
+          252,
+          232525
+        ],
+        [
+          251,
+          78849
+        ],
+        [
+          253,
+          71024
+        ]
+      ],
+      "opaqueEnoughCellPopulationByRow": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "uniqueFrameHashesByRow": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "allSourceRowCutsHaveClearTwoPixelBand": true,
+      "allFixedColumnCutsHaveClearTwoPixelBand": true
+    },
+    "crown": {
+      "path": "assets/sprites/npcs/crown.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 6,
+      "rows": 6,
+      "rowCuts": [
+        0,
+        209,
+        418,
+        627,
+        836,
+        1045,
+        1254
+      ],
+      "alphaPreserved": true,
+      "fullyTransparentPixels": 1067508,
+      "commonNonzeroAlphaLevels": [
+        [
+          253,
+          217102
+        ],
+        [
+          252,
+          81781
+        ],
+        [
+          1,
+          40765
+        ]
+      ],
+      "opaqueEnoughCellPopulationByRow": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        0
+      ],
+      "uniqueFrameHashesByRow": [
+        6,
+        6,
+        6,
+        6,
+        6,
+        6
+      ],
+      "allSourceRowCutsHaveClearTwoPixelBand": true,
+      "allFixedColumnCutsHaveClearTwoPixelBand": true
+    },
+    "cache": {
+      "path": "assets/sprites/npcs/cache.png",
+      "width": 1774,
+      "height": 887,
+      "columns": 2,
+      "rows": 1,
+      "rowCuts": [
+        0,
+        887
+      ],
+      "alphaPreserved": true,
+      "fullyTransparentPixels": 1004585,
+      "commonNonzeroAlphaLevels": [
+        [
+          252,
+          258206
+        ],
+        [
+          253,
+          248390
+        ],
+        [
+          251,
+          16168
+        ]
+      ],
+      "opaqueEnoughCellPopulationByRow": [
+        2
+      ],
+      "uniqueFrameHashesByRow": [
+        2
+      ],
+      "allSourceRowCutsHaveClearTwoPixelBand": true,
+      "allFixedColumnCutsHaveClearTwoPixelBand": true
+    }
+  }
+}

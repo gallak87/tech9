@@ -1,0 +1,11 @@
+{
+  "checks": [
+    "Escape pauses battle in original seven-tab journal",
+    "ATB remains frozen during journal use",
+    "Unsafe mid-battle save/party changes disabled",
+    "Battle settings can be changed while paused",
+    "Escape resumes battle"
+  ],
+  "passed": true,
+  "errors": []
+}

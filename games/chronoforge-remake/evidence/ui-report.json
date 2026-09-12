@@ -1,0 +1,37 @@
+{
+  "scope": "UI smoke with documented development checkpoint fixtures; not a continuous campaign playthrough",
+  "pageErrors": [],
+  "checks": {
+    "sevenJournalTabs": true,
+    "liveFocusPreserved": true,
+    "actualFarmConstruction": true,
+    "secondPlotSelection": true,
+    "viewports": [
+      {
+        "width": 960,
+        "height": 600
+      },
+      {
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "width": 768,
+        "height": 480
+      }
+    ],
+    "enterDefaultsAttack": true,
+    "targetKeyboardFocus": true,
+    "heroSelection": true,
+    "heroEnterAttack": true,
+    "wsNavigation": true,
+    "endingLayout": {
+      "scrollableNarrative": true,
+      "returnButtonBottom": 512.2,
+      "viewportHeight": 600,
+      "finalChoicesFit": true
+    }
+  },
+  "visualQA": "Inspected title, battle, inventory, party, quests, settings, and settlement images; fixed clipping and enemy/command overlap.",
+  "endingFixture": "Used finale checkpoint and 1 HP Architect to reach and inspect the actual final dialogue/ending UI; not a combat balance verification."
+}

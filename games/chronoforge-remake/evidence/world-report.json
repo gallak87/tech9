@@ -1,0 +1,145 @@
+{
+  "suite": "Targeted world, rooms and biome rendering",
+  "checks": [
+    {
+      "name": "Every authored interaction is collision-free and path-reachable",
+      "passed": true,
+      "exterior": 64,
+      "interior": 51
+    },
+    {
+      "name": "All seven completed settlement buildings collide; entrances remain reachable",
+      "passed": true
+    },
+    {
+      "name": "Eight distinct connected biomes render without runtime errors",
+      "passed": true
+    },
+    {
+      "name": "Continuous keyboard seam: Haventide ↔ Emberline",
+      "passed": true
+    },
+    {
+      "name": "Continuous keyboard seam: Emberline ↔ Orbital",
+      "passed": true
+    },
+    {
+      "name": "Continuous keyboard seam: Orbital ↔ Crown",
+      "passed": true
+    },
+    {
+      "name": "Continuous keyboard seam: Crater ↔ Frost",
+      "passed": true
+    },
+    {
+      "name": "Continuous keyboard seam: Forest ↔ Mire",
+      "passed": true
+    },
+    {
+      "name": "Continuous keyboard seam: Haventide ↔ Forest",
+      "passed": true
+    },
+    {
+      "name": "Continuous keyboard seam: Emberline ↔ Mire",
+      "passed": true
+    },
+    {
+      "name": "Continuous keyboard seam: Crater ↔ Emberline",
+      "passed": true
+    },
+    {
+      "name": "Continuous keyboard seam: Frost ↔ Orbital",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: haventide_inn",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: haventide_shop",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: haventide_smith",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: haventide_archive",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: emberline_inn",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: emberline_shop",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: emberline_smith",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: emberline_archive",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: orbital_inn",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: orbital_shop",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: orbital_smith",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: orbital_archive",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: crown_inn",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: crown_shop",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: crown_smith",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: crown_archive",
+      "passed": true
+    },
+    {
+      "name": "Door round trip: crown_spire",
+      "passed": true
+    },
+    {
+      "name": "Click-to-walk navigates archive furniture and reaches the keeper",
+      "passed": true,
+      "sampledPositions": 17
+    }
+  ],
+  "screenshots": [
+    "world-haventide.png",
+    "world-emberline.png",
+    "world-orbital.png",
+    "world-crown.png",
+    "world-forest.png",
+    "world-mire.png",
+    "world-crater.png",
+    "world-frost.png",
+    "room-haventide_inn.png",
+    "room-haventide_shop.png",
+    "room-haventide_smith.png",
+    "room-haventide_archive.png",
+    "room-crown_spire.png",
+    "world-settlement-built.png"
+  ],
+  "errors": []
+}

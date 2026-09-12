@@ -1,0 +1,100 @@
+{
+  "generator": "built-in imagegen",
+  "outputs": [
+    {
+      "id": "scrapper",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-e29ce9c9-aa4c-4a32-8430-ad04317669f2.png",
+      "asset": "assets/sprites/enemies/scrapper.png"
+    },
+    {
+      "id": "drone",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-3b349b22-b146-4b26-b60a-3532c6e71f0f.png",
+      "asset": "assets/sprites/enemies/drone.png"
+    },
+    {
+      "id": "stalker",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-46f11658-5d7c-4e99-961e-ba983393f3a1.png",
+      "asset": "assets/sprites/enemies/stalker.png"
+    },
+    {
+      "id": "rat",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-1c65acf8-3cdd-4d5d-99e6-f5b77cbd1025.png",
+      "asset": "assets/sprites/enemies/rat.png"
+    },
+    {
+      "id": "hound",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-66a6153a-0122-40c1-8e86-9d345279afdc.png",
+      "asset": "assets/sprites/enemies/hound.png"
+    },
+    {
+      "id": "gravbot",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-9addc7f5-c13f-4906-a713-d39e5f516cf7.png",
+      "asset": "assets/sprites/enemies/gravbot.png"
+    },
+    {
+      "id": "mire_hulk",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-f225888a-5ad0-4155-aba6-badfc738d88f.png",
+      "asset": "assets/sprites/enemies/mire_hulk.png"
+    },
+    {
+      "id": "wolf",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-c5720316-9633-4e33-92b9-67cb72885622.png",
+      "asset": "assets/sprites/enemies/wolf.png"
+    },
+    {
+      "id": "neon_cultist",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-94ef0b4b-bc2d-4684-a4f8-e26440019ba9.png",
+      "asset": "assets/sprites/enemies/neon_cultist.png"
+    },
+    {
+      "id": "sandworm_hatchling",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-ab54afc1-ea9e-472f-b642-ce6c65bf1b78.png",
+      "asset": "assets/sprites/enemies/sandworm_hatchling.png"
+    },
+    {
+      "id": "golem",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-a959bdb3-6014-4c4a-99bf-c327cd3f1887.png",
+      "asset": "assets/sprites/enemies/golem.png"
+    },
+    {
+      "id": "frost_revenant",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-01d52103-b301-4692-8fa7-aa8055002a27.png",
+      "asset": "assets/sprites/enemies/frost_revenant.png"
+    },
+    {
+      "id": "wraith",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-7b99695e-f6ef-4250-ab53-c37d39cc9a8f.png",
+      "asset": "assets/sprites/enemies/wraith.png"
+    },
+    {
+      "id": "warden",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-4b79bcc3-3436-461d-a940-9650b02d0591.png",
+      "asset": "assets/sprites/enemies/warden.png"
+    },
+    {
+      "id": "magma_behemoth",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-023cf75a-8230-491a-b577-4f853eba34c5.png",
+      "asset": "assets/sprites/enemies/magma_behemoth.png"
+    },
+    {
+      "id": "herald",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-6bb28781-1778-402e-bebb-945a62674591.png",
+      "asset": "assets/sprites/enemies/herald.png"
+    },
+    {
+      "id": "colossus",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-d67678c5-ea3d-45f5-8737-e9727f6924f2.png",
+      "asset": "assets/sprites/enemies/colossus.png"
+    },
+    {
+      "id": "emberlord",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-2a20b847-7695-401a-b8e8-f53466cda681.png",
+      "asset": "assets/sprites/enemies/emberlord.png"
+    },
+    {
+      "id": "architect",
+      "path": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-ee15921c-cc5c-44b8-8dd0-f85c1893f7a0.png",
+      "asset": "assets/sprites/enemies/architect.png"
+    }
+  ]
+}

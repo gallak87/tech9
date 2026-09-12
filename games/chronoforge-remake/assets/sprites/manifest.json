@@ -1,0 +1,685 @@
+{
+  "version": 1,
+  "method": "Built-in image_gen; new transparent atlases from textual descriptions",
+  "sheets": {
+    "enemy_rat": {
+      "file": "enemies/rat.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_scrapper": {
+      "file": "enemies/scrapper.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_hound": {
+      "file": "enemies/hound.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_stalker": {
+      "file": "enemies/stalker.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_warden": {
+      "file": "enemies/warden.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_golem": {
+      "file": "enemies/golem.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_emberlord": {
+      "file": "enemies/emberlord.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_wolf": {
+      "file": "enemies/wolf.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_colossus": {
+      "file": "enemies/colossus.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_drone": {
+      "file": "enemies/drone.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_wraith": {
+      "file": "enemies/wraith.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_herald": {
+      "file": "enemies/herald.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_architect": {
+      "file": "enemies/architect.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_gravbot": {
+      "file": "enemies/gravbot.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_mire_hulk": {
+      "file": "enemies/mire_hulk.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_neon_cultist": {
+      "file": "enemies/neon_cultist.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_sandworm_hatchling": {
+      "file": "enemies/sandworm_hatchling.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_frost_revenant": {
+      "file": "enemies/frost_revenant.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "enemy_magma_behemoth": {
+      "file": "enemies/magma_behemoth.png",
+      "columns": 6,
+      "rows": 4
+    },
+    "npcs_harbor_png": {
+      "file": "npcs/harbor.png",
+      "columns": 6,
+      "rows": 6
+    },
+    "npcs_ember_png": {
+      "file": "npcs/ember.png",
+      "columns": 6,
+      "rows": 6,
+      "rowCuts": [
+        0,
+        217,
+        424,
+        631,
+        838,
+        1044,
+        1254
+      ]
+    },
+    "npcs_frontier_png": {
+      "file": "npcs/frontier.png",
+      "columns": 6,
+      "rows": 6,
+      "rowCuts": [
+        0,
+        215,
+        422,
+        630,
+        836,
+        1042,
+        1254
+      ]
+    },
+    "npcs_crown_png": {
+      "file": "npcs/crown.png",
+      "columns": 6,
+      "rows": 6
+    },
+    "item_equipment": {
+      "file": "items/equipment.png",
+      "columns": 4,
+      "rows": 3
+    },
+    "item_relics": {
+      "file": "items/relics.png",
+      "columns": 4,
+      "rows": 3
+    },
+    "cache": {
+      "file": "npcs/cache.png",
+      "columns": 2,
+      "rows": 1
+    }
+  },
+  "enemies": {
+    "rat": {
+      "sheet": "enemy_rat",
+      "original": "slag_rat",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "scrapper": {
+      "sheet": "enemy_scrapper",
+      "original": "rust_scrapper",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "hound": {
+      "sheet": "enemy_hound",
+      "original": "mutant_hound",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "stalker": {
+      "sheet": "enemy_stalker",
+      "original": "bog_stalker",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "warden": {
+      "sheet": "enemy_warden",
+      "original": "mire_warden",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "golem": {
+      "sheet": "enemy_golem",
+      "original": "ember_golem",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "emberlord": {
+      "sheet": "enemy_emberlord",
+      "original": "ember_lord",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "wolf": {
+      "sheet": "enemy_wolf",
+      "original": "glacier_wolf",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "colossus": {
+      "sheet": "enemy_colossus",
+      "original": "frost_colossus",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "drone": {
+      "sheet": "enemy_drone",
+      "original": "drone_sentinel",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "wraith": {
+      "sheet": "enemy_wraith",
+      "original": "wraith_core",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "herald": {
+      "sheet": "enemy_herald",
+      "original": "architect_herald",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "architect": {
+      "sheet": "enemy_architect",
+      "original": "void_architect",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6,
+      "phases": [
+        0,
+        1,
+        2
+      ]
+    },
+    "gravbot": {
+      "sheet": "enemy_gravbot",
+      "original": "gravbot",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "mire_hulk": {
+      "sheet": "enemy_mire_hulk",
+      "original": "mire_hulk",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "neon_cultist": {
+      "sheet": "enemy_neon_cultist",
+      "original": "neon_cultist",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "sandworm_hatchling": {
+      "sheet": "enemy_sandworm_hatchling",
+      "original": "sandworm_hatchling",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "frost_revenant": {
+      "sheet": "enemy_frost_revenant",
+      "original": "frost_revenant",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    },
+    "magma_behemoth": {
+      "sheet": "enemy_magma_behemoth",
+      "original": "magma_behemoth",
+      "rows": {
+        "idle": 0,
+        "walk": 1,
+        "attack": 2,
+        "cast": 2,
+        "hurt": 3,
+        "down": 3,
+        "death": 3
+      },
+      "frames": 6
+    }
+  },
+  "npcs": {
+    "lio": {
+      "sheet": "npcs_harbor_png",
+      "row": 0,
+      "frames": 6
+    },
+    "keeper_haventide_inn": {
+      "sheet": "npcs_harbor_png",
+      "row": 1,
+      "frames": 6
+    },
+    "keeper_haventide_shop": {
+      "sheet": "npcs_harbor_png",
+      "row": 2,
+      "frames": 6
+    },
+    "keeper_haventide_smith": {
+      "sheet": "npcs_harbor_png",
+      "row": 3,
+      "frames": 6
+    },
+    "keeper_haventide_archive": {
+      "sheet": "npcs_harbor_png",
+      "row": 4,
+      "frames": 6
+    },
+    "forest_courier": {
+      "sheet": "npcs_harbor_png",
+      "row": 5,
+      "frames": 6
+    },
+    "keeper_emberline_inn": {
+      "sheet": "npcs_ember_png",
+      "row": 0,
+      "frames": 6
+    },
+    "keeper_emberline_shop": {
+      "sheet": "npcs_ember_png",
+      "row": 1,
+      "frames": 6
+    },
+    "keeper_emberline_smith": {
+      "sheet": "npcs_ember_png",
+      "row": 2,
+      "frames": 6
+    },
+    "keeper_emberline_archive": {
+      "sheet": "npcs_ember_png",
+      "row": 3,
+      "frames": 6
+    },
+    "crater_miner": {
+      "sheet": "npcs_ember_png",
+      "row": 4,
+      "frames": 6
+    },
+    "mire_rescue": {
+      "sheet": "npcs_ember_png",
+      "row": 5,
+      "frames": 6
+    },
+    "keeper_orbital_inn": {
+      "sheet": "npcs_frontier_png",
+      "row": 0,
+      "frames": 6
+    },
+    "keeper_orbital_shop": {
+      "sheet": "npcs_frontier_png",
+      "row": 1,
+      "frames": 6
+    },
+    "keeper_orbital_smith": {
+      "sheet": "npcs_frontier_png",
+      "row": 2,
+      "frames": 6
+    },
+    "keeper_orbital_archive": {
+      "sheet": "npcs_frontier_png",
+      "row": 3,
+      "frames": 6
+    },
+    "orbital_sentinel": {
+      "sheet": "npcs_frontier_png",
+      "row": 4,
+      "frames": 6
+    },
+    "frost_scout": {
+      "sheet": "npcs_frontier_png",
+      "row": 5,
+      "frames": 6
+    },
+    "keeper_crown_inn": {
+      "sheet": "npcs_crown_png",
+      "row": 0,
+      "frames": 6
+    },
+    "keeper_crown_shop": {
+      "sheet": "npcs_crown_png",
+      "row": 1,
+      "frames": 6
+    },
+    "keeper_crown_smith": {
+      "sheet": "npcs_crown_png",
+      "row": 2,
+      "frames": 6
+    },
+    "keeper_crown_archive": {
+      "sheet": "npcs_crown_png",
+      "row": 3,
+      "frames": 6
+    },
+    "iona": {
+      "sheet": "npcs_crown_png",
+      "row": 4,
+      "frames": 6
+    },
+    "ember_guide": {
+      "sheet": "npcs_ember_png",
+      "row": 1,
+      "frames": 6
+    },
+    "crown_refugee": {
+      "sheet": "npcs_crown_png",
+      "row": 3,
+      "frames": 6
+    }
+  },
+  "items": {
+    "iron_blade": {
+      "sheet": "item_equipment",
+      "row": 0,
+      "col": 0
+    },
+    "void_shard": {
+      "sheet": "item_equipment",
+      "row": 0,
+      "col": 1
+    },
+    "rune_gauntlet": {
+      "sheet": "item_equipment",
+      "row": 0,
+      "col": 2
+    },
+    "scrap_vest": {
+      "sheet": "item_equipment",
+      "row": 0,
+      "col": 3
+    },
+    "bog_fang": {
+      "sheet": "item_equipment",
+      "row": 1,
+      "col": 0
+    },
+    "bio_weave": {
+      "sheet": "item_equipment",
+      "row": 1,
+      "col": 1
+    },
+    "ember_core": {
+      "sheet": "item_equipment",
+      "row": 1,
+      "col": 2
+    },
+    "magma_blade": {
+      "sheet": "item_equipment",
+      "row": 1,
+      "col": 3
+    },
+    "glacial_claw": {
+      "sheet": "item_equipment",
+      "row": 2,
+      "col": 0
+    },
+    "frost_plate": {
+      "sheet": "item_equipment",
+      "row": 2,
+      "col": 1
+    },
+    "void_scepter": {
+      "sheet": "item_equipment",
+      "row": 2,
+      "col": 2
+    },
+    "titan_shard": {
+      "sheet": "item_equipment",
+      "row": 2,
+      "col": 3
+    },
+    "data_chip": {
+      "sheet": "item_relics",
+      "row": 0,
+      "col": 0
+    },
+    "crit_lens": {
+      "sheet": "item_relics",
+      "row": 0,
+      "col": 1
+    },
+    "moss_ward": {
+      "sheet": "item_relics",
+      "row": 0,
+      "col": 2
+    },
+    "ember_crown": {
+      "sheet": "item_relics",
+      "row": 0,
+      "col": 3
+    },
+    "swamp_coil": {
+      "sheet": "item_relics",
+      "row": 1,
+      "col": 0
+    },
+    "slag_tooth": {
+      "sheet": "item_relics",
+      "row": 1,
+      "col": 1
+    },
+    "mire_charm": {
+      "sheet": "item_relics",
+      "row": 1,
+      "col": 2
+    },
+    "potion": {
+      "sheet": "item_relics",
+      "row": 1,
+      "col": 3
+    },
+    "ether": {
+      "sheet": "item_relics",
+      "row": 2,
+      "col": 0
+    },
+    "phoenix": {
+      "sheet": "item_relics",
+      "row": 2,
+      "col": 1
+    }
+  },
+  "props": {
+    "cache_closed": {
+      "sheet": "cache",
+      "row": 0,
+      "col": 0
+    },
+    "cache_open": {
+      "sheet": "cache",
+      "row": 0,
+      "col": 1
+    }
+  },
+  "excluded": {
+    "npcs": [
+      "mayor",
+      "worker"
+    ],
+    "scope": "Settlement buildings, plots, terrain, UI icons, and settlement NPC art remain unchanged."
+  }
+}

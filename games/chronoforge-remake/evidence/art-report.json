@@ -1,0 +1,97 @@
+{
+  "animation": [
+    {
+      "id": "kaida",
+      "state": "idle",
+      "distinctFrames": 6
+    },
+    {
+      "id": "kaida",
+      "state": "walk",
+      "distinctFrames": 6
+    },
+    {
+      "id": "kaida",
+      "state": "run",
+      "distinctFrames": 6
+    },
+    {
+      "id": "kaida",
+      "state": "attack",
+      "distinctFrames": 6
+    },
+    {
+      "id": "kaida",
+      "state": "cast",
+      "distinctFrames": 6
+    },
+    {
+      "id": "kaida",
+      "state": "hurt",
+      "distinctFrames": 6
+    },
+    {
+      "id": "vex",
+      "state": "idle",
+      "distinctFrames": 6
+    },
+    {
+      "id": "vex",
+      "state": "walk",
+      "distinctFrames": 6
+    },
+    {
+      "id": "vex",
+      "state": "run",
+      "distinctFrames": 6
+    },
+    {
+      "id": "vex",
+      "state": "attack",
+      "distinctFrames": 6
+    },
+    {
+      "id": "vex",
+      "state": "cast",
+      "distinctFrames": 6
+    },
+    {
+      "id": "vex",
+      "state": "hurt",
+      "distinctFrames": 6
+    },
+    {
+      "id": "rune",
+      "state": "idle",
+      "distinctFrames": 6
+    },
+    {
+      "id": "rune",
+      "state": "walk",
+      "distinctFrames": 6
+    },
+    {
+      "id": "rune",
+      "state": "run",
+      "distinctFrames": 6
+    },
+    {
+      "id": "rune",
+      "state": "attack",
+      "distinctFrames": 6
+    },
+    {
+      "id": "rune",
+      "state": "cast",
+      "distinctFrames": 6
+    },
+    {
+      "id": "rune",
+      "state": "hurt",
+      "distinctFrames": 6
+    }
+  ],
+  "itemIcons": 26,
+  "errors": [],
+  "method": "Rendered real hero atlas frames through production drawHero, checked distinct pixel frames; inspected final runtime item artwork and coordinated impact."
+}

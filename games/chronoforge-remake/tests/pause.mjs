@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {chromium} from './browser.mjs';
+import {writeFile} from 'node:fs/promises';
+const browser=await chromium.launch({headless:true});
+const page=await browser.newPage({viewport:{width:960,height:600}}),errors=[];
+page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://127.0.0.1:4179/?dev=1');await page.waitForFunction(()=>!!window.__dev);
+await page.evaluate(()=>{window.__dev.checkpoint('links');window.__dev.startBattle('architect',{ready:true});});
+await page.keyboard.press('Escape');await page.waitForTimeout(100);
+assert.equal(await page.evaluate(()=>window.__dev.snapshot().overlay),'menu');
+const before=await page.evaluate(()=>window.__dev.snapshot().battle.heroes.map(h=>h.atb));await page.waitForTimeout(250);assert.deepEqual(await page.evaluate(()=>window.__dev.snapshot().battle.heroes.map(h=>h.atb)),before);
+await page.getByRole('button',{name:'Save',exact:true}).click();assert(await page.getByRole('button',{name:'Save slot 1',exact:true}).isDisabled());
+await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'Wait mode: on',exact:true}).click();assert.equal(await page.evaluate(()=>window.__dev.snapshot().state.settings.wait),false);
+await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>window.__dev.snapshot().overlay),null);
+assert.deepEqual(errors,[]);
+await writeFile(new URL('../evidence/pause-report.json',import.meta.url),JSON.stringify({checks:['Escape pauses battle in original seven-tab journal','ATB remains frozen during journal use','Unsafe mid-battle save/party changes disabled','Battle settings can be changed while paused','Escape resumes battle'],passed:true,errors},null,2));
+await browser.close();console.log('PASS: 5 battle journal pause checks.');

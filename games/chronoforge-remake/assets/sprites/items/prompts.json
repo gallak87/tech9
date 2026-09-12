@@ -1,0 +1,46 @@
+[
+  {
+    "id": "equipment",
+    "columns": 4,
+    "rows": 3,
+    "ids": [
+      "iron_blade",
+      "void_shard",
+      "rune_gauntlet",
+      "scrap_vest",
+      "bog_fang",
+      "bio_weave",
+      "ember_core",
+      "magma_blade",
+      "glacial_claw",
+      "frost_plate",
+      "void_scepter",
+      "titan_shard"
+    ],
+    "prompt": "Use case: stylized-concept. Asset type: production transparent pixel-art equipment icon atlas for Chronoforge, matching detailed 32-bit-era RPG hero sprites. Create a brand-new transparent PNG 1536x1152 with EXACTLY 4 columns and 3 rows, 12 equal 384x384 cells. True alpha background; no white backdrop, checkerboard, labels, text, grid, panels, scenery, cast shadows, or watermark. Each icon isolated centered inside central 72% of its cell; every object completely inside its own cell, generous transparent gutters. Crisp visible square pixel clusters, dark plum outlines, rich material shading, warm ivory highlights, elegant readable silhouettes. All cells same scale. Follow exact left-to-right row order. Every icon must be unique, highly legible as a 32px game icon, drawn anew from text, not copied from previous images. ROW 1: 1) Ferry Blade: long clean silver sword, turquoise and brass crossguard, wrapped dark handle. 2) Glass Focus: large angular luminous cyan crystal shard in dark violet mounting. 3) Rescue Gauntlet: bulky brass articulated mechanical fist with turquoise rune inset and leather cuff. 4) Patchwork Coat: complete brown/slate armored coat torso, overlapping scrap plates and visible stitched seams. ROW 2: 1) Reedsteel Saber: curved green steel jagged fang dagger, dark reed-wrapped hilt. 2) Fenweave Mantle: green fiber woven shoulder mantle with layered leaves and cream lining. 3) Cinder Focus: black staff topped by a vivid orange fire orb encased in bronze ring. 4) Daybreak Saber: long bright steel sword with red-orange molten central channel and gold crossguard. ROW 3: 1) Glacier Gauntlet: massive blue crystalline gauntlet with three pointed icy claws. 2) Winterguard Plate: icy pale-blue steel breastplate with faceted shoulder spikes and dark blue lining. 3) Unbound Focus: slender dark hooked magic staff embracing a hovering violet orb inside a deliberately open ring. 4) Dawnsteel Harness: ancient warm-gold armored torso harness with wide shoulder plates and small turquoise core.",
+    "tool": "built-in image_gen",
+    "file": "equipment.png"
+  },
+  {
+    "id": "relics",
+    "columns": 4,
+    "rows": 3,
+    "ids": [
+      "data_chip",
+      "crit_lens",
+      "moss_ward",
+      "ember_crown",
+      "swamp_coil",
+      "slag_tooth",
+      "mire_charm",
+      "potion",
+      "ether",
+      "phoenix",
+      null,
+      null
+    ],
+    "prompt": "Use case: stylized-concept. Asset type: production transparent pixel-art equipment icon atlas for Chronoforge, matching detailed 32-bit-era RPG hero sprites. Create a brand-new transparent PNG 1536x1152 with EXACTLY 4 columns and 3 rows, 12 equal 384x384 cells. True alpha background; no white backdrop, checkerboard, labels, text, grid, panels, scenery, cast shadows, or watermark. Each icon isolated centered inside central 72% of its cell; every object completely inside its own cell, generous transparent gutters. Crisp visible square pixel clusters, dark plum outlines, rich material shading, warm ivory highlights, elegant readable silhouettes. All cells same scale. Follow exact left-to-right row order. Every icon must be unique, highly legible as a 32px game icon, drawn anew from text, not copied from previous images. ROW 1: 1) Quickstep Dial: open brass pocket clock with green circuit-board internal face and a small chain. 2) Copper Sight: pink optical targeting lens in dark copper eyepiece, one round lens and small side adjustment knobs. 3) Moss Ward: circular emerald and cyan amulet, thick living moss around stone rim, short woven cord. 4) Shared Hour: miniature flame-shaped gold crown charm framing a small clock face with three hands. ROW 2: 1) Swamp Coil: intertwined copper and fresh green reed bracelet, two visible intertwined rings. 2) Slag Tooth: rough charcoal and orange glowing fang pendant hanging on brown cord. 3) Mire Charm: gray-blue forked tooth pendant on a short dark chain, a little turquoise glow. 4) Field Tonic: short round clear-glass flask of rich rose-red healing liquid, brass cork and plain cream paper band. ROW 3: 1) Ether Flask: tall angular clear-glass flask of bright cyan blue liquid, violet stopper. 2) Wakeflower: a luminous golden-orange flower with five petals and three green leaves, small red gem-like center; NO bottle. 3) Empty fully transparent cell. 4) Empty fully transparent cell.",
+    "tool": "built-in image_gen",
+    "file": "relics.png"
+  }
+]

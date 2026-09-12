@@ -1,0 +1,50 @@
+# Status · 2026-09-12
+
+Implemented and playable with `npm start` at **http://127.0.0.1:4179/**. Static release built in `dist/`. Validation servers are stopped. No known blocking issues remain from the checks below.
+
+## Sprite remake · September 12
+
+Replaced the remaining procedural enemy, item and non-settlement character sprites with new built-in imagegen art. **26 new PNG sheets contain 618 used source cells**: 19 enemy identities with 24 frames each, 23 NPC/story identities with six frames each, 22 distinct equipment/supply icons, and two salvage-cache states. Kaida, Vex and Rune retain their existing generated atlases. Settlement buildings, plots, mechanics, Nera and Tess remain unchanged.
+
+All 19 original enemy identities are explicitly mapped in `assets/sprites/manifest.json`. The six omitted enemies now have optional encounters. Swamp Coil, Slag Tooth and Mire Charm now have dedicated art plus purchase, equip, save and first-clear drop paths. NPC aliases preserve Dara and Mina across their two placements; Iona has a generated dialogue portrait. Item sprites appear in inventory, shops, smithing, battle supplies and victory loot. Boss artwork follows all three phases; authored hurt/collapse frames follow real hits and deaths.
+
+Exact prompts and unmodified generated PNGs are saved under `assets/sprites/enemies/`, `assets/sprites/items/`, and `assets/sprites/npcs/`. The loader uses alpha bounds and explicit atlas coordinates; two NPC sheets have corrected row boundaries to preserve complete figures. Missing sheets or blank mapped frames fail explicitly instead of falling back to generic shapes.
+
+| Current check | Actual result | Evidence |
+|---|---|---|
+| Build | 12 source files, three existing hero atlases and all 26 new sheets pass syntax, import, mapping and asset checks; `dist/` rebuilt | `npm run build` |
+| Targeted Playwright sprite validation | **182 render/state checks**, 26 sheet/alpha checks and **618 source cells** pass. Every draw is traced to its declared PNG/cell. All 22 inventory items, 24 NPC placements plus Iona, 19 battle enemy types, three Architect phases, actual lethal-hit collapse frames, three battle supplies, victory loot and both cache states verified. Zero page or network errors | `evidence/sprite-remake-report.json` |
+| World and atlas boundaries | **121 interactions** pass collision/A* checks, including six added encounters; five NPC/cache sheets pass alpha and slicing-boundary checks | `evidence/sprite-world-report.json` |
+| Combat, equipment and rewards | **16 system checks**, five campaign balance scenarios and six restored-enemy scenarios pass. Added accessories verified through buying, equipment, saves and deterministic drops; lethal-hit animation timing verified | `tests/systems-report.json` |
+| Visual review | Inspected all enemy, NPC, item and cache galleries, inventory, NPC scene, Iona portrait, battle supplies/loot, and Architect battle phases | `evidence/sprite-remake-*.png` |
+
+This pass used isolated development checkpoints and real production render/combat paths, not a repeated campaign playthrough. The temporary Chromium browser and HTTP server were closed after validation. No generated image pixels were recolored, keyed, traced or manually resampled.
+
+## Built
+
+- Complete ferry-crew story: Kaida’s missing sister, Vex’s responsibility, Rune’s broken command, three recovered anchor memories, Iona’s rescue, final Architect encounter, a future-setting choice, and a playable homecoming. Four optional rescues and rebuilding alter the epilogue.
+- Eight connected biomes, four town centers, 17 walkable interiors, nine broad shared edges, collision-aware click paths, keyboard walk/run, NPCs, shops, smiths, free recovery at home, eight caches and visible encounters.
+- Kaida, Vex and Rune have three original 48-frame transparent imagegen atlases. New creature/NPC/environment/equipment/UI artwork and synthesized audio. Original assets and generation mechanisms are not reused. Exact imagegen prompts are in `assets/prompts.json`.
+- ATB formation, three-row status panel, lower-right commands, target selection, timed attacks, 12 individual skills, three double techniques and one triple technique. Readiness, MP, targeting, guard, slow, shields, immunity, drain, healing and revival affect real combat. Action poses, damage and audio share one impact schedule.
+- Individual level/stat/skill progression, owned equipment instances, compatibility and item-level requirements, three upgrade ranks, loot, purchases/sales, first-clear and reduced repeat rewards.
+- Seven settlement building types plus a hall: farms, mines, extractors, forge, barracks, archive and walls. Three ranks, visible construction, bounded production, collection, milestone gates, actual combat/stat benefits and smithing discounts.
+- Original seven-tab journal structure/navigation with new brass/plum/paper treatment. Map pan/zoom and visited-town travel, gear comparisons, skills, quest records, four independent saves, settings, and a safe battle pause/review mode.
+- Explicit `?dev=1` checkpoint and custom-state helpers, with read-only inspection on ordinary URLs.
+
+## Initial campaign verification · September 11
+
+| Check | Actual result | Evidence |
+|---|---|---|
+| Release build | Module syntax/imports and all three atlases verified; static bundle generated | `npm run build` |
+| Targeted Playwright gameplay | **22 passing scenarios**, zero page/console errors: fresh opening and road battle, shops/doors, construction/production, gear, manual save/load, each guardian-to-anchor chain, all four links, unavailable links, rescue choice, defeat/retry, final battle, ending choice/save/homecoming and reload | `evidence/playwright-report.json` |
+| World Playwright | **30 passing checks**, zero errors: 64 exterior and 51 interior interactions reachable, built-plot collision, all nine shared edges walked both directions, all 17 door round trips, archive click path around furniture | `evidence/world-report.json` |
+| UI Playwright | Seven tabs, construction, keyboard battle controls, selectable ready heroes, stable focus, and ending layout checked at 960×600, 1280×800 and 768×480 | `evidence/ui-report.json` |
+| Battle journal | Five checks: pause freezes ATB, review/settings work, mid-battle save/party mutations disabled, resume works | `evidence/pause-report.json` |
+| Art in runtime | **18 hero/state combinations** render distinct frames; **26 item icons** painted in inventory. Inspected final character, equipment, settlement and coordinated-attack screenshots | `evidence/art-report.json` |
+| Production system logic | **13 grouped checks** plus **five milestone balance simulations** pass, including all building types/ranks, transaction rejection, ownership, skills/status effects, save validation/errors, exact one-impact resolution and atomic link costs | `tests/systems-report.json` |
+
+Inspected all eight biome views and five room types. Fixed unreachable water-side objects, room/title overlaps, NPC/party occlusion, menu clipping, ending overflow, duplicate battle headings, pose/impact timing and a casting-heading overlap before delivery. Final review images: `evidence/settlement-final.png`, `equipment-final.png`, `triple-impact.png`, and `ending.png`.
+
+## Validation limits
+
+Per the updated request, browser validation used explicit progression/state checkpoints and simulated-clock advancement instead of a continuous fresh-start-to-ending run. The fresh prologue and opening fight used normal starting stats; later reports identify their synthetic milestones. The dedicated ending-layout probe used a 1-HP boss only to inspect layout; the separate gameplay scenario defeated the full-health final boss. Balance simulations report simulated combat seconds, not a measured human playtime. Browser checks used Chromium; Safari/Firefox and touch-only controls were not tested.

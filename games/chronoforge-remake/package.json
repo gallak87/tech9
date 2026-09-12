@@ -1,0 +1,19 @@
+{
+  "name": "chronoforge-the-unwritten-hour",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An original, complete pixel RPG remake of Chronoforge.",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "start": "node scripts/serve.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node tests/systems.mjs",
+    "test:play": "node tests/playthrough.mjs",
+    "test:world": "node tests/world.mjs",
+    "test:pause": "node tests/pause.mjs",
+    "test:art": "node tests/art.mjs",
+    "test:sprites": "node tests/sprite-remake.mjs"
+  },
+  "devDependencies": {"playwright": "^1.58.2"}
+}

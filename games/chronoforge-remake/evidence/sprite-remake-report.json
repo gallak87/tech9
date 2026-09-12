@@ -1,0 +1,5936 @@
+{
+  "scope": "Targeted generated-sprite coverage and rendering checks using documented development checkpoints; not a campaign playthrough.",
+  "excluded": [
+    "Existing Kaida, Vex and Rune atlases",
+    "Settlement buildings, mayor and commons worker"
+  ],
+  "sheets": [
+    {
+      "key": "enemy_rat",
+      "file": "enemies/rat.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_scrapper",
+      "file": "enemies/scrapper.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_hound",
+      "file": "enemies/hound.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_stalker",
+      "file": "enemies/stalker.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_warden",
+      "file": "enemies/warden.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_golem",
+      "file": "enemies/golem.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_emberlord",
+      "file": "enemies/emberlord.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_wolf",
+      "file": "enemies/wolf.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_colossus",
+      "file": "enemies/colossus.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_drone",
+      "file": "enemies/drone.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_wraith",
+      "file": "enemies/wraith.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_herald",
+      "file": "enemies/herald.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_architect",
+      "file": "enemies/architect.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_gravbot",
+      "file": "enemies/gravbot.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_mire_hulk",
+      "file": "enemies/mire_hulk.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_neon_cultist",
+      "file": "enemies/neon_cultist.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_sandworm_hatchling",
+      "file": "enemies/sandworm_hatchling.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_frost_revenant",
+      "file": "enemies/frost_revenant.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "enemy_magma_behemoth",
+      "file": "enemies/magma_behemoth.png",
+      "width": 1536,
+      "height": 1024,
+      "columns": 6,
+      "rows": 4
+    },
+    {
+      "key": "npcs_harbor_png",
+      "file": "npcs/harbor.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 6,
+      "rows": 6
+    },
+    {
+      "key": "npcs_ember_png",
+      "file": "npcs/ember.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 6,
+      "rows": 6,
+      "rowCuts": [
+        0,
+        217,
+        424,
+        631,
+        838,
+        1044,
+        1254
+      ]
+    },
+    {
+      "key": "npcs_frontier_png",
+      "file": "npcs/frontier.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 6,
+      "rows": 6,
+      "rowCuts": [
+        0,
+        215,
+        422,
+        630,
+        836,
+        1042,
+        1254
+      ]
+    },
+    {
+      "key": "npcs_crown_png",
+      "file": "npcs/crown.png",
+      "width": 1254,
+      "height": 1254,
+      "columns": 6,
+      "rows": 6
+    },
+    {
+      "key": "item_equipment",
+      "file": "items/equipment.png",
+      "width": 1448,
+      "height": 1086,
+      "columns": 4,
+      "rows": 3
+    },
+    {
+      "key": "item_relics",
+      "file": "items/relics.png",
+      "width": 1448,
+      "height": 1086,
+      "columns": 4,
+      "rows": 3
+    },
+    {
+      "key": "cache",
+      "file": "npcs/cache.png",
+      "width": 1774,
+      "height": 887,
+      "columns": 2,
+      "rows": 1
+    }
+  ],
+  "imageChecks": [
+    {
+      "key": "enemy_rat",
+      "width": 1536,
+      "height": 1024,
+      "visible": 397081,
+      "transparent": 1175783,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 16187,
+          "clear": 49349
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 16226,
+          "clear": 49310
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 16676,
+          "clear": 48860
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 16477,
+          "clear": 49059
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 16227,
+          "clear": 49309
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 16449,
+          "clear": 49087
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 16604,
+          "clear": 48932
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 16630,
+          "clear": 48906
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 16242,
+          "clear": 49294
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 16591,
+          "clear": 48945
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 16361,
+          "clear": 49175
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 17144,
+          "clear": 48392
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 16828,
+          "clear": 48708
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 16843,
+          "clear": 48693
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 16682,
+          "clear": 48854
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 19922,
+          "clear": 45614
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 19653,
+          "clear": 45883
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 16708,
+          "clear": 48828
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 15740,
+          "clear": 49796
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 16079,
+          "clear": 49457
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 16567,
+          "clear": 48969
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 16441,
+          "clear": 49095
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 15009,
+          "clear": 50527
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 12795,
+          "clear": 52741
+        }
+      ]
+    },
+    {
+      "key": "enemy_scrapper",
+      "width": 1536,
+      "height": 1024,
+      "visible": 385226,
+      "transparent": 1187638,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 15716,
+          "clear": 49820
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 16016,
+          "clear": 49520
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 16502,
+          "clear": 49034
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 15966,
+          "clear": 49570
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 15750,
+          "clear": 49786
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 15898,
+          "clear": 49638
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 16198,
+          "clear": 49338
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 15741,
+          "clear": 49795
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 16392,
+          "clear": 49144
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 16374,
+          "clear": 49162
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 15965,
+          "clear": 49571
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 15991,
+          "clear": 49545
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 15503,
+          "clear": 50033
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 16873,
+          "clear": 48663
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 16541,
+          "clear": 48995
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 21296,
+          "clear": 44240
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 18178,
+          "clear": 47358
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 15225,
+          "clear": 50311
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 17081,
+          "clear": 48455
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 17533,
+          "clear": 48003
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 16188,
+          "clear": 49348
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 14550,
+          "clear": 50986
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 12321,
+          "clear": 53215
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 11428,
+          "clear": 54108
+        }
+      ]
+    },
+    {
+      "key": "enemy_hound",
+      "width": 1536,
+      "height": 1024,
+      "visible": 450235,
+      "transparent": 1122629,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 18689,
+          "clear": 46847
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 19048,
+          "clear": 46488
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 18585,
+          "clear": 46951
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 18685,
+          "clear": 46851
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 18558,
+          "clear": 46978
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 18608,
+          "clear": 46928
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 18843,
+          "clear": 46693
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 19050,
+          "clear": 46486
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 18788,
+          "clear": 46748
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 19219,
+          "clear": 46317
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 18951,
+          "clear": 46585
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 18772,
+          "clear": 46764
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 19408,
+          "clear": 46128
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 21116,
+          "clear": 44420
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 20138,
+          "clear": 45398
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 21155,
+          "clear": 44381
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 19511,
+          "clear": 46025
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 18475,
+          "clear": 47061
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 19092,
+          "clear": 46444
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 19010,
+          "clear": 46526
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 20002,
+          "clear": 45534
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 17552,
+          "clear": 47984
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 15569,
+          "clear": 49967
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 13411,
+          "clear": 52125
+        }
+      ]
+    },
+    {
+      "key": "enemy_stalker",
+      "width": 1536,
+      "height": 1024,
+      "visible": 417990,
+      "transparent": 1154874,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 17616,
+          "clear": 47920
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 17627,
+          "clear": 47909
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 17644,
+          "clear": 47892
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 17783,
+          "clear": 47753
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 17571,
+          "clear": 47965
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 17700,
+          "clear": 47836
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 17875,
+          "clear": 47661
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 17220,
+          "clear": 48316
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 17344,
+          "clear": 48192
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 17631,
+          "clear": 47905
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 17052,
+          "clear": 48484
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 17229,
+          "clear": 48307
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 18178,
+          "clear": 47358
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 19080,
+          "clear": 46456
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 21423,
+          "clear": 44113
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 20248,
+          "clear": 45288
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 19940,
+          "clear": 45596
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 19081,
+          "clear": 46455
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 17119,
+          "clear": 48417
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 16178,
+          "clear": 49358
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 16948,
+          "clear": 48588
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 16103,
+          "clear": 49433
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 12143,
+          "clear": 53393
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 11257,
+          "clear": 54279
+        }
+      ]
+    },
+    {
+      "key": "enemy_warden",
+      "width": 1536,
+      "height": 1024,
+      "visible": 444237,
+      "transparent": 1128627,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 18068,
+          "clear": 47468
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 18331,
+          "clear": 47205
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 19050,
+          "clear": 46486
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 18108,
+          "clear": 47428
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 18123,
+          "clear": 47413
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 18485,
+          "clear": 47051
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 18957,
+          "clear": 46579
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 19392,
+          "clear": 46144
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 19053,
+          "clear": 46483
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 20398,
+          "clear": 45138
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 18955,
+          "clear": 46581
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 18383,
+          "clear": 47153
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 19455,
+          "clear": 46081
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 23532,
+          "clear": 42004
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 27695,
+          "clear": 37841
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 23282,
+          "clear": 42254
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 20521,
+          "clear": 45015
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 18430,
+          "clear": 47106
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 15301,
+          "clear": 50235
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 16279,
+          "clear": 49257
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 16703,
+          "clear": 48833
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 14878,
+          "clear": 50658
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 12341,
+          "clear": 53195
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 10517,
+          "clear": 55019
+        }
+      ]
+    },
+    {
+      "key": "enemy_golem",
+      "width": 1536,
+      "height": 1024,
+      "visible": 613417,
+      "transparent": 959447,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 26515,
+          "clear": 39021
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 26405,
+          "clear": 39131
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 27026,
+          "clear": 38510
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 26539,
+          "clear": 38997
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 26473,
+          "clear": 39063
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 26553,
+          "clear": 38983
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 26104,
+          "clear": 39432
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 24893,
+          "clear": 40643
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 25756,
+          "clear": 39780
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 26270,
+          "clear": 39266
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 24238,
+          "clear": 41298
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 24494,
+          "clear": 41042
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 25701,
+          "clear": 39835
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 27962,
+          "clear": 37574
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 29483,
+          "clear": 36053
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 31390,
+          "clear": 34146
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 30453,
+          "clear": 35083
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 27812,
+          "clear": 37724
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 25064,
+          "clear": 40472
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 25140,
+          "clear": 40396
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 24051,
+          "clear": 41485
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 20230,
+          "clear": 45306
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 17817,
+          "clear": 47719
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 17048,
+          "clear": 48488
+        }
+      ]
+    },
+    {
+      "key": "enemy_emberlord",
+      "width": 1536,
+      "height": 1024,
+      "visible": 487215,
+      "transparent": 1085649,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 20749,
+          "clear": 44787
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 21156,
+          "clear": 44380
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 21574,
+          "clear": 43962
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 21838,
+          "clear": 43698
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 21219,
+          "clear": 44317
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 21021,
+          "clear": 44515
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 20688,
+          "clear": 44848
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 20480,
+          "clear": 45056
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 20224,
+          "clear": 45312
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 20296,
+          "clear": 45240
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 19922,
+          "clear": 45614
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 19539,
+          "clear": 45997
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 20561,
+          "clear": 44975
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 24395,
+          "clear": 41141
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 24892,
+          "clear": 40644
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 27584,
+          "clear": 37952
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 23240,
+          "clear": 42296
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 19488,
+          "clear": 46048
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 18892,
+          "clear": 46644
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 17406,
+          "clear": 48130
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 17520,
+          "clear": 48016
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 17259,
+          "clear": 48277
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 14840,
+          "clear": 50696
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 12432,
+          "clear": 53104
+        }
+      ]
+    },
+    {
+      "key": "enemy_wolf",
+      "width": 1536,
+      "height": 1024,
+      "visible": 528621,
+      "transparent": 1044243,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 22103,
+          "clear": 43433
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 22074,
+          "clear": 43462
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 21895,
+          "clear": 43641
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 21752,
+          "clear": 43784
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 21776,
+          "clear": 43760
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 21957,
+          "clear": 43579
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 21997,
+          "clear": 43539
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 21287,
+          "clear": 44249
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 21823,
+          "clear": 43713
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 21445,
+          "clear": 44091
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 21555,
+          "clear": 43981
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 23094,
+          "clear": 42442
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 22045,
+          "clear": 43491
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 24587,
+          "clear": 40949
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 28309,
+          "clear": 37227
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 29503,
+          "clear": 36033
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 21945,
+          "clear": 43591
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 21903,
+          "clear": 43633
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 23689,
+          "clear": 41847
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 21321,
+          "clear": 44215
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 20928,
+          "clear": 44608
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 19229,
+          "clear": 46307
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 17433,
+          "clear": 48103
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 14971,
+          "clear": 50565
+        }
+      ]
+    },
+    {
+      "key": "enemy_colossus",
+      "width": 1536,
+      "height": 1024,
+      "visible": 651921,
+      "transparent": 920943,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 30796,
+          "clear": 34740
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 30728,
+          "clear": 34808
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 31167,
+          "clear": 34369
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 30957,
+          "clear": 34579
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 30857,
+          "clear": 34679
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 30765,
+          "clear": 34771
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 27539,
+          "clear": 37997
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 27335,
+          "clear": 38201
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 26526,
+          "clear": 39010
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 27195,
+          "clear": 38341
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 26814,
+          "clear": 38722
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 27321,
+          "clear": 38215
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 28115,
+          "clear": 37421
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 29978,
+          "clear": 35558
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 26391,
+          "clear": 39145
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 27365,
+          "clear": 38171
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 26552,
+          "clear": 38984
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 27720,
+          "clear": 37816
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 27124,
+          "clear": 38412
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 23523,
+          "clear": 42013
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 23964,
+          "clear": 41572
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 22730,
+          "clear": 42806
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 21121,
+          "clear": 44415
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 19338,
+          "clear": 46198
+        }
+      ]
+    },
+    {
+      "key": "enemy_drone",
+      "width": 1536,
+      "height": 1024,
+      "visible": 414873,
+      "transparent": 1157991,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 16561,
+          "clear": 48975
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 16606,
+          "clear": 48930
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 16738,
+          "clear": 48798
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 16711,
+          "clear": 48825
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 16518,
+          "clear": 49018
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 16487,
+          "clear": 49049
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 16916,
+          "clear": 48620
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 17026,
+          "clear": 48510
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 17302,
+          "clear": 48234
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 16989,
+          "clear": 48547
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 16937,
+          "clear": 48599
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 17110,
+          "clear": 48426
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 16981,
+          "clear": 48555
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 17650,
+          "clear": 47886
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 18133,
+          "clear": 47403
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 19375,
+          "clear": 46161
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 17883,
+          "clear": 47653
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 16966,
+          "clear": 48570
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 17168,
+          "clear": 48368
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 17451,
+          "clear": 48085
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 18861,
+          "clear": 46675
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 19817,
+          "clear": 45719
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 18430,
+          "clear": 47106
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 14257,
+          "clear": 51279
+        }
+      ]
+    },
+    {
+      "key": "enemy_wraith",
+      "width": 1536,
+      "height": 1024,
+      "visible": 336616,
+      "transparent": 1236248,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 12127,
+          "clear": 53409
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 11883,
+          "clear": 53653
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 13298,
+          "clear": 52238
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 12561,
+          "clear": 52975
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 12293,
+          "clear": 53243
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 12274,
+          "clear": 53262
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 12976,
+          "clear": 52560
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 13318,
+          "clear": 52218
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 12811,
+          "clear": 52725
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 13291,
+          "clear": 52245
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 12621,
+          "clear": 52915
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 12624,
+          "clear": 52912
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 12814,
+          "clear": 52722
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 17129,
+          "clear": 48407
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 20487,
+          "clear": 45049
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 22302,
+          "clear": 43234
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 19110,
+          "clear": 46426
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 14337,
+          "clear": 51199
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 13002,
+          "clear": 52534
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 13887,
+          "clear": 51649
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 13494,
+          "clear": 52042
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 13530,
+          "clear": 52006
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 12520,
+          "clear": 53016
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 11927,
+          "clear": 53609
+        }
+      ]
+    },
+    {
+      "key": "enemy_herald",
+      "width": 1536,
+      "height": 1024,
+      "visible": 385123,
+      "transparent": 1187741,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 15387,
+          "clear": 50149
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 15894,
+          "clear": 49642
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 16108,
+          "clear": 49428
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 15953,
+          "clear": 49583
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 16323,
+          "clear": 49213
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 15573,
+          "clear": 49963
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 15918,
+          "clear": 49618
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 16351,
+          "clear": 49185
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 15765,
+          "clear": 49771
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 15933,
+          "clear": 49603
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 15075,
+          "clear": 50461
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 15753,
+          "clear": 49783
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 15637,
+          "clear": 49899
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 17673,
+          "clear": 47863
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 18906,
+          "clear": 46630
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 26452,
+          "clear": 39084
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 17306,
+          "clear": 48230
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 16184,
+          "clear": 49352
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 17819,
+          "clear": 47717
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 14593,
+          "clear": 50943
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 14718,
+          "clear": 50818
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 14055,
+          "clear": 51481
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 12277,
+          "clear": 53259
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 9470,
+          "clear": 56066
+        }
+      ]
+    },
+    {
+      "key": "enemy_architect",
+      "width": 1536,
+      "height": 1024,
+      "visible": 622226,
+      "transparent": 950638,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 26667,
+          "clear": 38869
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 28770,
+          "clear": 36766
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 30333,
+          "clear": 35203
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 38382,
+          "clear": 27154
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 27048,
+          "clear": 38488
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 25895,
+          "clear": 39641
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 30159,
+          "clear": 35377
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 31680,
+          "clear": 33856
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 34816,
+          "clear": 30720
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 40647,
+          "clear": 24889
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 31932,
+          "clear": 33604
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 29897,
+          "clear": 35639
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 20861,
+          "clear": 44675
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 21158,
+          "clear": 44378
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 25422,
+          "clear": 40114
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 30920,
+          "clear": 34616
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 21099,
+          "clear": 44437
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 21509,
+          "clear": 44027
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 21104,
+          "clear": 44432
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 20630,
+          "clear": 44906
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 20015,
+          "clear": 45521
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 16734,
+          "clear": 48802
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 15303,
+          "clear": 50233
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 11245,
+          "clear": 54291
+        }
+      ]
+    },
+    {
+      "key": "enemy_gravbot",
+      "width": 1536,
+      "height": 1024,
+      "visible": 478232,
+      "transparent": 1094632,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 20599,
+          "clear": 44937
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 20628,
+          "clear": 44908
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 21548,
+          "clear": 43988
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 20557,
+          "clear": 44979
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 20573,
+          "clear": 44963
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 20595,
+          "clear": 44941
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 20111,
+          "clear": 45425
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 20110,
+          "clear": 45426
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 19735,
+          "clear": 45801
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 19508,
+          "clear": 46028
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 19959,
+          "clear": 45577
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 20034,
+          "clear": 45502
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 20456,
+          "clear": 45080
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 20043,
+          "clear": 45493
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 19117,
+          "clear": 46419
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 23288,
+          "clear": 42248
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 22396,
+          "clear": 43140
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 19910,
+          "clear": 45626
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 21212,
+          "clear": 44324
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 20133,
+          "clear": 45403
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 19208,
+          "clear": 46328
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 17682,
+          "clear": 47854
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 16646,
+          "clear": 48890
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 14184,
+          "clear": 51352
+        }
+      ]
+    },
+    {
+      "key": "enemy_mire_hulk",
+      "width": 1536,
+      "height": 1024,
+      "visible": 664620,
+      "transparent": 908244,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 28092,
+          "clear": 37444
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 28090,
+          "clear": 37446
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 29097,
+          "clear": 36439
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 27690,
+          "clear": 37846
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 27972,
+          "clear": 37564
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 27907,
+          "clear": 37629
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 27397,
+          "clear": 38139
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 28786,
+          "clear": 36750
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 30008,
+          "clear": 35528
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 30169,
+          "clear": 35367
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 29890,
+          "clear": 35646
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 28080,
+          "clear": 37456
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 30065,
+          "clear": 35471
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 27376,
+          "clear": 38160
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 26841,
+          "clear": 38695
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 30350,
+          "clear": 35186
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 27747,
+          "clear": 37789
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 28402,
+          "clear": 37134
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 27369,
+          "clear": 38167
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 26709,
+          "clear": 38827
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 28466,
+          "clear": 37070
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 24810,
+          "clear": 40726
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 23587,
+          "clear": 41949
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 19720,
+          "clear": 45816
+        }
+      ]
+    },
+    {
+      "key": "enemy_neon_cultist",
+      "width": 1536,
+      "height": 1024,
+      "visible": 458484,
+      "transparent": 1114380,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 19027,
+          "clear": 46509
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 19372,
+          "clear": 46164
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 20342,
+          "clear": 45194
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 19306,
+          "clear": 46230
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 18943,
+          "clear": 46593
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 19331,
+          "clear": 46205
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 19247,
+          "clear": 46289
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 19175,
+          "clear": 46361
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 18669,
+          "clear": 46867
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 17774,
+          "clear": 47762
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 18170,
+          "clear": 47366
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 18441,
+          "clear": 47095
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 19150,
+          "clear": 46386
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 20937,
+          "clear": 44599
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 24860,
+          "clear": 40676
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 24674,
+          "clear": 40862
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 22262,
+          "clear": 43274
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 20114,
+          "clear": 45422
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 19073,
+          "clear": 46463
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 21335,
+          "clear": 44201
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 17999,
+          "clear": 47537
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 16359,
+          "clear": 49177
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 12959,
+          "clear": 52577
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 10965,
+          "clear": 54571
+        }
+      ]
+    },
+    {
+      "key": "enemy_sandworm_hatchling",
+      "width": 1536,
+      "height": 1024,
+      "visible": 507067,
+      "transparent": 1065797,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 19948,
+          "clear": 45588
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 20964,
+          "clear": 44572
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 23436,
+          "clear": 42100
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 20756,
+          "clear": 44780
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 20938,
+          "clear": 44598
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 20263,
+          "clear": 45273
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 21174,
+          "clear": 44362
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 21188,
+          "clear": 44348
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 21742,
+          "clear": 43794
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 21147,
+          "clear": 44389
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 21231,
+          "clear": 44305
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 21527,
+          "clear": 44009
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 21248,
+          "clear": 44288
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 21404,
+          "clear": 44132
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 25044,
+          "clear": 40492
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 32354,
+          "clear": 33182
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 22572,
+          "clear": 42964
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 22023,
+          "clear": 43513
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 19535,
+          "clear": 46001
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 19528,
+          "clear": 46008
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 17886,
+          "clear": 47650
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 17040,
+          "clear": 48496
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 17978,
+          "clear": 47558
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 16141,
+          "clear": 49395
+        }
+      ]
+    },
+    {
+      "key": "enemy_frost_revenant",
+      "width": 1536,
+      "height": 1024,
+      "visible": 460320,
+      "transparent": 1112544,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 18663,
+          "clear": 46873
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 18527,
+          "clear": 47009
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 19314,
+          "clear": 46222
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 19338,
+          "clear": 46198
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 19236,
+          "clear": 46300
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 18676,
+          "clear": 46860
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 19863,
+          "clear": 45673
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 19714,
+          "clear": 45822
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 19575,
+          "clear": 45961
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 19620,
+          "clear": 45916
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 19838,
+          "clear": 45698
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 19118,
+          "clear": 46418
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 18826,
+          "clear": 46710
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 22950,
+          "clear": 42586
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 27037,
+          "clear": 38499
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 22596,
+          "clear": 42940
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 18728,
+          "clear": 46808
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 18133,
+          "clear": 47403
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 19699,
+          "clear": 45837
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 19638,
+          "clear": 45898
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 18170,
+          "clear": 47366
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 15533,
+          "clear": 50003
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 14956,
+          "clear": 50580
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 12572,
+          "clear": 52964
+        }
+      ]
+    },
+    {
+      "key": "enemy_magma_behemoth",
+      "width": 1536,
+      "height": 1024,
+      "visible": 650529,
+      "transparent": 922335,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 27155,
+          "clear": 38381
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 26585,
+          "clear": 38951
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 27730,
+          "clear": 37806
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 26232,
+          "clear": 39304
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 26380,
+          "clear": 39156
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 26479,
+          "clear": 39057
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 29381,
+          "clear": 36155
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 28761,
+          "clear": 36775
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 28299,
+          "clear": 37237
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 29237,
+          "clear": 36299
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 28753,
+          "clear": 36783
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 28160,
+          "clear": 37376
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 25634,
+          "clear": 39902
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 28465,
+          "clear": 37071
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 28056,
+          "clear": 37480
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 32027,
+          "clear": 33509
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 29902,
+          "clear": 35634
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 23922,
+          "clear": 41614
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 28160,
+          "clear": 37376
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 27791,
+          "clear": 37745
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 26489,
+          "clear": 39047
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 26311,
+          "clear": 39225
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 24035,
+          "clear": 41501
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 16585,
+          "clear": 48951
+        }
+      ]
+    },
+    {
+      "key": "npcs_harbor_png",
+      "width": 1254,
+      "height": 1254,
+      "visible": 521894,
+      "transparent": 1050622,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 12441,
+          "clear": 31240
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 12402,
+          "clear": 31279
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 12101,
+          "clear": 31580
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 13881,
+          "clear": 29800
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 13848,
+          "clear": 29833
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 12337,
+          "clear": 31344
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 14866,
+          "clear": 28815
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 15141,
+          "clear": 28540
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 14863,
+          "clear": 28818
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 16076,
+          "clear": 27605
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 15065,
+          "clear": 28616
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 14664,
+          "clear": 29017
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 12145,
+          "clear": 31536
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 12028,
+          "clear": 31653
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 11967,
+          "clear": 31714
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 13122,
+          "clear": 30559
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 12130,
+          "clear": 31551
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 11977,
+          "clear": 31704
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 17594,
+          "clear": 26087
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 17944,
+          "clear": 25737
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 17632,
+          "clear": 26049
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 19814,
+          "clear": 23867
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 15767,
+          "clear": 27914
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 17664,
+          "clear": 26017
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "painted": 15106,
+          "clear": 28575
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "painted": 15172,
+          "clear": 28509
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "painted": 15199,
+          "clear": 28482
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "painted": 16561,
+          "clear": 27120
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "painted": 15147,
+          "clear": 28534
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "painted": 15130,
+          "clear": 28551
+        },
+        {
+          "row": 5,
+          "col": 0,
+          "painted": 13634,
+          "clear": 30047
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "painted": 13428,
+          "clear": 30253
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "painted": 13674,
+          "clear": 30007
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "painted": 14591,
+          "clear": 29090
+        },
+        {
+          "row": 5,
+          "col": 4,
+          "painted": 13493,
+          "clear": 30188
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "painted": 13290,
+          "clear": 30391
+        }
+      ]
+    },
+    {
+      "key": "npcs_ember_png",
+      "width": 1254,
+      "height": 1254,
+      "visible": 495733,
+      "transparent": 1076783,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 12032,
+          "clear": 33321
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 12080,
+          "clear": 33273
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 11746,
+          "clear": 33607
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 12918,
+          "clear": 32435
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 12183,
+          "clear": 33170
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 11957,
+          "clear": 33396
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 14289,
+          "clear": 28974
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 14279,
+          "clear": 28984
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 13972,
+          "clear": 29291
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 15026,
+          "clear": 28237
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 15007,
+          "clear": 28256
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 14111,
+          "clear": 29152
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 14044,
+          "clear": 29219
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 13550,
+          "clear": 29713
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 13425,
+          "clear": 29838
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 13781,
+          "clear": 29482
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 13786,
+          "clear": 29477
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 13380,
+          "clear": 29883
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 14320,
+          "clear": 28943
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 14051,
+          "clear": 29212
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 13710,
+          "clear": 29553
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 14818,
+          "clear": 28445
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 14597,
+          "clear": 28666
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 14277,
+          "clear": 28986
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "painted": 14906,
+          "clear": 28148
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "painted": 15483,
+          "clear": 27571
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "painted": 14160,
+          "clear": 28894
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "painted": 15801,
+          "clear": 27253
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "painted": 16708,
+          "clear": 26346
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "painted": 14358,
+          "clear": 28696
+        },
+        {
+          "row": 5,
+          "col": 0,
+          "painted": 12544,
+          "clear": 31346
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "painted": 13214,
+          "clear": 30676
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "painted": 12810,
+          "clear": 31080
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "painted": 13382,
+          "clear": 30508
+        },
+        {
+          "row": 5,
+          "col": 4,
+          "painted": 12601,
+          "clear": 31289
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "painted": 12427,
+          "clear": 31463
+        }
+      ]
+    },
+    {
+      "key": "npcs_frontier_png",
+      "width": 1254,
+      "height": 1254,
+      "visible": 550103,
+      "transparent": 1022413,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 13356,
+          "clear": 31579
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 13526,
+          "clear": 31409
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 13212,
+          "clear": 31723
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 13467,
+          "clear": 31468
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 14316,
+          "clear": 30619
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 13341,
+          "clear": 31594
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 16595,
+          "clear": 26668
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 17621,
+          "clear": 25642
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 15903,
+          "clear": 27360
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 17017,
+          "clear": 26246
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 16832,
+          "clear": 26431
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 16187,
+          "clear": 27076
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 12717,
+          "clear": 30755
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 12390,
+          "clear": 31082
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 12148,
+          "clear": 31324
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 12470,
+          "clear": 31002
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 13184,
+          "clear": 30288
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 12623,
+          "clear": 30849
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 12761,
+          "clear": 30293
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 12988,
+          "clear": 30066
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 12674,
+          "clear": 30380
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 13095,
+          "clear": 29959
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 13560,
+          "clear": 29494
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 12719,
+          "clear": 30335
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "painted": 21039,
+          "clear": 22015
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "painted": 21423,
+          "clear": 21631
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "painted": 21033,
+          "clear": 22021
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "painted": 20597,
+          "clear": 22457
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "painted": 21547,
+          "clear": 21507
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "painted": 20512,
+          "clear": 22542
+        },
+        {
+          "row": 5,
+          "col": 0,
+          "painted": 14833,
+          "clear": 29475
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "painted": 14999,
+          "clear": 29309
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "painted": 14565,
+          "clear": 29743
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "painted": 14837,
+          "clear": 29471
+        },
+        {
+          "row": 5,
+          "col": 4,
+          "painted": 15344,
+          "clear": 28964
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "painted": 14672,
+          "clear": 29636
+        }
+      ]
+    },
+    {
+      "key": "npcs_crown_png",
+      "width": 1254,
+      "height": 1254,
+      "visible": 424180,
+      "transparent": 1148336,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 12280,
+          "clear": 31401
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 12555,
+          "clear": 31126
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 12225,
+          "clear": 31456
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 12902,
+          "clear": 30779
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "painted": 12321,
+          "clear": 31360
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "painted": 12391,
+          "clear": 31290
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 12962,
+          "clear": 30719
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 13221,
+          "clear": 30460
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 12598,
+          "clear": 31083
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 12890,
+          "clear": 30791
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "painted": 12805,
+          "clear": 30876
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "painted": 12221,
+          "clear": 31460
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 15376,
+          "clear": 28305
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 15868,
+          "clear": 27813
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 14712,
+          "clear": 28969
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 16255,
+          "clear": 27426
+        },
+        {
+          "row": 2,
+          "col": 4,
+          "painted": 15267,
+          "clear": 28414
+        },
+        {
+          "row": 2,
+          "col": 5,
+          "painted": 15213,
+          "clear": 28468
+        },
+        {
+          "row": 3,
+          "col": 0,
+          "painted": 14142,
+          "clear": 29539
+        },
+        {
+          "row": 3,
+          "col": 1,
+          "painted": 13860,
+          "clear": 29821
+        },
+        {
+          "row": 3,
+          "col": 2,
+          "painted": 13767,
+          "clear": 29914
+        },
+        {
+          "row": 3,
+          "col": 3,
+          "painted": 15772,
+          "clear": 27909
+        },
+        {
+          "row": 3,
+          "col": 4,
+          "painted": 13768,
+          "clear": 29913
+        },
+        {
+          "row": 3,
+          "col": 5,
+          "painted": 14055,
+          "clear": 29626
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "painted": 16034,
+          "clear": 27647
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "painted": 15923,
+          "clear": 27758
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "painted": 15364,
+          "clear": 28317
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "painted": 16354,
+          "clear": 27327
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "painted": 15727,
+          "clear": 27954
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "painted": 15352,
+          "clear": 28329
+        }
+      ]
+    },
+    {
+      "key": "item_equipment",
+      "width": 1448,
+      "height": 1086,
+      "visible": 544273,
+      "transparent": 1028255,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 19888,
+          "clear": 111156
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 37004,
+          "clear": 94040
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 45964,
+          "clear": 85080
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 66255,
+          "clear": 64789
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 24824,
+          "clear": 106220
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 66941,
+          "clear": 64103
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 25101,
+          "clear": 105943
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 21689,
+          "clear": 109355
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 57583,
+          "clear": 73461
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 82173,
+          "clear": 48871
+        },
+        {
+          "row": 2,
+          "col": 2,
+          "painted": 22254,
+          "clear": 108790
+        },
+        {
+          "row": 2,
+          "col": 3,
+          "painted": 74597,
+          "clear": 56447
+        }
+      ]
+    },
+    {
+      "key": "item_relics",
+      "width": 1448,
+      "height": 1086,
+      "visible": 472344,
+      "transparent": 1100184,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 65611,
+          "clear": 65433
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 50846,
+          "clear": 80198
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "painted": 56888,
+          "clear": 74156
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "painted": 46027,
+          "clear": 85017
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "painted": 48463,
+          "clear": 82581
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "painted": 29626,
+          "clear": 101418
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "painted": 29025,
+          "clear": 102019
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "painted": 55269,
+          "clear": 75775
+        },
+        {
+          "row": 2,
+          "col": 0,
+          "painted": 35023,
+          "clear": 96021
+        },
+        {
+          "row": 2,
+          "col": 1,
+          "painted": 55566,
+          "clear": 75478
+        }
+      ]
+    },
+    {
+      "key": "cache",
+      "width": 1774,
+      "height": 887,
+      "visible": 547193,
+      "transparent": 1026345,
+      "cells": [
+        {
+          "row": 0,
+          "col": 0,
+          "painted": 232398,
+          "clear": 554371
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "painted": 314795,
+          "clear": 471974
+        }
+      ]
+    }
+  ],
+  "renderChecks": [
+    {
+      "kind": "enemies",
+      "id": "rat",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 6683,
+      "maximumPainted": 6886
+    },
+    {
+      "kind": "enemies",
+      "id": "rat",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 6696,
+      "maximumPainted": 7073
+    },
+    {
+      "kind": "enemies",
+      "id": "rat",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 6908,
+      "maximumPainted": 8240
+    },
+    {
+      "kind": "enemies",
+      "id": "rat",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 6908,
+      "maximumPainted": 8240
+    },
+    {
+      "kind": "enemies",
+      "id": "rat",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 6518,
+      "maximumPainted": 6832
+    },
+    {
+      "kind": "enemies",
+      "id": "rat",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 5281,
+      "maximumPainted": 5281
+    },
+    {
+      "kind": "enemies",
+      "id": "rat",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5281,
+      "maximumPainted": 6787
+    },
+    {
+      "kind": "enemies",
+      "id": "scrapper",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8183,
+      "maximumPainted": 8610
+    },
+    {
+      "kind": "enemies",
+      "id": "scrapper",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8196,
+      "maximumPainted": 8544
+    },
+    {
+      "kind": "enemies",
+      "id": "scrapper",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7952,
+      "maximumPainted": 11108
+    },
+    {
+      "kind": "enemies",
+      "id": "scrapper",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7952,
+      "maximumPainted": 11108
+    },
+    {
+      "kind": "enemies",
+      "id": "scrapper",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 8433,
+      "maximumPainted": 9159
+    },
+    {
+      "kind": "enemies",
+      "id": "scrapper",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 5975,
+      "maximumPainted": 5975
+    },
+    {
+      "kind": "enemies",
+      "id": "scrapper",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5975,
+      "maximumPainted": 7589
+    },
+    {
+      "kind": "enemies",
+      "id": "hound",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7239,
+      "maximumPainted": 7438
+    },
+    {
+      "kind": "enemies",
+      "id": "hound",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7313,
+      "maximumPainted": 7510
+    },
+    {
+      "kind": "enemies",
+      "id": "hound",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7198,
+      "maximumPainted": 8257
+    },
+    {
+      "kind": "enemies",
+      "id": "hound",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7198,
+      "maximumPainted": 8257
+    },
+    {
+      "kind": "enemies",
+      "id": "hound",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 7418,
+      "maximumPainted": 7804
+    },
+    {
+      "kind": "enemies",
+      "id": "hound",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 5240,
+      "maximumPainted": 5240
+    },
+    {
+      "kind": "enemies",
+      "id": "hound",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5240,
+      "maximumPainted": 6859
+    },
+    {
+      "kind": "enemies",
+      "id": "stalker",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8423,
+      "maximumPainted": 8529
+    },
+    {
+      "kind": "enemies",
+      "id": "stalker",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8168,
+      "maximumPainted": 8561
+    },
+    {
+      "kind": "enemies",
+      "id": "stalker",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8694,
+      "maximumPainted": 10283
+    },
+    {
+      "kind": "enemies",
+      "id": "stalker",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8694,
+      "maximumPainted": 10283
+    },
+    {
+      "kind": "enemies",
+      "id": "stalker",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 7738,
+      "maximumPainted": 8210
+    },
+    {
+      "kind": "enemies",
+      "id": "stalker",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 5393,
+      "maximumPainted": 5393
+    },
+    {
+      "kind": "enemies",
+      "id": "stalker",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5393,
+      "maximumPainted": 7725
+    },
+    {
+      "kind": "enemies",
+      "id": "warden",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8925,
+      "maximumPainted": 9370
+    },
+    {
+      "kind": "enemies",
+      "id": "warden",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9066,
+      "maximumPainted": 10090
+    },
+    {
+      "kind": "enemies",
+      "id": "warden",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9127,
+      "maximumPainted": 13687
+    },
+    {
+      "kind": "enemies",
+      "id": "warden",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9127,
+      "maximumPainted": 13687
+    },
+    {
+      "kind": "enemies",
+      "id": "warden",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 7564,
+      "maximumPainted": 8265
+    },
+    {
+      "kind": "enemies",
+      "id": "warden",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 5200,
+      "maximumPainted": 5200
+    },
+    {
+      "kind": "enemies",
+      "id": "warden",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5200,
+      "maximumPainted": 7352
+    },
+    {
+      "kind": "enemies",
+      "id": "golem",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 11019,
+      "maximumPainted": 11261
+    },
+    {
+      "kind": "enemies",
+      "id": "golem",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10109,
+      "maximumPainted": 10960
+    },
+    {
+      "kind": "enemies",
+      "id": "golem",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10697,
+      "maximumPainted": 13087
+    },
+    {
+      "kind": "enemies",
+      "id": "golem",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10697,
+      "maximumPainted": 13087
+    },
+    {
+      "kind": "enemies",
+      "id": "golem",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 10014,
+      "maximumPainted": 10503
+    },
+    {
+      "kind": "enemies",
+      "id": "golem",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 7116,
+      "maximumPainted": 7116
+    },
+    {
+      "kind": "enemies",
+      "id": "golem",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 7116,
+      "maximumPainted": 8414
+    },
+    {
+      "kind": "enemies",
+      "id": "emberlord",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 6970,
+      "maximumPainted": 7336
+    },
+    {
+      "kind": "enemies",
+      "id": "emberlord",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 6557,
+      "maximumPainted": 6931
+    },
+    {
+      "kind": "enemies",
+      "id": "emberlord",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 6533,
+      "maximumPainted": 9260
+    },
+    {
+      "kind": "enemies",
+      "id": "emberlord",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 6533,
+      "maximumPainted": 9260
+    },
+    {
+      "kind": "enemies",
+      "id": "emberlord",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5852,
+      "maximumPainted": 6342
+    },
+    {
+      "kind": "enemies",
+      "id": "emberlord",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 4168,
+      "maximumPainted": 4168
+    },
+    {
+      "kind": "enemies",
+      "id": "emberlord",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 4168,
+      "maximumPainted": 5782
+    },
+    {
+      "kind": "enemies",
+      "id": "wolf",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8658,
+      "maximumPainted": 8800
+    },
+    {
+      "kind": "enemies",
+      "id": "wolf",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8462,
+      "maximumPainted": 9180
+    },
+    {
+      "kind": "enemies",
+      "id": "wolf",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8721,
+      "maximumPainted": 11742
+    },
+    {
+      "kind": "enemies",
+      "id": "wolf",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8721,
+      "maximumPainted": 11742
+    },
+    {
+      "kind": "enemies",
+      "id": "wolf",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 8331,
+      "maximumPainted": 9449
+    },
+    {
+      "kind": "enemies",
+      "id": "wolf",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 5959,
+      "maximumPainted": 5959
+    },
+    {
+      "kind": "enemies",
+      "id": "wolf",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5959,
+      "maximumPainted": 7661
+    },
+    {
+      "kind": "enemies",
+      "id": "colossus",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9718,
+      "maximumPainted": 9852
+    },
+    {
+      "kind": "enemies",
+      "id": "colossus",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8393,
+      "maximumPainted": 8711
+    },
+    {
+      "kind": "enemies",
+      "id": "colossus",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8313,
+      "maximumPainted": 9480
+    },
+    {
+      "kind": "enemies",
+      "id": "colossus",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8313,
+      "maximumPainted": 9480
+    },
+    {
+      "kind": "enemies",
+      "id": "colossus",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 7439,
+      "maximumPainted": 8579
+    },
+    {
+      "kind": "enemies",
+      "id": "colossus",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 6133,
+      "maximumPainted": 6133
+    },
+    {
+      "kind": "enemies",
+      "id": "colossus",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 6133,
+      "maximumPainted": 7192
+    },
+    {
+      "kind": "enemies",
+      "id": "drone",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7269,
+      "maximumPainted": 7397
+    },
+    {
+      "kind": "enemies",
+      "id": "drone",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7467,
+      "maximumPainted": 7645
+    },
+    {
+      "kind": "enemies",
+      "id": "drone",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7488,
+      "maximumPainted": 8558
+    },
+    {
+      "kind": "enemies",
+      "id": "drone",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7488,
+      "maximumPainted": 8558
+    },
+    {
+      "kind": "enemies",
+      "id": "drone",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 7575,
+      "maximumPainted": 8307
+    },
+    {
+      "kind": "enemies",
+      "id": "drone",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 6250,
+      "maximumPainted": 6250
+    },
+    {
+      "kind": "enemies",
+      "id": "drone",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 6250,
+      "maximumPainted": 8748
+    },
+    {
+      "kind": "enemies",
+      "id": "wraith",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5003,
+      "maximumPainted": 5587
+    },
+    {
+      "kind": "enemies",
+      "id": "wraith",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5315,
+      "maximumPainted": 5610
+    },
+    {
+      "kind": "enemies",
+      "id": "wraith",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5399,
+      "maximumPainted": 9403
+    },
+    {
+      "kind": "enemies",
+      "id": "wraith",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5399,
+      "maximumPainted": 9403
+    },
+    {
+      "kind": "enemies",
+      "id": "wraith",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5476,
+      "maximumPainted": 5858
+    },
+    {
+      "kind": "enemies",
+      "id": "wraith",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 5007,
+      "maximumPainted": 5007
+    },
+    {
+      "kind": "enemies",
+      "id": "wraith",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5007,
+      "maximumPainted": 5712
+    },
+    {
+      "kind": "enemies",
+      "id": "herald",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5595,
+      "maximumPainted": 5933
+    },
+    {
+      "kind": "enemies",
+      "id": "herald",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5462,
+      "maximumPainted": 5903
+    },
+    {
+      "kind": "enemies",
+      "id": "herald",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5682,
+      "maximumPainted": 9584
+    },
+    {
+      "kind": "enemies",
+      "id": "herald",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5682,
+      "maximumPainted": 9584
+    },
+    {
+      "kind": "enemies",
+      "id": "herald",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5305,
+      "maximumPainted": 6477
+    },
+    {
+      "kind": "enemies",
+      "id": "herald",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 3440,
+      "maximumPainted": 3440
+    },
+    {
+      "kind": "enemies",
+      "id": "herald",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 3440,
+      "maximumPainted": 5096
+    },
+    {
+      "kind": "enemies",
+      "id": "architect",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8927,
+      "maximumPainted": 13220
+    },
+    {
+      "kind": "enemies",
+      "id": "architect",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8927,
+      "maximumPainted": 13220
+    },
+    {
+      "kind": "enemies",
+      "id": "architect",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8927,
+      "maximumPainted": 13220
+    },
+    {
+      "kind": "enemies",
+      "id": "architect",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8927,
+      "maximumPainted": 13220
+    },
+    {
+      "kind": "enemies",
+      "id": "architect",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 6904,
+      "maximumPainted": 7258
+    },
+    {
+      "kind": "enemies",
+      "id": "architect",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 3861,
+      "maximumPainted": 3861
+    },
+    {
+      "kind": "enemies",
+      "id": "architect",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 3861,
+      "maximumPainted": 5784
+    },
+    {
+      "kind": "enemies",
+      "id": "gravbot",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10081,
+      "maximumPainted": 10524
+    },
+    {
+      "kind": "enemies",
+      "id": "gravbot",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9568,
+      "maximumPainted": 9852
+    },
+    {
+      "kind": "enemies",
+      "id": "gravbot",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9354,
+      "maximumPainted": 11359
+    },
+    {
+      "kind": "enemies",
+      "id": "gravbot",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9354,
+      "maximumPainted": 11359
+    },
+    {
+      "kind": "enemies",
+      "id": "gravbot",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 9373,
+      "maximumPainted": 10394
+    },
+    {
+      "kind": "enemies",
+      "id": "gravbot",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 6931,
+      "maximumPainted": 6931
+    },
+    {
+      "kind": "enemies",
+      "id": "gravbot",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 6931,
+      "maximumPainted": 8660
+    },
+    {
+      "kind": "enemies",
+      "id": "mire_hulk",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10712,
+      "maximumPainted": 11265
+    },
+    {
+      "kind": "enemies",
+      "id": "mire_hulk",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10606,
+      "maximumPainted": 11665
+    },
+    {
+      "kind": "enemies",
+      "id": "mire_hulk",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10380,
+      "maximumPainted": 11716
+    },
+    {
+      "kind": "enemies",
+      "id": "mire_hulk",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10380,
+      "maximumPainted": 11716
+    },
+    {
+      "kind": "enemies",
+      "id": "mire_hulk",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 10346,
+      "maximumPainted": 11012
+    },
+    {
+      "kind": "enemies",
+      "id": "mire_hulk",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 7636,
+      "maximumPainted": 7636
+    },
+    {
+      "kind": "enemies",
+      "id": "mire_hulk",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 7636,
+      "maximumPainted": 9600
+    },
+    {
+      "kind": "enemies",
+      "id": "neon_cultist",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9080,
+      "maximumPainted": 9749
+    },
+    {
+      "kind": "enemies",
+      "id": "neon_cultist",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8525,
+      "maximumPainted": 9208
+    },
+    {
+      "kind": "enemies",
+      "id": "neon_cultist",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9187,
+      "maximumPainted": 11915
+    },
+    {
+      "kind": "enemies",
+      "id": "neon_cultist",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9187,
+      "maximumPainted": 11915
+    },
+    {
+      "kind": "enemies",
+      "id": "neon_cultist",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 8625,
+      "maximumPainted": 10206
+    },
+    {
+      "kind": "enemies",
+      "id": "neon_cultist",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 5249,
+      "maximumPainted": 5249
+    },
+    {
+      "kind": "enemies",
+      "id": "neon_cultist",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5249,
+      "maximumPainted": 7841
+    },
+    {
+      "kind": "enemies",
+      "id": "sandworm_hatchling",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 7861,
+      "maximumPainted": 9213
+    },
+    {
+      "kind": "enemies",
+      "id": "sandworm_hatchling",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8328,
+      "maximumPainted": 8565
+    },
+    {
+      "kind": "enemies",
+      "id": "sandworm_hatchling",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8374,
+      "maximumPainted": 12741
+    },
+    {
+      "kind": "enemies",
+      "id": "sandworm_hatchling",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 8374,
+      "maximumPainted": 12741
+    },
+    {
+      "kind": "enemies",
+      "id": "sandworm_hatchling",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 7056,
+      "maximumPainted": 7704
+    },
+    {
+      "kind": "enemies",
+      "id": "sandworm_hatchling",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 6360,
+      "maximumPainted": 6360
+    },
+    {
+      "kind": "enemies",
+      "id": "sandworm_hatchling",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 6360,
+      "maximumPainted": 7077
+    },
+    {
+      "kind": "enemies",
+      "id": "frost_revenant",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5273,
+      "maximumPainted": 5517
+    },
+    {
+      "kind": "enemies",
+      "id": "frost_revenant",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5441,
+      "maximumPainted": 5658
+    },
+    {
+      "kind": "enemies",
+      "id": "frost_revenant",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5149,
+      "maximumPainted": 7711
+    },
+    {
+      "kind": "enemies",
+      "id": "frost_revenant",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 5149,
+      "maximumPainted": 7711
+    },
+    {
+      "kind": "enemies",
+      "id": "frost_revenant",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 5171,
+      "maximumPainted": 5616
+    },
+    {
+      "kind": "enemies",
+      "id": "frost_revenant",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 3565,
+      "maximumPainted": 3565
+    },
+    {
+      "kind": "enemies",
+      "id": "frost_revenant",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 3565,
+      "maximumPainted": 4431
+    },
+    {
+      "kind": "enemies",
+      "id": "magma_behemoth",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10059,
+      "maximumPainted": 10629
+    },
+    {
+      "kind": "enemies",
+      "id": "magma_behemoth",
+      "state": "walk",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 10785,
+      "maximumPainted": 11263
+    },
+    {
+      "kind": "enemies",
+      "id": "magma_behemoth",
+      "state": "attack",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9188,
+      "maximumPainted": 12290
+    },
+    {
+      "kind": "enemies",
+      "id": "magma_behemoth",
+      "state": "cast",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 9188,
+      "maximumPainted": 12290
+    },
+    {
+      "kind": "enemies",
+      "id": "magma_behemoth",
+      "state": "hurt",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 10166,
+      "maximumPainted": 10801
+    },
+    {
+      "kind": "enemies",
+      "id": "magma_behemoth",
+      "state": "down",
+      "frames": 6,
+      "distinctFrames": 1,
+      "minimumPainted": 6340,
+      "maximumPainted": 6340
+    },
+    {
+      "kind": "enemies",
+      "id": "magma_behemoth",
+      "state": "death",
+      "frames": 6,
+      "distinctFrames": 3,
+      "minimumPainted": 6340,
+      "maximumPainted": 10079
+    },
+    {
+      "kind": "npcs",
+      "id": "lio",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2818,
+      "maximumPainted": 3240
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_haventide_inn",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 3091,
+      "maximumPainted": 3394
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_haventide_shop",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2844,
+      "maximumPainted": 3126
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_haventide_smith",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 3174,
+      "maximumPainted": 3971
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_haventide_archive",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 3227,
+      "maximumPainted": 3527
+    },
+    {
+      "kind": "npcs",
+      "id": "forest_courier",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2920,
+      "maximumPainted": 3200
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_emberline_inn",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2623,
+      "maximumPainted": 2893
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_emberline_shop",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2950,
+      "maximumPainted": 3169
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_emberline_smith",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2767,
+      "maximumPainted": 2922
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_emberline_archive",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2815,
+      "maximumPainted": 3041
+    },
+    {
+      "kind": "npcs",
+      "id": "crater_miner",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2893,
+      "maximumPainted": 3415
+    },
+    {
+      "kind": "npcs",
+      "id": "mire_rescue",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2674,
+      "maximumPainted": 2887
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_orbital_inn",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2677,
+      "maximumPainted": 2904
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_orbital_shop",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 3350,
+      "maximumPainted": 3720
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_orbital_smith",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2583,
+      "maximumPainted": 2778
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_orbital_archive",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2570,
+      "maximumPainted": 2755
+    },
+    {
+      "kind": "npcs",
+      "id": "orbital_sentinel",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 4169,
+      "maximumPainted": 4367
+    },
+    {
+      "kind": "npcs",
+      "id": "frost_scout",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2947,
+      "maximumPainted": 3110
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_crown_inn",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2974,
+      "maximumPainted": 3142
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_crown_shop",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2613,
+      "maximumPainted": 2827
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_crown_smith",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 3011,
+      "maximumPainted": 3331
+    },
+    {
+      "kind": "npcs",
+      "id": "keeper_crown_archive",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 3136,
+      "maximumPainted": 3584
+    },
+    {
+      "kind": "npcs",
+      "id": "iona",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 3208,
+      "maximumPainted": 3422
+    },
+    {
+      "kind": "npcs",
+      "id": "ember_guide",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 2950,
+      "maximumPainted": 3169
+    },
+    {
+      "kind": "npcs",
+      "id": "crown_refugee",
+      "state": "idle",
+      "frames": 6,
+      "distinctFrames": 6,
+      "minimumPainted": 3136,
+      "maximumPainted": 3584
+    },
+    {
+      "kind": "items",
+      "id": "iron_blade",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 3157,
+      "maximumPainted": 3157
+    },
+    {
+      "kind": "items",
+      "id": "void_shard",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 6002,
+      "maximumPainted": 6002
+    },
+    {
+      "kind": "items",
+      "id": "rune_gauntlet",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 7987,
+      "maximumPainted": 7987
+    },
+    {
+      "kind": "items",
+      "id": "scrap_vest",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 10838,
+      "maximumPainted": 10838
+    },
+    {
+      "kind": "items",
+      "id": "bog_fang",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 3571,
+      "maximumPainted": 3571
+    },
+    {
+      "kind": "items",
+      "id": "bio_weave",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 10227,
+      "maximumPainted": 10227
+    },
+    {
+      "kind": "items",
+      "id": "ember_core",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 3065,
+      "maximumPainted": 3065
+    },
+    {
+      "kind": "items",
+      "id": "magma_blade",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 3466,
+      "maximumPainted": 3466
+    },
+    {
+      "kind": "items",
+      "id": "glacial_claw",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 8400,
+      "maximumPainted": 8400
+    },
+    {
+      "kind": "items",
+      "id": "frost_plate",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 11035,
+      "maximumPainted": 11035
+    },
+    {
+      "kind": "items",
+      "id": "void_scepter",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 2930,
+      "maximumPainted": 2930
+    },
+    {
+      "kind": "items",
+      "id": "titan_shard",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 10732,
+      "maximumPainted": 10732
+    },
+    {
+      "kind": "items",
+      "id": "data_chip",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 10233,
+      "maximumPainted": 10233
+    },
+    {
+      "kind": "items",
+      "id": "crit_lens",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 9156,
+      "maximumPainted": 9156
+    },
+    {
+      "kind": "items",
+      "id": "moss_ward",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 8177,
+      "maximumPainted": 8177
+    },
+    {
+      "kind": "items",
+      "id": "ember_crown",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 7274,
+      "maximumPainted": 7274
+    },
+    {
+      "kind": "items",
+      "id": "swamp_coil",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 7905,
+      "maximumPainted": 7905
+    },
+    {
+      "kind": "items",
+      "id": "slag_tooth",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 4317,
+      "maximumPainted": 4317
+    },
+    {
+      "kind": "items",
+      "id": "mire_charm",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 4200,
+      "maximumPainted": 4200
+    },
+    {
+      "kind": "items",
+      "id": "potion",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 8088,
+      "maximumPainted": 8088
+    },
+    {
+      "kind": "items",
+      "id": "ether",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 4837,
+      "maximumPainted": 4837
+    },
+    {
+      "kind": "items",
+      "id": "phoenix",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 8785,
+      "maximumPainted": 8785
+    },
+    {
+      "kind": "props",
+      "id": "cache_closed",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 2384,
+      "maximumPainted": 2384
+    },
+    {
+      "kind": "props",
+      "id": "cache_open",
+      "state": "idle",
+      "frames": 1,
+      "distinctFrames": 1,
+      "minimumPainted": 2888,
+      "maximumPainted": 2888
+    }
+  ],
+  "runtime": {
+    "inventoryItems": [
+      "iron_blade",
+      "void_shard",
+      "rune_gauntlet",
+      "scrap_vest",
+      "data_chip",
+      "crit_lens",
+      "slag_tooth",
+      "swamp_coil",
+      "mire_charm",
+      "bog_fang",
+      "moss_ward",
+      "bio_weave",
+      "ember_core",
+      "magma_blade",
+      "glacial_claw",
+      "frost_plate",
+      "void_scepter",
+      "titan_shard",
+      "ember_crown",
+      "potion",
+      "ether",
+      "phoenix"
+    ],
+    "npcs": [
+      "lio",
+      "ember_guide",
+      "orbital_sentinel",
+      "crown_refugee",
+      "forest_courier",
+      "mire_rescue",
+      "crater_miner",
+      "frost_scout",
+      "keeper_haventide_inn",
+      "keeper_haventide_shop",
+      "keeper_haventide_smith",
+      "keeper_haventide_archive",
+      "keeper_emberline_inn",
+      "keeper_emberline_shop",
+      "keeper_emberline_smith",
+      "keeper_emberline_archive",
+      "keeper_orbital_inn",
+      "keeper_orbital_shop",
+      "keeper_orbital_smith",
+      "keeper_orbital_archive",
+      "keeper_crown_inn",
+      "keeper_crown_shop",
+      "keeper_crown_smith",
+      "keeper_crown_archive"
+    ],
+    "ionaPortrait": true,
+    "overworldEncounter": "road_scrappers",
+    "battleEnemies": [
+      "rat",
+      "scrapper",
+      "hound",
+      "stalker",
+      "gravbot",
+      "mire_hulk",
+      "neon_cultist",
+      "sandworm_hatchling",
+      "frost_revenant",
+      "magma_behemoth",
+      "warden",
+      "golem",
+      "emberlord",
+      "wolf",
+      "colossus",
+      "drone",
+      "wraith",
+      "herald",
+      "architect"
+    ],
+    "phases": [
+      {
+        "id": "architect",
+        "phase": 1,
+        "row": 0,
+        "actualBattle": true
+      },
+      {
+        "id": "architect",
+        "phase": 2,
+        "row": 1,
+        "actualBattle": true
+      },
+      {
+        "id": "architect",
+        "phase": 3,
+        "row": 2,
+        "actualBattle": true
+      }
+    ],
+    "lethalHit": {
+      "enemy": "gravbot",
+      "frames": [
+        3,
+        4,
+        5
+      ]
+    },
+    "battleSupplies": [
+      "potion",
+      "ether",
+      "phoenix"
+    ],
+    "victoryLoot": [
+      "potion"
+    ],
+    "props": [
+      "cache_closed",
+      "cache_open"
+    ]
+  },
+  "errors": [],
+  "networkErrors": []
+}

@@ -13,7 +13,8 @@
     "test:world": "node tests/world.mjs",
     "test:pause": "node tests/pause.mjs",
     "test:art": "node tests/art.mjs",
-    "test:sprites": "node tests/sprite-remake.mjs"
+    "test:sprites": "node tests/sprite-remake.mjs",
+    "test:motion": "node tests/battle-motion-systems.mjs && node tests/battle-motion.mjs"
   },
   "devDependencies": {"playwright": "^1.58.2"}
 }

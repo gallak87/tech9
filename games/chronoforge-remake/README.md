@@ -40,6 +40,7 @@ npm run build       # syntax, import and asset checks; creates static dist/
 npm test            # deterministic production-logic scenarios and balance checks
 npm run test:play   # targeted Playwright browser scenarios; local server required
 npm run test:sprites # generated sprite coverage and runtime probes; temporary server
+npm run test:motion # contact/return invariants and targeted battle-animation browser checks
 ```
 
 For browser tests, `npm install` installs Playwright. Install Chromium with `npx playwright install chromium` if it is not already available. The test loader also supports the workspace’s bundled Playwright runtime through `PLAYWRIGHT_PACKAGE`.
@@ -61,13 +62,31 @@ __dev.advance(1)                    // advance real combat/production logic by s
 __dev.snapshot()                    // current state and transient battle details
 __dev.loadState(serializedState)    // validated custom scenario
 __dev.objects()                     // world/room interaction catalog
+__dev.pause()                       // freeze the automatic clock; UI still works
+__dev.poses()                       // current sprite positions, contact points and motion phases
+__dev.resume()                      // continue the automatic clock
 ```
 
 Normal and development builds expose the read-only `__chronoforge.snapshot()` and `render_game_to_text()` for inspection. Development fixtures intentionally grant levels, equipment, resources and narrative flags; reports identify these scenarios separately from fresh-start checks.
 
+To inspect a strike directly, initialize a ready battle, pause, choose an action, and advance its real clock to contact:
+
+```js
+__dev.checkpoint('links');
+__dev.startBattle('architect', {ready: true});
+__dev.pause();
+__dev.battleAction('command', {id: 'attack'});
+__dev.battleAction('target', {id: 'architect-0'});
+const snap = __dev.snapshot();
+__dev.advance((snap.battle.action.impactAt - snap.battle.action.elapsed) / snap.state.settings.speed);
+__dev.poses();                      // exact impact poses; resume() plays the return
+```
+
 ## Art and implementation
 
 All visual assets are new. `assets/kaida.png`, `vex.png`, and `rune.png` are original transparent 6×8 animation atlases created with the built-in imagegen tool from textual identity descriptions. **assets/prompts.json** preserves the exact prompts and grid metadata. The atlases supply idle, walk, run, attack, cast, hurt, north and south frames. Facing left mirrors directional frames; no static rotation replaces animation. Attacks use discrete windup/impact/recovery frame scheduling.
+
+Offensive battle actions now travel to the chosen opponent: Kaida dashes or leaps into a slash, Rune jumps into a punch, and Vex glides into a close spell strike. Attacks arrive when damage lands, hold contact, then return to formation. Double/triple attacks use separate landing positions. Healing, protection and supplies stay in formation; reduced motion uses stationary casts and projected strikes.
 
 The September 12 sprite pass adds **19 enemy atlases, 23 non-settlement character identities, 22 unique item icons, and closed/open salvage caches**, all created with the built-in imagegen tool. `assets/sprites/manifest.json` records every runtime mapping and original enemy identity. Exact prompts are saved in `assets/sprites/enemies/prompts.json`, `assets/sprites/npcs/prompts.json`, and `assets/sprites/items/prompts.json`. Each enemy has real idle, overworld walk, attack and hurt/collapse frames; the Architect has three distinct visual phases. NPCs have six idle/gesture frames. Iona’s generated portrait appears in her dialogue. The six original enemies and three named item sprites omitted in the first pass now have encounter, reward or shop paths.
 

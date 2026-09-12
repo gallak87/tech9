@@ -2,6 +2,8 @@ import {HEROES,ITEMS,SKILLS,LINKS,ENEMIES} from './data.js';
 import {stats,gainXp,addItem,itemName} from './state.js';
 import {drawHero,drawEnemy} from './art.js';
 import {drawBattleBackground} from './render.js';
+import {formationPosition,battlePose,actionContacts,bodyGeometry} from './battle-motion.js';
+export {formationPosition,battlePose,actionContacts,bodyGeometry} from './battle-motion.js';
 
 const copy=value=>JSON.parse(JSON.stringify(value));
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -219,7 +221,6 @@ export function battleView(g){
   return {readyHero:b.readyHero,hero:actor||null,phase:b.phase,view:b.view,commands,targets,log:b.log.slice(-4),waiting:b.waiting,action:b.action?.definition.name||null,pending:b.pending?.definition.name||null,reward:b.reward,heroes:b.heroes,enemies:b.enemies};
 }
 
-function position(unit,b){if(unit.side==='hero')return {x:210+(unit.index===1?-28:unit.index===2?22:0),y:220+unit.index*94};const count=b.enemies.length;if(count===1)return {x:586,y:315};return {x:618-(unit.index%2)*55,y:count===2?220+unit.index*124:173+unit.index*95};}
 function bar(ctx,x,y,w,fraction,color){ctx.fillStyle='#201b29';ctx.fillRect(x,y,w,5);ctx.fillStyle=color;ctx.fillRect(x,y,Math.max(0,w*clamp(fraction,0,1)),5);}
 export function actionFrame(action){
   if(action.elapsed<action.impactAt)return clamp(Math.floor(action.elapsed/action.impactAt*3),0,2);
@@ -230,35 +231,71 @@ export function drawBattle(ctx,g){
   const b=g.battle;if(!b)return;drawBattleBackground(ctx,g);
   ctx.save();ctx.fillStyle='#c7b9c3';ctx.font='11px system-ui';ctx.fillText(b.action?`${b.action.side==='enemy'?'INCOMING  ':''}${b.action.definition.name}`:b.waiting?'HOLDING · Allies are gathering their strength':b.readyHero?`${HEROES[b.readyHero].name} is ready`:'THE HOUR IS MOVING',340,128);
   if(b.loopBroken){ctx.fillStyle='#f7c879';ctx.font='11px system-ui';ctx.fillText('THE LOOP IS OPEN',490,145);}
-  const a=b.action;
-  for(const unit of [...b.heroes,...b.enemies]){
-    let p=position(unit,b),state=!alive(unit)?unit.side==='enemy'&&(unit.deathAge||0)<.32?'death':'down':b.result?.win&&unit.side==='hero'?'victory':unit.hurt>0?'hurt':unit.status.guard>0?'defend':'idle',artTime=g.time||b.time;
-    if(unit.side==='enemy'&&state==='hurt')artTime=Math.max(0,.35-unit.hurt);
-    if(state==='death')artTime=unit.deathAge||0;
-    const participating=a?.participants.includes(unit.id);
-    if(participating&&alive(unit)){
-      const magic=a.side==='hero'?!['physical','guard'].includes(a.definition.effect):a.definition.magic;
-      state=magic?'cast':'attack';
-      // Windup uses atlas frames 0–2, the single impact uses frame 3, and recovery
-      // uses frames 4–5. Each actor starts at frame zero, independent of world time.
-      artTime=(actionFrame(a)+0.01)/(unit.side==='hero'&&state==='cast'?8:10);
-      if(!g.s.settings.reducedMotion){const approach=Math.sin(clamp(a.elapsed/a.total,0,1)*Math.PI);p.x+=(unit.side==='hero'?1:-1)*(magic?10:45)*approach;}
+  const a=b.action,reducedMotion=g.s.settings.reducedMotion,units=[...b.heroes,...b.enemies];
+  const poses=new Map(units.map(unit=>[unit.id,battlePose(b,unit,{time:g.time||b.time,reducedMotion})]));
+  // Shadows stay on the ground lane while feet lift into a leap or a void glide.
+  for(const unit of units){const p=poses.get(unit.id);ctx.fillStyle=`rgba(14,12,26,${alive(unit)?.27:.12})`;ctx.beginPath();ctx.ellipse(p.x,p.groundY+3,(unit.boss?49:unit.side==='hero'?29:36)*(1-clamp(p.lift/200,0,.3)),unit.boss?11:7,0,0,Math.PI*2);ctx.fill();}
+  if(a&&!reducedMotion){
+    for(const id of a.participants){const unit=unitBy(b,id),p=poses.get(id);if(!p?.traveling||!p.offensive)continue;
+      const color=unit.side==='hero'?HEROES[id].color:'#de9a86';ctx.strokeStyle=color;ctx.lineCap='round';
+      // A short positional trail follows the same sampled path as the sprite.
+      for(let n=3;n>0;n--){const old=battlePose(b,unit,{elapsed:Math.max(0,a.elapsed-n*.026),reducedMotion});ctx.globalAlpha=.12+(3-n)*.06;ctx.lineWidth=unit.id==='vex'?8:3;ctx.beginPath();ctx.moveTo(old.x,old.y-30);ctx.lineTo(p.x,p.y-30);ctx.stroke();}
+      ctx.globalAlpha=1;
     }
-    if(unit.id===b.readyHero&&!a){ctx.strokeStyle=HEROES[unit.id].color;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y+3,43,10,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle=HEROES[unit.id].color;ctx.beginPath();ctx.moveTo(p.x,p.y-119);ctx.lineTo(p.x-6,p.y-129);ctx.lineTo(p.x+6,p.y-129);ctx.fill();}
-    if(unit.side==='hero')drawHero(ctx,unit.id,state,p.x,p.y,1.25,'right',artTime);else {const phase=unit.catalogId==='architect'?(unit.hp/unit.maxHp>.66?1:unit.hp/unit.maxHp>.33?2:3):1;ctx.globalAlpha=alive(unit)?1:state==='death'?1:0.35;drawEnemy(ctx,unit.catalogId,state,p.x,p.y,unit.boss?2.05:1.5,artTime,phase);ctx.globalAlpha=1;}
+  }
+  // Depth follows the moved ground lane. At contact the attacking body is drawn
+  // over its target, so the sword/fist cannot disappear behind the enemy atlas.
+  const ordered=[...units].sort((u,v)=>{const p=poses.get(u.id),q=poses.get(v.id);return (p.groundY+(p.phase==='strike'?12:0))-(q.groundY+(q.phase==='strike'?12:0));});
+  for(const unit of ordered){
+    const p=poses.get(unit.id),{state,artTime}=p;
+    if(unit.id===b.readyHero&&!a){ctx.strokeStyle=HEROES[unit.id].color;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.groundY+3,43,10,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle=HEROES[unit.id].color;ctx.beginPath();ctx.moveTo(p.x,p.y-119);ctx.lineTo(p.x-6,p.y-129);ctx.lineTo(p.x+6,p.y-129);ctx.fill();}
+    if(unit.side==='hero')drawHero(ctx,unit.id,state,p.x,p.y,1.25,p.facing,artTime);
+    else {const phase=unit.catalogId==='architect'?(unit.hp/unit.maxHp>.66?1:unit.hp/unit.maxHp>.33?2:3):1;ctx.save();ctx.globalAlpha=alive(unit)?1:state==='death'?1:.35;if(p.facing==='right'){ctx.translate(p.x,p.y);ctx.scale(-1,1);drawEnemy(ctx,unit.catalogId,state,0,0,unit.boss?2.05:1.5,artTime,phase);}else drawEnemy(ctx,unit.catalogId,state,p.x,p.y,unit.boss?2.05:1.5,artTime,phase);ctx.restore();}
     if(unit.status.shield>0&&alive(unit)){ctx.strokeStyle='#8ce5dd90';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y-43,43,58,0,0,Math.PI*2);ctx.stroke();}
     if(unit.status.immune>0&&unit.status.immuneTime>0){ctx.strokeStyle='#a4c8ff';ctx.setLineDash([5,4]);ctx.strokeRect(p.x-43,p.y-102,86,110);ctx.setLineDash([]);}
+  }
+  drawContactEffects(ctx,b,poses,reducedMotion);
+  // Enemy health/ATB and selection information belong to stable formation slots.
+  for(const unit of units){
+    const p=formationPosition(b,unit),pose=poses.get(unit.id);
     if(unit.side==='enemy'&&alive(unit)){
       ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillStyle='#251c2a';ctx.fillRect(p.x-83,p.y+14,166,34);ctx.fillStyle='#f5ddc4';ctx.fillText(unit.name,p.x,p.y+28);bar(ctx,p.x-65,p.y+35,130,unit.hp/unit.maxHp,'#df9b7b');bar(ctx,p.x-65,p.y+42,130,unit.atb/100,'#9c84c3');
-      if(unit.atb>65||a?.actorId===unit.id){ctx.fillStyle='#ffe29b';ctx.font='11px system-ui';ctx.fillText(a?.actorId===unit.id?a.definition.name:`Next: ${enemyPlan(unit).name}`,p.x,p.y-112);}
+      if(unit.atb>65||a?.actorId===unit.id){const y=Math.max(141,pose.y-bodyGeometry(unit).renderHeight-9);ctx.font='11px system-ui';const intent=a?.actorId===unit.id?a.definition.name:`Next: ${enemyPlan(unit).name}`,width=ctx.measureText(intent).width;ctx.fillStyle='#221e2cd9';ctx.fillRect(pose.x-width/2-6,y-12,width+12,17);ctx.fillStyle='#ffe29b';ctx.fillText(intent,pose.x,y);}
     }
     const statuses=[];if(unit.status.guard>0)statuses.push('GUARD');if(unit.status.slow>0)statuses.push('SLOW');if(unit.status.taunt>0)statuses.push('TAUNT');if(unit.status.shield>0)statuses.push(`SHIELD ${Math.ceil(unit.status.shield)}`);if(statuses.length){ctx.font='10px system-ui';ctx.fillStyle='#c1e7dd';ctx.textAlign='center';ctx.fillText(statuses.join(' · '),p.x,p.y+11);}
   }
-  if(a&&a.elapsed>a.impactAt-0.13&&a.elapsed<a.impactAt+0.35){
-    const progress=clamp((a.elapsed-a.impactAt+0.13)/0.48,0,1);ctx.globalAlpha=(1-progress)*0.85;
-    for(const id of a.targetIds){const unit=unitBy(b,id),p=position(unit,b);ctx.strokeStyle=a.kind==='link'?'#f5d990':a.side==='hero'?HEROES[a.actorId]?.color||'#a5dfee':'#eaab9c';ctx.lineWidth=a.kind==='link'?6:3;ctx.beginPath();ctx.arc(p.x,p.y-44,18+progress*55,0,Math.PI*2);ctx.stroke();for(let n=0;n<6;n++){const ang=n*Math.PI/3;ctx.fillStyle=ctx.strokeStyle;ctx.fillRect(p.x+Math.cos(ang)*(25+progress*58)-3,p.y-44+Math.sin(ang)*(25+progress*58)-3,6,6);}}
-    ctx.globalAlpha=1;
+  for(const f of b.floats){const unit=unitBy(b,f.id);if(!unit)continue;const p=poses.get(unit.id);ctx.textAlign='center';ctx.globalAlpha=Math.min(1,f.time*2);ctx.font='bold 20px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#251b2f';const y=p.y-bodyGeometry(unit).height*.7-(1.15-f.time)*35-f.offset;ctx.strokeText(f.text,p.x,y);ctx.fillStyle=f.color;ctx.fillText(f.text,p.x,y);ctx.globalAlpha=1;}
+  ctx.restore();
+}
+
+function drawContactEffects(ctx,b,poses,reducedMotion){
+  const a=b.action;if(!a)return;
+  const age=a.elapsed-a.impactAt,isOffensive=a.side==='enemy'||['enemy','enemies'].includes(a.definition.target);
+  const color=a.kind==='link'?'#f5d990':a.side==='hero'?HEROES[a.actorId]?.color||'#a5dfee':'#eaab9c';
+  ctx.save();ctx.lineCap='round';
+  // Projected attacks visibly leave the caster and reach their socket at impact.
+  for(const id of a.participants){const p=poses.get(id);if(!p?.offensive||!p.targetPoint)continue;
+    const ranged=p.contactMode==='projection',voidStrike=id==='vex';
+    if(ranged&&age<0&&age>-.17&&!reducedMotion){const u=clamp(1+age/.17,0,1),x=p.tip.x+(p.targetPoint.x-p.tip.x)*u,y=p.tip.y+(p.targetPoint.y-p.tip.y)*u;ctx.fillStyle=color;ctx.shadowColor=color;ctx.shadowBlur=12;ctx.beginPath();ctx.arc(x,y,6,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+    if(age>=0&&age<.22&&(ranged||voidStrike)){
+      const origin=voidStrike?{x:p.x+38,y:p.y-44}:p.tip;ctx.globalAlpha=(1-age/.3)*.8;ctx.strokeStyle=color;ctx.lineWidth=voidStrike?5:3;ctx.beginPath();ctx.moveTo(origin.x,origin.y);ctx.quadraticCurveTo((origin.x+p.targetPoint.x)/2,p.targetPoint.y-20,p.targetPoint.x,p.targetPoint.y);ctx.stroke();
+    }
+    if(age>=0&&age<.22&&!ranged){
+      const c=p.targetPoint,flash=1-age/.22;ctx.globalAlpha=flash;ctx.strokeStyle=id==='rune'?'#fff0bc':color;ctx.lineWidth=id==='rune'?5:3;ctx.beginPath();
+      if(id==='rune'){ctx.arc(c.x,c.y,8+(1-flash)*14,0,Math.PI*2);}
+      else{ctx.moveTo(c.x-15,c.y+19);ctx.lineTo(c.x+13,c.y-19);ctx.moveTo(c.x-10,c.y-14);ctx.lineTo(c.x+10,c.y+14);}
+      ctx.stroke();
+    }
   }
-  for(const f of b.floats){const unit=unitBy(b,f.id);if(!unit)continue;const p=position(unit,b);ctx.textAlign='center';ctx.globalAlpha=Math.min(1,f.time*2);ctx.font='bold 20px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#251b2f';const y=p.y-75-(1.15-f.time)*35-f.offset;ctx.strokeText(f.text,p.x,y);ctx.fillStyle=f.color;ctx.fillText(f.text,p.x,y);ctx.globalAlpha=1;}
+  if(age>=0&&age<.35){
+    const progress=age/.35,contacts=actionContacts(b);ctx.globalAlpha=(1-progress)*.85;
+    for(const contact of contacts){const p=poses.get(contact.targetId),unit=unitBy(b,contact.targetId);if(!p||!unit)continue;
+      const x=isOffensive?contact.x: p.x,y=isOffensive?contact.y:p.y-44;
+      // An area strike chains out from the landing socket to every chosen target.
+      if(isOffensive&&contacts.length>1){const lead=poses.get(a.participants[0])?.targetPoint;if(lead){ctx.strokeStyle=color;ctx.lineWidth=a.kind==='link'?3:2;ctx.beginPath();ctx.moveTo(lead.x,lead.y);ctx.quadraticCurveTo((lead.x+x)/2+20,(lead.y+y)/2-24,x,y);ctx.stroke();}}
+      ctx.strokeStyle=isOffensive?color:'#a9e2c3';ctx.lineWidth=a.kind==='link'?4:2;ctx.beginPath();ctx.arc(x,y,10+progress*(reducedMotion?18:40),0,Math.PI*2);ctx.stroke();
+      if(!reducedMotion)for(let n=0;n<6;n++){const ang=n*Math.PI/3;ctx.fillStyle=ctx.strokeStyle;ctx.fillRect(x+Math.cos(ang)*(15+progress*43)-2,y+Math.sin(ang)*(15+progress*43)-2,4,4);}
+    }
+  }
   ctx.restore();
 }

@@ -1,0 +1,150 @@
+{
+  "method": "Production action/update API and pure battle presentation invariants; synthetic readiness and progression fixtures",
+  "checks": [
+    {
+      "name": "kaida reaches the selected boss and returns",
+      "passed": true,
+      "travel": 289,
+      "target": "architect-0",
+      "style": "dash"
+    },
+    {
+      "name": "kaida reaches the selected second enemy and returns",
+      "passed": true,
+      "travel": 302,
+      "target": "rat-1",
+      "style": "dash"
+    },
+    {
+      "name": "vex reaches the selected boss and returns",
+      "passed": true,
+      "travel": 316,
+      "target": "architect-0",
+      "style": "glide"
+    },
+    {
+      "name": "vex reaches the selected second enemy and returns",
+      "passed": true,
+      "travel": 312,
+      "target": "rat-1",
+      "style": "glide"
+    },
+    {
+      "name": "rune reaches the selected boss and returns",
+      "passed": true,
+      "travel": 301,
+      "target": "architect-0",
+      "style": "leap"
+    },
+    {
+      "name": "rune reaches the selected second enemy and returns",
+      "passed": true,
+      "travel": 278,
+      "target": "rat-1",
+      "style": "leap"
+    },
+    {
+      "name": "rift_cleave reaches a foe at its real impact",
+      "passed": true
+    },
+    {
+      "name": "chrono_strike reaches a foe at its real impact",
+      "passed": true
+    },
+    {
+      "name": "time_sever reaches a foe at its real impact",
+      "passed": true
+    },
+    {
+      "name": "void_lance reaches a foe at its real impact",
+      "passed": true
+    },
+    {
+      "name": "null_field reaches a foe at its real impact",
+      "passed": true
+    },
+    {
+      "name": "entropy_surge reaches a foe at its real impact",
+      "passed": true
+    },
+    {
+      "name": "tidal_rift stages each participant at distinct contact positions",
+      "passed": true
+    },
+    {
+      "name": "sunrise_aegis stages each participant at distinct contact positions",
+      "passed": true
+    },
+    {
+      "name": "unwritten_hour stages each participant at distinct contact positions",
+      "passed": true
+    },
+    {
+      "name": "defend keeps support actions in formation",
+      "passed": true
+    },
+    {
+      "name": "second_wind keeps support actions in formation",
+      "passed": true
+    },
+    {
+      "name": "mend keeps support actions in formation",
+      "passed": true
+    },
+    {
+      "name": "aegis_field keeps support actions in formation",
+      "passed": true
+    },
+    {
+      "name": "bulwark keeps support actions in formation",
+      "passed": true
+    },
+    {
+      "name": "temporal_wall keeps support actions in formation",
+      "passed": true
+    },
+    {
+      "name": "rekindle keeps support actions in formation",
+      "passed": true
+    },
+    {
+      "name": "winter_mercy keeps support actions in formation",
+      "passed": true
+    },
+    {
+      "name": "sunrise_aegis keeps linked actors distinct against the lone top survivor",
+      "passed": true,
+      "minimumSeparation": 35.77
+    },
+    {
+      "name": "unwritten_hour keeps linked actors distinct against the lone top survivor",
+      "passed": true,
+      "minimumSeparation": 40.12
+    },
+    {
+      "name": "scrapper physically reaches its selected ally",
+      "passed": true
+    },
+    {
+      "name": "hound physically reaches its selected ally",
+      "passed": true
+    },
+    {
+      "name": "gravbot physically reaches its selected ally",
+      "passed": true
+    },
+    {
+      "name": "emberlord physically reaches its selected ally",
+      "passed": true
+    },
+    {
+      "name": "Lethal damage cannot move the contact point or apply twice",
+      "passed": true
+    },
+    {
+      "name": "Reduced motion suppresses aerial movement while retaining one real hit",
+      "passed": true
+    }
+  ],
+  "passed": true
+}

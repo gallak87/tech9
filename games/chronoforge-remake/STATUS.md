@@ -2,6 +2,22 @@
 
 Implemented and playable with `npm start` at **http://127.0.0.1:4179/**. Static release built in `dist/`. Validation servers are stopped. No known blocking issues remain from the checks below.
 
+## ATB contact movement · September 12
+
+Committed the completed game/sprite pass as `a364a45f`, then replaced the fixed 45-pixel attack hop with target-aware battle choreography. Kaida dashes or leaps into sword range, Rune jumps into a punch, and Vex glides into a close spell strike. Physical enemies charge their selected ally. Attacks arrive at the existing damage timestamp, hold the impact pose for 0.22 seconds, and return exactly to formation. Double/triple attacks use separate landing positions and connect effects to all affected targets. Support remains in formation; reduced motion uses stationary projected strikes.
+
+Movement uses authored run/walk/attack/cast frames, ground shadows, directional retreat and depth sorting. Health/ATB panels remain anchored. The three-enemy formation now leaves room for linked attackers against the top surviving enemy. Presentation is pure: HP, MP, ATB costs, rewards and action durations retain their existing combat logic.
+
+| ATB check | Actual result | Evidence |
+|---|---|---|
+| Movement and impact invariants | **31 passing checks**: selected boss/second-target contact, every offensive technique, separate pair/triple positions, top-survivor spacing, support in formation, physical enemy approach, continuous return, lethal-target stability, pure rendering, reduced motion and one real damage application | `evidence/battle-motion-systems-report.json` |
+| Focused Playwright | **11 passing scenarios**, 33 captured screenshot phases, zero page/network errors. Traced actual main-canvas sprite positions and atlas frames through approach/contact/return. Verified HP does not change before contact, one impact occurs, MP/ATB are charged once, and actors return to their exact formation | `evidence/battle-motion-report.json` |
+| Existing combat regressions | 16 system checks, five campaign balance scenarios and six restored-enemy scenarios still pass | `tests/systems-report.json` |
+| Build | 13 source modules plus all 29 image atlases/sheets pass syntax, import and asset checks; release rebuilt | `npm run build` |
+| Visual review | Inspected Kaida/Rune/Vex contact, linked attack, enemy charge and the approach/contact/return contact sheet | `evidence/battle-motion-contact-sheet.png` |
+
+The top-survivor edge case was independently reviewed and added to the numeric regression suite; the browser scenarios cover one- and two-enemy encounters. `__dev.pause()`, `resume()`, `battleAction()` and `poses()` support exact action checkpoints without replaying a fight. The browser and temporary HTTP server were closed after verification.
+
 ## Sprite remake · September 12
 
 Replaced the remaining procedural enemy, item and non-settlement character sprites with new built-in imagegen art. **26 new PNG sheets contain 618 used source cells**: 19 enemy identities with 24 frames each, 23 NPC/story identities with six frames each, 22 distinct equipment/supply icons, and two salvage-cache states. Kaida, Vex and Rune retain their existing generated atlases. Settlement buildings, plots, mechanics, Nera and Tess remain unchanged.
@@ -10,7 +26,7 @@ All 19 original enemy identities are explicitly mapped in `assets/sprites/manife
 
 Exact prompts and unmodified generated PNGs are saved under `assets/sprites/enemies/`, `assets/sprites/items/`, and `assets/sprites/npcs/`. The loader uses alpha bounds and explicit atlas coordinates; two NPC sheets have corrected row boundaries to preserve complete figures. Missing sheets or blank mapped frames fail explicitly instead of falling back to generic shapes.
 
-| Current check | Actual result | Evidence |
+| Sprite pass check | Actual result | Evidence |
 |---|---|---|
 | Build | 12 source files, three existing hero atlases and all 26 new sheets pass syntax, import, mapping and asset checks; `dist/` rebuilt | `npm run build` |
 | Targeted Playwright sprite validation | **182 render/state checks**, 26 sheet/alpha checks and **618 source cells** pass. Every draw is traced to its declared PNG/cell. All 22 inventory items, 24 NPC placements plus Iona, 19 battle enemy types, three Architect phases, actual lethal-hit collapse frames, three battle supplies, victory loot and both cache states verified. Zero page or network errors | `evidence/sprite-remake-report.json` |

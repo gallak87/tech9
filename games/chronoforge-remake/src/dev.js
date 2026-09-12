@@ -4,7 +4,7 @@
 import * as State from './state.js';
 import {ITEMS,SKILLS,HEROES} from './data.js';
 import {REGIONS,OBJECTS,INTERIORS,getObjects,walkable,findPath} from './world.js';
-import {startBattle,updateBattle,battleAction} from './battle.js';
+import {startBattle,updateBattle,battleAction,battlePose} from './battle.js';
 
 const allObjects=()=>[...OBJECTS,...Object.values(INTERIORS).flatMap(room=>room.objects.map(o=>({...o,inRoom:room.id})))];
 export function installDev(g,api){
@@ -51,6 +51,10 @@ export function installDev(g,api){
   objects:()=>allObjects().map(o=>({id:o.id,type:o.type,x:o.x,y:o.y,region:o.region,inRoom:o.inRoom,requires:o.requires})),
   collision:(x,y)=>walkable(g.s,x,y),path:(x,y)=>findPath(g.s,g.s.party,{x,y}),
   snapshot:api.snapshot,
+  pause(){g.devPaused=true;g.refresh();return api.snapshot();},
+  resume(){g.devPaused=false;g.refresh();return api.snapshot();},
+  battleAction(action,payload={}){const result=battleAction(g,action,payload);g.refresh();return {result,snapshot:api.snapshot()};},
+  poses(){return g.battle?[...g.battle.heroes,...g.battle.enemies].map(unit=>({id:unit.id,...battlePose(g.battle,unit,{time:g.time,reducedMotion:g.s.settings.reducedMotion})})):[];},
  };
  Object.defineProperty(window,'__dev',{value:Object.freeze(dev)});
  console.info('Chronoforge development checkpoints enabled. window.__dev.checkpoints lists scenario fixtures.');

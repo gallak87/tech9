@@ -49,14 +49,22 @@ See **STATUS.md** for actual validation and **evidence/** for screenshots and re
 
 ## Development checkpoints
 
-### Party battle idle review
+### Battle scene browser
 
-Open **http://127.0.0.1:4179/?dev=1&preview=party-idle** to go directly to a paused road battle. The **Animated / Static** buttons compare the party's new breathing loops with their resting poses. Click **Start battle** to fight using normal ATB, attacks and enemy turns; **Pause battle / Resume battle** lets you stop and continue the same encounter. **Exit review**, victory's Continue, or defeat's Return to town restores the session that preceded the fixture. Preview progress and rewards are not saved. The existing `?dev=1&preview=kaida-idle` link still animates Kaida alone while paused.
+Open **http://127.0.0.1:4179/?dev=1&preview=battles** (the existing `preview=party-idle` link also works). The picker and **← / →** controls cycle all 17 encounters, including the spire's Architect, covering all 19 enemy types and 8 regional backdrops. The controls sit below the stage. Each selection starts a fresh paused encounter, with full HP/MP, supplies and party level/equipment suited to its region. **Reset battle** reloads the current encounter. Architect's **Start phase** selector previews phases 1–3 by setting his starting HP; normal phase transitions still apply once fighting.
+
+**Animated / Static** controls both party and enemy idles during inspection. Click **Start battle** to fight using normal ATB, attacks and enemy turns; **Pause battle / Resume battle** stops and continues the same encounter. **Exit review**, victory's Continue, or defeat's Return to town restores the session from before the entire review, even after cycling through encounters. Preview progress and rewards are not saved. The existing `?dev=1&preview=kaida-idle` link still animates Kaida alone while paused.
+
+Direct entry is supported, for example **http://127.0.0.1:4179/?dev=1&preview=battles&encounter=architect&phase=3**. Invalid encounter/phase query values fall back to a valid scene. The catalog comes directly from world and interior encounter definitions. Fixture levels are 1 for the opening road patrol, 2 for Forest Veil, 4 for tier-two regions, 5 for tier-three regions, and 7 for Last Crown. Eligible skills/equipment are supplied; pair links unlock at level 4 and the triple link at level 7. These are inspection setups, not a replay of saved progression or a balance claim.
 
 Each hero uses a new `assets/<hero>-idle.png` sheet generated in one call with three poses together. Playback is **1 → 2 → 3 → 2**, holding each beat for 300 ms. At load, canvas compositing removes the edge-connected dark matte once and caches the three frames. Sprite RGB is preserved. One shared scale and baseline per hero keeps body height consistent with the original battle atlas; no frames are warped. Rune uses fixed whole-cell offsets of [0,0], [26,0] and [43,2] source pixels to correct generated padding drift at his boots. Reduced motion selects the resting pose. Attacks, other actions and overworld animations still use the original atlases. Generation inputs and prompts are kept in each hero's `art-lab/<hero>-guided-idle/` directory.
 
 ```js
 __dev.partyIdle()                   // review all three party idles together
+__dev.previewEncounters             // complete battle catalog
+__dev.previewBattle('frost_guardian') // switch scenes, keeping the original return session
+__dev.cyclePreviewBattle(1)         // next encounter; -1 for previous, wraps at the ends
+__dev.previewBattle('architect', {phase: 3})
 __dev.playIdleBattle()              // enable normal combat in the same preview
 __dev.playIdleBattle(false)         // pause combat without resetting the encounter
 __dev.kaidaIdle()                   // animate only Kaida in the paused review

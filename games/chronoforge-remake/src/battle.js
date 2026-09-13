@@ -33,13 +33,16 @@ function linkIssue(g,link){
   const b=g.battle;if(!g.s.flags[link.flag])return link.flag==='truth'?'Discover the truth at Last Crown.':'Restore the matching anchor to unlock this bond.';
   for(const id of link.heroes){const h=heroBy(b,id);if(!h||!alive(h))return `${HEROES[id].name} is down.`;if(!ready(h))return `${h.name} needs full ATB. Choose Wait for allies.`;if(h.mp<link.mp)return `${h.name} needs ${link.mp} MP.`;}return null;
 }
-export function startBattle(g,encounter){
+export function startBattle(g,encounter,{startingPhase=1}={}){
   if(!encounter||typeof encounter.id!=='string'||!Array.isArray(encounter.enemies)||!encounter.enemies.length||encounter.enemies.some(id=>!Object.hasOwn(ENEMIES,id)))return tell(g,'This encounter is not available.');
+  if(![1,2,3].includes(startingPhase)||startingPhase!==1&&!encounter.enemies.includes('architect'))return tell(g,'This starting phase is not available.');
   if(!g.s.heroes.some(alive))return tell(g,'The party needs to recover at an inn.');
   let seed=19;for(const c of encounter.id)seed=(seed*31+c.charCodeAt(0))>>>0;
   const b={encounter,snapshot:copy(g.s),heroes:g.s.heroes.map((h,index)=>{const t=stats(g.s,h);return {id:h.id,name:h.name,hp:h.hp,mp:h.mp,maxHp:t.maxHp,maxMp:t.maxMp,stats:t,atb:35-index*8,status:{},side:'hero',index};}),
     enemies:encounter.enemies.map((id,index)=>{const d=ENEMIES[id];return {...d,id:`${id}-${index}`,catalogId:id,maxHp:d.hp,atb:8+index*5,status:{},side:'enemy',index,turns:0,bossPhase:1};}),
     action:null,lastAction:null,phase:'filling',view:'main',pending:null,readyHero:null,waiting:false,result:null,reward:null,log:[],floats:[],effects:[],time:0,seed,loopBroken:false};
+  b.startingPhase=startingPhase;
+  for(const enemy of b.enemies)if(enemy.catalogId==='architect'){enemy.hp=Math.floor(enemy.maxHp*[1,.65,.32][startingPhase-1]);enemy.bossPhase=startingPhase;}
   g.battle=b;g.mode='battle';g.overlay=null;g.path=[];
   log(b,`${encounter.name} · Fill ATB, then choose an action.`);
   if(encounter.boss)log(b,'Watch the enemy’s next move. Defend and Aegis soften heavy attacks.');
@@ -75,7 +78,7 @@ export function battleAction(g,action,payload={}){
     if(b.result?.win!==true)return tell(g,'The battle has not been won yet.');if(b.dismissed)return success('Already continued.');b.dismissed=true;g.finishBattle?.(true,b.reward);return success('Victory.');
   }
   if(action==='retry'){
-    if(b.result?.win!==false)return tell(g,'Retry is available after defeat.');const encounter=b.encounter;g.s=copy(b.snapshot);return startBattle(g,encounter);
+    if(b.result?.win!==false)return tell(g,'Retry is available after defeat.');const encounter=b.encounter;g.s=copy(b.snapshot);return startBattle(g,encounter,{startingPhase:b.startingPhase||1});
   }
   if(action==='retreat'){
     if(b.result?.win!==false)return tell(g,'Return to town is available after defeat.');g.s=copy(b.snapshot);g.s.party={...g.s.party,...g.s.lastTown,interior:null,returnPoint:null};for(const h of g.s.heroes){const t=stats(g.s,h);h.hp=t.maxHp;h.mp=t.maxMp;}b.dismissed=true;g.finishBattle?.(false,null);return success('The party recovered at the last safe town.');
@@ -253,7 +256,15 @@ export function drawBattle(ctx,g){
       const preview=state==='idle'&&g.kaidaIdlePreview?.heroes.includes(unit.id)?g.kaidaIdlePreview:null;
       drawHero(ctx,unit.id,state,p.x,p.y,1.25,p.facing,preview?.time??artTime,{battleIdle:true,staticIdle:preview?.mode==='static',reducedMotion});
     }
-    else {const phase=unit.catalogId==='architect'?(unit.hp/unit.maxHp>.66?1:unit.hp/unit.maxHp>.33?2:3):1;ctx.save();ctx.globalAlpha=alive(unit)?1:state==='death'?1:.35;if(p.facing==='right'){ctx.translate(p.x,p.y);ctx.scale(-1,1);drawEnemy(ctx,unit.catalogId,state,0,0,unit.boss?2.05:1.5,artTime,phase);}else drawEnemy(ctx,unit.catalogId,state,p.x,p.y,unit.boss?2.05:1.5,artTime,phase);ctx.restore();}
+    else {
+      const phase=unit.catalogId==='architect'?(unit.hp/unit.maxHp>.66?1:unit.hp/unit.maxHp>.33?2:3):1;
+      const preview=state==='idle'&&g.kaidaIdlePreview?.enemies?g.kaidaIdlePreview:null;
+      const enemyTime=preview?(preview.mode==='static'||reducedMotion?0:preview.time):artTime;
+      ctx.save();ctx.globalAlpha=alive(unit)?1:state==='death'?1:.35;
+      if(p.facing==='right'){ctx.translate(p.x,p.y);ctx.scale(-1,1);drawEnemy(ctx,unit.catalogId,state,0,0,unit.boss?2.05:1.5,enemyTime,phase);}
+      else drawEnemy(ctx,unit.catalogId,state,p.x,p.y,unit.boss?2.05:1.5,enemyTime,phase);
+      ctx.restore();
+    }
     if(unit.status.shield>0&&alive(unit)){ctx.strokeStyle='#8ce5dd90';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y-43,43,58,0,0,Math.PI*2);ctx.stroke();}
     if(unit.status.immune>0&&unit.status.immuneTime>0){ctx.strokeStyle='#a4c8ff';ctx.setLineDash([5,4]);ctx.strokeRect(p.x-43,p.y-102,86,110);ctx.setLineDash([]);}
   }

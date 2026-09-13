@@ -2,10 +2,11 @@
 // These helpers INITIALIZE documented scenarios. Gameplay actions still run
 // through the same combat, progression, collision, save and narrative systems.
 import * as State from './state.js';
-import {ITEMS,SKILLS,HEROES} from './data.js';
+import {ITEMS,SKILLS,HEROES,ENEMIES} from './data.js';
 import {REGIONS,OBJECTS,INTERIORS,getObjects,walkable,findPath} from './world.js';
 import {startBattle,updateBattle,battleAction,battlePose} from './battle.js';
 import {setAudio} from './audio.js';
+import {PREVIEW_ENCOUNTERS,previewEncounter,createBattlePreviewState} from './battle-preview.js';
 
 const allObjects=()=>[...OBJECTS,...Object.values(INTERIORS).flatMap(room=>room.objects.map(o=>({...o,inRoom:room.id})))];
 export function installDev(g,api){
@@ -27,7 +28,12 @@ export function installDev(g,api){
  function updateIdleControls(){
   if(!idleControls)return;
   const preview=g.kaidaIdlePreview;
-  idleControls.querySelector('[data-idle-title]').textContent=`${preview.heroes.length>1?'Party':'Kaida'} preview · ${preview.playing?'Battle active':'Combat paused'}`;
+  idleControls.querySelector('[data-idle-title]').textContent=`Battle preview · ${preview.playing?'Battle active':'Combat paused'}`;
+  const index=PREVIEW_ENCOUNTERS.findIndex(encounter=>encounter.id===preview.encounterId),encounter=PREVIEW_ENCOUNTERS[index];
+  idleControls.querySelector('[data-encounter]').value=encounter.id;
+  idleControls.querySelector('[data-encounter-details]').textContent=`${index+1} / ${PREVIEW_ENCOUNTERS.length} · Party Lv ${g.s.heroes[0].level} · ${encounter.enemies.map(id=>ENEMIES[id].name).join(' + ')}`;
+  idleControls.querySelector('[data-phase-label]').style.display=encounter.enemies.includes('architect')?'block':'none';
+  idleControls.querySelector('[data-phase]').value=String(preview.phase);
   const combat=idleControls.querySelector('[data-idle-combat]');
   combat.textContent=preview.playing?'Pause battle':preview.started?'Resume battle':'Start battle';
   combat.setAttribute('aria-pressed',String(preview.playing));
@@ -37,15 +43,30 @@ export function installDev(g,api){
   }
  }
  function showIdleControls(){
-  idleControls=document.createElement('section');idleControls.id='kaida-idle-review';idleControls.setAttribute('role','group');idleControls.setAttribute('aria-label','Party idle animation review');
-  idleControls.style.cssText='position:fixed;right:16px;bottom:16px;z-index:1000;padding:12px;border:1px solid #b49e78;border-radius:8px;background:#211c29f5;color:#f6ead4;font:13px system-ui;box-shadow:0 3px 20px #0006;max-width:calc(100vw - 32px);box-sizing:border-box';
+  idleControls=document.createElement('section');idleControls.id='kaida-idle-review';idleControls.setAttribute('role','group');idleControls.setAttribute('aria-label','Battle scene review');
+  idleControls.style.cssText='padding:12px;border:1px solid #b49e78;border-radius:8px;background:#211c29f5;color:#f6ead4;font:13px system-ui;box-shadow:0 3px 20px #0006;width:min(960px,calc(100vw - 20px));flex-shrink:0;box-sizing:border-box';
+  // Reserve a rail below the stage so the picker never covers a sprite or command.
+  const layout=document.createElement('style');layout.textContent='body:has(#kaida-idle-review){display:flex;flex-direction:column;justify-content:center;gap:10px;padding:10px;overflow:auto}body:has(#kaida-idle-review) #game{width:clamp(320px,calc((100dvh - 220px)*1.6),1440px);max-width:calc(100vw - 20px);flex-shrink:0}';idleControls.append(layout);
   const title=document.createElement('div');title.dataset.idleTitle='';title.style.cssText='font-weight:600;margin-bottom:9px';idleControls.append(title);
+  const controlStyle='padding:7px 9px;border:1px solid #71647d;border-radius:4px;background:#292431;color:#f6ead4;font:inherit;cursor:pointer';
+  const nav=document.createElement('div');nav.style.cssText='display:flex;gap:7px;align-items:center';
+  const previous=document.createElement('button');previous.type='button';previous.dataset.previousBattle='';previous.textContent='←';previous.setAttribute('aria-label','Previous battle');previous.title='Previous battle';previous.style.cssText=controlStyle;previous.addEventListener('click',()=>{dev.cyclePreviewBattle(-1);idleControls.querySelector('[data-previous-battle]').focus();});nav.append(previous);
+  const select=document.createElement('select');select.dataset.encounter='';select.setAttribute('aria-label','Battle encounter');select.style.cssText=controlStyle+';flex:1;min-width:0;width:0';
+  PREVIEW_ENCOUNTERS.forEach((encounter,index)=>{const option=document.createElement('option');option.value=encounter.id;option.textContent=`${index+1}. ${encounter.name} · ${REGIONS.find(r=>r.id===encounter.region)?.name||encounter.region}${encounter.boss?' · Boss':''}`;select.append(option);});
+  select.addEventListener('change',()=>{dev.previewBattle(select.value);idleControls.querySelector('[data-encounter]').focus();});nav.append(select);
+  const next=document.createElement('button');next.type='button';next.dataset.nextBattle='';next.textContent='→';next.setAttribute('aria-label','Next battle');next.title='Next battle';next.style.cssText=controlStyle;next.addEventListener('click',()=>{dev.cyclePreviewBattle(1);idleControls.querySelector('[data-next-battle]').focus();});nav.append(next);idleControls.append(nav);
+  const details=document.createElement('div');details.dataset.encounterDetails='';details.style.cssText='margin:8px 0;color:#c4b8c9;font-size:12px';idleControls.append(details);
+  const phaseLabel=document.createElement('label');phaseLabel.dataset.phaseLabel='';phaseLabel.textContent='Start phase ';phaseLabel.style.cssText='display:block;margin:8px 0';
+  const phase=document.createElement('select');phase.dataset.phase='';phase.setAttribute('aria-label','Architect starting phase');phase.style.cssText=controlStyle;
+  for(const value of [1,2,3]){const option=document.createElement('option');option.value=String(value);option.textContent=`Phase ${value}`;phase.append(option);}
+  phase.addEventListener('change',()=>{dev.previewBattle(g.kaidaIdlePreview.encounterId,{phase:Number(phase.value)});idleControls.querySelector('[data-phase]').focus();});phaseLabel.append(phase);idleControls.append(phaseLabel);
   const buttons=document.createElement('div');buttons.style.cssText='display:flex;gap:7px;flex-wrap:wrap';
   for(const mode of ['animated','static']){
    const button=document.createElement('button');button.type='button';button.textContent=mode==='animated'?'Animated':'Static';button.dataset.idleMode=mode;
    button.style.cssText='padding:7px 11px;border:1px solid #71647d;border-radius:4px;color:#f6ead4;font:inherit;cursor:pointer';button.addEventListener('click',()=>dev.kaidaIdleMode(mode));buttons.append(button);
   }
   const combat=document.createElement('button');combat.type='button';combat.dataset.idleCombat='';combat.style.cssText='padding:7px 11px;border:1px solid #edcc86;border-radius:4px;background:#554163;color:#f6ead4;font:inherit;cursor:pointer';combat.addEventListener('click',()=>dev.playIdleBattle(!g.kaidaIdlePreview.playing));buttons.append(combat);
+  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset battle';reset.style.cssText=controlStyle;reset.addEventListener('click',()=>dev.previewBattle(g.kaidaIdlePreview.encounterId,{phase:g.kaidaIdlePreview.phase}));buttons.append(reset);
   const exit=document.createElement('button');exit.type='button';exit.textContent='Exit review';exit.style.cssText='padding:7px 11px;border:1px solid #71647d;border-radius:4px;background:#292431;color:#f6ead4;font:inherit;cursor:pointer';exit.addEventListener('click',()=>dev.exitKaidaIdle());buttons.append(exit);
   idleControls.append(buttons);
   // Native button keyboard behavior remains available without sending game keys.
@@ -84,16 +105,27 @@ export function installDev(g,api){
  }
  const dev={
   checkpoints:['fresh','settlement','midgame','links','anchors','finale','defeat'],checkpoint,
-  kaidaIdle(mode='animated',heroes=['kaida']){
+  kaidaIdle(mode='animated',heroes=['kaida'],encounterId='road_scrappers',phase=1){
    idleMode(mode);
+   const encounter=previewEncounter(encounterId);
+   if(![1,2,3].includes(phase)||phase!==1&&!encounter.enemies.includes('architect'))throw new Error('Unsupported preview phase');
+   const state=createBattlePreviewState(encounter);
    const previous=idleReturn||{s:g.s,mode:g.mode,overlay:g.overlay,dialogue:g.dialogue,battle:g.battle,devPaused:g.devPaused,devCheckpoint:g.devCheckpoint,time:g.time,ui:structuredClone(g.ui),camera:g.camera,path:g.path,trail:g.trail,nearby:g.nearby,interactPending:g.interactPending,encounterGrace:g.encounterGrace,moving:g.moving,facing:g.facing,reward:g.reward,toastMsg:g.toastMsg,toastUntil:g.toastUntil};
-   checkpoint('fresh');g.s.flags.intro=true;g.s.settings.speed=1;g.s.settings.sound=false;g.s.settings.reducedMotion=false;
-   startBattle(g,allObjects().find(o=>o.type==='encounter'&&o.id==='road_scrappers'));
+   clearIdlePreview();api.resetTransient();g.s=state;g.reward=null;g.toastMsg='';g.toastUntil=0;
+   document.getElementById('toast')?.classList.remove('show');
+   startBattle(g,encounter,{startingPhase:phase});
    for(const unit of [...g.battle.heroes,...g.battle.enemies])unit.atb=0;
-   g.battle.readyHero=null;g.battle.phase='filling';g.devPaused=true;g.devCheckpoint=heroes.length>1?'party-idle':'kaida-idle';g.kaidaIdlePreview={mode,time:0,heroes,playing:false,started:false};idleReturn=previous;
+   g.battle.readyHero=null;g.battle.phase='filling';g.devPaused=true;g.devCheckpoint=heroes.length>1?'party-idle':'kaida-idle';g.kaidaIdlePreview={mode,time:0,heroes,encounterId,phase,enemies:heroes.length>1,playing:false,started:false};idleReturn=previous;
    setAudio(false);showIdleControls();g.refresh();return api.snapshot();
   },
   partyIdle(mode='animated'){return dev.kaidaIdle(mode,['kaida','vex','rune']);},
+  previewEncounters:PREVIEW_ENCOUNTERS.map(({id,name,region,enemies,boss})=>({id,name,region,enemies:[...enemies],boss:!!boss})),
+  previewBattle(id='road_scrappers',{phase=1}={}){return dev.kaidaIdle(g.kaidaIdlePreview?.mode||'animated',g.kaidaIdlePreview?.heroes||['kaida','vex','rune'],id,phase);},
+  cyclePreviewBattle(direction=1){
+   if(!Number.isInteger(direction))throw new Error('Battle step must be an integer');
+   const index=PREVIEW_ENCOUNTERS.findIndex(encounter=>encounter.id===g.kaidaIdlePreview?.encounterId),count=PREVIEW_ENCOUNTERS.length;
+   return dev.previewBattle(PREVIEW_ENCOUNTERS[((Math.max(0,index)+direction)%count+count)%count].id);
+  },
   playIdleBattle(playing=true){
    if(!g.kaidaIdlePreview||g.mode!=='battle')throw new Error('No preview battle is active');
    g.kaidaIdlePreview.playing=!!playing;g.kaidaIdlePreview.started ||= !!playing;g.devPaused=!playing;
@@ -120,8 +152,12 @@ export function installDev(g,api){
  };
  Object.defineProperty(window,'__dev',{value:Object.freeze(dev)});
  const query=new URLSearchParams(location.search);if(query.get('dev')==='1'){
-  if(query.get('preview')==='kaida-idle')dev.kaidaIdle();
-  if(query.get('preview')==='party-idle')dev.partyIdle();
+  if(['kaida-idle','party-idle','battles'].includes(query.get('preview'))){
+   const id=PREVIEW_ENCOUNTERS.some(encounter=>encounter.id===query.get('encounter'))?query.get('encounter'):'road_scrappers';
+   const requestedPhase=Number(query.get('phase'));
+   const phase=id==='architect'&&[1,2,3].includes(requestedPhase)?requestedPhase:1;
+   dev.kaidaIdle('animated',query.get('preview')==='kaida-idle'?['kaida']:['kaida','vex','rune'],id,phase);
+  }
  }
  console.info('Chronoforge development checkpoints enabled. window.__dev.checkpoints lists scenario fixtures.');
 }

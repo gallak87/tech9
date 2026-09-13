@@ -1,6 +1,14 @@
 # Status · 2026-09-12
 
-Implemented and playable with `npm start` at **http://127.0.0.1:4179/**. Static release built in `dist/`. Validation servers are stopped. No known blocking issues remain from the checks below.
+Run with `npm start` at **http://127.0.0.1:4179/**. Static release built in `dist/`. The latest environment pass is awaiting the user's visual/play review; earlier gameplay checks below describe the previous passes.
+
+## Environment benchmark · September 12
+
+Rebuilt the code-drawn artwork for three scenes around the existing generated sprites: Haventide's harbor/service buildings and local scenery, its Wayfarer Smithy interior, and the opening Rusted Road Patrol battlefield. The new `scene-haventide.js`, `scene-smithy.js`, and `scene-road.js` modules are integrated into the live renderer at their corresponding locations. They use finer material shading, directional highlights, recessed architectural details, layered foliage and warm/cool lighting. Static detail is cached; ambient effects honor reduced motion.
+
+This is an artwork pass. World coordinates, collision, doors, interaction targets, combat choreography and progression remain in their existing modules. Settlement plots, the Commons Hall and settlement characters retain their prior artwork. Other towns, rooms and battle biomes retain their previous rendering.
+
+**Validation scope: syntax/import/asset build only.** `npm run build` passed for 16 source files, three hero atlases and 26 sprite sheets, and rebuilt `dist/`; `git diff --check` passed. The user explicitly requested no playtesting this time. No browser, Playwright, game simulation, visual screenshot review or gameplay test was run for this pass, and no server was started. Previous evidence files have not been refreshed and do not validate the new environments. The user will assess the result in play.
 
 ## ATB contact movement · September 12
 

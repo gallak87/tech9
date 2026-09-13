@@ -1,5 +1,8 @@
 import {REGIONS,TOWNS,INTERIORS,OBJECTS,SCENERY,TERRAIN_FEATURES,WORLD_W,WORLD_H,regionAt,getObjects,walkable} from './world.js';
 import {drawHero,drawEnemy,drawNPC,drawProp} from './art.js';
+import {drawHaventideGround,drawHaventideBuilding,drawHaventideScenery} from './scene-haventide.js';
+import {drawHaventideSmithy,drawSmithyAtmosphere} from './scene-smithy.js';
+import {drawHaventideBattle} from './scene-road.js';
 
 const groundCache=new Map(),roomCache=new Map(),propCache=new Map();
 const ink='#252633',paper='#f5e0b3';
@@ -84,6 +87,7 @@ function ground(r){
       if(o.type==='anchor'){steppedEllipse(c,p.dark,x,y+8,75,36);steppedEllipse(c,p.stone,x,y+3,65,30);steppedEllipse(c,p.road,x,y+1,53,23);for(let i=0;i<8;i++){const a=i*Math.PI/4;box(c,p.accent,x+Math.cos(a)*45-2,y+Math.sin(a)*18-2,4,4);}}
     }
   }
+  if(r.id==='haventide')drawHaventideGround(c,r);
   groundCache.set(r.id,canvas);return canvas;
 }
 
@@ -130,6 +134,7 @@ function scenerySprite(o,r){
 }
 
 function building(c,o,r,level=1){
+  if(r.id==='haventide'&&o.type==='door'&&drawHaventideBuilding(c,o,r))return;
   const p=r.palette,x=o.x,y=o.y,s=o.service||'hall',hall=o.type==='hall';
   if(s==='spire'){
     steppedEllipse(c,'#201d306e',x+9,y+3,95,24);box(c,'#342e49',x-66,y-140,132,131);box(c,'#777387',x-58,y-143,116,129);box(c,'#ada2af',x-61,y-147,122,8);
@@ -261,6 +266,7 @@ function sign(c,o){const x=o.x,y=o.y;box(c,'#463e3d',x-3,y-21,7,24);box(c,'#4035
 function roomBackground(room){
   if(roomCache.has(room.id))return roomCache.get(room.id);
   const canvas=makeCanvas(720,480),c=canvas.getContext('2d'),r=REGIONS.find(r=>r.id===room.region),p=r.palette,s=room.service;
+  if(room.id==='haventide_smith'){drawHaventideSmithy(c);roomCache.set(room.id,canvas);return canvas;}
   box(c,'#211e2b',0,0,720,480);box(c,'#403443',28,63,664,389);box(c,'#715965',36,71,648,374);box(c,'#362f3d',44,121,632,316);
   for(let yy=125;yy<438;yy+=21)for(let xx=48;xx<671;xx+=47){const ww=Math.min(45,671-xx);box(c,s==='spire'?'#716575':s==='smith'?'#78695f':'#a18768',xx,yy,ww,19);box(c,'#ffffff12',xx+2,yy+1,Math.max(0,ww-5),2);box(c,'#34293424',xx+6,yy+14,Math.max(0,ww-16),2);}
   // Double-height back wall with stone footings and a long picture rail.
@@ -301,12 +307,12 @@ export function drawWorld(ctx,g){
   // Water under the continent's stepped outer silhouette.
   for(let y=0;y<600;y+=24)for(let x=0;x<960;x+=80){const xx=x+(Math.floor(y/24)%2)*31;box(ctx,'#3b425419',xx,y,28,2);}
   ctx.translate(-Math.round(cam.x),-Math.round(cam.y));
-  if(room)ctx.drawImage(roomBackground(room),0,0);
+  if(room){ctx.drawImage(roomBackground(room),0,0);if(room.id==='haventide_smith')drawSmithyAtmosphere(ctx,time,!!s.settings?.reducedMotion);}
   else for(const r of REGIONS)if(r.x<cam.x+960&&r.x+800>cam.x&&r.y<cam.y+600&&r.y+640>cam.y)ctx.drawImage(ground(r),r.x,r.y);
   if(g.path?.length&&!g.overlay){ctx.save();ctx.strokeStyle='#f2dbab77';ctx.lineWidth=2;ctx.setLineDash([3,9]);ctx.beginPath();ctx.moveTo(p.x,p.y);for(const q of g.path)ctx.lineTo(q.x,q.y);ctx.stroke();ctx.setLineDash([]);const end=g.path.at(-1);line(ctx,'#f6d8a4',end.x-5,end.y,end.x+5,end.y);line(ctx,'#f6d8a4',end.x,end.y-5,end.x,end.y+5);ctx.restore();}
   const visible=o=>o.x>cam.x-130&&o.x<cam.x+1090&&o.y>cam.y-40&&o.y<cam.y+790;
   const objects=getObjects(s).filter(visible),draws=[];
-  if(!room)for(const o of SCENERY.filter(visible)){const r=REGIONS.find(r=>r.id===o.region);draws.push({y:o.y,draw:()=>{const spr=scenerySprite(o,r);ctx.drawImage(spr,Math.round(o.x-58*o.size),Math.round(o.y-122*o.size),Math.round(116*o.size),Math.round(136*o.size));}});}
+  if(!room)for(const o of SCENERY.filter(visible)){const r=REGIONS.find(r=>r.id===o.region);draws.push({y:o.y,draw:()=>{if(r.id==='haventide'&&drawHaventideScenery(ctx,o,r))return;const spr=scenerySprite(o,r);ctx.drawImage(spr,Math.round(o.x-58*o.size),Math.round(o.y-122*o.size),Math.round(116*o.size),Math.round(136*o.size));}});}
   for(const o of objects){
     const r=REGIONS.find(r=>r.id===o.region)||REGIONS[0];
     if(o.type==='door'&&!o.exit)draws.push({y:o.y-8,draw:()=>building(ctx,o,r)});
@@ -351,6 +357,7 @@ export function drawWorld(ctx,g){
 
 export function drawBattleBackground(ctx,g){
   const id=g.battle?.encounter?.region||g.battle?.region||regionAt(g.s.party.x,g.s.party.y)?.id||'haventide';
+  if(id==='haventide'){drawHaventideBattle(ctx,g);return;}
   const r=REGIONS.find(r=>r.id===id)||REGIONS[0],p=r.palette,t=g.time||0;
   const grad=ctx.createLinearGradient(0,0,0,460);grad.addColorStop(0,p.dark);grad.addColorStop(.48,p.ground);grad.addColorStop(1,p.road);ctx.fillStyle=grad;ctx.fillRect(0,0,960,600);
   // Newly drawn stage panorama uses the same biome language at combat scale.

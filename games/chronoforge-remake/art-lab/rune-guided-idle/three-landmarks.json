@@ -1,0 +1,215 @@
+{
+  "canvas": [
+    2304,
+    1024
+  ],
+  "cellWidth": 768,
+  "sourceCell": [
+    181,
+    181
+  ],
+  "scale": 4,
+  "offset": [
+    22,
+    156
+  ],
+  "rest": {
+    "head": [
+      111,
+      48
+    ],
+    "neck": [
+      108,
+      69
+    ],
+    "shoulderL": [
+      77,
+      81
+    ],
+    "shoulderR": [
+      134,
+      84
+    ],
+    "elbowL": [
+      64,
+      104
+    ],
+    "elbowR": [
+      148,
+      107
+    ],
+    "wristL": [
+      63,
+      127
+    ],
+    "wristR": [
+      155,
+      127
+    ],
+    "hipL": [
+      91,
+      122
+    ],
+    "hipR": [
+      123,
+      122
+    ],
+    "kneeL": [
+      81,
+      145
+    ],
+    "kneeR": [
+      131,
+      145
+    ],
+    "ankleL": [
+      78,
+      167
+    ],
+    "ankleR": [
+      130,
+      166
+    ],
+    "toeL": [
+      85,
+      176
+    ],
+    "toeR": [
+      139,
+      176
+    ]
+  },
+  "halfway": {
+    "head": [
+      111,
+      47.5
+    ],
+    "neck": [
+      108,
+      68.25
+    ],
+    "shoulderL": [
+      77,
+      80.25
+    ],
+    "shoulderR": [
+      134,
+      83.25
+    ],
+    "elbowL": [
+      64,
+      103.625
+    ],
+    "elbowR": [
+      148,
+      106.625
+    ],
+    "wristL": [
+      63,
+      127
+    ],
+    "wristR": [
+      155,
+      127
+    ],
+    "hipL": [
+      91,
+      122
+    ],
+    "hipR": [
+      123,
+      122
+    ],
+    "kneeL": [
+      81,
+      145
+    ],
+    "kneeR": [
+      131,
+      145
+    ],
+    "ankleL": [
+      78,
+      167
+    ],
+    "ankleR": [
+      130,
+      166
+    ],
+    "toeL": [
+      85,
+      176
+    ],
+    "toeR": [
+      139,
+      176
+    ]
+  },
+  "inhale": {
+    "head": [
+      111,
+      47
+    ],
+    "neck": [
+      108,
+      67.5
+    ],
+    "shoulderL": [
+      77,
+      79.5
+    ],
+    "shoulderR": [
+      134,
+      82.5
+    ],
+    "elbowL": [
+      64,
+      103.25
+    ],
+    "elbowR": [
+      148,
+      106.25
+    ],
+    "wristL": [
+      63,
+      127
+    ],
+    "wristR": [
+      155,
+      127
+    ],
+    "hipL": [
+      91,
+      122
+    ],
+    "hipR": [
+      123,
+      122
+    ],
+    "kneeL": [
+      81,
+      145
+    ],
+    "kneeR": [
+      131,
+      145
+    ],
+    "ankleL": [
+      78,
+      167
+    ],
+    "ankleR": [
+      130,
+      166
+    ],
+    "toeL": [
+      85,
+      176
+    ],
+    "toeR": [
+      139,
+      176
+    ]
+  },
+  "notes": "Visual reference only; not an editing mask or actual ControlNet conditioning. Gold marks are invariant anchors. Guide overlays must not appear in the generated art."
+}

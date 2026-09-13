@@ -1,8 +1,10 @@
 // Heroes, non-settlement actors, enemies, items and salvage use imagegen atlases.
 // Sprite sheets are sampled as discrete frames; no static sprite rotations.
-import {createKaidaIdleFrames,kaidaIdleFrame} from './kaida-idle.js';
-const heroes={},bounds={},sheets=new Map();
-let kaidaIdle=[];
+import {createHeroIdleFrames,heroIdleFrame} from './hero-idle.js';
+const heroes={},bounds={},heroIdle={},idleHeights={},sheets=new Map();
+// Rune's generated cells have different padding. Whole-cell integer offsets
+// register the boots to pose 1 without resizing or redrawing any body pixels.
+const idleOffsets={rune:[[0,0],[26,0],[43,2]]};
 let manifest;
 let loading;
 const ROW={idle:0,walk:1,run:2,attack:3,cast:4,hurt:5,defend:4,victory:4,down:5};
@@ -16,18 +18,24 @@ async function loadAllArt(){
    let max=0;for(let y=Math.floor(row*ch);y<Math.floor((row+1)*ch);y++)for(let x=Math.floor(col*cw);x<Math.floor((col+1)*cw);x++){if(pixels[(y*img.width+x)*4+3]>100)max=Math.max(max,y-row*ch);}
    return max;
   }));
+  let top=ch;
+  for(let y=0;y<ch;y++)for(let x=0;x<cw;x++)if(pixels[(y*img.width+x)*4+3]>100)top=Math.min(top,y);
+  idleHeights[id]=(bounds[id][0][0]-top+1)/ch;
+  const idleImage=new Image();idleImage.src=new URL(`../assets/${id}-idle.png`,import.meta.url).href;await idleImage.decode();
+  heroIdle[id]=createHeroIdleFrames(idleImage);
  }));
- kaidaIdle=createKaidaIdleFrames(heroes.kaida);
  await loadSpriteSheets();
 }
 export function drawHero(ctx,id,state,x,y,scale=1,face='right',time=0,options={}){
  const img=heroes[id];if(!img)return;
  // Battle-only opt-in: overworld directions and every action still use their
- // existing atlas frames. Every idle sample shares the same resting baseline.
- if(id==='kaida'&&state==='idle'&&options.battleIdle&&(face==='right'||face==='left')){
-  const frame=kaidaIdle[kaidaIdleFrame(time,options)],ch=img.height/8,size=82*scale,base=bounds.kaida[0][0];
+ // existing atlas frames. Each hero's new idle has one fixed scale and baseline.
+ if(state==='idle'&&options.battleIdle&&heroIdle[id]&&(face==='right'||face==='left')){
+  const index=heroIdleFrame(time,options),{frames,bounds:box}=heroIdle[id],frame=frames[index];
+  const [dx,dy]=idleOffsets[id]?.[index]||[0,0];
+  const k=82*scale*idleHeights[id]/box.height;
   ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(Math.round(x),Math.round(y));if(face==='left')ctx.scale(-1,1);
-  ctx.drawImage(frame,0,0,frame.width,frame.height,-size*.5,-size*base/ch,size,size);
+  ctx.drawImage(frame,(-frame.width*.5+dx)*k,(-box.bottom+dy)*k,frame.width*k,frame.height*k);
   ctx.restore();return;
  }
  let row=ROW[state]??0,frame=Math.floor(time*(state==='idle'?4:state==='run'?13:state==='attack'?10:8))%6;

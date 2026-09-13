@@ -1,0 +1,108 @@
+{
+  "tool": "built-in image_gen__imagegen",
+  "generationCalls": 1,
+  "intent": "Three Rune poses generated together in one image",
+  "prompt": "three-prompt.txt",
+  "inputs": [
+    "three-edit-target.png",
+    "three-pose-guides.png",
+    "../../assets/rune.png"
+  ],
+  "originalGeneratedPath": "/Users/g/.codex/generated_images/01a08f3a-187f-73f3-910b-6e9e2cbad11a/exec-5a1c07d0-73aa-4cb0-8654-4874c8d56f4c.png",
+  "finalAsset": "../../assets/rune-idle.png",
+  "requestedDimensions": [
+    2304,
+    1024
+  ],
+  "actualDimensions": [
+    1881,
+    836
+  ],
+  "layout": {
+    "columns": 3,
+    "rows": 1,
+    "cellWidth": 627,
+    "cellHeight": 836,
+    "playback": [
+      0,
+      1,
+      2,
+      1
+    ]
+  },
+  "pngColorType": 2,
+  "opaque": true,
+  "rawOutputPreserved": true,
+  "sha256": "c41faabb639029c631eb91ac9ea77ca6700f4e4a68be77f9a4ca5e49f1cecd16",
+  "approximateContentBoxes": [
+    {
+      "x": 129,
+      "y": 182,
+      "width": 415,
+      "height": 550,
+      "feetY": 731
+    },
+    {
+      "x": 102,
+      "y": 182,
+      "width": 416,
+      "height": 550,
+      "feetY": 731
+    },
+    {
+      "x": 85,
+      "y": 177,
+      "width": 416,
+      "height": 553,
+      "feetY": 729
+    }
+  ],
+  "measurement": "Content bbox ignores pixels within maximum RGB-channel distance24 of requested matte #202329; bounds are approximate, not a processed asset.",
+  "matte": {
+    "requested": "#202329",
+    "exactPixelCount": 45351,
+    "totalPixels": 1572516,
+    "topRowColors": [
+      "33,36,42",
+      "31,34,42",
+      "31,34,41",
+      "30,34,41",
+      "30,33,40",
+      "31,33,41",
+      "31,35,43",
+      "31,35,42",
+      "31,35,41",
+      "32,35,42",
+      "32,36,43",
+      "30,33,41",
+      "32,36,42",
+      "32,35,43",
+      "31,34,43",
+      "30,35,41",
+      "31,36,42",
+      "30,34,40",
+      "32,34,42",
+      "31,36,43",
+      "32,35,41",
+      "33,36,43",
+      "32,36,44",
+      "30,34,42",
+      "30,33,42",
+      "30,35,42",
+      "31,34,40",
+      "32,37,44",
+      "33,37,44",
+      "33,36,44",
+      "32,35,44",
+      "32,37,43",
+      "33,36,41"
+    ]
+  },
+  "visualNotes": [
+    "Original stocky build, goggles, beard, brass armor and cyan mechanical gauntlets preserved.",
+    "All three complete boot soles visible.",
+    "Subtle chest/head changes across the three poses; no browser or playback test performed.",
+    "Small horizontal registration differences between generated cells: use measured frame-local bounds when integrating.",
+    "Output dimensions differ from requested dimensions; split using actual width1881, not2304."
+  ]
+}

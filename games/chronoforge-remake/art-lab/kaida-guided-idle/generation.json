@@ -46,8 +46,8 @@
     }
   ],
   "selected": "candidate-three.png (unmodified single-call three-pose output)",
-  "status": "Preview only; three poses generated jointly, opaque dark background replaces the painted checkerboard. No true-alpha export; exact pose registration remains unverified.",
-  "gameIntegration": false,
+  "status": "Approved three-pose sheet integrated for Kaida battle idle. Raw asset remains opaque; runtime alpha compositing removes its edge-connected matte. Exact guide adherence was not enforced.",
+  "gameIntegration": true,
   "previousSelected": "candidate.png (unmodified copy of candidate-v1.png)",
   "layout": {
     "columns": 3,
@@ -64,5 +64,7 @@
     ],
     "defaultBeatMs": 300
   },
-  "rejectedIntermediate": "A separately generated middle pose was rejected by the user because it differed in build from the old endpoints. It is not used in this sheet or preview; its temporary workspace inputs were removed."
+  "rejectedIntermediate": "A separately generated middle pose was rejected by the user because it differed in build from the old endpoints. It is not used in this sheet or preview; its temporary workspace inputs were removed.",
+  "runtimeAsset": "../../assets/kaida-idle.png",
+  "runtimeProcessing": "One-time edge-connected dark-matte alpha mask, RGB unchanged, shared scale/baseline, loop [0,1,2,1] at 300ms/beat."
 }

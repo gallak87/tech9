@@ -1,0 +1,215 @@
+{
+  "sequence": [
+    0,
+    1,
+    2,
+    1
+  ],
+  "beatMs": 300,
+  "runeOffsets": [
+    [
+      0,
+      0
+    ],
+    [
+      26,
+      0
+    ],
+    [
+      43,
+      2
+    ]
+  ],
+  "checks": "Offline PNG and timing checks only. No browser or gameplay testing.",
+  "heroes": {
+    "kaida": {
+      "asset": "assets/kaida-idle.png",
+      "cell": [
+        627,
+        836
+      ],
+      "frames": [
+        {
+          "bounds": {
+            "x": 193,
+            "y": 198,
+            "width": 369,
+            "height": 496,
+            "right": 562,
+            "bottom": 694
+          },
+          "matte": [
+            31,
+            34,
+            40
+          ],
+          "removedPixels": 456366,
+          "opaqueEdgePixels": 0,
+          "changedRgbChannels": 0
+        },
+        {
+          "bounds": {
+            "x": 188,
+            "y": 197,
+            "width": 369,
+            "height": 497,
+            "right": 557,
+            "bottom": 694
+          },
+          "matte": [
+            31,
+            34,
+            40
+          ],
+          "removedPixels": 456707,
+          "opaqueEdgePixels": 0,
+          "changedRgbChannels": 0
+        },
+        {
+          "bounds": {
+            "x": 188,
+            "y": 194,
+            "width": 370,
+            "height": 499,
+            "right": 558,
+            "bottom": 693
+          },
+          "matte": [
+            31,
+            34,
+            40
+          ],
+          "removedPixels": 456148,
+          "opaqueEdgePixels": 0,
+          "changedRgbChannels": 0
+        }
+      ]
+    },
+    "vex": {
+      "asset": "assets/vex-idle.png",
+      "cell": [
+        627,
+        836
+      ],
+      "frames": [
+        {
+          "bounds": {
+            "x": 145,
+            "y": 184,
+            "width": 361,
+            "height": 476,
+            "right": 506,
+            "bottom": 660
+          },
+          "matte": [
+            31,
+            34,
+            40
+          ],
+          "removedPixels": 436058,
+          "opaqueEdgePixels": 0,
+          "changedRgbChannels": 0
+        },
+        {
+          "bounds": {
+            "x": 145,
+            "y": 184,
+            "width": 362,
+            "height": 476,
+            "right": 507,
+            "bottom": 660
+          },
+          "matte": [
+            31,
+            34,
+            40
+          ],
+          "removedPixels": 435504,
+          "opaqueEdgePixels": 0,
+          "changedRgbChannels": 0
+        },
+        {
+          "bounds": {
+            "x": 147,
+            "y": 185,
+            "width": 359,
+            "height": 475,
+            "right": 506,
+            "bottom": 660
+          },
+          "matte": [
+            32,
+            35,
+            41
+          ],
+          "removedPixels": 435604,
+          "opaqueEdgePixels": 0,
+          "changedRgbChannels": 0
+        }
+      ]
+    },
+    "rune": {
+      "asset": "assets/rune-idle.png",
+      "cell": [
+        627,
+        836
+      ],
+      "frames": [
+        {
+          "bounds": {
+            "x": 128,
+            "y": 182,
+            "width": 418,
+            "height": 551,
+            "right": 546,
+            "bottom": 733
+          },
+          "matte": [
+            32,
+            35,
+            42
+          ],
+          "removedPixels": 377095,
+          "opaqueEdgePixels": 0,
+          "changedRgbChannels": 0
+        },
+        {
+          "bounds": {
+            "x": 101,
+            "y": 182,
+            "width": 420,
+            "height": 551,
+            "right": 521,
+            "bottom": 733
+          },
+          "matte": [
+            32,
+            35,
+            42
+          ],
+          "removedPixels": 376517,
+          "opaqueEdgePixels": 0,
+          "changedRgbChannels": 0
+        },
+        {
+          "bounds": {
+            "x": 84,
+            "y": 176,
+            "width": 421,
+            "height": 557,
+            "right": 505,
+            "bottom": 733
+          },
+          "matte": [
+            32,
+            35,
+            42
+          ],
+          "removedPixels": 373624,
+          "opaqueEdgePixels": 0,
+          "changedRgbChannels": 0
+        }
+      ]
+    }
+  }
+}

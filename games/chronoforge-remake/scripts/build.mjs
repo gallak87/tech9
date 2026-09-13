@@ -12,6 +12,10 @@ for(const file of files.filter(f=>f.endsWith('.js'))){
   for(const [,p] of body.matchAll(/(?:from\s+|import\s*)['"](\.\/[^'"]+)['"]/g)) await readFile(path.join(root,'src',p));
 }
 for(const hero of ['kaida','vex','rune']) await readFile(path.join(root,'assets',hero+'.png'));
+for(const hero of ['kaida','vex','rune']){
+  const png=await readFile(path.join(root,'assets',hero+'-idle.png'));
+  if(png.toString('hex',0,8)!=='89504e470d0a1a0a'||png.readUInt32BE(16)<3||png.readUInt32BE(16)%3!==0||png.readUInt32BE(20)<1)throw Error('Invalid three-pose idle sheet '+hero);
+}
 const sprites=JSON.parse(await readFile(path.join(root,'assets/sprites/manifest.json'),'utf8'));
 for(const [key,sheet] of Object.entries(sprites.sheets)){
   const png=await readFile(path.join(root,'assets/sprites',sheet.file));
@@ -28,4 +32,4 @@ for(const kind of ['enemies','items','npcs','props'])for(const [id,entry] of Obj
 }
 const dist=path.join(root,'dist');await rm(dist,{recursive:true,force:true});await mkdir(dist);
 for(const entry of ['index.html','src','assets'])await cp(path.join(root,entry),path.join(dist,entry),{recursive:true});
-console.log(`Build verified ${files.length} source files, 3 hero atlases and ${Object.keys(sprites.sheets).length} generated sprite sheets; static release in dist/.`);
+console.log(`Build verified ${files.length} source files, 3 hero atlases, 3 idle sheets and ${Object.keys(sprites.sheets).length} generated sprite sheets; static release in dist/.`);

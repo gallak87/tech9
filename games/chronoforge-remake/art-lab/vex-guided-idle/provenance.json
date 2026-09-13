@@ -1,0 +1,73 @@
+{
+  "character": "Vex",
+  "method": "Built-in image_gen tool; one generation containing all three poses",
+  "sourceAtlas": "../../assets/vex.png",
+  "originalCell": [
+    181,
+    181
+  ],
+  "requestedDimensions": [
+    2304,
+    1024
+  ],
+  "actualDimensions": [
+    1881,
+    836
+  ],
+  "cellDimensions": [
+    627,
+    836
+  ],
+  "layout": "one row, three equal cells: rest, half inhale, inhale; playback 0,1,2,1",
+  "generationPath": "/Users/g/.codex/generated_images/01a09947-f6fa-7781-a743-7845b046a634/exec-56d45a83-e462-4ae7-8cd3-c707d015df65.png",
+  "prompt": "three-prompt.txt",
+  "inputs": [
+    "three-edit-target.png",
+    "three-pose-guides.png",
+    "original-first-cell.png"
+  ],
+  "runtimeAsset": "../../assets/vex-idle.png",
+  "postprocessing": "None. Runtime asset and candidate are exact copies of raw generated PNG.",
+  "inspection": "Three coherent Vex figures preserve hood, long purple robe, cyan trim and staff. Complete silhouettes remain inside their cells, with similar feet/staff placement and subtle upper-body breathing. Prompted invariants are visual guidance, not guaranteed pixel registration. No browser or playtesting.",
+  "contentBounds": {
+    "method": "Cell-local bounds of RGB pixels whose maximum channel difference from top-left matte exceeds24; approximate visual content including staff particles.",
+    "matteRGB": [
+      33,
+      36,
+      41
+    ],
+    "frames": [
+      {
+        "cell": 0,
+        "left": 147,
+        "top": 185,
+        "right": 504,
+        "bottom": 658,
+        "width": 358,
+        "height": 474,
+        "pixels": 64595
+      },
+      {
+        "cell": 1,
+        "left": 147,
+        "top": 185,
+        "right": 505,
+        "bottom": 658,
+        "width": 359,
+        "height": 474,
+        "pixels": 64591
+      },
+      {
+        "cell": 2,
+        "left": 147,
+        "top": 185,
+        "right": 504,
+        "bottom": 658,
+        "width": 358,
+        "height": 474,
+        "pixels": 64192
+      }
+    ]
+  },
+  "visualCaveats": "Generated output was1881x836 instead of requested2304x1024. Matte is near requested charcoal, not exact #202329. Frame outlines/anchors are visually similar but not pixel-identical; runtime registration is still appropriate. No regeneration or pixel edits performed."
+}

@@ -1,0 +1,16 @@
+{
+  "name": "chronoforge-day",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local character and animation staging for Chronoforge",
+  "scripts": {
+    "dev": "node tools/vite.mjs --host 127.0.0.1 --port 5186 --strictPort",
+    "build": "node tools/vite.mjs build",
+    "preview": "node tools/vite.mjs preview --host 127.0.0.1 --port 5187 --strictPort",
+    "check": "node --test checks/*.test.js"
+  },
+  "engines": { "node": "^20.19.0 || >=22.12.0" },
+  "dependencies": { "three": "0.184.0" },
+  "devDependencies": { "vite": "8.1.5" }
+}

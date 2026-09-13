@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kaida · guided two-pose experiment</title>
+<style>
+  :root{color-scheme:dark;font:14px/1.5 system-ui,sans-serif;background:#14171d;color:#e5e3df;--cell-height:290px}
+  *{box-sizing:border-box}body{margin:0;padding:30px clamp(18px,5vw,80px);max-width:1600px;margin-inline:auto}
+  h1{font-size:26px;letter-spacing:-.035em;margin:7px 0 9px;font-weight:600}h2{font-size:14px;margin:0;font-weight:600}
+  p{margin:7px 0;color:#a9b0bc;max-width:880px}a{color:#d998b5;text-underline-offset:3px}header{border-bottom:1px solid #ffffff14;padding-bottom:24px}
+  .eyebrow{color:#d998b5;font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase}
+  .tag{display:inline-block;font-size:10px;margin-top:9px;border:1px solid #ffffff22;border-radius:4px;padding:3px 7px;color:#b9af97}
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:22px 0}
+  button,select,input{font:inherit}button,select{padding:8px 12px;border:1px solid #ffffff25;border-radius:5px;background:#242a34;color:#e6e4df}
+  button{cursor:pointer}button:hover:not(:disabled){border-color:#d998b5}button[aria-pressed=true]{background:#58394b;border-color:#ce92af}
+  button:disabled{opacity:.45;cursor:default}button:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #d998b5;outline-offset:3px}
+  label{display:flex;align-items:center;gap:9px;font-size:12px;color:#afb8c4}.spacer{flex:1}
+  .gallery{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;align-items:start}
+  figure{margin:0;border:1px solid #ffffff16;border-radius:8px;overflow:hidden;background:#1b2029;min-width:0}
+  figcaption{padding:14px 15px;border-bottom:1px solid #ffffff13}figcaption small{display:block;font-size:11px;color:#8e99a8;margin-top:4px}
+  .image-well{min-height:calc(var(--cell-height) + 36px);padding:18px;display:flex;justify-content:center;align-items:flex-start;overflow:auto;background-color:#222732;background-image:linear-gradient(45deg,#ffffff04 25%,transparent 25%),linear-gradient(-45deg,#ffffff04 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ffffff04 75%),linear-gradient(-45deg,transparent 75%,#ffffff04 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+  canvas{height:var(--cell-height);width:auto;max-width:none;image-rendering:pixelated;display:block;flex:none;background:transparent}
+  [hidden]{display:none!important}.pending{color:#8793a4;font-size:12px;align-self:center;text-align:center;margin:auto}
+  .measure{display:block;font:10px/1.5 ui-monospace,monospace;color:#8996a6;padding:10px 15px;border-top:1px solid #ffffff0c}
+  .status{min-height:22px;font-size:12px;margin-bottom:12px;color:#b7c4ce}.status.error{color:#edb1c5}
+  .note{font-size:12px;margin-top:17px;line-height:1.7}details{margin-top:27px;padding-top:17px;border-top:1px solid #ffffff16}
+  summary{cursor:pointer;color:#c6cbd3;max-width:max-content;font-size:13px}.guides{max-width:100%;max-height:650px;image-rendering:pixelated;display:block;margin-top:16px;border:1px solid #ffffff15}
+  footer{color:#737e8e;font-size:11px;margin-top:26px;padding-top:17px;border-top:1px solid #ffffff12}
+  @media(max-width:800px){.gallery{grid-template-columns:1fr}.image-well{justify-content:center}.spacer{display:none}h1{font-size:23px}}
+  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+<header>
+  <div class="eyebrow">Chronoforge · art lab</div>
+  <h1>Kaida / two-pose study</h1>
+  <p>An imagegen-guided experiment: preserve the reference character while drawing a resting pose and a subtle inhale.</p>
+  <p><strong>Result limitation:</strong> the model redrew details and returned an opaque, painted checkerboard. A background-only cleanup attempt also failed to produce transparency. These are review candidates, not production sprites.</p>
+  <span class="tag">Reference + pose-guide images · no ControlNet · not wired into the game</span>
+</header>
+<div class="controls" aria-label="Comparison controls">
+  <button id="static" aria-pressed="true">Side by side</button>
+  <button id="pose-a" aria-pressed="false" disabled>Show A · resting</button>
+  <button id="pose-b" aria-pressed="false" disabled>Show B · inhaling</button>
+  <button id="flip" aria-pressed="false" disabled>Slow A/B flip</button>
+  <span class="spacer"></span>
+  <label>Zoom <select id="zoom"><option value="1">1×</option><option value="1.6" selected>1.6×</option><option value="2">2×</option><option value="3">3×</option></select></label>
+  <button id="retry">Reload images</button>
+</div>
+<div id="status" class="status" role="status" aria-live="polite">Loading local reference and candidate…</div>
+<main class="gallery" id="gallery">
+  <figure>
+    <figcaption><h2>Original reference</h2><small>Original sprite at 4× integer scale / matching cell</small></figcaption>
+    <div class="image-well"><canvas id="reference" hidden aria-label="Original Kaida sprite in the matching guide cell"></canvas><span class="pending" id="reference-pending">Loading edit-target.png…</span></div>
+    <span class="measure" id="reference-size">edit-target.png / left half</span>
+  </figure>
+  <figure id="card-a">
+    <figcaption><h2>A · resting</h2><small>Candidate sheet / left half</small></figcaption>
+    <div class="image-well"><canvas id="a" hidden aria-label="Generated resting pose"></canvas><span class="pending" id="a-pending">Waiting for candidate.png</span></div>
+    <span class="measure" id="a-size">Full cell · no alignment correction</span>
+  </figure>
+  <figure id="card-b">
+    <figcaption><h2>B · inhaling</h2><small>Candidate sheet / right half</small></figcaption>
+    <div class="image-well"><canvas id="b" hidden aria-label="Generated inhaling pose"></canvas><span class="pending" id="b-pending">Waiting for candidate.png</span></div>
+    <span class="measure" id="b-size">Full cell · no alignment correction</span>
+  </figure>
+</main>
+<p class="note">The original uses the left half of edit-target.png: the unchanged source sprite at 4× integer scale in the same cell coordinates as the guide and candidate. Whole cells use the same displayed height, with their aspect ratios preserved. No content centering, alpha registration, warping, or in-between frames are applied. The optional slow flip is a comparison aid, not a finished idle animation.</p>
+<p class="note"><a href="reference.png">Raw original sprite</a> · <a href="candidate-v1.png">Raw first attempt (baked checkerboard)</a> · <a href="cleanup-attempt.png">Background cleanup attempt</a> · <a href="prompt.txt">Generation prompt</a></p>
+<details><summary>View the two-column pose guide</summary><img id="guides" class="guides" alt="Resting and inhaling pose guides in two equal columns" hidden><p id="guide-status" class="note">Loading pose-guides.png…</p></details>
+<footer>Compare silhouette, face, costume details, planted feet, and unwanted body drift before considering animation.</footer>
+<script>
+  const $ = id => document.getElementById(id);
+  let timer, loaded = false, generation = 0, activeMode = 'static';
+  function status(text, error = false) { $('status').textContent = text; $('status').classList.toggle('error', error); }
+  function mode(next) {
+    clearInterval(timer); activeMode = next;
+    for (const key of ['static','pose-a','pose-b','flip']) $(key).setAttribute('aria-pressed', String(key === next));
+    $('card-a').hidden = next === 'pose-b'; $('card-b').hidden = next === 'pose-a' || next === 'flip';
+    $('gallery').style.gridTemplateColumns = next === 'static' ? '' : 'repeat(2,minmax(0,1fr))';
+    if (next === 'flip') {
+      let showB = false;
+      timer = setInterval(() => { showB = !showB; $('card-a').hidden = showB; $('card-b').hidden = !showB; }, 1200);
+    }
+  }
+  function draw(id, image, x, width) {
+    const canvas = $(id); canvas.width = width; canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d'); context.imageSmoothingEnabled = false;
+    context.drawImage(image, x, 0, width, image.naturalHeight, 0, 0, width, image.naturalHeight);
+    canvas.hidden = false; $(`${id}-pending`).hidden = true;
+    $(`${id}-size`).textContent = `${width} × ${image.naturalHeight}px · whole cell`;
+  }
+  function image(src) {
+    return new Promise((resolve,reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => reject(new Error(src)); img.src = `${src}?v=${Date.now()}`; });
+  }
+  async function load() {
+    const attempt = ++generation; loaded = false; mode('static');
+    for (const id of ['pose-a','pose-b','flip']) $(id).disabled = true;
+    for (const id of ['reference','a','b']) { $(id).hidden = true; $(`${id}-pending`).hidden = false; }
+    status('Loading local reference and candidate…');
+    const results = await Promise.allSettled([image('edit-target.png'), image('candidate.png'), image('pose-guides.png')]);
+    if (attempt !== generation) return;
+    const referenceReady = results[0].status === 'fulfilled' && results[0].value.naturalWidth % 2 === 0;
+    if (referenceReady) draw('reference', results[0].value, 0, results[0].value.naturalWidth / 2);
+    else $('reference-pending').textContent = 'edit-target.png is missing, unreadable, or has an odd pixel width.';
+    if (results[2].status === 'fulfilled') { $('guides').src = results[2].value.src; $('guides').hidden = false; $('guide-status').hidden = true; }
+    else { $('guides').hidden = true; $('guide-status').hidden = false; $('guide-status').textContent = 'pose-guides.png is not available yet. Reload images when it is ready.'; }
+    if (results[1].status === 'fulfilled') {
+      const candidate = results[1].value;
+      if (candidate.naturalWidth % 2) {
+        status('Candidate width is odd. Two equal pixel columns cannot be extracted without resampling.', true);
+        for (const id of ['a','b']) $(`${id}-pending`).textContent = 'Candidate must have an even pixel width.';
+        return;
+      }
+      const width = candidate.naturalWidth / 2;
+      draw('a', candidate, 0, width); draw('b', candidate, width, width); loaded = true;
+      for (const id of ['pose-a','pose-b','flip']) $(id).disabled = false;
+      status(referenceReady ? `Candidate ready · ${candidate.naturalWidth} × ${candidate.naturalHeight}px · two equal columns, one row.` : 'Candidate ready; original reference is unavailable.', !referenceReady);
+    } else {
+      for (const id of ['a','b']) $(`${id}-pending`).textContent = 'candidate.png is not available yet.';
+      status('Candidate pending or unreadable. Keep this page open and use Reload images after generation finishes.', true);
+    }
+  }
+  for (const id of ['static','pose-a','pose-b','flip']) $(id).onclick = () => { if (id === 'static' || loaded) mode(id); };
+  $('zoom').onchange = () => document.documentElement.style.setProperty('--cell-height', `${181 * Number($('zoom').value)}px`);
+  $('retry').onclick = load;
+  document.addEventListener('visibilitychange', () => { if (document.hidden && activeMode === 'flip') mode('pose-a'); });
+  window.addEventListener('pagehide', () => clearInterval(timer));
+  load();
+</script>
+</html>

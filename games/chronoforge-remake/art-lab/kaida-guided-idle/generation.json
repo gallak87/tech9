@@ -1,0 +1,30 @@
+{
+  "date": "2026-09-13",
+  "tool": "built-in image_gen",
+  "conditioning": "ordinary reference images; no ControlNet or dedicated mask parameter",
+  "calls": [
+    {
+      "file": "candidate-v1.png",
+      "source": "/Users/g/.codex/generated_images/01a08f34-d722-7aa0-8a6d-f49cc059ef87/exec-55539b4d-8859-4119-8069-50e05226b75e.png",
+      "promptFile": "prompt.txt",
+      "width": 1536,
+      "height": 1024,
+      "colorType": 2,
+      "hasTransparency": false,
+      "sha256": "341730287184bc162bb156519c3a1d79a0006c242c25989061a8d04392ef26af"
+    },
+    {
+      "file": "cleanup-attempt.png",
+      "source": "/Users/g/.codex/generated_images/01a08f34-d722-7aa0-8a6d-f49cc059ef87/exec-ee71d261-a669-4362-87a8-a6dc01cfd9fa.png",
+      "promptFile": "cleanup-prompt.txt",
+      "width": 1536,
+      "height": 1024,
+      "colorType": 2,
+      "hasTransparency": false,
+      "sha256": "931d946c2386c03af941efe1ff9ded3cb1b140aacc3dc05f07fd2448e96097e2"
+    }
+  ],
+  "selected": "candidate.png (unmodified copy of candidate-v1.png)",
+  "status": "experiment only; identity details repainted and transparency failed",
+  "gameIntegration": false
+}

@@ -22,7 +22,7 @@ const g={s:State.createState(),mode:'title',overlay:null,ui:{tab:0,hero:0},time:
  act(action,payload={}){act(action,payload);},
 };
 
-function resetTransient(){g.overlay=null;g.dialogue=null;g.battle=null;g.path=[];g.keys.clear();g.trail=[];g.nearby=null;g.interactPending=null;g.encounterGrace=2;g.moving=false;g.facing='down';g.ui.item=null;g.camera=null;g.devPaused=false;}
+function resetTransient(){g.clearKaidaIdlePreview?.();g.overlay=null;g.dialogue=null;g.battle=null;g.path=[];g.keys.clear();g.trail=[];g.nearby=null;g.interactPending=null;g.encounterGrace=2;g.moving=false;g.facing='down';g.ui.item=null;g.camera=null;g.devPaused=false;}
 function ensurePosition(){
  if(g.s.party.interior&&!INTERIORS[g.s.party.interior])g.s.party={...g.s.lastTown,interior:null,returnPoint:null};
  if(!walkable(g.s,g.s.party.x,g.s.party.y)){
@@ -39,6 +39,9 @@ function advanceDialogue(){
 }
 function transaction(fn){const r=fn();g.toast(r.message);sound(r.ok?'build':'error');if(r.ok)g.save();g.refresh();return r;}
 function act(action,p={}){
+ // Review controls own the fixture's lifetime. A stray battle click must not
+ // discard the return session or resume a synthetic encounter behind the UI.
+ if(g.kaidaIdlePreview&&!['setting','menu','close'].includes(action))return;
  unlockAudio();
  if(g.mode==='battle'&&['save','load','deleteSave','fastTravel','equip','unequip','learn','useItem','sell'].includes(action)){g.toast('Battle paused. Finish the encounter before changing the party or saving.');return;}
  if(action==='newGame'){g.s=State.createState();resetTransient();g.mode='world';g.refresh();prologue(g);return;}
@@ -169,7 +172,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){g.keys.cle
 window.addEventListener('beforeunload',()=>{if(g.mode==='world'&&!g.overlay)State.save(g.s);});
 
 function snapshot(){
- return {mode:g.mode,overlay:g.overlay,paused:!!g.devPaused,state:clone(g.s),position:clone(g.s.party),region:g.s.party.interior?INTERIORS[g.s.party.interior]?.region:regionAt(g.s.party.x,g.s.party.y)?.id,objective:g.storyObjective,
+ return {mode:g.mode,overlay:g.overlay,paused:!!g.devPaused,kaidaIdlePreview:g.kaidaIdlePreview?clone(g.kaidaIdlePreview):null,state:clone(g.s),position:clone(g.s.party),region:g.s.party.interior?INTERIORS[g.s.party.interior]?.region:regionAt(g.s.party.x,g.s.party.y)?.id,objective:g.storyObjective,
  nearby:g.nearby?{id:g.nearby.id,type:g.nearby.type,name:g.nearby.name}:null,dialogue:g.dialogue?{index:g.dialogue.index,total:g.dialogue.lines.length,speaker:g.dialogue.lines[g.dialogue.index]?.speaker,text:g.dialogue.lines[g.dialogue.index]?.text,choices:g.dialogue.choices?.map(c=>({id:c.id,label:c.label}))}:null,
  battle:g.battle?{phase:g.battle.phase,view:g.battle.view,readyHero:g.battle.readyHero,encounter:g.battle.encounter.id,heroes:clone(g.battle.heroes),enemies:clone(g.battle.enemies),result:clone(g.battle.result||null),lastAction:clone(g.battle.lastAction||null),log:[...g.battle.log],action:g.battle.action?{kind:g.battle.action.kind,side:g.battle.action.side,id:g.battle.action.definition.id,actorId:g.battle.action.actorId,effect:g.battle.action.definition.effect,elapsed:g.battle.action.elapsed,impactAt:g.battle.action.impactAt,total:g.battle.action.total,participants:[...g.battle.action.participants],targetIds:[...g.battle.action.targetIds]}:null}:null,
  camera:g.camera,ending:g.ending||null};
@@ -180,6 +183,9 @@ window.__chronoforge=Object.freeze({snapshot});
 let last=performance.now(),hudTimer=0,autoTimer=0;
 function frame(now){
  const dt=Math.min(.05,(now-last)/1000);last=now;if(!g.devPaused)g.time+=dt;
+ // The opt-in idle review has its own presentation clock. Combat, resources,
+ // and every other actor remain paused while Kaida's breathing can be viewed.
+ if(g.kaidaIdlePreview&&g.mode==='battle'&&!g.overlay&&!document.hidden)g.kaidaIdlePreview.time+=dt;
  try{
   if(!g.devPaused&&!g.overlay&&(g.mode==='world'||g.mode==='battle')){
    if(g.mode==='world')updateWorld(dt);else updateBattle(g,dt);

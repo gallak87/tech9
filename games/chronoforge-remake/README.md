@@ -49,6 +49,19 @@ See **STATUS.md** for actual validation and **evidence/** for screenshots and re
 
 ## Development checkpoints
 
+### Kaida battle idle review
+
+Open **http://127.0.0.1:4179/?dev=1&preview=kaida-idle** to go directly to a paused road battle. The **Animated / Static** buttons compare Kaida's new breathing loop with its resting pose. Only her preview clock advances; combat, ATB and the other actors stay frozen. **Exit review** restores the session that preceded the fixture. This preview does not write saves.
+
+The new battle idle reuses the first cell of `assets/kaida.png`. Four cached poses shift only the jacket's interior rows by at most two source pixels over a 3.6-second cycle. Head, hands, sword, legs, feet and the sprite's baseline retain the same registration. Reduced motion selects the static pose. Her other animations, overworld rendering and the original PNG remain unchanged. This is a localized rendering animation; no new image generation was used.
+
+```js
+__dev.kaidaIdle()                   // start the isolated review from a dev session
+__dev.kaidaIdleMode('static')       // comparison without resetting the loop's phase
+__dev.kaidaIdleMode('animated')
+__dev.exitKaidaIdle()               // restore the previous session
+```
+
 Open **http://127.0.0.1:4179/?dev=1**. The explicit development harness exposes:
 
 ```js

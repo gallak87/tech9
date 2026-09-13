@@ -249,7 +249,10 @@ export function drawBattle(ctx,g){
   for(const unit of ordered){
     const p=poses.get(unit.id),{state,artTime}=p;
     if(unit.id===b.readyHero&&!a){ctx.strokeStyle=HEROES[unit.id].color;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.groundY+3,43,10,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle=HEROES[unit.id].color;ctx.beginPath();ctx.moveTo(p.x,p.y-119);ctx.lineTo(p.x-6,p.y-129);ctx.lineTo(p.x+6,p.y-129);ctx.fill();}
-    if(unit.side==='hero')drawHero(ctx,unit.id,state,p.x,p.y,1.25,p.facing,artTime);
+    if(unit.side==='hero'){
+      const preview=unit.id==='kaida'&&state==='idle'?g.kaidaIdlePreview:null;
+      drawHero(ctx,unit.id,state,p.x,p.y,1.25,p.facing,preview?.time??artTime,{battleIdle:true,staticIdle:preview?.mode==='static',reducedMotion});
+    }
     else {const phase=unit.catalogId==='architect'?(unit.hp/unit.maxHp>.66?1:unit.hp/unit.maxHp>.33?2:3):1;ctx.save();ctx.globalAlpha=alive(unit)?1:state==='death'?1:.35;if(p.facing==='right'){ctx.translate(p.x,p.y);ctx.scale(-1,1);drawEnemy(ctx,unit.catalogId,state,0,0,unit.boss?2.05:1.5,artTime,phase);}else drawEnemy(ctx,unit.catalogId,state,p.x,p.y,unit.boss?2.05:1.5,artTime,phase);ctx.restore();}
     if(unit.status.shield>0&&alive(unit)){ctx.strokeStyle='#8ce5dd90';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.y-43,43,58,0,0,Math.PI*2);ctx.stroke();}
     if(unit.status.immune>0&&unit.status.immuneTime>0){ctx.strokeStyle='#a4c8ff';ctx.setLineDash([5,4]);ctx.strokeRect(p.x-43,p.y-102,86,110);ctx.setLineDash([]);}

@@ -1,6 +1,8 @@
 // Heroes, non-settlement actors, enemies, items and salvage use imagegen atlases.
 // Sprite sheets are sampled as discrete frames; no static sprite rotations.
+import {createKaidaIdleFrames,kaidaIdleFrame} from './kaida-idle.js';
 const heroes={},bounds={},sheets=new Map();
+let kaidaIdle=[];
 let manifest;
 let loading;
 const ROW={idle:0,walk:1,run:2,attack:3,cast:4,hurt:5,defend:4,victory:4,down:5};
@@ -15,10 +17,19 @@ async function loadAllArt(){
    return max;
   }));
  }));
+ kaidaIdle=createKaidaIdleFrames(heroes.kaida);
  await loadSpriteSheets();
 }
-export function drawHero(ctx,id,state,x,y,scale=1,face='right',time=0){
+export function drawHero(ctx,id,state,x,y,scale=1,face='right',time=0,options={}){
  const img=heroes[id];if(!img)return;
+ // Battle-only opt-in: overworld directions and every action still use their
+ // existing atlas frames. Every idle sample shares the same resting baseline.
+ if(id==='kaida'&&state==='idle'&&options.battleIdle&&(face==='right'||face==='left')){
+  const frame=kaidaIdle[kaidaIdleFrame(time,options)],ch=img.height/8,size=82*scale,base=bounds.kaida[0][0];
+  ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(Math.round(x),Math.round(y));if(face==='left')ctx.scale(-1,1);
+  ctx.drawImage(frame,0,0,frame.width,frame.height,-size*.5,-size*base/ch,size,size);
+  ctx.restore();return;
+ }
  let row=ROW[state]??0,frame=Math.floor(time*(state==='idle'?4:state==='run'?13:state==='attack'?10:8))%6;
  if((state==='walk'||state==='run')&&face==='up')row=6;
  if((state==='walk'||state==='run')&&face==='down')row=7;

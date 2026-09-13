@@ -1,6 +1,14 @@
-# Status · 2026-09-12
+# Status · 2026-09-13
 
-Run with `npm start` at **http://127.0.0.1:4179/**. Static release built in `dist/`. The latest environment pass is awaiting the user's visual/play review; earlier gameplay checks below describe the previous passes.
+Run with `npm start` at **http://127.0.0.1:4179/**. Static release built in `dist/`. The latest Kaida idle pass is awaiting the user's visual/play review; earlier gameplay checks below describe the previous passes.
+
+## Kaida battle idle · September 13
+
+Replaced Kaida's battle-only cycling of six independently drawn idle frames with four cached breathing samples of the first resting drawing. A bounded cloth displacement between collar and belt moves by at most two source pixels. Her head, hands, sword and lower body keep the same source rows; all frames share one baseline. The loop lasts 3.6 seconds and holds at rest. Reduced motion uses that static drawing. The hero atlas, attack choreography/frames, other states, overworld and other characters are unchanged.
+
+An explicit `?dev=1&preview=kaida-idle` fixture opens a paused road encounter with **Animated**, **Static** and **Exit review** controls. Its separate presentation clock animates Kaida without advancing combat or progression. Exit restores the previous in-memory session, and the fixture does not write saves. The ordinary game uses the revised idle without review controls.
+
+Validation is restricted to source/asset inspection, syntax/import/asset build checks and source review. `npm run build` passed for 17 source files, three hero atlases and 26 sprite sheets; `git diff --check` passed. Source review caught and fixed accidental battle clicks dismissing the review without restoring the user's session; gameplay actions are now blocked while the review is active. The user will assess animation quality in play; no browser, Playwright, playthrough or combat simulation was run for this pass. Prior visual evidence does not validate this new idle.
 
 ## Environment benchmark · September 12
 

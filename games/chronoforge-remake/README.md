@@ -51,12 +51,14 @@ See **STATUS.md** for actual validation and **evidence/** for screenshots and re
 
 ### Party battle idle review
 
-Open **http://127.0.0.1:4179/?dev=1&preview=party-idle** to go directly to a paused road battle. The **Animated / Static** buttons compare the party's new breathing loops with their resting poses. The preview clock animates Kaida, Vex and Rune; combat, ATB and enemies stay frozen. **Exit review** restores the session that preceded the fixture. This preview does not write saves. The existing `?dev=1&preview=kaida-idle` link still animates Kaida alone.
+Open **http://127.0.0.1:4179/?dev=1&preview=party-idle** to go directly to a paused road battle. The **Animated / Static** buttons compare the party's new breathing loops with their resting poses. Click **Start battle** to fight using normal ATB, attacks and enemy turns; **Pause battle / Resume battle** lets you stop and continue the same encounter. **Exit review**, victory's Continue, or defeat's Return to town restores the session that preceded the fixture. Preview progress and rewards are not saved. The existing `?dev=1&preview=kaida-idle` link still animates Kaida alone while paused.
 
 Each hero uses a new `assets/<hero>-idle.png` sheet generated in one call with three poses together. Playback is **1 → 2 → 3 → 2**, holding each beat for 300 ms. At load, canvas compositing removes the edge-connected dark matte once and caches the three frames. Sprite RGB is preserved. One shared scale and baseline per hero keeps body height consistent with the original battle atlas; no frames are warped. Rune uses fixed whole-cell offsets of [0,0], [26,0] and [43,2] source pixels to correct generated padding drift at his boots. Reduced motion selects the resting pose. Attacks, other actions and overworld animations still use the original atlases. Generation inputs and prompts are kept in each hero's `art-lab/<hero>-guided-idle/` directory.
 
 ```js
 __dev.partyIdle()                   // review all three party idles together
+__dev.playIdleBattle()              // enable normal combat in the same preview
+__dev.playIdleBattle(false)         // pause combat without resetting the encounter
 __dev.kaidaIdle()                   // animate only Kaida in the paused review
 __dev.kaidaIdleMode('static')       // comparison without resetting the loop's phase
 __dev.kaidaIdleMode('animated')

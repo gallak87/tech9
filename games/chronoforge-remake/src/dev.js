@@ -15,7 +15,10 @@ export function installDev(g,api){
   const active=!!g.kaidaIdlePreview,previous=idleReturn;
   delete g.kaidaIdlePreview;idleControls?.remove();idleControls=null;idleReturn=null;
   if(active){g.devPaused=false;g.keys.clear();}
-  if(restore&&previous){Object.assign(g,previous);g.keys.clear();}
+  if(restore&&previous){
+   Object.assign(g,previous);g.keys.clear();
+   const toast=document.getElementById('toast');if(toast){toast.textContent=g.toastMsg||'';toast.classList.toggle('show',(g.toastUntil||0)>g.time);}
+  }
   if(active)setAudio(g.s.settings.sound);
   return active;
  }
@@ -23,6 +26,11 @@ export function installDev(g,api){
  g.clearKaidaIdlePreview=clearIdlePreview;
  function updateIdleControls(){
   if(!idleControls)return;
+  const preview=g.kaidaIdlePreview;
+  idleControls.querySelector('[data-idle-title]').textContent=`${preview.heroes.length>1?'Party':'Kaida'} preview · ${preview.playing?'Battle active':'Combat paused'}`;
+  const combat=idleControls.querySelector('[data-idle-combat]');
+  combat.textContent=preview.playing?'Pause battle':preview.started?'Resume battle':'Start battle';
+  combat.setAttribute('aria-pressed',String(preview.playing));
   for(const button of idleControls.querySelectorAll('[data-idle-mode]')){
    const selected=button.dataset.idleMode===g.kaidaIdlePreview?.mode;
    button.setAttribute('aria-pressed',String(selected));button.style.background=selected?'#554163':'#292431';button.style.borderColor=selected?'#edcc86':'#71647d';
@@ -31,12 +39,13 @@ export function installDev(g,api){
  function showIdleControls(){
   idleControls=document.createElement('section');idleControls.id='kaida-idle-review';idleControls.setAttribute('role','group');idleControls.setAttribute('aria-label','Party idle animation review');
   idleControls.style.cssText='position:fixed;right:16px;bottom:16px;z-index:1000;padding:12px;border:1px solid #b49e78;border-radius:8px;background:#211c29f5;color:#f6ead4;font:13px system-ui;box-shadow:0 3px 20px #0006;max-width:calc(100vw - 32px);box-sizing:border-box';
-  const title=document.createElement('div');title.textContent=`${g.kaidaIdlePreview.heroes.length>1?'Party':'Kaida'} idle review · Combat paused`;title.style.cssText='font-weight:600;margin-bottom:9px';idleControls.append(title);
+  const title=document.createElement('div');title.dataset.idleTitle='';title.style.cssText='font-weight:600;margin-bottom:9px';idleControls.append(title);
   const buttons=document.createElement('div');buttons.style.cssText='display:flex;gap:7px;flex-wrap:wrap';
   for(const mode of ['animated','static']){
    const button=document.createElement('button');button.type='button';button.textContent=mode==='animated'?'Animated':'Static';button.dataset.idleMode=mode;
    button.style.cssText='padding:7px 11px;border:1px solid #71647d;border-radius:4px;color:#f6ead4;font:inherit;cursor:pointer';button.addEventListener('click',()=>dev.kaidaIdleMode(mode));buttons.append(button);
   }
+  const combat=document.createElement('button');combat.type='button';combat.dataset.idleCombat='';combat.style.cssText='padding:7px 11px;border:1px solid #edcc86;border-radius:4px;background:#554163;color:#f6ead4;font:inherit;cursor:pointer';combat.addEventListener('click',()=>dev.playIdleBattle(!g.kaidaIdlePreview.playing));buttons.append(combat);
   const exit=document.createElement('button');exit.type='button';exit.textContent='Exit review';exit.style.cssText='padding:7px 11px;border:1px solid #71647d;border-radius:4px;background:#292431;color:#f6ead4;font:inherit;cursor:pointer';exit.addEventListener('click',()=>dev.exitKaidaIdle());buttons.append(exit);
   idleControls.append(buttons);
   // Native button keyboard behavior remains available without sending game keys.
@@ -77,14 +86,19 @@ export function installDev(g,api){
   checkpoints:['fresh','settlement','midgame','links','anchors','finale','defeat'],checkpoint,
   kaidaIdle(mode='animated',heroes=['kaida']){
    idleMode(mode);
-   const previous=idleReturn||{s:g.s,mode:g.mode,overlay:g.overlay,dialogue:g.dialogue,battle:g.battle,devPaused:g.devPaused,devCheckpoint:g.devCheckpoint,time:g.time,ui:structuredClone(g.ui),camera:g.camera,path:g.path,trail:g.trail,nearby:g.nearby,interactPending:g.interactPending,encounterGrace:g.encounterGrace,moving:g.moving,facing:g.facing};
+   const previous=idleReturn||{s:g.s,mode:g.mode,overlay:g.overlay,dialogue:g.dialogue,battle:g.battle,devPaused:g.devPaused,devCheckpoint:g.devCheckpoint,time:g.time,ui:structuredClone(g.ui),camera:g.camera,path:g.path,trail:g.trail,nearby:g.nearby,interactPending:g.interactPending,encounterGrace:g.encounterGrace,moving:g.moving,facing:g.facing,reward:g.reward,toastMsg:g.toastMsg,toastUntil:g.toastUntil};
    checkpoint('fresh');g.s.flags.intro=true;g.s.settings.speed=1;g.s.settings.sound=false;g.s.settings.reducedMotion=false;
    startBattle(g,allObjects().find(o=>o.type==='encounter'&&o.id==='road_scrappers'));
    for(const unit of [...g.battle.heroes,...g.battle.enemies])unit.atb=0;
-   g.battle.readyHero=null;g.battle.phase='filling';g.devPaused=true;g.devCheckpoint=heroes.length>1?'party-idle':'kaida-idle';g.kaidaIdlePreview={mode,time:0,heroes};idleReturn=previous;
+   g.battle.readyHero=null;g.battle.phase='filling';g.devPaused=true;g.devCheckpoint=heroes.length>1?'party-idle':'kaida-idle';g.kaidaIdlePreview={mode,time:0,heroes,playing:false,started:false};idleReturn=previous;
    setAudio(false);showIdleControls();g.refresh();return api.snapshot();
   },
   partyIdle(mode='animated'){return dev.kaidaIdle(mode,['kaida','vex','rune']);},
+  playIdleBattle(playing=true){
+   if(!g.kaidaIdlePreview||g.mode!=='battle')throw new Error('No preview battle is active');
+   g.kaidaIdlePreview.playing=!!playing;g.kaidaIdlePreview.started ||= !!playing;g.devPaused=!playing;
+   g.overlay=null;g.keys.clear();updateIdleControls();g.refresh();return api.snapshot();
+  },
   kaidaIdleMode(mode){idleMode(mode);if(!g.kaidaIdlePreview)throw new Error('No Kaida idle review is active');g.kaidaIdlePreview.mode=mode;updateIdleControls();g.refresh();return api.snapshot();},
   exitKaidaIdle(){clearIdlePreview({restore:true});g.refresh();return api.snapshot();},
   loadState:raw=>{setState(raw);return api.snapshot();},

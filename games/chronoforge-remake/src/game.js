@@ -14,10 +14,10 @@ const g={s:State.createState(),mode:'title',overlay:null,ui:{tab:0,hero:0},time:
  toast(text){this.toastMsg=text;this.toastUntil=this.time+4;const el=document.getElementById('toast');el.textContent=text;el.classList.add('show');this.dirty=true;},
  refresh(){this.storyObjective=objective(this.s);this.dirty=true;},
  journalEntries(){return journalEntries(this.s);},
- save(slot='auto'){const r=State.save(this.s,slot);if(!r.ok||slot!=='auto')this.toast(r.message);return r;},
+ save(slot='auto'){if(this.kaidaIdlePreview)return {ok:false,message:'Preview battles are not saved.'};const r=State.save(this.s,slot);if(!r.ok||slot!=='auto')this.toast(r.message);return r;},
  openMenu(tab=this.ui.tab){if(!['world','battle'].includes(this.mode)||this.overlay==='dialogue')return;this.overlay='menu';this.ui.tab=tab;this.keys.clear();this.path=[];sound('ui');this.refresh();},
  startBattle(encounter){beforeEncounter(this,encounter,()=>{this.overlay=null;this.keys.clear();this.path=[];this.interactPending=null;startBattle(this,encounter);this.refresh();});},
- finishBattle(win,reward){const enc=this.battle?.encounter;this.battle=null;this.mode='world';this.overlay=null;this.path=[];this.encounterGrace=3;this.trail=[];this.refresh();if(win&&enc){sound('victory');afterVictory(this,enc);}else{this.toast('The crew recovered. Your supplies and progress are intact.');this.save();}},
+ finishBattle(win,reward){if(this.kaidaIdlePreview){this.clearKaidaIdlePreview({restore:true});this.refresh();return;}const enc=this.battle?.encounter;this.battle=null;this.mode='world';this.overlay=null;this.path=[];this.encounterGrace=3;this.trail=[];this.refresh();if(win&&enc){sound('victory');afterVictory(this,enc);}else{this.toast('The crew recovered. Your supplies and progress are intact.');this.save();}},
  interact(id){interact(id);},
  act(action,payload={}){act(action,payload);},
 };
@@ -39,9 +39,9 @@ function advanceDialogue(){
 }
 function transaction(fn){const r=fn();g.toast(r.message);sound(r.ok?'build':'error');if(r.ok)g.save();g.refresh();return r;}
 function act(action,p={}){
- // Review controls own the fixture's lifetime. A stray battle click must not
- // discard the return session or resume a synthetic encounter behind the UI.
- if(g.kaidaIdlePreview&&!['setting','menu','close'].includes(action))return;
+ // Preview combat is opt-in. Keep its return session even while fighting.
+ if(g.kaidaIdlePreview&&!['setting','menu','close'].includes(action)&&
+   !(g.kaidaIdlePreview.playing&&['battle','retry','retreat','rewardContinue'].includes(action)))return;
  unlockAudio();
  if(g.mode==='battle'&&['save','load','deleteSave','fastTravel','equip','unequip','learn','useItem','sell'].includes(action)){g.toast('Battle paused. Finish the encounter before changing the party or saving.');return;}
  if(action==='newGame'){g.s=State.createState();resetTransient();g.mode='world';g.refresh();prologue(g);return;}
@@ -153,7 +153,7 @@ function onKey(e){
  if(g.overlay){if(key==='escape'||key==='tab'){act('close');return;}handleUIKey(g,e.key);return;}
  if(g.mode==='battle'){
   if(key==='escape'||key==='tab'){g.openMenu();return;}
-  if(key==='b'){battleAction(g,'back');g.refresh();return;}
+  if(key==='b'){act('battle',{action:'back'});return;}
   handleUIKey(g,e.key);return;
  }
  if(key==='escape'||key==='tab'){g.openMenu();return;}
@@ -169,7 +169,7 @@ canvas.addEventListener('click',e=>{
  if(target&&Math.hypot(target.x-g.s.party.x,target.y-g.s.party.y)<60)interact(target.id);
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden){g.keys.clear();if(g.mode==='world'&&!g.overlay)g.save();}});
-window.addEventListener('beforeunload',()=>{if(g.mode==='world'&&!g.overlay)State.save(g.s);});
+window.addEventListener('beforeunload',()=>{if(g.mode==='world'&&!g.overlay)g.save();});
 
 function snapshot(){
  return {mode:g.mode,overlay:g.overlay,paused:!!g.devPaused,kaidaIdlePreview:g.kaidaIdlePreview?clone(g.kaidaIdlePreview):null,state:clone(g.s),position:clone(g.s.party),region:g.s.party.interior?INTERIORS[g.s.party.interior]?.region:regionAt(g.s.party.x,g.s.party.y)?.id,objective:g.storyObjective,
@@ -183,14 +183,14 @@ window.__chronoforge=Object.freeze({snapshot});
 let last=performance.now(),hudTimer=0,autoTimer=0;
 function frame(now){
  const dt=Math.min(.05,(now-last)/1000);last=now;if(!g.devPaused)g.time+=dt;
- // The opt-in idle review has its own presentation clock. Combat, resources,
- // and every other actor remain paused while Kaida's breathing can be viewed.
+ // Idle inspection keeps its own presentation clock. Start battle releases
+ // the normal simulation clock while retaining the disposable preview state.
  if(g.kaidaIdlePreview&&g.mode==='battle'&&!g.overlay&&!document.hidden)g.kaidaIdlePreview.time+=dt;
  try{
   if(!g.devPaused&&!g.overlay&&(g.mode==='world'||g.mode==='battle')){
    if(g.mode==='world')updateWorld(dt);else updateBattle(g,dt);
    if(g.mode==='world'||!g.battle?.result){g.s.elapsed+=dt;State.tickSettlement(g.s,dt);}
-   autoTimer+=dt;if(autoTimer>25&&g.mode==='world'){autoTimer=0;g.save();}
+   if(!g.kaidaIdlePreview){autoTimer+=dt;if(autoTimer>25&&g.mode==='world'){autoTimer=0;g.save();}}
   }
   if(g.mode==='battle')drawBattle(ctx,g);else drawWorld(ctx,g);
   hudTimer+=dt;if(g.dirty||hudTimer>.12){g.storyObjective=objective(g.s);renderUI(g);g.dirty=false;hudTimer=0;}

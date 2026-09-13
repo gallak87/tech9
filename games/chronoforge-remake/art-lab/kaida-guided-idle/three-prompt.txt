@@ -1,0 +1,16 @@
+Use case: identity-preserve
+Asset type: Kaida's three-frame idle animation sprite sheet for a pixel-art RPG preview.
+
+Generate ALL THREE poses together as ONE coherent new sprite sheet. Do not preserve old endpoints and insert a separately drawn middle. They must be the same drawing of the same woman at three consecutive phases of one subtle breath.
+
+Input 1: three-edit-target.png — EDIT TARGET and exact layout reference. A 2304 x 1024 canvas split into THREE equal 768 x 1024 cells in ONE horizontal row, with the same Kaida character repeated on a solid charcoal background.
+Input 2: three-pose-guides.png — separate POSE GUIDE ONLY. Cyan bones indicate a subtle rest → halfway inhale → full inhale. Gold crosses mark invariant feet and sword anchors. Do not render any guide marks.
+Input 3: candidate.png — approved PIXEL-ART STYLE AND CHARACTER DETAIL reference only. Match its magenta hair, expressive face, teal cropped jacket, dark fitted trousers, steel boots and pink-edged sword. Its gray patterned background is a defective earlier output: discard the entire background. All three new bodies must match each other in slim build, head size, shoulder width, leg thickness, clothing and scale.
+
+Output layout: wide 2304 x 1024 PNG, three equal cells, exactly three complete Kaida figures. Left = rest, center = halfway inhale, right = full inhale. They face three-quarter right. Corresponding foot contact points, pelvis, sword wrist and sword tip occupy identical cell-local coordinates. Use the same margins and camera throughout; no per-cell zoom. Boots near y=850, safe headroom and whole blade inside each cell.
+
+Motion: the left is relaxed, the middle lifts her chest/shoulders only about 3 pixels, the right about 6 pixels, with the head rising 2 and 4 pixels respectively on this canvas. It should play naturally as LEFT → CENTER → RIGHT → CENTER. Feet and pelvis remain planted. No hip sway, walking, weight shift, width change, puffing up, bulk change or face turn. Hair and jacket highlights stay coherent. Small real changes in the upper-body drawing, not three unrelated poses.
+
+Style: crisp beautifully drawn detailed 2D pixel sprites with controlled pixel clusters and clean dark contours, matching the approved character. Uniform lighting and palette across all three. Preserve one consistent anatomy.
+
+Background: deliberately OPAQUE, perfectly flat solid charcoal #202329 covering the entire canvas. The solid backdrop is intentional for this preview. Absolutely no checkerboard, transparency illustration, squares, grids, patterns, stripes, gradients, noise, ghost silhouettes, scene, ground shadows, labels, frame borders, letters or guide marks. Do not simulate transparency. Every background pixel should be the same solid charcoal color.

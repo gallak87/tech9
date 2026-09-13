@@ -22,9 +22,47 @@
       "colorType": 2,
       "hasTransparency": false,
       "sha256": "931d946c2386c03af941efe1ff9ded3cb1b140aacc3dc05f07fd2448e96097e2"
+    },
+    {
+      "file": "candidate-three.png",
+      "source": "/Users/g/.codex/generated_images/01a08f34-d722-7aa0-8a6d-f49cc059ef87/exec-cf6e9017-3969-4f2c-82b9-0d221d862ab5.png",
+      "promptFile": "three-prompt.txt",
+      "inputs": [
+        "three-edit-target.png",
+        "three-pose-guides.png",
+        "candidate.png"
+      ],
+      "requestedSize": [
+        2304,
+        1024
+      ],
+      "width": 1881,
+      "height": 836,
+      "colorType": 2,
+      "hasTransparency": false,
+      "background": "Intentional opaque charcoal matte; no painted checkerboard visible.",
+      "sha256": "252e50b1dffada745dd38588eead1287042581bfe69a9d5f9cfcbd4ea9a93f7d",
+      "posesGeneratedTogether": 3
     }
   ],
-  "selected": "candidate.png (unmodified copy of candidate-v1.png)",
-  "status": "experiment only; identity details repainted and transparency failed",
-  "gameIntegration": false
+  "selected": "candidate-three.png (unmodified single-call three-pose output)",
+  "status": "Preview only; three poses generated jointly, opaque dark background replaces the painted checkerboard. No true-alpha export; exact pose registration remains unverified.",
+  "gameIntegration": false,
+  "previousSelected": "candidate.png (unmodified copy of candidate-v1.png)",
+  "layout": {
+    "columns": 3,
+    "rows": 1,
+    "cell": [
+      627,
+      836
+    ],
+    "sequence": [
+      0,
+      1,
+      2,
+      1
+    ],
+    "defaultBeatMs": 300
+  },
+  "rejectedIntermediate": "A separately generated middle pose was rejected by the user because it differed in build from the old endpoints. It is not used in this sheet or preview; its temporary workspace inputs were removed."
 }

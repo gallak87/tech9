@@ -1,29 +1,33 @@
 # Kaida guided idle experiment · 2026-09-13
 
-Two poses made with the built-in imagegen tool, using the existing Kaida sprite and a separate drawn pose guide. The user chose the existing tool; no ControlNet installation, model downloads, API key, or additional paid service was configured.
+The active preview uses **three poses generated together in one built-in imagegen call**, cycling **1 → 2 → 3 → 2**. The old endpoints and rejected separately generated middle are not used.
 
-Open http://127.0.0.1:4179/art-lab/kaida-guided-idle/ while the existing remake server is running. The page shows the reference and both generated poses at the same cell size, with a slow A/B comparison and guide disclosure. No automatic recentering, warping, or frame registration is applied. The page is standalone and is not included in the game's static release or runtime.
+Open http://127.0.0.1:4179/art-lab/kaida-guided-idle/?view=loop with the remake server running. Playback defaults to 300 ms per beat (1.2 seconds per cycle), with adjustable speed and pause/play. All three frames are cropped directly from one sheet; no per-frame recentering, warping, morphing or crossfade is applied.
 
-## Inputs
+This is a standalone preview. It does not change game code, current runtime animations or saved games. No ControlNet installation, model download, API key or additional paid service was used.
 
-- `reference.png`: exact first 181×181 cell of the original Kaida atlas.
-- `edit-target.png`: that same sprite duplicated at integer 4× scale in two matching 768×1024 cells, on a transparent 1536×1024 canvas.
-- `pose-guides.png`: separate cyan skeletons and gold fixed foot/sword anchors. The inhale asks shoulders to rise six canvas pixels and the head four pixels. Lower-body landmarks and sword anchors are identical.
-- `guide-landmarks.json`: all guide coordinates, offsets and scale.
-- `prepare.mjs`: dependency-free Node script that rebuilds these inputs from the original atlas. This prepares visual references, not ControlNet tensors or an editing-mask parameter.
-- `prompt.txt`: exact first generation prompt.
-- `cleanup-prompt.txt`: exact follow-up requesting only background extraction.
+## Active files
 
-## Actual outcome
+- `candidate-three.png`: unmodified output, 1881×836 RGB PNG, three equal 627×836 cells.
+- `three-prompt.txt`: exact prompt for the built-in tool.
+- `three-edit-target.png`: input reference repeated into three 768×1024 cells on an opaque charcoal matte.
+- `three-pose-guides.png`: rest, halfway inhale and full inhale; fixed feet/pelvis/sword anchors and shoulder rises of 0, 3 and 6 input pixels.
+- `three-landmarks.json`: the guide coordinates. These are visual suggestions, not enforced constraints.
+- `prepare-three.mjs`: dependency-free Node script rebuilding those three input files from the original atlas.
+- `candidate.png`: the older pair, used only as a character/style reference and available separately under previous attempts.
+- `reference.png`: exact original 181×181 idle cell.
+- `generation.json`: source paths, hashes, dimensions and playback sequence.
 
-`candidate-v1.png` and its review copy `candidate.png` are the unmodified first output. It contains two comparable poses, with a visible small upper-body change, but repaints Kaida's details instead of preserving the resting drawing exactly. The overall two-cell layout is maintained; exact anatomical/foot-coordinate adherence has not been measured.
+The output is smaller than requested, but preserves the requested aspect ratio and equal three-column layout. The preview uses the raw cells without correcting alignment.
 
-The output also contains a baked gray checkerboard and faint background artifacts. Its PNG color type is 2 (RGB), with no `tRNS` chunk, rather than genuine transparency. One targeted background-only imagegen edit produced `cleanup-attempt.png`, which also lacks transparency and further changed pixels. It is retained as evidence, not selected as a better asset. No additional imagegen retries were made.
+## Checkerboard diagnosis
 
-The experiment therefore does **not** establish a production-ready sprite/animation workflow. Pose-guide images were suggestions, not enforced constraints. No game code, current idle implementation, attack animation, other characters, or saved game data were changed by this experiment.
+Both earlier outputs are RGB PNGs (color type 2) with no `tRNS` chunk. The checkerboard is painted pixel content, not browser transparency. Asking for transparency did not produce alpha. The available built-in tool exposes no dedicated background/alpha argument; its internal model and output-mode choice are unknown.
+
+This pass requests an **opaque charcoal background**, supplies an input target on that matte and prohibits simulated transparency. The result has a clean dark backdrop with no visible checkerboard. **This fixes the preview background, not transparent export.** The generated output was copied unchanged; no color-key extraction or background editing was applied.
+
+Original pair inputs, prompts and outputs remain for provenance. The rejected middle-pose experiment was removed from this workspace; all three active poses were redrawn together.
 
 ## Checks
 
-Inspected the source/reference, guide and both generated outputs. Checked PNG dimensions/format, inline script syntax and whitespace. No browser, game playthrough, or gameplay simulation was run. The optional two-pose flip is a user-facing comparison aid, not a finished idle loop.
-
-Generation provenance and hashes are in `generation.json`. Source images from the tool remain in the default generated-images directory; workspace copies are included here.
+Inspected the input target, guide and generated sheet. Checked PNG headers, equal cell dimensions, inline JavaScript syntax and whitespace. No browser, playthrough, gameplay simulation or animation playtest was run. Exact landmark consistency and perceived motion quality remain for the user's preview review.

@@ -88,7 +88,7 @@ function frameData(entry,row,col){
  const sheet=sheets.get(entry?.sheet),cell=sheet?.cells[row]?.[col];
  return cell?{sheet,cell}:null;
 }
-function actor(ctx,entry,row,frame,x,y,size,heightOnly=false){
+function actor(ctx,entry,row,frame,x,y,size,heightOnly=false,offset=[0,0]){
  const data=frameData(entry,row,frame);if(!data)return;
  const {sheet,cell}=data;
  // Use the standing row's scale throughout combat, so an extended weapon or
@@ -97,7 +97,7 @@ function actor(ctx,entry,row,frame,x,y,size,heightOnly=false){
  const extent=Math.max(...rowCells.map(c=>heightOnly?c.h:Math.max(c.w,c.h)));
  const k=size/extent,w=cell.w*k,h=cell.h*k;
  ctx.save();ctx.imageSmoothingEnabled=false;
- ctx.drawImage(sheet.img,cell.x,cell.y,cell.w,cell.h,Math.round(x-w/2),Math.round(y-h),w,h);
+ ctx.drawImage(sheet.img,cell.x,cell.y,cell.w,cell.h,Math.round(x-w/2+offset[0]*k),Math.round(y-h+offset[1]*k),w,h);
  ctx.restore();
 }
 export function drawEnemy(ctx,id,state,x,y,scale=1,time=0,phase=1){
@@ -106,10 +106,15 @@ export function drawEnemy(ctx,id,state,x,y,scale=1,time=0,phase=1){
  if(entry.phases&&!['hurt','down','death'].includes(state))row=entry.phases[Math.max(0,Math.min(2,phase-1))];
  const fps=state==='idle'?5:10;
  let frame=Math.floor(Math.max(0,time)*fps)%entry.frames;
+ // Some generated standing rows contain a single exaggerated pose. Architect
+ // phase rows also contain casting poses, which belong only in action playback.
+ if(state==='idle'&&entry.idle)frame=entry.idle.frames[Math.floor(Math.max(0,time)*entry.idle.fps)%entry.idle.frames.length];
  if(state==='hurt')frame=Math.min(2,Math.floor(Math.max(0,time)*10));
  if(state==='death')frame=3+Math.min(2,Math.floor(Math.max(0,time)*10));
  if(state==='down')frame=entry.frames-1;
- actor(ctx,entry,row,frame,x,y,90*scale);
+ // Idle registration shifts whole frames, preserving every original pixel and
+ // the standing row's shared scale. Action frames retain their existing origin.
+ actor(ctx,entry,row,frame,x,y,90*scale,false,state==='idle'?entry.idle?.offsets?.[frame]:undefined);
 }
 export function drawNPC(ctx,id,x,y,scale=1,time=0){
  const entry=manifest?.npcs[id];if(!entry)return;

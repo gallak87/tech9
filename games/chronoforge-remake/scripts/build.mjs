@@ -29,6 +29,11 @@ for(const kind of ['enemies','items','npcs','props'])for(const [id,entry] of Obj
   const sheet=sprites.sheets[entry.sheet];if(!sheet)throw Error('Unknown sprite sheet for '+kind+'/'+id);
   const rows=kind==='enemies'?Object.values(entry.rows):[entry.row];
   if(rows.some(row=>row<0||row>=sheet.rows)||(entry.frames??(entry.col+1))>sheet.columns)throw Error('Sprite frame outside sheet '+kind+'/'+id);
+  if(entry.idle){
+    const {frames,fps,offsets}=entry.idle;
+    if(!Array.isArray(frames)||!frames.length||frames.some(frame=>!Number.isInteger(frame)||frame<0||frame>=entry.frames)||!Number.isFinite(fps)||fps<=0)throw Error('Invalid idle sequence '+kind+'/'+id);
+    if(offsets&&(!Array.isArray(offsets)||offsets.length!==entry.frames||offsets.some(pair=>!Array.isArray(pair)||pair.length!==2||pair.some(n=>!Number.isInteger(n)))))throw Error('Invalid idle registration '+kind+'/'+id);
+  }
 }
 const dist=path.join(root,'dist');await rm(dist,{recursive:true,force:true});await mkdir(dist);
 for(const entry of ['index.html','src','assets'])await cp(path.join(root,entry),path.join(dist,entry),{recursive:true});

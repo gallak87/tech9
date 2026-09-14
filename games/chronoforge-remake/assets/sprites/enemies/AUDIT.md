@@ -75,3 +75,16 @@ Sources inspected: only `games/chronoforge/src/` and the authorized remake modul
 
 All 19 PNGs are RGBA, 1536×1024, with 24 occupied cells and transparent background pixels. Every native output was visually inspected. `tests/systems.mjs` passes 16 grouped checks, 5 fixed campaign milestones, and 6 restored-enemy battle scenarios using production combat actions. It also verifies the new items through shop/equip/save/loot and checks defeat animation age.
 
+## Targeted idle cleanup — September 13, 2026
+
+Battle-browser feedback identified seven exceptions to the otherwise accepted enemy idles. This pass selects and registers existing frames; the PNGs are unchanged. Frame numbers below are zero-based.
+
+| Enemy | Idle correction |
+| --- | --- |
+| Mire Warden, Frost Colossus, Wraith Core, Gravbot, Mire Hulk | Skip frame 2, whose head/chest or arms extend abruptly. Play `[0,1,3,4,5]` at 4 fps, retaining roughly the original loop length. |
+| Frost Revenant | Keep all six poses. Align whole frames to the boots so changing sword/cape bounds no longer pull the body sideways. |
+| Architect, all three phases | Play `[0,1,5,1]` at 3.2 fps. Each phase row contains a casting action; raised-hand and orb-impact poses are excluded from idle but remain available during attacks/casts. |
+
+Revenant offsets are in source pixels, indexed by atlas column: `[[0,0],[-1,1],[3,1],[3,1],[17,0],[2,0]]`. They hold the midpoint between the boots and their ground contact at frame 0's position, rounded to whole source pixels. The foot region was measured from opaque pixels below y=224 and right of x=50 in each 256×256 cell, excluding the sword. The fifth frame's wide cape is the largest cause of re-centering.
+
+The renderer still calculates scale from the complete original standing row. Curation cannot resize enemies. Registration applies only during idle; attacks, movement, damage, death, and the other twelve enemy idles retain their existing playback. The build validates idle frame indices, timing, and registration data. No browser playtesting was performed for this pass.

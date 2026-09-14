@@ -225,6 +225,27 @@ export function battleView(g){
 }
 
 function bar(ctx,x,y,w,fraction,color){ctx.fillStyle='#201b29';ctx.fillRect(x,y,w,5);ctx.fillStyle=color;ctx.fillRect(x,y,Math.max(0,w*clamp(fraction,0,1)),5);}
+function statusText(unit){
+  const statuses=[];if(unit.status.guard>0)statuses.push('GUARD');if(unit.status.slow>0)statuses.push('SLOW');if(unit.status.taunt>0)statuses.push('TAUNT');if(unit.status.shield>0)statuses.push(`SHIELD ${Math.ceil(unit.status.shield)}`);return statuses.join(' · ');
+}
+function drawEnemyLabels(ctx,b){
+  for(const unit of b.enemies.filter(alive)){
+    const p=formationPosition(b,unit);
+    // The standing atlas fits within 90 * render scale. Reserve its full width,
+    // even for narrow frames, so a cape or breathing pose cannot move the card.
+    // The left side is clear of both other enemies and the right command panel.
+    const edge=p.x-90*(unit.boss?2.05:1.5)/2,x=edge-12-166,y=p.y-46,center=x+83;
+    ctx.textAlign='center';ctx.fillStyle='#251c2a';ctx.fillRect(x,y,166,34);
+    ctx.fillStyle='#b89a7066';ctx.fillRect(x+166,y+17,8,1);
+    ctx.font='bold 12px system-ui';ctx.fillStyle='#f5ddc4';ctx.fillText(unit.name,center,y+14,154);
+    bar(ctx,x+18,y+21,130,unit.hp/unit.maxHp,'#df9b7b');bar(ctx,x+18,y+28,130,unit.atb/100,'#9c84c3');
+    if(unit.atb>65||b.action?.actorId===unit.id){
+      const intent=b.action?.actorId===unit.id?b.action.definition.name:`Next: ${enemyPlan(unit).name}`;
+      ctx.font='11px system-ui';ctx.fillStyle='#221e2cd9';ctx.fillRect(x,y-20,166,17);ctx.fillStyle='#ffe29b';ctx.fillText(intent,center,y-7,154);
+    }
+    const statuses=statusText(unit);if(statuses){ctx.font='10px system-ui';ctx.fillStyle='#c1e7dd';ctx.fillText(statuses,center,y+45,154);}
+  }
+}
 export function actionFrame(action){
   if(action.elapsed<action.impactAt)return clamp(Math.floor(action.elapsed/action.impactAt*3),0,2);
   if(action.elapsed<action.impactAt+0.22)return 3;
@@ -236,6 +257,9 @@ export function drawBattle(ctx,g){
   if(b.loopBroken){ctx.fillStyle='#f7c879';ctx.font='11px system-ui';ctx.fillText('THE LOOP IS OPEN',490,145);}
   const a=b.action,reducedMotion=g.s.settings.reducedMotion,units=[...b.heroes,...b.enemies];
   const poses=new Map(units.map(unit=>[unit.id,battlePose(b,unit,{time:g.time||b.time,reducedMotion})]));
+  // Stable cards sit beside the formation; moving sprites and contact effects
+  // render over them rather than being obscured during a dash, leap or return.
+  drawEnemyLabels(ctx,b);
   // Shadows stay on the ground lane while feet lift into a leap or a void glide.
   for(const unit of units){const p=poses.get(unit.id);ctx.fillStyle=`rgba(14,12,26,${alive(unit)?.27:.12})`;ctx.beginPath();ctx.ellipse(p.x,p.groundY+3,(unit.boss?49:unit.side==='hero'?29:36)*(1-clamp(p.lift/200,0,.3)),unit.boss?11:7,0,0,Math.PI*2);ctx.fill();}
   if(a&&!reducedMotion){
@@ -269,14 +293,9 @@ export function drawBattle(ctx,g){
     if(unit.status.immune>0&&unit.status.immuneTime>0){ctx.strokeStyle='#a4c8ff';ctx.setLineDash([5,4]);ctx.strokeRect(p.x-43,p.y-102,86,110);ctx.setLineDash([]);}
   }
   drawContactEffects(ctx,b,poses,reducedMotion);
-  // Enemy health/ATB and selection information belong to stable formation slots.
-  for(const unit of units){
-    const p=formationPosition(b,unit),pose=poses.get(unit.id);
-    if(unit.side==='enemy'&&alive(unit)){
-      ctx.font='bold 12px system-ui';ctx.textAlign='center';ctx.fillStyle='#251c2a';ctx.fillRect(p.x-83,p.y+14,166,34);ctx.fillStyle='#f5ddc4';ctx.fillText(unit.name,p.x,p.y+28);bar(ctx,p.x-65,p.y+35,130,unit.hp/unit.maxHp,'#df9b7b');bar(ctx,p.x-65,p.y+42,130,unit.atb/100,'#9c84c3');
-      if(unit.atb>65||a?.actorId===unit.id){const y=Math.max(141,pose.y-bodyGeometry(unit).renderHeight-9);ctx.font='11px system-ui';const intent=a?.actorId===unit.id?a.definition.name:`Next: ${enemyPlan(unit).name}`,width=ctx.measureText(intent).width;ctx.fillStyle='#221e2cd9';ctx.fillRect(pose.x-width/2-6,y-12,width+12,17);ctx.fillStyle='#ffe29b';ctx.fillText(intent,pose.x,y);}
-    }
-    const statuses=[];if(unit.status.guard>0)statuses.push('GUARD');if(unit.status.slow>0)statuses.push('SLOW');if(unit.status.taunt>0)statuses.push('TAUNT');if(unit.status.shield>0)statuses.push(`SHIELD ${Math.ceil(unit.status.shield)}`);if(statuses.length){ctx.font='10px system-ui';ctx.fillStyle='#c1e7dd';ctx.textAlign='center';ctx.fillText(statuses.join(' · '),p.x,p.y+11);}
+  for(const unit of b.heroes){
+    const p=formationPosition(b,unit),statuses=statusText(unit);
+    if(statuses){ctx.font='10px system-ui';ctx.fillStyle='#c1e7dd';ctx.textAlign='center';ctx.fillText(statuses,p.x,p.y+11);}
   }
   for(const f of b.floats){const unit=unitBy(b,f.id);if(!unit)continue;const p=poses.get(unit.id);ctx.textAlign='center';ctx.globalAlpha=Math.min(1,f.time*2);ctx.font='bold 20px system-ui';ctx.lineWidth=4;ctx.strokeStyle='#251b2f';const y=p.y-bodyGeometry(unit).height*.7-(1.15-f.time)*35-f.offset;ctx.strokeText(f.text,p.x,y);ctx.fillStyle=f.color;ctx.fillText(f.text,p.x,y);ctx.globalAlpha=1;}
   ctx.restore();

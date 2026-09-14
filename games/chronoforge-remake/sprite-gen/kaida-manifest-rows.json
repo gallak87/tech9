@@ -1,0 +1,82 @@
+{
+  "character": "Kaida",
+  "reference_image": "kaida-reference.png",
+  "agent_instructions": [
+    "Coordinator: assign one worker per character with its rows manifest and reference image.",
+    "Worker: process rows sequentially, making one separate image-generation call per row.",
+    "Attach reference_image to every call. Use shared_prompt plus only the current row's prompt, facing and loop setting.",
+    "Save each strip to its output_image path, relative to this manifest. Generate all six frames of that row together; never combine different rows in one call."
+  ],
+  "layout": {
+    "columns": 6,
+    "rows": 1,
+    "reading_order": "left to right"
+  },
+  "shared_prompt": "Using this reference, generate one six-frame animation strip in a single row. Match the character design, proportions and art style throughout. Equal cells, consistent scale and ground line, full body and weapon visible. Transparent background; no checkerboard, labels or grid lines.",
+  "rows": [
+    {
+      "row": 1,
+      "animation": "idle",
+      "facing": "right",
+      "loop": true,
+      "prompt": "Gentle breathing with feet planted.",
+      "output_image": "rows/kaida/01-idle.png"
+    },
+    {
+      "row": 2,
+      "animation": "walk",
+      "facing": "right",
+      "loop": true,
+      "prompt": "A complete two-step walking cycle, both legs taking a turn.",
+      "output_image": "rows/kaida/02-walk.png"
+    },
+    {
+      "row": 3,
+      "animation": "run",
+      "facing": "right",
+      "loop": true,
+      "prompt": "A complete two-step running cycle, both legs taking a turn.",
+      "output_image": "rows/kaida/03-run.png"
+    },
+    {
+      "row": 4,
+      "animation": "attack",
+      "facing": "right",
+      "loop": false,
+      "prompt": "One sword slash, from anticipation through recovery.",
+      "output_image": "rows/kaida/04-attack.png"
+    },
+    {
+      "row": 5,
+      "animation": "cast",
+      "facing": "right",
+      "loop": false,
+      "prompt": "Channel magenta magic through the raised sword.",
+      "output_image": "rows/kaida/05-cast.png"
+    },
+    {
+      "row": 6,
+      "animation": "hurt",
+      "facing": "right",
+      "loop": false,
+      "prompt": "React to a hit, recoil, then end kneeling.",
+      "output_image": "rows/kaida/06-hurt.png"
+    },
+    {
+      "row": 7,
+      "animation": "walk_back",
+      "facing": "away from viewer",
+      "loop": true,
+      "prompt": "Walking away, viewed from behind; a complete two-step cycle.",
+      "output_image": "rows/kaida/07-walk_back.png"
+    },
+    {
+      "row": 8,
+      "animation": "walk_front",
+      "facing": "toward viewer",
+      "loop": true,
+      "prompt": "Walking toward the viewer; a complete two-step cycle.",
+      "output_image": "rows/kaida/08-walk_front.png"
+    }
+  ]
+}

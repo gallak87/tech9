@@ -278,7 +278,7 @@ export function drawBattle(ctx,g){
     if(unit.id===b.readyHero&&!a){ctx.strokeStyle=HEROES[unit.id].color;ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(p.x,p.groundY+3,43,10,0,0,Math.PI*2);ctx.stroke();ctx.fillStyle=HEROES[unit.id].color;ctx.beginPath();ctx.moveTo(p.x,p.y-119);ctx.lineTo(p.x-6,p.y-129);ctx.lineTo(p.x+6,p.y-129);ctx.fill();}
     if(unit.side==='hero'){
       const preview=state==='idle'&&g.kaidaIdlePreview?.heroes.includes(unit.id)?g.kaidaIdlePreview:null;
-      drawHero(ctx,unit.id,state,p.x,p.y,1.25,p.facing,preview?.time??artTime,{battleIdle:true,staticIdle:preview?.mode==='static',reducedMotion});
+      drawHero(ctx,unit.id,state,p.x,p.y,1.25,p.facing,preview?.time??artTime,{staticIdle:preview?.mode==='static',reducedMotion});
     }
     else {
       const phase=unit.catalogId==='architect'?(unit.hp/unit.maxHp>.66?1:unit.hp/unit.maxHp>.33?2:3):1;

@@ -340,7 +340,7 @@ export function drawWorld(ctx,g){
     if(i===0)pos={...p,facing:face};else if(trail.length){let distance=0,last=p;for(const q of trail){distance+=Math.hypot(q.x-last.x,q.y-last.y);last=q;if(distance>=i*28){pos=q;break;}}}
     if(i&&!walkable(s,pos.x,pos.y)){for(const [xx,yy]of [[(i===1?-1:1)*34,16],[(i===1?-1:1)*34,-16],[-30,0],[30,0],[0,25],[0,-25]])if(walkable(s,p.x+xx,p.y+yy)){pos={x:p.x+xx,y:p.y+yy,facing:face};break;}}
     const tx=pos.x,ty=pos.y;
-    draws.push({y:ty+.5,draw:()=>{steppedEllipse(ctx,'#25263855',tx,ty+2,12,5);drawHero(ctx,h.id,heroState,tx,ty,.75,pos.facing||face,time+i*.12);}});
+    draws.push({y:ty+.5,draw:()=>{steppedEllipse(ctx,'#25263855',tx,ty+2,12,5);drawHero(ctx,h.id,heroState,tx,ty,.75,pos.facing||face,time+i*.12,{reducedMotion:!!s.settings?.reducedMotion});}});
   });
   draws.sort((a,b)=>a.y-b.y).forEach(o=>o.draw());
   if(!g.overlay){

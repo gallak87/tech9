@@ -30,9 +30,10 @@ async function loadAllArt(){
 }
 export function drawHero(ctx,id,state,x,y,scale=1,face='right',time=0,options={}){
  const img=heroes[id];if(!img)return;
- // Battle-only opt-in: overworld directions and every action still use their
- // existing atlas frames. Each hero's new idle has one fixed scale and baseline.
- if(state==='idle'&&options.battleIdle&&heroIdle[id]&&(face==='right'||face==='left')){
+ // Every scene gets the same approved side-facing idle by default. North/south
+ // hold their directional atlas pose below; movement/actions use their own rows.
+ // Each hero's approved idle has one fixed scale and baseline at every size.
+ if(state==='idle'&&heroIdle[id]&&(face==='right'||face==='left')){
   const index=heroIdleFrame(time,options,HERO_IDLE_SHEETS[id].layout),{frames,bounds:box}=heroIdle[id],frame=frames[index];
   const [dx,dy]=idleOffsets[id]?.[index]||[0,0];
   const k=82*scale*idleHeights[id]/box.height;

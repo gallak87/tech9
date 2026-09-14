@@ -1,0 +1,12 @@
+Mode: built-in image_gen
+
+Initial prompt:
+Use case: stylized-concept
+Asset type: game main character full-body reference image
+Primary request: Kaida, young adult warrior woman, short swept magenta bob hair, cyan military jacket with rolled sleeves, dark navy leggings, black boots, brown leather belt, standing upright facing the camera directly, T-pose with both arms held straight out horizontally to the sides at shoulder height, fingers spread apart, palms facing down, empty hands, no weapon, neutral expression, symmetrical, entire body visible head to feet, straight-on front view at eye level, flat even studio lighting, no cast shadows, solid bright chroma key green background, clean crisp silhouette.
+Composition/framing: Single character centered, full body and both outstretched hands completely inside the image with clear margins. Exact straight-on front view, level shoulders, straight elbows, legs upright, balanced symmetrical stance. Anatomically correct hands with five separated fingers on each, palms oriented toward the ground.
+Scene/backdrop: Uniform solid bright chroma key green (#00FF00), no horizon, gradient, texture, props or scenery.
+Constraints: No weapons, no held objects, no cast shadows, no cropped limbs, no text or watermark.
+
+Refinement prompt:
+Refine this Kaida game character reference image while preserving her identity, face, magenta swept bob hair, neutral expression, frontal eye-level camera, brown leather belt, black boots, full-body framing, clean silhouette, flat even lighting and solid bright chroma key green background. Correct only these details to match the original request: make the fitted military jacket distinctly bright CYAN with rolled sleeves; replace the cargo-style pants and knee pads with simple smooth, close-fitting DARK NAVY LEGGINGS without pockets or armor; raise and straighten both arms to an exact horizontal T-pose at shoulder height with straight elbows and level wrists, palms facing down and all fingers spread apart. Keep both hands empty, no weapon. Ensure whole body and both hands fit inside the image with margin. No cast shadows, no text.

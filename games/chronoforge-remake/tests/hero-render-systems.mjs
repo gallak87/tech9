@@ -10,6 +10,8 @@ class FakeImage {
     const layout=Object.values(HERO_IDLE_SHEETS).find(sheet=>sheet.file===file)?.layout;
     this.width=this.naturalWidth=(layout?.columns??6)*4;
     this.height=this.naturalHeight=(layout?.rows??8)*6;
+    // Rune's measured row cuts refer to this existing atlas's native size.
+    if(file==='rune.png'){this.width=this.naturalWidth=1086;this.height=this.naturalHeight=1448;}
   }
 }
 function canvas(){
@@ -41,6 +43,8 @@ try{
   await loadArt();
 
   for(const [id,{file,layout}] of Object.entries(HERO_IDLE_SHEETS)){
+    const legacyCell=id==='rune'?181:4,legacyHeight=id==='rune'?181:6;
+    const rowCuts=id==='rune'?[0,195,375,549,723,904,1076,1248,1448]:Array.from({length:9},(_,row)=>row*6);
     const samples=layout.sequence.map((_,beat)=>render(id,'idle','right',beat*layout.beatDuration+.001));
     for(const sample of samples){
       assert(sample.source.origin.endsWith('/'+file),`${id} uses its approved idle without a scene opt-in.`);
@@ -58,7 +62,7 @@ try{
     for(const [face,row] of [['up',6],['down',7]]){
       const first=render(id,'idle',face,0),laterView=render(id,'idle',face,9.75);
       assert.equal(laterView.source,first.source,`${id}/${face} keeps a held directional pose.`);
-      assert.deepEqual(first.source.__atlasSource,{src:new URL(`../assets/${id}.png`,import.meta.url).href,x:0,y:row*6,padding:2});
+      assert.deepEqual(first.source.__atlasSource,{src:new URL(`../assets/${id}.png`,import.meta.url).href,x:0,y:rowCuts[row],padding:2});
     }
 
     for(const [state,face,row,fps] of [
@@ -66,9 +70,22 @@ try{
       ['walk','up',6,8],['walk','down',7,8],['run','up',6,13],['run','down',7,13],
     ]){
       const time=.21,result=render(id,state,face,time),frame=Math.floor(time*fps)%6;
-      assert.deepEqual(result.source.__atlasSource,{src:new URL(`../assets/${id}.png`,import.meta.url).href,x:frame*4,y:row*6,padding:2},`${id}/${state}/${face} retains its directional action atlas row and timing.`);
+      assert.deepEqual(result.source.__atlasSource,{src:new URL(`../assets/${id}.png`,import.meta.url).href,x:frame*legacyCell,y:rowCuts[row],padding:2},`${id}/${state}/${face} retains its directional action atlas row and timing.`);
+      if(id==='rune'){
+        const cropHeight=rowCuts[row+1]-rowCuts[row];
+        assert.equal(result.args[3],cropHeight,'Rune samples the full measured source row.');
+        assert(Math.abs(result.args[7]-cropHeight/legacyHeight*82*.75)<1e-10,'Uneven crops keep a consistent scale per source pixel.');
+      }
     }
     assert.deepEqual(render(id,'walk','left',.21).scales,[[-1,1]],`${id} still mirrors leftward movement.`);
+    if(id==='rune'){
+      assert.equal(render(id).args[3],82*.75,'Corrected legacy rows do not resize Rune’s approved idle.');
+      assert.deepEqual(HERO_IDLE_SHEETS.rune.offsets,[[0,0],[26,0],[43,2]],'Preview and game share the unchanged boot registration.');
+      const k=samples[0].args[3]/samples[0].source.height;
+      assert.equal(samples[1].args[0]-samples[0].args[0],26*k);
+      assert.equal(samples[2].args[0]-samples[0].args[0],43*k);
+      assert.equal(samples[2].args[1]-samples[0].args[1],2*k);
+    }
   }
 }finally{
   for(const [key,descriptor] of originals){

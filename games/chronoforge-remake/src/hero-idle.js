@@ -12,7 +12,9 @@ const KAIDA_FRESH_IDLE = Object.freeze({
 export const HERO_IDLE_SHEETS = Object.freeze({
   kaida:{file:'kaida-idle-fresh.png',layout:KAIDA_FRESH_IDLE},
   vex:{file:'vex-idle.png',layout:HERO_IDLE},
-  rune:{file:'rune-idle.png',layout:HERO_IDLE},
+  // Rune's generated cells have different padding. These whole-cell offsets
+  // register the boots without resizing or redrawing body pixels.
+  rune:{file:'rune-idle.png',layout:HERO_IDLE,offsets:[[0,0],[26,0],[43,2]]},
 });
 
 export function heroIdleFrame(time=0,{staticIdle=false,reducedMotion=false}={},layout=HERO_IDLE){

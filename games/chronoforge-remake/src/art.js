@@ -3,9 +3,9 @@
 import {createHeroIdleFrames,heroIdleFrame,HERO_IDLE_SHEETS} from './hero-idle.js';
 import {drawAtlasImage} from './sprite-image.js';
 const heroes={},bounds={},heroIdle={},idleHeights={},sheets=new Map();
-// Rune's generated cells have different padding. Whole-cell integer offsets
-// register the boots to pose 1 without resizing or redrawing any body pixels.
-const idleOffsets={rune:[[0,0],[26,0],[43,2]]};
+// Rune's legacy atlas rows are uneven: an equal 181px grid borrows the previous
+// pose's boots above his head. These cuts sit in the source's transparent gaps.
+const heroRowCuts={rune:[0,195,375,549,723,904,1076,1248,1448]};
 let manifest;
 let loading;
 const ROW={idle:0,walk:1,run:2,attack:3,cast:4,hurt:5,defend:4,victory:4,down:5};
@@ -16,13 +16,16 @@ async function loadAllArt(){
   const img=new Image();img.src=new URL(`../assets/${id}.png`,import.meta.url).href;await img.decode();heroes[id]=img;
   const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(img,0,0);
   const pixels=ctx.getImageData(0,0,img.width,img.height).data,cw=img.width/6,ch=img.height/8;
+  const rowCuts=heroRowCuts[id]||Array.from({length:9},(_,row)=>row*ch);
   bounds[id]=Array.from({length:8},(_,row)=>Array.from({length:6},(_,col)=>{
-   let max=0;for(let y=Math.floor(row*ch);y<Math.floor((row+1)*ch);y++)for(let x=Math.floor(col*cw);x<Math.floor((col+1)*cw);x++){if(pixels[(y*img.width+x)*4+3]>100)max=Math.max(max,y-row*ch);}
+   let max=0;for(let y=Math.floor(rowCuts[row]);y<Math.floor(rowCuts[row+1]);y++)for(let x=Math.floor(col*cw);x<Math.floor((col+1)*cw);x++){if(pixels[(y*img.width+x)*4+3]>100)max=Math.max(max,y-rowCuts[row]);}
    return max;
   }));
   let top=ch;
   for(let y=0;y<ch;y++)for(let x=0;x<cw;x++)if(pixels[(y*img.width+x)*4+3]>100)top=Math.min(top,y);
-  idleHeights[id]=(bounds[id][0][0]-top+1)/ch;
+  // Keep the approved idle's original on-screen height even when a corrected
+  // legacy row now contains the complete boots below its old grid boundary.
+  idleHeights[id]=(Math.min(bounds[id][0][0],Math.floor(ch)-1)-top+1)/ch;
   const idleSpec=HERO_IDLE_SHEETS[id],idleImage=new Image();idleImage.src=new URL(`../assets/${idleSpec.file}`,import.meta.url).href;await idleImage.decode();
   heroIdle[id]=createHeroIdleFrames(idleImage,undefined,idleSpec.layout);
  }));
@@ -34,8 +37,8 @@ export function drawHero(ctx,id,state,x,y,scale=1,face='right',time=0,options={}
  // hold their directional atlas pose below; movement/actions use their own rows.
  // Each hero's approved idle has one fixed scale and baseline at every size.
  if(state==='idle'&&heroIdle[id]&&(face==='right'||face==='left')){
-  const index=heroIdleFrame(time,options,HERO_IDLE_SHEETS[id].layout),{frames,bounds:box}=heroIdle[id],frame=frames[index];
-  const [dx,dy]=idleOffsets[id]?.[index]||[0,0];
+  const idleSpec=HERO_IDLE_SHEETS[id],index=heroIdleFrame(time,options,idleSpec.layout),{frames,bounds:box}=heroIdle[id],frame=frames[index];
+  const [dx,dy]=idleSpec.offsets?.[index]||[0,0];
   const k=82*scale*idleHeights[id]/box.height;
   ctx.save();smoothSprite(ctx);ctx.translate(Math.round(x),Math.round(y));if(face==='left')ctx.scale(-1,1);
   ctx.drawImage(frame,(-frame.width*.5+dx)*k,(-box.bottom+dy)*k,frame.width*k,frame.height*k);
@@ -47,8 +50,9 @@ export function drawHero(ctx,id,state,x,y,scale=1,face='right',time=0,options={}
  if(state==='idle'&&face==='up'){row=6;frame=0;}if(state==='idle'&&face==='down'){row=7;frame=0;}
  if(state==='down')frame=5;
  const cw=img.width/6,ch=img.height/8,size=82*scale,base=bounds[id]?.[row]?.[frame]??ch*.94;
+ const cuts=heroRowCuts[id],sy=cuts?.[row]??Math.round(row*ch),sh=cuts?cuts[row+1]-sy:Math.floor(ch);
  ctx.save();smoothSprite(ctx);ctx.translate(Math.round(x),Math.round(y));if(face==='left')ctx.scale(-1,1);
- drawAtlasImage(ctx,img,Math.round(frame*cw),Math.round(row*ch),Math.floor(cw),Math.floor(ch),-size*.5,-size*base/ch,size,size);
+ drawAtlasImage(ctx,img,Math.round(frame*cw),sy,Math.floor(cw),sh,-size*.5,-size*base/ch,size,cuts?sh/ch*size:size);
  ctx.restore();
 }
 export function drawPortrait(ctx,id,x,y,size=64){

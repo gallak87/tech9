@@ -1,0 +1,67 @@
+{
+  "title": "Kaida \u00b7 direction study",
+  "candidate": {
+    "file": "candidate.png",
+    "columns": 3,
+    "rows": 1,
+    "poses": [
+      {
+        "id": "front",
+        "label": "Front",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 1024
+        },
+        "originX": 256,
+        "bounds": {
+          "x": 79,
+          "y": 78,
+          "width": 390,
+          "height": 841
+        }
+      },
+      {
+        "id": "back",
+        "label": "Back",
+        "crop": {
+          "x": 512,
+          "y": 0,
+          "width": 564,
+          "height": 1024
+        },
+        "originX": 256,
+        "bounds": {
+          "x": 82,
+          "y": 78,
+          "width": 475,
+          "height": 840
+        }
+      },
+      {
+        "id": "right",
+        "label": "Right \u00b7 match current",
+        "crop": {
+          "x": 1076,
+          "y": 0,
+          "width": 460,
+          "height": 1024
+        },
+        "originX": 204,
+        "bounds": {
+          "x": 6,
+          "y": 84,
+          "width": 429,
+          "height": 839
+        }
+      }
+    ],
+    "background": "painted-checkerboard"
+  },
+  "reference": {
+    "hero": "kaida"
+  },
+  "promptFile": "prompt.txt",
+  "generationFile": "generation.json"
+}

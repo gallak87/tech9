@@ -1,0 +1,28 @@
+{
+  "date": "2026-09-13",
+  "tool": "built-in image_gen",
+  "model": "Not exposed or selectable by the built-in tool",
+  "source": "/Users/g/.codex/generated_images/01a08f34-d722-7aa0-8a6d-f49cc059ef87/exec-0955d5fc-ac89-403c-aad6-75697f359a65.png",
+  "referenceImages": [
+    "../../assets/rune-idle.png"
+  ],
+  "promptFile": "prompt.txt",
+  "asset": "candidate.png",
+  "sha256": "456e58049fcc319beca10eaadeb2b9a6ed06c57b8a2fc0bea9a306896ac50b6c",
+  "dimensions": [
+    1536,
+    1024
+  ],
+  "generatedViews": [
+    "front",
+    "back",
+    "right-three-quarter"
+  ],
+  "generationCalls": 1,
+  "processing": "Unmodified generated image. Preview only. Metadata crops isolate complete poses; declared visible bounds set one shared size and foot line without changing source pixels.",
+  "alpha": {
+    "transparentPixels": 0,
+    "opaquePixels": 1572864
+  },
+  "limitation": "Model painted an opaque checkerboard despite transparent-alpha request. Preview keeps the raw result and disables transparent overlays; this sheet is not wired into the game."
+}

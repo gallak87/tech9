@@ -1,0 +1,36 @@
+{
+  "date": "2026-09-13",
+  "tool": "built-in image_gen",
+  "model": "Not exposed or selectable by the built-in tool",
+  "source": "/Users/g/.codex/generated_images/01a08f34-d722-7aa0-8a6d-f49cc059ef87/exec-58fb0a58-6f8b-4c1b-b7e9-99181106dae6.png",
+  "referenceImages": [
+    "../../assets/kaida-idle-fresh.png"
+  ],
+  "promptFile": "prompt.txt",
+  "asset": "candidate.png",
+  "sha256": "63fff3da5eca687f717b63862870145507b4a67aecbbb8c2922ede822be0eb7b",
+  "dimensions": [
+    1536,
+    1024
+  ],
+  "generatedViews": [
+    "front",
+    "back",
+    "right-three-quarter"
+  ],
+  "generationCalls": 1,
+  "processing": "Unmodified generated image. Preview only. Metadata crops isolate complete poses; declared visible bounds set one shared size and foot line without changing source pixels.",
+  "alpha": {
+    "transparentPixels": 0,
+    "opaquePixels": 1572864
+  },
+  "limitation": "Model painted an opaque checkerboard despite transparent-alpha request. Preview keeps the raw result and disables transparent overlays; this sheet is not wired into the game.",
+  "cleanupAttempt": {
+    "file": "cleanup-attempt.png",
+    "source": "/Users/g/.codex/generated_images/01a08f34-d722-7aa0-8a6d-f49cc059ef87/exec-4b5d378b-7fee-4ded-a3cf-2c01931cda0a.png",
+    "promptFile": "cleanup-prompt.txt",
+    "used": false,
+    "reason": "Still opaque checkerboard and changed character rendering. Original joint generation is used for comparison."
+  },
+  "layoutNote": "Back-view sword extends past the nominal middle cell; crop boundary moved to x1076 within the empty gap before the right character."
+}

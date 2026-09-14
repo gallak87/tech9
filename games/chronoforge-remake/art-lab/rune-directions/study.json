@@ -1,0 +1,67 @@
+{
+  "title": "Rune \u00b7 direction study",
+  "candidate": {
+    "file": "candidate.png",
+    "columns": 3,
+    "rows": 1,
+    "poses": [
+      {
+        "id": "front",
+        "label": "Front",
+        "crop": {
+          "x": 0,
+          "y": 0,
+          "width": 512,
+          "height": 1024
+        },
+        "originX": 256,
+        "bounds": {
+          "x": 28,
+          "y": 207,
+          "width": 469,
+          "height": 626
+        }
+      },
+      {
+        "id": "back",
+        "label": "Back",
+        "crop": {
+          "x": 512,
+          "y": 0,
+          "width": 512,
+          "height": 1024
+        },
+        "originX": 256,
+        "bounds": {
+          "x": 22,
+          "y": 212,
+          "width": 461,
+          "height": 621
+        }
+      },
+      {
+        "id": "right",
+        "label": "Right \u00b7 match current",
+        "crop": {
+          "x": 1024,
+          "y": 0,
+          "width": 512,
+          "height": 1024
+        },
+        "originX": 256,
+        "bounds": {
+          "x": 21,
+          "y": 207,
+          "width": 453,
+          "height": 626
+        }
+      }
+    ],
+    "background": "painted-checkerboard"
+  },
+  "reference": {
+    "hero": "rune"
+  },
+  "promptFile": "prompt.txt",
+  "generationFile": "generation.json"
+}

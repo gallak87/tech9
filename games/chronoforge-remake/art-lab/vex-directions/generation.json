@@ -1,0 +1,41 @@
+{
+  "hero": "vex",
+  "purpose": "turnaround-comparison-only",
+  "generatedAt": "2026-09-14T02:25:52.443255+00:00",
+  "tool": "built-in image_gen",
+  "modelSelectable": false,
+  "model": "not selectable or verified through tool interface",
+  "sourceImage": "../../assets/vex-idle.png",
+  "sourceImageAbsolute": "/Users/g/code/scratch/tech9/games/chronoforge-remake/assets/vex-idle.png",
+  "generatedSource": "/Users/g/.codex/generated_images/01a09db9-ca8e-7571-9ec4-60523a00db71/exec-e3b8f6c2-d1ea-43b3-bdd5-4894a25dbb2f.png",
+  "candidate": "candidate.png",
+  "prompt": "prompt.txt",
+  "sha256": "a6d2cb46ef7f8d517c8201c07875b453926be6e05ac687effdca6fa9e52dfb90",
+  "dimensions": {
+    "width": 1536,
+    "height": 1024
+  },
+  "mode": "RGB",
+  "alpha": {
+    "hasChannel": false,
+    "transparentPixels": 0,
+    "partialPixels": 0,
+    "opaquePixels": 1572864
+  },
+  "layout": {
+    "columns": 3,
+    "rows": 1,
+    "cellWidth": 512,
+    "cellHeight": 1024,
+    "order": [
+      "front",
+      "back",
+      "right"
+    ]
+  },
+  "limits": [
+    "The model painted a visible checkerboard despite the requested real alpha transparency. The RGB output is retained unchanged for comparison only.",
+    "The new front/back/right views have not been approved for game integration."
+  ],
+  "processing": "Byte-for-byte copy; no crop, background removal, scaling, recoloring or pixel edits."
+}

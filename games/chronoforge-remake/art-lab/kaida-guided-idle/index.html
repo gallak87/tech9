@@ -1,162 +1,46 @@
 <!doctype html>
 <html lang="en">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kaida · guided idle study</title>
-<style>
-  :root{color-scheme:dark;font:14px/1.5 system-ui,sans-serif;background:#14171d;color:#e5e3df;--cell-height:290px}
-  *{box-sizing:border-box}body{margin:0;padding:30px clamp(18px,5vw,80px);max-width:1600px;margin-inline:auto}
-  h1{font-size:26px;letter-spacing:-.035em;margin:7px 0 9px;font-weight:600}h2{font-size:14px;margin:0;font-weight:600}
-  p{margin:7px 0;color:#a9b0bc;max-width:880px}a{color:#d998b5;text-underline-offset:3px}header{border-bottom:1px solid #ffffff14;padding-bottom:24px}
-  .eyebrow{color:#d998b5;font-size:10px;font-weight:600;letter-spacing:.15em;text-transform:uppercase}
-  .tag{display:inline-block;font-size:10px;margin-top:9px;border:1px solid #ffffff22;border-radius:4px;padding:3px 7px;color:#b9af97}
-  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:22px 0}
-  button,select,input{font:inherit}button,select{padding:8px 12px;border:1px solid #ffffff25;border-radius:5px;background:#242a34;color:#e6e4df}
-  button{cursor:pointer}button:hover:not(:disabled){border-color:#d998b5}button[aria-pressed=true]{background:#58394b;border-color:#ce92af}
-  button:disabled{opacity:.45;cursor:default}button:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #d998b5;outline-offset:3px}
-  label{display:flex;align-items:center;gap:9px;font-size:12px;color:#afb8c4}.spacer{flex:1}
-  .gallery{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;align-items:start}.gallery.playback{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
-  #loop{border-color:#d998b580;color:#f0c1d7}.transport{display:flex;align-items:center;flex-wrap:wrap;gap:16px;margin:-8px 0 20px;padding:13px 16px;background:#1b2029;border:1px solid #ffffff16;border-radius:6px}.transport input{width:135px;accent-color:#d998b5}.transport output{font-variant-numeric:tabular-nums;min-width:48px}.beat{margin-left:auto;font:11px ui-monospace,monospace;color:#b9a6b5}
-  figure{margin:0;border:1px solid #ffffff16;border-radius:8px;overflow:hidden;background:#1b2029;min-width:0}
-  figcaption{padding:14px 15px;border-bottom:1px solid #ffffff13}figcaption small{display:block;font-size:11px;color:#8e99a8;margin-top:4px}
-  .image-well{min-height:calc(var(--cell-height) + 36px);padding:18px;display:flex;justify-content:center;align-items:flex-start;overflow:auto;background:#202329}
-  canvas{height:var(--cell-height);width:auto;max-width:none;image-rendering:pixelated;display:block;flex:none;background:transparent}
-  [hidden]{display:none!important}.pending{color:#8793a4;font-size:12px;align-self:center;text-align:center;margin:auto}
-  .measure{display:block;font:10px/1.5 ui-monospace,monospace;color:#8996a6;padding:10px 15px;border-top:1px solid #ffffff0c}
-  .status{min-height:22px;font-size:12px;margin-bottom:12px;color:#b7c4ce}.status.error{color:#edb1c5}
-  .note{font-size:12px;margin-top:17px;line-height:1.7}details{margin-top:27px;padding-top:17px;border-top:1px solid #ffffff16}
-  summary{cursor:pointer;color:#c6cbd3;max-width:max-content;font-size:13px}.guides{max-width:100%;max-height:650px;image-rendering:pixelated;display:block;margin-top:16px;border:1px solid #ffffff15}
-  footer{color:#737e8e;font-size:11px;margin-top:26px;padding-top:17px;border-top:1px solid #ffffff12}
-  @media(max-width:1100px){.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}}
-  @media(max-width:650px){.gallery,.gallery.playback{grid-template-columns:1fr}.image-well{justify-content:center}.spacer{display:none}h1{font-size:23px}.beat{margin-left:0}}
-  @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-</style>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Party · direction study</title>
+  <link rel="stylesheet" href="comparison.css">
+</head>
+<body data-backdrop="slate">
 <header>
-  <div class="eyebrow">Chronoforge · art lab</div>
-  <h1>Kaida / guided idle study</h1>
-  <p>Three poses generated together in one image, played as a simple breathing cycle: <strong>1 → 2 → 3 → 2</strong>.</p>
-  <span class="tag">Reference + pose-guide images · approved battle idle</span>
+  <div><span class="eyebrow">Chronoforge · art lab</span><h1><span id="hero-name">Kaida</span> / direction study</h1><p>The current in-game idle beside three new standing views. Compare face, outfit and silhouette.</p></div>
+  <a class="back-link" href="../../?dev=1&amp;preview=battles">← Battle browser</a>
 </header>
-<div class="controls" aria-label="Comparison controls">
-  <button id="loop" aria-pressed="false">Loop 1 → 2 → 3 → 2</button>
-  <button id="static" aria-pressed="true">Side by side</button>
-  <button id="pose-1" aria-pressed="false" disabled>Pose 1</button>
-  <button id="pose-2" aria-pressed="false" disabled>Pose 2</button>
-  <button id="pose-3" aria-pressed="false" disabled>Pose 3</button>
-  <span class="spacer"></span>
-  <label>Zoom <select id="zoom"><option value="1">1×</option><option value="1.6" selected>1.6×</option><option value="2">2×</option><option value="3">3×</option></select></label>
-  <button id="retry">Reload images</button>
-</div>
-<div id="transport" class="transport" hidden>
-  <button id="play" disabled>Play</button>
-  <label>Hold per beat <input id="hold" type="range" min="150" max="800" step="50" value="300"><output id="hold-value">300 ms</output></label>
-  <span id="cycle-time" class="note" style="margin:0">1.20s / cycle</span><span id="beat" class="beat">POSE 1 · BEAT 1 / 4</span>
-</div>
-<div id="status" class="status" role="status" aria-live="polite">Loading local reference and candidate…</div>
-<main class="gallery" id="gallery">
-  <figure>
-    <figcaption><h2>Original reference</h2><small>Original sprite at 4× integer scale / matching cell</small></figcaption>
-    <div class="image-well"><canvas id="reference" hidden aria-label="Original Kaida sprite in the matching guide cell"></canvas><span class="pending" id="reference-pending">Loading edit-target.png…</span></div>
-    <span class="measure" id="reference-size">edit-target.png / left half</span>
-  </figure>
-  <figure id="card-a" class="pose-card">
-    <figcaption><h2>1 · resting</h2><small>New three-pose sheet / column 1</small></figcaption>
-    <div class="image-well"><canvas id="a" hidden aria-label="Generated resting pose"></canvas><span class="pending" id="a-pending">Waiting for candidate-three.png</span></div>
-    <span class="measure" id="a-size">Full cell · no alignment correction</span>
-  </figure>
-  <figure id="card-middle" class="pose-card">
-    <figcaption><h2>2 · middle</h2><small>New three-pose sheet / column 2</small></figcaption>
-    <div class="image-well"><canvas id="middle" hidden aria-label="Generated middle pose"></canvas><span class="pending" id="middle-pending">Waiting for candidate-three.png</span></div>
-    <span class="measure" id="middle-size">Full cell · no alignment correction</span>
-  </figure>
-  <figure id="card-b" class="pose-card">
-    <figcaption><h2>3 · inhaling</h2><small>New three-pose sheet / column 3</small></figcaption>
-    <div class="image-well"><canvas id="b" hidden aria-label="Generated inhaling pose"></canvas><span class="pending" id="b-pending">Waiting for candidate-three.png</span></div>
-    <span class="measure" id="b-size">Full cell · no alignment correction</span>
-  </figure>
-  <figure id="card-playback" hidden>
-    <figcaption><h2 id="playback-title">Idle cycle · 1 → 2 → 3 → 2</h2><small>One fixed canvas · three cells from the same image</small></figcaption>
-    <div class="image-well"><canvas id="playback" hidden aria-label="Kaida idle pose preview"></canvas><span class="pending" id="playback-pending">Waiting for pose images…</span></div>
-    <span class="measure" id="playback-size">Pose 1 · resting</span>
-  </figure>
+<main>
+  <section class="toolbar" aria-label="Comparison controls">
+    <label>Character <select id="hero"><option value="kaida">Kaida</option><option value="vex">Vex</option><option value="rune">Rune</option></select></label>
+    <div class="segmented" aria-label="Display mode"><button data-mode="gallery" aria-pressed="true">All directions</button><button data-mode="compare" aria-pressed="false">Close comparison</button><button data-mode="overlay" aria-pressed="false">Overlay</button></div>
+    <label>Compare <select id="pose"><option value="right">Right · match current</option><option value="front">Front</option><option value="back">Back</option></select></label>
+    <label>Size <select id="zoom"><option value="84">Game scale · ~84 px</option><option value="240" selected>Inspection · 240 px</option><option value="360">Large · 360 px</option></select></label>
+    <label>Backdrop <select id="backdrop"><option value="slate">Slate</option><option value="paper">Warm paper</option><option value="checker">Transparency grid</option></select></label>
+    <button id="reload" class="quiet">Reload</button>
+  </section>
+  <div class="status-row"><p id="status" role="status" aria-live="polite">Loading the approved idle and direction sheet…</p><span class="pill">Static direction candidates</span></div>
+  <section id="gallery" class="gallery" aria-label="All character directions">
+    <figure class="reference-card"><figcaption><span class="eyebrow">Current / in game</span><h2>Approved idle</h2><small class="current-label">Frame 1 · current sprite registry</small></figcaption><div class="canvas-well"><canvas data-source="reference" aria-label="Current approved Kaida idle"></canvas><span class="pending" data-pending="reference">Loading current idle…</span></div><p class="measure" id="reference-info">Uses the game’s selected idle sheet</p></figure>
+    <figure data-pose-card="front"><figcaption><span class="eyebrow">Candidate / 01</span><h2>Front</h2><small>New sheet · standing pose</small></figcaption><div class="canvas-well"><canvas data-source="front" aria-label="New Kaida front standing pose"></canvas><span class="pending" data-pending="candidate">Loading direction sheet…</span></div><p class="measure">Shared scale and baseline</p></figure>
+    <figure data-pose-card="back"><figcaption><span class="eyebrow">Candidate / 02</span><h2>Back</h2><small>New sheet · standing pose</small></figcaption><div class="canvas-well"><canvas data-source="back" aria-label="New Kaida back standing pose"></canvas><span class="pending" data-pending="candidate">Loading direction sheet…</span></div><p class="measure">Shared scale and baseline</p></figure>
+    <figure data-pose-card="right"><figcaption><span class="eyebrow">Candidate / 03</span><h2>Right</h2><small>Compare this angle with the current idle</small></figcaption><div class="canvas-well"><canvas data-source="right" aria-label="New Kaida right three-quarter standing pose"></canvas><span class="pending" data-pending="candidate">Loading direction sheet…</span></div><p class="measure">Shared scale and baseline</p></figure>
+  </section>
+  <section id="compare" class="comparison" aria-label="Current and selected candidate" hidden>
+    <figure class="reference-card"><figcaption><span class="eyebrow">A / current</span><h2>Approved idle</h2><small class="current-label">Frame 1</small></figcaption><div class="canvas-well"><canvas data-source="reference" aria-label="Current Kaida close comparison"></canvas><span class="pending" data-pending="reference">Loading current idle…</span></div></figure>
+    <figure><figcaption><span class="eyebrow">B / candidate</span><h2 class="selected-label">Right · match current</h2><small>One static pose · no animation</small></figcaption><div class="canvas-well"><canvas data-source="selected" aria-label="Selected Kaida candidate close comparison"></canvas><span class="pending" data-pending="candidate">Loading direction sheet…</span></div></figure>
+  </section>
+  <section id="overlay" aria-label="Current and candidate overlay" hidden>
+    <div class="overlay-controls"><label>Candidate opacity <input id="opacity" type="range" min="0" max="100" value="50"><output id="opacity-value">50%</output></label><button id="show-current">A · current only</button><button id="show-candidate">B · candidate only</button><span id="overlay-hint">Drag the slider to compare edges and clothing.</span></div>
+    <figure><figcaption><span class="eyebrow">A + B / overlay</span><h2 class="selected-label">Right · match current</h2><small id="overlay-caption">Current fades out as the candidate fades in</small></figcaption><div class="canvas-well"><canvas data-source="overlay" aria-label="Kaida reference and candidate blended comparison"></canvas><span class="pending" data-pending="both">Loading both sheets…</span></div></figure>
+  </section>
+  <section class="transport" aria-label="Current idle playback">
+    <button id="play" disabled aria-pressed="false">Play current idle</button><label>Current frame <input id="frame" type="range" min="0" max="7" value="0" step="1" disabled><output id="frame-value">1 / 8</output></label><span>Only the approved idle animates. New directions stay still.</span>
+  </section>
+  <details><summary>How the comparison is aligned</summary><div class="details-copy"><p>Every candidate is copied from its source cell or documented crop. The three views share one scale, planned cell origins and one baseline. Their pixels are not warped, stretched, redrawn or automatically recentered pose by pose.</p><p>Transparent views use visible bounds with alpha greater than 32. Opaque sheets use documented silhouette bounds when supplied; their backgrounds remain untouched. Each sheet’s combined bounds determine its framing; the current sheet and candidate sheet are scaled uniformly to comparable silhouette heights. This makes costume differences easier to inspect, but does not prove identical in-game proportions. The dashed line marks the shared lower bound. On narrow screens the whole comparison scales down to fit.</p><p>The current reference follows <code>HERO_IDLE_SHEETS</code> and uses the game’s frame loader. The selectable transparency grid is CSS behind the canvas. Any checkerboard already painted into a generated sheet remains in its pixels and will still appear on every backdrop.</p><p id="sheet-info">Source dimensions will appear after loading.</p></div></details>
 </main>
-<p class="note">This sheet uses an intentionally opaque dark backdrop. No transparency or background removal is applied. Kaida now uses this sheet in battle, where the dark matte is masked during loading.</p>
-<details><summary>Cell alignment and raw assets</summary><p class="note">All three generated poses are equal-size cells cut directly from candidate-three.png. Playback copies those raw cells onto one fixed canvas, with no trimming, recentering, warping, color keying, or frame blending. The original reference retains its own full-cell dimensions; all previews share the same displayed height.</p><p class="note"><a href="reference.png">Raw original sprite</a> · <a href="candidate-three.png">New three-pose sheet</a> · <a href="three-prompt.txt">Three-pose generation prompt</a></p></details>
-<details><summary>View the three-column pose guide</summary><img id="guides" class="guides" alt="Resting, middle, and inhaling pose guides in three equal columns" hidden><p id="guide-status" class="note">Loading three-pose-guides.png…</p></details>
-<details><summary>Previous two-pose attempt</summary><p class="note">The older pair contained a painted checkerboard. It is kept here for comparison and is never used in the new loop.</p><p class="note"><a href="candidate.png">Previous pair</a> · <a href="candidate-v1.png">Raw first attempt</a> · <a href="cleanup-attempt.png">Previous cleanup attempt</a> · <a href="pose-guides.png">Previous pose guide</a> · <a href="prompt.txt">Previous prompt</a></p></details>
-<footer>Compare silhouette, face, costume details, planted feet, and body drift through the cycle.</footer>
-<script>
-  const $ = id => document.getElementById(id);
-  const sequence = [0,1,2,1], poseIds = ['a','middle','b'], names = ['resting','middle','inhaling'];
-  const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
-  let timer, generation = 0, activeMode = new URLSearchParams(location.search).get('view') === 'loop' ? 'loop' : 'static';
-  let frames = [null,null,null], beat = 0, playing = false, cellWidth = 627, cellHeight = 836;
-  function status(text, error = false) { $('status').textContent = text; $('status').classList.toggle('error', error); }
-  function frameReady() { return frames.every(Boolean); }
-  function prepare(canvas) { canvas.width = cellWidth; canvas.height = cellHeight; return canvas.getContext('2d'); }
-  function paint(canvas, source) {
-    const context = canvas.getContext('2d'); context.clearRect(0,0,canvas.width,canvas.height); context.imageSmoothingEnabled = false;
-    context.drawImage(source.image,source.x,0,source.width,source.image.naturalHeight,0,0,source.width,source.image.naturalHeight);
-  }
-  function draw(id, source) {
-    $(id).width = source.width; $(id).height = source.image.naturalHeight; paint($(id),source); $(id).hidden = false; $(`${id}-pending`).hidden = true;
-    $(`${id}-size`).textContent = `${source.width} × ${source.image.naturalHeight}px · raw whole cell`;
-  }
-  function showPose(index) {
-    const source = frames[index]; $('playback').hidden = !source; $('playback-pending').hidden = Boolean(source);
-    if (source) paint($('playback'),source);
-    $('playback-pending').textContent = `Pose ${index + 1} is not available yet. Use Reload images when ready.`;
-    $('playback-size').textContent = `Pose ${index + 1} · ${names[index]}`;
-    $('beat').textContent = `POSE ${index + 1} · BEAT ${beat + 1} / 4`;
-  }
-  function setPlaying(value) {
-    clearInterval(timer); playing = value && activeMode === 'loop' && frameReady() && !document.hidden;
-    $('play').textContent = playing ? 'Pause' : 'Play'; $('play').disabled = !frameReady();
-    if (playing) timer = setInterval(() => { beat = (beat + 1) % sequence.length; showPose(sequence[beat]); }, Number($('hold').value));
-  }
-  function mode(next, autoplay = !reducedMotion.matches) {
-    setPlaying(false); activeMode = next;
-    for (const key of ['static','pose-1','pose-2','pose-3','loop']) $(key).setAttribute('aria-pressed',String(key === next));
-    for (const card of document.querySelectorAll('.pose-card')) card.hidden = next !== 'static';
-    $('gallery').classList.toggle('playback',next !== 'static'); $('card-playback').hidden = next === 'static'; $('transport').hidden = next !== 'loop';
-    if (next === 'loop') { beat = 0; $('playback-title').textContent = 'Idle cycle · 1 → 2 → 3 → 2'; showPose(sequence[beat]); setPlaying(autoplay); }
-    else if (next !== 'static') { const index = Number(next.slice(-1)) - 1; $('playback-title').textContent = `Pose ${index + 1} · ${names[index]}`; showPose(index); }
-  }
-  function image(src) {
-    return new Promise((resolve,reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = () => reject(new Error(src)); img.src = `${src}?v=${Date.now()}`; });
-  }
-  async function load() {
-    const attempt = ++generation; setPlaying(false); frames = [null,null,null];
-    for (const id of ['pose-1','pose-2','pose-3','play']) $(id).disabled = true;
-    for (const id of ['reference',...poseIds,'playback']) { $(id).hidden = true; $(`${id}-pending`).hidden = false; $(`${id}-pending`).textContent = 'Loading local image…'; }
-    status('Loading reference and the new three-pose sheet…');
-    const results = await Promise.allSettled([image('edit-target.png'),image('candidate-three.png'),image('three-pose-guides.png')]);
-    if (attempt !== generation) return;
-    const get = index => results[index].status === 'fulfilled' ? results[index].value : null;
-    const reference = get(0), candidate = get(1);
-    const referenceReady = reference && reference.naturalWidth % 2 === 0, sheetReady = candidate && candidate.naturalWidth >= 3 && candidate.naturalWidth % 3 === 0;
-    cellWidth = sheetReady ? candidate.naturalWidth / 3 : 627; cellHeight = sheetReady ? candidate.naturalHeight : 836;
-    prepare($('playback'));
-    if (referenceReady) draw('reference',{image:reference,x:0,width:reference.naturalWidth / 2});
-    else $('reference-pending').textContent = 'edit-target.png is missing, unreadable, or has an odd width.';
-    if (results[2].status === 'fulfilled') { $('guides').src = results[2].value.src; $('guides').hidden = false; $('guide-status').hidden = true; }
-    else { $('guides').hidden = true; $('guide-status').hidden = false; $('guide-status').textContent = 'three-pose-guides.png is not available yet. Reload images when it is ready.'; }
-    if (sheetReady) frames = [0,1,2].map(index => ({image:candidate,x:index * cellWidth,width:cellWidth}));
-    frames.forEach((source,index) => { const id = poseIds[index]; $(`pose-${index + 1}`).disabled = !source;
-      if (source) draw(id,source); else $(`${id}-pending`).textContent = 'candidate-three.png is pending or unreadable, or its width is not divisible by three.';
-    });
-    status(frameReady() ? `One sheet · three ${cellWidth} × ${cellHeight}px cells · 1 → 2 → 3 → 2.` : 'New three-pose sheet pending or invalid. Use Reload images when ready; previous attempts are not substituted.', !frameReady());
-    mode(activeMode);
-  }
-  for (const id of ['static','pose-1','pose-2','pose-3','loop']) $(id).onclick = () => mode(id);
-  $('play').onclick = () => setPlaying(!playing);
-  $('hold').oninput = () => { $('hold-value').textContent = `${$('hold').value} ms`; $('cycle-time').textContent = `${(Number($('hold').value) * 4 / 1000).toFixed(2)}s / cycle`; setPlaying(playing); };
-  $('zoom').onchange = () => document.documentElement.style.setProperty('--cell-height', `${181 * Number($('zoom').value)}px`);
-  $('retry').onclick = load;
-  document.addEventListener('visibilitychange', () => { if (document.hidden) setPlaying(false); });
-  reducedMotion.addEventListener('change',event => { if (event.matches) setPlaying(false); });
-  window.addEventListener('pagehide', () => setPlaying(false));
-  mode(activeMode,false);
-  load();
-</script>
+<footer><nav aria-label="Study assets"><a id="raw-candidate" href="../kaida-directions/candidate.png">Raw direction sheet</a><a id="raw-reference" href="../../assets/kaida-idle-fresh.png">Current idle sheet</a><a id="prompt-link" href="../kaida-directions/prompt.txt">Generation prompt</a><a id="generation-link" href="../kaida-directions/generation.json">Generation record</a><a href="breathing-study.html">Archived breathing study</a></nav><span>Comparison only · no game assets changed by this page</span></footer>
+<script type="module" src="comparison.js"></script>
+</body>
 </html>

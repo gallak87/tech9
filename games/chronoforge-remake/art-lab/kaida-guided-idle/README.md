@@ -1,33 +1,58 @@
-# Kaida guided idle experiment · 2026-09-13
+# Party direction comparison
 
-The active preview uses **three poses generated together in one built-in imagegen call**, cycling **1 → 2 → 3 → 2**. The old endpoints and rejected separately generated middle are not used.
+Open `/art-lab/kaida-guided-idle/` on the remake server. The existing URL now compares the current approved idle with new **front, back and right standing poses**. The character selector supports Kaida, Vex and Rune; `?hero=vex` or `?hero=rune` opens either directly.
 
-Open http://127.0.0.1:4179/art-lab/kaida-guided-idle/?view=loop with the remake server running. Playback defaults to 300 ms per beat (1.2 seconds per cycle), with adjustable speed and pause/play. All three frames are cropped directly from one sheet; no per-frame recentering, warping, morphing or crossfade is applied.
+The old three-pose breathing preview is preserved unchanged at [`breathing-study.html`](breathing-study.html). Its local image, guide and prompt links still work. No historical generation assets were replaced by this page update.
 
-This page remains a standalone preview of the raw sheet. The guided sheet is preserved in assets/kaida-idle.png; Kaida's current battle idle uses the later eight-frame assets/kaida-idle-fresh.png experiment instead. The guided sheet can be restored through the selection in src/hero-idle.js, which retains its edge-connected matte masking. Attacks and overworld animations still use the original atlas. No ControlNet installation, model download, API key or additional paid service was used.
+## Controls
 
-## Active files
+- **All directions:** current approved frame plus all three static candidates.
+- **Close comparison:** current frame beside the selected direction; defaults to right.
+- **Overlay:** opacity comparison for transparent candidates, or manual A / B for opaque candidates.
+- **Size:** roughly 84px game scale, 240px inspection or 360px large inspection. All visible cards share the same scale and shrink together on narrow screens.
+- **Backdrop:** slate, warm paper or a CSS transparency grid. The selectable grid is never copied into sprite pixels; a checkerboard already painted into a generated source remains visible on every backdrop.
+- **Current idle:** optional play/pause and frame scrubbing. Candidate directions never animate.
+- **Reload:** refetch metadata and images after a new local generation arrives. Missing studies show an error while any available current reference remains visible.
 
-- `candidate-three.png`: unmodified output, 1881×836 RGB PNG, three equal 627×836 cells.
-- `three-prompt.txt`: exact prompt for the built-in tool.
-- `three-edit-target.png`: input reference repeated into three 768×1024 cells on an opaque charcoal matte.
-- `three-pose-guides.png`: rest, halfway inhale and full inhale; fixed feet/pelvis/sword anchors and shoulder rises of 0, 3 and 6 input pixels.
-- `three-landmarks.json`: the guide coordinates. These are visual suggestions, not enforced constraints.
-- `prepare-three.mjs`: dependency-free Node script rebuilding those three input files from the original atlas.
-- `candidate.png`: the older pair, used only as a character/style reference and available separately under previous attempts.
-- `reference.png`: exact original 181×181 idle cell.
-- `generation.json`: source paths, hashes, dimensions and playback sequence.
+Rendering uses display size × device pixel ratio, with a 2048px maximum backing edge and high-quality smoothing. Resizing and DPR changes repaint the comparison. Playback starts paused, pauses when the page is hidden, and responds to reduced-motion preference changes.
 
-The output is smaller than requested, but preserves the requested aspect ratio and equal three-column layout. The preview uses the raw cells without correcting alignment.
+## Sources and alignment
 
-## Checkerboard diagnosis
+The reference is always selected through `HERO_IDLE_SHEETS[hero]` in `../../src/hero-idle.js`, and loaded with `createHeroIdleFrames`. Registered per-frame offsets are applied as in the game, without changing the sheet. No frozen copy of an older approved reference is substituted.
 
-Both earlier outputs are RGB PNGs (color type 2) with no `tRNS` chunk. The checkerboard is painted pixel content, not browser transparency. Asking for transparency did not produce alpha. The available built-in tool exposes no dedicated background/alpha argument; its internal model and output-mode choice are unknown.
+The selected study is fetched from `../<hero>-directions/study.json`. Candidate, prompt and generation record paths resolve relative to that metadata file. Expected structure:
 
-This pass requests an **opaque charcoal background**, supplies an input target on that matte and prohibits simulated transparency. The result has a clean dark backdrop with no visible checkerboard. **This fixes the preview background, not transparent export.** The generated output was copied unchanged; no color-key extraction or background editing was applied.
+```json
+{
+  "title": "Kaida direction study",
+  "candidate": {
+    "file": "candidate.png",
+    "columns": 3,
+    "rows": 1,
+    "poses": [
+      {"id": "front", "label": "Front"},
+      {"id": "back", "label": "Back"},
+      {"id": "right", "label": "Right · match current"}
+    ]
+  },
+  "reference": {"hero": "kaida"},
+  "promptFile": "prompt.txt",
+  "generationFile": "generation.json"
+}
+```
 
-Original pair inputs, prompts and outputs remain for provenance. The rejected middle-pose experiment was removed from this workspace; all three active poses were redrawn together.
+Each pose may additionally provide:
 
-## Checks
+- `crop: {x, y, width, height}` — integer source-sheet coordinates. Default: its equal column. This accommodates source artwork that crosses nominal cell edges without clipping the pose.
+- `originX` — planned horizontal anchor **within that crop**. Default: nominal column center minus `crop.x`.
+- `bounds: {x, y, width, height}` — documented silhouette bounds **within the crop**. Used for opaque sheets where alpha cannot identify the silhouette. Default: measured alpha greater than 32.
 
-Inspected the input target, guide and generated sheet. Checked PNG headers, equal cell dimensions, inline JavaScript syntax and whitespace. No browser, playthrough, gameplay simulation or animation playtest was run. Exact landmark consistency and perceived motion quality remain for the user's preview review.
+Candidate crops are copied at native resolution. No pixels, alpha, costume geometry or colors are edited. All candidate views share one scale derived from their combined bounds, retain their planned column origins, and use a common vertical baseline in source-sheet coordinates. Their bodies are never resized or automatically recentered independently. The current sheet is scaled separately to a comparable total silhouette height; this comparison is not a claim of identical game proportions.
+
+Opaque candidate backgrounds remain visible. When the selected pose has no transparency, the overlay slider is disabled and A / B buttons show either original image. The page explicitly reports this limitation instead of applying a color key or background mask.
+
+## Archived breathing study
+
+`breathing-study.html` is the previous `index.html`, preserved byte for byte. Its three poses were generated together in `candidate-three.png`, with `three-prompt.txt`, `three-edit-target.png`, `three-pose-guides.png`, `three-landmarks.json` and `prepare-three.mjs` preserving the old guide experiment. Earlier checkerboard outputs and prompts remain in this directory. That page is a historical standalone preview; the active game reference is determined by the registry above.
+
+This page writes no save state and does not switch any game assets. No browser or gameplay testing was run for this update.

@@ -108,6 +108,8 @@ __dev.poses();                      // exact impact poses; resume() plays the re
 
 ## Art and implementation
 
+Kaida's current battle idle uses `assets/kaida-idle-fresh.png`: eight frames in a 4×2 grid at 6 fps, generated from a text description alone. Native transparency and original pixels are preserved. The previous guided sheet remains at `assets/kaida-idle.png` and in its standalone art-lab preview. `src/hero-idle.js` selects the active sheet and timing per hero; Vex and Rune retain their guided idles. The new prompt, provenance and rollback setting are in `art-lab/kaida-fresh-idle/`.
+
 All visual assets are new. `assets/kaida.png`, `vex.png`, and `rune.png` are original transparent 6×8 animation atlases created with the built-in imagegen tool from textual identity descriptions. **assets/prompts.json** preserves the exact prompts and grid metadata. The atlases supply idle, walk, run, attack, cast, hurt, north and south frames. Facing left mirrors directional frames; no static rotation replaces animation. Attacks use discrete windup/impact/recovery frame scheduling.
 
 Offensive battle actions now travel to the chosen opponent: Kaida dashes or leaps into a slash, Rune jumps into a punch, and Vex glides into a close spell strike. Attacks arrive when damage lands, hold contact, then return to formation. Double/triple attacks use separate landing positions. Healing, protection and supplies stay in formation; reduced motion uses stationary casts and projected strikes.

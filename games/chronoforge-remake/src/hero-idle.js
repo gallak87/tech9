@@ -4,11 +4,21 @@ export const HERO_IDLE = Object.freeze({
   columns:3, rows:1, frames:3,
   beatDuration:.3, duration:1.2, sequence:Object.freeze([0,1,2,1]),
 });
+const KAIDA_FRESH_IDLE = Object.freeze({
+  columns:4, rows:2, frames:8,
+  boundsAlpha:32, // Ignore faint alpha fringe when measuring feet, not when drawing.
+  beatDuration:1/6, duration:8/6, sequence:Object.freeze([0,1,2,3,4,5,6,7]),
+});
+export const HERO_IDLE_SHEETS = Object.freeze({
+  kaida:{file:'kaida-idle-fresh.png',layout:KAIDA_FRESH_IDLE},
+  vex:{file:'vex-idle.png',layout:HERO_IDLE},
+  rune:{file:'rune-idle.png',layout:HERO_IDLE},
+});
 
-export function heroIdleFrame(time=0,{staticIdle=false,reducedMotion=false}={}){
+export function heroIdleFrame(time=0,{staticIdle=false,reducedMotion=false}={},layout=HERO_IDLE){
   if(staticIdle||reducedMotion||!Number.isFinite(time))return 0;
-  const t=((time%HERO_IDLE.duration)+HERO_IDLE.duration)%HERO_IDLE.duration;
-  return HERO_IDLE.sequence[Math.min(3,Math.floor(t/HERO_IDLE.beatDuration+1e-10))];
+  const t=((time%layout.duration)+layout.duration)%layout.duration;
+  return layout.sequence[Math.min(layout.sequence.length-1,Math.floor(t/layout.beatDuration+1e-10))];
 }
 
 function hasTransparency(pixels){
@@ -16,10 +26,10 @@ function hasTransparency(pixels){
   return false;
 }
 
-function alphaBounds(pixels,width,height){
+function alphaBounds(pixels,width,height,threshold=0){
   let x=width,y=height,right=0,bottom=0;
   for(let py=0;py<height;py++)for(let px=0;px<width;px++){
-    if(pixels[(py*width+px)*4+3]===0)continue;
+    if(pixels[(py*width+px)*4+3]<=threshold)continue;
     x=Math.min(x,px);y=Math.min(y,py);right=Math.max(right,px+1);bottom=Math.max(bottom,py+1);
   }
   return right ? {x,y,width:right-x,height:bottom-y,right,bottom} : null;
@@ -70,16 +80,19 @@ export function maskHeroIdleMatte(pixels,width,height,{tolerance=10,matte,preser
   return {data,bounds:alphaBounds(data,width,height),removedPixels:tail,matte:[...background],preservedAlpha:false};
 }
 
-export function createHeroIdleFrames(img,createCanvas=()=>document.createElement('canvas')){
+export function createHeroIdleFrames(img,createCanvas=()=>document.createElement('canvas'),layout=HERO_IDLE){
   const sourceWidth=img.naturalWidth||img.width,sourceHeight=img.naturalHeight||img.height;
-  if(!Number.isInteger(sourceWidth)||!Number.isInteger(sourceHeight)||sourceWidth<3||sourceHeight<1||sourceWidth%3)
-    throw new Error('Hero idle sheet must contain three equal columns in one row.');
-  const width=sourceWidth/3,height=sourceHeight;
-  const cells=Array.from({length:3},(_,index)=>{
+  const {columns,rows,frames}=layout;
+  if(!Number.isInteger(columns)||columns<1||!Number.isInteger(rows)||rows<1||frames!==columns*rows)
+    throw new Error('Hero idle layout must describe a complete grid.');
+  if(!Number.isInteger(sourceWidth)||!Number.isInteger(sourceHeight)||sourceWidth<columns||sourceHeight<rows||sourceWidth%columns||sourceHeight%rows)
+    throw new Error('Hero idle sheet must contain equal cells matching its layout.');
+  const width=sourceWidth/columns,height=sourceHeight/rows;
+  const cells=Array.from({length:frames},(_,index)=>{
     const canvas=createCanvas();canvas.width=width;canvas.height=height;
     const ctx=canvas.getContext('2d',{willReadFrequently:true});
     if(!ctx)throw new Error('A 2D canvas is required to prepare idle poses.');
-    ctx.imageSmoothingEnabled=false;ctx.drawImage(img,index*width,0,width,height,0,0,width,height);
+    ctx.imageSmoothingEnabled=false;ctx.drawImage(img,(index%columns)*width,Math.floor(index/columns)*height,width,height,0,0,width,height);
     return {canvas,ctx,pixels:ctx.getImageData(0,0,width,height)};
   });
   // A transparent source sheet must not have its opaque cells color-keyed.
@@ -87,10 +100,10 @@ export function createHeroIdleFrames(img,createCanvas=()=>document.createElement
   let union=null;
   for(const cell of cells){
     const result=maskHeroIdleMatte(cell.pixels.data,width,height,{preserveAlpha});
-    if(!result.bounds)throw new Error('Hero idle sheet contains an empty pose.');
+    const b=layout.boundsAlpha?alphaBounds(result.data,width,height,layout.boundsAlpha):result.bounds;
+    if(!b)throw new Error('Hero idle sheet contains an empty pose.');
     cell.pixels.data.set(result.data);cell.ctx.putImageData(cell.pixels,0,0);
-    if(result.bounds){
-      const b=result.bounds;
+    if(b){
       if(!union)union={...b};
       else{
         union.x=Math.min(union.x,b.x);union.y=Math.min(union.y,b.y);

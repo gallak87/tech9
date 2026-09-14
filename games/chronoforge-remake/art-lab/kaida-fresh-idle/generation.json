@@ -1,0 +1,36 @@
+{
+  "date": "2026-09-13",
+  "tool": "built-in image_gen",
+  "source": "/Users/g/.codex/generated_images/01a08f34-d722-7aa0-8a6d-f49cc059ef87/exec-2c958cc6-8cc0-467d-b3fe-5b528c05a53e.png",
+  "promptFile": "prompt.txt",
+  "referenceImages": [],
+  "asset": "../../assets/kaida-idle-fresh.png",
+  "sha256": "3c6da63f3bb65cabdf2fa747850a27fafae16d56609fbd98dbfd2070acbdbed6",
+  "dimensions": [
+    1536,
+    1024
+  ],
+  "layout": {
+    "columns": 4,
+    "rows": 2,
+    "cell": [
+      384,
+      512
+    ],
+    "sequence": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "fps": 6
+  },
+  "processing": "Unmodified generated RGBA sheet. Native alpha preserved. One shared scale and baseline across all eight cells; no per-frame registration or warping. Pixels with alpha ≤32 are ignored only when measuring the shared bounds so faint fringe does not move the ground baseline; rendered alpha is unchanged.",
+  "scope": "Kaida battle idle only, including the development battle preview.",
+  "preservedPreviousAsset": "../../assets/kaida-idle.png",
+  "rollback": "In src/hero-idle.js set HERO_IDLE_SHEETS.kaida to {file:\"kaida-idle.png\",layout:HERO_IDLE}."
+}

@@ -4,7 +4,7 @@ The active preview uses **three poses generated together in one built-in imagege
 
 Open http://127.0.0.1:4179/art-lab/kaida-guided-idle/?view=loop with the remake server running. Playback defaults to 300 ms per beat (1.2 seconds per cycle), with adjustable speed and pause/play. All three frames are cropped directly from one sheet; no per-frame recentering, warping, morphing or crossfade is applied.
 
-This page remains a standalone preview of the raw sheet. The approved sheet is now also shipped as the battle-only idle in assets/kaida-idle.png; the game caches an edge-connected matte mask so its backdrop does not cover the battlefield. Attacks and overworld animations still use the original atlas. No ControlNet installation, model download, API key or additional paid service was used.
+This page remains a standalone preview of the raw sheet. The guided sheet is preserved in assets/kaida-idle.png; Kaida's current battle idle uses the later eight-frame assets/kaida-idle-fresh.png experiment instead. The guided sheet can be restored through the selection in src/hero-idle.js, which retains its edge-connected matte masking. Attacks and overworld animations still use the original atlas. No ControlNet installation, model download, API key or additional paid service was used.
 
 ## Active files
 

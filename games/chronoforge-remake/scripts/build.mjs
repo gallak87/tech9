@@ -4,6 +4,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {ENEMIES,ITEMS} from '../src/data.js';
 import {OBJECTS,INTERIORS} from '../src/world.js';
+import {HERO_IDLE_SHEETS} from '../src/hero-idle.js';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..');
 const files=await readdir(path.join(root,'src'));
 for(const file of files.filter(f=>f.endsWith('.js'))){
@@ -12,9 +13,9 @@ for(const file of files.filter(f=>f.endsWith('.js'))){
   for(const [,p] of body.matchAll(/(?:from\s+|import\s*)['"](\.\/[^'"]+)['"]/g)) await readFile(path.join(root,'src',p));
 }
 for(const hero of ['kaida','vex','rune']) await readFile(path.join(root,'assets',hero+'.png'));
-for(const hero of ['kaida','vex','rune']){
-  const png=await readFile(path.join(root,'assets',hero+'-idle.png'));
-  if(png.toString('hex',0,8)!=='89504e470d0a1a0a'||png.readUInt32BE(16)<3||png.readUInt32BE(16)%3!==0||png.readUInt32BE(20)<1)throw Error('Invalid three-pose idle sheet '+hero);
+for(const [hero,{file,layout}] of Object.entries(HERO_IDLE_SHEETS)){
+  const png=await readFile(path.join(root,'assets',file));
+  if(png.toString('hex',0,8)!=='89504e470d0a1a0a'||png.readUInt32BE(16)<layout.columns||png.readUInt32BE(16)%layout.columns!==0||png.readUInt32BE(20)<layout.rows||png.readUInt32BE(20)%layout.rows!==0)throw Error('Invalid idle sheet '+hero);
 }
 const sprites=JSON.parse(await readFile(path.join(root,'assets/sprites/manifest.json'),'utf8'));
 for(const [key,sheet] of Object.entries(sprites.sheets)){

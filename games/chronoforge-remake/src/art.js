@@ -1,6 +1,6 @@
 // Heroes, non-settlement actors, enemies, items and salvage use imagegen atlases.
 // Sprite sheets are sampled as discrete frames; no static sprite rotations.
-import {createHeroIdleFrames,heroIdleFrame} from './hero-idle.js';
+import {createHeroIdleFrames,heroIdleFrame,HERO_IDLE_SHEETS} from './hero-idle.js';
 const heroes={},bounds={},heroIdle={},idleHeights={},sheets=new Map();
 // Rune's generated cells have different padding. Whole-cell integer offsets
 // register the boots to pose 1 without resizing or redrawing any body pixels.
@@ -21,8 +21,8 @@ async function loadAllArt(){
   let top=ch;
   for(let y=0;y<ch;y++)for(let x=0;x<cw;x++)if(pixels[(y*img.width+x)*4+3]>100)top=Math.min(top,y);
   idleHeights[id]=(bounds[id][0][0]-top+1)/ch;
-  const idleImage=new Image();idleImage.src=new URL(`../assets/${id}-idle.png`,import.meta.url).href;await idleImage.decode();
-  heroIdle[id]=createHeroIdleFrames(idleImage);
+  const idleSpec=HERO_IDLE_SHEETS[id],idleImage=new Image();idleImage.src=new URL(`../assets/${idleSpec.file}`,import.meta.url).href;await idleImage.decode();
+  heroIdle[id]=createHeroIdleFrames(idleImage,undefined,idleSpec.layout);
  }));
  await loadSpriteSheets();
 }
@@ -31,7 +31,7 @@ export function drawHero(ctx,id,state,x,y,scale=1,face='right',time=0,options={}
  // Battle-only opt-in: overworld directions and every action still use their
  // existing atlas frames. Each hero's new idle has one fixed scale and baseline.
  if(state==='idle'&&options.battleIdle&&heroIdle[id]&&(face==='right'||face==='left')){
-  const index=heroIdleFrame(time,options),{frames,bounds:box}=heroIdle[id],frame=frames[index];
+  const index=heroIdleFrame(time,options,HERO_IDLE_SHEETS[id].layout),{frames,bounds:box}=heroIdle[id],frame=frames[index];
   const [dx,dy]=idleOffsets[id]?.[index]||[0,0];
   const k=82*scale*idleHeights[id]/box.height;
   ctx.save();ctx.imageSmoothingEnabled=false;ctx.translate(Math.round(x),Math.round(y));if(face==='left')ctx.scale(-1,1);

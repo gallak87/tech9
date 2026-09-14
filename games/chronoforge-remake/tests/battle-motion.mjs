@@ -34,16 +34,17 @@ function installMotionAudit(){
   const records=new Map();
   window.__motionAudit={records,clear(){records.clear();}};
   CanvasRenderingContext2D.prototype.drawImage=function(source,...args){
-    if(this.canvas.id==='canvas'&&typeof source?.src==='string'&&args.length===8){
-      const file=new URL(source.src,location.href).pathname;
+    const atlas=source?.__atlasSource,src=atlas?.src??source?.src;
+    if(this.canvas.id==='canvas'&&typeof src==='string'&&args.length===8){
+      const file=new URL(src,location.href).pathname;
       const hero=file.match(/\/assets\/(kaida|vex|rune)\.png$/);
       const enemy=file.match(/\/assets\/sprites\/enemies\/([^/]+)\.png$/);
       if(hero||enemy){
         const m=this.getTransform(),[sx,sy,sw,sh,dx,dy,dw,dh]=args;
         const px=hero?0:dx+dw/2,py=hero?0:dy+dh;
         const id=hero?.[1]||enemy[1];
-        records.set(id,{id,kind:hero?'hero':'enemy',file,x:m.a*px+m.c*py+m.e,y:m.b*px+m.d*py+m.f,
-          crop:[sx,sy,sw,sh],destination:[dx,dy,dw,dh],facing:m.a<0?'left':'right'});
+        records.set(id,{id,kind:hero?'hero':'enemy',file,x:(m.a*px+m.c*py+m.e)*960/this.canvas.width,y:(m.b*px+m.d*py+m.f)*600/this.canvas.height,
+          crop:[sx+(atlas?atlas.x-atlas.padding:0),sy+(atlas?atlas.y-atlas.padding:0),sw,sh],destination:[dx,dy,dw,dh],facing:m.a<0?'left':'right'});
       }
     }
     return original.call(this,source,...args);

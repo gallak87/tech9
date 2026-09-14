@@ -5,10 +5,11 @@ import {drawWorld} from './render.js';
 import {startBattle,updateBattle,drawBattle,battleAction,battleView} from './battle.js';
 import {renderUI,handleUIKey} from './ui.js';
 import {loadArt} from './art.js';
+import {createGameDisplay} from './display.js';
 import {unlockAudio,setAudio,sound,tickAudio} from './audio.js';
 import {say,prologue,objective,journalEntries,beforeEncounter,afterVictory,npcStory,signStory,openChest,touchAnchor,anchorCount} from './story.js';
 
-const canvas=document.getElementById('canvas'),ctx=canvas.getContext('2d');
+const canvas=document.getElementById('canvas'),display=createGameDisplay(canvas),ctx=display.ctx;
 const clone=x=>JSON.parse(JSON.stringify(x));
 const g={s:State.createState(),mode:'title',overlay:null,ui:{tab:0,hero:0},time:0,keys:new Set(),camera:{x:0,y:640},path:[],moving:false,running:false,facing:'down',battle:null,nearby:null,trail:[],encounterGrace:0,dirty:true,battleSound:sound,
  toast(text){this.toastMsg=text;this.toastUntil=this.time+4;const el=document.getElementById('toast');el.textContent=text;el.classList.add('show');this.dirty=true;},
@@ -192,6 +193,7 @@ function frame(now){
    if(g.mode==='world'||!g.battle?.result){g.s.elapsed+=dt;State.tickSettlement(g.s,dt);}
    if(!g.kaidaIdlePreview){autoTimer+=dt;if(autoTimer>25&&g.mode==='world'){autoTimer=0;g.save();}}
   }
+  if(display.beginFrame())g.dirty=true;
   if(g.mode==='battle')drawBattle(ctx,g);else drawWorld(ctx,g);
   hudTimer+=dt;if(g.dirty||hudTimer>.12){g.storyObjective=objective(g.s);renderUI(g);g.dirty=false;hudTimer=0;}
   if(g.toastUntil<g.time)document.getElementById('toast').classList.remove('show');

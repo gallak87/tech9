@@ -1,0 +1,46 @@
+{
+  "useCase": "stylized-concept",
+  "tool": "built-in image_gen",
+  "modelSelection": "No model selector exposed; exact backing image model not verified.",
+  "generatedAt": "2026-09-13",
+  "referenceFiles": [
+    "../../assets/vex-idle.png"
+  ],
+  "originalOutput": "/Users/g/.codex/generated_images/01a09dca-a4e8-7922-bac9-db0ec83d7d63/exec-0701e7e0-4372-4328-ba4b-204898648c1f.png",
+  "savedOutput": "candidate.png",
+  "promptFile": "prompt.txt",
+  "attempts": 1,
+  "pixelEdits": "None; output copied byte-for-byte.",
+  "image": {
+    "width": 1448,
+    "height": 1086,
+    "alphaMin": 255,
+    "alphaMax": 255,
+    "background": "painted-checkerboard"
+  },
+  "requestedLayout": {
+    "columns": 6,
+    "rows": 3,
+    "rowDirections": [
+      "right",
+      "up",
+      "down"
+    ],
+    "framePhases": [
+      "left-contact",
+      "left-support-right-passing",
+      "left-toeoff-right-reach",
+      "right-contact",
+      "right-support-left-passing",
+      "right-toeoff-left-reach"
+    ]
+  },
+  "status": "rejected-not-wired",
+  "findings": [
+    "Side-view contact poses in columns 1 and 4 retain the same visible near shin leading; requested anatomical left/right exchange is not convincing.",
+    "Front/back rows show distinct boot poses, but this does not rescue the side-view cycle.",
+    "Background is fully opaque painted checkerboard despite requested alpha or flat matte.",
+    "Several side-view sprites cross nominal equal-width cell boundaries. Source width 1448 is not divisible by 6.",
+    "No cleanup, mirroring, regeneration, browser testing or gameplay source replacement performed."
+  ]
+}

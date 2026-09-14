@@ -1,0 +1,21 @@
+Use case: stylized-concept.
+Asset type: production game sprite atlas, Vex overworld RUN animation.
+
+Use the attached approved Vex idle sheet ONLY as the character identity and rendering-style reference. Create a BRAND NEW coherent running sprite sheet of this exact hero: slender pale-faced mage, violet hood and long split violet coat with cyan embroidered hems, dark belted undersuit and boots, blue jewel clasp, a dark burgundy staff holding one bright cyan orb. Keep the approved proportions, silhouette details, colors and crisp detailed shaded sprite finish. Do not change this into a cartoon or chunky simplified pixel design.
+
+ONE atlas, exactly SIX equal columns and THREE equal rows, 18 full-body sprites, ideally 1536 by 1152 pixels (256 by 384 per cell). No visible grid or text.
+Top row: Vex running toward SCREEN RIGHT, consistent right-facing three-quarter view.
+Middle row: Vex running AWAY from camera, back view, toward screen UP.
+Bottom row: Vex running TOWARD camera, front view, toward screen DOWN.
+Each row is a complete SIX-FRAME LOOP with these successive anatomical phases:
+column 1: LEFT foot reaches forward and contacts ground; RIGHT leg trails behind.
+column 2: LEFT foot supporting under body; RIGHT knee passes forward raised and bent.
+column 3: LEFT toe pushes off behind; RIGHT leg reaches toward the next contact; slight airborne lift.
+column 4: RIGHT foot reaches forward and contacts ground; LEFT leg trails behind.
+column 5: RIGHT foot supporting under body; LEFT knee passes forward raised and bent.
+column 6: RIGHT toe pushes off behind; LEFT leg reaches toward the next contact; slight airborne lift.
+The second half must clearly swap which anatomical leg leads. Distinct left-right-left alternating strides, visibly bent knees and a strong forward running intention; NEVER six minor edits of the same static stance. Maintain readable two-leg action even in the front and back views. The coat opens and separates into tails, lifting only enough to reveal both moving boots and shins. Carry the staff consistently in Vex's anatomical LEFT hand; free RIGHT arm counterswings opposite the legs. The orb/staff remains rigid and consistent, without trailing magic.
+
+Every sprite is fully contained in its cell with generous transparent gutters on ALL sides. Keep pelvis centered on the SAME local horizontal center within each row. Identical character scale throughout all 18 frames; common ground baseline at 91% of cell height. A small natural vertical lift on push-off is correct; no horizontal body wandering, no resizing from frame to frame. Camera and lighting stay fixed within each row. All hood tips, orb, staff ends, fingers, coat tails and boots must fit inside their own cell. Never crop a body part or overlap another cell.
+
+Background MUST be genuinely transparent alpha: empty pixels, NOT a drawn checkerboard. Do not imitate the reference's charcoal background. If genuine alpha is unavailable, use one perfectly flat solid #303038 matte instead. No checkerboard pattern, gradient, scene, shadows, floor, labels, numbers, border, guide lines, watermark, bonus poses or effect particles.

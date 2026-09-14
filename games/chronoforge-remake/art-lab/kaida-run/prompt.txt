@@ -1,0 +1,19 @@
+Use case: illustration-story
+Asset type: Kaida's complete overworld RUN animation atlas, six columns by three rows, eighteen chronological animation frames.
+Input image: reference for Kaida's approved identity, costume, rendering and body proportions only. Do not copy the reference background or idle poses.
+Create a genuine running cycle with unmistakably ALTERNATING LEGS, not six variations of the same leading foot. Draw all eighteen frames together with consistent anatomy, face and costume.
+Row 1: running toward screen RIGHT, side / slight three-quarter game view.
+Row 2: running AWAY from camera, back view, screen UP.
+Row 3: running TOWARD camera, front view, screen DOWN.
+Within EVERY row the six frames form one whole two-step stride:
+1 anatomical LEFT foot reaches forward and contacts ground, RIGHT leg stretched behind;
+2 LEFT foot supports body, RIGHT knee swings past forward;
+3 LEFT toe pushes off, RIGHT foot reaches forward, brief airborne phase;
+4 anatomical RIGHT foot reaches forward and contacts ground, LEFT leg stretched behind;
+5 RIGHT foot supports body, LEFT knee swings past forward;
+6 RIGHT toe pushes off, LEFT foot reaches forward, brief airborne phase leading back into frame 1.
+In side view, the nearer leg and farther leg visibly exchange front/back positions. In front/back views alternate the lifted knee and the planted boot. Arms counter-swing. Compact athletic running, not leaping across the cell.
+Kaida: slim adult woman, short tousled magenta hair, teal cropped jacket and small shoulder armor, charcoal cropped top, exposed midriff, dark fitted trousers and belts, steel plated black boots, magenta sword held consistently in the same hand and trailing safely, short teal coat tails. Preserve the reference's clean detailed illustrated sprite finish, colors and proportions.
+All frames use identical camera, body scale, canvas padding and horizontal pelvis anchor within their cell. Natural small vertical body movement is allowed. Ground-contact soles share the same baseline within each row. Each complete character, hair, sword and boots is comfortably INSIDE its own equal cell with generous clear gutters, no overlaps or clipped edges.
+Background: genuine transparent alpha. NO checkerboard pattern, NO gradient, no colored glow around the body, no ground plane, no painted shadows. If transparency is impossible, use a perfectly uniform solid charcoal #303038 throughout all empty space. Do not illustrate transparency.
+No labels, numbers, text, grid lines, arrows or effects. This is finished animation sprite art for a game, not a diagram.

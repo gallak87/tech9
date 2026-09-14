@@ -1,0 +1,19 @@
+Use case: stylized-concept.
+Asset type: production game sprite atlas for Rune, the stocky armored dwarf in the supplied reference.
+Input image 1 is ONLY the approved character identity and art-style reference. Preserve his face, blond spiky hair, beard, amber goggles, gold shoulder plates and breastplate, plum sleeves, olive trousers, dark belt, enormous brass gauntlets with round cyan energy details, and brown boots. Match the reference's polished, richly shaded illustrated sprite detail. Do not redesign him.
+
+Create ONE coherent six-frame running cycle repeated in THREE camera directions, exactly 6 columns by 3 rows, 18 full-body sprites total, landscape 1536x1024 canvas. Every row has exactly SIX equally spaced cells. Row 1 runs RIGHT in a side/three-quarter view. Row 2 runs AWAY from the camera, back view (north/up in a top-down overworld). Row 3 runs TOWARD the camera, front view (south/down in a top-down overworld). Locked camera and body proportions within each row, consistent character scale across the sheet. He runs IN PLACE: torso stays horizontally centered in its cell.
+
+This must be a real alternating-leg run cycle, not a bobbing idle or six copies of the same leading leg. The six sequential poses in EVERY row are:
+1. LEFT leg reaches forward and contacts ground, RIGHT leg trails behind; RIGHT gauntlet forward, LEFT gauntlet back.
+2. Weight passes over planted LEFT foot, RIGHT knee bends and passes forward; arms pass.
+3. LEFT toe pushes off behind, RIGHT leg reaches forward, brief small upward flight; opposite arm swing.
+4. RIGHT leg reaches forward and contacts ground, LEFT leg trails behind; LEFT gauntlet forward, RIGHT gauntlet back. This is the opposite anatomical leg from frame 1.
+5. Weight passes over planted RIGHT foot, LEFT knee bends and passes forward; arms pass.
+6. RIGHT toe pushes off behind, LEFT leg reaches forward, brief small upward flight returning naturally to frame 1.
+Show distinct knee bends, boot soles, and actual leg crossings at passing poses. His two legs visibly exchange which foot leads between the first and second halves. Strong readable boot silhouettes. Small natural torso rise on flight frames, no lateral torso drift. Both large gauntlets swing opposite the corresponding leg. A weighty energetic dwarf run.
+
+Atlas registration: each cell has an identical imaginary ground baseline at 88% cell height, consistent pelvis horizontal center. Leave generous transparent margins on ALL sides of each full body. No hair, gauntlet, boot, or elbow may touch or cross any cell border. Top and bottom row gutters must be empty so no preceding row's boots appear above the following row's head. Keep every sprite at a sensible identical body scale with room for its widest stride.
+
+Background must be genuine transparent alpha. Do NOT draw a checkerboard to represent transparency. If alpha output is unavailable, use a perfectly uniform solid #303038 matte instead, never a checkerboard or gradient.
+No text, numbers, labels, grid lines, bone guides, floor, ground shadows, scenery, motion trails, weapons, extra limbs, particles, or props. Only the 18 consistently rendered running Rune sprites.

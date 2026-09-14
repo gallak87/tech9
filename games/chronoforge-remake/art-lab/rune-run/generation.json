@@ -1,0 +1,167 @@
+{
+  "hero": "rune",
+  "purpose": "Overworld running experiment, six poses in three directions",
+  "status": "rejected",
+  "attempts": 1,
+  "generatedWith": "Built-in image_gen.imagegen; backend model not exposed",
+  "reference": "../../assets/rune-idle.png",
+  "prompt": "prompt.txt",
+  "file": "candidate.png",
+  "originalOutput": "/Users/g/.codex/generated_images/01a09dcb-1ce9-77e0-919c-9c9b9bf167de/exec-e4c27684-ed2e-4ad4-94e3-551c1bcd878a.png",
+  "width": 1536,
+  "height": 1024,
+  "columns": 6,
+  "rows": 3,
+  "directions": [
+    "right",
+    "up",
+    "down"
+  ],
+  "alpha": {
+    "minimum": 255,
+    "maximum": 255,
+    "background": "painted-checkerboard"
+  },
+  "inspection": {
+    "findings": [
+      "Frames 4–6 substantially repeat the same leading anatomical leg as frames 1–3 in all three directions.",
+      "Front and back rows keep the same raised boot throughout the cycle; these are knee pumps, not alternating running.",
+      "Side-view first and fourth frames use the same leading-leg silhouette.",
+      "No live-game wiring: rejected before integration.",
+      "First row, first sprite extends to x=266, crossing nominal column boundary x=256.",
+      "Rows are separate with empty foreground gaps at the nominal y=341 and y=683 boundaries."
+    ],
+    "suggestedColumnCuts": [
+      0,
+      278,
+      512,
+      768,
+      1024,
+      1280,
+      1536
+    ],
+    "suggestedRowCuts": [
+      0,
+      341,
+      683,
+      1024
+    ],
+    "boundsThreshold": "Readonly RGB inspection: alpha > 32 and (maxRGB - minRGB > 36 or minRGB < 90). Bounds are approximate and do not constitute a transparency mask.",
+    "approximateBounds": [
+      [
+        [
+          30,
+          58,
+          266,
+          329
+        ],
+        [
+          292,
+          58,
+          503,
+          326
+        ],
+        [
+          538,
+          54,
+          752,
+          324
+        ],
+        [
+          783,
+          58,
+          1005,
+          330
+        ],
+        [
+          1038,
+          56,
+          1261,
+          326
+        ],
+        [
+          1299,
+          56,
+          1519,
+          325
+        ]
+      ],
+      [
+        [
+          28,
+          384,
+          251,
+          656
+        ],
+        [
+          289,
+          383,
+          495,
+          655
+        ],
+        [
+          537,
+          382,
+          750,
+          655
+        ],
+        [
+          800,
+          383,
+          1013,
+          655
+        ],
+        [
+          1053,
+          383,
+          1255,
+          655
+        ],
+        [
+          1298,
+          383,
+          1514,
+          655
+        ]
+      ],
+      [
+        [
+          34,
+          692,
+          245,
+          961
+        ],
+        [
+          291,
+          692,
+          497,
+          954
+        ],
+        [
+          543,
+          692,
+          754,
+          939
+        ],
+        [
+          798,
+          692,
+          1005,
+          962
+        ],
+        [
+          1055,
+          692,
+          1261,
+          960
+        ],
+        [
+          1307,
+          692,
+          1514,
+          937
+        ]
+      ]
+    ]
+  }
+}

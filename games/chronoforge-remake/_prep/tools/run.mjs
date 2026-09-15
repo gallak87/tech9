@@ -26,7 +26,10 @@ switch (command) {
     break;
   case 'aseprite': run('aseprite.py', args); break;
   case 'sprites': run('sprites.py', args); break;
-  case 'kaida': run('../sources/kaida-full-set/build.py', args); break;
-  case 'test': run('../tests/test_workflow.py', args); break;
+  case 'kaida': run('../sources/kaida-run-v2/build.py', args); break;
+  case 'test':
+    run('../tests/test_workflow.py', args);
+    run('../tests/test_run.py', args);
+    break;
   default: console.error('Expected setup, aseprite, sprites, kaida, or test'); process.exit(1);
 }

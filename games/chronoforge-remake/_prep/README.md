@@ -59,17 +59,25 @@ replaced by this setup.
 
 ## Daily commands
 
-The [Kaida full movement draft](sources/kaida-full-set/README.md) supplies 36
-clips / 352 frames for exploration and ATB, with a complete labelled sheet and
-individual GIFs. Re-export the saved sources headlessly:
+The current art proof is the [originally drawn Kaida run](sources/kaida-run-v2/README.md):
+one right-facing run, eight drawings in nine editable layers. Its recipe draws
+pixels directly in Aseprite using pose guides; no reference cutouts are sampled.
+Re-export the committed source headlessly:
 
 ```sh
 npm run sprites:kaida -- --review-only
 ```
 
-The running preview is `exports/kaida-full-set/running.gif`. The draft stays
-outside the runtime until the user approves it. See its README for guarded
-rebuild commands and the future renderer mapping.
+Show only `exports/kaida-run-v2/running.gif` for review. To deliberately replace
+the timeline from its drawing recipe, use `npm run sprites:kaida -- --rebuild`.
+The source README records the complete process, correction decisions, validation,
+and what needs changing for a new character or nonhumanoid. The user has not
+approved runtime integration or expansion beyond this run.
+
+The [former full movement draft](sources/kaida-full-set/README.md) is rejected
+art: the user found offset thighs/legs, weak hip rotation, arm overlap, debris,
+and standing-pose feet. Its metadata checks did not establish animation quality.
+It remains historical material; do not use its clips as approved replacements.
 
 The first character experiment is the
 [Kaida cutout idle proof of concept](sources/kaida-idle-poc/README.md): a layered
@@ -87,6 +95,12 @@ npm run test:prep                # script/contract regression tests
 ```
 
 ### Start a character
+
+For the current agent-driven drawing process, follow the
+[Kaida run recipe](sources/kaida-run-v2/README.md). Draw the character and its
+posed cels through Aseprite Lua; reuse the tools but design new anatomy and
+motion for each character. The following older scaffold is useful for blocking
+simple rigid parts, but a cutout bake alone is not finished character art.
 
 ```sh
 npm run sprites -- new kaida

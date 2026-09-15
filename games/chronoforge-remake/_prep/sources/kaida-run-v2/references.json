@@ -1,0 +1,12 @@
+[
+  {
+    "path": "reference-running.png",
+    "sha256": "ad1313e6060fddd84693e3d261524c76c0493928d3b176bba8dd4cc3a46b9181",
+    "use": "visual guide only; no pixels sampled"
+  },
+  {
+    "path": "../../../sprite-gen/kaida-reference.png",
+    "sha256": "9cb51d754d6200ed1502a0c22c2d6cf76374fd8f243ea68cec992ab93f0972a7",
+    "use": "visual guide only; no pixels sampled"
+  }
+]

@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "id": "kaida-run-v2",
+  "method": "original pixel drawing in Aseprite Lua; reference images are visual guides and are never sampled",
+  "canvas": [
+    192,
+    160
+  ],
+  "origin": [
+    110,
+    144
+  ],
+  "facing": "right",
+  "clip": "run.right",
+  "frames": 8,
+  "duration_ms": 90,
+  "references": [
+    "reference-running.png",
+    "../../../sprite-gen/kaida-reference.png"
+  ],
+  "palette": {
+    "outline": "211c2d",
+    "outlineLight": "393047",
+    "hairDark": "571d3e",
+    "hairShadow": "822646",
+    "hair": "b53463",
+    "hairLight": "e35d89",
+    "hairGlint": "f78ea4",
+    "skinDark": "965369",
+    "skinShadow": "c0787c",
+    "skin": "e9a390",
+    "skinLight": "ffd0ac",
+    "tealDark": "163640",
+    "tealShadow": "205463",
+    "teal": "337d87",
+    "tealLight": "67b0b0",
+    "clothDark": "272631",
+    "cloth": "423748",
+    "clothLight": "605065",
+    "farCloth": "302c39",
+    "farMetal": "566071",
+    "metalDark": "384451",
+    "metalShadow": "637887",
+    "metal": "9eb6bf",
+    "metalLight": "d4e2d9",
+    "leatherDark": "48303c",
+    "leather": "805645",
+    "brass": "bd9361",
+    "bladeDark": "682663",
+    "blade": "ce47b5",
+    "bladeLight": "f886db",
+    "bladeCore": "ffcee9",
+    "eye": "ef759e",
+    "eyeWhite": "ffe1be"
+  },
+  "layer_order": [
+    "coat",
+    "leg.far",
+    "arm.far",
+    "leg.near",
+    "pelvis",
+    "torso",
+    "head",
+    "weapon",
+    "arm.near"
+  ],
+  "foot_shape": [
+    [
+      -3,
+      -4
+    ],
+    [
+      3,
+      -3
+    ],
+    [
+      4,
+      2
+    ],
+    [
+      9,
+      4
+    ],
+    [
+      13,
+      5
+    ],
+    [
+      14,
+      8
+    ],
+    [
+      12,
+      10
+    ],
+    [
+      -4,
+      10
+    ],
+    [
+      -5,
+      8
+    ],
+    [
+      -4,
+      2
+    ]
+  ],
+  "gait": {
+    "duty": 0.32,
+    "half_stride": 19,
+    "recovery_lift": 25,
+    "upper_leg": 23,
+    "lower_leg": 27,
+    "hip_swing_degrees": 6
+  },
+  "palette_order": [
+    "outline",
+    "outlineLight",
+    "hairDark",
+    "hairShadow",
+    "hair",
+    "hairLight",
+    "hairGlint",
+    "skinDark",
+    "skinShadow",
+    "skin",
+    "skinLight",
+    "tealDark",
+    "tealShadow",
+    "teal",
+    "tealLight",
+    "clothDark",
+    "cloth",
+    "clothLight",
+    "farCloth",
+    "farMetal",
+    "metalDark",
+    "metalShadow",
+    "metal",
+    "metalLight",
+    "leatherDark",
+    "leather",
+    "brass",
+    "bladeDark",
+    "blade",
+    "bladeLight",
+    "bladeCore",
+    "eye",
+    "eyeWhite"
+  ]
+}

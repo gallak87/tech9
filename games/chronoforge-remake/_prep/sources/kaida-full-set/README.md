@@ -1,5 +1,12 @@
 # Kaida — complete movement review draft
 
+**Historical, rejected cutout draft.** The user reported offset legs, weak hip
+rotation, arm overlap, debris, and feet inherited from a standing pose. Technical
+export checks did not prove visual quality. Do not integrate or expand this
+set. The active work is the [single originally drawn run](../kaida-run-v2/README.md).
+`npm run sprites:kaida` now targets that proof; commands below explicitly name
+this old source for historical reproduction only.
+
 **36 clips / 352 frames**, authored from `sprite-gen/kaida-reference.png` with
 local Aseprite scripts. Covers every existing Kaida renderer state in all four
 directions. This is a review draft; no runtime assets or game code are replaced.
@@ -16,7 +23,7 @@ From `games/chronoforge-remake`, after the prerequisites in `_prep/README.md`:
 
 ```sh
 npm run aseprite:setup
-npm run sprites:kaida -- --review-only
+python3 _prep/sources/kaida-full-set/build.py --review-only
 ```
 
 No desktop launch, image generation service, pip package, or extra graphics
@@ -46,17 +53,17 @@ python3 _prep/sources/kaida-full-set/build.py --review-only
 
 ```sh
 # After drawing on the saved masters or editing rig.json:
-npm run sprites:kaida -- --bake-only
+python3 _prep/sources/kaida-full-set/build.py --bake-only
 
 # After editing poses.py: regenerate keys, then bake the saved artwork.
 python3 _prep/sources/kaida-full-set/poses.py
-npm run sprites:kaida -- --bake-only
+python3 _prep/sources/kaida-full-set/build.py --bake-only
 
 # After editing masks, or to reproduce everything from the original reference:
-npm run sprites:kaida -- --replace
+python3 _prep/sources/kaida-full-set/build.py --replace
 
 # After editing animation cels manually: retain those edits and export them.
-npm run sprites:kaida -- --review-only
+python3 _prep/sources/kaida-full-set/build.py --review-only
 ```
 
 `--bake-only` deliberately replaces timeline edits. `--replace` deliberately

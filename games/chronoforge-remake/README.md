@@ -110,9 +110,10 @@ __dev.poses();                      // exact impact poses; resume() plays the re
 
 ### Current sprite workflow: local Aseprite
 
-New and revised sprites use editable Aseprite sources, layered part rigs, and
-scripted exports. See **[_prep/README.md](_prep/README.md)** for setup and daily
-commands. Run `npm run aseprite:setup` on each device; downloaded source and
+New and revised sprites use editable Aseprite sources, scripted pose guides,
+and original pixel drawings. The active proof is one
+[Kaida run](_prep/sources/kaida-run-v2/README.md). See
+**[_prep/README.md](_prep/README.md)** for setup and daily commands. Run `npm run aseprite:setup` on each device; downloaded source and
 builds stay local and ignored. The imagegen workflows described below are
 historical context for the currently shipped art.
 

@@ -59,6 +59,18 @@ replaced by this setup.
 
 ## Daily commands
 
+The [Kaida full movement draft](sources/kaida-full-set/README.md) supplies 36
+clips / 352 frames for exploration and ATB, with a complete labelled sheet and
+individual GIFs. Re-export the saved sources headlessly:
+
+```sh
+npm run sprites:kaida -- --review-only
+```
+
+The running preview is `exports/kaida-full-set/running.gif`. The draft stays
+outside the runtime until the user approves it. See its README for guarded
+rebuild commands and the future renderer mapping.
+
 The first character experiment is the
 [Kaida cutout idle proof of concept](sources/kaida-idle-poc/README.md): a layered
 adaptation of the approved reference with one short animation and scripted

@@ -19,6 +19,9 @@ The user considers the entire art-lab prompting effort unsuccessful. Do not
 treat its candidates as approved art. Kaida's starting design reference is
 `sprite-gen/kaida-reference.png`. The first Aseprite experiment is documented in
 `_prep/sources/kaida-idle-poc/README.md`; it is a reference cutout rig test.
+The complete movement review draft lives in
+`_prep/sources/kaida-full-set/README.md` (36 clips, 352 frames). Keep it out of
+the runtime until the user approves the art; its atlas needs a new tag sampler.
 
 Aseprite has layers/cels and scripting, not a native skeletal animation system.
 Our small Lua cutout rig bakes parented part transforms into editable cels;

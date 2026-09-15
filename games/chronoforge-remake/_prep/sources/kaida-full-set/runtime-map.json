@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "status": "review-only; not consumed by the runtime",
+  "character": "kaida",
+  "source": "animation.aseprite",
+  "canvas": {"width": 384, "height": 384},
+  "origin": {"x": 192, "y": 328},
+  "reference_body_height": 216,
+  "directions": ["right", "left", "down", "up"],
+  "world": {
+    "idle": "idle.{facing}",
+    "walk": "walk.{facing}",
+    "run": "run.{facing}",
+    "moving_time_source": "options.locomotionPhase from distance travelled; wrap phase and sample the 12-frame tag",
+    "stride_tuning": "Reconcile source stance distance, render scale and LOCOMOTION_STRIDE before promotion; do not reuse the old time sampler."
+  },
+  "atb": {
+    "idle": "idle.{facing}",
+    "approach": "run.{facing}",
+    "return": "run.{facing}",
+    "attack": "attack.{facing}",
+    "cast": "cast.{facing}",
+    "hurt": "hurt.{facing}",
+    "defend": "defend.{facing}",
+    "victory": "victory.{facing}",
+    "down": "down.{facing}",
+    "travel_and_lift": "Use existing battle-motion.js world positions/lift; source animations are in place.",
+    "down_playback": "play once, then clamp at final frame",
+    "attack_legacy_pose_to_local_frame": [0, 2, 4, 5, 7, 9],
+    "cast_legacy_pose_to_local_frame": [0, 2, 3, 5, 7, 9],
+    "indexing": "zero-based local frame indices within a tag; never global atlas indices",
+    "impact": "Map the battle impact/hold phase explicitly to attack local frame 5; tune reach against the keyed wrist and actual blade before promotion."
+  },
+  "kaida_actions": {
+    "basic_attack": "attack",
+    "rift_cleave": "attack",
+    "chrono_strike": "attack",
+    "time_sever": "attack (replay windup/contact/follow-through for each of the three hit events)",
+    "second_wind": "cast",
+    "tidal_rift": "attack",
+    "sunrise_aegis": "attack",
+    "unwritten_hour": "attack",
+    "guard": "defend",
+    "support_or_item": "cast"
+  },
+  "promotion_checks": [
+    "User art approval",
+    "Tag/duration sampling replaces the legacy 6-column/8-row hero sampler",
+    "Fixed origin and body scale in exploration, portraits and ATB",
+    "World stride phase, turns and stopping",
+    "ATB approach, contact hold, return, guard, hurt, victory and down",
+    "Battle blade reach/socket alignment and multi-hit timing",
+    "Reduced-motion settings and existing renderer/game tests"
+  ]
+}

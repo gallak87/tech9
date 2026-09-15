@@ -59,6 +59,12 @@ replaced by this setup.
 
 ## Daily commands
 
+The first character experiment is the
+[Kaida cutout idle proof of concept](sources/kaida-idle-poc/README.md): a layered
+adaptation of the approved reference with one short animation and scripted
+previews. Re-export it with
+`python3 _prep/sources/kaida-idle-poc/build.py --review-only`.
+
 ```sh
 npm run aseprite -- doctor       # prerequisites and local executable
 npm run aseprite -- path         # absolute executable path for other tools

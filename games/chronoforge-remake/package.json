@@ -5,6 +5,10 @@
   "type": "module",
   "description": "An original, complete pixel RPG remake of Chronoforge.",
   "scripts": {
+    "aseprite:setup": "node _prep/tools/run.mjs setup",
+    "aseprite": "node _prep/tools/run.mjs aseprite",
+    "sprites": "node _prep/tools/run.mjs sprites",
+    "test:prep": "node _prep/tools/run.mjs test",
     "dev": "node scripts/serve.mjs",
     "start": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",

@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "canvas": {"width": 64, "height": 80},
+  "origin": [32, 72],
+  "parts": [
+    {"layer": "torso", "pivot": [32, 48]},
+    {"layer": "head", "parent": "torso", "pivot": [32, 29]},
+    {"layer": "arm.back", "parent": "torso", "pivot": [25, 34]},
+    {"layer": "arm.front", "parent": "torso", "pivot": [39, 34]},
+    {"layer": "weapon", "parent": "arm.front", "pivot": [45, 46]},
+    {"layer": "leg.back", "pivot": [29, 49]},
+    {"layer": "leg.front", "pivot": [36, 49]}
+  ],
+  "clips": [
+    {"name": "idle.right", "frames": [
+      {"duration_ms": 200, "parts": {}},
+      {"duration_ms": 200, "parts": {"torso": {"y": -1}, "arm.front": {"angle": -3}}},
+      {"duration_ms": 200, "parts": {"torso": {"y": -1}, "head": {"x": 1}, "arm.front": {"angle": -6}}},
+      {"duration_ms": 200, "parts": {"torso": {"y": -1}, "arm.front": {"angle": -3}}}
+    ]},
+    {"name": "attack.right", "frames": [
+      {"duration_ms": 160, "parts": {"arm.front": {"angle": -20}}},
+      {"duration_ms": 80, "parts": {"arm.front": {"angle": -50}, "torso": {"x": 2}}},
+      {"duration_ms": 100, "parts": {"arm.front": {"angle": -35}, "torso": {"x": 1}}},
+      {"duration_ms": 180, "parts": {}}
+    ]}
+  ]
+}

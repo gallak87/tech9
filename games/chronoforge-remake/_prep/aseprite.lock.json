@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "source": {
+    "url": "https://github.com/aseprite/aseprite.git",
+    "tag": "v1.3.18.5",
+    "commit": "375989a61c3425cd4e8cdedfcfcca4bdfef7e1d9"
+  },
+  "skia": {
+    "tag": "m124-08a5439a6b",
+    "base_url": "https://github.com/aseprite/skia/releases/download/m124-08a5439a6b/",
+    "assets": {
+      "Darwin-arm64": {"file": "Skia-macOS-Release-arm64.zip", "sha256": "22663000967fc2c3f1a78190082228474955de02ffd13a352b39a48b204dac9a", "arch": "arm64"},
+      "Darwin-x86_64": {"file": "Skia-macOS-Release-x64.zip", "sha256": "c11c5fbfa3f8cdefa2255d37cdd1eca823d195ff61929f457a4714f1b6db500a", "arch": "x64"},
+      "Linux-x86_64": {"file": "Skia-Linux-Release-x64.zip", "sha256": "a327e89b244f24cecaa34eb37544bae00d447b96c583d26ed29d6a3ad2e8a8b8", "arch": "x64"},
+      "Windows-x86_64": {"file": "Skia-Windows-Release-x64.zip", "sha256": "5a371a4b2819bb4eb96e36cd75fa623585e1d5477e253a970302b6f2471b6934", "arch": "x64"}
+    }
+  }
+}

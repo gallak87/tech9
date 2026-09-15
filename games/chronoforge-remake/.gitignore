@@ -2,3 +2,9 @@ node_modules/
 dist/
 evidence/*.webm
 evidence/*.zip
+
+# Local Aseprite source, dependencies, builds, receipts and scratch exports.
+_prep/.local/
+_prep/.work/
+_prep/exports/
+_prep/**/__pycache__/

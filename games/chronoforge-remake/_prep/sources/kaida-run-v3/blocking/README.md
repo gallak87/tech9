@@ -56,10 +56,54 @@ Use `--rebuild` instead of `--review-only` to deliberately replace the scaffold
 from the recipe. An existing document is preserved unless that flag is given.
 The build verifies fixed bone lengths, alternating stance/flight, floor and
 grip constraints, and 256 samples between frames for reachable joints and blade
-clearance. Six regression cases include a stuck left leg, a detached thigh,
-ground penetration, detached grip and repeated contact timing. Saved source
+clearance. Eight regression cases include a stuck left leg, a detached thigh,
+ground penetration, detached grip, repeated contact timing, independent sword
+rotation and a downward blade during passing. Saved source
 dimensions/layers/origin are reopened and checked. The exported GIF is reopened
 and compared to every rendered source pixel and frame duration; looping is checked.
 These checks do not replace visual motion review.
 
 Draft review output: `_prep/exports/kaida-run-v3/skeleton/running.gif`.
+
+## Checkpoint 3: colored body volumes and silhouette
+
+`bodies.aseprite` uses the same joint tracks for ten independently editable
+body-part layers plus a hidden joint-guide layer. Each leg keeps its own color
+and thigh-band count: **right/coral/two bands**, **left/blue/one band**. The sword
+stays in the coral right hand. Torso and pelvis are gray, hair magenta and tails
+teal/magenta. These are construction shapes, not Kaida's final art or palette.
+
+`draw-bodies.lua` builds the silhouette around the joints, with shoulder/hip
+underlaps, a connected grip, boot silhouettes and simple hair/tail follow-through.
+`verify-bodies.lua` reopens the actual saved cels and checks every visible part
+and full composite for disconnected pixels, samples opaque paths through all
+limbs, checks the saved boot support pixels, and verifies hand/weapon overlap.
+Recovery knees may sit below their lifted boots; the checks distinguish that
+from a planted foot penetrating the ground. Guides stay hidden in the preview.
+
+### Wrist correction from the user's motion review
+
+The user found that the neutral hand cap did not follow the sword, which pointed
+down during the middle phase. The weapon now inherits the hand's angle: forearm
+rotation plus a bounded wrist bend (-40° to +15°). The hand is an oriented fist,
+with a grip socket 12 pixels along its local axis; the sword uses that same
+socket and angle. During both passing poses the blade points forward/up.
+The elbow folds before the upper arm moves forward, maintaining floor clearance
+without a separate weapon angle track. Skeleton and body sources were rebuilt.
+
+```sh
+python3 _prep/sources/kaida-run-v3/blocking/build.py --stage bodies --review-only
+```
+
+Use `--stage bodies --rebuild` only to replace edited cels from the recipe.
+If joint tracks change, rebuild both skeleton and body stages. Draft GIF:
+`_prep/exports/kaida-run-v3/bodies/running.gif` (896×640, 16×50 ms, looping).
+The build checks all 16 saved frames, 4,224 limb-path pixel samples, and the
+GIF's complete pixel/timing round trip. No desktop launch is required.
+
+**Review pause before detailed artwork:** judge cadence, leg alternation,
+weight/hip movement and the broad sword swing. Face, colors and shading are
+deliberately placeholders. After motion review, the remaining stages are clean
+detailed parts (including hidden surfaces and alternate views) and full-cycle
+cleanup. Only the completed first detailed pass becomes **r1**. **a1** is a
+later user-approved graduation; neither label has been applied yet.

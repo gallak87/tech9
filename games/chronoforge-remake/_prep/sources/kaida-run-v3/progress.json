@@ -1,0 +1,15 @@
+{
+  "target_revision": "r1",
+  "revision_complete": false,
+  "alpha_approved": false,
+  "status": "colored motion proof awaiting visual review before detailed part art",
+  "steps": [
+    {"step": 1, "name": "reference registration and joint landmarks", "status": "complete", "source": "blocking/reference-study.aseprite", "commit": "a6f13732"},
+    {"step": 2, "name": "alternating run motion scaffold", "status": "complete", "source": "blocking/skeleton.aseprite", "commit": "5bea59a5"},
+    {"step": 3, "name": "colored body volumes and silhouette", "status": "complete, visual review pending", "source": "blocking/bodies.aseprite"},
+    {"step": 4, "name": "detailed character parts and hidden surfaces", "status": "pending"},
+    {"step": 5, "name": "detailed full-cycle cleanup and r1 delivery", "status": "pending"}
+  ],
+  "review_gif": "../../exports/kaida-run-v3/bodies/running.gif",
+  "scope": "run.right only; idle and runtime untouched"
+}

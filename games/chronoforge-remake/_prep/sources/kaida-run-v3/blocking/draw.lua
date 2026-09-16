@@ -20,6 +20,7 @@ for fi,p in ipairs(poses.frames) do
   local foot=R.map(d.foot_shape,R.localTo(j[3],p.legs[side].foot_angle))
   for i,v in ipairs(foot) do R.line(im,v,foot[i%#foot+1],c) end
   chain(ims['arm.'..side],p.arms[side].joints,c)
+  chain(ims['arm.'..side],{p.arms[side].joints[3],p.arms[side].grip},c)
  end
  chain(ims.spine,{p.root,p.neck,p.head},C.body)
  chain(ims.spine,{p.arms.left.joints[1],p.neck,p.arms.right.joints[1]},C.body_shadow)

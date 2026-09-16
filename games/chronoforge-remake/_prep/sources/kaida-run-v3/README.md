@@ -1,11 +1,15 @@
 # Kaida run v3: detailed pose references
 
-**Status: reference checkpoint, not an animation or layered rig.**
+**Status: reference registration and colored motion proof complete; detailed art pending.**
+See [the motion proof](blocking/README.md) for the editable Aseprite sources,
+reproduction commands, checks and review pause. [progress.json](progress.json)
+tracks the five checkpoints toward r1; r1/a1 have not been assigned yet.
 The user approved `full-stride-reference.png` (the new single running pose),
 then requested the opposite stride: left leg and right sword arm forward,
 with the sword tilted up. The user also approved the corrected `opposite-stride-reference.png`.
-Both approvals concern the pose references; the layered animation has not been
-authored or approved. Idle and game assets are untouched.
+Both approvals concern the pose references; the colored motion proof awaits
+review and the detailed animation has not been authored. Idle and game assets
+are untouched.
 
 ## Saved inputs and outputs
 
@@ -63,7 +67,9 @@ image files, rather than rerunning prompts, preserve these exact outputs.
   both legs' contacts, hips, grip and hair/tail follow-through across a loop.
 - Review one running GIF. Do not integrate world or ATB assets before approval.
 
-This stage has not yet produced `.aseprite` layers, cels, a rig or a GIF.
+The `blocking/` stage now contains registered references, a skeletal motion
+scaffold and colored body volumes in editable `.aseprite` timelines. Its GIF
+is a movement review, not a completed high-fidelity character animation.
 Leave the idle alone and do not automatically launch the editor.
 
 ## Reproduce the screenshot crops

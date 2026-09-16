@@ -61,9 +61,15 @@ replaced by this setup.
 ## Daily commands
 
 The current work is the [detailed Kaida run pose study](sources/kaida-run-v3/README.md).
-It contains reference images and a reproducible crop script; an editable rig
-and run cycle have not been authored yet. The user approved the first full-stride
-reference and requested the opposing stride with the sword raised.
+It contains approved opposing stride references and an
+[editable motion proof](sources/kaida-run-v3/blocking/README.md): registered
+reference/joint guides, an alternating skeleton, and colored body volumes.
+Detailed character art is the next stage after motion review. r1/a1 are not
+assigned yet. Re-export the colored motion proof headlessly:
+
+```sh
+python3 _prep/sources/kaida-run-v3/blocking/build.py --stage bodies --review-only
+```
 
 The [originally drawn Kaida run v2](sources/kaida-run-v2/README.md) was rejected
 for its appearance. Its eight-frame, nine-layer recipe remains a tooling example.

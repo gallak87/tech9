@@ -91,6 +91,21 @@ socket and angle. During both passing poses the blade points forward/up.
 The elbow folds before the upper arm moves forward, maintaining floor clearance
 without a separate weapon angle track. Skeleton and body sources were rebuilt.
 
+### Higher hips review variant
+
+The user approved the movement and asked to raise the hips approximately 15%
+while keeping the forward lean. `pelvis_raise_fraction=0.15` lifts the pelvis
+and its attached upper body **35.25 px**: 15% of the original 235 px distance
+from reference pelvis to ground. The same torso/hip angles, bob amplitude,
+wrist motion, timing and vertical foot tracks are retained. Knees are re-solved
+at the higher hip sockets with the same 145 px thigh/shin lengths.
+
+The old forward foot reach becomes 295 px from the raised hip, beyond the
+290 px leg length. `stride_scale=0.94` slightly narrows the horizontal foot
+track to keep the legs reachable with a bent knee at landing. Foot contact
+timing and ground height stay fixed. Both settings are explicit design inputs
+so this trial is easy to adjust or revert after the user's comparison.
+
 ```sh
 python3 _prep/sources/kaida-run-v3/blocking/build.py --stage bodies --review-only
 ```

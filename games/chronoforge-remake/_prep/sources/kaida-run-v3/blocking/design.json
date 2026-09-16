@@ -3,6 +3,8 @@
   "canvas": [896, 640],
   "origin": [400, 590],
   "reference_pelvis": [400, 355],
+  "pelvis_raise_fraction": 0.15,
+  "stride_scale": 0.94,
   "frames": 16,
   "duration_ms": 50,
   "clip": "run.right.blocking",

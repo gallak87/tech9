@@ -12,6 +12,10 @@ def pose(d, phase):
     t = phase % 1
     wave = math.cos(math.tau * t)
     root = [d['origin'][0], track([(0,355),(.125,378),(.28,352),(.41,332),(.5,355),(.625,378),(.78,352),(.91,332),(1,355)], t)]
+    # Lift the body without changing its lean or the vertical foot tracks.
+    # Percentage is measured against the original pelvis-to-ground height.
+    pelvis_lift=(d['origin'][1]-d['reference_pelvis'][1])*d['pelvis_raise_fraction']
+    root[1]-=pelvis_lift
     hip_angle = 8 * wave
     torso_angle = -3 * wave
     body = lambda p: add(root, rot(p, torso_angle))
@@ -32,7 +36,7 @@ def pose(d, phase):
             lift = track([(.32,0),(.42,62),(.52,120),(.65,137),(.78,127),(.91,66),(1,0)],leg_phase)
             angle = track([(.32,42),(.45,82),(.60,75),(.76,12),(.90,-24),(1,-18)],leg_phase)
         support = max(rot(v,angle)[1] for v in d['foot_shape'])
-        ankle = [d['origin'][0]+x, d['origin'][1]-lift-support]
+        ankle = [d['origin'][0]+x*d['stride_scale'], d['origin'][1]-lift-support]
         p['hips'][side]=hip
         p['legs'][side]={'joints':ik2(hip,ankle,*d['leg_lengths'],1),'foot_angle':angle}
         p['contacts'][side]={'phase':leg_phase,'planted':stance,'lift':lift,'lowest_y':d['origin'][1]-lift}
@@ -101,7 +105,7 @@ def verify(d, data):
         assert max(p['contacts'][side]['lift'] for p in frames)>120,'Missing recovery lift'
         contacts=[p for p in frames if p['contacts'][side]['planted']]
         contacts.sort(key=lambda p:p['contacts'][side]['phase'])
-        speed=(d['stance_back']-d['stance_front'])/d['stance_end']
+        speed=(d['stance_back']-d['stance_front'])*d['stride_scale']/d['stance_end']
         for a,b in zip(contacts,contacts[1:]):
             dx=b['legs'][side]['joints'][2][0]-a['legs'][side]['joints'][2][0]
             dt=b['contacts'][side]['phase']-a['contacts'][side]['phase']
@@ -118,4 +122,6 @@ def verify(d, data):
             'airborne_frames':sum(not any(c['planted'] for c in p['contacts'].values()) for p in frames),
             'constant_limb_lengths':True,'both_legs_alternate':True,'grip_attached':True,
             'fixed_ground':True,'continuous_guide_samples':256,'loop_endpoint_equal':True,
-            'weapon_inherits_hand_rotation':True,'passing_blade_points_up':True}
+            'weapon_inherits_hand_rotation':True,'passing_blade_points_up':True,
+            'pelvis_lift_px':(d['origin'][1]-d['reference_pelvis'][1])*d['pelvis_raise_fraction'],
+            'horizontal_stride_scale':d['stride_scale']}

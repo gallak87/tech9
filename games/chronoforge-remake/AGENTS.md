@@ -10,8 +10,11 @@ Aseprite and its Lua API; use named parts, explicit pivots, tagged timelines,
 and fixed canvas/feet registration. Use `_prep/tools/sprites.py` for scaffolding,
 rig baking, validation, and PNG/JSON export.
 
-Do not generate sprite sheets, animation strips, or replacement sprite frames
-with imagegen. Old `sprite-gen/` prompts and `art-lab/` generation records are
+Do not generate sprite sheets or animation strips with imagegen. The user has
+explicitly authorized individual high-fidelity Kaida pose references for the
+layered run study in `_prep/sources/kaida-run-v3/README.md`; this is the current
+exception. These flattened references are not finished animation or rig layers.
+Old `sprite-gen/` prompts and `art-lab/` generation records are
 historical references, not current instructions. Existing art can be consulted
 for character design; author coherent editable sources for replacements.
 
@@ -19,9 +22,11 @@ The user considers the entire art-lab prompting effort unsuccessful. Do not
 treat its candidates as approved art. Kaida's starting design reference is
 `sprite-gen/kaida-reference.png`. The first Aseprite experiment is documented in
 `_prep/sources/kaida-idle-poc/README.md`; it is a reference cutout rig test.
-The current proof is `_prep/sources/kaida-run-v2/README.md`: original pixel
-art drawn through Aseprite Lua, with connected joint silhouettes, explicit
-contact poses, and saved-pixel checks. Read that process before revising Kaida.
+The original pixel-art run v2 was rejected for its appearance. The current
+study is `_prep/sources/kaida-run-v3/README.md`: preserve the detailed idle's
+fidelity, establish opposing run poses, then author and inspect each editable
+part before animating. Leave the idle source alone. Do not automatically open
+the editor or documents; save changes and tell the user when to reload.
 Work on **run.right only** until the user approves it. Deliver only the final
 running GIF, not contact sheets or every exported atlas. The agent does the
 complete authoring and cleanup; manual user editing is optional.

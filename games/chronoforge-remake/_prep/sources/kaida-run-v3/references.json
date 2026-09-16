@@ -1,0 +1,46 @@
+{
+  "mode": "built-in imagegen for generated references; local Aseprite Lua for exact screenshot crops",
+  "stage": "pose references only; no rig or animation yet",
+  "images": [
+    {
+      "file": "standing-reference.png",
+      "sha256": "2d6881167ba37fa2599e28fbfb93669b1fa55a6fc41fd41ea7c84ae60def364b",
+      "source": "initial standing study; baked checkerboard, not alpha-ready",
+      "review": "supporting only"
+    },
+    {
+      "file": "full-stride-reference.png",
+      "sha256": "941c306a84cd08a5fddd1a03383bd270992c5481c2ddbc273da78eb028beb840",
+      "source": "generated from repaired idle, standing study and user running screenshot",
+      "review": "user approved"
+    },
+    {
+      "file": "opposite-stride-reference.png",
+      "sha256": "75c19a40a39e7fe480cb0969c4b38c06a3a91e96cbaf45ce9980cdcbdedbee80",
+      "source": "generated from approved stride, then corrected lower body after repeated-leg failure",
+      "review": "user approved"
+    },
+    {
+      "file": "motion-guides/screenshot-stride.png",
+      "sha256": "ee51d4d6033cf85d731bcdd259af3d6ce856d3a6318879bfaef9d498e749f2b5",
+      "source": "crop from ../kaida-run-v2/reference-running.png via crop-guides.lua",
+      "review": "motion guide only"
+    },
+    {
+      "file": "motion-guides/screenshot-recovery.png",
+      "sha256": "e3ff2c76bf7869f4014173a67ce431cf8aaa0c5f68f53831b79df5b96135a56c",
+      "source": "crop from ../kaida-run-v2/reference-running.png via crop-guides.lua",
+      "review": "motion guide only"
+    }
+  ],
+  "prompts": {
+    "standing": "prompts.json#standing",
+    "stride": "full-stride-prompt.txt",
+    "opposite_initial": "opposite-stride-prompt.txt",
+    "opposite_correction": "opposite-stride-correction-prompt.txt"
+  },
+  "source_screenshot": {
+    "file": "../kaida-run-v2/reference-running.png",
+    "sha256": "ad1313e6060fddd84693e3d261524c76c0493928d3b176bba8dd4cc3a46b9181"
+  }
+}

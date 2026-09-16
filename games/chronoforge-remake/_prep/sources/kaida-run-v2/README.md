@@ -1,6 +1,7 @@
 # Kaida: original Aseprite run proof
 
-**Status: single right-facing run, awaiting the user's visual approval.**
+**Status: rejected by the user for its appearance. Historical tooling example.**
+The current detailed-art study is [Kaida run v3](../kaida-run-v3/README.md).
 The old full-set cutout draft was rejected for offset legs, weak pelvis motion,
 arm overlap, background debris, and standing-pose feet. This proof draws Kaida
 as original pixel art through Aseprite's Lua API. It uses no sampled reference

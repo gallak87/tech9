@@ -2,8 +2,9 @@
 
 This sprite preparation area belongs to **chronoforge-remake only**. This game
 had no `_prep` folder before this setup. New sprites use layered Aseprite
-documents; `sprite-gen/` prompts and imagegen animation strips are historical
-material, no longer the authoring process.
+documents. The user has authorized individual imagegen pose references for the
+[current detailed Kaida run study](sources/kaida-run-v3/README.md).
+Old `sprite-gen/` prompts and imagegen animation strips remain historical material.
 
 ## Set up this machine
 
@@ -59,16 +60,20 @@ replaced by this setup.
 
 ## Daily commands
 
-The current art proof is the [originally drawn Kaida run](sources/kaida-run-v2/README.md):
-one right-facing run, eight drawings in nine editable layers. Its recipe draws
-pixels directly in Aseprite using pose guides; no reference cutouts are sampled.
-Re-export the committed source headlessly:
+The current work is the [detailed Kaida run pose study](sources/kaida-run-v3/README.md).
+It contains reference images and a reproducible crop script; an editable rig
+and run cycle have not been authored yet. The user approved the first full-stride
+reference and requested the opposing stride with the sword raised.
+
+The [originally drawn Kaida run v2](sources/kaida-run-v2/README.md) was rejected
+for its appearance. Its eight-frame, nine-layer recipe remains a tooling example.
+To re-export that historical source headlessly:
 
 ```sh
 npm run sprites:kaida -- --review-only
 ```
 
-Show only `exports/kaida-run-v2/running.gif` for review. To deliberately replace
+Do not present v2 as the current candidate. To deliberately replace
 the timeline from its drawing recipe, use `npm run sprites:kaida -- --rebuild`.
 The source README records the complete process, correction decisions, validation,
 and what needs changing for a new character or nonhumanoid. The user has not
@@ -96,10 +101,11 @@ npm run test:prep                # script/contract regression tests
 
 ### Start a character
 
-For the current agent-driven drawing process, follow the
-[Kaida run recipe](sources/kaida-run-v2/README.md). Draw the character and its
-posed cels through Aseprite Lua; reuse the tools but design new anatomy and
-motion for each character. The following older scaffold is useful for blocking
+For the current study and planned layer review, follow the
+[Kaida run v3 notes](sources/kaida-run-v3/README.md). The
+[v2 recipe](sources/kaida-run-v2/README.md) is a tooling example, not approved art.
+Reuse the tools but design anatomy and motion for each character.
+The following older scaffold is useful for blocking
 simple rigid parts, but a cutout bake alone is not finished character art.
 
 ```sh

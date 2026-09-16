@@ -1,0 +1,37 @@
+{
+  "stage": "motion blocking for future r1; not finished character art",
+  "canvas": [896, 640],
+  "origin": [400, 590],
+  "reference_pelvis": [400, 355],
+  "frames": 16,
+  "duration_ms": 50,
+  "clip": "run.right.blocking",
+  "near_side": "anatomical right; sword hand; coral",
+  "far_side": "anatomical left; empty hand; blue",
+  "leg_lengths": [145, 145],
+  "foot_shape": [[-14,-14],[10,-12],[13,5],[40,12],[48,20],[47,27],[39,31],[-17,31],[-19,23]],
+  "stance_end": 0.32,
+  "stance_front": 200,
+  "stance_back": -125,
+  "palette": {
+    "outline": "1D2430", "near": "ED876F", "near_light": "FFD0A5",
+    "far": "579CBD", "far_light": "9ACADB", "body": "B1B7B6",
+    "body_shadow": "7D898E", "hair": "92365C", "tail": "357888",
+    "sword": "DB65CD", "sword_light": "F6C8ED", "guide": "FBE6A1"
+  },
+  "layer_order": ["coat.far","leg.left","arm.left","torso","pelvis","leg.right","coat.near","head","weapon.right","arm.right","guides.joints"],
+  "references": [
+    {
+      "file": "../full-stride-reference.png", "name": "right.leads", "scale": 0.46,
+      "pelvis": [685,488], "neck": [932,243], "head": [978,160],
+      "right": {"shoulder":[776,252],"elbow":[593,290],"wrist":[480,388],"hip":[700,514],"knee":[983,637],"ankle":[1215,855]},
+      "left": {"shoulder":[948,317],"elbow":[1050,397],"wrist":[1135,336],"hip":[652,528],"knee":[527,663],"ankle":[264,667]}
+    },
+    {
+      "file": "../opposite-stride-reference.png", "name": "left.leads", "scale": 0.46,
+      "pelvis": [650,492], "neck": [870,248], "head": [915,158],
+      "right": {"shoulder":[830,268],"elbow":[964,349],"wrist":[1130,317],"hip":[644,512],"knee":[490,658],"ankle":[245,711]},
+      "left": {"shoulder":[685,238],"elbow":[558,280],"wrist":[480,361],"hip":[708,522],"knee":[989,648],"ankle":[1201,848]}
+    }
+  ]
+}

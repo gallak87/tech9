@@ -65,7 +65,9 @@ for y=0,H-1 do for x=0,W-1 do
   local n=index(x,y)
   if not removed[n] then
     local sx,sy=x+crop.x,y+crop.y
-    local owner=sy<411 and 'torso' or 'legs'
+    -- Follow the top of the belt: a horizontal cut through it left moving
+    -- belt fragments on the breathing torso.
+    local owner=masked(byName.torso,sx,sy) and 'torso' or 'legs'
     for _,name in ipairs(priority) do
       if masked(byName[name],sx,sy) then owner=name;break end
     end
@@ -108,26 +110,49 @@ end
 -- Create hidden underlap only where parts meet, using local clone colors.
 -- It is covered in the bind pose and prevents transparent cracks on small motions.
 local extended={}
-for _,name in ipairs({'torso','legs','arm.far'}) do
+for _,name in ipairs({'torso','legs','weapon'}) do
   local map={};extended[name]=map
   for y=0,H-1 do for x=0,W-1 do
     local n=index(x,y);local current=owners[n]
-    local eligible=(name=='torso' and (current=='head' or current=='arm.near' or current=='legs'))
-      or (name=='legs' and current=='weapon')
-      or (name=='arm.far' and current=='torso')
+    local eligible=(name=='torso' and (current=='head' or current=='arm.near' or current=='arm.far' or current=='legs'))
+      or (name=='legs' and (current=='weapon' or current=='arm.far'))
+      or (name=='weapon' and current=='arm.near')
     if eligible then
-      local radius=name=='legs' and 30 or 8
+      local radius=(name=='legs' and current=='weapon') and 42 or 8
       local found
-      if name=='legs' then
-        -- Fill behind the crossing blade only when it has leg pixels on both
-        -- sides. Do not invent an opaque strip across the gap between the legs.
-        local a,b
+      if name=='legs' and current=='weapon' then
+        -- Reconstruct only inside the authored leg silhouettes. The blade's
+        -- pixels across the gap between the legs must stay transparent below it.
+        local inBody=false
+        for _,poly in ipairs(byName.legs.hidden_polygons) do
+          if inside(x+crop.x,y+crop.y,poly) then inBody=true;break end
+        end
+        local function fabric(px,py)
+          local c=lookup(name,px,py)
+          if not c then return nil end
+          local r,g,b=red(c),green(c),blue(c)
+          -- Do not clone the blade's magenta glow or pale steel into fabric.
+          if (r>g*1.35 and b>g*1.35) or math.min(r,g,b)>160 then return nil end
+          return c
+        end
+        local a,b,da,db
         for d=1,radius do
-          a=a or lookup(name,x-d,y+d)
-          b=b or lookup(name,x+d,y-d)
+          if not da and lookup(name,x-d,y+d) then da=d end
+          if not db and lookup(name,x+d,y-d) then db=d end
+          -- Sample inside the fabric, beyond the blade's baked glow/outline.
+          if da and d>=da+6 then a=a or fabric(x-d,y+d) end
+          if db and d>=db+6 then b=b or fabric(x+d,y-d) end
           if a and b then break end
         end
-        if a and b then found=a end
+        if inBody and a and b then
+          local t=da/(da+db)
+          local function mix(channel) return math.floor(channel(a)*(1-t)+channel(b)*t+.5) end
+          found=rgba(mix(red),mix(green),mix(blue),255)
+        elseif inBody then
+          -- At the outer hip/guard crossing the hidden contour has fabric
+          -- on only one side. Its authored silhouette supplies the limit.
+          found=a or b
+        end
       else
       for d=1,radius do
         for _,p in ipairs({{x-d,y},{x+d,y},{x,y-d},{x,y+d},{x-d,y-d},{x+d,y+d},{x-d,y+d},{x+d,y-d}}) do
@@ -141,6 +166,31 @@ for _,name in ipairs({'torso','legs','arm.far'}) do
   end end
 end
 local factor=spec.downsample
+-- Sample the complete silhouette once. At an internal part boundary the old
+-- code gave both pieces fractional alpha (e.g. 50% + 50% composites to 75%),
+-- producing a transparent seam even at rest. Every output pixel now has one
+-- owner and its full foreground coverage; hidden underlap remains behind it.
+local sampled={}
+for dy=0,H/factor-1 do for dx=0,W/factor-1 do
+  local rr,gg,bb,aa=0,0,0,0
+  local votes={}
+  for yy=0,factor-1 do for xx=0,factor-1 do
+    local n=index(dx*factor+xx,dy*factor+yy)
+    if owners[n] then
+      local c=colors[n]
+      rr=rr+red(c);gg=gg+green(c);bb=bb+blue(c);aa=aa+1
+      votes[owners[n]]=(votes[owners[n]] or 0)+1
+    end
+  end end
+  if aa>0 then
+    local owner,best=nil,0
+    for _,part in ipairs(spec.parts) do
+      local count=votes[part.layer] or 0
+      if count>0 and count>=best then owner,best=part.layer,count end
+    end
+    sampled[dy*(W/factor)+dx+1]={owner=owner,color=rgba(math.floor(rr/aa+.5),math.floor(gg/aa+.5),math.floor(bb/aa+.5),math.floor(255*aa/(factor*factor)+.5))}
+  end
+end end
 for _,part in ipairs(spec.parts) do
   local name=part.layer
   local layer=s:newLayer();layer.name=name
@@ -150,11 +200,16 @@ for _,part in ipairs(spec.parts) do
     local rr,gg,bb,aa=0,0,0,0
     for yy=0,factor-1 do for xx=0,factor-1 do
       local n=index(dx*factor+xx,dy*factor+yy)
-      local c=(owners[n]==name and colors[n]) or (extended[name] and extended[name][n])
+      local c=extended[name] and extended[name][n]
       if c then rr=rr+red(c);gg=gg+green(c);bb=bb+blue(c);aa=aa+1 end
     end end
-    if aa>0 then
-      image:drawPixel(dx+spec.offset[1],dy+spec.offset[2],rgba(math.floor(rr/aa+.5),math.floor(gg/aa+.5),math.floor(bb/aa+.5),math.floor(255*aa/(factor*factor)+.5)))
+    local sample=sampled[dy*(W/factor)+dx+1]
+    if sample and sample.owner==name then
+      image:drawPixel(dx+spec.offset[1],dy+spec.offset[2],sample.color)
+      count=count+1
+    elseif aa>0 then
+      local coverage=sample and app.pixelColor.rgbaA(sample.color) or math.floor(255*aa/(factor*factor)+.5)
+      image:drawPixel(dx+spec.offset[1],dy+spec.offset[2],rgba(math.floor(rr/aa+.5),math.floor(gg/aa+.5),math.floor(bb/aa+.5),coverage))
       count=count+1
     end
   end end

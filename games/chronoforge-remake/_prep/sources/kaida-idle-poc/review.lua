@@ -73,4 +73,21 @@ for i,layer in ipairs(s.layers) do
   if cel then parts:drawImage(cel.image,Point((i-1)*s.width+cel.position.x,cel.position.y)) end
 end
 parts:saveAs(output..'/parts.png')
+-- Review both the isolated part and the hole it leaves, at rest and peak
+-- inhale. A composite alone hid misassigned arm/sword pixels in the first draft.
+for _,layer in ipairs(s.layers) do
+  local isolated=Image(s.width*2,s.height,ColorMode.RGB)
+  local omitted=Image(s.width*2,s.height,ColorMode.RGB)
+  isolated:clear(bg);omitted:clear(bg)
+  for column,frame in ipairs({1,7}) do
+    local cel=layer:cel(frame)
+    if cel then isolated:drawImage(cel.image,Point((column-1)*s.width+cel.position.x,cel.position.y)) end
+    layer.isVisible=false
+    local flat=Image(s.width,s.height,ColorMode.RGB);flat:drawSprite(s,frame)
+    omitted:drawImage(flat,Point((column-1)*s.width,0))
+    layer.isVisible=true
+  end
+  isolated:saveAs(output..'/isolated-'..layer.name..'.png')
+  omitted:saveAs(output..'/without-'..layer.name..'.png')
+end
 s:close()

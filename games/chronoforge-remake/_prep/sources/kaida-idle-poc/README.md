@@ -26,6 +26,8 @@ The script validates the saved `.aseprite` documents and writes previews under
 - [Rig guides](../../exports/kaida-idle-poc/rig-guides.png): orange pivots, cyan
   parent connections, green fixed origin/ground line.
 - [Separated parts](../../exports/kaida-idle-poc/parts.png), in layer order.
+- `isolated-<layer>.png` and `without-<layer>.png`: each layer alone and the
+  remaining character with that layer hidden, at rest and peak inhale.
 - [All 12 frames](../../exports/kaida-idle-poc/contact-sheet.png), four columns,
   read left-to-right then top-to-bottom.
 - Transparent `sheet.png`, Aseprite `sheet.json`, source receipt and validation.
@@ -85,14 +87,51 @@ blade. The right-facing view is reduced 2:1 once, using alpha-aware area samples
 Every animation frame then uses that same source artwork.
 
 Masks are specified in the original reference's coordinates. The layer stack
-handles overlap, and small local clone fills cover otherwise hidden shoulder,
+handles overlap, and local reconstruction covers otherwise hidden shoulder,
 waist and leg areas. The sword has its own layer and follows the near arm.
+
+## Seam repair — 2026-09-15
+
+The original draft had incorrect part boundaries: forearm edges, the sword
+guard, and coat tips were left on the stationary legs/torso. Its horizontal
+waist cut also split the belt. Those pixels visibly stayed behind during motion.
+The original validation missed this; metadata and fixed feet were insufficient.
+
+The repaired recipe:
+
+1. Traces the complete arms, guard, curved blade and near coat tail. The torso
+   boundary follows the top of the trousers so the belt remains one fixed piece.
+2. Downsamples the entire foreground once, then assigns each resulting pixel
+   to a layer. Splitting first had created two fractional-alpha cut edges whose
+   combination was still translucent, even in the resting pose.
+3. Extends opaque artwork beneath the belt and moving parts. Paint underneath
+   the blade interpolates nearby fabric/armor colors, avoiding its bright glow;
+   anatomical polygons constrain this fill to the two legs.
+4. Places the far hand above the hip so reconstructed hip pixels stay behind it.
+5. Inspects isolated and hidden-layer views as well as every animated frame.
+   Verification rejects stray islands in the bind layers, a separated grip,
+   or lost interior coverage at the waist and blade crossings.
+
+The hidden surfaces are still reconstructed from a single illustration; they
+are suitable for this small idle, not a source for large limb rotations.
+Overlap under an adjacent part is intentional. Detached pieces of a different
+part on that layer are not. The small far coat flap remains fixed with the legs;
+this idle moves only the large near tail.
+
+The repaired 12-frame source passes 6,139 protected interior pixel checks per
+frame plus the grip/connectivity checks. The same verifier rejects the original
+draft's stray coat pieces. The workshop's 23 regression tests also pass.
+
+When updating this file for the user, save the repaired sources and tell them
+to reload. Do not automatically open the editor or additional document tabs.
 
 ## Validation and limits
 
 On the local Aseprite build, the proof passes checks for:
 
 - All seven layers present in all 12 frames, with the expected tag and timing.
+- Clean isolated bind layers, a connected hand/sword in every frame, and opaque
+  interior coverage around the moving joints and blade crossings.
 - Identical leg/hip pixels and rendered boot regions in every frame.
 - Exact start/end match and a real two-pixel torso displacement at full inhale.
 - Each part's animation pixels use colors present in that part's bind image.

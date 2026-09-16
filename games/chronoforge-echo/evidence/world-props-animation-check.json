@@ -1,0 +1,19 @@
+{
+  "frameHashes": [
+    "624e528c6ac4c01ed949264f5dd602b8175d9ed23ae1b2a5a624be63f8ee5b46",
+    "87b5634339664e2bbe2030ea3cd95cedfe531ab1ba020b7fe756a535660e33f3",
+    "2e963a51af9bd0ce717a59bcb836cd8b4cf2781983c20219177e469db14c5967",
+    "624e528c6ac4c01ed949264f5dd602b8175d9ed23ae1b2a5a624be63f8ee5b46"
+  ],
+  "threeDistinctFrames": true,
+  "reducedMotionMatchesFirstFrame": true,
+  "logicalHeight": 88,
+  "sourceCropSize": [
+    376,
+    411
+  ],
+  "sourceFootAnchor": [
+    188,
+    403
+  ]
+}

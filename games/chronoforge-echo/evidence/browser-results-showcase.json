@@ -1,0 +1,1460 @@
+{
+  "startedAt": "2026-09-16T08:28:49.304Z",
+  "section": "showcase",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "release": "25.6.0",
+    "cpu": "Apple M1 Pro",
+    "browser": "151.0.7922.34",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "nativeCanvas": [
+      960,
+      540
+    ]
+  },
+  "methodology": "New isolated browser context. UX cases use actual keyboard or mouse after explicit fixture setup. This is subsystem acceptance, not a claim of a clean-save manual campaign completion.",
+  "checks": [
+    {
+      "name": "latest production attack choreography frame sequence",
+      "method": "Deterministic frame inspection: root renderer remains live; the authoritative battle timeline is stepped to exact poses. This section pauses between samples, then a separate real-time loop follows in the video.",
+      "pass": true,
+      "milliseconds": 1937,
+      "details": {
+        "frames": [
+          {
+            "elapsed": 0,
+            "screenshot": "evidence/browser/latest-attack-00.png"
+          },
+          {
+            "elapsed": 0.2,
+            "screenshot": "evidence/browser/latest-attack-01.png"
+          },
+          {
+            "elapsed": 0.42,
+            "screenshot": "evidence/browser/latest-attack-02.png"
+          },
+          {
+            "elapsed": 0.57,
+            "screenshot": "evidence/browser/latest-attack-03.png"
+          },
+          {
+            "elapsed": 0.7,
+            "screenshot": "evidence/browser/latest-attack-04.png"
+          },
+          {
+            "elapsed": 0.77,
+            "screenshot": "evidence/browser/latest-attack-05.png"
+          },
+          {
+            "elapsed": 0.9,
+            "screenshot": "evidence/browser/latest-attack-06.png"
+          },
+          {
+            "elapsed": 1.12,
+            "screenshot": "evidence/browser/latest-attack-07.png"
+          },
+          {
+            "elapsed": 1.4,
+            "screenshot": "evidence/browser/latest-attack-08.png"
+          },
+          {
+            "elapsed": 1.54,
+            "screenshot": "evidence/browser/latest-attack-09.png"
+          }
+        ],
+        "normalVsCritical": false
+      }
+    },
+    {
+      "name": "real-time solo attack showcase",
+      "method": "Actual keys with normal RAF clock and no stepped time; captured in the final portion of the video.",
+      "pass": true,
+      "milliseconds": 3200,
+      "details": {
+        "screenshot": "evidence/browser/latest-realtime-recovery.png",
+        "battle": {
+          "phase": "active",
+          "mode": "waiting",
+          "result": null,
+          "clock": 3.0396000000000014,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Rust Scrapper · 46 damage",
+          "status": "Gauges charging",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 5.101135999999983,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 30,
+              "maxHp": 76,
+              "atb": 41.09775999999999,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": null,
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.34,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            },
+            {
+              "seq": 3,
+              "time": 1.84,
+              "text": "Signal caught · critical chance raised.",
+              "kind": "timing"
+            },
+            {
+              "seq": 4,
+              "time": 2.106,
+              "text": "Rust Scrapper · 46 damage",
+              "kind": "damage"
+            }
+          ],
+          "hints": "Space / Enter · Commands   Tab · Ready hero"
+        }
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "missingAssets": [],
+  "failedRequests": [
+    {
+      "url": "http://127.0.0.1:4321/assets/rust-scrapper-source.png",
+      "error": "net::ERR_ABORTED"
+    }
+  ],
+  "documentLoads": [
+    {
+      "url": "http://127.0.0.1:4321/?test=1",
+      "time": "2026-09-16T08:28:49.334Z"
+    },
+    {
+      "url": "http://127.0.0.1:4321/?test=1",
+      "time": "2026-09-16T08:28:49.590Z"
+    }
+  ],
+  "performance": {},
+  "sequences": {
+    "latestAttack": [
+      {
+        "elapsed": 0,
+        "screenshot": "evidence/browser/latest-attack-00.png",
+        "state": {
+          "phase": "action",
+          "mode": "action",
+          "result": null,
+          "clock": 1.3911,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Kaida · Attack",
+          "status": "Attack · anticipation",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 76,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": {
+            "id": 1,
+            "name": "Attack",
+            "participants": [
+              "kaida"
+            ],
+            "targets": [
+              "enemy_0"
+            ],
+            "elapsed": 0,
+            "duration": 1.54,
+            "stage": "anticipation",
+            "contact": 0.76,
+            "windowStart": 0.48,
+            "windowEnd": 0.665,
+            "timingEligible": true,
+            "timingAttempted": false,
+            "timingSuccess": false,
+            "resolved": false,
+            "critical": false
+          },
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            }
+          ],
+          "hints": "Arrows · Choose   Space / Enter · Confirm   Backspace · Back"
+        }
+      },
+      {
+        "elapsed": 0.2,
+        "screenshot": "evidence/browser/latest-attack-01.png",
+        "state": {
+          "phase": "action",
+          "mode": "action",
+          "result": null,
+          "clock": 1.5911,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Kaida · Attack",
+          "status": "Attack · anticipation",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 76,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": {
+            "id": 1,
+            "name": "Attack",
+            "participants": [
+              "kaida"
+            ],
+            "targets": [
+              "enemy_0"
+            ],
+            "elapsed": 0.2,
+            "duration": 1.54,
+            "stage": "anticipation",
+            "contact": 0.76,
+            "windowStart": 0.48,
+            "windowEnd": 0.665,
+            "timingEligible": true,
+            "timingAttempted": false,
+            "timingSuccess": false,
+            "resolved": false,
+            "critical": false
+          },
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            }
+          ],
+          "hints": "Arrows · Choose   Space / Enter · Confirm   Backspace · Back"
+        }
+      },
+      {
+        "elapsed": 0.42,
+        "screenshot": "evidence/browser/latest-attack-02.png",
+        "state": {
+          "phase": "action",
+          "mode": "action",
+          "result": null,
+          "clock": 1.8111,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Kaida · Attack",
+          "status": "Attack · anticipation",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 76,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": {
+            "id": 1,
+            "name": "Attack",
+            "participants": [
+              "kaida"
+            ],
+            "targets": [
+              "enemy_0"
+            ],
+            "elapsed": 0.42,
+            "duration": 1.54,
+            "stage": "anticipation",
+            "contact": 0.76,
+            "windowStart": 0.48,
+            "windowEnd": 0.665,
+            "timingEligible": true,
+            "timingAttempted": false,
+            "timingSuccess": false,
+            "resolved": false,
+            "critical": false
+          },
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            }
+          ],
+          "hints": "Arrows · Choose   Space / Enter · Confirm   Backspace · Back"
+        }
+      },
+      {
+        "elapsed": 0.57,
+        "screenshot": "evidence/browser/latest-attack-03.png",
+        "state": {
+          "phase": "action",
+          "mode": "action",
+          "result": null,
+          "clock": 1.9610999999999998,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Signal caught · critical chance raised.",
+          "status": "Attack · approach",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 76,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": {
+            "id": 1,
+            "name": "Attack",
+            "participants": [
+              "kaida"
+            ],
+            "targets": [
+              "enemy_0"
+            ],
+            "elapsed": 0.57,
+            "duration": 1.54,
+            "stage": "approach",
+            "contact": 0.76,
+            "windowStart": 0.48,
+            "windowEnd": 0.665,
+            "timingEligible": true,
+            "timingAttempted": true,
+            "timingSuccess": true,
+            "resolved": false,
+            "critical": false
+          },
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            },
+            {
+              "seq": 3,
+              "time": 1.961,
+              "text": "Signal caught · critical chance raised.",
+              "kind": "timing"
+            }
+          ],
+          "hints": "Arrows · Choose   Space / Enter · Confirm   Backspace · Back"
+        }
+      },
+      {
+        "elapsed": 0.7,
+        "screenshot": "evidence/browser/latest-attack-04.png",
+        "state": {
+          "phase": "action",
+          "mode": "action",
+          "result": null,
+          "clock": 2.0911,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Signal caught · critical chance raised.",
+          "status": "Attack · approach",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 76,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": {
+            "id": 1,
+            "name": "Attack",
+            "participants": [
+              "kaida"
+            ],
+            "targets": [
+              "enemy_0"
+            ],
+            "elapsed": 0.7,
+            "duration": 1.54,
+            "stage": "approach",
+            "contact": 0.76,
+            "windowStart": 0.48,
+            "windowEnd": 0.665,
+            "timingEligible": true,
+            "timingAttempted": true,
+            "timingSuccess": true,
+            "resolved": false,
+            "critical": false
+          },
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            },
+            {
+              "seq": 3,
+              "time": 1.961,
+              "text": "Signal caught · critical chance raised.",
+              "kind": "timing"
+            }
+          ],
+          "hints": "Arrows · Choose   Space / Enter · Confirm   Backspace · Back"
+        }
+      },
+      {
+        "elapsed": 0.77,
+        "screenshot": "evidence/browser/latest-attack-05.png",
+        "state": {
+          "phase": "action",
+          "mode": "action",
+          "result": null,
+          "clock": 2.1611000000000002,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Rust Scrapper · 46 damage",
+          "status": "Attack · contact",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 30,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": {
+            "id": 1,
+            "name": "Attack",
+            "participants": [
+              "kaida"
+            ],
+            "targets": [
+              "enemy_0"
+            ],
+            "elapsed": 0.77,
+            "duration": 1.54,
+            "stage": "contact",
+            "contact": 0.76,
+            "windowStart": 0.48,
+            "windowEnd": 0.665,
+            "timingEligible": true,
+            "timingAttempted": true,
+            "timingSuccess": true,
+            "resolved": true,
+            "critical": false,
+            "criticalChance": 0.53
+          },
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            },
+            {
+              "seq": 3,
+              "time": 1.961,
+              "text": "Signal caught · critical chance raised.",
+              "kind": "timing"
+            },
+            {
+              "seq": 4,
+              "time": 2.161,
+              "text": "Rust Scrapper · 46 damage",
+              "kind": "damage"
+            }
+          ],
+          "hints": "Arrows · Choose   Space / Enter · Confirm   Backspace · Back"
+        }
+      },
+      {
+        "elapsed": 0.9,
+        "screenshot": "evidence/browser/latest-attack-06.png",
+        "state": {
+          "phase": "action",
+          "mode": "action",
+          "result": null,
+          "clock": 2.2911,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Rust Scrapper · 46 damage",
+          "status": "Attack · contact",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 30,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": {
+            "id": 1,
+            "name": "Attack",
+            "participants": [
+              "kaida"
+            ],
+            "targets": [
+              "enemy_0"
+            ],
+            "elapsed": 0.9,
+            "duration": 1.54,
+            "stage": "contact",
+            "contact": 0.76,
+            "windowStart": 0.48,
+            "windowEnd": 0.665,
+            "timingEligible": true,
+            "timingAttempted": true,
+            "timingSuccess": true,
+            "resolved": true,
+            "critical": false,
+            "criticalChance": 0.53
+          },
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            },
+            {
+              "seq": 3,
+              "time": 1.961,
+              "text": "Signal caught · critical chance raised.",
+              "kind": "timing"
+            },
+            {
+              "seq": 4,
+              "time": 2.161,
+              "text": "Rust Scrapper · 46 damage",
+              "kind": "damage"
+            }
+          ],
+          "hints": "Arrows · Choose   Space / Enter · Confirm   Backspace · Back"
+        }
+      },
+      {
+        "elapsed": 1.12,
+        "screenshot": "evidence/browser/latest-attack-07.png",
+        "state": {
+          "phase": "action",
+          "mode": "action",
+          "result": null,
+          "clock": 2.5111000000000003,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Rust Scrapper · 46 damage",
+          "status": "Attack · recovery",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 30,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": {
+            "id": 1,
+            "name": "Attack",
+            "participants": [
+              "kaida"
+            ],
+            "targets": [
+              "enemy_0"
+            ],
+            "elapsed": 1.12,
+            "duration": 1.54,
+            "stage": "recovery",
+            "contact": 0.76,
+            "windowStart": 0.48,
+            "windowEnd": 0.665,
+            "timingEligible": true,
+            "timingAttempted": true,
+            "timingSuccess": true,
+            "resolved": true,
+            "critical": false,
+            "criticalChance": 0.53
+          },
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            },
+            {
+              "seq": 3,
+              "time": 1.961,
+              "text": "Signal caught · critical chance raised.",
+              "kind": "timing"
+            },
+            {
+              "seq": 4,
+              "time": 2.161,
+              "text": "Rust Scrapper · 46 damage",
+              "kind": "damage"
+            }
+          ],
+          "hints": "Arrows · Choose   Space / Enter · Confirm   Backspace · Back"
+        }
+      },
+      {
+        "elapsed": 1.4,
+        "screenshot": "evidence/browser/latest-attack-08.png",
+        "state": {
+          "phase": "action",
+          "mode": "action",
+          "result": null,
+          "clock": 2.7911,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Rust Scrapper · 46 damage",
+          "status": "Attack · recovery",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 30,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": {
+            "id": 1,
+            "name": "Attack",
+            "participants": [
+              "kaida"
+            ],
+            "targets": [
+              "enemy_0"
+            ],
+            "elapsed": 1.4,
+            "duration": 1.54,
+            "stage": "recovery",
+            "contact": 0.76,
+            "windowStart": 0.48,
+            "windowEnd": 0.665,
+            "timingEligible": true,
+            "timingAttempted": true,
+            "timingSuccess": true,
+            "resolved": true,
+            "critical": false,
+            "criticalChance": 0.53
+          },
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            },
+            {
+              "seq": 3,
+              "time": 1.961,
+              "text": "Signal caught · critical chance raised.",
+              "kind": "timing"
+            },
+            {
+              "seq": 4,
+              "time": 2.161,
+              "text": "Rust Scrapper · 46 damage",
+              "kind": "damage"
+            }
+          ],
+          "hints": "Arrows · Choose   Space / Enter · Confirm   Backspace · Back"
+        }
+      },
+      {
+        "elapsed": 1.54,
+        "screenshot": "evidence/browser/latest-attack-09.png",
+        "state": {
+          "phase": "active",
+          "mode": "waiting",
+          "result": null,
+          "clock": 2.9311000000000003,
+          "selectedHero": null,
+          "readyQueue": [],
+          "cursor": 0,
+          "target": 0,
+          "message": "Rust Scrapper · 46 damage",
+          "status": "Gauges charging",
+          "commands": [
+            {
+              "name": "Attack",
+              "selected": false
+            },
+            {
+              "name": "Tech",
+              "selected": false
+            },
+            {
+              "name": "Defend",
+              "selected": false
+            },
+            {
+              "name": "Item",
+              "selected": false
+            },
+            {
+              "name": "Retreat",
+              "selected": false
+            }
+          ],
+          "techs": [],
+          "items": [
+            {
+              "id": "field_tonic",
+              "name": "Field Tonic",
+              "count": 5
+            },
+            {
+              "id": "ether_cell",
+              "name": "Ether Cell",
+              "count": 3
+            }
+          ],
+          "targets": [],
+          "heroes": [
+            {
+              "id": "kaida",
+              "name": "Kaida",
+              "hp": 156,
+              "maxHp": 156,
+              "mp": 42,
+              "maxMp": 42,
+              "atb": 0,
+              "shield": 0,
+              "guarding": false,
+              "slowTurns": 0
+            }
+          ],
+          "enemies": [
+            {
+              "id": "rust_scrapper",
+              "uid": "enemy_0",
+              "name": "Rust Scrapper",
+              "hp": 30,
+              "maxHp": 76,
+              "atb": 40.882419999999996,
+              "shield": 0,
+              "slowTurns": 0,
+              "charging": false,
+              "bossPhase": 1
+            }
+          ],
+          "action": null,
+          "log": [
+            {
+              "seq": 1,
+              "time": 0,
+              "text": "Weapons drawn. Keep the signal alive.",
+              "kind": "info"
+            },
+            {
+              "seq": 2,
+              "time": 1.391,
+              "text": "Kaida · Attack",
+              "kind": "action"
+            },
+            {
+              "seq": 3,
+              "time": 1.961,
+              "text": "Signal caught · critical chance raised.",
+              "kind": "timing"
+            },
+            {
+              "seq": 4,
+              "time": 2.161,
+              "text": "Rust Scrapper · 46 damage",
+              "kind": "damage"
+            }
+          ],
+          "hints": "Space / Enter · Commands   Tab · Ready hero"
+        }
+      }
+    ]
+  },
+  "readyAt": "2026-09-16T08:28:50.098Z",
+  "startupDocumentLoads": 2,
+  "assets": {
+    "loaded": [
+      {
+        "id": "kaida_showcase",
+        "width": 2172,
+        "height": 724
+      },
+      {
+        "id": "coast_props",
+        "width": 1774,
+        "height": 887
+      },
+      {
+        "id": "coast_ground",
+        "width": 1536,
+        "height": 1024
+      },
+      {
+        "id": "rust_scrapper",
+        "width": 1536,
+        "height": 1024
+      }
+    ],
+    "errors": [],
+    "bytes": 25167176
+  },
+  "finalRuntimeErrors": [],
+  "finishedAt": "2026-09-16T08:28:55.266Z",
+  "developmentReloadDetected": false,
+  "passed": 2,
+  "failed": 0,
+  "video": "evidence/browser/7fc01a6bf0c193bde90cc137bf669eff.webm"
+}

@@ -1,0 +1,362 @@
+{
+  "method": "Production Haventide outdoor renderer at native 960\u00d7540. Explicit visual fixtures set each of the eight existing building levels to1,2,3,4; camera position centers the real world object. No construction progression is claimed. Normal scene props/roads/actors remain unchanged. Runtime source import is separately measured for crop/alpha/index inspection. No performance test.",
+  "errors": [],
+  "frames": [
+    {
+      "building": "town_center",
+      "level": 1,
+      "camera": {
+        "x": 907.5,
+        "y": 907.5
+      },
+      "file": "civic-review-after-town_center-1.png"
+    },
+    {
+      "building": "farm",
+      "level": 1,
+      "camera": {
+        "x": 870,
+        "y": 463.75
+      },
+      "file": "civic-review-after-farm-1.png"
+    },
+    {
+      "building": "mine",
+      "level": 1,
+      "camera": {
+        "x": 1757.5,
+        "y": 82.5
+      },
+      "file": "civic-review-after-mine-1.png"
+    },
+    {
+      "building": "energy_extractor",
+      "level": 1,
+      "camera": {
+        "x": 1220,
+        "y": 1107.5
+      },
+      "file": "civic-review-after-energy_extractor-1.png"
+    },
+    {
+      "building": "barracks",
+      "level": 1,
+      "camera": {
+        "x": 607.5,
+        "y": 576.25
+      },
+      "file": "civic-review-after-barracks-1.png"
+    },
+    {
+      "building": "forge",
+      "level": 1,
+      "camera": {
+        "x": 1338.75,
+        "y": 770
+      },
+      "file": "civic-review-after-forge-1.png"
+    },
+    {
+      "building": "research_lab",
+      "level": 1,
+      "camera": {
+        "x": 1257.5,
+        "y": 195
+      },
+      "file": "civic-review-after-research_lab-1.png"
+    },
+    {
+      "building": "walls",
+      "level": 1,
+      "camera": {
+        "x": 1007.5,
+        "y": 688.75
+      },
+      "file": "civic-review-after-walls-1.png"
+    },
+    {
+      "building": "town_center",
+      "level": 2,
+      "camera": {
+        "x": 907.5,
+        "y": 907.5
+      },
+      "file": "civic-review-after-town_center-2.png"
+    },
+    {
+      "building": "farm",
+      "level": 2,
+      "camera": {
+        "x": 870,
+        "y": 463.75
+      },
+      "file": "civic-review-after-farm-2.png"
+    },
+    {
+      "building": "mine",
+      "level": 2,
+      "camera": {
+        "x": 1757.5,
+        "y": 82.5
+      },
+      "file": "civic-review-after-mine-2.png"
+    },
+    {
+      "building": "energy_extractor",
+      "level": 2,
+      "camera": {
+        "x": 1220,
+        "y": 1107.5
+      },
+      "file": "civic-review-after-energy_extractor-2.png"
+    },
+    {
+      "building": "barracks",
+      "level": 2,
+      "camera": {
+        "x": 607.5,
+        "y": 576.25
+      },
+      "file": "civic-review-after-barracks-2.png"
+    },
+    {
+      "building": "forge",
+      "level": 2,
+      "camera": {
+        "x": 1338.75,
+        "y": 770
+      },
+      "file": "civic-review-after-forge-2.png"
+    },
+    {
+      "building": "research_lab",
+      "level": 2,
+      "camera": {
+        "x": 1257.5,
+        "y": 195
+      },
+      "file": "civic-review-after-research_lab-2.png"
+    },
+    {
+      "building": "walls",
+      "level": 2,
+      "camera": {
+        "x": 1007.5,
+        "y": 688.75
+      },
+      "file": "civic-review-after-walls-2.png"
+    },
+    {
+      "building": "town_center",
+      "level": 3,
+      "camera": {
+        "x": 907.5,
+        "y": 907.5
+      },
+      "file": "civic-review-after-town_center-3.png"
+    },
+    {
+      "building": "farm",
+      "level": 3,
+      "camera": {
+        "x": 870,
+        "y": 463.75
+      },
+      "file": "civic-review-after-farm-3.png"
+    },
+    {
+      "building": "mine",
+      "level": 3,
+      "camera": {
+        "x": 1757.5,
+        "y": 82.5
+      },
+      "file": "civic-review-after-mine-3.png"
+    },
+    {
+      "building": "energy_extractor",
+      "level": 3,
+      "camera": {
+        "x": 1220,
+        "y": 1107.5
+      },
+      "file": "civic-review-after-energy_extractor-3.png"
+    },
+    {
+      "building": "barracks",
+      "level": 3,
+      "camera": {
+        "x": 607.5,
+        "y": 576.25
+      },
+      "file": "civic-review-after-barracks-3.png"
+    },
+    {
+      "building": "forge",
+      "level": 3,
+      "camera": {
+        "x": 1338.75,
+        "y": 770
+      },
+      "file": "civic-review-after-forge-3.png"
+    },
+    {
+      "building": "research_lab",
+      "level": 3,
+      "camera": {
+        "x": 1257.5,
+        "y": 195
+      },
+      "file": "civic-review-after-research_lab-3.png"
+    },
+    {
+      "building": "walls",
+      "level": 3,
+      "camera": {
+        "x": 1007.5,
+        "y": 688.75
+      },
+      "file": "civic-review-after-walls-3.png"
+    },
+    {
+      "building": "town_center",
+      "level": 4,
+      "camera": {
+        "x": 907.5,
+        "y": 907.5
+      },
+      "file": "civic-review-after-town_center-4.png"
+    },
+    {
+      "building": "farm",
+      "level": 4,
+      "camera": {
+        "x": 870,
+        "y": 463.75
+      },
+      "file": "civic-review-after-farm-4.png"
+    },
+    {
+      "building": "mine",
+      "level": 4,
+      "camera": {
+        "x": 1757.5,
+        "y": 82.5
+      },
+      "file": "civic-review-after-mine-4.png"
+    },
+    {
+      "building": "energy_extractor",
+      "level": 4,
+      "camera": {
+        "x": 1220,
+        "y": 1107.5
+      },
+      "file": "civic-review-after-energy_extractor-4.png"
+    },
+    {
+      "building": "barracks",
+      "level": 4,
+      "camera": {
+        "x": 607.5,
+        "y": 576.25
+      },
+      "file": "civic-review-after-barracks-4.png"
+    },
+    {
+      "building": "forge",
+      "level": 4,
+      "camera": {
+        "x": 1338.75,
+        "y": 770
+      },
+      "file": "civic-review-after-forge-4.png"
+    },
+    {
+      "building": "research_lab",
+      "level": 4,
+      "camera": {
+        "x": 1257.5,
+        "y": 195
+      },
+      "file": "civic-review-after-research_lab-4.png"
+    },
+    {
+      "building": "walls",
+      "level": 4,
+      "camera": {
+        "x": 1007.5,
+        "y": 688.75
+      },
+      "file": "civic-review-after-walls-4.png"
+    }
+  ],
+  "objects": [
+    {
+      "id": "haventide_entrance",
+      "building": "town_center",
+      "x": 1387.5,
+      "y": 1262.5,
+      "w": 250,
+      "h": 125
+    },
+    {
+      "id": "hav_plot_farm",
+      "building": "farm",
+      "x": 1350,
+      "y": 818.75,
+      "w": 210,
+      "h": 95
+    },
+    {
+      "id": "hav_plot_mine",
+      "building": "mine",
+      "x": 2237.5,
+      "y": 437.5,
+      "w": 207.5,
+      "h": 92.5
+    },
+    {
+      "id": "hav_plot_energy_extractor",
+      "building": "energy_extractor",
+      "x": 1700,
+      "y": 1462.5,
+      "w": 206.25,
+      "h": 81.25
+    },
+    {
+      "id": "hav_plot_barracks",
+      "building": "barracks",
+      "x": 1087.5,
+      "y": 931.25,
+      "w": 197.5,
+      "h": 92.5
+    },
+    {
+      "id": "hav_plot_forge",
+      "building": "forge",
+      "x": 1818.75,
+      "y": 1125,
+      "w": 195,
+      "h": 90
+    },
+    {
+      "id": "hav_plot_research_lab",
+      "building": "research_lab",
+      "x": 1737.5,
+      "y": 550,
+      "w": 206.25,
+      "h": 92.5
+    },
+    {
+      "id": "hav_plot_walls",
+      "building": "walls",
+      "x": 1487.5,
+      "y": 1043.75,
+      "w": 206.25,
+      "h": 81.25
+    }
+  ],
+  "result": "pass",
+  "review": "All eight identities have distinct four-level silhouettes. Runtime import repairs remove measured background pockets, cross-row crop fragments and clipped tips; the native scene now exposes the barracks facade. Six final small pockets are separately captured in civic-review-final.json."
+}

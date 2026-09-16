@@ -1,0 +1,30 @@
+{
+  "tool": "built-in image_gen",
+  "props": "Use case: stylized-concept. Production sprite art for the original RPG Chronforge Echo, matching a richly detailed pixel RPG world at native960x540. Actual hard pixel clusters, ink outlines, crisp nearest-neighbor pixels, warm upper-left lighting, no blur, no antialiasing, no smooth vector surfaces. Original designs, no text, no characters, no logos. Create a Forest Veil environment PROP ATLAS, exactly4 columns by2 rows, eight equally sized square cells, whole image2048x1024. Transparent alpha background, genuinely transparent empty pixels, do not draw checkerboard. Every prop is completely contained within its own cell with16px clear gutters and its ground foot near bottom. Three-quarter overhead RPG view, rich detail readable when a cell is displayed200px tall. Palette deep pine green, olive and jade leaves, aged limestone, small blue flowers, warm copper remnants. Top row in exact order: (1) an immense ancient glasswood tree with sculptural braided roots, layered broad emerald canopy and delicate hanging vines; (2) tall slender luminous mushroom-and-root sentinel growth with turquoise shelf fungi and moss on a dark trunk; (3) monumental oval heartwood relay, a broken stone ring embraced by massive living roots, emerald crystal inset and small brass engineering lines; (4) root-wrapped limestone aqueduct arch with tiny carved channels and hanging fern clusters. Bottom row: (5) irregular layered mossy boulder with root fissures and tiny blue flowers; (6) welcoming seedkeeper cabin, old timber walls, small copper-roof cupola, living fern roof, deep visible front door and seed drawers on porch; (7) graceful dense fern and blue wildflower cluster with dark-root foot; (8) tall crumbling limestone cliff terrace with dangling roots, broken ancient water pipe and moss shelves. Preserve separate strong silhouettes, believable construction, organic asymmetry, tiny weathering, restrained metallic glints. No ground rectangle beneath any prop.",
+  "ground": "Use case: stylized-concept. Production sprite art for the original RPG Chronforge Echo, matching a richly detailed pixel RPG world at native960x540. Actual hard pixel clusters, ink outlines, crisp nearest-neighbor pixels, warm upper-left lighting, no blur, no antialiasing, no smooth vector surfaces. Original designs, no text, no characters, no logos. Create a Forest Veil GROUND MATERIAL ATLAS, exactly3 columns by2 rows, six equally sized square512px cells, image1536x1024. Every cell fully filled edge to edge with its own seamless looping TOP-DOWN material. Texture at native128px enlarged4x, clear pixel clusters, no transparent background, no perspective, no objects, no border or gutter. Quiet low-contrast details, no large repeating motif. Top row exact order: (1) deep green mossy forest floor with fine clover and scattered subdued leaf litter, (2) lighter sunlit forest moss with olive leaf fragments and tiny grasses, (3) an old walkable limestone path of irregular worn muted olive-gray flat stones, seams softened by fallen leaves. Bottom row: (4) darker shaded fern-root humus with quiet brown roots and moss, (5) shallow jade woodland stream water over moss-dark pebbles with restrained broken reflections, (6) deep dark teal-green forest stream water with subtle ripples. Materials must be harmonious with ancient glasswood trees and ruined limestone aqueducts; lush without busy high-contrast noise.",
+  "sources": {
+    "props": {
+      "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-31838279-ed1a-453a-94ca-8ef74c240b25.png",
+      "workspace": "public/assets/forest-veil-props-source.png",
+      "size": [
+        1774,
+        887
+      ],
+      "alpha": "original RGBA preserved"
+    },
+    "ground": {
+      "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-52ac6c89-7613-4182-8310-63b882ac8403.png",
+      "workspace": "public/assets/forest-veil-ground-source.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "alpha": "opaque"
+    }
+  },
+  "review": [
+    "evidence/forest-veil-world-review.png",
+    "evidence/forest-veil-battle-review.png"
+  ],
+  "refinement": "Quieted open moss; offset entry trees; varied backdrop canopy depths; seated roots and fern silhouettes against the clearing edge."
+}

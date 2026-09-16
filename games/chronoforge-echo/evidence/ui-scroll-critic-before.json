@@ -1,0 +1,226 @@
+{
+  "method": "Actual keyboard input after loading the unmodified earned aftermath save through production persistence.",
+  "tabs": [
+    {
+      "tab": "2",
+      "samples": [
+        {
+          "key": "initial",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"close\" data-do=\"menu-close\"><kbd>Esc</kbd> Return to field</button>"
+        },
+        {
+          "key": "PageDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"close\" data-do=\"menu-close\"><kbd>Esc</kbd> Return to field</button>"
+        },
+        {
+          "key": "End",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"close\" data-do=\"menu-close\"><kbd>Esc</kbd> Return to field</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"\" data-do=\"tab:0\"><small>1</small>Map</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"active\" data-do=\"tab:1\"><small>2</small>Party</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"\" data-do=\"tab:2\"><small>3</small>Inventory</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"\" data-do=\"tab:3\"><small>4</small>Skills</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"\" data-do=\"tab:4\"><small>5</small>Quests</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"\" data-do=\"tab:5\"><small>6</small>Save</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"\" data-do=\"tab:6\"><small>7</small>Settings</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"close\" data-do=\"menu-close\"><kbd>Esc</kbd> Return to field</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"\" data-do=\"tab:0\"><small>1</small>Map</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"active\" data-do=\"tab:1\"><small>2</small>Party</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"\" data-do=\"tab:2\"><small>3</small>Inventory</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 834,
+          "focus": "<button class=\"\" data-do=\"tab:3\"><small>4</small>Skills</button>"
+        }
+      ]
+    },
+    {
+      "tab": "5",
+      "samples": [
+        {
+          "key": "initial",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:3\"><small>4</small>Skills</button>"
+        },
+        {
+          "key": "PageDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:3\"><small>4</small>Skills</button>"
+        },
+        {
+          "key": "End",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:3\"><small>4</small>Skills</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"active\" data-do=\"tab:4\"><small>5</small>Quests</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:5\"><small>6</small>Save</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:6\"><small>7</small>Settings</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"close\" data-do=\"menu-close\"><kbd>Esc</kbd> Return to field</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:0\"><small>1</small>Map</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:1\"><small>2</small>Party</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:2\"><small>3</small>Inventory</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:3\"><small>4</small>Skills</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"active\" data-do=\"tab:4\"><small>5</small>Quests</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:5\"><small>6</small>Save</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"\" data-do=\"tab:6\"><small>7</small>Settings</button>"
+        },
+        {
+          "key": "ArrowDown",
+          "top": 0,
+          "height": 748,
+          "total": 1879,
+          "focus": "<button class=\"close\" data-do=\"menu-close\"><kbd>Esc</kbd> Return to field</button>"
+        }
+      ]
+    }
+  ],
+  "errors": []
+}

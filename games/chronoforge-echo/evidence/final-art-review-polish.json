@@ -1,0 +1,1002 @@
+{
+  "method": "Independent production-rendered review at 1920×1080, using unmodified earned campaign saves via saveState/load. Actual walkTo, nearby interaction, keyboard actions and normal Game.update; no state grants, actor poses or screenshot composites.",
+  "startedAt": "2026-09-16T10:15:41.230Z",
+  "captures": [
+    {
+      "id": "emberline-world",
+      "file": "critic-polished-emberline-world.png",
+      "earnedSave": "chapter-vex",
+      "scene": "emberline",
+      "biome": "desert",
+      "mode": "world",
+      "position": {
+        "x": 1320.00000000037,
+        "y": 1583.7604160786486
+      },
+      "simulationTime": 578.366733333136,
+      "objective": "Follow the high road to Orbital Reach, liberate Anchor Nine, and speak with Rune.",
+      "tier": 2,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 12,
+          "hp": 373,
+          "mp": 80
+        },
+        {
+          "id": "vex",
+          "level": 11,
+          "hp": 280,
+          "mp": 147
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "forest_veil-world",
+      "file": "critic-polished-forest_veil-world.png",
+      "earnedSave": "chapter-forest",
+      "scene": "forest_veil",
+      "biome": "forest",
+      "mode": "world",
+      "position": {
+        "x": 2639.9999999999995,
+        "y": 1176.6929747316904
+      },
+      "simulationTime": 1052.8667333327046,
+      "objective": "Cross the reed causeway into Mire Bog and open its submerged archive.",
+      "tier": 3,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 20,
+          "hp": 554,
+          "mp": 104
+        },
+        {
+          "id": "vex",
+          "level": 20,
+          "hp": 442,
+          "mp": 192
+        },
+        {
+          "id": "rune",
+          "level": 19,
+          "hp": 624,
+          "mp": 133
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "frost_canyon-world",
+      "file": "critic-polished-frost_canyon-world.png",
+      "earnedSave": "chapter-frost",
+      "scene": "frost_canyon",
+      "biome": "ice",
+      "mode": "world",
+      "position": {
+        "x": 3095.8849594697313,
+        "y": 1552.8944819810592
+      },
+      "simulationTime": 1902.5167333319318,
+      "objective": "Reach Last Crown, defeat the Architect Herald, and listen to the memory orchard.",
+      "tier": 3,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 34,
+          "hp": 827,
+          "mp": 146
+        },
+        {
+          "id": "vex",
+          "level": 33,
+          "hp": 586,
+          "mp": 282
+        },
+        {
+          "id": "rune",
+          "level": 33,
+          "hp": 977,
+          "mp": 189
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "last_crown-world",
+      "file": "critic-polished-last_crown-world.png",
+      "earnedSave": "chapter-crown",
+      "scene": "last_crown",
+      "biome": "alien",
+      "mode": "world",
+      "position": {
+        "x": 1092.7854817316584,
+        "y": 1488
+      },
+      "simulationTime": 2184.216733333534,
+      "objective": "Bring the living seals to Last Crown’s highest spire and face the Void Architect.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 38,
+          "hp": 895,
+          "mp": 163
+        },
+        {
+          "id": "vex",
+          "level": 38,
+          "hp": 686,
+          "mp": 342
+        },
+        {
+          "id": "rune",
+          "level": 38,
+          "hp": 1132,
+          "mp": 214
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "haventide-settlement",
+      "file": "critic-polished-haventide-settlement.png",
+      "earnedSave": "chapter-haventide",
+      "scene": "haventide_town",
+      "biome": "coast",
+      "mode": "world",
+      "position": {
+        "x": 1083.8885460785166,
+        "y": 849.2881407127181
+      },
+      "simulationTime": 238.38336666674854,
+      "objective": "Travel east to Emberline. Find Vex and reclaim the starless observatory.",
+      "tier": 2,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 6,
+          "hp": 241,
+          "mp": 57
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "haventide-market",
+      "file": "critic-polished-haventide-market.png",
+      "earnedSave": "chapter-haventide",
+      "scene": "haventide_town",
+      "biome": "coast",
+      "mode": "world",
+      "position": {
+        "x": 842.5228999196617,
+        "y": 828.3327381892241
+      },
+      "simulationTime": 240.28336666675006,
+      "objective": "Travel east to Emberline. Find Vex and reclaim the starless observatory.",
+      "tier": 2,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 6,
+          "hp": 241,
+          "mp": 57
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "emberline-settlement",
+      "file": "critic-polished-emberline-settlement.png",
+      "earnedSave": "chapter-vex",
+      "scene": "emberline_town",
+      "biome": "desert",
+      "mode": "world",
+      "position": {
+        "x": 800,
+        "y": 993.75
+      },
+      "simulationTime": 569.950066666477,
+      "objective": "Follow the high road to Orbital Reach, liberate Anchor Nine, and speak with Rune.",
+      "tier": 2,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 12,
+          "hp": 373,
+          "mp": 80
+        },
+        {
+          "id": "vex",
+          "level": 11,
+          "hp": 280,
+          "mp": 147
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "emberline-market",
+      "file": "critic-polished-emberline-market.png",
+      "earnedSave": "chapter-vex",
+      "scene": "emberline_town",
+      "biome": "desert",
+      "mode": "world",
+      "position": {
+        "x": 1123.4454363235566,
+        "y": 755.8016763374706
+      },
+      "simulationTime": 573.8167333331402,
+      "objective": "Follow the high road to Orbital Reach, liberate Anchor Nine, and speak with Rune.",
+      "tier": 2,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 12,
+          "hp": 373,
+          "mp": 80
+        },
+        {
+          "id": "vex",
+          "level": 11,
+          "hp": 280,
+          "mp": 147
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "orbital_reach-settlement",
+      "file": "critic-polished-orbital_reach-settlement.png",
+      "earnedSave": "chapter-rune",
+      "scene": "orbital_reach_town",
+      "biome": "snow",
+      "mode": "world",
+      "position": {
+        "x": 800,
+        "y": 993.75
+      },
+      "simulationTime": 776.700066666289,
+      "objective": "Restore Forest Veil’s Heartwood Relay beyond its root guardian.",
+      "tier": 3,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 17,
+          "hp": 478,
+          "mp": 95
+        },
+        {
+          "id": "vex",
+          "level": 16,
+          "hp": 365,
+          "mp": 172
+        },
+        {
+          "id": "rune",
+          "level": 16,
+          "hp": 558,
+          "mp": 121
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "orbital_reach-market",
+      "file": "critic-polished-orbital_reach-market.png",
+      "earnedSave": "chapter-rune",
+      "scene": "orbital_reach_town",
+      "biome": "snow",
+      "mode": "world",
+      "position": {
+        "x": 1141.6117176160797,
+        "y": 819.2789444909668
+      },
+      "simulationTime": 780.2833999996191,
+      "objective": "Restore Forest Veil’s Heartwood Relay beyond its root guardian.",
+      "tier": 3,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 17,
+          "hp": 478,
+          "mp": 95
+        },
+        {
+          "id": "vex",
+          "level": 16,
+          "hp": 365,
+          "mp": 172
+        },
+        {
+          "id": "rune",
+          "level": 16,
+          "hp": 558,
+          "mp": 121
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "last_crown-settlement",
+      "file": "critic-polished-last_crown-settlement.png",
+      "earnedSave": "chapter-crown",
+      "scene": "last_crown_town",
+      "biome": "alien",
+      "mode": "world",
+      "position": {
+        "x": 1251.8890839804083,
+        "y": 431.51504956108073
+      },
+      "simulationTime": 2167.183399999984,
+      "objective": "Bring the living seals to Last Crown’s highest spire and face the Void Architect.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 38,
+          "hp": 895,
+          "mp": 163
+        },
+        {
+          "id": "vex",
+          "level": 38,
+          "hp": 686,
+          "mp": 342
+        },
+        {
+          "id": "rune",
+          "level": 38,
+          "hp": 1132,
+          "mp": 214
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "last_crown-market",
+      "file": "critic-polished-last_crown-market.png",
+      "earnedSave": "chapter-crown",
+      "scene": "last_crown_town",
+      "biome": "alien",
+      "mode": "world",
+      "position": {
+        "x": 1189.0805005317116,
+        "y": 758.2266008471241
+      },
+      "simulationTime": 2170.100066666688,
+      "objective": "Bring the living seals to Last Crown’s highest spire and face the Void Architect.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 38,
+          "hp": 895,
+          "mp": 163
+        },
+        {
+          "id": "vex",
+          "level": 38,
+          "hp": 686,
+          "mp": 342
+        },
+        {
+          "id": "rune",
+          "level": 38,
+          "hp": 1132,
+          "mp": 214
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "hav_house_door-interior",
+      "file": "critic-polished-hav_house_door-interior.png",
+      "earnedSave": "chapter-haventide",
+      "scene": "hav_house",
+      "biome": "coast",
+      "mode": "world",
+      "position": {
+        "x": 480,
+        "y": 612.5
+      },
+      "simulationTime": 249.15003333342378,
+      "objective": "Travel east to Emberline. Find Vex and reclaim the starless observatory.",
+      "tier": 2,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 6,
+          "hp": 241,
+          "mp": 57
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "forest_cave_door-interior",
+      "file": "critic-polished-forest_cave_door-interior.png",
+      "earnedSave": "chapter-forest",
+      "scene": "forest_cave",
+      "biome": "forest",
+      "mode": "world",
+      "position": {
+        "x": 250,
+        "y": 975
+      },
+      "simulationTime": 1066.7000666660254,
+      "objective": "Cross the reed causeway into Mire Bog and open its submerged archive.",
+      "tier": 3,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 20,
+          "hp": 554,
+          "mp": 104
+        },
+        {
+          "id": "vex",
+          "level": 20,
+          "hp": 442,
+          "mp": 192
+        },
+        {
+          "id": "rune",
+          "level": 19,
+          "hp": 624,
+          "mp": 133
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "frost_house_door-interior",
+      "file": "critic-polished-frost_house_door-interior.png",
+      "earnedSave": "chapter-frost",
+      "scene": "frost_house",
+      "biome": "ice",
+      "mode": "world",
+      "position": {
+        "x": 480,
+        "y": 612.5
+      },
+      "simulationTime": 1907.0667333319277,
+      "objective": "Reach Last Crown, defeat the Architect Herald, and listen to the memory orchard.",
+      "tier": 3,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 34,
+          "hp": 827,
+          "mp": 146
+        },
+        {
+          "id": "vex",
+          "level": 33,
+          "hp": 586,
+          "mp": 282
+        },
+        {
+          "id": "rune",
+          "level": 33,
+          "hp": 977,
+          "mp": 189
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "crown_cave_door-interior",
+      "file": "critic-polished-crown_cave_door-interior.png",
+      "earnedSave": "chapter-crown",
+      "scene": "crown_cave",
+      "biome": "alien",
+      "mode": "world",
+      "position": {
+        "x": 250,
+        "y": 975
+      },
+      "simulationTime": 2184.2834000002017,
+      "objective": "Bring the living seals to Last Crown’s highest spire and face the Void Architect.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 38,
+          "hp": 895,
+          "mp": 163
+        },
+        {
+          "id": "vex",
+          "level": 38,
+          "hp": 686,
+          "mp": 342
+        },
+        {
+          "id": "rune",
+          "level": 38,
+          "hp": 1132,
+          "mp": 214
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "crew-up-0",
+      "file": "critic-polished-crew-up-0.png",
+      "earnedSave": "chapter-aftermath",
+      "intervalSeconds": 0.15,
+      "scene": "haventide",
+      "biome": "coast",
+      "mode": "world",
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1209.25
+      },
+      "simulationTime": 2284.6834000014787,
+      "objective": "The world is open. Finish personal stories, rebuild, and explore.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 42,
+          "hp": 963,
+          "mp": 175
+        },
+        {
+          "id": "vex",
+          "level": 42,
+          "hp": 738,
+          "mp": 362
+        },
+        {
+          "id": "rune",
+          "level": 42,
+          "hp": 1220,
+          "mp": 230
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "crew-up-1",
+      "file": "critic-polished-crew-up-1.png",
+      "earnedSave": "chapter-aftermath",
+      "intervalSeconds": 0.15,
+      "scene": "haventide",
+      "biome": "coast",
+      "mode": "world",
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1209.25
+      },
+      "simulationTime": 2284.8334000014806,
+      "objective": "The world is open. Finish personal stories, rebuild, and explore.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 42,
+          "hp": 963,
+          "mp": 175
+        },
+        {
+          "id": "vex",
+          "level": 42,
+          "hp": 738,
+          "mp": 362
+        },
+        {
+          "id": "rune",
+          "level": 42,
+          "hp": 1220,
+          "mp": 230
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "crew-up-2",
+      "file": "critic-polished-crew-up-2.png",
+      "earnedSave": "chapter-aftermath",
+      "intervalSeconds": 0.15,
+      "scene": "haventide",
+      "biome": "coast",
+      "mode": "world",
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1209.25
+      },
+      "simulationTime": 2284.9834000014826,
+      "objective": "The world is open. Finish personal stories, rebuild, and explore.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 42,
+          "hp": 963,
+          "mp": 175
+        },
+        {
+          "id": "vex",
+          "level": 42,
+          "hp": 738,
+          "mp": 362
+        },
+        {
+          "id": "rune",
+          "level": 42,
+          "hp": 1220,
+          "mp": 230
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "crew-down-0",
+      "file": "critic-polished-crew-down-0.png",
+      "earnedSave": "chapter-aftermath",
+      "intervalSeconds": 0.15,
+      "scene": "haventide",
+      "biome": "coast",
+      "mode": "world",
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1431.9999999999998
+      },
+      "simulationTime": 2286.3334000014997,
+      "objective": "The world is open. Finish personal stories, rebuild, and explore.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 42,
+          "hp": 963,
+          "mp": 175
+        },
+        {
+          "id": "vex",
+          "level": 42,
+          "hp": 738,
+          "mp": 362
+        },
+        {
+          "id": "rune",
+          "level": 42,
+          "hp": 1220,
+          "mp": 230
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "crew-down-1",
+      "file": "critic-polished-crew-down-1.png",
+      "earnedSave": "chapter-aftermath",
+      "intervalSeconds": 0.15,
+      "scene": "haventide",
+      "biome": "coast",
+      "mode": "world",
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1453.9999999999998
+      },
+      "simulationTime": 2286.4834000015016,
+      "objective": "The world is open. Finish personal stories, rebuild, and explore.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 42,
+          "hp": 963,
+          "mp": 175
+        },
+        {
+          "id": "vex",
+          "level": 42,
+          "hp": 738,
+          "mp": 362
+        },
+        {
+          "id": "rune",
+          "level": 42,
+          "hp": 1220,
+          "mp": 230
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    },
+    {
+      "id": "crew-down-2",
+      "file": "critic-polished-crew-down-2.png",
+      "earnedSave": "chapter-aftermath",
+      "intervalSeconds": 0.15,
+      "scene": "haventide",
+      "biome": "coast",
+      "mode": "world",
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1453.9999999999998
+      },
+      "simulationTime": 2286.6334000015036,
+      "objective": "The world is open. Finish personal stories, rebuild, and explore.",
+      "tier": 4,
+      "party": [
+        {
+          "id": "kaida",
+          "level": 42,
+          "hp": 963,
+          "mp": 175
+        },
+        {
+          "id": "vex",
+          "level": 42,
+          "hp": 738,
+          "mp": 362
+        },
+        {
+          "id": "rune",
+          "level": 42,
+          "hp": 1220,
+          "mp": 230
+        }
+      ],
+      "tab": null,
+      "action": null,
+      "assetErrors": []
+    }
+  ],
+  "travel": [
+    {
+      "from": {
+        "x": 2967.319291062695,
+        "y": 1296,
+        "scene": "emberline"
+      },
+      "to": {
+        "x": 1320.00000000037,
+        "y": 1583.7604160786486,
+        "scene": "emberline"
+      },
+      "steps": 781
+    },
+    {
+      "from": {
+        "x": 2064.0000454588544,
+        "y": 1601.096867373405,
+        "scene": "forest_veil"
+      },
+      "to": {
+        "x": 2639.9999999999995,
+        "y": 1176.6929747316904,
+        "scene": "forest_veil"
+      },
+      "steps": 407
+    },
+    {
+      "from": {
+        "x": 2592.0096372139988,
+        "y": 1221.938748976783,
+        "scene": "frost_canyon"
+      },
+      "to": {
+        "x": 3095.8849594697313,
+        "y": 1552.8944819810592,
+        "scene": "frost_canyon"
+      },
+      "steps": 333
+    },
+    {
+      "from": {
+        "x": 2475,
+        "y": 1480,
+        "scene": "last_crown"
+      },
+      "to": {
+        "x": 1092.7854817316584,
+        "y": 1488,
+        "scene": "last_crown"
+      },
+      "steps": 560
+    },
+    {
+      "from": {
+        "x": 1387.5,
+        "y": 1355,
+        "scene": "haventide"
+      },
+      "to": {
+        "x": 576.0213290129088,
+        "y": 1344,
+        "scene": "haventide"
+      },
+      "steps": 330
+    }
+  ],
+  "errors": [],
+  "followerMotion": [
+    {
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1209.25,
+        "facing": "up"
+      },
+      "followers": [
+        {
+          "id": "vex",
+          "x": 576.0213290129099,
+          "y": 1284.0511794254303,
+          "facing": "up"
+        },
+        {
+          "id": "rune",
+          "x": 588.9236341973385,
+          "y": 1344,
+          "facing": "left"
+        }
+      ],
+      "moving": true
+    },
+    {
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1209.25,
+        "facing": "up"
+      },
+      "followers": [
+        {
+          "id": "vex",
+          "x": 576.0213290129099,
+          "y": 1284.0511794254303,
+          "facing": "up"
+        },
+        {
+          "id": "rune",
+          "x": 588.9236341973385,
+          "y": 1344,
+          "facing": "left"
+        }
+      ],
+      "moving": true
+    },
+    {
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1209.25,
+        "facing": "up"
+      },
+      "followers": [
+        {
+          "id": "vex",
+          "x": 576.0213290129099,
+          "y": 1284.0511794254303,
+          "facing": "up"
+        },
+        {
+          "id": "rune",
+          "x": 588.9236341973385,
+          "y": 1344,
+          "facing": "left"
+        }
+      ],
+      "moving": true
+    },
+    {
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1431.9999999999998,
+        "facing": "down"
+      },
+      "followers": [
+        {
+          "id": "vex",
+          "x": 576.0213290129088,
+          "y": 1359.0511794254303,
+          "facing": "down"
+        },
+        {
+          "id": "rune",
+          "x": 576.0213290129088,
+          "y": 1287.0511794254303,
+          "facing": "down"
+        }
+      ],
+      "moving": true
+    },
+    {
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1453.9999999999998,
+        "facing": "down"
+      },
+      "followers": [
+        {
+          "id": "vex",
+          "x": 576.0213290129088,
+          "y": 1380.0511794254303,
+          "facing": "down"
+        },
+        {
+          "id": "rune",
+          "x": 576.0213290129088,
+          "y": 1308.0511794254303,
+          "facing": "down"
+        }
+      ],
+      "moving": true
+    },
+    {
+      "position": {
+        "x": 576.0213290129088,
+        "y": 1453.9999999999998,
+        "facing": "down"
+      },
+      "followers": [
+        {
+          "id": "vex",
+          "x": 576.0213290129088,
+          "y": 1380.0511794254303,
+          "facing": "down"
+        },
+        {
+          "id": "rune",
+          "x": 576.0213290129088,
+          "y": 1308.0511794254303,
+          "facing": "down"
+        }
+      ],
+      "moving": true
+    }
+  ],
+  "result": "pass",
+  "finishedAt": "2026-09-16T10:15:52.843Z",
+  "browser": "153.0.8010.37",
+  "captureImages": true,
+  "revision": true,
+  "polish": true
+}

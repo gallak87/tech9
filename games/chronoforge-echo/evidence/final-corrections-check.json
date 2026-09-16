@@ -1,0 +1,30 @@
+{
+  "walk": [
+    {
+      "id": "hav_house_keeper",
+      "steps": 164,
+      "distance": 54.19854423374407,
+      "routeFinished": true
+    },
+    {
+      "id": "hav_house_letter",
+      "steps": 251,
+      "distance": 25.718047230101938,
+      "routeFinished": true
+    },
+    {
+      "id": "hav_house_food",
+      "steps": 133,
+      "distance": 16.199159698283484,
+      "routeFinished": true
+    },
+    {
+      "id": "hav_house_exit",
+      "steps": 114,
+      "distance": 33.77888501071164,
+      "routeFinished": true
+    }
+  ],
+  "errors": [],
+  "assets": []
+}

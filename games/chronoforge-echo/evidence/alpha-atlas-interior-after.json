@@ -1,0 +1,311 @@
+{
+  "method": "Diagnostic rendering of unchanged source atlases through the production loadPixelAtlas mask on alternating dark teal/plum fields. These are import diagnostics, not gameplay screenshots.",
+  "pass": "interior-after",
+  "cases": [
+    {
+      "id": "haventide_interior",
+      "width": 1774,
+      "height": 923,
+      "source": "assets/haventide-interior-source.png",
+      "key": "neutral-exterior",
+      "seeds": 18,
+      "checks": {
+        "holes": [
+          {
+            "point": [
+              156,
+              253
+            ],
+            "alpha": 0,
+            "original": [
+              255,
+              255,
+              254,
+              255
+            ]
+          },
+          {
+            "point": [
+              365,
+              203
+            ],
+            "alpha": 0,
+            "original": [
+              236,
+              236,
+              239,
+              255
+            ]
+          },
+          {
+            "point": [
+              391,
+              194
+            ],
+            "alpha": 0,
+            "original": [
+              217,
+              216,
+              217,
+              255
+            ]
+          },
+          {
+            "point": [
+              240,
+              217
+            ],
+            "alpha": 0,
+            "original": [
+              230,
+              228,
+              225,
+              255
+            ]
+          },
+          {
+            "point": [
+              270,
+              216
+            ],
+            "alpha": 0,
+            "original": [
+              240,
+              240,
+              241,
+              255
+            ]
+          },
+          {
+            "point": [
+              67,
+              137
+            ],
+            "alpha": 0,
+            "original": [
+              246,
+              245,
+              244,
+              255
+            ]
+          },
+          {
+            "point": [
+              399,
+              218
+            ],
+            "alpha": 0,
+            "original": [
+              254,
+              255,
+              255,
+              255
+            ]
+          },
+          {
+            "point": [
+              202,
+              218
+            ],
+            "alpha": 0,
+            "original": [
+              217,
+              217,
+              216,
+              255
+            ]
+          },
+          {
+            "point": [
+              414,
+              218
+            ],
+            "alpha": 0,
+            "original": [
+              219,
+              222,
+              215,
+              255
+            ]
+          },
+          {
+            "point": [
+              124,
+              199
+            ],
+            "alpha": 0,
+            "original": [
+              243,
+              242,
+              237,
+              255
+            ]
+          },
+          {
+            "point": [
+              80,
+              114
+            ],
+            "alpha": 0,
+            "original": [
+              232,
+              233,
+              228,
+              255
+            ]
+          },
+          {
+            "point": [
+              77,
+              167
+            ],
+            "alpha": 0,
+            "original": [
+              238,
+              241,
+              241,
+              255
+            ]
+          },
+          {
+            "point": [
+              200,
+              250
+            ],
+            "alpha": 0,
+            "original": [
+              253,
+              253,
+              248,
+              255
+            ]
+          },
+          {
+            "point": [
+              1077,
+              553
+            ],
+            "alpha": 0,
+            "original": [
+              220,
+              219,
+              220,
+              255
+            ]
+          },
+          {
+            "point": [
+              798,
+              629
+            ],
+            "alpha": 0,
+            "original": [
+              205,
+              205,
+              206,
+              255
+            ]
+          },
+          {
+            "point": [
+              562,
+              605
+            ],
+            "alpha": 0,
+            "original": [
+              243,
+              243,
+              241,
+              255
+            ]
+          },
+          {
+            "point": [
+              537,
+              617
+            ],
+            "alpha": 0,
+            "original": [
+              227,
+              226,
+              224,
+              255
+            ]
+          },
+          {
+            "point": [
+              799,
+              671
+            ],
+            "alpha": 0,
+            "original": [
+              189,
+              192,
+              185,
+              255
+            ]
+          }
+        ],
+        "bright": [
+          {
+            "point": [
+              1509,
+              668
+            ],
+            "after": [
+              222,
+              225,
+              227,
+              255
+            ],
+            "original": [
+              222,
+              225,
+              227,
+              255
+            ]
+          },
+          {
+            "point": [
+              1519,
+              641
+            ],
+            "after": [
+              226,
+              223,
+              220,
+              255
+            ],
+            "original": [
+              226,
+              223,
+              220,
+              255
+            ]
+          },
+          {
+            "point": [
+              1501,
+              577
+            ],
+            "after": [
+              245,
+              239,
+              239,
+              255
+            ],
+            "original": [
+              245,
+              239,
+              239,
+              255
+            ]
+          }
+        ],
+        "unchangedTrueAlpha": null
+      }
+    }
+  ],
+  "errors": [],
+  "result": "pass"
+}

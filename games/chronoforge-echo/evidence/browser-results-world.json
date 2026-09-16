@@ -1,0 +1,406 @@
+{
+  "startedAt": "2026-09-16T08:19:10.970Z",
+  "section": "world",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "release": "25.6.0",
+    "cpu": "Apple M1 Pro",
+    "browser": "151.0.7922.34",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "nativeCanvas": [
+      960,
+      540
+    ]
+  },
+  "methodology": "New isolated browser context. UX cases use actual keyboard or mouse after explicit fixture setup. This is subsystem acceptance, not a claim of a clean-save manual campaign completion.",
+  "checks": [
+    {
+      "name": "party traversal followers camera and collision",
+      "method": "Party fixture; encounters marked cleared to isolate navigation. Actual held movement keys, no simulation teleport between frames.",
+      "pass": true,
+      "milliseconds": 3288,
+      "details": {
+        "distance": 632.9084999999986,
+        "cameraPan": 632.6593217806911,
+        "world": [
+          5760,
+          2520
+        ],
+        "frames": [
+          "evidence/browser/followers-start.png",
+          "evidence/browser/followers-stride-1.png",
+          "evidence/browser/followers-stride-2.png",
+          "evidence/browser/followers-end.png"
+        ]
+      }
+    },
+    {
+      "name": "physical gateway keeps facing and places the whole party safely",
+      "method": "Fixture places crew 45 pixels before the real Haventide→Emberline gate and sets its prerequisite. Actual held key crosses threshold.",
+      "pass": true,
+      "milliseconds": 1147,
+      "details": {
+        "before": {
+          "from": "haventide",
+          "gate": {
+            "id": "hav_to_ember",
+            "type": "portal",
+            "x": 5637.5,
+            "y": 1350,
+            "to": "emberline",
+            "spawn": {
+              "x": 200,
+              "y": 1350
+            },
+            "name": "Saltway • Emberline",
+            "requires": "beacon_restored"
+          },
+          "start": {
+            "x": 5592.5,
+            "y": 1350
+          }
+        },
+        "after": {
+          "scene": "emberline",
+          "facing": "right",
+          "heroWalkable": true,
+          "followers": [
+            {
+              "id": "vex",
+              "x": 200,
+              "y": 1350,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 200,
+              "y": 1350,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "x": 200,
+          "y": 1350
+        },
+        "elapsedIncludingAuthoredFadeMs": 809,
+        "frames": [
+          {
+            "label": "approach",
+            "screenshot": "evidence/browser/gateway-approach.png"
+          },
+          {
+            "label": "threshold",
+            "screenshot": "evidence/browser/gateway-threshold.png"
+          },
+          {
+            "label": "arrival",
+            "screenshot": "evidence/browser/gateway-arrival.png"
+          }
+        ]
+      }
+    },
+    {
+      "name": "steady world performance and measured art cache",
+      "method": "Haventide party fixture, production animation and renderer at 1080p.",
+      "pass": true,
+      "milliseconds": 1532,
+      "details": {
+        "samples": 179,
+        "meanMs": 8.431284916201117,
+        "medianMs": 8.300000000000182,
+        "p95Ms": 10.100000000000364,
+        "maxMs": 17.099999999999454,
+        "meanFps": 118.60588391200638,
+        "targetP95Ms": 20,
+        "meetsTarget": true,
+        "cache": {
+          "available": false,
+          "reason": "The active renderer has not exposed cache byte counts; a second dynamic module instance would not measure its cache."
+        }
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "missingAssets": [],
+  "failedRequests": [
+    {
+      "url": "http://127.0.0.1:4321/assets/coast-props-source.png",
+      "error": "net::ERR_ABORTED"
+    }
+  ],
+  "documentLoads": [
+    {
+      "url": "http://127.0.0.1:4321/?test=1",
+      "time": "2026-09-16T08:19:11.016Z"
+    },
+    {
+      "url": "http://127.0.0.1:4321/?test=1",
+      "time": "2026-09-16T08:19:11.188Z"
+    }
+  ],
+  "performance": {
+    "world": {
+      "samples": 179,
+      "meanMs": 8.431284916201117,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 10.100000000000364,
+      "maxMs": 17.099999999999454,
+      "meanFps": 118.60588391200638,
+      "targetP95Ms": 20,
+      "meetsTarget": true
+    },
+    "cache": {
+      "available": false,
+      "reason": "The active renderer has not exposed cache byte counts; a second dynamic module instance would not measure its cache."
+    }
+  },
+  "sequences": {
+    "followers": [
+      {
+        "label": "start",
+        "screenshot": "evidence/browser/followers-start.png",
+        "state": {
+          "x": 525,
+          "y": 1325,
+          "camera": {
+            "x": 83.39999999999998,
+            "y": 1038.8
+          },
+          "followers": [
+            {
+              "id": "vex",
+              "x": 525,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 525,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "region": "haventide",
+          "native": [
+            960,
+            540
+          ],
+          "world": [
+            5760,
+            2520
+          ]
+        }
+      },
+      {
+        "label": "stride-1",
+        "screenshot": "evidence/browser/followers-stride-1.png",
+        "state": {
+          "x": 759.4160000000004,
+          "y": 1325,
+          "camera": {
+            "x": 305.381613282175,
+            "y": 1038.8
+          },
+          "followers": [
+            {
+              "id": "vex",
+              "x": 694.4910000000001,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 626.9935,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "region": "haventide",
+          "native": [
+            960,
+            540
+          ],
+          "world": [
+            5760,
+            2520
+          ]
+        }
+      },
+      {
+        "label": "stride-2",
+        "screenshot": "evidence/browser/followers-stride-2.png",
+        "state": {
+          "x": 984.3994999999992,
+          "y": 1325,
+          "camera": {
+            "x": 529.104123473685,
+            "y": 1038.8
+          },
+          "followers": [
+            {
+              "id": "vex",
+              "x": 914.9664999999993,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 849.6494999999996,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "region": "haventide",
+          "native": [
+            960,
+            540
+          ],
+          "world": [
+            5760,
+            2520
+          ]
+        }
+      },
+      {
+        "label": "end",
+        "screenshot": "evidence/browser/followers-end.png",
+        "state": {
+          "x": 1157.9084999999986,
+          "y": 1325,
+          "camera": {
+            "x": 716.0593217806911,
+            "y": 1038.8
+          },
+          "followers": [
+            {
+              "id": "vex",
+              "x": 1088.5244999999984,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 1008.9239999999988,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "region": "haventide",
+          "native": [
+            960,
+            540
+          ],
+          "world": [
+            5760,
+            2520
+          ]
+        }
+      }
+    ],
+    "gateway": {
+      "before": {
+        "from": "haventide",
+        "gate": {
+          "id": "hav_to_ember",
+          "type": "portal",
+          "x": 5637.5,
+          "y": 1350,
+          "to": "emberline",
+          "spawn": {
+            "x": 200,
+            "y": 1350
+          },
+          "name": "Saltway • Emberline",
+          "requires": "beacon_restored"
+        },
+        "start": {
+          "x": 5592.5,
+          "y": 1350
+        }
+      },
+      "after": {
+        "scene": "emberline",
+        "facing": "right",
+        "heroWalkable": true,
+        "followers": [
+          {
+            "id": "vex",
+            "x": 200,
+            "y": 1350,
+            "facing": "right",
+            "walkable": true
+          },
+          {
+            "id": "rune",
+            "x": 200,
+            "y": 1350,
+            "facing": "right",
+            "walkable": true
+          }
+        ],
+        "x": 200,
+        "y": 1350
+      },
+      "elapsedIncludingAuthoredFadeMs": 809,
+      "frames": [
+        {
+          "label": "approach",
+          "screenshot": "evidence/browser/gateway-approach.png"
+        },
+        {
+          "label": "threshold",
+          "screenshot": "evidence/browser/gateway-threshold.png"
+        },
+        {
+          "label": "arrival",
+          "screenshot": "evidence/browser/gateway-arrival.png"
+        }
+      ]
+    }
+  },
+  "assets": {
+    "loaded": [
+      {
+        "id": "kaida_showcase",
+        "width": 2172,
+        "height": 724
+      },
+      {
+        "id": "coast_props",
+        "width": 1774,
+        "height": 887
+      },
+      {
+        "id": "coast_ground",
+        "width": 1536,
+        "height": 1024
+      },
+      {
+        "id": "rust_scrapper",
+        "width": 1536,
+        "height": 1024
+      }
+    ],
+    "errors": [],
+    "bytes": 6290112
+  },
+  "finalRuntimeErrors": [],
+  "finishedAt": "2026-09-16T08:19:17.658Z",
+  "developmentReloadDetected": true,
+  "passed": 3,
+  "failed": 0
+}

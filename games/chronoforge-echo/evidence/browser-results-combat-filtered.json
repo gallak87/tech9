@@ -1,0 +1,116 @@
+{
+  "startedAt": "2026-09-16T08:39:00.176Z",
+  "section": "combat",
+  "filter": "four-enemy|mouse",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "release": "25.6.0",
+    "cpu": "Apple M1 Pro",
+    "browser": "151.0.7922.34",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "nativeCanvas": [
+      960,
+      540
+    ]
+  },
+  "methodology": "New isolated browser context. UX cases use actual keyboard or mouse after explicit fixture setup. This is subsystem acceptance, not a claim of a clean-save manual campaign completion.",
+  "checks": [
+    {
+      "name": "battle mouse atlas command target and execute parity",
+      "method": "Fresh solo fixture; native canvas clicks with explicit Execute and global Atlas fallback.",
+      "pass": true,
+      "milliseconds": 2059,
+      "details": {
+        "targetFrame": "evidence/browser/battle-mouse-target-bounds.png"
+      }
+    },
+    {
+      "name": "four-enemy render and steady combat performance",
+      "method": "Four-enemy fixture with actual production renderer. Waiting ATB runs normally.",
+      "pass": true,
+      "milliseconds": 2192,
+      "details": {
+        "screen": "evidence/browser/battle-four.png",
+        "targetScreen": "evidence/browser/battle-four-target-bounds.png",
+        "samples": 171,
+        "meanMs": 8.781871345029241,
+        "medianMs": 8.300000000000182,
+        "p95Ms": 14.699999999999818,
+        "maxMs": 18.199999999999818,
+        "meanFps": 113.87094626090429,
+        "targetP95Ms": 20,
+        "meetsTarget": true
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "missingAssets": [],
+  "failedRequests": [],
+  "documentLoads": [
+    {
+      "url": "http://127.0.0.1:4321/?test=1",
+      "time": "2026-09-16T08:39:00.208Z"
+    }
+  ],
+  "performance": {
+    "fourEnemyBattle": {
+      "samples": 171,
+      "meanMs": 8.781871345029241,
+      "medianMs": 8.300000000000182,
+      "p95Ms": 14.699999999999818,
+      "maxMs": 18.199999999999818,
+      "meanFps": 113.87094626090429,
+      "targetP95Ms": 20,
+      "meetsTarget": true
+    }
+  },
+  "sequences": {},
+  "readyAt": "2026-09-16T08:39:01.052Z",
+  "startupDocumentLoads": 1,
+  "assets": {
+    "loaded": [
+      {
+        "id": "kaida_showcase",
+        "width": 2172,
+        "height": 724
+      },
+      {
+        "id": "coast_props",
+        "width": 1774,
+        "height": 887
+      },
+      {
+        "id": "coast_ground",
+        "width": 1536,
+        "height": 1024
+      },
+      {
+        "id": "haventide_interior",
+        "width": 1774,
+        "height": 887
+      },
+      {
+        "id": "haventide_civilians",
+        "width": 2172,
+        "height": 724
+      },
+      {
+        "id": "rust_scrapper",
+        "width": 1536,
+        "height": 1024
+      }
+    ],
+    "errors": [],
+    "bytes": 37751440
+  },
+  "finalRuntimeErrors": [],
+  "finishedAt": "2026-09-16T08:39:05.340Z",
+  "developmentReloadDetected": false,
+  "passed": 2,
+  "failed": 0
+}

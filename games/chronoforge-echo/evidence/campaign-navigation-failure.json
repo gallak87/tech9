@@ -1,0 +1,1034 @@
+{
+  "report": {
+    "description": "Accelerated production browser integration; no direct state grants or teleports.",
+    "startedAt": "2026-09-16T10:23:16.253Z",
+    "events": [
+      {
+        "kind": "walk",
+        "simulationTime": 0.38,
+        "scene": "haventide",
+        "x": 580,
+        "y": 1320,
+        "label": "hav_beacon",
+        "to": {
+          "x": 625,
+          "y": 1300
+        },
+        "distance": 50,
+        "ticks": 22
+      },
+      {
+        "kind": "interaction",
+        "simulationTime": 0.38,
+        "scene": "haventide",
+        "x": 580,
+        "y": 1320,
+        "id": "hav_beacon",
+        "distance": 49.65,
+        "requires": null,
+        "gateAllowed": true
+      },
+      {
+        "kind": "walk",
+        "simulationTime": 3.32,
+        "scene": "haventide",
+        "x": 1014,
+        "y": 1320,
+        "label": "hav_first",
+        "to": {
+          "x": 1062.5,
+          "y": 1306.25
+        },
+        "distance": 50,
+        "ticks": 176
+      },
+      {
+        "kind": "interaction",
+        "simulationTime": 3.32,
+        "scene": "haventide",
+        "x": 1014,
+        "y": 1320,
+        "id": "hav_first",
+        "distance": 50.33,
+        "requires": null,
+        "gateAllowed": true
+      },
+      {
+        "kind": "victory",
+        "simulationTime": 13.4,
+        "scene": "haventide",
+        "x": 1014,
+        "y": 1320,
+        "id": "hav_first"
+      },
+      {
+        "kind": "walk",
+        "simulationTime": 15.58,
+        "scene": "haventide",
+        "x": 1339,
+        "y": 1320,
+        "label": "hav_guard",
+        "to": {
+          "x": 1387.5,
+          "y": 1302.5
+        },
+        "distance": 52,
+        "ticks": 131
+      },
+      {
+        "kind": "interaction",
+        "simulationTime": 15.58,
+        "scene": "haventide",
+        "x": 1339,
+        "y": 1320,
+        "id": "hav_guard",
+        "distance": 51.95,
+        "requires": null,
+        "gateAllowed": true
+      },
+      {
+        "kind": "victory",
+        "simulationTime": 25.67,
+        "scene": "haventide",
+        "x": 1339,
+        "y": 1320,
+        "id": "hav_guard"
+      },
+      {
+        "kind": "walk",
+        "simulationTime": 30.13,
+        "scene": "haventide",
+        "x": 1968,
+        "y": 1284,
+        "label": "hav_camp",
+        "to": {
+          "x": 1987.5,
+          "y": 1237.5
+        },
+        "distance": 51,
+        "ticks": 268
+      },
+      {
+        "kind": "interaction",
+        "simulationTime": 30.13,
+        "scene": "haventide",
+        "x": 1968,
+        "y": 1284,
+        "id": "hav_camp",
+        "distance": 50.83,
+        "requires": null,
+        "gateAllowed": true
+      },
+      {
+        "kind": "rest",
+        "simulationTime": 30.13,
+        "scene": "haventide",
+        "x": 1968,
+        "y": 1284,
+        "id": "hav_camp"
+      },
+      {
+        "kind": "walk",
+        "simulationTime": 33.62,
+        "scene": "haventide",
+        "x": 1453,
+        "y": 1296,
+        "label": "haventide_entrance",
+        "to": {
+          "x": 1387.5,
+          "y": 1262.5
+        },
+        "distance": 74,
+        "ticks": 209
+      },
+      {
+        "kind": "interaction",
+        "simulationTime": 33.62,
+        "scene": "haventide",
+        "x": 1453,
+        "y": 1296,
+        "id": "haventide_entrance",
+        "distance": 73.65,
+        "requires": "haventide_liberated",
+        "gateAllowed": true
+      },
+      {
+        "kind": "walk",
+        "simulationTime": 36.23,
+        "scene": "haventide_town",
+        "x": 552,
+        "y": 921,
+        "label": "mara",
+        "to": {
+          "x": 518.75,
+          "y": 881.25
+        },
+        "distance": 52,
+        "ticks": 124
+      },
+      {
+        "kind": "interaction",
+        "simulationTime": 36.23,
+        "scene": "haventide_town",
+        "x": 552,
+        "y": 921,
+        "id": "mara",
+        "distance": 51.95,
+        "requires": null,
+        "gateAllowed": true
+      },
+      {
+        "kind": "walk",
+        "simulationTime": 38.23,
+        "scene": "haventide_town",
+        "x": 768,
+        "y": 994,
+        "label": "haventide_town_exit",
+        "to": {
+          "x": 800,
+          "y": 1045
+        },
+        "distance": 60,
+        "ticks": 120
+      },
+      {
+        "kind": "interaction",
+        "simulationTime": 38.23,
+        "scene": "haventide_town",
+        "x": 768,
+        "y": 994,
+        "id": "haventide_town_exit",
+        "distance": 59.91,
+        "requires": null,
+        "gateAllowed": true
+      },
+      {
+        "kind": "walk",
+        "simulationTime": 43.77,
+        "scene": "haventide",
+        "x": 650,
+        "y": 1344,
+        "label": "hav_beacon",
+        "to": {
+          "x": 625,
+          "y": 1300
+        },
+        "distance": 51,
+        "ticks": 299
+      },
+      {
+        "kind": "interaction",
+        "simulationTime": 43.77,
+        "scene": "haventide",
+        "x": 650,
+        "y": 1344,
+        "id": "hav_beacon",
+        "distance": 50.74,
+        "requires": null,
+        "gateAllowed": true
+      },
+      {
+        "kind": "walk",
+        "simulationTime": 48.67,
+        "scene": "haventide",
+        "x": 1367,
+        "y": 1333,
+        "label": "haventide_entrance",
+        "to": {
+          "x": 1387.5,
+          "y": 1262.5
+        },
+        "distance": 74,
+        "ticks": 294
+      },
+      {
+        "kind": "interaction",
+        "simulationTime": 48.67,
+        "scene": "haventide",
+        "x": 1367,
+        "y": 1333,
+        "id": "haventide_entrance",
+        "distance": 73.62,
+        "requires": "haventide_liberated",
+        "gateAllowed": true
+      }
+    ],
+    "battles": [
+      {
+        "id": "hav_first",
+        "level": 1,
+        "result": "victory",
+        "seconds": 8.72,
+        "actions": 3
+      },
+      {
+        "id": "hav_guard",
+        "level": 1,
+        "result": "victory",
+        "seconds": 8.72,
+        "actions": 3
+      }
+    ],
+    "milestones": [],
+    "heals": 0,
+    "items": 0,
+    "failures": [],
+    "completed": false
+  },
+  "snapshot": {
+    "state": {
+      "version": 1,
+      "seed": 9127,
+      "rng": 3239100697,
+      "playTime": 49.616766666665136,
+      "region": "haventide_town",
+      "x": 836.3879901160683,
+      "y": 984.3316843674605,
+      "facing": "right",
+      "heroes": [
+        {
+          "id": "kaida",
+          "name": "Kaida",
+          "level": 2,
+          "xp": 40,
+          "skillPoints": 0,
+          "hp": 173,
+          "mp": 45,
+          "equip": {
+            "weapon": "iron_blade",
+            "armor": "scrap_vest",
+            "accessory": "data_chip"
+          },
+          "skills": [
+            "rift_cleave",
+            "salt_mend",
+            "chrono_strike"
+          ]
+        }
+      ],
+      "resources": {
+        "food": 114.33800400000636,
+        "ore": 142.33800400000635,
+        "energy": 69,
+        "renown": 42
+      },
+      "inventory": {
+        "field_tonic": 5,
+        "ether_cell": 3,
+        "iron_blade": 1,
+        "data_chip": 0
+      },
+      "buildings": {
+        "town_center": 1
+      },
+      "tier": 1,
+      "flags": {
+        "opening_seen": true,
+        "battle_taught": true,
+        "rewardLedger": {
+          "liberate_haventide": true,
+          "main_beacon": true
+        },
+        "final_ready": false,
+        "haventide_liberated": true,
+        "mara_started": true,
+        "beacon_restored": true
+      },
+      "quests": {},
+      "cleared": {
+        "hav_first": true,
+        "hav_guard": true
+      },
+      "pickups": {},
+      "visited": {
+        "haventide": true,
+        "haventide_town": true
+      },
+      "fog": {
+        "haventide": {
+          "3,8": 1,
+          "4,8": 1,
+          "5,8": 1,
+          "2,9": 1,
+          "3,9": 1,
+          "4,9": 1,
+          "5,9": 1,
+          "6,9": 1,
+          "1,10": 1,
+          "2,10": 1,
+          "3,10": 1,
+          "4,10": 1,
+          "5,10": 1,
+          "6,10": 1,
+          "7,10": 1,
+          "1,11": 1,
+          "2,11": 1,
+          "3,11": 1,
+          "4,11": 1,
+          "5,11": 1,
+          "6,11": 1,
+          "7,11": 1,
+          "1,12": 1,
+          "2,12": 1,
+          "3,12": 1,
+          "4,12": 1,
+          "5,12": 1,
+          "6,12": 1,
+          "7,12": 1,
+          "2,13": 1,
+          "3,13": 1,
+          "4,13": 1,
+          "5,13": 1,
+          "6,13": 1,
+          "3,14": 1,
+          "4,14": 1,
+          "5,14": 1,
+          "6,8": 1,
+          "7,9": 1,
+          "8,10": 1,
+          "8,11": 1,
+          "8,12": 1,
+          "7,13": 1,
+          "6,14": 1,
+          "7,8": 1,
+          "8,9": 1,
+          "9,10": 1,
+          "9,11": 1,
+          "9,12": 1,
+          "8,13": 1,
+          "7,14": 1,
+          "8,8": 1,
+          "9,9": 1,
+          "10,10": 1,
+          "10,11": 1,
+          "10,12": 1,
+          "9,13": 1,
+          "8,14": 1,
+          "9,8": 1,
+          "10,9": 1,
+          "11,10": 1,
+          "11,11": 1,
+          "11,12": 1,
+          "10,13": 1,
+          "9,14": 1,
+          "10,8": 1,
+          "11,9": 1,
+          "12,10": 1,
+          "12,11": 1,
+          "12,12": 1,
+          "11,13": 1,
+          "10,14": 1,
+          "11,8": 1,
+          "12,9": 1,
+          "13,10": 1,
+          "13,11": 1,
+          "13,12": 1,
+          "12,13": 1,
+          "11,14": 1,
+          "12,8": 1,
+          "13,9": 1,
+          "14,10": 1,
+          "14,11": 1,
+          "14,12": 1,
+          "13,13": 1,
+          "12,14": 1,
+          "13,8": 1,
+          "14,9": 1,
+          "15,10": 1,
+          "15,11": 1,
+          "15,12": 1,
+          "14,13": 1,
+          "13,14": 1,
+          "14,8": 1,
+          "15,9": 1,
+          "16,10": 1,
+          "16,11": 1,
+          "16,12": 1,
+          "15,13": 1,
+          "14,14": 1,
+          "15,8": 1,
+          "16,9": 1,
+          "17,10": 1,
+          "17,11": 1,
+          "17,12": 1,
+          "16,13": 1,
+          "15,14": 1,
+          "16,8": 1,
+          "17,9": 1,
+          "18,10": 1,
+          "18,11": 1,
+          "18,12": 1,
+          "17,13": 1,
+          "16,14": 1,
+          "17,8": 1,
+          "18,9": 1,
+          "19,10": 1,
+          "19,11": 1,
+          "19,12": 1,
+          "18,13": 1,
+          "17,14": 1,
+          "15,7": 1,
+          "16,7": 1,
+          "17,7": 1,
+          "18,8": 1,
+          "19,9": 1,
+          "14,7": 1,
+          "13,7": 1,
+          "12,7": 1,
+          "11,7": 1
+        },
+        "haventide_town": {
+          "5,5": 1,
+          "6,5": 1,
+          "7,5": 1,
+          "4,6": 1,
+          "5,6": 1,
+          "6,6": 1,
+          "7,6": 1,
+          "8,6": 1,
+          "3,7": 1,
+          "4,7": 1,
+          "5,7": 1,
+          "6,7": 1,
+          "7,7": 1,
+          "8,7": 1,
+          "9,7": 1,
+          "3,8": 1,
+          "4,8": 1,
+          "5,8": 1,
+          "6,8": 1,
+          "7,8": 1,
+          "8,8": 1,
+          "9,8": 1,
+          "3,9": 1,
+          "4,9": 1,
+          "5,9": 1,
+          "6,9": 1,
+          "7,9": 1,
+          "8,9": 1,
+          "9,9": 1,
+          "4,10": 1,
+          "5,10": 1,
+          "6,10": 1,
+          "7,10": 1,
+          "8,10": 1,
+          "5,11": 1,
+          "6,11": 1,
+          "7,11": 1,
+          "4,5": 1,
+          "3,6": 1,
+          "2,7": 1,
+          "2,8": 1,
+          "2,9": 1,
+          "3,10": 1,
+          "4,11": 1,
+          "3,5": 1,
+          "2,6": 1,
+          "1,7": 1,
+          "1,8": 1,
+          "1,9": 1,
+          "2,10": 1,
+          "3,11": 1,
+          "3,4": 1,
+          "4,4": 1,
+          "5,4": 1,
+          "2,5": 1,
+          "1,6": 1,
+          "6,4": 1,
+          "7,4": 1,
+          "8,5": 1,
+          "9,6": 1
+        }
+      },
+      "settings": {
+        "music": 0.4,
+        "sfx": 0.6,
+        "timingAssist": false,
+        "reducedMotion": false,
+        "minimap": true
+      },
+      "campaignComplete": false,
+      "productionClock": 0
+    },
+    "scene": "haventide_town",
+    "mode": "world",
+    "battle": null,
+    "paused": false,
+    "errors": [],
+    "assets": {
+      "loaded": [
+        {
+          "id": "kaida_walk",
+          "width": 1448,
+          "height": 1086,
+          "loadMs": 77
+        },
+        {
+          "id": "kaida_showcase",
+          "width": 2172,
+          "height": 724,
+          "loadMs": 147
+        },
+        {
+          "id": "coast_props",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 160
+        },
+        {
+          "id": "coast_ground",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 201
+        },
+        {
+          "id": "interior_wall",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 243
+        },
+        {
+          "id": "civic_production",
+          "width": 1254,
+          "height": 1254,
+          "loadMs": 306
+        },
+        {
+          "id": "emberline_props",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 350
+        },
+        {
+          "id": "emberline_ground",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 398
+        },
+        {
+          "id": "domestic_furniture",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 419
+        },
+        {
+          "id": "interior_ground",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 457
+        },
+        {
+          "id": "haventide_civilians",
+          "width": 2172,
+          "height": 724,
+          "loadMs": 516
+        },
+        {
+          "id": "rust_scrapper",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 536
+        },
+        {
+          "id": "forest_veil_props",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 556
+        },
+        {
+          "id": "civic_culture",
+          "width": 1254,
+          "height": 1254,
+          "loadMs": 631
+        },
+        {
+          "id": "haventide_interior",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 673
+        },
+        {
+          "id": "mire_bog_props",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 693
+        },
+        {
+          "id": "forest_veil_ground",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 759
+        },
+        {
+          "id": "mire_bog_ground",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 777
+        },
+        {
+          "id": "crater_ember_props",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 797
+        },
+        {
+          "id": "orbital_reach_props",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 836
+        },
+        {
+          "id": "orbital_reach_ground",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 876
+        },
+        {
+          "id": "frost_canyon_props",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 907
+        },
+        {
+          "id": "crater_ember_ground",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 948
+        },
+        {
+          "id": "frost_canyon_ground",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 971
+        },
+        {
+          "id": "last_crown_props",
+          "width": 1774,
+          "height": 887,
+          "loadMs": 990
+        },
+        {
+          "id": "vex_walk",
+          "width": 1447,
+          "height": 1087,
+          "loadMs": 1070
+        },
+        {
+          "id": "last_crown_ground",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1071
+        },
+        {
+          "id": "rune",
+          "width": 2172,
+          "height": 724,
+          "loadMs": 1136
+        },
+        {
+          "id": "rune_walk",
+          "width": 1447,
+          "height": 1087,
+          "loadMs": 1180
+        },
+        {
+          "id": "vex",
+          "width": 2172,
+          "height": 724,
+          "loadMs": 1225
+        },
+        {
+          "id": "drone_sentinel",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1227
+        },
+        {
+          "id": "bog_stalker",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1287
+        },
+        {
+          "id": "sandworm",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1289
+        },
+        {
+          "id": "gravbot",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1309
+        },
+        {
+          "id": "mutant_hound",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1331
+        },
+        {
+          "id": "neon_cultist",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1348
+        },
+        {
+          "id": "slag_rat",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1407
+        },
+        {
+          "id": "ember_golem",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1408
+        },
+        {
+          "id": "ember_lord",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1426
+        },
+        {
+          "id": "frost_revenant",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1458
+        },
+        {
+          "id": "glacier_wolf",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1481
+        },
+        {
+          "id": "wraith_core",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1503
+        },
+        {
+          "id": "mire_hulk",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1522
+        },
+        {
+          "id": "architect_herald",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1542
+        },
+        {
+          "id": "frost_colossus",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1563
+        },
+        {
+          "id": "magma_behemoth",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1584
+        },
+        {
+          "id": "mire_warden",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1602
+        },
+        {
+          "id": "void_architect",
+          "width": 1536,
+          "height": 1024,
+          "loadMs": 1621
+        }
+      ],
+      "errors": [],
+      "bytes": 302007544
+    },
+    "artMetrics": {
+      "groundChunks": 15,
+      "groundBytes": 8847360,
+      "groundLimitBytes": 94371840,
+      "propCacheEntries": 0,
+      "propBytes": 0,
+      "groundAtlasBytes": 5505024,
+      "retainedSourceBytes": 239092984,
+      "retainedSourceCount": 38,
+      "frameCacheBytes": 21763160,
+      "environmentAtlas": true,
+      "environmentBiomes": [
+        "coast",
+        "desert",
+        "forest",
+        "mire",
+        "volcanic",
+        "snow",
+        "ice",
+        "alien"
+      ],
+      "groundBiomes": [
+        "coast",
+        "desert",
+        "forest",
+        "mire",
+        "snow",
+        "volcanic",
+        "ice",
+        "alien"
+      ],
+      "buildingGroups": [
+        "production",
+        "culture"
+      ],
+      "heroSheets": [
+        "rune",
+        "vex"
+      ],
+      "enemySheets": [
+        "rust_scrapper",
+        "drone_sentinel",
+        "bog_stalker",
+        "sandworm",
+        "gravbot",
+        "mutant_hound",
+        "neon_cultist",
+        "slag_rat",
+        "ember_golem",
+        "ember_lord",
+        "frost_revenant",
+        "glacier_wolf",
+        "wraith_core",
+        "mire_hulk",
+        "architect_herald",
+        "frost_colossus",
+        "magma_behemoth",
+        "mire_warden",
+        "void_architect"
+      ]
+    },
+    "frameTimes": [
+      -23.999999994039626,
+      133.30000000000018,
+      16.699999999999818,
+      16.700000000000273,
+      533.2999999999997,
+      16.700000000000273
+    ],
+    "logs": [
+      {
+        "time": 0,
+        "type": "ready",
+        "native": [
+          960,
+          540
+        ]
+      },
+      {
+        "time": 0,
+        "type": "new_game"
+      },
+      {
+        "time": 0.38,
+        "type": "interact",
+        "id": "hav_beacon"
+      },
+      {
+        "time": 3.32,
+        "type": "battle_start",
+        "id": "hav_first",
+        "count": 1
+      },
+      {
+        "time": 13.4,
+        "type": "battle_won",
+        "id": "hav_first",
+        "first": true,
+        "xp": 22
+      },
+      {
+        "time": 15.58,
+        "type": "battle_start",
+        "id": "hav_guard",
+        "count": 1
+      },
+      {
+        "time": 25.67,
+        "type": "battle_won",
+        "id": "hav_guard",
+        "first": true,
+        "xp": 28
+      },
+      {
+        "time": 33.9,
+        "type": "transition",
+        "to": "haventide_town",
+        "x": 800,
+        "y": 993.75
+      },
+      {
+        "time": 36.23,
+        "type": "interact",
+        "id": "mara"
+      },
+      {
+        "time": 38.52,
+        "type": "transition",
+        "to": "haventide",
+        "x": 1387.5,
+        "y": 1355
+      },
+      {
+        "time": 43.77,
+        "type": "interact",
+        "id": "hav_beacon"
+      },
+      {
+        "time": 48.95,
+        "type": "transition",
+        "to": "haventide_town",
+        "x": 800,
+        "y": 993.75
+      }
+    ]
+  },
+  "wallSeconds": 2.672,
+  "browser": "153.0.8010.37",
+  "viewport": [
+    1920,
+    1080
+  ],
+  "devHmrDisabled": true,
+  "failure": "Error: page.evaluate: Error: Path blocked to haventide_board at 836.3879901160683,984.3316843674605; wanted 875,950\n    at expect (eval at evaluate (:290:30), <anonymous>:8:49)\n    at walk (eval at evaluate (:290:30), <anonymous>:28:426)\n    at approach (eval at evaluate (:290:30), <anonymous>:33:260)\n    at interactLocal (eval at evaluate (:290:30), <anonymous>:38:3)\n    at civic (eval at evaluate (:290:30), <anonymous>:44:288)\n    at eval (eval at <anonymous> (eval at evaluate (:290:30)), <anonymous>:3:222)\n    at eval (eval at <anonymous> (eval at evaluate (:290:30)), <anonymous>:3:576)\n    at eval (eval at evaluate (:290:30), <anonymous>:1:242)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+  "browserErrors": [],
+  "previousFailures": [
+    {
+      "failure": "Error: page.evaluate: Error: Path blocked to orbital_blackbox at 2871.6366620345766,1823.9999999999998; wanted 3275,1900\n    at expect (eval at evaluate (:290:30), <anonymous>:6:49)\n    at walk (eval at evaluate (:290:30), <anonymous>:26:426)\n    at approach (eval at evaluate (:290:30), <anonymous>:31:260)\n    at interactLocal (eval at evaluate (:290:30), <anonymous>:36:3)\n    at interact (eval at evaluate (:290:30), <anonymous>:40:116)\n    at eval (eval at <anonymous> (eval at evaluate (:290:30)), <anonymous>:3:242)\n    at eval (eval at <anonymous> (eval at evaluate (:290:30)), <anonymous>:3:406)\n    at eval (eval at evaluate (:290:30), <anonymous>:1:242)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "wallSeconds": 6.864,
+      "scene": "orbital_reach",
+      "x": 2871.6366620345766,
+      "y": 1823.9999999999998,
+      "battleCount": 15
+    },
+    {
+      "failure": "Error: page.evaluate: Execution context was destroyed, most likely because of a navigation",
+      "wallSeconds": 13.655
+    },
+    {
+      "failure": "Error: page.evaluate: Error: Path blocked to frost_camp at 2304.743536937362,1175.999999999999; wanted 2562.5,1250\n    at expect (eval at evaluate (:290:30), <anonymous>:6:49)\n    at walk (eval at evaluate (:290:30), <anonymous>:26:426)\n    at approach (eval at evaluate (:290:30), <anonymous>:31:260)\n    at interactLocal (eval at evaluate (:290:30), <anonymous>:36:3)\n    at recover (eval at evaluate (:290:30), <anonymous>:41:360)\n    at eval (eval at <anonymous> (eval at evaluate (:290:30)), <anonymous>:3:280)\n    at eval (eval at <anonymous> (eval at evaluate (:290:30)), <anonymous>:3:443)\n    at eval (eval at evaluate (:290:30), <anonymous>:1:242)\n    at UtilityScript.evaluate (<anonymous>:292:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+      "wallSeconds": 19.94,
+      "scene": "frost_canyon",
+      "x": 2304.743536937362,
+      "y": 1175.999999999999,
+      "battleCount": 32,
+      "browserErrorCount": 24801,
+      "uniqueBrowserErrors": [
+        "[vite] failed to connect to websocket.\nyour current setup:\n  (browser) 127.0.0.1:4321/ <--[HTTP]--> 127.0.0.1:4321/ (server)\n  (browser) 127.0.0.1:4321/ <--[WebSocket (failing)]--> 127.0.0.1:4321/ (server)\nCheck out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr .",
+        "TypeError: Cannot read properties of undefined (reading 'send')"
+      ]
+    }
+  ]
+}

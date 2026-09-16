@@ -1,0 +1,58 @@
+{
+  "method": "Actual game canvas and mouse input at desktop and Retina viewports. Declared scene fixtures isolate display/input scaling; no image composites or progression claims.",
+  "browser": "153.0.8010.37",
+  "errors": [],
+  "views": [
+    {
+      "width": 1920,
+      "height": 1080,
+      "dpr": 1,
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "css": "auto"
+      },
+      "clickEndpoint": {
+        "distance": 4.186540187920459,
+        "x": 592.890564802184,
+        "y": 1324.2002118405326
+      },
+      "portrait": {
+        "width": 192,
+        "height": 192,
+        "css": "auto"
+      },
+      "battleMouse": {
+        "resolved": true,
+        "targetHp": 30,
+        "targetMaxHp": 76
+      }
+    },
+    {
+      "width": 1512,
+      "height": 982,
+      "dpr": 2,
+      "canvas": {
+        "width": 1920,
+        "height": 1080,
+        "css": "auto"
+      },
+      "clickEndpoint": {
+        "distance": 4.144505086825817,
+        "x": 592.9293759146952,
+        "y": 1324.220935194697
+      },
+      "portrait": {
+        "width": 192,
+        "height": 192,
+        "css": "auto"
+      },
+      "battleMouse": {
+        "resolved": true,
+        "targetHp": 30,
+        "targetMaxHp": 76
+      }
+    }
+  ],
+  "result": "pass"
+}

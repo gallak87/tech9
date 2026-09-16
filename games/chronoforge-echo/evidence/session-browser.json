@@ -1,0 +1,10 @@
+{
+  "method": "Party fixture and a real pending travel operation, followed by actual Save/Load/New Expedition controls. Verifies that prior-session transitions, held input and reward notices cannot survive replacement of the saved state.",
+  "errors": [],
+  "checks": [
+    "Load clears an old gateway before it can overwrite the loaded location",
+    "New expedition remains at the solo opening after the previous gateway would finish",
+    "Manual record remains available after restart"
+  ],
+  "result": "pass"
+}

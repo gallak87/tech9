@@ -1,0 +1,79 @@
+# Production asset inventory
+
+This inventory describes the required sources imported by the running game. It does not assign an art-quality score. Actual world, battle, walking, interiors, UI and animation reviews are documented in [SHOWCASE_CRITIQUE.md](SHOWCASE_CRITIQUE.md), with raw captures under [evidence](../evidence/).
+
+## Coverage
+
+- **3 heroes:** Kaida, Vex and Rune each have twelve canonical poses, a portrait extracted from their own sheet, and a dedicated twelve-frame directional walk sheet (four phases each for side, front and back; left mirrors side). Runtime anticipation, lunges, shield launch, casting, hurt, defense, healing, defeat and victory use the corresponding grounded poses and the authoritative combat clock.
+- **19 distinct enemies:** all eighteen continuity identities plus the separate Void Architect. Every identity has its own six-pose source and measured feet/extent metadata. Large bosses have individual silhouettes and source scales. Down poses remain visible before a short fade.
+- **Regional environments:** each installed biome has its own eight-prop atlas and six-material ground atlas. The renderer composes outdoor depth, roads, water/cliffs, landmarks, foreground layers and encounter backdrops at a consistent native scale. All eight outdoor worlds are 5760×2520.
+- **8 civic structures × four levels:** Town Center, Farm, Mine, Energy Extractor, Barracks, Forge, Research Lab and Walls, split across production/culture sheets. Shared settlement rules drive the visible level.
+- **Interiors and residents:** eight market furnishings plus eight domestic furnishings (bed, stove, table, desk, bookshelf, lantern, chair and pantry), six civilians with front/back views and matching portraits, six interior floor materials and six wall materials. Four liberated town centers and sixteen houses/caves use authored footprints, furniture, events and exits.
+- **34 item identities:** original 32×32 code-native icons in [src/item-art.js](../src/item-art.js), reused by inventory, shops and restrained queued reward badges.
+- **Interface:** original expedition insignia, resource icons, map/landmark symbols, seven atlas tabs, target markers, action/timing instrument and focus treatments. System serif/monospace fonts avoid runtime font requests.
+- **Combat effects:** original pixel ribbons, shards, arcs, petals, waves, contact accents and fading hit numbers in [src/combat.js](../src/combat.js); each coordinated technique has distinct staging. These effects share the action clock with outcomes.
+- **Audio:** original synthesized regional motifs, battle variation and compact interaction/contact/timing/critical cues in [src/audio.js](../src/audio.js). There are no downloaded recordings, sound packs or external runtime assets.
+
+## Immutable source files
+
+49 required PNG sources, 120.83 MiB on disk. A complete SHA-256 and byte inventory is in [asset-inventory.json](asset-inventory.json). This compressed-file size is distinct from decoded source and ground-cache memory; live measurements are in [performance.json](../evidence/performance.json).
+
+| ID | Use | Source dimensions | Source frames/cells | File |
+| --- | --- | --- | --- | --- |
+| kaida_walk | kaidaWalk | 1448×1086 | 12 | [PNG](../public/assets/kaida-walk-source.png) |
+| kaida_showcase | kaida | 2172×724 | 12 | [PNG](../public/assets/kaida-showcase-source.png) |
+| coast_props | environment / coast | 1774×887 | 8 | [PNG](../public/assets/coast-props-source.png) |
+| coast_ground | ground / coast | 1536×1024 | 6 | [PNG](../public/assets/coast-ground-source.png) |
+| emberline_props | environment / desert | 1774×887 | 8 | [PNG](../public/assets/emberline-props-source.png) |
+| emberline_ground | ground / desert | 1536×1024 | 6 | [PNG](../public/assets/emberline-ground-source.png) |
+| interior_ground | interiorGround | 1536×1024 | 6 | [PNG](../public/assets/interior-ground-source.png) |
+| interior_wall | interiorWall | 1536×1024 | 6 | [PNG](../public/assets/interior-wall-source.png) |
+| civic_production | building | 1254×1254 | 16 | [PNG](../public/assets/civic-production-source.png) |
+| civic_culture | building | 1254×1254 | 16 | [PNG](../public/assets/civic-culture-source.png) |
+| haventide_interior | interior | 1774×887 | 8 | [PNG](../public/assets/haventide-interior-source.png) |
+| domestic_furniture | domestic | 1774×887 | 8 | [PNG](../public/assets/domestic-furniture-source.png) |
+| haventide_civilians | civilian | 2172×724 | 12 | [PNG](../public/assets/haventide-civilians-source.png) |
+| rust_scrapper | enemy | 1536×1024 | 6 | [PNG](../public/assets/rust-scrapper-source.png) |
+| forest_veil_props | environment / forest | 1774×887 | 8 | [PNG](../public/assets/forest-veil-props-source.png) |
+| forest_veil_ground | ground / forest | 1536×1024 | 6 | [PNG](../public/assets/forest-veil-ground-source.png) |
+| mire_bog_props | environment / mire | 1774×887 | 8 | [PNG](../public/assets/mire-bog-props-source.png) |
+| mire_bog_ground | ground / mire | 1536×1024 | 6 | [PNG](../public/assets/mire-bog-ground-source.png) |
+| crater_ember_props | environment / volcanic | 1774×887 | 8 | [PNG](../public/assets/crater-ember-props-source.png) |
+| crater_ember_ground | ground / volcanic | 1536×1024 | 6 | [PNG](../public/assets/crater-ember-ground-source.png) |
+| orbital_reach_props | environment / snow | 1774×887 | 8 | [PNG](../public/assets/orbital-reach-props-source.png) |
+| orbital_reach_ground | ground / snow | 1536×1024 | 6 | [PNG](../public/assets/orbital-reach-ground-source.png) |
+| frost_canyon_props | environment / ice | 1774×887 | 8 | [PNG](../public/assets/frost-canyon-props-source.png) |
+| frost_canyon_ground | ground / ice | 1536×1024 | 6 | [PNG](../public/assets/frost-canyon-ground-source.png) |
+| last_crown_props | environment / alien | 1774×887 | 8 | [PNG](../public/assets/last-crown-props-source.png) |
+| last_crown_ground | ground / alien | 1536×1024 | 6 | [PNG](../public/assets/last-crown-ground-source.png) |
+| world_interactions | worldProp | 1774×887 | 8 | [PNG](../public/assets/world-props-source.png) |
+| vex_walk | heroWalk | 1447×1087 | 12 | [PNG](../public/assets/vex-walk-source.png) |
+| rune_walk | heroWalk | 1447×1087 | 12 | [PNG](../public/assets/rune-walk-source.png) |
+| rune | hero | 2172×724 | 12 | [PNG](../public/assets/rune-source.png) |
+| vex | hero | 2172×724 | 12 | [PNG](../public/assets/vex-source.png) |
+| bog_stalker | enemy | 1536×1024 | 6 | [PNG](../public/assets/bog-stalker-source.png) |
+| drone_sentinel | enemy | 1536×1024 | 6 | [PNG](../public/assets/drone-sentinel-source.png) |
+| gravbot | enemy | 1536×1024 | 6 | [PNG](../public/assets/gravbot-source.png) |
+| mutant_hound | enemy | 1536×1024 | 6 | [PNG](../public/assets/mutant-hound-source.png) |
+| neon_cultist | enemy | 1536×1024 | 6 | [PNG](../public/assets/neon-cultist-source.png) |
+| sandworm | enemy | 1536×1024 | 6 | [PNG](../public/assets/sandworm-source.png) |
+| slag_rat | enemy | 1536×1024 | 6 | [PNG](../public/assets/slag-rat-source.png) |
+| ember_golem | enemy | 1536×1024 | 6 | [PNG](../public/assets/ember-golem-source.png) |
+| ember_lord | enemy | 1536×1024 | 6 | [PNG](../public/assets/ember-lord-source.png) |
+| frost_revenant | enemy | 1536×1024 | 6 | [PNG](../public/assets/frost-revenant-source.png) |
+| glacier_wolf | enemy | 1536×1024 | 6 | [PNG](../public/assets/glacier-wolf-source.png) |
+| mire_hulk | enemy | 1536×1024 | 6 | [PNG](../public/assets/mire-hulk-source.png) |
+| wraith_core | enemy | 1536×1024 | 6 | [PNG](../public/assets/wraith-core-source.png) |
+| architect_herald | enemy | 1536×1024 | 6 | [PNG](../public/assets/architect-herald-source.png) |
+| frost_colossus | enemy | 1536×1024 | 6 | [PNG](../public/assets/frost-colossus-source.png) |
+| magma_behemoth | enemy | 1536×1024 | 6 | [PNG](../public/assets/magma-behemoth-source.png) |
+| mire_warden | enemy | 1536×1024 | 6 | [PNG](../public/assets/mire-warden-source.png) |
+| void_architect | enemy | 1536×1024 | 6 | [PNG](../public/assets/void-architect-source.png) |
+
+## Import and provenance
+
+Original source PNGs are retained unchanged. Explicit crop rectangles and foot anchors account for generated nonintegral grids. Neutral exterior flood extraction and selected interior seeds remove baked neutral backgrounds while preserving pale hair, eyes and armor. True alpha is preserved. A handful of crop-local exclusions remove neighboring-frame fragments without modifying the original sheet. Required files and frame bounds are validated before readiness; missing required content gives a visible load failure.
+
+[Source provenance](../public/assets/PROVENANCE.md), [hero notes](hero-assets.md), [ordinary enemy notes](enemy-assets.md), [middle enemy notes](mid-enemy-assets.md), [boss notes](boss-assets.md) and the adjacent exact-prompt JSON files record generation and extraction choices. Public source-side prompt/provenance records describe regional additions. No reference-game source or third-party art pack was copied into this project.
+
+The four-phase gait and discrete combat poses are intentionally limited animation, with expressive motion supplied by their authored timeline. Generated sheets and code recipes were reviewed in actual production scenes; source contact sheets alone were never treated as final acceptance. Run **node scripts/asset-inventory.mjs** after changing the manifest to refresh this document and its hashes.

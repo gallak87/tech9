@@ -1,0 +1,8 @@
+{
+  "method": "Deliberately fail one required source request in an isolated production browser context; assert a visible failure and no false readiness. No project files are removed.",
+  "expectedNetworkFailures": [
+    "http://127.0.0.1:4322/assets/kaida-showcase-source.png"
+  ],
+  "errors": [],
+  "result": "pass"
+}

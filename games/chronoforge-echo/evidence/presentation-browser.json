@@ -1,0 +1,28 @@
+{
+  "method": "Earned Haventide interior state loaded through persistence; actual atlas/settings/save/restart controls. A separate saved-position fixture deliberately places the crew inside a solid counter to verify recovery after layout changes. Checks the rendered map marker and saved restrained-motion presentation.",
+  "checks": [
+    {
+      "name": "An interior map keeps the crew marker at its exterior entrance",
+      "count": 9,
+      "scene": "haventide_town"
+    },
+    {
+      "name": "Loading restores the actual restrained-motion CSS presentation",
+      "pass": true
+    },
+    {
+      "name": "A saved position inside revised scenery recovers nearby without altering the campaign",
+      "blocked": true,
+      "recovered": true,
+      "distance": 32,
+      "sameCrew": true,
+      "sameFlags": true
+    },
+    {
+      "name": "New Expedition resets presentation to its own settings",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "result": "pass"
+}

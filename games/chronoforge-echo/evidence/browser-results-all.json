@@ -1,0 +1,937 @@
+{
+  "startedAt": "2026-09-16T10:21:36.908Z",
+  "section": "all",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "release": "25.6.0",
+    "cpu": "Apple M1 Pro",
+    "browser": "151.0.7922.34",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "nativeCanvas": [
+      960,
+      540
+    ]
+  },
+  "methodology": "New isolated browser context with HMR disconnected to keep the loaded build stable. UX cases use actual keyboard or mouse after explicit fixture setup. This is subsystem acceptance, not a claim of a clean-save manual campaign completion.",
+  "checks": [
+    {
+      "name": "clean opening and all seven atlas tabs",
+      "method": "Actual keyboard from title; no progress fixture.",
+      "pass": true,
+      "milliseconds": 2341,
+      "details": {
+        "opening": "evidence/browser/opening.png",
+        "screens": [
+          "evidence/browser/atlas-1-map.png",
+          "evidence/browser/atlas-2-party.png",
+          "evidence/browser/atlas-3-inventory.png",
+          "evidence/browser/atlas-4-skills.png",
+          "evidence/browser/atlas-5-quests.png",
+          "evidence/browser/atlas-6-save.png",
+          "evidence/browser/atlas-7-settings.png"
+        ],
+        "tabs": [
+          "Map",
+          "Party",
+          "Inventory",
+          "Skills",
+          "Quests",
+          "Save",
+          "Settings"
+        ]
+      }
+    },
+    {
+      "name": "settings volume toggles and key binding",
+      "method": "Actual Tab/arrow/Enter navigation.",
+      "pass": true,
+      "milliseconds": 94
+    },
+    {
+      "name": "map keyboard pan zoom recenter and pickup secrecy",
+      "method": "Actual map keys. A temporary fixture relocates pickups onto revealed ground; production map pixels must remain identical.",
+      "pass": true,
+      "milliseconds": 58,
+      "details": {
+        "atlasUnchanged": true,
+        "minimapUnchanged": true,
+        "pickupCount": 3,
+        "zoom": 1,
+        "panX": 0,
+        "panY": 0
+      }
+    },
+    {
+      "name": "inventory equipment comparisons use unequip and skill learning",
+      "method": "Fixture adds one weapon, wounds Kaida, grants 5 skill points; all actions use keyboard.",
+      "pass": true,
+      "milliseconds": 102
+    },
+    {
+      "name": "save load delete confirmation and corrupt record recovery",
+      "method": "Actual keyboard save/load/delete; fixtures change unsaved HP and create one malformed record.",
+      "pass": true,
+      "milliseconds": 129,
+      "details": {
+        "corruptionReported": true,
+        "healthySlotRecovered": true
+      }
+    },
+    {
+      "name": "ending dialogue and final panel survive save load",
+      "method": "A victory fixture resolves the real final-boss reward event. Actual keyboard advances dialogue, saves and loads at both stages, and chooses Return; this does not claim a manually fought final boss.",
+      "pass": true,
+      "milliseconds": 1200,
+      "details": {
+        "dialogueIndexRestored": 7,
+        "dialogueLine": {
+          "speaker": "Kaida",
+          "text": "You don’t have to build it alone."
+        },
+        "completionDeferredUntilReturn": true,
+        "completedScene": "haventide",
+        "screenshots": [
+          "evidence/browser/ending-dialogue-restored.png",
+          "evidence/browser/ending-panel-restored.png",
+          "evidence/browser/ending-return-world.png"
+        ]
+      }
+    },
+    {
+      "name": "vendor quantity buying selling and affordability",
+      "method": "Liberated-settlement fixture; open actual provisions NPC; trade actions use keyboard.",
+      "pass": true,
+      "milliseconds": 392,
+      "details": {
+        "screen": "evidence/browser/vendor-sell-quantity.png",
+        "bought": 3,
+        "sold": 3,
+        "insufficientFundsBlocked": true
+      }
+    },
+    {
+      "name": "construction spending production and civilization advancement",
+      "method": "Fixture supplies and beacon prerequisite; actual construction NPC and keyboard build/tier actions.",
+      "pass": true,
+      "milliseconds": 459,
+      "details": {
+        "screen": "evidence/browser/construction-reclaimer.png",
+        "tier": 2,
+        "productionObserved": true
+      }
+    },
+    {
+      "name": "battle keyboard targeting held-key protection and exact global pause",
+      "method": "Solo battle fixture. Actual keys through readiness, commands, target, timing window, and Esc.",
+      "pass": true,
+      "milliseconds": 2532,
+      "details": {
+        "targetFrame": "evidence/browser/battle-target.png",
+        "timingFrame": "evidence/browser/battle-timing-caught.png",
+        "pausedElapsed": 0.49139999999999945,
+        "critical": false,
+        "criticalChance": 0.53
+      }
+    },
+    {
+      "name": "battle mouse atlas command target and execute parity",
+      "method": "Fresh solo fixture; native canvas clicks with explicit Execute and global Atlas fallback.",
+      "pass": true,
+      "milliseconds": 1860,
+      "details": {
+        "targetFrame": "evidence/browser/battle-mouse-target-bounds.png"
+      }
+    },
+    {
+      "name": "four-enemy render and steady combat performance",
+      "method": "Four-enemy fixture with actual production renderer. Waiting ATB runs normally.",
+      "pass": true,
+      "milliseconds": 2067,
+      "details": {
+        "screen": "evidence/browser/battle-four.png",
+        "targetScreen": "evidence/browser/battle-four-target-bounds.png",
+        "samples": 179,
+        "meanMs": 8.482122905027929,
+        "medianMs": 8.299999999999272,
+        "p95Ms": 10.299999999999272,
+        "maxMs": 18.299999999999272,
+        "meanFps": 117.89501416057439,
+        "targetP95Ms": 20,
+        "meetsTarget": true
+      }
+    },
+    {
+      "name": "party traversal followers camera and collision",
+      "method": "Party fixture; encounters marked cleared to isolate navigation. Actual held movement keys, no simulation teleport between frames.",
+      "pass": true,
+      "milliseconds": 3098,
+      "details": {
+        "distance": 636.7059999999974,
+        "cameraPan": 636.3743946257382,
+        "world": [
+          5760,
+          2520
+        ],
+        "frames": [
+          "evidence/browser/followers-start.png",
+          "evidence/browser/followers-stride-1.png",
+          "evidence/browser/followers-stride-2.png",
+          "evidence/browser/followers-end.png"
+        ]
+      }
+    },
+    {
+      "name": "physical gateway keeps facing and places the whole party safely",
+      "method": "Fixture places crew 45 pixels before the real Haventide→Emberline gate and sets its prerequisite. Actual held key crosses threshold.",
+      "pass": true,
+      "milliseconds": 1353,
+      "details": {
+        "before": {
+          "from": "haventide",
+          "gate": {
+            "id": "hav_to_ember",
+            "type": "portal",
+            "x": 5637.5,
+            "y": 1350,
+            "to": "emberline",
+            "spawn": {
+              "x": 200,
+              "y": 1350
+            },
+            "name": "Saltway • Emberline",
+            "requires": "beacon_restored"
+          },
+          "start": {
+            "x": 5592.5,
+            "y": 1350
+          }
+        },
+        "after": {
+          "scene": "emberline",
+          "facing": "right",
+          "heroWalkable": true,
+          "followers": [
+            {
+              "id": "vex",
+              "x": 128,
+              "y": 1350,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 56,
+              "y": 1350,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "x": 200,
+          "y": 1350
+        },
+        "elapsedIncludingAuthoredFadeMs": 999,
+        "frames": [
+          {
+            "label": "approach",
+            "screenshot": "evidence/browser/gateway-approach.png"
+          },
+          {
+            "label": "threshold",
+            "screenshot": "evidence/browser/gateway-threshold.png"
+          },
+          {
+            "label": "arrival",
+            "screenshot": "evidence/browser/gateway-arrival.png"
+          }
+        ]
+      }
+    },
+    {
+      "name": "steady world performance and measured art cache",
+      "method": "Haventide party fixture, production animation and renderer at 1080p.",
+      "pass": true,
+      "milliseconds": 1531,
+      "details": {
+        "samples": 181,
+        "meanMs": 8.325414364640872,
+        "medianMs": 8.299999999999272,
+        "p95Ms": 10.200000000000728,
+        "maxMs": 10.30000000000291,
+        "meanFps": 120.11414161523675,
+        "targetP95Ms": 20,
+        "meetsTarget": true,
+        "cache": {
+          "groundChunks": 44,
+          "groundBytes": 25952256,
+          "groundLimitBytes": 94371840,
+          "propCacheEntries": 0,
+          "propBytes": 0,
+          "groundAtlasBytes": 5505024,
+          "retainedSourceBytes": 239092984,
+          "retainedSourceCount": 38,
+          "frameCacheBytes": 21763160,
+          "environmentAtlas": true,
+          "environmentBiomes": [
+            "coast",
+            "desert",
+            "forest",
+            "volcanic",
+            "mire",
+            "snow",
+            "alien",
+            "ice"
+          ],
+          "groundBiomes": [
+            "desert",
+            "coast",
+            "mire",
+            "forest",
+            "volcanic",
+            "alien",
+            "ice",
+            "snow"
+          ],
+          "buildingGroups": [
+            "culture",
+            "production"
+          ],
+          "heroSheets": [
+            "rune",
+            "vex"
+          ],
+          "enemySheets": [
+            "rust_scrapper",
+            "drone_sentinel",
+            "bog_stalker",
+            "gravbot",
+            "mutant_hound",
+            "sandworm",
+            "neon_cultist",
+            "ember_golem",
+            "ember_lord",
+            "frost_revenant",
+            "slag_rat",
+            "glacier_wolf",
+            "wraith_core",
+            "architect_herald",
+            "mire_hulk",
+            "frost_colossus",
+            "magma_behemoth",
+            "mire_warden",
+            "void_architect"
+          ]
+        }
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "missingAssets": [],
+  "failedRequests": [],
+  "documentLoads": [
+    {
+      "url": "http://127.0.0.1:4321/?test=1",
+      "time": "2026-09-16T10:21:36.922Z"
+    }
+  ],
+  "performance": {
+    "fourEnemyBattle": {
+      "samples": 179,
+      "meanMs": 8.482122905027929,
+      "medianMs": 8.299999999999272,
+      "p95Ms": 10.299999999999272,
+      "maxMs": 18.299999999999272,
+      "meanFps": 117.89501416057439,
+      "targetP95Ms": 20,
+      "meetsTarget": true
+    },
+    "world": {
+      "samples": 181,
+      "meanMs": 8.325414364640872,
+      "medianMs": 8.299999999999272,
+      "p95Ms": 10.200000000000728,
+      "maxMs": 10.30000000000291,
+      "meanFps": 120.11414161523675,
+      "targetP95Ms": 20,
+      "meetsTarget": true
+    },
+    "cache": {
+      "groundChunks": 44,
+      "groundBytes": 25952256,
+      "groundLimitBytes": 94371840,
+      "propCacheEntries": 0,
+      "propBytes": 0,
+      "groundAtlasBytes": 5505024,
+      "retainedSourceBytes": 239092984,
+      "retainedSourceCount": 38,
+      "frameCacheBytes": 21763160,
+      "environmentAtlas": true,
+      "environmentBiomes": [
+        "coast",
+        "desert",
+        "forest",
+        "volcanic",
+        "mire",
+        "snow",
+        "alien",
+        "ice"
+      ],
+      "groundBiomes": [
+        "desert",
+        "coast",
+        "mire",
+        "forest",
+        "volcanic",
+        "alien",
+        "ice",
+        "snow"
+      ],
+      "buildingGroups": [
+        "culture",
+        "production"
+      ],
+      "heroSheets": [
+        "rune",
+        "vex"
+      ],
+      "enemySheets": [
+        "rust_scrapper",
+        "drone_sentinel",
+        "bog_stalker",
+        "gravbot",
+        "mutant_hound",
+        "sandworm",
+        "neon_cultist",
+        "ember_golem",
+        "ember_lord",
+        "frost_revenant",
+        "slag_rat",
+        "glacier_wolf",
+        "wraith_core",
+        "architect_herald",
+        "mire_hulk",
+        "frost_colossus",
+        "magma_behemoth",
+        "mire_warden",
+        "void_architect"
+      ]
+    }
+  },
+  "sequences": {
+    "followers": [
+      {
+        "label": "start",
+        "screenshot": "evidence/browser/followers-start.png",
+        "state": {
+          "x": 525,
+          "y": 1325,
+          "camera": {
+            "x": 83.39999999999998,
+            "y": 1038.8
+          },
+          "followers": [
+            {
+              "id": "vex",
+              "x": 453,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 381,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "region": "haventide",
+          "native": [
+            960,
+            540
+          ],
+          "world": [
+            5760,
+            2520
+          ]
+        }
+      },
+      {
+        "label": "stride-1",
+        "screenshot": "evidence/browser/followers-stride-1.png",
+        "state": {
+          "x": 759.856999999999,
+          "y": 1325,
+          "camera": {
+            "x": 305.62722016066533,
+            "y": 1038.8
+          },
+          "followers": [
+            {
+              "id": "vex",
+              "x": 687,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 615,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "region": "haventide",
+          "native": [
+            960,
+            540
+          ],
+          "world": [
+            5760,
+            2520
+          ]
+        }
+      },
+      {
+        "label": "stride-2",
+        "screenshot": "evidence/browser/followers-stride-2.png",
+        "state": {
+          "x": 988.147999999998,
+          "y": 1325,
+          "camera": {
+            "x": 534.1459096921557,
+            "y": 1038.8
+          },
+          "followers": [
+            {
+              "id": "vex",
+              "x": 915,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 843,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "region": "haventide",
+          "native": [
+            960,
+            540
+          ],
+          "world": [
+            5760,
+            2520
+          ]
+        }
+      },
+      {
+        "label": "end",
+        "screenshot": "evidence/browser/followers-end.png",
+        "state": {
+          "x": 1161.7059999999974,
+          "y": 1325,
+          "camera": {
+            "x": 719.7743946257382,
+            "y": 1038.8
+          },
+          "followers": [
+            {
+              "id": "vex",
+              "x": 1089,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 1017,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "region": "haventide",
+          "native": [
+            960,
+            540
+          ],
+          "world": [
+            5760,
+            2520
+          ]
+        }
+      }
+    ],
+    "gateway": {
+      "before": {
+        "from": "haventide",
+        "gate": {
+          "id": "hav_to_ember",
+          "type": "portal",
+          "x": 5637.5,
+          "y": 1350,
+          "to": "emberline",
+          "spawn": {
+            "x": 200,
+            "y": 1350
+          },
+          "name": "Saltway • Emberline",
+          "requires": "beacon_restored"
+        },
+        "start": {
+          "x": 5592.5,
+          "y": 1350
+        }
+      },
+      "after": {
+        "scene": "emberline",
+        "facing": "right",
+        "heroWalkable": true,
+        "followers": [
+          {
+            "id": "vex",
+            "x": 128,
+            "y": 1350,
+            "facing": "right",
+            "walkable": true
+          },
+          {
+            "id": "rune",
+            "x": 56,
+            "y": 1350,
+            "facing": "right",
+            "walkable": true
+          }
+        ],
+        "x": 200,
+        "y": 1350
+      },
+      "elapsedIncludingAuthoredFadeMs": 999,
+      "frames": [
+        {
+          "label": "approach",
+          "screenshot": "evidence/browser/gateway-approach.png"
+        },
+        {
+          "label": "threshold",
+          "screenshot": "evidence/browser/gateway-threshold.png"
+        },
+        {
+          "label": "arrival",
+          "screenshot": "evidence/browser/gateway-arrival.png"
+        }
+      ]
+    }
+  },
+  "readyAt": "2026-09-16T10:21:38.871Z",
+  "startupDocumentLoads": 1,
+  "assets": {
+    "loaded": [
+      {
+        "id": "kaida_walk",
+        "width": 1448,
+        "height": 1086,
+        "loadMs": 60
+      },
+      {
+        "id": "kaida_showcase",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 111
+      },
+      {
+        "id": "coast_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 125
+      },
+      {
+        "id": "emberline_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 183
+      },
+      {
+        "id": "emberline_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 218
+      },
+      {
+        "id": "coast_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 246
+      },
+      {
+        "id": "interior_wall",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 275
+      },
+      {
+        "id": "domestic_furniture",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 292
+      },
+      {
+        "id": "haventide_civilians",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 361
+      },
+      {
+        "id": "civic_culture",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 415
+      },
+      {
+        "id": "interior_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 416
+      },
+      {
+        "id": "civic_production",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 463
+      },
+      {
+        "id": "haventide_interior",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 495
+      },
+      {
+        "id": "rust_scrapper",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 514
+      },
+      {
+        "id": "forest_veil_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 534
+      },
+      {
+        "id": "crater_ember_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 588
+      },
+      {
+        "id": "mire_bog_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 625
+      },
+      {
+        "id": "mire_bog_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 664
+      },
+      {
+        "id": "forest_veil_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 681
+      },
+      {
+        "id": "crater_ember_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 698
+      },
+      {
+        "id": "orbital_reach_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 717
+      },
+      {
+        "id": "last_crown_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 755
+      },
+      {
+        "id": "last_crown_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 790
+      },
+      {
+        "id": "frost_canyon_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 809
+      },
+      {
+        "id": "orbital_reach_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 824
+      },
+      {
+        "id": "frost_canyon_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 841
+      },
+      {
+        "id": "drone_sentinel",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 880
+      },
+      {
+        "id": "vex_walk",
+        "width": 1447,
+        "height": 1087,
+        "loadMs": 931
+      },
+      {
+        "id": "rune",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 967
+      },
+      {
+        "id": "bog_stalker",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1006
+      },
+      {
+        "id": "vex",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 1044
+      },
+      {
+        "id": "gravbot",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1046
+      },
+      {
+        "id": "rune_walk",
+        "width": 1447,
+        "height": 1087,
+        "loadMs": 1102
+      },
+      {
+        "id": "mutant_hound",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1103
+      },
+      {
+        "id": "sandworm",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1119
+      },
+      {
+        "id": "neon_cultist",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1135
+      },
+      {
+        "id": "ember_golem",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1154
+      },
+      {
+        "id": "ember_lord",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1171
+      },
+      {
+        "id": "frost_revenant",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1191
+      },
+      {
+        "id": "slag_rat",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1248
+      },
+      {
+        "id": "glacier_wolf",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1250
+      },
+      {
+        "id": "wraith_core",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1268
+      },
+      {
+        "id": "architect_herald",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1284
+      },
+      {
+        "id": "mire_hulk",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1301
+      },
+      {
+        "id": "frost_colossus",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1320
+      },
+      {
+        "id": "magma_behemoth",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1339
+      },
+      {
+        "id": "mire_warden",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1354
+      },
+      {
+        "id": "void_architect",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1372
+      }
+    ],
+    "errors": [],
+    "bytes": 302007544
+  },
+  "finalRuntimeErrors": [],
+  "finishedAt": "2026-09-16T10:21:56.102Z",
+  "developmentReloadDetected": false,
+  "passed": 14,
+  "failed": 0
+}

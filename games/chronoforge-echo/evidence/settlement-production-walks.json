@@ -1,0 +1,170 @@
+[
+  {
+    "id": "haventide_provisions",
+    "reachable": true,
+    "scene": "haventide_town",
+    "steps": 156
+  },
+  {
+    "id": "haventide_smith",
+    "reachable": true,
+    "scene": "haventide_town",
+    "steps": 105
+  },
+  {
+    "id": "haventide_inn",
+    "reachable": true,
+    "scene": "haventide_town",
+    "steps": 125
+  },
+  {
+    "id": "haventide_archivist",
+    "reachable": true,
+    "scene": "haventide_town",
+    "steps": 458
+  },
+  {
+    "id": "haventide_artificer",
+    "reachable": true,
+    "scene": "haventide_town",
+    "steps": 173
+  },
+  {
+    "id": "haventide_trainer",
+    "reachable": true,
+    "scene": "haventide_town",
+    "steps": 193
+  },
+  {
+    "id": "haventide_board",
+    "reachable": true,
+    "scene": "haventide_town",
+    "steps": 375
+  },
+  {
+    "id": "emberline_provisions",
+    "reachable": true,
+    "scene": "emberline_town",
+    "steps": 183
+  },
+  {
+    "id": "emberline_smith",
+    "reachable": true,
+    "scene": "emberline_town",
+    "steps": 264
+  },
+  {
+    "id": "emberline_inn",
+    "reachable": true,
+    "scene": "emberline_town",
+    "steps": 191
+  },
+  {
+    "id": "emberline_archivist",
+    "reachable": true,
+    "scene": "emberline_town",
+    "steps": 331
+  },
+  {
+    "id": "emberline_artificer",
+    "reachable": true,
+    "scene": "emberline_town",
+    "steps": 545
+  },
+  {
+    "id": "emberline_trainer",
+    "reachable": true,
+    "scene": "emberline_town",
+    "steps": 365
+  },
+  {
+    "id": "emberline_board",
+    "reachable": true,
+    "scene": "emberline_town",
+    "steps": 241
+  },
+  {
+    "id": "orbital_reach_provisions",
+    "reachable": true,
+    "scene": "orbital_reach_town",
+    "steps": 176
+  },
+  {
+    "id": "orbital_reach_smith",
+    "reachable": true,
+    "scene": "orbital_reach_town",
+    "steps": 276
+  },
+  {
+    "id": "orbital_reach_inn",
+    "reachable": true,
+    "scene": "orbital_reach_town",
+    "steps": 270
+  },
+  {
+    "id": "orbital_reach_archivist",
+    "reachable": true,
+    "scene": "orbital_reach_town",
+    "steps": 209
+  },
+  {
+    "id": "orbital_reach_artificer",
+    "reachable": true,
+    "scene": "orbital_reach_town",
+    "steps": 391
+  },
+  {
+    "id": "orbital_reach_trainer",
+    "reachable": true,
+    "scene": "orbital_reach_town",
+    "steps": 278
+  },
+  {
+    "id": "orbital_reach_board",
+    "reachable": true,
+    "scene": "orbital_reach_town",
+    "steps": 263
+  },
+  {
+    "id": "last_crown_provisions",
+    "reachable": true,
+    "scene": "last_crown_town",
+    "steps": 186
+  },
+  {
+    "id": "last_crown_smith",
+    "reachable": true,
+    "scene": "last_crown_town",
+    "steps": 273
+  },
+  {
+    "id": "last_crown_inn",
+    "reachable": true,
+    "scene": "last_crown_town",
+    "steps": 265
+  },
+  {
+    "id": "last_crown_archivist",
+    "reachable": true,
+    "scene": "last_crown_town",
+    "steps": 210
+  },
+  {
+    "id": "last_crown_artificer",
+    "reachable": true,
+    "scene": "last_crown_town",
+    "steps": 406
+  },
+  {
+    "id": "last_crown_trainer",
+    "reachable": true,
+    "scene": "last_crown_town",
+    "steps": 287
+  },
+  {
+    "id": "last_crown_board",
+    "reachable": true,
+    "scene": "last_crown_town",
+    "steps": 200
+  }
+]

@@ -1,0 +1,126 @@
+{
+  "generator": "Built-in imagegen tool",
+  "policy": "Original files retained unchanged. Workspace copies are original generated source pixels. The renderer measures alpha components at import and samples native terrain tiles; it never recolors one biome to stand in for another.",
+  "sources": [
+    {
+      "region": "forest-veil",
+      "prompts": "region-prompts/forest-veil.json",
+      "files": [
+        {
+          "kind": "props",
+          "workspace": "forest-veil-props-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-31838279-ed1a-453a-94ca-8ef74c240b25.png",
+          "layout": "4 columns × 2 rows, RGBA",
+          "review": "../../evidence/forest-veil-world-review.png"
+        },
+        {
+          "kind": "ground",
+          "workspace": "forest-veil-ground-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-52ac6c89-7613-4182-8310-63b882ac8403.png",
+          "layout": "3 columns × 2 rows, opaque",
+          "review": "../../evidence/forest-veil-battle-review.png"
+        }
+      ]
+    },
+    {
+      "region": "mire-bog",
+      "prompts": "region-prompts/mire-bog.json",
+      "files": [
+        {
+          "kind": "props",
+          "workspace": "mire-bog-props-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-ee81e802-8763-458e-a2ac-35e4ac244fa6.png",
+          "layout": "4 columns × 2 rows, RGBA",
+          "review": "../../evidence/mire-bog-world-review.png"
+        },
+        {
+          "kind": "ground",
+          "workspace": "mire-bog-ground-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-79d04721-f06b-40af-b7ca-c904c42689bf.png",
+          "layout": "3 columns × 2 rows, opaque",
+          "review": "../../evidence/mire-bog-battle-review.png"
+        }
+      ]
+    },
+    {
+      "region": "crater-ember",
+      "prompts": "region-prompts/crater-ember.json",
+      "files": [
+        {
+          "kind": "props",
+          "workspace": "crater-ember-props-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-39d4487b-6301-4769-9a4c-ee1686366aa7.png",
+          "layout": "4 columns × 2 rows, RGBA",
+          "review": "../../evidence/crater-ember-world-review.png"
+        },
+        {
+          "kind": "ground",
+          "workspace": "crater-ember-ground-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-cb1ff02e-3aed-4ec3-8a66-21b7bad497c8.png",
+          "layout": "3 columns × 2 rows, opaque",
+          "review": "../../evidence/crater-ember-battle-review.png"
+        }
+      ]
+    },
+    {
+      "region": "orbital-reach",
+      "prompts": "region-prompts/orbital-reach.json",
+      "files": [
+        {
+          "kind": "props",
+          "workspace": "orbital-reach-props-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-a76ef5e7-7e52-4f67-9160-cbafbd0ca19c.png",
+          "layout": "4 columns × 2 rows, RGBA",
+          "review": "../../evidence/orbital-reach-world-review.png"
+        },
+        {
+          "kind": "ground",
+          "workspace": "orbital-reach-ground-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-ae6cab88-a7db-4723-8c94-989cb15e2f61.png",
+          "layout": "3 columns × 2 rows, opaque",
+          "review": "../../evidence/orbital-reach-battle-review.png"
+        }
+      ]
+    },
+    {
+      "region": "frost-canyon",
+      "prompts": "region-prompts/frost-canyon.json",
+      "files": [
+        {
+          "kind": "props",
+          "workspace": "frost-canyon-props-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-391261ab-c00d-42a0-815a-f9129c4d7088.png",
+          "layout": "4 columns × 2 rows, RGBA",
+          "review": "../../evidence/frost-canyon-world-review.png"
+        },
+        {
+          "kind": "ground",
+          "workspace": "frost-canyon-ground-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-950645da-2c91-4e14-8ca8-c0f8b3c51941.png",
+          "layout": "3 columns × 2 rows, opaque",
+          "review": "../../evidence/frost-canyon-battle-review.png"
+        }
+      ]
+    },
+    {
+      "region": "last-crown",
+      "prompts": "region-prompts/last-crown.json",
+      "files": [
+        {
+          "kind": "props",
+          "workspace": "last-crown-props-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-23a9dbfe-53f9-479f-90b2-e9fa14a4c4c8.png",
+          "layout": "4 columns × 2 rows, RGBA",
+          "review": "../../evidence/last-crown-world-review.png"
+        },
+        {
+          "kind": "ground",
+          "workspace": "last-crown-ground-source.png",
+          "original": "/Users/g/.codex/generated_images/01a0a92c-5a10-7e43-86c0-636343fbb332/exec-0a2a9540-e978-4e94-b4dd-449e5e9162cb.png",
+          "layout": "3 columns × 2 rows, opaque",
+          "review": "../../evidence/last-crown-battle-review.png"
+        }
+      ]
+    }
+  ]
+}

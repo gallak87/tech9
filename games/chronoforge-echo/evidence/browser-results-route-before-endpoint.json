@@ -1,0 +1,1271 @@
+{
+  "startedAt": "2026-09-16T10:12:43.484Z",
+  "section": "route",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "release": "25.6.0",
+    "cpu": "Apple M1 Pro",
+    "browser": "151.0.7922.34",
+    "viewport": [
+      1920,
+      1080
+    ],
+    "nativeCanvas": [
+      960,
+      540
+    ]
+  },
+  "methodology": "New isolated browser context with HMR disconnected to keep the loaded build stable. UX cases use actual keyboard or mouse after explicit fixture setup. This is subsystem acceptance, not a claim of a clean-save manual campaign completion.",
+  "checks": [
+    {
+      "name": "ordinary Haventide road across multiple viewports",
+      "method": "Only prerequisites/cleared encounters are seeded. Production walkTo and Game.update run at fixed 1/60-second steps, normal Shift speed 245 pixels/second. Wall time is accelerated between rendered samples; world coordinates are never teleported along the route.",
+      "pass": true,
+      "milliseconds": 7160,
+      "details": {
+        "steps": 1664,
+        "simulatedSeconds": 27.73333333333304,
+        "walkedPixels": 5688.083333333288,
+        "maximumSpeed": 245.00000000002555,
+        "cameraPanPixels": 4716.599999995736,
+        "cameraPanViewports": 4.913124999995558,
+        "screenshotCount": 23,
+        "transitions": [
+          {
+            "from": "haventide",
+            "to": "emberline",
+            "time": 27.466666666666388
+          }
+        ],
+        "collisionViolations": 0
+      }
+    }
+  ],
+  "consoleErrors": [],
+  "pageErrors": [],
+  "missingAssets": [],
+  "failedRequests": [],
+  "documentLoads": [
+    {
+      "url": "http://127.0.0.1:4321/?test=1",
+      "time": "2026-09-16T10:12:43.507Z"
+    }
+  ],
+  "performance": {},
+  "sequences": {
+    "regionalRoute": {
+      "route": {
+        "start": {
+          "x": 525,
+          "y": 1325
+        },
+        "region": "haventide",
+        "dimensions": [
+          5760,
+          2520
+        ],
+        "viewport": [
+          960,
+          540
+        ],
+        "waypoints": [
+          {
+            "x": 700,
+            "y": 1312.5
+          },
+          {
+            "x": 1387.5,
+            "y": 1325
+          },
+          {
+            "x": 1975,
+            "y": 1300
+          },
+          {
+            "x": 2712.5,
+            "y": 1487.5
+          },
+          {
+            "x": 3487.5,
+            "y": 1350
+          },
+          {
+            "x": 4287.5,
+            "y": 1125
+          },
+          {
+            "x": 4925,
+            "y": 1200
+          },
+          {
+            "x": 5637.5,
+            "y": 1350
+          },
+          {
+            "x": 5637.5,
+            "y": 1350
+          }
+        ],
+        "gate": {
+          "id": "hav_to_ember",
+          "type": "portal",
+          "x": 5637.5,
+          "y": 1350,
+          "to": "emberline",
+          "spawn": {
+            "x": 200,
+            "y": 1350
+          },
+          "name": "Saltway • Emberline",
+          "requires": "beacon_restored"
+        }
+      },
+      "frames": [
+        {
+          "label": "arrival",
+          "screenshot": "evidence/browser/route-00-arrival.png",
+          "simulatedSeconds": 0,
+          "walkedPixels": 0,
+          "maximumSpeed": 0,
+          "steps": 0,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 525,
+          "y": 1325,
+          "camera": {
+            "x": 83.39999999999998,
+            "y": 1038.8
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 453,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 381,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-1-1",
+          "screenshot": "evidence/browser/route-01-leg-1-1.png",
+          "simulatedSeconds": 0.6833333333333338,
+          "walkedPixels": 142.91666666666592,
+          "maximumSpeed": 245.00000000000222,
+          "steps": 41,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 667.502124684322,
+          "y": 1320.0000058344176,
+          "camera": {
+            "x": 206.3522628705282,
+            "y": 1033.8196955753856
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 593.591722269838,
+              "y": 1320.0117304831317,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 522,
+              "y": 1325,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-2-1",
+          "screenshot": "evidence/browser/route-02-leg-2-1.png",
+          "simulatedSeconds": 2.6833333333333287,
+          "walkedPixels": 563.5000000000011,
+          "maximumSpeed": 245.0000000000024,
+          "steps": 161,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 1088.0854580176567,
+          "y": 1320,
+          "camera": {
+            "x": 624.8950574116498,
+            "y": 1033.800000000272
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 1013.5917162705806,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 941.5917162705806,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 12,
+          "transition": null
+        },
+        {
+          "label": "leg-2-2",
+          "screenshot": "evidence/browser/route-03-leg-2-2.png",
+          "simulatedSeconds": 4.016666666666658,
+          "walkedPixels": 841.1666666666626,
+          "maximumSpeed": 245.0000000000024,
+          "steps": 241,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 1365.7521246843182,
+          "y": 1320,
+          "camera": {
+            "x": 904.4557425700601,
+            "y": 1033.8000000000006
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 1292.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 1220.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-3-1",
+          "screenshot": "evidence/browser/route-04-leg-3-1.png",
+          "simulatedSeconds": 6.016666666666651,
+          "walkedPixels": 1261.7499999999882,
+          "maximumSpeed": 245.0000000000024,
+          "steps": 361,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 1786.3354580176438,
+          "y": 1320,
+          "camera": {
+            "x": 1323.0778821478182,
+            "y": 1033.8000000000006
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 1712.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 1640.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 7,
+          "transition": null
+        },
+        {
+          "label": "leg-3-2",
+          "screenshot": "evidence/browser/route-05-leg-3-2.png",
+          "simulatedSeconds": 6.766666666666648,
+          "walkedPixels": 1416.916666666652,
+          "maximumSpeed": 245.0000000000024,
+          "steps": 406,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 1941.5021246843075,
+          "y": 1320,
+          "camera": {
+            "x": 1480.2057425700493,
+            "y": 1033.8000000000006
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 1868.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 1796.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-4-1",
+          "screenshot": "evidence/browser/route-06-leg-4-1.png",
+          "simulatedSeconds": 8.766666666666682,
+          "walkedPixels": 1837.499999999995,
+          "maximumSpeed": 245.0000000000091,
+          "steps": 526,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 2362.0854580176506,
+          "y": 1320,
+          "camera": {
+            "x": 1898.8285273288761,
+            "y": 1033.8000000000006
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 2288.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 2216.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 20,
+          "transition": null
+        },
+        {
+          "label": "leg-4-2",
+          "screenshot": "evidence/browser/route-07-leg-4-2.png",
+          "simulatedSeconds": 10.766666666666781,
+          "walkedPixels": 2254.0000000000105,
+          "maximumSpeed": 245.0000000000091,
+          "steps": 646,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 2687.9994619867402,
+          "y": 1413.718367825352,
+          "camera": {
+            "x": 2245.9553711651574,
+            "y": 1108.1737788566886
+          },
+          "facing": "down",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 2687.331521741622,
+              "y": 1340.8120424419642,
+              "facing": "down",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 2633.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 2,
+          "transition": null
+        },
+        {
+          "label": "leg-4-3",
+          "screenshot": "evidence/browser/route-08-leg-4-3.png",
+          "simulatedSeconds": 11.000000000000126,
+          "walkedPixels": 2303.000000000007,
+          "maximumSpeed": 245.0000000000091,
+          "steps": 660,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 2687.999998186942,
+          "y": 1462.718367820193,
+          "camera": {
+            "x": 2246.3461296643623,
+            "y": 1156.8632043275443
+          },
+          "facing": "down",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 2687.99273903978,
+              "y": 1388.8020544976007,
+              "facing": "down",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 2681.5917162705805,
+              "y": 1320,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-5-1",
+          "screenshot": "evidence/browser/route-09-leg-5-1.png",
+          "simulatedSeconds": 13.000000000000226,
+          "walkedPixels": 2723.5833333333476,
+          "maximumSpeed": 245.0000000000091,
+          "steps": 780,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 3108.5536766774176,
+          "y": 1464,
+          "camera": {
+            "x": 2644.836402037569,
+            "y": 1177.7999996952738
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 3035.5706625169814,
+              "y": 1464,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 2963.5706625169814,
+              "y": 1463.9999999999914,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 19,
+          "transition": null
+        },
+        {
+          "label": "leg-5-2",
+          "screenshot": "evidence/browser/route-10-leg-5-2.png",
+          "simulatedSeconds": 15.000000000000325,
+          "walkedPixels": 3140.0833333333603,
+          "maximumSpeed": 245.0000000000091,
+          "steps": 900,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 3455.991889990257,
+          "y": 1390.8500394080843,
+          "camera": {
+            "x": 3013.212792113459,
+            "y": 1124.2192801210574
+          },
+          "facing": "up",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 3449.5706625169814,
+              "y": 1464,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 3377.5706625169814,
+              "y": 1464,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 1,
+          "transition": null
+        },
+        {
+          "label": "leg-5-3",
+          "screenshot": "evidence/browser/route-11-leg-5-3.png",
+          "simulatedSeconds": 15.10000000000033,
+          "walkedPixels": 3160.5000000000277,
+          "maximumSpeed": 245.0000000000091,
+          "steps": 906,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 3455.9991363390354,
+          "y": 1370.4333740273662,
+          "camera": {
+            "x": 3013.9180574093402,
+            "y": 1103.5742187688008
+          },
+          "facing": "up",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 3455.261068983413,
+              "y": 1443.9874639010304,
+              "facing": "up",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 3398.5706625169814,
+              "y": 1464,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-6-1",
+          "screenshot": "evidence/browser/route-12-leg-6-1.png",
+          "simulatedSeconds": 17.10000000000031,
+          "walkedPixels": 3581.0833333333735,
+          "maximumSpeed": 245.00000000000932,
+          "steps": 1026,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 3876.4760719642463,
+          "y": 1368,
+          "camera": {
+            "x": 3412.758797320023,
+            "y": 1081.8000003310535
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 3803.540982207493,
+              "y": 1368,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 3731.540982207493,
+              "y": 1368.000000000022,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 26,
+          "transition": null
+        },
+        {
+          "label": "leg-6-2",
+          "screenshot": "evidence/browser/route-13-leg-6-2.png",
+          "simulatedSeconds": 19.100000000000197,
+          "walkedPixels": 3997.58333333337,
+          "maximumSpeed": 245.00000000000932,
+          "steps": 1146,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 4271.523992289175,
+          "y": 1343.7174092536568,
+          "camera": {
+            "x": 3821.5856914995825,
+            "y": 1070.7485915488455
+          },
+          "facing": "up",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 4217.540982207493,
+              "y": 1368,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 4145.540982207493,
+              "y": 1368,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 8,
+          "transition": null
+        },
+        {
+          "label": "leg-6-3",
+          "screenshot": "evidence/browser/route-14-leg-6-3.png",
+          "simulatedSeconds": 20.000000000000146,
+          "walkedPixels": 4185.4166666667,
+          "maximumSpeed": 245.00000000000932,
+          "steps": 1200,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 4271.999999991829,
+          "y": 1155.8882597165505,
+          "camera": {
+            "x": 3830.397324716305,
+            "y": 889.3471746617404
+          },
+          "facing": "up",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 4271.999993361837,
+              "y": 1228.2513988242397,
+              "facing": "up",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 4271.989672321726,
+              "y": 1300.251396587072,
+              "facing": "up",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-7-1",
+          "screenshot": "evidence/browser/route-15-leg-7-1.png",
+          "simulatedSeconds": 22.000000000000032,
+          "walkedPixels": 4606.000000000018,
+          "maximumSpeed": 245.00000000002507,
+          "steps": 1320,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 4692.3143270631535,
+          "y": 1152,
+          "camera": {
+            "x": 4228.634906708934,
+            "y": 865.800000375657
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 4619.676909376101,
+              "y": 1152,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 4547.676909376101,
+              "y": 1152.000000000063,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 10,
+          "transition": null
+        },
+        {
+          "label": "leg-7-2",
+          "screenshot": "evidence/browser/route-16-leg-7-2.png",
+          "simulatedSeconds": 23.066666666666638,
+          "walkedPixels": 4826.500000000002,
+          "maximumSpeed": 245.00000000002507,
+          "steps": 1384,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 4895.428202892194,
+          "y": 1172.1904950399785,
+          "camera": {
+            "x": 4444.178320337321,
+            "y": 874.6932733788226
+          },
+          "facing": "down",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 4838.676909376101,
+              "y": 1152,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 4766.676909376101,
+              "y": 1152,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-8-1",
+          "screenshot": "evidence/browser/route-17-leg-8-1.png",
+          "simulatedSeconds": 25.066666666666524,
+          "walkedPixels": 5247.08333333332,
+          "maximumSpeed": 245.00000000002555,
+          "steps": 1504,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 5315.763310303825,
+          "y": 1176,
+          "camera": {
+            "x": 4799.111852991,
+            "y": 889.7999997359433
+          },
+          "facing": "right",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 5243.077609948591,
+              "y": 1175.9999999999998,
+              "facing": "right",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 5171.077609948591,
+              "y": 1175.9999999998945,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 19,
+          "transition": null
+        },
+        {
+          "label": "leg-8-2",
+          "screenshot": "evidence/browser/route-18-leg-8-2.png",
+          "simulatedSeconds": 27.06666666666641,
+          "walkedPixels": 5663.583333333289,
+          "maximumSpeed": 245.00000000002555,
+          "steps": 1624,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 5615.999980875843,
+          "y": 1294.3332255794276,
+          "camera": {
+            "x": 4799.9999999877455,
+            "y": 988.5572471727659
+          },
+          "facing": "down",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 5615.958529699852,
+              "y": 1220.5111819752356,
+              "facing": "down",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 5585.077609948591,
+              "y": 1176,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 1,
+          "transition": null
+        },
+        {
+          "label": "leg-8-3",
+          "screenshot": "evidence/browser/route-19-leg-8-3.png",
+          "simulatedSeconds": 27.18333333333307,
+          "walkedPixels": 5688.083333333288,
+          "maximumSpeed": 245.00000000002555,
+          "steps": 1631,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 5615.999999130643,
+          "y": 1318.8332255794203,
+          "camera": {
+            "x": 4799.999999995735,
+            "y": 1012.9777209185701
+          },
+          "facing": "down",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 5615.995165112825,
+              "y": 1244.5111532927574,
+              "facing": "down",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 5609.077609948591,
+              "y": 1176,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-9-1",
+          "screenshot": "evidence/browser/route-20-leg-9-1.png",
+          "simulatedSeconds": 27.18333333333307,
+          "walkedPixels": 5688.083333333288,
+          "maximumSpeed": 245.00000000002555,
+          "steps": 1631,
+          "collisions": [],
+          "transitions": [],
+          "region": "haventide",
+          "x": 5615.999999130643,
+          "y": 1318.8332255794203,
+          "camera": {
+            "x": 4799.999999995735,
+            "y": 1012.9777209185701
+          },
+          "facing": "down",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 5615.995165112825,
+              "y": 1244.5111532927574,
+              "facing": "down",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 5609.077609948591,
+              "y": 1176,
+              "facing": "right",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "leg-9-2",
+          "screenshot": "evidence/browser/route-21-leg-9-2.png",
+          "simulatedSeconds": 27.73333333333304,
+          "walkedPixels": 5688.083333333288,
+          "maximumSpeed": 245.00000000002555,
+          "steps": 1664,
+          "collisions": [],
+          "transitions": [
+            {
+              "from": "haventide",
+              "to": "emberline",
+              "time": 27.466666666666388
+            }
+          ],
+          "region": "emberline",
+          "x": 200,
+          "y": 1350,
+          "camera": {
+            "x": 0,
+            "y": 1063.8
+          },
+          "facing": "down",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 200,
+              "y": 1278,
+              "facing": "down",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 200,
+              "y": 1206,
+              "facing": "down",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        },
+        {
+          "label": "emberline-arrival",
+          "screenshot": "evidence/browser/route-22-emberline-arrival.png",
+          "simulatedSeconds": 27.73333333333304,
+          "walkedPixels": 5688.083333333288,
+          "maximumSpeed": 245.00000000002555,
+          "steps": 1664,
+          "collisions": [],
+          "transitions": [
+            {
+              "from": "haventide",
+              "to": "emberline",
+              "time": 27.466666666666388
+            }
+          ],
+          "region": "emberline",
+          "x": 200,
+          "y": 1350,
+          "camera": {
+            "x": 0,
+            "y": 1063.8
+          },
+          "facing": "down",
+          "followers": [
+            {
+              "id": "vex",
+              "x": 200,
+              "y": 1278,
+              "facing": "down",
+              "walkable": true
+            },
+            {
+              "id": "rune",
+              "x": 200,
+              "y": 1206,
+              "facing": "down",
+              "walkable": true
+            }
+          ],
+          "remainingPathPoints": 0,
+          "transition": null
+        }
+      ],
+      "cameraPanPixels": 4716.599999995736,
+      "cameraPanViewports": 4.913124999995558
+    }
+  },
+  "readyAt": "2026-09-16T10:12:45.689Z",
+  "startupDocumentLoads": 1,
+  "assets": {
+    "loaded": [
+      {
+        "id": "kaida_showcase",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 81
+      },
+      {
+        "id": "kaida_walk",
+        "width": 1448,
+        "height": 1086,
+        "loadMs": 139
+      },
+      {
+        "id": "emberline_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 191
+      },
+      {
+        "id": "coast_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 233
+      },
+      {
+        "id": "coast_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 264
+      },
+      {
+        "id": "emberline_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 296
+      },
+      {
+        "id": "domestic_furniture",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 321
+      },
+      {
+        "id": "interior_wall",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 392
+      },
+      {
+        "id": "interior_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 414
+      },
+      {
+        "id": "civic_production",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 472
+      },
+      {
+        "id": "haventide_interior",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 505
+      },
+      {
+        "id": "civic_culture",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 562
+      },
+      {
+        "id": "haventide_civilians",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 601
+      },
+      {
+        "id": "rust_scrapper",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 621
+      },
+      {
+        "id": "mire_bog_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 650
+      },
+      {
+        "id": "mire_bog_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 714
+      },
+      {
+        "id": "crater_ember_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 736
+      },
+      {
+        "id": "forest_veil_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 789
+      },
+      {
+        "id": "forest_veil_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 835
+      },
+      {
+        "id": "last_crown_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 854
+      },
+      {
+        "id": "orbital_reach_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 929
+      },
+      {
+        "id": "frost_canyon_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 968
+      },
+      {
+        "id": "crater_ember_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1009
+      },
+      {
+        "id": "frost_canyon_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1030
+      },
+      {
+        "id": "orbital_reach_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1046
+      },
+      {
+        "id": "vex_walk",
+        "width": 1447,
+        "height": 1087,
+        "loadMs": 1104
+      },
+      {
+        "id": "last_crown_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1105
+      },
+      {
+        "id": "rune_walk",
+        "width": 1447,
+        "height": 1087,
+        "loadMs": 1169
+      },
+      {
+        "id": "rune",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 1209
+      },
+      {
+        "id": "bog_stalker",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1252
+      },
+      {
+        "id": "vex",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 1294
+      },
+      {
+        "id": "drone_sentinel",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1295
+      },
+      {
+        "id": "mutant_hound",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1313
+      },
+      {
+        "id": "neon_cultist",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1330
+      },
+      {
+        "id": "gravbot",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1349
+      },
+      {
+        "id": "slag_rat",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1407
+      },
+      {
+        "id": "sandworm",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1408
+      },
+      {
+        "id": "ember_golem",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1425
+      },
+      {
+        "id": "wraith_core",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1443
+      },
+      {
+        "id": "ember_lord",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1460
+      },
+      {
+        "id": "frost_revenant",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1479
+      },
+      {
+        "id": "glacier_wolf",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1499
+      },
+      {
+        "id": "architect_herald",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1519
+      },
+      {
+        "id": "mire_hulk",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1542
+      },
+      {
+        "id": "frost_colossus",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1561
+      },
+      {
+        "id": "magma_behemoth",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1583
+      },
+      {
+        "id": "void_architect",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1600
+      },
+      {
+        "id": "mire_warden",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1624
+      }
+    ],
+    "errors": [],
+    "bytes": 302007544
+  },
+  "finalRuntimeErrors": [],
+  "finishedAt": "2026-09-16T10:12:52.950Z",
+  "developmentReloadDetected": false,
+  "passed": 1,
+  "failed": 0
+}

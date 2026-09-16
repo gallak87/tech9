@@ -1,0 +1,222 @@
+{
+  "fixture": "Unmodified earned full-campaign snapshot, loaded through production save/load. Existing recovered Data Chips; no XP, item, flag, HP or location grants.",
+  "started": 1789548324707,
+  "approach": {
+    "steps": 261,
+    "from": {
+      "x": 816.001112778633,
+      "y": 866.6730246740259
+    },
+    "object": {
+      "x": 800,
+      "y": 800
+    },
+    "remaining": 0
+  },
+  "offer": [
+    {
+      "speaker": "Bran",
+      "text": "My forge hammer still thinks it is stamping armor for the old sentries. Fine for plates. Terrible for door hinges."
+    },
+    {
+      "speaker": "Bran",
+      "text": "A Data Chip could teach it to follow a living hand again. Bring me one you can spare and I’ll pay 35 ore, two Ether Cells and 150 experience."
+    }
+  ],
+  "accept": [
+    {
+      "speaker": "Bran",
+      "text": "One Data Chip, loose in your pack. The gate’s Drone Sentinel carried one; the eastern road patrols use them too. An old find is just as useful as a new one."
+    },
+    {
+      "speaker": "Kaida",
+      "text": "And if someone is using it?"
+    },
+    {
+      "speaker": "Bran",
+      "text": "Keep it on them until you decide. I won’t take equipment off anyone’s belt."
+    }
+  ],
+  "handoffOffer": [
+    {
+      "speaker": "Bran",
+      "text": "You have a loose Data Chip. Shall we give the hammer a gentler hand?"
+    }
+  ],
+  "handoff": [
+    {
+      "speaker": "Bran",
+      "text": "There. The hammer stops when my hand stops. We can mend a hinge without crushing it."
+    },
+    {
+      "speaker": "Kaida",
+      "text": "That’s a small repair."
+    },
+    {
+      "speaker": "Bran",
+      "text": "A hundred doors need small repairs. Here—your share of the salvage, and two charged cells for the road."
+    }
+  ],
+  "revisit": [
+    {
+      "speaker": "Bran",
+      "text": "The calibration holds. Nessa’s shutters close, Iona’s cart rolls straight, and nobody needs to hold the hammer down with both hands. One small repair at a time."
+    }
+  ],
+  "result": "pass",
+  "exactRewards": {
+    "xpPerHero": 150,
+    "ore": 35,
+    "etherCells": 2,
+    "dataChipConsumed": 1
+  },
+  "inventoryBefore": {
+    "field_tonic": 21,
+    "ether_cell": 9,
+    "iron_blade": 4,
+    "data_chip": 6,
+    "bog_fang": 7,
+    "bio_weave": 6,
+    "scrap_vest": 1,
+    "rune_gauntlet": 5,
+    "void_shard": 9,
+    "crit_lens": 2,
+    "glacial_claw": 6,
+    "frost_plate": 4,
+    "moss_ward": 3,
+    "swamp_coil": 4,
+    "witness_prism": 0,
+    "magma_blade": 2,
+    "ember_core": 3,
+    "ember_crown": 1,
+    "titan_shard": 0,
+    "mara_compass": 1,
+    "void_scepter": 4,
+    "namekeeper": 0,
+    "horizon_edge": 0
+  },
+  "inventoryAfter": {
+    "field_tonic": 21,
+    "ether_cell": 11,
+    "iron_blade": 4,
+    "data_chip": 5,
+    "bog_fang": 7,
+    "bio_weave": 6,
+    "scrap_vest": 1,
+    "rune_gauntlet": 5,
+    "void_shard": 9,
+    "crit_lens": 2,
+    "glacial_claw": 6,
+    "frost_plate": 4,
+    "moss_ward": 3,
+    "swamp_coil": 4,
+    "witness_prism": 0,
+    "magma_blade": 2,
+    "ember_core": 3,
+    "ember_crown": 1,
+    "titan_shard": 0,
+    "mara_compass": 1,
+    "void_scepter": 4,
+    "namekeeper": 0,
+    "horizon_edge": 0
+  },
+  "completedFlags": {
+    "opening_seen": true,
+    "battle_taught": true,
+    "rewardLedger": {
+      "liberate_haventide": true,
+      "main_beacon": true,
+      "mara_chart": true,
+      "well_filter": true,
+      "pickup:hav_hidden_med": true,
+      "pickup:hav_ore_cache": true,
+      "pickup:hav_coast_food": true,
+      "road_clear": true,
+      "liberate_emberline": true,
+      "mara_branch": true,
+      "main_vex": true,
+      "mara_signal": true,
+      "pickup:ember_sand_cache": true,
+      "pickup:ember_ore": true,
+      "distress_answered": true,
+      "liberate_orbital_reach": true,
+      "main_rune": true,
+      "pickup:orbital_ether": true,
+      "pickup:orbital_ore": true,
+      "orbital_blackbox": true,
+      "pickup:forest_herbs": true,
+      "pickup:forest_energy": true,
+      "vex_record": true,
+      "seed_vault": true,
+      "main_forest": true,
+      "pickup:mire_coil": true,
+      "pickup:mire_food": true,
+      "main_mire": true,
+      "vex_arc": true,
+      "pickup:crater_blade": true,
+      "pickup:crater_energy": true,
+      "crater_pressure": true,
+      "main_crater": true,
+      "pickup:frost_plate_cache": true,
+      "pickup:frost_food": true,
+      "rune_names": true,
+      "main_frost": true,
+      "mara_arc": true,
+      "pickup:crown_scepter": true,
+      "pickup:crown_energy": true,
+      "liberate_last_crown": true,
+      "rune_arc": true,
+      "main_crown": true,
+      "campaign_ending": true,
+      "aftermath_home": true,
+      "smith_calibration": true
+    },
+    "final_ready": true,
+    "haventide_liberated": true,
+    "mara_started": true,
+    "beacon_restored": true,
+    "mara_chart": true,
+    "well_fixed": true,
+    "road_clear": true,
+    "emberline_liberated": true,
+    "mara_choose_route": true,
+    "mara_convoy_chosen": true,
+    "mara_trade_route": true,
+    "vex_met": true,
+    "vex_recruited": true,
+    "vex_arc_started": true,
+    "mara_signal": true,
+    "distress_answered": true,
+    "orbital_reach_liberated": true,
+    "rune_recruited": true,
+    "rune_arc_started": true,
+    "blackbox_returned": true,
+    "vex_record_found": true,
+    "seeds_saved": true,
+    "forest_seal": true,
+    "mire_seal": true,
+    "vex_echo_found": true,
+    "vex_keep": true,
+    "vex_witnesses": true,
+    "vex_arc_complete": true,
+    "pressure_released": true,
+    "crater_seal": true,
+    "rune_names_found": true,
+    "frost_seal": true,
+    "mara_arc_complete": true,
+    "last_crown_liberated": true,
+    "rune_charter_found": true,
+    "rune_remember": true,
+    "rune_arc_complete": true,
+    "crown_memory": true,
+    "architect_defeated": true,
+    "ending_seen": true,
+    "aftermath_home": true,
+    "smith_calibration_accept": true,
+    "smith_calibration_started": true,
+    "smith_calibration_complete": true
+  },
+  "persistedAndIdempotent": true,
+  "wallSeconds": 2.355,
+  "errors": []
+}

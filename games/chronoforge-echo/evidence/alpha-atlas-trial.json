@@ -1,0 +1,78 @@
+{
+  "method": "Diagnostic rendering of unchanged source atlases through the production loadPixelAtlas mask on alternating dark teal/plum fields. These are import diagnostics, not gameplay screenshots.",
+  "pass": "trial",
+  "cases": [
+    {
+      "id": "kaida_showcase",
+      "width": 2172,
+      "height": 760,
+      "source": "assets/kaida-showcase-source.png",
+      "key": "neutral-exterior",
+      "seeds": 17
+    },
+    {
+      "id": "kaida_walk",
+      "width": 1448,
+      "height": 1122,
+      "source": "assets/kaida-walk-source.png",
+      "key": "neutral-exterior",
+      "seeds": 17
+    },
+    {
+      "id": "haventide_civilians",
+      "width": 2172,
+      "height": 760,
+      "source": "assets/haventide-civilians-source.png",
+      "key": "neutral-exterior",
+      "seeds": 7
+    },
+    {
+      "id": "vex",
+      "width": 2172,
+      "height": 760,
+      "source": "assets/vex-source.png",
+      "key": "neutral-exterior",
+      "seeds": 7
+    },
+    {
+      "id": "rune",
+      "width": 2172,
+      "height": 760,
+      "source": "assets/rune-source.png",
+      "key": "neutral-exterior",
+      "seeds": 4
+    },
+    {
+      "id": "vex_walk",
+      "width": 1447,
+      "height": 1123,
+      "source": "assets/vex-walk-source.png",
+      "key": "neutral-exterior",
+      "seeds": 15
+    },
+    {
+      "id": "rune_walk",
+      "width": 1447,
+      "height": 1123,
+      "source": "assets/rune-walk-source.png",
+      "key": "neutral-exterior",
+      "seeds": 4
+    },
+    {
+      "id": "drone_sentinel",
+      "width": 1536,
+      "height": 1060,
+      "source": "assets/drone-sentinel-source.png",
+      "seeds": 0
+    },
+    {
+      "id": "mutant_hound",
+      "width": 1536,
+      "height": 1060,
+      "source": "assets/mutant-hound-source.png",
+      "seeds": 0
+    }
+  ],
+  "errors": [],
+  "result": "pass"
+}

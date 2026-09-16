@@ -1,0 +1,244 @@
+{
+  "catalogCount": 34,
+  "drawn": [
+    {
+      "id": "iron_blade",
+      "supported": true,
+      "visiblePixels": 269,
+      "hash": 2283487444
+    },
+    {
+      "id": "void_shard",
+      "supported": true,
+      "visiblePixels": 315,
+      "hash": 1921574143
+    },
+    {
+      "id": "rune_gauntlet",
+      "supported": true,
+      "visiblePixels": 495,
+      "hash": 1051874485
+    },
+    {
+      "id": "scrap_vest",
+      "supported": true,
+      "visiblePixels": 452,
+      "hash": 2004306357
+    },
+    {
+      "id": "bio_weave",
+      "supported": true,
+      "visiblePixels": 452,
+      "hash": 1062350977
+    },
+    {
+      "id": "data_chip",
+      "supported": true,
+      "visiblePixels": 604,
+      "hash": 122591770
+    },
+    {
+      "id": "crit_lens",
+      "supported": true,
+      "visiblePixels": 456,
+      "hash": 3763163864
+    },
+    {
+      "id": "bog_fang",
+      "supported": true,
+      "visiblePixels": 231,
+      "hash": 1874886849
+    },
+    {
+      "id": "swamp_coil",
+      "supported": true,
+      "visiblePixels": 473,
+      "hash": 212515706
+    },
+    {
+      "id": "glacial_claw",
+      "supported": true,
+      "visiblePixels": 455,
+      "hash": 1000805875
+    },
+    {
+      "id": "moss_ward",
+      "supported": true,
+      "visiblePixels": 411,
+      "hash": 32945859
+    },
+    {
+      "id": "ember_core",
+      "supported": true,
+      "visiblePixels": 477,
+      "hash": 295775171
+    },
+    {
+      "id": "frost_plate",
+      "supported": true,
+      "visiblePixels": 454,
+      "hash": 1680308540
+    },
+    {
+      "id": "void_scepter",
+      "supported": true,
+      "visiblePixels": 302,
+      "hash": 2017762274
+    },
+    {
+      "id": "magma_blade",
+      "supported": true,
+      "visiblePixels": 269,
+      "hash": 2540961861
+    },
+    {
+      "id": "titan_shard",
+      "supported": true,
+      "visiblePixels": 493,
+      "hash": 2819389935
+    },
+    {
+      "id": "ember_crown",
+      "supported": true,
+      "visiblePixels": 480,
+      "hash": 1161880989
+    },
+    {
+      "id": "signal_saber",
+      "supported": true,
+      "visiblePixels": 269,
+      "hash": 1244004591
+    },
+    {
+      "id": "anchor_hammer",
+      "supported": true,
+      "visiblePixels": 381,
+      "hash": 2493715036
+    },
+    {
+      "id": "glass_needle",
+      "supported": true,
+      "visiblePixels": 235,
+      "hash": 2121049643
+    },
+    {
+      "id": "horizon_edge",
+      "supported": true,
+      "visiblePixels": 241,
+      "hash": 3040313680
+    },
+    {
+      "id": "concord_staff",
+      "supported": true,
+      "visiblePixels": 331,
+      "hash": 2452422041
+    },
+    {
+      "id": "harbor_aegis",
+      "supported": true,
+      "visiblePixels": 546,
+      "hash": 297021062
+    },
+    {
+      "id": "voyager_coat",
+      "supported": true,
+      "visiblePixels": 463,
+      "hash": 2960154763
+    },
+    {
+      "id": "witness_prism",
+      "supported": true,
+      "visiblePixels": 315,
+      "hash": 3611191039
+    },
+    {
+      "id": "quiet_prism",
+      "supported": true,
+      "visiblePixels": 315,
+      "hash": 3850749744
+    },
+    {
+      "id": "namekeeper",
+      "supported": true,
+      "visiblePixels": 440,
+      "hash": 1448684777
+    },
+    {
+      "id": "open_gate",
+      "supported": true,
+      "visiblePixels": 399,
+      "hash": 2807028668
+    },
+    {
+      "id": "mara_compass",
+      "supported": true,
+      "visiblePixels": 474,
+      "hash": 3918846386
+    },
+    {
+      "id": "field_tonic",
+      "supported": true,
+      "visiblePixels": 424,
+      "hash": 2173737384
+    },
+    {
+      "id": "ether_cell",
+      "supported": true,
+      "visiblePixels": 383,
+      "hash": 1798548747
+    },
+    {
+      "id": "dawn_seed",
+      "supported": true,
+      "visiblePixels": 385,
+      "hash": 1897612492
+    },
+    {
+      "id": "tide_elixir",
+      "supported": true,
+      "visiblePixels": 428,
+      "hash": 664715439
+    },
+    {
+      "id": "star_cell",
+      "supported": true,
+      "visiblePixels": 561,
+      "hash": 2236804806
+    }
+  ],
+  "fallthrough": [
+    {
+      "id": "ore",
+      "supported": false
+    },
+    {
+      "id": "food",
+      "supported": false
+    },
+    {
+      "id": "energy",
+      "supported": false
+    },
+    {
+      "id": "renown",
+      "supported": false
+    },
+    {
+      "id": "town_center",
+      "supported": false
+    },
+    {
+      "id": "farm",
+      "supported": false
+    },
+    {
+      "id": "mine",
+      "supported": false
+    },
+    {
+      "id": "forge",
+      "supported": false
+    }
+  ],
+  "uniquePixelHashes": 34
+}

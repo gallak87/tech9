@@ -1,0 +1,198 @@
+[
+  {
+    "scene": "haventide",
+    "spawnWalkable": true,
+    "reachableNodes": 24058,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "emberline",
+    "spawnWalkable": true,
+    "reachableNodes": 35043,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "forest_veil",
+    "spawnWalkable": true,
+    "reachableNodes": 33697,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "mire_bog",
+    "spawnWalkable": true,
+    "reachableNodes": 16535,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "crater_ember",
+    "spawnWalkable": true,
+    "reachableNodes": 30660,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "orbital_reach",
+    "spawnWalkable": true,
+    "reachableNodes": 29251,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "frost_canyon",
+    "spawnWalkable": true,
+    "reachableNodes": 32146,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "last_crown",
+    "spawnWalkable": true,
+    "reachableNodes": 29332,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "haventide_town",
+    "spawnWalkable": true,
+    "reachableNodes": 2938,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "emberline_town",
+    "spawnWalkable": true,
+    "reachableNodes": 2997,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "orbital_reach_town",
+    "spawnWalkable": true,
+    "reachableNodes": 2976,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "last_crown_town",
+    "spawnWalkable": true,
+    "reachableNodes": 2962,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "hav_house",
+    "spawnWalkable": true,
+    "reachableNodes": 956,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "hav_cave",
+    "spawnWalkable": true,
+    "reachableNodes": 1927,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "ember_house",
+    "spawnWalkable": true,
+    "reachableNodes": 956,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "ember_cave",
+    "spawnWalkable": true,
+    "reachableNodes": 1612,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "forest_house",
+    "spawnWalkable": true,
+    "reachableNodes": 956,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "forest_cave",
+    "spawnWalkable": true,
+    "reachableNodes": 1753,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "mire_house",
+    "spawnWalkable": true,
+    "reachableNodes": 956,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "mire_cave",
+    "spawnWalkable": true,
+    "reachableNodes": 1541,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "crater_house",
+    "spawnWalkable": true,
+    "reachableNodes": 956,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "crater_cave",
+    "spawnWalkable": true,
+    "reachableNodes": 1918,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "orbital_house",
+    "spawnWalkable": true,
+    "reachableNodes": 956,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "orbital_cave",
+    "spawnWalkable": true,
+    "reachableNodes": 1822,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "frost_house",
+    "spawnWalkable": true,
+    "reachableNodes": 956,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "frost_cave",
+    "spawnWalkable": true,
+    "reachableNodes": 1714,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "crown_house",
+    "spawnWalkable": true,
+    "reachableNodes": 956,
+    "lost": [],
+    "badDestinations": []
+  },
+  {
+    "scene": "crown_cave",
+    "spawnWalkable": true,
+    "reachableNodes": 1916,
+    "lost": [],
+    "badDestinations": []
+  }
+]

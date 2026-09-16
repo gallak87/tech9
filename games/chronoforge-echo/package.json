@@ -1,0 +1,23 @@
+{
+  "name": "chronforge-echo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 4321",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4322",
+    "test": "node --test tests/*.test.js",
+    "verify": "node tests/browser.mjs"
+  },
+  "dependencies": {
+    "pixi.js": "8.16.0"
+  },
+  "devDependencies": {
+    "playwright": "1.58.2",
+    "vite": "8.3.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

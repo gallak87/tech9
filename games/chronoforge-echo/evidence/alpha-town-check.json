@@ -1,0 +1,17 @@
+{
+  "method": "Earned aftermath state restored with production persistence; real walkTo and Game.update reach provisions stall. Actual town renderer, no composite or position assignment.",
+  "errors": [],
+  "walk": {
+    "from": {
+      "x": 1367.8036064784098,
+      "y": 951.2461531214935
+    },
+    "to": {
+      "x": 528.021965500118,
+      "y": 896.8514216687933
+    },
+    "steps": 365,
+    "scene": "haventide_town"
+  },
+  "result": "pass"
+}

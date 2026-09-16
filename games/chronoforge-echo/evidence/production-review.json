@@ -1,0 +1,18 @@
+{
+  "method": "Static Vite production build on port4322. No test hooks or fixture access; title, opening and all tabs use real keyboard input.",
+  "errors": [],
+  "httpErrors": [],
+  "screens": [
+    "production-review-title.png",
+    "production-review-settings.png",
+    "production-review-opening.png"
+  ],
+  "coldReadyMs": 2222,
+  "canvas": {
+    "width": 1920,
+    "height": 1080,
+    "imageRendering": "auto"
+  },
+  "result": "pass",
+  "browser": "153.0.8010.37"
+}

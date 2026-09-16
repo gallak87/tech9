@@ -1,0 +1,53 @@
+# Verification and review guide
+
+The complete authored campaign passes. The user's subsequent hands-on review exposed sprite-background, rendering, prop and Esc defects that the earlier internal visual review missed. The correction pass and current evidence are recorded in [USER_REVIEW_POLISH.md](USER_REVIEW_POLISH.md); the current delivery state is [STATUS.json](STATUS.json). Earlier scores in [SHOWCASE_CRITIQUE.md](SHOWCASE_CRITIQUE.md) are historical. Passing automation does not establish visual quality. Sparse angular caves, recurring texture patterns, shared service identity and forgiving late progression remain qualitative limits. The requested menu identity redesign is deferred in the roadmap.
+
+## Repeatable checks
+
+Use Node22.12+ from this directory. Verification used Node24.19.0. `npm test` runs46 focused invariants covering required art, combat, persistence, equipment/skills, civic economy, narrative rewards and future-content gates. All46 passed; the final eight-biome asset assertion also passed after the final source pair arrived.
+
+The following reports distinguish actual controls, accelerated simulation and scene fixtures. Browser scripts require the development server on4321 unless explicitly described as production checks.
+
+| Coverage | Evidence and scope |
+| --- | --- |
+| Complete campaign | [campaign-browser.json](../evidence/campaign-browser.json): clean state, physical path following,40 unique legal first-clear battles, no losses, all eight regions, both recruitments, tier4, the actual Architect, ending return and playable homecoming. All three heroes reach42. No XP, inventory, flags, health or location grants. The simulation is accelerated; this is not a claim of a human-speed playthrough. |
+| Earned review states | [earned-campaign-saves-art-review.json](../evidence/earned-campaign-saves-art-review.json):58 unchanged arrival, chapter and encounter states used for visual review. [final-art-review.json](../evidence/final-art-review.json) reloads them through real persistence for103 world, battle, interior, settlement and atlas samples. The latest campaign rerun writes a separate current [earned archive](../evidence/earned-campaign-saves.json). |
+| Final visual corrections | [final-art-review-polish.json](../evidence/final-art-review-polish.json):22 actual captures of revised town courts, domestic rooms, landmark clearance and wider follower formation. [civic-review-after.json](../evidence/civic-review-after.json) checks all32 building variants; [civic-review-final.json](../evidence/civic-review-final.json) confirms the last two crop repairs. The declared building fixtures establish art coverage, not earned progression. |
+| Every personal-story branch | [branch-browser.json](../evidence/branch-browser.json): six alternative branches across three arcs, actual choice UI, exact rewards, exclusive outcomes, save/load and return checks. |
+| Vendor quest | [vendor-browser.json](../evidence/vendor-browser.json): Bran's accepted calibration request, loose-chip handoff, dialogue return, rewards once, manual save and revisit. Equipped-copy protection also has a focused invariant. |
+| World scale and followers | [browser-results-route.json](../evidence/browser-results-route.json): 5,786px walked at normal maximum 245px/s, 4.91 viewports of camera travel, 21 timed production frames, zero player/follower collision violations. [world-reachability-final.json](../evidence/world-reachability-final.json): all 28 scene spawns, portal destinations and interaction neighborhoods reachable. |
+| Battles and exact pause | [browser-results-combat.json](../evidence/browser-results-combat.json), [combat follow-up](../evidence/browser-results-combat-filtered.json): keyboard and mouse decision flows, held-key protection, timing, targeting and exact paused timelines.16 pure combat invariants cover one-to-four enemies, ready queues, dead actions, group/support costs and phase changes. |
+| Action artistry | [choreography-combos.json](../evidence/choreography-combos.json), [enemy lanes](../evidence/choreography-enemies.json), [boss attacks](../evidence/choreography-bosses.json): timed action frames, shared contacts and actual outcome assertions. These use declared battle fixtures, not earned campaign progression. |
+| Defeat and ending | [defeat-art.json](../evidence/defeat-art.json): ordinary and final boss defeated through legal actions; opaque down hold, fade, unchanged result delay, actual keyboard ending/homecoming. |
+| Save/load and ending resume | [browser-results-ux-filtered.json](../evidence/browser-results-ux-filtered.json): exact ending dialogue/panel restoration and saved battle state; [session-browser.json](../evidence/session-browser.json): real Load/New buttons clear old gateway transitions and held-session state while preserving manual saves. Eight persistence invariants cover migration, corruption and ownership. |
+| Maps and essential UI | [browser-results-all.json](../evidence/browser-results-all.json): all14 combined acceptance checks pass, including explored fog, loot-hidden map/minimap, keyboard inventory, vendors, construction, seven tabs, save recovery, battle input, followers, gateways and mouse fallback. Zero console errors, page errors or missing assets. |
+| Final UI and recovery | [ui-revision-critic.json](../evidence/ui-revision-critic.json): complete three-hero Party page, keyboard quest scrolling, negative vendor comparisons and readable save locations. [presentation-browser.json](../evidence/presentation-browser.json): interior world-map position, saved restrained-motion setting, and safe recovery from a changed scenery footprint. [settlement-production-walks.json](../evidence/settlement-production-walks.json) verifies28 actual service approaches. |
+| Exact click arrival | [navigation-endpoint-after.json](../evidence/navigation-endpoint-after.json): the exact failed Haventide board position, six repeated floor clicks and all 28 settlement services now work with production click movement alone. [The failed campaign](../evidence/campaign-navigation-failure.json) exposed grid rounding ending outside interaction range; the final campaign and long road rerun pass after the correction. |
+| Static production | [production.json](../evidence/production.json): built game served on4322; normal New Expedition, opening controls and all seven tabs; no test hooks even with `?test=1`, no runtime/HTTP errors. Rebuild before reproducing with `node tests/production.mjs`. |
+| Missing required art | [required-assets.json](../evidence/required-assets.json): one intentionally blocked Kaida request in an isolated production browser context yields a visible file-specific boot failure and no false readiness. No project asset is removed. |
+
+Earlier failures and their screenshots are retained to show why corrections were made. Focused follow-up reports supersede the affected checks; historical failing reports are not silently rewritten into passes.
+
+## Performance and memory
+
+Environment: **Apple M1 Pro, macOS arm64, Chrome 153.0.8010.37, 1920×1080 viewport**, with a 960×540 logical view and 1920×1080 artwork surface. [performance-review.json](../evidence/performance-review.json) samples actual RAF intervals after 300 ms settling for 1.4 seconds per scene: eight regional arrivals, Haventide town, a domestic room, a cave, a four-enemy battle and the final boss. Scene preparation includes two rendered frames after the real scene change. No concurrent capture browser was running.
+
+- All thirteen p95 frame intervals are 16.7–16.8 ms against a 20 ms target. These short steady-state samples do not establish performance for every frame of a complete playthrough.
+- Scene preparation is 18.1–76.1 ms against a 250 ms target. Fresh local development readiness is 2.07 seconds, including all required source imports. There are no recorded application errors.
+- Retained decoded source canvases: 245,387,136 bytes (234.0 MiB). Private cropped frames: 22,983,668 bytes (21.9 MiB). Ground/material tiles: 22,020,096 bytes (21 MiB). These are renderer-accounted pixels, not total browser process memory. The sampled loot-outline cache is 120,640 bytes; all reviewed variants total 184,000 bytes.
+- The sampled world-chunk cache reaches its enforced 40-chunk cap of 94,371,840 bytes (90 MiB), below the 96 MiB ground-cache budget. The finer backing surface uses fewer cached chunks to preserve this memory bound.
+- A subsequent enclosed-background seed correction for the existing market stall changes import alpha only; dimensions, scene geometry and drawing work are unchanged.
+
+The 49 immutable PNGs total 126,703,501 bytes (120.8 MiB) on disk. They preload for consistent cross-region transitions. This targets local desktop play, not low-bandwidth/mobile delivery.
+
+The previous renderer's [performance.json](../evidence/performance.json), [interrupted earlier report](../evidence/performance-before-final-corrections.json), and [isolated repeat](../evidence/performance-emberline-recheck.json) remain as historical evidence. They do not describe the current higher-detail renderer.
+
+## Brief playable review
+
+1. Start a New Expedition. Kaida is alone; follow the salt road to the first visible encounter and guarded settlement.
+2. Use a fresh timing press during an attack, then pause in the middle of another action and resume. Enter the liberated town, buy/sell, accept Bran's request and inspect settlement works.
+3. Open the seven atlas tabs using1–7. Try an equipment comparison, check skill prerequisites, and create/load a manual save.
+4. Continue along the physical gateways. Vex and Rune join at different story beats; their walks, conversations and coordinated techniques become part of the journey.
+5. Complete the regional relays and civilization ladder, face the separate Void Architect, finish the ending and return home. The game remains explorable afterward.
+
+Time travel remains unavailable. [ROADMAP.md](../ROADMAP.md) records the deferred menu identity redesign separately from the unapproved time-travel boundary and tested campaign-complete plus level40 eligibility contract.

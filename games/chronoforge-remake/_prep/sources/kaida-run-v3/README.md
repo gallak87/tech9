@@ -1,7 +1,7 @@
 # Kaida run v3: detailed pose references
 
-**Status: the detailed [run r1](../kaida-run-r1/README.md) is complete and awaiting
-user visual review. a1 is unapproved.** This directory preserves the approved
+**Status: the detailed [run r1](../kaida-run-r1/README.md) has a hip attachment
+correction after its first review and awaits review again. a1 is unapproved.** This directory preserves the approved
 reference images and the [motion construction stages](blocking/README.md).
 [progress.json](progress.json) records the five checkpoints.
 

@@ -40,11 +40,20 @@ def verify_art_poses(poses, motion, design):
         assert art['hand_angle'] == guide['arms']['right']['hand_angle']
         for side in ('left', 'right'):
             joints = art['legs'][side]
+            fabric = art['hip_fabric'][side]
+            assert math.dist(fabric['root'], joints[0]) < 1e-6
+            fabric_vector = [b-a for a, b in zip(fabric['root'], fabric['seam'])]
+            thigh_vector = [b-a for a, b in zip(joints[0], joints[1])]
+            alignment = sum(a*b for a, b in zip(fabric_vector, thigh_vector)) / (math.hypot(*fabric_vector)*math.hypot(*thigh_vector))
+            assert alignment > .998, 'Painted hip fabric stays in the wrong stride'
             assert joints[0] == guide['hips'][side], 'Art changed hip position'
             assert joints[2][0] == guide['legs'][side]['joints'][2][0], 'Art changed stance travel'
             for a, b, length in zip(joints, joints[1:], design['leg_lengths']):
                 assert abs(math.dist(a, b) - length) < 1e-6, 'Detailed limb changes length'
             assert art['foot_bottom'][side] == math.floor(guide['contacts'][side]['lowest_y'] + .5)
+    right_leads, left_leads = poses['frames'][0]['hip_fabric']['right'], poses['frames'][8]['hip_fabric']['right']
+    assert right_leads['seam'][0] - right_leads['root'][0] > 10
+    assert left_leads['seam'][0] - left_leads['root'][0] < -5, 'Near hip fabric still points forward with the near leg back'
 
 
 def main():
@@ -94,7 +103,7 @@ def main():
         pixels, preview = read(work / 'pixel-check.json'), read(work / 'review.json')
         assert input_hashes == {str(p.relative_to(PREP)): digest(p) for p in inputs}, 'Inputs changed during build; rerun from saved files'
         checks.update({
-            'revision': 'r1', 'status': 'complete first detailed pass; awaiting user visual review',
+            'revision': 'r1', 'status': 'hip attachment correction; awaiting user visual review',
             'alpha_approved': False, 'runtime_integrated': False,
             'canvas': design['canvas'], 'origin': design['origin'], 'layers': len(metadata['layers']),
             'source_sha256': digest(candidate), 'gif_sha256': digest(work / 'running.gif'),
@@ -105,6 +114,8 @@ def main():
             'joint_overlap_checks': pixels['overlap_checks'],
             'all_parts_and_composites_connected': True, 'no_clipping': True,
             'actual_boot_contacts_checked': len(pixels['foot_bottoms']),
+            'hip_fabric_tracks_thighs': True, 'hip_fabric_pixel_checks': pixels['hip_fabric_checks'],
+            'visible_near_hip_extremes_checked': pixels['visible_hip_extremes'],
             'sampling_specks_removed': sum(sum(f['sampling_specks_removed'].values()) for f in art['frames']),
             'gif_loops': True, 'preview': preview,
         })

@@ -2,7 +2,7 @@
   "target_revision": "r1",
   "revision_complete": true,
   "alpha_approved": false,
-  "status": "r1 detailed run.right complete; awaiting user visual review; a1 unapproved",
+  "status": "r1 hip attachment correction after first visual review; awaiting another review; a1 unapproved",
   "current_motion_adjustment": {
     "pelvis_raise_fraction": 0.15,
     "pelvis_lift_px": 35.25,
@@ -45,5 +45,12 @@
     }
   ],
   "review_gif": "../../exports/kaida-run-r1/running.gif",
-  "scope": "run.right only; idle and runtime untouched"
+  "scope": "run.right only; idle and runtime untouched",
+  "review_findings": [
+    {
+      "issue": "The rigid pelvis artwork retained the right-forward upper thigh while the legs alternated.",
+      "correction": "Transfer proximal right-thigh fabric into the articulating thigh; limit rigid waist to belt/pouch and central underlap.",
+      "status": "implemented; awaiting visual review"
+    }
+  ]
 }

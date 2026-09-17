@@ -53,6 +53,29 @@ visually inspected. The live run is the stronger test of hidden coverage.
 
 ## Editing / reuse
 
+### Hip attachment correction after r1 review
+
+The original `pelvis` mask incorrectly included the proximal right thigh and
+its forward-facing trouser folds. The legs could alternate underneath it while
+that painted hip still depicted the first stride. A small in-plane pelvis tilt
+did not fix this ownership error.
+
+The corrected `pelvis` layer contains the waist belt, pouch and a short central
+underlap cloned from clean trouser cloth, with no thigh strap in that bridge.
+The visible near seat/hip fabric belongs to `leg.right.thigh` and
+articulates from the hip with that thigh. Its actual cloth replaces the earlier
+cloned upper cap. The far thigh remains behind it; anatomical near/far identity
+does not switch when a different leg leads.
+
+`ownership_checks` explicitly verify three formerly duplicated fabric points:
+opaque on the right thigh and transparent on the rigid waist. `fabric_axis`
+landmarks follow the painted proximal-thigh direction into the timeline. These
+checks target the stuck-hip regression; component/connectivity checks alone
+could not catch it. Both stride extremes and both passing poses still require
+visual review.
+The check was exercised against the committed first-r1 master and rejected it
+for leaving stride-specific thigh fabric in the rigid waist.
+
 Edit the saved master in Aseprite, save it, then rebuild a motion timeline.
 Changing a mask recipe requires a deliberate parts rebuild. Do not run that
 rebuild after manual cel edits unless those edits are preserved elsewhere.

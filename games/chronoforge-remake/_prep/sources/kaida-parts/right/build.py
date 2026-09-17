@@ -44,7 +44,7 @@ def main():
         assert [l['name'] for l in metadata['layers']] == [p['name'] for p in spec['parts']]
         assert all(l['cels'] == 1 for l in metadata['layers'])
         assert len(metadata['slices']) == len(spec['parts'])
-        script(SOURCE / 'review.lua', source=candidate, output=work)
+        script(SOURCE / 'review.lua', source=candidate, output=work, spec=SOURCE / 'parts.json')
         validation = json.loads((work / 'validation.json').read_text())
         validation['source_sha256'] = digest(candidate)
         validation['reference_sha256'] = digest((SOURCE / spec['reference']).resolve())

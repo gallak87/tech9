@@ -61,8 +61,8 @@ replaced by this setup.
 ## Daily commands
 
 The current candidate is [Kaida run r1](sources/kaida-run-r1/README.md): a detailed
-right-facing, 16-frame run on 20 editable layers. **r1 is complete and awaiting
-user visual review; a1 is unapproved.** The source retains the approved higher
+right-facing, 16-frame run on 20 editable layers. **The fixed-hip error from the
+first r1 has been corrected; another visual review is pending. a1 is unapproved.** The source retains the approved higher
 hips, wrist/grip motion, and detailed appearance. Its
 [shared character parts](sources/kaida-parts/right/README.md) are separate from
 the run timeline. Re-export saved cels headlessly:

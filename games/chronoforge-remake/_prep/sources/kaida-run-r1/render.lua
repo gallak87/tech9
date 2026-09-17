@@ -6,6 +6,13 @@ local R=dofile(assert(app.params.raster));local pc=app.pixelColor;local A=pc.rgb
 local master=assert(app.open(assert(app.params.master)));local textures={}
 for _,l in ipairs(master.layers) do local c=l:cel(1);textures[l.name]={image=Image(c.image),offset={c.position.x,c.position.y}} end
 master:close()
+for _,check in ipairs(parts.ownership_checks or {}) do
+ local function alpha(name)
+  local t=textures[name];local x,y=check.point[1]-t.offset[1],check.point[2]-t.offset[2]
+  return x>=0 and y>=0 and x<t.image.width and y<t.image.height and A(t.image:getPixel(x,y)) or 0
+ end
+ assert(alpha(check.owner)>128 and alpha(check.excluded)==0,'Rebuild parts: rigid pelvis still owns the proximal thigh')
+end
 local W,H=d.canvas[1],d.canvas[2]
 local function vector(a,b)return {b[1]-a[1],b[2]-a[2]} end
 local function point(p)return {p[1],p[2]} end
@@ -90,7 +97,7 @@ for fi,p in ipairs(motion.frames) do
   feet[part.name]=im
   artlegs[side]=ik(p.hips[side],{ankle[1],ankle[2]+dy},d.leg_lengths[1],d.leg_lengths[2])
  end end
- local frameRecord={index=fi,hips={left=point(p.hips.left),right=point(p.hips.right)},legs=artlegs,contacts={},foot_bottom={},grip=point(p.weapon.hand),hand_angle=p.weapon.angle,sampling_specks_removed={}}
+ local frameRecord={index=fi,hips={left=point(p.hips.left),right=point(p.hips.right)},legs=artlegs,contacts={},foot_bottom={},grip=point(p.weapon.hand),hand_angle=p.weapon.angle,sampling_specks_removed={},hip_fabric={}}
  for _,side in ipairs({'left','right'}) do local c=p.contacts[side];frameRecord.contacts[side]={phase=c.phase,planted=c.planted,lift=c.lift,lowest_y=c.lowest_y} end
  for _,part in ipairs(parts.parts) do
   local m,im;local kind=part.kind
@@ -113,6 +120,9 @@ for fi,p in ipairs(motion.frames) do
   elseif kind=='weapon' then m=matrix(part.anchor,p.weapon.hand,p.weapon.angle-part.angle,part.scale,part.scale)
   end
   im=im or render(part.name,m)
+  if part.fabric_axis then
+   frameRecord.hip_fabric[part.side]={root=apply(m,part.fabric_axis[1]),seam=apply(m,part.fabric_axis[2])}
+  end
   frameRecord.sampling_specks_removed[part.name]=cleanSampling(im.image)
   s:newCel(layers[part.name],fi,im.image,Point(im.x,im.y))
  end

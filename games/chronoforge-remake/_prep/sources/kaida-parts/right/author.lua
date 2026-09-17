@@ -53,7 +53,18 @@ for _,part in ipairs(spec.parts) do
  local im=Image(x1-x0+1,y1-y0+1,ColorMode.RGB)
  for _,fill in ipairs(part.fills or {}) do
   local polygon={};for _,p in ipairs(fill.polygon) do polygon[#polygon+1]={p[1]-x0,p[2]-y0} end
-  R.poly(im,polygon,R.color(fill.color),fill.outline and R.color(fill.outline) or nil)
+  if fill.texture then
+   -- Reconstruct neutral joint fabric from a clean cloth patch. No straps or
+   -- stride-specific folds are carried into the rigid waist underlap.
+   local t=fill.texture
+   for y=y0,y1 do for x=x0,x1 do if inside(x+.5,y+.5,fill.polygon) then
+    local sx=math.floor(t.origin[1]+(x-t.anchor[1])*t.scale+.5)
+    local sy=math.floor(t.origin[2]+(y-t.anchor[2])*t.scale+.5)
+    im:drawPixel(x-x0,y-y0,ref:getPixel(sx,sy))
+   end end end
+  else
+   R.poly(im,polygon,R.color(fill.color),fill.outline and R.color(fill.outline) or nil)
+  end
  end
  for y=y0,y1 do for x=x0,x1 do
   local owned=inside(x+.5,y+.5,part.polygon)

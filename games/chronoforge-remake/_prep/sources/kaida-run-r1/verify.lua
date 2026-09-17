@@ -23,7 +23,7 @@ local function islands(im)
  end
  return count,pixels
 end
-local checks={frames=#s.frames,layers=#s.layers,overlap_checks=0,cel_components={},composite_components={},foot_bottoms={}}
+local checks={frames=#s.frames,layers=#s.layers,overlap_checks=0,cel_components={},composite_components={},foot_bottoms={},hip_fabric_checks=0,visible_hip_extremes=0}
 assert(#s.frames==16 and #s.layers==20)
 for fi,pose in ipairs(poses.frames) do
  local function cel(n)return assert(layers[n]:cel(fi),n..' missing cel') end
@@ -46,6 +46,9 @@ for fi,pose in ipairs(poses.frames) do
  end
  for _,side in ipairs({'left','right'}) do
   local leg=pose.legs[side];local arm=motion.frames[fi].arms[side].joints
+  local fabric=pose.hip_fabric[side];local sx,sy=math.floor(fabric.seam[1]+.5),math.floor(fabric.seam[2]+.5)
+  assert(pixel(cel('leg.'..side..'.thigh'),sx,sy)>128,'Hip fabric landmark has no saved pixels')
+  checks.hip_fabric_checks=checks.hip_fabric_checks+1
   overlap('pelvis','leg.'..side..'.thigh',leg[1],30)
   overlap('leg.'..side..'.thigh','leg.'..side..'.shin',leg[2],24)
   overlap('leg.'..side..'.thigh','knee.'..side,leg[2],24)
@@ -63,6 +66,13 @@ for fi,pose in ipairs(poses.frames) do
  overlap('head','torso',motion.frames[fi].neck,25)
  overlap('weapon','hand.right',pose.grip,14)
  local composite=Image(s.width,s.height,ColorMode.RGB);composite:drawSprite(s,fi)
+ if fi==1 or fi==9 then
+  local f=pose.hip_fabric.right;local x,y=math.floor(f.seam[1]+.5),math.floor(f.seam[2]+.5)
+  local thigh=cel('leg.right.thigh')
+  assert(pixel(cel('pelvis'),x,y)==0,'Rigid waist masks the articulating near hip')
+  assert(composite:getPixel(x,y)==thigh.image:getPixel(x-thigh.position.x,y-thigh.position.y),'Near hip fabric is hidden at a stride extreme')
+  checks.visible_hip_extremes=checks.visible_hip_extremes+1
+ end
  local n=islands(composite);checks.composite_components[#checks.composite_components+1]=n
  assert(n==1,'Detached composite artwork at frame '..fi..': '..n..' islands')
 end

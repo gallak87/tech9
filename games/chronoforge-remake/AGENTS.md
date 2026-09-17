@@ -32,12 +32,15 @@ running GIF, not contact sheets or every exported atlas. The agent does the
 complete authoring and cleanup; manual user editing is optional.
 
 The current detailed right-facing run is `_prep/sources/kaida-run-r1/README.md`:
-**r1 complete, awaiting user visual review; a1 unapproved**. Its separate shared
+**r1 hip attachment corrected after review; awaiting review again; a1 unapproved**. Its separate shared
 art is `_prep/sources/kaida-parts/right/parts.aseprite` (20 named parts).
 Use the r1 build's `--review-only` to export saved cels. `--rebuild` deliberately
 replaces the timeline from shared parts and the approved higher-hips motion.
 Keep edited sources safe; character-part rebuild and clip rebuild are separate.
 The r1 README records the exact authoring process, pixel checks and limits.
+The first r1 was rejected for a fixed forward-stride hip over alternating legs.
+The waist layer must not own the proximal-thigh fabric; that fabric articulates
+with each thigh. Keep the ownership and visible hip-fabric regression checks.
 
 The earlier `_prep/sources/kaida-full-set/` cutout draft was rejected for offset
 legs, weak hips, arm overlap, floating pixels, and standing-pose feet. Its 36

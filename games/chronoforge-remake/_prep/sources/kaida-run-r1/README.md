@@ -1,6 +1,6 @@
 # Kaida run — r1
 
-**Complete first detailed pass; awaiting user visual review. Not a1.**
+**Hip attachment correction after user review; awaiting another visual review. Not a1.**
 Scope is `run.right`: 16 frames × 50 ms, an 800 ms loop on an 896×640
 transparent canvas. The origin is fixed at **(400, 590)**. The source has
 **20 editable layers / 320 cels**, a `run.right` tag and joint-pivot slices.
@@ -14,6 +14,25 @@ Idle and game runtime assets are unchanged. This revision is for review;
 promotion to a1 and runtime integration require the user's later decision.
 Nothing launches automatically. If the source is already open in Aseprite,
 reload it from disk after a deliberate rebuild.
+
+## Hip correction
+
+The first r1 delivery had an anatomical error despite passing its continuity
+checks: the `pelvis` cutout contained the upper right thigh in its forward-stride
+pose. The animated thigh rotated underneath a fixed drawing of that same area.
+The right-leading stride looked aligned; the opposite stride did not.
+
+The corrected masks transfer that visible seat and proximal-thigh fabric onto
+the right thigh. The waist retains the belt/pouch and a short central underlap.
+The hip crease now follows the right femur through both strides and the passing
+poses; it is no longer covered by a fixed forward-facing thigh stump. The
+existing leg tracks, higher hips, upper body and sword motion are retained.
+
+Three source-ownership probes reject the former duplicate in the rigid waist.
+The animation also checks 32 saved fabric landmarks and the visible near-hip
+pixels at both stride extremes. Their direction follows the thigh and reverses
+its horizontal sign at the opposite extreme. These augment the attachment
+checks; they do not replace visual assessment of the anatomy.
 
 ## Commands
 
@@ -107,6 +126,8 @@ preview; it is not falsely claimed to equal the original high-color RGBA.
 - **256 local pixel-overlap checks** at hips, knees, ankles, shoulders, elbows,
   wrists, neck and grip. These catch detached artwork even if joints agree.
 - All **32 actual boot bottoms** match the intended contact/lift track.
+- Painted proximal-thigh fabric follows both femurs; it is present in saved
+  cels and visible in the composite at the opposing near-hip extremes.
 - Fixed canvas/origin, `run.right` tag, frame preservation in PNG/JSON export.
 - GIF dimensions, 16 frames, timing, infinite loop and exact roundtrip of the
   quantized preview. Quantization error against RGB is recorded separately.

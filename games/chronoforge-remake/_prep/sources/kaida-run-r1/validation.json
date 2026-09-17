@@ -14,7 +14,7 @@
   "pelvis_lift_px": 35.25,
   "horizontal_stride_scale": 0.94,
   "revision": "r1",
-  "status": "complete first detailed pass; awaiting user visual review",
+  "status": "hip attachment correction; awaiting user visual review",
   "alpha_approved": false,
   "runtime_integrated": false,
   "canvas": [
@@ -26,26 +26,26 @@
     590
   ],
   "layers": 20,
-  "source_sha256": "95fca4bc80950bea9d2a348af2c555b065bf414f03249bd0bbd62783bd759505",
-  "gif_sha256": "18dca92867955b9ecd03f57793b9d1ec15cb399e12167210e16bec3b3104bc5c",
+  "source_sha256": "37324c0f799dd7def583bd74e08896edd6330890b8eef7813705c9ac4109fa12",
+  "gif_sha256": "10d36a16e94e5c5ea254ec3b1860f2969064ba62181c9e7032d266bdb38a530f",
   "inputs": {
-    "sources/kaida-parts/right/parts.aseprite": "3b09680164e9700c46f833b64c6acd11806449038e8328fb7f7256f92aebf9e6",
-    "sources/kaida-parts/right/parts.json": "05430f052a03ac012652f26c51e4e8fb501a692673293c2cd748c931121e8940",
+    "sources/kaida-parts/right/parts.aseprite": "f3bd03df2574f0f687a9bf4d6dd64c2162d3b0f9938843678b0dd6b15a592029",
+    "sources/kaida-parts/right/parts.json": "09bd2f13f0da2ca8b2696e1da1c6e72f236bc42e66873aafb56bd5d11d0499bf",
     "sources/kaida-run-v3/blocking/design.json": "3c8bca72f8ea1ecc2e14c80fe1221cffcc52cc9d4d892b91fe0f9457e62d7881",
     "sources/kaida-run-v3/blocking/poses.json": "afb51bb830e4ffb4fa99ff6c57a045bd46ec8d97e6fe697b29f4517d0fccda52",
-    "sources/kaida-run-r1/render.lua": "5ee0c02d5b1ad33e6b4ff14edb85f313cf1841d4d618429c95606b2e34fb105d",
+    "sources/kaida-run-r1/render.lua": "cdc0f9591d118274d6b9f7931b88612a061a92783dc6f0edb477778a9b155171",
     "sources/kaida-run-r1/review.lua": "7fa1667e3d989cc629152865048a93d79fd9a3e8f106d8e5a2cd1fbfe4962908",
-    "sources/kaida-run-r1/verify.lua": "9f7269c695766560af033cdace67bcbcbd14007e296ca091ab7b82e5c70dc793",
+    "sources/kaida-run-r1/verify.lua": "a1958c48c287a34a73f70c9c70b411de1d73686d1a49e627745465253b07c4d5",
     "lua/pixel/raster.lua": "1e1a8218eb8a45a38e5216d8875965b4d3fb5915867db574d30ae0af83701351"
   },
   "checked_with_inputs": {
-    "sources/kaida-parts/right/parts.aseprite": "3b09680164e9700c46f833b64c6acd11806449038e8328fb7f7256f92aebf9e6",
-    "sources/kaida-parts/right/parts.json": "05430f052a03ac012652f26c51e4e8fb501a692673293c2cd748c931121e8940",
+    "sources/kaida-parts/right/parts.aseprite": "f3bd03df2574f0f687a9bf4d6dd64c2162d3b0f9938843678b0dd6b15a592029",
+    "sources/kaida-parts/right/parts.json": "09bd2f13f0da2ca8b2696e1da1c6e72f236bc42e66873aafb56bd5d11d0499bf",
     "sources/kaida-run-v3/blocking/design.json": "3c8bca72f8ea1ecc2e14c80fe1221cffcc52cc9d4d892b91fe0f9457e62d7881",
     "sources/kaida-run-v3/blocking/poses.json": "afb51bb830e4ffb4fa99ff6c57a045bd46ec8d97e6fe697b29f4517d0fccda52",
-    "sources/kaida-run-r1/render.lua": "5ee0c02d5b1ad33e6b4ff14edb85f313cf1841d4d618429c95606b2e34fb105d",
+    "sources/kaida-run-r1/render.lua": "cdc0f9591d118274d6b9f7931b88612a061a92783dc6f0edb477778a9b155171",
     "sources/kaida-run-r1/review.lua": "7fa1667e3d989cc629152865048a93d79fd9a3e8f106d8e5a2cd1fbfe4962908",
-    "sources/kaida-run-r1/verify.lua": "9f7269c695766560af033cdace67bcbcbd14007e296ca091ab7b82e5c70dc793",
+    "sources/kaida-run-r1/verify.lua": "a1958c48c287a34a73f70c9c70b411de1d73686d1a49e627745465253b07c4d5",
     "lua/pixel/raster.lua": "1e1a8218eb8a45a38e5216d8875965b4d3fb5915867db574d30ae0af83701351"
   },
   "saved_source_matches_last_build": true,
@@ -54,13 +54,16 @@
   "all_parts_and_composites_connected": true,
   "no_clipping": true,
   "actual_boot_contacts_checked": 32,
+  "hip_fabric_tracks_thighs": true,
+  "hip_fabric_pixel_checks": 32,
+  "visible_near_hip_extremes_checked": 2,
   "sampling_specks_removed": 0,
   "gif_loops": true,
   "preview": {
     "dithering": "none",
     "global_palette_colors": 256,
     "maximum_channel_error": 90,
-    "mean_rgb_quantization_error": 0.49009533836728053,
+    "mean_rgb_quantization_error": 0.49903738839285716,
     "roundtrip_pixels_equal": true
   }
 }

@@ -2,14 +2,45 @@
   "target_revision": "r1",
   "revision_complete": false,
   "alpha_approved": false,
-  "status": "higher-hips motion variant awaiting visual review before detailed part art",
-  "current_motion_adjustment": {"pelvis_raise_fraction": 0.15, "pelvis_lift_px": 35.25, "horizontal_stride_scale": 0.94},
+  "status": "higher-hips motion approved for detailed pass; shared character parts complete; final r1 validation in progress",
+  "current_motion_adjustment": {
+    "pelvis_raise_fraction": 0.15,
+    "pelvis_lift_px": 35.25,
+    "horizontal_stride_scale": 0.94
+  },
   "steps": [
-    {"step": 1, "name": "reference registration and joint landmarks", "status": "complete", "source": "blocking/reference-study.aseprite", "commit": "a6f13732"},
-    {"step": 2, "name": "alternating run motion scaffold", "status": "complete", "source": "blocking/skeleton.aseprite", "commit": "5bea59a5"},
-    {"step": 3, "name": "colored body volumes and silhouette", "status": "complete, visual review pending", "source": "blocking/bodies.aseprite"},
-    {"step": 4, "name": "detailed character parts and hidden surfaces", "status": "pending"},
-    {"step": 5, "name": "detailed full-cycle cleanup and r1 delivery", "status": "pending"}
+    {
+      "step": 1,
+      "name": "reference registration and joint landmarks",
+      "status": "complete",
+      "source": "blocking/reference-study.aseprite",
+      "commit": "a6f13732"
+    },
+    {
+      "step": 2,
+      "name": "alternating run motion scaffold",
+      "status": "complete",
+      "source": "blocking/skeleton.aseprite",
+      "commit": "5bea59a5"
+    },
+    {
+      "step": 3,
+      "name": "colored body volumes and silhouette",
+      "status": "complete; authorized to proceed with higher-hips version",
+      "source": "blocking/bodies.aseprite",
+      "commit": "5fbafe25"
+    },
+    {
+      "step": 4,
+      "name": "detailed character parts and hidden surfaces",
+      "status": "complete",
+      "source": "../kaida-parts/right/parts.aseprite"
+    },
+    {
+      "step": 5,
+      "name": "detailed full-cycle cleanup and r1 delivery",
+      "status": "in progress"
+    }
   ],
   "review_gif": "../../exports/kaida-run-v3/bodies/running.gif",
   "scope": "run.right only; idle and runtime untouched"

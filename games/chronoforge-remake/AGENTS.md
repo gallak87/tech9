@@ -22,7 +22,7 @@ The user considers the entire art-lab prompting effort unsuccessful. Do not
 treat its candidates as approved art. Kaida's starting design reference is
 `sprite-gen/kaida-reference.png`. The first Aseprite experiment is documented in
 `_prep/sources/kaida-idle-poc/README.md`; it is a reference cutout rig test.
-The original pixel-art run v2 was rejected for its appearance. The current
+The original pixel-art run v2 was rejected for its appearance. The reference
 study is `_prep/sources/kaida-run-v3/README.md`: preserve the detailed idle's
 fidelity, establish opposing run poses, then author and inspect each editable
 part before animating. Leave the idle source alone. Do not automatically open
@@ -30,6 +30,14 @@ the editor or documents; save changes and tell the user when to reload.
 Work on **run.right only** until the user approves it. Deliver only the final
 running GIF, not contact sheets or every exported atlas. The agent does the
 complete authoring and cleanup; manual user editing is optional.
+
+The current detailed right-facing run is `_prep/sources/kaida-run-r1/README.md`:
+**r1 complete, awaiting user visual review; a1 unapproved**. Its separate shared
+art is `_prep/sources/kaida-parts/right/parts.aseprite` (20 named parts).
+Use the r1 build's `--review-only` to export saved cels. `--rebuild` deliberately
+replaces the timeline from shared parts and the approved higher-hips motion.
+Keep edited sources safe; character-part rebuild and clip rebuild are separate.
+The r1 README records the exact authoring process, pixel checks and limits.
 
 The earlier `_prep/sources/kaida-full-set/` cutout draft was rejected for offset
 legs, weak hips, arm overlap, floating pixels, and standing-pose feet. Its 36

@@ -1,8 +1,8 @@
 {
   "target_revision": "r1",
-  "revision_complete": false,
+  "revision_complete": true,
   "alpha_approved": false,
-  "status": "higher-hips motion approved for detailed pass; shared character parts complete; final r1 validation in progress",
+  "status": "r1 detailed run.right complete; awaiting user visual review; a1 unapproved",
   "current_motion_adjustment": {
     "pelvis_raise_fraction": 0.15,
     "pelvis_lift_px": 35.25,
@@ -34,14 +34,16 @@
       "step": 4,
       "name": "detailed character parts and hidden surfaces",
       "status": "complete",
-      "source": "../kaida-parts/right/parts.aseprite"
+      "source": "../kaida-parts/right/parts.aseprite",
+      "commit": "71ac3480"
     },
     {
       "step": 5,
       "name": "detailed full-cycle cleanup and r1 delivery",
-      "status": "in progress"
+      "status": "complete; awaiting user visual review",
+      "source": "../kaida-run-r1/animation.aseprite"
     }
   ],
-  "review_gif": "../../exports/kaida-run-v3/bodies/running.gif",
+  "review_gif": "../../exports/kaida-run-r1/running.gif",
   "scope": "run.right only; idle and runtime untouched"
 }

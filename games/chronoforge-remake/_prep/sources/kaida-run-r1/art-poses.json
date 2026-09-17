@@ -1,0 +1,1413 @@
+{
+  "frames": [
+    {
+      "contacts": {
+        "left": {
+          "lift": 113.968,
+          "lowest_y": 476.032,
+          "phase": 0.5,
+          "planted": false
+        },
+        "right": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0,
+          "planted": true
+        }
+      },
+      "foot_bottom": {
+        "left": 476,
+        "right": 590
+      },
+      "grip": [
+        277.69894,
+        278.187628
+      ],
+      "hand_angle": 155,
+      "hips": {
+        "left": [
+          385.890014,
+          333.924212
+        ],
+        "right": [
+          406.252067,
+          332.746602
+        ]
+      },
+      "index": 1,
+      "legs": {
+        "left": [
+          [
+            385.890014,
+            333.924212
+          ],
+          [
+            356.7098347367259,
+            475.95771909661147
+          ],
+          [
+            224.6336,
+            416.117363
+          ]
+        ],
+        "right": [
+          [
+            406.252067,
+            332.746602
+          ],
+          [
+            530.7775093132881,
+            407.0326317544563
+          ],
+          [
+            588,
+            540.263959
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 124.262816,
+          "lowest_y": 465.737184,
+          "phase": 0.5625,
+          "planted": false
+        },
+        "right": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.0625,
+          "planted": true
+        }
+      },
+      "foot_bottom": {
+        "left": 466,
+        "right": 590
+      },
+      "grip": [
+        286.556034,
+        297.175504
+      ],
+      "hand_angle": 146.565897,
+      "hips": {
+        "left": [
+          386.947313,
+          345.690881
+        ],
+        "right": [
+          405.785941,
+          344.101082
+        ]
+      },
+      "index": 2,
+      "legs": {
+        "left": [
+          [
+            386.947313,
+            345.690881
+          ],
+          [
+            364.7777754453138,
+            488.9860714447995
+          ],
+          [
+            246.135234,
+            405.625725
+          ]
+        ],
+        "right": [
+          [
+            405.785941,
+            344.101082
+          ],
+          [
+            539.993094294703,
+            398.99589053898734
+          ],
+          [
+            528.332031,
+            543.526232
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 135.355712,
+          "lowest_y": 454.644288,
+          "phase": 0.625,
+          "planted": false
+        },
+        "right": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.125,
+          "planted": true
+        }
+      },
+      "foot_bottom": {
+        "left": 455,
+        "right": 590
+      },
+      "grip": [
+        379.189335,
+        331.375127
+      ],
+      "hand_angle": 70.298705,
+      "hips": {
+        "left": [
+          389.978915,
+          357.835684
+        ],
+        "right": [
+          404.446461,
+          355.249159
+        ]
+      },
+      "index": 3,
+      "legs": {
+        "left": [
+          [
+            389.978915,
+            357.835684
+          ],
+          [
+            393.4340417623362,
+            502.79451297932155
+          ],
+          [
+            298.271848,
+            393.390871
+          ]
+        ],
+        "right": [
+          [
+            404.446461,
+            355.249159
+          ],
+          [
+            536.6069144032427,
+            414.90328338590734
+          ],
+          [
+            468.664062,
+            543
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 134.983756,
+          "lowest_y": 455.016244,
+          "phase": 0.6875,
+          "planted": false
+        },
+        "right": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.1875,
+          "planted": true
+        }
+      },
+      "foot_bottom": {
+        "left": 455,
+        "right": 590
+      },
+      "grip": [
+        480.592379,
+        328.279138
+      ],
+      "hand_angle": 9.550719,
+      "hips": {
+        "left": [
+          394.559836,
+          349.208973
+        ],
+        "right": [
+          402.416211,
+          345.623444
+        ]
+      },
+      "index": 4,
+      "legs": {
+        "left": [
+          [
+            394.559836,
+            349.208973
+          ],
+          [
+            452.97788984431025,
+            481.9204306253433
+          ],
+          [
+            334.429037,
+            398.426901
+          ]
+        ],
+        "right": [
+          [
+            402.416211,
+            345.623444
+          ],
+          [
+            511.8300607101512,
+            440.7739011276694
+          ],
+          [
+            408.996094,
+            543
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 128.351843,
+          "lowest_y": 461.648157,
+          "phase": 0.75,
+          "planted": false
+        },
+        "right": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.25,
+          "planted": true
+        }
+      },
+      "foot_bottom": {
+        "left": 462,
+        "right": 590
+      },
+      "grip": [
+        519.481337,
+        234.272457
+      ],
+      "hand_angle": -55,
+      "hips": {
+        "left": [
+          400,
+          335.29493
+        ],
+        "right": [
+          400,
+          331.29493
+        ]
+      },
+      "index": 5,
+      "legs": {
+        "left": [
+          [
+            400,
+            335.29493
+          ],
+          [
+            544.9854596766188,
+            333.2415225003708
+          ],
+          [
+            427.939008,
+            418.828485
+          ]
+        ],
+        "right": [
+          [
+            400,
+            331.29493
+          ],
+          [
+            471.8138545270487,
+            457.2622682189522
+          ],
+          [
+            349.328125,
+            534.8654
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 117.46875,
+          "lowest_y": 472.53125,
+          "phase": 0.8125,
+          "planted": false
+        },
+        "right": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.3125,
+          "planted": true
+        }
+      },
+      "foot_bottom": {
+        "left": 473,
+        "right": 590
+      },
+      "grip": [
+        568.159422,
+        237.152431
+      ],
+      "hand_angle": -55,
+      "hips": {
+        "left": [
+          405.440164,
+          329.356908
+        ],
+        "right": [
+          397.583789,
+          325.771378
+        ]
+      },
+      "index": 6,
+      "legs": {
+        "left": [
+          [
+            405.440164,
+            329.356908
+          ],
+          [
+            550.1148341996512,
+            319.6491892864126
+          ],
+          [
+            463.74375,
+            436.118223
+          ]
+        ],
+        "right": [
+          [
+            397.583789,
+            325.771378
+          ],
+          [
+            426.2256257851089,
+            467.9144228019712
+          ],
+          [
+            289.660156,
+            516.647086
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 76.883933,
+          "lowest_y": 513.116067,
+          "phase": 0.875,
+          "planted": false
+        },
+        "right": {
+          "lift": 35.6345,
+          "lowest_y": 554.3655,
+          "phase": 0.375,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 513,
+        "right": 554
+      },
+      "grip": [
+        623.833191,
+        215.154549
+      ],
+      "hand_angle": -55,
+      "hips": {
+        "left": [
+          410.021085,
+          315.404186
+        ],
+        "right": [
+          395.553539,
+          312.817662
+        ]
+      },
+      "index": 7,
+      "legs": {
+        "left": [
+          [
+            410.021085,
+            315.404186
+          ],
+          [
+            553.7842978006278,
+            334.30229821369545
+          ],
+          [
+            535.039964,
+            478.085642
+          ]
+        ],
+        "right": [
+          [
+            395.553539,
+            312.817662
+          ],
+          [
+            385.76460392732804,
+            457.4868596550054
+          ],
+          [
+            241.980125,
+            476.222484
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 51.279578,
+          "lowest_y": 538.720422,
+          "phase": 0.9375,
+          "planted": false
+        },
+        "right": {
+          "lift": 66.707063,
+          "lowest_y": 523.292937,
+          "phase": 0.4375,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 539,
+        "right": 523
+      },
+      "grip": [
+        643.803721,
+        208.006482
+      ],
+      "hand_angle": -55,
+      "hips": {
+        "left": [
+          413.052687,
+          316.320725
+        ],
+        "right": [
+          394.214059,
+          314.730926
+        ]
+      },
+      "index": 8,
+      "legs": {
+        "left": [
+          [
+            413.052687,
+            316.320725
+          ],
+          [
+            551.6441588937622,
+            358.9517456108241
+          ],
+          [
+            561.707562,
+            503.60211
+          ]
+        ],
+        "right": [
+          [
+            394.214059,
+            314.730926
+          ],
+          [
+            358.07383832953826,
+            455.1548714291551
+          ],
+          [
+            213.144303,
+            450.634939
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0,
+          "planted": true
+        },
+        "right": {
+          "lift": 113.968,
+          "lowest_y": 476.032,
+          "phase": 0.5,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 590,
+        "right": 476
+      },
+      "grip": [
+        646.9403,
+        225.340162
+      ],
+      "hand_angle": -55,
+      "hips": {
+        "left": [
+          414.109986,
+          333.924212
+        ],
+        "right": [
+          393.747933,
+          332.746602
+        ]
+      },
+      "index": 9,
+      "legs": {
+        "left": [
+          [
+            414.109986,
+            333.924212
+          ],
+          [
+            528.4957076481004,
+            423.03597712135354
+          ],
+          [
+            588,
+            555.263959
+          ]
+        ],
+        "right": [
+          [
+            393.747933,
+            332.746602
+          ],
+          [
+            352.8384451512939,
+            471.8559611529936
+          ],
+          [
+            224.6336,
+            404.117363
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.0625,
+          "planted": true
+        },
+        "right": {
+          "lift": 124.262816,
+          "lowest_y": 465.737184,
+          "phase": 0.5625,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 590,
+        "right": 466
+      },
+      "grip": [
+        643.803721,
+        237.376638
+      ],
+      "hand_angle": -55,
+      "hips": {
+        "left": [
+          413.052687,
+          345.690881
+        ],
+        "right": [
+          394.214059,
+          344.101082
+        ]
+      },
+      "index": 10,
+      "legs": {
+        "left": [
+          [
+            413.052687,
+            345.690881
+          ],
+          [
+            543.3526305564119,
+            409.30632495188854
+          ],
+          [
+            528.332031,
+            553.526232
+          ]
+        ],
+        "right": [
+          [
+            394.214059,
+            344.101082
+          ],
+          [
+            357.5746705637257,
+            484.39561223912165
+          ],
+          [
+            246.135234,
+            391.625725
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.125,
+          "planted": true
+        },
+        "right": {
+          "lift": 135.355712,
+          "lowest_y": 454.644288,
+          "phase": 0.625,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 590,
+        "right": 455
+      },
+      "grip": [
+        623.833191,
+        257.586046
+      ],
+      "hand_angle": -55,
+      "hips": {
+        "left": [
+          410.021085,
+          357.835684
+        ],
+        "right": [
+          395.553539,
+          355.249159
+        ]
+      },
+      "index": 11,
+      "legs": {
+        "left": [
+          [
+            410.021085,
+            357.835684
+          ],
+          [
+            538.1434531264592,
+            425.73015200489755
+          ],
+          [
+            468.664062,
+            553
+          ]
+        ],
+        "right": [
+          [
+            395.553539,
+            355.249159
+          ],
+          [
+            379.684640997317,
+            499.3781917317173
+          ],
+          [
+            298.271848,
+            379.390871
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.1875,
+          "planted": true
+        },
+        "right": {
+          "lift": 134.983756,
+          "lowest_y": 455.016244,
+          "phase": 0.6875,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 590,
+        "right": 455
+      },
+      "grip": [
+        568.159422,
+        257.004496
+      ],
+      "hand_angle": -55,
+      "hips": {
+        "left": [
+          405.440164,
+          349.208973
+        ],
+        "right": [
+          397.583789,
+          345.623444
+        ]
+      },
+      "index": 12,
+      "legs": {
+        "left": [
+          [
+            405.440164,
+            349.208973
+          ],
+          [
+            510.34865268881236,
+            449.3049719261775
+          ],
+          [
+            408.996094,
+            553
+          ]
+        ],
+        "right": [
+          [
+            397.583789,
+            345.623444
+          ],
+          [
+            436.656039446906,
+            485.2599694688553
+          ],
+          [
+            334.429037,
+            382.426901
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.25,
+          "planted": true
+        },
+        "right": {
+          "lift": 128.351843,
+          "lowest_y": 461.648157,
+          "phase": 0.75,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 590,
+        "right": 462
+      },
+      "grip": [
+        519.481337,
+        234.272457
+      ],
+      "hand_angle": -55,
+      "hips": {
+        "left": [
+          400,
+          335.29493
+        ],
+        "right": [
+          400,
+          331.29493
+        ]
+      },
+      "index": 13,
+      "legs": {
+        "left": [
+          [
+            400,
+            335.29493
+          ],
+          [
+            467.9050227881496,
+            463.41170439016673
+          ],
+          [
+            349.328125,
+            546.8654
+          ]
+        ],
+        "right": [
+          [
+            400,
+            331.29493
+          ],
+          [
+            544.6151369015843,
+            320.73736499020515
+          ],
+          [
+            427.939008,
+            406.828485
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 0,
+          "lowest_y": 590,
+          "phase": 0.3125,
+          "planted": true
+        },
+        "right": {
+          "lift": 117.46875,
+          "lowest_y": 472.53125,
+          "phase": 0.8125,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 590,
+        "right": 473
+      },
+      "grip": [
+        480.592379,
+        308.427073
+      ],
+      "hand_angle": 9.550719,
+      "hips": {
+        "left": [
+          394.559836,
+          329.356908
+        ],
+        "right": [
+          402.416211,
+          325.771378
+        ]
+      },
+      "index": 14,
+      "legs": {
+        "left": [
+          [
+            394.559836,
+            329.356908
+          ],
+          [
+            421.30730418740677,
+            471.8685669811643
+          ],
+          [
+            289.660156,
+            532.647086
+          ]
+        ],
+        "right": [
+          [
+            402.416211,
+            325.771378
+          ],
+          [
+            546.0236491940328,
+            305.72384210785003
+          ],
+          [
+            463.74375,
+            425.118223
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 35.6345,
+          "lowest_y": 554.3655,
+          "phase": 0.375,
+          "planted": false
+        },
+        "right": {
+          "lift": 76.883933,
+          "lowest_y": 513.116067,
+          "phase": 0.875,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 554,
+        "right": 513
+      },
+      "grip": [
+        379.189335,
+        288.943629
+      ],
+      "hand_angle": 70.298705,
+      "hips": {
+        "left": [
+          389.978915,
+          315.404186
+        ],
+        "right": [
+          404.446461,
+          312.817662
+        ]
+      },
+      "index": 15,
+      "legs": {
+        "left": [
+          [
+            389.978915,
+            315.404186
+          ],
+          [
+            383.18021883470476,
+            460.2447111663083
+          ],
+          [
+            241.980125,
+            493.222484
+          ]
+        ],
+        "right": [
+          [
+            404.446461,
+            312.817662
+          ],
+          [
+            549.3233773987415,
+            318.79086003723927
+          ],
+          [
+            535.039964,
+            463.085642
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    },
+    {
+      "contacts": {
+        "left": {
+          "lift": 66.707063,
+          "lowest_y": 523.292937,
+          "phase": 0.4375,
+          "planted": false
+        },
+        "right": {
+          "lift": 51.279578,
+          "lowest_y": 538.720422,
+          "phase": 0.9375,
+          "planted": false
+        }
+      },
+      "foot_bottom": {
+        "left": 523,
+        "right": 539
+      },
+      "grip": [
+        286.556034,
+        267.805348
+      ],
+      "hand_angle": 146.565897,
+      "hips": {
+        "left": [
+          386.947313,
+          316.320725
+        ],
+        "right": [
+          405.785941,
+          314.730926
+        ]
+      },
+      "index": 16,
+      "legs": {
+        "left": [
+          [
+            386.947313,
+            316.320725
+          ],
+          [
+            358.0502100605403,
+            458.41209504655234
+          ],
+          [
+            213.144303,
+            463.634939
+          ]
+        ],
+        "right": [
+          [
+            405.785941,
+            314.730926
+          ],
+          [
+            547.7439879064672,
+            344.276025737541
+          ],
+          [
+            561.707562,
+            488.60211
+          ]
+        ]
+      },
+      "sampling_specks_removed": {
+        "arm.left.fore": 0,
+        "arm.left.upper": 0,
+        "arm.right.fore": 0,
+        "arm.right.upper": 0,
+        "coat.far": 0,
+        "coat.near": 0,
+        "foot.left": 0,
+        "foot.right": 0,
+        "hand.left": 0,
+        "hand.right": 0,
+        "head": 0,
+        "knee.left": 0,
+        "knee.right": 0,
+        "leg.left.shin": 0,
+        "leg.left.thigh": 0,
+        "leg.right.shin": 0,
+        "leg.right.thigh": 0,
+        "pelvis": 0,
+        "torso": 0,
+        "weapon": 0
+      }
+    }
+  ],
+  "method": "shared textured character parts, pose-specific joint underlaps; no generated animation frames"
+}

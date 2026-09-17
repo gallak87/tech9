@@ -60,12 +60,25 @@ replaced by this setup.
 
 ## Daily commands
 
-The current work is the [detailed Kaida run pose study](sources/kaida-run-v3/README.md).
-It contains approved opposing stride references and an
-[editable motion proof](sources/kaida-run-v3/blocking/README.md): registered
-reference/joint guides, an alternating skeleton, and colored body volumes.
-Detailed character art is the next stage after motion review. r1/a1 are not
-assigned yet. Re-export the colored motion proof headlessly:
+The current candidate is [Kaida run r1](sources/kaida-run-r1/README.md): a detailed
+right-facing, 16-frame run on 20 editable layers. **r1 is complete and awaiting
+user visual review; a1 is unapproved.** The source retains the approved higher
+hips, wrist/grip motion, and detailed appearance. Its
+[shared character parts](sources/kaida-parts/right/README.md) are separate from
+the run timeline. Re-export saved cels headlessly:
+
+```sh
+python3 _prep/sources/kaida-run-r1/build.py --review-only
+```
+
+The single review GIF is `exports/kaida-run-r1/running.gif`. The r1 README
+documents the full process, reproduction and pixel verification. A deliberate
+`--rebuild` replaces the timeline using saved parts and motion. No editor is
+automatically opened. Idle/runtime assets remain unchanged.
+
+The [pose study](sources/kaida-run-v3/README.md) retains the approved opposing
+references and the [motion proof](sources/kaida-run-v3/blocking/README.md).
+To inspect that earlier colored construction stage:
 
 ```sh
 python3 _prep/sources/kaida-run-v3/blocking/build.py --stage bodies --review-only
@@ -107,8 +120,8 @@ npm run test:prep                # script/contract regression tests
 
 ### Start a character
 
-For the current study and planned layer review, follow the
-[Kaida run v3 notes](sources/kaida-run-v3/README.md). The
+For the current complete authoring example, follow the
+[Kaida r1 process](sources/kaida-run-r1/README.md). The
 [v2 recipe](sources/kaida-run-v2/README.md) is a tooling example, not approved art.
 Reuse the tools but design anatomy and motion for each character.
 The following older scaffold is useful for blocking

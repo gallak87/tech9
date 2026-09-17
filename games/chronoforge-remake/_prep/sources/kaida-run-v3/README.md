@@ -1,15 +1,16 @@
 # Kaida run v3: detailed pose references
 
-**Status: reference registration and colored motion proof complete; detailed art pending.**
-See [the motion proof](blocking/README.md) for the editable Aseprite sources,
-reproduction commands, checks and review pause. [progress.json](progress.json)
-tracks the five checkpoints toward r1; r1/a1 have not been assigned yet.
-The user approved `full-stride-reference.png` (the new single running pose),
-then requested the opposite stride: left leg and right sword arm forward,
-with the sword tilted up. The user also approved the corrected `opposite-stride-reference.png`.
-Both approvals concern the pose references; the colored motion proof awaits
-review and the detailed animation has not been authored. Idle and game assets
-are untouched.
+**Status: the detailed [run r1](../kaida-run-r1/README.md) is complete and awaiting
+user visual review. a1 is unapproved.** This directory preserves the approved
+reference images and the [motion construction stages](blocking/README.md).
+[progress.json](progress.json) records the five checkpoints.
+
+The user approved the new single full-stride image, then the corrected opposite
+stride (left leg/right sword arm forward, blade tilted up). The wrist correction
+and higher-hips motion were carried into the detailed pass. Shared character art
+now lives in [kaida-parts/right](../kaida-parts/right/README.md); the editable
+16-frame detailed animation lives in [kaida-run-r1](../kaida-run-r1/README.md).
+Idle and runtime assets remain untouched.
 
 ## Saved inputs and outputs
 
@@ -50,27 +51,24 @@ the approved design before becoming animation cels. Matching two poses does not
 establish a seamless loop. The generators are nondeterministic; the committed
 image files, rather than rerunning prompts, preserve these exact outputs.
 
-## Next authoring stage
+## Completed authoring stage
 
-- Fix one canvas, scale, pelvis origin and ground line for both key poses.
-- Reconcile costume details and validate anatomical limb identity/occlusion.
-- Author named parts one at a time in Aseprite, including hidden joint surfaces.
-  Inspect each part alone and the composite with that part hidden; avoid the
-  earlier idle rig's problem of neighboring body fragments left in cutouts.
-- Keep near/far limb identity stable; sword stays attached to the right hand.
-  Use appropriate alternate drawings where perspective changes, rather than
-  stretching the flattened reference to cover missing anatomy.
-- Add one mid-run passing reference for each leg: one supporting leg and the
-  other knee recovering under the pelvis. Together with the two extremes these
-  make four key poses, not a complete animation. Then author contact/compression
-  and intermediate cels; check
-  both legs' contacts, hips, grip and hair/tail follow-through across a loop.
-- Review one running GIF. Do not integrate world or ATB assets before approval.
+The subsequent process is documented in the [r1 authoring record](../kaida-run-r1/README.md):
+registered references → skeleton → body volumes → isolated detailed parts →
+validated detailed timeline. The detailed parts use one approved reference to
+avoid costume drift between independently generated poses. Passing poses come
+from the approved motion scaffold; no additional generated passing references
+or generated animation frames were used.
 
-The `blocking/` stage now contains registered references, a skeletal motion
-scaffold and colored body volumes in editable `.aseprite` timelines. Its GIF
-is a movement review, not a completed high-fidelity character animation.
-Leave the idle alone and do not automatically launch the editor.
+Re-export the current saved animation without rebuilding it:
+
+```sh
+python3 _prep/sources/kaida-run-r1/build.py --review-only
+```
+
+Review one running GIF. Do not integrate world or ATB assets, expand movements,
+or assign a1 before the user's review. Leave idle alone and never automatically
+launch the editor.
 
 ## Reproduce the screenshot crops
 

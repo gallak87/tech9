@@ -1,5 +1,5 @@
 {
-  "phase": "User-review polish complete; rebuilt production preview verified",
+  "phase": "Guarded entrance clarity corrected and verified",
   "outdoorRegionSize": [
     5760,
     2520
@@ -206,6 +206,16 @@
         "evidence/performance-review.json",
         "evidence/production-review.json"
       ]
+    },
+    "guardedEntrances": {
+      "result": "pass",
+      "settlements": 4,
+      "legalHaventideVictory": true,
+      "unrelatedCrabRequired": false,
+      "ordinaryPatrolContactPreserved": true,
+      "runtimeErrors": 0,
+      "evidence": "evidence/gate-encounters.json",
+      "guide": "docs/GATE_ENCOUNTER_REVIEW.md"
     }
   },
   "art": {
@@ -266,8 +276,10 @@
     "frost_canyon": "Implemented and traversed in clean campaign; distinct regional assets and earned-save visual review complete.",
     "last_crown": "Implemented and traversed in clean campaign; distinct regional assets and earned-save visual review complete."
   },
-  "knownDefects": [],
-  "nextTask": "Ready for hands-on review; menu visual identity redesign remains deferred.",
+  "knownDefects": [
+    "Kaida walk sheet repeats the same leading leg; replacement alternating gait is still pending."
+  ],
+  "nextTask": "Discuss Kaida\u2019s walk-cycle correction with the user; implementation is deferred until that discussion. Menu identity redesign remains deferred.",
   "timeTravel": "Unavailable; roadmap-only and unapproved",
   "fixedDefects": [
     "Inventory keyboard equip focus",
@@ -297,7 +309,9 @@
     "Flat chest/drop/console/rest and unbuilt plot proxies",
     "Detached blinking loot markers",
     "Screen-relative bird flight",
-    "Esc alternated atlas and service instead of dismissing visible layers"
+    "Esc alternated atlas and service instead of dismissing visible layers",
+    "Ambiguous gate guard identity and surprising battle from town entrance",
+    "First-battle tutorial assumed a Rust Scrapper even when entering a different encounter"
   ],
   "knownLimitations": [
     "Caves retain angular geometry and relatively sparse composition.",

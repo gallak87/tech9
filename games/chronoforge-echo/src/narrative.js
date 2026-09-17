@@ -200,7 +200,7 @@ export function finishEnding(state){
 export function mainObjective(state){
  if(state.flags.pendingEnding)return 'Finish the Architect’s final conversation and return to the living world.';
  if(state.campaignComplete)return state.flags.aftermath_home?'The world is open. Finish personal stories, rebuild, and explore.':'Return to Haventide’s evening bell to see the crew’s new beginning.';
- if(!state.cleared.hav_guard)return 'Follow the coast road east and quiet the sentry guarding Haventide.';
+ if(!state.cleared.hav_guard)return 'Follow the coast road east. Defeat the floating Drone Sentinel at Haventide’s entrance.';
  if(!state.flags.beacon_restored)return 'Return to the listening buoy west of Haventide and restore its signal.';
  if(!known(state,'vex'))return state.cleared.ember_signal?'Speak at Emberline’s observatory lens; invite Vex to join.':'Travel east to Emberline. Find Vex and reclaim the starless observatory.';
  if(state.tier<2)return 'Build Town Center level 2, then advance to Reclaimer at Settlement Works.';

@@ -1,0 +1,82 @@
+{
+  "method": "Scene/approach position fixtures, followed by actual keyboard movement and gate controls. Haventide victory uses legal keyboard attacks with accelerated normal Game.update, no HP/reward/clear grants. Screenshots are actual rendering.",
+  "checks": [
+    {
+      "region": "haventide",
+      "door": "haventide_entrance",
+      "guard": "hav_guard",
+      "enemies": [
+        "drone_sentinel"
+      ],
+      "distance": 101.24228365658293,
+      "walkable": true,
+      "x": 1332.5,
+      "y": 1347.5,
+      "approach": "gate-haventide-approach.png",
+      "choice": "gate-haventide-choice.png",
+      "battle": "gate-haventide-battle.png",
+      "open": "gate-haventide-liberated.png",
+      "entered": "gate-haventide-inside.png",
+      "victory": {
+        "clear": true,
+        "liberated": true,
+        "roadCrabClear": false
+      },
+      "pass": true
+    },
+    {
+      "region": "emberline",
+      "door": "emberline_entrance",
+      "guard": "ember_guard",
+      "enemies": [
+        "gravbot",
+        "drone_sentinel"
+      ],
+      "distance": 101.24228365658293,
+      "walkable": true,
+      "x": 2282.5,
+      "y": 1397.5,
+      "approach": "gate-emberline-approach.png",
+      "choice": "gate-emberline-choice.png",
+      "battle": "gate-emberline-battle.png",
+      "pass": true
+    },
+    {
+      "region": "orbital_reach",
+      "door": "orbital_reach_entrance",
+      "guard": "orbital_guard",
+      "enemies": [
+        "frost_revenant",
+        "gravbot"
+      ],
+      "distance": 101.24228365658293,
+      "walkable": true,
+      "x": 2107.5,
+      "y": 1360,
+      "approach": "gate-orbital_reach-approach.png",
+      "choice": "gate-orbital_reach-choice.png",
+      "battle": "gate-orbital_reach-battle.png",
+      "pass": true
+    },
+    {
+      "region": "last_crown",
+      "door": "last_crown_entrance",
+      "guard": "crown_guard",
+      "enemies": [
+        "wraith_core",
+        "neon_cultist"
+      ],
+      "distance": 101.24228365658293,
+      "walkable": true,
+      "x": 2420,
+      "y": 1472.5,
+      "approach": "gate-last_crown-approach.png",
+      "choice": "gate-last_crown-choice.png",
+      "battle": "gate-last_crown-battle.png",
+      "pass": true
+    }
+  ],
+  "errors": [],
+  "ordinaryPatrolStillTriggers": true,
+  "result": "pass"
+}

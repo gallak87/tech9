@@ -42,6 +42,8 @@ const vendorNames = {haventide:['Iona • Tide & Table','Bran • Saltforge','Ne
 for(const r of Object.values(REGIONS)) {
  if(r.town) {
   const t=r.town, id=r.id+'_town';
+  // Put the visible blockade on the approach, clear of the building artwork.
+  Object.assign(r.objects.find(o=>o.id===guards[r.id]),{x:t.x-44,y:t.y+68,gateName:t.name});
   r.objects.push(obj(r.id+'_entrance','town',t.x,t.y,{name:t.name,to:id,spawn:point(640,795),guard:guards[r.id],requires:r.id+'_liberated',solid:true,w:200,h:100}));
   const s={id,name:t.name,subtitle:'A place worth rebuilding',biome:r.biome,width:1280,height:900,interior:true,townId:r.id,kind:'town',spawn:point(640,795),roads:[],objects:[],portals:[obj(id+'_exit','portal',640,836,{name:'Return to '+r.name,to:r.id,spawn:point(t.x,t.y+74)})],walkAreas:[{x:60,y:110,w:1160,h:740}]};
   ['provisions','smith','inn','archivist','artificer','trainer'].forEach((service,i)=>{const x=[260,640,1020][i%3],y=i<3?310:585; s.objects.push(obj(r.id+'_'+service,'npc',x,y,{name:vendorNames[r.id][i],service,unlockTier:i<3?1:i===4?3:2,stall:true,solid:true,w:70,h:32}));});

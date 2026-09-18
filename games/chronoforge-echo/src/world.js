@@ -94,7 +94,7 @@ REGIONS.emberline.objects.push(
  obj('ember_gate_windmark','tree',423,972,{variant:3,size:.86,solid:true,w:20,h:20}),
  obj('ember_dune_cactus','tree',574,1275,{variant:2,size:1.17,solid:true,w:33,h:24}),
  obj('ember_gate_stone','rock',455,1265,{variant:1,solid:true,w:70,h:34}),
- obj('ember_pass_arch','ruin',868,1250,{variant:2,solid:true,w:104,h:38})
+ obj('ember_pass_arch','ruin',1240,1250,{variant:2,solid:true,w:104,h:38})
 );
 // Civic plots form a small uphill settlement around the covered market. Their clearings
 // are reserved before grove placement so construction never encloses an existing route.

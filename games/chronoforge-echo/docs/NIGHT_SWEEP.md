@@ -5,7 +5,7 @@ The bounded critic pass used 12 staged views: all eight regions, two interiors, 
 Completed user queue:
 
 - Kaida keeps her scale when walking/running and stopping in every direction. Standing renders at77native pixels and gait phases at76–78. Calibration uses one fixed scale per direction; original sprite pixels and gait are unchanged.
-- Defend now uses Attack's timing track and a fresh press. Critical guard reduces incoming damage by85%; normal guard still reduces it by65%. Both last until the hero's next action.
+- Defend now uses Attack's timing track and a fresh press. Critical guard reduces incoming damage by75%; normal guard still reduces it by65%. Both last until the hero's next action.
 - Compact parchment menu rows and two-row quests with real reward icons beside type/act/status; neutral field UI and locally anchored interaction prompts.
 - Purchases show exact quantity and spend before a separate Space/Enter confirmation. Escape preserves shop selection; prices, stock and funds are rechecked.
 - Font paths use the public root and remain valid in the built relative-base deployment.

@@ -201,7 +201,7 @@ function execute(b, state, command, targets) {
     id: ++b.actionSerial, side: 'hero', command: { ...command }, participants: members.map(actorId),
     targets: targets.map(actorId), elapsed: 0, contact, duration: combo ? 1.92 : 1.54,
     windowStart: contact - (assisted ? .36 : .28), windowEnd: contact - (assisted ? .055 : .095),
-    timingEligible: harmful || command.kind === 'defend', timingAttempted: false, timingSuccess: false, resolved: false, critical: false,
+    timingEligible: harmful || command.kind === 'defend', timingAttempted: false, timingSuccess: false, timingPressedAt: null, resolved: false, critical: false,
     executeInput: b.inputSerial, stage: 'anticipation',
   };
   b.phase = 'action'; b.mode = 'action'; b.pending = null; b.cursor = 0;
@@ -287,13 +287,14 @@ function timingPress(b) {
   const a = b.action;
   if (!a || !a.timingEligible || a.timingAttempted || a.resolved || b.inputSerial <= a.executeInput) return;
   a.timingAttempted = true;
+  a.timingPressedAt = a.elapsed;
   a.timingSuccess = a.elapsed >= a.windowStart && a.elapsed <= a.windowEnd;
   if (a.side === 'enemy') {
-    log(b, a.timingSuccess ? 'Critical guard · 85% less damage from this attack.' : 'Guard timing missed · existing defenses still apply.', a.timingSuccess ? 'timing' : 'miss');
+    log(b, a.timingSuccess ? 'Critical guard · 75% less damage from this attack.' : 'Guard timing missed · existing defenses still apply.', a.timingSuccess ? 'timing' : 'miss');
     return;
   }
   const defending = a.command.kind === 'defend';
-  log(b, a.timingSuccess ? defending ? 'Critical guard · damage reduced by 85% until your next action.' : 'Signal caught · critical chance raised.' : defending ? 'Normal guard · damage reduced by 65% until your next action.' : 'Signal missed · the strike continues.', a.timingSuccess ? 'timing' : 'miss');
+  log(b, a.timingSuccess ? defending ? 'Critical guard · damage reduced by 75% until your next action.' : 'Signal caught · critical chance raised.' : defending ? 'Normal guard · damage reduced by 65% until your next action.' : 'Signal missed · the strike continues.', a.timingSuccess ? 'timing' : 'miss');
 }
 
 function mechanicFor(e) {
@@ -334,7 +335,7 @@ function enemyTurn(b, state, e) {
     elapsed: 0, contact,
     duration: command.effect === 'telegraph' ? 1.04 : 1.4,
     windowStart: contact - (assisted ? .36 : .28), windowEnd: contact - (assisted ? .055 : .095),
-    timingEligible: command.effect !== 'telegraph', timingAttempted: false, timingSuccess: false, resolved: false, critical: false, stage: 'anticipation',
+    timingEligible: command.effect !== 'telegraph', timingAttempted: false, timingSuccess: false, timingPressedAt: null, resolved: false, critical: false, stage: 'anticipation',
     executeInput: b.inputSerial,
     // Incoming timing temporarily owns the accordion, not the player's choice.
     // Keep this in the action so pause/save/load preserve the return location.
@@ -351,7 +352,7 @@ function floating(b, actor, text, kind) {
 }
 
 function takeDamage(b, target, amount, critical, timedGuard = false) {
-  if (timedGuard || target.guarding) amount = Math.max(1, Math.round(amount * (timedGuard || target.criticalGuard ? .15 : .35)));
+  if (timedGuard || target.guarding) amount = Math.max(1, Math.round(amount * (timedGuard || target.criticalGuard ? .25 : .35)));
   const blocked = Math.min(target.shield, amount);
   target.shield -= blocked; amount -= blocked;
   const applied = Math.min(target.hp, amount);
@@ -408,7 +409,10 @@ function resolveAction(b, state, a) {
     if (harm) {
       const variance = .91 + roll(state) * .18;
       const base = (combined * (command.power || 1) * 1.6 + 8 - (target.def || 0) * .66) * variance;
-      const damage = Math.max(3, Math.round(base * (a.critical ? 1.6 : 1)));
+      // Only successful timed hero criticals receive the reduced critical multiplier.
+      // Ordinary hits, random criticals outside the window, and enemy attacks are unchanged.
+      const criticalMultiplier = a.side === 'hero' && a.timingSuccess ? 1.44 : 1.6;
+      const damage = Math.max(3, Math.round(base * (a.critical ? criticalMultiplier : 1)));
       const applied = takeDamage(b, target, damage, a.critical, a.side === 'enemy' && a.timingSuccess);
       drained += applied;
       log(b, `${target.name} · ${applied ? `${applied} damage` : 'ward holds'}`, 'damage');
@@ -512,7 +516,7 @@ export function battleView(b, state) {
     targets: targets.map(t => ({ id: actorId(t), name: t.name, hp: t.hp, maxHp: t.maxHp, selected: targets[b.target] === t })),
     heroes: b.heroes.map(h => ({ id: h.id, name: h.name, hp: h.hp, maxHp: h.maxHp, mp: h.mp, maxMp: h.maxMp, atb: h.atb, shield: h.shield, guarding: h.guarding, criticalGuard: Boolean(h.criticalGuard), slowTurns: h.slowTurns, visual: actorVisual(b, h, state) })),
     enemies: b.enemies.map(e => ({ id: e.id, uid: e.uid, name: e.name, hp: e.hp, maxHp: e.maxHp, atb: e.atb, shield: e.shield, slowTurns: e.slowTurns, charging: e.charging, bossPhase: e.bossPhase, visual: actorVisual(b, e, state) })),
-    action: a && { id: a.id, side: a.side, kind: a.command.kind, effect: a.command.effect, name: a.command.name, participants: [...a.participants], targets: [...a.targets], elapsed: a.elapsed, duration: a.duration, stage: a.stage, contact: a.contact, windowStart: a.windowStart, windowEnd: a.windowEnd, timingEligible: a.timingEligible, timingAttempted: a.timingAttempted, timingSuccess: a.timingSuccess, resolved: a.resolved, critical: a.critical, criticalChance: a.criticalChance },
+    action: a && { id: a.id, side: a.side, kind: a.command.kind, effect: a.command.effect, name: a.command.name, participants: [...a.participants], targets: [...a.targets], elapsed: a.elapsed, duration: a.duration, stage: a.stage, contact: a.contact, windowStart: a.windowStart, windowEnd: a.windowEnd, timingEligible: a.timingEligible, timingAttempted: a.timingAttempted, timingSuccess: a.timingSuccess, timingPressedAt: a.timingPressedAt ?? null, resolved: a.resolved, critical: a.critical, criticalChance: a.criticalChance },
     log: b.logs.map(l => ({ ...l })),
     hints: b.mode === 'target' ? '↑ ↓ Target · Space / Enter Execute · ← Back' : b.mode === 'waiting' ? '↑ ↓ Ready hero · → / Enter Commands' : '↑ ↓ Choose · → / Enter Confirm · ← Back',
   };

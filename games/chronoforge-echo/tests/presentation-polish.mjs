@@ -39,7 +39,7 @@ try{
  assert.equal(await page.locator('.cb-timing-track').count(),1);assert.equal(await page.locator('.cb-action-progress').count(),0);assert.ok(await page.locator('#battle-interface').evaluate(el=>el.classList.contains('cb-critical-window')));await shot('defend-critical-window');
  await page.keyboard.down('Enter');assert.equal(await page.evaluate(()=>__ECHO__.game.battle.action.timingAttempted),false);await page.keyboard.up('Enter');await page.keyboard.press('Enter');
  await page.evaluate(()=>{const g=__ECHO__.game;combat.updateBattle(g.battle,g.state,.4);g.battleUI.render();});
- assert.equal(await page.evaluate(()=>__ECHO__.game.battle.heroes[0].criticalGuard),true);assert.match(await page.locator('.cb-timing').innerText(),/85%/);assert.ok(!(await page.locator('#battle-interface').evaluate(el=>el.classList.contains('cb-critical-window'))));await shot('defend-critical-caught');
+ assert.equal(await page.evaluate(()=>__ECHO__.game.battle.heroes[0].criticalGuard),true);assert.match(await page.locator('.cb-timing').innerText(),/75%/);assert.ok(!(await page.locator('#battle-interface').evaluate(el=>el.classList.contains('cb-critical-window'))));await shot('defend-critical-caught');
  await page.evaluate(()=>{const g=__ECHO__.game;combat.updateBattle(g.battle,g.state,1);g.battleUI.render();});assert.equal(await page.locator('#battle-interface').getAttribute('data-stage'),'0');
  report.checks.push('Defend uses Attack timing track, flashes only while fresh attempt is possible, ignores held activation, catches critical guard, returns to crew.');
  assert.deepEqual(report.errors,[]);

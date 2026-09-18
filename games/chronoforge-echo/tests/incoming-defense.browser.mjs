@@ -13,6 +13,15 @@ const shot=async name=>page.screenshot({path:new URL(name+'.png',out).pathname})
 const incoming=()=>page.waitForFunction(()=>document.querySelector('#battle-interface')?.dataset.timingSide==='defense');
 const windowOpen=()=>page.waitForFunction(()=>document.querySelector('#battle-interface')?.classList.contains('cb-critical-window'));
 const crew=()=>page.waitForFunction(()=>document.querySelector('#battle-interface')?.dataset.stage==='0');
+const fixedNotch=async()=>{
+ await page.locator('.cb-input-notch:visible').waitFor();
+ const position=await page.locator('.cb-input-notch').evaluate(el=>el.style.left);
+ const zone=await page.locator('.cb-critical-zone').evaluate(el=>({left:parseFloat(el.style.left),width:parseFloat(el.style.width)}));
+ assert.ok(parseFloat(position)>=zone.left&&parseFloat(position)<=zone.left+zone.width,'successful input notch lies inside the orange window');
+ await page.waitForFunction(()=>document.querySelector('.cb-timing-marker')?.style.left==='100%');
+ assert.equal(await page.locator('.cb-input-notch').evaluate(el=>el.style.left),position);
+ return position;
+};
 try{
  const response=await page.goto(process.env.ECHO_URL||'http://127.0.0.1:4322/');
  assert.equal(response.status(),200);
@@ -30,13 +39,18 @@ try{
  await page.waitForFunction(()=>document.querySelector('#battle-interface')?.dataset.stage==='3');
  assert.equal(await page.locator('#battle-interface').getAttribute('data-timing-side'),'attack');
  assert.equal(await page.locator('.cb-timing-track:visible').count(),1);
+ assert.equal(await page.locator('.cb-input-notch').count(),0);
+ await windowOpen();await page.keyboard.press('Space');
+ report.attackInputPosition=await fixedNotch();
  await shot('player-attack');
+ report.checks.push('Space records a fixed attack notch that remains at the pressed position while the moving marker reaches contact.');
  await crew();
  report.previousStage=await page.locator('#battle-interface').getAttribute('data-stage');
  report.previousSelection=await page.locator('.cb-crew .cb-selected').getAttribute('data-id');
- await incoming();await windowOpen();await page.keyboard.press('Enter');
- await page.waitForFunction(()=>document.querySelector('.cb-timing')?.textContent.includes('Critical guard: 85%'),{timeout:1500});
- assert.match(await page.locator('.cb-timing:visible').innerText(),/Critical guard: 85%/);
+ await incoming();assert.equal(await page.locator('.cb-input-notch').count(),0);await windowOpen();await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>document.querySelector('.cb-timing')?.textContent.includes('Critical guard: 75%'),{timeout:1500});
+ assert.match(await page.locator('.cb-timing:visible').innerText(),/Critical guard: 75%/);
+ report.defenseInputPosition=await fixedNotch();
  await shot('incoming-critical-guard');
  report.checks.push('Incoming enemy attack opens the same visible track as Attack; actual Enter press catches the live orange window.');
  await crew();
@@ -44,15 +58,16 @@ try{
  assert.equal(await page.locator('.cb-crew .cb-selected').getAttribute('data-id'),report.previousSelection);
  await shot('selection-restored');
  report.checks.push('Enemy recovery restores Crew and the original selected companion.');
- await incoming();await page.keyboard.press('Escape');
+ await incoming();assert.equal(await page.locator('.cb-input-notch').count(),0);await page.keyboard.press('Escape');
  assert.equal(await page.locator('#battle-interface').isVisible(),false);
  await page.waitForTimeout(250);await page.keyboard.press('Escape');
  assert.equal(await page.locator('#battle-interface').getAttribute('data-stage'),'3');
  await windowOpen();
  const bounds=await page.locator('.cb-timing-button').boundingBox();
  await page.mouse.click(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
- await page.waitForFunction(()=>document.querySelector('.cb-timing')?.textContent.includes('Critical guard: 85%'),{timeout:1500});
- assert.match(await page.locator('.cb-timing:visible').innerText(),/Critical guard: 85%/);
+ await page.waitForFunction(()=>document.querySelector('.cb-timing')?.textContent.includes('Critical guard: 75%'),{timeout:1500});
+ assert.match(await page.locator('.cb-timing:visible').innerText(),/Critical guard: 75%/);
+ report.mouseDefenseInputPosition=await fixedNotch();
  report.checks.push('Pause/resume retains incoming timing; mouse click also catches the live window.');
  await crew();await incoming();await windowOpen();await shot('incoming-window');
  await crew();

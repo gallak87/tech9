@@ -144,6 +144,58 @@ test('timing assistance widens the opportunity; identical seeds and fresh presse
   assert.equal(twin.state.rng, normal.state.rng);
 });
 
+test('the accepted timing position freezes through recovery and save/resume for attacks and both guards', () => {
+  for (const kind of ['attack', 'defend', 'incoming']) for (const phase of ['early', 'window', 'late']) {
+    const {battle:b,state:s}=setup(['rust_scrapper']);
+    if(kind==='incoming') { b.enemies[0].atb=100;updateBattle(b,s,.001); }
+    else { ready(b,s);if(kind==='attack')attack(b,s);else battleIntent(b,s,{kind:'command',index:2}); }
+    const a=b.action;
+    assert.equal(battleView(b,s).action.timingPressedAt,null);
+    const pressedAt=phase==='early'?0:phase==='window'?(a.windowStart+a.windowEnd)/2:a.windowEnd+.02;
+    if(pressedAt)updateBattle(b,s,pressedAt);
+    if(kind==='attack')battleKey(b,s,' ');
+    else if(kind==='defend')battleKey(b,s,'Enter');
+    else battleIntent(b,s,{kind:'timing'});
+    assert.equal(a.timingPressedAt,pressedAt);
+    assert.equal(a.timingSuccess,phase==='window');
+    const resumed=JSON.parse(JSON.stringify(b));
+    updateBattle(resumed,s,.01);battleKey(resumed,s,'Enter');
+    assert.equal(resumed.action.timingPressedAt,pressedAt,'a second press cannot move the notch');
+    contact(resumed,s);updateBattle(resumed,s,.1);
+    assert.ok(resumed.action.elapsed>pressedAt);
+    assert.equal(battleView(resumed,s).action.timingPressedAt,pressedAt,'contact/recovery keep the accepted position');
+    const legacy=structuredClone(resumed);delete legacy.action.timingPressedAt;
+    assert.equal(battleView(legacy,s).action.timingPressedAt,null,'older saves do not invent an input position');
+    finish(resumed,s);assert.equal(battleView(resumed,s).action,null);
+  }
+});
+
+test('only successful timed hero critical damage is reduced; outside-window criticals and ordinary hits are unchanged', () => {
+  for (const [seed,critical] of [[1,true],[123456789,false]]) {
+    const results={};
+    for (const phase of ['none','early','window','late']) {
+      const {battle:b,state:s}=setup(['gravbot']);ready(b,s);attack(b,s);
+      // Keep the same crit/variance rolls and enough target HP to compare full hits.
+      s.rng=seed;b.enemies[0].hp=b.enemies[0].maxHp=10000;
+      if(phase!=='none') {
+        const elapsed=phase==='early'?0:phase==='window'?(b.action.windowStart+b.action.windowEnd)/2:b.action.windowEnd+.02;
+        if(elapsed)updateBattle(b,s,elapsed);
+        battleKey(b,s,' ');
+      }
+      contact(b,s);
+      assert.equal(b.action.critical,critical);
+      results[phase]={damage:10000-b.enemies[0].hp,rng:s.rng};
+    }
+    assert.deepEqual(results.early,results.none);
+    assert.deepEqual(results.late,results.none);
+    assert.equal(results.window.rng,results.none.rng);
+    if(critical) {
+      assert.ok(results.window.damage<results.none.damage);
+      assert.ok(Math.abs(results.window.damage-results.none.damage*.9)<=1,'successful timed crit deals 90% of the prior crit, allowing integer rounding');
+    } else assert.deepEqual(results.window,results.none,'a successful timing input that does not crit keeps normal damage');
+  }
+});
+
 test('a paused timeline, contact, and timing window remain exact until updateBattle resumes', () => {
   const { battle: b, state: s } = setup(['gravbot']); ready(b, s); attack(b, s);
   updateBattle(b, s, b.action.windowStart + .01);
@@ -420,7 +472,7 @@ test('Defend shares attack timing, requires a fresh press, and a miss preserves 
   assert.equal(missed.battle.heroes[0].criticalGuard,false);
 });
 
-test('critical guard reduces the next incoming hit by 85%, normal guard by 65%, and expires on next action', () => {
+test('critical guard reduces the next incoming hit by 75%, normal guard by 65%, and expires on next action', () => {
   const {battle:b,state:s}=setup(['gravbot']);ready(b,s);
   battleIntent(b,s,{kind:'command',index:2});
   updateBattle(b,s,(b.action.windowStart+b.action.windowEnd)/2);battleKey(b,s,' ');finish(b,s);
@@ -432,7 +484,7 @@ test('critical guard reduces the next incoming hit by 85%, normal guard by 65%, 
   }
   const unguarded=hp-plain.heroes[0].hp;
   assert.equal(hp-normal.heroes[0].hp,Math.max(1,Math.round(unguarded*.35)));
-  assert.equal(hp-b.heroes[0].hp,Math.max(1,Math.round(unguarded*.15)));
+  assert.equal(hp-b.heroes[0].hp,Math.max(1,Math.round(unguarded*.25)));
   finish(b,s);ready(b,s);attack(b,s);
   assert.equal(b.heroes[0].guarding,false);assert.equal(b.heroes[0].criticalGuard,false);
 });
@@ -464,7 +516,7 @@ test('incoming attacks offer one fresh critical guard, reduce only that hit, and
   assert.equal(resumed.action.criticalChance, plain.action.criticalChance, 'guard timing must not boost enemy critical chance');
   for (let i=0;i<b.heroes.length;i++) {
     const damage=hp[i]-plain.heroes[i].hp;
-    assert.equal(hp[i]-resumed.heroes[i].hp,damage?Math.max(1,Math.round(damage*.15)):0);
+    assert.equal(hp[i]-resumed.heroes[i].hp,damage?Math.max(1,Math.round(damage*.25)):0);
     assert.equal(resumed.heroes[i].guarding,false,'reactive guard must not become a persistent stance');
     assert.equal(resumed.heroes[i].criticalGuard,false);
   }
@@ -486,7 +538,7 @@ test('incoming group guards protect every target without multiplying existing gu
   battleIntent(b,s,{kind:'timing'});
   contact(b,s);contact(plain,plainState);
   for(let i=0;i<b.heroes.length;i++) {
-    const raw=hp[i]-plain.heroes[i].hp,guarded=Math.max(1,Math.round(raw*.15));
+    const raw=hp[i]-plain.heroes[i].hp,guarded=Math.max(1,Math.round(raw*.25));
     assert.equal(hp[i]-b.heroes[i].hp,Math.max(0,guarded-(i===1?10:0)));
   }
 });

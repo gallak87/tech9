@@ -18,8 +18,9 @@ This records the user's approved direction after reviewing the interactive menu 
 - Use actual combat state, costs, targets, readiness, and timing opportunities. Do not adopt the standalone preview's simplified combat simulation.
 - After the action finishes, return automatically to character selection. Show a faint neutral selection while no hero is charged. Automatically select the first newly ready hero; a later arrival must not steal an active selection.
 - Use neutral near-black/gray surfaces. Reserve lava orange for active choices, calls to action, and critical cues. No teal or blue panel tint.
-- While the timing marker is within the real critical-input bounds, subtly pulse the critical bar and timing panel outline in lava orange, reverting to neutral outside the window. Reduced motion uses a steady cue.
-- Defend shares Attack’s marker, duration, input window and fresh-press protection. A successful timing input gives critical guard: 85% damage reduction until the next action; missing retains normal 65% guard.
+- On entry into the real critical-input window, blink the orange bar and timing panel outline on/off/on with hard steps, never a fade. Revert to neutral outside the window. Reduced motion uses a steady cue.
+- Defend shares Attack’s marker, duration, input window and fresh-press protection. A successful timing input gives critical guard: 75% damage reduction until the next action; missing retains normal 65% guard.
+- A capped notch remains at the accepted input position while the white marker continues to contact. It persists through recovery on Attack, Defend, and incoming guard; successful notches use lava orange and missed inputs stay neutral. Timed hero critical hits deal 1.44× base damage; random critical hits outside the timing window retain 1.6×. Timing chance and window widths are unchanged.
 - Remove the duplicate currency/item reward text in combat. Keep the existing postbattle reward notification path.
 
 ## Overworld, dialogue, and rewards

@@ -89,16 +89,32 @@ export const TIER_REQUIREMENTS={
  3:{buildings:{town_center:3,research_lab:1},flags:['rune_recruited'],cost:{food:70,ore:85,energy:60,renown:65}},
  4:{buildings:{town_center:4,research_lab:2,forge:2,walls:2},flags:['forest_seal','mire_seal','crater_seal','frost_seal'],cost:{food:130,ore:150,energy:130,renown:180}}
 };
+const TIER_STORY_REQUIREMENTS={
+ beacon_restored:{label:'Haventide beacon restored',instruction:'Restore the listening buoy west of Haventide'},
+ rune_recruited:{label:'Rune recruited',instruction:'Recruit Rune at Anchor Nine in Orbital Reach after defeating its entrance blockade'},
+ forest_seal:{label:'Forest Veil restored',instruction:'Restore Forest Veil’s Heartwood Relay beyond its guardian'},
+ mire_seal:{label:'Mire Bog restored',instruction:'Open Mire Bog’s submerged archive after defeating its keeper'},
+ crater_seal:{label:'Crater Ember restored',instruction:'Restore Crater Ember’s sun-forge after defeating its sovereign'},
+ frost_seal:{label:'Frost Canyon restored',instruction:'Relight Frost Canyon’s midnight beacon beyond the Colossus'}
+};
+// The board and the purchase share this decision, including every unpaid cost.
+export function tierEligibility(state){
+ const nextTier=state.tier+1,req=TIER_REQUIREMENTS[nextTier];
+ if(!req)return {eligible:false,complete:true,nextTier:null,name:null,cost:{},requirements:[],missing:[],reason:'The settlements are already Transcendent.'};
+ const requirements=[
+  ...Object.entries(req.buildings).map(([id,required])=>{const current=state.buildings[id]||0;return {type:'building',id,required,current,met:current>=required,label:`${BUILDINGS[id].name} level ${required}`,instruction:`${current?'Upgrade':'Build'} ${BUILDINGS[id].name} to level ${required} (currently ${current})`};}),
+  ...req.flags.map(id=>({type:'story',id,met:!!state.flags[id],...TIER_STORY_REQUIREMENTS[id]})),
+  ...Object.entries(req.cost).map(([id,required])=>{const current=state.resources[id]||0;return {type:'resource',id,required,current,met:current>=required,label:`${required} ${id}`,instruction:`Gather ${Math.ceil(required-current)} more ${id} (${Math.floor(current)} / ${required})`};})
+ ];
+ const missing=requirements.filter(r=>!r.met),name=TIERS[nextTier-1];
+ return {eligible:missing.length===0,complete:false,nextTier,name,cost:{...req.cost},requirements,missing,reason:missing.length?`To unlock ${name}: ${missing.map(r=>r.instruction).join('; ')}.`:`Ready to advance to ${name}.`};
+}
 export function tierRequirements(state){
- const req=TIER_REQUIREMENTS[state.tier+1];if(!req)return 'Civilization has reached Transcendent.';
- const labels={beacon_restored:'restore the Haventide beacon',rune_recruited:'recruit Rune',forest_seal:'restore Forest Veil',mire_seal:'restore Mire Bog',crater_seal:'restore Crater Ember',frost_seal:'restore Frost Canyon'};
- return [...Object.entries(req.buildings).map(([id,n])=>`${BUILDINGS[id].name} ${n}${(state.buildings[id]||0)>=n?' ✓':''}`),...req.flags.map(id=>`${labels[id]}${state.flags[id]?' ✓':''}`),...Object.entries(req.cost).map(([id,n])=>`${n} ${id}`)].join(' · ');
+ const status=tierEligibility(state);return status.complete?'Civilization has reached Transcendent.':status.requirements.map(r=>`${r.label}${r.met?' ✓':''}`).join(' · ');
 }
 export function advanceTier(state){
- const req=TIER_REQUIREMENTS[state.tier+1];if(!req)return no('The settlements are already Transcendent.');
- if(Object.entries(req.buildings).some(([id,n])=>(state.buildings[id]||0)<n)||req.flags.some(id=>!state.flags[id]))return no(tierRequirements(state));
- if(!affordable(state,req.cost))return no(`Civic stores needed: ${Object.entries(req.cost).map(([k,n])=>`${n} ${k}`).join(', ')}.`);
- pay(state,req.cost);state.tier++;recomputeUnlocks(state);return ok(`The settlements become ${TIERS[state.tier-1]}.`,[{id:'tier',label:TIERS[state.tier-1],amount:1}]);
+ const status=tierEligibility(state);if(!status.eligible)return no(status.reason);
+ pay(state,status.cost);state.tier=status.nextTier;recomputeUnlocks(state);return ok(`The settlements become ${TIERS[state.tier-1]}.`,[{id:'tier',label:TIERS[state.tier-1],amount:1}]);
 }
 export function production(state,dt){
  if(!Number.isFinite(dt)||dt<=0)return no('No time elapsed.');

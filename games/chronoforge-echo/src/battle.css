@@ -86,6 +86,9 @@
 #battle-interface .cb-timing-track{position:relative;display:block;height:1cqw;background:#ffffff0b;border-block:1px solid #ffffff24}
 #battle-interface .cb-critical-zone{display:block;position:absolute;top:-1px;bottom:-1px;background:#df702e25;border:1px solid #df702e70}
 #battle-interface .cb-timing-marker{position:absolute;top:-.45cqw;bottom:-.45cqw;width:2px;background:#faf5ee;transform:translateX(-1px)}
+#battle-interface .cb-input-notch{position:absolute;top:-.15cqw;bottom:-.15cqw;width:3px;background:currentColor;color:#b8b8b8;transform:translateX(-1.5px);box-shadow:0 0 0 1px #171717}
+#battle-interface .cb-input-notch::before{content:"";position:absolute;left:50%;bottom:100%;transform:translateX(-50%);border-left:.3cqw solid transparent;border-right:.3cqw solid transparent;border-top:.4cqw solid currentColor}
+#battle-interface .cb-input-caught{color:var(--cb-lava)}
 #battle-interface .cb-timing-scale{display:flex;justify-content:space-between;color:var(--cb-dim);font-size:.74cqw;letter-spacing:.1em;margin-top:.65cqw}
 #battle-interface .cb-action-progress{display:block;height:2px;background:#ffffff10;margin-top:.7cqw}
 #battle-interface .cb-action-progress>i{display:block;height:100%;background:#b9b5af}

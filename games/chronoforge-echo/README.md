@@ -50,7 +50,7 @@ The world is designed to be walked: each outdoor region is 5760×2520 world unit
 
 The Save page shows the automatic checkpoint above three manual slots, with each record’s location, objective, party levels and HP/MP, play time, and percentage of the outdoor world explored. Ending progress and suspended battles survive saving/loading. Saves belong to the browser origin and profile; the development and preview ports have separate storage.
 
-Use **Export** on any saved row to download its JSON record, then **Import** on a destination row in your other browser, local game, or GitHub Pages game. Replacing an occupied row requires confirmation. Import changes only that saved row; choose **Load** to resume it. Autosave continues updating at future checkpoints. Invalid or newer-format files leave existing records untouched; imports are limited to 5 MB. Saves remain separate from the original game's storage.
+Use **Export** on any saved row to download its JSON record, then **Import** on a destination row in your other browser, local game, or GitHub Pages game. The import confirmation includes **After import, load immediately** to resume the imported expedition in one step. Leave it unchecked to update only that saved row and keep playing; you can choose **Load** later. Autosave continues updating at future checkpoints. Invalid or newer-format files leave existing records untouched; imports are limited to 5 MB. Saves remain separate from the original game's storage.
 
 ## Review and evidence
 

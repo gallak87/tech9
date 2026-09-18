@@ -97,7 +97,23 @@
       ]
     },
     {
-      "name": "autosave import has an explicit overwrite warning"
+      "name": "import checkbox mouse and keyboard toggles with checked cancellation"
+    },
+    {
+      "name": "checked occupied autosave import immediately loads without second prompt",
+      "region": "haventide",
+      "party": [
+        "Kaida"
+      ]
+    },
+    {
+      "name": "checked empty manual import immediately loads without second prompt",
+      "region": "emberline_town",
+      "party": [
+        "Kaida",
+        "Vex",
+        "Rune"
+      ]
     }
   ],
   "errors": [],

@@ -16,3 +16,8 @@
 
 /* Detailed source portraits use filtered display scaling; icons retain their pixel grid. */
 [data-portrait]{image-rendering:auto!important}
+
+.save-import-option{display:flex;align-items:center;gap:.65cqw;margin:1.2cqw 0 .45cqw;cursor:pointer;font-size:clamp(12px,1cqw,20px)}
+.save-import-option input{width:clamp(15px,1.2cqw,24px);height:clamp(15px,1.2cqw,24px);margin:0;accent-color:var(--amber);cursor:pointer}
+.save-import-option input:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
+.save-import-note{display:block;color:var(--muted);font-size:clamp(10px,.78cqw,16px);line-height:1.5;margin-bottom:1.2cqw}

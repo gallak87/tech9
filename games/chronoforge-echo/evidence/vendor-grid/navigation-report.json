@@ -1,0 +1,14 @@
+{
+  "method": "Production save + normal F/arrow/Enter/Escape/Tab input",
+  "checks": [
+    "Toolbar and hero rows",
+    "Three-column item navigation and row boundaries",
+    "All stock and sale type sections",
+    "Selected hero comparisons",
+    "Quantity 3 discounted purchase: 62 ore, cancel then confirm",
+    "Keepsakes disabled",
+    "Sequential Tab",
+    "Two-column responsive navigation"
+  ],
+  "errors": []
+}

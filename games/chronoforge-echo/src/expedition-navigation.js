@@ -38,3 +38,35 @@ export function navigateExpedition(ui,key){
  }
  return false;
 }
+
+// Like settlement navigation, use rendered rectangles rather than DOM order.
+// This spans toolbar, heroes and every item section, including partial grid rows.
+export function navigateShop(ui,key){
+ if(!key.startsWith('Arrow')||ui.menu||ui.panel?.type!=='vendor')return false;
+ const region=ui.root.querySelector('[data-shop-navigation]'),active=document.activeElement;
+ if(!region?.contains(active))return false;
+ const options=[...region.querySelectorAll('button:not(:disabled),input:not(:disabled)')].filter(el=>el.offsetWidth>0&&el!==active).map(el=>({el,rect:el.getBoundingClientRect()}));
+ const rect=active.getBoundingClientRect(),cx=r=>(r.left+r.right)/2;
+ const vertical=key==='ArrowUp'||key==='ArrowDown',direction=key==='ArrowUp'||key==='ArrowLeft'?-1:1;
+ let next;
+ if(vertical){
+  // Carry the original column through short rows; Up then retraces the same column.
+  const column=ui.shopNavigation?.active===active?ui.shopNavigation.column:cx(rect);
+  const rows=options.filter(({rect:r})=>direction>0?r.top>=rect.bottom-1:r.bottom<=rect.top+1);
+  rows.sort((a,b)=>direction>0?a.rect.top-b.rect.top:b.rect.bottom-a.rect.bottom);
+  const nearest=rows[0]?.rect;
+  if(nearest){
+   const row=rows.filter(({rect:r})=>Math.min(r.bottom,nearest.bottom)>Math.max(r.top,nearest.top));
+   row.sort((a,b)=>Math.abs(cx(a.rect)-column)-Math.abs(cx(b.rect)-column));
+   next=row[0]?.el;
+  }
+  ui.shopNavigation={active:next||active,column};
+ }else{
+  const row=options.filter(({rect:r})=>direction*(cx(r)-cx(rect))>1&&Math.min(r.bottom,rect.bottom)>Math.max(r.top,rect.top));
+  row.sort((a,b)=>Math.abs(cx(a.rect)-cx(rect))-Math.abs(cx(b.rect)-cx(rect)));
+  next=row[0]?.el;
+  ui.shopNavigation={active:next||active,column:next?cx(next.getBoundingClientRect()):cx(rect)};
+ }
+ if(next){next.focus({preventScroll:true});next.scrollIntoView({block:'nearest',inline:'nearest'});}
+ return true;
+}

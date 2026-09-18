@@ -53,7 +53,7 @@ button:focus-visible{outline-color:#df702e}kbd{color:inherit;border-color:#79767
 .resume-ending{display:block;background:transparent;color:#ed9d62;border:0;border-bottom:1px solid #bb6d3c99;font:500 clamp(10px,.79cqw,18px) Barlow,sans-serif;padding:.45cqw 0 .1cqw;margin-top:.3cqw}.resume-ending kbd{font-size:inherit}
 @container(max-width:950px){.reading-panel{width:min(66cqw,580px);padding:15px 18px}.reading-panel h2{margin-bottom:10px}.reading-panel footer{padding-top:10px;margin-top:12px}.reading-close{padding:5px 9px}.dialogue.dialogue-text-only{left:9%;right:9%}}
 @container(max-width:600px){.reading-panel{width:86%;top:45%;padding:12px 14px}.reading-panel h2{font-size:20px}.reading-panel p{font-size:12px}.dialogue.dialogue-text-only{left:5%;right:5%}.dialogue-next{flex-wrap:wrap;gap:6px}}
-.dialogue-cancel{background:transparent;border:0;color:#a99c8c;font:400 clamp(10px,.7cqw,15px) Barlow,sans-serif;padding:3px 0}.dialogue-cancel kbd{font-size:inherit}.dialogue-dismiss .dialogue-cancel{padding:4px 0}
+.dismiss-hint{color:#a4998b;opacity:.65;font:400 clamp(10px,.7cqw,15px) Barlow,sans-serif;pointer-events:none}.dismiss-hint kbd{font-size:inherit}
 
 /* World coordinates are updated every frame; they must never ease behind the camera. */
 .interaction{transition:none;animation:none}

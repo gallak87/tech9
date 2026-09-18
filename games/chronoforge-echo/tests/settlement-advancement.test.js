@@ -47,7 +47,7 @@ test('advancement lists every unmet requirement and precise resource shortfalls 
  const status=tierEligibility(s);
  assert.deepEqual(status.missing.map(r=>r.id),['town_center','beacon_restored','food','energy','renown']);
  assert.match(status.reason,/Town Center to level 2 \(currently 1\)/);
- assert.match(status.reason,/listening buoy west of Haventide/);
+ assert.match(status.reason,/listening beacon west of Haventide/);
  assert.match(status.reason,/Gather 1 more food \(34 \/ 35\)/);
  assert.equal(status.requirements.find(r=>r.id==='ore').met,true);
  assert.equal(status.reason.includes('Gather 0 more ore'),false);

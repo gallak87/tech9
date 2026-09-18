@@ -27,7 +27,7 @@ async function openBoard(region,setup){
 }
 try{
  const cases=[
-  ['haventide_town',s=>{s.tier=1;s.buildings.town_center=1;delete s.flags.beacon_restored;},['Town Center to level 2','listening buoy west of Haventide']],
+  ['haventide_town',s=>{s.tier=1;s.buildings.town_center=1;delete s.flags.beacon_restored;},['Town Center to level 2','listening beacon west of Haventide']],
   ['emberline_town',s=>{s.tier=2;s.buildings.town_center=2;s.buildings.research_lab=0;delete s.flags.rune_recruited;s.resources.ore=0;},['Town Center to level 3','Research Lab to level 1','Recruit Rune']],
   ['orbital_reach_town',s=>{s.tier=3;s.buildings.forge=1;s.buildings.walls=1;delete s.flags.forest_seal;},['Forge to level 2','Walls to level 2','Heartwood Relay']],
   ['last_crown_town',()=>{},[]]

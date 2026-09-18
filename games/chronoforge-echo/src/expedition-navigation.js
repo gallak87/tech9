@@ -19,6 +19,27 @@ export function navigateExpedition(ui,key){
   if(key==='ArrowDown')focus(buttons('.exp-gear-slot')[0]||buttons('.exp-pack-item')[0]||buttons('.exp-skill-row')[0]);
   return true;
  }
+ if(ui.tab===5){
+  const row=active?.closest('[data-save-slot]'),rows=[...root.querySelectorAll('[data-save-slot]')];
+  if(row){
+   const actions=buttons('[data-save-slot="'+row.dataset.saveSlot+'"] button');
+   if(key==='ArrowLeft'||key==='ArrowRight')move(actions,key==='ArrowRight'?1:-1);
+   if(key==='ArrowUp'||key==='ArrowDown'){
+    const next=rows[rows.indexOf(row)+(key==='ArrowDown'?1:-1)];
+    if(next){
+     const available=[...next.querySelectorAll('button:not(:disabled)')],action=active.dataset.do?.split(':')[0],rect=active.getBoundingClientRect(),x=(rect.left+rect.right)/2;
+     available.sort((a,b)=>{const center=el=>{const r=el.getBoundingClientRect();return(r.left+r.right)/2;};return Math.abs(center(a)-x)-Math.abs(center(b)-x);});
+     focus(available.find(el=>el.dataset.do?.split(':')[0]===action)||available[0]);
+    }else focus(key==='ArrowUp'?tab():buttons('.exp-save-footer button')[0]);
+   }
+   return true;
+  }
+  if(active?.closest('.exp-save-footer')){
+   if(key==='ArrowUp')focus(buttons('[data-save-slot="3"] button')[0]);
+   if(key==='ArrowLeft'||key==='ArrowRight')move(buttons('.exp-save-footer button'),key==='ArrowRight'?1:-1);
+   return true;
+  }
+ }
  if(ui.tab!==2)return false;
  if(active?.closest('.exp-gear')){
   const slots=buttons('.exp-gear-slot'),i=slots.indexOf(active);

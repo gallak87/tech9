@@ -8,7 +8,7 @@ import * as P from './progression.js';
 import {mainObjective,onEvent,interactStory} from './narrative.js';
 import {drawPortrait,drawIcon,npcPortrait} from './art.js';
 import {nearbyBuildings} from './world.js';
-import {saveMeta,latestSave,deleteSave} from './persistence.js';
+import {saveMeta,latestSave,deleteSave,exportSave,parseSaveFile,importSave,MAX_SAVE_BYTES} from './persistence.js';
 import {drawMinimap} from './maps.js';
 import {ExpeditionMap} from './expedition-map.js';
 import {renderExpedition,expeditionItemDetail} from './expedition-menu.js';
@@ -64,6 +64,38 @@ export class UI{
  showBuild(){this.panel={type:'build'};this.notice='';this.render();}
  restoreShopRow(action,scroll=0){const row=[...this.root.querySelectorAll('[data-do]')].find(el=>el.dataset.do===action);if(row)row.focus({preventScroll:true});const body=this.root.querySelector('.atlas-body'),pack=this.root.querySelector('.exp-pack-items');if(body)body.scrollTop=typeof scroll==='number'?scroll:scroll.body||0;if(pack&&typeof scroll==='object')pack.scrollTop=scroll.pack||0;}
  requestPurchase(id){const s=this.game.state,it=ITEMS[id],vendor=this.panel;if(!it||vendor?.type!=='vendor')return;const quantity=this.qty,cost=Math.ceil(it.price*quantity*(s.flags.mara_trade_route?.85:1)),returnFocus='buy:'+id,returnScroll=this.root.querySelector('.atlas-body')?.scrollTop||0;this.confirm('Buy '+it.name+'?',`Spend ${fmt(cost)} ore for ${quantity} ${it.name}.`,()=>{this.panel=vendor;const currentCost=Math.ceil(it.price*quantity*(s.flags.mara_trade_route?.85:1));let result;if(!P.serviceAvailable(s,vendor.object.service||'provisions')||!P.serviceStock(s,vendor.object.service||'provisions',s.region).includes(id))result={ok:false,message:'This item is no longer available here.'};else if(currentCost!==cost)result={ok:false,message:'The price changed. Review the new total before buying.'};else result=P.buy(s,id,quantity);this.feedback(result);this.restoreShopRow(returnFocus,returnScroll);},{eyebrow:'PURCHASE',cancelLabel:'Cancel',confirmLabel:`Buy · ${fmt(cost)} ore`,purchase:{id,quantity,cost},returnFocus,returnScroll});this.root.querySelector('[data-do="confirm-yes"]')?.focus({preventScroll:true});}
+ exportSaveSlot(slot){
+  try{
+   const json=exportSave(slot),record=JSON.parse(json),url=URL.createObjectURL(new Blob([json],{type:'application/json'})),link=document.createElement('a');
+   link.href=url;link.download=`chronforge-echo-${slot==='checkpoint'?'autosave':'record-'+slot}-${record.savedAt.slice(0,10)}.json`;
+   document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+   this.notice='Exported '+(slot==='checkpoint'?'autosave':'field record '+slot)+'. Import this file in your other browser or game URL.';this.render();this.restoreShopRow('export-save:'+slot,this.menuScroll[5]||0);
+  }catch(e){this.feedback({ok:false,message:'Could not export: '+e.message});}
+ }
+ cancelSaveImport(){this.saveImportSequence=(this.saveImportSequence||0)+1;this.saveFileInput?.remove();this.saveFileInput=null;}
+ requestSaveImport(slot){
+  this.saveFileInput?.remove();
+  const input=document.createElement('input'),sequence=this.saveImportSequence=(this.saveImportSequence||0)+1,returnScroll=this.root.querySelector('.atlas-body')?.scrollTop||0;
+  input.type='file';input.accept='.json,application/json';input.hidden=true;input.setAttribute('aria-label','Import expedition save');
+  const restore=()=>{input.remove();if(this.saveFileInput===input)this.saveFileInput=null;if(this.menu&&this.tab===5)this.restoreShopRow('import-save:'+slot,returnScroll);};
+  input.addEventListener('cancel',restore,{once:true});
+  input.addEventListener('change',async()=>{
+   const file=input.files?.[0];restore();if(!file)return;
+   try{
+    if(file.size>MAX_SAVE_BYTES)throw Error('Save files must be 5 MB or smaller.');
+    const record=parseSaveFile(await file.text());
+    if(sequence!==this.saveImportSequence||!this.menu||this.tab!==5||this.panel?.type==='confirm')return;
+    const previous=this.panel,label=slot==='checkpoint'?'Autosave':'Field record '+String(slot).padStart(2,'0'),scroll=this.root.querySelector('.atlas-body')?.scrollTop||0;
+    const finish=()=>{this.panel=previous;try{importSave(record,slot);this.notice=`Imported into ${label}. Choose Load on that row to resume it.`;this.game.audio.sound('confirm');this.render();this.restoreShopRow('load:'+slot,scroll);}catch(e){this.feedback({ok:false,message:'Could not import: '+e.message});this.restoreShopRow('import-save:'+slot,scroll);}};
+    if(saveMeta(slot)){
+     const party=record.state.heroes.map(h=>`${HEROES[h.id].name} LV ${h.level}`).join(', ');
+     this.confirm('Replace '+label+'?',`Import ${party} into this row? The existing record will be replaced. Your current expedition stays open.${slot==='checkpoint'?' Future automatic checkpoints will update this row again.':''}`,finish,{eyebrow:'IMPORT SAVE',confirmLabel:'Replace record',cancelLabel:'Keep existing record',returnFocus:'import-save:'+slot,returnScroll:scroll});
+     this.root.querySelector('[data-do="confirm-no"]')?.focus({preventScroll:true});
+    }else finish();
+   }catch(e){if(sequence===this.saveImportSequence&&this.menu&&this.tab===5){this.feedback({ok:false,message:'Could not import: '+e.message});this.restoreShopRow('import-save:'+slot,this.menuScroll[5]||0);}}
+  },{once:true});
+  document.body.append(input);this.saveFileInput=input;input.click();
+ }
  confirmItemUse(use,run,labels={}){this.confirm('Use '+ITEMS[use.itemId].name+'?',`${use.targetName} restores ${use.amount} ${use.unit}. ${use.wasted} ${use.unit} will be wasted.`,run,{eyebrow:'FIELD SUPPLY',confirmLabel:'Use · Space / Enter',cancelLabel:'Cancel · Esc',consumable:true,...labels});this.root.querySelector('[data-do="confirm-yes"]')?.focus({preventScroll:true});}
  requestItemUse(id,heroId){
   const returnFocus='use:'+id,returnScroll={body:this.root.querySelector('.atlas-body')?.scrollTop||0,pack:this.root.querySelector('.exp-pack-items')?.scrollTop||0},previous=this.panel;
@@ -80,8 +112,9 @@ export class UI{
   case 'item':this.inspectItem(arg,true);break;
   case 'equip':this.feedback(P.equip(s,h.id,arg));break;case 'unequip':this.feedback(P.unequip(s,h.id,arg));break;case 'use':if(g.mode==='battle'){this.feedback({ok:false,message:'Use the battle Item command to choose a field supply and ally.'});break;}this.requestItemUse(arg,h.id);break;
   case 'learn':this.feedback(P.learn(s,h.id,arg));break;
-  case 'save':g.save(arg);this.notice='Expedition recorded.';this.render();break;case 'load':this.confirm('Resume this expedition?','Unsaved progress will be replaced by this record.',()=>g.load(arg));break;
-  case 'delete':this.confirm('Erase this record?','This permanently erases this save slot. Other records are preserved.',()=>{deleteSave(arg);this.panel=this.confirmReturn;this.notice='Record erased.';this.render();});break;
+  case 'save':if(g.save(arg)){this.notice='Expedition recorded.';this.render();}break;
+  case 'export-save':this.exportSaveSlot(arg);break;case 'import-save':this.requestSaveImport(arg);break;case 'load':this.confirm('Resume this expedition?','Unsaved progress will be replaced by this record.',()=>g.load(arg));break;
+  case 'delete':this.confirm('Erase this record?','This permanently erases this save slot. Other records are preserved.',()=>{this.panel=this.confirmReturn;try{deleteSave(arg);this.notice='Record erased.';this.render();}catch(e){this.feedback({ok:false,message:'Could not erase: '+e.message});}});break;
   case 'restart':this.confirm('Start over?','The current expedition returns to the solitary opening. Manual save slots remain available.',()=>g.startNew());break;
   case 'confirm-no':this.dismissTopLayer();break;case 'confirm-yes':{const f=this.panel.run;this.panel=null;f();this.confirmReturn=null;break;}
   case 'setting':s.settings[arg]=!s.settings[arg];document.querySelector('#game').classList.toggle('reduced',!!s.settings.reducedMotion);this.render();break;
@@ -98,7 +131,7 @@ export class UI{
   case 'tier':this.feedback(P.advanceTier(s));g.checkpoint();break;case 'ending-continue':g.completeEnding();break;
  }}
  shell(title,body,footer='↑ ↓ Navigate &nbsp; <kbd>PgUp/Dn</kbd> Scroll &nbsp; <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm &nbsp; <kbd>Esc</kbd>/<kbd>Backspace</kbd> Return',tabs=false){return `<div class="scrim"></div><section class="atlas ${this.panel?.type==='vendor'&&['inn','rest','trainer'].includes(this.panel.object.service)?'service-compact':this.panel?.type==='vendor'?'shop-dialog':''}" role="dialog" aria-label="${esc(title)}"><header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs?'THE CREW’S FIELD ATLAS':this.panel?.type==='vendor'?'LOCAL SERVICES':this.panel?.type==='build'?'SETTLEMENT':'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs?'<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>':''}</header>${tabs?`<nav class="tabs">${['Map','Party','Inventory','Skills','Quests','Save','Settings'].map((t,i)=>button(`<small>${i+1}</small>${t}`,'tab:'+i,i===this.tab?'active':'')).join('')}</nav>`:''}<div class="atlas-body scroll">${this.notice?`<div class="notice" role="status">${esc(this.notice)}</div>`:''}${body}</div><footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;}
- render(){const shopScroll=this.panel?.type==='vendor'&&this.root.querySelector('[data-shop-navigation]')?this.root.querySelector('.atlas-body')?.scrollTop:null;const previousPage=this.root.querySelector('.exp-page');this.menuScroll??={};if(previousPage&&this.renderedMenuTab!=null)this.menuScroll[this.renderedMenuTab]={body:previousPage.scrollTop,pack:this.root.querySelector('.exp-pack-items')?.scrollTop||0};const g=this.game,s=g.state;const prev=document.activeElement?.dataset?.do;this.hud.style.display=(g.mode==='title'||this.menu||g.mode==='battle')?'none':'';let html='';
+ render(){if(!this.menu||this.tab!==5)this.cancelSaveImport();const shopScroll=this.panel?.type==='vendor'&&this.root.querySelector('[data-shop-navigation]')?this.root.querySelector('.atlas-body')?.scrollTop:null;const previousPage=this.root.querySelector('.exp-page');this.menuScroll??={};if(previousPage&&this.renderedMenuTab!=null)this.menuScroll[this.renderedMenuTab]={body:previousPage.scrollTop,pack:this.root.querySelector('.exp-pack-items')?.scrollTop||0};const g=this.game,s=g.state;const prev=document.activeElement?.dataset?.do;this.hud.style.display=(g.mode==='title'||this.menu||g.mode==='battle')?'none':'';let html='';
   if(this.panel?.type==='confirm'){const p=this.panel;html=`<div class="scrim"></div><section class="modal ${p.purchase||p.consumable?'purchase-confirm':''}" role="dialog" aria-modal="true" aria-label="${esc(p.title)}"><div class="eyebrow">${esc(p.eyebrow||'FIELD RECORD')}</div><h2>${esc(p.title)}</h2>${p.purchase?`<div class="purchase-item">${icon(p.purchase.id)}<span>${esc(ITEMS[p.purchase.id].name)}<b>×${fmt(p.purchase.quantity)}</b></span></div><div class="purchase-cost"><span>Spend</span>${icon('ore')}<strong>${fmt(p.purchase.cost)} ore</strong><small>${fmt(s.resources.ore)} available</small></div>`:`<p>${esc(p.text)}</p>`}<div class="button-group">${button(esc(p.cancelLabel||'Keep exploring'),'confirm-no')}${button(esc(p.confirmLabel||'Confirm'),'confirm-yes','button danger')}</div></section>`;}
   else if(this.menu)html=this.renderMenu();
   else if(this.panel?.type==='reading'){const p=this.panel;html=`<section class="reading-panel" role="dialog" aria-modal="true" aria-labelledby="reading-title"><div class="reading-kind">SIGNPOST</div><h2 id="reading-title">${esc(p.title)}</h2><p>${esc(p.text)}</p><footer><span><kbd>Enter</kbd> / <kbd>Space</kbd> Return</span><span class="dismiss-hint"><kbd>Esc</kbd> Close</span></footer></section>`;}

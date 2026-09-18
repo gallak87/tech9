@@ -48,7 +48,9 @@ Follow the salt road east. Fight the early visible patrol, read its timing cue, 
 
 The world is designed to be walked: each outdoor region is 5760×2520 world units. Liberated, visited town hubs later offer fast travel. Ordinary gateways connect the present-day world. Time travel is unavailable and remains an unapproved future item in `ROADMAP.md`.
 
-There are three manual save slots and a checkpoint in browser local storage, separate from the original game's saves. Save metadata shows location, crew level and play time. Ending progress and suspended battles survive saving/loading. Saves belong to the browser origin and profile; the development and preview ports have separate storage.
+The Save page shows the automatic checkpoint above three manual slots, with each record’s location, objective, party levels and HP/MP, play time, and percentage of the outdoor world explored. Ending progress and suspended battles survive saving/loading. Saves belong to the browser origin and profile; the development and preview ports have separate storage.
+
+Use **Export** on any saved row to download its JSON record, then **Import** on a destination row in your other browser, local game, or GitHub Pages game. Replacing an occupied row requires confirmation. Import changes only that saved row; choose **Load** to resume it. Autosave continues updating at future checkpoints. Invalid or newer-format files leave existing records untouched; imports are limited to 5 MB. Saves remain separate from the original game's storage.
 
 ## Review and evidence
 

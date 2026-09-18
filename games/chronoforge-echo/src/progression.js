@@ -90,7 +90,7 @@ export const TIER_REQUIREMENTS={
  4:{buildings:{town_center:4,research_lab:2,forge:2,walls:2},flags:['forest_seal','mire_seal','crater_seal','frost_seal'],cost:{food:130,ore:150,energy:130,renown:180}}
 };
 const TIER_STORY_REQUIREMENTS={
- beacon_restored:{label:'Haventide beacon restored',instruction:'Restore the listening buoy west of Haventide'},
+ beacon_restored:{label:'Haventide beacon restored',instruction:'Restore the listening beacon west of Haventide'},
  rune_recruited:{label:'Rune recruited',instruction:'Recruit Rune at Anchor Nine in Orbital Reach after defeating its entrance blockade'},
  forest_seal:{label:'Forest Veil restored',instruction:'Restore Forest Veil’s Heartwood Relay beyond its guardian'},
  mire_seal:{label:'Mire Bog restored',instruction:'Open Mire Bog’s submerged archive after defeating its keeper'},

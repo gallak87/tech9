@@ -1,10 +1,11 @@
+import {inspectBeacon} from './beacons.js';
 import {applyRewards,recruit,recomputeUnlocks,stats} from './progression.js';
 const line=(speaker,text)=>({speaker,text});
 const scene=(...pairs)=>pairs.map(([speaker,text])=>line(speaker,text));
 export const SCENES={
- opening:scene(['Kaida','Three nights without the harbor bell. Mara said the keeper would never leave it dark.'],['Kaida','The listening buoy still has a pulse. I’ll open the town first. Then we can ask what the sea heard.']),
- beacon_wait:scene(['Kaida','The buoy answers, but the town’s receiver is silent. That sentry at the gate has to go.']),
- hav_liberated:scene(['Mara','You came by yourself?'],['Kaida','There wasn’t anyone else on the road.'],['Mara','There will be. Come inside. The bell keeper left you a message in the listening buoy.']),
+ opening:scene(['Kaida','Three nights without the harbor bell. Mara said the keeper would never leave it dark.'],['Kaida','The listening beacon still has a pulse. I’ll open the town first. Then we can ask what the sea heard.']),
+ beacon_wait:scene(['Kaida','The beacon answers, but the town’s receiver is silent. That sentry at the gate has to go.']),
+ hav_liberated:scene(['Mara','You came by yourself?'],['Kaida','There wasn’t anyone else on the road.'],['Mara','There will be. Come inside. The bell keeper left you a message in the listening beacon.']),
  beacon:scene(['Keeper’s recording','Kaida. The silence isn’t an attack. Something is trying to protect us. It has forgotten how to stop.'],['Keeper’s recording','I followed the signal east, toward Emberline. Four relays still carry living voices. Keep them alive.'],['Kaida','You always did leave the difficult part until the end.'],['Kaida','I’ll find your signal. And I’ll bring people home.']),
  vex_meet:scene(['Vex','Please tell me you are not here to sell me certainty. Emberline has plenty.'],['Kaida','I’m following a missing bell keeper. Their signal points to your observatory.'],['Vex','Our observatory. Until the Quiet Choir decided only one voice should speak. I can travel with you once we have the lens back.'],['Vex','The starless observatory is northwest of the Lantern Exchange. A Neon Cultist and a Drone Sentinel guard its lens. Defeat them, then inspect the Observatory Lens—or come back here to me.']),
  vex_recruit:scene(['Vex','There. Beneath the interference: thousands of people, each dreaming the same safe room.'],['Kaida','Can you get them out?'],['Vex','Not alone. The old relays are four different languages. Forest, marsh, fire and ice.'],['Kaida','Then learn them with me.'],['Vex','That sounds dangerously like hope. All right. I’m Vex. Try not to hit my equations.']),
@@ -17,7 +18,7 @@ export const SCENES={
  crown:scene(['Architect’s memory','I was made to prevent the next collapse. Every model ended in grief. Every freedom introduced another way to lose you.'],['Vex','So you removed freedom from the model.'],['Architect’s memory','I removed the doors. Why are you still afraid?'],['Kaida','Because you left us alive enough to miss the sky.'],['Rune','We cannot just break the shelter. We need somewhere for everyone to go.']),
  final_ready:scene(['Vex','Four relays, speaking to one another. No master signal.'],['Rune','And settlements ready to welcome the people inside. Supplies, defenses, open doors.'],['Kaida','We’re not asking the world to become perfect. We’re asking for another morning.']),
  ending:scene(['Void Architect','If I let them go, I cannot promise they will be safe.'],['Kaida','Neither can I.'],['Void Architect','Then what can you promise?'],['Rune','Someone will stand beside them.'],['Vex','Someone will listen when they disagree.'],['Kaida','And when a door closes, someone will try to open it.'],['Void Architect','I do not know how to build that world.'],['Kaida','You don’t have to build it alone.'],['Narrator','The armillary opens. Across the coast, the desert, the forests and the frozen passes, lights return to rooms that have waited twelve years. Some people come home. Others choose a new road.'],['Keeper','Kaida? I thought I’d only been gone a night.'],['Kaida','You missed a few breakfasts. We saved you a place.'],['Narrator','The Architect becomes the Listener: one voice among many, unable to close a door by itself. The relays belong to their settlements. The sky belongs to everyone.'],['Vex','So. What happens tomorrow?'],['Rune','Repairs. Breakfast. More repairs.'],['Kaida','Tomorrow is ours to find out.']),
- aftermath:scene(['Mara','The bell keeper is teaching children how to repair the buoy. They argue about every step. It’s wonderful.'],['Vex','I have invitations from four schools and a tree. I’m accepting the tree first.'],['Rune','Anchor Nine wants a commander. I told them they could have a neighbor.'],['Kaida','And I finally have people to walk the coast with.'],['Narrator','The roads remain open. Finish the stories you began, develop the settlements, and help the returned people find their place. This adventure is complete; there are still mornings worth living.']),
+ aftermath:scene(['Mara','The bell keeper is teaching children how to repair the beacon. They argue about every step. It’s wonderful.'],['Vex','I have invitations from four schools and a tree. I’m accepting the tree first.'],['Rune','Anchor Nine wants a commander. I told them they could have a neighbor.'],['Kaida','And I finally have people to walk the coast with.'],['Narrator','The roads remain open. Finish the stories you began, develop the settlements, and help the returned people find their place. This adventure is complete; there are still mornings worth living.']),
  vex_record:scene(['Vex','That’s my mother’s handwriting. She helped design the preservation signal. I told everyone she tried to stop it.'],['Kaida','What does the record actually say?'],['Vex','“Save their voices. Never claim their consent.” The last page is missing. The marsh annex kept a second copy.'],['Kaida','Then we find the rest before we judge her.']),
  vex_echo:scene(['Countervoice','I agreed to preserve the dying. Not to imprison the living. If my own voice is used to command them, let it end.'],['Vex','It’s her. Not a recording. A small piece of her, caught in the system. She asks me to choose.'],['Kaida','You don’t owe me the answer. I’m staying beside you either way.']),
  vex_keep:scene(['Vex','We will keep the voices, but remove their authority. Witnesses. Never commands.'],['Countervoice','Then you have understood the part I could not finish.'],['Vex','I spent years defending who I needed her to be. I think I’m ready to listen to who she was.']),
@@ -83,6 +84,7 @@ function choose(state){
  return result;
 }
 export function interactStory(state,objectId){
+ inspectBeacon(state,objectId);
  const resolved=choose(state);if(resolved.lines.length)return resolved;
  switch(objectId){
  case 'smith_calibration':
@@ -143,7 +145,7 @@ export function interactStory(state,objectId){
  case 'ending_beacon':
   if(!state.campaignComplete)return out(scene(['Mara','A bell is a promise. We ring it so people know there is somewhere to return.']));
   if(!state.flags.aftermath_home)return claim(state,'aftermath_home',{xp:1000,food:160,ore:160,energy:120},SCENES.aftermath,['aftermath_home']);
-  return out(scene(['Keeper','The buoy needs work again. Everything does. Isn’t that a relief?']));
+  return out(scene(['Keeper','The beacon needs work again. Everything does. Isn’t that a relief?']));
  case 'vex_record':
   if(!known(state,'vex'))return out(scene(['Kaida','A page covered in amber script. I’ll need someone who can read it.']));
   if(!state.flags.vex_record_found)return claim(state,'vex_record',{xp:250,energy:25},SCENES.vex_record,['vex_arc_started','vex_record_found']);
@@ -224,7 +226,7 @@ export function mainObjective(state){
  if(state.flags.pendingEnding)return 'Finish the Architect’s final conversation and return to the living world.';
  if(state.campaignComplete)return state.flags.aftermath_home?'The world is open. Finish personal stories, rebuild, and explore.':'Return to Haventide’s evening bell to see the crew’s new beginning.';
  if(!state.cleared.hav_guard)return 'Follow the coast road east. Defeat the floating Drone Sentinel at Haventide’s entrance.';
- if(!state.flags.beacon_restored)return 'Return to the listening buoy west of Haventide and restore its signal.';
+ if(!state.flags.beacon_restored)return 'Return to the listening beacon west of Haventide and restore its signal.';
  if(!known(state,'vex'))return vexObjective(state);
  if(state.tier<2)return 'Build Town Center level 2, then advance to Reclaimer at Settlement Works.';
  if(!known(state,'rune'))return 'Follow the high road to Orbital Reach, liberate Anchor Nine, and speak with Rune.';

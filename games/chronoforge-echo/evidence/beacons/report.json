@@ -1,0 +1,22 @@
+{
+  "method": "Production build, staged saves beside Haventide/Frost beacons; normal interaction and reload. The gate-cleared state is staged, not earned in combat.",
+  "checks": [
+    {
+      "id": "hav_beacon",
+      "dark": true,
+      "firstInspectionHint": "Defeat the gate sentry at Haventide to light the beacon.",
+      "readyHint": true,
+      "restored": true,
+      "saveReload": true
+    },
+    {
+      "id": "frost_beacon",
+      "dark": true,
+      "firstInspectionHint": "Defeat the Frost Colossus to light the rescue beacon.",
+      "readyHint": true,
+      "restored": true,
+      "saveReload": true
+    }
+  ],
+  "errors": []
+}

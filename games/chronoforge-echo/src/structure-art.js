@@ -2,6 +2,14 @@
 // exclude transparent margins. Prompts and audit: docs/structure-art.md.
 export const STRUCTURE_ASSETS = [
   {
+    id: 'signal_beacon', source: 'assets/structures/signal-beacon-source.png',
+    columns: 1, rows: 1, kind: 'structure', required: true,
+    metadata: {
+      style: 'beacon', sourceWidth: 1254, sourceHeight: 1254, preserveSourceAlpha: true,
+      frames: [{x: 400, y: 10, w: 472, h: 1175, anchorX: 237, anchorY: 1152, nativeHeight: 184}],
+    },
+  },
+  {
     id: 'listening_dish', source: 'assets/structures/listening-dish-source.png',
     columns: 1, rows: 1, kind: 'structure', required: true,
     metadata: {

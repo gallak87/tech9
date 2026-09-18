@@ -67,3 +67,7 @@ button:focus-visible{outline-color:#df702e}kbd{color:inherit;border-color:#79767
 
 /* Civic names are world-anchored information, never an interaction button. */
 .building-label{pointer-events:none;white-space:nowrap;padding:.35cqw .6cqw}.building-label small{font-size:.8em;color:#aaa49c;margin-left:.5em}
+
+/* Unlock guidance stays attached to the beacon after its first inspection. */
+.interaction.beacon-label{max-width:min(70%,30cqw)}
+.beacon-hint{display:block;margin-top:.22em;max-width:32em;font-size:.8em;line-height:1.35;font-weight:400;color:#c6c3bd}

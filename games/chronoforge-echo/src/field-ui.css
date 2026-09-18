@@ -30,6 +30,11 @@ button:focus-visible{outline-color:#df702e}kbd{color:inherit;border-color:#79767
 .hud-top{grid-template-columns:minmax(0,32cqw) auto;justify-content:end;column-gap:1cqw}
 @container(max-width:950px){.hud-top{grid-template-columns:minmax(0,41cqw) auto}}
 @container(max-width:600px){.hud-top{grid-template-columns:minmax(0,1fr) auto;width:96%;gap:8px}}
+/* Keep party vitals in view at the upper-left; travel controls stay below. */
+#hud .hud-bottom{top:2.5%}
+#hud .party-strip{align-self:flex-start;flex-direction:column;gap:.4cqw}
+#hud .controls{margin-left:auto}
+@container(max-width:950px){#hud .hud-top{left:calc(2% + 110px);width:auto;grid-template-columns:minmax(0,1fr) auto}}
 .atlas.service-compact{width:min(60cqw,660px);left:50%;right:auto;transform:translateX(-50%);top:20%;max-height:74%}
 .atlas.service-compact .atlas-title .eyebrow{display:none}
 .atlas.service-compact .atlas-title h3{font-size:clamp(12px,.95cqw,19px);color:#b9aea2}

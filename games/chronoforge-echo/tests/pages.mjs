@@ -63,7 +63,7 @@ try {
       assert.ok(fonts.every(count => count > 0), 'A bundled font failed to load');
       for (const asset of ASSET_MANIFEST) assert.ok(requests.has(mount + asset.url), `Missing request: ${mount + asset.url}`);
       assert.deepEqual(errors, []);
-      console.log(`PASS ${mount}: title, opening, Inventory, 70 atlases and 5 font faces; no HTTP or browser errors.`);
+      console.log(`PASS ${mount}: title, opening, Inventory, ${ASSET_MANIFEST.length} art assets and 5 font faces; no HTTP or browser errors.`);
     } finally { await context.close(); }
   }
 } finally {

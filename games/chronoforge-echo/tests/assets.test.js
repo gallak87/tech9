@@ -26,9 +26,9 @@ test('required source dimensions and measured frames agree with the immutable PN
     if(m?.sourceWidth)assert.equal(width,m.sourceWidth,entry.id);
     if(m?.sourceHeight)assert.equal(height,m.sourceHeight,entry.id);
     if(m?.frames){
-      // The direction-neutral roadside board is one static sprite. Animated
-      // actors and the existing multi-frame prop sheets retain the six-frame gate.
-      assert.ok(m.frames.length>=(entry.kind==='roadSign'?1:6),entry.id);
+      // Signs and structures are individual static sprites. Animated actors
+      // and the existing multi-frame prop sheets retain the six-frame gate.
+      assert.ok(m.frames.length>=(['roadSign','structure'].includes(entry.kind)?1:6),entry.id);
       for(const f of m.frames){
         assert.ok([f.x,f.y,f.w,f.h,f.anchorX,f.anchorY].every(Number.isFinite),entry.id);
         assert.ok(f.x>=0&&f.y>=0&&f.w>0&&f.h>0&&f.x+f.w<=width&&f.y+f.h<=height,entry.id);

@@ -50,3 +50,6 @@ button:focus-visible{outline-color:#df702e}kbd{color:inherit;border-color:#79767
 .purchase-item .pixel-icon{width:3.2cqw;height:3.2cqw;min-width:34px;min-height:34px}.purchase-item>span{display:flex;flex:1;justify-content:space-between;gap:1cqw}.purchase-item b{color:#f0a16a;font-weight:500}
 .purchase-cost{display:flex;align-items:center;gap:.5cqw;padding:.8cqw 0 0;font-size:clamp(12px,.9cqw,19px)}.purchase-cost>.pixel-icon{width:1.7cqw;height:1.7cqw;min-width:20px;min-height:20px}.purchase-cost>strong{font-weight:500;color:#f0a16a}.purchase-cost>small{margin-left:auto;color:#aaa198}.purchase-confirm .button-group{justify-content:flex-end;margin-bottom:0}
 @container(max-width:750px){.purchase-confirm{width:76%;padding:14px 16px}.purchase-confirm h2{margin:7px 0 12px}.purchase-item{padding:10px 0;gap:10px}.purchase-cost{padding-top:10px;gap:6px}.purchase-confirm .button-group{margin-top:14px}.purchase-confirm .button{padding:7px 10px}}
+
+/* Civic names are world-anchored information, never an interaction button. */
+.building-label{pointer-events:none;white-space:nowrap;padding:.35cqw .6cqw}.building-label small{font-size:.8em;color:#aaa49c;margin-left:.5em}

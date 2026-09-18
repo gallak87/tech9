@@ -1,0 +1,112 @@
+{
+  "method": "Actual development game with explicit settlement/building fixtures; actual per-frame HUD/rendering, not mocked markup. Visual inspection of all extractor levels.",
+  "initial": {
+    "building": {
+      "id": "hav_plot_energy_extractor",
+      "type": "landmark",
+      "x": 2100,
+      "y": 1678.75,
+      "name": "Tidal energy works",
+      "style": "building",
+      "building": "energy_extractor",
+      "solid": true,
+      "w": 206.25,
+      "h": 81.25
+    },
+    "position": {
+      "x": 2235.125,
+      "y": 1572.5
+    }
+  },
+  "checks": [
+    "Level 1 Energy Extractor name/level appears near the footprint without an interaction key or action.",
+    "All four extractor art tiers use the new shoreline site and retain their level.",
+    "All eight civic types have an informational nearby name/level label.",
+    "Plaque hides away from civic sites.",
+    "Unbuilt foundations do not claim to be completed buildings.",
+    "Actual click-to-walk navigation reaches the landward approach without entering water.",
+    "During normal arrow-key movement the civic plaque stays within1px of its world anchor, without CSS easing."
+  ],
+  "coverage": [
+    {
+      "id": "town_center",
+      "text": "Town Center LV 1",
+      "action": false
+    },
+    {
+      "id": "farm",
+      "text": "Farm LV 1",
+      "action": false
+    },
+    {
+      "id": "mine",
+      "text": "Mine LV 1",
+      "action": false
+    },
+    {
+      "id": "energy_extractor",
+      "text": "Energy Extractor LV 4",
+      "action": false
+    },
+    {
+      "id": "barracks",
+      "text": "Barracks LV 1",
+      "action": false
+    },
+    {
+      "id": "forge",
+      "text": "Forge LV 1",
+      "action": false
+    },
+    {
+      "id": "research_lab",
+      "text": "Research Lab LV 1",
+      "action": false
+    },
+    {
+      "id": "walls",
+      "text": "Walls LV 1",
+      "action": false
+    }
+  ],
+  "errors": [],
+  "navigation": {
+    "arrival": {
+      "x": 2101.2597825883377,
+      "y": 1563.8397250153762,
+      "label": "Energy Extractor LV 1"
+    },
+    "anchorSamples": [
+      {
+        "dx": 0,
+        "dy": 0,
+        "transition": "none"
+      },
+      {
+        "dx": 0,
+        "dy": 0,
+        "transition": "none"
+      },
+      {
+        "dx": 0,
+        "dy": 0,
+        "transition": "none"
+      },
+      {
+        "dx": 0,
+        "dy": 0,
+        "transition": "none"
+      },
+      {
+        "dx": 0,
+        "dy": 0,
+        "transition": "none"
+      },
+      {
+        "dx": 0,
+        "dy": 0,
+        "transition": "none"
+      }
+    ]
+  }
+}

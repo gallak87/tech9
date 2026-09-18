@@ -101,13 +101,17 @@ REGIONS.emberline.objects.push(
 const civicPlots=[
  ['farm','Terraced gardens',1080,655,168,76],
  ['mine','The stoneworks',1790,350,166,74],
- ['energy_extractor','Tidal energy works',1360,1170,165,65],
+ ['energy_extractor','Tidal energy works',1680,1343,165,65],
  ['barracks','The watch yard',870,745,158,74],
  ['forge','Saltforge works',1455,900,156,72],
  ['research_lab','The signal laboratory',1390,440,165,74],
  ['walls','The north gate',1190,835,165,65]
 ];
-for(const [building,name,x,y,w,h]of civicPlots){const r=REGIONS.haventide;r.objects.push(landmark('hav_plot_'+building,name,x,y,'building',{building,solid:true,w,h}));r.roads.push(road([x,y+58],closestRoadPoint(r,x,y+58)));}
+for(const [building,name,x,y,w,h]of civicPlots){const r=REGIONS.haventide;r.objects.push(landmark('hav_plot_'+building,name,x,y,'building',{building,solid:true,w,h}));
+ // The tidal works sit on the coast; approach from land instead of paving into the sea.
+ const approachY=building==='energy_extractor'?y-h-24:y+58;
+ r.roads.push(road([x,approachY],closestRoadPoint(r,x,approachY)));
+}
 REGIONS.haventide.objects.find(o=>o.id==='haventide_entrance').building='town_center';
 // Groves are authored by their mass and clearing shape. Individual trees have deterministic silhouettes.
 function hash(n){n=Math.imul(n^(n>>>16),0x45d9f3b);return ((n^(n>>>16))>>>0)/4294967296;}
@@ -140,6 +144,9 @@ export function isWalkable(scene,x,y){
  return true;
 }
 export function nearby(scene,x,y,state){return [...scene.objects,...scene.portals].filter(o=>!['tree','rock','ruin','landmark'].includes(o.type)&&!(o.hero&&state?.heroes?.some(h=>h.id===o.hero))&&(!o.unlockTier||(state?.tier||1)>=o.unlockTier)&&!state?.pickups?.[o.id]&&!(o.type==='encounter'&&state?.cleared?.[o.id]&&(o.boss||o.guard||o.flag))&&Math.hypot(o.x-x,o.y-y)<(o.type==='town'?74:o.type==='portal'?62:52)).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y));}
+// Buildings are wider than an NPC: reveal their name near the footprint, not only the anchor.
+// This is informational and deliberately separate from the interactable-object list.
+export function nearbyBuildings(scene,x,y,state){const distance=o=>Math.hypot(Math.max(0,Math.abs(x-o.x)-(o.w||0)/2),Math.max(0,y-o.y,o.y-(o.h||0)-y));return scene.objects.filter(o=>o.building&&state?.buildings?.[o.building]>0&&distance(o)<60).sort((a,b)=>distance(a)-distance(b));}
 export const ALL_SCENES = {...REGIONS,...interiors};
 // Each refuge preserves a different small human story; caves have distinct branches and loops.
 const refugeStories={
@@ -198,6 +205,15 @@ for(const r of Object.values(REGIONS))for(const o of r.objects)if(o.type==='tree
 }
 for(const s of Object.values(interiors))for(const o of s.objects)if(o.service==='construction')Object.assign(o,{solid:true,w:95,h:38});
 const civicSites=REGIONS.haventide.objects.filter(o=>o.building);REGIONS.haventide.objects=REGIONS.haventide.objects.filter(o=>o.type!=='tree'||!civicSites.some(b=>Math.abs(o.x-b.x)<(b.w||160)/2+90&&o.y>b.y-80&&o.y<b.y+180));
+// Match only the new sprites' grounded pedestal / wheelbase. Their dish and
+// canvas remain overhead: actors can walk behind them and use foreground fade.
+// The caravan's resident stands beside its canvas, clear of the painted roof.
+REGIONS.emberline.objects.find(o=>o.id==='mara_convoy').x=REGIONS.emberline.objects.find(o=>o.id==='ember_caravan').x+112;
+for(const r of Object.values(REGIONS))for(const o of r.objects){
+ if(o.type!=='landmark')continue;
+ if(o.style==='dish')Object.assign(o,{solid:true,w:56*(o.size||1),h:20*(o.size||1)});
+ if(o.style==='caravan')Object.assign(o,{solid:true,w:136,h:44});
+}
 // The final presentation grid is 960×540; retain six full screens per authored route.
 for (const scene of Object.values(ALL_SCENES)) {
  const scale=1.25; scene.width*=scale;scene.height*=scale;

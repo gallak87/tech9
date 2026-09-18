@@ -1,0 +1,63 @@
+import {chromium} from 'playwright';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+
+// Production gameplay only: no fixtures, state injection or altered game clock.
+const out=new URL('../evidence/incoming-defense/',import.meta.url);
+await fs.mkdir(out,{recursive:true});
+const report={method:'Fresh production game; normal keyboard and ground-click movement into the first encounter, then Attack and incoming guard. No game fixtures or clock changes.',checks:[],errors:[]};
+const browser=await chromium.launch({headless:true,channel:'chrome'});
+const page=await browser.newPage({viewport:{width:1440,height:900}});
+page.on('pageerror',e=>report.errors.push(e.message));
+const shot=async name=>page.screenshot({path:new URL(name+'.png',out).pathname});
+const incoming=()=>page.waitForFunction(()=>document.querySelector('#battle-interface')?.dataset.timingSide==='defense');
+const windowOpen=()=>page.waitForFunction(()=>document.querySelector('#battle-interface')?.classList.contains('cb-critical-window'));
+const crew=()=>page.waitForFunction(()=>document.querySelector('#battle-interface')?.dataset.stage==='0');
+try{
+ const response=await page.goto(process.env.ECHO_URL||'http://127.0.0.1:4322/');
+ assert.equal(response.status(),200);
+ await page.waitForFunction(()=>window.__ECHO_READY__,{timeout:60000});
+ assert.equal(await page.evaluate(()=>typeof window.__ECHO__),'undefined');
+ await page.keyboard.press('Enter');
+ for(let i=0;i<15&&await page.locator('[data-do="dialogue-next"]').count();i++)await page.keyboard.press('Enter');
+ const walk=async(k,ms)=>{await page.keyboard.down(k);await page.waitForTimeout(ms);await page.keyboard.up(k);};
+ await walk('ArrowRight',1950);await walk('ArrowUp',1620);
+ await page.mouse.click(976,790);await page.waitForTimeout(4200);await page.keyboard.press('f');
+ await shot('arrival');
+ for(let i=0;i<15&&await page.locator('[data-do="dialogue-next"]').count();i++)await page.keyboard.press('Enter');
+ await page.locator('[data-battle-intent="hero"]:enabled').first().waitFor({timeout:10000});
+ await page.keyboard.press('Enter');await page.keyboard.press('Enter');await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>document.querySelector('#battle-interface')?.dataset.stage==='3');
+ assert.equal(await page.locator('#battle-interface').getAttribute('data-timing-side'),'attack');
+ assert.equal(await page.locator('.cb-timing-track:visible').count(),1);
+ await shot('player-attack');
+ await crew();
+ report.previousStage=await page.locator('#battle-interface').getAttribute('data-stage');
+ report.previousSelection=await page.locator('.cb-crew .cb-selected').getAttribute('data-id');
+ await incoming();await windowOpen();await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>document.querySelector('.cb-timing')?.textContent.includes('Critical guard: 85%'),{timeout:1500});
+ assert.match(await page.locator('.cb-timing:visible').innerText(),/Critical guard: 85%/);
+ await shot('incoming-critical-guard');
+ report.checks.push('Incoming enemy attack opens the same visible track as Attack; actual Enter press catches the live orange window.');
+ await crew();
+ assert.equal(await page.locator('#battle-interface').getAttribute('data-stage'),report.previousStage);
+ assert.equal(await page.locator('.cb-crew .cb-selected').getAttribute('data-id'),report.previousSelection);
+ await shot('selection-restored');
+ report.checks.push('Enemy recovery restores Crew and the original selected companion.');
+ await incoming();await page.keyboard.press('Escape');
+ assert.equal(await page.locator('#battle-interface').isVisible(),false);
+ await page.waitForTimeout(250);await page.keyboard.press('Escape');
+ assert.equal(await page.locator('#battle-interface').getAttribute('data-stage'),'3');
+ await windowOpen();
+ const bounds=await page.locator('.cb-timing-button').boundingBox();
+ await page.mouse.click(bounds.x+bounds.width/2,bounds.y+bounds.height/2);
+ await page.waitForFunction(()=>document.querySelector('.cb-timing')?.textContent.includes('Critical guard: 85%'),{timeout:1500});
+ assert.match(await page.locator('.cb-timing:visible').innerText(),/Critical guard: 85%/);
+ report.checks.push('Pause/resume retains incoming timing; mouse click also catches the live window.');
+ await crew();await incoming();await windowOpen();await shot('incoming-window');
+ await crew();
+ assert.equal(await page.locator('.cb-timing-track:visible').count(),0);
+ report.checks.push('An unattempted incoming attack also restores the previous slot after recovery.');
+ assert.deepEqual(report.errors,[]);report.result='pass';
+}catch(error){report.result='fail';report.failure=String(error);process.exitCode=1;await shot('failure').catch(()=>{});}
+finally{await browser.close();report.browserClosed=true;await fs.writeFile(new URL('report.json',out),JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));}

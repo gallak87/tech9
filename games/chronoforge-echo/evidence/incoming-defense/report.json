@@ -1,0 +1,14 @@
+{
+  "method": "Fresh production game; normal keyboard and ground-click movement into the first encounter, then Attack and incoming guard. No game fixtures or clock changes.",
+  "checks": [
+    "Incoming enemy attack opens the same visible track as Attack; actual Enter press catches the live orange window.",
+    "Enemy recovery restores Crew and the original selected companion.",
+    "Pause/resume retains incoming timing; mouse click also catches the live window.",
+    "An unattempted incoming attack also restores the previous slot after recovery."
+  ],
+  "errors": [],
+  "previousStage": "0",
+  "previousSelection": "kaida",
+  "result": "pass",
+  "browserClosed": true
+}

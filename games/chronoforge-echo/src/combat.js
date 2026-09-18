@@ -285,9 +285,13 @@ export function battleKey(b, state, input) {
 
 function timingPress(b) {
   const a = b.action;
-  if (!a || a.side !== 'hero' || !a.timingEligible || a.timingAttempted || a.resolved || b.inputSerial <= a.executeInput) return;
+  if (!a || !a.timingEligible || a.timingAttempted || a.resolved || b.inputSerial <= a.executeInput) return;
   a.timingAttempted = true;
   a.timingSuccess = a.elapsed >= a.windowStart && a.elapsed <= a.windowEnd;
+  if (a.side === 'enemy') {
+    log(b, a.timingSuccess ? 'Critical guard · 85% less damage from this attack.' : 'Guard timing missed · existing defenses still apply.', a.timingSuccess ? 'timing' : 'miss');
+    return;
+  }
   const defending = a.command.kind === 'defend';
   log(b, a.timingSuccess ? defending ? 'Critical guard · damage reduced by 85% until your next action.' : 'Signal caught · critical chance raised.' : defending ? 'Normal guard · damage reduced by 65% until your next action.' : 'Signal missed · the strike continues.', a.timingSuccess ? 'timing' : 'miss');
 }
@@ -323,11 +327,18 @@ function enemyTurn(b, state, e) {
     chosen = group ? targets : [targets[Math.floor(roll(state) * targets.length)]];
     e.charging = false;
   }
+  const contact = command.effect === 'telegraph' ? .46 : .72;
+  const assisted = Boolean(state.settings?.timingAssist);
   b.action = {
     id: ++b.actionSerial, side: 'enemy', command, participants: [e.uid], targets: chosen.map(actorId),
-    elapsed: 0, contact: command.effect === 'telegraph' ? .46 : .72,
+    elapsed: 0, contact,
     duration: command.effect === 'telegraph' ? 1.04 : 1.4,
-    timingEligible: false, timingAttempted: false, timingSuccess: false, resolved: false, critical: false, stage: 'anticipation',
+    windowStart: contact - (assisted ? .36 : .28), windowEnd: contact - (assisted ? .055 : .095),
+    timingEligible: command.effect !== 'telegraph', timingAttempted: false, timingSuccess: false, resolved: false, critical: false, stage: 'anticipation',
+    executeInput: b.inputSerial,
+    // Incoming timing temporarily owns the accordion, not the player's choice.
+    // Keep this in the action so pause/save/load preserve the return location.
+    returnSelection: { mode: b.mode, selectedHero: b.selectedHero, lastSelectedHero: b.lastSelectedHero, cursor: b.cursor, target: b.target, pending: b.pending },
   };
   b.phase = 'action'; b.mode = 'action';
   log(b, `${e.name} · ${command.name}`, 'enemy');
@@ -339,15 +350,15 @@ function floating(b, actor, text, kind) {
   b.floaters.push({ x: visual.x, y: Math.max(65, visual.y + bounds.top / DISPLAY_SCALE - 7), text, kind, life: 1.18, maxLife: 1.18 });
 }
 
-function takeDamage(b, target, amount, critical) {
-  if (target.guarding) amount = Math.max(1, Math.round(amount * (target.criticalGuard ? .15 : .35)));
+function takeDamage(b, target, amount, critical, timedGuard = false) {
+  if (timedGuard || target.guarding) amount = Math.max(1, Math.round(amount * (timedGuard || target.criticalGuard ? .15 : .35)));
   const blocked = Math.min(target.shield, amount);
   target.shield -= blocked; amount -= blocked;
   const applied = Math.min(target.hp, amount);
   target.hp = Math.max(0, target.hp - amount);
-  target.reaction = .32;
+  target.reaction = timedGuard ? 0 : .32;
   if (amount === 0) floating(b, target, 'WARD', 'shield');
-  else floating(b, target, `${critical ? '✦ ' : ''}${amount}`, critical ? 'crit' : 'damage');
+  else floating(b, target, `${timedGuard ? 'GUARD · ' : critical ? '✦ ' : ''}${amount}`, timedGuard || critical ? 'crit' : 'damage');
   if (!alive(target)) {
     target.atb = 0; target.charging = false; target.guarding = false; target.criticalGuard = false; target.shield = 0;
     target.defeatedAt = b.clock - Math.max(0, (b.action?.elapsed || 0) - (b.action?.contact || 0));
@@ -387,7 +398,7 @@ function resolveAction(b, state, a) {
   const harm = ['damage', 'drain', 'slow'].includes(command.effect);
   if (harm) {
     const baseline = participants.reduce((sum, h) => sum + (h.crit || 5), 0) / participants.length / 100;
-    a.criticalChance = clamp(baseline + (a.timingSuccess ? .46 : 0), .02, .88);
+    a.criticalChance = clamp(baseline + (a.side === 'hero' && a.timingSuccess ? .46 : 0), .02, .88);
     a.critical = roll(state) < a.criticalChance;
   }
   const stat = command.stat || 'str';
@@ -398,7 +409,7 @@ function resolveAction(b, state, a) {
       const variance = .91 + roll(state) * .18;
       const base = (combined * (command.power || 1) * 1.6 + 8 - (target.def || 0) * .66) * variance;
       const damage = Math.max(3, Math.round(base * (a.critical ? 1.6 : 1)));
-      const applied = takeDamage(b, target, damage, a.critical);
+      const applied = takeDamage(b, target, damage, a.critical, a.side === 'enemy' && a.timingSuccess);
       drained += applied;
       log(b, `${target.name} · ${applied ? `${applied} damage` : 'ward holds'}`, 'damage');
       if (command.effect === 'slow' && alive(target)) { target.slowTurns = Math.max(target.slowTurns, 2); target.atb = Math.max(0, target.atb - 16); }
@@ -460,6 +471,10 @@ export function updateBattle(b, state, dt) {
         if (actor?.slowTurns) actor.slowTurns--;
       }
       b.action = null; b.phase = 'active'; b.mode = 'waiting'; b.pending = null; b.cursor = 0; b.target = 0;
+      if (a.side === 'enemy' && a.returnSelection) {
+        const previous = a.returnSelection, hero = actorById(b, previous.selectedHero);
+        if (previous.mode === 'waiting' || hero && alive(hero) && hero.atb >= 100) Object.assign(b, previous);
+      }
       if (!checkEnd(b, state)) cleanQueue(b);
     }
     return;
@@ -569,6 +584,8 @@ function actorVisual(b, actor, state) {
   let x = home.x, y = home.y, pose = actor.hp <= 0 ? 'down' : actor.guarding ? 'guard' : 'idle', moving = false, progress = 0;
   let facing = actor.side === 'hero' ? 'right' : 'left', animationTime = b.clock;
   const a = b.action;
+  const timedGuard = a?.side === 'enemy' && a.timingSuccess && a.targets.includes(actorId(actor));
+  if (timedGuard && alive(actor)) pose = 'guard';
   if (actor.reaction > 0 && alive(actor)) { pose = 'hurt'; x += Math.round(Math.sin(actor.reaction * 34) * 3) * (actor.side === 'hero' ? -1 : 1); }
   const exchange = enemyExchange(b, a);
   if (exchange?.defender === actor) {
@@ -577,7 +594,7 @@ function actorVisual(b, actor, state) {
     x = home.x + (exchange.target.x - home.x) * travel;
     y = home.y + (exchange.target.y - home.y) * travel;
     moving = travel > 0 && travel < 1;
-    pose = actor.hp <= 0 ? 'down' : actor.reaction > 0 ? 'hurt' : moving ? 'move' : travel === 1 ? 'guard' : actor.guarding ? 'guard' : 'idle';
+    pose = actor.hp <= 0 ? 'down' : actor.reaction > 0 ? 'hurt' : moving ? 'move' : travel === 1 || timedGuard || actor.guarding ? 'guard' : 'idle';
     if (moving && t > a.contact) facing = 'left';
     if (actor.reaction > 0) x -= Math.round(Math.sin(actor.reaction * 34) * 3);
     animationTime = t * 1.3;

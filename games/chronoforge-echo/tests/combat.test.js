@@ -436,3 +436,76 @@ test('critical guard reduces the next incoming hit by 85%, normal guard by 65%, 
   finish(b,s);ready(b,s);attack(b,s);
   assert.equal(b.heroes[0].guarding,false);assert.equal(b.heroes[0].criticalGuard,false);
 });
+
+test('incoming attacks offer one fresh critical guard, reduce only that hit, and restore the selected companion', () => {
+  const { battle: b, state: s } = setup(['rust_scrapper'], ['kaida', 'vex']);
+  ready(b, s);
+  battleKey(b, s, 'Tab');
+  const selection = {mode:b.mode, selectedHero:b.selectedHero, cursor:b.cursor, target:b.target};
+  assert.equal(selection.selectedHero, 'vex');
+  // A held key from the previous player action cannot auto-guard the reply.
+  b.held.Enter = true;
+  b.enemies[0].atb = 100;
+  updateBattle(b, s, .001);
+  const a = b.action;
+  assert.equal(a.side, 'enemy');
+  assert.equal(a.timingEligible, true);
+  const plain = structuredClone(b), plainState = structuredClone(s);
+  const hp = b.heroes.map(h=>h.hp), gauges = b.heroes.map(h=>h.atb);
+  updateBattle(b, s, (a.windowStart+a.windowEnd)/2);
+  battleKey(b, s, {key:'Enter',type:'keydown'});
+  assert.equal(a.timingAttempted, false);
+  battleKey(b, s, {key:'Enter',type:'keyup'});
+  battleKey(b, s, {key:'Enter',type:'keydown'});
+  assert.equal(a.timingSuccess, true);
+  // The critical guard and its return slot survive a suspended battle.
+  const resumed = JSON.parse(JSON.stringify(b));
+  contact(resumed, s); contact(plain, plainState);
+  assert.equal(resumed.action.criticalChance, plain.action.criticalChance, 'guard timing must not boost enemy critical chance');
+  for (let i=0;i<b.heroes.length;i++) {
+    const damage=hp[i]-plain.heroes[i].hp;
+    assert.equal(hp[i]-resumed.heroes[i].hp,damage?Math.max(1,Math.round(damage*.15)):0);
+    assert.equal(resumed.heroes[i].guarding,false,'reactive guard must not become a persistent stance');
+    assert.equal(resumed.heroes[i].criticalGuard,false);
+  }
+  finish(resumed,s);
+  assert.deepEqual({mode:resumed.mode,selectedHero:resumed.selectedHero,cursor:resumed.cursor,target:resumed.target},selection);
+  assert.deepEqual(resumed.heroes.map(h=>h.atb),gauges,'guard reaction does not spend a ready turn');
+});
+
+test('incoming group guards protect every target without multiplying existing guard or bypassing wards', () => {
+  const {battle:b,state:s}=setup(['void_architect'],['kaida','vex','rune']);
+  for(const h of b.heroes)h.hp=h.maxHp=10000;
+  b.enemies[0].charging=true;b.enemies[0].atb=100;
+  updateBattle(b,s,.001);
+  assert.equal(b.action.targets.length,3);
+  const plain=structuredClone(b),plainState=structuredClone(s),hp=b.heroes.map(h=>h.hp);
+  b.heroes[0].guarding=true;b.heroes[0].criticalGuard=true;
+  b.heroes[1].shield=10;
+  updateBattle(b,s,(b.action.windowStart+b.action.windowEnd)/2);
+  battleIntent(b,s,{kind:'timing'});
+  contact(b,s);contact(plain,plainState);
+  for(let i=0;i<b.heroes.length;i++) {
+    const raw=hp[i]-plain.heroes[i].hp,guarded=Math.max(1,Math.round(raw*.15));
+    assert.equal(hp[i]-b.heroes[i].hp,Math.max(0,guarded-(i===1?10:0)));
+  }
+});
+
+test('missing an incoming timing window preserves normal defenses; charge telegraphs cannot be guarded', () => {
+  const {battle:b,state:s}=setup();
+  b.heroes[0].guarding=true;b.enemies[0].atb=100;updateBattle(b,s,.001);
+  const plain=structuredClone(b),plainState=structuredClone(s);
+  battleIntent(b,s,{kind:'timing'});
+  updateBattle(b,s,(b.action.windowStart+b.action.windowEnd)/2);
+  battleIntent(b,s,{kind:'timing'});
+  assert.equal(b.action.timingSuccess,false,'early input spends the only attempt');
+  contact(b,s);contact(plain,plainState);
+  assert.equal(b.heroes[0].hp,plain.heroes[0].hp);
+  assert.equal(b.heroes[0].guarding,true);
+  const charge=setup(['void_architect']);
+  charge.battle.enemies[0].atb=100;updateBattle(charge.battle,charge.state,.001);
+  assert.equal(charge.battle.action.command.effect,'telegraph');
+  assert.equal(charge.battle.action.timingEligible,false);
+  battleKey(charge.battle,charge.state,'Enter');
+  assert.equal(charge.battle.action.timingAttempted,false);
+});

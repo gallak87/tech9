@@ -6,6 +6,12 @@ The user approved the character-centered menu composition with parchment interio
 
 Parchment belongs only inside the menu. Overworld and combat interfaces use compact, neutral near-black surfaces, with lava orange replacing gold interface outlines. The next review is a full in-game sweep by the user after implementation and verification.
 
+## TODO — Revisit Party and Inventory overlap
+
+Party and Inventory repeat the hero selector, centered character art, equipped slots, and vitals; their main distinction is the stats summary versus the pack and item actions. Revisit whether these should be combined or given clearer, complementary purposes. Keep the character-centered presentation in mind when exploring options.
+
+The direction is undecided and needs a later user review. This item records the overlap only; no tab removal, merger, or redesign is selected yet.
+
 ## TODO — World traversal and exploration pacing
 
 Revisit the time spent crossing the large regions, especially quests that send the crew from one end to the other and back. Preserve the sense of a large world while reducing empty travel. This is a future design pass, not an instruction to resize maps in the current update.

@@ -22,16 +22,23 @@ npm run preview
 
 The static build is in `dist/`; the local production preview uses **http://127.0.0.1:4322/**. No server-side service or API key is required. Serve the build over HTTP rather than opening its HTML as a local file.
 
+## GitHub Pages
+
+The repository's Pages workflow builds Echo with Node 24 and publishes `dist/` at **https://gallak87.github.io/tech9/chronoforge-echo/** after a matching push to `main` (or a manual workflow run). Local development remains **http://127.0.0.1:4321/**. Vite's relative `base: './'` lets the same production files work at either the site root or a nested path, including the bundled fonts and dynamically loaded art. Keep the trailing slash when linking to the game directory.
+
+`npm run verify:build` checks compiled entry/CSS URLs and all required art before the Pages artifact is uploaded. For a local browser smoke check, run `npm run verify:pages`; it builds once, serves the output at both `/` and `/tech9/chronoforge-echo/`, checks startup, fonts and the opening menu, then closes its temporary server/browser. It uses installed Chrome by default; set `CHROME_CHANNEL=chromium` to use Playwright's installed Chromium. The check uses isolated browser storage.
+
 ## Controls
 
 | Context | Controls |
 | --- | --- |
 | Explore | WASD or arrows; Shift to run; click a reachable destination to walk |
 | Interact | F, Space or Enter near a person, doorway, object or encounter |
+| Read signs / conversations | Enter or Space continues; Esc or Backspace dismisses without selecting a story choice |
 | Field atlas | Esc from the world, an interior or battle; 1–7 jump to a tab; Q/E change tabs |
 | Menus and shops | Arrows move focus or read Party/Quests; PageUp/PageDown scroll; Space/Enter confirm; Esc closes the top dismissible layer; mouse is supported |
-| Battle | Enter opens the ready hero's command; arrows choose action and target; Enter executes; Backspace backs up; Tab selects another ready hero |
-| Attack timing | A fresh Space/Enter press during the small timing cue raises critical chance; it does not guarantee a critical |
+| Battle | Space/Enter/Right opens or confirms; Up/Down chooses; Left/Backspace backs up; Tab selects another ready hero; clickable nodes recover previous choices |
+| Attack / Defend timing | Fresh Space/Enter inside the orange window boosts attack critical chance, or raises critical guard (85% damage reduction instead of 65%, until the next action) |
 
 Movement bindings, music, effects, timing assistance, restrained motion and the minimap are adjustable in Settings. Esc pauses the entire battle timeline, including attacks already in motion. Battle commands remain separate from the atlas tabs.
 
@@ -45,10 +52,16 @@ There are three manual save slots and a checkpoint in browser local storage, sep
 
 ## Review and evidence
 
-`docs/VERIFICATION.md` gives a short playable review and the scope of each check. `docs/STATUS.json` records implementation, defects and verified evidence. `docs/SHOWCASE_CRITIQUE.md` contains actual visual reviews and corrections. `ART_DIRECTION.md`, `ARCHITECTURE.md` and `NARRATIVE.md` explain the art, systems and complete story. Original art sources, provenance and exact generation prompts are retained under `public/assets/` and `docs/`.
+`docs/VERIFICATION.md` gives a short playable review and the scope of each check. `docs/STATUS.json` records implementation, defects and verified evidence. `docs/SHOWCASE_CRITIQUE.md` contains actual visual reviews and corrections. `ART_DIRECTION.md`, `ARCHITECTURE.md` and `NARRATIVE.md` explain the art, systems and complete story. Active art sources, provenance and exact generation prompts are retained under `public/assets/` and `docs/`. [Experiments and design history](experiments/README.md) preserve the interactive UI concepts and retired art outside the production build.
 
 The browser harnesses in `tests/` exercise actual production modules and controls. Test-only scene presets require both a development server and `?test=1`; they are absent from the production build. Fixture-based visual checks, accelerated full-campaign simulation and real-time interaction checks are identified separately in their JSON reports. The evidence directory also retains failed iterations so later passing results are traceable.
 
-The revised art uses heroes roughly 72–84 world units tall, reviewed in actual overworld and battle scenes before expanding the asset set. The hands-on feedback pass adds finer rendering, corrected sprite transparency, generated interaction props, a three-frame rest lantern, world-anchored birds and layered Esc dismissal. See [the corrections and evidence](docs/USER_REVIEW_POLISH.md), [rest lantern](evidence/polish-rest-lantern-0.png), and [chest](evidence/polish-treasure-chest.png). The menu identity redesign is recorded in the roadmap and deliberately deferred.
+The revised art uses heroes roughly 72–84 world units tall, reviewed in actual overworld and battle scenes before expanding the asset set. The hands-on feedback pass adds finer rendering, corrected sprite transparency, generated interaction props, a three-frame rest lantern, world-anchored birds and layered Esc dismissal. See [the corrections and evidence](docs/USER_REVIEW_POLISH.md), [rest lantern](evidence/polish-rest-lantern-0.png), and [chest](evidence/polish-treasure-chest.png).
 
-The user's hands-on review exposed visual and input defects missed by the earlier internal review; those earlier scores are historical, not acceptance of this revision. Caves remain angular and relatively sparse, some textures repeat visibly, and late progression is generous. All 49 art sources preload (about 121 MiB compressed); this version targets local desktop play. Saves use browser local storage and do not sync across profiles or ports.
+The approved [UI direction](docs/UI_DIRECTION.md) brings parchment into the seven-tab expedition menu, with Barlow controls and EB Garamond page typography. World interactions and the folding battle interface use compact neutral-dark surfaces and lava-orange accents. Battle commands follow character → action → target → timing, then return automatically to character selection as the real ATB gauges recharge.
+
+The new resource, consumable and accessory icons use 20 individually generated transparent PNGs. Exact prompts and selected revisions are recorded in [icon-prompts.json](docs/icon-prompts.json); immutable originals remain in `public/assets/icons/`. Runtime icons use compact 256×256 textures with filtered scaling.
+
+Road signs use a generated timber waymarker and a compact text-only reader. Escape dismisses the reader or conversation before opening the atlas. Cancelling the final conversation preserves its place and exposes an explicit resume action; completion still requires the ending's return action. The sign's [source and exact prompt](docs/sign-art-prompts.json) are retained locally.
+
+The user's hands-on review exposed visual and input defects missed by the earlier internal review; those earlier scores are historical, not acceptance of this revision. Some scenery textures repeat visibly, cave interiors are relatively sparse, and late progression is generous. All 70 selected art sources preload (about 144 MiB compressed); this version targets local desktop play. Saves use browser local storage and do not sync across profiles or ports.

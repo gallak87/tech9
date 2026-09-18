@@ -1,5 +1,7 @@
 # Asset provenance and production inventory
 
+Retired Vex and Gravbot sources have moved to [the experiments archive](../../experiments/2026-09-ui-and-art/README.md). This historical record retains original filenames; [the archive manifest](../../experiments/2026-09-ui-and-art/archive-manifest.json) maps them to preserved files and hashes. The current loaded sources are listed in [the production inventory](../../docs/ASSET_INVENTORY.md).
+
 All shipped visual assets are original project artwork generated for Chronforge Echo with OpenAI image generation, or original pixel drawing code in `src/art.js`. No third-party asset pack is included. Kaida’s appearance is guided by the user-provided reference at `../chronoforge-remake/sprite-gen/kaida-reference.png`; the reference project is unchanged. Source PNGs remain immutable. Atlas cropping, transparency interpretation, palette composition and native-resolution placement happen in the renderer. The original synthesized score and sound effects are in `src/audio.js`.
 
 ## First showcase sources

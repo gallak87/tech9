@@ -21,8 +21,8 @@
             192
           ],
           "display": [
-            96,
-            96
+            84.46875,
+            84.46875
           ],
           "focusedAction": "rest"
         },
@@ -70,22 +70,76 @@
       "pass": true
     },
     {
-      "name": "dialogue and ending callbacks require explicit continue",
+      "name": "sign F reads actual text without portrait then Escape returns to field",
       "pass": true,
       "details": {
-        "callbackCount": 1,
-        "choiceCallbackCount": 1,
-        "choiceRequiredExplicitSelection": true,
+        "object": {
+          "id": "ember_forest_sign",
+          "name": "The southern branch",
+          "text": "South: Forest Veil. Follow the old watercourse beneath the trees.",
+          "flags": "{}"
+        },
+        "screenshot": "evidence/modal-escape/southern-branch-reading.png",
+        "portraitCount": 0,
+        "escapeBackspaceAndEnterDismiss": true
+      }
+    },
+    {
+      "name": "ordinary dialogue cancellation never invokes completion callback",
+      "pass": true,
+      "details": {
+        "cancelCallbackCount": 0,
+        "explicitContinueCallbackCount": 1,
+        "unvoicedTextHasNoPortrait": true
+      }
+    },
+    {
+      "name": "explicit atlas over dialogue closes one layer per Escape",
+      "pass": true,
+      "details": {
+        "noAlternationTrap": true,
+        "callbackCount": 0
+      }
+    },
+    {
+      "name": "choice cancellation makes no selection and changes no quest flags",
+      "pass": true,
+      "details": {
+        "explicitChoiceRequired": true
+      }
+    },
+    {
+      "name": "cancelled battle tutorial never starts the pending encounter",
+      "pass": true,
+      "details": {
+        "encounterCallbackNotInvoked": true
+      }
+    },
+    {
+      "name": "ending resume never steals battle or transition input",
+      "pass": true,
+      "details": {
+        "battleEnterStillChoosesCommands": true,
+        "transitionResumeIgnored": true
+      }
+    },
+    {
+      "name": "ending cancellation preserves exact progress and explicit completion",
+      "pass": true,
+      "details": {
+        "resumeLine": 1,
+        "unrelatedDialogueDoesNotCorruptEnding": true,
+        "checkpointRecovery": true,
         "endingRequiredExplicitReturn": true,
-        "screenshot": "evidence/modal-escape/ending-preserved.png"
+        "screenshot": "evidence/modal-escape/ending-explicit-return.png"
       }
     },
     {
       "name": "battle atlas freezes all seven tabs and restores target action",
       "pass": true,
       "details": {
-        "frozenAt": 1.2499000000000002,
-        "actionFrozenAt": 0.11669999999999983,
+        "frozenAt": 1.2499999999999993,
+        "actionFrozenAt": 0.11670000000000073,
         "actionId": 1,
         "screenshot": "evidence/modal-escape/battle-resumed.png"
       }
@@ -126,6 +180,6 @@
   ],
   "runtimeErrors": [],
   "browserClosed": true,
-  "passed": 7,
+  "passed": 13,
   "failed": 0
 }

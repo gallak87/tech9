@@ -16,6 +16,7 @@ You give it a game idea. It builds the game.
 | [🛩️skyrift](games/skyrift/) | alpha | [▶ play](https://gallak87.github.io/tech9/skyrift/) |
 | [🛰️void-sentinel](games/void-sentinel/) | alpha | [▶ play](https://gallak87.github.io/tech9/void-sentinel/) |
 | [⚔️chronoforge](games/chronoforge/) | alpha | [▶ play](https://gallak87.github.io/tech9/chronoforge/) |
+| [Chronforge Echo](games/chronoforge-echo/) | alpha | [▶ play](https://gallak87.github.io/tech9/chronoforge-echo/) |
 
 ---
 

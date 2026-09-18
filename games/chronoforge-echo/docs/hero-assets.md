@@ -1,5 +1,7 @@
 # Vex and Rune source inspection
 
+Archive note (September 17): superseded Vex/Gravbot sources and rejected attempts now live under [experiments/2026-09-ui-and-art](../experiments/2026-09-ui-and-art/README.md). Historical source paths below can be resolved through its [archive manifest](../experiments/2026-09-ui-and-art/archive-manifest.json). Current selected assets remain in `public/assets/`.
+
 The immutable source files are `public/assets/vex-source.png` and `public/assets/rune-source.png`, each 2172×724. Both are **RGB**, with no alpha channel; the light neutral checkerboard is actual pixel content. They require the same connected exterior neutral-background extraction used by the Kaida import. These notes describe source inspection and import metadata, not a claim that the completed party has already been inspected in game.
 
 The generation prompt ledger is `docs/asset-prompts.json`. The delivered image files, rather than the requested dimensions in a prompt, define these measurements. No source image was repainted, resized, or replaced during this inspection. `src/hero-frames.js` exports `VEX_ART` and `RUNE_ART` for the renderer's import stage.

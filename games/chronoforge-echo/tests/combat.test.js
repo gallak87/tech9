@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createState, recruit } from '../src/progression.js';
 import { TECHS } from '../src/content.js';
-import { createBattle, updateBattle, battleKey, battleView, battleClick } from '../src/combat.js';
+import { createBattle, updateBattle, battleKey, battleView, battleClick, battleIntent } from '../src/combat.js';
 
 function setup(enemies = ['rust_scrapper'], party = ['kaida']) {
   const state = createState();
@@ -322,4 +322,117 @@ test('defeated enemies hold a visible down pose before fading; result updates ad
   assert.deepEqual(battle.logs, logs);
   assert.equal(battle.action, null);
   assert.equal(battle.result, 'victory');
+});
+
+
+test('accordion returns to a muted crew selection after recovery, then auto-selects the next arrival', () => {
+  const {battle:b,state:s}=setup(['gravbot']);
+  ready(b,s); attack(b,s); finish(b,s);
+  const waiting=battleView(b,s);
+  assert.equal(waiting.mode,'waiting');
+  assert.equal(waiting.selectedHero,null);
+  assert.equal(waiting.focusHero,'kaida','the last companion retains a faint selection anchor');
+  assert.equal(waiting.pending,null);
+  battleKey(b,s,'ArrowRight');
+  assert.equal(b.mode,'waiting','charging actors cannot enter commands');
+  ready(b,s);
+  assert.equal(b.mode,'waiting');
+  assert.equal(b.selectedHero,'kaida');
+  battleKey(b,s,'ArrowRight');
+  assert.equal(b.mode,'command');
+});
+
+test('accordion directional keys and breadcrumbs share the real target/cost state', () => {
+  const {battle:b,state:s}=setup(['gravbot','mire_hulk'],['kaida','vex','rune']);
+  ready(b,s);
+  battleKey(b,s,'ArrowDown'); assert.equal(b.selectedHero,'vex');
+  battleKey(b,s,'ArrowRight'); assert.equal(b.mode,'command');
+  battleKey(b,s,'ArrowDown'); assert.equal(b.cursor,1);
+  battleKey(b,s,'ArrowRight'); assert.equal(b.mode,'tech');
+  battleKey(b,s,'ArrowLeft'); assert.equal(b.mode,'command'); assert.equal(b.cursor,1);
+  battleKey(b,s,'ArrowUp'); battleKey(b,s,'ArrowRight'); assert.equal(b.mode,'target');
+  battleKey(b,s,'ArrowDown'); assert.equal(b.target,1);
+  battleIntent(b,s,{kind:'breadcrumb',stage:1});
+  assert.equal(b.mode,'command'); assert.equal(b.pending,null);
+  battleKey(b,s,'ArrowRight'); assert.equal(b.mode,'target');
+  battleIntent(b,s,{kind:'breadcrumb',stage:0});
+  assert.equal(b.mode,'waiting'); assert.equal(b.selectedHero,'vex');
+  battleKey(b,s,'ArrowUp'); assert.equal(b.selectedHero,'kaida');
+  const gauges=b.heroes.map(h=>h.atb);
+  battleKey(b,s,'ArrowRight'); battleKey(b,s,'ArrowRight');
+  updateBattle(b,s,3);
+  assert.deepEqual(b.heroes.map(h=>h.atb),gauges);
+  battleIntent(b,s,{kind:'target',id:'enemy_1'});
+  battleIntent(b,s,{kind:'execute'});
+  assert.deepEqual(b.action.targets,['enemy_1']);
+  assert.equal(b.action.timingAttempted,false);
+});
+
+test('accordion does not steal a manual ready choice and returns to any already-ready companion', () => {
+  const {battle:b,state:s}=setup(['gravbot'],['kaida','vex','rune']);
+  ready(b,s,['kaida','vex']);
+  battleKey(b,s,'ArrowDown'); assert.equal(b.selectedHero,'vex');
+  ready(b,s,['rune']); assert.equal(b.selectedHero,'vex');
+  battleKey(b,s,'ArrowRight'); battleKey(b,s,'ArrowRight');
+  assert.equal(b.selectedHero,'vex');
+  battleKey(b,s,'ArrowRight'); finish(b,s);
+  assert.equal(b.mode,'waiting'); assert.equal(b.selectedHero,'kaida');
+  assert.deepEqual(b.readyQueue,['kaida','rune']);
+});
+
+test('a suspended accordion selection and timing action round-trip without losing costs or fresh-press protection', () => {
+  const {battle:b,state:s}=setup(['gravbot']); ready(b,s);
+  battleKey(b,s,'ArrowRight'); battleKey(b,s,'ArrowRight');
+  const restored=JSON.parse(JSON.stringify(b));
+  battleKey(restored,s,{key:'Enter',type:'keydown'});
+  const mid=JSON.parse(JSON.stringify(restored));
+  updateBattle(mid,s,(mid.action.windowStart+mid.action.windowEnd)/2);
+  battleKey(mid,s,{key:'Enter',type:'keydown'});
+  assert.equal(mid.action.timingAttempted,false);
+  battleKey(mid,s,{key:'Enter',type:'keyup'});
+  battleKey(mid,s,{key:'Enter',type:'keydown'});
+  assert.equal(mid.action.timingSuccess,true);
+});
+
+test('Defend shares attack timing, requires a fresh press, and a miss preserves normal guard', () => {
+  const a=setup(['gravbot']), d=setup(['gravbot']);
+  ready(a.battle,a.state);attack(a.battle,a.state);
+  ready(d.battle,d.state);battleKey(d.battle,d.state,'Enter');
+  battleKey(d.battle,d.state,'ArrowDown');battleKey(d.battle,d.state,'ArrowDown');
+  battleKey(d.battle,d.state,{key:'Enter',type:'keydown'});
+  const action=d.battle.action;
+  for(const field of ['contact','duration','windowStart','windowEnd','timingEligible'])assert.equal(action[field],a.battle.action[field]);
+  updateBattle(d.battle,d.state,(action.windowStart+action.windowEnd)/2);
+  battleKey(d.battle,d.state,{key:'Enter',type:'keydown',repeat:true});
+  assert.equal(action.timingAttempted,false);
+  battleKey(d.battle,d.state,{key:'Enter',type:'keyup'});
+  battleKey(d.battle,d.state,{key:'Enter',type:'keydown'});
+  assert.equal(action.timingSuccess,true);contact(d.battle,d.state);
+  assert.equal(d.battle.heroes[0].criticalGuard,true);
+  assert.equal(battleView(d.battle,d.state).heroes[0].criticalGuard,true);
+  const missed=setup(['gravbot']);ready(missed.battle,missed.state);
+  battleIntent(missed.battle,missed.state,{kind:'command',index:2});
+  battleKey(missed.battle,missed.state,' ');
+  updateBattle(missed.battle,missed.state,.6);battleKey(missed.battle,missed.state,'Enter');
+  contact(missed.battle,missed.state);
+  assert.equal(missed.battle.action.timingSuccess,false);
+  assert.equal(missed.battle.heroes[0].guarding,true);
+  assert.equal(missed.battle.heroes[0].criticalGuard,false);
+});
+
+test('critical guard reduces the next incoming hit by 85%, normal guard by 65%, and expires on next action', () => {
+  const {battle:b,state:s}=setup(['gravbot']);ready(b,s);
+  battleIntent(b,s,{kind:'command',index:2});
+  updateBattle(b,s,(b.action.windowStart+b.action.windowEnd)/2);battleKey(b,s,' ');finish(b,s);
+  const plain=structuredClone(b),plainState=structuredClone(s),normal=structuredClone(b),normalState=structuredClone(s);
+  plain.heroes[0].guarding=false;normal.heroes[0].criticalGuard=false;
+  const hp=b.heroes[0].hp;
+  for(const [battle,state] of [[b,s],[plain,plainState],[normal,normalState]]){
+    battle.heroes[0].atb=0;battle.enemies[0].atb=100;updateBattle(battle,state,.001);contact(battle,state);
+  }
+  const unguarded=hp-plain.heroes[0].hp;
+  assert.equal(hp-normal.heroes[0].hp,Math.max(1,Math.round(unguarded*.35)));
+  assert.equal(hp-b.heroes[0].hp,Math.max(1,Math.round(unguarded*.15)));
+  finish(b,s);ready(b,s);attack(b,s);
+  assert.equal(b.heroes[0].guarding,false);assert.equal(b.heroes[0].criticalGuard,false);
 });

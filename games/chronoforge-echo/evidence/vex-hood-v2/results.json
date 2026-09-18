@@ -1,0 +1,507 @@
+{
+  "errors": [],
+  "sizes": [
+    {
+      "facing": "right",
+      "phase": 0,
+      "height": 81
+    },
+    {
+      "facing": "right",
+      "phase": 1,
+      "height": 78
+    },
+    {
+      "facing": "right",
+      "phase": 2,
+      "height": 80
+    },
+    {
+      "facing": "right",
+      "phase": 3,
+      "height": 80
+    },
+    {
+      "facing": "right",
+      "phase": 4,
+      "height": 80
+    },
+    {
+      "facing": "down",
+      "phase": 0,
+      "height": 81
+    },
+    {
+      "facing": "down",
+      "phase": 1,
+      "height": 80
+    },
+    {
+      "facing": "down",
+      "phase": 2,
+      "height": 79
+    },
+    {
+      "facing": "down",
+      "phase": 3,
+      "height": 79
+    },
+    {
+      "facing": "down",
+      "phase": 4,
+      "height": 79
+    },
+    {
+      "facing": "up",
+      "phase": 0,
+      "height": 81
+    },
+    {
+      "facing": "up",
+      "phase": 1,
+      "height": 80
+    },
+    {
+      "facing": "up",
+      "phase": 2,
+      "height": 80
+    },
+    {
+      "facing": "up",
+      "phase": 3,
+      "height": 79
+    },
+    {
+      "facing": "up",
+      "phase": 4,
+      "height": 80
+    }
+  ],
+  "assets": {
+    "loaded": [
+      {
+        "id": "kaida_showcase",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 83
+      },
+      {
+        "id": "kaida_walk",
+        "width": 1448,
+        "height": 1086,
+        "loadMs": 148
+      },
+      {
+        "id": "coast_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 163
+      },
+      {
+        "id": "coast_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 193
+      },
+      {
+        "id": "emberline_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 277
+      },
+      {
+        "id": "emberline_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 329
+      },
+      {
+        "id": "interior_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 358
+      },
+      {
+        "id": "domestic_furniture",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 377
+      },
+      {
+        "id": "interior_wall",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 415
+      },
+      {
+        "id": "civic_production",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 475
+      },
+      {
+        "id": "haventide_civilians",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 519
+      },
+      {
+        "id": "rust_scrapper",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 540
+      },
+      {
+        "id": "civic_culture",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 620
+      },
+      {
+        "id": "haventide_interior",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 658
+      },
+      {
+        "id": "forest_veil_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 677
+      },
+      {
+        "id": "forest_veil_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 716
+      },
+      {
+        "id": "mire_bog_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 733
+      },
+      {
+        "id": "mire_bog_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 776
+      },
+      {
+        "id": "crater_ember_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 794
+      },
+      {
+        "id": "orbital_reach_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 835
+      },
+      {
+        "id": "orbital_reach_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 874
+      },
+      {
+        "id": "crater_ember_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 894
+      },
+      {
+        "id": "world_interactions",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 915
+      },
+      {
+        "id": "food",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 934
+      },
+      {
+        "id": "frost_canyon_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 953
+      },
+      {
+        "id": "ore",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1027
+      },
+      {
+        "id": "energy",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1043
+      },
+      {
+        "id": "renown",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1060
+      },
+      {
+        "id": "field_tonic",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1076
+      },
+      {
+        "id": "ether_cell",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1092
+      },
+      {
+        "id": "dawn_seed",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1106
+      },
+      {
+        "id": "last_crown_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 1122
+      },
+      {
+        "id": "crit_lens",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1157
+      },
+      {
+        "id": "witness_prism",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1171
+      },
+      {
+        "id": "quiet_prism",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1184
+      },
+      {
+        "id": "road_waymarker",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1194
+      },
+      {
+        "id": "tide_elixir",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1206
+      },
+      {
+        "id": "star_cell",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1223
+      },
+      {
+        "id": "data_chip",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1241
+      },
+      {
+        "id": "swamp_coil",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1257
+      },
+      {
+        "id": "moss_ward",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1273
+      },
+      {
+        "id": "ember_crown",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1288
+      },
+      {
+        "id": "namekeeper",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1303
+      },
+      {
+        "id": "open_gate",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1318
+      },
+      {
+        "id": "mara_compass",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1333
+      },
+      {
+        "id": "xp",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1350
+      },
+      {
+        "id": "vex_walk",
+        "width": 1447,
+        "height": 1087,
+        "loadMs": 1367
+      },
+      {
+        "id": "vex",
+        "width": 1447,
+        "height": 1087,
+        "loadMs": 1382
+      },
+      {
+        "id": "rune_walk",
+        "width": 1447,
+        "height": 1087,
+        "loadMs": 1445
+      },
+      {
+        "id": "rune",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 1524
+      },
+      {
+        "id": "frost_canyon_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1526
+      },
+      {
+        "id": "last_crown_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1542
+      },
+      {
+        "id": "drone_sentinel",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1561
+      },
+      {
+        "id": "gravbot",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1581
+      },
+      {
+        "id": "sandworm",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1599
+      },
+      {
+        "id": "bog_stalker",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1666
+      },
+      {
+        "id": "mutant_hound",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1668
+      },
+      {
+        "id": "neon_cultist",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1684
+      },
+      {
+        "id": "slag_rat",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1761
+      },
+      {
+        "id": "frost_revenant",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1763
+      },
+      {
+        "id": "glacier_wolf",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1782
+      },
+      {
+        "id": "ember_golem",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1804
+      },
+      {
+        "id": "ember_lord",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1823
+      },
+      {
+        "id": "wraith_core",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1844
+      },
+      {
+        "id": "mire_hulk",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1860
+      },
+      {
+        "id": "architect_herald",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1881
+      },
+      {
+        "id": "frost_colossus",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1901
+      },
+      {
+        "id": "magma_behemoth",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1921
+      },
+      {
+        "id": "mire_warden",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1940
+      },
+      {
+        "id": "void_architect",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1961
+      }
+    ],
+    "errors": [],
+    "bytes": 440394484
+  },
+  "result": "pass"
+}

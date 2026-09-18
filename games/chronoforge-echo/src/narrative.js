@@ -6,7 +6,7 @@ export const SCENES={
  beacon_wait:scene(['Kaida','The buoy answers, but the town’s receiver is silent. That sentry at the gate has to go.']),
  hav_liberated:scene(['Mara','You came by yourself?'],['Kaida','There wasn’t anyone else on the road.'],['Mara','There will be. Come inside. The bell keeper left you a message in the listening buoy.']),
  beacon:scene(['Keeper’s recording','Kaida. The silence isn’t an attack. Something is trying to protect us. It has forgotten how to stop.'],['Keeper’s recording','I followed the signal east, toward Emberline. Four relays still carry living voices. Keep them alive.'],['Kaida','You always did leave the difficult part until the end.'],['Kaida','I’ll find your signal. And I’ll bring people home.']),
- vex_meet:scene(['Vex','Please tell me you are not here to sell me certainty. Emberline has plenty.'],['Kaida','I’m following a missing bell keeper. Their signal points to your observatory.'],['Vex','Our observatory. Until the Quiet Choir decided only one voice should speak. Help me take back the lens. I can show you what they are hearing.']),
+ vex_meet:scene(['Vex','Please tell me you are not here to sell me certainty. Emberline has plenty.'],['Kaida','I’m following a missing bell keeper. Their signal points to your observatory.'],['Vex','Our observatory. Until the Quiet Choir decided only one voice should speak. I can travel with you once we have the lens back.'],['Vex','The starless observatory is northwest of the Lantern Exchange. A Neon Cultist and a Drone Sentinel guard its lens. Defeat them, then inspect the Observatory Lens—or come back here to me.']),
  vex_recruit:scene(['Vex','There. Beneath the interference: thousands of people, each dreaming the same safe room.'],['Kaida','Can you get them out?'],['Vex','Not alone. The old relays are four different languages. Forest, marsh, fire and ice.'],['Kaida','Then learn them with me.'],['Vex','That sounds dangerously like hope. All right. I’m Vex. Try not to hit my equations.']),
  rune_meet:scene(['Rune','The lift is closed. The rescue order is still in force.'],['Kaida','You’ve been guarding a broken lift?'],['Rune','I have been guarding the people beneath it. There is a difference. Help me quiet the sentry. Then we can talk.']),
  rune_recruit:scene(['Rune','The sentry was repeating my last order. Hold until relieved. I gave it that order twelve years ago.'],['Vex','The signal has been keeping the whole world in that moment.'],['Kaida','You can give a different order now.'],['Rune','Open the doors. Feed anyone who comes.'],['Rune','And make room on the road. I’m coming with you.']),
@@ -41,6 +41,21 @@ function claim(state,id,reward,lines=[],flags=[]){
 function merge(a,b){return {...a,...b,lines:[...(a.lines||[]),...(b.lines||[])],rewards:[...(a.rewards||[]),...(b.rewards||[])]};}
 function known(state,id){return state.heroes.some(h=>h.id===id);}
 function teach(state,heroId,id){const h=state.heroes.find(h=>h.id===heroId);if(h&&!h.skills.includes(id))h.skills.push(id);}
+// The settlement blockade and observatory encounter are different story gates.
+// Keep their names and next steps shared by dialogue, the HUD and the quest log.
+function vexObjective(state){
+ if(known(state,'vex'))return 'Vex has joined the crew. His techniques are available in battle and his equipment is in the party menu.';
+ if(state.cleared.ember_signal)return 'The observatory is clear. Inspect the Observatory Lens northwest of the Lantern Exchange, or speak with Vex inside the Exchange, to recruit him.';
+ if(state.flags.vex_met||state.flags.observatory_found)return 'Defeat the Neon Cultist and Drone Sentinel at the observatory northwest of the Lantern Exchange; then inspect the Observatory Lens to recruit Vex.';
+ if(state.cleared.ember_guard||state.flags.emberline_liberated)return 'Speak with Vex inside Emberline’s Lantern Exchange about reclaiming the observatory.';
+ return 'Reach Emberline’s Lantern Exchange, defeat its gate sentries, and speak with Vex inside.';
+}
+function joinCompanion(state,id,lines,reward){
+ const joined=recruit(state,id);
+ if(!joined.ok)return out(scene([HEROES_NAMES[id],joined.message]));
+ return merge(out([...lines,line('Field notes',`${HEROES_NAMES[id]} will follow Kaida. Select ${HEROES_NAMES[id]} when their action gauge is ready in battle.`)],[],{recruitment:{id}}),claim(state,`main_${id}`,reward,[],[`${id}_recruited`,`${id}_arc_started`]));
+}
+const HEROES_NAMES={vex:'Vex',rune:'Rune'};
 function choose(state){
  let result=out();
  if(state.flags.smith_calibration_accept&&!state.flags.smith_calibration_started){
@@ -82,17 +97,25 @@ export function interactStory(state,objectId){
   return out(scene(['Kaida',state.campaignComplete?'A thousand ordinary voices. The best sound in the world.':'The east road is open. Emberline’s observatory is our next lead.']));
  case 'vex':case 'ember_observatory':
   if(!known(state,'vex')){
-   if(!state.cleared.ember_signal){state.flags.vex_met=true;return out(SCENES.vex_meet);}
-   const recruited=recruit(state,'vex');return merge(out(SCENES.vex_recruit,recruited.rewards),claim(state,'main_vex',{xp:225,ore:65,energy:45,renown:20},[],['vex_recruited','vex_arc_started']));
+   if(!state.cleared.ember_signal){
+    if(objectId==='ember_observatory'){
+     state.flags.observatory_found=true;
+     return out(scene(['Kaida','The Observatory Lens is still locked down. The Neon Cultist and Drone Sentinel just south of it are holding the signal.'],['Kaida','I need to defeat this observatory patrol, then inspect the lens. Opening the Lantern Exchange alone does not free it.']));
+    }
+    const met=state.flags.vex_met;state.flags.vex_met=true;
+    return out(met?scene(['Vex',state.cleared.ember_guard||state.flags.emberline_liberated?'The Exchange is open, but the observatory is still occupied. I can join you once its lens is free.':'I can join you once the observatory lens is free. Its patrol is separate from the sentries at the Exchange.'],['Vex',vexObjective(state)]):SCENES.vex_meet);
+   }
+   return joinCompanion(state,'vex',SCENES.vex_recruit,{xp:225,ore:65,energy:45,renown:20});
   }
+  state.flags.vex_recruited=true;state.flags.vex_arc_started=true;
   if(state.flags.vex_arc_complete)return out(scene(['Vex',state.flags.vex_witnesses?'The witnesses disagree constantly. I have never felt so reassured.':'I planted a listening tree for her. It answers in leaves. That is enough.']));
-  state.flags.vex_arc_started=true;
-  return out(scene(['Vex',state.flags.vex_record_found?'The missing countervoice is in the submerged annex, beyond Mire Bog’s archive.':'My mother worked at the root archive in Forest Veil. There is an unburned record west of the great elder. I’d like to know what she left behind.']));
+  return out(scene(['Vex','I’m already with you. We have more than one voice on the road now.'],['Vex',state.flags.vex_record_found?'The missing countervoice is in the submerged annex, beyond Mire Bog’s archive.':'My mother worked at the root archive in Forest Veil. There is an unburned record west of the great elder. I’d like to know what she left behind.']));
  case 'rune':case 'orbital_lift':
   if(!known(state,'rune')){
-   if(!state.cleared.orbital_guard)return out(SCENES.rune_meet);
-   const recruited=recruit(state,'rune');return merge(out(SCENES.rune_recruit,recruited.rewards),claim(state,'main_rune',{xp:425,food:85,ore:85,energy:65,renown:45},[],['rune_recruited','rune_arc_started']));
+   if(!state.cleared.orbital_guard)return out([...SCENES.rune_meet,line('Rune','The Frost Revenant and Gravbot at Anchor Nine’s entrance are the blockade. Defeat them, then speak with me inside Anchor Nine or inspect the elevator oath here. I will join you then.')]);
+   return joinCompanion(state,'rune',SCENES.rune_recruit,{xp:425,food:85,ore:85,energy:65,renown:45});
   }
+  state.flags.rune_recruited=true;
   return out(scene(['Rune',state.flags.rune_arc_complete?'A shield is useful. Knowing when to lower it matters more.':state.flags.rune_names_found?'The original oath is kept in the Open Hand, the settlement in Last Crown.':'The Ninth’s names are kept in an ice cave in Frost Canyon. I have avoided that road long enough.']));
  case 'forest_heart':
   if(!known(state,'vex'))return out(scene(['Kaida','I can hear it, but I cannot understand the pattern. Someone in Emberline might.']));
@@ -181,7 +204,7 @@ export function onEvent(state,type,id){
   state.cleared[id]=true;
   const guard={hav_guard:'haventide',ember_guard:'emberline',orbital_guard:'orbital_reach',crown_guard:'last_crown'}[id];
   if(guard){state.flags[guard+'_liberated']=true;result=merge(result,claim(state,'liberate_'+guard,{food:35,ore:45,energy:20,renown:20},id==='hav_guard'?SCENES.hav_liberated:scene(['Kaida',`The way into ${guard==='emberline'?'the Lantern Exchange':guard==='orbital_reach'?'Anchor Nine':'the Open Hand'} is open. Let’s see who needs us.`])));}
-  if(id==='ember_signal')result=merge(result,out(scene(['Vex','The lens is quiet. Meet me at the observatory terminal. There’s something you need to hear.'])));
+  if(id==='ember_signal')result=merge(result,out(scene(['Vex','The lens is quiet. Inspect the Observatory Lens just north of this patrol, or speak to me inside the Lantern Exchange. I’m ready to join your crew.'])));
   if(id==='hav_road'||id==='hav_road_east'){
    if(state.cleared.hav_road&&state.cleared.hav_road_east&&!state.flags.road_clear)result=merge(result,claim(state,'road_clear',{xp:150,ore:45,renown:15},scene(['Kaida','Both road patrols are gone. Mara’s wagons can reach Emberline.']),['road_clear']));
   }
@@ -202,7 +225,7 @@ export function mainObjective(state){
  if(state.campaignComplete)return state.flags.aftermath_home?'The world is open. Finish personal stories, rebuild, and explore.':'Return to Haventide’s evening bell to see the crew’s new beginning.';
  if(!state.cleared.hav_guard)return 'Follow the coast road east. Defeat the floating Drone Sentinel at Haventide’s entrance.';
  if(!state.flags.beacon_restored)return 'Return to the listening buoy west of Haventide and restore its signal.';
- if(!known(state,'vex'))return state.cleared.ember_signal?'Speak at Emberline’s observatory lens; invite Vex to join.':'Travel east to Emberline. Find Vex and reclaim the starless observatory.';
+ if(!known(state,'vex'))return vexObjective(state);
  if(state.tier<2)return 'Build Town Center level 2, then advance to Reclaimer at Settlement Works.';
  if(!known(state,'rune'))return 'Follow the high road to Orbital Reach, liberate Anchor Nine, and speak with Rune.';
  if(state.tier<3)return 'Build Town Center level 3 and a Research Lab; advance to Ascendant.';
@@ -217,6 +240,7 @@ export function mainObjective(state){
 export function questList(state){
  const q=(id,title,kind,stage,objective,complete,reward)=>({id,title,kind,stage,objective,complete:Boolean(complete),reward});
  const list=[q('main','A Door for the Dawn','Main',state.campaignComplete?'Complete':state.flags.crown_memory?'Act IV':known(state,'rune')?'Act III':known(state,'vex')?'Act II':'Act I',mainObjective(state),state.campaignComplete,'A living world; regional XP, supplies and renown.'),q('road','A Road Between Lights','General',state.flags.road_clear?'Complete':'Open','Clear both scavenger patrols on Haventide’s middle and eastern coast road.',state.flags.road_clear,'150 XP · 45 ore · 15 renown')];
+ if(state.flags.vex_met||state.flags.observatory_found||state.cleared.ember_signal||known(state,'vex'))list.push(q('vex_recruitment','The Starless Observatory','Main',known(state,'vex')?'Vex joined':state.cleared.ember_signal?'Ready to recruit':'Lens guarded',vexObjective(state),known(state,'vex'),'Vex joins the crew · 225 XP · 65 ore · 45 energy · 20 renown'));
  if(state.flags.smith_calibration_started)list.push(q('smith_calibration','A Gentler Hand','General',state.flags.smith_calibration_complete?'Complete':(state.inventory.data_chip||0)>0?'Return to Bran':'A salvaged interpreter',state.flags.smith_calibration_complete?'Bran’s calibrated forge now repairs the settlement’s hinges, shutters and carts.':'Bring one unequipped Data Chip to Bran at Haventide’s Saltforge. The gate’s Drone Sentinel and eastern coast patrols carry them; an existing spare also works.',state.flags.smith_calibration_complete,'150 XP · 35 ore · 2 Ether Cells'));
  if(state.flags.mara_started)list.push(q('mara','Making Home Larger','Personal',state.flags.mara_arc_complete?'Complete':state.flags.mara_signal?'The northern light':state.flags.mara_convoy_chosen?'The receiver':state.flags.mara_chart?'The convoy':'A sister’s chart',state.flags.mara_arc_complete?(state.flags.mara_trade_route?'The shared trade route carries supplies; prices reduced by 15%.':'Lantern houses offer the crew free rest.'):!state.flags.mara_chart?'Find the coastal signal crate above Haventide’s road.':!state.flags.mara_convoy_chosen?'Meet Mara’s convoy west of Emberline.':!state.flags.mara_signal?'Tune Emberline’s southeastern caravan receiver.':'Restore Frost Canyon’s beacon, then meet Mara at the rescue camp.',state.flags.mara_arc_complete,'Mara’s Compass · branch service · 1,615 total XP'));
  if(state.flags.vex_arc_started)list.push(q('vex','The Right to Fall Silent','Personal',state.flags.vex_arc_complete?'Complete':state.flags.vex_record_found?'The missing voice':'Unburned pages',state.flags.vex_arc_complete?(state.flags.vex_witnesses?'The preserved voices are witnesses, never commands.':'The echoes were released at their own request.'):state.flags.vex_record_found?'Find the countervoice in Mire Bog’s submerged annex; choose its future.':'Read the unburned record in western Forest Veil.',state.flags.vex_arc_complete,'Unique prism · Witness Song · 1,200 XP'));
@@ -224,5 +248,23 @@ export function questList(state){
  const defs=[['well','Fresh Water','well_fixed','Repair the tide filter below Haventide’s middle coast road.','125 XP · 55 food · 12 renown','haventide'],['distress','The Voice at Anchor Nine','distress_answered','Follow the distress signal to Orbital Reach.','125 XP · 30 energy','emberline'],['seeds','Eight Gardens','seeds_saved','Open the seed vault in western Forest Veil with Vex.','225 XP · food · Moss Ward','forest_veil'],['pressure','The Safety Chapter','pressure_released','Release the southern pressure manifold in Crater Ember.','325 XP · 70 ore · 70 energy','crater_ember'],['blackbox','The Good Part','blackbox_returned','Ask Rune to open the recorder below Orbital Reach’s lift.','300 XP · supplies · 20 renown','orbital_reach']];
  for(const [id,title,flag,objective,reward,region]of defs)if(state.visited[region]||state.flags[flag])list.push(q(id,title,'General',state.flags[flag]?'Complete':'Open',objective,state.flags[flag],reward));
  if(state.campaignComplete)list.push(q('aftermath','An Ordinary Morning','Epilogue',state.flags.aftermath_home?'Complete':'Homecoming','Visit Haventide’s evening bell, inside the town.',state.flags.aftermath_home,'1,000 XP · rebuilding supplies'));
- return list;
+ // Show the next earned milestone, with the same quantities as its claim.
+ // Branch rewards stay explicit until the player makes that choice.
+ const rewardData=(reward={},notes=[])=>({rewardItems:Object.entries(reward).flatMap(([id,amount])=>id==='items'?Object.entries(amount).map(([id,amount])=>({id,amount})):[{id,amount}]),rewardNotes:notes});
+ const finalVex={xp:950,energy:90,renown:35,...(state.flags.vex_keep||state.flags.vex_release?{items:{[state.flags.vex_keep?'witness_prism':'quiet_prism']:1}}:{})};
+ const finalRune={xp:1100,ore:110,renown:45,...(state.flags.rune_remember||state.flags.rune_renew?{items:{[state.flags.rune_remember?'namekeeper':'open_gate']:1}}:{})};
+ const rewards={
+  road:rewardData({xp:150,ore:45,renown:15}),
+  vex_recruitment:rewardData({xp:225,ore:65,energy:45,renown:20},['Vex joins the party']),
+  smith_calibration:rewardData({xp:150,ore:35,items:{ether_cell:2}}),
+  well:rewardData({xp:125,food:55,renown:12}),distress:rewardData({xp:125,energy:30}),
+  seeds:rewardData({xp:225,food:90,renown:18,items:{moss_ward:1}}),
+  pressure:rewardData({xp:325,ore:70,energy:70}),blackbox:rewardData({xp:300,ore:60,energy:45,renown:20}),
+  aftermath:rewardData({xp:1000,food:160,ore:160,energy:120}),
+  vex:state.flags.vex_record_found?rewardData(finalVex,['Witness Song',...(!state.flags.vex_keep&&!state.flags.vex_release?['Choice of Witness Prism or Quiet Prism']:[])]):rewardData({xp:250,energy:25}),
+  rune:state.flags.rune_names_found?rewardData(finalRune,['Open Horizon',...(!state.flags.rune_remember&&!state.flags.rune_renew?['Choice of Namekeeper or Open Gate']:[]),...(state.flags.rune_renew?['Crew maximum HP +25']:[])]):rewardData({xp:350,renown:15}),
+  mara:!state.flags.mara_chart?rewardData({xp:90,ore:25,items:{field_tonic:2}}):!state.flags.mara_convoy_chosen?rewardData({xp:225,food:35},['Choose lower shop prices or free rest']):!state.flags.mara_signal?rewardData({xp:300,energy:35}):rewardData({xp:1000,food:100,renown:50,items:{mara_compass:1}})
+ };
+ rewards.main=state.campaignComplete?rewardData({},['The roads remain open']):!state.cleared.hav_guard?rewardData({food:35,ore:45,energy:20,renown:20},['Haventide opens']):!state.flags.beacon_restored?rewardData({xp:90,ore:35,food:30,energy:25,renown:16}):!known(state,'vex')?rewards.vex_recruitment:state.tier<2?rewardData({},['Reclaimer civilization']):!known(state,'rune')?rewardData({xp:425,food:85,ore:85,energy:65,renown:45},['Rune joins the party']):state.tier<3?rewardData({},['Ascendant civilization']):!state.flags.forest_seal?rewardData({xp:425,food:90,ore:55,energy:50,renown:40}):!state.flags.mire_seal?rewardData({xp:625,ore:90,energy:80,renown:50}):!state.flags.crater_seal?rewardData({xp:850,ore:160,energy:100,renown:65}):!state.flags.frost_seal?rewardData({xp:900,food:130,ore:90,energy:85,renown:65}):!state.flags.crown_memory?rewardData({xp:800,ore:140,energy:110,renown:70}):state.tier<4?rewardData({},['Transcendent civilization']):state.flags.pendingEnding?rewardData({},['A living world']):rewardData({xp:1100,ore:200,food:180,energy:150,renown:100});
+ return list.map(q=>({...q,...(rewards[q.id]||rewardData())}));
 }

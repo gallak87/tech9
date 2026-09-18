@@ -1,0 +1,482 @@
+[
+  {
+    "id": "food",
+    "source": "assets/icons/food-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      14,
+      122,
+      1234,
+      1033
+    ],
+    "sha256": "719d9d83da38612edf37f7993da2c35a47c8ca728a9d4f12a4702c535c38e8c7",
+    "fileBytes": 1586535,
+    "transparentPixels": 645514,
+    "visiblePixels": 911809,
+    "opaqueOrNearOpaquePixels": 904096,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "ore",
+    "source": "assets/icons/ore-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      70,
+      44,
+      1122,
+      1170
+    ],
+    "sha256": "668ae88216faa9fb46f2be1c8b47785de0a13efcd915a75ec9486b225b4c6c8b",
+    "fileBytes": 1614484,
+    "transparentPixels": 752629,
+    "visiblePixels": 806118,
+    "opaqueOrNearOpaquePixels": 798313,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "energy",
+    "source": "assets/icons/energy-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      179,
+      36,
+      897,
+      1184
+    ],
+    "sha256": "3c9f6444ddf1a32ab529e4c917786be773c7ea133ffbb3b7a43d42566d0818f3",
+    "fileBytes": 1534083,
+    "transparentPixels": 663029,
+    "visiblePixels": 890557,
+    "opaqueOrNearOpaquePixels": 881993,
+    "cornersAlpha": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "renown",
+    "source": "assets/icons/renown-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      187,
+      36,
+      879,
+      1180
+    ],
+    "sha256": "017a0d1c8b892fabbcc23a30b907c133a4a28d1822e24b9a693537df91aeefd7",
+    "fileBytes": 1224155,
+    "transparentPixels": 807570,
+    "visiblePixels": 747306,
+    "opaqueOrNearOpaquePixels": 738748,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "field_tonic",
+    "source": "assets/icons/field_tonic-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      147,
+      20,
+      996,
+      1215
+    ],
+    "sha256": "63cc8d3f4506488e084e0def242e0f1de89ade49117eb8865009c64718ca1a37",
+    "fileBytes": 1251283,
+    "transparentPixels": 779758,
+    "visiblePixels": 779942,
+    "opaqueOrNearOpaquePixels": 771871,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "ether_cell",
+    "source": "assets/icons/ether_cell-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      271,
+      17,
+      703,
+      1215
+    ],
+    "sha256": "cfb891578241e7eaad8d21b3e4789844d5a45b201c13aaf71c712ec8add779ab",
+    "fileBytes": 958145,
+    "transparentPixels": 1097378,
+    "visiblePixels": 457867,
+    "opaqueOrNearOpaquePixels": 449790,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "dawn_seed",
+    "source": "assets/icons/dawn_seed-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      206,
+      43,
+      997,
+      1179
+    ],
+    "sha256": "9e935bf22ff2611c72b7f718f8676681db01c13d6c3f20c60759f0563c9e7351",
+    "fileBytes": 1162095,
+    "transparentPixels": 906175,
+    "visiblePixels": 637482,
+    "opaqueOrNearOpaquePixels": 625853,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "tide_elixir",
+    "source": "assets/icons/tide_elixir-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      153,
+      10,
+      948,
+      1235
+    ],
+    "sha256": "18b3128161ed2b7ef0d33b23849d64b04077e394bc9e59ff7edb9fa83a9bd540",
+    "fileBytes": 1409699,
+    "transparentPixels": 794917,
+    "visiblePixels": 751190,
+    "opaqueOrNearOpaquePixels": 738353,
+    "cornersAlpha": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "star_cell",
+    "source": "assets/icons/star_cell-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      70,
+      33,
+      1119,
+      1175
+    ],
+    "sha256": "b3e7ec03148bf817e80506f430cc84e64273a3bfe51bf6e4448ef26c25f61b88",
+    "fileBytes": 1861838,
+    "transparentPixels": 603623,
+    "visiblePixels": 950549,
+    "opaqueOrNearOpaquePixels": 942570,
+    "cornersAlpha": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "data_chip",
+    "source": "assets/icons/data_chip-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      51,
+      112,
+      1171,
+      1058
+    ],
+    "sha256": "d46e07a3b63a6ef45ca82786db671bcff33e535b74a95c57e078e0b1329093f6",
+    "fileBytes": 1391682,
+    "transparentPixels": 862523,
+    "visiblePixels": 689923,
+    "opaqueOrNearOpaquePixels": 680782,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "crit_lens",
+    "source": "assets/icons/crit_lens-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      114,
+      69,
+      1088,
+      1116
+    ],
+    "sha256": "5889516384bd2382f36b0c529b3357c09c7e0ca55c215798b695fa2aa3509dcc",
+    "fileBytes": 972574,
+    "transparentPixels": 978697,
+    "visiblePixels": 580529,
+    "opaqueOrNearOpaquePixels": 573424,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "swamp_coil",
+    "source": "assets/icons/swamp_coil-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      99,
+      78,
+      1136,
+      1082
+    ],
+    "sha256": "96056f5c2c4d8e587be25c685084ae8f2f6e3b7c0486e9f9031d88003ce46393",
+    "fileBytes": 1346407,
+    "transparentPixels": 808290,
+    "visiblePixels": 731061,
+    "opaqueOrNearOpaquePixels": 717592,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "moss_ward",
+    "source": "assets/icons/moss_ward-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      233,
+      23,
+      830,
+      1214
+    ],
+    "sha256": "2b4983f953830a58ebc6aa15d355e1383132507fa5aadab3b71ebd5f8abe4a94",
+    "fileBytes": 1259074,
+    "transparentPixels": 919164,
+    "visiblePixels": 636964,
+    "opaqueOrNearOpaquePixels": 628548,
+    "cornersAlpha": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "ember_crown",
+    "source": "assets/icons/ember_crown-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      18,
+      73,
+      1226,
+      1048
+    ],
+    "sha256": "8d96c7a52b8c73bf2334a69eb96d8fb269d8058aab60e132771c73d196b6d71a",
+    "fileBytes": 1383040,
+    "transparentPixels": 902790,
+    "visiblePixels": 638406,
+    "opaqueOrNearOpaquePixels": 624320,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "witness_prism",
+    "source": "assets/icons/witness_prism-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      333,
+      8,
+      654,
+      1230
+    ],
+    "sha256": "581deb0f54dd7c4cccb0108422c8fa0493ff5e100884cfbabd426139431aa6ae",
+    "fileBytes": 876928,
+    "transparentPixels": 1143041,
+    "visiblePixels": 412695,
+    "opaqueOrNearOpaquePixels": 405796,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "quiet_prism",
+    "source": "assets/icons/quiet_prism-v3-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      362,
+      119,
+      530,
+      1015
+    ],
+    "sha256": "65c416b4d71180f582d6a2d52890e2490fa7f749019067089d13eeb4e1efb054",
+    "fileBytes": 648746,
+    "transparentPixels": 1275338,
+    "visiblePixels": 286022,
+    "opaqueOrNearOpaquePixels": 280270,
+    "cornersAlpha": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "namekeeper",
+    "source": "assets/icons/namekeeper-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      128,
+      34,
+      1000,
+      1179
+    ],
+    "sha256": "76425ba64e8cbc423ea13c781ed39a018639c3049821fc6d9b73971cac6cd6db",
+    "fileBytes": 1260434,
+    "transparentPixels": 999415,
+    "visiblePixels": 541530,
+    "opaqueOrNearOpaquePixels": 526603,
+    "cornersAlpha": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "open_gate",
+    "source": "assets/icons/open_gate-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      137,
+      9,
+      981,
+      1198
+    ],
+    "sha256": "00b5cbb9de719882c8cd091f418ef3571ab40d7410430f6212b626dc5c2279d8",
+    "fileBytes": 1091158,
+    "transparentPixels": 959848,
+    "visiblePixels": 592077,
+    "opaqueOrNearOpaquePixels": 582501,
+    "cornersAlpha": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "mara_compass",
+    "source": "assets/icons/mara_compass-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      121,
+      10,
+      1013,
+      1224
+    ],
+    "sha256": "e3157b0e8b2229ecc124baf8f673c74c7daf0bbd7b0707a80b47464b360095a8",
+    "fileBytes": 1232693,
+    "transparentPixels": 743966,
+    "visiblePixels": 810859,
+    "opaqueOrNearOpaquePixels": 801679,
+    "cornersAlpha": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "sourceUnchanged": true
+  },
+  {
+    "id": "xp",
+    "source": "assets/icons/xp-source.png",
+    "width": 1254,
+    "height": 1254,
+    "bounds": [
+      19,
+      101,
+      1219,
+      1079
+    ],
+    "sha256": "318263775632ada46f3ba91c72be1e4dacc29a6d49529911a54c2b94dc406958",
+    "fileBytes": 1212389,
+    "transparentPixels": 766912,
+    "visiblePixels": 787431,
+    "opaqueOrNearOpaquePixels": 778181,
+    "cornersAlpha": [
+      0,
+      0,
+      1,
+      0
+    ],
+    "sourceUnchanged": true
+  }
+]

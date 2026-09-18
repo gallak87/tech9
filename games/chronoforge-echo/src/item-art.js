@@ -1,5 +1,7 @@
-// Original item miniatures, authored on a 32×32 pixel grid. The cached native
-// pixels scale with nearest-neighbor filtering; resources/buildings fall through.
+import { drawRasterIcon } from './raster-icons.js';
+
+// Generated resources, consumables and accessories use detailed local raster
+// art. The original 32×32 weapon/armor recipes remain unchanged.
 const P = {
   ink: '#101e23', edge: '#1b3036', deep: '#29464d', steel: '#577780', blue: '#7b9ea4',
   silver: '#adbec0', ivory: '#e8e1c7', white: '#fff4d5', bone: '#b5af91',
@@ -264,6 +266,7 @@ const recipes={
 };
 
 export function drawItemIcon(ctx,id,x,y,size=32){
+  if(drawRasterIcon(ctx,id,x,y,size))return true;
   const recipe=Object.hasOwn(recipes,id)?recipes[id]:null;
   if(!recipe)return false;
   if(!(size>0))return true;

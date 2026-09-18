@@ -1,4 +1,4 @@
-// Immutable generated-source metadata, measured in the original 2172×724 PNGs.
+// Immutable generated-source metadata, measured in each descriptor's source PNG.
 // Anchors are crop-relative SOURCE PIXELS, not normalized fractions.
 // Apply one pixelScale to every pose; crouching/down poses keep their true size.
 // Optional exclude rectangles use ABSOLUTE SOURCE coordinates. Clear them only
@@ -9,30 +9,25 @@ const poseIndex = Object.freeze({
 });
 
 export const VEX_ART = Object.freeze({
-  id:'vex', source:'assets/vex-source.png', sourceWidth:2172, sourceHeight:724,
-  pixelScale:.232, nativeSourceScale:.232, facing:'right', poseIndex,
-  // Enclosed checkerboard between the front pose's staff and shoulder.
-  backgroundSeeds:[[1565,471],[1232,459],[520,545],[2067,555]],
-  portrait:{x:1565,y:372,w:142,h:157},
+  id:'vex', source:'assets/vex/faceless-vex-hood-v2-source.png', sourceWidth:1447, sourceHeight:1087,
+  columns:4, rows:3, preserveSourceAlpha:true,
+  pixelScale:.24, nativeSourceScale:.24, facing:'right', poseIndex,
+  portrait:{x:883,y:752,w:141,h:150},
   frames:[
-    {pose:'idle',       x:37,   y:22,  w:229,h:340,anchorX:126,anchorY:338},
-    {pose:'move_1',     x:414,  y:27,  w:239,h:334,anchorX:133,anchorY:332},
-    {pose:'move_2',     x:768,  y:23,  w:238,h:339,anchorX:128,anchorY:337},
-    {pose:'anticipate', x:1102, y:16,  w:306,h:346,anchorX:150,anchorY:344},
-    // The extended staff and amber glyph cross the nominal fifth-cell edge.
-    // The small cast-coat sliver farther down belongs to frame 5, not this pose.
-    {pose:'attack',     x:1435, y:72,  w:513,h:291,anchorX:152,anchorY:289,
-      exclude:[{x:1932,y:262,w:16,h:102}]},
-    // Conversely, remove the previous pose's glyph tail, preserving this hat,
-    // raised staff, palm glyphs and low coat edge.
-    {pose:'cast',       x:1932, y:3,   w:229,h:361,anchorX:114,anchorY:359,
-      exclude:[{x:1932,y:70,w:16,h:180}]},
-    {pose:'hurt',       x:47,   y:392, w:247,h:316,anchorX:125,anchorY:314},
-    {pose:'guard',      x:362,  y:374, w:296,h:325,anchorX:141,anchorY:323},
-    {pose:'down',       x:723,  y:490, w:351,h:221,anchorX:177,anchorY:219},
-    {pose:'victory',    x:1165, y:363, w:185,h:346,anchorX:108,anchorY:344},
-    {pose:'front',      x:1517, y:372, w:192,h:337,anchorX:101,anchorY:335},
-    {pose:'back',       x:1931, y:372, w:207,h:341,anchorX:91, anchorY:339},
+    {pose:'idle',       x:81,  y:35,  w:235,h:345,anchorX:144,anchorY:337},
+    {pose:'move_1',     x:400, y:35,  w:293,h:338,anchorX:191,anchorY:330},
+    {pose:'move_2',     x:791, y:36,  w:270,h:341,anchorX:191,anchorY:333},
+    {pose:'anticipate', x:1125,y:25,  w:308,h:353,anchorX:170,anchorY:345},
+    {pose:'attack',     x:21,  y:451, w:439,h:284,anchorX:182,anchorY:276},
+    {pose:'cast',       x:457, y:393, w:284,h:339,anchorX:141,anchorY:331},
+    {pose:'hurt',       x:789, y:458, w:318,h:274,anchorX:169,anchorY:266},
+    {pose:'guard',      x:1146,y:435, w:288,h:297,anchorX:159,anchorY:289},
+    {pose:'down',       x:47,  y:973, w:353,h:101,anchorX:174,anchorY:93},
+    {pose:'victory',    x:477, y:737, w:227,h:337,anchorX:107,anchorY:329},
+    // Fixed authoring corrections: these front/back drawings were generated
+    // shorter than the side drawing. Match the 80px directional gait stature.
+    {pose:'front',      x:858, y:754, w:184,h:319,anchorX:89,anchorY:311,pixelScale:.259},
+    {pose:'back',       x:1182,y:747, w:195,h:327,anchorX:101,anchorY:319,pixelScale:.253},
   ],
 });
 

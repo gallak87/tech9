@@ -1,0 +1,352 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;600;700&family=Caveat:wght@500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<div id="ce-directions" aria-label="Chronforge Echo menu and HUD design directions">
+  <div class="ce-chooser" role="group" aria-label="Design direction">
+    <button type="button" data-direction="instrument" aria-pressed="true">01 · Harbor instrument</button>
+    <button type="button" data-direction="fieldbook" aria-pressed="false">02 · Crew fieldbook</button>
+    <button type="button" data-direction="print" aria-pressed="false">03 · Echo print</button>
+  </div>
+  <div class="ce-product" data-direction="instrument" aria-label="Menu appearance">
+    <section class="ce-field" aria-label="Field HUD design sample">
+      <div class="ce-field-top">
+        <div class="ce-location"><span class="ce-location-code">H / 01</span><div><small>The salt road</small><strong>Haventide</strong></div></div>
+        <div class="ce-stores" aria-label="Shared resources">
+          <div><i data-lucide="wheat" aria-hidden="true"></i><span><small>Food</small><b>38</b></span></div>
+          <div><i data-lucide="anvil" aria-hidden="true"></i><span><small>Ore</small><b>45</b></span></div>
+          <div><i data-lucide="zap" aria-hidden="true"></i><span><small>Energy</small><b>12</b></span></div>
+          <div><i data-lucide="flag" aria-hidden="true"></i><span><small>Renown</small><b>4</b></span></div>
+        </div>
+      </div>
+      <div class="ce-field-bottom">
+        <div class="ce-field-left">
+          <div class="ce-objective"><span class="ce-objective-mark">→</span><span>Confront the Drone Sentinel<br>at the town steps.</span></div>
+          <div class="ce-party"><b>KAIDA</b><span class="ce-hp"><span>HP <b>173 / 173</b></span><i></i></span><span class="ce-mp"><span>MP <b>38 / 38</b></span><i></i></span><span class="ce-level">LV 4</span></div>
+        </div>
+        <div class="ce-survey"><div class="ce-map-face"><span class="ce-map-road"></span><span class="ce-map-road ce-cross-road"></span><span class="ce-map-town"></span><span class="ce-map-player"></span><b>N</b><span class="ce-map-trees"></span></div><small>LOCAL SURVEY</small></div>
+      </div>
+    </section>
+    <section class="ce-menu" aria-label="Inventory menu design sample">
+      <header class="ce-menu-top"><div class="ce-maker"><span class="ce-maker-symbol">≋</span><span>CHRONFORGE <b>ECHO</b></span></div><span class="ce-serial">FIELD UNIT / 01</span><span class="ce-close"><kbd>Esc</kbd> Return</span></header>
+      <div class="ce-menu-layout">
+        <ol class="ce-tabs" aria-label="Seven menu tabs, inventory selected">
+          <li><kbd>1</kbd><span>Map</span></li><li><kbd>2</kbd><span>Party</span></li><li class="ce-active" aria-current="page"><kbd>3</kbd><span>Inventory</span></li><li><kbd>4</kbd><span>Skills</span></li><li><kbd>5</kbd><span>Quests</span></li><li><kbd>6</kbd><span>Save</span></li><li><kbd>7</kbd><span>Settings</span></li>
+        </ol>
+        <div class="ce-page">
+          <div class="ce-page-heading"><div><span class="ce-section-no">03</span><h2>Inventory</h2></div><span class="ce-page-note">Carried by Kaida</span></div>
+          <div class="ce-inventory">
+            <div class="ce-left-page">
+              <div class="ce-column-title"><span>Supplies</span><span>QTY.</span></div>
+              <div class="ce-items" role="group" aria-label="Inventory item selection">
+                <button type="button" class="ce-item" data-item="tonic" aria-pressed="true"><span class="ce-item-marker"></span><i data-lucide="flask-conical" aria-hidden="true"></i><span><strong>Field Tonic</strong><small>Recovery</small></span><b>05</b></button>
+                <button type="button" class="ce-item" data-item="ether" aria-pressed="false"><span class="ce-item-marker"></span><i data-lucide="battery-charging" aria-hidden="true"></i><span><strong>Ether Cell</strong><small>Energy reserve</small></span><b>03</b></button>
+              </div>
+              <div class="ce-equipped"><div class="ce-column-title">Equipped / Kaida</div><div><span>Weapon</span><strong>Iron Blade</strong></div><div><span>Armor</span><strong>Scrap Vest</strong></div><div><span>Accessory</span><strong>—</strong></div></div>
+            </div>
+            <aside class="ce-detail" aria-live="polite">
+              <div class="ce-detail-top"><span>CONSUMABLE</span><span class="ce-item-number">01 / 02</span></div>
+              <div class="ce-specimen"><div class="ce-specimen-ring"></div><i data-lucide="flask-conical" aria-hidden="true" class="ce-big-item"></i><span class="ce-specimen-caption">FIELD SUPPLY</span></div>
+              <h3>Field Tonic</h3><p class="ce-description">Restore HP to one ally.</p><span class="ce-note">Pack the essentials.</span>
+              <div class="ce-action"><kbd>Enter</kbd><span>Use on Kaida</span><span>→</span></div><small class="ce-price">Carried ×5</small>
+            </aside>
+          </div>
+        </div>
+      </div>
+      <footer class="ce-menu-footer"><span><kbd>1–7</kbd> Tabs <span class="ce-footer-extra"> / <kbd>↑ ↓</kbd> Select</span></span><span class="ce-tier">Survivor <b>•</b> Haventide</span></footer>
+    </section>
+  </div>
+</div>
+<style>
+#ce-directions{font-family:'IBM Plex Sans',sans-serif;color:light-dark(#253a40,#eee8d8)}
+#ce-directions *{box-sizing:border-box}
+#ce-directions .ce-chooser{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+#ce-directions .ce-chooser button{font:500 13px 'IBM Plex Sans',sans-serif;border:0;border-bottom:3px solid transparent;padding:10px 13px;color:inherit;background:transparent;cursor:pointer}
+#ce-directions .ce-chooser button[aria-pressed=true]{border-bottom-color:light-dark(#bf4c31,#eca064);background:light-dark(#e9e4d8,#303a3d)}
+#ce-directions .ce-product{--ce-ink:#223b41;--ce-paper:#ece5cf;--ce-accent:#ca6139;--ce-body:#29454a;--ce-muted:#69766a;--ce-line:#b6b9a3;--ce-title:'Barlow Condensed',sans-serif;--ce-surface:light-dark(#ede7d5,#ddd8c8);font-size:14px;line-height:1.4;color:var(--ce-ink);margin-right:8px;margin-bottom:10px}
+#ce-directions .ce-product h2,#ce-directions .ce-product h3,#ce-directions .ce-product p{margin:0;color:inherit}
+#ce-directions .ce-product button{font:inherit;cursor:pointer;color:inherit}
+#ce-directions .ce-product small{font-size:11px;line-height:1.3}
+#ce-directions .ce-product kbd{font:500 11px 'IBM Plex Sans',sans-serif;background:transparent;box-shadow:none;border:0;padding:0;color:inherit}
+#ce-directions .ce-product svg{width:19px;height:19px;flex-shrink:0;stroke-width:1.6}
+#ce-directions .ce-field{padding:18px 20px;background:light-dark(#788b74,#526854);position:relative;margin-bottom:18px;isolation:isolate}
+#ce-directions .ce-field::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(150deg,transparent 0 44px,#d1d7aa09 45px 47px,transparent 48px 72px);pointer-events:none;z-index:-1}
+#ce-directions .ce-field-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px}
+#ce-directions .ce-location{display:flex;gap:10px;align-items:center;background:var(--ce-body);padding:8px 15px 9px 9px;color:var(--ce-paper);border-radius:3px 15px 3px 3px;box-shadow:2px 3px 0 #183237}
+#ce-directions .ce-location-code{padding:8px 7px;border:1px solid #778d88;border-radius:50%;font:600 13px var(--ce-title)}
+#ce-directions .ce-location strong{display:block;font:600 26px/1 var(--ce-title);letter-spacing:.01em}
+#ce-directions .ce-location small{color:#c5cbb8}
+#ce-directions .ce-stores{display:flex;gap:1px;background:var(--ce-body);color:var(--ce-paper);padding:5px;box-shadow:2px 3px 0 #183237;border-radius:3px}
+#ce-directions .ce-stores>div{display:flex;align-items:center;gap:9px;padding:0 12px;border-right:1px solid #4e6767}
+#ce-directions .ce-stores>div:last-child{border:0}
+#ce-directions .ce-stores small{display:block;color:#d1d4bf}
+#ce-directions .ce-stores b{font:600 22px/1.1 var(--ce-title);font-variant-numeric:tabular-nums}
+#ce-directions .ce-field-bottom{margin-top:10px;display:flex;justify-content:space-between;align-items:end;gap:12px}
+#ce-directions .ce-field-left{display:flex;flex-direction:column;gap:18px}
+#ce-directions .ce-objective{display:flex;align-items:start;gap:9px;color:#fff4d6;font-size:12px;text-shadow:0 1px 2px #213a33}
+#ce-directions .ce-objective-mark{font-size:24px;line-height:1;color:#fff4d6}
+#ce-directions .ce-party{display:flex;align-items:center;gap:16px;background:var(--ce-body);color:var(--ce-paper);padding:9px 13px;border-radius:3px;box-shadow:2px 3px 0 #183237}
+#ce-directions .ce-party>b{font:600 19px var(--ce-title);border-bottom:3px solid #c44e77;padding:2px 0}
+#ce-directions .ce-hp,#ce-directions .ce-mp{min-width:82px;font-size:11px}
+#ce-directions .ce-hp>span,#ce-directions .ce-mp>span{display:flex;justify-content:space-between;gap:8px}
+#ce-directions .ce-hp i,#ce-directions .ce-mp i{display:block;height:4px;background:#9cb59e;margin-top:4px}
+#ce-directions .ce-mp i{background:#d1b06d}
+#ce-directions .ce-level{font:500 12px var(--ce-title)}
+#ce-directions .ce-survey{color:var(--ce-paper);text-align:center;font:500 11px var(--ce-title)}
+#ce-directions .ce-map-face{width:102px;height:102px;border:6px solid var(--ce-body);border-radius:50%;background:#d9d9b9;position:relative;overflow:hidden;box-shadow:0 0 0 1px #98a58d,2px 3px 0 #183237}
+#ce-directions .ce-map-face>b{position:absolute;left:calc(50% - 4px);top:2px;color:#233d3b;font:600 11px 'IBM Plex Sans',sans-serif;z-index:2}
+#ce-directions .ce-map-road{position:absolute;left:14%;top:50%;height:5px;background:#8b825b;width:86%;transform:rotate(-18deg)}
+#ce-directions .ce-cross-road{transform:rotate(-73deg);left:40%;top:46%;width:62%}
+#ce-directions .ce-map-town{position:absolute;left:62%;top:27%;width:14px;height:13px;background:#405b54;border:3px solid #203c3b}
+#ce-directions .ce-map-player{position:absolute;left:42%;top:52%;width:8px;height:8px;background:#bb3d63;transform:rotate(45deg);z-index:1;box-shadow:0 0 0 2px #ede7cd}
+#ce-directions .ce-map-trees{position:absolute;left:6%;top:15%;width:22px;height:25px;border-radius:40%;background:#758c6a;box-shadow:38px 46px 0 #7d9170}
+#ce-directions .ce-survey>small{display:block;margin-top:5px;font-size:11px}
+#ce-directions .ce-menu{border:7px solid var(--ce-body);border-radius:15px 15px 7px 7px;background:var(--ce-body);box-shadow:0 4px 0 #142f35,0 6px 0 #718782;position:relative}
+#ce-directions .ce-menu-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 15px 12px;color:var(--ce-paper)}
+#ce-directions .ce-maker{display:flex;align-items:center;gap:8px;font:500 12px var(--ce-title);letter-spacing:.05em}
+#ce-directions .ce-maker-symbol{font-size:32px;line-height:.6;color:#ddac64}
+#ce-directions .ce-maker b{font-weight:700}
+#ce-directions .ce-serial{font:500 11px var(--ce-title);letter-spacing:.12em;color:#c1cbb8}
+#ce-directions .ce-close{font-size:11px;white-space:nowrap}
+#ce-directions .ce-close kbd{border:1px solid #8c9b8c;padding:1px 4px;margin-right:5px}
+#ce-directions .ce-tabs{padding:0;list-style:none;margin:0;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
+#ce-directions .ce-tabs li{padding:12px 4px;display:flex;align-items:center;justify-content:center;gap:8px;background:#3b5758;color:#d9dfcc;font:500 15px var(--ce-title);position:relative;border-radius:3px 3px 0 0}
+#ce-directions .ce-tabs kbd{font:500 13px var(--ce-title);color:#aebdae}
+#ce-directions .ce-tabs .ce-active{color:var(--ce-ink);background:var(--ce-surface)}
+#ce-directions .ce-tabs .ce-active kbd{background:var(--ce-accent);color:#fff5dc;padding:0 5px;border-radius:2px}
+#ce-directions .ce-tabs .ce-active::after{content:'';position:absolute;width:6px;height:6px;background:var(--ce-accent);bottom:3px;left:calc(50% - 3px);transform:rotate(45deg)}
+#ce-directions .ce-page{background:var(--ce-surface);padding:23px 27px 25px;border-radius:0 0 3px 3px}
+#ce-directions .ce-page-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:23px}
+#ce-directions .ce-page-heading>div{display:flex;align-items:center;gap:15px}
+#ce-directions .ce-section-no{font:600 36px/1 var(--ce-title);color:var(--ce-accent);padding-right:14px;border-right:2px solid var(--ce-accent)}
+#ce-directions .ce-page-heading h2{font:600 35px/1 var(--ce-title);text-transform:uppercase;letter-spacing:.02em}
+#ce-directions .ce-page-note{font-size:11px;border-bottom:1px solid var(--ce-line);padding:5px 0}
+#ce-directions .ce-inventory{display:grid;grid-template-columns:1.25fr 1fr;gap:38px}
+#ce-directions .ce-column-title{display:flex;justify-content:space-between;font:600 12px var(--ce-title);text-transform:uppercase;letter-spacing:.1em;padding:0 12px 8px;border-bottom:2px solid var(--ce-ink)}
+#ce-directions .ce-item{width:100%;display:flex;align-items:center;gap:15px;background:transparent;border:0;border-bottom:1px solid var(--ce-line);padding:13px 12px;text-align:left;position:relative}
+#ce-directions .ce-item strong{font-weight:500;font-size:15px}
+#ce-directions .ce-item small{display:block;margin-top:2px;color:#546661}
+#ce-directions .ce-item>b{margin-left:auto;font:600 25px var(--ce-title);font-variant-numeric:tabular-nums}
+#ce-directions .ce-item[aria-pressed=true]{background:#d1d5bd;box-shadow:inset 3px 0 0 var(--ce-accent)}
+#ce-directions .ce-item[aria-pressed=true] .ce-item-marker{position:absolute;left:-13px;width:0;height:0;border-top:5px solid transparent;border-bottom:5px solid transparent;border-left:7px solid var(--ce-accent)}
+#ce-directions .ce-equipped{margin-top:26px}
+#ce-directions .ce-equipped>div:not(:first-child){display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid var(--ce-line);font-size:12px}
+#ce-directions .ce-equipped strong{font-weight:500}
+#ce-directions .ce-detail{background:#f6efd9;border:1px solid #b6b59e;border-radius:5px;padding:14px 18px 12px;box-shadow:2px 2px 0 #c6c6ac;color:var(--ce-ink)}
+#ce-directions .ce-detail-top{display:flex;justify-content:space-between;gap:12px;font:500 11px var(--ce-title);letter-spacing:.09em}
+#ce-directions .ce-specimen{height:95px;display:flex;align-items:center;justify-content:center;position:relative;margin:4px 0 12px}
+#ce-directions .ce-big-item{width:48px!important;height:48px!important;z-index:1;color:var(--ce-accent);stroke-width:1.35!important}
+#ce-directions .ce-specimen-ring{width:76px;height:76px;border:1px solid #b9baa1;border-radius:50%;position:absolute}
+#ce-directions .ce-specimen-ring::before,#ce-directions .ce-specimen-ring::after{content:'';position:absolute;background:#bcc0a7}
+#ce-directions .ce-specimen-ring::before{height:1px;width:120px;left:-23px;top:37px}
+#ce-directions .ce-specimen-ring::after{width:1px;height:90px;left:37px;top:-8px}
+#ce-directions .ce-specimen-caption{display:none}
+#ce-directions .ce-detail h3{font:600 25px/1.1 var(--ce-title)}
+#ce-directions .ce-description{font-size:12px;margin-top:8px!important}
+#ce-directions .ce-note{display:none}
+#ce-directions .ce-action{display:flex;align-items:center;justify-content:space-between;gap:9px;background:var(--ce-body);color:var(--ce-paper);padding:11px 13px;margin-top:18px;font-size:12px;box-shadow:0 3px 0 #182e32;border-radius:3px}
+#ce-directions .ce-action kbd{padding-right:10px;border-right:1px solid #71837b}
+#ce-directions .ce-price{display:block;text-align:right;margin-top:11px;color:#52655f}
+#ce-directions .ce-menu-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;color:var(--ce-paper);padding:11px 15px 4px;font-size:11px}
+#ce-directions .ce-tier b{color:#d8a76c;padding:0 5px}
+/* A cloth-bound record; tabs occupy the fore edge, and supplies share a ruled spread. */
+#ce-directions [data-direction=fieldbook].ce-product{--ce-title:'IBM Plex Sans',sans-serif;--ce-body:#354d67;--ce-paper:#f2e3c5;--ce-ink:#344a61;--ce-accent:#b94547;--ce-line:#b4b9b1;--ce-surface:light-dark(#f4e9ce,#e6ddc7)}
+#ce-directions [data-direction=fieldbook] .ce-menu{border:0;border-left:17px solid #314660;border-bottom:8px solid #314660;border-radius:3px 10px 10px 3px;box-shadow:0 3px 0 #a6977c,0 6px 0 #ded1b6,0 9px 0 #253c57;background:#314660;padding-right:10px}
+#ce-directions [data-direction=fieldbook] .ce-menu-top{padding:15px 15px 14px 20px;border-bottom:1px dashed #738094}
+#ce-directions [data-direction=fieldbook] .ce-menu-layout{display:grid;grid-template-columns:1fr 98px}
+#ce-directions [data-direction=fieldbook] .ce-tabs{grid-column:2;grid-row:1;display:flex;flex-direction:column;gap:5px;padding-top:19px;background:var(--ce-surface);border-radius:0 8px 4px 0}
+#ce-directions [data-direction=fieldbook] .ce-tabs li{background:#dbd0b6;color:#344a61;justify-content:start;border-radius:0 6px 6px 0;padding:10px 7px 10px 9px;font:500 11px 'IBM Plex Sans',sans-serif;margin-right:-8px;box-shadow:1px 2px 0 #af9f83;gap:5px;min-height:39px}
+#ce-directions [data-direction=fieldbook] .ce-tabs .ce-active{background:#b94547;color:#fff0d5;margin-right:-13px}
+#ce-directions [data-direction=fieldbook] .ce-tabs kbd{color:inherit;font-size:11px}
+#ce-directions [data-direction=fieldbook] .ce-tabs .ce-active kbd{background:transparent;padding:0}
+#ce-directions [data-direction=fieldbook] .ce-tabs .ce-active::after{display:none}
+#ce-directions [data-direction=fieldbook] .ce-page{grid-column:1;grid-row:1;padding:25px 26px 29px 23px;background:linear-gradient(90deg,#bbaa8566,transparent 16px),var(--ce-surface);border-radius:0}
+#ce-directions [data-direction=fieldbook] .ce-page-heading{align-items:start;margin-bottom:23px}
+#ce-directions [data-direction=fieldbook] .ce-page-heading h2{text-transform:none;font:500 39px/1 'Caveat',cursive;letter-spacing:0}
+#ce-directions [data-direction=fieldbook] .ce-page-heading>div{gap:10px}
+#ce-directions [data-direction=fieldbook] .ce-section-no{font:500 16px 'Caveat',cursive;align-self:start;border:1px solid var(--ce-accent);padding:2px 7px;transform:rotate(-5deg)}
+#ce-directions [data-direction=fieldbook] .ce-page-note{font:500 17px/1.2 'Caveat',cursive;max-width:92px;border:0}
+#ce-directions [data-direction=fieldbook] .ce-inventory{grid-template-columns:1.1fr 1fr;gap:25px}
+#ce-directions [data-direction=fieldbook] .ce-column-title{font-size:11px;letter-spacing:.02em;border-bottom:1px solid var(--ce-ink);padding-left:0;padding-right:0}
+#ce-directions [data-direction=fieldbook] .ce-item{padding:14px 5px;gap:10px}
+#ce-directions [data-direction=fieldbook] .ce-item strong{font-size:14px}
+#ce-directions [data-direction=fieldbook] .ce-item>b{font:500 27px 'Caveat',cursive;transform:rotate(-6deg);color:var(--ce-accent)}
+#ce-directions [data-direction=fieldbook] .ce-item[aria-pressed=true]{background:#ddc79455;box-shadow:none}
+#ce-directions [data-direction=fieldbook] .ce-item[aria-pressed=true]::after{content:'';position:absolute;left:0;right:0;bottom:1px;height:2px;background:#be6b4b;transform:rotate(-.5deg)}
+#ce-directions [data-direction=fieldbook] .ce-item-marker{display:none}
+#ce-directions [data-direction=fieldbook] .ce-equipped>div:not(:first-child){padding-left:0;padding-right:0;font-size:11px}
+#ce-directions [data-direction=fieldbook] .ce-detail{background:transparent;border:0;border-left:1px solid #ba635c77;border-radius:0;box-shadow:none;padding:0 0 0 20px}
+#ce-directions [data-direction=fieldbook] .ce-detail h3{font-size:20px;font-weight:500}
+#ce-directions [data-direction=fieldbook] .ce-specimen-ring{border-radius:0;border:0;border-bottom:1px solid #667d8466;transform:rotate(-5deg)}
+#ce-directions [data-direction=fieldbook] .ce-specimen-ring::before,#ce-directions [data-direction=fieldbook] .ce-specimen-ring::after{display:none}
+#ce-directions [data-direction=fieldbook] .ce-big-item{color:#4c7074;transform:rotate(-8deg)}
+#ce-directions [data-direction=fieldbook] .ce-note{display:block;font:500 21px 'Caveat',cursive;color:#aa5948;margin-top:9px;transform:rotate(-3deg)}
+#ce-directions [data-direction=fieldbook] .ce-action{background:transparent;color:var(--ce-ink);border-top:1px solid var(--ce-ink);border-bottom:1px solid var(--ce-ink);box-shadow:none;border-radius:0;padding:10px 0}
+#ce-directions [data-direction=fieldbook] .ce-location{background:var(--ce-paper);color:var(--ce-ink);border-radius:0;box-shadow:3px 4px 0 var(--ce-body);border-left:4px solid var(--ce-accent)}
+#ce-directions [data-direction=fieldbook] .ce-location strong{font:500 26px/1 'Caveat',cursive}
+#ce-directions [data-direction=fieldbook] .ce-location small{color:#566c77}
+#ce-directions [data-direction=fieldbook] .ce-location-code{border:0;border-right:1px solid #a2aaa5;border-radius:0;padding-left:4px;font-size:11px}
+#ce-directions [data-direction=fieldbook] .ce-stores{background:var(--ce-paper);color:var(--ce-ink);box-shadow:3px 4px 0 var(--ce-body);border-radius:0}
+#ce-directions [data-direction=fieldbook] .ce-stores small{color:#516573}
+#ce-directions [data-direction=fieldbook] .ce-stores b{font:500 25px/1 'Caveat',cursive}
+#ce-directions [data-direction=fieldbook] .ce-stores>div{border-color:#adb3a5}
+#ce-directions [data-direction=fieldbook] .ce-party{background:var(--ce-paper);color:var(--ce-ink);box-shadow:3px 4px 0 var(--ce-body);border-radius:0}
+#ce-directions [data-direction=fieldbook] .ce-party>b{font-size:13px}
+#ce-directions [data-direction=fieldbook] .ce-hp i{background:#5a796b}
+#ce-directions [data-direction=fieldbook] .ce-mp i{background:#aa8e52}
+#ce-directions [data-direction=fieldbook] .ce-map-face{border:5px solid var(--ce-paper);border-radius:0;box-shadow:3px 4px 0 var(--ce-body);background:#ced4b3}
+#ce-directions [data-direction=fieldbook] .ce-map-face:after{content:'';position:absolute;top:0;bottom:0;left:50%;border-left:1px solid #51667833}
+/* A two-ink print identity; block cuts and repeated signal marks carry the rhythm. */
+#ce-directions [data-direction=print].ce-product{--ce-title:'Archivo Black',sans-serif;--ce-body:#282d42;--ce-paper:#f0e5ca;--ce-ink:#282d42;--ce-accent:#cf503a;--ce-line:#bfb4a0;--ce-surface:light-dark(#f1e5cb,#dfd7c5)}
+#ce-directions [data-direction=print] .ce-menu{border:0;border-radius:0;padding:0;background:var(--ce-paper);box-shadow:6px 6px 0 var(--ce-accent)}
+#ce-directions [data-direction=print] .ce-menu-top{background:var(--ce-body);padding:11px 20px}
+#ce-directions [data-direction=print] .ce-maker{font-family:'IBM Plex Sans',sans-serif;font-weight:600}
+#ce-directions [data-direction=print] .ce-maker-symbol{color:var(--ce-accent);font-family:'Archivo Black',sans-serif;font-size:28px}
+#ce-directions [data-direction=print] .ce-serial{letter-spacing:.02em;font-family:'IBM Plex Sans',sans-serif}
+#ce-directions [data-direction=print] .ce-tabs{gap:0;background:var(--ce-body);padding:0 15px 8px}
+#ce-directions [data-direction=print] .ce-tabs li{background:transparent;color:var(--ce-paper);border-radius:0;font:500 12px 'IBM Plex Sans',sans-serif;padding:11px 3px;gap:6px;border-right:1px solid #686878}
+#ce-directions [data-direction=print] .ce-tabs li:last-child{border-right:0}
+#ce-directions [data-direction=print] .ce-tabs .ce-active{background:var(--ce-accent);color:#fff1d6}
+#ce-directions [data-direction=print] .ce-tabs .ce-active kbd{background:transparent;padding:0}
+#ce-directions [data-direction=print] .ce-tabs .ce-active:after{display:none}
+#ce-directions [data-direction=print] .ce-page{padding:20px 27px 26px;background:var(--ce-surface);border-radius:0}
+#ce-directions [data-direction=print] .ce-page-heading{padding-bottom:16px;margin-bottom:19px;border-bottom:5px solid var(--ce-ink)}
+#ce-directions [data-direction=print] .ce-page-heading>div{gap:12px}
+#ce-directions [data-direction=print] .ce-section-no{font:400 53px/1 var(--ce-title);border:0;padding:0;color:var(--ce-accent);letter-spacing:-4px}
+#ce-directions [data-direction=print] .ce-page-heading h2{font:400 32px/1 var(--ce-title);letter-spacing:-1px}
+#ce-directions [data-direction=print] .ce-page-note{border:0;text-align:right;text-transform:uppercase;font-size:11px;max-width:100px}
+#ce-directions [data-direction=print] .ce-column-title{font:600 11px 'IBM Plex Sans',sans-serif;border-bottom:0;padding:0 0 7px;letter-spacing:.03em}
+#ce-directions [data-direction=print] .ce-inventory{grid-template-columns:1.2fr 1fr;gap:30px}
+#ce-directions [data-direction=print] .ce-item{padding:13px 9px;gap:12px;border-bottom:2px solid var(--ce-ink)}
+#ce-directions [data-direction=print] .ce-item strong{font-weight:600}
+#ce-directions [data-direction=print] .ce-item>b{font:400 25px var(--ce-title)}
+#ce-directions [data-direction=print] .ce-item[aria-pressed=true]{background:var(--ce-ink);color:var(--ce-paper);box-shadow:4px 4px 0 var(--ce-accent);border-color:var(--ce-ink);margin-bottom:4px}
+#ce-directions [data-direction=print] .ce-item[aria-pressed=true] small{color:#d9cdb7}
+#ce-directions [data-direction=print] .ce-item-marker{display:none}
+#ce-directions [data-direction=print] .ce-equipped{margin-top:24px}
+#ce-directions [data-direction=print] .ce-equipped>div:not(:first-child){padding-left:0;padding-right:0}
+#ce-directions [data-direction=print] .ce-detail{border:0;border-radius:0;box-shadow:none;background:transparent;padding:0 0 0 22px;border-left:2px solid var(--ce-ink)}
+#ce-directions [data-direction=print] .ce-detail-top{font:500 11px 'IBM Plex Sans',sans-serif;letter-spacing:.05em}
+#ce-directions [data-direction=print] .ce-specimen{height:92px;justify-content:start;padding-left:24px}
+#ce-directions [data-direction=print] .ce-specimen-ring{border:0;background:var(--ce-accent);opacity:.18;border-radius:50%;left:4px;top:7px;width:85px;height:85px}
+#ce-directions [data-direction=print] .ce-specimen-ring:before{background:transparent;border:2px solid var(--ce-accent);width:85px;height:85px;top:-5px;left:5px;border-radius:50%}
+#ce-directions [data-direction=print] .ce-specimen-ring:after{display:none}
+#ce-directions [data-direction=print] .ce-big-item{color:var(--ce-ink);stroke-width:2!important}
+#ce-directions [data-direction=print] .ce-detail h3{font:400 25px/1.1 var(--ce-title);letter-spacing:-.8px}
+#ce-directions [data-direction=print] .ce-action{border-radius:0;background:var(--ce-accent);color:#fff3d8;box-shadow:3px 3px 0 var(--ce-ink)}
+#ce-directions [data-direction=print] .ce-menu-footer{background:var(--ce-ink);padding:11px 20px;font-family:'IBM Plex Sans',sans-serif}
+#ce-directions [data-direction=print] .ce-location{background:var(--ce-paper);color:var(--ce-ink);border-radius:0;box-shadow:4px 4px 0 var(--ce-accent);padding:7px 13px 9px 9px}
+#ce-directions [data-direction=print] .ce-location-code{border:0;border-radius:0;font:400 14px var(--ce-title);color:var(--ce-accent);padding-left:0}
+#ce-directions [data-direction=print] .ce-location strong{font:400 22px/1 var(--ce-title);letter-spacing:-.5px}
+#ce-directions [data-direction=print] .ce-location small{color:var(--ce-ink)}
+#ce-directions [data-direction=print] .ce-stores{background:var(--ce-ink);box-shadow:4px 4px 0 var(--ce-accent);border-radius:0}
+#ce-directions [data-direction=print] .ce-stores b{font:400 20px/1.1 var(--ce-title)}
+#ce-directions [data-direction=print] .ce-party{border-radius:0;box-shadow:4px 4px 0 var(--ce-accent)}
+#ce-directions [data-direction=print] .ce-party>b{font:400 13px var(--ce-title)}
+#ce-directions [data-direction=print] .ce-level{font:500 11px 'IBM Plex Sans',sans-serif}
+#ce-directions [data-direction=print] .ce-map-face{border-radius:0;border-color:var(--ce-ink);box-shadow:4px 4px 0 var(--ce-accent)}
+#ce-directions .ce-product[data-patina=off] .ce-menu{box-shadow:none}
+@media(max-width:760px){
+ #ce-directions .ce-stores>div{gap:6px;padding:0 8px}
+ #ce-directions .ce-inventory{gap:24px}
+ #ce-directions [data-direction=fieldbook] .ce-page{padding:22px 20px}
+ #ce-directions [data-direction=fieldbook] .ce-inventory{gap:16px}
+ #ce-directions [data-direction=fieldbook] .ce-detail{padding-left:14px}
+ #ce-directions .ce-serial{display:none}
+}
+@media(max-width:590px){
+ #ce-directions .ce-chooser{gap:2px}
+ #ce-directions .ce-chooser button{padding:9px;font-size:12px;flex:1 1 125px;text-align:left}
+ #ce-directions .ce-field{padding:14px}
+ #ce-directions .ce-field-top{flex-wrap:wrap}
+ #ce-directions .ce-stores{width:100%;justify-content:space-between;margin-top:3px}
+ #ce-directions .ce-stores>div{padding:2px 7px;gap:5px}
+ #ce-directions .ce-stores svg{width:14px;height:14px}
+ #ce-directions .ce-stores b{font-size:20px!important}
+ #ce-directions .ce-stores small{font-size:11px}
+ #ce-directions .ce-field-bottom{align-items:start;margin-top:16px;gap:8px}
+ #ce-directions .ce-field-left{flex:1;min-width:0;gap:15px}
+ #ce-directions .ce-objective{font-size:11px;gap:5px}
+ #ce-directions .ce-party{display:grid;grid-template-columns:1fr 1fr;gap:7px 13px;padding:8px 10px}
+ #ce-directions .ce-party>b{grid-column:1;font-size:14px}
+ #ce-directions .ce-level{grid-column:2;grid-row:1;text-align:right}
+ #ce-directions .ce-hp,#ce-directions .ce-mp{min-width:0;font-size:11px}
+ #ce-directions .ce-hp>span,#ce-directions .ce-mp>span{display:block}
+ #ce-directions .ce-hp b,#ce-directions .ce-mp b{display:block}
+ #ce-directions .ce-map-face{width:77px;height:77px}
+ #ce-directions .ce-survey>small{font:500 11px 'IBM Plex Sans',sans-serif;max-width:78px}
+ #ce-directions .ce-menu{border-width:5px}
+ #ce-directions .ce-menu-top{padding:8px 7px 12px}
+ #ce-directions .ce-maker{font-size:11px;gap:6px;letter-spacing:0}
+ #ce-directions .ce-maker-symbol{font-size:25px}
+ #ce-directions .ce-tabs{grid-template-columns:repeat(4,minmax(0,1fr));gap:2px}
+ #ce-directions .ce-tabs li{font-size:12px;padding:9px 2px;gap:5px}
+ #ce-directions .ce-tabs kbd{font-size:11px}
+ #ce-directions .ce-page{padding:20px 15px}
+ #ce-directions .ce-page-heading{gap:8px;flex-wrap:wrap;margin-bottom:17px}
+ #ce-directions .ce-page-heading h2{font-size:29px}
+ #ce-directions .ce-section-no{font-size:29px;padding-right:10px}
+ #ce-directions .ce-inventory{grid-template-columns:1fr;gap:23px}
+ #ce-directions .ce-equipped{margin-top:20px}
+ #ce-directions .ce-detail{padding:14px 17px}
+ #ce-directions .ce-menu-footer{padding:10px 7px 3px;font-size:11px;flex-wrap:wrap}
+ #ce-directions .ce-footer-extra{display:none}
+ #ce-directions [data-direction=fieldbook] .ce-menu{border-left-width:9px;padding-right:5px}
+ #ce-directions [data-direction=fieldbook] .ce-menu-layout{grid-template-columns:minmax(0,1fr) 64px}
+ #ce-directions [data-direction=fieldbook] .ce-tabs{padding-top:17px}
+ #ce-directions [data-direction=fieldbook] .ce-tabs li{padding:8px 4px;flex-wrap:wrap;gap:3px;font-size:11px;margin-right:-3px}
+ #ce-directions [data-direction=fieldbook] .ce-tabs .ce-active{margin-right:-5px}
+ #ce-directions [data-direction=fieldbook] .ce-page{padding:20px 13px}
+ #ce-directions [data-direction=fieldbook] .ce-page-heading>div{gap:6px}
+ #ce-directions [data-direction=fieldbook] .ce-page-heading h2{font-size:31px}
+ #ce-directions [data-direction=fieldbook] .ce-page-note{max-width:none;font-size:17px}
+ #ce-directions [data-direction=fieldbook] .ce-inventory{grid-template-columns:1fr;gap:24px}
+ #ce-directions [data-direction=fieldbook] .ce-detail{border-left:0;border-top:1px solid #ba635c77;padding:18px 0 0}
+ #ce-directions [data-direction=fieldbook] .ce-item{gap:7px}
+ #ce-directions [data-direction=fieldbook] .ce-item strong{font-size:12px}
+ #ce-directions [data-direction=fieldbook] .ce-item>b{font-size:24px}
+ #ce-directions [data-direction=fieldbook] .ce-equipped>div:not(:first-child){gap:5px}
+ #ce-directions [data-direction=fieldbook] .ce-menu-top{padding-left:11px;padding-right:8px}
+ #ce-directions [data-direction=print] .ce-menu-top{padding:11px 12px}
+ #ce-directions [data-direction=print] .ce-tabs{padding:0 9px 8px}
+ #ce-directions [data-direction=print] .ce-page{padding:18px 16px}
+ #ce-directions [data-direction=print] .ce-page-heading h2{font-size:24px}
+ #ce-directions [data-direction=print] .ce-section-no{font-size:41px;letter-spacing:-2px}
+ #ce-directions [data-direction=print] .ce-page-heading>div{gap:8px}
+ #ce-directions [data-direction=print] .ce-page-note{max-width:none}
+ #ce-directions [data-direction=print] .ce-inventory{grid-template-columns:1fr}
+ #ce-directions [data-direction=print] .ce-detail{border-left:0;border-top:2px solid var(--ce-ink);padding:16px 0 0}
+ #ce-directions [data-direction=print] .ce-menu-footer{padding:11px 14px}
+}
+@media(pointer:coarse){#ce-directions .ce-chooser button,#ce-directions .ce-item{min-height:44px}}
+</style>
+<script>
+(() => {
+  const root = document.getElementById('ce-directions');
+  const product = root.querySelector('.ce-product');
+  const state = { direction:'instrument', item:'tonic', materialDepth:true };
+  const details = {
+    tonic:{name:'Field Tonic',description:'Restore HP to one ally.',icon:'flask-conical',number:'01 / 02',quantity:5},
+    ether:{name:'Ether Cell',description:'Restore 30 MP to one ally.',icon:'battery-charging',number:'02 / 02',quantity:3}
+  };
+  function render(){
+    product.dataset.direction = state.direction;
+    product.dataset.patina = state.materialDepth ? 'on' : 'off';
+    root.querySelectorAll('[data-direction]').forEach(el => {if(el.tagName==='BUTTON')el.setAttribute('aria-pressed',String(el.dataset.direction===state.direction));});
+    root.querySelectorAll('[data-item]').forEach(el => el.setAttribute('aria-pressed',String(el.dataset.item===state.item)));
+    root.querySelector('.ce-serial').textContent = {instrument:'FIELD UNIT / 01',fieldbook:'KAIDA · PERSONAL COPY',print:'COAST EDITION / 01'}[state.direction];
+    const item = details[state.item];
+    root.querySelector('.ce-detail h3').textContent = item.name;
+    root.querySelector('.ce-description').textContent = item.description;
+    root.querySelector('.ce-item-number').textContent = item.number;
+    root.querySelector('.ce-price').textContent = `Carried ×${item.quantity}`;
+    const old = root.querySelector('.ce-big-item');
+    const icon = document.createElement('i');icon.className='ce-big-item';icon.setAttribute('data-lucide',item.icon);icon.setAttribute('aria-hidden','true');old.replaceWith(icon);
+    if(globalThis.lucide)globalThis.lucide.createIcons();
+  }
+  root.querySelectorAll('button[data-direction]').forEach(button => button.addEventListener('click',()=>{state.direction=button.dataset.direction;render();}));
+  root.querySelectorAll('button[data-item]').forEach(button => button.addEventListener('click',()=>{state.item=button.dataset.item;render();}));
+  render();
+  if(globalThis.Tweak){
+    const tweak=new Tweak({container:product,onChange:render});
+    tweak.addToggle(state,'materialDepth',{label:'Raised edges and layered materials'});
+  }
+})();
+</script>

@@ -1,0 +1,737 @@
+{
+  "errors": [],
+  "missing": [],
+  "menus": [
+    {
+      "width": 1440,
+      "tab": 0,
+      "actual": 0,
+      "bodyWidth": 1354,
+      "bodyScroll": 1354,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1440,
+      "documentWidth": 1440,
+      "documentScroll": 1440
+    },
+    {
+      "width": 1440,
+      "tab": 1,
+      "actual": 1,
+      "bodyWidth": 1354,
+      "bodyScroll": 1354,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1440,
+      "documentWidth": 1440,
+      "documentScroll": 1440
+    },
+    {
+      "width": 1440,
+      "tab": 2,
+      "actual": 2,
+      "bodyWidth": 1354,
+      "bodyScroll": 1354,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1440,
+      "documentWidth": 1440,
+      "documentScroll": 1440
+    },
+    {
+      "width": 1440,
+      "tab": 3,
+      "actual": 3,
+      "bodyWidth": 1354,
+      "bodyScroll": 1354,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1440,
+      "documentWidth": 1440,
+      "documentScroll": 1440
+    },
+    {
+      "width": 1440,
+      "tab": 4,
+      "actual": 4,
+      "bodyWidth": 1354,
+      "bodyScroll": 1354,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1440,
+      "documentWidth": 1440,
+      "documentScroll": 1440
+    },
+    {
+      "width": 1440,
+      "tab": 5,
+      "actual": 5,
+      "bodyWidth": 1354,
+      "bodyScroll": 1354,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1440,
+      "documentWidth": 1440,
+      "documentScroll": 1440
+    },
+    {
+      "width": 1440,
+      "tab": 6,
+      "actual": 6,
+      "bodyWidth": 1354,
+      "bodyScroll": 1354,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1440,
+      "documentWidth": 1440,
+      "documentScroll": 1440
+    },
+    {
+      "width": 1024,
+      "tab": 0,
+      "actual": 0,
+      "bodyWidth": 983,
+      "bodyScroll": 983,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1024,
+      "documentWidth": 1024,
+      "documentScroll": 1024
+    },
+    {
+      "width": 1024,
+      "tab": 1,
+      "actual": 1,
+      "bodyWidth": 983,
+      "bodyScroll": 983,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1024,
+      "documentWidth": 1024,
+      "documentScroll": 1024
+    },
+    {
+      "width": 1024,
+      "tab": 2,
+      "actual": 2,
+      "bodyWidth": 983,
+      "bodyScroll": 983,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1024,
+      "documentWidth": 1024,
+      "documentScroll": 1024
+    },
+    {
+      "width": 1024,
+      "tab": 3,
+      "actual": 3,
+      "bodyWidth": 983,
+      "bodyScroll": 983,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1024,
+      "documentWidth": 1024,
+      "documentScroll": 1024
+    },
+    {
+      "width": 1024,
+      "tab": 4,
+      "actual": 4,
+      "bodyWidth": 983,
+      "bodyScroll": 983,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1024,
+      "documentWidth": 1024,
+      "documentScroll": 1024
+    },
+    {
+      "width": 1024,
+      "tab": 5,
+      "actual": 5,
+      "bodyWidth": 983,
+      "bodyScroll": 983,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1024,
+      "documentWidth": 1024,
+      "documentScroll": 1024
+    },
+    {
+      "width": 1024,
+      "tab": 6,
+      "actual": 6,
+      "bodyWidth": 983,
+      "bodyScroll": 983,
+      "menuFont": "Barlow, sans-serif",
+      "screenWidth": 1024,
+      "documentWidth": 1024,
+      "documentScroll": 1024
+    }
+  ],
+  "anchors": [
+    {
+      "position": null,
+      "objectX": 1134.375,
+      "objectY": 566.25,
+      "game": {
+        "left": 0,
+        "top": 0,
+        "right": 1440,
+        "bottom": 810
+      },
+      "prompt": {
+        "left": 1070.875,
+        "top": 590.25,
+        "right": 1197.890625,
+        "bottom": 629.765625
+      },
+      "label": "F Recover food"
+    },
+    {
+      "position": [
+        40,
+        40
+      ],
+      "objectX": 60,
+      "objectY": 60,
+      "game": {
+        "left": 0,
+        "top": 0,
+        "right": 1440,
+        "bottom": 810
+      },
+      "prompt": {
+        "left": 11.515625,
+        "top": 84,
+        "right": 138.53125,
+        "bottom": 123.515625
+      },
+      "label": "F Recover food"
+    },
+    {
+      "position": [
+        920,
+        40
+      ],
+      "objectX": 1380,
+      "objectY": 60,
+      "game": {
+        "left": 0,
+        "top": 0,
+        "right": 1440,
+        "bottom": 810
+      },
+      "prompt": {
+        "left": 1301.46875,
+        "top": 84,
+        "right": 1428.484375,
+        "bottom": 123.515625
+      },
+      "label": "F Recover food"
+    },
+    {
+      "position": [
+        920,
+        500
+      ],
+      "objectX": 1380,
+      "objectY": 750,
+      "game": {
+        "left": 0,
+        "top": 0,
+        "right": 1440,
+        "bottom": 810
+      },
+      "prompt": {
+        "left": 1301.46875,
+        "top": 686,
+        "right": 1428.484375,
+        "bottom": 725.515625
+      },
+      "label": "F Recover food"
+    },
+    {
+      "position": [
+        40,
+        500
+      ],
+      "objectX": 60,
+      "objectY": 750,
+      "game": {
+        "left": 0,
+        "top": 0,
+        "right": 1440,
+        "bottom": 810
+      },
+      "prompt": {
+        "left": 11.515625,
+        "top": 686,
+        "right": 138.53125,
+        "bottom": 725.515625
+      },
+      "label": "F Recover food"
+    }
+  ],
+  "scope": "Development fixtures stage scenes; production DOM, controls, camera and rewards are exercised in an isolated browser profile.",
+  "assets": {
+    "loaded": [
+      {
+        "id": "kaida_walk",
+        "width": 1448,
+        "height": 1086,
+        "loadMs": 152
+      },
+      {
+        "id": "kaida_showcase",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 261
+      },
+      {
+        "id": "coast_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 274
+      },
+      {
+        "id": "coast_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 309
+      },
+      {
+        "id": "emberline_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 336
+      },
+      {
+        "id": "emberline_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 419
+      },
+      {
+        "id": "interior_wall",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 460
+      },
+      {
+        "id": "domestic_furniture",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 493
+      },
+      {
+        "id": "civic_production",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 570
+      },
+      {
+        "id": "haventide_civilians",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 615
+      },
+      {
+        "id": "civic_culture",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 689
+      },
+      {
+        "id": "interior_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 690
+      },
+      {
+        "id": "rust_scrapper",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 708
+      },
+      {
+        "id": "haventide_interior",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 763
+      },
+      {
+        "id": "forest_veil_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 783
+      },
+      {
+        "id": "mire_bog_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 825
+      },
+      {
+        "id": "mire_bog_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 870
+      },
+      {
+        "id": "orbital_reach_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 889
+      },
+      {
+        "id": "crater_ember_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 930
+      },
+      {
+        "id": "forest_veil_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1011
+      },
+      {
+        "id": "crater_ember_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1030
+      },
+      {
+        "id": "world_interactions",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 1050
+      },
+      {
+        "id": "food",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1067
+      },
+      {
+        "id": "ore",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1085
+      },
+      {
+        "id": "orbital_reach_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1101
+      },
+      {
+        "id": "frost_canyon_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 1119
+      },
+      {
+        "id": "frost_canyon_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1160
+      },
+      {
+        "id": "last_crown_props",
+        "width": 1774,
+        "height": 887,
+        "loadMs": 1176
+      },
+      {
+        "id": "last_crown_ground",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1213
+      },
+      {
+        "id": "renown",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1233
+      },
+      {
+        "id": "energy",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1249
+      },
+      {
+        "id": "ether_cell",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1266
+      },
+      {
+        "id": "crit_lens",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1282
+      },
+      {
+        "id": "field_tonic",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1296
+      },
+      {
+        "id": "witness_prism",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1313
+      },
+      {
+        "id": "dawn_seed",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1327
+      },
+      {
+        "id": "tide_elixir",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1343
+      },
+      {
+        "id": "star_cell",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1360
+      },
+      {
+        "id": "data_chip",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1378
+      },
+      {
+        "id": "swamp_coil",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1394
+      },
+      {
+        "id": "moss_ward",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1409
+      },
+      {
+        "id": "ember_crown",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1425
+      },
+      {
+        "id": "namekeeper",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1442
+      },
+      {
+        "id": "open_gate",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1457
+      },
+      {
+        "id": "mara_compass",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1471
+      },
+      {
+        "id": "quiet_prism",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1488
+      },
+      {
+        "id": "xp",
+        "width": 1254,
+        "height": 1254,
+        "loadMs": 1499
+      },
+      {
+        "id": "drone_sentinel",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1516
+      },
+      {
+        "id": "vex_walk",
+        "width": 1447,
+        "height": 1087,
+        "loadMs": 1617
+      },
+      {
+        "id": "rune_walk",
+        "width": 1447,
+        "height": 1087,
+        "loadMs": 1664
+      },
+      {
+        "id": "rune",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 1718
+      },
+      {
+        "id": "vex",
+        "width": 2172,
+        "height": 724,
+        "loadMs": 1794
+      },
+      {
+        "id": "bog_stalker",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1846
+      },
+      {
+        "id": "gravbot",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1847
+      },
+      {
+        "id": "mutant_hound",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1866
+      },
+      {
+        "id": "sandworm",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1883
+      },
+      {
+        "id": "neon_cultist",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1902
+      },
+      {
+        "id": "slag_rat",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1969
+      },
+      {
+        "id": "ember_golem",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1970
+      },
+      {
+        "id": "ember_lord",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 1990
+      },
+      {
+        "id": "frost_revenant",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 2011
+      },
+      {
+        "id": "glacier_wolf",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 2039
+      },
+      {
+        "id": "wraith_core",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 2059
+      },
+      {
+        "id": "mire_hulk",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 2076
+      },
+      {
+        "id": "architect_herald",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 2097
+      },
+      {
+        "id": "frost_colossus",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 2116
+      },
+      {
+        "id": "magma_behemoth",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 2137
+      },
+      {
+        "id": "mire_warden",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 2157
+      },
+      {
+        "id": "void_architect",
+        "width": 1536,
+        "height": 1024,
+        "loadMs": 2178
+      }
+    ],
+    "errors": [],
+    "bytes": 434102976
+  },
+  "hud": {
+    "minimap": {
+      "top": 76.9375,
+      "bottom": 232.5,
+      "left": 1224.015625,
+      "right": 1411.203125
+    },
+    "location": {
+      "top": 236.5,
+      "bottom": 281.828125,
+      "left": 1224.015625,
+      "right": 1411.203125
+    },
+    "objective": {
+      "top": 20.25,
+      "bottom": 93.96875,
+      "left": 562.875,
+      "right": 1023.671875
+    },
+    "resources": {
+      "top": 20.25,
+      "bottom": 66.140625,
+      "left": 1038.0625,
+      "right": 1312.78125
+    },
+    "font": "Barlow, sans-serif"
+  },
+  "rewardText": "Food ×12RECOVERED",
+  "rewardStyle": {
+    "background": "rgba(20, 20, 20, 0.96)",
+    "border": "rgb(223, 112, 46)",
+    "font": "Barlow, sans-serif",
+    "width": 119.5625,
+    "animation": "0.12s ease-out loot-in, 0.14s 2.22s forwards loot-out"
+  },
+  "rest": {
+    "width": 660,
+    "height": 392.734375,
+    "scrollWidth": 658,
+    "clientWidth": 658
+  },
+  "dialogue": {
+    "background": "rgba(20, 20, 20, 0.97)",
+    "border": "rgba(223, 112, 46, 0.6)",
+    "font": "Barlow, sans-serif"
+  },
+  "battle": {
+    "mode": "action",
+    "stage": "3",
+    "font": "Barlow, Arial, sans-serif"
+  },
+  "result": "pass"
+}

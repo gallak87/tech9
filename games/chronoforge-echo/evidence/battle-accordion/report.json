@@ -1,0 +1,22 @@
+{
+  "checks": [
+    "Real keys Right/Left/Up/Down, mouse controls/breadcrumbs, field actor targeting, pause/resume and all visible command/target rows",
+    "Real fresh-press protection; exact window entry/exit; matching zone/border pulses; reduced-motion steady highlight; recovery returns to muted crew; next ATB arrival auto-selects Vex",
+    "Real learned healing MP cost, ally selection, item inventory consumption, targetless guard, boss retreat restriction and ordinary retreat outcome",
+    "1920, 1280 and 960 layouts have no overflow; no runtime errors"
+  ],
+  "screenshots": [
+    "01-actions.png",
+    "02-targets.png",
+    "03-critical-window.png",
+    "04-after-critical-window.png",
+    "05-charging-return.png",
+    "06-vex-auto-ready.png",
+    "layout-1920.png",
+    "layout-1280.png",
+    "layout-960.png"
+  ],
+  "errors": [],
+  "font": true,
+  "pass": true
+}

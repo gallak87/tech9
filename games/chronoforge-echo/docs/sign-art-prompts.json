@@ -1,0 +1,15 @@
+{
+  "tool": "image_gen.imagegen (built-in)",
+  "mode": "generate",
+  "skill": "/Users/g/.codex/skills/.system/imagegen/SKILL.md",
+  "assets": [
+    {
+      "id": "road_waymarker",
+      "prompt": "Use case: stylized-concept.\nAsset type: ONE isolated outdoor roadside waymarker sprite for Chronforge Echo, a richly detailed painted pixel-art science-fantasy RPG. This sprite will stand about 62 logical pixels tall beside an adult character about 78 pixels tall.\nSubject: a practical weathered wooden WAYMARKER, a broad RECTANGULAR upright notice board mounted high on one sturdy square timber post. The board is wider than its height, with straight blunt ends, no arrow shape. Two horizontal honey-brown planks form the board face. Aged copper corner brackets with small rivets, a narrow worn muted teal paint strip, subtle carved wood grain and nicks, and a simple ivory engraved winding route line joining THREE ROUND dots. The engraving is decorative route marks, absolutely no written text or letters. A small round copper seal may be centered at the top. The lower post ends in a worn dark metal foot collar; complete flat planted foot.\nStyle: hand-painted detailed pixel sprite matching rich timber/copper/teal lanterns and salvage props, clean stepped pixel contours, compact layered material shading, dark brown occlusion, warm upper-left light, restrained fine outline. Visibly textured craftsmanship, not a flat geometric icon, not vector, not a photograph, not a shiny 3D toy.\nComposition: entire complete standing object at slight elevated three-quarter game view, front board face clearly visible with only a little right-side thickness. Overall silhouette approximately 0.8 as wide as tall. Board spans the upper half; sturdy post extends to ground. Center within a square canvas with at least 12% transparent margin ALL around, no part clipped. No canopy, no lantern, no cloth flags, no hanging ornament, no grass, no stones, no ground plane, no cast shadow.\nBackground: genuinely transparent RGBA exterior, preserve the generated alpha. DO NOT paint a checkerboard or white backdrop. One object only, no spritesheet, no extra variants, no characters or portraits. NO arrows, no cardinal-direction symbols, no readable or unreadable pseudo-text, no letters, numbers, border, watermark or logo.",
+      "generatorSourcePath": "/Users/g/.codex/generated_images/01a0a92c-8518-7160-86cf-3d19b70d2d3e/exec-4802f744-d8c1-4ce0-8a6a-eeb5f20f3d84.png",
+      "finalPath": "public/assets/signs/road-waymarker-source.png",
+      "selected": true,
+      "processing": "Original PNG copied unchanged. Runtime draws a measured crop with original alpha; no color-keying."
+    }
+  ]
+}

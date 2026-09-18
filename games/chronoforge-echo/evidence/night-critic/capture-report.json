@@ -1,0 +1,183 @@
+{
+  "captures": [
+    {
+      "name": "The old coast road",
+      "scene": "haventide",
+      "object": "hav_waystone",
+      "type": "sign",
+      "position": {
+        "x": 1075,
+        "y": 1421.5
+      },
+      "nearest": "hav_waystone",
+      "prompt": "F Read The old coast road",
+      "mode": "world",
+      "interaction": {
+        "opened": "reading",
+        "escapeReturnsToField": true
+      }
+    },
+    {
+      "name": "Wayfarer’s rest",
+      "scene": "emberline",
+      "object": "ember_camp",
+      "type": "camp",
+      "position": {
+        "x": 2937.5,
+        "y": 1371.5
+      },
+      "nearest": "ember_camp",
+      "prompt": "F Wayfarer’s rest",
+      "mode": "world",
+      "interaction": {
+        "opened": "vendor",
+        "escapeReturnsToField": true
+      }
+    },
+    {
+      "name": "The sleeping seed vault",
+      "scene": "forest_veil",
+      "object": "seed_vault",
+      "type": "console",
+      "position": {
+        "x": 512.5,
+        "y": 746.5
+      },
+      "nearest": "seed_vault",
+      "prompt": "F The sleeping seed vault",
+      "mode": "world",
+      "interaction": {
+        "opened": "dialogue",
+        "escapeReturnsToField": true
+      }
+    },
+    {
+      "name": "The submerged archive",
+      "scene": "mire_bog",
+      "object": "mire_archive",
+      "type": "console",
+      "position": {
+        "x": 5062.5,
+        "y": 1271.5
+      },
+      "nearest": "mire_archive",
+      "prompt": "F The submerged archive",
+      "mode": "world",
+      "interaction": {
+        "opened": "dialogue",
+        "escapeReturnsToField": true
+      }
+    },
+    {
+      "name": "Pressure manifold",
+      "scene": "crater_ember",
+      "object": "crater_pressure",
+      "type": "console",
+      "position": {
+        "x": 4625,
+        "y": 1821.5
+      },
+      "nearest": "crater_pressure",
+      "prompt": "F Pressure manifold",
+      "mode": "world",
+      "interaction": {
+        "opened": "dialogue",
+        "escapeReturnsToField": true
+      }
+    },
+    {
+      "name": "The anchor’s black box",
+      "scene": "orbital_reach",
+      "object": "orbital_blackbox",
+      "type": "console",
+      "position": {
+        "x": 3275,
+        "y": 1934
+      },
+      "nearest": "orbital_blackbox",
+      "prompt": "F The anchor’s black box",
+      "mode": "world",
+      "interaction": {
+        "opened": "dialogue",
+        "escapeReturnsToField": true
+      }
+    },
+    {
+      "name": "Mara • Keeper of lights",
+      "scene": "frost_canyon",
+      "object": "mara_lantern",
+      "type": "npc",
+      "position": {
+        "x": 2562.5,
+        "y": 1215.25
+      },
+      "nearest": "mara_lantern",
+      "prompt": "F Mara • Keeper of lights",
+      "mode": "world",
+      "interaction": {
+        "opened": "dialogue",
+        "escapeReturnsToField": true
+      }
+    },
+    {
+      "name": "The memory orchard",
+      "scene": "last_crown",
+      "object": "crown_memory",
+      "type": "console",
+      "position": {
+        "x": 4200,
+        "y": 1059
+      },
+      "nearest": "crown_memory",
+      "prompt": "F The memory orchard",
+      "mode": "world",
+      "interaction": {
+        "opened": "dialogue",
+        "escapeReturnsToField": true
+      }
+    },
+    {
+      "name": "Recovered supplies",
+      "scene": "hav_house",
+      "object": "hav_house_food",
+      "type": "pickup",
+      "position": {
+        "x": 756.25,
+        "y": 621.5
+      },
+      "nearest": "hav_house_food",
+      "prompt": "F Recover food",
+      "mode": "world"
+    },
+    {
+      "name": "Pell • A Warm Place",
+      "scene": "orbital_reach_town",
+      "object": "orbital_reach_inn",
+      "type": "npc",
+      "position": {
+        "x": 812.5,
+        "y": 415.25
+      },
+      "nearest": "orbital_reach_inn",
+      "panel": "vendor",
+      "mode": "world",
+      "escapeReturnsToField": true
+    },
+    {
+      "name": "battle-commands",
+      "scene": "battle-four",
+      "nearest": "orbital_reach_inn",
+      "prompt": "F Pell • A Warm Place",
+      "mode": "battle"
+    },
+    {
+      "name": "battle-target",
+      "scene": "battle-four",
+      "nearest": "orbital_reach_inn",
+      "prompt": "F Pell • A Warm Place",
+      "mode": "battle"
+    }
+  ],
+  "errors": [],
+  "browserClosed": true
+}

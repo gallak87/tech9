@@ -46,13 +46,15 @@ export const MUTANT_HOUND_ART=enemyAtlas('mutant_hound','mutant-hound-source.png
   ['guard',1031,648,1520,933,1280,931],
 ]);
 
-export const GRAVBOT_ART=enemyAtlas('gravbot','gravbot-source.png',.20,{radiusX:32,radiusY:7},[
-  ['idle',36,17,456,465,260,485],
-  ['anticipate',614,7,932,494,775,512],
-  ['attack',950,74,1513,491,1260,489],
-  ['hurt',63,509,523,994,286,1012,[[442,331,18,154]]],
-  ['down',508,656,1118,976,801,974,[[0,0,17,184]]],
-  ['guard',1134,513,1484,978,1300,992],
+// Obsidian humanoid redesign: true source alpha; fixed anatomical scale and
+// planted-foot anchors. The rejected stone source remains archived unchanged.
+export const GRAVBOT_ART=enemyAtlas('gravbot','gravbot/obsidian-gravbot-source.png',.20,{radiusX:28,radiusY:6},[
+  ['idle',54,52,430,489,250,485],
+  ['anticipate',565,126,928,490,746,485],
+  ['attack',971,156,1520,489,1266,485],
+  ['hurt',38,564,422,972,233,968],
+  ['down',492,758,990,968,739,965],
+  ['guard',1048,606,1520,971,1285,968],
 ]);
 
 export const NEON_CULTIST_ART=enemyAtlas('neon_cultist','neon-cultist-source.png',.185,{radiusX:23,radiusY:5},[

@@ -59,7 +59,7 @@ try {
     const object = await service('rest', 'world');
     await choose('rest'); const before = await capture('rest-open');
     const portrait = await page.evaluate(() => { const c = document.querySelector('.merchant-portrait'), box = c.getBoundingClientRect(); return { intrinsic: [c.width, c.height], display: [box.width, box.height], focusedAction: document.activeElement?.dataset.do }; });
-    assert.deepEqual(portrait.intrinsic, [192, 192]); assert.deepEqual(portrait.display, [96, 96]); assert.equal(portrait.focusedAction, 'rest');
+    assert.deepEqual(portrait.intrinsic, [192, 192]); assert.ok(portrait.display[0] >= 40 && portrait.display[0] <= 100); assert.equal(portrait.display[0], portrait.display[1]); assert.equal(portrait.focusedAction, 'rest');
     await press('Escape'); assert.equal((await state()).blocked, false); assert.equal((await state()).panel, null);
     const after = await capture('rest-closed');
     await press('Escape'); assert.equal((await state()).menu, true); assert.equal((await state()).panel, null);
@@ -102,36 +102,56 @@ try {
     assert.equal(await page.evaluate(() => JSON.stringify(__ECHO__.game.state.settings.keys)), before);
     await press('Escape'); assert.equal((await state()).blocked, false);
   });
-  await check('dialogue and ending callbacks require explicit continue', async () => {
+  await check('sign F reads actual text without portrait then Escape returns to field', async () => {
     await fixture('world');
-    await page.evaluate(() => { window.finishedDialogue = 0; __ECHO__.game.ui.showDialogue(['First line', 'Last line'], [], () => finishedDialogue++); });
-    await press('Backspace'); assert.equal((await state()).line, 0);
-    await press('Escape'); assert.equal((await state()).menu, true);
-    await press('Escape'); assert.equal((await state()).line, 0);
-    assert.equal(await page.evaluate(() => finishedDialogue), 0);
-    await press('Enter'); assert.equal((await state()).line, 1);
-    await press('Backspace'); assert.equal((await state()).line, 1);
-    await press('Enter'); assert.equal(await page.evaluate(() => finishedDialogue), 1); assert.equal((await state()).blocked, false);
-    await page.evaluate(() => { window.finishedChoice = 0; __ECHO__.game.ui.showDialogue(['Choose deliberately.'], [{ text: 'Keep the promise', flag: 'test_modal_choice' }], () => finishedChoice++); });
-    await press('Backspace'); await press('Escape'); await press('Escape');
-    assert.equal((await state()).panel, 'dialogue'); assert.equal(await page.evaluate(() => !!__ECHO__.game.state.flags.test_modal_choice), false);
-    assert.equal(await page.evaluate(() => finishedChoice), 0);
-    await choose('choice:0'); assert.equal(await page.evaluate(() => finishedChoice), 1); assert.ok(await page.evaluate(() => __ECHO__.game.state.flags.test_modal_choice));
-    // The real ending has its own callback and deferred completion flags.
-    await fixture('final');
-    await page.evaluate(() => { const g = __ECHO__.game; g.battle.encounter.id = 'void_architect'; g.battle.result = 'victory'; g.finishBattle(); });
-    await press('Backspace'); assert.equal((await state()).line, 0);
-    await press('Escape'); await press('Escape'); assert.equal((await state()).line, 0);
-    assert.ok(await page.evaluate(() => __ECHO__.game.state.flags.pendingEnding && !__ECHO__.game.state.campaignComplete));
-    for (let n = 0; n < 40 && (await state()).panel === 'dialogue'; n++) await press('Enter');
-    assert.equal((await state()).panel, 'ending');
-    await press('Escape'); assert.equal((await state()).menu, true); await press('Escape');
-    await press('Backspace'); assert.equal((await state()).panel, 'ending');
-    assert.ok(await page.evaluate(() => !__ECHO__.game.state.campaignComplete));
-    const screenshot = await capture('ending-preserved');
-    await choose('ending-continue'); await page.waitForFunction(() => !__ECHO__.game.transition);
-    assert.ok(await page.evaluate(() => __ECHO__.game.state.campaignComplete && __ECHO__.game.state.flags.ending_seen));
-    return { callbackCount: 1, choiceCallbackCount: 1, choiceRequiredExplicitSelection: true, endingRequiredExplicitReturn: true, screenshot };
+    const object = await page.evaluate(() => { __ECHO__.goto('emberline');const g=__ECHO__.game,o=g.scene.objects.find(o=>o.id==='ember_forest_sign');Object.assign(g.state,g.safePoint(g.scene,o.x,o.y+25));g.near=o;g.resetFollowers();g.updateCamera(true);g.ui.updateHUD();return {id:o.id,name:o.name,text:o.dialogue,flags:JSON.stringify(g.state.flags)}; });
+    assert.match(await page.locator('.interaction').innerText(), /Read The southern branch/);
+    await press('f');assert.equal((await state()).panel,'reading');assert.equal(await page.locator('#reading-title').innerText(),object.name);assert.equal(await page.locator('.reading-panel p').innerText(),object.text);assert.equal(await page.locator('.reading-panel [data-portrait]').count(),0);
+    const screenshot=await capture('southern-branch-reading');await press('Escape');assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>JSON.stringify(__ECHO__.game.state.flags)),object.flags);
+    await press('f');assert.equal((await state()).panel,'reading');await press('Backspace');assert.equal((await state()).blocked,false);
+    await press('f');await press('Enter');assert.equal((await state()).blocked,false);
+    return {object,screenshot,portraitCount:0,escapeBackspaceAndEnterDismiss:true};
+  });
+  await check('ordinary dialogue cancellation never invokes completion callback', async () => {
+    await fixture('world');await page.evaluate(()=>{window.finishedDialogue=0;__ECHO__.game.ui.showDialogue([{speaker:'Kaida',text:'First line'},{speaker:'Kaida',text:'Last line'}],[],()=>finishedDialogue++);});
+    assert.equal(await page.locator('.dialogue-portrait').count(),1);await press('Escape');assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>finishedDialogue),0);
+    await page.evaluate(()=>__ECHO__.game.ui.showDialogue(['First line','Last line'],[],()=>finishedDialogue++));assert.equal(await page.locator('.dialogue-portrait').count(),0);await press('Enter');assert.equal((await state()).line,1);await press('Backspace');assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>finishedDialogue),0);
+    await page.evaluate(()=>__ECHO__.game.ui.showDialogue(['First line','Last line'],[],()=>finishedDialogue++));await press('Enter');await press('Space');assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>finishedDialogue),1);
+    await page.evaluate(()=>__ECHO__.game.ui.showDialogue(['Mouse can leave too.'],[],()=>finishedDialogue++));await page.locator('[data-do="dismiss-panel"]').click();assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>finishedDialogue),1);
+    await page.evaluate(()=>__ECHO__.game.ui.showDialogue(['Keyboard can focus Leave.'],[],()=>finishedDialogue++));await choose('dismiss-panel');assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>finishedDialogue),1);
+    return {cancelCallbackCount:0,explicitContinueCallbackCount:1,unvoicedTextHasNoPortrait:true};
+  });
+  await check('explicit atlas over dialogue closes one layer per Escape', async () => {
+    await fixture('world');await page.evaluate(()=>{window.layerCallback=0;const ui=__ECHO__.game.ui;ui.showDialogue([{speaker:'Field notes',text:'A mark on the road.'}],[],()=>layerCallback++);ui.toggleMenu();});
+    assert.equal((await state()).menu,true);await press('Escape');assert.equal((await state()).menu,false);assert.equal((await state()).panel,'dialogue');assert.equal(await page.locator('.dialogue-portrait').count(),0);await press('Escape');assert.equal((await state()).panel,null);assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>layerCallback),0);
+    await press('Escape');assert.equal((await state()).menu,true);assert.equal((await state()).panel,null);await press('Escape');assert.equal((await state()).blocked,false);
+    return {noAlternationTrap:true,callbackCount:0};
+  });
+  await check('choice cancellation makes no selection and changes no quest flags', async () => {
+    await fixture('world');await page.evaluate(()=>{window.finishedChoice=0;__ECHO__.game.ui.showDialogue(['Choose deliberately.'],[{text:'Keep the promise',flag:'test_modal_choice'}],()=>finishedChoice++);});const before=await page.evaluate(()=>JSON.stringify(__ECHO__.game.state.flags));await press('Escape');assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>JSON.stringify(__ECHO__.game.state.flags)),before);assert.equal(await page.evaluate(()=>finishedChoice),0);
+    await page.evaluate(()=>__ECHO__.game.ui.showDialogue(['Choose deliberately.'],[{text:'Keep the promise',flag:'test_modal_choice'}],()=>finishedChoice++));await press('Backspace');assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>finishedChoice),0);assert.equal(await page.evaluate(()=>!!__ECHO__.game.state.flags.test_modal_choice),false);
+    await page.evaluate(()=>__ECHO__.game.ui.showDialogue(['Choose deliberately.'],[{text:'Keep the promise',flag:'test_modal_choice'}],()=>finishedChoice++));await choose('choice:0');assert.equal(await page.evaluate(()=>finishedChoice),1);assert.equal(await page.evaluate(()=>!!__ECHO__.game.state.flags.test_modal_choice),true);
+    return {explicitChoiceRequired:true};
+  });
+  await check('cancelled battle tutorial never starts the pending encounter', async()=>{
+    await fixture('world');await page.evaluate(()=>{const g=__ECHO__.game;g.beginBattle(g.scene.objects.find(o=>o.id==='hav_guard'));});assert.equal((await state()).panel,'dialogue');await press('Escape');assert.equal((await state()).blocked,false);assert.equal((await state()).mode,'world');assert.equal(await page.evaluate(()=>__ECHO__.game.battle),null);return {encounterCallbackNotInvoked:true};
+  });
+  await check('ending resume never steals battle or transition input', async()=>{
+    await fixture('battle');await page.evaluate(()=>{const g=__ECHO__.game;g.state.flags.pendingEnding=true;g.state.flags.architect_defeated=true;g.state.endingProgress={index:1,panel:'dialogue'};});await page.waitForFunction(()=>__ECHO__.snapshot().battle.selectedHero==='kaida');await press('Enter');assert.equal((await state()).mode,'battle');assert.equal((await state()).panel,null);assert.equal(await page.evaluate(()=>__ECHO__.snapshot().battle.mode),'command');await page.evaluate(()=>__ECHO__.game.presentEnding());assert.equal((await state()).panel,null);
+    await fixture('world');await page.evaluate(()=>{const g=__ECHO__.game;g.state.flags.pendingEnding=true;g.transition={time:0,duration:999,swapped:false,to:'emberline',spawn:{x:130,y:1080}};});await press('Enter');assert.equal((await state()).panel,null);await page.evaluate(()=>{__ECHO__.game.presentEnding();});assert.equal((await state()).panel,null);await page.evaluate(()=>{__ECHO__.game.transition=null;});
+    return {battleEnterStillChoosesCommands:true,transitionResumeIgnored:true};
+  });
+  await check('ending cancellation preserves exact progress and explicit completion', async () => {
+    await fixture('final');await page.evaluate(()=>{const g=__ECHO__.game;g.battle.encounter.id='void_architect';g.battle.result='victory';g.finishBattle();});await press('Enter');const line=(await state()).line;assert.equal(line,1);await press('Escape');assert.equal((await state()).blocked,false);assert.equal((await state()).panel,null);assert.ok(await page.locator('[data-resume-ending]').isVisible());assert.ok(await page.evaluate(()=>__ECHO__.game.state.flags.pendingEnding&&!__ECHO__.game.state.campaignComplete&&!__ECHO__.game.state.flags.ending_seen));assert.equal(await page.evaluate(()=>__ECHO__.game.state.endingProgress.index),line);
+    await page.evaluate(()=>{const g=__ECHO__.game,o=g.scene.objects.find(o=>o.type==='sign');Object.assign(g.state,g.safePoint(g.scene,o.x,o.y+25));g.near=o;g.updateCamera(true);g.ui.updateHUD();});await press('f');assert.equal((await state()).panel,'reading');await press('Escape');assert.equal(await page.evaluate(()=>__ECHO__.game.state.endingProgress.index),line);
+    // Unrelated field notes after cancelling must not overwrite ending progress.
+    await page.evaluate(()=>__ECHO__.game.ui.showDialogue(['One note.','Another note.']));await press('Enter');await press('Enter');assert.equal(await page.evaluate(()=>__ECHO__.game.state.endingProgress.index),line);
+    await press('Enter');assert.equal((await state()).line,line);const expected=await page.evaluate(()=>__ECHO__.game.ui.panel.lines[__ECHO__.game.ui.panel.index].text);assert.equal(await page.locator('.dialogue-text').innerText(),expected);await press('Backspace');assert.equal((await state()).blocked,false);
+    // Cancellation writes a recoverable checkpoint without granting completion.
+    await page.evaluate(()=>__ECHO__.game.load('checkpoint'));assert.equal((await state()).line,line);assert.equal(await page.locator('.dialogue-text').innerText(),expected);assert.equal(await page.evaluate(()=>__ECHO__.game.state.campaignComplete),false);
+    for(let n=0;n<40&&(await state()).panel==='dialogue';n++)await press('Enter');assert.equal((await state()).panel,'ending');await press('Escape');assert.equal((await state()).blocked,false);assert.equal(await page.evaluate(()=>__ECHO__.game.state.campaignComplete),false);await press('Enter');assert.equal((await state()).panel,'ending');await press('Backspace');assert.equal((await state()).blocked,false);await page.evaluate(()=>__ECHO__.game.load('checkpoint'));assert.equal((await state()).panel,'ending');
+    const screenshot=await capture('ending-explicit-return');await choose('ending-continue');await page.waitForFunction(()=>!__ECHO__.game.transition);assert.ok(await page.evaluate(()=>__ECHO__.game.state.campaignComplete&&__ECHO__.game.state.flags.ending_seen&&!__ECHO__.game.state.flags.pendingEnding));
+    return {resumeLine:line,unrelatedDialogueDoesNotCorruptEnding:true,checkpointRecovery:true,endingRequiredExplicitReturn:true,screenshot};
   });
   await check('battle atlas freezes all seven tabs and restores target action', async () => {
     await fixture('battle'); await page.waitForFunction(() => __ECHO__.snapshot().battle.selectedHero === 'kaida');

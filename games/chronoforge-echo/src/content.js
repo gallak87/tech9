@@ -70,7 +70,7 @@ export const ENEMIES=Object.fromEntries([
  enemy('bog_stalker','Bog Stalker',1,100,20,4,14,32,'bog_fang','A reed-legged ambusher in a floating lily mask.'),
  enemy('slag_rat','Slag Rat',1,55,14,2,21,21,'field_tonic','A quick scrap-eater with a furnace-bright whisker.'),
  enemy('mutant_hound','Mutant Hound',2,215,32,8,18,60,'bio_weave','A split-maned hunter wrapped in ribbonlike fronds.'),
- enemy('gravbot','Gravbot',2,320,30,17,8,72,'rune_gauntlet','A tilted stone counterweight held upright by force.'),
+ enemy('gravbot','Gravbot',2,320,30,17,8,72,'rune_gauntlet','An obsidian-armored automaton wielding a concentrated gravity field.'),
  enemy('mire_hulk','Mire Hulk',2,400,39,13,8,90,'swamp_coil','A peat-armored toad carrying a dead tree and pale shelf fungi.'),
  enemy('glacier_wolf','Glacier Wolf',2,255,37,9,21,80,'glacial_claw','A white, glass-antlered predator with a blue throat.'),
  enemy('neon_cultist','Neon Cultist',3,400,38,13,17,115,'void_shard','A signal pilgrim hidden inside a floating scripture cage.',{mechanic:'charge',telegraph:'The scripture cage opens. A burst is coming.'}),

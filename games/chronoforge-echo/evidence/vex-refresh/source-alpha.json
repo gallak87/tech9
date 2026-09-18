@@ -1,0 +1,36 @@
+[
+  {
+    "source": "public/assets/vex/faceless-vex-source.png",
+    "mode": "RGBA",
+    "size": [
+      1448,
+      1086
+    ],
+    "sha256": "81c492428efa3aef692045d69733db3461b5fa751079c8eb415154ec0713ffae",
+    "bytes": 1407966,
+    "transparentPixels": 1018062,
+    "edgesNonzeroAbove32": {
+      "top": 0,
+      "bottom": 0,
+      "left": 0,
+      "right": 0
+    }
+  },
+  {
+    "source": "public/assets/vex/faceless-vex-walk-source.png",
+    "mode": "RGBA",
+    "size": [
+      1447,
+      1087
+    ],
+    "sha256": "a5039947ea1f9ac097a5a8030ae2ba39cb8cda3dc21f8e24f64a6d9fffb1e36f",
+    "bytes": 1637253,
+    "transparentPixels": 905115,
+    "edgesNonzeroAbove32": {
+      "top": 0,
+      "bottom": 0,
+      "left": 0,
+      "right": 0
+    }
+  }
+]

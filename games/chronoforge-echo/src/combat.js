@@ -1,14 +1,15 @@
 import { ENEMIES, TECHS, ITEMS } from './content.js';
 import { stats } from './progression.js';
-import { drawHero, drawEnemy, drawBattleBackdrop, drawPortrait, actorBounds } from './art.js';
+import { drawHero, drawEnemy, drawBattleBackdrop, actorBounds } from './art.js';
 
 // Only updateBattle advances combat time. Drawing and input never advance the
 // authoritative animation clock; the global menu can therefore freeze any frame.
-const C = { ink: '#101e23', paper: '#e8e1c7', teal: '#538d82', pale: '#98b6a6', amber: '#d3ad68', rose: '#cc5775', red: '#ce756b', faint: '#344b4b' };
+const C = { ink: '#171717', paper: '#f0efed', teal: '#a5a5a5', pale: '#b8b8b8', amber: '#df702e', rose: '#df702e', red: '#c46c61', faint: '#494949' };
 const ROOT_COMMANDS = ['Attack', 'Tech', 'Defend', 'Item', 'Retreat'];
-// Atlas layout uses a 768-unit design space, drawn directly into the 960×540
-// canvas. Actor art bypasses this transform and stays on its native pixel grid.
+// Choreography retains its 768-unit design space inside the 960×540 canvas.
+// The production accordion is a DOM overlay; field actors stay on their art grid.
 const DISPLAY_SCALE = 1.25;
+const FIELD_OFFSET_Y = -50;
 const H_POS = [{ x: 192, y: 200 }, { x: 135, y: 260 }, { x: 247, y: 278 }];
 const E_POS = {
   1: [{ x: 568, y: 241 }],
@@ -52,6 +53,7 @@ function cleanQueue(b) {
     const h = actorById(b, id);
     return h && alive(h) && h.atb >= 100;
   });
+  if (b.selectedHero) b.lastSelectedHero = b.selectedHero;
   if (!b.readyQueue.includes(b.selectedHero)) b.selectedHero = b.readyQueue[0] || null;
   if (!b.selectedHero && !b.action && b.mode !== 'waiting') {
     b.mode = 'waiting'; b.cursor = 0; b.pending = null;
@@ -65,7 +67,7 @@ export function createBattle(state, encounter) {
   const heroes = state.heroes.map((h, i) => ({
     ...h, ...stats(h, state), side: 'hero', index: i,
     hp: clamp(h.hp, 0, stats(h, state).maxHp), mp: clamp(h.mp, 0, stats(h, state).maxMp),
-    atb: 58 - i * 9, shield: 0, guarding: false, slowTurns: 0, reaction: 0,
+    atb: 58 - i * 9, shield: 0, guarding: false, criticalGuard: false, slowTurns: 0, reaction: 0,
     home: { ...H_POS[i] },
   }));
   const enemies = encounter.enemies.map((id, i) => {
@@ -75,13 +77,13 @@ export function createBattle(state, encounter) {
       ...data, id, uid: `enemy_${i}`, side: 'enemy', index: i,
       maxHp: data.hp, hp: data.hp, maxMp: data.mp || 0, mp: data.mp || 0,
       int: data.int || data.str, tec: data.tec || data.str, crit: data.crit || 4,
-      atb: 10 + i * 7, shield: 0, guarding: false, slowTurns: 0, reaction: 0,
+      atb: 10 + i * 7, shield: 0, guarding: false, criticalGuard: false, slowTurns: 0, reaction: 0,
       home: { ...E_POS[encounter.enemies.length][i] }, turns: 0, bossPhase: 1, charging: false,
     };
   });
   const b = {
     encounter: { ...encounter }, biome: encounter.biome || state.region,
-    heroes, enemies, readyQueue: [], selectedHero: null, phase: 'active', mode: 'waiting',
+    heroes, enemies, readyQueue: [], selectedHero: null, lastSelectedHero: heroes[0]?.id || null, phase: 'active', mode: 'waiting',
     cursor: 0, target: 0, pending: null, action: null, result: null,
     clock: 0, floaters: [], logs: [], message: '', notice: '', noticeTime: 0,
     actionSerial: 0, inputSerial: 0, held: {}, hitAreas: [],
@@ -186,19 +188,20 @@ function execute(b, state, command, targets) {
   for (const h of members) {
     h.atb = 0;
     h.guarding = command.kind === 'defend';
+    h.criticalGuard = false;
     if (command.kind === 'tech') h.mp -= typeof command.mp === 'object' ? command.mp[h.id] || 0 : command.mp || 0;
   }
   if (command.kind === 'item') state.inventory[command.id]--;
   cleanQueue(b);
   const harmful = ['damage', 'drain', 'slow'].includes(command.effect);
   const combo = members.length > 1;
-  const contact = command.kind === 'defend' ? .38 : combo ? .93 : .76;
+  const contact = combo ? .93 : .76;
   const assisted = Boolean(state.settings?.timingAssist);
   b.action = {
     id: ++b.actionSerial, side: 'hero', command: { ...command }, participants: members.map(actorId),
-    targets: targets.map(actorId), elapsed: 0, contact, duration: command.kind === 'defend' ? .88 : combo ? 1.92 : 1.54,
+    targets: targets.map(actorId), elapsed: 0, contact, duration: combo ? 1.92 : 1.54,
     windowStart: contact - (assisted ? .36 : .28), windowEnd: contact - (assisted ? .055 : .095),
-    timingEligible: harmful, timingAttempted: false, timingSuccess: false, resolved: false, critical: false,
+    timingEligible: harmful || command.kind === 'defend', timingAttempted: false, timingSuccess: false, resolved: false, critical: false,
     executeInput: b.inputSerial, stage: 'anticipation',
   };
   b.phase = 'action'; b.mode = 'action'; b.pending = null; b.cursor = 0;
@@ -243,7 +246,7 @@ export function battleKey(b, state, input) {
   }
   cleanQueue(b);
   if (key === 'Tab') return nextReady(b, input?.shiftKey ? -1 : 1);
-  if (key === 'Backspace') {
+  if (key === 'Backspace' || key === 'ArrowLeft') {
     if (b.mode === 'target') {
       b.mode = b.pending?.returnMode || 'command'; b.cursor = b.pending?.returnCursor || 0; b.pending = null;
     } else if (b.mode === 'tech' || b.mode === 'item') { const wasItem = b.mode === 'item'; b.mode = 'command'; b.cursor = wasItem ? 3 : 1; }
@@ -251,10 +254,11 @@ export function battleKey(b, state, input) {
     return true;
   }
   if (b.mode === 'waiting') {
-    if (confirmKey(key) && b.selectedHero) { b.mode = 'command'; b.cursor = 0; return true; }
+    if (key === 'ArrowUp' || key === 'ArrowDown') return nextReady(b, key === 'ArrowUp' ? -1 : 1);
+    if ((confirmKey(key) || key === 'ArrowRight') && b.selectedHero) { b.mode = 'command'; b.cursor = 0; return true; }
     return false;
   }
-  const direction = key === 'ArrowDown' || key === 'ArrowRight' ? 1 : key === 'ArrowUp' || key === 'ArrowLeft' ? -1 : 0;
+  const direction = key === 'ArrowDown' ? 1 : key === 'ArrowUp' ? -1 : 0;
   if (direction) {
     const count = b.mode === 'command' ? ROOT_COMMANDS.length : b.mode === 'tech' ? listTechs(b, state).length : b.mode === 'item' ? listItems(state).length : validTargets(b, b.pending).length;
     if (count) {
@@ -263,7 +267,7 @@ export function battleKey(b, state, input) {
     }
     return true;
   }
-  if (confirmKey(key)) {
+  if (confirmKey(key) || key === 'ArrowRight') {
     if (b.mode === 'command') rootConfirm(b, state);
     else if (b.mode === 'tech') {
       const t = listTechs(b, state)[b.cursor];
@@ -284,7 +288,8 @@ function timingPress(b) {
   if (!a || a.side !== 'hero' || !a.timingEligible || a.timingAttempted || a.resolved || b.inputSerial <= a.executeInput) return;
   a.timingAttempted = true;
   a.timingSuccess = a.elapsed >= a.windowStart && a.elapsed <= a.windowEnd;
-  log(b, a.timingSuccess ? 'Signal caught · critical chance raised.' : 'Signal missed · the strike continues.', a.timingSuccess ? 'timing' : 'miss');
+  const defending = a.command.kind === 'defend';
+  log(b, a.timingSuccess ? defending ? 'Critical guard · damage reduced by 85% until your next action.' : 'Signal caught · critical chance raised.' : defending ? 'Normal guard · damage reduced by 65% until your next action.' : 'Signal missed · the strike continues.', a.timingSuccess ? 'timing' : 'miss');
 }
 
 function mechanicFor(e) {
@@ -335,7 +340,7 @@ function floating(b, actor, text, kind) {
 }
 
 function takeDamage(b, target, amount, critical) {
-  if (target.guarding) amount = Math.max(1, Math.round(amount * .35));
+  if (target.guarding) amount = Math.max(1, Math.round(amount * (target.criticalGuard ? .15 : .35)));
   const blocked = Math.min(target.shield, amount);
   target.shield -= blocked; amount -= blocked;
   const applied = Math.min(target.hp, amount);
@@ -344,7 +349,7 @@ function takeDamage(b, target, amount, critical) {
   if (amount === 0) floating(b, target, 'WARD', 'shield');
   else floating(b, target, `${critical ? '✦ ' : ''}${amount}`, critical ? 'crit' : 'damage');
   if (!alive(target)) {
-    target.atb = 0; target.charging = false; target.guarding = false; target.shield = 0;
+    target.atb = 0; target.charging = false; target.guarding = false; target.criticalGuard = false; target.shield = 0;
     target.defeatedAt = b.clock - Math.max(0, (b.action?.elapsed || 0) - (b.action?.contact || 0));
     log(b, `${target.name} falls.`, 'down');
   }
@@ -378,7 +383,7 @@ function resolveAction(b, state, a) {
     log(b, actor.telegraph || `${actor.name} is preparing ${command.name}. Defend or raise a ward.`, 'telegraph');
     floating(b, actor, 'CHARGING', 'warning'); return;
   }
-  if (command.effect === 'guard') { actor.guarding = true; floating(b, actor, 'GUARD', 'shield'); return; }
+  if (command.effect === 'guard') { actor.guarding = true; actor.criticalGuard = a.timingSuccess; a.critical = a.timingSuccess; floating(b, actor, a.timingSuccess ? 'CRITICAL GUARD' : 'GUARD', a.timingSuccess ? 'crit' : 'shield'); return; }
   const harm = ['damage', 'drain', 'slow'].includes(command.effect);
   if (harm) {
     const baseline = participants.reduce((sum, h) => sum + (h.crit || 5), 0) / participants.length / 100;
@@ -454,7 +459,7 @@ export function updateBattle(b, state, dt) {
         const actor = actorById(b, id);
         if (actor?.slowTurns) actor.slowTurns--;
       }
-      b.action = null; b.phase = 'active'; b.mode = 'waiting';
+      b.action = null; b.phase = 'active'; b.mode = 'waiting'; b.pending = null; b.cursor = 0; b.target = 0;
       if (!checkEnd(b, state)) cleanQueue(b);
     }
     return;
@@ -482,29 +487,24 @@ export function battleView(b, state) {
   const targets = validTargets(b, b.pending);
   return {
     phase: b.phase, mode: b.mode, result: b.result, clock: b.clock,
-    selectedHero: b.selectedHero, readyQueue: [...b.readyQueue], cursor: b.cursor, target: b.target,
+    selectedHero: b.selectedHero, focusHero: b.selectedHero || b.lastSelectedHero || b.heroes.find(alive)?.id, readyQueue: [...b.readyQueue], cursor: b.cursor, target: b.target,
     message: b.noticeTime > 0 ? b.notice : b.message,
     status: b.result || (a ? `${a.command.name} · ${a.stage}` : b.mode === 'waiting' ? b.selectedHero ? `${selected(b).name} ready` : 'Gauges charging' : 'Wait · choose an action'),
-    commands: ROOT_COMMANDS.map((name, i) => ({ name, selected: b.mode === 'command' && b.cursor === i })),
-    techs: techs.map(t => ({ id: t.id, name: t.name, mp: t.mp, participants: t.heroes, effect: t.effect, target: t.target, unavailable: t.unavailable })),
-    items: listItems(state).map(item => ({ id: item.id, name: item.name, count: item.count })),
+    commands: ROOT_COMMANDS.map((name, i) => ({ name, selected: b.mode === 'command' && b.cursor === i, unavailable: name === 'Retreat' && (b.encounter.boss || b.enemies.some(e => e.id === 'void_architect')) ? 'This confrontation must be faced.' : name === 'Item' && !listItems(state).length ? 'No field supplies.' : '' })),
+    pending: b.pending && { id: b.pending.id, name: b.pending.name, kind: b.pending.kind, effect: b.pending.effect, target: b.pending.target, participants: [...b.pending.participants] },
+    techs: techs.map(t => ({ id: t.id, name: t.name, mp: t.mp, participants: t.heroes, effect: t.effect, target: t.target, description: t.description, unavailable: t.unavailable })),
+    items: listItems(state).map(item => ({ id: item.id, name: item.name, count: item.count, description: item.description, effect: item.effect })),
     targets: targets.map(t => ({ id: actorId(t), name: t.name, hp: t.hp, maxHp: t.maxHp, selected: targets[b.target] === t })),
-    heroes: b.heroes.map(h => ({ id: h.id, name: h.name, hp: h.hp, maxHp: h.maxHp, mp: h.mp, maxMp: h.maxMp, atb: h.atb, shield: h.shield, guarding: h.guarding, slowTurns: h.slowTurns, visual: actorVisual(b, h, state) })),
+    heroes: b.heroes.map(h => ({ id: h.id, name: h.name, hp: h.hp, maxHp: h.maxHp, mp: h.mp, maxMp: h.maxMp, atb: h.atb, shield: h.shield, guarding: h.guarding, criticalGuard: Boolean(h.criticalGuard), slowTurns: h.slowTurns, visual: actorVisual(b, h, state) })),
     enemies: b.enemies.map(e => ({ id: e.id, uid: e.uid, name: e.name, hp: e.hp, maxHp: e.maxHp, atb: e.atb, shield: e.shield, slowTurns: e.slowTurns, charging: e.charging, bossPhase: e.bossPhase, visual: actorVisual(b, e, state) })),
-    action: a && { id: a.id, name: a.command.name, participants: [...a.participants], targets: [...a.targets], elapsed: a.elapsed, duration: a.duration, stage: a.stage, contact: a.contact, windowStart: a.windowStart, windowEnd: a.windowEnd, timingEligible: a.timingEligible, timingAttempted: a.timingAttempted, timingSuccess: a.timingSuccess, resolved: a.resolved, critical: a.critical, criticalChance: a.criticalChance },
+    action: a && { id: a.id, side: a.side, kind: a.command.kind, effect: a.command.effect, name: a.command.name, participants: [...a.participants], targets: [...a.targets], elapsed: a.elapsed, duration: a.duration, stage: a.stage, contact: a.contact, windowStart: a.windowStart, windowEnd: a.windowEnd, timingEligible: a.timingEligible, timingAttempted: a.timingAttempted, timingSuccess: a.timingSuccess, resolved: a.resolved, critical: a.critical, criticalChance: a.criticalChance },
     log: b.logs.map(l => ({ ...l })),
-    hints: b.mode === 'target' ? 'Space / Enter · Execute   Backspace · Back' : b.mode === 'waiting' ? 'Space / Enter · Commands   Tab · Ready hero' : 'Arrows · Choose   Space / Enter · Confirm   Backspace · Back',
+    hints: b.mode === 'target' ? '↑ ↓ Target · Space / Enter Execute · ← Back' : b.mode === 'waiting' ? '↑ ↓ Ready hero · → / Enter Commands' : '↑ ↓ Choose · → / Enter Confirm · ← Back',
   };
 }
 
-function text(ctx, value, x, y, color = C.paper, size = 11, align = 'left', font = 'monospace') {
+function text(ctx, value, x, y, color = C.paper, size = 11, align = 'left', font = 'Barlow, sans-serif') {
   ctx.fillStyle = color; ctx.font = `${size}px ${font}`; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(value, Math.round(x), Math.round(y));
-}
-
-function fittedText(ctx, value, x, y, width, color, size = 9, align = 'right') {
-  ctx.font = `${size}px monospace`;
-  const fitted = Math.min(size, size * width / Math.max(1, ctx.measureText(value).width));
-  text(ctx, value, x, y, color, fitted, align);
 }
 
 function line(ctx, x1, y1, x2, y2, color = C.faint) {
@@ -512,25 +512,12 @@ function line(ctx, x1, y1, x2, y2, color = C.faint) {
 }
 
 function bar(ctx, x, y, width, height, value, color) {
-  ctx.fillStyle = '#0a161a'; ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = '#151515'; ctx.fillRect(x, y, width, height);
   ctx.fillStyle = color; ctx.fillRect(x, y, Math.round(width * clamp(value, 0, 1)), height);
 }
 
-function wrap(ctx, value, x, y, width, color = C.pale, size = 10, maxLines = 3) {
-  ctx.font = `${size}px monospace`;
-  const words = String(value || '').split(' '); let row = ''; let n = 0;
-  for (const word of words) {
-    const next = row ? `${row} ${word}` : word;
-    if (ctx.measureText(next).width > width && row) {
-      text(ctx, row, x, y + n * 13, color, size); n++; row = word;
-      if (n >= maxLines) return;
-    } else row = next;
-  }
-  if (row && n < maxLines) text(ctx, row, x, y + n * 13, color, size);
-}
-
 function trim(ctx, value, width, size = 10) {
-  ctx.font = `${size}px monospace`;
+  ctx.font = `${size}px Barlow, sans-serif`;
   if (ctx.measureText(value).width <= width) return value;
   let s = value;
   while (s.length && ctx.measureText(`${s}…`).width > width) s = s.slice(0, -1);
@@ -900,137 +887,20 @@ function drawEffect(ctx, b, state) {
   }
 }
 
-function drawTiming(ctx, b) {
-  const a = b.action;
-  if (!a || a.side !== 'hero' || !a.timingEligible) return;
-  const x = 288, y = 374, width = 121;
-  const active = a.elapsed >= a.windowStart && a.elapsed <= a.windowEnd;
-  const label = a.timingAttempted ? a.timingSuccess ? 'SIGNAL CAUGHT' : 'STRIKE CONTINUES' : a.resolved ? 'CONTACT' : active ? '[ SPACE ] NOW' : 'WATCH THE SIGNAL';
-  text(ctx, label, x + width / 2, y - 9, a.timingSuccess ? C.pale : active ? C.paper : C.amber, 8, 'center');
-  const fill = clamp(a.elapsed / a.contact, 0, 1);
-  bar(ctx, x, y + 6, width, 3, 1, C.faint);
-  ctx.fillStyle = a.timingSuccess ? C.pale : C.amber;
-  ctx.fillRect(x + Math.round(width * a.windowStart / a.contact), y + 3, Math.round(width * (a.windowEnd - a.windowStart) / a.contact), 9);
-  ctx.fillStyle = C.paper; ctx.fillRect(x + Math.round(width * fill), y + 1, 2, 13);
-  if (a.timingSuccess) { line(ctx, x + width + 3, y + 2, x + width + 6, y + 5, C.pale); line(ctx, x + width + 6, y + 5, x + width + 11, y - 2, C.pale); }
-}
-
-function drawPartyPanel(ctx, b, state) {
-  const top = 331;
-  b.heroes.forEach((h, i) => {
-    const y = top + i * 29;
-    const active = b.selectedHero === h.id && alive(h);
-    const ready = b.readyQueue.includes(h.id);
-    if (active) { ctx.fillStyle = '#203b3c'; ctx.fillRect(12, y - 7, 254, 28); ctx.fillStyle = C.rose; ctx.fillRect(12, y - 7, 2, 28); }
-    ctx.globalAlpha = alive(h) ? 1 : .45;
-    drawPortrait(ctx, h.id, 20, y - 4, 24);
-    text(ctx, h.name, 52, y + 5, active ? C.paper : C.pale, 11);
-    fittedText(ctx, !alive(h) ? 'DOWN' : h.guarding ? 'GUARD' : h.shield ? `WARD ${h.shield}` : h.slowTurns ? 'SLOWED' : ready ? 'READY' : '', 95, y + 5, 38, ready ? C.amber : C.pale, 8, 'left');
-    text(ctx, 'HP', 138, y + 5, C.teal, 8);
-    fittedText(ctx, `${h.hp}/${h.maxHp}`, 204, y + 5, 50, C.paper);
-    fittedText(ctx, `MP ${h.mp}`, 252, y + 5, 42, C.pale);
-    bar(ctx, 52, y + 10, 153, 3, h.hp / h.maxHp, C.teal);
-    bar(ctx, 210, y + 10, 42, 3, h.mp / h.maxMp, '#a091b3');
-    bar(ctx, 52, y + 17, 200, 2, h.atb / 100, ready ? C.amber : '#708b7f');
-    ctx.globalAlpha = 1;
-    button(b, 12, y - 7, 254, 28, 'hero', { id: h.id });
-  });
-  if (b.heroes.length === 1) {
-    text(ctx, 'A SINGLE LIGHT', 20, 384, C.teal, 10);
-    wrap(ctx, 'One voice is enough to begin.', 20, 400, 231, C.pale, 10, 2);
-  }
-}
-
-function drawListPanel(ctx, b, state) {
-  const commandMode = ['command', 'tech', 'item', 'target'].includes(b.mode);
-  if (b.action) {
-    text(ctx, b.action.side === 'hero' ? 'ACTION SIGNAL' : 'ENEMY ACTION', 348, 340, C.teal, 9, 'center');
-    if (b.action.timingEligible) drawTiming(ctx, b);
-    else text(ctx, b.action.command.effect === 'telegraph' ? 'BRACE FOR IMPACT' : 'HOLD THE LINE', 348, 370, C.amber, 8, 'center');
-    text(ctx, b.action.elapsed >= b.action.contact ? 'RECOVERY' : b.action.elapsed >= .22 ? 'IN MOTION' : 'PREPARING', 348, 406, C.pale, 8, 'center');
-  } else for (let i = 0; i < ROOT_COMMANDS.length; i++) {
-    const y = 338 + i * 16;
-    const selectedCommand = b.mode === 'command' && b.cursor === i;
-    if (selectedCommand) { ctx.fillStyle = '#254446'; ctx.fillRect(282, y - 11, 133, 15); }
-    text(ctx, selectedCommand ? '›' : '·', 287, y, selectedCommand ? C.rose : C.teal, 12);
-    text(ctx, ROOT_COMMANDS[i], 302, y, selectedCommand ? C.paper : commandMode ? C.pale : C.faint, 11);
-    button(b, 282, y - 11, 133, 16, 'command', { index: i });
-  }
-  if (b.mode === 'tech' || b.mode === 'item') {
-    const items = b.mode === 'tech' ? listTechs(b, state) : listItems(state);
-    const start = Math.max(0, Math.min(b.cursor - 2, items.length - 5));
-    items.slice(start, start + 5).forEach((item, j) => {
-      const index = j + start, y = 337 + j * 16;
-      if (index === b.cursor) { ctx.fillStyle = '#254446'; ctx.fillRect(430, y - 10, 186, 15); }
-      text(ctx, trim(ctx, `${item.heroes?.length > 1 ? '◇ ' : ''}${item.name}`, 149, 10), 435, y, item.unavailable ? '#778881' : C.paper, 10);
-      text(ctx, b.mode === 'item' ? `×${item.count}` : typeof item.mp === 'object' ? 'MP' : `${item.mp}`, 610, y, item.unavailable ? C.faint : C.amber, 9, 'right');
-      button(b, 430, y - 10, 186, 16, 'list', { index });
-    });
-    if (start) { text(ctx, '↑', 620, 337, C.amber, 10); button(b, 616, 325, 17, 22, 'scroll', { direction: -1 }); }
-    if (start + 5 < items.length) { text(ctx, '↓', 620, 403, C.amber, 10); button(b, 616, 389, 17, 24, 'scroll', { direction: 1 }); }
-    const item = items[b.cursor];
-    if (item) {
-      wrap(ctx, item.unavailable || item.description, 634, 337, 116, item.unavailable ? C.amber : C.pale, 9, 5);
-      text(ctx, b.mode === 'tech' ? item.heroes.length > 1 ? `${item.heroes.length} READY · ${typeof item.mp === 'number' ? item.mp : '—'} MP EACH` : `${item.mp} MP` : 'FIELD SUPPLY', 634, 414, C.teal, 8);
-    } else wrap(ctx, 'No techniques recorded yet. Learn them in Skills.', 435, 341, 305, C.pale);
-    return;
-  }
-  if (b.mode === 'target') {
-    const target = validTargets(b, b.pending)[b.target];
-    const group = b.pending?.target === 'allEnemies' || b.pending?.target === 'allAllies';
-    text(ctx, trim(ctx, b.pending?.name || '', 299, 13), 436, 340, C.paper, 13, 'left', 'Georgia');
-    text(ctx, b.pending?.kind === 'retreat' ? 'Leave the encounter' : group ? b.pending.target === 'allAllies' ? 'ALL LIVING ALLIES' : 'ALL LIVING ENEMIES' : target?.name || 'No target', 436, 360, C.amber, 11);
-    if (target && !group && b.pending?.kind !== 'retreat') text(ctx, `${target.hp} / ${target.maxHp} HP`, 742, 359, C.pale, 10, 'right');
-    text(ctx, '[ SPACE / ENTER ] Execute', 436, 388, C.paper, 12);
-    text(ctx, '← → Target      Backspace · Back', 436, 411, C.pale, 9);
-    button(b, 430, 371, 322, 25, 'execute');
-    return;
-  }
-  if (b.action) {
-    const a = b.action;
-    text(ctx, trim(ctx, a.command.name, 301, 15), 436, 346, C.paper, 15, 'left', 'Georgia');
-    const cue = a.command.effect === 'telegraph' ? 'The next attack will be powerful. Guard or ward the crew.' : a.side === 'enemy' ? 'Hold your formation.' : a.timingSuccess ? 'Signal caught. Critical chance raised.' : a.timingEligible ? 'Fresh Space / Enter when the marker enters amber.' : 'The crew tends the signal.';
-    wrap(ctx, cue, 436, 368, 302, a.timingSuccess ? C.pale : C.amber, 10, 3);
-    bar(ctx, 436, 415, 300, 2, a.elapsed / a.duration, C.teal);
-    return;
-  }
-  if (b.mode === 'waiting') {
-    text(ctx, b.selectedHero ? `${selected(b).name} is ready` : 'Reading the field', 436, 345, C.paper, 16, 'left', 'Georgia');
-    wrap(ctx, b.selectedHero ? '[Space / Enter] Open commands. Tab cycles the ready crew.' : 'Gauges fill with each moment. A ready companion will be selected.', 436, 365, 302, C.pale, 10, 3);
-    text(ctx, 'ESC · Expedition atlas / pause', 436, 415, C.teal, 9);
-    button(b, 430, 325, 322, 79, 'open');
-    return;
-  }
-  const explanations = ['A precise single-target strike. Catch the signal during its motion to raise critical chance.', 'Individual and coordinated techniques. Companions must be ready together.', 'Reduce incoming damage by 65% until your next action. A ward absorbs damage first.', 'Healing, energy, and revival from shared field supplies.', 'Withdraw from an ordinary encounter. Boss confrontations must be faced.'];
-  text(ctx, ROOT_COMMANDS[b.cursor], 436, 342, C.paper, 15, 'left', 'Georgia');
-  wrap(ctx, explanations[b.cursor], 436, 361, 302, C.pale, 10, 3);
-  text(ctx, 'Arrows · Choose   Enter · Confirm', 436, 415, C.teal, 9);
-}
-
 export function drawBattle(ctx, b, state, time = b.clock) {
   // Rendering derives motion solely from the frozen simulation clock. The unused
   // external time argument is retained for the shared renderer contract.
   const now = b.clock;
   b.hitAreas = [];
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  // Reframe the existing backdrop with the lifted formation: its ground plane
+  // stays under the crew, while the extra lower field fills behind the dock.
+  ctx.save(); ctx.translate(0, -108); ctx.scale(1, 1.2);
   drawBattleBackdrop(ctx, b.biome, now);
+  ctx.restore();
   ctx.scale(DISPLAY_SCALE, DISPLAY_SCALE);
-  ctx.fillStyle = 'rgba(16,30,35,.76)'; ctx.fillRect(0, 0, 768, 47);
-  text(ctx, 'FIELD / ENGAGEMENT', 22, 20, C.teal, 9);
-  const heading = b.enemies.some(e => e.id === 'void_architect') ? 'The shape of tomorrow' : b.encounter.name || (b.encounter.boss ? 'A signal in the dark' : 'Hold the line');
-  text(ctx, heading, 22, 39, C.paper, 17, 'left', 'Georgia');
-  text(ctx, b.mode === 'command' || b.mode === 'tech' || b.mode === 'item' || b.mode === 'target' ? 'WAIT · FIELD PAUSED' : b.result ? b.result.toUpperCase() : 'ATB · LIVE', 746, 22, C.amber, 10, 'right');
-  text(ctx, 'ESC  ATLAS', 746, 39, C.pale, 9, 'right');
-  button(b, 658, 26, 99, 20, 'pause');
-  if (['command', 'tech', 'item', 'target'].includes(b.mode)) {
-    text(ctx, '‹ BACK', 622, 39, C.paper, 10, 'right');
-    button(b, 561, 26, 70, 18, 'back');
-  }
-  const charging = b.enemies.filter(e => alive(e) && e.charging);
-  if (charging.length) {
-    ctx.fillStyle = 'rgba(16,30,35,.91)'; ctx.fillRect(257, 52, 494, 23);
-    text(ctx, trim(ctx, `! ${charging[0].name} is charging · Defend / ward`, 479, 10), 268, 67, C.amber, 10);
-  }
+  // The field is lifted slightly to leave the folding command dock unobstructed.
+  ctx.translate(0, FIELD_OFFSET_Y);
   const potential = validTargets(b, b.pending);
   const group = b.pending?.target === 'allAllies' || b.pending?.target === 'allEnemies';
   const highlighted = b.mode === 'target' ? group ? potential : [potential[b.target]].filter(Boolean) : [];
@@ -1061,22 +931,22 @@ export function drawBattle(ctx, b, state, time = b.clock) {
     ctx.globalAlpha = 1;
     if (highlighted.includes(actor)) {
       brackets(ctx, actor.home.x + boundsLeft, actor.home.y + boundsTop, boundsWidth, boundsHeight, hero ? C.pale : C.rose);
-      text(ctx, group ? 'ALL' : 'TARGET', actor.home.x, Math.max(62, actor.home.y + boundsTop - 6), hero ? C.pale : C.paper, 8, 'center');
+      if (hero) text(ctx, group ? 'ALL' : 'TARGET', actor.home.x, Math.max(62, actor.home.y + boundsTop - 6), C.paper, 8, 'center');
     }
     if (!hero && alive(actor)) {
-      const y = actor.home.y + 12;
+      const y = actor.home.y + boundsTop - 10;
       const label = trim(ctx, actor.name, 124, 9);
-      ctx.font = '9px monospace';
+      ctx.font = '9px Barlow, sans-serif';
       const labelWidth = Math.ceil(ctx.measureText(label).width) + 8;
-      ctx.fillStyle = '#101e23bc'; ctx.fillRect(Math.round(actor.home.x - labelWidth / 2), y - 10, labelWidth, 13);
+      ctx.fillStyle = '#171717bc'; ctx.fillRect(Math.round(actor.home.x - labelWidth / 2), y - 10, labelWidth, 13);
       text(ctx, label, actor.home.x, y, C.paper, 9, 'center');
-      bar(ctx, actor.home.x - 35, y + 5, 70, 3, actor.hp / actor.maxHp, actor.charging ? C.amber : C.rose);
+      bar(ctx, actor.home.x - 35, y + 5, 70, 3, actor.hp / actor.maxHp, actor.charging || highlighted.includes(actor) ? C.amber : C.pale);
       bar(ctx, actor.home.x - 35, y + 10, 70, 1, actor.atb / 100, C.pale);
       if (actor.charging) text(ctx, '!', actor.home.x + 44, y + 9, C.amber, 13);
       if (actor.slowTurns) text(ctx, 'SLOW', actor.home.x + 42, y + 9, C.pale, 7);
       if (actor.shield) text(ctx, `WARD ${actor.shield}`, actor.home.x, y + 22, C.pale, 8, 'center');
     }
-    button(b, actor.home.x + boundsLeft, actor.home.y + boundsTop, boundsWidth, boundsHeight + 19, 'actor', { id: actorId(actor) });
+    button(b, actor.home.x + boundsLeft, actor.home.y + boundsTop + FIELD_OFFSET_Y, boundsWidth, boundsHeight + 19, 'actor', { id: actorId(actor) });
   }
   drawEffect(ctx, b, state);
   for (const f of b.floaters) {
@@ -1084,48 +954,47 @@ export function drawBattle(ctx, b, state, time = b.clock) {
     const y = f.y - Math.min(19, age * 35);
     ctx.globalAlpha = Math.min(1, f.life * 4);
     const color = f.kind === 'crit' || f.kind === 'warning' ? C.amber : f.kind === 'heal' || f.kind === 'shield' ? C.pale : C.paper;
-    ctx.font = `${f.kind === 'crit' ? 17 : 13}px monospace`;
+    ctx.font = `${f.kind === 'crit' ? 17 : 13}px Barlow, sans-serif`;
     const width = ctx.measureText(f.text).width;
     ctx.fillStyle = C.ink; ctx.fillRect(Math.round(f.x - width / 2 - 4), Math.round(y - 12), Math.round(width + 8), 17);
     text(ctx, f.text, f.x, y, color, f.kind === 'crit' ? 17 : 13, 'center'); ctx.globalAlpha = 1;
   }
-  ctx.fillStyle = C.ink; ctx.fillRect(0, 319, 768, 113);
-  line(ctx, 12, 320, 756, 320, C.teal); line(ctx, 274, 329, 274, 419); line(ctx, 423, 329, 423, 419);
-  for (const x of [12, 274, 423, 756]) { line(ctx, x, 317, x, 324, C.amber); }
-  drawPartyPanel(ctx, b, state);
-  drawListPanel(ctx, b, state);
-  if (b.noticeTime > 0) {
-    ctx.fillStyle = 'rgba(16,30,35,.96)'; ctx.fillRect(160, 291, 448, 23);
-    text(ctx, trim(ctx, b.notice, 426, 10), 384, 306, C.amber, 10, 'center');
-  }
+  ctx.translate(0, -FIELD_OFFSET_Y);
   if (b.result) {
-    ctx.fillStyle = 'rgba(16,30,35,.93)'; ctx.fillRect(229, 108, 310, 86);
+    ctx.fillStyle = 'rgba(20,20,20,.93)'; ctx.fillRect(229, 108, 310, 86);
     line(ctx, 241, 113, 527, 113, C.amber); line(ctx, 241, 188, 527, 188, C.teal);
-    text(ctx, b.result === 'victory' ? 'The signal holds' : b.result === 'retreat' ? 'A path remains' : 'A light in the dark', 384, 147, C.paper, 23, 'center', 'Georgia');
+    text(ctx, b.result === 'victory' ? 'The signal holds' : b.result === 'retreat' ? 'A path remains' : 'A light in the dark', 384, 147, C.paper, 23, 'center', 'Barlow, sans-serif');
     text(ctx, b.result === 'victory' ? 'VICTORY' : b.result === 'retreat' ? 'WITHDRAWN' : 'THE CREW WILL RISE AGAIN', 384, 174, C.amber, 10, 'center');
   }
   ctx.restore();
 }
 
-export function battleClick(b, state, x, y) {
-  x /= DISPLAY_SCALE; y /= DISPLAY_SCALE;
-  // Return this request to the host, which owns the global menu and its clock.
-  if (x >= 658 && x <= 757 && y >= 26 && y <= 46) return 'pause';
+// Canvas actors and DOM controls dispatch exactly the same combat intents.
+// Keep this boundary free of rendering and DOM assumptions for suspended saves.
+export function battleIntent(b, state, area) {
+  if (!area) return false;
+  if (area.kind === 'pause') return 'pause';
   if (b.result) return false;
   b.inputSerial++;
   if (b.action) {
-    // The timing instrument itself is the mouse equivalent of a fresh press.
-    if (x >= 293 && x <= 475 && y >= 247 && y <= 302) timingPress(b);
+    if (area.kind === 'timing') timingPress(b);
     return true;
   }
   cleanQueue(b);
-  const area = [...b.hitAreas].reverse().find(a => x >= a.x && y >= a.y && x <= a.x + a.w && y <= a.y + a.h);
-  if (!area) return false;
+  if (area.kind === 'breadcrumb') {
+    if (area.stage === 0) { b.mode = 'waiting'; b.pending = null; b.cursor = 0; }
+    if (area.stage === 1 && b.selectedHero) {
+      const previous = b.pending;
+      b.mode = previous?.returnMode || 'command';
+      b.cursor = previous?.returnCursor || 0; b.pending = null;
+    }
+    return true;
+  }
   if ((area.kind === 'hero' || area.kind === 'actor' && actorById(b, area.id)?.side === 'hero') && b.mode !== 'target') {
     if (!b.readyQueue.includes(area.id)) { notice(b, 'That companion is not ready yet.'); return true; }
-    b.selectedHero = area.id; b.mode = 'command'; b.cursor = 0; b.pending = null; return true;
+    b.selectedHero = area.id; b.lastSelectedHero = area.id; b.mode = 'command'; b.cursor = 0; b.pending = null; return true;
   }
-  if ((area.kind === 'actor' || area.kind === 'hero') && b.mode === 'target') {
+  if ((area.kind === 'actor' || area.kind === 'hero' || area.kind === 'target') && b.mode === 'target') {
     const index = validTargets(b, b.pending).findIndex(t => actorId(t) === area.id);
     if (index >= 0) b.target = index;
     return true;
@@ -1139,7 +1008,7 @@ export function battleClick(b, state, x, y) {
       const tech = listTechs(b, state)[b.cursor];
       if (tech?.unavailable) notice(b, tech.unavailable);
       else if (tech) chooseCommand(b, state, commandFromTech(b, tech));
-    } else {
+    } else if (b.mode === 'item') {
       const item = listItems(state)[b.cursor];
       if (item) chooseCommand(b, state, { ...item, kind: 'item', target: 'ally', participants: [b.selectedHero], returnMode: 'item', returnCursor: b.cursor });
     }
@@ -1150,8 +1019,16 @@ export function battleClick(b, state, x, y) {
     b.cursor = clamp(b.cursor + area.direction * 5, 0, Math.max(0, items.length - 1));
     return true;
   }
-  if (area.kind === 'back') { battleKey(b, state, 'Backspace'); return true; }
+  if (area.kind === 'back') { battleKey(b, state, 'ArrowLeft'); return true; }
   if (area.kind === 'execute') { commitTarget(b, state); return true; }
   if (area.kind === 'open' && b.selectedHero) { b.mode = 'command'; b.cursor = 0; return true; }
   return false;
+}
+
+export function battleClick(b, state, x, y) {
+  x /= DISPLAY_SCALE; y /= DISPLAY_SCALE;
+  // Retain the original native pause hit area for existing input integrations.
+  if (x >= 658 && x <= 757 && y >= 26 && y <= 46) return 'pause';
+  const area = [...b.hitAreas].reverse().find(a => x >= a.x && y >= a.y && x <= a.x + a.w && y <= a.y + a.h);
+  return battleIntent(b, state, area);
 }

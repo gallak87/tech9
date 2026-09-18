@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 4322",
     "test": "node --test tests/*.test.js",
-    "verify": "node tests/browser.mjs"
+    "verify": "node tests/browser.mjs",
+    "verify:build": "node scripts/verify-dist.mjs",
+    "verify:pages": "npm run build && npm run verify:build && node tests/pages.mjs"
   },
   "dependencies": {
     "pixi.js": "8.16.0"

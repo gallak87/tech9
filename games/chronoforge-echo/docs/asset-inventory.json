@@ -1,6 +1,6 @@
 {
-  "sourceCount": 49,
-  "compressedBytes": 126703501,
+  "sourceCount": 70,
+  "compressedBytes": 150873383,
   "sources": [
     {
       "id": "kaida_walk",
@@ -300,15 +300,246 @@
       "sha256": "f476accba1ddf1d2e71a89d120d36a5c117b373c8aee26558d1b48797d5457bc"
     },
     {
+      "id": "food",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/food-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1586535,
+      "frames": 1,
+      "sha256": "719d9d83da38612edf37f7993da2c35a47c8ca728a9d4f12a4702c535c38e8c7"
+    },
+    {
+      "id": "ore",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/ore-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1614484,
+      "frames": 1,
+      "sha256": "668ae88216faa9fb46f2be1c8b47785de0a13efcd915a75ec9486b225b4c6c8b"
+    },
+    {
+      "id": "energy",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/energy-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1534083,
+      "frames": 1,
+      "sha256": "3c9f6444ddf1a32ab529e4c917786be773c7ea133ffbb3b7a43d42566d0818f3"
+    },
+    {
+      "id": "renown",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/renown-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1224155,
+      "frames": 1,
+      "sha256": "017a0d1c8b892fabbcc23a30b907c133a4a28d1822e24b9a693537df91aeefd7"
+    },
+    {
+      "id": "field_tonic",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/field_tonic-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1251283,
+      "frames": 1,
+      "sha256": "63cc8d3f4506488e084e0def242e0f1de89ade49117eb8865009c64718ca1a37"
+    },
+    {
+      "id": "ether_cell",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/ether_cell-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 958145,
+      "frames": 1,
+      "sha256": "cfb891578241e7eaad8d21b3e4789844d5a45b201c13aaf71c712ec8add779ab"
+    },
+    {
+      "id": "dawn_seed",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/dawn_seed-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1162095,
+      "frames": 1,
+      "sha256": "9e935bf22ff2611c72b7f718f8676681db01c13d6c3f20c60759f0563c9e7351"
+    },
+    {
+      "id": "tide_elixir",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/tide_elixir-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1409699,
+      "frames": 1,
+      "sha256": "18b3128161ed2b7ef0d33b23849d64b04077e394bc9e59ff7edb9fa83a9bd540"
+    },
+    {
+      "id": "star_cell",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/star_cell-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1861838,
+      "frames": 1,
+      "sha256": "b3e7ec03148bf817e80506f430cc84e64273a3bfe51bf6e4448ef26c25f61b88"
+    },
+    {
+      "id": "data_chip",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/data_chip-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1391682,
+      "frames": 1,
+      "sha256": "d46e07a3b63a6ef45ca82786db671bcff33e535b74a95c57e078e0b1329093f6"
+    },
+    {
+      "id": "crit_lens",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/crit_lens-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 972574,
+      "frames": 1,
+      "sha256": "5889516384bd2382f36b0c529b3357c09c7e0ca55c215798b695fa2aa3509dcc"
+    },
+    {
+      "id": "swamp_coil",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/swamp_coil-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1346407,
+      "frames": 1,
+      "sha256": "96056f5c2c4d8e587be25c685084ae8f2f6e3b7c0486e9f9031d88003ce46393"
+    },
+    {
+      "id": "moss_ward",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/moss_ward-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1259074,
+      "frames": 1,
+      "sha256": "2b4983f953830a58ebc6aa15d355e1383132507fa5aadab3b71ebd5f8abe4a94"
+    },
+    {
+      "id": "ember_crown",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/ember_crown-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1383040,
+      "frames": 1,
+      "sha256": "8d96c7a52b8c73bf2334a69eb96d8fb269d8058aab60e132771c73d196b6d71a"
+    },
+    {
+      "id": "witness_prism",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/witness_prism-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 876928,
+      "frames": 1,
+      "sha256": "581deb0f54dd7c4cccb0108422c8fa0493ff5e100884cfbabd426139431aa6ae"
+    },
+    {
+      "id": "quiet_prism",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/quiet_prism-v3-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 648746,
+      "frames": 1,
+      "sha256": "65c416b4d71180f582d6a2d52890e2490fa7f749019067089d13eeb4e1efb054"
+    },
+    {
+      "id": "namekeeper",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/namekeeper-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1260434,
+      "frames": 1,
+      "sha256": "76425ba64e8cbc423ea13c781ed39a018639c3049821fc6d9b73971cac6cd6db"
+    },
+    {
+      "id": "open_gate",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/open_gate-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1091158,
+      "frames": 1,
+      "sha256": "00b5cbb9de719882c8cd091f418ef3571ab40d7410430f6212b626dc5c2279d8"
+    },
+    {
+      "id": "mara_compass",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/mara_compass-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1232693,
+      "frames": 1,
+      "sha256": "e3157b0e8b2229ecc124baf8f673c74c7daf0bbd7b0707a80b47464b360095a8"
+    },
+    {
+      "id": "xp",
+      "kind": "itemIcon",
+      "biome": null,
+      "file": "assets/icons/xp-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1212389,
+      "frames": 1,
+      "sha256": "318263775632ada46f3ba91c72be1e4dacc29a6d49529911a54c2b94dc406958"
+    },
+    {
+      "id": "road_waymarker",
+      "kind": "roadSign",
+      "biome": null,
+      "file": "assets/signs/road-waymarker-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 795197,
+      "frames": 1,
+      "sha256": "5398129a5d7a1a269d0719170284414ca49ccfd9bca1a6b2d1b86a99cadde697"
+    },
+    {
       "id": "vex_walk",
       "kind": "heroWalk",
       "biome": null,
-      "file": "assets/vex-walk-source.png",
+      "file": "assets/vex/faceless-vex-hood-v2-walk-source.png",
       "width": 1447,
       "height": 1087,
-      "sourceBytes": 2290217,
+      "sourceBytes": 1790538,
       "frames": 12,
-      "sha256": "8354e1c3c7182b9e6efb5266405e176624fefb282355817b1786fe3f2014c000"
+      "sha256": "bbcdc9c1ddec354e8876c4ad71bed1dd31e396f4a385f1cda0fad91e575d7a0c"
     },
     {
       "id": "rune_walk",
@@ -336,12 +567,12 @@
       "id": "vex",
       "kind": "hero",
       "biome": null,
-      "file": "assets/vex-source.png",
-      "width": 2172,
-      "height": 724,
-      "sourceBytes": 2422701,
+      "file": "assets/vex/faceless-vex-hood-v2-source.png",
+      "width": 1447,
+      "height": 1087,
+      "sourceBytes": 1492914,
       "frames": 12,
-      "sha256": "88fbbbe1dc1cad40b5b7f7f9f0df789eead690033a924e32029c824f7299a896"
+      "sha256": "d8e21e8fb636dd452e0b6c0d25179c975be148a9a1ff1cf0225ea382507a267b"
     },
     {
       "id": "bog_stalker",
@@ -369,12 +600,12 @@
       "id": "gravbot",
       "kind": "enemy",
       "biome": null,
-      "file": "assets/gravbot-source.png",
+      "file": "assets/gravbot/obsidian-gravbot-source.png",
       "width": 1536,
       "height": 1024,
-      "sourceBytes": 2434316,
+      "sourceBytes": 1961025,
       "frames": 6,
-      "sha256": "dc2e89ff72a3b7ba9dbd49ffa5df08dc1355a5821e39a066b76eb9b2da568717"
+      "sha256": "048d1288122d99fa6050e9878fbcde779a2913f793f542bf0c6c13fb06c2fe8f"
     },
     {
       "id": "mutant_hound",

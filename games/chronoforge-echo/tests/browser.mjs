@@ -70,6 +70,11 @@ async function ensureMenu(tab) {
   if (!(await snapshot()).paused) await press('Escape');
   if (tab) await press(String(tab));
 }
+async function battleActorClick(id) {
+  const area = await page.evaluate(id => __ECHO__.game.battle.hitAreas.find(a => a.kind === 'actor' && a.id === id), id);
+  assert.ok(area, `Actor ${id} has a painted hit area`);
+  await canvasClick((area.x + area.w / 2) * 1.25, (area.y + area.h / 2) * 1.25);
+}
 async function canvasClick(x, y) {
   const box = await page.locator('#stage canvas').boundingBox();
   await page.mouse.click(box.x + x / 960 * box.width, box.y + y / 540 * box.height);
@@ -232,7 +237,7 @@ try {
       assert.equal((await snapshot()).panel, 'vendor');
       await choose('qty:up'); await choose('qty:up');
       let before = (await snapshot()).state;
-      await choose('buy:field_tonic');
+      await choose('buy:field_tonic'); await choose('confirm-yes');
       let after = (await snapshot()).state;
       assert.equal(after.inventory.field_tonic, before.inventory.field_tonic + 3); assert.equal(after.resources.ore, before.resources.ore - 24);
       await choose('trade-mode'); before = after;
@@ -242,7 +247,7 @@ try {
       const screen = await capture('vendor-sell-quantity');
       await choose('trade-mode');
       await page.evaluate(() => { __ECHO__.game.state.resources.ore = 0; });
-      before = (await snapshot()).state; await choose('buy:field_tonic'); after = (await snapshot()).state;
+      before = (await snapshot()).state; await choose('buy:field_tonic'); await choose('confirm-yes'); after = (await snapshot()).state;
       assert.equal(after.inventory.field_tonic, before.inventory.field_tonic);
       assert.match(await page.locator('.notice').innerText(), /ore|afford|enough/i);
       await press('Backspace'); assert.equal((await snapshot()).panel, undefined);
@@ -290,14 +295,15 @@ try {
       return { targetFrame, timingFrame, pausedElapsed: paused.action.elapsed, critical: resolved.action.critical, criticalChance: resolved.action.criticalChance };
     });
 
-    await check('battle mouse atlas command target and execute parity', 'Fresh solo fixture; native canvas clicks with explicit Execute and global Atlas fallback.', async () => {
+    await check('battle mouse atlas command target and execute parity', 'Fresh solo fixture; production accordion clicks, painted actor targeting, explicit Execute and global pause.', async () => {
       await fixture('battle'); await page.waitForFunction(() => __ECHO__.snapshot().battle?.selectedHero === 'kaida');
-      await canvasClick(375, 419); assert.equal((await snapshot()).battle.mode, 'target');
+      await page.locator('[data-battle-intent=hero][data-id=kaida]').click();
+      await page.locator('[data-battle-intent=command][data-index="0"]').click(); assert.equal((await snapshot()).battle.mode, 'target');
       assert.equal((await snapshot()).battle.action, null);
-      await canvasClick(710, 286); assert.equal((await snapshot()).battle.target, 0);
+      await battleActorClick('enemy_0'); assert.equal((await snapshot()).battle.target, 0);
       const targetFrame = await capture('battle-mouse-target-bounds');
-      await canvasClick(625, 478); assert.equal((await snapshot()).battle.mode, 'action');
-      await canvasClick(887, 43); assert.equal((await snapshot()).paused, true);
+      await page.locator('[data-battle-intent=execute]').click(); assert.equal((await snapshot()).battle.mode, 'action');
+      await page.locator('[data-battle-intent=pause]').click(); assert.equal((await snapshot()).paused, true);
       const frozen = (await snapshot()).battle; await page.waitForTimeout(100); assert.deepEqual((await snapshot()).battle, frozen);
       await page.locator('[data-do="menu-close"]').click(); assert.equal((await snapshot()).paused, false);
       return { targetFrame };
@@ -310,9 +316,10 @@ try {
       const perfResult = await perf('fourEnemyBattle');
       assert.ok(perfResult.samples >= 30);
       await page.waitForFunction(() => __ECHO__.snapshot().battle?.selectedHero);
-      await canvasClick(375, 419); assert.equal((await snapshot()).battle.mode, 'target');
-      await canvasClick(833, 334); assert.equal((await snapshot()).battle.target, 3);
-      await canvasClick(629, 202); assert.equal((await snapshot()).battle.target, 0);
+      await page.locator('[data-battle-intent=hero][data-id=kaida]').click();
+      await page.locator('[data-battle-intent=command][data-index="0"]').click(); assert.equal((await snapshot()).battle.mode, 'target');
+      await battleActorClick('enemy_3'); assert.equal((await snapshot()).battle.target, 3);
+      await battleActorClick('enemy_0'); assert.equal((await snapshot()).battle.target, 0);
       return { screen, targetScreen: await capture('battle-four-target-bounds'), ...perfResult };
     });
   }

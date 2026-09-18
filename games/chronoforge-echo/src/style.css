@@ -1,3 +1,8 @@
+@font-face{font-family:Barlow;src:url('/fonts/barlow-regular.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:Barlow;src:url('/fonts/barlow-medium.ttf') format('truetype');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:Barlow;src:url('/fonts/barlow-semibold.ttf') format('truetype');font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:'EB Garamond';src:url('/fonts/eb-garamond-regular.ttf') format('truetype');font-weight:400 500;font-style:normal;font-display:swap}
+@font-face{font-family:'EB Garamond';src:url('/fonts/eb-garamond-italic.ttf') format('truetype');font-weight:400;font-style:italic;font-display:swap}
 @font-face{font-family:AtlasMono;src:local('SF Mono'),local('Menlo'),local('Consolas');font-display:swap}
 :root{color-scheme:dark;--ink:#101e23;--paper:#e8e1c7;--muted:#98a99b;--teal:#538d82;--amber:#d3ad68;--rose:#cc5775;--line:#40514f;font-family:AtlasMono,monospace;background:#080e11;color:var(--paper)}
 *{box-sizing:border-box}body{margin:0;overflow:hidden;display:grid;place-items:center;height:100dvh}button,input{font:inherit}button{color:inherit;cursor:pointer}button:focus-visible{outline:1px solid var(--amber);outline-offset:3px}button:disabled{cursor:default;color:#667673}button:disabled:focus-visible{outline-color:var(--muted)}

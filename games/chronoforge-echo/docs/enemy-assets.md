@@ -1,5 +1,7 @@
 # Early-region enemy source atlases
 
+Archive note (September 17): superseded Vex/Gravbot sources and rejected attempts now live under [experiments/2026-09-ui-and-art](../experiments/2026-09-ui-and-art/README.md). Historical source paths below can be resolved through its [archive manifest](../experiments/2026-09-ui-and-art/archive-manifest.json). Current selected assets remain in `public/assets/`.
+
 Original atlases generated with the built-in `image_gen` tool on 2026-09-16. This chapter contains the two additional Haventide/early-road opponents and four Emberline opponents. No later bosses are part of this delivery. All six source PNGs remain exactly as generated; crop, alpha-key and corner exclusions run in the importer. Each atlas is 1536×1024, nominally three columns by two rows, with six distinct poses: idle, anticipation, attack, hurt, defeat, guard/cast.
 
 `src/enemy-frames.js` publishes the named descriptors only after visual source inspection and alpha/crop measurement. Each enemy has one fixed source-to-native scale for every pose. Crop width and height must multiply by that scale, never stretch independently to a shared box. Ground anchors are crop-relative and may lie below airborne art. Cast maps to the guard/cast frame. The original source anatomical scale is preserved through posture changes.
@@ -36,6 +38,8 @@ Create a richly detailed production pixel-art enemy animation atlas for Chronfor
 ```
 
 ## gravbot
+
+This original stone design is archived and no longer selected. The user-requested humanoid obsidian replacement and current verification are documented in `docs/gravbot-assets.md`; exact prompts are in `docs/gravbot-art-prompts.json`.
 
 Source: `public/assets/gravbot-source.png`. Fixed native scale: **0.2**. Shadow radii: 32×7. Genuine source alpha; no color key.
 

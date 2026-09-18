@@ -1,10 +1,10 @@
 # Roadmap
 
-## Menu identity — deferred at the user's request
+## Menu and HUD identity — implemented, awaiting hands-on review
 
-The current atlas is functional, but its boxed panels, serif headings and seven-tab layout lack a distinctive identity. The user's review explicitly defers a visual redesign; this polish pass only corrects controls and portrait rendering.
+The user approved the character-centered menu composition with parchment interiors and a separate folding battle interface. The full design is implemented in the playable game, including all seven menu tabs and real ATB state. Compact field dialogs, object-anchored prompts, relocated HUD information, faster reward notices and generated resource/item icons are integrated. See [the accepted UI direction](docs/UI_DIRECTION.md) and [verification evidence](docs/VERIFICATION.md).
 
-A future menu design pass should develop an identity specific to this crew and world, with original composition, transitions, navigation and visual storytelling. Explore several genuinely different directions in actual playable screens before choosing one. Preserve the exact seven-tab order and keyboard usability. Do not treat a palette/font swap or more decorative borders as the redesign.
+Parchment belongs only inside the menu. Overworld and combat interfaces use compact, neutral near-black surfaces, with lava orange replacing gold interface outlines. The next review is a full in-game sweep by the user after implementation and verification.
 
 ## Time travel — unapproved
 

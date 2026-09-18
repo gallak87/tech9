@@ -1,3 +1,4 @@
+import {NPC_IDENTITIES,npcIdentity,npcPresent} from './npc-identities.js';
 // Authored geography. Coordinates are native pixels; every door is anchored at its threshold.
 const W = 4608, H = 2016;
 const point = (x,y) => ({x,y});
@@ -38,7 +39,7 @@ addPortal('frost_canyon','frost_to_orbital',1120,1910,'orbital_reach',1090,175,'
 addPortal('orbital_reach','orbital_to_crown',4510,1080,'last_crown',160,1080,'The garden road • Last Crown',{tier:3,flag:'rune_recruited'});
 addPortal('last_crown','crown_to_orbital',100,1080,'orbital_reach',4450,1080,'The garden road • Orbital Reach');
 const guards = {haventide:'hav_guard',emberline:'ember_guard',orbital_reach:'orbital_guard',last_crown:'crown_guard'};
-const vendorNames = {haventide:['Iona • Tide & Table','Bran • Saltforge','Nessa • The Quiet Bell','Sio • Salvaged Letters','Ilex • Glass & Copper','Tarin • The Sparring Yard'],emberline:['Saff • Dry Goods','Oro • The Brass Anvil','Ley • Lantern House','Tess • Horizon Charts','Juno • Sunspun Works','Rhys • Sandfoot School'],orbital_reach:['Uma • Winter Stores','Edda • Anchor Smith','Pell • A Warm Place','Niv • Signal Library','Lio • Ninth Laboratory','Gant • Sentinel Drill'],last_crown:['Asha • Garden Provisions','Cairn • Living Steel','Yula • Open Hearth','Vara • The Last Index','Moth • Possible Things','Rook • The Human Art']};
+
 for(const r of Object.values(REGIONS)) {
  if(r.town) {
   const t=r.town, id=r.id+'_town';
@@ -46,8 +47,8 @@ for(const r of Object.values(REGIONS)) {
   Object.assign(r.objects.find(o=>o.id===guards[r.id]),{x:t.x-44,y:t.y+68,gateName:t.name});
   r.objects.push(obj(r.id+'_entrance','town',t.x,t.y,{name:t.name,to:id,spawn:point(640,795),guard:guards[r.id],requires:r.id+'_liberated',solid:true,w:200,h:100}));
   const s={id,name:t.name,subtitle:'A place worth rebuilding',biome:r.biome,width:1280,height:900,interior:true,townId:r.id,kind:'town',spawn:point(640,795),roads:[],objects:[],portals:[obj(id+'_exit','portal',640,836,{name:'Return to '+r.name,to:r.id,spawn:point(t.x,t.y+74)})],walkAreas:[{x:60,y:110,w:1160,h:740}]};
-  ['provisions','smith','inn','archivist','artificer','trainer'].forEach((service,i)=>{const x=[260,640,1020][i%3],y=i<3?310:585; s.objects.push(obj(r.id+'_'+service,'npc',x,y,{name:vendorNames[r.id][i],service,unlockTier:i<3?1:i===4?3:2,stall:true,solid:true,w:70,h:32}));});
-  s.objects.push(obj(r.id+'_board','console',640,445,{name:'Settlement works',service:'construction'}),obj(r.id+'_resident','npc',845,725,{name:'A local resident',dialogue:'We were afraid this place would become another empty room. Thank you for opening the doors.'}));
+  ['provisions','smith','inn','archivist','artificer','trainer'].forEach((service,i)=>{const x=[260,640,1020][i%3],y=i<3?310:585; s.objects.push(obj(r.id+'_'+service,'npc',x,y,{name:NPC_IDENTITIES[r.id+'_'+service].name,service,unlockTier:i<3?1:i===4?3:2,stall:true,solid:true,w:70,h:32}));});
+  s.objects.push(obj(r.id+'_board','console',640,445,{name:'Settlement works',service:'construction'}),obj(r.id+'_resident','npc',845,725,{name:NPC_IDENTITIES[r.id+'_resident'].name,dialogue:'We were afraid this place would become another empty room. Thank you for opening the doors.'}));
   if(r.id==='haventide') {s.objects.push(obj('mara','npc',415,705,{name:'Mara'}),consoleAt('ending_beacon','The evening bell',1120,730)); r.objects=r.objects.filter(o=>o.id!=='mara');}
   if(r.id==='emberline') s.objects.push(obj('vex','npc',410,705,{name:'Vex',hero:'vex'}));
   if(r.id==='orbital_reach') s.objects.push(obj('rune','npc',410,705,{name:'Rune',hero:'rune'}));
@@ -151,7 +152,7 @@ function interactionDistance(o,x,y){
 // their automatic activation remains a separate, much smaller distance check.
 export function nearby(scene,x,y,state){
  return [...scene.objects,...scene.portals].filter(o=>
-  !['tree','rock','ruin','landmark'].includes(o.type)&&
+  !['tree','rock','ruin','landmark'].includes(o.type)&&npcPresent(o,state)&&
   !(o.hero&&state?.heroes?.some(h=>h.id===o.hero))&&
   (!o.unlockTier||(state?.tier||1)>=o.unlockTier)&&!state?.pickups?.[o.id]&&
   !(o.type==='encounter'&&state?.cleared?.[o.id]&&(o.boss||o.guard||o.flag))&&
@@ -165,7 +166,7 @@ export const ALL_SCENES = {...REGIONS,...interiors};
 // Each refuge preserves a different small human story; caves have distinct branches and loops.
 const refugeStories={
  haventide:['Anja, keeper of the tide books','The old bell used to count fishing boats. Now I ring it for every traveler who comes back. Help yourself to the broth.','The tide book','Forty-seven boats left before the silence. Forty-six returned. Beside the last name someone has drawn a lantern, and keeps drawing it every year.'],
- emberline:['Pell of the rain caravan','Every jar in this house has crossed the desert twice. Empty on the way out, full on the way home. That is what I call optimism.','A water merchant’s ledger','Paid in water: twelve blankets. Paid in songs: one broken telescope. Paid in promises: everything else.'],
+ emberline:['Perrin of the rain caravan','Every jar in this house has crossed the desert twice. Empty on the way out, full on the way home. That is what I call optimism.','A water merchant’s ledger','Paid in water: twelve blankets. Paid in songs: one broken telescope. Paid in promises: everything else.'],
  forest_veil:['Tala, the seedkeeper','The forest is not taking our cities back. It is using what we left. There is a difference. Sit, and listen to the roof grow.','A botanical field book','The roots follow buried signal cables. Their growth rings repeat the pulse heard at Haventide. Life learned to listen before we did.'],
  mire_bog:['Esme, ferrier of names','I used to ferry people. Now I ferry their names to the archive, so that someone will remember which way they were going.','A lantern-maker’s note','Never hang a lantern for the dead alone. Hang a second for whoever comes looking for them.'],
  crater_ember:['Toll, the furnace tender','The mountain has been working longer than we have. You learn respect quickly here. The shelter plates are cool enough to sleep against.','A shift roster','The final shift volunteered to stay until the evacuation rails cooled. In the margin: we will argue about overtime when you get back.'],
@@ -173,7 +174,7 @@ const refugeStories={
  frost_canyon:['Hale, rescuer of the Ninth','If you see a lamp through snow, walk toward it. If you carry a lamp, hold it high. We made the rules simple for a reason.','A rescue manual','Rule one: nobody walks behind the last lantern. Rule two: there is always room for another name on the return list.'],
  last_crown:['Ari, gardener of imperfect things','The Architect made a flawless orchard. No fruit ever fell. No seed ever grew. I have been teaching the trees to make mistakes.','A gardener’s journal','Day 411: the first crooked branch. Day 419: a bird built its nest there. I do not think I have ever been more proud of anything.']
 };
-for(const [region,[keeper,spoken,title,letter]]of Object.entries(refugeStories)){const houseId=dwellings[region][0][0],caveId=dwellings[region][1][0],house=interiors[houseId],caveScene=interiors[caveId];Object.assign(house.objects.find(o=>o.type==='npc'),{name:keeper,dialogue:spoken});Object.assign(house.objects.find(o=>o.id===houseId+'_letter'),{name:title,dialogue:letter});caveScene.objects.find(o=>o.id===caveId+'_record').dialogue=letter;}
+for(const [region,[keeper,spoken,title,letter]]of Object.entries(refugeStories)){const houseId=dwellings[region][0][0],caveId=dwellings[region][1][0],house=interiors[houseId],caveScene=interiors[caveId];Object.assign(house.objects.find(o=>o.type==='npc'),{name:NPC_IDENTITIES[houseId+'_keeper'].name,dialogue:spoken});Object.assign(house.objects.find(o=>o.id===houseId+'_letter'),{name:title,dialogue:letter});caveScene.objects.find(o=>o.id===caveId+'_record').dialogue=letter;}
 const cavePlans={
  hav_cave:[[70,600,410,250],[300,230,360,440],[620,330,250,160],[810,200,350,350],[850,530,250,280],[430,660,510,150]],
  ember_cave:[[70,600,430,250],[300,400,490,280],[460,220,650,240],[1000,420,100,300],[820,640,340,180]],
@@ -243,3 +244,8 @@ for (const scene of Object.values(ALL_SCENES)) {
 // rather than a small circle around the console hidden behind its artwork.
 const observatoryLens=REGIONS.emberline.objects.find(o=>o.id==='ember_observatory'),observatoryDish=REGIONS.emberline.objects.find(o=>o.id==='ember_lens');
 observatoryLens.interactionArea={x:observatoryDish.x-observatoryLens.x,y:observatoryDish.y-observatoryLens.y-10,w:180,h:60};
+
+// Tavi remains at the rescue road after Mara returns to Haventide.
+const rescueHost=REGIONS.frost_canyon.objects.find(o=>o.id==='mara_lantern');
+REGIONS.frost_canyon.objects.push(obj('tavi_lantern','npc',rescueHost.x,rescueHost.y,{name:'Tavi • Keeper of the rescue light',dialogue:'I think I’ll stay until the last family has a place to go. This time Mara knows where I am.'}));
+for(const scene of Object.values(ALL_SCENES))for(const o of scene.objects)if(o.type==='npc')o.npcIdentity=npcIdentity(o);

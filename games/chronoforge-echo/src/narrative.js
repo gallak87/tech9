@@ -1,6 +1,7 @@
+import {dialogueLine} from './npc-identities.js';
 import {inspectBeacon} from './beacons.js';
 import {applyRewards,recruit,recomputeUnlocks,stats} from './progression.js';
-const line=(speaker,text)=>({speaker,text});
+const line=dialogueLine;
 const scene=(...pairs)=>pairs.map(([speaker,text])=>line(speaker,text));
 export const SCENES={
  opening:scene(['Kaida','Three nights without the harbor bell. Mara said the keeper would never leave it dark.'],['Kaida','The listening beacon still has a pulse. I’ll open the town first. Then we can ask what the sea heard.']),

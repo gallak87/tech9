@@ -46,8 +46,11 @@ try{
  assert.equal(await page.locator('[data-do="rest"]').count(),1);
  report.rest=await page.locator('.atlas').evaluate(el=>({width:el.getBoundingClientRect().width,height:el.getBoundingClientRect().height,scrollWidth:el.scrollWidth,clientWidth:el.clientWidth}));
  assert.ok(report.rest.width<=662&&report.rest.height<500&&report.rest.scrollWidth<=report.rest.clientWidth+2,'Rest should remain compact and unclipped');
- await page.locator('[data-do="open-atlas"]').click();await page.keyboard.press('Escape');
- assert.equal(await page.locator('[data-do="rest"]').count(),1,'Atlas should return to rest layer');
+ assert.equal(await page.locator('[data-do="open-atlas"]').count(),0,'Services must not offer an Atlas shortcut');
+ assert.equal(await page.evaluate(()=>document.activeElement?.dataset.do),'rest','Rest is the default service action');
+ await page.keyboard.press('Enter');
+ assert.equal(await page.locator('.expedition').count(),0,'Confirming the service must not open the menu');
+ assert.match(await page.locator('.notice').innerText(),/crew rests|welcome the crew freely/i);
  await page.keyboard.press('Escape');assert.equal(await page.locator('[data-do="rest"]').count(),0);
  await page.evaluate(()=>__ECHO__.game.ui.showDialogue([{speaker:'Kaida',text:'One road. One pair of boots.'},{speaker:'Vex',text:'And a few questions worth carrying.'}]));await shot('dialogue');
  report.dialogue=await page.locator('.dialogue').evaluate(el=>({background:getComputedStyle(el).backgroundColor,border:getComputedStyle(el).borderTopColor,font:getComputedStyle(el.querySelector('.dialogue-text')).fontFamily}));

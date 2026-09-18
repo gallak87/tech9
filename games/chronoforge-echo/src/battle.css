@@ -89,8 +89,10 @@
 #battle-interface .cb-timing-scale{display:flex;justify-content:space-between;color:var(--cb-dim);font-size:.74cqw;letter-spacing:.1em;margin-top:.65cqw}
 #battle-interface .cb-action-progress{display:block;height:2px;background:#ffffff10;margin-top:.7cqw}
 #battle-interface .cb-action-progress>i{display:block;height:100%;background:#b9b5af}
-#battle-interface.cb-critical-window .cb-critical-zone{animation:cb-critical-flash 240ms ease-in-out infinite;background:#df702e50;border-color:#df702ead}
-#battle-interface.cb-critical-window [data-node="3"]{animation:cb-border-flash 240ms ease-in-out infinite;border-color:#df702e90}
+/* Hard on/off/on blink within the 185ms window; never interpolate or fade out. */
+#battle-interface [data-node="3"]{transition:none}
+#battle-interface.cb-critical-window .cb-critical-zone{animation:cb-critical-flash 180ms step-end both;background:#df702e90;border-color:#ed8a48}
+#battle-interface.cb-critical-window [data-node="3"]{animation:cb-border-flash 180ms step-end both;border-color:#df702ebb}
 #battle-interface.cb-critical-window .cb-timing-cue{color:var(--cb-lava)}
 #battle-interface .cb-party-rail{display:flex;position:absolute;left:2.6cqw;right:2.6cqw;bottom:1.2cqw;gap:2cqw}
 #battle-interface .cb-party{position:relative;flex:1;display:flex;align-items:baseline;gap:.8cqw;font-size:1.03cqw;color:var(--cb-soft);padding-bottom:.6cqw}
@@ -105,6 +107,6 @@
 #battle-interface .cb-down{opacity:.45}
 #battle-interface.cb-reduced .cb-fold{transition:none}
 #battle-interface.cb-reduced.cb-critical-window .cb-critical-zone,#battle-interface.cb-reduced.cb-critical-window [data-node="3"]{animation:none}
-@keyframes cb-critical-flash{0%,100%{background:#df702e38;box-shadow:0 0 .5cqw #df702e15}50%{background:#df702e72;box-shadow:0 0 .7cqw #df702e40}}
-@keyframes cb-border-flash{0%,100%{border-color:#df702e60}50%{border-color:#df702ec0}}
+@keyframes cb-critical-flash{0%,66.667%,100%{background:#f48a36df;border-color:#ffad67;box-shadow:0 0 .55cqw #df702e80}33.333%{background:transparent;border-color:transparent;box-shadow:none}}
+@keyframes cb-border-flash{0%,66.667%,100%{border-color:#ed8a48;box-shadow:inset 0 0 0 1px #df702e66,0 0 .65cqw #df702e25}33.333%{border-color:#c5c2bc88;box-shadow:none}}
 @media(prefers-reduced-motion:reduce){#battle-interface .cb-fold{transition:none}#battle-interface.cb-critical-window .cb-critical-zone,#battle-interface.cb-critical-window [data-node="3"]{animation:none}}

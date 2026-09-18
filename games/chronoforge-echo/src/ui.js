@@ -27,13 +27,24 @@ export class UI{
  paint(root=this.root){root.querySelectorAll('[data-menu-hero]').forEach(c=>{const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);drawHero(ctx,c.dataset.menuHero,c.width/2,c.height*.88,{scale:6.2,facing:'down',time:0});});root.querySelectorAll('[data-icon]').forEach(c=>drawIcon(c.getContext('2d'),c.dataset.icon,0,0,c.width));root.querySelectorAll('[data-portrait]').forEach(c=>drawPortrait(c.getContext('2d'),c.dataset.portrait,0,0,192));}
  focus(index=0){const list=this.focusables();if(list.length)list[(index+list.length)%list.length].focus({preventScroll:true});}
  focusables(){return [...this.root.querySelectorAll('button:not(:disabled),input')].filter(b=>b.offsetWidth>0);}
+ navigateBuildGrid(key){
+  const active=document.activeElement,grid=active?.closest('.build-grid');if(!grid||!key.startsWith('Arrow'))return false;
+  const vertical=key==='ArrowUp'||key==='ArrowDown',direction=key==='ArrowUp'||key==='ArrowLeft'?-1:1,rect=active.getBoundingClientRect();
+  const center=r=>vertical?(r.top+r.bottom)/2:(r.left+r.right)/2,origin=center(rect);
+  // Use rendered positions so disabled entries and the one-column layout keep
+  // their place. Arrow keys never wrap across a row or into the other column.
+  const candidates=this.focusables().filter(el=>grid.contains(el)&&el!==active).map(el=>({el,rect:el.getBoundingClientRect()})).filter(({rect:r})=>direction*(center(r)-origin)>1&&(vertical?Math.min(rect.right,r.right)>Math.max(rect.left,r.left):Math.min(rect.bottom,r.bottom)>Math.max(rect.top,r.top))).sort((a,b)=>Math.abs(center(a.rect)-origin)-Math.abs(center(b.rect)-origin));
+  let next=candidates[0]?.el;
+  if(!next&&key==='ArrowUp'){const list=this.focusables(),first=list.findIndex(el=>grid.contains(el));next=list[first-1];}
+  if(next){next.focus({preventScroll:true});next.scrollIntoView({block:'nearest',inline:'nearest'});}return true;
+ }
  handleKey(k){if(k==='Escape')return this.handleEscape();if(k==='Backspace'&&this.blocked){this.dismissTopLayer();return true;}if(this.bindCapture){if(!['Escape','Tab','Enter',' ','Backspace','q','e','1','2','3','4','5','6','7'].includes(k)){this.game.state.settings.keys??={};this.game.state.settings.keys[this.bindCapture]=k.toLowerCase();this.notice=`${this.bindCapture} is now ${k.toUpperCase()}.`;this.bindCapture=null;this.render();}return true;}
   if(this.menu&&this.panel?.type!=='confirm'){if(/^[1-7]$/.test(k)){this.tab=+k-1;this.notice='';this.render();return true;}if(k.toLowerCase()==='q'||k.toLowerCase()==='e'){this.tab=(this.tab+(k.toLowerCase()==='q'?6:1))%7;this.notice='';this.render();return true;}if(this.tab===0&&this.map.key(k)){this.map.draw();return true;}}
   if(!this.blocked){if(k==='Enter'&&this.game.mode==='world'&&!this.game.transition&&this.game.state.flags.pendingEnding){this.game.presentEnding();return true;}return false;}
   const body=this.root.querySelector('.atlas-body');if(body&&['PageUp','PageDown','Home','End'].includes(k)){body.scrollTop=k==='Home'?0:k==='End'?body.scrollHeight:body.scrollTop+(k==='PageDown'?1:-1)*body.clientHeight*.85;return true;}
   if(body&&this.menu&&this.tab===4&&['ArrowUp','ArrowDown'].includes(k)){body.scrollTop+=(k==='ArrowDown'?1:-1)*Math.max(64,body.clientHeight*.18);return true;}
   if(k==='Enter'||k===' '){if(this.panel?.type==='dialogue'&&!this.menu&&!this.atChoice()){if(document.activeElement?.dataset?.do==='dismiss-panel')this.dismissTopLayer();else this.nextDialogue();return true;}const el=document.activeElement;if(this.root.contains(el)&&el.tagName==='BUTTON')el.click();else this.focus();return true;}
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].includes(k)){if(document.activeElement?.type==='range'&&['ArrowLeft','ArrowRight'].includes(k)){const e=document.activeElement;e.value=Math.max(0,Math.min(1,+e.value+(k==='ArrowRight'?.1:-.1)));e.dispatchEvent(new Event('input',{bubbles:true}));return true;}const list=this.focusables(),i=list.indexOf(document.activeElement);this.focus(i+(k==='ArrowUp'||k==='ArrowLeft'?-1:1));document.activeElement?.scrollIntoView({block:'nearest'});return true;}return true;
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].includes(k)){if(document.activeElement?.type==='range'&&['ArrowLeft','ArrowRight'].includes(k)){const e=document.activeElement;e.value=Math.max(0,Math.min(1,+e.value+(k==='ArrowRight'?.1:-.1)));e.dispatchEvent(new Event('input',{bubbles:true}));return true;}if(this.navigateBuildGrid(k))return true;const list=this.focusables(),i=list.indexOf(document.activeElement);this.focus(i+(k==='ArrowUp'||k==='ArrowLeft'?-1:1));document.activeElement?.scrollIntoView({block:'nearest'});return true;}return true;
  }
  // Confirmations sit above the atlas; the atlas can in turn cover a service or
  // a conversation. Dismiss only the visible layer, never a story callback.

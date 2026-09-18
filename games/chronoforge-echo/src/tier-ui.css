@@ -1,0 +1,21 @@
+/* Tier identity is separate from the lava focus and action color. */
+[data-tier="1"]{--tier-color:#8eb88a}
+[data-tier="2"]{--tier-color:#82aed9}
+[data-tier="3"]{--tier-color:#b599d5}
+[data-tier="4"]{--tier-color:#d8b65f}
+.expedition [data-tier="1"]{--tier-color:#416b38}
+.expedition [data-tier="2"]{--tier-color:#3c6487}
+.expedition [data-tier="3"]{--tier-color:#754c8b}
+.expedition [data-tier="4"]{--tier-color:#886510}
+.tier-badge{display:inline-flex;align-items:center;gap:.3em;padding:1px .35em;border:1px solid color-mix(in srgb,var(--tier-color) 55%,transparent);background:color-mix(in srgb,var(--tier-color) 7%,transparent);color:var(--tier-color);font:500 clamp(9px,.63cqw,14px)/1.15 Barlow,sans-serif;letter-spacing:0;white-space:nowrap;text-transform:none;vertical-align:middle}
+.tier-rank{font-size:.85em;opacity:.8;border-right:1px solid color-mix(in srgb,var(--tier-color) 40%,transparent);padding-right:.35em}
+.exp-gear-slot[data-tier]{border-left:2px solid var(--tier-color);padding-left:.5cqw}
+.exp-gear-slot .exp-equipment-meta{display:flex;align-items:center;gap:.4cqw;flex-wrap:wrap;margin-bottom:.15em}
+.exp-pack-row[data-tier] .exp-pack-icon{outline:1px solid color-mix(in srgb,var(--tier-color) 60%,transparent);outline-offset:1px}
+.exp-pack-row .exp-pack-type{display:flex;align-items:center;gap:.4em;margin:.1em 0}
+.exp-pack-row .tier-badge{flex:none;display:inline-flex;justify-content:flex-start;gap:.3em}
+.exp-pack-row .tier-rank{flex:none;display:inline}
+.atlas:not(.expedition) .tier-heading[data-tier]{border-left-color:var(--tier-color)}
+.tier-heading .tier-current{color:var(--tier-color)}
+.tier-advance-action{display:flex;align-items:center;gap:.8cqw;flex-wrap:wrap}
+.tier-next{display:flex;align-items:center;gap:.4em;color:#a7a39d;font:400 clamp(10px,.72cqw,16px) Barlow,sans-serif}

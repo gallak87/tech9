@@ -40,6 +40,10 @@ export class BattleUI {
 
   render() {
     const g = this.game, b = g.battle;
+    if(g.mode==='battle'&&b?.itemConfirmation&&!g.ui.blocked){
+      const pending=b.itemConfirmation;
+      g.ui.confirmItemUse(pending.use,()=>{battleIntent(b,g.state,{kind:'item-confirm'});g.ui.render();},{onCancel:()=>battleIntent(b,g.state,{kind:'item-cancel'})});
+    }
     const visible = g.mode === 'battle' && b && !g.ui.blocked;
     this.root.hidden = !visible;
     if (!visible) return;

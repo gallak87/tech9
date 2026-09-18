@@ -1,4 +1,5 @@
 import {HEROES,ITEMS,TECHS,BUILDINGS,TIERS,SERVICES,EXPANSION_CONTRACT,ENEMIES} from './content.js';
+import {assessItemUse,consumeItem} from './consumables.js';
 const ok=(message,rewards=[])=>({ok:true,message,rewards});
 const no=message=>({ok:false,message,rewards:[]});
 const whole=n=>Number.isInteger(n)&&n>0;
@@ -146,10 +147,11 @@ export function rest(state){
  for(const h of state.heroes){const s=stats(h,state);h.hp=s.maxHp;h.mp=s.maxMp;}
  return ok(cost?`The crew rests. Up to ${cost} food shared with the house.`:'The lantern houses welcome the crew freely.');
 }
-export function useItem(state,itemId,heroId){
- const item=ITEMS[itemId],h=state.heroes.find(h=>h.id===heroId);if(!h||item?.slot!=='consumable'||!(state.inventory[itemId]>0))return no('That supply is unavailable.');
- const s=stats(h,state);if(item.effect==='revive'){if(h.hp>0)return no('This ally is already standing.');h.hp=Math.ceil(s.maxHp*item.power);}else {if(h.hp<=0)return no('Use a Dawn Seed to revive this ally first.');if(item.effect==='heal')h.hp=Math.min(s.maxHp,h.hp+item.power);else if(item.effect==='restoreMp')h.mp=Math.min(s.maxMp,h.mp+item.power);}
- state.inventory[itemId]--;return ok(`${item.name} used on ${h.name}.`);
+export function previewItemUse(state,itemId,heroId){
+ const h=state.heroes.find(h=>h.id===heroId);return assessItemUse(state,itemId,h,h?stats(h,state):null);
+}
+export function useItem(state,itemId,heroId,options={}){
+ const h=state.heroes.find(h=>h.id===heroId);return consumeItem(state,itemId,h,h?stats(h,state):null,options);
 }
 export function train(state){
  if(!serviceAvailable(state,'trainer'))return no('Build a Barracks and reach hero level 10 to train.');

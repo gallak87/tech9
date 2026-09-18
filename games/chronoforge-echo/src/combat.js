@@ -1,5 +1,6 @@
 import { ENEMIES, TECHS, ITEMS } from './content.js';
 import { stats } from './progression.js';
+import { assessItemUse, consumeItem } from './consumables.js';
 import { drawHero, drawEnemy, drawBattleBackdrop, actorBounds } from './art.js';
 
 // Only updateBattle advances combat time. Drawing and input never advance the
@@ -144,7 +145,8 @@ function chooseCommand(b, state, command) {
   }
   if (command.target === 'ally') {
     let need = targets[0];
-    for (const t of targets) if (t.hp / t.maxHp < need.hp / need.maxHp) need = t;
+    const ratio=t=>command.effect==='restoreMp'?t.mp/t.maxMp:t.hp/t.maxHp;
+    for (const t of targets) if (ratio(t) < ratio(need)) need = t;
     b.target = targets.indexOf(need);
   }
 }
@@ -171,7 +173,7 @@ function rootConfirm(b, state) {
   }
 }
 
-function execute(b, state, command, targets) {
+function execute(b, state, command, targets, confirmation) {
   if (b.action || b.result) return false;
   const members = command.participants.map(id => actorById(b, id));
   if (!members.length || members.some(h => !h || !alive(h) || h.atb < 100)) {
@@ -181,17 +183,20 @@ function execute(b, state, command, targets) {
     const unavailable = techReason(b, state, command);
     if (unavailable) { notice(b, unavailable); return false; }
   }
-  if (command.kind === 'item' && !(state.inventory[command.id] > 0)) {
-    notice(b, 'That supply has been used.'); b.mode = 'command'; b.cursor = 0; return false;
-  }
   if (!targets.length) return false;
+  if (command.kind === 'item') {
+    const target=targets[0],use=assessItemUse(state,command.id,target,target,{battle:true});
+    if(!use.ok){notice(b,use.message);return false;}
+    if(use.requiresConfirmation&&confirmation!==use.confirmationKey){
+      b.itemConfirmation={command:{...command},targetId:target.id,use};return false;
+    }
+  }
   for (const h of members) {
     h.atb = 0;
     h.guarding = command.kind === 'defend';
     h.criticalGuard = false;
     if (command.kind === 'tech') h.mp -= typeof command.mp === 'object' ? command.mp[h.id] || 0 : command.mp || 0;
   }
-  if (command.kind === 'item') state.inventory[command.id]--;
   cleanQueue(b);
   const harmful = ['damage', 'drain', 'slow'].includes(command.effect);
   const combo = members.length > 1;
@@ -203,10 +208,18 @@ function execute(b, state, command, targets) {
     windowStart: contact - (assisted ? .36 : .28), windowEnd: contact - (assisted ? .055 : .095),
     timingEligible: harmful || command.kind === 'defend', timingAttempted: false, timingSuccess: false, timingPressedAt: null, resolved: false, critical: false,
     executeInput: b.inputSerial, stage: 'anticipation',
+    itemSpendAtContact:command.kind==='item', itemConfirmation:confirmation,
   };
   b.phase = 'action'; b.mode = 'action'; b.pending = null; b.cursor = 0;
   log(b, `${members.map(h => h.name).join(' + ')} · ${command.name}`, 'action');
   sync(b, state);
+  return true;
+}
+
+function finishItemConfirmation(b,state,confirmed){
+  const pending=b.itemConfirmation;if(!pending)return false;
+  b.itemConfirmation=null;
+  if(confirmed){const target=b.heroes.find(h=>h.id===pending.targetId);execute(b,state,pending.command,target?[target]:[],pending.use.confirmationKey);}
   return true;
 }
 
@@ -232,7 +245,7 @@ function nextReady(b, direction = 1) {
 // get repeat and held-key protection here; strings are the host's fresh presses.
 export function battleKey(b, state, input) {
   const key = typeof input === 'string' ? input : input?.key;
-  if (!key || key === 'Escape') return false;
+  if (!key || key === 'Escape'&&!b.itemConfirmation) return false;
   if (typeof input === 'object') {
     if (input.type === 'keyup') { delete b.held[key]; return false; }
     if (input.repeat || b.held[key]) return true;
@@ -240,6 +253,11 @@ export function battleKey(b, state, input) {
   }
   b.inputSerial++;
   if (b.result) return false;
+  if(b.itemConfirmation){
+    if(['Escape','Backspace','ArrowLeft'].includes(key))finishItemConfirmation(b,state,false);
+    else if(confirmKey(key))finishItemConfirmation(b,state,true);
+    return true;
+  }
   if (b.action) {
     if (confirmKey(key)) timingPress(b);
     return true;
@@ -385,10 +403,20 @@ function phaseTransition(b, e) {
 function resolveAction(b, state, a) {
   a.resolved = true;
   const command = a.command;
+  // Older suspended battles already paid at launch. Return that reservation so
+  // the same atomic eligibility check can either apply or keep the supply.
+  if(command.kind==='item'&&!a.itemSpendAtContact){state.inventory[command.id]=(state.inventory[command.id]||0)+1;a.itemSpendAtContact=true;}
   const participants = a.participants.map(id => actorById(b, id)).filter(h => h && alive(h));
   if (!participants.length) { log(b, 'The action breaks before contact.', 'cancel'); return; }
   const targets = a.targets.map(id => actorById(b, id)).filter(t => t && (command.effect === 'revive' ? !alive(t) : alive(t)));
   const actor = participants[0];
+  if(command.kind==='item'){
+    const target=targets[0],result=consumeItem(state,command.id,target,target,{battle:true,confirmation:a.itemConfirmation});
+    if(!result.ok){log(b,result.needsConfirmation?'The target changed. Supply kept.':result.message,'cancel');return;}
+    if(result.effect==='revive')target.atb=28;
+    floating(b,target,result.effect==='revive'?'RISE':`${result.unit==='MP'?'MP ':''}+${result.amount}`,'heal');
+    log(b,result.message,'heal');cleanQueue(b);sync(b,state);return;
+  }
   if (command.effect === 'retreat') { b.retreatPending = true; log(b, 'The crew withdraws along the path.', 'retreat'); return; }
   if (command.effect === 'telegraph') {
     actor.charging = true;
@@ -994,6 +1022,11 @@ export function drawBattle(ctx, b, state, time = b.clock) {
 // Keep this boundary free of rendering and DOM assumptions for suspended saves.
 export function battleIntent(b, state, area) {
   if (!area) return false;
+  if(b.itemConfirmation){
+    if(area.kind==='item-confirm')return finishItemConfirmation(b,state,true);
+    if(area.kind==='item-cancel'||area.kind==='back')return finishItemConfirmation(b,state,false);
+    return true;
+  }
   if (area.kind === 'pause') return 'pause';
   if (b.result) return false;
   b.inputSerial++;

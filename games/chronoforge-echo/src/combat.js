@@ -208,7 +208,7 @@ function execute(b, state, command, targets, confirmation) {
     windowStart: contact - (assisted ? .36 : .28), windowEnd: contact - (assisted ? .055 : .095),
     timingEligible: harmful || command.kind === 'defend', timingAttempted: false, timingSuccess: false, timingPressedAt: null, resolved: false, critical: false,
     executeInput: b.inputSerial, stage: 'anticipation',
-    itemSpendAtContact:command.kind==='item', itemConfirmation:confirmation,
+    itemSpendAtContact:command.kind==='item', itemConfirmation:confirmation??null,
   };
   b.phase = 'action'; b.mode = 'action'; b.pending = null; b.cursor = 0;
   log(b, `${members.map(h => h.name).join(' + ')} · ${command.name}`, 'action');

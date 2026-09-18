@@ -280,8 +280,9 @@ test('revival uses a consumed field supply and can only target a fallen companio
   for (let i = 0; i < index; i++) battleKey(b, s, 'ArrowDown');
   battleKey(b, s, 'Enter');
   assert.deepEqual(battleView(b, s).targets.map(t => t.id), ['vex']);
-  battleKey(b, s, 'Enter'); assert.equal(s.inventory.dawn_seed, 0);
-  contact(b, s); assert.equal(b.heroes[1].hp, Math.round(b.heroes[1].maxHp * .35));
+  battleKey(b, s, 'Enter'); assert.equal(s.inventory.dawn_seed, 1,'Supply is held until contact');
+  contact(b, s); assert.equal(s.inventory.dawn_seed, 0); assert.equal(b.heroes[1].hp, Math.round(b.heroes[1].maxHp * .35));
+  finish(b, s); assert.equal(s.inventory.dawn_seed, 0,'Supply is spent exactly once');
 });
 
 test('fallen queued participants and targets cannot perform or receive ghost actions', () => {

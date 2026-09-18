@@ -1,0 +1,11 @@
+{
+  "result": "pass",
+  "method": "Production build, fresh New Expedition, normal movement and keyboard combat through first Rust Scrapper victory. No dev fixtures or game-state changes.",
+  "attacks": 2,
+  "checks": [
+    "Victory returns to a translucent enemy silhouette in the overworld.",
+    "Revisit patrol prompt remains available.",
+    "Cleared patrol does not auto-start another fight."
+  ],
+  "errors": []
+}

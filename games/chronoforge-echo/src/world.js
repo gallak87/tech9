@@ -143,7 +143,21 @@ export function isWalkable(scene,x,y){
  for(const o of scene.objects){if(!o.solid)continue;const w=o.w||24,h=o.h||18;const bottom=(o.type==='town'||o.type==='house'||o.type==='cave')?o.y-12:o.y+3;if(x>o.x-w/2-6&&x<o.x+w/2+6&&y>bottom-h-5&&y<bottom+6)return false;}
  return true;
 }
-export function nearby(scene,x,y,state){return [...scene.objects,...scene.portals].filter(o=>!['tree','rock','ruin','landmark'].includes(o.type)&&!(o.hero&&state?.heroes?.some(h=>h.id===o.hero))&&(!o.unlockTier||(state?.tier||1)>=o.unlockTier)&&!state?.pickups?.[o.id]&&!(o.type==='encounter'&&state?.cleared?.[o.id]&&(o.boss||o.guard||o.flag))&&Math.hypot(o.x-x,o.y-y)<(o.type==='town'?74:o.type==='portal'?62:52)).sort((a,b)=>Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y));}
+function interactionDistance(o,x,y){
+ const a=o.interactionArea;if(!a)return Math.hypot(o.x-x,o.y-y);
+ return Math.hypot(Math.max(0,Math.abs(x-o.x-a.x)-a.w/2),Math.max(0,Math.abs(y-o.y-a.y)-a.h/2));
+}
+// The prompt and F/Space use this same list. Keep battle/portal ranges unchanged:
+// their automatic activation remains a separate, much smaller distance check.
+export function nearby(scene,x,y,state){
+ return [...scene.objects,...scene.portals].filter(o=>
+  !['tree','rock','ruin','landmark'].includes(o.type)&&
+  !(o.hero&&state?.heroes?.some(h=>h.id===o.hero))&&
+  (!o.unlockTier||(state?.tier||1)>=o.unlockTier)&&!state?.pickups?.[o.id]&&
+  !(o.type==='encounter'&&state?.cleared?.[o.id]&&(o.boss||o.guard||o.flag))&&
+  interactionDistance(o,x,y)<(o.type==='encounter'?52:o.type==='portal'?62:['town','house','cave'].includes(o.type)?96:72)
+ ).sort((a,b)=>interactionDistance(a,x,y)-interactionDistance(b,x,y)||Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y));
+}
 // Buildings are wider than an NPC: reveal their name near the footprint, not only the anchor.
 // This is informational and deliberately separate from the interactable-object list.
 export function nearbyBuildings(scene,x,y,state){const distance=o=>Math.hypot(Math.max(0,Math.abs(x-o.x)-(o.w||0)/2),Math.max(0,y-o.y,o.y-(o.h||0)-y));return scene.objects.filter(o=>o.building&&state?.buildings?.[o.building]>0&&distance(o)<60).sort((a,b)=>distance(a)-distance(b));}
@@ -225,3 +239,7 @@ for (const scene of Object.values(ALL_SCENES)) {
  if(scene.islands)scene.islands=scene.islands.map(a=>a.map(v=>v*scale));
  if(scene.groves)scene.groves=scene.groves.map(a=>a.map((v,i)=>i<4?v*scale:v));
 }
+// A landmark is usable from the lower approach and either side of its base,
+// rather than a small circle around the console hidden behind its artwork.
+const observatoryLens=REGIONS.emberline.objects.find(o=>o.id==='ember_observatory'),observatoryDish=REGIONS.emberline.objects.find(o=>o.id==='ember_lens');
+observatoryLens.interactionArea={x:observatoryDish.x-observatoryLens.x,y:observatoryDish.y-observatoryLens.y-10,w:180,h:60};

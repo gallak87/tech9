@@ -66,7 +66,7 @@ export class UI{
  action(a){const [act,arg,arg2]=a.split(':');const g=this.game,s=g.state,h=s.heroes[this.hero]||s.heroes[0];g.audio.sound('select');switch(act){
   case 'new':if(latestSave()!==null)this.confirm('Begin a new expedition?','Your manual save slots remain available. The automatic checkpoint will follow the new expedition.',()=>g.startNew());else g.startNew();break;
   case 'continue':g.load(latestSave());break;case 'title-controls':this.panel={type:'help'};this.render();break;case 'close':this.close();break;case 'dismiss-panel':this.dismissTopLayer();break;
-  case 'menu-close':this.toggleMenu();break;case 'tab':this.tab=+arg;this.notice='';this.render();break;case 'hero':this.hero=+arg;this.render();break;
+  case 'menu-close':this.toggleMenu();break;case 'tab':this.tab=+arg;this.notice='';this.render();break;case 'hero':this.hero=+arg;this.notice='';this.render();break;
   case 'item':this.item=arg;this.render();this.root.querySelector('#item-detail button')?.focus({preventScroll:true});break;
   case 'equip':this.feedback(P.equip(s,h.id,arg));break;case 'unequip':this.feedback(P.unequip(s,h.id,arg));break;case 'use':if(g.mode==='battle'){this.feedback({ok:false,message:'Use the battle Item command to choose a field supply and ally.'});break;}this.feedback(P.useItem(s,arg,h.id));break;
   case 'learn':this.feedback(P.learn(s,h.id,arg));break;

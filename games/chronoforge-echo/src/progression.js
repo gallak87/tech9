@@ -70,7 +70,7 @@ export function learn(state,heroId,techId){
  const required=Array.isArray(tech.requires)?tech.requires:tech.requires?[tech.requires]:[];
  if(required.some(id=>!state.heroes.some(h=>h.skills.includes(id))))return no(`First learn ${required.filter(id=>!state.heroes.some(h=>h.skills.includes(id))).map(id=>TECHS[id].name).join(' and ')}.`);
  if(hero.skillPoints<tech.cost)return no(`Requires ${tech.cost} skill points.`);
- hero.skillPoints-=tech.cost;hero.skills.push(techId);return ok(`${hero.name} learned ${tech.name}.`);
+ const before=hero.skillPoints;hero.skillPoints-=tech.cost;hero.skills.push(techId);return ok(`${hero.name} learned ${tech.name}. ${tech.cost} SP spent · ${before} → ${hero.skillPoints} SP.`);
 }
 export function buildingCost(state,id){const b=BUILDINGS[id];if(!b)return {};const level=state.buildings[id]||0;return Object.fromEntries(Object.entries(b.cost).map(([k,v])=>[k,Math.round(v*(1+level*.65))]));}
 const affordable=(state,cost)=>Object.entries(cost).every(([id,n])=>state.resources[id]>=n);

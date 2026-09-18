@@ -1,0 +1,30 @@
+{
+  "atlases": [
+    {
+      "id": "npc_haventide",
+      "frames": 7,
+      "transparentFraction": 0.777
+    },
+    {
+      "id": "npc_emberline",
+      "frames": 7,
+      "transparentFraction": 0.711
+    },
+    {
+      "id": "npc_orbital_reach",
+      "frames": 7,
+      "transparentFraction": 0.68
+    },
+    {
+      "id": "npc_last_crown",
+      "frames": 7,
+      "transparentFraction": 0.694
+    },
+    {
+      "id": "npc_house_keepers",
+      "frames": 8,
+      "transparentFraction": 0.728
+    }
+  ],
+  "people": 36
+}

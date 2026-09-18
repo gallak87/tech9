@@ -10,6 +10,7 @@ import { RASTER_ICON_ASSETS } from './raster-icon-manifest.js';
 import { installRasterIcon } from './raster-icons.js';
 import { SIGN_ASSETS } from './sign-art.js';
 import { STRUCTURE_ASSETS } from './structure-art.js';
+import { NPC_ASSETS } from './npc-art.js';
 
 // Immutable source atlases are interpreted at import. A required asset failure
 // stops boot rather than substituting an unrelated sprite into a finished scene.
@@ -37,6 +38,7 @@ export const ASSET_MANIFEST = [
   ...WORLD_PROP_ASSETS.map(entry => ({ ...entry, url: entry.source, required: true })),
   ...RASTER_ICON_ASSETS.map(entry => ({ ...entry, url: entry.source })),
   ...SIGN_ASSETS.map(entry => ({ ...entry, url: entry.source })),
+  ...NPC_ASSETS.map(entry => ({ ...entry, url: entry.source })),
   ...STRUCTURE_ASSETS.map(entry => ({ ...entry, url: entry.source })),
   ...HERO_WALK_ART.map(metadata => ({ id: metadata.id + '_walk', heroId: metadata.id, url: metadata.source, columns: 4, rows: 3, kind: 'heroWalk', required: true, key: metadata.key, keyMin: metadata.keyMin, backgroundSeeds: metadata.backgroundSeeds, metadata })),
   ...heroes.map(metadata => ({ id: metadata.id, url: metadata.source || `assets/${metadata.id}-source.png`, columns: metadata.columns || 6, rows: metadata.rows || 2, kind: 'hero', required: true, key: metadata.preserveSourceAlpha ? undefined : metadata.key || 'neutral-exterior', keyMin: metadata.keyMin, backgroundSeeds: metadata.backgroundSeeds, metadata })),
@@ -116,6 +118,7 @@ export async function loadAssets(art) {
         case 'itemIcon': installRasterIcon(image, entry); break;
         case 'roadSign': art.installRoadSign(image, entry.metadata); break;
         case 'structure': art.installStructureSprite(image, entry.metadata); break;
+        case 'npc': art.installNpcAtlas(image, entry.metadata); break;
         case 'civilian': art.installCivilianAtlas(image, grid); break;
         case 'enemy': art.installEnemySheet(entry.id, image, { ...grid, ...entry.metadata }); break;
         default: throw Error(`No art importer for ${entry.id}`);

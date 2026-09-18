@@ -1,0 +1,71 @@
+// Original built-in imagegen source sheets; coordinates are source pixels.
+// Runtime import keys the neutral backdrop and isolates each body + portrait.
+// Original sources and prompts: docs/npc-art.md.
+export const NPC_ASSETS = [
+ {
+  id: 'npc_haventide', source: 'assets/npcs/haventide-source.png', columns: 4, rows: 2, kind: 'npc', required: true,
+  key: 'neutral-exterior', backgroundSeeds: [[1935,104],[730,199],[762,528],[277,538],[872,574],[855,686]],
+  metadata: {sourceWidth: 2172, sourceHeight: 724, frames: [
+   {"id":"haventide_provisions","x":169,"y":11,"w":283,"h":367,"anchorX":142,"anchorY":366,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":213,"y":11,"w":195,"h":195}},
+   {"id":"haventide_smith","x":684,"y":4,"w":259,"h":374,"anchorX":130,"anchorY":373,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":714,"y":4,"w":198,"h":198}},
+   {"id":"haventide_inn","x":1250,"y":11,"w":195,"h":366,"anchorX":98,"anchorY":365,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1250,"y":11,"w":194,"h":194}},
+   {"id":"haventide_archivist","x":1780,"y":9,"w":208,"h":368,"anchorX":104,"anchorY":367,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1786,"y":9,"w":195,"h":195}},
+   {"id":"haventide_artificer","x":218,"y":375,"w":194,"h":347,"anchorX":97,"anchorY":346,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":223,"y":375,"w":184,"h":184}},
+   {"id":"haventide_trainer","x":694,"y":370,"w":222,"h":351,"anchorX":111,"anchorY":350,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":694,"y":370,"w":186,"h":186}},
+   {"id":"haventide_resident","x":1255,"y":376,"w":186,"h":346,"anchorX":93,"anchorY":345,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1256,"y":376,"w":183,"h":183}},
+  ]},
+ },
+ {
+  id: 'npc_emberline', source: 'assets/npcs/emberline-source.png', columns: 4, rows: 2, kind: 'npc', required: true,
+  key: 'neutral-exterior', backgroundSeeds: [[174,210],[1047,209],[596,259],[603,317],[603,695]],
+  metadata: {sourceWidth: 1774, sourceHeight: 887, frames: [
+   {"id":"emberline_provisions","x":123,"y":21,"w":250,"h":416,"anchorX":125,"anchorY":415,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":128,"y":21,"w":220,"h":220}},
+   {"id":"emberline_smith","x":550,"y":21,"w":260,"h":415,"anchorX":130,"anchorY":414,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":570,"y":21,"w":220,"h":220}},
+   {"id":"emberline_inn","x":992,"y":5,"w":254,"h":433,"anchorX":127,"anchorY":432,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1004,"y":5,"w":229,"h":229}},
+   {"id":"emberline_archivist","x":1441,"y":13,"w":231,"h":425,"anchorX":116,"anchorY":424,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1444,"y":13,"w":225,"h":225}},
+   {"id":"emberline_artificer","x":120,"y":449,"w":235,"h":431,"anchorX":118,"anchorY":430,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":124,"y":449,"w":228,"h":228}},
+   {"id":"emberline_trainer","x":543,"y":447,"w":258,"h":434,"anchorX":129,"anchorY":433,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":557,"y":447,"w":230,"h":230}},
+   {"id":"emberline_resident","x":989,"y":445,"w":236,"h":435,"anchorX":118,"anchorY":434,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":992,"y":445,"w":231,"h":231}},
+  ]},
+ },
+ {
+  id: 'npc_orbital_reach', source: 'assets/npcs/orbital_reach-source.png', columns: 4, rows: 2, kind: 'npc', required: true,
+  key: 'neutral-exterior', backgroundSeeds: [[627,212],[769,761]],
+  metadata: {sourceWidth: 1774, sourceHeight: 887, frames: [
+   {"id":"orbital_reach_provisions","x":91,"y":25,"w":289,"h":416,"anchorX":144,"anchorY":415,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":126,"y":25,"w":220,"h":220}},
+   {"id":"orbital_reach_smith","x":538,"y":13,"w":289,"h":428,"anchorX":144,"anchorY":427,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":569,"y":13,"w":227,"h":227}},
+   {"id":"orbital_reach_inn","x":983,"y":10,"w":237,"h":433,"anchorX":118,"anchorY":432,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":987,"y":10,"w":229,"h":229}},
+   {"id":"orbital_reach_archivist","x":1428,"y":10,"w":242,"h":433,"anchorX":121,"anchorY":432,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1434,"y":10,"w":229,"h":229}},
+   {"id":"orbital_reach_artificer","x":114,"y":454,"w":233,"h":423,"anchorX":116,"anchorY":422,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":118,"y":454,"w":224,"h":224}},
+   {"id":"orbital_reach_trainer","x":531,"y":448,"w":289,"h":429,"anchorX":144,"anchorY":428,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":562,"y":448,"w":227,"h":227}},
+   {"id":"orbital_reach_resident","x":990,"y":454,"w":257,"h":425,"anchorX":128,"anchorY":424,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1006,"y":454,"w":225,"h":225}},
+  ]},
+ },
+ {
+  id: 'npc_last_crown', source: 'assets/npcs/last_crown-source.png', columns: 4, rows: 2, kind: 'npc', required: true,
+  key: 'neutral-exterior', backgroundSeeds: [[748,174],[602,224],[165,221],[1211,274],[614,589],[741,642],[1060,644],[1184,707],[606,706],[614,589],[611,769]],
+  metadata: {sourceWidth: 1774, sourceHeight: 887, frames: [
+   {"id":"last_crown_provisions","x":96,"y":25,"w":292,"h":434,"anchorX":146,"anchorY":433,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":107,"y":25,"w":230,"h":230}},
+   {"id":"last_crown_smith","x":530,"y":10,"w":284,"h":449,"anchorX":142,"anchorY":448,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":553,"y":10,"w":238,"h":238}},
+   {"id":"last_crown_inn","x":975,"y":17,"w":310,"h":442,"anchorX":155,"anchorY":441,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1013,"y":17,"w":234,"h":234}},
+   {"id":"last_crown_archivist","x":1431,"y":10,"w":246,"h":449,"anchorX":123,"anchorY":448,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1435,"y":10,"w":238,"h":238}},
+   {"id":"last_crown_artificer","x":120,"y":495,"w":268,"h":379,"anchorX":134,"anchorY":378,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":135,"y":495,"w":201,"h":201}},
+   {"id":"last_crown_trainer","x":573,"y":456,"w":232,"h":420,"anchorX":116,"anchorY":419,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":578,"y":456,"w":223,"h":223}},
+   {"id":"last_crown_resident","x":990,"y":456,"w":282,"h":420,"anchorX":141,"anchorY":419,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1020,"y":456,"w":223,"h":223}},
+  ]},
+ },
+ {
+  id: 'npc_house_keepers', source: 'assets/npcs/house_keepers-source.png', columns: 4, rows: 2, kind: 'npc', required: true,
+  key: 'neutral-exterior', backgroundSeeds: [[387,114],[1933,288]],
+  metadata: {sourceWidth: 2172, sourceHeight: 724, frames: [
+   {"id":"hav_house_keeper","x":213,"y":8,"w":224,"h":352,"anchorX":112,"anchorY":351,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":232,"y":8,"w":187,"h":187}},
+   {"id":"ember_house_keeper","x":700,"y":8,"w":254,"h":356,"anchorX":127,"anchorY":355,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":732,"y":8,"w":189,"h":189}},
+   {"id":"forest_house_keeper","x":1215,"y":5,"w":237,"h":357,"anchorX":118,"anchorY":356,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1239,"y":5,"w":189,"h":189}},
+   {"id":"mire_house_keeper","x":1747,"y":14,"w":239,"h":351,"anchorX":120,"anchorY":350,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1774,"y":14,"w":186,"h":186}},
+   {"id":"crater_house_keeper","x":197,"y":361,"w":283,"h":359,"anchorX":142,"anchorY":358,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":244,"y":361,"w":190,"h":190}},
+   {"id":"orbital_house_keeper","x":718,"y":364,"w":218,"h":356,"anchorX":109,"anchorY":355,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":732,"y":364,"w":189,"h":189}},
+   {"id":"frost_house_keeper","x":1197,"y":362,"w":252,"h":358,"anchorX":126,"anchorY":357,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1228,"y":362,"w":190,"h":190}},
+   {"id":"crown_house_keeper","x":1742,"y":369,"w":226,"h":351,"anchorX":113,"anchorY":350,"nativeHeight":72,"isolateComponent":true,"portrait":{"x":1762,"y":369,"w":186,"h":186}},
+  ]},
+ },
+];

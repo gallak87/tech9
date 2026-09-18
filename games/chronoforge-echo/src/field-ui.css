@@ -71,3 +71,14 @@ button:focus-visible{outline-color:#df702e}kbd{color:inherit;border-color:#79767
 /* Unlock guidance stays attached to the beacon after its first inspection. */
 .interaction.beacon-label{max-width:min(70%,30cqw)}
 .beacon-hint{display:block;margin-top:.22em;max-width:32em;font-size:.8em;line-height:1.35;font-weight:400;color:#c6c3bd}
+
+/* Companion unlocks have their own stage, separate from the resource feed. */
+.recruit-announcement{position:absolute;z-index:8;top:14%;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:1cqw;min-width:22cqw;max-width:42cqw;padding:.75cqw 1.4cqw .75cqw .7cqw;background:#151515f2;border:1px solid #df702e;border-left:3px solid #ed914f;box-shadow:0 .45cqw 1.4cqw #0005;pointer-events:none;font-family:Barlow,sans-serif;animation:recruit-arrive .18s ease-out both,recruit-depart .18s 3.18s ease-in forwards}
+.recruit-announcement canvas{width:4.4cqw;height:4.4cqw;min-width:48px;min-height:48px;flex:none}
+.recruit-announcement small,.recruit-announcement strong,.recruit-announcement span{display:block}
+.recruit-announcement small{color:#ef9755;letter-spacing:.16em;font-size:clamp(9px,.65cqw,14px)}
+.recruit-announcement strong{color:#f0e9df;font-size:clamp(23px,2cqw,38px);font-weight:500;line-height:1.1;margin:.15em 0}
+.recruit-announcement span{color:#bcb6ae;font-size:clamp(11px,.8cqw,17px)}
+@keyframes recruit-arrive{from{transform:translate(-50%,-220%);opacity:1}to{transform:translate(-50%,0);opacity:1}}
+@keyframes recruit-depart{to{opacity:0;transform:translate(-50%,-8px)}}
+@media(prefers-reduced-motion:reduce){.recruit-announcement{animation:none}}

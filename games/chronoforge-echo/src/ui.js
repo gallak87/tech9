@@ -5,6 +5,7 @@ import {beaconStatus} from './beacons.js';
 import './expedition.css';
 import {HEROES,ITEMS,BUILDINGS,TIERS,SERVICES} from './content.js';
 import * as P from './progression.js';
+import {performBuild} from './construction.js';
 import {mainObjective,onEvent,interactStory} from './narrative.js';
 import {drawPortrait,drawIcon,npcPortrait} from './art.js';
 import {nearbyBuildings} from './world.js';
@@ -25,7 +26,7 @@ const costText=o=>Object.entries(o||{}).map(([k,v])=>`${fmt(v)} ${k}`).join(' ·
 const labels={str:'Strength',int:'Intellect',tec:'Technique',def:'Defense',spd:'Speed',crit:'Critical %',maxHp:'Max HP',maxMp:'Max MP'};
 export class UI{
  constructor(game){this.game=game;this.root=document.querySelector('#overlay');this.hud=document.querySelector('#hud');this.panel=null;this.menu=false;this.tab=0;this.hero=0;this.item=null;this.qty=1;this.sellMode=false;this.map=new ExpeditionMap(game);document.fonts.ready.then(()=>{if(this.menu&&this.tab===0)this.map.draw();});this.notice='';this.bindCapture=null;this.root.addEventListener('click',e=>{const b=e.target.closest('[data-do]');if(b&&!b.disabled){this.game.audio.unlock();this.action(b.dataset.do);}});this.root.addEventListener('input',e=>{if(e.target.matches('[data-load-after-import]')&&this.panel?.saveImport)this.panel.saveImport.loadImmediately=e.target.checked;if(e.target.dataset.setting){game.state.settings[e.target.dataset.setting]=+e.target.value;game.audio.set(game.state.settings);}});this.root.addEventListener('focusin',e=>{const id=e.target.closest('[data-pack-item]')?.dataset.packItem;if(id)this.inspectItem(id);});this.hud.addEventListener('click',e=>{if(e.target.closest('[data-atlas]'))this.toggleMenu();if(e.target.closest('[data-interact]'))game.interact();if(e.target.closest('[data-resume-ending]'))game.presentEnding();});}
- get blocked(){return this.menu||!!this.panel||this.game.mode==='title';}
+ get blocked(){return this.menu||!!this.panel||this.game.mode==='title'||!!this.game.upgradeTour?.open;}
  paint(root=this.root){root.querySelectorAll('[data-menu-hero]').forEach(c=>{const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);drawHero(ctx,c.dataset.menuHero,c.width/2,c.height*.88,{scale:6.2,facing:'down',time:0});});root.querySelectorAll('[data-icon]').forEach(c=>drawIcon(c.getContext('2d'),c.dataset.icon,0,0,c.width));root.querySelectorAll('[data-portrait]').forEach(c=>drawPortrait(c.getContext('2d'),c.dataset.portrait,0,0,192));}
  focus(index=0){const list=this.focusables();if(list.length)list[(index+list.length)%list.length].focus({preventScroll:true});}
  focusables(){return [...this.root.querySelectorAll('button:not(:disabled),input')].filter(b=>b.offsetWidth>0);}
@@ -103,7 +104,7 @@ export class UI{
   this.confirmItemUse(result,()=>{this.panel=previous;const outcome=P.useItem(this.game.state,id,heroId,{confirmation:result.confirmationKey});finish(outcome.needsConfirmation?{ok:false,message:'The target changed. Review the restoration before using this supply.'}:outcome);},{returnFocus,returnScroll});
  }
  confirm(title,text,run,labels={}){this.confirmReturn=this.panel;this.panel={type:'confirm',title,text,run,...labels};this.render();}
- action(a){const [act,arg,arg2]=a.split(':');const g=this.game,s=g.state,h=s.heroes[this.hero]||s.heroes[0];g.audio.sound('select');switch(act){
+ action(a){if(this.game.upgradeTour?.open)return;const [act,arg,arg2]=a.split(':');const g=this.game,s=g.state,h=s.heroes[this.hero]||s.heroes[0];g.audio.sound('select');switch(act){
   case 'new':if(latestSave()!==null)this.confirm('Begin a new expedition?','Your manual save slots remain available. The automatic checkpoint will follow the new expedition.',()=>g.startNew());else g.startNew();break;
   case 'continue':g.load(latestSave());break;case 'title-controls':this.panel={type:'help'};this.render();break;case 'close':this.close();break;case 'dismiss-panel':this.dismissTopLayer();break;
   case 'menu-close':this.toggleMenu();break;case 'tab':this.tab=+arg;this.notice='';this.render();break;case 'hero':this.hero=+arg;this.notice='';this.render();break;
@@ -125,7 +126,7 @@ export class UI{
   case 'trade-mode':this.sellMode=!this.sellMode;this.render();break;
   case 'buy':this.requestPurchase(arg);break;case 'sell':this.feedback(P.sell(s,arg,Math.min(this.qty,s.inventory[arg]||0)));break;
   case 'rest':this.feedback(P.rest(s));g.checkpoint();break;case 'train':this.feedback(P.train(s));break;case 'research':this.feedback(P.research(s));break;
-  case 'build':{const r=P.build(s,arg);this.feedback(r);if(r.ok)g.resolveResult(onEvent(s,'build',arg));g.checkpoint();break;}
+  case 'build':performBuild(g,arg);break;
   case 'tier':this.feedback(P.advanceTier(s));g.checkpoint();break;case 'ending-continue':g.completeEnding();break;
  }}
  shell(title,body,footer='↑ ↓ Navigate &nbsp; <kbd>PgUp/Dn</kbd> Scroll &nbsp; <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm &nbsp; <kbd>Esc</kbd>/<kbd>Backspace</kbd> Return',tabs=false){return `<div class="scrim"></div><section class="atlas ${this.panel?.type==='vendor'&&['inn','rest','trainer'].includes(this.panel.object.service)?'service-compact':this.panel?.type==='vendor'?'shop-dialog':''}" role="dialog" aria-label="${esc(title)}"><header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs?'THE CREW’S FIELD ATLAS':this.panel?.type==='vendor'?'LOCAL SERVICES':this.panel?.type==='build'?'SETTLEMENT':'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs?'<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>':''}</header>${tabs?`<nav class="tabs">${['Map','Party','Inventory','Skills','Quests','Save','Settings'].map((t,i)=>button(`<small>${i+1}</small>${t}`,'tab:'+i,i===this.tab?'active':'')).join('')}</nav>`:''}<div class="atlas-body scroll">${this.notice?`<div class="notice" role="status">${esc(this.notice)}</div>`:''}${body}</div><footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;}

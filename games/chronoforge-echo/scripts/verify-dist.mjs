@@ -33,8 +33,12 @@ for (const mount of ['/', '/tech9/chronoforge-echo/']) {
   console.log(`PASS ${mount}: ${checked.size} compiled entry, font and art files resolve inside the mount.`);
 }
 assert.ok(!fs.existsSync(new URL('experiments/', dist)), 'Experiments must not ship');
+let productionScript='',productionStyles='';
 for(const name of fs.readdirSync(new URL('assets/',dist)).filter(name=>/\.(js|css)$/.test(name))){
   const text=fs.readFileSync(new URL('assets/'+name,dist),'utf8');
+  if(name.endsWith('.js'))productionScript+=text;else productionStyles+=text;
   assert.ok(!text.includes('Temporary art preview')&&!text.includes('.dev-tier-buttons'),'Development art preview must not ship: '+name);
-  assert.ok(!text.includes('Haventide upgrade rehearsal')&&!text.includes('dev-upgrade-tour'),'Development upgrade rehearsal must not ship: '+name);
+  assert.ok(!text.includes('UPGRADE PREVIEW · NEVER SAVED')&&!text.includes('Rehearsal only'),'Development upgrade controls must not ship: '+name);
 }
+assert.ok(productionScript.includes('Town Center upgrade')&&productionScript.includes('Skip reveal'),'Real upgrade cinematic must ship');
+assert.ok(productionStyles.includes('.upgrade-tour'),'Real upgrade cinematic styles must ship');

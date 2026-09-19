@@ -15,7 +15,7 @@ In the development game (`npm run dev`) on **localhost**, **127.0.0.1**, or **[:
 - Loading, starting a new journey or refreshing clears the override. The panel and its styles are excluded from production builds.
 - Closing/resetting cancels the rehearsal and clears captured picture buffers and temporary references. No preview data is stored in localStorage/sessionStorage. With `?dev=1`, a new or loaded session opens a fresh panel once exploration is ready.
 
-The panel also includes an [indoor-first upgrade rehearsal](upgrade-rehearsal.md):
+The panel also includes an [indoor-first upgrade rehearsal](upgrade-cinematic.md):
 choose one of the three upgrade steps, trigger it at the preview desk, watch the
 exterior change, and return inside. It uses the current interior art while its
 four visual stages await their own pass.

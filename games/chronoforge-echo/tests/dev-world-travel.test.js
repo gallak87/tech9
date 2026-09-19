@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {WorldTravelPreview} from '../src/dev-world-travel.js';
 import {createState} from '../src/progression.js';
 import {REGIONS,safeArrival,isWalkable} from '../src/world.js';
-import {FOG_CELL,isRevealed} from '../src/maps.js';
+import {mapRegionVisible,mapPointVisible,mapTravelAction} from '../src/expedition-map-model.js';
 import {saveState,loadState,exportSave} from '../src/persistence.js';
 
 function fixture() {
@@ -14,17 +14,14 @@ function fixture() {
   return {game,preview:new WorldTravelPreview(game)};
 }
 
-test('world preview reveals every map cell without changing real exploration or progression',()=>{
+test('world preview isolates gameplay without revealing or changing the original survey',()=>{
   const {game,preview}=fixture(),original=game.state,baseline=structuredClone(original);
   assert.equal(preview.enable(),true);
   assert.equal(preview.enable(),false,'Repeated activation must not replace the real expedition');
   assert.equal(preview.active,true);
   assert.notEqual(game.state,original);
-  for(const region of Object.values(REGIONS)) {
-    assert.equal(game.state.visited[region.id],true);
-    for(let y=0;y<region.height;y+=FOG_CELL)for(let x=0;x<region.width;x+=FOG_CELL)
-      assert.equal(isRevealed(game.state,region.id,x,y),true,`${region.id} at ${x},${y}`);
-  }
+  assert.deepEqual(game.state.visited,original.visited);
+  assert.deepEqual(game.state.fog,original.fog);
   assert.deepEqual(game.state.flags,original.flags);
   assert.equal(game.state.tier,original.tier);
   game.state.resources.ore+=100;
@@ -41,10 +38,11 @@ test('world preview reveals every map cell without changing real exploration or 
 
 test('all eight region jumps use safe arrivals while story gates remain untouched',()=>{
   const {game,preview}=fixture(),flags=structuredClone(game.state.flags);
-  assert.equal(preview.jump('last_crown'),false);
-  preview.enable();
+  game.devTools={mapExplored:false};
+  assert.equal(preview.active,false);
   for(const region of Object.values(REGIONS)) {
     assert.equal(preview.jump(region.id),true);
+    assert.equal(preview.active,true,'The first jump starts the detached expedition automatically');
     assert.equal(game.transition.to,region.id);
     assert.equal(isWalkable(region,game.transition.spawn.x,game.transition.spawn.y),true);
     assert.equal(preview.jump('haventide'),false,'Cannot jump during an existing transition');
@@ -53,6 +51,48 @@ test('all eight region jumps use safe arrivals while story gates remain untouche
   for(const invalid of ['missing','haventide_town','__proto__','constructor'])assert.equal(preview.jump(invalid),false);
   assert.deepEqual(game.state.flags,flags);
   assert.equal(game.state.tier,1);
+});
+
+test('map reveal is independent of temporary travel and never writes survey or save data',()=>{
+  const {game,preview}=fixture(),original=game.state,baseline=structuredClone(original);
+  game.devTools={mapExplored:true};
+  for(const region of Object.values(REGIONS)) {
+    assert.equal(mapRegionVisible(game,region.id),true);
+    assert.equal(mapPointVisible(game,region.id,region.width-1,region.height-1),true);
+  }
+  assert.equal(preview.active,false,'Revealing the menu map does not start a trip');
+  assert.equal(preview.saveSource().state,original);
+  assert.deepEqual(original,baseline);
+  game.devTools.mapExplored=false;
+  assert.equal(preview.jump('last_crown'),true,'Quick jump needs no map reveal');
+  game.transition=null;
+  game.state.region='last_crown';game.state.x=4000;game.state.y=400;
+  const detached=game.state,before=structuredClone(detached);
+  game.devTools.mapExplored=true;
+  assert.equal(mapTravelAction(game,'mire_bog').action,'dev-world:mire_bog');
+  game.devTools.mapExplored=false;
+  assert.equal(mapRegionVisible(game,'mire_bog'),false);
+  assert.equal(mapPointVisible(game,'mire_bog',100,100),false);
+  assert.equal(game.state,detached,'Turning reveal off must not end a trip');
+  assert.deepEqual(game.state,before,'Toggling cannot move the party or change its survey');
+  assert.equal(preview.saveSource().state,original);
+  assert.deepEqual(original,baseline);
+  assert.equal(preview.jump('mire_bog'),true,'Quick jumps remain available after turning reveal off');
+  assert.equal(preview.restore(),true);
+  assert.equal(game.state,original);
+});
+
+test('first jumps work from the menu but invalid destinations never create a preview',()=>{
+  const {game,preview}=fixture(),original=game.state;
+  for(const invalid of ['missing','haventide_town','__proto__','constructor']) {
+    assert.equal(preview.jump(invalid),false);
+    assert.equal(preview.active,false);
+    assert.equal(game.state,original);
+  }
+  game.ui={blocked:true,menu:true,panel:null};
+  assert.equal(preview.jump('last_crown'),true);
+  assert.equal(preview.active,true);
+  assert.equal(preview.saveSource().state,original);
 });
 
 test('autosave, manual save and export use the original expedition even during a preview battle',()=>{
@@ -97,7 +137,7 @@ test('loading or starting another expedition discards preview references without
 test('activation waits for exploration and jumps cannot interrupt encounters, dialogue or recruitment',()=>{
   for(const patch of [
     {mode:'title'},{mode:'battle',battle:{}},{transition:{}},
-    {ui:{blocked:true,panel:{}}},{state:{...createState(),recruitmentWalk:{}}},
+    {ui:{blocked:true,panel:{}}},{upgradeTour:{open:true}},{state:{...createState(),recruitmentWalk:{}}},
   ]) {
     const {game,preview}=fixture();Object.assign(game,patch);
     assert.equal(preview.enable(),false);
@@ -111,4 +151,3 @@ test('activation waits for exploration and jumps cannot interrupt encounters, di
     assert.equal(preview.jump('last_crown'),false);
   }
 });
-

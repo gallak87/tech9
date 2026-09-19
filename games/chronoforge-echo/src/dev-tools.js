@@ -14,7 +14,7 @@ import {localDevHost,localDevPreviewRequested,devPreviewReady} from './dev-acces
 export function mountDevTools(game) {
   if(!localDevHost(window.location))return null;
   const preview=new ArtPreview(),worlds=new WorldTravelPreview(game);
-  let previousFocus=null,previousCamera=null,previousScene=null,availability='',autoOpenPending=localDevPreviewRequested(window.location);
+  let previousFocus=null,previousCamera=null,previousScene=null,availability='',mapExplored=false,autoOpenPending=localDevPreviewRequested(window.location);
   const root=document.createElement('div');
   root.id='dev-tools';root.hidden=true;
   root.setAttribute('role','dialog');root.setAttribute('aria-label','Local development tools');
@@ -22,11 +22,12 @@ export function mountDevTools(game) {
     <header><strong>Dev tools</strong><button type="button" data-preview="close" aria-label="Close dev tools">×</button></header>
     <section class="dev-world-controls" aria-label="Temporary world exploration">
       <div class="dev-world-row">
-        <button type="button" class="dev-world-toggle" data-preview="worlds" role="switch" aria-checked="false">Worlds explored <span>Off</span></button>
+        <button type="button" class="dev-world-toggle" data-preview="map" role="switch" aria-checked="false">Map explored <span>Off</span></button>
         <button type="button" data-preview="world-view">World view ↗</button>
       </div>
-      <div class="dev-world-jump" hidden><select aria-label="World to jump to" data-world-target>${Object.values(REGIONS).map(region=>`<option value="${region.id}">${region.name}</option>`).join('')}</select><button type="button" data-preview="jump">Jump</button></div>
+      <div class="dev-world-jumps" role="group" aria-label="Jump to a world">${Object.values(REGIONS).map(region=>`<button type="button" data-world="${region.id}">${region.name}</button>`).join('')}</div>
       <p class="dev-world-status"></p>
+      <button type="button" class="dev-world-return" data-preview="return-world" hidden>Return to expedition</button>
     </section>
     <section class="dev-art-controls" aria-label="Town artwork">
       <div class="dev-town-row"><label for="dev-town-select">Town</label><select id="dev-town-select" data-town-select>${TOWN_CENTERS.map(town=>`<option value="${town.region}">${town.name}</option>`).join('')}</select><button type="button" data-preview="restore">Reset art</button></div>
@@ -50,15 +51,15 @@ export function mountDevTools(game) {
   const canArt=()=>!busy()&&game.mode==='world'&&['haventide','haventide_town'].includes(game.scene.id);
   function render() {
     const blocked=busy(),art=canArt(),selected=current(),town=TOWN_CENTERS.find(t=>t.region===preview.townCenterRegion),frame=town.metadata.frames[selected-1];
-    const toggle=root.querySelector('[data-preview="worlds"]');
-    toggle.setAttribute('aria-checked',String(worlds.active));
-    toggle.querySelector('span').textContent=worlds.active?'On':'Off';
-    toggle.disabled=blocked||(!worlds.active&&!worlds.canEnable);
+    const toggle=root.querySelector('[data-preview="map"]');
+    toggle.setAttribute('aria-checked',String(mapExplored));
+    toggle.querySelector('span').textContent=mapExplored?'On':'Off';
+    toggle.disabled=blocked||game.mode!=='world'||!!game.battle;
     root.querySelector('[data-preview="world-view"]').disabled=blocked||!devPreviewReady(game)||!!game.battle;
-    root.querySelector('.dev-world-jump').hidden=!worlds.active;
-    root.querySelector('[data-world-target]').disabled=blocked||!worlds.canJump;
-    root.querySelector('[data-preview="jump"]').disabled=blocked||!worlds.canJump;
-    root.querySelector('.dev-world-status').textContent=worlds.active?'All maps open · saves keep your real expedition.':'World view fits this map; Worlds explored unlocks jumps.';
+    for(const button of root.querySelectorAll('[data-world]'))button.disabled=blocked||!worlds.canJump;
+    const returnButton=root.querySelector('[data-preview="return-world"]');
+    returnButton.hidden=!worlds.active;returnButton.disabled=blocked||game.mode!=='world'||!!game.battle;
+    root.querySelector('.dev-world-status').textContent=worlds.active?'Temporary trip · saves keep your real expedition.':'Click a world to jump · story gates bypassed.';
     const select=root.querySelector('[data-town-select]');select.value=preview.townCenterRegion;select.disabled=!art;
     root.querySelector('output').textContent=selected+' · '+TIERS[selected-1];
     root.querySelector('.dev-size').textContent=indoors()?'Interior':frame.nativeWidth+' × '+Math.round(frame.h*frame.nativeWidth/frame.w);
@@ -100,11 +101,13 @@ export function mountDevTools(game) {
   }
   function restoreWorld() {
     if(!worlds.restore())return;
-    const stayOpen=preview.open;
+    const stayOpen=preview.open,keepMapExplored=mapExplored;
     game.resetSession();autoOpenPending=false;
+    mapExplored=keepMapExplored;
     game.battle=null;game.mode='world';game.audio.set(game.state.settings);
     game.resetFollowers();game.updateCamera(true);game.ui.render();
-    if(stayOpen)setOpen(true);else render();
+    if(stayOpen)setOpen(true);
+    render();
   }
   function jumpWorld(id) {
     if(upgradeTour.open||worldView.open||!worlds.jump(id))return false;
@@ -121,11 +124,12 @@ export function mountDevTools(game) {
   root.addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button||button.disabled)return;
     if(button.dataset.tier){setLevel(Number(button.dataset.tier));return;}
+    if(button.dataset.world){if(!busy())jumpWorld(button.dataset.world);return;}
     switch(button.dataset.preview){
       case 'restore':if(canArt()){preview.resetSelection();render();}break;
-      case 'worlds':if(!busy()){if(worlds.active)restoreWorld();else if(worlds.enable()){game.ui.render();render();}}break;
+      case 'map':if(!busy()){mapExplored=!mapExplored;game.ui.render();render();}break;
+      case 'return-world':if(!busy())restoreWorld();break;
       case 'world-view':if(!busy()){worldView.openView();render();}break;
-      case 'jump':if(!busy())jumpWorld(root.querySelector('[data-world-target]').value);break;
       case 'upgrade':if(canArt()){upgradeTour.openPreview(Math.min(3,current()),preview.townCenterRegion);render();}break;
       case 'close':setOpen(false);break;
     }
@@ -133,17 +137,19 @@ export function mountDevTools(game) {
   const api={
     get open(){return preview.open;},
     get paused(){return preview.open&&!game.transition;},
-    get worldsExplored(){return worlds.active;},
+    get mapExplored(){return mapExplored;},
+    get worldPreviewActive(){return worlds.active;},
     saveSource(){return worlds.saveSource();},jumpWorld,
     visualState(state){return preview.visualState(state);},
     update(){
       if(autoOpenPending&&devPreviewReady(game))setOpen(true);
-      const key=[game.scene.id,game.mode,game.ui.blocked,!!game.transition,upgradeTour.open,worldView.open,!!game.state.recruitmentWalk,worlds.active].join(':');
+      const key=[game.scene.id,game.mode,game.ui.blocked,!!game.transition,upgradeTour.open,worldView.open,!!game.state.recruitmentWalk,worlds.active,mapExplored].join(':');
       if(availability!==key){availability=key;render();}
     },
     reset(){
       const wasOpen=preview.open;
       worldView.close();upgradeTour.close();preview.resetSelection();worlds.restore();
+      mapExplored=false;
       previousCamera=null;previousScene=null;availability='';render();
       autoOpenPending=!wasOpen&&localDevPreviewRequested(window.location);
     },

@@ -1,6 +1,6 @@
-import {isRevealed,mapPosition} from './maps.js';
+import {mapPosition} from './maps.js';
 import {REGIONS,terrainAt} from './world.js';
-import {MAP_REGIONS,mapLayout,adjacentMapRegion,mapTravelAction} from './expedition-map-model.js';
+import {MAP_REGIONS,mapLayout,adjacentMapRegion,mapTravelAction,mapRegionVisible,mapPointVisible} from './expedition-map-model.js';
 
 // One layout aligns the live survey with accessible travel buttons, including
 // after mouse pan/zoom and resizing. Arrow keys select places, never pan.
@@ -80,9 +80,9 @@ export class ExpeditionMap {
   this.layout=mapLayout(w,h,this.zoom,this.panX,this.panY);
   const edges=new Set();
   for(const region of Object.values(REGIONS)){
-   if(!s.visited[region.id])continue;
+   if(!mapRegionVisible(this.game,region.id))continue;
    for(const portal of region.portals){
-    if(!s.visited[portal.to]||!this.layout[portal.to])continue;
+    if(!mapRegionVisible(this.game,portal.to)||!this.layout[portal.to])continue;
     const edge=[region.id,portal.to].sort().join(':');if(edges.has(edge))continue;edges.add(edge);
     c.strokeStyle='#6a563c';c.setLineDash([2,4]);c.beginPath();
     for(const [i,id]of [region.id,portal.to].entries()){const b=this.layout[id];c[i?'lineTo':'moveTo'](b.x+b.width/2,b.y+b.height/2);}
@@ -90,16 +90,16 @@ export class ExpeditionMap {
    }
   }
   for(const [id,b]of Object.entries(this.layout)){
-   const region=REGIONS[id],{x,y,width,height}=b,visited=!!s.visited[id];
+   const region=REGIONS[id],{x,y,width,height}=b,visited=mapRegionVisible(this.game,id);
    c.fillStyle=visited?'#bdac86':'#d3bd91';c.fillRect(x,y,width,height);
    if(visited){
     c.save();c.translate(x,y);c.scale(width/126,height/74);
     for(let cy=0;cy<74;cy+=2)for(let cx=0;cx<126;cx+=2){
-     const wx=(cx+.5)/126*region.width,wy=(cy+.5)/74*region.height;if(!isRevealed(s,id,wx,wy))continue;
+     const wx=(cx+.5)/126*region.width,wy=(cy+.5)/74*region.height;if(!mapPointVisible(this.game,id,wx,wy))continue;
      const t=terrainAt(region,wx,wy);c.fillStyle=t==='water'?'#979b8b':t==='path'?'#ebdcb5':'#b4b18c';c.fillRect(cx,cy,2,2);
     }
     for(const o of [...region.objects,...region.portals]){
-     if(!['town','house','cave','portal','landmark'].includes(o.type)||!isRevealed(s,id,o.x,o.y))continue;
+     if(!['town','house','cave','portal','landmark'].includes(o.type)||!mapPointVisible(this.game,id,o.x,o.y))continue;
      const px=o.x/region.width*126,py=o.y/region.height*74;c.fillStyle='#574832';
      if(o.type==='town'){c.strokeStyle='#574832';c.lineWidth=.8;c.strokeRect(px-2,py-2,4,4);}
      else{c.beginPath();c.arc(px,py,1.2,0,Math.PI*2);c.fill();}

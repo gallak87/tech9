@@ -11,8 +11,10 @@
 #dev-tools .dev-world-row{display:grid;grid-template-columns:1.3fr 1fr;gap:5px}
 #dev-tools .dev-world-toggle{display:flex;justify-content:space-between;gap:5px}
 #dev-tools .dev-world-toggle[aria-checked=true],#dev-tools [aria-pressed=true]{border-color:#ee8b4f;background:#644029}
-#dev-tools .dev-world-jump{display:grid;grid-template-columns:1fr auto;gap:5px;margin-top:6px}
-#dev-tools .dev-world-jump[hidden]{display:none}
+#dev-tools .dev-world-jumps{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px}
+#dev-tools .dev-world-jumps button{padding:4px;font-size:11px}
+#dev-tools .dev-world-return{width:100%;margin-top:5px;font-size:11px}
+#dev-tools .dev-world-return[hidden]{display:none}
 #dev-tools .dev-town-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:5px}
 #dev-tools .dev-town-row label{color:#b8c0c5;font-size:11px}
 #dev-tools .dev-tier-buttons{display:flex;gap:5px;margin:7px 0 5px}

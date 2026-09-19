@@ -2,7 +2,7 @@ import {HEROES,ITEMS,TECHS,TIERS} from './content.js';
 import {tierBadge} from './tier-ui.js';
 import * as P from './progression.js';
 import {REGIONS,ALL_SCENES} from './world.js';
-import {MAP_REGIONS} from './expedition-map-model.js';
+import {MAP_REGIONS,mapRegionVisible} from './expedition-map-model.js';
 import {questList,mainObjective} from './narrative.js';
 import {saveMeta} from './persistence.js';
 
@@ -37,11 +37,11 @@ function characterPage(ui,inventory){
 
 export function expeditionItemDetail(ui,id){const it=ITEMS[id],s=ui.game.state,h=heroOf(ui);if(!it)return '<p class="exp-hand">Your pack is empty.</p>';const current=ITEMS[h.equip[it.slot]],keys=[...new Set([...Object.keys(it.stats),...Object.keys(current?.stats||{})])];return `<div class="exp-inspection-art">${icon(id)}</div><div class="exp-inspection-copy"><div class="exp-kicker">${it.slot} / ${tierBadge(it.tier)}${it.unique?' · PERSONAL KEEPSAKE':''}</div><h3>${it.name}</h3><p>${esc(it.description)}</p>${it.slot!=='consumable'?`<small>Compared with ${current?.name||'an empty slot'} on ${h.name}.</small>`:''}<div class="exp-comparison">${keys.map(k=>{const d=(it.stats[k]||0)-(current?.stats?.[k]||0);return `<span>${names[k]||k} <b>${it.stats[k]||0}</b> <i class="${d<0?'exp-loss':'exp-gain'}">(${d>=0?'+':''}${d})</i></span>`;}).join('')}</div></div><div class="exp-inspection-action">${btn(it.slot==='consumable'?`Use on ${h.name}`:`Equip on ${h.name}`,(it.slot==='consumable'?'use:':'equip:')+id,'button primary')}<small>${it.unique?'Cannot be sold':`Sale value ${Math.max(1,Math.floor(it.price*.45))} ore`}</small></div>`;}
 function mapPage(ui){
- const s=ui.game.state,preview=ui.game.devTools?.worldsExplored;
- const visited=Object.keys(REGIONS).filter(id=>s.visited[id]).length;
+ const preview=ui.game.devTools?.mapExplored;
+ const visited=Object.keys(REGIONS).filter(id=>mapRegionVisible(ui.game,id)).length;
  return `<div class="map-frame"><canvas id="atlas-map" class="map-canvas" aria-label="World survey: explored terrain, fog and discovered landmarks"></canvas>
   <div class="map-region-layer" role="group" aria-label="Select a region">${Object.keys(MAP_REGIONS).map(id=>`<button type="button" class="map-region" data-map-region="${id}" aria-pressed="false"><span class="map-region-name"></span><span class="map-region-action"></span></button>`).join('')}</div>
-  <div class="map-heading"><h2>The known world</h2><span>${visited} / ${Object.keys(REGIONS).length} surveyed${preview?' · Temporary world preview':''}</span></div>
+  <div class="map-heading"><h2>The known world</h2><span>${visited} / ${Object.keys(REGIONS).length} ${preview?'revealed · Temporary map view':'surveyed'}</span></div>
   <svg class="map-compass" viewBox="0 0 64 88" role="img" aria-label="North is up">
    <text x="32" y="12" text-anchor="middle">N</text>
    <path d="M7 49 32 41 57 49 32 57Z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width=".8"/>

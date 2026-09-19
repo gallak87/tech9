@@ -36,7 +36,7 @@ test('normal map travel only targets liberated settlements, while preview allows
   state.visited.mire_bog=true;state.flags.mire_bog_liberated=true;
   assert.equal(mapTravelAction(game,'mire_bog').action,undefined);
   const before=structuredClone(state);
-  game.devTools={worldsExplored:true};
+  game.devTools={mapExplored:true};
   for(const id of Object.keys(REGIONS))assert.equal(mapTravelAction(game,id).action,'dev-world:'+id);
   for(const id of ['missing','constructor','__proto__'])assert.equal(mapTravelAction(game,id).action,undefined);
   assert.deepEqual(state,before);
@@ -49,7 +49,7 @@ test('normal map travel only targets liberated settlements, while preview allows
 });
 
 test('keyboard activation uses the selected region; dragging a region never jumps',t=>{
-  const actions=[],game={state:createState(),mode:'world',ui:{panel:null,action:a=>actions.push(a)},devTools:{worldsExplored:true}};
+  const actions=[],game={state:createState(),mode:'world',ui:{panel:null,action:a=>actions.push(a)},devTools:{mapExplored:true}};
   const oldDocument=globalThis.document,oldObserver=globalThis.ResizeObserver;
   t.after(()=>{globalThis.document=oldDocument;globalThis.ResizeObserver=oldObserver;});
   globalThis.document={activeElement:{closest:()=>null}};

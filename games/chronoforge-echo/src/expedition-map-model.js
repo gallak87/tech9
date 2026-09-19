@@ -1,4 +1,5 @@
 import {REGIONS} from './world.js';
+import {isRevealed} from './maps.js';
 
 export const MAP_REGIONS={crater_ember:[1,0],frost_canyon:[2,0],haventide:[0,1],emberline:[1,1],orbital_reach:[2,1],last_crown:[3,1],forest_veil:[1,2],mire_bog:[2,2]};
 
@@ -17,13 +18,21 @@ export function adjacentMapRegion(id,key) {
     .sort(([,a],[,b])=>score(a)-score(b))[0]?.[0]??id;
 }
 
-// Keep normal travel rules; only Worlds explored grants unrestricted jumps.
+// The local reveal affects the menu only, never the expedition's survey data.
+export function mapRegionVisible(game,id) {
+  return !!game.devTools?.mapExplored||!!game.state.visited[id];
+}
+export function mapPointVisible(game,id,x,y) {
+  return !!game.devTools?.mapExplored||isRevealed(game.state,id,x,y);
+}
+
+// The revealed dev map offers temporary jumps; normal travel keeps its gates.
 export function mapTravelAction(game,id) {
   const region=Object.hasOwn(REGIONS,id)?REGIONS[id]:null;
   if(!region)return {reason:'Unknown region'};
   if(game.mode!=='world'||game.battle)return {reason:'Finish the encounter to travel'};
   if(game.transition||game.state.recruitmentWalk||game.upgradeTour?.open)return {reason:'Travel unavailable right now'};
-  if(game.devTools?.worldsExplored){
+  if(game.devTools?.mapExplored){
     if(game.ui?.panel)return {reason:'Close the conversation to jump'};
     return {action:'dev-world:'+id,label:'Jump'};
   }

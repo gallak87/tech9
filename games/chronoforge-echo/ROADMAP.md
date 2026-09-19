@@ -2,6 +2,7 @@
 
 - [ ] Revisit and extend each vendor’s story arc and completion milestones.
 - [ ] Review overlapping smith, archivist, and artificer stock and roles; decide whether to consolidate vendors before a dedicated shop redesign.
+- [ ] Add more town centers along the campaign routes, with progressively stronger local stock and useful recovery stops. Choose locations and level bands during world planning; give vendors distinct roles within each town, with selective overlap between towns. Coordinate with the vendor redesign and traversal pacing pass.
 - [ ] Fix Kaida’s clipped victory pose; likely regenerate her full sprite set for consistent appearance and framing rather than replacing only the victory pose.
 - [ ] Add bounded enemy patrols as the next separate encounter pass, keeping danger cues aligned with movement and routes readable.
 - [ ] Revisit whether encounters should forbid retreat; undecided, keep current retreat rules until reviewed separately.

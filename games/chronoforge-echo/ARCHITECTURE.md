@@ -42,7 +42,9 @@ Test hooks require a Vite development build and `?test=1`. Production excludes p
 
 ## Checks and artifacts
 
-`npm test` runs pure Node regression tests. `npm run build` and `npm run verify:build` check production packaging, required art and deployment paths. Browser scripts exercise input and integration when explicitly run against the appropriate server.
+Follow [AGENTS.md](AGENTS.md): do not run the game, start its servers, or execute browser checks without an explicit user request. Do not run linting or formatting during development; the pre-commit hook handles staged files automatically.
+
+`npm test` runs pure Node regression tests. `npm run build` and `npm run verify:build` check production packaging, required art and deployment paths. Browser scripts exercise input and integration only when the user explicitly requests them.
 
 Disposable experiments, scripts and artifacts live only in the Git-ignored `.experiments/` directory. Review tools write to `.experiments/output/` via `scripts/review-output.mjs`; `npm run clean:review` removes that output. Required source, assets, build tooling and regression tests stay outside this folder. Optional campaign checks regenerate their shared snapshots before use. Deleting all of `.experiments/` is safe; never make production or required tests depend on its contents.
 

@@ -1,6 +1,7 @@
 # Roadmap
 
 - [ ] Revisit and extend each vendor’s story arc and completion milestones.
+- [ ] Fix Kaida’s clipped victory pose; likely regenerate her full sprite set for consistent appearance and framing rather than replacing only the victory pose.
 
 ## Menu and HUD identity — implemented, awaiting hands-on review
 

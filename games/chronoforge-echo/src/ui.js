@@ -14,7 +14,12 @@ import { latestSave, deleteSave } from './persistence.js';
 import { drawMinimap } from './maps.js';
 import { ExpeditionMap } from './expedition-map.js';
 import { renderExpedition } from './expedition-menu.js';
-import { inventoryItems } from './inventory-menu.js';
+import {
+  inventoryItems,
+  inventoryHero,
+  inventoryRecipient,
+} from './inventory-menu.js';
+import { canEquip, weaponOwner, weaponFamilyLabel } from './equipment.js';
 import { drawInventoryIcon } from './inventory-icons.js';
 import { navigateExpedition, navigateShop } from './expedition-navigation.js';
 import { vendorAction } from './vendor-actions.js';
@@ -31,7 +36,7 @@ const esc = (s) =>
       ],
   );
 const icon = (id, cl = 'pixel-icon') =>
-  `<canvas class="${cl}" data-icon="${esc(id)}" width="128" height="128"></canvas>`;
+  `<canvas class="${cl}" data-${ITEMS[id]?.slot === 'weapon' ? 'inventory-icon' : 'icon'}="${esc(id)}" width="128" height="128"></canvas>`;
 const portrait = (id, cl = 'portrait-large') =>
   `<canvas class="${cl}" data-portrait="${esc(id)}" width="192" height="192"></canvas>`;
 const button = (label, action, cl = 'button', extra = '') =>
@@ -71,6 +76,8 @@ export class UI {
     this.hero = 0;
     this.item = null;
     this.inventoryFilter = 'all';
+    this.inventoryHero = null;
+    this.inventoryRecipientItem = null;
     this.inventorySort = 'tier';
     this.inventoryIndex = 0;
     this.qty = 1;
@@ -88,11 +95,11 @@ export class UI {
         this.menu &&
         this.tab === 2 &&
         this.panel?.type !== 'confirm' &&
-        this.inventoryFilter !== 'all' &&
+        (this.inventoryFilter !== 'all' || this.inventoryHero !== null) &&
         !e.target.closest(
-          '.exp-inventory-pack,.exp-inventory-crew,.exp-inventory-slot-row',
+          '.exp-inventory-pack,.exp-inventory-crew,.exp-inventory-slot-row,.exp-inventory-crew-loadout',
         );
-      if (clearFilter) this.inventoryFilter = 'all';
+      if (clearFilter) this.clearInventoryFilters();
       if (b && !b.disabled) {
         this.game.audio.unlock();
         this.action(b.dataset.do);
@@ -137,6 +144,8 @@ export class UI {
     this.hero = 0;
     this.item = null;
     this.inventoryFilter = 'all';
+    this.inventoryHero = null;
+    this.inventoryRecipientItem = null;
     this.inventorySort = 'tier';
     this.inventoryIndex = 0;
     this.inventoryNavigation = null;
@@ -282,14 +291,14 @@ export class UI {
     if (this.menu && this.panel?.type !== 'confirm') {
       if (/^[1-7]$/.test(k)) {
         this.tab = +k - 1;
-        if (this.tab !== 2) this.inventoryFilter = 'all';
+        if (this.tab !== 2) this.clearInventoryFilters();
         this.notice = '';
         this.render();
         return true;
       }
       if (k.toLowerCase() === 'q' || k.toLowerCase() === 'e') {
         this.tab = (this.tab + (k.toLowerCase() === 'q' ? 6 : 1)) % 7;
-        if (this.tab !== 2) this.inventoryFilter = 'all';
+        if (this.tab !== 2) this.clearInventoryFilters();
         this.notice = '';
         this.render();
         return true;
@@ -399,7 +408,7 @@ export class UI {
       cancel?.();
     } else if (this.menu) {
       this.menu = false;
-      this.inventoryFilter = 'all';
+      this.clearInventoryFilters();
     } else if (
       ['vendor', 'build', 'help', 'reading', 'dialogue', 'ending'].includes(
         this.panel?.type,
@@ -432,7 +441,7 @@ export class UI {
   toggleMenu() {
     if (this.game.mode === 'title') return;
     this.menu = !this.menu;
-    if (!this.menu) this.inventoryFilter = 'all';
+    if (!this.menu) this.clearInventoryFilters();
     this.notice = '';
     this.bindCapture = null;
     this.game.keys.clear();
@@ -606,9 +615,7 @@ export class UI {
   }
   requestItemUse(id, heroId) {
     const returnFocus =
-        document.activeElement?.dataset.do === 'item:' + id
-          ? 'item:' + id
-          : 'use:' + id,
+        document.activeElement?.dataset.do || `use:${id}:${heroId}`,
       returnScroll = {
         body: this.root.querySelector('.atlas-body')?.scrollTop || 0,
         pack: this.root.querySelector('.exp-pack-items')?.scrollTop || 0,
@@ -667,7 +674,7 @@ export class UI {
   }
   action(a) {
     if (this.game.upgradeTour?.open) return;
-    const [act, arg] = a.split(':');
+    const [act, arg, target] = a.split(':');
     const g = this.game,
       s = g.state,
       h = s.heroes[this.hero] || s.heroes[0];
@@ -700,7 +707,7 @@ export class UI {
         break;
       case 'tab':
         this.tab = +arg;
-        if (this.tab !== 2) this.inventoryFilter = 'all';
+        if (this.tab !== 2) this.clearInventoryFilters();
         this.notice = '';
         this.render();
         break;
@@ -710,9 +717,49 @@ export class UI {
         this.inventoryNavigation = null;
         this.render();
         break;
+      case 'inventory-open':
+        this.inventoryHero = s.heroes.some((hero) => hero.id === arg)
+          ? arg
+          : null;
+        this.inventoryFilter = 'all';
+        this.tab = 2;
+        this.notice = '';
+        this.render();
+        break;
+      case 'inventory-hero': {
+        const deactivate = this.inventoryHero === arg || arg === 'all';
+        this.inventoryHero = deactivate
+          ? null
+          : s.heroes.find((hero) => hero.id === arg)?.id || null;
+        this.inventoryNavigation = null;
+        this.inventoryIndex = 0;
+        this.notice = '';
+        this.render();
+        if (this.inventoryRecipientItem && this.inventoryHero) {
+          this.root
+            .querySelector(`[data-do="item:${this.inventoryRecipientItem}"]`)
+            ?.focus({ preventScroll: true });
+          this.inventoryRecipientItem = null;
+        } else if (deactivate) document.activeElement?.blur();
+        break;
+      }
+      case 'inventory-recipient':
+        this.inventoryRecipientItem = arg;
+        this.notice = `${ITEMS[arg].name} · Choose recipient`;
+        this.render();
+        this.root
+          .querySelector('.exp-inventory-hero')
+          ?.focus({ preventScroll: true });
+        break;
       case 'inventory-slot':
       case 'inventory-filter': {
-        const deactivate = this.tab === 2 && this.inventoryFilter === arg;
+        const incomingHero =
+          target || (this.tab !== 2 && act === 'inventory-slot' ? h.id : null);
+        const deactivate =
+          this.tab === 2 &&
+          this.inventoryFilter === arg &&
+          (!incomingHero || incomingHero === this.inventoryHero);
+        if (incomingHero) this.inventoryHero = incomingHero;
         this.tab = 2;
         this.inventoryFilter = deactivate ? 'all' : arg;
         this.inventoryIndex = 0;
@@ -730,12 +777,20 @@ export class UI {
       case 'item':
         this.inspectItem(arg);
         break;
-      case 'equip':
-        this.feedback(P.equip(s, h.id, arg));
+      case 'equip': {
+        const recipient = target
+          ? s.heroes.find((hero) => hero.id === target)
+          : inventoryRecipient(this, arg);
+        if (recipient) this.feedback(P.equip(s, recipient.id, arg));
         break;
-      case 'unequip':
-        this.feedback(P.unequip(s, h.id, arg));
+      }
+      case 'unequip': {
+        const recipient = target
+          ? s.heroes.find((hero) => hero.id === target)
+          : inventoryHero(this);
+        if (recipient) this.feedback(P.unequip(s, recipient.id, arg));
         break;
+      }
       case 'use':
         if (g.mode === 'battle') {
           this.feedback({
@@ -745,7 +800,12 @@ export class UI {
           });
           break;
         }
-        this.requestItemUse(arg, h.id);
+        {
+          const recipient = target
+            ? s.heroes.find((hero) => hero.id === target)
+            : inventoryRecipient(this, arg);
+          if (recipient) this.requestItemUse(arg, recipient.id);
+        }
         break;
       case 'learn':
         this.feedback(P.learn(s, h.id, arg));
@@ -980,13 +1040,15 @@ export class UI {
     )
       (
         this.root.querySelector('.exp-inventory-item[aria-pressed="true"]') ||
-        this.root.querySelector('.exp-inventory-hero[aria-pressed="true"]')
+        this.root.querySelector('.exp-inventory-hero[aria-pressed="true"]') ||
+        this.root.querySelector('.exp-inventory-hero')
       )?.focus({ preventScroll: true });
     else if (old) old.focus({ preventScroll: true });
     else if (inventoryVisible)
       (
         this.root.querySelector('.exp-inventory-item[aria-pressed="true"]') ||
-        this.root.querySelector('.exp-inventory-hero[aria-pressed="true"]')
+        this.root.querySelector('.exp-inventory-hero[aria-pressed="true"]') ||
+        this.root.querySelector('.exp-inventory-hero')
       )?.focus({ preventScroll: true });
     else if (this.menu && this.tab === 0 && this.map.canvas)
       this.map.focusSelected();
@@ -1112,6 +1174,13 @@ export class UI {
         scale,
       ),
     );
+  }
+
+  clearInventoryFilters() {
+    this.inventoryFilter = 'all';
+    this.inventoryHero = null;
+    this.inventoryRecipientItem = null;
+    this.inventoryNavigation = null;
   }
 
   inspectItem(id) {
@@ -1240,7 +1309,11 @@ export class UI {
                 ? unit * quantity
                 : Math.ceil(unit * quantity),
               locked = this.sellMode && (it.unique || it.price <= 0),
-              old = ITEMS[hero.equip[it.slot]];
+              owner = weaponOwner(id),
+              recipient = canEquip(hero.id, id)
+                ? hero
+                : s.heroes.find((h) => h.id === owner),
+              old = recipient ? ITEMS[recipient.equip[it.slot]] : null;
             const changes = [
               ...new Set([
                 ...Object.keys(it.stats),
@@ -1253,11 +1326,11 @@ export class UI {
               }))
               .filter((d) => d.n !== 0);
             const comparison =
-              !this.sellMode && type !== 'consumable'
-                ? `<span class="shop-comparison"><span>vs ${esc(hero.name)}</span>${changes.length ? changes.map((d) => `<span class="${d.n > 0 ? 'gain' : 'loss'}">${esc(d.label)} ${d.n > 0 ? '+' : ''}${d.n}</span>`).join('') : '<span>No stat change</span>'}</span>`
+              !this.sellMode && type !== 'consumable' && recipient
+                ? `<span class="shop-comparison"><span>vs ${esc(recipient.name)}</span>${changes.length ? changes.map((d) => `<span class="${d.n > 0 ? 'gain' : 'loss'}">${esc(d.label)} ${d.n > 0 ? '+' : ''}${d.n}</span>`).join('') : '<span>No stat change</span>'}</span>`
                 : '';
             return button(
-              `<span class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${tierBadge(it.tier)}</span><span class="shop-owned">Own ${fmt(owned)}</span></span><span class="shop-description">${esc(it.description)}</span>${comparison}<span class="shop-card-action"><span>${locked ? 'Keepsake' : `${this.sellMode ? 'Sell' : 'Buy'} ×${quantity}`}</span><strong>${locked ? 'Cannot sell' : `${fmt(total)} ore`}</strong></span>`,
+              `<span class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${tierBadge(it.tier)}${owner ? `<small>${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}</span><span class="shop-owned">Own ${fmt(owned)}</span></span><span class="shop-description">${esc(it.description)}</span>${comparison}<span class="shop-card-action"><span>${locked ? 'Keepsake' : `${this.sellMode ? 'Sell' : 'Buy'} ×${quantity}`}</span><strong>${locked ? 'Cannot sell' : `${fmt(total)} ore`}</strong></span>`,
               (this.sellMode ? 'sell:' : 'buy:') + id,
               'shop-card',
               `data-tier="${it.tier}" ${locked ? 'disabled' : ''}`,

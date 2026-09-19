@@ -3,6 +3,8 @@ import { ALL_SCENES, REGIONS } from './world.js';
 import { stats } from './progression.js';
 import { mainObjective } from './narrative.js';
 import { FOG_CELL } from './maps.js';
+import { canEquip } from './equipment.js';
+import { migrateWeaponFamilies } from './legacy-weapon-migration.js';
 export const SAVE_PREFIX = 'chronforge_echo_v1';
 export const SAVE_GAME = 'chronforge-echo';
 export const MAX_SAVE_BYTES = 5 * 1024 * 1024;
@@ -311,6 +313,12 @@ export function migrate(input) {
   if (s.version === undefined) s.version = 1;
   if (s.version !== 1)
     fail('This save needs a newer version of Chronforge Echo.');
+  if (
+    s.equipmentRevision !== undefined &&
+    s.equipmentRevision !== 0 &&
+    s.equipmentRevision !== 1
+  )
+    fail('Unsupported equipment revision in save.');
   if (!Array.isArray(s.heroes) || !s.heroes.some((h) => h?.id === 'kaida'))
     fail('The save is missing Kaida.');
   const unique = new Set();
@@ -458,6 +466,10 @@ export function migrate(input) {
     }
   }
   if (s.suspendedBattle != null) validateBattle(s.suspendedBattle, s);
+  migrateWeaponFamilies(s);
+  for (const hero of [...s.heroes, ...(s.suspendedBattle?.heroes || [])])
+    if (hero.equip.weapon && !canEquip(hero.id, hero.equip.weapon))
+      fail('Equipped weapon does not match its hero in save.');
   return s;
 }
 function normalizeRecord(input) {
@@ -516,18 +528,27 @@ export function saveState(state, slot = 'checkpoint', storage = localStorage) {
   storage.setItem(slotKey(slot), text);
   return payload;
 }
-function readSave(slot, storage) {
+function readSave(slot, storage, persistMigration = false) {
   const text = storage.getItem(slotKey(slot));
   if (text === null || text === undefined || text === '')
     fail('This save slot is empty.');
-  return parseSaveFile(text);
+  const payload = parseSaveFile(text);
+  if (persistMigration) {
+    const original = JSON.parse(text);
+    if (
+      (original.state || original).equipmentRevision !==
+      payload.state.equipmentRevision
+    )
+      storage.setItem(slotKey(slot), serialize(payload));
+  }
+  return payload;
 }
 export function exportSave(slot, storage = localStorage) {
   slotKey(slot, true);
   return serialize(readSave(slot, storage));
 }
 export function loadState(slot = 'checkpoint', storage = localStorage) {
-  return readSave(slot, storage).state;
+  return readSave(slot, storage, true).state;
 }
 function exploration(s) {
   let revealed = 0,

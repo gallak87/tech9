@@ -9,6 +9,7 @@ import {
   ENEMIES,
 } from './content.js';
 import { assessItemUse, consumeItem } from './consumables.js';
+import { canEquip } from './equipment.js';
 const ok = (message, rewards = []) => ({ ok: true, message, rewards });
 const no = (message) => ({ ok: false, message, rewards: [] });
 const whole = (n) => Number.isInteger(n) && n > 0;
@@ -73,6 +74,7 @@ function makeHero(id, level, state) {
 export function createState() {
   const state = {
     version: 1,
+    equipmentRevision: 1,
     seed: 9127,
     rng: 9127,
     playTime: 0,
@@ -175,6 +177,8 @@ export function equip(state, heroId, itemId) {
     item = ITEMS[itemId];
   if (!hero || !item || !['weapon', 'armor', 'accessory'].includes(item.slot))
     return no('Choose equipment and a member of the crew.');
+  if (!canEquip(heroId, itemId))
+    return no(`${hero.name} cannot equip ${item.name}.`);
   if ((state.inventory[itemId] || 0) < 1)
     return no('That item is not in your pack.');
   const old = hero.equip[item.slot];
@@ -447,7 +451,9 @@ export function serviceStock(state, service = 'smith', region = state.region) {
           : service === 'smith'
             ? i.slot !== 'consumable' && i.tier <= 2
             : service === 'archivist'
-              ? i.stats.int || i.stats.maxMp
+              ? i.slot === 'weapon'
+                ? i.weaponFamily === 'staff'
+                : i.stats.int || i.stats.maxMp
               : service === 'artificer'
                 ? i.slot !== 'consumable'
                 : false),

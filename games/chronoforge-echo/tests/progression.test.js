@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ITEMS, ENEMIES, TECHS, EXPANSION_CONTRACT } from '../src/content.js';
+import { canEquip } from '../src/equipment.js';
 import {
   createState,
   stats,
@@ -356,12 +357,7 @@ function simulateCampaign(seed = 9127, minimal = false) {
       const score = (i) => {
         const s = ITEMS[i]?.stats || {};
         return (
-          (h.id === 'vex'
-            ? s.int || 0
-            : h.id === 'rune'
-              ? (s.tec || 0) + (s.str || 0) * 0.3
-              : s.str || 0) *
-            3 +
+          (h.id === 'vex' ? s.int || 0 : s.str || 0) * 3 +
           (s.def || 0) * 2 +
           (s.maxHp || 0) * 0.1 +
           (s.maxMp || 0) * 0.1 +
@@ -371,7 +367,12 @@ function simulateCampaign(seed = 9127, minimal = false) {
       };
       for (const slot of ['weapon', 'armor', 'accessory']) {
         const owned = Object.keys(state.inventory)
-          .filter((id) => state.inventory[id] > 0 && ITEMS[id]?.slot === slot)
+          .filter(
+            (id) =>
+              state.inventory[id] > 0 &&
+              ITEMS[id]?.slot === slot &&
+              canEquip(h.id, id),
+          )
           .sort((a, b) => score(b) - score(a));
         if (owned[0] && score(owned[0]) > score(h.equip[slot]))
           equip(state, h.id, owned[0]);

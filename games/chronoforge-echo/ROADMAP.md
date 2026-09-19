@@ -1,16 +1,18 @@
 # Roadmap
 
 - [ ] Revisit and extend each vendor’s story arc and completion milestones.
+- [ ] Review overlapping smith, archivist, and artificer stock and roles; decide whether to consolidate vendors before a dedicated shop redesign.
 - [ ] Fix Kaida’s clipped victory pose; likely regenerate her full sprite set for consistent appearance and framing rather than replacing only the victory pose.
 - [ ] Add bounded enemy patrols as the next separate encounter pass, keeping danger cues aligned with movement and routes readable.
 - [ ] Revisit whether encounters should forbid retreat; undecided, keep current retreat rules until reviewed separately.
 - [ ] Animate Crater Ember’s lava with a natural sense of flow and heat.
 - [ ] Revisit Forest Veil’s semicircular tree groves and traversal; explore dense woodland with connected clearings and readable paths.
-- [ ] Reconcile weapon types with hero archetypes and attack animations. Explore Chrono Trigger-inspired weapon families: swords for Kaida, staves for Vex, and gloves/gauntlets for Rune. Decide how existing spell foci, hammers, and shields fit, along with equipment restrictions, loot/vendor progression, and existing saves, before changing the current rules.
+- [ ] Playtest the implemented weapon-family pass: swords for Kaida, staves for Vex, gauntlets for Rune; four-tier progression, optional hero filtering, required vendor/loot adjustments, automatic legacy-save conversion, and replacement art for mismatched weapons. Check inventory flow, existing saves, and upgrade balance. Character artwork remains fixed.
+- [ ] Retire the temporary weapon-family save migration after the compatibility window (review in early October 2026). Keep current equipment validation; remove the conversion module and legacy-load writeback once existing players' saves have upgraded.
 
 ## TODO — Revisit Party and Inventory overlap
 
-Inventory now has a compact crew/loadout column, a wider grid grouped by item type and sorted by descending tier, with stat deltas and Equip/Use actions inside every outlined card. Cards have bounded widths and compact icon/name headers. The crew swapper shows full portraits with names and levels on one line; it and the small character preview stay beside Equipped. Space/Enter act on items or toggle filters; [/] switch crew while preserving the selection. Filters persist during browsing and clear on click-away. Every valid consumable use in Inventory now requires confirmation.
+Inventory now has a compact crew/loadout column, a wider grid grouped by item type and sorted by descending tier, with stat deltas and Equip/Use actions inside every outlined card. Cards have bounded widths and compact icon/name headers. The crew swapper shows full portraits with names and levels on one line, beside Equipped. Selecting a hero filters their weapons while shared armor, accessories, and consumables remain visible; deselecting shows all crew equipment and the full pack. Space/Enter act on items or toggle filters; [/] cycle the crew filter and its unselected state. Filters persist during browsing and clear on click-away. Every valid consumable use in Inventory requires confirmation.
 
 Party remains the character record, with full stats and equipment shortcuts into Inventory. Defer the longer-term tab merger/separation decision until after using the new inventory flow; no tab removal or merger is selected.
 

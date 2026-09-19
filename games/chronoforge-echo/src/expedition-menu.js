@@ -21,7 +21,7 @@ const time = (s) =>
 const btn = (label, action, cl = '', attrs = '') =>
   `<button class="${cl}" data-do="${esc(action)}" ${attrs}>${label}</button>`;
 const icon = (id) =>
-  `<canvas class="pixel-icon" data-icon="${esc(id)}" width="128" height="128" aria-hidden="true"></canvas>`;
+  `<canvas class="pixel-icon" data-${ITEMS[id]?.slot === 'weapon' ? 'inventory-icon' : 'icon'}="${esc(id)}" width="128" height="128" aria-hidden="true"></canvas>`;
 const names = {
   str: 'Strength',
   int: 'Intellect',
@@ -59,7 +59,7 @@ function gear(h) {
     .map(([slot, id]) =>
       btn(
         `${id ? icon(id) : '<span class="exp-empty-slot">—</span>'}<span><small class="exp-equipment-meta"><span>${slot}</span>${id ? tierBadge(ITEMS[id].tier) : ''}</small><strong>${id ? ITEMS[id].name : 'Empty slot'}</strong></span>`,
-        'inventory-slot:' + slot,
+        `inventory-slot:${slot}:${h.id}`,
         'exp-gear-slot',
         id ? `data-tier="${ITEMS[id].tier}"` : '',
       ),
@@ -82,7 +82,7 @@ function vitals(h, s) {
 function characterPage(ui) {
   const s = ui.game.state,
     h = heroOf(ui);
-  return `${header(h.name, `${HEROES[h.id].role} · CREW RECORD / ${s.heroes.length} COMPANIONS`)}${heroPicker(ui)}<div class="exp-character-layout">${gear(h)}${heroArt(h)}<aside class="exp-character-notes">${vitals(h, s)}${statList(h, s)}<div class="exp-skill-count">${h.skillPoints} skill points ${btn('Develop techniques →', 'tab:3')}</div></aside></div><div class="exp-character-footer"><p class="exp-hand">${s.heroes.length === 1 ? 'For now, the salt road has only one set of footsteps.' : 'A different road brought each of us here. We go on together.'}</p>${btn('Inspect equipment →', 'tab:2', 'button quiet')}</div>`;
+  return `${header(h.name, `${HEROES[h.id].role} · CREW RECORD / ${s.heroes.length} COMPANIONS`)}${heroPicker(ui)}<div class="exp-character-layout">${gear(h)}${heroArt(h)}<aside class="exp-character-notes">${vitals(h, s)}${statList(h, s)}<div class="exp-skill-count">${h.skillPoints} skill points ${btn('Develop techniques →', 'tab:3')}</div></aside></div><div class="exp-character-footer"><p class="exp-hand">${s.heroes.length === 1 ? 'For now, the salt road has only one set of footsteps.' : 'A different road brought each of us here. We go on together.'}</p>${btn('Inspect equipment →', 'inventory-open:' + h.id, 'button quiet')}</div>`;
 }
 
 function mapPage(ui) {

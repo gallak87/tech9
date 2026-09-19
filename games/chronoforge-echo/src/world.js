@@ -457,6 +457,7 @@ const regions = [
       ]),
       consoleAt('crater_pressure', 'Pressure manifold', 3700, 1430),
       pickup('crater_blade', 'magma_blade', 2190, 390),
+      pickup('crater_gauntlets', 'ash_gauntlet', 2700, 450),
       pickup('crater_energy', 'energy', 3890, 1470, 60),
       landmark('crater_gate', 'The basalt teeth', 3500, 960, 'arch', {
         size: 1.5,

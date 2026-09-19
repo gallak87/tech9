@@ -30,7 +30,8 @@ export function navigateExpedition(ui, key) {
       else if (ui.tab === 2)
         focus(
           root.querySelector('.exp-inventory-item[aria-pressed="true"]') ||
-            root.querySelector('.exp-inventory-hero[aria-pressed="true"]'),
+            root.querySelector('.exp-inventory-hero[aria-pressed="true"]') ||
+            root.querySelector('.exp-inventory-hero'),
         );
       else focus(hero() || buttons('.exp-page button,.exp-page input')[0]);
     }
@@ -114,9 +115,12 @@ function navigateInventory(ui, key) {
       (el) => !el.disabled && el.offsetWidth > 0,
     );
   if (key === '[' || key === ']') {
-    const count = ui.game.state.heroes.length;
-    if (count > 1)
-      ui.action('hero:' + ((ui.hero + (key === ']' ? 1 : count - 1)) % count));
+    const crew = ['all', ...ui.game.state.heroes.map((h) => h.id)];
+    const current = Math.max(0, crew.indexOf(ui.inventoryHero || 'all'));
+    ui.action(
+      'inventory-hero:' +
+        crew[(current + (key === ']' ? 1 : crew.length - 1)) % crew.length],
+    );
     return true;
   }
   if (
@@ -167,7 +171,8 @@ function navigateInventory(ui, key) {
   if (!active?.closest('.exp-inventory-layout')) {
     focus(
       selected() ||
-        root.querySelector('.exp-inventory-hero[aria-pressed="true"]'),
+        root.querySelector('.exp-inventory-hero[aria-pressed="true"]') ||
+        root.querySelector('.exp-inventory-hero'),
     );
     return true;
   }
@@ -220,8 +225,10 @@ function navigateInventory(ui, key) {
       if (!next && key === 'ArrowLeft')
         next =
           root.querySelector(
-            `[data-do="inventory-slot:${active.closest('.exp-inventory-group')?.dataset.slot}"]`,
-          ) || root.querySelector('.exp-inventory-hero[aria-pressed="true"]');
+            `[data-do^="inventory-slot:${active.closest('.exp-inventory-group')?.dataset.slot}:"]`,
+          ) ||
+          root.querySelector('.exp-inventory-hero[aria-pressed="true"]') ||
+          root.querySelector('.exp-inventory-hero');
       ui.inventoryNavigation = null;
     }
   } else if (active.closest('.exp-inventory-toolbar') && key === 'ArrowDown')

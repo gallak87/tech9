@@ -1,5 +1,7 @@
 # Civic asset import and native review
 
+All four town centers now use dedicated regional four-tier exterior sheets with explicit growing world sizes. See [the new art and temporary preview controls](regional-town-centers.md). The table and historical render evidence below describe the original civic atlases. Temporary town-center review images are not retained in the repository.
+
 The two original generated PNGs are preserved unchanged: [production](../public/assets/civic-production-source.png) and [culture](../public/assets/civic-culture-source.png), both 1254×1254. They were generated with the imagegen tool; the exact prompts are recorded under `civic_production` and `civic_culture` in [asset-prompts.json](asset-prompts.json). The requested transparent 2048px output arrived at 1254px with a baked neutral checkerboard, so import uses measured runtime extraction rather than assuming true alpha or the requested dimensions.
 
 | Atlas row | Identity | Four visible stages |

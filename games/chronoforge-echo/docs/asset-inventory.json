@@ -1,7 +1,51 @@
 {
-  "sourceCount": 70,
-  "compressedBytes": 150873383,
+  "sourceCount": 82,
+  "compressedBytes": 175940834,
   "sources": [
+    {
+      "id": "haventide_town_center",
+      "kind": "townCenter",
+      "biome": null,
+      "file": "assets/town-centers/haventide-town-center-tiers-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2802800,
+      "frames": 4,
+      "sha256": "537fb41372efc0f2f624f979fabd01d1107b5a456e212332080a104ac33903e5"
+    },
+    {
+      "id": "emberline_town_center",
+      "kind": "townCenter",
+      "biome": null,
+      "file": "assets/town-centers/emberline-town-center-tiers-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2903685,
+      "frames": 4,
+      "sha256": "50b4792ddb601f62df4f2c185c7937a1b702e5484d40b8ffbdf235fa1a22deec"
+    },
+    {
+      "id": "orbital_reach_town_center",
+      "kind": "townCenter",
+      "biome": null,
+      "file": "assets/town-centers/orbital-reach-town-center-tiers-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2705121,
+      "frames": 4,
+      "sha256": "ab96ed7c6f4effdec53ec7a95bc66175467a15f99a727d41e3fd6bce78c36a1c"
+    },
+    {
+      "id": "last_crown_town_center",
+      "kind": "townCenter",
+      "biome": null,
+      "file": "assets/town-centers/last-crown-town-center-tiers-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 3038740,
+      "frames": 4,
+      "sha256": "ce7a4929a7b4d95ba93a3b2d8855101c8778790a3e4f2cc8201e5cc7ffafbf16"
+    },
     {
       "id": "kaida_walk",
       "kind": "kaidaWalk",
@@ -529,6 +573,94 @@
       "sourceBytes": 795197,
       "frames": 1,
       "sha256": "5398129a5d7a1a269d0719170284414ca49ccfd9bca1a6b2d1b86a99cadde697"
+    },
+    {
+      "id": "npc_haventide",
+      "kind": "npc",
+      "biome": null,
+      "file": "assets/npcs/haventide-source.png",
+      "width": 2172,
+      "height": 724,
+      "sourceBytes": 1644223,
+      "frames": 7,
+      "sha256": "1c8504da6da0d5817aa57e74bd98f085ca8c9d89d1230643e5429c653b756aab"
+    },
+    {
+      "id": "npc_emberline",
+      "kind": "npc",
+      "biome": null,
+      "file": "assets/npcs/emberline-source.png",
+      "width": 1774,
+      "height": 887,
+      "sourceBytes": 1817863,
+      "frames": 7,
+      "sha256": "bd1999478c48ef14715411978a24da4532e0ff64306738737d4dd3afc6f32eee"
+    },
+    {
+      "id": "npc_orbital_reach",
+      "kind": "npc",
+      "biome": null,
+      "file": "assets/npcs/orbital_reach-source.png",
+      "width": 1774,
+      "height": 887,
+      "sourceBytes": 1881916,
+      "frames": 7,
+      "sha256": "d8dac91126a0a33caa6aa00b17b31f66036980812c48c8fc40cdb6627245e66d"
+    },
+    {
+      "id": "npc_last_crown",
+      "kind": "npc",
+      "biome": null,
+      "file": "assets/npcs/last_crown-source.png",
+      "width": 1774,
+      "height": 887,
+      "sourceBytes": 1870091,
+      "frames": 7,
+      "sha256": "9106ff200f9b86ecf8e4e94038806882ba142a2c7a16a7cb0f35ff7841c0dea9"
+    },
+    {
+      "id": "npc_house_keepers",
+      "kind": "npc",
+      "biome": null,
+      "file": "assets/npcs/house_keepers-source.png",
+      "width": 2172,
+      "height": 724,
+      "sourceBytes": 1790767,
+      "frames": 8,
+      "sha256": "2c34c1c1314f405597b4fe95fea5119abfd4a923f4a7b8d91ab209641d8392a7"
+    },
+    {
+      "id": "signal_beacon",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/structures/signal-beacon-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 826375,
+      "frames": 1,
+      "sha256": "1ffd9e58e40a2d2b2dae3d7f77252df901afea7b120db27d38419e4e973db1fd"
+    },
+    {
+      "id": "listening_dish",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/structures/listening-dish-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1858784,
+      "frames": 1,
+      "sha256": "9204555214aa5ab40e18ca9dcedc2d87d440f4bb2b5044dcba9b4c5d8f8647b8"
+    },
+    {
+      "id": "expedition_caravan",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/structures/expedition-caravan-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1927086,
+      "frames": 1,
+      "sha256": "46b26ece74aff398f0a7bfcc8995c3b669b85e44232c9aa23adcf61893aa9898"
     },
     {
       "id": "vex_walk",

@@ -42,6 +42,12 @@ The repository's Pages workflow builds Echo with Node 24 and publishes `dist/` a
 
 Movement bindings, music, effects, timing assistance, restrained motion and the minimap are adjustable in Settings. Esc pauses the entire battle timeline, including attacks already in motion. Battle commands remain separate from the atlas tabs.
 
+In the local development build, **Backquote** (the backtick key) opens a temporary art-preview panel at bottom left. Select any of the four towns, then use **1–4** or **← / →** to cycle its exterior at Haventide's existing entrance. The party stays at Haventide; no travel, exploration or progression changes occur. Closing with backtick or Esc restores the actual artwork, level and camera. Preview changes never enter saved game state. See [regional exterior art and controls](docs/regional-town-centers.md).
+
+The panel is restricted to **localhost**, **127.0.0.1**, and **[::1]**. Backtick works without a query flag. Add **`?dev=1`** to open it automatically once a started/loaded game reaches unobstructed exploration; it waits through the title screen, dialogue, battles, and transitions. Closing leaves it closed until you reopen it or load/start another session. It is unavailable on remote hosts and excluded from production builds. Temporary picture buffers and overrides are cleared on close/reset; no preview data is written to browser storage.
+
+The same panel offers **Upgrade from inside Haventide**. Select **1 → 2**, **2 → 3**, or **3 → 4**, then press **Upgrade Town Center** at the preview's indoor desk. Watch the exterior reveal and return inside, with skip and replay controls. This rehearsal uses current interior artwork and never spends resources or changes the expedition. See [upgrade rehearsal controls and scope](docs/upgrade-rehearsal.md).
+
 ## A useful first visit
 
 Follow the salt road east. Fight the early visible patrol, read its timing cue, and liberate Haventide's gate. Enter the settlement, talk with residents and try Bran's forge request. Open the settlement works to see costs, benefits and civilization requirements. The atlas explains your next story objective without marking hidden loot.

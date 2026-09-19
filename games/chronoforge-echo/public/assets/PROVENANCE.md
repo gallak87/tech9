@@ -1,5 +1,13 @@
 # Asset provenance and production inventory
 
+## Regional town center exterior pass
+
+`town-centers/emberline-town-center-tiers-v1-source.png`, `town-centers/orbital-reach-town-center-tiers-v1-source.png` and `town-centers/last-crown-town-center-tiers-v1-source.png` are unchanged built-in imagegen outputs. Each is a separate cohesive 2×2 upgrade family generated against the approved Haventide sheet and its inspected regional props reference. All three returned 1254 × 1254 RGB with baked checkerboards. Runtime connected extraction and measured seeds supply alpha; Last Crown also has a lower neutral threshold and crop-local neighboring-frame exclusions. See [integration and temporary preview controls](../../docs/regional-town-centers.md).
+
+## Haventide town center exterior pass
+
+`town-centers/haventide-town-center-tiers-v1-source.png` is the unchanged built-in imagegen output `exec-95dda299-98e0-4cb6-8448-a250360c2e9e.png`. It contains four increasingly large town-center exteriors, ending in a futuristic civic spire. The source is 1254 × 1254 RGB; runtime neutral-background extraction, enclosed-air seeds and a scoped glow threshold remove its baked checkerboard. See [metadata and controls](../../docs/haventide-town-center.md). It replaces Haventide's use of the original civic production row; that atlas remains necessary for the other civic structures.
+
 Retired Vex and Gravbot sources have moved to [the experiments archive](../../experiments/2026-09-ui-and-art/README.md). This historical record retains original filenames; [the archive manifest](../../experiments/2026-09-ui-and-art/archive-manifest.json) maps them to preserved files and hashes. The current loaded sources are listed in [the production inventory](../../docs/ASSET_INVENTORY.md).
 
 All shipped visual assets are original project artwork generated for Chronforge Echo with OpenAI image generation, or original pixel drawing code in `src/art.js`. No third-party asset pack is included. Kaida’s appearance is guided by the user-provided reference at `../chronoforge-remake/sprite-gen/kaida-reference.png`; the reference project is unchanged. Source PNGs remain immutable. Atlas cropping, transparency interpretation, palette composition and native-resolution placement happen in the renderer. The original synthesized score and sound effects are in `src/audio.js`.

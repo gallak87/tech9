@@ -9,3 +9,7 @@ node_modules/
 games/*/shots/*
 !games/*/shots/proto-ref/
 games/*/dist/
+
+# Regenerable Chronoforge Echo alpha/crop inspection output.
+games/chronoforge-echo/.art-review/
+games/chronoforge-echo/docs/town-center-review/

@@ -7,7 +7,7 @@ This inventory describes the required sources imported by the running game. It d
 - **3 heroes:** Kaida, Vex and Rune each have twelve canonical poses, a portrait extracted from their own sheet, and a dedicated twelve-frame directional walk sheet (four phases each for side, front and back; left mirrors side). Runtime anticipation, lunges, shield launch, casting, hurt, defense, healing, defeat and victory use the corresponding grounded poses and the authoritative combat clock.
 - **19 distinct enemies:** all eighteen continuity identities plus the separate Void Architect. Every identity has its own six-pose source and measured feet/extent metadata. Large bosses have individual silhouettes and source scales. Down poses remain visible before a short fade.
 - **Regional environments:** each installed biome has its own eight-prop atlas and six-material ground atlas. The renderer composes outdoor depth, roads, water/cliffs, landmarks, foreground layers and encounter backdrops at a consistent native scale. All eight outdoor worlds are 5760×2520.
-- **8 civic structures × four levels:** Town Center, Farm, Mine, Energy Extractor, Barracks, Forge, Research Lab and Walls, split across production/culture sheets. Shared settlement rules drive the visible level.
+- **8 civic structures × four levels:** Town Center, Farm, Mine, Energy Extractor, Barracks, Forge, Research Lab and Walls, the original production/culture sheets plus four dedicated regional town-center families (Haventide, Emberline, Orbital Reach and Last Crown), each with growing per-tier world dimensions and a futuristic final stage. Shared settlement rules drive the visible level.
 - **Interiors and residents:** eight market furnishings plus eight domestic furnishings (bed, stove, table, desk, bookshelf, lantern, chair and pantry), six civilians with front/back views and matching portraits, six interior floor materials and six wall materials. Four liberated town centers and sixteen houses/caves use authored footprints, furniture, events and exits.
 - **34 item identities:** generated transparent resource, consumable and accessory icons plus code-native equipment icons, shared by inventory, shops and queued reward badges. See [icon assets](icon-assets.md) and [src/item-art.js](../src/item-art.js).
 - **Interface:** seven parchment expedition tabs, compact neutral field UI and the folding battle interface with lava-orange focus/timing cues. Barlow and EB Garamond fonts are bundled locally. See [accepted UI direction](UI_DIRECTION.md).
@@ -16,10 +16,14 @@ This inventory describes the required sources imported by the running game. It d
 
 ## Immutable source files
 
-70 required PNG sources, 143.88 MiB on disk. A complete SHA-256 and byte inventory is in [asset-inventory.json](asset-inventory.json). This compressed-file size is distinct from decoded source and ground-cache memory; live measurements are in [performance.json](../evidence/performance.json).
+82 required PNG sources, 167.79 MiB on disk. A complete SHA-256 and byte inventory is in [asset-inventory.json](asset-inventory.json). This compressed-file size is distinct from decoded source and ground-cache memory; live measurements are in [performance.json](../evidence/performance.json).
 
 | ID | Use | Source dimensions | Source frames/cells | File |
 | --- | --- | --- | --- | --- |
+| haventide_town_center | townCenter | 1254×1254 | 4 | [PNG](../public/assets/town-centers/haventide-town-center-tiers-v1-source.png) |
+| emberline_town_center | townCenter | 1254×1254 | 4 | [PNG](../public/assets/town-centers/emberline-town-center-tiers-v1-source.png) |
+| orbital_reach_town_center | townCenter | 1254×1254 | 4 | [PNG](../public/assets/town-centers/orbital-reach-town-center-tiers-v1-source.png) |
+| last_crown_town_center | townCenter | 1254×1254 | 4 | [PNG](../public/assets/town-centers/last-crown-town-center-tiers-v1-source.png) |
 | kaida_walk | kaidaWalk | 1448×1086 | 12 | [PNG](../public/assets/kaida-walk-source.png) |
 | kaida_showcase | kaida | 2172×724 | 12 | [PNG](../public/assets/kaida-showcase-source.png) |
 | coast_props | environment / coast | 1774×887 | 8 | [PNG](../public/assets/coast-props-source.png) |
@@ -68,6 +72,14 @@ This inventory describes the required sources imported by the running game. It d
 | mara_compass | itemIcon | 1254×1254 | 1 | [PNG](../public/assets/icons/mara_compass-source.png) |
 | xp | itemIcon | 1254×1254 | 1 | [PNG](../public/assets/icons/xp-source.png) |
 | road_waymarker | roadSign | 1254×1254 | 1 | [PNG](../public/assets/signs/road-waymarker-source.png) |
+| npc_haventide | npc | 2172×724 | 7 | [PNG](../public/assets/npcs/haventide-source.png) |
+| npc_emberline | npc | 1774×887 | 7 | [PNG](../public/assets/npcs/emberline-source.png) |
+| npc_orbital_reach | npc | 1774×887 | 7 | [PNG](../public/assets/npcs/orbital_reach-source.png) |
+| npc_last_crown | npc | 1774×887 | 7 | [PNG](../public/assets/npcs/last_crown-source.png) |
+| npc_house_keepers | npc | 2172×724 | 8 | [PNG](../public/assets/npcs/house_keepers-source.png) |
+| signal_beacon | structure | 1254×1254 | 1 | [PNG](../public/assets/structures/signal-beacon-source.png) |
+| listening_dish | structure | 1254×1254 | 1 | [PNG](../public/assets/structures/listening-dish-source.png) |
+| expedition_caravan | structure | 1254×1254 | 1 | [PNG](../public/assets/structures/expedition-caravan-source.png) |
 | vex_walk | heroWalk | 1447×1087 | 12 | [PNG](../public/assets/vex/faceless-vex-hood-v2-walk-source.png) |
 | rune_walk | heroWalk | 1447×1087 | 12 | [PNG](../public/assets/rune-walk-source.png) |
 | rune | hero | 2172×724 | 12 | [PNG](../public/assets/rune-source.png) |

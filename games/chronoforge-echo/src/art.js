@@ -2,6 +2,7 @@ import {beaconStatus} from './beacons.js';
 import {npcIdentity,NPC_IDENTITIES,npcPresent} from './npc-identities.js';
 import {kaidaPoseScale,kaidaWalkScale} from './kaida-scale.js';
 import {drawItemIcon} from './item-art.js';
+import {townCenterBounds} from './town-center-art.js';
 import {RENDER_SCALE,artSurface,artPattern,artContext} from './rendering.js';
 import {terrainAt, distanceToRoad, insidePolygon} from './world.js';
 // World geometry remains logical pixels; source artwork retains a finer backing surface.
@@ -117,6 +118,24 @@ function alphaFrames(image,columns,rows){const cv=canvas(image.width,image.heigh
 function componentFrames(image,columns,rows){const cv=canvas(image.width,image.height),cc=cv.getContext('2d',{willReadFrequently:true});cc.drawImage(image,0,0);const width=image.width,height=image.height,data=cc.getImageData(0,0,width,height).data,seen=new Uint8Array(width*height),queue=new Int32Array(width*height),bounds=Array.from({length:columns*rows},()=>({left:width,top:height,right:0,bottom:0}));for(let start=0;start<seen.length;start++){if(seen[start]||data[start*4+3]<=80)continue;let head=0,tail=1,left=width,top=height,right=0,bottom=0;queue[0]=start;seen[start]=1;while(head<tail){const n=queue[head++],x=n%width,y=Math.floor(n/width);left=Math.min(left,x);top=Math.min(top,y);right=Math.max(right,x+1);bottom=Math.max(bottom,y+1);for(const k of [x? n-1:-1,x<width-1?n+1:-1,y?n-width:-1,y<height-1?n+width:-1])if(k>=0&&!seen[k]&&data[k*4+3]>80){seen[k]=1;queue[tail++]=k;}}if(tail<5)continue;const col=Math.min(columns-1,Math.floor((left+right)*.5/width*columns)),row=Math.min(rows-1,Math.floor((top+bottom)*.5/height*rows)),b=bounds[row*columns+col];b.left=Math.min(b.left,left);b.top=Math.min(b.top,top);b.right=Math.max(b.right,right);b.bottom=Math.max(b.bottom,bottom);}return bounds.map(b=>({x:b.left,y:b.top,w:Math.max(1,b.right-b.left),h:Math.max(1,b.bottom-b.top),anchorX:.5,anchorY:1}));}
 export function installInteriorAtlas(image,options={}){interiorAtlas={image,frames:options.frames||alphaFrames(image,options.columns||4,options.rows||2),cells:options.cells||{}};propCache.clear();}
 const buildingAtlases=new Map();
+const townCenterSheets=new Map();
+export function installTownCenterSheet(region,image,metadata){
+ const frames=metadata.frames.map(f=>{
+  if(!f.clearRects?.length)return null;
+  const crop=canvas(f.w,f.h),cc=crop.getContext('2d');
+  cc.drawImage(image,f.x,f.y,f.w,f.h,0,0,f.w,f.h);
+  for(const rect of f.clearRects)cc.clearRect(...rect);
+  return crop;
+ });
+ townCenterSheets.set(region,{image,frames});
+}
+function townCenter(c,o,state){
+ const b=townCenterBounds(o,state),sheet=b&&townCenterSheets.get(b.center.region);if(!sheet)return false;
+ const f=b.frame,crop=sheet.frames[b.frameIndex];
+ shadow(c,o.x,o.y+3,b.width*.36,11);
+ c.drawImage(crop||sheet.image,crop?0:f.x,crop?0:f.y,f.w,f.h,Math.round(b.left),Math.round(b.top),Math.round(b.width),Math.round(b.height));
+ return true;
+}
 const civicRows={town_center:['production',0],farm:['production',1],mine:['production',2],energy_extractor:['production',3],barracks:['culture',0],forge:['culture',1],research_lab:['culture',2],walls:['culture',3]};
 const measuredCivicFrames={"production":[[20,93,273,216],[325,39,287,276],[634,35,302,280],[953,12,296,306],[9,399,293,203],[323,322,293,287],[639,353,295,261],[947,325,298,294],[12,680,287,234],[319,653,296,278],[632,636,300,291],[949,632,295,293],[32,973,270,252],[332,980,280,257],[634,934,299,307],[951,934,293,310]],"culture":[[22,125,268,180],[317,74,300,238],[642,7,289,313],[945,24,304,297],[21,415,270,196],[318,338,301,282],[631,330,302,289],[943,329,305,291],[23,749,266,181],[323,671,290,261],[635,633,297,303],[946,631,299,308],[7,1038,295,186],[318,982,299,249],[629,963,305,273],[943,946,307,290]]};
 export function installBuildingAtlas(group,image,options={}){group=group.replace(/^civic-/, '');const columns=options.columns||4,rows=options.rows||4;buildingAtlases.set(group,{image,frames:options.frames||(image.width===1254&&measuredCivicFrames[group]?measuredCivicFrames[group].map(([x,y,w,h])=>({x,y,w,h,anchorX:.5,anchorY:1})):alphaFrames(image,columns,rows)),columns,pixelScale:options.pixelScale||220/(image.width/columns)});propCache.clear();}
@@ -186,7 +205,7 @@ function nativeRing(c,x,y,size=1,p=P){c.save();c.translate(x,y);c.scale(size,siz
  poly(c,[[84,-102],[90,-105],[116,-78],[106,-57],[85,-67]],'#866b62');poly(c,[[85,-101],[91,-99],[102,-77],[94,-59],[85,-69]],P.rose);rect(c,88,-94,3,24,'#d58791');c.restore();}
 function ruin(c,x,y,variant,p=P){if(atlasProp(c,'arch',x,y,148,164))return;shadow(c,x,y+3,70,10);rect(c,x-61,y-16,122,18,p.stoneDark);rect(c,x-58,y-23,120,8,p.stone);for(let i=0;i<4;i++){const xx=x-55+i*30,h=44+(i%2)*27;rect(c,xx,y-h,23,h-12,p.stoneDark);rect(c,xx,y-h,17,h-18,p.stone);rect(c,xx-3,y-h-5,27,8,p.stoneLight);for(let yy=y-h+12;yy<y-17;yy+=13)line(c,xx,yy,xx+17,yy,p.stoneDark);}
  for(let i=0;i<13;i++){let xx=x-58+rand(i*73+variant*17)*120,yy=y-16-rand(i*71)*17;rect(c,xx,yy,10,3,i%2?p.moss:p.leaf);}fern(c,x+54,y+5,p);}
-function building(c,o,p,time,state){if(o.building&&civicBuilding(c,o,state,p))return;if((o.type==='house'||o.type==='town')&&atlasProp(c,'cottage',o.x,o.y,o.type==='town'?320:250,o.type==='town'?310:240))return;const x=o.x,y=o.y,s=o.type==='town'?1.8:1,w=104*s,h=74*s;shadow(c,x,y+4,w*.61,13*s);rect(c,x-w*.5,y-h,w,h,p.stoneDark);rect(c,x-w*.46,y-h,w*.91,h-8,p.stoneLight);rect(c,x-w*.42,y-h+10,w*.83,h-22,'#a8ac90');
+function building(c,o,p,time,state){if(townCenter(c,o,state))return;if(o.building&&civicBuilding(c,o,state,p))return;if((o.type==='house'||o.type==='town')&&atlasProp(c,'cottage',o.x,o.y,o.type==='town'?320:250,o.type==='town'?310:240))return;const x=o.x,y=o.y,s=o.type==='town'?1.8:1,w=104*s,h=74*s;shadow(c,x,y+4,w*.61,13*s);rect(c,x-w*.5,y-h,w,h,p.stoneDark);rect(c,x-w*.46,y-h,w*.91,h-8,p.stoneLight);rect(c,x-w*.42,y-h+10,w*.83,h-22,'#a8ac90');
  for(let yy=y-h+14;yy<y-15;yy+=15){line(c,x-w*.43,yy,x+w*.43,yy,'#8c9c86',1);for(let xx=x-w*.4+(Math.round(yy/15)%2)*16;xx<x+w*.4;xx+=30)line(c,xx,yy,xx,yy+12,'#8c9c86');}
  rect(c,x-w*.52,y-h-9,w*1.04,9,p.ink);poly(c,[[x-w*.56,y-h-9],[x-w*.35,y-h-51*s],[x+w*.2,y-h-59*s],[x+w*.56,y-h-11]],'#365b5b');poly(c,[[x-w*.55,y-h-10],[x-w*.32,y-h-47*s],[x+w*.19,y-h-55*s],[x+w*.48,y-h-11]],'#4d7971');
  for(let j=0;j<6*s;j++){let yy=y-h-15-j*6;line(c,x-w*.43+j*3,yy,x+w*.4-j*3,yy,'#6d9080',2);}line(c,x-w*.33,y-h-48*s,x+w*.2,y-h-57*s,'#9bb096',3);rect(c,x-w*.26,y-h-78*s,13*s,34*s,p.stone);rect(c,x-w*.3,y-h-80*s,22*s,6*s,p.stoneLight);
@@ -324,12 +343,12 @@ export function drawBattleBackdrop(c,biome,time){selectBiome(biome);const p=PALE
  ring(c,872,247,.72,p);ruin(c,91,258,1,p);tree(c,-28,346,1,1.4,p);cypress(c,967,360,p,1.4);fern(c,47,308,p);fern(c,723,302,p);stone(c,934,300,52,p);fern(c,873,352,p);fern(c,88,359,p);
 }
 // Repaint only scenery whose foot is nearer than an actor: canopy and masonry occlude correctly.
-export function drawForeground(c,scene,camera,time,state,actors=[]){selectBiome(scene.biome);const p=PALETTES[scene.biome]||P;c.save();c.translate(-Math.round(camera.x||0),-Math.round(camera.y||0));for(const o of scene.objects){if(!['tree','town','house','cave','ruin','landmark'].includes(o.type)&&o.style!=='beacon')continue;const size=o.size||1,half=o.type==='tree'?72*size:o.type==='landmark'?140*size:o.type==='town'?125:90,height=o.type==='tree'?172*size:o.type==='landmark'?290*size:o.type==='town'?265:180;const bounds=structureBounds(o),occluded=actors.some(a=>a.y<o.y+5&&(bounds?a.y>bounds.top&&a.x>bounds.left&&a.x<bounds.left+bounds.width:a.y>o.y-height&&Math.abs(a.x-o.x)<half));if(!occluded)continue;c.globalAlpha=o.type==='tree'?.42:.42;drawProp(c,o,p,time,state);}c.restore();}
+export function drawForeground(c,scene,camera,time,state,actors=[]){selectBiome(scene.biome);const p=PALETTES[scene.biome]||P;c.save();c.translate(-Math.round(camera.x||0),-Math.round(camera.y||0));for(const o of scene.objects){if(!['tree','town','house','cave','ruin','landmark'].includes(o.type)&&o.style!=='beacon')continue;const size=o.size||1,half=o.type==='tree'?72*size:o.type==='landmark'?140*size:o.type==='town'?125:90,height=o.type==='tree'?172*size:o.type==='landmark'?290*size:o.type==='town'?265:180;const bounds=townCenterBounds(o,state)||structureBounds(o),occluded=actors.some(a=>a.y<o.y+5&&(bounds?a.y>bounds.top&&a.x>bounds.left&&a.x<bounds.left+bounds.width:a.y>o.y-height&&Math.abs(a.x-o.x)<half));if(!occluded)continue;c.globalAlpha=o.type==='tree'?.42:.42;drawProp(c,o,p,time,state);}c.restore();}
 
 export function artMetrics(){
  const bytesOf=images=>[...images].reduce((n,im)=>n+(im?.width||0)*(im?.height||0)*4,0);
- const sources=new Set([...environmentAtlases.values(),...enemySheets.values(),...heroSheets.values(),...heroWalkSheets.values(),...buildingAtlases.values(),...npcSprites.values(),interiorAtlas,domesticAtlas,worldPropAtlas,roadSign,civilianAtlas,kaidaSheet,kaidaWalkSheet].map(a=>a?.image).filter(Boolean));
- const frames=new Set([...enemySheets.values(),...heroSheets.values()].flatMap(a=>a.frames||[]).map(f=>f.image).filter(Boolean));
+ const sources=new Set([...environmentAtlases.values(),...enemySheets.values(),...heroSheets.values(),...heroWalkSheets.values(),...buildingAtlases.values(),...npcSprites.values(),...townCenterSheets.values(),interiorAtlas,domesticAtlas,worldPropAtlas,roadSign,civilianAtlas,kaidaSheet,kaidaWalkSheet].map(a=>a?.image).filter(Boolean));
+ const frames=new Set([...enemySheets.values(),...heroSheets.values()].flatMap(a=>a.frames||[]).map(f=>f.image).filter(Boolean).concat([...townCenterSheets.values()].flatMap(a=>a.frames).filter(Boolean)));
  const tiles=new Set([...groundAtlases.values()].flatMap(a=>a.tiles.concat(a.roads.slice(1))).concat(interiorGroundAtlas||[],interiorWallAtlas||[]));
  return{groundChunks:groundCache.size,groundBytes:bytesOf(groundCache.values()),groundLimitBytes:40*(384*RENDER_SCALE)**2*4,propCacheEntries:propCache.size,propBytes:bytesOf(propCache.values()),groundAtlasBytes:bytesOf(tiles),retainedSourceBytes:bytesOf(sources),retainedSourceCount:sources.size,frameCacheBytes:bytesOf(frames)+bytesOf((worldPropAtlas?.frames||[]).map(f=>f.image).filter(Boolean)),worldPropBytes:bytesOf(lootOutlineCache.values()),worldProps:!!worldPropAtlas,environmentAtlas:!!environmentAtlas,environmentBiomes:[...environmentAtlases.keys()],groundBiomes:[...groundAtlases.keys()],buildingGroups:[...buildingAtlases.keys()],heroSheets:[...heroSheets.keys()],enemySheets:[...enemySheets.keys()]};
 }

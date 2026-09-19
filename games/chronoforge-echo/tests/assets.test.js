@@ -26,9 +26,9 @@ test('required source dimensions and measured frames agree with the immutable PN
     if(m?.sourceWidth)assert.equal(width,m.sourceWidth,entry.id);
     if(m?.sourceHeight)assert.equal(height,m.sourceHeight,entry.id);
     if(m?.frames){
-      // Signs and structures are individual static sprites. Animated actors
-      // and the existing multi-frame prop sheets retain the six-frame gate.
-      assert.ok(m.frames.length>=(['roadSign','structure'].includes(entry.kind)?1:6),entry.id);
+      // Static structures, four-stage town centers, and animated atlases have
+      // different minimum frame counts. Every crop is checked below.
+      assert.ok(m.frames.length>=(['roadSign','structure'].includes(entry.kind)?1:entry.kind==='townCenter'?4:6),entry.id);
       for(const f of m.frames){
         assert.ok([f.x,f.y,f.w,f.h,f.anchorX,f.anchorY].every(Number.isFinite),entry.id);
         assert.ok(f.x>=0&&f.y>=0&&f.w>0&&f.h>0&&f.x+f.w<=width&&f.y+f.h<=height,entry.id);
@@ -37,5 +37,19 @@ test('required source dimensions and measured frames agree with the immutable PN
       for(const n of Object.values(m.poseIndex||{}))assert.ok(Number.isInteger(n)&&n>=0&&n<m.frames.length,entry.id);
     }else assert.ok(Math.abs(width/entry.columns-height/entry.rows)<.01,entry.id+' grid');
     for(const [x,y] of entry.backgroundSeeds||[])assert.ok(x>=0&&y>=0&&x<width&&y<height,entry.id+' background seed');
+  }
+});
+
+test('each town imports its own complete four-tier exterior family',()=>{
+  const towns=ASSET_MANIFEST.filter(a=>a.kind==='townCenter');
+  assert.deepEqual(towns.map(a=>a.region),['haventide','emberline','orbital_reach','last_crown']);
+  assert.equal(new Set(towns.map(a=>a.url)).size,4);
+  for(const town of towns){
+    assert.ok(town.required);
+    assert.equal(town.metadata.frames.length,4);
+    for(const f of town.metadata.frames){
+      assert.ok(f.anchorX>0&&f.anchorX<f.w&&f.anchorY>0&&f.anchorY<f.h);
+      assert.ok(f.nativeWidth>0);
+    }
   }
 });

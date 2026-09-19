@@ -10,11 +10,5 @@ games/*/shots/*
 !games/*/shots/proto-ref/
 games/*/dist/
 
-# Chronoforge Echo development output is temporary, never archived in Git.
-games/chronoforge-echo/evidence/
-games/chronoforge-echo/experiments/
-games/chronoforge-echo/.tmp/
-games/chronoforge-echo/test-results/
-games/chronoforge-echo/playwright-report/
-games/chronoforge-echo/.art-review/
-games/chronoforge-echo/docs/town-center-review/
+# Disposable Chronoforge Echo experiments, scripts and review output.
+games/chronoforge-echo/.experiments/

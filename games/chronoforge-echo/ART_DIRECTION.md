@@ -41,4 +41,4 @@ Keep original selected PNGs in `public/assets/`. Crop and interpret transparency
 
 Use the logical world scale independently of image/backing resolution. Raw extraction stays at source resolution; filtered rendering uses the higher-resolution backing surface. Town interior layouts, renderers and crop metadata are separate so an art change does not silently change collision geometry or service access.
 
-Generated project art and code-drawn effects are self-contained at runtime. Fonts retain their bundled licenses. Only the selected live sources belong in the repository: delete replaced/rejected variants, generation logs, prompt archives and rendered review copies. Use temporary output for development inspection and remove it afterward.
+Generated project art and code-drawn effects are self-contained at runtime. Fonts retain their bundled licenses. Only selected live sources are tracked. Keep candidate/rejected variants, generation scripts and review copies inside the local Git-ignored `.experiments/` folder. On graduation, promote only the live assets and required code; periodically delete the remaining scratch material.

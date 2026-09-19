@@ -38,7 +38,7 @@ for (const mount of ['/', '/tech9/chronoforge-echo/']) {
   ASSET_MANIFEST.forEach(asset => check(asset.url));
   console.log(`PASS ${mount}: ${checked.size} compiled entry, font and art files resolve inside the mount.`);
 }
-for (const folder of ['evidence/', 'experiments/', '.art-review/']) {
+for (const folder of ['.experiments/', 'evidence/', 'experiments/', '.art-review/']) {
   assert.ok(!fs.existsSync(new URL(folder, dist)), `Development artifacts must not ship: ${folder}`);
 }
 let productionScript='',productionStyles='';

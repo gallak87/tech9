@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import {createState,useItem,stats} from '../src/progression.js';
@@ -64,7 +65,7 @@ try{
  await p.locator('.purchase-confirm').waitFor();
  assert.match(await p.locator('.purchase-confirm').textContent(),/restores 1 HP.*79 HP will be wasted/);
  const savedScroll=await p.evaluate(()=>__ECHO__.game.ui.panel.returnScroll.pack);
- await p.screenshot({path:'/tmp/echo-consumable-confirm.png'});
+ await p.screenshot({path:reviewRoot + 'echo-consumable-confirm.png'});
  await p.keyboard.press('Escape');
  const canceled=await p.evaluate(()=>{const g=__ECHO__.game;return {stock:g.state.inventory.field_tonic,hp:g.state.heroes[1].hp,hero:g.ui.hero,item:g.ui.item,focus:document.activeElement.dataset.do,pack:document.querySelector('.exp-pack-items').scrollTop};});
  assert.equal(canceled.stock,before.stock);assert.equal(canceled.hp,before.hp);assert.equal(canceled.hero,1);assert.equal(canceled.item,'field_tonic');assert.equal(canceled.focus,'use:field_tonic');assert.equal(canceled.pack,savedScroll);
@@ -79,5 +80,5 @@ try{
  await p.waitForFunction(()=>__ECHO__.game.state.inventory.field_tonic===4);
  assert.equal(await p.evaluate(()=>{const h=__ECHO__.game.battle.heroes[0];return h.hp===h.maxHp;}),true);
  assert.deepEqual(errors,[]);
- console.log(JSON.stringify({sharedBoundary:'Full/no-effect blocked; 99/100 confirms with exact waste; 50/100 direct; MP equivalent; stock/target rechecked; revive preserved',battle:'Full blocks without ATB spend; cancel/accept; contact rechecks stock and effect',ui:'Actual Escape/Enter cancel/accept in inventory and battle; selected hero/item/focus/scroll retained',screenshot:'/tmp/echo-consumable-confirm.png',errors},null,2));
+ console.log(JSON.stringify({sharedBoundary:'Full/no-effect blocked; 99/100 confirms with exact waste; 50/100 direct; MP equivalent; stock/target rechecked; revive preserved',battle:'Full blocks without ATB spend; cancel/accept; contact rechecks stock and effect',ui:'Actual Escape/Enter cancel/accept in inventory and battle; selected hero/item/focus/scroll retained',screenshot:reviewRoot + 'echo-consumable-confirm.png',errors},null,2));
 }finally{await browser.close();}

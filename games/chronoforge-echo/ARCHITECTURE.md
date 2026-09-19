@@ -40,6 +40,6 @@ Test hooks require a Vite development build and `?test=1`. Production excludes p
 
 `npm test` runs pure Node regression tests. `npm run build` and `npm run verify:build` check production packaging, required art and deployment paths. Browser scripts exercise input and integration when explicitly run against the appropriate server.
 
-Review scripts share a checkout-specific OS temporary directory via `scripts/review-output.mjs`. Campaign replay writes fresh snapshots there for dependent checks. `npm run clean:review` removes the output. Screenshots, reports, saves used as review fixtures, generated inventories and retired art are not repository records.
+Disposable experiments, scripts and artifacts live only in the Git-ignored `.experiments/` directory. Review tools write to `.experiments/output/` via `scripts/review-output.mjs`; `npm run clean:review` removes that output. Required source, assets, build tooling and regression tests stay outside this folder. Optional campaign checks regenerate their shared snapshots before use. Deleting all of `.experiments/` is safe; never make production or required tests depend on its contents.
 
 Performance targets are 60 fps, p95 frame interval at most 20 ms and transition preparation under 250 ms. Record the actual environment when measuring; targets are not claims of measured performance.

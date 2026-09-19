@@ -2,8 +2,39 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { ASSET_MANIFEST } from '../src/assets.js';
-import { ENEMIES, HEROES } from '../src/content.js';
+import { ENEMIES, HEROES, ITEMS } from '../src/content.js';
 const publicRoot = new URL('../public/', import.meta.url);
+
+test('every inventory item has dedicated transparent menu art with a valid crop', () => {
+  const icons = ASSET_MANIFEST.filter(
+    (entry) => entry.kind === 'inventoryIcon',
+  );
+  assert.deepEqual(
+    icons.map((entry) => entry.itemId).sort(),
+    Object.keys(ITEMS).sort(),
+  );
+  assert.equal(new Set(icons.map((entry) => entry.url)).size, icons.length);
+  for (const entry of icons) {
+    assert.equal(entry.id, 'inventory_' + entry.itemId);
+    assert.ok(entry.required, entry.id);
+    assert.ok(!entry.key, entry.id + ' must preserve source alpha');
+    const png = fs.readFileSync(new URL(entry.url, publicRoot));
+    assert.equal(png.readUInt32BE(16), entry.width, entry.id);
+    assert.equal(png.readUInt32BE(20), entry.height, entry.id);
+    assert.ok([4, 6].includes(png[25]), entry.id + ' needs an alpha channel');
+    const [x, y, width, height] = entry.bounds;
+    assert.ok(
+      [x, y, width, height].every(Number.isInteger) &&
+        x >= 0 &&
+        y >= 0 &&
+        width > 0 &&
+        height > 0 &&
+        x + width <= entry.width &&
+        y + height <= entry.height,
+      entry.id + ' crop must fit its source',
+    );
+  }
+});
 
 test('every enemy, hero and biome has required production art; all crew members have directional gait sheets', () => {
   const ids = ASSET_MANIFEST.map((a) => a.id);

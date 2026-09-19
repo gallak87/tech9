@@ -8,6 +8,8 @@ import { ALPHA_MASKS } from './alpha-masks.js';
 import { WORLD_PROP_ASSETS } from './world-prop-frames.js';
 import { RASTER_ICON_ASSETS } from './raster-icon-manifest.js';
 import { installRasterIcon } from './raster-icons.js';
+import { INVENTORY_ICON_ASSETS } from './inventory-icon-manifest.js';
+import { installInventoryIcon } from './inventory-icons.js';
 import { SIGN_ASSETS } from './sign-art.js';
 import { STRUCTURE_ASSETS } from './structure-art.js';
 import { WORLD_DETAIL_ASSETS } from './world-detail-art.js';
@@ -176,6 +178,7 @@ export const ASSET_MANIFEST = [
     required: true,
   })),
   ...RASTER_ICON_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
+  ...INVENTORY_ICON_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
   ...SIGN_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
   ...NPC_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
   ...STRUCTURE_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
@@ -401,6 +404,9 @@ export async function loadAssets(art) {
             break;
           case 'itemIcon':
             installRasterIcon(image, entry);
+            break;
+          case 'inventoryIcon':
+            installInventoryIcon(image, entry);
             break;
           case 'roadSign':
             art.installRoadSign(image, entry.metadata);

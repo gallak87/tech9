@@ -16,7 +16,7 @@ const esc = (value) =>
   );
 const fmt = (n) => Math.floor(n ?? 0).toLocaleString();
 const icon = (id) =>
-  `<canvas class="pixel-icon" data-icon="${id}" width="128" height="128" aria-hidden="true"></canvas>`;
+  `<canvas class="pixel-icon" data-inventory-icon="${id}" width="128" height="128" aria-hidden="true"></canvas>`;
 const button = (label, action, className, attrs = '') =>
   `<button class="${className}" data-do="${action}" ${attrs}>${label}</button>`;
 const groups = [

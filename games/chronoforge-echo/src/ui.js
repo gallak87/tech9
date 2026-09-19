@@ -15,6 +15,7 @@ import { drawMinimap } from './maps.js';
 import { ExpeditionMap } from './expedition-map.js';
 import { renderExpedition } from './expedition-menu.js';
 import { inventoryItems } from './inventory-menu.js';
+import { drawInventoryIcon } from './inventory-icons.js';
 import { navigateExpedition, navigateShop } from './expedition-navigation.js';
 import { vendorAction } from './vendor-actions.js';
 import { SaveTransfer } from './save-transfer.js';
@@ -163,6 +164,17 @@ export class UI {
       .querySelectorAll('[data-icon]')
       .forEach((c) =>
         drawIcon(c.getContext('2d'), c.dataset.icon, 0, 0, c.width),
+      );
+    root
+      .querySelectorAll('[data-inventory-icon]')
+      .forEach((c) =>
+        drawInventoryIcon(
+          c.getContext('2d'),
+          c.dataset.inventoryIcon,
+          0,
+          0,
+          c.width,
+        ),
       );
     root
       .querySelectorAll('[data-portrait]')

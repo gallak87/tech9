@@ -41,6 +41,8 @@ Enemy badges show the visible fighter’s level and name on one line, using rela
 
 Keep original selected PNGs in `public/assets/`. Crop and interpret transparency at runtime: preserve real alpha, use connected neutral-background extraction only where required, and protect pale interior highlights with measured thresholds/seeds. Apply neighboring-frame exclusions to the affected crop, not the shared sheet. Floor materials remain opaque. Retain a shared atlas while any of its frames are live.
 
+Inventory item artwork lives in `public/assets/inventory/`, with measured source bounds in `src/inventory-icon-manifest.js`. It covers weapons, armor, accessories, and consumables. Preserve each item's identity and silhouette, top-left lighting, and real transparency; omit labels, frames, and backgrounds from the source art. The Inventory menu uses its own icon cache so this art pass does not replace combat or resource icons.
+
 Use the logical world scale independently of image/backing resolution. Raw extraction stays at source resolution; filtered rendering uses the higher-resolution backing surface. Town interior layouts, renderers and crop metadata are separate so an art change does not silently change collision geometry or service access.
 
 Generated project art and code-drawn effects are self-contained at runtime. Fonts retain their bundled licenses. Only selected live sources are tracked. Keep candidate/rejected variants, generation scripts and review copies inside the local Git-ignored `.experiments/` folder. On graduation, promote only the live assets and required code; periodically delete the remaining scratch material.

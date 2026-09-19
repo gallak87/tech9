@@ -6,6 +6,7 @@
 - [ ] Revisit whether encounters should forbid retreat; undecided, keep current retreat rules until reviewed separately.
 - [ ] Animate Crater Ember’s lava with a natural sense of flow and heat.
 - [ ] Revisit Forest Veil’s semicircular tree groves and traversal; explore dense woodland with connected clearings and readable paths.
+- [ ] Reconcile weapon types with hero archetypes and attack animations. Explore Chrono Trigger-inspired weapon families: swords for Kaida, staves for Vex, and gloves/gauntlets for Rune. Decide how existing spell foci, hammers, and shields fit, along with equipment restrictions, loot/vendor progression, and existing saves, before changing the current rules.
 
 ## TODO — Revisit Party and Inventory overlap
 

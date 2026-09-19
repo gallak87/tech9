@@ -248,7 +248,7 @@ export class WorldTraversal {
       swapped: false,
       to,
       spawn: destination,
-      facing: g.state.facing,
+      facing: scene.arrivalFacing || g.state.facing,
     };
     g.keys.clear();
     g.movePath = [];

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { WorldTraversal } from '../src/world-traversal.js';
 import { WorldTravelPreview } from '../src/dev-world-travel.js';
 import { createState, recruit } from '../src/progression.js';
-import { getScene, isWalkable, REGIONS } from '../src/world.js';
+import { getScene, isWalkable, nearby, REGIONS } from '../src/world.js';
 
 const openScene = () => ({
   id: 'open',
@@ -194,6 +194,57 @@ test('travel swaps at the fade midpoint and reports completion exactly once in e
     assert.equal(traversal.updateTransition(0.3), false);
     assert.equal(logs.length, 1);
     assert.deepEqual(sounds, ['door']);
+  }
+});
+
+test('every cave arrives below its north-wall exit and leaves by walking up', () => {
+  const entrances = Object.values(REGIONS).flatMap((scene) =>
+    scene.objects.filter((object) => object.type === 'cave'),
+  );
+  assert.equal(entrances.length, 8);
+  for (const entrance of entrances) {
+    const cave = getScene(entrance.to),
+      exit = cave.portals[0],
+      entryRoom = cave.walkAreas[0];
+    assert.deepEqual(entrance.spawn, cave.spawn, cave.id + ' arrival');
+    assert.equal(cave.spawn.x, exit.x);
+    assert.ok(cave.spawn.y > exit.y + 62, cave.id + ' clear of exit prompt');
+    assert.ok(exit.y >= entryRoom.y && exit.y <= entryRoom.y + 20);
+    assert.equal(isWalkable(cave, exit.x, exit.y), true);
+    assert.equal(isWalkable(cave, exit.x, entryRoom.y - 1), false);
+    for (const running of [false, true]) {
+      for (const dt of [1 / 60, 0.05]) {
+        const { game, traversal } = fixture(null);
+        game.state.facing = 'up';
+        traversal.travel(cave.id, entrance.spawn);
+        traversal.updateTransition(0.6);
+        assert.equal(game.state.facing, 'down');
+        assert.ok(
+          game.followers.every((actor) => isWalkable(cave, actor.x, actor.y)),
+        );
+        const autoExit = () =>
+          nearby(cave, game.state.x, game.state.y, game.state).find(
+            (object) =>
+              object.type === 'portal' &&
+              Math.hypot(object.x - game.state.x, object.y - game.state.y) < 19,
+          );
+        assert.equal(autoExit(), undefined);
+        game.keys = new Set(['ArrowDown', ...(running ? ['Shift'] : [])]);
+        for (let frame = 0; frame < 10; frame++) {
+          traversal.move(dt);
+          assert.equal(autoExit(), undefined, cave.id + ' down stays inside');
+        }
+        assert.ok(game.state.y > cave.spawn.y);
+        game.keys = new Set(['ArrowUp', ...(running ? ['Shift'] : [])]);
+        for (let frame = 0; frame < 120 && !autoExit(); frame++)
+          traversal.move(dt);
+        assert.equal(autoExit(), exit, cave.id + ' up reaches exit');
+        traversal.travel(exit.to, exit.spawn);
+        traversal.updateTransition(0.6);
+        assert.equal(game.state.region, exit.to);
+        assert.deepEqual({ x: game.state.x, y: game.state.y }, exit.spawn);
+      }
+    }
   }
 });
 

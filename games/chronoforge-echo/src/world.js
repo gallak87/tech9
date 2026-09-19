@@ -1699,8 +1699,18 @@ const cavePlans = {
     [430, 660, 440, 150],
   ],
 };
-for (const [id, areas] of Object.entries(cavePlans))
-  interiors[id].walkAreas = areas.map(([x, y, w, h]) => ({ x, y, w, h }));
+for (const [id, areas] of Object.entries(cavePlans)) {
+  const scene = interiors[id];
+  scene.walkAreas = areas.map(([x, y, w, h]) => ({ x, y, w, h }));
+  const entryRoom = scene.walkAreas[0],
+    exit = scene.portals[0];
+  // Seat the threshold just inside the north wall, with arrivals clear of it.
+  exit.y = entryRoom.y + 12;
+  scene.spawn = point(exit.x, exit.y + 96);
+  scene.arrivalFacing = 'down';
+  const entrance = REGIONS[exit.to].objects.find((o) => o.to === id);
+  entrance.spawn = point(scene.spawn.x, scene.spawn.y);
+}
 // Haventide's covered market opens toward the player: the first three services are visible at entry.
 const havenMarket = interiors.haventide_town;
 for (const o of havenMarket.objects) {

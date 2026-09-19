@@ -327,10 +327,121 @@ test('vendors compare weapon families with eligible crew and retain shared armor
   assert.ok(row('glass_needle').includes('data-inventory-icon="glass_needle"'));
   assert.ok(row('signal_saber').includes('vs Kaida'));
   assert.ok(row('bio_weave').includes('vs Kaida'));
+  const section = (type) =>
+    html.match(
+      new RegExp(`<section[^>]*data-shop-type="${type}"[\\s\\S]*?</section>`),
+    )?.[0];
+  assert.ok(!section('weapon').includes('shop-heroes'));
+  assert.ok(section('armor').includes('shop-hero:armor:0'));
+  ui.action('shop-hero:armor:1');
+  const changed = ui.renderVendor();
+  assert.match(changed, /data-do="buy:bio_weave"[\s\S]*?vs Vex/);
+  assert.match(changed, /data-do="buy:signal_saber"[\s\S]*?vs Kaida/);
   ui.game.state.heroes = [ui.game.state.heroes[0]];
   const alone = ui
     .renderVendor()
     .match(/<button[^>]*data-do="buy:glass_needle"[\s\S]*?<\/button>/)[0];
   assert.ok(alone.includes('Staff · Vex'));
   assert.ok(!alone.includes('shop-comparison'));
+});
+
+test('provisions compare accessories locally and sell supplies without a hero selector', () => {
+  const ui = actionFixture();
+  ui.panel = {
+    type: 'vendor',
+    object: { service: 'provisions', name: 'Supplies' },
+  };
+  ui.qty = 1;
+  ui.sellMode = false;
+  ui.game.state.tier = 2;
+  ui.game.state.region = 'emberline_town';
+  ui.shell = (_title, body) => body;
+  const html = ui.renderVendor();
+  assert.ok(html.includes('buy:crit_lens'));
+  assert.ok(html.includes('buy:dawn_seed'));
+  assert.ok(!html.includes('data-shop-type="weapon"'));
+  const accessories = html.match(
+    /data-shop-type="accessory"[\s\S]*?<\/section>/,
+  )[0];
+  const supplies = html.match(
+    /data-shop-type="consumable"[\s\S]*?<\/section>/,
+  )[0];
+  assert.ok(accessories.includes('shop-hero:accessory:0'));
+  assert.ok(!supplies.includes('shop-heroes'));
+  ui.sellMode = true;
+  assert.ok(!ui.renderVendor().includes('shop-heroes'));
+});
+
+test('research and closed workshops expose no trade controls or transactions', () => {
+  const ui = actionFixture();
+  ui.qty = 1;
+  ui.game.state.tier = 4;
+  ui.game.state.heroes[0].level = 40;
+  ui.game.state.buildings.research_lab = 1;
+  ui.game.state.buildings.forge = 1;
+  ui.shell = (_title, body) => body;
+  for (const service of ['archivist', 'artificer']) {
+    ui.sellMode = false;
+    ui.panel = { type: 'vendor', object: { service, name: service } };
+    const html = ui.renderVendor();
+    assert.ok(!html.includes('shop-toolbar'));
+    assert.ok(!html.includes('data-do="buy:'));
+    assert.ok(!html.includes('data-do="sell:'));
+    assert.ok(!html.includes('shop-heroes'));
+    if (service === 'archivist') assert.ok(html.includes('data-do="research"'));
+    else {
+      assert.ok(html.includes('Counter closed.'));
+      assert.ok(!html.includes('This service opens'));
+    }
+    const before = structuredClone(ui.game.state);
+    ui.confirmation = null;
+    ui.action('trade-mode');
+    ui.action('sell:iron_blade');
+    ui.action('buy:iron_blade');
+    assert.equal(ui.sellMode, false);
+    assert.equal(ui.confirmation, null);
+    assert.deepEqual(ui.game.state, before);
+  }
+});
+
+test('an early visit explains a regional gear lock without claiming the pack is empty', () => {
+  const ui = actionFixture();
+  ui.panel = {
+    type: 'vendor',
+    object: { service: 'smith', name: 'Anchor Smith' },
+  };
+  ui.qty = 1;
+  ui.sellMode = false;
+  ui.game.state.region = 'orbital_reach_town';
+  ui.game.state.tier = 2;
+  ui.shell = (_title, body) => body;
+  const html = ui.renderVendor();
+  assert.ok(html.includes('Local equipment requires Ascendant civilization.'));
+  assert.ok(!html.includes('No items in your pack'));
+});
+
+test('shop purchases charge the quoted quantity and recheck regional stock before payment', () => {
+  const ui = actionFixture();
+  const state = ui.game.state;
+  ui.panel = {
+    type: 'vendor',
+    object: { service: 'smith', name: 'Brass Anvil' },
+  };
+  ui.qty = 2;
+  state.tier = 2;
+  state.region = 'emberline_town';
+  state.resources.ore = 300;
+  const owned = state.inventory.signal_saber;
+  ui.action('buy:signal_saber');
+  assert.equal(state.resources.ore, 300);
+  ui.confirmation.run();
+  assert.equal(ui.result.ok, true);
+  assert.equal(state.resources.ore, 140);
+  assert.equal(state.inventory.signal_saber, owned + 2);
+  ui.action('buy:signal_saber');
+  state.region = 'haventide_town';
+  ui.confirmation.run();
+  assert.equal(ui.result.ok, false);
+  assert.equal(state.resources.ore, 140);
+  assert.equal(state.inventory.signal_saber, owned + 2);
 });

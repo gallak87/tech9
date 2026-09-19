@@ -1,7 +1,9 @@
 # Roadmap
 
 - [ ] Revisit and extend each vendor’s story arc and completion milestones.
-- [ ] Review overlapping smith, archivist, and artificer stock and roles; decide whether to consolidate vendors before a dedicated shop redesign.
+- [x] Consolidate each town's retail into smiths (weapons/armor) and provisions (accessories/consumables), with regional equipment tiers and automatic weapon comparisons. Archivists retain research; artificer counters remain closed with their stations preserved.
+- [ ] Playtest the regional shop pass: Haventide tier 1, Emberline tier 2, Anchor Nine tier 3, Open Hand tier 4; verify buying/selling, armor/accessory comparison controls, and research/closed-workshop dialogs.
+- [ ] Decide a future role for the preserved artificer stations before reopening their counters.
 - [ ] Add more town centers along the campaign routes, with progressively stronger local stock and useful recovery stops. Choose locations and level bands during world planning; give vendors distinct roles within each town, with selective overlap between towns. Coordinate with the vendor redesign and traversal pacing pass.
 - [ ] Fix Kaida’s clipped victory pose; likely regenerate her full sprite set for consistent appearance and framing rather than replacing only the victory pose.
 - [ ] Add bounded enemy patrols as the next separate encounter pass, keeping danger cues aligned with movement and routes readable.

@@ -85,16 +85,17 @@ test('each hero has four affordable canonical tiers with meaningful primary-stat
   }
 });
 
-test('existing vendor services offer every family at each unlocked tier', () => {
+test('regional smiths offer every weapon family at their local tier', () => {
   const state = crew();
   state.heroes[0].level = 40;
   state.buildings.forge = 1;
   state.buildings.research_lab = 1;
   state.resources.ore = 9999;
+  const regions = ['haventide', 'emberline', 'orbital_reach', 'last_crown'];
   for (let tier = 1; tier <= 4; tier++) {
     state.tier = tier;
-    const service = tier < 3 ? 'smith' : 'artificer',
-      stock = serviceStock(state, service, 'emberline');
+    const service = 'smith',
+      stock = serviceStock(state, service, regions[tier - 1]);
     assert.equal(serviceAvailable(state, service), true);
     for (const progression of Object.values(WEAPON_PROGRESSIONS)) {
       const id = progression[tier - 1];
@@ -103,11 +104,8 @@ test('existing vendor services offer every family at each unlocked tier', () => 
     }
     assert.ok(stock.every((id) => ITEMS[id].tier <= tier));
   }
-  const archivistWeapons = serviceStock(state, 'archivist', 'emberline').filter(
-    (id) => ITEMS[id].slot === 'weapon',
-  );
-  assert.ok(archivistWeapons.length >= 4);
-  assert.ok(archivistWeapons.every((id) => ITEMS[id].weaponFamily === 'staff'));
+  assert.deepEqual(serviceStock(state, 'archivist', 'emberline'), []);
+  assert.deepEqual(serviceStock(state, 'artificer', 'emberline'), []);
   assert.equal(ENEMIES.gravbot.drop, 'anchor_hammer');
   assert.equal(ENEMIES.neon_cultist.drop, 'glass_needle');
 });

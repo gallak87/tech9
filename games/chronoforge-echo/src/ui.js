@@ -4,7 +4,14 @@ import { tierBadge } from './tier-ui.js';
 import { beaconStatus } from './beacons.js';
 import './expedition.css';
 import './inventory.css';
-import { HEROES, ITEMS, BUILDINGS, TIERS, SERVICES } from './content.js';
+import {
+  HEROES,
+  ITEMS,
+  BUILDINGS,
+  TIERS,
+  SERVICES,
+  REGIONAL_SHOP_TIERS,
+} from './content.js';
 import * as P from './progression.js';
 import { performBuild } from './construction.js';
 import { mainObjective, onEvent, interactStory } from './narrative.js';
@@ -546,7 +553,12 @@ export class UI {
     const s = this.game.state,
       it = ITEMS[id],
       vendor = this.panel;
-    if (!it || vendor?.type !== 'vendor') return;
+    if (
+      !it ||
+      vendor?.type !== 'vendor' ||
+      !SERVICES[vendor.object.service || 'provisions']?.shop
+    )
+      return;
     const quantity = this.qty,
       cost = Math.ceil(
         it.price * quantity * (s.flags.mara_trade_route ? 0.85 : 1),
@@ -715,6 +727,11 @@ export class UI {
         this.hero = +arg;
         this.notice = '';
         this.inventoryNavigation = null;
+        this.render();
+        break;
+      case 'shop-hero':
+        this.hero = +target;
+        this.shopNavigation = null;
         this.render();
         break;
       case 'inventory-open':
@@ -938,6 +955,11 @@ export class UI {
         this.render();
         break;
       case 'trade-mode':
+        if (
+          this.panel?.type !== 'vendor' ||
+          !SERVICES[this.panel.object.service || 'provisions']?.shop
+        )
+          break;
         this.sellMode = !this.sellMode;
         this.render();
         break;
@@ -945,6 +967,11 @@ export class UI {
         this.requestPurchase(arg);
         break;
       case 'sell':
+        if (
+          this.panel?.type !== 'vendor' ||
+          !SERVICES[this.panel.object.service || 'provisions']?.shop
+        )
+          break;
         this.feedback(
           P.sell(s, arg, Math.min(this.qty, s.inventory[arg] || 0)),
         );
@@ -977,7 +1004,7 @@ export class UI {
     footer = '↑ ↓ Navigate &nbsp; <kbd>PgUp/Dn</kbd> Scroll &nbsp; <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm &nbsp; <kbd>Esc</kbd>/<kbd>Backspace</kbd> Return',
     tabs = false,
   ) {
-    return `<div class="scrim"></div><section class="atlas ${this.panel?.type === 'vendor' && ['inn', 'rest', 'trainer'].includes(this.panel.object.service) ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}"><header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}</header>${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${this.notice ? `<div class="notice" role="status">${esc(this.notice)}</div>` : ''}${body}</div><footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
+    return `<div class="scrim"></div><section class="atlas ${this.panel?.type === 'vendor' && !SERVICES[this.panel.object.service || 'provisions']?.shop ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}"><header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}</header>${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${this.notice ? `<div class="notice" role="status">${esc(this.notice)}</div>` : ''}${body}</div><footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
   }
   render() {
     if (!this.menu || this.tab !== 5) this.saveTransfer.cancelImport();
@@ -1277,18 +1304,18 @@ export class UI {
       ? `<aside class="merchant-actions" aria-label="Vendor service">${button(esc(serviceAction.label), serviceAction.action, 'button' + (serviceAction.primary ? ' primary' : ''), `aria-describedby="vendor-action-description vendor-action-status" ${serviceAction.disabled ? 'disabled' : ''}`)}<p id="vendor-action-description" class="merchant-action-description">${esc(serviceAction.description)}</p><p id="vendor-action-status" class="merchant-action-status">${progress ? `Vendor progress ${progress.completed}/${progress.total} · ` : ''}${esc(serviceAction.status)}</p></aside>`
       : '';
     let body = `<div class="vendor-heading"><div class="merchant-heading">${person ? portrait(person, 'merchant-portrait') : ''}<div><div class="eyebrow">${esc(def?.name || 'A warm welcome')}</div><h2>${esc(o.name)}</h2><p>${esc(o.dialogue || def?.description || 'There is always room by the lamp.')}</p></div></div>${actionPanel}</div>`;
-    if (!available) {
+    if (def?.inactive) {
+      body += '<p class="shop-empty">Counter closed.</p>';
+    } else if (!available) {
       if (!serviceAction?.serviceLocked)
         body += `<p>This service opens at ${TIERS[(def?.tier || 1) - 1]}, Kaida level ${def?.level || 1}${def?.requires ? ' with a ' + BUILDINGS[def.requires]?.name : ''}.</p>`;
-    } else if (!['inn', 'rest', 'trainer'].includes(service)) {
+    } else if (def?.shop) {
       const ids = (
         this.sellMode
           ? Object.keys(s.inventory).filter((id) => s.inventory[id] > 0)
           : P.serviceStock(s, service, s.region)
       ).filter((id) => ITEMS[id]);
       body += `<div class="shop-toolbar"><div class="button-group">${button(this.sellMode ? 'Sell from pack' : 'Buy supplies', 'trade-mode', 'button quiet', 'aria-label="' + (this.sellMode ? 'Selling from pack; switch to buying' : 'Buying supplies; switch to selling') + '"')}${button('−', 'qty:down', 'button quiet', 'aria-label="Decrease quantity"')}<span class="shop-quantity">Quantity <b>${this.qty}</b></span>${button('+', 'qty:up', 'button quiet', 'aria-label="Increase quantity"')}</div><span class="shop-balance">${fmt(s.resources.ore)} ore available</span></div>`;
-      if (!this.sellMode)
-        body += `<div class="shop-heroes"><span>Compare with</span><div class="button-group">${s.heroes.map((h, i) => button(esc(h.name), 'hero:' + i, 'button quiet' + (this.hero === i ? ' active' : ''), `aria-pressed="${this.hero === i}"`)).join('')}</div></div>`;
       for (const [type, name] of [
         ['weapon', 'Weapons'],
         ['armor', 'Armor'],
@@ -1297,7 +1324,11 @@ export class UI {
       ]) {
         const items = ids.filter((id) => ITEMS[id].slot === type);
         if (!items.length) continue;
-        body += `<section class="shop-section" data-shop-type="${type}" aria-labelledby="shop-${type}"><h3 id="shop-${type}">${name}<span>${items.length}</span></h3><div class="shop-grid">${items
+        const comparisonControl =
+          !this.sellMode && ['armor', 'accessory'].includes(type)
+            ? `<div class="shop-heroes"><span>Compare with</span><div class="button-group" role="group" aria-label="Compare ${name.toLowerCase()} with">${s.heroes.map((h, i) => button(esc(h.name), `shop-hero:${type}:${i}`, 'button quiet' + (this.hero === i ? ' active' : ''), `aria-pressed="${this.hero === i}"`)).join('')}</div></div>`
+            : '';
+        body += `<section class="shop-section" data-shop-type="${type}" aria-labelledby="shop-${type}"><div class="shop-section-heading"><h3 id="shop-${type}">${name}<span>${items.length}</span></h3>${comparisonControl}</div><div class="shop-grid">${items
           .map((id) => {
             const it = ITEMS[id],
               owned = s.inventory[id] || 0,
@@ -1338,8 +1369,10 @@ export class UI {
           })
           .join('')}</div></section>`;
       }
-      if (!ids.length)
-        body += '<p class="shop-empty">No items in your pack to sell.</p>';
+      if (!ids.length) {
+        const tier = REGIONAL_SHOP_TIERS[s.region.replace(/_town$/, '')];
+        body += `<p class="shop-empty">${this.sellMode ? 'No items in your pack to sell.' : tier && s.tier < tier ? `Local equipment requires ${TIERS[tier - 1]} civilization.` : 'No supplies available here.'}</p>`;
+      }
     }
     body += `<div class="shop-return">${button('Return to the settlement', 'close', 'button quiet')}</div>`;
     return this.shell(

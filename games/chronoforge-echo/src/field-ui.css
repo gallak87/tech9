@@ -1371,6 +1371,19 @@ kbd {
 .shop-section {
   margin: 0.85cqw 0 0;
 }
+.shop-section-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4cqw 1cqw;
+  margin-bottom: 0.4cqw;
+}
+.shop-section-heading .shop-heroes {
+  margin: 0;
+}
+.atlas .shop-section .shop-section-heading h3 {
+  margin: 0;
+}
 .atlas .shop-section h3 {
   display: flex;
   gap: 0.55em;

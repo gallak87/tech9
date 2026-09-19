@@ -5,6 +5,7 @@ import {
   BUILDINGS,
   TIERS,
   SERVICES,
+  REGIONAL_SHOP_TIERS,
   EXPANSION_CONTRACT,
   ENEMIES,
 } from './content.js';
@@ -430,33 +431,24 @@ export function serviceAvailable(state, id) {
   const s = SERVICES[id];
   return Boolean(
     s &&
+    !s.inactive &&
     state.tier >= s.tier &&
     (state.heroes.find((h) => h.id === 'kaida')?.level || 1) >= s.level &&
     (!s.requires || state.buildings[s.requires]),
   );
 }
 export function serviceStock(state, service = 'smith', region = state.region) {
-  const tier = Math.min(
-    state.tier,
-    region.startsWith('haventide') ? Math.max(1, state.tier - 1) : state.tier,
-  );
+  const tier = REGIONAL_SHOP_TIERS[region.replace(/_town$/, '')],
+    slots = SERVICES[service]?.shop;
+  if (!tier || !slots || !serviceAvailable(state, service)) return [];
   return Object.values(ITEMS)
     .filter(
       (i) =>
         !i.unique &&
         i.price > 0 &&
-        i.tier <= tier &&
-        (service === 'provisions'
-          ? i.slot === 'consumable'
-          : service === 'smith'
-            ? i.slot !== 'consumable' && i.tier <= 2
-            : service === 'archivist'
-              ? i.slot === 'weapon'
-                ? i.weaponFamily === 'staff'
-                : i.stats.int || i.stats.maxMp
-              : service === 'artificer'
-                ? i.slot !== 'consumable'
-                : false),
+        i.tier <= state.tier &&
+        slots.includes(i.slot) &&
+        (i.slot === 'consumable' ? i.tier <= tier : i.tier === tier),
     )
     .map((i) => i.id);
 }

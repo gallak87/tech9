@@ -1090,7 +1090,7 @@ export const BUILDINGS = {
     tier: 2,
     cost: { ore: 55, energy: 20 },
     description:
-      'Resonance work adds 1 defense per level and unlocks advanced weapon families.',
+      'Resonance work adds 1 defense per level and supports Transcendence.',
   },
   research_lab: {
     id: 'research_lab',
@@ -1115,14 +1115,16 @@ export const SERVICES = {
     name: 'Provisions',
     tier: 1,
     level: 1,
-    description: 'Tonics, cells, seeds and everyday supplies.',
+    shop: ['accessory', 'consumable'],
+    description: 'Charms, tonics, cells and everyday supplies.',
   },
   smith: {
     id: 'smith',
     name: 'Salvage smith',
     tier: 1,
     level: 1,
-    description: 'Trade ore for swords, staves, gauntlets, armor and charms.',
+    shop: ['weapon', 'armor'],
+    description: 'Trade ore for swords, staves, gauntlets and armor.',
   },
   inn: {
     id: 'inn',
@@ -1137,7 +1139,7 @@ export const SERVICES = {
     name: 'Signal archivist',
     tier: 2,
     level: 6,
-    description: 'Research, story records, staves and signal gear.',
+    description: 'Research and records from the signal archives.',
     requires: 'research_lab',
   },
   artificer: {
@@ -1145,8 +1147,8 @@ export const SERVICES = {
     name: 'Concord artificer',
     tier: 3,
     level: 16,
-    description: 'Advanced swords, staves, gauntlets and armor.',
-    requires: 'forge',
+    inactive: true,
+    description: 'Tools and unfinished work fill the workshop.',
   },
   trainer: {
     id: 'trainer',
@@ -1156,6 +1158,12 @@ export const SERVICES = {
     description: 'Spend food and energy for practical experience.',
     requires: 'barracks',
   },
+};
+export const REGIONAL_SHOP_TIERS = {
+  haventide: 1,
+  emberline: 2,
+  orbital_reach: 3,
+  last_crown: 4,
 };
 export const EXPANSION_CONTRACT = Object.freeze({
   namespace: 'future',

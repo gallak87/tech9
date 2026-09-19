@@ -3,6 +3,7 @@
 - [ ] Revisit and extend each vendor’s story arc and completion milestones.
 - [ ] Fix Kaida’s clipped victory pose; likely regenerate her full sprite set for consistent appearance and framing rather than replacing only the victory pose.
 - [ ] Distinguish enemy levels visually relative to Kaida’s level; revisit a gradual color scale or increasingly dark red for enemies above her level.
+- [ ] Animate Crater Ember’s lava with a natural sense of flow and heat.
 
 ## Menu and HUD identity — implemented, awaiting hands-on review
 

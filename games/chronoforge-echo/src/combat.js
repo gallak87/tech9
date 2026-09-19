@@ -1,4 +1,5 @@
 import { ENEMIES, TECHS, ITEMS } from './content.js';
+import { enemyLevel, enemyLevelLabel } from './enemy-levels.js';
 import { stats } from './progression.js';
 import { assessItemUse, consumeItem } from './consumables.js';
 import { drawHero, drawEnemy, drawBattleBackdrop, actorBounds } from './art.js';
@@ -541,9 +542,9 @@ export function battleView(b, state) {
     pending: b.pending && { id: b.pending.id, name: b.pending.name, kind: b.pending.kind, effect: b.pending.effect, target: b.pending.target, participants: [...b.pending.participants] },
     techs: techs.map(t => ({ id: t.id, name: t.name, mp: t.mp, participants: t.heroes, effect: t.effect, target: t.target, description: t.description, unavailable: t.unavailable })),
     items: listItems(state).map(item => ({ id: item.id, name: item.name, count: item.count, description: item.description, effect: item.effect })),
-    targets: targets.map(t => ({ id: actorId(t), name: t.name, hp: t.hp, maxHp: t.maxHp, selected: targets[b.target] === t })),
+    targets: targets.map(t => ({ id: actorId(t), name: t.name, side: t.side, level: t.side === 'enemy' ? enemyLevel(t) : null, hp: t.hp, maxHp: t.maxHp, selected: targets[b.target] === t })),
     heroes: b.heroes.map(h => ({ id: h.id, name: h.name, hp: h.hp, maxHp: h.maxHp, mp: h.mp, maxMp: h.maxMp, atb: h.atb, shield: h.shield, guarding: h.guarding, criticalGuard: Boolean(h.criticalGuard), slowTurns: h.slowTurns, visual: actorVisual(b, h, state) })),
-    enemies: b.enemies.map(e => ({ id: e.id, uid: e.uid, name: e.name, hp: e.hp, maxHp: e.maxHp, atb: e.atb, shield: e.shield, slowTurns: e.slowTurns, charging: e.charging, bossPhase: e.bossPhase, visual: actorVisual(b, e, state) })),
+    enemies: b.enemies.map(e => ({ id: e.id, uid: e.uid, name: e.name, side: 'enemy', level: enemyLevel(e), hp: e.hp, maxHp: e.maxHp, atb: e.atb, shield: e.shield, slowTurns: e.slowTurns, charging: e.charging, bossPhase: e.bossPhase, visual: actorVisual(b, e, state) })),
     action: a && { id: a.id, side: a.side, kind: a.command.kind, effect: a.command.effect, name: a.command.name, participants: [...a.participants], targets: [...a.targets], elapsed: a.elapsed, duration: a.duration, stage: a.stage, contact: a.contact, windowStart: a.windowStart, windowEnd: a.windowEnd, timingEligible: a.timingEligible, timingAttempted: a.timingAttempted, timingSuccess: a.timingSuccess, timingPressedAt: a.timingPressedAt ?? null, resolved: a.resolved, critical: a.critical, criticalChance: a.criticalChance },
     log: b.logs.map(l => ({ ...l })),
     hints: b.mode === 'target' ? '↑ ↓ Target · Space / Enter Execute · ← Back' : b.mode === 'waiting' ? '↑ ↓ Ready hero · → / Enter Commands' : '↑ ↓ Choose · → / Enter Confirm · ← Back',
@@ -984,8 +985,9 @@ export function drawBattle(ctx, b, state, time = b.clock) {
     }
     if (!hero && alive(actor)) {
       const y = actor.home.y + boundsTop - 10;
-      const label = trim(ctx, actor.name, 124, 9);
       ctx.font = '9px Barlow, sans-serif';
+      const suffix = ` · ${enemyLevelLabel(actor)}`;
+      const label = trim(ctx, actor.name, 124 - ctx.measureText(suffix).width, 9) + suffix;
       const labelWidth = Math.ceil(ctx.measureText(label).width) + 8;
       ctx.fillStyle = '#171717bc'; ctx.fillRect(Math.round(actor.home.x - labelWidth / 2), y - 10, labelWidth, 13);
       text(ctx, label, actor.home.x, y, C.paper, 9, 'center');

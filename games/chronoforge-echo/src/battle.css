@@ -68,6 +68,7 @@
 #battle-interface .cb-unavailable .cb-row-title,#battle-interface .cb-unavailable .cb-command-cost{color:var(--cb-dim)}
 #battle-interface .cb-target-layout .cb-choice{height:2.9cqw;min-height:0;padding:.2cqw .65cqw}
 #battle-interface .cb-target-layout .cb-row-title{font-size:1.1cqw}
+#battle-interface .cb-enemy-level{display:inline-block;margin-left:.25cqw;font-size:.83cqw;font-weight:400;color:var(--cb-soft);white-space:nowrap}
 #battle-interface .cb-target-layout .cb-row-title small{font-size:.77cqw;margin-top:.1cqw}
 #battle-interface .cb-target-detail{display:flex;flex-direction:column;justify-content:center;gap:.8cqw;font-size:1cqw;color:var(--cb-soft)}
 #battle-interface .cb-target-detail p{line-height:1.5}

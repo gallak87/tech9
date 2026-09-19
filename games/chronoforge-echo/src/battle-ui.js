@@ -1,8 +1,10 @@
 import { battleIntent, battleView } from './combat.js';
+import { enemyNameWithLevel, enemyLevelLabel } from './enemy-levels.js';
 import { drawPortrait } from './art.js';
 import './battle.css';
 
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]);
+const combatantName = actor => actor?.side === 'enemy' ? enemyNameWithLevel(actor) : actor?.name;
 const pct = value => `${Math.max(0, Math.min(100, value))}%`;
 const commandNotes = {
   Attack: 'One precise strike. Catch the timing window to raise critical chance.',
@@ -68,15 +70,15 @@ export class BattleUI {
       const focused = this.root.contains(document.activeElement);
       const selectedAction = incoming ? 'Defend' : v.pending?.name || (heroAction ? v.action.name : v.commands[v.cursor]?.name || 'Action');
       const targets = heroAction || incoming ? v.action.targets.map(id=>v.heroes.find(h=>h.id===id)||v.enemies.find(e=>e.uid===id)).filter(Boolean) : v.targets;
-      const targetLabel = heroAction ? targets.length > 1 ? `${targets.length} targets` : targets[0]?.name || 'Self' : v.pending?.target?.startsWith('all') ? 'Group' : v.targets[v.target]?.name || 'Target';
-      const attacker = incoming ? v.enemies.find(e=>e.uid===v.action.participants[0])?.name || 'Enemy' : '';
+      const targetLabel = heroAction ? targets.length > 1 ? `${targets.length} targets` : combatantName(targets[0]) || 'Self' : v.pending?.target?.startsWith('all') ? 'Group' : combatantName(v.targets[v.target]) || 'Target';
+      const attacker = incoming ? combatantName(v.enemies.find(e=>e.uid===v.action.participants[0])) || 'Enemy' : '';
       const labels = [incoming && targets.length > 1 ? 'The crew' : actor?.name || 'Crew', selectedAction, incoming ? attacker : targetLabel, 'Timing'];
       const nodeNames = ['Crew','Action','Target','Timing'];
       const title = b.enemies.some(e=>e.id==='void_architect') ? 'The shape of tomorrow' : b.encounter.name || (b.encounter.boss ? 'A signal in the dark' : 'Hold the line');
       const charging = v.enemies.filter(e=>e.hp>0 && e.charging);
       const waitingStatus = v.action?.side === 'enemy' ? `${v.action.name} · enemy action` : v.readyQueue.length ? `${v.readyQueue.length} ready` : 'Gauges charging';
       this.root.innerHTML = `<header class="cb-header"><div><span class="cb-eyebrow">FIELD / ENGAGEMENT</span><h2>${esc(title)}</h2></div><div class="cb-header-right"><span>${v.result ? esc(v.result.toUpperCase()) : stage===1||stage===2 ? 'WAIT · FIELD PAUSED' : 'ATB · LIVE'}</span>${button('pause','<kbd>Esc</kbd> Pause','', 'cb-pause')}</div></header>
-        ${charging.length ? `<div class="cb-warning">${esc(charging.map(e=>e.name).join(' / '))} charging · defend or raise a ward</div>` : ''}
+        ${charging.length ? `<div class="cb-warning">${esc(charging.map(enemyNameWithLevel).join(' / '))} charging · defend or raise a ward</div>` : ''}
         <div class="cb-dock"><div class="cb-path"><span>${['CHOOSE A COMPANION',v.mode==='tech'?'CHOOSE A TECHNIQUE':v.mode==='item'?'CHOOSE A SUPPLY':'CHOOSE AN ACTION','CHOOSE A TARGET',v.action?.timingEligible?defending?'DEFEND TIMING':'ATTACK TIMING':'ACTION IN MOTION'][stage]}</span><span>${incoming?`${esc(attacker)} → ${esc(targets.map(t=>t.name).join(' + '))}`:stage===0?esc(waitingStatus):`${esc(actor.name)}${stage>1?' / '+esc(selectedAction):''}`}</span></div>
           <div class="cb-fold" data-open="${stage}">${nodeNames.map((name,i)=>`<section class="cb-node ${stage===i?'cb-open':''} ${i<stage?'cb-past':''}" data-node="${i}">${button('breadcrumb',`<span class="cb-node-number">0${i+1}</span><span class="cb-node-symbol">${i===0&&stage>0?portrait(actor.id):['≡','↗','⊕','∣'][i]}</span><span class="cb-node-label">${esc(i<stage?labels[i]:name)}</span>`,`data-stage="${i}" aria-label="Back to ${name}" ${i>=stage||v.action||v.result?'disabled':''}`, 'cb-node-tab')}<div class="cb-pane" ${i===stage?'':'hidden'}>${i===0?this.crew(v):i===1?this.actions(v):i===2?this.targets(v):this.timing(v)}</div></section>`).join('')}</div>
           <div class="cb-under">${button('back','← Back',stage===0||v.action?'disabled':'','cb-back')}<span class="cb-context">${esc(b.noticeTime>0?b.notice:stage===0?v.action?'Hold your formation.':v.selectedHero?'Choose a ready companion.':'Waiting for a companion to charge.':stage===1?'Choose an action. Previous choices stay to the left.':stage===2?v.pending?.kind==='retreat'?'Confirm withdrawal, or go back.':'Select a target, then execute.':v.action?.timingEligible?'Fresh press inside the orange window.':'Returning to the crew after this action.')}</span><span class="cb-keys">${stage===3?`<kbd>Space / Enter</kbd> ${defending?'Guard':'Strike'}`:`<kbd>↑ ↓</kbd> Choose <kbd>→ / Enter</kbd> ${stage===2?'Execute':'Confirm'}`}</span></div>
@@ -120,7 +122,7 @@ export class BattleUI {
   targets(v) {
     const group=v.pending?.target?.startsWith('all');
     const retreat=v.pending?.kind==='retreat';
-    return `<div class="cb-pane-head"><h3>${esc(v.pending?.name)}</h3><span>${retreat?'WITHDRAW':group?'ALL VALID TARGETS':'SELECT TARGET'}</span></div><div class="cb-target-layout"><div class="cb-list">${v.targets.map((target,i)=>button('target',`<span class="cb-row-title">${retreat?'The crew':esc(target.name)}<small>${retreat?'Return to the road':`${target.hp} / ${target.maxHp} HP`}</small></span><span>${group?'ALL':i===v.target?'●':'○'}</span>`,`data-id="${target.id}"`,`cb-choice ${group||i===v.target?'cb-selected':''}`)).join('')}</div><aside class="cb-target-detail"><p>${retreat?'Leave this encounter and return to the field.':group?`Affects ${v.targets.length} ${v.pending.target==='allAllies'?'companions':'enemies'}.`:'The marked figure will receive this action.'}</p>${button('execute','Execute <span>→</span>','', 'cb-execute')}<small><kbd>Space / Enter</kbd> Execute</small></aside></div>`;
+    return `<div class="cb-pane-head"><h3>${esc(v.pending?.name)}</h3><span>${retreat?'WITHDRAW':group?'ALL VALID TARGETS':'SELECT TARGET'}</span></div><div class="cb-target-layout"><div class="cb-list">${v.targets.map((target,i)=>button('target',`<span class="cb-row-title">${retreat?'The crew':`${esc(target.name)}${target.side==='enemy'?` <span class="cb-enemy-level">${esc(enemyLevelLabel(target))}</span>`:''}`}<small>${retreat?'Return to the road':`${target.hp} / ${target.maxHp} HP`}</small></span><span>${group?'ALL':i===v.target?'●':'○'}</span>`,`data-id="${target.id}"`,`cb-choice ${group||i===v.target?'cb-selected':''}`)).join('')}</div><aside class="cb-target-detail"><p>${retreat?'Leave this encounter and return to the field.':group?`Affects ${v.targets.length} ${v.pending.target==='allAllies'?'companions':'enemies'}.`:'The marked figure will receive this action.'}</p>${button('execute','Execute <span>→</span>','', 'cb-execute')}<small><kbd>Space / Enter</kbd> Execute</small></aside></div>`;
   }
 
   timing(v) {

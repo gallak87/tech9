@@ -3,20 +3,29 @@ import {TIERS} from './content.js';
 import {TOWN_CENTERS,townCenterPreviewBounds} from './town-center-art.js';
 import {VIEW_WIDTH,VIEW_HEIGHT} from './rendering.js';
 import {ArtPreview} from './dev-preview.js';
+import {WorldTravelPreview} from './dev-world-travel.js';
+import {REGIONS} from './world.js';
 import {mountUpgradeTour} from './dev-upgrade-tour.js';
 import {localDevHost,localDevPreviewRequested,devPreviewReady} from './dev-access.js';
 
-// Imported only by Vite's development branch. Overrides live in this closure,
-// never on game.state, so checkpoints, manual saves and exports keep real data.
+// Imported only by Vite's development branch. Art overrides stay in this
+// closure; world travel uses an isolated expedition with the original as save source.
 export function mountDevTools(game) {
   if(!localDevHost(window.location))return null;
   const preview=new ArtPreview();
+  const worlds=new WorldTravelPreview(game);
   let previousFocus=null,previousCamera=null,autoOpenPending=localDevPreviewRequested(window.location);
   const root=document.createElement('div');
   root.id='dev-tools';root.hidden=true;
-  root.setAttribute('role','dialog');root.setAttribute('aria-label','Temporary art preview');
+  root.setAttribute('role','dialog');root.setAttribute('aria-label','Local development tools');
   root.innerHTML=`
-    <header><strong>Art preview</strong><button type="button" data-preview="close" aria-label="Close art preview">×</button></header>
+    <header><strong>Dev tools</strong><button type="button" data-preview="close" aria-label="Close dev tools">×</button></header>
+    <section class="dev-world-controls" aria-label="Temporary world exploration">
+      <button type="button" class="dev-world-toggle" data-preview="worlds" role="switch" aria-checked="false">Worlds explored <span>Off</span></button>
+      <p class="dev-world-status"></p>
+      <div class="dev-world-buttons" hidden>${Object.values(REGIONS).map(region=>`<button type="button" data-world="${region.id}">${region.name}</button>`).join('')}</div>
+    </section>
+    <strong>Art preview</strong>
     <p class="dev-subtitle"></p>
     <div class="dev-town-buttons" role="group" aria-label="Town artwork to preview at Haventide">
       ${TOWN_CENTERS.map(town=>`<button type="button" data-town="${town.region}" aria-pressed="false">${town.name}</button>`).join('')}
@@ -34,15 +43,32 @@ export function mountDevTools(game) {
       <div>${[1,2,3].map(level=>`<button type="button" data-upgrade="${level}" aria-label="Rehearse Haventide upgrade from level ${level} to ${level+1}">${level} → ${level+1}</button>`).join('')}</div>
       <p class="dev-upgrade-availability"></p>
     </section>
-    <footer>Art only at Haventide · no travel or discovery<br>Play paused · preview never saved<br>1–4 / ← → select · &#96; / Esc close and restore</footer>`;
+    <footer>Play paused while this panel is open<br>1–4 / ← → select art · &#96; / Esc close<br>World preview stays on until switched off.</footer>`;
   document.querySelector('#game').append(root);
+  const worldBadge=document.createElement('button');
+  worldBadge.id='dev-world-preview';worldBadge.type='button';worldBadge.hidden=true;
+  worldBadge.textContent='World preview · never saved · return to expedition';
+  document.querySelector('#game').append(worldBadge);
   const upgradeTour=mountUpgradeTour(game,{onReturnToPlay:()=>setOpen(false)});
 
   const actual=()=>Math.max(1,Math.min(4,game.state.buildings.town_center||1));
   const current=()=>preview.townCenterLevel??actual();
   const indoors=()=>game.mode==='world'&&game.scene.id==='haventide_town';
   const canRehearse=()=>game.mode==='world'&&['haventide','haventide_town'].includes(game.scene.id)&&!game.transition&&!game.state.recruitmentWalk;
+  function renderWorldControls() {
+    const toggle=root.querySelector('.dev-world-toggle');
+    toggle.setAttribute('aria-checked',String(worlds.active));
+    toggle.querySelector('span').textContent=worlds.active?'On':'Off';
+    toggle.disabled=!worlds.active&&!worlds.canEnable;
+    root.querySelector('.dev-world-status').textContent=worlds.active
+      ?'All eight maps revealed. Jump here or in Menu → Map. Turning off restores your original location and progress; saves use the real expedition.'
+      :worlds.canEnable?'Temporarily reveal every map and jump past story gates. Your expedition stays unchanged.':'Return to exploration to enable world preview.';
+    root.querySelector('.dev-world-buttons').hidden=!worlds.active;
+    for(const button of root.querySelectorAll('[data-world]'))button.disabled=!worlds.canJump||upgradeTour.open;
+    worldBadge.hidden=!worlds.active||preview.open||upgradeTour.open||!!game.upgradeTour?.open;
+  }
   function render() {
+    renderWorldControls();
     const selected=current(),town=TOWN_CENTERS.find(t=>t.region===preview.townCenterRegion),f=town.metadata.frames[selected-1];
     root.querySelector('.dev-subtitle').textContent=indoors()?'Haventide · Town hall interior':`${town.name} · Town center`;
     root.querySelector('output').textContent=`${selected} · ${TIERS[selected-1]}`;
@@ -79,25 +105,46 @@ export function mountDevTools(game) {
       if(previousCamera)Object.assign(game.camera,previousCamera);previousCamera=null;
       game.ui.positionInteraction();if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});previousFocus=null;
     }
+    renderWorldControls();
   }
+  function restoreWorld() {
+    if(!worlds.restore())return;
+    game.resetSession();
+    autoOpenPending=false;
+    game.battle=null;game.mode='world';game.audio.set(game.state.settings);
+    game.resetFollowers();game.updateCamera(true);game.ui.render();renderWorldControls();
+  }
+  function jumpWorld(id) {
+    if(upgradeTour.open||!worlds.jump(id))return false;
+    setOpen(false);
+    game.ui.menu=false;game.ui.panel=null;game.ui.notice='';game.ui.render();
+    return true;
+  }
+  worldBadge.addEventListener('pointerdown',event=>event.stopPropagation());
+  worldBadge.addEventListener('click',event=>{event.stopPropagation();restoreWorld();});
   root.addEventListener('pointerdown',event=>event.stopPropagation());
   root.addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button)return;
-    if(button.dataset.town)setTown(button.dataset.town);
+    if(button.dataset.world)jumpWorld(button.dataset.world);
+    else if(button.dataset.town)setTown(button.dataset.town);
     else if(button.dataset.tier)setLevel(Number(button.dataset.tier));
     else if(button.dataset.upgrade&&canRehearse())upgradeTour.openPreview(Number(button.dataset.upgrade));
     else switch(button.dataset.preview){
       case 'previous':cycle(-1);break;
       case 'next':cycle(1);break;
       case 'restore':preview.resetSelection();render();break;
+      case 'worlds':if(worlds.active){restoreWorld();setOpen(true);}else if(worlds.enable()){game.ui.render();render();}break;
       case 'close':setOpen(false);break;
     }
   });
   const api={
     get open(){return preview.open;},
+    get worldsExplored(){return worlds.active;},
+    saveSource(){return worlds.saveSource();},
+    jumpWorld,
     visualState(state){return preview.visualState(state);},
-    update(){if(autoOpenPending&&devPreviewReady(game))setOpen(true);},
-    reset(){setOpen(false);preview.setOpen(false);autoOpenPending=localDevPreviewRequested(window.location);},
+    update(){if(autoOpenPending&&devPreviewReady(game))setOpen(true);worldBadge.hidden=!worlds.active||preview.open||upgradeTour.open||!!game.upgradeTour?.open;},
+    reset(){setOpen(false);preview.setOpen(false);worlds.restore();renderWorldControls();autoOpenPending=localDevPreviewRequested(window.location);},
     handleKey(event){
       if(event.isComposing||event.ctrlKey||event.metaKey||event.altKey)return false;
       const editable=event.target instanceof Element&&event.target.closest('input,textarea,select,[contenteditable="true"]');
@@ -111,7 +158,7 @@ export function mountDevTools(game) {
       if(/^[1-4]$/.test(event.key)){event.preventDefault();if(!event.repeat)setLevel(Number(event.key));return true;}
       if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();if(!event.repeat)cycle(event.key==='ArrowLeft'?-1:1);return true;}
       if(event.key==='Tab'){
-        event.preventDefault();const buttons=[...root.querySelectorAll('button:not(:disabled)')];
+        event.preventDefault();const buttons=[...root.querySelectorAll('button:not(:disabled)')].filter(button=>!button.closest('[hidden]'));
         const index=buttons.indexOf(document.activeElement),next=(index+(event.shiftKey?-1:1)+buttons.length)%buttons.length;
         buttons[next].focus();return true;
       }
@@ -119,7 +166,7 @@ export function mountDevTools(game) {
       if(event.key===' '&&!root.contains(document.activeElement))event.preventDefault();
       return true;
     },
-    dispose(){setOpen(false);autoOpenPending=false;upgradeTour.dispose();root.remove();},
+    dispose(){restoreWorld();setOpen(false);autoOpenPending=false;upgradeTour.dispose();root.remove();worldBadge.remove();},
   };
   if(import.meta.hot)import.meta.hot.dispose(()=>api.dispose());
   return api;

@@ -39,6 +39,7 @@ for(const name of fs.readdirSync(new URL('assets/',dist)).filter(name=>/\.(js|cs
   if(name.endsWith('.js'))productionScript+=text;else productionStyles+=text;
   assert.ok(!text.includes('Temporary art preview')&&!text.includes('.dev-tier-buttons'),'Development art preview must not ship: '+name);
   assert.ok(!text.includes('UPGRADE PREVIEW · NEVER SAVED')&&!text.includes('Rehearsal only'),'Development upgrade controls must not ship: '+name);
+  assert.ok(!text.includes('dev-world-controls')&&!text.includes('dev-world-preview'),'Development world controls must not ship: '+name);
 }
 assert.ok(productionScript.includes('Town Center upgrade')&&productionScript.includes('Skip reveal'),'Real upgrade cinematic must ship');
 assert.ok(productionStyles.includes('.upgrade-tour'),'Real upgrade cinematic styles must ship');

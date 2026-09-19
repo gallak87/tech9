@@ -112,7 +112,7 @@ export class UI{
   case 'item':this.inspectItem(arg,true);break;
   case 'equip':this.feedback(P.equip(s,h.id,arg));break;case 'unequip':this.feedback(P.unequip(s,h.id,arg));break;case 'use':if(g.mode==='battle'){this.feedback({ok:false,message:'Use the battle Item command to choose a field supply and ally.'});break;}this.requestItemUse(arg,h.id);break;
   case 'learn':this.feedback(P.learn(s,h.id,arg));break;
-  case 'save':if(g.save(arg)){this.notice='Expedition recorded.';this.render();}break;
+  case 'save':if(g.save(arg)){this.notice=g.devTools?.worldsExplored?'Real expedition recorded; world preview remains temporary.':'Expedition recorded.';this.render();}break;
   case 'export-save':this.exportSaveSlot(arg);break;case 'import-save':this.requestSaveImport(arg);break;case 'load':this.confirm('Resume this expedition?','Unsaved progress will be replaced by this record.',()=>g.load(arg));break;
   case 'delete':this.confirm('Erase this record?','This permanently erases this save slot. Other records are preserved.',()=>{this.panel=this.confirmReturn;try{deleteSave(arg);this.notice='Record erased.';this.render();}catch(e){this.feedback({ok:false,message:'Could not erase: '+e.message});}});break;
   case 'restart':this.confirm('Start over?','The current expedition returns to the solitary opening. Manual save slots remain available.',()=>g.startNew());break;
@@ -121,6 +121,7 @@ export class UI{
   case 'rebind':this.bindCapture=arg;this.notice=`Press a new key for ${arg}. Menu and confirmation keys remain reserved.`;this.render();break;
   case 'map-zoom':this.map.key(arg==='in'?'+':'-');this.map.draw();break;case 'map-reset':this.map.key('r');this.map.draw();break;
   case 'travel':if(s.flags.pendingEnding){this.feedback({ok:false,message:'Close the atlas to finish the crew’s ending.'});break;}if(g.mode==='battle'){this.feedback({ok:false,message:'Finish or retreat from this encounter before traveling.'});break;}this.menu=false;this.panel=null;g.travelHub(arg);this.render();break;
+  case 'dev-world':g.devTools?.jumpWorld(arg);break;
   case 'dialogue-next':this.nextDialogue();break;case 'choice':{const p=this.panel,c=p.choices[+arg];s.flags[c.flag]=true;this.panel=null;this.render();g.resolveResult(onEvent(s,'choice',c.flag),p.done);g.checkpoint();break;}
   case 'story':{const vendor=this.panel.object;this.panel=null;g.resolveResult(interactStory(s,arg),()=>this.showVendor(vendor));g.checkpoint();break;}
   case 'qty':this.qty=Math.max(1,Math.min(10,this.qty+(arg==='up'?1:-1)));this.render();break;

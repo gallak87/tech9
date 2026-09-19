@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Revisit and extend each vendor’s story arc and completion milestones.
+
 ## Menu and HUD identity — implemented, awaiting hands-on review
 
 The user approved the character-centered menu composition with parchment interiors and a separate folding battle interface. The full design is implemented in the playable game, including all seven menu tabs and real ATB state. Compact field dialogs, object-anchored prompts, relocated HUD information, faster reward notices and generated resource/item icons are integrated. See [the accepted UI direction](docs/UI_DIRECTION.md) and [verification evidence](docs/VERIFICATION.md).

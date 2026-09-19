@@ -21,3 +21,13 @@
 .save-import-option input{width:clamp(15px,1.2cqw,24px);height:clamp(15px,1.2cqw,24px);margin:0;accent-color:var(--amber);cursor:pointer}
 .save-import-option input:focus-visible{outline:2px solid var(--amber);outline-offset:3px}
 .save-import-note{display:block;color:var(--muted);font-size:clamp(10px,.78cqw,16px);line-height:1.5;margin-bottom:1.2cqw}
+
+.vendor-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:2cqw}
+.vendor-heading>.merchant-heading{flex:1;min-width:0}.vendor-heading .merchant-portrait{flex:none}
+.merchant-actions{flex:0 1 27cqw;min-width:0;padding-left:1.2cqw;border-left:1px solid var(--line)}
+.merchant-actions>.button{max-width:100%}
+.merchant-action-description{font-size:clamp(11px,.76cqw,18px);font-style:italic;color:#bab0a3;line-height:1.45;margin-top:.45cqw}
+.merchant-action-status{font-size:clamp(10px,.69cqw,16px);color:#a99d8e;line-height:1.35;margin-top:.35cqw}
+.merchant-actions .button:disabled,.merchant-actions .button:disabled:hover{background:#292929;border-color:#65625e;color:#93908b}
+.service-compact .vendor-heading{flex-wrap:wrap}.service-compact .merchant-actions{flex-basis:100%;padding-left:0;border-left:0}
+@container(max-width:950px){.vendor-heading{flex-wrap:wrap;gap:12px}.vendor-heading>.merchant-heading{flex-basis:100%}.merchant-actions{flex-basis:100%;padding-left:0;border-left:0}.merchant-action-description{margin-top:6px}.merchant-action-status{margin-top:4px}}

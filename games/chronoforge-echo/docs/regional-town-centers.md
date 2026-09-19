@@ -23,7 +23,7 @@ Actual town entrances select their region's sheet and use the shared `buildings.
 | Orbital Reach | 235 × 228 | 280 × 260 | 325 × 331 | 375 × 396 |
 | Last Crown | 230 × 185 | 275 × 241 | 325 × 323 | 375 × 414 |
 
-Dimensions are world units, rounded. Exact crops, widths, anchors and extraction settings are in [town-center-art.js](../src/town-center-art.js). All interiors remain unchanged. Successful Town Center upgrades now play the [production upgrade cinematic](upgrade-cinematic.md) using the current town’s exterior and the player’s actual indoor view.
+Dimensions are world units, rounded. Exact crops, widths, anchors and extraction settings are in [town-center-art.js](../src/town-center-art.js). Haventide now has a [four-stage modular interior](haventide-interior.md); the other interiors retain their current art. Successful Town Center upgrades now play the [production upgrade cinematic](upgrade-cinematic.md) using the current town’s exterior and the player’s actual indoor view.
 
 ## Sources and extraction
 

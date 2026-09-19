@@ -1,5 +1,18 @@
 # Asset provenance and production inventory
 
+## Haventide interior restoration
+
+Four unchanged built-in imagegen outputs form the production hall, with twelve independently placed pieces per level. The brief follows the approved coastal ivory/teal/brass concept while changing the contents: scarce rations, salvaged tools and a cot become repaired services, then food preservation and powered machinery, then hydroponics, fabrication and holographic civic systems. NPCs remain separate live sprites.
+
+| Production file | Source generation |
+| --- | --- |
+| `interiors/haventide-survivor-v1-source.png` | `exec-084d5fce-7073-478d-9e27-b5b05fe87acb.png` |
+| `interiors/haventide-reclaimer-v1-source.png` | `exec-22e7b687-57eb-4ad2-bcd4-61def28d174d.png` |
+| `interiors/haventide-ascendant-v1-source.png` | `exec-f52d8b74-ce06-44d8-8fc0-43de882bbb9d.png` |
+| `interiors/haventide-transcendent-v1-source.png` | `exec-7e091a10-92a0-4a4a-b6cf-fe1b596007e6.png` |
+
+Each source is 1448 × 1086 RGB. Measured crops use connected neutral-background extraction and local enclosed-air seeds; floor materials remain opaque. The runtime assembles the playable hall without storing extracted or review PNGs. See [production integration](../../docs/haventide-interior.md) and [crop metadata](../../src/haventide-interior-art.js).
+
 ## Regional town center exterior pass
 
 `town-centers/emberline-town-center-tiers-v1-source.png`, `town-centers/orbital-reach-town-center-tiers-v1-source.png` and `town-centers/last-crown-town-center-tiers-v1-source.png` are unchanged built-in imagegen outputs. Each is a separate cohesive 2×2 upgrade family generated against the approved Haventide sheet and its inspected regional props reference. All three returned 1254 × 1254 RGB with baked checkerboards. Runtime connected extraction and measured seeds supply alpha; Last Crown also has a lower neutral threshold and crop-local neighboring-frame exclusions. See [integration and temporary preview controls](../../docs/regional-town-centers.md).

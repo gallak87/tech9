@@ -19,7 +19,9 @@ The sequence lasts about five seconds. Space, Esc or either Skip reveal button
 returns immediately. Skipping does not undo or repeat the purchase. Reloading
 mid-reveal retains the checkpointed upgrade without replaying or charging again.
 Restrained motion omits the zoom and sparkles, keeping fades and the dissolve.
-Only the exterior changes; interior upgrade artwork remains future work.
+Haventide’s floor, architecture, supplies and service furnishings also restore
+with each Town Center level. Its opening and closing indoor frames show the
+actual before/after hall. The other towns retain their current interior art.
 
 Exploration, movement and interaction pause during playback. The cinematic uses
 detached render states; it never travels, reveals another map, moves the crew,

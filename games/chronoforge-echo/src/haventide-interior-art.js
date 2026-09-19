@@ -1,0 +1,88 @@
+// Immutable production sheets. Each room is assembled from independent pieces.
+// Crops include two pixels of keyed gutter; floor samples retain their material.
+// Seeds are crop-local enclosed air, never neutral stone or machinery.
+export const HAVENTIDE_INTERIOR_ASSETS = [
+  {
+    id:'haventide_interior_level_1',kind:'havenInterior',required:true,level:1,
+    source:'assets/interiors/haventide-survivor-v1-source.png',columns:4,rows:3,
+    metadata:{sourceWidth:1448,sourceHeight:1086,frames:[
+      {part:'provisions',x:18,y:15,w:343,h:326,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'forge',x:390,y:15,w:325,h:329,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[164,121]]},
+      {part:'inn',x:739,y:17,w:325,h:321,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[118,54],[210,69],[52,61],[218,55],[277,55]]},
+      {part:'archive',x:1107,y:15,w:314,h:341,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[144,300]]},
+      {part:'engineering',x:22,y:369,w:348,h:317,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[77,89],[172,80]]},
+      {part:'training',x:467,y:369,w:186,h:315,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'board',x:733,y:412,w:334,h:266,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[206,212]]},
+      {part:'storage',x:1118,y:405,w:306,h:276,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'floor',x:47,y:722,w:298,h:298,anchorX:.5,anchorY:1,key:false},
+      {part:'runner',x:471,y:706,w:149,h:342,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'wall',x:729,y:706,w:340,h:324,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'column',x:1205,y:702,w:140,h:338,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[107,61]]},
+    ]},
+  },
+  {
+    id:'haventide_interior_level_2',kind:'havenInterior',required:true,level:2,
+    source:'assets/interiors/haventide-reclaimer-v1-source.png',columns:4,rows:3,
+    metadata:{sourceWidth:1448,sourceHeight:1086,frames:[
+      {part:'provisions',x:19,y:10,w:359,h:349,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'forge',x:392,y:9,w:325,h:354,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'inn',x:728,y:21,w:349,h:359,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'archive',x:1099,y:34,w:332,h:358,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[34,147]]},
+      {part:'engineering',x:18,y:391,w:343,h:297,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'training',x:389,y:386,w:318,h:295,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[164,120],[67,130]]},
+      {part:'board',x:730,y:397,w:342,h:292,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'storage',x:1105,y:409,w:326,h:271,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'floor',x:42,y:716,w:286,h:286,anchorX:.5,anchorY:1,key:false},
+      {part:'runner',x:449,y:697,w:139,h:355,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'wall',x:700,y:701,w:408,h:337,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'column',x:1235,y:693,w:149,h:359,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[95,68]]},
+    ]},
+  },
+  {
+    id:'haventide_interior_level_3',kind:'havenInterior',required:true,level:3,
+    source:'assets/interiors/haventide-ascendant-v1-source.png',columns:4,rows:3,
+    metadata:{sourceWidth:1448,sourceHeight:1086,frames:[
+      {part:'provisions',x:7,y:22,w:344,h:332,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[244,90],[57,67],[268,108],[291,161],[313,171]]},
+      {part:'forge',x:369,y:7,w:344,h:351,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'inn',x:733,y:21,w:345,h:338,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'archive',x:1098,y:9,w:334,h:348,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'engineering',x:18,y:364,w:335,h:308,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[103,17],[56,44],[95,52]]},
+      {part:'training',x:379,y:384,w:329,h:292,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[199,125],[26,98]]},
+      {part:'board',x:733,y:380,w:339,h:303,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'storage',x:1094,y:389,w:338,h:290,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'floor',x:34,y:709,w:296,h:296,anchorX:.5,anchorY:1,key:false},
+      {part:'runner',x:476,y:696,w:126,h:330,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'wall',x:744,y:701,w:416,h:316,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'column',x:1244,y:701,w:144,h:329,anchorX:.5,anchorY:1,keyMin:145},
+    ]},
+  },
+  {
+    id:'haventide_interior_level_4',kind:'havenInterior',required:true,level:4,
+    source:'assets/interiors/haventide-transcendent-v1-source.png',columns:4,rows:3,
+    metadata:{sourceWidth:1448,sourceHeight:1086,frames:[
+      {part:'provisions',x:12,y:11,w:344,h:342,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'forge',x:379,y:10,w:333,h:343,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[87,43],[222,31],[170,18],[122,48]]},
+      {part:'inn',x:737,y:13,w:334,h:339,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'archive',x:1086,y:6,w:347,h:360,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'engineering',x:12,y:376,w:344,h:318,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[270,40],[59,63],[74,103],[110,51],[211,52],[93,91],[227,91],[238,60]]},
+      {part:'training',x:367,y:367,w:350,h:318,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[226,114],[226,59]]},
+      {part:'board',x:728,y:364,w:347,h:334,anchorX:.5,anchorY:1,keyMin:145,backgroundSeeds:[[143,21],[180,20],[94,60],[246,61],[290,88]]},
+      {part:'storage',x:1087,y:371,w:347,h:315,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'floor',x:38,y:723,w:280,h:280,anchorX:.5,anchorY:1,key:false},
+      {part:'runner',x:476,y:703,w:124,h:347,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'wall',x:718,y:701,w:375,h:336,anchorX:.5,anchorY:1,keyMin:145},
+      {part:'column',x:1180,y:707,w:159,h:343,anchorX:.5,anchorY:1,keyMin:145},
+    ]},
+  },
+];
+
+export function havenInteriorLevel(state) {
+  const level=Number(state?.buildings?.town_center);
+  return Number.isFinite(level)?Math.max(1,Math.min(4,Math.floor(level))):1;
+}
+
+export function havenInteriorFrame(part,state) {
+  const asset=HAVENTIDE_INTERIOR_ASSETS[havenInteriorLevel(state)-1];
+  const frameIndex=asset.metadata.frames.findIndex(frame=>frame.part===part);
+  return frameIndex<0?null:{asset,frame:asset.metadata.frames[frameIndex],frameIndex};
+}

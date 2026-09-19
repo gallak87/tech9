@@ -36,7 +36,7 @@ export function mountUpgradeTour(game,{previewMarkup=null,onReturnToPlay=()=>{}}
     if(shown===key)return;shown=key;
     for(const pane of root.querySelectorAll('[data-tour-phase]'))pane.hidden=pane.dataset.tourPhase!==tour.phase;
     const exterior=visibleFrame.startsWith('outside'),returned=visibleFrame==='deskAfter';
-    root.querySelector('.upgrade-caption span').textContent=exterior?'THE TOWN WE ARE BUILDING':returned?(preview?'INTERIOR ART UNCHANGED IN THIS PASS':'A STRONGER HOME'):'A PLACE TO COME HOME TO';
+    root.querySelector('.upgrade-caption span').textContent=exterior?'THE TOWN WE ARE BUILDING':returned?'A STRONGER HOME':'A PLACE TO COME HOME TO';
     root.querySelector('.upgrade-caption strong').textContent=exterior?`Town Center · Level ${visibleFrame==='outsideAfter'?plan.toLevel:plan.fromLevel}`:`${townName} · Settlement hall`;
     root.dataset.phase=tour.phase;
     if(preview&&tour.phase==='complete')root.querySelector('[data-tour="done"]').focus({preventScroll:true});

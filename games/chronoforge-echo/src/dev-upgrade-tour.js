@@ -7,9 +7,9 @@ export function mountUpgradeTour(game,options) {
     <header><span>HAVENTIDE <small>UPGRADE PREVIEW · NEVER SAVED</small></span><button type="button" data-tour="close">Back to art preview <kbd>Esc</kbd></button></header>
     <div class="upgrade-caption" aria-live="polite"><span></span><strong></strong></div>
     <div class="upgrade-card">
-      <div data-tour-phase="ready"><small>SETTLEMENT WORKS</small><h2></h2><p>Watch the exterior upgrade, then return to the hall.</p><button type="button" data-tour="play">Upgrade Town Center</button><p class="upgrade-note">Rehearsal only · no resources spent<br>Interior uses current artwork; its four stages come next.</p></div>
+      <div data-tour-phase="ready"><small>SETTLEMENT WORKS</small><h2></h2><p>Watch the exterior upgrade, then return to the hall.</p><button type="button" data-tour="play">Upgrade Town Center</button><p class="upgrade-note">Rehearsal only · no resources spent<br>Includes the hall’s four restoration stages.</p></div>
       <div data-tour-phase="playing" hidden><button type="button" data-tour="skip">Skip reveal <kbd>Space</kbd></button></div>
-      <div data-tour-phase="complete" hidden><small>PREVIEW COMPLETE</small><h2>Back inside Haventide</h2><p>Interior artwork is unchanged in this pass.<br>Your real town and expedition are unchanged.</p><button type="button" data-tour="done">Return to play</button><button type="button" data-tour="play">Replay upgrade</button></div>
+      <div data-tour-phase="complete" hidden><small>PREVIEW COMPLETE</small><h2>Back inside Haventide</h2><p>The exterior and hall show the selected upgrade.<br>Your real town and expedition are unchanged.</p><button type="button" data-tour="done">Return to play</button><button type="button" data-tour="play">Replay upgrade</button></div>
     </div>`});
   return {
     get open(){return tour.open;},

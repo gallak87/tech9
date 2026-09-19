@@ -1,7 +1,7 @@
 import {dialogueLine,npcIdentity,npcPresent} from './npc-identities.js';
 import {Application,Sprite,Texture} from 'pixi.js';
 import './style.css';
-import {REGIONS,ALL_SCENES,getScene,isWalkable,nearby} from './world.js';
+import {REGIONS,ALL_SCENES,getScene,isWalkable,nearby,safeArrival} from './world.js';
 import * as Art from './art.js';
 import {ENEMIES,ITEMS,HEROES,TECHS} from './content.js';
 import * as P from './progression.js';
@@ -51,7 +51,7 @@ class Game{
  rewards(items){for(const r of items||[])this.rewardQueue.push(r);}
  finishRecruitment(){const reward=completeRecruitment(this.state);this.resetFollowers();this.moving=false;this.keys.clear();this.encounterCooldown=1;this.ui.updateHUD();this.checkpoint();if(reward){this.ui.rewards([reward]);this.audio.sound('confirm');this.log('companion_joined',{id:reward.id});}}
  travel(to,spawn){if(this.transition)return;if(this.state.recruitmentWalk)this.finishRecruitment();const next=getScene(to);const p=spawn||next.spawn;let dest=this.safePoint(next,p.x,p.y);const facing=this.state.facing;this.transition={time:0,duration:.55,swapped:false,to,spawn:dest,facing};this.keys.clear();this.movePath=[];this.audio.sound('door');}
- safePoint(scene,x,y){if(isWalkable(scene,x,y))return{x,y};for(let d=8;d<180;d+=8)for(const [dx,dy]of[[0,d],[d,0],[-d,0],[0,-d],[d,d],[-d,d]])if(isWalkable(scene,x+dx,y+dy))return{x:x+dx,y:y+dy};throw Error(`No safe arrival near ${scene.id} ${x},${y}`);}
+ safePoint(scene,x,y){return safeArrival(scene,x,y);}
  travelHub(id){if(!this.state.flags[id+'_liberated'])return;const scene=getScene(id+'_town');this.travel(scene.id,scene.spawn);}
  beginBattle(encounter){if(this.mode==='battle')return;const start=()=>{this.battle=createBattle(this.state,{...encounter,biome:this.scene.biome});this.mode='battle';this.battleResultTime=0;this.soundLog=0;this.ui.panel=null;this.ui.render();this.keys.clear();this.log('battle_start',{id:encounter.id,count:encounter.enemies.length});};
   this.movePath=[];if(!this.state.flags.battle_taught){this.state.flags.battle_taught=true;this.ui.showDialogue([{speaker:'Kaida',text:encounter.enemies[0]==='rust_scrapper'?'A rust scrapper. Small enough to handle. Wait for the action gauge, then choose Attack.':`${ENEMIES[encounter.enemies[0]].name}. ${encounter.guard?'That is the sentry blocking the entrance.':'It has seen us.'} Wait for the action gauge, then choose Attack.`},{speaker:'Field notes',text:'Choose a ready companion, then an action and target. Up/Down selects; Right, Space or Enter confirms. A fresh Space or Enter when the white marker crosses the orange window raises critical chance. Incoming attacks open the same timing slot: catch the orange window to guard, then return to your selection. Left or Backspace goes back; Esc pauses everything.'}],[],start);}else start();

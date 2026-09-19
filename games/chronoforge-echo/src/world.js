@@ -1,4 +1,5 @@
 import {NPC_IDENTITIES,npcIdentity,npcPresent} from './npc-identities.js';
+import {configureHaventideInterior} from './haventide-interior-layout.js';
 // Authored geography. Coordinates are native pixels; every door is anchored at its threshold.
 const W = 4608, H = 2016;
 const point = (x,y) => ({x,y});
@@ -144,6 +145,13 @@ export function isWalkable(scene,x,y){
  for(const o of scene.objects){if(!o.solid)continue;const w=o.w||24,h=o.h||18;const bottom=(o.type==='town'||o.type==='house'||o.type==='cave')?o.y-12:o.y+3;if(x>o.x-w/2-6&&x<o.x+w/2+6&&y>bottom-h-5&&y<bottom+6)return false;}
  return true;
 }
+export function safeArrival(scene,x,y){
+ if(isWalkable(scene,x,y))return{x,y};
+ // Renovations can replace a former corner with a wall or furnishing. Search
+ // all eight directions so saved positions can move back onto nearby floor.
+ for(let d=8;d<180;d+=8)for(const [dx,dy]of [[0,d],[d,0],[-d,0],[0,-d],[d,d],[-d,d],[d,-d],[-d,-d]])if(isWalkable(scene,x+dx,y+dy))return{x:x+dx,y:y+dy};
+ throw Error(`No safe arrival near ${scene.id} ${x},${y}`);
+}
 function interactionDistance(o,x,y){
  const a=o.interactionArea;if(!a)return Math.hypot(o.x-x,o.y-y);
  return Math.hypot(Math.max(0,Math.abs(x-o.x-a.x)-a.w/2),Math.max(0,Math.abs(y-o.y-a.y)-a.h/2));
@@ -240,6 +248,8 @@ for (const scene of Object.values(ALL_SCENES)) {
  if(scene.islands)scene.islands=scene.islands.map(a=>a.map(v=>v*scale));
  if(scene.groves)scene.groves=scene.groves.map(a=>a.map((v,i)=>i<4?v*scale:v));
 }
+configureHaventideInterior(ALL_SCENES.haventide_town);
+
 // A landmark is usable from the lower approach and either side of its base,
 // rather than a small circle around the console hidden behind its artwork.
 const observatoryLens=REGIONS.emberline.objects.find(o=>o.id==='ember_observatory'),observatoryDish=REGIONS.emberline.objects.find(o=>o.id==='ember_lens');

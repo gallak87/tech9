@@ -7,8 +7,8 @@ const shots=[
   {id:'before',duration:1.15,from:'outsideBefore'},
   {id:'upgrade',duration:.85,from:'outsideBefore',to:'outsideAfter'},
   {id:'exterior',duration:.95,from:'outsideAfter'},
-  // Return to the exact opening composition. Future interior variants can
-  // change the art here without moving the desk, crew, or comparison camera.
+  // Return to the exact opening composition with the upgraded interior art.
+  // The desk, crew and comparison camera remain fixed.
   {id:'inside',duration:.18,transition:'fade',from:'outsideAfter',to:'deskAfter'},
   {id:'interior',duration:1.1,from:'deskAfter'},
 ];
@@ -77,7 +77,7 @@ export function upgradeTourCameras(outside,inside,plan,view=null) {
     // One camera for both exteriors: growth remains measurable, doorway fixed.
     outside:cameraAt(outside,(left+right)/2-VIEW_WIDTH/2,top-65),
     desk:view?{...view.camera}:cameraAt(inside,board.x-VIEW_WIDTH*.53,board.y-VIEW_HEIGHT*.58),
-    actors:view?structuredClone(view.actors):plan.before.heroes.map((hero,i)=>({id:hero.id,x:board.x-65+i*70,y:board.y+65+i*17,facing:'up'})),
+    actors:view?structuredClone(view.actors):plan.before.heroes.map((hero,i)=>({id:hero.id,x:board.x-65+i*70,y:board.y+55+i*12,facing:'up'})),
   };
 }
 

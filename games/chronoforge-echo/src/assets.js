@@ -12,6 +12,7 @@ import { SIGN_ASSETS } from './sign-art.js';
 import { STRUCTURE_ASSETS } from './structure-art.js';
 import { NPC_ASSETS } from './npc-art.js';
 import { TOWN_CENTERS } from './town-center-art.js';
+import { HAVENTIDE_INTERIOR_ASSETS } from './haventide-interior-art.js';
 
 // Immutable source atlases are interpreted at import. A required asset failure
 // stops boot rather than substituting an unrelated sprite into a finished scene.
@@ -21,6 +22,7 @@ const atlas = (id, url, columns, rows, kind, options = {}) => ({
   id, url: `assets/${url}`, columns, rows, kind, required: true, ...options,
 });
 export const ASSET_MANIFEST = [
+  ...HAVENTIDE_INTERIOR_ASSETS.map(entry=>({...entry,url:entry.source})),
   ...TOWN_CENTERS.map(entry=>({...entry,url:entry.source})),
   atlas('kaida_walk', 'kaida-walk-source.png', 4, 3, 'kaidaWalk', { key: 'neutral-exterior' }),
   atlas('kaida_showcase', 'kaida-showcase-source.png', 6, 2, 'kaida', { key: 'neutral-exterior' }),
@@ -115,6 +117,7 @@ export async function loadAssets(art) {
         case 'interiorWall': art.installInteriorWallAtlas(image, grid); break;
         case 'building': art.installBuildingAtlas(entry.group, image, grid); break;
         case 'townCenter': art.installTownCenterSheet(entry.region, image, entry.metadata); break;
+        case 'havenInterior': art.installHaventideInterior(image, entry); break;
         case 'interior': art.installInteriorAtlas(image, grid); break;
         case 'domestic': art.installDomesticAtlas(image, grid); break;
         case 'worldProp': art.installWorldPropAtlas(image, entry.metadata); break;

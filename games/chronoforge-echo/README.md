@@ -42,13 +42,15 @@ The repository's Pages workflow builds Echo with Node 24 and publishes `dist/` a
 
 Movement bindings, music, effects, timing assistance, restrained motion and the minimap are adjustable in Settings. Esc pauses the entire battle timeline, including attacks already in motion. Battle commands remain separate from the atlas tabs.
 
-Upgrading a Town Center from **Settlement works** now plays the exterior reveal in normal gameplay, in all four towns. It starts from your indoor view, fades outside, briefly pushes in, reveals the larger building with rising sparkles, then returns to Settlement works. **Space**, **Esc**, or **Skip reveal** finishes immediately. The upgrade is paid and checkpointed before playback; interiors keep their current artwork. See [the upgrade cinematic](docs/upgrade-cinematic.md).
+Upgrading a Town Center from **Settlement works** now plays the exterior reveal in normal gameplay, in all four towns. It starts from your indoor view, fades outside, briefly pushes in, reveals the larger building with rising sparkles, then returns to Settlement works. **Space**, **Esc**, or **Skip reveal** finishes immediately. The upgrade is paid and checkpointed before playback; Haventide’s interior restores alongside the exterior. Other towns retain their current interiors. See [the upgrade cinematic](docs/upgrade-cinematic.md).
 
 In the local development build, **Backquote** (the backtick key) opens a temporary art-preview panel at bottom left. Select any of the four towns, then use **1–4** or **← / →** to cycle its exterior at Haventide's existing entrance. The party stays at Haventide; no travel, exploration or progression changes occur. Closing with backtick or Esc restores the actual artwork, level and camera. Preview changes never enter saved game state. See [regional exterior art and controls](docs/regional-town-centers.md).
 
+While inside Haventide, the same level controls cycle its [interior restoration](docs/haventide-interior.md) in place. Floors, architecture, supplies and equipment progress together, while service positions and gameplay unlocks remain stable.
+
 The panel is restricted to **localhost**, **127.0.0.1**, and **[::1]**. Backtick works without a query flag. Add **`?dev=1`** to open it automatically once a started/loaded game reaches unobstructed exploration; it waits through the title screen, dialogue, battles, and transitions. Closing leaves it closed until you reopen it or load/start another session. It is unavailable on remote hosts and excluded from production builds. Temporary picture buffers and overrides are cleared on close/reset; no preview data is written to browser storage.
 
-The same panel offers **Upgrade from inside Haventide**. Select **1 → 2**, **2 → 3**, or **3 → 4**, then press **Upgrade Town Center** at the preview's indoor desk. Watch the exterior reveal and return inside, with skip and replay controls. This rehearsal uses current interior artwork and never spends resources or changes the expedition. See [upgrade rehearsal controls and scope](docs/upgrade-cinematic.md).
+The same panel offers **Upgrade from inside Haventide**. Select **1 → 2**, **2 → 3**, or **3 → 4**, then press **Upgrade Town Center** at the preview's indoor desk. Watch the exterior reveal and return inside, with skip and replay controls. This preview also shows Haventide’s four interior restoration stages and never spends resources or changes the expedition. See [upgrade rehearsal controls and scope](docs/upgrade-cinematic.md).
 
 ## A useful first visit
 

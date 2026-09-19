@@ -40,15 +40,16 @@ export function mountDevTools(game) {
 
   const actual=()=>Math.max(1,Math.min(4,game.state.buildings.town_center||1));
   const current=()=>preview.townCenterLevel??actual();
+  const indoors=()=>game.mode==='world'&&game.scene.id==='haventide_town';
   const canRehearse=()=>game.mode==='world'&&['haventide','haventide_town'].includes(game.scene.id)&&!game.transition&&!game.state.recruitmentWalk;
   function render() {
     const selected=current(),town=TOWN_CENTERS.find(t=>t.region===preview.townCenterRegion),f=town.metadata.frames[selected-1];
-    root.querySelector('.dev-subtitle').textContent=`${town.name} · Town center`;
+    root.querySelector('.dev-subtitle').textContent=indoors()?'Haventide · Town hall interior':`${town.name} · Town center`;
     root.querySelector('output').textContent=`${selected} · ${TIERS[selected-1]}`;
-    root.querySelector('.dev-size').textContent=`${f.nativeWidth} × ${Math.round(f.h*f.nativeWidth/f.w)} world units`;
-    root.querySelector('.dev-status').textContent=(preview.townCenterLevel===null?`Actual level ${actual()}.`:`Preview level ${selected}; actual level ${actual()}.`)+(game.scene.id==='haventide'&&game.mode==='world'?'':' View from Haventide’s outdoor map.');
+    root.querySelector('.dev-size').textContent=indoors()?'Restoration art · fixed service positions':`${f.nativeWidth} × ${Math.round(f.h*f.nativeWidth/f.w)} world units`;
+    root.querySelector('.dev-status').textContent=(preview.townCenterLevel===null?`Actual level ${actual()}.`:`Preview level ${selected}; actual level ${actual()}.`)+((game.scene.id==='haventide'||indoors())&&game.mode==='world'?'':' View from Haventide or its town hall.');
     for(const button of root.querySelectorAll('[data-upgrade]'))button.disabled=!canRehearse();
-    root.querySelector('.dev-upgrade-availability').textContent=canRehearse()?'Exterior → interior → desk. Current interior art.':'Available while standing in Haventide or its town hall.';
+    root.querySelector('.dev-upgrade-availability').textContent=canRehearse()?'Exterior → restored hall → desk.':'Available while standing in Haventide or its town hall.';
     root.querySelector('[data-preview="restore"]').disabled=preview.townCenterLevel===null&&preview.townCenterRegion==='haventide';
     for(const button of root.querySelectorAll('[data-town]'))button.setAttribute('aria-pressed',String(button.dataset.town===preview.townCenterRegion));
     for(const button of root.querySelectorAll('[data-tier]'))button.setAttribute('aria-pressed',String(Number(button.dataset.tier)===selected));

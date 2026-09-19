@@ -1,7 +1,51 @@
 {
-  "sourceCount": 82,
-  "compressedBytes": 175940834,
+  "sourceCount": 86,
+  "compressedBytes": 186258790,
   "sources": [
+    {
+      "id": "haventide_interior_level_1",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/haventide-survivor-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2374846,
+      "frames": 12,
+      "sha256": "e5de8cddb3c66ab83228f2ce420be67750a0a513e044bf7d15bdfe82b288a759"
+    },
+    {
+      "id": "haventide_interior_level_2",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/haventide-reclaimer-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2598714,
+      "frames": 12,
+      "sha256": "9434708c328bb48d149b79808e1b932ad184e2446d44b51d6be2a689a7241416"
+    },
+    {
+      "id": "haventide_interior_level_3",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/haventide-ascendant-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2612187,
+      "frames": 12,
+      "sha256": "604f9375c534d1233843d2ed8af6fbcdbe7615c291c4f89dde5ded11d01f9bce"
+    },
+    {
+      "id": "haventide_interior_level_4",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/haventide-transcendent-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2732209,
+      "frames": 12,
+      "sha256": "4471d49e4a5cdd62c317403f9b9921520760cecc5245b88a8e3a40cc6beaf796"
+    },
     {
       "id": "haventide_town_center",
       "kind": "townCenter",

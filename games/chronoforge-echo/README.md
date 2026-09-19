@@ -52,6 +52,8 @@ The panel is restricted to **localhost**, **127.0.0.1**, and **[::1]**. Backtick
 
 **Worlds explored** starts a temporary copy of your expedition, reveals all eight outdoor maps, and adds jumps to every region in both the dev panel and **Menu → Map**, regardless of story gates. Close the panel to explore; this toggle remains on. Switch it off, or click the **World preview** return button, to restore your original location and progress. All gameplay during world preview is temporary. Autosaves and manual saves retain the real expedition, including when previewing a battle. Loading, starting a new expedition, or refreshing ends the preview. Story flags and normal travel requirements remain unchanged.
 
+**World view** quickly flies out to show the entire current map, including interiors. Play is paused and an amber ring marks the party. **Esc**, backtick, or **Back to dev tools** restores the normal view. This also works during **Worlds explored**. It never changes the camera, position, fog, or saves; its in-memory view is released on close. Restrained motion skips the flyout animation.
+
 The same panel offers **Upgrade from inside the selected hall**. Select **1 → 2**, **2 → 3**, or **3 → 4**, then press **Upgrade Town Center** at the preview's indoor desk. Watch the exterior reveal and return inside, with skip and replay controls. This preview shows the selected town’s four interior restoration stages and never spends resources or changes the expedition. See [upgrade rehearsal controls and scope](docs/upgrade-cinematic.md).
 
 ## A useful first visit

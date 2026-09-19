@@ -4,6 +4,7 @@ import {TOWN_CENTERS,townCenterPreviewBounds} from './town-center-art.js';
 import {VIEW_WIDTH,VIEW_HEIGHT} from './rendering.js';
 import {ArtPreview} from './dev-preview.js';
 import {WorldTravelPreview} from './dev-world-travel.js';
+import {mountWorldView} from './dev-world-view.js';
 import {REGIONS} from './world.js';
 import {mountUpgradeTour} from './dev-upgrade-tour.js';
 import {localDevHost,localDevPreviewRequested,devPreviewReady} from './dev-access.js';
@@ -24,6 +25,8 @@ export function mountDevTools(game) {
       <button type="button" class="dev-world-toggle" data-preview="worlds" role="switch" aria-checked="false">Worlds explored <span>Off</span></button>
       <p class="dev-world-status"></p>
       <div class="dev-world-buttons" hidden>${Object.values(REGIONS).map(region=>`<button type="button" data-world="${region.id}">${region.name}</button>`).join('')}</div>
+      <button type="button" class="dev-world-view-button" data-preview="world-view">World view <span>↗</span></button>
+      <p>Fly out to see the full current map. Play stays paused.</p>
     </section>
     <strong>Art preview</strong>
     <p class="dev-subtitle"></p>
@@ -50,6 +53,7 @@ export function mountDevTools(game) {
   worldBadge.textContent='World preview · never saved · return to expedition';
   document.querySelector('#game').append(worldBadge);
   const upgradeTour=mountUpgradeTour(game,{onReturnToPlay:()=>setOpen(false)});
+  const worldView=mountWorldView(game,{onClose:()=>{root.hidden=!preview.open;renderWorldControls();}});
 
   const actual=()=>Math.max(1,Math.min(4,game.state.buildings.town_center||1));
   const current=()=>preview.townCenterLevel??actual();
@@ -64,8 +68,9 @@ export function mountDevTools(game) {
       ?'All eight maps revealed. Jump here or in Menu → Map. Turning off restores your original location and progress; saves use the real expedition.'
       :worlds.canEnable?'Temporarily reveal every map and jump past story gates. Your expedition stays unchanged.':'Return to exploration to enable world preview.';
     root.querySelector('.dev-world-buttons').hidden=!worlds.active;
+    root.querySelector('[data-preview="world-view"]').disabled=!devPreviewReady(game)||!!game.battle||upgradeTour.open;
     for(const button of root.querySelectorAll('[data-world]'))button.disabled=!worlds.canJump||upgradeTour.open;
-    worldBadge.hidden=!worlds.active||preview.open||upgradeTour.open||!!game.upgradeTour?.open;
+    worldBadge.hidden=!worlds.active||preview.open||worldView.open||upgradeTour.open||!!game.upgradeTour?.open;
   }
   function render() {
     renderWorldControls();
@@ -87,7 +92,7 @@ export function mountDevTools(game) {
   function setOpen(value) {
     if(value===preview.open)return;
     autoOpenPending=false;
-    if(!value)upgradeTour.close();
+    if(!value){worldView.close();upgradeTour.close();}
     preview.setOpen(value);root.hidden=!preview.open;
     game.keys.clear();game.movePath=[];game.moving=false;
     if(preview.open){
@@ -134,6 +139,7 @@ export function mountDevTools(game) {
       case 'next':cycle(1);break;
       case 'restore':preview.resetSelection();render();break;
       case 'worlds':if(worlds.active){restoreWorld();setOpen(true);}else if(worlds.enable()){game.ui.render();render();}break;
+      case 'world-view':if(worldView.openView())root.hidden=true;break;
       case 'close':setOpen(false);break;
     }
   });
@@ -146,6 +152,7 @@ export function mountDevTools(game) {
     update(){if(autoOpenPending&&devPreviewReady(game))setOpen(true);worldBadge.hidden=!worlds.active||preview.open||upgradeTour.open||!!game.upgradeTour?.open;},
     reset(){setOpen(false);preview.setOpen(false);worlds.restore();renderWorldControls();autoOpenPending=localDevPreviewRequested(window.location);},
     handleKey(event){
+      if(worldView.handleKey(event))return true;
       if(event.isComposing||event.ctrlKey||event.metaKey||event.altKey)return false;
       const editable=event.target instanceof Element&&event.target.closest('input,textarea,select,[contenteditable="true"]');
       if(!preview.open&&editable)return false;
@@ -166,7 +173,7 @@ export function mountDevTools(game) {
       if(event.key===' '&&!root.contains(document.activeElement))event.preventDefault();
       return true;
     },
-    dispose(){restoreWorld();setOpen(false);autoOpenPending=false;upgradeTour.dispose();root.remove();worldBadge.remove();},
+    dispose(){worldView.close();restoreWorld();setOpen(false);autoOpenPending=false;upgradeTour.dispose();worldView.dispose();root.remove();worldBadge.remove();},
   };
   if(import.meta.hot)import.meta.hot.dispose(()=>api.dispose());
   return api;

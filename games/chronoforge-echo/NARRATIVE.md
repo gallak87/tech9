@@ -10,17 +10,17 @@ The recurring visual language is a door, a lamp, a horizon, a voice. The story a
 
 ## Complete campaign, implemented in narrative.js
 
-| Place | Playable action | Revelation / lasting change |
-| --- | --- | --- |
-| Haventide | Solo Kaida fights the gate sentry, opens town, and repairs the listening buoy. | The keeper’s recording says the silence is misguided protection. `beacon_restored` opens the east road. |
-| Emberline | Meet Vex, defeat the Quiet Choir occupying the starless observatory, operate its lens. | People are preserved in a shared dream. Vex chooses to travel with Kaida; the forest and high-road branches become relevant. |
-| Orbital Reach | Become Reclaimer, reach Anchor Nine, defeat the looping rescue sentry, speak with Rune. | Rune changes his standing order from holding people to welcoming them. He joins at the crew’s level. |
-| Forest Veil | Quiet the root guardian and ask the heartwood relay for help. | Trees share a network without becoming a single mind. The first living seal opens the Mire causeway. |
-| Mire Bog | Defeat the archive keeper and open the submerged archive. | The rescue is a release, not a destruction. A safe receiving world is needed. The second seal supplies the release protocol. |
-| Crater Ember | Become Ascendant, cross the caldera, defeat the Ember Lord, restore the sun-forge. | An enormous forge that made walls can make doors. The thermal accord grants the third seal. |
-| Frost Canyon | Follow Rune’s rescue road, defeat the Frost Colossus, light the midnight beacon. | Protection must allow departure and return. The fourth seal guides the preserved people home. |
-| Last Crown | Open the transformed city, defeat the Architect Herald, hear the memory orchard. | The Architect removed freedom to prevent grief. The Herald is its envoy and never counts as the final boss. |
-| The highest spire | Restore all four relays, hear the Crown memory, and reach Transcendent, then confront the separate Void Architect. | Three heroes answer together: presence, listening, and an open door. |
+| Place             | Playable action                                                                                                    | Revelation / lasting change                                                                                                  |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| Haventide         | Solo Kaida fights the gate sentry, opens town, and repairs the listening buoy.                                     | The keeper’s recording says the silence is misguided protection. `beacon_restored` opens the east road.                      |
+| Emberline         | Meet Vex, defeat the Quiet Choir occupying the starless observatory, operate its lens.                             | People are preserved in a shared dream. Vex chooses to travel with Kaida; the forest and high-road branches become relevant. |
+| Orbital Reach     | Become Reclaimer, reach Anchor Nine, defeat the looping rescue sentry, speak with Rune.                            | Rune changes his standing order from holding people to welcoming them. He joins at the crew’s level.                         |
+| Forest Veil       | Quiet the root guardian and ask the heartwood relay for help.                                                      | Trees share a network without becoming a single mind. The first living seal opens the Mire causeway.                         |
+| Mire Bog          | Defeat the archive keeper and open the submerged archive.                                                          | The rescue is a release, not a destruction. A safe receiving world is needed. The second seal supplies the release protocol. |
+| Crater Ember      | Become Ascendant, cross the caldera, defeat the Ember Lord, restore the sun-forge.                                 | An enormous forge that made walls can make doors. The thermal accord grants the third seal.                                  |
+| Frost Canyon      | Follow Rune’s rescue road, defeat the Frost Colossus, light the midnight beacon.                                   | Protection must allow departure and return. The fourth seal guides the preserved people home.                                |
+| Last Crown        | Open the transformed city, defeat the Architect Herald, hear the memory orchard.                                   | The Architect removed freedom to prevent grief. The Herald is its envoy and never counts as the final boss.                  |
+| The highest spire | Restore all four relays, hear the Crown memory, and reach Transcendent, then confront the separate Void Architect. | Three heroes answer together: presence, listening, and an open door.                                                         |
 
 Order within the four regional relay branches is flexible subject to physical travel and civic requirements. The campaign objective prefers a readable sequence. Optional encounters remain distinct from the required first-clear ledgers. Each regional console checks its actual guardian encounter, and every story reward uses a unique persistent ledger entry.
 
@@ -59,12 +59,12 @@ These include a vendor request and item handoff, travel, inspection, companion p
 
 Resources are shared by the allied settlements. Ore purchases gear and construction. Food supports development, rest and training. Energy powers research and advanced development. Renown is earned by victories, liberations and helping people; it represents public trust and is spent on civic advancement.
 
-| Tier | Requirements to enter | Services and development |
-| --- | --- | --- |
-| Survivor | Opening state | Provisions, salvage smith, inn; Farm, Mine, Extractor, Walls; Town Center may upgrade to 2. |
-| Reclaimer | Restored buoy; Town Center 2; 35 food, 35 ore, 15 energy, 12 renown | Barracks, Forge, Research Lab; archivist at Kaida 6 + Lab; trainer at Kaida 10 + Barracks; resonance / prism / anchor weapons; revive supplies. |
-| Ascendant | Rune recruited; Town Center 3; Lab 1; 70 food, 85 ore, 60 energy, 65 renown | Artificer at Kaida 16 + Forge; elemental equipment, advanced healing / energy cells; furnace-road traversal. |
-| Transcendent | Four regional seals; Town Center 4, Lab 2, Forge 2, Walls 2; 130 food, 150 ore, 130 energy, 180 renown | Concord gear families; full-party Concord Dawn; with Crown memory, final boss access. |
+| Tier         | Requirements to enter                                                                                  | Services and development                                                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Survivor     | Opening state                                                                                          | Provisions, salvage smith, inn; Farm, Mine, Extractor, Walls; Town Center may upgrade to 2.                                                     |
+| Reclaimer    | Restored buoy; Town Center 2; 35 food, 35 ore, 15 energy, 12 renown                                    | Barracks, Forge, Research Lab; archivist at Kaida 6 + Lab; trainer at Kaida 10 + Barracks; resonance / prism / anchor weapons; revive supplies. |
+| Ascendant    | Rune recruited; Town Center 3; Lab 1; 70 food, 85 ore, 60 energy, 65 renown                            | Artificer at Kaida 16 + Forge; elemental equipment, advanced healing / energy cells; furnace-road traversal.                                    |
+| Transcendent | Four regional seals; Town Center 4, Lab 2, Forge 2, Walls 2; 130 food, 150 ore, 130 energy, 180 renown | Concord gear families; full-party Concord Dawn; with Crown memory, final boss access.                                                           |
 
 Town Center can advance one level ahead of the current tier, so tier requirements are never circular. Productive buildings continuously supply food, ore and energy during exploration. All liberation and major quest rewards include development resources. Safe salvage and unconditional inn hospitality provide recovery from empty stores. Walls confer real combat defense; Barracks add strength/technique; Forge adds defense and unlocks advanced service stock; Lab adds MP and unlocks permanent Concord research.
 

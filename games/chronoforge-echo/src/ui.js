@@ -1,176 +1,1235 @@
-import {dialogueLine} from './npc-identities.js';
+import { dialogueLine } from './npc-identities.js';
 import './field-ui.css';
-import {tierBadge} from './tier-ui.js';
-import {beaconStatus} from './beacons.js';
+import { tierBadge } from './tier-ui.js';
+import { beaconStatus } from './beacons.js';
 import './expedition.css';
-import {HEROES,ITEMS,BUILDINGS,TIERS,SERVICES} from './content.js';
+import { HEROES, ITEMS, BUILDINGS, TIERS, SERVICES } from './content.js';
 import * as P from './progression.js';
-import {performBuild} from './construction.js';
-import {mainObjective,onEvent,interactStory} from './narrative.js';
-import {drawPortrait,drawIcon,npcPortrait} from './art.js';
-import {nearbyBuildings} from './world.js';
-import {latestSave,deleteSave} from './persistence.js';
-import {drawMinimap} from './maps.js';
-import {ExpeditionMap} from './expedition-map.js';
-import {renderExpedition,expeditionItemDetail} from './expedition-menu.js';
-import {navigateExpedition,navigateShop} from './expedition-navigation.js';
-import {vendorAction} from './vendor-actions.js';
-import {SaveTransfer} from './save-transfer.js';
-import {canOpenWorldView,worldViewShortcut} from './world-view.js';
-import {drawHero} from './art.js';
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const icon=(id,cl='pixel-icon')=>`<canvas class="${cl}" data-icon="${esc(id)}" width="128" height="128"></canvas>`;
-const portrait=(id,cl='portrait-large')=>`<canvas class="${cl}" data-portrait="${esc(id)}" width="192" height="192"></canvas>`;
-const button=(label,action,cl='button',extra='')=>`<button class="${cl}" data-do="${esc(action)}" ${extra}>${label}</button>`;
-const mark=`<svg class="insignia-svg" viewBox="0 0 40 40" aria-hidden="true"><path d="M28 7A15 15 0 1 0 28 33M9 14H31M4 20H28M9 26H31" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="m32 17 3 3-3 3" fill="currentColor"/></svg>`;
-const fmt=n=>Math.floor(n??0).toLocaleString();
-const duration=s=>`${Math.floor((s||0)/3600)}h ${Math.floor(((s||0)%3600)/60)}m`;
-const costText=o=>Object.entries(o||{}).map(([k,v])=>`${fmt(v)} ${k}`).join(' · ');
-const labels={str:'Strength',int:'Intellect',tec:'Technique',def:'Defense',spd:'Speed',crit:'Critical %',maxHp:'Max HP',maxMp:'Max MP'};
-export class UI{
- constructor(game){this.game=game;this.root=document.querySelector('#overlay');this.hud=document.querySelector('#hud');this.panel=null;this.menu=false;this.tab=0;this.hero=0;this.item=null;this.qty=1;this.sellMode=false;this.map=new ExpeditionMap(game);this.saveTransfer=new SaveTransfer(this);document.fonts.ready.then(()=>{if(this.menu&&this.tab===0)this.map.draw();});this.notice='';this.bindCapture=null;this.root.addEventListener('click',e=>{const b=e.target.closest('[data-do]');if(b&&!b.disabled){this.game.audio.unlock();this.action(b.dataset.do);}});this.root.addEventListener('input',e=>{if(e.target.matches('[data-load-after-import]')&&this.panel?.saveImport)this.panel.saveImport.loadImmediately=e.target.checked;if(e.target.dataset.setting){game.state.settings[e.target.dataset.setting]=+e.target.value;game.audio.set(game.state.settings);}});this.root.addEventListener('focusin',e=>{const id=e.target.closest('[data-pack-item]')?.dataset.packItem;if(id)this.inspectItem(id);});this.hud.addEventListener('click',e=>{if(e.target.closest('[data-world-view]'))game.worldView?.openView();if(e.target.closest('[data-atlas]'))this.toggleMenu();if(e.target.closest('[data-interact]'))game.interact();if(e.target.closest('[data-resume-ending]'))game.presentEnding();});}
- resetSession(){
-  this.saveTransfer.cancelImport();
-  this.panel=null;this.menu=false;this.hero=0;this.item=null;this.qty=1;
-  this.sellMode=false;this.notice='';this.bindCapture=null;
-  document.querySelector('#rewards').replaceChildren();
-  document.querySelector('.recruit-announcement')?.remove();
-  document.querySelector('#game').classList.toggle('reduced',!!this.game.state.settings.reducedMotion);
- }
- get blocked(){return this.menu||!!this.panel||this.game.mode==='title'||!!this.game.upgradeTour?.open||!!this.game.worldView?.open;}
- paint(root=this.root){root.querySelectorAll('[data-menu-hero]').forEach(c=>{const ctx=c.getContext('2d');ctx.clearRect(0,0,c.width,c.height);drawHero(ctx,c.dataset.menuHero,c.width/2,c.height*.88,{scale:6.2,facing:'down',time:0});});root.querySelectorAll('[data-icon]').forEach(c=>drawIcon(c.getContext('2d'),c.dataset.icon,0,0,c.width));root.querySelectorAll('[data-portrait]').forEach(c=>drawPortrait(c.getContext('2d'),c.dataset.portrait,0,0,192));}
- focus(index=0){const list=this.focusables();if(list.length)list[(index+list.length)%list.length].focus({preventScroll:true});}
- focusables(){return [...this.root.querySelectorAll('button:not(:disabled),input')].filter(b=>b.offsetWidth>0);}
- navigateBuildGrid(key){
-  const active=document.activeElement,grid=active?.closest('.build-grid');if(!grid||!key.startsWith('Arrow'))return false;
-  const vertical=key==='ArrowUp'||key==='ArrowDown',direction=key==='ArrowUp'||key==='ArrowLeft'?-1:1,rect=active.getBoundingClientRect();
-  const center=r=>vertical?(r.top+r.bottom)/2:(r.left+r.right)/2,origin=center(rect);
-  // Use rendered positions so disabled entries and the one-column layout keep
-  // their place. Arrow keys never wrap across a row or into the other column.
-  const candidates=this.focusables().filter(el=>grid.contains(el)&&el!==active).map(el=>({el,rect:el.getBoundingClientRect()})).filter(({rect:r})=>direction*(center(r)-origin)>1&&(vertical?Math.min(rect.right,r.right)>Math.max(rect.left,r.left):Math.min(rect.bottom,r.bottom)>Math.max(rect.top,r.top))).sort((a,b)=>Math.abs(center(a.rect)-origin)-Math.abs(center(b.rect)-origin));
-  let next=candidates[0]?.el;
-  if(!next&&key==='ArrowUp'){const list=this.focusables(),first=list.findIndex(el=>grid.contains(el));next=list[first-1];}
-  if(next){next.focus({preventScroll:true});next.scrollIntoView({block:'nearest',inline:'nearest'});}return true;
- }
- handleKey(k){if(k==='Escape')return this.handleEscape();if(k==='Backspace'&&this.blocked){this.dismissTopLayer();return true;}if(this.bindCapture){if(!['Escape','Tab','Enter',' ','Backspace','q','e','1','2','3','4','5','6','7'].includes(k)){this.game.state.settings.keys??={};this.game.state.settings.keys[this.bindCapture]=k.toLowerCase();this.notice=`${this.bindCapture} is now ${k.toUpperCase()}.`;this.bindCapture=null;this.render();}return true;}
-  if(this.menu&&this.panel?.type!=='confirm'){if(/^[1-7]$/.test(k)){this.tab=+k-1;this.notice='';this.render();return true;}if(k.toLowerCase()==='q'||k.toLowerCase()==='e'){this.tab=(this.tab+(k.toLowerCase()==='q'?6:1))%7;this.notice='';this.render();return true;}if(navigateExpedition(this,k))return true;if(this.tab===0&&this.map.key(k)){this.map.draw();return true;}}
-  if(!this.blocked&&['Enter',' '].includes(k)&&document.activeElement?.matches('[data-world-view]:not(:disabled)')){this.game.worldView?.openView();return true;}
-  if(!this.blocked){if(k==='Enter'&&this.game.mode==='world'&&!this.game.transition&&this.game.state.flags.pendingEnding){this.game.presentEnding();return true;}return false;}
-  if(!this.menu&&this.panel?.type==='vendor'&&navigateShop(this,k))return true;
-  const body=this.root.querySelector('.atlas-body');if(body&&['PageUp','PageDown','Home','End'].includes(k)){body.scrollTop=k==='Home'?0:k==='End'?body.scrollHeight:body.scrollTop+(k==='PageDown'?1:-1)*body.clientHeight*.85;return true;}
-  if(body&&this.menu&&this.tab===4&&['ArrowUp','ArrowDown'].includes(k)){body.scrollTop+=(k==='ArrowDown'?1:-1)*Math.max(64,body.clientHeight*.18);return true;}
-  if(k==='Enter'||k===' '){if(this.panel?.type==='reading'&&!this.menu){this.dismissTopLayer();return true;}if(this.panel?.type==='dialogue'&&!this.menu&&!this.atChoice()){this.nextDialogue();return true;}const el=document.activeElement;if(this.root.contains(el)&&(el.tagName==='BUTTON'||el.matches('input[type=checkbox]')))el.click();else this.focus();return true;}
-  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Tab'].includes(k)){if(document.activeElement?.type==='range'&&['ArrowLeft','ArrowRight'].includes(k)){const e=document.activeElement;e.value=Math.max(0,Math.min(1,+e.value+(k==='ArrowRight'?.1:-.1)));e.dispatchEvent(new Event('input',{bubbles:true}));return true;}if(this.navigateBuildGrid(k))return true;const list=this.focusables(),i=list.indexOf(document.activeElement);this.focus(i+(k==='ArrowUp'||k==='ArrowLeft'?-1:1));document.activeElement?.scrollIntoView({block:'nearest'});return true;}return true;
- }
- // Confirmations sit above the atlas; the atlas can in turn cover a service or
- // a conversation. Dismiss only the visible layer, never a story callback.
- dismissTopLayer(){const restore=this.panel?.type==='confirm'?this.panel.returnFocus:null,scroll=this.panel?.returnScroll;if(this.bindCapture)this.bindCapture=null;else if(this.panel?.type==='confirm'){const cancel=this.panel.onCancel;this.panel=this.confirmReturn||null;this.confirmReturn=null;cancel?.();}else if(this.menu)this.menu=false;else if(['vendor','build','help','reading','dialogue','ending'].includes(this.panel?.type)){const p=this.panel;if(this.game.state.flags.pendingEnding&&(p.ending||p.type==='ending')){this.game.state.endingProgress={index:p.index??this.game.state.endingProgress?.index??0,panel:p.type};this.panel=null;this.game.checkpoint();}else this.panel=null;}else return false;this.notice='';this.game.keys.clear();this.game.audio.sound('back');this.render();if(restore)this.restoreShopRow(restore,scroll);return true;}
- handleEscape(){if(!this.dismissTopLayer())this.toggleMenu();return true;}
- toggleMenu(){if(this.game.mode==='title')return;this.menu=!this.menu;this.notice='';this.bindCapture=null;this.game.keys.clear();this.game.audio.sound(this.menu?'confirm':'back');this.render();}
- close(){this.panel=null;this.notice='';this.game.keys.clear();this.render();}
- showReading(object){this.panel={type:'reading',title:object.name||'Wayfinding',text:object.dialogue||'The lettering has worn away.'};this.notice='';this.render();}
- showDialogue(lines,choices=[],done,options={}){if(!lines?.length){done?.();return;}this.panel={type:'dialogue',lines:lines.map(l=>typeof l==='string'?dialogueLine(null,l):Object.hasOwn(l,'speakerId')?l:dialogueLine(l.speaker,l.text)),index:Math.max(0,Math.min(lines.length-1,options.index||0)),choices,done,ending:!!options.ending};this.render();}
- atChoice(){const p=this.panel;return p?.type==='dialogue'&&p.index===p.lines.length-1&&p.choices?.length;}
- nextDialogue(){const p=this.panel;if(p?.type!=='dialogue'||this.menu)return;if(this.atChoice())return;if(++p.index>=p.lines.length){const done=p.done;this.panel=null;this.render();done?.();}else this.render();if(p.ending&&this.game.state.flags.pendingEnding){if(this.panel?.type==='dialogue'&&this.panel.ending)this.game.state.endingProgress={index:this.panel.index,panel:'dialogue'};this.game.checkpoint();}this.game.audio.sound('select');}
- feedback(r){if(!r)return;this.notice=r.message||'';this.game.rewards(r.rewards||[]);this.game.audio.sound(r.ok===false?'error':'confirm');this.render();}
- showVendor(obj){this.qty=1;this.sellMode=false;this.notice='';this.panel={type:'vendor',object:obj};this.render();}
- showBuild(){this.panel={type:'build'};this.notice='';this.render();}
- restoreShopRow(action,scroll=0){const row=[...this.root.querySelectorAll('[data-do]')].find(el=>el.dataset.do===action);if(row)row.focus({preventScroll:true});const body=this.root.querySelector('.atlas-body'),pack=this.root.querySelector('.exp-pack-items');if(body)body.scrollTop=typeof scroll==='number'?scroll:scroll.body||0;if(pack&&typeof scroll==='object')pack.scrollTop=scroll.pack||0;}
- requestPurchase(id){const s=this.game.state,it=ITEMS[id],vendor=this.panel;if(!it||vendor?.type!=='vendor')return;const quantity=this.qty,cost=Math.ceil(it.price*quantity*(s.flags.mara_trade_route?.85:1)),returnFocus='buy:'+id,returnScroll=this.root.querySelector('.atlas-body')?.scrollTop||0;this.confirm('Buy '+it.name+'?',`Spend ${fmt(cost)} ore for ${quantity} ${it.name}.`,()=>{this.panel=vendor;const currentCost=Math.ceil(it.price*quantity*(s.flags.mara_trade_route?.85:1));let result;if(!P.serviceAvailable(s,vendor.object.service||'provisions')||!P.serviceStock(s,vendor.object.service||'provisions',s.region).includes(id))result={ok:false,message:'This item is no longer available here.'};else if(currentCost!==cost)result={ok:false,message:'The price changed. Review the new total before buying.'};else result=P.buy(s,id,quantity);this.feedback(result);this.restoreShopRow(returnFocus,returnScroll);},{eyebrow:'PURCHASE',cancelLabel:'Cancel',confirmLabel:`Buy · ${fmt(cost)} ore`,purchase:{id,quantity,cost},returnFocus,returnScroll});this.root.querySelector('[data-do="confirm-yes"]')?.focus({preventScroll:true});}
- confirmItemUse(use,run,labels={}){this.confirm('Use '+ITEMS[use.itemId].name+'?',`${use.targetName} restores ${use.amount} ${use.unit}. ${use.wasted} ${use.unit} will be wasted.`,run,{eyebrow:'FIELD SUPPLY',confirmLabel:'Use · Space / Enter',cancelLabel:'Cancel · Esc',consumable:true,...labels});this.root.querySelector('[data-do="confirm-yes"]')?.focus({preventScroll:true});}
- requestItemUse(id,heroId){
-  const returnFocus='use:'+id,returnScroll={body:this.root.querySelector('.atlas-body')?.scrollTop||0,pack:this.root.querySelector('.exp-pack-items')?.scrollTop||0},previous=this.panel;
-  const finish=result=>{this.feedback(result);this.restoreShopRow(returnFocus,returnScroll);};
-  const result=P.useItem(this.game.state,id,heroId);
-  if(!result.needsConfirmation){finish(result);return;}
-  this.confirmItemUse(result,()=>{this.panel=previous;const outcome=P.useItem(this.game.state,id,heroId,{confirmation:result.confirmationKey});finish(outcome.needsConfirmation?{ok:false,message:'The target changed. Review the restoration before using this supply.'}:outcome);},{returnFocus,returnScroll});
- }
- confirm(title,text,run,labels={}){this.confirmReturn=this.panel;this.panel={type:'confirm',title,text,run,...labels};this.render();}
- action(a){if(this.game.upgradeTour?.open)return;const [act,arg]=a.split(':');const g=this.game,s=g.state,h=s.heroes[this.hero]||s.heroes[0];g.audio.sound('select');switch(act){
-  case 'new':if(latestSave()!==null)this.confirm('Begin a new expedition?','Your manual save slots remain available. The automatic checkpoint will follow the new expedition.',()=>g.startNew());else g.startNew();break;
-  case 'continue':g.load(latestSave());break;case 'title-controls':this.panel={type:'help'};this.render();break;case 'close':this.close();break;case 'dismiss-panel':this.dismissTopLayer();break;
-  case 'menu-close':this.toggleMenu();break;case 'tab':this.tab=+arg;this.notice='';this.render();break;case 'hero':this.hero=+arg;this.notice='';this.render();break;
-  case 'item':this.inspectItem(arg,true);break;
-  case 'equip':this.feedback(P.equip(s,h.id,arg));break;case 'unequip':this.feedback(P.unequip(s,h.id,arg));break;case 'use':if(g.mode==='battle'){this.feedback({ok:false,message:'Use the battle Item command to choose a field supply and ally.'});break;}this.requestItemUse(arg,h.id);break;
-  case 'learn':this.feedback(P.learn(s,h.id,arg));break;
-  case 'save':if(g.save(arg)){this.notice=g.devTools?.worldPreviewActive?'Real expedition recorded; world preview remains temporary.':'Expedition recorded.';this.render();}break;
-  case 'export-save':this.saveTransfer.exportSlot(arg);break;case 'import-save':this.saveTransfer.requestImport(arg);break;case 'load':this.confirm('Resume this expedition?','Unsaved progress will be replaced by this record.',()=>g.load(arg));break;
-  case 'delete':this.confirm('Erase this record?','This permanently erases this save slot. Other records are preserved.',()=>{this.panel=this.confirmReturn;try{deleteSave(arg);this.notice='Record erased.';this.render();}catch(e){this.feedback({ok:false,message:'Could not erase: '+e.message});}});break;
-  case 'restart':this.confirm('Start over?','The current expedition returns to the solitary opening. Manual save slots remain available.',()=>g.startNew());break;
-  case 'confirm-no':this.dismissTopLayer();break;case 'confirm-yes':{const f=this.panel.run;this.panel=null;f();this.confirmReturn=null;break;}
-  case 'setting':s.settings[arg]=!s.settings[arg];document.querySelector('#game').classList.toggle('reduced',!!s.settings.reducedMotion);this.render();break;
-  case 'rebind':this.bindCapture=arg;this.notice=`Press a new key for ${arg}. Menu and confirmation keys remain reserved.`;this.render();break;
-  case 'map-zoom':this.map.key(arg==='in'?'+':'-');this.map.draw();break;case 'map-reset':this.map.key('r');this.map.draw();break;
-  case 'travel':if(s.flags.pendingEnding){this.feedback({ok:false,message:'Close the atlas to finish the crew’s ending.'});break;}if(g.mode==='battle'){this.feedback({ok:false,message:'Finish or retreat from this encounter before traveling.'});break;}this.menu=false;this.panel=null;g.travelHub(arg);this.render();break;
-  case 'dev-world':g.devTools?.jumpWorld(arg);break;
-  case 'dialogue-next':this.nextDialogue();break;case 'choice':{const p=this.panel,c=p.choices[+arg];s.flags[c.flag]=true;this.panel=null;this.render();g.resolveResult(onEvent(s,'choice',c.flag),p.done);g.checkpoint();break;}
-  case 'story':{const vendor=this.panel.object;this.panel=null;g.resolveResult(interactStory(s,arg),()=>this.showVendor(vendor));g.checkpoint();break;}
-  case 'qty':this.qty=Math.max(1,Math.min(10,this.qty+(arg==='up'?1:-1)));this.render();break;
-  case 'trade-mode':this.sellMode=!this.sellMode;this.render();break;
-  case 'buy':this.requestPurchase(arg);break;case 'sell':this.feedback(P.sell(s,arg,Math.min(this.qty,s.inventory[arg]||0)));break;
-  case 'rest':this.feedback(P.rest(s));g.checkpoint();break;case 'train':this.feedback(P.train(s));break;case 'research':this.feedback(P.research(s));break;
-  case 'build':performBuild(g,arg);break;
-  case 'tier':this.feedback(P.advanceTier(s));g.checkpoint();break;case 'ending-continue':g.completeEnding();break;
- }}
- shell(title,body,footer='↑ ↓ Navigate &nbsp; <kbd>PgUp/Dn</kbd> Scroll &nbsp; <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm &nbsp; <kbd>Esc</kbd>/<kbd>Backspace</kbd> Return',tabs=false){return `<div class="scrim"></div><section class="atlas ${this.panel?.type==='vendor'&&['inn','rest','trainer'].includes(this.panel.object.service)?'service-compact':this.panel?.type==='vendor'?'shop-dialog':''}" role="dialog" aria-label="${esc(title)}"><header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs?'THE CREW’S FIELD ATLAS':this.panel?.type==='vendor'?'LOCAL SERVICES':this.panel?.type==='build'?'SETTLEMENT':'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs?'<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>':''}</header>${tabs?`<nav class="tabs">${['Map','Party','Inventory','Skills','Quests','Save','Settings'].map((t,i)=>button(`<small>${i+1}</small>${t}`,'tab:'+i,i===this.tab?'active':'')).join('')}</nav>`:''}<div class="atlas-body scroll">${this.notice?`<div class="notice" role="status">${esc(this.notice)}</div>`:''}${body}</div><footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;}
- render(){if(!this.menu||this.tab!==5)this.saveTransfer.cancelImport();const shopScroll=this.panel?.type==='vendor'&&this.root.querySelector('[data-shop-navigation]')?this.root.querySelector('.atlas-body')?.scrollTop:null;const previousPage=this.root.querySelector('.exp-page');this.menuScroll??={};if(previousPage&&this.renderedMenuTab!=null)this.menuScroll[this.renderedMenuTab]={body:previousPage.scrollTop,pack:this.root.querySelector('.exp-pack-items')?.scrollTop||0};const g=this.game,s=g.state;const prev=document.activeElement?.dataset?.do;this.hud.style.display=(g.mode==='title'||this.menu||g.mode==='battle')?'none':'';let html='';
-  if(this.panel?.type==='confirm'){const p=this.panel;html=`<div class="scrim"></div><section class="modal ${p.purchase||p.consumable?'purchase-confirm':''}" role="dialog" aria-modal="true" aria-label="${esc(p.title)}"><div class="eyebrow">${esc(p.eyebrow||'FIELD RECORD')}</div><h2>${esc(p.title)}</h2>${p.purchase?`<div class="purchase-item">${icon(p.purchase.id)}<span>${esc(ITEMS[p.purchase.id].name)}<b>×${fmt(p.purchase.quantity)}</b></span></div><div class="purchase-cost"><span>Spend</span>${icon('ore')}<strong>${fmt(p.purchase.cost)} ore</strong><small>${fmt(s.resources.ore)} available</small></div>`:`<p>${esc(p.text)}</p>`}${p.saveImport?`<label class="save-import-option"><input type="checkbox" data-load-after-import ${p.saveImport.loadImmediately?'checked':''} aria-describedby="save-import-load-note"><span>After import, load immediately</span></label><small class="save-import-note" id="save-import-load-note">Loading replaces your current unsaved progress. Leave unchecked to keep playing your current expedition.</small>`:''}<div class="button-group">${button(esc(p.cancelLabel||'Keep exploring'),'confirm-no')}${button(esc(p.confirmLabel||'Confirm'),'confirm-yes','button danger')}</div></section>`;}
-  else if(this.menu)html=this.renderMenu();
-  else if(this.panel?.type==='reading'){const p=this.panel;html=`<section class="reading-panel" role="dialog" aria-modal="true" aria-labelledby="reading-title"><div class="reading-kind">SIGNPOST</div><h2 id="reading-title">${esc(p.title)}</h2><p>${esc(p.text)}</p><footer><span><kbd>Enter</kbd> / <kbd>Space</kbd> Return</span><span class="dismiss-hint"><kbd>Esc</kbd> Close</span></footer></section>`;}
-  else if(this.panel?.type==='dialogue'){const p=this.panel,l=p.lines[p.index],id=l.speakerId;html=`<section class="dialogue ${id?'':'dialogue-text-only'}" role="dialog" aria-label="${id?'Conversation':'Field notes'}">${id?portrait(id,'dialogue-portrait'):''}<div><div class="dialogue-name">${esc(l.speaker||'Field notes')}</div><p class="dialogue-text">${esc(l.text)}</p>${this.atChoice()?`<div class="choices">${p.choices.map((c,i)=>button(esc(c.text),'choice:'+i)).join('')}</div><div class="dialogue-dismiss"><span class="dismiss-hint"><kbd>Esc</kbd> Leave without choosing</span></div>`:`<div class="dialogue-next">${button(`${p.index+1} / ${p.lines.length} &nbsp; <kbd>Space</kbd> Continue`,'dialogue-next','')}<span class="dismiss-hint"><kbd>Esc</kbd> ${p.ending?'Leave; resume later':'Leave conversation'}</span></div>`}</div></section>`;}
-  else if(this.panel?.type==='vendor')html=this.renderVendor();else if(this.panel?.type==='build')html=this.renderBuild();else if(this.panel?.type==='help')html=this.shell('Your first steps',this.controls()+`<div class="rule"></div><p>Follow the salt road to the guarded settlement. Speak with residents, restore its beacon, and give the broken world a reason to answer.</p><div class="button-group">${button('Return','close')}</div>`);
-  else if(this.panel?.type==='ending')html=this.renderEnding();else if(g.mode==='title')html=this.renderTitle();this.map.unmount();this.root.innerHTML=html;this.paint();if(this.menu&&this.tab===0){const c=this.root.querySelector('#atlas-map');if(c)this.map.mount(c);}const old=[...this.root.querySelectorAll('[data-do]')].find(b=>!b.disabled&&b.dataset.do===prev);if(old)old.focus({preventScroll:true});else if(this.menu&&this.tab===2&&/^(item|equip|use):/.test(prev||''))this.root.querySelector('.exp-pack-row.selected .exp-pack-item')?.focus({preventScroll:true});else if(this.menu&&this.tab===0&&this.map.canvas)this.map.focusSelected();else if(html)this.focus(this.menu?7:0);if(this.menu&&this.root.querySelector('.exp-page')){this.renderedMenuTab=this.tab;this.restoreShopRow('',this.menuScroll[this.tab]||{body:0,pack:0});}if(shopScroll!=null)this.root.querySelector('.atlas-body').scrollTop=shopScroll;this.updateHUD();}
- renderTitle(){return `<div class="title-vignette"></div><div class="title-top">${mark}<div class="edition">A CHRONICLE OF THE WORLD AFTER</div></div><section class="title-content"><div class="eyebrow">A SIGNAL. A SHORE. A SECOND BEGINNING.</div><h1>CHRONFORGE<span>ECHO</span></h1><div class="title-line"></div><p class="title-description">The world remembers what we lost.<br>Let’s give it something new to remember.</p><div class="title-actions">${latestSave()!==null?button('Continue the journey <span>↗</span>','continue',''):''}${button('Begin your expedition <span>→</span>','new','')}${button('Field guide <span>?</span>','title-controls','secondary')}</div></section><div class="title-coordinates"><b>HAVENTIDE</b>The salt road, first light<br>36° 07′ N &nbsp; / &nbsp; 14° 22′ E</div><div class="title-foot"><span>✦ &nbsp; AN ORIGINAL PIXEL-ART ADVENTURE</span><span><kbd>↑</kbd><kbd>↓</kbd> Choose &nbsp; <kbd>Enter</kbd> Begin &nbsp; / &nbsp; Headphones welcome</span></div>`;}
- updateHUD(){const g=this.game,s=g.state;if(g.mode==='title'||this.menu||g.mode==='battle'||g.worldView?.open)return;const scene=g.scene,worldViewFocused=document.activeElement?.matches('[data-world-view]');this.hud.innerHTML=`<div class="hud-top"><div class="objective"><div class="label">FIELD OBJECTIVE</div><p>${esc(mainObjective(s))}</p>${s.flags.pendingEnding&&!this.panel?'<button class="resume-ending" data-resume-ending><kbd>Enter</kbd> Resume final conversation</button>':''}</div><div class="hud-right"><div class="hud-resource-row"><div class="resources">${['food','ore','energy','renown'].map(id=>`<span class="resource" aria-label="${fmt(s.resources[id])} ${id}">${icon(id)}${fmt(s.resources[id])}</span>`).join('')}</div>${!this.panel?'<button class="atlas-button" data-atlas><kbd>Esc</kbd> MENU</button>':''}</div><div class="survey-stack ${s.settings.minimap?'':'survey-hidden'}">${s.settings.minimap?'<div class="minimap-wrap"><canvas id="minimap" aria-label="Immediate surroundings"></canvas></div>':''}<div class="location-plaque"><h3>${esc(scene.name)}</h3><span>${esc(scene.interior?'INTERIOR':scene.subtitle)}</span></div><button type="button" class="world-view-button" data-world-view ${canOpenWorldView(g)?'':'disabled'}${worldViewShortcut(s.settings)?' aria-keyshortcuts="R"':''}>${worldViewShortcut(s.settings)?'<kbd>R</kbd> ':''}World view</button></div></div></div><div class="hud-bottom"><div class="party-strip">${s.heroes.map(h=>{const st=P.stats(h,s);return `<div class="hero-compact">${portrait(h.id,'compact-portrait')}<div><strong>${h.name}</strong> <small>LV ${h.level}</small><div class="meter"><i style="width:${h.hp/st.maxHp*100}%"></i></div><div class="meter mp"><i style="width:${h.mp/st.maxMp*100}%"></i></div></div></div>`;}).join('')}</div><div class="controls"><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> Walk &nbsp; <kbd>Shift</kbd> Run<br><kbd>${esc((s.settings.keys?.interact||'F').toUpperCase())}</kbd> / <kbd>Space</kbd> Interact &nbsp; <kbd>Esc</kbd> Menu</div></div>`;this.paint(this.hud);if(worldViewFocused)this.hud.querySelector('[data-world-view]')?.focus({preventScroll:true});const mm=this.hud.querySelector('#minimap');if(mm)drawMinimap(mm,scene,s);this.positionInteraction();}
- positionInteraction(){
-  const g=this.game,interactive=g.near,o=interactive||nearbyBuildings(g.scene,g.state.x,g.state.y,g.state)[0];let prompt=this.hud.querySelector('.interaction');
-  if(g.mode!=='world'||this.blocked||g.transition||g.state.recruitmentWalk||!o||g.state.pickups[o.id]){prompt?.remove();return;}
-  const hint=interactive?beaconStatus(g.state,o.id)?.hint||'':'',level=g.visualState.buildings[o.building]||0,kind=interactive?'action':'building',key=`${o.id}:${kind}:${level}:${hint}`;
-  if(!prompt||prompt.dataset.labelKey!==key){prompt?.remove();this.hud.insertAdjacentHTML('beforeend',interactive?`<button class="interaction${hint?' beacon-label':''}" data-interact data-object="${esc(o.id)}" data-label-key="${esc(key)}"><kbd>${esc((g.state.settings.keys?.interact||'F').toUpperCase())}</kbd> ${esc(g.interactionLabel(o))}${hint?`<small class="beacon-hint">${esc(hint)}</small>`:''}</button>`:`<div class="interaction building-label" data-object="${esc(o.id)}" data-label-key="${esc(key)}" data-building="${esc(o.building)}">${esc(BUILDINGS[o.building]?.name||o.name)} <small>LV ${level}</small></div>`);prompt=this.hud.querySelector('.interaction');}
-  const box=this.hud.getBoundingClientRect(),scale=box.width/960,x=(o.x-Math.round(g.camera.x))*scale,y=(o.y-Math.round(g.camera.y))*scale,margin=Math.max(5,box.width*.008),width=prompt.offsetWidth,height=prompt.offsetHeight,gap=o.type==='encounter'?42:16;let top=y+gap*scale;if(top+height>box.height-56*scale)top=y-height-gap*scale;prompt.style.left=Math.round(Math.max(margin,Math.min(box.width-width-margin,x-width/2)))+'px';prompt.style.top=Math.round(Math.max(margin,Math.min(box.height-height-margin,top)))+'px';
- }
-
-
- inspectItem(id,focusAction=false){
-  this.item=id;for(const row of this.root.querySelectorAll('.exp-pack-row')){const selected=row.dataset.packItem===id;row.classList.toggle('selected',selected);row.querySelector('.exp-pack-item')?.setAttribute('aria-pressed',String(selected));if(selected&&focusAction)row.querySelector('.exp-pack-action')?.focus({preventScroll:true});}
- }
- heroButtons(){return `<div class="button-group">${this.game.state.heroes.map((h,i)=>button(h.name,'hero:'+i,'button quiet'+(this.hero===i?' active':''))).join('')}</div>`;}
- renderMenu(){return renderExpedition(this);}
- itemDetail(id){return expeditionItemDetail(this,id);}
- controls(){return `<div class="controls-grid">${[['WASD / arrows','Walk; Shift to run'],['F / Space','Interact with the world'],[worldViewShortcut(this.game.state.settings)?'R':'World view button','Full current map; Esc returns'],['Esc','Pause / open field atlas'],['1–7 / Q E','Atlas tabs'],['PgUp / PgDn','Scroll atlas pages'],['→ / Enter / Space','Confirm / execute'],['← / Backspace','Battle back / close service'],['↑ ↓ / Tab','Choose hero / command / target'],['Mouse','Click commands; click ground to walk']].map(([k,t])=>`<div><kbd>${k}</kbd> ${t}</div>`).join('')}</div><div class="rule"></div><h3>The bright beat</h3><p class="small muted">During an attack, a white marker crosses the orange signal. Make one fresh Space or Enter press while it crosses to raise the chance of a critical hit. A fixed notch marks where you pressed; a critical is a separate result. Normal attacks remain effective without it. Incoming attacks open the same timing track: catch the orange window to reduce that attack’s damage by 75%. Your previous selection returns afterward.</p>`;}
- settingsBody(){const s=this.game.state.settings;return `<div class="section-heading"><h2>Make room for yourself</h2><span class="label">PRESENTATION & CONTROLS</span></div><div class="columns"><div>${['music','sfx'].map(id=>`<label class="setting"><span>${id==='music'?'Music':'Sound effects'}<p>Original synthesized ${id==='music'?'regional score':'field and battle cues'}.</p></span><input aria-label="${id} volume" type="range" min="0" max="1" step="0.1" value="${s[id]}" data-setting="${id}"></label>`).join('')}${[['timingAssist','Timing assist','A modestly wider critical input opportunity.'],['reducedMotion','Restrained motion','Reduces camera motion and flashes.'],['minimap','Local survey','Show a small preview of immediate surroundings.']].map(([id,name,desc])=>`<div class="setting"><div>${name}<p>${desc}</p></div>${button(s[id]?'On':'Off','setting:'+id,'button quiet')}</div>`).join('')}<div class="label">FIELD KEY BINDINGS</div><div class="button-group">${[['up','w'],['left','a'],['down','s'],['right','d'],['interact','f']].map(([id,key])=>button(`${id}<small>${esc((s.keys?.[id]||key).toUpperCase())}</small>`,'rebind:'+id,'button quiet')).join('')}</div></div><div>${this.controls()}</div></div>`;}
- renderVendor(){
-  const s=this.game.state,o=this.panel.object,service=o.service||'provisions',def=SERVICES[service],available=service==='rest'||P.serviceAvailable(s,service),person=npcPortrait(o),hero=s.heroes[this.hero]||s.heroes[0];
-  const serviceAction=vendorAction(s,o),progress=serviceAction?.progress;
-  const actionPanel=serviceAction?`<aside class="merchant-actions" aria-label="Vendor service">${button(esc(serviceAction.label),serviceAction.action,'button'+(serviceAction.primary?' primary':''),`aria-describedby="vendor-action-description vendor-action-status" ${serviceAction.disabled?'disabled':''}`)}<p id="vendor-action-description" class="merchant-action-description">${esc(serviceAction.description)}</p><p id="vendor-action-status" class="merchant-action-status">${progress?`Vendor progress ${progress.completed}/${progress.total} · `:''}${esc(serviceAction.status)}</p></aside>`:'';
-  let body=`<div class="vendor-heading"><div class="merchant-heading">${person?portrait(person,'merchant-portrait'):''}<div><div class="eyebrow">${esc(def?.name||'A warm welcome')}</div><h2>${esc(o.name)}</h2><p>${esc(o.dialogue||def?.description||'There is always room by the lamp.')}</p></div></div>${actionPanel}</div>`;
-  if(!available){if(!serviceAction?.serviceLocked)body+=`<p>This service opens at ${TIERS[(def?.tier||1)-1]}, Kaida level ${def?.level||1}${def?.requires?' with a '+BUILDINGS[def.requires]?.name:''}.</p>`;}
-  else if(!['inn','rest','trainer'].includes(service)){
-   const ids=(this.sellMode?Object.keys(s.inventory).filter(id=>s.inventory[id]>0):P.serviceStock(s,service,s.region)).filter(id=>ITEMS[id]);
-   body+=`<div class="shop-toolbar"><div class="button-group">${button(this.sellMode?'Sell from pack':'Buy supplies','trade-mode','button quiet','aria-label="'+(this.sellMode?'Selling from pack; switch to buying':'Buying supplies; switch to selling')+'"')}${button('−','qty:down','button quiet','aria-label="Decrease quantity"')}<span class="shop-quantity">Quantity <b>${this.qty}</b></span>${button('+','qty:up','button quiet','aria-label="Increase quantity"')}</div><span class="shop-balance">${fmt(s.resources.ore)} ore available</span></div>`;
-   if(!this.sellMode)body+=`<div class="shop-heroes"><span>Compare with</span><div class="button-group">${s.heroes.map((h,i)=>button(esc(h.name),'hero:'+i,'button quiet'+(this.hero===i?' active':''),`aria-pressed="${this.hero===i}"`)).join('')}</div></div>`;
-   for(const [type,name] of [['weapon','Weapons'],['armor','Armor'],['accessory','Accessories'],['consumable','Consumables']]){
-    const items=ids.filter(id=>ITEMS[id].slot===type);if(!items.length)continue;
-    body+=`<section class="shop-section" data-shop-type="${type}" aria-labelledby="shop-${type}"><h3 id="shop-${type}">${name}<span>${items.length}</span></h3><div class="shop-grid">${items.map(id=>{
-     const it=ITEMS[id],owned=s.inventory[id]||0,quantity=this.sellMode?Math.min(this.qty,owned):this.qty,unit=this.sellMode?Math.max(1,Math.floor(it.price*.45)):it.price*(s.flags.mara_trade_route?.85:1),total=this.sellMode?unit*quantity:Math.ceil(unit*quantity),locked=this.sellMode&&(it.unique||it.price<=0),old=ITEMS[hero.equip[it.slot]];
-     const changes=[...new Set([...Object.keys(it.stats),...Object.keys(old?.stats||{})])].map(k=>({label:labels[k]||k,n:(it.stats[k]||0)-(old?.stats?.[k]||0)})).filter(d=>d.n!==0);
-     const comparison=!this.sellMode&&type!=='consumable'?`<span class="shop-comparison"><span>vs ${esc(hero.name)}</span>${changes.length?changes.map(d=>`<span class="${d.n>0?'gain':'loss'}">${esc(d.label)} ${d.n>0?'+':''}${d.n}</span>`).join(''):'<span>No stat change</span>'}</span>`:'';
-     return button(`<span class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${tierBadge(it.tier)}</span><span class="shop-owned">Own ${fmt(owned)}</span></span><span class="shop-description">${esc(it.description)}</span>${comparison}<span class="shop-card-action"><span>${locked?'Keepsake':`${this.sellMode?'Sell':'Buy'} ×${quantity}`}</span><strong>${locked?'Cannot sell':`${fmt(total)} ore`}</strong></span>`,(this.sellMode?'sell:':'buy:')+id,'shop-card',`data-tier="${it.tier}" ${locked?'disabled':''}`);
-    }).join('')}</div></section>`;
-   }
-   if(!ids.length)body+='<p class="shop-empty">No items in your pack to sell.</p>';
+import { performBuild } from './construction.js';
+import { mainObjective, onEvent, interactStory } from './narrative.js';
+import { drawPortrait, drawIcon, npcPortrait } from './art.js';
+import { nearbyBuildings } from './world.js';
+import { latestSave, deleteSave } from './persistence.js';
+import { drawMinimap } from './maps.js';
+import { ExpeditionMap } from './expedition-map.js';
+import { renderExpedition, expeditionItemDetail } from './expedition-menu.js';
+import { navigateExpedition, navigateShop } from './expedition-navigation.js';
+import { vendorAction } from './vendor-actions.js';
+import { SaveTransfer } from './save-transfer.js';
+import { canOpenWorldView, worldViewShortcut } from './world-view.js';
+import { drawHero } from './art.js';
+const esc = (s) =>
+  String(s ?? '').replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[
+        c
+      ],
+  );
+const icon = (id, cl = 'pixel-icon') =>
+  `<canvas class="${cl}" data-icon="${esc(id)}" width="128" height="128"></canvas>`;
+const portrait = (id, cl = 'portrait-large') =>
+  `<canvas class="${cl}" data-portrait="${esc(id)}" width="192" height="192"></canvas>`;
+const button = (label, action, cl = 'button', extra = '') =>
+  `<button class="${cl}" data-do="${esc(action)}" ${extra}>${label}</button>`;
+const mark = `<svg class="insignia-svg" viewBox="0 0 40 40" aria-hidden="true"><path d="M28 7A15 15 0 1 0 28 33M9 14H31M4 20H28M9 26H31" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="m32 17 3 3-3 3" fill="currentColor"/></svg>`;
+const fmt = (n) => Math.floor(n ?? 0).toLocaleString();
+const duration = (s) =>
+  `${Math.floor((s || 0) / 3600)}h ${Math.floor(((s || 0) % 3600) / 60)}m`;
+const costText = (o) =>
+  Object.entries(o || {})
+    .map(([k, v]) => `${fmt(v)} ${k}`)
+    .join(' · ');
+const labels = {
+  str: 'Strength',
+  int: 'Intellect',
+  tec: 'Technique',
+  def: 'Defense',
+  spd: 'Speed',
+  crit: 'Critical %',
+  maxHp: 'Max HP',
+  maxMp: 'Max MP',
+};
+export class UI {
+  constructor(game) {
+    this.game = game;
+    this.root = document.querySelector('#overlay');
+    this.hud = document.querySelector('#hud');
+    this.panel = null;
+    this.menu = false;
+    this.tab = 0;
+    this.hero = 0;
+    this.item = null;
+    this.qty = 1;
+    this.sellMode = false;
+    this.map = new ExpeditionMap(game);
+    this.saveTransfer = new SaveTransfer(this);
+    document.fonts.ready.then(() => {
+      if (this.menu && this.tab === 0) this.map.draw();
+    });
+    this.notice = '';
+    this.bindCapture = null;
+    this.root.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-do]');
+      if (b && !b.disabled) {
+        this.game.audio.unlock();
+        this.action(b.dataset.do);
+      }
+    });
+    this.root.addEventListener('input', (e) => {
+      if (
+        e.target.matches('[data-load-after-import]') &&
+        this.panel?.saveImport
+      )
+        this.panel.saveImport.loadImmediately = e.target.checked;
+      if (e.target.dataset.setting) {
+        game.state.settings[e.target.dataset.setting] = +e.target.value;
+        game.audio.set(game.state.settings);
+      }
+    });
+    this.root.addEventListener('focusin', (e) => {
+      const id = e.target.closest('[data-pack-item]')?.dataset.packItem;
+      if (id) this.inspectItem(id);
+    });
+    this.hud.addEventListener('click', (e) => {
+      if (e.target.closest('[data-world-view]')) game.worldView?.openView();
+      if (e.target.closest('[data-atlas]')) this.toggleMenu();
+      if (e.target.closest('[data-interact]')) game.interact();
+      if (e.target.closest('[data-resume-ending]')) game.presentEnding();
+    });
   }
-  body+=`<div class="shop-return">${button('Return to the settlement','close','button quiet')}</div>`;
-  return this.shell('A place in the community',`<div data-shop-navigation>${body}</div>`,'<kbd>↑ ↓ ← →</kbd> Navigate &nbsp; <kbd>PgUp/Dn</kbd> Scroll &nbsp; <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm &nbsp; <span class="dismiss-hint"><kbd>Esc</kbd> Return</span>');
- }
+  resetSession() {
+    this.saveTransfer.cancelImport();
+    this.panel = null;
+    this.menu = false;
+    this.hero = 0;
+    this.item = null;
+    this.qty = 1;
+    this.sellMode = false;
+    this.notice = '';
+    this.bindCapture = null;
+    document.querySelector('#rewards').replaceChildren();
+    document.querySelector('.recruit-announcement')?.remove();
+    document
+      .querySelector('#game')
+      .classList.toggle('reduced', !!this.game.state.settings.reducedMotion);
+  }
+  get blocked() {
+    return (
+      this.menu ||
+      !!this.panel ||
+      this.game.mode === 'title' ||
+      !!this.game.upgradeTour?.open ||
+      !!this.game.worldView?.open
+    );
+  }
+  paint(root = this.root) {
+    root.querySelectorAll('[data-menu-hero]').forEach((c) => {
+      const ctx = c.getContext('2d');
+      ctx.clearRect(0, 0, c.width, c.height);
+      drawHero(ctx, c.dataset.menuHero, c.width / 2, c.height * 0.88, {
+        scale: 6.2,
+        facing: 'down',
+        time: 0,
+      });
+    });
+    root
+      .querySelectorAll('[data-icon]')
+      .forEach((c) =>
+        drawIcon(c.getContext('2d'), c.dataset.icon, 0, 0, c.width),
+      );
+    root
+      .querySelectorAll('[data-portrait]')
+      .forEach((c) =>
+        drawPortrait(c.getContext('2d'), c.dataset.portrait, 0, 0, 192),
+      );
+  }
+  focus(index = 0) {
+    const list = this.focusables();
+    if (list.length)
+      list[(index + list.length) % list.length].focus({ preventScroll: true });
+  }
+  focusables() {
+    return [
+      ...this.root.querySelectorAll('button:not(:disabled),input'),
+    ].filter((b) => b.offsetWidth > 0);
+  }
+  navigateBuildGrid(key) {
+    const active = document.activeElement,
+      grid = active?.closest('.build-grid');
+    if (!grid || !key.startsWith('Arrow')) return false;
+    const vertical = key === 'ArrowUp' || key === 'ArrowDown',
+      direction = key === 'ArrowUp' || key === 'ArrowLeft' ? -1 : 1,
+      rect = active.getBoundingClientRect();
+    const center = (r) =>
+        vertical ? (r.top + r.bottom) / 2 : (r.left + r.right) / 2,
+      origin = center(rect);
+    // Use rendered positions so disabled entries and the one-column layout keep
+    // their place. Arrow keys never wrap across a row or into the other column.
+    const candidates = this.focusables()
+      .filter((el) => grid.contains(el) && el !== active)
+      .map((el) => ({ el, rect: el.getBoundingClientRect() }))
+      .filter(
+        ({ rect: r }) =>
+          direction * (center(r) - origin) > 1 &&
+          (vertical
+            ? Math.min(rect.right, r.right) > Math.max(rect.left, r.left)
+            : Math.min(rect.bottom, r.bottom) > Math.max(rect.top, r.top)),
+      )
+      .sort(
+        (a, b) =>
+          Math.abs(center(a.rect) - origin) - Math.abs(center(b.rect) - origin),
+      );
+    let next = candidates[0]?.el;
+    if (!next && key === 'ArrowUp') {
+      const list = this.focusables(),
+        first = list.findIndex((el) => grid.contains(el));
+      next = list[first - 1];
+    }
+    if (next) {
+      next.focus({ preventScroll: true });
+      next.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+    return true;
+  }
+  handleKey(k) {
+    if (k === 'Escape') return this.handleEscape();
+    if (k === 'Backspace' && this.blocked) {
+      this.dismissTopLayer();
+      return true;
+    }
+    if (this.bindCapture) {
+      if (
+        ![
+          'Escape',
+          'Tab',
+          'Enter',
+          ' ',
+          'Backspace',
+          'q',
+          'e',
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+          '6',
+          '7',
+        ].includes(k)
+      ) {
+        this.game.state.settings.keys ??= {};
+        this.game.state.settings.keys[this.bindCapture] = k.toLowerCase();
+        this.notice = `${this.bindCapture} is now ${k.toUpperCase()}.`;
+        this.bindCapture = null;
+        this.render();
+      }
+      return true;
+    }
+    if (this.menu && this.panel?.type !== 'confirm') {
+      if (/^[1-7]$/.test(k)) {
+        this.tab = +k - 1;
+        this.notice = '';
+        this.render();
+        return true;
+      }
+      if (k.toLowerCase() === 'q' || k.toLowerCase() === 'e') {
+        this.tab = (this.tab + (k.toLowerCase() === 'q' ? 6 : 1)) % 7;
+        this.notice = '';
+        this.render();
+        return true;
+      }
+      if (navigateExpedition(this, k)) return true;
+      if (this.tab === 0 && this.map.key(k)) {
+        this.map.draw();
+        return true;
+      }
+    }
+    if (
+      !this.blocked &&
+      ['Enter', ' '].includes(k) &&
+      document.activeElement?.matches('[data-world-view]:not(:disabled)')
+    ) {
+      this.game.worldView?.openView();
+      return true;
+    }
+    if (!this.blocked) {
+      if (
+        k === 'Enter' &&
+        this.game.mode === 'world' &&
+        !this.game.transition &&
+        this.game.state.flags.pendingEnding
+      ) {
+        this.game.presentEnding();
+        return true;
+      }
+      return false;
+    }
+    if (!this.menu && this.panel?.type === 'vendor' && navigateShop(this, k))
+      return true;
+    const body = this.root.querySelector('.atlas-body');
+    if (body && ['PageUp', 'PageDown', 'Home', 'End'].includes(k)) {
+      body.scrollTop =
+        k === 'Home'
+          ? 0
+          : k === 'End'
+            ? body.scrollHeight
+            : body.scrollTop +
+              (k === 'PageDown' ? 1 : -1) * body.clientHeight * 0.85;
+      return true;
+    }
+    if (
+      body &&
+      this.menu &&
+      this.tab === 4 &&
+      ['ArrowUp', 'ArrowDown'].includes(k)
+    ) {
+      body.scrollTop +=
+        (k === 'ArrowDown' ? 1 : -1) * Math.max(64, body.clientHeight * 0.18);
+      return true;
+    }
+    if (k === 'Enter' || k === ' ') {
+      if (this.panel?.type === 'reading' && !this.menu) {
+        this.dismissTopLayer();
+        return true;
+      }
+      if (this.panel?.type === 'dialogue' && !this.menu && !this.atChoice()) {
+        this.nextDialogue();
+        return true;
+      }
+      const el = document.activeElement;
+      if (
+        this.root.contains(el) &&
+        (el.tagName === 'BUTTON' || el.matches('input[type=checkbox]'))
+      )
+        el.click();
+      else this.focus();
+      return true;
+    }
+    if (
+      ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(k)
+    ) {
+      if (
+        document.activeElement?.type === 'range' &&
+        ['ArrowLeft', 'ArrowRight'].includes(k)
+      ) {
+        const e = document.activeElement;
+        e.value = Math.max(
+          0,
+          Math.min(1, +e.value + (k === 'ArrowRight' ? 0.1 : -0.1)),
+        );
+        e.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+      }
+      if (this.navigateBuildGrid(k)) return true;
+      const list = this.focusables(),
+        i = list.indexOf(document.activeElement);
+      this.focus(i + (k === 'ArrowUp' || k === 'ArrowLeft' ? -1 : 1));
+      document.activeElement?.scrollIntoView({ block: 'nearest' });
+      return true;
+    }
+    return true;
+  }
+  // Confirmations sit above the atlas; the atlas can in turn cover a service or
+  // a conversation. Dismiss only the visible layer, never a story callback.
+  dismissTopLayer() {
+    const restore =
+        this.panel?.type === 'confirm' ? this.panel.returnFocus : null,
+      scroll = this.panel?.returnScroll;
+    if (this.bindCapture) this.bindCapture = null;
+    else if (this.panel?.type === 'confirm') {
+      const cancel = this.panel.onCancel;
+      this.panel = this.confirmReturn || null;
+      this.confirmReturn = null;
+      cancel?.();
+    } else if (this.menu) this.menu = false;
+    else if (
+      ['vendor', 'build', 'help', 'reading', 'dialogue', 'ending'].includes(
+        this.panel?.type,
+      )
+    ) {
+      const p = this.panel;
+      if (
+        this.game.state.flags.pendingEnding &&
+        (p.ending || p.type === 'ending')
+      ) {
+        this.game.state.endingProgress = {
+          index: p.index ?? this.game.state.endingProgress?.index ?? 0,
+          panel: p.type,
+        };
+        this.panel = null;
+        this.game.checkpoint();
+      } else this.panel = null;
+    } else return false;
+    this.notice = '';
+    this.game.keys.clear();
+    this.game.audio.sound('back');
+    this.render();
+    if (restore) this.restoreShopRow(restore, scroll);
+    return true;
+  }
+  handleEscape() {
+    if (!this.dismissTopLayer()) this.toggleMenu();
+    return true;
+  }
+  toggleMenu() {
+    if (this.game.mode === 'title') return;
+    this.menu = !this.menu;
+    this.notice = '';
+    this.bindCapture = null;
+    this.game.keys.clear();
+    this.game.audio.sound(this.menu ? 'confirm' : 'back');
+    this.render();
+  }
+  close() {
+    this.panel = null;
+    this.notice = '';
+    this.game.keys.clear();
+    this.render();
+  }
+  showReading(object) {
+    this.panel = {
+      type: 'reading',
+      title: object.name || 'Wayfinding',
+      text: object.dialogue || 'The lettering has worn away.',
+    };
+    this.notice = '';
+    this.render();
+  }
+  showDialogue(lines, choices = [], done, options = {}) {
+    if (!lines?.length) {
+      done?.();
+      return;
+    }
+    this.panel = {
+      type: 'dialogue',
+      lines: lines.map((l) =>
+        typeof l === 'string'
+          ? dialogueLine(null, l)
+          : Object.hasOwn(l, 'speakerId')
+            ? l
+            : dialogueLine(l.speaker, l.text),
+      ),
+      index: Math.max(0, Math.min(lines.length - 1, options.index || 0)),
+      choices,
+      done,
+      ending: !!options.ending,
+    };
+    this.render();
+  }
+  atChoice() {
+    const p = this.panel;
+    return (
+      p?.type === 'dialogue' &&
+      p.index === p.lines.length - 1 &&
+      p.choices?.length
+    );
+  }
+  nextDialogue() {
+    const p = this.panel;
+    if (p?.type !== 'dialogue' || this.menu) return;
+    if (this.atChoice()) return;
+    if (++p.index >= p.lines.length) {
+      const done = p.done;
+      this.panel = null;
+      this.render();
+      done?.();
+    } else this.render();
+    if (p.ending && this.game.state.flags.pendingEnding) {
+      if (this.panel?.type === 'dialogue' && this.panel.ending)
+        this.game.state.endingProgress = {
+          index: this.panel.index,
+          panel: 'dialogue',
+        };
+      this.game.checkpoint();
+    }
+    this.game.audio.sound('select');
+  }
+  feedback(r) {
+    if (!r) return;
+    this.notice = r.message || '';
+    this.game.rewards(r.rewards || []);
+    this.game.audio.sound(r.ok === false ? 'error' : 'confirm');
+    this.render();
+  }
+  showVendor(obj) {
+    this.qty = 1;
+    this.sellMode = false;
+    this.notice = '';
+    this.panel = { type: 'vendor', object: obj };
+    this.render();
+  }
+  showBuild() {
+    this.panel = { type: 'build' };
+    this.notice = '';
+    this.render();
+  }
+  restoreShopRow(action, scroll = 0) {
+    const row = [...this.root.querySelectorAll('[data-do]')].find(
+      (el) => el.dataset.do === action,
+    );
+    if (row) row.focus({ preventScroll: true });
+    const body = this.root.querySelector('.atlas-body'),
+      pack = this.root.querySelector('.exp-pack-items');
+    if (body)
+      body.scrollTop = typeof scroll === 'number' ? scroll : scroll.body || 0;
+    if (pack && typeof scroll === 'object') pack.scrollTop = scroll.pack || 0;
+  }
+  requestPurchase(id) {
+    const s = this.game.state,
+      it = ITEMS[id],
+      vendor = this.panel;
+    if (!it || vendor?.type !== 'vendor') return;
+    const quantity = this.qty,
+      cost = Math.ceil(
+        it.price * quantity * (s.flags.mara_trade_route ? 0.85 : 1),
+      ),
+      returnFocus = 'buy:' + id,
+      returnScroll = this.root.querySelector('.atlas-body')?.scrollTop || 0;
+    this.confirm(
+      'Buy ' + it.name + '?',
+      `Spend ${fmt(cost)} ore for ${quantity} ${it.name}.`,
+      () => {
+        this.panel = vendor;
+        const currentCost = Math.ceil(
+          it.price * quantity * (s.flags.mara_trade_route ? 0.85 : 1),
+        );
+        let result;
+        if (
+          !P.serviceAvailable(s, vendor.object.service || 'provisions') ||
+          !P.serviceStock(
+            s,
+            vendor.object.service || 'provisions',
+            s.region,
+          ).includes(id)
+        )
+          result = {
+            ok: false,
+            message: 'This item is no longer available here.',
+          };
+        else if (currentCost !== cost)
+          result = {
+            ok: false,
+            message: 'The price changed. Review the new total before buying.',
+          };
+        else result = P.buy(s, id, quantity);
+        this.feedback(result);
+        this.restoreShopRow(returnFocus, returnScroll);
+      },
+      {
+        eyebrow: 'PURCHASE',
+        cancelLabel: 'Cancel',
+        confirmLabel: `Buy · ${fmt(cost)} ore`,
+        purchase: { id, quantity, cost },
+        returnFocus,
+        returnScroll,
+      },
+    );
+    this.root
+      .querySelector('[data-do="confirm-yes"]')
+      ?.focus({ preventScroll: true });
+  }
+  confirmItemUse(use, run, labels = {}) {
+    this.confirm(
+      'Use ' + ITEMS[use.itemId].name + '?',
+      `${use.targetName} restores ${use.amount} ${use.unit}. ${use.wasted} ${use.unit} will be wasted.`,
+      run,
+      {
+        eyebrow: 'FIELD SUPPLY',
+        confirmLabel: 'Use · Space / Enter',
+        cancelLabel: 'Cancel · Esc',
+        consumable: true,
+        ...labels,
+      },
+    );
+    this.root
+      .querySelector('[data-do="confirm-yes"]')
+      ?.focus({ preventScroll: true });
+  }
+  requestItemUse(id, heroId) {
+    const returnFocus = 'use:' + id,
+      returnScroll = {
+        body: this.root.querySelector('.atlas-body')?.scrollTop || 0,
+        pack: this.root.querySelector('.exp-pack-items')?.scrollTop || 0,
+      },
+      previous = this.panel;
+    const finish = (result) => {
+      this.feedback(result);
+      this.restoreShopRow(returnFocus, returnScroll);
+    };
+    const result = P.useItem(this.game.state, id, heroId);
+    if (!result.needsConfirmation) {
+      finish(result);
+      return;
+    }
+    this.confirmItemUse(
+      result,
+      () => {
+        this.panel = previous;
+        const outcome = P.useItem(this.game.state, id, heroId, {
+          confirmation: result.confirmationKey,
+        });
+        finish(
+          outcome.needsConfirmation
+            ? {
+                ok: false,
+                message:
+                  'The target changed. Review the restoration before using this supply.',
+              }
+            : outcome,
+        );
+      },
+      { returnFocus, returnScroll },
+    );
+  }
+  confirm(title, text, run, labels = {}) {
+    this.confirmReturn = this.panel;
+    this.panel = { type: 'confirm', title, text, run, ...labels };
+    this.render();
+  }
+  action(a) {
+    if (this.game.upgradeTour?.open) return;
+    const [act, arg] = a.split(':');
+    const g = this.game,
+      s = g.state,
+      h = s.heroes[this.hero] || s.heroes[0];
+    g.audio.sound('select');
+    switch (act) {
+      case 'new':
+        if (latestSave() !== null)
+          this.confirm(
+            'Begin a new expedition?',
+            'Your manual save slots remain available. The automatic checkpoint will follow the new expedition.',
+            () => g.startNew(),
+          );
+        else g.startNew();
+        break;
+      case 'continue':
+        g.load(latestSave());
+        break;
+      case 'title-controls':
+        this.panel = { type: 'help' };
+        this.render();
+        break;
+      case 'close':
+        this.close();
+        break;
+      case 'dismiss-panel':
+        this.dismissTopLayer();
+        break;
+      case 'menu-close':
+        this.toggleMenu();
+        break;
+      case 'tab':
+        this.tab = +arg;
+        this.notice = '';
+        this.render();
+        break;
+      case 'hero':
+        this.hero = +arg;
+        this.notice = '';
+        this.render();
+        break;
+      case 'item':
+        this.inspectItem(arg, true);
+        break;
+      case 'equip':
+        this.feedback(P.equip(s, h.id, arg));
+        break;
+      case 'unequip':
+        this.feedback(P.unequip(s, h.id, arg));
+        break;
+      case 'use':
+        if (g.mode === 'battle') {
+          this.feedback({
+            ok: false,
+            message:
+              'Use the battle Item command to choose a field supply and ally.',
+          });
+          break;
+        }
+        this.requestItemUse(arg, h.id);
+        break;
+      case 'learn':
+        this.feedback(P.learn(s, h.id, arg));
+        break;
+      case 'save':
+        if (g.save(arg)) {
+          this.notice = g.devTools?.worldPreviewActive
+            ? 'Real expedition recorded; world preview remains temporary.'
+            : 'Expedition recorded.';
+          this.render();
+        }
+        break;
+      case 'export-save':
+        this.saveTransfer.exportSlot(arg);
+        break;
+      case 'import-save':
+        this.saveTransfer.requestImport(arg);
+        break;
+      case 'load':
+        this.confirm(
+          'Resume this expedition?',
+          'Unsaved progress will be replaced by this record.',
+          () => g.load(arg),
+        );
+        break;
+      case 'delete':
+        this.confirm(
+          'Erase this record?',
+          'This permanently erases this save slot. Other records are preserved.',
+          () => {
+            this.panel = this.confirmReturn;
+            try {
+              deleteSave(arg);
+              this.notice = 'Record erased.';
+              this.render();
+            } catch (e) {
+              this.feedback({
+                ok: false,
+                message: 'Could not erase: ' + e.message,
+              });
+            }
+          },
+        );
+        break;
+      case 'restart':
+        this.confirm(
+          'Start over?',
+          'The current expedition returns to the solitary opening. Manual save slots remain available.',
+          () => g.startNew(),
+        );
+        break;
+      case 'confirm-no':
+        this.dismissTopLayer();
+        break;
+      case 'confirm-yes': {
+        const f = this.panel.run;
+        this.panel = null;
+        f();
+        this.confirmReturn = null;
+        break;
+      }
+      case 'setting':
+        s.settings[arg] = !s.settings[arg];
+        document
+          .querySelector('#game')
+          .classList.toggle('reduced', !!s.settings.reducedMotion);
+        this.render();
+        break;
+      case 'rebind':
+        this.bindCapture = arg;
+        this.notice = `Press a new key for ${arg}. Menu and confirmation keys remain reserved.`;
+        this.render();
+        break;
+      case 'map-zoom':
+        this.map.key(arg === 'in' ? '+' : '-');
+        this.map.draw();
+        break;
+      case 'map-reset':
+        this.map.key('r');
+        this.map.draw();
+        break;
+      case 'travel':
+        if (s.flags.pendingEnding) {
+          this.feedback({
+            ok: false,
+            message: 'Close the atlas to finish the crew’s ending.',
+          });
+          break;
+        }
+        if (g.mode === 'battle') {
+          this.feedback({
+            ok: false,
+            message: 'Finish or retreat from this encounter before traveling.',
+          });
+          break;
+        }
+        this.menu = false;
+        this.panel = null;
+        g.travelHub(arg);
+        this.render();
+        break;
+      case 'dev-world':
+        g.devTools?.jumpWorld(arg);
+        break;
+      case 'dialogue-next':
+        this.nextDialogue();
+        break;
+      case 'choice': {
+        const p = this.panel,
+          c = p.choices[+arg];
+        s.flags[c.flag] = true;
+        this.panel = null;
+        this.render();
+        g.resolveResult(onEvent(s, 'choice', c.flag), p.done);
+        g.checkpoint();
+        break;
+      }
+      case 'story': {
+        const vendor = this.panel.object;
+        this.panel = null;
+        g.resolveResult(interactStory(s, arg), () => this.showVendor(vendor));
+        g.checkpoint();
+        break;
+      }
+      case 'qty':
+        this.qty = Math.max(
+          1,
+          Math.min(10, this.qty + (arg === 'up' ? 1 : -1)),
+        );
+        this.render();
+        break;
+      case 'trade-mode':
+        this.sellMode = !this.sellMode;
+        this.render();
+        break;
+      case 'buy':
+        this.requestPurchase(arg);
+        break;
+      case 'sell':
+        this.feedback(
+          P.sell(s, arg, Math.min(this.qty, s.inventory[arg] || 0)),
+        );
+        break;
+      case 'rest':
+        this.feedback(P.rest(s));
+        g.checkpoint();
+        break;
+      case 'train':
+        this.feedback(P.train(s));
+        break;
+      case 'research':
+        this.feedback(P.research(s));
+        break;
+      case 'build':
+        performBuild(g, arg);
+        break;
+      case 'tier':
+        this.feedback(P.advanceTier(s));
+        g.checkpoint();
+        break;
+      case 'ending-continue':
+        g.completeEnding();
+        break;
+    }
+  }
+  shell(
+    title,
+    body,
+    footer = '↑ ↓ Navigate &nbsp; <kbd>PgUp/Dn</kbd> Scroll &nbsp; <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm &nbsp; <kbd>Esc</kbd>/<kbd>Backspace</kbd> Return',
+    tabs = false,
+  ) {
+    return `<div class="scrim"></div><section class="atlas ${this.panel?.type === 'vendor' && ['inn', 'rest', 'trainer'].includes(this.panel.object.service) ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}"><header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}</header>${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${this.notice ? `<div class="notice" role="status">${esc(this.notice)}</div>` : ''}${body}</div><footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
+  }
+  render() {
+    if (!this.menu || this.tab !== 5) this.saveTransfer.cancelImport();
+    const shopScroll =
+      this.panel?.type === 'vendor' &&
+      this.root.querySelector('[data-shop-navigation]')
+        ? this.root.querySelector('.atlas-body')?.scrollTop
+        : null;
+    const previousPage = this.root.querySelector('.exp-page');
+    this.menuScroll ??= {};
+    if (previousPage && this.renderedMenuTab != null)
+      this.menuScroll[this.renderedMenuTab] = {
+        body: previousPage.scrollTop,
+        pack: this.root.querySelector('.exp-pack-items')?.scrollTop || 0,
+      };
+    const g = this.game,
+      s = g.state;
+    const prev = document.activeElement?.dataset?.do;
+    this.hud.style.display =
+      g.mode === 'title' || this.menu || g.mode === 'battle' ? 'none' : '';
+    let html = '';
+    if (this.panel?.type === 'confirm') {
+      const p = this.panel;
+      html = `<div class="scrim"></div><section class="modal ${p.purchase || p.consumable ? 'purchase-confirm' : ''}" role="dialog" aria-modal="true" aria-label="${esc(p.title)}"><div class="eyebrow">${esc(p.eyebrow || 'FIELD RECORD')}</div><h2>${esc(p.title)}</h2>${p.purchase ? `<div class="purchase-item">${icon(p.purchase.id)}<span>${esc(ITEMS[p.purchase.id].name)}<b>×${fmt(p.purchase.quantity)}</b></span></div><div class="purchase-cost"><span>Spend</span>${icon('ore')}<strong>${fmt(p.purchase.cost)} ore</strong><small>${fmt(s.resources.ore)} available</small></div>` : `<p>${esc(p.text)}</p>`}${p.saveImport ? `<label class="save-import-option"><input type="checkbox" data-load-after-import ${p.saveImport.loadImmediately ? 'checked' : ''} aria-describedby="save-import-load-note"><span>After import, load immediately</span></label><small class="save-import-note" id="save-import-load-note">Loading replaces your current unsaved progress. Leave unchecked to keep playing your current expedition.</small>` : ''}<div class="button-group">${button(esc(p.cancelLabel || 'Keep exploring'), 'confirm-no')}${button(esc(p.confirmLabel || 'Confirm'), 'confirm-yes', 'button danger')}</div></section>`;
+    } else if (this.menu) html = this.renderMenu();
+    else if (this.panel?.type === 'reading') {
+      const p = this.panel;
+      html = `<section class="reading-panel" role="dialog" aria-modal="true" aria-labelledby="reading-title"><div class="reading-kind">SIGNPOST</div><h2 id="reading-title">${esc(p.title)}</h2><p>${esc(p.text)}</p><footer><span><kbd>Enter</kbd> / <kbd>Space</kbd> Return</span><span class="dismiss-hint"><kbd>Esc</kbd> Close</span></footer></section>`;
+    } else if (this.panel?.type === 'dialogue') {
+      const p = this.panel,
+        l = p.lines[p.index],
+        id = l.speakerId;
+      html = `<section class="dialogue ${id ? '' : 'dialogue-text-only'}" role="dialog" aria-label="${id ? 'Conversation' : 'Field notes'}">${id ? portrait(id, 'dialogue-portrait') : ''}<div><div class="dialogue-name">${esc(l.speaker || 'Field notes')}</div><p class="dialogue-text">${esc(l.text)}</p>${this.atChoice() ? `<div class="choices">${p.choices.map((c, i) => button(esc(c.text), 'choice:' + i)).join('')}</div><div class="dialogue-dismiss"><span class="dismiss-hint"><kbd>Esc</kbd> Leave without choosing</span></div>` : `<div class="dialogue-next">${button(`${p.index + 1} / ${p.lines.length} &nbsp; <kbd>Space</kbd> Continue`, 'dialogue-next', '')}<span class="dismiss-hint"><kbd>Esc</kbd> ${p.ending ? 'Leave; resume later' : 'Leave conversation'}</span></div>`}</div></section>`;
+    } else if (this.panel?.type === 'vendor') html = this.renderVendor();
+    else if (this.panel?.type === 'build') html = this.renderBuild();
+    else if (this.panel?.type === 'help')
+      html = this.shell(
+        'Your first steps',
+        this.controls() +
+          `<div class="rule"></div><p>Follow the salt road to the guarded settlement. Speak with residents, restore its beacon, and give the broken world a reason to answer.</p><div class="button-group">${button('Return', 'close')}</div>`,
+      );
+    else if (this.panel?.type === 'ending') html = this.renderEnding();
+    else if (g.mode === 'title') html = this.renderTitle();
+    this.map.unmount();
+    this.root.innerHTML = html;
+    this.paint();
+    if (this.menu && this.tab === 0) {
+      const c = this.root.querySelector('#atlas-map');
+      if (c) this.map.mount(c);
+    }
+    const old = [...this.root.querySelectorAll('[data-do]')].find(
+      (b) => !b.disabled && b.dataset.do === prev,
+    );
+    if (old) old.focus({ preventScroll: true });
+    else if (
+      this.menu &&
+      this.tab === 2 &&
+      /^(item|equip|use):/.test(prev || '')
+    )
+      this.root
+        .querySelector('.exp-pack-row.selected .exp-pack-item')
+        ?.focus({ preventScroll: true });
+    else if (this.menu && this.tab === 0 && this.map.canvas)
+      this.map.focusSelected();
+    else if (html) this.focus(this.menu ? 7 : 0);
+    if (this.menu && this.root.querySelector('.exp-page')) {
+      this.renderedMenuTab = this.tab;
+      this.restoreShopRow(
+        '',
+        this.menuScroll[this.tab] || { body: 0, pack: 0 },
+      );
+    }
+    if (shopScroll != null)
+      this.root.querySelector('.atlas-body').scrollTop = shopScroll;
+    this.updateHUD();
+  }
+  renderTitle() {
+    return `<div class="title-vignette"></div><div class="title-top">${mark}<div class="edition">A CHRONICLE OF THE WORLD AFTER</div></div><section class="title-content"><div class="eyebrow">A SIGNAL. A SHORE. A SECOND BEGINNING.</div><h1>CHRONFORGE<span>ECHO</span></h1><div class="title-line"></div><p class="title-description">The world remembers what we lost.<br>Let’s give it something new to remember.</p><div class="title-actions">${latestSave() !== null ? button('Continue the journey <span>↗</span>', 'continue', '') : ''}${button('Begin your expedition <span>→</span>', 'new', '')}${button('Field guide <span>?</span>', 'title-controls', 'secondary')}</div></section><div class="title-coordinates"><b>HAVENTIDE</b>The salt road, first light<br>36° 07′ N &nbsp; / &nbsp; 14° 22′ E</div><div class="title-foot"><span>✦ &nbsp; AN ORIGINAL PIXEL-ART ADVENTURE</span><span><kbd>↑</kbd><kbd>↓</kbd> Choose &nbsp; <kbd>Enter</kbd> Begin &nbsp; / &nbsp; Headphones welcome</span></div>`;
+  }
+  updateHUD() {
+    const g = this.game,
+      s = g.state;
+    if (
+      g.mode === 'title' ||
+      this.menu ||
+      g.mode === 'battle' ||
+      g.worldView?.open
+    )
+      return;
+    const scene = g.scene,
+      worldViewFocused = document.activeElement?.matches('[data-world-view]');
+    this.hud.innerHTML = `<div class="hud-top"><div class="objective"><div class="label">FIELD OBJECTIVE</div><p>${esc(mainObjective(s))}</p>${s.flags.pendingEnding && !this.panel ? '<button class="resume-ending" data-resume-ending><kbd>Enter</kbd> Resume final conversation</button>' : ''}</div><div class="hud-right"><div class="hud-resource-row"><div class="resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="resource" aria-label="${fmt(s.resources[id])} ${id}">${icon(id)}${fmt(s.resources[id])}</span>`).join('')}</div>${!this.panel ? '<button class="atlas-button" data-atlas><kbd>Esc</kbd> MENU</button>' : ''}</div><div class="survey-stack ${s.settings.minimap ? '' : 'survey-hidden'}">${s.settings.minimap ? '<div class="minimap-wrap"><canvas id="minimap" aria-label="Immediate surroundings"></canvas></div>' : ''}<div class="location-plaque"><h3>${esc(scene.name)}</h3><span>${esc(scene.interior ? 'INTERIOR' : scene.subtitle)}</span></div><button type="button" class="world-view-button" data-world-view ${canOpenWorldView(g) ? '' : 'disabled'}${worldViewShortcut(s.settings) ? ' aria-keyshortcuts="R"' : ''}>${worldViewShortcut(s.settings) ? '<kbd>R</kbd> ' : ''}World view</button></div></div></div><div class="hud-bottom"><div class="party-strip">${s.heroes
+      .map((h) => {
+        const st = P.stats(h, s);
+        return `<div class="hero-compact">${portrait(h.id, 'compact-portrait')}<div><strong>${h.name}</strong> <small>LV ${h.level}</small><div class="meter"><i style="width:${(h.hp / st.maxHp) * 100}%"></i></div><div class="meter mp"><i style="width:${(h.mp / st.maxMp) * 100}%"></i></div></div></div>`;
+      })
+      .join(
+        '',
+      )}</div><div class="controls"><kbd>WASD</kbd> / <kbd>↑↓←→</kbd> Walk &nbsp; <kbd>Shift</kbd> Run<br><kbd>${esc((s.settings.keys?.interact || 'F').toUpperCase())}</kbd> / <kbd>Space</kbd> Interact &nbsp; <kbd>Esc</kbd> Menu</div></div>`;
+    this.paint(this.hud);
+    if (worldViewFocused)
+      this.hud
+        .querySelector('[data-world-view]')
+        ?.focus({ preventScroll: true });
+    const mm = this.hud.querySelector('#minimap');
+    if (mm) drawMinimap(mm, scene, s);
+    this.positionInteraction();
+  }
+  positionInteraction() {
+    const g = this.game,
+      interactive = g.near,
+      o =
+        interactive ||
+        nearbyBuildings(g.scene, g.state.x, g.state.y, g.state)[0];
+    let prompt = this.hud.querySelector('.interaction');
+    if (
+      g.mode !== 'world' ||
+      this.blocked ||
+      g.transition ||
+      g.state.recruitmentWalk ||
+      !o ||
+      g.state.pickups[o.id]
+    ) {
+      prompt?.remove();
+      return;
+    }
+    const hint = interactive ? beaconStatus(g.state, o.id)?.hint || '' : '',
+      level = g.visualState.buildings[o.building] || 0,
+      kind = interactive ? 'action' : 'building',
+      key = `${o.id}:${kind}:${level}:${hint}`;
+    if (!prompt || prompt.dataset.labelKey !== key) {
+      prompt?.remove();
+      this.hud.insertAdjacentHTML(
+        'beforeend',
+        interactive
+          ? `<button class="interaction${hint ? ' beacon-label' : ''}" data-interact data-object="${esc(o.id)}" data-label-key="${esc(key)}"><kbd>${esc((g.state.settings.keys?.interact || 'F').toUpperCase())}</kbd> ${esc(g.interactionLabel(o))}${hint ? `<small class="beacon-hint">${esc(hint)}</small>` : ''}</button>`
+          : `<div class="interaction building-label" data-object="${esc(o.id)}" data-label-key="${esc(key)}" data-building="${esc(o.building)}">${esc(BUILDINGS[o.building]?.name || o.name)} <small>LV ${level}</small></div>`,
+      );
+      prompt = this.hud.querySelector('.interaction');
+    }
+    const box = this.hud.getBoundingClientRect(),
+      scale = box.width / 960,
+      x = (o.x - Math.round(g.camera.x)) * scale,
+      y = (o.y - Math.round(g.camera.y)) * scale,
+      margin = Math.max(5, box.width * 0.008),
+      width = prompt.offsetWidth,
+      height = prompt.offsetHeight,
+      gap = o.type === 'encounter' ? 42 : 16;
+    let top = y + gap * scale;
+    if (top + height > box.height - 56 * scale) top = y - height - gap * scale;
+    prompt.style.left =
+      Math.round(
+        Math.max(margin, Math.min(box.width - width - margin, x - width / 2)),
+      ) + 'px';
+    prompt.style.top =
+      Math.round(
+        Math.max(margin, Math.min(box.height - height - margin, top)),
+      ) + 'px';
+  }
 
- renderTier(){
-  const s=this.game.state,status=P.tierEligibility(s),pending=status.missing.filter(r=>r.type!=='resource'),met=status.requirements.filter(r=>r.type!=='resource'&&r.met);
-  const instruction=status.complete?'All civilization tiers complete.':status.eligible?'All requirements met.':pending.length?'To unlock: '+pending.map(r=>r.instruction).join('; ')+'.':'To unlock: gather the missing supplies below.';
-  return `<section class="tier-heading" data-tier="${s.tier}" data-tier-status="${status.complete?'complete':status.eligible?'ready':'blocked'}"><div class="tier-title-row"><div><div class="eyebrow">CIVILIZATION ${s.tier} / 4</div><h3 class="tier-current">${TIERS[s.tier-1]}</h3></div><div class="tier-advance-action">${!status.complete?`<span class="tier-next">Next ${tierBadge(status.nextTier)}</span>`:''}${!status.complete?button('Advance to '+status.name,'tier','button primary',`${status.eligible?'':'disabled'} aria-describedby="tier-unlock"`):'<span class="tier-complete">Fully advanced</span>'}</div></div><p class="tier-unlock" id="tier-unlock">${esc(instruction)}</p>${met.length?`<p class="tier-met">Completed: ${met.map(r=>'✓ '+esc(r.label)).join(' · ')}</p>`:''}${!status.complete?`<div class="tier-costs" aria-label="Advancement cost"><span>Spend</span>${status.requirements.filter(r=>r.type==='resource').map(r=>`<span class="tier-cost ${r.met?'met':'missing'}">${icon(r.id)}<span>${fmt(r.required)} ${r.id}<small>${r.met?'✓ Available':`Need ${fmt(Math.ceil(r.required-r.current))} more · ${fmt(r.current)} held`}</small></span></span>`).join('')}</div>`:''}</section>`;
- }
- renderBuild(){const s=this.game.state;return this.shell('Settlement works',`<div class="section-heading"><h2>Give tomorrow a foundation</h2><span class="label">SHARED STORES / ALL HARBORS</span></div><div class="row spread"><div class="small amber">${costText(Object.fromEntries(Object.entries(s.resources).map(([k,v])=>[k,Math.floor(v)])))}</div>${button('Return to town','close','button quiet')}</div>${this.renderTier()}<div class="build-grid">${Object.values(BUILDINGS).map(b=>{const n=s.buildings[b.id]||0;return button(`${icon(b.id)}<span class="item-name">${b.name} <span class="teal">${n?'LV '+n:'Unbuilt'}</span><small>${esc(b.description||b.benefit||'')}<br>${n>=4?'Fully developed':costText(P.buildingCost(s,b.id))}</small></span><span class="price">${n>=4?'Complete':n?'Upgrade':'Build'}</span>`,'build:'+b.id,'list-button',n>=4?'disabled':'');}).join('')}</div><p class="small muted" style="margin-top:1cqw">Farms, mines, and extractors produce while you explore. Walls protect the whole crew. Training, forging, and research open new services. All eight structures can reach level four.</p>`);}
- renderEnding(){return `<section class="ending"><div class="ending-content">${mark}<div class="eyebrow">THE WORLD, UNFINISHED</div><h1>Another morning.</h1><p>The Architect’s silence breaks into a thousand ordinary sounds.<br>Hammers on a roof. Rain in new leaves. Someone calling a name.</p><p>Kaida leaves her sword beside the evening bell.<br>Vex opens a school with more questions than answers.<br>Rune builds a gate that opens from both sides.</p><p>No one promises that the world will never hurt again.<br>They promise that no one will have to rebuild it alone.</p><div class="rule"></div><div class="eyebrow">CHRONFORGE ECHO / THE SIGNAL CONTINUES</div>${button('Return to a living world','ending-continue','button primary')}</div></section>`;}
- announceRecruitment(id){const hero=HEROES[id];if(!hero)return;document.querySelector('.recruit-announcement')?.remove();const el=document.createElement('div');el.className='recruit-announcement';el.dataset.hero=id;el.setAttribute('role','status');el.innerHTML=`${portrait(id,'recruit-portrait')}<div><small>NEW HERO UNLOCKED</small><strong>${esc(hero.name)}</strong><span>Joined the party</span></div>`;document.querySelector('#game').append(el);this.paint(el);setTimeout(()=>el.remove(),3360);}
- rewards(items){for(const r of items){if(r.kind==='recruitment'){this.announceRecruitment(r.id);continue;}const hero=HEROES[r.id],lifetime=2360,category=hero?'LEVEL UP':r.id==='xp'?'EXPERIENCE':r.id==='notice'?'FIELD NOTE':'RECOVERED',el=document.createElement('div');el.className='reward'+(hero?' reward-hero':'');el.dataset.kind=hero?'level-up':'loot';el.style.setProperty('--reward-hold',(lifetime-140)+'ms');el.setAttribute('role','status');el.innerHTML=`${hero?portrait(r.id,'reward-portrait'):icon(r.id)}<div>${esc(r.label)} ${!hero&&r.amount>1?`<b>×${fmt(r.amount)}</b>`:''}<small>${category}</small></div>`;document.querySelector('#rewards').append(el);this.paint(el);setTimeout(()=>el.remove(),lifetime);}}
+  inspectItem(id, focusAction = false) {
+    this.item = id;
+    for (const row of this.root.querySelectorAll('.exp-pack-row')) {
+      const selected = row.dataset.packItem === id;
+      row.classList.toggle('selected', selected);
+      row
+        .querySelector('.exp-pack-item')
+        ?.setAttribute('aria-pressed', String(selected));
+      if (selected && focusAction)
+        row.querySelector('.exp-pack-action')?.focus({ preventScroll: true });
+    }
+  }
+  heroButtons() {
+    return `<div class="button-group">${this.game.state.heroes.map((h, i) => button(h.name, 'hero:' + i, 'button quiet' + (this.hero === i ? ' active' : ''))).join('')}</div>`;
+  }
+  renderMenu() {
+    return renderExpedition(this);
+  }
+  itemDetail(id) {
+    return expeditionItemDetail(this, id);
+  }
+  controls() {
+    return `<div class="controls-grid">${[
+      ['WASD / arrows', 'Walk; Shift to run'],
+      ['F / Space', 'Interact with the world'],
+      [
+        worldViewShortcut(this.game.state.settings) ? 'R' : 'World view button',
+        'Full current map; Esc returns',
+      ],
+      ['Esc', 'Pause / open field atlas'],
+      ['1–7 / Q E', 'Atlas tabs'],
+      ['PgUp / PgDn', 'Scroll atlas pages'],
+      ['→ / Enter / Space', 'Confirm / execute'],
+      ['← / Backspace', 'Battle back / close service'],
+      ['↑ ↓ / Tab', 'Choose hero / command / target'],
+      ['Mouse', 'Click commands; click ground to walk'],
+    ]
+      .map(([k, t]) => `<div><kbd>${k}</kbd> ${t}</div>`)
+      .join(
+        '',
+      )}</div><div class="rule"></div><h3>The bright beat</h3><p class="small muted">During an attack, a white marker crosses the orange signal. Make one fresh Space or Enter press while it crosses to raise the chance of a critical hit. A fixed notch marks where you pressed; a critical is a separate result. Normal attacks remain effective without it. Incoming attacks open the same timing track: catch the orange window to reduce that attack’s damage by 75%. Your previous selection returns afterward.</p>`;
+  }
+  settingsBody() {
+    const s = this.game.state.settings;
+    return `<div class="section-heading"><h2>Make room for yourself</h2><span class="label">PRESENTATION & CONTROLS</span></div><div class="columns"><div>${['music', 'sfx'].map((id) => `<label class="setting"><span>${id === 'music' ? 'Music' : 'Sound effects'}<p>Original synthesized ${id === 'music' ? 'regional score' : 'field and battle cues'}.</p></span><input aria-label="${id} volume" type="range" min="0" max="1" step="0.1" value="${s[id]}" data-setting="${id}"></label>`).join('')}${[
+      [
+        'timingAssist',
+        'Timing assist',
+        'A modestly wider critical input opportunity.',
+      ],
+      [
+        'reducedMotion',
+        'Restrained motion',
+        'Reduces camera motion and flashes.',
+      ],
+      [
+        'minimap',
+        'Local survey',
+        'Show a small preview of immediate surroundings.',
+      ],
+    ]
+      .map(
+        ([id, name, desc]) =>
+          `<div class="setting"><div>${name}<p>${desc}</p></div>${button(s[id] ? 'On' : 'Off', 'setting:' + id, 'button quiet')}</div>`,
+      )
+      .join(
+        '',
+      )}<div class="label">FIELD KEY BINDINGS</div><div class="button-group">${[
+      ['up', 'w'],
+      ['left', 'a'],
+      ['down', 's'],
+      ['right', 'd'],
+      ['interact', 'f'],
+    ]
+      .map(([id, key]) =>
+        button(
+          `${id}<small>${esc((s.keys?.[id] || key).toUpperCase())}</small>`,
+          'rebind:' + id,
+          'button quiet',
+        ),
+      )
+      .join('')}</div></div><div>${this.controls()}</div></div>`;
+  }
+  renderVendor() {
+    const s = this.game.state,
+      o = this.panel.object,
+      service = o.service || 'provisions',
+      def = SERVICES[service],
+      available = service === 'rest' || P.serviceAvailable(s, service),
+      person = npcPortrait(o),
+      hero = s.heroes[this.hero] || s.heroes[0];
+    const serviceAction = vendorAction(s, o),
+      progress = serviceAction?.progress;
+    const actionPanel = serviceAction
+      ? `<aside class="merchant-actions" aria-label="Vendor service">${button(esc(serviceAction.label), serviceAction.action, 'button' + (serviceAction.primary ? ' primary' : ''), `aria-describedby="vendor-action-description vendor-action-status" ${serviceAction.disabled ? 'disabled' : ''}`)}<p id="vendor-action-description" class="merchant-action-description">${esc(serviceAction.description)}</p><p id="vendor-action-status" class="merchant-action-status">${progress ? `Vendor progress ${progress.completed}/${progress.total} · ` : ''}${esc(serviceAction.status)}</p></aside>`
+      : '';
+    let body = `<div class="vendor-heading"><div class="merchant-heading">${person ? portrait(person, 'merchant-portrait') : ''}<div><div class="eyebrow">${esc(def?.name || 'A warm welcome')}</div><h2>${esc(o.name)}</h2><p>${esc(o.dialogue || def?.description || 'There is always room by the lamp.')}</p></div></div>${actionPanel}</div>`;
+    if (!available) {
+      if (!serviceAction?.serviceLocked)
+        body += `<p>This service opens at ${TIERS[(def?.tier || 1) - 1]}, Kaida level ${def?.level || 1}${def?.requires ? ' with a ' + BUILDINGS[def.requires]?.name : ''}.</p>`;
+    } else if (!['inn', 'rest', 'trainer'].includes(service)) {
+      const ids = (
+        this.sellMode
+          ? Object.keys(s.inventory).filter((id) => s.inventory[id] > 0)
+          : P.serviceStock(s, service, s.region)
+      ).filter((id) => ITEMS[id]);
+      body += `<div class="shop-toolbar"><div class="button-group">${button(this.sellMode ? 'Sell from pack' : 'Buy supplies', 'trade-mode', 'button quiet', 'aria-label="' + (this.sellMode ? 'Selling from pack; switch to buying' : 'Buying supplies; switch to selling') + '"')}${button('−', 'qty:down', 'button quiet', 'aria-label="Decrease quantity"')}<span class="shop-quantity">Quantity <b>${this.qty}</b></span>${button('+', 'qty:up', 'button quiet', 'aria-label="Increase quantity"')}</div><span class="shop-balance">${fmt(s.resources.ore)} ore available</span></div>`;
+      if (!this.sellMode)
+        body += `<div class="shop-heroes"><span>Compare with</span><div class="button-group">${s.heroes.map((h, i) => button(esc(h.name), 'hero:' + i, 'button quiet' + (this.hero === i ? ' active' : ''), `aria-pressed="${this.hero === i}"`)).join('')}</div></div>`;
+      for (const [type, name] of [
+        ['weapon', 'Weapons'],
+        ['armor', 'Armor'],
+        ['accessory', 'Accessories'],
+        ['consumable', 'Consumables'],
+      ]) {
+        const items = ids.filter((id) => ITEMS[id].slot === type);
+        if (!items.length) continue;
+        body += `<section class="shop-section" data-shop-type="${type}" aria-labelledby="shop-${type}"><h3 id="shop-${type}">${name}<span>${items.length}</span></h3><div class="shop-grid">${items
+          .map((id) => {
+            const it = ITEMS[id],
+              owned = s.inventory[id] || 0,
+              quantity = this.sellMode ? Math.min(this.qty, owned) : this.qty,
+              unit = this.sellMode
+                ? Math.max(1, Math.floor(it.price * 0.45))
+                : it.price * (s.flags.mara_trade_route ? 0.85 : 1),
+              total = this.sellMode
+                ? unit * quantity
+                : Math.ceil(unit * quantity),
+              locked = this.sellMode && (it.unique || it.price <= 0),
+              old = ITEMS[hero.equip[it.slot]];
+            const changes = [
+              ...new Set([
+                ...Object.keys(it.stats),
+                ...Object.keys(old?.stats || {}),
+              ]),
+            ]
+              .map((k) => ({
+                label: labels[k] || k,
+                n: (it.stats[k] || 0) - (old?.stats?.[k] || 0),
+              }))
+              .filter((d) => d.n !== 0);
+            const comparison =
+              !this.sellMode && type !== 'consumable'
+                ? `<span class="shop-comparison"><span>vs ${esc(hero.name)}</span>${changes.length ? changes.map((d) => `<span class="${d.n > 0 ? 'gain' : 'loss'}">${esc(d.label)} ${d.n > 0 ? '+' : ''}${d.n}</span>`).join('') : '<span>No stat change</span>'}</span>`
+                : '';
+            return button(
+              `<span class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${tierBadge(it.tier)}</span><span class="shop-owned">Own ${fmt(owned)}</span></span><span class="shop-description">${esc(it.description)}</span>${comparison}<span class="shop-card-action"><span>${locked ? 'Keepsake' : `${this.sellMode ? 'Sell' : 'Buy'} ×${quantity}`}</span><strong>${locked ? 'Cannot sell' : `${fmt(total)} ore`}</strong></span>`,
+              (this.sellMode ? 'sell:' : 'buy:') + id,
+              'shop-card',
+              `data-tier="${it.tier}" ${locked ? 'disabled' : ''}`,
+            );
+          })
+          .join('')}</div></section>`;
+      }
+      if (!ids.length)
+        body += '<p class="shop-empty">No items in your pack to sell.</p>';
+    }
+    body += `<div class="shop-return">${button('Return to the settlement', 'close', 'button quiet')}</div>`;
+    return this.shell(
+      'A place in the community',
+      `<div data-shop-navigation>${body}</div>`,
+      '<kbd>↑ ↓ ← →</kbd> Navigate &nbsp; <kbd>PgUp/Dn</kbd> Scroll &nbsp; <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm &nbsp; <span class="dismiss-hint"><kbd>Esc</kbd> Return</span>',
+    );
+  }
+
+  renderTier() {
+    const s = this.game.state,
+      status = P.tierEligibility(s),
+      pending = status.missing.filter((r) => r.type !== 'resource'),
+      met = status.requirements.filter((r) => r.type !== 'resource' && r.met);
+    const instruction = status.complete
+      ? 'All civilization tiers complete.'
+      : status.eligible
+        ? 'All requirements met.'
+        : pending.length
+          ? 'To unlock: ' + pending.map((r) => r.instruction).join('; ') + '.'
+          : 'To unlock: gather the missing supplies below.';
+    return `<section class="tier-heading" data-tier="${s.tier}" data-tier-status="${status.complete ? 'complete' : status.eligible ? 'ready' : 'blocked'}"><div class="tier-title-row"><div><div class="eyebrow">CIVILIZATION ${s.tier} / 4</div><h3 class="tier-current">${TIERS[s.tier - 1]}</h3></div><div class="tier-advance-action">${!status.complete ? `<span class="tier-next">Next ${tierBadge(status.nextTier)}</span>` : ''}${!status.complete ? button('Advance to ' + status.name, 'tier', 'button primary', `${status.eligible ? '' : 'disabled'} aria-describedby="tier-unlock"`) : '<span class="tier-complete">Fully advanced</span>'}</div></div><p class="tier-unlock" id="tier-unlock">${esc(instruction)}</p>${met.length ? `<p class="tier-met">Completed: ${met.map((r) => '✓ ' + esc(r.label)).join(' · ')}</p>` : ''}${
+      !status.complete
+        ? `<div class="tier-costs" aria-label="Advancement cost"><span>Spend</span>${status.requirements
+            .filter((r) => r.type === 'resource')
+            .map(
+              (r) =>
+                `<span class="tier-cost ${r.met ? 'met' : 'missing'}">${icon(r.id)}<span>${fmt(r.required)} ${r.id}<small>${r.met ? '✓ Available' : `Need ${fmt(Math.ceil(r.required - r.current))} more · ${fmt(r.current)} held`}</small></span></span>`,
+            )
+            .join('')}</div>`
+        : ''
+    }</section>`;
+  }
+  renderBuild() {
+    const s = this.game.state;
+    return this.shell(
+      'Settlement works',
+      `<div class="section-heading"><h2>Give tomorrow a foundation</h2><span class="label">SHARED STORES / ALL HARBORS</span></div><div class="row spread"><div class="small amber">${costText(Object.fromEntries(Object.entries(s.resources).map(([k, v]) => [k, Math.floor(v)])))}</div>${button('Return to town', 'close', 'button quiet')}</div>${this.renderTier()}<div class="build-grid">${Object.values(
+        BUILDINGS,
+      )
+        .map((b) => {
+          const n = s.buildings[b.id] || 0;
+          return button(
+            `${icon(b.id)}<span class="item-name">${b.name} <span class="teal">${n ? 'LV ' + n : 'Unbuilt'}</span><small>${esc(b.description || b.benefit || '')}<br>${n >= 4 ? 'Fully developed' : costText(P.buildingCost(s, b.id))}</small></span><span class="price">${n >= 4 ? 'Complete' : n ? 'Upgrade' : 'Build'}</span>`,
+            'build:' + b.id,
+            'list-button',
+            n >= 4 ? 'disabled' : '',
+          );
+        })
+        .join(
+          '',
+        )}</div><p class="small muted" style="margin-top:1cqw">Farms, mines, and extractors produce while you explore. Walls protect the whole crew. Training, forging, and research open new services. All eight structures can reach level four.</p>`,
+    );
+  }
+  renderEnding() {
+    return `<section class="ending"><div class="ending-content">${mark}<div class="eyebrow">THE WORLD, UNFINISHED</div><h1>Another morning.</h1><p>The Architect’s silence breaks into a thousand ordinary sounds.<br>Hammers on a roof. Rain in new leaves. Someone calling a name.</p><p>Kaida leaves her sword beside the evening bell.<br>Vex opens a school with more questions than answers.<br>Rune builds a gate that opens from both sides.</p><p>No one promises that the world will never hurt again.<br>They promise that no one will have to rebuild it alone.</p><div class="rule"></div><div class="eyebrow">CHRONFORGE ECHO / THE SIGNAL CONTINUES</div>${button('Return to a living world', 'ending-continue', 'button primary')}</div></section>`;
+  }
+  announceRecruitment(id) {
+    const hero = HEROES[id];
+    if (!hero) return;
+    document.querySelector('.recruit-announcement')?.remove();
+    const el = document.createElement('div');
+    el.className = 'recruit-announcement';
+    el.dataset.hero = id;
+    el.setAttribute('role', 'status');
+    el.innerHTML = `${portrait(id, 'recruit-portrait')}<div><small>NEW HERO UNLOCKED</small><strong>${esc(hero.name)}</strong><span>Joined the party</span></div>`;
+    document.querySelector('#game').append(el);
+    this.paint(el);
+    setTimeout(() => el.remove(), 3360);
+  }
+  rewards(items) {
+    for (const r of items) {
+      if (r.kind === 'recruitment') {
+        this.announceRecruitment(r.id);
+        continue;
+      }
+      const hero = HEROES[r.id],
+        lifetime = 2360,
+        category = hero
+          ? 'LEVEL UP'
+          : r.id === 'xp'
+            ? 'EXPERIENCE'
+            : r.id === 'notice'
+              ? 'FIELD NOTE'
+              : 'RECOVERED',
+        el = document.createElement('div');
+      el.className = 'reward' + (hero ? ' reward-hero' : '');
+      el.dataset.kind = hero ? 'level-up' : 'loot';
+      el.style.setProperty('--reward-hold', lifetime - 140 + 'ms');
+      el.setAttribute('role', 'status');
+      el.innerHTML = `${hero ? portrait(r.id, 'reward-portrait') : icon(r.id)}<div>${esc(r.label)} ${!hero && r.amount > 1 ? `<b>×${fmt(r.amount)}</b>` : ''}<small>${category}</small></div>`;
+      document.querySelector('#rewards').append(el);
+      this.paint(el);
+      setTimeout(() => el.remove(), lifetime);
+    }
+  }
 }

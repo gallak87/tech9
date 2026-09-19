@@ -1,37 +1,337 @@
-import {reviewRoot} from '../scripts/review-output.mjs';
-import {chromium} from 'playwright';
+import { reviewRoot } from '../scripts/review-output.mjs';
+import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const campaign=JSON.parse(await fs.readFile(reviewRoot + 'campaign-browser.json','utf8'));
-assert.equal(campaign.report.completed,true,'An earned campaign snapshot is required as the fixture source.');
-const source=campaign.snapshot.state;
-const cases=[
- {arc:'vex',choice:'vex_keep',opposite:'vex_release',scene:'mire_cave',object:'vex_echo',item:'witness_prism',oppositeItem:'quiet_prism',ledger:'vex_arc',xp:950,skill:'witness_song',flag:'vex_witnesses',oppositeFlag:'vex_merciful_silence'},
- {arc:'vex',choice:'vex_release',opposite:'vex_keep',scene:'mire_cave',object:'vex_echo',item:'quiet_prism',oppositeItem:'witness_prism',ledger:'vex_arc',xp:950,skill:'witness_song',flag:'vex_merciful_silence',oppositeFlag:'vex_witnesses'},
- {arc:'rune',choice:'rune_remember',opposite:'rune_renew',scene:'last_crown_town',object:'rune_oath',item:'namekeeper',oppositeItem:'open_gate',ledger:'rune_arc',xp:1100,skill:'open_horizon'},
- {arc:'rune',choice:'rune_renew',opposite:'rune_remember',scene:'last_crown_town',object:'rune_oath',item:'open_gate',oppositeItem:'namekeeper',ledger:'rune_arc',xp:1100,skill:'open_horizon',flag:'rune_living_oath'},
- {arc:'mara',choice:'mara_choose_route',opposite:'mara_choose_shelter',scene:'emberline',object:'mara_convoy',ledger:'mara_branch',xp:225,flag:'mara_trade_route',oppositeFlag:'mara_shelter'},
- {arc:'mara',choice:'mara_choose_shelter',opposite:'mara_choose_route',scene:'emberline',object:'mara_convoy',ledger:'mara_branch',xp:225,flag:'mara_shelter',oppositeFlag:'mara_trade_route'}
+const campaign = JSON.parse(
+  await fs.readFile(reviewRoot + 'campaign-browser.json', 'utf8'),
+);
+assert.equal(
+  campaign.report.completed,
+  true,
+  'An earned campaign snapshot is required as the fixture source.',
+);
+const source = campaign.snapshot.state;
+const cases = [
+  {
+    arc: 'vex',
+    choice: 'vex_keep',
+    opposite: 'vex_release',
+    scene: 'mire_cave',
+    object: 'vex_echo',
+    item: 'witness_prism',
+    oppositeItem: 'quiet_prism',
+    ledger: 'vex_arc',
+    xp: 950,
+    skill: 'witness_song',
+    flag: 'vex_witnesses',
+    oppositeFlag: 'vex_merciful_silence',
+  },
+  {
+    arc: 'vex',
+    choice: 'vex_release',
+    opposite: 'vex_keep',
+    scene: 'mire_cave',
+    object: 'vex_echo',
+    item: 'quiet_prism',
+    oppositeItem: 'witness_prism',
+    ledger: 'vex_arc',
+    xp: 950,
+    skill: 'witness_song',
+    flag: 'vex_merciful_silence',
+    oppositeFlag: 'vex_witnesses',
+  },
+  {
+    arc: 'rune',
+    choice: 'rune_remember',
+    opposite: 'rune_renew',
+    scene: 'last_crown_town',
+    object: 'rune_oath',
+    item: 'namekeeper',
+    oppositeItem: 'open_gate',
+    ledger: 'rune_arc',
+    xp: 1100,
+    skill: 'open_horizon',
+  },
+  {
+    arc: 'rune',
+    choice: 'rune_renew',
+    opposite: 'rune_remember',
+    scene: 'last_crown_town',
+    object: 'rune_oath',
+    item: 'open_gate',
+    oppositeItem: 'namekeeper',
+    ledger: 'rune_arc',
+    xp: 1100,
+    skill: 'open_horizon',
+    flag: 'rune_living_oath',
+  },
+  {
+    arc: 'mara',
+    choice: 'mara_choose_route',
+    opposite: 'mara_choose_shelter',
+    scene: 'emberline',
+    object: 'mara_convoy',
+    ledger: 'mara_branch',
+    xp: 225,
+    flag: 'mara_trade_route',
+    oppositeFlag: 'mara_shelter',
+  },
+  {
+    arc: 'mara',
+    choice: 'mara_choose_shelter',
+    opposite: 'mara_choose_route',
+    scene: 'emberline',
+    object: 'mara_convoy',
+    ledger: 'mara_branch',
+    xp: 225,
+    flag: 'mara_shelter',
+    oppositeFlag: 'mara_trade_route',
+  },
 ];
-const browser=await chromium.launch({headless:true,channel:'chrome'}),started=Date.now(),results=[];
-const totalXP=h=>{let result=h.xp;for(let n=1;n<h.level;n++)result+=80+20*n;return result;};
-const itemCount=(state,id)=>(state.inventory[id]||0)+state.heroes.reduce((n,h)=>n+Object.values(h.equip).filter(x=>x===id).length,0);
-const readState=page=>page.evaluate(()=>JSON.parse(JSON.stringify(window.__ECHO__.game.state)));
-async function finishDialogue(page){const lines=[];for(let i=0;i<50;i++){const info=await page.evaluate(()=>{const g=window.__ECHO__.game;return g.ui.panel?.type==='dialogue'?{line:g.ui.panel.lines[g.ui.panel.index],choice:!!g.ui.atChoice()}:null;});if(!info)return lines;lines.push(info.line);if(info.choice)return lines;await page.keyboard.press('Space');}throw Error('Dialogue did not finish');}
-try{for(const [index,c]of cases.entries()){
- const context=await browser.newContext({viewport:{width:1920,height:1080}}),page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});await page.routeWebSocket('**/*',socket=>{socket.send(JSON.stringify({type:'connected'}));socket.onMessage(()=>{});});await page.goto('http://127.0.0.1:4321/?test=1',{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__ECHO_READY__);
- const fixture=await page.evaluate(async({source,c})=>{
-  const [{saveState},{getScene},P]=await Promise.all([import('/src/persistence.js'),import('/src/world.js'),import('/src/progression.js')]);const s=structuredClone(source),g=window.__ECHO__.game;
-  const remove=c.arc==='vex'?['vex_keep','vex_release','vex_arc_complete','vex_witnesses','vex_merciful_silence']:c.arc==='rune'?['rune_remember','rune_renew','rune_arc_complete','rune_living_oath']:['mara_choose_route','mara_choose_shelter','mara_convoy_chosen','mara_trade_route','mara_shelter','mara_signal','mara_arc_complete'];for(const id of remove)delete s.flags[id];
-  const items=c.arc==='vex'?['witness_prism','quiet_prism']:c.arc==='rune'?['namekeeper','open_gate']:['mara_compass'];for(const id of items){delete s.inventory[id];for(const h of s.heroes)for(const slot of Object.keys(h.equip))if(h.equip[slot]===id)h.equip[slot]=null;}
-  const ledgers=c.arc==='mara'?['mara_branch','mara_signal','mara_arc']:[c.ledger];for(const id of ledgers)delete s.flags.rewardLedger[id];if(c.skill)for(const h of s.heroes)h.skills=h.skills.filter(id=>id!==c.skill);
-  s.region=c.scene;const scene=getScene(c.scene),object=scene.objects.find(o=>o.id===c.object);Object.assign(s,g.safePoint(scene,object.x,object.y+30));for(const h of s.heroes){const st=P.stats(h,s);h.hp=Math.min(h.hp,st.maxHp);h.mp=Math.min(h.mp,st.maxMp);}saveState(s,1);g.load(1);g.update(1/60);return {state:structuredClone(g.state),removedFlags:remove,removedItems:items,removedRewardLedgers:ledgers};
- },{source,c});
- await page.keyboard.press('f');const intro=await finishDialogue(page);const choiceButtons=await page.locator('[data-do^="choice:"]').allTextContents();assert.equal(choiceButtons.length,2,c.choice);const chosenIndex=await page.evaluate(choice=>window.__ECHO__.game.ui.panel.choices.findIndex(c=>c.flag===choice),c.choice);assert.ok(chosenIndex>=0);
- const button=page.locator(`[data-do="choice:${chosenIndex}"]`);if(index%2===0){await button.focus();await page.keyboard.press('Enter');}else await button.click();const conclusion=await finishDialogue(page);const after=await readState(page);
- assert.equal(after.flags[c.choice],true);assert.equal(Boolean(after.flags[c.opposite]),false);assert.equal(after.flags.rewardLedger[c.ledger],true);if(c.flag)assert.equal(after.flags[c.flag],true);if(c.oppositeFlag)assert.equal(Boolean(after.flags[c.oppositeFlag]),false);if(c.item){assert.equal(itemCount(after,c.item),1);assert.equal(itemCount(after,c.oppositeItem),0);}if(c.skill)assert.ok(after.heroes.some(h=>h.skills.includes(c.skill)));for(const h of after.heroes)assert.equal(totalXP(h)-totalXP(fixture.state.heroes.find(x=>x.id===h.id)),c.xp);
- await page.keyboard.press('Escape');await page.keyboard.press('6');await page.locator('[data-do="save:2"]').click();await page.locator('[data-do="load:2"]').click();await page.locator('[data-do="confirm-yes"]').click();const loaded=await readState(page);assert.equal(loaded.flags[c.choice],true);assert.equal(Boolean(loaded.flags[c.opposite]),false);assert.deepEqual(loaded.heroes.map(h=>h.skills),after.heroes.map(h=>h.skills));assert.deepEqual(loaded.inventory,after.inventory);
- await page.keyboard.press('f');const revisit=await finishDialogue(page);const repeated=await readState(page);assert.deepEqual(repeated.heroes.map(totalXP),after.heroes.map(totalXP),'Revisit awarded XP twice');assert.deepEqual(repeated.inventory,after.inventory,'Revisit duplicated inventory');assert.equal(Boolean(repeated.flags[c.opposite]),false);
- await page.keyboard.press('Escape');await page.keyboard.press('5');await page.screenshot({path:reviewRoot + `branch-browser-${c.choice}.png`});
- const result={choice:c.choice,input:index%2===0?'keyboard Enter on focused choice':'mouse choice button',fixture:{source:'Earned full campaign snapshot; only this arc rewound to an explicit prechoice fixture.',...fixture},intro,choiceButtons,conclusion,revisit,after:{flags:after.flags,inventory:after.inventory,heroes:after.heroes},persistedAndIdempotent:true,errors};results.push(result);assert.equal(errors.length,0);console.log('PASS '+c.choice);await context.close();
- }}catch(e){results.push({failure:String(e)});process.exitCode=1;}finally{await browser.close();await fs.writeFile(reviewRoot + 'branch-browser.json',JSON.stringify({description:'Actual dialogue choice, manual save UI, confirmation/load UI, and repeat interaction on six isolated deterministic prechoice fixtures. This is branch UI/persistence verification, not a fresh campaign progression claim.',wallSeconds:(Date.now()-started)/1000,results},null,2));}
+const browser = await chromium.launch({ headless: true, channel: 'chrome' }),
+  started = Date.now(),
+  results = [];
+const totalXP = (h) => {
+  let result = h.xp;
+  for (let n = 1; n < h.level; n++) result += 80 + 20 * n;
+  return result;
+};
+const itemCount = (state, id) =>
+  (state.inventory[id] || 0) +
+  state.heroes.reduce(
+    (n, h) => n + Object.values(h.equip).filter((x) => x === id).length,
+    0,
+  );
+const readState = (page) =>
+  page.evaluate(() => JSON.parse(JSON.stringify(window.__ECHO__.game.state)));
+async function finishDialogue(page) {
+  const lines = [];
+  for (let i = 0; i < 50; i++) {
+    const info = await page.evaluate(() => {
+      const g = window.__ECHO__.game;
+      return g.ui.panel?.type === 'dialogue'
+        ? {
+            line: g.ui.panel.lines[g.ui.panel.index],
+            choice: !!g.ui.atChoice(),
+          }
+        : null;
+    });
+    if (!info) return lines;
+    lines.push(info.line);
+    if (info.choice) return lines;
+    await page.keyboard.press('Space');
+  }
+  throw Error('Dialogue did not finish');
+}
+try {
+  for (const [index, c] of cases.entries()) {
+    const context = await browser.newContext({
+        viewport: { width: 1920, height: 1080 },
+      }),
+      page = await context.newPage(),
+      errors = [];
+    page.on('pageerror', (e) => errors.push(String(e)));
+    page.on('console', (m) => {
+      if (m.type() === 'error') errors.push(m.text());
+    });
+    await page.routeWebSocket('**/*', (socket) => {
+      socket.send(JSON.stringify({ type: 'connected' }));
+      socket.onMessage(() => {});
+    });
+    await page.goto('http://127.0.0.1:4321/?test=1', {
+      waitUntil: 'networkidle',
+    });
+    await page.waitForFunction(() => window.__ECHO_READY__);
+    const fixture = await page.evaluate(
+      async ({ source, c }) => {
+        const [{ saveState }, { getScene }, P] = await Promise.all([
+          import('/src/persistence.js'),
+          import('/src/world.js'),
+          import('/src/progression.js'),
+        ]);
+        const s = structuredClone(source),
+          g = window.__ECHO__.game;
+        const remove =
+          c.arc === 'vex'
+            ? [
+                'vex_keep',
+                'vex_release',
+                'vex_arc_complete',
+                'vex_witnesses',
+                'vex_merciful_silence',
+              ]
+            : c.arc === 'rune'
+              ? [
+                  'rune_remember',
+                  'rune_renew',
+                  'rune_arc_complete',
+                  'rune_living_oath',
+                ]
+              : [
+                  'mara_choose_route',
+                  'mara_choose_shelter',
+                  'mara_convoy_chosen',
+                  'mara_trade_route',
+                  'mara_shelter',
+                  'mara_signal',
+                  'mara_arc_complete',
+                ];
+        for (const id of remove) delete s.flags[id];
+        const items =
+          c.arc === 'vex'
+            ? ['witness_prism', 'quiet_prism']
+            : c.arc === 'rune'
+              ? ['namekeeper', 'open_gate']
+              : ['mara_compass'];
+        for (const id of items) {
+          delete s.inventory[id];
+          for (const h of s.heroes)
+            for (const slot of Object.keys(h.equip))
+              if (h.equip[slot] === id) h.equip[slot] = null;
+        }
+        const ledgers =
+          c.arc === 'mara'
+            ? ['mara_branch', 'mara_signal', 'mara_arc']
+            : [c.ledger];
+        for (const id of ledgers) delete s.flags.rewardLedger[id];
+        if (c.skill)
+          for (const h of s.heroes)
+            h.skills = h.skills.filter((id) => id !== c.skill);
+        s.region = c.scene;
+        const scene = getScene(c.scene),
+          object = scene.objects.find((o) => o.id === c.object);
+        Object.assign(s, g.safePoint(scene, object.x, object.y + 30));
+        for (const h of s.heroes) {
+          const st = P.stats(h, s);
+          h.hp = Math.min(h.hp, st.maxHp);
+          h.mp = Math.min(h.mp, st.maxMp);
+        }
+        saveState(s, 1);
+        g.load(1);
+        g.update(1 / 60);
+        return {
+          state: structuredClone(g.state),
+          removedFlags: remove,
+          removedItems: items,
+          removedRewardLedgers: ledgers,
+        };
+      },
+      { source, c },
+    );
+    await page.keyboard.press('f');
+    const intro = await finishDialogue(page);
+    const choiceButtons = await page
+      .locator('[data-do^="choice:"]')
+      .allTextContents();
+    assert.equal(choiceButtons.length, 2, c.choice);
+    const chosenIndex = await page.evaluate(
+      (choice) =>
+        window.__ECHO__.game.ui.panel.choices.findIndex(
+          (c) => c.flag === choice,
+        ),
+      c.choice,
+    );
+    assert.ok(chosenIndex >= 0);
+    const button = page.locator(`[data-do="choice:${chosenIndex}"]`);
+    if (index % 2 === 0) {
+      await button.focus();
+      await page.keyboard.press('Enter');
+    } else await button.click();
+    const conclusion = await finishDialogue(page);
+    const after = await readState(page);
+    assert.equal(after.flags[c.choice], true);
+    assert.equal(Boolean(after.flags[c.opposite]), false);
+    assert.equal(after.flags.rewardLedger[c.ledger], true);
+    if (c.flag) assert.equal(after.flags[c.flag], true);
+    if (c.oppositeFlag)
+      assert.equal(Boolean(after.flags[c.oppositeFlag]), false);
+    if (c.item) {
+      assert.equal(itemCount(after, c.item), 1);
+      assert.equal(itemCount(after, c.oppositeItem), 0);
+    }
+    if (c.skill)
+      assert.ok(after.heroes.some((h) => h.skills.includes(c.skill)));
+    for (const h of after.heroes)
+      assert.equal(
+        totalXP(h) - totalXP(fixture.state.heroes.find((x) => x.id === h.id)),
+        c.xp,
+      );
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('6');
+    await page.locator('[data-do="save:2"]').click();
+    await page.locator('[data-do="load:2"]').click();
+    await page.locator('[data-do="confirm-yes"]').click();
+    const loaded = await readState(page);
+    assert.equal(loaded.flags[c.choice], true);
+    assert.equal(Boolean(loaded.flags[c.opposite]), false);
+    assert.deepEqual(
+      loaded.heroes.map((h) => h.skills),
+      after.heroes.map((h) => h.skills),
+    );
+    assert.deepEqual(loaded.inventory, after.inventory);
+    await page.keyboard.press('f');
+    const revisit = await finishDialogue(page);
+    const repeated = await readState(page);
+    assert.deepEqual(
+      repeated.heroes.map(totalXP),
+      after.heroes.map(totalXP),
+      'Revisit awarded XP twice',
+    );
+    assert.deepEqual(
+      repeated.inventory,
+      after.inventory,
+      'Revisit duplicated inventory',
+    );
+    assert.equal(Boolean(repeated.flags[c.opposite]), false);
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('5');
+    await page.screenshot({
+      path: reviewRoot + `branch-browser-${c.choice}.png`,
+    });
+    const result = {
+      choice: c.choice,
+      input:
+        index % 2 === 0
+          ? 'keyboard Enter on focused choice'
+          : 'mouse choice button',
+      fixture: {
+        source:
+          'Earned full campaign snapshot; only this arc rewound to an explicit prechoice fixture.',
+        ...fixture,
+      },
+      intro,
+      choiceButtons,
+      conclusion,
+      revisit,
+      after: {
+        flags: after.flags,
+        inventory: after.inventory,
+        heroes: after.heroes,
+      },
+      persistedAndIdempotent: true,
+      errors,
+    };
+    results.push(result);
+    assert.equal(errors.length, 0);
+    console.log('PASS ' + c.choice);
+    await context.close();
+  }
+} catch (e) {
+  results.push({ failure: String(e) });
+  process.exitCode = 1;
+} finally {
+  await browser.close();
+  await fs.writeFile(
+    reviewRoot + 'branch-browser.json',
+    JSON.stringify(
+      {
+        description:
+          'Actual dialogue choice, manual save UI, confirmation/load UI, and repeat interaction on six isolated deterministic prechoice fixtures. This is branch UI/persistence verification, not a fresh campaign progression claim.',
+        wallSeconds: (Date.now() - started) / 1000,
+        results,
+      },
+      null,
+      2,
+    ),
+  );
+}

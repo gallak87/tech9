@@ -1,50 +1,174 @@
-import {reviewURL} from '../scripts/review-output.mjs';
-import {chromium} from 'playwright';
+import { reviewURL } from '../scripts/review-output.mjs';
+import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-import {createState,recruit} from '../src/progression.js';
-import {ITEMS} from '../src/content.js';
+import { createState, recruit } from '../src/progression.js';
+import { ITEMS } from '../src/content.js';
 
 // One focused production UI pass with a stocked saved party. No debug hooks.
-const state=createState();recruit(state,'vex');recruit(state,'rune');
-state.inventory=Object.fromEntries(Object.keys(ITEMS).map(id=>[id,2]));state.heroes[0].hp=1;state.heroes[0].equip.accessory='data_chip';state.settings.music=0;state.settings.sfx=0;
-const browser=await chromium.launch({headless:true,channel:'chrome'});
-try{
- const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
- page.on('pageerror',e=>errors.push(String(e)));
- await page.goto(process.env.ECHO_MENU_URL||'http://127.0.0.1:4334/');
- await page.evaluate(state=>{localStorage.clear();localStorage.setItem('chronforge_echo_v1:checkpoint',JSON.stringify({version:1,savedAt:new Date().toISOString(),state}));},state);
- await page.reload();await page.waitForFunction(()=>window.__ECHO_READY__);
- assert.equal(await page.evaluate(()=>typeof window.__ECHO__),'undefined');
- await page.keyboard.press('Enter');await page.keyboard.press('Escape');await page.keyboard.press('3');
- const key=k=>page.keyboard.press(k),focus=()=>page.evaluate(()=>document.activeElement?.dataset.do),row=id=>page.locator(`[data-pack-item="${id}"]`),scroll=()=>page.evaluate(()=>({body:document.querySelector('.atlas-body').scrollTop,pack:document.querySelector('.exp-pack-items').scrollTop}));
- await key('ArrowUp');assert.equal(await focus(),'tab:2');
- await key('ArrowRight');assert.equal(await focus(),'tab:3');await key('ArrowLeft');assert.equal(await focus(),'tab:2');
- await key('ArrowDown');assert.equal(await focus(),'hero:0');await key('ArrowRight');assert.equal(await focus(),'hero:1');assert.equal(await page.locator('.exp-heading h2').textContent(),'Vex');
- await key('ArrowLeft');await key('ArrowDown');assert.equal(await focus(),'unequip:weapon');await key('ArrowDown');assert.equal(await focus(),'unequip:armor');await key('ArrowDown');assert.equal(await focus(),'unequip:accessory');await key('ArrowUp');assert.equal(await focus(),'unequip:armor');
- await key('ArrowRight');assert.match(await focus(),/^item:/);
- for(let n=0;n<40&&await focus()!=='item:rune_gauntlet';n++)await key('ArrowDown');
- assert.equal(await focus(),'item:rune_gauntlet');
- const stats=await row('rune_gauntlet').textContent();for(const text of ['Weapon','Technique 7 (+7)','Defense 3 (+3)','Strength 0 (-5)'])assert.ok(stats.includes(text),text);
- await fs.mkdir(reviewURL('inventory-rows/'),{recursive:true});await page.screenshot({path:reviewURL('inventory-rows/weapon-comparison.png').pathname});
- const before=await scroll();assert.ok(before.pack>0,'Long pack scrolls instead of growing giant cards');
- const originalRow=await row('rune_gauntlet').elementHandle();await key('Enter');assert.equal(await focus(),'equip:rune_gauntlet');
- assert.ok(await originalRow.evaluate(el=>el.isConnected),'Inspect keeps the same DOM row');assert.deepEqual(await scroll(),before);
- assert.match(await page.locator('[data-do="unequip:weapon"]').textContent(),/Iron Blade/,'Initial inspect does not equip');
- await key('Enter');assert.match(await page.locator('[data-do="unequip:weapon"]').textContent(),/Rune Gauntlet/);assert.deepEqual(await scroll(),before,'Equip retains pack and page scroll');
- assert.match(await row('rune_gauntlet').textContent(),/Technique 7 \(\+0\)/);
- await page.locator('[data-do="hero:1"]').click();assert.match(await row('rune_gauntlet').textContent(),/Intellect 0 \(-7\)/);assert.deepEqual(await scroll(),before,'Hero switch retains pack scroll');
- await page.locator('[data-do="hero:0"]').click();
- await row('field_tonic').locator('.exp-pack-item').click();assert.equal(await focus(),'use:field_tonic');assert.match(await row('field_tonic').textContent(),/Consumable/);assert.match(await row('field_tonic').textContent(),/×2/);
- await key('Enter');assert.match(await row('field_tonic').textContent(),/×1/);
- await key('ArrowLeft');assert.equal(await focus(),'item:field_tonic');await key('ArrowLeft');assert.equal(await focus(),'unequip:weapon');await key('ArrowUp');assert.equal(await focus(),'hero:0');await key('ArrowUp');assert.equal(await focus(),'tab:2');
- assert.equal(await page.locator('button button').count(),0);assert.equal(await page.locator('#item-detail').count(),0);
- await fs.mkdir(reviewURL('inventory-rows/'),{recursive:true});
- await page.screenshot({path:reviewURL('inventory-rows/compact-rows.png').pathname});
- await key('6');await page.locator('[data-do="save:1"]').click();
- const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('chronforge_echo_v1:1')).state);
- assert.equal(saved.heroes[0].equip.weapon,'rune_gauntlet');assert.equal(saved.heroes[1].equip.weapon,'void_shard');assert.equal(saved.heroes[0].hp,81);assert.equal(saved.inventory.field_tonic,1);assert.equal(errors.length,0);
- await key('3');for(const slot of ['weapon','armor','accessory'])await page.locator(`[data-do="unequip:${slot}"]`).click();await page.locator('[data-do="hero:0"]').focus();await key('ArrowDown');assert.match(await focus(),/^item:/,'An empty equipment column still leads into the pack');
- const report={method:'Production build with stocked saved crew; normal mouse/keyboard menu navigation.',spatialNavigation:true,twoStepKeyboardEquip:true,inspectionPreservesDOM:true,scrollBeforeAndAfter:before,inlineUse:true,selectedHeroComparison:true,errors};
- await fs.writeFile(reviewURL('inventory-rows/report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
-}finally{await browser.close();}
+const state = createState();
+recruit(state, 'vex');
+recruit(state, 'rune');
+state.inventory = Object.fromEntries(Object.keys(ITEMS).map((id) => [id, 2]));
+state.heroes[0].hp = 1;
+state.heroes[0].equip.accessory = 'data_chip';
+state.settings.music = 0;
+state.settings.sfx = 0;
+const browser = await chromium.launch({ headless: true, channel: 'chrome' });
+try {
+  const page = await browser.newPage({
+      viewport: { width: 1440, height: 900 },
+    }),
+    errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  await page.goto(process.env.ECHO_MENU_URL || 'http://127.0.0.1:4334/');
+  await page.evaluate((state) => {
+    localStorage.clear();
+    localStorage.setItem(
+      'chronforge_echo_v1:checkpoint',
+      JSON.stringify({ version: 1, savedAt: new Date().toISOString(), state }),
+    );
+  }, state);
+  await page.reload();
+  await page.waitForFunction(() => window.__ECHO_READY__);
+  assert.equal(await page.evaluate(() => typeof window.__ECHO__), 'undefined');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('Escape');
+  await page.keyboard.press('3');
+  const key = (k) => page.keyboard.press(k),
+    focus = () => page.evaluate(() => document.activeElement?.dataset.do),
+    row = (id) => page.locator(`[data-pack-item="${id}"]`),
+    scroll = () =>
+      page.evaluate(() => ({
+        body: document.querySelector('.atlas-body').scrollTop,
+        pack: document.querySelector('.exp-pack-items').scrollTop,
+      }));
+  await key('ArrowUp');
+  assert.equal(await focus(), 'tab:2');
+  await key('ArrowRight');
+  assert.equal(await focus(), 'tab:3');
+  await key('ArrowLeft');
+  assert.equal(await focus(), 'tab:2');
+  await key('ArrowDown');
+  assert.equal(await focus(), 'hero:0');
+  await key('ArrowRight');
+  assert.equal(await focus(), 'hero:1');
+  assert.equal(await page.locator('.exp-heading h2').textContent(), 'Vex');
+  await key('ArrowLeft');
+  await key('ArrowDown');
+  assert.equal(await focus(), 'unequip:weapon');
+  await key('ArrowDown');
+  assert.equal(await focus(), 'unequip:armor');
+  await key('ArrowDown');
+  assert.equal(await focus(), 'unequip:accessory');
+  await key('ArrowUp');
+  assert.equal(await focus(), 'unequip:armor');
+  await key('ArrowRight');
+  assert.match(await focus(), /^item:/);
+  for (let n = 0; n < 40 && (await focus()) !== 'item:rune_gauntlet'; n++)
+    await key('ArrowDown');
+  assert.equal(await focus(), 'item:rune_gauntlet');
+  const stats = await row('rune_gauntlet').textContent();
+  for (const text of [
+    'Weapon',
+    'Technique 7 (+7)',
+    'Defense 3 (+3)',
+    'Strength 0 (-5)',
+  ])
+    assert.ok(stats.includes(text), text);
+  await fs.mkdir(reviewURL('inventory-rows/'), { recursive: true });
+  await page.screenshot({
+    path: reviewURL('inventory-rows/weapon-comparison.png').pathname,
+  });
+  const before = await scroll();
+  assert.ok(
+    before.pack > 0,
+    'Long pack scrolls instead of growing giant cards',
+  );
+  const originalRow = await row('rune_gauntlet').elementHandle();
+  await key('Enter');
+  assert.equal(await focus(), 'equip:rune_gauntlet');
+  assert.ok(
+    await originalRow.evaluate((el) => el.isConnected),
+    'Inspect keeps the same DOM row',
+  );
+  assert.deepEqual(await scroll(), before);
+  assert.match(
+    await page.locator('[data-do="unequip:weapon"]').textContent(),
+    /Iron Blade/,
+    'Initial inspect does not equip',
+  );
+  await key('Enter');
+  assert.match(
+    await page.locator('[data-do="unequip:weapon"]').textContent(),
+    /Rune Gauntlet/,
+  );
+  assert.deepEqual(
+    await scroll(),
+    before,
+    'Equip retains pack and page scroll',
+  );
+  assert.match(await row('rune_gauntlet').textContent(), /Technique 7 \(\+0\)/);
+  await page.locator('[data-do="hero:1"]').click();
+  assert.match(await row('rune_gauntlet').textContent(), /Intellect 0 \(-7\)/);
+  assert.deepEqual(await scroll(), before, 'Hero switch retains pack scroll');
+  await page.locator('[data-do="hero:0"]').click();
+  await row('field_tonic').locator('.exp-pack-item').click();
+  assert.equal(await focus(), 'use:field_tonic');
+  assert.match(await row('field_tonic').textContent(), /Consumable/);
+  assert.match(await row('field_tonic').textContent(), /×2/);
+  await key('Enter');
+  assert.match(await row('field_tonic').textContent(), /×1/);
+  await key('ArrowLeft');
+  assert.equal(await focus(), 'item:field_tonic');
+  await key('ArrowLeft');
+  assert.equal(await focus(), 'unequip:weapon');
+  await key('ArrowUp');
+  assert.equal(await focus(), 'hero:0');
+  await key('ArrowUp');
+  assert.equal(await focus(), 'tab:2');
+  assert.equal(await page.locator('button button').count(), 0);
+  assert.equal(await page.locator('#item-detail').count(), 0);
+  await fs.mkdir(reviewURL('inventory-rows/'), { recursive: true });
+  await page.screenshot({
+    path: reviewURL('inventory-rows/compact-rows.png').pathname,
+  });
+  await key('6');
+  await page.locator('[data-do="save:1"]').click();
+  const saved = await page.evaluate(
+    () => JSON.parse(localStorage.getItem('chronforge_echo_v1:1')).state,
+  );
+  assert.equal(saved.heroes[0].equip.weapon, 'rune_gauntlet');
+  assert.equal(saved.heroes[1].equip.weapon, 'void_shard');
+  assert.equal(saved.heroes[0].hp, 81);
+  assert.equal(saved.inventory.field_tonic, 1);
+  assert.equal(errors.length, 0);
+  await key('3');
+  for (const slot of ['weapon', 'armor', 'accessory'])
+    await page.locator(`[data-do="unequip:${slot}"]`).click();
+  await page.locator('[data-do="hero:0"]').focus();
+  await key('ArrowDown');
+  assert.match(
+    await focus(),
+    /^item:/,
+    'An empty equipment column still leads into the pack',
+  );
+  const report = {
+    method:
+      'Production build with stocked saved crew; normal mouse/keyboard menu navigation.',
+    spatialNavigation: true,
+    twoStepKeyboardEquip: true,
+    inspectionPreservesDOM: true,
+    scrollBeforeAndAfter: before,
+    inlineUse: true,
+    selectedHeroComparison: true,
+    errors,
+  };
+  await fs.writeFile(
+    reviewURL('inventory-rows/report.json'),
+    JSON.stringify(report, null, 2) + '\n',
+  );
+  console.log(JSON.stringify(report));
+} finally {
+  await browser.close();
+}

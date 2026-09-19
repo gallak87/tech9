@@ -1,15 +1,27 @@
-import {getScene, isWalkable, safeArrival} from './world.js';
-import {reveal} from './maps.js';
-import {followerPosition, FOLLOW_PATH_STEP, FOLLOW_DISTANCE} from './follower-path.js';
-import {VIEW_WIDTH, VIEW_HEIGHT} from './rendering.js';
+import { getScene, isWalkable, safeArrival } from './world.js';
+import { reveal } from './maps.js';
+import {
+  followerPosition,
+  FOLLOW_PATH_STEP,
+  FOLLOW_DISTANCE,
+} from './follower-path.js';
+import { VIEW_WIDTH, VIEW_HEIGHT } from './rendering.js';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const PATH_STEP = 24;
-const DIRECTIONS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-const gridKey = point => point.join(',');
+const DIRECTIONS = [
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+  [0, -1],
+];
+const gridKey = (point) => point.join(',');
 
 function clearEdge(scene, from, to) {
-  const samples = Math.max(1, Math.ceil(Math.hypot(to[0] - from[0], to[1] - from[1]) * PATH_STEP / 3));
+  const samples = Math.max(
+    1,
+    Math.ceil((Math.hypot(to[0] - from[0], to[1] - from[1]) * PATH_STEP) / 3),
+  );
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
     const x = (from[0] + (to[0] - from[0]) * t) * PATH_STEP;
@@ -20,10 +32,13 @@ function clearEdge(scene, from, to) {
 }
 
 function findPath(scene, from, x, y) {
-  const start = [Math.round(from.x / PATH_STEP), Math.round(from.y / PATH_STEP)];
+  const start = [
+    Math.round(from.x / PATH_STEP),
+    Math.round(from.y / PATH_STEP),
+  ];
   const end = [Math.round(x / PATH_STEP), Math.round(y / PATH_STEP)];
-  const open = [{p: start, g: 0, f: 0}];
-  const seen = new Map([[gridKey(start), {g: 0, parent: null, p: start}]]);
+  const open = [{ p: start, g: 0, f: 0 }];
+  const seen = new Map([[gridKey(start), { g: 0, parent: null, p: start }]]);
   let found = null;
   let iterations = 0;
 
@@ -38,9 +53,17 @@ function findPath(scene, from, x, y) {
       const p = [node.p[0] + dx, node.p[1] + dy];
       const key = gridKey(p);
       const cost = node.g + 1;
-      if ((seen.has(key) && seen.get(key).g <= cost) || !clearEdge(scene, node.p, p)) continue;
-      seen.set(key, {g: cost, parent: node.p, p});
-      open.push({p, g: cost, f: cost + Math.abs(p[0] - end[0]) + Math.abs(p[1] - end[1])});
+      if (
+        (seen.has(key) && seen.get(key).g <= cost) ||
+        !clearEdge(scene, node.p, p)
+      )
+        continue;
+      seen.set(key, { g: cost, parent: node.p, p });
+      open.push({
+        p,
+        g: cost,
+        f: cost + Math.abs(p[0] - end[0]) + Math.abs(p[1] - end[1]),
+      });
     }
   }
   if (!found) return null;
@@ -48,14 +71,20 @@ function findPath(scene, from, x, y) {
   const path = [];
   let node = seen.get(gridKey(found));
   while (node?.parent) {
-    path.push({x: node.p[0] * PATH_STEP, y: node.p[1] * PATH_STEP});
+    path.push({ x: node.p[0] * PATH_STEP, y: node.p[1] * PATH_STEP });
     node = seen.get(gridKey(node.parent));
   }
   path.reverse();
   // Search tolerance must not stop a reachable click short of interaction range.
   const tail = path.at(-1) || from;
-  if (clearEdge(scene, [tail.x / PATH_STEP, tail.y / PATH_STEP], [x / PATH_STEP, y / PATH_STEP])) {
-    path.push({x, y});
+  if (
+    clearEdge(
+      scene,
+      [tail.x / PATH_STEP, tail.y / PATH_STEP],
+      [x / PATH_STEP, y / PATH_STEP],
+    )
+  ) {
+    path.push({ x, y });
   }
   return path;
 }
@@ -70,13 +99,29 @@ export class WorldTraversal {
   resetFollowers() {
     const g = this.game;
     const s = g.state;
-    const [dx, dy] = {right: [-1, 0], left: [1, 0], up: [0, 1], down: [0, -1]}[s.facing] || [-1, 0];
-    let point = {x: s.x, y: s.y, facing: s.facing};
-    g.followPath = Array.from({length: 160}, (_, i) => {
-      if (i && isWalkable(g.scene, point.x + dx * FOLLOW_PATH_STEP, point.y + dy * FOLLOW_PATH_STEP)) {
-        point = {...point, x: point.x + dx * FOLLOW_PATH_STEP, y: point.y + dy * FOLLOW_PATH_STEP};
+    const [dx, dy] = {
+      right: [-1, 0],
+      left: [1, 0],
+      up: [0, 1],
+      down: [0, -1],
+    }[s.facing] || [-1, 0];
+    let point = { x: s.x, y: s.y, facing: s.facing };
+    g.followPath = Array.from({ length: 160 }, (_, i) => {
+      if (
+        i &&
+        isWalkable(
+          g.scene,
+          point.x + dx * FOLLOW_PATH_STEP,
+          point.y + dy * FOLLOW_PATH_STEP,
+        )
+      ) {
+        point = {
+          ...point,
+          x: point.x + dx * FOLLOW_PATH_STEP,
+          y: point.y + dy * FOLLOW_PATH_STEP,
+        };
       }
-      return {...point};
+      return { ...point };
     });
     this.positionFollowers();
   }
@@ -91,14 +136,22 @@ export class WorldTraversal {
 
   updateCamera(immediate = false) {
     const g = this.game;
-    const x = clamp(g.state.x - VIEW_WIDTH * .46, 0, Math.max(0, g.scene.width - VIEW_WIDTH));
-    const y = clamp(g.state.y - VIEW_HEIGHT * .53, 0, Math.max(0, g.scene.height - VIEW_HEIGHT));
+    const x = clamp(
+      g.state.x - VIEW_WIDTH * 0.46,
+      0,
+      Math.max(0, g.scene.width - VIEW_WIDTH),
+    );
+    const y = clamp(
+      g.state.y - VIEW_HEIGHT * 0.53,
+      0,
+      Math.max(0, g.scene.height - VIEW_HEIGHT),
+    );
     if (immediate || g.state.settings.reducedMotion) {
       g.camera.x = x;
       g.camera.y = y;
     } else {
-      g.camera.x += (x - g.camera.x) * .14;
-      g.camera.y += (y - g.camera.y) * .14;
+      g.camera.x += (x - g.camera.x) * 0.14;
+      g.camera.y += (y - g.camera.y) * 0.14;
     }
   }
 
@@ -106,7 +159,14 @@ export class WorldTraversal {
     const g = this.game;
     const path = findPath(g.scene, g.state, x, y);
     if (path) g.movePath = path;
-    else g.rewards([{id: 'notice', label: 'The route is blocked. Try a nearer point on the path.', amount: 1}]);
+    else
+      g.rewards([
+        {
+          id: 'notice',
+          label: 'The route is blocked. Try a nearer point on the path.',
+          amount: 1,
+        },
+      ]);
   }
 
   move(dt) {
@@ -114,10 +174,12 @@ export class WorldTraversal {
     const s = g.state;
     const scene = g.scene;
     const bindings = s.settings.keys || {};
-    let dx = (g.keys.has('ArrowRight') || g.keys.has(bindings.right || 'd') ? 1 : 0)
-      - (g.keys.has('ArrowLeft') || g.keys.has(bindings.left || 'a') ? 1 : 0);
-    let dy = (g.keys.has('ArrowDown') || g.keys.has(bindings.down || 's') ? 1 : 0)
-      - (g.keys.has('ArrowUp') || g.keys.has(bindings.up || 'w') ? 1 : 0);
+    let dx =
+      (g.keys.has('ArrowRight') || g.keys.has(bindings.right || 'd') ? 1 : 0) -
+      (g.keys.has('ArrowLeft') || g.keys.has(bindings.left || 'a') ? 1 : 0);
+    let dy =
+      (g.keys.has('ArrowDown') || g.keys.has(bindings.down || 's') ? 1 : 0) -
+      (g.keys.has('ArrowUp') || g.keys.has(bindings.up || 'w') ? 1 : 0);
     if (dx || dy) g.movePath = [];
     else if (g.movePath.length) {
       const point = g.movePath[0];
@@ -143,14 +205,22 @@ export class WorldTraversal {
       g.movePath = [];
       return;
     }
-    s.facing = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-    if (!g.followPath.length) g.followPath.push({x: oldX, y: oldY, facing: s.facing});
+    s.facing =
+      Math.abs(dx) > Math.abs(dy)
+        ? dx > 0
+          ? 'right'
+          : 'left'
+        : dy > 0
+          ? 'down'
+          : 'up';
+    if (!g.followPath.length)
+      g.followPath.push({ x: oldX, y: oldY, facing: s.facing });
     let head = g.followPath[0];
     let distance = Math.hypot(s.x - head.x, s.y - head.y);
     while (distance >= FOLLOW_PATH_STEP) {
       head = {
-        x: head.x + (s.x - head.x) * FOLLOW_PATH_STEP / distance,
-        y: head.y + (s.y - head.y) * FOLLOW_PATH_STEP / distance,
+        x: head.x + ((s.x - head.x) * FOLLOW_PATH_STEP) / distance,
+        y: head.y + ((s.y - head.y) * FOLLOW_PATH_STEP) / distance,
         facing: s.facing,
       };
       g.followPath.unshift(head);
@@ -168,7 +238,14 @@ export class WorldTraversal {
     const scene = getScene(to);
     const point = spawn || scene.spawn;
     const destination = safeArrival(scene, point.x, point.y);
-    g.transition = {time: 0, duration: .55, swapped: false, to, spawn: destination, facing: g.state.facing};
+    g.transition = {
+      time: 0,
+      duration: 0.55,
+      swapped: false,
+      to,
+      spawn: destination,
+      facing: g.state.facing,
+    };
     g.keys.clear();
     g.movePath = [];
     g.audio.sound('door');
@@ -189,7 +266,11 @@ export class WorldTraversal {
       this.resetFollowers();
       this.updateCamera(true);
       reveal(g.state, g.scene);
-      g.log('transition', {to: transition.to, x: transition.spawn.x, y: transition.spawn.y});
+      g.log('transition', {
+        to: transition.to,
+        x: transition.spawn.x,
+        y: transition.spawn.y,
+      });
     }
     if (transition.time < transition.duration) return false;
     g.transition = null;

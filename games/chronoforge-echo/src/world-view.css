@@ -1,10 +1,68 @@
-.world-view{position:absolute;inset:0;z-index:120;pointer-events:auto;background:#101c20;color:#f1ede4;font:clamp(12px,1.1cqw,20px)/1.4 Barlow,system-ui,sans-serif}
-.world-view[hidden]{display:none}
-.world-view>canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:auto}
-.world-view header{position:absolute;top:2%;left:2.5%;right:2.5%;display:flex;align-items:center;justify-content:space-between;gap:12px}
-.world-view header>div{display:flex;align-items:baseline;gap:1em;text-shadow:0 1px 4px #000}
-.world-view small,.world-view p{color:#c0c6c9}
-.world-view button{border:1px solid #8a9990;border-radius:4px;background:#17292aee;color:#f1ede4;padding:.6em .9em;font:inherit;cursor:pointer}
-.world-view button:focus-visible{outline:2px solid #eeae6a;outline-offset:3px}
-.world-view kbd{margin-left:.5em;font:inherit;opacity:.7}
-.world-view p{position:absolute;bottom:1.5%;left:2.5%;margin:0;font-size:.85em;text-shadow:0 1px 4px #000}
+.world-view {
+  position: absolute;
+  inset: 0;
+  z-index: 120;
+  pointer-events: auto;
+  background: #101c20;
+  color: #f1ede4;
+  font:
+    clamp(12px, 1.1cqw, 20px)/1.4 Barlow,
+    system-ui,
+    sans-serif;
+}
+.world-view[hidden] {
+  display: none;
+}
+.world-view > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: auto;
+}
+.world-view header {
+  position: absolute;
+  top: 2%;
+  left: 2.5%;
+  right: 2.5%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.world-view header > div {
+  display: flex;
+  align-items: baseline;
+  gap: 1em;
+  text-shadow: 0 1px 4px #000;
+}
+.world-view small,
+.world-view p {
+  color: #c0c6c9;
+}
+.world-view button {
+  border: 1px solid #8a9990;
+  border-radius: 4px;
+  background: #17292aee;
+  color: #f1ede4;
+  padding: 0.6em 0.9em;
+  font: inherit;
+  cursor: pointer;
+}
+.world-view button:focus-visible {
+  outline: 2px solid #eeae6a;
+  outline-offset: 3px;
+}
+.world-view kbd {
+  margin-left: 0.5em;
+  font: inherit;
+  opacity: 0.7;
+}
+.world-view p {
+  position: absolute;
+  bottom: 1.5%;
+  left: 2.5%;
+  margin: 0;
+  font-size: 0.85em;
+  text-shadow: 0 1px 4px #000;
+}

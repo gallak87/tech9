@@ -21,7 +21,7 @@ npm run build
 npm run verify:build
 ```
 
-`npm run lint:fix` applies ESLint’s automatic fixes. `npm install` enables the pre-commit hook: staged Echo JavaScript is fixed and re-staged, unstaged edits are preserved, and remaining lint errors block the commit.
+`npm run lint:fix` formats with Prettier and applies ESLint’s automatic fixes; `npm run lint` checks both. Prettier uses its defaults (including an 80-column target) with single quotes. `npm install` enables the pre-commit hook: staged Echo code is fixed, formatted and re-staged, unstaged edits are preserved, and remaining lint errors block the commit. Use `npm run format` for formatting alone.
 
 The static build is in `dist/`. `npm run preview` serves it at **http://127.0.0.1:4322/**. No server-side service or API key is required. Serve the build over HTTP.
 
@@ -29,17 +29,17 @@ The repository's Pages workflow publishes Echo at **https://gallak87.github.io/t
 
 ## Controls
 
-| Context | Controls |
-| --- | --- |
-| Explore | WASD or arrows; Shift to run; click a reachable destination to walk |
-| Interact | F, Space or Enter near a person, doorway, object or encounter |
-| World view | R or the button below the area label; R/Esc returns to play |
-| Read | Enter/Space continues; Esc/Backspace dismisses without choosing a story branch |
-| Menu | Esc opens; 1–7 select tabs; Q/E change tabs |
-| Menus and shops | Arrows navigate; PageUp/PageDown scroll; Space/Enter confirm; Esc closes the top layer |
-| Map | Hover/arrows select a region; click or Space/Enter activates its travel prompt; mouse drag pans, wheel zooms |
-| Battle | Space/Enter/Right confirms; Up/Down chooses; Left/Backspace backs up; Tab selects another ready hero |
-| Timing | A fresh Space/Enter in the orange window improves Attack or Defend; incoming attacks offer a timed guard |
+| Context         | Controls                                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------------------------ |
+| Explore         | WASD or arrows; Shift to run; click a reachable destination to walk                                          |
+| Interact        | F, Space or Enter near a person, doorway, object or encounter                                                |
+| World view      | R or the button below the area label; R/Esc returns to play                                                  |
+| Read            | Enter/Space continues; Esc/Backspace dismisses without choosing a story branch                               |
+| Menu            | Esc opens; 1–7 select tabs; Q/E change tabs                                                                  |
+| Menus and shops | Arrows navigate; PageUp/PageDown scroll; Space/Enter confirm; Esc closes the top layer                       |
+| Map             | Hover/arrows select a region; click or Space/Enter activates its travel prompt; mouse drag pans, wheel zooms |
+| Battle          | Space/Enter/Right confirms; Up/Down chooses; Left/Backspace backs up; Tab selects another ready hero         |
+| Timing          | A fresh Space/Enter in the orange window improves Attack or Defend; incoming attacks offer a timed guard     |
 
 Timed Defend reduces damage by 75% until the next action; normal Defend reduces it by 65%. An incoming timed guard applies to that attack only. Esc pauses the entire battle timeline. Movement bindings, audio, timing assistance, restrained motion and the minimap are adjustable in Settings.
 

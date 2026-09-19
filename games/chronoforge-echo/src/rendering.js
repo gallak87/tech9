@@ -23,9 +23,12 @@ export function artSurface(width, height) {
 
 export function artPattern(context, surface) {
   const pattern = context.createPattern(surface, 'repeat');
-  if (surface.logicalWidth) pattern.setTransform(new DOMMatrix().scale(
-    surface.logicalWidth / surface.width,
-    surface.logicalHeight / surface.height,
-  ));
+  if (surface.logicalWidth)
+    pattern.setTransform(
+      new DOMMatrix().scale(
+        surface.logicalWidth / surface.width,
+        surface.logicalHeight / surface.height,
+      ),
+    );
   return pattern;
 }

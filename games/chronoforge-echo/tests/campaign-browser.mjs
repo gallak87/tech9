@@ -1,76 +1,564 @@
-import {reviewRoot} from '../scripts/review-output.mjs';
-import {chromium} from 'playwright';
+import { reviewRoot } from '../scripts/review-output.mjs';
+import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
-const captureChapters=process.env.CAPTURE_CHAPTERS!=='0';
-const browser=await chromium.launch({headless:true,channel:'chrome'});
-const page=await browser.newPage({viewport:{width:1920,height:1080},deviceScaleFactor:1});
-const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-await page.routeWebSocket('**/*',socket=>{socket.send(JSON.stringify({type:'connected'}));socket.onMessage(()=>{});}); // Freeze the loaded code version during concurrent development.
-const started=Date.now();
-await page.goto('http://127.0.0.1:4321/?test=1',{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__ECHO_READY__);
-await page.evaluate(async()=>{
- const [W,,C,B]=await Promise.all([import('/src/world.js'),import('/src/progression.js'),import('/src/content.js'),import('/src/combat.js')]);
- const g=window.__ECHO__.game;g.startNew();
- const report={description:'Accelerated production browser integration; no direct state grants or teleports.',startedAt:new Date().toISOString(),events:[],battles:[],milestones:[],heals:0,items:0,failures:[],completed:false};
- const reviewSaves={};
- function captureSave(id,kind){const state=structuredClone(g.state);if(g.battle)state.suspendedBattle=structuredClone(g.battle);reviewSaves[id]={id,kind,scene:g.scene.id,simulationTime:+g.state.playTime.toFixed(2),description:'Unmodified state earned through this clean production campaign; reload through production persistence.',state};}
- const note=(kind,data={})=>report.events.push({kind,simulationTime:+g.state.playTime.toFixed(2),scene:g.scene.id,x:Math.round(g.state.x),y:Math.round(g.state.y),...data});
- const expect=(value,message)=>{if(!value)throw Error(message);};
- function closeDialogue(choice){let n=0;while(g.ui.panel?.type==='dialogue'&&n++<80){if(g.ui.atChoice()){const index=g.ui.panel.choices.findIndex(c=>c.flag===choice);expect(index>=0,`Need choice ${g.ui.panel.choices.map(c=>c.flag)}`);g.ui.action('choice:'+index);}else g.ui.action('dialogue-next');}expect(n<80,'Dialogue loop');}
- function improve(){
-  if(g.ui.panel||g.mode==='battle')return;g.ui.toggleMenu();g.ui.action('tab:2');
-  for(const [idx,h]of g.state.heroes.entries()){g.ui.action('hero:'+idx);const score=id=>{const s=C.ITEMS[id]?.stats||{};return(h.id==='vex'?s.int||0:h.id==='rune'?(s.tec||0)+(s.str||0)*.3:s.str||0)*3+(s.def||0)*2+(s.maxHp||0)*.1+(s.maxMp||0)*.1+(s.spd||0)+(s.crit||0)*.5;};for(const slot of ['weapon','armor','accessory']){const ids=Object.keys(g.state.inventory).filter(id=>g.state.inventory[id]>0&&C.ITEMS[id]?.slot===slot).sort((a,b)=>score(b)-score(a));if(ids[0]&&score(ids[0])>score(h.equip[slot]))g.ui.action('equip:'+ids[0]);}}
-  g.ui.action('tab:3');for(const t of Object.values(C.TECHS))for(const id of t.heroes){const hi=g.state.heroes.findIndex(h=>h.id===id);if(hi<0)continue;g.ui.action('hero:'+hi);g.ui.action('learn:'+t.id);}g.ui.toggleMenu();
- }
- const key=(k)=>B.battleKey(g.battle,g.state,k);
- function select(index){let guard=0;while(g.battle.cursor!==index&&guard++<40)key('ArrowDown');expect(g.battle.cursor===index,'Command index');key('Enter');}
- function act(){const b=g.battle;if(b.action||!b.selectedHero)return;const h=b.heroes.find(h=>h.id===b.selectedHero),living=b.heroes.filter(h=>h.hp>0),need=living.filter(h=>h.hp/h.maxHp<.55),critical=living.some(h=>h.hp/h.maxHp<.32),techs=B.battleView(b,g.state).techs.filter(t=>!t.unavailable).map(t=>C.TECHS[t.id]);let tech=need.length?techs.find(t=>t.effect==='heal'&&t.target==='allAllies')||techs.find(t=>t.effect==='heal'):null,item=!tech&&critical?['tide_elixir','field_tonic'].find(id=>g.state.inventory[id]>0):null;
-  if(!tech&&!item&&b.heroes.some(h=>h.hp<=0))item=g.state.inventory.dawn_seed>0?'dawn_seed':null;
-  if(!tech&&!item&&b.enemies.some(e=>e.charging)&&!h.guarding)tech=techs.find(t=>t.effect==='shield'&&t.target==='allAllies'&&living.some(h=>h.shield<20));
-  if(!tech&&!item)tech=techs.filter(t=>['damage','drain','slow'].includes(t.effect)).sort((a,z)=>{const value=t=>t.power*t.heroes.reduce((n,id)=>n+(b.heroes.find(h=>h.id===id)[t.stat]||0),0)*(t.target==='allEnemies'?b.enemies.filter(e=>e.hp>0).length:1);return value(z)-value(a);})[0];
-  if(b.mode==='waiting')key('Enter');expect(b.mode==='command','Command not ready');if(tech){select(1);select(B.battleView(b,g.state).techs.findIndex(t=>t.id===tech.id));if(tech.effect==='heal')report.heals++;}else if(item){select(3);select(Object.keys(g.state.inventory).filter(id=>g.state.inventory[id]>0&&C.ITEMS[id]?.effect).indexOf(item));report.items++;}else select(0);
-  if(b.mode==='target'){if(b.pending.target==='enemy'){const living=b.enemies.filter(e=>e.hp>0),index=living.findIndex(e=>e.hp===Math.min(...living.map(e=>e.hp)));while(b.target!==index)key('ArrowDown');}key('Enter');}expect(b.action,'Failed action');
- }
- function fight(){const b=g.battle;if(!b)return;const id=b.encounter.id,level=g.state.heroes[0].level;captureSave('battle-'+id,'battle');let ticks=0;while(g.mode==='battle'&&!b.result&&ticks++<60000){if(!b.action&&b.selectedHero)act();g.update(1/60);}expect(ticks<60000,`Battle timeout ${id}`);report.battles.push({id,level,result:b.result,seconds:+b.clock.toFixed(2),actions:b.actionSerial});expect(b.result==='victory',`Lost ${id}`);while(g.mode==='battle')g.update(1/60);closeDialogue();if(g.ui.panel?.type==='ending')return;improve();note('victory',{id});}
- function tick(){if(g.ui.panel?.type==='dialogue')closeDialogue();if(g.mode==='battle')fight();g.update(1/60);}
- function walk(x,y,label,range=40){
-  const startScene=g.scene.id;expect(W.isWalkable(g.scene,x,y),`Unwalkable goal ${label} (${x},${y})`);g.walkTo(x,y);let ticks=0,replans=0,lastDistance=Infinity,stuck=0;
-  while(g.scene.id===startScene&&Math.hypot(g.state.x-x,g.state.y-y)>range&&!W.nearby(g.scene,g.state.x,g.state.y,g.state).some(o=>o.id===label)){tick();if(g.scene.id!==startScene)break;if(g.transition){while(g.transition)tick();break;}const dist=Math.hypot(g.state.x-x,g.state.y-y);if(Math.abs(lastDistance-dist)<.01)stuck++;else stuck=0;lastDistance=dist;if((!g.movePath.length||stuck>90)&&!g.ui.blocked&&g.mode==='world'){expect(replans++<3,`Path blocked to ${label} at ${g.state.x},${g.state.y}; wanted ${x},${y}`);g.walkTo(x,y);stuck=0;}expect(ticks++<60000,`Walk timeout ${label}`);}
-  note('walk',{label,to:{x,y},distance:Math.round(Math.hypot(g.state.x-x,g.state.y-y)),ticks});
- }
- function localObject(id){return [...g.scene.objects,...g.scene.portals].find(o=>o.id===id);}
- function approach(object){
-  const options=[[0,0],[0,20],[0,30],[0,40],[30,15],[-30,15],[40,0],[-40,0],[0,-30]].map(([dx,dy])=>({x:object.x+dx,y:object.y+dy})).filter(p=>W.isWalkable(g.scene,p.x,p.y));expect(options.length,`No walkable approach to ${object.id}`);const point=options[0];walk(point.x,point.y,object.id,40);
-  for(let n=0;n<90&&!W.nearby(g.scene,g.state.x,g.state.y,g.state).some(o=>o.id===object.id)&&!g.state.cleared[object.id]&&!g.transition;n++){const dx=object.x-g.state.x,dy=object.y-g.state.y;if(Math.abs(dx)>3)g.keys.add(dx>0?'ArrowRight':'ArrowLeft');if(Math.abs(dy)>3)g.keys.add(dy>0?'ArrowDown':'ArrowUp');tick();g.keys.clear();}
-
- }
- function interactLocal(id,choice){const object=localObject(id);expect(object,`Missing ${id} in ${g.scene.id}`);if(object.type==='encounter'&&g.state.cleared[id])return;
-  approach(object);if(object.type==='encounter'&&g.state.cleared[id])return;if(g.transition){while(g.transition)tick();return;}const distance=Math.hypot(g.state.x-object.x,g.state.y-object.y);expect(W.nearby(g.scene,g.state.x,g.state.y,g.state).some(o=>o.id===id),`Not interactably near ${id}: ${distance}`);note('interaction',{id,distance:+distance.toFixed(2),requires:object.requires||null,gateAllowed:g.condition(object.requires)});g.interact(object);if(g.mode==='battle')fight();closeDialogue(choice);if(g.mode==='battle')fight();while(g.transition)tick();
- }
- function sceneFor(id){return Object.values(W.ALL_SCENES).find(s=>[...s.objects,...s.portals].some(o=>o.id===id));}
- function ensureScene(sceneId){if(g.scene.id===sceneId)return;if(g.scene.interior){interactLocal(g.scene.portals[0].id);expect(!g.scene.interior,'Failed interior exit');}if(g.scene.id===sceneId)return;const door=g.scene.objects.find(o=>o.to===sceneId);expect(door,`No local door from ${g.scene.id} to ${sceneId}`);interactLocal(door.id);expect(g.scene.id===sceneId,`Failed enter ${sceneId}`);}
- function interact(id,choice){const scene=sceneFor(id);expect(scene,`No world object ${id}`);ensureScene(scene.id);interactLocal(id,choice);if(g.mode==='world'&&!g.ui.panel)improve();}
- function recover(){if(g.scene.interior){const rest=g.scene.objects.find(o=>o.service==='inn'||o.service==='rest');if(rest){interactLocal(rest.id);g.ui.action('rest');g.ui.action('close');note('rest',{id:rest.id});return;}interactLocal(g.scene.portals[0].id);}const rest=g.scene.objects.find(o=>o.service==='rest');expect(rest,`No recovery in ${g.scene.id}`);interactLocal(rest.id);expect(g.ui.panel?.type==='vendor','Rest not opened');g.ui.action('rest');g.ui.action('close');note('rest',{id:rest.id});}
- function civic(actions){if(!g.scene.interior){const entrance=g.scene.objects.find(o=>o.type==='town');expect(entrance,`No settlement in ${g.scene.id}`);interactLocal(entrance.id);}const board=g.scene.objects.find(o=>o.service==='construction');expect(board,`No board in ${g.scene.id}`);interactLocal(board.id);expect(g.ui.panel?.type==='build','Construction panel absent');for(const action of actions){const before=JSON.stringify({buildings:g.state.buildings,tier:g.state.tier});g.ui.action(action);expect(JSON.stringify({buildings:g.state.buildings,tier:g.state.tier})!==before,`Civic action failed ${action}: ${g.ui.notice}`);note('civic',{action,resources:{...g.state.resources}});}g.ui.action('close');}
- function travel(id){if(g.scene.interior)interactLocal(g.scene.portals[0].id);const portal=g.scene.portals.find(p=>p.to===id);expect(portal,`No portal ${g.scene.id}->${id}`);expect(g.condition(portal.requires),`Locked portal ${portal.id}`);interactLocal(portal.id);expect(g.scene.id===id,`Travel failed to ${id}`);note('region',{id});if(!reviewSaves['arrival-'+id])captureSave('arrival-'+id,'arrival');}
- function gather(region){ensureScene(region);for(const o of g.scene.objects.filter(o=>o.type==='pickup'))if(!g.state.pickups[o.id])interactLocal(o.id);improve();}
- function milestone(id){const m={id,simulationTime:+g.state.playTime.toFixed(2),scene:g.scene.id,levels:g.state.heroes.map(h=>`${h.id}:${h.level}`),tier:g.state.tier,resources:{...g.state.resources}};report.milestones.push(m);note('milestone',m);captureSave('chapter-'+id,'milestone');return m;}
- closeDialogue();captureSave('arrival-haventide','arrival');window.__campaign={g,report,reviewSaves,interact,recover,civic,travel,gather,milestone,expect,improve,note};
+const captureChapters = process.env.CAPTURE_CHAPTERS !== '0';
+const browser = await chromium.launch({ headless: true, channel: 'chrome' });
+const page = await browser.newPage({
+  viewport: { width: 1920, height: 1080 },
+  deviceScaleFactor: 1,
 });
-const chapters=[
- ['haventide',`interact('hav_beacon');interact('hav_first');interact('hav_guard');recover();interact('mara');interact('hav_beacon');civic(['build:farm','build:mine','build:energy_extractor','build:walls']);interact('coastal_cache');interact('well_filter');gather('haventide');interact('hav_road');recover();interact('hav_crabway');recover();interact('hav_road_east');recover();interact('hav_east_sentries');civic(['build:town_center','tier']);recover();`],
- ['vex',`travel('emberline');interact('ember_arrival');recover();interact('mara_convoy','mara_choose_route');interact('ember_guard');recover();interact('vex');interact('ember_signal');interact('ember_observatory');recover();interact('signal_receiver');gather('emberline');civic(['build:barracks','build:forge','build:research_lab']);interact('ember_dunes');recover();interact('ember_north_patrol');recover();interact('ember_road_east');recover();`],
- ['rune',`travel('orbital_reach');interact('orbital_entry');recover();interact('orbital_guard');interact('rune');recover();gather('orbital_reach');interact('orbital_blackbox');civic(['build:town_center','tier']);interact('orbital_east');recover();interact('orbital_upper');recover();`],
- ['forest',`travel('emberline');travel('forest_veil');gather('forest_veil');interact('forest_entry');recover();interact('vex_record');interact('seed_vault');interact('forest_hollows');recover();interact('forest_warden');interact('forest_heart');recover();interact('forest_east');recover();`],
- ['mire',`travel('mire_bog');gather('mire_bog');interact('mire_entry');recover();interact('mire_west');recover();interact('mire_pool');recover();interact('mire_steppingstones');recover();interact('mire_warden');interact('mire_archive');interact('vex_echo','vex_keep');recover();`],
- ['crater',`travel('forest_veil');travel('emberline');travel('crater_ember');gather('crater_ember');interact('crater_entry');recover();interact('crater_north');recover();interact('crater_bridge');recover();interact('crater_pressure');interact('crater_south');recover();interact('crater_lord');interact('crater_forge');recover();`],
- ['frost',`travel('emberline');travel('orbital_reach');travel('frost_canyon');gather('frost_canyon');interact('frost_entry');recover();interact('rune_names');interact('frost_revenants');recover();interact('frost_crossing');recover();interact('frost_colossus');interact('frost_beacon');interact('mara_lantern');recover();`],
- ['crown',`travel('orbital_reach');travel('last_crown');gather('last_crown');interact('crown_entry');recover();interact('crown_guard');recover();interact('rune_oath','rune_remember');interact('crown_garden');recover();interact('crown_south');recover();interact('crown_herald');interact('crown_memory');expect(!g.state.campaignComplete,'Herald incorrectly completed campaign');civic(['build:town_center','build:research_lab','build:forge','build:walls','tier']);recover();`],
- ['ending',`interact('void_architect');expect(g.state.flags.pendingEnding,'Missing pending ending');expect(!g.state.campaignComplete,'Victory completed the ending too early');expect(g.ui.panel?.type==='ending','Missing ending panel');g.ui.action('ending-continue');expect(g.state.campaignComplete,'Return button did not complete the ending');expect(!g.state.flags.pendingEnding,'Ending remains pending');while(g.transition)g.update(1/60);`],
- ['aftermath',`interact('ending_beacon');expect(g.state.heroes[0].level>=40,'Level40 not earned');expect(['vex_arc_complete','rune_arc_complete','mara_arc_complete'].every(f=>g.state.flags[f]),'Side arc incomplete');expect(Object.keys((await import('/src/world.js')).REGIONS).every(id=>g.state.visited[id]),'Region missing');report.completed=true;`]
+const errors = [];
+page.on('pageerror', (e) => errors.push(String(e)));
+page.on('console', (m) => {
+  if (m.type() === 'error') errors.push(m.text());
+});
+await page.routeWebSocket('**/*', (socket) => {
+  socket.send(JSON.stringify({ type: 'connected' }));
+  socket.onMessage(() => {});
+}); // Freeze the loaded code version during concurrent development.
+const started = Date.now();
+await page.goto('http://127.0.0.1:4321/?test=1', { waitUntil: 'networkidle' });
+await page.waitForFunction(() => window.__ECHO_READY__);
+await page.evaluate(async () => {
+  const [W, , C, B] = await Promise.all([
+    import('/src/world.js'),
+    import('/src/progression.js'),
+    import('/src/content.js'),
+    import('/src/combat.js'),
+  ]);
+  const g = window.__ECHO__.game;
+  g.startNew();
+  const report = {
+    description:
+      'Accelerated production browser integration; no direct state grants or teleports.',
+    startedAt: new Date().toISOString(),
+    events: [],
+    battles: [],
+    milestones: [],
+    heals: 0,
+    items: 0,
+    failures: [],
+    completed: false,
+  };
+  const reviewSaves = {};
+  function captureSave(id, kind) {
+    const state = structuredClone(g.state);
+    if (g.battle) state.suspendedBattle = structuredClone(g.battle);
+    reviewSaves[id] = {
+      id,
+      kind,
+      scene: g.scene.id,
+      simulationTime: +g.state.playTime.toFixed(2),
+      description:
+        'Unmodified state earned through this clean production campaign; reload through production persistence.',
+      state,
+    };
+  }
+  const note = (kind, data = {}) =>
+    report.events.push({
+      kind,
+      simulationTime: +g.state.playTime.toFixed(2),
+      scene: g.scene.id,
+      x: Math.round(g.state.x),
+      y: Math.round(g.state.y),
+      ...data,
+    });
+  const expect = (value, message) => {
+    if (!value) throw Error(message);
+  };
+  function closeDialogue(choice) {
+    let n = 0;
+    while (g.ui.panel?.type === 'dialogue' && n++ < 80) {
+      if (g.ui.atChoice()) {
+        const index = g.ui.panel.choices.findIndex((c) => c.flag === choice);
+        expect(
+          index >= 0,
+          `Need choice ${g.ui.panel.choices.map((c) => c.flag)}`,
+        );
+        g.ui.action('choice:' + index);
+      } else g.ui.action('dialogue-next');
+    }
+    expect(n < 80, 'Dialogue loop');
+  }
+  function improve() {
+    if (g.ui.panel || g.mode === 'battle') return;
+    g.ui.toggleMenu();
+    g.ui.action('tab:2');
+    for (const [idx, h] of g.state.heroes.entries()) {
+      g.ui.action('hero:' + idx);
+      const score = (id) => {
+        const s = C.ITEMS[id]?.stats || {};
+        return (
+          (h.id === 'vex'
+            ? s.int || 0
+            : h.id === 'rune'
+              ? (s.tec || 0) + (s.str || 0) * 0.3
+              : s.str || 0) *
+            3 +
+          (s.def || 0) * 2 +
+          (s.maxHp || 0) * 0.1 +
+          (s.maxMp || 0) * 0.1 +
+          (s.spd || 0) +
+          (s.crit || 0) * 0.5
+        );
+      };
+      for (const slot of ['weapon', 'armor', 'accessory']) {
+        const ids = Object.keys(g.state.inventory)
+          .filter(
+            (id) => g.state.inventory[id] > 0 && C.ITEMS[id]?.slot === slot,
+          )
+          .sort((a, b) => score(b) - score(a));
+        if (ids[0] && score(ids[0]) > score(h.equip[slot]))
+          g.ui.action('equip:' + ids[0]);
+      }
+    }
+    g.ui.action('tab:3');
+    for (const t of Object.values(C.TECHS))
+      for (const id of t.heroes) {
+        const hi = g.state.heroes.findIndex((h) => h.id === id);
+        if (hi < 0) continue;
+        g.ui.action('hero:' + hi);
+        g.ui.action('learn:' + t.id);
+      }
+    g.ui.toggleMenu();
+  }
+  const key = (k) => B.battleKey(g.battle, g.state, k);
+  function select(index) {
+    let guard = 0;
+    while (g.battle.cursor !== index && guard++ < 40) key('ArrowDown');
+    expect(g.battle.cursor === index, 'Command index');
+    key('Enter');
+  }
+  function act() {
+    const b = g.battle;
+    if (b.action || !b.selectedHero) return;
+    const h = b.heroes.find((h) => h.id === b.selectedHero),
+      living = b.heroes.filter((h) => h.hp > 0),
+      need = living.filter((h) => h.hp / h.maxHp < 0.55),
+      critical = living.some((h) => h.hp / h.maxHp < 0.32),
+      techs = B.battleView(b, g.state)
+        .techs.filter((t) => !t.unavailable)
+        .map((t) => C.TECHS[t.id]);
+    let tech = need.length
+        ? techs.find((t) => t.effect === 'heal' && t.target === 'allAllies') ||
+          techs.find((t) => t.effect === 'heal')
+        : null,
+      item =
+        !tech && critical
+          ? ['tide_elixir', 'field_tonic'].find(
+              (id) => g.state.inventory[id] > 0,
+            )
+          : null;
+    if (!tech && !item && b.heroes.some((h) => h.hp <= 0))
+      item = g.state.inventory.dawn_seed > 0 ? 'dawn_seed' : null;
+    if (!tech && !item && b.enemies.some((e) => e.charging) && !h.guarding)
+      tech = techs.find(
+        (t) =>
+          t.effect === 'shield' &&
+          t.target === 'allAllies' &&
+          living.some((h) => h.shield < 20),
+      );
+    if (!tech && !item)
+      tech = techs
+        .filter((t) => ['damage', 'drain', 'slow'].includes(t.effect))
+        .sort((a, z) => {
+          const value = (t) =>
+            t.power *
+            t.heroes.reduce(
+              (n, id) => n + (b.heroes.find((h) => h.id === id)[t.stat] || 0),
+              0,
+            ) *
+            (t.target === 'allEnemies'
+              ? b.enemies.filter((e) => e.hp > 0).length
+              : 1);
+          return value(z) - value(a);
+        })[0];
+    if (b.mode === 'waiting') key('Enter');
+    expect(b.mode === 'command', 'Command not ready');
+    if (tech) {
+      select(1);
+      select(B.battleView(b, g.state).techs.findIndex((t) => t.id === tech.id));
+      if (tech.effect === 'heal') report.heals++;
+    } else if (item) {
+      select(3);
+      select(
+        Object.keys(g.state.inventory)
+          .filter((id) => g.state.inventory[id] > 0 && C.ITEMS[id]?.effect)
+          .indexOf(item),
+      );
+      report.items++;
+    } else select(0);
+    if (b.mode === 'target') {
+      if (b.pending.target === 'enemy') {
+        const living = b.enemies.filter((e) => e.hp > 0),
+          index = living.findIndex(
+            (e) => e.hp === Math.min(...living.map((e) => e.hp)),
+          );
+        while (b.target !== index) key('ArrowDown');
+      }
+      key('Enter');
+    }
+    expect(b.action, 'Failed action');
+  }
+  function fight() {
+    const b = g.battle;
+    if (!b) return;
+    const id = b.encounter.id,
+      level = g.state.heroes[0].level;
+    captureSave('battle-' + id, 'battle');
+    let ticks = 0;
+    while (g.mode === 'battle' && !b.result && ticks++ < 60000) {
+      if (!b.action && b.selectedHero) act();
+      g.update(1 / 60);
+    }
+    expect(ticks < 60000, `Battle timeout ${id}`);
+    report.battles.push({
+      id,
+      level,
+      result: b.result,
+      seconds: +b.clock.toFixed(2),
+      actions: b.actionSerial,
+    });
+    expect(b.result === 'victory', `Lost ${id}`);
+    while (g.mode === 'battle') g.update(1 / 60);
+    closeDialogue();
+    if (g.ui.panel?.type === 'ending') return;
+    improve();
+    note('victory', { id });
+  }
+  function tick() {
+    if (g.ui.panel?.type === 'dialogue') closeDialogue();
+    if (g.mode === 'battle') fight();
+    g.update(1 / 60);
+  }
+  function walk(x, y, label, range = 40) {
+    const startScene = g.scene.id;
+    expect(W.isWalkable(g.scene, x, y), `Unwalkable goal ${label} (${x},${y})`);
+    g.walkTo(x, y);
+    let ticks = 0,
+      replans = 0,
+      lastDistance = Infinity,
+      stuck = 0;
+    while (
+      g.scene.id === startScene &&
+      Math.hypot(g.state.x - x, g.state.y - y) > range &&
+      !W.nearby(g.scene, g.state.x, g.state.y, g.state).some(
+        (o) => o.id === label,
+      )
+    ) {
+      tick();
+      if (g.scene.id !== startScene) break;
+      if (g.transition) {
+        while (g.transition) tick();
+        break;
+      }
+      const dist = Math.hypot(g.state.x - x, g.state.y - y);
+      if (Math.abs(lastDistance - dist) < 0.01) stuck++;
+      else stuck = 0;
+      lastDistance = dist;
+      if (
+        (!g.movePath.length || stuck > 90) &&
+        !g.ui.blocked &&
+        g.mode === 'world'
+      ) {
+        expect(
+          replans++ < 3,
+          `Path blocked to ${label} at ${g.state.x},${g.state.y}; wanted ${x},${y}`,
+        );
+        g.walkTo(x, y);
+        stuck = 0;
+      }
+      expect(ticks++ < 60000, `Walk timeout ${label}`);
+    }
+    note('walk', {
+      label,
+      to: { x, y },
+      distance: Math.round(Math.hypot(g.state.x - x, g.state.y - y)),
+      ticks,
+    });
+  }
+  function localObject(id) {
+    return [...g.scene.objects, ...g.scene.portals].find((o) => o.id === id);
+  }
+  function approach(object) {
+    const options = [
+      [0, 0],
+      [0, 20],
+      [0, 30],
+      [0, 40],
+      [30, 15],
+      [-30, 15],
+      [40, 0],
+      [-40, 0],
+      [0, -30],
+    ]
+      .map(([dx, dy]) => ({ x: object.x + dx, y: object.y + dy }))
+      .filter((p) => W.isWalkable(g.scene, p.x, p.y));
+    expect(options.length, `No walkable approach to ${object.id}`);
+    const point = options[0];
+    walk(point.x, point.y, object.id, 40);
+    for (
+      let n = 0;
+      n < 90 &&
+      !W.nearby(g.scene, g.state.x, g.state.y, g.state).some(
+        (o) => o.id === object.id,
+      ) &&
+      !g.state.cleared[object.id] &&
+      !g.transition;
+      n++
+    ) {
+      const dx = object.x - g.state.x,
+        dy = object.y - g.state.y;
+      if (Math.abs(dx) > 3) g.keys.add(dx > 0 ? 'ArrowRight' : 'ArrowLeft');
+      if (Math.abs(dy) > 3) g.keys.add(dy > 0 ? 'ArrowDown' : 'ArrowUp');
+      tick();
+      g.keys.clear();
+    }
+  }
+  function interactLocal(id, choice) {
+    const object = localObject(id);
+    expect(object, `Missing ${id} in ${g.scene.id}`);
+    if (object.type === 'encounter' && g.state.cleared[id]) return;
+    approach(object);
+    if (object.type === 'encounter' && g.state.cleared[id]) return;
+    if (g.transition) {
+      while (g.transition) tick();
+      return;
+    }
+    const distance = Math.hypot(g.state.x - object.x, g.state.y - object.y);
+    expect(
+      W.nearby(g.scene, g.state.x, g.state.y, g.state).some((o) => o.id === id),
+      `Not interactably near ${id}: ${distance}`,
+    );
+    note('interaction', {
+      id,
+      distance: +distance.toFixed(2),
+      requires: object.requires || null,
+      gateAllowed: g.condition(object.requires),
+    });
+    g.interact(object);
+    if (g.mode === 'battle') fight();
+    closeDialogue(choice);
+    if (g.mode === 'battle') fight();
+    while (g.transition) tick();
+  }
+  function sceneFor(id) {
+    return Object.values(W.ALL_SCENES).find((s) =>
+      [...s.objects, ...s.portals].some((o) => o.id === id),
+    );
+  }
+  function ensureScene(sceneId) {
+    if (g.scene.id === sceneId) return;
+    if (g.scene.interior) {
+      interactLocal(g.scene.portals[0].id);
+      expect(!g.scene.interior, 'Failed interior exit');
+    }
+    if (g.scene.id === sceneId) return;
+    const door = g.scene.objects.find((o) => o.to === sceneId);
+    expect(door, `No local door from ${g.scene.id} to ${sceneId}`);
+    interactLocal(door.id);
+    expect(g.scene.id === sceneId, `Failed enter ${sceneId}`);
+  }
+  function interact(id, choice) {
+    const scene = sceneFor(id);
+    expect(scene, `No world object ${id}`);
+    ensureScene(scene.id);
+    interactLocal(id, choice);
+    if (g.mode === 'world' && !g.ui.panel) improve();
+  }
+  function recover() {
+    if (g.scene.interior) {
+      const rest = g.scene.objects.find(
+        (o) => o.service === 'inn' || o.service === 'rest',
+      );
+      if (rest) {
+        interactLocal(rest.id);
+        g.ui.action('rest');
+        g.ui.action('close');
+        note('rest', { id: rest.id });
+        return;
+      }
+      interactLocal(g.scene.portals[0].id);
+    }
+    const rest = g.scene.objects.find((o) => o.service === 'rest');
+    expect(rest, `No recovery in ${g.scene.id}`);
+    interactLocal(rest.id);
+    expect(g.ui.panel?.type === 'vendor', 'Rest not opened');
+    g.ui.action('rest');
+    g.ui.action('close');
+    note('rest', { id: rest.id });
+  }
+  function civic(actions) {
+    if (!g.scene.interior) {
+      const entrance = g.scene.objects.find((o) => o.type === 'town');
+      expect(entrance, `No settlement in ${g.scene.id}`);
+      interactLocal(entrance.id);
+    }
+    const board = g.scene.objects.find((o) => o.service === 'construction');
+    expect(board, `No board in ${g.scene.id}`);
+    interactLocal(board.id);
+    expect(g.ui.panel?.type === 'build', 'Construction panel absent');
+    for (const action of actions) {
+      const before = JSON.stringify({
+        buildings: g.state.buildings,
+        tier: g.state.tier,
+      });
+      g.ui.action(action);
+      expect(
+        JSON.stringify({ buildings: g.state.buildings, tier: g.state.tier }) !==
+          before,
+        `Civic action failed ${action}: ${g.ui.notice}`,
+      );
+      note('civic', { action, resources: { ...g.state.resources } });
+    }
+    g.ui.action('close');
+  }
+  function travel(id) {
+    if (g.scene.interior) interactLocal(g.scene.portals[0].id);
+    const portal = g.scene.portals.find((p) => p.to === id);
+    expect(portal, `No portal ${g.scene.id}->${id}`);
+    expect(g.condition(portal.requires), `Locked portal ${portal.id}`);
+    interactLocal(portal.id);
+    expect(g.scene.id === id, `Travel failed to ${id}`);
+    note('region', { id });
+    if (!reviewSaves['arrival-' + id]) captureSave('arrival-' + id, 'arrival');
+  }
+  function gather(region) {
+    ensureScene(region);
+    for (const o of g.scene.objects.filter((o) => o.type === 'pickup'))
+      if (!g.state.pickups[o.id]) interactLocal(o.id);
+    improve();
+  }
+  function milestone(id) {
+    const m = {
+      id,
+      simulationTime: +g.state.playTime.toFixed(2),
+      scene: g.scene.id,
+      levels: g.state.heroes.map((h) => `${h.id}:${h.level}`),
+      tier: g.state.tier,
+      resources: { ...g.state.resources },
+    };
+    report.milestones.push(m);
+    note('milestone', m);
+    captureSave('chapter-' + id, 'milestone');
+    return m;
+  }
+  closeDialogue();
+  captureSave('arrival-haventide', 'arrival');
+  window.__campaign = {
+    g,
+    report,
+    reviewSaves,
+    interact,
+    recover,
+    civic,
+    travel,
+    gather,
+    milestone,
+    expect,
+    improve,
+    note,
+  };
+});
+const chapters = [
+  [
+    'haventide',
+    `interact('hav_beacon');interact('hav_first');interact('hav_guard');recover();interact('mara');interact('hav_beacon');civic(['build:farm','build:mine','build:energy_extractor','build:walls']);interact('coastal_cache');interact('well_filter');gather('haventide');interact('hav_road');recover();interact('hav_crabway');recover();interact('hav_road_east');recover();interact('hav_east_sentries');civic(['build:town_center','tier']);recover();`,
+  ],
+  [
+    'vex',
+    `travel('emberline');interact('ember_arrival');recover();interact('mara_convoy','mara_choose_route');interact('ember_guard');recover();interact('vex');interact('ember_signal');interact('ember_observatory');recover();interact('signal_receiver');gather('emberline');civic(['build:barracks','build:forge','build:research_lab']);interact('ember_dunes');recover();interact('ember_north_patrol');recover();interact('ember_road_east');recover();`,
+  ],
+  [
+    'rune',
+    `travel('orbital_reach');interact('orbital_entry');recover();interact('orbital_guard');interact('rune');recover();gather('orbital_reach');interact('orbital_blackbox');civic(['build:town_center','tier']);interact('orbital_east');recover();interact('orbital_upper');recover();`,
+  ],
+  [
+    'forest',
+    `travel('emberline');travel('forest_veil');gather('forest_veil');interact('forest_entry');recover();interact('vex_record');interact('seed_vault');interact('forest_hollows');recover();interact('forest_warden');interact('forest_heart');recover();interact('forest_east');recover();`,
+  ],
+  [
+    'mire',
+    `travel('mire_bog');gather('mire_bog');interact('mire_entry');recover();interact('mire_west');recover();interact('mire_pool');recover();interact('mire_steppingstones');recover();interact('mire_warden');interact('mire_archive');interact('vex_echo','vex_keep');recover();`,
+  ],
+  [
+    'crater',
+    `travel('forest_veil');travel('emberline');travel('crater_ember');gather('crater_ember');interact('crater_entry');recover();interact('crater_north');recover();interact('crater_bridge');recover();interact('crater_pressure');interact('crater_south');recover();interact('crater_lord');interact('crater_forge');recover();`,
+  ],
+  [
+    'frost',
+    `travel('emberline');travel('orbital_reach');travel('frost_canyon');gather('frost_canyon');interact('frost_entry');recover();interact('rune_names');interact('frost_revenants');recover();interact('frost_crossing');recover();interact('frost_colossus');interact('frost_beacon');interact('mara_lantern');recover();`,
+  ],
+  [
+    'crown',
+    `travel('orbital_reach');travel('last_crown');gather('last_crown');interact('crown_entry');recover();interact('crown_guard');recover();interact('rune_oath','rune_remember');interact('crown_garden');recover();interact('crown_south');recover();interact('crown_herald');interact('crown_memory');expect(!g.state.campaignComplete,'Herald incorrectly completed campaign');civic(['build:town_center','build:research_lab','build:forge','build:walls','tier']);recover();`,
+  ],
+  [
+    'ending',
+    `interact('void_architect');expect(g.state.flags.pendingEnding,'Missing pending ending');expect(!g.state.campaignComplete,'Victory completed the ending too early');expect(g.ui.panel?.type==='ending','Missing ending panel');g.ui.action('ending-continue');expect(g.state.campaignComplete,'Return button did not complete the ending');expect(!g.state.flags.pendingEnding,'Ending remains pending');while(g.transition)g.update(1/60);`,
+  ],
+  [
+    'aftermath',
+    `interact('ending_beacon');expect(g.state.heroes[0].level>=40,'Level40 not earned');expect(['vex_arc_complete','rune_arc_complete','mara_arc_complete'].every(f=>g.state.flags[f]),'Side arc incomplete');expect(Object.keys((await import('/src/world.js')).REGIONS).every(id=>g.state.visited[id]),'Region missing');report.completed=true;`,
+  ],
 ];
-let failure=null;
-try{for(const [name,code]of chapters){console.log('CHAPTER '+name);await page.evaluate(async({name,code})=>{const c=window.__campaign;const f=new Function('c',`return (async()=>{const {g,report,interact,recover,civic,travel,gather,milestone,expect,improve,note}=c;${code};return milestone(${JSON.stringify(name)});})()`);return f(c);},{name,code});if(captureChapters){await page.waitForTimeout(80);await page.screenshot({path:reviewRoot + 'campaign-browser-'+name+'.png'});}console.log('DONE '+name);}}
-catch(e){failure=String(e);console.error(failure);}
-const reviewSaves=await page.evaluate(()=>window.__campaign?.reviewSaves||{});await fs.writeFile(reviewRoot + 'earned-campaign-saves.json',JSON.stringify({description:'Actual clean campaign states, not manually authored fixtures. Each state is suitable for saveState(state, 1) followed by game.load(1).',completed:!failure,createdAt:new Date().toISOString(),saves:reviewSaves},null,2));
-const result=await page.evaluate(()=>({report:window.__campaign?.report,snapshot:window.__ECHO__?.snapshot()}));result.wallSeconds=(Date.now()-started)/1000;result.browser=await browser.version();result.viewport=[1920,1080];result.devHmrDisabled=true;result.failure=failure;result.browserErrors=errors;await fs.writeFile(reviewRoot + 'campaign-browser.json',JSON.stringify(result,null,2));await browser.close();if(failure)process.exitCode=1;
+let failure = null;
+try {
+  for (const [name, code] of chapters) {
+    console.log('CHAPTER ' + name);
+    await page.evaluate(
+      async ({ name, code }) => {
+        const c = window.__campaign;
+        const f = new Function(
+          'c',
+          `return (async()=>{const {g,report,interact,recover,civic,travel,gather,milestone,expect,improve,note}=c;${code};return milestone(${JSON.stringify(name)});})()`,
+        );
+        return f(c);
+      },
+      { name, code },
+    );
+    if (captureChapters) {
+      await page.waitForTimeout(80);
+      await page.screenshot({
+        path: reviewRoot + 'campaign-browser-' + name + '.png',
+      });
+    }
+    console.log('DONE ' + name);
+  }
+} catch (e) {
+  failure = String(e);
+  console.error(failure);
+}
+const reviewSaves = await page.evaluate(
+  () => window.__campaign?.reviewSaves || {},
+);
+await fs.writeFile(
+  reviewRoot + 'earned-campaign-saves.json',
+  JSON.stringify(
+    {
+      description:
+        'Actual clean campaign states, not manually authored fixtures. Each state is suitable for saveState(state, 1) followed by game.load(1).',
+      completed: !failure,
+      createdAt: new Date().toISOString(),
+      saves: reviewSaves,
+    },
+    null,
+    2,
+  ),
+);
+const result = await page.evaluate(() => ({
+  report: window.__campaign?.report,
+  snapshot: window.__ECHO__?.snapshot(),
+}));
+result.wallSeconds = (Date.now() - started) / 1000;
+result.browser = await browser.version();
+result.viewport = [1920, 1080];
+result.devHmrDisabled = true;
+result.failure = failure;
+result.browserErrors = errors;
+await fs.writeFile(
+  reviewRoot + 'campaign-browser.json',
+  JSON.stringify(result, null, 2),
+);
+await browser.close();
+if (failure) process.exitCode = 1;

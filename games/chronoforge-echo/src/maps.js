@@ -1,8 +1,94 @@
-import { REGIONS,terrainAt } from './world.js';
-export const FOG_CELL=120;
-const colors={coast:['#47664e','#ab9670','#24555c'],grassland:['#47664e','#ab9670','#24555c'],desert:['#91714f','#b49a68','#486167'],forest:['#294e40','#827758','#214846'],mire:['#4e6550','#938459','#284b49'],volcanic:['#504d47','#927256','#a9553a'],snow:['#8faaa8','#697f7f','#355765'],ice:['#93b1b5','#738c95','#345363'],alien:['#687d70','#b4b9a1','#42656b']};
-export function reveal(state,scene){const fog=state.fog[scene.id]??={};const cx=Math.floor(state.x/FOG_CELL),cy=Math.floor(state.y/FOG_CELL);for(let dy=-3;dy<=3;dy++)for(let dx=-3;dx<=3;dx++)if(dx*dx+dy*dy<11)fog[`${cx+dx},${cy+dy}`]=1;state.visited[scene.id]=true;}
-export function isRevealed(state,id,x,y){return !!state.fog[id]?.[`${Math.floor(x/FOG_CELL)},${Math.floor(y/FOG_CELL)}`];}
-export function drawMinimap(canvas,scene,state){const ctx=canvas.getContext('2d'),w=canvas.width=102,h=canvas.height=84;const pal=colors[scene.biome]||colors.coast;for(let y=0;y<h;y+=3)for(let x=0;x<w;x+=3){const wx=state.x+(x-w/2)*4,wy=state.y+(y-h/2)*4;const t=terrainAt(scene,wx,wy);ctx.fillStyle=wx<0||wy<0||wx>scene.width||wy>scene.height?'#12262b':t==='water'?pal[2]:t==='path'?pal[1]:scene.interior?'#637065':pal[0];ctx.fillRect(x,y,3,3);}for(const o of scene.objects){if(!['tree','rock','ruin','town','house','cave'].includes(o.type))continue;const x=(o.x-state.x)/4+w/2,y=(o.y-state.y)/4+h/2;ctx.fillStyle=o.type==='tree'?'#243e35':'#839385';ctx.fillRect(x-2,y-3,o.type==='tree'?4:7,o.type==='tree'?4:5);}if(scene.walkAreas){ctx.fillStyle='#16282c';for(let y=0;y<h;y+=3)for(let x=0;x<w;x+=3){const wx=state.x+(x-w/2)*4,wy=state.y+(y-h/2)*4;if(!scene.walkAreas.some(a=>wx>=a.x&&wy>=a.y&&wx<a.x+a.w&&wy<a.y+a.h))ctx.fillRect(x,y,3,3);}}ctx.fillStyle='#eee8cf';ctx.fillRect(w/2-1,h/2-1,3,3);ctx.fillStyle='#cc5775';const d={up:[0,-4],down:[0,4],right:[4,0],left:[-4,0]}[state.facing]||[0,0];ctx.fillRect(w/2+d[0],h/2+d[1],2,2);}
+import { REGIONS, terrainAt } from './world.js';
+export const FOG_CELL = 120;
+const colors = {
+  coast: ['#47664e', '#ab9670', '#24555c'],
+  grassland: ['#47664e', '#ab9670', '#24555c'],
+  desert: ['#91714f', '#b49a68', '#486167'],
+  forest: ['#294e40', '#827758', '#214846'],
+  mire: ['#4e6550', '#938459', '#284b49'],
+  volcanic: ['#504d47', '#927256', '#a9553a'],
+  snow: ['#8faaa8', '#697f7f', '#355765'],
+  ice: ['#93b1b5', '#738c95', '#345363'],
+  alien: ['#687d70', '#b4b9a1', '#42656b'],
+};
+export function reveal(state, scene) {
+  const fog = (state.fog[scene.id] ??= {});
+  const cx = Math.floor(state.x / FOG_CELL),
+    cy = Math.floor(state.y / FOG_CELL);
+  for (let dy = -3; dy <= 3; dy++)
+    for (let dx = -3; dx <= 3; dx++)
+      if (dx * dx + dy * dy < 11) fog[`${cx + dx},${cy + dy}`] = 1;
+  state.visited[scene.id] = true;
+}
+export function isRevealed(state, id, x, y) {
+  return !!state.fog[id]?.[
+    `${Math.floor(x / FOG_CELL)},${Math.floor(y / FOG_CELL)}`
+  ];
+}
+export function drawMinimap(canvas, scene, state) {
+  const ctx = canvas.getContext('2d'),
+    w = (canvas.width = 102),
+    h = (canvas.height = 84);
+  const pal = colors[scene.biome] || colors.coast;
+  for (let y = 0; y < h; y += 3)
+    for (let x = 0; x < w; x += 3) {
+      const wx = state.x + (x - w / 2) * 4,
+        wy = state.y + (y - h / 2) * 4;
+      const t = terrainAt(scene, wx, wy);
+      ctx.fillStyle =
+        wx < 0 || wy < 0 || wx > scene.width || wy > scene.height
+          ? '#12262b'
+          : t === 'water'
+            ? pal[2]
+            : t === 'path'
+              ? pal[1]
+              : scene.interior
+                ? '#637065'
+                : pal[0];
+      ctx.fillRect(x, y, 3, 3);
+    }
+  for (const o of scene.objects) {
+    if (!['tree', 'rock', 'ruin', 'town', 'house', 'cave'].includes(o.type))
+      continue;
+    const x = (o.x - state.x) / 4 + w / 2,
+      y = (o.y - state.y) / 4 + h / 2;
+    ctx.fillStyle = o.type === 'tree' ? '#243e35' : '#839385';
+    ctx.fillRect(
+      x - 2,
+      y - 3,
+      o.type === 'tree' ? 4 : 7,
+      o.type === 'tree' ? 4 : 5,
+    );
+  }
+  if (scene.walkAreas) {
+    ctx.fillStyle = '#16282c';
+    for (let y = 0; y < h; y += 3)
+      for (let x = 0; x < w; x += 3) {
+        const wx = state.x + (x - w / 2) * 4,
+          wy = state.y + (y - h / 2) * 4;
+        if (
+          !scene.walkAreas.some(
+            (a) => wx >= a.x && wy >= a.y && wx < a.x + a.w && wy < a.y + a.h,
+          )
+        )
+          ctx.fillRect(x, y, 3, 3);
+      }
+  }
+  ctx.fillStyle = '#eee8cf';
+  ctx.fillRect(w / 2 - 1, h / 2 - 1, 3, 3);
+  ctx.fillStyle = '#cc5775';
+  const d = { up: [0, -4], down: [0, 4], right: [4, 0], left: [-4, 0] }[
+    state.facing
+  ] || [0, 0];
+  ctx.fillRect(w / 2 + d[0], h / 2 + d[1], 2, 2);
+}
 // Interior positions remain anchored to their discovered outdoor doorway.
-export function mapPosition(state){if(REGIONS[state.region])return{region:state.region,x:state.x,y:state.y};for(const r of Object.values(REGIONS)){const door=r.objects.find(o=>o.to===state.region);if(door)return{region:r.id,x:door.x,y:door.y};}return null;}
+export function mapPosition(state) {
+  if (REGIONS[state.region])
+    return { region: state.region, x: state.x, y: state.y };
+  for (const r of Object.values(REGIONS)) {
+    const door = r.objects.find((o) => o.to === state.region);
+    if (door) return { region: r.id, x: door.x, y: door.y };
+  }
+  return null;
+}

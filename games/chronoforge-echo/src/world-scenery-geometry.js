@@ -1,64 +1,64 @@
 // Measured dimensions of the retained regional atlas silhouettes. Ratios match
 // the connected-component crops used by the renderer, not whole grid cells.
 export const REGIONAL_PROP_ASPECTS = {
-  "forest": {
-    "tree": 1.049661,
-    "cypress": 0.614486,
-    "ring": 0.869266,
-    "arch": 0.989899,
-    "rock": 1.085399,
-    "cottage": 0.995215,
-    "fern": 1.023377,
-    "cliff": 0.792952
+  forest: {
+    tree: 1.049661,
+    cypress: 0.614486,
+    ring: 0.869266,
+    arch: 0.989899,
+    rock: 1.085399,
+    cottage: 0.995215,
+    fern: 1.023377,
+    cliff: 0.792952,
   },
-  "mire": {
-    "tree": 1.013423,
-    "cypress": 0.737443,
-    "ring": 1.058691,
-    "arch": 1.034091,
-    "rock": 1.07013,
-    "cottage": 1.040284,
-    "fern": 0.977612,
-    "cliff": 0.992736
+  mire: {
+    tree: 1.013423,
+    cypress: 0.737443,
+    ring: 1.058691,
+    arch: 1.034091,
+    rock: 1.07013,
+    cottage: 1.040284,
+    fern: 0.977612,
+    cliff: 0.992736,
   },
-  "volcanic": {
-    "tree": 0.891954,
-    "cypress": 0.619816,
-    "ring": 1.112385,
-    "arch": 0.974478,
-    "rock": 1.11413,
-    "cottage": 1.110837,
-    "fern": 1.257053,
-    "cliff": 0.957845
+  volcanic: {
+    tree: 0.891954,
+    cypress: 0.619816,
+    ring: 1.112385,
+    arch: 0.974478,
+    rock: 1.11413,
+    cottage: 1.110837,
+    fern: 1.257053,
+    cliff: 0.957845,
   },
-  "snow": {
-    "tree": 0.758221,
-    "cypress": 0.916667,
-    "ring": 1.080082,
-    "arch": 0.772257,
-    "rock": 1.311321,
-    "cottage": 1.04878,
-    "fern": 1.473118,
-    "cliff": 1.021858
+  snow: {
+    tree: 0.758221,
+    cypress: 0.916667,
+    ring: 1.080082,
+    arch: 0.772257,
+    rock: 1.311321,
+    cottage: 1.04878,
+    fern: 1.473118,
+    cliff: 1.021858,
   },
-  "ice": {
-    "tree": 0.952915,
-    "cypress": 0.734091,
-    "ring": 1.036496,
-    "arch": 0.995327,
-    "rock": 1.03632,
-    "cottage": 1.238095,
-    "fern": 1.171254,
-    "cliff": 0.97381
+  ice: {
+    tree: 0.952915,
+    cypress: 0.734091,
+    ring: 1.036496,
+    arch: 0.995327,
+    rock: 1.03632,
+    cottage: 1.238095,
+    fern: 1.171254,
+    cliff: 0.97381,
   },
-  "alien": {
-    "tree": 0.976526,
-    "cypress": 0.616114,
-    "ring": 0.969412,
-    "arch": 0.917275,
-    "rock": 1.18209,
-    "cottage": 1.181303,
-    "fern": 1.114754,
-    "cliff": 0.956522
-  }
+  alien: {
+    tree: 0.976526,
+    cypress: 0.616114,
+    ring: 0.969412,
+    arch: 0.917275,
+    rock: 1.18209,
+    cottage: 1.181303,
+    fern: 1.114754,
+    cliff: 0.956522,
+  },
 };

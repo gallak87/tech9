@@ -2,243 +2,149 @@
 // Crop bounds enclose visible alpha plus six source pixels; no color key or alpha repair is applied.
 export const RASTER_ICON_ASSETS = [
   {
-    "id": "food",
-    "source": "assets/icons/food-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      14,
-      122,
-      1234,
-      1033
-    ]
+    id: 'food',
+    source: 'assets/icons/food-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [14, 122, 1234, 1033],
   },
   {
-    "id": "ore",
-    "source": "assets/icons/ore-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      70,
-      44,
-      1122,
-      1170
-    ]
+    id: 'ore',
+    source: 'assets/icons/ore-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [70, 44, 1122, 1170],
   },
   {
-    "id": "energy",
-    "source": "assets/icons/energy-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      179,
-      36,
-      897,
-      1184
-    ]
+    id: 'energy',
+    source: 'assets/icons/energy-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [179, 36, 897, 1184],
   },
   {
-    "id": "renown",
-    "source": "assets/icons/renown-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      187,
-      36,
-      879,
-      1180
-    ]
+    id: 'renown',
+    source: 'assets/icons/renown-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [187, 36, 879, 1180],
   },
   {
-    "id": "field_tonic",
-    "source": "assets/icons/field_tonic-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      147,
-      20,
-      996,
-      1215
-    ]
+    id: 'field_tonic',
+    source: 'assets/icons/field_tonic-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [147, 20, 996, 1215],
   },
   {
-    "id": "ether_cell",
-    "source": "assets/icons/ether_cell-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      271,
-      17,
-      703,
-      1215
-    ]
+    id: 'ether_cell',
+    source: 'assets/icons/ether_cell-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [271, 17, 703, 1215],
   },
   {
-    "id": "dawn_seed",
-    "source": "assets/icons/dawn_seed-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      206,
-      43,
-      997,
-      1179
-    ]
+    id: 'dawn_seed',
+    source: 'assets/icons/dawn_seed-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [206, 43, 997, 1179],
   },
   {
-    "id": "tide_elixir",
-    "source": "assets/icons/tide_elixir-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      153,
-      10,
-      948,
-      1235
-    ]
+    id: 'tide_elixir',
+    source: 'assets/icons/tide_elixir-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [153, 10, 948, 1235],
   },
   {
-    "id": "star_cell",
-    "source": "assets/icons/star_cell-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      70,
-      33,
-      1119,
-      1175
-    ]
+    id: 'star_cell',
+    source: 'assets/icons/star_cell-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [70, 33, 1119, 1175],
   },
   {
-    "id": "data_chip",
-    "source": "assets/icons/data_chip-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      51,
-      112,
-      1171,
-      1058
-    ]
+    id: 'data_chip',
+    source: 'assets/icons/data_chip-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [51, 112, 1171, 1058],
   },
   {
-    "id": "crit_lens",
-    "source": "assets/icons/crit_lens-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      114,
-      69,
-      1088,
-      1116
-    ]
+    id: 'crit_lens',
+    source: 'assets/icons/crit_lens-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [114, 69, 1088, 1116],
   },
   {
-    "id": "swamp_coil",
-    "source": "assets/icons/swamp_coil-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      99,
-      78,
-      1136,
-      1082
-    ]
+    id: 'swamp_coil',
+    source: 'assets/icons/swamp_coil-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [99, 78, 1136, 1082],
   },
   {
-    "id": "moss_ward",
-    "source": "assets/icons/moss_ward-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      233,
-      23,
-      830,
-      1214
-    ]
+    id: 'moss_ward',
+    source: 'assets/icons/moss_ward-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [233, 23, 830, 1214],
   },
   {
-    "id": "ember_crown",
-    "source": "assets/icons/ember_crown-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      18,
-      73,
-      1226,
-      1048
-    ]
+    id: 'ember_crown',
+    source: 'assets/icons/ember_crown-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [18, 73, 1226, 1048],
   },
   {
-    "id": "witness_prism",
-    "source": "assets/icons/witness_prism-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      333,
-      8,
-      654,
-      1230
-    ]
+    id: 'witness_prism',
+    source: 'assets/icons/witness_prism-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [333, 8, 654, 1230],
   },
   {
-    "id": "quiet_prism",
-    "source": "assets/icons/quiet_prism-v3-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      362,
-      119,
-      530,
-      1015
-    ]
+    id: 'quiet_prism',
+    source: 'assets/icons/quiet_prism-v3-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [362, 119, 530, 1015],
   },
   {
-    "id": "namekeeper",
-    "source": "assets/icons/namekeeper-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      128,
-      34,
-      1000,
-      1179
-    ]
+    id: 'namekeeper',
+    source: 'assets/icons/namekeeper-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [128, 34, 1000, 1179],
   },
   {
-    "id": "open_gate",
-    "source": "assets/icons/open_gate-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      137,
-      9,
-      981,
-      1198
-    ]
+    id: 'open_gate',
+    source: 'assets/icons/open_gate-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [137, 9, 981, 1198],
   },
   {
-    "id": "mara_compass",
-    "source": "assets/icons/mara_compass-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      121,
-      10,
-      1013,
-      1224
-    ]
+    id: 'mara_compass',
+    source: 'assets/icons/mara_compass-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [121, 10, 1013, 1224],
   },
   {
-    "id": "xp",
-    "source": "assets/icons/xp-source.png",
-    "width": 1254,
-    "height": 1254,
-    "bounds": [
-      19,
-      101,
-      1219,
-      1079
-    ]
-  }
-].map(entry => ({ ...entry, kind: 'itemIcon', columns: 1, rows: 1, required: true }));
+    id: 'xp',
+    source: 'assets/icons/xp-source.png',
+    width: 1254,
+    height: 1254,
+    bounds: [19, 101, 1219, 1079],
+  },
+].map((entry) => ({
+  ...entry,
+  kind: 'itemIcon',
+  columns: 1,
+  rows: 1,
+  required: true,
+}));

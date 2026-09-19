@@ -6,16 +6,16 @@ Use detailed three-quarter orthographic artwork, consistent top-left light, grou
 
 Regional materials and dominant hues carry through outdoor scenery, caves, furnishings and town upgrades:
 
-| Region | Materials and accents |
-| --- | --- |
-| Haventide | Coastal limestone, jade water, weathered wood, teal cloth and brass |
-| Emberline | Ochre sandstone, copper, rust cloth and caravan furnishings |
-| Forest Veil | Deep foliage, mossy stone, roots and living signal growth |
-| Mire Bog | Dark wet wood, reeds, copper and submerged ruins |
-| Crater Ember | Basalt, ash, iron and molten orange |
-| Orbital Reach | Snow, pale masonry, cobalt cloth and silver machinery |
-| Frost Canyon | Blue-white ice, glacial stone and warm rescue lights |
-| Last Crown | Pale garden architecture, plum cloth and platinum |
+| Region        | Materials and accents                                               |
+| ------------- | ------------------------------------------------------------------- |
+| Haventide     | Coastal limestone, jade water, weathered wood, teal cloth and brass |
+| Emberline     | Ochre sandstone, copper, rust cloth and caravan furnishings         |
+| Forest Veil   | Deep foliage, mossy stone, roots and living signal growth           |
+| Mire Bog      | Dark wet wood, reeds, copper and submerged ruins                    |
+| Crater Ember  | Basalt, ash, iron and molten orange                                 |
+| Orbital Reach | Snow, pale masonry, cobalt cloth and silver machinery               |
+| Frost Canyon  | Blue-white ice, glacial stone and warm rescue lights                |
+| Last Crown    | Pale garden architecture, plum cloth and platinum                   |
 
 Town restoration changes contents and capability as well as the finish: scarce supplies and improvised tools become repaired services, powered equipment, then advanced food production and civic systems. Keep service positions and walkable routes consistent across levels. NPCs remain independent live actors.
 

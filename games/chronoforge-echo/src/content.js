@@ -63,27 +63,29 @@ export const TECHS=Object.fromEntries([
  tech('witness_song','Witness Song',['vex'],14,3.3,'int','allAllies','heal',0,[],'Remembered voices lend the living their strength.',{flag:'vex_arc_complete',hidden:true}),
  tech('open_horizon','Open Horizon',['rune'],14,2.4,'tec','allAllies','shield',0,[],'Protection freely given, never commanded.',{flag:'rune_arc_complete',hidden:true})
 ].map(t=>[t.id,t]));
+// Fixed strength labels: coast 1–3, regional patrols 6–18, guardians 22–34, final 40.
+// Levels are presentation metadata; tier, stats and rewards retain their authored values.
 const enemy=(id,name,tier,hp,str,def,spd,xp,drop,description,extra={})=>({id,name,tier,hp,str,def,spd,xp,drop,description,int:str,crit:5,...extra});
 export const ENEMIES=Object.fromEntries([
- enemy('rust_scrapper','Rust Scrapper',1,76,15,3,10,22,'iron_blade','A crablike scavenger carrying a broken kettle.'),
- enemy('drone_sentinel','Drone Sentinel',1,60,17,2,18,28,'data_chip','A hovering lens trailing three copper vanes.'),
- enemy('bog_stalker','Bog Stalker',1,100,20,4,14,32,'bog_fang','A reed-legged ambusher in a floating lily mask.'),
- enemy('slag_rat','Slag Rat',1,55,14,2,21,21,'field_tonic','A quick scrap-eater with a furnace-bright whisker.'),
- enemy('mutant_hound','Mutant Hound',2,215,32,8,18,60,'bio_weave','A split-maned hunter wrapped in ribbonlike fronds.'),
- enemy('gravbot','Gravbot',2,320,30,17,8,72,'rune_gauntlet','An obsidian-armored automaton wielding a concentrated gravity field.'),
- enemy('mire_hulk','Mire Hulk',2,400,39,13,8,90,'swamp_coil','A peat-armored toad carrying a dead tree and pale shelf fungi.'),
- enemy('glacier_wolf','Glacier Wolf',2,255,37,9,21,80,'glacial_claw','A white, glass-antlered predator with a blue throat.'),
- enemy('neon_cultist','Neon Cultist',3,400,38,13,17,115,'void_shard','A signal pilgrim hidden inside a floating scripture cage.',{mechanic:'charge',telegraph:'The scripture cage opens. A burst is coming.'}),
- enemy('sandworm','Sandworm Hatchling',3,650,50,19,10,140,'crit_lens','A segmented stone auger crowned with golden feelers.',{mechanic:'charge',telegraph:'It coils beneath the sand. Brace for impact.'}),
- enemy('ember_golem','Ember Golem',3,780,52,28,8,155,'ember_core','A furnace-crab with basalt claws and a vented iron chest.',{mechanic:'charge',telegraph:'The furnace inhales. Its next blow will be heavy.'}),
- enemy('frost_revenant','Frost Revenant',3,620,54,20,17,150,'frost_plate','A masked burial sail bearing a blue crystal lance and a lantern.',{mechanic:'siphon',telegraph:'Frost gathers along its burial sail.'}),
- enemy('wraith_core','Wraith Core',4,860,68,23,22,210,'void_scepter','A hollow star of dark bronze fins around a pale, restless core.',{mechanic:'charge',telegraph:'The dark star contracts. Defend the party.'}),
- enemy('mire_warden','Mire Warden',4,1600,63,27,12,290,'moss_ward','A great heron-shaped archive grown from root and bronze.',{mechanic:'fortress',telegraph:'Its roots draw in light. The canopy will strike.'}),
- enemy('magma_behemoth','Magma Behemoth',4,1450,72,31,8,300,'magma_blade','A immense plated salamander with a glass chimney spine.',{mechanic:'charge',telegraph:'The chimney glows white. Take cover.'}),
- enemy('architect_herald','Architect Herald',5,4200,86,35,18,525,'titan_shard','A faceless envoy unfolding like an ivory sextant.',{mechanic:'fortress',phaseAt:.5,telegraph:'The sextant aligns. A judgment falls on everyone.'}),
- enemy('frost_colossus','Frost Colossus',5,4000,80,34,11,500,'titan_shard','The frozen elevator’s guardian, shoulders like a bridge.',{mechanic:'fortress',phaseAt:.5,telegraph:'Its bridge-arms rise. A crushing wave approaches.'}),
- enemy('ember_lord','Ember Lord',5,3800,84,30,15,500,'ember_crown','A furnace mantis crowned with ivory horns and molten blade-arms.',{mechanic:'charge',phaseAt:.5,telegraph:'The molten blades draw together. Guard before they strike.'}),
- enemy('void_architect','Void Architect',5,10000,99,39,18,900,'horizon_edge','A luminous human silhouette inside a vast broken armillary.',{mechanic:'architect',phaseAt:.55,phases:['The Perfect Shelter','The Open Sky'],telegraph:'The armillary closes. Shelter together, then answer.'})
+ enemy('rust_scrapper','Rust Scrapper',1,76,15,3,10,22,'iron_blade','A crablike scavenger carrying a broken kettle.',{level:1}),
+ enemy('drone_sentinel','Drone Sentinel',1,60,17,2,18,28,'data_chip','A hovering lens trailing three copper vanes.',{level:2}),
+ enemy('bog_stalker','Bog Stalker',1,100,20,4,14,32,'bog_fang','A reed-legged ambusher in a floating lily mask.',{level:3}),
+ enemy('slag_rat','Slag Rat',1,55,14,2,21,21,'field_tonic','A quick scrap-eater with a furnace-bright whisker.',{level:1}),
+ enemy('mutant_hound','Mutant Hound',2,215,32,8,18,60,'bio_weave','A split-maned hunter wrapped in ribbonlike fronds.',{level:6}),
+ enemy('gravbot','Gravbot',2,320,30,17,8,72,'rune_gauntlet','An obsidian-armored automaton wielding a concentrated gravity field.',{level:8}),
+ enemy('mire_hulk','Mire Hulk',2,400,39,13,8,90,'swamp_coil','A peat-armored toad carrying a dead tree and pale shelf fungi.',{level:10}),
+ enemy('glacier_wolf','Glacier Wolf',2,255,37,9,21,80,'glacial_claw','A white, glass-antlered predator with a blue throat.',{level:10}),
+ enemy('neon_cultist','Neon Cultist',3,400,38,13,17,115,'void_shard','A signal pilgrim hidden inside a floating scripture cage.',{level:12,mechanic:'charge',telegraph:'The scripture cage opens. A burst is coming.'}),
+ enemy('sandworm','Sandworm Hatchling',3,650,50,19,10,140,'crit_lens','A segmented stone auger crowned with golden feelers.',{level:15,mechanic:'charge',telegraph:'It coils beneath the sand. Brace for impact.'}),
+ enemy('ember_golem','Ember Golem',3,780,52,28,8,155,'ember_core','A furnace-crab with basalt claws and a vented iron chest.',{level:18,mechanic:'charge',telegraph:'The furnace inhales. Its next blow will be heavy.'}),
+ enemy('frost_revenant','Frost Revenant',3,620,54,20,17,150,'frost_plate','A masked burial sail bearing a blue crystal lance and a lantern.',{level:18,mechanic:'siphon',telegraph:'Frost gathers along its burial sail.'}),
+ enemy('wraith_core','Wraith Core',4,860,68,23,22,210,'void_scepter','A hollow star of dark bronze fins around a pale, restless core.',{level:24,mechanic:'charge',telegraph:'The dark star contracts. Defend the party.'}),
+ enemy('mire_warden','Mire Warden',4,1600,63,27,12,290,'moss_ward','A great heron-shaped archive grown from root and bronze.',{level:22,mechanic:'fortress',telegraph:'Its roots draw in light. The canopy will strike.'}),
+ enemy('magma_behemoth','Magma Behemoth',4,1450,72,31,8,300,'magma_blade','A immense plated salamander with a glass chimney spine.',{level:26,mechanic:'charge',telegraph:'The chimney glows white. Take cover.'}),
+ enemy('architect_herald','Architect Herald',5,4200,86,35,18,525,'titan_shard','A faceless envoy unfolding like an ivory sextant.',{level:34,mechanic:'fortress',phaseAt:.5,telegraph:'The sextant aligns. A judgment falls on everyone.'}),
+ enemy('frost_colossus','Frost Colossus',5,4000,80,34,11,500,'titan_shard','The frozen elevator’s guardian, shoulders like a bridge.',{level:32,mechanic:'fortress',phaseAt:.5,telegraph:'Its bridge-arms rise. A crushing wave approaches.'}),
+ enemy('ember_lord','Ember Lord',5,3800,84,30,15,500,'ember_crown','A furnace mantis crowned with ivory horns and molten blade-arms.',{level:32,mechanic:'charge',phaseAt:.5,telegraph:'The molten blades draw together. Guard before they strike.'}),
+ enemy('void_architect','Void Architect',5,10000,99,39,18,900,'horizon_edge','A luminous human silhouette inside a vast broken armillary.',{level:40,mechanic:'architect',phaseAt:.55,phases:['The Perfect Shelter','The Open Sky'],telegraph:'The armillary closes. Shelter together, then answer.'})
 ].map(e=>[e.id,e]));
 export const BUILDINGS={
  town_center:{id:'town_center',name:'Town Center',tier:1,cost:{ore:35,food:20},description:'Shared stores and a beacon. Each level strengthens production and civic recovery.'},

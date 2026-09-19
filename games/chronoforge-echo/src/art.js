@@ -2691,7 +2691,7 @@ function portalCue(c, d, p, indoor = false) {
   if (indoor) {
     if (
       activeSceneKind === 'cave' &&
-      drawCavePiece(c, activeBiome, 'threshold', d.x, d.y, 34)
+      drawCavePiece(c, activeBiome, 'exit', d.x, d.y, 140)
     )
       return;
     if (interiorGroundAtlas) {
@@ -4976,14 +4976,14 @@ export function artMetrics() {
 // Actor geometry shares the exact crops and anchors used by draw calls.
 export function actorBounds(
   id,
-  { pose = 'idle', scale = 1, side = 'enemy', facing } = {},
+  { pose = 'idle', scale = 1, side = 'enemy', facing, time = 0 } = {},
 ) {
   let frame = null,
     factor = 0.23;
   if (heroWalkSheets.get(id)?.frames.length && pose === 'move') {
     const sheet = heroWalkSheets.get(id),
       dir = facing === 'up' ? 2 : facing === 'down' ? 1 : 0;
-    frame = sheet.frames[dir * 4];
+    frame = sheet.frames[dir * 4 + (Math.floor(time * 9) % 4)];
     factor = frame.pixelScale || sheet.pixelScale;
   } else if (heroSheets.get(id)?.frames.length) {
     const sheet = heroSheets.get(id);
@@ -4994,7 +4994,7 @@ export function actorBounds(
     factor = frame.pixelScale || sheet.pixelScale;
   } else if (id === 'kaida' && kaidaWalkSheet && pose === 'move') {
     const dir = facing === 'up' ? 2 : facing === 'down' ? 1 : 0;
-    frame = kaidaWalkSheet.frames[dir * 4];
+    frame = kaidaWalkSheet.frames[dir * 4 + (Math.floor(time * 9) % 4)];
     factor = kaidaWalkScale(dir);
   } else if (id === 'kaida' && kaidaSheet?.frames) {
     let index =

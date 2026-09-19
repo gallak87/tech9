@@ -20,12 +20,12 @@ const gridKey = (point) => point.join(',');
 function clearEdge(scene, from, to) {
   const samples = Math.max(
     1,
-    Math.ceil((Math.hypot(to[0] - from[0], to[1] - from[1]) * PATH_STEP) / 3),
+    Math.ceil(Math.hypot(to[0] - from[0], to[1] - from[1]) / 3),
   );
   for (let i = 0; i <= samples; i++) {
     const t = i / samples;
-    const x = (from[0] + (to[0] - from[0]) * t) * PATH_STEP;
-    const y = (from[1] + (to[1] - from[1]) * t) * PATH_STEP;
+    const x = from[0] + (to[0] - from[0]) * t;
+    const y = from[1] + (to[1] - from[1]) * t;
     if (!isWalkable(scene, x, y)) return false;
   }
   return true;
@@ -55,7 +55,11 @@ function findPath(scene, from, x, y) {
       const cost = node.g + 1;
       if (
         (seen.has(key) && seen.get(key).g <= cost) ||
-        !clearEdge(scene, node.p, p)
+        !clearEdge(
+          scene,
+          node.p.map((n) => n * PATH_STEP),
+          p.map((n) => n * PATH_STEP),
+        )
       )
         continue;
       seen.set(key, { g: cost, parent: node.p, p });
@@ -77,13 +81,7 @@ function findPath(scene, from, x, y) {
   path.reverse();
   // Search tolerance must not stop a reachable click short of interaction range.
   const tail = path.at(-1) || from;
-  if (
-    clearEdge(
-      scene,
-      [tail.x / PATH_STEP, tail.y / PATH_STEP],
-      [x / PATH_STEP, y / PATH_STEP],
-    )
-  ) {
+  if (clearEdge(scene, [tail.x, tail.y], [x, y])) {
     path.push({ x, y });
   }
   return path;
@@ -180,27 +178,33 @@ export class WorldTraversal {
     let dy =
       (g.keys.has('ArrowDown') || g.keys.has(bindings.down || 's') ? 1 : 0) -
       (g.keys.has('ArrowUp') || g.keys.has(bindings.up || 'w') ? 1 : 0);
+    let waypointDistance = Infinity;
     if (dx || dy) g.movePath = [];
-    else if (g.movePath.length) {
-      const point = g.movePath[0];
-      const length = Math.hypot(point.x - s.x, point.y - s.y);
-      if (length < 5) g.movePath.shift();
-      else {
-        dx = (point.x - s.x) / length;
-        dy = (point.y - s.y) / length;
+    else {
+      while (g.movePath.length) {
+        const point = g.movePath[0];
+        const length = Math.hypot(point.x - s.x, point.y - s.y);
+        if (length < 5) g.movePath.shift();
+        else {
+          dx = (point.x - s.x) / length;
+          dy = (point.y - s.y) / length;
+          waypointDistance = length;
+          break;
+        }
       }
     }
 
     const length = Math.hypot(dx, dy);
-    const speed = g.keys.has('Shift') ? 245 : 165;
+    const speed = g.keys.has('Shift') ? 490 : 330;
     g.moving = length > 0;
     if (!length) return;
     dx /= length;
     dy /= length;
     const oldX = s.x;
     const oldY = s.y;
-    if (isWalkable(scene, s.x + dx * speed * dt, s.y)) s.x += dx * speed * dt;
-    if (isWalkable(scene, s.x, s.y + dy * speed * dt)) s.y += dy * speed * dt;
+    const step = Math.min(speed * dt, waypointDistance);
+    if (clearEdge(scene, [s.x, s.y], [s.x + dx * step, s.y])) s.x += dx * step;
+    if (clearEdge(scene, [s.x, s.y], [s.x, s.y + dy * step])) s.y += dy * step;
     if (s.x === oldX && s.y === oldY) {
       g.movePath = [];
       return;

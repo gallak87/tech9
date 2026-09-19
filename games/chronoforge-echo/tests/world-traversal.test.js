@@ -64,7 +64,7 @@ test('walk/run speed is direction-independent and keyboard input cancels a click
       assert.ok(
         Math.abs(
           Math.hypot(game.state.x - 240, game.state.y - 240) -
-            (running ? 245 : 165) * 0.05,
+            (running ? 490 : 330) * 0.05,
         ) < 1e-10,
       );
       assert.deepEqual(game.movePath, []);
@@ -114,6 +114,33 @@ test('blocked routes report failure without placing waypoints through a barrier'
   traversal.walkTo(480, 240);
   assert.deepEqual(game.movePath, []);
   assert.match(notices[0].label, /route is blocked/i);
+});
+
+test('fast click movement reaches short waypoints without overshooting at low frame rates', () => {
+  for (const running of [false, true]) {
+    const { game, traversal } = fixture();
+    if (running) game.keys.add('Shift');
+    const target = { x: 253, y: 240 };
+    traversal.walkTo(target.x, target.y);
+    for (let i = 0; i < 20 && game.movePath.length; i++) {
+      traversal.move(0.05);
+      assert.ok(game.state.x <= target.x);
+    }
+    assert.deepEqual(game.movePath, []);
+    assert.equal(game.state.x, target.x);
+    assert.equal(game.state.y, target.y);
+  }
+});
+
+test('running cannot skip a narrow solid between frame endpoints', () => {
+  const scene = openScene();
+  scene.objects.push({ x: 251, y: 270, w: 1, h: 60, solid: true });
+  const { game, traversal } = fixture(scene);
+  game.keys = new Set(['d', 'Shift']);
+  assert.equal(isWalkable(scene, 264.5, 240), true);
+  traversal.move(0.05);
+  assert.equal(game.state.x, 240);
+  assert.equal(game.state.y, 240);
 });
 
 test('followers compress at an arrival wall and camera honors reduced motion and scene bounds', () => {

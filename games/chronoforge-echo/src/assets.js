@@ -367,6 +367,7 @@ export async function loadAssets(art) {
             art.installWorldEnvironmentDetail(image, entry);
             break;
           case 'caveKit':
+          case 'caveExit':
             art.installCaveKit(image, entry);
             break;
           case 'caveFloor':

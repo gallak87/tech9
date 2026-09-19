@@ -1105,6 +1105,9 @@ kbd {
   transition: none;
   animation: none;
 }
+.interaction.hero-overlap {
+  opacity: 0.5;
+}
 .reward-portrait {
   background: none;
   border: 0;

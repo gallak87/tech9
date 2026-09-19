@@ -43,6 +43,8 @@ Keep original selected PNGs in `public/assets/`. Crop and interpret transparency
 
 Inventory item artwork lives in `public/assets/inventory/`, with measured source bounds in `src/inventory-icon-manifest.js`. It covers weapons, armor, accessories, and consumables. Preserve each item's identity and silhouette, top-left lighting, and real transparency; omit labels, frames, and backgrounds from the source art. The Inventory menu uses its own icon cache so this art pass does not replace combat or resource icons.
 
+Cave interior exits use independent transparent sources in `public/assets/world/cave-exits/`, with measured crops and front-step anchors in `src/cave-exit-art.js`. Match each region's entrance materials and accents, with an open passage toward the exterior. Keep exit artwork separate from the entrance, field-station, and floor atlases; visual size does not change portal positions or travel destinations.
+
 Use the logical world scale independently of image/backing resolution. Raw extraction stays at source resolution; filtered rendering uses the higher-resolution backing surface. Town interior layouts, renderers and crop metadata are separate so an art change does not silently change collision geometry or service access.
 
 Generated project art and code-drawn effects are self-contained at runtime. Fonts retain their bundled licenses. Only selected live sources are tracked. Keep candidate/rejected variants, generation scripts and review copies inside the local Git-ignored `.experiments/` folder. On graduation, promote only the live assets and required code; periodically delete the remaining scratch material.

@@ -1,4 +1,5 @@
 import { frameBounds } from './world-detail-art.js';
+import { CAVE_EXIT_ASSETS } from './cave-exit-art.js';
 
 const f = (biome, part, x, y, w, h, anchorX, anchorY) => ({
   biome,
@@ -156,10 +157,14 @@ export const CAVE_FLOOR_ASSET = {
     ),
   },
 };
-export const CAVE_ASSETS = [...CAVE_KITS, CAVE_FLOOR_ASSET];
+export const CAVE_ASSETS = [
+  ...CAVE_KITS,
+  ...CAVE_EXIT_ASSETS,
+  CAVE_FLOOR_ASSET,
+];
 
 const frames = new Map(
-  CAVE_KITS.flatMap((k) =>
+  [...CAVE_KITS, ...CAVE_EXIT_ASSETS].flatMap((k) =>
     k.metadata.frames.map((f) => [`${f.biome}:${f.part}`, f]),
   ),
 );

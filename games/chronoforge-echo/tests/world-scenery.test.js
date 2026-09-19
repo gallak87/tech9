@@ -250,9 +250,9 @@ test('all eight worlds and cave branches retain routes to every exit, service, s
   }
 });
 
-test('every cave has a regional entrance, field station, threshold and opaque floor material', () => {
+test('every cave has a regional entrance, exit, field station and opaque floor material', () => {
   for (const biome of CAVE_BIOMES)
-    for (const part of ['entrance', 'station', 'threshold'])
+    for (const part of ['entrance', 'exit', 'station'])
       assert.ok(caveArtFrame(biome, part), biome + ' ' + part);
   assert.deepEqual(
     CAVE_ASSETS.find((a) => a.kind === 'caveFloor').metadata.frames.map(
@@ -267,6 +267,55 @@ test('every cave has a regional entrance, field station, threshold and opaque fl
       (o) => o.fieldRecord || o.style === 'interior_supply',
     ))
       assert.ok(o.solid && o.footprints?.length, o.id);
+  }
+});
+
+test('cave exits have independent transparent sources and grounded threshold anchors', () => {
+  const exits = CAVE_ASSETS.filter((entry) => entry.kind === 'caveExit');
+  assert.equal(
+    new Set(exits.map((entry) => entry.source)).size,
+    CAVE_BIOMES.length,
+  );
+  assert.deepEqual(
+    exits
+      .flatMap((entry) => entry.metadata.frames.map((frame) => frame.biome))
+      .sort(),
+    [...CAVE_BIOMES].sort(),
+  );
+  for (const entry of exits) {
+    assert.equal(entry.required, true);
+    assert.equal(entry.metadata.preserveSourceAlpha, true);
+    assert.ok(!entry.key, entry.id + ' must retain its generated transparency');
+    const frame = entry.metadata.frames[0],
+      image = readPngPixels(
+        new URL('../public/' + entry.source, import.meta.url),
+      );
+    assert.ok(frame.anchorX > 0 && frame.anchorX < frame.w, entry.id);
+    assert.ok(frame.anchorY > 0 && frame.anchorY < frame.h, entry.id);
+    let transparent = 0,
+      opaque = 0;
+    for (let i = 3; i < image.data.length; i += 4) {
+      if (image.data[i] === 0) transparent++;
+      if (image.data[i] >= 250) opaque++;
+    }
+    assert.ok(
+      transparent > image.width * image.height * 0.1,
+      entry.id + ' clear surround',
+    );
+    assert.ok(
+      opaque > image.width * image.height * 0.1,
+      entry.id + ' solid passage',
+    );
+  }
+  for (const scene of Object.values(ALL_SCENES).filter(
+    (scene) => scene.kind === 'cave',
+  )) {
+    assert.ok(caveArtFrame(scene.biome, 'exit'), scene.id + ' exit art');
+    for (const portal of scene.portals)
+      assert.ok(
+        isWalkable(scene, portal.x, portal.y),
+        portal.id + ' open threshold',
+      );
   }
 });
 

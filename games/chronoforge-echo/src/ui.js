@@ -20,7 +20,8 @@ import { navigateExpedition, navigateShop } from './expedition-navigation.js';
 import { vendorAction } from './vendor-actions.js';
 import { SaveTransfer } from './save-transfer.js';
 import { canOpenWorldView, worldViewShortcut } from './world-view.js';
-import { drawHero } from './art.js';
+import { actorBounds, drawHero } from './art.js';
+import { interactionOverlapsHero } from './interaction-label.js';
 const esc = (s) =>
   String(s ?? '').replace(
     /[&<>"']/g,
@@ -58,6 +59,12 @@ export class UI {
     this.game = game;
     this.root = document.querySelector('#overlay');
     this.hud = document.querySelector('#hud');
+    this.interactionPrompt = null;
+    this.interactionMetrics = null;
+    this.interactionResize = new ResizeObserver(() => {
+      this.interactionMetrics = null;
+    });
+    this.interactionResize.observe(this.hud);
     this.panel = null;
     this.menu = false;
     this.tab = 0;
@@ -123,6 +130,8 @@ export class UI {
   }
   resetSession() {
     this.saveTransfer.cancelImport();
+    this.interactionPrompt?.remove();
+    this.observeInteraction(null);
     this.panel = null;
     this.menu = false;
     this.hero = 0;
@@ -1008,6 +1017,7 @@ export class UI {
       return;
     const scene = g.scene,
       worldViewFocused = document.activeElement?.matches('[data-world-view]');
+    this.observeInteraction(null);
     this.hud.innerHTML = `<div class="hud-top"><div class="objective"><div class="label">FIELD OBJECTIVE</div><p>${esc(mainObjective(s))}</p>${s.flags.pendingEnding && !this.panel ? '<button class="resume-ending" data-resume-ending><kbd>Enter</kbd> Resume final conversation</button>' : ''}</div><div class="hud-right"><div class="hud-resource-row"><div class="resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="resource" aria-label="${fmt(s.resources[id])} ${id}">${icon(id)}${fmt(s.resources[id])}</span>`).join('')}</div>${!this.panel ? '<button class="atlas-button" data-atlas><kbd>Esc</kbd> MENU</button>' : ''}</div><div class="survey-stack ${s.settings.minimap ? '' : 'survey-hidden'}">${s.settings.minimap ? '<div class="minimap-wrap"><canvas id="minimap" aria-label="Immediate surroundings"></canvas></div>' : ''}<div class="location-plaque"><h3>${esc(scene.name)}</h3><span>${esc(scene.interior ? 'INTERIOR' : scene.subtitle)}</span></div><button type="button" class="world-view-button" data-world-view ${canOpenWorldView(g) ? '' : 'disabled'}${worldViewShortcut(s.settings) ? ' aria-keyshortcuts="R"' : ''}>${worldViewShortcut(s.settings) ? '<kbd>R</kbd> ' : ''}World view</button></div></div></div><div class="hud-bottom"><div class="party-strip">${s.heroes
       .map((h) => {
         const st = P.stats(h, s);
@@ -1025,6 +1035,14 @@ export class UI {
     if (mm) drawMinimap(mm, scene, s);
     this.positionInteraction();
   }
+  observeInteraction(prompt) {
+    if (this.interactionPrompt === prompt) return;
+    if (this.interactionPrompt)
+      this.interactionResize.unobserve(this.interactionPrompt);
+    this.interactionPrompt = prompt;
+    this.interactionMetrics = null;
+    if (prompt) this.interactionResize.observe(prompt);
+  }
   positionInteraction() {
     const g = this.game,
       interactive = g.near,
@@ -1041,6 +1059,7 @@ export class UI {
       g.state.pickups[o.id]
     ) {
       prompt?.remove();
+      this.observeInteraction(null);
       return;
     }
     const hint = interactive ? beaconStatus(g.state, o.id)?.hint || '' : '',
@@ -1057,24 +1076,42 @@ export class UI {
       );
       prompt = this.hud.querySelector('.interaction');
     }
-    const box = this.hud.getBoundingClientRect(),
+    this.observeInteraction(prompt);
+    const { box, width, height } = (this.interactionMetrics ||= {
+        box: this.hud.getBoundingClientRect(),
+        width: prompt.offsetWidth,
+        height: prompt.offsetHeight,
+      }),
       scale = box.width / 960,
       x = (o.x - Math.round(g.camera.x)) * scale,
       y = (o.y - Math.round(g.camera.y)) * scale,
       margin = Math.max(5, box.width * 0.008),
-      width = prompt.offsetWidth,
-      height = prompt.offsetHeight,
       gap = o.type === 'encounter' ? 42 : 16;
     let top = y + gap * scale;
     if (top + height > box.height - 56 * scale) top = y - height - gap * scale;
-    prompt.style.left =
-      Math.round(
-        Math.max(margin, Math.min(box.width - width - margin, x - width / 2)),
-      ) + 'px';
-    prompt.style.top =
-      Math.round(
-        Math.max(margin, Math.min(box.height - height - margin, top)),
-      ) + 'px';
+    const left = Math.round(
+      Math.max(margin, Math.min(box.width - width - margin, x - width / 2)),
+    );
+    top = Math.round(
+      Math.max(margin, Math.min(box.height - height - margin, top)),
+    );
+    prompt.style.left = left + 'px';
+    prompt.style.top = top + 'px';
+    prompt.classList.toggle(
+      'hero-overlap',
+      interactionOverlapsHero(
+        { left, top, width, height },
+        g.state,
+        g.camera,
+        actorBounds('kaida', {
+          side: 'hero',
+          pose: g.moving ? 'move' : 'idle',
+          facing: g.state.facing,
+          time: g.visualTime,
+        }),
+        scale,
+      ),
+    );
   }
 
   inspectItem(id) {

@@ -98,7 +98,7 @@ test('required source dimensions and measured frames agree with the immutable PN
       // different minimum frame counts. Every crop is checked below.
       assert.ok(
         m.frames.length >=
-          (['roadSign', 'structure'].includes(entry.kind)
+          (['roadSign', 'structure', 'caveExit'].includes(entry.kind)
             ? 1
             : ['townCenter', 'environmentDetail'].includes(entry.kind)
               ? 4

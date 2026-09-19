@@ -7,7 +7,7 @@ import {
 } from '../src/follower-path.js';
 
 test('walking and running followers advance continuously, including between breadcrumb samples', () => {
-  for (const speed of [165, 245])
+  for (const speed of [330, 490])
     for (const distance of [FOLLOW_DISTANCE, 2 * FOLLOW_DISTANCE]) {
       let previous = null;
       for (let frame = 0; frame < 180; frame++) {

@@ -1,5 +1,32 @@
 # Asset provenance and production inventory
 
+## World details and regional cave materials
+
+The production sources under `world/` are unchanged built-in imagegen outputs. The prompt set requested smooth, detailed 3/4 orthographic environment cutouts matching the approved town-art finish while retaining each region's materials and dominant hues. Cave kits pair a thick rock tunnel entrance with a regional field-research bench; the open passage of each large aqueduct/gateway remains distinct from an opaque cave mouth. The eight cave floor swatches are opaque, quiet overhead stone materials. No people, labels, review sheets or generated extraction files are shipped.
+
+Measured crops, grounded anchors and enclosed-air seeds are in `src/world-detail-art.js` and `src/cave-art.js`; the existing connected-neutral importer supplies alpha without changing PNG bytes. Physics uses grounded trunks, foundations and separate gate pillars, never the entire painted silhouette.
+
+| Production source under `world/` | Built-in generation |
+| --- | --- |
+| `coastal-details-v1-source.png` | `exec-8a3becb8-5be4-436d-b4d8-403437df75f4.png` |
+| `emberline-details-v1-source.png` | `exec-d2c95b6c-962f-4217-9d6b-4b3ad7f35031.png` |
+| `glasswood-elder-v1-source.png` | `exec-3434b309-cbb6-408b-b0fb-c0a0ccfac87a.png` |
+| `second-sunrise-v1-source.png` | `exec-4db79b7f-ac02-49c7-b77c-acdafc748c0a.png` |
+| `orbital-tether-v1-source.png` | `exec-352402c4-1348-4c0e-b8c2-2f68cbc0ab89.png` |
+| `seven-listeners-v1-source.png` | `exec-1edf5f7b-0997-45c2-81ab-4c480235c215.png` |
+| `first-gardener-v1-source.png` | `exec-b4921566-31c2-4e56-9ad5-24b0c2bcbe38.png` |
+| `unmade-palace-v1-source.png` | `exec-a2bfc478-845b-4c34-a1d9-291d042aa132.png` |
+| `caves-coast-desert-v1-source.png` | `exec-f6201b6b-0b68-43fa-b935-3318c37a5a35.png` |
+| `caves-forest-mire-v1-source.png` | `exec-60378858-adb5-4130-8767-fbfa5a960a8c.png` |
+| `caves-orbital-frost-v1-source.png` | `exec-a445bb5d-2e87-4e2b-8b73-7be3e2d832d2.png` |
+| `caves-crater-crown-v1-source.png` | `exec-14eeccae-53d2-451e-abf1-e392cfeb6ef0.png` |
+| `cave-floor-materials-v1-source.png` | `exec-b0a59509-a7b6-4ba2-b622-537f9b8aeba8.png` |
+| `whale-of-iron-v1-source.png` | `exec-d1a8d8b9-1e10-4060-91b3-02bc9af5d992.png` |
+| `root-wrapped-aqueduct-v1-source.png` | `exec-db3af985-d1ab-4bd5-8288-39b2f1c79fa0.png` |
+| `basalt-teeth-v1-source.png` | `exec-fdaaca64-15b8-4d2b-8622-6ac4551abe50.png` |
+| `orbital-viaduct-v1-source.png` | `exec-b38648ff-a5e9-4972-b75a-bd61c9c21eba.png` |
+
+
 ## Haventide interior restoration
 
 Four unchanged built-in imagegen outputs form the production hall, with twelve independently placed pieces per level. The brief follows the approved coastal ivory/teal/brass concept while changing the contents: scarce rations, salvaged tools and a cot become repaired services, then food preservation and powered machinery, then hydroponics, fabrication and holographic civic systems. NPCs remain separate live sprites.

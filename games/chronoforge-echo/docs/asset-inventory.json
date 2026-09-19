@@ -1,6 +1,6 @@
 {
-  "sourceCount": 86,
-  "compressedBytes": 186258790,
+  "sourceCount": 103,
+  "compressedBytes": 234055132,
   "sources": [
     {
       "id": "haventide_interior_level_1",
@@ -705,6 +705,193 @@
       "sourceBytes": 1927086,
       "frames": 1,
       "sha256": "46b26ece74aff398f0a7bfcc8995c3b669b85e44232c9aa23adcf61893aa9898"
+    },
+    {
+      "id": "forest_arch",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/root-wrapped-aqueduct-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2782352,
+      "frames": 1,
+      "sha256": "4f5745bd3b1c506d0277b83ba3561b27339e2b384925f5b347c15837561aa5aa"
+    },
+    {
+      "id": "crater_gate",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/basalt-teeth-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 1889309,
+      "frames": 1,
+      "sha256": "972974963c50d8cb3f75eae2220b9b43e18349c8dd9e211227c64852869bec76"
+    },
+    {
+      "id": "orbital_arch",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/orbital-viaduct-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2669881,
+      "frames": 1,
+      "sha256": "28194fd8a789dbc335717475c8f73cf7a181bad114fb703de655d033ec457c3a"
+    },
+    {
+      "id": "coastal_world_details",
+      "kind": "environmentDetail",
+      "biome": "coast",
+      "file": "assets/world/coastal-details-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2922287,
+      "frames": 4,
+      "sha256": "2384d91ce55736bac668fb541bdeb6e78516ee488d93e80a8ff8c476b5fc018e"
+    },
+    {
+      "id": "emberline_world_details",
+      "kind": "environmentDetail",
+      "biome": "desert",
+      "file": "assets/world/emberline-details-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2875679,
+      "frames": 4,
+      "sha256": "c1ca6e705211560bb27f186838623355457c2871cbc3c01402933feda6560bc1"
+    },
+    {
+      "id": "whale_of_iron",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/whale-of-iron-v1-source.png",
+      "width": 1536,
+      "height": 1024,
+      "sourceBytes": 2988126,
+      "frames": 1,
+      "sha256": "c6a14aa406772f7915a22fb2254609138f108dbf6812ad3000b3ee04c9f8dbb5"
+    },
+    {
+      "id": "glasswood_elder",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/glasswood-elder-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 3021563,
+      "frames": 1,
+      "sha256": "0b38fde2d8ef1aa21e80ba566bcbffb28abe8fa32a0cba7a6711b612a8a48ae5"
+    },
+    {
+      "id": "second_sunrise",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/second-sunrise-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2855928,
+      "frames": 1,
+      "sha256": "94cf927afd889ed1dc957b4d24c2a9b4cae8b5a56cf4ccb541b6303552f305c9"
+    },
+    {
+      "id": "orbital_tether",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/orbital-tether-v1-source.png",
+      "width": 992,
+      "height": 1586,
+      "sourceBytes": 2559156,
+      "frames": 1,
+      "sha256": "9ae84cb6e3a0150c163a965ca35a09e7a1b119999e17a80f0d3897d1bbfd3c40"
+    },
+    {
+      "id": "seven_listeners",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/seven-listeners-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2662712,
+      "frames": 1,
+      "sha256": "cee6bf6ee0386ce6b0778d72c18727643e18738b127a4740b4e2055d3ec79ef9"
+    },
+    {
+      "id": "first_gardener",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/first-gardener-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2568767,
+      "frames": 1,
+      "sha256": "6a22883a45ecfebb54c4775d829a17908dde2b162b4851cb2e6f1ff2e6620477"
+    },
+    {
+      "id": "unmade_palace",
+      "kind": "structure",
+      "biome": null,
+      "file": "assets/world/unmade-palace-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2890374,
+      "frames": 1,
+      "sha256": "6a76c553efc444b9fd39f319d2ab15d4423984cdcc96b8c7bffa4378985510bd"
+    },
+    {
+      "id": "caves_coast_desert",
+      "kind": "caveKit",
+      "biome": null,
+      "file": "assets/world/caves-coast-desert-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 3206096,
+      "frames": 6,
+      "sha256": "0e85e1cb42f89861e051d8e7409259beb02438988255d5918b37d65ffd9b3b4f"
+    },
+    {
+      "id": "caves_forest_mire",
+      "kind": "caveKit",
+      "biome": null,
+      "file": "assets/world/caves-forest-mire-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 3079492,
+      "frames": 6,
+      "sha256": "e06eb65f6dbd3ec28a5b399548c7a9bf74815b1e3c58bd2952be5b72db91c9e8"
+    },
+    {
+      "id": "caves_orbital_frost",
+      "kind": "caveKit",
+      "biome": null,
+      "file": "assets/world/caves-orbital-frost-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 2835205,
+      "frames": 6,
+      "sha256": "d5a6daa0e9605c8f9ae891b19528f76593adac8355125eb1cc4ab5af5b52f505"
+    },
+    {
+      "id": "caves_crater_crown",
+      "kind": "caveKit",
+      "biome": null,
+      "file": "assets/world/caves-crater-crown-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sourceBytes": 3086239,
+      "frames": 6,
+      "sha256": "d57b4e3d6aae17b461c3228644cc1ff28d8b5b8bf7a300096c51c3b184b9a65b"
+    },
+    {
+      "id": "cave_floor_materials",
+      "kind": "caveFloor",
+      "biome": null,
+      "file": "assets/world/cave-floor-materials-v1-source.png",
+      "width": 1774,
+      "height": 887,
+      "sourceBytes": 2903176,
+      "frames": 8,
+      "sha256": "3a1ee1d1068225b32c21293c33dfcdfae32eccbfe1c32529d4d406af9f2cc741"
     },
     {
       "id": "vex_walk",

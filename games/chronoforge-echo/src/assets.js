@@ -10,6 +10,8 @@ import { RASTER_ICON_ASSETS } from './raster-icon-manifest.js';
 import { installRasterIcon } from './raster-icons.js';
 import { SIGN_ASSETS } from './sign-art.js';
 import { STRUCTURE_ASSETS } from './structure-art.js';
+import { WORLD_DETAIL_ASSETS } from './world-detail-art.js';
+import { CAVE_ASSETS } from './cave-art.js';
 import { NPC_ASSETS } from './npc-art.js';
 import { TOWN_CENTERS } from './town-center-art.js';
 import { HAVENTIDE_INTERIOR_ASSETS } from './haventide-interior-art.js';
@@ -44,13 +46,15 @@ export const ASSET_MANIFEST = [
   ...SIGN_ASSETS.map(entry => ({ ...entry, url: entry.source })),
   ...NPC_ASSETS.map(entry => ({ ...entry, url: entry.source })),
   ...STRUCTURE_ASSETS.map(entry => ({ ...entry, url: entry.source })),
+  ...WORLD_DETAIL_ASSETS.map(entry => ({ ...entry, url: entry.source })),
+  ...CAVE_ASSETS.map(entry => ({ ...entry, url: entry.source })),
   ...HERO_WALK_ART.map(metadata => ({ id: metadata.id + '_walk', heroId: metadata.id, url: metadata.source, columns: 4, rows: 3, kind: 'heroWalk', required: true, key: metadata.key, keyMin: metadata.keyMin, backgroundSeeds: metadata.backgroundSeeds, metadata })),
   ...heroes.map(metadata => ({ id: metadata.id, url: metadata.source || `assets/${metadata.id}-source.png`, columns: metadata.columns || 6, rows: metadata.rows || 2, kind: 'hero', required: true, key: metadata.preserveSourceAlpha ? undefined : metadata.key || 'neutral-exterior', keyMin: metadata.keyMin, backgroundSeeds: metadata.backgroundSeeds, metadata })),
   ...enemies.map(metadata => ({ id: metadata.id, url: metadata.source, columns: metadata.columns || 3, rows: metadata.rows || 2, kind: 'enemy', required: true, key: metadata.key, keyMin: metadata.keyMin, backgroundSeeds: metadata.backgroundSeeds, metadata })),
 ].map(entry => entry.metadata?.preserveSourceAlpha ? entry : ({ ...entry, ...ALPHA_MASKS[entry.id] }));
 export const assetDiagnostics = { loaded: [], errors: [], bytes: 0 };
 
-function keyNeutralExterior(context, width, height, { keyMin = 175, backgroundSeeds = [], keyZones = [] } = {}) {
+export function keyNeutralExterior(context, width, height, { keyMin = 175, backgroundSeeds = [], keyZones = [] } = {}) {
   const image = context.getImageData(0, 0, width, height), data = image.data;
   const seen = new Uint8Array(width * height), queue = new Int32Array(width * height);
   let head = 0, tail = 0;
@@ -111,6 +115,9 @@ export async function loadAssets(art) {
         case 'kaida': art.installKaidaSheet(image, { cell: image.width / entry.columns }); break;
         case 'hero': art.installHeroSheet(entry.id, image, entry.metadata); break;
         case 'heroWalk': art.installHeroWalkSheet(entry.heroId, image, entry.metadata); break;
+        case 'environmentDetail': art.installWorldEnvironmentDetail(image, entry); break;
+        case 'caveKit': art.installCaveKit(image, entry); break;
+        case 'caveFloor': art.installCaveFloor(image, entry); break;
         case 'environment': art.installEnvironmentAtlas(image, grid); break;
         case 'ground': art.installGroundAtlas(image, grid); break;
         case 'interiorGround': art.installInteriorGroundAtlas(image, grid); break;

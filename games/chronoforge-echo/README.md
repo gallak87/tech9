@@ -29,19 +29,24 @@ The repository's Pages workflow publishes Echo at **https://gallak87.github.io/t
 
 ## Controls
 
-| Context         | Controls                                                                                                     |
-| --------------- | ------------------------------------------------------------------------------------------------------------ |
-| Explore         | WASD or arrows; Shift to run; click a reachable destination to walk                                          |
-| Interact        | F, Space or Enter near a person, doorway, object or encounter                                                |
-| World view      | R or the button below the area label; R/Esc returns to play                                                  |
-| Read            | Enter/Space continues; Esc/Backspace dismisses without choosing a story branch                               |
-| Menu            | Esc opens; 1–7 select tabs; Q/E change tabs                                                                  |
-| Menus and shops | Arrows navigate; PageUp/PageDown scroll; Space/Enter confirm; Esc closes the top layer                       |
-| Map             | Hover/arrows select a region; click or Space/Enter activates its travel prompt; mouse drag pans, wheel zooms |
-| Battle          | Space/Enter/Right confirms; Up/Down chooses; Left/Backspace backs up; Tab selects another ready hero         |
-| Timing          | A fresh Space/Enter in the orange window improves Attack or Defend; incoming attacks offer a timed guard     |
+| Context         | Controls                                                                                                              |
+| --------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Explore         | WASD or arrows; Shift to run; click a reachable destination to walk                                                   |
+| Interact        | F, Space or Enter near a person, doorway, object or encounter                                                         |
+| World view      | R or the button below the area label; R/Esc returns to play                                                           |
+| Read            | Enter/Space continues; Esc/Backspace dismisses without choosing a story branch                                        |
+| Menu            | Esc opens; 1–7 select tabs; Q/E change tabs                                                                           |
+| Inventory       | Arrows browse the grid; Space/Enter equip or use; [/] switch crew; PageUp/PageDown and Home/End move through the pack |
+| Menus and shops | Arrows navigate; PageUp/PageDown scroll; Space/Enter confirm; Esc closes the top layer                                |
+| Map             | Hover/arrows select a region; click or Space/Enter activates its travel prompt; mouse drag pans, wheel zooms          |
+| Battle          | Space/Enter/Right confirms; Up/Down chooses; Left/Backspace backs up; Tab selects another ready hero                  |
+| Timing          | A fresh Space/Enter in the orange window improves Attack or Defend; incoming attacks offer a timed guard              |
 
 Timed Defend reduces damage by 75% until the next action; normal Defend reduces it by 65%. An incoming timed guard applies to that attack only. Esc pauses the entire battle timeline. Movement bindings, audio, timing assistance, restrained motion and the minimap are adjustable in Settings.
+
+Inventory groups items by type, with the highest tiers first. Each card shows its stat changes against the selected crew member’s equipment, plus an inline Equip/Use button. Space/Enter acts on the focused card. Equipped slots and type buttons toggle a filter with a click or Space/Enter; activating the same filter again clears it and releases focus. Filters stay active while browsing, comparing, equipping, or switching crew, and clear on click-away or when leaving Inventory. The small × beside equipped gear returns it to the pack.
+
+Every valid consumable use in Inventory asks for confirmation, including revives and uses with no waste. The dialog names the ally and restoration amount, and shows waste when present. Canceling spends nothing; stock and the target’s condition are checked again before applying the item.
 
 World view pauses play and flies out to the current map, with an amber ring marking the party. Unexplored terrain stays under soft fog; the map outline remains visible. It reads the existing survey without changing the normal camera, exploration or saves. Restrained motion skips the flyout. If R is assigned to movement or interaction in Settings, that binding takes priority; the World view button remains available.
 

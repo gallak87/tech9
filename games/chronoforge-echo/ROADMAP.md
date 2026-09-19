@@ -9,9 +9,9 @@
 
 ## TODO — Revisit Party and Inventory overlap
 
-Party and Inventory repeat the hero selector, centered character art, equipped slots, and vitals; their main distinction is the stats summary versus the pack and item actions. Revisit whether these should be combined or given clearer, complementary purposes. Keep the character-centered presentation in mind when exploring options.
+Inventory now has a compact crew/loadout column, a wider grid grouped by item type and sorted by descending tier, with stat deltas and Equip/Use actions inside every outlined card. Cards have bounded widths and compact icon/name headers. The crew swapper shows full portraits with names and levels on one line; it and the small character preview stay beside Equipped. Space/Enter act on items or toggle filters; [/] switch crew while preserving the selection. Filters persist during browsing and clear on click-away. Every valid consumable use in Inventory now requires confirmation.
 
-The direction is undecided and needs a later user review. This item records the overlap only; no tab removal, merger, or redesign is selected yet.
+Party remains the character record, with full stats and equipment shortcuts into Inventory. Defer the longer-term tab merger/separation decision until after using the new inventory flow; no tab removal or merger is selected.
 
 ## TODO — World traversal and exploration pacing
 

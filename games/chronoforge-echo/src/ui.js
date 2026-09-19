@@ -3,6 +3,7 @@ import './field-ui.css';
 import { tierBadge } from './tier-ui.js';
 import { beaconStatus } from './beacons.js';
 import './expedition.css';
+import './inventory.css';
 import { HEROES, ITEMS, BUILDINGS, TIERS, SERVICES } from './content.js';
 import * as P from './progression.js';
 import { performBuild } from './construction.js';
@@ -12,7 +13,8 @@ import { nearbyBuildings } from './world.js';
 import { latestSave, deleteSave } from './persistence.js';
 import { drawMinimap } from './maps.js';
 import { ExpeditionMap } from './expedition-map.js';
-import { renderExpedition, expeditionItemDetail } from './expedition-menu.js';
+import { renderExpedition } from './expedition-menu.js';
+import { inventoryItems } from './inventory-menu.js';
 import { navigateExpedition, navigateShop } from './expedition-navigation.js';
 import { vendorAction } from './vendor-actions.js';
 import { SaveTransfer } from './save-transfer.js';
@@ -60,6 +62,9 @@ export class UI {
     this.tab = 0;
     this.hero = 0;
     this.item = null;
+    this.inventoryFilter = 'all';
+    this.inventorySort = 'tier';
+    this.inventoryIndex = 0;
     this.qty = 1;
     this.sellMode = false;
     this.map = new ExpeditionMap(game);
@@ -71,9 +76,26 @@ export class UI {
     this.bindCapture = null;
     this.root.addEventListener('click', (e) => {
       const b = e.target.closest('[data-do]');
+      const clearFilter =
+        this.menu &&
+        this.tab === 2 &&
+        this.panel?.type !== 'confirm' &&
+        this.inventoryFilter !== 'all' &&
+        !e.target.closest(
+          '.exp-inventory-pack,.exp-inventory-crew,.exp-inventory-slot-row',
+        );
+      if (clearFilter) this.inventoryFilter = 'all';
       if (b && !b.disabled) {
         this.game.audio.unlock();
         this.action(b.dataset.do);
+      } else if (e.target.closest('.exp-inventory-card')) {
+        e.target
+          .closest('.exp-inventory-card')
+          .querySelector('.exp-inventory-item')
+          ?.focus({ preventScroll: true });
+      } else if (clearFilter) {
+        this.render();
+        document.activeElement?.blur();
       }
     });
     this.root.addEventListener('input', (e) => {
@@ -104,6 +126,10 @@ export class UI {
     this.menu = false;
     this.hero = 0;
     this.item = null;
+    this.inventoryFilter = 'all';
+    this.inventorySort = 'tier';
+    this.inventoryIndex = 0;
+    this.inventoryNavigation = null;
     this.qty = 1;
     this.sellMode = false;
     this.notice = '';
@@ -228,12 +254,14 @@ export class UI {
     if (this.menu && this.panel?.type !== 'confirm') {
       if (/^[1-7]$/.test(k)) {
         this.tab = +k - 1;
+        if (this.tab !== 2) this.inventoryFilter = 'all';
         this.notice = '';
         this.render();
         return true;
       }
       if (k.toLowerCase() === 'q' || k.toLowerCase() === 'e') {
         this.tab = (this.tab + (k.toLowerCase() === 'q' ? 6 : 1)) % 7;
+        if (this.tab !== 2) this.inventoryFilter = 'all';
         this.notice = '';
         this.render();
         return true;
@@ -341,8 +369,10 @@ export class UI {
       this.panel = this.confirmReturn || null;
       this.confirmReturn = null;
       cancel?.();
-    } else if (this.menu) this.menu = false;
-    else if (
+    } else if (this.menu) {
+      this.menu = false;
+      this.inventoryFilter = 'all';
+    } else if (
       ['vendor', 'build', 'help', 'reading', 'dialogue', 'ending'].includes(
         this.panel?.type,
       )
@@ -374,6 +404,7 @@ export class UI {
   toggleMenu() {
     if (this.game.mode === 'title') return;
     this.menu = !this.menu;
+    if (!this.menu) this.inventoryFilter = 'all';
     this.notice = '';
     this.bindCapture = null;
     this.game.keys.clear();
@@ -546,7 +577,10 @@ export class UI {
       ?.focus({ preventScroll: true });
   }
   requestItemUse(id, heroId) {
-    const returnFocus = 'use:' + id,
+    const returnFocus =
+        document.activeElement?.dataset.do === 'item:' + id
+          ? 'item:' + id
+          : 'use:' + id,
       returnScroll = {
         body: this.root.querySelector('.atlas-body')?.scrollTop || 0,
         pack: this.root.querySelector('.exp-pack-items')?.scrollTop || 0,
@@ -556,30 +590,47 @@ export class UI {
       this.feedback(result);
       this.restoreShopRow(returnFocus, returnScroll);
     };
-    const result = P.useItem(this.game.state, id, heroId);
-    if (!result.needsConfirmation) {
+    const result = P.previewItemUse(this.game.state, id, heroId);
+    if (!result.ok) {
       finish(result);
       return;
     }
-    this.confirmItemUse(
-      result,
+    this.confirm(
+      'Use ' + ITEMS[id].name + '?',
+      `${result.targetName} ${result.effect === 'revive' ? 'revives with' : 'restores'} ${result.amount} ${result.unit}.${result.wasted ? ` ${result.wasted} ${result.unit} will be wasted.` : ''}`,
       () => {
         this.panel = previous;
-        const outcome = P.useItem(this.game.state, id, heroId, {
-          confirmation: result.confirmationKey,
-        });
+        const current = P.previewItemUse(this.game.state, id, heroId);
+        if (!current.ok) {
+          finish(current);
+          return;
+        }
+        if (current.confirmationKey !== result.confirmationKey) {
+          finish({
+            ok: false,
+            message:
+              'The target changed. Review the restoration before using this supply.',
+          });
+          return;
+        }
         finish(
-          outcome.needsConfirmation
-            ? {
-                ok: false,
-                message:
-                  'The target changed. Review the restoration before using this supply.',
-              }
-            : outcome,
+          P.useItem(this.game.state, id, heroId, {
+            confirmation: result.confirmationKey,
+          }),
         );
       },
-      { returnFocus, returnScroll },
+      {
+        eyebrow: 'FIELD SUPPLY',
+        confirmLabel: 'Use · Space / Enter',
+        cancelLabel: 'Cancel · Esc',
+        consumable: true,
+        returnFocus,
+        returnScroll,
+      },
     );
+    this.root
+      .querySelector('[data-do="confirm-yes"]')
+      ?.focus({ preventScroll: true });
   }
   confirm(title, text, run, labels = {}) {
     this.confirmReturn = this.panel;
@@ -621,16 +672,35 @@ export class UI {
         break;
       case 'tab':
         this.tab = +arg;
+        if (this.tab !== 2) this.inventoryFilter = 'all';
         this.notice = '';
         this.render();
         break;
       case 'hero':
         this.hero = +arg;
         this.notice = '';
+        this.inventoryNavigation = null;
+        this.render();
+        break;
+      case 'inventory-slot':
+      case 'inventory-filter': {
+        const deactivate = this.tab === 2 && this.inventoryFilter === arg;
+        this.tab = 2;
+        this.inventoryFilter = deactivate ? 'all' : arg;
+        this.inventoryIndex = 0;
+        this.inventoryNavigation = null;
+        this.notice = '';
+        this.render();
+        if (deactivate) document.activeElement?.blur();
+        break;
+      }
+      case 'inventory-sort':
+        this.inventorySort = this.inventorySort === 'name' ? 'tier' : 'name';
+        this.inventoryNavigation = null;
         this.render();
         break;
       case 'item':
-        this.inspectItem(arg, true);
+        this.inspectItem(arg);
         break;
       case 'equip':
         this.feedback(P.equip(s, h.id, arg));
@@ -873,15 +943,23 @@ export class UI {
     const old = [...this.root.querySelectorAll('[data-do]')].find(
       (b) => !b.disabled && b.dataset.do === prev,
     );
-    if (old) old.focus({ preventScroll: true });
-    else if (
-      this.menu &&
-      this.tab === 2 &&
-      /^(item|equip|use):/.test(prev || '')
+    const inventoryVisible =
+      this.menu && this.tab === 2 && this.panel?.type !== 'confirm';
+    if (
+      inventoryVisible &&
+      this.renderedMenuTab !== 2 &&
+      !prev?.startsWith('inventory-slot:')
     )
-      this.root
-        .querySelector('.exp-pack-row.selected .exp-pack-item')
-        ?.focus({ preventScroll: true });
+      (
+        this.root.querySelector('.exp-inventory-item[aria-pressed="true"]') ||
+        this.root.querySelector('.exp-inventory-hero[aria-pressed="true"]')
+      )?.focus({ preventScroll: true });
+    else if (old) old.focus({ preventScroll: true });
+    else if (inventoryVisible)
+      (
+        this.root.querySelector('.exp-inventory-item[aria-pressed="true"]') ||
+        this.root.querySelector('.exp-inventory-hero[aria-pressed="true"]')
+      )?.focus({ preventScroll: true });
     else if (this.menu && this.tab === 0 && this.map.canvas)
       this.map.focusSelected();
     else if (html) this.focus(this.menu ? 7 : 0);
@@ -980,16 +1058,16 @@ export class UI {
       ) + 'px';
   }
 
-  inspectItem(id, focusAction = false) {
+  inspectItem(id) {
+    if (!ITEMS[id] || !(this.game.state.inventory[id] > 0)) return;
     this.item = id;
-    for (const row of this.root.querySelectorAll('.exp-pack-row')) {
-      const selected = row.dataset.packItem === id;
-      row.classList.toggle('selected', selected);
-      row
-        .querySelector('.exp-pack-item')
+    this.inventoryIndex = Math.max(0, inventoryItems(this).indexOf(id));
+    for (const card of this.root.querySelectorAll('.exp-inventory-card')) {
+      const selected = card.dataset.packItem === id;
+      card.classList.toggle('selected', selected);
+      card
+        .querySelector('.exp-inventory-item')
         ?.setAttribute('aria-pressed', String(selected));
-      if (selected && focusAction)
-        row.querySelector('.exp-pack-action')?.focus({ preventScroll: true });
     }
   }
   heroButtons() {
@@ -997,9 +1075,6 @@ export class UI {
   }
   renderMenu() {
     return renderExpedition(this);
-  }
-  itemDetail(id) {
-    return expeditionItemDetail(this, id);
   }
   controls() {
     return `<div class="controls-grid">${[

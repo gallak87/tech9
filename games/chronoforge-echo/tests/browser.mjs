@@ -370,22 +370,24 @@ try {
           g.state.heroes[0].skillPoints = 5;
         });
         await ensureMenu(3);
-        await choose('item:glacial_claw');
+        await keyboardTo('[data-do="item:glacial_claw"]');
         assert.match(
-          await page.locator('#item-detail').innerText(),
+          await page
+            .locator('[data-pack-item="glacial_claw"] .exp-inventory-deltas')
+            .getAttribute('aria-label'),
           /Compared with Iron Blade/,
         );
-        await choose('equip:glacial_claw');
+        await press('Enter');
         let s = (await snapshot()).state;
         assert.equal(s.heroes[0].equip.weapon, 'glacial_claw');
         assert.equal(s.inventory.iron_blade, 1);
         await choose('unequip:weapon');
         assert.equal((await snapshot()).state.inventory.glacial_claw, 1);
         await choose('item:glacial_claw');
-        await choose('equip:glacial_claw');
         const beforeTonic = (await snapshot()).state.inventory.field_tonic;
         await choose('item:field_tonic');
-        await choose('use:field_tonic');
+        await page.locator('.purchase-confirm').waitFor();
+        await press('Enter');
         s = (await snapshot()).state;
         assert.equal(s.heroes[0].hp, 90);
         assert.equal(s.inventory.field_tonic, beforeTonic - 1);

@@ -97,7 +97,7 @@ try {
   await click('item:glacial_claw');
   assert.match(
     await page
-      .locator('[data-pack-item="glacial_claw"] .exp-pack-stats')
+      .locator('[data-pack-item="glacial_claw"] .exp-inventory-deltas')
       .getAttribute('aria-label'),
     /Compared with Iron Blade/,
   );
@@ -107,6 +107,8 @@ try {
   assert.equal((await state()).inventory.glacial_claw, 1);
   await click('item:field_tonic');
   await click('use:field_tonic');
+  await page.locator('.purchase-confirm').waitFor();
+  await page.keyboard.press('Enter');
   assert.equal((await state()).heroes[0].hp, 90);
   await page.keyboard.press('4');
   await click('learn:chrono_strike');

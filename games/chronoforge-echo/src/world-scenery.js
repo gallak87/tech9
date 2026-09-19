@@ -88,12 +88,13 @@ export function footprintBlocks(o,x,y,padding=6) {
   return o.footprints?.some(r=>x>o.x+r.x-padding&&x<o.x+r.x+r.w+padding&&y>o.y+r.y-padding&&y<o.y+r.y+r.h+padding)||false;
 }
 
-// Final world coordinates. Decorative landmarks may move; doors, consoles,
-// encounters, portal destinations and their saved IDs/anchors remain fixed.
+// Final world coordinates for visual clearances. Doors, consoles and portal
+// destinations retain their anchors; encounter IDs and contents stay intact.
 const placements={
   haventide:{tide_ring:[850,1590]},
   forest_veil:{forest_veil_ruin_2:[2920,910]},
   orbital_reach:{orbital_tether:[3150,1100]},
+  frost_canyon:{frost_entry:[1037.5,1362.5]},
   last_crown:{crown_spire:[4990,740],last_crown_ruin_4:[4540,880]},
 };
 

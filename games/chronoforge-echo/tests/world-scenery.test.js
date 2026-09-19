@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {REGIONS,ALL_SCENES,isWalkable,safeArrival} from '../src/world.js';
+import {REGIONS,ALL_SCENES,isWalkable,safeArrival,distanceToRoad} from '../src/world.js';
+import {GLACIER_WOLF_ART} from '../src/mid-enemy-frames.js';
 import {sceneryBounds,sceneryOcclusionBounds,footprintBlocks} from '../src/world-scenery.js';
 import {WORLD_DETAIL_ASSETS,worldDetailBounds} from '../src/world-detail-art.js';
 import {CAVE_ASSETS,CAVE_BIOMES,caveArtFrame} from '../src/cave-art.js';
@@ -29,6 +30,20 @@ test('large landmarks leave authored interactions and neighboring ruins visible'
   assert.deepEqual(orbital.objects.filter(o=>['orbital_lift','orbital_cave_door'].includes(o.id)).map(o=>[o.id,o.x,o.y]),[
     ['orbital_lift',2875,1187.5],['orbital_cave_door',3437.5,1900],
   ]);
+});
+
+test('Frost Canyon wolves stand on a clear road with their full silhouette visible',()=>{
+  const scene=REGIONS.frost_canyon,enemy=scene.objects.find(o=>o.id==='frost_entry');
+  assert.deepEqual(enemy.enemies,['glacier_wolf','glacier_wolf']);
+  assert.ok(distanceToRoad(scene,enemy.x,enemy.y)<15);
+  for(const [dx,dy]of [[0,0],[24,0],[-24,0],[0,24],[0,-24]])assert.ok(isWalkable(scene,enemy.x+dx,enemy.y+dy),'open approach');
+  const frame=GLACIER_WOLF_ART.frames[0],scale=GLACIER_WOLF_ART.pixelScale*.85;
+  const left=enemy.x-frame.anchorX*scale-16,top=enemy.y-frame.anchorY*scale-16;
+  const right=left+frame.w*scale+32,bottom=enemy.y+28;
+  for(const object of scene.objects.filter(o=>['tree','ruin','landmark'].includes(o.type)&&o.y>enemy.y)){
+    const b=sceneryBounds(object,scene.biome);if(!b)continue;
+    assert.equal(b.left<right&&b.left+b.width>left&&b.top<bottom&&b.top+b.height>top,false,object.id+' hides the encounter');
+  }
 });
 
 test('portal marker bases collide beside the route, and the portal itself stays open',()=>{

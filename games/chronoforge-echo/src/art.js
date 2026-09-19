@@ -3739,7 +3739,7 @@ export function drawEnemy(c, id, x, y, opt = {}) {
   }
   c.restore();
 }
-export function drawPortrait(c, id, x, y, size = 72) {
+export function drawPortrait(c, id, x, y, size = 72, sourceOffsetX = 0) {
   if (id === 'instrument') {
     rect(c, x, y, size, size, '#151515');
     ellipse(
@@ -3836,7 +3836,7 @@ export function drawPortrait(c, id, x, y, size = 72) {
       f = a.portrait;
     c.drawImage(
       a.image,
-      f.x,
+      f.x + sourceOffsetX,
       f.y,
       f.w,
       f.h,
@@ -3848,7 +3848,7 @@ export function drawPortrait(c, id, x, y, size = 72) {
   } else if (id === 'kaida' && kaidaSheet?.frames) {
     c.drawImage(
       kaidaSheet.image,
-      1525,
+      1525 + sourceOffsetX,
       386,
       177,
       150,

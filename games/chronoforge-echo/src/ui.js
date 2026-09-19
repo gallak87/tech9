@@ -179,7 +179,14 @@ export class UI {
     root
       .querySelectorAll('[data-portrait]')
       .forEach((c) =>
-        drawPortrait(c.getContext('2d'), c.dataset.portrait, 0, 0, 192),
+        drawPortrait(
+          c.getContext('2d'),
+          c.dataset.portrait,
+          0,
+          0,
+          192,
+          Number(c.dataset.portraitOffsetX || 0),
+        ),
       );
   }
   focus(index = 0) {

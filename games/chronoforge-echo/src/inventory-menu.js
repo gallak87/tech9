@@ -36,6 +36,7 @@ const statNames = {
   maxMp: 'Max MP',
 };
 const heroOf = (ui) => ui.game.state.heroes[ui.hero] || ui.game.state.heroes[0];
+const portraitSourceOffsets = { kaida: 18, vex: -10 };
 
 export function inventoryItems(ui) {
   const slots = groups.map(([slot]) => slot);
@@ -61,7 +62,7 @@ function crewPicker(ui) {
   return `<div class="exp-inventory-crew"><div class="exp-inventory-crew-hint"><span>Crew</span><span><kbd>[</kbd><kbd>]</kbd> Switch</span></div><div class="exp-inventory-heroes" role="group" aria-label="Crew member">${ui.game.state.heroes
     .map((h, i) =>
       button(
-        `<span class="exp-inventory-face"><canvas data-portrait="${h.id}" width="192" height="192" aria-hidden="true"></canvas></span><span class="exp-inventory-hero-label">${esc(h.name)} <small>LV ${h.level}</small></span>`,
+        `<span class="exp-inventory-face"><canvas data-portrait="${h.id}" data-portrait-offset-x="${portraitSourceOffsets[h.id] || 0}" width="192" height="192" aria-hidden="true"></canvas></span><span class="exp-inventory-hero-label">${esc(h.name)} <small>LV ${h.level}</small></span>`,
         'hero:' + i,
         'exp-inventory-hero',
         `aria-pressed="${i === ui.hero}" aria-label="Select ${esc(h.name)}, level ${h.level}"`,

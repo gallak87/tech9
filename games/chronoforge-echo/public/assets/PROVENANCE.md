@@ -81,3 +81,24 @@ Originals are generated project assets, with no third-party pack or remote image
 
 - `world-props-source.png`: original generated RGBA atlas containing chest, salvage crate, provisions bag, signal console, three rest-lantern phases and unfinished foundation. The exact prompt and generation source are in `world-props-prompt.json`; measured extraction and actual scene/animation evidence are in `../../docs/world-prop-assets.md`.
 - `src/alpha-masks.js` describes measured background pockets and bounded exterior key regions for existing hero and civilian sheets. It changes runtime transparency without modifying immutable source PNGs or globally removing pale armor, eyes or weapon highlights.
+
+## Regional interior restoration kits
+
+The twelve selected sources below were generated with built-in imagegen and are retained unchanged under `interiors/`. Each contains the same four-column, three-row production layout: provisions, forge, inn, archive; engineering, training, planning desk, storage; floor, runner, window wall, column. The generation brief required separate smooth painterly furniture sprites, no staff or labels, and substantive scarcity → repair → specialized abundance → futuristic capability across the four levels. Regional exteriors supplied architectural identity and the approved Haventide kits supplied camera and finish references. A subsequent imagegen edit preserved every kit’s contents and layout while giving each region distinct cloth, masonry and light hues. No runtime tint is used. Haventide sources were not changed.
+
+| Region | Tier | Selected generation |
+| --- | --- | --- |
+| Emberline | Survivor | `exec-c9fa895b-6fb1-4275-9bf7-a4262b94dc1b.png` |
+| Emberline | Reclaimer | `exec-e75b490c-437c-433a-849d-b6b61487aa29.png` |
+| Emberline | Ascendant | `exec-5c834820-02af-4977-8067-2cff1536733a.png` |
+| Emberline | Transcendent | `exec-a04b7c1e-7202-407c-8292-b5d008e8449b.png` |
+| Orbital Reach | Survivor | `exec-e6b7c730-a09d-48af-b6dc-a767b99ed370.png` |
+| Orbital Reach | Reclaimer | `exec-a963885a-2cac-4173-a50f-5da5a1a48d65.png` |
+| Orbital Reach | Ascendant | `exec-4e5a4828-7732-4533-94e0-1f104595ccf0.png` |
+| Orbital Reach | Transcendent | `exec-61484f19-5dbd-492d-aa4d-d2b05902c6fe.png` |
+| Last Crown | Survivor | `exec-8842264c-151c-4aca-9b5c-1890cdae789f.png` |
+| Last Crown | Reclaimer | `exec-0f816660-4f79-472a-b0ec-3a5befb82f06.png` |
+| Last Crown | Ascendant | `exec-64fbe8b2-eb91-45ba-b7b0-7ed780de8bb0.png` |
+| Last Crown | Transcendent | `exec-83d773ad-f1f0-4212-b20d-3b5e570c5302.png` |
+
+Emberline’s final palette is terracotta/copper/rust-crimson with amber solar light; Orbital Reach is cobalt/indigo/silver with blue energy; Last Crown is plum/amethyst/obsidian/platinum. All twelve are 1448 × 1086 RGB sources. Measured crops and local enclosed-air seeds drive connected background removal at runtime; opaque inner floor samples bypass removal. Only selected production sources are shipped. Current checksums and byte sizes are in `docs/asset-inventory.json`.

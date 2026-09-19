@@ -16,6 +16,7 @@ export const HAVENTIDE_HALL = {
 };
 
 export function configureHaventideInterior(scene) {
+  scene.restorationInterior=true;
   scene.walkAreas=[{...HAVENTIDE_HALL.floor},{...HAVENTIDE_HALL.entrance}];
   // Old floating wall fragments are replaced by the room's perimeter.
   scene.objects=scene.objects.filter(o=>!o.id.startsWith('hav_market_'));

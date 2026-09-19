@@ -1,3 +1,4 @@
+import {configureRegionalInterior} from './regional-interior-layout.js';
 import {NPC_IDENTITIES,npcIdentity,npcPresent} from './npc-identities.js';
 import {configureHaventideInterior} from './haventide-interior-layout.js';
 // Authored geography. Coordinates are native pixels; every door is anchored at its threshold.
@@ -199,14 +200,6 @@ const havenMarket=interiors.haventide_town;
 for(const o of havenMarket.objects){if(o.stall){const index=['provisions','smith','inn','archivist','artificer','trainer'].indexOf(o.service);o.x=index<3?[400,640,880][index]:[260,640,1020][index-3];o.y=index<3?640:270;o.w=135;o.h=38;}if(o.service==='construction'){o.x=700;o.y=744;}}
 havenMarket.objects.push(landmark('hav_market_pillar_left','The west aisle',300,735,'interior_column',{solid:true,w:135,h:35}),landmark('hav_market_pillar_right','The east aisle',980,735,'interior_column',{solid:true,w:135,h:35}),landmark('hav_market_table','The tide books',260,400,'interior_shelf',{solid:true,w:135,h:35}));
 for(const s of Object.values(interiors).filter(s=>s.kind==='cave'))for(const o of s.objects)if(o.type==='console')o.fieldRecord=true;
-// Three regional courts keep their own circulation and domestic character.
-const courts={
- emberline:{style:'caravan',stalls:[[375,610],[900,565],[940,280],[285,290],[1000,710],[260,735]],board:[700,620],resident:[650,330],zones:[['cloth',[[598,815],[676,815],[680,712],[651,584],[668,448],[628,338],[586,348],[601,477],[587,615]]],['regionalPath',[[518,836],[777,836],[762,610],[816,388],[750,174],[533,174],[471,370],[529,590]]]],props:[['cypress',810,750,168,42,26],['rock',427,733,58,46,25],['fern',835,340,60,40,24],['arch',666,210,153,80,35]]},
- orbital_reach:{style:'shelter',stalls:[[375,620],[915,615],[650,305],[245,285],[1050,295],[1030,735]],board:[520,720],resident:[750,620],zones:[['mosaic',[[605,836],[677,836],[677,762],[605,762]]],['wood',[[386,751],[834,751],[874,585],[828,415],[651,373],[435,430],[381,573]]]],props:[['cliff',110,680,158,72,37],['cypress',1170,660,159,54,30],['rock',1140,820,60,45,26]]},
- last_crown:{style:'garden',stalls:[[375,610],[915,590],[655,265],[225,290],[1080,280],[1060,735]],board:[650,660],resident:[455,480],zones:[['regionalPath',[[581,838],[707,838],[720,696],[877,615],[1080,638],[1130,556],[878,525],[735,429],[735,273],[587,273],[577,435],[400,535],[214,553],[207,651],[411,626],[579,697]]]],props:[['ring',652,485,223,133,53],['tree',295,807,178,67,34],['tree',1155,774,186,68,36],['fern',503,780,51,34,20],['fern',810,803,53,34,20],['rock',916,433,65,52,27]]}
-};
-for(const [region,d]of Object.entries(courts)){const s=interiors[region+'_town'];s.floorStyle=d.style;s.floorZones=d.zones.map(([material,points])=>({material,points}));for(const o of s.objects){if(o.stall){const i=['provisions','smith','inn','archivist','artificer','trainer'].indexOf(o.service);[o.x,o.y]=d.stalls[i];o.w=125;o.h=38;}if(o.service==='construction')[o.x,o.y]=d.board;if(o.id.endsWith('_resident'))[o.x,o.y]=d.resident;}for(const [part,x,y,drawHeight,w,h]of d.props)s.objects.push(landmark(region+'_court_'+part+'_'+x,part,x,y,'biome_prop',{part,drawHeight,solid:true,w,h}));}
-interiors.orbital_reach_town.objects.push(landmark('orbital_court_stove','The warm center',620,552,'domestic',{part:'stove',drawHeight:150,solid:true,w:88,h:40}),landmark('orbital_court_chair','A place to dry your boots',430,653,'domestic',{part:'chair',drawHeight:104,solid:true,w:69,h:34}));
 REGIONS.forest_veil.quietAreas=[{x:2135,y:958,rx:385,ry:255}];
 Object.assign(REGIONS.forest_veil.objects.find(o=>o.id==='forest_greatroot'),{solid:true,w:125,h:55});
 REGIONS.forest_veil.objects.push(obj('forest_root_edge_left','tree',1760,1055,{variant:1,size:.94,solid:true,w:40,h:27}),obj('forest_root_edge_right','tree',2440,897,{variant:3,size:.84,solid:true,w:33,h:25}));
@@ -249,6 +242,7 @@ for (const scene of Object.values(ALL_SCENES)) {
  if(scene.groves)scene.groves=scene.groves.map(a=>a.map((v,i)=>i<4?v*scale:v));
 }
 configureHaventideInterior(ALL_SCENES.haventide_town);
+for(const region of ['emberline','orbital_reach','last_crown'])configureRegionalInterior(ALL_SCENES[region+'_town']);
 
 // A landmark is usable from the lower approach and either side of its base,
 // rather than a small circle around the console hidden behind its artwork.

@@ -1,6 +1,6 @@
 {
-  "sourceCount": 86,
-  "compressedBytes": 186258790,
+  "sourceCount": 98,
+  "compressedBytes": 217058367,
   "sources": [
     {
       "id": "haventide_interior_level_1",
@@ -45,6 +45,138 @@
       "sourceBytes": 2732209,
       "frames": 12,
       "sha256": "4471d49e4a5cdd62c317403f9b9921520760cecc5245b88a8e3a40cc6beaf796"
+    },
+    {
+      "id": "emberline_interior_level_1",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/emberline-survivor-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2358418,
+      "frames": 12,
+      "sha256": "4b72e84d2c8a2b75e7a370da1d038ec663a90ab43c3207424b00b458fbe28418"
+    },
+    {
+      "id": "emberline_interior_level_2",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/emberline-reclaimer-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2386235,
+      "frames": 12,
+      "sha256": "d29df757c7e4e144ed398fa83d563433f2daebe66bee08827bf104da91e6ce4f"
+    },
+    {
+      "id": "emberline_interior_level_3",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/emberline-ascendant-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2599635,
+      "frames": 12,
+      "sha256": "cda81035234b828d87af345edcd0ad4688b5097c544bb4234ea58922527a8ba5"
+    },
+    {
+      "id": "emberline_interior_level_4",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/emberline-transcendent-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2681307,
+      "frames": 12,
+      "sha256": "1b7eb7a1370ca11114717b0376751f9cd1ba60f3c7a77d6b478cb86207f15e58"
+    },
+    {
+      "id": "orbital_reach_interior_level_1",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/orbital-reach-survivor-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2383907,
+      "frames": 12,
+      "sha256": "f3105d7cdbb539d185a0fab6f6a52df276fba6e7290d4314eb4880e793211d06"
+    },
+    {
+      "id": "orbital_reach_interior_level_2",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/orbital-reach-reclaimer-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2400361,
+      "frames": 12,
+      "sha256": "224bf01277665328801ed7eb0c12dfb596b358b29f881f527fb91be4fedb895c"
+    },
+    {
+      "id": "orbital_reach_interior_level_3",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/orbital-reach-ascendant-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2489573,
+      "frames": 12,
+      "sha256": "6fc9cea9b0ee4fff4eb97a387ed266fe5f75b6e1c071110960ab7901d071bed8"
+    },
+    {
+      "id": "orbital_reach_interior_level_4",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/orbital-reach-transcendent-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2633808,
+      "frames": 12,
+      "sha256": "807382f517ad013c742593d10cca537f5a266b8f4489816c0f5717440d43e54e"
+    },
+    {
+      "id": "last_crown_interior_level_1",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/last-crown-survivor-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2622165,
+      "frames": 12,
+      "sha256": "22cc770d3c8b2a490b1491c68662ea181bee9f34820e5c3155e612a3db9bd884"
+    },
+    {
+      "id": "last_crown_interior_level_2",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/last-crown-reclaimer-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2629479,
+      "frames": 12,
+      "sha256": "e93cee6879efdcb37f32b7775bb9bf7a7589d4f4b847d1acac2ea1632fc1f947"
+    },
+    {
+      "id": "last_crown_interior_level_3",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/last-crown-ascendant-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2819610,
+      "frames": 12,
+      "sha256": "75b60b63500eb703771d2dcc5de587554f2d0246e9c30aa95f7b03c710cf6132"
+    },
+    {
+      "id": "last_crown_interior_level_4",
+      "kind": "havenInterior",
+      "biome": null,
+      "file": "assets/interiors/last-crown-transcendent-v1-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sourceBytes": 2795079,
+      "frames": 12,
+      "sha256": "a279fbaa4f3a951ebe6f8b581c5bd72e338828c61e500c65e8c230eda07cf9ba"
     },
     {
       "id": "haventide_town_center",

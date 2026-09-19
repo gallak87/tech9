@@ -12,21 +12,21 @@ Orbital Reach and Last Crown, for levels 1 → 2, 2 → 3 and 3 → 4.
 3. Hold the actual indoor camera and crew, fade outside in 180 ms, and give
    the old exterior a brief suspenseful 2% push in. Keep the scale fixed as
    the building changes in 850 ms with a quick upward burst of sparkles.
-4. Fade back in 180 ms to the same indoor composition. In Haventide, hold the
+4. Fade back in 180 ms to the same indoor composition. In every town, hold the
    old hall for 240 ms, then dissolve into the restored furnishings in 500 ms
    with a lighter, sixteen-particle shimmer. The camera and crew stay fixed;
-   there is no indoor zoom. Other towns return directly to their current hall.
+   there is no indoor zoom.
 5. Briefly hold the finished interior, then automatically return to Settlement
    works with the new level and upgrade message.
 
-The sequence lasts about six seconds in Haventide and five in the other towns.
+The sequence lasts about six seconds in every town.
 Space, Esc or either Skip reveal button
 returns immediately. Skipping does not undo or repeat the purchase. Reloading
 mid-reveal retains the checkpointed upgrade without replaying or charging again.
 Restrained motion omits the zoom and sparkles, keeping fades and the dissolve.
-Haventide’s floor, architecture, supplies and service furnishings also restore
-with each Town Center level. Its opening and closing indoor frames show the
-actual before/after hall. The other towns retain their current interior art.
+Every town’s floor, architecture, supplies and service furnishings restore
+with each Town Center level. The opening and closing indoor frames show the
+actual before/after hall.
 
 Exploration, movement and interaction pause during playback. The cinematic uses
 detached render states; it never travels, reveals another map, moves the crew,
@@ -36,10 +36,9 @@ keeping the paid upgrade. No captures are written to disk or browser storage.
 
 ## Local art preview
 
-The localhost-only backtick panel still offers Upgrade from inside Haventide.
+The localhost-only backtick panel offers Upgrade from inside the selected hall.
 Choose a level pair, then Upgrade Town Center to rehearse the same presentation
-without spending resources or saving changes. This preview stages the crew at
-the desk and includes replay controls. Its controls remain excluded from
+without spending resources or saving changes. From inside Haventide, the preview keeps the actual camera and crew; from outside, it stages them at the desk. The selected regional artwork appears on Haventide’s geometry without travel or discovery. Replay controls are available. Its controls remain excluded from
 production; the shared cinematic renderer and styles ship with the game.
 
 ## Implementation and checks

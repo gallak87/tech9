@@ -115,11 +115,13 @@ export function mountUpgradeTour(game,{previewMarkup=null,onReturnToPlay=()=>{}}
   function open(nextPlan,done=null) {
     if(tour)close();
     plan=nextPlan;onComplete=done;
-    const outside=getScene(plan.region),inside=getScene(plan.region+'_town');
-    townName=outside.name;
-    const view=preview?null:{camera:game.camera,actors:[{id:'kaida',x:game.state.x,y:game.state.y,facing:game.state.facing},...game.followers]};
+    const location=plan.previewLocation??plan.region;
+    const outside=getScene(location),inside=getScene(location+'_town');
+    townName=getScene(plan.region).name;
+    const townLabel=root.querySelector('[data-town-name]');if(townLabel)townLabel.textContent=townName;
+    const view=preview&&game.scene.id!==location+'_town'?null:{camera:game.camera,actors:[{id:'kaida',x:game.state.x,y:game.state.y,facing:game.state.facing},...game.followers]};
     const cameras=upgradeTourCameras(outside,inside,plan,view);
-    const entrance=outside.objects.find(o=>o.id===plan.region+'_entrance');
+    const entrance=outside.objects.find(o=>o.id===location+'_entrance');
     const board=inside.objects.find(o=>o.service==='construction');
     const interiorReveal=inside.objects.some(o=>o.havenPart);
     const interiorTargets=inside.objects.filter(o=>o.service&&o.havenPart).map(o=>{

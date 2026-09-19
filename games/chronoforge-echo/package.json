@@ -12,7 +12,13 @@
     "clean:review": "node scripts/review-output.mjs --clean",
     "verify:build": "node scripts/verify-dist.mjs",
     "verify:pages": "npm run build && npm run verify:build && node tests/pages.mjs",
-    "lint": "eslint . --max-warnings 0"
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix --max-warnings 0",
+    "lint:staged": "lint-staged --cwd .",
+    "prepare": "cd ../.. && husky games/chronoforge-echo/.husky"
+  },
+  "lint-staged": {
+    "*.{js,mjs}": "eslint --fix --max-warnings 0"
   },
   "dependencies": {
     "pixi.js": "8.16.0"
@@ -21,6 +27,8 @@
     "@eslint/js": "10.0.1",
     "eslint": "10.11.0",
     "globals": "17.12.0",
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
     "playwright": "1.58.2",
     "vite": "8.3.0"
   },

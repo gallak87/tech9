@@ -1,0 +1,5 @@
+if git diff --cached --quiet --diff-filter=ACMR -- games/chronoforge-echo; then
+  exit 0
+fi
+cd games/chronoforge-echo
+npm run lint:staged

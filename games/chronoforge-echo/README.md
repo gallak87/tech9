@@ -21,6 +21,8 @@ npm run build
 npm run verify:build
 ```
 
+`npm run lint:fix` applies ESLint’s automatic fixes. `npm install` enables the pre-commit hook: staged Echo JavaScript is fixed and re-staged, unstaged edits are preserved, and remaining lint errors block the commit.
+
 The static build is in `dist/`. `npm run preview` serves it at **http://127.0.0.1:4322/**. No server-side service or API key is required. Serve the build over HTTP.
 
 The repository's Pages workflow publishes Echo at **https://gallak87.github.io/tech9/chronoforge-echo/**. Vite's relative base supports both the site root and nested deployment paths. Keep the trailing slash in links. `verify:build` checks compiled URLs, bundled fonts, live art and exclusion of development controls.

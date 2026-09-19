@@ -1,0 +1,146 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {WorldTraversal} from '../src/world-traversal.js';
+import {WorldTravelPreview} from '../src/dev-world-travel.js';
+import {createState, recruit} from '../src/progression.js';
+import {getScene, isWalkable, REGIONS} from '../src/world.js';
+
+const openScene = () => ({id: 'open', width: 1800, height: 1200, objects: [], roads: []});
+function fixture(scene = openScene()) {
+  const state = createState();
+  if (scene) Object.assign(state, {x: 240, y: 240});
+  recruit(state, 'vex');
+  recruit(state, 'rune');
+  const notices = [], sounds = [], logs = [];
+  const game = {
+    state, mode: 'world', camera: {x: 0, y: 0}, keys: new Set(),
+    followPath: [], followers: [], movePath: [], transition: null,
+    ui: {panel: null},
+    get scene() { return scene || getScene(this.state.region); },
+    rewards(items) { notices.push(...items); },
+    audio: {sound(name) { sounds.push(name); }},
+    log(type, data) { logs.push({type, ...data}); },
+    finishRecruitment() { delete this.state.recruitmentWalk; },
+  };
+  const traversal = new WorldTraversal(game);
+  game.travel = (...args) => traversal.travel(...args);
+  traversal.resetFollowers();
+  return {game, traversal, notices, sounds, logs};
+}
+
+test('walk/run speed is direction-independent and keyboard input cancels a click route', () => {
+  for (const running of [false, true]) {
+    for (const keys of [['d'], ['d', 's']]) {
+      const {game, traversal} = fixture();
+      game.keys = new Set([...keys, ...(running ? ['Shift'] : [])]);
+      game.movePath = [{x: 100, y: 100}];
+      traversal.move(.05);
+      assert.ok(Math.abs(Math.hypot(game.state.x - 240, game.state.y - 240) - (running ? 245 : 165) * .05) < 1e-10);
+      assert.deepEqual(game.movePath, []);
+      assert.equal(game.moving, true);
+      assert.equal(game.state.visited.open, true);
+    }
+  }
+});
+
+test('rebinding movement and sliding beside a solid both retain grounded collision', () => {
+  const scene = openScene();
+  scene.objects.push({x: 280, y: 330, w: 50, h: 180, solid: true});
+  const {game, traversal} = fixture(scene);
+  game.state.x = 248;
+  game.state.settings.keys = {right: 'l', down: 'j'};
+  game.keys = new Set(['l', 'j']);
+  traversal.move(.05);
+  assert.equal(game.state.x, 248, 'The rightward component cannot enter the solid');
+  assert.ok(game.state.y > 240, 'The free component can slide along the solid');
+  assert.equal(isWalkable(scene, game.state.x, game.state.y), true);
+});
+
+test('click routes detour around solids and finish at the precise reachable destination', () => {
+  const scene = openScene();
+  scene.objects.push({x: 360, y: 275, w: 70, h: 110, solid: true});
+  const {game, traversal} = fixture(scene);
+  const target = {x: 487, y: 239};
+  traversal.walkTo(target.x, target.y);
+  assert.deepEqual(game.movePath.at(-1), target);
+  assert.ok(game.movePath.some(point => Math.abs(point.y - 240) > 35));
+  for (let i = 0; i < 600 && game.movePath.length; i++) {
+    traversal.move(1 / 60);
+    assert.equal(isWalkable(scene, game.state.x, game.state.y), true);
+  }
+  assert.equal(game.movePath.length, 0);
+  assert.ok(Math.hypot(game.state.x - target.x, game.state.y - target.y) < 5);
+});
+
+test('blocked routes report failure without placing waypoints through a barrier', () => {
+  const scene = {...openScene(), width: 600, height: 500};
+  scene.objects.push({x: 330, y: 505, w: 60, h: 510, solid: true});
+  const {game, traversal, notices} = fixture(scene);
+  traversal.walkTo(480, 240);
+  assert.deepEqual(game.movePath, []);
+  assert.match(notices[0].label, /route is blocked/i);
+});
+
+test('followers compress at an arrival wall and camera honors reduced motion and scene bounds', () => {
+  const scene = openScene();
+  const {game, traversal} = fixture(scene);
+  Object.assign(game.state, {x: 24, y: 80, facing: 'right'});
+  traversal.resetFollowers();
+  assert.equal(game.followers.length, 2);
+  assert.ok(game.followers.every(actor => actor.x <= game.state.x && isWalkable(scene, actor.x, actor.y)));
+  Object.assign(game.state, {x: 1300, y: 900});
+  traversal.updateCamera();
+  assert.ok(game.camera.x > 0 && game.camera.x < 840);
+  game.state.settings.reducedMotion = true;
+  traversal.updateCamera();
+  assert.deepEqual(game.camera, {x: 840, y: 613.8});
+  Object.assign(game.state, {x: 1790, y: 1190});
+  traversal.updateCamera();
+  assert.deepEqual(game.camera, {x: 840, y: 660});
+});
+
+test('travel swaps at the fade midpoint and reports completion exactly once in every world', () => {
+  for (const destination of Object.values(REGIONS)) {
+    const {game, traversal, sounds, logs} = fixture(null);
+    const originalRegion = game.state.region;
+    const originalPosition = {x: game.state.x, y: game.state.y};
+    game.keys.add('d');
+    game.movePath = [{x: 100, y: 100}];
+    traversal.travel(destination.id);
+    const transition = game.transition;
+    traversal.travel('haventide');
+    assert.equal(game.transition, transition, 'A second request must not overwrite an active journey');
+    assert.deepEqual([...game.keys], []);
+    assert.deepEqual(game.movePath, []);
+    assert.equal(traversal.updateTransition(.2), false);
+    assert.equal(game.state.region, originalRegion);
+    assert.deepEqual({x: game.state.x, y: game.state.y}, originalPosition);
+    assert.equal(traversal.updateTransition(.1), false);
+    assert.equal(game.state.region, destination.id);
+    assert.equal(isWalkable(destination, game.state.x, game.state.y), true);
+    assert.equal(game.state.visited[destination.id], true);
+    assert.equal(traversal.updateTransition(.3), true);
+    assert.equal(game.transition, null);
+    assert.equal(traversal.updateTransition(.3), false);
+    assert.equal(logs.length, 1);
+    assert.deepEqual(sounds, ['door']);
+  }
+});
+
+test('traversal follows a detached dev expedition and resumes using the restored state', () => {
+  const {game, traversal} = fixture(null);
+  const original = game.state;
+  const baseline = structuredClone(original);
+  const preview = new WorldTravelPreview(game);
+  assert.equal(preview.jump('last_crown'), true);
+  assert.equal(traversal.updateTransition(.6), true);
+  game.keys.add('d');
+  traversal.move(.05);
+  assert.deepEqual(original, baseline);
+  assert.equal(preview.saveSource().state, original);
+  assert.equal(preview.restore(), true);
+  traversal.resetFollowers();
+  traversal.updateCamera(true);
+  assert.equal(game.state, original);
+  assert.ok(game.followers.every(actor => isWalkable(game.scene, actor.x, actor.y)));
+});

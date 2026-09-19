@@ -6,7 +6,7 @@ A standalone Vite application using JavaScript modules and PixiJS to present a 1
 
 `progression.js` owns state creation and progression mutations; `content.js` owns hero, enemy, item, skill and building catalogs. Effective stats are computed rather than cached into saves. `narrative.js` owns story conditions, dialogue, objectives and event rewards. Unique ledgers prevent repeat quest, pickup and first-clear rewards.
 
-`main.js` integrates input, the clamped simulation clock, world travel, combat and UI. Menus, dialogue, vendors, construction and cinematic playback pause simulation. Audio uses its own clock. Followers sample the traversed path and compress safely near doors rather than chasing through solids.
+`main.js` integrates input, the clamped simulation clock, combat and UI. `world-traversal.js` owns click routing, movement, followers, camera positioning and travel timing; the integrator fires visit events and saves once arrival completes. Both use the same live Game state. Menus, dialogue, vendors, construction and cinematic playback pause simulation. Audio uses its own clock. Followers sample the traversed path and compress safely near doors rather than chasing through solids.
 
 `world.js` owns scene geometry, interaction locations, terrain and shared requirements. Actor positions are foot anchors. Visual extents, grounded collision footprints and interaction ranges are separate. Roads, door approaches and passages through arches must remain reachable. Click navigation and keyboard movement use the same collision predicate; the path search includes the exact requested endpoint when its final segment is clear.
 
@@ -28,7 +28,7 @@ Regional town metadata selects exteriors and restoration kits by actual Town Cen
 
 ## Persistence and development tools
 
-`persistence.js` validates versioned state and manages three manual slots plus an automatic checkpoint. Browser storage uses the Echo namespace, separate from the original game. Import validates before replacing a slot. Load/restart clears held input and transient travel/presentation state without changing other saved records.
+`persistence.js` validates versioned state and manages three manual slots plus an automatic checkpoint. Browser storage uses the Echo namespace, separate from the original game. `save-transfer.js` owns file dialogs, confirmation setup and cancellation of pending imports; `UI.resetSession()` clears presentation state. Import validates before replacing a slot. Load/restart clears held input and transient travel/presentation state without changing other saved records.
 
 Ending progress distinguishes the final boss victory, pending dialogue, ending panel and completed homecoming. The saved dialogue index/panel resumes after load. Completion and future eligibility are granted only by the final return action. Dismissing ordinary dialogue must not fire its completion callback or overwrite ending progress.
 

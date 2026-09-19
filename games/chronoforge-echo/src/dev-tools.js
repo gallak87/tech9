@@ -73,7 +73,15 @@ export function mountDevTools(game) {
     worldBadge.hidden=!worlds.active||preview.open||upgradeTour.open||!!game.upgradeTour?.open;
     game.ui.positionInteraction();
   }
-  function setLevel(value){if(canArt()){preview.selectTownCenter(value);render();}}
+  function focusTownArtwork() {
+    const entrance=game.scene.objects.find(o=>o.id==='haventide_entrance');
+    if(!entrance)return;
+    if(!previousCamera||previousScene!==game.scene.id){previousCamera={...game.camera};previousScene=game.scene.id;}
+    const bounds=townCenterPreviewBounds(entrance);
+    game.camera.x=Math.max(0,Math.min(game.scene.width-VIEW_WIDTH,bounds.left+bounds.width/2-VIEW_WIDTH*.61));
+    game.camera.y=Math.max(0,Math.min(game.scene.height-VIEW_HEIGHT,bounds.top-60));
+  }
+  function setLevel(value){if(canArt()){preview.selectTownCenter(value);focusTownArtwork();render();}}
   function cycle(delta){setLevel((current()-1+delta+4)%4+1);}
   function setOpen(value) {
     if(value===preview.open)return;
@@ -82,13 +90,7 @@ export function mountDevTools(game) {
     preview.setOpen(value);root.hidden=!preview.open;
     game.keys.clear();game.movePath=[];game.moving=false;
     if(preview.open){
-      previousFocus=document.activeElement;previousCamera={...game.camera};previousScene=game.scene.id;
-      const entrance=game.mode==='world'&&!game.ui.blocked&&game.scene.objects.find(o=>o.id==='haventide_entrance');
-      if(entrance){
-        const bounds=townCenterPreviewBounds(entrance);
-        game.camera.x=Math.max(0,Math.min(game.scene.width-VIEW_WIDTH,bounds.left+bounds.width/2-VIEW_WIDTH*.61));
-        game.camera.y=Math.max(0,Math.min(game.scene.height-VIEW_HEIGHT,bounds.top-60));
-      }
+      previousFocus=document.activeElement;
       render();root.querySelector('[data-preview="close"]').focus({preventScroll:true});
     }else{
       if(previousCamera&&previousScene===game.scene.id)Object.assign(game.camera,previousCamera);
@@ -118,14 +120,14 @@ export function mountDevTools(game) {
   worldBadge.addEventListener('click',event=>{event.stopPropagation();restoreWorld();});
   root.addEventListener('pointerdown',event=>event.stopPropagation());
   root.addEventListener('change',event=>{
-    if(event.target.matches('[data-town-select]')&&canArt()){preview.selectTown(event.target.value);render();}
+    if(event.target.matches('[data-town-select]')&&canArt()){preview.selectTown(event.target.value);focusTownArtwork();render();}
   });
   root.addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button||button.disabled)return;
     if(button.dataset.tier){setLevel(Number(button.dataset.tier));return;}
     if(button.dataset.world){if(!busy())jumpWorld(button.dataset.world);return;}
     switch(button.dataset.preview){
-      case 'restore':if(canArt()){preview.resetSelection();render();}break;
+      case 'restore':if(canArt()){preview.resetSelection();focusTownArtwork();render();}break;
       case 'map':if(!busy()){mapExplored=!mapExplored;game.ui.render();render();}break;
       case 'return-world':if(!busy())restoreWorld();break;
       case 'world-view':if(!busy()){worldView.openView({revealAll:true});render();}break;

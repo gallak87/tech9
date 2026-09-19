@@ -8,7 +8,7 @@ This inventory describes the required sources imported by the running game. It d
 - **19 distinct enemies:** all eighteen continuity identities plus the separate Void Architect. Every identity has its own six-pose source and measured feet/extent metadata. Large bosses have individual silhouettes and source scales. Down poses remain visible before a short fade.
 - **Regional environments:** each installed biome has its own eight-prop atlas and six-material ground atlas. The renderer composes outdoor depth, roads, water/cliffs, landmarks, foreground layers and encounter backdrops at a consistent native scale. All eight outdoor worlds are 5760×2520.
 - **8 civic structures × four levels:** Town Center, Farm, Mine, Energy Extractor, Barracks, Forge, Research Lab and Walls, the original production/culture sheets plus four dedicated regional town-center families (Haventide, Emberline, Orbital Reach and Last Crown), each with growing per-tier world dimensions and a futuristic final stage. Shared settlement rules drive the visible level.
-- **Interiors and residents:** Haventide has four restoration kits with twelve independently placed pieces each, progressing from scarce supplies and makeshift furnishings to hydroponics, fabrication and civic holograms. These follow the real Town Center level. Shared interiors retain eight market furnishings plus eight domestic furnishings, six civilians with front/back views and matching portraits, six floor materials and six wall materials. Four liberated town centers and sixteen houses/caves use authored footprints, furniture, events and exits.
+- **Interiors and residents:** All four town halls have four restoration kits with twelve independently placed pieces each, progressing from scarce supplies and makeshift furnishings to hydroponics, fabrication and civic holograms. Regional cloth, masonry and light distinguish Haventide’s teal coast, Emberline’s rust/copper caravan hall, Orbital Reach’s cobalt/silver refuge and Last Crown’s plum/platinum garden hall. These follow the real Town Center level. Shared interiors retain eight market furnishings plus eight domestic furnishings, six civilians with front/back views and matching portraits, six floor materials and six wall materials. Four liberated town centers and sixteen houses/caves use authored footprints, furniture, events and exits.
 - **34 item identities:** generated transparent resource, consumable and accessory icons plus code-native equipment icons, shared by inventory, shops and queued reward badges. See [icon assets](icon-assets.md) and [src/item-art.js](../src/item-art.js).
 - **Interface:** seven parchment expedition tabs, compact neutral field UI and the folding battle interface with lava-orange focus/timing cues. Barlow and EB Garamond fonts are bundled locally. See [accepted UI direction](UI_DIRECTION.md).
 - **Combat effects:** original pixel ribbons, shards, arcs, petals, waves, contact accents and fading hit numbers in [src/combat.js](../src/combat.js); each coordinated technique has distinct staging. These effects share the action clock with outcomes.
@@ -16,7 +16,7 @@ This inventory describes the required sources imported by the running game. It d
 
 ## Immutable source files
 
-86 required PNG sources, 177.63 MiB on disk. A complete SHA-256 and byte inventory is in [asset-inventory.json](asset-inventory.json). This compressed-file size is distinct from decoded source and ground-cache memory; live measurements are in [performance.json](../evidence/performance.json).
+98 required PNG sources, 207.00 MiB on disk. A complete SHA-256 and byte inventory is in [asset-inventory.json](asset-inventory.json). This compressed-file size is distinct from decoded source and ground-cache memory; live measurements are in [performance.json](../evidence/performance.json).
 
 | ID | Use | Source dimensions | Source frames/cells | File |
 | --- | --- | --- | --- | --- |
@@ -24,6 +24,18 @@ This inventory describes the required sources imported by the running game. It d
 | haventide_interior_level_2 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/haventide-reclaimer-v1-source.png) |
 | haventide_interior_level_3 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/haventide-ascendant-v1-source.png) |
 | haventide_interior_level_4 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/haventide-transcendent-v1-source.png) |
+| emberline_interior_level_1 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/emberline-survivor-v1-source.png) |
+| emberline_interior_level_2 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/emberline-reclaimer-v1-source.png) |
+| emberline_interior_level_3 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/emberline-ascendant-v1-source.png) |
+| emberline_interior_level_4 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/emberline-transcendent-v1-source.png) |
+| orbital_reach_interior_level_1 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/orbital-reach-survivor-v1-source.png) |
+| orbital_reach_interior_level_2 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/orbital-reach-reclaimer-v1-source.png) |
+| orbital_reach_interior_level_3 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/orbital-reach-ascendant-v1-source.png) |
+| orbital_reach_interior_level_4 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/orbital-reach-transcendent-v1-source.png) |
+| last_crown_interior_level_1 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/last-crown-survivor-v1-source.png) |
+| last_crown_interior_level_2 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/last-crown-reclaimer-v1-source.png) |
+| last_crown_interior_level_3 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/last-crown-ascendant-v1-source.png) |
+| last_crown_interior_level_4 | havenInterior | 1448×1086 | 12 | [PNG](../public/assets/interiors/last-crown-transcendent-v1-source.png) |
 | haventide_town_center | townCenter | 1254×1254 | 4 | [PNG](../public/assets/town-centers/haventide-town-center-tiers-v1-source.png) |
 | emberline_town_center | townCenter | 1254×1254 | 4 | [PNG](../public/assets/town-centers/emberline-town-center-tiers-v1-source.png) |
 | orbital_reach_town_center | townCenter | 1254×1254 | 4 | [PNG](../public/assets/town-centers/orbital-reach-town-center-tiers-v1-source.png) |

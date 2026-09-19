@@ -23,7 +23,7 @@ export class ArtPreview {
 
   visualState(state) {
     return this.open&&(this.townCenterLevel!==null||this.townCenterRegion!=='haventide')
-      ? {...state,townCenterArtRegion:this.townCenterRegion,buildings:{...state.buildings,town_center:this.townCenterLevel??state.buildings.town_center}}
+      ? {...state,townCenterArtRegion:this.townCenterRegion,townInteriorArtRegion:this.townCenterRegion,buildings:{...state.buildings,town_center:this.townCenterLevel??state.buildings.town_center}}
       : state;
   }
 }

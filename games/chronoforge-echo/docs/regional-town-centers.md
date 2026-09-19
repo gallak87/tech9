@@ -1,4 +1,4 @@
-# Regional town-center exterior pass
+# Regional town centers
 
 All four towns now have their own four-stage exterior family. Each sheet was generated as one coherent 2×2 image with built-in imagegen, using the approved Haventide exterior sheet for finish and the existing regional props for materials. The new families are implemented for the user's in-game spot check; Haventide's approved art and 240/280/325/370 world widths are unchanged.
 
@@ -23,7 +23,18 @@ Actual town entrances select their region's sheet and use the shared `buildings.
 | Orbital Reach | 235 × 228 | 280 × 260 | 325 × 331 | 375 × 396 |
 | Last Crown | 230 × 185 | 275 × 241 | 325 × 323 | 375 × 414 |
 
-Dimensions are world units, rounded. Exact crops, widths, anchors and extraction settings are in [town-center-art.js](../src/town-center-art.js). Haventide now has a [four-stage modular interior](haventide-interior.md); the other interiors retain their current art. Successful Town Center upgrades now play the [production upgrade cinematic](upgrade-cinematic.md) using the current town’s exterior and the player’s actual indoor view.
+Dimensions are world units, rounded. Exact crops, widths, anchors and extraction settings are in [town-center-art.js](../src/town-center-art.js). All four towns also have live modular interior restoration described below. Successful Town Center upgrades now play the [production upgrade cinematic](upgrade-cinematic.md) using the current town’s exterior and the player’s actual indoor view.
+
+
+## Interior restoration
+
+Each town has four production twelve-piece kits selected by the real Town Center level. Haventide’s approved sources and layout are unchanged. Emberline uses terracotta, copper, rust/crimson textiles and amber solar equipment. Orbital Reach uses slate, silver, cobalt/indigo textiles and blue navigation machinery. Last Crown uses obsidian, platinum, plum textiles and amethyst living machinery.
+
+Survivor starts with scant rations, empty shelves, salvaged tools and a rough cot. Reclaimer repairs and organizes practical services. Ascendant adds abundant preserved food and powered specialist equipment. Transcendent adds food-growing systems, advanced fabrication, adaptive training and a restored civic hologram. Each tier contains provisions, forge, inn, archive, engineering, training, planning desk, storage, floor material, runner, window wall and column; staff remain separate sprites.
+
+The room geometry and service approaches stay fixed through restoration. Old save positions recover to nearby walkable floor; vendor unlocks still follow civilization requirements. The renderer crops immutable sources at runtime, removes connected neutral background only around declared sprite silhouettes, and leaves floor material opaque. Metadata lives in the regional `*-interior-art.js` modules and the shared `town-interior-art.js` registry.
+
+Enter Haventide’s hall and use the local art panel’s town selector and **1–4** to compare any regional kit in place. Upgrade previews use the same selected kit and exterior at Haventide; actual upgrades use the current town. The approved quick fades, exterior-only zoom and fixed indoor before/after dissolve remain shared across every town. No preview is persisted.
 
 ## Sources and extraction
 
@@ -39,6 +50,6 @@ The [static alpha inspector](../scripts/town-center-alpha-review.mjs) evaluates 
 
 ## Verification
 
-All **87 unit tests** pass, including all sixteen preview combinations, checkpoint/manual export isolation, reset behavior, entrance anchors, monotonically increasing sizes, all regional source files, and the fixed camera envelope. Production Vite build and root/subpath asset checks pass. Development overlay JavaScript and CSS also compile in memory with no game launch. The build has the existing non-failing large-chunk warning.
+Unit tests cover all sixteen preview combinations, checkpoint/manual export isolation, reset behavior, entrance anchors, monotonically increasing sizes, all regional source files, and the fixed camera envelope. Production Vite build and root/subpath asset checks pass. Development overlay JavaScript and CSS also compile in memory with no game launch. The build has the existing non-failing large-chunk warning.
 
-Only static asset extraction and compilation were inspected. The user is performing the gameplay/visual acceptance check; no game or development server was launched for this pass.
+Regional interior checks also cover all 192 piece mappings, regional palette source selection, service/staff/exit reachability, old-save recovery, and immutable preview states. Only static asset extraction and compilation were inspected. The user is performing the gameplay/visual acceptance check; no game or development server was launched for this pass.

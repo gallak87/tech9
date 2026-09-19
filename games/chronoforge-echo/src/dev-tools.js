@@ -37,10 +37,10 @@ export function mountDevTools(game) {
     <p class="dev-size"></p>
     <button type="button" class="dev-restore" data-preview="restore">Use actual Haventide</button>
     <p class="dev-status"></p>
-    <section class="dev-upgrade-controls" aria-label="Haventide upgrade rehearsal">
-      <strong>Upgrade from inside Haventide</strong>
+    <section class="dev-upgrade-controls" aria-label="Selected town upgrade rehearsal">
+      <strong>Upgrade from inside the selected hall</strong>
       <p>Choose a step, then press Upgrade at the indoor desk.</p>
-      <div>${[1,2,3].map(level=>`<button type="button" data-upgrade="${level}" aria-label="Rehearse Haventide upgrade from level ${level} to ${level+1}">${level} → ${level+1}</button>`).join('')}</div>
+      <div>${[1,2,3].map(level=>`<button type="button" data-upgrade="${level}" aria-label="Rehearse selected town upgrade from level ${level} to ${level+1}">${level} → ${level+1}</button>`).join('')}</div>
       <p class="dev-upgrade-availability"></p>
     </section>
     <footer>Play paused while this panel is open<br>1–4 / ← → select art · &#96; / Esc close<br>World preview stays on until switched off.</footer>`;
@@ -70,7 +70,7 @@ export function mountDevTools(game) {
   function render() {
     renderWorldControls();
     const selected=current(),town=TOWN_CENTERS.find(t=>t.region===preview.townCenterRegion),f=town.metadata.frames[selected-1];
-    root.querySelector('.dev-subtitle').textContent=indoors()?'Haventide · Town hall interior':`${town.name} · Town center`;
+    root.querySelector('.dev-subtitle').textContent=indoors()?`${town.name} · Town hall interior`:`${town.name} · Town center`;
     root.querySelector('output').textContent=`${selected} · ${TIERS[selected-1]}`;
     root.querySelector('.dev-size').textContent=indoors()?'Restoration art · fixed service positions':`${f.nativeWidth} × ${Math.round(f.h*f.nativeWidth/f.w)} world units`;
     root.querySelector('.dev-status').textContent=(preview.townCenterLevel===null?`Actual level ${actual()}.`:`Preview level ${selected}; actual level ${actual()}.`)+((game.scene.id==='haventide'||indoors())&&game.mode==='world'?'':' View from Haventide or its town hall.');
@@ -128,7 +128,7 @@ export function mountDevTools(game) {
     if(button.dataset.world)jumpWorld(button.dataset.world);
     else if(button.dataset.town)setTown(button.dataset.town);
     else if(button.dataset.tier)setLevel(Number(button.dataset.tier));
-    else if(button.dataset.upgrade&&canRehearse())upgradeTour.openPreview(Number(button.dataset.upgrade));
+    else if(button.dataset.upgrade&&canRehearse())upgradeTour.openPreview(Number(button.dataset.upgrade),preview.townCenterRegion);
     else switch(button.dataset.preview){
       case 'previous':cycle(-1);break;
       case 'next':cycle(1);break;

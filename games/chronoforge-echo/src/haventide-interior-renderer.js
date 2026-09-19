@@ -1,8 +1,14 @@
-import {havenInteriorLevel,havenInteriorFrame} from './haventide-interior-art.js';
+import {townInteriorLevel,townInteriorFrame,townInteriorRegion} from './town-interior-art.js';
 import {HAVENTIDE_HALL} from './haventide-interior-layout.js';
 import {artSurface,artPattern} from './rendering.js';
 
 const sheets=new Map();
+const plinthColors={
+  haventide:['#514736','#86765a','#b4b5a3','#b7cec9'],
+  emberline:['#664532','#956346','#be936d','#d3a476'],
+  orbital_reach:['#343c52','#515e7a','#8794b6','#a7b7d1'],
+  last_crown:['#3f3048','#57405f','#736480','#a799b3'],
+};
 const heightLimits={provisions:230,forge:240,inn:255,archive:225,engineering:225,training:180,board:195,storage:145};
 
 // Extract each isolated piece independently. The opaque floor sample bypasses
@@ -36,7 +42,7 @@ export function installHaventideInterior(image,entry) {
   }
   const tile=artSurface(160,160),floor=frames.get('floor');
   tile.getContext('2d').drawImage(floor,0,0,160,160);
-  sheets.set(entry.level,{image,frames,tile});
+  sheets.set((entry.region??'haventide')+':'+entry.level,{image,frames,tile});
 }
 
 function selectedPart(object,state) {
@@ -44,22 +50,22 @@ function selectedPart(object,state) {
 }
 export function havenInteriorBounds(object,state) {
   if(!object.havenPart)return null;
-  const spec=havenInteriorFrame(selectedPart(object,state),state);if(!spec)return null;
+  const spec=townInteriorFrame(selectedPart(object,state),state,object.interiorRegion);if(!spec)return null;
   const {frame}=spec,scale=Math.min(object.artWidth/frame.w,(heightLimits[selectedPart(object,state)]??Infinity)/frame.h);
   const width=frame.w*scale,height=frame.h*scale;
   return {left:object.x-width*frame.anchorX,top:object.y-height*frame.anchorY,width,height};
 }
 export function drawHaventidePiece(context,object,state) {
-  const bounds=havenInteriorBounds(object,state),sheet=sheets.get(havenInteriorLevel(state));
+  const bounds=havenInteriorBounds(object,state),sheet=sheets.get(townInteriorRegion(object.interiorRegion,state)+':'+townInteriorLevel(state));
   if(!bounds||!sheet)return false;
   context.drawImage(sheet.frames.get(selectedPart(object,state)),bounds.left,bounds.top,bounds.width,bounds.height);
   return true;
 }
 export function drawHaventideFloor(context,scene,camera,state) {
-  const sheet=sheets.get(havenInteriorLevel(state));if(!sheet)return false;
+  const sheet=sheets.get(townInteriorRegion(scene.townId,state)+':'+townInteriorLevel(state));if(!sheet)return false;
   const c=context;c.save();c.fillStyle='#16282c';c.fillRect(0,0,960,540);c.translate(-camera.x,-camera.y);
   // The surrounding stone plinth joins the generated back wall and columns.
-  c.fillStyle=['#514736','#86765a','#b4b5a3','#b7cec9'][havenInteriorLevel(state)-1];
+  c.fillStyle=plinthColors[townInteriorRegion(scene.townId,state)][townInteriorLevel(state)-1];
   for(const area of scene.walkAreas)c.fillRect(area.x-20,area.y-12,area.w+40,area.h+24);
   c.fillStyle=artPattern(c,sheet.tile);
   for(const area of scene.walkAreas)c.fillRect(area.x,area.y,area.w,area.h);

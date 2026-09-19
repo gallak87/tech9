@@ -7,7 +7,7 @@
 - [ ] Revisit whether encounters should forbid retreat; undecided, keep current retreat rules until reviewed separately.
 - [ ] Animate Crater Ember’s lava with a natural sense of flow and heat.
 - [ ] Revisit Forest Veil’s semicircular tree groves and traversal; explore dense woodland with connected clearings and readable paths.
-- [ ] Playtest the implemented weapon-family pass: swords for Kaida, staves for Vex, gauntlets for Rune; four-tier progression, optional hero filtering, required vendor/loot adjustments, automatic legacy-save conversion, and replacement art for mismatched weapons. Check inventory flow, existing saves, and upgrade balance. Character artwork remains fixed.
+- [x] Complete the weapon-family pass: swords for Kaida, staves for Vex, gauntlets for Rune; four-tier progression, optional hero filtering, required vendor/loot adjustments, automatic legacy-save conversion, and replacement art for mismatched weapons. User playtest accepted on 2026-09-19 after importing an existing save, checking inventory filters and equipment, and confirming ATB works. Character artwork remains fixed.
 - [ ] Retire the temporary weapon-family save migration after the compatibility window (review in early October 2026). Keep current equipment validation; remove the conversion module and legacy-load writeback once existing players' saves have upgraded.
 
 ## TODO — Revisit Party and Inventory overlap

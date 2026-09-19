@@ -1,6 +1,7 @@
 import {configureRegionalInterior} from './regional-interior-layout.js';
 import {NPC_IDENTITIES,npcIdentity,npcPresent} from './npc-identities.js';
 import {configureHaventideInterior} from './haventide-interior-layout.js';
+import {configureWorldScenery,configureCaveScenery,footprintBlocks} from './world-scenery.js';
 // Authored geography. Coordinates are native pixels; every door is anchored at its threshold.
 const W = 4608, H = 2016;
 const point = (x,y) => ({x,y});
@@ -143,7 +144,7 @@ export function isWalkable(scene,x,y){
  if(!Number.isFinite(x)||!Number.isFinite(y)||x<18||y<35||x>scene.width-18||y>scene.height-18)return false;
  if(scene.interior&&!scene.walkAreas.some(a=>x>=a.x+7&&x<=a.x+a.w-7&&y>=a.y+7&&y<=a.y+a.h-7))return false;
  if(terrainAt(scene,x,y)==='water')return false;
- for(const o of scene.objects){if(!o.solid)continue;const w=o.w||24,h=o.h||18;const bottom=(o.type==='town'||o.type==='house'||o.type==='cave')?o.y-12:o.y+3;if(x>o.x-w/2-6&&x<o.x+w/2+6&&y>bottom-h-5&&y<bottom+6)return false;}
+ for(const o of scene.objects){if(!o.solid)continue;if(o.footprints){if(footprintBlocks(o,x,y))return false;continue;}const w=o.w||24,h=o.h||18;const bottom=(o.type==='town'||o.type==='house'||o.type==='cave')?o.y-12:o.y+3;if(x>o.x-w/2-6&&x<o.x+w/2+6&&y>bottom-h-5&&y<bottom+6)return false;}
  return true;
 }
 export function safeArrival(scene,x,y){
@@ -253,3 +254,7 @@ observatoryLens.interactionArea={x:observatoryDish.x-observatoryLens.x,y:observa
 const rescueHost=REGIONS.frost_canyon.objects.find(o=>o.id==='mara_lantern');
 REGIONS.frost_canyon.objects.push(obj('tavi_lantern','npc',rescueHost.x,rescueHost.y,{name:'Tavi • Keeper of the rescue light',dialogue:'I think I’ll stay until the last family has a place to go. This time Mara knows where I am.'}));
 for(const scene of Object.values(ALL_SCENES))for(const o of scene.objects)if(o.type==='npc')o.npcIdentity=npcIdentity(o);
+
+// Outdoor composition and grounded colliders do not alter town restoration layouts.
+configureWorldScenery(REGIONS);
+for(const scene of Object.values(ALL_SCENES))configureCaveScenery(scene);

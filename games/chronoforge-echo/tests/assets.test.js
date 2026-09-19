@@ -28,7 +28,7 @@ test('required source dimensions and measured frames agree with the immutable PN
     if(m?.frames){
       // Static structures, four-stage town centers, and animated atlases have
       // different minimum frame counts. Every crop is checked below.
-      assert.ok(m.frames.length>=(['roadSign','structure'].includes(entry.kind)?1:entry.kind==='townCenter'?4:6),entry.id);
+      assert.ok(m.frames.length>=(['roadSign','structure'].includes(entry.kind)?1:['townCenter','environmentDetail'].includes(entry.kind)?4:6),entry.id);
       for(const f of m.frames){
         assert.ok([f.x,f.y,f.w,f.h,f.anchorX,f.anchorY].every(Number.isFinite),entry.id);
         assert.ok(f.x>=0&&f.y>=0&&f.w>0&&f.h>0&&f.x+f.w<=width&&f.y+f.h<=height,entry.id);

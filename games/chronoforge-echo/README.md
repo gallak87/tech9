@@ -4,9 +4,7 @@ A standalone RPG about rebuilding a world that learned to stop listening. Kaida 
 
 ## Working agreement
 
-Project instructions live in [AGENTS.md](AGENTS.md). Do not run the game unless the user explicitly asks: no dev/preview servers, browser or headless playtests, or browser verification harnesses. The user handles visual playtesting. The commands below document available tools, not permission to run them.
-
-Do not run linting or formatting during development. The pre-commit hook automatically runs ESLint fixes and Prettier on staged Echo files, then re-stages the results. Leave that work to the hook; fix any remaining errors that block an authorized commit without bypassing it. Targeted static checks and pure Node tests are available when relevant and consistent with the user's current instructions.
+Follow [AGENTS.md](AGENTS.md): run the game only when explicitly asked, and leave linting/formatting to the automatic pre-commit hook. The user handles playtesting; commands below are reference only.
 
 ## Run and check
 
@@ -26,7 +24,7 @@ npm run build
 npm run verify:build
 ```
 
-`npm install` enables the pre-commit hook. On commit, staged Echo code is fixed, formatted and re-staged, unstaged edits are preserved, and remaining lint errors block the commit. Prettier uses its defaults (including an 80-column target) with single quotes. Standalone lint/format commands are reserved for an explicit user request, rather than routine development checks.
+`npm install` enables the pre-commit hook. Prettier uses its defaults with single quotes.
 
 The static build is in `dist/`. `npm run preview` serves it at **http://127.0.0.1:4322/**. No server-side service or API key is required. Serve the build over HTTP.
 
@@ -86,4 +84,4 @@ When an experiment graduates, promote only its selected live assets and required
 
 `node scripts/asset-inventory.mjs` prints the live inventory without writing files. Review tools use **`.experiments/output/`**, recreated on demand by `scripts/review-output.mjs`. **`npm run clean:review`** removes that output only; disposable inspection scripts live in `.experiments/scripts/`.
 
-Only when the user explicitly requests browser verification, `npm run verify` runs the browser harness against the dev server with isolated storage and `?test=1` hooks. Checks that read earned campaign snapshots require a fresh `node tests/campaign-browser.mjs` run first; those disposable snapshots live in `.experiments/output/`. `npm run verify:pages` also requires an explicit request: it builds and checks root/subpath deployment in an isolated browser, then closes its server. User visual review remains separate from automated checks.
+For user-requested browser checks, `npm run verify` uses the dev server with isolated storage and `?test=1` hooks; `npm run verify:pages` checks root/subpath deployment. Campaign-dependent checks first need `node tests/campaign-browser.mjs` to generate disposable snapshots in `.experiments/output/`.

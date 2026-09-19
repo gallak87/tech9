@@ -111,6 +111,8 @@
 .map-heading{position:absolute;top:12px;left:24px;display:flex;gap:1.2em;align-items:baseline;pointer-events:none;color:#57432c}
 .expedition .map-heading h2{font-size:clamp(21px,2cqw,38px);line-height:1.1}
 .map-heading>span{font-size:clamp(9px,.7cqw,14px);color:#78674c}
+.map-compass{position:absolute;top:58px;left:24px;width:clamp(42px,4.5cqw,68px);height:auto;color:#6d5839;opacity:.48;pointer-events:none}
+.map-compass text{font-family:var(--font-display,serif);font-size:12px;fill:currentColor}
 .expedition .map-tools{position:absolute;top:12px;right:16px;display:flex;gap:6px}
 .expedition .map-tools button{background:#e8d5adee;font-size:clamp(11px,.83cqw,19px)}
 .expedition .map-key{position:absolute;left:18px;bottom:8px;pointer-events:none;font-size:clamp(9px,.64cqw,14px);color:#6f593a;line-height:1.4}

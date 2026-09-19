@@ -42,6 +42,13 @@ function mapPage(ui){
  return `<div class="map-frame"><canvas id="atlas-map" class="map-canvas" aria-label="World survey: explored terrain, fog and discovered landmarks"></canvas>
   <div class="map-region-layer" role="group" aria-label="Select a region">${Object.keys(MAP_REGIONS).map(id=>`<button type="button" class="map-region" data-map-region="${id}" aria-pressed="false"><span class="map-region-name"></span><span class="map-region-action"></span></button>`).join('')}</div>
   <div class="map-heading"><h2>The known world</h2><span>${visited} / ${Object.keys(REGIONS).length} surveyed${preview?' · Temporary world preview':''}</span></div>
+  <svg class="map-compass" viewBox="0 0 64 88" role="img" aria-label="North is up">
+   <text x="32" y="12" text-anchor="middle">N</text>
+   <path d="M7 49 32 41 57 49 32 57Z" fill="currentColor" fill-opacity=".18" stroke="currentColor" stroke-width=".8"/>
+   <path d="M32 21 42 49 32 81 22 49Z" fill="#e8d5ad" stroke="currentColor" stroke-width="1"/>
+   <path d="M32 21 32 49 22 49Z M32 49 42 49 32 81Z" fill="currentColor"/>
+   <path d="M7 49H57 M32 21V81" fill="none" stroke="currentColor" stroke-width=".6"/>
+  </svg>
   <div class="map-tools">${btn('−','map-zoom:out','button quiet','aria-label="Zoom out"')}${btn('+','map-zoom:in','button quiet','aria-label="Zoom in"')}${btn('Center','map-reset','button quiet')}</div>
   <div class="map-key">□ Settlement &nbsp; · Shelter / gateway &nbsp; + Crew<br>${preview?'All maps revealed temporarily. Your survey is unchanged.':'Travel to liberated settlements. Other regions remain available on foot.'}</div>
  </div>`;

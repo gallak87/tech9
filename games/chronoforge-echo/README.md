@@ -54,6 +54,10 @@ The panel is restricted to **localhost**, **127.0.0.1**, and **[::1]**. Backtick
 
 **World view** quickly flies out to show the entire current map, including interiors. Play is paused and an amber ring marks the party. **Esc**, backtick, or **Back to dev tools** restores the normal view. This also works during **Worlds explored**. It never changes the camera, position, fog, or saves; its in-memory view is released on close. Restrained motion skips the flyout animation.
 
+The dev panel stays visible until explicitly closed, including over menus, world view and upgrade reveals; conflicting controls disable temporarily. Compact town controls provide a town selector, levels **1–4**, and one **Preview upgrade** button (level 4 replays **3 → 4**). World jumps leave the panel open and resume its pause after arrival.
+
+The menu’s **Map** fills its content area. Hover or arrow keys select a region; **Space/Enter** or a click activates its travel prompt. Mouse dragging pans and the wheel zooms. Normal play still permits travel only to liberated settlements; **Worlds explored** permits temporary jumps to all eight regions.
+
 The same panel offers **Upgrade from inside the selected hall**. Select **1 → 2**, **2 → 3**, or **3 → 4**, then press **Upgrade Town Center** at the preview's indoor desk. Watch the exterior reveal and return inside, with skip and replay controls. This preview shows the selected town’s four interior restoration stages and never spends resources or changes the expedition. See [upgrade rehearsal controls and scope](docs/upgrade-cinematic.md).
 
 ## A useful first visit

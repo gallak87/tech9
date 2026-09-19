@@ -75,7 +75,7 @@ export function mountWorldView(game,{onClose=()=>{}}={}) {
     session={scene,image,state:game.visualState,start:{...game.camera},time:game.visualTime,scratch:artSurface(W,H),tiles:worldViewTiles(scene),actors:[{id:'kaida',x:game.state.x,y:game.state.y,facing:game.state.facing},...game.followers].sort((a,b)=>a.y-b.y)};
     game.keys.clear();game.movePath=[];game.moving=false;
     previousFocus=document.activeElement;
-    inertElements=[...document.querySelector('#game').children].filter(element=>element!==root).map(element=>[element,element.inert]);
+    inertElements=[...document.querySelector('#game').children].filter(element=>element!==root&&element.id!=='dev-tools').map(element=>[element,element.inert]);
     for(const [element] of inertElements)element.inert=true;
     root.hidden=false;root.querySelector('strong').textContent=scene.name;
     status.textContent='Preparing world view…';back.focus({preventScroll:true});

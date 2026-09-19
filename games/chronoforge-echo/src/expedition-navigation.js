@@ -10,7 +10,7 @@ export function navigateExpedition(ui,key){
  const tab=()=>root.querySelector('.tabs [aria-selected="true"]');
  if(active?.closest('.tabs')){
   if(key==='ArrowLeft'||key==='ArrowRight')move(buttons('.tabs button'),key==='ArrowRight'?1:-1,true);
-  if(key==='ArrowDown')focus(hero()||buttons('.exp-page button,.exp-page input')[0]);
+  if(key==='ArrowDown'){if(ui.tab===0)ui.map.focusSelected();else focus(hero()||buttons('.exp-page button,.exp-page input')[0]);}
   return true;
  }
  if(active?.closest('.exp-crew')){

@@ -139,7 +139,7 @@ export function mountUpgradeTour(game,{previewMarkup=null,onReturnToPlay=()=>{}}
       interiorTargets,
     };
     previousFocus=document.activeElement;
-    inertElements=[...document.querySelector('#game').children].filter(element=>element!==root).map(element=>[element,element.inert]);
+    inertElements=[...document.querySelector('#game').children].filter(element=>element!==root&&element.id!=='dev-tools').map(element=>[element,element.inert]);
     for(const [element] of inertElements)element.inert=true;
     tour=new UpgradeTour({interiorReveal});root.hidden=false;shown='';
     if(preview){

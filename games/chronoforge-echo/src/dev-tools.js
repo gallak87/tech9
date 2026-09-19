@@ -4,7 +4,6 @@ import {TOWN_CENTERS,townCenterPreviewBounds} from './town-center-art.js';
 import {VIEW_WIDTH,VIEW_HEIGHT} from './rendering.js';
 import {ArtPreview} from './dev-preview.js';
 import {WorldTravelPreview} from './dev-world-travel.js';
-import {mountWorldView} from './dev-world-view.js';
 import {REGIONS} from './world.js';
 import {mountUpgradeTour} from './dev-upgrade-tour.js';
 import {localDevHost,localDevPreviewRequested,devPreviewReady} from './dev-access.js';
@@ -43,7 +42,7 @@ export function mountDevTools(game) {
   worldBadge.textContent='World preview · never saved · return to expedition';
   document.querySelector('#game').append(worldBadge);
   const upgradeTour=mountUpgradeTour(game,{onReturnToPlay:()=>render()});
-  const worldView=mountWorldView(game,{onClose:()=>render()});
+  const worldView=game.worldView;
   const actual=()=>Math.max(1,Math.min(4,game.state.buildings.town_center||1));
   const current=()=>preview.townCenterLevel??actual();
   const indoors=()=>game.mode==='world'&&game.scene.id==='haventide_town';
@@ -178,7 +177,7 @@ export function mountDevTools(game) {
     },
     dispose(){
       worldView.close();upgradeTour.close();restoreWorld();setOpen(false);autoOpenPending=false;
-      upgradeTour.dispose();worldView.dispose();root.remove();worldBadge.remove();
+      upgradeTour.dispose();root.remove();worldBadge.remove();
     },
   };
   if(import.meta.hot)import.meta.hot.dispose(()=>api.dispose());

@@ -31,6 +31,7 @@ The repository's Pages workflow publishes Echo at **https://gallak87.github.io/t
 | --- | --- |
 | Explore | WASD or arrows; Shift to run; click a reachable destination to walk |
 | Interact | F, Space or Enter near a person, doorway, object or encounter |
+| World view | R or the button below the area label; R/Esc returns to play |
 | Read | Enter/Space continues; Esc/Backspace dismisses without choosing a story branch |
 | Menu | Esc opens; 1–7 select tabs; Q/E change tabs |
 | Menus and shops | Arrows navigate; PageUp/PageDown scroll; Space/Enter confirm; Esc closes the top layer |
@@ -39,6 +40,8 @@ The repository's Pages workflow publishes Echo at **https://gallak87.github.io/t
 | Timing | A fresh Space/Enter in the orange window improves Attack or Defend; incoming attacks offer a timed guard |
 
 Timed Defend reduces damage by 75% until the next action; normal Defend reduces it by 65%. An incoming timed guard applies to that attack only. Esc pauses the entire battle timeline. Movement bindings, audio, timing assistance, restrained motion and the minimap are adjustable in Settings.
+
+World view pauses play and flies out to the full current map, with an amber ring marking the party. It leaves the normal camera, fog and saves unchanged. Restrained motion skips the flyout. If R is assigned to movement or interaction in Settings, that binding takes priority; the World view button remains available.
 
 Town Center upgrades at **Settlement works** play an exterior reveal and an interior restoration in all four towns. The outside camera pushes in slightly; the inside comparison keeps the crew and camera fixed. Space, Esc or **Skip reveal** finishes immediately. Payment and checkpointing happen once, before playback. Restrained motion omits zoom and sparkles.
 
@@ -54,7 +57,7 @@ Backquote (the backtick key) toggles the panel. `?dev=1` opens it automatically 
 
 - **Eight world buttons:** click to jump directly, bypassing story gates. A temporary copy of the expedition isolates all progress and saves. **Return to expedition** restores the original location and state. Refreshing, loading or starting a game ends the preview.
 - **Map explored:** reveals all menu maps and enables temporary map jumps. It does not change fog/survey data or gate the eight dev buttons. Switching it off changes the map display without ending a trip.
-- **World view:** briefly flies out to the full current map, pauses play and marks the party. Esc, backtick or **Back to dev tools** closes it; restrained motion skips the flyout.
+- **World view:** opens the same overview available below the area label during normal play.
 - **Town art:** choose a town and level 1–4 to inspect exterior or interior restoration in place. **Preview upgrade** starts from the indoor desk and rehearses the transition without costs or saved changes; level 4 replays 3 → 4.
 
 Preview state and render buffers stay in memory and are released on close/reset.

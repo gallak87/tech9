@@ -1,19 +1,27 @@
 import * as Art from './art.js';
 import {artSurface,artContext,RENDER_SCALE,VIEW_WIDTH as W,VIEW_HEIGHT as H} from './rendering.js';
-import {devPreviewReady} from './dev-access.js';
-import {worldViewCamera,worldViewSurfaceSize,worldViewTiles} from './dev-world-view-camera.js';
+import {worldViewCamera,worldViewSurfaceSize,worldViewTiles} from './world-view-camera.js';
 
-// Development-only paused camera inspection. The normal camera and expedition
-// stay intact underneath; this composes the same world renderer, with no files.
-export function mountWorldView(game,{onClose=()=>{}}={}) {
+export function canOpenWorldView(game) {
+  return game.mode==='world'&&!game.ui.blocked&&!game.transition&&!game.battle&&!game.state.recruitmentWalk;
+}
+
+// An existing custom movement/interaction binding takes priority over R.
+export function worldViewShortcut(settings) {
+  return ['up','left','down','right','interact'].some(action=>settings.keys?.[action]?.toLowerCase()==='r')?'':'r';
+}
+
+// A paused overview of the current scene. Camera, fog and expedition state stay
+// intact underneath; the temporary canvas is released on close, never saved.
+export function mountWorldView(game) {
   const root=document.createElement('section');
-  root.className='dev-world-view';root.hidden=true;
+  root.className='world-view';root.hidden=true;
   root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');
   root.setAttribute('aria-label','Full world view');
   const screen=artSurface(W,H),ctx=screen.getContext('2d');
   screen.setAttribute('aria-hidden','true');root.append(screen);
   const chrome=document.createElement('div');
-  chrome.innerHTML='<header><div><strong></strong><small>World view · paused</small></div><button type="button">Back to dev tools <kbd>Esc</kbd></button></header><p aria-live="polite"></p>';
+  chrome.innerHTML='<header><div><strong></strong><small>World view · paused</small></div><button type="button">Return to play <kbd>R / Esc</kbd></button></header><p aria-live="polite"></p>';
   root.append(chrome);document.querySelector('#game').append(root);
   const back=root.querySelector('button'),status=root.querySelector('p');
   let session=null,raf=0,previousFocus=null,inertElements=[];
@@ -43,9 +51,9 @@ export function mountWorldView(game,{onClose=()=>{}}={}) {
     session.image.width=session.image.height=0;
     session.scratch.width=session.scratch.height=0;
     session=null;root.hidden=true;ctx.clearRect(0,0,W,H);
+    game.keys.clear();
     for(const [element,wasInert] of inertElements)element.inert=wasInert;
     inertElements=[];
-    onClose();
     if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});previousFocus=null;
   }
   function animate(now) {
@@ -57,7 +65,7 @@ export function mountWorldView(game,{onClose=()=>{}}={}) {
   function prepare() {
     if(!session)return;
     try{
-      // Yield between viewports so Escape/Backquote can cancel preparation.
+      // Yield between viewports so R/Escape can cancel preparation.
       const next=session.tiles.next();
       if(!next.done){
         const t=next.value,{image,scene}=session,sx=image.width/scene.width,sy=image.height/scene.height;
@@ -66,21 +74,23 @@ export function mountWorldView(game,{onClose=()=>{}}={}) {
       }
       status.textContent='Full map · the amber ring marks your party';
       session.started=performance.now();raf=requestAnimationFrame(animate);
-    }catch(error){game.log('dev_world_view_error',{message:error.message});close();}
+    }catch(error){game.log('world_view_error',{message:error.message});close();}
   }
   function open() {
-    if(session||!devPreviewReady(game)||game.battle)return false;
+    if(session||!canOpenWorldView(game))return false;
     const scene=game.scene,size=worldViewSurfaceSize(scene),image=document.createElement('canvas');
     image.width=size.width;image.height=size.height;artContext(image.getContext('2d'));
     session={scene,image,state:game.visualState,start:{...game.camera},time:game.visualTime,scratch:artSurface(W,H),tiles:worldViewTiles(scene),actors:[{id:'kaida',x:game.state.x,y:game.state.y,facing:game.state.facing},...game.followers].sort((a,b)=>a.y-b.y)};
-    game.keys.clear();game.movePath=[];game.moving=false;
+    game.audio.unlock();game.keys.clear();game.movePath=[];game.moving=false;
+    game.ui.positionInteraction();
     previousFocus=document.activeElement;
     inertElements=[...document.querySelector('#game').children].filter(element=>element!==root&&element.id!=='dev-tools').map(element=>[element,element.inert]);
     for(const [element] of inertElements)element.inert=true;
     root.hidden=false;root.querySelector('strong').textContent=scene.name;
+    back.querySelector('kbd').textContent=worldViewShortcut(game.state.settings)?'R / Esc':'Esc';
     status.textContent='Preparing world view…';back.focus({preventScroll:true});
     try{ctx.drawImage(tile(session.start),0,0,W,H);raf=requestAnimationFrame(prepare);}
-    catch(error){game.log('dev_world_view_error',{message:error.message});close();return false;}
+    catch(error){game.log('world_view_error',{message:error.message});close();return false;}
     return true;
   }
   root.addEventListener('pointerdown',event=>event.stopPropagation());
@@ -88,8 +98,16 @@ export function mountWorldView(game,{onClose=()=>{}}={}) {
   return {
     get open(){return !!session;},openView:open,close,
     handleKey(event){
-      if(!session)return false;
-      if(event.key==='Escape'||event.code==='Backquote'||event.key==='`'){
+      if(event.isComposing||event.ctrlKey||event.metaKey||event.altKey)return false;
+      const shortcut=worldViewShortcut(game.state.settings);
+      const isShortcut=!!shortcut&&event.key.toLowerCase()===shortcut;
+      if(!session){
+        if(!isShortcut||!canOpenWorldView(game)||event.target?.closest?.('input,textarea,select,[contenteditable]'))return false;
+        event.preventDefault();if(!event.repeat)open();return true;
+      }
+      // Keep the local dev panel operable above the overview.
+      if((event.code==='Backquote'||event.key==='`')&&game.devTools)return false;
+      if(event.key==='Escape'||isShortcut){
         event.preventDefault();if(!event.repeat)close();
       }else if(event.key==='Tab'){event.preventDefault();back.focus({preventScroll:true});}
       else if(!['Enter',' '].includes(event.key)||event.repeat)event.preventDefault();

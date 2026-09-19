@@ -6,7 +6,7 @@ A standalone Vite application using JavaScript modules and PixiJS to present a 1
 
 `progression.js` owns state creation and progression mutations; `content.js` owns hero, enemy, item, skill and building catalogs. Effective stats are computed rather than cached into saves. `narrative.js` owns story conditions, dialogue, objectives and event rewards. Unique ledgers prevent repeat quest, pickup and first-clear rewards.
 
-`main.js` integrates input, the clamped simulation clock, combat and UI. `world-traversal.js` owns click routing, movement, followers, camera positioning and travel timing; the integrator fires visit events and saves once arrival completes. Both use the same live Game state. Menus, dialogue, vendors, construction and cinematic playback pause simulation. Audio uses its own clock. Followers sample the traversed path and compress safely near doors rather than chasing through solids.
+`main.js` integrates input, the clamped simulation clock, combat and UI. `world-traversal.js` owns click routing, movement, followers, camera positioning and travel timing; the integrator fires visit events and saves once arrival completes. Both use the same live Game state. Menus, dialogue, vendors, construction, world view and cinematic playback pause simulation. Audio uses its own clock. Followers sample the traversed path and compress safely near doors rather than chasing through solids.
 
 `world.js` owns scene geometry, interaction locations, terrain and shared requirements. Actor positions are foot anchors. Visual extents, grounded collision footprints and interaction ranges are separate. Roads, door approaches and passages through arches must remain reachable. Click navigation and keyboard movement use the same collision predicate; the path search includes the exact requested endpoint when its final segment is clear.
 
@@ -26,13 +26,15 @@ Ground chunks cover 384×384 world units using 768×768 backing pixels; the 40-c
 
 Regional town metadata selects exteriors and restoration kits by actual Town Center level. Interior layout and collision geometry remain stable across art levels. `construction.js` applies and checkpoints an upgrade before `upgrade-tour.js` plays it. `upgrade-cinematic.js` provides timing, framing and detached render snapshots. Completion, skip and reset release canvas buffers; skipping never repeats payment or undoes the upgrade.
 
+`world-view.js` is a shared production overview, opened by the field button, R or dev tools. It composes the current scene with the normal renderer into a bounded in-memory canvas, pauses simulation, and releases buffers on close/reset. Camera, fog and save state remain unchanged.
+
 ## Persistence and development tools
 
 `persistence.js` validates versioned state and manages three manual slots plus an automatic checkpoint. Browser storage uses the Echo namespace, separate from the original game. `save-transfer.js` owns file dialogs, confirmation setup and cancellation of pending imports; `UI.resetSession()` clears presentation state. Import validates before replacing a slot. Load/restart clears held input and transient travel/presentation state without changing other saved records.
 
 Ending progress distinguishes the final boss victory, pending dialogue, ending panel and completed homecoming. The saved dialogue index/panel resumes after load. Completion and future eligibility are granted only by the final return action. Dismissing ordinary dialogue must not fire its completion callback or overwrite ending progress.
 
-Dev tools require both a development build and a loopback host. Art previews, world overview and menu map reveal are presentation state. World jumps use a detached expedition; saves continue to store the original expedition until the preview ends. Closing the dev panel is independent of returning from a temporary world trip.
+Dev tools require both a development build and a loopback host. Art previews and menu map reveal are presentation state. World jumps use a detached expedition; saves continue to store the original expedition until the preview ends. Closing the dev panel is independent of returning from a temporary world trip.
 
 Test hooks require a Vite development build and `?test=1`. Production excludes presets and dev controls. `window.__ECHO_READY__` signals that required content is loaded; `__ECHO__.snapshot()` reads actual state and renderer metrics.
 

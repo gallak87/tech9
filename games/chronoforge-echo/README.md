@@ -41,7 +41,7 @@ The repository's Pages workflow publishes Echo at **https://gallak87.github.io/t
 
 Timed Defend reduces damage by 75% until the next action; normal Defend reduces it by 65%. An incoming timed guard applies to that attack only. Esc pauses the entire battle timeline. Movement bindings, audio, timing assistance, restrained motion and the minimap are adjustable in Settings.
 
-World view pauses play and flies out to the full current map, with an amber ring marking the party. It leaves the normal camera, fog and saves unchanged. Restrained motion skips the flyout. If R is assigned to movement or interaction in Settings, that binding takes priority; the World view button remains available.
+World view pauses play and flies out to the current map, with an amber ring marking the party. Unexplored terrain stays under soft fog; the map outline remains visible. It reads the existing survey without changing the normal camera, exploration or saves. Restrained motion skips the flyout. If R is assigned to movement or interaction in Settings, that binding takes priority; the World view button remains available.
 
 Town Center upgrades at **Settlement works** play an exterior reveal and an interior restoration in all four towns. The outside camera pushes in slightly; the inside comparison keeps the crew and camera fixed. Space, Esc or **Skip reveal** finishes immediately. Payment and checkpointing happen once, before playback. Restrained motion omits zoom and sparkles.
 
@@ -57,7 +57,7 @@ Backquote (the backtick key) toggles the panel. `?dev=1` opens it automatically 
 
 - **Eight world buttons:** click to jump directly, bypassing story gates. A temporary copy of the expedition isolates all progress and saves. **Return to expedition** restores the original location and state. Refreshing, loading or starting a game ends the preview.
 - **Map explored:** reveals all menu maps and enables temporary map jumps. It does not change fog/survey data or gate the eight dev buttons. Switching it off changes the map display without ending a trip.
-- **World view:** opens the same overview available below the area label during normal play.
+- **World view:** opens the overview with all terrain visible for inspection; the normal field button and R retain exploration fog.
 - **Town art:** choose a town and level 1–4 to inspect exterior or interior restoration in place. **Preview upgrade** starts from the indoor desk and rehearses the transition without costs or saved changes; level 4 replays 3 → 4.
 
 Preview state and render buffers stay in memory and are released on close/reset.

@@ -128,7 +128,7 @@ export function mountDevTools(game) {
       case 'restore':if(canArt()){preview.resetSelection();render();}break;
       case 'map':if(!busy()){mapExplored=!mapExplored;game.ui.render();render();}break;
       case 'return-world':if(!busy())restoreWorld();break;
-      case 'world-view':if(!busy()){worldView.openView();render();}break;
+      case 'world-view':if(!busy()){worldView.openView({revealAll:true});render();}break;
       case 'upgrade':if(canArt()){upgradeTour.openPreview(Math.min(3,current()),preview.townCenterRegion);render();}break;
       case 'close':setOpen(false);break;
     }

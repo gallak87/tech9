@@ -26,7 +26,7 @@ Ground chunks cover 384×384 world units using 768×768 backing pixels; the 40-c
 
 Regional town metadata selects exteriors and restoration kits by actual Town Center level. Interior layout and collision geometry remain stable across art levels. `construction.js` applies and checkpoints an upgrade before `upgrade-tour.js` plays it. `upgrade-cinematic.js` provides timing, framing and detached render snapshots. Completion, skip and reset release canvas buffers; skipping never repeats payment or undoes the upgrade.
 
-`world-view.js` is a shared production overview, opened by the field button, R or dev tools. It composes the current scene with the normal renderer into a bounded in-memory canvas, pauses simulation, and releases buffers on close/reset. Camera, fog and save state remain unchanged.
+`world-view.js` is a shared production overview, opened by the field button, R or dev tools. It composes the current scene with the normal renderer into a bounded in-memory canvas, pauses simulation, and releases buffers on close/reset. `world-view-fog.js` reads the existing survey and feathers fog inward from explored boundaries; the dev button can request a full reveal. Camera, fog and save state remain unchanged.
 
 ## Persistence and development tools
 

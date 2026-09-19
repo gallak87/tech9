@@ -68,8 +68,10 @@ function fixture(t) {
     if(tag==='canvas'){
       const context={globalAlpha:1,draws:[],
         drawImage(...args){if(failDraw)throw Error('Canvas unavailable');this.draws.push(args);},
+        createImageData(width,height){return {data:new Uint8ClampedArray(width*height*4)};},
+        putImageData(pixels){this.pixels=pixels;},
       };
-      for(const method of ['setTransform','clearRect','fillRect','save','restore','translate','scale','beginPath','arc','stroke'])context[method]=()=>{};
+      for(const method of ['setTransform','clearRect','fillRect','save','restore','translate','scale','beginPath','arc','stroke','strokeRect'])context[method]=()=>{};
       node.getContext=()=>context;canvases.push(node);
     }
     return node;
@@ -111,17 +113,34 @@ test('the production shortcut pauses exploration and returns without changing th
   assert.equal(hud.inert,true);assert.equal(dev.inert,false);
   assert.equal(game.keys.size,0);assert.deepEqual(game.movePath,[]);assert.equal(game.moving,false);
   assert.equal(view.openView(),false,'Opening twice must not allocate another map');
-  const image=canvases[1],scratch=canvases[2];
+  const image=canvases[1],scratch=canvases[2],fog=canvases.find(canvas=>canvas.getContext('2d').pixels);
+  assert.ok(fog,'Normal play creates an exploration mask');
+  assert.equal(canvases[0].getContext('2d').draws.at(-1)[0],fog,'Fog covers even the first frame before the flyout');
   while(frames.size)f.frame();
   assert.match(root.querySelector('p').textContent,/amber ring/);
+  assert.match(root.querySelector('p').textContent,/Explored terrain/);
   view.handleKey(key('Tab'));assert.equal(f.document.activeElement,root.querySelector('button'));
   view.handleKey(key('R'));
   assert.equal(view.open,false);assert.equal(game.ui.blocked,false);assert.equal(root.hidden,true);
   assert.equal(hud.inert,false);assert.equal(existingModal.inert,true);
   assert.equal(f.document.activeElement,f.previousFocus);
   assert.equal(image.width,0);assert.equal(scratch.width,0);assert.equal(frames.size,0);
+  assert.equal(fog.width,0);
   assert.equal(JSON.stringify({state:game.state,camera:game.camera}),before);
   assert.deepEqual(f.logs,[]);
+});
+
+test('the dev overview can reveal the full scene without changing normal exploration',t=>{
+  const f=fixture(t),{game,view,canvases}=f,before=JSON.stringify(game.state);
+  assert.equal(view.openView({revealAll:true}),true);
+  while(f.frames.size)f.frame();
+  assert.match(f.root.querySelector('p').textContent,/Full map/);
+  assert.equal(canvases.some(canvas=>canvas.getContext('2d').pixels),false);
+  view.close();
+  assert.equal(JSON.stringify(game.state),before);
+  view.openView();
+  assert.ok(canvases.some(canvas=>canvas.getContext('2d').pixels),'Full reveal does not carry over to the field button');
+  view.close();
 });
 
 test('world view leaves menus, battles, travel, typing and custom R bindings alone',t=>{

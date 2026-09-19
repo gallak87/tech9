@@ -1,8 +1,9 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 /** Bounded UI regressions. Fixtures set locations/resources; input uses production keys. */
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-const evidence=new URL('../evidence/ui-compact/',import.meta.url);await fs.mkdir(evidence,{recursive:true});
+const evidence=reviewURL('ui-compact/');await fs.mkdir(evidence,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:'chrome'}),page=await browser.newPage({viewport:{width:1920,height:1080}});
 const report={checks:[],errors:[],badAssets:[],browserClosed:false};
 page.on('pageerror',e=>report.errors.push(e.message));page.on('response',r=>{if(r.status()>=400||r.url().includes('/public/fonts'))report.badAssets.push(r.url());});

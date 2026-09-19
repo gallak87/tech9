@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -21,7 +22,7 @@ try{
     return {holes,bright,unchangedTrueAlpha:!e.key?changedOpaque===0:null};
   },id);
   if(pass!=='before'){for(const h of checks.holes)assert.equal(h.alpha,0,id+' measured background '+h.point);for(const h of checks.bright)assert.deepEqual(h.after,h.original,id+' bright detail '+h.point);if(checks.unchangedTrueAlpha!==null)assert.equal(checks.unchangedTrueAlpha,true,id+' existing alpha unchanged');}
-  info.checks=checks;await page.locator('#alpha-review').screenshot({path:base+`evidence/alpha-${pass}-${id}.png`});report.cases.push(info);
+  info.checks=checks;await page.locator('#alpha-review').screenshot({path:reviewRoot + `alpha-${pass}-${id}.png`});report.cases.push(info);
  }
  report.result=errors.length?'fail':'pass';
-}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}finally{await fs.writeFile(base+`evidence/alpha-atlas-${pass}.json`,JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}
+}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}finally{await fs.writeFile(reviewRoot + `alpha-atlas-${pass}.json`,JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}

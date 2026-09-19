@@ -9,6 +9,7 @@
     "preview": "vite preview --host 127.0.0.1 --port 4322",
     "test": "node --test tests/*.test.js",
     "verify": "node tests/browser.mjs",
+    "clean:review": "node scripts/review-output.mjs --clean",
     "verify:build": "node scripts/verify-dist.mjs",
     "verify:pages": "npm run build && npm run verify:build && node tests/pages.mjs"
   },

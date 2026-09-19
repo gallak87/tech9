@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -18,6 +19,6 @@ try{
   s=await snap();assert.equal(s.region,'haventide');assert.equal(s.transition,null);assert.deepEqual(s.queue,[]);assert.deepEqual(s.keys,[]);assert.deepEqual(s.heroes,['kaida']);
   for(let n=0;n<10&&await page.locator('[data-do="dialogue-next"]').count();n++)await page.keyboard.press('Enter');await page.waitForTimeout(650);assert.equal((await snap()).region,'haventide');report.checks.push('New expedition remains at the solo opening after the previous gateway would finish');
   await page.keyboard.press('Escape');await page.keyboard.press('6');assert.equal(await page.locator('[data-do="load:1"]').count(),1);report.checks.push('Manual record remains available after restart');
-  await page.screenshot({path:base+'evidence/session-restart-saves.png'});assert.deepEqual(report.errors,[]);report.result='pass';
+  await page.screenshot({path:reviewRoot + 'session-restart-saves.png'});assert.deepEqual(report.errors,[]);report.result='pass';
 }catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}
-finally{await fs.writeFile(base+'evidence/session-browser.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}
+finally{await fs.writeFile(reviewRoot + 'session-browser.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}

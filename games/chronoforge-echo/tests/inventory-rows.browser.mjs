@@ -1,3 +1,4 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -25,7 +26,7 @@ try{
  for(let n=0;n<40&&await focus()!=='item:rune_gauntlet';n++)await key('ArrowDown');
  assert.equal(await focus(),'item:rune_gauntlet');
  const stats=await row('rune_gauntlet').textContent();for(const text of ['Weapon','Technique 7 (+7)','Defense 3 (+3)','Strength 0 (-5)'])assert.ok(stats.includes(text),text);
- await fs.mkdir(new URL('../evidence/inventory-rows/',import.meta.url),{recursive:true});await page.screenshot({path:new URL('../evidence/inventory-rows/weapon-comparison.png',import.meta.url).pathname});
+ await fs.mkdir(reviewURL('inventory-rows/'),{recursive:true});await page.screenshot({path:reviewURL('inventory-rows/weapon-comparison.png').pathname});
  const before=await scroll();assert.ok(before.pack>0,'Long pack scrolls instead of growing giant cards');
  const originalRow=await row('rune_gauntlet').elementHandle();await key('Enter');assert.equal(await focus(),'equip:rune_gauntlet');
  assert.ok(await originalRow.evaluate(el=>el.isConnected),'Inspect keeps the same DOM row');assert.deepEqual(await scroll(),before);
@@ -38,12 +39,12 @@ try{
  await key('Enter');assert.match(await row('field_tonic').textContent(),/×1/);
  await key('ArrowLeft');assert.equal(await focus(),'item:field_tonic');await key('ArrowLeft');assert.equal(await focus(),'unequip:weapon');await key('ArrowUp');assert.equal(await focus(),'hero:0');await key('ArrowUp');assert.equal(await focus(),'tab:2');
  assert.equal(await page.locator('button button').count(),0);assert.equal(await page.locator('#item-detail').count(),0);
- await fs.mkdir(new URL('../evidence/inventory-rows/',import.meta.url),{recursive:true});
- await page.screenshot({path:new URL('../evidence/inventory-rows/compact-rows.png',import.meta.url).pathname});
+ await fs.mkdir(reviewURL('inventory-rows/'),{recursive:true});
+ await page.screenshot({path:reviewURL('inventory-rows/compact-rows.png').pathname});
  await key('6');await page.locator('[data-do="save:1"]').click();
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('chronforge_echo_v1:1')).state);
  assert.equal(saved.heroes[0].equip.weapon,'rune_gauntlet');assert.equal(saved.heroes[1].equip.weapon,'void_shard');assert.equal(saved.heroes[0].hp,81);assert.equal(saved.inventory.field_tonic,1);assert.equal(errors.length,0);
  await key('3');for(const slot of ['weapon','armor','accessory'])await page.locator(`[data-do="unequip:${slot}"]`).click();await page.locator('[data-do="hero:0"]').focus();await key('ArrowDown');assert.match(await focus(),/^item:/,'An empty equipment column still leads into the pack');
  const report={method:'Production build with stocked saved crew; normal mouse/keyboard menu navigation.',spatialNavigation:true,twoStepKeyboardEquip:true,inspectionPreservesDOM:true,scrollBeforeAndAfter:before,inlineUse:true,selectedHeroComparison:true,errors};
- await fs.writeFile(new URL('../evidence/inventory-rows/report.json',import.meta.url),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
+ await fs.writeFile(reviewURL('inventory-rows/report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
 }finally{await browser.close();}

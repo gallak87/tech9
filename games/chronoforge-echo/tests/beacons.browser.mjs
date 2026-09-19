@@ -1,3 +1,4 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -7,7 +8,7 @@ import {ALL_SCENES,isWalkable} from '../src/world.js';
 
 // One focused production check. Saves stage each beacon before its prerequisite;
 // F, Escape, Continue and reload exercise the actual game's UI and persistence.
-const out=new URL('../evidence/beacons/',import.meta.url);
+const out=reviewURL('beacons/');
 await fs.mkdir(out,{recursive:true});
 const report={method:'Production build, staged saves beside Haventide/Frost beacons; normal interaction and reload. The gate-cleared state is staged, not earned in combat.',checks:[],errors:[]};
 const browser=await chromium.launch({headless:true,channel:'chrome'});

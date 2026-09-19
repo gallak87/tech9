@@ -1,10 +1,11 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 /** Real DOM/canvas integration checks. Fixtures seed prerequisites; real keyboard
  * and pointer events make choices. Exact timing samples step updateBattle while
  * the host update is suspended, so screenshots cannot race the brief window. */
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-const evidence=new URL('../evidence/battle-accordion/',import.meta.url);
+const evidence=reviewURL('battle-accordion/');
 await fs.mkdir(evidence,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome'});
 const page=await browser.newPage({viewport:{width:1440,height:900}});

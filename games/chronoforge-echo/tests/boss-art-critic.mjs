@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import{chromium}from'playwright';
 import fs from'node:fs/promises';
 import assert from'node:assert/strict';
@@ -7,7 +8,7 @@ const report={method:'Actual production renderer at 1920×1080. Built-in final p
 page.on('pageerror',e=>report.errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text());});
 await page.routeWebSocket('**/*',s=>{s.send('{"type":"connected"}');s.onMessage(()=>{});});
 const snap=()=>page.evaluate(()=>window.__ECHO__.snapshot());
-async function capture(name){await page.waitForTimeout(34);await page.screenshot({path:base+'evidence/critic-'+name+'.png'});const s=await snap();return {name,battle:s.battle,heroes:s.state.heroes};}
+async function capture(name){await page.waitForTimeout(34);await page.screenshot({path:reviewRoot + 'critic-'+name+'.png'});const s=await snap();return {name,battle:s.battle,heroes:s.state.heroes};}
 try{
  await page.goto('http://127.0.0.1:4321/?test=1');await page.waitForFunction(()=>window.__ECHO_READY__);
  await page.evaluate(async()=>{window.criticModules=await Promise.all([import('/src/combat.js'),import('/src/content.js')]);const g=window.__ECHO__.game;window.criticAdvance=g.update;g.update=()=>{};});
@@ -34,4 +35,4 @@ try{
  await page.evaluate(()=>{const g=window.__ECHO__.game;g.update=window.criticAdvance;window.__ECHO__.preset('party');});
  for(const[key,label]of [['ArrowRight','right'],['ArrowUp','up'],['ArrowLeft','left'],['ArrowDown','down']]){await page.keyboard.down(key);await page.waitForTimeout(300);report.walk.push(await capture('walk-trio-'+label));await page.keyboard.up(key);}
  report.result='pass';
-}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}finally{await fs.writeFile(base+'evidence/boss-art-critic.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,battles:report.battles.length,errors:report.errors}));}
+}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}finally{await fs.writeFile(reviewRoot + 'boss-art-critic.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,battles:report.battles.length,errors:report.errors}));}

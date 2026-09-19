@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 /** Production-browser verification. Fixtures only seed prerequisites and positions;
  * each assertion names whether the subsequent interaction used real keys/mouse.
  * Run npm run verify, or node tests/browser.mjs --section=ux|combat|world|showcase|route.
@@ -12,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const section = process.argv.find(a => a.startsWith('--section='))?.split('=')[1] || 'all';
 const filter = process.argv.find(a => a.startsWith('--filter='))?.slice('--filter='.length);
-const evidence = path.join(root, 'evidence', 'browser');
+const evidence = path.join(reviewRoot, 'browser');
 await fs.mkdir(evidence, { recursive: true });
 const executableCandidates = [process.env.CHROMIUM_PATH, path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell')].filter(Boolean);
 let executablePath;
@@ -489,7 +490,7 @@ try {
   report.developmentReloadDetected = report.documentLoads.length > (report.startupDocumentLoads || 1);
   report.passed = report.checks.filter(c => c.pass).length;
   report.failed = report.checks.filter(c => !c.pass).length;
-  const output = path.join(root, 'evidence', `browser-results-${section}${filter ? '-filtered' : ''}.json`);
+  const output = path.join(reviewRoot, `browser-results-${section}${filter ? '-filtered' : ''}.json`);
   const video = page.video();
   await context.close();
   if (video) report.video = path.relative(root, await video.path());

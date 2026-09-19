@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -11,7 +12,7 @@ await page.routeWebSocket('**/*', s => { s.send(JSON.stringify({type:'connected'
 const snapshot = () => page.evaluate(()=>__ECHO__.snapshot());
 const freeze = () => page.evaluate(()=>{ const g=__ECHO__.game; window.choreoUpdate??=g.update; g.update=()=>{}; });
 const step = seconds => page.evaluate(seconds=>window.choreoUpdate.call(__ECHO__.game,seconds),seconds);
-const capture = async name => { await page.waitForTimeout(20); const file='choreography-'+name+'.png'; await page.screenshot({path:base+'evidence/'+file}); return {file,...await snapshot()}; };
+const capture = async name => { await page.waitForTimeout(20); const file='choreography-'+name+'.png'; await page.screenshot({path:reviewRoot + ''+file}); return {file,...await snapshot()}; };
 async function timeline(name,times){ const frames=[];let last=0;for(const elapsed of times){if(elapsed>last)await step(elapsed-last);frames.push({elapsed,...await capture(name+'-'+String(frames.length).padStart(2,'0'))});last=elapsed;}return frames; }
 async function technique(id){
  await page.evaluate(()=>__ECHO__.preset('battle-four')); await freeze();
@@ -56,4 +57,4 @@ try {
  if(mode==='all'||mode==='bosses'){for(const [id,biome]of [['frost_colossus','ice'],['magma_behemoth','volcanic'],['architect_herald','alien'],['void_architect','alien']])await groupBoss(id,biome);await enemy('mire_warden','vex');}
  assert.deepEqual(report.errors,[]);report.result='pass';
 }catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}
-finally{await fs.writeFile(base+'evidence/choreography-'+(process.argv[2]||'all')+'.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,errors:report.errors,techniques:report.techniques.length,enemies:report.enemies.length}));}
+finally{await fs.writeFile(reviewRoot + 'choreography-'+(process.argv[2]||'all')+'.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,errors:report.errors,techniques:report.techniques.length,enemies:report.enemies.length}));}

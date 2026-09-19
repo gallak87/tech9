@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -9,7 +10,7 @@ const report={method:'Scene/approach position fixtures, followed by actual keybo
 page.on('pageerror',e=>report.errors.push(String(e)));
 page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text());});
 await page.routeWebSocket('**/*',s=>{s.send('{"type":"connected"}');s.onMessage(()=>{});});
-const shot=async name=>{const file=`gate-${name}.png`;await page.screenshot({path:root+'evidence/'+file});return file;};
+const shot=async name=>{const file=`gate-${name}.png`;await page.screenshot({path:reviewRoot + ''+file});return file;};
 const status=()=>page.evaluate(()=>{const g=__ECHO__.game;return {mode:g.mode,panel:g.ui.panel?.type,menu:g.ui.menu,near:g.near?.id,encounter:g.battle?.encounter.id};});
 async function approachDoor(){
   await page.evaluate(()=>{const g=__ECHO__.game,t=g.scene.objects.find(o=>o.type==='town');g.walkTo(t.x+26,t.y+15);});
@@ -82,4 +83,4 @@ try{
   report.ordinaryPatrolStillTriggers=true;
   assert.deepEqual(report.errors,[]);report.result='pass';
 }catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;await shot('failure').catch(()=>{});}
-finally{await fs.writeFile(root+'evidence/gate-encounters.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}
+finally{await fs.writeFile(reviewRoot + 'gate-encounters.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}

@@ -1,7 +1,8 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-const out=new URL('../evidence/presentation-polish/',import.meta.url);await fs.mkdir(out,{recursive:true});
+const out=reviewURL('presentation-polish/');await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:'chrome'}),report={checks:[],errors:[]};
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}});page.on('pageerror',e=>report.errors.push(e.message));

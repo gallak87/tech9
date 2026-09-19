@@ -1,3 +1,4 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -7,7 +8,7 @@ import {npcIdentity} from '../src/npc-identities.js';
 
 // Production game, staged saves, ordinary F/Enter/Escape interactions. The static
 // registry test covers all identities; this check covers the actual dialogue/shop paths.
-const output=new URL('../evidence/npc-identities/',import.meta.url);
+const output=reviewURL('npc-identities/');
 await fs.mkdir(output,{recursive:true});
 const report={method:'Local production build; staged adjacent saves and normal keyboard interactions.',checks:[],errors:[]};
 const browser=await chromium.launch({headless:true,channel:'chrome'});

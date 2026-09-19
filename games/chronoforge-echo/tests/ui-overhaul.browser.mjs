@@ -1,8 +1,9 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
-const out=fileURLToPath(new URL('../evidence/ui-overhaul',import.meta.url));
+const out=fileURLToPath(reviewURL('ui-overhaul'));
 await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:'chrome'}),report={errors:[],missing:[],menus:[],anchors:[],scope:'Development fixtures stage scenes; production DOM, controls, camera and rewards are exercised in an isolated browser profile.'};
 try{

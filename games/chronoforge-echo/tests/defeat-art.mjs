@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -33,7 +34,7 @@ try {
   const frames=[];let last=0;
   for(const elapsed of [0,.2,.5,.67,.83,1.02,1.12]){
    if(elapsed>last)await page.evaluate(dt=>window.deathUpdate.call(__ECHO__.game,dt),elapsed-last);
-   await page.waitForTimeout(25);const file='defeat-'+lethal.enemy+'-'+String(frames.length).padStart(2,'0')+'.png';await page.screenshot({path:base+'evidence/'+file});
+   await page.waitForTimeout(25);const file='defeat-'+lethal.enemy+'-'+String(frames.length).padStart(2,'0')+'.png';await page.screenshot({path:reviewRoot + ''+file});
    frames.push({elapsed,file,...await page.evaluate(()=>({battle:__ECHO__.snapshot().battle,resultTime:__ECHO__.game.battleResultTime,mode:__ECHO__.game.mode}))});last=elapsed;
   }
   for(const f of frames){const e=f.battle.enemies[0];assert.equal(e.hp,0);assert.equal(e.atb,0);assert.equal(e.visual.pose,'down');assert.ok(!f.battle.targets.some(t=>t.id===e.uid));if(f.elapsed<=.67)assert.equal(e.visual.opacity,1);}
@@ -45,7 +46,7 @@ try {
   if(preset==='final'){
    for(let i=0;i<30&&await page.evaluate(()=>__ECHO__.game.ui.panel?.type==='dialogue');i++)await page.keyboard.press('Enter');
    assert.equal(await page.evaluate(()=>__ECHO__.game.ui.panel?.type),'ending');
-   await page.screenshot({path:base+'evidence/defeat-void_architect-ending.png'});
+   await page.screenshot({path:reviewRoot + 'defeat-void_architect-ending.png'});
    for(let i=0;i<12&&!(await page.evaluate(()=>document.activeElement?.dataset.do==='ending-continue'));i++)await page.keyboard.press('Tab');
    assert.equal(await page.evaluate(()=>document.activeElement?.dataset.do),'ending-continue');await page.keyboard.press('Enter');
    endingCompletion=await page.evaluate(()=>{window.deathUpdate.call(__ECHO__.game,1);const g=__ECHO__.game;return {complete:g.state.campaignComplete,pendingEnding:g.state.flags.pendingEnding,endingSeen:g.state.flags.ending_seen,scene:g.scene.id,panel:g.ui.panel?.type};});
@@ -55,4 +56,4 @@ try {
  }
  assert.deepEqual(report.errors,[]);report.result='pass';
 }catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}
-finally{await fs.writeFile(base+'evidence/defeat-art.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,cases:report.cases.length,errors:report.errors}));}
+finally{await fs.writeFile(reviewRoot + 'defeat-art.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,cases:report.cases.length,errors:report.errors}));}

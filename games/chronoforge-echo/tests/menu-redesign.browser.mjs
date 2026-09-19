@@ -1,7 +1,8 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-const out=new URL('../evidence/menu-redesign/',import.meta.url);await fs.mkdir(out,{recursive:true});
+const out=reviewURL('menu-redesign/');await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:'chrome'});
 const report={checks:[],errors:[],missing:[]};
 try{

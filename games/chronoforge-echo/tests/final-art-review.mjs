@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -8,7 +9,7 @@ const base=new URL('../',import.meta.url).pathname;
 const captureImages=process.env.REVIEW_SCREENSHOTS!=='0';
 const polish=process.env.REVIEW_PASS==='polish';
 const revision=process.env.REVIEW_PASS==='revision'||polish;
-const archive=JSON.parse(await fs.readFile(base+'evidence/earned-campaign-saves.json','utf8'));
+const archive=JSON.parse(await fs.readFile(reviewRoot + 'earned-campaign-saves.json','utf8'));
 assert.equal(archive.completed,true,'Earned campaign must complete before final art review');
 const browser=await chromium.launch({headless:true,channel:'chrome'});
 const page=await browser.newPage({viewport:{width:1920,height:1080},deviceScaleFactor:1});
@@ -44,7 +45,7 @@ await page.evaluate(async()=>{
 async function load(id){assert.ok(archive.saves[id],`Missing earned save ${id}`);await page.evaluate(async s=>{const {saveState}=await import('/src/persistence.js');saveState(s,1);window.__ECHO__.game.load(1);},archive.saves[id].state);}
 async function capture(id,extra={}){
  await page.evaluate(()=>window.__ECHO__.game.ui.render());await page.waitForTimeout(80);
- const file=captureImages?(polish?'critic-polished-':revision?'critic-revised-':'critic-final-')+id+'.png':null;if(file)await page.screenshot({path:base+'evidence/'+file});
+ const file=captureImages?(polish?'critic-polished-':revision?'critic-revised-':'critic-final-')+id+'.png':null;if(file)await page.screenshot({path:reviewRoot + ''+file});
  const sample=await page.evaluate(async()=>{const g=window.__ECHO__.game,{mainObjective}=await import('/src/narrative.js');return {scene:g.scene.id,biome:g.scene.biome,mode:g.mode,position:{x:g.state.x,y:g.state.y},simulationTime:g.state.playTime,objective:mainObjective(g.state),tier:g.state.tier,party:g.state.heroes.map(h=>({id:h.id,level:h.level,hp:h.hp,mp:h.mp})),panel:g.ui.panel?.type,tab:g.ui.menu?g.ui.tab:null,action:g.battle?.action?{name:g.battle.action.command.name,stage:g.battle.action.stage,elapsed:g.battle.action.elapsed,contact:g.battle.action.contact}:null,assetErrors:window.__ECHO__.snapshot().assets.errors};});
  report.captures.push({id,file,...extra,...sample});
 }
@@ -93,4 +94,4 @@ try{
  }
  if(!revision){await load('chapter-aftermath');await page.keyboard.press('Escape');for(let n=1;n<=7;n++){await page.keyboard.press(String(n));await capture('atlas-tab-'+n,{earnedSave:'chapter-aftermath'});}await page.keyboard.press('Escape');}
  assert.equal(errors.length,0,'Application/browser errors');report.result='pass';
-}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}finally{report.finishedAt=new Date().toISOString();report.browser=await browser.version();report.captureImages=captureImages;report.revision=revision;report.polish=polish;await fs.writeFile(base+'evidence/'+(polish?'final-art-review-polish.json':revision?'final-art-review-revision.json':captureImages?'final-art-review.json':'final-art-review-preflight.json'),JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,captures:report.captures.length,errors}));}
+}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}finally{report.finishedAt=new Date().toISOString();report.browser=await browser.version();report.captureImages=captureImages;report.revision=revision;report.polish=polish;await fs.writeFile(reviewRoot + ''+(polish?'final-art-review-polish.json':revision?'final-art-review-revision.json':captureImages?'final-art-review.json':'final-art-review-preflight.json'),JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,captures:report.captures.length,errors}));}

@@ -1,6 +1,5 @@
 // Original built-in imagegen source sheets; coordinates are source pixels.
 // Runtime import keys the neutral backdrop and isolates each body + portrait.
-// Original sources and prompts: docs/npc-art.md.
 export const NPC_ASSETS = [
  {
   id: 'npc_haventide', source: 'assets/npcs/haventide-source.png', columns: 4, rows: 2, kind: 'npc', required: true,

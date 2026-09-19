@@ -1,9 +1,10 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 /** Prerequisite fixtures use story victory events; every conversation, dismissal,
  * pause and save/load below uses the actual keyboard/DOM controls. */
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-const evidence=new URL('../evidence/recruitment/',import.meta.url);await fs.mkdir(evidence,{recursive:true});
+const evidence=reviewURL('recruitment/');await fs.mkdir(evidence,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:process.env.CHROME_CHANNEL||'chrome'});
 const report={checks:[],positions:[],screenshots:[],errors:[]};
 try{

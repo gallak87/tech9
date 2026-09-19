@@ -1,9 +1,10 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
 // Production gameplay only: no fixtures, state injection or altered game clock.
-const out=new URL('../evidence/incoming-defense/',import.meta.url);
+const out=reviewURL('incoming-defense/');
 await fs.mkdir(out,{recursive:true});
 const report={method:'Fresh production game; normal keyboard and ground-click movement into the first encounter, then Attack and incoming guard. No game fixtures or clock changes.',checks:[],errors:[]};
 const browser=await chromium.launch({headless:true,channel:'chrome'});

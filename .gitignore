@@ -10,6 +10,11 @@ games/*/shots/*
 !games/*/shots/proto-ref/
 games/*/dist/
 
-# Regenerable Chronoforge Echo alpha/crop inspection output.
+# Chronoforge Echo development output is temporary, never archived in Git.
+games/chronoforge-echo/evidence/
+games/chronoforge-echo/experiments/
+games/chronoforge-echo/.tmp/
+games/chronoforge-echo/test-results/
+games/chronoforge-echo/playwright-report/
 games/chronoforge-echo/.art-review/
 games/chronoforge-echo/docs/town-center-review/

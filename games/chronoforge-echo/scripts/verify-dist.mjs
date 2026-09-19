@@ -3,6 +3,12 @@ import fs from 'node:fs';
 import {ASSET_MANIFEST} from '../src/assets.js';
 
 const dist = new URL('../dist/', import.meta.url);
+const sourceAssets = new URL('../public/assets/', import.meta.url);
+const liveAssets = new Set(ASSET_MANIFEST.map(asset => asset.url));
+for (const name of fs.readdirSync(sourceAssets, {recursive: true})) {
+  if (!fs.statSync(new URL(name, sourceAssets)).isFile()) continue;
+  assert.ok(liveAssets.has('assets/' + name.replaceAll('\\', '/')), `Non-runtime file in public/assets: ${name}`);
+}
 const index = fs.readFileSync(new URL('index.html', dist), 'utf8');
 const entryRefs = [...index.matchAll(/(?:src|href)=["']([^"']+)["']/g)].map(m => m[1]).filter(url => !url.startsWith('data:'));
 assert.ok(entryRefs.some(url => url.endsWith('.js')), 'Built entry script missing');
@@ -32,7 +38,9 @@ for (const mount of ['/', '/tech9/chronoforge-echo/']) {
   ASSET_MANIFEST.forEach(asset => check(asset.url));
   console.log(`PASS ${mount}: ${checked.size} compiled entry, font and art files resolve inside the mount.`);
 }
-assert.ok(!fs.existsSync(new URL('experiments/', dist)), 'Experiments must not ship');
+for (const folder of ['evidence/', 'experiments/', '.art-review/']) {
+  assert.ok(!fs.existsSync(new URL(folder, dist)), `Development artifacts must not ship: ${folder}`);
+}
 let productionScript='',productionStyles='';
 for(const name of fs.readdirSync(new URL('assets/',dist)).filter(name=>/\.(js|css)$/.test(name))){
   const text=fs.readFileSync(new URL('assets/'+name,dist),'utf8');

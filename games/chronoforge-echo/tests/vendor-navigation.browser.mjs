@@ -1,3 +1,4 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -15,7 +16,7 @@ state.settings.music=0;state.settings.sfx=0;
 const scene=ALL_SCENES[state.region],vendor=scene.objects.find(o=>o.id==='emberline_artificer');
 const spot=[[0,48],[40,20],[-45,20],[55,0]].map(([dx,dy])=>({x:vendor.x+dx,y:vendor.y+dy})).find(p=>isWalkable(scene,p.x,p.y)&&nearby(scene,p.x,p.y,state)[0]?.id===vendor.id);
 assert.ok(spot);Object.assign(state,spot);
-const output=new URL('../evidence/vendor-grid/',import.meta.url);await fs.mkdir(output,{recursive:true});
+const output=reviewURL('vendor-grid/');await fs.mkdir(output,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:'chrome'}),errors=[];
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}});

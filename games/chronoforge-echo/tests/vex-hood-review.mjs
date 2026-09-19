@@ -1,7 +1,8 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const out=new URL('../evidence/vex-hood-v2/',import.meta.url);await fs.mkdir(out,{recursive:true});
+const out=reviewURL('vex-hood-v2/');await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({headless:true,channel:'chrome'}),report={errors:[]};
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}});

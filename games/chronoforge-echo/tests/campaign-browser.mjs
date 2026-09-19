@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 const base=new URL('../',import.meta.url).pathname;
@@ -7,7 +8,6 @@ const page=await browser.newPage({viewport:{width:1920,height:1080},deviceScaleF
 const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 await page.routeWebSocket('**/*',socket=>{socket.send(JSON.stringify({type:'connected'}));socket.onMessage(()=>{});}); // Freeze the loaded code version during concurrent development.
 const started=Date.now();
-let earlier=null;try{earlier=JSON.parse(await fs.readFile(base+'evidence/campaign-browser.json','utf8'));}catch{}
 await page.goto('http://127.0.0.1:4321/?test=1',{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__ECHO_READY__);
 await page.evaluate(async()=>{
  const [W,P,C,B]=await Promise.all([import('/src/world.js'),import('/src/progression.js'),import('/src/content.js'),import('/src/combat.js')]);
@@ -71,7 +71,7 @@ const chapters=[
  ['aftermath',`interact('ending_beacon');expect(g.state.heroes[0].level>=40,'Level40 not earned');expect(['vex_arc_complete','rune_arc_complete','mara_arc_complete'].every(f=>g.state.flags[f]),'Side arc incomplete');expect(Object.keys((await import('/src/world.js')).REGIONS).every(id=>g.state.visited[id]),'Region missing');report.completed=true;`]
 ];
 let failure=null;
-try{for(const [name,code]of chapters){console.log('CHAPTER '+name);await page.evaluate(async({name,code})=>{const c=window.__campaign;const f=new Function('c',`return (async()=>{const {g,report,interact,recover,civic,travel,gather,milestone,expect,improve,note}=c;${code};return milestone(${JSON.stringify(name)});})()`);return f(c);},{name,code});if(captureChapters){await page.waitForTimeout(80);await page.screenshot({path:base+'evidence/campaign-browser-'+name+'.png'});}console.log('DONE '+name);}}
+try{for(const [name,code]of chapters){console.log('CHAPTER '+name);await page.evaluate(async({name,code})=>{const c=window.__campaign;const f=new Function('c',`return (async()=>{const {g,report,interact,recover,civic,travel,gather,milestone,expect,improve,note}=c;${code};return milestone(${JSON.stringify(name)});})()`);return f(c);},{name,code});if(captureChapters){await page.waitForTimeout(80);await page.screenshot({path:reviewRoot + 'campaign-browser-'+name+'.png'});}console.log('DONE '+name);}}
 catch(e){failure=String(e);console.error(failure);}
-const reviewSaves=await page.evaluate(()=>window.__campaign?.reviewSaves||{});await fs.writeFile(base+'evidence/earned-campaign-saves.json',JSON.stringify({description:'Actual clean campaign states, not manually authored fixtures. Each state is suitable for saveState(state, 1) followed by game.load(1).',completed:!failure,createdAt:new Date().toISOString(),saves:reviewSaves},null,2));
-const result=await page.evaluate(()=>({report:window.__campaign?.report,snapshot:window.__ECHO__?.snapshot()}));result.wallSeconds=(Date.now()-started)/1000;result.browser=await browser.version();result.viewport=[1920,1080];result.devHmrDisabled=true;result.failure=failure;result.browserErrors=errors;result.previousFailures=[...(earlier?.previousFailures||[]),...(earlier?.failure?[{failure:earlier.failure,wallSeconds:earlier.wallSeconds,scene:earlier.snapshot?.scene,x:earlier.snapshot?.state?.x,y:earlier.snapshot?.state?.y,battleCount:earlier.report?.battles?.length,browserErrorCount:earlier.browserErrors?.length,uniqueBrowserErrors:[...new Set(earlier.browserErrors||[])].slice(0,5)}]:[])];await fs.writeFile(base+'evidence/campaign-browser.json',JSON.stringify(result,null,2));await browser.close();if(failure)process.exitCode=1;
+const reviewSaves=await page.evaluate(()=>window.__campaign?.reviewSaves||{});await fs.writeFile(reviewRoot + 'earned-campaign-saves.json',JSON.stringify({description:'Actual clean campaign states, not manually authored fixtures. Each state is suitable for saveState(state, 1) followed by game.load(1).',completed:!failure,createdAt:new Date().toISOString(),saves:reviewSaves},null,2));
+const result=await page.evaluate(()=>({report:window.__campaign?.report,snapshot:window.__ECHO__?.snapshot()}));result.wallSeconds=(Date.now()-started)/1000;result.browser=await browser.version();result.viewport=[1920,1080];result.devHmrDisabled=true;result.failure=failure;result.browserErrors=errors;await fs.writeFile(reviewRoot + 'campaign-browser.json',JSON.stringify(result,null,2));await browser.close();if(failure)process.exitCode=1;

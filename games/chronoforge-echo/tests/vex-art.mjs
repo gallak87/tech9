@@ -1,7 +1,8 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const base=new URL('../',import.meta.url).pathname,folder=base+'evidence/vex-refresh/';
+const base=new URL('../',import.meta.url).pathname,folder=reviewRoot + 'vex-refresh/';
 const browser=await chromium.launch({headless:true,channel:'chrome'}),page=await browser.newPage({viewport:{width:1920,height:1080},deviceScaleFactor:1});
 const report={method:'Explicit NPC/party/encounter fixtures. Production Game.update, actual keyboard movement and battle selection render the real NPC, followers, portraits and timed actions. No screenshot pixels, pose overrides or battle damage are assigned. The separate pose/gait inspection uses main’s installed drawHero DEV hook.',errors:[],captures:[]};
 page.on('pageerror',e=>report.errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text());});

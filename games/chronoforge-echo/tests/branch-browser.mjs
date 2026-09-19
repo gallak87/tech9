@@ -1,8 +1,9 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const base=new URL('../',import.meta.url).pathname;
-const campaign=JSON.parse(await fs.readFile(base+'evidence/campaign-browser.json','utf8'));
+const campaign=JSON.parse(await fs.readFile(reviewRoot + 'campaign-browser.json','utf8'));
 assert.equal(campaign.report.completed,true,'An earned campaign snapshot is required as the fixture source.');
 const source=campaign.snapshot.state;
 const cases=[
@@ -32,6 +33,6 @@ try{for(const [index,c]of cases.entries()){
  assert.equal(after.flags[c.choice],true);assert.equal(Boolean(after.flags[c.opposite]),false);assert.equal(after.flags.rewardLedger[c.ledger],true);if(c.flag)assert.equal(after.flags[c.flag],true);if(c.oppositeFlag)assert.equal(Boolean(after.flags[c.oppositeFlag]),false);if(c.item){assert.equal(itemCount(after,c.item),1);assert.equal(itemCount(after,c.oppositeItem),0);}if(c.skill)assert.ok(after.heroes.some(h=>h.skills.includes(c.skill)));for(const h of after.heroes)assert.equal(totalXP(h)-totalXP(fixture.state.heroes.find(x=>x.id===h.id)),c.xp);
  await page.keyboard.press('Escape');await page.keyboard.press('6');await page.locator('[data-do="save:2"]').click();await page.locator('[data-do="load:2"]').click();await page.locator('[data-do="confirm-yes"]').click();const loaded=await readState(page);assert.equal(loaded.flags[c.choice],true);assert.equal(Boolean(loaded.flags[c.opposite]),false);assert.deepEqual(loaded.heroes.map(h=>h.skills),after.heroes.map(h=>h.skills));assert.deepEqual(loaded.inventory,after.inventory);
  await page.keyboard.press('f');const revisit=await finishDialogue(page);const repeated=await readState(page);assert.deepEqual(repeated.heroes.map(totalXP),after.heroes.map(totalXP),'Revisit awarded XP twice');assert.deepEqual(repeated.inventory,after.inventory,'Revisit duplicated inventory');assert.equal(Boolean(repeated.flags[c.opposite]),false);
- await page.keyboard.press('Escape');await page.keyboard.press('5');await page.screenshot({path:base+`evidence/branch-browser-${c.choice}.png`});
+ await page.keyboard.press('Escape');await page.keyboard.press('5');await page.screenshot({path:reviewRoot + `branch-browser-${c.choice}.png`});
  const result={choice:c.choice,input:index%2===0?'keyboard Enter on focused choice':'mouse choice button',fixture:{source:'Earned full campaign snapshot; only this arc rewound to an explicit prechoice fixture.',...fixture},intro,choiceButtons,conclusion,revisit,after:{flags:after.flags,inventory:after.inventory,heroes:after.heroes},persistedAndIdempotent:true,errors};results.push(result);assert.equal(errors.length,0);console.log('PASS '+c.choice);await context.close();
- }}catch(e){results.push({failure:String(e)});process.exitCode=1;}finally{await browser.close();await fs.writeFile(base+'evidence/branch-browser.json',JSON.stringify({description:'Actual dialogue choice, manual save UI, confirmation/load UI, and repeat interaction on six isolated deterministic prechoice fixtures. This is branch UI/persistence verification, not a fresh campaign progression claim.',wallSeconds:(Date.now()-started)/1000,results},null,2));}
+ }}catch(e){results.push({failure:String(e)});process.exitCode=1;}finally{await browser.close();await fs.writeFile(reviewRoot + 'branch-browser.json',JSON.stringify({description:'Actual dialogue choice, manual save UI, confirmation/load UI, and repeat interaction on six isolated deterministic prechoice fixtures. This is branch UI/persistence verification, not a fresh campaign progression claim.',wallSeconds:(Date.now()-started)/1000,results},null,2));}

@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -10,7 +11,7 @@ page.on('console', message => { if (message.type() === 'error') report.errors.pu
 const requested = [];
 page.on('request', request => requested.push(request.url()));
 await page.routeWebSocket('**/*', socket => { socket.send('{"type":"connected"}'); socket.onMessage(() => {}); });
-const capture = async name => { await page.screenshot({ path: base + 'evidence/icon-refresh/' + name + '.png' }); report.captures.push(name + '.png'); };
+const capture = async name => { await page.screenshot({ path: reviewRoot + 'icon-refresh/' + name + '.png' }); report.captures.push(name + '.png'); };
 try {
   await page.goto('http://127.0.0.1:4321/?test=1', { waitUntil: 'networkidle' });
   await page.waitForFunction(() => window.__ECHO_READY__);
@@ -57,9 +58,9 @@ try {
       }
     });
   });
-  await page.locator('#icon-contact-sheet').screenshot({ path: base + 'evidence/icon-refresh/contact-native.png' });
+  await page.locator('#icon-contact-sheet').screenshot({ path: reviewRoot + 'icon-refresh/contact-native.png' });
   report.captures.push('contact-native.png');
   assert.deepEqual(report.errors, []);
   report.result = 'pass';
 } catch (error) { report.result = 'fail'; report.failure = String(error); process.exitCode = 1; }
-finally { await fs.writeFile(base + 'evidence/icon-refresh/results.json', JSON.stringify(report, null, 2)); await browser.close(); console.log(JSON.stringify({ result: report.result, failure: report.failure, count: report.load?.assets.loaded.length, decodedBytes: report.load?.assets.bytes, compressedBytes: report.compressedManifestBytes, iconMetrics: report.load?.metrics, errors: report.errors })); }
+finally { await fs.writeFile(reviewRoot + 'icon-refresh/results.json', JSON.stringify(report, null, 2)); await browser.close(); console.log(JSON.stringify({ result: report.result, failure: report.failure, count: report.load?.assets.loaded.length, decodedBytes: report.load?.assets.bytes, compressedBytes: report.compressedManifestBytes, iconMetrics: report.load?.metrics, errors: report.errors })); }

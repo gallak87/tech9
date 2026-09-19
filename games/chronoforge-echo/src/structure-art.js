@@ -1,5 +1,5 @@
 // Separate generated RGBA sprites. Original PNGs are unmodified; frame crops only
-// exclude transparent margins. Prompts and audit: docs/structure-art.md.
+// exclude transparent margins.
 export const STRUCTURE_ASSETS = [
   {
     id: 'signal_beacon', source: 'assets/structures/signal-beacon-source.png',

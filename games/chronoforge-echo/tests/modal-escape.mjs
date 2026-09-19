@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 /** Focused production-keyboard regressions for layered Escape.
  * Positions, progression gates, and battle/ending setup are explicit fixtures.
  * No clean campaign or performance claim. Run: node tests/modal-escape.mjs
@@ -9,7 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const evidence = path.join(root, 'evidence', 'modal-escape');
+const evidence = path.join(reviewRoot, 'modal-escape');
 await fs.mkdir(evidence, { recursive: true });
 const browser = await chromium.launch({ headless: true, channel: 'chrome' });
 const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });

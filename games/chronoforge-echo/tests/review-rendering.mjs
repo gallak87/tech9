@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -24,14 +25,14 @@ try {
     view.clickEndpoint=await page.evaluate(target=>{const g=__ECHO__.game;return{distance:Math.hypot(g.state.x-target.x,g.state.y-target.y),x:g.state.x,y:g.state.y};},target);
     assert.ok(view.clickEndpoint.distance<5,'Mouse coordinates must stay in logical world units');
     await page.waitForTimeout(100);
-    await page.screenshot({path:root+`evidence/review-rendering-${spec.width}-world.png`});
+    await page.screenshot({path:reviewRoot + `review-rendering-${spec.width}-world.png`});
     await page.evaluate(()=>__ECHO__.goto('hav_house'));
     await page.waitForTimeout(100);
-    await page.screenshot({path:root+`evidence/review-rendering-${spec.width}-house.png`});
+    await page.screenshot({path:reviewRoot + `review-rendering-${spec.width}-house.png`});
     await page.keyboard.press('Escape');await page.keyboard.press('2');
     view.portrait=await page.locator('.portrait-large').first().evaluate(c=>({width:c.width,height:c.height,css:getComputedStyle(c).imageRendering}));
     assert.deepEqual(view.portrait,{width:192,height:192,css:'auto'});
-    await page.screenshot({path:root+`evidence/review-rendering-${spec.width}-party.png`});
+    await page.screenshot({path:reviewRoot + `review-rendering-${spec.width}-party.png`});
     await page.evaluate(()=>__ECHO__.preset('battle'));
     await page.waitForFunction(()=>__ECHO__.snapshot().battle?.selectedHero==='kaida');
     const click=async(x,y)=>{const b=await page.locator('#stage canvas').boundingBox();await page.mouse.click(b.x+x/960*b.width,b.y+y/540*b.height);};
@@ -41,9 +42,9 @@ try {
     await page.waitForFunction(()=>__ECHO__.snapshot().battle.action?.resolved);
     view.battleMouse=await page.evaluate(()=>{const b=__ECHO__.snapshot().battle;return{resolved:b.action.resolved,targetHp:b.enemies[0].hp,targetMaxHp:b.enemies[0].maxHp};});
     assert.ok(view.battleMouse.targetHp<view.battleMouse.targetMaxHp);
-    await page.screenshot({path:root+`evidence/review-rendering-${spec.width}-battle.png`});
+    await page.screenshot({path:reviewRoot + `review-rendering-${spec.width}-battle.png`});
     await context.close();
   }
   assert.deepEqual(report.errors,[]);report.result='pass';
 }catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}
-finally{await fs.writeFile(root+'evidence/review-rendering.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}
+finally{await fs.writeFile(reviewRoot + 'review-rendering.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}

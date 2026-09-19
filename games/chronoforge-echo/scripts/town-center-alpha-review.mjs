@@ -1,9 +1,10 @@
+import {reviewURL} from './review-output.mjs';
 // Static image import inspection only: no server, game entry, world, save or UI.
 import fs from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {ASSET_MANIFEST} from '../src/assets.js';
 
-const root=new URL('../',import.meta.url),out=new URL('.art-review/town-centers/',root);
+const root=new URL('../',import.meta.url),out=reviewURL('town-centers/');
 const source=await fs.readFile(new URL('src/assets.js',root),'utf8');
 const keySource=source.slice(source.indexOf('function keyNeutralExterior('),source.indexOf('\nexport async function loadPixelAtlas'));
 const entries=ASSET_MANIFEST.filter(a=>a.kind==='townCenter');

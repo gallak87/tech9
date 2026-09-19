@@ -1,4 +1,4 @@
-// Original generated waymarker; exact prompt and provenance in docs/sign-art-prompts.json.
+// Measured crop and grounded anchor for the generated waymarker.
 // One direction-neutral rectangular board covers all nine outdoor signs.
 export const ROAD_SIGN_ART = {
   sourceWidth: 1254,

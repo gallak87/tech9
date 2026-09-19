@@ -1,7 +1,8 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const base=new URL('../',import.meta.url).pathname, folder=base+'evidence/gravbot-refresh/';
+const base=new URL('../',import.meta.url).pathname, folder=reviewRoot + 'gravbot-refresh/';
 const browser=await chromium.launch({headless:true,channel:'chrome'});
 const page=await browser.newPage({viewport:{width:1920,height:1080},deviceScaleFactor:1});
 const report={method:'Explicit party/camera fixture at the actual Emberline gate sentry. Production Game.update schedules and renders the enemy action; only simulation wall time is accelerated. Pose inspection separately draws all six imported poses at native world/battle scales on dark and pale backgrounds.',errors:[],captures:[]};

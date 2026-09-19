@@ -1,7 +1,8 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 // Focused art-import fixture: all36 bodies and portraits, plus runtime alpha checks.
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
-const output=new URL('../evidence/npc-art/',import.meta.url);
+const output=reviewURL('npc-art/');
 const browser=await chromium.launch({headless:true,channel:'chrome'});
 try{
  const page=await browser.newPage({viewport:{width:1920,height:1380}});

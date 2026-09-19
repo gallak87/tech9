@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -23,4 +24,4 @@ try{
   assert.equal(report.errors.length,0);assert.ok(report.allFrameBudgetsPass,'One or more p95 frame budgets missed');assert.ok(report.allTransitionBudgetsPass,'One or more transitions exceeded250ms');
   report.result='pass';
 }catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}
-finally{await fs.writeFile(base+'evidence/'+(process.env.PERF_REPORT||'performance')+'.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,coldReadyMs:report.coldReadyMs,errors:report.errors,samples:report.samples.map(s=>({scene:s.scene,frames:s.frames,p95:s.p95Ms,transitionMs:s.transitionTwoFrameMs}))}));}
+finally{await fs.writeFile(reviewRoot + ''+(process.env.PERF_REPORT||'performance')+'.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,coldReadyMs:report.coldReadyMs,errors:report.errors,samples:report.samples.map(s=>({scene:s.scene,frames:s.frames,p95:s.p95Ms,transitionMs:s.transitionTwoFrameMs}))}));}

@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -12,16 +13,16 @@ try{
   assert.equal(await page.evaluate(()=>typeof window.__ECHO__),'undefined','Production must not expose fixture hooks even with query string');
   report.canvas=await page.locator('#stage canvas').evaluate(c=>({width:c.width,height:c.height,imageRendering:getComputedStyle(c).imageRendering}));
   assert.deepEqual(report.canvas,{width:1920,height:1080,imageRendering:'auto'});
-  await page.screenshot({path:base+`evidence/${reportName}-title.png`});report.screens.push(`${reportName}-title.png`);
+  await page.screenshot({path:reviewRoot + `${reportName}-title.png`});report.screens.push(`${reportName}-title.png`);
   await page.keyboard.press('Enter');
   for(let i=0;i<12;i++){const hasDialogue=await page.locator('.dialogue-box').count();if(!hasDialogue)break;await page.keyboard.press('Enter');}
   if(await page.locator('[data-do="dialogue-next"]').count())for(let i=0;i<8&&await page.locator('[data-do="dialogue-next"]').count();i++)await page.keyboard.press('Enter');
   await page.keyboard.press('Escape');
   const tabs=['Map','Party','Inventory','Skills','Quests','Save','Settings'];
   for(let i=0;i<7;i++){await page.keyboard.press(String(i+1));assert.ok((await page.locator('.tabs .active').innerText()).includes(tabs[i]));}
-  await page.screenshot({path:base+`evidence/${reportName}-settings.png`});report.screens.push(`${reportName}-settings.png`);
+  await page.screenshot({path:reviewRoot + `${reportName}-settings.png`});report.screens.push(`${reportName}-settings.png`);
   await page.keyboard.press('Escape');await page.keyboard.down('ArrowRight');await page.waitForTimeout(350);await page.keyboard.up('ArrowRight');
-  await page.screenshot({path:base+`evidence/${reportName}-opening.png`});report.screens.push(`${reportName}-opening.png`);
+  await page.screenshot({path:reviewRoot + `${reportName}-opening.png`});report.screens.push(`${reportName}-opening.png`);
   assert.deepEqual(report.errors,[]);assert.deepEqual(report.httpErrors,[]);report.result='pass';report.browser=await browser.version();
-}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;await page.screenshot({path:base+`evidence/${reportName}-failure.png`}).catch(()=>{});}
-finally{await fs.writeFile(base+`evidence/${reportName}.json`,JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}
+}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;await page.screenshot({path:reviewRoot + `${reportName}-failure.png`}).catch(()=>{});}
+finally{await fs.writeFile(reviewRoot + `${reportName}.json`,JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}

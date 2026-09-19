@@ -1,3 +1,4 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {chromium} from 'playwright';
@@ -10,7 +11,7 @@ import {SAVE_PREFIX,SAVE_GAME,MAX_SAVE_BYTES} from '../src/persistence.js';
 // Production browser regression. Only the initial localStorage fixtures are staged;
 // transfer, confirmation, navigation, download and load use normal game controls.
 // Two local origins model separate hosted/local storage without contacting a deployment.
-const output=new URL('../evidence/save-transfer/',import.meta.url);
+const output=reviewURL('save-transfer/');
 await fs.mkdir(output,{recursive:true});
 const originA=new URL(process.env.ECHO_SAVE_URL||'http://127.0.0.1:4336/');
 const originB=new URL(process.env.ECHO_SAVE_OTHER_URL||originA.href);

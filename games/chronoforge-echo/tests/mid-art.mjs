@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -21,7 +22,7 @@ try {
     const poses=['idle','anticipate','attack','hurt','down','guard'];
     ids.forEach((id,row)=>poses.forEach((pose,col)=>{const x=col*240+120,y=row*180+153;Art.drawEnemy(c,id,x,y,{pose,time:0,scale:1});c.fillStyle='#e8e1c7';c.font='12px monospace';c.fillText(id+' / '+pose,col*240+6,y+20);}));
   },ids);
-  await page.locator('#inspection').screenshot({path:base+'evidence/mid-enemy-pose-inspection.png'});
+  await page.locator('#inspection').screenshot({path:reviewRoot + 'mid-enemy-pose-inspection.png'});
   await page.evaluate(()=>document.querySelector('#inspection').remove());
   for(const id of process.argv.includes('--poses-only') ? [] : ids){
     await page.evaluate(async id=>{
@@ -29,17 +30,17 @@ try {
       g.state.flags.battle_taught=true;g.battle=createBattle(g.state,{id:'art_'+id,biome:id==='mire_hulk'?'forest':id.includes('ember')?'volcanic':id==='wraith_core'?'alien':'snow',enemies:[id],boss:id==='ember_lord'});g.mode='battle';g.ui.render();
       window.artUpdate??=g.update;g.update=()=>{};
     },id);
-    await page.waitForTimeout(40);await page.screenshot({path:base+'evidence/mid-'+id+'-idle.png'});
+    await page.waitForTimeout(40);await page.screenshot({path:reviewRoot + 'mid-'+id+'-idle.png'});
     const action=await page.evaluate(()=>{const g=__ECHO__.game;let ticks=0;while(ticks++<8000){if(g.battle.action?.side==='enemy'||g.battle.action?.participants.some(i=>i.startsWith('enemy_')))return {ticks,name:g.battle.action.command.name,duration:g.battle.action.duration};window.artUpdate.call(g,.01);}return null;});
     assert.ok(action,'Enemy must naturally schedule an action: '+id);
     const frames=[];let last=0;
     for(const t of [0,.18,.42,.65,.78,.92,1.10,1.35]){
       if(t>last)await page.evaluate(dt=>window.artUpdate.call(__ECHO__.game,dt),t-last);
-      await page.waitForTimeout(35);const file='mid-'+id+'-'+frames.length+'.png';await page.screenshot({path:base+'evidence/'+file});
+      await page.waitForTimeout(35);const file='mid-'+id+'-'+frames.length+'.png';await page.screenshot({path:reviewRoot + ''+file});
       frames.push({t,file,battle:await page.evaluate(()=>__ECHO__.snapshot().battle)});last=t;
     }
     report.samples.push({id,action,frames});
   }
   report.result='pass';
 }catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}
-finally{await fs.writeFile(base+'evidence/mid-art'+(process.argv.includes('--poses-only')?'-poses':'')+'.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,error:report.failure,errors:report.errors,samples:report.samples.length}));}
+finally{await fs.writeFile(reviewRoot + 'mid-art'+(process.argv.includes('--poses-only')?'-poses':'')+'.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,error:report.failure,errors:report.errors,samples:report.samples.length}));}

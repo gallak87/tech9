@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -9,6 +10,6 @@ try{
  await page.route('**/assets/kaida-showcase-source.png',r=>r.abort('failed'));
  await page.goto('http://127.0.0.1:4322/');await page.locator('.fatal').waitFor({state:'visible'});
  assert.equal(await page.evaluate(()=>window.__ECHO_READY__),false);assert.ok((await page.locator('.fatal').innerText()).includes('kaida-showcase-source.png'));
- await page.screenshot({path:base+'evidence/required-asset-visible-failure.png'});report.result='pass';
+ await page.screenshot({path:reviewRoot + 'required-asset-visible-failure.png'});report.result='pass';
 }catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}
-finally{await fs.writeFile(base+'evidence/required-assets.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}
+finally{await fs.writeFile(reviewRoot + 'required-assets.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify(report));}

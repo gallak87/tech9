@@ -6,12 +6,6 @@
 - [ ] Animate Crater Ember’s lava with a natural sense of flow and heat.
 - [ ] Revisit Forest Veil’s semicircular tree groves and traversal; explore dense woodland with connected clearings and readable paths.
 
-## Menu and HUD identity — implemented, awaiting hands-on review
-
-The user approved the character-centered menu composition with parchment interiors and a separate folding battle interface. The full design is implemented in the playable game, including all seven menu tabs and real ATB state. Compact field dialogs, object-anchored prompts, relocated HUD information, faster reward notices and generated resource/item icons are integrated. See [the accepted UI direction](docs/UI_DIRECTION.md) and [verification evidence](docs/VERIFICATION.md).
-
-Parchment belongs only inside the menu. Overworld and combat interfaces use compact, neutral near-black surfaces, with lava orange replacing gold interface outlines. The next review is a full in-game sweep by the user after implementation and verification.
-
 ## TODO — Revisit Party and Inventory overlap
 
 Party and Inventory repeat the hero selector, centered character art, equipped slots, and vitals; their main distinction is the stats summary versus the pack and item actions. Revisit whether these should be combined or given clearer, complementary purposes. Keep the character-centered presentation in mind when exploring options.

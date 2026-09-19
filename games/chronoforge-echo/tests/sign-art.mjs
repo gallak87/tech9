@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -28,7 +29,7 @@ try {
     }, target);
     await page.waitForTimeout(80);
     const file = `${before ? 'before-' : ''}${target.id}.png`;
-    await page.screenshot({ path: base + 'evidence/sign-refresh/' + file }); report.captures.push({ file, ...actual });
+    await page.screenshot({ path: reviewRoot + 'sign-refresh/' + file }); report.captures.push({ file, ...actual });
   }
   if (!before) {
     const domestic = await page.evaluate(async () => {
@@ -39,10 +40,10 @@ try {
       return { scene: scene.id, letter: { id: letter.id, type: letter.type, domestic: letter.domestic }, signs: scene.objects.filter(o => o.type === 'sign').length };
     });
     assert.equal(domestic.letter.type, 'console'); assert.ok(domestic.letter.domestic); assert.equal(domestic.signs, 0); report.domestic = domestic;
-    await page.waitForTimeout(80); await page.screenshot({ path: base + 'evidence/sign-refresh/domestic-letter-unchanged.png' });
+    await page.waitForTimeout(80); await page.screenshot({ path: reviewRoot + 'sign-refresh/domestic-letter-unchanged.png' });
     report.assets = await page.evaluate(() => __ECHO__.snapshot().assets);
     assert.ok(report.assets.loaded.some(a => a.id === 'road_waymarker')); assert.deepEqual(report.assets.errors, []);
   }
   assert.deepEqual(report.errors, []); report.result = 'pass';
 } catch (error) { report.result = 'fail'; report.failure = String(error); process.exitCode = 1; }
-finally { await fs.writeFile(base + 'evidence/sign-refresh/' + (before ? 'before' : 'results') + '.json', JSON.stringify(report, null, 2)); await browser.close(); console.log(JSON.stringify({ result: report.result, failure: report.failure, captures: report.captures.length, assetCount: report.assets?.loaded.length, errors: report.errors })); }
+finally { await fs.writeFile(reviewRoot + 'sign-refresh/' + (before ? 'before' : 'results') + '.json', JSON.stringify(report, null, 2)); await browser.close(); console.log(JSON.stringify({ result: report.result, failure: report.failure, captures: report.captures.length, assetCount: report.assets?.loaded.length, errors: report.errors })); }

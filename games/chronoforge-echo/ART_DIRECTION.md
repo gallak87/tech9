@@ -1,21 +1,44 @@
-# Salt / Signal / Living Metal
+# Art and interface direction
 
-Chosen from three internal compositions: heavy brass console (too heavy), luminous botanical manuscript (too soft), slim expedition atlas (chosen). Ink `#101e23`, ivory `#e8e1c7`, oxidized teal `#538d82`, warm amber `#d3ad68`, raspberry `#cc5775`. Hard pixel corners, hairline registration marks, asymmetric section labels, a broken circle crossed by three horizon strokes. Serif display lettering with compact monospace functional text. No neon dashboard, parchment, rounded cards or bloom.
+## World and characters
 
-The coast is deep jade sea, pale limestone shelves, warm sand paths, wind-shaped moss and dark cypress. Monumental ring pylons and torn signal banners give each vista a remembered human scale. Trees are hand-composed clusters with angular silhouettes and lit crowns; water has stepped shallows and slow horizontal glints. Regions progressively shift into ochre trade wastes, dense fern forest, copper marsh, ember caldera, blue-white elevator ruins, glacial ravines, and bone-and-teal alien gardens. Interiors feel inhabited: shelves, rugs, lamps, work benches and deep doors.
+Use detailed three-quarter orthographic artwork, consistent top-left light, grounded feet and readable silhouettes. Quiet walkable surfaces contrast with denser scenery. Large objects need enough source detail for their displayed size; stretching an existing prop does not make a new landmark. Leave clear approaches to doors, encounters and points of interest. Solid footprints follow trunks, foundations and gate pillars rather than the entire painted silhouette.
 
-Kaida: short tousled magenta hair, dark teal cropped high-collar jacket, charcoal clothes, armored shoulder/boots, magenta-edged slender sword, animated trailing cloth. Vex: ink-blue long coat, pale hair, wide asymmetric wizard hood, floating amber glyph; inquisitive, wary of certainty. Rune: broad sentinel, weathered ivory armor, deep amber scarf, immense rectangular shield; practical, protective, dry humor. Foot-anchored heroes approximately 48–62 world units wide and 72–84 world units tall in the logical view. Kaida’s source-frame scale is fixed at 0.23 so her anatomy remains constant through poses; attack extent may be wider. Distinct body language and silhouettes matter more than fitting identical boxes. Distinct enemies use distinct silhouettes, not recolors.
+Regional materials and dominant hues carry through outdoor scenery, caves, furnishings and town upgrades:
 
-Composition uses a fixed 960×540 logical view. Following the user's hands-on review, artwork is drawn into a 1920×1080 backing surface and displayed with filtered scaling; it is no longer reduced to a coarse 960px image and enlarged into 2×2 blocks. Hero dimensions and world geography stay unchanged. Terrain caches likewise preserve twice the detail on each axis. The previous 768×432 / 22×32 proposal was rejected after the user's first art-direction correction. Generated source atlases use authored crop bounds, clean transparency and foot anchors; decorative primitives are permitted only when the visible result stands up beside the sprites. A source technique never establishes completion. Tree/ruin variants have consistent top-left light and overhead three-quarter perspective. Battles use the same hero source scale with a consistent 1.25 staging magnification, reserving enough space for the full party and four opponents. Motion is sparse and purposeful: ocean, leaves, cloth, fireflies, gait, anticipation/contact/recovery.
+| Region | Materials and accents |
+| --- | --- |
+| Haventide | Coastal limestone, jade water, weathered wood, teal cloth and brass |
+| Emberline | Ochre sandstone, copper, rust cloth and caravan furnishings |
+| Forest Veil | Deep foliage, mossy stone, roots and living signal growth |
+| Mire Bog | Dark wet wood, reeds, copper and submerged ruins |
+| Crater Ember | Basalt, ash, iron and molten orange |
+| Orbital Reach | Snow, pale masonry, cobalt cloth and silver machinery |
+| Frost Canyon | Blue-white ice, glacial stone and warm rescue lights |
+| Last Crown | Pale garden architecture, plum cloth and platinum |
 
-Audio: original generative score in D dorian, glass bells, felt-like triangle tones and soft bass, with contrasting regional motifs; gentle mechanical acknowledgments. Timing success sounds/looks different from critical damage. Muted play remains completely legible.
+Town restoration changes contents and capability as well as the finish: scarce supplies and improvised tools become repaired services, powered equipment, then advanced food production and civic systems. Keep service positions and walkable routes consistent across levels. NPCs remain independent live actors.
 
-## Showcase gate
+Kaida's magenta hair and slender sword, Vex's faceless violet hood and staff, and Rune's broad ivory armor and shield remain distinct at gameplay size. Preserve each character's proportions across poses. Enemy identities need distinct silhouettes, not just different colors.
 
-The first production target is Haventide’s salt road and a solo Rust Scrapper battle, using the real HUD, input, camera, animation timeline, and target selection. Inspect actual normal-scale screenshots and timed motion sequences before multiplying region and enemy assets. Record independent criticism in `docs/SHOWCASE_CRITIQUE.md`; rough regional layouts and unused prototype recipes are not finished art. The first pass was judged about 7/10, prompting canonical hero crops, detailed ground textures, foreground clearance, and a revised battle horizon.
+Animation is purposeful: gait, anticipation/contact/recovery, cloth, water and environmental glints. Overworld running does not blur character sprites. Upgrade reveals zoom slightly only outside; the interior before/after comparison holds the same camera and crew. Restrained motion preserves readable feedback without zoom or particles.
 
-World size remains 5760×2520 for each outdoor region: six viewport widths and 4.67 heights, independent of sprite resolution. Environmental silhouettes range from 180–300px trees to 320–450px monuments, with clear walkable corridors, dense landmarks, and quieter connective ground.
+## Interface
 
-## Craft calibration
+The seven expedition tabs are Map, Party, Inventory, Skills, Quests, Save and Settings. Parchment belongs inside the menu. Use Barlow for controls, names and numbers, and EB Garamond for parchment prose and headings; fonts are bundled locally.
 
-Two actual official Sea of Stars images were inspected in the browser: [the combat clearing](https://seaofstarsgame.co/wp-content/uploads/2023/08/Combat-8-640x360.png) and [the ruined interior traversal](https://seaofstarsgame.co/wp-content/uploads/2023/08/Traversal-3-640x360.png), linked by [the developer's game site](https://seaofstarsgame.co/). They calibrate composition: quiet walkable surfaces, denser dark boundaries, separate actor silhouettes, and selective pools of light. They are not asset sources, design templates or evidence that Echo matches that game's finish. No imagery from those references is shipped. Echo's larger expressive actors and expedition-atlas interface retain their own scale and identity.
+World HUD, shops, conversations and combat use compact neutral near-black surfaces. Lava orange (`#df702e`) identifies focus and active actions. Maintain readable text, modest spacing and keyboard access. Place vendor-specific actions beside the vendor introduction with a concise explanation and actual completion progress. Show benefits and exact costs before a purchase.
+
+Interaction prompts follow their world object and stay within the viewport. Signs use a text reader without inventing a speaker portrait. Esc/Backspace dismiss the top reading layer without firing a choice or continuation callback; a suspended ending retains its place.
+
+Battle commands fold through character, action, target and timing. Completed choices remain recoverable with Left. Use the authoritative combat state for readiness, costs and targets. Timing cues turn orange only during the input window; reduced motion uses a steady cue. Reward notices share one compact queue with clear icons and quantities.
+
+## Asset maintenance
+
+`src/assets.js` is the authoritative live source manifest. Measured crops, foot anchors, scales and extraction settings live in the corresponding `*-art.js`, `*-frames.js` and manifest modules. Query `node scripts/asset-inventory.mjs` when dimensions, byte counts or hashes are needed; do not commit duplicate inventories.
+
+Keep original selected PNGs in `public/assets/`. Crop and interpret transparency at runtime: preserve real alpha, use connected neutral-background extraction only where required, and protect pale interior highlights with measured thresholds/seeds. Apply neighboring-frame exclusions to the affected crop, not the shared sheet. Floor materials remain opaque. Retain a shared atlas while any of its frames are live.
+
+Use the logical world scale independently of image/backing resolution. Raw extraction stays at source resolution; filtered rendering uses the higher-resolution backing surface. Town interior layouts, renderers and crop metadata are separate so an art change does not silently change collision geometry or service access.
+
+Generated project art and code-drawn effects are self-contained at runtime. Fonts retain their bundled licenses. Only the selected live sources belong in the repository: delete replaced/rejected variants, generation logs, prompt archives and rendered review copies. Use temporary output for development inspection and remove it afterward.

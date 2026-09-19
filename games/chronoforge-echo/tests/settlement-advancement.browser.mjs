@@ -1,11 +1,12 @@
+import {reviewURL} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {ALL_SCENES,isWalkable} from '../src/world.js';
 
 // Save setup skips travel; every board and purchase uses the production UI.
-const earned=JSON.parse(await fs.readFile(new URL('../evidence/campaign-browser.json',import.meta.url),'utf8')).snapshot.state;
-const out=new URL('../evidence/settlement-advancement/',import.meta.url);
+const earned=JSON.parse(await fs.readFile(reviewURL('campaign-browser.json'),'utf8')).snapshot.state;
+const out=reviewURL('settlement-advancement/');
 await fs.mkdir(out,{recursive:true});
 const report={method:'Production build; campaign save staged beside each of the four construction boards at different tiers. Normal Continue/F, pointer and keyboard controls; no dev game hooks.',checks:[],errors:[]};
 const browser=await chromium.launch({headless:true,channel:'chrome'});

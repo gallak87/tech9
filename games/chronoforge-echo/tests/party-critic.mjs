@@ -1,3 +1,4 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -7,7 +8,7 @@ const report={method:'Production game renderer and actual keyboard controls. Det
 page.on('pageerror',e=>report.errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text());});
 await page.routeWebSocket('**/*',socket=>{socket.send(JSON.stringify({type:'connected'}));socket.onMessage(()=>{});});
 const snapshot=()=>page.evaluate(()=>window.__ECHO__.snapshot());
-const capture=async id=>{await page.waitForTimeout(34);await page.screenshot({path:base+'evidence/'+id+'.png'});const s=await snapshot();return {id,wallTime:Date.now(),battle:s.battle,heroes:s.state.heroes,position:{region:s.state.region,x:s.state.x,y:s.state.y},followers:await page.evaluate(()=>window.__ECHO__.game.followers)};};
+const capture=async id=>{await page.waitForTimeout(34);await page.screenshot({path:reviewRoot + ''+id+'.png'});const s=await snapshot();return {id,wallTime:Date.now(),battle:s.battle,heroes:s.state.heroes,position:{region:s.state.region,x:s.state.x,y:s.state.y},followers:await page.evaluate(()=>window.__ECHO__.game.followers)};};
 const freeze=()=>page.evaluate(()=>{const g=window.__ECHO__.game;window.criticRealUpdate??=g.update;g.update=()=>{};});
 const resume=()=>page.evaluate(()=>{const g=window.__ECHO__.game;if(window.criticRealUpdate){g.update=window.criticRealUpdate;delete window.criticRealUpdate;}});
 const step=seconds=>page.evaluate(seconds=>window.criticRealUpdate.call(window.__ECHO__.game,seconds),seconds);
@@ -31,4 +32,4 @@ try{
  for(const id of ['prism_cut','harbor_break','shelterlight','concord_dawn']){await startTech(id);console.log('PASS '+id);}
  await page.evaluate(()=>window.__ECHO__.preset('battle-four'));await freeze();const found=await page.evaluate(()=>{const g=window.__ECHO__.game;let n=0;while(n++<10000){if(g.battle.action?.participants.includes('enemy_1'))return {ticks:n,action:g.battle.action.command.name};window.criticRealUpdate.call(g,.01);}return null;});assert.ok(found);report.droneAction=found;
  let last=0;const duration=(await snapshot()).battle.action.duration;for(const time of [0,.15,.35,.55,.72,.9,1.13,duration]){if(time>last)await step(time-last);report.drone.push(await capture('critic-party-drone-'+String(report.drone.length).padStart(2,'0')));last=time;}await resume();report.result='pass';
-}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}finally{await fs.writeFile(base+'evidence/party-critic.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,errors:report.errors,techniques:report.techniques.length,images:report.world.length+report.portraits.length+report.techniques.reduce((n,t)=>n+t.frames.length+1,0)+report.drone.length}));}
+}catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}finally{await fs.writeFile(reviewRoot + 'party-critic.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,errors:report.errors,techniques:report.techniques.length,images:report.world.length+report.portraits.length+report.techniques.reduce((n,t)=>n+t.frames.length+1,0)+report.drone.length}));}

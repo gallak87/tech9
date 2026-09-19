@@ -1,15 +1,16 @@
+import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const base=new URL('../',import.meta.url).pathname;
-const archive=JSON.parse(await fs.readFile(base+'evidence/earned-campaign-saves.json','utf8'));
+const archive=JSON.parse(await fs.readFile(reviewRoot + 'earned-campaign-saves.json','utf8'));
 const browser=await chromium.launch({headless:true,channel:'chrome'}),page=await browser.newPage({viewport:{width:1920,height:1080},deviceScaleFactor:1});
 const report={method:'Actual production rendering at 1920×1080. Earned campaign saves restore portraits/settlement; built-in battle fixtures and actual keyboard commands exercise combat. Normal Game.update advances all positions, animation and HP/MP; no sprite pose, damage or screenshot pixels are assigned. Import-contact-sheet diagnostics are a separate test.',captures:[],errors:[]};
 page.on('pageerror',e=>report.errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text());});
 await page.routeWebSocket('**/*',s=>{s.send('{"type":"connected"}');s.onMessage(()=>{});});
 const snap=()=>page.evaluate(()=>__ECHO__.snapshot());
 const step=seconds=>page.evaluate(seconds=>{for(let t=0;t<seconds;t+=1/60)window.alphaUpdate.call(__ECHO__.game,Math.min(1/60,seconds-t));},seconds);
-async function capture(name){await page.evaluate(()=>__ECHO__.game.ui.render());await page.waitForTimeout(40);const file='alpha-gameplay-'+name+'.png';await page.screenshot({path:base+'evidence/'+file});const s=await snap();report.captures.push({file,scene:s.scene,mode:s.mode,party:s.state.heroes.map(h=>({id:h.id,hp:h.hp,mp:h.mp})),battle:s.battle,panel:s.panel,assets:s.assets.errors});}
+async function capture(name){await page.evaluate(()=>__ECHO__.game.ui.render());await page.waitForTimeout(40);const file='alpha-gameplay-'+name+'.png';await page.screenshot({path:reviewRoot + ''+file});const s=await snap();report.captures.push({file,scene:s.scene,mode:s.mode,party:s.state.heroes.map(h=>({id:h.id,hp:h.hp,mp:h.mp})),battle:s.battle,panel:s.panel,assets:s.assets.errors});}
 async function preset(name){await page.evaluate(name=>__ECHO__.preset(name),name);}
 async function load(id){await page.evaluate(async state=>{const {saveState}=await import('/src/persistence.js');saveState(state,1);__ECHO__.game.load(1);},archive.saves[id].state);}
 async function ready(id='kaida'){const n=await page.evaluate(id=>{const g=__ECHO__.game;let n=0;while(n++<5000){if(g.battle.heroes.find(h=>h.id===id).atb===100&&!g.battle.action)break;window.alphaUpdate.call(g,.02);}return n;},id);assert.ok(n<5000);for(let i=0;i<4&&(await snap()).battle.selectedHero!==id;i++)await page.keyboard.press('Tab');if((await snap()).battle.mode==='waiting')await page.keyboard.press('Enter');}
@@ -32,4 +33,4 @@ try{
  for(const service of ['provisions','smith','inn','archivist','artificer','trainer']){await page.evaluate(id=>window.alphaInteract(id),'haventide_'+service);assert.equal((await snap()).panel,'vendor');await capture('vendor-'+service);await page.keyboard.press('Backspace');}
  assert.deepEqual(report.errors,[]);report.result='pass';
 }catch(e){report.result='fail';report.failure=String(e);process.exitCode=1;}
-finally{await fs.writeFile(base+'evidence/alpha-gameplay.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,captures:report.captures.length,errors:report.errors}));}
+finally{await fs.writeFile(reviewRoot + 'alpha-gameplay.json',JSON.stringify(report,null,2));await browser.close();console.log(JSON.stringify({result:report.result,failure:report.failure,captures:report.captures.length,errors:report.errors}));}

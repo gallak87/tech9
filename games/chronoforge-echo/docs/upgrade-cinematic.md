@@ -12,10 +12,15 @@ Orbital Reach and Last Crown, for levels 1 → 2, 2 → 3 and 3 → 4.
 3. Hold the actual indoor camera and crew, fade outside in 180 ms, and give
    the old exterior a brief suspenseful 2% push in. Keep the scale fixed as
    the building changes in 850 ms with a quick upward burst of sparkles.
-4. Fade back in 180 ms to the same indoor composition, then automatically
-   return to Settlement works with the new level and upgrade message.
+4. Fade back in 180 ms to the same indoor composition. In Haventide, hold the
+   old hall for 240 ms, then dissolve into the restored furnishings in 500 ms
+   with a lighter, sixteen-particle shimmer. The camera and crew stay fixed;
+   there is no indoor zoom. Other towns return directly to their current hall.
+5. Briefly hold the finished interior, then automatically return to Settlement
+   works with the new level and upgrade message.
 
-The sequence lasts about five seconds. Space, Esc or either Skip reveal button
+The sequence lasts about six seconds in Haventide and five in the other towns.
+Space, Esc or either Skip reveal button
 returns immediately. Skipping does not undo or repeat the purchase. Reloading
 mid-reveal retains the checkpointed upgrade without replaying or charging again.
 Restrained motion omits the zoom and sparkles, keeping fades and the dissolve.

@@ -7,11 +7,17 @@ const shots=[
   {id:'before',duration:1.15,from:'outsideBefore'},
   {id:'upgrade',duration:.85,from:'outsideBefore',to:'outsideAfter'},
   {id:'exterior',duration:.95,from:'outsideAfter'},
-  // Return to the exact opening composition with the upgraded interior art.
-  // The desk, crew and comparison camera remain fixed.
+  // Towns without restoration art return directly to their current hall.
   {id:'inside',duration:.18,transition:'fade',from:'outsideAfter',to:'deskAfter'},
   {id:'interior',duration:1.1,from:'deskAfter'},
 ];
+// Restore the hall in the exact opening composition after a brief comparison
+// beat. Camera and crew stay fixed while the furnishings change around them.
+const restorationShots=shots.flatMap(shot=>shot.id==='inside'?[
+  {...shot,to:'deskBefore'},
+  {id:'interiorBefore',duration:.24,from:'deskBefore'},
+  {id:'interiorUpgrade',duration:.5,from:'deskBefore',to:'deskAfter'},
+]:[shot]);
 const smooth=value=>{const t=Math.max(0,Math.min(1,value));return t*t*(3-2*t);};
 
 export function upgradeShotScale(shot,frame,reducedMotion=false) {
@@ -39,10 +45,29 @@ export function upgradeSparkles(elapsed) {
   return particles;
 }
 
+// A lighter, shorter shimmer spread across visible furnishings. Targets are
+// screen-space bounds, so the effect follows the actual indoor composition.
+export function interiorUpgradeSparkles(elapsed,targets) {
+  if(!targets.length)return [];
+  const particles=[];
+  for(let i=0;i<16;i++){
+    const age=elapsed-(i%4)*.025,life=.26+(i%4)*.035;
+    if(age<=0||age>=life)continue;
+    const target=targets[i%targets.length];
+    particles.push({
+      x:target.x+target.width*(.5+Math.sin(i*7.13)*.34)+Math.sin(i*3.71)*age*10,
+      y:target.y+target.height*(.6+Math.sin(i*2.39)*.24)-age*(80+i%3*18),
+      alpha:.65*Math.min(1,age/.035)*Math.min(1,(life-age)/.12),
+      size:.8+i%3*.3,trail:2+i%2,color:i%3?'#f5dab0':'#b4f5ee',
+    });
+  }
+  return particles;
+}
+
 export const UPGRADE_TOUR_DURATION=shots.reduce((sum,shot)=>sum+shot.duration,0);
-export function upgradeTourFrame(elapsed) {
+export function upgradeTourFrame(elapsed,interiorReveal=false) {
   let start=0;
-  for(const shot of shots){
+  for(const shot of interiorReveal?restorationShots:shots){
     if(elapsed<start+shot.duration){
       const progress=Math.max(0,(elapsed-start)/shot.duration);
       return {...shot,progress,blend:shot.to?smooth(progress):0};
@@ -55,14 +80,18 @@ export function upgradeTourFrame(elapsed) {
 export class UpgradeTour {
   phase='ready';
   elapsed=0;
+  constructor({interiorReveal=false}={}){
+    this.interiorReveal=interiorReveal;
+    this.duration=(interiorReveal?restorationShots:shots).reduce((sum,shot)=>sum+shot.duration,0);
+  }
   play(){this.phase='playing';this.elapsed=0;}
   advance(seconds){
     if(this.phase!=='playing'||!Number.isFinite(seconds)||seconds<0)return;
-    this.elapsed=Math.min(UPGRADE_TOUR_DURATION,this.elapsed+seconds);
-    if(this.elapsed>=UPGRADE_TOUR_DURATION)this.phase='complete';
+    this.elapsed=Math.min(this.duration,this.elapsed+seconds);
+    if(this.elapsed>=this.duration)this.phase='complete';
   }
-  skip(){if(this.phase==='playing'){this.elapsed=UPGRADE_TOUR_DURATION;this.phase='complete';}}
-  get frame(){return this.phase==='ready'?{id:'ready',from:'deskBefore',progress:0,blend:0}:upgradeTourFrame(this.elapsed);}
+  skip(){if(this.phase==='playing'){this.elapsed=this.duration;this.phase='complete';}}
+  get frame(){return this.phase==='ready'?{id:'ready',from:'deskBefore',progress:0,blend:0}:upgradeTourFrame(this.elapsed,this.interiorReveal);}
 }
 
 const clamp=(n,min,max)=>Math.max(min,Math.min(Math.max(min,max),n));

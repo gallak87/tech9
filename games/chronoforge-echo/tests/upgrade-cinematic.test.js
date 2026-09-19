@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createState,recruit,buildingCost} from '../src/progression.js';
 import {saveState,loadState} from '../src/persistence.js';
 import {performBuild} from '../src/construction.js';
-import {UpgradeTour,upgradeTourCameras,upgradeShotScale,upgradeSparkles} from '../src/upgrade-cinematic.js';
+import {UpgradeTour,upgradeTourCameras,upgradeShotScale,upgradeSparkles,interiorUpgradeSparkles} from '../src/upgrade-cinematic.js';
 import {getScene} from '../src/world.js';
 import {TOWN_CENTERS,townCenterBounds} from '../src/town-center-art.js';
 
@@ -108,7 +108,7 @@ test('all town reveals frame both exterior sizes and preserve the actual indoor 
 });
 
 test('the approved zoom stays outside, restrained motion disables it, and sparkles rise once',()=>{
-  for(const id of ['departure','outside','before','upgrade','exterior','inside','interior']){
+  for(const id of ['departure','outside','before','upgrade','exterior','inside','interiorBefore','interiorUpgrade','interior']){
     const shot={id,progress:.8};
     for(const frame of ['deskBefore','deskAfter'])assert.equal(upgradeShotScale(shot,frame),1);
     assert.equal(upgradeShotScale(shot,'outsideAfter',true),1);
@@ -120,4 +120,12 @@ test('the approved zoom stays outside, restrained motion disables it, and sparkl
   assert.equal(early.length,36);assert.equal(late.length,36);
   assert.ok(late.every((p,i)=>p.y<early[i].y));
   assert.deepEqual(upgradeSparkles(.85),[]);
+  const targets=[{x:140,y:190,width:220,height:150},{x:580,y:150,width:170,height:230}];
+  const indoorEarly=interiorUpgradeSparkles(.1,targets),indoorLate=interiorUpgradeSparkles(.18,targets);
+  assert.equal(indoorEarly.length,16);assert.equal(indoorLate.length,16);
+  assert.ok(indoorEarly.length<early.length,'The interior shimmer stays lighter than the exterior burst');
+  assert.ok(indoorLate.every((p,i)=>p.y<indoorEarly[i].y&&p.alpha<=.65));
+  assert.ok(indoorEarly.every(p=>targets.some(t=>p.x>=t.x&&p.x<=t.x+t.width&&p.y>=t.y&&p.y<=t.y+t.height)),'Sparkles start over furnishings');
+  assert.deepEqual(interiorUpgradeSparkles(.5,targets),[]);
+  assert.deepEqual(interiorUpgradeSparkles(.1,[]),[]);
 });

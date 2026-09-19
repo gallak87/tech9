@@ -1,7 +1,8 @@
 import * as Art from './art.js';
 import {getScene} from './world.js';
 import {artSurface,VIEW_WIDTH as W,VIEW_HEIGHT as H} from './rendering.js';
-import {upgradeTourCameras,upgradeShotScale,upgradeSparkles,UpgradeTour} from './upgrade-cinematic.js';
+import {upgradeTourCameras,upgradeShotScale,upgradeSparkles,interiorUpgradeSparkles,UpgradeTour} from './upgrade-cinematic.js';
+import {havenInteriorBounds} from './haventide-interior-renderer.js';
 import './upgrade-tour.css';
 
 // Shared presentation for real upgrades and local art previews. Rendering only:
@@ -35,7 +36,7 @@ export function mountUpgradeTour(game,{previewMarkup=null,onReturnToPlay=()=>{}}
     root.querySelector('.upgrade-caption').style.opacity=String(1-fade);
     if(shown===key)return;shown=key;
     for(const pane of root.querySelectorAll('[data-tour-phase]'))pane.hidden=pane.dataset.tourPhase!==tour.phase;
-    const exterior=visibleFrame.startsWith('outside'),returned=visibleFrame==='deskAfter';
+    const exterior=visibleFrame.startsWith('outside'),returned=['inside','interiorBefore','interiorUpgrade','interior','complete'].includes(shot.id);
     root.querySelector('.upgrade-caption span').textContent=exterior?'THE TOWN WE ARE BUILDING':returned?'A STRONGER HOME':'A PLACE TO COME HOME TO';
     root.querySelector('.upgrade-caption strong').textContent=exterior?`Town Center · Level ${visibleFrame==='outsideAfter'?plan.toLevel:plan.fromLevel}`:`${townName} · Settlement hall`;
     root.dataset.phase=tour.phase;
@@ -55,11 +56,14 @@ export function mountUpgradeTour(game,{previewMarkup=null,onReturnToPlay=()=>{}}
     ctx.globalAlpha=1;ctx.clearRect(0,0,W,H);
     if(isFade)layer(visibleFrame);
     else{layer(shot.from);if(shot.to)layer(shot.to,shot.blend);}
-    if(shot.id==='upgrade'&&!reducedMotion){
-      const anchor=frames.anchor;
+    if(['upgrade','interiorUpgrade'].includes(shot.id)&&!reducedMotion){
+      const exterior=shot.id==='upgrade',anchor=exterior?frames.anchor:{x:0,y:0};
+      const elapsed=shot.progress*shot.duration;
+      const particles=exterior?upgradeSparkles(elapsed):interiorUpgradeSparkles(elapsed,frames.interiorTargets);
       ctx.save();
-      for(const particle of upgradeSparkles(shot.progress*shot.duration)){
+      for(const particle of particles){
         const x=anchor.x+particle.x,y=anchor.y+particle.y;
+        if(!exterior&&(x<12||x>W-12||y<44||y>H-28))continue;
         ctx.globalAlpha=particle.alpha*.3;ctx.strokeStyle=particle.color;ctx.lineWidth=1;
         ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+particle.trail);ctx.stroke();
         ctx.globalAlpha=particle.alpha*.9;ctx.fillStyle=particle.color;
@@ -77,7 +81,7 @@ export function mountUpgradeTour(game,{previewMarkup=null,onReturnToPlay=()=>{}}
     const delta=previousTime?Math.min(.1,(now-previousTime)/1000):0;previousTime=now;
     if(!document.hidden)tour.advance(delta);
     const shot=tour.frame;
-    if(!levelSound&&tour.phase!=='ready'&&((shot.id==='upgrade'&&shot.progress>=.72)||['exterior','inside','interior','complete'].includes(shot.id))){game.audio.sound('level');levelSound=true;}
+    if(!levelSound&&tour.phase!=='ready'&&((shot.id==='upgrade'&&shot.progress>=.72)||['exterior','inside','interiorBefore','interiorUpgrade','interior','complete'].includes(shot.id))){game.audio.sound('level');levelSound=true;}
     if(!preview&&tour.phase==='complete'){finish();return;}
     try{draw();}catch(error){game.log('upgrade_reveal_error',{message:error.message});finish();return;}
     if(tour.phase==='playing')raf=requestAnimationFrame(tick);
@@ -117,6 +121,12 @@ export function mountUpgradeTour(game,{previewMarkup=null,onReturnToPlay=()=>{}}
     const cameras=upgradeTourCameras(outside,inside,plan,view);
     const entrance=outside.objects.find(o=>o.id===plan.region+'_entrance');
     const board=inside.objects.find(o=>o.service==='construction');
+    const interiorReveal=inside.objects.some(o=>o.havenPart);
+    const interiorTargets=inside.objects.filter(o=>o.service&&o.havenPart).map(o=>{
+      const b=havenInteriorBounds(o,plan.after);
+      const x=Math.max(16,b.left-cameras.desk.x),y=Math.max(52,b.top-cameras.desk.y);
+      return {x,y,width:Math.min(W-16,b.left+b.width-cameras.desk.x)-x,height:Math.min(H-30,b.top+b.height-cameras.desk.y)-y};
+    }).filter(b=>b.width>30&&b.height>30);
     frames={
       deskBefore:picture(inside,cameras.desk,plan.before,cameras.actors),
       outsideBefore:picture(outside,cameras.outside,plan.before),
@@ -124,11 +134,12 @@ export function mountUpgradeTour(game,{previewMarkup=null,onReturnToPlay=()=>{}}
       deskAfter:picture(inside,cameras.desk,plan.after,cameras.actors),
       anchor:{x:entrance.x-cameras.outside.x,y:entrance.y-cameras.outside.y},
       deskAnchor:{x:board.x-cameras.desk.x,y:board.y-cameras.desk.y},
+      interiorTargets,
     };
     previousFocus=document.activeElement;
     inertElements=[...document.querySelector('#game').children].filter(element=>element!==root).map(element=>[element,element.inert]);
     for(const [element] of inertElements)element.inert=true;
-    tour=new UpgradeTour();root.hidden=false;shown='';
+    tour=new UpgradeTour({interiorReveal});root.hidden=false;shown='';
     if(preview){
       root.querySelector('[data-tour-phase="ready"] h2').textContent=`Town Center · ${plan.fromLevel} → ${plan.toLevel}`;
       draw();root.querySelector('[data-tour="play"]').focus({preventScroll:true});

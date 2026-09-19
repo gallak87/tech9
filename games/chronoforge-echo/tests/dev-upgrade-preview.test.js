@@ -64,14 +64,36 @@ test('upgrade tour starts at the indoor desk, visits before/after outside, and r
 });
 
 test('skip and replay work from every reveal segment and invalid time cannot poison the tour',()=>{
-  for(const elapsed of [0,.7,1.3,2,3.2,4.2,5,6.4]){
-    const tour=new UpgradeTour();tour.skip();assert.equal(tour.phase,'ready');
+  for(const interiorReveal of [false,true])for(const elapsed of [0,.7,1.3,2,3.2,4.2,4.5,4.8,5,6.4]){
+    const tour=new UpgradeTour({interiorReveal});tour.skip();assert.equal(tour.phase,'ready');
     tour.play();tour.advance(elapsed);tour.skip();
     assert.equal(tour.phase,'complete');assert.equal(tour.frame.from,'deskAfter');
     tour.play();assert.equal(tour.phase,'playing');assert.equal(tour.elapsed,0);
     for(const invalid of [-1,NaN,Infinity])tour.advance(invalid);
     assert.equal(tour.elapsed,0);assert.equal(tour.frame.from,'deskBefore');
   }
+});
+
+test('restoration returns to the old hall, holds for comparison, and dissolves once into the new hall',()=>{
+  const tour=new UpgradeTour({interiorReveal:true});tour.play();
+  const seen=[],dissolve=[];
+  while(tour.phase==='playing'){
+    const frame=tour.frame;
+    if(seen.at(-1)!==frame.id)seen.push(frame.id);
+    if(frame.id==='inside')assert.equal(frame.to,'deskBefore','The return fade must not reveal the renovated hall early');
+    if(frame.id==='interiorBefore')assert.equal(frame.from,'deskBefore');
+    if(frame.id==='interiorUpgrade'){
+      assert.equal(frame.from,'deskBefore');assert.equal(frame.to,'deskAfter');
+      assert.equal(frame.duration,.5);assert.equal(frame.transition,undefined,'Compare the room through a dissolve');
+      dissolve.push(frame.blend);
+    }
+    if(frame.id==='interior')assert.equal(frame.from,'deskAfter');
+    tour.advance(.025);
+  }
+  assert.deepEqual(seen,['departure','outside','before','upgrade','exterior','inside','interiorBefore','interiorUpgrade','interior']);
+  assert.ok(dissolve.length>1&&dissolve[0]<.05&&dissolve.at(-1)>.95);
+  assert.ok(dissolve.every((value,i)=>i===0||value>dissolve[i-1]));
+  assert.equal(tour.frame.from,'deskAfter');assert.equal(tour.elapsed,tour.duration);
 });
 
 test('paired exterior shots fit one camera and the staged crew fits the indoor desk shot',()=>{

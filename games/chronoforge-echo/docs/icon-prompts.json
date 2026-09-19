@@ -130,7 +130,6 @@
           "tool": "image_gen.imagegen",
           "mode": "generate",
           "generatorSourcePath": "/Users/g/.codex/generated_images/01a0a92c-8518-7160-86cf-3d19b70d2d3e/exec-d0efaf85-4850-4933-ba4d-210ba91aac59.png",
-          "finalPath": "public/assets/icons/quiet_prism-v2-source.png",
           "status": "Rejected from runtime: authentic RGBA but object touches image edge."
         },
         {

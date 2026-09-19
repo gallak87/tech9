@@ -937,9 +937,8 @@ function drawEffect(ctx, b, state) {
   }
 }
 
-export function drawBattle(ctx, b, state, time = b.clock) {
-  // Rendering derives motion solely from the frozen simulation clock. The unused
-  // external time argument is retained for the shared renderer contract.
+export function drawBattle(ctx, b, state) {
+  // Rendering derives motion solely from the frozen simulation clock.
   const now = b.clock;
   b.hitAreas = [];
   ctx.save(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';

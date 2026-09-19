@@ -32,6 +32,7 @@ on:
       - 'games/chronoforge-echo/package.json'
       - 'games/chronoforge-echo/package-lock.json'
       - 'games/chronoforge-echo/vite.config.js'
+      - 'games/chronoforge-echo/eslint.config.js'
       - 'games/chronoforge-echo/scripts/verify-dist.mjs'
       - 'games/chronoforge-echo/tests/**'
       - '.github/workflows/deploy.yml'
@@ -113,6 +114,7 @@ jobs:
         run: |
           cd games/chronoforge-echo
           npm ci
+          npm run lint
           npm test
           npm run build
           npm run verify:build

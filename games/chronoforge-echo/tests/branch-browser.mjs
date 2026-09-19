@@ -2,7 +2,6 @@ import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const base=new URL('../',import.meta.url).pathname;
 const campaign=JSON.parse(await fs.readFile(reviewRoot + 'campaign-browser.json','utf8'));
 assert.equal(campaign.report.completed,true,'An earned campaign snapshot is required as the fixture source.');
 const source=campaign.snapshot.state;

@@ -1,7 +1,7 @@
 import {dialogueLine,npcIdentity,npcPresent} from './npc-identities.js';
 import {Application,Sprite,Texture} from 'pixi.js';
 import './style.css';
-import {REGIONS,ALL_SCENES,getScene,isWalkable,nearby,safeArrival} from './world.js';
+import {ALL_SCENES,getScene,isWalkable,nearby,safeArrival} from './world.js';
 import * as Art from './art.js';
 import {ENEMIES,ITEMS,HEROES,TECHS} from './content.js';
 import {encounterInteractionLabel,enemyNameWithLevel} from './enemy-levels.js';
@@ -13,7 +13,7 @@ import {createBattle,updateBattle,battleKey,battleClick,battleView,drawBattle} f
 import {EchoAudio} from './audio.js';
 import {UI} from './ui.js';
 import {BattleUI} from './battle-ui.js';
-import {saveState,loadState,latestSave} from './persistence.js';
+import {saveState,loadState} from './persistence.js';
 import {reveal} from './maps.js';
 import {prepareRecruitment,recruitmentActor,advanceRecruitment,completeRecruitment} from './recruitment.js';
 import {loadAssets,assetDiagnostics} from './assets.js';

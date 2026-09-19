@@ -2,21 +2,20 @@ import {reviewRoot} from '../scripts/review-output.mjs';
 import { chromium } from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const base = new URL('../', import.meta.url).pathname;
 const browser = await chromium.launch({ headless:true, channel:'chrome' });
 const page = await browser.newPage({ viewport:{width:1920,height:1080}, deviceScaleFactor:1 });
 const report = { method:'Actual production renderer and keyboard selection. Built-in party/learned-tech fixtures; enemy roster and RNG seed fixtures select reproducible attackers and defenders. The normal Game.update advances exact elapsed intervals while RAF draws. No HP, MP, readiness, pose, damage or screenshot pixels are assigned. HMR is disconnected to keep the reviewed build stable.', errors:[], techniques:[], enemies:[] };
 page.on('pageerror', e => report.errors.push(String(e)));
 page.on('console', m => { if (m.type()==='error') report.errors.push(m.text()); });
 await page.routeWebSocket('**/*', s => { s.send(JSON.stringify({type:'connected'})); s.onMessage(()=>{}); });
-const snapshot = () => page.evaluate(()=>__ECHO__.snapshot());
-const freeze = () => page.evaluate(()=>{ const g=__ECHO__.game; window.choreoUpdate??=g.update; g.update=()=>{}; });
-const step = seconds => page.evaluate(seconds=>window.choreoUpdate.call(__ECHO__.game,seconds),seconds);
+const snapshot = () => page.evaluate(()=>window.__ECHO__.snapshot());
+const freeze = () => page.evaluate(()=>{ const g=window.__ECHO__.game; window.choreoUpdate??=g.update; g.update=()=>{}; });
+const step = seconds => page.evaluate(seconds=>window.choreoUpdate.call(window.__ECHO__.game,seconds),seconds);
 const capture = async name => { await page.waitForTimeout(20); const file='choreography-'+name+'.png'; await page.screenshot({path:reviewRoot + ''+file}); return {file,...await snapshot()}; };
 async function timeline(name,times){ const frames=[];let last=0;for(const elapsed of times){if(elapsed>last)await step(elapsed-last);frames.push({elapsed,...await capture(name+'-'+String(frames.length).padStart(2,'0'))});last=elapsed;}return frames; }
 async function technique(id){
- await page.evaluate(()=>__ECHO__.preset('battle-four')); await freeze();
- const ticks=await page.evaluate(id=>{const g=__ECHO__.game;let ticks=0;while(ticks++<2000){const b=g.battle;if(b.heroes.every(h=>h.atb===100)&&!b.action&&(id!=='shelterlight'||b.heroes.some(h=>h.hp<h.maxHp)))break;window.choreoUpdate.call(g,.02);}return ticks;},id);assert.ok(ticks<2000);
+ await page.evaluate(()=>window.__ECHO__.preset('battle-four')); await freeze();
+ const ticks=await page.evaluate(id=>{const g=window.__ECHO__.game;let ticks=0;while(ticks++<2000){const b=g.battle;if(b.heroes.every(h=>h.atb===100)&&!b.action&&(id!=='shelterlight'||b.heroes.some(h=>h.hp<h.maxHp)))break;window.choreoUpdate.call(g,.02);}return ticks;},id);assert.ok(ticks<2000);
  if(id==='shelterlight')await page.keyboard.press('Tab');
  for(const key of ['Enter','ArrowDown','Enter'])await page.keyboard.press(key);
  const techs=(await snapshot()).battle.techs,index=techs.findIndex(t=>t.id===id);assert.ok(index>=0);assert.equal(techs[index].unavailable,'');
@@ -32,7 +31,7 @@ async function technique(id){
  report.techniques.push({id,target,executing,frames,assertions:'MP/readiness each participant once; actual contact and support pose/launch placement pass'});console.log('PASS '+id);
 }
 async function enemy(id,defender){
- const preparation=await page.evaluate(async({id,defender})=>{const {createBattle}=await import('/src/combat.js');const g=__ECHO__.game;for(let seed=1;seed<100;seed++){__ECHO__.preset(id==='mire_warden'?'final':'party');g.state.flags.battle_taught=true;g.state.rng=Math.imul(seed,0x9e3779b9)>>>0;g.battle=createBattle(g.state,{id:'choreography_'+id,biome:id==='frost_revenant'?'ice':id==='ember_lord'?'volcanic':id==='mire_warden'?'forest':'coast',enemies:[id]});g.mode='battle';g.ui.render();let ticks=0;while(ticks++<8000){const a=g.battle.action;if(a?.side==='enemy'&&a.targets.length===1&&['damage','drain','slow'].includes(a.command.effect)){if(a.targets.length===1&&a.targets.includes(defender))return {seed,ticks,attacker:id,defender,action:a.command.name};break;}window.choreoUpdate.call(g,.01);}}return null;},{id,defender});
+ const preparation=await page.evaluate(async({id,defender})=>{const {createBattle}=await import('/src/combat.js');const g=window.__ECHO__.game;for(let seed=1;seed<100;seed++){window.__ECHO__.preset(id==='mire_warden'?'final':'party');g.state.flags.battle_taught=true;g.state.rng=Math.imul(seed,0x9e3779b9)>>>0;g.battle=createBattle(g.state,{id:'choreography_'+id,biome:id==='frost_revenant'?'ice':id==='ember_lord'?'volcanic':id==='mire_warden'?'forest':'coast',enemies:[id]});g.mode='battle';g.ui.render();let ticks=0;while(ticks++<8000){const a=g.battle.action;if(a?.side==='enemy'&&a.targets.length===1&&['damage','drain','slow'].includes(a.command.effect)){if(a.targets.length===1&&a.targets.includes(defender))return {seed,ticks,attacker:id,defender,action:a.command.name};break;}window.choreoUpdate.call(g,.01);}}return null;},{id,defender});
  assert.ok(preparation,'Natural single-target action available');const frames=await timeline(id+'-'+defender,[0,.18,.42,.55,.66,.72,.78,.92,1.10,1.35,1.41]);
  const contact=frames.find(f=>f.elapsed===.78).battle,pre=frames.find(f=>f.elapsed===.66).battle;
  assert.equal(contact.action.resolved,true);assert.equal(pre.action.resolved,false);assert.ok(contact.heroes.find(h=>h.id===defender).hp<pre.heroes.find(h=>h.id===defender).hp);
@@ -41,7 +40,7 @@ async function enemy(id,defender){
  report.enemies.push({id,defender,preparation,frames,assertions:'Natural ATB action, one authoritative contact, defender lane and fixed bystanders pass'});console.log('PASS '+id+' / '+defender);
 }
 async function groupBoss(id,biome){
- const preparation=await page.evaluate(async({id,biome})=>{const {createBattle}=await import('/src/combat.js');__ECHO__.preset('final');const g=__ECHO__.game;g.battle=createBattle(g.state,{id:'choreography_'+id,biome,enemies:[id],boss:true});g.mode='battle';g.ui.render();let ticks=0;while(ticks++<10000){if(g.battle.action?.side==='enemy'&&g.battle.action.command.target==='allAllies')return {ticks,action:g.battle.action.command.name};window.choreoUpdate.call(g,.01);}return null;},{id,biome});
+ const preparation=await page.evaluate(async({id,biome})=>{const {createBattle}=await import('/src/combat.js');window.__ECHO__.preset('final');const g=window.__ECHO__.game;g.battle=createBattle(g.state,{id:'choreography_'+id,biome,enemies:[id],boss:true});g.mode='battle';g.ui.render();let ticks=0;while(ticks++<10000){if(g.battle.action?.side==='enemy'&&g.battle.action.command.target==='allAllies')return {ticks,action:g.battle.action.command.name};window.choreoUpdate.call(g,.01);}return null;},{id,biome});
  assert.ok(preparation);const frames=await timeline(id+'-group',[0,.18,.42,.55,.66,.72,.78,.92,1.10,1.35,1.41]);
  const before=frames.find(f=>f.elapsed===.66).battle,after=frames.find(f=>f.elapsed===.78).battle;
  assert.equal(before.action.resolved,false);assert.equal(after.action.resolved,true);assert.equal(after.action.targets.length,3);

@@ -2,7 +2,7 @@ import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const base=new URL('../',import.meta.url).pathname, campaign=JSON.parse(await fs.readFile(reviewRoot + 'campaign-browser.json','utf8'));
+const campaign=JSON.parse(await fs.readFile(reviewRoot + 'campaign-browser.json','utf8'));
 assert.equal(campaign.report.completed,true);assert.ok(campaign.snapshot.state.inventory.data_chip>0);
 const browser=await chromium.launch({headless:true,channel:'chrome'}),page=await browser.newPage({viewport:{width:1920,height:1080}}),errors=[],report={fixture:'Unmodified earned full-campaign snapshot, loaded through production save/load. Existing recovered Data Chips; no XP, item, flag, HP or location grants.',started:Date.now()};
 page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});

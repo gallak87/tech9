@@ -1,7 +1,6 @@
 import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
-const base=new URL('../',import.meta.url).pathname;
 const captureChapters=process.env.CAPTURE_CHAPTERS!=='0';
 const browser=await chromium.launch({headless:true,channel:'chrome'});
 const page=await browser.newPage({viewport:{width:1920,height:1080},deviceScaleFactor:1});
@@ -10,7 +9,7 @@ await page.routeWebSocket('**/*',socket=>{socket.send(JSON.stringify({type:'conn
 const started=Date.now();
 await page.goto('http://127.0.0.1:4321/?test=1',{waitUntil:'networkidle'});await page.waitForFunction(()=>window.__ECHO_READY__);
 await page.evaluate(async()=>{
- const [W,P,C,B]=await Promise.all([import('/src/world.js'),import('/src/progression.js'),import('/src/content.js'),import('/src/combat.js')]);
+ const [W,,C,B]=await Promise.all([import('/src/world.js'),import('/src/progression.js'),import('/src/content.js'),import('/src/combat.js')]);
  const g=window.__ECHO__.game;g.startNew();
  const report={description:'Accelerated production browser integration; no direct state grants or teleports.',startedAt:new Date().toISOString(),events:[],battles:[],milestones:[],heals:0,items:0,failures:[],completed:false};
  const reviewSaves={};

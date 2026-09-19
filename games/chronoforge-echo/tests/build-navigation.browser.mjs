@@ -8,7 +8,7 @@ try{
  page.on('pageerror',error=>errors.push(error.message));
  await page.goto(process.env.ECHO_URL||'http://127.0.0.1:4321/?test=1');
  await page.waitForFunction(()=>window.__ECHO_READY__,{},{timeout:60000});
- await page.evaluate(()=>{__ECHO__.preset('settlement');__ECHO__.interact('haventide_board');});
+ await page.evaluate(()=>{window.__ECHO__.preset('settlement');window.__ECHO__.interact('haventide_board');});
  const expectFocus=async action=>assert.equal(await page.evaluate(()=>document.activeElement?.dataset.do),action);
  const press=async(key,action)=>{await page.keyboard.press(key);await expectFocus(action);};
  await page.locator('[data-do="build:town_center"]').focus();
@@ -27,7 +27,7 @@ try{
  await press('ArrowDown','build:town_center');
  await press('Tab','build:farm');
  await press('Tab','build:mine');
- await page.evaluate(()=>{const g=__ECHO__.game;g.state.buildings.mine=4;g.ui.render();});
+ await page.evaluate(()=>{const g=window.__ECHO__.game;g.state.buildings.mine=4;g.ui.render();});
  await page.locator('[data-do="build:town_center"]').focus();
  await press('ArrowDown','build:barracks');
  await press('ArrowUp','build:town_center');

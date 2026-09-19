@@ -4,7 +4,7 @@ A standalone RPG about rebuilding a world that learned to stop listening. Kaida 
 
 ## Run and check
 
-Use Node **22.12 or newer**.
+Use Node **22.13+ (22.x) or 24+**.
 
 ```sh
 cd games/chronoforge-echo
@@ -15,6 +15,7 @@ npm run dev
 Open **http://127.0.0.1:4321/**. The title screen offers a new journey or your latest save. The desktop game uses a 960×540 logical view, a 1920×1080 artwork surface and letterboxing. World and character sizes are independent of display resolution.
 
 ```sh
+npm run lint
 npm test
 npm run build
 npm run verify:build

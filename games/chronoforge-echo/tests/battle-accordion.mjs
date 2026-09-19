@@ -13,15 +13,15 @@ page.setDefaultTimeout(5000);
 const errors=[];const report={checks:[],screenshots:[],errors};
 page.on('pageerror',e=>errors.push(e.message));
 await page.routeWebSocket('**/*',s=>{s.send(JSON.stringify({type:'connected'}));s.onMessage(()=>{});});
-const state=()=>page.evaluate(()=>__ECHO__.snapshot().battle);
+const state=()=>page.evaluate(()=>window.__ECHO__.snapshot().battle);
 const key=k=>page.keyboard.press(k);
 const select=(kind,attrs='')=>page.locator(`#battle-interface [data-battle-intent="${kind}"]${attrs}`);
 const capture=async name=>{await page.screenshot({path:new URL(name+'.png',evidence).pathname});report.screenshots.push(name+'.png');};
-const step=async seconds=>{await page.evaluate(seconds=>{const g=__ECHO__.game;combat.updateBattle(g.battle,g.state,seconds);g.battleUI.render();},seconds);};
+const step=async seconds=>{await page.evaluate(seconds=>{const g=window.__ECHO__.game;window.combat.updateBattle(g.battle,g.state,seconds);g.battleUI.render();},seconds);};
 const seed=async(name='battle-four')=>{
- await page.evaluate(async name=>{window.combat=await import('/src/combat.js');const g=__ECHO__.game;g.update=()=>{};__ECHO__.preset(name);for(const h of g.battle.heroes)h.atb=0;for(const e of g.battle.enemies)e.atb=0;g.battle.enemies[0].hp=g.battle.enemies[0].maxHp=10000;g.battle.heroes[0].atb=99.999;combat.updateBattle(g.battle,g.state,.001);g.battleUI.render();},name);
+ await page.evaluate(async name=>{window.combat=await import('/src/combat.js');const g=window.__ECHO__.game;g.update=()=>{};window.__ECHO__.preset(name);for(const h of g.battle.heroes)h.atb=0;for(const e of g.battle.enemies)e.atb=0;g.battle.enemies[0].hp=g.battle.enemies[0].maxHp=10000;g.battle.heroes[0].atb=99.999;window.combat.updateBattle(g.battle,g.state,.001);g.battleUI.render();},name);
 };
-const finish=()=>page.evaluate(()=>{const g=__ECHO__.game;combat.updateBattle(g.battle,g.state,g.battle.action.duration-g.battle.action.elapsed);g.battleUI.render();});
+const finish=()=>page.evaluate(()=>{const g=window.__ECHO__.game;window.combat.updateBattle(g.battle,g.state,g.battle.action.duration-g.battle.action.elapsed);g.battleUI.render();});
 try{
  await page.goto(process.env.ECHO_URL||'http://127.0.0.1:4321/?test');
  await page.waitForFunction(()=>window.__ECHO_READY__);await page.evaluate(()=>document.fonts.ready);
@@ -42,7 +42,7 @@ try{
  await select('breadcrumb','[data-stage="1"]').click();assert.equal((await state()).mode,'command');
  await select('command','[data-index="0"]').click();
  // The actual painted actor bounds remain the mouse target after field reframing.
- const actor=await page.evaluate(()=>__ECHO__.game.battle.hitAreas.find(a=>a.kind==='actor'&&a.id==='enemy_3'));
+ const actor=await page.evaluate(()=>window.__ECHO__.game.battle.hitAreas.find(a=>a.kind==='actor'&&a.id==='enemy_3'));
  const box=await page.locator('#stage canvas').boundingBox();
  await page.mouse.click(box.x+(actor.x+actor.w/2)*1.25/960*box.width,box.y+(actor.y+actor.h/2)*1.25/540*box.height);
  assert.equal((await state()).target,3);
@@ -62,7 +62,7 @@ try{
  const flashes=await page.locator('#battle-interface').evaluate(el=>({zone:getComputedStyle(el.querySelector('.cb-critical-zone')).animationName,border:getComputedStyle(el.querySelector('[data-node="3"]')).animationName}));
  assert.equal(flashes.zone,'cb-critical-flash');assert.equal(flashes.border,'cb-border-flash');
  await capture('03-critical-window');
- await page.evaluate(()=>{__ECHO__.game.state.settings.reducedMotion=true;__ECHO__.game.battleUI.render();});
+ await page.evaluate(()=>{window.__ECHO__.game.state.settings.reducedMotion=true;window.__ECHO__.game.battleUI.render();});
  assert.equal(await page.locator('.cb-critical-zone').evaluate(el=>getComputedStyle(el).animationName),'none');
  assert.equal(await page.locator('.cb-open').evaluate(el=>getComputedStyle(el).animationName),'none');
  await key('Space');assert.equal((await state()).action.timingSuccess,true);
@@ -73,7 +73,7 @@ try{
  assert.equal(await page.locator('#battle-interface').getAttribute('data-stage'),'0');
  assert.equal(await page.locator('#battle-interface').evaluate(el=>el.classList.contains('cb-waiting')),true);
  assert.equal(await select('hero','[data-id="kaida"]').isDisabled(),true);await capture('05-charging-return');
- await page.evaluate(()=>{__ECHO__.game.battle.heroes[1].atb=99.999;});await step(.001);
+ await page.evaluate(()=>{window.__ECHO__.game.battle.heroes[1].atb=99.999;});await step(.001);
  assert.equal((await state()).selectedHero,'vex');assert.equal((await state()).mode,'waiting');
  assert.equal(await page.locator('#battle-interface').evaluate(el=>el.classList.contains('cb-waiting')),false);
  await capture('06-vex-auto-ready');
@@ -81,15 +81,15 @@ try{
  await seed();await select('hero','[data-id="kaida"]').click();await select('command','[data-index="1"]').click();assert.equal((await state()).mode,'tech');
  await key('End'); // unused keys must not corrupt the selection
  const mend=(await state()).techs.findIndex(t=>t.id==='salt_mend');
- await page.evaluate(()=>{__ECHO__.game.battle.heroes[1].hp=10;});
+ await page.evaluate(()=>{window.__ECHO__.game.battle.heroes[1].hp=10;});
  await select('list',`[data-index="${mend}"]`).click();assert.equal((await state()).pending.effect,'heal');await select('target','[data-id="vex"]').click();
  const mp=(await state()).heroes[0].mp;await select('execute').click();assert.ok((await state()).heroes[0].mp<mp);await finish();assert.ok((await state()).heroes[1].hp>10);
- await page.evaluate(()=>{const g=__ECHO__.game;g.battle.heroes[0].atb=99.999;combat.updateBattle(g.battle,g.state,.001);});
+ await page.evaluate(()=>{const g=window.__ECHO__.game;g.battle.heroes[0].atb=99.999;window.combat.updateBattle(g.battle,g.state,.001);});
  await select('hero','[data-id="kaida"]').click();await select('command','[data-index="3"]').click();assert.equal((await state()).mode,'item');
  const tonic=(await state()).items.findIndex(i=>i.id==='field_tonic');
  await select('list',`[data-index="${tonic}"]`).click();assert.equal((await state()).pending.kind,'item');
- const before=await page.evaluate(()=>__ECHO__.game.state.inventory.field_tonic);await select('target','[data-id="vex"]').click();await select('execute').click();
- assert.equal(await page.evaluate(()=>__ECHO__.game.state.inventory.field_tonic),before-1);await finish();
+ const before=await page.evaluate(()=>window.__ECHO__.game.state.inventory.field_tonic);await select('target','[data-id="vex"]').click();await select('execute').click();
+ assert.equal(await page.evaluate(()=>window.__ECHO__.game.state.inventory.field_tonic),before-1);await finish();
  await seed();await select('hero','[data-id="kaida"]').click();await select('command','[data-index="2"]').click();assert.equal((await state()).action.kind,'defend');await finish();assert.equal((await state()).heroes[0].guarding,true);
  await seed('final');await select('hero','[data-id="kaida"]').click();for(let i=0;i<4;i++)await key('ArrowDown');await key('Enter');assert.equal((await state()).mode,'command');assert.match((await state()).message,/must be faced/);
  await seed();await select('hero','[data-id="kaida"]').click();await select('command','[data-index="4"]').click();await select('execute').click();await finish();assert.equal((await state()).result,'retreat');

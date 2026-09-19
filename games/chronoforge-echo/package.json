@@ -11,16 +11,20 @@
     "verify": "node tests/browser.mjs",
     "clean:review": "node scripts/review-output.mjs --clean",
     "verify:build": "node scripts/verify-dist.mjs",
-    "verify:pages": "npm run build && npm run verify:build && node tests/pages.mjs"
+    "verify:pages": "npm run build && npm run verify:build && node tests/pages.mjs",
+    "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
     "pixi.js": "8.16.0"
   },
   "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.11.0",
+    "globals": "17.12.0",
     "playwright": "1.58.2",
     "vite": "8.3.0"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": "^22.13.0 || >=24.0.0"
   }
 }

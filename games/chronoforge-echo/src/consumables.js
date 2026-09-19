@@ -7,7 +7,7 @@ const unavailable=message=>({ok:false,message,rewards:[]});
 export function assessItemUse(state,itemId,target,limits=target,{battle=false}={}){
  const item=ITEMS[itemId];
  if(!target||item?.slot!=='consumable'||!(state.inventory[itemId]>0))return unavailable('That supply is unavailable.');
- let amount=0,capacity=0,unit='HP';
+ let amount,capacity,unit='HP';
  if(item.effect==='revive'){
   if(target.hp>0)return unavailable('This ally is already standing.');
   amount=Math.max(1,(battle?Math.round:Math.ceil)(limits.maxHp*item.power));capacity=amount;

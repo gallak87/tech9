@@ -2,7 +2,6 @@ import {reviewRoot} from '../scripts/review-output.mjs';
 import {chromium} from 'playwright';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const base=new URL('../',import.meta.url).pathname;
 const browser=await chromium.launch({headless:true,channel:'chrome'}),page=await browser.newPage();
 const report={method:'Deliberately fail one required source request in an isolated production browser context; assert a visible failure and no false readiness. No project files are removed.',expectedNetworkFailures:[],errors:[]};
 page.on('requestfailed',r=>report.expectedNetworkFailures.push(r.url()));page.on('pageerror',e=>report.errors.push(String(e)));

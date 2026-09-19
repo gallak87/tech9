@@ -58,7 +58,7 @@ export function prepareRecruitment(state,id,scene,source,target,options={}){
  const path=route(scene,source,target,state);
  const length=path?pathLength(path):0;
  state.recruitmentWalk={id,region:scene.id,path:path||[point(target)],length,elapsed:0,duration:path?Math.max(1.6,Math.min(2.6,length/75)):0,started:false,facing:state.facing};
- if(staging){const {source:_,target:__,...timing}=staging;Object.assign(state.recruitmentWalk,timing,{duration:staging.leaderDuration+staging.revealDuration+staging.walkDuration});}
+ if(staging){const timing={...staging};delete timing.source;delete timing.target;Object.assign(state.recruitmentWalk,timing,{duration:staging.leaderDuration+staging.revealDuration+staging.walkDuration});}
  return state.recruitmentWalk;
 }
 export function recruitmentActor(state){

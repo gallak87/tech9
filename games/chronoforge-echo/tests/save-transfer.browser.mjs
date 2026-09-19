@@ -168,5 +168,5 @@ try{
  await pageB.screenshot({path:new URL('immediate-load.png',output).pathname,fullPage:true});mark(stage,{region:rich.region,party:rich.heroes.map(h=>h.name)});
  assert.deepEqual(report.errors,[]);report.result='passed';
  console.log(JSON.stringify(report,null,2));
-}catch(error){report.result='failed';report.failedStage=stage;report.failure=String(error);const page=pageB||pageA;try{await page?.screenshot({path:new URL('failure.png',output).pathname,fullPage:true});}catch{}throw error;
+}catch(error){report.result='failed';report.failedStage=stage;report.failure=String(error);const page=pageB||pageA;try{await page?.screenshot({path:new URL('failure.png',output).pathname,fullPage:true});}catch{ /* Preserve the original failure if capture also fails. */ }throw error;
 }finally{await fs.writeFile(new URL('report.json',output),JSON.stringify(report,null,2)+'\n');await browser?.close();}

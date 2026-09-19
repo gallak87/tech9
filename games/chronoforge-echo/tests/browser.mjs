@@ -17,7 +17,7 @@ const evidence = path.join(reviewRoot, 'browser');
 await fs.mkdir(evidence, { recursive: true });
 const executableCandidates = [process.env.CHROMIUM_PATH, path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium_headless_shell-1234/chrome-headless-shell-mac-arm64/chrome-headless-shell')].filter(Boolean);
 let executablePath;
-for (const candidate of executableCandidates) { try { await fs.access(candidate); executablePath = candidate; break; } catch {} }
+for (const candidate of executableCandidates) { try { await fs.access(candidate); executablePath = candidate; break; } catch { /* Try the next installed browser candidate. */ } }
 const browser = await chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}) });
 const context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1, ...(section === 'showcase' ? { recordVideo: { dir: evidence, size: { width: 960, height: 540 } } } : {}) });
 const page = await context.newPage();
@@ -36,8 +36,8 @@ page.on('console', m => { if (m.type() === 'error') report.consoleErrors.push(m.
 page.on('pageerror', e => report.pageErrors.push(e.message));
 page.on('response', r => { if (r.status() >= 400) report.missingAssets.push({ url: r.url(), status: r.status() }); });
 page.on('requestfailed', r => report.failedRequests.push({ url: r.url(), error: r.failure()?.errorText }));
-const snapshot = () => page.evaluate(() => __ECHO__.snapshot());
-const fixture = async name => page.evaluate(name => __ECHO__.preset(name), name);
+const snapshot = () => page.evaluate(() => window.__ECHO__.snapshot());
+const fixture = async name => page.evaluate(name => window.__ECHO__.preset(name), name);
 const press = key => page.keyboard.press(key);
 const capture = async name => {
   const file = path.join(evidence, `${name}.png`);
@@ -57,7 +57,7 @@ async function check(name, method, fn) {
 // Navigate with the game's real Tab handling, without DOM focus/click shortcuts.
 async function keyboardTo(selector) {
   const nav = await page.evaluate(selector => {
-    const g = __ECHO__.game, list = g.ui.focusables(), target = document.querySelector(selector);
+    const g = window.__ECHO__.game, list = g.ui.focusables(), target = document.querySelector(selector);
     const index = list.indexOf(target), current = list.indexOf(document.activeElement);
     return { index, current, length: list.length };
   }, selector);
@@ -72,7 +72,7 @@ async function ensureMenu(tab) {
   if (tab) await press(String(tab));
 }
 async function battleActorClick(id) {
-  const area = await page.evaluate(id => __ECHO__.game.battle.hitAreas.find(a => a.kind === 'actor' && a.id === id), id);
+  const area = await page.evaluate(id => window.__ECHO__.game.battle.hitAreas.find(a => a.kind === 'actor' && a.id === id), id);
   assert.ok(area, `Actor ${id} has a painted hit area`);
   await canvasClick((area.x + area.w / 2) * 1.25, (area.y + area.h / 2) * 1.25);
 }
@@ -81,7 +81,7 @@ async function canvasClick(x, y) {
   await page.mouse.click(box.x + x / 960 * box.width, box.y + y / 540 * box.height);
 }
 async function perf(name, duration = 1500) {
-  await page.evaluate(() => { __ECHO__.game.frameTimes.length = 0; });
+  await page.evaluate(() => { window.__ECHO__.game.frameTimes.length = 0; });
   await page.waitForTimeout(duration);
   const intervals = (await snapshot()).frameTimes.filter(t => t > 0).sort((a, b) => a - b);
   const mean = intervals.reduce((sum, n) => sum + n, 0) / intervals.length;
@@ -133,13 +133,13 @@ try {
 
     await check('map keyboard pan zoom recenter and pickup secrecy', 'Actual map keys. A temporary fixture relocates pickups onto revealed ground; production map pixels must remain identical.', async () => {
       await ensureMenu(1);
-      const before = await page.evaluate(() => ({ zoom: __ECHO__.game.ui.map.zoom, panX: __ECHO__.game.ui.map.panX, x: __ECHO__.game.state.x }));
+      const before = await page.evaluate(() => ({ zoom: window.__ECHO__.game.ui.map.zoom, panX: window.__ECHO__.game.ui.map.panX, x: window.__ECHO__.game.state.x }));
       await press('ArrowRight'); await press('+');
-      const changed = await page.evaluate(() => ({ zoom: __ECHO__.game.ui.map.zoom, panX: __ECHO__.game.ui.map.panX, x: __ECHO__.game.state.x }));
+      const changed = await page.evaluate(() => ({ zoom: window.__ECHO__.game.ui.map.zoom, panX: window.__ECHO__.game.ui.map.panX, x: window.__ECHO__.game.state.x }));
       assert.ok(changed.zoom > before.zoom); assert.ok(changed.panX < before.panX); assert.equal(changed.x, before.x);
       await press('r');
       const compared = await page.evaluate(async () => {
-        const g = __ECHO__.game, map = g.ui.map, canvas = document.querySelector('#atlas-map');
+        const g = window.__ECHO__.game, map = g.ui.map, canvas = document.querySelector('#atlas-map');
         const before = canvas.toDataURL();
         const pickups = g.scene.objects.filter(o => o.type === 'pickup'), originals = pickups.map(o => ({ o, x: o.x, y: o.y }));
         const { drawMinimap } = await import('/src/maps.js');
@@ -156,7 +156,7 @@ try {
     });
 
     await check('inventory equipment comparisons use unequip and skill learning', 'Fixture adds one weapon, wounds Kaida, grants 5 skill points; all actions use keyboard.', async () => {
-      await page.evaluate(() => { const g = __ECHO__.game; g.state.inventory.glacial_claw = 1; g.state.heroes[0].hp = 10; g.state.heroes[0].skillPoints = 5; });
+      await page.evaluate(() => { const g = window.__ECHO__.game; g.state.inventory.glacial_claw = 1; g.state.heroes[0].hp = 10; g.state.heroes[0].skillPoints = 5; });
       await ensureMenu(3);
       await choose('item:glacial_claw');
       assert.match(await page.locator('#item-detail').innerText(), /Compared with Iron Blade/);
@@ -175,7 +175,7 @@ try {
     await check('save load delete confirmation and corrupt record recovery', 'Actual keyboard save/load/delete; fixtures change unsaved HP and create one malformed record.', async () => {
       await ensureMenu(6); await choose('save:1');
       const hp = (await snapshot()).state.heroes[0].hp;
-      await page.evaluate(() => { __ECHO__.game.state.heroes[0].hp = 13; });
+      await page.evaluate(() => { window.__ECHO__.game.state.heroes[0].hp = 13; });
       await choose('load:1'); assert.equal((await snapshot()).panel, 'confirm');
       await choose('confirm-no'); assert.equal((await snapshot()).state.heroes[0].hp, 13);
       await choose('load:1'); await choose('confirm-yes'); assert.equal((await snapshot()).state.heroes[0].hp, hp);
@@ -193,12 +193,12 @@ try {
 
     await check('ending dialogue and final panel survive save load', 'A victory fixture resolves the real final-boss reward event. Actual keyboard advances dialogue, saves and loads at both stages, and chooses Return; this does not claim a manually fought final boss.', async () => {
       await fixture('final');
-      await page.evaluate(() => { const g = __ECHO__.game; g.battle.encounter.id = 'void_architect'; g.battle.result = 'victory'; g.finishBattle(); });
+      await page.evaluate(() => { const g = window.__ECHO__.game; g.battle.encounter.id = 'void_architect'; g.battle.result = 'victory'; g.finishBattle(); });
       let current = await snapshot();
       assert.equal(current.panel, 'dialogue'); assert.ok(current.state.flags.pendingEnding);
       assert.ok(!current.state.campaignComplete); assert.equal(current.state.flags.ending_seen, false);
       for (let i = 0; i < 7; i++) await press('Enter');
-      const dialogue = await page.evaluate(() => ({ index: __ECHO__.game.ui.panel.index, line: __ECHO__.game.ui.panel.lines[__ECHO__.game.ui.panel.index], progress: __ECHO__.game.state.endingProgress }));
+      const dialogue = await page.evaluate(() => ({ index: window.__ECHO__.game.ui.panel.index, line: window.__ECHO__.game.ui.panel.lines[window.__ECHO__.game.ui.panel.index], progress: window.__ECHO__.game.state.endingProgress }));
       assert.equal(dialogue.index, 7); assert.deepEqual(dialogue.progress, { index: 7, panel: 'dialogue' });
       await ensureMenu(6); await choose('save:3'); await press('Escape');
       for (let i = 0; i < 3; i++) await press('Enter');
@@ -207,7 +207,7 @@ try {
       current = await snapshot();
       assert.equal(current.panel, 'dialogue'); assert.ok(!current.paused);
       assert.equal(current.state.endingProgress.index, 7); assert.ok(!current.state.campaignComplete);
-      assert.deepEqual(await page.evaluate(() => __ECHO__.game.ui.panel.lines[__ECHO__.game.ui.panel.index]), dialogue.line);
+      assert.deepEqual(await page.evaluate(() => window.__ECHO__.game.ui.panel.lines[window.__ECHO__.game.ui.panel.index]), dialogue.line);
       const midway = await capture('ending-dialogue-restored');
       for (let i = 0; i < 20 && (await snapshot()).panel === 'dialogue'; i++) await press('Enter');
       current = await snapshot();
@@ -222,7 +222,7 @@ try {
       assert.ok(current.state.flags.pendingEnding); assert.ok(!current.state.campaignComplete); assert.ok(!current.state.flags.ending_seen);
       const finalPanel = await capture('ending-panel-restored');
       await choose('ending-continue');
-      await page.waitForFunction(() => !__ECHO__.game.transition);
+      await page.waitForFunction(() => !window.__ECHO__.game.transition);
       current = await snapshot();
       assert.equal(current.state.campaignComplete, true); assert.equal(current.state.flags.ending_seen, true); assert.equal(current.state.flags.pendingEnding, false);
       assert.equal(current.state.endingProgress, undefined); assert.equal(current.panel, undefined); assert.equal(current.mode, 'world');
@@ -234,7 +234,7 @@ try {
 
     await check('vendor quantity buying selling and affordability', 'Liberated-settlement fixture; open actual provisions NPC; trade actions use keyboard.', async () => {
       await fixture('settlement');
-      await page.evaluate(() => { const g = __ECHO__.game, npc = g.scene.objects.find(o => o.service === 'provisions'); if (!npc) throw Error('Provisions vendor missing.'); __ECHO__.interact(npc.id); });
+      await page.evaluate(() => { const g = window.__ECHO__.game, npc = g.scene.objects.find(o => o.service === 'provisions'); if (!npc) throw Error('Provisions vendor missing.'); window.__ECHO__.interact(npc.id); });
       assert.equal((await snapshot()).panel, 'vendor');
       await choose('qty:up'); await choose('qty:up');
       let before = (await snapshot()).state;
@@ -247,7 +247,7 @@ try {
       await choose('qty:down'); assert.match(await page.locator('.atlas-body').innerText(), /Quantity 2/);
       const screen = await capture('vendor-sell-quantity');
       await choose('trade-mode');
-      await page.evaluate(() => { __ECHO__.game.state.resources.ore = 0; });
+      await page.evaluate(() => { window.__ECHO__.game.state.resources.ore = 0; });
       before = (await snapshot()).state; await choose('buy:field_tonic'); await choose('confirm-yes'); after = (await snapshot()).state;
       assert.equal(after.inventory.field_tonic, before.inventory.field_tonic);
       assert.match(await page.locator('.notice').innerText(), /ore|afford|enough/i);
@@ -257,7 +257,7 @@ try {
 
     await check('construction spending production and civilization advancement', 'Fixture supplies and beacon prerequisite; actual construction NPC and keyboard build/tier actions.', async () => {
       await fixture('settlement');
-      await page.evaluate(() => { const g = __ECHO__.game; g.state.flags.beacon_restored = true; const npc = g.scene.objects.find(o => o.service === 'construction'); if (!npc) throw Error('Construction NPC missing.'); __ECHO__.interact(npc.id); });
+      await page.evaluate(() => { const g = window.__ECHO__.game; g.state.flags.beacon_restored = true; const npc = g.scene.objects.find(o => o.service === 'construction'); if (!npc) throw Error('Construction NPC missing.'); window.__ECHO__.interact(npc.id); });
       const before = (await snapshot()).state.resources.ore;
       await choose('build:farm'); let s = (await snapshot()).state;
       assert.equal(s.buildings.farm, 1); assert.equal(s.resources.ore, before - 18);
@@ -273,7 +273,7 @@ try {
   if (section === 'all' || section === 'combat') {
     await check('battle keyboard targeting held-key protection and exact global pause', 'Solo battle fixture. Actual keys through readiness, commands, target, timing window, and Esc.', async () => {
       await fixture('battle');
-      await page.waitForFunction(() => __ECHO__.snapshot().battle?.selectedHero === 'kaida');
+      await page.waitForFunction(() => window.__ECHO__.snapshot().battle?.selectedHero === 'kaida');
       await press('Enter'); assert.equal((await snapshot()).battle.mode, 'command');
       await page.keyboard.down('Enter'); await page.keyboard.down('Enter');
       assert.equal((await snapshot()).battle.mode, 'target'); await page.keyboard.up('Enter');
@@ -282,7 +282,7 @@ try {
       await page.waitForTimeout(140); assert.deepEqual((await snapshot()).battle, frozen);
       await press('Escape'); assert.equal((await snapshot()).battle.mode, 'target');
       await press('Space');
-      await page.waitForFunction(() => { const a = __ECHO__.snapshot().battle?.action; return a?.elapsed >= .49 && a.elapsed < .62; }, null, { polling: 'raf' });
+      await page.waitForFunction(() => { const a = window.__ECHO__.snapshot().battle?.action; return a?.elapsed >= .49 && a.elapsed < .62; }, null, { polling: 'raf' });
       await press('Escape'); const paused = (await snapshot()).battle;
       assert.ok(paused.action.elapsed < paused.action.windowEnd);
       await page.waitForTimeout(180); assert.deepEqual((await snapshot()).battle, paused);
@@ -290,14 +290,14 @@ try {
       const timing = (await snapshot()).battle.action;
       assert.equal(timing.timingAttempted, true); assert.equal(timing.timingSuccess, true);
       const timingFrame = await capture('battle-timing-caught');
-      await page.waitForFunction(() => __ECHO__.snapshot().battle?.action?.resolved);
+      await page.waitForFunction(() => window.__ECHO__.snapshot().battle?.action?.resolved);
       const resolved = (await snapshot()).battle;
       assert.ok(resolved.enemies[0].hp < resolved.enemies[0].maxHp);
       return { targetFrame, timingFrame, pausedElapsed: paused.action.elapsed, critical: resolved.action.critical, criticalChance: resolved.action.criticalChance };
     });
 
     await check('battle mouse atlas command target and execute parity', 'Fresh solo fixture; production accordion clicks, painted actor targeting, explicit Execute and global pause.', async () => {
-      await fixture('battle'); await page.waitForFunction(() => __ECHO__.snapshot().battle?.selectedHero === 'kaida');
+      await fixture('battle'); await page.waitForFunction(() => window.__ECHO__.snapshot().battle?.selectedHero === 'kaida');
       await page.locator('[data-battle-intent=hero][data-id=kaida]').click();
       await page.locator('[data-battle-intent=command][data-index="0"]').click(); assert.equal((await snapshot()).battle.mode, 'target');
       assert.equal((await snapshot()).battle.action, null);
@@ -316,7 +316,7 @@ try {
       const screen = await capture('battle-four');
       const perfResult = await perf('fourEnemyBattle');
       assert.ok(perfResult.samples >= 30);
-      await page.waitForFunction(() => __ECHO__.snapshot().battle?.selectedHero);
+      await page.waitForFunction(() => window.__ECHO__.snapshot().battle?.selectedHero);
       await page.locator('[data-battle-intent=hero][data-id=kaida]').click();
       await page.locator('[data-battle-intent=command][data-index="0"]').click(); assert.equal((await snapshot()).battle.mode, 'target');
       await battleActorClick('enemy_3'); assert.equal((await snapshot()).battle.target, 3);
@@ -328,10 +328,10 @@ try {
   if (section === 'all' || section === 'world') {
     await check('party traversal followers camera and collision', 'Party fixture; encounters marked cleared to isolate navigation. Actual held movement keys, no simulation teleport between frames.', async () => {
       await fixture('party');
-      await page.evaluate(() => { const g = __ECHO__.game; for (const o of g.scene.objects) if (o.type === 'encounter') g.state.cleared[o.id] = true; });
+      await page.evaluate(() => { const g = window.__ECHO__.game; for (const o of g.scene.objects) if (o.type === 'encounter') g.state.cleared[o.id] = true; });
       const frames = [];
       const frame = async label => {
-        frames.push({ label, screenshot: await capture(`followers-${label}`), state: await page.evaluate(async () => { const { isWalkable } = await import('/src/world.js'), g = __ECHO__.game; return { x: g.state.x, y: g.state.y, camera: { ...g.camera }, followers: g.followers.map(h => ({ ...h, walkable: isWalkable(g.scene, h.x, h.y) })), region: g.state.region, native: [960, 540], world: [g.scene.width, g.scene.height] }; }) });
+        frames.push({ label, screenshot: await capture(`followers-${label}`), state: await page.evaluate(async () => { const { isWalkable } = await import('/src/world.js'), g = window.__ECHO__.game; return { x: g.state.x, y: g.state.y, camera: { ...g.camera }, followers: g.followers.map(h => ({ ...h, walkable: isWalkable(g.scene, h.x, h.y) })), region: g.state.region, native: [960, 540], world: [g.scene.width, g.scene.height] }; }) });
       };
       await frame('start'); await page.keyboard.down('Shift'); await page.keyboard.down('ArrowRight');
       await page.waitForTimeout(700); await frame('stride-1');
@@ -348,15 +348,15 @@ try {
 
     await check('physical gateway keeps facing and places the whole party safely', 'Fixture places crew 45 pixels before the real Haventide→Emberline gate and sets its prerequisite. Actual held key crosses threshold.', async () => {
       await fixture('party');
-      const before = await page.evaluate(() => { const g = __ECHO__.game, p = g.scene.portals.find(p => p.to === 'emberline'); if (!p) throw Error('Regional gate missing.'); g.state.flags.beacon_restored = true; g.state.x = p.x - 45; g.state.y = p.y; g.state.facing = 'right'; g.resetFollowers(); g.updateCamera(true); return { from: g.scene.id, gate: { ...p }, start: { x: g.state.x, y: g.state.y } }; });
+      const before = await page.evaluate(() => { const g = window.__ECHO__.game, p = g.scene.portals.find(p => p.to === 'emberline'); if (!p) throw Error('Regional gate missing.'); g.state.flags.beacon_restored = true; g.state.x = p.x - 45; g.state.y = p.y; g.state.facing = 'right'; g.resetFollowers(); g.updateCamera(true); return { from: g.scene.id, gate: { ...p }, start: { x: g.state.x, y: g.state.y } }; });
       const frames = [{ label: 'approach', screenshot: await capture('gateway-approach') }];
       const started = performance.now();
       await page.keyboard.down('ArrowRight');
-      await page.waitForFunction(() => __ECHO__.game.transition !== null);
+      await page.waitForFunction(() => window.__ECHO__.game.transition !== null);
       await page.keyboard.up('ArrowRight');
       frames.push({ label: 'threshold', screenshot: await capture('gateway-threshold') });
-      await page.waitForFunction(() => __ECHO__.snapshot().scene === 'emberline' && !__ECHO__.game.transition);
-      const after = await page.evaluate(async () => { const { isWalkable } = await import('/src/world.js'), g = __ECHO__.game; return { scene: g.scene.id, facing: g.state.facing, heroWalkable: isWalkable(g.scene, g.state.x, g.state.y), followers: g.followers.map(h => ({ ...h, walkable: isWalkable(g.scene, h.x, h.y) })), x: g.state.x, y: g.state.y }; });
+      await page.waitForFunction(() => window.__ECHO__.snapshot().scene === 'emberline' && !window.__ECHO__.game.transition);
+      const after = await page.evaluate(async () => { const { isWalkable } = await import('/src/world.js'), g = window.__ECHO__.game; return { scene: g.scene.id, facing: g.state.facing, heroWalkable: isWalkable(g.scene, g.state.x, g.state.y), followers: g.followers.map(h => ({ ...h, walkable: isWalkable(g.scene, h.x, h.y) })), x: g.state.x, y: g.state.y }; });
       assert.equal(after.facing, 'right'); assert.ok(after.heroWalkable && after.followers.every(h => h.walkable));
       frames.push({ label: 'arrival', screenshot: await capture('gateway-arrival') });
       report.sequences.gateway = { before, after, elapsedIncludingAuthoredFadeMs: Math.round(performance.now() - started), frames };
@@ -366,7 +366,7 @@ try {
     await check('steady world performance and measured art cache', 'Haventide party fixture, production animation and renderer at 1080p.', async () => {
       await fixture('party');
       const performance = await perf('world');
-      const cache = await page.evaluate(() => __ECHO__.snapshot().artMetrics || (typeof __ECHO__.artMetrics === 'function' ? __ECHO__.artMetrics() : { available: false, reason: 'The active renderer has not exposed cache byte counts; a second dynamic module instance would not measure its cache.' }));
+      const cache = await page.evaluate(() => window.__ECHO__.snapshot().artMetrics || (typeof window.__ECHO__.artMetrics === 'function' ? window.__ECHO__.artMetrics() : { available: false, reason: 'The active renderer has not exposed cache byte counts; a second dynamic module instance would not measure its cache.' }));
       report.performance.cache = cache;
       return { ...performance, cache };
     });
@@ -377,18 +377,18 @@ try {
       await fixture('battle');
       await page.evaluate(async () => {
         window.showcaseCombat = await import('/src/combat.js');
-        const g = __ECHO__.game; window.showcaseUpdate = g.update; g.update = () => {};
-        showcaseCombat.updateBattle(g.battle, g.state, 1.3);
-        for (let i = 0; i < 3; i++) showcaseCombat.battleKey(g.battle, g.state, 'Enter');
+        const g = window.__ECHO__.game; window.showcaseUpdate = g.update; g.update = () => {};
+        window.showcaseCombat.updateBattle(g.battle, g.state, 1.3);
+        for (let i = 0; i < 3; i++) window.showcaseCombat.battleKey(g.battle, g.state, 'Enter');
       });
       const frames = [];
       let last = 0;
       for (const [index, elapsed] of [0, .2, .42, .57, .7, .77, .9, 1.12, 1.4, 1.54].entries()) {
-        await page.evaluate(({ elapsed, last }) => { const g = __ECHO__.game; showcaseCombat.updateBattle(g.battle, g.state, elapsed - last); if (elapsed === .57) showcaseCombat.battleKey(g.battle, g.state, ' '); }, { elapsed, last });
+        await page.evaluate(({ elapsed, last }) => { const g = window.__ECHO__.game; window.showcaseCombat.updateBattle(g.battle, g.state, elapsed - last); if (elapsed === .57) window.showcaseCombat.battleKey(g.battle, g.state, ' '); }, { elapsed, last });
         last = elapsed;
         frames.push({ elapsed, screenshot: await capture(`latest-attack-${String(index).padStart(2, '0')}`), state: (await snapshot()).battle });
       }
-      await page.evaluate(() => { __ECHO__.game.update = window.showcaseUpdate; delete window.showcaseUpdate; });
+      await page.evaluate(() => { window.__ECHO__.game.update = window.showcaseUpdate; delete window.showcaseUpdate; });
       assert.equal(frames[3].state.action.timingSuccess, true);
       assert.equal(frames[5].state.action.resolved, true);
       assert.ok(frames[5].state.enemies[0].hp < frames[4].state.enemies[0].hp);
@@ -398,12 +398,12 @@ try {
 
     await check('real-time solo attack showcase', 'Actual keys with normal RAF clock and no stepped time; captured in the final portion of the video.', async () => {
       await fixture('battle');
-      await page.waitForFunction(() => __ECHO__.snapshot().battle?.selectedHero === 'kaida');
+      await page.waitForFunction(() => window.__ECHO__.snapshot().battle?.selectedHero === 'kaida');
       await press('Enter'); await press('Enter'); await press('Enter');
-      await page.waitForFunction(() => { const a = __ECHO__.snapshot().battle?.action; return a?.elapsed > .5 && a.elapsed < .62; });
+      await page.waitForFunction(() => { const a = window.__ECHO__.snapshot().battle?.action; return a?.elapsed > .5 && a.elapsed < .62; });
       await press('Space'); assert.equal((await snapshot()).battle.action.timingSuccess, true);
       await page.waitForTimeout(1000);
-      await page.waitForFunction(() => !__ECHO__.snapshot().battle?.action);
+      await page.waitForFunction(() => !window.__ECHO__.snapshot().battle?.action);
       return { screenshot: await capture('latest-realtime-recovery'), battle: (await snapshot()).battle };
     });
   }
@@ -412,7 +412,7 @@ try {
     await check('ordinary Haventide road across multiple viewports', 'Only prerequisites/cleared encounters are seeded. Production walkTo and Game.update run at fixed 1/60-second steps, normal Shift speed 245 pixels/second. Wall time is accelerated between rendered samples; world coordinates are never teleported along the route.', async () => {
       await fixture('party');
       const route = await page.evaluate(async () => {
-        const g = __ECHO__.game;
+        const g = window.__ECHO__.game;
         window.routeWorld = await import('/src/world.js');
         g.state.flags.beacon_restored = true;
         for (const o of g.scene.objects) if (o.type === 'encounter') g.state.cleared[o.id] = true;
@@ -425,8 +425,8 @@ try {
       const frames = [];
       const captureRoute = async label => {
         const state = await page.evaluate(() => {
-          const g = __ECHO__.game;
-          return { ...routeStats, collisions: [...routeStats.collisions], transitions: [...routeStats.transitions], region: g.scene.id, x: g.state.x, y: g.state.y, camera: { ...g.camera }, facing: g.state.facing, followers: g.followers.map(h => ({ ...h, walkable: routeWorld.isWalkable(g.scene, h.x, h.y) })), remainingPathPoints: g.movePath.length, transition: g.transition && { ...g.transition } };
+          const g = window.__ECHO__.game;
+          return { ...window.routeStats, collisions: [...window.routeStats.collisions], transitions: [...window.routeStats.transitions], region: g.scene.id, x: g.state.x, y: g.state.y, camera: { ...g.camera }, facing: g.state.facing, followers: g.followers.map(h => ({ ...h, walkable: window.routeWorld.isWalkable(g.scene, h.x, h.y) })), remainingPathPoints: g.movePath.length, transition: g.transition && { ...g.transition } };
         });
         const screenshot = await capture(`route-${String(frames.length).padStart(2, '0')}-${label}`);
         frames.push({ label, screenshot, ...state });
@@ -436,23 +436,23 @@ try {
       for (let segment = 0; segment < route.waypoints.length; segment++) {
         const target = route.waypoints[segment];
         if ((await snapshot()).scene !== 'haventide') break;
-        await page.evaluate(target => __ECHO__.game.walkTo(target.x, target.y), target);
+        await page.evaluate(target => window.__ECHO__.game.walkTo(target.x, target.y), target);
         for (let batch = 0; batch < 12; batch++) {
-          const result = await page.evaluate(({ target, finalSegment }) => {
-            const g = __ECHO__.game;
+          const result = await page.evaluate(({ target }) => {
+            const g = window.__ECHO__.game;
             for (let i = 0; i < 120; i++) {
               if (g.state.region !== 'haventide' && !g.transition) break;
               if (!g.movePath.length && !g.transition) {
                 break;
               }
               const x = g.state.x, y = g.state.y, from = g.state.region;
-              routeUpdate.call(g, 1 / 60); routeStats.steps++; routeStats.simulatedSeconds += 1 / 60;
+              window.routeUpdate.call(g, 1 / 60); window.routeStats.steps++; window.routeStats.simulatedSeconds += 1 / 60;
               if (g.state.region === from) {
                 const distance = Math.hypot(g.state.x - x, g.state.y - y);
-                routeStats.walkedPixels += distance; routeStats.maximumSpeed = Math.max(routeStats.maximumSpeed, distance * 60);
-              } else routeStats.transitions.push({ from, to: g.state.region, time: routeStats.simulatedSeconds });
-              if (!routeWorld.isWalkable(g.scene, g.state.x, g.state.y)) routeStats.collisions.push({ who: 'kaida', x: g.state.x, y: g.state.y, region: g.scene.id });
-              for (const h of g.followers) if (!routeWorld.isWalkable(g.scene, h.x, h.y)) routeStats.collisions.push({ who: h.id, x: h.x, y: h.y, region: g.scene.id });
+                window.routeStats.walkedPixels += distance; window.routeStats.maximumSpeed = Math.max(window.routeStats.maximumSpeed, distance * 60);
+              } else window.routeStats.transitions.push({ from, to: g.state.region, time: window.routeStats.simulatedSeconds });
+              if (!window.routeWorld.isWalkable(g.scene, g.state.x, g.state.y)) window.routeStats.collisions.push({ who: 'kaida', x: g.state.x, y: g.state.y, region: g.scene.id });
+              for (const h of g.followers) if (!window.routeWorld.isWalkable(g.scene, h.x, h.y)) window.routeStats.collisions.push({ who: h.id, x: h.x, y: h.y, region: g.scene.id });
             }
             return { scene: g.scene.id, transition: Boolean(g.transition), remaining: g.movePath.length, distance: Math.hypot(g.state.x - target.x, g.state.y - target.y), x: g.state.x, y: g.state.y, panel: g.ui.panel?.type, mode: g.mode, near: g.near?.id };
           }, { target, finalSegment: segment === route.waypoints.length - 1 });
@@ -470,7 +470,7 @@ try {
         }
       }
       const last = await captureRoute('emberline-arrival');
-      await page.evaluate(() => { const g = __ECHO__.game; g.keys.clear(); g.update = routeUpdate; delete window.routeUpdate; });
+      await page.evaluate(() => { const g = window.__ECHO__.game; g.keys.clear(); g.update = window.routeUpdate; delete window.routeUpdate; });
       const coastFrames = frames.filter(f => f.region === 'haventide');
       const pan = Math.max(...coastFrames.map(f => f.camera.x)) - Math.min(...coastFrames.map(f => f.camera.x));
       report.sequences.regionalRoute = { route, frames, cameraPanPixels: pan, cameraPanViewports: pan / 960 };

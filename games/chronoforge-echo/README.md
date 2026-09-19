@@ -43,6 +43,8 @@ Timed Defend reduces damage by 75% until the next action; normal Defend reduces 
 
 World view pauses play and flies out to the current map, with an amber ring marking the party. Unexplored terrain stays under soft fog; the map outline remains visible. It reads the existing survey without changing the normal camera, exploration or saves. Restrained motion skips the flyout. If R is assigned to movement or interaction in Settings, that binding takes priority; the World view button remains available.
 
+Enemy badges show the strongest visible fighter as **LVL · Name** and compare their level with Kaida: muted at least two levels below, neutral within one, amber two–three above, red four–six above, and deep red with a skull seven or more above. A faint red ground oval has roughly 15 native pixels of contact padding; approaching it starts battle, including sentries. Only cleared repeat fights offer an interaction prompt. Cleared enemies and story-locked encounters have no contact oval. Post-battle protection hides the ring until contact becomes active again.
+
 Town Center upgrades at **Settlement works** play an exterior reveal and an interior restoration in all four towns. The outside camera pushes in slightly; the inside comparison keeps the crew and camera fixed. Space, Esc or **Skip reveal** finishes immediately. Payment and checkpointing happen once, before playback. Restrained motion omits zoom and sparkles.
 
 ## Saves

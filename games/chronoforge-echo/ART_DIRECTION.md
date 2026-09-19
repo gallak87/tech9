@@ -33,6 +33,8 @@ Interaction prompts follow their world object and stay within the viewport. Sign
 
 Battle commands fold through character, action, target and timing. Completed choices remain recoverable with Left. Use the authoritative combat state for readiness, costs and targets. Timing cues turn orange only during the input window; reduced motion uses a steady cue. Reward notices share one compact queue with clear icons and quantities.
 
+Enemy badges show the visible fighter’s level and name on one line, using relative-danger colors against Kaida. A severe encounter also has a skull so color is not the only signal. Ground ovals follow the scene perspective, with a small forgiving contact margin, and disappear when contact is inactive.
+
 ## Asset maintenance
 
 `src/assets.js` is the authoritative live source manifest. Measured crops, foot anchors, scales and extraction settings live in the corresponding `*-art.js`, `*-frames.js` and manifest modules. Query `node scripts/asset-inventory.mjs` when dimensions, byte counts or hashes are needed; do not commit duplicate inventories.

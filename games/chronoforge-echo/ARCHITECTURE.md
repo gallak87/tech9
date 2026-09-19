@@ -10,6 +10,8 @@ A standalone Vite application using JavaScript modules and PixiJS to present a 1
 
 `world.js` owns scene geometry, interaction locations, terrain and shared requirements. Actor positions are foot anchors. Visual extents, grounded collision footprints and interaction ranges are separate. Roads, door approaches and passages through arches must remain reachable. Click navigation and keyboard movement use the same collision predicate; the path search includes the exact requested endpoint when its final segment is clear.
 
+`encounter-contact.js` owns the ground oval, contact padding and swept movement check. `enemy-labels.js` draws those ovals, while `enemy-levels.js` selects the strongest visible fighter for the sprite, single-line badge and danger relative to Kaida. Unmet prerequisites, cleared encounters and post-battle protection prevent contact; sentries use the same contact rules as other enemies. Only cleared repeatable encounters appear in the manual interaction list. Changes to contact or patrol movement must keep the indicator and trigger aligned.
+
 ## Combat
 
 `combat.js` owns the ATB clock, readiness queue, action timeline, seeded outcome RNG and battle result. Costs, HP and timing resolve once at contact. Rendering derives poses and effects from the same timeline and cannot advance gauges or award rewards. The integrator consumes the battle result once.

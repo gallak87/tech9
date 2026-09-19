@@ -5,7 +5,7 @@ import { ALL_SCENES } from '../src/world.js';
 import { createState } from '../src/progression.js';
 import { createBattle, battleView, battleKey, updateBattle } from '../src/combat.js';
 import { migrate } from '../src/persistence.js';
-import { enemyLevel, enemyLevelLabel, enemyNameWithLevel, encounterLevelLabel, encounterInteractionLabel } from '../src/enemy-levels.js';
+import { enemyLevel, enemyLevelLabel, enemyNameWithLevel, encounterLevelLabel, encounterLeader, encounterBadgeLabel, encounterInteractionLabel, encounterDanger, ENEMY_DANGER_STYLES } from '../src/enemy-levels.js';
 import { drawEncounterLevels } from '../src/enemy-labels.js';
 
 test('every authored enemy and encounter has an explicit strength level, distinct from civilization tier', () => {
@@ -22,21 +22,26 @@ test('every authored enemy and encounter has an explicit strength level, distinc
   assert.notEqual(ENEMIES.void_architect.level, ENEMIES.void_architect.tier);
 });
 
-test('mixed patrols show the complete range and identical levels collapse to one value', () => {
-  assert.equal(encounterLevelLabel({ enemies: ['bog_stalker'] }), 'LVL 3');
-  assert.equal(encounterLevelLabel({ enemies: ['bog_stalker', 'rust_scrapper', 'drone_sentinel'] }), 'LVL 1–3');
-  assert.equal(encounterLevelLabel({ enemies: ['bog_stalker', 'bog_stalker'] }), 'LVL 3');
-  assert.equal(encounterLevelLabel({ enemies: ['glacier_wolf', 'mire_hulk'] }), 'LVL 10');
-  assert.equal(encounterLevelLabel({ enemies: ['unknown', 'bog_stalker'] }), 'LVL ?');
-  assert.equal(enemyLevelLabel('unknown'), 'LVL ?');
-  assert.equal(enemyLevel({ level: NaN }), null);
+test('mixed encounters show one level and name for their strongest visible fighter', () => {
+  for (const scene of Object.values(ALL_SCENES)) for (const encounter of scene.objects.filter(o=>o.type==='encounter')) {
+    const before=JSON.stringify(encounter),leader=encounterLeader(encounter);
+    assert.equal(enemyLevel(leader),Math.max(...encounter.enemies.map(enemyLevel)),encounter.id);
+    assert.equal(encounterBadgeLabel(encounter),`LVL ${ENEMIES[leader].level} · ${ENEMIES[leader].name}`);
+    assert.equal(JSON.stringify(encounter),before,'Choosing the marker must not reorder battle formation');
+  }
+  assert.equal(encounterLeader({enemies:['rust_scrapper','drone_sentinel']}),'drone_sentinel');
+  assert.equal(encounterLeader({enemies:['glacier_wolf','mire_hulk']}),'glacier_wolf','Ties retain the authored leader');
+  assert.equal(encounterLevelLabel({enemies:['bog_stalker','rust_scrapper','drone_sentinel']}),'LVL 3');
+  for (const encounter of [{},{enemies:[]},{enemies:['unknown']}])assert.equal(encounterBadgeLabel(encounter),'LVL ? · Enemy');
+  assert.equal(enemyLevelLabel('unknown'),'LVL ?');
+  assert.equal(enemyLevel({level:NaN}),null);
 });
 
-test('interaction prompts expose levels for named encounters, blockades and repeat patrols', () => {
-  const encounter = { enemies: ['gravbot', 'drone_sentinel'], name: 'Exchange blockade' };
-  assert.equal(encounterInteractionLabel(encounter), 'Engage Exchange blockade · LVL 2–8');
-  assert.equal(encounterInteractionLabel({ ...encounter, guard: 'emberline' }), 'Confront Gravbot · LVL 2–8 · gate sentry');
-  assert.equal(encounterInteractionLabel(encounter, true), 'Revisit patrol · LVL 2–8 · reduced spoils');
+test('gate choices and replay prompts share the visible leader level', () => {
+  const encounter = { enemies: ['drone_sentinel', 'gravbot'], name: 'Exchange blockade' };
+  assert.equal(encounterInteractionLabel(encounter), 'Engage Gravbot · LVL 8');
+  assert.equal(encounterInteractionLabel({ ...encounter, guard: 'emberline' }), 'Confront Gravbot · LVL 8 · gate sentry');
+  assert.equal(encounterInteractionLabel(encounter, true), 'Revisit patrol · LVL 8 · reduced spoils');
   assert.equal(enemyNameWithLevel('bog_stalker'), 'Bog Stalker · LVL 3');
 });
 
@@ -78,7 +83,7 @@ test('world badges follow camera coordinates and hide cleared one-off enemies bu
     measureText: text => ({ width: text.length * 5 }),
     fillText: (...args) => labels.push(args),
   };
-  const encounter = (id, extra = {}) => ({ id, type: 'encounter', x: 140, y: 200, enemies: ['bog_stalker'], ...extra });
+  const encounter = (id, extra = {}) => ({ id, type: 'encounter', x: 200, y: 200, enemies: ['bog_stalker'], ...extra });
   const scene = { objects: [
     encounter('live'), encounter('repeat'), encounter('boss', { boss: true }),
     encounter('guard', { guard: 'haventide' }), encounter('quest', { flag: 'done' }),
@@ -88,6 +93,62 @@ test('world badges follow camera coordinates and hide cleared one-off enemies bu
   const state = { cleared: { repeat: true, boss: true, guard: true, quest: true }, settings: { reducedMotion: true } };
   const before = JSON.stringify({ scene, state });
   drawEncounterLevels(ctx, scene, { x: 100, y: 150 }, state);
-  assert.deepEqual(labels, [['LVL 3', 40, 68.5], ['LVL 3', 40, 68.5], ['LVL 2–8 · SENTRY', 150, 68.5]]);
+  assert.deepEqual(labels, [['LVL 3 · Bog Stalker', 100.5, 83.5], ['LVL 3 · Bog Stalker', 100.5, 68.5], ['LVL 8 · Gravbot', 150.5, 83.5]]);
   assert.equal(JSON.stringify({ scene, state }), before);
+});
+
+test('danger colors compare the strongest enemy with Kaida across every threshold',()=>{
+  const state=createState();state.heroes=[{id:'rune',level:60},{id:'kaida',level:14}];
+  const before=structuredClone(state);
+  for(const [level,danger]of [[1,'lower'],[12,'lower'],[13,'even'],[14,'even'],[15,'even'],[16,'raised'],[17,'raised'],[18,'high'],[20,'high'],[21,'severe'],[60,'severe']]){
+    assert.equal(encounterDanger({enemies:[{level}]},state),danger,'enemy level '+level);
+  }
+  assert.equal(encounterDanger({enemies:['rust_scrapper','wraith_core']},state),'severe');
+  assert.equal(encounterDanger({enemies:['wraith_core','rust_scrapper']},state),'severe');
+  state.heroes[1].level=23;
+  assert.equal(encounterDanger({enemies:['wraith_core']},state),'even','Colors respond to a level-up without scaling enemies');
+  state.heroes[1].level=14;
+  for(const enemies of [[],['unknown']])assert.equal(encounterDanger({enemies},state),'even');
+  assert.equal(encounterDanger({enemies:['wraith_core']},{heroes:[]}), 'even');
+  assert.deepEqual(state,before);
+});
+
+test('all badge colors keep level text readable, including the deep-red warning',()=>{
+  const luminance=hex=>{
+    const rgb=hex.slice(1,7).match(/../g).map(v=>parseInt(v,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);
+    return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722;
+  };
+  for(const [danger,style]of Object.entries(ENEMY_DANGER_STYLES)){
+    // Check the most adverse white terrain behind the slightly translucent badge.
+    const alpha=parseInt(style.background.slice(7)||'ff',16)/255;
+    const background='#'+style.background.slice(1,7).match(/../g).map(v=>Math.round(parseInt(v,16)*alpha+255*(1-alpha)).toString(16).padStart(2,'0')).join('');
+    assert.ok((luminance(style.text)+.05)/(luminance(background)+.05)>=4.5,danger+' text contrast');
+  }
+});
+
+test('severe live badges include a skull while cleared repeat encounters stay neutral',()=>{
+  const labels=[],skulls=[],fills=[];
+  const ctx={save(){},restore(){},strokeRect(){},beginPath(){},fill(){},
+    ellipse(...args){skulls.push(args);},fillRect(){fills.push(this.fillStyle);},
+    measureText:text=>({width:text.length*5}),fillText(text,x,y){labels.push({text,x,y,color:this.fillStyle});},
+  };
+  const encounter={id:'warning',type:'encounter',x:140,y:200,enemies:['wraith_core']};
+  const scene={objects:[encounter,{...encounter,id:'repeat',x:240}]};
+  const state={heroes:[{id:'kaida',level:14}],cleared:{repeat:true}};
+  drawEncounterLevels(ctx,scene,{x:0,y:0},state);
+  assert.equal(skulls.length,1);
+  assert.ok(fills.includes(ENEMY_DANGER_STYLES.severe.background));
+  assert.deepEqual(labels.map(({text,color})=>[text,color]),[
+    ['LVL 24 · Wraith Core',ENEMY_DANGER_STYLES.severe.text],['LVL 24 · Wraith Core',ENEMY_DANGER_STYLES.lower.text],
+  ]);
+});
+
+test('one-line name badges stay inside the viewport near its edges',()=>{
+  const labels=[],boxes=[],ctx={save(){},restore(){},fillRect(...args){boxes.push(args);},strokeRect(){},
+    measureText:text=>({width:text.length*5}),fillText(...args){labels.push(args);}};
+  const scene={objects:[2,958].map((x,i)=>({id:String(i),type:'encounter',x,y:535,enemies:['architect_herald']}))};
+  drawEncounterLevels(ctx,scene,{x:0,y:0},{cleared:{}});
+  assert.equal(labels.length,2,'Each enemy gets exactly one unwrapped label');
+  for(const [x,y,w,h]of boxes){assert.ok(x>=0&&x+w<=960);assert.ok(y>=0&&y+h<=540);}
+  for(const [label]of labels)assert.equal(label,'LVL 34 · Architect Herald');
 });

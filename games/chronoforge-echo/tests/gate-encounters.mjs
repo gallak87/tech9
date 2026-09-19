@@ -5,7 +5,7 @@ import fs from 'node:fs/promises';
 
 const browser=await chromium.launch({headless:true,channel:'chrome'});
 const page=await browser.newPage({viewport:{width:1920,height:1080}});
-const report={method:'Scene/approach position fixtures, followed by actual keyboard movement and gate controls. Haventide victory uses legal keyboard attacks with accelerated normal Game.update, no HP/reward/clear grants. Screenshots are actual rendering.',checks:[],errors:[]};
+const report={method:'Scene/approach position fixtures, followed by actual keyboard movement into the padded sentry oval. Haventide victory uses legal keyboard attacks with accelerated normal Game.update, no HP/reward/clear grants. Screenshots are actual rendering.',checks:[],errors:[]};
 page.on('pageerror',e=>report.errors.push(String(e)));
 page.on('console',m=>{if(m.type()==='error')report.errors.push(m.text());});
 await page.routeWebSocket('**/*',s=>{s.send('{"type":"connected"}');s.onMessage(()=>{});});
@@ -31,27 +31,11 @@ try{
       return {region,door:t.id,guard:guard.id,enemies:guard.enemies,distance:Math.hypot(t.x-guard.x,t.y-guard.y),walkable:isWalkable(g.scene,guard.x,guard.y),x:guard.x,y:guard.y};
     },region);
     assert.ok(gate.distance<110&&gate.walkable,'Sentry must occupy a nearby walkable gate approach');
-    await page.keyboard.down('ArrowUp');await page.waitForTimeout(790);await page.keyboard.up('ArrowUp');
-    assert.equal((await status()).mode,'world','Approaching a gate must not spring a battle');
-    assert.equal((await status()).panel,undefined);
-    const passed=await page.evaluate(gate=>window.__ECHO__.game.state.y<gate.y,gate);assert.ok(passed,'Keyboard path must actually pass the guard');
     gate.approach=await shot(region+'-approach');
-    await approachDoor();assert.equal((await status()).near,gate.door);
-    assert.match(await page.locator('.interaction').innerText(),/entrance blocked/);
-    await page.keyboard.press('f');
-    assert.equal((await status()).mode,'world');assert.equal((await status()).panel,'confirm');
+    await page.keyboard.down('ArrowUp');await page.waitForTimeout(790);await page.keyboard.up('ArrowUp');
+    assert.equal((await status()).panel,'dialogue','Walking into a sentry starts the first-battle introduction');
     const expected=await page.evaluate(async id=>(await import('/src/content.js')).ENEMIES[id].name,gate.enemies[0]);
-    assert.equal(await page.locator('[data-do="confirm-yes"]').innerText(),'Confront '+expected);
-    assert.equal(await page.evaluate(()=>document.activeElement.dataset.do),'confirm-no');
-    gate.choice=await shot(region+'-choice');
-    await page.keyboard.press('Escape');assert.equal((await status()).panel,undefined);assert.equal((await status()).menu,false);
-    await page.waitForTimeout(1200);assert.equal((await status()).mode,'world');
-    await page.keyboard.press('f');await page.keyboard.press('Enter');
-    assert.equal((await status()).panel,undefined,'Default choice steps back');
-    await page.keyboard.press('f');
-    if(region==='haventide'){
-      await page.keyboard.press('ArrowRight');await page.keyboard.press('Enter');
-    }else await page.locator('[data-do="confirm-yes"]').click();
+    assert.equal(await page.locator(`.interaction[data-object="${gate.guard}"]`).count(),0,'The sentry has no manual encounter prompt');
     assert.match(await page.locator('.dialogue-text').innerText(),new RegExp(expected));
     if(region==='haventide')assert.doesNotMatch(await page.locator('.dialogue-text').innerText(),/rust scrapper/i);
     await closeDialogue();assert.equal((await status()).encounter,gate.guard);
@@ -75,7 +59,7 @@ try{
     }
     report.checks.push({...gate,pass:true});
   }
-  // Ordinary wilderness encounters retain their original contact trigger.
+  // Ordinary wilderness encounters use the same padded contact trigger.
   await page.evaluate(()=>{window.__ECHO__.preset('world');const g=window.__ECHO__.game;g.resetSession();g.encounterCooldown=0;g.state.flags.battle_taught=true;const o=g.scene.objects.find(o=>o.id==='hav_first');Object.assign(g.state,{x:o.x,y:o.y+60});g.updateCamera(true);});
   await page.keyboard.down('ArrowUp');await page.waitForTimeout(360);await page.keyboard.up('ArrowUp');
   assert.equal((await status()).encounter,'hav_first');

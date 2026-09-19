@@ -158,14 +158,19 @@ function interactionDistance(o,x,y){
  const a=o.interactionArea;if(!a)return Math.hypot(o.x-x,o.y-y);
  return Math.hypot(Math.max(0,Math.abs(x-o.x-a.x)-a.w/2),Math.max(0,Math.abs(y-o.y-a.y)-a.h/2));
 }
-// The prompt and F/Space use this same list. Keep battle/portal ranges unchanged:
-// their automatic activation remains a separate, much smaller distance check.
+export function meetsWorldRequirement(state,req){
+ if(!req)return true;
+ if(typeof req==='string')return !!state.flags?.[req];
+ return (!req.tier||state.tier>=req.tier)&&(!req.flag||!!state.flags?.[req.flag]);
+}
+// The prompt and F/Space use this same list. Undefeated enemies use contact;
+// only cleared, repeatable encounters offer a manual replay.
 export function nearby(scene,x,y,state){
  return [...scene.objects,...scene.portals].filter(o=>
   !['tree','rock','ruin','landmark'].includes(o.type)&&npcPresent(o,state)&&
   !(o.hero&&state?.heroes?.some(h=>h.id===o.hero))&&
   (!o.unlockTier||(state?.tier||1)>=o.unlockTier)&&!state?.pickups?.[o.id]&&
-  !(o.type==='encounter'&&state?.cleared?.[o.id]&&(o.boss||o.guard||o.flag))&&
+  (o.type!=='encounter'||(state?.cleared?.[o.id]&&!o.boss&&!o.guard&&!o.flag))&&
   interactionDistance(o,x,y)<(o.type==='encounter'?52:o.type==='portal'?62:['town','house','cave'].includes(o.type)?96:72)
  ).sort((a,b)=>interactionDistance(a,x,y)-interactionDistance(b,x,y)||Math.hypot(a.x-x,a.y-y)-Math.hypot(b.x-x,b.y-y));
 }

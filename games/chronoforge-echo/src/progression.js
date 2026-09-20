@@ -460,15 +460,20 @@ export function serviceStock(state, service = 'smith', region = state.region) {
     )
     .map((i) => i.id);
 }
-export function buy(state, itemId, quantity = 1) {
+export function buyPrice(state, itemId, quantity = 1) {
   const item = ITEMS[itemId];
   if (!item || item.price <= 0 || !whole(quantity) || quantity > 99)
-    return no('Choose an available item and quantity.');
+    return null;
+  return Math.ceil(
+    item.price * quantity * (state.flags.mara_trade_route ? 0.85 : 1),
+  );
+}
+export function buy(state, itemId, quantity = 1) {
+  const item = ITEMS[itemId],
+    cost = buyPrice(state, itemId, quantity);
+  if (cost === null) return no('Choose an available item and quantity.');
   if (state.tier < item.tier)
     return no(`Requires ${TIERS[item.tier - 1]} civilization.`);
-  const price =
-      item.price * quantity * (state.flags.mara_trade_route ? 0.85 : 1),
-    cost = Math.ceil(price);
   if (state.resources.ore < cost) return no(`Requires ${cost} ore.`);
   state.resources.ore -= cost;
   state.inventory[itemId] = (state.inventory[itemId] || 0) + quantity;

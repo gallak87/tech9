@@ -635,14 +635,9 @@ export class UI {
     return Math.max(1, Math.min(max, this.shopQuantities?.[id] || 1));
   }
   shopTotal(id, quantity = this.shopQuantity(id)) {
-    const item = ITEMS[id];
     return this.sellMode
       ? P.sellPrice(id) * quantity
-      : Math.ceil(
-          item.price *
-            quantity *
-            (this.game.state.flags.mara_trade_route ? 0.85 : 1),
-        );
+      : P.buyPrice(this.game.state, id, quantity);
   }
   shopTradeAvailable(id, quantity = this.shopQuantity(id)) {
     if (

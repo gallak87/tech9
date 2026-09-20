@@ -14,6 +14,7 @@ import {
   advanceTier,
   production,
   buy,
+  buyPrice,
   sell,
   sellPrice,
   futureEligibility,
@@ -162,6 +163,25 @@ test('resale rewards higher equipment tiers without making discounted trade prof
     assert.equal(state.resources.ore - before, sellPrice(item.id) * 3);
     assert.equal(state.inventory[item.id], 0);
   }
+});
+
+test('purchase quotes and payments share discounts and round once for the whole quantity', () => {
+  const state = rich(createState());
+  state.flags.mara_trade_route = true;
+  assert.equal(buyPrice(state, 'iron_blade'), 26);
+  assert.equal(buyPrice(state, 'iron_blade', 2), 51);
+  for (const quantity of [1, 2, 99]) {
+    const before = state.resources.ore;
+    const quoted = buyPrice(state, 'iron_blade', quantity);
+    assert.equal(buy(state, 'iron_blade', quantity).ok, true);
+    assert.equal(before - state.resources.ore, quoted);
+  }
+  for (const quantity of [0, -1, 0.5, 100, NaN]) {
+    assert.equal(buyPrice(state, 'iron_blade', quantity), null);
+    assert.equal(buy(state, 'iron_blade', quantity).ok, false);
+  }
+  assert.equal(buyPrice(state, 'missing'), null);
+  assert.equal(buyPrice(state, 'namekeeper'), null);
 });
 test('equipment stat changes clamp health and consumables cannot duplicate', () => {
   const s = createState(),

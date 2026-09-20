@@ -496,8 +496,6 @@ class Game {
     this.state.playTime += dt;
     if (this.transition) {
       if (this.traversal.updateTransition(dt)) {
-        this.resolveResult(onEvent(this.state, 'visit', this.state.region));
-        this.checkpoint();
         this.ui.updateHUD();
       }
       return;
@@ -769,6 +767,7 @@ async function boot() {
     if (g.frameTimes.length > 3600) g.frameTimes.shift();
     try {
       g.update(Math.min(0.05, interval / 1000));
+      g.session.autosaveInventory();
       g.draw(ctx);
       g.battleUI.render();
       texture.source.update();

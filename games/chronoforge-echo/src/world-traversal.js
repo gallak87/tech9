@@ -5,6 +5,7 @@ import {
   meetsWorldRequirement,
 } from './world.js';
 import { reveal } from './maps.js';
+import { onEvent } from './narrative.js';
 import {
   followerPosition,
   FOLLOW_PATH_STEP,
@@ -262,6 +263,7 @@ export class WorldTraversal {
     const scene = getScene(to);
     const point = spawn || scene.spawn;
     const destination = safeArrival(scene, point.x, point.y);
+    g.checkpoint();
     g.transition = {
       time: 0,
       duration: 0.55,
@@ -275,7 +277,7 @@ export class WorldTraversal {
     g.audio.sound('door');
   }
 
-  // Returns true once, when arrival finishes. Game owns the visit event/save.
+  // Every doorway, exit and world route shares departure/arrival checkpoints.
   updateTransition(dt) {
     const g = this.game;
     const transition = g.transition;
@@ -298,6 +300,8 @@ export class WorldTraversal {
     }
     if (transition.time < transition.duration) return false;
     g.transition = null;
+    g.resolveResult(onEvent(g.state, 'visit', g.state.region));
+    g.checkpoint();
     return true;
   }
 }

@@ -2,8 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { WorldTraversal } from '../src/world-traversal.js';
 import { WorldTravelPreview } from '../src/dev-world-travel.js';
+import { GameSession } from '../src/game-session.js';
+import { loadState } from '../src/persistence.js';
 import { createState, recruit } from '../src/progression.js';
-import { getScene, isWalkable, nearby, REGIONS } from '../src/world.js';
+import {
+  getScene,
+  isWalkable,
+  nearby,
+  REGIONS,
+  ALL_SCENES,
+} from '../src/world.js';
 
 const openScene = () => ({
   id: 'open',
@@ -30,6 +38,8 @@ function fixture(scene = openScene()) {
     movePath: [],
     transition: null,
     ui: { panel: null },
+    checkpoint() {},
+    resolveResult() {},
     get scene() {
       return scene || getScene(this.state.region);
     },
@@ -194,6 +204,64 @@ test('travel swaps at the fade midpoint and reports completion exactly once in e
     assert.equal(traversal.updateTransition(0.3), false);
     assert.equal(logs.length, 1);
     assert.deepEqual(sounds, ['door']);
+  }
+});
+
+test('every world route and dwelling entrance/exit saves departure and completed arrival', (t) => {
+  const previous = globalThis.localStorage;
+  const rows = new Map();
+  let writes = 0;
+  const storage = (globalThis.localStorage = {
+    getItem: (key) => rows.get(key) ?? null,
+    setItem: (key, value) => {
+      rows.set(key, value);
+      writes++;
+    },
+  });
+  t.after(() => {
+    if (previous === undefined) delete globalThis.localStorage;
+    else globalThis.localStorage = previous;
+  });
+  for (const source of Object.values(ALL_SCENES)) {
+    for (const route of [
+      ...source.portals,
+      ...source.objects.filter((o) => o.to),
+    ]) {
+      const { game, traversal } = fixture(null);
+      Object.assign(game.state, { region: source.id, ...source.spawn });
+      const session = new GameSession(game);
+      game.saveSnapshot = () => session.saveSnapshot();
+      game.checkpoint = () => session.checkpoint();
+      const before = structuredClone(game.state);
+      const count = writes;
+      const label = `${source.id} -> ${route.to}`;
+      traversal.travel(route.to, route.spawn);
+      assert.equal(writes, count + 1, `${label}: departure`);
+      assert.deepEqual(loadState('checkpoint', storage), before);
+      traversal.travel(route.to, route.spawn);
+      traversal.updateTransition(0.3);
+      assert.equal(
+        writes,
+        count + 1,
+        `${label}: no duplicate or partial arrival`,
+      );
+      assert.equal(traversal.updateTransition(0.3), true);
+      assert.equal(writes, count + 2, `${label}: arrival`);
+      const arrival = loadState('checkpoint', storage);
+      assert.equal(arrival.region, route.to);
+      assert.equal(arrival.visited[route.to], true);
+      assert.deepEqual(arrival, game.state, label);
+      if (route.to === 'orbital_reach') {
+        assert.equal(
+          arrival.flags.distress_answered,
+          true,
+          'Visit rewards are included',
+        );
+        assert.equal(arrival.resources.energy, before.resources.energy + 30);
+      }
+      traversal.updateTransition(0.3);
+      assert.equal(writes, count + 2);
+    }
   }
 });
 

@@ -4,10 +4,36 @@ import { getScene } from './world.js';
 import { reveal } from './maps.js';
 import { SCENES } from './narrative.js';
 const copy = (value) => JSON.parse(JSON.stringify(value));
+const inventoryStamp = (state) =>
+  JSON.stringify([
+    state.inventory,
+    state.heroes.map((hero) => [hero.id, hero.equip]),
+  ]);
 
 export class GameSession {
   constructor(game) {
     this.game = game;
+    this.rememberInventory();
+  }
+  rememberInventory() {
+    this.inventoryState = this.game.state;
+    this.inventoryStamp = inventoryStamp(this.game.state);
+  }
+  autosaveInventory() {
+    const g = this.game;
+    if (g.mode === 'title' || (g.devTools?.saveSource() ?? g).state !== g.state)
+      return;
+    if (this.inventoryState !== g.state) {
+      this.rememberInventory();
+      return;
+    }
+    const stamp = inventoryStamp(g.state);
+    if (stamp === this.inventoryStamp) return;
+    // Run after the frame's mutations, never halfway through an equip, reward,
+    // reforge or item action. A failed write retries at the next change/checkpoint
+    // rather than hammering storage every frame.
+    this.inventoryStamp = stamp;
+    this.checkpoint({ includeBattle: true });
   }
   resetSession() {
     const g = this.game;
@@ -28,6 +54,7 @@ export class GameSession {
     g.visualTime = 0;
     g.lastHud = 0;
     g.ui.resetSession();
+    this.rememberInventory();
   }
   startNew() {
     const g = this.game;
@@ -94,11 +121,13 @@ export class GameSession {
       return false;
     }
   }
-  checkpoint() {
+  checkpoint({ includeBattle = false } = {}) {
     const g = this.game;
-    if (g.mode === 'title' || g.battle) return;
+    if (g.mode === 'title' || (g.battle && !includeBattle)) return;
     try {
       saveState(g.saveSnapshot());
+      if ((g.devTools?.saveSource() ?? g).state === g.state)
+        this.rememberInventory();
     } catch (e) {
       g.log('save_error', { message: e.message });
     }

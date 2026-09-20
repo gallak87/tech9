@@ -63,7 +63,18 @@ test('regional panels show local projects and balances without Haventide buildin
     state.region = `${town.id}_town`;
     const html = ui.renderBuild();
     assert.match(html, new RegExp(`data-community="${town.id}"`));
-    assert.match(html, /Local restoration <strong>LV 1 \/ 4/);
+    assert.match(html, /0 \/ 3 PROJECTS RESTORED/);
+    assert.doesNotMatch(
+      html,
+      /Local level|Local restoration|Next project|Later project/,
+    );
+    assert.ok(
+      html.includes(`Complete “${town.projects.at(-1).name}” to receive`),
+    );
+    assert.doesNotMatch(
+      html.match(/<input[^>]*aria-label="Reward received"[^>]*>/)[0],
+      / checked/,
+    );
     assert.match(html, /aria-label="Available resources"/);
     assert.ok(
       html.indexOf('Available resources') < html.indexOf('atlas-body scroll'),
@@ -87,7 +98,7 @@ test('regional panels show local projects and balances without Haventide buildin
   assert.match(ui.renderBuild(), /data-do="build:town_center"/);
 });
 
-test('project confirmation stays inside its card and Escape cancels without spending or saving', (t) => {
+test('project confirmation stays inside its row and Escape cancels without spending or saving', (t) => {
   const { ui, state, checkpointed } = fixture(t);
   const project = ui.community.status.projects[0];
   const before = structuredClone(state);
@@ -155,10 +166,10 @@ test('completion checkpoints once per project and retains exact reward and next 
   assert.equal(state.inventory.duneglass_blade_3, 1);
   assert.equal(checkpointed[2].inventory.duneglass_blade_3, 1);
   const html = ui.renderBuild();
-  assert.match(html, /Community complete/);
+  assert.match(html, /COMMUNITY COMPLETE/);
   assert.match(html, /YOUR COMMUNITY KEEPSAKE/);
-  assert.match(html, /Received · In your inventory · Ready to equip/);
-  assert.match(html, /UPGRADE YOUR WEAPON/);
+  assert.match(html, /<input[^>]*checked[^>]*aria-label="Reward received"/);
+  assert.match(html, /<small>Received<\/small>/);
   assert.ok(action(html, 'community-inventory'));
   assert.match(html, /Duneglass Blade/);
   assert.match(html, /Ascendant/);
@@ -211,7 +222,11 @@ test('a level-26 reward is immediately accessible through inventory even with an
 
   assert.equal(equip(state, 'rune', 'rescue_gauntlets_3').ok, true);
   Object.assign(ui, { menu: false, panel: { type: 'build' } });
-  assert.match(ui.renderBuild(), /Received · Equipped on Rune/);
+  assert.match(
+    ui.renderBuild(),
+    /<input[^>]*checked[^>]*aria-label="Reward received"/,
+  );
+  assert.match(ui.renderBuild(), /<small>Received<\/small>/);
   let focused = false;
   ui.root.querySelector = (selector) =>
     selector === '[data-do="inventory-slot:weapon:rune"]'

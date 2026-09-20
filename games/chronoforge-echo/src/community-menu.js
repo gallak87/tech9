@@ -201,13 +201,10 @@ export class CommunityMenu {
     const locked = !status.liberated;
     const reforge = status.reforge;
     const rewardTier = weapon.tier || weapon.targetTier;
-    const equipped = this.ui.game.state.heroes.some(
-      (hero) => hero.equip.weapon === weapon.id,
-    );
     const received = status.complete && weapon.owned;
+    const finalProject = status.projects.at(-1);
     return `<div class="community-view" data-community="${status.id}">
-      <div class="community-heading"><div><div class="eyebrow">OPTIONAL COMMUNITY RESTORATION</div><h2>${esc(status.name)}</h2><p>${esc(status.description)}</p></div><span class="community-level">Local restoration <strong>LV ${status.level} / 4</strong></span></div>
-      <div class="community-summary"><p>${status.complete ? 'Community complete · All three local projects restored.' : locked ? 'Liberate this community before funding its restoration.' : 'Fund the next local project. Completing all three earns the community’s Exotic weapon.'}</p>${button('Return to town', 'close')}</div>
+      <section class="tier-heading community-progress"><div class="tier-title-row"><div><div class="eyebrow">${status.complete ? 'COMMUNITY COMPLETE' : `${status.level - 1} / 3 PROJECTS RESTORED`}</div><h3>${esc(status.name)}</h3></div>${button('Return to town', 'close')}</div>${locked ? '<p>Liberate this community to restore it.</p>' : ''}</section>
       ${preview ? '<p class="community-preview">World preview · These projects and rewards are temporary. Return to your expedition to keep progress.</p>' : ''}
       <div class="community-projects">${status.projects
         .map((project) => {
@@ -217,17 +214,16 @@ export class CommunityMenu {
               ? 'current'
               : 'locked';
           return `<article class="community-project${!project.complete && !project.eligible ? ' community-unavailable' : ''}" data-community-project="${project.id}" data-project-state="${state}">
-          <div class="community-project-heading"><span class="community-step">${project.level - 1}</span><div><small>${project.complete ? '✓ Complete' : state === 'current' ? 'Next project' : 'Later project'} · Local level ${project.level}</small><h3>${esc(project.name)}</h3></div></div>
-          <div class="community-project-footer"><div class="community-cost">${project.complete ? 'Restored' : `Spend ${esc(costText(project.cost))}`}</div><p class="community-requirement">${project.complete ? 'This project is complete.' : esc(project.reason || 'Ready to restore.')}</p>${project.complete ? '<div class="community-actions"><span class="community-completed">✓ Project complete</span></div>' : this.controls('restore', project.id, project.eligible, 'Restore')}</div>
+          <div class="community-project-details"><h3>${esc(project.name)}</h3>${project.complete ? '' : `<div class="community-cost">${esc(costText(project.cost))}</div><p class="community-requirement">${esc(project.reason)}</p>`}</div>${project.complete ? '<div class="community-actions"><span class="community-completed">✓ Complete</span></div>' : this.controls('restore', project.id, project.eligible, 'Restore')}
         </article>`;
         })
         .join('')}</div>
       <section class="community-reward" data-tier="${rewardTier}" data-exotic="true" aria-label="Community reward">
-        <div class="community-weapon">${icon(weapon.id)}<div><div class="eyebrow">${status.complete ? 'YOUR COMMUNITY KEEPSAKE' : 'GUARANTEED COMPLETION REWARD'}</div><h3>${esc(weapon.name)}</h3><div class="item-badges">${itemBadges(weapon.item)}</div><p>For ${esc(weapon.heroName)} · One exclusive, unsellable weapon.</p>${statsMarkup(weapon.item)}${received ? `<p class="community-received">✓ Received · ${equipped ? `Equipped on ${esc(weapon.heroName)}` : 'In your inventory · Ready to equip'}</p>${button('View in inventory', 'community-inventory')}` : ''}</div></div>
-        <div class="community-reforge">${
+        <div class="community-weapon">${icon(weapon.id)}<div><div class="eyebrow">${status.complete ? 'YOUR COMMUNITY KEEPSAKE' : 'COMPLETION REWARD'}</div><h3>${esc(weapon.name)}</h3><div class="item-badges">${itemBadges(weapon.item)}</div><p>For ${esc(weapon.heroName)} · Unsellable</p>${statsMarkup(weapon.item)}</div></div>
+        <div class="community-reward-status"><label class="community-receipt"><input type="checkbox" disabled ${received ? 'checked' : ''} aria-label="Reward received"><small>${received ? 'Received' : `Complete “${esc(finalProject.name)}” to receive`}</small></label>${received ? button('View in inventory', 'community-inventory') : ''}${
           status.complete
-            ? `<div class="eyebrow">UPGRADE YOUR WEAPON</div><p>Reforging upgrades the weapon you already received. It stays equipped if ${esc(weapon.heroName)} is using it.</p>${reforge.toTier > weapon.tier ? `<div class="community-reforge-target">Reforge to ${tierBadge(reforge.toTier)}<span>Spend ${esc(costText(reforge.cost))}</span></div>${statsMarkup(ITEMS[reforge.itemId], weapon.item)}` : ''}<p class="community-requirement">${esc(reforge.reason || 'Ready to reforge.')}</p>${this.controls('reforge', '', reforge.eligible, 'Reforge')}`
-            : `<p>Added to your inventory automatically when you complete the final project, at ${esc(weapon.heroName)}’s current level band: ${tierBadge(rewardTier)}.</p><p>Equip it immediately. Later upgrades unlock at levels 10, 20, and 30.</p>`
+            ? `<div class="community-reforge">${reforge.toTier > weapon.tier ? `<div class="community-reforge-target">Reforge to ${tierBadge(reforge.toTier)}<span>Spend ${esc(costText(reforge.cost))}</span></div>${statsMarkup(ITEMS[reforge.itemId], weapon.item)}` : ''}<p class="community-requirement">${esc(reforge.reason)}</p>${this.controls('reforge', '', reforge.eligible, 'Reforge')}</div>`
+            : ''
         }</div>
       </section>
     </div>`;

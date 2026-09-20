@@ -309,7 +309,9 @@ export function createRegions() {
         ]),
         pickup('forest_herbs', 'field_tonic', 650, 1530, 4),
         pickup('forest_energy', 'energy', 3080, 380, 30),
-        landmark('forest_arch', 'Root-wrapped aqueduct', 2820, 1140, 'arch', {
+        // Frame the north–south road through the opening, with both rooted
+        // pillars off the path instead of obstructing the river crossing.
+        landmark('forest_arch', 'Root-wrapped aqueduct', 3650, 1000, 'arch', {
           size: 1.4,
         }),
         sign(

@@ -147,6 +147,49 @@ test('ruin pillars and cave rock cheeks block feet while their openings remain u
   assert.ok(footprintBlocks(pine, pine.x, pine.y - 12));
 });
 
+test('Forest Veil aqueduct straddles the road with a clear approach through both pillars', () => {
+  const scene = REGIONS.forest_veil;
+  const arch = scene.objects.find((o) => o.id === 'forest_arch');
+  const route = scene.roads.flatMap((road) =>
+    road.slice(1).map((b, i) => [road[i], b]),
+  );
+  const [a, b] = route.find(
+    ([a, b]) =>
+      a.y < arch.y &&
+      b.y > arch.y &&
+      Math.abs(a.x - arch.x) < 20 &&
+      Math.abs(b.x - arch.x) < 20,
+  );
+  // Sample the whole road width on both sides of the threshold. The shared
+  // walkability predicate includes the player's padding and all other props.
+  for (let y = arch.y - 120; y <= arch.y + 120; y += 4) {
+    const x = a.x + ((b.x - a.x) * (y - a.y)) / (b.y - a.y);
+    for (const offset of [-34, 0, 34]) {
+      assert.ok(distanceToRoad(scene, x + offset, y) < 35, 'stay on the road');
+      assert.ok(
+        isWalkable(scene, x + offset, y),
+        `open road at ${x + offset},${y}`,
+      );
+    }
+  }
+  assert.equal(arch.footprints.length, 2);
+  for (const f of arch.footprints)
+    assert.equal(
+      isWalkable(scene, arch.x + f.x + f.w / 2, arch.y + f.y + f.h / 2),
+      false,
+      'pillars stay solid',
+    );
+
+  // The former east–west river crossing is also unobstructed.
+  const [west, east] = route.find(
+    ([a, b]) => a.x < 3525 && b.x > 3525 && a.y > 1400 && b.y < 1550,
+  );
+  for (let x = 3300; x <= 3690; x += 5) {
+    const y = west.y + ((east.y - west.y) * (x - west.x)) / (east.x - west.x);
+    assert.ok(isWalkable(scene, x, y), `open river crossing at ${x},${y}`);
+  }
+});
+
 test('all original region/house/cave/town arrivals remain safe after scenery changes', () => {
   for (const scene of Object.values(ALL_SCENES)) {
     assert.ok(

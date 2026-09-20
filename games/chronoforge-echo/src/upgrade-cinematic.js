@@ -1,5 +1,6 @@
 import { townCenterBounds, TOWN_CENTERS } from './town-center-art.js';
 import { VIEW_WIDTH, VIEW_HEIGHT } from './rendering.js';
+import { settlementLevel } from './settlement-level.js';
 
 const shots = [
   { id: 'departure', duration: 1, from: 'deskBefore' },
@@ -200,8 +201,8 @@ export function townUpgradePlan(before, after) {
   const center = TOWN_CENTERS.find(
     (town) => before.region === town.region + '_town',
   );
-  const fromLevel = before.buildings.town_center,
-    toLevel = after.buildings.town_center;
+  const fromLevel = settlementLevel(before, center?.region),
+    toLevel = settlementLevel(after, center?.region);
   if (!center || fromLevel < 1 || fromLevel > 3 || toLevel !== fromLevel + 1)
     return null;
   return {

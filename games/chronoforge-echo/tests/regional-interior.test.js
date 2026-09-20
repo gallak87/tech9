@@ -39,6 +39,7 @@ test('all four towns have four required production kits with valid measured crop
     for (const level of [1, 2, 3, 4]) {
       const state = createState();
       state.buildings.town_center = level;
+      if (region !== 'haventide') state.communities[region].level = level;
       const spec = townInteriorFrame('floor', state, region),
         asset = spec.asset;
       assert.equal(asset.region, region);
@@ -210,8 +211,10 @@ test('real regional upgrades share the approved fixed indoor comparison and half
     const before = createState();
     before.region = region + '_town';
     before.buildings.town_center = 2;
+    if (region !== 'haventide') before.communities[region].level = 2;
     const after = structuredClone(before);
     after.buildings.town_center = 3;
+    if (region !== 'haventide') after.communities[region].level = 3;
     const plan = townUpgradePlan(before, after),
       inside = getScene(before.region),
       outside = getScene(region);

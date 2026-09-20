@@ -90,6 +90,7 @@ test('all regional tiers grow in both dimensions while doors remain at the autho
     for (let level = 1; level <= 4; level++) {
       const bounds = townCenterBounds(entrance, {
         buildings: { town_center: level },
+        communities: { [town.region]: { level } },
       });
       assert.equal(bounds.center.region, town.region);
       assert.ok(

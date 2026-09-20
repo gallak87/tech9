@@ -1,5 +1,5 @@
 import { HEROES, ITEMS } from './content.js';
-import { tierBadge } from './tier-ui.js';
+import { itemBadges } from './tier-ui.js';
 import * as P from './progression.js';
 import { canEquip, weaponOwner, weaponFamilyLabel } from './equipment.js';
 
@@ -96,7 +96,7 @@ function loadout(ui, h) {
               const id = hero.equip[slot],
                 item = ITEMS[id];
               return button(
-                `${item ? icon(id) : '<span>—</span>'}<span>${esc(item?.name || 'Empty slot')}</span>`,
+                `${item ? icon(id) : '<span>—</span>'}<span>${esc(item?.name || 'Empty slot')}${item?.exotic ? `<small class="item-badges">${itemBadges(item)}</small>` : ''}</span>`,
                 `inventory-slot:${slot}:${hero.id}`,
                 'exp-inventory-crew-slot',
                 `aria-label="Browse ${slot} for ${esc(hero.name)}; equipped ${esc(item?.name || 'empty slot')}" title="${esc(item?.name || 'Empty slot')}"`,
@@ -111,8 +111,8 @@ function loadout(ui, h) {
     .map(([slot]) => {
       const id = h.equip[slot],
         item = ITEMS[id];
-      return `<div class="exp-inventory-slot-row" ${item ? `data-tier="${item.tier}"` : ''}>${button(
-        `${item ? icon(id) : '<span class="exp-inventory-empty-slot">—</span>'}<span><small class="exp-inventory-slot-meta">${item && slot === 'weapon' ? weaponFamilyLabel(id) : slot}${item ? ` ${tierBadge(item.tier)}` : ''}</small><strong>${item ? esc(item.name) : 'Empty slot'}</strong></span>`,
+      return `<div class="exp-inventory-slot-row" ${item ? `data-tier="${item.tier}"${item.exotic ? ' data-exotic="true"' : ''}` : ''}>${button(
+        `${item ? icon(id) : '<span class="exp-inventory-empty-slot">—</span>'}<span><small class="exp-inventory-slot-meta">${item && slot === 'weapon' ? weaponFamilyLabel(id) : slot}${item ? ` ${itemBadges(item)}` : ''}</small><strong>${item ? esc(item.name) : 'Empty slot'}</strong></span>`,
         `inventory-slot:${slot}:${h.id}`,
         'exp-inventory-slot',
         `aria-pressed="${ui.inventoryFilter === slot}" aria-label="Browse ${slot} replacements for ${esc(h.name)}"`,
@@ -150,8 +150,8 @@ function inventoryCard(ui, id) {
         .join(
           '',
         )}</dl>${keys.length ? '' : '<p class="exp-inventory-unchanged">No stat changes</p>'}`;
-  return `<article class="exp-inventory-card${selected ? ' selected' : ''}" data-pack-item="${id}" data-tier="${item.tier}">${button(
-    `${icon(id)}<span class="exp-inventory-item-copy"><strong>${esc(item.name)}</strong>${tierBadge(item.tier)}${owner ? `<small class="exp-inventory-family">${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}${item.unique ? '<small class="exp-inventory-keepsake">Personal keepsake</small>' : ''}</span><b class="exp-inventory-quantity">×${fmt(s.inventory[id])}</b>`,
+  return `<article class="exp-inventory-card${selected ? ' selected' : ''}" data-pack-item="${id}" data-tier="${item.tier}"${item.exotic ? ' data-exotic="true"' : ''}>${button(
+    `${icon(id)}<span class="exp-inventory-item-copy"><strong>${esc(item.name)}</strong><span class="item-badges">${itemBadges(item)}</span>${owner ? `<small class="exp-inventory-family">${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}${item.unique ? `<small class="exp-inventory-keepsake">${item.exotic ? 'Community keepsake · Reforgeable' : 'Personal keepsake'}</small>` : ''}</span><b class="exp-inventory-quantity">×${fmt(s.inventory[id])}</b>`,
     'item:' + id,
     'exp-inventory-item',
     `aria-pressed="${selected}" aria-label="${esc(item.name)}, tier ${item.tier}, ${fmt(s.inventory[id])} in pack" title="${esc(item.description)}"`,

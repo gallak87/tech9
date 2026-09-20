@@ -3,9 +3,13 @@ import { ITEMS } from './content.js';
 const sprites = new Map();
 const TEXTURE_SIZE = 256;
 
+export const inventoryIconId = (id) => ITEMS[id]?.iconId ?? id;
+
 export function installInventoryIcon(image, entry) {
   if (
-    !Object.hasOwn(ITEMS, entry.itemId) ||
+    !Object.values(ITEMS).some(
+      (item) => inventoryIconId(item.id) === entry.itemId,
+    ) ||
     entry.id !== 'inventory_' + entry.itemId
   )
     throw Error(`Unknown inventory icon: ${entry.id}`);
@@ -46,7 +50,7 @@ export function installInventoryIcon(image, entry) {
 }
 
 export function drawInventoryIcon(context, id, x, y, size) {
-  const sprite = sprites.get(id);
+  const sprite = sprites.get(inventoryIconId(id));
   if (!sprite) throw Error(`Inventory icon not loaded: ${id}`);
   if (!(size > 0)) return;
   context.save();

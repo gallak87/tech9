@@ -4,6 +4,8 @@ import { encounterLeader } from './enemy-levels.js';
 import { npcIdentity, NPC_IDENTITIES, npcPresent } from './npc-identities.js';
 import { kaidaPoseScale, kaidaWalkScale } from './kaida-scale.js';
 import { drawItemIcon } from './item-art.js';
+import { ITEMS } from './content.js';
+import { drawInventoryIcon } from './inventory-icons.js';
 import { townCenterBounds } from './town-center-art.js';
 import { sceneryOcclusionBounds } from './world-scenery.js';
 import {
@@ -3869,6 +3871,10 @@ export function drawPortrait(c, id, x, y, size = 72, sourceOffsetX = 0) {
   c.restore();
 }
 export function drawIcon(c, id, x, y, size = 20) {
+  if (ITEMS[id]?.exotic) {
+    drawInventoryIcon(c, id, x, y, size);
+    return;
+  }
   if (civicRows[id]) {
     const [group, row] = civicRows[id],
       atlas = buildingAtlases.get(group);

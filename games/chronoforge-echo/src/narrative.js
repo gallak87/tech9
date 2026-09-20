@@ -1,6 +1,10 @@
 import { dialogueLine } from './npc-identities.js';
 import { inspectBeacon } from './beacons.js';
 import {
+  COMMUNITY_DEFINITIONS,
+  communityStatus,
+} from './community-restoration.js';
+import {
   applyRewards,
   recruit,
   recomputeUnlocks,
@@ -1712,5 +1716,41 @@ export function questList(state) {
                                   energy: 150,
                                   renown: 100,
                                 });
+  for (const community of COMMUNITY_DEFINITIONS) {
+    if (
+      !state.visited[community.id] &&
+      !state.visited[community.id + '_town'] &&
+      !state.flags[community.id + '_liberated']
+    )
+      continue;
+    const status = communityStatus(state, community.id);
+    const next = status.projects.find((project) => !project.complete);
+    const returnHint = status.weapon.nextLevel
+      ? `Return here when ${status.weapon.heroName} reaches level ${status.weapon.nextLevel} to reforge the gift.`
+      : 'The community’s gift has reached its final power tier.';
+    const objective = status.complete
+      ? `${community.name} is restored. ${status.weapon.name} was awarded to ${status.weapon.heroName}. ${status.reforge.toTier > status.weapon.tier ? 'A stronger reforge is available here now.' : returnHint}`
+      : !status.liberated
+        ? `Clear the blockade at ${community.name}, then visit its community planning table.`
+        : `Visit ${community.name}’s community planning table: ${next.name.toLowerCase()}. ${status.level - 1} / 3 projects complete.`;
+    const id = 'community_' + community.id;
+    list.push(
+      q(
+        id,
+        community.name + ' Restoration',
+        'Community',
+        status.complete ? 'Complete' : `${status.level - 1} / 3 projects`,
+        objective,
+        status.complete,
+        `Exotic ${status.weapon.name} · ${status.weapon.heroName}`,
+      ),
+    );
+    rewards[id] = rewardData({ items: { [status.weapon.id]: 1 } }, [
+      `Exotic · ${status.weapon.heroName}`,
+      status.complete
+        ? 'Gift awarded · hometown reforges'
+        : 'Guaranteed gift at the hero’s level',
+    ]);
+  }
   return list.map((q) => ({ ...q, ...(rewards[q.id] || rewardData()) }));
 }

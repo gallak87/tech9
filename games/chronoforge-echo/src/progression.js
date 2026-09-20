@@ -11,6 +11,11 @@ import {
 } from './content.js';
 import { assessItemUse, consumeItem } from './consumables.js';
 import { canEquip } from './equipment.js';
+import {
+  createCommunityState,
+  communityRegion,
+  communityLevel,
+} from './community-restoration.js';
 const ok = (message, rewards = []) => ({ ok: true, message, rewards });
 const no = (message) => ({ ok: false, message, rewards: [] });
 const whole = (n) => Number.isInteger(n) && n > 0;
@@ -76,6 +81,7 @@ export function createState() {
   const state = {
     version: 1,
     equipmentRevision: 1,
+    communityRevision: 1,
     seed: 9127,
     rng: 9127,
     playTime: 0,
@@ -87,6 +93,7 @@ export function createState() {
     resources: { food: 38, ore: 45, energy: 18, renown: 0 },
     inventory: { field_tonic: 5, ether_cell: 3 },
     buildings: { town_center: 1 },
+    communities: createCommunityState(),
     tier: 1,
     flags: {},
     quests: {},
@@ -260,6 +267,8 @@ export function buildingEligibility(state, id) {
   const cost = buildingCost(state, id);
   const blocked = (reason) => ({ eligible: false, reason, cost });
   if (!b) return blocked('Unknown building.');
+  if (!['haventide', 'haventide_town'].includes(state.region))
+    return blocked('Return to Haventide to develop your settlement.');
   if (!state.flags.haventide_liberated && !state.cleared.hav_guard)
     return blocked('Liberate Haventide before building.');
   if (state.tier < b.tier) return blocked(`Requires ${TIERS[b.tier - 1]}.`);
@@ -407,6 +416,8 @@ export function tierRequirements(state) {
         .join(' · ');
 }
 export function advanceTier(state) {
+  if (!['haventide', 'haventide_town'].includes(state.region))
+    return no('Return to Haventide to advance civilization.');
   const status = tierEligibility(state);
   if (!status.eligible) return no(status.reason);
   pay(state, status.cost);
@@ -444,20 +455,26 @@ export function production(state, dt) {
     );
   return ok('Settlement production advanced.');
 }
-export function serviceAvailable(state, id) {
-  const s = SERVICES[id];
+export function serviceAvailable(state, id, region = state.region) {
+  const s = SERVICES[id],
+    community = communityRegion(region),
+    facilities =
+      !s?.requires ||
+      (community
+        ? communityLevel(state, community) >= 2
+        : Boolean(state.buildings[s.requires]));
   return Boolean(
     s &&
     !s.inactive &&
     state.tier >= s.tier &&
     (state.heroes.find((h) => h.id === 'kaida')?.level || 1) >= s.level &&
-    (!s.requires || state.buildings[s.requires]),
+    facilities,
   );
 }
 export function serviceStock(state, service = 'smith', region = state.region) {
   const tier = REGIONAL_SHOP_TIERS[region.replace(/_town$/, '')],
     slots = SERVICES[service]?.shop;
-  if (!tier || !slots || !serviceAvailable(state, service)) return [];
+  if (!tier || !slots || !serviceAvailable(state, service, region)) return [];
   return Object.values(ITEMS)
     .filter(
       (i) =>
@@ -539,7 +556,11 @@ export function useItem(state, itemId, heroId, options = {}) {
 }
 export function train(state) {
   if (!serviceAvailable(state, 'trainer'))
-    return no('Build a Barracks and reach hero level 10 to train.');
+    return no(
+      communityRegion(state.region)
+        ? 'Restore this community to level 2 and reach hero level 10 and Reclaimer civilization to train.'
+        : 'Build a Barracks and reach hero level 10 to train.',
+    );
   if (!affordable(state, { food: 30, energy: 20 }))
     return no('Field training costs 30 food and 20 energy.');
   pay(state, { food: 30, energy: 20 });
@@ -547,7 +568,11 @@ export function train(state) {
 }
 export function research(state) {
   if (!serviceAvailable(state, 'archivist'))
-    return no('An archivist needs a Research Lab and hero level 6.');
+    return no(
+      communityRegion(state.region)
+        ? 'Restore this community to level 2 and reach hero level 6 and Reclaimer civilization for research.'
+        : 'An archivist needs a Research Lab and hero level 6.',
+    );
   if (state.flags.research_concord)
     return no('Concord research is already shared by every settlement.');
   if (!affordable(state, { ore: 80, energy: 70 }))

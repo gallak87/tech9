@@ -1,4 +1,5 @@
 /** Stable, serializable base-game catalog. No expansion content is registered. */
+import { EXOTIC_ITEMS } from './community-definitions.js';
 export const TIERS = ['Survivor', 'Reclaimer', 'Ascendant', 'Transcendent'];
 export const HEROES = {
   kaida: {
@@ -95,6 +96,7 @@ const item = (id, name, slot, stats, price, tier, description, extra = {}) => ({
 });
 export const ITEMS = Object.fromEntries(
   [
+    ...EXOTIC_ITEMS,
     item(
       'iron_blade',
       'Iron Blade',

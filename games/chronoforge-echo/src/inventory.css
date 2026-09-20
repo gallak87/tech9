@@ -328,7 +328,7 @@
   overflow-wrap: anywhere;
   margin-bottom: 0.25em;
 }
-.exp-inventory-item-copy > .tier-badge {
+.exp-inventory-item-copy .tier-badge {
   max-width: 100%;
   white-space: normal;
 }
@@ -421,7 +421,7 @@
     grid-template-columns: minmax(190px, 24fr) minmax(0, 76fr);
     gap: 1cqw;
   }
-  .exp-inventory-item-copy > .tier-badge {
+  .exp-inventory-item-copy .tier-badge {
     font-size: 9px;
   }
   .exp-inventory-slot-meta .tier-badge {

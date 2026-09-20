@@ -572,6 +572,10 @@ test('successful purchases and sales checkpoint the updated pack and ore at eith
     state.x = 200;
     state.y = 200;
     state.resources.ore = 100;
+    // This round-trip fixture represents ordinary retail stock. Exotic copies
+    // are awarded singly through restoration, never as every catalog variant.
+    for (const id of Object.keys(state.inventory))
+      if (ITEMS[id]?.exotic) delete state.inventory[id];
     const slots = new Map(),
       storage = {
         getItem: (key) => slots.get(key) ?? null,

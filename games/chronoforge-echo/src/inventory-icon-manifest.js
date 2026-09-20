@@ -1,5 +1,8 @@
+import { COMMUNITY_ICON_ASSETS } from './community-icon-manifest.js';
+
 // Original generated PNGs retain their alpha. Bounds include alpha >= 8 plus six source pixels.
 export const INVENTORY_ICON_ASSETS = [
+  ...COMMUNITY_ICON_ASSETS,
   {
     id: 'inventory_iron_blade',
     itemId: 'iron_blade',

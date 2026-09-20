@@ -1,8 +1,11 @@
 import { resetUiSession } from './ui-session.js';
 import { ShopController } from './shop-controller.js';
 import { DialogueController } from './dialogue-controller.js';
+import { CommunityMenu } from './community-menu.js';
+import { communityRegion, communityLevel } from './community-restoration.js';
 import './field-ui.css';
-import { tierBadge } from './tier-ui.js';
+import { tierBadge, itemBadges } from './tier-ui.js';
+import './community.css';
 import { beaconStatus } from './beacons.js';
 import './expedition.css';
 import './inventory.css';
@@ -165,6 +168,9 @@ export class UI {
   }
   get dialogue() {
     return (this._dialogue ??= new DialogueController(this));
+  }
+  get community() {
+    return (this._community ??= new CommunityMenu(this));
   }
   resetSession() {
     resetUiSession(this);
@@ -417,6 +423,11 @@ export class UI {
   // Confirmations sit above the atlas; the atlas can in turn cover a service or
   // a conversation. Dismiss only the visible layer, never a story callback.
   dismissTopLayer() {
+    if (!this.menu && this.panel?.type === 'build' && this.community.cancel()) {
+      this.game.keys.clear();
+      this.game.audio.sound('back');
+      return true;
+    }
     if (!this.menu && this.shop.isRetail() && this.shop.quote) {
       this.shop.cancel();
       this.game.keys.clear();
@@ -930,6 +941,21 @@ export class UI {
       case 'build':
         performBuild(g, arg);
         break;
+      case 'community-restore':
+        this.community.request('restore', arg);
+        break;
+      case 'community-reforge':
+        this.community.request('reforge');
+        break;
+      case 'community-confirm':
+        this.community.confirm();
+        break;
+      case 'community-cancel':
+        this.community.cancel();
+        break;
+      case 'community-inventory':
+        this.community.openInventory();
+        break;
       case 'tier':
         if (!settlementWorksAvailable(s)) break;
         this.feedback(P.advanceTier(s));
@@ -947,13 +973,16 @@ export class UI {
     tabs = false,
   ) {
     const retail = this.shop.isRetail(),
+      community =
+        this.panel?.type === 'build' && communityRegion(this.game.state.region),
       serviceHeader =
-        this.panel?.type === 'vendor' &&
-        !SERVICES[this.panel.object.service]?.inactive,
+        community ||
+        (this.panel?.type === 'vendor' &&
+          !SERVICES[this.panel.object.service]?.inactive),
       shopHeader = serviceHeader
-        ? `<header class="atlas-header shop-header"><strong>${retail ? (this.shop.sellMode ? 'Sell from pack' : 'Shop') : 'Services'}</strong><div class="shop-resources" aria-label="Available resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="shop-resource${id === 'ore' ? ' shop-resource-ore' : ''}" aria-label="${fmt(this.game.state.resources[id])} ${id}">${icon(id)}<span>${fmt(this.game.state.resources[id])}<small>${id}</small></span></span>`).join('')}</div></header>`
+        ? `<header class="atlas-header shop-header"><strong>${community ? 'Community Restoration' : retail ? (this.shop.sellMode ? 'Sell from pack' : 'Shop') : 'Services'}</strong><div class="shop-resources" aria-label="Available resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="shop-resource${id === 'ore' ? ' shop-resource-ore' : ''}" aria-label="${fmt(this.game.state.resources[id])} ${id}">${icon(id)}<span>${fmt(this.game.state.resources[id])}<small>${id}</small></span></span>`).join('')}</div></header>`
         : '';
-    return `<div class="scrim"></div><section class="atlas ${this.panel?.type === 'vendor' && !SERVICES[this.panel.object.service || 'provisions']?.shop ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}">${serviceHeader ? shopHeader : `<header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}</header>`}${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${body}</div>${notificationMarkup(this.notifications)}<footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
+    return `<div class="scrim"></div><section class="atlas ${community ? 'community-dialog' : ''} ${this.panel?.type === 'vendor' && !SERVICES[this.panel.object.service || 'provisions']?.shop ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}">${serviceHeader ? shopHeader : `<header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}</header>`}${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${body}</div>${notificationMarkup(this.notifications)}<footer class="atlas-footer"><span>${footer}</span><span>${community ? `Local restoration ${communityLevel(this.game.state, community)} / 4` : tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
   }
   render() {
     const surface = this.feedbackContext();
@@ -1348,7 +1377,7 @@ export class UI {
                 ? `<span class="shop-comparison"><span>vs ${esc(recipient.name)} · ${esc(old?.name || 'Empty slot')}</span>${changes.length ? changes.map((d) => `<span class="${d.n > 0 ? 'gain' : 'loss'}">${esc(d.label)} ${d.n > 0 ? '+' : ''}${d.n}</span>`).join('') : `<span>${recipient.equip[it.slot] === id ? 'Equipped' : 'No stat change'}</span>`}</span>`
                 : '';
             return `<article class="shop-card${locked || unaffordable ? ' shop-card-unavailable' : ''}${pending ? ' shop-card-confirming' : ''}" data-shop-item="${id}" data-tier="${it.tier}" tabindex="-1" aria-label="${esc(it.name)}">
-              <div class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${tierBadge(it.tier)}${owner ? `<small>${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}</span><span class="shop-owned">Own ${fmt(owned)}</span></div>
+              <div class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${itemBadges(it)}${owner ? `<small>${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}</span><span class="shop-owned">Own ${fmt(owned)}</span></div>
               <div class="shop-description">${esc(it.description)}</div>${comparison}
               <div class="shop-card-action">
                 <div class="shop-card-controls"><div class="shop-quantity" role="group" aria-label="${esc(it.name)} quantity">${button('−', `shop-qty:${id}:down`, 'button quiet', `aria-label="Decrease ${esc(it.name)} quantity" ${unavailable || quantity <= 1 ? 'disabled' : ''}`)}<span aria-label="Quantity ${quantity}">×${quantity}</span>${button('+', `shop-qty:${id}:up`, 'button quiet', `aria-label="Increase ${esc(it.name)} quantity" ${unavailable || !this.shop.available(id, quantity + 1) ? 'disabled' : ''}`)}</div><span class="shop-price"><strong>${locked ? 'Cannot sell' : `${fmt(total)} ore`}</strong>${this.shop.sellMode && !locked ? `<small>${fmt(P.sellPrice(id))} ore each</small>` : ''}</span></div>
@@ -1397,6 +1426,8 @@ export class UI {
   }
   renderBuild() {
     const s = this.game.state;
+    if (communityRegion(s.region))
+      return this.shell('Community Restoration', this.community.render());
     if (!settlementWorksAvailable(s))
       return this.shell(
         'Community plans',
@@ -1404,7 +1435,7 @@ export class UI {
       );
     return this.shell(
       'Settlement works',
-      `<div class="section-heading"><h2>Give tomorrow a foundation</h2><span class="label">SHARED STORES / ALL HARBORS</span></div><div class="row spread"><div class="small amber">${costText(Object.fromEntries(Object.entries(s.resources).map(([k, v]) => [k, Math.floor(v)])))}</div>${button('Return to town', 'close', 'button quiet')}</div>${this.renderTier()}<div class="build-grid">${Object.values(
+      `<div class="section-heading"><h2>Give tomorrow a foundation</h2><span class="label">HAVENTIDE / YOUR SETTLEMENT</span></div><div class="row spread"><div class="small amber">${costText(Object.fromEntries(Object.entries(s.resources).map(([k, v]) => [k, Math.floor(v)])))}</div>${button('Return to town', 'close', 'button quiet')}</div>${this.renderTier()}<div class="build-grid">${Object.values(
         BUILDINGS,
       )
         .map((b) => {
@@ -1458,7 +1489,7 @@ export class UI {
       el.dataset.kind = hero ? 'level-up' : 'loot';
       el.style.setProperty('--reward-hold', lifetime - 140 + 'ms');
       el.setAttribute('role', 'status');
-      el.innerHTML = `${hero ? portrait(r.id, 'reward-portrait') : icon(r.id)}<div>${esc(r.label)} ${!hero && r.amount > 1 ? `<b>×${fmt(r.amount)}</b>` : ''}<small>${category}</small></div>`;
+      el.innerHTML = `${hero ? portrait(r.id, 'reward-portrait') : icon(r.id)}<div>${esc(r.label)} ${!hero && r.amount > 1 ? `<b>×${fmt(r.amount)}</b>` : ''}<small>${category}</small>${ITEMS[r.id]?.exotic ? `<span class="item-badges">${itemBadges(ITEMS[r.id])}</span>` : ''}</div>`;
       document.querySelector('#rewards').append(el);
       this.paint(el);
       setTimeout(() => el.remove(), lifetime);

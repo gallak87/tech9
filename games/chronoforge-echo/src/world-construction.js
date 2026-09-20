@@ -11,6 +11,7 @@ import { distanceToRoad, terrainAt } from './world-geometry.js';
 import { scaleScenes } from './world-scale.js';
 import { configureRegionalInterior } from './regional-interior-layout.js';
 import { configureHaventideInterior } from './haventide-interior-layout.js';
+import { placeCommunitySites } from './community-world.js';
 import { NPC_IDENTITIES, npcIdentity } from './npc-identities.js';
 import {
   configureWorldScenery,
@@ -27,6 +28,7 @@ export function buildWorld() {
   createDwellingInteriors(REGIONS, interiors);
   prepareOutdoorRoutes(REGIONS);
   placeCivicSites(REGIONS);
+  placeCommunitySites(REGIONS, closestRoadPoint);
   populateGroves(REGIONS);
   configureRefugeStories(interiors);
   configureCaveLayouts(REGIONS, interiors);
@@ -681,7 +683,7 @@ function populateGroves(REGIONS) {
         if (
           distanceToRoad(r, x, y) < 70 ||
           r.objects.some((o) =>
-            o.building
+            o.building || o.communityProject
               ? Math.abs(x - o.x) < o.w / 2 + 58 && Math.abs(y - o.y) < o.h + 75
               : Math.hypot(x - o.x, y - o.y) < 85,
           ) ||

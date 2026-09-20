@@ -599,13 +599,22 @@ function simulateCampaign(seed = 9127, minimal = false) {
   function recover() {
     rest(state);
   }
+  // Construction is a visit to the home settlement; this pure campaign model
+  // does not simulate the intervening walk back along already-open roads.
+  function atHaventide(action) {
+    const region = state.region;
+    state.region = 'haventide_town';
+    const result = action();
+    state.region = region;
+    return result;
+  }
   function construct(id) {
-    const result = build(state, id);
+    const result = atHaventide(() => build(state, id));
     report.builds.push({ id, ok: result.ok, message: result.message });
     assert.ok(result.ok, result.message);
   }
   function tier() {
-    const result = advanceTier(state);
+    const result = atHaventide(() => advanceTier(state));
     assert.ok(result.ok, result.message);
     snapshot('tier' + state.tier);
   }
@@ -714,7 +723,7 @@ function simulateCampaign(seed = 9127, minimal = false) {
   story('orbital_blackbox');
   construct('town_center');
   tier();
-  research(state);
+  atHaventide(() => research(state));
   fight('orbital_east');
   recover();
   fight('orbital_upper');

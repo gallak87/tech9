@@ -1,5 +1,6 @@
 import { BUILDINGS, SERVICES, TIERS } from './content.js';
 import { restCost, serviceAvailable } from './progression.js';
+import { communityRegion } from './community-restoration.js';
 
 const shortfall = (state, cost) =>
   Object.entries(cost)
@@ -17,7 +18,7 @@ export function vendorAction(state, object) {
     available = service === 'rest' || serviceAvailable(state, service);
   const requirement = available
     ? ''
-    : `Requires ${TIERS[(def?.tier || 1) - 1]}, Kaida level ${def?.level || 1}${def?.requires ? ' and a ' + BUILDINGS[def.requires].name : ''}.`;
+    : `Requires ${TIERS[(def?.tier || 1) - 1]}, Kaida level ${def?.level || 1}${def?.requires ? (communityRegion(state.region) ? ' and local community restoration level 2' : ' and a ' + BUILDINGS[def.requires].name) : ''}.`;
   if (object.id === 'haventide_smith') {
     const complete = !!state.flags.smith_calibration_complete,
       started = !!state.flags.smith_calibration_started,

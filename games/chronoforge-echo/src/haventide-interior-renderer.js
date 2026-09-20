@@ -105,6 +105,12 @@ export function installHaventideInterior(image, entry) {
 }
 
 function selectedPart(object, state) {
+  if (
+    object.communityProjectLevel &&
+    townInteriorLevel(state, object.interiorRegion) <
+      object.communityProjectLevel
+  )
+    return 'storage';
   return object.unlockTier && state.tier < object.unlockTier
     ? 'storage'
     : object.havenPart;
@@ -136,7 +142,7 @@ export function drawHaventidePiece(context, object, state) {
     sheet = sheets.get(
       townInteriorRegion(object.interiorRegion, state) +
         ':' +
-        townInteriorLevel(state),
+        townInteriorLevel(state, object.interiorRegion),
     );
   if (!bounds || !sheet) return false;
   context.drawImage(
@@ -150,7 +156,9 @@ export function drawHaventidePiece(context, object, state) {
 }
 export function drawHaventideFloor(context, scene, camera, state) {
   const sheet = sheets.get(
-    townInteriorRegion(scene.townId, state) + ':' + townInteriorLevel(state),
+    townInteriorRegion(scene.townId, state) +
+      ':' +
+      townInteriorLevel(state, scene.townId),
   );
   if (!sheet) return false;
   const c = context;
@@ -161,7 +169,7 @@ export function drawHaventideFloor(context, scene, camera, state) {
   // The surrounding stone plinth joins the generated back wall and columns.
   c.fillStyle =
     plinthColors[townInteriorRegion(scene.townId, state)][
-      townInteriorLevel(state) - 1
+      townInteriorLevel(state, scene.townId) - 1
     ];
   for (const area of scene.walkAreas)
     c.fillRect(area.x - 20, area.y - 12, area.w + 40, area.h + 24);

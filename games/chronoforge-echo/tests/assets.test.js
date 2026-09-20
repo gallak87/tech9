@@ -3,7 +3,52 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { ASSET_MANIFEST } from '../src/assets.js';
 import { ENEMIES, HEROES, ITEMS } from '../src/content.js';
+import { COMMUNITY_ICON_ASSETS } from '../src/community-icon-manifest.js';
+import {
+  drawInventoryIcon,
+  installInventoryIcon,
+} from '../src/inventory-icons.js';
 const publicRoot = new URL('../public/', import.meta.url);
+
+test('all Exotic power variants render through their three shared source textures', () => {
+  const previous = globalThis.document;
+  const canvases = [];
+  globalThis.document = {
+    createElement() {
+      const canvas = { getContext: () => ({ drawImage() {} }) };
+      canvases.push(canvas);
+      return canvas;
+    },
+  };
+  try {
+    for (const [index, entry] of COMMUNITY_ICON_ASSETS.entries()) {
+      installInventoryIcon({ width: entry.width, height: entry.height }, entry);
+      for (const item of Object.values(ITEMS).filter(
+        (i) => i.iconId === entry.itemId,
+      )) {
+        let texture;
+        drawInventoryIcon(
+          {
+            save() {},
+            restore() {},
+            drawImage(source) {
+              texture = source;
+            },
+          },
+          item.id,
+          0,
+          0,
+          64,
+        );
+        assert.equal(texture, canvases[index], item.id);
+      }
+    }
+    assert.equal(canvases.length, 3);
+  } finally {
+    if (previous === undefined) delete globalThis.document;
+    else globalThis.document = previous;
+  }
+});
 
 test('every inventory item has dedicated transparent menu art with a valid crop', () => {
   const icons = ASSET_MANIFEST.filter(
@@ -11,7 +56,9 @@ test('every inventory item has dedicated transparent menu art with a valid crop'
   );
   assert.deepEqual(
     icons.map((entry) => entry.itemId).sort(),
-    Object.keys(ITEMS).sort(),
+    [
+      ...new Set(Object.values(ITEMS).map((item) => item.iconId || item.id)),
+    ].sort(),
   );
   assert.equal(new Set(icons.map((entry) => entry.url)).size, icons.length);
   for (const entry of icons) {
@@ -135,7 +182,7 @@ test('required source dimensions and measured frames agree with the immutable PN
           Number.isInteger(n) && n >= 0 && n < m.frames.length,
           entry.id,
         );
-    } else
+    } else if (entry.kind !== 'inventoryIcon')
       assert.ok(
         Math.abs(width / entry.columns - height / entry.rows) < 0.01,
         entry.id + ' grid',

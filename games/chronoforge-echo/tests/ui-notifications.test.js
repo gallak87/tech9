@@ -203,7 +203,7 @@ test('building buttons use the same eligibility as payment for costs, tiers and 
   ]) {
     state.region = region;
     const html = ui.renderBuild();
-    assert.match(html, /Community plans/);
+    assert.match(html, /Community Restoration/);
     assert.doesNotMatch(
       html,
       /data-do="(?:build:|tier")|class="tier-heading"|Town Center/,

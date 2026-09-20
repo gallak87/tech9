@@ -5,6 +5,7 @@ import { mainObjective } from './narrative.js';
 import { FOG_CELL } from './maps.js';
 import { canEquip } from './equipment.js';
 import { migrateWeaponFamilies } from './legacy-weapon-migration.js';
+import { migrateCommunityState } from './community-restoration.js';
 export const SAVE_PREFIX = 'chronforge_echo_v1';
 export const SAVE_GAME = 'chronforge-echo';
 export const MAX_SAVE_BYTES = 5 * 1024 * 1024;
@@ -467,6 +468,7 @@ export function migrate(input) {
   }
   if (s.suspendedBattle != null) validateBattle(s.suspendedBattle, s);
   migrateWeaponFamilies(s);
+  migrateCommunityState(s);
   for (const hero of [...s.heroes, ...(s.suspendedBattle?.heroes || [])])
     if (hero.equip.weapon && !canEquip(hero.id, hero.equip.weapon))
       fail('Equipped weapon does not match its hero in save.');
@@ -537,7 +539,9 @@ function readSave(slot, storage, persistMigration = false) {
     const original = JSON.parse(text);
     if (
       (original.state || original).equipmentRevision !==
-      payload.state.equipmentRevision
+        payload.state.equipmentRevision ||
+      (original.state || original).communityRevision !==
+        payload.state.communityRevision
     )
       storage.setItem(slotKey(slot), serialize(payload));
   }

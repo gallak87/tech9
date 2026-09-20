@@ -320,6 +320,7 @@ export async function loadPixelAtlas(entry) {
       )
         throw Error(`Invalid frame crop: ${entry.id}`);
   } else if (
+    entry.kind !== 'inventoryIcon' &&
     Math.abs(image.width / entry.columns - image.height / entry.rows) > 0.01
   )
     throw Error(`Atlas cells are not square: ${entry.id}`);

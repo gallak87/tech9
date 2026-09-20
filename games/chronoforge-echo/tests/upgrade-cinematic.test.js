@@ -2,7 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createState, recruit, buildingCost } from '../src/progression.js';
 import { saveState, loadState } from '../src/persistence.js';
-import { performBuild } from '../src/construction.js';
+import {
+  performBuild,
+  performCommunityRestoration,
+} from '../src/construction.js';
+import { COMMUNITY_DEFINITIONS } from '../src/community-restoration.js';
 import {
   UpgradeTour,
   upgradeTourCameras,
@@ -21,6 +25,7 @@ function settlement(region = 'haventide', level = 1) {
   state.region = region + '_town';
   state.tier = level;
   state.buildings.town_center = level;
+  if (region !== 'haventide') state.communities[region].level = level;
   state.flags.haventide_liberated = true;
   Object.assign(state, getScene(state.region).spawn);
   state.resources = { food: 900, ore: 900, energy: 900, renown: 900 };
@@ -210,6 +215,7 @@ test('all town reveals frame both exterior sizes and preserve the actual indoor 
       const { game } = settlement(region, level);
       const after = structuredClone(game.state);
       after.buildings.town_center++;
+      if (region !== 'haventide') after.communities[region].level++;
       const plan = townUpgradePlan(game.state, after),
         outside = getScene(region),
         inside = getScene(region + '_town');
@@ -237,6 +243,37 @@ test('all town reveals frame both exterior sizes and preserve the actual indoor 
         assert.ok(top >= 39 && top + b.height * 1.02 < 517, region);
       }
     }
+});
+
+test('regional restoration saves once before its reveal and skipping preserves its unique gift', () => {
+  for (const community of COMMUNITY_DEFINITIONS) {
+    const { game, calls, storage } = settlement(community.id, 3);
+    game.state.flags[community.id + '_liberated'] = true;
+    const project = community.projects[2];
+    const beforeOre = game.state.resources.ore;
+    const haven = structuredClone(game.state.buildings);
+    assert.equal(
+      performCommunityRestoration(game, community.id, project.id).ok,
+      true,
+    );
+    assert.deepEqual(calls, ['save', 'reveal']);
+    assert.equal(game.state.resources.ore, beforeOre - project.cost.ore);
+    assert.deepEqual(game.state.buildings, haven);
+    assert.equal(game.state.inventory[community.weaponId + '_1'], 1);
+    const saved = loadState('checkpoint', storage);
+    assert.equal(saved.communities[community.id].level, 4);
+    assert.equal(saved.inventory[community.weaponId + '_1'], 1);
+    game.upgradeTour.finish(true);
+    assert.deepEqual(calls, ['save', 'reveal', 'feedback']);
+    assert.equal(game.ui.panel.type, 'build');
+    assert.equal(game.ui.focus, 'close');
+    assert.equal(
+      performCommunityRestoration(game, community.id, project.id).ok,
+      false,
+    );
+    assert.equal(calls.filter((call) => call === 'save').length, 1);
+    assert.equal(game.state.inventory[community.weaponId + '_1'], 1);
+  }
 });
 
 test('the approved zoom stays outside, restrained motion disables it, and sparkles rise once', () => {

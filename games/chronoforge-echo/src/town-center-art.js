@@ -1,3 +1,5 @@
+import { settlementLevel } from './settlement-level.js';
+
 // Source pixels are immutable. Per-tier widths and door anchors control world
 // size independently of the sheet layout and keep the entrance in one place.
 export const HAVENTIDE_TOWN_CENTER = {
@@ -309,7 +311,10 @@ export function townCenterBounds(object, state) {
     actualRegion === 'haventide' ? state?.townCenterArtRegion : null;
   const center =
     centersByRegion.get(previewRegion) || centersByRegion.get(actualRegion);
-  const level = Math.max(1, Math.min(4, state?.buildings?.town_center || 1));
+  const level = settlementLevel(
+    state,
+    previewRegion ? 'haventide' : actualRegion,
+  );
   const frame = center.metadata.frames[level - 1];
   const scale = frame.nativeWidth / frame.w;
   return {

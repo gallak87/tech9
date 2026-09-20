@@ -61,7 +61,7 @@ test('legacy equipment changes preserve progression and ownership, once only', (
 
 test('every legacy weapon keeps its tier or stays equipped when already compatible', () => {
   for (const item of Object.values(ITEMS).filter(
-    (item) => item.slot === 'weapon',
+    (item) => item.slot === 'weapon' && !item.exotic,
   )) {
     const old = legacyState();
     for (const hero of old.heroes) hero.equip.weapon = item.id;

@@ -1,6 +1,6 @@
 import { notificationMarkup } from './ui-notifications.js';
 import { HEROES, ITEMS, TECHS, TIERS } from './content.js';
-import { tierBadge } from './tier-ui.js';
+import { tierBadge, itemBadges } from './tier-ui.js';
 import { inventoryPage } from './inventory-menu.js';
 import * as P from './progression.js';
 import { REGIONS, ALL_SCENES } from './world.js';
@@ -59,7 +59,7 @@ function gear(h) {
   )
     .map(([slot, id]) =>
       btn(
-        `${id ? icon(id) : '<span class="exp-empty-slot">—</span>'}<span><small class="exp-equipment-meta"><span>${slot}</span>${id ? tierBadge(ITEMS[id].tier) : ''}</small><strong>${id ? ITEMS[id].name : 'Empty slot'}</strong></span>`,
+        `${id ? icon(id) : '<span class="exp-empty-slot">—</span>'}<span><small class="exp-equipment-meta"><span>${slot}</span>${itemBadges(ITEMS[id])}</small><strong>${id ? ITEMS[id].name : 'Empty slot'}</strong></span>`,
         `inventory-slot:${slot}:${h.id}`,
         'exp-gear-slot',
         id ? `data-tier="${ITEMS[id].tier}"` : '',

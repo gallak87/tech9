@@ -197,6 +197,99 @@ test('travel swaps at the fade midpoint and reports completion exactly once in e
   }
 });
 
+test('every cave mouth enters automatically on foot, running, and click routes', () => {
+  for (const scene of Object.values(REGIONS)) {
+    for (const entrance of scene.objects.filter((o) => o.type === 'cave')) {
+      const cave = getScene(entrance.to);
+      for (const input of ['walk', 'run', 'click']) {
+        for (const dt of [1 / 60, 0.05]) {
+          const { game, traversal, sounds } = fixture(null);
+          Object.assign(game.state, {
+            region: scene.id,
+            ...cave.portals[0].spawn,
+          });
+          traversal.resetFollowers();
+          const approach = () =>
+            traversal.autoTravel(
+              nearby(game.scene, game.state.x, game.state.y, game.state),
+            );
+          assert.equal(
+            approach(),
+            false,
+            entrance.id + ' return spawn is clear',
+          );
+          if (input === 'click') {
+            traversal.walkTo(entrance.x, entrance.y - 24);
+            assert.ok(game.movePath.length, entrance.id + ' reachable mouth');
+          } else
+            game.keys = new Set([
+              'ArrowUp',
+              ...(input === 'run' ? ['Shift'] : []),
+            ]);
+          for (let frame = 0; frame < 120 && !game.transition; frame++) {
+            traversal.move(dt);
+            if (game.state.y >= entrance.y)
+              assert.equal(
+                approach(),
+                false,
+                entrance.id + ' front steps stay outside',
+              );
+            else approach();
+          }
+          assert.equal(
+            game.transition?.to,
+            cave.id,
+            `${entrance.id} ${input} ${dt}`,
+          );
+          assert.equal(approach(), false, 'active travel cannot retrigger');
+          assert.deepEqual(sounds, ['door']);
+          assert.equal(traversal.updateTransition(0.6), true);
+          assert.equal(game.state.region, cave.id);
+          assert.equal(game.state.facing, 'down');
+          assert.equal(
+            approach(),
+            false,
+            'arrival does not bounce back outside',
+          );
+        }
+      }
+    }
+  }
+});
+
+test('automatic entrances exclude side approaches, other buildings, and locked routes', () => {
+  const { game, traversal } = fixture(null);
+  const entrance = REGIONS.haventide.objects.find((o) => o.type === 'cave');
+  for (const [dx, dy] of [
+    [60, -24],
+    [-60, -24],
+    [0, 0],
+    [0, 40],
+    [0, -100],
+  ]) {
+    Object.assign(game.state, { x: entrance.x + dx, y: entrance.y + dy });
+    assert.equal(traversal.autoTravel([entrance]), false);
+  }
+  Object.assign(game.state, { x: entrance.x, y: entrance.y - 24 });
+  for (const type of ['house', 'town'])
+    assert.equal(traversal.autoTravel([{ ...entrance, type }]), false);
+  assert.equal(
+    traversal.autoTravel([{ ...entrance, requires: 'closed_cave' }]),
+    false,
+  );
+  const portal = {
+    ...entrance,
+    type: 'portal',
+    requires: { tier: 4, flag: 'open_route' },
+  };
+  game.state.y = entrance.y;
+  assert.equal(traversal.autoTravel([portal]), false);
+  game.state.flags.open_route = true;
+  assert.equal(traversal.autoTravel([portal]), false);
+  game.state.tier = 4;
+  assert.equal(traversal.autoTravel([portal]), true);
+});
+
 test('every cave arrives below its north-wall exit and leaves by walking up', () => {
   const entrances = Object.values(REGIONS).flatMap((scene) =>
     scene.objects.filter((object) => object.type === 'cave'),
@@ -223,23 +316,26 @@ test('every cave arrives below its north-wall exit and leaves by walking up', ()
           game.followers.every((actor) => isWalkable(cave, actor.x, actor.y)),
         );
         const autoExit = () =>
-          nearby(cave, game.state.x, game.state.y, game.state).find(
-            (object) =>
-              object.type === 'portal' &&
-              Math.hypot(object.x - game.state.x, object.y - game.state.y) < 19,
+          traversal.autoTravel(
+            nearby(cave, game.state.x, game.state.y, game.state),
           );
-        assert.equal(autoExit(), undefined);
+        assert.equal(autoExit(), false);
         game.keys = new Set(['ArrowDown', ...(running ? ['Shift'] : [])]);
         for (let frame = 0; frame < 10; frame++) {
           traversal.move(dt);
-          assert.equal(autoExit(), undefined, cave.id + ' down stays inside');
+          assert.equal(autoExit(), false, cave.id + ' down stays inside');
         }
         assert.ok(game.state.y > cave.spawn.y);
         game.keys = new Set(['ArrowUp', ...(running ? ['Shift'] : [])]);
-        for (let frame = 0; frame < 120 && !autoExit(); frame++)
+        for (let frame = 0; frame < 120 && !game.transition; frame++) {
           traversal.move(dt);
-        assert.equal(autoExit(), exit, cave.id + ' up reaches exit');
-        traversal.travel(exit.to, exit.spawn);
+          autoExit();
+        }
+        assert.equal(
+          game.transition?.to,
+          exit.to,
+          cave.id + ' up reaches exit',
+        );
         traversal.updateTransition(0.6);
         assert.equal(game.state.region, exit.to);
         assert.deepEqual({ x: game.state.x, y: game.state.y }, exit.spawn);

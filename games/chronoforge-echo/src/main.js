@@ -551,13 +551,7 @@ class Game {
       this.beginBattle(encounter);
       return;
     }
-    const portal = near.find(
-      (o) => o.type === 'portal' && Math.hypot(o.x - s.x, o.y - s.y) < 19,
-    );
-    if (portal && this.condition(portal.requires)) {
-      this.travel(portal.to, portal.spawn);
-      return;
-    }
+    if (this.traversal.autoTravel(near)) return;
     if (this.time - this.lastHud > 0.16) {
       this.lastHud = this.time;
       this.ui.updateHUD();

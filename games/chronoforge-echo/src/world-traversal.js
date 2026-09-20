@@ -1,4 +1,9 @@
-import { getScene, isWalkable, safeArrival } from './world.js';
+import {
+  getScene,
+  isWalkable,
+  safeArrival,
+  meetsWorldRequirement,
+} from './world.js';
 import { reveal } from './maps.js';
 import {
   followerPosition,
@@ -233,6 +238,21 @@ export class WorldTraversal {
     if (g.followPath.length > 180) g.followPath.length = 180;
     this.positionFollowers();
     reveal(s, scene);
+  }
+
+  autoTravel(near) {
+    const g = this.game;
+    if (g.transition) return false;
+    const s = g.state;
+    const entrance = near.find((o) => {
+      if (o.type === 'portal') return Math.hypot(o.x - s.x, o.y - s.y) < 19;
+      if (o.type !== 'cave') return false;
+      // The mouth sits above the front-step anchor, between the solid jambs.
+      return Math.abs(s.x - o.x) < 28 && s.y >= o.y - 50 && s.y <= o.y - 12;
+    });
+    if (!entrance || !meetsWorldRequirement(s, entrance.requires)) return false;
+    this.travel(entrance.to, entrance.spawn);
+    return true;
   }
 
   travel(to, spawn) {

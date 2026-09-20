@@ -2589,7 +2589,10 @@ function interiorFloorChunk(scene, cx, cy) {
                 : groundAtlas
                   ? artPattern(c, groundAtlas[2])
                   : null;
-  rect(c, 0, 0, 384, 384, '#173035');
+  if (scene.kind === 'cave') {
+    rect(c, 0, 0, 384, 384, wallPattern || p.stoneDark);
+    rect(c, 0, 0, 384, 384, 'rgba(12,14,16,0.6)');
+  } else rect(c, 0, 0, 384, 384, '#173035');
   for (let y = 0; y < 384; y += 8)
     for (let x = 0; x < 384; x += 8) {
       let wx = ox + x + 4,

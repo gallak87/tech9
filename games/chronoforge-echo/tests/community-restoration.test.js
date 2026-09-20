@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ITEMS } from '../src/content.js';
+import { ITEMS, TIERS, ITEM_TIERS } from '../src/content.js';
 import {
   createState,
   recruit,
@@ -112,7 +112,7 @@ test('community projects are ordered, local, liberated, affordable and charge on
   assert.equal(state.flags.mara_trade_route, undefined);
 });
 
-test('each community gives one Exotic at its owner’s level band, independently of party or civilization tier', () => {
+test('each community gives one keepsake at its owner’s band, capped at Transcendent even above level 40', () => {
   for (const definition of COMMUNITY_DEFINITIONS)
     for (const [level, tier] of [
       [1, 1],
@@ -122,7 +122,9 @@ test('each community gives one Exotic at its owner’s level band, independently
       [20, 3],
       [29, 3],
       [30, 4],
+      [39, 4],
       [40, 4],
+      [50, 4],
       [60, 4],
     ]) {
       const state = prepared(definition.id, 60),
@@ -145,6 +147,106 @@ test('each community gives one Exotic at its owner’s level band, independently
       for (const service of ['smith', 'provisions'])
         assert.ok(!serviceStock(state, service).includes(id));
     }
+});
+
+test('only the three community weapons have an Exotic fifth tier; civilization and ordinary gear remain capped at four', () => {
+  assert.equal(TIERS.length, 4);
+  assert.equal(ITEM_TIERS[4], 'Exotic');
+  assert.deepEqual(
+    Object.values(ITEMS)
+      .filter((item) => item.tier > 4)
+      .map((item) => item.id)
+      .sort(),
+    COMMUNITY_DEFINITIONS.map((community) => `${community.weaponId}_5`).sort(),
+  );
+  const state = prepared();
+  state.tier = 5;
+  assert.throws(() => migrate(state), /tier/i);
+});
+
+test('level-40 Exotic reforge replaces one packed or equipped gift, saves its stats, and cannot be repeated', () => {
+  for (const definition of COMMUNITY_DEFINITIONS) {
+    for (const equipped of [false, true]) {
+      const state = prepared(definition.id, 39);
+      const owner = state.heroes.find((hero) => hero.id === definition.heroId);
+      owner.level = 39;
+      finish(state);
+      const original = `${definition.weaponId}_4`,
+        final = `${definition.weaponId}_5`;
+      if (equipped) assert.equal(equip(state, owner.id, original).ok, true);
+      const locked = structuredClone(state);
+      assert.equal(communityStatus(state, state.region).weapon.nextLevel, 40);
+      assert.equal(reforgeCommunityWeapon(state, state.region).ok, false);
+      assert.deepEqual(state, locked);
+      owner.level = 40;
+      assert.deepEqual(migrate(state), state); // Loading never upgrades the item.
+      const before = structuredClone(state);
+      const oldStats = stats(owner, state);
+      const offer = communityStatus(state, state.region).reforge;
+      assert.equal(offer.toTier, 5);
+      assert.equal(offer.eligible, true);
+      assert.deepEqual(offer.cost, { ore: 40, energy: 20 });
+      assert.equal(state.inventory[final], undefined);
+      const result = reforgeCommunityWeapon(state, state.region);
+      assert.equal(result.ok, true);
+      assert.match(result.message, /reforged to Exotic/);
+      assert.equal(state.communities[definition.id].weaponTier, 5);
+      assert.equal(state.resources.ore, before.resources.ore - 40);
+      assert.equal(state.resources.energy, before.resources.energy - 20);
+      assert.equal(state.inventory[original] || 0, 0);
+      if (equipped) {
+        assert.equal(owner.equip.weapon, final);
+        assert.equal(state.inventory[final], undefined);
+        for (const [stat, value] of Object.entries(ITEMS[final].stats)) {
+          assert.ok(value > (ITEMS[original].stats[stat] || 0));
+          assert.ok(stats(owner, state)[stat] > oldStats[stat]);
+        }
+      } else assert.equal(state.inventory[final], 1);
+      assert.equal(buy(state, final).ok, false);
+      assert.equal(sell(state, final).ok, false);
+      assert.equal(sellPrice(final), 0);
+      assert.equal(
+        equip(
+          state,
+          state.heroes.find((hero) => hero.id !== owner.id).id,
+          final,
+        ).ok,
+        false,
+      );
+      const complete = structuredClone(state);
+      assert.equal(reforgeCommunityWeapon(state, state.region).ok, false);
+      assert.deepEqual(state, complete);
+      assert.equal(communityStatus(state, state.region).weapon.nextLevel, null);
+      const storage = store();
+      assert.deepEqual(saveState(state, 'checkpoint', storage).state, state);
+      assert.deepEqual(loadState('checkpoint', storage), state);
+      importSave(parseSaveFile(exportSave('checkpoint', storage)), 2, storage);
+      assert.deepEqual(loadState(2, storage), state);
+      const invalid = structuredClone(state);
+      invalid.heroes.find((hero) => hero.id === owner.id).level = 39;
+      assert.throws(() => migrate(invalid), /community restoration/);
+    }
+  }
+});
+
+test('skipping early bands at level 40 still requires a separate final reforge and rechecks its cost', () => {
+  const state = prepared('emberline', 9);
+  finish(state);
+  state.heroes[0].level = 40;
+  assert.equal(communityStatus(state, state.region).reforge.toTier, 4);
+  assert.equal(reforgeCommunityWeapon(state, state.region).ok, true);
+  assert.equal(state.inventory.duneglass_blade_4, 1);
+  assert.equal(state.inventory.duneglass_blade_5, undefined);
+  assert.equal(communityStatus(state, state.region).reforge.toTier, 5);
+  state.resources.ore = 39;
+  const poor = structuredClone(state);
+  assert.equal(reforgeCommunityWeapon(state, state.region).ok, false);
+  assert.deepEqual(state, poor);
+  state.resources.ore = 40;
+  assert.equal(reforgeCommunityWeapon(state, state.region).ok, true);
+  assert.equal(state.inventory.duneglass_blade_4, undefined);
+  assert.equal(state.inventory.duneglass_blade_5, 1);
+  assert.equal(state.resources.ore, 0);
 });
 
 test('final project clearly waits for its hero without charging or granting a copy', () => {

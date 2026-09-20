@@ -1742,11 +1742,11 @@ export function questList(state) {
         status.complete ? 'Complete' : `${status.level - 1} / 3 projects`,
         objective,
         status.complete,
-        `Exotic ${status.weapon.name} · ${status.weapon.heroName}`,
+        `${status.weapon.name} · ${status.weapon.heroName}`,
       ),
     );
     rewards[id] = rewardData({ items: { [status.weapon.id]: 1 } }, [
-      `Exotic · ${status.weapon.heroName}`,
+      `Community keepsake · ${status.weapon.heroName}`,
       status.complete
         ? 'Gift awarded · hometown reforges'
         : 'Guaranteed gift at the hero’s level',

@@ -24,7 +24,7 @@ export const COMMUNITY_DEFINITIONS = [
       {
         id: 'community_kiln',
         name: 'Light the community kiln',
-        result: 'Emberline presents Kaida with the Exotic Duneglass Blade.',
+        result: 'Emberline presents Kaida with the Duneglass Blade.',
         cost: { food: 50, ore: 85, energy: 40 },
       },
     ],
@@ -54,7 +54,7 @@ export const COMMUNITY_DEFINITIONS = [
       {
         id: 'communal_forge',
         name: 'Reopen the communal forge',
-        result: 'Anchor Nine presents Rune with the Exotic Rescue Gauntlets.',
+        result: 'Anchor Nine presents Rune with the Rescue Gauntlets.',
         cost: { food: 60, ore: 95, energy: 55 },
       },
     ],
@@ -84,7 +84,7 @@ export const COMMUNITY_DEFINITIONS = [
       {
         id: 'learning_pavilion',
         name: 'Open the learning pavilion',
-        result: 'The Open Hand presents Vex with the Exotic Orchard Staff.',
+        result: 'The Open Hand presents Vex with the Orchard Staff.',
         cost: { food: 70, ore: 105, energy: 70 },
       },
     ],
@@ -110,6 +110,7 @@ const weapons = [
       { str: 10, spd: 3, crit: 4 },
       { str: 19, spd: 4, crit: 7 },
       { str: 28, tec: 6, spd: 5, crit: 9 },
+      { str: 36, tec: 8, spd: 6, crit: 11 },
     ],
   },
   {
@@ -124,6 +125,7 @@ const weapons = [
       { str: 12, tec: 4, def: 6, maxHp: 20 },
       { str: 19, tec: 6, def: 9, maxHp: 30 },
       { str: 28, tec: 9, def: 12, maxHp: 45 },
+      { str: 36, tec: 12, def: 16, maxHp: 60 },
     ],
   },
   {
@@ -138,6 +140,7 @@ const weapons = [
       { int: 12, maxMp: 16, spd: 2, tec: 4 },
       { int: 19, maxMp: 24, spd: 3, tec: 6 },
       { int: 29, maxMp: 34, spd: 4, tec: 9 },
+      { int: 38, maxMp: 44, spd: 5, tec: 12 },
     ],
   },
 ];
@@ -152,7 +155,7 @@ export const EXOTIC_ITEMS = weapons.flatMap((weapon) =>
     price: 0,
     tier: index + 1,
     description: weapon.description,
-    exotic: true,
+    exotic: true, // Community identity at every band, distinct from the tier-5 label.
     unique: true,
     iconId: weapon.id,
     community: weapon.community,

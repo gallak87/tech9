@@ -1,6 +1,8 @@
 /** Stable, serializable base-game catalog. No expansion content is registered. */
 import { EXOTIC_ITEMS } from './community-definitions.js';
 export const TIERS = ['Survivor', 'Reclaimer', 'Ascendant', 'Transcendent'];
+// Civilization and ordinary gear stop at four; community reforges alone reach five.
+export const ITEM_TIERS = [...TIERS, 'Exotic'];
 export const HEROES = {
   kaida: {
     id: 'kaida',

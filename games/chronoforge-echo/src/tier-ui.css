@@ -11,6 +11,9 @@
 [data-tier='4'] {
   --tier-color: #82aed9;
 }
+[data-tier='5'] {
+  --tier-color: #df702e;
+}
 .expedition [data-tier='1'] {
   --tier-color: #625c52;
 }
@@ -22,6 +25,9 @@
 }
 .expedition [data-tier='4'] {
   --tier-color: #3c6487;
+}
+.expedition [data-tier='5'] {
+  --tier-color: #9f461d;
 }
 /* Tint the surface, never the text, for Survivor's translucent white treatment. */
 [data-tier='1']:is(

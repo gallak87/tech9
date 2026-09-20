@@ -1,5 +1,5 @@
 // Original generated PNGs retain their alpha. Bounds include alpha >= 8 plus six source pixels.
-// All four quality tiers reuse the corresponding community weapon source.
+// All five quality tiers reuse the corresponding community weapon source.
 export const COMMUNITY_ICON_ASSETS = [
   {
     id: 'inventory_duneglass_blade',

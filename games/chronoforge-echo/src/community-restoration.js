@@ -1,4 +1,4 @@
-import { HEROES, ITEMS, TIERS } from './content.js';
+import { HEROES, ITEMS, ITEM_TIERS } from './content.js';
 import { COMMUNITY_DEFINITIONS } from './community-definitions.js';
 
 export { COMMUNITY_DEFINITIONS } from './community-definitions.js';
@@ -34,12 +34,20 @@ export function communityLevel(state, region) {
 }
 
 export function communityWeaponTier(level) {
-  return level >= 30 ? 4 : level >= 20 ? 3 : level >= 10 ? 2 : 1;
+  return level >= 40
+    ? 5
+    : level >= 30
+      ? 4
+      : level >= 20
+        ? 3
+        : level >= 10
+          ? 2
+          : 1;
 }
 
 function ownedWeapons(state, definition) {
   const owned = [];
-  for (let tier = 1; tier <= 4; tier++) {
+  for (let tier = 1; tier <= 5; tier++) {
     const id = `${definition.weaponId}_${tier}`;
     if (state.inventory[id])
       owned.push({ id, tier, quantity: state.inventory[id], hero: null });
@@ -55,6 +63,7 @@ const reforgeInvestment = [
   { ore: 15, energy: 5 },
   { ore: 35, energy: 15 },
   { ore: 60, energy: 30 },
+  { ore: 100, energy: 50 },
 ];
 
 function reforgeCost(fromTier, toTier) {
@@ -79,7 +88,9 @@ export function communityStatus(state, region) {
       state.flags[`${id}_liberated`] || state.cleared[definition.guard],
     ),
     owner = state.heroes.find((hero) => hero.id === definition.heroId),
-    targetTier = communityWeaponTier(owner?.level || 1),
+    levelTier = communityWeaponTier(owner?.level || 1),
+    // Even at level 40+, the gift must be claimed as Transcendent first.
+    targetTier = Math.min(4, levelTier),
     itemId = `${definition.weaponId}_${weaponTier || targetTier}`,
     ownership = ownedWeapons(state, definition),
     owned = ownership.reduce((sum, entry) => sum + entry.quantity, 0) === 1,
@@ -112,22 +123,20 @@ export function communityStatus(state, region) {
         reason,
       };
     }),
-    toTier = Math.max(weaponTier, targetTier),
-    nextLevel =
-      (weaponTier || targetTier) >= 4
-        ? null
-        : [10, 20, 30][(weaponTier || targetTier) - 1],
+    // Exotic is a separate reforge cycle from an already-Transcendent weapon.
+    toTier = Math.max(weaponTier, weaponTier >= 4 ? levelTier : targetTier),
+    nextLevel = [10, 20, 30, 40][(weaponTier || targetTier) - 1] ?? null,
     cost = weaponTier ? reforgeCost(weaponTier, toTier) : {},
     reforgeReason =
       locationReason ||
       (level < 4
-        ? 'Finish the community restoration to receive its Exotic weapon.'
+        ? 'Finish the community restoration to receive its unique weapon.'
         : !owner
           ? `Bring ${HEROES[definition.heroId].name} to reforge this weapon.`
           : !owned || ownership[0].tier !== weaponTier
             ? 'The community’s original weapon must be equipped or in your pack.'
-            : targetTier <= weaponTier
-              ? weaponTier === 4
+            : toTier <= weaponTier
+              ? weaponTier === 5
                 ? 'This Exotic weapon is fully reforged.'
                 : `${owner.name} must reach level ${nextLevel} for the next reforge.`
               : !affordable(state, cost)
@@ -185,7 +194,7 @@ export function restoreCommunity(state, region, projectId) {
     community.weaponTier = tier;
     state.inventory[itemId] = 1;
     rewards.push({ id: itemId, label: status.weapon.name, amount: 1 });
-    message = `${status.name} restored. Received ${status.weapon.name} · Exotic · ${TIERS[tier - 1]}.`;
+    message = `${status.name} restored. Received ${status.weapon.name} · ${ITEM_TIERS[tier - 1]}.`;
   }
   return {
     ok: true,
@@ -212,11 +221,11 @@ export function reforgeCommunityWeapon(state, region) {
   state.communities[status.id].weaponTier = toTier;
   return {
     ok: true,
-    message: `${status.weapon.name} reforged to ${TIERS[toTier - 1]}.`,
+    message: `${status.weapon.name} reforged to ${ITEM_TIERS[toTier - 1]}.`,
     rewards: [
       {
         id: itemId,
-        label: `${status.weapon.name} · ${TIERS[toTier - 1]}`,
+        label: `${status.weapon.name} · ${ITEM_TIERS[toTier - 1]}`,
         amount: 1,
       },
     ],
@@ -252,7 +261,7 @@ export function migrateCommunityState(state) {
       community.level > 4 ||
       !Number.isInteger(community.weaponTier) ||
       community.weaponTier < 0 ||
-      community.weaponTier > 4 ||
+      community.weaponTier > 5 ||
       (community.level === 4) !== community.weaponTier > 0
     )
       fail();

@@ -12,6 +12,7 @@ register('./helpers/css-loader.mjs', import.meta.url);
 const { UI } = await import('../src/ui.js');
 const { inventoryPage } = await import('../src/inventory-menu.js');
 const { renderExpedition } = await import('../src/expedition-menu.js');
+const { itemBadges, tierBadge } = await import('../src/tier-ui.js');
 
 function fixture(t) {
   const state = createState();
@@ -177,12 +178,79 @@ test('completion checkpoints once per project and retains exact reward and next 
   assert.equal((html.match(/data-project-state="complete"/g) || []).length, 3);
   assert.match(
     ui.notifications.current.message,
-    /restoration complete.*Duneglass Blade.*Exotic.*Ascendant.*Kaida.*level 30/,
+    /restoration complete.*Duneglass Blade.*Ascendant.*Kaida.*level 30/,
   );
   assert.match(ui.notifications.current.message, /Temporary world preview/);
   assert.match(html, /<\/div><aside class="ui-toast"/);
   ui.action('community-confirm');
   assert.equal(checkpointed.length, 3);
+});
+
+test('keepsakes use one level badge, and only their fifth band is labeled Exotic', () => {
+  for (const item of Object.values(ITEMS)) {
+    const badge = itemBadges(item);
+    assert.equal((badge.match(/class="tier-badge"/g) || []).length, 1, item.id);
+    if (item.tier === 5) assert.match(badge, /Exotic/);
+    else assert.doesNotMatch(badge, /Exotic/);
+  }
+  assert.equal(tierBadge(5), ''); // Civilization cannot acquire the item-only label.
+});
+
+test('the final Exotic reforge has its own inline confirmation, checkpoints once, and rejects stale eligibility', (t) => {
+  const { ui, state, checkpointed } = fixture(t);
+  state.heroes[0].level = 40;
+  completeTown(ui);
+  assert.equal(state.inventory.duneglass_blade_4, 1);
+  assert.equal(state.inventory.duneglass_blade_5, undefined);
+  assert.match(
+    ui.notifications.current.message,
+    /Transcendent.*Next reforge available now/,
+  );
+  assert.equal(equip(state, 'kaida', 'duneglass_blade_4').ok, true);
+  ui.action('community-reforge');
+  assert.match(ui.renderBuild(), /Reforge to.*data-tier="5".*Exotic/);
+  assert.match(ui.renderBuild(), /Spend 40 ore · 20 energy/);
+  ui.action('community-cancel');
+  assert.equal(state.heroes[0].equip.weapon, 'duneglass_blade_4');
+  assert.equal(checkpointed.length, 3);
+  ui.action('community-reforge');
+  state.heroes[0].level = 39;
+  const resources = { ...state.resources };
+  ui.action('community-confirm');
+  assert.deepEqual(state.resources, resources);
+  assert.equal(checkpointed.length, 3);
+  assert.match(action(ui.renderBuild(), 'community-reforge'), /disabled/);
+  state.heroes[0].level = 40;
+  ui.action('community-reforge');
+  ui.action('community-confirm');
+  ui.action('community-confirm');
+  assert.equal(checkpointed.length, 4);
+  assert.equal(checkpointed[3].heroes[0].equip.weapon, 'duneglass_blade_5');
+  assert.match(
+    ui.notifications.current.message,
+    /Reforge complete.*Exotic.*Fully reforged/,
+  );
+  assert.match(
+    ui.renderBuild(),
+    /class="community-reward" data-tier="5" data-exotic="true"/,
+  );
+  assert.doesNotMatch(ui.renderBuild(), /Transcendent|exotic-badge/);
+  assert.match(action(ui.renderBuild(), 'community-reforge'), /disabled/);
+  ui.inventoryHero = 'kaida';
+  assert.match(
+    inventoryPage(ui),
+    /exp-inventory-slot-row" data-tier="5" data-exotic="true"/,
+  );
+  ui.tab = 1;
+  assert.match(
+    renderExpedition(ui),
+    /class="exp-gear-slot"[^>]*data-tier="5" data-exotic="true"/,
+  );
+  ui.tab = 4;
+  assert.match(
+    renderExpedition(ui),
+    /class="exp-quest-reward" data-tier="5" data-exotic="true"/,
+  );
 });
 
 test('a level-26 reward is immediately accessible through inventory even with an earlier hero filter', (t) => {

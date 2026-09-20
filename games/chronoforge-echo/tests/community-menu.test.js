@@ -270,14 +270,27 @@ test('reforge confirmation keeps equipped Exotic, saves once, and distinguishes 
   });
   assert.match(
     inventoryPage(ui),
-    /exp-inventory-slot-meta[\s\S]*Ascendant[\s\S]*exotic-badge/,
+    /exp-inventory-slot-row" data-tier="3" data-exotic="true"/,
   );
+  assert.match(inventoryPage(ui), /Ascendant/);
+  assert.doesNotMatch(inventoryPage(ui), /exotic-badge/);
   ui.inventoryHero = null;
-  assert.match(inventoryPage(ui), /exp-inventory-crew-slot[\s\S]*exotic-badge/);
+  assert.match(
+    inventoryPage(ui),
+    /class="exp-inventory-crew-slot"[^>]*data-tier="3" data-exotic="true"/,
+  );
   ui.tab = 1;
   assert.match(
     renderExpedition(ui),
-    /exp-equipment-meta[\s\S]*Ascendant[\s\S]*exotic-badge/,
+    /class="exp-gear-slot"[^>]*data-tier="3" data-exotic="true"/,
+  );
+  assert.doesNotMatch(renderExpedition(ui), /exotic-badge/);
+  ui.tab = 4;
+  const quests = renderExpedition(ui);
+  assert.match(quests, /data-quest="community_emberline" data-exotic="true"/);
+  assert.match(
+    quests,
+    /class="exp-quest-reward" data-tier="3" data-exotic="true"/,
   );
   state.inventory.orchard_staff_2 = 1;
   assert.match(
@@ -285,4 +298,17 @@ test('reforge confirmation keeps equipped Exotic, saves once, and distinguishes 
     /data-pack-item="orchard_staff_2" data-tier="2" data-exotic="true"/,
   );
   assert.equal(ITEMS.orchard_staff_2.tier, 2);
+  state.inventory.namekeeper = 1;
+  ui.panel = { type: 'vendor', object: { service: 'smith', name: 'Smith' } };
+  ui.shop.sellMode = true;
+  const shop = ui.renderVendor();
+  assert.match(
+    shop,
+    /data-shop-item="orchard_staff_2" data-tier="2" data-exotic="true"/,
+  );
+  assert.doesNotMatch(
+    shop.match(/<article[^>]+data-shop-item="namekeeper"[^>]*>/)[0],
+    /data-exotic/,
+  );
+  assert.doesNotMatch(shop, /exotic-badge/);
 });

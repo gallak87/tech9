@@ -59,33 +59,27 @@
   border-right: 1px solid color-mix(in srgb, var(--tier-color) 40%, transparent);
   padding-right: 0.35em;
 }
-.exotic-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25em;
-  padding: 1px 0.35em;
-  border: 1px solid #a9c5c3;
-  color: #d8eeeb;
-  background: #334342;
-  font:
-    500 clamp(9px, 0.63cqw, 14px)/1.15 Barlow,
-    sans-serif;
-  white-space: nowrap;
-  vertical-align: middle;
-}
-.expedition .exotic-badge {
-  border-color: #577777;
-  color: #2c5151;
-  background: #a7c0b529;
-}
 .item-badges {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 0.35em;
 }
-[data-exotic='true'] {
-  box-shadow: inset 0 0 0 1px #a9c5c340;
+/* Persistent community keepsake identity. The nested badge retains its band. */
+.atlas [data-exotic='true']:not(.tier-badge),
+#rewards [data-exotic='true'] {
+  border: 1px solid #df702e;
+  background-color: #df702e14;
+  box-shadow: inset 0 0 0 1px #df702e26;
+}
+.expedition .exp-inventory-card[data-exotic='true'].selected {
+  box-shadow: inset 0 0 0 2px #df702e;
+}
+.expedition .quest[data-exotic='true'] {
+  padding: 0.8cqw;
+}
+.exp-quest-reward[data-tier] {
+  padding: 0.2em 0.35em;
 }
 .exp-gear-slot[data-tier] {
   border-left: 2px solid var(--tier-color);

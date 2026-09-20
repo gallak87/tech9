@@ -1,6 +1,6 @@
 import { notificationMarkup } from './ui-notifications.js';
 import { HEROES, ITEMS, TECHS, TIERS } from './content.js';
-import { tierBadge, itemBadges } from './tier-ui.js';
+import { tierBadge, itemBadges, itemAttributes } from './tier-ui.js';
 import { inventoryPage } from './inventory-menu.js';
 import * as P from './progression.js';
 import { REGIONS, ALL_SCENES } from './world.js';
@@ -62,7 +62,7 @@ function gear(h) {
         `${id ? icon(id) : '<span class="exp-empty-slot">—</span>'}<span><small class="exp-equipment-meta"><span>${slot}</span>${itemBadges(ITEMS[id])}</small><strong>${id ? ITEMS[id].name : 'Empty slot'}</strong></span>`,
         `inventory-slot:${slot}:${h.id}`,
         'exp-gear-slot',
-        id ? `data-tier="${ITEMS[id].tier}"` : '',
+        itemAttributes(ITEMS[id]),
       ),
     )
     .join('')}</div>`;
@@ -163,7 +163,7 @@ function questRewards(q) {
           renown: 'Renown',
         }[r.id] ||
         r.id;
-      return `<span class="exp-quest-reward" ${ITEMS[r.id] ? `data-tier="${ITEMS[r.id].tier}"` : ''} title="${esc(name)} ×${fmt(r.amount)}" aria-label="${esc(name)} ${fmt(r.amount)}">${icon(r.id)}<b>${fmt(r.amount)}</b>${itemBadges(ITEMS[r.id])}</span>`;
+      return `<span class="exp-quest-reward" ${itemAttributes(ITEMS[r.id])} title="${esc(name)} ×${fmt(r.amount)}" aria-label="${esc(name)} ${fmt(r.amount)}">${icon(r.id)}<b>${fmt(r.amount)}</b>${itemBadges(ITEMS[r.id])}</span>`;
     })
     .join(
       '',
@@ -171,7 +171,7 @@ function questRewards(q) {
 }
 function questsPage(ui) {
   const qs = questList(ui.game.state);
-  return `${header('The threads we follow', `${qs.filter((q) => q.complete).length} RESOLVED / ${qs.length} RECORDED`)}<div class="exp-current-objective"><span class="exp-kicker">CURRENT OBJECTIVE</span><p>${esc(mainObjective(ui.game.state))}</p></div><div class="exp-quest-ledger">${qs.map((q) => `<article class="quest ${q.complete ? 'completed' : ''}" data-quest="${esc(q.id)}"><div class="exp-quest-meta"><div class="exp-kicker">${esc(q.kind || 'Field story')}${q.stage != null ? ' / ' + esc(q.stage) : ''} · ${q.complete ? 'RESOLVED' : 'IN PROGRESS'}</div>${questRewards(q)}</div><div class="exp-quest-copy"><h3>${esc(q.title)}</h3><p>${esc(q.objective)}</p></div></article>`).join('')}</div>`;
+  return `${header('The threads we follow', `${qs.filter((q) => q.complete).length} RESOLVED / ${qs.length} RECORDED`)}<div class="exp-current-objective"><span class="exp-kicker">CURRENT OBJECTIVE</span><p>${esc(mainObjective(ui.game.state))}</p></div><div class="exp-quest-ledger">${qs.map((q) => `<article class="quest ${q.complete ? 'completed' : ''}" data-quest="${esc(q.id)}"${q.rewardItems?.some((reward) => ITEMS[reward.id]?.exotic) ? ' data-exotic="true"' : ''}><div class="exp-quest-meta"><div class="exp-kicker">${esc(q.kind || 'Field story')}${q.stage != null ? ' / ' + esc(q.stage) : ''} · ${q.complete ? 'RESOLVED' : 'IN PROGRESS'}</div>${questRewards(q)}</div><div class="exp-quest-copy"><h3>${esc(q.title)}</h3><p>${esc(q.objective)}</p></div></article>`).join('')}</div>`;
 }
 
 function savePage() {

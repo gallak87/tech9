@@ -8,14 +8,13 @@ export function tierBadge(tier) {
     : '';
 }
 
-// Exotic describes provenance and reforging; the normal tier still describes
-// power. A named badge keeps that distinction readable without color alone.
-export function exoticBadge(item) {
-  return item?.exotic
-    ? '<span class="exotic-badge"><span aria-hidden="true">✧</span> Exotic</span>'
+// Community identity belongs to the surface; the single badge describes power.
+export function itemAttributes(item) {
+  return item
+    ? `data-tier="${item.tier}"${item.exotic ? ' data-exotic="true"' : ''}`
     : '';
 }
 
 export function itemBadges(item) {
-  return item ? `${tierBadge(item.tier)}${exoticBadge(item)}` : '';
+  return item ? tierBadge(item.tier) : '';
 }

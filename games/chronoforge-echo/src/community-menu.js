@@ -5,7 +5,7 @@ import {
   reforgeCommunityWeapon,
 } from './community-restoration.js';
 import { performCommunityRestoration } from './construction.js';
-import { itemBadges, tierBadge } from './tier-ui.js';
+import { itemBadges, tierBadge, itemAttributes } from './tier-ui.js';
 
 const esc = (value) =>
   String(value ?? '').replace(
@@ -200,7 +200,6 @@ export class CommunityMenu {
     const preview = this.ui.game.devTools?.worldPreviewActive;
     const locked = !status.liberated;
     const reforge = status.reforge;
-    const rewardTier = weapon.tier || weapon.targetTier;
     const received = status.complete && weapon.owned;
     const finalProject = status.projects.at(-1);
     return `<div class="community-view" data-community="${status.id}">
@@ -218,7 +217,7 @@ export class CommunityMenu {
         </article>`;
         })
         .join('')}</div>
-      <section class="community-reward" data-tier="${rewardTier}" data-exotic="true" aria-label="Community reward">
+      <section class="community-reward" ${itemAttributes(weapon.item)} aria-label="Community reward">
         <div class="community-weapon">${icon(weapon.id)}<div><div class="eyebrow">${status.complete ? 'YOUR COMMUNITY KEEPSAKE' : 'COMPLETION REWARD'}</div><h3>${esc(weapon.name)}</h3><div class="item-badges">${itemBadges(weapon.item)}</div><p>For ${esc(weapon.heroName)} · Unsellable</p>${statsMarkup(weapon.item)}</div></div>
         <div class="community-reward-status"><label class="community-receipt"><input type="checkbox" disabled ${received ? 'checked' : ''} aria-label="Reward received"><small>${received ? 'Received' : `Complete “${esc(finalProject.name)}” to receive`}</small></label>${received ? button('View in inventory', 'community-inventory') : ''}${
           status.complete

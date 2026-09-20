@@ -4,7 +4,7 @@ import { DialogueController } from './dialogue-controller.js';
 import { CommunityMenu } from './community-menu.js';
 import { communityRegion } from './community-restoration.js';
 import './field-ui.css';
-import { tierBadge, itemBadges } from './tier-ui.js';
+import { tierBadge, itemBadges, itemAttributes } from './tier-ui.js';
 import './community.css';
 import { beaconStatus } from './beacons.js';
 import './expedition.css';
@@ -1376,7 +1376,7 @@ export class UI {
               !this.shop.sellMode && type !== 'consumable' && recipient
                 ? `<span class="shop-comparison"><span>vs ${esc(recipient.name)} · ${esc(old?.name || 'Empty slot')}</span>${changes.length ? changes.map((d) => `<span class="${d.n > 0 ? 'gain' : 'loss'}">${esc(d.label)} ${d.n > 0 ? '+' : ''}${d.n}</span>`).join('') : `<span>${recipient.equip[it.slot] === id ? 'Equipped' : 'No stat change'}</span>`}</span>`
                 : '';
-            return `<article class="shop-card${locked || unaffordable ? ' shop-card-unavailable' : ''}${pending ? ' shop-card-confirming' : ''}" data-shop-item="${id}" data-tier="${it.tier}" tabindex="-1" aria-label="${esc(it.name)}">
+            return `<article class="shop-card${locked || unaffordable ? ' shop-card-unavailable' : ''}${pending ? ' shop-card-confirming' : ''}" data-shop-item="${id}" ${itemAttributes(it)} tabindex="-1" aria-label="${esc(it.name)}">
               <div class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${itemBadges(it)}${owner ? `<small>${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}</span><span class="shop-owned">Own ${fmt(owned)}</span></div>
               <div class="shop-description">${esc(it.description)}</div>${comparison}
               <div class="shop-card-action">
@@ -1488,6 +1488,7 @@ export class UI {
       el.className = 'reward' + (hero ? ' reward-hero' : '');
       el.dataset.kind = hero ? 'level-up' : 'loot';
       if (ITEMS[r.id]) el.dataset.tier = ITEMS[r.id].tier;
+      if (ITEMS[r.id]?.exotic) el.dataset.exotic = 'true';
       el.style.setProperty('--reward-hold', lifetime - 140 + 'ms');
       el.setAttribute('role', 'status');
       el.innerHTML = `${hero ? portrait(r.id, 'reward-portrait') : icon(r.id)}<div>${esc(r.label)} ${!hero && r.amount > 1 ? `<b>×${fmt(r.amount)}</b>` : ''}<small>${category}</small>${ITEMS[r.id] ? `<span class="item-badges">${itemBadges(ITEMS[r.id])}</span>` : ''}</div>`;

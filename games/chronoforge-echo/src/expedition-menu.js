@@ -1,3 +1,4 @@
+import { notificationMarkup } from './ui-notifications.js';
 import { HEROES, ITEMS, TECHS, TIERS } from './content.js';
 import { tierBadge } from './tier-ui.js';
 import { inventoryPage } from './inventory-menu.js';
@@ -140,6 +141,7 @@ function skillsPage(ui) {
         'learn:' + t.id,
         'exp-skill-row' +
           (known ? ' learned' : req.length ? ' locked' : ' available'),
+        known || req.length ? 'disabled' : '',
       );
     })
     .join(
@@ -219,5 +221,5 @@ export function renderExpedition(ui) {
     savePage,
     settingsPage,
   ];
-  return `<div class="scrim"></div><section class="atlas expedition" role="dialog" aria-modal="true" aria-label="Expedition menu"><header class="exp-shell"><div class="exp-brand"><strong>CHRONFORGE <span>ECHO</span></strong><small>THE ${esc((REGIONS[s.region]?.name || ALL_SCENES[s.region]?.townId || 'HAVENTIDE').toUpperCase())} EXPEDITION</small></div><div class="exp-resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span aria-label="${fmt(s.resources[id])} ${id}">${icon(id)}${fmt(s.resources[id])}</span>`).join('')}</div><span class="close dismiss-hint"><kbd>Esc</kbd> Return</span></header><nav class="tabs" role="tablist" aria-label="Expedition pages">${tabs.map((t, i) => btn(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === ui.tab ? 'active' : '', `role="tab" aria-selected="${i === ui.tab}" aria-controls="exp-page" id="exp-tab-${i}"`)).join('')}</nav><div id="exp-page" class="atlas-body scroll exp-page exp-page-${ui.tab}" role="tabpanel" aria-labelledby="exp-tab-${ui.tab}">${ui.notice && ui.tab !== 2 ? `<div class="notice" role="status">${esc(ui.notice)}</div>` : ''}${bodies[ui.tab](ui)}</div><footer class="atlas-footer"><span><kbd>1–7</kbd> Pages <kbd>Q</kbd><kbd>E</kbd> Tabs ${ui.tab === 0 ? '<kbd>↑↓←→</kbd> Select region · <kbd>Space</kbd>/<kbd>Enter</kbd> Travel · Drag to pan · Scroll to zoom' : ui.tab === 2 ? '<kbd>↑↓←→</kbd> Browse <kbd>[</kbd><kbd>]</kbd> Crew <kbd>PgUp/Dn</kbd> Scroll <kbd>Space</kbd>/<kbd>Enter</kbd> Action' : '<kbd>↑↓</kbd> Navigate <kbd>PgUp/Dn</kbd> Scroll <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm'}</span><span>${tierBadge(s.tier)} / ${time(s.playTime)}</span></footer></section>`;
+  return `<div class="scrim"></div><section class="atlas expedition" role="dialog" aria-modal="true" aria-label="Expedition menu"><header class="exp-shell"><div class="exp-brand"><strong>CHRONFORGE <span>ECHO</span></strong><small>THE ${esc((REGIONS[s.region]?.name || ALL_SCENES[s.region]?.townId || 'HAVENTIDE').toUpperCase())} EXPEDITION</small></div><div class="exp-resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span aria-label="${fmt(s.resources[id])} ${id}">${icon(id)}${fmt(s.resources[id])}</span>`).join('')}</div><span class="close dismiss-hint"><kbd>Esc</kbd> Return</span></header><nav class="tabs" role="tablist" aria-label="Expedition pages">${tabs.map((t, i) => btn(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === ui.tab ? 'active' : '', `role="tab" aria-selected="${i === ui.tab}" aria-controls="exp-page" id="exp-tab-${i}"`)).join('')}</nav><div id="exp-page" class="atlas-body scroll exp-page exp-page-${ui.tab}" role="tabpanel" aria-labelledby="exp-tab-${ui.tab}">${bodies[ui.tab](ui)}</div>${notificationMarkup(ui.notifications)}<footer class="atlas-footer"><span><kbd>1–7</kbd> Pages <kbd>Q</kbd><kbd>E</kbd> Tabs ${ui.tab === 0 ? '<kbd>↑↓←→</kbd> Select region · <kbd>Space</kbd>/<kbd>Enter</kbd> Travel · Drag to pan · Scroll to zoom' : ui.tab === 2 ? '<kbd>↑↓←→</kbd> Browse <kbd>[</kbd><kbd>]</kbd> Crew <kbd>PgUp/Dn</kbd> Scroll <kbd>Space</kbd>/<kbd>Enter</kbd> Action' : '<kbd>↑↓</kbd> Navigate <kbd>PgUp/Dn</kbd> Scroll <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm'}</span><span>${tierBadge(s.tier)} / ${time(s.playTime)}</span></footer></section>`;
 }

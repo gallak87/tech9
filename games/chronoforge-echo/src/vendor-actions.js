@@ -1,5 +1,5 @@
 import { BUILDINGS, SERVICES, TIERS } from './content.js';
-import { serviceAvailable } from './progression.js';
+import { restCost, serviceAvailable } from './progression.js';
 
 const shortfall = (state, cost) =>
   Object.entries(cost)
@@ -64,14 +64,12 @@ export function vendorAction(state, object) {
     };
   }
   if (service === 'inn' || service === 'rest') {
-    const cost = state.flags.mara_shelter
-      ? 0
-      : Math.max(0, 8 - (state.buildings.walls || 0) * 2);
+    const cost = restCost(state);
     return {
       action: 'rest',
-      label: 'Rest by the lantern',
+      label: `Rest · ${cost ? cost + ' food' : 'Free'}`,
       primary: true,
-      description: `Recover the whole crew’s HP and MP. ${cost ? 'Share up to ' + cost + ' food; travelers with empty pockets are still welcome.' : 'Rest free of charge.'}`,
+      description: 'Restore the whole crew’s HP and MP.',
       status: requirement || 'Repeatable · everyone welcome',
       disabled: !available,
       serviceLocked: !available,

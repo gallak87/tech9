@@ -242,5 +242,7 @@ test('export downloads the stored record and releases its object URL', (t) => {
   assert.equal(elements[0].attached, false);
   assert.match(elements[0].download, /^chronforge-echo-record-1-.*\.json$/);
   assert.deepEqual(urls, ['blob:export']);
-  assert.deepEqual(feedback, []);
+  assert.deepEqual(feedback, [
+    { ok: true, message: 'Exported field record 1.' },
+  ]);
 });

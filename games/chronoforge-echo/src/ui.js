@@ -34,6 +34,7 @@ import { SaveTransfer } from './save-transfer.js';
 import { canOpenWorldView, worldViewShortcut } from './world-view.js';
 import { actorBounds, drawHero } from './art.js';
 import { interactionOverlapsHero } from './interaction-label.js';
+import { DialogNotifications, notificationMarkup } from './ui-notifications.js';
 const esc = (s) =>
   String(s ?? '').replace(
     /[&<>"']/g,
@@ -87,8 +88,8 @@ export class UI {
     this.inventoryRecipientItem = null;
     this.inventorySort = 'tier';
     this.inventoryIndex = 0;
-    this.qty = 1;
     this.sellMode = false;
+    this.resetShop();
     this.map = new ExpeditionMap(game);
     this.saveTransfer = new SaveTransfer(this);
     document.fonts.ready.then(() => {
@@ -143,6 +144,7 @@ export class UI {
     });
   }
   resetSession() {
+    this.notifications?.clear();
     this.saveTransfer.cancelImport();
     this.interactionPrompt?.remove();
     this.observeInteraction(null);
@@ -156,8 +158,8 @@ export class UI {
     this.inventorySort = 'tier';
     this.inventoryIndex = 0;
     this.inventoryNavigation = null;
-    this.qty = 1;
     this.sellMode = false;
+    this.resetShop();
     this.notice = '';
     this.bindCapture = null;
     document.querySelector('#rewards').replaceChildren();
@@ -289,9 +291,9 @@ export class UI {
       ) {
         this.game.state.settings.keys ??= {};
         this.game.state.settings.keys[this.bindCapture] = k.toLowerCase();
-        this.notice = `${this.bindCapture} is now ${k.toUpperCase()}.`;
+        const message = `${this.bindCapture} bound to ${k.toUpperCase()}.`;
         this.bindCapture = null;
-        this.render();
+        this.feedback({ ok: true, message });
       }
       return true;
     }
@@ -360,6 +362,16 @@ export class UI {
       return true;
     }
     if (k === 'Enter' || k === ' ') {
+      if (
+        !this.menu &&
+        this.isRetailShop() &&
+        document.activeElement?.matches('[data-shop-item]')
+      ) {
+        document.activeElement
+          .querySelector('.shop-trade:not(:disabled)')
+          ?.click();
+        return true;
+      }
       if (this.panel?.type === 'reading' && !this.menu) {
         this.dismissTopLayer();
         return true;
@@ -404,6 +416,12 @@ export class UI {
   // Confirmations sit above the atlas; the atlas can in turn cover a service or
   // a conversation. Dismiss only the visible layer, never a story callback.
   dismissTopLayer() {
+    if (!this.menu && this.isRetailShop() && this.shopQuote) {
+      this.cancelShopQuote();
+      this.game.keys.clear();
+      this.game.audio.sound('back');
+      return true;
+    }
     const restore =
         this.panel?.type === 'confirm' ? this.panel.returnFocus : null,
       scroll = this.panel?.returnScroll;
@@ -456,6 +474,7 @@ export class UI {
     this.render();
   }
   close() {
+    this.resetShop();
     this.panel = null;
     this.notice = '';
     this.game.keys.clear();
@@ -521,14 +540,34 @@ export class UI {
   }
   feedback(r) {
     if (!r) return;
-    this.notice = r.message || '';
-    this.game.rewards(r.rewards || []);
+    if (this.menu && this.tab === 2) {
+      this.notice = r.message || '';
+      this.game.rewards(r.rewards || []);
+    } else {
+      this.notice = '';
+      this.notifications ??= new DialogNotifications(() => {
+        this.root.querySelector('[data-feedback]')?.remove();
+      });
+      const levels = (r.rewards || []).filter((reward) => HEROES[reward.id]);
+      this.notifications.show(
+        {
+          ...r,
+          message: [r.message, ...levels.map((reward) => reward.label)]
+            .filter(Boolean)
+            .join(' · '),
+        },
+        this.feedbackContext(),
+      );
+    }
     this.game.audio.sound(r.ok === false ? 'error' : 'confirm');
     this.render();
   }
+  feedbackContext() {
+    return this.menu ? `menu:${this.tab}` : this.panel || this.game.mode;
+  }
   showVendor(obj) {
-    this.qty = 1;
     this.sellMode = false;
+    this.resetShop();
     this.notice = '';
     this.panel = { type: 'vendor', object: obj };
     this.render();
@@ -540,7 +579,7 @@ export class UI {
   }
   restoreShopRow(action, scroll = 0) {
     const row = [...this.root.querySelectorAll('[data-do]')].find(
-      (el) => el.dataset.do === action,
+      (el) => !el.disabled && el.dataset.do === action,
     );
     if (row) row.focus({ preventScroll: true });
     const body = this.root.querySelector('.atlas-body'),
@@ -549,64 +588,188 @@ export class UI {
       body.scrollTop = typeof scroll === 'number' ? scroll : scroll.body || 0;
     if (pack && typeof scroll === 'object') pack.scrollTop = scroll.pack || 0;
   }
-  requestPurchase(id) {
-    const s = this.game.state,
-      it = ITEMS[id],
-      vendor = this.panel;
+  isRetailShop() {
+    return (
+      this.panel?.type === 'vendor' &&
+      !!SERVICES[this.panel.object.service || 'provisions']?.shop
+    );
+  }
+  resetShop() {
+    this.shopQuote = null;
+    this.shopContext = null;
+    this.shopQuantities = {};
+    this.shopNavigation = null;
+  }
+  syncShopContext() {
+    const previous = this.shopContext;
+    if (!this.isRetailShop()) {
+      this.resetShop();
+      return false;
+    }
+    const context = {
+      panel: this.panel,
+      state: this.game.state,
+      region: this.game.state.region,
+      service: this.panel.object.service || 'provisions',
+      mode: this.sellMode ? 'sell' : 'buy',
+    };
     if (
-      !it ||
-      vendor?.type !== 'vendor' ||
-      !SERVICES[vendor.object.service || 'provisions']?.shop
+      !previous ||
+      Object.keys(context).some((key) => context[key] !== previous[key])
+    ) {
+      this.resetShop();
+      this.shopContext = context;
+    }
+    const quote = this.shopQuote;
+    if (
+      quote &&
+      (quote.quantity !== this.shopQuantity(quote.id) ||
+        quote.total !== this.shopTotal(quote.id, quote.quantity) ||
+        !this.shopTradeAvailable(quote.id, quote.quantity))
+    )
+      this.shopQuote = null;
+    return true;
+  }
+  shopQuantity(id) {
+    const max = this.sellMode ? this.game.state.inventory[id] || 0 : 99;
+    return Math.max(1, Math.min(max, this.shopQuantities?.[id] || 1));
+  }
+  shopTotal(id, quantity = this.shopQuantity(id)) {
+    const item = ITEMS[id];
+    return this.sellMode
+      ? P.sellPrice(id) * quantity
+      : Math.ceil(
+          item.price *
+            quantity *
+            (this.game.state.flags.mara_trade_route ? 0.85 : 1),
+        );
+  }
+  shopTradeAvailable(id, quantity = this.shopQuantity(id)) {
+    if (
+      !this.isRetailShop() ||
+      !ITEMS[id] ||
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      (!this.sellMode && quantity > 99)
+    )
+      return false;
+    const state = this.game.state,
+      service = this.panel.object.service || 'provisions',
+      item = ITEMS[id];
+    if (!P.serviceAvailable(state, service)) return false;
+    return this.sellMode
+      ? !item.unique && item.price > 0 && (state.inventory[id] || 0) >= quantity
+      : P.serviceStock(state, service, state.region).includes(id) &&
+          state.resources.ore >= this.shopTotal(id, quantity);
+  }
+  refreshShopCard(id, action) {
+    const scroll = this.root.querySelector('.atlas-body')?.scrollTop || 0;
+    this.render();
+    this.restoreShopRow(action, scroll);
+    const target = [...this.root.querySelectorAll('[data-do]')].find(
+      (el) => !el.disabled && el.dataset.do === action,
+    );
+    // A completed purchase may disable its controls; keep focus on its receipt.
+    if (!target) {
+      const card = this.root.querySelector(`[data-shop-item="${id}"]`);
+      (card?.querySelector('.shop-trade:not(:disabled)') || card)?.focus({
+        preventScroll: true,
+      });
+    }
+  }
+  changeShopQuantity(id, direction) {
+    if (!this.syncShopContext() || !ITEMS[id]) return;
+    const quantity = this.shopQuantity(id),
+      next = quantity + (direction === 'up' ? 1 : -1);
+    if (
+      next < 1 ||
+      (!this.sellMode && next > 99) ||
+      !this.shopTradeAvailable(id, 1)
     )
       return;
-    const quantity = this.qty,
-      cost = Math.ceil(
-        it.price * quantity * (s.flags.mara_trade_route ? 0.85 : 1),
-      ),
-      returnFocus = 'buy:' + id,
-      returnScroll = this.root.querySelector('.atlas-body')?.scrollTop || 0;
-    this.confirm(
-      'Buy ' + it.name + '?',
-      `Spend ${fmt(cost)} ore for ${quantity} ${it.name}.`,
-      () => {
-        this.panel = vendor;
-        const currentCost = Math.ceil(
-          it.price * quantity * (s.flags.mara_trade_route ? 0.85 : 1),
+    if (direction === 'up' && !this.shopTradeAvailable(id, next)) return;
+    this.shopQuantities[id] = next;
+    this.shopQuote = null;
+    this.refreshShopCard(id, `shop-qty:${id}:${direction}`);
+  }
+  requestPurchase(id) {
+    this.requestShopTrade(id, 'buy');
+  }
+  requestShopTrade(id, mode, all = false) {
+    if (!this.syncShopContext() || this.shopContext.mode !== mode) return;
+    const quantity =
+      all && mode === 'sell'
+        ? this.game.state.inventory[id] || 0
+        : this.shopQuantity(id);
+    if (!this.shopTradeAvailable(id, quantity)) return;
+    this.shopQuantities[id] = quantity;
+    this.shopQuote = {
+      ...this.shopContext,
+      id,
+      quantity,
+      total: this.shopTotal(id, quantity),
+    };
+    this.refreshShopCard(id, 'shop-confirm:' + id);
+  }
+  cancelShopQuote() {
+    const quote = this.shopQuote;
+    if (!quote) return;
+    this.shopQuote = null;
+    this.refreshShopCard(quote.id, quote.mode + ':' + quote.id);
+  }
+  confirmShopTrade(id) {
+    const quote = this.shopQuote;
+    if (!quote || quote.id !== id) return;
+    this.shopQuote = null;
+    if (!this.syncShopContext()) return;
+    const cards = [...this.root.querySelectorAll('[data-shop-item]')],
+      cardIndex = cards.findIndex((card) => card.dataset.shopItem === id),
+      neighbors = [
+        ...cards.slice(cardIndex + 1),
+        ...cards.slice(0, cardIndex).reverse(),
+      ].map((card) => card.dataset.shopItem);
+    let result;
+    if (
+      Object.keys(this.shopContext).some(
+        (key) => quote[key] !== this.shopContext[key],
+      ) ||
+      quote.quantity !== this.shopQuantity(id)
+    )
+      result = {
+        ok: false,
+        message: 'Selection changed. Choose the item again.',
+      };
+    else if (quote.total !== this.shopTotal(id, quote.quantity))
+      result = { ok: false, message: 'Price changed. Review the new total.' };
+    else if (!this.shopTradeAvailable(id, quote.quantity))
+      result = { ok: false, message: 'This trade is no longer available.' };
+    else
+      result = this.sellMode
+        ? P.sell(this.game.state, id, quote.quantity)
+        : P.buy(this.game.state, id, quote.quantity);
+    if (result.ok) this.game.checkpoint();
+    const scroll = this.root.querySelector('.atlas-body')?.scrollTop || 0;
+    this.feedback(result);
+    this.restoreShopRow(quote.mode + ':' + id, scroll);
+    const card = this.root.querySelector(`[data-shop-item="${id}"]`);
+    if (
+      card &&
+      !card.querySelector(`[data-do="${quote.mode}:${id}"]:not(:disabled)`)
+    )
+      (card.querySelector('button:not(:disabled)') || card).focus({
+        preventScroll: true,
+      });
+    if (!card) {
+      for (const neighbor of neighbors) {
+        const next = this.root.querySelector(
+          `[data-shop-item="${neighbor}"] .shop-trade:not(:disabled)`,
         );
-        let result;
-        if (
-          !P.serviceAvailable(s, vendor.object.service || 'provisions') ||
-          !P.serviceStock(
-            s,
-            vendor.object.service || 'provisions',
-            s.region,
-          ).includes(id)
-        )
-          result = {
-            ok: false,
-            message: 'This item is no longer available here.',
-          };
-        else if (currentCost !== cost)
-          result = {
-            ok: false,
-            message: 'The price changed. Review the new total before buying.',
-          };
-        else result = P.buy(s, id, quantity);
-        this.feedback(result);
-        this.restoreShopRow(returnFocus, returnScroll);
-      },
-      {
-        eyebrow: 'PURCHASE',
-        cancelLabel: 'Cancel',
-        confirmLabel: `Buy · ${fmt(cost)} ore`,
-        purchase: { id, quantity, cost },
-        returnFocus,
-        returnScroll,
-      },
-    );
-    this.root
-      .querySelector('[data-do="confirm-yes"]')
-      ?.focus({ preventScroll: true });
+        if (next) {
+          next.focus({ preventScroll: true });
+          break;
+        }
+      }
+    }
   }
   confirmItemUse(use, run, labels = {}) {
     this.confirm(
@@ -692,6 +855,13 @@ export class UI {
       h = s.heroes[this.hero] || s.heroes[0];
     g.audio.sound('select');
     switch (act) {
+      case 'dismiss-feedback': {
+        const focused =
+          document.activeElement?.dataset?.do === 'dismiss-feedback';
+        this.notifications?.clear();
+        if (focused) this.focus();
+        return;
+      }
       case 'new':
         if (latestSave() !== null)
           this.confirm(
@@ -726,6 +896,7 @@ export class UI {
       case 'hero':
         this.hero = +arg;
         this.notice = '';
+        this.notifications?.clear();
         this.inventoryNavigation = null;
         this.render();
         break;
@@ -829,10 +1000,12 @@ export class UI {
         break;
       case 'save':
         if (g.save(arg)) {
-          this.notice = g.devTools?.worldPreviewActive
-            ? 'Real expedition recorded; world preview remains temporary.'
-            : 'Expedition recorded.';
-          this.render();
+          this.feedback({
+            ok: true,
+            message: g.devTools?.worldPreviewActive
+              ? 'Real expedition saved; preview is temporary.'
+              : 'Expedition saved.',
+          });
         }
         break;
       case 'export-save':
@@ -856,8 +1029,7 @@ export class UI {
             this.panel = this.confirmReturn;
             try {
               deleteSave(arg);
-              this.notice = 'Record erased.';
-              this.render();
+              this.feedback({ ok: true, message: 'Record erased.' });
             } catch (e) {
               this.feedback({
                 ok: false,
@@ -893,7 +1065,6 @@ export class UI {
         break;
       case 'rebind':
         this.bindCapture = arg;
-        this.notice = `Press a new key for ${arg}. Menu and confirmation keys remain reserved.`;
         this.render();
         break;
       case 'map-zoom':
@@ -947,42 +1118,52 @@ export class UI {
         g.checkpoint();
         break;
       }
-      case 'qty':
-        this.qty = Math.max(
-          1,
-          Math.min(10, this.qty + (arg === 'up' ? 1 : -1)),
-        );
-        this.render();
+      case 'shop-qty':
+        this.changeShopQuantity(arg, target);
+        break;
+      case 'shop-confirm':
+        this.confirmShopTrade(arg);
+        break;
+      case 'shop-cancel':
+        this.cancelShopQuote();
         break;
       case 'trade-mode':
-        if (
-          this.panel?.type !== 'vendor' ||
-          !SERVICES[this.panel.object.service || 'provisions']?.shop
-        )
-          break;
+        if (!this.isRetailShop()) break;
         this.sellMode = !this.sellMode;
+        this.syncShopContext();
         this.render();
         break;
       case 'buy':
         this.requestPurchase(arg);
         break;
       case 'sell':
-        if (
-          this.panel?.type !== 'vendor' ||
-          !SERVICES[this.panel.object.service || 'provisions']?.shop
-        )
-          break;
-        this.feedback(
-          P.sell(s, arg, Math.min(this.qty, s.inventory[arg] || 0)),
-        );
+        this.requestShopTrade(arg, 'sell');
         break;
-      case 'rest':
-        this.feedback(P.rest(s));
+      case 'sell-all':
+        this.requestShopTrade(arg, 'sell', true);
+        break;
+      case 'rest': {
+        const before = s.resources.food;
+        const result = P.rest(s);
+        this.feedback({
+          ...result,
+          message: `Crew restored · ${before > s.resources.food ? '−' + fmt(before - s.resources.food) + ' food' : 'Free rest'}`,
+        });
         g.checkpoint();
         break;
-      case 'train':
-        this.feedback(P.train(s));
+      }
+      case 'train': {
+        const result = P.train(s);
+        this.feedback(
+          result.ok
+            ? {
+                ...result,
+                message: `Training complete · +${fmt(300 + s.tier * 100)} XP · −30 food / −20 energy`,
+              }
+            : result,
+        );
         break;
+      }
       case 'research':
         this.feedback(P.research(s));
         break;
@@ -1004,9 +1185,24 @@ export class UI {
     footer = '↑ ↓ Navigate &nbsp; <kbd>PgUp/Dn</kbd> Scroll &nbsp; <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm &nbsp; <kbd>Esc</kbd>/<kbd>Backspace</kbd> Return',
     tabs = false,
   ) {
-    return `<div class="scrim"></div><section class="atlas ${this.panel?.type === 'vendor' && !SERVICES[this.panel.object.service || 'provisions']?.shop ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}"><header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}</header>${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${this.notice ? `<div class="notice" role="status">${esc(this.notice)}</div>` : ''}${body}</div><footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
+    const retail = this.isRetailShop(),
+      serviceHeader =
+        this.panel?.type === 'vendor' &&
+        !SERVICES[this.panel.object.service]?.inactive,
+      shopHeader = serviceHeader
+        ? `<header class="atlas-header shop-header"><strong>${retail ? (this.sellMode ? 'Sell from pack' : 'Shop') : 'Services'}</strong><div class="shop-resources" aria-label="Available resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="shop-resource${id === 'ore' ? ' shop-resource-ore' : ''}" aria-label="${fmt(this.game.state.resources[id])} ${id}">${icon(id)}<span>${fmt(this.game.state.resources[id])}<small>${id}</small></span></span>`).join('')}</div></header>`
+        : '';
+    return `<div class="scrim"></div><section class="atlas ${this.panel?.type === 'vendor' && !SERVICES[this.panel.object.service || 'provisions']?.shop ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}">${serviceHeader ? shopHeader : `<header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}</header>`}${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${body}</div>${notificationMarkup(this.notifications)}<footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
   }
   render() {
+    const surface = this.feedbackContext();
+    this.notifications?.retain(surface);
+    const panelScroll =
+      this.renderedSurface === surface
+        ? this.root.querySelector('.atlas-body')?.scrollTop
+        : null;
+    if (this.menu || !this.isRetailShop()) this.resetShop();
+    else this.syncShopContext();
     if (!this.menu || this.tab !== 5) this.saveTransfer.cancelImport();
     const shopScroll =
       this.panel?.type === 'vendor' &&
@@ -1020,15 +1216,15 @@ export class UI {
         body: previousPage.scrollTop,
         pack: this.root.querySelector('.exp-pack-items')?.scrollTop || 0,
       };
-    const g = this.game,
-      s = g.state;
+    const g = this.game;
     const prev = document.activeElement?.dataset?.do;
+    const previousIndex = this.focusables().indexOf(document.activeElement);
     this.hud.style.display =
       g.mode === 'title' || this.menu || g.mode === 'battle' ? 'none' : '';
     let html = '';
     if (this.panel?.type === 'confirm') {
       const p = this.panel;
-      html = `<div class="scrim"></div><section class="modal ${p.purchase || p.consumable ? 'purchase-confirm' : ''}" role="dialog" aria-modal="true" aria-label="${esc(p.title)}"><div class="eyebrow">${esc(p.eyebrow || 'FIELD RECORD')}</div><h2>${esc(p.title)}</h2>${p.purchase ? `<div class="purchase-item">${icon(p.purchase.id)}<span>${esc(ITEMS[p.purchase.id].name)}<b>×${fmt(p.purchase.quantity)}</b></span></div><div class="purchase-cost"><span>Spend</span>${icon('ore')}<strong>${fmt(p.purchase.cost)} ore</strong><small>${fmt(s.resources.ore)} available</small></div>` : `<p>${esc(p.text)}</p>`}${p.saveImport ? `<label class="save-import-option"><input type="checkbox" data-load-after-import ${p.saveImport.loadImmediately ? 'checked' : ''} aria-describedby="save-import-load-note"><span>After import, load immediately</span></label><small class="save-import-note" id="save-import-load-note">Loading replaces your current unsaved progress. Leave unchecked to keep playing your current expedition.</small>` : ''}<div class="button-group">${button(esc(p.cancelLabel || 'Keep exploring'), 'confirm-no')}${button(esc(p.confirmLabel || 'Confirm'), 'confirm-yes', 'button danger')}</div></section>`;
+      html = `<div class="scrim"></div><section class="modal ${p.consumable ? 'purchase-confirm' : ''}" role="dialog" aria-modal="true" aria-label="${esc(p.title)}"><div class="eyebrow">${esc(p.eyebrow || 'FIELD RECORD')}</div><h2>${esc(p.title)}</h2><p>${esc(p.text)}</p>${p.saveImport ? `<label class="save-import-option"><input type="checkbox" data-load-after-import ${p.saveImport.loadImmediately ? 'checked' : ''} aria-describedby="save-import-load-note"><span>After import, load immediately</span></label><small class="save-import-note" id="save-import-load-note">Loading replaces your current unsaved progress. Leave unchecked to keep playing your current expedition.</small>` : ''}<div class="button-group">${button(esc(p.cancelLabel || 'Keep exploring'), 'confirm-no')}${button(esc(p.confirmLabel || 'Confirm'), 'confirm-yes', 'button danger')}</div></section>`;
     } else if (this.menu) html = this.renderMenu();
     else if (this.panel?.type === 'reading') {
       const p = this.panel;
@@ -1049,7 +1245,11 @@ export class UI {
     else if (this.panel?.type === 'ending') html = this.renderEnding();
     else if (g.mode === 'title') html = this.renderTitle();
     this.map.unmount();
-    this.root.innerHTML = html;
+    this.root.innerHTML =
+      html +
+      (html.includes('data-feedback')
+        ? ''
+        : notificationMarkup(this.notifications));
     this.paint();
     if (this.menu && this.tab === 0) {
       const c = this.root.querySelector('#atlas-map');
@@ -1079,7 +1279,14 @@ export class UI {
       )?.focus({ preventScroll: true });
     else if (this.menu && this.tab === 0 && this.map.canvas)
       this.map.focusSelected();
-    else if (html) this.focus(this.menu ? 7 : 0);
+    else if (html)
+      this.focus(
+        this.renderedSurface === surface && previousIndex >= 0
+          ? Math.min(previousIndex, this.focusables().length - 1)
+          : this.menu
+            ? 7
+            : 0,
+      );
     if (this.menu && this.root.querySelector('.exp-page')) {
       this.renderedMenuTab = this.tab;
       this.restoreShopRow(
@@ -1089,6 +1296,11 @@ export class UI {
     }
     if (shopScroll != null)
       this.root.querySelector('.atlas-body').scrollTop = shopScroll;
+    if (panelScroll != null) {
+      const body = this.root.querySelector('.atlas-body');
+      if (body) body.scrollTop = panelScroll;
+    }
+    this.renderedSurface = surface;
     this.updateHUD();
   }
   renderTitle() {
@@ -1283,14 +1495,16 @@ export class UI {
     ]
       .map(([id, key]) =>
         button(
-          `${id}<small>${esc((s.keys?.[id] || key).toUpperCase())}</small>`,
+          `${id}<small>${this.bindCapture === id ? 'Press a key…' : esc((s.keys?.[id] || key).toUpperCase())}</small>`,
           'rebind:' + id,
-          'button quiet',
+          'button quiet rebind-control',
+          `aria-pressed="${this.bindCapture === id}"`,
         ),
       )
       .join('')}</div></div><div>${this.controls()}</div></div>`;
   }
   renderVendor() {
+    this.syncShopContext();
     const s = this.game.state,
       o = this.panel.object,
       service = o.service || 'provisions',
@@ -1315,7 +1529,7 @@ export class UI {
           ? Object.keys(s.inventory).filter((id) => s.inventory[id] > 0)
           : P.serviceStock(s, service, s.region)
       ).filter((id) => ITEMS[id]);
-      body += `<div class="shop-toolbar"><div class="button-group">${button(this.sellMode ? 'Sell from pack' : 'Buy supplies', 'trade-mode', 'button quiet', 'aria-label="' + (this.sellMode ? 'Selling from pack; switch to buying' : 'Buying supplies; switch to selling') + '"')}${button('−', 'qty:down', 'button quiet', 'aria-label="Decrease quantity"')}<span class="shop-quantity">Quantity <b>${this.qty}</b></span>${button('+', 'qty:up', 'button quiet', 'aria-label="Increase quantity"')}</div><span class="shop-balance">${fmt(s.resources.ore)} ore available</span></div>`;
+      body += `<div class="shop-toolbar">${button(this.sellMode ? 'Buy supplies' : 'Sell from pack', 'trade-mode', 'button quiet')}</div>`;
       for (const [type, name] of [
         ['weapon', 'Weapons'],
         ['armor', 'Armor'],
@@ -1332,14 +1546,13 @@ export class UI {
           .map((id) => {
             const it = ITEMS[id],
               owned = s.inventory[id] || 0,
-              quantity = this.sellMode ? Math.min(this.qty, owned) : this.qty,
-              unit = this.sellMode
-                ? Math.max(1, Math.floor(it.price * 0.45))
-                : it.price * (s.flags.mara_trade_route ? 0.85 : 1),
-              total = this.sellMode
-                ? unit * quantity
-                : Math.ceil(unit * quantity),
+              quantity = this.shopQuantity(id),
+              total = this.shopTotal(id, quantity),
               locked = this.sellMode && (it.unique || it.price <= 0),
+              unaffordable = !this.sellMode && s.resources.ore < total,
+              unavailable = locked || !this.shopTradeAvailable(id, 1),
+              pending = this.shopQuote?.id === id,
+              action = this.sellMode ? 'sell' : 'buy',
               owner = weaponOwner(id),
               recipient = canEquip(hero.id, id)
                 ? hero
@@ -1358,14 +1571,16 @@ export class UI {
               .filter((d) => d.n !== 0);
             const comparison =
               !this.sellMode && type !== 'consumable' && recipient
-                ? `<span class="shop-comparison"><span>vs ${esc(recipient.name)}</span>${changes.length ? changes.map((d) => `<span class="${d.n > 0 ? 'gain' : 'loss'}">${esc(d.label)} ${d.n > 0 ? '+' : ''}${d.n}</span>`).join('') : '<span>No stat change</span>'}</span>`
+                ? `<span class="shop-comparison"><span>vs ${esc(recipient.name)} · ${esc(old?.name || 'Empty slot')}</span>${changes.length ? changes.map((d) => `<span class="${d.n > 0 ? 'gain' : 'loss'}">${esc(d.label)} ${d.n > 0 ? '+' : ''}${d.n}</span>`).join('') : `<span>${recipient.equip[it.slot] === id ? 'Equipped' : 'No stat change'}</span>`}</span>`
                 : '';
-            return button(
-              `<span class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${tierBadge(it.tier)}${owner ? `<small>${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}</span><span class="shop-owned">Own ${fmt(owned)}</span></span><span class="shop-description">${esc(it.description)}</span>${comparison}<span class="shop-card-action"><span>${locked ? 'Keepsake' : `${this.sellMode ? 'Sell' : 'Buy'} ×${quantity}`}</span><strong>${locked ? 'Cannot sell' : `${fmt(total)} ore`}</strong></span>`,
-              (this.sellMode ? 'sell:' : 'buy:') + id,
-              'shop-card',
-              `data-tier="${it.tier}" ${locked ? 'disabled' : ''}`,
-            );
+            return `<article class="shop-card${locked || unaffordable ? ' shop-card-unavailable' : ''}${pending ? ' shop-card-confirming' : ''}" data-shop-item="${id}" data-tier="${it.tier}" tabindex="-1" aria-label="${esc(it.name)}">
+              <div class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${tierBadge(it.tier)}${owner ? `<small>${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}</span><span class="shop-owned">Own ${fmt(owned)}</span></div>
+              <div class="shop-description">${esc(it.description)}</div>${comparison}
+              <div class="shop-card-action">
+                <div class="shop-card-controls"><div class="shop-quantity" role="group" aria-label="${esc(it.name)} quantity">${button('−', `shop-qty:${id}:down`, 'button quiet', `aria-label="Decrease ${esc(it.name)} quantity" ${unavailable || quantity <= 1 ? 'disabled' : ''}`)}<span aria-label="Quantity ${quantity}">×${quantity}</span>${button('+', `shop-qty:${id}:up`, 'button quiet', `aria-label="Increase ${esc(it.name)} quantity" ${unavailable || !this.shopTradeAvailable(id, quantity + 1) ? 'disabled' : ''}`)}</div><span class="shop-price"><strong>${locked ? 'Cannot sell' : `${fmt(total)} ore`}</strong>${this.sellMode && !locked ? `<small>${fmt(P.sellPrice(id))} ore each</small>` : ''}</span></div>
+                <div class="shop-card-buttons">${button(pending ? 'Confirm' : locked ? 'Keepsake' : this.sellMode ? 'Sell' : 'Buy', (pending ? 'shop-confirm:' : action + ':') + id, 'button shop-trade' + (pending ? ' primary' : ''), `aria-label="${pending ? 'Confirm ' : ''}${action} ${quantity} ${esc(it.name)} for ${fmt(total)} ore" ${locked || unaffordable ? 'disabled' : ''}`)}${this.sellMode && !pending ? button('Sell All', 'sell-all:' + id, 'button quiet', `aria-label="Sell all ${owned} unequipped ${esc(it.name)} for ${fmt(P.sellPrice(id) * owned)} ore" ${unavailable ? 'disabled' : ''}`) : button('Cancel', 'shop-cancel:' + id, 'button quiet shop-cancel', pending ? '' : 'disabled aria-hidden="true"')}</div>
+              </div>
+            </article>`;
           })
           .join('')}</div></section>`;
       }
@@ -1414,12 +1629,13 @@ export class UI {
         BUILDINGS,
       )
         .map((b) => {
-          const n = s.buildings[b.id] || 0;
+          const n = s.buildings[b.id] || 0,
+            status = P.buildingEligibility(s, b.id);
           return button(
-            `${icon(b.id)}<span class="item-name">${b.name} <span class="teal">${n ? 'LV ' + n : 'Unbuilt'}</span><small>${esc(b.description || b.benefit || '')}<br>${n >= 4 ? 'Fully developed' : costText(P.buildingCost(s, b.id))}</small></span><span class="price">${n >= 4 ? 'Complete' : n ? 'Upgrade' : 'Build'}</span>`,
+            `${icon(b.id)}<span class="item-name">${b.name} <span class="teal">${n ? 'LV ' + n : 'Unbuilt'}</span><small>${esc(b.description || b.benefit || '')}<br>${n >= 4 ? 'Fully developed' : costText(status.cost)}</small><small class="build-requirement">${esc(status.reason || 'Available')}</small></span><span class="price">${n >= 4 ? 'Complete' : n ? 'Upgrade' : 'Build'}</span>`,
             'build:' + b.id,
             'list-button',
-            n >= 4 ? 'disabled' : '',
+            status.eligible ? '' : 'disabled',
           );
         })
         .join(

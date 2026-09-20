@@ -29,6 +29,12 @@ The seven expedition tabs are Map, Party, Inventory, Skills, Quests, Save and Se
 
 World HUD, shops, conversations and combat use compact neutral near-black surfaces. Lava orange (`#df702e`) identifies focus and active actions. Maintain readable text, modest spacing and keyboard access. Place vendor-specific actions beside the vendor introduction with a concise explanation and actual completion progress. Show benefits and exact costs before a purchase.
 
+Retail item cards own their quantity controls, total price, and inline Buy/Sell confirmation. Keep the action area stable when switching to Confirm/Cancel. Unaffordable purchases are greyed out and skipped by keyboard navigation; reducing an excessive quantity remains possible. Keep the current ore balance visible in the shop header above the dimmed world. Transaction results use a toast that does not move the shop contents or steal focus.
+
+In Sell mode, place Sell All beside Sell on each card. It selects that item's full unequipped stack and replaces the same buttons with Confirm/Cancel; show the exact quantity, total proceeds, and per-item resale value before payment.
+
+Use the same floating result toast for services, construction, civilization advancement, Skills, Save, and Settings. Successes fade; failures remain until dismissed or the panel is left. Replace repeated results instead of stacking them, and combine XP and level-ups into one training result. Keep requirements beside disabled actions and resource balances visible within service panels. Key capture replaces its binding label; no notification belongs above the scrolling page. Rest leaves its panel open. Inventory retains its existing reserved status area.
+
 Interaction prompts follow their world object and stay within the viewport. Signs use a text reader without inventing a speaker portrait. Esc/Backspace dismiss the top reading layer without firing a choice or continuation callback; a suspended ending retains its place.
 
 Battle commands fold through character, action, target and timing. Completed choices remain recoverable with Left. Use the authoritative combat state for readiness, costs and targets. Timing cues turn orange only during the input window; reduced motion uses a steady cue. Reward notices share one compact queue with clear icons and quantities.

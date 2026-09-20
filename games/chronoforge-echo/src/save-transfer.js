@@ -31,11 +31,13 @@ export class SaveTransfer {
       link.click();
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      ui.notice =
-        'Exported ' +
-        (slot === 'checkpoint' ? 'autosave' : 'field record ' + slot) +
-        '. Import this file in your other browser or game URL.';
-      ui.render();
+      ui.feedback({
+        ok: true,
+        message:
+          'Exported ' +
+          (slot === 'checkpoint' ? 'autosave' : 'field record ' + slot) +
+          '.',
+      });
       ui.restoreShopRow('export-save:' + slot, ui.menuScroll[5] || 0);
     } catch (error) {
       ui.feedback({ ok: false, message: 'Could not export: ' + error.message });
@@ -114,13 +116,14 @@ export class SaveTransfer {
       ui.panel = previous;
       try {
         importSave(record, slot);
-        ui.game.audio.sound('confirm');
         if (saveImport.loadImmediately) {
           ui.game.load(slot);
           return;
         }
-        ui.notice = `Imported into ${label}. Choose Load on that row to resume it.`;
-        ui.render();
+        ui.feedback({
+          ok: true,
+          message: `Imported into ${label}. Choose Load to resume.`,
+        });
         ui.restoreShopRow('load:' + slot, scroll);
       } catch (error) {
         ui.feedback({

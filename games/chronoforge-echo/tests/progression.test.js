@@ -15,6 +15,7 @@ import {
   production,
   buy,
   sell,
+  sellPrice,
   futureEligibility,
   applyRewards,
   useItem,
@@ -133,6 +134,34 @@ test('equipment transfers preserve ownership; selling never sells equipped copie
   assert.equal(sell(s, 'iron_blade', 0.5).ok, false);
   s.inventory.namekeeper = 1;
   assert.equal(sell(s, 'namekeeper').ok, false);
+});
+test('resale rewards higher equipment tiers without making discounted trade profitable', () => {
+  assert.deepEqual(
+    ['iron_blade', 'signal_saber', 'magma_blade', 'horizon_edge'].map(
+      sellPrice,
+    ),
+    [13, 40, 85, 156],
+  );
+  assert.equal(sellPrice('field_tonic'), 3);
+  assert.equal(sellPrice('tide_elixir'), 9);
+  assert.equal(sellPrice('namekeeper'), 0);
+  assert.equal(sellPrice('missing'), 0);
+  for (const item of Object.values(ITEMS).filter(
+    (i) => !i.unique && i.price > 0,
+  )) {
+    const state = createState();
+    state.tier = 4;
+    state.resources.ore = 9999;
+    state.flags.mara_trade_route = true;
+    state.inventory = {};
+    assert.equal(buy(state, item.id, 3).ok, true);
+    const paid = 9999 - state.resources.ore;
+    assert.ok(sellPrice(item.id) * 3 < paid, item.name);
+    const before = state.resources.ore;
+    assert.equal(sell(state, item.id, 3).ok, true);
+    assert.equal(state.resources.ore - before, sellPrice(item.id) * 3);
+    assert.equal(state.inventory[item.id], 0);
+  }
 });
 test('equipment stat changes clamp health and consumables cannot duplicate', () => {
   const s = createState(),

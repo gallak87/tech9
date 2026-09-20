@@ -51,14 +51,14 @@ try {
   await page.goto(process.env.ECHO_URL || 'http://127.0.0.1:4321/?test=1');
   await page.waitForFunction(() => window.__ECHO_READY__);
   await shop();
-  await action('qty:up');
-  await action('qty:up');
+  await action('shop-qty:field_tonic:up');
+  await action('shop-qty:field_tonic:up');
   const initial = await read();
   await page.locator('[data-do="buy:field_tonic"]').focus();
   await page.keyboard.down('Enter');
-  assert.equal((await read()).panel, 'confirm');
+  assert.equal((await read()).panel, 'vendor');
   assert.equal((await read()).ore, initial.ore);
-  assert.equal((await read()).focus, 'confirm-yes');
+  assert.equal((await read()).focus, 'shop-confirm:field_tonic');
   await page.keyboard.down('Enter');
   await page.waitForTimeout(200);
   assert.equal(
@@ -66,12 +66,15 @@ try {
     initial.ore,
     'Held opening Enter must not transact',
   );
+  const tonicCard = page.locator('[data-shop-item="field_tonic"]');
+  assert.match(await tonicCard.locator('.shop-quantity').innerText(), /×3/);
   assert.match(
-    await page.locator('.purchase-item').innerText(),
-    /Field Tonic\s*×3/,
+    await tonicCard.locator('.shop-card-controls strong').innerText(),
+    /24 ore/,
   );
-  assert.match(await page.locator('.purchase-cost').innerText(), /24 ore/);
-  await capture('purchase-confirm');
+  assert.equal(await page.locator('.modal.purchase-confirm').count(), 0);
+  const cardBeforePurchase = await tonicCard.boundingBox();
+  await capture('purchase-inline-confirm');
   await page.keyboard.up('Enter');
   await page.keyboard.press('Escape');
   assert.equal((await read()).panel, 'vendor');
@@ -83,12 +86,18 @@ try {
   assert.equal(after.ore, initial.ore - 24);
   assert.equal(after.inventory.field_tonic, initial.inventory.field_tonic + 3);
   assert.equal(after.focus, 'buy:field_tonic');
+  assert.match(
+    await page.locator('.ui-toast').innerText(),
+    /Bought 3 Field Tonic/,
+  );
+  assert.deepEqual(await tonicCard.boundingBox(), cardBeforePurchase);
   report.checks.push({
-    name: 'Purchase fresh Enter, held-key prevention, exact quantity/cost, Escape focus restoration',
+    name: 'Inline purchase fresh Enter, held-key prevention, per-card quantity/cost, Escape focus restoration and stable toast layout',
     pass: true,
   });
   await page.keyboard.down(' ');
-  assert.equal((await read()).panel, 'confirm');
+  assert.equal((await read()).panel, 'vendor');
+  assert.equal((await read()).focus, 'shop-confirm:field_tonic');
   await page.keyboard.down(' ');
   assert.equal((await read()).ore, after.ore);
   await page.keyboard.up(' ');
@@ -99,13 +108,16 @@ try {
     pass: true,
   });
   await page.locator('[data-do="buy:field_tonic"]').click();
-  await page.locator('[data-do="confirm-no"]').click();
+  await page.locator('[data-do="shop-cancel:field_tonic"]').click();
   assert.equal((await read()).focus, 'buy:field_tonic');
   await page.evaluate(
     () => (window.__ECHO__.game.state.flags.mara_trade_route = true),
   );
   await action('buy:field_tonic');
-  assert.match(await page.locator('.purchase-cost').innerText(), /21 ore/);
+  assert.match(
+    await tonicCard.locator('.shop-card-controls strong').innerText(),
+    /21 ore/,
+  );
   const discounted = await read();
   await page.keyboard.press('Enter');
   assert.equal((await read()).ore, discounted.ore - 21);
@@ -114,15 +126,29 @@ try {
   await page.evaluate(() => (window.__ECHO__.game.state.resources.ore = 0));
   await page.keyboard.press('Enter');
   assert.deepEqual((await read()).inventory, inventory);
-  assert.match(await page.locator('.notice').innerText(), /Requires 21 ore/);
-  await page.evaluate(() => (window.__ECHO__.game.state.resources.ore = 100));
+  assert.match(
+    await page.locator('.ui-toast').innerText(),
+    /This trade is no longer available/,
+  );
+  assert.equal(
+    await page.locator('[data-do="buy:field_tonic"]').isDisabled(),
+    true,
+  );
+  await page.evaluate(() => {
+    const g = window.__ECHO__.game;
+    g.state.resources.ore = 100;
+    g.ui.render();
+  });
   await action('buy:field_tonic');
   await page.evaluate(
     () => (window.__ECHO__.game.state.flags.mara_trade_route = false),
   );
   await page.keyboard.press('Enter');
   assert.equal((await read()).ore, 100);
-  assert.match(await page.locator('.notice').innerText(), /price changed/i);
+  assert.match(
+    await page.locator('.ui-toast').innerText(),
+    /Price changed\. Review the new total\./,
+  );
   report.checks.push({
     name: 'Mouse cancel, discounted exact total, funds and price revalidated at confirmation',
     pass: true,

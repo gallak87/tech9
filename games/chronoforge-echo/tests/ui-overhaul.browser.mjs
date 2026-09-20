@@ -247,10 +247,7 @@ try {
     0,
     'Confirming the service must not open the menu',
   );
-  assert.match(
-    await page.locator('.notice').innerText(),
-    /crew rests|welcome the crew freely/i,
-  );
+  assert.match(await page.locator('.ui-toast').innerText(), /Crew restored/);
   await page.keyboard.press('Escape');
   assert.equal(await page.locator('[data-do="rest"]').count(), 0);
   await page.evaluate(() =>

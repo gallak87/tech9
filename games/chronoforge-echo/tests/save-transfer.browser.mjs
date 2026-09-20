@@ -134,7 +134,7 @@ const onlyTargetChanged = (before, after, target) => {
 };
 const waitNotice = (page, text) =>
   page.waitForFunction(
-    (text) => document.querySelector('.notice')?.textContent.includes(text),
+    (text) => document.querySelector('.ui-toast')?.textContent.includes(text),
     text,
   );
 const mark = (name, details = {}) => {
@@ -386,7 +386,7 @@ try {
     assert.equal(await active(pageB), 'import-save:2');
     report.checks.push({
       name: 'reject ' + name,
-      message: await pageB.locator('.notice').innerText(),
+      message: await pageB.locator('.ui-toast').innerText(),
     });
   }
   const beforeBadOccupied = await snapshot(pageB);
@@ -475,8 +475,8 @@ try {
     await button(pageB, 'save:2').click();
     await waitNotice(pageB, 'Could not save:');
     assert.doesNotMatch(
-      await pageB.locator('.notice').innerText(),
-      /Expedition recorded/,
+      await pageB.locator('.ui-toast').innerText(),
+      /Expedition saved/,
     );
     assert.deepEqual(await snapshot(pageB), beforeQuota);
   } finally {
@@ -488,7 +488,7 @@ try {
   mark(stage);
   stage = 'normal manual save and erase preserve other rows';
   await button(pageB, 'save:2').click();
-  await waitNotice(pageB, 'Expedition recorded');
+  await waitNotice(pageB, 'Expedition saved');
   const withManual = await snapshot(pageB);
   onlyTargetChanged(beforeQuota, withManual, '2');
   assert.equal((await stored(pageB, '2')).state.region, destination.region);

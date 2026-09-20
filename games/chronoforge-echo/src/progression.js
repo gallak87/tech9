@@ -255,28 +255,36 @@ const affordable = (state, cost) =>
 const pay = (state, cost) => {
   for (const [id, n] of Object.entries(cost)) state.resources[id] -= n;
 };
-export function build(state, id) {
+export function buildingEligibility(state, id) {
   const b = BUILDINGS[id];
-  if (!b) return no('Unknown building.');
+  const cost = buildingCost(state, id);
+  const blocked = (reason) => ({ eligible: false, reason, cost });
+  if (!b) return blocked('Unknown building.');
   if (!state.flags.haventide_liberated && !state.cleared.hav_guard)
-    return no('Liberate Haventide before building.');
-  if (state.tier < b.tier) return no(`Requires ${TIERS[b.tier - 1]}.`);
+    return blocked('Liberate Haventide before building.');
+  if (state.tier < b.tier) return blocked(`Requires ${TIERS[b.tier - 1]}.`);
   const level = state.buildings[id] || 0,
     max = id === 'town_center' ? Math.min(4, state.tier + 1) : state.tier;
   if (level >= max)
-    return no(
+    return blocked(
       level === 4
         ? 'This building is fully developed.'
         : 'Advance civilization to upgrade further.',
     );
-  const cost = buildingCost(state, id);
   if (!affordable(state, cost))
-    return no(
+    return blocked(
       `Needs ${Object.entries(cost)
         .map(([k, n]) => `${n} ${k}`)
         .join(', ')}.`,
     );
-  pay(state, cost);
+  return { eligible: true, reason: '', cost };
+}
+export function build(state, id) {
+  const status = buildingEligibility(state, id);
+  if (!status.eligible) return no(status.reason);
+  const b = BUILDINGS[id],
+    level = state.buildings[id] || 0;
+  pay(state, status.cost);
   state.buildings[id] = level + 1;
   recomputeUnlocks(state);
   return ok(`${b.name} is now level ${level + 1}.`, [
@@ -468,24 +476,34 @@ export function buy(state, itemId, quantity = 1) {
     { id: itemId, label: item.name, amount: quantity },
   ]);
 }
+export function sellPrice(itemId) {
+  const item = ITEMS[itemId];
+  if (!item || item.unique || item.price <= 0) return 0;
+  const percent = item.slot === 'consumable' ? 45 : 45 + (item.tier - 1) * 5;
+  return Math.max(1, Math.floor((item.price * percent) / 100));
+}
 export function sell(state, itemId, quantity = 1) {
   const item = ITEMS[itemId];
   if (!item || !whole(quantity) || quantity > (state.inventory[itemId] || 0))
     return no('Only unequipped items in your pack can be sold.');
   if (item.unique || item.price <= 0)
     return no('This keepsake cannot be sold.');
-  const price = Math.max(1, Math.floor(item.price * 0.45)) * quantity;
+  const price = sellPrice(itemId) * quantity;
   state.inventory[itemId] -= quantity;
   state.resources.ore += price;
   return ok(`Sold ${quantity} ${item.name} for ${price} ore.`, [
     { id: 'ore', label: 'Ore', amount: price },
   ]);
 }
-export function rest(state) {
+export function restCost(state) {
   const cost = state.flags.mara_shelter
     ? 0
     : Math.max(0, 8 - (state.buildings.walls || 0) * 2);
-  if (state.resources.food >= cost) state.resources.food -= cost; // Hospitality remains available if stores run dry.
+  return state.resources.food >= cost ? cost : 0;
+}
+export function rest(state) {
+  const cost = restCost(state);
+  state.resources.food -= cost;
   for (const h of state.heroes) {
     const s = stats(h, state);
     h.hp = s.maxHp;

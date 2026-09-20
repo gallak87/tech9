@@ -55,7 +55,7 @@ try {
   await balance('Kaida', 7);
   await click('hero:1');
   await balance('Vex', 11);
-  assert.equal(await page.locator('.notice').count(), 0);
+  assert.equal(await page.locator('.ui-toast').count(), 0);
   await click('learn:null_field');
   await balance('Vex', 10);
   await click('hero:2');
@@ -65,15 +65,17 @@ try {
   await click('learn:harbor_break');
   await balance('Rune', 8);
   assert.match(
-    await page.locator('.notice').textContent(),
+    await page.locator('.ui-toast').textContent(),
     /Rune learned Harbor Break\. 2 SP spent · 10 → 8 SP\./,
   );
   // A combo belongs to the crew, but the hero who learns it pays once.
   await click('hero:0');
   await balance('Kaida', 7);
-  await click('learn:harbor_break');
+  assert.equal(
+    await page.locator('[data-do="learn:harbor_break"]').isDisabled(),
+    true,
+  );
   await balance('Kaida', 7);
-  assert.match(await page.locator('.notice').textContent(), /already knows/);
   await page.keyboard.press('6');
   await click('save:1');
   const result = await page.evaluate(

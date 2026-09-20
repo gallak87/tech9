@@ -163,7 +163,7 @@ function questRewards(q) {
           renown: 'Renown',
         }[r.id] ||
         r.id;
-      return `<span class="exp-quest-reward" title="${esc(name)} ×${fmt(r.amount)}" aria-label="${esc(name)} ${fmt(r.amount)}">${icon(r.id)}<b>${fmt(r.amount)}</b></span>`;
+      return `<span class="exp-quest-reward" ${ITEMS[r.id] ? `data-tier="${ITEMS[r.id].tier}"` : ''} title="${esc(name)} ×${fmt(r.amount)}" aria-label="${esc(name)} ${fmt(r.amount)}">${icon(r.id)}<b>${fmt(r.amount)}</b>${itemBadges(ITEMS[r.id])}</span>`;
     })
     .join(
       '',

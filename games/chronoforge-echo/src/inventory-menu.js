@@ -96,10 +96,10 @@ function loadout(ui, h) {
               const id = hero.equip[slot],
                 item = ITEMS[id];
               return button(
-                `${item ? icon(id) : '<span>—</span>'}<span>${esc(item?.name || 'Empty slot')}${item?.exotic ? `<small class="item-badges">${itemBadges(item)}</small>` : ''}</span>`,
+                `${item ? icon(id) : '<span>—</span>'}<span>${esc(item?.name || 'Empty slot')}${item ? `<small class="item-badges">${itemBadges(item)}</small>` : ''}</span>`,
                 `inventory-slot:${slot}:${hero.id}`,
                 'exp-inventory-crew-slot',
-                `aria-label="Browse ${slot} for ${esc(hero.name)}; equipped ${esc(item?.name || 'empty slot')}" title="${esc(item?.name || 'Empty slot')}"`,
+                `${item ? `data-tier="${item.tier}" ` : ''}aria-label="Browse ${slot} for ${esc(hero.name)}; equipped ${esc(item?.name || 'empty slot')}" title="${esc(item?.name || 'Empty slot')}"`,
               );
             })
             .join('')}</div></section>`,

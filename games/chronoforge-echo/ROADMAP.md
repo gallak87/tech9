@@ -1,9 +1,11 @@
 # Roadmap
 
-- [x] Separate regional Community Restoration from Haventide’s economic settlement: three local projects each, independent art/progression, optional quest records, and one unique Exotic weapon per hero with hometown reforges at levels 10/20/30. Preserve the caravan arc, ordinary gold gear, and existing saves.
+- [x] Separate regional Community Restoration from Haventide’s economic settlement: three local projects each, independent art/progression, optional quest records, and one unique Exotic weapon per hero with hometown reforges at levels 10/20/30. Preserve the caravan arc, ordinary Transcendent gear, and existing saves.
 - [x] Graduate Community Restoration after the initial player pass (2026-09-19): restoration and the current-level reward are accepted; completed rewards now show a persistent receipt and a direct inventory shortcut.
 - [ ] Continue Community Restoration playtesting during iteration: compare towns at different levels; skip/watch project reveals; reforge while equipped and from the pack; reload autosave and export/import. Check outdoor workstation placement, icon readability, small-window layout, and temporary world-preview feedback.
-- [ ] Apply the agreed equipment color stack consistently across Inventory, Party, shops, rewards, and quests: Survivor uses a 30%-opacity white tint with fully opaque text; Reclaimer green; Ascendant purple; Transcendent blue; Exotic lava-orange. Keep Exotic identity distinct from its upgradeable power band and keep civilization at four tiers.
+- [x] Apply the four existing equipment colors consistently across Inventory, Party, shops, rewards, and quests: Survivor uses a 30%-opacity white tint with fully opaque text; Reclaimer green; Ascendant purple; Transcendent blue.
+- [ ] Give the three community weapons a persistent lava-orange outline/tint and a single power-band badge.
+- [ ] Add an explicit level-40 reforge to Exotic for community weapons only; cap initial gifts at Transcendent and retain four civilization tiers.
 - [ ] Tune regional project costs and Exotic stat tradeoffs after playtesting; keep all three arcs optional and Haventide the sole passive-income settlement.
 - [ ] Revisit broader quest completion and unlock feedback after the community pass; community progress/gifts now have explicit panel and journal records, but other story arcs retain their current presentation.
 - [ ] Revisit and extend each vendor’s story arc and completion milestones.

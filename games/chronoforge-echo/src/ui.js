@@ -1487,9 +1487,10 @@ export class UI {
         el = document.createElement('div');
       el.className = 'reward' + (hero ? ' reward-hero' : '');
       el.dataset.kind = hero ? 'level-up' : 'loot';
+      if (ITEMS[r.id]) el.dataset.tier = ITEMS[r.id].tier;
       el.style.setProperty('--reward-hold', lifetime - 140 + 'ms');
       el.setAttribute('role', 'status');
-      el.innerHTML = `${hero ? portrait(r.id, 'reward-portrait') : icon(r.id)}<div>${esc(r.label)} ${!hero && r.amount > 1 ? `<b>×${fmt(r.amount)}</b>` : ''}<small>${category}</small>${ITEMS[r.id]?.exotic ? `<span class="item-badges">${itemBadges(ITEMS[r.id])}</span>` : ''}</div>`;
+      el.innerHTML = `${hero ? portrait(r.id, 'reward-portrait') : icon(r.id)}<div>${esc(r.label)} ${!hero && r.amount > 1 ? `<b>×${fmt(r.amount)}</b>` : ''}<small>${category}</small>${ITEMS[r.id] ? `<span class="item-badges">${itemBadges(ITEMS[r.id])}</span>` : ''}</div>`;
       document.querySelector('#rewards').append(el);
       this.paint(el);
       setTimeout(() => el.remove(), lifetime);

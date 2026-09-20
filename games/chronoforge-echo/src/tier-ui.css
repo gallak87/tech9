@@ -1,27 +1,41 @@
-/* Tier identity is separate from the lava focus and action color. */
+/* Shared power-band palette for items and the four civilization tiers. */
 [data-tier='1'] {
-  --tier-color: #8eb88a;
+  --tier-color: #ece8e1;
 }
 [data-tier='2'] {
-  --tier-color: #82aed9;
+  --tier-color: #8eb88a;
 }
 [data-tier='3'] {
   --tier-color: #b599d5;
 }
 [data-tier='4'] {
-  --tier-color: #d8b65f;
+  --tier-color: #82aed9;
 }
 .expedition [data-tier='1'] {
-  --tier-color: #416b38;
+  --tier-color: #625c52;
 }
 .expedition [data-tier='2'] {
-  --tier-color: #3c6487;
+  --tier-color: #416b38;
 }
 .expedition [data-tier='3'] {
   --tier-color: #754c8b;
 }
 .expedition [data-tier='4'] {
-  --tier-color: #886510;
+  --tier-color: #3c6487;
+}
+/* Tint the surface, never the text, for Survivor's translucent white treatment. */
+[data-tier='1']:is(
+  .tier-badge,
+  .exp-inventory-card,
+  .exp-inventory-slot-row,
+  .exp-inventory-crew-slot,
+  .exp-gear-slot,
+  .shop-card,
+  .exp-quest-reward,
+  .reward,
+  .community-reward
+) {
+  background-color: #ffffff4d;
 }
 .tier-badge {
   display: inline-flex;

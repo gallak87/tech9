@@ -39,7 +39,7 @@ In Sell mode, place Sell All beside Sell on each card. It selects that item's fu
 
 Use the same floating result toast for services, construction, civilization advancement, Skills, Save, and Settings. Successes fade; failures remain until dismissed or the panel is left. Replace repeated results instead of stacking them, and combine XP and level-ups into one training result. Keep requirements beside disabled actions and resource balances visible within service panels. Key capture replaces its binding label; no notification belongs above the scrolling page. Rest leaves its panel open. Inventory retains its existing reserved status area.
 
-Community restoration follows Haventide’s summary panel and compact upgrade rows: project names, costs, unmet requirements, and inline Confirm/Cancel. Omit repeated descriptions and local-level captions. Keep balances visible above the world scrim. The completion reward names the weapon, owner, Exotic identity, and power tier. Show a disabled unchecked box with “Complete [final project] to receive”; after the automatic award, check it and label it “Received,” with a direct inventory link. Present future reforging separately, with its cost or next hero-level requirement. The Exotic badge is separate from green/blue/purple/gold power colors; one weapon illustration persists through all four bands.
+Community restoration follows Haventide’s summary panel and compact upgrade rows: project names, costs, unmet requirements, and inline Confirm/Cancel. Omit repeated descriptions and local-level captions. Keep balances visible above the world scrim. The completion reward names the weapon, owner, Exotic identity, and power tier. Show a disabled unchecked box with “Complete [final project] to receive”; after the automatic award, check it and label it “Received,” with a direct inventory link. Present future reforging separately, with its cost or next hero-level requirement. The Exotic badge is separate from white/green/purple/blue power colors; one weapon illustration persists through all four bands.
 
 Interaction prompts follow their world object and stay within the viewport. Signs use a text reader without inventing a speaker portrait. Esc/Backspace dismiss the top reading layer without firing a choice or continuation callback; a suspended ending retains its place.
 
@@ -48,6 +48,8 @@ Battle commands fold through character, action, target and timing. Completed cho
 Tall battle enemies fit beneath their name and health meters at their existing formation anchors. Keep enemy panels inside the field and clear of neighboring silhouettes and meters; draw them after the actors so later sprites cannot cover them.
 
 Enemy badges show the visible fighter’s level and name on one line, using relative-danger colors against Kaida. A severe encounter also has a skull so color is not the only signal. Ground ovals follow the scene perspective, with a small forgiving contact margin, and disappear when contact is inactive.
+
+Item power bands share one palette across Inventory, equipped gear, vendors, quest rewards, and loot notices: Survivor white, Reclaimer green, Ascendant purple, Transcendent blue. Survivor surfaces use a 30%-opacity white tint; text stays fully opaque, with darker tier text on parchment.
 
 ## Asset maintenance
 

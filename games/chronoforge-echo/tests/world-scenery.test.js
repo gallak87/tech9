@@ -18,7 +18,7 @@ import {
   worldDetailBounds,
 } from '../src/world-detail-art.js';
 import { CAVE_ASSETS, CAVE_BIOMES, caveArtFrame } from '../src/cave-art.js';
-import { keyNeutralExterior } from '../src/assets.js';
+import { ASSET_MANIFEST, keyNeutralExterior } from '../src/assets.js';
 import { readPngPixels } from './png-pixels.js';
 
 test('purpose-built landmarks retain sufficient source detail at the 2x presentation scale', () => {
@@ -350,6 +350,48 @@ test('production extraction removes measured exterior air while retaining dark t
         f.biome + ' cave mouth',
       );
     }
+  }
+});
+
+test('First Gardener extraction clears tinted checkerboard around the ember and preserves its highlights', () => {
+  const entry = ASSET_MANIFEST.find((asset) => asset.id === 'first_gardener');
+  const image = readPngPixels(
+    new URL('../public/' + entry.url, import.meta.url),
+  );
+  const original = image.data.slice();
+  keyNeutralExterior(
+    { getImageData: () => image, putImageData: () => {} },
+    image.width,
+    image.height,
+    entry,
+  );
+  for (const [x, y] of [
+    [590, 485],
+    [680, 460],
+    [697, 425],
+    [685, 380],
+  ]) {
+    assert.equal(
+      image.data[(y * image.width + x) * 4 + 3],
+      0,
+      `checker at ${x},${y}`,
+    );
+  }
+  // White-hot core, gold tip, purple pendant, ring and ivory stone.
+  for (const [x, y] of [
+    [627, 420],
+    [627, 340],
+    [625, 510],
+    [475, 410],
+    [620, 265],
+  ]) {
+    const i = (y * image.width + x) * 4;
+    assert.deepEqual(
+      image.data.slice(i, i + 4),
+      original.slice(i, i + 4),
+      `art at ${x},${y}`,
+    );
+    assert.equal(image.data[i + 3], 255);
   }
 });
 

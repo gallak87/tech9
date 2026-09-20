@@ -13,6 +13,7 @@ import {
   build,
   advanceTier,
   production,
+  productionSources,
   buy,
   buyPrice,
   sell,
@@ -253,6 +254,40 @@ test('civic progression has no circular building gates and all buildings affect 
   const base = createState();
   assert.ok(stats(s.heroes[0], s).def > stats(base.heroes[0], base).def);
 });
+test('production source rates match resource gains including civic boosts and salvage', () => {
+  const state = createState();
+  assert.deepEqual(productionSources(state), []);
+  state.flags.haventide_liberated = true;
+  assert.deepEqual(productionSources(state), [
+    { resource: 'food', rate: 0.03 },
+    { resource: 'ore', rate: 0.03 },
+  ]);
+  state.buildings = { town_center: 2, farm: 2, mine: 3, energy_extractor: 1 };
+  const before = { ...state.resources };
+  const sources = productionSources(state);
+  assert.equal(sources.find((s) => s.building === 'farm').level, 2);
+  const rates = Object.fromEntries(
+    ['food', 'ore', 'energy'].map((id) => [
+      id,
+      sources
+        .filter((s) => s.resource === id)
+        .reduce((sum, s) => sum + s.rate, 0),
+    ]),
+  );
+  assert.ok(Math.abs(rates.food - 0.588) < 1e-12);
+  assert.ok(Math.abs(rates.ore - 0.681) < 1e-12);
+  assert.equal(rates.energy, 0.155);
+  production(state, 10);
+  for (const id of ['food', 'ore', 'energy'])
+    assert.ok(
+      Math.abs(state.resources[id] - before[id] - rates[id] * 10) < 1e-10,
+    );
+  assert.equal(state.resources.renown, before.renown);
+  state.resources.food = 9998.9;
+  production(state, 1);
+  assert.equal(state.resources.food, 9999);
+});
+
 test('research, service schedule and purchase costs are enforced', () => {
   const s = rich(opening());
   assert.equal(serviceAvailable(s, 'archivist'), false);

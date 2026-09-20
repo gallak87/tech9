@@ -1052,7 +1052,7 @@ export const BUILDINGS = {
     tier: 1,
     cost: { ore: 18 },
     produces: 'food',
-    rate: 0.45,
+    rate: 0.225,
     description:
       'Terraced salt gardens produce food. Food supports inns, training and growth.',
   },
@@ -1062,7 +1062,7 @@ export const BUILDINGS = {
     tier: 1,
     cost: { food: 15 },
     produces: 'ore',
-    rate: 0.35,
+    rate: 0.175,
     description:
       'A crew sorts reusable ore from safe ruins. Ore buys equipment and construction.',
   },
@@ -1072,7 +1072,7 @@ export const BUILDINGS = {
     tier: 1,
     cost: { ore: 22, food: 12 },
     produces: 'energy',
-    rate: 0.25,
+    rate: 0.125,
     description:
       'Tidal vanes collect energy for research and advanced construction.',
   },

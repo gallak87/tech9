@@ -3,6 +3,11 @@
 // Zones only relax the *connected exterior* key around baked luminous effects;
 // their dark/saturated outlines still protect the opaque actor and blade.
 export const ALPHA_MASKS = {
+  first_gardener: {
+    // The ember's purple glow tints the enclosed checkerboard. Relax only
+    // this pocket; its saturated outline protects the bright white core.
+    keyZones: [{ x: 540, y: 285, w: 180, h: 270, min: 175, chroma: 60 }],
+  },
   kaida_showcase: {
     backgroundSeeds: [
       [178, 274],

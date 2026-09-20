@@ -29,6 +29,8 @@ The seven expedition tabs are Map, Party, Inventory, Skills, Quests, Save and Se
 
 World HUD, shops, conversations and combat use compact neutral near-black surfaces. Lava orange (`#df702e`) identifies focus and active actions. Maintain readable text, modest spacing and keyboard access. Place vendor-specific actions beside the vendor introduction with a concise explanation and actual completion progress. Show benefits and exact costs before a purchase.
 
+The field currency bar keeps balances prominent with a muted source hint underneath: building level and combined production per second, including Town Center bonuses and salvage. Renown names its quest and battle sources. Keep hints short enough to share the existing row.
+
 Retail item cards own their quantity controls, total price, and inline Buy/Sell confirmation. Keep the action area stable when switching to Confirm/Cancel. Unaffordable purchases are greyed out and skipped by keyboard navigation; reducing an excessive quantity remains possible. Keep the current ore balance visible in the shop header above the dimmed world. Transaction results use a toast that does not move the shop contents or steal focus.
 
 In Sell mode, place Sell All beside Sell on each card. It selects that item's full unequipped stack and replaces the same buttons with Confirm/Cancel; show the exact quantity, total proceeds, and per-item resale value before payment.
@@ -38,6 +40,8 @@ Use the same floating result toast for services, construction, civilization adva
 Interaction prompts follow their world object and stay within the viewport. Signs use a text reader without inventing a speaker portrait. Esc/Backspace dismiss the top reading layer without firing a choice or continuation callback; a suspended ending retains its place.
 
 Battle commands fold through character, action, target and timing. Completed choices remain recoverable with Left. Use the authoritative combat state for readiness, costs and targets. Timing cues turn orange only during the input window; reduced motion uses a steady cue. Reward notices share one compact queue with clear icons and quantities.
+
+Tall battle enemies fit beneath their name and health meters at their existing formation anchors. Keep enemy panels inside the field and clear of neighboring silhouettes and meters; draw them after the actors so later sprites cannot cover them.
 
 Enemy badges show the visible fighter’s level and name on one line, using relative-danger colors against Kaida. A severe encounter also has a skull so color is not the only signal. Ground ovals follow the scene perspective, with a small forgiving contact margin, and disappear when contact is inactive.
 

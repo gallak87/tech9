@@ -3,6 +3,7 @@ import { enemyLevel, enemyLevelLabel } from './enemy-levels.js';
 import { stats } from './progression.js';
 import { assessItemUse, consumeItem } from './consumables.js';
 import { drawHero, drawEnemy, drawBattleBackdrop, actorBounds } from './art.js';
+import { placeEnemyHud } from './battle-layout.js';
 
 // Only updateBattle advances combat time. Drawing and input never advance the
 // authoritative animation clock; the global menu can therefore freeze any frame.
@@ -1257,7 +1258,12 @@ function artScale(b, actor) {
       : ['mire_hulk', 'ember_golem', 'magma_behemoth'].includes(actor.id)
         ? 1.1
         : 1.45;
-  return base * (b.enemies.length > 2 ? 0.86 : 1);
+  const preferred = base * (b.enemies.length > 2 ? 0.86 : 1);
+  const bounds = actorBounds(actor.id, { side: 'enemy', pose: 'idle' });
+  // Keep the foot anchor in its formation slot. Tall rear-row enemies must
+  // leave room for their name and meters above the sprite after the field lift.
+  const availableHeight = actor.home.y + FIELD_OFFSET_Y - 35;
+  return Math.min(preferred, (availableHeight * DISPLAY_SCALE) / -bounds.top);
 }
 
 function defeatOpacity(b, actor) {
@@ -2118,6 +2124,36 @@ export function drawBattle(ctx, b, state) {
         ? potential
         : [potential[b.target]].filter(Boolean)
       : [];
+  const enemyHud = placeEnemyHud(
+    b.enemies.filter(alive).map((actor) => {
+      const bounds = actorBounds(actor.id, {
+        side: 'enemy',
+        scale: artScale(b, actor),
+      });
+      ctx.font = '9px Barlow, sans-serif';
+      const suffix = ` · ${enemyLevelLabel(actor)}`;
+      const label =
+        trim(ctx, actor.name, 124 - ctx.measureText(suffix).width, 9) + suffix;
+      const labelWidth = Math.ceil(ctx.measureText(label).width) + 8;
+      const w = Math.max(126, labelWidth);
+      return {
+        actor,
+        label,
+        labelWidth,
+        w,
+        h: 34,
+        x: actor.home.x - w / 2,
+        y: actor.home.y + bounds.top / DISPLAY_SCALE - 25,
+        body: {
+          x: actor.home.x + bounds.left / DISPLAY_SCALE,
+          y: actor.home.y + bounds.top / DISPLAY_SCALE,
+          w: (bounds.right - bounds.left) / DISPLAY_SCALE,
+          h: (bounds.bottom - bounds.top) / DISPLAY_SCALE,
+        },
+      };
+    }),
+    { x: 365, y: -FIELD_OFFSET_Y + 10, w: 393, h: 235 },
+  );
   const contactPriority = (actor) =>
     b.action &&
     b.action.elapsed >= 0.23 &&
@@ -2229,45 +2265,6 @@ export function drawBattle(ctx, b, state) {
           'center',
         );
     }
-    if (!hero && alive(actor)) {
-      const y = actor.home.y + boundsTop - 10;
-      ctx.font = '9px Barlow, sans-serif';
-      const suffix = ` · ${enemyLevelLabel(actor)}`;
-      const label =
-        trim(ctx, actor.name, 124 - ctx.measureText(suffix).width, 9) + suffix;
-      const labelWidth = Math.ceil(ctx.measureText(label).width) + 8;
-      ctx.fillStyle = '#171717bc';
-      ctx.fillRect(
-        Math.round(actor.home.x - labelWidth / 2),
-        y - 10,
-        labelWidth,
-        13,
-      );
-      text(ctx, label, actor.home.x, y, C.paper, 9, 'center');
-      bar(
-        ctx,
-        actor.home.x - 35,
-        y + 5,
-        70,
-        3,
-        actor.hp / actor.maxHp,
-        actor.charging || highlighted.includes(actor) ? C.amber : C.pale,
-      );
-      bar(ctx, actor.home.x - 35, y + 10, 70, 1, actor.atb / 100, C.pale);
-      if (actor.charging) text(ctx, '!', actor.home.x + 44, y + 9, C.amber, 13);
-      if (actor.slowTurns)
-        text(ctx, 'SLOW', actor.home.x + 42, y + 9, C.pale, 7);
-      if (actor.shield)
-        text(
-          ctx,
-          `WARD ${actor.shield}`,
-          actor.home.x,
-          y + 22,
-          C.pale,
-          8,
-          'center',
-        );
-    }
     button(
       b,
       actor.home.x + boundsLeft,
@@ -2277,6 +2274,28 @@ export function drawBattle(ctx, b, state) {
       'actor',
       { id: actorId(actor) },
     );
+  }
+  for (const hud of enemyHud) {
+    const { actor, label, labelWidth } = hud;
+    const x = hud.x + hud.w / 2,
+      y = hud.y + 10;
+    ctx.fillStyle = '#171717bc';
+    ctx.fillRect(Math.round(x - labelWidth / 2), y - 10, labelWidth, 13);
+    text(ctx, label, x, y, C.paper, 9, 'center');
+    bar(
+      ctx,
+      x - 35,
+      y + 5,
+      70,
+      3,
+      actor.hp / actor.maxHp,
+      actor.charging || highlighted.includes(actor) ? C.amber : C.pale,
+    );
+    bar(ctx, x - 35, y + 10, 70, 1, actor.atb / 100, C.pale);
+    if (actor.charging) text(ctx, '!', x + 44, y + 9, C.amber, 13);
+    if (actor.slowTurns) text(ctx, 'SLOW', x + 42, y + 9, C.pale, 7);
+    if (actor.shield)
+      text(ctx, `WARD ${actor.shield}`, x, y + 22, C.pale, 8, 'center');
   }
   drawEffect(ctx, b, state);
   for (const f of b.floaters) {

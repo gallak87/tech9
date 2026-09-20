@@ -53,6 +53,21 @@ const button = (label, action, cl = 'button', extra = '') =>
   `<button class="${cl}" data-do="${esc(action)}" ${extra}>${label}</button>`;
 const mark = `<svg class="insignia-svg" viewBox="0 0 40 40" aria-hidden="true"><path d="M28 7A15 15 0 1 0 28 33M9 14H31M4 20H28M9 26H31" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="m32 17 3 3-3 3" fill="currentColor"/></svg>`;
 const fmt = (n) => Math.floor(n ?? 0).toLocaleString();
+const resourceHint = (state, id, sources) => {
+  if (id === 'renown') return 'Quests & battles';
+  const income = sources.filter((source) => source.resource === id);
+  const producer = income.find((source) => source.building);
+  const building = Object.values(BUILDINGS).find((b) => b.produces === id);
+  const name = building.id === 'energy_extractor' ? 'Extractor' : building.name;
+  const rate = income.reduce((total, source) => total + source.rate, 0);
+  if (!rate) return `${name} unbuilt`;
+  const source = producer ? `${name} L${producer.level}` : 'Salvage';
+  const amount =
+    state.resources[id] >= 9999
+      ? 'Full'
+      : `+${rate.toLocaleString(undefined, { maximumFractionDigits: 2 })}/s`;
+  return `${source} · ${amount}`;
+};
 const duration = (s) =>
   `${Math.floor((s || 0) / 3600)}h ${Math.floor(((s || 0) % 3600) / 60)}m`;
 const costText = (o) =>
@@ -1062,9 +1077,22 @@ export class UI {
     )
       return;
     const scene = g.scene,
+      income = P.productionSources(s),
       worldViewFocused = document.activeElement?.matches('[data-world-view]');
     this.observeInteraction(null);
-    this.hud.innerHTML = `<div class="hud-top"><div class="objective"><div class="label">FIELD OBJECTIVE</div><p>${esc(mainObjective(s))}</p>${s.flags.pendingEnding && !this.panel ? '<button class="resume-ending" data-resume-ending><kbd>Enter</kbd> Resume final conversation</button>' : ''}</div><div class="hud-right"><div class="hud-resource-row"><div class="resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="resource" aria-label="${fmt(s.resources[id])} ${id}">${icon(id)}${fmt(s.resources[id])}</span>`).join('')}</div>${!this.panel ? '<button class="atlas-button" data-atlas><kbd>Esc</kbd> MENU</button>' : ''}</div><div class="survey-stack ${s.settings.minimap ? '' : 'survey-hidden'}">${s.settings.minimap ? '<div class="minimap-wrap"><canvas id="minimap" aria-label="Immediate surroundings"></canvas></div>' : ''}<div class="location-plaque"><h3>${esc(scene.name)}</h3><span>${esc(scene.interior ? 'INTERIOR' : scene.subtitle)}</span></div><button type="button" class="world-view-button" data-world-view ${canOpenWorldView(g) ? '' : 'disabled'}${worldViewShortcut(s.settings) ? ' aria-keyshortcuts="R"' : ''}>${worldViewShortcut(s.settings) ? '<kbd>R</kbd> ' : ''}World view</button></div></div></div><div class="hud-bottom"><div class="party-strip">${s.heroes
+    this.hud.innerHTML = `<div class="hud-top"><div class="objective"><div class="label">FIELD OBJECTIVE</div><p>${esc(mainObjective(s))}</p>${s.flags.pendingEnding && !this.panel ? '<button class="resume-ending" data-resume-ending><kbd>Enter</kbd> Resume final conversation</button>' : ''}</div><div class="hud-right"><div class="hud-resource-row"><div class="resources">${[
+      'food',
+      'ore',
+      'energy',
+      'renown',
+    ]
+      .map((id) => {
+        const hint = resourceHint(s, id, income);
+        return `<span class="resource" aria-label="${fmt(s.resources[id])} ${id}; ${esc(hint)}"><span class="resource-balance">${icon(id)}${fmt(s.resources[id])}</span><small class="resource-hint">${esc(hint)}</small></span>`;
+      })
+      .join(
+        '',
+      )}</div>${!this.panel ? '<button class="atlas-button" data-atlas><kbd>Esc</kbd> MENU</button>' : ''}</div><div class="survey-stack ${s.settings.minimap ? '' : 'survey-hidden'}">${s.settings.minimap ? '<div class="minimap-wrap"><canvas id="minimap" aria-label="Immediate surroundings"></canvas></div>' : ''}<div class="location-plaque"><h3>${esc(scene.name)}</h3><span>${esc(scene.interior ? 'INTERIOR' : scene.subtitle)}</span></div><button type="button" class="world-view-button" data-world-view ${canOpenWorldView(g) ? '' : 'disabled'}${worldViewShortcut(s.settings) ? ' aria-keyshortcuts="R"' : ''}>${worldViewShortcut(s.settings) ? '<kbd>R</kbd> ' : ''}World view</button></div></div></div><div class="hud-bottom"><div class="party-strip">${s.heroes
       .map((h) => {
         const st = P.stats(h, s);
         return `<div class="hero-compact">${portrait(h.id, 'compact-portrait')}<div><strong>${h.name}</strong> <small>LV ${h.level}</small><div class="meter"><i style="width:${(h.hp / st.maxHp) * 100}%"></i></div><div class="meter mp"><i style="width:${(h.mp / st.maxMp) * 100}%"></i></div></div></div>`;

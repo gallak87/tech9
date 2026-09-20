@@ -416,23 +416,32 @@ export function advanceTier(state) {
     { id: 'tier', label: TIERS[state.tier - 1], amount: 1 },
   ]);
 }
-export function production(state, dt) {
-  if (!Number.isFinite(dt) || dt <= 0) return no('No time elapsed.');
+export function productionSources(state) {
+  const sources = [];
   for (const [id, b] of Object.entries(BUILDINGS))
     if (b.produces && state.buildings[id])
-      state.resources[b.produces] = Math.min(
-        9999,
-        state.resources[b.produces] +
+      sources.push({
+        building: id,
+        resource: b.produces,
+        level: state.buildings[id],
+        rate:
           b.rate *
-            state.buildings[id] *
-            dt *
-            (1 + (state.buildings.town_center || 1) * 0.12),
-      );
+          state.buildings[id] *
+          (1 + (state.buildings.town_center || 1) * 0.12),
+      });
   // Every survivor can salvage safely: prevents an empty economy from trapping a save.
-  if (state.flags.haventide_liberated) {
-    state.resources.food = Math.min(9999, state.resources.food + 0.06 * dt);
-    state.resources.ore = Math.min(9999, state.resources.ore + 0.06 * dt);
-  }
+  if (state.flags.haventide_liberated)
+    for (const resource of ['food', 'ore'])
+      sources.push({ resource, rate: 0.03 });
+  return sources;
+}
+export function production(state, dt) {
+  if (!Number.isFinite(dt) || dt <= 0) return no('No time elapsed.');
+  for (const { resource, rate } of productionSources(state))
+    state.resources[resource] = Math.min(
+      9999,
+      state.resources[resource] + rate * dt,
+    );
   return ok('Settlement production advanced.');
 }
 export function serviceAvailable(state, id) {

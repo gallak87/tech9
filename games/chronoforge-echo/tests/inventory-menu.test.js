@@ -319,7 +319,7 @@ test('menu consumables confirm the explicit recipient and ATB use remains reject
 test('vendors compare weapon families with eligible crew and retain shared armor comparison', () => {
   const ui = actionFixture();
   ui.panel = { type: 'vendor', object: { service: 'smith', name: 'Forge' } };
-  ui.sellMode = false;
+  ui.shop.sellMode = false;
   ui.game.state.tier = 2;
   ui.game.state.region = 'emberline';
   ui.game.state.heroes[0].level = 20;
@@ -360,7 +360,7 @@ test('provisions compare accessories locally and sell supplies without a hero se
     type: 'vendor',
     object: { service: 'provisions', name: 'Supplies' },
   };
-  ui.sellMode = false;
+  ui.shop.sellMode = false;
   ui.game.state.tier = 2;
   ui.game.state.region = 'emberline_town';
   ui.shell = (_title, body) => body;
@@ -376,7 +376,7 @@ test('provisions compare accessories locally and sell supplies without a hero se
   )[0];
   assert.ok(accessories.includes('shop-hero:accessory:0'));
   assert.ok(!supplies.includes('shop-heroes'));
-  ui.sellMode = true;
+  ui.shop.sellMode = true;
   assert.ok(!ui.renderVendor().includes('shop-heroes'));
 });
 
@@ -388,7 +388,7 @@ test('research and closed workshops expose no trade controls or transactions', (
   ui.game.state.buildings.forge = 1;
   ui.shell = (_title, body) => body;
   for (const service of ['archivist', 'artificer']) {
-    ui.sellMode = false;
+    ui.shop.sellMode = false;
     ui.panel = { type: 'vendor', object: { service, name: service } };
     const html = ui.renderVendor();
     assert.ok(!html.includes('shop-toolbar'));
@@ -405,7 +405,7 @@ test('research and closed workshops expose no trade controls or transactions', (
     ui.action('trade-mode');
     ui.action('sell:iron_blade');
     ui.action('buy:iron_blade');
-    assert.equal(ui.sellMode, false);
+    assert.equal(ui.shop.sellMode, false);
     assert.equal(ui.confirmation, null);
     assert.deepEqual(ui.game.state, before);
   }
@@ -417,7 +417,7 @@ test('an early visit explains a regional gear lock without claiming the pack is 
     type: 'vendor',
     object: { service: 'smith', name: 'Anchor Smith' },
   };
-  ui.sellMode = false;
+  ui.shop.sellMode = false;
   ui.game.state.region = 'orbital_reach_town';
   ui.game.state.tier = 2;
   ui.shell = (_title, body) => body;
@@ -470,7 +470,7 @@ function shopButton(ui, id, action = 'buy:' + id) {
 function shopFixture() {
   const ui = actionFixture();
   ui.panel = { type: 'vendor', object: { service: 'smith', name: 'Forge' } };
-  ui.sellMode = false;
+  ui.shop.sellMode = false;
   ui.game.state.region = 'haventide_town';
   ui.shell = (_title, body) => body;
   return ui;
@@ -549,7 +549,7 @@ test('confirmed purple weapons enter Inventory for each eligible hero', () => {
   for (const id of ['magma_blade', 'ember_core', 'ash_gauntlet']) {
     ui.action('buy:' + id);
     assert.equal(ui.panel.type, 'vendor');
-    assert.ok(ui.shopQuote);
+    assert.ok(ui.shop.quote);
     ui.action('shop-confirm:' + id);
     assert.equal(ui.result.ok, true);
     assert.equal(state.inventory[id], 1);
@@ -629,8 +629,8 @@ test('Sell All confirms a full stack above 99 and preserves equipped items and o
   ui.action('trade-mode');
   assert.ok(shopButton(ui, 'iron_blade', 'sell-all:iron_blade'));
   ui.action('sell-all:iron_blade');
-  assert.equal(ui.shopQuote.quantity, 120);
-  assert.equal(ui.shopQuote.total, 1560);
+  assert.equal(ui.shop.quote.quantity, 120);
+  assert.equal(ui.shop.quote.total, 1560);
   assert.ok(shopCard(ui, 'iron_blade').includes('aria-label="Quantity 120"'));
   assert.ok(shopCard(ui, 'iron_blade').includes('13 ore each'));
   assert.ok(shopButton(ui, 'iron_blade', 'shop-confirm:iron_blade'));
@@ -657,13 +657,13 @@ test('Sell All rejects keepsakes, invalid contexts and changed ownership', () =>
   let writes = 0;
   ui.game.checkpoint = () => writes++;
   ui.action('sell-all:iron_blade');
-  assert.equal(ui.shopQuote, null);
+  assert.equal(ui.shop.quote, null);
   ui.action('trade-mode');
   assert.ok(
     shopButton(ui, 'namekeeper', 'sell-all:namekeeper').includes('disabled'),
   );
   ui.action('sell-all:namekeeper');
-  assert.equal(ui.shopQuote, null);
+  assert.equal(ui.shop.quote, null);
   ui.action('sell-all:iron_blade');
   state.inventory.iron_blade = 1;
   const before = structuredClone(state);
@@ -689,22 +689,22 @@ test('each shop card owns its quantity and changing it cancels the pending trade
   const ui = shopFixture();
   ui.game.state.resources.ore = 200;
   ui.action('shop-qty:iron_blade:up');
-  assert.equal(ui.shopQuantity('iron_blade'), 2);
-  assert.equal(ui.shopQuantity('bog_fang'), 1);
+  assert.equal(ui.shop.quantity('iron_blade'), 2);
+  assert.equal(ui.shop.quantity('bog_fang'), 1);
   ui.action('buy:iron_blade');
-  assert.equal(ui.shopQuote.total, 60);
+  assert.equal(ui.shop.quote.total, 60);
   assert.equal(ui.panel.type, 'vendor');
   assert.ok(shopButton(ui, 'iron_blade', 'shop-confirm:iron_blade'));
   assert.ok(!shopButton(ui, 'iron_blade', 'buy:iron_blade'));
   ui.action('shop-qty:iron_blade:up');
-  assert.equal(ui.shopQuote, null);
-  assert.equal(ui.shopQuantity('iron_blade'), 3);
+  assert.equal(ui.shop.quote, null);
+  assert.equal(ui.shop.quantity('iron_blade'), 3);
   ui.action('shop-confirm:iron_blade');
   assert.equal(ui.game.state.resources.ore, 200);
   ui.action('buy:iron_blade');
   ui.action('trade-mode');
-  assert.equal(ui.shopQuote, null);
-  assert.equal(ui.shopQuantity('iron_blade'), 1);
+  assert.equal(ui.shop.quote, null);
+  assert.equal(ui.shop.quantity('iron_blade'), 1);
   assert.ok(!ui.renderVendor().includes('data-do="qty:'));
 });
 
@@ -716,7 +716,7 @@ test('a quantity that becomes unaffordable can be decreased without enabling pay
   ui.action('buy:bog_fang');
   ui.action('shop-confirm:bog_fang');
   assert.equal(ui.game.state.resources.ore, 64);
-  assert.equal(ui.shopQuantity('iron_blade'), 3);
+  assert.equal(ui.shop.quantity('iron_blade'), 3);
   assert.ok(shopButton(ui, 'iron_blade').includes('disabled'));
   assert.ok(
     !shopButton(ui, 'iron_blade', 'shop-qty:iron_blade:down').includes(
@@ -724,7 +724,7 @@ test('a quantity that becomes unaffordable can be decreased without enabling pay
     ),
   );
   ui.action('shop-qty:iron_blade:down');
-  assert.equal(ui.shopQuantity('iron_blade'), 2);
+  assert.equal(ui.shop.quantity('iron_blade'), 2);
   assert.ok(!shopButton(ui, 'iron_blade').includes('disabled'));
   ui.game.state.resources.ore = 29;
   for (const action of [
@@ -760,7 +760,7 @@ test('inline confirmation rejects changed balance, prices, stock, vendor and ses
     const before = structuredClone(ui.game.state);
     ui.action('shop-confirm:iron_blade');
     assert.deepEqual(ui.game.state, before);
-    assert.equal(ui.shopQuote, null);
+    assert.equal(ui.shop.quote, null);
     assert.equal(ui.result.ok, false);
   }
 });
@@ -774,9 +774,9 @@ test('sales confirm the selected quantity and retain unique keepsakes', () => {
   ui.action('sell:iron_blade');
   assert.equal(state.inventory.iron_blade, 2);
   assert.equal(state.resources.ore, 0);
-  assert.equal(ui.shopQuote.total, 26);
+  assert.equal(ui.shop.quote.total, 26);
   ui.action('shop-cancel:iron_blade');
-  assert.equal(ui.shopQuote, null);
+  assert.equal(ui.shop.quote, null);
   ui.action('sell:iron_blade');
   state.inventory.iron_blade = 1;
   ui.action('shop-confirm:iron_blade');
@@ -785,7 +785,7 @@ test('sales confirm the selected quantity and retain unique keepsakes', () => {
   const keepsake = Object.values(ITEMS).find((item) => item.unique);
   assert.ok(keepsake);
   ui.action('sell:' + keepsake.id);
-  assert.equal(ui.shopQuote, null);
+  assert.equal(ui.shop.quote, null);
 });
 
 test('Space and Enter buy then confirm inline, and Escape cancels without leaving the shop', () => {
@@ -803,7 +803,7 @@ test('Space and Enter buy then confirm inline, and Escape cancels without leavin
         click: () => ui.action(action),
       });
       ui.root.contains = () => true;
-      ui.refreshShopCard = (_id, action) => {
+      ui.shop.refresh = (_id, action) => {
         globalThis.document.activeElement = button(action);
       };
       globalThis.document = { activeElement: button('buy:iron_blade') };
@@ -816,7 +816,7 @@ test('Space and Enter buy then confirm inline, and Escape cancels without leavin
       );
       ui.handleKey('Escape');
       assert.equal(ui.panel.type, 'vendor');
-      assert.equal(ui.shopQuote, null);
+      assert.equal(ui.shop.quote, null);
       assert.equal(state.resources.ore, 100);
       ui.handleKey(key);
       ui.handleKey(key);
@@ -830,7 +830,7 @@ test('Space and Enter buy then confirm inline, and Escape cancels without leavin
 
 test('shop feedback is an overlay toast with current resources and no duplicate reward', () => {
   const ui = shopFixture();
-  ui.syncShopContext();
+  ui.shop.sync();
   const rewards = [];
   ui.game.rewards = (items) => rewards.push(...items);
   ui.feedback = UI.prototype.feedback;
@@ -880,11 +880,11 @@ test('Inventory feedback above a vendor retains its reserved notice and rewards'
 test('selling the final copy focuses the next remaining item without jumping to the toolbar', () => {
   const ui = shopFixture(),
     state = ui.game.state;
-  ui.sellMode = true;
+  ui.shop.sellMode = true;
   state.inventory.iron_blade = 1;
   state.inventory.scrap_vest = 1;
-  ui.syncShopContext();
-  ui.requestShopTrade('iron_blade', 'sell');
+  ui.shop.sync();
+  ui.shop.request('iron_blade', 'sell');
   let focused = null;
   ui.root.querySelectorAll = (selector) =>
     selector === '[data-shop-item]'
@@ -900,7 +900,7 @@ test('selling the final copy focuses the next remaining item without jumping to 
           },
         }
       : null;
-  ui.confirmShopTrade('iron_blade');
+  ui.shop.confirm('iron_blade');
   assert.equal(state.inventory.iron_blade, 0);
   assert.equal(focused, 'scrap_vest');
 });

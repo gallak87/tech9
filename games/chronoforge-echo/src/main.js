@@ -33,7 +33,7 @@ import {
 import { EchoAudio } from './audio.js';
 import { UI } from './ui.js';
 import { BattleUI } from './battle-ui.js';
-import { saveState, loadState } from './persistence.js';
+import { GameSession } from './game-session.js';
 import { reveal } from './maps.js';
 import {
   prepareRecruitment,
@@ -77,6 +77,7 @@ class Game {
     this.visualTime = 0;
     this.frameTimes = [];
     this.logs = [];
+    this.session = new GameSession(this);
     this.ui = new UI(this);
     this.battleUI = new BattleUI(this);
     this.rewardQueue = [];
@@ -102,87 +103,19 @@ class Game {
     if (this.logs.length > 400) this.logs.shift();
   }
   resetSession() {
-    this.worldView?.close();
-    this.upgradeTour?.close();
-    this.devTools?.reset();
-    this.keys.clear();
-    this.transition = null;
-    this.near = null;
-    this.movePath = [];
-    this.moving = false;
-    this.encounterCooldown = 1;
-    this.battleResultTime = 0;
-    this.soundLog = 0;
-    this.rewardQueue = [];
-    this.rewardClock = 0;
-    this.time = 0;
-    this.visualTime = 0;
-    this.lastHud = 0;
-    this.ui.resetSession();
+    return this.session.resetSession();
   }
   startNew() {
-    this.state = P.createState();
-    this.resetSession();
-    this.mode = 'world';
-    this.battle = null;
-    this.audio.set(this.state.settings);
-    this.resetFollowers();
-    this.updateCamera(true);
-    reveal(this.state, this.scene);
-    this.ui.showDialogue(
-      SCENES.opening || [
-        {
-          speaker: 'Kaida',
-          text: 'The sea kept your signal, Mother. I will find someone who remembers how to answer.',
-        },
-        {
-          speaker: 'Kaida',
-          text: 'One road. One pair of boots. Haventide must still be out there.',
-        },
-      ],
-    );
-    this.checkpoint();
-    this.ui.render();
-    this.log('new_game');
+    return this.session.startNew();
   }
   load(slot) {
-    try {
-      const next = loadState(slot);
-      Object.assign(
-        next,
-        this.safePoint(getScene(next.region), next.x, next.y),
-      );
-      this.state = next;
-      this.resetSession();
-      this.battle = this.state.suspendedBattle || null;
-      delete this.state.suspendedBattle;
-      this.mode = this.battle ? 'battle' : 'world';
-      this.audio.set(this.state.settings);
-      this.resetFollowers();
-      this.updateCamera(true);
-      this.ui.render();
-      if (this.state.flags.pendingEnding) this.presentEnding();
-      this.log('load', { slot });
-    } catch (e) {
-      this.ui.feedback({ ok: false, message: e.message });
-    }
+    return this.session.load(slot);
   }
   saveSnapshot() {
-    const { state, battle } = this.devTools?.saveSource() ?? this;
-    const out = copy(state);
-    if (battle) out.suspendedBattle = copy(battle);
-    return out;
+    return this.session.saveSnapshot();
   }
   save(slot) {
-    try {
-      saveState(this.saveSnapshot(), slot);
-      this.audio.sound('confirm');
-      this.log('save', { slot });
-      return true;
-    } catch (e) {
-      this.ui.feedback({ ok: false, message: 'Could not save: ' + e.message });
-      return false;
-    }
+    return this.session.save(slot);
   }
   presentEnding() {
     if (
@@ -225,12 +158,7 @@ class Game {
     this.ui.render();
   }
   checkpoint() {
-    if (this.mode === 'title' || this.battle) return;
-    try {
-      saveState(this.saveSnapshot());
-    } catch (e) {
-      this.log('save_error', { message: e.message });
-    }
+    return this.session.checkpoint();
   }
   resetFollowers() {
     this.traversal.resetFollowers();

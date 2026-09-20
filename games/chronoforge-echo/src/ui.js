@@ -1,4 +1,6 @@
-import { dialogueLine } from './npc-identities.js';
+import { resetUiSession } from './ui-session.js';
+import { ShopController } from './shop-controller.js';
+import { DialogueController } from './dialogue-controller.js';
 import './field-ui.css';
 import { tierBadge } from './tier-ui.js';
 import { beaconStatus } from './beacons.js';
@@ -14,7 +16,7 @@ import {
 } from './content.js';
 import * as P from './progression.js';
 import { performBuild } from './construction.js';
-import { mainObjective, onEvent, interactStory } from './narrative.js';
+import { mainObjective, interactStory } from './narrative.js';
 import { drawPortrait, drawIcon, npcPortrait } from './art.js';
 import { nearbyBuildings } from './world.js';
 import { latestSave, deleteSave } from './persistence.js';
@@ -88,8 +90,8 @@ export class UI {
     this.inventoryRecipientItem = null;
     this.inventorySort = 'tier';
     this.inventoryIndex = 0;
-    this.sellMode = false;
-    this.resetShop();
+    this.shop.sellMode = false;
+    this.shop.reset();
     this.map = new ExpeditionMap(game);
     this.saveTransfer = new SaveTransfer(this);
     document.fonts.ready.then(() => {
@@ -143,30 +145,14 @@ export class UI {
       if (e.target.closest('[data-resume-ending]')) game.presentEnding();
     });
   }
+  get shop() {
+    return (this._shop ??= new ShopController(this));
+  }
+  get dialogue() {
+    return (this._dialogue ??= new DialogueController(this));
+  }
   resetSession() {
-    this.notifications?.clear();
-    this.saveTransfer.cancelImport();
-    this.interactionPrompt?.remove();
-    this.observeInteraction(null);
-    this.panel = null;
-    this.menu = false;
-    this.hero = 0;
-    this.item = null;
-    this.inventoryFilter = 'all';
-    this.inventoryHero = null;
-    this.inventoryRecipientItem = null;
-    this.inventorySort = 'tier';
-    this.inventoryIndex = 0;
-    this.inventoryNavigation = null;
-    this.sellMode = false;
-    this.resetShop();
-    this.notice = '';
-    this.bindCapture = null;
-    document.querySelector('#rewards').replaceChildren();
-    document.querySelector('.recruit-announcement')?.remove();
-    document
-      .querySelector('#game')
-      .classList.toggle('reduced', !!this.game.state.settings.reducedMotion);
+    resetUiSession(this);
   }
   get blocked() {
     return (
@@ -364,7 +350,7 @@ export class UI {
     if (k === 'Enter' || k === ' ') {
       if (
         !this.menu &&
-        this.isRetailShop() &&
+        this.shop.isRetail() &&
         document.activeElement?.matches('[data-shop-item]')
       ) {
         document.activeElement
@@ -416,8 +402,8 @@ export class UI {
   // Confirmations sit above the atlas; the atlas can in turn cover a service or
   // a conversation. Dismiss only the visible layer, never a story callback.
   dismissTopLayer() {
-    if (!this.menu && this.isRetailShop() && this.shopQuote) {
-      this.cancelShopQuote();
+    if (!this.menu && this.shop.isRetail() && this.shop.quote) {
+      this.shop.cancel();
       this.game.keys.clear();
       this.game.audio.sound('back');
       return true;
@@ -439,18 +425,7 @@ export class UI {
         this.panel?.type,
       )
     ) {
-      const p = this.panel;
-      if (
-        this.game.state.flags.pendingEnding &&
-        (p.ending || p.type === 'ending')
-      ) {
-        this.game.state.endingProgress = {
-          index: p.index ?? this.game.state.endingProgress?.index ?? 0,
-          panel: p.type,
-        };
-        this.panel = null;
-        this.game.checkpoint();
-      } else this.panel = null;
+      this.dialogue.dismiss();
     } else return false;
     this.notice = '';
     this.game.keys.clear();
@@ -474,7 +449,7 @@ export class UI {
     this.render();
   }
   close() {
-    this.resetShop();
+    this.shop.reset();
     this.panel = null;
     this.notice = '';
     this.game.keys.clear();
@@ -490,53 +465,13 @@ export class UI {
     this.render();
   }
   showDialogue(lines, choices = [], done, options = {}) {
-    if (!lines?.length) {
-      done?.();
-      return;
-    }
-    this.panel = {
-      type: 'dialogue',
-      lines: lines.map((l) =>
-        typeof l === 'string'
-          ? dialogueLine(null, l)
-          : Object.hasOwn(l, 'speakerId')
-            ? l
-            : dialogueLine(l.speaker, l.text),
-      ),
-      index: Math.max(0, Math.min(lines.length - 1, options.index || 0)),
-      choices,
-      done,
-      ending: !!options.ending,
-    };
-    this.render();
+    this.dialogue.show(lines, choices, done, options);
   }
   atChoice() {
-    const p = this.panel;
-    return (
-      p?.type === 'dialogue' &&
-      p.index === p.lines.length - 1 &&
-      p.choices?.length
-    );
+    return this.dialogue.atChoice();
   }
   nextDialogue() {
-    const p = this.panel;
-    if (p?.type !== 'dialogue' || this.menu) return;
-    if (this.atChoice()) return;
-    if (++p.index >= p.lines.length) {
-      const done = p.done;
-      this.panel = null;
-      this.render();
-      done?.();
-    } else this.render();
-    if (p.ending && this.game.state.flags.pendingEnding) {
-      if (this.panel?.type === 'dialogue' && this.panel.ending)
-        this.game.state.endingProgress = {
-          index: this.panel.index,
-          panel: 'dialogue',
-        };
-      this.game.checkpoint();
-    }
-    this.game.audio.sound('select');
+    this.dialogue.next();
   }
   feedback(r) {
     if (!r) return;
@@ -566,8 +501,8 @@ export class UI {
     return this.menu ? `menu:${this.tab}` : this.panel || this.game.mode;
   }
   showVendor(obj) {
-    this.sellMode = false;
-    this.resetShop();
+    this.shop.sellMode = false;
+    this.shop.reset();
     this.notice = '';
     this.panel = { type: 'vendor', object: obj };
     this.render();
@@ -587,184 +522,6 @@ export class UI {
     if (body)
       body.scrollTop = typeof scroll === 'number' ? scroll : scroll.body || 0;
     if (pack && typeof scroll === 'object') pack.scrollTop = scroll.pack || 0;
-  }
-  isRetailShop() {
-    return (
-      this.panel?.type === 'vendor' &&
-      !!SERVICES[this.panel.object.service || 'provisions']?.shop
-    );
-  }
-  resetShop() {
-    this.shopQuote = null;
-    this.shopContext = null;
-    this.shopQuantities = {};
-    this.shopNavigation = null;
-  }
-  syncShopContext() {
-    const previous = this.shopContext;
-    if (!this.isRetailShop()) {
-      this.resetShop();
-      return false;
-    }
-    const context = {
-      panel: this.panel,
-      state: this.game.state,
-      region: this.game.state.region,
-      service: this.panel.object.service || 'provisions',
-      mode: this.sellMode ? 'sell' : 'buy',
-    };
-    if (
-      !previous ||
-      Object.keys(context).some((key) => context[key] !== previous[key])
-    ) {
-      this.resetShop();
-      this.shopContext = context;
-    }
-    const quote = this.shopQuote;
-    if (
-      quote &&
-      (quote.quantity !== this.shopQuantity(quote.id) ||
-        quote.total !== this.shopTotal(quote.id, quote.quantity) ||
-        !this.shopTradeAvailable(quote.id, quote.quantity))
-    )
-      this.shopQuote = null;
-    return true;
-  }
-  shopQuantity(id) {
-    const max = this.sellMode ? this.game.state.inventory[id] || 0 : 99;
-    return Math.max(1, Math.min(max, this.shopQuantities?.[id] || 1));
-  }
-  shopTotal(id, quantity = this.shopQuantity(id)) {
-    return this.sellMode
-      ? P.sellPrice(id) * quantity
-      : P.buyPrice(this.game.state, id, quantity);
-  }
-  shopTradeAvailable(id, quantity = this.shopQuantity(id)) {
-    if (
-      !this.isRetailShop() ||
-      !ITEMS[id] ||
-      !Number.isInteger(quantity) ||
-      quantity < 1 ||
-      (!this.sellMode && quantity > 99)
-    )
-      return false;
-    const state = this.game.state,
-      service = this.panel.object.service || 'provisions',
-      item = ITEMS[id];
-    if (!P.serviceAvailable(state, service)) return false;
-    return this.sellMode
-      ? !item.unique && item.price > 0 && (state.inventory[id] || 0) >= quantity
-      : P.serviceStock(state, service, state.region).includes(id) &&
-          state.resources.ore >= this.shopTotal(id, quantity);
-  }
-  refreshShopCard(id, action) {
-    const scroll = this.root.querySelector('.atlas-body')?.scrollTop || 0;
-    this.render();
-    this.restoreShopRow(action, scroll);
-    const target = [...this.root.querySelectorAll('[data-do]')].find(
-      (el) => !el.disabled && el.dataset.do === action,
-    );
-    // A completed purchase may disable its controls; keep focus on its receipt.
-    if (!target) {
-      const card = this.root.querySelector(`[data-shop-item="${id}"]`);
-      (card?.querySelector('.shop-trade:not(:disabled)') || card)?.focus({
-        preventScroll: true,
-      });
-    }
-  }
-  changeShopQuantity(id, direction) {
-    if (!this.syncShopContext() || !ITEMS[id]) return;
-    const quantity = this.shopQuantity(id),
-      next = quantity + (direction === 'up' ? 1 : -1);
-    if (
-      next < 1 ||
-      (!this.sellMode && next > 99) ||
-      !this.shopTradeAvailable(id, 1)
-    )
-      return;
-    if (direction === 'up' && !this.shopTradeAvailable(id, next)) return;
-    this.shopQuantities[id] = next;
-    this.shopQuote = null;
-    this.refreshShopCard(id, `shop-qty:${id}:${direction}`);
-  }
-  requestPurchase(id) {
-    this.requestShopTrade(id, 'buy');
-  }
-  requestShopTrade(id, mode, all = false) {
-    if (!this.syncShopContext() || this.shopContext.mode !== mode) return;
-    const quantity =
-      all && mode === 'sell'
-        ? this.game.state.inventory[id] || 0
-        : this.shopQuantity(id);
-    if (!this.shopTradeAvailable(id, quantity)) return;
-    this.shopQuantities[id] = quantity;
-    this.shopQuote = {
-      ...this.shopContext,
-      id,
-      quantity,
-      total: this.shopTotal(id, quantity),
-    };
-    this.refreshShopCard(id, 'shop-confirm:' + id);
-  }
-  cancelShopQuote() {
-    const quote = this.shopQuote;
-    if (!quote) return;
-    this.shopQuote = null;
-    this.refreshShopCard(quote.id, quote.mode + ':' + quote.id);
-  }
-  confirmShopTrade(id) {
-    const quote = this.shopQuote;
-    if (!quote || quote.id !== id) return;
-    this.shopQuote = null;
-    if (!this.syncShopContext()) return;
-    const cards = [...this.root.querySelectorAll('[data-shop-item]')],
-      cardIndex = cards.findIndex((card) => card.dataset.shopItem === id),
-      neighbors = [
-        ...cards.slice(cardIndex + 1),
-        ...cards.slice(0, cardIndex).reverse(),
-      ].map((card) => card.dataset.shopItem);
-    let result;
-    if (
-      Object.keys(this.shopContext).some(
-        (key) => quote[key] !== this.shopContext[key],
-      ) ||
-      quote.quantity !== this.shopQuantity(id)
-    )
-      result = {
-        ok: false,
-        message: 'Selection changed. Choose the item again.',
-      };
-    else if (quote.total !== this.shopTotal(id, quote.quantity))
-      result = { ok: false, message: 'Price changed. Review the new total.' };
-    else if (!this.shopTradeAvailable(id, quote.quantity))
-      result = { ok: false, message: 'This trade is no longer available.' };
-    else
-      result = this.sellMode
-        ? P.sell(this.game.state, id, quote.quantity)
-        : P.buy(this.game.state, id, quote.quantity);
-    if (result.ok) this.game.checkpoint();
-    const scroll = this.root.querySelector('.atlas-body')?.scrollTop || 0;
-    this.feedback(result);
-    this.restoreShopRow(quote.mode + ':' + id, scroll);
-    const card = this.root.querySelector(`[data-shop-item="${id}"]`);
-    if (
-      card &&
-      !card.querySelector(`[data-do="${quote.mode}:${id}"]:not(:disabled)`)
-    )
-      (card.querySelector('button:not(:disabled)') || card).focus({
-        preventScroll: true,
-      });
-    if (!card) {
-      for (const neighbor of neighbors) {
-        const next = this.root.querySelector(
-          `[data-shop-item="${neighbor}"] .shop-trade:not(:disabled)`,
-        );
-        if (next) {
-          next.focus({ preventScroll: true });
-          break;
-        }
-      }
-    }
   }
   confirmItemUse(use, run, labels = {}) {
     this.confirm(
@@ -1096,16 +853,9 @@ export class UI {
       case 'dialogue-next':
         this.nextDialogue();
         break;
-      case 'choice': {
-        const p = this.panel,
-          c = p.choices[+arg];
-        s.flags[c.flag] = true;
-        this.panel = null;
-        this.render();
-        g.resolveResult(onEvent(s, 'choice', c.flag), p.done);
-        g.checkpoint();
+      case 'choice':
+        this.dialogue.choose(+arg);
         break;
-      }
       case 'story': {
         const vendor = this.panel.object;
         this.panel = null;
@@ -1114,28 +864,28 @@ export class UI {
         break;
       }
       case 'shop-qty':
-        this.changeShopQuantity(arg, target);
+        this.shop.changeQuantity(arg, target);
         break;
       case 'shop-confirm':
-        this.confirmShopTrade(arg);
+        this.shop.confirm(arg);
         break;
       case 'shop-cancel':
-        this.cancelShopQuote();
+        this.shop.cancel();
         break;
       case 'trade-mode':
-        if (!this.isRetailShop()) break;
-        this.sellMode = !this.sellMode;
-        this.syncShopContext();
+        if (!this.shop.isRetail()) break;
+        this.shop.sellMode = !this.shop.sellMode;
+        this.shop.sync();
         this.render();
         break;
       case 'buy':
-        this.requestPurchase(arg);
+        this.shop.requestPurchase(arg);
         break;
       case 'sell':
-        this.requestShopTrade(arg, 'sell');
+        this.shop.request(arg, 'sell');
         break;
       case 'sell-all':
-        this.requestShopTrade(arg, 'sell', true);
+        this.shop.request(arg, 'sell', true);
         break;
       case 'rest': {
         const before = s.resources.food;
@@ -1180,12 +930,12 @@ export class UI {
     footer = '↑ ↓ Navigate &nbsp; <kbd>PgUp/Dn</kbd> Scroll &nbsp; <kbd>Space</kbd>/<kbd>Enter</kbd> Confirm &nbsp; <kbd>Esc</kbd>/<kbd>Backspace</kbd> Return',
     tabs = false,
   ) {
-    const retail = this.isRetailShop(),
+    const retail = this.shop.isRetail(),
       serviceHeader =
         this.panel?.type === 'vendor' &&
         !SERVICES[this.panel.object.service]?.inactive,
       shopHeader = serviceHeader
-        ? `<header class="atlas-header shop-header"><strong>${retail ? (this.sellMode ? 'Sell from pack' : 'Shop') : 'Services'}</strong><div class="shop-resources" aria-label="Available resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="shop-resource${id === 'ore' ? ' shop-resource-ore' : ''}" aria-label="${fmt(this.game.state.resources[id])} ${id}">${icon(id)}<span>${fmt(this.game.state.resources[id])}<small>${id}</small></span></span>`).join('')}</div></header>`
+        ? `<header class="atlas-header shop-header"><strong>${retail ? (this.shop.sellMode ? 'Sell from pack' : 'Shop') : 'Services'}</strong><div class="shop-resources" aria-label="Available resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="shop-resource${id === 'ore' ? ' shop-resource-ore' : ''}" aria-label="${fmt(this.game.state.resources[id])} ${id}">${icon(id)}<span>${fmt(this.game.state.resources[id])}<small>${id}</small></span></span>`).join('')}</div></header>`
         : '';
     return `<div class="scrim"></div><section class="atlas ${this.panel?.type === 'vendor' && !SERVICES[this.panel.object.service || 'provisions']?.shop ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}">${serviceHeader ? shopHeader : `<header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}</header>`}${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${body}</div>${notificationMarkup(this.notifications)}<footer class="atlas-footer"><span>${footer}</span><span>${tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
   }
@@ -1196,8 +946,8 @@ export class UI {
       this.renderedSurface === surface
         ? this.root.querySelector('.atlas-body')?.scrollTop
         : null;
-    if (this.menu || !this.isRetailShop()) this.resetShop();
-    else this.syncShopContext();
+    if (this.menu || !this.shop.isRetail()) this.shop.reset();
+    else this.shop.sync();
     if (!this.menu || this.tab !== 5) this.saveTransfer.cancelImport();
     const shopScroll =
       this.panel?.type === 'vendor' &&
@@ -1499,7 +1249,7 @@ export class UI {
       .join('')}</div></div><div>${this.controls()}</div></div>`;
   }
   renderVendor() {
-    this.syncShopContext();
+    this.shop.sync();
     const s = this.game.state,
       o = this.panel.object,
       service = o.service || 'provisions',
@@ -1520,11 +1270,11 @@ export class UI {
         body += `<p>This service opens at ${TIERS[(def?.tier || 1) - 1]}, Kaida level ${def?.level || 1}${def?.requires ? ' with a ' + BUILDINGS[def.requires]?.name : ''}.</p>`;
     } else if (def?.shop) {
       const ids = (
-        this.sellMode
+        this.shop.sellMode
           ? Object.keys(s.inventory).filter((id) => s.inventory[id] > 0)
           : P.serviceStock(s, service, s.region)
       ).filter((id) => ITEMS[id]);
-      body += `<div class="shop-toolbar">${button(this.sellMode ? 'Buy supplies' : 'Sell from pack', 'trade-mode', 'button quiet')}</div>`;
+      body += `<div class="shop-toolbar">${button(this.shop.sellMode ? 'Buy supplies' : 'Sell from pack', 'trade-mode', 'button quiet')}</div>`;
       for (const [type, name] of [
         ['weapon', 'Weapons'],
         ['armor', 'Armor'],
@@ -1534,20 +1284,20 @@ export class UI {
         const items = ids.filter((id) => ITEMS[id].slot === type);
         if (!items.length) continue;
         const comparisonControl =
-          !this.sellMode && ['armor', 'accessory'].includes(type)
+          !this.shop.sellMode && ['armor', 'accessory'].includes(type)
             ? `<div class="shop-heroes"><span>Compare with</span><div class="button-group" role="group" aria-label="Compare ${name.toLowerCase()} with">${s.heroes.map((h, i) => button(esc(h.name), `shop-hero:${type}:${i}`, 'button quiet' + (this.hero === i ? ' active' : ''), `aria-pressed="${this.hero === i}"`)).join('')}</div></div>`
             : '';
         body += `<section class="shop-section" data-shop-type="${type}" aria-labelledby="shop-${type}"><div class="shop-section-heading"><h3 id="shop-${type}">${name}<span>${items.length}</span></h3>${comparisonControl}</div><div class="shop-grid">${items
           .map((id) => {
             const it = ITEMS[id],
               owned = s.inventory[id] || 0,
-              quantity = this.shopQuantity(id),
-              total = this.shopTotal(id, quantity),
-              locked = this.sellMode && (it.unique || it.price <= 0),
-              unaffordable = !this.sellMode && s.resources.ore < total,
-              unavailable = locked || !this.shopTradeAvailable(id, 1),
-              pending = this.shopQuote?.id === id,
-              action = this.sellMode ? 'sell' : 'buy',
+              quantity = this.shop.quantity(id),
+              total = this.shop.total(id, quantity),
+              locked = this.shop.sellMode && (it.unique || it.price <= 0),
+              unaffordable = !this.shop.sellMode && s.resources.ore < total,
+              unavailable = locked || !this.shop.available(id, 1),
+              pending = this.shop.quote?.id === id,
+              action = this.shop.sellMode ? 'sell' : 'buy',
               owner = weaponOwner(id),
               recipient = canEquip(hero.id, id)
                 ? hero
@@ -1565,15 +1315,15 @@ export class UI {
               }))
               .filter((d) => d.n !== 0);
             const comparison =
-              !this.sellMode && type !== 'consumable' && recipient
+              !this.shop.sellMode && type !== 'consumable' && recipient
                 ? `<span class="shop-comparison"><span>vs ${esc(recipient.name)} · ${esc(old?.name || 'Empty slot')}</span>${changes.length ? changes.map((d) => `<span class="${d.n > 0 ? 'gain' : 'loss'}">${esc(d.label)} ${d.n > 0 ? '+' : ''}${d.n}</span>`).join('') : `<span>${recipient.equip[it.slot] === id ? 'Equipped' : 'No stat change'}</span>`}</span>`
                 : '';
             return `<article class="shop-card${locked || unaffordable ? ' shop-card-unavailable' : ''}${pending ? ' shop-card-confirming' : ''}" data-shop-item="${id}" data-tier="${it.tier}" tabindex="-1" aria-label="${esc(it.name)}">
               <div class="shop-card-heading">${icon(id)}<span class="shop-card-name">${esc(it.name)}${tierBadge(it.tier)}${owner ? `<small>${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}</span><span class="shop-owned">Own ${fmt(owned)}</span></div>
               <div class="shop-description">${esc(it.description)}</div>${comparison}
               <div class="shop-card-action">
-                <div class="shop-card-controls"><div class="shop-quantity" role="group" aria-label="${esc(it.name)} quantity">${button('−', `shop-qty:${id}:down`, 'button quiet', `aria-label="Decrease ${esc(it.name)} quantity" ${unavailable || quantity <= 1 ? 'disabled' : ''}`)}<span aria-label="Quantity ${quantity}">×${quantity}</span>${button('+', `shop-qty:${id}:up`, 'button quiet', `aria-label="Increase ${esc(it.name)} quantity" ${unavailable || !this.shopTradeAvailable(id, quantity + 1) ? 'disabled' : ''}`)}</div><span class="shop-price"><strong>${locked ? 'Cannot sell' : `${fmt(total)} ore`}</strong>${this.sellMode && !locked ? `<small>${fmt(P.sellPrice(id))} ore each</small>` : ''}</span></div>
-                <div class="shop-card-buttons">${button(pending ? 'Confirm' : locked ? 'Keepsake' : this.sellMode ? 'Sell' : 'Buy', (pending ? 'shop-confirm:' : action + ':') + id, 'button shop-trade' + (pending ? ' primary' : ''), `aria-label="${pending ? 'Confirm ' : ''}${action} ${quantity} ${esc(it.name)} for ${fmt(total)} ore" ${locked || unaffordable ? 'disabled' : ''}`)}${this.sellMode && !pending ? button('Sell All', 'sell-all:' + id, 'button quiet', `aria-label="Sell all ${owned} unequipped ${esc(it.name)} for ${fmt(P.sellPrice(id) * owned)} ore" ${unavailable ? 'disabled' : ''}`) : button('Cancel', 'shop-cancel:' + id, 'button quiet shop-cancel', pending ? '' : 'disabled aria-hidden="true"')}</div>
+                <div class="shop-card-controls"><div class="shop-quantity" role="group" aria-label="${esc(it.name)} quantity">${button('−', `shop-qty:${id}:down`, 'button quiet', `aria-label="Decrease ${esc(it.name)} quantity" ${unavailable || quantity <= 1 ? 'disabled' : ''}`)}<span aria-label="Quantity ${quantity}">×${quantity}</span>${button('+', `shop-qty:${id}:up`, 'button quiet', `aria-label="Increase ${esc(it.name)} quantity" ${unavailable || !this.shop.available(id, quantity + 1) ? 'disabled' : ''}`)}</div><span class="shop-price"><strong>${locked ? 'Cannot sell' : `${fmt(total)} ore`}</strong>${this.shop.sellMode && !locked ? `<small>${fmt(P.sellPrice(id))} ore each</small>` : ''}</span></div>
+                <div class="shop-card-buttons">${button(pending ? 'Confirm' : locked ? 'Keepsake' : this.shop.sellMode ? 'Sell' : 'Buy', (pending ? 'shop-confirm:' : action + ':') + id, 'button shop-trade' + (pending ? ' primary' : ''), `aria-label="${pending ? 'Confirm ' : ''}${action} ${quantity} ${esc(it.name)} for ${fmt(total)} ore" ${locked || unaffordable ? 'disabled' : ''}`)}${this.shop.sellMode && !pending ? button('Sell All', 'sell-all:' + id, 'button quiet', `aria-label="Sell all ${owned} unequipped ${esc(it.name)} for ${fmt(P.sellPrice(id) * owned)} ore" ${unavailable ? 'disabled' : ''}`) : button('Cancel', 'shop-cancel:' + id, 'button quiet shop-cancel', pending ? '' : 'disabled aria-hidden="true"')}</div>
               </div>
             </article>`;
           })
@@ -1581,7 +1331,7 @@ export class UI {
       }
       if (!ids.length) {
         const tier = REGIONAL_SHOP_TIERS[s.region.replace(/_town$/, '')];
-        body += `<p class="shop-empty">${this.sellMode ? 'No items in your pack to sell.' : tier && s.tier < tier ? `Local equipment requires ${TIERS[tier - 1]} civilization.` : 'No supplies available here.'}</p>`;
+        body += `<p class="shop-empty">${this.shop.sellMode ? 'No items in your pack to sell.' : tier && s.tier < tier ? `Local equipment requires ${TIERS[tier - 1]} civilization.` : 'No supplies available here.'}</p>`;
       }
     }
     body += `<div class="shop-return">${button('Return to the settlement', 'close', 'button quiet')}</div>`;

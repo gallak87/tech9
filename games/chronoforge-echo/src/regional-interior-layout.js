@@ -6,6 +6,7 @@ export function configureRegionalInterior(scene) {
   const region = scene.townId;
   configureHaventideInterior(scene);
   for (const object of scene.objects) {
+    if (object.service === 'construction') object.name = 'Community plans';
     if (object.havenPart) object.interiorRegion = region;
     if (object.id.startsWith('haven_')) object.id = region + object.id.slice(5);
     if (object.id === region + '_resident')

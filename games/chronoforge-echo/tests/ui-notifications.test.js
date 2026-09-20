@@ -12,6 +12,7 @@ import {
   rest,
   buildingEligibility,
   build,
+  tierEligibility,
 } from '../src/progression.js';
 import { vendorAction } from '../src/vendor-actions.js';
 import { BUILDINGS } from '../src/content.js';
@@ -189,6 +190,31 @@ test('building buttons use the same eligibility as payment for costs, tiers and 
       const attrs = html.match(new RegExp(`data-do="build:${id}"([^>]*)>`))[1];
       assert.equal(attrs.includes('disabled'), !status.eligible);
     }
+  }
+  state.tier = 1;
+  state.buildings.town_center = 2;
+  state.flags.beacon_restored = true;
+  state.resources.renown = 1000;
+  assert.equal(tierEligibility(state).eligible, true);
+  for (const region of [
+    'emberline_town',
+    'orbital_reach_town',
+    'last_crown_town',
+  ]) {
+    state.region = region;
+    const html = ui.renderBuild();
+    assert.match(html, /Community plans/);
+    assert.doesNotMatch(
+      html,
+      /data-do="(?:build:|tier")|class="tier-heading"|Town Center/,
+    );
+    const before = structuredClone(state);
+    ui.action('tier');
+    assert.deepEqual(
+      state,
+      before,
+      'hidden regional advancement cannot spend resources',
+    );
   }
 });
 

@@ -9,6 +9,7 @@ import {
   upgradeShotScale,
   upgradeSparkles,
   interiorUpgradeSparkles,
+  townUpgradePlan,
 } from '../src/upgrade-cinematic.js';
 import { getScene } from '../src/world.js';
 import { TOWN_CENTERS, townCenterBounds } from '../src/town-center-art.js';
@@ -88,8 +89,8 @@ function settlement(region = 'haventide', level = 1) {
   return { game, calls, storage };
 }
 
-test('real upgrades in every town save once before playing, and skip/completion never charge again', () => {
-  for (const { region } of TOWN_CENTERS)
+test('Haventide upgrades save once before playing, and skip/completion never charge again', () => {
+  for (const region of ['haventide'])
     for (const level of [1, 2, 3])
       for (const skip of [false, true]) {
         const { game, calls, storage } = settlement(region, level),
@@ -171,6 +172,9 @@ test('other structures still build normally and preview/menu actions cannot spen
     (g) => (g.ui.panel = null),
     (g) => (g.mode = 'battle'),
     (g) => (g.devTools = { open: true }),
+    ...TOWN_CENTERS.filter((town) => town.region !== 'haventide').map(
+      (town) => (g) => (g.state.region = town.region + '_town'),
+    ),
   ]) {
     const fixture = settlement();
     mutate(fixture.game);
@@ -204,8 +208,9 @@ test('all town reveals frame both exterior sizes and preserve the actual indoor 
   for (const { region } of TOWN_CENTERS)
     for (const level of [1, 2, 3]) {
       const { game } = settlement(region, level);
-      performBuild(game, 'town_center');
-      const plan = game.upgradeTour.plan,
+      const after = structuredClone(game.state);
+      after.buildings.town_center++;
+      const plan = townUpgradePlan(game.state, after),
         outside = getScene(region),
         inside = getScene(region + '_town');
       const view = {

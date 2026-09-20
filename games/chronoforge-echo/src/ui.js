@@ -15,7 +15,7 @@ import {
   REGIONAL_SHOP_TIERS,
 } from './content.js';
 import * as P from './progression.js';
-import { performBuild } from './construction.js';
+import { performBuild, settlementWorksAvailable } from './construction.js';
 import { mainObjective, interactStory } from './narrative.js';
 import { drawPortrait, drawIcon, npcPortrait } from './art.js';
 import { nearbyBuildings } from './world.js';
@@ -931,6 +931,7 @@ export class UI {
         performBuild(g, arg);
         break;
       case 'tier':
+        if (!settlementWorksAvailable(s)) break;
         this.feedback(P.advanceTier(s));
         g.checkpoint();
         break;
@@ -1396,6 +1397,11 @@ export class UI {
   }
   renderBuild() {
     const s = this.game.state;
+    if (!settlementWorksAvailable(s))
+      return this.shell(
+        'Community plans',
+        `<p>Local restoration projects are not available yet.</p><div class="button-group">${button('Return to town', 'close', 'button quiet')}</div>`,
+      );
     return this.shell(
       'Settlement works',
       `<div class="section-heading"><h2>Give tomorrow a foundation</h2><span class="label">SHARED STORES / ALL HARBORS</span></div><div class="row spread"><div class="small amber">${costText(Object.fromEntries(Object.entries(s.resources).map(([k, v]) => [k, Math.floor(v)])))}</div>${button('Return to town', 'close', 'button quiet')}</div>${this.renderTier()}<div class="build-grid">${Object.values(

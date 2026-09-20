@@ -2,10 +2,16 @@ import { build } from './progression.js';
 import { onEvent } from './narrative.js';
 import { townUpgradePlan } from './upgrade-cinematic.js';
 
+// Regional restoration is paused until it has independent community progress.
+export function settlementWorksAvailable(state) {
+  return state.region === 'haventide' || state.region === 'haventide_town';
+}
+
 // This is the settlement button's real transaction. The cinematic never
 // charges resources, changes progression, or rolls back a completed upgrade.
 export function performBuild(game, id) {
   if (
+    !settlementWorksAvailable(game.state) ||
     game.upgradeTour?.open ||
     game.devTools?.open ||
     game.mode !== 'world' ||

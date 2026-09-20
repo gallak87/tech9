@@ -5,6 +5,10 @@ import { ITEMS } from '../src/content.js';
 import { createState, recruit, equip } from '../src/progression.js';
 import { canEquip, weaponOwner } from '../src/equipment.js';
 import { saveState, loadState } from '../src/persistence.js';
+import {
+  communityStatus,
+  restoreCommunity,
+} from '../src/community-restoration.js';
 register('./helpers/css-loader.mjs', import.meta.url);
 const { inventoryHero, inventoryRecipient, inventoryItems, inventoryPage } =
   await import('../src/inventory-menu.js');
@@ -286,6 +290,76 @@ test('shared recipient selection returns to the item; explicit actions ignore st
   const before = structuredClone(ui.game.state);
   ui.action('equip:scrap_vest');
   assert.deepEqual(ui.game.state, before);
+});
+
+test('equip and unequip autosave loadouts and pack contents, including community keepsakes', () => {
+  for (const [id, heroId] of [
+    ['glass_needle', 'vex'],
+    ['bio_weave', 'kaida'],
+    ['data_chip', 'rune'],
+    ['duneglass_blade_1', 'kaida'],
+  ]) {
+    const ui = actionFixture();
+    const state = createState();
+    recruit(state, 'vex');
+    recruit(state, 'rune');
+    ui.game.state = state;
+    if (ITEMS[id].exotic) {
+      state.region = 'emberline_town';
+      state.x = state.y = 200;
+      state.flags.emberline_liberated = true;
+      state.resources = { food: 2000, ore: 2000, energy: 2000, renown: 0 };
+      for (const project of communityStatus(state, state.region).projects)
+        assert.equal(
+          restoreCommunity(state, state.region, project.id).ok,
+          true,
+        );
+    } else state.inventory[id] = 1;
+    const slots = new Map();
+    const storage = {
+      getItem: (key) => slots.get(key) ?? null,
+      setItem: (key, value) => slots.set(key, value),
+    };
+    saveState(state, 1, storage);
+    const manual = loadState(1, storage);
+    let writes = 0;
+    ui.game.checkpoint = () => {
+      saveState(state, 'checkpoint', storage);
+      writes++;
+    };
+    // Party shortcut selects the recipient for shared items; weapons can target
+    // their owner directly from the unfiltered all-crew pack.
+    if (ITEMS[id].slot !== 'weapon') ui.action(`inventory-open:${heroId}`);
+    ui.action(`equip:${id}${ITEMS[id].slot === 'weapon' ? `:${heroId}` : ''}`);
+    assert.equal(ui.result.ok, true);
+    assert.equal(writes, 1);
+    let saved = loadState('checkpoint', storage);
+    assert.deepEqual(saved, state);
+    assert.equal(
+      saved.heroes.find((hero) => hero.id === heroId).equip[ITEMS[id].slot],
+      id,
+    );
+    assert.equal(saved.inventory[id], 0);
+
+    ui.action(`unequip:${ITEMS[id].slot}:${heroId}`);
+    assert.equal(ui.result.ok, true);
+    assert.equal(writes, 2);
+    saved = loadState('checkpoint', storage);
+    assert.deepEqual(saved, state);
+    assert.equal(
+      saved.heroes.find((hero) => hero.id === heroId).equip[ITEMS[id].slot],
+      null,
+    );
+    assert.equal(saved.inventory[id], 1);
+    assert.deepEqual(loadState(1, storage), manual);
+
+    ui.action(`unequip:${ITEMS[id].slot}:${heroId}`); // Empty slot.
+    ui.action('equip:glass_needle:kaida'); // Incompatible weapon.
+    ui.action('equip:horizon_edge:kaida'); // Not in the pack.
+    ui.action(`equip:${id}:missing`); // No recipient.
+    assert.equal(writes, 2);
+    assert.deepEqual(loadState('checkpoint', storage), saved);
+  }
 });
 
 test('menu consumables confirm the explicit recipient and ATB use remains rejected', () => {

@@ -747,14 +747,22 @@ export class UI {
         const recipient = target
           ? s.heroes.find((hero) => hero.id === target)
           : inventoryRecipient(this, arg);
-        if (recipient) this.feedback(P.equip(s, recipient.id, arg));
+        if (recipient) {
+          const result = P.equip(s, recipient.id, arg);
+          if (result.ok) g.checkpoint();
+          this.feedback(result);
+        }
         break;
       }
       case 'unequip': {
         const recipient = target
           ? s.heroes.find((hero) => hero.id === target)
           : inventoryHero(this);
-        if (recipient) this.feedback(P.unequip(s, recipient.id, arg));
+        if (recipient) {
+          const result = P.unequip(s, recipient.id, arg);
+          if (result.ok) g.checkpoint();
+          this.feedback(result);
+        }
         break;
       }
       case 'use':

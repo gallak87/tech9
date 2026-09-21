@@ -196,6 +196,59 @@ export function installGroundAtlas(image, options = {}) {
   groundCache.clear();
 }
 const enemySheets = new Map();
+const enemyWalkSheets = new Map();
+const hoveringEnemies = new Set([
+  'drone_sentinel',
+  'neon_cultist',
+  'frost_revenant',
+  'wraith_core',
+]);
+export function installEnemyWalkSheet(id, image, metadata) {
+  enemyWalkSheets.set(id, { image, ...metadata });
+}
+
+export function drawPatrolEnemy(c, id, x, y, motion, scale = 0.85) {
+  const sheet = enemyWalkSheets.get(id);
+  if (!sheet || !motion) {
+    drawEnemy(c, id, x, y, {
+      scale,
+      facing: motion?.facing,
+      hoverOffset:
+        motion && hoveringEnemies.has(id) ? Math.sin(motion.time * 4) * 2 : 0,
+    });
+    return;
+  }
+  const row = motion.facing === 'up' ? 2 : motion.facing === 'down' ? 1 : 0;
+  const frame =
+    sheet.frames[
+      row * 4 + (motion.moving ? Math.floor(motion.time * 6) % 4 : 0)
+    ];
+  const px = frame.pixelScale * scale;
+  const ground = enemySheets.get(id)?.shadow;
+  shadow(
+    c,
+    x,
+    y,
+    (ground?.radiusX || 34) * scale,
+    (ground?.radiusY || 7) * scale,
+  );
+  c.save();
+  c.translate(Math.round(x), Math.round(y));
+  c.scale(motion.facing === 'right' ? -1 : 1, 1);
+  c.drawImage(
+    sheet.image,
+    frame.x,
+    frame.y,
+    frame.w,
+    frame.h,
+    Math.round(-frame.anchorX * px),
+    Math.round(-frame.anchorY * px),
+    Math.round(frame.w * px),
+    Math.round(frame.h * px),
+  );
+  c.restore();
+}
+
 export function installEnemySheet(id, image, options = {}) {
   const entry = {
     image,
@@ -2446,7 +2499,7 @@ function drawProp(c, o, p, time, state) {
         drawEnemy(c, encounterLeader(o), o.x, o.y, { time: 0, scale: 0.85 });
         c.restore();
       } else if (!state.cleared?.[o.id]) {
-        drawEnemy(c, encounterLeader(o), o.x, o.y, { time, scale: 0.85 });
+        drawPatrolEnemy(c, encounterLeader(o), o.x, o.y, o.patrolMotion);
       }
       break;
   }
@@ -3577,7 +3630,7 @@ export function drawEnemy(c, id, x, y, opt = {}) {
       (a.shadow?.radiusY || 7) * scale,
     );
     c.save();
-    c.translate(Math.round(x), Math.round(y));
+    c.translate(Math.round(x), Math.round(y + (opt.hoverOffset || 0)));
     c.scale(opt.facing === 'right' ? -1 : 1, 1);
     const frameArt = a.frames?.[frame];
     if (frameArt) {
@@ -4925,6 +4978,7 @@ export function artMetrics() {
     [
       ...environmentAtlases.values(),
       ...enemySheets.values(),
+      ...enemyWalkSheets.values(),
       ...heroSheets.values(),
       ...heroWalkSheets.values(),
       ...buildingAtlases.values(),
@@ -4980,6 +5034,7 @@ export function artMetrics() {
     buildingGroups: [...buildingAtlases.keys()],
     heroSheets: [...heroSheets.keys()],
     enemySheets: [...enemySheets.keys()],
+    enemyWalkSheets: [...enemyWalkSheets.keys()],
   };
 }
 // Actor geometry shares the exact crops and anchors used by draw calls.

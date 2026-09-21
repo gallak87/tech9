@@ -4,6 +4,7 @@ import * as MidEnemyArt from './mid-enemy-frames.js';
 import * as BossArt from './boss-frames.js';
 import { ENVIRONMENT_ASSETS } from './environment-frames.js';
 import { HERO_WALK_ART } from './hero-walk-frames.js';
+import { ENEMY_WALK_ART } from './enemy-walk-frames.js';
 import { ALPHA_MASKS } from './alpha-masks.js';
 import { WORLD_PROP_ASSETS } from './world-prop-frames.js';
 import { RASTER_ICON_ASSETS } from './raster-icon-manifest.js';
@@ -36,6 +37,19 @@ const atlas = (id, url, columns, rows, kind, options = {}) => ({
   ...options,
 });
 export const ASSET_MANIFEST = [
+  ...ENEMY_WALK_ART.map((metadata) => ({
+    id: metadata.id + '_walk',
+    enemyId: metadata.id,
+    url: metadata.source,
+    columns: 4,
+    rows: 3,
+    kind: 'enemyWalk',
+    required: true,
+    key: metadata.key,
+    keyMin: metadata.keyMin,
+    backgroundSeeds: metadata.backgroundSeeds,
+    metadata,
+  })),
   ...TOWN_INTERIOR_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
   ...TOWN_CENTERS.map((entry) => ({ ...entry, url: entry.source })),
   atlas('kaida_walk', 'kaida-walk-source.png', 4, 3, 'kaidaWalk', {
@@ -363,6 +377,9 @@ export async function loadAssets(art) {
             break;
           case 'heroWalk':
             art.installHeroWalkSheet(entry.heroId, image, entry.metadata);
+            break;
+          case 'enemyWalk':
+            art.installEnemyWalkSheet(entry.enemyId, image, entry.metadata);
             break;
           case 'environmentDetail':
             art.installWorldEnvironmentDetail(image, entry);

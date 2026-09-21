@@ -28,6 +28,10 @@ Successful purchases and sales call the existing game checkpoint after updating 
 
 `encounter-contact.js` owns the ground oval, contact padding and swept movement check. `enemy-labels.js` draws those ovals, while `enemy-levels.js` selects the strongest visible fighter for the sprite, single-line badge and danger relative to Kaida. Unmet prerequisites, cleared encounters and post-battle protection prevent contact; sentries use the same contact rules as other enemies. Only cleared repeatable encounters appear in the manual interaction list. Changes to contact or patrol movement must keep the indicator and trigger aligned.
 
+`enemy-patrols.js` validates deterministic routes after final scenery footprints and owns live encounter copies per expedition and scene. `Game.scene` resolves those copies for movement, rendering, labels, and relative swept contact. Guards pace within 64 world units; ordinary outdoor patrols range up to 240, with 100-unit limits for the introduction and cave supply chambers. Bosses and one-off story encounters stay put; cleared replay markers return home. Patrols advance only during active exploration and freeze off-region. New/load resets transient patrol state; nearby loaded enemies wait until the party moves clear. Developer trips isolate patrol state by expedition identity. Suspended battles omit patrol routes and clocks.
+
+Every cave has one optional lower-chamber supply patrol using existing enemies and rewards. Stable cave-specific IDs preserve old cleared records. The ordinary pathfinder must retain safe access to field records and companion story interactions outside patrol segments.
+
 ## Combat
 
 `combat.js` owns the ATB clock, readiness queue, action timeline, seeded outcome RNG and battle result. Costs, HP and timing resolve once at contact. Rendering derives poses and effects from the same timeline and cannot advance gauges or award rewards. The integrator consumes the battle result once.
@@ -39,6 +43,8 @@ Timing accepts one fresh keydown per action; the execute press cannot double as 
 ## Rendering and assets
 
 `assets.js` validates required source dimensions and measured frame bounds before readiness. Missing required art produces a visible load failure. Art sources are loaded locally; runtime has no image-generation dependency. `rendering.js` owns backing scale, filtered contexts and logical pattern sizing.
+
+`enemy-walk-frames.js` supplies measured four-phase left/down/up crops for ten grounded enemies, with right-facing mirroring and fixed scale per direction. Four hovering types reuse neutral battle art with a small visual offset independent of their ground anchor. Battle pose mappings remain unchanged. `art/enemy-prompts.json` stores identity notes, historical prompts, and selected generation provenance; the read-only `scripts/enemy-art-prompt.mjs` resolves current canonical references from the live manifest.
 
 Ground chunks cover 384×384 world units using 768×768 backing pixels; the 40-chunk cache occupies at most 90 MiB. Source atlases are accounted for separately. Extraction and mask canvases retain source resolution. `drawForeground` redraws props in front of actors and dims foliage where it covers the party. Art rendering has no gameplay mutations.
 

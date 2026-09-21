@@ -15,12 +15,24 @@
 - [ ] Decide a future role for the preserved artificer stations before reopening their counters.
 - [ ] Add more town centers along the campaign routes, with progressively stronger local stock and useful recovery stops. Choose locations and level bands during world planning; give vendors distinct roles within each town, with selective overlap between towns. Coordinate with the vendor redesign and traversal pacing pass.
 - [ ] Fix Kaida’s clipped victory pose; likely regenerate her full sprite set for consistent appearance and framing rather than replacing only the victory pose.
-- [ ] Add bounded enemy patrols as the next separate encounter pass, keeping danger cues aligned with movement and routes readable.
+- [x] Implement bounded enemy patrols: four town guards pace within 64 world units, ordinary enemies range up to 240, and the introduction/caves use 100. Bosses and defeated encounters remain stationary; sprites, badges, and swept contact share live positions.
+- [x] Add one regional supply-chamber encounter to each of the eight caves, with safe arrivals and accessible field records / companion stories.
+- [ ] Playtest patrol cadence, guard restraint, ordinary route readability, and cave combat pacing; review walk/battle identity at gameplay scale.
 - [ ] Revisit whether encounters should forbid retreat; undecided, keep current retreat rules until reviewed separately.
 - [ ] Animate Crater Ember’s lava with a natural sense of flow and heat.
 - [ ] Revisit Forest Veil’s semicircular tree groves and traversal; explore dense woodland with connected clearings and readable paths.
 - [x] Complete the weapon-family pass: swords for Kaida, staves for Vex, gauntlets for Rune; four-tier progression, optional hero filtering, required vendor/loot adjustments, automatic legacy-save conversion, and replacement art for mismatched weapons. User playtest accepted on 2026-09-19 after importing an existing save, checking inventory filters and equipment, and confirming ATB works. Character artwork remains fixed.
 - [ ] Retire the temporary weapon-family save migration after the compatibility window (review in early October 2026). Keep current equipment validation; remove the conversion module and legacy-load writeback once existing players' saves have upgraded.
+
+## Patrol movement — implemented, player review pending
+
+The [implementation plan and checklist](ENEMY_PATROL_PLAN.md) records behavior, cave groups, art provenance, and validation. On 2026-09-21, the user authorized autonomous generation and headless playtesting while away.
+
+The Drone Sentinel / Mutant Hound / Gravbot pilot led to ten referenced directional walk sheets, with hover reuse for Drone Sentinel, Neon Cultist, Frost Revenant, and Wraith Core. All 19 enemy identities now have durable authoring records in `art/enemy-prompts.json`; exact historical prompts were recovered for 18. Rust Scrapper's original wording is explicitly unavailable. The read-only prompt helper resolves current canonical art for regeneration.
+
+Forty encounters patrol: 32 outdoors and eight in caves. Routes are validated against final collision and keep cave story access clear. Bosses, one-off story encounters, and defeated encounters stay still. Patrol state is transient and isolated between the real expedition and developer trips. Existing pause and protection rules apply, including relative swept contact and safe loading near a patrol.
+
+Validation passed: 304 Node tests, 48 headless integration assertions, production build, and both deployment mounts. All ten sheets were compared with battle art at gameplay scale. The remaining gate is the user's subjective review of gait, identity details, and pacing. Pursuit, changes to retreat rules, moving bosses, and additional cave groups remain deferred.
 
 ## TODO — Revisit Party and Inventory overlap
 

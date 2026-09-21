@@ -9,6 +9,7 @@ export function hasContactBoundary(encounter, state) {
   return (
     encounter.type === 'encounter' &&
     !state.cleared?.[encounter.id] &&
+    !encounter.patrolMotion?.arrivalProtected &&
     meetsWorldRequirement(state, encounter.requires)
   );
 }
@@ -17,12 +18,13 @@ function contactTime(encounter, from, to) {
   const rx = ENCOUNTER_RING.radiusX + ENCOUNTER_CONTACT_PADDING,
     ry = ENCOUNTER_RING.radiusY + ENCOUNTER_CONTACT_PADDING;
   // Normalize the padded ellipse into a unit circle for the swept crossing.
-  const x = (from.x - encounter.x) / rx,
-    y = (from.y - encounter.y) / ry;
+  const previous = encounter.patrolMotion?.previous || encounter;
+  const x = (from.x - previous.x) / rx,
+    y = (from.y - previous.y) / ry;
   const distance = x * x + y * y - 1;
   if (distance <= 0) return 0;
-  const dx = (to.x - from.x) / rx,
-    dy = (to.y - from.y) / ry,
+  const dx = (to.x - from.x - (encounter.x - previous.x)) / rx,
+    dy = (to.y - from.y - (encounter.y - previous.y)) / ry,
     length = dx * dx + dy * dy;
   if (!length) return null;
   const dot = x * dx + y * dy,

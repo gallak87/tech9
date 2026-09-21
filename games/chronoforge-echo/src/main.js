@@ -19,6 +19,7 @@ import {
 } from './enemy-levels.js';
 import { drawEncounterLevels } from './enemy-labels.js';
 import { contactEncounter } from './encounter-contact.js';
+import { EnemyPatrols } from './enemy-patrols.js';
 import * as P from './progression.js';
 import { SCENES, interactStory, onEvent } from './narrative.js';
 import * as Narrative from './narrative.js';
@@ -65,6 +66,7 @@ const state = P.createState();
 class Game {
   constructor() {
     this.state = state;
+    this.patrols = new EnemyPatrols();
     this.mode = 'title';
     this.keys = new Set();
     this.audio = new EchoAudio();
@@ -93,7 +95,7 @@ class Game {
     this.updateCamera(true);
   }
   get scene() {
-    return getScene(this.state.region);
+    return this.patrols.scene(getScene(this.state.region), this.state);
   }
   get visualState() {
     return this.devTools?.visualState(this.state) ?? this.state;
@@ -361,10 +363,14 @@ class Game {
   beginBattle(encounter) {
     if (this.mode === 'battle') return;
     const start = () => {
-      this.battle = createBattle(this.state, {
+      const battleEncounter = {
         ...encounter,
         biome: this.scene.biome,
-      });
+      };
+      // Patrol routes and clocks belong to exploration, never suspended saves.
+      delete battleEncounter.patrol;
+      delete battleEncounter.patrolMotion;
+      this.battle = createBattle(this.state, battleEncounter);
       this.mode = 'battle';
       this.battleResultTime = 0;
       this.soundLog = 0;
@@ -539,6 +545,7 @@ class Game {
       r = this.scene,
       previous = { x: s.x, y: s.y };
     this.traversal.move(dt);
+    this.patrols.update(r, s, dt, { protected: this.encounterCooldown > 0 });
     this.updateCamera();
     const near = nearby(r, s.x, s.y, s);
     this.near = near[0] || null;
@@ -785,6 +792,8 @@ async function boot() {
         return g;
       },
       drawHero: Art.drawHero,
+      drawEnemy: Art.drawEnemy,
+      drawPatrolEnemy: Art.drawPatrolEnemy,
       actorBounds: Art.actorBounds,
       snapshot: () => ({
         state: copy(g.state),

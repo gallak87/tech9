@@ -6,7 +6,9 @@ import {
   consoleAt,
   pickup,
   landmark,
+  encounter,
 } from './world-objects.js';
+import { configureEnemyPatrols } from './enemy-patrols.js';
 import { distanceToRoad, terrainAt } from './world-geometry.js';
 import { scaleScenes } from './world-scale.js';
 import { configureRegionalInterior } from './regional-interior-layout.js';
@@ -49,6 +51,7 @@ export function buildWorld() {
   // Grounded art footprints are the final collision geometry.
   configureWorldScenery(REGIONS);
   for (const scene of Object.values(ALL_SCENES)) configureCaveScenery(scene);
+  for (const scene of Object.values(ALL_SCENES)) configureEnemyPatrols(scene);
   return { REGIONS, ALL_SCENES };
 }
 
@@ -405,7 +408,20 @@ function createDwellingInteriors(REGIONS, interiors) {
           ]
         : [{ x: 55, y: 95, w: 658, h: 445 }];
       if (cave) {
+        const caveEnemies = {
+          hav_cave: ['rust_scrapper', 'slag_rat'],
+          ember_cave: ['mutant_hound'],
+          forest_cave: ['bog_stalker', 'mutant_hound'],
+          mire_cave: ['bog_stalker', 'bog_stalker'],
+          crater_cave: ['ember_golem'],
+          orbital_cave: ['neon_cultist'],
+          frost_cave: ['glacier_wolf', 'glacier_wolf'],
+          crown_cave: ['wraith_core'],
+        };
         s.objects.push(
+          encounter(id + '_supply_patrol', 890, 780, caveEnemies[id], {
+            name: 'The lower chamber patrol',
+          }),
           landmark(
             id + '_field_station',
             'The last survey station',

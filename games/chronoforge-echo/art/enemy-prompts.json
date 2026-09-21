@@ -1,0 +1,404 @@
+{
+  "version": 1,
+  "policy": {
+    "identity": "The currently selected battle atlas is the primary image reference. Historical wording supports that image and never overrides it.",
+    "generation": "Use the built-in image generator with the resolved current reference. Generate a complete coherent locomotion sheet, inspect identity and all cells, and record the exact prompt and output. Whole-enemy regeneration is authorized only when needed to correct a mismatch, followed by inspection.",
+    "selection": "Keep candidates under .experiments/. Promote only visually reviewed art and measured runtime metadata. Do not overwrite a selected battle atlas merely to install locomotion.",
+    "provenance": "Recovered prompts are exact historical records; missing originals and reconstructed identity notes are labeled explicitly."
+  },
+  "enemies": [
+    {
+      "id": "rust_scrapper",
+      "referenceAssetId": "rust_scrapper",
+      "identityNotes": "Six-legged rusted copper salvage crab, rounded weathered ivory sensor shell with a dark slit and teal eye, small kettle-like armored body, one oversized asymmetric red-tipped magnet claw, brass joints, moss and pale barnacles. Preserve the distinctive claw, leg count and source palette.",
+      "locomotion": "sheet",
+      "movement": "Coordinated six-legged mechanical scuttle. Alternate supporting legs without changing anatomy; carry the magnet claw calmly.",
+      "historicalPrompt": {
+        "status": "not-located",
+        "prompt": null,
+        "note": "Identity notes reconstructed from the selected live source, not presented as an original prompt."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/rust-scrapper-source.png",
+          "prompt": "Use case: identity-preserve. Asset type: production overworld locomotion atlas for Chronoforge Echo.\nImage 1 is the canonical battle-sheet identity reference. Depict exactly the SAME creature in every new pose; preserve anatomy, proportions, silhouette, palette, equipment, distinctive details, crisp pixel-cluster finish and warm upper-left lighting. Do not redesign it.\nIdentity: Six-legged rusted copper salvage crab, rounded weathered ivory sensor shell with a dark slit and teal eye, small kettle-like armored body, one oversized asymmetric red-tipped magnet claw, brass joints, moss and pale barnacles. Preserve the distinctive claw, leg count and source palette.\nCreate one coherent WALK sheet: FOUR columns by THREE rows, 12 equal square cells, landscape 4:3 aspect, preferably 2048x1536. Every full-body sprite entirely inside its own cell, generous margin at least 10% of cell size on every side. Fixed anatomical scale and projected ground baseline across frames; no auto-fitting individual poses.\nRow 1 faces LEFT side/three-quarter matching the reference. Row 2 faces toward camera/down. Row 3 faces away/up. Each row has four successive locomotion phases: first contact, passing, opposite contact, opposite passing, looping smoothly. Preserve the same equipment on the same anatomical side across all directions.\nMovement: Coordinated six-legged mechanical scuttle. Alternate supporting legs without changing anatomy; carry the magnet claw calmly.\nUse neutral alert patrol expressions. No attacks, hurt, collapse, projectiles, magic discharges, or changing armor. All limbs, tails and equipment fully visible; no touching adjacent cells.\nBackground: genuine transparent alpha, no painted checkerboard. No floor, cast shadows, scenery, text, labels, grid lines, borders, or backdrop. Output only the atlas.",
+          "output": "assets/enemies/walk/rust-scrapper-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "drone_sentinel",
+      "referenceAssetId": "drone_sentinel",
+      "identityNotes": "Aged ivory porcelain ovoid hovering lens, luminous teal circular eye, three curved copper vanes, exposed brass gimbal joints, dark oxidized seams, chipped shell and small moss traces.",
+      "locomotion": "hover",
+      "movement": null,
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/drone-asset.md",
+        "key": "Exact generation prompt",
+        "prompt": "Use case: stylized-concept. Asset type: production pixel-art sprite atlas for Chronforge Echo, a richly illustrated 960×540 JRPG. Create ONE Drone Sentinel sprite sheet, landscape 1536×1024, exactly 3 columns × 2 rows, six separate full-body poses, generous empty padding between poses. Same individual and identical anatomy in every cell, facing screen LEFT in a side/three-quarter battle view. Drone Sentinel is a fast fragile hovering scout: a beautiful aged-IVORY PORCELAIN LENS with a luminous TEAL circular eye aimed left, three delicate curved COPPER VANES projecting from its rear housing, small exposed brass gimbal joints, dark oxidized seams, chipped shell, tiny moss traces and warm top-left highlights. It is an elegant airborne antique optical instrument, distinct from any crab, spider, humanoid, tank or insect. Its compact ovoid shell and three long vane silhouette must read strongly at about 64×70 native game pixels. Use intricate, expertly clustered PIXEL ART with crisp stepped outlines, rich material shading, limited ivory/copper/oxidized-teal palette, high-end 32-bit JRPG detail; do not make flat vector art or smooth 3D. Match the visual language of a detailed rusted copper clockwork creature beside a magenta-haired sword heroine, with sharper clustered pixels and painterly material detail only inside hard sprite edges. Background must be actual TRANSPARENT ALPHA, no checkerboard drawn into the image, no floor, no scenery, no cast shadows, no borders, no words, no labels, no UI. No glow fog outside sprites. Six poses in reading order: (1) IDLE hovering level, three vanes loosely fanned, calm teal lens; (2) ANTICIPATION recoiled to the right, shell tilted upward, three vanes swept forward tight, iris narrowing and brightening; (3) ATTACK thrust left, shell pitched forward, three vanes swept sharply backward, lens wide open with a short jagged focused teal discharge protruding left no longer than half the shell; (4) HURT visibly twisting clockwise, asymmetrically thrown vanes, cracked lens and 3–5 tiny ivory/copper chips close to the body; (5) DEFEAT grounded and slumped, shell on its side, vanes bent and folded, dark broken lens, clearly lower and wider silhouette; (6) GUARD/CAST upright hover, three vanes closed around lens like a mechanical iris, small precise teal aperture ring integrated into the housing. Six materially DIFFERENT body poses, not copies or mere color variations. Consistent source body scale in all six, all anatomy and discharge fully inside their own equal 512×512 cells. Center each sprite horizontally within its cell and use a shared imaginary ground anchor about 85% down each cell; hovering bodies float clearly above this anchor, defeated body rests on it. Leave substantial transparent padding, especially at sheet edges. A polished original game asset, every pose complete and usable."
+      },
+      "generations": []
+    },
+    {
+      "id": "bog_stalker",
+      "referenceAssetId": "bog_stalker",
+      "identityNotes": "Thin jointed reed legs with clawed root toes, wet dark bark body, hunched jade lily leaves, broad lily-pad mask with amber eye and small ivory beak, copper hooked root claws, reddish fibers and cattail tuft.",
+      "locomotion": "sheet",
+      "movement": "Careful alternating long-legged stalk with clear foot contact and claw arms carried low.",
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/asset-prompts.json",
+        "key": "bog_stalker",
+        "prompt": "Create a richly detailed production pixel-art enemy animation atlas for Chronforge Echo. Match the attached Rust Scrapper sprite rendering: crisp intentionally clustered pixels, fine but controlled material highlights, excellent silhouette, top-left light, three-quarter RPG battle view facing LEFT. Transparent PNG1536x1024, precisely3columns by2rows, eachcell512square. Exactly SIX isolated full-body poses of the SAME creature. Generous margins, no crossing cells, fixed anatomical scale and consistent design, ground anchor centered at x256 and y460 inside each cell except genuinely airborne parts. Row1: idle/readiness, clear attack anticipation, full attack/contact. Row2: hurt reaction, collapsed defeated pose, braced defense or casting. No labels, grid, scenery, backdrop, ground slab, smoke covering body or large glow. True alpha0 outside silhouettes. Fine detail must remain readable when rendered about80–100pixels high. ENEMY BOG STALKER: a strange amphibious reed-legged ambusher, entirely distinct from a machine crab. Tall thin jointed marsh stalk legs, three delicate clawed root toes, small wiry dark green-brown body of wet bark and sinew, hunched shoulders draped with deep jade lily leaves. Face hidden by a broad weathered lily-pad mask shaped like a shallow oval shield, amber slit eyes and a small ivory beak under it. Two long forearms terminate in hooked copper-colored root claws. Tangled reddish marsh fibers, tiny reeds and pale seed pods cling to its limbs; strongly asymmetrical tuft rising above left shoulder. Not a zombie or human costume. Native intended size about78wide×95high. Idle balanced on long legs; anticipation crouches low and draws back claw; attack lunges sharply left with one claw extended; hurt bends away with mask tilted; defeat folds into a heap of leaves and reeds; guard brings both hooked arms around mask."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/bog-stalker-source.png",
+          "prompt": "Use case: identity-preserve. Asset type: production overworld locomotion atlas for Chronoforge Echo.\nImage 1 is the canonical battle-sheet identity reference. Depict exactly the SAME creature in every new pose; preserve anatomy, proportions, silhouette, palette, equipment, distinctive details, crisp pixel-cluster finish and warm upper-left lighting. Do not redesign it.\nIdentity: Thin jointed reed legs with clawed root toes, wet dark bark body, hunched jade lily leaves, broad lily-pad mask with amber eye and small ivory beak, copper hooked root claws, reddish fibers and cattail tuft.\nCreate one coherent WALK sheet: FOUR columns by THREE rows, 12 equal square cells, landscape 4:3 aspect, preferably 2048x1536. Every full-body sprite entirely inside its own cell, generous margin at least 10% of cell size on every side. Fixed anatomical scale and projected ground baseline across frames; no auto-fitting individual poses.\nRow 1 faces LEFT side/three-quarter matching the reference. Row 2 faces toward camera/down. Row 3 faces away/up. Each row has four successive locomotion phases: first contact, passing, opposite contact, opposite passing, looping smoothly. Preserve the same equipment on the same anatomical side across all directions.\nMovement: Careful alternating long-legged stalk with clear foot contact and claw arms carried low.\nUse neutral alert patrol expressions. No attacks, hurt, collapse, projectiles, magic discharges, or changing armor. All limbs, tails and equipment fully visible; no touching adjacent cells.\nBackground: genuine transparent alpha, no painted checkerboard. No floor, cast shadows, scenery, text, labels, grid lines, borders, or backdrop. Output only the atlas.",
+          "output": "assets/enemies/walk/bog-stalker-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "slag_rat",
+      "referenceAssetId": "slag_rat",
+      "identityNotes": "Low soot-gray shaggy rodent with russet ears and paws, amber eyes, segmented copper wire tail, ivory ceramic shoulder plate and brass fittings, bright incisors and tiny orange whisker sparks.",
+      "locomotion": "sheet",
+      "movement": "Natural low quadruped trot with alternating paws and a restrained tail follow-through; no biting lunge.",
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/asset-prompts.json",
+        "key": "slag_rat",
+        "prompt": "Create a richly detailed production pixel-art enemy animation atlas for Chronforge Echo. Match the attached Rust Scrapper sprite rendering: crisp intentionally clustered pixels, fine but controlled material highlights, excellent silhouette, top-left light, three-quarter RPG battle view facing LEFT. Transparent PNG1536x1024, precisely3columns by2rows, eachcell512square. Exactly SIX isolated full-body poses of the SAME creature. Generous margins, no crossing cells, fixed anatomical scale and consistent design, ground anchor centered at x256 and y460 inside each cell except genuinely airborne parts. Row1: idle/readiness, clear attack anticipation, full attack/contact. Row2: hurt reaction, collapsed defeated pose, braced defense or casting. No labels, grid, scenery, backdrop, ground slab, smoke covering body or large glow. True alpha0 outside silhouettes. Fine detail must remain readable when rendered about80–100pixels high. ENEMY SLAG RAT: a small quick scrap-eating rodent with a vivid animal silhouette. Soot-gray shaggy fur, russet ears and paws, intelligent pale amber eye, long segmented copper wire tail curled behind, one bent ivory ceramic shoulder plate scavenged from a machine, little brass buckles, sharp metal-bright incisors. One furnace-orange whisker glows like a tiny ember; just a few glowing specks in its muzzle, not covered in fire. Low agile four-legged stance, clearly a rat not a robot or wolf. Native intended size about82pixels long×48high. Idle alert sniffing; anticipation haunches coil and muzzle opens; attack springs left with front paws and teeth extended; hurt twists away, tail arcing; defeat lies curled on side with extinguished whisker; guard crouches under its ceramic plate with ears low. Keep same body proportions, armor position and colors in every pose."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/slag-rat-source.png",
+          "prompt": "Use case: identity-preserve. Asset type: production overworld locomotion atlas for Chronoforge Echo.\nImage 1 is the canonical battle-sheet identity reference. Depict exactly the SAME creature in every new pose; preserve anatomy, proportions, silhouette, palette, equipment, distinctive details, crisp pixel-cluster finish and warm upper-left lighting. Do not redesign it.\nIdentity: Low soot-gray shaggy rodent with russet ears and paws, amber eyes, segmented copper wire tail, ivory ceramic shoulder plate and brass fittings, bright incisors and tiny orange whisker sparks.\nCreate one coherent WALK sheet: FOUR columns by THREE rows, 12 equal square cells, landscape 4:3 aspect, preferably 2048x1536. Every full-body sprite entirely inside its own cell, generous margin at least 10% of cell size on every side. Fixed anatomical scale and projected ground baseline across frames; no auto-fitting individual poses.\nRow 1 faces LEFT side/three-quarter matching the reference. Row 2 faces toward camera/down. Row 3 faces away/up. Each row has four successive locomotion phases: first contact, passing, opposite contact, opposite passing, looping smoothly. Preserve the same equipment on the same anatomical side across all directions.\nMovement: Natural low quadruped trot with alternating paws and a restrained tail follow-through; no biting lunge.\nUse neutral alert patrol expressions. No attacks, hurt, collapse, projectiles, magic discharges, or changing armor. All limbs, tails and equipment fully visible; no touching adjacent cells.\nBackground: genuine transparent alpha, no painted checkerboard. No floor, cast shadows, scenery, text, labels, grid lines, borders, or backdrop. Output only the atlas.",
+          "output": "assets/enemies/walk/slag-rat-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "mutant_hound",
+      "referenceAssetId": "mutant_hound",
+      "identityNotes": "Lean quadrupedal wolf-hound, pale bone fur, dark blue-green digitigrade legs and taloned paws, living moss-green split mane and long leafy ribbon fronds around ribs and tail, tiny raspberry buds, narrow long muzzle.",
+      "locomotion": "sheet",
+      "movement": "Relaxed quadruped walk with coordinated alternating paws and restrained frond follow-through; no pouncing attack.",
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/enemy-assets.md",
+        "key": "mutant_hound",
+        "prompt": "Use case: stylized-concept. Asset type: original production sprite atlas for Chronforge Echo, a richly illustrated 960×540 pixel-art JRPG. Create ONE landscape PNG, 1536×1024, exactly three columns by two rows, six separate complete poses in reading order. Each nominal cell is 512×512. The same individual, same anatomical proportions and source body scale in all six poses, facing screen LEFT in side/three-quarter battle view. Meticulous high-end 32-bit JRPG PIXEL ART, crisp single-pixel stepped edges and expertly clustered material shading, rich nuanced worn surfaces, warm top-left lighting. No smooth 3D rendering, no vector cartoon, no simple silhouette fill. Match a detailed aged-copper clockwork creature and ivory optical drone beside a magenta-haired sword heroine. True transparent alpha background; no drawn checkerboard, no scenery, no ground, no cast shadow, no text or labels or cell borders, no diffuse glow haze. Generous padding: every pose, limb, fragment, and effect fully within its own cell, minimum 32 pixels transparent margin, no crossing cell boundaries. Imaginary fixed ground at y=448 in each cell; normal standing poses touch this line, hovering or jumping poses keep a consistent ground projection below the body. Defeated pose rests on that same ground. All six poses must be substantially different full-body drawings, not copies with small variations. Keep consistent anatomy. Subject: MUTANT HOUND, exactly the concept 'a split-maned hunter wrapped in ribbonlike fronds.' A lean muscular quadrupedal wolf-hound with a long low hunting muzzle, four digitigrade legs and clear taloned paws, warm pale bone-colored fur, dark blue-green limbs and two split crests of living moss-green mane sweeping from cheek to spine. Long ribbonlike fronds wrap the ribs, legs and tail, with tiny raspberry buds as accents; it looks dangerous, agile and organic, never mechanical. The snout faces left. Strong readable silhouette, native intended width about95px and height65px including mane. Poses: 1 idle alert hunting stance on four feet, head forward, fronds trailing right; 2 anticipation low compressed crouch, hindquarters coiled, foreclaws digging in, split mane raised; 3 attack airborne leftward pounce, forelegs far extended with visible claws, jaws open, back legs trailing, mane and ribbons stream right; 4 hurt recoiling up and right, one foreleg lifted and head tossed back, mane splayed; 5 defeat lying collapsed on its side, legs folded, mane and fronds slack, eyes closed, no gore; 6 guard crouching protectively behind raised overlapping fronds, head low, forelegs braced wide. Do not turn this into a humanoid, cat, dragon, crab, robot, or generic brown wolf. Every crop must keep full paws, tail and ribbons."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/mutant-hound-source.png",
+          "prompt": "Use case: identity-preserve. Asset type: production overworld locomotion atlas for Chronoforge Echo. Image 1 is the canonical MUTANT HOUND battle sheet; preserve EXACTLY the same individual, not a reinterpretation. Same pale bone-colored fur, lean long wolf muzzle, dark blue-green digitigrade legs and taloned paws, living moss-green split mane and long leafy ribbon fronds around ribs and tail, tiny raspberry buds, eye and face, anatomy, proportions, material shading and crisp detailed pixel-cluster style with warm top-left light. The attached image is a character reference, not a grid to copy. Create ONE complete genuinely transparent RGBA PNG movement sheet 2048x1536, precisely FOUR columns by THREE rows of 512x512 cells. All 12 frames are full-body sprites at one fixed anatomical source scale. Each cell has at least 32px clear transparent margin; no crossing or clipping. Row 1: coherent four-phase relaxed WALK cycle facing LEFT in the same side/three-quarter perspective as reference: near forepaw contact, passing, opposite forepaw contact, opposite passing. Show coordinated quadruped footfalls with convincing weight, not leaps or attack lunges. Row 2: the SAME four walk phases facing toward camera/down in three-quarter overhead RPG view. Row 3: the SAME four walk phases facing away/up, back visible. Preserve the same creature and all identity details across views. Hip center and projected ground anchor stay at the same cell-relative location; ground baseline around y=450. Frame body size matches the reference idle (~470px nose-to-tail only when fitting within the safe cell; choose consistent slightly smaller scale if needed for all poses). Every paw, mane and tail fully visible. Feet alternate clearly; hair and fronds have restrained follow-through. No teeth-baring attack expressions, magic, projectiles, hurt or collapsed poses. No text, numbers, labels, cell borders, floor, cast shadows, background color, gradient, or drawn checkerboard. True alpha-zero outside the creature. Return only the production atlas.",
+          "output": "assets/enemies/walk/mutant-hound-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "gravbot",
+      "referenceAssetId": "gravbot",
+      "identityNotes": "Stout humanoid robot with obsidian metal armor, broad rounded-angular pauldrons, small angular helmet and cyan visor, teal chest core, short powerful segmented legs, broad feet, gunmetal wear highlights, round teal forearm gravity disk. Fabricated metal, never stone.",
+      "locomotion": "sheet",
+      "movement": "Heavy relaxed bipedal walk with alternating foot contacts and weight shift, forearm disk carried low on the same anatomical arm.",
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/gravbot-art-prompts.json",
+        "key": "generationCalls[selected]",
+        "prompt": "Create a transparent-background PNG sprite sheet, RGBA with real alpha, no opaque backdrop. This is a brand-new production game asset, not a picture of a sprite sheet. Canvas1536×1024. Six isolated humanoid robots in3columns×2rows. No text, no cell borders. All outside pixels transparent. Keep transparent margins between figures and within gaps between limbs.\n\nSUBJECT: one consistent GRAVBOT, a stocky bipedal mechanical humanoid with obsidian-black metal armor, broad rounded-angular shoulder pauldrons, a small helmet with cyan visor, stout jointed arms, segmented short powerful legs and broad planted armored feet. A small teal chest core. Black mechanical joint gaps visibly separate its arms from its torso and legs from each other. The forward forearm has a round teal gravity shield/weapon with a thick dark metal rim. Armor is visibly fabricated: layered blue-charcoal steel panels, beveled gunmetal edges, tiny brass fasteners and pale silver wear scratches. NOT stone or architecture. Dark medium-value charcoal planes keep the silhouette clear, not featureless black.\n\nRich hand-painted 2D JRPG pixel art. Sharp pixel clusters and material facets, precise dark contours, restrained highlights, very readable at80px standing height. Small concentrated teal disk light, no hazy glow, no cast shadow or floor.\n\nLayout: identical body scale across all six poses, roughly340px standing height. Each pose has a512×512 cell, full figure/effects contained with generous32px margins, ground baseline450px. Face LEFT in side/three-quarter perspective.\nTop-left: idle, both feet planted, torso upright, weapon held at the left/front and spare fist low.\nTop-middle: anticipation, crouch with knees bent, pull shield arm inward and wind torso to the right.\nTop-right: attack, deep leftward lunge, thrust forearm gravity disk straight left, rear leg stretched behind to the right, compact bright disk at the fist.\nBottom-left: hurt, recoiling backward/right, torso leaned away, lowered weapon arm, a few tiny close cyan sparks.\nBottom-middle: defeated, collapsed horizontally on left side, bent legs, head low, disk and core dim, armor all attached.\nBottom-right: guard/cast, low wide braced stance with round gravity disk raised ahead of the head and torso, spare arm tucked protectively.\nEvery pose anatomically consistent but clearly different. No long trails, no ground debris, no scenery, no backdrop. Actual transparency is required."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/gravbot/obsidian-gravbot-source.png",
+          "prompt": "Use case: identity-preserve. Image 1 is the canonical obsidian GRAVBOT battle atlas. Create a coherent overworld WALK animation sheet of EXACTLY this same stout humanoid robot. Preserve its small angular helmet, cyan visor, broad rounded-angular obsidian metal shoulder pauldrons, blue-charcoal fabricated armor plates and worn gunmetal highlights, black joints, stout short powerful legs and broad feet, tiny teal chest core, and large circular teal gravity disk on its forward forearm. Preserve body proportions and pixel-cluster finish, dark outlines, warm upper-left light. No redesign, no stone golem. NEW SHEET: exactly four columns by three rows, 12 equal square cells in 2048x1536 PNG. Each frame fully contained, deliberately smaller than the cell with at least 48px margin all sides. Four sequential relaxed WALK phases per row: first foot contact, passing, opposite foot contact, opposite passing. Clear alternating feet and weight shift, natural restrained arm counter-swing, forearm disk carried low without hiding the legs. Row 1 facing LEFT side/three-quarter as reference; row 2 toward camera/down; row 3 away/up showing back. Same armor, same body and equipment at identical anatomical scale in ALL 12 frames; keep the disk on the same anatomical arm across directions. Use a consistent projected foot anchor and baseline within every row; no drifting framing. Entire body and disk visible in every cell. Calm patrol posture, no crouched battle guarding or punch lunges, no weapon discharge. Genuine transparent RGBA background alpha 0, no painted checkerboard, floor, cast shadow, scenery, panels, text or borders. All 12 frames should look like one identical robot stepping, not unrelated designs. Output only the atlas.",
+          "output": "assets/enemies/walk/gravbot-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "mire_hulk",
+      "referenceAssetId": "mire_hulk",
+      "identityNotes": "Massive squat olive amphibious creature with four thick feet, broad rounded head, ivory overlapping shell plates and a ruined stone bell tower with tilted bronze bell on its back, reeds and shelf fungi, small amber eyes.",
+      "locomotion": "sheet",
+      "movement": "Slow heavy four-footed walk, slight body weight shift, the bell tower remains rigidly attached at its original scale.",
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/mid-enemy-prompts.json",
+        "key": "mire_hulk",
+        "prompt": "Use case: stylized-concept. Asset type: immutable production sprite atlas for the original pixel-art RPG Chronforge Echo. Create one clean 1536×1024 sheet with exactly 3 columns and 2 rows of six separate 512×512 square cells. All cells transparent alpha background, no drawn checkerboard. MIRE HULK, a massive squat amphibious mollusk carrying an ancient collapsed bell tower on its back. The body is deep olive muscular slug hide, with four thick rootlike feet, wide blunt mouth, small curious amber eyes. Its domed shoulder is covered in layered ivory shell plates and a tilted bronze bell. Patches of dark reeds and two tiny shelf fungi. No humanoid shape. Its attack thrusts its enormous rounded head low to the left; hurt retracts neck; guard hides under the bell shell. Wetland heavy hitter. Six same-character poses in reading order: top-left idle ready, top-middle attack anticipation, top-right attack contact, bottom-left hurt reaction, bottom-middle defeated on ground, bottom-right defensive or technical charge. Enemy faces LEFT in every pose. Keep precisely the same anatomy, design details, materials and source body size throughout, never shrink a larger pose to fit. Keep every visible pixel at least 30px inside its own cell; no shared effects between cells, no shadows or scenery outside subject. Fully visible head, feet, weapons and effect, no clipping. Largest extent max440px; smaller poses retain same physical size. Premium detailed handcrafted 2D pixel art, disciplined clustered pixels, crisp dark contour with warm cream edge lighting from upper left, soft palette ramps built from discrete pixels; source pixel clusters 3–5px, rich but readable at ~100px native gameplay size after nearest-neighbor downscale. Three-quarter side view, modest view from above, not isometric. Expressive pose silhouettes and convincing weight. Original design coherent with ivory ruins, ink shadows, oxidized teal, aged copper and warm amber. No labels, text, watermarks, border, floor, placeholder primitives, blur, photorealism, 3D render or smooth painting. True transparent background."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/mire-hulk-source.png",
+          "prompt": "Use case: identity-preserve. Asset type: production overworld locomotion atlas for Chronoforge Echo.\nImage 1 is the canonical battle-sheet identity reference. Depict exactly the SAME creature in every new pose; preserve anatomy, proportions, silhouette, palette, equipment, distinctive details, crisp pixel-cluster finish and warm upper-left lighting. Do not redesign it.\nIdentity: Massive squat olive amphibious creature with four thick feet, broad rounded head, ivory overlapping shell plates and a ruined stone bell tower with tilted bronze bell on its back, reeds and shelf fungi, small amber eyes.\nCreate one coherent WALK sheet: FOUR columns by THREE rows, 12 equal square cells, landscape 4:3 aspect, preferably 2048x1536. Every full-body sprite entirely inside its own cell, generous margin at least 10% of cell size on every side. Fixed anatomical scale and projected ground baseline across frames; no auto-fitting individual poses.\nRow 1 faces LEFT side/three-quarter matching the reference. Row 2 faces toward camera/down. Row 3 faces away/up. Each row has four successive locomotion phases: first contact, passing, opposite contact, opposite passing, looping smoothly. Preserve the same equipment on the same anatomical side across all directions.\nMovement: Slow heavy four-footed walk, slight body weight shift, the bell tower remains rigidly attached at its original scale.\nUse neutral alert patrol expressions. No attacks, hurt, collapse, projectiles, magic discharges, or changing armor. All limbs, tails and equipment fully visible; no touching adjacent cells.\nBackground: genuine transparent alpha, no painted checkerboard. No floor, cast shadows, scenery, text, labels, grid lines, borders, or backdrop. Output only the atlas.",
+          "output": "assets/enemies/walk/mire-hulk-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "glacier_wolf",
+      "referenceAssetId": "glacier_wolf",
+      "identityNotes": "Ivory arctic wolf with swept sculptural fur mane, navy legs, backward turquoise cheek ice antlers, blue eyes, long bushy tail and pale ice claws. Locomotion has no ice breath or attack shards.",
+      "locomotion": "sheet",
+      "movement": "Natural quadruped walking cycle, clear alternating footfalls, subtle fur and tail follow-through, no ice blast.",
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/mid-enemy-prompts.json",
+        "key": "glacier_wolf",
+        "prompt": "Use case: stylized-concept. Asset type: immutable production sprite atlas for the original pixel-art RPG Chronforge Echo. Create one clean 1536×1024 sheet with exactly 3 columns and 2 rows of six separate 512×512 square cells. All cells transparent alpha background, no drawn checkerboard. GLACIER WOLF, a tall elegant arctic canine with a long ivory fur mane swept into sculptural blade shapes, navy charcoal legs, turquoise exposed ice antlers that run backwards from the cheekbones instead of horns above the head, expressive blue eye, long bushy tail. Angular large paws and pale indigo ice claws. Do not resemble a robot or a werewolf. Its attack is a low long-bound pounce with an ice bite to the left; guard plants four paws behind ruffed neck. Six same-character poses in reading order: top-left idle ready, top-middle attack anticipation, top-right attack contact, bottom-left hurt reaction, bottom-middle defeated on ground, bottom-right defensive or technical charge. Enemy faces LEFT in every pose. Keep precisely the same anatomy, design details, materials and source body size throughout, never shrink a larger pose to fit. Keep every visible pixel at least 30px inside its own cell; no shared effects between cells, no shadows or scenery outside subject. Fully visible head, feet, weapons and effect, no clipping. Largest extent max440px; smaller poses retain same physical size. Premium detailed handcrafted 2D pixel art, disciplined clustered pixels, crisp dark contour with warm cream edge lighting from upper left, soft palette ramps built from discrete pixels; source pixel clusters 3–5px, rich but readable at ~100px native gameplay size after nearest-neighbor downscale. Three-quarter side view, modest view from above, not isometric. Expressive pose silhouettes and convincing weight. Original design coherent with ivory ruins, ink shadows, oxidized teal, aged copper and warm amber. No labels, text, watermarks, border, floor, placeholder primitives, blur, photorealism, 3D render or smooth painting. True transparent background."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/glacier-wolf-source.png",
+          "prompt": "Use case: identity-preserve. Asset type: production overworld locomotion atlas for Chronoforge Echo.\nImage 1 is the canonical battle-sheet identity reference. Depict exactly the SAME creature in every new pose; preserve anatomy, proportions, silhouette, palette, equipment, distinctive details, crisp pixel-cluster finish and warm upper-left lighting. Do not redesign it.\nIdentity: Ivory arctic wolf with swept sculptural fur mane, navy legs, backward turquoise cheek ice antlers, blue eyes, long bushy tail and pale ice claws. Locomotion has no ice breath or attack shards.\nCreate one coherent WALK sheet: FOUR columns by THREE rows, 12 equal square cells, landscape 4:3 aspect, preferably 2048x1536. Every full-body sprite entirely inside its own cell, generous margin at least 10% of cell size on every side. Fixed anatomical scale and projected ground baseline across frames; no auto-fitting individual poses.\nRow 1 faces LEFT side/three-quarter matching the reference. Row 2 faces toward camera/down. Row 3 faces away/up. Each row has four successive locomotion phases: first contact, passing, opposite contact, opposite passing, looping smoothly. Preserve the same equipment on the same anatomical side across all directions.\nMovement: Natural quadruped walking cycle, clear alternating footfalls, subtle fur and tail follow-through, no ice blast.\nUse neutral alert patrol expressions. No attacks, hurt, collapse, projectiles, magic discharges, or changing armor. All limbs, tails and equipment fully visible; no touching adjacent cells.\nBackground: genuine transparent alpha, no painted checkerboard. No floor, cast shadows, scenery, text, labels, grid lines, borders, or backdrop. Output only the atlas.",
+          "output": "assets/enemies/walk/glacier-wolf-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "neon_cultist",
+      "referenceAssetId": "neon_cultist",
+      "identityNotes": "Floating faceless dark-hooded scripture pilgrim, ivory and bronze articulated scripture cage, long dark-teal ragged robes and magenta ribbons, sparse cyan accents; no human face or added legs.",
+      "locomotion": "hover",
+      "movement": null,
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/enemy-assets.md",
+        "key": "neon_cultist",
+        "prompt": "Use case: stylized-concept. Asset type: original production sprite atlas for Chronforge Echo, a richly illustrated 960×540 pixel-art JRPG. Create ONE landscape PNG, 1536×1024, exactly three columns by two rows, six separate complete poses in reading order. Each nominal cell is 512×512. The same individual, same anatomical proportions and source body scale in all six poses, facing screen LEFT in side/three-quarter battle view. Meticulous high-end 32-bit JRPG PIXEL ART, crisp single-pixel stepped edges and expertly clustered material shading, rich nuanced worn surfaces, warm top-left lighting. No smooth 3D rendering, no vector cartoon, no simple silhouette fill. Match a detailed aged-copper clockwork creature and ivory optical drone beside a magenta-haired sword heroine. True transparent alpha background; no drawn checkerboard, no scenery, no ground, no cast shadow, no text or labels or cell borders, no diffuse glow haze. Generous padding: every pose, limb, fragment, and effect fully within its own cell, minimum 32 pixels transparent margin, no crossing cell boundaries. Imaginary fixed ground at y=448 in each cell; normal standing poses touch this line, hovering or jumping poses keep a consistent ground projection below the body. Defeated pose rests on that same ground. All six poses must be substantially different full-body drawings, not copies with small variations. Keep consistent anatomy. Subject: NEON CULTIST, exactly the concept 'a signal pilgrim hidden inside a floating scripture cage.' A mysterious slim robed pilgrim whose face is fully obscured by a dark cowl, suspended inside an antique cage of several vertical ivory-and-copper scripture slats, each engraved with tiny abstract teal signal marks (not readable letters). Tattered dark teal cloth hangs down inside the cage and raspberry prayer ribbons wind between the slats. A broken copper halo tops the cage. No weapon in hand, no neon cyberpunk armor, no visible human face, no conventional wizard staff. A devotional transmitter made of aged porcelain, copper and cloth. Strong tall narrow silhouette; cage slats can hinge open while the body retains scale. Poses: 1 idle quietly hovering left, cage slats partly closed hiding most of pilgrim; 2 anticipation cage lifted and leaning backward, slats spread halfway, hands raised within, teal runes intensifying; 3 attack cage thrown fully open like a mechanical book, both hidden hands thrust left, one short crisp teal/raspberry rectangular signal bolt to left, cloth streaming backward; 4 hurt cage twists right with two crooked slats, pilgrim curling inward, snapped prayer ribbon; 5 defeat collapsed cage on ground with bowed robe crumpled inside, broken halo tilted beside it, lights dark, no gore; 6 guard/cast cage closes fully into an angular protective reliquary, teal runes aligned into a precise aperture, copper slats overlapping. Six genuinely different body/cage articulations, all complete and uncropped."
+      },
+      "generations": []
+    },
+    {
+      "id": "sandworm",
+      "referenceAssetId": "sandworm",
+      "identityNotes": "Segmented stone auger hatchling, interlocking ivory/ochre mineral rings and dark grooves, dark circular toothed mouth crowned with long curved golden feelers, tapering body. Preserve recognizable dimensions and segmentation.",
+      "locomotion": "sheet",
+      "movement": "Slow segmented crawl with a small traveling body wave. Preserve body volume and recognizable head orientation; no strike or rearing attack.",
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/enemy-assets.md",
+        "key": "sandworm",
+        "prompt": "Use case: stylized-concept. Asset type: original production sprite atlas for Chronforge Echo, a richly illustrated 960×540 pixel-art JRPG. Create ONE landscape PNG, 1536×1024, exactly three columns by two rows, six separate complete poses in reading order. Each nominal cell is 512×512. The same individual, same anatomical proportions and source body scale in all six poses, facing screen LEFT in side/three-quarter battle view. Meticulous high-end 32-bit JRPG PIXEL ART, crisp single-pixel stepped edges and expertly clustered material shading, rich nuanced worn surfaces, warm top-left lighting. No smooth 3D rendering, no vector cartoon, no simple silhouette fill. Match a detailed aged-copper clockwork creature and ivory optical drone beside a magenta-haired sword heroine. True transparent alpha background; no drawn checkerboard, no scenery, no ground, no cast shadow, no text or labels or cell borders, no diffuse glow haze. Generous padding: every pose, limb, fragment, and effect fully within its own cell, minimum 32 pixels transparent margin, no crossing cell boundaries. Imaginary fixed ground at y=448 in each cell; normal standing poses touch this line, hovering or jumping poses keep a consistent ground projection below the body. Defeated pose rests on that same ground. All six poses must be substantially different full-body drawings, not copies with small variations. Keep consistent anatomy. Subject: SANDWORM HATCHLING, exactly the concept 'a segmented stone auger crowned with golden feelers.' A compact powerful larval sandworm made of overlapping ochre-limestone and dark basalt segments forming a tapering spiral auger body. Broad front ring opens into a dark drill mouth pointing left, surrounded by a crown of six slender golden copper feelers. No eyes or human face, no legs, no arms, no insect wings. Its back coils toward the right, with sandstone chips and polished worn ridges, copper-gold highlights and very small oxidized teal seams. Distinctly a stone drill-worm, not a fleshy creature, dragon or robot crab. Poses: 1 idle raised left-facing drill-mouth, body in a low S-shaped coil, feelers inquisitively fanned; 2 anticipation tightly compressed rising coil, front mouth pulled back high right, feelers pointed forward, like a wound spring; 3 attack body lengthened sharply left in an auger thrust, open drill mouth far left, feelers streamed along the sides, rear segments trailing right; 4 hurt recoiling into a crooked kink, mouth tilted upward, some feelers folded, two small close stone chips; 5 defeat laid flat in a loose collapsed coil, front ring tipped downward, golden feelers slack and dark mouth closed; 6 guard/cast dense circular armored coil with front ring peering left from inside, feelers forming a protective crown. Consistent segment anatomy and head size in all poses; do not rescale the attack to fit, instead keep generous cell padding."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/sandworm-source.png",
+          "prompt": "Use case: identity-preserve. Asset type: production overworld locomotion atlas for Chronoforge Echo.\nImage 1 is the canonical battle-sheet identity reference. Depict exactly the SAME creature in every new pose; preserve anatomy, proportions, silhouette, palette, equipment, distinctive details, crisp pixel-cluster finish and warm upper-left lighting. Do not redesign it.\nIdentity: Segmented stone auger hatchling, interlocking ivory/ochre mineral rings and dark grooves, dark circular toothed mouth crowned with long curved golden feelers, tapering body. Preserve recognizable dimensions and segmentation.\nCreate one coherent WALK sheet: FOUR columns by THREE rows, 12 equal square cells, landscape 4:3 aspect, preferably 2048x1536. Every full-body sprite entirely inside its own cell, generous margin at least 10% of cell size on every side. Fixed anatomical scale and projected ground baseline across frames; no auto-fitting individual poses.\nRow 1 faces LEFT side/three-quarter matching the reference. Row 2 faces toward camera/down. Row 3 faces away/up. Each row has four successive locomotion phases: first contact, passing, opposite contact, opposite passing, looping smoothly. Preserve the same equipment on the same anatomical side across all directions.\nMovement: Slow segmented crawl with a small traveling body wave. Preserve body volume and recognizable head orientation; no strike or rearing attack.\nUse neutral alert patrol expressions. No attacks, hurt, collapse, projectiles, magic discharges, or changing armor. All limbs, tails and equipment fully visible; no touching adjacent cells.\nBackground: genuine transparent alpha, no painted checkerboard. No floor, cast shadows, scenery, text, labels, grid lines, borders, or backdrop. Output only the atlas.",
+          "output": "assets/enemies/walk/sandworm-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "ember_golem",
+      "referenceAssetId": "ember_golem",
+      "identityNotes": "Low broad six-legged basalt brick kiln crab, glowing furnace chest grille, mismatched massive stone pincers, short square chimney, narrow orange joints and dark-red coal lining.",
+      "locomotion": "sheet",
+      "movement": "Measured six-legged kiln-crab scuttle, coordinated footfalls and restrained pincer motion; chest remains in neutral state.",
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/mid-enemy-prompts.json",
+        "key": "ember_golem",
+        "prompt": "Use case: stylized-concept. Asset type: immutable production sprite atlas for the original pixel-art RPG Chronforge Echo. Create one clean 1536×1024 sheet with exactly 3 columns and 2 rows of six separate 512×512 square cells. All cells transparent alpha background, no drawn checkerboard. EMBER GOLEM, a low broad nonhumanoid six-legged kiln creature constructed of dark basalt bricks around a white-hot ceramic furnace chest, two enormous mismatched stone pincers and a short square chimney, orange ember glow only in narrow joints, dark-red coal lining. A distinct industrial crab silhouette, no spherical robot. Its anticipation opens the furnace, attack extends the left heavy pincer, hurt tilts, guard closes its brick gates, defeat is a cooled broken kiln with folded legs. Six same-character poses in reading order: top-left idle ready, top-middle attack anticipation, top-right attack contact, bottom-left hurt reaction, bottom-middle defeated on ground, bottom-right defensive or technical charge. Enemy faces LEFT in every pose. Keep precisely the same anatomy, design details, materials and source body size throughout, never shrink a larger pose to fit. Keep every visible pixel at least 30px inside its own cell; no shared effects between cells, no shadows or scenery outside subject. Fully visible head, feet, weapons and effect, no clipping. Largest extent max440px; smaller poses retain same physical size. Premium detailed handcrafted 2D pixel art, disciplined clustered pixels, crisp dark contour with warm cream edge lighting from upper left, soft palette ramps built from discrete pixels; source pixel clusters 3–5px, rich but readable at ~100px native gameplay size after nearest-neighbor downscale. Three-quarter side view, modest view from above, not isometric. Expressive pose silhouettes and convincing weight. Original design coherent with ivory ruins, ink shadows, oxidized teal, aged copper and warm amber. No labels, text, watermarks, border, floor, placeholder primitives, blur, photorealism, 3D render or smooth painting. True transparent background."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/ember-golem-source.png",
+          "prompt": "Use case: identity-preserve. Asset type: production overworld locomotion atlas for Chronoforge Echo.\nImage 1 is the canonical battle-sheet identity reference. Depict exactly the SAME creature in every new pose; preserve anatomy, proportions, silhouette, palette, equipment, distinctive details, crisp pixel-cluster finish and warm upper-left lighting. Do not redesign it.\nIdentity: Low broad six-legged basalt brick kiln crab, glowing furnace chest grille, mismatched massive stone pincers, short square chimney, narrow orange joints and dark-red coal lining.\nCreate one coherent WALK sheet: FOUR columns by THREE rows, 12 equal square cells, landscape 4:3 aspect, preferably 2048x1536. Every full-body sprite entirely inside its own cell, generous margin at least 10% of cell size on every side. Fixed anatomical scale and projected ground baseline across frames; no auto-fitting individual poses.\nRow 1 faces LEFT side/three-quarter matching the reference. Row 2 faces toward camera/down. Row 3 faces away/up. Each row has four successive locomotion phases: first contact, passing, opposite contact, opposite passing, looping smoothly. Preserve the same equipment on the same anatomical side across all directions.\nMovement: Measured six-legged kiln-crab scuttle, coordinated footfalls and restrained pincer motion; chest remains in neutral state.\nUse neutral alert patrol expressions. No attacks, hurt, collapse, projectiles, magic discharges, or changing armor. All limbs, tails and equipment fully visible; no touching adjacent cells.\nBackground: genuine transparent alpha, no painted checkerboard. No floor, cast shadows, scenery, text, labels, grid lines, borders, or backdrop. Output only the atlas.",
+          "output": "assets/enemies/walk/ember-golem-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "frost_revenant",
+      "referenceAssetId": "frost_revenant",
+      "identityNotes": "Willowy floating archivist with empty ivory face mask, slate-blue layered coat, disconnected paperlike ice ribbons below with no legs, long blue crystal lance and small amber memory lantern.",
+      "locomotion": "hover",
+      "movement": null,
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/mid-enemy-prompts.json",
+        "key": "frost_revenant",
+        "prompt": "Use case: stylized-concept. Asset type: immutable production sprite atlas for the original pixel-art RPG Chronforge Echo. Create one clean 1536×1024 sheet with exactly 3 columns and 2 rows of six separate 512×512 square cells. All cells transparent alpha background, no drawn checkerboard. FROST REVENANT, a haunting willowy icebound archivist in a tattered slate-blue coat, a delicate empty ivory face mask suspended where its head should be, disconnected frosted paper-like crystal ribbons forming the lower body, one extremely long crooked spear made of blue glass. It floats a little above ground, with no legs. Small muted brass bindings and one amber memory lamp. Attack thrusts left with a needle spear, guard folds crystal ribbon armor, down is a collapsed coat with mask laid on the floor. Six same-character poses in reading order: top-left idle ready, top-middle attack anticipation, top-right attack contact, bottom-left hurt reaction, bottom-middle defeated on ground, bottom-right defensive or technical charge. Enemy faces LEFT in every pose. Keep precisely the same anatomy, design details, materials and source body size throughout, never shrink a larger pose to fit. Keep every visible pixel at least 30px inside its own cell; no shared effects between cells, no shadows or scenery outside subject. Fully visible head, feet, weapons and effect, no clipping. Largest extent max440px; smaller poses retain same physical size. Premium detailed handcrafted 2D pixel art, disciplined clustered pixels, crisp dark contour with warm cream edge lighting from upper left, soft palette ramps built from discrete pixels; source pixel clusters 3–5px, rich but readable at ~100px native gameplay size after nearest-neighbor downscale. Three-quarter side view, modest view from above, not isometric. Expressive pose silhouettes and convincing weight. Original design coherent with ivory ruins, ink shadows, oxidized teal, aged copper and warm amber. No labels, text, watermarks, border, floor, placeholder primitives, blur, photorealism, 3D render or smooth painting. True transparent background."
+      },
+      "generations": []
+    },
+    {
+      "id": "wraith_core",
+      "referenceAssetId": "wraith_core",
+      "identityNotes": "Angular levitating dark bronze/ink plate engine, four asymmetric blade wings around a small warm ivory cubical core, copper struts and restrained raspberry seams. Preserve open negative spaces.",
+      "locomotion": "hover",
+      "movement": null,
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/mid-enemy-prompts.json",
+        "key": "wraith_core",
+        "prompt": "Use case: stylized-concept. Asset type: immutable production sprite atlas for the original pixel-art RPG Chronforge Echo. Create one clean 1536×1024 sheet with exactly 3 columns and 2 rows of six separate 512×512 square cells. All cells transparent alpha background, no drawn checkerboard. WRAITH CORE, an alien angular manta-like levitating engine, black-ink translucent stone plates arranged like a split inverted flower around a small warm ivory cubical heart, asymmetrical four blade-wings, fine copper struts and narrow raspberry signal light. No eye, no humanoid, no conventional ball robot, no huge bloom. A sharp sculptural silhouette. Attack unfolds the front left blade into a precise saber, guard draws four plates tightly around core, defeat is a broken still arrangement on the floor. Six same-character poses in reading order: top-left idle ready, top-middle attack anticipation, top-right attack contact, bottom-left hurt reaction, bottom-middle defeated on ground, bottom-right defensive or technical charge. Enemy faces LEFT in every pose. Keep precisely the same anatomy, design details, materials and source body size throughout, never shrink a larger pose to fit. Keep every visible pixel at least 30px inside its own cell; no shared effects between cells, no shadows or scenery outside subject. Fully visible head, feet, weapons and effect, no clipping. Largest extent max440px; smaller poses retain same physical size. Premium detailed handcrafted 2D pixel art, disciplined clustered pixels, crisp dark contour with warm cream edge lighting from upper left, soft palette ramps built from discrete pixels; source pixel clusters 3–5px, rich but readable at ~100px native gameplay size after nearest-neighbor downscale. Three-quarter side view, modest view from above, not isometric. Expressive pose silhouettes and convincing weight. Original design coherent with ivory ruins, ink shadows, oxidized teal, aged copper and warm amber. No labels, text, watermarks, border, floor, placeholder primitives, blur, photorealism, 3D render or smooth painting. True transparent background."
+      },
+      "generations": []
+    },
+    {
+      "id": "mire_warden",
+      "referenceAssetId": "mire_warden",
+      "identityNotes": "Great heron-shaped living archive of roots and bronze, long curved neck, narrow bronze beak, teal glass eye, moss and copper feather plates, chest archival lamps, branching root legs, trailing fern tail.",
+      "locomotion": "sheet",
+      "movement": "Deliberate alternating heron steps with folded wings and gentle neck balance; preserve the root-leg anatomy.",
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/boss-prompts.json",
+        "key": "mire_warden",
+        "prompt": "Use case: stylized-concept. Asset type: production enemy sprite atlas for original pixel-art RPG Chronoforge Echo. Generate a 1536 by 1024 PNG with GENUINE TRANSPARENT ALPHA background, no painted checkerboard, no ground, no shadow, no scenery, no text. EXACTLY SIX clean, separate full-body poses of ONE identical creature in a strict 3-column by 2-row grid of 512px cells. Every pose contained inside its own cell with at least 32px transparent gutter, no effects crossing cells. Left-facing three-quarter side view, looking toward the heroes to the left. Coherent detailed hand-painted pixel-art finish, crisp small square clusters, dark contours, warm upper-left lighting, no blur, no vector outline or smooth 3D. Same creature anatomy, outfit and source scale in all six poses; crouching and defeated poses stay physically shorter. Top row left-to-right: idle, compressed anticipation, fully extended leftward attack. Bottom row: recoiling hurt, defeated low/collapsed on ground, defensive/casting pose. Keep feet or projected support baseline near cell y=470. NO additional sprites, titles, gridlines or color swatches. Subject: MIRE WARDEN, a great heron-shaped living archive grown from twisted wet roots and aged bronze. A tall curved heron neck, long narrow downward bronze beak, one turquoise glass eye, swept copper and moss feather plates, wooden rib cage containing small warm archival lamps, stiltlike branching root legs and a narrow trailing fern tail. Clearly a long-necked bird silhouette, NOT a humanoid tree. Palette deep moss, patinated bronze, dark umber, restrained ivory feather tips and teal lights. Two folded root-and-bronze wings fan open in anticipation; attack lunges the neck and bronze beak left with a short shard of teal canopy energy; hurt twists the long neck; down folds the neck and roots naturally; defense spreads a recognizable protective wing canopy. Large major regional guardian, dignified ancient machine reclaiming life. At idle fill about 395px height and 325px width."
+      },
+      "generations": [
+        {
+          "id": "walk-v1",
+          "date": "2026-09-21",
+          "tool": "built-in image_gen",
+          "status": "selected",
+          "reference": "assets/mire-warden-source.png",
+          "prompt": "Use case: identity-preserve. Asset type: production overworld locomotion atlas for Chronoforge Echo.\nImage 1 is the canonical battle-sheet identity reference. Depict exactly the SAME creature in every new pose; preserve anatomy, proportions, silhouette, palette, equipment, distinctive details, crisp pixel-cluster finish and warm upper-left lighting. Do not redesign it.\nIdentity: Great heron-shaped living archive of roots and bronze, long curved neck, narrow bronze beak, teal glass eye, moss and copper feather plates, chest archival lamps, branching root legs, trailing fern tail.\nCreate one coherent WALK sheet: FOUR columns by THREE rows, 12 equal square cells, landscape 4:3 aspect, preferably 2048x1536. Every full-body sprite entirely inside its own cell, generous margin at least 10% of cell size on every side. Fixed anatomical scale and projected ground baseline across frames; no auto-fitting individual poses.\nRow 1 faces LEFT side/three-quarter matching the reference. Row 2 faces toward camera/down. Row 3 faces away/up. Each row has four successive locomotion phases: first contact, passing, opposite contact, opposite passing, looping smoothly. Preserve the same equipment on the same anatomical side across all directions.\nMovement: Deliberate alternating heron steps with folded wings and gentle neck balance; preserve the root-leg anatomy.\nUse neutral alert patrol expressions. No attacks, hurt, collapse, projectiles, magic discharges, or changing armor. All limbs, tails and equipment fully visible; no touching adjacent cells.\nBackground: genuine transparent alpha, no painted checkerboard. No floor, cast shadows, scenery, text, labels, grid lines, borders, or backdrop. Output only the atlas.",
+          "output": "assets/enemies/walk/mire-warden-walk-v1.png",
+          "review": "Identity and all three directions inspected; measured crops and fixed per-direction scales; source checkerboard removed only by runtime extraction."
+        }
+      ]
+    },
+    {
+      "id": "magma_behemoth",
+      "referenceAssetId": "magma_behemoth",
+      "identityNotes": "A immense plated salamander with a glass chimney spine.",
+      "locomotion": "stationary",
+      "movement": null,
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/boss-prompts.json",
+        "key": "magma_behemoth",
+        "prompt": "Use case: stylized-concept. Asset type: production enemy sprite atlas for original pixel-art RPG Chronoforge Echo. Generate a 1536 by 1024 PNG with GENUINE TRANSPARENT ALPHA background, no painted checkerboard, no ground, no shadow, no scenery, no text. EXACTLY SIX clean, separate full-body poses of ONE identical creature in a strict 3-column by 2-row grid of 512px cells. Every pose contained inside its own cell with at least 32px transparent gutter, no effects crossing cells. Left-facing three-quarter side view, looking toward the heroes to the left. Coherent detailed hand-painted pixel-art finish, crisp small square clusters, dark contours, warm upper-left lighting, no blur, no vector outline or smooth 3D. Same creature anatomy, outfit and source scale in all six poses; crouching and defeated poses stay physically shorter. Top row left-to-right: idle, compressed anticipation, fully extended leftward attack. Bottom row: recoiling hurt, defeated low/collapsed on ground, defensive/casting pose. Keep feet or projected support baseline near cell y=470. NO additional sprites, titles, gridlines or color swatches. Subject: MAGMA BEHEMOTH, an immense LOW quadrupedal plated salamander with a continuous glass chimney spine. Broad blunt salamander head with deep-set molten orange eyes, heavy splayed forelegs, long thick tapering tail, overlapping coal-black basalt armor. Five smoky translucent volcanic-glass chimney fins rise from its back and contain distinct orange lava pipes. Palette near-black basalt, iron red, orange molten seams, smoky amber glass; exterior mostly dark so restrained hot cracks read brightly. NOT bipedal and NOT a dinosaur or dragon, no horns or wings. Idle broad heavy low silhouette, anticipation compresses forelegs with glass chimneys heating, attack jaw and front claws thrust LEFT with compact orange-white vent burst, hurt pulls head back, defeated salamander lies low with darkened chimneys, defense hunkers under raised interlocking plates. Same body scale throughout, maximum whole-pose width 440px and idle height around 300px including chimneys."
+      },
+      "generations": []
+    },
+    {
+      "id": "architect_herald",
+      "referenceAssetId": "architect_herald",
+      "identityNotes": "A faceless envoy unfolding like an ivory sextant.",
+      "locomotion": "stationary",
+      "movement": null,
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/boss-prompts.json",
+        "key": "architect_herald",
+        "prompt": "Use case: stylized-concept. Asset type: production enemy sprite atlas for original pixel-art RPG Chronoforge Echo. Generate a 1536 by 1024 PNG with GENUINE TRANSPARENT ALPHA background, no painted checkerboard, no ground, no shadow, no scenery, no text. EXACTLY SIX clean, separate full-body poses of ONE identical creature in a strict 3-column by 2-row grid of 512px cells. Every pose contained inside its own cell with at least 32px transparent gutter, no effects crossing cells. Left-facing three-quarter side view, looking toward the heroes to the left. Coherent detailed hand-painted pixel-art finish, crisp small square clusters, dark contours, warm upper-left lighting, no blur, no vector outline or smooth 3D. Same creature anatomy, outfit and source scale in all six poses; crouching and defeated poses stay physically shorter. Top row left-to-right: idle, compressed anticipation, fully extended leftward attack. Bottom row: recoiling hurt, defeated low/collapsed on ground, defensive/casting pose. Keep feet or projected support baseline near cell y=470. NO additional sprites, titles, gridlines or color swatches. Subject: ARCHITECT HERALD, a faceless hovering envoy unfolding like an ancient ivory sextant. A slender suspended empty alabaster ceremonial cloak with an angular blank faceplate, one large offset brass measuring arc behind one shoulder, thin three-jointed ivory caliper arms, dark blue-black interior, small teal registration lights and fine restrained brass ornament. Asymmetric precise instrument silhouette, NOT an angel, no wings, no skull, no humanoid face, no full round halo. Floating narrow lower cloak with open dark negative-space gaps. Palette aged ivory, oxidized teal, midnight blue and pale brass. Idle folded instruments; anticipation lifts one long measuring arm; attack opens a sextant toward LEFT with a narrow compact ivory projection; hurt twists the separate ivory plates; down disassembled ivory instruments lie on ground; guard folds calipers into an angular shield. Elaborate but airy silhouette, idle height about 400px. Distinct subordinate envoy, NOT the final god-like Architect."
+      },
+      "generations": []
+    },
+    {
+      "id": "frost_colossus",
+      "referenceAssetId": "frost_colossus",
+      "identityNotes": "The frozen elevator’s guardian, shoulders like a bridge.",
+      "locomotion": "stationary",
+      "movement": null,
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/boss-prompts.json",
+        "key": "frost_colossus",
+        "prompt": "Use case: stylized-concept. Asset type: production enemy sprite atlas for original pixel-art RPG Chronoforge Echo. Generate a 1536 by 1024 PNG with GENUINE TRANSPARENT ALPHA background, no painted checkerboard, no ground, no shadow, no scenery, no text. EXACTLY SIX clean, separate full-body poses of ONE identical creature in a strict 3-column by 2-row grid of 512px cells. Every pose contained inside its own cell with at least 32px transparent gutter, no effects crossing cells. Left-facing three-quarter side view, looking toward the heroes to the left. Coherent detailed hand-painted pixel-art finish, crisp small square clusters, dark contours, warm upper-left lighting, no blur, no vector outline or smooth 3D. Same creature anatomy, outfit and source scale in all six poses; crouching and defeated poses stay physically shorter. Top row left-to-right: idle, compressed anticipation, fully extended leftward attack. Bottom row: recoiling hurt, defeated low/collapsed on ground, defensive/casting pose. Keep feet or projected support baseline near cell y=470. NO additional sprites, titles, gridlines or color swatches. Subject: FROST COLOSSUS, the monumental guardian of a frozen orbital elevator. Huge broad bipedal automaton with shoulders shaped like a ruined suspension bridge: long horizontal slate-and-ice girders, hanging steel suspension cables, massive pillar forearms and stepped ice-crystal feet. Small recessed dark rectangular face under bridge deck with one warm amber lamp eye, ancient weathered bone-gray stone armor, translucent glacier-blue ice packed between slabs, deep indigo cracks. Towering architectural silhouette with believable very heavy support, NOT a round snowman, not a furry yeti or generic rock golem. Idle planted fortress; anticipation lifts bridge arms; attack swings massive left pillar fist LEFT with a few compact shards; hurt buckles one knee; down broken bridge silhouette slumped close to ground; guard locks broad bridge forearms together. Same source anatomy/scale, idle about 395px high and 390px wide. Angular detailed pixel painting, colder quieter colors than lava enemy."
+      },
+      "generations": []
+    },
+    {
+      "id": "ember_lord",
+      "referenceAssetId": "ember_lord",
+      "identityNotes": "A furnace mantis crowned with ivory horns and molten blade-arms.",
+      "locomotion": "stationary",
+      "movement": null,
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/mid-enemy-prompts.json",
+        "key": "ember_lord",
+        "prompt": "Use case: stylized-concept. Asset type: immutable production sprite atlas for the original pixel-art RPG Chronforge Echo. Create one clean 1536×1024 sheet with exactly 3 columns and 2 rows of six separate 512×512 square cells. All cells transparent alpha background, no drawn checkerboard. EMBER LORD, a regal gigantic volcanic mantis with an obsidian segmented body, a proud antlered white-ceramic crown built from old refinery vanes, two tall swept-back golden heat chimneys, molten red-orange abdomen plates and huge scythe arms. Noble dangerous posture, a real distinctive regional boss, neither humanoid king nor dragon. Readable small head and ivory facial mask, strong large negative spaces between slender jointed legs. Anticipation lifts both scythes, attack is a sweeping left scythe slash, hurt braces crown, guard closes forearms, defeat is a dignified collapsed cooled beast. Six same-character poses in reading order: top-left idle ready, top-middle attack anticipation, top-right attack contact, bottom-left hurt reaction, bottom-middle defeated on ground, bottom-right defensive or technical charge. Enemy faces LEFT in every pose. Keep precisely the same anatomy, design details, materials and source body size throughout, never shrink a larger pose to fit. Keep every visible pixel at least 30px inside its own cell; no shared effects between cells, no shadows or scenery outside subject. Fully visible head, feet, weapons and effect, no clipping. Largest extent max440px; smaller poses retain same physical size. Premium detailed handcrafted 2D pixel art, disciplined clustered pixels, crisp dark contour with warm cream edge lighting from upper left, soft palette ramps built from discrete pixels; source pixel clusters 3–5px, rich but readable at ~100px native gameplay size after nearest-neighbor downscale. Three-quarter side view, modest view from above, not isometric. Expressive pose silhouettes and convincing weight. Original design coherent with ivory ruins, ink shadows, oxidized teal, aged copper and warm amber. No labels, text, watermarks, border, floor, placeholder primitives, blur, photorealism, 3D render or smooth painting. True transparent background."
+      },
+      "generations": []
+    },
+    {
+      "id": "void_architect",
+      "referenceAssetId": "void_architect",
+      "identityNotes": "A luminous human silhouette inside a vast broken armillary.",
+      "locomotion": "stationary",
+      "movement": null,
+      "historicalPrompt": {
+        "status": "recovered",
+        "revision": "b5990e47a516fa1d585368237c82dd942245fbcf",
+        "path": "games/chronoforge-echo/docs/boss-prompts.json",
+        "key": "void_architect",
+        "prompt": "Use case: stylized-concept. Asset type: production enemy sprite atlas for original pixel-art RPG Chronoforge Echo. Generate a 1536 by 1024 PNG with GENUINE TRANSPARENT ALPHA background, no painted checkerboard, no ground, no shadow, no scenery, no text. EXACTLY SIX clean, separate full-body poses of ONE identical creature in a strict 3-column by 2-row grid of 512px cells. Every pose contained inside its own cell with at least 32px transparent gutter, no effects crossing cells. Left-facing three-quarter side view, looking toward the heroes to the left. Coherent detailed hand-painted pixel-art finish, crisp small square clusters, dark contours, warm upper-left lighting, no blur, no vector outline or smooth 3D. Same creature anatomy, outfit and source scale in all six poses; crouching and defeated poses stay physically shorter. Top row left-to-right: idle, compressed anticipation, fully extended leftward attack. Bottom row: recoiling hurt, defeated low/collapsed on ground, defensive/casting pose. Keep feet or projected support baseline near cell y=470. NO additional sprites, titles, gridlines or color swatches. Subject: VOID ARCHITECT, the unique FINAL BOSS and most visually magnificent creature in this original RPG. A small luminous warm-ivory HUMAN SILHOUETTE floats centered inside a VAST BROKEN THREE-DIMENSIONAL ARMILLARY. Four enormous incomplete intersecting measuring rings of bone-white ceramic, aged gold and oxidized teal, jagged missing segments, deliberate clean dark gaps. The central calm humanoid has flowing white abstract hair, no face or armor, holds hands as if constructing a shelter, and is conspicuously smaller than the monumental rings. A tiny dark star at heart; cyan and amber luminous engraved segments, several suspended geometric fragments. Celestial architect rather than demon: no horns, wings, scythe, skull or conventional crown. Strong asymmetric oval shell silhouette and elegant negative space, not solid glowing blob. Idle rings partly open; anticipation rings contract as human raises hands; attack one broken ring thrusts LEFT while human reaches, compact ivory geometry shatters outward; hurt ring segments splay apart; defeated rings collapse onto ground around kneeling fading human, physically shorter; casting opens great rings and human palms in an austere shelter. Keep same fixed source scale, all ring fragments inside respective cells, max extent440px. Intricate precision highest detail but restrained glow, clean pixel contours and materially shaded worn ceramics, strongest final encounter identity."
+      },
+      "generations": []
+    }
+  ]
+}

@@ -40,6 +40,7 @@ export class GameSession {
     g.worldView?.close();
     g.upgradeTour?.close();
     g.devTools?.reset();
+    g.patrols?.reset();
     g.keys.clear();
     g.transition = null;
     g.near = null;

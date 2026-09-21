@@ -289,6 +289,7 @@ export class WorldTraversal {
       g.state.x = transition.spawn.x;
       g.state.y = transition.spawn.y;
       g.state.facing = transition.facing;
+      g.encounterCooldown = 2;
       this.resetFollowers();
       this.updateCamera(true);
       reveal(g.state, g.scene);

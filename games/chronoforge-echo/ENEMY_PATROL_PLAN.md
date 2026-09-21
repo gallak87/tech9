@@ -75,6 +75,6 @@ Entry chambers remain safe. Pathfinding probes reach all eight field records, Ve
 - Compared all ten movement sheets against battle identities at gameplay scale and captured a live cave patrol.
 - Development checks excluded standalone linting/formatting; the authorized commit uses the repository's pre-commit checks.
 
-Disposable review aids in `.experiments/enemy-patrol/`: `roster-gameplay-scale.png`, `cave-in-game.png`, `browser-report.json`, and test/build logs. Runtime and required tests do not depend on them.
+Temporary generation copies, inspection captures, probe scripts, logs, and build output were deleted after validation. Selected live art, prompt provenance, maintained tooling, and regression tests remain.
 
 Next playtest priorities: the three pilot enemies, town-guard restraint, ordinary route readability, and cave combat pacing. Pursuit, retreat-rule changes, boss movement, and extra cave groups remain separate decisions.

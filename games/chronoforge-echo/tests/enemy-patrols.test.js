@@ -1,9 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { ALL_SCENES } from '../src/world.js';
+import { ALL_SCENES, distanceToRoad } from '../src/world.js';
 import { createState } from '../src/progression.js';
-import { EnemyPatrols, patrolSegmentClear } from '../src/enemy-patrols.js';
+import {
+  EnemyPatrols,
+  configureEnemyPatrols,
+  patrolSegmentClear,
+} from '../src/enemy-patrols.js';
 import {
   contactEncounter,
   hasContactBoundary,
@@ -15,6 +19,9 @@ import { WorldTraversal } from '../src/world-traversal.js';
 
 const location = (o) => ({ x: o.x, y: o.y });
 const distance = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+const start = (o) => o.patrol.points[o.patrol.startIndex || 0];
+const routeLength = (points) =>
+  points.slice(1).reduce((n, p, i) => n + distance(points[i], p), 0);
 const tick = (patrols, scene, state, seconds) => {
   for (let i = 0; i < seconds * 20; i++) patrols.update(scene, state, 0.05);
 };
@@ -34,6 +41,7 @@ test('every ordinary encounter has a bounded route clear of scenery and doors; b
       assert.deepEqual(home, location(object));
       for (let i = 0; i < points.length; i++) {
         assert.ok(distance(home, points[i]) <= radius + 0.001, object.id);
+        if (object.patrol.kind === 'road' && i === points.length - 1) continue;
         assert.ok(
           patrolSegmentClear(
             scene,
@@ -55,7 +63,22 @@ test('every ordinary encounter has a bounded route clear of scenery and doors; b
         assert.ok(object.enemies.every((id) => ENEMIES[id]));
       } else {
         roaming++;
-        assert.equal(radius, object.id === 'hav_first' ? 100 : 240);
+        assert.equal(radius, 650);
+        assert.equal(object.patrol.kind, 'road');
+        assert.ok(
+          routeLength(points) >= 400,
+          object.id + ' covers a substantial road stretch',
+        );
+        for (let i = 1; i < points.length; i++) {
+          for (let t = 0; t <= 1; t += 0.25) {
+            const x = points[i - 1].x + (points[i].x - points[i - 1].x) * t;
+            const y = points[i - 1].y + (points[i].y - points[i - 1].y) * t;
+            assert.ok(
+              distanceToRoad(scene, x, y) < 0.001,
+              object.id + ' follows the road around bends',
+            );
+          }
+        }
       }
     }
   }
@@ -81,6 +104,8 @@ test('patrols move inside their leash without changing authored scenes or saves'
       );
       if (distance(object, object.patrol.home) > 15)
         visited.set(object.id, true);
+      if (object.patrol.kind === 'road')
+        assert.ok(distanceToRoad(scene, object.x, object.y) < 0.001, object.id);
     }
   }
   assert.equal(visited.size, scene.objects.filter((o) => o.patrol).length);
@@ -162,7 +187,7 @@ test('loaded nearby patrols allow an exit and separate expeditions never share p
   const object = scene.objects.find((o) => o.id === original.id);
   assert.equal(hasContactBoundary(object, state), false);
   tick(patrols, scene, state, 10);
-  assert.deepEqual(location(object), location(original));
+  assert.deepEqual(location(object), start(original));
   state.x += 180;
   tick(patrols, scene, state, 4);
   assert.equal(hasContactBoundary(object, state), true);
@@ -170,7 +195,7 @@ test('loaded nearby patrols allow an exit and separate expeditions never share p
   const previewState = structuredClone(state);
   const preview = patrols.scene(authored, previewState);
   const previewObject = preview.objects.find((o) => o.id === object.id);
-  assert.deepEqual(location(previewObject), location(original));
+  assert.deepEqual(location(previewObject), start(original));
   tick(patrols, preview, previewState, 10);
   assert.deepEqual(
     location(
@@ -183,8 +208,87 @@ test('loaded nearby patrols allow an exit and separate expeditions never share p
     location(
       patrols.scene(authored, state).objects.find((o) => o.id === object.id),
     ),
-    location(original),
+    start(original),
   );
+});
+
+const roadScene = (roads, objects = []) => ({
+  id: 'road_fixture',
+  width: 2000,
+  height: 1600,
+  spawn: { x: 50, y: 50 },
+  roads,
+  portals: [],
+  objects: [{ id: 'roamer', type: 'encounter', x: 450, y: 312 }, ...objects],
+});
+
+test('road patrols start on the path, round corners continuously, and reverse only at endpoints', () => {
+  const authored = roadScene([
+    [
+      { x: 200, y: 300 },
+      { x: 600, y: 300 },
+      { x: 600, y: 850 },
+      { x: 1200, y: 850 },
+    ],
+  ]);
+  configureEnemyPatrols(authored);
+  const state = { ...authored.spawn, cleared: {} },
+    patrols = new EnemyPatrols();
+  const scene = patrols.scene(authored, state),
+    enemy = scene.objects[0];
+  assert.equal(enemy.y, 300, 'An offset placement must not spawn off the road');
+  enemy.patrolMotion.wait = 0;
+  const { speed, points } = enemy.patrol;
+  let reachedCorner = false,
+    reachedEnd = false;
+  for (let frame = 0; frame < 1600; frame++) {
+    const before = location(enemy),
+      previousWait = enemy.patrolMotion.wait;
+    patrols.update(scene, state, 0.05);
+    assert.ok(distanceToRoad(scene, enemy.x, enemy.y) < 0.001);
+    if (enemy.patrolMotion.wait > 0) {
+      assert.ok(
+        distance(enemy, points[0]) < 0.001 ||
+          distance(enemy, points.at(-1)) < 0.001,
+      );
+      reachedEnd = true;
+    } else if (previousWait === 0) {
+      // Movement through intermediate sample points must use the whole frame.
+      assert.ok(distance(before, enemy) > speed * 0.05 * 0.7);
+    }
+    if (enemy.x > 599 && enemy.y > 350) reachedCorner = true;
+  }
+  assert.ok(reachedCorner);
+  assert.ok(reachedEnd);
+});
+
+test('blocked road segments stop patrols without off-road detours or a diagonal fallback', () => {
+  const scene = roadScene(
+    [
+      [
+        { x: 200, y: 300 },
+        { x: 1400, y: 300 },
+      ],
+    ],
+    [
+      {
+        id: 'block',
+        type: 'rock',
+        x: 750,
+        y: 310,
+        solid: true,
+        w: 100,
+        h: 100,
+      },
+    ],
+  );
+  configureEnemyPatrols(scene);
+  const patrol = scene.objects[0].patrol;
+  assert.ok(patrol.points.every((p) => p.y === 300 && p.x < 700));
+  assert.ok(routeLength(patrol.points) > 400);
+  const noRoad = roadScene([]);
+  configureEnemyPatrols(noRoad);
+  assert.equal(noRoad.objects[0].patrol, undefined);
 });
 
 test('relative contact catches a moving enemy crossing a stationary party and avoids false parallel hits', () => {

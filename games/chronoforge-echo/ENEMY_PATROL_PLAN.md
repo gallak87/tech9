@@ -11,6 +11,7 @@ Implemented on 2026-09-21. Ready for the user's playtest; deployment remains sep
 - [x] Add bounded patrols to 32 outdoor encounters and eight new cave encounters.
 - [x] Keep bosses and defeated encounters stationary, with replay markers at authored homes.
 - [x] Validate movement, contact, pauses, save/load, suspended battles, and developer-preview isolation.
+- [x] Apply player feedback: ordinary outdoor enemies follow longer road routes, including the opening Scrapper; preserve every bend and pause only at endpoints.
 - [ ] User playtest: tune gait cadence, route feel, and cave difficulty.
 
 ## Shipped behavior
@@ -18,16 +19,15 @@ Implemented on 2026-09-21. Ready for the user's playtest; deployment remains sep
 | Encounter role                                        | Maximum distance from home                               | Speed              |
 | ----------------------------------------------------- | -------------------------------------------------------- | ------------------ |
 | Four town guards                                      | 64 logical world units, horizontal pacing                | 36 units/second    |
-| Ordinary outdoor enemies                              | 240 units                                                | 52–68 units/second |
-| Introductory encounter                                | 100 units                                                | 52–68 units/second |
+| Ordinary outdoor enemies, including the introduction  | Up to 650 units in either direction along a road         | 52–68 units/second |
 | Cave enemies                                          | 100 units, horizontal pacing in the lower supply chamber | 42 units/second    |
 | Bosses, defeated encounters, one-off story encounters | Stationary                                               | 0                  |
 
-Routes are generated deterministically after final scenery collision. Every leg is sampled against walkability, ground-cue clearance, nearby encounter homes, doors, camps, interactions, and arrivals. Routes pause at waypoints and shorten where needed. Cave pacing was moved deeper after a browser probe found the initial placement too close to the default story route.
+Routes are generated deterministically after final scenery collision. All 28 ordinary outdoor enemies start on the nearest usable authored road and follow its bends; the opening Scrapper covers about 506 units, and other available stretches span roughly 450–1,300 units. Road patrols reverse and pause only at endpoints, consuming remaining frame time through intermediate waypoints without stopping or cutting corners. If no usable road exists, the encounter stays stationary. Every leg is sampled against walkability, ground-footprint clearance, nearby encounter homes, doors, camps, interactions, and arrivals. Routes shorten at obstacles or protected approaches. Guards and caves retain short local pacing. Cave pacing was moved deeper after a browser probe found the initial placement too close to the default story route.
 
 Sprites, badges, and contact ovals use the same resolved position. Relative swept contact detects a walking player or an enemy crossing a stationary player. Existing prerequisites and contact protection apply. Patrols stop during menus, dialogue, world view, travel, recruitment, reveals, battles, and post-battle grace.
 
-Live positions and gait clocks stay outside the shared world catalog and saved state. Off-region patrols freeze. Loading reconstructs valid homes; a nearby loaded enemy stays inactive until the player moves 125 units clear. Developer trips have separate patrol state, and returning resumes the real expedition. Suspended battles exclude patrol configuration and clocks.
+Live positions and gait clocks stay outside the shared world catalog and saved state. Off-region patrols freeze. Loading reconstructs valid route starts; a nearby loaded enemy stays inactive until the player moves 125 units clear. Cleared replay markers use their original authored homes. Developer trips have separate patrol state, and returning resumes the real expedition. Suspended battles exclude patrol configuration and clocks.
 
 ## Art and regeneration
 
@@ -69,8 +69,8 @@ Entry chambers remain safe. Pathfinding probes reach all eight field records, Ve
 
 ## Validation
 
-- 304 pure Node regression tests passed, including seven new patrol/art/access checks.
-- 48 headless integration assertions passed on local Chromium despite the locked desktop; zero page or required-asset errors.
+- 306 pure Node regression tests passed after the road-following revision, including nine patrol/art/access checks.
+- The initial implementation passed 48 headless integration assertions on local Chromium despite the locked desktop. The road-following revision passed a targeted headless check of opening-route distance, road adherence, menu pauses, and the cleared marker; zero page or required-asset errors.
 - Production build passed. Deployment verification resolved 183 compiled entry, font, and art files at root and GitHub Pages mounts. Vite reports its non-blocking large-bundle warning.
 - Compared all ten movement sheets against battle identities at gameplay scale and captured a live cave patrol.
 - Development checks excluded standalone linting/formatting; the authorized commit uses the repository's pre-commit checks.

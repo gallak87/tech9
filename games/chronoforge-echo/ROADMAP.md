@@ -15,7 +15,7 @@
 - [ ] Decide a future role for the preserved artificer stations before reopening their counters.
 - [ ] Add more town centers along the campaign routes, with progressively stronger local stock and useful recovery stops. Choose locations and level bands during world planning; give vendors distinct roles within each town, with selective overlap between towns. Coordinate with the vendor redesign and traversal pacing pass.
 - [ ] Fix Kaida’s clipped victory pose; likely regenerate her full sprite set for consistent appearance and framing rather than replacing only the victory pose.
-- [x] Implement bounded enemy patrols: four town guards pace within 64 world units, ordinary enemies range up to 240, and the introduction/caves use 100. Bosses and defeated encounters remain stationary; sprites, badges, and swept contact share live positions.
+- [x] Implement bounded enemy patrols: four town guards pace within 64 world units and caves use 100. Ordinary outdoor enemies, including the opening Scrapper, follow authored roads up to 650 units in either direction, reversing at safe endpoints. Bosses and defeated encounters remain stationary; sprites, badges, and swept contact share live positions.
 - [x] Add one regional supply-chamber encounter to each of the eight caves, with safe arrivals and accessible field records / companion stories.
 - [ ] Playtest patrol cadence, guard restraint, ordinary route readability, and cave combat pacing; review walk/battle identity at gameplay scale.
 - [ ] Revisit whether encounters should forbid retreat; undecided, keep current retreat rules until reviewed separately.
@@ -32,7 +32,9 @@ The Drone Sentinel / Mutant Hound / Gravbot pilot led to ten referenced directio
 
 Forty encounters patrol: 32 outdoors and eight in caves. Routes are validated against final collision and keep cave story access clear. Bosses, one-off story encounters, and defeated encounters stay still. Patrol state is transient and isolated between the real expedition and developer trips. Existing pause and protection rules apply, including relative swept contact and safe loading near a patrol.
 
-Validation passed: 304 Node tests, 48 headless integration assertions, production build, and both deployment mounts. All ten sheets were compared with battle art at gameplay scale. The remaining gate is the user's subjective review of gait, identity details, and pacing. Pursuit, changes to retreat rules, moving bosses, and additional cave groups remain deferred.
+The first player pass requested longer travel along paths instead of diagonal local roaming. All 28 ordinary outdoor encounters now follow authored road bends; available spans are approximately 450–1,300 units, with the opening Scrapper covering about 506. Patrols start on the road, reverse at endpoints, and walk continuously through intermediate waypoints. Town guards and cave pacing retain their short ranges. Road-following regression checks and a targeted headless opening-patrol check pass; temporary review captures are removed after inspection.
+
+The initial implementation passed 304 Node tests, 48 headless integration assertions, production build, and both deployment mounts. The road-following revision passes 306 Node tests and a targeted headless check of opening-route distance, road adherence, pauses, and the cleared marker, with zero page or asset errors. All ten sheets were compared with battle art at gameplay scale. Continue player review of gait, identity details, and pacing. Pursuit, changes to retreat rules, moving bosses, and additional cave groups remain deferred.
 
 ## TODO — Revisit Party and Inventory overlap
 

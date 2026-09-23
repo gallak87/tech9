@@ -86,6 +86,10 @@ When an experiment graduates, promote only its selected live assets and required
 
 `node scripts/asset-inventory.mjs` prints the live inventory without writing files. Review tools use **`.experiments/output/`**, recreated on demand by `scripts/review-output.mjs`. **`npm run clean:review`** removes that output only; disposable inspection scripts live in `.experiments/scripts/`.
 
+Selected PNGs are losslessly compressed with **OxiPNG 10.2.1**, using its default optimization settings. The optimized files are tracked in `public/assets/`, so both `npm run dev` and the production build use them without an extra build dependency. For newly selected art, install [OxiPNG](https://github.com/oxipng/oxipng#installing) and run `oxipng path/to/selected.png` before committing it; follow the provenance guidance in Art direction. The browser loads these as ordinary PNGs.
+
+For a cold-load comparison, open browser developer tools, enable **Disable cache** in Network, select the same throttling profile and loading mode for each run, then reload with developer tools open. `npm run build` followed by `npm run preview` tests the production package locally.
+
 For user-requested browser checks, `npm run verify` uses the dev server with isolated storage and `?test=1` hooks; `npm run verify:pages` checks root/subpath deployment. Campaign-dependent checks first need `node tests/campaign-browser.mjs` to generate disposable snapshots in `.experiments/output/`.
 
 `npm run verify:mobile` runs the touch/layout/travel and recovery browser checks against an explicitly started dev server; `ECHO_BASE_URL` overrides its origin. Physical-phone acceptance and current loading follow-ups remain in the Roadmap. Completed implementation plans are retired after useful behavior, art guidance and open work move into the standing docs.

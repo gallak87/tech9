@@ -28,8 +28,15 @@
       "layout": "2 columns \u00d7 2 rows, tier 1 through tier 4 in reading order",
       "transparency": "Generated RGB with painted neutral checkerboard despite requested alpha. Runtime connected neutral extraction uses measured seeds in src/new-town-center-art.js; original selected pixels retained.",
       "status": "Selected live source for the four added regional towns.",
-      "sha256": "9afd5b807ce9e119e32ba2a6092ccc7621f21ec03eeb4669fef6c95e382f006c",
-      "bytes": 2888684
+      "optimization": {
+        "tool": "oxipng",
+        "version": "10.2.1",
+        "settings": "default",
+        "originalSha256": "9afd5b807ce9e119e32ba2a6092ccc7621f21ec03eeb4669fef6c95e382f006c",
+        "originalBytes": 2888684
+      },
+      "sha256": "d50b31986425463d6eb0623ac71a8ce0e20e8186874ff4896bb971f6c4a9250b",
+      "bytes": 2801345
     },
     {
       "id": "mire_bog_town_center",
@@ -57,8 +64,15 @@
       "layout": "2 columns \u00d7 2 rows, tier 1 through tier 4 in reading order",
       "transparency": "Generated RGB with painted neutral checkerboard despite requested alpha. Runtime connected neutral extraction uses measured seeds in src/new-town-center-art.js; original selected pixels retained.",
       "status": "Selected live source for the four added regional towns.",
-      "sha256": "052803e5185bc89a073883e00b6aaf9a8fadb464401207a50d9f584fb1db0e9d",
-      "bytes": 2849363
+      "optimization": {
+        "tool": "oxipng",
+        "version": "10.2.1",
+        "settings": "default",
+        "originalSha256": "052803e5185bc89a073883e00b6aaf9a8fadb464401207a50d9f584fb1db0e9d",
+        "originalBytes": 2849363
+      },
+      "sha256": "3829a0c683725de418bbcbae6ad1c494900fd55849083e41eaaf7027140cc9e2",
+      "bytes": 2761945
     },
     {
       "id": "crater_ember_town_center",
@@ -86,8 +100,15 @@
       "layout": "2 columns \u00d7 2 rows, tier 1 through tier 4 in reading order",
       "transparency": "Generated RGB with painted neutral checkerboard despite requested alpha. Runtime connected neutral extraction uses measured seeds in src/new-town-center-art.js; original selected pixels retained.",
       "status": "Selected live source for the four added regional towns.",
-      "sha256": "0334296ebfd918873eb051dcffef3fad090296cabf8fde8054fcefee76b8027b",
-      "bytes": 2644994
+      "optimization": {
+        "tool": "oxipng",
+        "version": "10.2.1",
+        "settings": "default",
+        "originalSha256": "0334296ebfd918873eb051dcffef3fad090296cabf8fde8054fcefee76b8027b",
+        "originalBytes": 2644994
+      },
+      "sha256": "da5be3bf30ae952523899819e23e5edfcd37ae47f97822d3584e5a429ef601cd",
+      "bytes": 2552388
     },
     {
       "id": "frost_canyon_town_center",
@@ -115,8 +136,15 @@
       "layout": "2 columns \u00d7 2 rows, tier 1 through tier 4 in reading order",
       "transparency": "Generated RGB with painted neutral checkerboard despite requested alpha. Runtime connected neutral extraction uses measured seeds in src/new-town-center-art.js; original selected pixels retained.",
       "status": "Selected live source for the four added regional towns.",
-      "sha256": "41e2754e5a8981b8c04b9f94c77717165fd4f7b7189db1e6ac3fffc4f8d71111",
-      "bytes": 2766046
+      "optimization": {
+        "tool": "oxipng",
+        "version": "10.2.1",
+        "settings": "default",
+        "originalSha256": "41e2754e5a8981b8c04b9f94c77717165fd4f7b7189db1e6ac3fffc4f8d71111",
+        "originalBytes": 2766046
+      },
+      "sha256": "7c859c506a859e6abd2b0f6e105885ce72b14843fde7bea56727b7328fb2b663",
+      "bytes": 2665286
     },
     {
       "id": "npc_road_towns",
@@ -144,8 +172,15 @@
       "layout": "4 columns (Forest Veil, Mire Bog, Crater Ember, Frost Canyon), 3 rows (provisions, smith, inn)",
       "transparency": "Generated RGB with painted dark neutral checkerboard despite requested alpha. Connected keyMin 100 with measured arm/prop seeds in src/road-town-npc-art.js; original selected pixels retained.",
       "status": "Selected live source for the four added regional towns.",
-      "sha256": "17ea0b44c1668b350f1357a5f189d9f93f889b77d1f7d20ea04e9fbe194932da",
-      "bytes": 2776415
+      "optimization": {
+        "tool": "oxipng",
+        "version": "10.2.1",
+        "settings": "default",
+        "originalSha256": "17ea0b44c1668b350f1357a5f189d9f93f889b77d1f7d20ea04e9fbe194932da",
+        "originalBytes": 2776415
+      },
+      "sha256": "b9e1b0777f81b294dec2e45a3c1306053073ba1ea0e31cecec59cd4c8e42461b",
+      "bytes": 2499318
     }
   ]
 }

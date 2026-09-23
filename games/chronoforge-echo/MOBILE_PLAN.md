@@ -7,7 +7,7 @@ Status: implemented, 2026-09-22. Automated browser spot checks pass; physical-ph
 - Joystick movement, proportional speed, independent pointer ownership, double-tap/button Run, optional ground taps, handedness and control sizing. Device preferences live outside expedition saves.
 - Adaptive portrait/landscape world view, optional wider portrait camera, mobile backing-resolution budgets, and a separate one-card battle layout with visible crew readiness and fresh Strike/Guard input.
 - Touch menus, shops, restoration, conversations, saves and map pan/zoom; explicit Return/Leave controls. Background pause requires Resume. Renderer loss offers checkpoint recovery through reload.
-- First phone boot offers Full atlas or Mobile on demand (pilot). Desktop retains full loading; resizing or enabling touch never changes loading policy. Mobile prepares regional bundles, bounds concurrent work, prefetches one nearby route, retains sources through failures, and evicts unused resources. Retry/Return and session cancellation are implemented.
+- First boot on a phone or window at most 768 CSS pixels wide offers Full atlas or Mobile on demand (pilot), then remembers the choice. Larger desktop windows start full loading immediately; resizing during play or enabling touch never changes loading policy. Startup shows a progress bar and installed asset count for the selected bundle. Mobile prepares regional bundles, bounds concurrent work, prefetches one nearby route, retains sources through failures, and evicts unused resources. Retry/Return and session cancellation are implemented.
 - Departure snapshots remain authoritative until arrival events and their checkpoint finish. Cold loads prepare saved regions and suspended battles before swapping the expedition.
 - Validation: 358 pure Node tests; headless Chromium touch checks at 320px/390px phone widths, landscape and tablet dimensions; all seven menu tabs, battle selection/target/Execute/Strike, all eight regions plus town/cave crossings, failure Return/Retry, a cold saved final-boss load, and simulated background pause/resume. Desktop full loading and production boot/Inventory pass at both `/` and `/tech9/chronoforge-echo/`; all 189 required deployment files resolve.
 - In the local Chromium probe, initial mobile preparation loaded 96 of 177 sources. Tracked retained source/derived pixels were about 266 MiB, versus about 797 MiB for desktop full loading. These are accounting estimates, not total browser/GPU/process memory or phone measurements. Cached local doors took about 0.60–0.86 seconds wall time; cold regional crossings took about 1.04–1.71 seconds, including preparation and the unchanged 0.55-second fade. The 320 MiB cache target is soft while current and pending destinations are pinned.
@@ -114,11 +114,11 @@ Account for browser bars, notches and the home indicator with dynamic viewport s
 
 ## 4. Protect desktop behavior
 
-Keep layout, input and asset-loading profiles separate. A narrow desktop window, touch-capable laptop or mouse attached to a tablet must not accidentally switch the loader policy.
+Keep layout, input and asset-loading profiles separate. A narrow desktop window may explicitly choose on-demand loading at boot. Touch capability, attaching a mouse or resizing during play must not switch the loader policy.
 
 - Desktop continues to load all current assets upfront and uses the existing camera, rendering defaults and 0.55-second travel behavior.
 - Touch controls have an Auto/On/Off preference. Detect the likely primary input from touch/pointer capabilities and allow correction.
-- Mobile loading is a separate opt-in pilot for handheld use. Enabling touch controls alone does not enable it, and resizing the window never changes it mid-session.
+- Mobile loading is a separate opt-in pilot for handheld use and small windows at boot. Enabling touch controls alone does not enable it, and resizing the window never changes it mid-session.
 - Expose the loader choice before asset loading begins; apply changes on a deliberate reload. If device classification is ambiguous, retain full loading rather than silently changing desktop performance.
 - A development-only override may exercise mobile behavior on a desktop for tests. It must not alter the normal desktop default.
 - Keep input/presentation preferences separate from progression. Save imports preserve quests, item ownership and battle state without importing an actively held joystick or forcing a loader profile.

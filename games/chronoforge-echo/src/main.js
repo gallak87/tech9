@@ -65,6 +65,7 @@ import {
 } from './mobile-preferences.js';
 import { mountMobileLifecycle } from './mobile-lifecycle.js';
 import { GameAssetLoading } from './game-asset-loading.js';
+import { mountLoadingProgress } from './loading-progress.js';
 import './mobile-ui.css';
 import './touch-controls.css';
 const W = VIEW_WIDTH,
@@ -673,6 +674,7 @@ async function boot() {
     maxTouchPoints: navigator.maxTouchPoints,
     mobile: navigator.userAgentData?.mobile,
     coarse: matchMedia('(pointer: coarse)').matches,
+    smallScreen: matchMedia('(max-width: 768px)').matches,
   });
   const query = new URLSearchParams(location.search);
   const loadingOverride =
@@ -689,7 +691,16 @@ async function boot() {
   await chooseBootLoading(shell, preferences, device, storage);
   const activeLoading = loadingProfile(preferences, device, loadingOverride);
   const loader = createAssetLoader(Art, { profile: activeLoading });
-  await loader.prepare(state);
+  loader.onProgress = mountLoadingProgress(
+    shell.querySelector('#loading'),
+    loader.specification(state).ids.length,
+  );
+  try {
+    await loader.prepare(state);
+  } finally {
+    // Later map preparation owns its own loading overlay.
+    loader.onProgress = () => {};
+  }
   loader.activate(state.region);
   const g = new Game(),
     canvas = document.createElement('canvas');

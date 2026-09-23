@@ -123,8 +123,19 @@
   border: 1px solid #8a7860;
   padding: 8px;
 }
+#game[data-loading-choice='true'] {
+  width: 100vw;
+  height: 100dvh;
+}
+#game[data-loading-choice='true'] #loading {
+  display: flex;
+  overflow-y: auto;
+}
 .mobile-boot {
+  flex-shrink: 0;
+  width: 100%;
   max-width: 430px;
+  margin: auto;
   padding: 24px;
   font:
     16px/1.5 Barlow,

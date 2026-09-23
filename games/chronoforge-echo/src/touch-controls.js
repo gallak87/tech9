@@ -157,6 +157,7 @@ export class TouchControls {
   settingsHTML() {
     return mobileSettingsHTML(this.preferences, {
       handheld: this.device.handheld,
+      smallScreen: this.device.smallScreen,
       activeLoading: this.activeLoading,
     });
   }

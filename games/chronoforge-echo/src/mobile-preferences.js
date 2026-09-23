@@ -53,6 +53,7 @@ export function deviceProfile({
   maxTouchPoints = 0,
   mobile = false,
   coarse = false,
+  smallScreen = false,
 } = {}) {
   const touch = maxTouchPoints > 0 && coarse;
   const handheld =
@@ -60,7 +61,7 @@ export function deviceProfile({
     (mobile ||
       /Android|iPhone|iPad|iPod/i.test(userAgent) ||
       (platform === 'MacIntel' && maxTouchPoints > 1));
-  return { touch, handheld };
+  return { touch, handheld, smallScreen };
 }
 export function touchEnabled(preferences, device) {
   return (
@@ -69,7 +70,7 @@ export function touchEnabled(preferences, device) {
   );
 }
 export function loadingProfile(preferences, device, developerOverride = false) {
-  return (device.handheld || developerOverride) &&
+  return (device.handheld || device.smallScreen || developerOverride) &&
     preferences.loading === 'mobile'
     ? 'mobile'
     : 'full';
@@ -78,7 +79,7 @@ const select = (label, key, value, entries) =>
   `<label class="setting mobile-setting"><span>${label}</span><select aria-label="${label}" data-mobile-setting="${key}">${entries.map(([v, text]) => `<option value="${v}" ${String(v) === String(value) ? 'selected' : ''}>${text}</option>`).join('')}</select></label>`;
 export function mobileSettingsHTML(
   preferences,
-  { handheld = false, activeLoading = 'full' } = {},
+  { handheld = false, smallScreen = false, activeLoading = 'full' } = {},
 ) {
   return `<section class="mobile-settings"><h3>Touch &amp; device</h3>${select(
     'Touch controls',
@@ -108,7 +109,7 @@ export function mobileSettingsHTML(
     ['balanced', 'Balanced'],
     ['high', 'High'],
   ])}${
-    handheld
+    handheld || smallScreen
       ? `${select('Asset loading', 'loading', preferences.loading, [
           ['full', 'Full atlas'],
           ['mobile', 'Mobile on demand (pilot)'],
@@ -117,10 +118,13 @@ export function mobileSettingsHTML(
   }</section>`;
 }
 export async function chooseBootLoading(shell, preferences, device, storage) {
-  if (!device.handheld || preferences.loadingChosen) return;
+  if (!(device.handheld || device.smallScreen) || preferences.loadingChosen)
+    return;
   const loading = shell.querySelector('#loading');
+  shell.dataset.loadingChoice = 'true';
   loading.innerHTML =
     '<div class="mobile-boot"><h2>Ready for the road?</h2><label>Asset loading<select aria-label="Asset loading" id="boot-loading"><option value="full">Full atlas</option><option value="mobile">Mobile on demand (pilot)</option></select></label><p>Full atlas loads all art before play. On demand starts with nearby maps and may briefly load at a new destination.</p><button type="button" class="button primary">Continue</button></div>';
+  loading.querySelector('select').value = preferences.loading;
   await new Promise((resolve) =>
     loading.querySelector('button').addEventListener(
       'click',
@@ -133,6 +137,7 @@ export async function chooseBootLoading(shell, preferences, device, storage) {
       { once: true },
     ),
   );
+  delete shell.dataset.loadingChoice;
   loading.innerHTML =
     '<span class="insignia">⌁</span><p>Assembling the field atlas…</p>';
 }

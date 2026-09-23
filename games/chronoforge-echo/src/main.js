@@ -683,6 +683,8 @@ async function boot() {
     preferences.loading = 'mobile';
     preferences.loadingChosen = true;
   }
+  // Module imports (including the full stylesheets) are ready for the handoff.
+  delete shell.dataset.boot;
   shell.dataset.mobile = String(
     device.handheld || touchEnabled(preferences, device),
   );

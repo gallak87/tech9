@@ -7,6 +7,76 @@
       content="width=device-width,initial-scale=1,viewport-fit=cover"
     />
     <meta name="theme-color" content="#101e23" />
+    <meta name="color-scheme" content="dark" />
+    <!-- First paint must not wait for JavaScript, stylesheets, fonts or art. -->
+    <style>
+      :root {
+        color-scheme: dark;
+        background: #080e11;
+      }
+      body {
+        margin: 0;
+      }
+      #game[data-boot] {
+        width: 100vw;
+        height: 100dvh;
+        position: relative;
+        background: #101e23;
+        color: #e8e1c7;
+        font:
+          16px/1.4 system-ui,
+          sans-serif;
+      }
+      #game[data-boot] #loading {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        background: #101e23;
+        font: inherit;
+        letter-spacing: 0.04em;
+      }
+      #game[data-boot] .insignia {
+        font-size: 48px;
+        color: #df702e;
+      }
+      #game[data-boot] .loading-progress {
+        width: min(320px, calc(100vw - 48px));
+        font-size: 16px;
+      }
+      #game[data-boot] .loading-progress p {
+        margin: 12px 0;
+      }
+      .boot-activity {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 4px;
+        background: #ffffff18;
+      }
+      .boot-activity::before {
+        content: '';
+        display: block;
+        width: 35%;
+        height: 100%;
+        background: #df702e;
+        animation: boot-activity 1.4s linear infinite;
+      }
+      @keyframes boot-activity {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(286%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-activity::before {
+          animation: none;
+          transform: translateX(93%);
+        }
+      }
+    </style>
     <meta
       name="description"
       content="An original pixel-art RPG about the world we choose to rebuild."
@@ -18,14 +88,21 @@
     />
   </head>
   <body>
-    <main id="game" aria-label="Chronforge Echo">
+    <main id="game" data-boot aria-label="Chronforge Echo">
       <div id="stage"></div>
       <div id="hud"></div>
       <div id="overlay"></div>
       <div id="rewards" aria-live="polite"></div>
       <div id="loading">
-        <span class="insignia">⌁</span>
-        <p>Assembling the field atlas…</p>
+        <span class="insignia" aria-hidden="true">⌁</span>
+        <div class="loading-progress">
+          <p role="status">Loading game…</p>
+          <div
+            class="boot-activity"
+            role="progressbar"
+            aria-label="Loading game"
+          ></div>
+        </div>
       </div>
     </main>
     <script type="module" src="/src/main.js"></script>

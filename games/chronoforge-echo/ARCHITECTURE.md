@@ -32,7 +32,20 @@ Successful purchases and sales call the existing game checkpoint after updating 
 
 `enemy-patrols.js` validates deterministic routes after final scenery footprints and owns live encounter copies per expedition and scene. `Game.scene` resolves those copies for movement, rendering, labels, and relative swept contact. Guards pace within 64 world units; cave supply patrols use 100. Ordinary outdoor patrols, including the introduction, start on the nearest usable authored road and follow its bends up to 650 units in either direction, stopping sooner at obstacles and protected approaches. They reverse and pause only at endpoints; intermediate waypoints consume the remaining frame time without stopping or cutting corners. No usable road means a stationary encounter. Authored home positions remain the stationary replay markers. Bosses and one-off story encounters stay put. Patrols advance only during active exploration and freeze off-region. New/load reconstructs route starts; nearby loaded enemies wait until the party moves clear. Developer trips isolate patrol state by expedition identity. Suspended battles omit patrol routes and clocks.
 
-Every cave has one optional lower-chamber supply patrol using existing enemies and rewards. Stable cave-specific IDs preserve old cleared records. The ordinary pathfinder must retain safe access to field records and companion story interactions outside patrol segments.
+Guard speed is 36 world units/second, ordinary outdoor patrols use 52–68, and caves use 42. Arrival protection releases after the player moves 125 units clear; before then, an explicit Engage/Confront action can start a permitted fight. Every route leg is sampled against final walkability and protected encounter/door/camp/interaction/arrival approaches.
+
+Every cave has one optional lower-chamber supply patrol using existing enemies and rewards. Stable IDs use `<cave-id>_supply_patrol` and preserve old cleared records. The ordinary pathfinder must retain safe access to field records and companion story interactions outside patrol segments; entry chambers remain safe.
+
+| Cave                   | Group                      |
+| ---------------------- | -------------------------- |
+| Tideglass grotto       | Rust Scrapper + Slag Rat   |
+| The blue cistern       | Mutant Hound               |
+| The root archive       | Bog Stalker + Mutant Hound |
+| The submerged annex    | Bog Stalker pair           |
+| Obsidian gallery       | Ember Golem                |
+| Buried station         | Neon Cultist               |
+| The names in the ice   | Glacier Wolf pair          |
+| The unfinished gallery | Wraith Core                |
 
 ## Combat
 
@@ -68,9 +81,11 @@ Ground chunks cover 384×384 world units using 768×768 backing pixels; the 40-c
 
 `viewport.js` maps CSS points and logical coordinates through one inverse transform. Mobile starts at 0.8 CSS pixels per world unit with an optional wider portrait camera and room-fitting bounds. Balanced backing resolution uses a 750,000-pixel budget/max 1.5 scale; High uses 1,500,000/max 2. Desktop stays 960×540/2. Survey rules do not change with the viewport. Mobile battle clones only presentation anchors/floaters; combat homes, costs, readiness, timing and saved selections remain authoritative. The command UI keeps one active card and the crew strip, using fresh pointer-down timing rather than carrying an Execute contact into Strike/Guard.
 
+Touch movement shares traversal collision and the 330/490 world-unit walk/run speeds. The stick has a 15% dead zone, proportional magnitude and one owned pointer; keyboard movement takes precedence, and direct movement cancels click routes. A short completed tap followed by a nearby touch-down within 300 ms toggles Run once; drags, long holds and cancellations cannot seed that gesture. Run is a preference, not automatic movement: normal travel preserves it, while new/load resets it. Menus retain ordinary vertical scrolling; control presses and canceled/multiple ground touches cannot become accidental movement or battle timing input.
+
 `asset-groups.js` derives common and regional dependencies from the authoritative manifest and scene catalog, including local towns/houses/caves, actual encounters, suspended battles and endings. `asset-cache.js` owns generations, queued preparation, active/pending pins and LRU groups. Mobile uses two concurrent loads, a soft 320 MiB retained-art budget, at most two regional groups when feasible, and twelve ground chunks. Confirmed active/pending resources remain protected even above that budget. Shared importers release their source/derived references explicitly; diagnostics report estimates rather than total browser memory. Desktop still eagerly prepares every source and does not evict on travel.
 
-`game-asset-loading.js` prepares destinations without mutating the live expedition, gates cold session loads, prefetches one nearby exit, and exposes Retry/Return for failed confirmed preparation. It backs off speculative destinations that fail or cannot remain cached. Travel holds at its opaque midpoint until decoded/imported art is ready, then preserves the existing arrival/event/checkpoint path. During either half of the fade, save snapshots use the immutable departure snapshot until arrival commits. Stale session work cannot install or swap late. `mobile-lifecycle.js` checkpoints interruptions, pauses mobile play until Resume, unlocks audio from a gesture, and offers reload recovery for WebGL context loss.
+`game-asset-loading.js` prepares destinations without mutating the live expedition, gates cold session loads, prefetches one nearby exit, and exposes Retry/Return for failed confirmed preparation. It backs off speculative destinations that fail or cannot remain cached. Travel holds at its opaque midpoint until decoded/imported art is ready, showing text after 0.35 seconds of waiting, then preserves the existing arrival/event/checkpoint path. Destination progress bars and preparation during the boot picker are outstanding roadmap work. During either half of the fade, save snapshots use the immutable departure snapshot until arrival commits. Stale session work cannot install or swap late. `mobile-lifecycle.js` checkpoints interruptions, pauses mobile play until Resume, unlocks audio from a gesture, and offers reload recovery for WebGL context loss.
 
 ## Persistence and development tools
 

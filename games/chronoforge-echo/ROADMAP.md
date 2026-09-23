@@ -1,8 +1,11 @@
 # Roadmap
 
-- [x] Implement the [mobile play plan](MOBILE_PLAN.md): joystick/run controls, portrait and landscape world/battle layouts, touch menus/maps, interruption recovery, and optional regional asset loading. Desktop keeps full upfront loading. Automated touch, all-region travel, recovery and production-path checks pass.
+- [x] Implement mobile play: joystick/run controls, portrait and landscape world/battle layouts, touch menus/maps, interruption recovery, and optional regional asset loading. Desktop keeps full upfront loading. Automated touch, all-region travel, recovery and production-path checks pass.
+- [x] Follow up mobile startup on 2026-09-23: restrict the loading picker to phones/small windows, start full loading immediately on larger desktops, show asset-count progress with short category/location names, and paint a dark indeterminate loader before application modules arrive.
+- [x] Fix manual engagement of arrival-protected enemies: loading beside an uncleared patrol no longer leaves both automatic contact and Interact unavailable. Explicit Engage/Confront remains opt-in; cleared-fight replays also pass mobile browser checks. Player confirmation on the originally reported save is still pending.
 - [ ] Player-review mobile controls, portrait/landscape battle readability and cold/warm map transitions on a real phone. On first phone boot choose Full atlas or Mobile on demand (pilot); keep on-demand loading optional until its transition feel and sustained memory/heat are accepted.
-- [ ] Optional asset-size cleanup for the hobby GitHub Pages build: pilot lossless PNG recompression against lossless WebP on the ten enemy walk sheets, measure savings and verify decoded pixels/crops/alpha before considering wider changes. Background extraction at build time is a separate future option. Low priority; no shipping gate or Git-history rewrite.
+- [ ] Finish the requested loading refinements: prepare the minimum mobile startup bundle while the picker is open, and show consistent destination/category progress during map preparation. Current startup waits for Continue; cold travel shows a text-only hold after a short delay, with no progress bar. Preserve desktop eager loading and fast warm transitions; see the mobile handoff below.
+- [ ] Discuss and pilot lossless OxiPNG recompression for the hobby GitHub Pages build after the startup fixes. Start with representative large sources/the ten enemy walk sheets, measure savings and verify decoded pixels/crops/alpha before wider changes. Lossless WebP remains an alternative to compare, not a selected conversion. No PNG optimization has run yet. Background extraction at build time is a separate future option; no shipping gate or Git-history rewrite.
 - [ ] Revisit story and dialogue after the current town/Kaida playtest: develop three sample scenes and distinct character voices before choosing the scope of a campaign rewrite. See the deferred story plan below; no narrative rewrite is part of this town update.
 - [x] Separate regional Community Restoration from Haventide’s economic settlement: three local projects each, independent art/progression, optional quest records, and one unique community weapon per hero with hometown reforges at levels 10/20/30/40. Preserve the caravan arc, ordinary Transcendent gear, and existing saves.
 - [x] Graduate Community Restoration after the initial player pass (2026-09-19): restoration and the current-level reward are accepted; completed rewards now show a persistent receipt and a direct inventory shortcut.
@@ -32,6 +35,26 @@
 - [ ] Revisit Forest Veil’s semicircular tree groves and traversal; explore dense woodland with connected clearings and readable paths.
 - [x] Complete the weapon-family pass: swords for Kaida, staves for Vex, gauntlets for Rune; four-tier progression, optional hero filtering, required vendor/loot adjustments, automatic legacy-save conversion, and replacement art for mismatched weapons. User playtest accepted on 2026-09-19 after importing an existing save, checking inventory filters and equipment, and confirming ATB works. Character artwork remains fixed.
 - [ ] Retire the temporary weapon-family save migration after the compatibility window (review in early October 2026). Keep current equipment validation; remove the conversion module and legacy-load writeback once existing players' saves have upgraded.
+
+## Mobile — implemented, player review pending
+
+Handoff updated 2026-09-23. Current implementation boundaries live in [Architecture](ARCHITECTURE.md#mobile-input-layout-and-asset-lifetime); durable presentation rules live in [Art direction](ART_DIRECTION.md#mobile-interface). Changes are committed locally; do not push unless the user asks.
+
+The user traced the GitHub Pages loading stall to throttled Hawaii Wi-Fi; switching networks allowed loading to complete, and cached requests worked. No speculative timeout/header/retry changes were made. OxiPNG is the next asset-size discussion; no recompression or conversion has run.
+
+The requested preload while the picker is visible and destination progress bars remain unfinished. `main.js` awaits `chooseBootLoading()` before creating/preparing the loader. Startup has named asset-count progress; cold destination preparation only shows text after 0.35 seconds waiting at the fade midpoint. Warm transitions retain the existing 0.55-second fade without an added loading hold. Keep desktop eager loading while completing these refinements.
+
+The reported encounter issue was reproduced specifically by loading beside an uncleared, arrival-protected enemy: contact stayed inactive and Interact was unavailable. Explicit Engage/Confront now works while protection remains. Cleared-fight replays passed before and after this change; confirm the original player's save rather than assuming every replay report shares that cause.
+
+Validation on 2026-09-23: 22 targeted Node tests and `tests/mobile.browser.mjs` pass, including protected engagement, cleared replays, touch controls/menus/combat, all-region travel and desktop eager loading. Initial 2026-09-22 checks additionally covered recovery, cold saved battles, and production boot/Inventory at root and GitHub Pages mounts. These are desktop Chromium/emulation results, not physical-phone acceptance.
+
+Remaining device review:
+
+- Check iPhone/Safari and Android/Chrome in portrait/landscape, browser bars and safe areas, two-thumb use, cancellation, rotation, control reach, and joystick/run feel.
+- Check the single battle card with three heroes, four enemies, tall bosses, long technique/item lists, incoming Guard, pause/resume and deliberate fresh timing presses.
+- Check shops, restoration, inventory confirmations, actual save file import/export, and returning to an existing expedition.
+- Compare cold startup, first/warm/evicted crossings, backtracking, fast travel and interrupted loads on the same device/network. Record time until control returns, missing-art frames, sustained memory/frame pacing and heat.
+- Keep mobile loading optional until accepted. Decide whether the common bundle/cache budget, previous-region retention, smaller runtime art or a lower-power option needs adjustment from those measurements. Directional camera look-ahead is also deferred. Native packaging, offline installation, cloud saves, new combat mechanics and a second joystick remain outside this pass.
 
 ## Story and dialogue — deferred writing plan
 
@@ -72,7 +95,7 @@ Validation passed: 320 pure Node tests, production compilation, and 189 required
 
 ## Patrol movement — implemented, player review pending
 
-The [implementation plan and checklist](ENEMY_PATROL_PLAN.md) records behavior, cave groups, art provenance, and validation. On 2026-09-21, the user authorized autonomous generation and headless playtesting while away.
+Current behavior and cave allocation live in [Architecture](ARCHITECTURE.md); regeneration guidance lives in [Art direction](ART_DIRECTION.md#asset-maintenance). On 2026-09-21, the user authorized autonomous generation and headless playtesting while away.
 
 The Drone Sentinel / Mutant Hound / Gravbot pilot led to ten referenced directional walk sheets, with hover reuse for Drone Sentinel, Neon Cultist, Frost Revenant, and Wraith Core. All 19 enemy identities now have durable authoring records in `art/enemy-prompts.json`; exact historical prompts were recovered for 18. Rust Scrapper's original wording is explicitly unavailable. The read-only prompt helper resolves current canonical art for regeneration.
 

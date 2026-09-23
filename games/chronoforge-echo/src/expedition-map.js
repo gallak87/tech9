@@ -1,3 +1,4 @@
+import { bindMapGestures } from './map-gestures.js';
 import { mapPosition } from './maps.js';
 import { REGIONS, terrainAt } from './world.js';
 import {
@@ -102,8 +103,6 @@ export class ExpeditionMap {
       this.panX = this.panY = 0;
       this.location = position;
     }
-    let drag = null,
-      suppressClick = false;
     this.frame.onwheel = (event) => {
       event.preventDefault();
       this.zoom = Math.max(
@@ -112,61 +111,30 @@ export class ExpeditionMap {
       );
       this.draw();
     };
-    this.frame.onpointerdown = (event) => {
-      suppressClick = false;
-      if (event.button !== 0 || event.target.closest('.map-tools')) return;
-      drag = {
-        x: event.clientX,
-        y: event.clientY,
-        startX: event.clientX,
-        startY: event.clientY,
-      };
-    };
-    this.frame.onpointermove = (event) => {
-      if (event.buttons === 0) drag = null;
-      if (drag) {
-        if (
-          !suppressClick &&
-          Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) <
-            5
-        )
-          return;
-        suppressClick = true;
-        this.frame.setPointerCapture(event.pointerId);
-        this.panX += event.clientX - drag.x;
-        this.panY += event.clientY - drag.y;
-        drag.x = event.clientX;
-        drag.y = event.clientY;
+    this.disposeGestures = bindMapGestures(this.frame, {
+      exclude: '.map-tools',
+      change: ({ dx, dy, factor, x, y }) => {
+        const zoom = Math.max(0.55, Math.min(4, this.zoom * factor));
+        const scale = zoom / this.zoom;
+        const cx = this.canvas.clientWidth / 2,
+          cy = this.canvas.clientHeight / 2 + 4;
+        this.panX = x - cx - (x - cx - this.panX - dx) * scale;
+        this.panY = y - cy - (y - cy - this.panY - dy) * scale;
+        this.zoom = zoom;
         this.draw();
-      } else {
-        const id = event.target.closest('[data-map-region]')?.dataset.mapRegion;
-        if (id && id !== this.selected) {
+      },
+      tap: (target) => {
+        const id = target?.closest('[data-map-region]')?.dataset.mapRegion;
+        if (id) {
           this.select(id);
-          this.frame
-            .querySelector('[data-map-region="' + id + '"]')
-            ?.focus({ preventScroll: true });
+          this.activate(id);
         }
-      }
-    };
-    this.frame.onpointerup =
-      this.frame.onpointercancel =
-      this.frame.onlostpointercapture =
-        () => {
-          drag = null;
-        };
-    this.frame.onclick = (event) => {
-      if (suppressClick) {
-        event.preventDefault();
-        event.stopPropagation();
-        suppressClick = false;
-        return;
-      }
-      const id = event.target.closest('[data-map-region]')?.dataset.mapRegion;
-      if (id) {
-        this.select(id);
-        this.activate(id);
-      }
-    };
+      },
+      hover: (target) => {
+        const id = target?.closest('[data-map-region]')?.dataset.mapRegion;
+        if (id && id !== this.selected) this.select(id);
+      },
+    });
     this.frame.onfocusin = (event) => {
       const id = event.target.dataset.mapRegion;
       if (id && id !== this.selected) this.select(id);
@@ -176,6 +144,8 @@ export class ExpeditionMap {
     this.draw();
   }
   unmount() {
+    this.disposeGestures?.();
+    this.disposeGestures = null;
     this.observer?.disconnect();
     this.observer = null;
     this.canvas = null;

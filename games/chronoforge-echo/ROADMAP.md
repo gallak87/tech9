@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Implement the [mobile play plan](MOBILE_PLAN.md): joystick/run controls, portrait and landscape world/battle layouts, touch menus/maps, interruption recovery, and optional regional asset loading. Desktop keeps full upfront loading. Automated touch, all-region travel, recovery and production-path checks pass.
+- [ ] Player-review mobile controls, portrait/landscape battle readability and cold/warm map transitions on a real phone. On first phone boot choose Full atlas or Mobile on demand (pilot); keep on-demand loading optional until its transition feel and sustained memory/heat are accepted.
 - [ ] Optional asset-size cleanup for the hobby GitHub Pages build: pilot lossless PNG recompression against lossless WebP on the ten enemy walk sheets, measure savings and verify decoded pixels/crops/alpha before considering wider changes. Background extraction at build time is a separate future option. Low priority; no shipping gate or Git-history rewrite.
 - [ ] Revisit story and dialogue after the current town/Kaida playtest: develop three sample scenes and distinct character voices before choosing the scope of a campaign rewrite. See the deferred story plan below; no narrative rewrite is part of this town update.
 - [x] Separate regional Community Restoration from Haventide’s economic settlement: three local projects each, independent art/progression, optional quest records, and one unique community weapon per hero with hometown reforges at levels 10/20/30/40. Preserve the caravan arc, ordinary Transcendent gear, and existing saves.

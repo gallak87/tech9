@@ -28,3 +28,12 @@ export function drawWorldEnvironmentDetail(c, biome, part, x, y, height) {
 export function worldEnvironmentDetailSources() {
   return [...new Set([...sprites.values()].map((s) => s.image))];
 }
+
+export function releaseWorldEnvironmentDetail(entry) {
+  for (const frame of entry.metadata.frames) {
+    const key = `${entry.biome}:${frame.part}`,
+      image = sprites.get(key)?.image;
+    if (image) image.width = image.height = 0;
+    sprites.delete(key);
+  }
+}

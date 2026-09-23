@@ -164,7 +164,7 @@ export function drawHaventideFloor(context, scene, camera, state) {
   const c = context;
   c.save();
   c.fillStyle = '#16282c';
-  c.fillRect(0, 0, 960, 540);
+  c.fillRect(0, 0, camera.width || 960, camera.height || 540);
   c.translate(-camera.x, -camera.y);
   // The surrounding stone plinth joins the generated back wall and columns.
   c.fillStyle =
@@ -190,4 +190,15 @@ export function haventideInteriorMetrics() {
     sources: [...sheets.values()].map((s) => s.image),
     frames: [...sheets.values()].flatMap((s) => [...s.frames.values(), s.tile]),
   };
+}
+
+export function releaseHaventideInterior(entry) {
+  const key = (entry.region ?? 'haventide') + ':' + entry.level,
+    sheet = sheets.get(key);
+  if (sheet) {
+    sheet.image.width = sheet.image.height = 0;
+    for (const frame of sheet.frames.values()) frame.width = frame.height = 0;
+    sheet.tile.width = sheet.tile.height = 0;
+  }
+  sheets.delete(key);
 }

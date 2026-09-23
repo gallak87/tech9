@@ -291,6 +291,8 @@ test('severe live badges include a skull while cleared repeat encounters stay ne
     strokeRect() {},
     beginPath() {},
     fill() {},
+    translate() {},
+    scale() {},
     ellipse(...args) {
       skulls.push(args);
     },

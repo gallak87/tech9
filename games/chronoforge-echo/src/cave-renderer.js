@@ -44,3 +44,18 @@ export function caveArtMetrics() {
     tiles: [...floors.values()],
   };
 }
+
+export function releaseCaveAsset(entry) {
+  for (const frame of entry.metadata.frames) {
+    if (entry.kind === 'caveFloor') {
+      const tile = floors.get(frame.biome);
+      if (tile) tile.width = tile.height = 0;
+      floors.delete(frame.biome);
+    } else {
+      const key = `${frame.biome}:${frame.part}`,
+        image = sprites.get(key)?.image;
+      if (image) image.width = image.height = 0;
+      sprites.delete(key);
+    }
+  }
+}

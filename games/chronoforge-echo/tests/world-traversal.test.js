@@ -101,6 +101,50 @@ test('rebinding movement and sliding beside a solid both retain grounded collisi
   assert.equal(isWalkable(scene, game.state.x, game.state.y), true);
 });
 
+test('touch movement preserves analog magnitude, bounds diagonals, and yields to keyboard', () => {
+  for (const [x, y, run] of [
+    [0.3, 0.4, false],
+    [1, 1, true],
+  ]) {
+    const { game, traversal } = fixture();
+    game.touchControls = { movement: { x, y, run, active: true } };
+    game.movePath = [{ x: 100, y: 100 }];
+    traversal.move(0.05);
+    const expected = Math.min(1, Math.hypot(x, y)) * (run ? 490 : 330) * 0.05;
+    assert.ok(
+      Math.abs(Math.hypot(game.state.x - 240, game.state.y - 240) - expected) <
+        1e-9,
+    );
+    assert.deepEqual(game.movePath, []);
+  }
+  const { game, traversal } = fixture();
+  game.touchControls = { movement: { x: 0, y: 0, active: true, run: true } };
+  game.movePath = [{ x: 100, y: 100 }];
+  traversal.move(0.05);
+  assert.equal(game.moving, false);
+  assert.deepEqual(game.movePath, []);
+  game.keys.add('d');
+  game.touchControls.movement = { x: -1, y: 0, active: true, run: true };
+  traversal.move(0.05);
+  assert.equal(game.state.x, 240 + 330 * 0.05);
+});
+
+test('mobile camera follows usable viewport and clamps immediately after rotation', () => {
+  const { game, traversal } = fixture();
+  Object.assign(game.state, { x: 1600, y: 1100 });
+  game.viewport = { width: 480, height: 800, mobile: true };
+  traversal.updateCamera(true);
+  assert.deepEqual(game.camera, { x: 1320, y: 400 });
+  game.viewport = { width: 1000, height: 420, mobile: true };
+  traversal.updateCamera();
+  assert.equal(
+    game.camera.x,
+    800,
+    'Smoothed camera cannot retain the old out-of-bounds x',
+  );
+  assert.ok(game.camera.y >= 0 && game.camera.y <= 780);
+});
+
 test('click routes detour around solids and finish at the precise reachable destination', () => {
   const scene = openScene();
   scene.objects.push({ x: 360, y: 275, w: 70, h: 110, solid: true });

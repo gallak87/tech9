@@ -11,12 +11,14 @@ import { sceneryOcclusionBounds } from './world-scenery.js';
 import {
   drawWorldEnvironmentDetail,
   worldEnvironmentDetailSources,
+  releaseWorldEnvironmentDetail,
 } from './world-detail-renderer.js';
 export { installWorldEnvironmentDetail } from './world-detail-renderer.js';
 import {
   drawCavePiece,
   caveFloorPattern,
   caveArtMetrics,
+  releaseCaveAsset,
 } from './cave-renderer.js';
 export { installCaveKit, installCaveFloor } from './cave-renderer.js';
 import {
@@ -24,6 +26,7 @@ import {
   drawHaventidePiece,
   havenInteriorBounds,
   haventideInteriorMetrics,
+  releaseHaventideInterior,
 } from './haventide-interior-renderer.js';
 export { installHaventideInterior } from './haventide-interior-renderer.js';
 import {
@@ -135,10 +138,12 @@ export const PALETTES = {
 };
 const groundCache = new Map(),
   propCache = new Map();
+let groundCacheLimit = 40;
 let groundAtlas = null,
   roadVariants = null;
 const groundAtlases = new Map();
 export function installGroundAtlas(image, options = {}) {
+  const replacing = groundAtlases.has(options.biome || 'coast');
   const columns = options.columns || 3,
     rows = options.rows || 2,
     sw = image.width / columns,
@@ -193,7 +198,8 @@ export function installGroundAtlas(image, options = {}) {
     tiles: groundAtlas,
     roads: roadVariants,
   });
-  groundCache.clear();
+  // Preparing a different biome must not discard the active map's warm chunks.
+  if (replacing) groundCache.clear();
 }
 const enemySheets = new Map();
 const enemyWalkSheets = new Map();
@@ -567,8 +573,8 @@ function groundChunk(scene, cx, cy) {
         } else paint(x, y, 12, kind);
       }
     groundCache.set(key, tile);
-    if (groundCache.size > 40)
-      groundCache.delete(groundCache.keys().next().value);
+    if (groundCache.size > groundCacheLimit)
+      setGroundCacheLimit(groundCacheLimit);
     return tile;
   }
   rect(c, 0, 0, 384, 384, p.moss);
@@ -693,15 +699,23 @@ function groundChunk(scene, cx, cy) {
       }
     }
   groundCache.set(key, tile);
-  if (groundCache.size > 40)
-    groundCache.delete(groundCache.keys().next().value);
+  if (groundCache.size > groundCacheLimit)
+    setGroundCacheLimit(groundCacheLimit);
   return tile;
 }
 function drawWater(c, scene, cam, time) {
   if (scene.biome === 'volcanic') return;
   const p = PALETTES[scene.biome] || P;
-  for (let gy = Math.floor(cam.y / 48) * 48; gy < cam.y + 560; gy += 48)
-    for (let gx = Math.floor(cam.x / 74) * 74; gx < cam.x + 1020; gx += 74) {
+  for (
+    let gy = Math.floor(cam.y / 48) * 48;
+    gy < cam.y + cam.height + 20;
+    gy += 48
+  )
+    for (
+      let gx = Math.floor(cam.x / 74) * 74;
+      gx < cam.x + cam.width + 60;
+      gx += 74
+    ) {
       let h = rand(gx * 73 + gy * 31),
         x = gx + h * 52 + Math.floor(Math.sin(time * 0.45 + h * 9) * 8),
         y = gy + h * 20;
@@ -1593,6 +1607,7 @@ function selectBiome(biome, outdoors = false, kind = null) {
   roadVariants = ground?.roads || null;
 }
 export function installEnvironmentAtlas(image, options = {}) {
+  const replacing = environmentAtlases.has(options.biome || 'coast');
   if (options.biome && options.biome !== 'coast' && !options.cells) {
     const names = [
       'tree',
@@ -1634,7 +1649,7 @@ export function installEnvironmentAtlas(image, options = {}) {
     cellHeight: options.cellHeight || image.height / (options.rows || 2),
   };
   environmentAtlases.set(options.biome || 'coast', environmentAtlas);
-  propCache.clear();
+  if (replacing) propCache.clear();
 }
 function atlasProp(c, id, x, y, width, height) {
   if (
@@ -2740,8 +2755,8 @@ function interiorFloorChunk(scene, cx, cy) {
       }
     }
   groundCache.set(key, cv);
-  if (groundCache.size > 40)
-    groundCache.delete(groundCache.keys().next().value);
+  if (groundCache.size > groundCacheLimit)
+    setGroundCacheLimit(groundCacheLimit);
   return cv;
 }
 function portalCue(c, d, p, indoor = false) {
@@ -2786,12 +2801,12 @@ function indoor(c, s, cam, time, state, options) {
   }
   for (
     let cy = Math.floor(cam.y / 384);
-    cy <= Math.floor((cam.y + 540) / 384);
+    cy <= Math.floor((cam.y + cam.height) / 384);
     cy++
   )
     for (
       let cx = Math.floor(cam.x / 384);
-      cx <= Math.floor((cam.x + 960) / 384);
+      cx <= Math.floor((cam.x + cam.width) / 384);
       cx++
     )
       c.drawImage(
@@ -2890,7 +2905,12 @@ export function drawWorld(
   options = { contactReady: false },
 ) {
   selectBiome(scene.biome, !scene.interior, scene.kind);
-  const cam = { x: Math.round(camera.x || 0), y: Math.round(camera.y || 0) },
+  const cam = {
+      x: Math.round(camera.x || 0),
+      y: Math.round(camera.y || 0),
+      width: camera.width || 960,
+      height: camera.height || 540,
+    },
     p = PALETTES[scene.biome] || P;
   artContext(c);
   if (scene.interior) {
@@ -2899,12 +2919,12 @@ export function drawWorld(
   }
   for (
     let cy = Math.floor(cam.y / 384);
-    cy <= Math.floor((cam.y + 540) / 384);
+    cy <= Math.floor((cam.y + cam.height) / 384);
     cy++
   )
     for (
       let cx = Math.floor(cam.x / 384);
-      cx <= Math.floor((cam.x + 960) / 384);
+      cx <= Math.floor((cam.x + cam.width) / 384);
       cx++
     )
       c.drawImage(
@@ -2919,8 +2939,16 @@ export function drawWorld(
   c.save();
   c.translate(-cam.x, -cam.y);
   // A few art-directed foreground grasses, never blocking the road or hiding interactables.
-  for (let gy = Math.floor(cam.y / 140) * 140; gy < cam.y + 650; gy += 140)
-    for (let gx = Math.floor(cam.x / 185) * 185; gx < cam.x + 1050; gx += 185) {
+  for (
+    let gy = Math.floor(cam.y / 140) * 140;
+    gy < cam.y + cam.height + 110;
+    gy += 140
+  )
+    for (
+      let gx = Math.floor(cam.x / 185) * 185;
+      gx < cam.x + cam.width + 90;
+      gx += 185
+    ) {
       let n = rand(gx * 41 + gy * 73),
         x = gx + n * 70,
         y = gy + n * 90;
@@ -2934,9 +2962,9 @@ export function drawWorld(
   for (const o of [...scene.objects].sort((a, b) => a.y - b.y)) {
     if (
       o.x < cam.x - 260 ||
-      o.x > cam.x + 1220 ||
+      o.x > cam.x + cam.width + 260 ||
       o.y < cam.y - 50 ||
-      o.y > cam.y + 930
+      o.y > cam.y + cam.height + 390
     )
       continue;
     drawProp(c, o, p, time, state);
@@ -2944,9 +2972,9 @@ export function drawWorld(
   for (const d of scene.portals) {
     if (
       d.x < cam.x - 50 ||
-      d.x > cam.x + 1010 ||
+      d.x > cam.x + cam.width + 50 ||
       d.y < cam.y - 60 ||
-      d.y > cam.y + 600
+      d.y > cam.y + cam.height + 60
     )
       continue;
     portalCue(c, d, p, false);
@@ -2957,7 +2985,8 @@ export function drawWorld(
     for (const bird of worldBirds(scene, time)) {
       const x = bird.x - cam.x,
         y = bird.y - cam.y;
-      if (x < -30 || x > 990 || y < -30 || y > 570) continue;
+      if (x < -30 || x > cam.width + 30 || y < -30 || y > cam.height + 30)
+        continue;
       const wing = Math.sin(time * 3.3 + bird.phase) * 3;
       line(c, x - 9, y - 3 - wing, x - 3, y - 1, '#cad6bd', 2);
       line(c, x - 3, y - 1, x + 1, y + 1, '#e1e3cc', 2);
@@ -5043,7 +5072,7 @@ export function artMetrics() {
   return {
     groundChunks: groundCache.size,
     groundBytes: bytesOf(groundCache.values()),
-    groundLimitBytes: 40 * (384 * RENDER_SCALE) ** 2 * 4,
+    groundLimitBytes: groundCacheLimit * (384 * RENDER_SCALE) ** 2 * 4,
     propCacheEntries: propCache.size,
     propBytes: bytesOf(propCache.values()),
     groundAtlasBytes: bytesOf(tiles),
@@ -5147,4 +5176,97 @@ export function actorBounds(
   return Object.fromEntries(
     Object.entries(bounds).map(([k, v]) => [k, v * scale]),
   );
+}
+
+// Loading owns source lifetimes; drawing never changes the dependency registry.
+// Clear derived terrain/prop canvases on an eviction so they cannot retain
+// patterns or copied pixels belonging to an unloaded regional atlas.
+function clearArtCanvasCache(cache) {
+  for (const image of cache.values()) image.width = image.height = 0;
+  cache.clear();
+}
+export function setGroundCacheLimit(limit = 40) {
+  groundCacheLimit = Math.max(1, Math.floor(limit));
+  while (groundCache.size > groundCacheLimit) {
+    const key = groundCache.keys().next().value,
+      image = groundCache.get(key);
+    image.width = image.height = 0;
+    groundCache.delete(key);
+  }
+}
+export function releaseAsset(entry) {
+  const dispose = (image) => {
+    if (image) image.width = image.height = 0;
+  };
+  const disposeFrames = (sheet) => {
+    for (const frame of sheet?.frames || [])
+      dispose(frame?.image || (frame?.getContext ? frame : null));
+  };
+  switch (entry.kind) {
+    case 'environment':
+      dispose(environmentAtlases.get(entry.biome)?.image);
+      environmentAtlases.delete(entry.biome);
+      if (activeBiome === entry.biome) environmentAtlas = null;
+      break;
+    case 'ground': {
+      const atlas = groundAtlases.get(entry.biome);
+      for (const tile of new Set([
+        ...(atlas?.tiles || []),
+        ...(atlas?.roads || []),
+      ]))
+        dispose(tile);
+      groundAtlases.delete(entry.biome);
+      if (activeBiome === entry.biome) {
+        groundAtlas = null;
+        roadVariants = null;
+      }
+      break;
+    }
+    case 'enemy':
+      disposeFrames(enemySheets.get(entry.id));
+      dispose(enemySheets.get(entry.id)?.image);
+      enemySheets.delete(entry.id);
+      break;
+    case 'enemyWalk':
+      dispose(enemyWalkSheets.get(entry.enemyId)?.image);
+      enemyWalkSheets.delete(entry.enemyId);
+      break;
+    case 'environmentDetail':
+      releaseWorldEnvironmentDetail(entry);
+      break;
+    case 'caveKit':
+    case 'caveExit':
+    case 'caveFloor':
+      releaseCaveAsset(entry);
+      break;
+    case 'townCenter':
+      disposeFrames(townCenterSheets.get(entry.region));
+      dispose(townCenterSheets.get(entry.region)?.image);
+      townCenterSheets.delete(entry.region);
+      break;
+    case 'havenInterior':
+      releaseHaventideInterior(entry);
+      break;
+    case 'building':
+      dispose(buildingAtlases.get(entry.group)?.image);
+      buildingAtlases.delete(entry.group);
+      break;
+    case 'structure': {
+      const key = entry.metadata.objectId || entry.metadata.style;
+      dispose(structureSprites.get(key)?.image);
+      structureSprites.delete(key);
+      break;
+    }
+    case 'npc':
+      for (const frame of entry.metadata.frames) {
+        dispose(npcSprites.get(frame.id)?.image);
+        npcSprites.delete(frame.id);
+      }
+      break;
+    default:
+      throw new Error(`Cannot release pinned common asset: ${entry.id}`);
+  }
+  clearArtCanvasCache(groundCache);
+  clearArtCanvasCache(propCache);
+  clearArtCanvasCache(lootOutlineCache);
 }

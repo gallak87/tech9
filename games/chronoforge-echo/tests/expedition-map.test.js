@@ -101,9 +101,21 @@ test('keyboard activation uses the selected region; dragging a region never jump
   const frame = {
     contains: () => true,
     setPointerCapture() {},
+    getBoundingClientRect: () => ({ left: 0, top: 0 }),
+    addEventListener(name, handler) {
+      this['on' + name] = handler;
+    },
+    removeEventListener(name) {
+      delete this['on' + name];
+    },
     querySelector: () => ({ focus() {} }),
   };
-  const canvas = { isConnected: true, closest: () => frame };
+  const canvas = {
+    isConnected: true,
+    closest: () => frame,
+    clientWidth: 390,
+    clientHeight: 540,
+  };
   const map = new ExpeditionMap(game);
   map.draw = () => {};
   map.mount(canvas);
@@ -122,14 +134,25 @@ test('keyboard activation uses the selected region; dragging a region never jump
         ? { dataset: { mapRegion: 'last_crown' } }
         : null,
   };
-  frame.onpointerdown({ button: 0, target, clientX: 100, clientY: 100 });
+  frame.onpointerdown({
+    pointerId: 1,
+    button: 0,
+    target,
+    clientX: 100,
+    clientY: 100,
+  });
   frame.onpointermove({ pointerId: 1, target, clientX: 160, clientY: 125 });
-  frame.onpointerup();
-  frame.onclick({ target, preventDefault() {}, stopPropagation() {} });
+  frame.onpointerup({ pointerId: 1 });
+  frame.onclick({
+    detail: 1,
+    target,
+    preventDefault() {},
+    stopPropagation() {},
+  });
   assert.equal(map.panX, 60);
   assert.equal(map.panY, 25);
   assert.equal(actions.length, 2);
-  frame.onpointermove({ target });
+  frame.onpointermove({ target, pointerType: 'mouse' });
   assert.equal(
     map.selected,
     'last_crown',
@@ -137,6 +160,26 @@ test('keyboard activation uses the selected region; dragging a region never jump
   );
   map.key('Enter');
   assert.equal(actions.at(-1), 'dev-world:last_crown');
+  const beforePinch = actions.length;
+  frame.onpointerdown({
+    pointerId: 1,
+    button: 0,
+    target,
+    clientX: 100,
+    clientY: 100,
+  });
+  frame.onpointerdown({
+    pointerId: 2,
+    button: 0,
+    target,
+    clientX: 200,
+    clientY: 100,
+  });
+  frame.onpointermove({ pointerId: 2, target, clientX: 250, clientY: 100 });
+  frame.onpointerup({ pointerId: 2 });
+  frame.onpointerup({ pointerId: 1 });
+  assert.equal(map.zoom, 1.5);
+  assert.equal(actions.length, beforePinch);
   map.unmount();
   assert.equal(map.key('ArrowLeft'), false);
 });

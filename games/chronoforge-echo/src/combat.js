@@ -3,7 +3,11 @@ import { enemyLevel, enemyLevelLabel } from './enemy-levels.js';
 import { stats } from './progression.js';
 import { assessItemUse, consumeItem } from './consumables.js';
 import { drawHero, drawEnemy, drawBattleBackdrop, actorBounds } from './art.js';
-import { placeEnemyHud } from './battle-layout.js';
+import {
+  placeEnemyHud,
+  mobileBattleLayout,
+  mobileBattlePresentation,
+} from './battle-layout.js';
 
 // Only updateBattle advances combat time. Drawing and input never advance the
 // authoritative animation clock; the global menu can therefore freeze any frame.
@@ -1251,19 +1255,34 @@ function button(b, x, y, w, h, kind, data = {}) {
 }
 
 function artScale(b, actor) {
-  if (actor.side === 'hero') return 1.25;
+  const presentation = b.presentation;
+  if (actor.side === 'hero') return 1.25 * (presentation?.actorScale || 1);
   const base =
     actor.tier >= 5
       ? 1.05
       : ['mire_hulk', 'ember_golem', 'magma_behemoth'].includes(actor.id)
         ? 1.1
         : 1.45;
-  const preferred = base * (b.enemies.length > 2 ? 0.86 : 1);
+  const preferred =
+    base * (b.enemies.length > 2 ? 0.86 : 1) * (presentation?.actorScale || 1);
   const bounds = actorBounds(actor.id, { side: 'enemy', pose: 'idle' });
   // Keep the foot anchor in its formation slot. Tall rear-row enemies must
   // leave room for their name and meters above the sprite after the field lift.
-  const availableHeight = actor.home.y + FIELD_OFFSET_Y - 35;
-  return Math.min(preferred, (availableHeight * DISPLAY_SCALE) / -bounds.top);
+  const availableHeight =
+    actor.home.y +
+    (presentation ? -presentation.top : FIELD_OFFSET_Y) -
+    (presentation ? 30 : 35);
+  return Math.max(
+    0.1,
+    Math.min(
+      preferred,
+      (availableHeight * DISPLAY_SCALE) / -bounds.top,
+      presentation
+        ? (presentation.width * 0.3 * DISPLAY_SCALE) /
+            (bounds.right - bounds.left)
+        : Infinity,
+    ),
+  );
 }
 
 function defeatOpacity(b, actor) {
@@ -1346,8 +1365,10 @@ function enemyExchange(b, a) {
   const target = {
     x: formationRight + 24 - body.left / DISPLAY_SCALE,
     y: Math.min(
-      257,
-      302 - Math.max(0, offsetY) - Math.max(0, weapon.bottom / DISPLAY_SCALE),
+      b.presentation ? b.presentation.height * 0.67 : 257,
+      (b.presentation ? b.presentation.height * 0.85 : 302) -
+        Math.max(0, offsetY) -
+        Math.max(0, weapon.bottom / DISPLAY_SCALE),
     ),
   };
   return {
@@ -1519,7 +1540,8 @@ function actorVisual(b, actor, state) {
             ? 0
             : (participantIndex - (a.participants.length - 1) / 2) * 35;
         const reach =
-          actor.side === 'hero' ? (actor.id === 'rune' ? -55 : -77) : 91;
+          (actor.side === 'hero' ? (actor.id === 'rune' ? -55 : -77) : 91) *
+          (b.presentation?.actorScale || 1);
         const stopX =
           exchange?.attacker.x ?? target.home.x + reach - participantIndex * 14;
         const stopY = exchange?.attacker.y ?? target.home.y + spread;
@@ -1839,7 +1861,9 @@ function drawEffect(ctx, b, state) {
     ctx.globalAlpha = 1;
   }
   if (dawn && t >= 0.18 && t < a.contact + 0.46) {
-    const focus = { x: 355, y: 164 },
+    const focus = b.presentation
+        ? { x: b.presentation.width * 0.5, y: b.presentation.height * 0.35 }
+        : { x: 355, y: 164 },
       build = clamp((t - 0.18) / (a.contact - 0.18), 0, 1),
       colors = [C.rose, C.pale, C.amber];
     const fade = t > a.contact ? 1 - (t - a.contact) / 0.46 : 1;
@@ -1865,8 +1889,11 @@ function drawEffect(ctx, b, state) {
         cx =
           targets.reduce((n, e) => n + e.home.x, 0) /
           Math.max(1, targets.length),
-        cy = 284,
-        r = 67 + p * 40;
+        cy = b.presentation
+          ? targets.reduce((n, e) => n + e.home.y, 0) /
+            Math.max(1, targets.length)
+          : 284,
+        r = (67 + p * 40) * (b.presentation?.actorScale || 1);
       spellArc(
         ctx,
         cx,
@@ -1997,7 +2024,16 @@ function drawEffect(ctx, b, state) {
     const p = clamp((t - a.contact + 0.2) / 0.2, 0, 1),
       after = Math.max(0, (t - a.contact) / 0.38);
     const origin = actorVisual(b, active[0], state),
-      center = { x: 207, y: 243 };
+      center = b.presentation
+        ? {
+            x:
+              b.heroes.reduce((sum, actor) => sum + actor.home.x, 0) /
+              b.heroes.length,
+            y:
+              b.heroes.reduce((sum, actor) => sum + actor.home.y, 0) /
+              b.heroes.length,
+          }
+        : { x: 207, y: 243 };
     const waveColor =
       active[0].id === 'void_architect'
         ? '#b695d0'
@@ -2098,8 +2134,12 @@ function drawEffect(ctx, b, state) {
   }
 }
 
-export function drawBattle(ctx, b, state) {
+export function drawBattle(ctx, b, state, viewport = null) {
   // Rendering derives motion solely from the frozen simulation clock.
+  const source = b;
+  const layout = viewport?.mobile ? mobileBattleLayout(viewport) : null;
+  if (layout) b = mobileBattlePresentation(b, layout);
+  const fieldOffset = layout ? 0 : FIELD_OFFSET_Y;
   const now = b.clock;
   b.hitAreas = [];
   ctx.save();
@@ -2108,13 +2148,16 @@ export function drawBattle(ctx, b, state) {
   // Reframe the existing backdrop with the lifted formation: its ground plane
   // stays under the crew, while the extra lower field fills behind the dock.
   ctx.save();
-  ctx.translate(0, -108);
-  ctx.scale(1, 1.2);
+  if (layout) ctx.scale(viewport.width / 960, viewport.height / 540);
+  else {
+    ctx.translate(0, -108);
+    ctx.scale(1, 1.2);
+  }
   drawBattleBackdrop(ctx, b.biome, now);
   ctx.restore();
   ctx.scale(DISPLAY_SCALE, DISPLAY_SCALE);
   // The field is lifted slightly to leave the folding command dock unobstructed.
-  ctx.translate(0, FIELD_OFFSET_Y);
+  ctx.translate(0, fieldOffset);
   const potential = validTargets(b, b.pending);
   const group =
     b.pending?.target === 'allAllies' || b.pending?.target === 'allEnemies';
@@ -2130,12 +2173,19 @@ export function drawBattle(ctx, b, state) {
         side: 'enemy',
         scale: artScale(b, actor),
       });
-      ctx.font = '9px Barlow, sans-serif';
+      const labelSize = layout ? 13 / layout.cssScale : 9;
+      ctx.font = `${labelSize}px Barlow, sans-serif`;
       const suffix = ` · ${enemyLevelLabel(actor)}`;
       const label =
-        trim(ctx, actor.name, 124 - ctx.measureText(suffix).width, 9) + suffix;
+        trim(
+          ctx,
+          actor.name,
+          (layout ? 138 / layout.cssScale : 124) -
+            ctx.measureText(suffix).width,
+          labelSize,
+        ) + suffix;
       const labelWidth = Math.ceil(ctx.measureText(label).width) + 8;
-      const w = Math.max(126, labelWidth);
+      const w = Math.max(layout ? 112 / layout.cssScale : 126, labelWidth);
       return {
         actor,
         label,
@@ -2152,7 +2202,14 @@ export function drawBattle(ctx, b, state) {
         },
       };
     }),
-    { x: 365, y: -FIELD_OFFSET_Y + 10, w: 393, h: 235 },
+    layout
+      ? {
+          x: 8,
+          y: layout.top,
+          w: layout.width - 16,
+          h: layout.height - layout.top - 8,
+        }
+      : { x: 365, y: -FIELD_OFFSET_Y + 10, w: 393, h: 235 },
   );
   const contactPriority = (actor) =>
     b.action &&
@@ -2268,7 +2325,7 @@ export function drawBattle(ctx, b, state) {
     button(
       b,
       actor.home.x + boundsLeft,
-      actor.home.y + boundsTop + FIELD_OFFSET_Y,
+      actor.home.y + boundsTop + fieldOffset,
       boundsWidth,
       boundsHeight + 19,
       'actor',
@@ -2280,8 +2337,21 @@ export function drawBattle(ctx, b, state) {
     const x = hud.x + hud.w / 2,
       y = hud.y + 10;
     ctx.fillStyle = '#171717bc';
-    ctx.fillRect(Math.round(x - labelWidth / 2), y - 10, labelWidth, 13);
-    text(ctx, label, x, y, C.paper, 9, 'center');
+    ctx.fillRect(
+      Math.round(x - labelWidth / 2),
+      y - 10,
+      labelWidth,
+      layout ? 16 / layout.cssScale : 13,
+    );
+    text(
+      ctx,
+      label,
+      x,
+      y,
+      C.paper,
+      layout ? 13 / layout.cssScale : 9,
+      'center',
+    );
     bar(
       ctx,
       x - 35,
@@ -2320,8 +2390,10 @@ export function drawBattle(ctx, b, state) {
     text(ctx, f.text, f.x, y, color, f.kind === 'crit' ? 17 : 13, 'center');
     ctx.globalAlpha = 1;
   }
-  ctx.translate(0, -FIELD_OFFSET_Y);
+  ctx.translate(0, -fieldOffset);
   if (b.result) {
+    ctx.save();
+    if (layout) ctx.translate(layout.width / 2 - 384, layout.height / 2 - 150);
     ctx.fillStyle = 'rgba(20,20,20,.93)';
     ctx.fillRect(229, 108, 310, 86);
     line(ctx, 241, 113, 527, 113, C.amber);
@@ -2353,8 +2425,10 @@ export function drawBattle(ctx, b, state) {
       10,
       'center',
     );
+    ctx.restore();
   }
   ctx.restore();
+  source.hitAreas = b.hitAreas;
 }
 
 // Canvas actors and DOM controls dispatch exactly the same combat intents.

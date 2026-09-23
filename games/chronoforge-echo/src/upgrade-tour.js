@@ -1,6 +1,12 @@
 import * as Art from './art.js';
 import { getScene } from './world.js';
-import { artSurface, VIEW_WIDTH as W, VIEW_HEIGHT as H } from './rendering.js';
+import {
+  artSurface,
+  artContext,
+  VIEW_WIDTH,
+  VIEW_HEIGHT,
+} from './rendering.js';
+import { createViewport } from './viewport.js';
 import {
   upgradeTourCameras,
   upgradeShotScale,
@@ -18,13 +24,16 @@ export function mountUpgradeTour(
   { previewMarkup = null, onReturnToPlay = () => {} } = {},
 ) {
   const preview = previewMarkup !== null;
+  let W = game.viewport?.mobile ? game.viewport.width : VIEW_WIDTH,
+    H = game.viewport?.mobile ? game.viewport.height : VIEW_HEIGHT,
+    backingScale = game.viewport?.mobile ? game.viewport.renderScale : 2;
   const root = document.createElement('section');
   root.className = 'upgrade-tour';
   root.hidden = true;
   root.setAttribute('role', 'dialog');
   root.setAttribute('aria-modal', 'true');
   root.setAttribute('aria-label', 'Town Center upgrade');
-  const screen = artSurface(W, H),
+  const screen = artSurface(W, H, backingScale),
     ctx = screen.getContext('2d');
   screen.setAttribute('aria-hidden', 'true');
   root.append(screen);
@@ -51,9 +60,15 @@ export function mountUpgradeTour(
     townName = '';
 
   function picture(scene, camera, state, actors = []) {
-    const canvas = artSurface(W, H),
+    const canvas = artSurface(W, H, backingScale),
       c = canvas.getContext('2d');
-    Art.drawWorld(c, scene, camera, game.visualTime, state);
+    Art.drawWorld(
+      c,
+      scene,
+      { ...camera, width: W, height: H },
+      game.visualTime,
+      state,
+    );
     for (const actor of [...actors].sort((a, b) => a.y - b.y))
       Art.drawHero(c, actor.id, actor.x - camera.x, actor.y - camera.y, {
         facing: actor.facing,
@@ -261,11 +276,41 @@ export function mountUpgradeTour(
     const location = plan.previewLocation ?? plan.region;
     const outside = getScene(location),
       inside = getScene(location + '_town');
+    if (game.viewport?.mobile) {
+      const box = document.querySelector('#game').getBoundingClientRect();
+      const view = createViewport({
+        cssWidth: box.width,
+        cssHeight: box.height,
+        mobile: true,
+        scene: inside,
+        pixelRatio: window.devicePixelRatio || 1,
+        portrait: box.height > box.width,
+      });
+      W = view.width;
+      H = view.height;
+      backingScale = view.renderScale;
+    } else {
+      W = VIEW_WIDTH;
+      H = VIEW_HEIGHT;
+      backingScale = 2;
+    }
+    screen.width = Math.round(W * backingScale);
+    screen.height = Math.round(H * backingScale);
+    screen.logicalWidth = W;
+    screen.logicalHeight = H;
+    artContext(ctx).setTransform(
+      screen.width / W,
+      0,
+      0,
+      screen.height / H,
+      0,
+      0,
+    );
     townName = getScene(plan.region).name;
     const townLabel = root.querySelector('[data-town-name]');
     if (townLabel) townLabel.textContent = townName;
     const view =
-      preview && game.scene.id !== location + '_town'
+      (preview && game.scene.id !== location + '_town') || game.viewport?.mobile
         ? null
         : {
             camera: game.camera,
@@ -279,7 +324,10 @@ export function mountUpgradeTour(
               ...game.followers,
             ],
           };
-    const cameras = upgradeTourCameras(outside, inside, plan, view);
+    const cameras = upgradeTourCameras(outside, inside, plan, view, {
+      width: W,
+      height: H,
+    });
     const entrance = outside.objects.find(
       (o) => o.id === location + '_entrance',
     );

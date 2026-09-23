@@ -20,6 +20,8 @@ import { CAVE_ASSETS } from './cave-art.js';
 import { NPC_ASSETS } from './npc-art.js';
 import { TOWN_CENTERS } from './town-center-art.js';
 import { TOWN_INTERIOR_ASSETS } from './town-interior-art.js';
+import { AssetCache } from './asset-cache.js';
+import { assetDependencies } from './asset-groups.js';
 
 // Immutable source atlases are interpreted at import. A required asset failure
 // stops boot rather than substituting an unrelated sprite into a finished scene.
@@ -309,15 +311,38 @@ export function keyNeutralExterior(
   context.putImageData(image, 0, 0);
 }
 
-export async function loadPixelAtlas(entry) {
+export async function loadPixelAtlas(entry, { signal } = {}) {
   const started = performance.now(),
     image = new Image();
   const ready = new Promise((resolve, reject) => {
-    image.onload = resolve;
-    image.onerror = () =>
+    const cleanup = () => {
+      signal?.removeEventListener('abort', abort);
+      image.onload = image.onerror = null;
+    };
+    const abort = () => {
+      cleanup();
+      image.src = '';
+      reject(
+        Object.assign(new Error('Asset loading was canceled.'), {
+          name: 'AbortError',
+        }),
+      );
+    };
+    image.onload = () => {
+      cleanup();
+      resolve();
+    };
+    image.onerror = () => {
+      cleanup();
       reject(new Error(`Required art failed to load: ${entry.url}`));
+    };
+    signal?.addEventListener('abort', abort, { once: true });
+    if (signal?.aborted) {
+      abort();
+      return;
+    }
+    image.src = import.meta.env.BASE_URL + entry.url;
   });
-  image.src = import.meta.env.BASE_URL + entry.url;
   await ready;
   if (entry.metadata?.frames) {
     const m = entry.metadata;
@@ -359,111 +384,199 @@ export async function loadPixelAtlas(entry) {
   return canvas;
 }
 
+export function installAsset(art, entry, image) {
+  const grid = { columns: entry.columns, rows: entry.rows, biome: entry.biome };
+  switch (entry.kind) {
+    case 'kaidaWalk':
+      art.installKaidaWalkSheet(image);
+      break;
+    case 'kaida':
+      art.installKaidaSheet(image, { cell: image.width / entry.columns });
+      break;
+    case 'hero':
+      art.installHeroSheet(entry.id, image, entry.metadata);
+      break;
+    case 'heroWalk':
+      art.installHeroWalkSheet(entry.heroId, image, entry.metadata);
+      break;
+    case 'heroPose':
+      art.installHeroPose(entry.heroId, entry.pose, image, entry.metadata);
+      break;
+    case 'enemyWalk':
+      art.installEnemyWalkSheet(entry.enemyId, image, entry.metadata);
+      break;
+    case 'environmentDetail':
+      art.installWorldEnvironmentDetail(image, entry);
+      break;
+    case 'caveKit':
+    case 'caveExit':
+      art.installCaveKit(image, entry);
+      break;
+    case 'caveFloor':
+      art.installCaveFloor(image, entry);
+      break;
+    case 'environment':
+      art.installEnvironmentAtlas(image, grid);
+      break;
+    case 'ground':
+      art.installGroundAtlas(image, grid);
+      break;
+    case 'interiorGround':
+      art.installInteriorGroundAtlas(image, grid);
+      break;
+    case 'interiorWall':
+      art.installInteriorWallAtlas(image, grid);
+      break;
+    case 'building':
+      art.installBuildingAtlas(entry.group, image, grid);
+      break;
+    case 'townCenter':
+      art.installTownCenterSheet(entry.region, image, entry.metadata);
+      break;
+    case 'havenInterior':
+      art.installHaventideInterior(image, entry);
+      break;
+    case 'interior':
+      art.installInteriorAtlas(image, grid);
+      break;
+    case 'domestic':
+      art.installDomesticAtlas(image, grid);
+      break;
+    case 'worldProp':
+      art.installWorldPropAtlas(image, entry.metadata);
+      break;
+    case 'itemIcon':
+      installRasterIcon(image, entry);
+      break;
+    case 'inventoryIcon':
+      installInventoryIcon(image, entry);
+      break;
+    case 'roadSign':
+      art.installRoadSign(image, entry.metadata);
+      break;
+    case 'structure':
+      art.installStructureSprite(image, entry.metadata);
+      break;
+    case 'npc':
+      art.installNpcAtlas(image, entry.metadata);
+      break;
+    case 'civilian':
+      art.installCivilianAtlas(image, grid);
+      break;
+    case 'enemy':
+      art.installEnemySheet(entry.id, image, {
+        ...grid,
+        ...entry.metadata,
+      });
+      break;
+    default:
+      throw Error(`No art importer for ${entry.id}`);
+  }
+}
+
 export async function loadAssets(art) {
   await Promise.all(
     ASSET_MANIFEST.map(async (entry) => {
       try {
-        const image = await loadPixelAtlas(entry),
-          grid = {
-            columns: entry.columns,
-            rows: entry.rows,
-            biome: entry.biome,
-          };
-        switch (entry.kind) {
-          case 'kaidaWalk':
-            art.installKaidaWalkSheet(image);
-            break;
-          case 'kaida':
-            art.installKaidaSheet(image, { cell: image.width / entry.columns });
-            break;
-          case 'hero':
-            art.installHeroSheet(entry.id, image, entry.metadata);
-            break;
-          case 'heroWalk':
-            art.installHeroWalkSheet(entry.heroId, image, entry.metadata);
-            break;
-          case 'heroPose':
-            art.installHeroPose(
-              entry.heroId,
-              entry.pose,
-              image,
-              entry.metadata,
-            );
-            break;
-          case 'enemyWalk':
-            art.installEnemyWalkSheet(entry.enemyId, image, entry.metadata);
-            break;
-          case 'environmentDetail':
-            art.installWorldEnvironmentDetail(image, entry);
-            break;
-          case 'caveKit':
-          case 'caveExit':
-            art.installCaveKit(image, entry);
-            break;
-          case 'caveFloor':
-            art.installCaveFloor(image, entry);
-            break;
-          case 'environment':
-            art.installEnvironmentAtlas(image, grid);
-            break;
-          case 'ground':
-            art.installGroundAtlas(image, grid);
-            break;
-          case 'interiorGround':
-            art.installInteriorGroundAtlas(image, grid);
-            break;
-          case 'interiorWall':
-            art.installInteriorWallAtlas(image, grid);
-            break;
-          case 'building':
-            art.installBuildingAtlas(entry.group, image, grid);
-            break;
-          case 'townCenter':
-            art.installTownCenterSheet(entry.region, image, entry.metadata);
-            break;
-          case 'havenInterior':
-            art.installHaventideInterior(image, entry);
-            break;
-          case 'interior':
-            art.installInteriorAtlas(image, grid);
-            break;
-          case 'domestic':
-            art.installDomesticAtlas(image, grid);
-            break;
-          case 'worldProp':
-            art.installWorldPropAtlas(image, entry.metadata);
-            break;
-          case 'itemIcon':
-            installRasterIcon(image, entry);
-            break;
-          case 'inventoryIcon':
-            installInventoryIcon(image, entry);
-            break;
-          case 'roadSign':
-            art.installRoadSign(image, entry.metadata);
-            break;
-          case 'structure':
-            art.installStructureSprite(image, entry.metadata);
-            break;
-          case 'npc':
-            art.installNpcAtlas(image, entry.metadata);
-            break;
-          case 'civilian':
-            art.installCivilianAtlas(image, grid);
-            break;
-          case 'enemy':
-            art.installEnemySheet(entry.id, image, {
-              ...grid,
-              ...entry.metadata,
-            });
-            break;
-          default:
-            throw Error(`No art importer for ${entry.id}`);
-        }
+        installAsset(art, entry, await loadPixelAtlas(entry));
       } catch (error) {
         assetDiagnostics.errors.push(error.message);
         if (entry.required) throw error;
       }
     }),
   );
+}
+
+export function createAssetLoader(art, options = {}) {
+  const profile = options.profile === 'mobile' ? 'mobile' : 'full';
+  if (profile === 'mobile') art.setGroundCacheLimit?.(12);
+  const cache = new AssetCache({
+    ...options,
+    profile,
+    entries: ASSET_MANIFEST,
+    dependencies: (destination) =>
+      assetDependencies(ASSET_MANIFEST, destination),
+    load: loadPixelAtlas,
+    install: (entry, image) => {
+      installAsset(art, entry, image);
+      // These importers retain only extracted/resized copies. Release their
+      // temporary full-resolution source immediately on the mobile path.
+      if (
+        profile === 'mobile' &&
+        [
+          'itemIcon',
+          'inventoryIcon',
+          'npc',
+          'ground',
+          'interiorGround',
+          'interiorWall',
+          'caveFloor',
+        ].includes(entry.kind)
+      ) {
+        image.width = 0;
+        image.height = 0;
+      }
+    },
+    release: (entry) => art.releaseAsset(entry),
+    measure: () => {
+      const m = art.artMetrics?.();
+      if (!m) return 0;
+      return (
+        m.retainedSourceBytes +
+        m.frameCacheBytes +
+        m.groundAtlasBytes +
+        m.groundBytes +
+        m.propBytes +
+        m.worldPropBytes +
+        ASSET_MANIFEST.filter(
+          (entry) =>
+            ['itemIcon', 'inventoryIcon'].includes(entry.kind) &&
+            cache.loaded.has(entry.id),
+        ).length *
+          256 *
+          256 *
+          4
+      );
+    },
+  });
+  cache.isSceneReady = (sceneId) => cache.isReady(sceneId);
+  let peakDerivedBytes = 0;
+  const baseDiagnostics = cache.diagnostics.bind(cache);
+  cache.diagnostics = () => {
+    const artMetrics = art.artMetrics?.() || {};
+    const derivedBytes =
+      (artMetrics.frameCacheBytes || 0) +
+      (artMetrics.groundAtlasBytes || 0) +
+      (artMetrics.groundBytes || 0) +
+      (artMetrics.propBytes || 0) +
+      (artMetrics.worldPropBytes || 0);
+    peakDerivedBytes = Math.max(peakDerivedBytes, derivedBytes);
+    return {
+      ...baseDiagnostics(),
+      art: artMetrics,
+      derivedBytes,
+      peakDerivedBytes,
+    };
+  };
+  cache.prepareScene = (sceneId, { state } = {}) =>
+    cache.prepare(state ? { ...state, region: sceneId } : sceneId);
+  cache.prefetch = (sceneId, { state } = {}) => {
+    if (profile === 'full' || cache.isReady(sceneId))
+      return Promise.resolve(true);
+    // One speculative destination at a time; active requests take queue priority.
+    if (cache.prefetching) return Promise.resolve(false);
+    cache.prefetching = cache
+      .prepare(state ? { ...state, region: sceneId } : sceneId, {
+        speculative: true,
+      })
+      .then(
+        () => true,
+        () => false,
+      )
+      .finally(() => {
+        cache.prefetching = null;
+      });
+    return cache.prefetching;
+  };
+  return cache;
 }

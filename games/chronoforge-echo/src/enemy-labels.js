@@ -4,7 +4,7 @@ import {
   ENEMY_DANGER_STYLES,
 } from './enemy-levels.js';
 import { ENCOUNTER_RING, hasContactBoundary } from './encounter-contact.js';
-import { VIEW_WIDTH, VIEW_HEIGHT } from './rendering.js';
+import { cameraViewport } from './viewport.js';
 
 // A ground pass keeps the contact cue underneath sprites and scenery. Cooldown
 // hides it briefly after retreat so a protected boundary never claims to be live.
@@ -16,6 +16,7 @@ export function drawEncounterRings(
   { contactReady = true } = {},
 ) {
   if (!contactReady) return;
+  const { width: viewWidth, height: viewHeight } = cameraViewport(camera);
   const { radiusX, radiusY } = ENCOUNTER_RING;
   ctx.save();
   for (const encounter of scene.objects) {
@@ -24,9 +25,9 @@ export function drawEncounterRings(
       y = encounter.y - Math.round(camera.y || 0);
     if (
       x + radiusX < 0 ||
-      x - radiusX > VIEW_WIDTH ||
+      x - radiusX > viewWidth ||
       y + radiusY < 0 ||
-      y - radiusY > VIEW_HEIGHT
+      y - radiusY > viewHeight
     )
       continue;
     ctx.beginPath();
@@ -59,8 +60,11 @@ function skull(ctx, x, y, style) {
 // A final canvas pass keeps these small badges above scenery and
 // actors. Text uses the existing high-resolution HUD surface, not a sprite.
 export function drawEncounterLevels(ctx, scene, camera, state) {
+  const { width: viewWidth, height: viewHeight } = cameraViewport(camera);
+  const textScale = camera.mobile ? 14 / (10 * (camera.cssScale || 0.8)) : 1;
+  const rowHeight = 17 * textScale;
   ctx.save();
-  ctx.font = '500 10px Barlow, Arial, sans-serif';
+  ctx.font = `500 ${10 * textScale}px Barlow, Arial, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const encounter of scene.objects) {
@@ -75,33 +79,44 @@ export function drawEncounterLevels(ctx, scene, camera, state) {
       style = ENEMY_DANGER_STYLES[danger],
       warning = danger === 'severe';
     const width =
-      Math.ceil(ctx.measureText(label).width) + 14 + (warning ? 12 : 0);
+      Math.ceil(ctx.measureText(label).width) +
+      (14 + (warning ? 12 : 0)) * textScale;
     if (
       x + width / 2 < 0 ||
-      x - width / 2 > VIEW_WIDTH ||
+      x - width / 2 > viewWidth ||
       footY < 0 ||
-      footY > VIEW_HEIGHT
+      footY > viewHeight
     )
       continue;
     const left = Math.max(
       4,
-      Math.min(VIEW_WIDTH - width - 4, Math.round(x - width / 2)),
+      Math.min(viewWidth - width - 4, Math.round(x - width / 2)),
     );
     const y = Math.min(
-      VIEW_HEIGHT - 21,
+      viewHeight - rowHeight - 4,
       footY +
         (hasContactBoundary(encounter, state)
           ? ENCOUNTER_RING.radiusY + 5
           : 10),
     );
     ctx.fillStyle = cleared ? '#1b1b1bd9' : style.background;
-    ctx.fillRect(left, y, width, 17);
+    ctx.fillRect(left, y, width, rowHeight);
     ctx.strokeStyle = style.border;
     ctx.lineWidth = 0.5;
-    ctx.strokeRect(left, y, width, 17);
-    if (warning) skull(ctx, left + 9, y + 8.5, style);
+    ctx.strokeRect(left, y, width, rowHeight);
+    if (warning) {
+      ctx.save();
+      ctx.translate(left + 9 * textScale, y + rowHeight / 2);
+      ctx.scale(textScale, textScale);
+      skull(ctx, 0, 0, style);
+      ctx.restore();
+    }
     ctx.fillStyle = style.text;
-    ctx.fillText(label, left + width / 2 + (warning ? 6 : 0), y + 8.5);
+    ctx.fillText(
+      label,
+      left + width / 2 + (warning ? 6 * textScale : 0),
+      y + rowHeight / 2,
+    );
   }
   ctx.restore();
 }

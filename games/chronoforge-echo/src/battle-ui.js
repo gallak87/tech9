@@ -52,33 +52,55 @@ export class BattleUI {
     this.root.hidden = true;
     document.querySelector('#overlay').before(this.root);
     this.signature = '';
+    // Touch timing belongs to a fresh contact, not its delayed synthetic click.
+    // An incoming attack may replace a command while that command is held.
+    this.touchContact = false;
+    this.root.addEventListener('pointerdown', (event) => {
+      this.touchContact =
+        event.pointerType === 'touch' || event.pointerType === 'pen';
+      const control = event.target.closest('[data-battle-intent="timing"]');
+      if (!this.touchContact || !control) return;
+      event.preventDefault();
+      event.stopPropagation();
+      this.submit(control);
+    });
     this.root.addEventListener('click', (event) => {
       const control = event.target.closest('[data-battle-intent]');
       if (
-        !control ||
-        control.disabled ||
-        this.game.ui.blocked ||
-        !this.game.battle
-      )
+        control?.dataset.battleIntent === 'timing' &&
+        event.detail !== 0 &&
+        (this.touchContact ||
+          event.pointerType === 'touch' ||
+          event.pointerType === 'pen')
+      ) {
+        event.preventDefault();
         return;
-      this.game.audio.unlock();
-      const {
-        battleIntent: kind,
-        id,
-        index,
-        stage,
-        direction,
-      } = control.dataset;
-      const outcome = battleIntent(this.game.battle, this.game.state, {
-        kind,
-        id,
-        index: Number(index),
-        stage: Number(stage),
-        direction: Number(direction),
-      });
-      if (outcome === 'pause') this.game.ui.toggleMenu();
-      this.render();
+      }
+      this.submit(control);
     });
+  }
+
+  submit(control) {
+    if (
+      !control ||
+      control.disabled ||
+      this.game.ui.blocked ||
+      this.game.lifecyclePaused ||
+      this.game.assetLoading?.busy ||
+      !this.game.battle
+    )
+      return;
+    this.game.audio.unlock();
+    const { battleIntent: kind, id, index, stage, direction } = control.dataset;
+    const outcome = battleIntent(this.game.battle, this.game.state, {
+      kind,
+      id,
+      index: Number(index),
+      stage: Number(stage),
+      direction: Number(direction),
+    });
+    if (outcome === 'pause') this.game.ui.toggleMenu();
+    this.render();
   }
 
   render() {
@@ -218,9 +240,9 @@ export class BattleUI {
         ${charging.length ? `<div class="cb-warning">${esc(charging.map(enemyNameWithLevel).join(' / '))} charging · defend or raise a ward</div>` : ''}
         <div class="cb-dock"><div class="cb-path"><span>${['CHOOSE A COMPANION', v.mode === 'tech' ? 'CHOOSE A TECHNIQUE' : v.mode === 'item' ? 'CHOOSE A SUPPLY' : 'CHOOSE AN ACTION', 'CHOOSE A TARGET', v.action?.timingEligible ? (defending ? 'DEFEND TIMING' : 'ATTACK TIMING') : 'ACTION IN MOTION'][stage]}</span><span>${incoming ? `${esc(attacker)} → ${esc(targets.map((t) => t.name).join(' + '))}` : stage === 0 ? esc(waitingStatus) : `${esc(actor.name)}${stage > 1 ? ' / ' + esc(selectedAction) : ''}`}</span></div>
           <div class="cb-fold" data-open="${stage}">${nodeNames.map((name, i) => `<section class="cb-node ${stage === i ? 'cb-open' : ''} ${i < stage ? 'cb-past' : ''}" data-node="${i}">${button('breadcrumb', `<span class="cb-node-number">0${i + 1}</span><span class="cb-node-symbol">${i === 0 && stage > 0 ? portrait(actor.id) : ['≡', '↗', '⊕', '∣'][i]}</span><span class="cb-node-label">${esc(i < stage ? labels[i] : name)}</span>`, `data-stage="${i}" aria-label="Back to ${name}" ${i >= stage || v.action || v.result ? 'disabled' : ''}`, 'cb-node-tab')}<div class="cb-pane" ${i === stage ? '' : 'hidden'}>${i === 0 ? this.crew(v) : i === 1 ? this.actions(v) : i === 2 ? this.targets(v) : this.timing(v)}</div></section>`).join('')}</div>
-          <div class="cb-under">${button('back', '← Back', stage === 0 || v.action ? 'disabled' : '', 'cb-back')}<span class="cb-context">${esc(b.noticeTime > 0 ? b.notice : stage === 0 ? (v.action ? 'Hold your formation.' : v.selectedHero ? 'Choose a ready companion.' : 'Waiting for a companion to charge.') : stage === 1 ? 'Choose an action. Previous choices stay to the left.' : stage === 2 ? (v.pending?.kind === 'retreat' ? 'Confirm withdrawal, or go back.' : 'Select a target, then execute.') : v.action?.timingEligible ? 'Fresh press inside the orange window.' : 'Returning to the crew after this action.')}</span><span class="cb-keys">${stage === 3 ? `<kbd>Space / Enter</kbd> ${defending ? 'Guard' : 'Strike'}` : `<kbd>↑ ↓</kbd> Choose <kbd>→ / Enter</kbd> ${stage === 2 ? 'Execute' : 'Confirm'}`}</span></div>
+          <div class="cb-under">${button('back', '← Back', stage === 0 || v.action ? 'disabled' : '', 'cb-back')}<span class="cb-context" aria-live="polite">${esc(b.noticeTime > 0 ? b.notice : stage === 0 ? (v.action ? 'Hold your formation.' : v.selectedHero ? 'Choose a ready companion.' : 'Waiting for a companion to charge.') : stage === 1 ? 'Choose an action. Back revisits your choices.' : stage === 2 ? (v.pending?.kind === 'retreat' ? 'Confirm withdrawal, or go back.' : 'Select a target, then execute.') : v.action?.timingEligible ? 'Fresh press inside the orange window.' : 'Returning to the crew after this action.')}</span><span class="cb-keys">${stage === 3 ? `<kbd>Space / Enter</kbd> ${defending ? 'Guard' : 'Strike'}` : `<kbd>↑ ↓</kbd> Choose <kbd>→ / Enter</kbd> ${stage === 2 ? 'Execute' : 'Confirm'}`}</span></div>
         </div>
-        <div class="cb-party-rail">${v.heroes.map((h) => `<div class="cb-party ${v.selectedHero === h.id ? 'cb-party-active' : ''} ${h.hp <= 0 ? 'cb-down' : ''}"><span class="cb-party-name">${esc(h.name)}</span><span class="cb-party-values">${h.hp}<small> / ${h.maxHp} HP</small> <span>${h.mp}<small> MP</small></span></span><span class="cb-rail-state" data-rail-state="${h.id}">${esc(status(h))}</span><span class="cb-rail-atb"><i data-atb="${h.id}"></i></span></div>`).join('')}</div>`;
+        <div class="cb-party-rail" aria-label="Crew health and readiness">${v.heroes.map((h) => button('hero', `<span class="cb-party-name">${esc(h.name)}</span><span class="cb-party-values">${h.hp}<small> / ${h.maxHp} HP</small> <span>${h.mp}<small> MP</small></span></span><span class="cb-rail-state" data-rail-state="${h.id}">${esc(status(h))}</span><span class="cb-rail-atb"><i data-atb="${h.id}"></i></span>`, `data-id="${h.id}" ${!v.readyQueue.includes(h.id) || v.action || v.result ? 'disabled' : ''} aria-label="${esc(h.name)}, ${h.hp} of ${h.maxHp} health, ${h.mp} MP${v.readyQueue.includes(h.id) ? ', ready' : ''}"`, `cb-party ${v.selectedHero === h.id ? 'cb-party-active' : ''} ${h.hp <= 0 ? 'cb-down' : ''}`)).join('')}</div>`;
       for (const canvas of this.root.querySelectorAll('[data-battle-portrait]'))
         drawPortrait(
           canvas.getContext('2d'),
@@ -294,7 +316,7 @@ export class BattleUI {
   }
 
   crew(v) {
-    return `<div class="cb-pane-head"><h3>The crew</h3><span>${v.readyQueue.length ? `${v.readyQueue.length} READY` : 'CHARGING'}</span></div><div class="cb-crew">${v.heroes.map((h) => button('hero', `${portrait(h.id)}<span class="cb-crew-copy"><span class="cb-row-title">${esc(h.name)}<small data-charge="${h.id}"></small></span><span class="cb-row-meta">${h.hp} / ${h.maxHp} HP · ${h.mp} MP${status(h) ? ' · ' + esc(status(h)) : ''}</span><span class="cb-micro-atb"><i data-atb="${h.id}"></i></span></span><span class="cb-chevron">›</span>`, `data-id="${h.id}" ${!v.readyQueue.includes(h.id) || v.action || v.result ? 'disabled' : ''} aria-label="${esc(h.name)}, ${v.readyQueue.includes(h.id) ? 'ready' : 'charging'}"`, `cb-choice ${v.focusHero === h.id ? 'cb-selected' : ''}`)).join('')}</div>`;
+    return `<div class="cb-pane-head"><h3>The crew</h3><span>${v.readyQueue.length ? `${v.readyQueue.length} READY` : 'CHARGING'}</span></div><p class="cb-touch-wait">${v.action ? 'Hold your formation. Watch for the next opening.' : v.readyQueue.length ? 'Choose a ready companion in the crew strip below.' : 'The crew is getting ready. Choose a companion below when their gauge fills.'}</p><div class="cb-crew">${v.heroes.map((h) => button('hero', `${portrait(h.id)}<span class="cb-crew-copy"><span class="cb-row-title">${esc(h.name)}<small data-charge="${h.id}"></small></span><span class="cb-row-meta">${h.hp} / ${h.maxHp} HP · ${h.mp} MP${status(h) ? ' · ' + esc(status(h)) : ''}</span><span class="cb-micro-atb"><i data-atb="${h.id}"></i></span></span><span class="cb-chevron">›</span>`, `data-id="${h.id}" ${!v.readyQueue.includes(h.id) || v.action || v.result ? 'disabled' : ''} aria-label="${esc(h.name)}, ${v.readyQueue.includes(h.id) ? 'ready' : 'charging'}"`, `cb-choice ${v.focusHero === h.id ? 'cb-selected' : ''}`)).join('')}</div>`;
   }
 
   actions(v) {
@@ -383,6 +405,6 @@ export class BattleUI {
           : a.timingEligible
             ? 'Find the opening.'
             : 'Hold the formation.';
-    return `<div class="cb-pane-head"><h3>${incoming ? 'Defend · ' : ''}${esc(a.name)}</h3><span class="cb-timing-cue">IN MOTION</span></div><div class="cb-timing"><strong>${esc(title)}</strong><p>${esc(result)}</p>${a.timingEligible ? button('timing', `<span class="cb-timing-track"><span class="cb-critical-zone" style="left:${pct((a.windowStart / a.contact) * 100)};width:${pct(((a.windowEnd - a.windowStart) / a.contact) * 100)}"></span><i class="cb-timing-marker"></i>${inputNotch}</span><span class="cb-timing-scale"><span>ANTICIPATE</span><span>${defending ? 'CRITICAL GUARD' : 'STRIKE'}</span><span>${defending ? 'BRACE' : 'CONTACT'}</span></span>`, `${a.timingAttempted || a.resolved ? 'disabled' : ''} aria-label="${verb} timing, Space or Enter"`, 'cb-timing-button') : '<span class="cb-action-progress"><i></i></span>'}</div>`;
+    return `<div class="cb-pane-head"><h3>${incoming ? 'Defend · ' : ''}${esc(a.name)}</h3><span class="cb-timing-cue">IN MOTION</span></div><div class="cb-timing"><strong>${esc(title)}</strong><p>${esc(result)}</p>${a.timingEligible ? button('timing', `<span class="cb-timing-track"><span class="cb-critical-zone" style="left:${pct((a.windowStart / a.contact) * 100)};width:${pct(((a.windowEnd - a.windowStart) / a.contact) * 100)}"></span><i class="cb-timing-marker"></i>${inputNotch}</span><span class="cb-timing-scale"><span>ANTICIPATE</span><span>${defending ? 'CRITICAL GUARD' : 'STRIKE'}</span><span>${defending ? 'BRACE' : 'CONTACT'}</span></span><span class="cb-touch-verb">${verb}</span>`, `${a.timingAttempted || a.resolved ? 'disabled' : ''} aria-label="${verb} timing, Space or Enter"`, 'cb-timing-button') : '<span class="cb-action-progress"><i></i></span>'}</div>`;
   }
 }

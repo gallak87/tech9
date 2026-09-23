@@ -5,6 +5,8 @@ import { installEnemySheet } from '../src/art.js';
 import { createBattle, drawBattle } from '../src/combat.js';
 import { createState } from '../src/progression.js';
 import { ALL_SCENES } from '../src/world.js';
+import { createViewport } from '../src/viewport.js';
+import { mobileBattleLayout } from '../src/battle-layout.js';
 
 const overlaps = (a, b) =>
   a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -15,7 +17,9 @@ test('enemy meters fit the viewport and clear neighboring enemies in every autho
   // browser, decoded images, running game or animation clock.
   const ctx = new Proxy(
     {
-      measureText: (value) => ({ width: value.length * 4.5 }),
+      measureText(value) {
+        return { width: value.length * (parseFloat(this.font) || 9) * 0.5 };
+      },
       createLinearGradient: () => ({ addColorStop() {} }),
       createRadialGradient: () => ({ addColorStop() {} }),
       createPattern: () => null,
@@ -113,6 +117,71 @@ test('enemy meters fit the viewport and clear neighboring enemies in every autho
         [wardenPanel],
         'defeating the companion keeps the Warden meter stable',
       );
+    }
+    for (const [cssWidth, cssHeight, portrait] of [
+      [393, 504, true],
+      [320, 300, true],
+      [480, 390, false],
+    ]) {
+      const viewport = createViewport({
+        cssWidth,
+        cssHeight,
+        mobile: true,
+        portrait,
+      });
+      const before = structuredClone({
+        heroes: battle.heroes,
+        enemies: battle.enemies,
+        action: battle.action,
+        clock: battle.clock,
+      });
+      labels.length = 0;
+      drawBattle(ctx, battle, state, viewport);
+      assert.deepEqual(
+        {
+          heroes: battle.heroes,
+          enemies: battle.enemies,
+          action: battle.action,
+          clock: battle.clock,
+        },
+        before,
+      );
+      const width = viewport.width / 1.25,
+        height = viewport.height / 1.25;
+      for (const label of labels) {
+        assert.ok(
+          label.x >= 8 && label.x <= width - 8,
+          encounter.id + ' mobile meter x',
+        );
+        assert.ok(
+          label.y >= 28 && label.y + 24 <= height,
+          encounter.id + ' mobile meter y',
+        );
+      }
+      if (portrait && battle.enemies.length === 4) {
+        const homes = mobileBattleLayout(viewport).enemies[4];
+        for (let index = 0; index < 2; index++)
+          assert.ok(
+            Math.abs(labels[index].x - homes[index].x) < 45,
+            encounter.id +
+              ' rear-row mobile names remain over their own enemies',
+          );
+      }
+      for (const actor of [...battle.heroes, ...battle.enemies].filter(
+        (actor) => actor.hp > 0,
+      )) {
+        const hit = battle.hitAreas.find(
+          (area) => area.id === (actor.uid || actor.id),
+        );
+        assert.ok(hit, encounter.id + ' mobile actor remains targetable');
+        assert.ok(
+          hit.x + hit.w > 0 &&
+            hit.x < width &&
+            hit.y + hit.h > 0 &&
+            hit.y < height,
+          encounter.id + ' mobile actor remains in the arena',
+        );
+      }
     }
   }
 });

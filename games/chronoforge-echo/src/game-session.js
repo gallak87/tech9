@@ -42,6 +42,8 @@ export class GameSession {
     g.devTools?.reset();
     g.patrols?.reset();
     g.keys.clear();
+    g.touchControls?.reset();
+    g.travelBlockedAt = null;
     g.transition = null;
     g.near = null;
     g.movePath = [];
@@ -59,52 +61,63 @@ export class GameSession {
   }
   startNew() {
     const g = this.game;
-    g.state = createState();
-    g.resetSession();
-    g.mode = 'world';
-    g.battle = null;
-    g.audio.set(g.state.settings);
-    g.resetFollowers();
-    g.updateCamera(true);
-    reveal(g.state, g.scene);
-    g.ui.showDialogue(
-      SCENES.opening || [
-        {
-          speaker: 'Kaida',
-          text: 'The sea kept your signal, Mother. I will find someone who remembers how to answer.',
-        },
-        {
-          speaker: 'Kaida',
-          text: 'One road. One pair of boots. Haventide must still be out there.',
-        },
-      ],
-    );
-    g.checkpoint();
-    g.ui.render();
-    g.log('new_game');
+    const next = createState();
+    const commit = () => {
+      g.state = next;
+      g.resetSession();
+      g.mode = 'world';
+      g.battle = null;
+      g.audio.set(g.state.settings);
+      g.resetFollowers();
+      g.updateCamera(true);
+      reveal(g.state, g.scene);
+      g.ui.showDialogue(
+        SCENES.opening || [
+          {
+            speaker: 'Kaida',
+            text: 'The sea kept your signal, Mother. I will find someone who remembers how to answer.',
+          },
+          {
+            speaker: 'Kaida',
+            text: 'One road. One pair of boots. Haventide must still be out there.',
+          },
+        ],
+      );
+      g.checkpoint();
+      g.ui.render();
+      g.log('new_game');
+    };
+    if (g.assetLoading) return g.assetLoading.session(next, commit);
+    return commit();
   }
   load(slot) {
     const g = this.game;
     try {
       const next = loadState(slot);
       Object.assign(next, g.safePoint(getScene(next.region), next.x, next.y));
-      g.state = next;
-      g.resetSession();
-      g.battle = g.state.suspendedBattle || null;
-      delete g.state.suspendedBattle;
-      g.mode = g.battle ? 'battle' : 'world';
-      g.audio.set(g.state.settings);
-      g.resetFollowers();
-      g.updateCamera(true);
-      g.ui.render();
-      if (g.state.flags.pendingEnding) g.presentEnding();
-      g.log('load', { slot });
+      const commit = () => {
+        g.state = next;
+        g.resetSession();
+        g.battle = g.state.suspendedBattle || null;
+        delete g.state.suspendedBattle;
+        g.mode = g.battle ? 'battle' : 'world';
+        g.audio.set(g.state.settings);
+        g.resetFollowers();
+        g.updateCamera(true);
+        g.ui.render();
+        if (g.state.flags.pendingEnding) g.presentEnding();
+        g.log('load', { slot });
+      };
+      if (g.assetLoading) return g.assetLoading.session(next, commit);
+      return commit();
     } catch (e) {
       g.ui.feedback({ ok: false, message: e.message });
     }
   }
   saveSnapshot() {
     const g = this.game;
+    if (g.transition?.departureSnapshot)
+      return copy(g.transition.departureSnapshot);
     const { state, battle } = g.devTools?.saveSource() ?? g;
     const out = copy(state);
     if (battle) out.suspendedBattle = copy(battle);

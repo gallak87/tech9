@@ -156,13 +156,19 @@ export class UpgradeTour {
 }
 
 const clamp = (n, min, max) => Math.max(min, Math.min(Math.max(min, max), n));
-function cameraAt(scene, x, y) {
+function cameraAt(scene, x, y, viewport) {
   return {
-    x: clamp(x, 0, scene.width - VIEW_WIDTH),
-    y: clamp(y, 0, scene.height - VIEW_HEIGHT),
+    x: clamp(x, 0, scene.width - viewport.width),
+    y: clamp(y, 0, scene.height - viewport.height),
   };
 }
-export function upgradeTourCameras(outside, inside, plan, view = null) {
+export function upgradeTourCameras(
+  outside,
+  inside,
+  plan,
+  view = null,
+  viewport = { width: VIEW_WIDTH, height: VIEW_HEIGHT },
+) {
   const entrance = outside.objects.find(
     (o) => o.id === outside.id + '_entrance',
   );
@@ -176,13 +182,19 @@ export function upgradeTourCameras(outside, inside, plan, view = null) {
   const right = Math.max(...bounds.map((b) => b.left + b.width));
   return {
     // One camera for both exteriors: growth remains measurable, doorway fixed.
-    outside: cameraAt(outside, (left + right) / 2 - VIEW_WIDTH / 2, top - 65),
+    outside: cameraAt(
+      outside,
+      (left + right) / 2 - viewport.width / 2,
+      top - 65,
+      viewport,
+    ),
     desk: view
       ? { ...view.camera }
       : cameraAt(
           inside,
-          board.x - VIEW_WIDTH * 0.53,
-          board.y - VIEW_HEIGHT * 0.58,
+          board.x - viewport.width * 0.53,
+          board.y - viewport.height * 0.58,
+          viewport,
         ),
     actors: view
       ? structuredClone(view.actors)

@@ -1,0 +1,886 @@
+/* Touch presentation is independent of viewport width and asset policy. */
+.mobile-only {
+  display: none;
+}
+#game[data-mobile='true'] {
+  --touch-height: calc(140px * var(--touch-size, 1));
+  --mobile-battle-dock-height: min(340px, 57%);
+  --mobile-battle-dock-width: min(42%, 360px);
+  width: 100vw;
+  height: 100dvh;
+  font:
+    16px/1.4 Barlow,
+    sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+#game[data-mobile='true'] #stage {
+  width: auto;
+  height: auto;
+}
+#game[data-mobile='true'][data-orientation='portrait'][data-mode='world']
+  #stage {
+  bottom: calc(var(--touch-height) + env(safe-area-inset-bottom, 0px));
+}
+#game[data-mobile='true'][data-orientation='portrait'][data-mode='battle']
+  #stage {
+  bottom: calc(
+    var(--mobile-battle-dock-height) + env(safe-area-inset-bottom, 0px)
+  );
+}
+#game[data-mobile='true'][data-orientation='landscape'][data-mode='battle']
+  #stage {
+  right: calc(
+    var(--mobile-battle-dock-width) + env(safe-area-inset-right, 0px)
+  );
+}
+#game[data-mobile='true'] :is(button, input, select) {
+  touch-action: manipulation;
+}
+#game[data-mobile='true'] .mobile-only {
+  display: inline-flex;
+}
+#game[data-mobile='true']
+  :is(
+    kbd,
+    .desktop-only,
+    .dismiss-hint,
+    .controls,
+    .atlas-footer,
+    .exp-inventory-action-hint,
+    .exp-inventory-crew-hint > span:last-child
+  ) {
+  display: none;
+}
+#game[data-mobile='true']
+  :is(.atlas, .modal, .dialogue, .reading-panel, .ending) {
+  font-size: 16px;
+  line-height: 1.4;
+  max-width: none;
+  overscroll-behavior: contain;
+}
+#game[data-mobile='true']
+  :is(.atlas, .modal, .dialogue, .reading-panel, .ending)
+  :is(p, button, input, select, label, dt, dd, .small, .item-name, .notice) {
+  font-size: 16px;
+  line-height: 1.4;
+}
+#game[data-mobile='true']
+  :is(.atlas, .modal, .dialogue, .reading-panel)
+  :is(
+    small,
+    .label,
+    .eyebrow,
+    .exp-kicker,
+    .tier-badge,
+    .item-family,
+    .exp-inventory-family,
+    .exp-inventory-slot-meta,
+    .exp-quest-benefit
+  ) {
+  font-size: 12px;
+  line-height: 1.35;
+  letter-spacing: 0.025em;
+}
+#game[data-mobile='true']
+  :is(.atlas, .modal, .dialogue, .reading-panel, .ending)
+  h2 {
+  font-size: 27px;
+}
+#game[data-mobile='true']
+  :is(.atlas, .modal, .dialogue, .reading-panel, .ending)
+  h3 {
+  font-size: 21px;
+}
+#game[data-mobile='true']
+  :is(.atlas, .modal, .dialogue, .reading-panel, .ending)
+  button {
+  min-height: 48px;
+  min-width: 48px;
+  padding: 9px 12px;
+  white-space: normal;
+}
+#game[data-mobile='true']
+  :is(.atlas, .modal, .dialogue, .reading-panel)
+  .pixel-icon {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  flex-shrink: 0;
+}
+#game[data-mobile='true'] .atlas {
+  inset: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+  width: auto;
+  max-height: none;
+  display: flex;
+  flex-direction: column;
+  pointer-events: auto;
+}
+#game[data-mobile='true'] :is(.atlas-header, .exp-shell) {
+  padding: 8px 12px;
+  gap: 8px;
+  flex-shrink: 0;
+  min-height: 56px;
+}
+#game[data-mobile='true'] .atlas-title {
+  min-width: 0;
+  gap: 8px;
+}
+#game[data-mobile='true'] .atlas-title .insignia-svg {
+  display: none;
+}
+#game[data-mobile='true'] .mobile-close {
+  flex-shrink: 0;
+  margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 64px;
+  border: 1px solid #df702e88;
+  color: #efc8a5;
+}
+#game[data-mobile='true'] .exp-shell {
+  flex-wrap: wrap;
+}
+#game[data-mobile='true'] .exp-brand strong {
+  font-size: 15px;
+  letter-spacing: 0.12em;
+}
+#game[data-mobile='true'] .exp-brand small {
+  display: none;
+}
+#game[data-mobile='true'] .exp-resources {
+  flex: 1 0 100%;
+  order: 3;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 14px;
+}
+#game[data-mobile='true'] .exp-resources .pixel-icon {
+  width: 21px;
+  height: 21px;
+  min-width: 21px;
+}
+#game[data-mobile='true'] .expedition .tabs {
+  display: flex;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding: 0 4px;
+  scrollbar-width: thin;
+}
+#game[data-mobile='true'] .expedition .tabs button {
+  flex: 0 0 auto;
+  font-size: 14px;
+  padding: 10px 14px;
+  min-height: 48px;
+  white-space: nowrap;
+}
+#game[data-mobile='true'] .tabs button small {
+  display: none;
+}
+#game[data-mobile='true'] .atlas :is(.atlas-body, .exp-page) {
+  padding: 14px 12px 22px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  touch-action: pan-y;
+  scroll-padding: 12px;
+}
+#game[data-mobile='true']
+  :is(
+    .columns,
+    .build-grid,
+    .shop-grid,
+    .community-projects,
+    .community-reward,
+    .exp-skills-ledger
+  ) {
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 14px;
+}
+#game[data-mobile='true']
+  :is(.button-group, .choices, .shop-card-buttons, .exp-save-footer) {
+  gap: 8px;
+  flex-wrap: wrap;
+}
+#game[data-mobile='true']
+  :is(.section-heading, .exp-heading, .shop-section-heading) {
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+#game[data-mobile='true'] :is(.section-heading, .exp-heading) h2 {
+  max-width: none;
+}
+#game[data-mobile='true'] .rule {
+  margin: 18px 0;
+}
+#game[data-mobile='true'] .setting {
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+}
+#game[data-mobile='true'] .setting p {
+  max-width: none;
+  margin-top: 5px;
+}
+#game[data-mobile='true'] .setting input[type='range'] {
+  width: 140px;
+  min-height: 48px;
+}
+#game[data-mobile='true'] .setting select {
+  max-width: 100%;
+  min-height: 48px;
+  padding: 8px;
+  font: inherit;
+}
+#game[data-mobile='true'] .save-slot {
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 12px;
+  padding: 16px 0;
+}
+#game[data-mobile='true'] .save-slot .button-group {
+  grid-column: 2;
+}
+#game[data-mobile='true'] .save-import-option {
+  gap: 12px;
+  padding: 12px 0;
+}
+#game[data-mobile='true'] .save-import-option input {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+#game[data-mobile='true'] .exp-character-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+#game[data-mobile='true'] .exp-character-notes {
+  grid-column: 1/-1;
+  grid-template-columns: minmax(0, 1fr);
+}
+#game[data-mobile='true'] .exp-figure {
+  height: 200px;
+}
+#game[data-mobile='true'] .exp-gear-slot {
+  padding: 12px 0;
+}
+#game[data-mobile='true'] .exp-gear-slot strong {
+  font-size: 19px;
+}
+#game[data-mobile='true'] .exp-pack-items {
+  max-height: none;
+}
+#game[data-mobile='true'] .exp-skill-row {
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
+  padding: 14px 4px;
+}
+#game[data-mobile='true'] .exp-skill-row .item-name strong {
+  font-size: 20px;
+}
+#game[data-mobile='true'] .exp-skill-row .item-name > span {
+  font-size: 16px;
+}
+#game[data-mobile='true'] .exp-skill-cost {
+  grid-column: 2;
+  text-align: left;
+}
+#game[data-mobile='true'] .exp-quest-meta {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#game[data-mobile='true'] .exp-quest-copy {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+#game[data-mobile='true'] .exp-quest-rewards {
+  flex-wrap: wrap;
+  max-width: none;
+}
+#game[data-mobile='true'] .exp-quest-benefit {
+  max-width: none;
+}
+/* A single scroll surface keeps loadout and pack usable on narrow phones. */
+#game[data-mobile='true'] .expedition .exp-page-2 {
+  display: block;
+}
+#game[data-mobile='true'] .exp-inventory-layout {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+#game[data-mobile='true'] .exp-inventory-loadout {
+  display: block;
+  overflow: visible;
+}
+#game[data-mobile='true'] .exp-inventory-heroes {
+  gap: 8px;
+}
+#game[data-mobile='true'] .exp-inventory-hero {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px;
+  font-size: 14px;
+}
+#game[data-mobile='true'] .exp-inventory-face {
+  width: 30px;
+  flex-shrink: 0;
+  margin: 0;
+}
+#game[data-mobile='true'] .exp-inventory-hero-label {
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 0;
+}
+#game[data-mobile='true'] .exp-inventory-figure {
+  display: none;
+}
+#game[data-mobile='true'] .exp-inventory-slot-row {
+  margin-bottom: 6px;
+}
+#game[data-mobile='true'] .exp-inventory-slot {
+  padding: 10px 8px;
+  gap: 10px;
+}
+#game[data-mobile='true'] .exp-inventory-slot strong {
+  font-size: 16px;
+}
+#game[data-mobile='true'] .exp-inventory-slot :is(.pixel-icon, .tier-badge) {
+  display: inline-block;
+}
+#game[data-mobile='true'] .exp-inventory-unequip {
+  align-self: stretch;
+}
+#game[data-mobile='true'] .exp-inventory-crew-slots {
+  grid-template-columns: minmax(0, 1fr);
+}
+#game[data-mobile='true'] .exp-inventory-toolbar {
+  gap: 8px;
+  margin: 12px 0;
+}
+#game[data-mobile='true'] .exp-inventory-filters {
+  gap: 6px;
+}
+#game[data-mobile='true'] .exp-inventory-pack .exp-inventory-items {
+  overflow: visible;
+}
+#game[data-mobile='true'] .exp-inventory-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(270px, 100%), 1fr));
+  gap: 12px;
+}
+#game[data-mobile='true'] .exp-inventory-item {
+  gap: 10px;
+  padding: 12px 12px 8px;
+}
+#game[data-mobile='true'] .exp-inventory-item-copy > strong {
+  font-size: 18px;
+}
+#game[data-mobile='true'] .exp-inventory-card-comparison {
+  padding: 4px 12px 12px;
+}
+#game[data-mobile='true'] .exp-inventory-card-footer {
+  padding: 0 12px 12px;
+}
+#game[data-mobile='true'] .exp-inventory-group > h3 {
+  font-size: 17px;
+  margin: 14px 0 8px;
+}
+#game[data-mobile='true'] .exp-inventory-notice {
+  font-size: 14px;
+}
+#game[data-mobile='true'] .shop-header {
+  flex-wrap: wrap;
+}
+#game[data-mobile='true'] .shop-header > strong {
+  font-size: 18px;
+}
+#game[data-mobile='true'] .shop-resources {
+  order: 3;
+  width: 100%;
+  justify-content: space-between;
+  gap: 8px;
+}
+#game[data-mobile='true'] .shop-resource {
+  font-size: 14px;
+  gap: 4px;
+}
+#game[data-mobile='true'] .shop-resource .pixel-icon {
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+}
+#game[data-mobile='true'] .shop-resource small {
+  display: none;
+}
+#game[data-mobile='true'] .vendor-heading {
+  display: block;
+}
+#game[data-mobile='true'] .merchant-heading {
+  gap: 12px;
+  align-items: start;
+}
+#game[data-mobile='true'] .merchant-heading canvas {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+#game[data-mobile='true'] .merchant-actions {
+  width: auto;
+  max-width: none;
+  margin: 14px 0;
+}
+#game[data-mobile='true'] .merchant-action-description {
+  max-width: none;
+}
+#game[data-mobile='true'] .shop-card {
+  padding: 12px;
+  gap: 10px;
+}
+#game[data-mobile='true'] .shop-card-name {
+  font-size: 18px;
+}
+#game[data-mobile='true'] .shop-card-heading {
+  gap: 10px;
+}
+#game[data-mobile='true'] .shop-card-action {
+  gap: 10px;
+}
+#game[data-mobile='true'] .shop-card-controls {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#game[data-mobile='true'] .shop-quantity {
+  gap: 8px;
+}
+#game[data-mobile='true'] .shop-quantity > span {
+  font-size: 16px;
+}
+#game[data-mobile='true'] .shop-comparison {
+  font-size: 14px;
+}
+#game[data-mobile='true'] .community-project {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 0;
+}
+#game[data-mobile='true'] .community-project > .community-actions {
+  width: 100%;
+}
+#game[data-mobile='true'] .community-actions {
+  gap: 10px;
+  min-height: 48px;
+}
+#game[data-mobile='true'] .community-reward {
+  padding: 12px;
+}
+#game[data-mobile='true'] .community-reforge .community-actions {
+  max-width: none;
+}
+#game[data-mobile='true'] .community-weapon > .pixel-icon {
+  width: 64px;
+  height: 64px;
+}
+#game[data-mobile='true'] .community-weapon {
+  gap: 12px;
+}
+#game[data-mobile='true'] .tier-title-row {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+#game[data-mobile='true'] .tier-costs {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+#game[data-mobile='true'] .build-grid .list-button {
+  padding: 14px 10px;
+  gap: 10px;
+}
+#game[data-mobile='true'] .build-grid .item-name strong {
+  font-size: 18px;
+}
+#game[data-mobile='true'] .ui-toast {
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  max-width: none;
+  padding: 12px;
+  font-size: 16px;
+}
+#game[data-mobile='true'] .ui-toast .ui-toast-dismiss {
+  min-width: 48px;
+  min-height: 48px;
+}
+#game[data-mobile='true'] :is(.dialogue, .dialogue.dialogue-text-only) {
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  max-height: calc(100% - 36px - env(safe-area-inset-top, 0px));
+  overflow-y: auto;
+  pointer-events: auto;
+  padding: 14px;
+  gap: 12px;
+  grid-template-columns: 48px minmax(0, 1fr);
+}
+#game[data-mobile='true'] .dialogue.dialogue-text-only {
+  grid-template-columns: minmax(0, 1fr);
+}
+#game[data-mobile='true'] .dialogue canvas {
+  width: 48px;
+  height: 48px;
+}
+#game[data-mobile='true'] .dialogue-name {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+#game[data-mobile='true'] .dialogue-text {
+  font-size: 17px;
+  line-height: 1.5;
+}
+#game[data-mobile='true'] .dialogue-next {
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 16px;
+}
+#game[data-mobile='true'] .dialogue-next button {
+  border: 1px solid #df702e88;
+  padding: 10px 12px;
+}
+#game[data-mobile='true'] .dialogue-dismiss {
+  margin-top: 16px;
+}
+#game[data-mobile='true'] .choices {
+  flex-direction: column;
+  margin-top: 16px;
+  gap: 12px;
+}
+#game[data-mobile='true'] .modal {
+  inset: auto 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 20px;
+  max-height: calc(
+    100% - 32px - env(safe-area-inset-top, 0px) -
+      env(safe-area-inset-bottom, 0px)
+  );
+  overflow-y: auto;
+  pointer-events: auto;
+}
+#game[data-mobile='true'] .modal .button-group {
+  margin-top: 20px;
+}
+#game[data-mobile='true'] .reading-panel {
+  left: 12px;
+  right: 12px;
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+  padding: 18px;
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  pointer-events: auto;
+}
+#game[data-mobile='true'] .reading-panel footer {
+  margin-top: 18px;
+}
+#game[data-mobile='true'] .ending {
+  overflow-y: auto;
+  pointer-events: auto;
+  padding: 24px 18px;
+}
+#game[data-mobile='true'] .ending-content {
+  width: 100%;
+  max-width: 640px;
+  padding: 0;
+  margin: auto;
+}
+#game[data-mobile='true'] .ending h1 {
+  font-size: 42px;
+}
+#game[data-mobile='true'] .ending p {
+  font-size: 18px;
+}
+#game[data-mobile='true'] .title-content {
+  inset: auto 20px;
+  top: 12%;
+  max-width: 560px;
+  width: auto;
+}
+#game[data-mobile='true'] .title-content h1 {
+  font-size: clamp(34px, 10vw, 64px);
+}
+#game[data-mobile='true']
+  .title-content
+  :is(.eyebrow, .title-description, .title-foot) {
+  font-size: 14px;
+  line-height: 1.5;
+}
+#game[data-mobile='true'] .title-actions {
+  width: 100%;
+  margin-top: 24px;
+}
+#game[data-mobile='true'] .title-actions button {
+  min-height: 52px;
+  font-size: 18px;
+  padding: 12px;
+}
+#game[data-mobile='true'] .title-coordinates {
+  display: none;
+}
+#game[data-mobile='true'] #loading {
+  font-size: 16px;
+  padding: 20px;
+}
+#game[data-mobile='true'] #loading .insignia {
+  font-size: 48px;
+}
+/* Compact field chrome; details stay available in the expedition menu. */
+#game[data-mobile='true'] .hud-top {
+  top: max(8px, env(safe-area-inset-top, 0px));
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+}
+#game[data-mobile='true'] .hud-top .hero-compact {
+  gap: 6px;
+  padding: 6px;
+  min-width: 110px;
+}
+#game[data-mobile='true'] .hero-compact canvas {
+  width: 32px;
+  height: 32px;
+}
+#game[data-mobile='true'] .hero-compact strong {
+  font-size: 14px;
+}
+#game[data-mobile='true'] .hero-compact small {
+  font-size: 11px;
+}
+#game[data-mobile='true'] .meter {
+  height: 3px;
+  margin-top: 4px;
+  min-width: 60px;
+}
+#game[data-mobile='true'] .hud-right {
+  margin-left: auto;
+  gap: 4px;
+}
+#game[data-mobile='true'] .resources {
+  gap: 7px;
+  padding: 7px;
+}
+#game[data-mobile='true'] .resource {
+  font-size: 13px;
+  gap: 3px;
+}
+#game[data-mobile='true'] .resource .pixel-icon {
+  width: 19px;
+  height: 19px;
+}
+#game[data-mobile='true'] .resource-hint {
+  display: none;
+}
+#game[data-mobile='true'] .hud-right .atlas-button {
+  display: none;
+}
+#game[data-mobile='true'] .objective {
+  order: 3;
+  width: 100%;
+  max-width: none;
+  padding: 7px 9px;
+}
+#game[data-mobile='true'] .objective .label {
+  display: none;
+}
+#game[data-mobile='true'] .objective p {
+  font-size: 13px;
+  line-height: 1.3;
+}
+#game[data-mobile='true'] .survey-stack {
+  display: none;
+}
+#game[data-mobile='true'] .interaction {
+  max-width: calc(100% - 20px);
+  font-size: 14px;
+  line-height: 1.3;
+  padding: 8px 10px;
+}
+#game[data-mobile='true'] #rewards {
+  top: 126px;
+  left: 10px;
+  right: 10px;
+}
+#game[data-mobile='true'] .reward {
+  padding: 8px;
+  font-size: 14px;
+  gap: 8px;
+}
+#game[data-mobile='true'] .reward canvas {
+  width: 32px;
+  height: 32px;
+}
+#game[data-mobile='true'] .reward small {
+  font-size: 12px;
+}
+#game[data-mobile='true'] .resume-ending {
+  font-size: 14px;
+  min-height: 48px;
+  padding: 10px;
+}
+#game[data-mobile='true'] .recruit-announcement {
+  left: 12px;
+  right: 12px;
+  max-width: none;
+  padding: 12px;
+  gap: 12px;
+}
+#game[data-mobile='true'] .recruit-announcement canvas {
+  width: 64px;
+  height: 64px;
+}
+#game[data-mobile='true'] .recruit-announcement strong {
+  font-size: 24px;
+}
+#game[data-mobile='true'] .recruit-announcement :is(small, span) {
+  font-size: 14px;
+}
+/* The survey keeps explicit zoom controls and pointer-owned pan/pinch. */
+#game[data-mobile='true'] .atlas .exp-page-0 {
+  padding: 0;
+  overflow: hidden;
+}
+#game[data-mobile='true'] .map-heading {
+  top: 12px;
+  left: 12px;
+}
+#game[data-mobile='true'] .map-heading h2 {
+  font-size: 23px;
+}
+#game[data-mobile='true'] .map-heading > span {
+  display: none;
+}
+#game[data-mobile='true'] .expedition .map-tools {
+  top: auto;
+  right: 10px;
+  bottom: 12px;
+  gap: 8px;
+}
+#game[data-mobile='true'] .expedition .map-tools button {
+  font-size: 16px;
+  min-width: 48px;
+  min-height: 48px;
+}
+#game[data-mobile='true'] .expedition .map-region {
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  font-size: 12px;
+}
+#game[data-mobile='true'] .map-region-name {
+  font-size: 12px;
+  white-space: normal;
+  width: 100%;
+}
+#game[data-mobile='true'] .map-region-action {
+  font-size: 12px;
+}
+#game[data-mobile='true'] .map-key {
+  display: none;
+}
+#game[data-mobile='true'] .world-view {
+  font-size: 16px;
+}
+#game[data-mobile='true'] .world-view header {
+  top: max(10px, env(safe-area-inset-top, 0px));
+  gap: 8px;
+}
+#game[data-mobile='true'] .world-view header > div {
+  display: block;
+}
+#game[data-mobile='true'] .world-view button {
+  min-width: 48px;
+  min-height: 48px;
+  font-size: 16px;
+}
+#game[data-mobile='true'] .world-view p {
+  font-size: 13px;
+  max-width: calc(100% - 24px);
+}
+#game[data-mobile='true'] .world-view > canvas {
+  touch-action: none;
+}
+#game[data-mobile='true'] .world-map-tools {
+  position: absolute;
+  right: 12px;
+  bottom: 54px;
+  display: flex;
+  gap: 8px;
+}
+@media (min-width: 700px) {
+  #game[data-mobile='true'] .exp-resources {
+    order: 0;
+    flex: 0 1 auto;
+    width: auto;
+  }
+  #game[data-mobile='true'] .exp-inventory-layout {
+    grid-template-columns: minmax(250px, 32%) minmax(0, 1fr);
+  }
+  #game[data-mobile='true'] .exp-inventory-heroes {
+    gap: 4px;
+  }
+  #game[data-mobile='true'] .exp-inventory-hero {
+    display: block;
+  }
+  #game[data-mobile='true'] .exp-inventory-face {
+    margin: auto;
+  }
+  #game[data-mobile='true'] .modal {
+    left: max(12px, calc(50% - 300px));
+    right: max(12px, calc(50% - 300px));
+  }
+}
+#game[data-mobile='true'][data-orientation='landscape'] .objective {
+  order: 0;
+  width: min(36%, 420px);
+  margin-left: auto;
+}
+#game[data-mobile='true'][data-orientation='landscape'] .title-content {
+  top: 8%;
+}
+#game[data-mobile='true'][data-orientation='landscape'] .title-description {
+  display: none;
+}
+#game[data-mobile='true'][data-orientation='landscape'] .title-actions {
+  margin-top: 12px;
+}
+#game[data-mobile='true'] .upgrade-tour > canvas {
+  object-fit: contain;
+}
+#game[data-mobile='true'] .upgrade-tour {
+  font-size: 16px;
+}
+#game[data-mobile='true'] .upgrade-tour header {
+  top: max(10px, env(safe-area-inset-top, 0px));
+  left: 12px;
+  right: 12px;
+  letter-spacing: 0.02em;
+}
+#game[data-mobile='true'] .upgrade-tour button {
+  min-width: 48px;
+  min-height: 48px;
+  font-size: 16px;
+}
+#game[data-mobile='true'] .upgrade-caption {
+  top: 78px;
+  left: 12px;
+  right: 12px;
+  white-space: normal;
+}
+#game[data-mobile='true'] .upgrade-caption strong {
+  font-size: 24px;
+}
+#game[data-mobile='true'] .upgrade-card {
+  max-width: calc(100% - 24px);
+  bottom: max(12px, env(safe-area-inset-bottom, 0px));
+}

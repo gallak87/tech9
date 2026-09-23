@@ -1,6 +1,6 @@
 # Chronforge Echo architecture
 
-A standalone Vite application using JavaScript modules and PixiJS to present a 1920×1080 artwork surface over a fixed 960×540 logical view. HTML supplies accessible text and controls. All simulation deltas are seconds and positions are logical world units. Source resolution does not change gameplay scale.
+A standalone Vite application using JavaScript modules and PixiJS. Desktop presents a 1920×1080 artwork surface over a fixed 960×540 logical view; mobile separates the usable CSS stage, adaptive logical viewport and bounded backing resolution. HTML supplies accessible text and controls. All simulation deltas are seconds and positions are logical world units. Source resolution does not change gameplay scale.
 
 ## State and simulation
 
@@ -59,6 +59,16 @@ Ground chunks cover 384×384 world units using 768×768 backing pixels; the 40-c
 `community-icon-manifest.js` registers three transparent source sprites. `iconId` aliases all five variants of each community weapon to its one source in `inventory-icons.js`; full item IDs still carry stats, compatibility and tier badges. Generic reward/journal icons use these same sprites.
 
 `world-view.js` is a shared production overview, opened by the field button, R or dev tools. It composes the current scene with the normal renderer into a bounded in-memory canvas, pauses simulation, and releases buffers on close/reset. `world-view-fog.js` reads the existing survey and feathers fog inward from explored boundaries; the dev button can request a full reveal. Camera, fog and save state remain unchanged.
+
+## Mobile input, layout and asset lifetime
+
+`mobile-preferences.js` stores device presentation preferences outside expedition saves. Handheld layout, joystick enablement and loading policy are separate: disabling the joystick retains readable phone menus; a touch laptop or narrow desktop does not acquire mobile loading. A first-boot phone chooser enables the optional on-demand loader before any art preparation. Later loader changes require deliberate save/reload. `touch-input.js` owns the pure pointer/dead-zone/double-tap state; `touch-controls.js` feeds the shared traversal vector with keyboard precedence. Release, cancel, menu, travel, rotation, load and backgrounding clear owned pointers and pending ground taps.
+
+`viewport.js` maps CSS points and logical coordinates through one inverse transform. Mobile starts at 0.8 CSS pixels per world unit with an optional wider portrait camera and room-fitting bounds. Balanced backing resolution uses a 750,000-pixel budget/max 1.5 scale; High uses 1,500,000/max 2. Desktop stays 960×540/2. Survey rules do not change with the viewport. Mobile battle clones only presentation anchors/floaters; combat homes, costs, readiness, timing and saved selections remain authoritative. The command UI keeps one active card and the crew strip, using fresh pointer-down timing rather than carrying an Execute contact into Strike/Guard.
+
+`asset-groups.js` derives common and regional dependencies from the authoritative manifest and scene catalog, including local towns/houses/caves, actual encounters, suspended battles and endings. `asset-cache.js` owns generations, queued preparation, active/pending pins and LRU groups. Mobile uses two concurrent loads, a soft 320 MiB retained-art budget, at most two regional groups when feasible, and twelve ground chunks. Confirmed active/pending resources remain protected even above that budget. Shared importers release their source/derived references explicitly; diagnostics report estimates rather than total browser memory. Desktop still eagerly prepares every source and does not evict on travel.
+
+`game-asset-loading.js` prepares destinations without mutating the live expedition, gates cold session loads, prefetches one nearby exit, and exposes Retry/Return for failed confirmed preparation. It backs off speculative destinations that fail or cannot remain cached. Travel holds at its opaque midpoint until decoded/imported art is ready, then preserves the existing arrival/event/checkpoint path. During either half of the fade, save snapshots use the immutable departure snapshot until arrival commits. Stale session work cannot install or swap late. `mobile-lifecycle.js` checkpoints interruptions, pauses mobile play until Resume, unlocks audio from a gesture, and offers reload recovery for WebGL context loss.
 
 ## Persistence and development tools
 

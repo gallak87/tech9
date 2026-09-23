@@ -230,7 +230,7 @@ export class UI {
   }
   focusables() {
     return [
-      ...this.root.querySelectorAll('button:not(:disabled),input'),
+      ...this.root.querySelectorAll('button:not(:disabled),input,select'),
     ].filter((b) => b.offsetWidth > 0);
   }
   navigateBuildGrid(key) {
@@ -988,9 +988,9 @@ export class UI {
         (this.panel?.type === 'vendor' &&
           !SERVICES[this.panel.object.service]?.inactive),
       shopHeader = serviceHeader
-        ? `<header class="atlas-header shop-header"><strong>${community ? 'Community Restoration' : retail ? (this.shop.sellMode ? 'Sell from pack' : 'Shop') : 'Services'}</strong><div class="shop-resources" aria-label="Available resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="shop-resource${id === 'ore' ? ' shop-resource-ore' : ''}" aria-label="${fmt(this.game.state.resources[id])} ${id}">${icon(id)}<span>${fmt(this.game.state.resources[id])}<small>${id}</small></span></span>`).join('')}</div></header>`
+        ? `<header class="atlas-header shop-header"><strong>${community ? 'Community Restoration' : retail ? (this.shop.sellMode ? 'Sell from pack' : 'Shop') : 'Services'}</strong><div class="shop-resources" aria-label="Available resources">${['food', 'ore', 'energy', 'renown'].map((id) => `<span class="shop-resource${id === 'ore' ? ' shop-resource-ore' : ''}" aria-label="${fmt(this.game.state.resources[id])} ${id}">${icon(id)}<span>${fmt(this.game.state.resources[id])}<small>${id}</small></span></span>`).join('')}</div>${button('Return', 'dismiss-panel', 'button quiet mobile-only mobile-close')}</header>`
         : '';
-    return `<div class="scrim"></div><section class="atlas ${community ? 'community-dialog' : ''} ${this.panel?.type === 'vendor' && !SERVICES[this.panel.object.service || 'provisions']?.shop ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}">${serviceHeader ? shopHeader : `<header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}</header>`}${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${body}</div>${notificationMarkup(this.notifications)}<footer class="atlas-footer"><span>${footer}</span><span>${community ? 'Community restoration' : tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
+    return `<div class="scrim"></div><section class="atlas ${community ? 'community-dialog' : ''} ${this.panel?.type === 'vendor' && !SERVICES[this.panel.object.service || 'provisions']?.shop ? 'service-compact' : this.panel?.type === 'vendor' ? 'shop-dialog' : ''}" role="dialog" aria-label="${esc(title)}">${serviceHeader ? shopHeader : `<header class="atlas-header"><div class="atlas-title">${mark}<div><div class="eyebrow">${tabs ? 'THE CREW’S FIELD ATLAS' : this.panel?.type === 'vendor' ? 'LOCAL SERVICES' : this.panel?.type === 'build' ? 'SETTLEMENT' : 'FIELD GUIDE'}</div><h3>${title}</h3></div></div>${tabs ? '<span class="close dismiss-hint"><kbd>Esc</kbd> Return</span>' : ''}${button('Return', 'dismiss-panel', 'button quiet mobile-only mobile-close')}</header>`}${tabs ? `<nav class="tabs">${['Map', 'Party', 'Inventory', 'Skills', 'Quests', 'Save', 'Settings'].map((t, i) => button(`<small>${i + 1}</small>${t}`, 'tab:' + i, i === this.tab ? 'active' : '')).join('')}</nav>` : ''}<div class="atlas-body scroll">${body}</div>${notificationMarkup(this.notifications)}<footer class="atlas-footer"><span>${footer}</span><span>${community ? 'Community restoration' : tierBadge(this.game.state.tier)} / ${duration(this.game.state.playTime)}</span></footer></section>`;
   }
   render() {
     const surface = this.feedbackContext();
@@ -1026,12 +1026,12 @@ export class UI {
     } else if (this.menu) html = this.renderMenu();
     else if (this.panel?.type === 'reading') {
       const p = this.panel;
-      html = `<section class="reading-panel" role="dialog" aria-modal="true" aria-labelledby="reading-title"><div class="reading-kind">SIGNPOST</div><h2 id="reading-title">${esc(p.title)}</h2><p>${esc(p.text)}</p><footer><span><kbd>Enter</kbd> / <kbd>Space</kbd> Return</span><span class="dismiss-hint"><kbd>Esc</kbd> Close</span></footer></section>`;
+      html = `<section class="reading-panel" role="dialog" aria-modal="true" aria-labelledby="reading-title"><div class="reading-kind">SIGNPOST</div><h2 id="reading-title">${esc(p.title)}</h2><p>${esc(p.text)}</p><footer><span class="desktop-only"><kbd>Enter</kbd> / <kbd>Space</kbd> Return</span><span class="dismiss-hint"><kbd>Esc</kbd> Close</span>${button('Return', 'dismiss-panel', 'button quiet mobile-only')}</footer></section>`;
     } else if (this.panel?.type === 'dialogue') {
       const p = this.panel,
         l = p.lines[p.index],
         id = l.speakerId;
-      html = `<section class="dialogue ${id ? '' : 'dialogue-text-only'}" role="dialog" aria-label="${id ? 'Conversation' : 'Field notes'}">${id ? portrait(id, 'dialogue-portrait') : ''}<div><div class="dialogue-name">${esc(l.speaker || 'Field notes')}</div><p class="dialogue-text">${esc(l.text)}</p>${this.atChoice() ? `<div class="choices">${p.choices.map((c, i) => button(esc(c.text), 'choice:' + i)).join('')}</div><div class="dialogue-dismiss"><span class="dismiss-hint"><kbd>Esc</kbd> Leave without choosing</span></div>` : `<div class="dialogue-next">${button(`${p.index + 1} / ${p.lines.length} &nbsp; <kbd>Space</kbd> Continue`, 'dialogue-next', '')}<span class="dismiss-hint"><kbd>Esc</kbd> ${p.ending ? 'Leave; resume later' : 'Leave conversation'}</span></div>`}</div></section>`;
+      html = `<section class="dialogue ${id ? '' : 'dialogue-text-only'}" role="dialog" aria-label="${id ? 'Conversation' : 'Field notes'}">${id ? portrait(id, 'dialogue-portrait') : ''}<div><div class="dialogue-name">${esc(l.speaker || 'Field notes')}</div><p class="dialogue-text">${esc(l.text)}</p>${this.atChoice() ? `<div class="choices">${p.choices.map((c, i) => button(esc(c.text), 'choice:' + i)).join('')}</div><div class="dialogue-dismiss"><span class="dismiss-hint"><kbd>Esc</kbd> Leave without choosing</span>${button('Leave without choosing', 'dismiss-panel', 'button quiet mobile-only')}</div>` : `<div class="dialogue-next">${button(`${p.index + 1} / ${p.lines.length} &nbsp; <kbd>Space</kbd> Continue`, 'dialogue-next', '')}<span class="dismiss-hint"><kbd>Esc</kbd> ${p.ending ? 'Leave; resume later' : 'Leave conversation'}</span>${button(p.ending ? 'Leave; resume later' : 'Leave', 'dismiss-panel', 'button quiet mobile-only')}</div>`}</div></section>`;
     } else if (this.panel?.type === 'vendor') html = this.renderVendor();
     else if (this.panel?.type === 'build') html = this.renderBuild();
     else if (this.panel?.type === 'help')
@@ -1194,18 +1194,29 @@ export class UI {
         width: prompt.offsetWidth,
         height: prompt.offsetHeight,
       }),
-      scale = box.width / 960,
-      x = (o.x - Math.round(g.camera.x)) * scale,
-      y = (o.y - Math.round(g.camera.y)) * scale,
+      stage = g.viewport?.mobile
+        ? document.querySelector('#stage').getBoundingClientRect()
+        : box,
+      scale = stage.width / (g.viewport?.width || 960),
+      offset = { x: stage.left - box.left, y: stage.top - box.top },
+      x = (o.x - Math.round(g.camera.x)) * scale + offset.x,
+      y = (o.y - Math.round(g.camera.y)) * scale + offset.y,
       margin = Math.max(5, box.width * 0.008),
       gap = o.type === 'encounter' ? 42 : 16;
     let top = y + gap * scale;
-    if (top + height > box.height - 56 * scale) top = y - height - gap * scale;
+    if (top + height > offset.y + stage.height - 56 * scale)
+      top = y - height - gap * scale;
     const left = Math.round(
-      Math.max(margin, Math.min(box.width - width - margin, x - width / 2)),
+      Math.max(
+        offset.x + margin,
+        Math.min(offset.x + stage.width - width - margin, x - width / 2),
+      ),
     );
     top = Math.round(
-      Math.max(margin, Math.min(box.height - height - margin, top)),
+      Math.max(
+        offset.y + margin,
+        Math.min(offset.y + stage.height - height - margin, top),
+      ),
     );
     prompt.style.left = left + 'px';
     prompt.style.top = top + 'px';
@@ -1222,6 +1233,7 @@ export class UI {
           time: g.visualTime,
         }),
         scale,
+        offset,
       ),
     );
   }
@@ -1252,6 +1264,8 @@ export class UI {
     return renderExpedition(this);
   }
   controls() {
+    if (this.game.mobile?.enabled)
+      return `<h3>Travel by touch</h3><p class="small">Drag the stick to walk. Tap Run to switch pace${this.game.mobile.preferences.doubleTapRun ? ', or double-tap the stick' : ''}. Use Interact beside people, doors and objects. Map opens the current scene; Menu opens your expedition pages.</p><div class="rule"></div><h3>The bright beat</h3><p class="small">Tap a ready companion, choose an action and a target, then Execute. Tap Strike or Guard once as the marker crosses the orange window. Each timing attempt needs a fresh touch. Back changes your command without spending supplies; Pause stops the battle.</p>`;
     return `<div class="controls-grid">${[
       ['WASD / arrows', 'Walk; Shift to run'],
       ['F / Space', 'Interact with the world'],
@@ -1297,7 +1311,7 @@ export class UI {
       )
       .join(
         '',
-      )}<div class="label">FIELD KEY BINDINGS</div><div class="button-group">${[
+      )}${this.game.mobile?.settingsHTML() || ''}<div class="label">FIELD KEY BINDINGS</div><div class="button-group">${[
       ['up', 'w'],
       ['left', 'a'],
       ['down', 's'],

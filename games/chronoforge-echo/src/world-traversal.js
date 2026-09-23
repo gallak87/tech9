@@ -12,8 +12,8 @@ import {
   FOLLOW_DISTANCE,
 } from './follower-path.js';
 import { VIEW_WIDTH, VIEW_HEIGHT } from './rendering.js';
+import { clampCamera } from './viewport.js';
 
-const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const PATH_STEP = 24;
 const DIRECTIONS = [
   [1, 0],
@@ -140,15 +140,14 @@ export class WorldTraversal {
 
   updateCamera(immediate = false) {
     const g = this.game;
-    const x = clamp(
-      g.state.x - VIEW_WIDTH * 0.46,
-      0,
-      Math.max(0, g.scene.width - VIEW_WIDTH),
-    );
-    const y = clamp(
-      g.state.y - VIEW_HEIGHT * 0.53,
-      0,
-      Math.max(0, g.scene.height - VIEW_HEIGHT),
+    const viewport = g.viewport || { width: VIEW_WIDTH, height: VIEW_HEIGHT };
+    const { x, y } = clampCamera(
+      {
+        x: g.state.x - viewport.width * (viewport.mobile ? 0.5 : 0.46),
+        y: g.state.y - viewport.height * (viewport.mobile ? 0.57 : 0.53),
+      },
+      g.scene,
+      viewport,
     );
     if (immediate || g.state.settings.reducedMotion) {
       g.camera.x = x;
@@ -157,6 +156,8 @@ export class WorldTraversal {
       g.camera.x += (x - g.camera.x) * 0.14;
       g.camera.y += (y - g.camera.y) * 0.14;
     }
+    // Resizing can shrink the legal range while the smoothed camera is outside.
+    Object.assign(g.camera, clampCamera(g.camera, g.scene, viewport));
   }
 
   walkTo(x, y) {
@@ -185,8 +186,16 @@ export class WorldTraversal {
       (g.keys.has('ArrowDown') || g.keys.has(bindings.down || 's') ? 1 : 0) -
       (g.keys.has('ArrowUp') || g.keys.has(bindings.up || 'w') ? 1 : 0);
     let waypointDistance = Infinity;
-    if (dx || dy) g.movePath = [];
-    else {
+    const keyboard = Boolean(dx || dy),
+      touch = g.touchControls?.movement;
+    const usingTouch = !keyboard && Boolean(touch?.active);
+    if (keyboard || usingTouch) {
+      g.movePath = [];
+      if (usingTouch) {
+        dx = Number.isFinite(touch.x) ? touch.x : 0;
+        dy = Number.isFinite(touch.y) ? touch.y : 0;
+      }
+    } else {
       while (g.movePath.length) {
         const point = g.movePath[0];
         const length = Math.hypot(point.x - s.x, point.y - s.y);
@@ -201,14 +210,17 @@ export class WorldTraversal {
     }
 
     const length = Math.hypot(dx, dy);
-    const speed = g.keys.has('Shift') ? 490 : 330;
+    const speed = (usingTouch ? touch.run : g.keys.has('Shift')) ? 490 : 330;
     g.moving = length > 0;
     if (!length) return;
     dx /= length;
     dy /= length;
     const oldX = s.x;
     const oldY = s.y;
-    const step = Math.min(speed * dt, waypointDistance);
+    const step = Math.min(
+      speed * dt * (usingTouch ? Math.min(1, length) : 1),
+      waypointDistance,
+    );
     if (clearEdge(scene, [s.x, s.y], [s.x + dx * step, s.y])) s.x += dx * step;
     if (clearEdge(scene, [s.x, s.y], [s.x, s.y + dy * step])) s.y += dy * step;
     if (s.x === oldX && s.y === oldY) {
@@ -245,6 +257,12 @@ export class WorldTraversal {
     const g = this.game;
     if (g.transition) return false;
     const s = g.state;
+    if (
+      g.travelBlockedAt?.region === s.region &&
+      Math.hypot(s.x - g.travelBlockedAt.x, s.y - g.travelBlockedAt.y) < 64
+    )
+      return false;
+    g.travelBlockedAt = null;
     const entrance = near.find((o) => {
       if (o.type === 'portal') return Math.hypot(o.x - s.x, o.y - s.y) < 19;
       if (o.type !== 'cave') return false;
@@ -271,9 +289,12 @@ export class WorldTraversal {
       to,
       spawn: destination,
       facing: scene.arrivalFacing || g.state.facing,
+      departureSnapshot: g.saveSnapshot?.(),
     };
     g.keys.clear();
+    g.touchControls?.clear();
     g.movePath = [];
+    g.assetLoading?.prepareTransition(g.transition);
     g.audio.sound('door');
   }
 
@@ -283,8 +304,17 @@ export class WorldTraversal {
     const transition = g.transition;
     if (!transition) return false;
     transition.time += dt;
+    if (
+      transition.assetsReady === false &&
+      transition.time >= transition.duration / 2
+    ) {
+      transition.time = transition.duration / 2;
+      transition.waitTime = (transition.waitTime || 0) + dt;
+      return false;
+    }
     if (transition.time >= transition.duration / 2 && !transition.swapped) {
       transition.swapped = true;
+      g.assetLoading?.activate(transition.to);
       g.state.region = transition.to;
       g.state.x = transition.spawn.x;
       g.state.y = transition.spawn.y;

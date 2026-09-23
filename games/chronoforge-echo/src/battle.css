@@ -596,6 +596,10 @@
   font-size: 1.03cqw;
   color: var(--cb-soft);
   padding-bottom: 0.6cqw;
+  padding-inline: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
 }
 #battle-interface .cb-party-name {
   font-size: 1.2cqw;
@@ -636,6 +640,9 @@
 }
 #battle-interface .cb-down {
   opacity: 0.45;
+}
+#battle-interface .cb-touch-verb {
+  display: none;
 }
 #battle-interface.cb-reduced .cb-fold {
   transition: none;
@@ -680,4 +687,391 @@
   #battle-interface.cb-critical-window [data-node='3'] {
     animation: none;
   }
+}
+
+/* Touch keeps one command card; combat state and confirmation stay shared. */
+#game[data-mobile='true'] #battle-interface {
+  font-size: 16px;
+  background: linear-gradient(180deg, #12121270, transparent 30%);
+}
+#game[data-mobile='true'] #battle-interface button {
+  min-height: 48px;
+  font-size: 16px;
+  touch-action: manipulation;
+}
+#game[data-mobile='true']
+  #battle-interface
+  :is(kbd, .cb-eyebrow, .cb-keys, .cb-node:not(.cb-open), .cb-node-tab) {
+  display: none;
+}
+#game[data-mobile='true'] #battle-interface .cb-header {
+  padding: max(8px, env(safe-area-inset-top, 0px)) 10px 6px;
+  gap: 8px;
+}
+#game[data-mobile='true'] #battle-interface h2 {
+  font-size: 18px;
+}
+#game[data-mobile='true'] #battle-interface .cb-header-right {
+  font-size: 11px;
+  gap: 2px;
+  flex-shrink: 0;
+}
+#game[data-mobile='true'] #battle-interface .cb-pause {
+  padding: 8px 10px;
+  background: #191919e8;
+  border: 1px solid #8886;
+}
+#game[data-mobile='true'] #battle-interface .cb-warning {
+  top: 77px;
+  left: 10px;
+  right: 10px;
+  max-width: none;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+#game[data-mobile='true'] #battle-interface .cb-dock {
+  left: 0;
+  right: 0;
+  bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+  width: auto;
+  height: calc(var(--mobile-battle-dock-height) - 62px);
+  padding: 8px 10px 0;
+  background: #161616fa;
+  display: grid;
+  grid-template-rows: 24px minmax(0, 1fr) 48px;
+  gap: 4px;
+}
+#game[data-mobile='true'] #battle-interface .cb-path {
+  margin: 0;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  align-items: center;
+}
+#game[data-mobile='true'] #battle-interface .cb-path > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#game[data-mobile='true'] #battle-interface .cb-path > span:last-child {
+  text-align: right;
+}
+#game[data-mobile='true'] #battle-interface .cb-fold {
+  display: block;
+  min-height: 0;
+  transition: none;
+}
+#game[data-mobile='true'] #battle-interface .cb-node {
+  height: 100%;
+}
+#game[data-mobile='true'] #battle-interface .cb-pane {
+  height: 100%;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+}
+#game[data-mobile='true'] #battle-interface .cb-pane-head {
+  flex-shrink: 0;
+  gap: 8px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+#game[data-mobile='true'] #battle-interface h3 {
+  font-size: 17px;
+}
+#game[data-mobile='true'] #battle-interface .cb-pane-head > span {
+  font-size: 10px;
+}
+#game[data-mobile='true'] #battle-interface .cb-choice {
+  min-height: 48px;
+  height: auto;
+  padding: 8px;
+  gap: 8px;
+}
+#game[data-mobile='true'] #battle-interface .cb-row-title {
+  font-size: 16px;
+}
+#game[data-mobile='true']
+  #battle-interface
+  :is(.cb-row-title small, .cb-row-meta, .cb-enemy-level) {
+  font-size: 12px;
+  margin-top: 3px;
+}
+#game[data-mobile='true'] #battle-interface .cb-crew {
+  overflow-y: auto;
+  pointer-events: auto;
+  overscroll-behavior: contain;
+}
+#game[data-mobile='true'] #battle-interface .cb-crew .cb-choice {
+  min-height: 56px;
+  height: auto;
+  padding: 6px;
+}
+#game[data-mobile='true'] #battle-interface .cb-crew canvas {
+  width: 36px;
+  height: 36px;
+}
+#game[data-mobile='true'] #battle-interface .cb-crew .cb-row-title small {
+  font-size: 11px;
+}
+#game[data-mobile='true'] #battle-interface .cb-chevron {
+  font-size: 22px;
+}
+#game[data-mobile='true'] #battle-interface .cb-micro-atb {
+  margin-top: 5px;
+  height: 3px;
+}
+#game[data-mobile='true']
+  #battle-interface
+  :is(.cb-action-layout, .cb-target-layout) {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+#game[data-mobile='true'] #battle-interface .cb-list {
+  min-height: 0;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+#game[data-mobile='true']
+  #battle-interface
+  .cb-action-layout
+  .cb-list:not(.cb-sublist) {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  align-content: start;
+}
+#game[data-mobile='true']
+  #battle-interface
+  .cb-action-layout
+  .cb-list:not(.cb-sublist)
+  .cb-choice {
+  min-height: 48px;
+  height: auto;
+  padding: 8px;
+}
+#game[data-mobile='true'] #battle-interface .cb-command-sign {
+  font-size: 19px;
+  width: 20px;
+}
+#game[data-mobile='true'] #battle-interface .cb-command-cost {
+  font-size: 12px;
+}
+#game[data-mobile='true'] #battle-interface .cb-choice-detail {
+  border: 0;
+  padding: 0;
+  font-size: 12px;
+  max-height: 42px;
+  overflow-y: auto;
+  pointer-events: auto;
+}
+#game[data-mobile='true'] #battle-interface .cb-choice-detail strong {
+  display: none;
+}
+#game[data-mobile='true'] #battle-interface .cb-choice-detail p {
+  margin: 0;
+  line-height: 1.35;
+}
+#game[data-mobile='true'] #battle-interface .cb-choice-detail > small {
+  font-size: 11px;
+  margin: 2px 0;
+}
+#game[data-mobile='true'] #battle-interface .cb-target-layout .cb-choice {
+  min-height: 48px;
+  height: auto;
+  padding: 6px 8px;
+}
+#game[data-mobile='true'] #battle-interface .cb-target-layout .cb-row-title {
+  font-size: 15px;
+}
+#game[data-mobile='true']
+  #battle-interface
+  .cb-target-layout
+  .cb-row-title
+  small {
+  font-size: 11px;
+}
+#game[data-mobile='true'] #battle-interface .cb-target-detail {
+  display: block;
+}
+#game[data-mobile='true'] #battle-interface .cb-target-detail :is(p, small) {
+  display: none;
+}
+#game[data-mobile='true'] #battle-interface .cb-execute {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  align-items: center;
+}
+#game[data-mobile='true'] #battle-interface .cb-under {
+  margin: 0;
+  gap: 10px;
+  font-size: 12px;
+  min-height: 48px;
+}
+#game[data-mobile='true'] #battle-interface .cb-back {
+  min-width: 72px;
+  padding: 8px 10px;
+  border: 1px solid #7775;
+}
+#game[data-mobile='true'] #battle-interface .cb-context {
+  white-space: normal;
+  max-height: 3em;
+  font-size: 12px;
+  line-height: 1.4;
+}
+#game[data-mobile='true'] #battle-interface .cb-timing {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+}
+#game[data-mobile='true'] #battle-interface .cb-timing > strong {
+  font-size: 17px;
+}
+#game[data-mobile='true'] #battle-interface .cb-timing > p {
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 4px;
+}
+#game[data-mobile='true'] #battle-interface .cb-timing-button {
+  margin-top: auto;
+  padding: 12px 10px 8px;
+  border: 1px solid #df702e88;
+  background: #df702e12;
+  min-height: 72px;
+  touch-action: none;
+}
+#game[data-mobile='true'] #battle-interface .cb-timing-track {
+  height: 12px;
+}
+#game[data-mobile='true'] #battle-interface .cb-timing-marker {
+  top: -4px;
+  bottom: -4px;
+}
+#game[data-mobile='true'] #battle-interface .cb-timing-scale {
+  margin-top: 7px;
+  font-size: 9px;
+  letter-spacing: 0.02em;
+}
+#game[data-mobile='true'] #battle-interface .cb-touch-verb {
+  display: block;
+  font-size: 18px;
+  text-align: center;
+  margin-top: 5px;
+  color: #efb084;
+}
+#game[data-mobile='true'] #battle-interface .cb-action-progress {
+  margin-top: 12px;
+  height: 3px;
+}
+#game[data-mobile='true'] #battle-interface .cb-party-rail {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(62px + env(safe-area-inset-bottom, 0px));
+  gap: 8px;
+  padding: 3px 10px calc(6px + env(safe-area-inset-bottom, 0px));
+  background: #161616fa;
+}
+#game[data-mobile='true'] #battle-interface .cb-party {
+  display: grid;
+  min-width: 0;
+  min-height: 48px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 4px;
+  padding: 4px 0 6px;
+  font-size: 12px;
+  align-content: center;
+}
+#game[data-mobile='true'] #battle-interface .cb-party-name {
+  font-size: 14px;
+}
+#game[data-mobile='true'] #battle-interface .cb-party-values {
+  grid-column: 1/-1;
+  margin-left: 0;
+  font-size: 11px;
+}
+#game[data-mobile='true'] #battle-interface .cb-party-values small {
+  font-size: 10px;
+}
+#game[data-mobile='true'] #battle-interface .cb-party-values > span {
+  margin-left: 4px;
+}
+#game[data-mobile='true'] #battle-interface .cb-rail-state {
+  grid-row: 1;
+  grid-column: 2;
+  font-size: 10px;
+  min-width: 0;
+}
+#game[data-mobile='true'] #battle-interface .cb-rail-atb {
+  height: 3px;
+}
+#game[data-mobile='true'][data-orientation='landscape']
+  #battle-interface
+  .cb-header {
+  right: calc(
+    var(--mobile-battle-dock-width) + env(safe-area-inset-right, 0px)
+  );
+  position: absolute;
+  left: env(safe-area-inset-left, 0px);
+}
+#game[data-mobile='true'][data-orientation='landscape']
+  #battle-interface
+  .cb-warning {
+  right: calc(
+    var(--mobile-battle-dock-width) + 10px + env(safe-area-inset-right, 0px)
+  );
+}
+#game[data-mobile='true'][data-orientation='landscape']
+  #battle-interface
+  .cb-dock {
+  left: auto;
+  top: 0;
+  width: calc(
+    var(--mobile-battle-dock-width) + env(safe-area-inset-right, 0px)
+  );
+  height: auto;
+  padding-top: max(8px, env(safe-area-inset-top, 0px));
+  padding-right: max(10px, env(safe-area-inset-right, 0px));
+}
+#game[data-mobile='true'][data-orientation='landscape']
+  #battle-interface
+  .cb-party-rail {
+  left: auto;
+  width: calc(
+    var(--mobile-battle-dock-width) + env(safe-area-inset-right, 0px)
+  );
+  padding-right: max(10px, env(safe-area-inset-right, 0px));
+}
+@media (max-height: 370px) {
+  #game[data-mobile='true'][data-orientation='landscape']
+    #battle-interface
+    .cb-choice-detail {
+    display: none;
+  }
+  #game[data-mobile='true'][data-orientation='landscape']
+    #battle-interface
+    .cb-timing
+    > strong {
+    display: none;
+  }
+}
+#battle-interface .cb-touch-wait {
+  display: none;
+}
+#game[data-mobile='true'] #battle-interface .cb-crew {
+  display: none;
+}
+#game[data-mobile='true'] #battle-interface .cb-touch-wait {
+  display: block;
+  font-size: 16px;
+  color: var(--cb-soft);
+  line-height: 1.5;
+  margin: auto 0;
 }

@@ -76,7 +76,8 @@ test('temporary map surface stays within a fixed pixel budget without enlarging 
 function fixture(t) {
   const frames = new Map(),
     canvases = [],
-    logs = [];
+    logs = [],
+    observers = [];
   let nextFrame = 0,
     failDraw = false;
   const document = { activeElement: null };
@@ -87,12 +88,26 @@ function fixture(t) {
       events: {},
       inert: false,
       isConnected: true,
+      clientWidth: 390,
+      clientHeight: 844,
       append(...nodes) {
         this.children.push(...nodes);
       },
       setAttribute() {},
       addEventListener(name, handler) {
         this.events[name] = handler;
+      },
+      removeEventListener(name) {
+        delete this.events[name];
+      },
+      getClientRects() {
+        return this.hidden ? [] : [{}];
+      },
+      querySelectorAll(selector) {
+        return this.children.flatMap((child) => [
+          ...(child.tag === selector ? [child] : []),
+          ...child.querySelectorAll(selector),
+        ]);
       },
       focus() {
         document.activeElement = this;
@@ -163,6 +178,14 @@ function fixture(t) {
   document.querySelector = (selector) => (selector === '#game' ? host : null);
   for (const [name, value] of Object.entries({
     document,
+    ResizeObserver: class {
+      constructor(callback) {
+        this.callback = callback;
+        observers.push(this);
+      }
+      observe() {}
+      disconnect() {}
+    },
     requestAnimationFrame: (callback) => {
       frames.set(++nextFrame, callback);
       return nextFrame;
@@ -234,6 +257,7 @@ function fixture(t) {
     logs,
     previousFocus,
     document,
+    observers,
     failDraw() {
       failDraw = true;
     },
@@ -385,4 +409,27 @@ test('closing during preparation cancels rendering; errors and disposal release 
   view.dispose();
   assert.equal(root.isConnected, false);
   assert.equal(f.canvases[0].width, 0);
+});
+
+test('mobile overview retains scene proportions in portrait and after rotation', (t) => {
+  const f = fixture(t);
+  f.game.mobile = { enabled: true };
+  assert.equal(f.view.openView({ revealAll: true }), true);
+  const screen = f.canvases[0];
+  assert.equal(screen.width, 585);
+  assert.equal(screen.height, 1266);
+  while (f.frames.size) f.frame();
+  const camera = worldViewCamera(f.game.scene, f.game.camera, 1, {
+    width: 390,
+    height: 844,
+  });
+  assert.ok(camera.zoom * f.game.scene.width <= 390 - 48);
+  assert.ok(camera.zoom * f.game.scene.height <= 844 - 82);
+  f.root.clientWidth = 844;
+  f.root.clientHeight = 390;
+  f.observers[0].callback();
+  assert.equal(screen.width, 1266);
+  assert.equal(screen.height, 585);
+  assert.equal(f.view.open, true);
+  f.view.dispose();
 });

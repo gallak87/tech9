@@ -10,14 +10,21 @@ export function artContext(context) {
   return context;
 }
 
-export function artSurface(width, height) {
+export function artSurface(width, height, scale = RENDER_SCALE) {
   const surface = document.createElement('canvas');
-  surface.width = width * RENDER_SCALE;
-  surface.height = height * RENDER_SCALE;
+  surface.width = Math.max(1, Math.round(width * scale));
+  surface.height = Math.max(1, Math.round(height * scale));
   surface.logicalWidth = width;
   surface.logicalHeight = height;
   const context = artContext(surface.getContext('2d'));
-  context.setTransform(RENDER_SCALE, 0, 0, RENDER_SCALE, 0, 0);
+  context.setTransform(
+    surface.width / width,
+    0,
+    0,
+    surface.height / height,
+    0,
+    0,
+  );
   return surface;
 }
 

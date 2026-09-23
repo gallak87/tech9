@@ -42,7 +42,7 @@ import {
   advanceRecruitment,
   completeRecruitment,
 } from './recruitment.js';
-import { loadAssets, assetDiagnostics } from './assets.js';
+import { createAssetLoader, assetDiagnostics } from './assets.js';
 import { createContentRegistry, validateWorld } from './registry.js';
 import {
   VIEW_WIDTH,
@@ -54,6 +54,19 @@ import { localDevHost } from './dev-access.js';
 import { mountUpgradeTour } from './upgrade-tour.js';
 import { WorldTraversal } from './world-traversal.js';
 import { settlementTravelAction } from './expedition-map-model.js';
+import { createViewport, clientToView, clientToWorld } from './viewport.js';
+import { TouchControls } from './touch-controls.js';
+import {
+  deviceProfile,
+  readMobilePreferences,
+  loadingProfile,
+  touchEnabled,
+  chooseBootLoading,
+} from './mobile-preferences.js';
+import { mountMobileLifecycle } from './mobile-lifecycle.js';
+import { GameAssetLoading } from './game-asset-loading.js';
+import './mobile-ui.css';
+import './touch-controls.css';
 const W = VIEW_WIDTH,
   H = VIEW_HEIGHT,
   copy = (v) => JSON.parse(JSON.stringify(v)),
@@ -160,8 +173,8 @@ class Game {
     this.checkpoint();
     this.ui.render();
   }
-  checkpoint() {
-    return this.session.checkpoint();
+  checkpoint(options) {
+    return this.session.checkpoint(options);
   }
   resetFollowers() {
     this.traversal.resetFollowers();
@@ -398,7 +411,9 @@ class Game {
           },
           {
             speaker: 'Field notes',
-            text: 'Choose a ready companion, then an action and target. Up/Down selects; Right, Space or Enter confirms. A fresh Space or Enter when the white marker crosses the orange window raises critical chance. Incoming attacks open the same timing slot: catch the orange window to guard, then return to your selection. Left or Backspace goes back; Esc pauses everything.',
+            text: this.mobile?.enabled
+              ? 'Tap a ready companion in the crew strip, choose an action and target, then Execute. Tap Strike when the white marker crosses the orange window to raise critical chance. Incoming attacks use the same timing slot: tap Guard in the window to reduce damage, then return to your selection. Back revisits your choice; Pause stops everything.'
+              : 'Choose a ready companion, then an action and target. Up/Down selects; Right, Space or Enter confirms. A fresh Space or Enter when the white marker crosses the orange window raises critical chance. Incoming attacks open the same timing slot: catch the orange window to guard, then return to your selection. Left or Backspace goes back; Esc pauses everything.',
           },
         ],
         [],
@@ -466,6 +481,7 @@ class Game {
     this.traversal.walkTo(x, y);
   }
   update(dt) {
+    if (this.lifecyclePaused || this.assetLoading?.busy) return;
     this.devTools?.update();
     this.time += dt;
     if (this.rewardQueue.length) {
@@ -564,14 +580,17 @@ class Game {
     }
   }
   draw(ctx) {
+    const W = this.viewport?.width || VIEW_WIDTH,
+      H = this.viewport?.height || VIEW_HEIGHT;
+    const camera = { ...this.camera, ...this.viewport, width: W, height: H };
     ctx.clearRect(0, 0, W, H);
     if (this.mode === 'battle') {
-      drawBattle(ctx, this.battle, this.state, this.visualTime);
+      drawBattle(ctx, this.battle, this.state, this.viewport);
     } else {
       Art.drawWorld(
         ctx,
         this.scene,
-        this.camera,
+        camera,
         this.visualTime,
         this.visualState,
         { contactReady: this.mode === 'world' && this.encounterCooldown === 0 },
@@ -607,12 +626,12 @@ class Game {
         Art.drawForeground(
           ctx,
           this.scene,
-          this.camera,
+          camera,
           this.visualTime,
           this.visualState,
           actors,
         );
-      drawEncounterLevels(ctx, this.scene, this.camera, this.visualState);
+      drawEncounterLevels(ctx, this.scene, camera, this.visualState);
       if (this.movePath.length) {
         const p = this.movePath.at(-1);
         ctx.strokeStyle = '#e8e1c788';
@@ -640,7 +659,38 @@ async function boot() {
     techs: TECHS,
   });
   validateWorld(content);
-  await loadAssets(Art);
+  const shell = document.querySelector('#game');
+  let storage;
+  try {
+    storage = localStorage;
+  } catch {
+    storage = null;
+  }
+  const preferences = readMobilePreferences(storage);
+  const device = deviceProfile({
+    userAgent: navigator.userAgent,
+    platform: navigator.platform,
+    maxTouchPoints: navigator.maxTouchPoints,
+    mobile: navigator.userAgentData?.mobile,
+    coarse: matchMedia('(pointer: coarse)').matches,
+  });
+  const query = new URLSearchParams(location.search);
+  const loadingOverride =
+    import.meta.env.DEV && localDevHost(location) && query.has('mobileLoading');
+  if (loadingOverride) {
+    preferences.loading = 'mobile';
+    preferences.loadingChosen = true;
+  }
+  shell.dataset.mobile = String(
+    device.handheld || touchEnabled(preferences, device),
+  );
+  shell.dataset.orientation =
+    innerHeight > innerWidth ? 'portrait' : 'landscape';
+  await chooseBootLoading(shell, preferences, device, storage);
+  const activeLoading = loadingProfile(preferences, device, loadingOverride);
+  const loader = createAssetLoader(Art, { profile: activeLoading });
+  await loader.prepare(state);
+  loader.activate(state.region);
   const g = new Game(),
     canvas = document.createElement('canvas');
   canvas.width = W * RENDER_SCALE;
@@ -660,10 +710,94 @@ async function boot() {
   document.querySelector('#stage').append(app.canvas);
   const texture = Texture.from(canvas);
   texture.source.scaleMode = 'linear';
+  texture.dynamic = true;
   const sprite = new Sprite(texture);
   sprite.width = W;
   sprite.height = H;
   app.stage.addChild(sprite);
+  g.assetLoading = new GameAssetLoading(g, loader, shell);
+  let layoutDirty = true;
+  let groundContact = null;
+  g.clearGroundContact = () => {
+    const id = groundContact?.id;
+    groundContact = null;
+    if (id !== undefined && app.canvas.hasPointerCapture(id))
+      app.canvas.releasePointerCapture(id);
+  };
+  const invalidateLayout = () => {
+    layoutDirty = true;
+    groundContact = null;
+    g.keys.clear();
+    g.touchControls?.clear();
+  };
+  g.touchControls = new TouchControls(g, {
+    shell,
+    preferences,
+    device,
+    storage,
+    activeLoading,
+    onLayout: invalidateLayout,
+  });
+  g.mobile = {
+    get enabled() {
+      return g.touchControls.layoutEnabled;
+    },
+    preferences,
+    settingsHTML: () => g.touchControls.settingsHTML(),
+  };
+  const stage = document.querySelector('#stage');
+  let previousScene;
+  let previousMode;
+  function resizeView() {
+    const portrait = shell.clientHeight > shell.clientWidth;
+    shell.dataset.orientation = portrait ? 'portrait' : 'landscape';
+    const rect = stage.getBoundingClientRect();
+    const viewport = createViewport({
+      cssWidth: rect.width,
+      cssHeight: rect.height,
+      mobile: g.mobile.enabled,
+      pixelRatio: devicePixelRatio,
+      quality: preferences.quality,
+      zoom: portrait && g.mode !== 'battle' ? preferences.zoom : 1,
+      scene: g.mode === 'battle' ? null : g.scene,
+      portrait,
+    });
+    const changed =
+      !g.viewport ||
+      viewport.width !== g.viewport.width ||
+      viewport.height !== g.viewport.height ||
+      viewport.renderScale !== g.viewport.renderScale;
+    g.viewport = viewport;
+    if (changed) {
+      canvas.width = Math.max(
+        1,
+        Math.round(viewport.width * viewport.renderScale),
+      );
+      canvas.height = Math.max(
+        1,
+        Math.round(viewport.height * viewport.renderScale),
+      );
+      artContext(ctx);
+      ctx.setTransform(viewport.renderScale, 0, 0, viewport.renderScale, 0, 0);
+      app.renderer.resolution = viewport.renderScale;
+      app.renderer.resize(viewport.width, viewport.height);
+      texture.source.resize(canvas.width, canvas.height);
+      sprite.width = viewport.width;
+      sprite.height = viewport.height;
+      g.updateCamera(true);
+      g.ui.interactionMetrics = null;
+      g.ui.positionInteraction();
+    }
+    layoutDirty = false;
+    previousScene = g.state.region;
+    previousMode = g.mode;
+  }
+  const observer = new ResizeObserver(invalidateLayout);
+  observer.observe(stage);
+  window.addEventListener('resize', invalidateLayout);
+  window.visualViewport?.addEventListener('resize', invalidateLayout);
+  const lifecycle = mountMobileLifecycle(g, app.canvas);
+  resizeView();
   document.querySelector('#loading').remove();
   g.resetFollowers();
   g.ui.render();
@@ -675,6 +809,12 @@ async function boot() {
     import.meta.hot.dispose(() => {
       g.worldView.dispose();
       g.upgradeTour.dispose();
+      g.touchControls.dispose();
+      g.assetLoading.dispose();
+      lifecycle.dispose();
+      observer.disconnect();
+      window.removeEventListener('resize', invalidateLayout);
+      window.visualViewport?.removeEventListener('resize', invalidateLayout);
     });
   if (import.meta.env.DEV && localDevHost(location)) {
     const { mountDevTools } = await import('./dev-tools.js');
@@ -682,6 +822,9 @@ async function boot() {
   }
   window.__ECHO_READY__ = true;
   window.addEventListener('keydown', (e) => {
+    if (g.lifecyclePaused || g.assetLoading?.busy || g.transition) return;
+    if (e.target.closest?.('select, input, textarea, [data-mobile-reload]'))
+      return;
     if (
       g.upgradeTour?.handleKey(e) ||
       g.worldView?.handleKey(e) ||
@@ -735,38 +878,88 @@ async function boot() {
     if (g.battle) battleKey(g.battle, g.state, { key, type: 'keyup' });
   });
   window.addEventListener('blur', () => g.keys.clear());
-  document.addEventListener('visibilitychange', () => {
-    if (
-      document.hidden &&
-      g.mode !== 'title' &&
-      !g.ui.menu &&
-      !g.upgradeTour?.open &&
-      !g.worldView?.open
-    ) {
-      g.ui.menu = true;
-      g.keys.clear();
-      g.ui.render();
-    }
-  });
   app.canvas.addEventListener('pointerdown', (e) => {
     g.audio.unlock();
-    if (g.ui.blocked || g.devTools?.open || g.state.recruitmentWalk) return;
-    const r = app.canvas.getBoundingClientRect(),
-      x = ((e.clientX - r.left) * W) / r.width,
-      y = ((e.clientY - r.top) * H) / r.height;
-    if (g.mode === 'battle') {
-      if (battleClick(g.battle, g.state, x, y) === 'pause') g.ui.toggleMenu();
+    if (
+      g.ui.blocked ||
+      g.devTools?.open ||
+      g.state.recruitmentWalk ||
+      g.lifecyclePaused ||
+      g.transition ||
+      g.assetLoading?.busy
+    )
+      return;
+    if (g.mobile.enabled && e.pointerType !== 'mouse') {
+      if (groundContact) {
+        groundContact.canceled = true;
+        return;
+      }
+      groundContact = {
+        id: e.pointerId,
+        x: e.clientX,
+        y: e.clientY,
+        canceled: false,
+      };
+      app.canvas.setPointerCapture(e.pointerId);
       return;
     }
+    groundAction(e);
+  });
+  app.canvas.addEventListener('pointermove', (e) => {
     if (
-      g.near &&
-      Math.hypot(x + g.camera.x - g.near.x, y + g.camera.y - g.near.y) < 80
-    ) {
+      groundContact?.id === e.pointerId &&
+      Math.hypot(e.clientX - groundContact.x, e.clientY - groundContact.y) > 10
+    )
+      groundContact.canceled = true;
+  });
+  app.canvas.addEventListener('pointercancel', () => {
+    groundContact = null;
+  });
+  app.canvas.addEventListener('lostpointercapture', () => {
+    groundContact = null;
+  });
+  app.canvas.addEventListener('pointerup', (e) => {
+    if (groundContact?.id !== e.pointerId) return;
+    const tap = groundContact;
+    groundContact = null;
+    if (!tap.canceled) groundAction(e);
+  });
+  function groundAction(e) {
+    if (
+      g.ui.blocked ||
+      g.devTools?.open ||
+      g.state.recruitmentWalk ||
+      g.lifecyclePaused ||
+      g.transition ||
+      g.assetLoading?.busy ||
+      g.touchControls.movement.active
+    )
+      return;
+    const r = app.canvas.getBoundingClientRect();
+    const { x, y } = clientToView(
+      { x: e.clientX, y: e.clientY },
+      g.viewport,
+      r,
+    );
+    if (g.mode === 'battle') {
+      // Mobile targets and timing live in the command card; canvas presses must
+      // never fall through to desktop coordinates or become timing attempts.
+      if (!g.mobile.enabled && battleClick(g.battle, g.state, x, y) === 'pause')
+        g.ui.toggleMenu();
+      return;
+    }
+    const world = clientToWorld(
+      { x: e.clientX, y: e.clientY },
+      g.camera,
+      g.viewport,
+      r,
+    );
+    if (g.near && Math.hypot(world.x - g.near.x, world.y - g.near.y) < 80) {
       g.interact();
       return;
     }
-    g.walkTo(x + g.camera.x, y + g.camera.y);
-  });
+    if (!g.mobile.enabled || preferences.tapWalk) g.walkTo(world.x, world.y);
+  }
   let prev = performance.now();
   function frame(now) {
     const interval = now - prev;
@@ -774,12 +967,24 @@ async function boot() {
     g.frameTimes.push(interval);
     if (g.frameTimes.length > 3600) g.frameTimes.shift();
     try {
+      g.touchControls.sync();
+      if (
+        layoutDirty ||
+        previousScene !== g.state.region ||
+        previousMode !== g.mode
+      )
+        resizeView();
+      g.assetLoading.update();
       g.update(Math.min(0.05, interval / 1000));
+      if (previousScene !== g.state.region || previousMode !== g.mode) {
+        g.touchControls.sync();
+        resizeView();
+      }
       g.session.autosaveInventory();
-      g.draw(ctx);
+      if (!g.rendererLost) g.draw(ctx);
       g.battleUI.render();
       texture.source.update();
-      app.renderer.render(app.stage);
+      if (!g.rendererLost) app.renderer.render(app.stage);
     } catch (e) {
       fatal(e);
       return;
@@ -805,6 +1010,13 @@ async function boot() {
         paused: g.ui.menu,
         errors: [...errors],
         assets: copy(assetDiagnostics),
+        mobile: {
+          enabled: g.mobile.enabled,
+          preferences: copy(preferences),
+          loading: activeLoading,
+          viewport: copy(g.viewport),
+        },
+        assetLoading: loader.diagnostics(),
         artMetrics: Art.artMetrics(),
         frameTimes: g.frameTimes.slice(-600),
         logs: copy(g.logs),

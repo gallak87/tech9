@@ -1,0 +1,225 @@
+#touch-controls[hidden] {
+  display: none;
+}
+#touch-controls {
+  position: absolute;
+  inset: auto 0 0;
+  height: calc(140px * var(--touch-size, 1) + env(safe-area-inset-bottom, 0px));
+  padding: 8px max(12px, env(safe-area-inset-right, 0px))
+    max(8px, env(safe-area-inset-bottom, 0px))
+    max(12px, env(safe-area-inset-left, 0px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  pointer-events: none;
+  z-index: 8;
+  background: #232422;
+  border-top: 1px solid #64594d;
+}
+#game[data-handedness='left'] #touch-controls {
+  flex-direction: row-reverse;
+}
+.touch-stick {
+  position: relative;
+  flex: 0 0 auto;
+  width: calc(118px * var(--touch-size, 1));
+  height: calc(118px * var(--touch-size, 1));
+  border-radius: 50%;
+  touch-action: none;
+  pointer-events: auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.touch-stick-ring {
+  position: absolute;
+  inset: 3px;
+  background: #2e2e2be8;
+  border: 2px solid #9d8f78;
+  border-radius: 50%;
+}
+.touch-stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  transform: translate(-50%, -50%);
+  border: 1px solid #e9a06a;
+  border-radius: 50%;
+  background: #a36534e8;
+  pointer-events: none;
+}
+.touch-stick-label {
+  position: absolute;
+  bottom: 9px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font:
+    12px Barlow,
+    sans-serif;
+  color: #ded1ba;
+  pointer-events: none;
+}
+.touch-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  width: min(220px, 54%);
+  pointer-events: auto;
+}
+.touch-actions button {
+  min-height: 48px;
+  padding: 7px 9px;
+  background: #30312ef5;
+  color: #f3e9d7;
+  border: 1px solid #8f806b;
+  font:
+    16px Barlow,
+    sans-serif;
+  touch-action: manipulation;
+  line-height: 1.15;
+  border-radius: 4px;
+}
+.touch-actions .touch-interact {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.touch-actions button[data-touch-action='run'] {
+  grid-column: auto;
+}
+.touch-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.touch-actions button[aria-pressed='true'] {
+  border-color: #ff9c57;
+  background: #593924;
+}
+.touch-actions button:disabled {
+  color: #b4aea3;
+  opacity: 0.65;
+}
+#game[data-mobile='true'][data-orientation='landscape'] #touch-controls {
+  background: transparent;
+  border: 0;
+  height: calc(132px * var(--touch-size, 1) + env(safe-area-inset-bottom, 0px));
+}
+.mobile-settings {
+  margin: 18px 0;
+}
+.mobile-setting select {
+  max-width: 60%;
+  min-height: 48px;
+  font:
+    16px Barlow,
+    sans-serif;
+  color: #463725;
+  background: #f0e0ba;
+  border: 1px solid #8a7860;
+  padding: 8px;
+}
+.mobile-boot {
+  max-width: 430px;
+  padding: 24px;
+  font:
+    16px/1.5 Barlow,
+    sans-serif;
+  text-align: left;
+}
+.mobile-boot h2 {
+  font:
+    30px 'EB Garamond',
+    Georgia,
+    serif;
+  margin-bottom: 14px;
+}
+.mobile-boot label,
+.mobile-boot select,
+.mobile-boot button {
+  display: block;
+  width: 100%;
+}
+.mobile-boot select {
+  font: inherit;
+  min-height: 48px;
+  margin: 8px 0 16px;
+  background: #30312b;
+  color: #f0e4cb;
+  padding: 8px;
+}
+.mobile-boot button {
+  font: inherit;
+  min-height: 48px;
+  margin-top: 16px;
+}
+#asset-wait {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: #101817;
+  font:
+    16px/1.5 Barlow,
+    sans-serif;
+}
+#asset-wait[hidden] {
+  display: none;
+}
+#asset-wait > div {
+  padding: 24px;
+  max-width: 430px;
+}
+#asset-wait p {
+  margin: 12px 0;
+}
+#asset-wait button {
+  min-height: 48px;
+  margin: 8px 8px 0 0;
+  padding: 10px 16px;
+  font: inherit;
+}
+#resume-play {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-content: center;
+  gap: 16px;
+  background: #171b19f2;
+  text-align: center;
+  font:
+    18px Barlow,
+    sans-serif;
+  padding: 24px;
+}
+#resume-play[hidden] {
+  display: none;
+}
+#resume-play button {
+  min-height: 52px;
+  padding: 12px 24px;
+  font: inherit;
+}
+/* Turning off the joystick does not shrink a phone's menus to desktop scale. */
+#game[data-mobile='true'][data-touch-controls='false'][data-mode='world']
+  #stage {
+  bottom: 0;
+}
+#game[data-mobile='true'][data-touch-controls='false'] .atlas-button {
+  display: inline-flex;
+  min-height: 48px;
+  min-width: 64px;
+  font-size: 16px;
+}
+
+#asset-wait h2 {
+  font:
+    26px Barlow,
+    sans-serif;
+}

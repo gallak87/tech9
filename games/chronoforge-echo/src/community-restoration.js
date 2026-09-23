@@ -1,4 +1,4 @@
-import { HEROES, ITEMS, ITEM_TIERS } from './content.js';
+import { HEROES, ITEMS, itemRarityName } from './content.js';
 import { COMMUNITY_DEFINITIONS } from './community-definitions.js';
 
 export { COMMUNITY_DEFINITIONS } from './community-definitions.js';
@@ -89,7 +89,7 @@ export function communityStatus(state, region) {
     ),
     owner = state.heroes.find((hero) => hero.id === definition.heroId),
     levelTier = communityWeaponTier(owner?.level || 1),
-    // Even at level 40+, the gift must be claimed as Transcendent first.
+    // Gifts are Exotic immediately, with forge strength capped at rank 4.
     targetTier = Math.min(4, levelTier),
     itemId = `${definition.weaponId}_${weaponTier || targetTier}`,
     ownership = ownedWeapons(state, definition),
@@ -123,7 +123,7 @@ export function communityStatus(state, region) {
         reason,
       };
     }),
-    // Exotic is a separate reforge cycle from an already-Transcendent weapon.
+    // The level-40 improvement is a separate reforge from forge rank 4.
     toTier = Math.max(weaponTier, weaponTier >= 4 ? levelTier : targetTier),
     nextLevel = [10, 20, 30, 40][(weaponTier || targetTier) - 1] ?? null,
     cost = weaponTier ? reforgeCost(weaponTier, toTier) : {},
@@ -194,7 +194,7 @@ export function restoreCommunity(state, region, projectId) {
     community.weaponTier = tier;
     state.inventory[itemId] = 1;
     rewards.push({ id: itemId, label: status.weapon.name, amount: 1 });
-    message = `${status.name} restored. Received ${status.weapon.name} · ${ITEM_TIERS[tier - 1]}.`;
+    message = `${status.name} restored. Received ${status.weapon.name} · ${itemRarityName(ITEMS[itemId])}.`;
   }
   return {
     ok: true,
@@ -221,11 +221,11 @@ export function reforgeCommunityWeapon(state, region) {
   state.communities[status.id].weaponTier = toTier;
   return {
     ok: true,
-    message: `${status.weapon.name} reforged to ${ITEM_TIERS[toTier - 1]}.`,
+    message: `${status.weapon.name} · ${itemRarityName(ITEMS[itemId])} reforged.`,
     rewards: [
       {
         id: itemId,
-        label: `${status.weapon.name} · ${ITEM_TIERS[toTier - 1]}`,
+        label: `${status.weapon.name} · ${itemRarityName(ITEMS[itemId])}`,
         amount: 1,
       },
     ],

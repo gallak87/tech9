@@ -6,8 +6,10 @@
 - [x] Graduate Community Restoration after the initial player pass (2026-09-19): restoration and the current-level reward are accepted; completed rewards now show a persistent receipt and a direct inventory shortcut.
 - [ ] Continue Community Restoration playtesting during iteration: compare towns at different levels; skip/watch project reveals; reforge while equipped and from the pack; reload autosave and export/import. Check outdoor workstation placement, icon readability, small-window layout, and temporary world-preview feedback.
 - [x] Apply the four existing equipment colors consistently across Inventory, Party, shops, rewards, and quests: Survivor uses a 30%-opacity white tint with fully opaque text; Reclaimer green; Ascendant purple; Transcendent blue.
-- [x] Give the three community weapons a persistent lava-orange outline/tint and a single power-band badge.
-- [x] Add an explicit level-40 reforge to Exotic for community weapons only; cap initial gifts at Transcendent and retain four civilization tiers. The final reforge is a separate action, costs 40 ore / 20 energy, and preserves equipped or packed ownership through saves/imports.
+- [x] Give the three community weapons a persistent lava-orange outline/tint and a single Exotic badge immediately on award. Corrected after the 2026-09-22 player pass: forge strength no longer changes their displayed rarity, including existing saves, reward text and inventory sorting.
+- [x] Add an explicit level-40 power improvement for Exotic community weapons only; cap initial gifts at forge rank 4 and retain four civilization tiers. The currently final reforge is a separate action, costs 40 ore / 20 energy, and preserves equipped or packed ownership through saves/imports. These weapons are already Exotic before this upgrade.
+- [x] Player-review immediate Exotic labeling and orange treatment; accepted on 2026-09-22 after the label correction.
+- [ ] Decide whether level 40 stays the final reforge or only these three weapons continue improving at levels 50/60; no additional reforge ranks are implemented yet.
 - [ ] Tune regional project costs and Exotic stat tradeoffs after playtesting; keep all three arcs optional and Haventide the sole passive-income settlement.
 - [ ] Revisit broader quest completion and unlock feedback after the community pass; community progress/gifts now have explicit panel and journal records, but other story arcs retain their current presentation.
 - [ ] Revisit and extend each vendor’s story arc and completion milestones.

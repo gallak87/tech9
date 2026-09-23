@@ -1,7 +1,7 @@
 import test from 'node:test';
 import { register } from 'node:module';
 import assert from 'node:assert/strict';
-import { ITEMS } from '../src/content.js';
+import { ITEMS, itemRarityTier } from '../src/content.js';
 import { createState, recruit, equip } from '../src/progression.js';
 import { canEquip, weaponOwner } from '../src/equipment.js';
 import { saveState, loadState } from '../src/persistence.js';
@@ -62,7 +62,9 @@ test('hero filters retain all shared items and combine with item type and tier s
     );
     assert.ok(
       weapons.every(
-        (id, i) => !i || ITEMS[weapons[i - 1]].tier >= ITEMS[id].tier,
+        (id, i) =>
+          !i ||
+          itemRarityTier(ITEMS[weapons[i - 1]]) >= itemRarityTier(ITEMS[id]),
       ),
     );
     ui.inventoryFilter = 'all';
@@ -72,6 +74,20 @@ test('hero filters retain all shared items and combine with item type and tier s
   ui.inventoryHero = 'unrecruited';
   assert.equal(inventoryHero(ui), null);
   assert.equal(inventoryItems(ui).length, Object.keys(ITEMS).length);
+});
+
+test('an early Exotic sorts above ordinary blue gear and is announced as Exotic', () => {
+  const ui = fixture();
+  ui.inventoryFilter = 'weapon';
+  ui.inventoryHero = 'kaida';
+  ui.game.state.inventory = { horizon_edge: 1, duneglass_blade_1: 1 };
+  assert.deepEqual(inventoryItems(ui), ['duneglass_blade_1', 'horizon_edge']);
+  assert.match(
+    card(inventoryPage(ui), 'duneglass_blade_1'),
+    /aria-label="Duneglass Blade, Exotic, 1 in pack"/,
+  );
+  ui.inventorySort = 'name';
+  assert.deepEqual(inventoryItems(ui), ['duneglass_blade_1', 'horizon_edge']);
 });
 
 test('unfiltered weapons compare and equip only their recruited owner, never the Party hero', () => {

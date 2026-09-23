@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { register } from 'node:module';
 import { createState, recruit, equip } from '../src/progression.js';
-import { ITEMS } from '../src/content.js';
+import { ITEMS, TIERS } from '../src/content.js';
 import {
   COMMUNITY_DEFINITIONS,
   communityStatus,
@@ -173,12 +173,13 @@ test('completion checkpoints once per project and retains exact reward and next 
   assert.match(html, /<small>Received<\/small>/);
   assert.ok(action(html, 'community-inventory'));
   assert.match(html, /Duneglass Blade/);
-  assert.match(html, /Ascendant/);
+  assert.match(html, /Exotic/);
+  assert.doesNotMatch(html, /Ascendant/);
   assert.match(html, /level 30/);
   assert.equal((html.match(/data-project-state="complete"/g) || []).length, 3);
   assert.match(
     ui.notifications.current.message,
-    /restoration complete.*Duneglass Blade.*Ascendant.*Kaida.*level 30/,
+    /restoration complete.*Duneglass Blade.*Exotic.*Kaida.*level 30/,
   );
   assert.match(ui.notifications.current.message, /Temporary world preview/);
   assert.match(html, /<\/div><aside class="ui-toast"/);
@@ -186,12 +187,18 @@ test('completion checkpoints once per project and retains exact reward and next 
   assert.equal(checkpointed.length, 3);
 });
 
-test('keepsakes use one level badge, and only their fifth band is labeled Exotic', () => {
+test('every community forge rank displays one orange Exotic rarity badge while ordinary tiers stay distinct', () => {
   for (const item of Object.values(ITEMS)) {
     const badge = itemBadges(item);
     assert.equal((badge.match(/class="tier-badge"/g) || []).length, 1, item.id);
-    if (item.tier === 5) assert.match(badge, /Exotic/);
-    else assert.doesNotMatch(badge, /Exotic/);
+    if (item.exotic) {
+      assert.match(badge, /data-tier="5"/);
+      assert.match(badge, /Exotic/);
+      assert.doesNotMatch(badge, /Survivor|Reclaimer|Ascendant|Transcendent/);
+    } else {
+      assert.ok(badge.includes(TIERS[item.tier - 1]));
+      assert.doesNotMatch(badge, /Exotic/);
+    }
   }
   assert.equal(tierBadge(5), ''); // Civilization cannot acquire the item-only label.
 });
@@ -204,11 +211,11 @@ test('the final Exotic reforge has its own inline confirmation, checkpoints once
   assert.equal(state.inventory.duneglass_blade_5, undefined);
   assert.match(
     ui.notifications.current.message,
-    /Transcendent.*Next reforge available now/,
+    /Exotic.*Next reforge available now/,
   );
   assert.equal(equip(state, 'kaida', 'duneglass_blade_4').ok, true);
   ui.action('community-reforge');
-  assert.match(ui.renderBuild(), /Reforge to.*data-tier="5".*Exotic/);
+  assert.match(ui.renderBuild(), /Improve.*data-tier="5".*Exotic/);
   assert.match(ui.renderBuild(), /Spend 40 ore · 20 energy/);
   ui.action('community-cancel');
   assert.equal(state.heroes[0].equip.weapon, 'duneglass_blade_4');
@@ -312,21 +319,28 @@ test('a level-26 reward is immediately accessible through inventory even with an
   assert.equal(checkpointed.length, 3);
 });
 
-test('reforge confirmation keeps equipped Exotic, saves once, and distinguishes identity from tier throughout menus', (t) => {
+test('reforge confirmation preserves immediate Exotic rarity and saves the improved equipped weapon once', (t) => {
   const { ui, state, checkpointed } = fixture(t);
   state.heroes[0].level = 9;
   completeTown(ui);
+  assert.match(ui.notifications.current.message, /Duneglass Blade.*Exotic/);
   assert.equal(equip(state, 'kaida', 'duneglass_blade_1').ok, true);
+  ui.inventoryHero = 'kaida';
+  assert.match(
+    inventoryPage(ui),
+    /exp-inventory-slot-row" data-tier="1" data-exotic="true"/,
+  );
+  assert.ok(inventoryPage(ui).includes(itemBadges(ITEMS.duneglass_blade_1)));
   state.heroes[0].level = 20;
   ui.action('community-reforge');
-  assert.match(ui.renderBuild(), /Reforge to.*Ascendant/);
+  assert.match(ui.renderBuild(), /Improve.*Exotic/);
   assert.match(ui.renderBuild(), /Reforge stat changes/);
   assert.match(ui.renderBuild(), /Strength<\/dt><dd>\+15/);
   ui.action('community-confirm');
   assert.equal(state.heroes[0].equip.weapon, 'duneglass_blade_3');
   assert.equal(checkpointed.length, 4);
   assert.equal(checkpointed[3].heroes[0].equip.weapon, 'duneglass_blade_3');
-  assert.match(ui.notifications.current.message, /Reforge complete.*Ascendant/);
+  assert.match(ui.notifications.current.message, /Reforge complete.*Exotic/);
   ui.action('community-reforge');
   ui.action('community-confirm');
   assert.equal(checkpointed.length, 4);
@@ -340,7 +354,7 @@ test('reforge confirmation keeps equipped Exotic, saves once, and distinguishes 
     inventoryPage(ui),
     /exp-inventory-slot-row" data-tier="3" data-exotic="true"/,
   );
-  assert.match(inventoryPage(ui), /Ascendant/);
+  assert.ok(inventoryPage(ui).includes(itemBadges(ITEMS.duneglass_blade_3)));
   assert.doesNotMatch(inventoryPage(ui), /exotic-badge/);
   ui.inventoryHero = null;
   assert.match(

@@ -1,4 +1,4 @@
-import { TIERS, ITEM_TIERS } from './content.js';
+import { TIERS, itemRarityTier, itemRarityName } from './content.js';
 import './tier-ui.css';
 
 // A tier always carries its name and rank as well as its color.
@@ -11,7 +11,7 @@ export function tierBadge(tier) {
   return badge(tier, TIERS[tier - 1]);
 }
 
-// Community identity belongs to the surface; the single badge describes power.
+// Keep saved forge strength separate from the permanent Exotic rarity badge.
 export function itemAttributes(item) {
   return item
     ? `data-tier="${item.tier}"${item.exotic ? ' data-exotic="true"' : ''}`
@@ -19,7 +19,5 @@ export function itemAttributes(item) {
 }
 
 export function itemBadges(item) {
-  return item
-    ? badge(item.tier, (item.exotic ? ITEM_TIERS : TIERS)[item.tier - 1])
-    : '';
+  return item ? badge(itemRarityTier(item), itemRarityName(item)) : '';
 }

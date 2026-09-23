@@ -1727,7 +1727,7 @@ export function questList(state) {
     const next = status.projects.find((project) => !project.complete);
     const returnHint = status.weapon.nextLevel
       ? `Return here when ${status.weapon.heroName} reaches level ${status.weapon.nextLevel} to reforge the gift.`
-      : 'The community’s gift has reached its final power tier.';
+      : 'The Exotic gift is fully reforged.';
     const objective = status.complete
       ? `${community.name} is restored. ${status.weapon.name} was awarded to ${status.weapon.heroName}. ${status.reforge.toTier > status.weapon.tier ? 'A stronger reforge is available here now.' : returnHint}`
       : !status.liberated

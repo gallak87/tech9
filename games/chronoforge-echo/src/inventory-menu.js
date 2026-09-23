@@ -1,4 +1,4 @@
-import { HEROES, ITEMS } from './content.js';
+import { HEROES, ITEMS, itemRarityTier, itemRarityName } from './content.js';
 import { itemBadges, itemAttributes } from './tier-ui.js';
 import * as P from './progression.js';
 import { canEquip, weaponOwner, weaponFamilyLabel } from './equipment.js';
@@ -66,7 +66,10 @@ export function inventoryItems(ui) {
     .sort(
       (a, b) =>
         slots.indexOf(ITEMS[a].slot) - slots.indexOf(ITEMS[b].slot) ||
-        (ui.inventorySort === 'name' ? 0 : ITEMS[b].tier - ITEMS[a].tier) ||
+        (ui.inventorySort === 'name'
+          ? 0
+          : itemRarityTier(ITEMS[b]) - itemRarityTier(ITEMS[a]) ||
+            ITEMS[b].tier - ITEMS[a].tier) ||
         ITEMS[a].name.localeCompare(ITEMS[b].name) ||
         a.localeCompare(b),
     );
@@ -154,7 +157,7 @@ function inventoryCard(ui, id) {
     `${icon(id)}<span class="exp-inventory-item-copy"><strong>${esc(item.name)}</strong><span class="item-badges">${itemBadges(item)}</span>${owner ? `<small class="exp-inventory-family">${weaponFamilyLabel(id)} · ${esc(HEROES[owner].name)}</small>` : ''}${item.unique ? `<small class="exp-inventory-keepsake">${item.exotic ? 'Community keepsake · Reforgeable' : 'Personal keepsake'}</small>` : ''}</span><b class="exp-inventory-quantity">×${fmt(s.inventory[id])}</b>`,
     'item:' + id,
     'exp-inventory-item',
-    `aria-pressed="${selected}" aria-label="${esc(item.name)}, tier ${item.tier}, ${fmt(s.inventory[id])} in pack" title="${esc(item.description)}"`,
+    `aria-pressed="${selected}" aria-label="${esc(item.name)}, ${itemRarityName(item)}, ${fmt(s.inventory[id])} in pack" title="${esc(item.description)}"`,
   )}<div class="exp-inventory-card-comparison">${comparison}</div><div class="exp-inventory-card-footer">${button(
     `<span>${unrecruited ? `Recruit ${esc(HEROES[owner]?.name || 'crew')}` : h ? `${consumable ? 'Use' : 'Equip'} on ${esc(h.name)}` : 'Choose recipient'}</span>${unrecruited ? '' : '<small class="exp-inventory-action-hint"><kbd>Space</kbd> / <kbd>Enter</kbd></small>'}`,
     h

@@ -1,8 +1,11 @@
 /** Stable, serializable base-game catalog. No expansion content is registered. */
 import { EXOTIC_ITEMS } from './community-definitions.js';
 export const TIERS = ['Survivor', 'Reclaimer', 'Ascendant', 'Transcendent'];
-// Civilization and ordinary gear stop at four; community reforges alone reach five.
+// Rarity is permanent; community item.tier separately records forge strength.
 export const ITEM_TIERS = [...TIERS, 'Exotic'];
+export const itemRarityTier = (item) => (item?.exotic ? 5 : item?.tier);
+export const itemRarityName = (item) =>
+  ITEM_TIERS[itemRarityTier(item) - 1] || '';
 export const HEROES = {
   kaida: {
     id: 'kaida',

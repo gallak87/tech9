@@ -112,7 +112,7 @@ test('community projects are ordered, local, liberated, affordable and charge on
   assert.equal(state.flags.mara_trade_route, undefined);
 });
 
-test('each community gives one keepsake at its owner’s band, capped at Transcendent even above level 40', () => {
+test('each community gives one Exotic with owner-level forge strength capped at rank four before the level-40 reforge', () => {
   for (const definition of COMMUNITY_DEFINITIONS)
     for (const [level, tier] of [
       [1, 1],
@@ -189,7 +189,7 @@ test('level-40 Exotic reforge replaces one packed or equipped gift, saves its st
       assert.equal(state.inventory[final], undefined);
       const result = reforgeCommunityWeapon(state, state.region);
       assert.equal(result.ok, true);
-      assert.match(result.message, /reforged to Exotic/);
+      assert.match(result.message, /Exotic reforged/);
       assert.equal(state.communities[definition.id].weaponTier, 5);
       assert.equal(state.resources.ore, before.resources.ore - 40);
       assert.equal(state.resources.energy, before.resources.energy - 20);

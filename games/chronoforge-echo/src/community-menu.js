@@ -1,4 +1,4 @@
-import { ITEMS, ITEM_TIERS } from './content.js';
+import { ITEMS, itemRarityName } from './content.js';
 import {
   communityRegion,
   communityStatus,
@@ -181,7 +181,7 @@ export class CommunityMenu {
           : weapon.nextLevel
             ? `Next reforge at ${weapon.heroName} level ${weapon.nextLevel}.`
             : 'Fully reforged.';
-      message = `${kind === 'restore' ? `${status.name} restoration complete · Added to inventory` : 'Reforge complete'} · ${weapon.name} — ${ITEM_TIERS[weapon.tier - 1]} · ${weapon.heroName}. ${next}`;
+      message = `${kind === 'restore' ? `${status.name} restoration complete · Added to inventory` : 'Reforge complete'} · ${weapon.name} — ${itemRarityName(weapon.item)} · ${weapon.heroName}. ${next}`;
     }
     if (result.ok && this.ui.game.devTools?.worldPreviewActive)
       message += ' Temporary world preview — not saved to your expedition.';
@@ -228,7 +228,7 @@ export class CommunityMenu {
         <div class="community-weapon">${icon(weapon.id)}<div><div class="eyebrow">${status.complete ? 'YOUR COMMUNITY KEEPSAKE' : 'COMPLETION REWARD'}</div><h3>${esc(weapon.name)}</h3><div class="item-badges">${itemBadges(weapon.item)}</div><p>For ${esc(weapon.heroName)} · Unsellable</p>${statsMarkup(weapon.item)}</div></div>
         <div class="community-reward-status"><label class="community-receipt"><input type="checkbox" disabled ${received ? 'checked' : ''} aria-label="Reward received"><small>${received ? 'Received' : `Complete “${esc(finalProject.name)}” to receive`}</small></label>${received ? button('View in inventory', 'community-inventory') : ''}${
           status.complete
-            ? `<div class="community-reforge">${reforge.toTier > weapon.tier ? `<div class="community-reforge-target">Reforge to ${itemBadges(ITEMS[reforge.itemId])}<span>Spend ${esc(costText(reforge.cost))}</span></div>${statsMarkup(ITEMS[reforge.itemId], weapon.item)}` : ''}<p class="community-requirement">${esc(reforge.reason)}</p>${this.controls('reforge', '', reforge.eligible, 'Reforge')}</div>`
+            ? `<div class="community-reforge">${reforge.toTier > weapon.tier ? `<div class="community-reforge-target">Improve ${itemBadges(ITEMS[reforge.itemId])}<span>Spend ${esc(costText(reforge.cost))}</span></div>${statsMarkup(ITEMS[reforge.itemId], weapon.item)}` : ''}<p class="community-requirement">${esc(reforge.reason)}</p>${this.controls('reforge', '', reforge.eligible, 'Reforge')}</div>`
             : ''
         }</div>
       </section>

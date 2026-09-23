@@ -1,4 +1,4 @@
-/* Shared power-band palette for items and the four civilization tiers. */
+/* Shared rarity palette for items and the four civilization tiers. */
 [data-tier='1'] {
   --tier-color: #ece8e1;
 }
@@ -27,6 +27,12 @@
   --tier-color: #3c6487;
 }
 .expedition [data-tier='5'] {
+  --tier-color: #9f461d;
+}
+[data-exotic='true'] {
+  --tier-color: #df702e;
+}
+.expedition [data-exotic='true'] {
   --tier-color: #9f461d;
 }
 /* Tint the surface, never the text, for Survivor's translucent white treatment. */
@@ -71,7 +77,7 @@
   flex-wrap: wrap;
   gap: 0.35em;
 }
-/* Persistent community keepsake identity. The nested badge retains its band. */
+/* Community keepsakes and their rarity badges stay orange at every forge level. */
 .atlas [data-exotic='true']:not(.tier-badge),
 #rewards [data-exotic='true'] {
   border: 1px solid #df702e;

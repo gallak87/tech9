@@ -155,7 +155,7 @@ export const EXOTIC_ITEMS = weapons.flatMap((weapon) =>
     price: 0,
     tier: index + 1,
     description: weapon.description,
-    exotic: true, // Community identity at every band, distinct from the tier-5 label.
+    exotic: true, // Permanent rarity; tier records this weapon's forge strength.
     unique: true,
     iconId: weapon.id,
     community: weapon.community,

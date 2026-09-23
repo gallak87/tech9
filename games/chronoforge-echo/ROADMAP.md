@@ -7,7 +7,8 @@
 - [ ] Finish the requested loading refinements: prepare the minimum mobile startup bundle while the picker is open, and show consistent destination/category progress during map preparation. Current startup waits for Continue; cold travel shows a text-only hold after a short delay, with no progress bar. Preserve desktop eager loading and fast warm transitions; see the mobile handoff below.
 - [x] Losslessly recompress all 177 live PNGs with OxiPNG 10.2.1 default settings (2026-09-23). Total PNG size fell from 356.63 MiB to 337.50 MiB, saving 19.13 MiB (5.36%); the Haventide mobile bundle fell from 158.59 MiB to 149.93 MiB. All decoded RGBA pixels and dimensions are unchanged; 365 Node tests and production packaging checks pass. Optimized files remain at their existing paths in `public/assets/`, so local development and Pages use the same assets without an extra build dependency. Recorded provenance retains the original hashes and sizes alongside refreshed current values. No format conversion, runtime loading change or Git-history rewrite.
 - [ ] Player-review cold loading with the optimized PNGs under local network throttling, using the same loading mode and disabled browser cache. This pass uses default OxiPNG only; lossless WebP and background extraction at build time remain separate future options.
-- [ ] Choose the next asset-delivery improvements from the plan below. Preparing inventory icons at their existing runtime resolution is the likely first win; the remaining work has no agreed execution order.
+- [x] Run five bounded asset-delivery experiments independently against the post-OxiPNG baseline; save each result on its own branch. See the size audit below.
+- [ ] Choose which experiment branches to adopt and in what order. Inventory icons remain the likely first win; none of the candidate branches is merged here.
 - [ ] Revisit story and dialogue after the current town/Kaida playtest: develop three sample scenes and distinct character voices before choosing the scope of a campaign rewrite. See the deferred story plan below; no narrative rewrite is part of this town update.
 - [x] Separate regional Community Restoration from Haventide’s economic settlement: three local projects each, independent art/progression, optional quest records, and one unique community weapon per hero with hometown reforges at levels 10/20/30/40. Preserve the caravan arc, ordinary Transcendent gear, and existing saves.
 - [x] Graduate Community Restoration after the initial player pass (2026-09-19): restoration and the current-level reward are accepted; completed rewards now show a persistent receipt and a direct inventory shortcut.
@@ -40,15 +41,37 @@
 
 ## Asset delivery — proposed work, order to be decided
 
-Captured 2026-09-23 after the default OxiPNG pass. The objective is to reduce download size and time until play while retaining the approved artwork. This is a planning backlog: the user will choose scope and order later. Inventory icons are the likely first slice. Loading-picker/progress UI work remains separate.
+Captured 2026-09-23 after the default OxiPNG pass. The objective is to reduce download size and time until play while retaining the approved artwork. The user will choose adoption scope and order later. Candidate implementations are saved on the independent branches below; inventory icons remain the likely first slice. Loading-picker/progress UI work remains separate.
 
-### Likely first: prepare inventory icons at runtime size
+### Independent experiment results
+
+All five branches start directly from **`d88e4c67`**, the post-OxiPNG baseline on `g/asset-compress`. Baseline PNG size is **337.50 MiB**; desktop initially loads all of it, while Haventide mobile on-demand initially loads **149.93 MiB**. Values below are PNG payload sizes (1 MiB = 1,048,576 bytes), not repository size or JavaScript/font totals. Every row is compared independently with that same baseline.
+
+| Candidate                                 | Saved branch / commit                            | All PNGs (MiB) | PNG saving (MiB) | Initial desktop PNGs (MiB) | Initial mobile PNGs (MiB) |
+| ----------------------------------------- | ------------------------------------------------ | -------------: | ---------------: | -------------------------: | ------------------------: |
+| 38 inventory icons at 256px               | `codex/echo-exp-inventory-256` / `cddbac5a`      |         294.72 |            42.78 |                     294.72 |                    107.15 |
+| 20 resource/combat icons at 256px         | `codex/echo-exp-resource-icons-256` / `ec848b87` |         316.36 |            21.14 |                     316.36 |                    128.79 |
+| 52 sources with existing extraction baked | `codex/echo-exp-baked-alpha` / `a2b307c8`        |         299.33 |            38.17 |                     299.33 |                    134.01 |
+| 8 ground atlases at runtime resolution    | `codex/echo-exp-ground-tiles` / `5d5b3ba9`       |         321.24 |            16.26 |                     321.24 |                    147.69 |
+| Desktop regional loading by default       | `codex/echo-exp-regional-desktop` / `220f6839`   |         337.50 |             0.00 |                     149.93 |                    149.93 |
+
+The desktop-loading branch defers **187.57 MiB** from first boot; it does not shrink the complete game. It exposes Full atlas in desktop Settings and preserves explicit saved choices. Its tradeoffs include cold regional transitions and the existing on-demand cache/eviction limits. Phone loading choices remain unchanged.
+
+The four image experiments retain their selected originals under tracked `art/sources/` outside the public build and include reproducible preparation scripts. In Chrome, all 38 inventory icons, 20 resource icons, 52 extracted sources and 48 finished ground tiles exactly match their respective original renderer outputs. Each image branch passes 365 Node tests, production packaging, fresh-context full/on-demand startup and opening Inventory. The loading-policy branch passes 366 Node tests, all eight regions plus town/cave crossings, full-atlas opt-in, and root/subpath production browser checks.
+
+Size totals were also checked directly against each committed branch's PNG blobs. Fresh-context, unthrottled local Chrome readiness timings are retained as diagnostics, not reliable network-speed comparisons; no physical-phone or throttled performance claim is made. Detailed measurements, per-file byte audits, screenshots and pixel comparisons are disposable files in `.experiments/asset-lab/`.
+
+The four image categories are disjoint: their arithmetic savings sum to **118.35 MiB**, but the implementations have not been merged or tested together. Do not add the desktop deferral to those file-size savings. Each experiment stopped after a concrete win and validation. WebP was omitted as requested; no regeneration was needed. Broader sprite resizing and atlas repacking remain future choices. To try a candidate, switch to its branch and rebuild before previewing; ignored `dist/` does not change when switching branches.
+
+### Adoption review — inventory icons likely first
+
+Use the saved experiment branches as starting points. The unchecked items below describe adoption, integration and player review; they do not require repeating the completed experiments.
 
 The current 38 inventory PNGs occupy 45.06 MiB after OxiPNG. Most are 1254×1254 sources, but `src/inventory-icons.js` immediately crops and resamples them into 256×256 textures after downloading. The 20 resource/combat icons use the same approach in `src/raster-icons.js` and add 22.57 MiB. Together they account for about 45% of the current Haventide mobile bundle. These are baseline measurements, not predicted savings; query `scripts/asset-inventory.mjs` for the current inventory.
 
-- [ ] Prepare inventory icons using the existing measured crops, 94% fit, centering and real alpha, targeting the current 256×256 runtime texture. Check the largest actual UI use and high-density displays before changing that target. Decide whether the 20 resource/combat icons join this slice or follow separately.
-- [ ] Keep high-resolution selected originals and generation provenance as authoring inputs outside the shipped public directory. Add a reproducible preparation step and ship only the derived runtime icons. Required inputs/tooling must remain tracked and independent of `.experiments/`; temporary comparisons and reports belong there.
-- [ ] Update asset metadata, loading and packaging checks together so prepared icons load directly without a second crop/resample. Preserve item IDs, shared Exotic icon aliases, displayed proportions and all Inventory/Party/vendor/reward uses. Document the resulting authoring/runtime split in Architecture and Art direction when implemented.
+- [ ] Review and adopt the prepared inventory candidate, which preserves the measured crops, 94% fit, centering and real alpha at the current 256×256 runtime texture. Check the largest actual UI use and high-density displays before changing that target. Decide whether the 20 resource/combat icons join this slice or follow separately.
+- [ ] Adopt the selected branch's retained authoring inputs and reproducible preparation tooling; ship only its derived runtime icons. Required inputs/tooling must remain tracked and independent of `.experiments/`; temporary comparisons and reports belong there.
+- [ ] Integrate the selected branch's metadata, loading and packaging changes so prepared icons load directly without a second crop/resample. Preserve item IDs, shared Exotic icon aliases, displayed proportions and all Inventory/Party/vendor/reward uses. Document the resulting authoring/runtime split in Architecture and Art direction when implemented.
 - [ ] Compare prepared icons against the existing rendered result at gameplay size, including transparent edges and small details. Measure total and starting-bundle bytes, preparation cost and throttled cold loading before deciding whether to expand this approach.
 
 ### Other candidates — intentionally unordered

@@ -35,20 +35,6 @@
 .expedition [data-exotic='true'] {
   --tier-color: #9f461d;
 }
-/* Tint the surface, never the text, for Survivor's translucent white treatment. */
-[data-tier='1']:is(
-  .tier-badge,
-  .exp-inventory-card,
-  .exp-inventory-slot-row,
-  .exp-inventory-crew-slot,
-  .exp-gear-slot,
-  .shop-card,
-  .exp-quest-reward,
-  .reward,
-  .community-reward
-) {
-  background-color: #ffffff4d;
-}
 .tier-badge {
   display: inline-flex;
   align-items: center;
@@ -94,7 +80,6 @@
   padding: 0.2em 0.35em;
 }
 .exp-gear-slot[data-tier] {
-  border-left: 2px solid var(--tier-color);
   padding-left: 0.5cqw;
 }
 .exp-gear-slot .exp-equipment-meta {
@@ -104,7 +89,7 @@
   flex-wrap: wrap;
   margin-bottom: 0.15em;
 }
-.exp-pack-row[data-tier] .exp-pack-icon {
+.exp-pack-row[data-exotic='true'] .exp-pack-icon {
   outline: 1px solid color-mix(in srgb, var(--tier-color) 60%, transparent);
   outline-offset: 1px;
 }

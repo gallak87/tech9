@@ -1456,7 +1456,6 @@ kbd {
   text-align: left;
   background: #201e1b;
   border: 1px solid #51483f;
-  border-top: 2px solid var(--tier-color, #665647);
   color: #e5ddd2;
   font-family: Barlow, sans-serif;
 }

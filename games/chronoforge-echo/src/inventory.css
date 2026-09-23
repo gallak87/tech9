@@ -128,7 +128,7 @@
   display: flex;
   align-items: stretch;
   border-bottom: 1px solid #967b4e44;
-  border-left: 2px solid var(--tier-color, #967b4e44);
+  border-left: 2px solid #967b4e44;
   margin-bottom: 0.25cqw;
 }
 .exp-inventory-slot {

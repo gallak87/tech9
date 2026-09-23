@@ -191,7 +191,7 @@ test('rings only render for active nearby encounters, stay quiet during grace pe
   assert.equal(contactEncounter(scene, state), null);
 });
 
-test('only replayable cleared encounters expose an interaction prompt', () => {
+test('ordinary contact encounters stay out of the interaction list; cleared repeatable fights enter it', () => {
   const state = createState();
   Object.assign(state, { x: 100, y: 100 });
   for (const extra of [
@@ -227,6 +227,39 @@ test('only replayable cleared encounters expose an interaction prompt', () => {
     [sign],
     'An undefeated enemy must not mask another interaction',
   );
+});
+
+test('arrival-protected enemies allow an explicit fight without automatic contact or bypassing gates', () => {
+  const state = createState();
+  Object.assign(state, { x: 100, y: 100 });
+  for (const extra of [{}, { guard: 'haventide' }]) {
+    const encounter = enemy({
+        ...extra,
+        patrolMotion: { arrivalProtected: true },
+      }),
+      scene = { objects: [encounter], portals: [] };
+    assert.deepEqual(nearby(scene, state.x, state.y, state), [encounter]);
+    assert.equal(contactEncounter(scene, state), null);
+    assert.deepEqual(nearby(scene, state.x + 60, state.y, state), []);
+
+    encounter.requires = 'beacon_restored';
+    assert.deepEqual(nearby(scene, state.x, state.y, state), []);
+    state.flags.beacon_restored = true;
+    assert.deepEqual(nearby(scene, state.x, state.y, state), [encounter]);
+    assert.equal(contactEncounter(scene, state), null);
+
+    state.cleared.enemy = true;
+    assert.equal(
+      nearby(scene, state.x, state.y, state).length,
+      extra.guard ? 0 : 1,
+      'Protection cannot make a defeated gate sentry replayable',
+    );
+    delete state.cleared.enemy;
+    encounter.patrolMotion.arrivalProtected = false;
+    assert.deepEqual(nearby(scene, state.x, state.y, state), []);
+    assert.equal(contactEncounter(scene, state), encounter);
+    delete state.flags.beacon_restored;
+  }
 });
 
 test('ring eligibility and contact agree for every authored encounter without unlocking story gates', () => {

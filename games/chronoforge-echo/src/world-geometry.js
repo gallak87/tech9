@@ -125,8 +125,8 @@ export function meetsWorldRequirement(state, req) {
     (!req.flag || !!state.flags?.[req.flag])
   );
 }
-// The prompt and F/Space use this same list. Undefeated enemies use contact;
-// only cleared, repeatable encounters offer a manual replay.
+// Keyboard and touch share this list. Arrival protection prevents automatic
+// contact, but must still let the player explicitly choose to start the fight.
 export function nearby(scene, x, y, state) {
   return [...scene.objects, ...scene.portals]
     .filter(
@@ -137,7 +137,10 @@ export function nearby(scene, x, y, state) {
         (!o.unlockTier || (state?.tier || 1) >= o.unlockTier) &&
         !state?.pickups?.[o.id] &&
         (o.type !== 'encounter' ||
-          (state?.cleared?.[o.id] && !o.boss && !o.guard && !o.flag)) &&
+          (state?.cleared?.[o.id]
+            ? !o.boss && !o.guard && !o.flag
+            : o.patrolMotion?.arrivalProtected &&
+              meetsWorldRequirement(state, o.requires))) &&
         interactionDistance(o, x, y) <
           (o.type === 'encounter'
             ? 52

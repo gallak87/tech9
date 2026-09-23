@@ -204,6 +204,46 @@ try {
     false,
   );
   check('World overview touch zoom and Return');
+  for (const cleared of [false, true]) {
+    await page.evaluate(async (cleared) => {
+      const g = window.__ECHO__.game;
+      window.__ECHO__.preset('party');
+      g.ui.menu = true;
+      Object.assign(g.state, { region: 'emberline', x: 800, y: 1350 });
+      g.state.cleared.ember_arrival = cleared;
+      g.state.flags.battle_taught = true;
+      g.patrols.reset();
+      await g.assetLoading.loader.prepare(g.state);
+      g.assetLoading.loader.activate(g.state.region);
+      g.resetFollowers();
+      g.updateCamera(true);
+      g.ui.menu = false;
+      g.ui.render();
+    }, cleared);
+    await page.waitForFunction(
+      () => !document.querySelector('[data-touch-action="interact"]').disabled,
+    );
+    assert.equal(await page.evaluate(() => window.__ECHO__.game.mode), 'world');
+    assert.equal(
+      await page.evaluate(() => window.__ECHO__.game.near?.id),
+      'ember_arrival',
+    );
+    assert.match(
+      await page.locator('[data-touch-action="interact"]').textContent(),
+      cleared ? /Revisit patrol/ : /Engage Mutant Hound/,
+    );
+    await page.locator('[data-touch-action="interact"]').tap();
+    await page.waitForFunction(() => window.__ECHO__.game.mode === 'battle');
+    assert.equal(
+      await page.evaluate(() => window.__ECHO__.game.battle.encounter.id),
+      'ember_arrival',
+    );
+    check(
+      cleared
+        ? 'Cleared patrol replays by touch'
+        : 'Arrival-protected enemy can be engaged by touch',
+    );
+  }
   await battleFixture(page, 'battle-four');
   await page
     .locator('.cb-party-rail [data-battle-intent="hero"]')

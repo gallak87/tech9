@@ -1,4 +1,5 @@
 import { COMMUNITY_ICON_ASSETS } from './community-icon-manifest.js';
+import { preparedIcon } from './prepared-icon.js';
 
 // Original generated PNGs retain their alpha. Bounds include alpha >= 8 plus six source pixels.
 export const INVENTORY_ICON_ASSETS = [
@@ -423,4 +424,4 @@ export const INVENTORY_ICON_ASSETS = [
     rows: 1,
     required: true,
   },
-];
+].map(preparedIcon);

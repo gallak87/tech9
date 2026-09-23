@@ -362,79 +362,99 @@ test('cave exits have independent transparent sources and grounded threshold anc
   }
 });
 
-test('production extraction removes measured exterior air while retaining dark tunnel mouths', () => {
+test('authoring extraction and prepared alpha remove exterior air while retaining dark tunnel mouths', () => {
   for (const entry of [...WORLD_DETAIL_ASSETS, ...CAVE_ASSETS].filter(
     (a) => a.key,
   )) {
-    const image = readPngPixels(
-      new URL('../public/' + entry.source, import.meta.url),
-    );
-    const context = { getImageData: () => image, putImageData: () => {} };
-    keyNeutralExterior(context, image.width, image.height, entry);
-    assert.equal(image.data[3], 0, entry.id + ' exterior');
-    for (const [x, y] of entry.backgroundSeeds) {
-      const i = (y * image.width + x) * 4,
-        colors = image.data.subarray(i, i + 3);
-      if (
-        Math.min(...colors) >= 175 &&
-        Math.max(...colors) - Math.min(...colors) < 16
-      )
-        assert.equal(image.data[i + 3], 0, entry.id + ' enclosed air');
-    }
-    for (const f of entry.metadata.frames.filter(
-      (f) => f.part === 'entrance',
-    )) {
-      // The actual dark recess is deliberately opaque, unlike the former arch.
-      const x = Math.round(f.x + f.w * 0.53),
-        y = Math.round(f.y + f.h * 0.65);
-      assert.equal(
-        image.data[(y * image.width + x) * 4 + 3],
-        255,
-        f.biome + ' cave mouth',
+    const runtime = ASSET_MANIFEST.find((asset) => asset.id === entry.id),
+      image = readPngPixels(
+        new URL('../' + runtime.authoring.url, import.meta.url),
+      ),
+      prepared = readPngPixels(
+        new URL('../public/' + runtime.url, import.meta.url),
       );
+    assert.equal(runtime.key, undefined);
+    assert.equal(prepared.width, image.width);
+    assert.equal(prepared.height, image.height);
+    const context = { getImageData: () => image, putImageData: () => {} };
+    keyNeutralExterior(context, image.width, image.height, {
+      ...runtime,
+      ...runtime.authoring,
+    });
+    for (const pixels of [image, prepared]) {
+      assert.equal(pixels.data[3], 0, entry.id + ' exterior');
+      for (const [x, y] of entry.backgroundSeeds) {
+        const i = (y * image.width + x) * 4,
+          colors = image.data.subarray(i, i + 3);
+        if (
+          Math.min(...colors) >= 175 &&
+          Math.max(...colors) - Math.min(...colors) < 16
+        )
+          assert.equal(pixels.data[i + 3], 0, entry.id + ' enclosed air');
+      }
+      for (const f of entry.metadata.frames.filter(
+        (f) => f.part === 'entrance',
+      )) {
+        // The actual dark recess is deliberately opaque, unlike the former arch.
+        const x = Math.round(f.x + f.w * 0.53),
+          y = Math.round(f.y + f.h * 0.65);
+        assert.equal(
+          pixels.data[(y * image.width + x) * 4 + 3],
+          255,
+          f.biome + ' cave mouth',
+        );
+      }
     }
   }
 });
 
-test('First Gardener extraction clears tinted checkerboard around the ember and preserves its highlights', () => {
+test('First Gardener extraction and prepared alpha clear tinted checkerboard and preserve highlights', () => {
   const entry = ASSET_MANIFEST.find((asset) => asset.id === 'first_gardener');
   const image = readPngPixels(
+    new URL('../' + entry.authoring.url, import.meta.url),
+  );
+  const prepared = readPngPixels(
     new URL('../public/' + entry.url, import.meta.url),
   );
   const original = image.data.slice();
+  assert.equal(entry.key, undefined);
+  assert.equal(prepared.width, image.width);
+  assert.equal(prepared.height, image.height);
   keyNeutralExterior(
     { getImageData: () => image, putImageData: () => {} },
     image.width,
     image.height,
-    entry,
+    { ...entry, ...entry.authoring },
   );
-  for (const [x, y] of [
-    [590, 485],
-    [680, 460],
-    [697, 425],
-    [685, 380],
-  ]) {
-    assert.equal(
-      image.data[(y * image.width + x) * 4 + 3],
-      0,
-      `checker at ${x},${y}`,
-    );
-  }
-  // White-hot core, gold tip, purple pendant, ring and ivory stone.
-  for (const [x, y] of [
-    [627, 420],
-    [627, 340],
-    [625, 510],
-    [475, 410],
-    [620, 265],
-  ]) {
-    const i = (y * image.width + x) * 4;
-    assert.deepEqual(
-      image.data.slice(i, i + 4),
-      original.slice(i, i + 4),
-      `art at ${x},${y}`,
-    );
-    assert.equal(image.data[i + 3], 255);
+  for (const pixels of [image, prepared]) {
+    for (const [x, y] of [
+      [590, 485],
+      [680, 460],
+      [697, 425],
+      [685, 380],
+    ]) {
+      assert.equal(
+        pixels.data[(y * image.width + x) * 4 + 3],
+        0,
+        `checker at ${x},${y}`,
+      );
+    }
+    // White-hot core, gold tip, purple pendant, ring and ivory stone.
+    for (const [x, y] of [
+      [627, 420],
+      [627, 340],
+      [625, 510],
+      [475, 410],
+      [620, 265],
+    ]) {
+      const i = (y * image.width + x) * 4;
+      assert.deepEqual(
+        pixels.data.slice(i, i + 4),
+        original.slice(i, i + 4),
+        `art at ${x},${y}`,
+      );
+      assert.equal(pixels.data[i + 3], 255);
+    }
   }
 });
 

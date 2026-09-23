@@ -1,3 +1,5 @@
+import { preparedAlpha } from './prepared-alpha.js';
+import { preparedGround } from './prepared-ground.js';
 import * as EnemyArt from './enemy-frames.js';
 import * as HeroArt from './hero-frames.js';
 import * as MidEnemyArt from './mid-enemy-frames.js';
@@ -243,11 +245,14 @@ export const ASSET_MANIFEST = [
     backgroundSeeds: metadata.backgroundSeeds,
     metadata,
   })),
-].map((entry) =>
-  entry.metadata?.preserveSourceAlpha
-    ? entry
-    : { ...entry, ...ALPHA_MASKS[entry.id] },
-);
+]
+  .map((entry) =>
+    entry.metadata?.preserveSourceAlpha
+      ? entry
+      : { ...entry, ...ALPHA_MASKS[entry.id] },
+  )
+  .map(preparedAlpha)
+  .map(preparedGround);
 export const assetDiagnostics = { loaded: [], errors: [], bytes: 0 };
 
 export function keyNeutralExterior(
@@ -385,7 +390,12 @@ export async function loadPixelAtlas(entry, { signal } = {}) {
 }
 
 export function installAsset(art, entry, image) {
-  const grid = { columns: entry.columns, rows: entry.rows, biome: entry.biome };
+  const grid = {
+    columns: entry.columns,
+    rows: entry.rows,
+    biome: entry.biome,
+    preparedGround: entry.preparedGround,
+  };
   switch (entry.kind) {
     case 'kaidaWalk':
       art.installKaidaWalkSheet(image);

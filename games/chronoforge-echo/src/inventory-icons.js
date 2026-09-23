@@ -34,7 +34,7 @@ export function installInventoryIcon(image, entry) {
   const context = canvas.getContext('2d');
   context.imageSmoothingEnabled = true;
   context.imageSmoothingQuality = 'high';
-  const scale = (TEXTURE_SIZE * 0.94) / Math.max(w, h);
+  const scale = (TEXTURE_SIZE * (entry.prepared ? 1 : 0.94)) / Math.max(w, h);
   context.drawImage(
     image,
     x,

@@ -57,11 +57,17 @@ Timing accepts one fresh keydown per action; the execute press cannot double as 
 
 ## Rendering and assets
 
+`prepared-icon.js` retains authoring dimensions/crops while describing the 38 inventory and 20 resource/combat icons as prepared 256×256 PNGs. Both importers copy prepared icons without applying the original 94% fit twice. The preparation scripts use the same browser renderers and tracked originals in `art/sources/inventory/` and `art/sources/icons/`; those originals do not ship.
+
+`prepared-alpha.js` maps 52 selected entries to already-extracted PNGs. Their original extraction parameters and authoring paths remain in `entry.authoring`; the live entry skips only the initial neutral-background pass in `loadPixelAtlas`. Subsequent frame-specific processing remains unchanged. `scripts/prepare-alpha.mjs` invokes that same loader on the authoring files to regenerate the runtime PNGs.
+
+The eight prepared ground atlases contain six finished 256×256 textures each in a 768×512 PNG. `prepared-ground.js` marks those sources and retains their authoring paths. The importer copies prepared tiles without repeating the source inset, tint or seam balancing; logical pattern size, world geometry and road rotations remain unchanged. `groundTextureSources` lets `scripts/prepare-ground.mjs` consume the renderer's own results.
+
 `assets.js` validates required source dimensions and measured frame bounds before readiness. Missing required art produces a visible load failure. Art sources are loaded locally; runtime has no image-generation dependency. `rendering.js` owns backing scale, filtered contexts and logical pattern sizing.
 
 `index.html` paints a dark startup screen and an indeterminate “Loading game…” bar using only inline CSS and system fonts. Reduced motion keeps the indicator static. Once the application modules and styles are ready, `main.js` hands off to the loading choice or the asset-count progress bar; the initial indicator never claims a download percentage.
 
-`hero-pose-art.js` registers independent single-pose overrides. Kaida's referenced victory source preserves the complete raised sword at her normal body stature; the original showcase and walk sheets remain live for every other pose. `drawHero()` and `actorBounds()` resolve the same measured crop, anchor and scale, independently of source load order. `art/hero-pose-prompts.json` records the canonical reference, prompt and source provenance. Runtime neutral-background extraction removes the generated checkerboard and two measured hair-loop islands while preserving pale weapon and armor details.
+`hero-pose-art.js` registers independent single-pose overrides. Kaida's referenced victory source preserves the complete raised sword at her normal body stature; the original showcase and walk sheets remain live for every other pose. `drawHero()` and `actorBounds()` resolve the same measured crop, anchor and scale, independently of source load order. `art/hero-pose-prompts.json` records the canonical reference, prompt and source provenance. Offline neutral-background preparation removes the generated checkerboard and two measured hair-loop islands while preserving pale weapon and armor details.
 
 `enemy-walk-frames.js` supplies measured four-phase left/down/up crops for ten grounded enemies, with right-facing mirroring and fixed scale per direction. Four hovering types reuse neutral battle art with a small visual offset independent of their ground anchor. Battle pose mappings remain unchanged. `art/enemy-prompts.json` stores identity notes, historical prompts, and selected generation provenance; the read-only `scripts/enemy-art-prompt.mjs` resolves current canonical references from the live manifest.
 

@@ -78,6 +78,17 @@ Preview state and render buffers stay in memory and are released on close/reset.
 
 ## Maintenance
 
+The game ships prepared runtime PNGs and keeps their selected originals under tracked `art/sources/`, outside the public build. From this directory, the following tools reproduce the existing Chrome canvas rendering with Chrome installed:
+
+| Runtime assets                                 | Preparation command                        | Authoring sources                        |
+| ---------------------------------------------- | ------------------------------------------ | ---------------------------------------- |
+| 38 inventory icons at 256×256                  | `node scripts/prepare-inventory-icons.mjs` | `art/sources/inventory/`                 |
+| 20 resource/combat icons at 256×256            | `node scripts/prepare-resource-icons.mjs`  | `art/sources/icons/`                     |
+| 52 sprites/atlases with extracted transparency | `node scripts/prepare-alpha.mjs`           | `art/sources/` (matching subdirectories) |
+| Eight ground atlases of finished 256×256 tiles | `node scripts/prepare-ground.mjs`          | `art/sources/ground/`                    |
+
+Apply default OxiPNG to regenerated public PNGs before committing. Ordinary builds use the selected outputs directly and need no browser or image-processing step. The explicit prepared-alpha and prepared-ground ID lists describe already prepared files; add replacements only after running their preparation. Preserve original dimensions, crops and extraction parameters in the authoring records.
+
 [Architecture](ARCHITECTURE.md) describes state, rendering and simulation boundaries. [Art direction](ART_DIRECTION.md) covers current presentation and asset maintenance. [Narrative](NARRATIVE.md) describes campaign rules; [Roadmap](ROADMAP.md) contains outstanding work.
 
 Use **`.experiments/`** for all disposable scripts, candidate assets, captures, reports and scratch files. It is local and Git-ignored; the entire folder can be deleted without affecting the game, build or required tests. Do not write project scratch files outside this checkout. Keep required tooling and regression tests tracked in `scripts/` and `tests/`.

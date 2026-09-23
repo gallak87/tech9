@@ -16,7 +16,7 @@ for (const name of ['crater-ember', 'forest-veil'])
     () => {
       const source = readPngPixels(
         new URL(
-          '../public/assets/' + name + '-ground-source.png',
+          '../art/sources/ground/' + name + '-ground-source.png',
           import.meta.url,
         ),
       );

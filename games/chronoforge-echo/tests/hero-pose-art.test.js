@@ -130,55 +130,67 @@ test('victory survives either source load order and shares its crop with bounds'
   assert.deepEqual(draws.slice(0, 6), draws.slice(6));
 });
 
-test('victory extraction keeps the complete weapon and boots inside the crop', () => {
+test('victory extraction and prepared alpha keep the complete weapon and boots inside the crop', () => {
   const image = readPngPixels(
+      new URL('../' + victory.authoring.url, import.meta.url),
+    ),
+    prepared = readPngPixels(
       new URL('../public/' + victory.url, import.meta.url),
     ),
     original = image.data.slice(),
     frame = victory.metadata.frames[0];
+  assert.equal(victory.key, undefined);
+  assert.equal(prepared.width, image.width);
+  assert.equal(prepared.height, image.height);
   keyNeutralExterior(
     { getImageData: () => image, putImageData() {} },
     image.width,
     image.height,
-    victory,
+    { ...victory, ...victory.authoring },
   );
-  let left = image.width,
-    top = image.height,
-    right = 0,
-    bottom = 0;
-  for (let y = 0; y < image.height; y++)
-    for (let x = 0; x < image.width; x++)
-      if (image.data[(y * image.width + x) * 4 + 3]) {
-        left = Math.min(left, x);
-        top = Math.min(top, y);
-        right = Math.max(right, x);
-        bottom = Math.max(bottom, y);
-      }
-  assert.ok(left >= frame.x + 4 && right < frame.x + frame.w - 4);
-  assert.ok(top >= frame.y + 4 && bottom < frame.y + frame.h - 4);
-  // Exterior air, both enclosed hair loops, and the open space between her legs.
-  for (const [x, y] of [
-    [0, 0],
-    [527, 455],
-    [515, 468],
-    [550, 1100],
-    [480, 1200],
-  ])
-    assert.equal(image.data[(y * image.width + x) * 4 + 3], 0, `${x},${y} air`);
-  // Pale blade tip and forearm highlights must survive alongside the magenta
-  // blade core and both planted boots; broad color keying would damage these.
-  for (const [x, y] of [
-    [827, 62],
-    [750, 105],
-    [380, 500],
-    [327, 1400],
-    [803, 1420],
-  ]) {
-    const index = (y * image.width + x) * 4;
-    assert.deepEqual(
-      image.data.slice(index, index + 4),
-      original.slice(index, index + 4),
-    );
-    assert.equal(image.data[index + 3], 255);
+  for (const pixels of [image, prepared]) {
+    let left = image.width,
+      top = image.height,
+      right = 0,
+      bottom = 0;
+    for (let y = 0; y < image.height; y++)
+      for (let x = 0; x < image.width; x++)
+        if (pixels.data[(y * image.width + x) * 4 + 3]) {
+          left = Math.min(left, x);
+          top = Math.min(top, y);
+          right = Math.max(right, x);
+          bottom = Math.max(bottom, y);
+        }
+    assert.ok(left >= frame.x + 4 && right < frame.x + frame.w - 4);
+    assert.ok(top >= frame.y + 4 && bottom < frame.y + frame.h - 4);
+    // Exterior air, both enclosed hair loops, and the open space between her legs.
+    for (const [x, y] of [
+      [0, 0],
+      [527, 455],
+      [515, 468],
+      [550, 1100],
+      [480, 1200],
+    ])
+      assert.equal(
+        pixels.data[(y * image.width + x) * 4 + 3],
+        0,
+        `${x},${y} air`,
+      );
+    // Pale blade tip and forearm highlights must survive alongside the magenta
+    // blade core and both planted boots; broad color keying would damage these.
+    for (const [x, y] of [
+      [827, 62],
+      [750, 105],
+      [380, 500],
+      [327, 1400],
+      [803, 1420],
+    ]) {
+      const index = (y * image.width + x) * 4;
+      assert.deepEqual(
+        pixels.data.slice(index, index + 4),
+        original.slice(index, index + 4),
+      );
+      assert.equal(pixels.data[index + 3], 255);
+    }
   }
 });

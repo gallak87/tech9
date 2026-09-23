@@ -1,3 +1,5 @@
+import { preparedIcon } from './prepared-icon.js';
+
 // Original generated PNGs retain their alpha. Bounds include alpha >= 8 plus six source pixels.
 // All five quality tiers reuse the corresponding community weapon source.
 export const COMMUNITY_ICON_ASSETS = [
@@ -37,4 +39,4 @@ export const COMMUNITY_ICON_ASSETS = [
     rows: 1,
     required: true,
   },
-];
+].map(preparedIcon);

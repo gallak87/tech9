@@ -144,7 +144,9 @@ let groundAtlas = null,
 const groundAtlases = new Map();
 export function installGroundAtlas(image, options = {}) {
   const replacing = groundAtlases.has(options.biome || 'coast');
-  const columns = options.columns || 3,
+  const prepared = options.preparedGround === true,
+    inset = prepared ? 0 : 2,
+    columns = options.columns || 3,
     rows = options.rows || 2,
     sw = image.width / columns,
     sh = image.height / rows;
@@ -154,16 +156,16 @@ export function installGroundAtlas(image, options = {}) {
     artContext(cc);
     cc.drawImage(
       image,
-      (i % columns) * sw + 2,
-      Math.floor(i / columns) * sh + 2,
-      sw - 4,
-      sh - 4,
+      (i % columns) * sw + inset,
+      Math.floor(i / columns) * sh + inset,
+      sw - inset * 2,
+      sh - inset * 2,
       0,
       0,
       128,
       128,
     );
-    if (i === 4 || i === 5) {
+    if (!prepared && (i === 4 || i === 5)) {
       cc.globalAlpha = i === 5 ? 0.17 : 0.1;
       cc.fillStyle =
         options.biome && options.biome !== 'coast'
@@ -174,7 +176,10 @@ export function installGroundAtlas(image, options = {}) {
       cc.fillRect(0, 0, 128, 128);
       cc.globalAlpha = 1;
     }
-    if (options.biome === 'volcanic' || options.biome === 'forest') {
+    if (
+      !prepared &&
+      (options.biome === 'volcanic' || options.biome === 'forest')
+    ) {
       const pixels = cc.getImageData(0, 0, tile.width, tile.height);
       if (options.biome === 'forest' && (i === 0 || i === 1))
         balanceMaterialLighting(pixels.data, tile.width, tile.height);
@@ -200,6 +205,10 @@ export function installGroundAtlas(image, options = {}) {
   });
   // Preparing a different biome must not discard the active map's warm chunks.
   if (replacing) groundCache.clear();
+}
+// The preparation tool uses the same finished textures as the renderer.
+export function groundTextureSources(biome) {
+  return groundAtlases.get(biome)?.tiles || [];
 }
 const enemySheets = new Map();
 const enemyWalkSheets = new Map();

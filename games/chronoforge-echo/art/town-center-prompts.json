@@ -4,7 +4,8 @@
   "assets": [
     {
       "id": "forest_veil_town_center",
-      "source": "public/assets/town-centers/forest-veil-town-center-tiers-v1-source.png",
+      "source": "art/sources/town-centers/forest-veil-town-center-tiers-v1-source.png",
+      "runtimeSource": "public/assets/town-centers/forest-veil-town-center-tiers-v1-source.png",
       "generation": {
         "date": "2026-09-22",
         "tool": "built-in image_gen",
@@ -40,7 +41,8 @@
     },
     {
       "id": "mire_bog_town_center",
-      "source": "public/assets/town-centers/mire-bog-town-center-tiers-v1-source.png",
+      "source": "art/sources/town-centers/mire-bog-town-center-tiers-v1-source.png",
+      "runtimeSource": "public/assets/town-centers/mire-bog-town-center-tiers-v1-source.png",
       "generation": {
         "date": "2026-09-22",
         "tool": "built-in image_gen",
@@ -76,7 +78,8 @@
     },
     {
       "id": "crater_ember_town_center",
-      "source": "public/assets/town-centers/crater-ember-town-center-tiers-v1-source.png",
+      "source": "art/sources/town-centers/crater-ember-town-center-tiers-v1-source.png",
+      "runtimeSource": "public/assets/town-centers/crater-ember-town-center-tiers-v1-source.png",
       "generation": {
         "date": "2026-09-22",
         "tool": "built-in image_gen",
@@ -112,7 +115,8 @@
     },
     {
       "id": "frost_canyon_town_center",
-      "source": "public/assets/town-centers/frost-canyon-town-center-tiers-v1-source.png",
+      "source": "art/sources/town-centers/frost-canyon-town-center-tiers-v1-source.png",
+      "runtimeSource": "public/assets/town-centers/frost-canyon-town-center-tiers-v1-source.png",
       "generation": {
         "date": "2026-09-22",
         "tool": "built-in image_gen",
@@ -148,7 +152,8 @@
     },
     {
       "id": "npc_road_towns",
-      "source": "public/assets/npcs/road-towns-staff-v1-source.png",
+      "source": "art/sources/npcs/road-towns-staff-v1-source.png",
+      "runtimeSource": "public/assets/npcs/road-towns-staff-v1-source.png",
       "generation": {
         "date": "2026-09-22",
         "tool": "built-in image_gen",

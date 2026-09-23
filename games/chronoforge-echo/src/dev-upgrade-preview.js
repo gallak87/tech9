@@ -1,3 +1,5 @@
+import { TOWN_CENTERS } from './town-center-art.js';
+
 export {
   upgradeTourCameras,
   upgradeShotScale,
@@ -12,9 +14,7 @@ export {
 export function upgradePreviewStates(state, fromLevel, region = 'haventide') {
   if (!Number.isInteger(fromLevel) || fromLevel < 1 || fromLevel > 3)
     throw Error('Choose an upgrade from level 1, 2 or 3.');
-  if (
-    !['haventide', 'emberline', 'orbital_reach', 'last_crown'].includes(region)
-  )
+  if (!TOWN_CENTERS.some((town) => town.region === region))
     throw Error('Unknown preview town.');
   const before = structuredClone(state),
     after = structuredClone(state);

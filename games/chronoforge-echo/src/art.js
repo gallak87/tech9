@@ -3076,11 +3076,38 @@ export function installKaidaSheet(image, options = {}) {
         : null,
   };
 }
+const heroPoseSheets = new Map();
+export function installHeroPose(id, pose, image, metadata) {
+  heroPoseSheets.set(id + ':' + pose, { image, ...metadata });
+}
+
 export function drawHero(c, id, x, y, opt = {}) {
   const time = opt.time || 0,
     pose = opt.pose || 'idle',
     scale = opt.scale || 1,
     facing = opt.facing || 'right';
+  const replacement = heroPoseSheets.get(id + ':' + pose);
+  if (replacement) {
+    const frame = replacement.frames[0],
+      px = replacement.pixelScale * scale;
+    shadow(c, x, y, 19 * scale, 4 * scale);
+    c.save();
+    c.translate(Math.round(x), Math.round(y));
+    c.scale(facing === 'left' ? -1 : 1, 1);
+    c.drawImage(
+      replacement.image,
+      frame.x,
+      frame.y,
+      frame.w,
+      frame.h,
+      Math.round(-frame.anchorX * px),
+      Math.round(-frame.anchorY * px),
+      Math.round(frame.w * px),
+      Math.round(frame.h * px),
+    );
+    c.restore();
+    return;
+  }
   const walk = heroWalkSheets.get(id);
   if (
     walk?.frames.length &&
@@ -4981,6 +5008,7 @@ export function artMetrics() {
       ...enemyWalkSheets.values(),
       ...heroSheets.values(),
       ...heroWalkSheets.values(),
+      ...heroPoseSheets.values(),
       ...buildingAtlases.values(),
       ...npcSprites.values(),
       ...townCenterSheets.values(),
@@ -5033,6 +5061,7 @@ export function artMetrics() {
     groundBiomes: [...groundAtlases.keys()],
     buildingGroups: [...buildingAtlases.keys()],
     heroSheets: [...heroSheets.keys()],
+    heroPoses: [...heroPoseSheets.keys()],
     enemySheets: [...enemySheets.keys()],
     enemyWalkSheets: [...enemyWalkSheets.keys()],
   };
@@ -5044,7 +5073,11 @@ export function actorBounds(
 ) {
   let frame = null,
     factor = 0.23;
-  if (heroWalkSheets.get(id)?.frames.length && pose === 'move') {
+  const replacement = heroPoseSheets.get(id + ':' + pose);
+  if (replacement) {
+    frame = replacement.frames[0];
+    factor = replacement.pixelScale;
+  } else if (heroWalkSheets.get(id)?.frames.length && pose === 'move') {
     const sheet = heroWalkSheets.get(id),
       dir = facing === 'up' ? 2 : facing === 'down' ? 1 : 0;
     frame = sheet.frames[dir * 4 + (Math.floor(time * 9) % 4)];

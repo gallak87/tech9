@@ -209,8 +209,8 @@ test('a failed cinematic restores settlement works while preserving the successf
   ]);
 });
 
-test('all town reveals frame both exterior sizes and preserve the actual indoor camera and crew', () => {
-  for (const { region } of TOWN_CENTERS)
+test('all restoration town reveals frame both exterior sizes and preserve the actual indoor camera and crew', () => {
+  for (const region of ['haventide', ...COMMUNITY_DEFINITIONS.map((c) => c.id)])
     for (const level of [1, 2, 3]) {
       const { game } = settlement(region, level);
       const after = structuredClone(game.state);

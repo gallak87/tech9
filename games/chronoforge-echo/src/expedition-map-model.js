@@ -59,23 +59,40 @@ export function mapPointVisible(game, id, x, y) {
   return !!game.devTools?.mapExplored || isRevealed(game.state, id, x, y);
 }
 
-// The revealed dev map offers temporary jumps; normal travel keeps its gates.
-export function mapTravelAction(game, id) {
+function travelUnavailableReason(game, id) {
   const region = Object.hasOwn(REGIONS, id) ? REGIONS[id] : null;
-  if (!region) return { reason: 'Unknown region' };
+  if (!region) return 'Unknown region';
   if (game.mode !== 'world' || game.battle)
-    return { reason: 'Finish the encounter to travel' };
+    return 'Finish the encounter to travel';
   if (game.transition || game.state.recruitmentWalk || game.upgradeTour?.open)
-    return { reason: 'Travel unavailable right now' };
-  if (game.devTools?.mapExplored) {
-    if (game.ui?.panel) return { reason: 'Close the conversation to jump' };
-    return { action: 'dev-world:' + id, label: 'Jump' };
-  }
+    return 'Travel unavailable right now';
+  return null;
+}
+
+// Normal settlement travel also serves scripted homecoming. Map preview changes
+// the map's action only, never the underlying real-expedition travel permission.
+export function settlementTravelAction(game, id) {
+  const reason = travelUnavailableReason(game, id);
+  if (reason) return { reason };
+  const region = REGIONS[id];
   if (game.state.flags.pendingEnding)
     return { reason: 'Finish the crew’s ending first' };
   if (!game.state.visited[id]) return { reason: 'Uncharted' };
   if (!region.town) return { reason: 'No caravan route' };
-  if (!game.state.flags[id + '_liberated'])
+  if (region.town.discoveryTravel && !game.state.visited[id + '_town'])
+    return { reason: 'Enter this settlement to discover its travel stop' };
+  if (!region.town.discoveryTravel && !game.state.flags[id + '_liberated'])
     return { reason: 'Liberate this settlement to travel' };
   return { action: 'travel:' + id, label: 'Travel' };
+}
+
+// The revealed dev map offers temporary jumps; normal travel keeps its gates.
+export function mapTravelAction(game, id) {
+  const reason = travelUnavailableReason(game, id);
+  if (reason) return { reason };
+  if (game.devTools?.mapExplored) {
+    if (game.ui?.panel) return { reason: 'Close the conversation to jump' };
+    return { action: 'dev-world:' + id, label: 'Jump' };
+  }
+  return settlementTravelAction(game, id);
 }

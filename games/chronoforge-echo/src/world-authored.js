@@ -9,6 +9,7 @@ import {
   sign,
   camp,
 } from './world-objects.js';
+import { roadTown } from './road-town-definitions.js';
 
 // Authored geography. Coordinates are native pixels; every door is anchored at its threshold.
 const W = 4608,
@@ -750,7 +751,14 @@ export function createRegions() {
   return Object.fromEntries(
     regions.map((r) => [
       r.id,
-      { ...r, width: W, height: H, era: 'present', portals: [] },
+      {
+        ...r,
+        ...(roadTown(r.id) ? { town: { ...roadTown(r.id) } } : {}),
+        width: W,
+        height: H,
+        era: 'present',
+        portals: [],
+      },
     ]),
   );
 }

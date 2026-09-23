@@ -53,6 +53,7 @@ import {
 import { localDevHost } from './dev-access.js';
 import { mountUpgradeTour } from './upgrade-tour.js';
 import { WorldTraversal } from './world-traversal.js';
+import { settlementTravelAction } from './expedition-map-model.js';
 const W = VIEW_WIDTH,
   H = VIEW_HEIGHT,
   copy = (v) => JSON.parse(JSON.stringify(v)),
@@ -356,7 +357,7 @@ class Game {
     return safeArrival(scene, x, y);
   }
   travelHub(id) {
-    if (!this.state.flags[id + '_liberated']) return;
+    if (settlementTravelAction(this, id).action !== 'travel:' + id) return;
     const scene = getScene(id + '_town');
     this.travel(scene.id, scene.spawn);
   }

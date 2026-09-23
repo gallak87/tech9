@@ -65,7 +65,7 @@ test('closing or resetting the preview restores the actual level and cannot leak
   assert.equal(preview.visualState(next), next);
   for (const invalid of [0, 5, 1.5, NaN, '4'])
     assert.throws(() => preview.selectTownCenter(invalid));
-  for (const invalid of ['forest_veil', '', null])
+  for (const invalid of ['missing', '', null])
     assert.throws(() => preview.selectTown(invalid));
   preview.selectTown('last_crown');
   preview.selectTownCenter(4);
@@ -89,6 +89,7 @@ test('all regional tiers grow in both dimensions while doors remain at the autho
     let previous = { width: 0, height: 0 };
     for (let level = 1; level <= 4; level++) {
       const bounds = townCenterBounds(entrance, {
+        tier: level,
         buildings: { town_center: level },
         communities: { [town.region]: { level } },
       });
@@ -114,13 +115,13 @@ test('all regional tiers grow in both dimensions while doors remain at the autho
     }
   }
   assert.equal(
-    townCenterBounds({ id: 'forest_veil_entrance' }, createState()),
+    townCenterBounds({ id: 'missing_entrance' }, createState()),
     null,
   );
   assert.equal(townCenterBounds({ id: 'haventide' }, createState()), null);
 });
 
-test('regional art preview substitutes only Haventide and all sixteen sprites fit the fixed camera frame', () => {
+test('regional art preview substitutes only Haventide and all thirty-two sprites fit the fixed camera frame', () => {
   const state = createState(),
     preview = new ArtPreview();
   preview.setOpen(true);

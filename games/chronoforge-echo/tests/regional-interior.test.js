@@ -15,6 +15,7 @@ import {
 } from '../src/dev-upgrade-preview.js';
 import { townUpgradePlan } from '../src/upgrade-cinematic.js';
 import { ArtPreview } from '../src/dev-preview.js';
+import { ROAD_TOWNS } from '../src/road-town-definitions.js';
 
 const regions = ['haventide', 'emberline', 'orbital_reach', 'last_crown'];
 const parts = [
@@ -73,7 +74,7 @@ test('all four towns have four required production kits with valid measured crop
     }
 });
 
-for (const region of regions.slice(1))
+for (const region of [...regions.slice(1), ...Object.keys(ROAD_TOWNS)])
   test(
     region + ' preserves service approaches, exits, and old save recovery',
     () => {

@@ -1,4 +1,5 @@
 import { settlementLevel } from './settlement-level.js';
+import { ADDITIONAL_TOWN_CENTERS } from './new-town-center-art.js';
 
 // Source pixels are immutable. Per-tier widths and door anchors control world
 // size independently of the sheet layout and keep the entrance in one place.
@@ -293,6 +294,7 @@ export const TOWN_CENTERS = [
   EMBERLINE_TOWN_CENTER,
   ORBITAL_REACH_TOWN_CENTER,
   LAST_CROWN_TOWN_CENTER,
+  ...ADDITIONAL_TOWN_CENTERS,
 ];
 const centersByRegion = new Map(
   TOWN_CENTERS.map((center) => [center.region, center]),

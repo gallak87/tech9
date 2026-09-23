@@ -395,7 +395,7 @@ test('vendors compare weapon families with eligible crew and retain shared armor
   ui.panel = { type: 'vendor', object: { service: 'smith', name: 'Forge' } };
   ui.shop.sellMode = false;
   ui.game.state.tier = 2;
-  ui.game.state.region = 'emberline';
+  ui.game.state.region = 'forest_veil_town';
   ui.game.state.heroes[0].level = 20;
   ui.game.state.buildings.forge = 1;
   ui.shell = (_title, body) => body;
@@ -436,7 +436,7 @@ test('provisions compare accessories locally and sell supplies without a hero se
   };
   ui.shop.sellMode = false;
   ui.game.state.tier = 2;
-  ui.game.state.region = 'emberline_town';
+  ui.game.state.region = 'forest_veil_town';
   ui.shell = (_title, body) => body;
   const html = ui.renderVendor();
   assert.ok(html.includes('buy:crit_lens'));
@@ -485,18 +485,24 @@ test('research and closed workshops expose no trade controls or transactions', (
   }
 });
 
-test('an early visit explains a regional gear lock without claiming the pack is empty', () => {
+test('an early visit offers the current band and explains the later local ceiling', () => {
   const ui = actionFixture();
   ui.panel = {
     type: 'vendor',
-    object: { service: 'smith', name: 'Anchor Smith' },
+    object: { service: 'smith', name: 'Cinder Anvil' },
   };
   ui.shop.sellMode = false;
-  ui.game.state.region = 'orbital_reach_town';
+  ui.game.state.region = 'crater_ember_town';
   ui.game.state.tier = 2;
   ui.shell = (_title, body) => body;
   const html = ui.renderVendor();
-  assert.ok(html.includes('Local equipment requires Ascendant civilization.'));
+  assert.ok(
+    html.includes(
+      'Equipment available: Reclaimer. Up to Ascendant as civilization advances.',
+    ),
+  );
+  assert.ok(html.includes('buy:signal_saber'));
+  assert.ok(!html.includes('buy:magma_blade'));
   assert.ok(!html.includes('No items in your pack'));
 });
 
@@ -505,10 +511,10 @@ test('shop purchases charge the quoted quantity and recheck regional stock befor
   const state = ui.game.state;
   ui.panel = {
     type: 'vendor',
-    object: { service: 'smith', name: 'Brass Anvil' },
+    object: { service: 'smith', name: 'Mossforge' },
   };
   state.tier = 2;
-  state.region = 'emberline_town';
+  state.region = 'forest_veil_town';
   state.resources.ore = 300;
   const owned = state.inventory.signal_saber;
   ui.action('shop-qty:signal_saber:up');
@@ -580,7 +586,7 @@ test('unaffordable actions cannot open confirmation or alter the pack or balance
   const ui = shopFixture(),
     state = ui.game.state;
   state.tier = 3;
-  state.region = 'orbital_reach_town';
+  state.region = 'crater_ember_town';
   state.resources.ore = 31;
   const before = structuredClone(state);
   ui.action('buy:magma_blade');
@@ -617,7 +623,7 @@ test('confirmed purple weapons enter Inventory for each eligible hero', () => {
   const ui = shopFixture(),
     state = ui.game.state;
   state.tier = 3;
-  state.region = 'orbital_reach_town';
+  state.region = 'crater_ember_town';
   state.resources.ore = 465;
   state.inventory = {};
   for (const id of ['magma_blade', 'ember_core', 'ash_gauntlet']) {

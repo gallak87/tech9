@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "kaida_victory": {
+    "source": "assets/kaida/victory-v1-source.png",
+    "date": "2026-09-22",
+    "tool": "built-in image_gen",
+    "prompt": "Use case: identity-preserve.\nAsset type: one isolated victory-pose sprite for Kaida in Chronoforge Echo.\nInput images: Image 1 is the canonical Kaida character identity reference (front/back/side). Image 2 is the current gameplay sprite sheet, a style/proportion reference only. Do not remake the sheet.\nPrimary request: generate exactly ONE full-body Kaida victory pose, facing three-quarter right, confidently smiling, right arm raised overhead holding her complete magenta energy sword angled upward, left hand relaxed at her hip, both armored boots planted apart. Show the entire sword from pommel to pointed tip, her entire raised hand and arm, all hair and both boots, with generous transparent clearance above the sword and below the feet.\nIdentity: match reference Kaida exactly: short tousled burgundy-magenta hair and cowlick, magenta eyes, teal cropped jacket with high collar and metallic shoulder/forearm plates, charcoal fitted top and trousers, brown utility belts/straps and pouches, dark gloves, plated knee/shin armor and boots, short teal/magenta waist tails. Preserve the reference sword's black-metal hilt, cyan details and magenta core. No new gear.\nStyle: match the compact detailed painted-pixel JRPG sprite proportions and rendering of Image 2, crisp readable outlined silhouette, top-left lighting. Render a game sprite rather than a character poster. Preserve one normal standing body height even though the sword reaches overhead.\nBackground: genuinely transparent alpha, no painted checkerboard, no floor, no cast shadow, no scenery, no particles, no text, no grid. One character only. Whole figure and sword comfortably fit inside the canvas, no clipped weapon or limbs.",
+    "references": [
+      "games/chronoforge-remake/sprite-gen/kaida-reference.png",
+      "games/chronoforge-echo/public/assets/kaida-showcase-source.png"
+    ],
+    "notes": "Single replacement victory pose. Full source preserved; runtime keys generated RGB checkerboard and two measured hair-loop background islands. Original shared showcase remains live for all other poses."
+  }
+}

@@ -109,7 +109,7 @@ function mapPage(ui) {
    <path d="M7 49H57 M32 21V81" fill="none" stroke="currentColor" stroke-width=".6"/>
   </svg>
   <div class="map-tools">${btn('−', 'map-zoom:out', 'button quiet', 'aria-label="Zoom out"')}${btn('+', 'map-zoom:in', 'button quiet', 'aria-label="Zoom in"')}${btn('Center', 'map-reset', 'button quiet')}</div>
-  <div class="map-key">□ Settlement &nbsp; · Shelter / gateway &nbsp; + Crew<br>${preview ? 'All maps revealed temporarily. Your survey is unchanged.' : 'Travel to liberated settlements. Other regions remain available on foot.'}</div>
+  <div class="map-key">□ Settlement &nbsp; · Shelter / gateway &nbsp; + Crew<br>${preview ? 'All maps revealed temporarily. Your survey is unchanged.' : 'Travel to liberated settlements and discovered road towns. Enter a road town once to unlock its stop.'}</div>
  </div>`;
 }
 function requirements(t, h, s) {

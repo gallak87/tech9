@@ -1,21 +1,72 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ITEMS, SERVICES } from '../src/content.js';
+import { ITEMS, SERVICES, REGIONAL_SHOP_TIERS } from '../src/content.js';
 import { ALL_SCENES } from '../src/world.js';
 import {
   createState,
   serviceStock,
   serviceAvailable,
   research,
+  shopStockTier,
 } from '../src/progression.js';
 
-const regions = ['haventide', 'emberline', 'orbital_reach', 'last_crown'];
+const regions = Object.keys(REGIONAL_SHOP_TIERS);
+
+test('town ceilings are paired by authored region, independent of discovery order and hero level', () => {
+  const ceilings = {
+    haventide: 1,
+    emberline: 1,
+    orbital_reach: 2,
+    forest_veil: 2,
+    mire_bog: 3,
+    crater_ember: 3,
+    frost_canyon: 4,
+    last_crown: 4,
+  };
+  assert.deepEqual(REGIONAL_SHOP_TIERS, ceilings);
+  for (const order of [regions, [...regions].reverse()]) {
+    const state = createState();
+    state.heroes[0].level = 8;
+    for (const region of order) {
+      state.visited[region] = state.visited[region + '_town'] = true;
+      for (const tier of [1, 2, 3, 4]) {
+        state.tier = tier;
+        const available = Math.min(ceilings[region], tier);
+        assert.equal(shopStockTier(state, region + '_town'), available);
+        for (const service of ['smith', 'provisions']) {
+          const stock = serviceStock(state, service, region);
+          assert.ok(stock.length, region + ' offers basic stock immediately');
+          for (const id of stock)
+            assert.ok(
+              ITEMS[id].slot === 'consumable'
+                ? ITEMS[id].tier <= available
+                : ITEMS[id].tier === available,
+            );
+        }
+      }
+    }
+  }
+  const state = createState();
+  state.heroes[0].level = 8;
+  state.region = 'mire_bog_town';
+  assert.ok(serviceStock(state, 'smith').includes('iron_blade'));
+  assert.ok(!serviceStock(state, 'smith').includes('magma_blade'));
+  state.tier = 3;
+  assert.ok(serviceStock(state, 'smith').includes('magma_blade'));
+  assert.ok(!serviceStock(state, 'smith').includes('iron_blade'));
+  state.tier = 1;
+  state.heroes[0].level = 40;
+  assert.ok(
+    !serviceStock(state, 'smith').includes('magma_blade'),
+    'Hero level never bypasses civilization',
+  );
+});
 
 test('each town has exactly one smith/provisions pair with disjoint stock and complete retail coverage', () => {
   const state = createState();
   state.tier = 4;
   const sold = new Set();
-  for (const [index, region] of regions.entries()) {
+  for (const region of regions) {
     const town = ALL_SCENES[region + '_town'];
     const shops = town.objects.filter((o) => SERVICES[o.service]?.shop);
     assert.deepEqual(shops.map((o) => o.service).sort(), [
@@ -38,18 +89,19 @@ test('each town has exactly one smith/provisions pair with disjoint stock and co
       const item = ITEMS[id];
       assert.ok(
         item.slot === 'consumable'
-          ? item.tier <= index + 1
-          : item.tier === index + 1,
+          ? item.tier <= REGIONAL_SHOP_TIERS[region]
+          : item.tier === REGIONAL_SHOP_TIERS[region],
       );
       sold.add(id);
     }
     assert.deepEqual(serviceStock(state, 'smith', region), smith);
     assert.deepEqual(serviceStock(state, 'provisions', region), provisions);
-    assert.ok(
-      town.objects.some(
-        (o) => o.service === 'artificer' && o.havenPart === 'engineering',
-      ),
-    );
+    if (state.communities[region] || region === 'haventide')
+      assert.ok(
+        town.objects.some(
+          (o) => o.service === 'artificer' && o.havenPart === 'engineering',
+        ),
+      );
   }
   assert.deepEqual(
     [...sold].sort(),
@@ -60,7 +112,7 @@ test('each town has exactly one smith/provisions pair with disjoint stock and co
   );
 });
 
-test('local equipment never expands into earlier or later bands; supplies carry forward', () => {
+test('local equipment stops at its ceiling; supplies carry forward through the available band', () => {
   const state = createState();
   state.tier = 4;
   assert.deepEqual(
@@ -74,7 +126,7 @@ test('local equipment never expands into earlier or later bands; supplies carry 
     ].sort(),
   );
   assert.deepEqual(
-    serviceStock(state, 'provisions', 'emberline').sort(),
+    serviceStock(state, 'provisions', 'forest_veil').sort(),
     [
       'crit_lens',
       'swamp_coil',
@@ -95,15 +147,26 @@ test('local equipment never expands into earlier or later bands; supplies carry 
       'star_cell',
     ].sort(),
   );
-  assert.deepEqual(serviceStock(state, 'smith', 'forest_veil'), []);
-  assert.deepEqual(serviceStock(state, 'provisions', 'crater_ember'), []);
+  assert.deepEqual(serviceStock(state, 'smith', 'missing'), []);
+  assert.deepEqual(serviceStock(state, 'provisions', 'missing'), []);
   state.tier = 2;
-  assert.deepEqual(serviceStock(state, 'smith', 'orbital_reach'), []);
   assert.deepEqual(
     serviceStock(state, 'provisions', 'orbital_reach').sort(),
-    ['field_tonic', 'ether_cell', 'dawn_seed'].sort(),
+    [
+      'crit_lens',
+      'swamp_coil',
+      'moss_ward',
+      'field_tonic',
+      'ether_cell',
+      'dawn_seed',
+    ].sort(),
   );
-  assert.ok(serviceStock(state, 'smith', 'emberline').includes('signal_saber'));
+  assert.ok(
+    serviceStock(state, 'smith', 'orbital_reach').includes('signal_saber'),
+  );
+  assert.ok(
+    !serviceStock(state, 'smith', 'emberline').includes('signal_saber'),
+  );
 });
 
 test('archivists retain one-time research while artificers never unlock trading', () => {

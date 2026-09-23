@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Canonical prompts and references for the selected four regional town exterior families and their unique staff.",
+  "assets": [
+    {
+      "id": "forest_veil_town_center",
+      "source": "public/assets/town-centers/forest-veil-town-center-tiers-v1-source.png",
+      "generation": {
+        "date": "2026-09-22",
+        "tool": "built-in image_gen",
+        "useCase": "stylized-concept",
+        "prompt": "Use case: stylized-concept.\nAsset type: production sprite atlas for the Chronoforge Echo top-down RPG.\nPrimary request: Create one NEW square 2-by-2 sprite sheet of FOUR evolution tiers of the SAME regional town-center building. Reference image 1 provides the established detailed painted three-quarter orthographic game style, camera, building scale progression and atlas idea; reference image 2 provides local biome materials and accents. These are style references, NOT edit targets.\nComposition/framing: Top-left tier 1 modest inhabited refuge; top-right tier 2 repaired expanded hall; bottom-left tier 3 powered service hub; bottom-right tier 4 advanced civic landmark. Four separated full-building sprites, one centered within EACH EQUAL QUADRANT. Keep generous transparent outer margins and wide transparent gutters between all four: no roofs, steps, banners or shadows cross quadrants. Every entire sprite must be fully inside its quadrant, including its tallest finial and lowest step. Keep front facade and its entrance facing lower left like the reference. Each tier has ONE clearly visible main doorway with clear, short front steps; readable full entrance and approach. Increase sophistication while preserving the same recognizable core facade, doorway shape, roof silhouette and regional identity. No people or text.\nStyle/medium: Match references: richly detailed hand-painted fantasy steampunk RPG architecture, crisp dark-edged silhouettes, three-quarter orthographic projection, consistent top-left daylight, grounded compact foundations, warm occupied windows. No photographic render, no blur.\nScene/backdrop: Actual transparent alpha background, NOT a drawn checkerboard, NOT white, no environment scene or cast ground plane.\nConstraints: exactly four buildings in a 2x2 arrangement; no labels, numbers, letters, UI, frame lines, characters, floating spare props, watermarks, cropped roofs or cropped stairs. Keep access to each front door visually unobstructed. Build progression must show capability improving, not only decoration.\nSubject: Forest Veil woodland refuge hall. Mossy cream-gray stone, deep green foliage, sturdy weathered timber, living roots, restrained copper fittings and jade living signal light. Build a civic hall, NOT a tree trunk house; leafy overhanging roof with a small copper lantern cupola and a green arched door as stable identity. Tier 1 an improvised woodland rest hall with crates and herb planters; tier 2 repaired stone wings and orderly supplies; tier 3 integrated greenhouse and root-conducted signal equipment; tier 4 graceful living-stone civic hall with restrained luminous emerald signal crown and cultivated roof gardens. Keep green organic identity across all tiers; light cyan-green instruments only as accents.",
+        "references": [
+          {
+            "path": "public/assets/town-centers/haventide-town-center-tiers-v1-source.png",
+            "role": "style and regional material reference"
+          },
+          {
+            "path": "public/assets/forest-veil-props-source.png",
+            "role": "style and regional material reference"
+          }
+        ]
+      },
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      },
+      "layout": "2 columns \u00d7 2 rows, tier 1 through tier 4 in reading order",
+      "transparency": "Generated RGB with painted neutral checkerboard despite requested alpha. Runtime connected neutral extraction uses measured seeds in src/new-town-center-art.js; original selected pixels retained.",
+      "status": "Selected live source for the four added regional towns.",
+      "sha256": "9afd5b807ce9e119e32ba2a6092ccc7621f21ec03eeb4669fef6c95e382f006c",
+      "bytes": 2888684
+    },
+    {
+      "id": "mire_bog_town_center",
+      "source": "public/assets/town-centers/mire-bog-town-center-tiers-v1-source.png",
+      "generation": {
+        "date": "2026-09-22",
+        "tool": "built-in image_gen",
+        "useCase": "stylized-concept",
+        "prompt": "Use case: stylized-concept.\nAsset type: production sprite atlas for the Chronoforge Echo top-down RPG.\nPrimary request: Create one NEW square 2-by-2 sprite sheet of FOUR evolution tiers of the SAME regional town-center building. Reference image 1 provides the established detailed painted three-quarter orthographic game style, camera, building scale progression and atlas idea; reference image 2 provides local biome materials and accents. These are style references, NOT edit targets.\nComposition/framing: Top-left tier 1 modest inhabited refuge; top-right tier 2 repaired expanded hall; bottom-left tier 3 powered service hub; bottom-right tier 4 advanced civic landmark. Four separated full-building sprites, one centered within EACH EQUAL QUADRANT. Keep generous transparent outer margins and wide transparent gutters between all four: no roofs, steps, banners or shadows cross quadrants. Every entire sprite must be fully inside its quadrant, including its tallest finial and lowest step. Keep front facade and its entrance facing lower left like the reference. Each tier has ONE clearly visible main doorway with clear, short front steps; readable full entrance and approach. Increase sophistication while preserving the same recognizable core facade, doorway shape, roof silhouette and regional identity. No people or text.\nStyle/medium: Match references: richly detailed hand-painted fantasy steampunk RPG architecture, crisp dark-edged silhouettes, three-quarter orthographic projection, consistent top-left daylight, grounded compact foundations, warm occupied windows. No photographic render, no blur.\nScene/backdrop: Actual transparent alpha background, NOT a drawn checkerboard, NOT white, no environment scene or cast ground plane.\nConstraints: exactly four buildings in a 2x2 arrangement; no labels, numbers, letters, UI, frame lines, characters, floating spare props, watermarks, cropped roofs or cropped stairs. Keep access to each front door visually unobstructed. Build progression must show capability improving, not only decoration.\nSubject: Mire Bog raised marsh trading hall. Dark wet timber, aged green-patina copper roofing, mossy submerged-ruin stone, ochre cloth, reeds and warm amber lanterns. Stable identity: steep copper gable roof, broad arched wooden front door, a small old bell above the porch, and compact braced raised boardwalk foundation with a clear central stair. Tier 1 sturdy modest stilt refuge with salvaged supplies; tier 2 repaired larger trading hall with raised side porches and stores; tier 3 water-purification tanks and copper pumping apparatus integrated into the hall; tier 4 sophisticated marsh civic station with larger enclosed trading wings, a tall controlled copper condenser tower and advanced clean-water system. Show useful restoration without losing weathered marsh character. No huge body of water or landscape around the building; only compact foundation feet and a few reeds.",
+        "references": [
+          {
+            "path": "public/assets/town-centers/haventide-town-center-tiers-v1-source.png",
+            "role": "style and regional material reference"
+          },
+          {
+            "path": "public/assets/mire-bog-props-source.png",
+            "role": "style and regional material reference"
+          }
+        ]
+      },
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      },
+      "layout": "2 columns \u00d7 2 rows, tier 1 through tier 4 in reading order",
+      "transparency": "Generated RGB with painted neutral checkerboard despite requested alpha. Runtime connected neutral extraction uses measured seeds in src/new-town-center-art.js; original selected pixels retained.",
+      "status": "Selected live source for the four added regional towns.",
+      "sha256": "052803e5185bc89a073883e00b6aaf9a8fadb464401207a50d9f584fb1db0e9d",
+      "bytes": 2849363
+    },
+    {
+      "id": "crater_ember_town_center",
+      "source": "public/assets/town-centers/crater-ember-town-center-tiers-v1-source.png",
+      "generation": {
+        "date": "2026-09-22",
+        "tool": "built-in image_gen",
+        "useCase": "stylized-concept",
+        "prompt": "Use case: stylized-concept.\nAsset type: production sprite atlas for the Chronoforge Echo top-down RPG.\nPrimary request: Create one NEW square 2-by-2 sprite sheet of FOUR evolution tiers of the SAME regional town-center building. Reference image 1 provides the established detailed painted three-quarter orthographic game style, camera, building scale progression and atlas idea; reference image 2 provides local biome materials and accents. These are style references, NOT edit targets.\nComposition/framing: Top-left tier 1 modest inhabited refuge; top-right tier 2 repaired expanded hall; bottom-left tier 3 powered service hub; bottom-right tier 4 advanced civic landmark. Four separated full-building sprites, one centered within EACH EQUAL QUADRANT. Keep generous transparent outer margins and wide transparent gutters between all four: no roofs, steps, banners or shadows cross quadrants. Every entire sprite must be fully inside its quadrant, including its tallest finial and lowest step. Keep front facade and its entrance facing lower left like the reference. Each tier has ONE clearly visible main doorway with clear, short front steps; readable full entrance and approach. Increase sophistication while preserving the same recognizable core facade, doorway shape, roof silhouette and regional identity. No people or text.\nStyle/medium: Match references: richly detailed hand-painted fantasy steampunk RPG architecture, crisp dark-edged silhouettes, three-quarter orthographic projection, consistent top-left daylight, grounded compact foundations, warm occupied windows. No photographic render, no blur.\nScene/backdrop: Actual transparent alpha background, NOT a drawn checkerboard, NOT white, no environment scene or cast ground plane.\nConstraints: exactly four buildings in a 2x2 arrangement; no labels, numbers, letters, UI, frame lines, characters, floating spare props, watermarks, cropped roofs or cropped stairs. Keep access to each front door visually unobstructed. Build progression must show capability improving, not only decoration.\nSubject: Crater Ember heat-shielded basalt waystation. Charcoal basalt blocks, ash-dusted iron, riveted oxidized copper heatshield roof, warm orange furnace lighting and deep rust cloth. Stable identity: chunky arched main doorway, single curved sloped copper roof, flanking protective basalt buttresses and a chimney with a restrained orange pressure gauge. This is a safe inhabited civic refuge, NOT an enemy fortress or erupting volcano. Tier 1 compact stone-and-metal shelter with boxed supplies; tier 2 repaired trade hall with heat-shielded side wings and a proper chimney; tier 3 integrated controlled geothermal power apparatus, forge ventilation and sheltered hydroponic food room; tier 4 advanced fortified civic power station with a tall elegant furnace-energy tower, protected glass food-production wing and orderly civic systems. Keep lava enclosed in tiny equipment channels; absolutely no lava river or dangerous fire on the front approach, no smoke cloud outside sprite silhouette.",
+        "references": [
+          {
+            "path": "public/assets/town-centers/haventide-town-center-tiers-v1-source.png",
+            "role": "style and regional material reference"
+          },
+          {
+            "path": "public/assets/crater-ember-props-source.png",
+            "role": "style and regional material reference"
+          }
+        ]
+      },
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      },
+      "layout": "2 columns \u00d7 2 rows, tier 1 through tier 4 in reading order",
+      "transparency": "Generated RGB with painted neutral checkerboard despite requested alpha. Runtime connected neutral extraction uses measured seeds in src/new-town-center-art.js; original selected pixels retained.",
+      "status": "Selected live source for the four added regional towns.",
+      "sha256": "0334296ebfd918873eb051dcffef3fad090296cabf8fde8054fcefee76b8027b",
+      "bytes": 2644994
+    },
+    {
+      "id": "frost_canyon_town_center",
+      "source": "public/assets/town-centers/frost-canyon-town-center-tiers-v1-source.png",
+      "generation": {
+        "date": "2026-09-22",
+        "tool": "built-in image_gen",
+        "useCase": "stylized-concept",
+        "prompt": "Use case: stylized-concept.\nAsset type: production sprite atlas for the Chronoforge Echo top-down RPG.\nPrimary request: Create one NEW square 2-by-2 sprite sheet of FOUR evolution tiers of the SAME regional town-center building. Reference image 1 provides the established detailed painted three-quarter orthographic game style, camera, building scale progression and atlas idea; reference image 2 provides local biome materials and accents. These are style references, NOT edit targets.\nComposition/framing: Top-left tier 1 modest inhabited refuge; top-right tier 2 repaired expanded hall; bottom-left tier 3 powered service hub; bottom-right tier 4 advanced civic landmark. Four separated full-building sprites, one centered within EACH EQUAL QUADRANT. Keep generous transparent outer margins and wide transparent gutters between all four: no roofs, steps, banners or shadows cross quadrants. Every entire sprite must be fully inside its quadrant, including its tallest finial and lowest step. Keep front facade and its entrance facing lower left like the reference. Each tier has ONE clearly visible main doorway with clear, short front steps; readable full entrance and approach. Increase sophistication while preserving the same recognizable core facade, doorway shape, roof silhouette and regional identity. No people or text.\nStyle/medium: Match references: richly detailed hand-painted fantasy steampunk RPG architecture, crisp dark-edged silhouettes, three-quarter orthographic projection, consistent top-left daylight, grounded compact foundations, warm occupied windows. No photographic render, no blur.\nScene/backdrop: Actual transparent alpha background, NOT a drawn checkerboard, NOT white, no environment scene or cast ground plane.\nConstraints: exactly four buildings in a 2x2 arrangement; no labels, numbers, letters, UI, frame lines, characters, floating spare props, watermarks, cropped roofs or cropped stairs. Keep access to each front door visually unobstructed. Build progression must show capability improving, not only decoration.\nSubject: Frost Canyon sheltered alpine rescue lodge. Blue-gray glacial stone, dark weathered timber, snow-coated steep slate roofs, cobalt-blue insulating cloth, warm amber rescue lights, restrained aged brass and silver machinery. Stable identity: broad welcoming arched dark-wood front door, stout low stone side buttresses, steep gable roof, a visible warm lantern beacon above the entry, and cleared stone steps. Distinct from Orbital Reach: mountaineering rescue hall with grounded alpine silhouette, not radio/space station or red banners. Tier 1 modest snow-sheltered stone lodge with dry provision crates; tier 2 repaired larger hall with warm enclosed sleeping wings; tier 3 powered rescue beacon, insulated greenhouse annex and sheltered recovery equipment; tier 4 advanced alpine civic refuge with radiant amber beacon tower, blue-glass conservatory and integrated heat-distribution machinery. Keep blue-white ice and snow on outer eaves while the full main entrance and steps remain clear and safe. No mountain landscape, no falling snow, no blizzard effects.",
+        "references": [
+          {
+            "path": "public/assets/town-centers/orbital-reach-town-center-tiers-v1-source.png",
+            "role": "style and regional material reference"
+          },
+          {
+            "path": "public/assets/frost-canyon-props-source.png",
+            "role": "style and regional material reference"
+          }
+        ]
+      },
+      "dimensions": {
+        "width": 1254,
+        "height": 1254
+      },
+      "layout": "2 columns \u00d7 2 rows, tier 1 through tier 4 in reading order",
+      "transparency": "Generated RGB with painted neutral checkerboard despite requested alpha. Runtime connected neutral extraction uses measured seeds in src/new-town-center-art.js; original selected pixels retained.",
+      "status": "Selected live source for the four added regional towns.",
+      "sha256": "41e2754e5a8981b8c04b9f94c77717165fd4f7b7189db1e6ac3fffc4f8d71111",
+      "bytes": 2766046
+    },
+    {
+      "id": "npc_road_towns",
+      "source": "public/assets/npcs/road-towns-staff-v1-source.png",
+      "generation": {
+        "date": "2026-09-22",
+        "tool": "built-in image_gen",
+        "useCase": "stylized-concept",
+        "prompt": "Use case: stylized-concept.\nAsset type: full-body NPC sprite atlas for Chronoforge Echo RPG.\nPrimary request: Create ONE new sprite sheet of EXACTLY 12 distinct friendly adult town service NPCs in a strict 4-COLUMN by 3-ROW grid. Images 1 and 2 are style references only: match their detailed illustrated fantasy-steampunk JRPG character rendering, expressive faces, appealing varied proportions and dark-edged silhouettes. DO NOT repeat their actual people or identities.\nLayout: Four columns correspond left-to-right to Forest Veil, Mire Bog, Crater Ember, Frost Canyon. Three rows correspond top-to-bottom to PROVISIONS MERCHANTS, SMITHS, INNKEEPERS. Exactly one complete person per cell. All figures stand upright in a relaxed three-quarter view facing slightly toward viewer's left, evenly sized around five heads tall. Entire body, hair, hat, held object, hands and both boots visible, with generous clear transparent margins above heads and below feet and wide gaps between people. No neighboring figure overlap. No cropped feet. Head faces large and clear enough to crop for dialogue portraits.\nIndividual identities and outfits, strict reading order:\nTop row: (1) Forest provisions: middle-aged brown-skinned woman with black braided bun, leaf-green shawl, cream work apron, herb basket. (2) Mire provisions: wiry older light-skinned man, long dark mustache, russet fisherman cap, moss-green waterproof coat, woven supply basket. (3) Crater provisions: young dark-skinned man with short curly black hair, ochre scarf, charcoal canvas coat, copper canteen and pack of dried food. (4) Frost provisions: broad middle-aged tan-skinned woman, chestnut side braid, cobalt quilted coat, fur collar, satchel of bread.\nMiddle row: (1) Forest smith: lean young East-Asian-looking woman with short auburn hair, dark green tunic and sturdy brown leather apron, a modest smith hammer held down at side. (2) Mire smith: stocky brown-skinned middle-aged man, shaved head with short black beard, rolled dark sleeves, copper-stained dark apron, short tongs. (3) Crater smith: muscular older light-skinned woman, cropped silver hair, protective goggles resting on brow, heat-resistant dark red apron, iron hammer at her side. (4) Frost smith: tall dark-skinned man, black locs tied back, indigo insulated work jacket and slate leather apron, a small ice pick held safely down.\nBottom row: (1) Forest innkeeper: elderly light-skinned woman, soft gray hair in a bun, sage dress and warm ochre vest, holding a small covered pot. (2) Mire innkeeper: cheerful young tan-skinned woman with curly black bob, dark teal dress and ochre apron, holding a copper teapot. (3) Crater innkeeper: broad middle-aged brown-skinned man with thick salt-and-pepper beard, russet waistcoat over cream shirt, holding a ceramic mug. (4) Frost innkeeper: elderly East-Asian-looking man with swept white hair, short goatee, blue wool cloak and ochre scarf, holding a folded blanket.\nStyle: Detailed hand-painted game sprites matching references; consistent top-left light, clean confident linework, warm friendly independent characters, restrained copper fittings. Feet grounded at matching cell-relative baselines. Avoid a realistic photo, flat vector, excessive chibi, battle stance or hostile weapon pose.\nBackground: TRUE transparent alpha, not a painted checkerboard or gray backdrop. No cast ground plane.\nConstraints: NO text, labels, numbers, letters, grid lines, logos, floating accessories, duplicates or extra figures; exactly four columns and three rows. Keep all 12 complete and fully separated.",
+        "references": [
+          {
+            "path": "public/assets/npcs/emberline-source.png",
+            "role": "NPC rendering style reference; new identities requested"
+          },
+          {
+            "path": "public/assets/npcs/orbital_reach-source.png",
+            "role": "NPC rendering style reference; new identities requested"
+          }
+        ]
+      },
+      "dimensions": {
+        "width": 1536,
+        "height": 1024
+      },
+      "layout": "4 columns (Forest Veil, Mire Bog, Crater Ember, Frost Canyon), 3 rows (provisions, smith, inn)",
+      "transparency": "Generated RGB with painted dark neutral checkerboard despite requested alpha. Connected keyMin 100 with measured arm/prop seeds in src/road-town-npc-art.js; original selected pixels retained.",
+      "status": "Selected live source for the four added regional towns.",
+      "sha256": "17ea0b44c1668b350f1357a5f189d9f93f889b77d1f7d20ea04e9fbe194932da",
+      "bytes": 2776415
+    }
+  ]
+}

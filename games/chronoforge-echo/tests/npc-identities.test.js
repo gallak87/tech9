@@ -24,8 +24,8 @@ const locals = npcs.filter(
 test('every local vendor, host and resident owns distinct world and portrait art', () => {
   assert.equal(
     locals.length,
-    36,
-    'Sweep includes all four towns and all eight refuge hosts',
+    48,
+    'Sweep includes all eight towns and all eight refuge hosts',
   );
   const art = new Set(),
     names = new Set();

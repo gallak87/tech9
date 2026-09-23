@@ -44,8 +44,9 @@ export function buildWorld() {
 
   // These layouts and interaction extents are already expressed in world units.
   configureHaventideInterior(ALL_SCENES.haventide_town);
-  for (const region of ['emberline', 'orbital_reach', 'last_crown'])
-    configureRegionalInterior(ALL_SCENES[region + '_town']);
+  for (const region of Object.values(REGIONS))
+    if (region.town && region.id !== 'haventide')
+      configureRegionalInterior(ALL_SCENES[region.id + '_town']);
   configureWorldInteractions(REGIONS, ALL_SCENES);
 
   // Grounded art footprints are the final collision geometry.
@@ -226,28 +227,33 @@ function createTownInteriors(REGIONS, interiors) {
   for (const r of Object.values(REGIONS)) {
     if (r.town) {
       const t = r.town,
-        id = r.id + '_town';
+        id = r.id + '_town',
+        guard = guards[r.id];
       // Put the visible blockade on the approach, clear of the building artwork.
-      Object.assign(
-        r.objects.find((o) => o.id === guards[r.id]),
-        { x: t.x - 44, y: t.y + 68, gateName: t.name },
-      );
+      if (guard)
+        Object.assign(
+          r.objects.find((o) => o.id === guard),
+          { x: t.x - 44, y: t.y + 68, gateName: t.name },
+        );
       r.objects.push(
         obj(r.id + '_entrance', 'town', t.x, t.y, {
           name: t.name,
           to: id,
           spawn: point(640, 795),
-          guard: guards[r.id],
-          requires: r.id + '_liberated',
+          ...(guard ? { guard, requires: r.id + '_liberated' } : {}),
           solid: true,
           w: 200,
           h: 100,
         }),
       );
+      if (t.discoveryTravel)
+        r.roads.push(road([t.x, t.y + 45], closestRoadPoint(r, t.x, t.y + 45)));
       const s = {
         id,
         name: t.name,
-        subtitle: 'A place worth rebuilding',
+        subtitle: t.discoveryTravel
+          ? 'A welcome along the road'
+          : 'A place worth rebuilding',
         biome: r.biome,
         width: 1280,
         height: 900,
@@ -266,14 +272,10 @@ function createTownInteriors(REGIONS, interiors) {
         ],
         walkAreas: [{ x: 60, y: 110, w: 1160, h: 740 }],
       };
-      [
-        'provisions',
-        'smith',
-        'inn',
-        'archivist',
-        'artificer',
-        'trainer',
-      ].forEach((service, i) => {
+      const services = t.discoveryTravel
+        ? ['provisions', 'smith', 'inn']
+        : ['provisions', 'smith', 'inn', 'archivist', 'artificer', 'trainer'];
+      services.forEach((service, i) => {
         const x = [260, 640, 1020][i % 3],
           y = i < 3 ? 310 : 585;
         s.objects.push(
@@ -288,17 +290,18 @@ function createTownInteriors(REGIONS, interiors) {
           }),
         );
       });
-      s.objects.push(
-        obj(r.id + '_board', 'console', 640, 445, {
-          name: 'Settlement works',
-          service: 'construction',
-        }),
-        obj(r.id + '_resident', 'npc', 845, 725, {
-          name: NPC_IDENTITIES[r.id + '_resident'].name,
-          dialogue:
-            'We were afraid this place would become another empty room. Thank you for opening the doors.',
-        }),
-      );
+      if (!t.discoveryTravel)
+        s.objects.push(
+          obj(r.id + '_board', 'console', 640, 445, {
+            name: 'Settlement works',
+            service: 'construction',
+          }),
+          obj(r.id + '_resident', 'npc', 845, 725, {
+            name: NPC_IDENTITIES[r.id + '_resident'].name,
+            dialogue:
+              'We were afraid this place would become another empty room. Thank you for opening the doors.',
+          }),
+        );
       if (r.id === 'haventide') {
         s.objects.push(
           obj('mara', 'npc', 415, 705, { name: 'Mara' }),
@@ -699,7 +702,7 @@ function populateGroves(REGIONS) {
         if (
           distanceToRoad(r, x, y) < 70 ||
           r.objects.some((o) =>
-            o.building || o.communityProject
+            o.building || o.communityProject || o.type === 'town'
               ? Math.abs(x - o.x) < o.w / 2 + 58 && Math.abs(y - o.y) < o.h + 75
               : Math.hypot(x - o.x, y - o.y) < 85,
           ) ||

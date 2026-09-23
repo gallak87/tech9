@@ -1340,6 +1340,10 @@ export class UI {
           ? Object.keys(s.inventory).filter((id) => s.inventory[id] > 0)
           : P.serviceStock(s, service, s.region)
       ).filter((id) => ITEMS[id]);
+      const stockTier = P.shopStockTier(s),
+        stockCeiling = REGIONAL_SHOP_TIERS[s.region.replace(/_town$/, '')];
+      if (!this.shop.sellMode && stockTier)
+        body += `<p class="small muted">Equipment available: ${TIERS[stockTier - 1]}.${stockTier < stockCeiling ? ` Up to ${TIERS[stockCeiling - 1]} as civilization advances.` : ''}</p>`;
       body += `<div class="shop-toolbar">${button(this.shop.sellMode ? 'Buy supplies' : 'Sell from pack', 'trade-mode', 'button quiet')}</div>`;
       for (const [type, name] of [
         ['weapon', 'Weapons'],
@@ -1396,8 +1400,7 @@ export class UI {
           .join('')}</div></section>`;
       }
       if (!ids.length) {
-        const tier = REGIONAL_SHOP_TIERS[s.region.replace(/_town$/, '')];
-        body += `<p class="shop-empty">${this.shop.sellMode ? 'No items in your pack to sell.' : tier && s.tier < tier ? `Local equipment requires ${TIERS[tier - 1]} civilization.` : 'No supplies available here.'}</p>`;
+        body += `<p class="shop-empty">${this.shop.sellMode ? 'No items in your pack to sell.' : 'No supplies available here.'}</p>`;
       }
     }
     body += `<div class="shop-return">${button('Return to the settlement', 'close', 'button quiet')}</div>`;

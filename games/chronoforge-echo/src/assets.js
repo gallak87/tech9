@@ -4,6 +4,8 @@ import * as MidEnemyArt from './mid-enemy-frames.js';
 import * as BossArt from './boss-frames.js';
 import { ENVIRONMENT_ASSETS } from './environment-frames.js';
 import { HERO_WALK_ART } from './hero-walk-frames.js';
+import { HERO_POSE_ASSETS } from './hero-pose-art.js';
+import { ROAD_TOWN_NPC_ASSETS } from './road-town-npc-art.js';
 import { ENEMY_WALK_ART } from './enemy-walk-frames.js';
 import { ALPHA_MASKS } from './alpha-masks.js';
 import { WORLD_PROP_ASSETS } from './world-prop-frames.js';
@@ -37,6 +39,7 @@ const atlas = (id, url, columns, rows, kind, options = {}) => ({
   ...options,
 });
 export const ASSET_MANIFEST = [
+  ...HERO_POSE_ASSETS,
   ...ENEMY_WALK_ART.map((metadata) => ({
     id: metadata.id + '_walk',
     enemyId: metadata.id,
@@ -195,6 +198,7 @@ export const ASSET_MANIFEST = [
   ...INVENTORY_ICON_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
   ...SIGN_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
   ...NPC_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
+  ...ROAD_TOWN_NPC_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
   ...STRUCTURE_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
   ...WORLD_DETAIL_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
   ...CAVE_ASSETS.map((entry) => ({ ...entry, url: entry.source })),
@@ -377,6 +381,14 @@ export async function loadAssets(art) {
             break;
           case 'heroWalk':
             art.installHeroWalkSheet(entry.heroId, image, entry.metadata);
+            break;
+          case 'heroPose':
+            art.installHeroPose(
+              entry.heroId,
+              entry.pose,
+              image,
+              entry.metadata,
+            );
             break;
           case 'enemyWalk':
             art.installEnemyWalkSheet(entry.enemyId, image, entry.metadata);

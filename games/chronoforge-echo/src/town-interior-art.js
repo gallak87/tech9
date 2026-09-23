@@ -3,6 +3,7 @@ import { settlementLevel } from './settlement-level.js';
 import { EMBERLINE_INTERIOR_ASSETS } from './emberline-interior-art.js';
 import { ORBITAL_REACH_INTERIOR_ASSETS } from './orbital-reach-interior-art.js';
 import { LAST_CROWN_INTERIOR_ASSETS } from './last-crown-interior-art.js';
+import { roadTown } from './road-town-definitions.js';
 
 export const TOWN_INTERIOR_ASSETS = [
   ...HAVENTIDE_INTERIOR_ASSETS.map((asset) => ({
@@ -18,8 +19,9 @@ export function townInteriorLevel(state, region = 'haventide') {
 }
 export function townInteriorRegion(region, state) {
   const actual = region ?? 'haventide';
-  const selected =
+  const chosen =
     actual === 'haventide' ? (state?.townInteriorArtRegion ?? actual) : actual;
+  const selected = roadTown(chosen)?.interiorKit ?? chosen;
   return TOWN_INTERIOR_ASSETS.some((asset) => asset.region === selected)
     ? selected
     : 'haventide';

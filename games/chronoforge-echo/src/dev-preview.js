@@ -1,4 +1,6 @@
 // Transient display state. This object never becomes part of a saved expedition.
+import { TOWN_CENTERS } from './town-center-art.js';
+
 export class ArtPreview {
   open = false;
   townCenterLevel = null;
@@ -15,11 +17,7 @@ export class ArtPreview {
   }
 
   selectTown(region) {
-    if (
-      !['haventide', 'emberline', 'orbital_reach', 'last_crown'].includes(
-        region,
-      )
-    )
+    if (!TOWN_CENTERS.some((town) => town.region === region))
       throw Error('Unknown preview town.');
     if (this.open) this.townCenterRegion = region;
   }

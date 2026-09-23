@@ -145,7 +145,9 @@ test('required source dimensions and measured frames agree with the immutable PN
       // different minimum frame counts. Every crop is checked below.
       assert.ok(
         m.frames.length >=
-          (['roadSign', 'structure', 'caveExit'].includes(entry.kind)
+          (['roadSign', 'structure', 'caveExit', 'heroPose'].includes(
+            entry.kind,
+          )
             ? 1
             : ['townCenter', 'environmentDetail'].includes(entry.kind)
               ? 4
@@ -199,9 +201,18 @@ test('each town imports its own complete four-tier exterior family', () => {
   const towns = ASSET_MANIFEST.filter((a) => a.kind === 'townCenter');
   assert.deepEqual(
     towns.map((a) => a.region),
-    ['haventide', 'emberline', 'orbital_reach', 'last_crown'],
+    [
+      'haventide',
+      'emberline',
+      'orbital_reach',
+      'last_crown',
+      'forest_veil',
+      'mire_bog',
+      'crater_ember',
+      'frost_canyon',
+    ],
   );
-  assert.equal(new Set(towns.map((a) => a.url)).size, 4);
+  assert.equal(new Set(towns.map((a) => a.url)).size, 8);
   for (const town of towns) {
     assert.ok(town.required);
     assert.equal(town.metadata.frames.length, 4);

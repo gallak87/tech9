@@ -91,7 +91,7 @@ test('regional smiths offer every weapon family at their local tier', () => {
   state.buildings.forge = 1;
   state.buildings.research_lab = 1;
   state.resources.ore = 9999;
-  const regions = ['haventide', 'emberline', 'orbital_reach', 'last_crown'];
+  const regions = ['haventide', 'forest_veil', 'crater_ember', 'last_crown'];
   for (let tier = 1; tier <= 4; tier++) {
     state.tier = tier;
     const service = 'smith',

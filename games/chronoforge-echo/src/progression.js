@@ -471,8 +471,12 @@ export function serviceAvailable(state, id, region = state.region) {
     facilities,
   );
 }
+export function shopStockTier(state, region = state.region) {
+  const ceiling = REGIONAL_SHOP_TIERS[region.replace(/_town$/, '')];
+  return ceiling ? Math.min(ceiling, state.tier) : null;
+}
 export function serviceStock(state, service = 'smith', region = state.region) {
-  const tier = REGIONAL_SHOP_TIERS[region.replace(/_town$/, '')],
+  const tier = shopStockTier(state, region),
     slots = SERVICES[service]?.shop;
   if (!tier || !slots || !serviceAvailable(state, service, region)) return [];
   return Object.values(ITEMS)

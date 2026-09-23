@@ -1165,8 +1165,12 @@ export const SERVICES = {
 };
 export const REGIONAL_SHOP_TIERS = {
   haventide: 1,
-  emberline: 2,
-  orbital_reach: 3,
+  emberline: 1,
+  orbital_reach: 2,
+  forest_veil: 2,
+  mire_bog: 3,
+  crater_ember: 3,
+  frost_canyon: 4,
   last_crown: 4,
 };
 export const EXPANSION_CONTRACT = Object.freeze({

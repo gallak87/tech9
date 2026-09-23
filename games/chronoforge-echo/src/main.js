@@ -694,6 +694,7 @@ async function boot() {
   loader.onProgress = mountLoadingProgress(
     shell.querySelector('#loading'),
     loader.specification(state).ids.length,
+    loader.entries,
   );
   try {
     await loader.prepare(state);

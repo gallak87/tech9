@@ -114,7 +114,11 @@ for (const profile of ['full', 'mobile']) {
     const waiting = new Map();
     let finishFirstInstall;
     const cache = new AssetCache({
-      entries: ['shared', 'nearby', 'distant'].map((id) => ({ id })),
+      entries: [
+        { id: 'shared', kind: 'hero' },
+        { id: 'nearby', kind: 'ground', biome: 'desert' },
+        { id: 'distant', kind: 'enemy' },
+      ],
       dependencies: () => ({ key: 'nearby', ids: ['shared', 'nearby'] }),
       profile,
       load: (entry) => new Promise((resolve) => waiting.set(entry.id, resolve)),
@@ -127,8 +131,13 @@ for (const profile of ['full', 'mobile']) {
       release: () => {},
     });
     const spec = cache.specification('nearby');
-    cache.onProgress = mountLoadingProgress(shell.loading, spec.ids.length);
+    cache.onProgress = mountLoadingProgress(
+      shell.loading,
+      spec.ids.length,
+      cache.entries,
+    );
     const prepared = cache.prepare('nearby');
+    assert.equal(shell.title.textContent, 'Loading Crew…');
     assert.equal(shell.bar.value, 0);
     assert.equal(shell.bar.max, profile === 'mobile' ? 2 : 3);
     waiting.get('shared')({ width: 1, height: 1 });
@@ -141,9 +150,14 @@ for (const profile of ['full', 'mobile']) {
     finishFirstInstall();
     await tick();
     assert.equal(shell.bar.value, 1);
+    assert.equal(shell.title.textContent, 'Loading Emberline…');
     assert.match(shell.count.textContent, profile === 'mobile' ? /50%/ : /33%/);
-    for (const id of spec.ids.filter((id) => id !== 'shared'))
+    for (const id of spec.ids.filter((id) => id !== 'shared')) {
       waiting.get(id)({ width: 1, height: 1 });
+      await tick();
+      if (profile === 'full' && id === 'nearby')
+        assert.equal(shell.title.textContent, 'Loading Enemies…');
+    }
     await prepared;
     assert.equal(shell.bar.value, shell.bar.max);
     assert.match(shell.count.textContent, /100%/);

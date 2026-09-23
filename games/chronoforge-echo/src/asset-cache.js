@@ -123,6 +123,8 @@ export class AssetCache {
       bytes = 0;
     try {
       const entry = this.entries.get(task.id);
+      task.started = true;
+      this.onProgress(this.diagnostics());
       source = await this.load(entry, { signal: task.controller.signal });
       bytes = (source.width || 0) * (source.height || 0) * 4;
       this.workingBytes += bytes;
@@ -250,6 +252,15 @@ export class AssetCache {
     return {
       profile: this.profile,
       loadedCount: this.loaded.size,
+      // One active source describes current work without listing queued files
+      // or exposing filenames. Completed sources no longer own the label.
+      loadingId:
+        [...this.inflight.values()].find(
+          (task) =>
+            task.started &&
+            task.generation === this.generation &&
+            !this.loaded.has(task.id),
+        )?.id ?? null,
       totalCount: this.entries.size,
       activeGroup: this.active,
       retainedGroups: [...this.groups.keys()],

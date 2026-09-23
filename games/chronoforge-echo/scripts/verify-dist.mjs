@@ -12,6 +12,26 @@ for (const name of fs.readdirSync(sourceAssets, { recursive: true })) {
     `Non-runtime file in public/assets: ${name}`,
   );
 }
+const builtAssets = new URL('assets/', dist);
+const builtPngs = fs
+  .readdirSync(builtAssets, { recursive: true })
+  .filter((name) => name.endsWith('.png'))
+  .map((name) => 'assets/' + name.replaceAll('\\', '/'));
+assert.deepEqual(
+  new Set(builtPngs),
+  liveAssets,
+  'Built PNGs must match the live manifest exactly',
+);
+for (const asset of ASSET_MANIFEST) {
+  assert.ok(
+    fs
+      .readFileSync(new URL(asset.url, dist))
+      .equals(
+        fs.readFileSync(new URL('../public/' + asset.url, import.meta.url)),
+      ),
+    `Build must ship the selected optimized PNG unchanged: ${asset.url}`,
+  );
+}
 const index = fs.readFileSync(new URL('index.html', dist), 'utf8');
 const entryRefs = [...index.matchAll(/(?:src|href)=["']([^"']+)["']/g)]
   .map((m) => m[1])
@@ -72,6 +92,10 @@ for (const folder of [
   'evidence/',
   'experiments/',
   '.art-review/',
+  'art/',
+  'src/',
+  'scripts/',
+  'tests/',
 ]) {
   assert.ok(
     !fs.existsSync(new URL(folder, dist)),

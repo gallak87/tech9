@@ -1,0 +1,93 @@
+{
+  "checkpoint": 1,
+  "round": 3,
+  "commit": "615db92699f70361a46fe653b25ef28aab3a442a",
+  "score": 5.5,
+  "passThreshold": 8,
+  "pass": false,
+  "basis": "Independent visual assessment after directly viewing the supplied reference and both 1600x1000 captures. Character and HUD excluded. Performance and implementation effort do not affect the art score.",
+  "reference": "/var/folders/nz/htpngfld7rs6m4qt6tpfknrm0000gn/T/codex-clipboard-66457751-b149-4eaf-9ea7-d3af6842ed5e.png",
+  "summary": "Recognizable forest with convincing large-scale depth and some warm backlight, but sparse ground cover, flat terrain dressing, rigid vegetation and conspicuous material repetition read as an older game environment, well below the requested near-photoreal AAA lushness.",
+  "issues": [
+    {
+      "priority": 1,
+      "issue": "Ground cover lacks the reference's dense, layered plant masses.",
+      "evidence": "Both views expose broad uninterrupted brown-green floor. Foreground grass is thin and wiry; ferns form isolated low patches; the grove hillside is especially bare. The reference has abundant overlapping grass, ferns and shrubs with much larger silhouette variation.",
+      "fix": "Fill the non-path foreground and midground with overlapping irregular colonies of fuller bent grass, large ferns, broadleaf bushes and seedlings. Build multiple plant heights and species silhouettes, preserving narrow dirt openings and deliberate light-catching edges."
+    },
+    {
+      "priority": 2,
+      "issue": "Ground and rocks look synthetic at the displayed viewing distance.",
+      "evidence": "The forest floor is a nearly continuous fine mottled carpet. Trail-side shadows show conspicuous fine stippling. The large left trail boulder and lower-right grove rock have angular outlines and an oversized, repetitive cracked surface; small trail stones resemble isolated dark pellets.",
+      "fix": "Break the floor into uneven moss, needle litter, exposed soil, roots and embedded pebble patches with readable medium-scale variation. Replace foreground rock shapes/materials with rounded weathering, restrained fissures, varied roughness and moss concentrated at contact areas. Remove the visible stippled shadow pattern."
+    },
+    {
+      "priority": 3,
+      "issue": "Pines repeat rigid trunk and crown shapes.",
+      "evidence": "Both views contain many similarly straight, cylindrical trunks and coarse repeated crown lobes. The dominant grove trunk has a sharp flared base and abruptly protruding bare branch; crowns read as solid clipped masses rather than airy needle sprays.",
+      "fix": "Vary trunk lean, taper, root buttress and branching rhythm; make crown outlines finer and more irregular with separated branch tiers and needle sprays. Introduce distinct mature-pine and sapling shapes, then vary their scale and rotation."
+    },
+    {
+      "priority": 4,
+      "issue": "Lighting lacks the reference's luminous green vegetation and soft warm integration.",
+      "evidence": "The trail has recognizable golden rays, but foliage remains dull dark olive and ground shadows are heavy. The grove is uniformly dim beneath the canopy while sky gaps are pale and stark; neither view shows much warm light passing through lush foreground leaves.",
+      "fix": "After improving vegetation, tune foliage transmission and diffuse bounce so backlit blade and fern edges glow. Soften the deepest ground shadows, retain green midtones, and distribute warm haze through depth without washing out the distant tree shapes."
+    }
+  ],
+  "frameMetricsContext": {
+    "trail": {
+      "source": ".artifacts/r3-trail.json",
+      "screenshot": "docs/reviews/cp1-r3-trail.png",
+      "capturedAt": "2026-09-24T18:09:20.017Z",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "headless": true,
+      "cpu": "Apple M1 Pro",
+      "snapshot": {
+        "fps": 97,
+        "frameMs": 10.3,
+        "drawCalls": 168,
+        "triangles": 4020337
+      },
+      "performance": {
+        "samples": 330,
+        "meanMs": 10.605454545454545,
+        "medianMs": 8.399999999999636,
+        "p95Ms": 16.700000000000273,
+        "meanFps": 94.29110234870564,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "drawingBuffer": [1600, 1000],
+        "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+      }
+    },
+    "grove": {
+      "source": ".artifacts/r3-grove.json",
+      "screenshot": "docs/reviews/cp1-r3-grove.png",
+      "capturedAt": "2026-09-24T18:09:54.943Z",
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "headless": true,
+      "cpu": "Apple M1 Pro",
+      "snapshot": {
+        "fps": 109,
+        "frameMs": 9.2,
+        "drawCalls": 120,
+        "triangles": 2974746
+      },
+      "performance": {
+        "samples": 363,
+        "meanMs": 9.641873278236915,
+        "medianMs": 8.399999999999636,
+        "p95Ms": 16.699999999999818,
+        "meanFps": 103.71428571428571,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "drawingBuffer": [1600, 1000],
+        "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+      }
+    }
+  }
+}

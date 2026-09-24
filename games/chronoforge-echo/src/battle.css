@@ -985,9 +985,16 @@
   min-height: 48px;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 2px 4px;
-  padding: 4px 0 6px;
+  padding: 4px 8px 6px;
+  border: 1px solid #8886;
+  background: #191919e8;
   font-size: 12px;
   align-content: center;
+}
+#game[data-mobile='true'] #battle-interface .cb-party:not(:disabled):hover,
+#game[data-mobile='true'] #battle-interface .cb-party-active:not(:disabled) {
+  border-color: #df702e99;
+  background: #df702e12;
 }
 #game[data-mobile='true'] #battle-interface .cb-party-name {
   font-size: 14px;

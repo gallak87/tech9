@@ -7,6 +7,7 @@ A fixed 160 × 160 metre forest study. Three.js owns rendering; Blender authors 
 - `src/main.js` boots the app and displays load failures.
 - `src/core/SceneApp.js` owns renderer, camera, frame loop, lighting, settings and the small lifecycle registry.
 - A world layer provides `id`, `init(context)`, optional `update(dt, elapsed)`, `configure(settings)` and `dispose()`. Context supplies scene, camera, renderer, assets, events and world bounds. Future characters, interactions and HUD layers register through the same lifecycle. Avoid an ECS until requirements justify it.
+- `src/core/AtmospherePass.js` owns a linear HDR scene target, half-resolution world-space shadow raymarch and final tone mapping/contact shading. It samples the scene depth and native directional comparison shadow texture; geometry remains sharply resolved.
 - `src/core/FlyCamera.js` owns pointer-lock and keyboard input, speed and boundary enforcement. No character or physics is included.
 - `src/world/ForestWorld.js` exports `createForestWorld()` returning a layer. Its init can be async. It owns terrain, trees, rocks and ground cover, never renderer or UI. Export `terrainHeight(x,z)` and `pathCenter(z)` from `src/world/terrain.js` for camera clearance and later grounded actors.
 - `src/ui/DevPanel.js` owns exactly five high-level controls: quality, sunlight, atmosphere, richness and exposure. UI receives callbacks and metrics, never edits world internals.

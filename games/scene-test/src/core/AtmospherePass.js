@@ -2,15 +2,19 @@ import {
   Color,
   DepthTexture,
   HalfFloatType,
+  Matrix4,
   ShaderMaterial,
   UnsignedIntType,
   Vector2,
+  Vector3,
   WebGLRenderTarget,
 } from 'three';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
-
-// A single linear-HDR scene target followed by depth-aware screen-space light scattering.
-// Rays are occluded by the actual scene depth, including alpha-tested foliage.
+const fullscreenVertex =
+  'varying vec2 vUv; void main(){vUv=uv; gl_Position=vec4(position.xy,0.0,1.0);}';
+/** Half-resolution world-space scattering through the actual directional shadow map.
+ * Alpha-cutout pines occlude light in the air as well as shade the trail.
+ */
 export class AtmospherePass {
   constructor(renderer) {
     this.renderer = renderer;
@@ -19,43 +23,96 @@ export class AtmospherePass {
       depthBuffer: true,
     });
     this.target.depthTexture = new DepthTexture(1, 1, UnsignedIntType);
+    this.volumeTarget = new WebGLRenderTarget(1, 1, {
+      type: HalfFloatType,
+      depthBuffer: false,
+    });
+    this.volumeMaterial = new ShaderMaterial({
+      uniforms: {
+        tDepth: { value: this.target.depthTexture },
+        tShadow: { value: null },
+        inverseProjection: { value: new Matrix4() },
+        cameraWorld: { value: new Matrix4() },
+        shadowMatrix: { value: new Matrix4() },
+        eye: { value: new Vector3() },
+        lightDirection: { value: new Vector3() },
+        sunColor: { value: new Color('#ffe3a3') },
+        strength: { value: 1 },
+        raySteps: { value: 32 },
+      },
+      vertexShader: fullscreenVertex,
+      fragmentShader: `
+        uniform sampler2D tDepth;
+        uniform highp sampler2DShadow tShadow;
+        uniform mat4 inverseProjection; uniform mat4 cameraWorld; uniform mat4 shadowMatrix;
+        uniform vec3 eye; uniform vec3 lightDirection; uniform vec3 sunColor;
+        uniform float strength; uniform float raySteps; varying vec2 vUv;
+        void main(){
+          float depth=texture2D(tDepth,vUv).r;
+          vec4 view=inverseProjection*vec4(vUv*2.0-1.0,depth*2.0-1.0,1.0);
+          vec3 world=(cameraWorld*vec4(view.xyz/view.w,1.0)).xyz;
+          vec3 delta=world-eye;
+          float rayLength=min(length(delta),85.0);
+          vec3 ray=normalize(delta);
+          float stepLength=rayLength/raySteps;
+          float jitter=fract(52.9829189*fract(dot(gl_FragCoord.xy,vec2(0.06711056,0.00583715))));
+          float scattering=0.0;
+          for(int i=0;i<48;i++){
+            if(float(i)>=raySteps)break;
+            float distance=(float(i)+jitter)*stepLength;
+            vec3 point=eye+ray*distance;
+            vec4 shadow=shadowMatrix*vec4(point,1.0);
+            vec3 coord=shadow.xyz/shadow.w;
+            float visible=0.0;
+            if(coord.x>0.0&&coord.x<1.0&&coord.y>0.0&&coord.y<1.0&&coord.z<1.0){
+              visible=texture(tShadow,vec3(coord.xy,coord.z-0.0002));
+            }
+            float groundMist=exp(-max(point.y-1.0,0.0)*0.105);
+            scattering+=visible*groundMist*exp(-distance*0.012)*stepLength;
+          }
+          float alignment=max(dot(ray,lightDirection),0.0);
+          float phase=0.55+pow(alignment,4.0)*1.65;
+          gl_FragColor=vec4(sunColor*scattering*0.0075*phase*strength,1.0);
+        }`,
+      depthTest: false,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    this.volumeQuad = new FullScreenQuad(this.volumeMaterial);
     this.material = new ShaderMaterial({
       uniforms: {
         tColor: { value: this.target.texture },
         tDepth: { value: this.target.depthTexture },
-        sunScreen: { value: new Vector2(0.9, 0.95) },
-        strength: { value: 0.7 },
-        raySteps: { value: 32 },
-        sunColor: { value: new Color('#ffe4b0') },
-        aspect: { value: 1 },
+        tVolume: { value: this.volumeTarget.texture },
+        resolution: { value: new Vector2(1, 1) },
+        clipPlanes: { value: new Vector2(0.15, 240) },
       },
-      vertexShader:
-        'varying vec2 vUv; void main(){vUv=uv; gl_Position=vec4(position.xy,0.0,1.0);}',
+      vertexShader: fullscreenVertex,
       fragmentShader: `
-        uniform sampler2D tColor; uniform sampler2D tDepth;
-        uniform vec2 sunScreen; uniform float strength; uniform float raySteps;
-        uniform vec3 sunColor; uniform float aspect; varying vec2 vUv;
+        uniform sampler2D tColor; uniform sampler2D tVolume; uniform sampler2D tDepth;
+        uniform vec2 resolution; uniform vec2 clipPlanes; varying vec2 vUv;
+        float viewDepth(vec2 uv){float z=texture2D(tDepth,uv).r;return clipPlanes.x*clipPlanes.y/(clipPlanes.y-z*(clipPlanes.y-clipPlanes.x));}
         void main(){
           vec3 color=texture2D(tColor,vUv).rgb;
-          vec2 ray=(sunScreen-vUv)*0.92/raySteps;
-          vec2 p=vUv;
-          float scatter=0.0; float decay=1.0;
-          float jitter=fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453);
-          p+=ray*jitter;
-          for(int i=0;i<48;i++){
-            if(float(i)>=raySteps) break;
-            p+=ray;
-            float visible=step(0.99995,texture2D(tDepth,clamp(p,0.001,0.999)).r);
-            visible*=step(0.0,p.x)*step(p.x,1.0)*step(0.0,p.y)*step(p.y,1.0);
-            scatter+=visible*decay; decay*=0.965;
+          vec2 pixel=1.0/resolution;
+          vec3 light=texture2D(tVolume,vUv).rgb*0.4;
+          light+=texture2D(tVolume,vUv+vec2(pixel.x,0.0)).rgb*0.15;
+          light+=texture2D(tVolume,vUv-vec2(pixel.x,0.0)).rgb*0.15;
+          light+=texture2D(tVolume,vUv+vec2(0.0,pixel.y)).rgb*0.15;
+          light+=texture2D(tVolume,vUv-vec2(0.0,pixel.y)).rgb*0.15;
+          float centerDepth=viewDepth(vUv);
+          float occlusion=0.0;
+          for(int i=0;i<8;i++){
+            float angle=float(i)*2.39996;
+            vec2 offset=vec2(cos(angle),sin(angle))*pixel*(1.2+float(i)*0.5);
+            float difference=centerDepth-viewDepth(vUv+offset);
+            occlusion+=smoothstep(0.025,0.20,difference)*(1.0-smoothstep(0.30,1.25,difference));
           }
-          vec2 sunDelta=(vUv-sunScreen)*vec2(aspect,1.0);
-          float halo=exp(-dot(sunDelta,sunDelta)*6.0);
-          float sourceFade=1.0-smoothstep(0.6,1.4,length(sunScreen-0.5));
-          color+=sunColor*(scatter/raySteps)*strength*sourceFade*(0.20+halo*0.95);
-          float vignette=1.0-0.15*smoothstep(0.15,0.82,length((vUv-0.5)*vec2(1.0,0.8)));
-          color*=vignette;
-          gl_FragColor=vec4(color,1.0);
+          color*=1.0-occlusion*0.0375;
+          color+=light;
+          color*=vec3(1.025,1.008,0.973);
+          float vignette=1.0-0.12*smoothstep(0.2,0.8,length((vUv-0.5)*vec2(1.0,0.8)));
+          gl_FragColor=vec4(color*vignette,1.0);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,
@@ -69,34 +126,45 @@ export class AtmospherePass {
       Math.floor(width * pixelRatio),
       Math.floor(height * pixelRatio),
     );
-    this.material.uniforms.aspect.value = width / height;
+    const w = Math.max(1, Math.floor(width * pixelRatio * 0.5));
+    const h = Math.max(1, Math.floor(height * pixelRatio * 0.5));
+    this.volumeTarget.setSize(w, h);
+    this.material.uniforms.resolution.value.set(w, h);
   }
   configure(preset, settings) {
     if (this.target.samples !== preset.samples) {
       this.target.samples = preset.samples;
       this.target.dispose();
     }
-    this.material.uniforms.raySteps.value = preset.rays;
-    this.material.uniforms.strength.value =
-      settings.atmosphere * settings.sunlight * 0.7;
+    this.volumeMaterial.uniforms.raySteps.value = preset.rays;
+    this.volumeMaterial.uniforms.strength.value =
+      settings.atmosphere * settings.sunlight;
   }
-  render(scene, camera, sunPosition) {
-    const projected = sunPosition.clone().project(camera);
-    this.material.uniforms.sunScreen.value.set(
-      projected.x * 0.5 + 0.5,
-      projected.y * 0.5 + 0.5,
-    );
-    const strength = this.material.uniforms.strength.value;
-    if (projected.z > 1) this.material.uniforms.strength.value = 0;
+  render(scene, camera, sun) {
     this.renderer.setRenderTarget(this.target);
     this.renderer.render(scene, camera);
+    this.material.uniforms.clipPlanes.value.set(camera.near, camera.far);
+    const uniforms = this.volumeMaterial.uniforms;
+    uniforms.tShadow.value = sun.shadow.map.depthTexture;
+    uniforms.inverseProjection.value.copy(camera.projectionMatrixInverse);
+    uniforms.cameraWorld.value.copy(camera.matrixWorld);
+    uniforms.shadowMatrix.value.copy(sun.shadow.matrix);
+    uniforms.eye.value.copy(camera.position);
+    uniforms.lightDirection.value
+      .copy(sun.position)
+      .sub(sun.target.position)
+      .normalize();
+    this.renderer.setRenderTarget(this.volumeTarget);
+    this.volumeQuad.render(this.renderer);
     this.renderer.setRenderTarget(null);
     this.quad.render(this.renderer);
-    this.material.uniforms.strength.value = strength;
   }
   dispose() {
     this.target.dispose();
+    this.volumeTarget.dispose();
+    this.volumeMaterial.dispose();
     this.material.dispose();
+    this.volumeQuad.dispose();
     this.quad.dispose();
   }
 }

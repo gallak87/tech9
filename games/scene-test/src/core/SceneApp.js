@@ -4,7 +4,7 @@ import {
   DirectionalLight,
   FogExp2,
   HemisphereLight,
-  PCFSoftShadowMap,
+  PCFShadowMap,
   PerspectiveCamera,
   Scene,
   SRGBColorSpace,
@@ -29,14 +29,16 @@ export class SceneApp {
     this.testMode = testMode;
     this.ready = false;
     this.layers = [];
+    this.pendingLayers = new Map();
+    this.disposed = false;
     this.events = new EventTarget();
     this.assets = new Map();
     this.bounds = Object.freeze({ min: -76, max: 76, ceiling: 36 });
     this.settings = testMode ? { ...DEFAULT_SETTINGS } : loadSettings();
     this.metrics = { fps: 0, frameMs: 0, drawCalls: 0, triangles: 0 };
     this.scene = new Scene();
-    this.scene.background = new Color('#b9bba4');
-    this.scene.fog = new FogExp2('#b9b7a0', 0.012);
+    this.scene.background = new Color('#c5c3ac');
+    this.scene.fog = new FogExp2('#c6bea4', 0.012);
     this.camera = new PerspectiveCamera(58, 1, 0.15, 240);
     this.renderer = new WebGLRenderer({
       canvas,
@@ -46,13 +48,13 @@ export class SceneApp {
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = PCFSoftShadowMap;
+    this.renderer.shadowMap.type = PCFShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.info.autoReset = false;
-    this.hemisphere = new HemisphereLight('#d1e0e4', '#4f5131', 1.4);
+    this.hemisphere = new HemisphereLight('#e2e6d7', '#797253', 1.9);
     this.scene.add(this.hemisphere);
-    this.sun = new DirectionalLight('#fff0ce', 3.1);
-    this.sun.position.set(32, 36, -48);
+    this.sun = new DirectionalLight('#ffebbf', 4.2);
+    this.sun.position.set(34, 32, -48);
     this.sun.castShadow = true;
     Object.assign(this.sun.shadow.camera, {
       left: -58,
@@ -63,13 +65,14 @@ export class SceneApp {
       far: 180,
     });
     this.sun.shadow.bias = -0.00012;
-    this.sun.shadow.normalBias = 0.06;
+    this.sun.shadow.normalBias = 0.035;
+    this.sun.shadow.radius = 3;
     this.scene.add(this.sun, this.sun.target);
     this.sky = new Sky();
     this.sky.scale.setScalar(1800);
     this.sky.material.depthWrite = false;
-    Object.assign(this.sky.material.uniforms.turbidity, { value: 7 });
-    this.sky.material.uniforms.rayleigh.value = 0.85;
+    Object.assign(this.sky.material.uniforms.turbidity, { value: 12 });
+    this.sky.material.uniforms.rayleigh.value = 0.45;
     this.sky.material.uniforms.mieCoefficient.value = 0.005;
     this.sky.material.uniforms.mieDirectionalG.value = 0.85;
     this.sky.material.uniforms.sunPosition.value.copy(this.sun.position);
@@ -106,26 +109,54 @@ export class SceneApp {
     this.setSettings(this.settings, false);
   }
   async register(layer) {
-    if (!layer.id || this.layers.some((item) => item.id === layer.id))
+    if (this.disposed)
+      throw new Error('Cannot register a layer on a disposed app.');
+    if (
+      !layer.id ||
+      this.layers.some((item) => item.id === layer.id) ||
+      this.pendingLayers.has(layer.id)
+    ) {
       throw new Error('World layers require a unique id.');
-    await layer.init({
-      scene: this.scene,
-      camera: this.camera,
-      renderer: this.renderer,
-      assets: this.assets,
-      events: this.events,
-      bounds: this.bounds,
-    });
-    this.layers.push(layer);
-    layer.configure?.(this.settings);
-    this.renderer.shadowMap.needsUpdate = true;
-    return layer;
+    }
+    const pending = { cancelled: false };
+    this.pendingLayers.set(layer.id, pending);
+    try {
+      await layer.init({
+        scene: this.scene,
+        camera: this.camera,
+        renderer: this.renderer,
+        assets: this.assets,
+        events: this.events,
+        bounds: this.bounds,
+      });
+      if (this.disposed || pending.cancelled)
+        throw new Error(`Layer ${layer.id} was cancelled while loading.`);
+      layer.configure?.(this.settings);
+      this.layers.push(layer);
+      this.renderer.shadowMap.needsUpdate = true;
+      return layer;
+    } catch (error) {
+      try {
+        layer.dispose?.();
+      } catch (cleanupError) {
+        console.error('Layer cleanup failed', cleanupError);
+      }
+      throw error;
+    } finally {
+      this.pendingLayers.delete(layer.id);
+    }
   }
   unregister(id) {
+    const pending = this.pendingLayers.get(id);
+    if (pending) pending.cancelled = true;
     const index = this.layers.findIndex((layer) => layer.id === id);
     if (index < 0) return;
-    this.layers[index].dispose?.();
-    this.layers.splice(index, 1);
+    const [layer] = this.layers.splice(index, 1);
+    try {
+      layer.dispose?.();
+    } catch (error) {
+      console.error(`Layer ${id} cleanup failed`, error);
+    }
     this.renderer.shadowMap.needsUpdate = true;
   }
   setView(name = 'trail') {
@@ -138,7 +169,7 @@ export class SceneApp {
         ],
         target: [
           pathCenter(-18) + 0.6,
-          terrainHeight(pathCenter(-18), -18) + 2,
+          terrainHeight(pathCenter(-18), -18) - 0.8,
           -18,
         ],
       },
@@ -150,7 +181,7 @@ export class SceneApp {
         ],
         target: [
           pathCenter(-34) - 3,
-          terrainHeight(pathCenter(-34), -34) + 3.6,
+          terrainHeight(pathCenter(-34), -34) + 0.6,
           -34,
         ],
       },
@@ -175,9 +206,9 @@ export class SceneApp {
     this.settings = validateSettings({ ...this.settings, ...patch });
     const settings = this.settings;
     const preset = QUALITY[settings.quality];
-    this.renderer.toneMappingExposure = 0.92 * settings.exposure;
-    this.sun.intensity = 3.1 * settings.sunlight;
-    this.hemisphere.intensity = 1.4;
+    this.renderer.toneMappingExposure = 0.98 * settings.exposure;
+    this.sun.intensity = 4.2 * settings.sunlight;
+    this.hemisphere.intensity = 1.9;
     this.scene.fog.density = 0.012 * settings.atmosphere;
     if (this.sun.shadow.mapSize.x !== preset.shadowSize) {
       this.sun.shadow.mapSize.set(preset.shadowSize, preset.shadowSize);
@@ -225,15 +256,7 @@ export class SceneApp {
       this.controls.update(dt);
       for (const layer of this.layers) layer.update?.(dt, now / 1000);
       this.renderer.info.reset();
-      this.atmosphere.render(
-        this.scene,
-        this.camera,
-        this.sun.position
-          .clone()
-          .normalize()
-          .multiplyScalar(150)
-          .add(this.camera.position),
-      );
+      this.atmosphere.render(this.scene, this.camera, this.sun);
       this.sampleTime += rawDt;
       this.sampleFrames++;
       if (this.sampleTime >= 0.7) {
@@ -280,6 +303,9 @@ export class SceneApp {
     };
   }
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
+    for (const pending of this.pendingLayers.values()) pending.cancelled = true;
     this.stop();
     for (const layer of [...this.layers]) this.unregister(layer.id);
     this.controls.dispose();

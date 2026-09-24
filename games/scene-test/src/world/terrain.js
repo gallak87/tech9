@@ -30,7 +30,11 @@ export function terrainHeight(x, z) {
     Math.min(1, pathDistance(x, z) / 5) *
     (0.22 + 0.15 * Math.sin(x * 0.29 + z * 0.18));
   const rim = Math.max(0, Math.max(Math.abs(x), Math.abs(z)) - 56) / 24;
-  return rolling + shoulder + rim * rim * 6.4;
+  const rimProfile =
+    1.25 +
+    0.62 * Math.sin(x * 0.063 + z * 0.029) +
+    0.45 * Math.sin(x * 0.15 - z * 0.08);
+  return rolling + shoulder + rim * rim * rimProfile;
 }
 
 export function createRandom(seed) {

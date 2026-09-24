@@ -27,7 +27,7 @@ function terrainMaterial(textures) {
     roughnessMap: textures.floorRoughness,
     normalScale: new THREE.Vector2(0.7, 0.7),
     roughness: 0.97,
-    color: '#aeab8c',
+    color: '#f4efe3',
     vertexColors: true,
   });
   material.onBeforeCompile = (shader) => {
@@ -62,7 +62,7 @@ function terrainMaterial(textures) {
       vec4 dirtSample = texture2D(pathColor, vMapUv * 1.28 + vec2(0.213, 0.782));
       float edgeNoise = (floorSample.g - floorSample.r) * 2.0 + (floorSample.r - 0.3) * 0.36;
       float pathBlend = smoothstep(0.16, 0.88, vTrail + edgeNoise * (1.0 - abs(vTrail * 2.0 - 1.0)));
-      diffuseColor *= mix(floorSample, dirtSample * vec4(1.13, 1.025, 0.89, 1.0), pathBlend);
+      diffuseColor *= mix(floorSample, dirtSample * vec4(1.46, 1.28, 1.07, 1.0), pathBlend);
     `,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
@@ -140,7 +140,7 @@ function buildTerrain(textures) {
       1,
     );
     const macro = Math.sin(x * 0.35 + z * 0.06) * Math.cos(z * 0.23) * 0.05;
-    shade.setRGB(0.75 + macro, 0.78 + macro, 0.68 + macro);
+    shade.setRGB(0.87 + macro, 0.89 + macro, 0.83 + macro);
     shade.toArray(colors, i * 3);
   }
   geometry.setAttribute('trail', new THREE.BufferAttribute(trail, 1));
@@ -231,10 +231,17 @@ function instancePrototype(
       material.name.toLowerCase().includes('needle')
     ) {
       material.side = THREE.DoubleSide;
-      material.alphaTest = 0.43;
+      material.alphaTest = 0.37;
       material.alphaToCoverage = true;
       material.transparent = false;
       material.roughness = 0.95;
+      material.onBeforeCompile = (shader) => {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <lights_fragment_end>',
+          '#include <lights_fragment_end>\nreflectedLight.indirectDiffuse += diffuseColor.rgb * 0.08;',
+        );
+      };
+      material.customProgramCacheKey = () => 'pine-transmission-v1';
     }
     disposables.push(geometry, material);
     batches.push(
@@ -256,9 +263,9 @@ function treePlacements() {
   const points = [];
   const hero = [
     [-7.5, 15, 1.1],
-    [7, 19, 0.96],
+    [15, 22, 0.96],
     [-10, 27, 1.14],
-    [11, 5, 0.93],
+    [21, 7, 0.93],
     [-6.5, -4, 0.87],
     [12, -16, 1.02],
     [-8, -27, 1.1],
@@ -271,6 +278,15 @@ function treePlacements() {
     const x = (random() * 2 - 1) * range;
     const z = (random() * 2 - 1) * range;
     if (pathDistance(x, z) < 3.6) continue;
+    // A deliberate canopy break admits the morning key into the foreground path.
+    if (
+      x > 3 &&
+      x < 24 &&
+      z > -14 &&
+      z < 23 &&
+      Math.abs(x - (23 - z) * 0.5) < 6.2
+    )
+      continue;
     if (Math.hypot(x - 14, z + 24) < 7.4) continue;
     if (points.some((point) => Math.hypot(point.x - x, point.z - z) < 3.8))
       continue;
@@ -321,7 +337,7 @@ function scatter(random, count, radius, filter, scaleRange, colorRange) {
 
 function buildGroundcover(group, windUniform, disposables) {
   const random = createRandom(92151);
-  const palette = [new THREE.Color('#bcc58d'), new THREE.Color('#b5ba99')];
+  const palette = [new THREE.Color('#e0e3b9'), new THREE.Color('#ffffff')];
   const isOffTrail = (x, z, rng) => {
     const distance = pathDistance(x, z);
     const shoulder = pathWidth(z) + 0.05;
@@ -330,36 +346,87 @@ function buildGroundcover(group, windUniform, disposables) {
     return rng() < 0.66 + patch * 0.24;
   };
   const grass = [
-    ...scatter(random, 10800, 44, isOffTrail, [0.63, 1.4], palette),
-    ...scatter(random, 7600, 77, isOffTrail, [0.64, 1.65], palette),
+    ...scatter(random, 3300, 42, isOffTrail, [0.6, 1.05], palette),
+    ...scatter(random, 3900, 77, isOffTrail, [0.7, 1.3], palette),
   ];
   // Tall rushes and isolated wisps soften the trail edge without hiding its route.
-  for (let i = 0; i < 900; i++) {
-    const z = random() * 134 - 67;
+  for (let i = 0; i < 12800; i++) {
+    const z = random() * 98 - 54;
     const x =
       pathCenter(z) +
-      (random() > 0.5 ? 1 : -1) * (pathWidth(z) + random() * 1.2 + 0.12);
+      (random() > 0.5 ? 1 : -1) *
+        (pathWidth(z) +
+          Math.sin(z * 0.67) * 0.23 +
+          Math.sin(z * 1.32) * 0.29 +
+          Math.pow(random(), 1.45) * 8.6 -
+          0.1);
     grass.push({
       x,
       z,
-      matrix: matrixAt(x, z, 0.75 + random() * 0.8, random() * 6.28),
+      matrix: matrixAt(x, z, 0.55 + random() * 0.64, random() * 6.28),
       color: palette[0].clone().lerp(palette[1], random()),
     });
   }
   const fern = scatter(
     random,
-    660,
-    62,
+    170,
+    66,
     (x, z, rng) => pathDistance(x, z) > pathWidth(z) + 0.6 && rng() > 0.15,
     [0.52, 1.25],
   );
   const shrub = scatter(
     random,
-    310,
+    220,
     73,
     (x, z) => pathDistance(x, z) > pathWidth(z) + 2.3,
-    [0.65, 1.4],
+    [0.9, 1.7],
   );
+  const colonies = [
+    [-5, 18],
+    [6.5, 15],
+    [-4, 5],
+    [7, -1],
+    [-4, -8],
+    [12, -18],
+    [-7, -27],
+    [14, -39],
+    [-9, 32],
+    [17, 6],
+    [-19, -15],
+    [28, -35],
+  ];
+  for (const [centerX, centerZ] of colonies) {
+    for (let i = 0; i < 46; i++) {
+      const angle = random() * Math.PI * 2;
+      const radius = Math.sqrt(random()) * 3.1;
+      const x = centerX + Math.cos(angle) * radius;
+      const z = centerZ + Math.sin(angle) * radius;
+      if (pathDistance(x, z) < pathWidth(z) + 0.2) continue;
+      fern.push({
+        x,
+        z,
+        matrix: matrixAt(x, z, 0.61 + random() * 0.65, random() * 6.28),
+      });
+      if (i % 4 === 0 && pathDistance(x, z) > pathWidth(z) + 1.2)
+        shrub.push({
+          x,
+          z,
+          matrix: matrixAt(x, z, 1.2 + random() * 0.8, random() * 6.28),
+        });
+    }
+  }
+  // A staggered low understory conceals the finite ground silhouette behind the trunks.
+  for (let i = 0; i < 170; i++) {
+    const angle = random() * Math.PI * 2;
+    const radius = 62 + random() * 13;
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+    shrub.push({
+      x,
+      z,
+      matrix: matrixAt(x, z, 1.8 + random() * 1.2, random() * 6.28),
+    });
+  }
   const grassGeometry = createGrassGeometry();
   const fernGeometry = createFernGeometry();
   const shrubGeometry = createShrubGeometry();
@@ -421,10 +488,10 @@ function buildDebris(group, disposables) {
   });
   const pebbles = scatter(
     random,
-    2800,
+    1500,
     48,
     (x, z, rng) => pathDistance(x, z) < 3.8 || rng() < 0.15,
-    [0.35, 1.9],
+    [0.28, 1.15],
     [new THREE.Color('#aaa797'), new THREE.Color('#6c6758')],
   );
   const sticks = scatter(random, 540, 54, () => true, [0.4, 1.5]);
@@ -472,6 +539,46 @@ function buildDebris(group, disposables) {
   ];
 }
 
+function buildSaplings(group, kit, disposables) {
+  const random = createRandom(88291);
+  const entries = [];
+  for (let i = 0; i < 104; i++) {
+    const edge = i % 4;
+    const along = random() * 146 - 73;
+    const distance = 61 + random() * 15;
+    const x = edge < 2 ? along : distance * (edge === 2 ? 1 : -1);
+    const z = edge < 2 ? distance * (edge === 0 ? 1 : -1) : along;
+    entries.push({
+      x,
+      z,
+      matrix: matrixAt(x, z, 0.8 + random() * 0.95, random() * 6.28),
+    });
+  }
+  for (const [centerX, centerZ] of [
+    [-19, -13],
+    [20, -28],
+    [-15, -39],
+    [23, 9],
+    [-28, 24],
+  ]) {
+    for (let i = 0; i < 5; i++) {
+      const x = centerX + (random() - 0.5) * 7;
+      const z = centerZ + (random() - 0.5) * 7;
+      entries.push({
+        x,
+        z,
+        matrix: matrixAt(x, z, 0.7 + random() * 0.55, random() * 6.28),
+      });
+    }
+  }
+  // A kit may omit the optional younger age class without breaking world loading.
+  if (kit.getObjectByName('pine_sapling')) {
+    instancePrototype(group, kit, 'pine_sapling', entries, disposables);
+    return entries.length;
+  }
+  return 0;
+}
+
 function rockPlacements() {
   const random = createRandom(91824);
   const points = scatter(
@@ -482,10 +589,10 @@ function rockPlacements() {
     [0.32, 1.23],
   );
   const hero = [
-    [-5.2, 10, 1.75],
-    [6.1, 14.5, 1.17],
+    [-5.8, 10, 1.04],
+    [6.7, 14.5, 0.82],
     [-7, -3, 1.35],
-    [10, -9, 1.7],
+    [15, -12, 0.78],
     [-4.5, -20, 1.2],
     [-10, 28, 1.5],
   ];
@@ -546,6 +653,7 @@ export function createForestWorld() {
       stats.trees = trees[0].length + trees[1].length;
       instancePrototype(group, kit, 'pine_a', trees[0], disposables);
       instancePrototype(group, kit, 'pine_b', trees[1], disposables);
+      stats.saplings = buildSaplings(group, kit, disposables);
       const rocks = rockPlacements();
       instancePrototype(group, kit, 'rock_a', rocks[0], disposables);
       instancePrototype(group, kit, 'rock_b', rocks[1], disposables);
@@ -575,6 +683,7 @@ export function createForestWorld() {
         if (object.isInstancedMesh) stats.batches++;
       });
       context.scene.add(group);
+      context.renderer.shadowMap.needsUpdate = true;
       this.configure(settings);
       // Originals are never added to the scene; their buffers are now independently owned.
       const originalGeometries = new Set();
@@ -600,6 +709,11 @@ export function createForestWorld() {
       }
     },
     configure(nextSettings) {
+      const geometryChanged =
+        (nextSettings.quality !== undefined &&
+          nextSettings.quality !== settings.quality) ||
+        (nextSettings.richness !== undefined &&
+          nextSettings.richness !== settings.richness);
       settings = { ...settings, ...nextSettings };
       const ratio = Math.min(
         1,
@@ -611,7 +725,8 @@ export function createForestWorld() {
         mesh.count = Math.max(1, Math.round(mesh.userData.maxCount * ratio));
         stats.vegetationInstances += mesh.count;
       }
-      if (context) context.renderer.shadowMap.needsUpdate = true;
+      if (context && geometryChanged)
+        context.renderer.shadowMap.needsUpdate = true;
     },
     update(_dt, elapsed) {
       windUniform.value = elapsed;

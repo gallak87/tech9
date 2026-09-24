@@ -8,6 +8,7 @@ let app;
 let panel;
 function showError(message) {
   loading.classList.remove('loaded');
+  loading.removeAttribute('aria-hidden');
   loading.replaceChildren();
   const description = document.createElement('div');
   description.className = 'load-error';
@@ -35,6 +36,7 @@ try {
   panel = new DevPanel(app, document.querySelector('#interface'));
   app.start();
   loading.classList.add('loaded');
+  loading.setAttribute('aria-hidden', 'true');
 } catch (error) {
   console.error(error);
   showError(`The forest could not load. ${error.message}`);

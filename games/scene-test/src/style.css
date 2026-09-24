@@ -523,3 +523,17 @@ h1 {
     transition: none !important;
   }
 }
+
+#interface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 25, 17, 0.2),
+    transparent 18%,
+    transparent 78%,
+    rgba(15, 25, 17, 0.19)
+  );
+}

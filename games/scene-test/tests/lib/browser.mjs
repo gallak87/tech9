@@ -144,14 +144,24 @@ export async function openScene({
       if (response.status() >= 400)
         errors.requests.push(`${response.status()} ${response.url()}`);
     });
+    page.on('requestfailed', (request) => {
+      errors.requests.push(`${request.failure()?.errorText} ${request.url()}`);
+    });
     const url = new URL(server.url);
     url.searchParams.set('test', '1');
     await page.goto(url.href, { waitUntil: 'domcontentloaded', timeout });
     await page.waitForFunction(
-      () => window.__SCENE_TEST__?.ready === true,
+      () =>
+        window.__SCENE_TEST__?.ready === true ||
+        document.querySelector('.load-error') !== null,
       undefined,
       { timeout },
     );
+    if (!(await page.evaluate(() => window.__SCENE_TEST__?.ready === true))) {
+      throw new Error(
+        `Scene startup failed: ${await page.locator('.load-error').textContent()}`,
+      );
+    }
     return {
       browser,
       page,

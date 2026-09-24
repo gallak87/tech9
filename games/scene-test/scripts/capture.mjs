@@ -30,7 +30,7 @@ try {
   if (process.argv.includes('--clean')) {
     await harness.page.addStyleTag({
       content:
-        '[data-hud], [data-dev-panel], .hud, .dev-panel { visibility: hidden !important; }',
+        '#interface, [data-hud], [data-dev-panel], .hud, .dev-panel { visibility: hidden !important; }',
     });
   }
   await mkdir(path.dirname(output), { recursive: true });

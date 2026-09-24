@@ -84,4 +84,4 @@ Each deliverable checkpoint is committed, then reviewed by a separate art critic
 4. Soundscape, footsteps and environmental interaction.
 5. Wider authored maps or streaming only after profiling; the current map is deliberately finite.
 
-Known scope: desktop keyboard/mouse exploration; responsive UI is provided, touch flight is not. Screen-space sun shafts naturally change as the light leaves the view. Baked/static foliage shadows trade perfectly animated shadows for throughput. This is an extensible visual concept; final art-gate scores and real browser measurements document its quality limits.
+Known scope: desktop keyboard/mouse exploration; responsive UI is provided, touch flight is not. Half-resolution volumetric sun shafts sample the actual foliage shadow map. The scattering and contact shading are deliberately lightweight approximations. Baked/static foliage shadows trade perfectly animated shadows for throughput. This is an extensible visual concept; final art-gate scores and real browser measurements document its quality limits.

@@ -1,62 +1,60 @@
-"""Original pine spray atlas. Requires Python 3 + Pillow; no external images."""
+"""Assemble a photographic pine spray from CC0 source twigs; Pillow required.
+
+The compound atlas groups real photographed needles into broad coherent sprays,
+with coverage-preserving alpha, so crowns retain silhouettes at normal distances.
+"""
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageOps, ImageEnhance
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter
 import math
 import random
 
 ROOT = Path(__file__).resolve().parent
+TEX = ROOT/'textures'
 random.seed(91273)
-S = 2048
-im = Image.new('RGBA', (S, S), (32, 51, 19, 0))
-d = ImageDraw.Draw(im)
+source=Image.open(TEX/'pine_tree_01_twig_diff_1k.jpg').convert('RGBA')
+alpha=Image.open(TEX/'pine_tree_01_twig_alpha_1k.png').convert('L')
+source.putalpha(alpha)
+# The upper-left shoot is isolated; the remainder contains trunk/cone UV islands.
+twig=source.crop((25,35,226,452))
+isolated=twig.getchannel('A').point(lambda a:255 if a>127 else 0)
+ImageDraw.floodfill(isolated,(114,375),128)
+isolated=isolated.point(lambda a:255 if a==128 else 0)
+twig.putalpha(isolated)
+twig=ImageEnhance.Brightness(twig).enhance(1.18)
+# Extend edge pigment before the small alpha dilation; avoid dark fringe pixels.
+twig.putalpha(twig.getchannel('A').filter(ImageFilter.MaxFilter(3)))
+S=1024
+im=Image.new('RGBA',(S,S),(38,56,25,0))
+d=ImageDraw.Draw(im)
+d.line([(510,990),(495,710),(520,410),(514,80)],fill=(94,77,47,255),width=9)
 
-def branch(a, b, width, color):
-    d.line((a, b), fill=color, width=max(1, round(width)))
+def paste_shoot(center,length,angle,shade=1):
+    h=round(length);w=round(h*twig.width/twig.height)
+    sprig=twig.resize((w,h),Image.Resampling.LANCZOS)
+    sprig=ImageEnhance.Brightness(sprig).enhance(shade)
+    sprig=sprig.rotate(angle,Image.Resampling.BICUBIC,expand=True)
+    im.alpha_composite(sprig,(round(center[0]-sprig.width/2),round(center[1]-sprig.height/2)))
 
-def needles(a, b, count, scale):
-    vx, vy = b[0] - a[0], b[1] - a[1]
-    length = math.hypot(vx, vy)
-    ux, uy = vx / length, vy / length
-    # Pairs of 3-needle fascicles follow the growing shoot.
-    for j in range(count):
-        t = j / count
-        x, y = a[0] + vx * t, a[1] + vy * t
-        for sign in (-1, 1):
-            for fan in range(3):
-                n = random.uniform(65, 120) * scale * (.78 + .22 * (1-t))
-                out = sign * random.uniform(.50, .98)
-                forward = random.uniform(.32, .85)
-                ex, ey = x + n*(ux*forward - uy*out), y + n*(uy*forward + ux*out)
-                light = random.uniform(.73, 1.30)
-                col = (int(74*light), int(91*light), int(36*light), 255)
-                w = random.uniform(2.8, 5.5) * scale
-                nx, ny = -uy*w/2, ux*w/2
-                d.polygon([(x+nx,y+ny),(x-nx,y-ny),(ex,ey)], fill=col)
-                if fan == 1:
-                    branch((x,y),(ex,ey),max(1,w*.22),(int(107*light),int(117*light),int(54*light),255))
+# Offset pairs overlap into irregular lobes, with several independent terminal
+# shoots preserving the correct narrow-needle silhouette around cluster edges.
+for j in range(7):
+    t=j/6
+    cy=804-t*585
+    spread=210*(1-t*.54)
+    for sign in (-1,1):
+        angle=-sign*random.uniform(34,65)
+        cx=510+sign*spread+random.uniform(-22,22)
+        paste_shoot((cx,cy),random.uniform(395,470)*(1-t*.24),angle,random.uniform(.91,1.16))
+        if j<5:
+            paste_shoot((cx+sign*65,cy+random.uniform(-65,50)),random.uniform(240,340),angle+random.uniform(-24,24),random.uniform(.9,1.11))
+for j in range(4):
+    paste_shoot((512+random.uniform(-28,28),220+j*150),380,random.uniform(-17,17),1.05)
+# A translucent micro edge only; the interior remains covered through mip levels.
+a=im.getchannel('A');a=a.filter(ImageFilter.MaxFilter(3))
+im.putalpha(a)
+im.save(TEX/'pine-spray.png',optimize=True)
 
-stem = [(1010,1890),(1045,1550),(960,1210),(1030,845),(977,440),(1033,170)]
-for i in range(len(stem)-1):
-    branch(stem[i],stem[i+1],20-i*2,(72,57,32,255))
-for i in range(17):
-    t=(i+.3)/17
-    sy=1780-t*1360
-    sx=1010+math.sin(t*15)*39
-    sign=1 if i%2 else -1
-    reach=(1-t*.64)*random.uniform(495,690)
-    end=(sx+sign*reach,sy-random.uniform(240,420))
-    branch((sx,sy),end,9-t*5,(87,70,36,255))
-    needles((sx,sy),end,23,1-t*.35)
-    for f in (.43,.69,.9):
-        ox=sx+(end[0]-sx)*f
-        oy=sy+(end[1]-sy)*f
-        tip=(ox+sign*random.uniform(70,150),oy-random.uniform(150,260)*(1-t*.4))
-        branch((ox,oy),tip,4,(84,76,39,255))
-        needles((ox,oy),tip,11,.78-t*.28)
-needles((977,440),(1033,140),28,.67)
-im.resize((1024,1024),Image.Resampling.LANCZOS).save(ROOT/'textures'/'pine-spray.png',optimize=True)
-
-# A radial end-grain atlas for broken fallen timber.
+# An original radial end-grain atlas for broken fallen timber.
 random.seed(741)
 wood=Image.new('RGB',(512,512),(112,83,49))
 w=ImageDraw.Draw(wood)
@@ -69,17 +67,17 @@ for a in (.48,2.8,4.65):
     start=(256+math.cos(a)*50,256+math.sin(a)*50)
     end=(256+math.cos(a)*275,256+math.sin(a)*275)
     w.line((start,end),fill=(50,39,27),width=3)
-wood.save(ROOT/'textures'/'timber-endgrain.jpg',quality=91)
-print('Generated original pine-spray and timber-endgrain textures.')
+wood.save(TEX/'timber-endgrain.jpg',quality=91)
 
-# Color grade the CC0 orange stone scan into cold, weathered forest granite.
-# The photographic cracks and all high-frequency detail remain intact.
-stone=Image.open(ROOT/'textures'/'rock_boulder_cracked_diff_1k.jpg').convert('L')
-stone=ImageEnhance.Contrast(stone).enhance(1.08)
-neutral=Image.merge('RGB',tuple(stone.point(lambda p,f=f:int(p*f)) for f in (.86,.90,.83)))
-moss=Image.merge('RGB',tuple(stone.point(lambda p,f=f:int(p*f)) for f in (.58,.66,.28)))
+# Desaturate the CC0 orange scan into cold granite. Moss occupies cracks and
+# broken patches rather than coating every boulder in the same broad green wash.
+stone=Image.open(TEX/'rock_boulder_cracked_diff_1k.jpg').convert('L')
+stone=ImageEnhance.Contrast(stone).enhance(1.15)
+neutral=Image.merge('RGB',tuple(stone.point(lambda p,f=f:int(p*f)) for f in (.83,.86,.83)))
+moss=Image.merge('RGB',tuple(stone.point(lambda p,f=f:int(p*f)) for f in (.54,.63,.29)))
 random.seed(59183)
-mask=Image.new('L',(32,32));mask.putdata([random.randrange(256) for _ in range(1024)])
+mask=Image.new('L',(44,44));mask.putdata([random.randrange(256) for _ in range(44*44)])
 mask=mask.resize(stone.size,Image.Resampling.BICUBIC)
-mask=mask.point(lambda p:max(0,min(220,(p-105)*3)))
-Image.composite(moss,neutral,mask).save(ROOT/'textures'/'forest-granite-diff.jpg',quality=94)
+mask=mask.point(lambda p:max(0,min(160,(p-147)*3)))
+Image.composite(moss,neutral,mask).save(TEX/'forest-granite-diff.jpg',quality=95)
+print('Generated photo-derived pine sprays, original endgrain, graded granite.')

@@ -214,44 +214,61 @@ def make_rock(name,seed,scale):
     # than perturbing a spherical mesh, which retains a potato-like silhouette.
     if name=='rock_a':
         anchors=[(-.98,-.64,-.08),(.73,-.85,-.05),(1.02,.42,-.09),(.25,.92,-.07),(-.77,.71,-.10),
-                 (-.96,-.45,.64),(.66,-.77,.92),(.97,.31,.76),(.24,.84,.73),(-.73,.62,.80),
-                 (-.50,-.28,1.26),(.57,-.26,1.15),(.46,.51,1.01),(-.44,.51,1.30)]
+                 (-.96,-.45,.57),(.66,-.77,.79),(.97,.31,.62),(.24,.84,.80),(-.73,.62,.72),
+                 (-.58,.03,1.20),(.36,-.16,1.24),(-.10,.55,1.31),(-.82,-.05,.98),(.19,-.62,1.00),(.64,.40,1.03)]
     else:
         anchors=[(-.88,-.56,-.07),(.92,-.54,-.11),(.86,.63,-.08),(-.65,.87,-.10),
                  (-.91,-.43,.94),(.71,-.59,.72),(.94,.51,.60),(-.48,.76,.92),
-                 (-.59,-.12,1.43),(.33,-.27,1.12),(.39,.39,1.18),(-.39,.45,1.38)]
+                 (-.59,-.12,1.43),(.33,-.27,1.12),(.39,.39,1.18),(-.39,.45,1.27),(-.73,.27,1.05),(.60,.01,.95)]
     mesh=bpy.data.meshes.new(name+'_fractured_geometry')
     bm=bmesh.new()
     vertices=[bm.verts.new((x*scale[0],y*scale[1],z*scale[2])) for x,y,z in anchors]
     bmesh.ops.convex_hull(bm,input=vertices,use_existing_faces=False)
     bmesh.ops.dissolve_limit(bm,angle_limit=.09,verts=list(bm.verts),edges=list(bm.edges))
-    bmesh.ops.bevel(bm,geom=list(bm.edges),offset=.045,segments=2,affect='EDGES')
+    bmesh.ops.bevel(bm,geom=list(bm.edges),offset=.105,segments=2,affect='EDGES')
     bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces))
     bm.to_mesh(mesh);bm.free();mesh.update()
     ob=bpy.data.objects.new(name+'_stone',mesh)
     bpy.context.collection.objects.link(ob);ob.parent=parent
     offset=Vector((seed*.13,seed*.27,seed*.31))
+    # Two local subdivision steps wear the cut boundaries while preserving the
+    # asymmetric parent fracture planes. Small coherent surface displacement
+    # breaks perfectly straight roof-like edges without inflating rounded lobes.
+    bpy.ops.object.select_all(action='DESELECT');ob.select_set(True)
+    bpy.context.view_layer.objects.active=ob
+    worn=ob.modifiers.new('Weathered fracture edges','SUBSURF')
+    worn.levels=2;worn.render_levels=2
+    bpy.ops.object.modifier_apply(modifier=worn.name)
+    for vertex in ob.data.vertices:
+        p=vertex.co.copy()
+        wear=noise.noise(p*2.9+offset)*.062+noise.noise(p*8.7+offset)*.024
+        vertex.co+=vertex.normal*wear
+    # Keep worn silhouettes but remove redundant face subdivisions before many
+    # scene instances multiply their cost. UVs and moss are assigned afterwards.
+    reduction=ob.modifiers.new('Rock runtime reduction','DECIMATE')
+    reduction.ratio=.48;reduction.use_collapse_triangulate=True
+    bpy.ops.object.modifier_apply(modifier=reduction.name)
     ob.data.update()
     # Remove Blender's default spherical layer: leaving it active hid the
     # intended metre-scale box projection and stretched the original material.
     while len(ob.data.uv_layers):ob.data.uv_layers.remove(ob.data.uv_layers[0])
     uvs=ob.data.uv_layers.new(name='UVMap')
     for poly in ob.data.polygons:
-        # Flat large fracture faces with narrow bevels preserve geological form.
-        poly.use_smooth=poly.area<.055
+        poly.use_smooth=True
         normal=poly.normal
         ax=max(range(3),key=lambda i:abs(normal[i]))
         for li in poly.loop_indices:
             p=ob.data.vertices[ob.data.loops[li].vertex_index].co
-            if ax==0:uv=(p.y*1.25,p.z*1.25)
-            elif ax==1:uv=(p.x*1.25,p.z*1.25)
-            else:uv=(p.x*1.25,p.y*1.25)
+            if ax==0:uv=(p.y*3.2,p.z*3.2)
+            elif ax==1:uv=(p.x*3.2,p.z*3.2)
+            else:uv=(p.x*3.2,p.y*3.2)
             uvs.data[li].uv=uv
     cols=ob.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='POINT')
     for i,v in enumerate(ob.data.vertices):
         top=max(0,min(1,(v.co.z/scale[2]-.55)*1.4))
-        patch=max(0,noise.noise(v.co*1.8+offset)+.18)
-        moss=top*patch
+        patch=max(0,min(1,noise.noise(v.co*1.8+offset)*1.8+noise.noise(v.co*4.7+offset)*.4+.22))
+        upward=max(0,min(1,v.normal.z*1.4+.1))
+        moss=top*patch*upward
         cols.data[i].color=(1-moss*.50,1-moss*.26,1-moss*.70,1)
     ob.data.materials.append(rockmat)
     ob.data.update()

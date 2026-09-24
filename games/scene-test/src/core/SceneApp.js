@@ -52,7 +52,7 @@ export class SceneApp {
     this.renderer.shadowMap.type = PCFShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.info.autoReset = false;
-    this.hemisphere = new HemisphereLight('#c4d3d2', '#5c6146', 1.4);
+    this.hemisphere = new HemisphereLight('#c4d3d2', '#5c6146', 1.65);
     this.scene.add(this.hemisphere);
     this.sun = new DirectionalLight('#ffe2af', 4.7);
     this.sun.position.set(34, 28, -48);
@@ -187,12 +187,12 @@ export class SceneApp {
       },
       grove: {
         position: [
-          pathCenter(-7) + 4,
-          terrainHeight(pathCenter(-7) + 4, -7) + 2.1,
+          pathCenter(-7) + 0.2,
+          terrainHeight(pathCenter(-7) + 0.2, -7) + 1.8,
           -7,
         ],
         target: [
-          pathCenter(-34) - 3,
+          pathCenter(-34) + 0.5,
           terrainHeight(pathCenter(-34), -34) + 0.6,
           -34,
         ],
@@ -220,7 +220,7 @@ export class SceneApp {
     const preset = QUALITY[settings.quality];
     this.renderer.toneMappingExposure = 0.96 * settings.exposure;
     this.sun.intensity = 4.7 * settings.sunlight;
-    this.hemisphere.intensity = 1.4;
+    this.hemisphere.intensity = 1.65;
     this.scene.fog.density = 0.0075 * settings.atmosphere;
     if (this.sun.shadow.mapSize.x !== preset.shadowSize) {
       this.sun.shadow.mapSize.set(preset.shadowSize, preset.shadowSize);

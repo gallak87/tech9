@@ -84,11 +84,13 @@ should share geometry and materials; do not clone image data per tree.
 scaffold limbs. Its 4,186 triangles distinguish its form from the taller,
 fuller 6,490-triangle A/B crowns without adding another foliage material.
 
-The rock prototypes are chipped convex granite chunks with broad fracture
-planes and 4.5 cm worn bevels. Rock A is a low block; Rock B is an uneven wedge.
-Top-facing zones carry stronger localized moss while exposed fracture faces
-retain the photographic stone detail. Their 274/236 triangles describe the
-broad geological form; the shared photographic normal map supplies fine relief.
+The rock prototypes begin as asymmetric chipped granite chunks with broad
+fracture planes. Uneven shoulders, 10.5 cm worn bevels, local subdivision and
+small coherent displacement soften the cut boundaries and break straight edges.
+Runtime reduction retains 2,556/2,280 triangles. Top-facing zones carry stronger
+localized moss while exposed fracture faces retain photographic stone detail.
+Box UVs use 3.2 repeats per metre before runtime scaling, keeping cracks smaller
+than the broad geological forms; the shared normal map supplies fine relief.
 
 See `art/asset-report.json` for exact triangle counts and GLB bytes. These are
 source prototype counts, not scene instance counts or a GPU performance claim.

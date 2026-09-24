@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { softenShadowSampling } from '../core/softShadows.js';
 import {
   createRandom,
   pathCenter,
@@ -235,9 +236,9 @@ function instancePrototype(
       prototypeName.startsWith('fern_')
     ) {
       material.color.multiplyScalar(
-        prototypeName.startsWith('grass_') ? 1.42 : 1.2,
+        prototypeName.startsWith('grass_') ? 1.58 : 1.34,
       );
-      material.normalScale?.setScalar(0.7);
+      material.normalScale?.setScalar(0.5);
       material.emissive.set('#617c36');
       material.emissiveIntensity = prototypeName.startsWith('grass_')
         ? 0.115
@@ -455,25 +456,44 @@ function buildGroundcover(group, kit, windUniform, disposables) {
     const x =
       index < 12 ? pathCenter(z) + side * (3.15 + random() * 1.15) : authoredX;
     const radius = 1.75 + random() * 1.15;
-    plantInColony(short, x, z, radius, 128, 2.15, 2.8, true);
+    plantInColony(short, x, z, radius, 142, 2.3, 3.0, true);
     plantInColony(tall, x, z, radius + 0.3, 19, 1.05, 1.55);
     plantInColony(tiny, x, z, radius + 0.65, 72, 1.1, 2);
     plantInColony(
       ferns[index % 2],
       x + (x < pathCenter(z) ? -0.7 : 0.7),
       z + 0.7,
-      radius * 0.7,
-      11,
+      radius * 0.86,
+      18,
       1.35,
-      1.9,
+      2.05,
     );
   }
-  for (let colony = 0; colony < 75; colony++) {
-    const x = (random() * 2 - 1) * (colony < 45 ? 32 : 72);
-    const z = colony < 45 ? random() * 88 - 50 : (random() * 2 - 1) * 72;
+  // Offset counterparts close the visible banks without making a planted straight verge.
+  for (let index = 0; index < 12; index++) {
+    const side = index % 2 === 0 ? 1 : -1;
+    const z = colonies[index][1] + (side < 0 ? -1.7 : 2.1);
+    const x = pathCenter(z) + side * (3.25 + random() * 1.15);
+    const radius = 2.0 + random() * 1.05;
+    plantInColony(short, x, z, radius, 112, 2.35, 3.0, true);
+    plantInColony(tall, x, z, radius + 0.3, 16, 1.1, 1.7);
+    plantInColony(
+      ferns[index % 2],
+      x + side * 0.65,
+      z - 0.5,
+      radius * 0.88,
+      17,
+      1.4,
+      2.1,
+    );
+  }
+  for (let colony = 0; colony < 130; colony++) {
+    const x = (random() * 2 - 1) * (colony < 95 ? 29 : 72);
+    const z = colony < 95 ? random() * 89 - 55 : (random() * 2 - 1) * 72;
     if (pathDistance(x, z) < 4) continue;
-    plantInColony(distant, x, z, 2.2 + random() * 2.3, 31, 2, 2.7);
-    plantInColony(tiny, x, z, 3.3, 38, 1.0, 2.0);
+    plantInColony(distant, x, z, 2.3 + random() * 2.0, 44, 2.2, 2.9);
+    plantInColony(tiny, x, z, 3.3, 22, 1.0, 2.0);
+    if (colony < 70) plantInColony(ferns[colony % 2], x, z, 2.4, 3, 0.8, 1.5);
   }
   // Ferns sit against boulder contacts and hummocks, not in parallel verge bands.
   for (const [index, [x, z]] of [
@@ -486,7 +506,7 @@ function buildGroundcover(group, kit, windUniform, disposables) {
     [-11, -43],
     [11, -47],
   ].entries()) {
-    plantInColony(ferns[index % 2], x, z, 1.45, 10, 1.1, 1.6);
+    plantInColony(ferns[index % 2], x, z, 1.85, 15, 1.25, 1.85);
   }
   function addReserve(entries) {
     const count = entries.length;
@@ -520,15 +540,14 @@ function buildGroundcover(group, kit, windUniform, disposables) {
     windUniform,
   };
   const batches = [
-    ...instancePrototype(
-      group,
-      kit,
-      'grass_short',
-      short,
-      disposables,
-      options,
-    ),
-    ...instancePrototype(group, kit, 'grass_tall', tall, disposables, options),
+    ...instancePrototype(group, kit, 'grass_short', short, disposables, {
+      ...options,
+      shadow: false,
+    }),
+    ...instancePrototype(group, kit, 'grass_tall', tall, disposables, {
+      ...options,
+      shadow: false,
+    }),
     ...instancePrototype(group, kit, 'grass_tiny', tiny, disposables, {
       ...options,
       shadow: false,
@@ -756,9 +775,12 @@ export function createForestWorld() {
         ...buildGroundcover(group, kit, windUniform, disposables),
         ...buildDebris(group, disposables),
       ];
+      const filteredMaterials = new Set();
       group.traverse((object) => {
         if (object.isInstancedMesh) stats.batches++;
+        if (object.isMesh) filteredMaterials.add(object.material);
       });
+      filteredMaterials.forEach(softenShadowSampling);
       context.scene.add(group);
       context.renderer.shadowMap.needsUpdate = true;
       this.configure(settings);

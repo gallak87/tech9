@@ -1,0 +1,104 @@
+{
+  "checkpoint": 1,
+  "round": 4,
+  "commit": "5144db3b5faf53254aafa17f086ae444bc690625",
+  "score": 6.2,
+  "passThreshold": 8,
+  "pass": false,
+  "capReached": true,
+  "assessmentBasis": "Directly viewed the supplied reference and both final production-browser captures. Art only: near-photoreal AAA forest with warm natural backlight and lush, credible vegetation. Character and HUD absence are excluded; performance and effort do not contribute to score. No prior reviews were read.",
+  "reference": "/var/folders/nz/htpngfld7rs6m4qt6tpfknrm0000gn/T/codex-clipboard-66457751-b149-4eaf-9ea7-d3af6842ed5e.png",
+  "screenshots": [
+    "docs/reviews/cp1-r4-trail.png",
+    "docs/reviews/cp1-r4-grove.png"
+  ],
+  "summary": "A coherent forest scene with useful dirt microdetail, substantial fern coverage, and attractive warm shafts in the trail view. It remains visibly procedural and below near-photoreal AAA quality: repeated tree architecture and foliage silhouettes, wire-like grass, simple boulders, and bare distant hills weaken material and ecological credibility. The grove view exposes the sparse background and flat, dark lighting more strongly.",
+  "issues": [
+    {
+      "severity": "high",
+      "issue": "Tree architecture and canopy repetition",
+      "evidence": "Both views show many similarly straight, narrow trunks with comparable branch tiers. Crown silhouettes form coarse, repeated clumps; branch and foliage geometry is conspicuous against the pale sky, particularly at the grove center."
+    },
+    {
+      "severity": "high",
+      "issue": "Vegetation lacks natural shape and distribution",
+      "evidence": "Foreground grass is predominantly thin, stiff, intersecting strands; fern beds repeat similar size, shape, and green color. Vegetation forms dense trail borders but falls away into broad exposed midground hills, unlike the reference continuous, varied undergrowth."
+    },
+    {
+      "severity": "high",
+      "issue": "Lighting and depth remain uneven",
+      "evidence": "Trail sunlight provides warmth, but large pale sky openings and the beige background flatten distant depth. Grove vegetation and path are broadly dark with little warm transmitted leaf light or rich bounce; the reference integrates warm illumination through more layered canopy and ground cover."
+    },
+    {
+      "severity": "medium",
+      "issue": "Ground and rock realism is incomplete",
+      "evidence": "The trail surface has readable texture and scattered small debris, but its broad smooth shape and regular borders feel authored. The prominent left trail boulder has an uncomplicated oval mass with uniformly noisy surface detail; surrounding ground lacks convincing root, litter, moss, and erosion transitions."
+    }
+  ],
+  "topFutureFixes": [
+    "Replace the limited procedural tree forms with varied, botanically credible pine assets: asymmetrical crowns, broken branches, age and bark variation, and finer needle silhouettes.",
+    "Rebuild grass with curved, tapered, varied-width blades and mixed clump forms; diversify fern and shrub scale, species, color, and ecological placement across the full depth of the scene.",
+    "Compose layered distant forest and uneven, densely dressed terrain to eliminate empty hill and sky gaps; add roots, litter, irregular stones, and believable path-edge transitions.",
+    "Tune canopy-filtered sunlight, foliage transmission, bounce, and atmospheric depth together so both trail and grove sustain the reference warm natural light without flattening the background."
+  ],
+  "metricsContext": {
+    "artScoreInfluence": "None. Metrics are contextual only.",
+    "environment": "Headless Chromium 151.0.7922.34 on Apple M1 Pro, ANGLE Metal / WebGL2, 1600x1000, pixel ratio 1.",
+    "views": {
+      "trail": {
+        "source": ".artifacts/r4-trail.json",
+        "capturedAt": "2026-09-24T18:23:46.007Z",
+        "viewport": {
+          "width": 1600,
+          "height": 1000
+        },
+        "quality": "high",
+        "performance": {
+          "samples": 252,
+          "meanMs": 13.921825396825398,
+          "medianMs": 16.600000000000364,
+          "p95Ms": 16.800000000000182,
+          "meanFps": 71.82966108941652,
+          "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+          "drawingBuffer": [1600, 1000],
+          "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+        },
+        "drawCalls": 175,
+        "triangles": 6217658,
+        "errors": {
+          "console": [],
+          "page": [],
+          "requests": [],
+          "webgl": []
+        }
+      },
+      "grove": {
+        "source": ".artifacts/r4-grove.json",
+        "capturedAt": "2026-09-24T18:24:33.341Z",
+        "viewport": {
+          "width": 1600,
+          "height": 1000
+        },
+        "quality": "high",
+        "performance": {
+          "samples": 326,
+          "meanMs": 10.736196319018406,
+          "medianMs": 8.399999999999636,
+          "p95Ms": 16.799999999999727,
+          "meanFps": 93.14285714285714,
+          "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+          "drawingBuffer": [1600, 1000],
+          "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+        },
+        "drawCalls": 114,
+        "triangles": 4456119,
+        "errors": {
+          "console": [],
+          "page": [],
+          "requests": [],
+          "webgl": []
+        }
+      }
+    }
+  }
+}

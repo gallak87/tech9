@@ -80,6 +80,10 @@ Husky, ESLint, Prettier and lint-staged follow Chronoforge Echo's setup. The rep
 
 Each deliverable checkpoint is committed, then reviewed by a separate art critic using actual browser frames. `docs/reviews/` holds compact JSON assessments and up to two representative screenshots per round. A gate ends at ≥8/10 or four rounds. Scores assess visible quality against the supplied forest reference; measured performance is recorded separately and never inferred from a screenshot.
 
+The initial gate ended after four rounds at **6.2/10**, below the 8/10 target. The result is a working forest concept; near-photoreal AAA art remains unfinished. The final [review](docs/reviews/checkpoint-1-round-4.json) and its two screenshots document repetitive tree/canopy forms, wiry grass, simple rocks, sparse distant terrain and lighting limitations for the next art pass.
+
+Final validation: **12 unit tests, 9 Playwright checks, lint and production build passed**. Default High quality at 1600 × 1000, DPR 1, in Chromium/ANGLE Metal on Apple M1 Pro measured **71.8 FPS on the trail and 93.1 FPS in the grove**, with no browser, asset or WebGL errors. These are observed browser frame intervals on this machine, not a guarantee on other hardware. Every implementation attempt and independent review is committed separately.
+
 ## Next layers
 
 1. Grounded character controller and authored collision proxies.

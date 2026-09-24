@@ -1,0 +1,19 @@
+{
+  "generator": "Blender 5.1.1",
+  "triangles": {
+    "pine_a_wood": 6314,
+    "pine_a_needles": 1656,
+    "pine_b_wood": 6210,
+    "pine_b_needles": 1620,
+    "rock_a_stone": 1280,
+    "rock_b_stone": 1280,
+    "fallen_log_bark": 380,
+    "fallen_log_endgrain": 30
+  },
+  "totalTriangles": 18770,
+  "glbBytes": 6907152,
+  "prototypes": ["pine_a", "pine_b", "rock_a", "rock_b", "fallen_log"],
+  "units": "metres",
+  "upAxis": "Y (glTF)",
+  "license": "Original geometry and atlas, CC0 Poly Haven bark/rock images; see ASSETS.md"
+}

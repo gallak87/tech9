@@ -1,0 +1,6 @@
+.artifacts/
+.husky/
+dist/
+node_modules/
+public/
+package-lock.json

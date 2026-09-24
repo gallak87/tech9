@@ -1502,13 +1502,6 @@ export class UI {
       }
       const hero = HEROES[r.id],
         lifetime = 2360,
-        category = hero
-          ? 'LEVEL UP'
-          : r.id === 'xp'
-            ? 'EXPERIENCE'
-            : r.id === 'notice'
-              ? 'FIELD NOTE'
-              : 'RECOVERED',
         el = document.createElement('div');
       el.className = 'reward' + (hero ? ' reward-hero' : '');
       el.dataset.kind = hero ? 'level-up' : 'loot';
@@ -1516,7 +1509,7 @@ export class UI {
       if (ITEMS[r.id]?.exotic) el.dataset.exotic = 'true';
       el.style.setProperty('--reward-hold', lifetime - 140 + 'ms');
       el.setAttribute('role', 'status');
-      el.innerHTML = `${hero ? portrait(r.id, 'reward-portrait') : icon(r.id)}<div>${esc(r.label)} ${!hero && r.amount > 1 ? `<b>×${fmt(r.amount)}</b>` : ''}<small>${category}</small>${ITEMS[r.id] ? `<span class="item-badges">${itemBadges(ITEMS[r.id])}</span>` : ''}</div>`;
+      el.innerHTML = `${hero ? portrait(r.id, 'reward-portrait') : icon(r.id)}<span class="reward-label">${esc(r.label)}</span>${!hero && r.amount > 1 ? `<b>×${fmt(r.amount)}</b>` : ''}${hero ? '<small>LEVEL UP</small>' : ''}${itemBadges(ITEMS[r.id])}`;
       document.querySelector('#rewards').append(el);
       this.paint(el);
       setTimeout(() => el.remove(), lifetime);

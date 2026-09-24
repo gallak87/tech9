@@ -1061,13 +1061,14 @@ kbd {
 }
 #rewards {
   position: absolute;
-  right: 2%;
+  left: 2%;
+  right: auto;
   bottom: 17%;
   display: flex;
   flex-direction: column;
   gap: 0.5cqw;
   pointer-events: none;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 .reward {
   display: flex;
@@ -1089,10 +1090,8 @@ kbd {
   image-rendering: pixelated;
 }
 .reward small {
-  display: block;
   color: var(--muted);
   font-size: 0.63cqw;
-  margin-top: 0.2cqw;
 }
 .reward b {
   color: var(--amber);

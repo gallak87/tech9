@@ -43,7 +43,7 @@ Community restoration follows Haventide’s summary panel and compact upgrade ro
 
 Interaction prompts follow their world object and stay within the viewport. Signs use a text reader without inventing a speaker portrait. Esc/Backspace dismiss the top reading layer without firing a choice or continuation callback; a suspended ending retains its place.
 
-Battle commands fold through character, action, target and timing. Completed choices remain recoverable with Left. Use the authoritative combat state for readiness, costs and targets. Timing cues turn orange only during the input window; reduced motion uses a steady cue. Reward notices share one compact queue with clear icons and quantities.
+Battle commands fold through character, action, target and timing. Completed choices remain recoverable with Left. Use the authoritative combat state for readiness, costs and targets. Timing cues turn orange only during the input window; reduced motion uses a steady cue. Reward notices share one compact queue along the left edge on desktop and mobile. Keep the icon, name, quantity and rarity on one row, with an inline Level Up cue where relevant; omit generic Recovered, Experience and Field Note captions. Allow long messages to wrap within the available width rather than clipping information.
 
 Tall battle enemies fit beneath their name and health meters at their existing formation anchors. Keep enemy panels inside the field and clear of neighboring silhouettes and meters; draw them after the actors so later sprites cannot cover them.
 

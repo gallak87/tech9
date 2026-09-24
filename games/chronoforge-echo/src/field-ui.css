@@ -560,7 +560,6 @@ kbd {
   margin-right: 0.35em;
 }
 #rewards {
-  right: 2%;
   bottom: 16%;
   gap: 0.4cqw;
   max-width: 26cqw;
@@ -570,7 +569,7 @@ kbd {
   background: #141414f5;
   border: 1px solid #df702e99;
   border-left: 2px solid #df702e;
-  padding: 0.5cqw 0.7cqw 0.5cqw 0.5cqw;
+  padding: 0.25cqw 0.5cqw;
   font-size: clamp(12px, 0.96cqw, 22px);
   gap: 0.6cqw;
   box-shadow: 0 3px 9px #0004;
@@ -578,19 +577,26 @@ kbd {
     loot-in 0.12s ease-out,
     loot-out 0.14s var(--reward-hold, 2.22s) forwards;
   max-width: 100%;
+  width: max-content;
   color: #e9e0d3;
   line-height: 1.25;
 }
+.reward-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.reward > :is(b, small, .tier-badge) {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .reward canvas {
-  width: 2.5cqw;
-  height: 2.5cqw;
-  min-width: 30px;
-  min-height: 30px;
+  width: clamp(20px, 1.6cqw, 32px);
+  height: clamp(20px, 1.6cqw, 32px);
   flex-shrink: 0;
   image-rendering: auto;
 }
 .reward b {
-  font-size: 1.2em;
+  font-size: 1em;
   color: #f3a168;
   font-weight: 500;
   white-space: nowrap;
@@ -599,7 +605,6 @@ kbd {
   font-size: clamp(8px, 0.53cqw, 12px);
   color: #a99887;
   letter-spacing: 0.11em;
-  margin-top: 0.35em;
 }
 .ending {
   background: #141414ed;
@@ -714,8 +719,8 @@ kbd {
     max-width: 35cqw;
   }
   .reward {
-    padding: 5px 8px;
-    gap: 8px;
+    padding: 4px 6px;
+    gap: 6px;
   }
 }
 @container (max-width:600px) {
@@ -853,10 +858,6 @@ kbd {
   }
   .reward {
     font-size: 11px;
-  }
-  .reward canvas {
-    min-width: 24px;
-    min-height: 24px;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -1124,10 +1125,6 @@ kbd {
 .reward-portrait {
   background: none;
   border: 0;
-}
-.reward-hero .reward-portrait {
-  width: 2.8cqw;
-  height: 2.8cqw;
 }
 .purchase-confirm {
   width: min(40cqw, 520px);

@@ -708,20 +708,28 @@
 }
 #game[data-mobile='true'] #rewards {
   top: 126px;
-  left: 10px;
-  right: 10px;
+  bottom: auto;
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: auto;
+  max-width: min(
+    420px,
+    calc(
+      100% - max(10px, env(safe-area-inset-left, 0px)) -
+        max(10px, env(safe-area-inset-right, 0px))
+    )
+  );
 }
 #game[data-mobile='true'] .reward {
-  padding: 8px;
+  padding: 4px 6px;
   font-size: 14px;
-  gap: 8px;
+  gap: 6px;
 }
 #game[data-mobile='true'] .reward canvas {
-  width: 32px;
-  height: 32px;
+  width: 24px;
+  height: 24px;
 }
 #game[data-mobile='true'] .reward small {
-  font-size: 12px;
+  font-size: 10px;
 }
 #game[data-mobile='true'] .resume-ending {
   font-size: 14px;

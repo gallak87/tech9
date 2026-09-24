@@ -6,6 +6,7 @@
 All design choices are deterministic. Image sources are in public/assets/ASSETS.md.
 """
 import bpy
+import bmesh
 import json
 import math
 import random
@@ -145,10 +146,11 @@ def make_pine(name,seed,height,lean,sapling=False):
     rng=random.Random(seed)
     parent=root(name)
     tw=Mesh();leaves=Mesh()
-    bend=.10 if sapling else .36
-    def trunk(t):return Vector((lean*t+math.sin(t*6)*bend,math.sin(t*3)*bend*.7,height*t))
+    old_pine=name=='pine_c'
+    bend=.10 if sapling else (.55 if old_pine else .36)
+    def trunk(t):return Vector((lean*(t**1.7 if old_pine else t)+math.sin(t*6)*bend,math.sin(t*3)*bend*.7,height*t))
     segments=12 if sapling else 32
-    radius=.105 if sapling else (.43 if seed==417 else .50)
+    radius=.105 if sapling else (.57 if old_pine else .43 if seed==417 else .50)
     pts=[trunk(i/segments) for i in range(segments+1)]
     radii=[radius*(1-i/segments)**.86+.009+((radius*.38) if i==0 else 0) for i in range(segments+1)]
     tube(tw,pts,radii,7 if sapling else 13,.42)
@@ -157,8 +159,8 @@ def make_pine(name,seed,height,lean,sapling=False):
         d=Vector((math.cos(a),math.sin(a),0))
         scale=.27 if sapling else 1
         tube(tw,[(0,0,.25*scale),d*.48*scale+Vector((0,0,.10*scale)),d*rng.uniform(.8,1.25)*scale],[.13*scale,.08*scale,.008],5,.9)
-    count=24 if sapling else 32
-    crown_base=.12 if sapling else (.50 if seed==417 else .43)
+    count=24 if sapling or old_pine else 32
+    crown_base=.12 if sapling else (.61 if old_pine else .50 if seed==417 else .43)
     # Individual scaffold limbs rise and curve at unique heights; there are no
     # repeated horizontal whorls. Mature trees develop broad off-centre crowns.
     for k in range(count):
@@ -169,13 +171,14 @@ def make_pine(name,seed,height,lean,sapling=False):
         side=Vector((-math.sin(a),math.cos(a),0))
         profile=(1-t)**.55 if sapling else (.5+math.sin((t-crown_base+.13)/(1-crown_base+.2)*math.pi)*.6)
         length=rng.uniform(1.25,2.2)*profile if sapling else rng.uniform(2.75,4.55)*profile
+        if old_pine:length*=1.12+.46*math.cos(a-.7)
         rise=rng.uniform(.05,.35) if sapling else rng.uniform(.8,2.35)*(1-t*.6)
         sway=rng.uniform(-.27,.27)*length
         def limb(f):return base+direction*length*f+side*(math.sin(f*2)*sway)+Vector((0,0,rise*f*f-.19*math.sin(f*math.pi)))
         points=[limb(j/4) for j in range(5)]
         r=(.037 if sapling else .135)*(1-t*.55)*rng.uniform(.8,1.25)
         tube(tw,points,[r,r*.79,r*.48,r*.23,.003],4 if sapling else 6,.8)
-        fractions=(.43,.77,1) if sapling else (.34,.56,.77,1)
+        fractions=(.43,.77,1) if sapling or old_pine else (.34,.56,.77,1)
         for f in fractions:
             p=limb(f)
             for sign in (-1,1):
@@ -183,7 +186,7 @@ def make_pine(name,seed,height,lean,sapling=False):
                 out=(direction*.54+side*sign*.74+Vector((0,0,rng.uniform(.2,.7)))).normalized()
                 if not sapling:
                     tube(tw,[p,p+out*reach],[r*.24,.003],3,1)
-                for q in ((.58,1) if sapling else (.34,.7,1)):
+                for q in ((.58,1) if sapling else (.45,1) if old_pine else (.34,.7,1)):
                     center=p+out*reach*q
                     center+=Vector((rng.uniform(-.10,.1),rng.uniform(-.10,.1),rng.uniform(-.06,.17)))
                     shoot=(out+Vector((rng.uniform(-.3,.3),rng.uniform(-.3,.3),rng.uniform(-.1,.5)))).normalized()
@@ -201,35 +204,41 @@ def make_pine(name,seed,height,lean,sapling=False):
 
 make_pine('pine_a',417,21.5,.8)
 make_pine('pine_b',849,24,-1.3)
+make_pine('pine_c',1553,19.6,2.7)
 make_pine('pine_sapling',728,5,.12,True)
 
 def make_rock(name,seed,scale):
     rng=random.Random(seed)
     parent=root(name)
-    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=5,radius=1)
-    ob=bpy.context.object
-    ob.name=name+'_stone';ob.parent=parent
+    # Granite breaks into planar blocks. Build a chipped convex chunk rather
+    # than perturbing a spherical mesh, which retains a potato-like silhouette.
+    if name=='rock_a':
+        anchors=[(-.98,-.64,-.08),(.73,-.85,-.05),(1.02,.42,-.09),(.25,.92,-.07),(-.77,.71,-.10),
+                 (-.96,-.45,.64),(.66,-.77,.92),(.97,.31,.76),(.24,.84,.73),(-.73,.62,.80),
+                 (-.50,-.28,1.26),(.57,-.26,1.15),(.46,.51,1.01),(-.44,.51,1.30)]
+    else:
+        anchors=[(-.88,-.56,-.07),(.92,-.54,-.11),(.86,.63,-.08),(-.65,.87,-.10),
+                 (-.91,-.43,.94),(.71,-.59,.72),(.94,.51,.60),(-.48,.76,.92),
+                 (-.59,-.12,1.43),(.33,-.27,1.12),(.39,.39,1.18),(-.39,.45,1.38)]
+    mesh=bpy.data.meshes.new(name+'_fractured_geometry')
+    bm=bmesh.new()
+    vertices=[bm.verts.new((x*scale[0],y*scale[1],z*scale[2])) for x,y,z in anchors]
+    bmesh.ops.convex_hull(bm,input=vertices,use_existing_faces=False)
+    bmesh.ops.dissolve_limit(bm,angle_limit=.09,verts=list(bm.verts),edges=list(bm.edges))
+    bmesh.ops.bevel(bm,geom=list(bm.edges),offset=.045,segments=2,affect='EDGES')
+    bmesh.ops.recalc_face_normals(bm,faces=list(bm.faces))
+    bm.to_mesh(mesh);bm.free();mesh.update()
+    ob=bpy.data.objects.new(name+'_stone',mesh)
+    bpy.context.collection.objects.link(ob);ob.parent=parent
     offset=Vector((seed*.13,seed*.27,seed*.31))
-    for v in ob.data.vertices:
-        p=v.co.copy()
-        # Large fracture faces dominate form. Micro-displacement stays small;
-        # broad turbulent noise previously produced melted-looking boulders.
-        fac=1+noise.noise(p*1.65+offset)*.14+noise.noise(p*7+offset)*.02
-        p*=fac
-        for normal,distance in ((Vector((.83,.28,.48)).normalized(),.76),(Vector((-.73,.28,.62)).normalized(),.84),(Vector((.1,-.91,.39)).normalized(),.84),(Vector((.05,.04,1)).normalized(),.82)):
-            excess=p.dot(normal)-distance
-            if excess>0:p-=normal*excess
-        fac=1
-        v.co.x=p.x*scale[0]*fac
-        v.co.y=p.y*scale[1]*fac
-        v.co.z=max(-.12,p.z*scale[2]*fac+.52*scale[2])
     ob.data.update()
     # Remove Blender's default spherical layer: leaving it active hid the
     # intended metre-scale box projection and stretched the original material.
     while len(ob.data.uv_layers):ob.data.uv_layers.remove(ob.data.uv_layers[0])
     uvs=ob.data.uv_layers.new(name='UVMap')
     for poly in ob.data.polygons:
-        poly.use_smooth=True
+        # Flat large fracture faces with narrow bevels preserve geological form.
+        poly.use_smooth=poly.area<.055
         normal=poly.normal
         ax=max(range(3),key=lambda i:abs(normal[i]))
         for li in poly.loop_indices:
@@ -240,8 +249,10 @@ def make_rock(name,seed,scale):
             uvs.data[li].uv=uv
     cols=ob.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='POINT')
     for i,v in enumerate(ob.data.vertices):
-        moss=max(0,min(.45,(v.co.z/scale[2]-.4)*.26+noise.noise(v.co*3+offset)*.27))
-        cols.data[i].color=(1-moss*.28,1-moss*.12,1-moss*.48,1)
+        top=max(0,min(1,(v.co.z/scale[2]-.55)*1.4))
+        patch=max(0,noise.noise(v.co*1.8+offset)+.18)
+        moss=top*patch
+        cols.data[i].color=(1-moss*.50,1-moss*.26,1-moss*.70,1)
     ob.data.materials.append(rockmat)
     ob.data.update()
     return parent
@@ -267,6 +278,68 @@ for j in (2,5,7):
 log.finish('fallen_log_bark',logparent,bark)
 ends.finish('fallen_log_endgrain',logparent,wood)
 
+def import_groundcover(asset,variants,material_name):
+    previous=set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(ROOT/'sources'/asset/(asset+'.gltf')))
+    imported=set(bpy.data.objects)-previous
+    kept=[]
+    for source_name,output_name,scale in variants:
+        obj=bpy.data.objects.get(source_name)
+        if obj is None:raise RuntimeError('Missing source plant '+source_name)
+        obj.location=(0,0,0)
+        obj.scale*=scale
+        bpy.context.view_layer.objects.active=obj
+        bpy.ops.object.select_all(action='DESELECT');obj.select_set(True)
+        bpy.ops.object.transform_apply(location=True,rotation=True,scale=True)
+        # Bring soil-level vertices to the base origin; remove layout translations.
+        floor=min(v.co.z for v in obj.data.vertices)
+        for v in obj.data.vertices:v.co.z-=floor
+        parent=root(output_name);obj.parent=parent;obj.name=output_name+'_leaves'
+        obj.data.name=output_name+'_geometry'
+        obj['source']='Poly Haven '+asset+' / '+source_name+' / CC0'
+        kept.append(obj)
+    for obj in imported:
+        if obj not in kept:bpy.data.objects.remove(obj,do_unlink=True)
+    material=kept[0].data.materials[0]
+    material.name=material_name
+    material.surface_render_method='DITHERED';material.use_backface_culling=False
+    bs=material.node_tree.nodes.get('Principled BSDF')
+    bs.inputs['Specular IOR Level'].default_value=.2
+    bs.inputs['Roughness'].default_value=.9
+    image=bpy.data.images.load(str(ROOT/'sources'/asset/'textures'/(asset+'_rgba_1k.png')),check_existing=True)
+    for node in material.node_tree.nodes:
+        if node.type=='TEX_IMAGE' and '_diff' in node.image.name:
+            node.image=image
+            material.node_tree.links.new(node.outputs['Alpha'],bs.inputs['Alpha'])
+    for obj in kept:
+        # Supply white COLOR_0 to the common export contract.
+        if 'Color' not in obj.data.color_attributes:
+            colors=obj.data.color_attributes.new(name='Color',type='FLOAT_COLOR',domain='POINT')
+            for c in colors.data:c.color=(1,1,1,1)
+
+import_groundcover('grass_medium_01',[
+    ('grass_medium_01_tall_b_LOD0','grass_tall',1.8),
+    ('grass_medium_01_small_b_LOD0','grass_short',2.5),
+    ('grass_medium_01_tiny_c_LOD0','grass_tiny',2.5),
+],'MeadowGrass')
+import_groundcover('fern_02',[
+    ('fern_02_a','fern_a',2.0),
+    ('fern_02_d','fern_b',2.0),
+],'ForestFern')
+
+# Coarser full tuft for distant colonies: the tiny source is a single accent
+# blade and cannot provide the ground coverage of a whole grass plant.
+source=bpy.data.objects['grass_short_leaves']
+lod=source.copy();lod.data=source.data.copy()
+bpy.context.collection.objects.link(lod)
+lod.name='grass_short_lod_leaves';lod.data.name='grass_short_lod_geometry'
+lod.parent=root('grass_short_lod')
+bpy.ops.object.select_all(action='DESELECT');lod.select_set(True)
+bpy.context.view_layer.objects.active=lod
+decimate=lod.modifiers.new('Distant tuft reduction','DECIMATE')
+decimate.ratio=.30;decimate.use_collapse_triangulate=True
+bpy.ops.object.modifier_apply(modifier=decimate.name)
+
 # Pack sources so the Blender project is portable and retain only asset objects.
 for image in bpy.data.images:
     if image.source=='FILE':image.pack()
@@ -285,13 +358,13 @@ data=path.read_bytes()
 json_length=struct.unpack_from('<I',data,12)[0]
 doc=json.loads(data[20:20+json_length])
 for mat in doc.get('materials',[]):
-    if mat.get('name')=='PineNeedles':
+    if mat.get('name') in ('PineNeedles','MeadowGrass','ForestFern'):
         mat['alphaMode']='MASK';mat['alphaCutoff']=.42;mat['doubleSided']=True
 newjson=json.dumps(doc,separators=(',',':')).encode()
 newjson+=b' '*((-len(newjson))%4)
 tail=data[20+json_length:]
 path.write_bytes(struct.pack('<4sII',b'glTF',2,20+len(newjson)+len(tail))+struct.pack('<I4s',len(newjson),b'JSON')+newjson+tail)
 counts={obj.name:sum(len(p.vertices)-2 for p in obj.data.polygons) for obj in bpy.context.scene.objects if obj.type=='MESH'}
-report={'generator':'Blender '+bpy.app.version_string,'triangles':counts,'totalTriangles':sum(counts.values()),'glbBytes':path.stat().st_size,'prototypes':['pine_a','pine_b','pine_sapling','rock_a','rock_b','fallen_log'],'units':'metres','upAxis':'Y (glTF)','license':'Original geometry; CC0 Poly Haven bark/rock/pine images and derivatives; see ASSETS.md'}
+report={'generator':'Blender '+bpy.app.version_string,'triangles':counts,'totalTriangles':sum(counts.values()),'glbBytes':path.stat().st_size,'prototypes':['pine_a','pine_b','pine_c','pine_sapling','rock_a','rock_b','fallen_log','grass_tall','grass_short','grass_short_lod','grass_tiny','fern_a','fern_b'],'units':'metres','upAxis':'Y (glTF)','license':'Original trees/rocks/log; CC0 Poly Haven grass/fern geometry and bark/rock/pine/plant images; see ASSETS.md'}
 (ROOT/'asset-report.json').write_text(json.dumps(report,indent=2)+'\n')
 print('FOREST_ASSET_REPORT '+json.dumps(report))

@@ -96,7 +96,7 @@ test('the main trail stays inside the bounded map and supports a gentle continuo
   for (let z = -70; z < 70; z += 0.5) {
     const x = pathCenter(z);
     assert.ok(Math.abs(x) + pathWidth(z) < 76);
-    assert.ok(pathWidth(z) > 1.5 && pathWidth(z) < 3);
+    assert.ok(pathWidth(z) > 1.2 && pathWidth(z) < 3);
     assert.equal(pathDistance(x, z), 0);
     const next = terrainHeight(pathCenter(z + 0.5), z + 0.5);
     assert.ok(

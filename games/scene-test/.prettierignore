@@ -4,3 +4,6 @@ dist/
 node_modules/
 public/
 package-lock.json
+
+# Preserve imported mesh source formatting and acquisition metadata.
+art/sources/

@@ -537,3 +537,12 @@ h1 {
     rgba(15, 25, 17, 0.19)
   );
 }
+
+#world-hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+#interface.hidden-ui + #world-hud {
+  visibility: hidden;
+}

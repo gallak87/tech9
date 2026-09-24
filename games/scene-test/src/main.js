@@ -21,7 +21,10 @@ function showError(message) {
 }
 try {
   const testMode = new URLSearchParams(location.search).get('test') === '1';
-  app = new SceneApp(document.querySelector('#scene'), { testMode });
+  app = new SceneApp(document.querySelector('#scene'), {
+    testMode,
+    ui: document.querySelector('#world-hud'),
+  });
   app.events.addEventListener('error', (event) => showError(event.detail));
   if (testMode)
     window.__SCENE_TEST__ = {

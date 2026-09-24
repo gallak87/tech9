@@ -8,7 +8,13 @@ export function pathCenter(z) {
 }
 
 export function pathWidth(z) {
-  return 2.2 + 0.25 * Math.sin(z * 0.19) + 0.18 * Math.cos(z * 0.31);
+  return (
+    2.05 +
+    0.27 * Math.sin(z * 0.19) +
+    0.18 * Math.cos(z * 0.31) +
+    0.17 * Math.sin(z * 0.73) +
+    0.09 * Math.cos(z * 1.31)
+  );
 }
 
 export function pathDistance(x, z) {
@@ -34,7 +40,27 @@ export function terrainHeight(x, z) {
     1.25 +
     0.62 * Math.sin(x * 0.063 + z * 0.029) +
     0.45 * Math.sin(x * 0.15 - z * 0.08);
-  return rolling + shoulder + rim * rim * rimProfile;
+  const destination =
+    3.7 * Math.exp(-((x - 2) ** 2 / 540 + (z + 52) ** 2 / 132));
+  const secondary =
+    1.8 * Math.exp(-((x + 26) ** 2 / 210 + (z + 42) ** 2 / 95)) +
+    2.2 * Math.exp(-((x - 28) ** 2 / 190 + (z + 61) ** 2 / 180));
+  const pathMask = Math.min(
+    1,
+    Math.max(0, (pathDistance(x, z) - pathWidth(z) + 0.5) / 2.2),
+  );
+  const hummocks =
+    pathMask *
+    (0.11 * Math.sin(x * 0.75 + z * 0.41) * Math.cos(z * 0.57) +
+      0.27 * Math.sin(x * 0.2 + z * 0.11) * Math.cos(z * 0.26));
+  return (
+    rolling +
+    shoulder +
+    rim * rim * rimProfile +
+    destination +
+    secondary +
+    hummocks
+  );
 }
 
 export function createRandom(seed) {

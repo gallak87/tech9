@@ -36,7 +36,7 @@ export class AtmospherePass {
         shadowMatrix: { value: new Matrix4() },
         eye: { value: new Vector3() },
         lightDirection: { value: new Vector3() },
-        sunColor: { value: new Color('#ffe3a3') },
+        sunColor: { value: new Color('#ffe2ae') },
         strength: { value: 1 },
         raySteps: { value: 32 },
       },
@@ -67,11 +67,12 @@ export class AtmospherePass {
             if(coord.x>0.0&&coord.x<1.0&&coord.y>0.0&&coord.y<1.0&&coord.z<1.0){
               visible=texture(tShadow,vec3(coord.xy,coord.z-0.0002));
             }
-            float groundMist=exp(-max(point.y-1.0,0.0)*0.105);
-            scattering+=visible*groundMist*exp(-distance*0.012)*stepLength;
+            float groundMist=exp(-max(point.y-1.8,0.0)*0.095);
+            float nearFade=smoothstep(0.6,5.0,distance);
+            scattering+=visible*groundMist*nearFade*exp(-distance*0.027)*stepLength;
           }
           float alignment=max(dot(ray,lightDirection),0.0);
-          float phase=0.55+pow(alignment,4.0)*1.65;
+          float phase=0.18+pow(alignment,8.0)*4.2;
           gl_FragColor=vec4(sunColor*scattering*0.0075*phase*strength,1.0);
         }`,
       depthTest: false,
@@ -110,7 +111,7 @@ export class AtmospherePass {
           }
           color*=1.0-occlusion*0.0375;
           color+=light;
-          color*=vec3(1.025,1.008,0.973);
+          color*=vec3(1.015,1.01,0.99);
           float vignette=1.0-0.12*smoothstep(0.2,0.8,length((vUv-0.5)*vec2(1.0,0.8)));
           gl_FragColor=vec4(color*vignette,1.0);
           #include <tonemapping_fragment>

@@ -9,16 +9,10 @@ import {
   WORLD_HALF,
   WORLD_SIZE,
 } from './terrain.js';
-import {
-  createFernGeometry,
-  createGrassGeometry,
-  createShrubGeometry,
-  vegetationMaterial,
-} from './vegetation.js';
 
 const ASSET_ROOT = `${import.meta.env.BASE_URL}assets/`;
 const UP = new THREE.Vector3(0, 1, 0);
-const QUALITY_DENSITY = { balanced: 0.66, high: 0.86, ultra: 1 };
+const QUALITY_DENSITY = { balanced: 0.66, high: 1, ultra: 1.08 };
 
 function terrainMaterial(textures) {
   const material = new THREE.MeshStandardMaterial({
@@ -63,6 +57,8 @@ function terrainMaterial(textures) {
       float edgeNoise = (floorSample.g - floorSample.r) * 2.0 + (floorSample.r - 0.3) * 0.36;
       float pathBlend = smoothstep(0.16, 0.88, vTrail + edgeNoise * (1.0 - abs(vTrail * 2.0 - 1.0)));
       diffuseColor *= mix(floorSample, dirtSample * vec4(1.46, 1.28, 1.07, 1.0), pathBlend);
+      float soilMoisture = 0.9 + 0.1 * sin(vTerrainPosition.x * 0.39 + cos(vTerrainPosition.z * 0.17)) * sin(vTerrainPosition.z * 0.23);
+      diffuseColor.rgb *= mix(1.0, soilMoisture, pathBlend);
     `,
     );
     shader.fragmentShader = shader.fragmentShader.replace(
@@ -186,6 +182,9 @@ function createBatches(
     mesh.castShadow = shadow;
     mesh.receiveShadow = true;
     mesh.userData.maxCount = instances.length;
+    mesh.userData.baseCount = instances.filter(
+      (instance) => !instance.reserve,
+    ).length;
     mesh.userData.density = density;
     for (let i = 0; i < instances.length; i++) {
       const entry = instances[i];
@@ -224,14 +223,35 @@ function instancePrototype(
     );
     const geometry = part.geometry.clone().applyMatrix4(localMatrix);
     const material = part.material.clone();
+    if (prototypeName.startsWith('rock_')) {
+      const uv = geometry.getAttribute('uv');
+      for (let i = 0; i < uv.count; i++)
+        uv.setXY(i, uv.getX(i) * 0.4, uv.getY(i) * 0.4);
+      if (material.normalScale) material.normalScale.setScalar(0.55);
+    }
     material.envMapIntensity = 0.3;
+    if (
+      prototypeName.startsWith('grass_') ||
+      prototypeName.startsWith('fern_')
+    ) {
+      material.color.multiplyScalar(
+        prototypeName.startsWith('grass_') ? 1.42 : 1.2,
+      );
+      material.normalScale?.setScalar(0.7);
+      material.emissive.set('#617c36');
+      material.emissiveIntensity = prototypeName.startsWith('grass_')
+        ? 0.115
+        : 0.07;
+    }
     if (material.map) material.map.anisotropy = 8;
     if (
       material.alphaTest > 0 ||
       material.name.toLowerCase().includes('needle')
     ) {
       material.side = THREE.DoubleSide;
-      material.alphaTest = 0.37;
+      material.alphaTest = material.name.toLowerCase().includes('needle')
+        ? 0.37
+        : 0.42;
       material.alphaToCoverage = true;
       material.transparent = false;
       material.roughness = 0.95;
@@ -242,6 +262,27 @@ function instancePrototype(
         );
       };
       material.customProgramCacheKey = () => 'pine-transmission-v1';
+    }
+    if (options.windUniform) {
+      const configureMaterial = material.onBeforeCompile;
+      material.onBeforeCompile = (shader) => {
+        configureMaterial(shader);
+        shader.uniforms.uPlantTime = options.windUniform;
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <common>',
+          '#include <common>\nuniform float uPlantTime;',
+        );
+        shader.vertexShader = shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          `#include <begin_vertex>
+          #ifdef USE_INSTANCING
+            float phase = uPlantTime * 0.75 + instanceMatrix[3].x * 0.31 + instanceMatrix[3].z * 0.17;
+            transformed.x += sin(phase) * pow(max(position.y, 0.0), 1.4) * 0.095;
+            transformed.z += cos(phase * 1.23) * pow(max(position.y, 0.0), 1.4) * 0.047;
+          #endif`,
+        );
+      };
+      material.customProgramCacheKey = () => `scanned-foliage-${prototypeName}`;
     }
     disposables.push(geometry, material);
     batches.push(
@@ -267,7 +308,7 @@ function treePlacements() {
     [-10, 27, 1.14],
     [21, 7, 0.93],
     [-6.5, -4, 0.87],
-    [12, -16, 1.02],
+    [21, -19, 1.02],
     [-8, -27, 1.1],
     [17, -37, 0.99],
   ];
@@ -297,14 +338,34 @@ function treePlacements() {
       angle: random() * 6.28,
     });
   }
-  const result = [[], []];
+  for (const [centerX, centerZ] of [
+    [-29, -51],
+    [-16, -59],
+    [-3, -57],
+    [12, -60],
+    [27, -54],
+    [-42, -60],
+    [39, -65],
+  ]) {
+    for (let i = 0; i < 4; i++) {
+      const x = centerX + (random() - 0.5) * 10;
+      const z = centerZ + (random() - 0.5) * 11;
+      points.push({
+        x,
+        z,
+        scale: 0.73 + random() * 0.4,
+        angle: random() * 6.28,
+      });
+    }
+  }
+  const result = [[], [], []];
   for (const [index, point] of points.entries()) {
     const scale = new THREE.Vector3(
       point.scale * (0.83 + random() * 0.25),
       point.scale,
       point.scale * (0.83 + random() * 0.25),
     );
-    result[index % 2].push({
+    result[[0, 1, 2, 0, 1][index % 5]].push({
       ...point,
       matrix: matrixAt(point.x, point.z, scale, point.angle, -0.06),
     });
@@ -335,141 +396,162 @@ function scatter(random, count, radius, filter, scaleRange, colorRange) {
   return entries;
 }
 
-function buildGroundcover(group, windUniform, disposables) {
+function buildGroundcover(group, kit, windUniform, disposables) {
   const random = createRandom(92151);
-  const palette = [new THREE.Color('#e0e3b9'), new THREE.Color('#ffffff')];
-  const isOffTrail = (x, z, rng) => {
-    const distance = pathDistance(x, z);
-    const shoulder = pathWidth(z) + 0.05;
-    if (distance < shoulder + rng() * 0.7) return false;
-    const patch = Math.sin(x * 0.25 + z * 0.09) * Math.cos(z * 0.18 - x * 0.07);
-    return rng() < 0.66 + patch * 0.24;
-  };
-  const grass = [
-    ...scatter(random, 3300, 42, isOffTrail, [0.6, 1.05], palette),
-    ...scatter(random, 3900, 77, isOffTrail, [0.7, 1.3], palette),
-  ];
-  // Tall rushes and isolated wisps soften the trail edge without hiding its route.
-  for (let i = 0; i < 12800; i++) {
-    const z = random() * 98 - 54;
-    const x =
-      pathCenter(z) +
-      (random() > 0.5 ? 1 : -1) *
-        (pathWidth(z) +
-          Math.sin(z * 0.67) * 0.23 +
-          Math.sin(z * 1.32) * 0.29 +
-          Math.pow(random(), 1.45) * 8.6 -
-          0.1);
-    grass.push({
-      x,
-      z,
-      matrix: matrixAt(x, z, 0.55 + random() * 0.64, random() * 6.28),
-      color: palette[0].clone().lerp(palette[1], random()),
-    });
-  }
-  const fern = scatter(
-    random,
-    170,
-    66,
-    (x, z, rng) => pathDistance(x, z) > pathWidth(z) + 0.6 && rng() > 0.15,
-    [0.52, 1.25],
-  );
-  const shrub = scatter(
-    random,
-    220,
-    73,
-    (x, z) => pathDistance(x, z) > pathWidth(z) + 2.3,
-    [0.9, 1.7],
-  );
+  const short = [],
+    tall = [],
+    tiny = [],
+    ferns = [[], []],
+    distant = [];
+  const palette = [new THREE.Color('#f5f6ed'), new THREE.Color('#ffffff')];
   const colonies = [
-    [-5, 18],
-    [6.5, 15],
-    [-4, 5],
-    [7, -1],
-    [-4, -8],
-    [12, -18],
-    [-7, -27],
-    [14, -39],
-    [-9, 32],
-    [17, 6],
-    [-19, -15],
-    [28, -35],
+    [-3.6, 23],
+    [4, 22],
+    [-3.9, 16],
+    [5.3, 13],
+    [-3.1, 7],
+    [7.6, 3],
+    [-2.8, -4],
+    [9, -8],
+    [-3.4, -15],
+    [9.8, -23],
+    [-5.2, -30],
+    [10, -34],
+    [-10.8, 27],
+    [13.5, 23],
+    [-13, 7],
+    [17, -17],
+    [-14, -28],
+    [21, -39],
   ];
-  for (const [centerX, centerZ] of colonies) {
-    for (let i = 0; i < 46; i++) {
+  function plantInColony(
+    target,
+    centerX,
+    centerZ,
+    radius,
+    count,
+    minScale,
+    maxScale,
+    allowEdge = false,
+  ) {
+    for (let i = 0; i < count; i++) {
       const angle = random() * Math.PI * 2;
-      const radius = Math.sqrt(random()) * 3.1;
-      const x = centerX + Math.cos(angle) * radius;
-      const z = centerZ + Math.sin(angle) * radius;
-      if (pathDistance(x, z) < pathWidth(z) + 0.2) continue;
-      fern.push({
+      const spread = Math.sqrt(random()) * radius;
+      const x = centerX + Math.cos(angle) * spread;
+      const z = centerZ + Math.sin(angle) * spread * (0.7 + random() * 0.7);
+      const threshold = pathWidth(z) - (allowEdge ? 0.45 : 0.1);
+      if (pathDistance(x, z) < threshold) continue;
+      const scale = minScale + random() * (maxScale - minScale);
+      target.push({
         x,
         z,
-        matrix: matrixAt(x, z, 0.61 + random() * 0.65, random() * 6.28),
+        matrix: matrixAt(x, z, scale, random() * Math.PI * 2, -0.012),
+        color: palette[0].clone().lerp(palette[1], random()),
       });
-      if (i % 4 === 0 && pathDistance(x, z) > pathWidth(z) + 1.2)
-        shrub.push({
-          x,
-          z,
-          matrix: matrixAt(x, z, 1.2 + random() * 0.8, random() * 6.28),
-        });
     }
   }
-  // A staggered low understory conceals the finite ground silhouette behind the trunks.
-  for (let i = 0; i < 170; i++) {
-    const angle = random() * Math.PI * 2;
-    const radius = 62 + random() * 13;
-    const x = Math.cos(angle) * radius;
-    const z = Math.sin(angle) * radius;
-    shrub.push({
-      x,
-      z,
-      matrix: matrixAt(x, z, 1.8 + random() * 1.2, random() * 6.28),
-    });
+  for (const [index, [authoredX, z]] of colonies.entries()) {
+    const side = index % 2 === 0 ? -1 : 1;
+    const x =
+      index < 12 ? pathCenter(z) + side * (3.15 + random() * 1.15) : authoredX;
+    const radius = 1.75 + random() * 1.15;
+    plantInColony(short, x, z, radius, 128, 2.15, 2.8, true);
+    plantInColony(tall, x, z, radius + 0.3, 19, 1.05, 1.55);
+    plantInColony(tiny, x, z, radius + 0.65, 72, 1.1, 2);
+    plantInColony(
+      ferns[index % 2],
+      x + (x < pathCenter(z) ? -0.7 : 0.7),
+      z + 0.7,
+      radius * 0.7,
+      11,
+      1.35,
+      1.9,
+    );
   }
-  const grassGeometry = createGrassGeometry();
-  const fernGeometry = createFernGeometry();
-  const shrubGeometry = createShrubGeometry();
-  const grassMaterial = vegetationMaterial(windUniform, 1);
-  const fernMaterial = vegetationMaterial(windUniform, 0.6);
-  const shrubMaterial = vegetationMaterial(windUniform, 0.5);
-  disposables.push(
-    grassGeometry,
-    fernGeometry,
-    shrubGeometry,
-    grassMaterial,
-    fernMaterial,
-    shrubMaterial,
-  );
-  return [
-    ...createBatches(
+  for (let colony = 0; colony < 75; colony++) {
+    const x = (random() * 2 - 1) * (colony < 45 ? 32 : 72);
+    const z = colony < 45 ? random() * 88 - 50 : (random() * 2 - 1) * 72;
+    if (pathDistance(x, z) < 4) continue;
+    plantInColony(distant, x, z, 2.2 + random() * 2.3, 31, 2, 2.7);
+    plantInColony(tiny, x, z, 3.3, 38, 1.0, 2.0);
+  }
+  // Ferns sit against boulder contacts and hummocks, not in parallel verge bands.
+  for (const [index, [x, z]] of [
+    [-5.8, 10],
+    [6.7, 14.5],
+    [-7, -3],
+    [15, -12],
+    [-4.5, -20],
+    [-12, 25],
+    [-11, -43],
+    [11, -47],
+  ].entries()) {
+    plantInColony(ferns[index % 2], x, z, 1.45, 10, 1.1, 1.6);
+  }
+  function addReserve(entries) {
+    const count = entries.length;
+    for (let i = 0; i < count; i += 2) {
+      const source = entries[i];
+      const x = source.x + (random() - 0.5) * 0.7;
+      const z = source.z + (random() - 0.5) * 0.7;
+      const position = new THREE.Vector3(),
+        quaternion = new THREE.Quaternion(),
+        scale = new THREE.Vector3();
+      source.matrix.decompose(position, quaternion, scale);
+      entries.push({
+        x,
+        z,
+        matrix: matrixAt(x, z, scale, random() * Math.PI * 2, -0.012),
+        color: source.color,
+        reserve: true,
+      });
+    }
+  }
+  [short, tall, tiny, distant, ...ferns].forEach(addReserve);
+  const shortLod = kit.getObjectByName('grass_short_lod')
+    ? 'grass_short_lod'
+    : 'grass_tiny';
+  if (shortLod === 'grass_tiny') tiny.push(...distant);
+  const options = {
+    density: true,
+    shadow: true,
+    chunkSize: 32,
+    color: true,
+    windUniform,
+  };
+  const batches = [
+    ...instancePrototype(
       group,
-      grassGeometry,
-      grassMaterial,
-      grass,
-      'Bent grass and sedge',
-      { chunkSize: 32, density: true, color: true },
+      kit,
+      'grass_short',
+      short,
+      disposables,
+      options,
     ),
-    ...createBatches(group, fernGeometry, fernMaterial, fern, 'Woodland fern', {
-      density: true,
+    ...instancePrototype(group, kit, 'grass_tall', tall, disposables, options),
+    ...instancePrototype(group, kit, 'grass_tiny', tiny, disposables, {
+      ...options,
+      shadow: false,
     }),
-    ...createBatches(
-      group,
-      shrubGeometry,
-      shrubMaterial,
-      shrub,
-      'Low bilberry shrubs',
-      { density: true, shadow: true },
-    ),
+    ...instancePrototype(group, kit, 'fern_a', ferns[0], disposables, options),
+    ...instancePrototype(group, kit, 'fern_b', ferns[1], disposables, options),
   ];
+  if (shortLod !== 'grass_tiny')
+    batches.push(
+      ...instancePrototype(group, kit, shortLod, distant, disposables, {
+        ...options,
+        shadow: false,
+      }),
+    );
+  return batches;
 }
 
 function buildDebris(group, disposables) {
   const random = createRandom(31199);
-  const pebbleGeometry = new THREE.DodecahedronGeometry(0.1, 0);
+  const pebbleGeometry = new THREE.DodecahedronGeometry(0.065, 1);
   pebbleGeometry.scale(1, 0.6, 0.8);
   const pebbleMaterial = new THREE.MeshStandardMaterial({
-    color: '#777568',
+    color: '#a29b83',
     roughness: 0.99,
   });
   const stickGeometry = new THREE.CylinderGeometry(0.009, 0.016, 0.5, 5);
@@ -478,13 +560,6 @@ function buildDebris(group, disposables) {
   const stickMaterial = new THREE.MeshStandardMaterial({
     color: '#3b3024',
     roughness: 0.98,
-  });
-  const leafGeometry = new THREE.OctahedronGeometry(0.1, 0);
-  leafGeometry.scale(0.5, 0.04, 1.5);
-  leafGeometry.translate(0, 0.012, 0);
-  const leafMaterial = new THREE.MeshStandardMaterial({
-    color: '#66513a',
-    roughness: 1,
   });
   const pebbles = scatter(
     random,
@@ -495,21 +570,11 @@ function buildDebris(group, disposables) {
     [new THREE.Color('#aaa797'), new THREE.Color('#6c6758')],
   );
   const sticks = scatter(random, 540, 54, () => true, [0.4, 1.5]);
-  const leaves = scatter(
-    random,
-    1400,
-    44,
-    (x, z, rng) => pathDistance(x, z) < 3.7 || rng() < 0.3,
-    [0.6, 1.3],
-    [new THREE.Color('#a2976d'), new THREE.Color('#a47b47')],
-  );
   disposables.push(
     pebbleGeometry,
     pebbleMaterial,
     stickGeometry,
     stickMaterial,
-    leafGeometry,
-    leafMaterial,
   );
   return [
     ...createBatches(
@@ -527,14 +592,6 @@ function buildDebris(group, disposables) {
       sticks,
       'Fallen twigs',
       { density: true },
-    ),
-    ...createBatches(
-      group,
-      leafGeometry,
-      leafMaterial,
-      leaves,
-      'Dry leaf litter',
-      { density: true, color: true },
     ),
   ];
 }
@@ -571,6 +628,25 @@ function buildSaplings(group, kit, disposables) {
       });
     }
   }
+  for (const [centerX, centerZ] of [
+    [-25, -44],
+    [-15, -48],
+    [-3, -51],
+    [11, -50],
+    [24, -49],
+    [-35, -56],
+    [35, -56],
+  ]) {
+    for (let i = 0; i < 8; i++) {
+      const x = centerX + (random() - 0.5) * 9;
+      const z = centerZ + (random() - 0.5) * 10;
+      entries.push({
+        x,
+        z,
+        matrix: matrixAt(x, z, 0.9 + random() * 0.8, random() * 6.28),
+      });
+    }
+  }
   // A kit may omit the optional younger age class without breaking world loading.
   if (kit.getObjectByName('pine_sapling')) {
     instancePrototype(group, kit, 'pine_sapling', entries, disposables);
@@ -589,7 +665,7 @@ function rockPlacements() {
     [0.32, 1.23],
   );
   const hero = [
-    [-5.8, 10, 1.04],
+    [-5.8, 10, 0.64],
     [6.7, 14.5, 0.82],
     [-7, -3, 1.35],
     [15, -12, 0.78],
@@ -650,9 +726,10 @@ export function createForestWorld() {
       disposables.push(terrain.geometry, terrain.material);
       group.add(terrain);
       const trees = treePlacements();
-      stats.trees = trees[0].length + trees[1].length;
-      instancePrototype(group, kit, 'pine_a', trees[0], disposables);
-      instancePrototype(group, kit, 'pine_b', trees[1], disposables);
+      stats.trees = trees.reduce((sum, family) => sum + family.length, 0);
+      ['pine_a', 'pine_b', 'pine_c'].forEach((name, index) =>
+        instancePrototype(group, kit, name, trees[index], disposables),
+      );
       stats.saplings = buildSaplings(group, kit, disposables);
       const rocks = rockPlacements();
       instancePrototype(group, kit, 'rock_a', rocks[0], disposables);
@@ -676,7 +753,7 @@ export function createForestWorld() {
         disposables,
       );
       densityBatches = [
-        ...buildGroundcover(group, windUniform, disposables),
+        ...buildGroundcover(group, kit, windUniform, disposables),
         ...buildDebris(group, disposables),
       ];
       group.traverse((object) => {
@@ -715,14 +792,17 @@ export function createForestWorld() {
         (nextSettings.richness !== undefined &&
           nextSettings.richness !== settings.richness);
       settings = { ...settings, ...nextSettings };
-      const ratio = Math.min(
-        1,
-        ((QUALITY_DENSITY[settings.quality] || 0.86) * settings.richness) /
-          1.25,
-      );
+      const ratio =
+        (QUALITY_DENSITY[settings.quality] || 1) * settings.richness;
       stats.vegetationInstances = 0;
       for (const mesh of densityBatches) {
-        mesh.count = Math.max(1, Math.round(mesh.userData.maxCount * ratio));
+        mesh.count = Math.max(
+          1,
+          Math.min(
+            mesh.userData.maxCount,
+            Math.round(mesh.userData.baseCount * ratio),
+          ),
+        );
         stats.vegetationInstances += mesh.count;
       }
       if (context && geometryChanged)

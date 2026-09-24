@@ -81,3 +81,11 @@ mask=mask.resize(stone.size,Image.Resampling.BICUBIC)
 mask=mask.point(lambda p:max(0,min(160,(p-147)*3)))
 Image.composite(moss,neutral,mask).save(TEX/'forest-granite-diff.jpg',quality=95)
 print('Generated photo-derived pine sprays, original endgrain, graded granite.')
+
+# Poly Haven's public glTF points its baseColor to JPEG, even for cutout plants.
+# Reconstruct alpha from the dedicated source map before Blender export.
+for asset in ('grass_medium_01','fern_02'):
+    tex=ROOT/'sources'/asset/'textures'
+    rgba=Image.open(tex/(asset+'_diff_1k.jpg')).convert('RGBA')
+    rgba.putalpha(Image.open(tex/(asset+'_alpha_1k.png')).convert('L'))
+    rgba.save(tex/(asset+'_rgba_1k.png'),optimize=True)

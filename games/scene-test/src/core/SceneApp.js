@@ -24,8 +24,9 @@ import {
 import { terrainHeight, pathCenter } from '../world/terrain.js';
 
 export class SceneApp {
-  constructor(canvas, { testMode = false } = {}) {
+  constructor(canvas, { testMode = false, ui = null } = {}) {
     this.canvas = canvas;
+    this.ui = ui;
     this.testMode = testMode;
     this.ready = false;
     this.layers = [];
@@ -37,8 +38,8 @@ export class SceneApp {
     this.settings = testMode ? { ...DEFAULT_SETTINGS } : loadSettings();
     this.metrics = { fps: 0, frameMs: 0, drawCalls: 0, triangles: 0 };
     this.scene = new Scene();
-    this.scene.background = new Color('#c5c3ac');
-    this.scene.fog = new FogExp2('#c6bea4', 0.012);
+    this.scene.background = new Color('#b9c3b9');
+    this.scene.fog = new FogExp2('#b9c3b9', 0.0075);
     this.camera = new PerspectiveCamera(58, 1, 0.15, 240);
     this.renderer = new WebGLRenderer({
       canvas,
@@ -51,10 +52,10 @@ export class SceneApp {
     this.renderer.shadowMap.type = PCFShadowMap;
     this.renderer.shadowMap.autoUpdate = false;
     this.renderer.info.autoReset = false;
-    this.hemisphere = new HemisphereLight('#e2e6d7', '#797253', 1.9);
+    this.hemisphere = new HemisphereLight('#c4d3d2', '#5c6146', 1.4);
     this.scene.add(this.hemisphere);
-    this.sun = new DirectionalLight('#ffebbf', 4.2);
-    this.sun.position.set(34, 32, -48);
+    this.sun = new DirectionalLight('#ffe2af', 4.7);
+    this.sun.position.set(34, 28, -48);
     this.sun.castShadow = true;
     Object.assign(this.sun.shadow.camera, {
       left: -58,
@@ -71,11 +72,21 @@ export class SceneApp {
     this.sky = new Sky();
     this.sky.scale.setScalar(1800);
     this.sky.material.depthWrite = false;
-    Object.assign(this.sky.material.uniforms.turbidity, { value: 12 });
-    this.sky.material.uniforms.rayleigh.value = 0.45;
+    Object.assign(this.sky.material.uniforms.turbidity, { value: 8 });
+    this.sky.material.uniforms.rayleigh.value = 0.9;
     this.sky.material.uniforms.mieCoefficient.value = 0.005;
     this.sky.material.uniforms.mieDirectionalG.value = 0.85;
     this.sky.material.uniforms.sunPosition.value.copy(this.sun.position);
+    this.sky.material.uniforms.horizonTint = { value: this.scene.fog.color };
+    this.sky.material.fragmentShader = this.sky.material.fragmentShader
+      .replace(
+        'varying vec3 vWorldPosition;',
+        'varying vec3 vWorldPosition;\nuniform vec3 horizonTint;',
+      )
+      .replace(
+        'gl_FragColor = vec4( texColor, 1.0 );',
+        'texColor = mix(horizonTint, texColor, smoothstep(-0.04, 0.28, direction.y));\ngl_FragColor = vec4(texColor, 1.0);',
+      );
     this.scene.add(this.sky);
     this.atmosphere = new AtmospherePass(this.renderer);
     this.controls = new FlyCamera(this.camera, canvas, this.bounds);
@@ -123,6 +134,7 @@ export class SceneApp {
     try {
       await layer.init({
         scene: this.scene,
+        ui: this.ui,
         camera: this.camera,
         renderer: this.renderer,
         assets: this.assets,
@@ -206,10 +218,10 @@ export class SceneApp {
     this.settings = validateSettings({ ...this.settings, ...patch });
     const settings = this.settings;
     const preset = QUALITY[settings.quality];
-    this.renderer.toneMappingExposure = 0.98 * settings.exposure;
-    this.sun.intensity = 4.2 * settings.sunlight;
-    this.hemisphere.intensity = 1.9;
-    this.scene.fog.density = 0.012 * settings.atmosphere;
+    this.renderer.toneMappingExposure = 0.96 * settings.exposure;
+    this.sun.intensity = 4.7 * settings.sunlight;
+    this.hemisphere.intensity = 1.4;
+    this.scene.fog.density = 0.0075 * settings.atmosphere;
     if (this.sun.shadow.mapSize.x !== preset.shadowSize) {
       this.sun.shadow.mapSize.set(preset.shadowSize, preset.shadowSize);
       this.sun.shadow.map?.dispose();
@@ -235,6 +247,7 @@ export class SceneApp {
     const ratio = Math.min(
       window.devicePixelRatio || 1,
       QUALITY[this.settings.quality].pixelRatio,
+      Math.sqrt(QUALITY[this.settings.quality].maxPixels / (width * height)),
     );
     this.renderer.setPixelRatio(ratio);
     this.renderer.setSize(width, height, false);
@@ -243,6 +256,7 @@ export class SceneApp {
     this.atmosphere.resize(width, height, ratio);
   }
   start() {
+    if (this.disposed) throw new Error('Cannot start a disposed app.');
     this.ready = true;
     this.lastTime = performance.now();
     this.sampleTime = 0;
@@ -277,6 +291,7 @@ export class SceneApp {
     });
   }
   stop() {
+    this.ready = false;
     this.renderer.setAnimationLoop(null);
   }
   snapshot() {

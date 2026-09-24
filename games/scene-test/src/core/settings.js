@@ -6,9 +6,27 @@ export const DEFAULT_SETTINGS = Object.freeze({
   exposure: 1,
 });
 export const QUALITY = Object.freeze({
-  balanced: { pixelRatio: 1, shadowSize: 2048, samples: 0, rays: 20 },
-  high: { pixelRatio: 1.35, shadowSize: 3072, samples: 2, rays: 32 },
-  ultra: { pixelRatio: 1.75, shadowSize: 4096, samples: 4, rays: 48 },
+  balanced: {
+    pixelRatio: 1,
+    maxPixels: 1600000,
+    shadowSize: 2048,
+    samples: 0,
+    rays: 20,
+  },
+  high: {
+    pixelRatio: 1.35,
+    maxPixels: 2600000,
+    shadowSize: 3072,
+    samples: 4,
+    rays: 32,
+  },
+  ultra: {
+    pixelRatio: 1.75,
+    maxPixels: 5200000,
+    shadowSize: 4096,
+    samples: 4,
+    rays: 48,
+  },
 });
 export function validateSettings(input = {}) {
   const result = { ...DEFAULT_SETTINGS };

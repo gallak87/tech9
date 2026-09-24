@@ -148,3 +148,39 @@ test('cleanup errors preserve the original registration failure', async (context
   assert.equal(errorLog.mock.callCount(), 1);
   assert.equal(host.layers.length, 0);
 });
+
+test('one faulty layer cannot prevent other layers and renderer from releasing', async (context) => {
+  const { host, released } = lifecycleHost();
+  const errorLog = context.mock.method(console, 'error', () => {});
+  await host.register({
+    id: 'faulty',
+    async init() {},
+    dispose() {
+      throw new Error('faulty teardown');
+    },
+  });
+  await host.register({
+    id: 'healthy',
+    async init() {},
+    dispose() {
+      released.push('healthy layer');
+    },
+  });
+  host.dispose();
+  assert.equal(errorLog.mock.callCount(), 1);
+  assert.ok(released.includes('healthy layer'));
+  assert.ok(released.includes('renderer'));
+  assert.equal(host.layers.length, 0);
+});
+
+test('stopped or disposed scenes cannot report ready or restart a disposed renderer', () => {
+  const { host } = lifecycleHost();
+  host.ready = true;
+  host.stop();
+  assert.equal(host.ready, false);
+  host.ready = true;
+  host.dispose();
+  assert.equal(host.ready, false);
+  assert.throws(() => host.start(), /disposed app/);
+  assert.equal(host.ready, false);
+});

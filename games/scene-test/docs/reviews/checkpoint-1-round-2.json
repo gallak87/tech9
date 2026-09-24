@@ -1,0 +1,70 @@
+{
+  "checkpoint": 1,
+  "round": 2,
+  "reviewer": "independent-aaa-art-critic",
+  "commit": "1d286fe3",
+  "standard": "Near-photoreal AAA forest art against the supplied warm, lush forest reference. Score is based on the rendered screenshots, independent of implementation effort and performance.",
+  "score": 4.5,
+  "passThreshold": 8,
+  "pass": false,
+  "subScores": {
+    "composition": 4.5,
+    "lighting": 5,
+    "materials": 5,
+    "vegetation": 3.5,
+    "naturalVariation": 3.5,
+    "referenceFidelity": 4.5,
+    "polish": 5.5
+  },
+  "summary": "A recognizable and playable-looking forest prototype, with readable bark, ground detail and a coherent trail. It remains far below near-photoreal AAA: repeated rigid grass, pole-like trees, exposed empty horizon and uniform material treatment are immediately visible. Golden haze helps the trail mood but does not overcome the artificial vegetation and staging.",
+  "evidence": ["cp1-r2-trail.png", "cp1-r2-grove.png"],
+  "issues": [
+    {
+      "priority": 1,
+      "area": "ground-cover silhouette and distribution",
+      "evidence": "Both views have thin upright grass stalks with dark, blunt-looking bases, arranged in continuous narrow bands along the path. Large areas of leaf-textured soil remain visible between stalks. Foreground bushes show repeated flat green leaves; the reference has broad, curved, overlapping grass masses.",
+      "action": "Make the dominant grass blades visibly curved and tapered with varied lean and height. Group several blade shapes into dense irregular clumps, overlap their bases with low moss/leaf litter, and break the path-edge bands with gaps, fern colonies and grass extending irregularly into the trail. Judge improvement from the same ground-level cameras, not instance count."
+    },
+    {
+      "priority": 1,
+      "area": "forest depth and composition",
+      "evidence": "Grove exposes a nearly empty pale ground strip beneath a large blue sky opening at the path terminus; isolated saplings make the scene boundary easy to read. The massive foreground trunk and rock consume much of the right side without revealing a compelling destination. Trail also shows bright empty gaps between trunks.",
+      "action": "Build a layered destination around a bend: a low terrain rise, staggered middle-distance trees, dense shrub masses and a darker distant tree wall. Conceal the bare horizon from both named views. Shift the grove camera clear of the huge trunk enough to reveal this composition while retaining a smaller foreground framing element."
+    },
+    {
+      "priority": 1,
+      "area": "tree morphology and ecological variation",
+      "evidence": "Rows of long, mostly straight branchless trunks rise into similar dense, lumpy crowns. Their repeated vertical rhythm dominates both images; the smaller trees repeat the same tiered silhouette. The foreground trees have little root flare or convincing transition into the forest floor.",
+      "action": "Create at least three clearly different tree families with different trunk taper, lean, crown start height and branch asymmetry. Give near trees visible root flares and a few substantial irregular limbs, vary crown gaps, and compose local age groups with fallen wood or broken trunks to interrupt the repeated poles."
+    },
+    {
+      "priority": 2,
+      "area": "directional light and atmospheric depth",
+      "evidence": "Trail's right and middle distance are covered by a pale yellow veil that suppresses leaf and trunk separation. Grove instead reveals a saturated blue opening with a relatively flat beige horizon. The reference has a stronger relationship between shaded green understory, warm illuminated grass edges and localized shafts of light.",
+      "action": "Reduce the uniform near-camera haze and preserve darker, greener shaded foliage. Concentrate warm scattering along the sun direction and into depth, with a few broad interrupted light shafts or equivalent localized lighting. Tune sky, fog and exposure together so the same golden forest mood survives both camera directions without washing out the midground."
+    },
+    {
+      "priority": 2,
+      "area": "hero surfaces and ground integration",
+      "evidence": "The prominent trail and grove rocks share an evenly distributed green cracked texture over rounded forms. The path is uniformly dry tan, with small angular debris scattered across it; roots, compressed path edges and localized moisture are absent. Fine texture exists, but the larger forms and material transitions remain generic.",
+      "action": "Give the foreground rocks distinct fractured silhouettes and material zones: exposed stone faces, moss concentrated on sheltered upper surfaces and darker contact at soil. Add a few exposed roots crossing into the path, clustered gravel and litter near edges, and broad damp/compacted dirt variation to connect objects to the ground."
+    }
+  ],
+  "metricsContext": {
+    "capture": "Headless Chromium 151 on Apple M1 Pro/ANGLE Metal; 1600x1000, pixel ratio 1, high quality, default sliders.",
+    "trail": {
+      "observedMeanFps": 85.97,
+      "p95FrameMs": 18.2,
+      "drawCalls": 149,
+      "triangles": 3782400
+    },
+    "grove": {
+      "observedMeanFps": 102.94,
+      "p95FrameMs": 16.7,
+      "drawCalls": 101,
+      "triangles": 2550532
+    },
+    "errors": "No console, page, request or WebGL errors recorded in either capture.",
+    "caveat": "Browser scheduling measurements are context, not a production FPS guarantee; they do not affect the art score."
+  }
+}

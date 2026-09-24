@@ -103,4 +103,4 @@ For a cold-load comparison, open browser developer tools, enable **Disable cache
 
 For user-requested browser checks, `npm run verify` uses the dev server with isolated storage and `?test=1` hooks; `npm run verify:pages` checks root/subpath deployment. Campaign-dependent checks first need `node tests/campaign-browser.mjs` to generate disposable snapshots in `.experiments/output/`.
 
-`npm run verify:mobile` runs the touch/layout/travel and recovery browser checks against an explicitly started dev server; `ECHO_BASE_URL` overrides its origin. Physical-phone acceptance and current loading follow-ups remain in the Roadmap. Completed implementation plans are retired after useful behavior, art guidance and open work move into the standing docs.
+`npm run verify:mobile` runs the touch/layout/travel and recovery browser checks against an explicitly started dev server; `ECHO_BASE_URL` overrides its origin. Ongoing physical-device coverage and deferred loading improvements remain in the Roadmap. Completed implementation plans are retired after useful behavior, art guidance and open work move into the standing docs.

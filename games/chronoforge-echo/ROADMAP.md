@@ -4,13 +4,12 @@
 - [x] Follow up mobile startup on 2026-09-23: restrict the loading picker to phones/small windows, start full loading immediately on larger desktops, show asset-count progress with short category/location names, and paint a dark indeterminate loader before application modules arrive.
 - [x] Fix manual engagement of arrival-protected enemies: loading beside an uncleared patrol no longer leaves both automatic contact and Interact unavailable. Explicit Engage/Confront remains opt-in; cleared-fight replays also pass mobile browser checks. Player confirmation on the originally reported save is still pending.
 - [x] Graduate the existing mobile loading choice: Full atlas and On demand are supported modes in the first-boot picker and Settings. Preserve saved preferences and desktop full upfront loading. Companions, items and current-region upgrade tiers remain prepared; the extra startup-deferral experiments were not adopted.
-- [ ] Complete the user's physical-phone sign-off on `g/asset-compress` before merging to main: both loading choices, portrait/landscape controls and battles, first/warm region crossings, purchases and upgrades.
-- [x] Add a progress bar to cold destination and saved-expedition preparation, with installed asset counts and percentage for the requested bundle. Count cached destination artwork, exclude unrelated retained/prefetched regions, and preserve retry/return plus fast warm transitions. Targeted Node checks pass; visual sign-off remains with the user.
+- [x] Release asset compression and mobile loading refinements to main after the user's local playtest (2026-09-23), including outlined hero controls, compact reward notifications, destination progress and explained loading choices.
+- [x] Add a progress bar to cold destination and saved-expedition preparation, with installed asset counts and percentage for the requested bundle. Count cached destination artwork, exclude unrelated retained/prefetched regions, and preserve retry/return plus fast warm transitions. Targeted Node checks pass; included in the release to main.
 - [ ] Deferred loading refinements: prepare the minimum mobile startup bundle while the picker is open and add destination/category labels. Current startup still waits for Continue. Preserve desktop eager loading; see the mobile handoff below.
 - [x] Losslessly recompress all 177 live PNGs with OxiPNG 10.2.1 default settings (2026-09-23). Total PNG size fell from 356.63 MiB to 337.50 MiB, saving 19.13 MiB (5.36%); the Haventide mobile bundle fell from 158.59 MiB to 149.93 MiB. All decoded RGBA pixels and dimensions are unchanged; 365 Node tests and production packaging checks pass. Optimized files remain at their existing paths in `public/assets/`, so local development and Pages use the same assets without an extra build dependency. Recorded provenance retains the original hashes and sizes alongside refreshed current values. No format conversion, runtime loading change or Git-history rewrite.
-- [ ] Player-review cold loading with the optimized PNGs under local network throttling, using the same loading mode and disabled browser cache. The four prepared-image changes below are now integrated alongside default OxiPNG; WebP remains deferred.
-- [x] Run five bounded asset-delivery experiments independently against the post-OxiPNG baseline; save each result on its own branch. See the size audit below.
-- [x] Adopt all four image experiments on `g/asset-compress`: 38 inventory icons, 20 resource/combat icons, 52 sources with baked transparency and eight prepared ground atlases. Combined PNG size is 219.15 MiB, saving 118.35 MiB (35.1%) against the post-OxiPNG baseline; Haventide mobile on-demand startup is 67.85 MiB. Desktop retains full upfront loading.
+- [x] User-reviewed local play and cold loading under network throttling before merging the compression work. WebP remains deferred.
+- [x] Ship all four image optimizations on main: 38 inventory icons, 20 resource/combat icons, 52 sources with baked transparency and eight prepared ground atlases. Combined PNG size is 219.15 MiB, saving 118.35 MiB (35.1%) against the post-OxiPNG baseline; Haventide mobile on-demand startup is 67.85 MiB. Desktop retains full upfront loading.
 - [ ] Revisit story and dialogue after the current town/Kaida playtest: develop three sample scenes and distinct character voices before choosing the scope of a campaign rewrite. See the deferred story plan below; no narrative rewrite is part of this town update.
 - [x] Separate regional Community Restoration from Haventide’s economic settlement: three local projects each, independent art/progression, optional quest records, and one unique community weapon per hero with hometown reforges at levels 10/20/30/40. Preserve the caravan arc, ordinary Transcendent gear, and existing saves.
 - [x] Graduate Community Restoration after the initial player pass (2026-09-19): restoration and the current-level reward are accepted; completed rewards now show a persistent receipt and a direct inventory shortcut.
@@ -41,36 +40,22 @@
 - [x] Complete the weapon-family pass: swords for Kaida, staves for Vex, gauntlets for Rune; four-tier progression, optional hero filtering, required vendor/loot adjustments, automatic legacy-save conversion, and replacement art for mismatched weapons. User playtest accepted on 2026-09-19 after importing an existing save, checking inventory filters and equipment, and confirming ATB works. Character artwork remains fixed.
 - [ ] Retire the temporary weapon-family save migration after the compatibility window (review in early October 2026). Keep current equipment validation; remove the conversion module and legacy-load writeback once existing players' saves have upgraded.
 
-## Asset delivery — implemented, player sign-off pending
+## Asset delivery — released
 
-Captured 2026-09-23 after the default OxiPNG pass. The objective is to reduce download size and time until play while retaining the approved artwork. The user authorized adoption of all four image candidates; they are now integrated on `g/asset-compress`. The independent branches below remain available for attribution. Loading-picker/progress UI work remains separate.
+Released to main on 2026-09-23 after the user's local playtest. The 177 runtime PNGs total **219.15 MiB**; Haventide on-demand startup uses **96 assets / 67.85 MiB**. The four prepared-image changes save **118.35 MiB (35.1%)** against the **337.50 MiB** post-OxiPNG baseline. The preceding lossless OxiPNG pass saved another **19.13 MiB**. These are PNG payload sizes, not repository size or JavaScript/font totals.
 
-### Independent experiment results
+The four changes are disjoint. Original experiment references remain here for size attribution; completed experiment details are retained in Git history.
 
-All five branches start directly from **`d88e4c67`**, the post-OxiPNG baseline on `g/asset-compress`. Baseline PNG size is **337.50 MiB**; desktop initially loads all of it, while Haventide mobile on-demand initially loads **149.93 MiB**. Values below are PNG payload sizes (1 MiB = 1,048,576 bytes), not repository size or JavaScript/font totals. Every row is compared independently with that same baseline.
+| Shipped preparation                                    | Saved (MiB) | Original experiment branch / commit              |
+| ------------------------------------------------------ | ----------: | ------------------------------------------------ |
+| 38 inventory icons at 256px                            |       42.78 | `codex/echo-exp-inventory-256` / `cddbac5a`      |
+| 20 resource/combat icons at 256px                      |       21.14 | `codex/echo-exp-resource-icons-256` / `ec848b87` |
+| 52 sources with existing transparency extraction baked |       38.17 | `codex/echo-exp-baked-alpha` / `a2b307c8`        |
+| 8 ground atlases at runtime resolution                 |       16.26 | `codex/echo-exp-ground-tiles` / `5d5b3ba9`       |
 
-| Candidate                                 | Saved branch / commit                            | All PNGs (MiB) | PNG saving (MiB) | Initial desktop PNGs (MiB) | Initial mobile PNGs (MiB) |
-| ----------------------------------------- | ------------------------------------------------ | -------------: | ---------------: | -------------------------: | ------------------------: |
-| 38 inventory icons at 256px               | `codex/echo-exp-inventory-256` / `cddbac5a`      |         294.72 |            42.78 |                     294.72 |                    107.15 |
-| 20 resource/combat icons at 256px         | `codex/echo-exp-resource-icons-256` / `ec848b87` |         316.36 |            21.14 |                     316.36 |                    128.79 |
-| 52 sources with existing extraction baked | `codex/echo-exp-baked-alpha` / `a2b307c8`        |         299.33 |            38.17 |                     299.33 |                    134.01 |
-| 8 ground atlases at runtime resolution    | `codex/echo-exp-ground-tiles` / `5d5b3ba9`       |         321.24 |            16.26 |                     321.24 |                    147.69 |
-| Desktop regional loading by default       | `codex/echo-exp-regional-desktop` / `220f6839`   |         337.50 |             0.00 |                     149.93 |                    149.93 |
+All 58 icons, 52 extracted sources and 48 finished ground tiles matched the original Chrome renderer pixel for pixel. Character/enemy dimensions, frame masks, anchors and world scale are preserved. No WebP conversion or replacement artwork was adopted. Desktop still loads all artwork upfront; companions, inventory items and current-region upgrade tiers remain prepared.
 
-The desktop-loading branch defers **187.57 MiB** from first boot; it does not shrink the complete game. It exposes Full atlas in desktop Settings and preserves explicit saved choices. Its tradeoffs include cold regional transitions and the existing on-demand cache/eviction limits. Phone loading choices remain unchanged.
-
-The four image experiments retain their selected originals under tracked `art/sources/` outside the public build and include reproducible preparation scripts. In Chrome, all 38 inventory icons, 20 resource icons, 52 extracted sources and 48 finished ground tiles exactly match their respective original renderer outputs. Each image branch passes 365 Node tests, production packaging, fresh-context full/on-demand startup and opening Inventory. The loading-policy branch passes 366 Node tests, all eight regions plus town/cave crossings, full-atlas opt-in, and root/subpath production browser checks.
-
-Size totals were also checked directly against each committed branch's PNG blobs. Fresh-context, unthrottled local Chrome readiness timings are retained as diagnostics, not reliable network-speed comparisons; no physical-phone or throttled performance claim is made. Disposable measurements, build copies, screenshots, downloaded compression tooling and the parked loading experiment were removed during production cleanup; the independent Git branches and this size audit retain the results.
-
-The four image categories are disjoint and are now integrated together. Their measured combined PNG size is **229,795,649 bytes (219.15 MiB)**, saving **124,099,208 bytes (118.35 MiB, 35.1%)** against the baseline. Haventide mobile on-demand initially requests **71,143,362 bytes (67.85 MiB)**, down **82.08 MiB (54.7%)**. Desktop still loads all 177 sources upfront. Do not add the experimental desktop deferral to those file-size savings; that loading-policy branch was not adopted. WebP was omitted, and no AI artwork regeneration was needed. Broader sprite resizing and atlas repacking remain future choices. Rebuild after switching branches; ignored `dist/` does not follow the checkout.
-
-### Adopted image preparation — player review pending
-
-- [x] Integrate both 256px icon candidates with retained authoring inputs and reproducible preparation scripts. The original measured crops, 94% fit, centering, alpha, item IDs and shared Exotic aliases remain intact; prepared icons skip a second crop/resample.
-- [x] Integrate the 52 baked-alpha sources and eight prepared ground atlases. Keep frame-specific masks, anchors, world scale, regional tints and seam processing unchanged. Document the authoring/runtime split in Architecture, Art direction and README.
-- [x] Verify all 58 icons, 52 extracted sources and 48 finished ground tiles against the original Chrome renderer: every rendered pixel matches. All 365 pure Node tests and production packaging pass. Full/on-demand startup and Inventory pass; root and GitHub Pages mounts load all required assets with no HTTP or browser errors. Required authoring inputs and tools remain tracked outside `.experiments/` and outside the public build.
-- [ ] Player-review the combined changes at gameplay size, including high-density displays and transparent edges, then compare throttled cold loading with the same save/scene, loading mode and cache settings.
+The 118 selected authoring originals and preparation tools are required maintenance inputs, documented in [README](README.md#maintenance); they stay outside the public build. All shipped PNGs and authoring inputs are referenced. Scratch artifacts are removed, and production packaging checks require exactly the selected runtime assets. Use `node scripts/asset-inventory.mjs` for current sizes rather than saving generated inventory reports.
 
 ### Other candidates — intentionally unordered
 
@@ -81,21 +66,15 @@ The four image categories are disjoint and are now integrated together. Their me
 
 For each selected slice, compare the same save/scene, loading mode, viewport and throttling profile with browser cache disabled for cold runs. Record transferred bytes and time until control returns; assess decode/preparation time and memory separately from file size. Keep ordinary build checks and targeted asset regressions, with visual/throttled playtesting handled by the user. Vite copies `public/` assets as-is, so preparation must explicitly produce the smaller files. Choose further scope from measured savings and visible quality, without assuming compression ratios or adding a shipping size gate.
 
-## Mobile — production loading modes, player sign-off pending
+## Mobile — released behavior and future device coverage
 
-Handoff updated 2026-09-23. Full atlas and On demand are the selected production behavior; hand playtesting on the compression branch is the remaining release sign-off before merging to main. Current implementation boundaries live in [Architecture](ARCHITECTURE.md#mobile-input-layout-and-asset-lifetime); durable presentation rules live in [Art direction](ART_DIRECTION.md#mobile-interface). Changes are committed locally; do not push unless the user asks.
+Full atlas and On demand are released on main. The first-boot screen shows both outlined choices with download explanations and remembers the selection. Settings applies later changes through Save & reload. Current implementation boundaries live in [Architecture](ARCHITECTURE.md#mobile-input-layout-and-asset-lifetime); presentation rules live in [Art direction](ART_DIRECTION.md#mobile-interface).
 
-The user traced the GitHub Pages loading stall to throttled Hawaii Wi-Fi; switching networks allowed loading to complete, and cached requests worked. No speculative timeout/header/retry changes were made. The default OxiPNG pass and four prepared-image optimizations are complete; local throttled-load review is pending. See the asset audit above for measured savings.
+Startup and cold destination preparation show asset-count progress. Cold crossings reveal the bar after 0.35 seconds at the fade midpoint; warm crossings keep the 0.55-second fade. Preloading while the first-boot picker is visible and whole-game background downloads remain deferred. Desktop eager loading is unchanged.
 
-Preloading while the picker is visible remains deferred. `main.js` awaits `chooseBootLoading()` before creating/preparing the loader. Startup has named asset-count progress; cold destination preparation now shows a matching bar with asset counts and percentage after 0.35 seconds waiting at the fade midpoint. Saved-expedition preparation uses the same bar. Warm transitions retain the existing 0.55-second fade without an added loading hold. Desktop eager loading is unchanged.
+The user completed local Chrome/emulation and throttled-load review before merging. Existing automated browser checks cover touch controls, combat, regional travel, recovery and production paths; the final loading UI changes passed targeted Node and build checks. Physical-device coverage remains ongoing work rather than a pending merge gate.
 
-The reported encounter issue was reproduced specifically by loading beside an uncleared, arrival-protected enemy: contact stayed inactive and Interact was unavailable. Explicit Engage/Confront now works while protection remains. Cleared-fight replays passed before and after this change; confirm the original player's save rather than assuming every replay report shares that cause.
-
-Validation on 2026-09-23: 22 targeted Node tests and `tests/mobile.browser.mjs` pass, including protected engagement, cleared replays, touch controls/menus/combat, all-region travel and desktop eager loading. Initial 2026-09-22 checks additionally covered recovery, cold saved battles, and production boot/Inventory at root and GitHub Pages mounts. These are desktop Chromium/emulation results, not physical-phone acceptance.
-
-Production cleanup validation: all 365 pure Node tests and the production build pass after deleting scratch material. Packaging verifies exactly 177 selected PNGs, byte-for-byte, and excludes authoring/source/test/tool directories at both root and GitHub Pages mounts. No new browser playtest was run for this labeling/cleanup pass; physical-device sign-off remains with the user.
-
-Remaining device review:
+Ongoing device coverage:
 
 - Check iPhone/Safari and Android/Chrome in portrait/landscape, browser bars and safe areas, two-thumb use, cancellation, rotation, control reach, and joystick/run feel.
 - Check the single battle card with three heroes, four enemies, tall bosses, long technique/item lists, incoming Guard, pause/resume and deliberate fresh timing presses.

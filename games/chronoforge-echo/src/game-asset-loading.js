@@ -6,6 +6,7 @@ export class GameAssetLoading {
     this.loader = loader;
     this.serial = 0;
     this.pending = null;
+    this.progressIds = [];
     this.prefetchAt = 0;
     this.prefetchTarget = null;
     if (shell) {
@@ -14,7 +15,10 @@ export class GameAssetLoading {
       this.root.hidden = true;
       this.root.setAttribute('aria-label', 'Preparing destination');
       this.root.innerHTML =
-        '<div><h2 data-load-title>Preparing the next map</h2><p data-load-status role="status"></p><div data-load-actions hidden><button type="button" data-load-retry>Retry</button><button type="button" data-load-return>Return</button></div></div>';
+        '<div><h2 data-load-title>Preparing the next map</h2><p data-load-status role="status"></p><div class="loading-progress" data-load-progress><progress max="1" value="0" aria-label="Destination artwork ready"></progress><p data-loading-count></p></div><div data-load-actions hidden><button type="button" data-load-retry>Retry</button><button type="button" data-load-return>Return</button></div></div>';
+      this.progressRoot = this.root.querySelector('[data-load-progress]');
+      this.progressBar = this.root.querySelector('progress');
+      this.progressCount = this.root.querySelector('[data-loading-count]');
       shell.append(this.root);
       this.root
         .querySelector('[data-load-retry]')
@@ -61,6 +65,7 @@ export class GameAssetLoading {
       serial = this.serial;
     if (!pending) return;
     pending.error = null;
+    this.progressIds = this.loader.specification(pending.next).ids;
     this.show(
       'Preparing your expedition',
       'Loading the maps and artwork needed by this save.',
@@ -86,6 +91,10 @@ export class GameAssetLoading {
     transition.assetsReady = this.loader.isSceneReady(transition.to);
     transition.assetError = null;
     if (transition.assetsReady) return;
+    this.progressIds = this.loader.specification({
+      ...g.state,
+      region: transition.to,
+    }).ids;
     Promise.resolve()
       .then(() => this.loader.prepareScene(transition.to, { state: g.state }))
       .then(() => {
@@ -135,6 +144,7 @@ export class GameAssetLoading {
     this.hide();
   }
   update() {
+    this.updateProgress();
     const g = this.game,
       transition = g.transition;
     if (
@@ -203,6 +213,23 @@ export class GameAssetLoading {
     this.root.querySelector('[data-load-title]').textContent = title;
     this.root.querySelector('[data-load-status]').textContent = message;
     this.root.querySelector('[data-load-actions]').hidden = !failed;
+    this.progressRoot.hidden = failed;
+    this.updateProgress();
+  }
+  updateProgress() {
+    if (!this.root || this.root.hidden || this.progressRoot.hidden) return;
+    // Count only this operation's installed artwork, not unrelated retained or
+    // prefetched regions. Decoded sources are not ready until installation ends.
+    const total = this.progressIds.length,
+      ready = this.progressIds.filter((id) =>
+        this.loader.loaded.has(id),
+      ).length,
+      percent = total ? Math.floor((ready / total) * 100) : 100,
+      message = `${ready} / ${total} assets ready · ${percent}%`;
+    this.progressBar.max = Math.max(1, total);
+    this.progressBar.value = total ? ready : 1;
+    if (this.progressCount.textContent !== message)
+      this.progressCount.textContent = message;
   }
   hide() {
     if (this.root) this.root.hidden = true;

@@ -189,6 +189,9 @@
 #asset-wait p {
   margin: 12px 0;
 }
+#asset-wait .loading-progress {
+  width: 100%;
+}
 #asset-wait button {
   min-height: 48px;
   margin: 8px 8px 0 0;

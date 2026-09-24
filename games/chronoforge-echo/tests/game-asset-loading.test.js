@@ -8,7 +8,35 @@ import { createState } from '../src/progression.js';
 import { getScene } from '../src/world.js';
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 
-async function fixture() {
+function loadingShell(t) {
+  const previous = globalThis.document;
+  const nodes = new Map(
+    [
+      '[data-load-title]',
+      '[data-load-status]',
+      '[data-load-actions]',
+      '[data-load-progress]',
+      'progress',
+      '[data-loading-count]',
+      '[data-load-retry]',
+      '[data-load-return]',
+    ].map((selector) => [
+      selector,
+      { hidden: false, textContent: '', addEventListener() {} },
+    ]),
+  );
+  const root = {
+    setAttribute() {},
+    querySelector: (selector) => nodes.get(selector),
+  };
+  globalThis.document = { createElement: () => root };
+  t.after(() => {
+    globalThis.document = previous;
+  });
+  return { append() {}, root, nodes };
+}
+
+async function fixture(shell) {
   const held = new Set(),
     waiting = new Map(),
     installed = new Set(),
@@ -68,7 +96,7 @@ async function fixture() {
         arrivals.push(result);
       },
     };
-  game.assetLoading = new GameAssetLoading(game, loader);
+  game.assetLoading = new GameAssetLoading(game, loader, shell);
   const traversal = new WorldTraversal(game);
   traversal.resetFollowers();
   return {
@@ -132,38 +160,94 @@ test('cold travel holds its opaque midpoint and pins source until prepared arriv
   assert.equal(arrivals.length, 1);
 });
 
-test('warm travel keeps the original .55-second cadence without an extra loading frame', async () => {
-  const { loader, game, traversal, arrivals } = await fixture();
+test('warm travel keeps the original .55-second cadence without an extra loading frame', async (t) => {
+  const shell = loadingShell(t);
+  const { loader, game, traversal, arrivals } = await fixture(shell);
   await loader.prepare('emberline');
   traversal.travel('emberline');
   assert.equal(game.transition.assetsReady, true);
   traversal.updateTransition(0.275);
+  game.assetLoading.update();
+  assert.equal(shell.root.hidden, true);
   assert.equal(game.state.region, 'emberline');
   traversal.updateTransition(0.275);
   assert.equal(game.transition, null);
   assert.equal(arrivals.length, 1);
 });
 
-test('failed crossing can retry without replaying departure or arrival rewards', async () => {
+test('failed crossing can retry without replaying departure or arrival rewards', async (t) => {
+  const shell = loadingShell(t);
   const { game, traversal, held, waiting, checkpoints, arrivals } =
-    await fixture();
+    await fixture(shell);
   held.add('emberline');
   traversal.travel('emberline');
   await tick();
   waiting.get('emberline').reject(new Error('Offline'));
   await tick();
   traversal.updateTransition(0.5);
+  game.assetLoading.update();
+  assert.equal(shell.nodes.get('[data-load-actions]').hidden, false);
+  assert.equal(shell.nodes.get('[data-load-progress]').hidden, true);
   assert.match(game.transition.assetError.message, /Offline/);
   assert.equal(game.state.region, 'haventide');
   assert.equal(checkpoints.length, 1);
   held.delete('emberline');
   game.assetLoading.retry();
+  assert.equal(shell.nodes.get('[data-load-actions]').hidden, true);
+  assert.equal(shell.nodes.get('[data-load-progress]').hidden, false);
+  assert.equal(shell.nodes.get('progress').value, 1);
+  assert.equal(shell.nodes.get('progress').max, 2);
   await tick();
+  assert.equal(shell.root.hidden, true);
   traversal.updateTransition(0.275);
   assert.equal(game.transition, null);
   assert.equal(game.state.region, 'emberline');
   assert.equal(checkpoints.length, 2);
   assert.equal(arrivals.length, 1);
+});
+
+test('destination progress counts cached destination assets and waits for installation, ignoring other regions', async (t) => {
+  const shell = loadingShell(t);
+  const { loader, game, traversal, held, waiting } = await fixture(shell);
+  await loader.prepare('forest_veil');
+  let finishInstall;
+  const install = loader.install;
+  loader.install = async (entry) => {
+    if (entry.id === 'emberline')
+      await new Promise((resolve) => {
+        finishInstall = resolve;
+      });
+    install(entry);
+  };
+  held.add('emberline');
+  traversal.travel('emberline');
+  await tick();
+  traversal.updateTransition(0.275);
+  game.assetLoading.update();
+  assert.equal(
+    shell.root.hidden,
+    true,
+    'Quick crossings do not flash a loader',
+  );
+  traversal.updateTransition(0.4);
+  game.assetLoading.update();
+  assert.equal(shell.root.hidden, false);
+  const bar = shell.nodes.get('progress');
+  assert.equal(bar.max, 2);
+  assert.equal(bar.value, 1, 'Cached common art counts; other regions do not');
+  assert.equal(
+    shell.nodes.get('[data-loading-count]').textContent,
+    '1 / 2 assets ready · 50%',
+  );
+  waiting.get('emberline').resolve();
+  await tick();
+  game.assetLoading.update();
+  assert.equal(bar.value, 1, 'A decoded source is not ready until installed');
+  assert.equal(game.transition.assetsReady, false);
+  finishInstall();
+  await tick();
+  assert.equal(game.transition.assetsReady, true);
+  assert.equal(shell.root.hidden, true);
 });
 
 test('Return cancels late preparation and prevents automatic doorway re-entry', async () => {
@@ -199,8 +283,10 @@ test('Return cancels late preparation and prevents automatic doorway re-entry', 
   assert.equal(checkpoints.length, 1);
 });
 
-test('loading an unrelated save invalidates an in-flight departure and commits only the prepared save', async () => {
-  const { loader, game, traversal, held, waiting, installed } = await fixture();
+test('loading an unrelated save invalidates an in-flight departure and commits only the prepared save', async (t) => {
+  const shell = loadingShell(t);
+  const { loader, game, traversal, held, waiting, installed } =
+    await fixture(shell);
   held.add('emberline');
   held.add('forest_veil');
   traversal.travel('emberline');
@@ -213,11 +299,16 @@ test('loading an unrelated save invalidates an in-flight departure and commits o
   });
   await tick();
   assert.equal(game.transition, null);
+  assert.equal(shell.root.hidden, false);
+  assert.equal(shell.nodes.get('progress').max, 2);
+  assert.equal(shell.nodes.get('progress').value, 1);
   assert.equal(game.state.region, 'haventide');
   assert.equal(loader.active, 'haventide');
   assert.ok(installed.has('haventide'));
   waiting.get('emberline').resolve();
   await tick();
+  game.assetLoading.update();
+  assert.equal(shell.nodes.get('progress').value, 1);
   assert.equal(installed.has('emberline'), false);
   assert.equal(committed, 0);
   waiting.get('forest_veil').resolve();
@@ -226,6 +317,7 @@ test('loading an unrelated save invalidates an in-flight departure and commits o
   assert.equal(loader.active, 'forest_veil');
   assert.equal(committed, 1);
   assert.equal(game.assetLoading.busy, false);
+  assert.equal(shell.root.hidden, true);
 });
 
 test('canceling a deferred save load retains the playable source and ignores late completion', async () => {

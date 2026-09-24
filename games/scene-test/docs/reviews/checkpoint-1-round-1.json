@@ -1,0 +1,70 @@
+{
+  "checkpoint": 1,
+  "round": 1,
+  "reviewer": "independent-aaa-art-critic",
+  "commit": "eae011f1",
+  "standard": "Near-photoreal AAA forest art and fidelity to the supplied warm, lush forest reference; technical effort is not part of the art score.",
+  "score": 4.0,
+  "passThreshold": 8,
+  "pass": false,
+  "subScores": {
+    "composition": 4,
+    "lighting": 4,
+    "materials": 3.5,
+    "vegetation": 3,
+    "naturalVariation": 3.5,
+    "referenceFidelity": 4,
+    "polish": 4.5
+  },
+  "summary": "A readable forest prototype with a promising trail silhouette and restrained interface, but neither screenshot currently reads as near-photoreal AAA. Sparse wiry ground cover, stippled crowns, a bare horizon and close-up rock texture failure dominate the result.",
+  "evidence": ["cp1-r1-trail.png", "cp1-r1-grove.png"],
+  "issues": [
+    {
+      "priority": 1,
+      "area": "vegetation",
+      "evidence": "Both views show thin, isolated dark spikes over mostly visible soil; crowns form dense, high-frequency black flecks with little convincing branch mass. The reference has lush, layered broad clumps and fuller, irregular crowns.",
+      "action": "Replace the dominant straight grass silhouette with curved, tapering blades in varied clumps; add broad fern/bush masses and dense low moss. Build fewer, larger coherent needle clusters with varied crown profiles and reduce the aliasing/stipple at viewing distance."
+    },
+    {
+      "priority": 1,
+      "area": "composition and terrain",
+      "evidence": "Grove's foreground boulder obscures approximately half the image. Both views expose a nearly continuous bare beige ridge across the middle, making the finite scene read like a stage.",
+      "action": "Move the grove camera clear of the boulder. Art-direct a framed view into a sunlit clearing with a winding trail and irregular terrain, then layer trees and undergrowth across the visible ridge to conceal the obvious boundary."
+    },
+    {
+      "priority": 1,
+      "area": "lighting",
+      "evidence": "The large white/cyan sky opening and nearly black canopy/ground shadows create harsh cutouts. Distance fog is a uniform beige wash; the reference instead has warm, directional haze, softer shadow transitions and distinct illuminated vegetation edges.",
+      "action": "Establish a low warm key light, soften shadow penumbrae, lift believable forest bounce, tint the sky toward the morning palette, and create localized depth and directional atmospheric light rather than increasing global fog alone."
+    },
+    {
+      "priority": 2,
+      "area": "materials",
+      "evidence": "The grove boulder has visibly smeared large green patches and smooth folded surfaces. Trail rocks share the same mottled moss treatment; soil reads as a flat leaf photograph in places, with uniformly scattered angular pebbles.",
+      "action": "Give hero rocks sharper geological structure, correct-scale detail normals and moss restricted by slope/crevices. Blend soil, gravel and litter by trail wear and moisture, vary pebble grouping, and add roots/contact buildup where trunks meet soil."
+    },
+    {
+      "priority": 2,
+      "area": "repetition and ecology",
+      "evidence": "Long vertical trunks repeat a similar diameter, straightness and branch cadence. Numerous naked lateral spikes and regularly distributed small ground elements reveal procedural placement.",
+      "action": "Vary age, lean, trunk diameter and crown height in distinct tree families. Compose clustered growth with clearings, fallen wood, younger trees and localized bush colonies; remove or naturally taper conspicuous bare branch spikes."
+    }
+  ],
+  "metricsContext": {
+    "capture": "Headless Chromium 151, Apple M1 Pro Metal, 1600x1000, pixel ratio 1, high quality/default settings.",
+    "trail": {
+      "observedMeanFps": 73.65,
+      "p95FrameMs": 17.4,
+      "drawCalls": 133,
+      "triangles": 2845741
+    },
+    "grove": {
+      "observedMeanFps": 96.63,
+      "p95FrameMs": 16.8,
+      "drawCalls": 90,
+      "triangles": 1891425
+    },
+    "caveat": "Browser scheduling measurements are context, not a production FPS guarantee and do not increase the art grade.",
+    "errors": "No page or WebGL errors in either capture. Trail had a favicon 404 reported fixed after capture; it has no visual relevance. Grove had no recorded console/request errors."
+  }
+}

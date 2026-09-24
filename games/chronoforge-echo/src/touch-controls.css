@@ -141,6 +141,7 @@
     16px/1.5 Barlow,
     sans-serif;
   text-align: left;
+  letter-spacing: normal;
 }
 .mobile-boot h2 {
   font:
@@ -149,19 +150,60 @@
     serif;
   margin-bottom: 14px;
 }
-.mobile-boot label,
-.mobile-boot select,
 .mobile-boot button {
   display: block;
   width: 100%;
 }
-.mobile-boot select {
-  font: inherit;
-  min-height: 48px;
-  margin: 8px 0 16px;
+.boot-loading-options {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.boot-loading-options legend {
+  padding: 0;
+  margin-bottom: 8px;
+  color: #bab8b5;
+}
+.boot-loading-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid #8886;
   background: #30312b;
   color: #f0e4cb;
-  padding: 8px;
+  cursor: pointer;
+}
+.boot-loading-option:has(input:checked) {
+  border-color: #df702e;
+  background: #df702e12;
+}
+.boot-loading-option:focus-within {
+  outline: 2px solid #df702e;
+  outline-offset: 2px;
+}
+.boot-loading-option input {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #df702e;
+}
+.boot-loading-option strong,
+.boot-loading-option small {
+  display: block;
+}
+.boot-loading-option strong {
+  font-weight: 500;
+}
+.boot-loading-option small {
+  margin-top: 2px;
+  color: #bab8b5;
+  font-size: 14px;
+  line-height: 1.4;
 }
 .mobile-boot button {
   font: inherit;

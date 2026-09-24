@@ -77,6 +77,10 @@ export function loadingProfile(preferences, device, developerOverride = false) {
 }
 const select = (label, key, value, entries) =>
   `<label class="setting mobile-setting"><span>${label}</span><select aria-label="${label}" data-mobile-setting="${key}">${entries.map(([v, text]) => `<option value="${v}" ${String(v) === String(value) ? 'selected' : ''}>${text}</option>`).join('')}</select></label>`;
+const loadingOptions = [
+  ['full', 'Full atlas', 'Download all artwork before you start.'],
+  ['mobile', 'On demand', 'Download each region’s artwork as needed.'],
+];
 export function mobileSettingsHTML(
   preferences,
   { handheld = false, smallScreen = false, activeLoading = 'full' } = {},
@@ -110,10 +114,7 @@ export function mobileSettingsHTML(
     ['high', 'High'],
   ])}${
     handheld || smallScreen
-      ? `${select('Asset loading', 'loading', preferences.loading, [
-          ['full', 'Full atlas'],
-          ['mobile', 'On demand'],
-        ])}<p class="small muted">On demand loads nearby maps as needed. Full atlas loads everything at startup. Changing this setting requires a reload.</p>${activeLoading !== preferences.loading ? '<button type="button" class="button" data-mobile-reload>Save &amp; reload to apply</button>' : ''}`
+      ? `${select('Asset loading', 'loading', preferences.loading, loadingOptions)}<p class="small muted">On demand loads nearby maps as needed. Full atlas loads everything at startup. Changing this setting requires a reload.</p>${activeLoading !== preferences.loading ? '<button type="button" class="button" data-mobile-reload>Save &amp; reload to apply</button>' : ''}`
       : ''
   }</section>`;
 }
@@ -122,14 +123,13 @@ export async function chooseBootLoading(shell, preferences, device, storage) {
     return;
   const loading = shell.querySelector('#loading');
   shell.dataset.loadingChoice = 'true';
-  loading.innerHTML =
-    '<div class="mobile-boot"><h2>Ready for the road?</h2><label>Asset loading<select aria-label="Asset loading" id="boot-loading"><option value="full">Full atlas</option><option value="mobile">On demand</option></select></label><p>Full atlas loads all art before play. On demand starts with nearby maps and may briefly load at a new destination.</p><button type="button" class="button primary">Continue</button></div>';
-  loading.querySelector('select').value = preferences.loading;
+  loading.innerHTML = `<div class="mobile-boot"><h2>Ready for the road?</h2><fieldset class="boot-loading-options"><legend>Artwork downloads</legend>${loadingOptions.map(([value, label, description]) => `<label class="boot-loading-option"><input type="radio" name="boot-loading" value="${value}" aria-describedby="boot-loading-${value}-hint"><span><strong>${label}</strong><small id="boot-loading-${value}-hint">${description}</small></span></label>`).join('')}</fieldset><button type="button" class="button primary">Continue</button></div>`;
+  loading.querySelector(`input[value="${preferences.loading}"]`).checked = true;
   await new Promise((resolve) =>
     loading.querySelector('button').addEventListener(
       'click',
       () => {
-        preferences.loading = loading.querySelector('select').value;
+        preferences.loading = loading.querySelector('input:checked').value;
         preferences.loadingChosen = true;
         saveMobilePreferences(storage, preferences);
         resolve();

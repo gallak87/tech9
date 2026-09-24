@@ -14,14 +14,22 @@ import {
 const tick = () => new Promise((resolve) => setImmediate(resolve));
 function bootShell() {
   let continueLoading;
-  const select = { value: 'full' };
+  const options = ['full', 'mobile'].map((value) => ({
+    value,
+    checked: false,
+  }));
   const bar = {};
   const count = {};
   const title = {};
   const loading = {
     innerHTML: '',
     querySelector(selector) {
-      if (selector === 'select') return select;
+      if (selector === 'input:checked')
+        return options.find((option) => option.checked);
+      const option = options.find(
+        (option) => selector === `input[value="${option.value}"]`,
+      );
+      if (option) return option;
       if (selector === 'progress') return bar;
       if (selector === '[data-loading-count]') return count;
       if (selector === '[data-loading-title]') return title;
@@ -40,7 +48,9 @@ function bootShell() {
     querySelector: () => loading,
     continue: () => continueLoading(),
     loading,
-    select,
+    choose(value) {
+      for (const option of options) option.checked = option.value === value;
+    },
     bar,
     count,
     title,
@@ -80,12 +90,14 @@ test('phones and small screens wait for a choice before starting asset preparati
     await tick();
     assert.equal(started, false);
     assert.equal(shell.dataset.loadingChoice, 'true');
-    shell.select.value = 'mobile';
+    assert.equal(shell.loading.querySelector('input:checked').value, 'full');
+    shell.choose('mobile');
     shell.continue();
     await boot;
     assert.equal(started, true);
     assert.equal(loadingProfile(preferences, device), 'mobile');
     assert.equal(saved.loadingChosen, true);
+    assert.equal(saved.loading, 'mobile');
     assert.equal(shell.dataset.loadingChoice, undefined);
     assert.match(mobileSettingsHTML(preferences, device), /Asset loading/);
   }

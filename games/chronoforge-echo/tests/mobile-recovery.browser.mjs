@@ -28,7 +28,7 @@ page.on('pageerror', (error) => errors.push(error.message));
 const base = process.env.ECHO_BASE_URL || 'http://127.0.0.1:4321';
 try {
   await page.goto(`${base}/?test=1`, { waitUntil: 'domcontentloaded' });
-  await page.locator('#boot-loading').selectOption('mobile');
+  await page.locator('input[name="boot-loading"][value="mobile"]').check();
   await page.locator('.mobile-boot button').tap();
   await page.waitForFunction(() => window.__ECHO_READY__, null, {
     timeout: 120000,

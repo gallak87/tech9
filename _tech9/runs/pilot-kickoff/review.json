@@ -5,6 +5,12 @@
   "reviewedCommit": "f207b7274f02c8aa41f6130e9bae2394ca04fd44",
   "reviewer": "independent pilot_kickoff_review agent; read-only",
   "status": "passed",
+  "roadmapFollowup": {
+    "commit": "6a2e7997d1a40e8ffc2ad92714185877f07e9787",
+    "status": "passed",
+    "scope": "Planned game-dev/framework-dev modes and post-game historian handoff only.",
+    "review": "Same independent reviewer confirmed faithful user intent, planned status, source ownership and scoped promotion under the reuse policy; no findings. Producer formatting and whitespace checks passed. No runtime tests needed or games started."
+  },
   "scope": "Pilot preparation only: agent kickoff, two launch packets, new CLI destination, current documentation and regression coverage. Neither game was started.",
   "checks": [
     "Producer and independent reviewer each passed all 23 framework tests and framework lint/format checks.",

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#222c27" />
+    <meta
+      name="description"
+      content="Alder Vale — a bounded, sunlit forest study. An extensible Three.js world with Blender-authored assets."
+    />
+    <title>Alder Vale — Forest Study</title>
+  </head>
+  <body>
+    <canvas
+      id="scene"
+      tabindex="0"
+      aria-label="Alder Vale forest. Drag to look, WASD to fly, Q and E to descend and rise."
+    ></canvas>
+    <div id="interface"></div>
+    <div id="world-hud" aria-label="World HUD"></div>
+    <div id="loading" role="status">
+      <span class="loading-mark">AV</span
+      ><span>Finding the light<span class="loading-dots">…</span></span
+      ><small>ALDER VALE / FOREST STUDY</small>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

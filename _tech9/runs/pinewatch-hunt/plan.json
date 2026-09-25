@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "id": "pinewatch-hunt",
+  "title": "Pinewatch Hunt",
+  "pitch": "A quiet first-person bow hunt in a sunlit pine forest: follow hoofprints, approach one wary deer, draw and release, retrieve, and try again.",
+  "starter": {
+    "id": "forest-exploration",
+    "version": "0.1.0"
+  },
+  "status": "approved",
+  "authorization": {
+    "mode": "delegated",
+    "basis": "User said to execute PROMPT.md in a separate worktree. That launch prompt delegates bounded design, implementation, installs, validation, checkpoint commits and independent critic/fix work; no push or publication."
+  },
+  "scope": {
+    "mustHave": [
+      "Owned registered forest fork and preserved provenance",
+      "Grounded collision-aware walking, quiet approach and visible tracks",
+      "One articulated deer with idle/walk/alert/flee and simple detection",
+      "Visible bow and draw/release, occlusion-aware hit/miss, retrieval",
+      "Start, pause/focus loss, success/failure and clean retry",
+      "Real-input success and failure, 1600x1000 Balanced measurement, independent art critique"
+    ],
+    "outOfScope": [
+      "Framework edits, other games, promotion, migration, push or publish",
+      "Economy, survival, multiplayer, multiple species, gore or huge maps"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "fork",
+      "title": "Owned foundation",
+      "deliverables": [
+        "Relocated launch packet, plan and provenance"
+      ],
+      "acceptance": [
+        "CLI validation and dry run pass; committed starter fork used"
+      ]
+    },
+    {
+      "id": "playable",
+      "title": "Complete hunt",
+      "deliverables": [
+        "Controller, rules, deer, bow, tracks and HUD"
+      ],
+      "acceptance": [
+        "Real input completes stalk-shot-retrieve-result-retry",
+        "Failure, pause, focus, collision and restart verified"
+      ]
+    },
+    {
+      "id": "handoff",
+      "title": "Verified handoff",
+      "deliverables": [
+        "Checks, committed checkpoints, separate art reviews and docs"
+      ],
+      "acceptance": [
+        "Correctness blockers fixed; unit/lint/build/browser pass",
+        "Art score 8/10 or four rounds honestly reported"
+      ]
+    }
+  ],
+  "lanes": [
+    {
+      "id": "producer",
+      "role": "Integration, controller, rules, presentation, tests and records",
+      "owns": [
+        "_tech9/runs/pinewatch-hunt/**",
+        "_tech9/games/pinewatch-hunt/**"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "critic",
+      "role": "Read-only separate demanding art and correctness critic of committed captures",
+      "owns": [],
+      "dependsOn": [
+        "producer"
+      ]
+    }
+  ],
+  "validation": {
+    "commands": [
+      "npm test",
+      "npm run lint",
+      "npm run build",
+      "npm run verify"
+    ],
+    "playthrough": [
+      "Start from visible UI, follow tracks using real keyboard and mouse, draw and release a hit, walk to retrieve, result and restart",
+      "Miss, alert/flee and exhausted-arrow failure; recover by retry",
+      "Pause during draw and movement, pointer-lock exit/focus loss, collisions, fresh restart",
+      "Capture committed builds only; separate critic reviews up to four rounds"
+    ],
+    "performance": {
+      "targetFps": 60,
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "quality": "balanced"
+    }
+  },
+  "artGate": {
+    "threshold": 8,
+    "maxRounds": 4
+  },
+  "stopAfter": "Complete playable user handoff after correctness and bounded art cycle. Stop at 8/10 or four rounds; report failed art gate at cap. No further depth before user playtesting."
+}

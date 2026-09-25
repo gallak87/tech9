@@ -26,7 +26,13 @@ import { validateDefinition } from './sceneDefinition.js';
 export class SceneApp {
   constructor(
     canvas,
-    { definition, testMode = false, ui = null, storageKey } = {},
+    {
+      definition,
+      testMode = false,
+      ui = null,
+      storageKey,
+      playbackRate = 1,
+    } = {},
   ) {
     this.definition = validateDefinition(definition);
     this.groundHeight = definition.groundHeight;
@@ -35,6 +41,8 @@ export class SceneApp {
     this.canvas = canvas;
     this.ui = ui;
     this.testMode = testMode;
+    this.playbackRate =
+      testMode && [1, 2, 5, 10].includes(playbackRate) ? playbackRate : 1;
     this.ready = false;
     this.layers = [];
     this.pendingLayers = new Map();
@@ -294,10 +302,10 @@ export class SceneApp {
     this.renderer.setAnimationLoop((now) => {
       if (document.hidden) return;
       const rawDt = (now - this.lastTime) / 1000;
-      const dt = Math.min(rawDt, 0.05);
+      const dt = Math.min(rawDt, 0.05) * this.playbackRate;
       this.lastTime = now;
-      this.controls.update(dt);
       for (const layer of this.layers) layer.update?.(dt, now / 1000);
+      this.controls.update(dt);
       this.renderer.info.reset();
       this.atmosphere.render(this.scene, this.camera, this.sun);
       this.sampleTime += rawDt;
@@ -326,6 +334,7 @@ export class SceneApp {
   snapshot() {
     return {
       ready: this.ready,
+      playbackRate: this.playbackRate,
       camera: {
         position: this.camera.position.toArray(),
         quaternion: this.camera.quaternion.toArray(),

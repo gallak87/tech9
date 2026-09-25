@@ -10,8 +10,8 @@ export class TidebreakUI {
     this.previous = '';
     document.querySelector('#app-ui').innerHTML = `
       <header class="masthead"><div class="wordmark">TIDEBREAK<span>ISLAND RUN · 01</span></div><div class="route-status"><span id="route-eyebrow">YOUR FIRST LAP</span><strong id="route-title">A loop around Northlight</strong><div class="steps"><i></i><i></i><i></i></div></div><div class="clock"><span>LAP TIME</span><strong id="timer">00:00.0</strong><small id="best">SESSION BEST —</small></div></header>
-      <section id="menu" class="menu"><p class="eyebrow" id="menu-eyebrow">NORTHLIGHT ISLAND / EARLY MORNING</p><h1 id="menu-title">Find your<br><em>sea legs.</em></h1><p class="intro" id="menu-copy">One boat. Three gates. A little room to drift.<br>Circle the island, then bring her gently home.</p><div class="controls"><div><kbd>W</kbd><kbd>S</kbd><span>Throttle / brake / reverse</span></div><div><kbd>A</kbd><kbd>D</kbd><span>Steer with your speed</span></div><div><kbd>P</kbd><kbd>R</kbd><span>Pause / return to dock</span></div></div><button id="primary">Cast off <span>↗</span></button><button id="reset" class="secondary" hidden>Return to dock</button><p class="route-note" id="route-note">Pass gates 01 → 02 → 03. Return to the mooring ring<br>at less than 0.8 m/s. An easy lap takes 2–4 minutes.</p><details id="graphics"><summary>Graphics & atmosphere <span>＋</span></summary><div class="settings"><label>Quality<select id="quality"><option value="balanced">Balanced</option><option value="high">High</option><option value="ultra">Ultra</option></select></label><label>Sunlight<input id="sunlight" type="range" min="0.4" max="1.6" step="0.1"></label><label>Coastal haze<input id="atmosphere" type="range" min="0.4" max="1.6" step="0.1"></label><label>Vegetation<input id="richness" type="range" min="0.4" max="1.6" step="0.1"></label><label>Exposure<input id="exposure" type="range" min="0.4" max="1.6" step="0.1"></label></div></details></section>
-      <footer class="helm"><div class="speed"><strong id="speed">0.0</strong><span>m/s<small id="gear">IDLE</small></span><div class="speed-track"><i id="speed-bar"></i></div></div><div class="help"><span id="notice">The water is yours.</span><small>W/S throttle & brake · A/D steer · P pause · R reset</small></div><div class="chart"><span>NORTHLIGHT <b>N ↑</b></span><canvas id="chart" width="240" height="240" aria-label="Course chart: three gates clockwise around the island"></canvas><small id="chart-caption">01 EAST → 02 NORTH → 03 WEST</small></div></footer><button id="pause" title="Pause (P)">Ⅱ</button><div class="narrow">Best played with a keyboard and a wider window.</div>`;
+      <section id="menu" class="menu"><p class="eyebrow" id="menu-eyebrow">NORTHLIGHT ISLAND / EARLY MORNING</p><h1 id="menu-title">Find your<br><em>sea legs.</em></h1><p class="intro" id="menu-copy">One boat. Three gates. A little room to drift.<br>Circle the island, then bring her gently home.</p><div class="controls"><div><kbd>W</kbd><kbd>S</kbd><span>Throttle / brake / reverse</span></div><div><kbd>A</kbd><kbd>D</kbd><span>Steer with your speed</span></div><div><kbd>P</kbd><kbd>R</kbd><span>Pause / return to dock</span></div><div><kbd>C</kbd><span>Captain / outside camera</span></div></div><button id="primary">Cast off <span>↗</span></button><button id="reset" class="secondary" hidden>Return to dock</button><p class="route-note" id="route-note">Pass gates 01 → 02 → 03. Return to the mooring ring<br>at less than 0.8 m/s. An easy lap takes 2–4 minutes.</p><details id="graphics"><summary>Graphics & atmosphere <span>＋</span></summary><div class="settings"><label>Quality<select id="quality"><option value="balanced">Balanced</option><option value="high">High</option><option value="ultra">Ultra</option></select></label><label>Sunlight<input id="sunlight" type="range" min="0.4" max="1.6" step="0.1"></label><label>Coastal haze<input id="atmosphere" type="range" min="0.4" max="1.6" step="0.1"></label><label>Vegetation<input id="richness" type="range" min="0.4" max="1.6" step="0.1"></label><label>Exposure<input id="exposure" type="range" min="0.4" max="1.6" step="0.1"></label></div></details></section>
+      <footer class="helm"><div class="speed"><strong id="speed">0.0</strong><span>m/s<small id="gear">IDLE</small></span><div class="speed-track"><i id="speed-bar"></i></div></div><div class="help"><span id="notice">The water is yours.</span><small>W/S throttle & brake · A/D steer · P pause · R reset</small></div><div class="chart"><span>NORTHLIGHT <b>N ↑</b></span><canvas id="chart" width="240" height="240" aria-label="Course chart: three gates clockwise around the island"></canvas><small id="chart-caption">01 EAST → 02 NORTH → 03 WEST</small></div></footer><button id="camera-switch" title="Switch camera (C)">CAPTAIN VIEW <kbd>C</kbd></button><button id="pause" title="Pause (P)">Ⅱ</button><div class="narrow">Best played with a keyboard and a wider window.</div>`;
     this.nodes = Object.fromEntries(
       [...document.querySelectorAll('[id]')].map((n) => [n.id, n]),
     );
@@ -21,6 +21,7 @@ export class TidebreakUI {
     };
     this.nodes.reset.onclick = () => actions.reset();
     this.nodes.pause.onclick = () => actions.pause();
+    this.nodes['camera-switch'].onclick = () => actions.camera();
     for (const key of [
       'quality',
       'sunlight',
@@ -39,6 +40,12 @@ export class TidebreakUI {
     }
     this.ctx = this.nodes.chart.getContext('2d');
     this.refresh();
+  }
+  updateCamera() {
+    this.nodes['camera-switch'].innerHTML =
+      this.app.controls.mode === 'captain'
+        ? 'OUTSIDE VIEW <kbd>C</kbd>'
+        : 'CAPTAIN VIEW <kbd>C</kbd>';
   }
   refresh() {
     const state = this.rules.state,

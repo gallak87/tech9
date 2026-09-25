@@ -33,8 +33,9 @@ export function islandHeight(x, z) {
   if (d < -12) return -4;
   if (d < 0) return d / 3;
   const hill = 18 * Math.exp(-((x + 12) ** 2 + (z + 9) ** 2) / 1800);
+  const beach = x > 35 && z > 5;
   return Math.min(
-    d * 0.42,
+    d * (beach ? 0.23 : 0.42),
     3.2 + hill + Math.sin(x * 0.12) * Math.cos(z * 0.09) * 1.2,
   );
 }

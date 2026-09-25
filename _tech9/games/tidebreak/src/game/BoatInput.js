@@ -9,7 +9,7 @@ const MOTION = new Set([
   'ArrowRight',
 ]);
 export class BoatInput {
-  constructor(rules, onChange, onReset) {
+  constructor(rules, onChange, onReset, onCamera = () => {}) {
     this.keys = new Set();
     this.abort = new AbortController();
     this.rules = rules;
@@ -37,6 +37,10 @@ export class BoatInput {
             rules.resume();
             onChange();
           }
+        }
+        if (!e.repeat && e.code === 'KeyC') {
+          e.preventDefault();
+          onCamera();
         }
         if (!e.repeat && e.code === 'KeyR') {
           this.clear();

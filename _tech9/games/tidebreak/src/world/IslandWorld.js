@@ -230,7 +230,9 @@ export function createIslandWorld(rules) {
         if (
           coastDistance(x, z) > -6 ||
           (x > -10 && x < 10 && z > 52) ||
-          Math.hypot(x + 43, z + 37) < 11
+          Math.hypot(x + 43, z + 37) < 20 ||
+          (x > -57 && x < -30 && z < -35) ||
+          (x > 38 && z > 10 && coastDistance(x, z) > -17)
         )
           continue;
         placements[i % 3].push({
@@ -253,35 +255,30 @@ export function createIslandWorld(rules) {
           grass.push({ x, z, s: 0.7 + random(), angle: random() * 6.28 });
       }
       instancePrototype(kit, 'grass_short', grass);
-      const scrubGeo = new THREE.IcosahedronGeometry(1, 1);
-      owned.add(scrubGeo);
-      const scrubMat = material('#708258', { roughness: 1 });
-      const shrubs = [];
-      for (let i = 0; i < 210; i++) {
+      const understory = [],
+        ferns = [];
+      for (let i = 0; i < 290; i++) {
         const a = random() * Math.PI * 2,
           r = 56 + random() * 19,
           x = Math.cos(a) * r,
           z = Math.sin(a) * r;
-        if (coastDistance(x, z) < -4)
-          shrubs.push({ x, z, s: 0.55 + random() * 1.3 });
+        if (
+          coastDistance(x, z) > -5 ||
+          Math.hypot(x + 43, z + 37) < 19 ||
+          (x > 38 && z > 10 && coastDistance(x, z) > -17)
+        )
+          continue;
+        const entry = {
+          x,
+          z,
+          s: 0.32 + random() * 0.38,
+          angle: random() * 6.28,
+        };
+        if (i % 3 === 0) understory.push(entry);
+        else ferns.push({ ...entry, s: 1.15 + random() * 1.2 });
       }
-      const scrub = new THREE.InstancedMesh(scrubGeo, scrubMat, shrubs.length);
-      scrub.receiveShadow = true;
-      shrubs.forEach((p, i) => {
-        scrub.setMatrixAt(
-          i,
-          new THREE.Matrix4().compose(
-            new THREE.Vector3(p.x, islandHeight(p.x, p.z) + p.s * 0.35, p.z),
-            new THREE.Quaternion().setFromAxisAngle(
-              new THREE.Vector3(0, 1, 0),
-              random() * 6.28,
-            ),
-            new THREE.Vector3(p.s * 1.3, p.s * 0.8, p.s),
-          ),
-        );
-      });
-      scrub.computeBoundingSphere();
-      group.add(scrub);
+      instancePrototype(kit, 'pine_sapling', understory);
+      instancePrototype(kit, 'fern_a', ferns);
       const pebbleGeo = new THREE.DodecahedronGeometry(1, 0);
       owned.add(pebbleGeo);
       const pebbles = [];
@@ -356,6 +353,7 @@ export function createIslandWorld(rules) {
       box(1.2, 1.55, 87, 1, 0.8, 1, red);
       box(-1, 1.4, 89, 0.7, 0.6, 0.8, cream);
       // Lighthouse gives each side of the course a stable landmark.
+      const towerStart = group.children.length;
       const lx = -43,
         lz = -37,
         ly = islandHeight(lx, lz);
@@ -387,6 +385,28 @@ export function createIslandWorld(rules) {
         1,
         material('#ffe5a9', { emissive: '#ffd597', emissiveIntensity: 0.8 }),
       );
+      for (const item of group.children.slice(towerStart)) {
+        item.position.y = ly + (item.position.y - ly) * 1.5;
+        item.scale.y *= 1.5;
+      }
+      // A weathered ring and rope rails give the jetty a small working-harbour identity.
+      const lifeRing = mesh(
+        new THREE.TorusGeometry(0.46, 0.11, 8, 24),
+        red,
+        -1.9,
+        1.95,
+        88,
+      );
+      lifeRing.rotation.y = Math.PI / 2;
+      for (const side of [-1, 1])
+        for (let z = 75; z < 95; z += 5.5) {
+          const ropePath = new THREE.CatmullRomCurve3([
+            new THREE.Vector3(side * 1.78, 2.1, z),
+            new THREE.Vector3(side * 1.78, 1.85, z + 2.75),
+            new THREE.Vector3(side * 1.78, 2.1, z + 5.5),
+          ]);
+          mesh(new THREE.TubeGeometry(ropePath, 8, 0.035, 5, false), planks);
+        }
       for (const gate of GATES) {
         const root = new THREE.Group();
         root.userData.gate = gate.id;

@@ -13,6 +13,7 @@ Open [Tidebreak](http://127.0.0.1:4460/). Dev **4460**, production preview **446
 
 - **W / Up:** throttle forward. **S / Down:** brake, then reverse. Release to coast.
 - **A/D / Left/Right:** steer. The rudder needs motion; steering reverses while backing up.
+- **C / Camera button:** switch between the outside chase view and the captain’s seat. The helm wheel and hands follow steering; gauges follow the boat.
 - **P / Escape / Tab:** pause or resume. **R:** return to the dock with a fresh route and clock.
 - **Cast off:** start. **Sail again:** retry immediately after a completed lap.
 - Losing focus pauses the lap and clears held keys. Resume clears keys again. The start/pause menu offers quality, sunlight, coastal haze, vegetation and exposure controls.
@@ -28,12 +29,14 @@ The chart shows your heading, next gate and mooring ring. Gates require crossing
 ./_tech9/run --prefix games/tidebreak run verify
 ```
 
+Browser verification defaults to 10× test playback for fast repeat checks; `SIM_RATE=1` restores real time, and `HELM_ONLY=1 SIM_RATE=1` checks the helm/camera/focus checkpoints. Playback rate is honored only with `?test=1`; normal play stays at real time.
+
 Browser verification uses actual keyboard and button input to complete and retry a lap, miss/recover a gate, contact the shore, reverse, try a gate out of order, pause while accelerating and lose focus. It also checks graphics controls, narrow layout and absence of production test hooks. Installed Playwright Chromium is used; `CHROMIUM_PATH` can choose another installed Chromium. Evidence and observed frame timing stay in ignored `.artifacts/verification/`. No public telemetry is collected.
 
 Manual playtest: cast off, accelerate east, turn left toward gate 01, follow the chart around gates 02 and 03, and return along the south shore. Brake early on the final approach, settle inside the gold circle, read the result and choose Sail again. Try reverse against shore and pause while holding throttle. `?test=1` exposes snapshots only; it cannot move the boat, change rules or award a lap.
 
 ## Current limits
 
-Desktop keyboard controls, one authored island, planar arcade dynamics and approximate conservative boat/solid footprints. There is no boarding, damage, free camera, AI or progression. The wake and bob are visual, with no fluid displacement. Buoys are course markers rather than solid obstacles. Reflections use one planar surface and can lag moving objects at the Balanced cadence. Water has an island hole and an outward coastal shelf; it is not a general ocean module. The finite horizon and distant fog are authored for this island.
+Desktop keyboard controls, one authored island, planar arcade dynamics and approximate conservative boat/solid footprints. There is no boarding, damage, free-look camera, AI or progression. The wake and bob are visual, with no fluid displacement. Buoys are course markers rather than solid obstacles. Reflections use one planar surface and can lag moving objects at the Balanced cadence. Water has an island hole and an outward coastal shelf; it is not a general ocean module. The finite horizon and distant fog are authored for this island.
 
 The source is an owned fork of the promoted pond starter. `tech9.json` and `GAME_PLAN.json` are immutable fork receipts, not current runtime state. Copied capability sources and their receipts remain intact; unused pond/walking example files are retained for their existing lifecycle/contract checks but are not loaded by the game. See [architecture](./ARCHITECTURE.md) and [source/license index](./public/assets/TIDEBREAK_SOURCES.md).

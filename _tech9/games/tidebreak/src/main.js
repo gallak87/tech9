@@ -17,12 +17,14 @@ try {
     definition,
     testMode,
     storageKey: 'tidebreak.settings',
+    playbackRate: Number(new URLSearchParams(location.search).get('rate')) || 1,
   });
   app.camera.far = 1600;
   app.camera.updateProjectionMatrix();
   const boat = new BoatSimulation(),
     rules = new LapRules();
-  app.setController(new ChaseCamera(app.camera, boat, rules));
+  const boatView = createBoatView(boat, rules);
+  app.setController(new ChaseCamera(app.camera, boat, rules, boatView));
   const refresh = () => ui?.refresh();
   const reset = () => {
     input?.clear();
@@ -47,8 +49,12 @@ try {
     rules.pause();
     refresh();
   };
-  input = new BoatInput(rules, refresh, reset);
-  ui = new TidebreakUI(app, boat, rules, { primary, pause, reset });
+  const camera = () => {
+    app.controls.setMode(app.controls.mode === 'chase' ? 'captain' : 'chase');
+    ui?.updateCamera();
+  };
+  input = new BoatInput(rules, refresh, reset, camera);
+  ui = new TidebreakUI(app, boat, rules, { primary, pause, reset, camera });
   await app.register({
     id: 'boat-rules',
     init() {},
@@ -67,7 +73,7 @@ try {
   });
   await app.register(createIslandWorld(rules));
   await app.register(createOceanLayer());
-  await app.register(createBoatView(boat, rules));
+  await app.register(boatView);
   await app.register({
     id: 'helm-ui',
     init() {},
@@ -88,6 +94,7 @@ try {
             boat: boat.snapshot(),
             lap: rules.snapshot(),
             input: input.sample(),
+            cameraMode: app.controls.mode,
           }),
       }),
       configurable: true,

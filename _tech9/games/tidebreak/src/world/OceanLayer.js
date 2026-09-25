@@ -99,11 +99,11 @@ export function createOceanLayer() {
         float coast=77.0+4.0*sin(angle*3.0+0.5)+3.0*cos(angle*5.0-0.7)+1.4*sin(angle*9.0);
         float shore=length(worldPosition.xz)-coast;
         float shelf=1.0-smoothstep(0.0,15.0,shore);
-        albedo=mix(albedo,vec3(0.045,0.32,0.29),shelf*0.46);
+        albedo=mix(albedo,vec3(0.036,0.18,0.19),shelf*0.18);
         float wave=sin(shore*2.1-time*2.8+sin(angle*31.0)*0.4);
         float foam=smoothstep(0.78,1.0,wave)*(1.0-smoothstep(0.8,4.0,shore));
         float patches=0.5+0.5*sin(angle*83.0+sin(angle*29.0)*2.3+time*0.3);
-        albedo=mix(albedo,vec3(0.49,0.66,0.61),foam*0.30*patches);
+        albedo=mix(albedo,vec3(0.49,0.66,0.61),foam*0.16*pow(patches,4.0));
         vec3 outgoingLight=albedo;`,
       );
       ctx.scene.add(water);

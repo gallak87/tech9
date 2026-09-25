@@ -486,3 +486,42 @@ body[data-state='finished'] .controls {
     font-size: 53px;
   }
 }
+
+.masthead {
+  text-shadow:
+    0 1px 5px #092935,
+    0 1px 2px #092935;
+}
+.masthead:before {
+  content: '';
+  position: absolute;
+  inset: -35px -42px -20px;
+  background: linear-gradient(#0c293861, transparent);
+  z-index: -1;
+}
+#camera-switch {
+  position: absolute;
+  right: 92px;
+  top: 133px;
+  height: 36px;
+  background: #153b48d9;
+  border: 1px solid #d2d1b65c;
+  color: #eee0c5;
+  padding: 0 11px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 10px;
+  letter-spacing: 0.09em;
+}
+#camera-switch kbd {
+  width: 20px;
+  height: 20px;
+}
+.menu {
+  max-height: 74vh;
+  overflow: auto;
+}
+body[data-state='running'] #camera-switch {
+  background: #153b48ba;
+}

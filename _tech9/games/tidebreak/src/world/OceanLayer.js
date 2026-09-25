@@ -106,8 +106,20 @@ export function createOceanLayer() {
         albedo=mix(albedo,vec3(0.49,0.66,0.61),foam*0.16*pow(patches,4.0));
         vec3 outgoingLight=albedo;`,
       );
+      // A chase/cockpit switch changes the reflected frustum. Samples outside
+      // that frustum must fade out rather than smear a clamped edge texel.
+      water.material.fragmentShader = water.material.fragmentShader
+        .replace(
+          'vec3 reflectionSample = texture2D(mirrorSampler,uv).rgb;',
+          `float reflectionValid=smoothstep(0.0,0.12,uv.x)*smoothstep(0.0,0.12,uv.y)*smoothstep(0.0,0.12,1.0-uv.x)*smoothstep(0.0,0.12,1.0-uv.y)*step(0.0,mirrorCoord.w);
+        vec3 reflectionSample=texture2D(mirrorSampler,clamp(uv,0.001,0.999)).rgb;`,
+        )
+        .replace('reflectance * 0.54', 'reflectance * 0.54 * reflectionValid');
       ctx.scene.add(water);
       this.configure({ quality: 'balanced' });
+    },
+    invalidateReflection() {
+      if (water && !disposed) water.reflectionFrame = 0;
     },
     configure(settings) {
       if (!water || disposed) return;

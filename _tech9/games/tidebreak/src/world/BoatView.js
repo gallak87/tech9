@@ -19,6 +19,7 @@ export function createBoatView(boat, rules) {
   };
   const wheelMount = new THREE.Group();
   const wheelSpin = new THREE.Group();
+  const gripRig = new THREE.Group();
   const pilotBody = new THREE.Group();
   const pilotArms = new THREE.Group();
   const dashboard = new THREE.Group();
@@ -231,7 +232,8 @@ export function createBoatView(boat, rules) {
     wood.map = paleWood.map = woodTexture();
     const orange = material('#ac7b58', 0.82);
     const piping = material('#cfb794', 0.9);
-    const chrome = material('#bac2bc', 0.34, 0.7);
+    const chrome = material('#bbc5ca', 0.53, 0.28);
+    const frame = material('#87999e', 0.66, 0.08);
     const navy = material('#243c46', 0.85);
     const skin = material('#ac8665', 0.88);
     const shirt = material('#bbc5b9', 0.93);
@@ -314,7 +316,7 @@ export function createBoatView(boat, rules) {
           -0.95, 0.68, 1.68, -0.71, -0.68, 1.68, -0.71, -0.78, 0.95, -0.95,
           -0.68, 1.68, -0.71, -0.88, 0.94, -0.17, -0.68, 1.68, -0.71, -0.8,
           1.31, -0.18, -0.88, 0.94, -0.17, 0.78, 0.95, -0.95, 0.88, 0.94, -0.17,
-          0.68, 1.68, -0.71, 0.68, 1.68, -0.71, 0.88, 0.94, -0.17, 0.8, 1.21,
+          0.68, 1.68, -0.71, 0.68, 1.68, -0.71, 0.88, 0.94, -0.17, 0.8, 1.31,
           -0.18,
         ],
         3,
@@ -323,11 +325,11 @@ export function createBoatView(boat, rules) {
     screenGeometry.computeVertexNormals();
     const screen = mesh(screenGeometry, glass);
     screen.castShadow = false;
-    rod([-0.68, 1.68, -0.71], [0.68, 1.68, -0.71], 0.023, chrome);
-    rod([0, 0.96, -0.95], [0, 1.68, -0.71], 0.017, chrome);
+    rod([-0.68, 1.68, -0.71], [0.68, 1.68, -0.71], 0.012, frame);
+    rod([0, 0.96, -0.95], [0, 1.68, -0.71], 0.009, frame);
     for (const s of [-1, 1]) {
-      rod([s * 0.78, 0.95, -0.95], [s * 0.68, 1.68, -0.71], 0.022, chrome);
-      rod([s * 0.68, 1.68, -0.71], [s * 0.8, 1.31, -0.18], 0.02, chrome);
+      rod([s * 0.78, 0.95, -0.95], [s * 0.68, 1.68, -0.71], 0.012, frame);
+      rod([s * 0.68, 1.68, -0.71], [s * 0.8, 1.31, -0.18], 0.011, frame);
       const railPoints = [
         [s * 0.92, 0.87, -0.89],
         [s * 0.84, 1.04, -1.49],
@@ -451,7 +453,8 @@ export function createBoatView(boat, rules) {
     wheelMount.name = 'Steering wheel mount';
     wheelMount.position.set(0.43, 1.17, -0.21);
     wheelMount.rotation.x = -0.48;
-    wheelMount.add(wheelSpin);
+    wheelMount.add(wheelSpin, gripRig);
+    gripRig.name = 'Captain sliding grips';
     wheelSpin.name = 'Steering wheel and grips';
     rod([0, 0, -0.22], [0, 0, -0.015], 0.048, chrome, wheelMount);
     mesh(
@@ -537,25 +540,72 @@ export function createBoatView(boat, rules) {
         0.019,
       );
       const palm = ellipsoid(
-        0.048,
-        0.067,
-        0.045,
+        0.036,
+        0.047,
+        0.028,
         skin,
         grip.x,
         grip.y,
-        grip.z,
-        wheelSpin,
+        0.041,
+        gripRig,
       );
       palm.rotation.z = angle - Math.PI / 2;
-      for (let finger = 0; finger < 3; finger++) {
-        const fx =
-          grip.x + Math.cos(angle + Math.PI / 2) * (finger - 1) * 0.023;
-        const fy =
-          grip.y + Math.sin(angle + Math.PI / 2) * (finger - 1) * 0.023;
-        ellipsoid(0.017, 0.027, 0.029, skin, fx, fy, -0.005, wheelSpin);
+      const wrist = grip.clone();
+      wrist.y -= 0.061;
+      wrist.z += 0.035;
+      ellipsoid(
+        0.03,
+        0.042,
+        0.026,
+        skin,
+        grip.x,
+        grip.y - 0.033,
+        0.043,
+        gripRig,
+      );
+      // Continuous fingers curve over the near rim and around its inner edge.
+      const radial = new THREE.Vector2(Math.cos(angle), Math.sin(angle));
+      const tangent = new THREE.Vector2(-radial.y, radial.x);
+      for (let finger = 0; finger < 4; finger++) {
+        const offset = (finger - 1.5) * 0.02;
+        const curve = new THREE.CatmullRomCurve3(
+          [
+            [0.03, 0.032],
+            [0.015, 0.048],
+            [-0.018, 0.04],
+            [-0.029, 0.012],
+            [-0.014, -0.02],
+          ].map(
+            ([r, z]) =>
+              new THREE.Vector3(
+                grip.x + radial.x * r + tangent.x * offset,
+                grip.y + radial.y * r + tangent.y * offset,
+                z,
+              ),
+          ),
+        );
+        mesh(
+          new THREE.TubeGeometry(curve, 8, 0.009, 5, false),
+          skin,
+          0,
+          0,
+          0,
+          gripRig,
+        );
       }
+      const thumb = ellipsoid(
+        0.018,
+        0.031,
+        0.024,
+        skin,
+        grip.x - sign * 0.025,
+        grip.y - 0.018,
+        0.043,
+        gripRig,
+      );
+      thumb.rotation.z = sign * 0.65;
       const upper = mesh(
-        new THREE.CylinderGeometry(0.069, 0.061, 1, 10),
+        new THREE.CylinderGeometry(0.047, 0.043, 1, 12),
         shirt,
         0,
         0,
@@ -563,17 +613,17 @@ export function createBoatView(boat, rules) {
         pilotArms,
       );
       const lower = mesh(
-        new THREE.CylinderGeometry(0.047, 0.057, 1, 10),
+        new THREE.CylinderGeometry(0.028, 0.037, 1, 12),
         skin,
         0,
         0,
         0,
         pilotArms,
       );
-      const elbow = ellipsoid(0.063, 0.064, 0.062, shirt, 0, 0, 0, pilotArms);
+      const elbow = ellipsoid(0.044, 0.045, 0.043, shirt, 0, 0, 0, pilotArms);
       articulatedArms.push({
         sign,
-        grip,
+        grip: wrist,
         upper,
         lower,
         elbow,
@@ -588,6 +638,7 @@ export function createBoatView(boat, rules) {
     ellipsoid(0.037, 0.034, 0.055, rubber, 0.79, 1.13, -0.21);
     pilotBody.visible = stats.cameraMode !== 'captain';
     batchRigidGroup(wheelSpin);
+    batchRigidGroup(gripRig);
     batchRigidGroup(pilotBody);
     updateHelm(0);
   }
@@ -604,15 +655,19 @@ export function createBoatView(boat, rules) {
     // Positive reported helm angle means starboard; the visible rim rotates clockwise.
     wheelSpin.rotation.z = -wheelAngle;
     wheelSpin.updateMatrix();
+    // At full lock the palms slide/regrip on their own half of the wheel.
+    // This keeps useful steering motion without crossed arms hiding the helm.
+    gripRig.rotation.z = -Math.tanh(wheelAngle * 0.6) * 0.38;
+    gripRig.updateMatrix();
     wheelMount.updateMatrix();
     for (const arm of articulatedArms) {
       arm.hand
         .copy(arm.grip)
-        .applyMatrix4(wheelSpin.matrix)
+        .applyMatrix4(gripRig.matrix)
         .applyMatrix4(wheelMount.matrix);
       arm.bend.copy(arm.shoulder).lerp(arm.hand, 0.52);
       arm.bend.x += arm.sign * 0.085;
-      arm.bend.y -= 0.1;
+      arm.bend.y = Math.min(arm.bend.y - 0.18, 1.1);
       arm.bend.z += 0.1;
       fitArm(arm.upper, arm.shoulder, arm.bend);
       fitArm(arm.lower, arm.bend, arm.hand);

@@ -135,6 +135,7 @@ try {
       (await snapshot()).cameraMode === 'chase',
     );
     await capture('outside-helm');
+    report.performance = await samplePerformance(page, 1500);
     await keys(['KeyW']);
     const other = await page.context().newPage();
     await other.goto('about:blank');
@@ -153,6 +154,8 @@ try {
         (await snapshot()).input.throttle === 0,
     );
     await keys();
+    if (!(await page.locator('#graphics').evaluate((el) => el.open)))
+      await page.locator('#graphics summary').click();
     for (const quality of ['high', 'ultra', 'balanced']) {
       await page.locator('#quality').selectOption(quality);
       await page.waitForTimeout(100);
@@ -162,6 +165,7 @@ try {
           .quality === quality,
       );
     }
+    await page.locator('#primary').scrollIntoViewIfNeeded();
     await page.setViewportSize({ width: 560, height: 820 });
     await capture('narrow');
     check('narrow menu is usable', await page.locator('#primary').isVisible());
@@ -254,115 +258,120 @@ try {
         retry.lap.best > 0,
     );
     await capture('retry');
-    // Miss gate 01 outside the opening, then come back through it correctly.
-    await navigate(
-      [
-        [145, 95],
-        [155, 35],
-        [155, -12],
-      ],
-      { maxSeconds: 60 },
-    );
-    check(
-      'crossing outside a gate opening does not count',
-      (await snapshot()).lap.nextGate === 0,
-    );
-    await navigate(
-      [
-        [137, -22],
-        [128, 20],
-        [111, 18],
-        [111, -12],
-      ],
-      { maxSeconds: 60 },
-    );
-    check(
-      'missed gate can be recovered with another forward crossing',
-      (await snapshot()).lap.nextGate === 1,
-    );
-    // Drive into visible shore and reverse out using only keyboard input.
-    await navigate([[112, 12]], { maxSeconds: 30 });
-    let collisionStart = (await snapshot()).boat.collisions;
-    for (let i = 0; i < 240; i++) {
-      const b = (await snapshot()).boat,
-        error = wrap(Math.atan2(-b.x, b.z) - b.heading);
-      await keys([
-        'KeyW',
-        ...(error > 0.04 ? ['KeyD'] : error < -0.04 ? ['KeyA'] : []),
-      ]);
-      await wait(100);
-      if ((await snapshot()).boat.collisions > collisionStart) break;
-    }
-    const hit = (await snapshot()).boat;
-    check(
-      'shore collision blocks visible boat without land penetration',
-      hit.collisions > collisionStart && coastDistance(hit.x, hit.z) >= 2.79,
-    );
-    await capture('shore-contact');
-    await keys(['KeyS']);
-    await wait(2700);
-    await keys();
-    const reversed = (await snapshot()).boat;
-    check(
-      'reverse escapes collision',
-      reversed.speed < -0.2 &&
-        Math.hypot(reversed.x - hit.x, reversed.z - hit.z) > 1,
-    );
-    await page.keyboard.press('KeyR');
-    await page.getByRole('button', { name: 'Cast off' }).click();
-    await navigate(
-      [
-        [-55, 113],
-        [-112, 32],
-        [-118, -23],
-        [-130, -23],
-        [-125, 14],
-      ],
-      { maxSeconds: 85 },
-    );
-    check(
-      'out-of-order third gate cannot advance first gate',
-      (await snapshot()).lap.nextGate === 0,
-    );
-    await keys(['KeyW']);
-    const other = await page.context().newPage();
-    await other.goto('about:blank');
-    await other.bringToFront();
-    await wait(400);
-    await page.bringToFront();
-    await other.close();
-    if ((await snapshot()).lap.state !== 'paused') {
-      report.focusDelivery =
-        'Chromium automation retained focus; verified the wired browser blur event explicitly.';
-      await page.evaluate(() => window.dispatchEvent(new Event('blur')));
-    } else report.focusDelivery = 'Native page focus transfer';
-    check(
-      'blur lifecycle pauses and clears held input',
-      (await snapshot()).lap.state === 'paused' &&
-        (await snapshot()).input.throttle === 0,
-    );
-    await keys();
-    for (const quality of ['high', 'ultra', 'balanced']) {
-      await page.locator('#quality').selectOption(quality);
-      await wait(200);
+    if (!process.env.LAP_ONLY) {
+      // Miss gate 01 outside the opening, then come back through it correctly.
+      await navigate(
+        [
+          [145, 95],
+          [155, 35],
+          [155, -12],
+        ],
+        { maxSeconds: 60 },
+      );
       check(
-        `${quality} graphics updates owned water budget`,
-        (await snapshot()).world.find((w) => w.id === 'tidebreak-ocean')
-          .quality === quality,
+        'crossing outside a gate opening does not count',
+        (await snapshot()).lap.nextGate === 0,
+      );
+      await navigate(
+        [
+          [137, -22],
+          [128, 20],
+          [111, 18],
+          [111, -12],
+        ],
+        { maxSeconds: 60 },
+      );
+      check(
+        'missed gate can be recovered with another forward crossing',
+        (await snapshot()).lap.nextGate === 1,
+      );
+      // Drive into visible shore and reverse out using only keyboard input.
+      await navigate([[112, 12]], { maxSeconds: 30 });
+      let collisionStart = (await snapshot()).boat.collisions;
+      for (let i = 0; i < 240; i++) {
+        const b = (await snapshot()).boat,
+          error = wrap(Math.atan2(-b.x, b.z) - b.heading);
+        await keys([
+          'KeyW',
+          ...(error > 0.04 ? ['KeyD'] : error < -0.04 ? ['KeyA'] : []),
+        ]);
+        await wait(100);
+        if ((await snapshot()).boat.collisions > collisionStart) break;
+      }
+      const hit = (await snapshot()).boat;
+      check(
+        'shore collision blocks visible boat without land penetration',
+        hit.collisions > collisionStart && coastDistance(hit.x, hit.z) >= 2.79,
+      );
+      await capture('shore-contact');
+      await keys(['KeyS']);
+      await wait(2700);
+      await keys();
+      const reversed = (await snapshot()).boat;
+      check(
+        'reverse escapes collision',
+        reversed.speed < -0.2 &&
+          Math.hypot(reversed.x - hit.x, reversed.z - hit.z) > 1,
+      );
+      await page.keyboard.press('KeyR');
+      await page.getByRole('button', { name: 'Cast off' }).click();
+      await navigate(
+        [
+          [-55, 113],
+          [-112, 32],
+          [-118, -23],
+          [-130, -23],
+          [-125, 14],
+        ],
+        { maxSeconds: 85 },
+      );
+      check(
+        'out-of-order third gate cannot advance first gate',
+        (await snapshot()).lap.nextGate === 0,
+      );
+      await keys(['KeyW']);
+      const other = await page.context().newPage();
+      await other.goto('about:blank');
+      await other.bringToFront();
+      await wait(400);
+      await page.bringToFront();
+      await other.close();
+      if ((await snapshot()).lap.state !== 'paused') {
+        report.focusDelivery =
+          'Chromium automation retained focus; verified the wired browser blur event explicitly.';
+        await page.evaluate(() => window.dispatchEvent(new Event('blur')));
+      } else report.focusDelivery = 'Native page focus transfer';
+      check(
+        'blur lifecycle pauses and clears held input',
+        (await snapshot()).lap.state === 'paused' &&
+          (await snapshot()).input.throttle === 0,
+      );
+      await keys();
+      if (!(await page.locator('#graphics').evaluate((el) => el.open)))
+        await page.locator('#graphics summary').click();
+      for (const quality of ['high', 'ultra', 'balanced']) {
+        await page.locator('#quality').selectOption(quality);
+        await wait(200);
+        check(
+          `${quality} graphics updates owned water budget`,
+          (await snapshot()).world.find((w) => w.id === 'tidebreak-ocean')
+            .quality === quality,
+        );
+      }
+      await page.locator('#primary').scrollIntoViewIfNeeded();
+      await page.setViewportSize({ width: 560, height: 820 });
+      await capture('narrow');
+      check(
+        'narrow layout retains usable menu',
+        await page.locator('#primary').isVisible(),
+      );
+      await page.goto(scene.page.url().split('?')[0]);
+      await page.waitForSelector('.loading', { state: 'detached' });
+      check(
+        'production URL exposes no test hook',
+        await page.evaluate(() => typeof window.__SCENE_TEST__ === 'undefined'),
       );
     }
-    await page.setViewportSize({ width: 560, height: 820 });
-    await capture('narrow');
-    check(
-      'narrow layout retains usable menu',
-      await page.locator('#primary').isVisible(),
-    );
-    await page.goto(scene.page.url().split('?')[0]);
-    await page.waitForSelector('.loading', { state: 'detached' });
-    check(
-      'production URL exposes no test hook',
-      await page.evaluate(() => typeof window.__SCENE_TEST__ === 'undefined'),
-    );
   }
   check(
     'no console/page/request/WebGL errors',

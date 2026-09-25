@@ -132,6 +132,7 @@ export async function openScene({
       deviceScaleFactor: 1,
     });
     const page = await context.newPage();
+    page.setDefaultTimeout(5000);
     // Evidence must represent one loaded revision even if another agent edits
     // source during the run. This forest has no application WebSocket traffic.
     if (mode === 'dev') {

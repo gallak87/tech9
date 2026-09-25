@@ -51,6 +51,9 @@ try {
   };
   const camera = () => {
     app.controls.setMode(app.controls.mode === 'chase' ? 'captain' : 'chase');
+    app.layers
+      .find((layer) => layer.id === 'tidebreak-ocean')
+      ?.invalidateReflection();
     ui?.updateCamera();
   };
   input = new BoatInput(rules, refresh, reset, camera);

@@ -52,6 +52,6 @@ The example `my-game` needs its own plan with matching ID. Plan and catalog path
 4. Install the output package, build one complete playable loop, test it with real input, and review a committed build.
 5. Keep useful lessons; promote reusable code only after another game demonstrates the need.
 
-[`runs/alder-signal/plan.json`](./runs/alder-signal/plan.json) is the first concrete production plan. Source forks are intentionally independent, so improving the starter does not silently change a game already built from it.
+[`runs/alder-signal/plan.json`](./runs/alder-signal/plan.json) is the first concrete production plan. Its [Alder Signal POC](../games/alder-signal/README.md) is ready for user playtesting: the full relay-and-return loop passed unit/lint/build and real-input browser validation. The [run record](./runs/alder-signal/EXECUTION.md) keeps exact checkpoints, initial critique and limitations. Further changes wait for playtest feedback; a fresh-agent consumer trial remains a separate experiment. Source forks are intentionally independent, so improving the starter does not silently change a game already built from it.
 
 See [architecture](./ARCHITECTURE.md), [workflow](./WORKFLOW.md), [extension steps](./docs/EXTENDING.md), and [roadmap](./ROADMAP.md).

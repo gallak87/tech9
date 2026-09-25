@@ -10,4 +10,10 @@ Lessons are evidence, not universal engine rules. Keep their limits attached.
 - **Performance evidence needs context.** The forest's High/Ultra settings can saturate a GPU. Record viewport, drawing buffer, preset, browser, GPU and pacing. Headless software rendering is not a hardware benchmark.
 - **A beautiful prototype is not an AAA pass.** Alder Vale ended its four-round visual gate at 6.2/10. Retain the remaining tree/ground/lighting criticism instead of laundering the score through a framework migration.
 
-Add proof-game lessons after its completed playthrough and independent review. Promote reusable code only when another game supplies a second concrete use.
+The first Alder Signal POC added concrete evidence:
+
+- **Ordinary consumer commands belong in the fork contract.** A normal formatting pass initially rewrote the plan whose bytes were hashed in the receipt. The CLI now excludes immutable generated provenance from formatting; two real Prettier regressions and an independent review cover the fix (`4ca5d74b`).
+- **Owned copies prove useful boundaries, not consumer discoverability.** The real 75-file forest fork built outside the repository, then replaced camera ownership and added a disposable game layer without framework imports or renderer changes. Its actual-input mission passed all 16 browser checks at `5099e1fb`. A fresh agent following only the docs is still a separate test.
+- **Behavior and appearance need different evidence.** The game completed three repairs and a return upload through real input, but its initial AAA visual assessment was 6.0/10. Passing functional tests does not settle equipment readability or art quality. Stop at the user's playtest gate rather than silently treating either result as the other.
+
+Evidence: [playtest QA](../runs/alder-signal/reviews/playtest-qa.json), [independent critique](../runs/alder-signal/reviews/playtest-review.json). Promote reusable code only when another game supplies a second concrete use.

@@ -1,0 +1,109 @@
+{
+  "checkpoint": "5099e1fb7cd7338301402d7d2e3cf79b7cd5f6d0",
+  "testExecutionParentCommit": "ceb7c633c97847ead0bd5fa52413da22dc26e641",
+  "runtimeSourceSha256": "c008cf504f35d45b85e38328e83207cdefb192ce434592cfec02ed810d6f1519",
+  "sourceUnchangedDuringQA": true,
+  "passed": true,
+  "checks": [
+    {
+      "name": "visible menu and gesture-gated audio",
+      "passed": true
+    },
+    {
+      "name": "narrow menu fits and explains desktop input",
+      "passed": true
+    },
+    {
+      "name": "start and real grounded keyboard movement",
+      "passed": true
+    },
+    {
+      "name": "pause freezes held input and resume clears it",
+      "passed": true
+    },
+    {
+      "name": "five visible graphics controls update rendering settings",
+      "passed": true
+    },
+    {
+      "name": "mute responds to visible control and persists through resume",
+      "passed": true
+    },
+    {
+      "name": "real movement collides with an authored rock",
+      "passed": true
+    },
+    {
+      "name": "restart resets mission and clears a held movement key",
+      "passed": true
+    },
+    {
+      "name": "real input restores three relays and returns to win",
+      "passed": true
+    },
+    {
+      "name": "win restart removes restored state and returns to the trailhead",
+      "passed": true
+    },
+    {
+      "name": "balanced desktop frame timing and renderer metrics",
+      "passed": true
+    },
+    {
+      "name": "ordinary countdown reaches loss and restart clears it",
+      "passed": true
+    },
+    {
+      "name": "narrow gameplay and pause remain within viewport",
+      "passed": true
+    },
+    {
+      "name": "no browser asset or WebGL errors",
+      "passed": true
+    },
+    {
+      "name": "ordinary production launch exposes no test hooks",
+      "passed": true
+    },
+    {
+      "name": "rendered source stayed frozen throughout verification",
+      "passed": true
+    }
+  ],
+  "method": "Production preview. Visible buttons, real keyboard and mouse input; snapshots are observers. Only timeout setup calls setRemaining. No teleport, camera preset or completion hooks.",
+  "unitTests": 23,
+  "lint": "pass",
+  "build": "pass; inherited >500kB bundle advisory",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M1 Pro",
+    "browser": "151.0.7922.34",
+    "browserExecutable": "/Users/g/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "headless": true,
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    }
+  },
+  "preset": "balanced",
+  "performance": {
+    "samples": 573,
+    "meanMs": 8.726003490401396,
+    "medianMs": 8.30000000000291,
+    "p95Ms": 9.400000000001455,
+    "meanFps": 114.6,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+    "drawingBuffer": [1600, 1000],
+    "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+  },
+  "errors": {
+    "console": [],
+    "page": [],
+    "requests": [],
+    "webgl": []
+  },
+  "screenshots": ["playtest-menu.png", "playtest-relay.png"],
+  "captureMethod": "Separate actual-input approach to Creek relay, approximately5m from equipment; full original report and closeups remain in ignored .artifacts.",
+  "scope": "First user playtest. Art gate and fresh-agent consumer trial are separate; no root migration or publication."
+}

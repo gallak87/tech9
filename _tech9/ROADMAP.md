@@ -13,6 +13,17 @@
 - Improve graphics efficiency with measurements: CPU/GPU split, frame pacing, vegetation overdraw, LOD/culling, shadow and atmosphere budgets, adaptive resolution and quality defaults. Preserve image quality using fixed-camera comparisons. Detailed acceptance remains in the [scene roadmap](./scenes/scene-test/ROADMAP.md).
 - Prove one alternate season or scene layout; record the concrete authoring steps. Add live switching only with explicit loading/disposal and state-reset behavior.
 
+## Planned agent modes and learning handoff
+
+Let the user choose the overall task at kickoff, including the future `/generate` entrypoint. Record that choice in the execution plan so scope, path ownership, validation and completion criteria follow the purpose of the work. These modes are planned, not implemented command options.
+
+- **`game-dev`**: consume the framework to build a playable game. Keep new systems in the owned game, prioritize its player experience, and record framework friction, workarounds and potential reusable capabilities as they emerge.
+- **`framework-dev`**: intentionally build or improve framework capabilities, such as scenes, starters, assets, modules, tools or workflows. Define the reusable contract and its limits, prove it through a runnable consumer example, and update tests, documentation, provenance and versioning as appropriate.
+
+After a game is complete, a **historian/review role** examines its run records, implementation and playtest evidence. Capture what worked, what failed, useful tools and techniques, and candidate assets or systems to bring back. Each candidate should identify its source, licenses, demonstrated uses, dependencies, limitations and validation needs. Feed lessons back into framework documentation and hand capability proposals to a scoped `framework-dev` task; promotion should preserve the evidence and follow the existing reuse policy rather than automatically copying every game feature into the framework.
+
+The learning handoff follows the game delivery instead of turning game development into an open-ended framework rewrite. Mode selection defines the task's purpose, not a mandatory agent roster; existing games retain ownership of their copied source when improvements return to the framework.
+
 ## After evidence exists
 
 - Prove another game, potentially with a different agent, and learn from user playtests before considering root graduation. Root replacement is much later and requires a separately scoped decision. Preserve existing root entrypoints, metadata and compatibility tooling throughout this effort.

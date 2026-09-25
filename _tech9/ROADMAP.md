@@ -4,8 +4,7 @@
 
 - **game-dev:** [GENERATE.md](./GENERATE.md) takes a game idea through starter selection, implementation, real-input validation and bounded critique.
 - **framework-dev:** [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md) creates shared capabilities or brings them back from games. It is a supported manual agent flow, with no historian archive required.
-- Walking/input, placement collisions, supported Node startup and pond water are available. Current versions live in the catalog; [examples](./modules/README.md) show their use.
-- [Tidebreak](./games/tidebreak/BRIEF.md) is a prepared brief/prompt for a separate agent. Ocean/island layout, boat movement and chase camera remain new game work.
+- Walking/input, placement collisions, supported Node startup, pond water, island ocean, configurable boat motion/input and follow/mounted cameras are available. Current versions live in the catalog; the [capability index](./modules/README.md) links each usage aid. Vehicles and ocean are optional modules, not yet a registered starter.
 
 ## Next capabilities
 

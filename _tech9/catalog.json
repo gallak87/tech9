@@ -9,7 +9,7 @@
     },
     {
       "id": "stillwater-pond",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "path": "_tech9/scenes/pond-test",
       "manifest": "scene.json"
     }
@@ -44,7 +44,7 @@
     },
     {
       "id": "pond-exploration",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "scene": "stillwater-pond",
       "status": "available",
       "description": "Verified standalone pond exploration starter: authored shore, coupled terrain/vegetation exclusion, disposable reflective water and grounded walking.",
@@ -80,8 +80,23 @@
     },
     {
       "id": "pond-water",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "path": "_tech9/modules/pond-water"
+    },
+    {
+      "id": "boat-motion",
+      "version": "1.0.0",
+      "path": "_tech9/modules/boat-motion"
+    },
+    {
+      "id": "follow-camera",
+      "version": "1.0.0",
+      "path": "_tech9/modules/follow-camera"
+    },
+    {
+      "id": "island-ocean",
+      "version": "1.0.0",
+      "path": "_tech9/modules/island-ocean"
     }
   ]
 }

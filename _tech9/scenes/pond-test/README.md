@@ -30,7 +30,7 @@ CPU tests cover shared shore/terrain/vegetation geometry, rock proxy placement, 
 
 ## Extend and limitations
 
-Read [ARCHITECTURE.md](./ARCHITECTURE.md). This is scene **stillwater-pond 1.0.0**, the source for **pond-exploration 0.1.0**. A fork owns every source file and asset; it imports nothing at runtime from `_tech9` outside its own copied tree. The local `capabilities/` copies are receipt-tracked building blocks, not live shared imports.
+Read [ARCHITECTURE.md](./ARCHITECTURE.md). This is scene **stillwater-pond 1.0.1**, the source for **pond-exploration 0.1.1**. A fork owns every source file and asset; it imports nothing at runtime from `_tech9` outside its own copied tree. The local `capabilities/` copies are receipt-tracked building blocks, not live shared imports.
 
 The water is one static irregular ellipse with planar reflections. No swimming, boat physics, fluid solver or underwater rendering is provided. Walking uses approximate horizontal circles for mature trees, forest rocks and the five authored bank rocks. Saplings, deadfall, ground cover and scattered small shore stones are decorative; this is not mesh-accurate physics. The forest is a fixed 160 × 160 m landscape. Higher quality costs more GPU time; frame-throttled reflections can lag moving objects.
 

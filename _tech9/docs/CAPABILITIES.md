@@ -2,7 +2,7 @@
 
 Canonical source lives under `modules/`. Runnable scenes contain local copies under `src/capabilities/<id>/src/`, with current versions and SHA-256 records in `src/capabilities/PROVENANCE.json`. Starter forks copy the whole scene; games own those files and never import framework runtime source.
 
-The [capability index](../modules/README.md) points to each module's working example. The agent chooses a registered starter from the catalog and builds missing game behavior in its owned game. The CLI copies tested starter bundles; it is not an arbitrary module resolver. Deliberate extra-module integration must preserve folder layout, dependencies and required licenses and be validated in the consumer.
+The [capability index](../modules/README.md) points to each module's example or concise usage documentation. The agent chooses a registered starter from the catalog and builds missing game behavior in its owned game. The CLI copies tested starter bundles; it is not an arbitrary module resolver. Deliberate extra-module integration must preserve folder layout, dependencies and required licenses and be validated in the consumer.
 
 ## Maintainer workflow
 

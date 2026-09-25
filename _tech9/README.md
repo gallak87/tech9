@@ -16,7 +16,7 @@ A **scene** is runnable authored content. A **starter** is a registered scene bu
 - [Forest exploration](./scenes/scene-test/README.md): fixed 160 m forest, fly or grounded movement, placement-derived collisions and five graphics controls.
 - [Pond exploration](./scenes/pond-test/README.md): grounded traversal, reflective water and coupled shore/terrain/vegetation.
 
-These scenes are the usage examples for walking, collision and water modules; see the [capability index](./modules/README.md). They do not provide full physics, vehicles or finished game rules. `t9 catalog` lists current availability.
+These scenes are the usage examples for walking, collision and pond modules. Additional source modules provide configurable boat motion/input, follow/mounted cameras and an island ocean; see the [capability index](./modules/README.md). Integrate these deliberately into an owned game; the registered starters do not include vehicles or finished game rules. `t9 catalog` lists current availability.
 
 ## Install and run
 

@@ -90,6 +90,9 @@ export function createPondWaterLayer({
         quality: water.quality,
       });
     },
+    invalidateReflection() {
+      if (!disposed) water?.invalidateReflection();
+    },
     update(dt) {
       if (water && !disposed && Number.isFinite(dt) && dt > 0)
         water.material.uniforms.time.value += dt * 0.34;

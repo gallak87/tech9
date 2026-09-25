@@ -78,7 +78,30 @@ class Water extends Mesh {
     const side = options.side !== undefined ? options.side : FrontSide;
     const fog = options.fog !== undefined ? options.fog : false;
 
-    //
+    // Explicit surface hooks keep geometry-specific shading out of reflection ownership.
+    const shore = options.shoreline ?? createShoreline();
+    const frame = shore.definition;
+    const surface = options.surface ?? {
+      declarations: `${SHORE_GLSL}\nuniform vec4 pondFrame;`,
+      normal:
+        'vec3 surfaceNormal = normalize(noise.xzy * vec3(0.6, 1.0, 0.6));',
+      shading: `          vec2 pond = (worldPosition.xz - pondFrame.xy) / pondFrame.zw;
+          float a = atan(pond.y,pond.x);
+          float radius = length(pond) / shoreShape(a);
+          float sediment = sin(worldPosition.x*.74+sin(worldPosition.z*.53))*0.018;
+          float shelf = smoothstep(0.91+sediment,1.04+sediment,radius);
+          float silt = .5 + .5*sin(worldPosition.x*5.1+sin(worldPosition.z*3.7));
+          vec3 shallows = waterColor * 0.6 + vec3(.045,.039,.012) * (0.8+silt*.2);
+          albedo = mix(albedo,shallows,shelf*.47);`,
+    };
+    if (
+      !['declarations', 'normal', 'shading'].every(
+        (key) => typeof surface[key] === 'string',
+      )
+    )
+      throw new TypeError(
+        'Surface hooks require declarations, normal and shading GLSL strings.',
+      );
 
     const mirrorPlane = new Plane();
     const normal = new Vector3();
@@ -103,9 +126,6 @@ class Water extends Mesh {
     this.reflectionFrame = 0;
     this.disposed = false;
     this.reflectionStride = 3;
-    const shore = options.shoreline ?? createShoreline();
-    const frame = shore.definition;
-
     const mirrorShader = {
       name: 'MirrorShader',
 
@@ -157,13 +177,12 @@ class Water extends Mesh {
 			}`,
 
       fragmentShader: /* glsl */ `
-        ${SHORE_GLSL}
+        ${surface.declarations}
 
 				uniform sampler2D mirrorSampler;
 				uniform float alpha;
 				uniform float time;
 				uniform float size;
-        uniform vec4 pondFrame;
 				uniform float distortionScale;
 				uniform sampler2D normalSampler;
 				uniform vec3 sunColor;
@@ -206,7 +225,7 @@ class Water extends Mesh {
 
 					#include <logdepthbuf_fragment>
 					vec4 noise = getNoise( worldPosition.xz * size );
-					vec3 surfaceNormal = normalize( noise.xzy * vec3( 0.6, 1.0, 0.6 ) );
+					${surface.normal}
 
 					vec3 diffuseLight = vec3(0.0);
 					vec3 specularLight = vec3(0.0);
@@ -215,11 +234,13 @@ class Water extends Mesh {
 					vec3 eyeDirection = normalize( worldToEye );
 					sunLight( surfaceNormal, eyeDirection, 160.0, 0.55, 0.5, diffuseLight, specularLight );
 
-					float distance = length(worldToEye);
+					float distance = max(length(worldToEye), 0.001);
 
 					vec2 distortion = surfaceNormal.xz * ( 0.001 + 1.0 / distance ) * distortionScale;
-					vec2 uv = mirrorCoord.xy / mirrorCoord.w + distortion;
-          vec3 reflectionSample = texture2D(mirrorSampler,uv).rgb;
+					vec2 uv = mirrorCoord.xy / max(mirrorCoord.w, 0.0001) + distortion;
+          float reflectionValid = smoothstep(0.0,0.12,uv.x) * smoothstep(0.0,0.12,uv.y)
+            * smoothstep(0.0,0.12,1.0-uv.x) * smoothstep(0.0,0.12,1.0-uv.y) * step(0.0001,mirrorCoord.w);
+          vec3 reflectionSample = texture2D(mirrorSampler,clamp(uv,0.001,0.999)).rgb;
           float reflectionPeak = max(reflectionSample.r,max(reflectionSample.g,reflectionSample.b));
           reflectionSample /= 1.0 + reflectionPeak * 0.28;
 
@@ -227,15 +248,8 @@ class Water extends Mesh {
 					float rf0 = 0.02;
 					float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );
 					vec3 scatter = max( 0.0, dot( surfaceNormal, eyeDirection ) ) * waterColor;
-					vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance * 0.54 );
-          vec2 pond = (worldPosition.xz - pondFrame.xy) / pondFrame.zw;
-          float a = atan(pond.y,pond.x);
-          float radius = length(pond) / shoreShape(a);
-          float sediment = sin(worldPosition.x*.74+sin(worldPosition.z*.53))*0.018;
-          float shelf = smoothstep(0.91+sediment,1.04+sediment,radius);
-          float silt = .5 + .5*sin(worldPosition.x*5.1+sin(worldPosition.z*3.7));
-          vec3 shallows = waterColor * 0.6 + vec3(.045,.039,.012) * (0.8+silt*.2);
-          albedo = mix(albedo,shallows,shelf*.47);
+					vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance * 0.54 * reflectionValid );
+          ${surface.shading}
 					vec3 outgoingLight = albedo;
 					gl_FragColor = vec4( outgoingLight, alpha );
 
@@ -411,6 +425,9 @@ class Water extends Mesh {
     )
       this.renderTarget.setSize(preset.size, preset.size);
     this.reflectionFrame = 0;
+  }
+  invalidateReflection() {
+    if (!this.disposed) this.reflectionFrame = 0;
   }
   /** Owns target + material. Geometry and input normal texture belong to the caller. */
   dispose() {

@@ -26,7 +26,7 @@
     },
     {
       "id": "pond-water",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "_tech9/modules/pond-water",
       "files": [
         {
@@ -35,11 +35,11 @@
         },
         {
           "path": "src/PondWater.js",
-          "sha256": "0fc911e035d549fb1459e2bf80a392529060b71a2fdaeb103b288768435a3358"
+          "sha256": "a4021ac86b013064cef276e43b5ea94f3993755e23552d20531257fa387424d2"
         },
         {
           "path": "src/WaterSurface.js",
-          "sha256": "af5510b29069258a92fc713bf17fdb6e6833e3d9422b172d9e3b4f3655c5e96f"
+          "sha256": "960e5d922fb18cdb634b1cf32ffa1323e94a3b11f9ccc23f502b839680f00fa6"
         },
         {
           "path": "src/shoreline.js",

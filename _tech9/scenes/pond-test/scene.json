@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "stillwater-pond",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "title": "Stillwater Pond",
   "kind": "outdoor-forest-pond",
   "runtime": "threejs-webgl2",

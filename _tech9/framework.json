@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "tech9",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "status": "local-foundation",
   "catalog": "catalog.json",
   "workflow": "WORKFLOW.md",

@@ -27,7 +27,7 @@ export class BoatInput {
         if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
         if (MOTION.has(e.code)) {
           e.preventDefault();
-          if (rules.state === 'running') this.keys.add(e.code);
+          if (rules.state === 'running' && !e.repeat) this.keys.add(e.code);
         }
         if (!e.repeat && ['KeyP', 'Escape', 'Tab'].includes(e.code)) {
           e.preventDefault();

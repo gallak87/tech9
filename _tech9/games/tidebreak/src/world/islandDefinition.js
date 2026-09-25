@@ -58,6 +58,20 @@ export function isNavigable(x, z, radius = 2.8) {
     coastDistance(x, z) < radius
   )
     return false;
+  // A radial offset alone underestimates clearance on oblique, scalloped coast.
+  // Sample a slightly enlarged disk: the 0.12m margin also covers chord gaps.
+  if (coastDistance(x, z) < radius * 1.5) {
+    for (let i = 0; i < 24; i++) {
+      const a = (i / 24) * Math.PI * 2;
+      if (
+        coastDistance(
+          x + Math.cos(a) * (radius + 0.12),
+          z + Math.sin(a) * (radius + 0.12),
+        ) < 0
+      )
+        return false;
+    }
+  }
   for (const rock of ROCKS)
     if (Math.hypot(x - rock.x, z - rock.z) < rock.radius + radius) return false;
   for (const dock of DOCK_PARTS)

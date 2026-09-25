@@ -21,6 +21,7 @@ const report = {
   competingLoad:
     'Other desktop workloads are not controlled; no isolated GPU claim.',
 };
+if (!process.env.HEADED) process.env.HEADED = '1';
 const scene = await openScene({ mode: 'preview' }),
   { page } = scene;
 const held = new Set();
@@ -90,7 +91,8 @@ async function navigate(points, { dock = false, maxSeconds = 190 } = {}) {
     if (s.lap.nextGate > lastGate) {
       lastGate = s.lap.nextGate;
       console.log(`Gate ${lastGate}: ${s.lap.elapsed.toFixed(1)}s`);
-      await capture(`gate-${lastGate}`);
+      if (!report.captures.includes(`gate-${lastGate}`))
+        await capture(`gate-${lastGate}`);
     }
   }
   await keys();
@@ -125,6 +127,11 @@ try {
       'resume clears held throttle',
       (await snapshot()).input.throttle === 0,
     );
+    await page.keyboard.down('KeyW');
+    check(
+      'repeated held throttle remains clear after resume',
+      (await snapshot()).input.throttle === 0,
+    );
     await keys();
     await page.keyboard.press('KeyR');
     check(
@@ -141,7 +148,9 @@ try {
       112 * Math.cos((deg * Math.PI) / 180),
       112 * Math.sin((deg * Math.PI) / 180),
     ]);
+    const sailingPerformance = samplePerformance(page, 12000);
     await navigate(route);
+    report.sailingPerformance = await sailingPerformance;
     check(
       'all three gates crossed in order',
       (await snapshot()).lap.nextGate === 3,
@@ -162,6 +171,7 @@ try {
       (await snapshot()).lap.state === 'finished',
     );
     report.completedLap = await snapshot();
+    await page.waitForTimeout(1200);
     await capture('result');
     report.performance = await samplePerformance(page);
     await page.getByRole('button', { name: 'Sail again' }).click();

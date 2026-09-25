@@ -19,6 +19,7 @@ export function createBoatView(boat, rules) {
   let sprayTime = 0;
   let visualTime = 0;
   let previousState = rules.state;
+  let previousElapsed = rules.elapsed ?? 0;
   let roll = 0;
   let pitch = 0;
   const MAX_SAMPLES = 90;
@@ -33,7 +34,8 @@ export function createBoatView(boat, rules) {
   const mesh = (geometry, mat, x = 0, y = 0, z = 0, parent = root) => {
     const item = new THREE.Mesh(own(geometry), mat);
     item.position.set(x, y, z);
-    item.castShadow = true;
+    // The island shadow map is static. Moving launch geometry only receives it.
+    item.castShadow = false;
     item.receiveShadow = true;
     parent.add(item);
     return item;
@@ -309,38 +311,47 @@ export function createBoatView(boat, rules) {
     for (const [mat, geometries] of batches) {
       const merged = own(mergeGeometries(geometries));
       const item = new THREE.Mesh(merged, mat);
-      item.castShadow = true;
+      // The island shadow map is static. Moving launch geometry only receives it.
+      item.castShadow = false;
       item.receiveShadow = true;
       root.add(item);
     }
   }
   function buildWake() {
+    // One footprint includes the diffuse centre wash and both spreading edges.
+    // Three vertices across each row keep curved wakes continuous without rails.
     const geometry = own(new THREE.BufferGeometry());
     geometry.setAttribute(
       'position',
       new THREE.BufferAttribute(
-        new Float32Array(MAX_SAMPLES * 4 * 3),
+        new Float32Array(MAX_SAMPLES * 3 * 3),
         3,
       ).setUsage(THREE.DynamicDrawUsage),
     );
     geometry.setAttribute(
       'uv',
       new THREE.BufferAttribute(
-        new Float32Array(MAX_SAMPLES * 4 * 2),
+        new Float32Array(MAX_SAMPLES * 3 * 2),
         2,
       ).setUsage(THREE.DynamicDrawUsage),
     );
     geometry.setAttribute(
       'aFade',
-      new THREE.BufferAttribute(new Float32Array(MAX_SAMPLES * 4), 1).setUsage(
+      new THREE.BufferAttribute(new Float32Array(MAX_SAMPLES * 3), 1).setUsage(
+        THREE.DynamicDrawUsage,
+      ),
+    );
+    geometry.setAttribute(
+      'aAge',
+      new THREE.BufferAttribute(new Float32Array(MAX_SAMPLES * 3), 1).setUsage(
         THREE.DynamicDrawUsage,
       ),
     );
     const indices = [];
     for (let i = 0; i < MAX_SAMPLES - 1; i++)
-      for (let s = 0; s < 2; s++) {
-        const a = i * 4 + s * 2;
-        indices.push(a, a + 4, a + 1, a + 1, a + 4, a + 5);
+      for (let side = 0; side < 2; side++) {
+        const a = i * 3 + side;
+        indices.push(a, a + 3, a + 1, a + 1, a + 3, a + 4);
       }
     geometry.setIndex(indices);
     geometry.setDrawRange(0, 0);
@@ -352,19 +363,46 @@ export function createBoatView(boat, rules) {
         fog: true,
         uniforms: {
           ...THREE.UniformsLib.fog,
-          tint: { value: new THREE.Color('#d1e6de') },
+          tint: { value: new THREE.Color('#c3d8cf') },
         },
-        vertexShader: `attribute float aFade; varying vec2 vUv; varying float vFade;
+        vertexShader: `attribute float aFade; attribute float aAge;
+        varying vec2 vUv; varying vec2 vWorld; varying float vFade; varying float vAge;
         #include <fog_pars_vertex>
-        void main() { vUv=uv; vFade=aFade; vec4 mvPosition=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mvPosition;
-        #include <fog_vertex>
+        void main() { vUv=uv; vFade=aFade; vAge=aAge; vWorld=position.xz;
+          vec4 mvPosition=modelViewMatrix*vec4(position,1.); gl_Position=projectionMatrix*mvPosition;
+          #include <fog_vertex>
         }`,
-        fragmentShader: `uniform vec3 tint; varying vec2 vUv; varying float vFade;
+        fragmentShader: `uniform vec3 tint;
+        varying vec2 vUv; varying vec2 vWorld; varying float vFade; varying float vAge;
         #include <fog_pars_fragment>
-        void main() { float edge=pow(max(0.,sin(vUv.x*3.14159265)),0.8);
-          float grain=sin(vUv.y*14.+sin(vUv.x*22.))*sin(vUv.y*8.7-vUv.x*13.);
-          float lace=smoothstep(-0.55,0.75,grain); float alpha=edge*vFade*(0.12+lace*0.55);
-          gl_FragColor=vec4(tint,alpha);
+        float hash(vec2 p) {
+          vec3 q=fract(vec3(p.xyx)*0.1031); q+=dot(q,q.yzx+33.33);
+          return fract((q.x+q.y)*q.z);
+        }
+        float noise(vec2 p) {
+          vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+          return mix(mix(hash(i),hash(i+vec2(1.,0.)),f.x),
+            mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),f.x),f.y);
+        }
+        void main() {
+          vec2 p=vWorld*2.6+vec2(vAge*0.13,-vAge*0.09);
+          float broad=noise(p*0.31);
+          float n=noise(p)*0.57+noise(p*2.07+17.8)*0.29+noise(p*4.13-9.2)*0.14;
+          float crossWake=vUv.x*2.-1.;
+          float edgeCentre=0.70+(broad-0.5)*0.22;
+          float edgeDistance=abs(abs(crossWake)-edgeCentre);
+          float edgeWidth=0.14+vAge*0.009;
+          float edge=exp(-pow(edgeDistance/edgeWidth,2.)*1.6);
+          // Broken soft foam patches, not a periodic weave along each strip.
+          float breakup=smoothstep(0.37,0.72,n);
+          float edgeFoam=edge*breakup*0.27;
+          float metres=crossWake*(0.90+vAge*0.88);
+          float centre=exp(-pow(metres/(0.40+vAge*0.24),2.)*1.6)*exp(-vAge*1.02);
+          float wash=centre*(0.12+smoothstep(0.40,0.68,n)*0.62);
+          float mist=(1.-smoothstep(0.2,1.,abs(crossWake)))*0.027*exp(-vAge*0.55);
+          float outer=1.-smoothstep(0.86,1.,abs(crossWake));
+          float sternFade=smoothstep(0.,0.12,vAge);
+          gl_FragColor=vec4(tint,(edgeFoam+wash+mist)*vFade*outer*sternFade);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
           #include <fog_fragment>
@@ -404,15 +442,19 @@ export function createBoatView(boat, rules) {
         uniforms: { ...THREE.UniformsLib.fog },
         vertexShader: `attribute float aFade; attribute float aSize; varying float vFade;
         #include <fog_pars_vertex>
-        void main(){vFade=aFade;vec4 mvPosition=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mvPosition;gl_PointSize=clamp(aSize*650./-mvPosition.z,1.,18.);
-        #include <fog_vertex>
+        void main(){vFade=aFade;vec4 mvPosition=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mvPosition;gl_PointSize=clamp(aSize*650./-mvPosition.z,1.,16.);
+          #include <fog_vertex>
         }`,
         fragmentShader: `varying float vFade;
         #include <fog_pars_fragment>
-        void main(){float r=length(gl_PointCoord-0.5)*2.;if(r>1.)discard;gl_FragColor=vec4(0.82,0.94,0.90,pow(1.-r,1.5)*vFade*0.7);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-        #include <fog_fragment>
+        void main(){
+          vec2 p=(gl_PointCoord-0.5)*2.;float r=length(p);
+          if(r>1.)discard;
+          float soft=pow(1.-r,2.1);
+          gl_FragColor=vec4(0.76,0.89,0.83,soft*vFade*0.36);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+          #include <fog_fragment>
         }`,
       }),
     );
@@ -421,6 +463,12 @@ export function createBoatView(boat, rules) {
     spray.frustumCulled = false;
     spray.renderOrder = 3;
     context.scene.add(spray);
+  }
+  // Seeded stochastic emission gives reproducible checks without periodic strings.
+  let effectSeed = 14371;
+  function random() {
+    effectSeed = (Math.imul(effectSeed, 1664525) + 1013904223) >>> 0;
+    return effectSeed / 4294967296;
   }
   function clearWake() {
     samples.length = 0;
@@ -432,17 +480,22 @@ export function createBoatView(boat, rules) {
     const h = boat.heading;
     const forwardX = Math.sin(h);
     const forwardZ = -Math.cos(h);
+    const rightX = Math.cos(h);
+    const rightZ = Math.sin(h);
     for (const sample of samples) sample.age += dt;
     while (samples.length && samples[0].age > 5.2) samples.shift();
     emitTime += dt;
     if (dt > 0 && speed > 1.1 && emitTime > 0.065) {
+      const direction = boat.speed < 0 ? -1 : 1;
+      if (samples.length && samples.at(-1).direction !== direction)
+        samples.length = 0;
       samples.push({
-        x: boat.x - forwardX * 2.15,
-        z: boat.z - forwardZ * 2.15,
+        x: boat.x - forwardX * 2.72,
+        z: boat.z - forwardZ * 2.72,
         h,
+        direction,
         age: 0,
-        strength: Math.min(speed / 7, 1),
-        phase: visualTime * 5,
+        strength: Math.min(speed / 6, 1),
       });
       if (samples.length > MAX_SAMPLES) samples.shift();
       emitTime = 0;
@@ -450,47 +503,53 @@ export function createBoatView(boat, rules) {
     const pos = wake.geometry.attributes.position;
     const uv = wake.geometry.attributes.uv;
     const fade = wake.geometry.attributes.aFade;
+    const age = wake.geometry.attributes.aAge;
     for (let i = 0; i < samples.length; i++) {
       const sample = samples[i];
-      const spread = 0.73 + sample.age * (0.46 + sample.strength * 0.3);
-      const width = 0.13 + sample.strength * 0.21 + sample.age * 0.15;
+      const width = 0.9 + sample.age * (0.55 + sample.strength * 0.33);
       const rx = Math.cos(sample.h);
       const rz = Math.sin(sample.h);
-      for (let side = 0; side < 2; side++)
-        for (let edge = 0; edge < 2; edge++) {
-          const j = i * 4 + side * 2 + edge;
-          const cross = (side === 0 ? -1 : 1) * (spread + (edge - 0.5) * width);
-          pos.setXYZ(
-            j,
-            sample.x + rx * cross,
-            0.067 + Math.sin(sample.phase) * 0.004,
-            sample.z + rz * cross,
-          );
-          uv.setXY(j, edge, sample.phase);
-          fade.setX(
-            j,
-            Math.pow(Math.max(0, 1 - sample.age / 5.2), 1.5) * sample.strength,
-          );
-        }
+      for (let column = 0; column < 3; column++) {
+        const j = i * 3 + column;
+        const cross = (column - 1) * width;
+        pos.setXYZ(j, sample.x + rx * cross, 0.072, sample.z + rz * cross);
+        uv.setXY(j, column / 2, 0);
+        age.setX(j, sample.age);
+        fade.setX(
+          j,
+          Math.pow(Math.max(0, 1 - sample.age / 5.2), 1.55) * sample.strength,
+        );
+      }
     }
-    pos.needsUpdate = uv.needsUpdate = fade.needsUpdate = true;
+    pos.needsUpdate =
+      uv.needsUpdate =
+      fade.needsUpdate =
+      age.needsUpdate =
+        true;
     wake.geometry.setDrawRange(0, Math.max(0, samples.length - 1) * 12);
     sprayTime += dt;
-    if (dt > 0 && speed > 3 && sprayTime > 0.04) {
-      for (const sign of [-1, 1]) {
-        const randomness = Math.sin(visualTime * 143 + sign * 9) * 0.5 + 0.5;
+    if (dt > 0 && speed > 2.6 && sprayTime > 0.028) {
+      const count = 4 + Math.floor(random() * 3);
+      for (let i = 0; i < count; i++) {
+        const sign = random() < 0.5 ? -1 : 1;
+        const fore = -0.65 + random() * 1.2;
+        const cross = sign * (0.91 + random() * 0.15);
+        const outward = sign * (0.25 + random() * 1.05);
+        const carry = speed * (0.05 + random() * 0.18);
         drops.push({
-          x: boat.x + forwardX * 0.9 + Math.cos(h) * sign * 0.88,
-          y: 0.18,
-          z: boat.z + forwardZ * 0.9 + Math.sin(h) * sign * 0.88,
-          vx: Math.cos(h) * sign * (1 + randomness) + forwardX * speed * 0.15,
-          vz: Math.sin(h) * sign * (1 + randomness) + forwardZ * speed * 0.15,
-          vy: 0.5 + randomness * 0.8,
+          x: boat.x + forwardX * fore + rightX * cross,
+          y: 0.1 + random() * 0.075,
+          z: boat.z + forwardZ * fore + rightZ * cross,
+          vx: rightX * outward + forwardX * carry,
+          vz: rightZ * outward + forwardZ * carry,
+          vy: 0.25 + random() * 0.55,
           age: 0,
-          size: 0.055 + randomness * 0.07,
+          life: 0.24 + random() * 0.32,
+          size: 0.025 + random() * 0.085,
+          strength: (0.35 + random() * 0.5) * Math.min(1, speed / 6),
         });
       }
-      sprayTime = 0;
+      sprayTime = random() * 0.012;
     }
     for (let i = drops.length - 1; i >= 0; i--) {
       const drop = drops[i];
@@ -498,17 +557,18 @@ export function createBoatView(boat, rules) {
       drop.x += drop.vx * dt;
       drop.z += drop.vz * dt;
       drop.vy -= dt * 3;
-      drop.y = Math.max(0.085, drop.y + drop.vy * dt);
-      if (drop.age > 0.85 || drops.length > MAX_DROPS) drops.splice(i, 1);
+      drop.y = Math.max(0.082, drop.y + drop.vy * dt);
+      if (drop.age > drop.life || drops.length > MAX_DROPS) drops.splice(i, 1);
     }
     const sp = spray.geometry.attributes.position;
     const sf = spray.geometry.attributes.aFade;
     const ss = spray.geometry.attributes.aSize;
     for (let i = 0; i < drops.length; i++) {
       const drop = drops[i];
+      const life = drop.age / drop.life;
       sp.setXYZ(i, drop.x, drop.y, drop.z);
-      sf.setX(i, (1 - drop.age / 0.85) * Math.min(1, speed / 7));
-      ss.setX(i, drop.size + drop.age * 0.13);
+      sf.setX(i, Math.pow(1 - life, 1.6) * drop.strength);
+      ss.setX(i, drop.size * (1 + life * 1.8));
     }
     sp.needsUpdate = sf.needsUpdate = ss.needsUpdate = true;
     spray.geometry.setDrawRange(0, drops.length);
@@ -532,7 +592,15 @@ export function createBoatView(boat, rules) {
       const running = state === 'running';
       const speed = Math.abs(boat.speed);
       const distance = Math.hypot(boat.x - lastX, boat.z - lastZ);
-      if (distance > 12 || (state === 'ready' && previousState !== 'ready'))
+      const elapsed = rules.elapsed ?? 0;
+      const restarted =
+        elapsed < previousElapsed ||
+        (state === 'running' && ['finished', 'ready'].includes(previousState));
+      if (
+        distance > 12 ||
+        restarted ||
+        (state === 'ready' && previousState !== 'ready')
+      )
         clearWake();
       const activeDt = running || state === 'ready' ? dt : 0;
       visualTime += activeDt;
@@ -557,6 +625,7 @@ export function createBoatView(boat, rules) {
       lastX = boat.x;
       lastZ = boat.z;
       previousState = state;
+      previousElapsed = elapsed;
     },
     dispose() {
       if (disposed) return;

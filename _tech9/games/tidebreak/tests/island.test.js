@@ -47,3 +47,19 @@ test('ocean reuses the owned promoted reflection engine and explicitly replaces 
   assert.match(source, /water\?\.dispose/);
   assert.match(source, /normals\?\.dispose/);
 });
+
+test('navigable centres keep the entire boat footprint outside scalloped land', () => {
+  for (let i = 0; i < 720; i++) {
+    const a = (i / 720) * Math.PI * 2,
+      r = coastRadius(a) + 3.1,
+      x = Math.cos(a) * r,
+      z = Math.sin(a) * r;
+    if (!isNavigable(x, z)) continue;
+    for (let j = 0; j < 48; j++) {
+      const h = (j / 48) * Math.PI * 2;
+      assert.ok(
+        islandHeight(x + Math.cos(h) * 2.8, z + Math.sin(h) * 2.8) <= 0,
+      );
+    }
+  }
+});

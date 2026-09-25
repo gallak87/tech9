@@ -7,42 +7,9 @@ import { ChaseCamera } from './camera/ChaseCamera.js';
 import { createIslandWorld } from './world/IslandWorld.js';
 import { createOceanLayer } from './world/OceanLayer.js';
 import { createBoatView } from './world/BoatView.js';
-import { islandHeight } from './world/islandDefinition.js';
+import { tidebreakDefinition as definition } from './world/tidebreakDefinition.js';
 import { TidebreakUI } from './ui/TidebreakUI.js';
 
-const definition = {
-  id: 'tidebreak',
-  title: 'Tidebreak',
-  bounds: { minX: -260, maxX: 260, minZ: -260, maxZ: 260, minY: 0, maxY: 80 },
-  groundHeight: islandHeight,
-  createWorld: createIslandWorld,
-  initialView: 'jetty',
-  views: { jetty: { position: [0, 10, 118], target: [25, 1, 103] } },
-  environment: {
-    exposure: 0.95,
-    fog: { color: '#aec5c5', density: 0.0018 },
-    hemisphere: { sky: '#bedbd9', ground: '#626b4f', intensity: 1.8 },
-    sun: {
-      color: '#ffe1ad',
-      intensity: 3.5,
-      position: [-130, 100, -90],
-      shadowBounds: {
-        left: -125,
-        right: 125,
-        top: 125,
-        bottom: -125,
-        near: 1,
-        far: 500,
-      },
-    },
-    sky: {
-      turbidity: 4,
-      rayleigh: 1.25,
-      mieCoefficient: 0.004,
-      mieDirectionalG: 0.82,
-    },
-  },
-};
 const testMode = new URLSearchParams(location.search).get('test') === '1';
 let app, input, ui;
 try {
@@ -55,7 +22,7 @@ try {
   app.camera.updateProjectionMatrix();
   const boat = new BoatSimulation(),
     rules = new LapRules();
-  app.setController(new ChaseCamera(app.camera, boat));
+  app.setController(new ChaseCamera(app.camera, boat, rules));
   const refresh = () => ui?.refresh();
   const reset = () => {
     input?.clear();

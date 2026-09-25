@@ -62,7 +62,7 @@ export function createIslandWorld(rules) {
     const mat = new THREE.SpriteMaterial({ map: tex, depthTest: true });
     owned.add(mat);
     const sprite = new THREE.Sprite(mat);
-    sprite.scale.set(3.4, 3.4, 1);
+    sprite.scale.set(1.7, 1.7, 1);
     return sprite;
   }
   function instancePrototype(kit, name, placements) {
@@ -110,7 +110,9 @@ export function createIslandWorld(rules) {
     async init(ctx) {
       context = ctx;
       const loader = new THREE.TextureLoader();
-      const floor = await loader.loadAsync('./assets/textures/path-color.jpg');
+      const floor = await loader.loadAsync(
+        './assets/textures/forest-floor-color.jpg',
+      );
       owned.add(floor);
       if (disposed) {
         floor.dispose();
@@ -119,8 +121,18 @@ export function createIslandWorld(rules) {
       floor.colorSpace = THREE.SRGBColorSpace;
       floor.wrapS = floor.wrapT = THREE.RepeatWrapping;
       floor.anisotropy = 8;
+      const sand = await loader.loadAsync('./assets/textures/path-color.jpg');
+      owned.add(sand);
+      sand.colorSpace = THREE.SRGBColorSpace;
+      sand.wrapS = sand.wrapT = THREE.RepeatWrapping;
+      sand.anisotropy = 8;
+      if (disposed) {
+        sand.dispose();
+        return;
+      }
       const landGeo = new THREE.PlaneGeometry(196, 196, 196, 196);
       landGeo.rotateX(-Math.PI / 2);
+      const shoreDistances = [];
       const pos = landGeo.attributes.position,
         uv = landGeo.attributes.uv,
         colors = [];
@@ -130,8 +142,9 @@ export function createIslandWorld(rules) {
           h = islandHeight(x, z);
         pos.setY(i, h);
         uv.setXY(i, x / 5, z / 5);
+        shoreDistances.push(coastDistance(x, z));
         const shore = coastDistance(x, z),
-          col = new THREE.Color(shore > -4 ? '#e6d0a0' : '#70805c');
+          col = new THREE.Color(shore > -5 ? '#eadab6' : '#a6bb86');
         col.multiplyScalar(
           0.96 + 0.07 * Math.sin(x * 0.24) * Math.cos(z * 0.17),
         );
@@ -142,7 +155,34 @@ export function createIslandWorld(rules) {
         new THREE.Float32BufferAttribute(colors, 3),
       );
       landGeo.computeVertexNormals();
-      mesh(landGeo, material('#ffffff', { vertexColors: true, map: floor }));
+      landGeo.setAttribute(
+        'shoreDistance',
+        new THREE.Float32BufferAttribute(shoreDistances, 1),
+      );
+      const landMat = material('#ffffff', { vertexColors: true, map: floor });
+      landMat.onBeforeCompile = (shader) => {
+        shader.uniforms.sandMap = { value: sand };
+        shader.vertexShader = shader.vertexShader
+          .replace(
+            '#include <common>',
+            '#include <common>\nattribute float shoreDistance; varying float vShoreDistance;',
+          )
+          .replace(
+            '#include <begin_vertex>',
+            '#include <begin_vertex>\nvShoreDistance=shoreDistance;',
+          );
+        shader.fragmentShader = shader.fragmentShader
+          .replace(
+            '#include <common>',
+            '#include <common>\nuniform sampler2D sandMap;varying float vShoreDistance;',
+          )
+          .replace(
+            '#include <map_fragment>',
+            `vec4 soil=texture2D(map,vMapUv);vec4 beach=texture2D(sandMap,vMapUv*0.67);float bank=smoothstep(-9.0,-3.0,vShoreDistance+soil.r*2.0);diffuseColor*=mix(soil*1.25,beach*1.6,bank);float wet=1.0-smoothstep(0.1,2.0,-vShoreDistance);diffuseColor.rgb*=1.0-wet*0.20;`,
+          );
+      };
+      landMat.customProgramCacheKey = () => 'tidebreak-land-shelf';
+      mesh(landGeo, landMat);
       const rockTex = await loader.loadAsync(
         './assets/textures/shore-rock-diff.jpg',
       );
@@ -213,6 +253,68 @@ export function createIslandWorld(rules) {
           grass.push({ x, z, s: 0.7 + random(), angle: random() * 6.28 });
       }
       instancePrototype(kit, 'grass_short', grass);
+      const scrubGeo = new THREE.IcosahedronGeometry(1, 1);
+      owned.add(scrubGeo);
+      const scrubMat = material('#708258', { roughness: 1 });
+      const shrubs = [];
+      for (let i = 0; i < 210; i++) {
+        const a = random() * Math.PI * 2,
+          r = 56 + random() * 19,
+          x = Math.cos(a) * r,
+          z = Math.sin(a) * r;
+        if (coastDistance(x, z) < -4)
+          shrubs.push({ x, z, s: 0.55 + random() * 1.3 });
+      }
+      const scrub = new THREE.InstancedMesh(scrubGeo, scrubMat, shrubs.length);
+      scrub.receiveShadow = true;
+      shrubs.forEach((p, i) => {
+        scrub.setMatrixAt(
+          i,
+          new THREE.Matrix4().compose(
+            new THREE.Vector3(p.x, islandHeight(p.x, p.z) + p.s * 0.35, p.z),
+            new THREE.Quaternion().setFromAxisAngle(
+              new THREE.Vector3(0, 1, 0),
+              random() * 6.28,
+            ),
+            new THREE.Vector3(p.s * 1.3, p.s * 0.8, p.s),
+          ),
+        );
+      });
+      scrub.computeBoundingSphere();
+      group.add(scrub);
+      const pebbleGeo = new THREE.DodecahedronGeometry(1, 0);
+      owned.add(pebbleGeo);
+      const pebbles = [];
+      for (let i = 0; i < 180; i++) {
+        const a = random() * Math.PI * 2,
+          r = 75 + random() * 11,
+          x = Math.cos(a) * r,
+          z = Math.sin(a) * r,
+          d = coastDistance(x, z);
+        if (d > -2.5 && d < 0.8 && !(Math.abs(x) < 9 && z > 0))
+          pebbles.push({ x, z, s: 0.16 + random() * 0.32 });
+      }
+      const stones = new THREE.InstancedMesh(
+        pebbleGeo,
+        rockMat,
+        pebbles.length,
+      );
+      stones.receiveShadow = true;
+      pebbles.forEach((p, i) =>
+        stones.setMatrixAt(
+          i,
+          new THREE.Matrix4().compose(
+            new THREE.Vector3(p.x, islandHeight(p.x, p.z) + p.s * 0.1, p.z),
+            new THREE.Quaternion().setFromAxisAngle(
+              new THREE.Vector3(0, 1, 0),
+              random() * 6.28,
+            ),
+            new THREE.Vector3(p.s * 1.6, p.s * 0.7, p.s),
+          ),
+        ),
+      );
+      stones.computeBoundingSphere();
+      group.add(stones);
       const timber = material('#82694c'),
         planks = material('#b59d73'),
         iron = material('#203739', { metalness: 0.55, roughness: 0.4 }),
@@ -321,7 +423,7 @@ export function createIslandWorld(rules) {
             2.9,
           );
           const number = label(String(gate.id).padStart(2, '0'));
-          number.position.y = 4.8;
+          number.position.y = 3.6;
           buoy.add(number);
         }
         gateObjects.push({ root, mats });

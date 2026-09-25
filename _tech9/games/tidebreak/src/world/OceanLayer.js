@@ -32,26 +32,52 @@ export function createOceanLayer() {
       geometry = new THREE.ShapeGeometry(shape);
       const size = 256,
         data = new Uint8Array(size * size * 4);
+      const noise = (x, y, cells) => {
+        const u = (x / size) * cells,
+          v = (y / size) * cells,
+          ix = Math.floor(u),
+          iy = Math.floor(v);
+        const hash = (a, b) => {
+          const k =
+            Math.sin(
+              (((a % cells) + cells) % cells) * 127.1 +
+                (((b % cells) + cells) % cells) * 311.7 +
+                48.7,
+            ) * 43758.5453;
+          return k - Math.floor(k);
+        };
+        const ease = (t) => t * t * t * (t * (t * 6 - 15) + 10),
+          fx = ease(u - ix),
+          fy = ease(v - iy);
+        const a = hash(ix, iy) * (1 - fx) + hash(ix + 1, iy) * fx,
+          b = hash(ix, iy + 1) * (1 - fx) + hash(ix + 1, iy + 1) * fx;
+        return a * (1 - fy) + b * fy;
+      };
+      const height = (x, y) =>
+        noise(x, y, 8) +
+        noise(x, y, 16) * 0.48 +
+        noise(x, y, 32) * 0.21 +
+        noise(x, y, 64) * 0.08;
       for (let y = 0; y < size; y++)
         for (let x = 0; x < size; x++) {
-          const u = (x / size) * Math.PI * 2,
-            v = (y / size) * Math.PI * 2,
-            i = (y * size + x) * 4;
-          data[i] =
-            128 + 42 * Math.cos(u * 7 + v * 3) + 16 * Math.sin(u * 19 - v * 11);
-          data[i + 1] =
-            128 + 32 * Math.sin(v * 8 + u * 2) + 21 * Math.cos(v * 21 - u * 13);
-          data[i + 2] = 240;
+          const i = (y * size + x) * 4,
+            dx = (height(x + 1, y) - height(x - 1, y)) * 3.8,
+            dy = (height(x, y + 1) - height(x, y - 1)) * 3.8;
+          data[i] = 128 + Math.max(-0.8, Math.min(0.8, dx)) * 127;
+          data[i + 1] = 128 + Math.max(-0.8, Math.min(0.8, dy)) * 127;
+          data[i + 2] = 255;
           data[i + 3] = 255;
         }
       normals = new THREE.DataTexture(data, size, size);
       normals.wrapS = normals.wrapT = THREE.RepeatWrapping;
-      normals.magFilter = normals.minFilter = THREE.LinearFilter;
+      normals.magFilter = THREE.LinearFilter;
+      normals.minFilter = THREE.LinearMipmapLinearFilter;
+      normals.generateMipmaps = true;
       normals.needsUpdate = true;
       water = new Water(geometry, {
         waterNormals: normals,
         quality: 'balanced',
-        waterColor: '#12606b',
+        waterColor: '#186276',
         sunColor: '#ffe3bb',
         sunDirection: new THREE.Vector3(
           ...ctx.definition.environment.sun.position,
@@ -61,7 +87,11 @@ export function createOceanLayer() {
       });
       water.rotation.x = -Math.PI / 2;
       water.position.y = 0.02;
-      water.material.uniforms.size.value = 3.8;
+      water.material.uniforms.size.value = 2.5;
+      water.material.fragmentShader = water.material.fragmentShader.replace(
+        'vec3 surfaceNormal = normalize( noise.xzy * vec3( 0.6, 1.0, 0.6 ) );',
+        'float ripple = mix(0.64,0.16,smoothstep(30.0,330.0,length(eye-worldPosition.xyz))); vec3 surfaceNormal = normalize(noise.xzy * vec3(ripple,1.0,ripple));',
+      );
       water.material.fragmentShader = water.material.fragmentShader.replace(
         /vec2 pond = [\s\S]*?vec3 outgoingLight = albedo;/,
         `
@@ -72,7 +102,8 @@ export function createOceanLayer() {
         albedo=mix(albedo,vec3(0.045,0.32,0.29),shelf*0.46);
         float wave=sin(shore*2.1-time*2.8+sin(angle*31.0)*0.4);
         float foam=smoothstep(0.78,1.0,wave)*(1.0-smoothstep(0.8,4.0,shore));
-        albedo=mix(albedo,vec3(0.64,0.75,0.67),foam*0.48);
+        float patches=0.5+0.5*sin(angle*83.0+sin(angle*29.0)*2.3+time*0.3);
+        albedo=mix(albedo,vec3(0.49,0.66,0.61),foam*0.30*patches);
         vec3 outgoingLight=albedo;`,
       );
       ctx.scene.add(water);

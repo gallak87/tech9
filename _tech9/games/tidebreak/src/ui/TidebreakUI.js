@@ -1,4 +1,5 @@
 import { GATES, DOCK_ZONE, coastRadius } from '../world/islandDefinition.js';
+import { VESSELS } from '../game/vessels.js';
 export function formatTime(seconds) {
   const m = Math.floor(seconds / 60),
     s = Math.floor(seconds % 60);
@@ -9,9 +10,9 @@ export class TidebreakUI {
     Object.assign(this, { app, boat, rules, actions });
     this.previous = '';
     document.querySelector('#app-ui').innerHTML = `
-      <header class="masthead"><div class="wordmark">TIDEBREAK<span>ISLAND RUN · 01</span></div><div class="route-status"><span id="route-eyebrow">YOUR FIRST LAP</span><strong id="route-title">A loop around Northlight</strong><div class="steps"><i></i><i></i><i></i></div></div><div class="clock"><span>LAP TIME</span><strong id="timer">00:00.0</strong><small id="best">SESSION BEST —</small></div></header>
-      <section id="menu" class="menu"><p class="eyebrow" id="menu-eyebrow">NORTHLIGHT ISLAND / EARLY MORNING</p><h1 id="menu-title">Find your<br><em>sea legs.</em></h1><p class="intro" id="menu-copy">One boat. Three gates. A little room to drift.<br>Circle the island, then bring her gently home.</p><div class="controls"><div><kbd>W</kbd><kbd>S</kbd><span>Throttle / brake / reverse</span></div><div><kbd>A</kbd><kbd>D</kbd><span>Steer with your speed</span></div><div><kbd>P</kbd><kbd>R</kbd><span>Pause / return to dock</span></div><div><kbd>C</kbd><span>Captain / outside camera</span></div></div><button id="primary">Cast off <span>↗</span></button><button id="reset" class="secondary" hidden>Return to dock</button><p class="route-note" id="route-note">Pass gates 01 → 02 → 03. Return to the mooring ring<br>at less than 0.8 m/s. An easy lap takes 2–4 minutes.</p><details id="graphics"><summary>Graphics & atmosphere <span>＋</span></summary><div class="settings"><label>Quality<select id="quality"><option value="balanced">Balanced</option><option value="high">High</option><option value="ultra">Ultra</option></select></label><label>Sunlight<input id="sunlight" type="range" min="0.4" max="1.6" step="0.1"></label><label>Coastal haze<input id="atmosphere" type="range" min="0.4" max="1.6" step="0.1"></label><label>Vegetation<input id="richness" type="range" min="0.4" max="1.6" step="0.1"></label><label>Exposure<input id="exposure" type="range" min="0.4" max="1.6" step="0.1"></label></div></details></section>
-      <footer class="helm"><div class="speed"><strong id="speed">0.0</strong><span>m/s<small id="gear">IDLE</small></span><div class="speed-track"><i id="speed-bar"></i></div></div><div class="help"><span id="notice">The water is yours.</span><small>W/S throttle & brake · A/D steer · P pause · R reset</small></div><div class="chart"><span>NORTHLIGHT <b>N ↑</b></span><canvas id="chart" width="240" height="240" aria-label="Course chart: three gates clockwise around the island"></canvas><small id="chart-caption">01 EAST → 02 NORTH → 03 WEST</small></div></footer><button id="camera-switch" title="Switch camera (C)">CAPTAIN VIEW <kbd>C</kbd></button><button id="pause" title="Pause (P)">Ⅱ</button><div class="narrow">Best played with a keyboard and a wider window.</div>`;
+      <header class="masthead"><div class="wordmark">TIDEBREAK<span id="vessel-label">NORTHLIGHT SAILING CLUB</span></div><div class="route-status"><span id="route-eyebrow">YOUR FIRST LAP</span><strong id="route-title">A loop around Northlight</strong><div class="steps"><i></i><i></i><i></i></div></div><div class="clock"><span>LAP TIME</span><strong id="timer">00:00.0</strong><small id="best">SESSION BEST —</small></div></header>
+      <section id="menu" class="menu"><p class="eyebrow" id="menu-eyebrow">NORTHLIGHT ISLAND / EARLY MORNING</p><h1 id="menu-title">Take the<br><em>helm.</em></h1><p class="intro" id="menu-copy">Choose your ship. Circle Northlight.<br>Bring her gently home.</p><fieldset id="fleet" class="fleet"><legend>CHOOSE YOUR SHIP</legend>${VESSELS.map((v) => `<button type="button" class="vessel-card" data-vessel="${v.id}" aria-pressed="${v.id === boat.vessel.id}">${shipIcon(v.id)}<span class="vessel-info"><strong>${v.name}</strong><small>${v.type} · ${v.length} m</small><span>${v.description}</span></span><b class="vessel-check" aria-hidden="true">✓</b></button>`).join('')}</fieldset><div class="controls"><div><kbd>W</kbd><kbd>S</kbd><span>Fill sails / slow / backwater</span></div><div><kbd>A</kbd><kbd>D</kbd><span>Steer with your speed</span></div><div><kbd>P</kbd><kbd>R</kbd><span>Pause / return to dock</span></div><div><kbd>C</kbd><span>At the wheel / outside camera</span></div></div><button id="primary">Cast off <span>↗</span></button><button id="reset" class="secondary" hidden>Return to dock</button><p class="route-note" id="route-note">Pass gates 01 → 02 → 03. Return to the mooring ring<br>at less than 0.8 m/s. Assisted sailing · no wind management.</p><details id="graphics"><summary>Graphics & atmosphere <span>＋</span></summary><div class="settings"><label>Quality<select id="quality"><option value="balanced">Balanced</option><option value="high">High</option><option value="ultra">Ultra</option></select></label><label>Sunlight<input id="sunlight" type="range" min="0.4" max="1.6" step="0.1"></label><label>Coastal haze<input id="atmosphere" type="range" min="0.4" max="1.6" step="0.1"></label><label>Vegetation<input id="richness" type="range" min="0.4" max="1.6" step="0.1"></label><label>Exposure<input id="exposure" type="range" min="0.4" max="1.6" step="0.1"></label></div></details></section>
+      <footer class="helm"><div class="speed"><strong id="speed">0.0</strong><span>m/s<small id="gear">IDLE</small></span><div class="speed-track"><i id="speed-bar"></i></div></div><div class="help"><span id="notice">The water is yours.</span><small>W/S sail & slow · A/D steer · P pause · R reset</small></div><div class="chart"><span>NORTHLIGHT <b>N ↑</b></span><canvas id="chart" width="240" height="240" aria-label="Course chart: three gates clockwise around the island"></canvas><small id="chart-caption">01 EAST → 02 NORTH → 03 WEST</small></div></footer><button id="camera-switch" title="Switch camera (C)">CAPTAIN VIEW <kbd>C</kbd></button><button id="pause" title="Pause (P)">Ⅱ</button><div class="narrow">Best played with a keyboard and a wider window.</div>`;
     this.nodes = Object.fromEntries(
       [...document.querySelectorAll('[id]')].map((n) => [n.id, n]),
     );
@@ -20,6 +21,9 @@ export class TidebreakUI {
       this.refresh();
     };
     this.nodes.reset.onclick = () => actions.reset();
+    this.nodes.fleet.querySelectorAll('[data-vessel]').forEach((button) => {
+      button.onclick = () => actions.selectVessel(button.dataset.vessel);
+    });
     this.nodes.pause.onclick = () => actions.pause();
     this.nodes['camera-switch'].onclick = () => actions.camera();
     for (const key of [
@@ -39,7 +43,19 @@ export class TidebreakUI {
         });
     }
     this.ctx = this.nodes.chart.getContext('2d');
+    this.updateVessel();
     this.refresh();
+  }
+  updateVessel() {
+    const vessel = this.boat.vessel;
+    this.nodes['vessel-label'].textContent =
+      `${vessel.name.toUpperCase()} · ${vessel.type.toUpperCase()}`;
+    this.nodes.fleet.querySelectorAll('[data-vessel]').forEach((button) => {
+      button.setAttribute(
+        'aria-pressed',
+        String(button.dataset.vessel === vessel.id),
+      );
+    });
   }
   updateCamera() {
     this.nodes['camera-switch'].innerHTML =
@@ -55,12 +71,15 @@ export class TidebreakUI {
     n.menu.hidden = state === 'running';
     n.pause.hidden = state !== 'running';
     n.reset.hidden = state === 'ready';
+    n.fleet.hidden = state !== 'ready';
+    n.reset.textContent =
+      state === 'finished' ? 'Choose another ship' : 'Return to dock';
     document.body.dataset.state = state;
     if (state === 'ready') {
       n['menu-eyebrow'].textContent = 'NORTHLIGHT ISLAND / EARLY MORNING';
-      n['menu-title'].innerHTML = 'Find your<br><em>sea legs.</em>';
+      n['menu-title'].innerHTML = 'Take the<br><em>helm.</em>';
       n['menu-copy'].innerHTML =
-        'One boat. Three gates. A little room to drift.<br>Circle the island, then bring her gently home.';
+        'Choose your ship. Circle Northlight.<br>Bring her gently home.';
       n.primary.innerHTML = 'Cast off <span>↗</span>';
     }
     if (state === 'paused') {
@@ -153,7 +172,12 @@ export class TidebreakUI {
       c.fillText(String(i + 1), g.x, g.z);
     });
     c.strokeStyle = '#e7c483';
-    c.strokeRect(8, 103, 14, 14);
+    c.strokeRect(
+      DOCK_ZONE.x - DOCK_ZONE.radius,
+      DOCK_ZONE.z - DOCK_ZONE.radius,
+      DOCK_ZONE.radius * 2,
+      DOCK_ZONE.radius * 2,
+    );
     c.translate(b.x, b.z);
     c.rotate(b.heading);
     c.fillStyle = '#fff2d1';
@@ -169,4 +193,12 @@ export class TidebreakUI {
   dispose() {
     document.querySelector('#app-ui').innerHTML = '';
   }
+}
+
+function shipIcon(id) {
+  const sails =
+    id === 'galleon'
+      ? '<path d="M25 15 Q36 19 48 15 L45 33 Q36 37 27 33 Z M25 37 Q36 41 48 37 L45 49 Q36 52 27 49 Z M51 8 Q62 12 73 8 L70 28 Q62 32 53 28 Z M51 33 Q62 37 73 33 L70 48 Q62 51 53 48 Z"/>'
+      : '<path d="M36 12 L36 49 Q51 49 59 46 Z M61 6 L61 43 Q77 44 88 40 Z M31 22 L14 49 L31 49 Z"/>';
+  return `<svg viewBox="0 0 100 75" aria-hidden="true"><g fill="currentColor" opacity=".9">${sails}</g><path d="M10 54 Q44 63 88 50 L81 65 Q41 75 18 64 Z" fill="currentColor"/><g fill="none" stroke="currentColor" stroke-width="1.3"><path d="M36 9 V60 M61 4 V57 M6 68 Q30 73 47 69 T92 69"/></g></svg>`;
 }

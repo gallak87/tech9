@@ -1,15 +1,21 @@
 import { START, isNavigable } from '../world/islandDefinition.js';
+import { getVessel } from './vessels.js';
 
 const FIXED_STEP = 1 / 120;
-const FOOTPRINT = 2.8;
 const SWEEP_SPACING = 0.2;
 const clampInput = (value) =>
   Number.isFinite(value) ? Math.max(-1, Math.min(1, value)) : 0;
 
 /** Planar, metre/second boat motion. Heading zero faces -Z; positive turns right. */
 export class BoatSimulation {
-  constructor() {
+  constructor(vesselId) {
+    this.vessel = getVessel(vesselId);
     this.reset();
+  }
+
+  selectVessel(id) {
+    this.vessel = getVessel(id);
+    return this.reset();
   }
 
   reset() {
@@ -64,6 +70,7 @@ export class BoatSimulation {
   }
 
   _move(dx, dz) {
+    const footprint = this.vessel.footprint;
     // Sweep the footprint even for a long frame or unusually large velocity.
     const divisions = Math.max(
       1,
@@ -73,7 +80,7 @@ export class BoatSimulation {
     let stepZ = dz / divisions;
     let hit = false;
     for (let i = 0; i < divisions; i++) {
-      if (isNavigable(this.x + stepX, this.z + stepZ, FOOTPRINT)) {
+      if (isNavigable(this.x + stepX, this.z + stepZ, footprint)) {
         this.x += stepX;
         this.z += stepZ;
         continue;
@@ -81,8 +88,8 @@ export class BoatSimulation {
       hit = true;
       // Keep the free component so glancing contacts slide. Removing only the
       // blocked velocity also leaves reverse available immediately on contact.
-      const freeX = isNavigable(this.x + stepX, this.z, FOOTPRINT);
-      const freeZ = isNavigable(this.x, this.z + stepZ, FOOTPRINT);
+      const freeX = isNavigable(this.x + stepX, this.z, footprint);
+      const freeZ = isNavigable(this.x, this.z + stepZ, footprint);
       if (freeX && (!freeZ || Math.abs(stepX) > Math.abs(stepZ))) {
         this.x += stepX;
         this.vz = 0;
@@ -102,6 +109,8 @@ export class BoatSimulation {
 
   snapshot() {
     return {
+      vesselId: this.vessel.id,
+      footprint: this.vessel.footprint,
       x: this.x,
       z: this.z,
       heading: this.heading,

@@ -30,7 +30,12 @@ try {
     input?.clear();
     boat.reset();
     rules.reset();
+    app.controls.setMode('chase');
     app.controls.resetMotion();
+    app.layers
+      .find((layer) => layer.id === 'tidebreak-ocean')
+      ?.invalidateReflection();
+    ui?.updateCamera();
     refresh();
   };
   const primary = () => {
@@ -49,6 +54,20 @@ try {
     rules.pause();
     refresh();
   };
+  const selectVessel = (id) => {
+    if (rules.state !== 'ready') return;
+    input?.clear();
+    boat.selectVessel(id);
+    boatView.selectVessel();
+    rules.reset();
+    app.controls.setMode('chase');
+    app.controls.resetMotion();
+    app.layers
+      .find((layer) => layer.id === 'tidebreak-ocean')
+      ?.invalidateReflection();
+    ui?.updateVessel();
+    ui?.updateCamera();
+  };
   const camera = () => {
     app.controls.setMode(app.controls.mode === 'chase' ? 'captain' : 'chase');
     app.layers
@@ -57,7 +76,13 @@ try {
     ui?.updateCamera();
   };
   input = new BoatInput(rules, refresh, reset, camera);
-  ui = new TidebreakUI(app, boat, rules, { primary, pause, reset, camera });
+  ui = new TidebreakUI(app, boat, rules, {
+    primary,
+    pause,
+    reset,
+    camera,
+    selectVessel,
+  });
   await app.register({
     id: 'boat-rules',
     init() {},

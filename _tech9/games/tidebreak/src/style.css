@@ -522,6 +522,104 @@ body[data-state='finished'] .controls {
   max-height: 74vh;
   overflow: auto;
 }
+.fleet {
+  border: 0;
+  padding: 0;
+  margin: 0 0 20px;
+  display: grid;
+  gap: 9px;
+}
+.fleet legend {
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: #c8c4a9;
+  margin-bottom: 10px;
+}
+.menu .vessel-card {
+  display: flex;
+  position: relative;
+  align-items: center;
+  gap: 14px;
+  background: #09263365;
+  border: 1px solid #d5d2b735;
+  color: #c9d1c4;
+  padding: 9px 14px 11px;
+}
+.menu .vessel-card:hover {
+  background: #254956;
+}
+.menu .vessel-card[aria-pressed='true'] {
+  background: #d9ba7920;
+  border-color: #e1c184;
+  color: #f3ddae;
+}
+.vessel-card svg {
+  width: 72px;
+  flex: 0 0 72px;
+}
+.menu .vessel-card span {
+  float: none;
+  font-size: 11px;
+}
+.vessel-info {
+  display: grid;
+  gap: 4px;
+  line-height: 1.3;
+}
+.vessel-info strong {
+  font-family: Georgia, serif;
+  font-weight: normal;
+  font-size: 23px;
+}
+.vessel-info small {
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.13em;
+}
+.vessel-info > span {
+  color: #c4cdbe;
+}
+.vessel-check {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 12px;
+}
+[aria-pressed='true'] .vessel-check {
+  display: block;
+}
+body[data-state='ready'] .menu {
+  top: 15%;
+  max-height: 78vh;
+}
+body[data-state='ready'] h1 {
+  font-size: 53px;
+  margin-bottom: 12px;
+}
+body[data-state='ready'] .eyebrow {
+  margin-bottom: 15px;
+}
+body[data-state='ready'] .intro {
+  margin-bottom: 17px;
+}
+body[data-state='ready'] .controls {
+  gap: 5px;
+  margin-bottom: 17px;
+}
+@media (max-height: 850px) and (min-width: 701px) {
+  body[data-state='ready'] .menu {
+    top: 12%;
+    max-height: 84vh;
+  }
+  body[data-state='ready'] h1 {
+    font-size: 39px;
+  }
+  body[data-state='ready'] .intro,
+  body[data-state='ready'] .route-note {
+    display: none;
+  }
+}
 body[data-state='running'] #camera-switch {
   background: #153b48ba;
 }

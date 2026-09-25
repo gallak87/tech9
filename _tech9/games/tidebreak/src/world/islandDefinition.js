@@ -1,10 +1,12 @@
+import { VESSELS } from '../game/vessels.js';
+
 // Game-owned content. Every visible solid and collision proxy uses these placements.
 export const OCEAN_HALF = 260;
-export const START = Object.freeze({ x: 15, z: 110, heading: Math.PI / 2 });
+export const START = Object.freeze({ x: 22, z: 114, heading: Math.PI / 2 });
 export const DOCK_ZONE = Object.freeze({
-  x: 15,
-  z: 110,
-  radius: 7,
+  x: 22,
+  z: 114,
+  radius: 8,
   maxSpeed: 0.8,
   holdSeconds: 1.2,
 });
@@ -52,7 +54,7 @@ export const ROCKS = Object.freeze(
     });
   }).filter((r) => !(Math.abs(r.x) < 12 && r.z > 0)),
 );
-export function isNavigable(x, z, radius = 2.8) {
+export function isNavigable(x, z, radius = VESSELS[0].footprint) {
   if (
     Math.abs(x) > OCEAN_HALF - radius ||
     Math.abs(z) > OCEAN_HALF - radius ||

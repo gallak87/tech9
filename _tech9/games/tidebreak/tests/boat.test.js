@@ -2,10 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BoatSimulation } from '../src/game/BoatSimulation.js';
 import { LapRules } from '../src/game/LapRules.js';
+import { VESSELS, getVessel } from '../src/game/vessels.js';
 import {
   START,
   GATES,
   DOCK_ZONE,
+  DOCK_PARTS,
+  OCEAN_HALF,
   isNavigable,
 } from '../src/world/islandDefinition.js';
 
@@ -64,6 +67,8 @@ test('boat accelerates, carries momentum, brakes and reverses; reset clears all 
   assert.ok(boat.speed > 0, 'forward throttle recovers from reverse');
   boat.reset();
   assert.deepEqual(boat.snapshot(), {
+    vesselId: 'schooner',
+    footprint: getVessel('schooner').footprint,
     ...START,
     speed: 0,
     planarSpeed: 0,
@@ -72,6 +77,52 @@ test('boat accelerates, carries momentum, brakes and reverses; reset clears all 
     steer: 0,
     collisions: 0,
   });
+});
+
+test('ship selection resets motion, survives restart, and uses a safe default', () => {
+  const boat = new BoatSimulation();
+  assert.equal(boat.vessel, getVessel('schooner'));
+  assert.equal(getVessel('missing'), boat.vessel);
+  assert.equal(new BoatSimulation('galleon').vessel.id, 'galleon');
+  boat.step(3, { throttle: 1, steer: 0.5 });
+  const selected = boat.selectVessel('galleon');
+  assert.equal(selected.vesselId, 'galleon');
+  assert.equal(boat.vessel.name, 'Resolute');
+  assert.deepEqual(
+    [
+      boat.x,
+      boat.z,
+      boat.heading,
+      boat.speed,
+      boat.vx,
+      boat.vz,
+      boat.steer,
+      boat.collisions,
+    ],
+    [START.x, START.z, START.heading, 0, 0, 0, 0, 0],
+  );
+  boat.step(3, { throttle: 1 });
+  boat.reset();
+  assert.equal(
+    boat.snapshot().vesselId,
+    'galleon',
+    'restart retains the selected ship',
+  );
+  assert.equal(boat.speed, 0);
+  boat.selectVessel('unavailable');
+  assert.equal(boat.vessel.name, 'Kestrel');
+  assert.equal(boat.snapshot().vesselId, 'schooner');
+});
+
+test('both assisted sailing ships retain the same drive and steering response', () => {
+  const ships = VESSELS.map((vessel) => new BoatSimulation(vessel.id));
+  for (const boat of ships) {
+    boat.x = 160;
+    boat.z = 160;
+    boat.step(8, { throttle: 1, steer: -0.2 });
+  }
+  for (const key of ['x', 'z', 'heading', 'vx', 'vz', 'speed', 'steer'])
+    close(ships[0][key], ships[1][key]);
 });
 
 test('steering needs speed, turns right while moving forward, and reverses with the hull', () => {
@@ -119,40 +170,51 @@ test('fixed motion ticks are independent of caller frame subdivision', () => {
 });
 
 test('swept movement stops at the authored coast, rocks, dock and finite ocean bounds', () => {
-  for (let i = 0; i < 16; i++) {
-    const angle = (i / 16) * Math.PI * 2;
-    const boat = new BoatSimulation();
-    boat.x = Math.cos(angle) * 125;
-    boat.z = Math.sin(angle) * 125;
-    boat.heading = Math.atan2(-boat.x, boat.z);
-    for (let frame = 0; frame < 80; frame++) {
-      boat.step(0.25, { throttle: 1 });
+  for (const vessel of VESSELS) {
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * Math.PI * 2;
+      const boat = new BoatSimulation(vessel.id);
+      boat.x = Math.cos(angle) * 125;
+      boat.z = Math.sin(angle) * 125;
+      boat.heading = Math.atan2(-boat.x, boat.z);
+      for (let frame = 0; frame < 80; frame++) {
+        boat.step(0.25, { throttle: 1 });
+        assert.ok(
+          isNavigable(boat.x, boat.z, vessel.footprint),
+          `${vessel.id} coast approach ${i} keeps its full footprint in water`,
+        );
+      }
       assert.ok(
-        isNavigable(boat.x, boat.z),
-        `coast approach ${i} stays in navigable water`,
+        boat.collisions > 0,
+        `approach ${i} reaches a solid shoreline proxy`,
       );
     }
+    const dock = new BoatSimulation(vessel.id);
+    dock.x = 25;
+    dock.z = 101;
+    dock.heading = -Math.PI / 2;
+    dock.step(12, { throttle: 1 });
+    const dockEdge = DOCK_PARTS[1].x + DOCK_PARTS[1].width / 2;
     assert.ok(
-      boat.collisions > 0,
-      `approach ${i} reaches a solid shoreline proxy`,
+      dock.x >= dockEdge + vessel.footprint &&
+        dock.x < dockEdge + vessel.footprint + 0.2,
+      `${vessel.id} stops its hull outside the authored dock`,
     );
-  }
-  const dock = new BoatSimulation();
-  dock.x = 25;
-  dock.z = 101;
-  dock.heading = -Math.PI / 2;
-  dock.step(12, { throttle: 1 });
-  assert.ok(
-    dock.x >= 10.8 && dock.x < 11.0,
-    'same authored dock has a solid footprint',
-  );
-  assert.ok(isNavigable(dock.x, dock.z));
+    assert.ok(isNavigable(dock.x, dock.z, vessel.footprint));
+    const contactX = dock.x;
+    dock.step(3, { throttle: -1 });
+    assert.ok(
+      dock.x > contactX + 2,
+      `${vessel.id} can reverse away from the jetty`,
+    );
 
-  const edge = new BoatSimulation();
-  edge.x = 250;
-  edge.step(10, { throttle: 1 });
-  assert.ok(isNavigable(edge.x, edge.z));
-  assert.ok(edge.collisions > 0);
+    const edge = new BoatSimulation(vessel.id);
+    edge.x = 250;
+    edge.step(10, { throttle: 1 });
+    assert.ok(isNavigable(edge.x, edge.z, vessel.footprint));
+    assert.ok(edge.x <= OCEAN_HALF - vessel.footprint);
+    assert.ok(edge.collisions > 0);
+  }
 });
 
 test('shore collision leaves reverse available, and glancing impacts retain a free component', () => {
@@ -169,7 +231,7 @@ test('shore collision leaves reverse available, and glancing impacts retain a fr
   assert.ok(isNavigable(boat.x, boat.z));
 
   const glance = new BoatSimulation();
-  glance.x = 256;
+  glance.x = OCEAN_HALF - glance.vessel.footprint - 1;
   glance.z = 130;
   glance.heading = Math.PI / 4;
   glance.step(6, { throttle: 1 });

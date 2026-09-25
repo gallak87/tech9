@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { openScene, samplePerformance, root } from './lib/browser.mjs';
-import { coastDistance } from '../src/world/islandDefinition.js';
+import { coastDistance, DOCK_ZONE } from '../src/world/islandDefinition.js';
 
 const output = path.join(
   root,
@@ -103,8 +103,83 @@ async function navigate(points, { dock = false, maxSeconds = 190 } = {}) {
 try {
   report.environment = { ...scene.environment, playbackRate: RATE };
   await wait(1000);
+  if (process.env.VESSEL)
+    await page.locator(`[data-vessel="${process.env.VESSEL}"]`).click();
   await capture('arrival');
-  if (process.env.HELM_ONLY === '1') {
+  if (process.env.FLEET_ONLY === '1') {
+    for (const vesselId of ['schooner', 'galleon']) {
+      await page.locator(`[data-vessel="${vesselId}"]`).click();
+      await wait(250);
+      let s = await snapshot();
+      check(
+        `${vesselId} selection updates simulation and rendered model`,
+        s.boat.vesselId === vesselId &&
+          s.world.find((w) => w.id === 'boat-view').vesselId === vesselId &&
+          (await page
+            .locator(`[data-vessel="${vesselId}"]`)
+            .getAttribute('aria-pressed')) === 'true',
+      );
+      await capture(`${vesselId}-selection`);
+      await page.getByRole('button', { name: 'Cast off' }).click();
+      check(
+        'ship choices are hidden during a lap',
+        await page.locator('#fleet').isHidden(),
+      );
+      await page.keyboard.press('KeyC');
+      await keys(['KeyW', 'KeyD']);
+      await wait(1400);
+      s = await snapshot();
+      check(
+        `${vesselId} captain camera and clockwise wheel respond`,
+        s.cameraMode === 'captain' &&
+          s.world.find((w) => w.id === 'boat-view').wheelAngle > 0.1 &&
+          s.boat.planarSpeed > 0.5,
+      );
+      await capture(`${vesselId}-captain-right`);
+      await keys(['KeyW', 'KeyA']);
+      await wait(1000);
+      check(
+        `${vesselId} wheel turns left`,
+        (await snapshot()).world.find((w) => w.id === 'boat-view').wheelAngle <
+          -0.1,
+      );
+      await capture(`${vesselId}-captain-left`);
+      await keys();
+      await page.locator('#camera-switch').click();
+      await wait(400);
+      await capture(`${vesselId}-outside`);
+      await page.keyboard.press('KeyR');
+      s = await snapshot();
+      check(
+        `${vesselId} reset retains ship and clears motion`,
+        s.boat.vesselId === vesselId &&
+          s.lap.state === 'ready' &&
+          s.boat.planarSpeed === 0,
+      );
+    }
+    const before = (await snapshot()).renderer.memory;
+    for (let i = 0; i < 6; i++) {
+      await page
+        .locator(`[data-vessel="${i % 2 ? 'galleon' : 'schooner'}"]`)
+        .click();
+      await wait(50);
+    }
+    const after = (await snapshot()).renderer.memory;
+    check(
+      'repeated ship swaps release model geometries and textures',
+      after.geometries <= before.geometries &&
+        after.textures <= before.textures,
+    );
+    await page.setViewportSize({ width: 560, height: 820 });
+    await page.locator('[data-vessel="schooner"]').click();
+    await page.locator('#primary').scrollIntoViewIfNeeded();
+    await capture('fleet-narrow');
+    check(
+      'narrow layout supports choosing a ship and casting off',
+      (await snapshot()).boat.vesselId === 'schooner' &&
+        (await page.locator('#primary').isVisible()),
+    );
+  } else if (process.env.HELM_ONLY === '1') {
     await page.getByRole('button', { name: 'Cast off' }).click();
     await page.keyboard.press('KeyC');
     await wait(300);
@@ -219,17 +294,24 @@ try {
       -265,
     ];
     const route = angles.map((deg) => [
-      112 * Math.cos((deg * Math.PI) / 180),
-      112 * Math.sin((deg * Math.PI) / 180),
+      116 * Math.cos((deg * Math.PI) / 180),
+      116 * Math.sin((deg * Math.PI) / 180),
     ]);
-    const sailingPerformance = samplePerformance(page, 12000);
+    const sailingPerformance = process.env.LAP_ONLY
+      ? Promise.resolve({
+          note: 'Accelerated route correctness check; no performance measurement.',
+        })
+      : samplePerformance(page, 12000);
     await navigate(route);
     report.sailingPerformance = await sailingPerformance;
     check(
       'all three gates crossed in order',
       (await snapshot()).lap.nextGate === 3,
     );
-    await navigate([[15, 110]], { dock: true, maxSeconds: 30 });
+    await navigate([[DOCK_ZONE.x, DOCK_ZONE.z]], {
+      dock: true,
+      maxSeconds: 30,
+    });
     // Settle with actual brake/reverse input, never mutate the simulation.
     for (
       let i = 0;
@@ -247,7 +329,8 @@ try {
     report.completedLap = await snapshot();
     await wait(1200);
     await capture('result');
-    report.performance = await samplePerformance(page);
+    if (!process.env.LAP_ONLY)
+      report.performance = await samplePerformance(page);
     await page.getByRole('button', { name: 'Sail again' }).click();
     const retry = await snapshot();
     check(
@@ -301,7 +384,8 @@ try {
       const hit = (await snapshot()).boat;
       check(
         'shore collision blocks visible boat without land penetration',
-        hit.collisions > collisionStart && coastDistance(hit.x, hit.z) >= 2.79,
+        hit.collisions > collisionStart &&
+          coastDistance(hit.x, hit.z) >= hit.footprint - 0.01,
       );
       await capture('shore-contact');
       await keys(['KeyS']);

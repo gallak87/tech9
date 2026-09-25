@@ -36,8 +36,18 @@ Frozen implementation `32dfab68`. Independent critic inspected bank, fight and l
 
 ### Art round 2
 
-Frozen implementation `f0395f75` (art source `5223a8ed`). Fresh real-input catch/release and rendering passed with no errors; Balanced120observedFPS,9.9msp95. Independent score **6.6/10, failed gate**. Trout/net and calmer water improved, but the reflection filter introduced ghost highlights and shore staging remains weak. Round3 targets the ghost kernel, 3D catch support and one deliberate shore grouping.
+Frozen implementation `f0395f75` (art source `5223a8ed`). Fresh real-input catch/release and rendering passed with no errors; Balanced 120 observed FPS, 9.9 ms p95. Independent score **6.6/10, failed gate**. Trout/net and calmer water improved, but the reflection filter introduced ghost highlights and shore staging remains weak. Round 3 targets the ghost kernel, 3D catch support and one deliberate shore grouping.
 
 ### Art round 3
 
 Frozen implementation `537a1152`. Fresh catch/release, lint and build passed; no browser errors; Balanced 120 observed FPS and 9.1 ms p95. Independent score **6.9/10, failed gate**. Final round will move the new bank grouping into frame, increase bounded reflection resolution and improve fish/net contact. Critic also found a P2 mismatch: reachable authored bank rocks lacked collision proxies. Placement-derived collision and regression checks are required before handoff.
+
+### Final art round and handoff
+
+Frozen playable checkpoint **48f6b9ce**. Independent round 4 score **7.2/10**. **FAILED ART GATE AT FOUR-ROUND CAP** (target 8). Scores were 6.1 → 6.6 → 6.9 → 7.2; no fifth round or further art work is authorized. Remaining deficits: mirror-like water/shallow detail, procedural fish/fin fidelity, repeated forest forms and rough shore integration. The separate critic confirmed the prior P2 collision mismatch resolved and found no remaining proven correctness blocker.
+
+Final checks: **38 unit tests, lint, production build and 15 browser checks passed; zero failures/errors; two native checks unavailable**. The full success/failure/recovery/pause/restart suite was rerun on the final production runtime. The new bank-rock browser check uses actual walking input and stops outside the boulder proxy. Ordinary URLs expose no test hook. The local `play.sh` runtime selection also passed its CLI launch check.
+
+Final performance: Chromium 151.0.7922.34, headless, Apple M1 Pro, ANGLE Metal, Balanced, 1600 × 1000, DPR 1. Over 600 observed intervals: **119.96 FPS mean, 8.34 ms mean, 9.3 ms p95**. Reflection targets are bounded at 1024 / 1536 / 2048 for Balanced / High / Ultra; refresh cadence remains 3 / 2 / 2 frames. Machine load was not isolated.
+
+Scope audit: all 111 changed paths at the final playable checkpoint are inside the fishing game/run; receipts unchanged since first implementation. No shared framework, hunting pilot, legacy game, repository hook, push, publication or migration changes. Task-owned browser/server processes are closed; ports 4440–4442 were free at cleanup. See HANDOFF.md for the launch command, controls, evidence and limits. The first-playable handoff is complete despite the explicitly failed art gate and documented native-input validation gaps.

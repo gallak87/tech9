@@ -1,0 +1,135 @@
+{
+  "startedAt": "2026-09-25T05:17:57.812Z",
+  "finishedAt": "2026-09-25T05:19:57.736Z",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M1 Pro",
+    "browser": "151.0.7922.34",
+    "browserExecutable": "/Users/g/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "headless": true,
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    }
+  },
+  "performance": {
+    "samples": 600,
+    "meanMs": 8.336333333333314,
+    "medianMs": 8.30000000000291,
+    "p95Ms": 9.30000000000291,
+    "meanFps": 119.95681554640356,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+    "drawingBuffer": [1600, 1000],
+    "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee.",
+    "preset": {
+      "quality": "balanced",
+      "sunlight": 1,
+      "atmosphere": 1,
+      "richness": 1,
+      "exposure": 1
+    },
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    }
+  },
+  "errors": {
+    "console": [],
+    "page": [],
+    "requests": [],
+    "webgl": []
+  },
+  "passed": true,
+  "unavailable": [
+    "Headless browser did not grant pointer lock after clicking Capture mouse. Keyboard aiming and right-drag aiming have separate checks.",
+    "Headless Chromium did not deliver page blur/visibility loss when another real page came forward. Unit lifecycle checks cover event behavior."
+  ],
+  "sourceCommit": "48f6b9ce4f15afcf72fa186e00bb2a0e16dee1b0",
+  "unitTests": 38,
+  "lint": "pass",
+  "build": "pass; expected Vite large chunk advisory",
+  "checks": [
+    {
+      "name": "intro loads with truthful controls and no movement",
+      "pass": true
+    },
+    {
+      "name": "walking reaches bank and remains grounded",
+      "pass": true
+    },
+    {
+      "name": "shoreline blocks walking into pond",
+      "pass": true
+    },
+    {
+      "name": "authored dry-bank boulder rejects actual forward walking",
+      "pass": true,
+      "detail": {
+        "rock": {
+          "id": "bank-rock-4",
+          "kind": "bank-rock",
+          "x": -5.8,
+          "z": 18.1,
+          "radius": 1.0509
+        },
+        "stopped": [-6.196580000000009, 2.291467142727805, 19.40658000000007],
+        "distance": 1.3654402194165018
+      }
+    },
+    {
+      "name": "right drag and keyboard aim change camera",
+      "pass": true
+    },
+    {
+      "name": "cast hook pause resume reel land and release through real input",
+      "pass": true
+    },
+    {
+      "name": "restart clears visit catches targets and presentation",
+      "pass": true
+    },
+    {
+      "name": "invalid land cast explains failure and can retry",
+      "pass": true
+    },
+    {
+      "name": "missed bite escapes without granting catch and can retry",
+      "pass": true
+    },
+    {
+      "name": "continuous reel breaks line without granting catch",
+      "pass": true
+    },
+    {
+      "name": "all five scene settings respond to their controls",
+      "pass": true
+    },
+    {
+      "name": "narrow viewport stays usable without horizontal overflow",
+      "pass": true
+    },
+    {
+      "name": "explicit pointer capture and Escape release pause safely",
+      "pass": null,
+      "status": "unavailable"
+    },
+    {
+      "name": "real page focus loss clears held input and pauses",
+      "pass": null,
+      "status": "unavailable"
+    },
+    {
+      "name": "frame timing records browser GPU viewport and preset",
+      "pass": true
+    },
+    {
+      "name": "ordinary production launch exposes no test hooks",
+      "pass": true
+    },
+    {
+      "name": "no browser asset or WebGL errors",
+      "pass": true
+    }
+  ]
+}

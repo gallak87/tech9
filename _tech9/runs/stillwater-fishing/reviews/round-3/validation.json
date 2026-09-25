@@ -20,10 +20,7 @@
     "p95Ms": 9.100000000000364,
     "meanFps": 119.99999999999997,
     "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
-    "drawingBuffer": [
-      1600,
-      1000
-    ],
+    "drawingBuffer": [1600, 1000],
     "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
   },
   "settings": {
@@ -59,11 +56,7 @@
       "started": true,
       "released": 0,
       "held": false,
-      "castTarget": [
-        0,
-        -0.14,
-        3.9550131938154998
-      ],
+      "castTarget": [0, -0.14, 3.9550131938154998],
       "aim": {
         "target": {
           "x": 0,
@@ -73,11 +66,7 @@
         "distance": 14.452726806184474,
         "valid": true
       },
-      "position": [
-        0,
-        2.230182226018905,
-        20.099739999999972
-      ]
+      "position": [0, 2.230182226018905, 20.099739999999972]
     },
     "minTension": 0.24,
     "maxTension": 0.7219630000000012

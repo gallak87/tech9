@@ -47,3 +47,9 @@ One pond, one procedural brook trout, one rod and one attempt at a time. The fis
 New visual assets are authored in code; see [asset sources](public/assets/STILLWATER_SOURCES.md). The original forest assets, Blender sources and license records remain included.
 
 Native mouse capture and operating-system focus loss were unavailable to the automated browser on this host. Right-drag and keyboard look are verified; pause handlers have persistent unit tests. These two native interactions remain a manual playtest limitation.
+
+## Handoff result
+
+Playable checkpoint `48f6b9ce` on `codex/stillwater-fishing`: 38 unit tests, lint/build and 15 real-input browser checks passed; two native-input checks remain unavailable. Balanced measured 119.96 mean observed FPS at 1600 × 1000 on this Apple M1 Pro/ANGLE Metal browser.
+
+The independent art scores were **6.1 → 6.6 → 6.9 → 7.2 / 10**. The **8/10 art gate failed at the four-round cap**. No further art cycle was run. See the [handoff](../../runs/stillwater-fishing/HANDOFF.md) and [final critique](../../runs/stillwater-fishing/reviews/round-4/review.json) for evidence and remaining visual deficits.

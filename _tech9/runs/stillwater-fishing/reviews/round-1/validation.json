@@ -20,10 +20,7 @@
     "p95Ms": 16.80000000000291,
     "meanFps": 102.52003437318903,
     "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
-    "drawingBuffer": [
-      1600,
-      1000
-    ],
+    "drawingBuffer": [1600, 1000],
     "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee.",
     "preset": {
       "quality": "balanced",

@@ -2,10 +2,7 @@
   "round": 1,
   "checkpoint": "32dfab687ab196f5e26f047964e8fdbe060256c0",
   "reviewer": "independent art_critic agent; read-only source/report and actual image inspection",
-  "evidence": [
-    "bank.png",
-    "landed.png"
-  ],
+  "evidence": ["bank.png", "landed.png"],
   "overall": 6.1,
   "threshold": 8,
   "gatePass": false,

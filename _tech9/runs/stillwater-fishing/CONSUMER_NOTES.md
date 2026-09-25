@@ -11,3 +11,7 @@ The Three.js Water helper hides its reflection render target and has no cleanup 
 Potential reuse candidate: a small shoreline definition plus coupled terrain carving, vegetation exclusion and disposable water layer. That contract needs evidence from another real consumer before promotion. It remains in the game; promotion is intentionally deferred.
 
 The original asset/license records and immutable fork receipts remain preserved. New fish/tackle/shore assets are procedural source, with local attribution records.
+
+Final review lesson: adding visible authored world props requires extending collision data at the same time. The separate critic found reachable bank rocks missing from the starter-derived proxies. Shared game-local `BANK_ROCKS` tuples now drive both mesh placement and collision, with CPU and actual walking-input regression checks. No generic framework collision module was added.
+
+The final reflection target budget is 1024 / 1536 / 2048; the measured Balanced pass remained above 60 observed FPS on this host. Reflection fidelity and procedural focal assets still prevented the 8/10 AAA gate after four rounds. Preserve that failed result rather than treating a playable consumer trial as a finished AAA art pack.

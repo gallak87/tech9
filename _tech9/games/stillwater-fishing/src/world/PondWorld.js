@@ -1,7 +1,7 @@
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import * as THREE from 'three';
 import { Water } from './WaterSurface.js';
-import { POND, shorePoint } from './pondDefinition.js';
+import { POND, shorePoint, BANK_ROCKS } from './pondDefinition.js';
 import { terrainHeight, createRandom } from './terrain.js';
 
 function waterNormals() {
@@ -48,7 +48,7 @@ export function createPondWorld() {
   }
   return {
     id: 'stillwater-pond',
-    stats: { reflectionSize: 512, authoredShore: true },
+    stats: { reflectionSize: 1024, authoredShore: true },
     async init(ctx) {
       context = ctx;
       const shape = new THREE.Shape();
@@ -60,8 +60,8 @@ export function createPondWorld() {
       const geometry = new THREE.ShapeGeometry(shape);
       normals = waterNormals();
       water = new Water(geometry, {
-        textureWidth: 512,
-        textureHeight: 512,
+        textureWidth: 1024,
+        textureHeight: 1024,
         waterNormals: normals,
         sunDirection: new THREE.Vector3(-32, 22, -48).normalize(),
         sunColor: '#ffdc9c',
@@ -176,12 +176,7 @@ export function createPondWorld() {
         rock.rotation.set(random(), random() * 6, random());
       }
       // An asymmetric fishing-bank cluster, composed for the arrival sightline.
-      for (const [x, z, sx, sy, sz, angle] of [
-        [-5.8, 17.6, 1.35, 0.76, 0.91, 0.5],
-        [-7.1, 16.8, 0.8, 0.53, 0.72, 1.2],
-        [-4.7, 18.2, 0.42, 0.3, 0.61, 2.1],
-        [6.9, 18.1, 0.93, 0.58, 0.72, 1.8],
-      ]) {
+      for (const [x, z, sx, sy, sz, angle] of BANK_ROCKS) {
         const rock = mesh(
           rockGeo,
           rockMat,
@@ -193,8 +188,8 @@ export function createPondWorld() {
         rock.rotation.y = angle;
       }
       for (let i = 0; i < 48; i++) {
-        const x = -7.1 + (random() - 0.5) * 2.3,
-          z = 17.3 + (random() - 0.5) * 1.6;
+        const x = -5.6 + (random() - 0.5) * 1.7,
+          z = 15.2 + (random() - 0.5) * 1.1;
         const y = terrainHeight(x, z),
           h = 0.34 + random() * 0.58;
         const reed = mesh(
@@ -285,7 +280,9 @@ export function createPondWorld() {
     },
     configure(settings) {
       if (!water) return;
-      const size = { balanced: 512, high: 768, ultra: 1024 }[settings.quality];
+      const size = { balanced: 1024, high: 1536, ultra: 2048 }[
+        settings.quality
+      ];
       water.renderTarget.setSize(size, size);
       reflectionStride = settings.quality === 'balanced' ? 3 : 2;
       this.stats.reflectionSize = size;

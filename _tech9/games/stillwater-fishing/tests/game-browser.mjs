@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { getForestColliders } from '../src/world/ForestWorld.js';
 import { isWalkable } from '../src/world/pondDefinition.js';
 import { terrainHeight } from '../src/world/terrain.js';
 import { openScene, root, samplePerformance } from './lib/browser.mjs';
@@ -140,6 +141,41 @@ try {
     assert.ok(Math.hypot(after[0] - stopped[0], after[2] - stopped[2]) < 0.1);
     return { stopped, after };
   });
+  await check(
+    'authored dry-bank boulder rejects actual forward walking',
+    async () => {
+      await restart();
+      const rock = getForestColliders().find(
+        (item) => item.id === 'bank-rock-4',
+      );
+      assert.ok(
+        isWalkable(rock.x, rock.z),
+        'Boulder is on reachable dry ground',
+      );
+      await hold('KeyA', 2380);
+      await hold('KeyW', 3500);
+      const stopped = (await snapshot()).camera.position;
+      assert.ok(Math.abs(stopped[0] - rock.x) < 0.8, JSON.stringify(stopped));
+      assert.ok(
+        stopped[2] > rock.z + 1.05,
+        'Movement stopped before entering boulder',
+      );
+      const distance = Math.hypot(stopped[0] - rock.x, stopped[2] - rock.z);
+      assert.ok(
+        distance >= rock.radius + 0.28,
+        `Boulder penetration: ${distance}`,
+      );
+      assert.ok(
+        distance < rock.radius + 0.65,
+        'Player reached the tested boulder rather than an unrelated obstacle',
+      );
+      await hold('KeyW', 700);
+      assert.deepEqual((await snapshot()).camera.position, stopped);
+      await restart();
+      await approach();
+      return { rock, stopped, distance };
+    },
+  );
   await check('right drag and keyboard aim change camera', async () => {
     const before = (await snapshot()).camera.quaternion;
     await page.mouse.move(900, 430);
@@ -227,6 +263,7 @@ try {
         await page.locator('.length-value').textContent(),
         String(landed.lastCatch.lengthCm),
       );
+      await page.waitForTimeout(1500);
       await screenshot('landed');
       await page.locator('#release').click();
       const released = await game();

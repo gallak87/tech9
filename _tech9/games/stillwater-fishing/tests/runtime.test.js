@@ -193,7 +193,10 @@ test('forest collision circles are stable finite authored proxies available with
     ),
   );
   assert.ok(
-    circles.every((circle) => pondRadius(circle.x, circle.z) > 1.1),
+    circles.every(
+      (circle) =>
+        circle.kind === 'bank-rock' || pondRadius(circle.x, circle.z) > 1.1,
+    ),
     'Trees and rocks must clear the authored shore',
   );
 });

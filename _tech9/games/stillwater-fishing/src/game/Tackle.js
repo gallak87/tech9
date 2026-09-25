@@ -90,9 +90,9 @@ function createLandingNet() {
     new THREE.LineSegments(
       new THREE.BufferGeometry().setFromPoints(threads),
       new THREE.LineBasicMaterial({
-        color: '#a7b69b',
+        color: '#7c9182',
         transparent: true,
-        opacity: 0.46,
+        opacity: 0.27,
       }),
     ),
   );
@@ -265,13 +265,13 @@ export function createTrout() {
   const jaw = new THREE.Mesh(
     new THREE.SphereGeometry(1, 18, 12),
     new THREE.MeshPhysicalMaterial({
-      color: '#a39163',
+      color: '#81754f',
       roughness: 0.32,
       clearcoat: 0.7,
     }),
   );
-  jaw.scale.set(0.052, 0.011, 0.024);
-  jaw.position.set(0.29, -0.017, 0);
+  jaw.scale.set(0.048, 0.005, 0.022);
+  jaw.position.set(0.29, -0.011, 0);
   group.add(jaw);
   for (const side of [-1, 1]) {
     const leading = new THREE.Line(
@@ -543,6 +543,8 @@ export class Tackle {
       this.net.rotateX(0.48);
       this.net.translateY(0.045);
       this.net.translateZ(0.025);
+      this.fish.translateZ(-0.12);
+      this.fish.translateY(-0.03);
     } else {
       this.fish.position.copy(this.float.position);
       this.fish.position.y = POND.level - 0.035 + Math.sin(t * 5) * 0.07;

@@ -1,4 +1,4 @@
-import { pondRadius, vegetationAllowed } from './pondDefinition.js';
+import { pondRadius, vegetationAllowed, BANK_ROCKS } from './pondDefinition.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { softenShadowSampling } from '../core/softShadows.js';
@@ -741,6 +741,17 @@ export function getForestColliders() {
           );
         }
       }
+    }
+    for (const [index, [x, z, sx, , sz]] of BANK_ROCKS.entries()) {
+      circles.push(
+        Object.freeze({
+          id: `bank-rock-${index}`,
+          kind: 'bank-rock',
+          x,
+          z,
+          radius: Math.max(sx, sz) * 1.13,
+        }),
+      );
     }
     colliderCache = Object.freeze(circles);
   }

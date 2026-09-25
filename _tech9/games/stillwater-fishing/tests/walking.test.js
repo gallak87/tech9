@@ -1,3 +1,5 @@
+import { BANK_ROCKS, isWalkable } from '../src/world/pondDefinition.js';
+import { getForestColliders } from '../src/world/ForestWorld.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PerspectiveCamera } from 'three';
@@ -295,4 +297,44 @@ test('movement and look gates discard stale input before the next active frame',
   assert.equal(host.controller.keys.size, 0);
   enabled = true;
   assertMotionCleared(host);
+});
+
+test('authored bank-rock proxies match rendered placements and reject reachable solid movement', (context) => {
+  const colliders = getForestColliders();
+  const host = setup(context, {
+    colliders,
+    isWalkable,
+    bounds: { minX: -76, maxX: 76, minZ: -76, maxZ: 76 },
+  });
+  for (const [index, [x, z, sx, , sz]] of BANK_ROCKS.entries()) {
+    const proxy = colliders.find((item) => item.id === `bank-rock-${index}`);
+    assert.ok(proxy);
+    assert.equal(proxy.x, x);
+    assert.equal(proxy.z, z);
+    assert.ok(proxy.radius >= Math.max(sx, sz));
+    assert.equal(host.controller.canStand(x, z), false);
+  }
+  const reachable = BANK_ROCKS.find(([x, z]) => isWalkable(x, z));
+  assert.ok(
+    reachable,
+    'A dry-bank boulder must exercise collision independently of pond exclusion',
+  );
+  const [x, z] = reachable;
+  assert.equal(host.controller.isWalkable(x, z), true);
+  assert.equal(
+    host.controller.canStand(x, z),
+    false,
+    'Visible dry rock blocks the player',
+  );
+  host.camera.position.set(x, 3, z + 3);
+  for (let step = 0; step < 100; step++) host.controller.move(0, -0.05);
+  assert.ok(
+    host.camera.position.z > z + 1,
+    'Repeated forward movement stops at the boulder',
+  );
+  assert.equal(
+    host.controller.canStand(0, 22),
+    true,
+    'The cast approach stays open',
+  );
 });

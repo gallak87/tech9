@@ -48,8 +48,8 @@ export function createPondWorld() {
   }
   return {
     id: 'stillwater-pond',
-    stats: { reflectionSize: 384, authoredShore: true },
-    init(ctx) {
+    stats: { reflectionSize: 512, authoredShore: true },
+    async init(ctx) {
       context = ctx;
       const shape = new THREE.Shape();
       for (let i = 0; i <= 160; i++) {
@@ -128,30 +128,25 @@ export function createPondWorld() {
         vertexColors: false,
         roughness: 0.95,
       });
-      rockMat.onBeforeCompile = (shader) => {
-        shader.vertexShader = shader.vertexShader
-          .replace(
-            '#include <common>',
-            '#include <common>\nvarying vec3 stonePos;',
-          )
-          .replace(
-            '#include <begin_vertex>',
-            '#include <begin_vertex>\nstonePos = position;',
+      const rockTextures = await Promise.all(
+        ['diff', 'nor_gl', 'rough'].map(async (suffix) => {
+          const texture = await new THREE.TextureLoader().loadAsync(
+            `${import.meta.env.BASE_URL}assets/textures/shore-rock-${suffix}.jpg`,
           );
-        shader.fragmentShader = shader.fragmentShader.replace(
-          '#include <common>',
-          '#include <common>\nvarying vec3 stonePos;',
-        );
-        shader.fragmentShader = shader.fragmentShader.replace(
-          '#include <color_fragment>',
-          `#include <color_fragment>
-          float grain = fract(sin(dot(floor(stonePos*210.),vec3(127.1,311.7,77.4)))*43758.5);
-          float veins = sin(stonePos.x*21.+sin(stonePos.z*15.)+stonePos.y*11.);
-          diffuseColor.rgb *= .68 + grain*.25 + smoothstep(.78,.96,veins)*.19;
-          diffuseColor.rgb = mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.57,.67,.45),smoothstep(.4,.9,stonePos.y)*.35);
-        `,
-        );
-      };
+          texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+          texture.repeat.set(1.3, 1.3);
+          texture.anisotropy = Math.min(
+            8,
+            ctx.renderer.capabilities.getMaxAnisotropy(),
+          );
+          if (suffix === 'diff') texture.colorSpace = THREE.SRGBColorSpace;
+          owned.add(texture);
+          return texture;
+        }),
+      );
+      [rockMat.map, rockMat.normalMap, rockMat.roughnessMap] = rockTextures;
+      rockMat.normalScale = new THREE.Vector2(0.48, 0.48);
+      rockMat.color.set('#c5c4b0');
       const rockGeo = new THREE.DodecahedronGeometry(1, 1);
       const rockPositions = rockGeo.attributes.position;
       for (let i = 0; i < rockPositions.count; i++) {
@@ -179,6 +174,45 @@ export function createPondWorld() {
         );
         rock.scale.set(r * 1.4, r * 0.65, r);
         rock.rotation.set(random(), random() * 6, random());
+      }
+      // An asymmetric fishing-bank cluster, composed for the arrival sightline.
+      for (const [x, z, sx, sy, sz, angle] of [
+        [-5.8, 17.6, 1.35, 0.76, 0.91, 0.5],
+        [-7.1, 16.8, 0.8, 0.53, 0.72, 1.2],
+        [-4.7, 18.2, 0.42, 0.3, 0.61, 2.1],
+        [6.9, 18.1, 0.93, 0.58, 0.72, 1.8],
+      ]) {
+        const rock = mesh(
+          rockGeo,
+          rockMat,
+          x,
+          terrainHeight(x, z) + sy * 0.13,
+          z,
+        );
+        rock.scale.set(sx, sy, sz);
+        rock.rotation.y = angle;
+      }
+      for (let i = 0; i < 48; i++) {
+        const x = -7.1 + (random() - 0.5) * 2.3,
+          z = 17.3 + (random() - 0.5) * 1.6;
+        const y = terrainHeight(x, z),
+          h = 0.34 + random() * 0.58;
+        const reed = mesh(
+          new THREE.ConeGeometry(0.017, h, 3),
+          reedMat,
+          x,
+          y + h * 0.5,
+          z,
+        );
+        reed.rotation.z = (random() - 0.5) * 0.4;
+        if (i % 4 === 0)
+          mesh(
+            new THREE.CapsuleGeometry(0.026, 0.13, 3, 5),
+            headMat,
+            x,
+            y + h,
+            z,
+          );
       }
       const padMat = new THREE.MeshStandardMaterial({
         color: '#496247',

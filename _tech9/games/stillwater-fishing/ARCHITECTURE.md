@@ -12,13 +12,13 @@ An owned copy of the registered forest starter. There are no runtime imports fro
 - `src/game/WalkingController.js` alone owns the camera and movement listeners. Grounded eye height 1.68 m, circle collision proxies, shoreline footprint and bounded map. Right-drag, pointer lock and keyboard aim are supported. Focus loss and lock exit notify the game to pause.
 - `src/game/FishingRules.js` is a pure deterministic state machine, driven only by `tick(dt,{reeling})`, cast validity and action. It owns power, bounded bite timing, hook window, pull cycle, tension, progress, failure and catch data. Pause stops simulation time.
 - `src/game/FishingGame.js` owns UI, input routing, cast solution, pause/restart and rule-to-presentation integration. Walking is disabled during an active line. It supplies observational snapshots to the test harness only in test mode.
-- `src/game/Tackle.js` owns rod/reel, line, float, ripple rings and a procedurally modelled brook trout. It animates in the same layer update and never starts another loop.
+- `src/game/Tackle.js` owns rod/reel, line, float, ripple rings and a procedurally modelled brook trout, a landing net and a load-bending rod. It animates in the same layer update and never starts another loop.
 
 ## Pond authoring and costs
 
 Change the shared definition first; terrain, cast validity and walking boundaries follow it. Adjust `PondWorld` reed/lily pockets by shoreline angle and radius, then verify dry ground and vegetation exclusion from both banks. Mature-tree clearance is wider than grass clearance. The water mesh is an irregular 160-point shape, not an unbounded plane over the original terrain. Its edge overlaps the carved rim slightly to avoid subpixel cracks.
 
-Balanced / High / Ultra use 384 / 512 / 768 square reflection targets, refreshed once per 3 / 2 / 2 rendered frames. Reflection is a render pass inside the existing renderer, not another animation loop. Balanced uses at most 1.6 million scene pixels; the UI remains native resolution. The water normal field is periodic and generated locally at startup. No simulation, fluid solver or offscreen worker is used.
+Balanced / High / Ultra use 512 / 768 / 1024 square reflection targets, refreshed once per 3 / 2 / 2 rendered frames. Reflection is a render pass inside the existing renderer, not another animation loop. Balanced uses at most 1.6 million scene pixels; the UI remains native resolution. The water normal field is periodic and generated locally at startup. No simulation, fluid solver or offscreen worker is used.
 
 The reflection target, material, mesh and normal texture are disposed on layer unregister. Static bank geometry is merged by material; the layer tracks all source, baked, flattened and merged buffers for disposal. The tackle tracks its geometries/materials; the game removes marker and HUD; input listeners use AbortController. The controller removes its listeners and releases its pointer lock on disposal. Forest source ownership stays with its original lifecycle contract.
 

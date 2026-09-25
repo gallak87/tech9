@@ -64,24 +64,24 @@ function createLandingNet() {
         new THREE.Vector3(
           a * 0.51,
           v * 0.225 - 0.025,
-          -0.07 - 0.14 * (1 - a * a - v * v),
+          -0.07 - 0.3 * (1 - a * a - v * v),
         ),
         new THREE.Vector3(
           b * 0.51,
           v * 0.225 - 0.025,
-          -0.07 - 0.14 * (1 - b * b - v * v),
+          -0.07 - 0.3 * (1 - b * b - v * v),
         ),
       );
       threads.push(
         new THREE.Vector3(
           v * 0.51,
           a * 0.225 - 0.025,
-          -0.07 - 0.14 * (1 - a * a - v * v),
+          -0.07 - 0.3 * (1 - a * a - v * v),
         ),
         new THREE.Vector3(
           v * 0.51,
           b * 0.225 - 0.025,
-          -0.07 - 0.14 * (1 - b * b - v * v),
+          -0.07 - 0.3 * (1 - b * b - v * v),
         ),
       );
     }
@@ -97,11 +97,11 @@ function createLandingNet() {
     ),
   );
   const handle = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.024, 0.032, 0.62, 12),
+    new THREE.CylinderGeometry(0.02, 0.026, 0.36, 12),
     new THREE.MeshStandardMaterial({ color: '#776143', roughness: 0.65 }),
   );
-  handle.position.set(0.08, -0.53, -0.07);
-  handle.rotation.z = 0.25;
+  handle.position.set(-0.06, -0.4, -0.07);
+  handle.rotation.z = -0.22;
   net.add(handle);
   return net;
 }
@@ -245,15 +245,48 @@ export function createTrout() {
     );
     pupil.position.set(0.26, 0.027, side * 0.044);
     group.add(pupil);
+    const gillCurve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.205, 0.044, side * 0.038),
+      new THREE.Vector3(0.17, 0.026, side * 0.048),
+      new THREE.Vector3(0.166, -0.005, side * 0.049),
+      new THREE.Vector3(0.185, -0.043, side * 0.032),
+      new THREE.Vector3(0.216, -0.047, side * 0.018),
+    ]);
     const gill = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(0.205, 0.052, side * 0.05),
-        new THREE.Vector3(0.174, 0.016, side * 0.053),
-        new THREE.Vector3(0.2, -0.045, side * 0.05),
-      ]),
-      new THREE.LineBasicMaterial({ color: '#514c35' }),
+      new THREE.BufferGeometry().setFromPoints(gillCurve.getPoints(24)),
+      new THREE.LineBasicMaterial({
+        color: '#776547',
+        transparent: true,
+        opacity: 0.8,
+      }),
     );
     group.add(gill);
+  }
+  const jaw = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 18, 12),
+    new THREE.MeshPhysicalMaterial({
+      color: '#a39163',
+      roughness: 0.32,
+      clearcoat: 0.7,
+    }),
+  );
+  jaw.scale.set(0.052, 0.011, 0.024);
+  jaw.position.set(0.29, -0.017, 0);
+  group.add(jaw);
+  for (const side of [-1, 1]) {
+    const leading = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0.084, -0.06, side * 0.016),
+        new THREE.Vector3(0.012, -0.117, side * 0.016),
+        new THREE.Vector3(-0.037, -0.106, side * 0.016),
+      ]),
+      new THREE.LineBasicMaterial({
+        color: '#e6d4a4',
+        transparent: true,
+        opacity: 0.8,
+      }),
+    );
+    group.add(leading);
   }
   const mouth = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints([
@@ -281,10 +314,12 @@ export class Tackle {
       roughness: 0.4,
     });
     this.rod = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.006, 0.014, 1.95, 9),
+      new THREE.CylinderGeometry(0.006, 0.014, 1.95, 9, 20),
       rodMat,
     );
     this.rod.geometry.translate(0, 0.975, 0);
+    this.rodBase = this.rod.geometry.attributes.position.array.slice();
+    this.guides = [];
     this.rod.rotation.x = -1.12;
     this.rod.position.set(0.34, -0.46, -0.48);
     this.rig.add(this.rod);
@@ -293,6 +328,30 @@ export class Tackle {
       new THREE.MeshStandardMaterial({ color: '#b59a69', roughness: 0.95 }),
     );
     cork.position.y = 0.13;
+    cork.material.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nvarying vec3 corkPos;',
+        )
+        .replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\ncorkPos=position;',
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          '#include <common>',
+          '#include <common>\nvarying vec3 corkPos;',
+        )
+        .replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+        float grain=fract(sin(dot(floor(corkPos*vec3(1700.,640.,1700.)),vec3(127.1,311.7,37.7)))*4358.5);
+        float seams=smoothstep(.04,.12,abs(sin(corkPos.y*97.)));
+        diffuseColor.rgb *= (.7+grain*.37)*(.84+seams*.16);
+      `,
+        );
+    };
     this.rod.add(cork);
     for (let i = 0; i < 6; i++) {
       const ring = new THREE.Mesh(
@@ -305,6 +364,7 @@ export class Tackle {
       );
       ring.position.set(0, 0.39 + i * 0.29, -0.02);
       this.rod.add(ring);
+      this.guides.push(ring);
     }
     this.reel = new THREE.Mesh(
       new THREE.CylinderGeometry(0.065, 0.065, 0.048, 24),
@@ -406,8 +466,18 @@ export class Tackle {
         ? Math.sin(t * 3) * 0.025 + rules.tension * 0.19
         : Math.sin(t * 0.8) * 0.008);
     if (reeling) this.reel.rotation.y += dt * 7;
+    const bend = phase === 'fight' ? rules.tension * 0.58 : 0;
+    const vertices = this.rod.geometry.attributes.position;
+    for (let i = 0; i < vertices.count; i++)
+      vertices.setZ(
+        i,
+        this.rodBase[i * 3 + 2] - bend * (this.rodBase[i * 3 + 1] / 1.95) ** 2,
+      );
+    vertices.needsUpdate = true;
+    for (const guide of this.guides)
+      guide.position.z = -0.02 - bend * (guide.position.y / 1.95) ** 2;
     this.rod.updateWorldMatrix(true, false);
-    this.tip.set(0, 1.95, 0).applyMatrix4(this.rod.matrixWorld);
+    this.tip.set(0, 1.95, -bend).applyMatrix4(this.rod.matrixWorld);
     const inWater =
       ['casting', 'waiting', 'bite', 'fight'].includes(phase) && active;
     this.float.visible = this.line.visible = inWater;
@@ -470,6 +540,9 @@ export class Tackle {
       this.fish.rotateZ(-0.06 + Math.sin(t * 1.8) * 0.008);
       this.net.position.copy(this.fish.position);
       this.net.quaternion.copy(this.fish.quaternion);
+      this.net.rotateX(0.48);
+      this.net.translateY(0.045);
+      this.net.translateZ(0.025);
     } else {
       this.fish.position.copy(this.float.position);
       this.fish.position.y = POND.level - 0.035 + Math.sin(t * 5) * 0.07;

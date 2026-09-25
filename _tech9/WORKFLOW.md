@@ -1,6 +1,6 @@
 # Producing a game
 
-The producer owns the outcome. The plan is a compact execution contract, not a fixed roster of model identities.
+Use [GENERATE.md](./GENERATE.md) for the user-facing kickoff and managed goal contract. The producer owns the outcome. The plan is a compact execution contract, not a fixed roster of model identities.
 
 ## 1. Direct
 
@@ -12,7 +12,7 @@ Write `runs/<slug>/plan.json` using the [schema](./schemas/execution-plan.schema
 
 The gate checks feasibility, actual starter availability, scope, validation and authority. `authorization.mode` is `delegated` when the user has already authorized autonomous execution; record the basis accurately. Use `explicit` when the user approved that concrete plan. Do not manufacture approval or ask again when existing authority covers the work. Resolve material missing requirements before dependent implementation.
 
-From the repository root, `npm --prefix _tech9 run t9 -- validate <plan>` verifies structure and cross-references. Plan paths remain repository-relative even though npm runs in `_tech9`. `fork --dry-run` previews the source copy. Commit the starter checkpoint before the actual fork, then create the owned game under root `games/<slug>` and install its dependencies. The receipt is evidence of what was copied, not a claim that the game is complete. Leave the existing root framework intact while proving this foundation.
+From the repository root, `npm --prefix _tech9 run t9 -- validate <plan>` verifies structure and cross-references. Plan paths remain repository-relative even though npm runs in `_tech9`. `fork --dry-run` previews the source copy. Commit the starter checkpoint before the actual fork, then create the owned game under `_tech9/games/<slug>` and install its dependencies. The receipt is evidence of what was copied, not a claim that the game is complete. Leave the existing root framework intact while proving this foundation.
 
 ## 3. Build vertically
 

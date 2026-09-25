@@ -195,7 +195,7 @@ async function fixture(t) {
     git,
     args,
     source: path.join(root, scenePath),
-    destination: path.join(root, 'games/alder-signal'),
+    destination: path.join(root, '_tech9/games/alder-signal'),
   };
 }
 
@@ -279,6 +279,8 @@ test('standalone fork preserves source/assets/licenses, excludes generated files
   const originalPackage = await readFile(path.join(f.source, 'package.json'));
   const result = await forkStarter(f.args);
   assert.equal(result.status, 'scaffolded');
+  assert.equal(result.destination, '_tech9/games/alder-signal');
+  assert.equal(result.next[0], 'cd _tech9/games/alder-signal');
   const receipt = JSON.parse(
     await readFile(path.join(f.destination, 'tech9.json')),
   );
@@ -350,7 +352,7 @@ test('standalone fork preserves source/assets/licenses, excludes generated files
     });
   }
   assert.ok(
-    (await readdir(path.join(f.root, 'games'))).every(
+    (await readdir(path.join(f.root, '_tech9/games'))).every(
       (name) => !name.startsWith('.'),
     ),
   );
@@ -364,13 +366,31 @@ test('standalone fork preserves source/assets/licenses, excludes generated files
   );
 });
 
+test('new forks leave an existing legacy root game untouched', async (t) => {
+  const f = await fixture(t);
+  await f.write('games/alder-signal/keep.txt', 'legacy game');
+  const before = await readdir(path.join(f.root, 'games'));
+  await forkStarter(f.args);
+  assert.deepEqual(await readdir(path.join(f.root, 'games')), before);
+  assert.equal(
+    await readFile(path.join(f.root, 'games/alder-signal/keep.txt'), 'utf8'),
+    'legacy game',
+  );
+  assert.equal(
+    JSON.parse(await readFile(path.join(f.destination, 'tech9.json'))).id,
+    'alder-signal',
+  );
+});
+
 test('dry-run performs all checks without creating a destination or temporary files', async (t) => {
   const f = await fixture(t);
   const before = await f.git('status', '--porcelain');
   const result = await forkStarter({ ...f.args, dryRun: true });
   assert.equal(result.status, 'dry-run');
   assert.ok(result.files > 0);
-  await assert.rejects(readdir(path.join(f.root, 'games')), { code: 'ENOENT' });
+  await assert.rejects(readdir(path.join(f.root, '_tech9/games')), {
+    code: 'ENOENT',
+  });
   assert.equal(await f.git('status', '--porcelain'), before);
 });
 
@@ -397,7 +417,7 @@ test('never overwrites an existing destination, including an empty directory', a
   const f = await fixture(t);
   await mkdir(f.destination, { recursive: true });
   await assert.rejects(forkStarter(f.args), /already exists/);
-  await f.write('games/alder-signal/keep.txt', 'existing game');
+  await f.write('_tech9/games/alder-signal/keep.txt', 'existing game');
   await assert.rejects(forkStarter(f.args), /already exists/);
   assert.equal(
     await readFile(path.join(f.destination, 'keep.txt'), 'utf8'),
@@ -472,7 +492,7 @@ test('rejects outside plan paths and symlinked destination parents', async (t) =
   );
   const outside = await mkdtemp(path.join(os.tmpdir(), 'tech9-outside-'));
   t.after(() => rm(outside, { recursive: true, force: true }));
-  await symlink(outside, path.join(f.root, 'games'));
+  await symlink(outside, path.join(f.root, '_tech9/games'));
   await assert.rejects(forkStarter(f.args), /Symlinks/);
   assert.deepEqual(await readdir(outside), []);
 });
@@ -519,7 +539,9 @@ test('concurrent forks cannot replace each other or leak temporary directories',
     results.filter((result) => result.status === 'rejected').length,
     1,
   );
-  assert.deepEqual(await readdir(path.join(f.root, 'games')), ['alder-signal']);
+  assert.deepEqual(await readdir(path.join(f.root, '_tech9/games')), [
+    'alder-signal',
+  ]);
   assert.equal(
     JSON.parse(await readFile(path.join(f.destination, 'tech9.json'))).status,
     'scaffolded',
@@ -540,11 +562,16 @@ test('failed copying preparation removes only its temporary files', async (t) =>
     '-m',
     'invalid lock fixture',
   );
-  await f.write('games/another-game/keep.txt', 'preserve this game');
+  await f.write('_tech9/games/another-game/keep.txt', 'preserve this game');
   await assert.rejects(forkStarter(f.args), /Cannot read JSON.*package-lock/);
-  assert.deepEqual(await readdir(path.join(f.root, 'games')), ['another-game']);
+  assert.deepEqual(await readdir(path.join(f.root, '_tech9/games')), [
+    'another-game',
+  ]);
   assert.equal(
-    await readFile(path.join(f.root, 'games/another-game/keep.txt'), 'utf8'),
+    await readFile(
+      path.join(f.root, '_tech9/games/another-game/keep.txt'),
+      'utf8',
+    ),
     'preserve this game',
   );
   assert.equal(
@@ -608,6 +635,26 @@ test('CLI npm-prefix invocation keeps plans relative to the repository', async (
     },
   );
   assert.equal(JSON.parse(nested.stdout).plan, 'alder-signal');
+  const fork = await execute(
+    process.execPath,
+    [
+      'tools/tech9.mjs',
+      'fork',
+      '--starter',
+      f.args.starterId,
+      '--slug',
+      f.args.slug,
+      '--plan',
+      f.args.planPath,
+    ],
+    { cwd: path.join(f.root, '_tech9') },
+  );
+  assert.equal(
+    JSON.parse(fork.stdout).destination,
+    '_tech9/games/alder-signal',
+  );
+  await readFile(path.join(f.destination, 'tech9.json'));
+  await assert.rejects(readdir(path.join(f.root, 'games')), { code: 'ENOENT' });
 });
 
 test('fork relocates historical quality attribution into provenance without inheriting a review', async (t) => {

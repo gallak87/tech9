@@ -36,6 +36,7 @@ const EXCLUDED_NAMES = new Set([
   '.DS_Store',
 ]);
 const GENERATED_FILES = new Set(['tech9.json', 'GAME_PLAN.json']);
+const GAMES_DIRECTORY = '_tech9/games';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
@@ -232,7 +233,8 @@ export async function forkStarter({
   if (plan.id !== slug) fail('Game slug must match the execution plan id');
   const starter = catalog.starters.find((entry) => entry.id === starterId);
   const scene = catalog.scenes.find((entry) => entry.id === starter.scene);
-  const destination = await confinedPath(root, `games/${slug}`, {
+  const destinationPath = `${GAMES_DIRECTORY}/${slug}`;
+  const destination = await confinedPath(root, destinationPath, {
     allowMissing: true,
   });
   await absent(destination);
@@ -258,17 +260,19 @@ export async function forkStarter({
     fail('Starter scene must have dev and build package scripts');
   const result = {
     status: dryRun ? 'dry-run' : 'scaffolded',
-    destination: `games/${slug}`,
+    destination: destinationPath,
     starter: { id: starter.id, version: starter.version },
     scene: { id: scene.id, version: scene.version },
     sourceCommit: snapshot.commit,
     sourceSha256: snapshot.sha256,
     files: snapshot.records.length,
     ports: { dev: devPort, preview: devPort + 1 },
-    next: [`cd games/${slug}`, 'npm ci', 'npm run dev'],
+    next: [`cd ${destinationPath}`, 'npm ci', 'npm run dev'],
   };
   if (dryRun) return result;
-  const games = await confinedPath(root, 'games', { allowMissing: true });
+  const games = await confinedPath(root, GAMES_DIRECTORY, {
+    allowMissing: true,
+  });
   await mkdir(games, { recursive: true });
   const temporary = await mkdtemp(path.join(games, `.${slug}.tech9-`));
   let reserved = false;

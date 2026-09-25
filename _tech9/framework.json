@@ -6,9 +6,10 @@
   "catalog": "catalog.json",
   "workflow": "WORKFLOW.md",
   "entrypoint": "tools/tech9.mjs",
-  "outputDirectory": "games",
+  "outputDirectory": "_tech9/games",
   "pathBase": "repository-root",
   "ownershipModel": "source-copy",
   "generationCommand": "planned",
+  "agentKickoff": "GENERATE.md",
   "supportedExecution": "agent-led, local, reviewed checkpoints"
 }

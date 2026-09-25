@@ -10,9 +10,11 @@ Usage (repository root):
   npm --prefix _tech9 run t9 -- validate [path/to/plan.json]
   npm --prefix _tech9 run t9 -- fork --starter forest-exploration --slug my-game --plan path/to/plan.json [--port 4410] [--dry-run]
 
+From _tech9, use npm run t9 -- <command> with the same repository-relative paths.
+
 catalog   List the registered scenes, starters and optional modules.
 validate  Check catalog paths/manifests and, when supplied, an execution plan.
-fork      Copy an approved plan's committed starter into games/<slug>.
+fork      Copy an approved plan's committed starter into _tech9/games/<slug>.
 
 Forks are standalone source copies, not completed games. Fork never overwrites,
 installs dependencies, runs plan commands, calls a model or changes the source.

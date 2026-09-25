@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#193129" />
+    <meta
+      name="description"
+      content="A quiet first-person fishing escape. Cast, watch, reel gently and release a brook trout in a sheltered forest pond."
+    />
+    <title>Stillwater — The quiet hours</title>
+  </head>
+  <body>
+    <canvas
+      id="scene"
+      tabindex="0"
+      aria-label="Stillwater pond. WASD to walk, right drag to look, Space to cast, hook and reel."
+    ></canvas>
+    <div id="world-hud" aria-label="Fishing game"></div>
+    <div id="loading" role="status">
+      <span class="loading-mark">s.</span><span>Finding a quiet place…</span
+      ><small>STILLWATER / THE QUIET HOURS</small>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

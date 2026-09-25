@@ -1,0 +1,9 @@
+# Tidebreak verification
+
+Run `npm test`, `npm run lint`, `npm run build`, and `npm run verify` with supported Node. The browser runner launches strict preview port 4462 and closes only its own process. `SCENE_URL` can opt into an explicitly supplied preview. `CHROMIUM_PATH` selects an installed browser. `CAPTURE_ONLY=1` takes arrival/under-way captures without the full behavioral suite; `CAPTURE_DIR` chooses an ignored `.artifacts/` directory.
+
+`?test=1` enables a read-only `window.__SCENE_TEST__`: `ready` and `snapshot()`. Snapshots include scene, boat, lap, input, quality budgets and renderer metrics. There are no settings/movement/rule mutation hooks. The harness observes this state to choose actual keyboard events; it never teleports or grants progress.
+
+The behavioral suite checks ready → departure → ordered gate crossings → low-speed mooring → result → retry; pause/held-key clearing; missed-gate rejection/recovery; shore collision/reverse; out-of-order gate rejection; focus loss; graphics; narrow layout; production hook absence. Unit tests additionally exercise reverse-speed docking rejection, no stationary/wrong-direction gate awards, swept intersection, all shore directions, dock/bounds contacts, deterministic stepping and retained source water/lifecycle cleanup.
+
+The report records source commit, browser/executable, CPU/GPU, viewport, drawing buffer, checks, screenshots and requestAnimationFrame timings. Browser scheduling and other desktop load limit any hardware performance inference. GPU captures are serialized by the producer against frozen source.

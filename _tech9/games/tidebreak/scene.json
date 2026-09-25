@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "stillwater-pond",
+  "version": "1.0.0",
+  "title": "Stillwater Pond",
+  "kind": "outdoor-forest-pond",
+  "runtime": "threejs-webgl2",
+  "entry": "src/main.js",
+  "definition": "src/world/forestDefinition.js",
+  "units": "metres",
+  "extent": {
+    "width": 160,
+    "depth": 160
+  },
+  "licenseIndex": "public/assets/POND_SOURCES.md",
+  "sourceArt": "art/forest-kit.blend",
+  "limitations": [
+    "Desktop keyboard and mouse; no touch controls",
+    "Approximate circle collisions; decorative saplings, deadfall and scattered shore pebbles are not solid",
+    "One planar pond surface with frame-throttled reflections; no swimming, waves, fluid simulation or gameplay rules"
+  ]
+}

@@ -1,0 +1,6 @@
+node_modules
+dist/
+.artifacts/
+.husky/_/
+art/*.blend1
+art/__pycache__/

@@ -152,6 +152,7 @@ class Water extends Mesh {
 				uniform float alpha;
 				uniform float time;
 				uniform float size;
+        uniform vec4 pondFrame;
 				uniform float distortionScale;
 				uniform sampler2D normalSampler;
 				uniform vec3 sunColor;
@@ -194,31 +195,44 @@ class Water extends Mesh {
 
 					#include <logdepthbuf_fragment>
 					vec4 noise = getNoise( worldPosition.xz * size );
-					vec3 surfaceNormal = normalize( noise.xzy * vec3( 1.5, 1.0, 1.5 ) );
+					vec3 surfaceNormal = normalize( noise.xzy * vec3( 0.38, 1.0, 0.38 ) );
 
 					vec3 diffuseLight = vec3(0.0);
 					vec3 specularLight = vec3(0.0);
 
 					vec3 worldToEye = eye-worldPosition.xyz;
 					vec3 eyeDirection = normalize( worldToEye );
-					sunLight( surfaceNormal, eyeDirection, 100.0, 2.0, 0.5, diffuseLight, specularLight );
+					sunLight( surfaceNormal, eyeDirection, 160.0, 0.55, 0.5, diffuseLight, specularLight );
 
 					float distance = length(worldToEye);
 
 					vec2 distortion = surfaceNormal.xz * ( 0.001 + 1.0 / distance ) * distortionScale;
-					vec3 reflectionSample = vec3( texture2D( mirrorSampler, mirrorCoord.xy / mirrorCoord.w + distortion ) );
+					vec2 uv = mirrorCoord.xy / mirrorCoord.w + distortion;
+          vec2 blur = vec2(0.0018,0.0028);
+          vec3 reflectionSample = texture2D(mirrorSampler,uv).rgb * 0.4;
+          reflectionSample += texture2D(mirrorSampler,uv+blur).rgb * 0.15;
+          reflectionSample += texture2D(mirrorSampler,uv-blur).rgb * 0.15;
+          reflectionSample += texture2D(mirrorSampler,uv+vec2(blur.x,-blur.y)).rgb * 0.15;
+          reflectionSample += texture2D(mirrorSampler,uv+vec2(-blur.x,blur.y)).rgb * 0.15;
 
 					float theta = max( dot( eyeDirection, surfaceNormal ), 0.0 );
 					float rf0 = 0.02;
 					float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );
 					vec3 scatter = max( 0.0, dot( surfaceNormal, eyeDirection ) ) * waterColor;
-					vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance );
+					vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance * 0.61 );
+          vec2 pond = (worldPosition.xz - pondFrame.xy) / pondFrame.zw;
+          float a = atan(pond.y,pond.x);
+          float radius = length(pond) / (1.0 + 0.055*sin(a*3.0+0.7) + 0.032*cos(a*5.0-0.4));
+          float shelf = smoothstep(0.83,1.02,radius);
+          float silt = .5 + .5*sin(worldPosition.x*5.1+sin(worldPosition.z*3.7));
+          vec3 shallows = waterColor * 0.6 + vec3(.045,.039,.012) * (0.8+silt*.2);
+          albedo = mix(albedo,shallows,shelf*.76);
 					vec3 outgoingLight = albedo;
 					gl_FragColor = vec4( outgoingLight, alpha );
 
 					#include <tonemapping_fragment>
 					#include <colorspace_fragment>
-					#include <fog_fragment>	
+					#include <fog_fragment>
 				}`,
     };
 

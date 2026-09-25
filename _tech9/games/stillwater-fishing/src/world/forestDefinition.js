@@ -39,7 +39,7 @@ export const forestDefinition = Object.freeze({
   },
   environment: {
     exposure: 0.9,
-    fog: { color: '#a9b8b1', density: 0.006 },
+    fog: { color: '#a9b8b1', density: 0.009 },
     hemisphere: { sky: '#c4d3d2', ground: '#5c6146', intensity: 1.65 },
     sun: {
       color: '#ffe2af',

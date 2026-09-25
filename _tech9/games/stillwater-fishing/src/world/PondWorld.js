@@ -60,18 +60,21 @@ export function createPondWorld() {
       const geometry = new THREE.ShapeGeometry(shape);
       normals = waterNormals();
       water = new Water(geometry, {
-        textureWidth: 384,
-        textureHeight: 384,
+        textureWidth: 512,
+        textureHeight: 512,
         waterNormals: normals,
         sunDirection: new THREE.Vector3(-32, 22, -48).normalize(),
         sunColor: '#ffdc9c',
-        waterColor: '#244a46',
-        distortionScale: 0.8,
+        waterColor: '#31564c',
+        distortionScale: 0.24,
         fog: true,
       });
       water.rotation.x = -Math.PI / 2;
       water.position.y = POND.level + 0.018;
-      water.material.uniforms.size.value = 8;
+      water.material.uniforms.size.value = 11;
+      water.material.uniforms.pondFrame = {
+        value: new THREE.Vector4(POND.x, POND.z, POND.radiusX, POND.radiusZ),
+      };
       const reflect = water.onBeforeRender;
       water.onBeforeRender = (...args) => {
         if (frame++ % reflectionStride === 0) reflect(...args);
@@ -122,13 +125,51 @@ export function createPondWorld() {
       }
       const rockMat = new THREE.MeshStandardMaterial({
         color: '#858677',
+        vertexColors: false,
         roughness: 0.95,
       });
+      rockMat.onBeforeCompile = (shader) => {
+        shader.vertexShader = shader.vertexShader
+          .replace(
+            '#include <common>',
+            '#include <common>\nvarying vec3 stonePos;',
+          )
+          .replace(
+            '#include <begin_vertex>',
+            '#include <begin_vertex>\nstonePos = position;',
+          );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <common>',
+          '#include <common>\nvarying vec3 stonePos;',
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+          float grain = fract(sin(dot(floor(stonePos*210.),vec3(127.1,311.7,77.4)))*43758.5);
+          float veins = sin(stonePos.x*21.+sin(stonePos.z*15.)+stonePos.y*11.);
+          diffuseColor.rgb *= .68 + grain*.25 + smoothstep(.78,.96,veins)*.19;
+          diffuseColor.rgb = mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.57,.67,.45),smoothstep(.4,.9,stonePos.y)*.35);
+        `,
+        );
+      };
       const rockGeo = new THREE.DodecahedronGeometry(1, 1);
-      for (let i = 0; i < 135; i++) {
-        const a = random() * Math.PI * 2,
+      const rockPositions = rockGeo.attributes.position;
+      for (let i = 0; i < rockPositions.count; i++) {
+        const x = rockPositions.getX(i),
+          y = rockPositions.getY(i),
+          z = rockPositions.getZ(i);
+        const irregular = 1 + 0.13 * Math.sin(x * 7 + y * 3 + z * 5);
+        rockPositions.setXYZ(i, x * irregular, y * irregular, z * irregular);
+      }
+      rockGeo.computeVertexNormals();
+      for (let i = 0; i < 83; i++) {
+        const clusters = [0.45, 2.62, 4.45, 5.52];
+        const a =
+            i < 64
+              ? clusters[i % 4] + (random() - 0.5) * 0.45
+              : random() * Math.PI * 2,
           [x, z] = shorePoint(a, 1.028 + random() * 0.085);
-        const r = 0.08 + random() * 0.3;
+        const r = i < 9 ? 0.4 + random() * 0.6 : 0.045 + random() * 0.27;
         const rock = mesh(
           rockGeo,
           rockMat,
@@ -210,7 +251,7 @@ export function createPondWorld() {
     },
     configure(settings) {
       if (!water) return;
-      const size = { balanced: 384, high: 512, ultra: 768 }[settings.quality];
+      const size = { balanced: 512, high: 768, ultra: 1024 }[settings.quality];
       water.renderTarget.setSize(size, size);
       reflectionStride = settings.quality === 'balanced' ? 3 : 2;
       this.stats.reflectionSize = size;

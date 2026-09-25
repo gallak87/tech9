@@ -5,26 +5,117 @@ function fin(points, color) {
   const shape = new THREE.Shape(
     points.map(([x, y]) => new THREE.Vector2(x, y)),
   );
-  return new THREE.Mesh(
-    new THREE.ShapeGeometry(shape),
-    new THREE.MeshStandardMaterial({
-      color,
-      side: THREE.DoubleSide,
-      roughness: 0.65,
-    }),
+  const material = new THREE.MeshStandardMaterial({
+    color,
+    side: THREE.DoubleSide,
+    roughness: 0.4,
+    transparent: true,
+    opacity: 0.85,
+  });
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying vec3 finPos;')
+      .replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nfinPos=position;',
+      );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <common>',
+      '#include <common>\nvarying vec3 finPos;',
+    );
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <color_fragment>',
+      `#include <color_fragment>
+      float rays = pow(.5+.5*sin(finPos.x*550.+finPos.y*105.),8.);
+      diffuseColor.rgb *= .72+rays*.5;
+    `,
+    );
+  };
+  return new THREE.Mesh(new THREE.ShapeGeometry(shape), material);
+}
+function createLandingNet() {
+  const net = new THREE.Group();
+  const rimPoints = [];
+  for (let i = 0; i <= 96; i++) {
+    const a = (i / 96) * Math.PI * 2;
+    rimPoints.push(
+      new THREE.Vector3(Math.cos(a) * 0.51, Math.sin(a) * 0.225 - 0.025, -0.07),
+    );
+  }
+  const rim = new THREE.Mesh(
+    new THREE.TubeGeometry(
+      new THREE.CatmullRomCurve3(rimPoints),
+      96,
+      0.012,
+      7,
+      false,
+    ),
+    new THREE.MeshStandardMaterial({ color: '#897452', roughness: 0.72 }),
   );
+  net.add(rim);
+  const threads = [];
+  for (let j = -11; j <= 11; j++) {
+    const v = j / 12,
+      span = Math.sqrt(1 - v * v);
+    for (let i = 0; i < 24; i++) {
+      const a = -span + (span * 2 * i) / 24,
+        b = -span + (span * 2 * (i + 1)) / 24;
+      threads.push(
+        new THREE.Vector3(
+          a * 0.51,
+          v * 0.225 - 0.025,
+          -0.07 - 0.14 * (1 - a * a - v * v),
+        ),
+        new THREE.Vector3(
+          b * 0.51,
+          v * 0.225 - 0.025,
+          -0.07 - 0.14 * (1 - b * b - v * v),
+        ),
+      );
+      threads.push(
+        new THREE.Vector3(
+          v * 0.51,
+          a * 0.225 - 0.025,
+          -0.07 - 0.14 * (1 - a * a - v * v),
+        ),
+        new THREE.Vector3(
+          v * 0.51,
+          b * 0.225 - 0.025,
+          -0.07 - 0.14 * (1 - b * b - v * v),
+        ),
+      );
+    }
+  }
+  net.add(
+    new THREE.LineSegments(
+      new THREE.BufferGeometry().setFromPoints(threads),
+      new THREE.LineBasicMaterial({
+        color: '#a7b69b',
+        transparent: true,
+        opacity: 0.46,
+      }),
+    ),
+  );
+  const handle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.024, 0.032, 0.62, 12),
+    new THREE.MeshStandardMaterial({ color: '#776143', roughness: 0.65 }),
+  );
+  handle.position.set(0.08, -0.53, -0.07);
+  handle.rotation.z = 0.25;
+  net.add(handle);
+  return net;
 }
 export function createTrout() {
   const group = new THREE.Group();
   const profile = [
     [-0.36, 0.005],
     [-0.28, 0.035],
-    [-0.21, 0.073],
-    [-0.1, 0.103],
-    [0.04, 0.105],
-    [0.16, 0.08],
-    [0.25, 0.065],
-    [0.32, 0.032],
+    [-0.21, 0.058],
+    [-0.1, 0.074],
+    [0.04, 0.077],
+    [0.16, 0.063],
+    [0.25, 0.044],
+    [0.32, 0.023],
     [0.345, 0.006],
   ];
   const points = [],
@@ -53,10 +144,12 @@ export function createTrout() {
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  const material = new THREE.MeshStandardMaterial({
+  const material = new THREE.MeshPhysicalMaterial({
     vertexColors: true,
-    roughness: 0.3,
-    metalness: 0.12,
+    roughness: 0.25,
+    metalness: 0.18,
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.13,
   });
   material.onBeforeCompile = (shader) => {
     shader.vertexShader = shader.vertexShader
@@ -75,13 +168,20 @@ export function createTrout() {
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <color_fragment>',
       `#include <color_fragment>
-      vec2 cell = fishPosition.xy * vec2(85.,100.);
+      vec2 cell = fishPosition.xy * vec2(78.,97.);
       vec2 id = floor(cell); float h = fract(sin(dot(id,vec2(31.71,74.17)))*4134.7);
-      float spot = 1.-smoothstep(.14,.25,length(fract(cell)-.5));
-      float marks = spot * step(.6,h) * step(-.045,fishPosition.y);
-      diffuseColor.rgb = mix(diffuseColor.rgb,vec3(.88,.77,.46),marks*.85);
-      float red = spot * step(.86,h) * step(abs(fishPosition.y),.055);
-      diffuseColor.rgb = mix(diffuseColor.rgb,vec3(.72,.17,.09),red);
+      vec2 offset = vec2(h,fract(h*33.7))*.5+.25;
+      float d=length(fract(cell)-offset);
+      float spot = 1.-smoothstep(.07+h*.04,.12+h*.07,d);
+      float marks = spot * step(.56,h) * step(-.025,fishPosition.y);
+      diffuseColor.rgb = mix(diffuseColor.rgb,vec3(.69,.64,.37),marks*.68);
+      float halo = (1.-smoothstep(.13,.22,d))*step(.92,h)*step(abs(fishPosition.y),.035);
+      diffuseColor.rgb = mix(diffuseColor.rgb,vec3(.24,.41,.39),halo*.65);
+      float red = spot * step(.92,h) * step(abs(fishPosition.y),.035);
+      diffuseColor.rgb = mix(diffuseColor.rgb,vec3(.6,.16,.065),red);
+      float worms = smoothstep(.66,.86,sin(fishPosition.x*152.+sin(fishPosition.z*180.)*2.)*sin(fishPosition.z*133.+fishPosition.x*37.));
+      diffuseColor.rgb += vec3(.14,.16,.085)*worms*smoothstep(.03,.07,fishPosition.y);
+
     `,
     );
   };
@@ -89,10 +189,12 @@ export function createTrout() {
   group.add(body);
   const tail = fin(
     [
-      [-0.28, 0],
-      [-0.48, 0.112],
-      [-0.445, 0],
-      [-0.48, -0.1],
+      [-0.29, 0],
+      [-0.46, 0.084],
+      [-0.48, 0.065],
+      [-0.435, 0],
+      [-0.48, -0.064],
+      [-0.46, -0.083],
     ],
     '#94763e',
   );
@@ -100,20 +202,21 @@ export function createTrout() {
   group.userData.tail = tail;
   const dorsal = fin(
     [
-      [-0.16, 0.078],
-      [-0.11, 0.184],
-      [0.035, 0.15],
-      [0.09, 0.092],
+      [-0.18, 0.065],
+      [-0.145, 0.128],
+      [-0.1, 0.135],
+      [-0.02, 0.103],
+      [0.08, 0.071],
     ],
     '#827844',
   );
   group.add(dorsal);
   const bottom = fin(
     [
-      [0.09, -0.068],
-      [0.01, -0.164],
-      [-0.045, -0.147],
-      [-0.035, -0.092],
+      [0.09, -0.06],
+      [0.015, -0.118],
+      [-0.04, -0.107],
+      [-0.035, -0.069],
     ],
     '#c58a4e',
   );
@@ -131,16 +234,16 @@ export function createTrout() {
     pectoral.rotation.x = side * 0.45;
     group.add(pectoral);
     const eye = new THREE.Mesh(
-      new THREE.SphereGeometry(0.019, 12, 8),
+      new THREE.SphereGeometry(0.012, 16, 10),
       new THREE.MeshStandardMaterial({ color: '#c2b46d', roughness: 0.3 }),
     );
-    eye.position.set(0.255, 0.025, side * 0.043);
+    eye.position.set(0.255, 0.025, side * 0.035);
     group.add(eye);
     const pupil = new THREE.Mesh(
-      new THREE.SphereGeometry(0.011, 12, 8),
+      new THREE.SphereGeometry(0.007, 16, 10),
       new THREE.MeshStandardMaterial({ color: '#101b17', roughness: 0.15 }),
     );
-    pupil.position.set(0.26, 0.027, side * 0.057);
+    pupil.position.set(0.26, 0.027, side * 0.044);
     group.add(pupil);
     const gill = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
@@ -152,6 +255,15 @@ export function createTrout() {
     );
     group.add(gill);
   }
+  const mouth = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0.29, -0.012, 0.017),
+      new THREE.Vector3(0.345, -0.007, 0.002),
+      new THREE.Vector3(0.29, -0.012, -0.017),
+    ]),
+    new THREE.LineBasicMaterial({ color: '#423c2b' }),
+  );
+  group.add(mouth);
   return group;
 }
 
@@ -269,6 +381,13 @@ export class Tackle {
       this.group.add(ring);
       this.ripples.push(ring);
     }
+    this.net = createLandingNet();
+    this.group.add(this.net);
+    this.landingTime = 0;
+    this.lastPhase = null;
+    this.catchLight = new THREE.PointLight(0xffedc9, 1.4, 2.7, 2);
+    this.catchLight.position.set(-0.3, 0.5, -0.15);
+    this.rig.add(this.catchLight);
     this.fish = createTrout();
     this.group.add(this.fish);
     this.target = new THREE.Vector3(0, POND.level, 0);
@@ -333,13 +452,24 @@ export class Tackle {
     this.fish.visible =
       active &&
       (phase === 'landed' || (phase === 'fight' && rules.progress > 0.6));
+    this.net.visible = active && phase === 'landed';
+    this.catchLight.visible = this.net.visible;
+    if (phase !== this.lastPhase) this.landingTime = 0;
+    this.lastPhase = phase;
     if (phase === 'landed') {
+      this.landingTime = Math.min(1, this.landingTime + dt / 1.15);
       this.fish.position
-        .set(-0.26, -0.04, -1.1)
+        .set(
+          -0.26,
+          -0.04 - (1 - this.landingTime) * 0.34,
+          -1.32 - (1 - this.landingTime) * 0.8,
+        )
         .applyMatrix4(this.camera.matrixWorld);
       this.fish.quaternion.copy(this.camera.quaternion);
       this.fish.rotateY(-0.12);
-      this.fish.rotateZ(Math.sin(t * 1.8) * 0.015);
+      this.fish.rotateZ(-0.06 + Math.sin(t * 1.8) * 0.008);
+      this.net.position.copy(this.fish.position);
+      this.net.quaternion.copy(this.fish.quaternion);
     } else {
       this.fish.position.copy(this.float.position);
       this.fish.position.y = POND.level - 0.035 + Math.sin(t * 5) * 0.07;

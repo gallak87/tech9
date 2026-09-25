@@ -139,8 +139,8 @@ function organicLoft(material, rings, axis = 'x', shadeMode = 'body') {
       if (shadeMode === 'body')
         shade +=
           Math.sin(t * 6.2) * 0.03 -
-          Math.max(vertical, 0) ** 2 * 0.24 +
-          Math.max(-vertical, 0) ** 3 * 0.1;
+          Math.max(vertical, 0) ** 1.3 * 0.48 +
+          Math.max(-vertical, 0) ** 2 * 0.23;
       if (shadeMode === 'head')
         shade -= Math.max(vertical, 0) * 0.16 + Math.max(0, t - 0.55) * 0.24;
       if (shadeMode === 'neck')
@@ -241,10 +241,10 @@ export function createDeer() {
   collapsePivot.add(rig);
   const fur = surfaceTexture('fur');
   const coat = new THREE.MeshPhysicalMaterial({
-    color: '#c3ab89',
+    color: '#c2a180',
     map: surfaceTexture('coat'),
     roughness: 0.96,
-    sheen: 0.42,
+    sheen: 0.28,
     sheenColor: '#b9a582',
     sheenRoughness: 0.9,
     emissive: '#554934',
@@ -662,8 +662,10 @@ export function createBow(camera) {
 
   // A compact continuous glove and cuff give the bow a believable grip.
   const glove = new THREE.MeshStandardMaterial({
-    color: '#89745c',
-    roughness: 0.88,
+    color: '#75634e',
+    roughness: 0.93,
+    bumpMap: surfaceTexture('fur'),
+    bumpScale: 0.001,
     emissive: '#665541',
     emissiveIntensity: 0.08,
   });
@@ -695,9 +697,24 @@ export function createBow(camera) {
       new THREE.Vector3(-0.027, y, 0.018),
       new THREE.Vector3(-0.021, y, -0.009),
     ]);
-    group.add(
-      new THREE.Mesh(new THREE.TubeGeometry(curve, 14, 0.009, 7, false), glove),
-    );
+    const fingerGeometry = new THREE.TubeGeometry(curve, 14, 0.0085, 7, false);
+    const positions = fingerGeometry.attributes.position;
+    for (let segment = 0; segment <= 14; segment++) {
+      const t = segment / 14,
+        center = curve.getPointAt(t);
+      const taper = (0.7 + 0.3 * Math.sin(Math.PI * t)) * (i === 0 ? 0.83 : 1);
+      for (let side = 0; side <= 7; side++) {
+        const index = segment * 8 + side;
+        positions.setXYZ(
+          index,
+          center.x + (positions.getX(index) - center.x) * taper,
+          center.y + (positions.getY(index) - center.y) * taper,
+          center.z + (positions.getZ(index) - center.z) * taper,
+        );
+      }
+    }
+    fingerGeometry.computeVertexNormals();
+    group.add(new THREE.Mesh(fingerGeometry, glove));
   }
   branch(
     group,
@@ -710,6 +727,22 @@ export function createBow(camera) {
     ],
     0.017,
   );
+  const seamMaterial = new THREE.MeshStandardMaterial({
+    color: '#b7a387',
+    roughness: 1,
+  });
+  for (let i = 0; i < 9; i++) {
+    const y = -0.099 + i * 0.011;
+    taperedBone(
+      group,
+      seamMaterial,
+      [0.05, y, 0.052],
+      [0.054, y + 0.003, 0.052],
+      0.0007,
+      0.0007,
+      4,
+    );
+  }
   const forearm = organicLoft(
     sleeve,
     [

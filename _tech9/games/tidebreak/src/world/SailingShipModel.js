@@ -68,6 +68,8 @@ export function createSailingShip(profile) {
     const av = new THREE.Vector3(...a),
       bv = new THREE.Vector3(...b),
       d = bv.clone().sub(av);
+    // Triangular canvas has one shared corner, so its closing rope can be empty.
+    if (d.lengthSq() < 1e-10) return null;
     const item = mesh(
       new THREE.CylinderGeometry(r2, r, d.length(), 8),
       mat,

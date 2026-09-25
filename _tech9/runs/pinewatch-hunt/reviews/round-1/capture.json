@@ -1,0 +1,73 @@
+{
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M1 Pro",
+    "browser": "153.0.8010.53",
+    "browserExecutable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "headless": false,
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    }
+  },
+  "performance": {
+    "samples": 349,
+    "meanMs": 10.0323782234957,
+    "medianMs": 8.400000000001455,
+    "p95Ms": 17.100000000002183,
+    "meanFps": 99.67726273098566,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+    "drawingBuffer": [
+      1600,
+      1000
+    ],
+    "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+  },
+  "success": {
+    "mode": "result",
+    "phase": "won",
+    "arrows": 2,
+    "alert": 0,
+    "animal": "down",
+    "elapsed": 26.864200000000157,
+    "shots": 1,
+    "hitRange": 13.64151791638737,
+    "fleeTime": 0,
+    "message": "Clean hit. Walk to the deer and press E to retrieve.",
+    "messageTime": 1.1540999999999952,
+    "draw": 0,
+    "drawing": false,
+    "aiming": false,
+    "quiet": false,
+    "moving": false,
+    "yaw": -0.0444499999999993,
+    "pitch": -0.0816100000000004,
+    "player": [
+      5.774272988681162,
+      1.4064793657009698,
+      -14.944029986313813
+    ],
+    "deer": [
+      5.8617556868735825,
+      -0.3236240889124053,
+      -17
+    ],
+    "target": [
+      5.8617556868735825,
+      0.7263759110875947,
+      -17
+    ],
+    "targetScreen": [
+      798.3032708215753,
+      718.4733558563419
+    ],
+    "distance": 2.0578303913733524
+  },
+  "errors": {
+    "console": [],
+    "page": [],
+    "requests": [],
+    "webgl": []
+  }
+}

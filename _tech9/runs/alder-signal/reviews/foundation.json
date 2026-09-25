@@ -1,0 +1,70 @@
+{
+  "checkpoint": "3800780778cb80a2e4cb8888670e804249083ef1",
+  "reviewer": "independent foundation_review agent (not builder)",
+  "verdict": "pass",
+  "findings": [],
+  "scope": "Additive containment, CLI/provenance/path/plan invariants, scoped explicit hooks, scene/controller/layer contracts, docs and evidence.",
+  "independentChecks": {
+    "rootComparedTo": "a9a7f004",
+    "rootUnchanged": true,
+    "toolingTests": 20,
+    "sceneTests": 18,
+    "frameworkLint": "pass",
+    "sceneLint": "pass",
+    "sceneBuild": "pass",
+    "catalogAndPlan": "pass"
+  },
+  "browserEvidence": {
+    "independentlyRerun": false,
+    "inspectedByReviewer": true,
+    "passed": true,
+    "checks": 10,
+    "environment": {
+      "platform": "darwin",
+      "arch": "arm64",
+      "cpu": "Apple M1 Pro",
+      "browser": "151.0.7922.34",
+      "browserExecutable": "/Users/g/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+      "headless": true,
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      }
+    },
+    "settings": {
+      "quality": "high",
+      "sunlight": 1,
+      "atmosphere": 1,
+      "richness": 1,
+      "exposure": 1
+    },
+    "performance": {
+      "samples": 348,
+      "meanMs": 14.35603448275862,
+      "medianMs": 16.599999999999454,
+      "p95Ms": 17.399999999999636,
+      "meanFps": 69.65711883744672,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+      "drawingBuffer": [1600, 1000],
+      "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+    },
+    "errors": {
+      "console": [],
+      "page": [],
+      "requests": [],
+      "webgl": []
+    }
+  },
+  "producerFreshForkBuild": {
+    "passed": true,
+    "sourceCommit": "3800780778cb80a2e4cb8888670e804249083ef1",
+    "method": "Copied game source/assets to a fresh directory outside repository, reused installed dependencies via node_modules symlink, and built successfully without any _tech9 source at relative paths. Temporary copy removed.",
+    "copiedFiles": 115
+  },
+  "limitations": [
+    "Browser report inspected, not rerun by reviewer.",
+    "No art grade for this engineering checkpoint; historical forest gate remains failed at 6.2/10.",
+    "Known production bundle >500kB warning.",
+    "Real game implementation/playthrough still to follow."
+  ]
+}

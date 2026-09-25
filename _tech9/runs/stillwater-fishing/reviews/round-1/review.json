@@ -1,0 +1,48 @@
+{
+  "round": 1,
+  "checkpoint": "32dfab687ab196f5e26f047964e8fdbe060256c0",
+  "reviewer": "independent art_critic agent; read-only source/report and actual image inspection",
+  "evidence": [
+    "bank.png",
+    "landed.png"
+  ],
+  "overall": 6.1,
+  "threshold": 8,
+  "gatePass": false,
+  "categoryScores": {
+    "composition": 7,
+    "lighting": 6.7,
+    "materialsAndWater": 5.2,
+    "assetFidelity": 4.8,
+    "coherence": 6.5,
+    "interfaceReadability": 8
+  },
+  "strengths": [
+    "Restrained cream/forest interface, typography and spacing",
+    "Warm diagonal sunlight and legible quiet setting",
+    "Readable fight feedback and distinct catch card"
+  ],
+  "deficits": [
+    "Dominant hard jagged blue-white mirror islands, repetitive ripples and muddy water",
+    "Broad blunt polygonal trout, large flat fins, uniform dots and bead-like eye, unsupported presentation",
+    "Continuous brown shoreline strip and similar smooth rocks; repeated trunks form a flat backdrop",
+    "Smooth straight rod lacks visible construction and load bend"
+  ],
+  "prioritizedFixes": [
+    "Soften reflection contrast/pattern and add shallow-water rim tint while retaining controlled glint",
+    "Improve trout anatomy, thin ray-detailed fins, irregular markings, wet highlights and deliberate landing transition",
+    "Author asymmetric shore clusters with material/scale variation and tonal background separation"
+  ],
+  "correctness": {
+    "provenBlockers": [],
+    "evidence": "14 real-input browser checks passed, zero failed; 37 unit tests, lint/build reported passed; inspected harness cannot award catch",
+    "unverified": [
+      "Native pointer capture/exit and real OS blur unavailable; units do not count as end-to-end browser passes",
+      "Reviewer did not rerun checks",
+      "Static images cannot establish motion quality"
+    ],
+    "performance": "102.52 observed mean FPS, Balanced, 1600x1000, Apple M1 Pro/ANGLE Metal; p95 16.8ms",
+    "nonblocking": "Scripted fight is about45 seconds; novice 2\u20134-minute pacing not established"
+  },
+  "standard": "Demanding AAA ambition retained; prototype limitations do not pass the gate."
+}

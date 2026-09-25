@@ -29,3 +29,7 @@ Balanced performance after that full pass: Apple M1 Pro / Chromium 151.0.7922.34
 Native pointer capture was not granted in automated Chromium (including a visible-window spot check), and a second page did not deliver real focus loss in headless mode. These are **unavailable**, not passing browser checks. Mouse capture reports its fallback; right-drag and keyboard look are verified. Persistent controller event-handler tests cover blur/hidden/lock-exit pause and disposal. Real focus/lock behavior still warrants user-machine playtesting.
 
 Validation fixed a pointer-event mismatch (preventing pointerdown suppressed compatibility mousemove; the controller now listens to pointermove) and clears the stored cast target on restart. All verified gameplay uses real browser input; no hook awards a catch or changes fishing state.
+
+### Art round 1
+
+Frozen implementation `32dfab68`. Independent critic inspected bank, fight and landed browser frames plus source: **6.1/10, failed gate**. No proven correctness blocker. Priorities: calmer water/shallows, improved trout anatomy and landing support, asymmetric shore detail. Two representative images and compact validation/review JSON are preserved in `reviews/round-1/`.

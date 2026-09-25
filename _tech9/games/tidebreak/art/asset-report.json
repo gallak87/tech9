@@ -1,0 +1,43 @@
+{
+  "generator": "Blender 5.1.1",
+  "triangles": {
+    "pine_a_wood": 4954,
+    "pine_a_needles": 1536,
+    "pine_b_wood": 4954,
+    "pine_b_needles": 1536,
+    "pine_c_wood": 3610,
+    "pine_c_needles": 576,
+    "pine_sapling_wood": 1146,
+    "pine_sapling_needles": 576,
+    "rock_a_stone": 2556,
+    "rock_b_stone": 2280,
+    "fallen_log_bark": 380,
+    "fallen_log_endgrain": 30,
+    "grass_tall_leaves": 310,
+    "grass_short_leaves": 653,
+    "grass_tiny_leaves": 40,
+    "fern_a_leaves": 784,
+    "fern_b_leaves": 816,
+    "grass_short_lod_leaves": 194
+  },
+  "totalTriangles": 26931,
+  "glbBytes": 11457108,
+  "prototypes": [
+    "pine_a",
+    "pine_b",
+    "pine_c",
+    "pine_sapling",
+    "rock_a",
+    "rock_b",
+    "fallen_log",
+    "grass_tall",
+    "grass_short",
+    "grass_short_lod",
+    "grass_tiny",
+    "fern_a",
+    "fern_b"
+  ],
+  "units": "metres",
+  "upAxis": "Y (glTF)",
+  "license": "Original trees/rocks/log; CC0 Poly Haven grass/fern geometry and bark/rock/pine/plant images; see ASSETS.md"
+}

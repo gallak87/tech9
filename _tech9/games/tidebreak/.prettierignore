@@ -1,0 +1,9 @@
+.artifacts/
+dist/
+node_modules/
+public/
+package-lock.json
+art/sources/
+# Immutable fork provenance.
+tech9.json
+GAME_PLAN.json

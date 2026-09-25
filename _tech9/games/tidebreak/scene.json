@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "tidebreak",
+  "version": "1.0.0",
+  "title": "Tidebreak",
+  "kind": "coastal-boat-game",
+  "runtime": "threejs-webgl2",
+  "entry": "src/main.js",
+  "definition": "src/world/tidebreakDefinition.js",
+  "units": "metres",
+  "extent": {
+    "width": 520,
+    "depth": 520
+  },
+  "licenseIndex": "public/assets/TIDEBREAK_SOURCES.md",
+  "sourceArt": "art/forest-kit.blend",
+  "limitations": [
+    "Desktop keyboard; no touch steering or boarding",
+    "Planar arcade boat dynamics, conservative authored collision proxies",
+    "Finite ocean and planar reflections; visual waves/wake rather than fluid displacement"
+  ]
+}

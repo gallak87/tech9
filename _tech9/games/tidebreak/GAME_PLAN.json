@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "id": "tidebreak",
+  "title": "Tidebreak — island boat run",
+  "pitch": "A weighty little launch, three coastal gates, and a quiet return to the jetty.",
+  "starter": {
+    "id": "pond-exploration",
+    "version": "0.1.0"
+  },
+  "status": "approved",
+  "authorization": {
+    "mode": "delegated",
+    "basis": "User executes PROMPT.md and explicitly requests a dedicated worktree; launch prompt delegates routine design, dependency installation, tests, local commits and bounded agents including independent critic."
+  },
+  "scope": {
+    "mustHave": [
+      "One roughly 160 m island, finite 520 × 520 m navigable bounds, dry land and coast collisions",
+      "Game-owned momentum boat, chase camera, wake, ordered three-gate swept crossing and gentle docking below 0.8 m/s",
+      "Start/pause/resume/result/retry/reset and cleared input on blur",
+      "Five useful graphics controls and owned promoted water reflection lifecycle",
+      "Real keyboard complete lap and correctness checks; source/license receipts preserved"
+    ],
+    "outOfScope": [
+      "Framework edits or promotions",
+      "Walking, AI, upgrades, weather, physics solver",
+      "Push/publish, root migration, next game"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "loop",
+      "title": "Complete integrated boat lap",
+      "deliverables": [
+        "Owned starter fork, boat dynamics, rules, island/ocean, camera and UI"
+      ],
+      "acceptance": [
+        "Real input completes ordered lap and gentle docking, then retry",
+        "No coast penetration, collision recovery, pause clears input, out-of-order gates reject"
+      ]
+    },
+    {
+      "id": "handoff",
+      "title": "Validation and bounded independent art review",
+      "deliverables": [
+        "Unit/lint/build/browser validation",
+        "Committed source, current README, local critic captures"
+      ],
+      "acceptance": [
+        "Correctness blockers resolved",
+        "Art review stops at 8/10 or four rounds with honest result"
+      ]
+    }
+  ],
+  "lanes": [
+    {
+      "id": "producer",
+      "role": "Integrates renderer, ocean/island, camera, presentation; owns source, serial browser/GPU lane and commits",
+      "owns": [
+        "_tech9/games/tidebreak/**",
+        "_tech9/runs/tidebreak/**"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "validation": {
+    "commands": [
+      "npm test",
+      "npm run lint",
+      "npm run build",
+      "npm run verify"
+    ],
+    "playthrough": [
+      "Start, throttle and steer through all gates with real keyboard; dock below 0.8 m/s; result and retry",
+      "Reverse/recovery, shore/rock/dock collision, wrong/missed gate rejection, pause/blur held throttle, reset",
+      "Production test hooks absent; graphics and narrow layout"
+    ],
+    "performance": {
+      "targetFps": 60,
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "quality": "balanced"
+    }
+  },
+  "artGate": {
+    "threshold": 8,
+    "maxRounds": 4
+  },
+  "stopAfter": "Verified playable handoff after independent critic passes or four rounds; no depth without user feedback."
+}

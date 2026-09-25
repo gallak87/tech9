@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tech9.local/schemas/fork-receipt.schema.json",
   "title": "Tech9 source-fork receipt",
-  "description": "Provenance of the starting copy. status scaffolded does not certify that a game was built or tested. Source hashes describe original starter files before package metadata and source-only scene review fields are adapted.",
+  "description": "Provenance of the starting copy. status scaffolded does not certify that a game was built or tested. Source hashes describe original starter files before package metadata, source-only scene review fields and .prettierignore are adapted. Generated tech9.json and GAME_PLAN.json are excluded from formatting to preserve their exact provenance bytes.",
   "type": "object",
   "required": [
     "schemaVersion",

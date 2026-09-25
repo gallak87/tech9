@@ -16,6 +16,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { format } from 'prettier';
 import { forkStarter, loadCatalog, loadPlan } from '../tools/lib/project.mjs';
 import { validateCatalog, validatePlan } from '../tools/lib/validation.mjs';
 import { run } from '../tools/tech9.mjs';
@@ -24,6 +25,9 @@ const execute = promisify(execFile);
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const scenePath = '_tech9/scenes/scene-test';
+const prettierCli = fileURLToPath(
+  new URL('./bin/prettier.cjs', import.meta.resolve('prettier')),
+);
 
 function catalog() {
   return {
@@ -653,3 +657,67 @@ test('fork relocates historical quality attribution into provenance without inhe
     6.2,
   );
 });
+
+for (const existingIgnore of [
+  undefined,
+  '# Preserve starter rules\r\nart/sources/\r\n!GAME_PLAN.json',
+]) {
+  test(`fork protects provenance from game formatting ${existingIgnore === undefined ? 'without' : 'with'} an existing ignore file`, async (t) => {
+    const f = await fixture(t);
+    await f.write(`${scenePath}/.prettierrc.json`, json({ tabWidth: 4 }));
+    if (existingIgnore !== undefined) {
+      await f.write(`${scenePath}/.prettierignore`, existingIgnore);
+    }
+    await f.git('add', scenePath);
+    await f.git(
+      '-c',
+      'user.name=Tech9 test',
+      '-c',
+      'user.email=tech9-test@example.invalid',
+      'commit',
+      '--quiet',
+      '-m',
+      'starter formatting rules',
+    );
+    await forkStarter(f.args);
+    const ignore = await readFile(
+      path.join(f.destination, '.prettierignore'),
+      'utf8',
+    );
+    assert.ok(ignore.startsWith(existingIgnore ?? ''));
+    assert.ok(ignore.endsWith('\ntech9.json\nGAME_PLAN.json\n'));
+    const before = {};
+    for (const file of ['tech9.json', 'GAME_PLAN.json']) {
+      before[file] = await readFile(path.join(f.destination, file));
+      // The files would change without the generated exclusions.
+      assert.notEqual(
+        await format(before[file].toString(), { parser: 'json', tabWidth: 4 }),
+        before[file].toString(),
+      );
+    }
+    await execute(process.execPath, [prettierCli, '--write', '.'], {
+      cwd: f.destination,
+    });
+    await execute(process.execPath, [prettierCli, '--check', '.'], {
+      cwd: f.destination,
+    });
+    for (const file of Object.keys(before)) {
+      assert.deepEqual(
+        await readFile(path.join(f.destination, file)),
+        before[file],
+      );
+    }
+    const receipt = JSON.parse(before['tech9.json']);
+    assert.equal(receipt.plan.sha256, hash(before['GAME_PLAN.json']));
+    if (existingIgnore !== undefined) {
+      assert.equal(
+        await readFile(path.join(f.source, '.prettierignore'), 'utf8'),
+        existingIgnore,
+      );
+      const sourceRecord = receipt.source.files.find(
+        (file) => file.path === '.prettierignore',
+      );
+      assert.equal(sourceRecord.sha256, hash(existingIgnore));
+    }
+  });
+}

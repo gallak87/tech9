@@ -314,6 +314,19 @@ export async function forkStarter({
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;
     }
+    // These artifacts record exact provenance bytes. Normal game formatting
+    // must not rewrite the hashed plan or the receipt that describes it.
+    const prettierIgnoreFile = path.join(temporary, '.prettierignore');
+    let prettierIgnore = '';
+    try {
+      prettierIgnore = await readFile(prettierIgnoreFile, 'utf8');
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+    }
+    await writeFile(
+      prettierIgnoreFile,
+      `${prettierIgnore}${prettierIgnore && !prettierIgnore.endsWith('\n') ? '\n' : ''}# Immutable fork provenance.\ntech9.json\nGAME_PLAN.json\n`,
+    );
     const receipt = {
       schemaVersion: 1,
       id: slug,

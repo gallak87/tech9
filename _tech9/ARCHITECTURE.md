@@ -10,6 +10,8 @@ The catalog is small descriptive data. It resolves starter → scene → manifes
 
 Source review captures are excluded from forks. The CLI removes the scene manifest's historical `qualityEvidence` and `qualityStatus` fields from the game copy and records the source review path/status in `tech9.json` under `source.qualityEvidence`, resolved at `source.commit`. A fork has no inherited art pass or game review. Receipt hashes always describe the original source before these metadata adaptations.
 
+The CLI also preserves the starter's `.prettierignore` content and appends exclusions for `tech9.json` and `GAME_PLAN.json`, creating the ignore file when absent. These generated provenance artifacts retain their exact bytes through ordinary game formatting, so the receipt's plan hash remains valid. The receipt's source hashes still describe the starter's original ignore file, before this adaptation.
+
 ## Runtime seams
 
 The forest runtime separates `SceneApp` (renderer, loop, environment), a scene definition (terrain, views, content factory, bounds, presentation), one replaceable camera controller, and disposable world/game layers. These are enough for the current proof game. See the [exact contract](./scenes/scene-test/ARCHITECTURE.md).

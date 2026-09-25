@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tech9.local/schemas/catalog.schema.json",
+  "title": "Tech9 catalog",
+  "type": "object",
+  "required": ["schemaVersion", "scenes", "starters", "modules"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "version", "path", "manifest"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "version": { "$ref": "#/$defs/version" },
+          "path": { "$ref": "#/$defs/path" },
+          "manifest": { "$ref": "#/$defs/path" }
+        }
+      }
+    },
+    "starters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "scene",
+          "status",
+          "description",
+          "provides",
+          "excludes"
+        ],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "version": { "$ref": "#/$defs/version" },
+          "scene": { "$ref": "#/$defs/id" },
+          "status": { "enum": ["available", "planned", "deprecated"] },
+          "description": { "$ref": "#/$defs/text" },
+          "provides": { "$ref": "#/$defs/strings" },
+          "excludes": { "$ref": "#/$defs/strings" }
+        }
+      }
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "version", "path"],
+        "properties": {
+          "id": { "$ref": "#/$defs/id" },
+          "version": { "$ref": "#/$defs/version" },
+          "path": { "$ref": "#/$defs/path" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[a-z0-9.-]+)?$"
+    },
+    "text": { "type": "string", "pattern": "\\S" },
+    "strings": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+    "path": {
+      "type": "string",
+      "description": "Existing path within the repository; the CLI rejects symlinks.",
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*\\u0000)(?!.*\\/$).+$"
+    }
+  }
+}

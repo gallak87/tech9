@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tech9.local/schemas/fork-receipt.schema.json",
+  "title": "Tech9 source-fork receipt",
+  "description": "Provenance of the starting copy. status scaffolded does not certify that a game was built or tested. Source hashes describe original starter files before package metadata and source-only scene review fields are adapted.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "id",
+    "status",
+    "createdAt",
+    "starter",
+    "scene",
+    "source",
+    "plan",
+    "ports"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string" },
+    "status": { "const": "scaffolded" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "starter": { "$ref": "#/$defs/versioned" },
+    "scene": { "$ref": "#/$defs/versioned" },
+    "source": {
+      "type": "object",
+      "required": ["path", "commit", "snapshotSha256", "files"],
+      "properties": {
+        "path": { "type": "string" },
+        "commit": { "type": "string", "pattern": "^[a-f0-9]{40,64}$" },
+        "snapshotSha256": { "$ref": "#/$defs/hash" },
+        "qualityEvidence": {
+          "type": "object",
+          "description": "Historical source evidence, excluded from the game copy. Resolve path in the source repository at source.commit; this is not the fork's review.",
+          "required": ["path", "note"],
+          "properties": {
+            "path": { "type": "string" },
+            "status": { "type": "object" },
+            "note": { "type": "string" }
+          }
+        },
+        "files": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["path", "bytes", "sha256"],
+            "properties": {
+              "path": { "type": "string" },
+              "bytes": { "type": "integer", "minimum": 0 },
+              "sha256": { "$ref": "#/$defs/hash" }
+            }
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "const": "GAME_PLAN.json" },
+        "sha256": { "$ref": "#/$defs/hash" }
+      }
+    },
+    "ports": {
+      "type": "object",
+      "required": ["dev", "preview"],
+      "properties": {
+        "dev": { "type": "integer", "minimum": 1024, "maximum": 65534 },
+        "preview": { "type": "integer", "minimum": 1025, "maximum": 65535 }
+      }
+    }
+  },
+  "$defs": {
+    "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "versioned": {
+      "type": "object",
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string" },
+        "version": { "type": "string" }
+      }
+    }
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 1,
+  "id": "alder-signal",
+  "title": "Alder Signal",
+  "pitch": "A short atmospheric first-person field mission: restore three forest survey relays and return to the trailhead before the radio window closes.",
+  "starter": {
+    "id": "forest-exploration",
+    "version": "0.1.0"
+  },
+  "status": "approved",
+  "authorization": {
+    "mode": "delegated",
+    "basis": "User authorized autonomous additive _tech9 foundation work and one complete small proof game, including creative judgment, bounded subagents, local commits and browser testing; resumed explicitly on 2026-09-24. Preserve the existing root framework; defer root replacement and the next substantial game. User further clarified: root migration is WAY later, after this scene POC and further game experiments; stop at Alder Signal ready for user playtest and iterate with the user."
+  },
+  "scope": {
+    "mustHave": [
+      "Owned reproducible starter fork",
+      "Grounded first-person movement and approximate solid-tree/rock collisions",
+      "Three visible authored relays with hold-to-interact feedback",
+      "Readable navigation, countdown and mission state",
+      "Start, pause/resume, win, loss and restart",
+      "Local audio with mute, activated by user input",
+      "Five development graphics controls",
+      "Real keyboard browser playthrough and compact independent review"
+    ],
+    "outOfScope": [
+      "Hunting, fishing or vehicle gameplay",
+      "Character models, combat or inventory",
+      "Procedural streaming, networking or live scene switching",
+      "Framework-wide ECS or generic physics",
+      "Production mobile controls",
+      "Automatic slash-generate or publishing",
+      "Replacing, retiring or rewiring the existing root framework"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "foundation",
+      "title": "Owned starter and execution contract",
+      "deliverables": [
+        "Migrated scene",
+        "Validated catalog and plan",
+        "Fork provenance receipt"
+      ],
+      "acceptance": [
+        "Independent _tech9 and scene checks pass; root framework restored",
+        "Framework engineering review committed",
+        "Fresh fork builds without framework imports"
+      ]
+    },
+    {
+      "id": "playable",
+      "title": "One complete field mission",
+      "deliverables": [
+        "Grounded controller",
+        "Relays and route",
+        "Mission HUD, audio and states"
+      ],
+      "acceptance": [
+        "Real input can win",
+        "Timeout can lose",
+        "Pause and restart preserve/reset expected state",
+        "No console or asset errors"
+      ]
+    },
+    {
+      "id": "review",
+      "title": "Verified playtest handoff",
+      "deliverables": [
+        "Browser QA report",
+        "Independent game/art critique",
+        "Extension guide and lessons"
+      ],
+      "acceptance": [
+        "Unit, lint, build and browser checks pass",
+        "Initial independent game/art critique recorded honestly; further art rounds deferred until user playtest feedback",
+        "Performance measured on named hardware at fixed settings",
+        "All deliverable and critique checkpoints committed"
+      ]
+    }
+  ],
+  "lanes": [
+    {
+      "id": "producer",
+      "role": "Plan, integration, documentation and final ownership",
+      "owns": [
+        "_tech9/runs/alder-signal/**",
+        "games/alder-signal/README.md",
+        "games/alder-signal/tech9.json",
+        "games/alder-signal/ARCHITECTURE.md",
+        "games/alder-signal/AGENTS.md",
+        "games/alder-signal/package.json",
+        "games/alder-signal/package-lock.json",
+        "games/alder-signal/scene.json",
+        "games/alder-signal/GAME_PLAN.json",
+        "games/alder-signal/ROADMAP.md",
+        "games/alder-signal/scripts/**",
+        "games/alder-signal/tests/README.md",
+        "games/alder-signal/tests/browser.mjs",
+        "games/alder-signal/docs/**"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "builder",
+      "role": "Implement and wire the complete playable loop",
+      "owns": [
+        "games/alder-signal/src/**",
+        "games/alder-signal/index.html",
+        "games/alder-signal/public/game/**",
+        "games/alder-signal/tests/game.test.js"
+      ],
+      "dependsOn": ["producer"]
+    },
+    {
+      "id": "qa",
+      "role": "Independent behavioral browser validation",
+      "owns": [
+        "games/alder-signal/tests/game-browser.mjs",
+        "games/alder-signal/tests/lib/browser.mjs"
+      ],
+      "dependsOn": ["builder"]
+    },
+    {
+      "id": "critic",
+      "role": "Read-only independent gameplay and visual review on committed source",
+      "owns": [],
+      "dependsOn": ["qa"]
+    }
+  ],
+  "validation": {
+    "commands": [
+      "npm --prefix _tech9 test",
+      "npm --prefix _tech9 run lint",
+      "npm --prefix games/alder-signal test",
+      "npm --prefix games/alder-signal run lint",
+      "npm --prefix games/alder-signal run build",
+      "npm --prefix games/alder-signal run verify:game"
+    ],
+    "playthrough": [
+      "Start through visible UI; navigate with real keyboard input to all three relays, hold interaction and return to base",
+      "Pause while moving; verify timer and camera stop, then resume",
+      "Reach timeout loss and restart into clean mission state",
+      "Inspect start, gameplay and completion at desktop and narrow viewport; narrow screen may show desktop input guidance"
+    ],
+    "performance": {
+      "targetFps": 60,
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "quality": "balanced"
+    }
+  },
+  "artGate": {
+    "threshold": 8,
+    "maxRounds": 4
+  },
+  "stopAfter": "Stop implementation once Alder Signal is ready for user playtest; hand over the local playable build and iterate from user feedback. Root graduation is WAY later, after additional game/agent POCs, and is not part of this goal."
+}

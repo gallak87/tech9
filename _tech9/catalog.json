@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "scenes": [
+    {
+      "id": "alder-vale",
+      "version": "1.1.0",
+      "path": "_tech9/scenes/scene-test",
+      "manifest": "scene.json"
+    }
+  ],
+  "starters": [
+    {
+      "id": "forest-exploration",
+      "version": "0.1.0",
+      "scene": "alder-vale",
+      "status": "available",
+      "description": "Bounded outdoor forest, fly camera, lighting, quality controls and browser verification. Gameplay is added in an owned fork.",
+      "provides": [
+        "Three.js/Vite runtime",
+        "160m fixed forest",
+        "Blender source and local assets",
+        "scene definition and layer lifecycle",
+        "replaceable camera controller",
+        "approximate tree/rock collision descriptors",
+        "five graphics controls",
+        "unit and real-browser harness"
+      ],
+      "excludes": [
+        "game rules",
+        "character or vehicle",
+        "full physics",
+        "live scene switching",
+        "mobile controls",
+        "streaming worlds"
+      ]
+    }
+  ],
+  "modules": []
+}

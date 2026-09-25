@@ -1,8 +1,0 @@
-# Husky is repository-wide. Preserve the previous game's existing hook.
-if ! git diff --cached --quiet --diff-filter=ACMR -- games/chronoforge-echo; then
-  (sh games/chronoforge-echo/.husky/pre-commit) || exit $?
-fi
-if ! git diff --cached --quiet --diff-filter=ACMR -- games/scene-test; then
-  cd games/scene-test || exit 1
-  npm run lint:staged
-fi

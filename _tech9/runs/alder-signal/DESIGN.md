@@ -1,0 +1,11 @@
+# Alder Signal direction
+
+A compact desktop first-person field mission, approximately two minutes on a familiar route. The existing forest is the setting; the new work should make the purpose and moment-to-moment state unmistakable. Walk the dirt trail, repair three distinct survey instruments in sequence, then return to a trailhead field radio. A generous first mission window gives room to explore; urgency comes from the countdown, route and repair pauses.
+
+Use an expedition instrument aesthetic: ivory type, dark pine panels, amber equipment and small cyan/green restored indicators. A quiet uppercase masthead, clear objective/title, station count and prominent but restrained clock should make a real game out of the scene. Keep the view open during movement. Place custom relay props on the route shoulder so a player can see, approach and recognize their function, with visible repair progress and a reliable completion cue. Navigation combines distance/bearing, a small route map and physical route markers. The return trip should look different through changed relay lamps and terminal state.
+
+Inputs: WASD walk, Shift jog, mouse look (pointer lock with drag fallback), hold E to restore/upload; Escape or P pauses. Start, pause/resume, win, timeout and restart must be explicit visible states. Blur/hidden tab pauses. Paused/result/menu state must stop both mission time and camera input. Audio begins only after user input and has a persistent mute switch. Expose five graphics controls in a pause/settings panel without world-view teleport buttons during play.
+
+Ground movement uses the shared terrain query and conservative mature-tree/rock circle proxies. Do not promise exact physics: foliage/saplings/deadfall remain non-solid. Verify route positions against proxies before placing objectives; all objectives must be reachable through normal movement. Keep game state, grounded controller, rendered equipment, UI and audio in separate concrete modules, wired through the existing app lifecycle. Retain license and source art records.
+
+First deliver one complete playable loop. Improvements after independent critique should prioritize readability, distinctive equipment and route composition; do not expand into inventory, combat or a different genre. The forest's historical 6.2/10 AAA gate is inherited honestly and is not erased by a polished HUD.

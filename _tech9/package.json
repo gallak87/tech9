@@ -1,0 +1,42 @@
+{
+  "name": "tech9-foundation",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Additive Tech9 starters, source forks and agent production tooling.",
+  "type": "module",
+  "scripts": {
+    "t9": "node tools/tech9.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "lint": "eslint tools tests eslint.config.mjs --max-warnings 0 && npm run format:check",
+    "format:check": "prettier --check '*.md' '*.json' '*.mjs' docs tools tests schemas modules",
+    "format": "prettier --write '*.md' '*.json' '*.mjs' docs tools tests schemas modules",
+    "lint:staged": "lint-staged",
+    "hooks:install": "node tools/install-hooks.mjs",
+    "dev:scene": "npm --prefix scenes/scene-test run dev",
+    "build:scene": "npm --prefix scenes/scene-test run build",
+    "verify:scene": "npm --prefix scenes/scene-test run verify"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.11.0",
+    "eslint-config-prettier": "10.1.8",
+    "globals": "17.12.0",
+    "husky": "9.1.7",
+    "lint-staged": "16.4.0",
+    "prettier": "3.9.8"
+  },
+  "engines": {
+    "node": "^22.13.0 || >=24.0.0"
+  },
+  "lint-staged": {
+    "{tools,tests}/**/*.mjs": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "eslint.config.mjs": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{md,json}": "prettier --write"
+  }
+}

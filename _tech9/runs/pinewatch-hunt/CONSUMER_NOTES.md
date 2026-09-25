@@ -1,0 +1,14 @@
+# Pinewatch consumer notes
+
+- Active framework: `_tech9`; isolated branch `codex/pinewatch-hunt` created from `f5c3be1d`. Shared checkout never switched. All deliverable edits stay under this game's/run's paths.
+- Launch packet relocation worked exactly as documented: directory contained only BRIEF.md and PROMPT.md; no run existed; moved the entire packet before creating the plan. Catalog/plan validation, dry run and protected fork then succeeded.
+- The starter honestly supplies a forest, rendering lifecycle and approximate collision data. Walking, animal anatomy/animation/behavior, tracking signs, bow, rules, UI and checks were authored in the owned game. No new framework module was assumed.
+- System shell default was Node 20.13. Initial framework npm install emitted engine warnings. A local Node 22.15 installation was located, dependencies reinstalled and all builds/checks run with its bin directory first in PATH. No package versions or hooks were changed. Existing `core.hooksPath` was `_tech9/.husky/_` and was preserved.
+- Ports 4430, 4431 and 4432 were free at kickoff. Browser verification uses 4432 and owns/closes its server and Chromium. No other session server is stopped. A model author briefly opened 4469 but stopped it before any browser; all actual GPU captures are serialized by the producer.
+- `setController` made grounded movement replacement straightforward. The scene context provides enough ownership seams; game rules did not need changes in renderer source.
+- Forest conservative circles cover substantial trees/rocks, while small vegetation is passable. The trail sign contributes a game-owned solid. These are not full physics. Detection uses those circles for approximate sight; arrows check world meshes.
+- Normal storage is game-scoped. Read-only observation hooks exist only with `?test=1`. Removed inherited capture commands that teleported the fly camera; captures and verification now describe this hunt.
+- Bow and deer source lives in `src/game/models.js`, authored by bounded model lane `deer_bow` then transferred back to the producer after completion. That lane exclusively edited that file and `public/game/ASSETS.md`; it did not commit or review its own art. All other game paths remained producer-owned. A separate critic reviews frozen checkpoints.
+- Potential reuse: grounded controller/collision resolution, pure alert-state rules and camera-attached bow lifecycle. These remain candidates only; no promotion until another real game demonstrates the same seam.
+
+- Browser workaround: the cached Chromium rejected pointer lock with WrongDocumentError in both headless and headed mode despite a connected, focused document. Installed Google Chrome 153 successfully captured and released the pointer. The game-local harness prefers that browser on macOS, with CHROMIUM_PATH override and Playwright fallback elsewhere. Full verification uses headed mode for native input; this is not a game test hook.

@@ -1,76 +1,18 @@
-# Alder Vale — architecture contract
+# Pinewatch Hunt architecture
 
-A fixed 160 × 160 metre forest study. Three.js owns rendering; Blender authors reusable mesh assets. One metre equals one world unit, +Y is up. Content is deterministic and bounded, not streamed or generated as the camera travels.
+This is an independently owned source fork of the registered forest-exploration starter. `tech9.json` and `GAME_PLAN.json` remain byte-for-byte provenance, including their original scaffold status. See the run execution record for delivery status.
 
-## Runtime boundaries
+- `src/main.js` composes the local forest renderer and the Hunt layer. The scene/storage identity is `pinewatch-hunt`; normal runs expose no test globals.
+- `src/core/SceneApp.js` owns renderer, atmosphere, quality, frame loop and layer lifecycle. It updates one controller before the game layer. Forest source and textures remain game-local.
+- `src/world/ForestWorld.js` owns deterministic forest placement, terrain and lighting-responsive vegetation. `terrain.js` is the ground query shared by actors and movement.
+- `src/game/Walker.js` replaces the fly camera through `setController`. It owns pointer lock, keyboard/mouse input, grounded movement, quiet pace and circular collision resolution. Pausing disables it and clears held inputs.
+- `src/game/rules.js` is the pure state machine: stalk, retrieve, won, lost; awareness/noise, arrow accounting, hit prerequisites and retrieval distance. `Hunt.js` owns runtime orchestration and UI modes (intro, playing, paused, result).
+- `src/game/encounter.js` owns the authored route, spawn/deer placement, hoofprints, trail post and simple visibility query. Full rendered world meshes are raycast at shot time for obstruction.
+- `src/game/models.js` owns procedural deer and bow geometry/materials, rig animation and resource disposal. `Hunt` owns their world/camera transforms. The down pose is non-graphic.
+- The HUD is mounted in `context.ui`, with action-specific instruction and a journal presentation. It does not own a rendering loop.
 
-- `src/main.js` chooses a scene definition, boots the app and displays load failures. The core never imports forest content.
-- `src/world/forestDefinition.js` owns scene identity, presentation, rectangular bounds, terrain query, named camera views, environment defaults and world factory. `src/core/sceneDefinition.js` validates that contract before GPU allocation.
-- `src/core/SceneApp.js` owns renderer, camera, frame loop, lighting, settings and the small lifecycle registry.
-- A world layer provides `id`, `init(context)`, optional `update(dt, elapsed)`, `configure(settings)` and `dispose()`. Context supplies scene, camera, renderer, assets, events, an independent `ui` mount, world bounds, `groundHeight(x,z)` and the selected `definition`. Future characters, interactions and HUD layers register through the same lifecycle. Avoid an ECS until requirements justify it.
-- `src/core/AtmospherePass.js` owns a linear HDR scene target, half-resolution world-space shadow raymarch and final tone mapping/contact shading. It samples the scene depth and native directional comparison shadow texture; geometry remains sharply resolved.
-- `src/core/softShadows.js` wraps the forest materials with a deterministic 12-tap PCF filter while preserving their terrain and wind shader hooks. It targets the pinned Three.js release; validate captures when upgrading Three.js.
-- `src/core/FlyCamera.js` owns pointer-lock and keyboard input, speed and boundary enforcement using the injected bounds/ground query. `app.setController(factoryOrObject)` replaces and disposes the previous camera owner. No character or physics is included.
-- `src/world/ForestWorld.js` exports `createForestWorld()` returning a layer. Its init can be async. It owns terrain, trees, rocks and ground cover, never renderer or UI. Export `terrainHeight(x,z)` and `pathCenter(z)` from `src/world/terrain.js` for camera clearance and later grounded actors.
-- `src/ui/DevPanel.js` owns exactly five high-level controls: quality, sunlight, atmosphere, richness and exposure. UI reads scene presentation and view metadata, receives callbacks and metrics, and never edits world internals.
-- `src/core/settings.js` defines shared presets and validated persisted values. Storage defaults to `${definition.id}.settings`; the app accepts an explicit `storageKey` for independently owned game forks.
+One world unit is one metre, +Y up. Deer model faces local +X; player camera looks local -Z. Walking bounds are a subset of the forest. Forest trees/rocks expose immutable horizontal circles, extended with game props. They are approximate solids, not mesh-accurate physics.
 
-## Scene and camera integration
+`tests/game.test.js` tests rule/collision invariants. `tests/browser.mjs` uses real input through start/stalk/shot/retrieve/retry and failures. `__HUNT_TEST__.snapshot()` and the scene snapshot are read-only and only installed with `?test=1`. Browser focus-loss is injected as a blur event and pointer release uses the browser API; neither bypasses gameplay.
 
-The application requires a definition explicitly; the forest is selected only in the entry point:
-
-```js
-import { SceneApp } from './core/SceneApp.js';
-import { forestDefinition } from './world/forestDefinition.js';
-
-const definition = forestDefinition;
-const app = new SceneApp(canvas, { definition, ui: hudMount });
-await app.register(definition.createWorld());
-app.start();
-```
-
-A definition provides `id`, `title`, `bounds`, `groundHeight(x,z)`, `views`, `initialView`, `environment`, `createWorld()` and optional `presentation`/`getColliders()`. Bounds use finite `minX`, `maxX`, `minZ`, `maxZ`, `minY`, `maxY`; views provide `position` and `target` arrays plus an optional `label` and `hidden` flag. The forest's hidden boundary view supports real input testing. Environment defaults cover exposure, fog, hemisphere light, directional sun/shadow bounds, and physical sky parameters. Copy the small forest definition as a concrete reference when authoring another scene; do not move forest terrain queries into core. The current environment renderer assumes an outdoor sun/sky scene. Other starter flavors can own a different rendering implementation.
-
-The definition is selected at boot. This milestone does not add live world swapping or a dynamic plugin registry. A fork owns its copied runtime and may extend it. Authored metadata is local source, not a remotely executed configuration format.
-
-Exactly one controller owns the camera each frame:
-
-```js
-app.setController(
-  ({ camera, canvas, bounds, groundHeight, events, definition }) =>
-    new WalkingController({
-      camera,
-      canvas,
-      bounds,
-      groundHeight,
-      events,
-      definition,
-    }),
-);
-```
-
-A controller requires synchronous `update(dt)` and `dispose()` methods. `resetMotion()` and `lock()` are optional hooks used by scene viewpoints and the development UI. The factory must return synchronously; it receives no renderer and must not start another animation loop. Constructing/validating a replacement succeeds before the previous owner is disposed. A failed factory leaves the current controller active. Replacing it with the same instance is a no-op. `app.controls` always references the active owner; shutdown disposes it. Controllers own and release their listeners and pointer lock. The application updates the controller before world/game layers. Update `presentation.controls` and `lockedControls` when replacing fly movement so UI stays truthful.
-
-`forestDefinition.getColliders()` (also available on the forest layer) returns immutable deterministic descriptors `{id, kind, x, z, radius}` derived from the same placements as rendered mature trees and rocks. They are conservative horizontal circles for simple walking experiments. They do not include saplings, fallen logs, foliage, terrain slopes or exact mesh surfaces, and they do not provide collision resolution or vehicle physics. A game owns its player radius, movement resolution and any additional proxies. The fly camera deliberately ignores these circles. The array is available before asset loading, so game setup and tests do not need a GPU or Blender.
-
-## Independent game forks
-
-Copy this starter through the framework's fork workflow, then modify the owned copy in `games/<slug>`. Keep the source receipt, runtime assets and license/provenance files. Give a fork its own scene ID/storage namespace, presentation and game tests. Register gameplay through the existing layer lifecycle and `context.ui`; use narrow events for game/HUD communication. Add a different camera via `setController` rather than updating it from a second layer. Avoid imports from a game back into `_tech9`: improvements return to the starter intentionally, and existing games remain stable.
-
-## Asset contract
-
-Blender output: `public/assets/forest-kit.glb` with named reusable prototypes `pine_a`, `pine_b`, `pine_c`, `pine_sapling`, `rock_a`, `rock_b`, `fallen_log`, plus low-cost grass and fern prototypes (groups allowed). Model origin at base, metres, +Y up after glTF export. Keep combined triangles under 100k; reusable prototype meshes are instanced at runtime. `art/build_forest.py` reproducibly writes `art/forest-kit.blend` and the GLB. Materials and textures carry source/license metadata in `public/assets/ASSETS.md`.
-
-## Composition
-
-A gently winding dirt trail starts near (0, 22), leading toward (4, -35). Camera starts near (0, terrainHeight + 2.25, 23), aimed toward (3, 3, -20). Tall irregular pines frame a warm, hazy backlit opening in the upper right. Mossy boulders, ferns, mixed grasses, shrubs, deadfall and leaf litter provide foreground detail. Boundary is softened by denser forest and terrain; flight stays within ±76 m. Atmospheric depth, credible scale and high-frequency PBR detail matter more than feature count.
-
-## Settings contract
-
-`{ quality: 'high' | 'balanced' | 'ultra', sunlight: 1, atmosphere: 1, richness: 1, exposure: 1 }`. Numeric artistic controls range 0.4–1.6. Quality controls pixel ratio, shadows and postprocessing cost; richness controls vegetation density. Layers respond via configure. Renderer updates static shadows only on relevant changes. Pixel budgets cap large displays at 1.6 / 2.6 / 5.2 million scene pixels for Balanced / High / Ultra. Layer IDs are reserved across asynchronous initialization; failed or cancelled loads release owned resources. The `ui` mount remains separate from the development overlay so gameplay HUD layers can mount and dispose independently.
-
-## Validation and checkpoints
-
-The initial release gate covers the integrated foundation and subsequent art/performance refinement checkpoints. Each implementation attempt is committed before a separate independent AAA art critic examines actual browser captures. Critic JSON and at most two representative screenshots are committed separately. The release gate permits up to four rounds, stopping at 8/10 or the cap; scores are reported honestly. Subsequent world layers should start their own deliverable gate.
-
-Tests expose read-only snapshot and named-camera hooks through `window.__SCENE_TEST__` only with `?test=1`. Browser checks cover load, GL errors, tuning, flight, bounds, resizing and reference captures. CPU tests additionally validate alternate scene ground/bounds/view data, controller ownership, scene context, storage isolation and deterministic collision descriptors. Screenshot evidence is not a claim of equivalent real GPU FPS. No production benchmark promises without measured hardware results.
+Do not promote the controller, animal or bow as a shared framework module from this pilot. Document possible reuse in the run's consumer notes after another actual consumer exists.

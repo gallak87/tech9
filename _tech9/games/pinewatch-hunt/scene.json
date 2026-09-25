@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "alder-vale",
+  "id": "pinewatch-hunt",
   "version": "1.1.0",
-  "title": "Alder Vale",
-  "kind": "outdoor-forest",
+  "title": "Pinewatch Hunt",
+  "kind": "first-person-hunting-game",
   "runtime": "threejs-webgl2",
   "entry": "src/main.js",
   "definition": "src/world/forestDefinition.js",
@@ -15,9 +15,9 @@
   "licenseIndex": "public/assets/ASSETS.md",
   "sourceArt": "art/forest-kit.blend",
   "limitations": [
-    "Outdoor sun/sky renderer",
     "Desktop keyboard and mouse",
-    "Approximate circle colliders exclude saplings and deadfall",
-    "High/Ultra are GPU intensive; optimization remains on roadmap"
+    "One authored procedural deer and hunt route",
+    "Approximate tree/rock and prop collision circles; passable small vegetation",
+    "No audio or simulated ballistics"
   ]
 }

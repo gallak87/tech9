@@ -19,6 +19,18 @@ export function argument(name, fallback) {
 
 async function installedChromium() {
   if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
+  // Prefer current desktop Chrome on macOS: the cached Chromium build may reject
+  // native pointer lock with WrongDocumentError even in a focused headed page.
+  if (process.platform === 'darwin') {
+    const chrome =
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+    try {
+      await access(chrome);
+      return chrome;
+    } catch {
+      /* Fall back to Playwright. */
+    }
+  }
   try {
     await access(chromium.executablePath());
     return chromium.executablePath();
@@ -172,6 +184,7 @@ export async function openScene({
         `Scene startup failed: ${await page.locator('.load-error').textContent()}`,
       );
     }
+    await page.bringToFront();
     return {
       browser,
       page,

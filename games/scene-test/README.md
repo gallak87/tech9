@@ -86,6 +86,8 @@ Final validation: **12 unit tests, 9 Playwright checks, lint and production buil
 
 ## Next layers
 
+Graphics optimization and its profiling/validation plan are tracked in [ROADMAP.md](ROADMAP.md).
+
 1. Grounded character controller and authored collision proxies.
 2. Interactions/pickups and event-driven HUD.
 3. Destructible props with pooled debris and selective shadow refresh.

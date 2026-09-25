@@ -476,6 +476,9 @@ body[data-state='finished'] .controls {
   .helm {
     bottom: 42px;
   }
+  body:not([data-state='running']) .helm {
+    display: none;
+  }
   .clock strong {
     font-size: 23px;
   }

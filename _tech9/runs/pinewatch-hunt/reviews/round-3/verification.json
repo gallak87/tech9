@@ -1,0 +1,132 @@
+{
+  "sourceCommit": "5d7693b4421a60856f74bb3d3eeb4b0a883d431d",
+  "settings": {
+    "quality": "balanced",
+    "sunlight": 1,
+    "atmosphere": 1,
+    "richness": 1,
+    "exposure": 1
+  },
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M1 Pro",
+    "browser": "153.0.8010.53",
+    "browserExecutable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "headless": true,
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    }
+  },
+  "performance": {
+    "samples": 210,
+    "meanMs": 16.666190476190465,
+    "medianMs": 16.700000000000728,
+    "p95Ms": 16.700000000000728,
+    "meanFps": 60.001714334695315,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+    "drawingBuffer": [
+      1600,
+      1000
+    ],
+    "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+  },
+  "results": [
+    {
+      "name": "Menus preserve native keyboard focus",
+      "pass": true
+    },
+    {
+      "name": "Visible start enters a fresh hunt",
+      "pass": true
+    },
+    {
+      "name": "Real keyboard walk and quiet stalk locate the deer",
+      "pass": true
+    },
+    {
+      "name": "Draw, pause, disabled aiming and cleared held inputs",
+      "pass": true
+    },
+    {
+      "name": "Real aim/draw/release hits, then walking and E retrieve completes hunt",
+      "pass": true
+    },
+    {
+      "name": "Retry resets the encounter and held inputs",
+      "pass": true
+    },
+    {
+      "name": "Real mouse miss and exhausted arrows lead to recoverable loss",
+      "pass": true
+    },
+    {
+      "name": "Noisy close approach alerts the animal and causes escape",
+      "pass": true
+    },
+    {
+      "name": "Focus loss cancels aim/draw and movement",
+      "pass": true
+    },
+    {
+      "name": "Real walking cannot pass through the trailhead post",
+      "pass": true
+    },
+    {
+      "name": "Substantial rendered deadfall has solid walking proxies",
+      "pass": true
+    },
+    {
+      "name": "No runtime, network or WebGL errors",
+      "pass": true
+    }
+  ],
+  "errors": {
+    "console": [],
+    "page": [],
+    "requests": [],
+    "webgl": []
+  },
+  "focusTest": "Browser blur event injected for focus loss; core gameplay exclusively real keyboard and mouse. See separate verify:native for actual window focus and pointer release.",
+  "final": {
+    "mode": "paused",
+    "phase": "stalk",
+    "arrows": 3,
+    "alert": 0.1130039999999997,
+    "animal": "grazing",
+    "elapsed": 18.099399999999882,
+    "shots": 0,
+    "hitRange": 0,
+    "fleeTime": 0,
+    "message": "",
+    "messageTime": 0,
+    "draw": 0,
+    "drawing": false,
+    "aiming": false,
+    "quiet": false,
+    "moving": false,
+    "yaw": 0.13777499999997,
+    "pitch": -0.025,
+    "player": [
+      -4.396167011890039,
+      1.479911457806799,
+      1.9502977916543802
+    ],
+    "deer": [
+      6.202507687121888,
+      -0.30825757398049175,
+      -17
+    ],
+    "target": [
+      6.202507687121888,
+      0.7417424260195082,
+      -17
+    ],
+    "targetScreen": [
+      845.6865135497551,
+      412.7084788922791
+    ],
+    "distance": 21.712800182561818
+  }
+}

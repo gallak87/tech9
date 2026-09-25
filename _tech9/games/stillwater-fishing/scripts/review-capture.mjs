@@ -27,7 +27,7 @@ try {
   await page.waitForTimeout(800);
   await page.keyboard.up('Space');
   await page.waitForFunction(
-    () => window.__SCENE_TEST__.snapshot().game.phase === 'bite',
+    () => globalThis.__SCENE_TEST__.snapshot().game.phase === 'bite',
     undefined,
     { timeout: 15000 },
   );

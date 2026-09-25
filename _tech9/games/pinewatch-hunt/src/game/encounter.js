@@ -10,7 +10,16 @@ export function createSigns() {
     color: '#342a1d',
     roughness: 1,
   });
-  const hoof = new THREE.SphereGeometry(1, 7, 4);
+  const shape = new THREE.Shape();
+  shape.moveTo(0, -0.1);
+  shape.bezierCurveTo(-0.042, -0.07, -0.048, 0.045, -0.018, 0.095);
+  shape.bezierCurveTo(0.008, 0.12, 0.04, 0.065, 0.035, -0.055);
+  shape.closePath();
+  const hoof = new THREE.ShapeGeometry(shape, 10);
+  hoof.rotateX(-Math.PI / 2);
+  material.polygonOffset = true;
+  material.polygonOffsetFactor = -1;
+  material.polygonOffsetUnits = -1;
   for (let i = 0; i < 40; i++) {
     const z = 20 - i * 0.9,
       x = pathCenter(z) + Math.sin(i * 2.2) * 0.25;
@@ -19,8 +28,8 @@ export function createSigns() {
         const mark = new THREE.Mesh(hoof, material);
         const px = x + foot * 0.2 + toe * 0.045,
           pz = z + foot * 0.17;
-        mark.position.set(px, terrainHeight(px, pz) + 0.014, pz);
-        mark.scale.set(0.042, 0.012, 0.105);
+        mark.position.set(px, terrainHeight(px, pz) + 0.008, pz);
+        mark.scale.set(1, 1, 1);
         mark.rotation.y = -0.13 + foot * 0.15;
         group.add(mark);
       }
@@ -93,4 +102,52 @@ export function clearSight(from, to, colliders) {
       Math.hypot(from.x + dx * t - c.x, from.z + dz * t - c.z) < c.radius
     );
   });
+}
+
+/** Derive chain-of-circle proxies directly from the rendered deadfall instances. */
+export function getDeadfallColliders(scene) {
+  const circles = [],
+    matrix = new THREE.Matrix4(),
+    combined = new THREE.Matrix4();
+  scene.updateMatrixWorld(true);
+  scene.traverse((mesh) => {
+    if (
+      !mesh.isInstancedMesh ||
+      !mesh.name.startsWith('fallen_log/fallen_log_bark')
+    )
+      return;
+    for (let i = 0; i < mesh.count; i++) {
+      mesh.getMatrixAt(i, matrix);
+      combined.multiplyMatrices(mesh.matrixWorld, matrix);
+      const scale = new THREE.Vector3().setFromMatrixScale(combined);
+      for (let j = 0; j <= 13; j++) {
+        const point = new THREE.Vector3(j * 0.4, 0, 0).applyMatrix4(combined);
+        circles.push({
+          id: `log-${mesh.id}-${i}-${j}`,
+          kind: 'log',
+          x: point.x,
+          z: point.z,
+          radius: 0.34 * Math.max(scale.x, scale.z),
+        });
+      }
+    }
+  });
+  return circles;
+}
+/** Foliage cutout rectangles are not solid timber: raycasts ignore texture alpha. */
+export function collectShotBlockers(scene) {
+  const meshes = [];
+  scene.traverse((mesh) => {
+    if (!mesh.isMesh) return;
+    const materials = Array.isArray(mesh.material)
+      ? mesh.material
+      : [mesh.material];
+    if (
+      materials.every(
+        (m) => m && !m.isShaderMaterial && !m.transparent && !(m.alphaTest > 0),
+      )
+    )
+      meshes.push(mesh);
+  });
+  return meshes;
 }

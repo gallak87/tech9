@@ -106,3 +106,20 @@ test('large blockers interrupt line of sight but off-axis trunks do not', () => 
     true,
   );
 });
+
+test('alpha-cutout vegetation is excluded from solid arrow blockers', async () => {
+  const THREE = await import('three');
+  const { collectShotBlockers } = await import('../src/game/encounter.js');
+  const scene = new THREE.Scene(),
+    geometry = new THREE.BoxGeometry();
+  const solid = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial());
+  const foliage = new THREE.Mesh(
+    geometry,
+    new THREE.MeshStandardMaterial({ alphaTest: 0.4 }),
+  );
+  scene.add(solid, foliage);
+  assert.deepEqual(collectShotBlockers(scene), [solid]);
+  geometry.dispose();
+  solid.material.dispose();
+  foliage.material.dispose();
+});

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openScene, samplePerformance } from './lib/browser.mjs';
 import { pathCenter } from '../src/world/terrain.js';
@@ -80,6 +81,8 @@ async function drawRelease({ miss = false, mouse = false } = {}) {
   if (!miss) {
     await orient((await snapshot()).target);
     await page.screenshot({ path: out + '/aim.png' });
+    // Native cursor repositioning during capture can emit mouse movement.
+    await orient((await snapshot()).target);
   }
   if (mouse) await page.mouse.up();
   else await page.keyboard.up('Space');
@@ -90,10 +93,33 @@ async function drawRelease({ miss = false, mouse = false } = {}) {
 try {
   await page.waitForTimeout(700);
   await page.screenshot({ path: out + '/intro.png' });
+  await check('Menus preserve native keyboard focus', async () => {
+    await page.keyboard.press('Tab');
+    assert.equal(
+      await page.evaluate(() => document.activeElement?.id),
+      'scene',
+    );
+    await page.keyboard.press('Tab');
+    assert.equal(
+      await page.evaluate(() => document.activeElement?.id),
+      'begin',
+    );
+  });
   await check('Visible start enters a fresh hunt', async () => {
     await page.locator('#begin').click();
     await page.waitForTimeout(300);
     assert.equal((await snapshot()).mode, 'playing');
+    await page.waitForFunction(
+      () => document.pointerLockElement?.id === 'scene',
+    );
+    const before = (await snapshot()).yaw;
+    await page.mouse.move(830, 500);
+    await page.waitForTimeout(100);
+    assert.notEqual(
+      (await snapshot()).yaw,
+      before,
+      'Real mouse movement changes look while captured',
+    );
   });
   await check(
     'Real keyboard walk and quiet stalk locate the deer',
@@ -231,6 +257,28 @@ try {
       );
     },
   );
+  await check(
+    'Substantial rendered deadfall has solid walking proxies',
+    async () => {
+      const logs = (await snapshot()).colliders.filter((c) => c.kind === 'log');
+      assert.ok(logs.length >= 56);
+      const log = logs
+        .filter((c) => c.z > 2 && c.z < 8)
+        .sort((a, b) => b.x - a.x)[0];
+      assert.ok(log);
+      await walkTo(pathCenter(8), 8);
+      await walkTo(log.x, log.z + 2.3, { stop: 0.5 });
+      await orient([log.x, 1, log.z], false);
+      await hold('KeyW', 1500);
+      const s = await snapshot();
+      assert.ok(
+        logs.every(
+          (c) =>
+            Math.hypot(s.player[0] - c.x, s.player[2] - c.z) >= c.radius + 0.31,
+        ),
+      );
+    },
+  );
   await check('No runtime, network or WebGL errors', async () => {
     assert.deepEqual(scene.errors, {
       console: [],
@@ -246,6 +294,9 @@ try {
     out + '/report.json',
     JSON.stringify(
       {
+        sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], {
+          encoding: 'utf8',
+        }).trim(),
         environment: scene.environment,
         performance,
         results,

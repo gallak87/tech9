@@ -22,6 +22,7 @@ export class Walker {
     window.addEventListener(
       'keydown',
       (e) => {
+        if (!this.enabled) return;
         if (
           [
             'Space',

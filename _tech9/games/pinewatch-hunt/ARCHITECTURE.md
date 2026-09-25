@@ -7,7 +7,7 @@ This is an independently owned source fork of the registered forest-exploration 
 - `src/world/ForestWorld.js` owns deterministic forest placement, terrain and lighting-responsive vegetation. `terrain.js` is the ground query shared by actors and movement.
 - `src/game/Walker.js` replaces the fly camera through `setController`. It owns pointer lock, keyboard/mouse input, grounded movement, quiet pace and circular collision resolution. Pausing disables it and clears held inputs.
 - `src/game/rules.js` is the pure state machine: stalk, retrieve, won, lost; awareness/noise, arrow accounting, hit prerequisites and retrieval distance. `Hunt.js` owns runtime orchestration and UI modes (intro, playing, paused, result).
-- `src/game/encounter.js` owns the authored route, spawn/deer placement, hoofprints, trail post and simple visibility query. Full rendered world meshes are raycast at shot time for obstruction.
+- `src/game/encounter.js` owns the authored route, spawn/deer placement, hoofprints, trail post and simple visibility query. Only opaque solid world meshes are raycast at shot time for obstruction; alpha-cutout foliage does not become an invisible arrow wall. Deadfall collision chains are derived from rendered log instance transforms.
 - `src/game/models.js` owns procedural deer and bow geometry/materials, rig animation and resource disposal. `Hunt` owns their world/camera transforms. The down pose is non-graphic.
 - The HUD is mounted in `context.ui`, with action-specific instruction and a journal presentation. It does not own a rendering loop.
 

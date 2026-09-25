@@ -8,6 +8,8 @@ import {
   DEER,
   HUNT_BOUNDS,
   clearSight,
+  getDeadfallColliders,
+  collectShotBlockers,
 } from './encounter.js';
 
 export class Hunt {
@@ -29,7 +31,9 @@ export class Hunt {
     this.colliders = [
       ...context.definition.getColliders(),
       ...this.signs.colliders,
+      ...getDeadfallColliders(context.scene),
     ];
+    this.shotBlockers = collectShotBlockers(context.scene);
     this.deer = createDeer();
     context.scene.add(this.deer.group);
     this.bow = createBow(context.camera);
@@ -92,7 +96,7 @@ export class Hunt {
       won = this.state.phase === 'won';
     this.mount.dataset.mode = this.mode;
     const content = intro
-      ? `<span class="eyebrow">A WOODLAND FIELD JOURNAL &nbsp; / &nbsp; NO. 01</span><h1>Pinewatch<br/><em>Hunt.</em></h1><p class="lede">The forest gives you a sign.<br/>The rest is patience.</p><div class="instructions"><p><b>01</b><span><strong>Read the trail</strong>Follow fresh hoofprints to the northern clearing.</span></p><p><b>02</b><span><strong>Make your approach</strong>Hold Shift to move quietly. Watch the deer's alertness.</span></p><p><b>03</b><span><strong>Take a clear shot</strong>Hold right mouse to aim. Hold left mouse to draw;<br/>release when full. Walk to the deer and press E.</span></p></div><button id="begin">Enter the forest <span>↗</span></button><p class="small-print">HEADPHONES OPTIONAL &nbsp; · &nbsp; KEYBOARD + MOUSE<br/>Keyboard alternative: arrows look · Q aim · Space draw/release</p>`
+      ? `<span class="eyebrow">A WOODLAND FIELD JOURNAL &nbsp; / &nbsp; NO. 01</span><h1>Pinewatch<br/><em>Hunt.</em></h1><p class="lede">The forest gives you a sign.<br/>The rest is patience.</p><div class="instructions"><p><b>01</b><span><strong>Read the trail</strong>Follow fresh hoofprints to the northern clearing.</span></p><p><b>02</b><span><strong>Make your approach</strong>Hold Shift to move quietly. Watch the deer's alertness.</span></p><p><b>03</b><span><strong>Take a clear shot</strong>Hold right mouse to aim. Hold left mouse to draw;<br/>release when full. Walk to the deer and press E.</span></p></div><button id="begin">Enter the forest <span>↗</span></button><p class="small-print">A SHORT FOREST HUNT &nbsp; · &nbsp; KEYBOARD + MOUSE<br/>Keyboard alternative: arrows look · Q aim · Space draw/release</p>`
       : paused
         ? `<span class="eyebrow">TAKE A BREATH</span><h1>The forest<br/><em>can wait.</em></h1><p class="lede">Your hunt is paused.</p><div class="pause-controls">WASD walk · Shift quiet approach<br/>Mouse or arrow keys look<br/>Hold RMB or Q to aim<br/>Hold LMB or Space to draw, release to shoot<br/>E retrieve · Esc or P pause</div><label class="quality-label">RENDER QUALITY <select id="quality"><option value="balanced">Balanced</option><option value="high">High</option><option value="ultra">Ultra</option></select></label><button id="resume">Return to the trail <span>↗</span></button><button class="secondary" id="restart">Start a fresh hunt</button>`
         : `<span class="eyebrow">FIELD JOURNAL &nbsp; / &nbsp; ${won ? 'HUNT COMPLETE' : 'TRAIL LOST'}</span><h1>${won ? 'A moment<br/><em>earned.</em>' : 'Another<br/><em>morning.</em>'}</h1><p class="lede">${won ? 'A quiet approach. A clean shot.<br/>Your hunt is complete.' : this.state.message}</p><div class="result-stats"><div><strong>${this.formatTime()}</strong><span>IN THE FOREST</span></div><div><strong>${this.state.shots}</strong><span>ARROWS LOOSED</span></div>${won ? `<div><strong>${Math.round(this.state.hitRange)} m</strong><span>SHOT DISTANCE</span></div>` : ''}</div><p class="result-note">${won ? 'Follow the trail again. There is always a quieter approach.' : 'Move quietly inside 23 m. If the deer becomes alert, stop and let it settle.'}</p><button id="restart">Follow a fresh trail <span>↗</span></button>`;
@@ -145,10 +149,7 @@ export class Hunt {
     let hit = hits.length > 0;
     if (hit) {
       // Actual rendered terrain, timber and boulders can obstruct the arrow.
-      const world = this.context.scene.children.filter(
-        (o) => o !== this.deer.group && o !== camera && o.isGroup,
-      );
-      const blockers = this.ray.intersectObjects(world, true);
+      const blockers = this.ray.intersectObjects(this.shotBlockers, false);
       hit = !blockers.some((b) => b.distance < hits[0].distance - 0.05);
       // Terrain belongs to the forest group and is included above.
     }

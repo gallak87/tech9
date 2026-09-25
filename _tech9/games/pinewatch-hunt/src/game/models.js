@@ -83,42 +83,60 @@ function taperedBone(parent, material, a, b, r1, r2, sides = 10) {
   return mesh;
 }
 
-// An elliptical loft gives the back, breast and belly one continuous silhouette.
-function bodyMesh(material) {
-  const rings = [
-    [-0.81, 1.06, 0.055, 0.07],
-    [-0.73, 1.06, 0.18, 0.22],
-    [-0.55, 1.05, 0.255, 0.305],
-    [-0.29, 1.055, 0.245, 0.3],
-    [0.01, 1.065, 0.245, 0.325],
-    [0.29, 1.085, 0.225, 0.34],
-    [0.5, 1.11, 0.17, 0.305],
-    [0.61, 1.12, 0.07, 0.2],
-  ];
+// Smooth cross-section lofts keep muscles, neck and muzzle in a continuous skin.
+// Rings contain [axis coordinate, center offset, first radius, second radius].
+function organicLoft(material, rings, axis = 'x', shadeMode = 'body') {
+  const ordered = [...rings].sort((a, b) => a[0] - b[0]);
+  const centers = new THREE.CatmullRomCurve3(
+    ordered.map(([along, center]) => new THREE.Vector3(along, center, 0)),
+    false,
+    'centripetal',
+  );
+  const radii = new THREE.CatmullRomCurve3(
+    ordered.map(([along, , a, b]) => new THREE.Vector3(along, a, b)),
+    false,
+    'centripetal',
+  );
+  const steps = (ordered.length - 1) * 5;
   const sides = 24;
   const positions = [];
   const colors = [];
   const uvs = [];
   const indices = [];
-  const color = new THREE.Color();
-  rings.forEach(([x, y, radiusZ, radiusY], i) => {
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const center = centers.getPoint(t);
+    const radius = radii.getPoint(t);
+    const a = Math.max(0.001, radius.y);
+    const b = Math.max(0.001, radius.z);
     for (let j = 0; j <= sides; j++) {
       const angle = (j / sides) * Math.PI * 2;
       const vertical = Math.sin(angle);
-      positions.push(x, y + vertical * radiusY, Math.cos(angle) * radiusZ);
-      // Sable saddle, warm flank and a pale underside, without cartoon patches.
-      const shade =
-        vertical > 0 ? 0.83 - vertical * 0.14 : 0.9 - vertical * 0.26;
-      color.setRGB(shade, shade * 0.91, shade * 0.79);
-      colors.push(color.r, color.g, color.b);
-      uvs.push(j / sides, i / (rings.length - 1));
-      if (i < rings.length - 1 && j < sides) {
-        const a = i * (sides + 1) + j;
-        const b = a + sides + 1;
-        indices.push(a, b, a + 1, b, b + 1, a + 1);
+      const front = Math.cos(angle);
+      if (axis === 'x')
+        positions.push(center.x, center.y + vertical * a, front * b);
+      else positions.push(center.y + front * a, center.x, vertical * b);
+      let shade = 0.97 - Math.max(vertical, 0) * 0.055;
+      if (shadeMode === 'body') shade += Math.sin(t * 6.2) * 0.02;
+      if (shadeMode === 'neck')
+        shade += Math.max(front, 0) ** 3 * Math.sin(t * Math.PI) * 0.15;
+      if (shadeMode === 'leg') shade = 0.89 + t * 0.08;
+      colors.push(shade, shade * 0.985, shade * 0.96);
+      uvs.push(j / sides, t * 2.5);
+      if (i < steps && j < sides) {
+        const aIndex = i * (sides + 1) + j;
+        const bIndex = aIndex + sides + 1;
+        indices.push(
+          aIndex,
+          bIndex,
+          aIndex + 1,
+          bIndex,
+          bIndex + 1,
+          aIndex + 1,
+        );
       }
     }
-  });
+  }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
     'position',
@@ -129,8 +147,25 @@ function bodyMesh(material) {
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
   const mesh = new THREE.Mesh(geometry, material);
-  mesh.name = 'deer-vitals';
   mesh.castShadow = mesh.receiveShadow = true;
+  return mesh;
+}
+
+function bodyMesh(material) {
+  const mesh = organicLoft(material, [
+    [-0.84, 1.09, 0.007, 0.007],
+    [-0.76, 1.07, 0.2, 0.145],
+    [-0.62, 1.065, 0.28, 0.235],
+    [-0.43, 1.08, 0.26, 0.23],
+    [-0.23, 1.105, 0.24, 0.207],
+    [-0.03, 1.1, 0.275, 0.216],
+    [0.18, 1.09, 0.327, 0.22],
+    [0.34, 1.115, 0.327, 0.204],
+    [0.48, 1.155, 0.263, 0.165],
+    [0.57, 1.205, 0.17, 0.108],
+    [0.64, 1.235, 0.065, 0.048],
+  ]);
+  mesh.name = 'deer-vitals';
   return mesh;
 }
 
@@ -180,16 +215,19 @@ export function createDeer() {
   rig.position.y = -1.05;
   collapsePivot.add(rig);
   const fur = surfaceTexture('fur');
-  const coat = new THREE.MeshStandardMaterial({
-    color: '#9b7956',
-    roughness: 0.93,
+  const coat = new THREE.MeshPhysicalMaterial({
+    color: '#a98a65',
+    roughness: 0.96,
+    sheen: 0.65,
+    sheenColor: '#b9a582',
+    sheenRoughness: 0.9,
+    emissive: '#554934',
+    emissiveIntensity: 0.045,
     bumpMap: fur,
     bumpScale: 0.007,
   });
   const bodyCoat = coat.clone();
   bodyCoat.vertexColors = true;
-  const darkCoat = coat.clone();
-  darkCoat.color.set('#70573f');
   const cream = coat.clone();
   cream.color.set('#c3b496');
   const earInner = new THREE.MeshStandardMaterial({
@@ -217,8 +255,6 @@ export function createDeer() {
 
   const body = bodyMesh(bodyCoat);
   rig.add(body);
-  ellipsoid(rig, darkCoat, [0.33, 1.11, 0], [0.245, 0.31, 0.225]);
-  ellipsoid(rig, coat, [-0.54, 1.065, 0], [0.26, 0.285, 0.24]);
   const tail = new THREE.Group();
   tail.position.set(-0.77, 1.16, 0);
   tail.rotation.z = -0.4;
@@ -229,54 +265,54 @@ export function createDeer() {
   const neckPivot = new THREE.Group();
   neckPivot.position.set(0.43, 1.22, 0);
   rig.add(neckPivot);
-  const neck = ellipsoid(
-    neckPivot,
-    darkCoat,
-    [0.13, 0.16, 0],
-    [0.185, 0.34, 0.167],
-    'deer-neck',
+  const neck = organicLoft(
+    bodyCoat,
+    [
+      [-0.23, -0.035, 0.16, 0.151],
+      [-0.1, 0.005, 0.172, 0.158],
+      [0.065, 0.076, 0.159, 0.147],
+      [0.23, 0.157, 0.128, 0.118],
+      [0.355, 0.233, 0.1, 0.095],
+      [0.44, 0.271, 0.059, 0.074],
+    ],
+    'y',
+    'neck',
   );
-  neck.rotation.z = -0.46;
-  const throat = ellipsoid(
-    neckPivot,
-    cream,
-    [0.251, 0.17, 0],
-    [0.08, 0.245, 0.117],
-  );
-  throat.rotation.z = -0.46;
+  neck.name = 'deer-neck';
+  neckPivot.add(neck);
   const headRig = new THREE.Group();
   headRig.position.set(0.25, 0.405, 0);
   neckPivot.add(headRig);
-  const skull = ellipsoid(
-    headRig,
-    coat,
-    [0.085, 0, 0],
-    [0.205, 0.128, 0.117],
-    'deer-head',
+  const skull = organicLoft(
+    bodyCoat,
+    [
+      [-0.093, 0.005, 0.025, 0.03],
+      [-0.025, 0.003, 0.093, 0.089],
+      [0.077, -0.002, 0.105, 0.102],
+      [0.165, -0.022, 0.082, 0.081],
+      [0.255, -0.049, 0.057, 0.067],
+      [0.365, -0.066, 0.035, 0.056],
+      [0.399, -0.064, 0.024, 0.047],
+    ],
+    'x',
+    'head',
   );
-  skull.rotation.z = -0.14;
-  const muzzle = ellipsoid(
-    headRig,
-    darkCoat,
-    [0.253, -0.048, 0],
-    [0.17, 0.075, 0.074],
-  );
-  muzzle.rotation.z = -0.16;
-  ellipsoid(headRig, cream, [0.245, -0.085, 0], [0.13, 0.035, 0.065]);
-  ellipsoid(headRig, noseMaterial, [0.389, -0.062, 0], [0.043, 0.041, 0.065]);
+  skull.name = 'deer-head';
+  headRig.add(skull);
+  ellipsoid(headRig, noseMaterial, [0.392, -0.064, 0], [0.031, 0.031, 0.055]);
   const ears = [];
   for (const sign of [-1, 1]) {
     ellipsoid(
       headRig,
       cream,
-      [0.086, 0.025, sign * 0.105],
-      [0.05, 0.043, 0.022],
+      [0.08, 0.025, sign * 0.096],
+      [0.035, 0.031, 0.011],
     );
     ellipsoid(
       headRig,
       eyeMaterial,
-      [0.109, 0.026, sign * 0.12],
-      [0.026, 0.022, 0.012],
+      [0.093, 0.025, sign * 0.105],
+      [0.02, 0.016, 0.009],
     );
     // The teardrop ears are thin in X; their inset picks up soft side light.
     const ear = new THREE.Group();
@@ -347,46 +383,45 @@ export function createDeer() {
       rig.add(leg);
       const kneeX = rear ? 0.12 : -0.025;
       const hockX = rear ? -0.065 : -0.012;
-      const thigh = ellipsoid(
-        leg,
-        coat,
-        [rear ? 0.035 : -0.012, -0.16, 0],
-        [rear ? 0.145 : 0.088, 0.255, rear ? 0.095 : 0.065],
+      const upperLeg = organicLoft(
+        bodyCoat,
+        rear
+          ? [
+              [-0.425, kneeX, 0.032, 0.031],
+              [-0.33, 0.114, 0.054, 0.043],
+              [-0.18, 0.063, 0.096, 0.071],
+              [0.015, -0.008, 0.125, 0.092],
+              [0.13, -0.033, 0.09, 0.073],
+            ]
+          : [
+              [-0.425, kneeX, 0.027, 0.027],
+              [-0.3, -0.018, 0.035, 0.032],
+              [-0.15, -0.012, 0.061, 0.049],
+              [0.015, -0.011, 0.083, 0.065],
+              [0.15, -0.035, 0.058, 0.051],
+            ],
+        'y',
+        'leg',
       );
-      thigh.rotation.z = rear ? 0.37 : -0.08;
-      taperedBone(
-        leg,
-        coat,
-        [0, -0.07, 0],
-        [kneeX, -0.39, 0],
-        rear ? 0.11 : 0.065,
-        0.042,
-      );
+      leg.add(upperLeg);
       const lower = new THREE.Group();
       lower.position.set(kneeX, -0.39, 0);
       leg.add(lower);
-      taperedBone(
-        lower,
-        coat,
-        [0, 0, 0],
-        [hockX - kneeX, -0.265, 0],
-        0.038,
-        0.026,
+      const lowerLeg = organicLoft(
+        bodyCoat,
+        [
+          [-0.58, hockX - kneeX + 0.025, 0.018, 0.019],
+          [-0.47, hockX - kneeX + 0.018, 0.019, 0.017],
+          [-0.3, hockX - kneeX, 0.022, 0.023],
+          [-0.255, hockX - kneeX, 0.029, 0.026],
+          [-0.17, (hockX - kneeX) * 0.68, 0.025, 0.025],
+          [0.0, 0, 0.034, 0.03],
+          [0.025, 0, 0.029, 0.027],
+        ],
+        'y',
+        'leg',
       );
-      ellipsoid(
-        lower,
-        darkCoat,
-        [hockX - kneeX, -0.265, 0],
-        [0.035, 0.049, 0.034],
-      );
-      taperedBone(
-        lower,
-        darkCoat,
-        [hockX - kneeX, -0.25, 0],
-        [hockX - kneeX + 0.025, -0.57, 0],
-        0.023,
-        0.019,
-      );
+      lower.add(lowerLeg);
       const foot = ellipsoid(
         lower,
         hoof,
@@ -460,7 +495,7 @@ function bowLimb(parent, material, sign, inset = 0) {
   const curve = new THREE.CatmullRomCurve3([
     new THREE.Vector3(0, sign * 0.055, 0.004 + inset),
     new THREE.Vector3(0, sign * 0.19, -0.032 + inset),
-    new THREE.Vector3(0, sign * 0.35, -0.063 + inset),
+    new THREE.Vector3(0, sign * 0.35, -0.098 + inset),
     new THREE.Vector3(0, sign * 0.49, -0.005 + inset),
     new THREE.Vector3(0, sign * 0.535, -0.022 + inset),
   ]);
@@ -471,7 +506,7 @@ function bowLimb(parent, material, sign, inset = 0) {
   for (let i = 0; i <= sections; i++) {
     const t = i / sections;
     const center = curve.getPoint(t);
-    const width = 0.021 * (1 - t * 0.64);
+    const width = 0.017 * (1 - t * 0.67);
     const thickness = inset ? 0.0022 : 0.0075 * (1 - t * 0.55);
     for (let j = 0; j <= 8; j++) {
       const a = (j / 8) * Math.PI * 2;
@@ -507,22 +542,32 @@ function bowLimb(parent, material, sign, inset = 0) {
 export function createBow(camera) {
   const group = new THREE.Group();
   group.name = 'pinewatch-recurve-bow';
+  group.scale.set(0.82, 0.82, 0.88);
+  const bowFill = new THREE.PointLight('#ffe5bb', 0.42, 1.25, 2);
+  bowFill.position.set(-0.16, 0.27, 0.4);
+  group.add(bowFill);
   // Use the camera only for metadata; the game owns adding/removing the group.
   group.userData.cameraNear = camera?.near ?? 0.08;
   const woodTexture = surfaceTexture('wood');
   const wood = new THREE.MeshStandardMaterial({
-    color: '#6f3b1e',
+    color: '#ad7840',
+    emissive: '#795832',
+    emissiveIntensity: 0.12,
     map: woodTexture,
     bumpMap: woodTexture,
     bumpScale: 0.0015,
     roughness: 0.4,
   });
   const lamination = new THREE.MeshStandardMaterial({
-    color: '#b28b52',
+    color: '#dfc491',
+    emissive: '#aa8951',
+    emissiveIntensity: 0.1,
     roughness: 0.46,
   });
   const leather = new THREE.MeshStandardMaterial({
-    color: '#352b22',
+    color: '#655447',
+    emissive: '#5e5041',
+    emissiveIntensity: 0.1,
     roughness: 0.87,
   });
   const brass = new THREE.MeshStandardMaterial({
@@ -550,7 +595,7 @@ export function createBow(camera) {
   group.add(riser);
   for (const sign of [-1, 1]) {
     bowLimb(riser, wood, sign);
-    bowLimb(riser, lamination, sign, -0.0065);
+    bowLimb(riser, lamination, sign, 0.0065);
     ellipsoid(riser, leather, [0, sign * 0.53, -0.022], [0.009, 0.018, 0.009]);
   }
   const grip = ellipsoid(
@@ -585,6 +630,70 @@ export function createBow(camera) {
   const inlay = new THREE.Mesh(new THREE.PlaneGeometry(0.005, 0.035), brass);
   inlay.position.set(0, 0.145, -0.009);
   riser.add(inlay);
+
+  // A compact continuous glove and cuff give the bow a believable grip.
+  const glove = new THREE.MeshStandardMaterial({
+    color: '#89745c',
+    roughness: 0.88,
+    emissive: '#665541',
+    emissiveIntensity: 0.08,
+  });
+  const sleeve = new THREE.MeshStandardMaterial({
+    color: '#58635a',
+    roughness: 1,
+    emissive: '#3d483c',
+    emissiveIntensity: 0.07,
+  });
+  const palm = organicLoft(
+    glove,
+    [
+      [-0.12, 0.047, 0.025, 0.024],
+      [-0.09, 0.03, 0.036, 0.028],
+      [-0.052, 0.02, 0.04, 0.029],
+      [-0.012, 0.02, 0.041, 0.028],
+      [0.018, 0.024, 0.031, 0.023],
+    ],
+    'y',
+  );
+  palm.position.z = 0.023;
+  group.add(palm);
+  for (let i = 0; i < 4; i++) {
+    const y = -0.082 + i * 0.022;
+    const curve = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0.047, y, 0.025),
+      new THREE.Vector3(0.02, y, 0.052),
+      new THREE.Vector3(-0.01, y, 0.044),
+      new THREE.Vector3(-0.027, y, 0.018),
+      new THREE.Vector3(-0.021, y, -0.009),
+    ]);
+    group.add(
+      new THREE.Mesh(new THREE.TubeGeometry(curve, 14, 0.009, 7, false), glove),
+    );
+  }
+  branch(
+    group,
+    glove,
+    [
+      [0.052, -0.029, 0.021],
+      [0.049, 0.007, 0.039],
+      [0.021, 0.035, 0.041],
+      [-0.002, 0.03, 0.02],
+    ],
+    0.017,
+  );
+  const forearm = organicLoft(
+    sleeve,
+    [
+      [-0.31, 0.185, 0.066, 0.062],
+      [-0.2, 0.124, 0.059, 0.053],
+      [-0.075, 0.052, 0.045, 0.04],
+      [0.0, 0.012, 0.033, 0.032],
+    ],
+    'y',
+  );
+  forearm.rotation.x = -0.54;
+  forearm.position.set(0.03, -0.113, 0.025);
+  group.add(forearm);
 
   const stringGeometry = new THREE.BufferGeometry();
   stringGeometry.setAttribute(
@@ -659,16 +768,12 @@ export function createBow(camera) {
       const tension = clamp(draw, 0, 1);
       const sway = moving ? 0.009 : 0.0018;
       group.position.set(
-        (aiming ? 0.17 : 0.32) + Math.sin(time * (moving ? 7 : 1.5)) * sway,
-        (aiming ? -0.18 : -0.27) +
+        (aiming ? 0.31 : 0.42) + Math.sin(time * (moving ? 7 : 1.5)) * sway,
+        (aiming ? -0.23 : -0.32) +
           Math.cos(time * (moving ? 14 : 1.9)) * sway * 0.7,
-        aiming ? -0.57 : -0.61,
+        aiming ? -0.92 : -0.87,
       );
-      group.rotation.set(
-        0.03,
-        aiming ? -0.015 : -0.07,
-        aiming ? -0.055 : -0.17,
-      );
+      group.rotation.set(0.03, aiming ? -0.43 : -0.5, aiming ? -0.08 : -0.19);
       const nock = 0.016 + tension * 0.29;
       const positions = stringGeometry.attributes.position;
       positions.setXYZ(0, 0, -0.532, -0.021);

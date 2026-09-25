@@ -1,5 +1,5 @@
 export const DEFAULT_SETTINGS = Object.freeze({
-  quality: 'high',
+  quality: 'balanced',
   sunlight: 1,
   atmosphere: 1,
   richness: 1,

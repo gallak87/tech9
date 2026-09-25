@@ -11,12 +11,28 @@ try {
       ...forestDefinition,
       id: 'pinewatch-hunt',
       title: 'Pinewatch Hunt',
+      environment: {
+        ...forestDefinition.environment,
+        exposure: 1.02,
+        fog: { color: '#9cafa1', density: 0.012 },
+        hemisphere: { sky: '#cfdddd', ground: '#716245', intensity: 2.05 },
+        sun: {
+          ...forestDefinition.environment.sun,
+          intensity: 5.2,
+          position: [24, 31, -38],
+        },
+        sky: {
+          turbidity: 5,
+          rayleigh: 1.8,
+          mieCoefficient: 0.004,
+          mieDirectionalG: 0.82,
+        },
+      },
     },
     testMode,
     ui: document.querySelector('#world-hud'),
     storageKey: 'pinewatch-hunt.settings',
   });
-  app.setSettings({ quality: 'balanced' }, false);
   await app.register(forestDefinition.createWorld());
   const hunt = new Hunt(app);
   await app.register(hunt);

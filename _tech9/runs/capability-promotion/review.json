@@ -1,0 +1,396 @@
+{
+  "schemaVersion": 1,
+  "kind": "engineering-capability-promotion",
+  "date": "2026-09-25",
+  "status": "passed",
+  "initialCommit": "f27615150aabbdf7032f082325a1bbb1ca140557",
+  "runtimeCommit": "89bcfe0c46f505755940621d68e64b4a9a71662c",
+  "availabilityCommit": "bae0357ad8680358aefbdb1dd7b208b8806954fc",
+  "reviewer": "promotion_historian (read-only independent reviewer; authored no implementation)",
+  "reviewMethod": "Initial frozen source/contracts/provenance review and focused input reproduction; correction review including 14 controller tests and canonical/copy hash checks; final availability/evidence inspection. Reviewer performed no browser or GPU work.",
+  "findings": [
+    {
+      "priority": "P2",
+      "title": "OS repeats revived cleared movement/look after pause/resume",
+      "status": "fixed",
+      "foundAt": "f27615150aabbdf7032f082325a1bbb1ca140557",
+      "fixedAt": "89bcfe0c46f505755940621d68e64b4a9a71662c",
+      "evidence": "KeyW down, pause, enable, repeated keydown moved camera without a fresh press. Corrected controller ignores repeats; regression covers W movement and J look, then keyup/fresh press restores normal control."
+    }
+  ],
+  "producerCorrections": [
+    {
+      "issue": "Pond launch scripts did not enforce strict ports; verify replaced caller SCENE_PORT.",
+      "resolution": "Strict dev/preview ports; verify preserves SCENE_PORT and defaults to 4452."
+    },
+    {
+      "issue": "Initial walking tree-test route encountered a real rock before its intended tree.",
+      "resolution": "Clear waypoint toward tree-15; both proximity-to-boundary and non-penetration assertions retained; final source and copy tests passed."
+    }
+  ],
+  "scope": {
+    "frameworkOnly": true,
+    "acceptedGamesChanged": false,
+    "legacyRootChanged": false,
+    "tidebreak": "Only BRIEF.md and PROMPT.md; no boat implementation, scaffold, dependencies or managed goal started here.",
+    "waterEvidence": "Explicitly authorized early promotion: one fishing consumer, neutral framework example and standalone copy proof; no claimed second game or new art score."
+  },
+  "unitAndStatic": [
+    {
+      "scope": "framework and canonical modules",
+      "command": "./run test; ./run run lint",
+      "tests": 55,
+      "passed": true
+    },
+    {
+      "scope": "forest scene",
+      "command": "npm test; npm run lint; npm run build",
+      "tests": 20,
+      "passed": true
+    },
+    {
+      "scope": "pond scene",
+      "command": "npm test; npm run lint; npm run build",
+      "tests": 14,
+      "passed": true
+    },
+    {
+      "scope": "final catalog",
+      "command": "./run run t9 -- catalog; ./run run lint; git diff --check",
+      "passed": true
+    }
+  ],
+  "standalone": {
+    "sourceCommit": "89bcfe0c46f505755940621d68e64b4a9a71662c",
+    "fixtureCommit": "6b7a6868572194977bf96bfdfb24215da04c5135",
+    "method": "git archive of committed source; pond enabled only in disposable catalog for prerelease copy proof; actual forkStarter; remove all framework source before dependency installation/build/tests",
+    "dependencyMode": "Independent npm ci --offline --ignore-scripts --no-audit --no-fund; no symlink to source packages. Framework source removed before installs, tests, builds and browsers.",
+    "forks": [
+      {
+        "starter": {
+          "id": "forest-exploration",
+          "version": "0.2.0"
+        },
+        "scene": {
+          "id": "alder-vale",
+          "version": "1.2.0"
+        },
+        "sourceSha256": "28493895bd8448401bf9fdfa8a450b38bb37167dee946388ac5ef1d8f72a5cc6",
+        "files": 83
+      },
+      {
+        "starter": {
+          "id": "pond-exploration",
+          "version": "0.1.0"
+        },
+        "scene": {
+          "id": "stillwater-pond",
+          "version": "1.0.0"
+        },
+        "sourceSha256": "e775ea11a801b41e1a0bbe830ed12e48d5d5f2e79fa3cdc79a6bbf551a2a083a",
+        "files": 90
+      }
+    ],
+    "checks": [
+      {
+        "starter": "forest-exploration",
+        "command": "npm ci --offline --ignore-scripts --no-audit --no-fund",
+        "passed": true
+      },
+      {
+        "starter": "forest-exploration",
+        "command": "npm test",
+        "passed": true
+      },
+      {
+        "starter": "forest-exploration",
+        "command": "npm run build",
+        "passed": true
+      },
+      {
+        "starter": "pond-exploration",
+        "command": "npm ci --offline --ignore-scripts --no-audit --no-fund",
+        "passed": true
+      },
+      {
+        "starter": "pond-exploration",
+        "command": "npm test",
+        "passed": true
+      },
+      {
+        "starter": "pond-exploration",
+        "command": "npm run build",
+        "passed": true
+      }
+    ]
+  },
+  "browser": [
+    {
+      "id": "forest-flight",
+      "port": 4470,
+      "command": "SCENE_PORT=4470 node tests/browser.mjs",
+      "checks": [
+        {
+          "name": "ready and complete scene",
+          "pass": true
+        },
+        {
+          "name": "exactly five live high-level controls",
+          "pass": true
+        },
+        {
+          "name": "flight responds to keyboard and elevation",
+          "pass": true
+        },
+        {
+          "name": "flight stops at authored map bounds",
+          "pass": true
+        },
+        {
+          "name": "all quality settings and authored camera presets",
+          "pass": true
+        },
+        {
+          "name": "responsive canvas and controls",
+          "pass": true
+        },
+        {
+          "name": "repeated quality and density tuning releases GPU resources",
+          "pass": true
+        },
+        {
+          "name": "measured frame timing and render metrics",
+          "pass": true
+        },
+        {
+          "name": "no browser asset or WebGL errors",
+          "pass": true
+        },
+        {
+          "name": "ordinary production launch exposes no test hooks",
+          "pass": true
+        }
+      ],
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpu": "Apple M1 Pro",
+        "browser": "151.0.7922.34",
+        "browserExecutable": "/Users/g/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+        "headless": true,
+        "viewport": {
+          "width": 1600,
+          "height": 1000
+        }
+      },
+      "settings": {
+        "quality": "high",
+        "sunlight": 1,
+        "atmosphere": 1,
+        "richness": 1,
+        "exposure": 1
+      },
+      "performance": {
+        "samples": 296,
+        "meanMs": 16.89189189189189,
+        "medianMs": 16.699999999999818,
+        "p95Ms": 17.600000000000364,
+        "meanFps": 59.2,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "drawingBuffer": [1600, 1000],
+        "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+      },
+      "passed": true
+    },
+    {
+      "id": "forest-walking-native",
+      "port": 4470,
+      "command": "SCENE_PORT=4470 HEADED=1 node tests/walking-browser.mjs",
+      "checks": [
+        {
+          "name": "walking starts disabled and retains five graphics controls",
+          "pass": true
+        },
+        {
+          "name": "start, WASD movement and terrain-following eye height use real input",
+          "pass": true
+        },
+        {
+          "name": "keyboard and right-drag look work without capture",
+          "pass": true
+        },
+        {
+          "name": "pause clears held movement and resume starts without stuck input",
+          "pass": true
+        },
+        {
+          "name": "authored tree blocks a real walking approach",
+          "pass": true
+        },
+        {
+          "name": "tuning pauses walking and range keyboard input stays with the menu",
+          "pass": true
+        },
+        {
+          "name": "native capture, actual focus transfer and resume clear motion",
+          "pass": true
+        },
+        {
+          "name": "walking runtime has no page, asset, console or WebGL errors",
+          "pass": true
+        },
+        {
+          "name": "normal walking URL exposes no test globals",
+          "pass": true
+        }
+      ],
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpu": "Apple M1 Pro",
+        "browser": "151.0.7922.34",
+        "browserExecutable": "/Users/g/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+        "headless": false,
+        "viewport": {
+          "width": 1600,
+          "height": 1000
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "forest-standalone",
+      "port": 4472,
+      "command": "SCENE_PORT=4472 node tests/walking-browser.mjs",
+      "checks": [
+        {
+          "name": "walking starts disabled and retains five graphics controls",
+          "pass": true
+        },
+        {
+          "name": "start, WASD movement and terrain-following eye height use real input",
+          "pass": true
+        },
+        {
+          "name": "keyboard and right-drag look work without capture",
+          "pass": true
+        },
+        {
+          "name": "pause clears held movement and resume starts without stuck input",
+          "pass": true
+        },
+        {
+          "name": "authored tree blocks a real walking approach",
+          "pass": true
+        },
+        {
+          "name": "tuning pauses walking and range keyboard input stays with the menu",
+          "pass": true
+        },
+        {
+          "name": "walking runtime has no page, asset, console or WebGL errors",
+          "pass": true
+        },
+        {
+          "name": "normal walking URL exposes no test globals",
+          "pass": true
+        }
+      ],
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpu": "Apple M1 Pro",
+        "browser": "151.0.7922.34",
+        "browserExecutable": "/Users/g/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+        "headless": true,
+        "viewport": {
+          "width": 1600,
+          "height": 1000
+        }
+      },
+      "nativeCapture": "Not exercised: run HEADED=1 on an unlocked desktop for native capture/focus validation.",
+      "passed": true
+    },
+    {
+      "id": "pond-standalone",
+      "port": 4473,
+      "command": "SCENE_PORT=4473 node tests/browser.mjs",
+      "checks": [
+        {
+          "name": "neutral menu, exact five settings and frozen pre-start controls",
+          "pass": true
+        },
+        {
+          "name": "visible start and real grounded keyboard movement",
+          "pass": true
+        },
+        {
+          "name": "real walking reaches the shore and cannot cross the footprint",
+          "pass": true
+        },
+        {
+          "name": "pause freezes movement and look; restart clears held keys",
+          "pass": true
+        },
+        {
+          "name": "real approach to authored bank rock is blocked by its shared placement proxy",
+          "pass": true
+        },
+        {
+          "name": "five visible graphics controls apply and reflection quality follows presets",
+          "pass": true
+        },
+        {
+          "name": "blur pauses and narrow viewport retains desktop guidance",
+          "pass": true
+        },
+        {
+          "name": "ordinary URL exposes no test hooks and no browser or asset errors",
+          "pass": true
+        }
+      ],
+      "environment": {
+        "platform": "darwin",
+        "arch": "arm64",
+        "cpu": "Apple M1 Pro",
+        "browser": "151.0.7922.34",
+        "browserExecutable": "/Users/g/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+        "headless": true,
+        "viewport": {
+          "width": 1600,
+          "height": 1000
+        }
+      },
+      "settings": {
+        "quality": "balanced",
+        "sunlight": 1,
+        "atmosphere": 1,
+        "richness": 1,
+        "exposure": 1
+      },
+      "performance": {
+        "samples": 420,
+        "meanMs": 8.333095238095238,
+        "medianMs": 8.299999999999272,
+        "p95Ms": 9.200000000000728,
+        "meanFps": 120.00342866939056,
+        "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "drawingBuffer": [1600, 1000],
+        "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+      },
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "Observed animation-frame timings are not isolated GPU measurements or hardware FPS guarantees; external machine load uncontrolled. Browser/GPU runs serialized.",
+    "Pond blur assertion is dispatched; native mouse capture and real focus transfer verified in forest integration of the identical controller.",
+    "No new art cycle; earlier accepted-pilot art scores unchanged.",
+    "Pond water is not an ocean/boat system. Terrain, vegetation and collision queries must stay coupled.",
+    "Collision uses static conservative horizontal proxies, not full 3D physics; pond decorative deadfall and small foliage remain non-solid.",
+    "Vite retains a large-chunk advisory."
+  ],
+  "screenshot": {
+    "path": "pond-shore.png",
+    "source": "Standalone pond-copy production build from runtimeCommit; Balanced, 1600x1000, headless Chromium/Metal as recorded above."
+  }
+}

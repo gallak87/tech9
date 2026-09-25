@@ -13,9 +13,9 @@ try {
       title: 'Pinewatch Hunt',
       environment: {
         ...forestDefinition.environment,
-        exposure: 1.02,
-        fog: { color: '#9cafa1', density: 0.012 },
-        hemisphere: { sky: '#cfdddd', ground: '#716245', intensity: 2.05 },
+        exposure: 0.94,
+        fog: { color: '#8da295', density: 0.016 },
+        hemisphere: { sky: '#cfdddd', ground: '#716245', intensity: 1.85 },
         sun: {
           ...forestDefinition.environment.sun,
           intensity: 5.2,
@@ -33,6 +33,11 @@ try {
     ui: document.querySelector('#world-hud'),
     storageKey: 'pinewatch-hunt.settings',
   });
+  // Keep bright sky gaps within the forest's game-local exposure range.
+  app.sky.material.fragmentShader = app.sky.material.fragmentShader.replace(
+    'vec4(texColor, 1.0)',
+    'vec4(texColor * 0.42, 1.0)',
+  );
   await app.register(forestDefinition.createWorld());
   const hunt = new Hunt(app);
   await app.register(hunt);

@@ -3,6 +3,7 @@ import * as THREE from 'three';
 // All geometry and surface detail in this file is authored for Pinewatch.
 // Actor transforms belong to the caller; animation lives one level below them.
 const UP = new THREE.Vector3(0, 1, 0);
+const FORWARD = new THREE.Vector3(0, 0, -1);
 const clamp = THREE.MathUtils.clamp;
 
 function materialsFor(root) {
@@ -29,7 +30,7 @@ function materialsFor(root) {
 }
 
 function surfaceTexture(kind) {
-  const size = 128;
+  const size = kind === 'coat' ? 256 : 128;
   const data = new Uint8Array(size * size * 4);
   let seed = 8351;
   for (let y = 0; y < size; y++) {
@@ -42,7 +43,21 @@ function surfaceTexture(kind) {
           ? 162 + grain * 35 + noise * 27
           : 185 + noise * 54 + Math.sin(x * 2.5 + y * 0.15) * 14;
       const i = (y * size + x) * 4;
-      data[i] = data[i + 1] = data[i + 2] = value;
+      if (kind === 'coat') {
+        // Broad pigment changes and long, low-contrast fiber strokes survive mipmaps.
+        const pigment =
+          Math.sin(x * 0.037 + Math.sin(y * 0.029) * 0.9) * 9 +
+          Math.sin(y * 0.066 + x * 0.019) * 5;
+        const fiber =
+          Math.sin(x * 1.19 + Math.sin(y * 0.075) * 0.75) * 5 +
+          Math.sin(x * 2.37 + y * 0.011) * 3;
+        const shade = pigment + fiber + (noise - 0.5) * 4;
+        data[i] = 225 + shade;
+        data[i + 1] = 205 + shade * 0.87;
+        data[i + 2] = 174 + shade * 0.67;
+      } else {
+        data[i] = data[i + 1] = data[i + 2] = value;
+      }
       data[i + 3] = 255;
     }
   }
@@ -51,7 +66,11 @@ function surfaceTexture(kind) {
   texture.magFilter = THREE.LinearFilter;
   texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.generateMipmaps = true;
-  texture.repeat.set(kind === 'wood' ? 2 : 3, kind === 'wood' ? 1 : 3);
+  texture.repeat.set(
+    kind === 'wood' ? 2 : kind === 'coat' ? 1 : 3,
+    kind === 'wood' || kind === 'coat' ? 1 : 3,
+  );
+  if (kind === 'coat') texture.colorSpace = THREE.SRGBColorSpace;
   texture.needsUpdate = true;
   return texture;
 }
@@ -117,7 +136,13 @@ function organicLoft(material, rings, axis = 'x', shadeMode = 'body') {
         positions.push(center.x, center.y + vertical * a, front * b);
       else positions.push(center.y + front * a, center.x, vertical * b);
       let shade = 0.97 - Math.max(vertical, 0) * 0.055;
-      if (shadeMode === 'body') shade += Math.sin(t * 6.2) * 0.02;
+      if (shadeMode === 'body')
+        shade +=
+          Math.sin(t * 6.2) * 0.03 -
+          Math.max(vertical, 0) ** 2 * 0.24 +
+          Math.max(-vertical, 0) ** 3 * 0.1;
+      if (shadeMode === 'head')
+        shade -= Math.max(vertical, 0) * 0.16 + Math.max(0, t - 0.55) * 0.24;
       if (shadeMode === 'neck')
         shade += Math.max(front, 0) ** 3 * Math.sin(t * Math.PI) * 0.15;
       if (shadeMode === 'leg') shade = 0.89 + t * 0.08;
@@ -216,9 +241,10 @@ export function createDeer() {
   collapsePivot.add(rig);
   const fur = surfaceTexture('fur');
   const coat = new THREE.MeshPhysicalMaterial({
-    color: '#a98a65',
+    color: '#c3ab89',
+    map: surfaceTexture('coat'),
     roughness: 0.96,
-    sheen: 0.65,
+    sheen: 0.42,
     sheenColor: '#b9a582',
     sheenRoughness: 0.9,
     emissive: '#554934',
@@ -245,12 +271,12 @@ export function createDeer() {
     roughness: 0.68,
   });
   const noseMaterial = new THREE.MeshStandardMaterial({
-    color: '#28261f',
-    roughness: 0.45,
+    color: '#211f19',
+    roughness: 0.31,
   });
   const eyeMaterial = new THREE.MeshStandardMaterial({
     color: '#100d08',
-    roughness: 0.12,
+    roughness: 0.08,
   });
 
   const body = bodyMesh(bodyCoat);
@@ -559,9 +585,12 @@ export function createBow(camera) {
     roughness: 0.4,
   });
   const lamination = new THREE.MeshStandardMaterial({
-    color: '#dfc491',
-    emissive: '#aa8951',
-    emissiveIntensity: 0.1,
+    color: '#af8752',
+    map: woodTexture,
+    bumpMap: woodTexture,
+    bumpScale: 0.001,
+    emissive: '#7e613c',
+    emissiveIntensity: 0.06,
     roughness: 0.46,
   });
   const leather = new THREE.MeshStandardMaterial({
@@ -702,8 +731,13 @@ export function createBow(camera) {
   );
   const string = new THREE.Line(stringGeometry, stringMaterial);
   group.add(string);
+  const arrowDirection = new THREE.Vector3();
+  const bowInverse = new THREE.Quaternion();
+  const arrowAim = new THREE.Group();
+  group.add(arrowAim);
   const arrow = new THREE.Group();
-  group.add(arrow);
+  arrow.position.set(-0.017, -0.005, 0);
+  arrowAim.add(arrow);
   const shaft = taperedBone(
     arrow,
     wood,
@@ -781,7 +815,15 @@ export function createBow(camera) {
       positions.setXYZ(2, 0, 0.532, -0.021);
       positions.needsUpdate = true;
       stringGeometry.computeBoundingSphere();
-      arrow.position.z = nock;
+      arrowAim.position.set(0.017, 0.005, nock);
+      // Bow profile remains canted; the nocked shaft follows camera forward.
+      bowInverse.copy(group.quaternion).invert();
+      arrowDirection
+        .copy(FORWARD)
+        .applyQuaternion(bowInverse)
+        .divide(group.scale)
+        .normalize();
+      arrowAim.quaternion.setFromUnitVectors(FORWARD, arrowDirection);
       riser.scale.z = 1 - tension * 0.25;
     },
     dispose() {

@@ -7,8 +7,11 @@ export function createSigns() {
   const group = new THREE.Group();
   group.name = 'Fresh split-hoof trail';
   const material = new THREE.MeshStandardMaterial({
-    color: '#342a1d',
+    color: '#17170f',
     roughness: 1,
+    transparent: true,
+    opacity: 0.76,
+    depthWrite: false,
   });
   const shape = new THREE.Shape();
   shape.moveTo(0, -0.1);
@@ -21,7 +24,7 @@ export function createSigns() {
   material.polygonOffsetFactor = -1;
   material.polygonOffsetUnits = -1;
   for (let i = 0; i < 40; i++) {
-    const z = 20 - i * 0.9,
+    const z = 20 - i * 0.9 + Math.sin(i * 5.2) * 0.14,
       x = pathCenter(z) + Math.sin(i * 2.2) * 0.25;
     for (const foot of [-1, 1])
       for (const toe of [-1, 1]) {
@@ -29,7 +32,8 @@ export function createSigns() {
         const px = x + foot * 0.2 + toe * 0.045,
           pz = z + foot * 0.17;
         mark.position.set(px, terrainHeight(px, pz) + 0.008, pz);
-        mark.scale.set(1, 1, 1);
+        mark.scale.setScalar(0.85 + (Math.sin(i * 3.7 + foot) + 1) * 0.12);
+        mark.receiveShadow = true;
         mark.rotation.y = -0.13 + foot * 0.15;
         group.add(mark);
       }

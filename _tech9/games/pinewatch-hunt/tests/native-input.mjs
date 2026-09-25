@@ -11,6 +11,7 @@ const snapshot = () => page.evaluate(() => window.__HUNT_TEST__.snapshot());
 const results = [];
 async function captureButton(id) {
   await page.bringToFront();
+  await page.waitForTimeout(500);
   await page.locator(id).click();
   await page.waitForFunction(
     () => document.pointerLockElement?.id === 'scene',

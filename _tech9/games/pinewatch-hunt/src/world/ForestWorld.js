@@ -359,6 +359,20 @@ function treePlacements() {
       });
     }
   }
+  // Authored depth break behind the hunt clearing. These use the same instanced
+  // source pines and collision derivation as the rest of this owned forest.
+  for (const [x, z, scale, angle] of [
+    [-5, -33, 0.72, 0.6],
+    [1, -39, 0.64, 2.2],
+    [9, -35, 0.78, 4.1],
+    [16, -32, 0.69, 1.7],
+    [-10, -40, 0.85, 3.4],
+    [20, -42, 0.76, 5.2],
+    [3, -47, 0.84, 2.7],
+    [12, -48, 0.62, 0.3],
+    [-3, -51, 0.75, 1.1],
+  ])
+    points.push({ x, z, scale, angle });
   const result = [[], [], []];
   for (const [index, point] of points.entries()) {
     const scale = new THREE.Vector3(

@@ -269,12 +269,13 @@ try {
         sourceCommit: execFileSync('git', ['rev-parse', 'HEAD'], {
           encoding: 'utf8',
         }).trim(),
+        settings: (await scene.snapshot()).settings,
         environment: scene.environment,
         performance,
         results,
         errors: scene.errors,
         focusTest:
-          'Browser blur event injected for focus loss; core gameplay exclusively real keyboard and mouse; pointer lock exited with browser DOM API.',
+          'Browser blur event injected for focus loss; core gameplay exclusively real keyboard and mouse. See separate verify:native for actual window focus and pointer release.',
         final: brief(await snapshot()),
       },
       null,

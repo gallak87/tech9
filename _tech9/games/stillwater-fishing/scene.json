@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "stillwater-fishing",
+  "version": "1.1.0",
+  "title": "Stillwater",
+  "kind": "forest-pond-fishing",
+  "runtime": "threejs-webgl2",
+  "entry": "src/main.js",
+  "definition": "src/world/forestDefinition.js",
+  "units": "metres",
+  "extent": {
+    "width": 160,
+    "depth": 160
+  },
+  "licenseIndex": "public/assets/STILLWATER_SOURCES.md",
+  "sourceArt": "art/forest-kit.blend",
+  "limitations": [
+    "Desktop keyboard and mouse; no touch controls",
+    "Approximate tree/rock circle collisions; shore footprint",
+    "One procedural trout species, no animated hands or audio",
+    "Bounded planar reflections and static forest shadows"
+  ]
+}

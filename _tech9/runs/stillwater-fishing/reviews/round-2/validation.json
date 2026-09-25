@@ -1,0 +1,80 @@
+{
+  "round": 2,
+  "sourceCommit": "f0395f755c871a1d6721b55037e808641a169835",
+  "environment": {
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpu": "Apple M1 Pro",
+    "browser": "151.0.7922.34",
+    "browserExecutable": "/Users/g/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+    "headless": true,
+    "viewport": {
+      "width": 1600,
+      "height": 1000
+    }
+  },
+  "performance": {
+    "samples": 600,
+    "meanMs": 8.333333333333332,
+    "medianMs": 8.300000000000182,
+    "p95Ms": 9.900000000000546,
+    "meanFps": 120.00000000000001,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+    "drawingBuffer": [1600, 1000],
+    "note": "Observed browser requestAnimationFrame intervals; includes headless/browser scheduling and is not a production hardware FPS guarantee."
+  },
+  "settings": {
+    "quality": "balanced",
+    "sunlight": 1,
+    "atmosphere": 1,
+    "richness": 1,
+    "exposure": 1
+  },
+  "validation": {
+    "realInput": "walk, charge, cast, bite, hook, reel/ease, land, release",
+    "landed": {
+      "phase": "landed",
+      "paused": false,
+      "catches": 1,
+      "lastCatch": {
+        "species": "Brook trout",
+        "lengthCm": 35,
+        "weightKg": 0.57
+      },
+      "message": "A beautiful brook trout. Release it when you are ready.",
+      "reason": "",
+      "timer": 0,
+      "power": 0.544272000000001,
+      "distance": 16.149622806184492,
+      "fightTime": 44.11050000000129,
+      "tension": 0.47143750000000145,
+      "progress": 1,
+      "pulling": false,
+      "slackTime": 0,
+      "biteDelay": 5.8,
+      "castNumber": 1,
+      "started": true,
+      "released": 0,
+      "held": false,
+      "castTarget": [0, -0.14, 3.949857193815479],
+      "aim": {
+        "target": {
+          "x": 0,
+          "y": -0.14,
+          "z": 5.646753193815496
+        },
+        "distance": 14.452726806184474,
+        "valid": true
+      },
+      "position": [0, 2.230148526564459, 20.099479999999968]
+    },
+    "minTension": 0.24,
+    "maxTension": 0.7187605000000029
+  },
+  "errors": {
+    "console": [],
+    "page": [],
+    "requests": [],
+    "webgl": []
+  }
+}

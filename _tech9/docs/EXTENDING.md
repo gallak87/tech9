@@ -29,6 +29,6 @@ Build one small runnable platformer, overhead or racing example first. Place its
 
 Only mark it available after a real source fork independently builds and passes its core playthrough. Do not make forest core accommodate unrelated renderers prematurely.
 
-## Promote learning
+## Bring back a capability
 
-Games stay independent. Port a fix intentionally, compare against `tech9.json` source hashes, test both projects, then bump the source version if its contract changes. Existing receipts keep their original versions. Prefer two uses before promotion; explicitly authorized earlier extraction records its smaller evidence base. A registered module needs a small interface, cleanup rules, tests, provenance and a working integration example. Canonical source is copied into framework examples with `sync:modules`; that command never upgrades an existing game.
+Use [FRAMEWORK_DEV.md](../FRAMEWORK_DEV.md) as a first-class task. Inspect game source, extract the shared behavior, test it and choose one usage aid: an example OR concise documentation. Keep required licenses and current limits; omit promotion history. Canonical module copies use `sync:modules`, which never upgrades existing games. Temporary plans and reviews stay in ignored `runs/`; a fresh clone must not need them.

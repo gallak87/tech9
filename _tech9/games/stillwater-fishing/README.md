@@ -38,18 +38,12 @@ npm run verify:game
 
 Browser checks use port 4442 and an installed Playwright Chromium. `CHROMIUM_PATH` can select a local browser. Reports and temporary images go to ignored `.artifacts/verification`. Tests send real input through a complete catch, release and recast plus recovery states. Read-only snapshots exist only at `?test=1`; no hook can award a catch.
 
-See [architecture](ARCHITECTURE.md), [run record](../../runs/stillwater-fishing/EXECUTION.md) and [consumer notes](../../runs/stillwater-fishing/CONSUMER_NOTES.md) for ownership, measured performance, review evidence and limits. The receipt `tech9.json` and copied `GAME_PLAN.json` preserve the starter provenance.
+See [architecture](ARCHITECTURE.md) for ownership and current limits. Review reports and temporary consumer notes stay local and ignored. The receipt `tech9.json` and copied `GAME_PLAN.json` preserve the starter provenance.
 
 ## Scope and limitations
 
-One pond, one procedural brook trout, one rod and one attempt at a time. The fish/rod are geometric prototypes; the player has no animated hands. Static forest shadows, approximate trunk/rock collisions, and a bounded low-resolution planar reflection prioritize frame time. There are no boats, swimming, inventory, economy or mobile controls. Review scores and actual measurements are recorded in the run, independently of correctness.
+One pond, one procedural brook trout, one rod and one attempt at a time. The fish/rod are geometric prototypes; the player has no animated hands. Static forest shadows, approximate trunk/rock collisions, and a bounded low-resolution planar reflection prioritize frame time. There are no boats, swimming, inventory, economy or mobile controls.
 
 New visual assets are authored in code; see [asset sources](public/assets/STILLWATER_SOURCES.md). The original forest assets, Blender sources and license records remain included.
 
 Native mouse capture and operating-system focus loss were unavailable to the automated browser on this host. Right-drag and keyboard look are verified; pause handlers have persistent unit tests. These two native interactions remain a manual playtest limitation.
-
-## Handoff result
-
-Playable checkpoint `48f6b9ce` on `codex/stillwater-fishing`: 38 unit tests, lint/build and 15 real-input browser checks passed; two native-input checks remain unavailable. Balanced measured 119.96 mean observed FPS at 1600 × 1000 on this Apple M1 Pro/ANGLE Metal browser.
-
-The independent art scores were **6.1 → 6.6 → 6.9 → 7.2 / 10**. The **8/10 art gate failed at the four-round cap**. No further art cycle was run. See the [handoff](../../runs/stillwater-fishing/HANDOFF.md) and [final critique](../../runs/stillwater-fishing/reviews/round-4/review.json) for evidence and remaining visual deficits.

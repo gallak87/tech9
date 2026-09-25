@@ -1,6 +1,6 @@
 # Pinewatch Hunt architecture
 
-This is an independently owned source fork of the registered forest-exploration starter. `tech9.json` and `GAME_PLAN.json` remain byte-for-byte provenance, including their original scaffold status. See the run execution record for delivery status.
+This is an independently owned source fork of the registered forest-exploration starter. `tech9.json` and `GAME_PLAN.json` remain byte-for-byte provenance, including their original scaffold status. Current launch and scope are described in the game README.
 
 - `src/main.js` composes the local forest renderer and the Hunt layer. The scene/storage identity is `pinewatch-hunt`; normal runs expose no test globals.
 - `src/core/SceneApp.js` owns renderer, atmosphere, quality, frame loop and layer lifecycle. It updates one controller before the game layer. Forest source and textures remain game-local.

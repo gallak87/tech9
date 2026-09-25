@@ -8,10 +8,6 @@
       "source": "_tech9/modules/grounded-walking",
       "files": [
         {
-          "path": "README.md",
-          "sha256": "ee09795c99918fcfecffd134879e85334720fe4932c120bd0f2eacd3185578fe"
-        },
-        {
           "path": "src/WalkingController.js",
           "sha256": "2ba856e6c6619a2b080d7baf6086f4cac918731f8e3ac4682b6c36c8b3e75dbd"
         }
@@ -22,10 +18,6 @@
       "version": "1.0.0",
       "source": "_tech9/modules/placement-collisions",
       "files": [
-        {
-          "path": "README.md",
-          "sha256": "8ae92d451540437b74347b651510dda49cdbf7bce6f55dde2e7e2505be85d62a"
-        },
         {
           "path": "src/placementCollisions.js",
           "sha256": "927897abb073f123c4ba2f996fcb8eedd1726323bad05ec4eaff13e18cb7410d"

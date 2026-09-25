@@ -76,28 +76,24 @@ Browser scripts launch Vite and Playwright automatically, or reuse `SCENE_URL`. 
 
 ESLint, Prettier and lint-staged are installed with this scene. Package installation does not change repository hooks. An optional scoped hook is documented in the [framework README](../../README.md); use it explicitly when working on `_tech9`. Existing games retain their own tooling. Run this scene's lint and tests directly before committing.
 
-## Art gates
+## Visual limits
 
-Each deliverable checkpoint is committed, then reviewed by a separate art critic using actual browser frames. `docs/reviews/` holds compact JSON assessments and up to two representative screenshots per round. A gate ends at ≥8/10 or four rounds. Scores assess visible quality against the supplied forest reference; measured performance is recorded separately and never inferred from a screenshot.
-
-The initial gate ended after four rounds at **6.2/10**, below the 8/10 target. The result is a working forest concept; near-photoreal AAA art remains unfinished. The final [review](docs/reviews/checkpoint-1-round-4.json) and its two screenshots document repetitive tree/canopy forms, wiry grass, simple rocks, sparse distant terrain and lighting limitations for the next art pass.
-
-Historical pre-migration validation: **12 unit tests, 9 Playwright checks, lint and production build passed**. Default High quality at 1600 × 1000, DPR 1, in Chromium/ANGLE Metal on Apple M1 Pro measured **71.8 FPS on the trail and 93.1 FPS in the grove**, with no browser, asset or WebGL errors. These are observed browser frame intervals on this machine, not a guarantee on other hardware. Every implementation attempt and independent review is committed separately.
+The forest has repetitive tree/canopy forms, simple rocks and sparse distant terrain. Profiling and art improvements remain in the scene roadmap. Review current changes against a frozen build; reports and screenshots stay in ignored `.artifacts/` or framework `runs/`, not a committed review archive.
 
 ## Next layers
 
 Graphics optimization and its profiling/validation plan are tracked in [ROADMAP.md](ROADMAP.md).
 
-1. Grounded character controller and authored collision proxies.
+1. Character animation and richer movement physics when a game needs them.
 2. Interactions/pickups and event-driven HUD.
 3. Destructible props with pooled debris and selective shadow refresh.
 4. Soundscape, footsteps and environmental interaction.
 5. Wider authored maps or streaming only after profiling; the current map is deliberately finite.
 
-Known scope: desktop keyboard/mouse exploration; responsive UI is provided, touch flight is not. Half-resolution volumetric sun shafts sample the actual foliage shadow map. The scattering and contact shading are deliberately lightweight approximations. Baked/static foliage shadows trade perfectly animated shadows for throughput. This is an extensible visual concept; final art-gate scores and real browser measurements document its quality limits.
+Known scope: desktop keyboard/mouse exploration; responsive UI is provided, touch flight is not. Half-resolution volumetric sun shafts sample the actual foliage shadow map. The scattering and contact shading are deliberately lightweight approximations. Baked/static foliage shadows trade perfectly animated shadows for throughput. This is an extensible visual concept; verify appearance and performance on the target hardware.
 
-## Promoted walking and collision capabilities
+## Walking and collision example
 
 This scene is now version 1.2.0. The default launch retains fly exploration; open `/?controller=walk` for grounded walking with Start/Pause/Resume, optional mouse capture, right-drag and IJKL look, WASD/arrows movement and Shift speed. Escape/P pauses; opening tuning pauses movement and leaves keyboard controls with the menu. The same five graphics settings remain available. `npm run verify:walking` checks this mode through real input; set `HEADED=1` on an unlocked desktop to also attempt native capture/focus validation.
 
-Canonical grounded-walking and placement-collisions source is copied under `src/capabilities/` with local contracts and version/hash provenance. Rendering and collision use the same immutable authored transforms, including the five fallen logs. Small foliage remains passable and proxies are conservative horizontal shapes, not full 3D physics. Run `npm test`, `npm run lint`, `npm run verify`, and `npm run verify:walking` after changing this scene. Earlier visual scores remain historical and this engineering promotion does not claim a new art pass.
+Canonical grounded-walking and placement-collisions source is copied under `src/capabilities/` with current version/hash metadata. Rendering and collision use the same immutable authored transforms, including the five fallen logs. Small foliage remains passable and proxies are conservative horizontal shapes, not full 3D physics. Run `npm test`, `npm run lint`, `npm run verify`, and `npm run verify:walking` after changing this scene.

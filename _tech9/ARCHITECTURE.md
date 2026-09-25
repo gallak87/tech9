@@ -10,7 +10,7 @@ Canonical promoted modules live under `modules/<id>/src`. Each framework scene d
 
 The catalog is small descriptive data. It resolves starter → scene → manifest. An available entry means the source exists and its documented checks can run. `planned` describes a future recipe, never a working feature. Metadata is not an executable remote plugin system.
 
-Source review captures are excluded from forks. The CLI removes the scene manifest's historical `qualityEvidence` and `qualityStatus` fields from the game copy and records the source review path/status in `tech9.json` under `source.qualityEvidence`, resolved at `source.commit`. A fork has no inherited art pass or game review. Receipt hashes always describe the original source before these metadata adaptations.
+Run plans, review reports and captures are ignored local coordination. Current starters do not depend on those files. The fork tool retains compatibility with older manifests carrying quality attribution; that metadata is not an inherited game review or a reason to commit new review archives.
 
 The CLI also preserves the starter's `.prettierignore` content and appends exclusions for `tech9.json` and `GAME_PLAN.json`, creating the ignore file when absent. These generated provenance artifacts retain their exact bytes through ordinary game formatting, so the receipt's plan hash remains valid. The receipt's source hashes still describe the starter's original ignore file, before this adaptation.
 
@@ -22,7 +22,7 @@ The renderer still assumes an outdoor sun/sky scene. Scene definitions are chose
 
 ## Tool boundary
 
-`tools/tech9.mjs` validates local data and produces local source copies. Built-in Node APIs keep it easy to inspect. It never executes plan commands, calls a model, spends API credits, publishes, or assigns a model roster. The producer agent owns interpretation and execution through [GENERATE.md](./GENERATE.md) and [WORKFLOW.md](./WORKFLOW.md). The user-facing kickoff is agent-led; a future `/generate` adapter will call that same workflow. Command registration and repository-root migration remain deferred. Current CLI paths remain repository-relative; a future migration must update the path adapter and catalog as well as relocating files.
+`tools/tech9.mjs` validates local data and produces local source copies. Built-in Node APIs keep it easy to inspect. It never executes plan commands, calls a model, spends API credits, publishes, or assigns a model roster. The agent owns interpretation and execution through [GENERATE.md](./GENERATE.md), [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md) and [WORKFLOW.md](./WORKFLOW.md). The two supported task modes are game-dev and framework-dev; they do not require CLI flags or run history. The user-facing kickoff is agent-led; a future `/generate` adapter will call that same workflow. Command registration and repository-root migration remain deferred. Current CLI paths remain repository-relative; a future migration must update the path adapter and catalog as well as relocating files.
 
 Schemas document serialized formats. Runtime validation additionally checks cross-references, lane ownership and dependency cycles, safe filesystem destinations, clean source and immutable fork provenance. Tests cover invalid inputs and transactional failure paths.
 

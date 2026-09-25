@@ -1,39 +1,32 @@
-# Producing a game
+# Working with Tech9
 
-Use [GENERATE.md](./GENERATE.md) for the user-facing kickoff and managed goal contract. The producer owns the outcome. The plan is a compact execution contract, not a fixed roster of model identities.
+Choose the task's purpose at kickoff:
 
-## 1. Direct
+- **game-dev:** consume a registered starter and build a playable game. Start with [GENERATE.md](./GENERATE.md).
+- **framework-dev:** build or improve a shared capability, including bringing one back from a game. Start with [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md).
 
-Turn the idea into a one-paragraph player experience: what the player does, why it is interesting, how a session begins/ends, and the target input/device. Inspect an available starter, its limitations and licenses. Identify the smallest complete game that proves the idea.
+Both flows work from a fresh clone. Neither needs a historical run folder or a fixed agent roster. Resolve paths relative to the directory containing this file: `_tech9/` today, repository root after a separately authorized migration. CLI path adapters still require that future migration; the workflow itself stays the same.
 
-Write `runs/<slug>/plan.json` using the [schema](./schemas/execution-plan.schema.json) and [Alder Signal example](./runs/alder-signal/plan.json). Include must-have/out-of-scope work, milestone acceptance, disjoint file ownership, dependencies, real-input playthrough, performance target, critic threshold/round limit and explicit stopping point.
+## Coordinate locally
 
-## 2. Gate and fork
+Create ignored `runs/<task>/` only when needed. Keep the active scope, acceptance, ownership, dependencies, validation, authority and stop condition there. Game forks require `plan.json` following the [execution-plan schema](./schemas/execution-plan.schema.json). Framework work can use a short local plan without a game starter or the game-fork schema.
 
-The gate checks feasibility, actual starter availability, scope, validation and authority. `authorization.mode` is `delegated` when the user has already authorized autonomous execution; record the basis accurately. Use `explicit` when the user approved that concrete plan. Do not manufacture approval or ask again when existing authority covers the work. Resolve material missing requirements before dependent implementation.
+The user can delegate routine execution. Record that authority accurately; a planning gate does not require another confirmation when the request already covers the work. Ask only about material missing requirements before dependent work.
 
-From the repository root, `npm --prefix _tech9 run t9 -- validate <plan>` verifies structure and cross-references. Plan paths remain repository-relative even though npm runs in `_tech9`. `fork --dry-run` previews the source copy. Commit the starter checkpoint before the actual fork, then create the owned game under `_tech9/games/<slug>` and install its dependencies. The receipt is evidence of what was copied, not a claim that the game is complete. Leave the existing root framework intact while proving this foundation.
+Plans, briefs after kickoff, agent assignments, review reports, captures, execution logs and handoff notes are temporary coordination. Do not commit `runs/`, force-add ignored records, or relocate the same history into tracked documentation. Other worktrees do not receive ignored files: send the task's current instructions directly when coordinating agents. After completion, local records may be deleted; consumers must never depend on them. Git records source history.
 
-## 3. Build vertically
+## Build and verify
 
-Assign bounded builder lanes only where they can progress independently; give each its APIs, owned paths and acceptance. Keep integration under one producer. First deliver start → real input → core action → result → restart. Add depth and polish inside that working loop.
+Assign one owner per edited path. Use bounded agents only when authorized and useful. Keep renderer ownership, content, controllers and game rules at concrete seams; every new system must participate in a running integration. For games, complete start → real input → core action → result → restart before adding depth.
 
-A QA lane may own tests; the critic owns no implementation. Serialize edits and captures when they share a running build. No reviewer should grade a moving source tree. If an ownership transfer is needed, finish the previous lane and record the new owner.
+Run relevant unit/lint/build checks and real-input browser checks for behavior changes. Test hooks support observation and rare-state setup, not a substitute for playing the core loop. Use engineering checks for tooling/docs changes without inventing an art gate or redundant captures.
 
-## 4. Verify and critique
+Freeze and commit source before independent review. Serialize browser/GPU captures against that build. Keep findings and captures locally; fix blockers in source/tests and communicate results in the task. Record browser, GPU, viewport, preset and frame timing locally when making performance claims. Scheduling measurements are not isolated GPU timings or hardware guarantees.
 
-For each deliverable checkpoint:
+When a game art gate is requested, use a demanding independent critic and stop at **8/10 or four rounds**, whichever comes first. At the cap, report the actual result and remaining limits; correctness blockers still require fixes. Visual quality and behavioral correctness are separate results. Framework promotion normally uses an engineering review, not a new art cycle.
 
-1. Run relevant unit/lint/build checks and a browser playthrough that sends actual input. Confirm loading, game states, failures, restart, controls and cleanup. Test hooks support observation and rare-state setup, but cannot substitute for playing the core loop.
-2. Freeze and commit the implementation. Record exact source commit, commands, browser/GPU/viewport/preset and observed frame timing. Scheduling measurements are not isolated GPU timings or hardware guarantees.
-3. Ask a separate reviewer to inspect evidence and code, with an independent playthrough when useful. Engineering gates use findings; game/art gates additionally grade up to 10 against the stated ambition. Visual beauty, gameplay correctness and performance remain separate results.
-4. Commit a small review JSON and at most one or two representative screenshots. Record severity, concrete evidence and highest-value fixes. Keep transient logs in ignored `.artifacts`.
-5. Fix actionable issues, make another implementation commit and repeat only within the task's authorized review scope. When a full art gate is requested, the default target is 8/10, maximum four rounds. At the cap, report the honest score and remaining deficits; never relabel a failed gate as passed. Alder Signal's current stop is a playable user handoff after engineering/behavior checks, not an autonomous four-round polish cycle; follow its execution plan.
+## Finish
 
-No mandatory screenshot of documentation-only changes. Give those a contract/engineering review. Security or correctness blockers remain blockers even when the art round limit is exhausted.
+Commit the deliverable, tests and required licenses. Keep current launch/controls/limitations with the game. A graduated capability gets **one** usage aid: a working example **or** concise documentation, chosen according to what teaches its use with less maintenance. An existing scene integration can be that example; do not add a parallel module manual or promotion report.
 
-## 5. Deliver and learn
-
-Write a short game README with launch/controls/validation/limitations. Record completion against plan, exact review evidence and remaining work. Preserve licenses and source art. Stop task-owned servers. Discuss the next project only after this scope is complete.
-
-Capture a lesson with its evidence and applicability. Prefer promoting a module after two real uses reveal a stable seam, with its own tests, limits and example. Honor an explicit user request for earlier promotion by recording the narrower evidence and validating a runnable framework example. Historian comparison can run alongside extraction; it supplies findings and provenance, not a new approval gate. See [capability integration](./docs/CAPABILITIES.md). A future `/generate` adapter should invoke this workflow and CLI; it should not resurrect rigid role counts or substitute a roster for a playable result.
+Useful findings become implementation, tests or current operating guidance. Bring unresolved capability requests into a scoped framework-dev task; no permanent historian report is required. Existing games own their copies and are not silently upgraded. Stop task-owned processes and stop at the agreed handoff; do not publish, push, migrate the root or start another game without that scope.

@@ -4,8 +4,6 @@
 
   Status: planned. Profile the existing scene before choosing changes; GPU acceleration is already verified, but the dominant bottleneck has not been isolated with per-pass GPU timings.
 
-  Baseline: the [final art-gate evidence](docs/reviews/checkpoint-1-round-4.json) records High at 1600 × 1000, DPR 1, on Apple M1 Pro/Chromium Metal: 71.8 FPS on the trail and 93.1 FPS in the grove. The trail submits approximately 6.2 million triangles across 175 draw calls. These are browser frame measurements, not isolated GPU timings or performance guarantees.
-
   Investigate in this order:
 
   1. Measure CPU and GPU costs separately where supported, including geometry, foliage shading, atmosphere, shadow filtering and antialiasing. Compare Balanced, High and Ultra at matched viewpoints, including large/high-DPI windows. Record hardware, browser, drawing-buffer size and frame-time percentiles.
@@ -19,4 +17,4 @@
   - **Native Godot (near-term):** Port the same scene using shared Blender/glTF assets; tune engine-specific shading and compare frame times at matched cameras, resolution and visual quality. Measure gains rather than assume them. Consider C# for heavy custom CPU logic.
   - **WebAssembly (optional, profiling-led):** Explore only for measured CPU hotspots such as physics or pathfinding; it will not directly reduce foliage, shadow or atmosphere GPU costs. Godot web already uses Wasm and is a separate comparison from native Godot.
 
-  Completion evidence: measured improvement on declared target hardware at comparable visual quality, before/after captures from the same trail and grove cameras, and passing browser checks including repeated quality changes and stable GPU resource counts. Preserve the five high-level tuning controls. Commit implementation and a separate visual/performance review; do not assume any individual technique will improve this scene until measured.
+  Completion evidence: measured improvement on declared target hardware at comparable visual quality, before/after captures from the same trail and grove cameras, and passing browser checks including repeated quality changes and stable GPU resource counts. Preserve the five high-level tuning controls. Commit implementation; keep visual/performance review records in ignored local coordination; do not assume any individual technique will improve this scene until measured.

@@ -17,7 +17,6 @@
   "limitations": [
     "Desktop keyboard and mouse; no touch controls",
     "Approximate circle collisions; decorative saplings, deadfall and scattered shore pebbles are not solid",
-    "One planar pond surface with frame-throttled reflections; no swimming, waves, fluid simulation or gameplay rules",
-    "No inherited art-gate pass; this promotion does not claim new visual quality"
+    "One planar pond surface with frame-throttled reflections; no swimming, waves, fluid simulation or gameplay rules"
   ]
 }

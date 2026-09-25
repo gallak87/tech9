@@ -1,27 +1,23 @@
-# Additive foundation and forest migration
+# Framework location and future root migration
 
-The new foundation lives under `_tech9` alongside the existing root Tech9 framework. The root README, planners, role vocabulary, stack templates, capabilities, slash commands and scaffold/validation tools retain their existing behavior. There is no retired-framework archive to maintain. Root replacement is much later, after user playtests and proof from another game, potentially built by a different agent. Alder Signal reached its first playtest handoff; the next pilots are prepared for separate consumer sessions.
+The active framework lives under `_tech9`. Preserve legacy root planners, commands, helpers and games until root migration is separately authorized. New games use `_tech9/games`; existing root games stay where they are.
 
-The original forest moved from `games/scene-test` to `_tech9/scenes/scene-test`. Assets, Blender sources, licenses and all four art reviews were retained. Scene metadata and generic scene/controller seams were added without intentionally changing its art. The previous 6.2/10 review remains historical evidence; this migration does not claim an AAA pass.
+## Carry the workflows forward
 
-Framework dependencies, scripts, formatting and lint configuration live in `_tech9/package.json` and adjacent files. Run `npm --prefix _tech9 ci` independently of the root package. CLI plan and catalog paths are repository-relative, so `npm --prefix _tech9 run t9 -- validate _tech9/runs/alder-signal/plan.json` works from the repository root. New CLI outputs now use `_tech9/games/<slug>`; copied games own their packages, source, assets and checks.
+The framework root is the directory containing README, GENERATE, FRAMEWORK_DEV and WORKFLOW. Agents resolve their workflow documents, scenes, modules, games and local workspace relative to that directory. When the framework eventually moves to repository root:
 
-Alder Signal remains at its historical root `games/alder-signal` location with its original receipt and plan. New hunting/fishing launch packets and later forks stay under `_tech9/games`. This output correction does not migrate existing games.
+- Carry both first-class flows: game-dev and framework-dev. A consumer can bring a game capability back by following FRAMEWORK_DEV and reading the game source; historical run records are unnecessary.
+- Carry `.gitignore` with its framework-relative `/runs/` and artifact exclusions. Do not copy local run records into tracked files, commit a placeholder run directory, or create a replacement history archive.
+- Preserve the graduation rule: code, tests, required licenses and one usage aid, either an existing working example or concise documentation.
+- Update CLI path adapters, catalog paths, hooks and command examples. The current tools deliberately use repository-relative `_tech9/...` paths; moving files alone does not complete migration.
+- Verify both workflows from a fresh clone with no `runs/` directory. Run source-copy and module-sync checks, and prove relevant standalone consumers.
 
-[GENERATE.md](../GENERATE.md) defines the manual agent kickoff and future `/generate` adapter contract. The legacy root slash command is unchanged. Registering the new command and making the tooling operate after root graduation are separate future work.
+The future `/generate` adapter should route to these same flows and preserve user authority, local coordination and stop conditions. Registration is separate work; the manual agent entrypoints already support both flows.
 
-Compatibility helpers stay in root `tools`, including `landscape-gen.js`, sprite/probe helpers, and Godot MCP setup/server commands. The root package remains CommonJS. Existing games have not been converted to the new contract automatically.
+## Current local setup
 
-## Optional local hook
+Framework, scene and game packages install independently with supported Node. Root remains CommonJS for legacy helpers; new tools use `.mjs`. Existing games retain their source and original copy metadata.
 
-Git has a single `core.hooksPath` for this repository. The former forest hook path, `games/scene-test/.husky/_`, no longer points to the migrated scene. Inspect the local setting with `git config --get core.hooksPath`, then intentionally install the foundation's scoped hook when desired:
+Git has one `core.hooksPath` per repository. `npm --prefix _tech9 run hooks:install` is the explicit command that installs the scoped hook and reports the prior setting. It checks staged `_tech9` files using each package's nearest lint-staged configuration. Dependency installation and starter forks do not alter hooks. Do not add a global lint-staged `--cwd`, which would break nested package configuration.
 
-```sh
-npm --prefix _tech9 run hooks:install
-```
-
-This is the only framework installation command that changes Git configuration. It reports the prior value, installs Husky at `_tech9/.husky/_`, and runs lint-staged from `_tech9` on commits. That keeps root and older-game files outside its scope while preserving nearest-package lint configurations within `_tech9`. Scene/game dependencies must be installed before committing changes within those packages. Do not add `--cwd` to lint-staged here: forcing one task directory would prevent nested scene configurations from running in their own package.
-
-Dependency installation and source forks do not install hooks. Older games retain their own setup behavior and may replace the repository hook when their installation scripts run. Reinstall the scoped hook explicitly only when that is the intended local choice. To remove this choice, restore the previous valid path with `git config core.hooksPath <previous-path>`, or use `git config --unset core.hooksPath` for Git's default `.git/hooks`; do not restore the forest's obsolete path.
-
-No publication, deployment, or root retirement is part of this migration.
+To reverse that local hook choice, restore the prior valid path with `git config core.hooksPath <previous-path>` or unset it for the default `.git/hooks`. Scene/game packages need their development tools available when committing changes in those packages. No publishing or root retirement is implied by these setup commands.

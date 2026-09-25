@@ -36,12 +36,10 @@ SCENE_PORT=4432 npm run verify:native
 npm run capture -- --out .artifacts/intro.png
 ```
 
-The headless browser harness drives real keyboard and mouse input to complete the hunt and exercise misses, escape, pause, retry and collision. `?test=1` enables read-only observations; there are no teleport or award-hit hooks. Verification writes ignored evidence to `.artifacts/verification`. Run records and independent review live in `../../runs/pinewatch-hunt`.
+The headless browser harness drives real keyboard and mouse input to complete the hunt and exercise misses, escape, pause, retry and collision. `?test=1` enables read-only observations; there are no teleport or award-hit hooks. Verification writes ignored evidence to `.artifacts/verification`. Review and coordination records stay local and ignored.
 
 The game owns its forest source fork, preserves the immutable `tech9.json` / `GAME_PLAN.json` provenance and all original forest assets/licenses, and imports nothing at runtime from the framework. New procedural model provenance is in `public/game/ASSETS.md`.
 
 Known limits: one authored animal/route, simple detection, conservative tree/rock/log collision circles, no simulated ballistics or ecosystem, no touch support or audio. Ground cover and small saplings are passable. The starter forest is a working art foundation, not finished AAA art. Performance and final independent art scores are recorded in the run's execution report; a visual score is separate from gameplay correctness. A practiced route is shorter than the brief's three-to-five-minute exploratory target.
 
-Final native pointer-lock/window-focus recheck could not finish because the host Mac was locked. The core browser loop and synthetic input-lifecycle tests pass; this limitation is recorded separately from gameplay and art scores in the run report. `verify:native` is available for an unlocked desktop.
-
-Final handoff: **28 unit tests and 12 real-input browser checks pass**, plus lint/build. Observed **60.0 FPS** at 1600 × 1000 Balanced on Apple M1 Pro / Chrome153 / ANGLE Metal. **Independent art gate failed at6.1/10 after four rounds** (target8). See the [execution report](../../runs/pinewatch-hunt/EXECUTION.md) and [final screenshot](../../runs/pinewatch-hunt/reviews/round-4/aim.png). No additional art rounds or deeper systems were started.
+Native pointer capture/focus checks require an unlocked desktop; run `verify:native` separately from the headless suite.

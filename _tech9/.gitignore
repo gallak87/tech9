@@ -1,2 +1,6 @@
 .husky/_/
 .artifacts/
+# Local coordination only; this rule moves with the framework root.
+/runs/
+# Review captures/reports are local, including older scene layouts.
+**/docs/reviews/

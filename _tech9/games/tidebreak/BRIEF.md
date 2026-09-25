@@ -35,5 +35,5 @@ Target 60 observed FPS at 1600 × 1000, Balanced, reporting the actual browser/G
 - Game slug: `tidebreak`; own `_tech9/games/tidebreak/**` and `_tech9/runs/tidebreak/**` only.
 - Dedicated worktree branch: `codex/tidebreak`, based on the completed capability-promotion checkpoint supplied at kickoff.
 - Preferred ports: dev `4460`, preview `4461`, browser tests `4462`. Check availability first, use strict ports and record replacements.
-- Preserve accepted games and shared framework source. Record water adaptations, collision/boat-controller lessons, performance costs and provenance in the run's `CONSUMER_NOTES.md`.
-- At handoff, include historian-style proposals for a boat controller, chase camera or ocean layer. Bring those proposals back for a separately scoped framework promotion; this game trial does not silently rewrite the framework.
+- Preserve accepted games and shared framework source. Keep temporary planning, review and investigation notes in ignored `runs/` or `.artifacts/`; do not commit them.
+- At handoff, identify any useful shared capability in the task. A separate framework-dev session can bring it back by following `FRAMEWORK_DEV.md` and inspecting this game’s source; no committed history report is needed.

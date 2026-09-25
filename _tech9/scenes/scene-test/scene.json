@@ -14,13 +14,6 @@
   },
   "licenseIndex": "public/assets/ASSETS.md",
   "sourceArt": "art/forest-kit.blend",
-  "qualityEvidence": "docs/reviews/checkpoint-1-round-4.json",
-  "qualityStatus": {
-    "score": 6.2,
-    "target": 8,
-    "rounds": 4,
-    "passed": false
-  },
   "limitations": [
     "Outdoor sun/sky renderer",
     "Desktop keyboard and mouse",

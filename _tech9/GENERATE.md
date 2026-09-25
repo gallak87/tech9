@@ -1,12 +1,14 @@
-# Generate a playable game
+# Start a Tech9 task
 
-This is the agent-facing kickoff for the active Tech9 framework. The user supplies an idea or a pilot brief; the agent carries it through to a playable handoff. The intended user entrypoint is `/generate <idea>`. Slash-command registration is deferred: today, ask an agent to read this file and execute a brief. The CLI is an implementation tool inside this workflow, not the user interface.
+This is the agent-facing kickoff for the active framework. Choose the mode from the user’s intent: **game-dev** for a playable game, **framework-dev** for a shared capability or bringing one back from a game. For framework-dev, continue with [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md); the remaining game-fork steps here do not apply. If intent is unclear, ask which outcome they want.
+
+The intended `/generate` entrypoint will route to these same flows. Slash registration and CLI mode flags are deferred; today an agent reads the appropriate document and executes the task. The CLI is a tool inside the workflow.
 
 ## Locate the active framework
 
 The directory containing this file is the framework root: currently `_tech9/`, eventually the repository root after a separately authorized migration. Resolve workflow documents, `runs/`, `scenes/` and `games/` relative to this file. Read its `AGENTS.md`, `README.md`, `WORKFLOW.md`, catalog and the selected starter's README/ARCHITECTURE before editing.
 
-While `_tech9` is active, ignore the legacy root planners, `meta/` and `.claude/commands/generate.md` for this workflow. Preserve those files. New pilots belong in `_tech9/games/<slug>`; execution records belong in `_tech9/runs/<slug>`. The existing Alder Signal at repository-root `games/alder-signal` is an earlier pilot and stays in place for now.
+While `_tech9` is active, ignore the legacy root planners, `meta/` and `.claude/commands/generate.md` for this workflow. Preserve those files. New pilots belong in `_tech9/games/<slug>`; temporary, ignored coordination belongs in `_tech9/runs/<slug>`. The existing Alder Signal at repository-root `games/alder-signal` is an earlier pilot and stays in place for now.
 
 The current CLI still takes repository-relative catalog and plan paths, even when invoked from `_tech9`. This is a tooling detail, not a change to the user's kickoff. Root graduation will update those path adapters and metadata separately; this document does not claim that moving the directory today is supported.
 
@@ -14,9 +16,9 @@ The current CLI still takes repository-relative catalog and plan paths, even whe
 
 Turn the idea into a short player experience with a clear objective, core action, outcome and restart. Inspect actual starter capabilities. For a pilot, prefer one satisfying complete loop to a large feature list. Ask only about material missing requirements; ordinary creative choices can follow delegated authority. If the user asked for planning only, deliver a plan and stop before implementation.
 
-For an existing launch packet, first perform the relocation described under “Bootstrap one owned game,” before creating any run directory or plan. Then preserve/refine its `runs/<slug>/BRIEF.md` and write `plan.json` following the execution-plan schema. For a new idea without a launch packet, create those run files directly. Record scope, acceptance, concrete path ownership, dependency order, validation, authority and stopping point. Do not claim the user approved a plan they have not seen: use delegated authority when their request covers execution. Preserve user constraints across the entire run.
+For an existing launch packet, first perform the relocation described under “Bootstrap one owned game,” before creating any run directory or plan. Then preserve/refine its `runs/<slug>/BRIEF.md` and write `plan.json` following the execution-plan schema. For a new idea without a launch packet, create those run files directly. Keep these run files local and ignored; never commit or force-add them. Record scope, acceptance, concrete path ownership, dependency order, validation, authority and stopping point. Do not claim the user approved a plan they have not seen: use delegated authority when their request covers execution. Preserve user constraints across the entire run.
 
-For the hunting and fishing launch packets, set `artGate` to `{ "threshold": 8, "maxRounds": 4 }`. First build and verify the complete loop, then run the bounded critic/fix cycle below. Hand over the playable build when the gate passes or reaches its cap; further depth waits for user playtesting. A cap below 8 means a failed art gate, reported plainly.
+For game pilots, set `artGate` to `{ "threshold": 8, "maxRounds": 4 }`. First build and verify the complete loop, then run the bounded critic/fix cycle below. Hand over the playable build when the gate passes or reaches its cap; further depth waits for user playtesting. A cap below 8 means a failed art gate, reported plainly.
 
 ## Managed goal and bounded critique
 
@@ -41,18 +43,18 @@ npm run t9 -- fork --starter <starter-id> --slug <slug> --plan _tech9/runs/<slug
 npm --prefix games/<slug> ci
 ```
 
-Only fork a clean committed starter. Inspect the current catalog: the forest source now includes fly/grounded walking and placement-derived collision helpers; the pond example additionally integrates water and shoreline. Read the relevant module contracts in `modules/` and `docs/CAPABILITIES.md`. Starter selection chooses a tested source combination; arbitrary module composition is not an automatic CLI feature. Animals, fishing rules and complete game loops remain game work. Build needed systems inside the game. Preserve the generated `tech9.json` and `GAME_PLAN.json` bytes and source/license records. Replace inherited starter documentation with truthful game documentation. Give game storage and presentation their own identity.
+Only fork a clean committed starter. Inspect the current catalog: the forest source now includes fly/grounded walking and placement-derived collision helpers; the pond example additionally integrates water and shoreline. Use the example or concise usage aid linked from `modules/README.md`; `docs/CAPABILITIES.md` explains source copying. Starter selection chooses a tested source combination; arbitrary module composition is not an automatic CLI feature. Animals, fishing rules and complete game loops remain game work. Build needed systems inside the game. Preserve the generated `tech9.json` and `GAME_PLAN.json` bytes and source/license records. Replace inherited starter documentation with truthful game documentation. Give game storage and presentation their own identity.
 
 ## Build, verify and hand over
 
 Follow WORKFLOW.md. Keep renderer ownership, world content, controller and rules separate at concrete seams. Every new system must participate in the running loop. Use bounded agents when authorized and useful; an independent critic reviews a stable committed checkpoint. One owner edits each path. Games own their copied source and never import runtime code from the framework or another game.
 
-Run the game's unit, lint, build and browser checks. Verify the core action, success, failure/recovery, pause/resume and restart with real input. Test hooks stay behind `?test=1`; they must not replace the core playthrough. Record browser, GPU, viewport, preset and frame timing for performance claims. Keep compact independent review evidence separate from implementation commits.
+Run the game's unit, lint, build and browser checks. Verify the core action, success, failure/recovery, pause/resume and restart with real input. Test hooks stay behind `?test=1`; they must not replace the core playthrough. Record browser, GPU, viewport, preset and frame timing for performance claims. Keep review reports and captures in ignored `runs/` or `.artifacts/`; commit source and tests, not a review archive.
 
-For simultaneous worktrees, edit only the assigned game and run directory. Record framework friction and promotion candidates in that run's `CONSUMER_NOTES.md`; do not patch shared starter/tooling or the other pilot as part of game development. Use the assigned ports, check availability, and do not replace repository hooks. Worktrees share machine resources: coordinate GPU captures, or disclose competing load and defer isolated performance claims. Never stop another session's server.
+For simultaneous worktrees, edit only the assigned game and run directory. Keep any unresolved framework friction or capability request in local notes while coordinating; do not patch shared starter/tooling as part of game development. Hand a requested promotion to the framework-dev workflow, which can inspect game source directly without these notes. Use the assigned ports, check availability, and do not replace repository hooks. Worktrees share machine resources: coordinate GPU captures, or disclose competing load and defer isolated performance claims. Never stop another session's server.
 
-Deliver launch instructions, controls, a short validation checklist, evidence and known limitations. Stop at the agreed handoff; do not begin another game, publish, push, migrate the root framework or promote modules without that scope being authorized. A useful game-local water layer or animal controller is a candidate for reuse, not an automatic framework feature.
+Keep current launch instructions, controls and limitations in the game README. Report validation and critic results in the task; no tracked execution report is required. Stop at the agreed handoff; do not begin another game, publish, push, migrate the root framework or promote modules without that scope being authorized. A useful game-local water layer or animal controller is a candidate for reuse, not an automatic framework feature.
 
 ## Future slash-command adapter
 
-When command integration is requested, `/generate` should pass the user's idea and current authorization to this workflow, resolving paths from the active framework root. It should retain the user's playtest gates and resume an existing run when appropriate. It should not introduce a second planning/build pipeline or require the user to operate the CLI. Until that adapter is installed, the manual prompt is the supported kickoff.
+When command integration is requested, `/generate` should route the user's task and current authorization to game-dev or framework-dev, resolving paths from the active framework root and preserving the ignored `/runs/` policy. It should retain the user's playtest gates and resume an existing run when appropriate. It should not introduce a second planning/build pipeline or require the user to operate the CLI. Until that adapter is installed, the manual prompt is the supported kickoff.

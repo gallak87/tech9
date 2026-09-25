@@ -289,8 +289,8 @@ export async function forkStarter({
     const packageFile = path.join(temporary, 'package.json');
     const packageJson = await readJson(packageFile);
     packageJson.name = slug;
-    packageJson.scripts.dev = `vite --host 127.0.0.1 --port ${devPort}`;
-    packageJson.scripts.preview = `vite preview --host 127.0.0.1 --port ${devPort + 1}`;
+    packageJson.scripts.dev = `vite --host 127.0.0.1 --strictPort --port ${devPort}`;
+    packageJson.scripts.preview = `vite preview --host 127.0.0.1 --strictPort --port ${devPort + 1}`;
     packageJson.config = {
       ...packageJson.config,
       devPort,

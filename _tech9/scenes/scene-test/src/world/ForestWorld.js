@@ -2,6 +2,10 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { softenShadowSampling } from '../core/softShadows.js';
 import {
+  placementCircle,
+  placementCapsuleChain,
+} from '../capabilities/placement-collisions/src/placementCollisions.js';
+import {
   createRandom,
   pathCenter,
   pathDistance,
@@ -709,31 +713,72 @@ function rockPlacements() {
   ];
 }
 
+let placementCache;
+/** Rendering and collision consume these exact immutable authored transforms. */
+export function getForestPlacements() {
+  if (!placementCache) {
+    let nextId = 0;
+    const freeze = (kind, entry) => {
+      Object.freeze(entry.matrix.elements);
+      Object.freeze(entry.matrix);
+      return Object.freeze({ ...entry, kind, id: `${kind}-${nextId++}` });
+    };
+    const families = (kind, entries) =>
+      Object.freeze(
+        entries.map((family) =>
+          Object.freeze(family.map((entry) => freeze(kind, entry))),
+        ),
+      );
+    const trees = families('tree', treePlacements());
+    const rocks = families('rock', rockPlacements());
+    const deadfall = Object.freeze(
+      [
+        [-9.2, 5, 0.9, 0.38],
+        [9.2, -24, 0.74, 2.1],
+        [-16, -16, 1.03, 0.9],
+        [16, 28, 0.85, 1.4],
+        [23, -43, 0.8, 2.9],
+      ].map(([x, z, scale, angle]) =>
+        freeze('log', {
+          x,
+          z,
+          matrix: matrixAt(x, z, scale, angle),
+        }),
+      ),
+    );
+    placementCache = Object.freeze({ trees, rocks, deadfall });
+  }
+  return placementCache;
+}
+
 let colliderCache;
 /** Static horizontal proxies for walking experiments, not mesh-accurate physics. */
 export function getForestColliders() {
   if (!colliderCache) {
     const circles = [];
-    const scale = new THREE.Vector3();
+    const { trees, rocks, deadfall } = getForestPlacements();
     for (const [kind, families, baseRadius] of [
-      ['tree', treePlacements(), 0.48],
-      ['rock', rockPlacements(), 1.45],
+      ['tree', trees, 0.48],
+      ['rock', rocks, 1.45],
     ]) {
       for (const entries of families) {
         for (const entry of entries) {
-          scale.setFromMatrixScale(entry.matrix);
           circles.push(
-            Object.freeze({
-              id: `${kind}-${circles.length}`,
-              kind,
-              x: entry.x,
-              z: entry.z,
-              radius: baseRadius * Math.max(scale.x, scale.z),
-            }),
+            placementCircle({ ...entry, kind }, { radius: baseRadius }),
           );
         }
       }
     }
+    // Blender's local log centerline runs from 0 to 8 * .68 metres along X.
+    // Radius includes its gentle bend; branch tips remain an approximation.
+    for (const entry of deadfall)
+      circles.push(
+        ...placementCapsuleChain(entry, {
+          start: [0, 0, 0],
+          end: [5.44, 0, 0],
+          radius: 0.4,
+        }),
+      );
     colliderCache = Object.freeze(circles);
   }
   return colliderCache;
@@ -775,33 +820,15 @@ export function createForestWorld() {
       const terrain = buildTerrain(textures);
       disposables.push(terrain.geometry, terrain.material);
       group.add(terrain);
-      const trees = treePlacements();
+      const { trees, rocks, deadfall } = getForestPlacements();
       stats.trees = trees.reduce((sum, family) => sum + family.length, 0);
       ['pine_a', 'pine_b', 'pine_c'].forEach((name, index) =>
         instancePrototype(group, kit, name, trees[index], disposables),
       );
       stats.saplings = buildSaplings(group, kit, disposables);
-      const rocks = rockPlacements();
       instancePrototype(group, kit, 'rock_a', rocks[0], disposables);
       instancePrototype(group, kit, 'rock_b', rocks[1], disposables);
-      const deadfall = [
-        [-9.2, 5, 0.9, 0.38],
-        [9.2, -24, 0.74, 2.1],
-        [-16, -16, 1.03, 0.9],
-        [16, 28, 0.85, 1.4],
-        [23, -43, 0.8, 2.9],
-      ];
-      instancePrototype(
-        group,
-        kit,
-        'fallen_log',
-        deadfall.map(([x, z, scale, angle]) => ({
-          x,
-          z,
-          matrix: matrixAt(x, z, scale, angle),
-        })),
-        disposables,
-      );
+      instancePrototype(group, kit, 'fallen_log', deadfall, disposables);
       densityBatches = [
         ...buildGroundcover(group, kit, windUniform, disposables),
         ...buildDebris(group, disposables),

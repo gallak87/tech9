@@ -12,5 +12,14 @@ export default [
       globals: globals.node,
     },
   },
+  {
+    files: ['modules/**/*.js'],
+    ...js.configs.recommended,
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: { ...globals.browser, ...globals.node },
+    },
+  },
   prettier,
 ];

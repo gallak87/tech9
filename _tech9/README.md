@@ -2,9 +2,9 @@
 
 This is the new foundation under `_tech9`, developed alongside the existing root Tech9 framework. Root planners, commands, compatibility helpers and older games retain their conventions. Root replacement is much later, after user playtests and proof from another game, potentially built by a different agent. It is outside this effort.
 
-Tech9 starts game development from something that already runs: a scene, a small runtime and known production practices. A **scene** is authored world content with an explicit runtime contract. A **starter** describes a useful starting combination and its limits. A **game** is an owned copy that can evolve freely. A **module** is a proven reusable gameplay system; the registry is intentionally empty until reuse earns one.
+Tech9 starts game development from something that already runs: a scene, a small runtime and known production practices. A **scene** is authored world content with an explicit runtime contract. A **starter** describes a useful starting combination and its limits. A **game** is an owned copy that can evolve freely. A **module** is reusable source with a documented contract, provenance and runnable integration. The current promotions cover grounded walking/input, placement-derived collision helpers and pond water.
 
-This first foundation contains one available starter: `forest-exploration`, based on the `alder-vale` scene in [`scenes/scene-test`](./scenes/scene-test/README.md). It includes the Three.js/Vite forest, Blender sources, a replaceable camera controller, lifecycle-managed layers and browser testing. It does not include a character, vehicle, inventory, generic physics, or a finished game loop.
+The forest starter is based on [`scenes/scene-test`](./scenes/scene-test/README.md): Three.js/Vite forest, Blender sources, fly or grounded walking, placement-derived collisions and lifecycle-managed layers. The [`pond example`](./scenes/pond-test/README.md) adds authored shore/terrain/vegetation coupling and disposable reflective water. Check `t9 catalog` for current starter availability. Neither supplies a finished game, character animation, inventory, vehicles or full physics. See [capabilities](./docs/CAPABILITIES.md).
 
 ## Project map
 
@@ -20,7 +20,7 @@ This first foundation contains one available starter: `forest-exploration`, base
 
 ## Install and verify
 
-Use Node `^22.13.0 || >=24.0.0`. From the repository root:
+Use Node `^22.13.0 || >=24.0.0`. From `_tech9`, `./run --runtime` shows a supported installed runtime and `./run <npm arguments>` uses it consistently (for example `./run ci`, `./run run dev:walk`, or `./run run dev:pond`). Set `TECH9_NODE` for an explicit executable. It never installs Node or changes hooks implicitly. Ordinary npm commands remain supported; from the repository root:
 
 ```sh
 npm --prefix _tech9 ci
@@ -44,7 +44,7 @@ Start with the agent-facing [GENERATE.md](./GENERATE.md): give an agent an idea 
 3. Validate the plan and fork a clean committed starter:
 
 ```sh
-npm --prefix _tech9 run t9 -- validate _tech9/runs/alder-signal/plan.json
+npm --prefix _tech9 run t9 -- validate _tech9/runs/my-game/plan.json
 npm --prefix _tech9 run t9 -- fork --starter forest-exploration --slug my-game --plan path/to/my-game-plan.json --port 4420 --dry-run
 npm --prefix _tech9 run t9 -- fork --starter forest-exploration --slug my-game --plan path/to/my-game-plan.json --port 4420
 ```
@@ -54,6 +54,6 @@ The example `my-game` needs its own plan with matching ID. Plan and catalog path
 4. Install the output package, build one complete playable loop, test it with real input, and review a committed build.
 5. Keep useful lessons; promote reusable code only after another game demonstrates the need.
 
-[`runs/alder-signal/plan.json`](./runs/alder-signal/plan.json) is the first concrete production plan. Its [Alder Signal POC](../games/alder-signal/README.md) is ready for user playtesting: the full relay-and-return loop passed unit/lint/build and real-input browser validation. The [run record](./runs/alder-signal/EXECUTION.md) keeps exact checkpoints, initial critique and limitations. Alder Signal retains its earlier root `games/` location; new forks use `_tech9/games/`. Hunting and fishing launch packets prepare the next fresh-agent consumer trials. Source forks are intentionally independent, so improving the starter does not silently change a game already built from it.
+[`runs/alder-signal/plan.json`](./runs/alder-signal/plan.json) is the first concrete production plan. Its [Alder Signal POC](../games/alder-signal/README.md) is ready for user playtesting: the full relay-and-return loop passed unit/lint/build and real-input browser validation. The [run record](./runs/alder-signal/EXECUTION.md) keeps exact checkpoints, initial critique and limitations. Alder Signal retains its earlier root `games/` location; new forks use `_tech9/games/`. The [hunting](./games/pinewatch-hunt/README.md) and [fishing](./games/stillwater-fishing/README.md) consumer trials are complete and user-playtested. Their lessons drive the [current capability promotion](./runs/capability-promotion/PLAN.md). Source forks are intentionally independent, so improving the starter does not silently change a game already built from it.
 
 See [architecture](./ARCHITECTURE.md), [workflow](./WORKFLOW.md), [extension steps](./docs/EXTENDING.md), and [roadmap](./ROADMAP.md).

@@ -21,7 +21,7 @@ A season is more than tint: snow needs believable coverage and vegetation change
 
 A layer has a unique `id`, `init(context)`, optional `update(dt, elapsed)`, optional `configure(settings)`, and `dispose()`. Register through `await app.register(layer)`; release through the app lifecycle. Context contains scene, camera, renderer, assets, events, UI mount, bounds, ground height and definition. The app owns the animation loop. A layer owns and releases its geometries, materials, textures, listeners and UI.
 
-One controller owns the camera. A replacement provides synchronous `update(dt)` and `dispose()`; optional `lock()` and `resetMotion()` integrate with presets/UI. Never keep the fly controller listening underneath a walking controller. Collision descriptors are approximate and exclude small foliage/deadfall; choose better collision when the game needs it.
+One controller owns the camera. A replacement provides synchronous `update(dt)` and `dispose()`; optional `lock()` and `resetMotion()` integrate with presets/UI. Never keep the fly controller listening underneath a walking controller. The promoted grounded controller also has explicit enable/pause ownership and drag/keyboard fallbacks. Forest collision descriptors now include placement-derived deadfall chains but still exclude small foliage; choose better collision when the game needs it. See [capabilities](./CAPABILITIES.md) for walking, placement helpers and the pond example.
 
 ## Introduce another starter flavor
 
@@ -31,4 +31,4 @@ Only mark it available after a real source fork independently builds and passes 
 
 ## Promote learning
 
-Games stay independent. Port a fix intentionally, compare against `tech9.json` source hashes, test both projects, then bump the source version if its contract changes. Existing receipts keep their original versions. A registry module requires two uses, a small interface, cleanup rules, tests, provenance and a working integration example. Until then, game-specific code is a good place for it.
+Games stay independent. Port a fix intentionally, compare against `tech9.json` source hashes, test both projects, then bump the source version if its contract changes. Existing receipts keep their original versions. Prefer two uses before promotion; explicitly authorized earlier extraction records its smaller evidence base. A registered module needs a small interface, cleanup rules, tests, provenance and a working integration example. Canonical source is copied into framework examples with `sync:modules`; that command never upgrades an existing game.

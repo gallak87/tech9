@@ -1,0 +1,36 @@
+#!/bin/sh
+# Run framework npm commands with a supported local Node; never install a runtime.
+set -eu
+tech9_directory=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
+tech9_node=''
+tech9_accept_node() {
+  [ -n "$1" ] && [ -x "$1" ] && "$1" "$tech9_directory/tools/node-version.mjs" >/dev/null 2>&1
+}
+if [ -n "${TECH9_NODE:-}" ]; then
+  tech9_candidate=$(command -v "$TECH9_NODE" 2>/dev/null || true)
+  if ! tech9_accept_node "$tech9_candidate"; then
+    echo 'TECH9_NODE must name an executable Node 22.13+ (22.x) or 24+ runtime.' >&2
+    exit 1
+  fi
+  tech9_node=$tech9_candidate
+else
+  tech9_candidate=$(command -v node 2>/dev/null || true)
+  if tech9_accept_node "$tech9_candidate"; then
+    tech9_node=$tech9_candidate
+  else
+    for tech9_candidate in \
+      "$HOME/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node" \
+      "$HOME"/.nvm/versions/node/*/bin/node
+    do
+      if tech9_accept_node "$tech9_candidate"; then
+        tech9_node=$tech9_candidate
+        break
+      fi
+    done
+  fi
+fi
+if [ -z "$tech9_node" ]; then
+  echo 'Tech9 needs Node 22.13+ (22.x) or 24+. Install a supported runtime or set TECH9_NODE to its executable. Nothing was installed or reconfigured.' >&2
+  exit 1
+fi
+exec "$tech9_node" "$tech9_directory/tools/run.mjs" "$@"

@@ -3,18 +3,24 @@
   "scenes": [
     {
       "id": "alder-vale",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "path": "_tech9/scenes/scene-test",
+      "manifest": "scene.json"
+    },
+    {
+      "id": "stillwater-pond",
+      "version": "1.0.0",
+      "path": "_tech9/scenes/pond-test",
       "manifest": "scene.json"
     }
   ],
   "starters": [
     {
       "id": "forest-exploration",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "scene": "alder-vale",
       "status": "available",
-      "description": "Bounded outdoor forest, fly camera, lighting, quality controls and browser verification. Gameplay is added in an owned fork.",
+      "description": "Bounded forest with fly or grounded walking controls, placement-derived collision proxies, lifecycle-managed layers and real-input verification.",
       "provides": [
         "Three.js/Vite runtime",
         "160m fixed forest",
@@ -23,17 +29,59 @@
         "replaceable camera controller",
         "approximate tree/rock collision descriptors",
         "five graphics controls",
-        "unit and real-browser harness"
+        "unit and real-browser harness",
+        "grounded walking and input lifecycle",
+        "placement-derived deadfall collision chains"
       ],
       "excludes": [
         "game rules",
-        "character or vehicle",
         "full physics",
         "live scene switching",
+        "mobile controls",
+        "streaming worlds",
+        "animated player body or vehicle"
+      ]
+    },
+    {
+      "id": "pond-exploration",
+      "version": "0.1.0",
+      "scene": "stillwater-pond",
+      "status": "planned",
+      "description": "Candidate pond exploration starter: authored shore, coupled terrain/vegetation exclusion, disposable reflective water and grounded walking. Awaiting standalone-fork validation.",
+      "provides": [
+        "Three.js/Vite runtime",
+        "local forest assets and source art",
+        "grounded walking and input lifecycle",
+        "placement-derived collision proxies",
+        "authored shoreline and coupled terrain/vegetation queries",
+        "disposable water reflection with bounded quality settings",
+        "five graphics controls",
+        "unit and real-input browser verification"
+      ],
+      "excludes": [
+        "fishing rules, fish and tackle",
+        "fluid simulation, rivers, boats or swimming",
+        "full physics",
         "mobile controls",
         "streaming worlds"
       ]
     }
   ],
-  "modules": []
+  "modules": [
+    {
+      "id": "grounded-walking",
+      "version": "1.0.0",
+      "path": "_tech9/modules/grounded-walking"
+    },
+    {
+      "id": "placement-collisions",
+      "version": "1.0.0",
+      "path": "_tech9/modules/placement-collisions"
+    },
+    {
+      "id": "pond-water",
+      "version": "1.0.0",
+      "path": "_tech9/modules/pond-water"
+    }
+  ]
 }

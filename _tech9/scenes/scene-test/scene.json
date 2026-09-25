@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "alder-vale",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "title": "Alder Vale",
   "kind": "outdoor-forest",
   "runtime": "threejs-webgl2",
@@ -24,7 +24,7 @@
   "limitations": [
     "Outdoor sun/sky renderer",
     "Desktop keyboard and mouse",
-    "Approximate circle colliders exclude saplings and deadfall",
+    "Approximate circle/chain colliders exclude saplings and small foliage",
     "High/Ultra are GPU intensive; optimization remains on roadmap"
   ]
 }

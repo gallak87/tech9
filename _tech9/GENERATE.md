@@ -30,18 +30,18 @@ Use a separate, demanding AAA art critic against frozen committed builds and act
 
 Some pilots start with only `BRIEF.md` and `PROMPT.md` under `games/<slug>`. The fork command deliberately refuses any existing destination. Inspect that directory first. If it contains exactly those launch files and `runs/<slug>` does not exist, move the entire launch-packet directory to `runs/<slug>`, then write the plan there. This preserves the brief and frees the output path. Never remove or overwrite a game, an existing run, or unexpected files to make the fork succeed. If a game already has a provenance receipt, inspect it and resume it instead of forking again.
 
-From the current framework directory (`_tech9`), use a supported Node version and these commands, substituting the chosen slug and ports:
+From the current framework directory (`_tech9`), use a supported Node version and these commands, substituting the chosen starter, slug and ports:
 
 ```sh
 npm ci
 npm run t9 -- catalog
 npm run t9 -- validate _tech9/runs/<slug>/plan.json
-npm run t9 -- fork --starter forest-exploration --slug <slug> --plan _tech9/runs/<slug>/plan.json --port <dev-port> --dry-run
-npm run t9 -- fork --starter forest-exploration --slug <slug> --plan _tech9/runs/<slug>/plan.json --port <dev-port>
+npm run t9 -- fork --starter <starter-id> --slug <slug> --plan _tech9/runs/<slug>/plan.json --port <dev-port> --dry-run
+npm run t9 -- fork --starter <starter-id> --slug <slug> --plan _tech9/runs/<slug>/plan.json --port <dev-port>
 npm --prefix games/<slug> ci
 ```
 
-Only fork a clean committed starter. The registered forest includes a fly camera and approximate collision descriptors, not walking, animals, fishing, water or finished game rules. Build needed systems inside the game. Preserve the generated `tech9.json` and `GAME_PLAN.json` bytes and source/license records. Replace inherited starter documentation with truthful game documentation. Give game storage and presentation their own identity.
+Only fork a clean committed starter. Inspect the current catalog: the forest source now includes fly/grounded walking and placement-derived collision helpers; the pond example additionally integrates water and shoreline. Read the relevant module contracts in `modules/` and `docs/CAPABILITIES.md`. Starter selection chooses a tested source combination; arbitrary module composition is not an automatic CLI feature. Animals, fishing rules and complete game loops remain game work. Build needed systems inside the game. Preserve the generated `tech9.json` and `GAME_PLAN.json` bytes and source/license records. Replace inherited starter documentation with truthful game documentation. Give game storage and presentation their own identity.
 
 ## Build, verify and hand over
 

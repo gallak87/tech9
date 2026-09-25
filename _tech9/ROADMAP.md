@@ -9,7 +9,7 @@
 
 ## Next decisions
 
-- Run the hunting and fishing launch packets under `_tech9/games` in separate worktrees, using [GENERATE.md](./GENERATE.md). Each should prove one complete interaction, a managed goal and bounded independent AAA art critique. Record consumer friction before promoting shared systems.
+- Hunting and fishing consumer trials are complete, merged and user-playtested. Promote the requested walking/input, placement collisions, supported-Node startup and water capabilities through the [bounded framework effort](./runs/capability-promotion/PLAN.md); historian findings run alongside implementation.
 - Improve graphics efficiency with measurements: CPU/GPU split, frame pacing, vegetation overdraw, LOD/culling, shadow and atmosphere budgets, adaptive resolution and quality defaults. Preserve image quality using fixed-camera comparisons. Detailed acceptance remains in the [scene roadmap](./scenes/scene-test/ROADMAP.md).
 - Prove one alternate season or scene layout; record the concrete authoring steps. Add live switching only with explicit loading/disposal and state-reset behavior.
 

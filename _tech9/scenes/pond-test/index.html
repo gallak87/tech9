@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#183129" />
+    <meta
+      name="description"
+      content="Stillwater Pond: a bounded walking scene with shared shoreline queries, forest and reflective water."
+    />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Stillwater Pond — Scene Study</title>
+  </head>
+  <body>
+    <canvas
+      id="scene"
+      tabindex="0"
+      aria-label="Stillwater Pond. WASD walk, Shift jog, right-drag or IJKL look, P or Escape pause."
+    ></canvas>
+    <div id="world-hud" aria-label="Exploration interface"></div>
+    <div id="loading" role="status">Preparing the pond…</div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

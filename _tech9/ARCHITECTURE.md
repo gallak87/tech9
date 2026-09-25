@@ -6,6 +6,8 @@ The repository is a workshop, not a shared game engine package. Each starter is 
 
 This costs some duplicated source and assets. In exchange, experiments stay isolated, a game can leave this repository, and framework upgrades cannot break it silently. A later update command would need an explicit three-way merge against the recorded baseline; it is not implemented now.
 
+Canonical promoted modules live under `modules/<id>/src`. Each framework scene declares its module IDs in `capabilities.json`; a maintainer snapshot copies source into its local `src/capabilities/<id>/src` and records versions/hashes. CI-style check mode rejects drift, and source forks inherit local copies rather than framework imports. The sync tool is restricted to framework scenes and never updates accepted games. See [capability integration](./docs/CAPABILITIES.md).
+
 The catalog is small descriptive data. It resolves starter → scene → manifest. An available entry means the source exists and its documented checks can run. `planned` describes a future recipe, never a working feature. Metadata is not an executable remote plugin system.
 
 Source review captures are excluded from forks. The CLI removes the scene manifest's historical `qualityEvidence` and `qualityStatus` fields from the game copy and records the source review path/status in `tech9.json` under `source.qualityEvidence`, resolved at `source.commit`. A fork has no inherited art pass or game review. Receipt hashes always describe the original source before these metadata adaptations.

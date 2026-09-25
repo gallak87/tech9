@@ -95,3 +95,9 @@ Graphics optimization and its profiling/validation plan are tracked in [ROADMAP.
 5. Wider authored maps or streaming only after profiling; the current map is deliberately finite.
 
 Known scope: desktop keyboard/mouse exploration; responsive UI is provided, touch flight is not. Half-resolution volumetric sun shafts sample the actual foliage shadow map. The scattering and contact shading are deliberately lightweight approximations. Baked/static foliage shadows trade perfectly animated shadows for throughput. This is an extensible visual concept; final art-gate scores and real browser measurements document its quality limits.
+
+## Promoted walking and collision capabilities
+
+This scene is now version 1.2.0. The default launch retains fly exploration; open `/?controller=walk` for grounded walking with Start/Pause/Resume, optional mouse capture, right-drag and IJKL look, WASD/arrows movement and Shift speed. Escape/P pauses; opening tuning pauses movement and leaves keyboard controls with the menu. The same five graphics settings remain available. `npm run verify:walking` checks this mode through real input; set `HEADED=1` on an unlocked desktop to also attempt native capture/focus validation.
+
+Canonical grounded-walking and placement-collisions source is copied under `src/capabilities/` with local contracts and version/hash provenance. Rendering and collision use the same immutable authored transforms, including the five fallen logs. Small foliage remains passable and proxies are conservative horizontal shapes, not full 3D physics. Run `npm test`, `npm run lint`, `npm run verify`, and `npm run verify:walking` after changing this scene. Earlier visual scores remain historical and this engineering promotion does not claim a new art pass.

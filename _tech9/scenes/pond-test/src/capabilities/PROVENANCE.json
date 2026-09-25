@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "ownership": "source-copy",
+  "modules": [
+    {
+      "id": "grounded-walking",
+      "version": "1.0.0",
+      "source": "_tech9/modules/grounded-walking",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "ee09795c99918fcfecffd134879e85334720fe4932c120bd0f2eacd3185578fe"
+        },
+        {
+          "path": "src/WalkingController.js",
+          "sha256": "19a331dcab69a911cd4aefeab31812d1a0ff30c8fb9981ef0d23e518b41e2277"
+        }
+      ]
+    },
+    {
+      "id": "placement-collisions",
+      "version": "1.0.0",
+      "source": "_tech9/modules/placement-collisions",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "8ae92d451540437b74347b651510dda49cdbf7bce6f55dde2e7e2505be85d62a"
+        },
+        {
+          "path": "src/placementCollisions.js",
+          "sha256": "927897abb073f123c4ba2f996fcb8eedd1726323bad05ec4eaff13e18cb7410d"
+        }
+      ]
+    },
+    {
+      "id": "pond-water",
+      "version": "1.0.0",
+      "source": "_tech9/modules/pond-water",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "992578498c55cd91213122e95eae46face748170a5b9aaf3e54d449068eec45d"
+        },
+        {
+          "path": "THREE-LICENSE.txt",
+          "sha256": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc"
+        },
+        {
+          "path": "src/PondWater.js",
+          "sha256": "0fc911e035d549fb1459e2bf80a392529060b71a2fdaeb103b288768435a3358"
+        },
+        {
+          "path": "src/WaterSurface.js",
+          "sha256": "af5510b29069258a92fc713bf17fdb6e6833e3d9422b172d9e3b4f3655c5e96f"
+        },
+        {
+          "path": "src/shoreline.js",
+          "sha256": "ff0cb44cc107c3045c264cdb844eaa57fb777b9274ed1fe8c1b91179b2e89c02"
+        }
+      ]
+    }
+  ]
+}

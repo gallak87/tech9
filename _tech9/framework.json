@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "tech9",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "status": "local-foundation",
   "catalog": "catalog.json",
   "workflow": "WORKFLOW.md",
@@ -11,5 +11,6 @@
   "ownershipModel": "source-copy",
   "generationCommand": "planned",
   "agentKickoff": "GENERATE.md",
-  "supportedExecution": "agent-led, local, reviewed checkpoints"
+  "supportedExecution": "agent-led, local, reviewed checkpoints",
+  "launcher": "run"
 }

@@ -33,3 +33,7 @@ Validation fixed a pointer-event mismatch (preventing pointerdown suppressed com
 ### Art round 1
 
 Frozen implementation `32dfab68`. Independent critic inspected bank, fight and landed browser frames plus source: **6.1/10, failed gate**. No proven correctness blocker. Priorities: calmer water/shallows, improved trout anatomy and landing support, asymmetric shore detail. Two representative images and compact validation/review JSON are preserved in `reviews/round-1/`.
+
+### Art round 2
+
+Frozen implementation `f0395f75` (art source `5223a8ed`). Fresh real-input catch/release and rendering passed with no errors; Balanced120observedFPS,9.9msp95. Independent score **6.6/10, failed gate**. Trout/net and calmer water improved, but the reflection filter introduced ghost highlights and shore staging remains weak. Round3 targets the ghost kernel, 3D catch support and one deliberate shore grouping.

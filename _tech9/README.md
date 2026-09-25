@@ -8,15 +8,15 @@ The forest starter is based on [`scenes/scene-test`](./scenes/scene-test/README.
 
 ## Project map
 
-| Location                         | Purpose                                                   |
-| -------------------------------- | --------------------------------------------------------- |
-| `catalog.json`, `framework.json` | Versioned availability and framework identity             |
-| `scenes/scene-test/`             | Runnable, independently installable forest source         |
-| `tools/`, `schemas/`, `tests/`   | Small local CLI, contracts and safety tests               |
-| `runs/<game>/`                   | Approved execution plan, checkpoints and compact evidence |
-| `modules/`                       | Promotion policy for future proven reusable systems       |
-| `docs/`                          | Extension, migration and scoped lessons                   |
-| `games/<game>/`                  | Independent runnable output, with provenance receipt      |
+| Location                         | Purpose                                                     |
+| -------------------------------- | ----------------------------------------------------------- |
+| `catalog.json`, `framework.json` | Versioned availability and framework identity               |
+| `scenes/scene-test/`             | Runnable, independently installable forest source           |
+| `tools/`, `schemas/`, `tests/`   | Small local CLI, contracts and safety tests                 |
+| `runs/<game>/`                   | Approved execution plan, checkpoints and compact evidence   |
+| `modules/`                       | Reusable walking, placement collision and pond water source |
+| `docs/`                          | Extension, migration and scoped lessons                     |
+| `games/<game>/`                  | Independent runnable output, with provenance receipt        |
 
 ## Install and verify
 
@@ -31,7 +31,7 @@ npm --prefix _tech9/scenes/scene-test ci
 npm --prefix _tech9 run dev:scene
 ```
 
-Framework tooling and the scene have separate packages and lockfiles. Root dependency installation is not required. Scene verification uses `npm --prefix _tech9/scenes/scene-test run verify`; choose an unused `SCENE_PORT` when necessary.
+Framework tooling and each scene have separate packages and lockfiles. Root dependency installation is not required. Scene verification uses `npm --prefix _tech9/scenes/scene-test run verify`; choose an unused `SCENE_PORT` when necessary. Both `forest-exploration` and `pond-exploration` are available after standalone install/build and real-input checks. The [promotion record](./runs/capability-promotion/EXECUTION.md) records the checkpoints and limitations.
 
 The optional repository pre-commit hook is installed only by `npm --prefix _tech9 run hooks:install`. That explicit command changes local Git `core.hooksPath` to `_tech9/.husky/_` and reports its previous value. Dependency installation has no hook side effects. The hook checks only staged `_tech9` files, with lint-staged selecting the nearest package configuration and executing scene/game tasks in their owning package. Older games and root files are outside its scope. Installing another project's hooks may change the repository setting again; see [migration notes](./docs/MIGRATION.md).
 

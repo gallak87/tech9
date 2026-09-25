@@ -46,8 +46,8 @@
       "id": "pond-exploration",
       "version": "0.1.0",
       "scene": "stillwater-pond",
-      "status": "planned",
-      "description": "Candidate pond exploration starter: authored shore, coupled terrain/vegetation exclusion, disposable reflective water and grounded walking. Awaiting standalone-fork validation.",
+      "status": "available",
+      "description": "Verified standalone pond exploration starter: authored shore, coupled terrain/vegetation exclusion, disposable reflective water and grounded walking.",
       "provides": [
         "Three.js/Vite runtime",
         "local forest assets and source art",

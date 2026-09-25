@@ -2,7 +2,7 @@
 
 A copied-source capability for one irregular elliptical pond: a shared shoreline query, carved bank profile and disposable reflective surface. Promoted from Stillwater at the user's explicit request after its first use. This does not claim a second-game reuse proof or an art-gate pass.
 
-Copy `src/` and `THREE-LICENSE.txt` into a consumer's `src/capabilities/pond-water/`. The consumer supplies Three.js **0.186.1**, its scene, renderer lifecycle and terrain. No runtime import returns to `_tech9`, no animation loop is started, and no global input or UI is installed. The runnable consumer is [`../../scenes/pond-test`](../../scenes/pond-test/README.md).
+Copy `src/` and `THREE-LICENSE.txt` into a consumer's `src/capabilities/pond-water/`. The consumer supplies Three.js **0.186.1**, its scene, renderer lifecycle and terrain. No runtime import returns to `_tech9`, no animation loop is started, and no global input or UI is installed. The framework's runnable example is `_tech9/scenes/pond-test`; a standalone fork carries its own example README at the game root.
 
 ```js
 import { createShoreline } from './capabilities/pond-water/src/shoreline.js';
@@ -47,6 +47,6 @@ This is planar reflection with procedural normal distortion, shallow-edge tint a
 
 The original implementation came from `_tech9/games/stillwater-fishing/src/world/{pondDefinition,PondWorld,WaterSurface}.js`. The water shader derives from Three.js **0.186.1** `examples/jsm/objects/Water.js` under MIT; its full notice is in [`THREE-LICENSE.txt`](./THREE-LICENSE.txt). Procedural normal/shore code was authored locally. This module contains no downloaded media.
 
-The example also preserves editable forest/Blender assets and Poly Haven CC0 shore-rock textures. Their attribution is indexed by [`pond-test/public/assets/POND_SOURCES.md`](../../scenes/pond-test/public/assets/POND_SOURCES.md). They are scene assets, not a dependency hidden inside this water module.
+The example also preserves editable forest/Blender assets and Poly Haven CC0 shore-rock textures. Their attribution is indexed by `public/assets/POND_SOURCES.md` relative to the example or fork root. They are scene assets, not a dependency hidden inside this water module.
 
 Run the scene's CPU tests for CPU/shader frame agreement, terrain/exclusion, shared rock proxies, reflection quality fallback, renderer recovery, idempotent disposal and failed/late asset cleanup. Its browser test uses real movement to reach the shoreline and a bank rock, pauses/resets and changes graphics settings. The parent integration records actual browser runs; writing this module does not imply a fresh visual score.

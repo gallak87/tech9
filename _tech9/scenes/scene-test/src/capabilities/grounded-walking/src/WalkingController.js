@@ -87,6 +87,9 @@ export class WalkingController {
             this.pause(event.code === 'Tab' ? 'tuning' : 'keyboard');
           return;
         }
+        // A held OS key can keep repeating across pause/resume. Only a fresh
+        // physical press may restore movement/look after resetMotion().
+        if (event.repeat) return;
         if (
           (MOVE_KEYS.has(event.code) && this.canMove()) ||
           (LOOK_KEYS.has(event.code) && this.canLook())

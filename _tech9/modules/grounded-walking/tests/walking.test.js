@@ -184,6 +184,30 @@ test('pause and resume clear held input instead of restarting old movement', () 
   f.controller.dispose();
 });
 
+test('OS key repeat cannot restore held movement or look after pause/resume', () => {
+  for (const code of ['KeyW', 'KeyJ']) {
+    const f = fixture({ enabled: true });
+    f.key(code);
+    f.controller.update(0.1);
+    f.controller.pause('keyboard');
+    f.controller.setEnabled(true);
+    const position = { ...f.camera.position };
+    const yaw = f.camera.rotation.y;
+    const repeat = f.dispatch(f.window, 'keydown', { code, repeat: true });
+    f.controller.update(0.1);
+    assert.equal(repeat.defaultPrevented, false);
+    assert.equal(f.controller.keys.size, 0);
+    assert.deepEqual(f.camera.position, position);
+    assert.equal(f.camera.rotation.y, yaw);
+    f.key(code, 'keyup');
+    f.key(code);
+    f.controller.update(0.1);
+    if (code === 'KeyW') assert.ok(f.camera.position.z < position.z);
+    else assert.ok(f.camera.rotation.y > yaw);
+    f.controller.dispose();
+  }
+});
+
 test('blur and hidden transitions pause once and reset drag/keys', () => {
   const f = fixture({ enabled: true });
   f.key('KeyW');

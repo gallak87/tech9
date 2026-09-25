@@ -16,7 +16,28 @@ async function check(name, action) {
     report.checks.push({ name, pass: true, detail });
     console.log(`PASS ${name}`);
   } catch (error) {
-    report.checks.push({ name, pass: false, error: error.message });
+    const state = await snapshot().catch(() => null);
+    const position = state?.camera.position;
+    const nearest = position
+      ? getForestColliders()
+          .map((collider) => ({
+            ...collider,
+            clearance:
+              Math.hypot(collider.x - position[0], collider.z - position[2]) -
+              collider.radius -
+              (state.walking?.playerRadius ?? 0.3),
+          }))
+          .sort((a, b) => a.clearance - b.clearance)
+          .slice(0, 3)
+      : [];
+    report.checks.push({
+      name,
+      pass: false,
+      error: error.message,
+      position,
+      walking: state?.walking,
+      nearestColliders: nearest,
+    });
     await page.screenshot({ path: path.join(output, 'failure.png') });
     console.error(`FAIL ${name}: ${error.message}`);
   }
@@ -144,9 +165,11 @@ try {
   );
   await check('authored tree blocks a real walking approach', async () => {
     await resume();
-    await walkTo(-3.4, 18);
+    // This route reaches tree-15 from its clear eastern side. The former route
+    // to the hero tree at (-7.5,15) hit rock-309 before reaching that tree.
+    await walkTo(-2.5, 21);
     const tree = getForestColliders().find(
-      (c) => c.kind === 'tree' && c.x === -7.5 && c.z === 15,
+      (c) => c.kind === 'tree' && c.id === 'tree-15',
     );
     assert.ok(tree);
     let closest = Infinity;

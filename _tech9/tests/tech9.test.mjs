@@ -58,8 +58,8 @@ function catalog() {
 function plan() {
   return {
     schemaVersion: 1,
-    id: 'alder-signal',
-    title: 'Alder Signal',
+    id: 'sample-game',
+    title: 'Sample Game',
     pitch: 'Restore a signal in the forest.',
     starter: { id: 'forest-exploration', version: '0.1.0' },
     status: 'approved',
@@ -122,7 +122,7 @@ async function fixture(t) {
       ])
     ).stdout.trim();
   await write('_tech9/catalog.json', json(catalog()));
-  await write('_tech9/runs/alder-signal/plan.json', json(plan()));
+  await write('_tech9/runs/sample-game/plan.json', json(plan()));
   await write(
     `${scenePath}/scene.json`,
     json({ id: 'alder-vale', version: '1.1.0' }),
@@ -185,8 +185,8 @@ async function fixture(t) {
   const args = {
     root,
     starterId: 'forest-exploration',
-    slug: 'alder-signal',
-    planPath: '_tech9/runs/alder-signal/plan.json',
+    slug: 'sample-game',
+    planPath: '_tech9/runs/sample-game/plan.json',
     port: 4410,
   };
   return {
@@ -195,12 +195,12 @@ async function fixture(t) {
     git,
     args,
     source: path.join(root, scenePath),
-    destination: path.join(root, '_tech9/games/alder-signal'),
+    destination: path.join(root, '_tech9/games/sample-game'),
   };
 }
 
 test('validates the minimal execution contract and exact catalog versions', () => {
-  assert.equal(validatePlan(plan(), catalog()).id, 'alder-signal');
+  assert.equal(validatePlan(plan(), catalog()).id, 'sample-game');
   const changed = plan();
   changed.starter.version = '9.0.0';
   assert.throws(() => validatePlan(changed, catalog()), /version mismatch/);
@@ -279,8 +279,8 @@ test('standalone fork preserves source/assets/licenses, excludes generated files
   const originalPackage = await readFile(path.join(f.source, 'package.json'));
   const result = await forkStarter(f.args);
   assert.equal(result.status, 'scaffolded');
-  assert.equal(result.destination, '_tech9/games/alder-signal');
-  assert.equal(result.next[0], 'cd _tech9/games/alder-signal');
+  assert.equal(result.destination, '_tech9/games/sample-game');
+  assert.equal(result.next[0], 'cd _tech9/games/sample-game');
   const receipt = JSON.parse(
     await readFile(path.join(f.destination, 'tech9.json')),
   );
@@ -317,9 +317,9 @@ test('standalone fork preserves source/assets/licenses, excludes generated files
   const copiedLock = JSON.parse(
     await readFile(path.join(f.destination, 'package-lock.json')),
   );
-  assert.equal(copiedPackage.name, 'alder-signal');
-  assert.equal(copiedLock.name, 'alder-signal');
-  assert.equal(copiedLock.packages[''].name, 'alder-signal');
+  assert.equal(copiedPackage.name, 'sample-game');
+  assert.equal(copiedLock.name, 'sample-game');
+  assert.equal(copiedLock.packages[''].name, 'sample-game');
   assert.equal(copiedPackage.scripts.prepare, undefined);
   assert.match(copiedPackage.scripts.dev, /4410$/);
   assert.match(copiedPackage.scripts.preview, /4411$/);
@@ -368,17 +368,17 @@ test('standalone fork preserves source/assets/licenses, excludes generated files
 
 test('new forks leave an existing legacy root game untouched', async (t) => {
   const f = await fixture(t);
-  await f.write('games/alder-signal/keep.txt', 'legacy game');
+  await f.write('games/sample-game/keep.txt', 'legacy game');
   const before = await readdir(path.join(f.root, 'games'));
   await forkStarter(f.args);
   assert.deepEqual(await readdir(path.join(f.root, 'games')), before);
   assert.equal(
-    await readFile(path.join(f.root, 'games/alder-signal/keep.txt'), 'utf8'),
+    await readFile(path.join(f.root, 'games/sample-game/keep.txt'), 'utf8'),
     'legacy game',
   );
   assert.equal(
     JSON.parse(await readFile(path.join(f.destination, 'tech9.json'))).id,
-    'alder-signal',
+    'sample-game',
   );
 });
 
@@ -417,7 +417,7 @@ test('never overwrites an existing destination, including an empty directory', a
   const f = await fixture(t);
   await mkdir(f.destination, { recursive: true });
   await assert.rejects(forkStarter(f.args), /already exists/);
-  await f.write('_tech9/games/alder-signal/keep.txt', 'existing game');
+  await f.write('_tech9/games/sample-game/keep.txt', 'existing game');
   await assert.rejects(forkStarter(f.args), /already exists/);
   assert.equal(
     await readFile(path.join(f.destination, 'keep.txt'), 'utf8'),
@@ -540,7 +540,7 @@ test('concurrent forks cannot replace each other or leak temporary directories',
     1,
   );
   assert.deepEqual(await readdir(path.join(f.root, '_tech9/games')), [
-    'alder-signal',
+    'sample-game',
   ]);
   assert.equal(
     JSON.parse(await readFile(path.join(f.destination, 'tech9.json'))).status,
@@ -626,7 +626,7 @@ test('CLI npm-prefix invocation keeps plans relative to the repository', async (
       cwd: f.root,
     },
   );
-  assert.equal(JSON.parse(result.stdout).plan, 'alder-signal');
+  assert.equal(JSON.parse(result.stdout).plan, 'sample-game');
   const nested = await execute(
     process.execPath,
     ['tools/tech9.mjs', 'validate', f.args.planPath],
@@ -634,7 +634,7 @@ test('CLI npm-prefix invocation keeps plans relative to the repository', async (
       cwd: path.join(f.root, '_tech9'),
     },
   );
-  assert.equal(JSON.parse(nested.stdout).plan, 'alder-signal');
+  assert.equal(JSON.parse(nested.stdout).plan, 'sample-game');
   const fork = await execute(
     process.execPath,
     [
@@ -649,10 +649,7 @@ test('CLI npm-prefix invocation keeps plans relative to the repository', async (
     ],
     { cwd: path.join(f.root, '_tech9') },
   );
-  assert.equal(
-    JSON.parse(fork.stdout).destination,
-    '_tech9/games/alder-signal',
-  );
+  assert.equal(JSON.parse(fork.stdout).destination, '_tech9/games/sample-game');
   await readFile(path.join(f.destination, 'tech9.json'));
   await assert.rejects(readdir(path.join(f.root, 'games')), { code: 'ENOENT' });
 });

@@ -8,7 +8,7 @@ The intended `/generate` entrypoint will route to these same flows. Slash regist
 
 The directory containing this file is the framework root: currently `_tech9/`, eventually the repository root after a separately authorized migration. Resolve workflow documents, `runs/`, `scenes/` and `games/` relative to this file. Read its `AGENTS.md`, `README.md`, `WORKFLOW.md`, catalog and the selected starter's README/ARCHITECTURE before editing.
 
-While `_tech9` is active, ignore the legacy root planners, `meta/` and `.claude/commands/generate.md` for this workflow. Preserve those files. New pilots belong in `_tech9/games/<slug>`; temporary, ignored coordination belongs in `_tech9/runs/<slug>`. The existing Alder Signal at repository-root `games/alder-signal` is an earlier pilot and stays in place for now.
+While `_tech9` is active, ignore the legacy root planners, `meta/` and `.claude/commands/generate.md` for this workflow. Preserve those files. New pilots belong in `_tech9/games/<slug>`; temporary, ignored coordination belongs in `_tech9/runs/<slug>`. Do not create new games under repository-root `games/` before the framework migration.
 
 The current CLI still takes repository-relative catalog and plan paths, even when invoked from `_tech9`. This is a tooling detail, not a change to the user's kickoff. Root graduation will update those path adapters and metadata separately; this document does not claim that moving the directory today is supported.
 

@@ -46,7 +46,7 @@ Framework checks are `./_tech9/run test` and `./_tech9/run run lint`. Each scene
 | `docs/`                          | Current operating guidance                                       |
 | `runs/<task>/`                   | Ignored local plans, coordination and reviews; created on demand |
 
-Commit source, tests and required licenses. `runs/` and `.artifacts/` stay local and are never force-added. Do not turn completed runs into tracked history elsewhere. A game's current README explains how to play it; Git provides development history.
+Commit source, tests and required licenses. `runs/` and `.artifacts/` stay local and are never force-added. Remove a completed task's run folder after handoff; do not turn it into tracked history elsewhere. Ignoring a folder does not hide it from an editor or delete local copies. A game's current README explains how to play it; Git provides development history.
 
 The optional scoped hook is installed explicitly with `./_tech9/run run hooks:install`. It reports the prior Git hook setting and checks only staged `_tech9` files using the nearest package's lint configuration. Dependency installation does not change repository hooks. See [migration](./docs/MIGRATION.md) for hook details and the future root-migration contract.
 

@@ -31,6 +31,6 @@ Commit a stable implementation and obtain an independent engineering review when
 
 ## 4. Complete
 
-The result is code, tests, required licenses and the chosen usage aid, plus current catalog/copy metadata where needed. Tell the user what is available, how to use it, what was checked and any current limits. Convert findings into code/tests/current guidance; discard the narrative once it has served coordination. Do not commit run records or link shipped docs to them.
+The result is code, tests, required licenses and the chosen usage aid, plus current catalog/copy metadata where needed. Tell the user what is available, how to use it, what was checked and any current limits. Convert findings into code/tests/current guidance; remove the completed task's local run folder after handoff. Preserve other tasks' active work. Do not commit run records or link shipped docs to them.
 
 Completion check: a fresh clone can discover and use the capability without any `runs/` directory. Preserve `/runs/` in the framework's `.gitignore` during the eventual root migration; do not migrate a local run archive into Git.

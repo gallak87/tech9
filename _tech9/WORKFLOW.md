@@ -13,7 +13,7 @@ Create ignored `runs/<task>/` only when needed. Keep the active scope, acceptanc
 
 The user can delegate routine execution. Record that authority accurately; a planning gate does not require another confirmation when the request already covers the work. Ask only about material missing requirements before dependent work.
 
-Plans, briefs after kickoff, agent assignments, review reports, captures, execution logs and handoff notes are temporary coordination. Do not commit `runs/`, force-add ignored records, or relocate the same history into tracked documentation. Other worktrees do not receive ignored files: send the task's current instructions directly when coordinating agents. After completion, local records may be deleted; consumers must never depend on them. Git records source history.
+Plans, briefs after kickoff, agent assignments, review reports, captures, execution logs and handoff notes are temporary coordination. Do not commit `runs/`, force-add ignored records, or relocate the same history into tracked documentation. Other worktrees do not receive ignored files: send the task's current instructions directly when coordinating agents. After completion and handoff, remove that task's local run folder; preserve active work from other tasks. Consumers must never depend on run records. Git records source history.
 
 ## Build and verify
 

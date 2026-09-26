@@ -25,7 +25,7 @@ Register the capability/version honestly in the catalog. For module copies, upda
 
 ## 3. Validate and review
 
-Run affected module/framework tests, lint and builds. Prove runtime behavior in the chosen integration with real input when relevant, including lifecycle and resource cleanup. Validate an independent source fork before marking a new starter available. A documentation-only usage aid does not excuse untested runtime code; validation can use a disposable local consumer instead of committing a second usage aid.
+Run `./run run check` for canonical module/tooling tests, lint, builds and metadata checks, plus affected maintained starter tests. Consumer games are outside the framework's regression boundary: their source can inform a requested extraction, but their tests or builds cannot validate the promoted implementation and must not become framework prerequisites. Add behavior and lifecycle regression coverage beside the canonical module. Prove browser behavior with a framework-owned test fixture or maintained scene when relevant; a source game's playthrough is not that proof. Validate an independent source fork before marking a new starter available. A documentation-only usage aid does not excuse untested runtime code; keep any fixture bounded to the capability rather than building a new game.
 
 Commit a stable implementation and obtain an independent engineering review when the change warrants one. Fix actionable findings and rerun affected checks. Put temporary reports, screenshots and comparisons under ignored `runs/` or `.artifacts/`. No committed review dossier or fresh AAA art cycle is required merely to promote an existing capability.
 
@@ -33,4 +33,4 @@ Commit a stable implementation and obtain an independent engineering review when
 
 The result is code, tests, required licenses and the chosen usage aid, plus current catalog/copy metadata where needed. Tell the user what is available, how to use it, what was checked and any current limits. Convert findings into code/tests/current guidance; remove the completed task's local run folder after handoff. Preserve other tasks' active work. Do not commit run records or link shipped docs to them.
 
-Completion check: a fresh clone can discover and use the capability without any `runs/` directory. Preserve `/runs/` in the framework's `.gitignore` during the eventual root migration; do not migrate a local run archive into Git.
+Completion check: framework installation, tests and module builds work without consumer games or any `runs/` directory. A fresh clone can discover and use the capability independently of the originating game. Preserve `/runs/` in the framework's `.gitignore` during the eventual root migration; do not migrate a local run archive into Git.

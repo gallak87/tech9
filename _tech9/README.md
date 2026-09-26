@@ -2,6 +2,8 @@
 
 The active framework lives in `_tech9/` alongside the legacy root framework. Root replacement is a separate, later migration. Games own their source copies; framework changes do not silently upgrade them.
 
+`games/` is a workspace for independent consumer projects, outside the framework's dependency and regression boundary. Consumers can keep developing or move their games elsewhere. Bringing a capability back is an optional framework-dev task. Framework installation, tests and module builds must work with no games present.
+
 ## Choose a workflow
 
 - **Build a game:** give an agent your idea and [GENERATE.md](./GENERATE.md). It selects a real starter and builds a complete playable loop.
@@ -33,7 +35,9 @@ Use Node `^22.13.0 || >=24.0.0`. From the repository root:
 
 `run` selects a supported installed Node and anchors npm to the framework directory. `TECH9_NODE` can select an explicit executable. It never installs Node or changes hooks implicitly. Ordinary npm commands with supported Node also work. Each scene/game has its own dependencies and lockfile; root installation is not required.
 
-Framework checks are `./_tech9/run test` and `./_tech9/run run lint`. Each scene supplies its own test/lint/build/browser commands. Use a free `SCENE_PORT` for browser checks.
+Run `./_tech9/run run check` for framework/module tests, lint, source-copy integrity, module builds and catalog validation. Only framework dependencies are needed. `./_tech9/run run build` compiles every registered module's JavaScript into ignored `.artifacts/module-build/`, with Three.js external. These outputs validate compilation; consumers still copy canonical source.
+
+Maintained starter scenes have separate test/lint/build/browser commands and install their own dependencies. Use those for affected starter integrations and a free `SCENE_PORT` for browser checks. Consumer game suites belong to game-dev work and are never a framework regression gate.
 
 ## Source and local workspace
 

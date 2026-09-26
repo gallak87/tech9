@@ -21,6 +21,8 @@ Assign one owner per edited path. Use bounded agents only when authorized and us
 
 Run relevant unit/lint/build checks and real-input browser checks for behavior changes. Test hooks support observation and rare-state setup, not a substitute for playing the core loop. Use engineering checks for tooling/docs changes without inventing an art gate or redundant captures.
 
+Keep validation within its ownership boundary. Framework-dev runs canonical module/tooling checks (`./run run check`) and affected maintained starter checks. Consumer games are independent projects, even when stored under `games/`; do not run or modify their suites as framework regressions. Game-dev owns that game's checks. Inspect a game when a promotion is requested, then test the promoted code in framework-owned tests. A consumer may continue its game indefinitely and never promote anything back.
+
 Freeze and commit source before independent review. Serialize browser/GPU captures against that build. Keep findings and captures locally; fix blockers in source/tests and communicate results in the task. Record browser, GPU, viewport, preset and frame timing locally when making performance claims. Scheduling measurements are not isolated GPU timings or hardware guarantees.
 
 When a game art gate is requested, use a demanding independent critic and stop at **8/10 or four rounds**, whichever comes first. At the cap, report the actual result and remaining limits; correctness blockers still require fixes. Visual quality and behavioral correctness are separate results. Framework promotion normally uses an engineering review, not a new art cycle.

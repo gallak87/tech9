@@ -110,7 +110,7 @@ renderer.setAnimationLoop((now) => {
   const s1 = landscape.stats;
   status.value = `${view} · region ${region + 1} · ${s1.nearTrees} near trees · ${s1.detailInstances} detail instances`;
 });
-if (new URLSearchParams(location.search).has('test'))
+if (new URLSearchParams(location.search).get('test') === '1')
   window.__EXAMPLE_TEST__ = {
     app,
     setView,

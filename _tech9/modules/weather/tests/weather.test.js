@@ -385,3 +385,29 @@ test('Lambert detail and upright impostors share weather and restore their own h
   map.dispose();
   field.dispose();
 });
+
+test('snow masks reject missing diffuse UVs before changing any material hooks', () => {
+  const field = createSurfaceField(query, bounds, 8);
+  const earlier = new MeshStandardMaterial();
+  const previous = earlier.onBeforeCompile;
+  const snowMask = new Texture();
+  for (const material of [
+    new MeshStandardMaterial(),
+    new MeshLambertMaterial(),
+  ]) {
+    assert.throws(
+      () =>
+        installWeatherMaterials(
+          [{ material: earlier }, { material, snowMask }],
+          field,
+          {},
+        ),
+      /diffuse map/,
+    );
+    assert.equal(earlier.onBeforeCompile, previous);
+    material.dispose();
+  }
+  snowMask.dispose();
+  earlier.dispose();
+  field.dispose();
+});

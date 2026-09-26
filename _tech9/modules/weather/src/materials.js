@@ -17,6 +17,10 @@ export function installWeatherMaterials(targets, field, state) {
       );
     if (target.snowMask !== undefined && !target.snowMask?.isTexture)
       throw new TypeError('Weather snowMask must be a texture.');
+    if (target.snowMask && !target.material.map?.isTexture)
+      throw new TypeError(
+        'Weather snowMask requires a diffuse map for aligned UVs.',
+      );
     if (
       target.material.isMeshBasicMaterial &&
       ((target.wind ?? 0) !== 0 || (target.depth ?? 0) !== 0)

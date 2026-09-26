@@ -84,7 +84,7 @@ renderer.setAnimationLoop((now) => {
   app.render(dt, elapsed);
   status.value = `${profile} · ${playing ? 'flying' : 'paused — Fly / resume'} · ${Math.round(state.speed)} m/s · ${Math.round(state.y - landscape.groundHeight(state.x, state.z))} m AGL · assistance ${state.stabilization ? 'on' : 'off'}${state.contact ? ' · contact — reset to fly' : ''}`;
 });
-if (new URLSearchParams(location.search).has('test'))
+if (new URLSearchParams(location.search).get('test') === '1')
   window.__EXAMPLE_TEST__ = {
     app,
     pause,

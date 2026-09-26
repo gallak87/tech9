@@ -496,7 +496,8 @@ export function createFlightWorld() {
     }
     const tip = new THREE.ConeGeometry(0.078, 0.24, 7);
     tip.translate(-0.012, 0.88, 0.01);
-    crownParts.push(tip);
+    crownParts.push(tip.toNonIndexed());
+    tip.dispose();
     const crown = keep(mergeGeometries(crownParts));
     crownParts.forEach((part) => part.dispose());
     const trunk = keep(new THREE.CylinderGeometry(0.014, 0.025, 0.72, 5));

@@ -63,6 +63,36 @@ try {
     await page.keyboard.up('Space');
     await page.keyboard.press('c');
     await page.screenshot({ path: path.join(out, `${kind}-driver.png`) });
+    await page.keyboard.press('c');
+    await page.evaluate(() =>
+      window.__SCENE_TEST__.arrange({
+        x: 260,
+        z: -4,
+        heading: Math.asin(-0.15),
+      }),
+    );
+    await page.keyboard.down('w');
+    let takeoff = false,
+      landed = false;
+    const end = Date.now() + 7000;
+    while (Date.now() < end) {
+      const state = await h.snapshot();
+      if (state.motion.airborne && !takeoff) {
+        takeoff = true;
+        await page.screenshot({ path: path.join(out, `${kind}-takeoff.png`) });
+        evidence.push({ kind, frame: 'takeoff', snapshot: state });
+      } else if (takeoff && !state.motion.airborne && !landed) {
+        landed = true;
+        await page.screenshot({ path: path.join(out, `${kind}-landed.png`) });
+        evidence.push({ kind, frame: 'landed', snapshot: state });
+      }
+      await page.waitForTimeout(40);
+    }
+    await page.keyboard.up('w');
+    assert.ok(
+      takeoff && landed,
+      `${kind} demonstrates a fresh takeoff and grounded landing`,
+    );
     await page.keyboard.press('Escape');
     await page.locator('[data-action="garage"]').last().click();
   }
@@ -81,7 +111,7 @@ try {
         performance,
         errors: h.errors,
         evidence,
-        note: 'Inspection closeups use test-only camera poses in the real park. Turn sequence uses real keyboard input; still frames do not substitute for continuous video.',
+        note: 'Inspection closeups use test-only camera poses in the real park. Turn and terrain-jump sequences use real keyboard input. Jump approach uses targeted setup; this is articulation evidence, not route-completion evidence. Still frames do not substitute for continuous video.',
       },
       null,
       2,

@@ -113,7 +113,15 @@ class TrailGame {
     this.model = createVehicleModel(id);
     this.app.scene.add(this.model.group);
     this.model.update(this.motion.snapshot(), 0);
-    this.camera?.setMode('follow');
+    if (this.camera) {
+      this.camera.dispose();
+      this.camera = new DrivingCamera(this.app.camera, {
+        getTarget: () => this.motion.snapshot(),
+        getModel: () => this.model,
+        world,
+        vehicle: id,
+      });
+    }
   }
   start(mode = this.mode) {
     this.mode = mode;

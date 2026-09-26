@@ -39,7 +39,7 @@ export function clearCameraBoom(
   return result;
 }
 export class DrivingCamera {
-  constructor(camera, { getTarget, getModel, world }) {
+  constructor(camera, { getTarget, getModel, world, vehicle = 'jeep' }) {
     this.camera = camera;
     this.getTarget = getTarget;
     this.getModel = getModel;
@@ -51,8 +51,8 @@ export class DrivingCamera {
       },
       groundHeight: world.height,
       follow: {
-        distance: 8.8,
-        height: 4.3,
+        distance: vehicle === 'bike' ? 6.1 : vehicle === 'atv' ? 7.2 : 8.8,
+        height: vehicle === 'bike' ? 3.1 : vehicle === 'atv' ? 3.6 : 4.3,
         lookAhead: 5,
         targetHeight: 1.1,
         damping: 7,

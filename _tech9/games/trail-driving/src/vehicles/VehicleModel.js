@@ -739,6 +739,53 @@ function steeringControl(parent, kind, p) {
       0.034,
     );
   }
+  if (kind !== 'jeep' && typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 144;
+    const context = canvas.getContext('2d');
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const screenMaterial = new THREE.MeshBasicMaterial({
+      map: texture,
+      toneMapped: false,
+    });
+    const screen = mesh(
+      group,
+      new THREE.PlaneGeometry(0.096, 0.061),
+      screenMaterial,
+      [0, 0.062, 0.025],
+      [-0.4, 0, 0],
+    );
+    screen.castShadow = false;
+    screen.userData.dynamic = true;
+    let lastSpeed = -1;
+    group.userData.instrument = {
+      dispose() {
+        texture.dispose();
+        screenMaterial.dispose();
+      },
+      update(speed) {
+        const kmh = Math.round(Math.abs(speed || 0) * 3.6);
+        if (kmh === lastSpeed) return;
+        lastSpeed = kmh;
+        context.fillStyle = '#142b29';
+        context.fillRect(0, 0, 256, 144);
+        context.strokeStyle = '#81a893';
+        context.lineWidth = 4;
+        context.strokeRect(5, 5, 246, 134);
+        context.fillStyle = '#e5ebce';
+        context.textAlign = 'center';
+        context.font = 'bold 84px monospace';
+        context.fillText(String(kmh).padStart(2, '0'), 128, 93);
+        context.fillStyle = '#95b69d';
+        context.font = '22px monospace';
+        context.fillText('KM/H', 128, 125);
+        texture.needsUpdate = true;
+      },
+    };
+    group.userData.instrument.update(0);
+  }
   batch(group);
   return group;
 }
@@ -981,6 +1028,7 @@ export function createVehicleModel(kind = 'jeep') {
     if (kind === 'jeep') controls.rotation.z = steering * 1.7;
     else controls.rotation.y = -steering;
     person.update(snapshot, delta, controls);
+    controls.userData.instrument?.update(snapshot.speed);
     verticalMotion +=
       ((snapshot.airborne ? 0.07 : 0) - verticalMotion) *
       (1 - Math.exp(-delta * 6));
@@ -1015,6 +1063,7 @@ export function createVehicleModel(kind = 'jeep') {
   function dispose() {
     if (disposed) return;
     disposed = true;
+    controls.userData.instrument?.dispose();
     const geometries = new Set();
     group.traverse((object) => {
       if (object.isMesh) geometries.add(object.geometry);

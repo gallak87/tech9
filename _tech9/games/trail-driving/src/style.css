@@ -799,3 +799,36 @@ kbd {
     background: #102a28dd;
   }
 }
+
+@media (max-width: 520px) {
+  .run-heading .eyebrow,
+  .timing > span {
+    font-size: 9px;
+  }
+  .run-heading #objective {
+    font-size: 10px;
+  }
+  .drive-controls span {
+    font-size: 9px;
+  }
+  kbd {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 520px) {
+  .run-heading {
+    background: linear-gradient(90deg, #122b23c9, #122b2377);
+    padding: 9px 12px;
+    border-radius: 3px;
+    left: 12px;
+    max-width: 240px;
+    top: 91px;
+  }
+  .run-heading h2 {
+    margin: 7px 0;
+  }
+  .timing {
+    top: 99px;
+  }
+}

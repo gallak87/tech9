@@ -61,7 +61,7 @@ for (let gx = -200; gx < 200; gx++) {
     const mature =
       0.5 +
       0.5 * Math.sin(x * 0.009 + Math.cos(z * 0.007)) * Math.cos(z * 0.008);
-    const height = 17 + random() * 10 + mature * 9;
+    const height = 14 + random() * 13 + mature * 13;
     const tree = {
       x,
       z,

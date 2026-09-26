@@ -315,11 +315,11 @@ export async function createLandscape(context, kit) {
     terrain.receiveShadow = true;
     group.add(terrain);
 
-    // Bake actual baseline pines at eight azimuths and three elevations.
+    // Bake actual baseline pines at sixteen azimuths and four elevations.
     // Camera-facing cards select the corresponding view without crossed-plane artifacts.
     const renderer = context.renderer;
     const atlas = keep(
-      new THREE.WebGLRenderTarget(2048, 2304, {
+      new THREE.WebGLRenderTarget(3072, 2304, {
         samples: 4,
         generateMipmaps: true,
         minFilter: THREE.LinearMipmapLinearFilter,
@@ -370,10 +370,10 @@ export async function createLandscape(context, kit) {
           model.add(mesh);
         }
         bakeScene.add(model);
-        for (let elevation = 0; elevation < 3; elevation++) {
-          for (let azimuth = 0; azimuth < 8; azimuth++) {
-            const yaw = (azimuth * Math.PI) / 4,
-              pitch = (elevation * Math.PI) / 6;
+        for (let elevation = 0; elevation < 4; elevation++) {
+          for (let azimuth = 0; azimuth < 16; azimuth++) {
+            const yaw = (azimuth * Math.PI) / 8,
+              pitch = Math.min((elevation * Math.PI) / 6, Math.PI * 0.475);
             camera.up.set(0, 1, 0);
             camera.position.set(
               Math.sin(yaw) * Math.cos(pitch) * 3,
@@ -382,24 +382,24 @@ export async function createLandscape(context, kit) {
             );
             camera.lookAt(0, 0.5, 0);
             atlas.viewport.set(
-              azimuth * 256,
-              (kind * 3 + elevation) * 256,
-              256,
-              256,
+              azimuth * 192,
+              (kind * 4 + elevation) * 192,
+              192,
+              192,
             );
             atlas.scissor.copy(atlas.viewport);
             atlas.scissorTest = true;
             renderer.setViewport(
-              azimuth * 256,
-              (kind * 3 + elevation) * 256,
-              256,
-              256,
+              azimuth * 192,
+              (kind * 4 + elevation) * 192,
+              192,
+              192,
             );
             renderer.setScissor(
-              azimuth * 256,
-              (kind * 3 + elevation) * 256,
-              256,
-              256,
+              azimuth * 192,
+              (kind * 4 + elevation) * 192,
+              192,
+              192,
             );
             renderer.shadowMap.needsUpdate = true;
             renderer.render(bakeScene, camera);
@@ -416,6 +416,20 @@ export async function createLandscape(context, kit) {
       renderer.setClearColor(previousClear, previousAlpha);
     }
 
+    const treeColor = new THREE.Color();
+    function tint(entry) {
+      const cohort =
+        0.5 +
+        0.5 *
+          Math.sin(entry.x * 0.014 + Math.cos(entry.z * 0.009)) *
+          Math.cos(entry.z * 0.012);
+      const value = 0.84 + cohort * 0.24 + entry.tone * 0.08;
+      return treeColor.setRGB(
+        value * (1.03 - cohort * 0.08),
+        value,
+        value * (0.92 + cohort * 0.06),
+      );
+    }
     function transform(entry, tree = false) {
       position.set(entry.x, entry.y, entry.z);
       rotation.setFromAxisAngle(up, entry.angle);
@@ -459,16 +473,18 @@ export async function createLandscape(context, kit) {
         vec3 offset = (right*position.x + cardUp*(position.y-.5))*h;
         transformed = transpose(mat3(instanceMatrix)) * offset / (h*h) + vec3(0.,.5,0.);
         float yaw = atan(instanceMatrix[2].x,instanceMatrix[2].z);
-        float azimuth = mod(floor((atan(direction.x,direction.z)-yaw)/.785398+ .5),8.);
-        float elevation = clamp(floor(asin(clamp(direction.y,-1.,1.))/.523599+.5),0.,2.);
-        vMapUv = (uv + vec2(azimuth, ${kind * 3}. + elevation))/vec2(8.,9.);
+        float azimuth = mod(floor((atan(direction.x,direction.z)-yaw)/.392699+ .5),16.);
+        float elevation = clamp(floor(asin(clamp(direction.y,-1.,1.))/.523599+.5),0.,3.);
+        vMapUv = (uv + vec2(azimuth, ${kind * 4}. + elevation))/vec2(16.,12.);
       `,
         );
       };
       surface.customProgramCacheKey = () => `pine-impostor-${kind}`;
       const mesh = batch(geometry, surface, entries.length, false);
-      for (let i = 0; i < entries.length; i++)
+      for (let i = 0; i < entries.length; i++) {
         mesh.setMatrixAt(i, transform(entries[i], true));
+        mesh.setColorAt(i, tint(entries[i]));
+      }
       mesh.count = entries.length;
       mesh.instanceMatrix.needsUpdate = true;
     }
@@ -486,10 +502,22 @@ export async function createLandscape(context, kit) {
       nearBatches.set(
         name,
         prototypes.get(name).map((part) => {
+          if (name === 'grass_short_lod') {
+            part.material = keep(
+              new THREE.MeshLambertMaterial({
+                map: part.material.map,
+                color: part.material.color.clone().multiplyScalar(0.82),
+                emissive: part.material.emissive,
+                emissiveIntensity: part.material.emissiveIntensity,
+                alphaTest: 0.42,
+                side: THREE.DoubleSide,
+              }),
+            );
+          }
           fade(
             part.material,
-            isTree ? 180 : grass ? 28 : 32,
-            isTree ? 220 : grass ? 46 : 66,
+            isTree ? 180 : grass ? 16 : 32,
+            isTree ? 220 : grass ? 28 : 66,
             false,
             part.plant,
             isTree,
@@ -552,9 +580,12 @@ export async function createLandscape(context, kit) {
         if (entries.length > mesh.instanceMatrix.count)
           throw new Error(`Forest pool capacity exceeded: ${name}`);
         mesh.count = entries.length;
-        for (let i = 0; i < entries.length; i++)
+        for (let i = 0; i < entries.length; i++) {
           mesh.setMatrixAt(i, transform(entries[i], isTree));
+          if (isTree) mesh.setColorAt(i, tint(entries[i]));
+        }
         mesh.instanceMatrix.needsUpdate = true;
+        if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
       }
     }
     context.scene.add(group);
@@ -622,7 +653,7 @@ export async function createLandscape(context, kit) {
                 e.y - (cy + 0.5) * 32,
               );
               if (e.kind === 'grass_short') {
-                if (distance < 74) detail.get(e.kind).push(e);
+                if (distance < 56) detail.get(e.kind).push(e);
                 if (distance < 124 && distance > 0)
                   detail.get('grass_short_lod').push(e);
               } else if (distance < 94) detail.get(e.kind).push(e);

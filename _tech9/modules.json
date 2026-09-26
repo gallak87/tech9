@@ -19,10 +19,22 @@
     },
     {
       "id": "follow-camera",
-      "version": "1.0.1"
+      "version": "1.1.0"
     },
     {
       "id": "island-ocean",
+      "version": "1.0.0"
+    },
+    {
+      "id": "vehicle-motion",
+      "version": "1.0.0"
+    },
+    {
+      "id": "vehicle-input",
+      "version": "1.0.0"
+    },
+    {
+      "id": "vehicle-presentation",
       "version": "1.0.0"
     }
   ]

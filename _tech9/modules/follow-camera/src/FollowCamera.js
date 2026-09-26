@@ -23,13 +23,17 @@ export class FollowCamera {
       groundHeight = () => -Infinity,
       follow = {},
       mounted,
+      resolvePosition,
       onChange = () => {},
     } = {},
   ) {
     if (
       !camera?.isPerspectiveCamera ||
       typeof getTarget !== 'function' ||
-      typeof groundHeight !== 'function'
+      typeof groundHeight !== 'function' ||
+      (resolvePosition !== undefined &&
+        typeof resolvePosition !== 'function') ||
+      typeof onChange !== 'function'
     )
       throw new TypeError(
         'A perspective camera and target/ground callbacks are required.',
@@ -68,6 +72,7 @@ export class FollowCamera {
         near: mounted.near ?? 0.05,
         fov: mounted.fov ?? 70,
       });
+    this.resolvePosition = resolvePosition;
     this.onChange = onChange;
     this.mode = 'follow';
     this.disposed = false;
@@ -76,6 +81,17 @@ export class FollowCamera {
     this.target = new Vector3();
     this.aim = new Vector3();
     this._projection();
+  }
+  _resolve(position, subject, phase) {
+    if (!this.resolvePosition) return;
+    const result = this.resolvePosition(
+      { x: position.x, y: position.y, z: position.z },
+      { ...subject, y: subject.y ?? 0 },
+      phase,
+    );
+    if (!result || ![result.x, result.y, result.z].every(Number.isFinite))
+      throw new TypeError('Position resolver must return finite x, y and z.');
+    position.set(result.x, result.y, result.z);
   }
   _projection() {
     const settings = this.mode === 'mounted' ? this.mounted : this.follow;
@@ -151,6 +167,11 @@ export class FollowCamera {
         this.position.y,
         floor(this.position.x, this.position.z),
       );
+      this._resolve(this.position, subject, 'desired');
+      this.position.y = Math.max(
+        this.position.y,
+        floor(this.position.x, this.position.z),
+      );
       this.target.set(
         subject.x + fx * c.lookAhead,
         y + c.targetHeight,
@@ -161,6 +182,11 @@ export class FollowCamera {
         : 1 - Math.exp(-c.damping * Math.min(dt, 0.25));
       camera.position.lerp(this.position, blend);
       this.aim.lerp(this.target, blend);
+      camera.position.y = Math.max(
+        camera.position.y,
+        floor(camera.position.x, camera.position.z),
+      );
+      this._resolve(camera.position, subject, 'interpolated');
       camera.position.y = Math.max(
         camera.position.y,
         floor(camera.position.x, camera.position.z),

@@ -74,6 +74,10 @@ export function createShipShadow(renderer, root, sunPosition) {
           'uniform sampler2D shipShadowMap; uniform float shipShadowTexel; varying vec4 vShipShadow;\n' +
           shader.fragmentShader;
         shader.fragmentShader = shader.fragmentShader.replace(
+          '#include <common>',
+          '#include <common>\n#include <packing>',
+        );
+        shader.fragmentShader = shader.fragmentShader.replace(
           '#include <lights_fragment_end>',
           `#include <lights_fragment_end>
           vec3 shipP=vShipShadow.xyz/vShipShadow.w;

@@ -463,12 +463,14 @@ try {
       );
     }
   }
+  report.errors = scene.errors;
   check(
     'no console/page/request/WebGL errors',
     Object.values(scene.errors).every((a) => a.length === 0),
   );
   report.errors = scene.errors;
 } catch (error) {
+  report.errors = scene.errors;
   report.failure = error.stack;
   report.snapshot = await snapshot().catch(() => null);
   await capture('failure').catch(() => {});

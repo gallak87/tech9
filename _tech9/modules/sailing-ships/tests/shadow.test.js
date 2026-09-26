@@ -1,7 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Color, Group, Scene, Object3D } from 'three';
-import { createShipShadow } from '../src/world/ShipShadow.js';
+import {
+  Color,
+  Group,
+  Scene,
+  Object3D,
+  Mesh,
+  BoxGeometry,
+  MeshStandardMaterial,
+} from 'three';
+import { createShipShadow } from '../src/ShipShadow.js';
 
 test('ship depth pass restores renderer and scene ownership even if rendering fails', () => {
   for (const fail of [false, true]) {
@@ -9,7 +17,17 @@ test('ship depth pass restores renderer and scene ownership even if rendering fa
     const root = new Group();
     const before = new Object3D(),
       after = new Object3D();
+    scene.position.set(11, 4, -8);
+    scene.rotation.set(0.1, 0.7, -0.2);
+    root.position.set(3, 2, 7);
     scene.add(before, root, after);
+    scene.updateMatrixWorld(true);
+    const world = root.matrixWorld.clone();
+    const material = new MeshStandardMaterial();
+    const mesh = new Mesh(new BoxGeometry(), material);
+    root.add(mesh);
+    const compile = material.onBeforeCompile;
+    const cacheKey = material.customProgramCacheKey;
     const previousTarget = {};
     const state = {
       target: previousTarget,
@@ -18,6 +36,7 @@ test('ship depth pass restores renderer and scene ownership even if rendering fa
     };
     let calls = 0;
     const renderer = {
+      isWebGLRenderer: true,
       autoClear: true,
       shadowMap: { enabled: true },
       xr: { enabled: true },
@@ -36,13 +55,18 @@ test('ship depth pass restores renderer and scene ownership even if rendering fa
       clear() {},
       render(isolatedScene) {
         calls++;
-        assert.equal(isolatedScene.children[0], root);
+        isolatedScene.updateMatrixWorld(true);
+        assert.deepEqual(root.matrixWorld.elements, world.elements);
+        assert.equal(isolatedScene.children[0].children[0], root);
         assert.equal(scene.children.includes(root), false);
         if (fail) throw new Error('depth failure');
       },
     };
     const shadow = createShipShadow(renderer, root, [-130, 100, -90]);
     shadow.attach();
+    assert.notEqual(material.onBeforeCompile, compile);
+    assert.throws(() => shadow.setSunDirection([0, 0, 0]), /Sun direction/);
+    shadow.setSunDirection([-1, 2, -1]);
     const render = () => shadow.render({ length: 18, mastHeight: 16 });
     if (fail) assert.throws(render, /depth failure/);
     else render();
@@ -59,5 +83,10 @@ test('ship depth pass restores renderer and scene ownership even if rendering fa
     shadow.dispose();
     render();
     assert.equal(calls, 1);
+    assert.equal(material.onBeforeCompile, compile);
+    assert.equal(material.customProgramCacheKey, cacheKey);
+    assert.equal(material.userData.shipSelfShadow, undefined);
+    material.dispose();
+    mesh.geometry.dispose();
   }
 });

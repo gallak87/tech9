@@ -3,9 +3,11 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createBoatMaterials } from './BoatMaterials.js';
 import { createShipHelm } from './ShipHelm.js';
+import { getShipPreset } from './presets.js';
 
 /** Authored sailing ships in metres. Materials, rigging and canvas stay editable here. */
-export function createSailingShip(profile) {
+export function createSailingShip(preset = 'schooner') {
+  const profile = getShipPreset(preset);
   const galleon = profile.id === 'galleon';
   const length = profile.length ?? (galleon ? 18 : 14);
   const beam = profile.beam ?? (galleon ? 5.5 : 4.2);
@@ -30,7 +32,7 @@ export function createSailingShip(profile) {
   const mesh = (geometry, mat, x = 0, y = 0, z = 0, parent = staticGroup) => {
     const item = new THREE.Mesh(own(geometry), mat);
     item.position.set(x, y, z);
-    // Moving ships receive the island's static shadow map; they never bake a ghost into it.
+    // Moving ships receive world shadows without baking themselves into a static map.
     item.castShadow = false;
     item.receiveShadow = true;
     parent.add(item);
@@ -1561,11 +1563,34 @@ export function createSailingShip(profile) {
   group.add(helm.group);
   return {
     group,
-    eye: helm.eye,
-    target: helm.target,
-    update: (dt, steer) => helm.update(dt, steer),
-    setCameraMode: (mode) => helm.setCameraMode(mode),
-    reset: () => helm.reset(),
+    profile,
+    getHelmPose() {
+      group.updateWorldMatrix(true, false);
+      return {
+        position: group.localToWorld(helm.eye.clone()).toArray(),
+        target: group.localToWorld(helm.target.clone()).toArray(),
+        up: new THREE.Vector3(0, 1, 0)
+          .transformDirection(group.matrixWorld)
+          .toArray(),
+      };
+    },
+    update(dt, steer = 0) {
+      if (disposed) return 0;
+      if (!Number.isFinite(dt) || dt < 0 || !Number.isFinite(steer))
+        throw new RangeError(
+          'Ship update requires nonnegative finite dt and finite steering.',
+        );
+      return helm.update(Math.min(dt, 0.25), steer);
+    },
+    setView(mode) {
+      if (disposed) return;
+      if (mode !== 'outside' && mode !== 'captain')
+        throw new RangeError('Ship view must be outside or captain.');
+      helm.setCameraMode(mode);
+    },
+    reset() {
+      if (!disposed) helm.reset();
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

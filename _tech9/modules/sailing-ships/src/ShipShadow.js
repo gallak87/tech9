@@ -1,8 +1,37 @@
 import * as THREE from 'three';
 
-/** A small depth pass for the ship alone; it never rebuilds the island shadow. */
-export function createShipShadow(renderer, root, sunPosition) {
-  const size = 1536;
+/** Optional self-shadow pass. Borrows the renderer and an exclusively owned ship root. */
+export function createShipShadow(
+  renderer,
+  root,
+  sunDirection,
+  { size = 1536, interval = 2 } = {},
+) {
+  if (!renderer?.isWebGLRenderer || !root?.isObject3D)
+    throw new TypeError('Ship shadows require a WebGLRenderer and ship root.');
+  if (
+    !Number.isInteger(size) ||
+    size < 128 ||
+    size > 4096 ||
+    !Number.isInteger(interval) ||
+    interval < 1 ||
+    interval > 8
+  )
+    throw new RangeError('Shadow size must be 128–4096 and interval 1–8.');
+  const sun = new THREE.Vector3();
+  function readSun(direction) {
+    if (
+      !Array.isArray(direction) ||
+      direction.length !== 3 ||
+      !direction.every(Number.isFinite) ||
+      Math.hypot(...direction) < 1e-8
+    )
+      throw new RangeError(
+        'Sun direction requires three finite, nonzero components.',
+      );
+    sun.fromArray(direction).normalize();
+  }
+  readSun(sunDirection);
   const target = new THREE.WebGLRenderTarget(size, size, {
     minFilter: THREE.NearestFilter,
     magFilter: THREE.NearestFilter,
@@ -17,8 +46,11 @@ export function createShipShadow(renderer, root, sunPosition) {
   depth.toneMapped = false;
   const scene = new THREE.Scene();
   scene.overrideMaterial = depth;
+  // Retain the caller's parent transform while isolating the ship for depth.
+  const holder = new THREE.Group();
+  holder.matrixAutoUpdate = false;
+  scene.add(holder);
   const camera = new THREE.OrthographicCamera(-15, 15, 15, -15, 1, 90);
-  const sun = new THREE.Vector3(...sunPosition).normalize();
   const aim = new THREE.Vector3();
   const bias = new THREE.Matrix4().set(
     0.5,
@@ -49,7 +81,17 @@ export function createShipShadow(renderer, root, sunPosition) {
   };
   let frame = 0;
   let disposed = false;
+  const hooks = new Map();
+  function restore(mat, hook) {
+    if (mat.onBeforeCompile === hook.installed)
+      mat.onBeforeCompile = hook.compile;
+    if (mat.customProgramCacheKey === hook.installedKey)
+      mat.customProgramCacheKey = hook.cacheKey;
+    delete mat.userData.shipSelfShadow;
+    mat.needsUpdate = true;
+  }
   function attach() {
+    if (disposed) return;
     const materials = new Set();
     root.traverse((object) => {
       if (object.material)
@@ -58,10 +100,26 @@ export function createShipShadow(renderer, root, sunPosition) {
           : [object.material])
           materials.add(mat);
     });
+    for (const [mat, hook] of hooks)
+      if (!materials.has(mat)) {
+        restore(mat, hook);
+        hooks.delete(mat);
+      }
     for (const mat of materials) {
-      if (!mat.isMeshStandardMaterial || mat.userData.shipSelfShadow) continue;
+      if (
+        mat.isMeshStandardMaterial &&
+        !hooks.has(mat) &&
+        mat.userData.shipSelfShadow
+      )
+        throw new Error(
+          'A ship material already has another self-shadow owner.',
+        );
+    }
+    for (const mat of materials) {
+      if (!mat.isMeshStandardMaterial || hooks.has(mat)) continue;
       mat.userData.shipSelfShadow = true;
       const compile = mat.onBeforeCompile;
+      const cacheKey = mat.customProgramCacheKey;
       const key = mat.customProgramCacheKey();
       mat.onBeforeCompile = (shader, gl) => {
         compile.call(mat, shader, gl);
@@ -98,14 +156,28 @@ export function createShipShadow(renderer, root, sunPosition) {
         );
       };
       mat.customProgramCacheKey = () => `${key}:ship-self-shadow-v1`;
+      hooks.set(mat, {
+        compile,
+        cacheKey,
+        installed: mat.onBeforeCompile,
+        installedKey: mat.customProgramCacheKey,
+      });
       mat.needsUpdate = true;
     }
     frame = 0;
   }
   function render(profile) {
     if (disposed) return;
-    root.updateMatrixWorld(true);
-    if (frame++ % 2 !== 0) {
+    if (
+      ![profile?.length, profile?.mastHeight].every(
+        (n) => Number.isFinite(n) && n > 0,
+      )
+    )
+      throw new RangeError(
+        'Shadow bounds require positive length and mastHeight.',
+      );
+    root.updateWorldMatrix(true, true);
+    if (frame++ % interval !== 0) {
       // Keep cached depth attached to the moving hull between shadow captures.
       matrix
         .copy(captureProjection)
@@ -114,13 +186,19 @@ export function createShipShadow(renderer, root, sunPosition) {
       return;
     }
     const span =
-      Math.max(profile.length * 0.73, profile.mastHeight * 0.76) + 1.4;
+      (Math.max(profile.length * 0.73, profile.mastHeight * 0.76) + 1.4) *
+      root.matrixWorld.getMaxScaleOnAxis();
+    if (!Number.isFinite(span) || span <= 0)
+      throw new RangeError(
+        'Ship shadow requires a finite, nonzero world scale.',
+      );
     camera.left = camera.bottom = -span;
     camera.right = camera.top = span;
-    aim
-      .copy(root.position)
-      .add(new THREE.Vector3(0, profile.mastHeight * 0.44, 0));
-    camera.position.copy(aim).addScaledVector(sun, 44);
+    aim.set(0, profile.mastHeight * 0.44, 0).applyMatrix4(root.matrixWorld);
+    const distance = Math.max(44, span * 3);
+    camera.near = 0.1;
+    camera.far = distance + span * 3;
+    camera.position.copy(aim).addScaledVector(sun, distance);
     camera.lookAt(aim);
     camera.updateProjectionMatrix();
     camera.updateMatrixWorld();
@@ -140,8 +218,10 @@ export function createShipShadow(renderer, root, sunPosition) {
     const autoClear = renderer.autoClear;
     const shadows = renderer.shadowMap.enabled;
     const xr = renderer.xr.enabled;
+    if (parent) holder.matrix.copy(parent.matrixWorld);
+    else holder.matrix.identity();
     try {
-      scene.add(root);
+      holder.add(root);
       renderer.xr.enabled = false;
       renderer.shadowMap.enabled = false;
       renderer.autoClear = false;
@@ -149,8 +229,11 @@ export function createShipShadow(renderer, root, sunPosition) {
       renderer.setClearColor(0xffffff, 1);
       renderer.clear(true, true, true);
       renderer.render(scene, camera);
+    } catch (error) {
+      frame = 0;
+      throw error;
     } finally {
-      scene.remove(root);
+      holder.remove(root);
       if (parent) {
         parent.add(root);
         parent.children.splice(parent.children.indexOf(root), 1);
@@ -166,9 +249,16 @@ export function createShipShadow(renderer, root, sunPosition) {
   return {
     attach,
     render,
+    setSunDirection(direction) {
+      if (disposed) return;
+      readSun(direction);
+      frame = 0;
+    },
     dispose() {
       if (disposed) return;
       disposed = true;
+      for (const [mat, hook] of hooks) restore(mat, hook);
+      hooks.clear();
       target.dispose();
       depth.dispose();
       scene.clear();

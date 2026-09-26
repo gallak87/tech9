@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { createSailingShip } from './SailingShipModel.js';
-import { createShipShadow } from './ShipShadow.js';
+import { createSailingShip } from '../modules/sailing-ships/src/SailingShipModel.js';
+import { createShipShadow } from '../modules/sailing-ships/src/ShipShadow.js';
 
 /** Vessel appearance and wake only; rules, movement, renderer and camera stay separate. */
 export function createBoatView(boat, rules) {
@@ -46,10 +46,10 @@ export function createBoatView(boat, rules) {
       mastHeight: 12,
     };
     ship?.dispose();
-    ship = createSailingShip(profile);
+    ship = createSailingShip(profile.id);
     root.add(ship.group);
     selfShadow?.attach();
-    ship.setCameraMode(stats.cameraMode);
+    ship.setView(stats.cameraMode === 'captain' ? 'captain' : 'outside');
     Object.assign(stats, {
       vesselId: profile.id,
       vessel: profile.id,
@@ -333,17 +333,10 @@ export function createBoatView(boat, rules) {
     selectVessel,
     setCameraMode(mode) {
       stats.cameraMode = mode === 'captain' ? 'captain' : 'chase';
-      ship?.setCameraMode(stats.cameraMode);
+      ship?.setView(stats.cameraMode === 'captain' ? 'captain' : 'outside');
     },
     getHelmPose() {
-      root.updateMatrixWorld(true);
-      return {
-        position: root.localToWorld(ship.eye.clone()).toArray(),
-        target: root.localToWorld(ship.target.clone()).toArray(),
-        up: new THREE.Vector3(0, 1, 0)
-          .transformDirection(root.matrixWorld)
-          .toArray(),
-      };
+      return ship.getHelmPose();
     },
     init(ctx) {
       context = ctx;

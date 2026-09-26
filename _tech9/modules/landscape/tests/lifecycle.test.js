@@ -24,7 +24,8 @@ test('dispose during asset load releases late resources once without touching th
     'loadAsync',
     () => new Promise((r) => (resolve = r)),
   );
-  const texture = new Texture(),
+  let closed = 0;
+  const texture = new Texture({ close: () => closed++ }),
     geometry = new BoxGeometry(),
     material = new MeshStandardMaterial({ map: texture });
   const kit = new Group();
@@ -47,6 +48,7 @@ test('dispose during asset load releases late resources once without touching th
   resolve({ scene: kit });
   await pending;
   assert.deepEqual(releases, [1, 1, 1]);
+  assert.equal(closed, 1);
   assert.equal(scene.children.length, 0);
   await assert.rejects(
     landscape.init({ scene, camera: {}, renderer: {} }),

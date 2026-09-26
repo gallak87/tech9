@@ -63,7 +63,7 @@ export async function createExampleScene() {
     weather = createWeather({
       targets: [...landscape.getWeatherTargets(), ...extraTargets],
       sampleSurface: landscape.sampleSurface,
-      surfaceBounds: landscape.bounds,
+      surfaceBounds: landscape.surfaceBounds,
       fieldResolution: 256,
       features: { audio: false },
       settings: { wind: 0.2 },

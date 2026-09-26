@@ -394,7 +394,7 @@ export async function buildLandscape(
         minFilter: THREE.LinearMipmapLinearFilter,
       }),
     );
-    // Upright impostors retain per-pixel upward normals for weather deposition.
+    // Upright impostors retain prefiltered upward-facing coverage for weather deposition.
     // Both atlases are fixed at initialization; no rebake or allocations during travel.
     const normalAtlas = keep(
       new THREE.WebGLRenderTarget(3072, 2304, {
@@ -431,7 +431,7 @@ export async function buildLandscape(
             )
             .replace(
               '#include <opaque_fragment>',
-              '#include <opaque_fragment>\ngl_FragColor.rgb = vec3(atlasNormalY * .5 + .5);',
+              '#include <opaque_fragment>\ngl_FragColor.rgb = vec3(smoothstep(.23,.8,atlasNormalY));',
             );
         };
         material.customProgramCacheKey = () => 'landscape-normal-y-atlas';
@@ -738,7 +738,7 @@ export async function buildLandscape(
         for (const material of farSurfaces)
           result.push({
             material,
-            normalYMap: normalAtlas.texture,
+            snowMask: normalAtlas.texture,
             foliage: true,
             wind: 0,
             depth: 0,

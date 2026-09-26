@@ -42,7 +42,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "d60777dc5fc06f9523adf9ff5a8dca136dabbf53e9e54d01d3922d567742cf8a"
+          "sha256": "f273094d84a354a22d7d23e793e4845d51be65ff0a4fdd71cb241bf69eed1685"
         },
         {
           "path": "src/Weather.js",
@@ -58,7 +58,7 @@
         },
         {
           "path": "src/materials.js",
-          "sha256": "60317b2d36d1e7bf6288f7173a7846d536b538e183ab34775a30b0de463b2437"
+          "sha256": "4b84411df34df73cd7e475393cde605df9fe04090da3a78c05cbc5523ad98465"
         },
         {
           "path": "src/precipitation.js",

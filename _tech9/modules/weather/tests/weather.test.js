@@ -336,7 +336,7 @@ test('Lambert detail and upright impostors share weather and restore their own h
     [
       new MeshBasicMaterial({ map }),
       ShaderLib.basic,
-      { normalYMap: map, depth: 0 },
+      { snowMask: map, depth: 0 },
     ],
   ]) {
     const previous = material.onBeforeCompile;
@@ -355,11 +355,11 @@ test('Lambert detail and upright impostors share weather and restore their own h
     assert.equal(shader.uniforms.weatherSnow.value, 0.8);
     assert.equal(shader.uniforms.weatherWind.value.x, state.windX);
     assert.match(shader.vertexShader, /weatherOffset/);
-    if (policy.normalYMap) {
-      assert.equal(shader.uniforms.weatherNormalYMap.value, map);
+    if (policy.snowMask) {
+      assert.equal(shader.uniforms.weatherSnowMask.value, map);
       assert.match(
         shader.fragmentShader,
-        /texture2D\(weatherNormalYMap,vMapUv\)/,
+        /texture2D\(weatherSnowMask,vMapUv\)/,
       );
     } else assert.match(shader.fragmentShader, /normalize\(vWeatherNormal\).y/);
     assert.doesNotMatch(shader.fragmentShader, /roughnessFactor = mix/);
@@ -373,7 +373,7 @@ test('Lambert detail and upright impostors share weather and restore their own h
         [
           {
             material: new MeshBasicMaterial({ map }),
-            normalYMap: map,
+            snowMask: map,
             wind: 1,
           },
         ],

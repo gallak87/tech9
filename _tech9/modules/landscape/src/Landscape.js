@@ -72,12 +72,18 @@ export function createLandscape({
           if (value?.isTexture) resources.add(value);
       }
     });
+    const images = new Set();
+    for (const resource of resources)
+      if (resource.isTexture && resource.source?.data?.close)
+        images.add(resource.source.data);
     resources.forEach((r) => r.dispose());
+    images.forEach((image) => image.close());
     kit = null;
   };
   const layer = {
     id: 'landscape',
     bounds: layout.bounds,
+    surfaceBounds: layout.terrainBounds,
     groundHeight: layout.groundHeight,
     obstacle: layout.obstacle,
     sampleSurface: layout.sampleSurface,

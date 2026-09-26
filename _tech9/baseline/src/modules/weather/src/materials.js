@@ -10,13 +10,13 @@ export function installWeatherMaterials(targets, field, state) {
       target.material?.isMeshLambertMaterial ||
       (target.material?.isMeshBasicMaterial &&
         target.material.map?.isTexture &&
-        target.normalYMap?.isTexture)
+        target.snowMask?.isTexture)
     ))
       throw new Error(
-        'Weather surface targets require MeshStandardMaterial, MeshPhysicalMaterial, MeshLambertMaterial, or an upright Basic impostor with normalYMap.',
+        'Weather surface targets require MeshStandardMaterial, MeshPhysicalMaterial, MeshLambertMaterial, or an upright Basic impostor with snowMask.',
       );
-    if (target.normalYMap !== undefined && !target.normalYMap?.isTexture)
-      throw new TypeError('Weather normalYMap must be a texture.');
+    if (target.snowMask !== undefined && !target.snowMask?.isTexture)
+      throw new TypeError('Weather snowMask must be a texture.');
     if (
       target.material.isMeshBasicMaterial &&
       ((target.wind ?? 0) !== 0 || (target.depth ?? 0) !== 0)
@@ -64,8 +64,8 @@ export function installWeatherMaterials(targets, field, state) {
       previous.call(this, shader, renderer);
       if (!enabled) return;
       Object.assign(shader.uniforms, uniforms);
-      if (target.normalYMap)
-        shader.uniforms.weatherNormalYMap = { value: target.normalYMap };
+      if (target.snowMask)
+        shader.uniforms.weatherSnowMask = { value: target.snowMask };
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
@@ -109,7 +109,7 @@ export function installWeatherMaterials(targets, field, state) {
           `#include <common>
         ${surfaceGLSL}
         uniform float weatherSnow; uniform float weatherWet; uniform float weatherWinter; uniform float weatherRain;
-        ${target.normalYMap ? 'uniform sampler2D weatherNormalYMap;' : ''}
+        ${target.snowMask ? 'uniform sampler2D weatherSnowMask;' : ''}
         varying vec3 vWeatherPosition; varying vec3 vWeatherNormal;
       `,
         )
@@ -119,12 +119,12 @@ export function installWeatherMaterials(targets, field, state) {
         vec4 weatherHit = weatherSurface(vWeatherPosition.xz);
         float weatherExposure = mix(weatherHit.g, 1.0, smoothstep(weatherHit.a-0.8,weatherHit.a+0.4,vWeatherPosition.y));
         float weatherRetention = mix(1.0,weatherHit.b,${ground.toFixed(1)});
-        float weatherSlope = smoothstep(0.23,0.8,${target.normalYMap ? '(texture2D(weatherNormalYMap,vMapUv).r*2.0-1.0)' : 'normalize(vWeatherNormal).y'});
+        float weatherSlope = ${target.snowMask ? 'texture2D(weatherSnowMask,vMapUv).r' : 'smoothstep(0.23,0.8,normalize(vWeatherNormal).y)'};
         float weatherMacro = weatherNoise(vWeatherPosition.xz*1.8) * 0.65 + weatherNoise(vWeatherPosition.xz*8.0) * 0.35;
         float weatherAmount = weatherSnow * weatherExposure * weatherRetention * ${snow.toFixed(3)};
         // Broken, narrow deposition edges retain exposed leaf litter and stone.
         float weatherGrain = weatherNoise(vWeatherPosition.xz*28.0);
-        float weatherCover = smoothstep(0.19,0.245,weatherAmount - (1.0-weatherSlope)*0.65 - weatherMacro*0.24 - weatherGrain*0.055);
+        float weatherCover = smoothstep(0.19,0.245,weatherAmount - ${target.snowMask ? '0.0' : '(1.0-weatherSlope)*0.65'} - weatherMacro*0.24 - weatherGrain*0.055);
         weatherCover *= weatherSlope;
         float weatherMoisture = weatherWet * mix(0.25,1.0,weatherExposure) * ${wet.toFixed(3)} * (0.84+weatherMacro*0.16) * (1.0-weatherWinter*(1.0-weatherRain)*0.65);
         diffuseColor.rgb *= 1.0 - weatherMoisture * ${ground ? '0.27' : '0.31'};
@@ -175,7 +175,7 @@ export function installWeatherMaterials(targets, field, state) {
         );
     };
     const cacheKey = () =>
-      `${baseKey()}:weather-v2:${enabled}:${snow}:${wet}:${wind}:${ground}:${foliage}:${depth}:${!!target.normalYMap}`;
+      `${baseKey()}:weather-v2:${enabled}:${snow}:${wet}:${wind}:${ground}:${foliage}:${depth}:${!!target.snowMask}`;
     material.onBeforeCompile = compile;
     material.customProgramCacheKey = cacheKey;
     material.needsUpdate = true;

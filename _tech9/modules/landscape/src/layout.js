@@ -111,12 +111,12 @@ export function createLandscapeLayout({
     minZ: bounds.minZ - 400,
     maxZ: bounds.maxZ + 400,
   };
-  const terrainBounds = {
+  const terrainBounds = Object.freeze({
     minX: bounds.minX - 800,
     maxX: bounds.maxX + 800,
     minZ: bounds.minZ - 800,
     maxZ: bounds.maxZ + 800,
-  };
+  });
   const trees = [];
   const treeCells = new Map();
   const random = randomSequence(seed);

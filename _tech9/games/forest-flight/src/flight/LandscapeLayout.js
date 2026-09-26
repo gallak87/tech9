@@ -91,7 +91,7 @@ export function detailTile(cx, cz) {
     if (
       (Math.abs(x) < 27 && Math.abs(z) < 710) ||
       (Math.abs(x + 100) < 69 && Math.abs(z - 250) < 115) ||
-      trailDistance(x, z) < 2
+      trailDistance(x, z) < 1.4
     )
       continue;
     const cover = forestCover(x, z);

@@ -16,6 +16,7 @@ test('landscape load failures release allocations and restore atlas renderer sta
       'rock_b',
       'fallen_log',
       'grass_short',
+      'grass_short_lod',
       'grass_tall',
       'fern_a',
       'fern_b',

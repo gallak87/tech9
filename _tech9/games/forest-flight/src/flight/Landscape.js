@@ -15,6 +15,7 @@ const DETAIL_NAMES = [
   'rock_b',
   'fallen_log',
   'grass_short',
+  'grass_short_lod',
   'grass_tall',
   'fern_a',
   'fern_b',
@@ -35,7 +36,7 @@ export async function createLandscape(context, kit) {
     trees: trees.length,
     nearTrees: 0,
     detailInstances: 0,
-    detailTiles: 25,
+    detailTiles: 49,
     rebuilds: 0,
     poolCapacity: 0,
   };
@@ -183,6 +184,8 @@ export async function createLandscape(context, kit) {
         'forest-floor-normal.jpg',
         'forest-floor-roughness.jpg',
         'path-color.jpg',
+        'path-normal.jpg',
+        'path-roughness.jpg',
       ].map(async (name) => {
         const texture = keep(await loader.loadAsync(`${ROOT}textures/${name}`));
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -248,6 +251,8 @@ export async function createLandscape(context, kit) {
     );
     terrainMaterial.onBeforeCompile = (shader) => {
       shader.uniforms.pathTexture = { value: textures[3] };
+      shader.uniforms.pathNormal = { value: textures[4] };
+      shader.uniforms.pathRoughness = { value: textures[5] };
       shader.uniforms.canopyShade = { value: canopyShade };
       shader.vertexShader = shader.vertexShader.replace(
         '#include <common>',
@@ -260,7 +265,7 @@ export async function createLandscape(context, kit) {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <common>',
         `#include <common>
-      varying vec3 vGround; uniform sampler2D pathTexture; uniform sampler2D canopyShade;
+      varying vec3 vGround; uniform sampler2D pathTexture; uniform sampler2D pathNormal; uniform sampler2D pathRoughness; uniform sampler2D canopyShade;
       float coverHash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
       float coverNoise(vec2 p) { vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(coverHash(i),coverHash(i+vec2(1,0)),f.x),mix(coverHash(i+vec2(0,1)),coverHash(i+1.),f.x),f.y); }`,
       );
@@ -271,9 +276,11 @@ export async function createLandscape(context, kit) {
       float grove = sin(w.x * .005 + cos(w.y * .003)*2.) * cos(w.y*.004-w.x*.001);
       float glade = smoothstep(.15,.75,grove);
       float cut = (1.-smoothstep(28.,80.,abs(w.x))) * (1.-smoothstep(465.,760.,abs(w.y)));
-      float track = 1.-smoothstep(1.8,3.4,abs(w.x-(320.+85.*sin(w.y*.003)+26.*sin(w.y*.012))));
+      float track = 1.-smoothstep(1.25,2.75,abs(w.x-(320.+85.*sin(w.y*.003)+26.*sin(w.y*.012))));
       vec3 floorColor = texture2D(map,vMapUv).rgb;
-      vec3 dirt = texture2D(pathTexture,vMapUv*1.28).rgb;
+      vec3 dirt = texture2D(pathTexture,vMapUv*1.28+vec2(.213,.782)).rgb;
+      float edgeNoise = (floorColor.g-floorColor.r)*2. + (floorColor.r-.3)*.36;
+      float pathBlend = smoothstep(.16,.88,track + edgeNoise*(1.-abs(track*2.-1.)));
       float macro = coverNoise(w*.018)*.65 + coverNoise(w*.079)*.35;
       float litter = coverNoise(w*.37)*.65 + coverNoise(w*1.7)*.35;
       vec3 meadow = mix(vec3(.15,.22,.075),vec3(.30,.34,.14),macro);
@@ -284,9 +291,22 @@ export async function createLandscape(context, kit) {
       float outcrop = smoothstep(.045,.19,slope)*smoothstep(130.,260.,vGround.y)*(0.55+macro*.45);
       cover = mix(cover,vec3(.25,.27,.23)*(floorColor*.5+.6),outcrop*.75);
       // Fine PBR detail resolves nearby; broad coherent canopy/glade colors survive altitude.
-      diffuseColor.rgb *= mix(cover, dirt*vec3(1.22,1.07,.86),track);
-      diffuseColor.rgb *= .70 + .30 * texture2D(canopyShade,(w+2800.)/5600.).r;
+      diffuseColor.rgb *= mix(cover, dirt*vec3(.73,.60,.44),pathBlend);
+      float soilMoisture = .87 + .13*sin(w.x*.39+cos(w.y*.17))*sin(w.y*.23);
+      diffuseColor.rgb *= mix(1.,soilMoisture,pathBlend);
+      diffuseColor.rgb *= .80 + .20 * texture2D(canopyShade,(w+2800.)/5600.).r;
     `,
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <roughnessmap_fragment>',
+        `float roughnessFactor = max(.71, roughness * mix(texture2D(roughnessMap,vRoughnessMapUv).g,texture2D(pathRoughness,vRoughnessMapUv*1.28+vec2(.213,.782)).g,pathBlend));`,
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <normal_fragment_maps>',
+        THREE.ShaderChunk.normal_fragment_maps.replace(
+          'vec3 mapN = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;',
+          `vec3 mapN = mix(texture2D(normalMap,vNormalMapUv).xyz,texture2D(pathNormal,vNormalMapUv*1.28+vec2(.213,.782)).xyz,pathBlend)*2.-1.;`,
+        ),
       );
     };
     terrainMaterial.customProgramCacheKey = () => 'landscape-scanned-ground';
@@ -455,18 +475,37 @@ export async function createLandscape(context, kit) {
     const nearBatches = new Map();
     for (const name of [...TREE_NAMES, ...DETAIL_NAMES]) {
       const isTree = TREE_NAMES.includes(name);
-      const capacity = isTree ? 1600 : name === 'grass_short' ? 65000 : 7000;
+      const grass = name === 'grass_short' || name === 'grass_short_lod';
+      const capacity = isTree
+        ? 1600
+        : name === 'grass_short_lod'
+          ? 110000
+          : name === 'grass_short'
+            ? 65000
+            : 7000;
       nearBatches.set(
         name,
         prototypes.get(name).map((part) => {
           fade(
             part.material,
-            isTree ? 180 : 32,
-            isTree ? 220 : 66,
+            isTree ? 180 : grass ? 28 : 32,
+            isTree ? 220 : grass ? 46 : 66,
             false,
             part.plant,
             isTree,
           );
+          if (name === 'grass_short_lod') {
+            const configureGrass = part.material.onBeforeCompile;
+            part.material.onBeforeCompile = (shader) => {
+              configureGrass(shader);
+              shader.fragmentShader = shader.fragmentShader.replace(
+                'diffuseColor.a *= 1.0 - coverage;',
+                'diffuseColor.a *= coverage * (1.0 - smoothstep(70.0,96.0,vDetailDistance));',
+              );
+            };
+            part.material.customProgramCacheKey = () =>
+              'landscape-midground-grass';
+          }
           const mesh = batch(
             part.geometry,
             part.material,
@@ -572,20 +611,21 @@ export async function createLandscape(context, kit) {
         TREE_NAMES.forEach((name, i) => fill(name, families[i], true));
         stats.nearTrees = families.reduce((n, f) => n + f.length, 0);
         const detail = new Map(DETAIL_NAMES.map((name) => [name, []]));
-        for (let x = cx - 2; x <= cx + 2; x++)
-          for (let z = cz - 2; z <= cz + 2; z++) {
+        for (let x = cx - 3; x <= cx + 3; x++)
+          for (let z = cz - 3; z <= cz + 3; z++) {
             detailTile(x, z).forEach((e, i) => {
-              if (
-                Math.hypot(
-                  e.x - (cx + 0.5) * 32,
-                  e.z - (cz + 0.5) * 32,
-                  e.y - (cy + 0.5) * 32,
-                ) < 94 &&
-                (quality !== 'balanced' ||
-                  !e.kind.startsWith('grass') ||
-                  i % 2 === 0)
-              )
-                detail.get(e.kind).push(e);
+              if (quality === 'balanced' && e.kind.startsWith('grass') && i % 2)
+                return;
+              const distance = Math.hypot(
+                e.x - (cx + 0.5) * 32,
+                e.z - (cz + 0.5) * 32,
+                e.y - (cy + 0.5) * 32,
+              );
+              if (e.kind === 'grass_short') {
+                if (distance < 74) detail.get(e.kind).push(e);
+                if (distance < 124 && distance > 0)
+                  detail.get('grass_short_lod').push(e);
+              } else if (distance < 94) detail.get(e.kind).push(e);
             });
           }
         stats.detailInstances = 0;

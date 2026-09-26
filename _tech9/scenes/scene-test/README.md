@@ -4,7 +4,7 @@ A sunlit pine forest staging concept built with Three.js, Vite and Blender. A fi
 
 ## Run
 
-Use Node **22.13 or later in the 22.x line**, or **24+**, matching Chronoforge Echo's tooling requirements. Run these commands from `_tech9/scenes/scene-test`.
+Use Node **^22.13.0 or >=24**. Run these commands from `_tech9/scenes/scene-test`.
 
 ```sh
 npm ci
@@ -48,7 +48,7 @@ await app.register(pickups);
 
 Import and register new layers in `src/main.js` after the forest registration. IDs are unique across loaded and loading layers. `init` may be asynchronous; `configure`, `update` and `dispose` are synchronous. Await registration and handle failures. Unregistering during loading prevents activation once `init` settles and then calls disposal, so disposal must also tolerate partial initialization. A layer owns its objects, listeners, timers and GPU resources; resources borrowed from `context.assets` remain the owner's responsibility. Treat shared settings as read-only.
 
-For HUD controls, set `pointer-events: auto` on your layer's interactive element: the full-screen `context.ui` mount deliberately passes other pointer input through to the scene. Listen to built-in `settingschange`, `viewchange` and `metrics` events through `event.detail`; remove listeners on disposal. Moving shadow-casting objects must set `context.renderer.shadowMap.needsUpdate = true` when their shadows need refreshing. The fly controller updates before layers each frame; a future walking camera controller must explicitly replace or disable that camera owner in the app integration, rather than compete with it.
+For HUD controls, set `pointer-events: auto` on your layer's interactive element: the full-screen `context.ui` mount passes other pointer input through to the scene. Listen to built-in `settingschange`, `viewchange` and `metrics` events through `event.detail`; remove listeners on disposal. Moving shadow-casting objects must set `context.renderer.shadowMap.needsUpdate = true` when their shadows need refreshing. The active controller updates before layers each frame; use `app.setController` to replace it.
 
 World placement uses fixed seeds and never expands with travel. `terrainHeight(x,z)` is the shared ground query for future actors. Three.js/glTF use +Y up; one unit is one metre. Named prototype groups in `forest-kit.glb` are reusable Blender-authored assets.
 
@@ -74,11 +74,11 @@ npm run capture -- --view grove --out .artifacts/grove.png
 
 Browser scripts launch Vite and Playwright automatically, or reuse `SCENE_URL`. Run `npx playwright install chromium` if no browser is installed; this initial browser download requires network access. Once dependencies and the browser are installed, verification and captures run offline. `CHROMIUM_PATH` can select a local Chromium. See [tests/README.md](tests/README.md) for the capture and test contract. Ordinary runs do not expose test hooks; `?test=1` enables deterministic settings and the harness API. Verification produces ignored `.artifacts/verification/report.json` with browser/GPU details, frame timing and errors.
 
-ESLint, Prettier and lint-staged are installed with this scene. Package installation does not change repository hooks. An optional scoped hook is documented in the [framework README](../../README.md); use it explicitly when working on `_tech9`. Existing games retain their own tooling. Run this scene's lint and tests directly before committing.
+ESLint, Prettier and lint-staged are development dependencies of this package. Run its lint and tests before committing. The optional scoped hook is described in [local setup](../../docs/MIGRATION.md#local-setup).
 
 ## Visual limits
 
-The forest has repetitive tree/canopy forms, simple rocks and sparse distant terrain. Profiling and art improvements remain in the scene roadmap. Review current changes against a frozen build; reports and screenshots stay in ignored `.artifacts/` or framework `runs/`, not a committed review archive.
+The forest has repetitive tree/canopy forms, simple rocks and sparse distant terrain. Profiling and art improvements are listed in the [scene roadmap](./ROADMAP.md). Review committed builds and keep captures in ignored `.artifacts/`.
 
 ## Next layers
 
@@ -94,6 +94,6 @@ Known scope: desktop keyboard/mouse exploration; responsive UI is provided, touc
 
 ## Walking and collision example
 
-This scene is now version 1.2.0. The default launch retains fly exploration; open `/?controller=walk` for grounded walking with Start/Pause/Resume, optional mouse capture, right-drag and IJKL look, WASD/arrows movement and Shift speed. Escape/P pauses; opening tuning pauses movement and leaves keyboard controls with the menu. The same five graphics settings remain available. `npm run verify:walking` checks this mode through real input; set `HEADED=1` on an unlocked desktop to also attempt native capture/focus validation.
+The default launch uses fly exploration. Open `/?controller=walk` for grounded walking with Start/Pause/Resume, optional mouse capture, right-drag and IJKL look, WASD/arrows movement and Shift speed. Escape/P pauses; opening tuning pauses movement and leaves keyboard controls with the menu. The five graphics settings are available in both modes. `npm run verify:walking` checks this mode through real input; set `HEADED=1` on an unlocked desktop to attempt native capture/focus validation.
 
 Canonical grounded-walking and placement-collisions source is copied under `src/capabilities/` with current version/hash metadata. Rendering and collision use the same immutable authored transforms, including the five fallen logs. Small foliage remains passable and proxies are conservative horizontal shapes, not full 3D physics. Run `npm test`, `npm run lint`, `npm run verify`, and `npm run verify:walking` after changing this scene.

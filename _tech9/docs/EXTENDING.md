@@ -2,7 +2,7 @@
 
 ## Start from the forest
 
-Validate a plan and run the fork command in the framework README. Work in the output directory. Run `npm ci`, `npm test`, `npm run lint`, `npm run build`, and `npm run verify`. Browser checks start and stop their own Vite server; set `SCENE_PORT=4499` for an unused port, or `SCENE_URL` to explicitly reuse a server. Install Playwright Chromium with `npx playwright install chromium` if needed. Do not use another agent's live build for acceptance captures.
+Create a source fork through [GENERATE.md](../GENERATE.md). Work in its package directory and run `npm ci`, `npm test`, `npm run lint`, `npm run build`, and `npm run verify`. Browser checks start and stop their own Vite server; set `SCENE_PORT` to a free port, or `SCENE_URL` to use an existing server. Install Playwright Chromium with `npx playwright install chromium` if needed. Use a committed build for acceptance captures.
 
 Read `src/main.js`, `src/world/forestDefinition.js`, and ARCHITECTURE.md before editing. Follow these seams:
 
@@ -21,7 +21,7 @@ A season is more than tint: snow needs believable coverage and vegetation change
 
 A layer has a unique `id`, `init(context)`, optional `update(dt, elapsed)`, optional `configure(settings)`, and `dispose()`. Register through `await app.register(layer)`; release through the app lifecycle. Context contains scene, camera, renderer, assets, events, UI mount, bounds, ground height and definition. The app owns the animation loop. A layer owns and releases its geometries, materials, textures, listeners and UI.
 
-One controller owns the camera. A replacement provides synchronous `update(dt)` and `dispose()`; optional `lock()` and `resetMotion()` integrate with presets/UI. Never keep the fly controller listening underneath a walking controller. The promoted grounded controller also has explicit enable/pause ownership and drag/keyboard fallbacks. Forest collision descriptors now include placement-derived deadfall chains but still exclude small foliage; choose better collision when the game needs it. See [capabilities](./CAPABILITIES.md) for walking, placement helpers and the pond example.
+One controller owns the camera. A replacement provides synchronous `update(dt)` and `dispose()`; optional `lock()` and `resetMotion()` integrate with presets/UI. `app.setController` disposes the previous controller. Grounded walking provides explicit enable/pause ownership and drag/keyboard input. Forest collision descriptors include placement-derived deadfall chains and exclude small foliage. See [capabilities](./CAPABILITIES.md) for source-copy integration.
 
 ## Introduce another starter flavor
 
@@ -31,4 +31,4 @@ Only mark it available after a real source fork independently builds and passes 
 
 ## Bring back a capability
 
-Use [FRAMEWORK_DEV.md](../FRAMEWORK_DEV.md) as a first-class task. Inspect game source, extract the shared behavior, test it and choose one usage aid: an example OR concise documentation. Keep required licenses and current limits; omit promotion history. Canonical module copies use `sync:modules`, which never upgrades existing games. Temporary plans and reviews stay in ignored `runs/`; a fresh clone must not need them.
+Follow [FRAMEWORK_DEV.md](../FRAMEWORK_DEV.md) to extract reusable behavior, define its interface and tests, preserve licenses and provide one usage aid. The capability index records its integration guide and current limits.

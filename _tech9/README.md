@@ -1,54 +1,54 @@
-# Tech9 · playable foundations
+# Tech9
 
-The active framework lives in `_tech9/` alongside the legacy root framework. Root replacement is a separate, later migration. Games own their source copies; framework changes do not silently upgrade them.
+Tech9 provides tested source modules, runnable starters and tools for building games. The framework lives in `_tech9/`. Each generated game is a standalone package with its own source, assets, dependencies, tests and development lifecycle.
 
-`games/` is a workspace for independent consumer projects, outside the framework's dependency and regression boundary. Consumers can keep developing or move their games elsewhere. Bringing a capability back is an optional framework-dev task. Framework installation, tests and module builds must work with no games present.
+## Workflows
 
-## Choose a workflow
+- [Game development](./GENERATE.md): select a starter, compose capabilities and build the player experience.
+- [Framework development](./FRAMEWORK_DEV.md): develop reusable capabilities or extract them from a game.
 
-- **Build a game:** give an agent your idea and [GENERATE.md](./GENERATE.md). It selects a real starter and builds a complete playable loop.
-- **Build or bring back a capability:** give an agent [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md) and the capability or game source to work from. It lands reusable code, tests and one usage aid: an example **or** concise documentation.
+[WORKFLOW.md](./WORKFLOW.md) covers planning, validation and handoff.
 
-Both flows follow [WORKFLOW.md](./WORKFLOW.md). They work from a fresh clone without historical run records. `/generate` registration is deferred; the manual agent kickoff supports both task modes now.
+## Available foundations
 
-## What is available
+- [Forest exploration](./scenes/scene-test/README.md): a fixed 160 m forest with fly or grounded movement, placement-derived collisions and graphics controls.
+- [Pond exploration](./scenes/pond-test/README.md): grounded traversal, reflective water and shared shoreline, terrain and vegetation queries.
+- [Modules](./modules/README.md): grounded walking, placement collisions, pond water, boat motion/input, follow/mounted cameras and island ocean.
 
-A **scene** is runnable authored content. A **starter** is a registered scene bundle with honest limits. A **game** owns a copied starter. A **module** is reusable source incorporated into those copies.
+The [catalog](./catalog.json) records versions, starter contents and limitations. Starters are copied into games; additional modules are integrated through their documented interfaces.
 
-- [Forest exploration](./scenes/scene-test/README.md): fixed 160 m forest, fly or grounded movement, placement-derived collisions and five graphics controls.
-- [Pond exploration](./scenes/pond-test/README.md): grounded traversal, reflective water and coupled shore/terrain/vegetation.
-
-These scenes are the usage examples for walking, collision and pond modules. Additional source modules provide configurable boat motion/input, follow/mounted cameras and an island ocean; see the [capability index](./modules/README.md). Integrate these deliberately into an owned game; the registered starters do not include vehicles or finished game rules. `t9 catalog` lists current availability.
-
-## Install and run
+## Install and check
 
 Use Node `^22.13.0 || >=24.0.0`. From the repository root:
 
 ```sh
-./_tech9/run --runtime
 ./_tech9/run ci
 ./_tech9/run run check
+./_tech9/run run t9 -- catalog
 ```
 
-`run` selects a supported installed Node and anchors npm to the framework directory. `TECH9_NODE` can select an explicit executable. It never installs Node or changes hooks implicitly. Ordinary npm commands with supported Node also work. Each scene/game has its own dependencies and lockfile; root installation is not required.
+`run` selects an installed supported Node and runs npm from `_tech9`. `TECH9_NODE` selects an explicit executable; `./_tech9/run --runtime` reports the selection. Ordinary npm commands with supported Node also work.
 
-Run `./_tech9/run run check` for framework/module tests, lint, module builds and catalog validation. Only framework development dependencies are needed. Three.js is a devDependency because canonical camera/water tests use its real objects; the CLI does not render anything, and each game installs its own runtime dependencies. `./_tech9/run run build` compiles every registered module's JavaScript into ignored `.artifacts/module-build/`, with Three.js external. These outputs validate compilation; consumers still copy canonical source.
+| Command                                    | Purpose                                                    |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| `./_tech9/run test`                        | Tooling and module tests                                   |
+| `./_tech9/run run lint`                    | Source lint and formatting                                 |
+| `./_tech9/run run build`                   | Compile registered modules into `.artifacts/module-build/` |
+| `./_tech9/run run check`                   | Tests, lint, module builds and catalog validation          |
+| `./_tech9/run run sync:modules -- --check` | Compare starter module copies with canonical source        |
 
-Starter scenes keep their dev/build/browser commands in their own packages; see their READMEs to run them. Framework checks do not launch or build scenes or games. When maintaining starter copies, use `./_tech9/run run sync:modules -- --check` explicitly to compare them with canonical source. Consumer game suites belong to game-dev work and are never a framework regression gate.
+Scenes and games provide their own install, development and validation commands in their package READMEs. The optional scoped Git hook is installed with `./_tech9/run run hooks:install`; see [local setup](./docs/MIGRATION.md#local-setup).
 
-## Source and local workspace
+## Layout
 
-| Location                         | Purpose                                                          |
-| -------------------------------- | ---------------------------------------------------------------- |
-| `catalog.json`, `framework.json` | Current versions and availability                                |
-| `scenes/`, `modules/`            | Reusable source and runnable starter examples                    |
-| `tools/`, `schemas/`, `tests/`   | Source-copy CLI, contracts and safety checks                     |
-| `games/<game>/`                  | Independent game output                                          |
-| `docs/`                          | Current operating guidance                                       |
-| `runs/<task>/`                   | Ignored local plans, coordination and reviews; created on demand |
+| Location                         | Purpose                                         |
+| -------------------------------- | ----------------------------------------------- |
+| `catalog.json`, `framework.json` | Versions and availability                       |
+| `modules/`                       | Canonical capabilities, tests and usage aids    |
+| `scenes/`                        | Runnable starter examples                       |
+| `tools/`, `schemas/`, `tests/`   | Source-copy CLI and development tooling         |
+| `games/<game>/`                  | Standalone game packages                        |
+| `docs/`                          | Operating guidance                              |
+| `runs/<task>/`, `.artifacts/`    | Ignored local coordination and generated output |
 
-Commit source, tests and required licenses. `runs/` and `.artifacts/` stay local and are never force-added. Remove a completed task's run folder after handoff; do not turn it into tracked history elsewhere. Ignoring a folder does not hide it from an editor or delete local copies. A game's current README explains how to play it; Git provides development history.
-
-The optional scoped hook is installed explicitly with `./_tech9/run run hooks:install`. It reports the prior Git hook setting and checks only staged `_tech9` files using the nearest package's lint configuration. Dependency installation does not change repository hooks. See [migration](./docs/MIGRATION.md) for hook details and the future root-migration contract.
-
-See [architecture](./ARCHITECTURE.md), [capability copying](./docs/CAPABILITIES.md), [extension seams](./docs/EXTENDING.md), and [roadmap](./ROADMAP.md).
+See [architecture](./ARCHITECTURE.md), [capability copying](./docs/CAPABILITIES.md), [extension contracts](./docs/EXTENDING.md), and [roadmap](./ROADMAP.md).

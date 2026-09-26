@@ -31,7 +31,7 @@ app.start();
 
 A definition provides `id`, `title`, `bounds`, `groundHeight(x,z)`, `views`, `initialView`, `environment`, `createWorld()` and optional `presentation`/`getColliders()`. Bounds use finite `minX`, `maxX`, `minZ`, `maxZ`, `minY`, `maxY`; views provide `position` and `target` arrays plus an optional `label` and `hidden` flag. The forest's hidden boundary view supports real input testing. Environment defaults cover exposure, fog, hemisphere light, directional sun/shadow bounds, and physical sky parameters. Copy the small forest definition as a concrete reference when authoring another scene; do not move forest terrain queries into core. The current environment renderer assumes an outdoor sun/sky scene. Other starter flavors can own a different rendering implementation.
 
-The definition is selected at boot. This milestone does not add live world swapping or a dynamic plugin registry. A fork owns its copied runtime and may extend it. Authored metadata is local source, not a remotely executed configuration format.
+The definition is selected at boot from local source. A fork owns its copied runtime and can extend scene loading and composition.
 
 Exactly one controller owns the camera each frame:
 
@@ -51,11 +51,11 @@ app.setController(
 
 A controller requires synchronous `update(dt)` and `dispose()` methods. `resetMotion()` and `lock()` are optional hooks used by scene viewpoints and the development UI. The factory must return synchronously; it receives no renderer and must not start another animation loop. Constructing/validating a replacement succeeds before the previous owner is disposed. A failed factory leaves the current controller active. Replacing it with the same instance is a no-op. `app.controls` always references the active owner; shutdown disposes it. Controllers own and release their listeners and pointer lock. The application updates the controller before world/game layers. Update `presentation.controls` and `lockedControls` when replacing fly movement so UI stays truthful.
 
-`forestDefinition.getColliders()` (also available on the forest layer) returns immutable deterministic descriptors `{id, kind, x, z, radius}` derived from the same placements as rendered mature trees and rocks. They are conservative horizontal circles for simple walking experiments. They now include fallen-log chains derived from the same authored transform records used for rendering. They still exclude saplings, small foliage, terrain slopes and exact mesh surfaces. The copied grounded controller resolves these horizontal proxies; this is not general 3D or vehicle physics. A game owns its player radius, movement resolution and any additional proxies. The fly camera deliberately ignores these circles. The array is available before asset loading, so game setup and tests do not need a GPU or Blender.
+`forestDefinition.getColliders()` (also available on the forest layer) returns immutable deterministic descriptors `{id, kind, x, z, radius}` derived from rendered mature-tree, rock and fallen-log placements. The grounded controller resolves these conservative horizontal proxies. They exclude saplings, small foliage, terrain slopes and exact mesh surfaces. A game defines its player radius, movement resolution and additional proxies. The fly camera ignores these circles. Descriptors are available before asset loading.
 
 ## Independent game forks
 
-Copy this starter through the framework's fork workflow, then modify the owned copy in `games/<slug>`. Keep the source receipt, runtime assets and license/provenance files. Give a fork its own scene ID/storage namespace, presentation and game tests. Register gameplay through the existing layer lifecycle and `context.ui`; use narrow events for game/HUD communication. Add a different camera via `setController` rather than updating it from a second layer. Avoid imports from a game back into `_tech9`: improvements return to the starter intentionally, and existing games remain stable.
+Copy this starter through the framework's fork workflow, then develop the standalone package in `games/<slug>`. Preserve its source receipt, assets and license records. Give it a scene ID, storage namespace, presentation and game tests. Register gameplay through the layer lifecycle and `context.ui`, use narrow events for game/HUD communication, and replace camera control through `setController`.
 
 ## Asset contract
 
@@ -69,15 +69,13 @@ A gently winding dirt trail starts near (0, 22), leading toward (4, -35). Camera
 
 `{ quality: 'high' | 'balanced' | 'ultra', sunlight: 1, atmosphere: 1, richness: 1, exposure: 1 }`. Numeric artistic controls range 0.4–1.6. Quality controls pixel ratio, shadows and postprocessing cost; richness controls vegetation density. Layers respond via configure. Renderer updates static shadows only on relevant changes. Pixel budgets cap large displays at 1.6 / 2.6 / 5.2 million scene pixels for Balanced / High / Ultra. Layer IDs are reserved across asynchronous initialization; failed or cancelled loads release owned resources. The `ui` mount remains separate from the development overlay so gameplay HUD layers can mount and dispose independently.
 
-## Validation and checkpoints
-
-The initial release gate covers the integrated foundation and subsequent art/performance refinement checkpoints. Each implementation attempt is committed before a separate independent AAA art critic examines actual browser captures. Critic JSON and at most two representative screenshots are committed separately. The release gate permits up to four rounds, stopping at 8/10 or the cap; scores are reported honestly. Subsequent world layers should start their own deliverable gate.
+## Validation
 
 Tests expose read-only snapshot and named-camera hooks through `window.__SCENE_TEST__` only with `?test=1`. Browser checks cover load, GL errors, tuning, flight, bounds, resizing and reference captures. CPU tests additionally validate alternate scene ground/bounds/view data, controller ownership, scene context, storage isolation and deterministic collision descriptors. Screenshot evidence is not a claim of equivalent real GPU FPS. No production benchmark promises without measured hardware results.
 
-## Promoted source modules
+## Module copies
 
-`capabilities.json` declares grounded-walking and placement-collisions. Their canonical sources are maintained in the framework and snapshotted locally under `src/capabilities/<id>/src`, with README/license records and `PROVENANCE.json` hashes. The runtime imports only those local copies. Keep edits canonical and use the framework's explicit module sync; generated games own the copies independently.
+`capabilities.json` declares grounded-walking and placement-collisions. Their source and license records are copied under `src/capabilities/<id>`, with versions and hashes in `PROVENANCE.json`. The runtime imports those local copies. Use the framework's module sync to update them from canonical source.
 
 `getForestPlacements()` exports immutable matrices used by both rendering and proxy generation. `placementCircle` accounts for scale and local centre; `placementCapsuleChain` covers full deadfall endpoints. `getForestColliders()` includes all substantial authored forest solids with documented approximations.
 

@@ -1,11 +1,11 @@
 # Stillwater Pond architecture
 
-One Three.js renderer, one frame loop, metres with +Y up. Scene content, shared capabilities, camera control and the neutral UI are separate owners. The consumer tree is self-contained and never imports another framework/game directory at runtime.
+One Three.js renderer, one frame loop, metres with +Y up. Scene content, local capability copies, camera control and the exploration UI are separate owners within this package.
 
-- `src/core/SceneApp.js` owns renderer, camera, environment, frame timing, settings and disposable layer registry. Its sole controller runs before layers. The outdoor sun/sky renderer is inherited intentionally.
+- `src/core/SceneApp.js` owns renderer, camera, environment, frame timing, settings and disposable layer registry. Its sole controller runs before layers. The environment uses an outdoor sun/sky renderer.
 - `src/world/forestDefinition.js` is scene identity `stillwater-pond`, its 160 × 160 m bounds, three inspection poses, environment and world factory. The UI exposes only a restart pose; production movement is grounded.
 - `src/world/pondDefinition.js` authors the shared shoreline instance and arrival-lane vegetation exclusion. Its immutable `BANK_ROCKS` tuples feed both visible stones and circle proxies.
-- `src/world/terrain.js` supplies the original outer forest and calls `shoreline.terrainHeight`; it does not independently duplicate pond geometry. `ForestWorld.js` uses the same radius/exclusion functions for wet shore tint and all vegetation/debris placements. Its mature-tree/rock proxies call the copied placement helper with the actual placement transform.
+- `src/world/terrain.js` supplies outer forest terrain and calls `shoreline.terrainHeight` for the pond basin. `ForestWorld.js` uses the same radius/exclusion functions for wet shore tint and all vegetation/debris placements. Its mature-tree/rock proxies call the copied placement helper with the actual placement transform.
 - `src/capabilities/pond-water/src/shoreline.js` supplies validated immutable frame, normalized radius, shoreline points, surface tests, vegetation predicate and basin/bank profile. CPU and shader harmonic coefficients have one source.
 - `src/capabilities/pond-water/src/PondWater.js` owns a disposable water layer only. `WaterSurface.js` is the local Three.js MIT derivative that owns its reflection target/material, quality cadence and renderer-state restoration on failed reflection. Pond shape and shader uniforms use the same shoreline frame.
 - `src/world/PondWorld.js` owns scene-specific reeds, lily pads, flowers and bank/scattered stones. It batches by material and preserves source/derived geometry ownership. Texture requests that finish after a failed/disposed initialization are disposed rather than leaked. Water is registered separately.

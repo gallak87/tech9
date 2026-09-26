@@ -1,36 +1,37 @@
-# Build or bring back a framework capability
+# Develop a framework capability
 
-Use **framework-dev** when the user wants a new shared capability, a framework fix, or reusable game code brought back into the framework. This is a supported agent workflow, alongside game-dev. No historian role, prior run record or special CLI mode is required.
+Use **framework-dev** to create or improve reusable capabilities, including extracting useful code from a game. Follow [WORKFLOW.md](./WORKFLOW.md). Paths in this document are relative to `_tech9/`.
 
-A consumer can start a fresh agent with: “Read FRAMEWORK_DEV.md and bring the boat controller from games/my-game into the framework.” Resolve these paths from the active framework directory, currently `_tech9/`. The same entrypoint and rules carry forward when the framework later moves to the repository root.
+## Scope
 
-## 1. Scope the capability
+Read the catalog and relevant source/tests. For an extraction, inspect the game's implementation and identify the reusable behavior, configuration, dependencies, resource ownership and limits. Define acceptance and validation for the capability.
 
-Read README, WORKFLOW, the catalog, and the relevant source/tests. Inspect the working game directly when promoting from one. Identify the reusable behavior, configuration, dependencies, ownership/cleanup and meaningful limits; leave game rules, assets and UI behind unless they are part of the requested capability.
+## Implement
 
-Write a short plan in ignored `runs/<task>/` if coordination needs one: scope, acceptance, owned paths, validation, authority and stop condition. Use authority already delegated by the user. Comparing consumers can reveal a better interface, but a second game and a historical report are not prerequisites to an explicitly requested promotion.
+Put runtime source in `modules/<id>/src` and tests in `modules/<id>/tests`, or update the relevant scene/tool. Keep the interface concrete and preserve licenses and editable asset sources.
 
-## 2. Land the implementation
+Choose one usage aid:
 
-Put reusable runtime source in `modules/<id>/src`, or update the appropriate existing scene/tool when that is the actual shared capability. Keep a small concrete interface; avoid a general system built around hypothetical future games. Preserve required third-party license notices and editable asset sources.
+- An existing runnable example, linked from the [capability index](./modules/README.md).
+- Concise module documentation describing integration and current limits.
 
-Choose **exactly one usage aid** for the capability:
+Walking, placement collisions and pond water use the forest/pond scenes as examples. Boat motion, follow camera and island ocean use module documentation.
 
-- A working example, preferably an existing scene integration. Link to its entry point from the capability index; omit a separate module usage manual.
-- Concise usage documentation when an example would add unnecessary maintenance. Omit a dedicated example project. Tests and validation still need to prove that the implementation works.
+Register the module and version in the catalog. When updating a scene's module composition, update its `capabilities.json`, format canonical source, then run:
 
-The current walking, placement-collision and pond-water modules use the forest/pond scenes as their examples. Keep current limits with that example. Do not retain originating-game names, extraction accounts, review scores, agent rosters or source-checkpoint narratives as capability documentation.
+```sh
+./run run sync:modules -- --write
+./run run sync:modules -- --check
+```
 
-Register the capability/version honestly in the catalog. For module copies, update the target scene's `capabilities.json`, format canonical source, then run `./run run sync:modules -- --write`. The sync command targets registered framework scenes only. Existing games retain their owned copies; any game upgrade needs its own scope. Source-copy version/hash metadata is used to check current copies, not to store a promotion diary.
+See [capability copying](./docs/CAPABILITIES.md) for layout and metadata details.
 
-## 3. Validate and review
+## Validate and review
 
-Run `./run run check` for canonical module/tooling tests, lint, builds and metadata checks, plus affected maintained starter tests. Consumer games are outside the framework's regression boundary: their source can inform a requested extraction, but their tests or builds cannot validate the promoted implementation and must not become framework prerequisites. Add behavior and lifecycle regression coverage beside the canonical module. Prove browser behavior with a framework-owned test fixture or maintained scene when relevant; a source game's playthrough is not that proof. Validate an independent source fork before marking a new starter available. A documentation-only usage aid does not excuse untested runtime code; keep any fixture bounded to the capability rather than building a new game.
+Run `./run run check`. Cover behavior, configuration and resource lifecycle in module tests. Use a focused browser fixture or maintained scene for rendering and input behavior when relevant. Verify a standalone source fork before marking a new starter available.
 
-Commit a stable implementation and obtain an independent engineering review when the change warrants one. Fix actionable findings and rerun affected checks. Put temporary reports, screenshots and comparisons under ignored `runs/` or `.artifacts/`. No committed review dossier or fresh AAA art cycle is required merely to promote an existing capability.
+Commit a stable implementation and obtain an independent engineering review when warranted. Fix actionable findings and rerun affected checks.
 
-## 4. Complete
+## Deliver
 
-The result is code, tests, required licenses and the chosen usage aid, plus current catalog/copy metadata where needed. Tell the user what is available, how to use it, what was checked and any current limits. Convert findings into code/tests/current guidance; remove the completed task's local run folder after handoff. Preserve other tasks' active work. Do not commit run records or link shipped docs to them.
-
-Completion check: framework installation, tests and module builds work without consumer games or any `runs/` directory. A fresh clone can discover and use the capability independently of the originating game. Preserve `/runs/` in the framework's `.gitignore` during the eventual root migration; do not migrate a local run archive into Git.
+Provide source, tests, required licenses, the usage aid and current catalog/copy metadata. Report availability, integration instructions, checks and limitations. Follow the shared workflow for local artifacts and handoff.

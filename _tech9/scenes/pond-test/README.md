@@ -1,6 +1,6 @@
 # Stillwater Pond
 
-A neutral, runnable pond scene. Walk a finite forest bank beside reflective water. This scene proves a building block: shared shoreline, terrain and vegetation queries; grounded walking and rock/tree proxies; disposable water and quality controls. It contains no fishing rules, tackle, fish, catches or mission progression.
+A runnable pond starter with grounded walking, reflective water, rock/tree collision proxies and graphics controls. Shoreline, terrain and vegetation use shared queries.
 
 Use Node **^22.13.0 or >=24**. From the repository root:
 
@@ -30,7 +30,7 @@ CPU tests cover shared shore/terrain/vegetation geometry, rock proxy placement, 
 
 ## Extend and limitations
 
-Read [ARCHITECTURE.md](./ARCHITECTURE.md). This is scene **stillwater-pond 1.0.1**, the source for **pond-exploration 0.1.1**. A fork owns every source file and asset; it imports nothing at runtime from `_tech9` outside its own copied tree. The local `capabilities/` copies are receipt-tracked building blocks, not live shared imports.
+Read [ARCHITECTURE.md](./ARCHITECTURE.md). Scene **stillwater-pond** supplies the **pond-exploration** starter; the catalog records their versions. A fork owns its source, assets and local capability copies as a standalone package.
 
 The water is one static irregular ellipse with planar reflections. No swimming, boat physics, fluid solver or underwater rendering is provided. Walking uses approximate horizontal circles for mature trees, forest rocks and the five authored bank rocks. Saplings, deadfall, ground cover and scattered small shore stones are decorative; this is not mesh-accurate physics. The forest is a fixed 160 × 160 m landscape. Higher quality costs more GPU time; frame-throttled reflections can lag moving objects.
 

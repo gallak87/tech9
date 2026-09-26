@@ -1,27 +1,25 @@
 # Capability source copies
 
-Canonical source lives under `modules/`. Runnable scenes contain local copies under `src/capabilities/<id>/src/`, with current versions and SHA-256 records in `src/capabilities/PROVENANCE.json`. Starter forks copy the whole scene; games own those files and never import framework runtime source.
+Canonical source lives under `modules/<id>/src`. The [capability index](../modules/README.md) links each module's usage aid, dependencies and limits.
 
-The [capability index](../modules/README.md) points to each module's example or concise usage documentation. The agent chooses a registered starter from the catalog and builds missing game behavior in its owned game. The CLI copies tested starter bundles; it is not an arbitrary module resolver. Deliberate extra-module integration must preserve folder layout, dependencies and required licenses and be validated in the consumer.
+Starter scenes contain local copies under `src/capabilities/<id>/src`, with versions and SHA-256 records in `src/capabilities/PROVENANCE.json`. A starter fork copies the complete scene into a standalone game package. Additional modules are copied and integrated explicitly, preserving sibling paths and required licenses.
 
-## Maintainer workflow
+## Maintain starter copies
 
-Follow [FRAMEWORK_DEV.md](../FRAMEWORK_DEV.md) to promote or change a capability. Each scene's `capabilities.json` names its modules. After editing and formatting canonical source and updating versions as appropriate, from `_tech9` run:
+Each scene's `capabilities.json` lists its modules. Edit and format canonical source, update module versions and scene manifests as appropriate, then run from `_tech9`:
 
 ```sh
 ./run run sync:modules -- --write
-./run test
-./run run lint
+./run run sync:modules -- --check
+./run run check
 ```
 
-Then run affected scene checks and real-input verification for behavior changes. Prove a fresh source fork before making a new starter available.
+Sync targets registered framework scenes. Check mode compares source, versions and hashes. Unexpected files and symlinks require inspection before syncing. Preserve relative module layout and license notices.
 
-Sync targets registered framework scenes only. It rejects symlinks and unexpected files rather than silently deleting them; inspect and explicitly remove retired copies before syncing. Check mode detects source/version/hash drift. Make fixes in canonical source, then sync; independently editing or formatting a copy creates drift. Keep relative module layout and license notices intact. Existing games are never updated by this tool.
+Run affected scene checks for integration changes. Verify a fresh source fork before marking a starter available. [FRAMEWORK_DEV.md](../FRAMEWORK_DEV.md) describes capability development and review.
 
-These machine-readable copy records support current integrity checks. Capability graduation does not require origin-game narratives, historical evaluations or promotion reports. Keep temporary work under ignored `runs/` or `.artifacts/`.
+## Runtime
 
-## Local runtime
+Use Node `^22.13.0 || >=24.0.0`. `./run --runtime` reports the installed executable selected by the launcher. `TECH9_NODE` provides an explicit override. The shell launcher supports macOS/Linux; ordinary supported Node/npm is the portable interface.
 
-From `_tech9`, `./run --runtime` shows the selected installed Node. The launcher tries explicit `TECH9_NODE`, PATH, a bundled local runtime and installed NVM runtimes, requiring `^22.13.0 || >=24.0.0`. A bad explicit override fails. It does not download runtimes, change hooks or edit the parent shell. Its shell entrypoint supports macOS/Linux; ordinary supported Node/npm remains the portable interface.
-
-Forest dev/preview ports are 4399/4400; pond ports are 4450/4451. Browser scripts accept `SCENE_PORT` for isolated checks. Strict ports prevent silently selecting another session's port. Native capture/focus checks need an unlocked desktop; synthetic event tests have a narrower validation scope.
+Scene packages document their own ports and browser commands. `SCENE_PORT` selects an isolated verification port; `SCENE_URL` selects an existing server. Native capture/focus checks require an unlocked desktop.

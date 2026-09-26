@@ -769,42 +769,53 @@ export function createSailingShip(profile) {
       // The pressure pocket sits forward of centre; broad folds fan out from the clews.
       // All attachment corners stay fixed, and the hems/seams use this same surface.
       const pocket =
-        Math.pow(su, 0.87) *
-        Math.pow(sv, 0.92) *
-        (1 + 0.24 * Math.sin(u * Math.PI * 1.7 + 0.4) * sv);
+        su * sv * (1 + 0.18 * Math.sin(u * Math.PI * 1.7 + 0.4) * sv);
       const clewRadius = Math.hypot(1 - u, 1 - v),
         tackRadius = Math.hypot(u, 1 - v);
       const clewFold =
         Math.sin(Math.atan2(1 - v, 1 - u) * 4) *
         Math.exp(-clewRadius * 2.15) *
-        (1 - Math.exp(-clewRadius * 9));
+        Math.pow(1 - Math.exp(-clewRadius * 5), 2);
       const tackFold =
         Math.sin(Math.atan2(1 - v, u) * 4) *
         Math.exp(-tackRadius * 2.7) *
-        (1 - Math.exp(-tackRadius * 8));
-      const tension = (clewFold * 0.29 + tackFold * 0.17) * billow;
+        Math.pow(1 - Math.exp(-tackRadius * 5), 2);
+      const tension = (clewFold * 0.17 + tackFold * 0.095) * billow;
       p.addScaledVector(normal, pocket * billow + tension + offset);
       if (square) {
         p.x -= (u - 0.5) * 2 * Math.pow(Math.abs(u - 0.5) * 2, 3) * sv * 0.15;
-        p.y -= Math.pow(su, 0.9) * Math.pow(v, 3) * (0.29 + 0.08 * u);
+        p.y -= su * Math.pow(v, 3) * (0.29 + 0.08 * u);
       } else {
         p.z -= Math.pow(u, 4) * sv * 0.2;
         p.y += su * Math.pow(v, 5) * 0.13;
       }
       return p;
     }
+    function surfaceNormal(u, v) {
+      // Derivatives of the smooth authored surface avoid triangle-shaped highlights.
+      // Slightly inset samples also define stable normals at triangular-sail corners.
+      const e = 0.0008,
+        a = THREE.MathUtils.clamp(u, e, 1 - e),
+        b = THREE.MathUtils.clamp(v, e, 1 - e);
+      const du = point(a + e, b).sub(point(a - e, b));
+      const dv = point(a, b + e).sub(point(a, b - e));
+      const n = dv.cross(du);
+      return n.lengthSq() > 1e-14 ? n.normalize() : normal.clone();
+    }
     const positions = [],
       uvs = [],
+      normals = [],
       colors = [],
       indices = [],
-      nx = 24,
-      ny = 20;
+      nx = 40,
+      ny = 36;
     for (let y = 0; y <= ny; y++)
       for (let x = 0; x <= nx; x++) {
         const u = x / nx,
           v = y / ny,
           p = point(u, v);
         positions.push(...p);
+        normals.push(...surfaceNormal(u, v));
         uvs.push(u * 6, v * 1.4);
         const panel = [0.995, 0.967, 0.988, 0.955, 0.982, 0.971, 0.996][
           Math.min(6, Math.floor(u * 7))
@@ -826,7 +837,7 @@ export function createSailingShip(profile) {
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     geo.setIndex(indices);
-    geo.computeVertexNormals();
+    geo.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
     mesh(geo, canvas);
     const line = (fn) => Array.from({ length: 21 }, (_, i) => fn(i / 20));
     for (const boundary of [
@@ -885,18 +896,44 @@ export function createSailingShip(profile) {
       [0, 1, 0.11, -0.12],
       [1, 1, -0.11, -0.12],
     ]) {
-      const pos = [
-        ...point(u, v, 0.01),
-        ...point(u + du, v, 0.01),
-        ...point(u, v + dv, 0.01),
-      ];
+      const pos = [],
+        uv = [],
+        normals = [],
+        steps = 8;
+      const vertex = (a, b) => {
+        const pu = u + du * a,
+          pv = v + dv * b;
+        pos.push(...point(pu, pv, 0.004));
+        uv.push(pu * 6, pv * 1.4);
+        normals.push(...surfaceNormal(pu, pv));
+      };
+      const triangle = (a, b, c) => {
+        if (du * dv > 0) {
+          vertex(...a);
+          vertex(...c);
+          vertex(...b);
+        } else {
+          vertex(...a);
+          vertex(...b);
+          vertex(...c);
+        }
+      };
+      for (let i = 0; i < steps; i++)
+        for (let j = 0; j < steps - i; j++) {
+          const a = [i / steps, j / steps],
+            b = [(i + 1) / steps, j / steps],
+            c = [i / steps, (j + 1) / steps];
+          triangle(a, b, c);
+          if (i + j < steps - 1)
+            triangle(b, [(i + 1) / steps, (j + 1) / steps], c);
+        }
       const patch = new THREE.BufferGeometry();
       patch.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      patch.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
       patch.setAttribute(
-        'uv',
-        new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1], 2),
+        'normal',
+        new THREE.Float32BufferAttribute(normals, 3),
       );
-      patch.computeVertexNormals();
       mesh(patch, sailPatch);
       const corner = point(u, v);
       sphere(corner.x, corner.y, corner.z, 0.028, 0.028, 0.028, rope);

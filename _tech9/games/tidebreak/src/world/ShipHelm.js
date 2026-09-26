@@ -44,6 +44,30 @@ export function createShipHelm({
   const nails = localMaterial('#b89c82', 0.85);
   const darkCloth = own(m.coat.clone());
   darkCloth.color.multiplyScalar(0.75);
+  const sleeveCloth = own(m.coat.clone());
+  Object.assign(sleeveCloth, {
+    bumpMap: null,
+    normalMap: null,
+    roughnessMap: null,
+    bumpScale: 0,
+    roughness: 0.97,
+    flatShading: false,
+    envMapIntensity: 0.12,
+  });
+  const binnacleLacquer = own(m.paint.clone());
+  Object.assign(binnacleLacquer, {
+    map: null,
+    bumpMap: null,
+    normalMap: null,
+    roughnessMap: null,
+    bumpScale: 0,
+    roughness: 0.48,
+    metalness: 0.1,
+    vertexColors: true,
+  });
+  // The hull's per-plank wear shader has no meaning on this curved painted drum.
+  binnacleLacquer.onBeforeCompile = () => {};
+  binnacleLacquer.customProgramCacheKey = () => 'binnacle-lacquer-v1';
   const mesh = (geometry, material, parent = fittings) => {
     const item = new THREE.Mesh(own(geometry), material);
     item.castShadow = false;
@@ -221,8 +245,20 @@ export function createShipHelm({
       [0.2, 0.78],
       [0.2, 0.9],
     ],
-    m.paint,
+    binnacleLacquer,
     fittings,
+  );
+  const binnacleColors = [];
+  const binnaclePositions = binnacle.geometry.attributes.position;
+  for (let i = 0; i < binnaclePositions.count; i++) {
+    const y = binnaclePositions.getY(i);
+    const edge = Math.max(Math.exp(-y * 60), Math.exp(-Math.abs(y - 0.9) * 75));
+    const polish = 0.97 + edge * 0.1;
+    binnacleColors.push(polish, polish, polish);
+  }
+  binnacle.geometry.setAttribute(
+    'color',
+    new THREE.Float32BufferAttribute(binnacleColors, 3),
   );
   binnacle.position.set(compassX, quarterY + 0.08, compassZ);
   const cradle = torus(
@@ -630,7 +666,34 @@ export function createShipHelm({
         );
       }
       geometry.computeVertexNormals();
-      return mesh(geometry, m.coat, arms);
+      // Derive normals across the continuous circular surface rather than
+      // allowing triangulation diagonals or the duplicated UV seam to show.
+      const normals = geometry.attributes.normal;
+      const rows = 49,
+        sides = 36;
+      const around = new THREE.Vector3(),
+        along = new THREE.Vector3();
+      const a = new THREE.Vector3(),
+        b = new THREE.Vector3(),
+        normal = new THREE.Vector3();
+      for (let side = 0; side <= sides; side++)
+        for (let row = 0; row < rows; row++) {
+          a.fromBufferAttribute(positions, ((side + 1) % sides) * rows + row);
+          b.fromBufferAttribute(
+            positions,
+            ((side + sides - 1) % sides) * rows + row,
+          );
+          around.copy(a).sub(b);
+          a.fromBufferAttribute(
+            positions,
+            side * rows + Math.min(rows - 1, row + 1),
+          );
+          b.fromBufferAttribute(positions, side * rows + Math.max(0, row - 1));
+          along.copy(a).sub(b);
+          normal.crossVectors(around, along).normalize();
+          normals.setXYZ(side * rows + row, normal.x, normal.y, normal.z);
+        }
+      return mesh(geometry, sleeveCloth, arms);
     };
     const upper = sleeve([
       [0, 0.094],
@@ -708,7 +771,14 @@ export function createShipHelm({
         : item.geometry;
       const geo = own(source.clone().applyMatrix4(item.matrix));
       for (const key of Object.keys(geo.attributes))
-        if (!['position', 'normal', 'uv'].includes(key))
+        if (
+          ![
+            'position',
+            'normal',
+            'uv',
+            ...(item.material.vertexColors ? ['color'] : []),
+          ].includes(key)
+        )
           geo.deleteAttribute(key);
       if (!geo.attributes.uv) {
         const uv = new Float32Array(geo.attributes.position.count * 2);

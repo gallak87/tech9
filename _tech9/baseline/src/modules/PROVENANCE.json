@@ -30,6 +30,53 @@
           "sha256": "927897abb073f123c4ba2f996fcb8eedd1726323bad05ec4eaff13e18cb7410d"
         }
       ]
+    },
+    {
+      "id": "weather",
+      "version": "1.0.0",
+      "source": "modules/weather",
+      "files": [
+        {
+          "path": "NOTICE.md",
+          "sha256": "194c38463487737af0590d91f25fb9cf8563d35ac0a6a4d6513f2e12c8e7a0ad"
+        },
+        {
+          "path": "README.md",
+          "sha256": "2bad7668e46f9be1f3c991e7b03c3139613d983364ab27f5f4921fd9fb62af68"
+        },
+        {
+          "path": "src/Weather.js",
+          "sha256": "675f628c14d4a769d688adea0883f8b558d1c3c028666d34bcf7b9d25937820a"
+        },
+        {
+          "path": "src/audio.js",
+          "sha256": "d5f838af4d34e8ff8371a0d61edd2ebaf244952ebef2a6561678456d04a22c62"
+        },
+        {
+          "path": "src/impacts.js",
+          "sha256": "c35807bbe8c8f64809563248f0cce55b13cc48100831d1df9f958943bd268151"
+        },
+        {
+          "path": "src/materials.js",
+          "sha256": "ce383ece7a640e398b90bb033a09c9631aec175af77150a4c7ea411a4d1a2a28"
+        },
+        {
+          "path": "src/precipitation.js",
+          "sha256": "ca0ef7076965e530ff2bbbe734749c7f4683127cc536474781a954c2893d3fc3"
+        },
+        {
+          "path": "src/puddles.js",
+          "sha256": "57966bca844ce6baf3a3e63a9fec9f9f2151ab691a53bfa936be771f5ca97c0b"
+        },
+        {
+          "path": "src/state.js",
+          "sha256": "566555c6b27945dd3f55d3241090bc9fa13b78b4a1c2f012c7d72a4605342d28"
+        },
+        {
+          "path": "src/surfaces.js",
+          "sha256": "837d80390985321f608cbc6e3e4cb3b1cccfdfb64bb2b8d1a34b362a6f167de1"
+        }
+      ]
     }
   ]
 }

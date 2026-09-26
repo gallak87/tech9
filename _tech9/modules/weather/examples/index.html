@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <meta charset="utf-8" />
+  <link rel="icon" href="data:," /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>Weather · surface and shelter example</title
+  ><style>
+    body {
+      margin: 0;
+      background: #222;
+      color: #eee;
+      font: 14px system-ui;
+    }
+    canvas {
+      display: block;
+    }
+    nav {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      background: #172825dd;
+      padding: 16px;
+      border-radius: 8px;
+    }
+    button {
+      padding: 8px;
+      cursor: pointer;
+    }
+    p {
+      position: fixed;
+      bottom: 16px;
+      left: 20px;
+    }
+  </style>
+  <nav>
+    <strong>Weather / shelter</strong><button id="rain">Rain</button
+    ><button id="winter">Winter</button><button id="snowfall">Snowfall</button
+    ><button id="clear">Clear</button>
+  </nav>
+  <p>
+    Orbit by dragging. The roof shelters the left half of the ground. Sound is
+    off.
+  </p>
+  <script type="module" src="./main.js"></script>
+</html>

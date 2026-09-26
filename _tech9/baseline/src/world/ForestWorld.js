@@ -268,27 +268,21 @@ function instancePrototype(
       };
       material.customProgramCacheKey = () => 'pine-transmission-v1';
     }
-    if (options.windUniform) {
-      const configureMaterial = material.onBeforeCompile;
-      material.onBeforeCompile = (shader) => {
-        configureMaterial(shader);
-        shader.uniforms.uPlantTime = options.windUniform;
-        shader.vertexShader = shader.vertexShader.replace(
-          '#include <common>',
-          '#include <common>\nuniform float uPlantTime;',
-        );
-        shader.vertexShader = shader.vertexShader.replace(
-          '#include <begin_vertex>',
-          `#include <begin_vertex>
-          #ifdef USE_INSTANCING
-            float phase = uPlantTime * 0.75 + instanceMatrix[3].x * 0.31 + instanceMatrix[3].z * 0.17;
-            transformed.x += sin(phase) * pow(max(position.y, 0.0), 1.4) * 0.095;
-            transformed.z += cos(phase * 1.23) * pow(max(position.y, 0.0), 1.4) * 0.047;
-          #endif`,
-        );
-      };
-      material.customProgramCacheKey = () => `scanned-foliage-${prototypeName}`;
-    }
+    material.userData.weather = {
+      foliage: material.alphaTest > 0,
+      snow:
+        material.alphaTest > 0
+          ? prototypeName.startsWith('pine_')
+            ? 0.61
+            : 0.34
+          : 1,
+      wind:
+        prototypeName.startsWith('grass_') || prototypeName.startsWith('fern_')
+          ? 0.7
+          : material.alphaTest > 0
+            ? 0.11
+            : 0,
+    };
     disposables.push(geometry, material);
     batches.push(
       ...createBatches(
@@ -401,7 +395,7 @@ function scatter(random, count, radius, filter, scaleRange, colorRange) {
   return entries;
 }
 
-function buildGroundcover(group, kit, windUniform, disposables) {
+function buildGroundcover(group, kit, disposables) {
   const random = createRandom(92151);
   const short = [],
     tall = [],
@@ -541,7 +535,6 @@ function buildGroundcover(group, kit, windUniform, disposables) {
     shadow: true,
     chunkSize: 32,
     color: true,
-    windUniform,
   };
   const batches = [
     ...instancePrototype(group, kit, 'grass_short', short, disposables, {
@@ -584,6 +577,8 @@ function buildDebris(group, disposables) {
     color: '#3b3024',
     roughness: 0.98,
   });
+  pebbleMaterial.userData.weather = { depth: 0, snow: 0.18 };
+  stickMaterial.userData.weather = { depth: 0, snow: 0.3 };
   const pebbles = scatter(
     random,
     1500,
@@ -788,7 +783,7 @@ export function createForestWorld() {
   const group = new THREE.Group();
   group.name = 'Tech9 Baseline — fixed 160 metre forest';
   const disposables = [];
-  const windUniform = { value: 0 };
+
   let settings = { quality: 'high', richness: 1 };
   let densityBatches = [];
   let context;
@@ -803,6 +798,19 @@ export function createForestWorld() {
     id: 'forest-world',
     stats,
     getColliders: getForestColliders,
+    getWeatherTargets() {
+      const materials = new Map();
+      group.traverse((object) => {
+        if (!object.isMesh) return;
+        for (const material of Array.isArray(object.material)
+          ? object.material
+          : [object.material]) {
+          if (!materials.has(material))
+            materials.set(material, { material, ...material.userData.weather });
+        }
+      });
+      return [...materials.values()];
+    },
     async init(initialContext) {
       context = initialContext;
       const suppliedKit =
@@ -819,6 +827,7 @@ export function createForestWorld() {
       disposables.push(...Object.values(textures));
       const terrain = buildTerrain(textures);
       disposables.push(terrain.geometry, terrain.material);
+      terrain.material.userData.weather = { ground: true };
       group.add(terrain);
       const { trees, rocks, deadfall } = getForestPlacements();
       stats.trees = trees.reduce((sum, family) => sum + family.length, 0);
@@ -830,7 +839,7 @@ export function createForestWorld() {
       instancePrototype(group, kit, 'rock_b', rocks[1], disposables);
       instancePrototype(group, kit, 'fallen_log', deadfall, disposables);
       densityBatches = [
-        ...buildGroundcover(group, kit, windUniform, disposables),
+        ...buildGroundcover(group, kit, disposables),
         ...buildDebris(group, disposables),
       ];
       const filteredMaterials = new Set();
@@ -887,9 +896,6 @@ export function createForestWorld() {
       }
       if (context && geometryChanged)
         context.renderer.shadowMap.needsUpdate = true;
-    },
-    update(_dt, elapsed) {
-      windUniform.value = elapsed;
     },
     dispose() {
       group.removeFromParent();

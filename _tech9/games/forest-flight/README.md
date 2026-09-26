@@ -43,6 +43,7 @@ npm run lint
 npm run build
 SCENE_PORT=4492 npm run verify
 SCENE_PORT=4492 npm run verify:exploration
+SCENE_PORT=4492 npm run verify:art
 ```
 
 Browser verification uses installed headed Playwright Chromium and ordinary keyboard controls for a complete scenic circuit and landing with each aircraft. Travel runs at 8× by default, with normal speed for screenshots and performance samples. Set `SIMULATION_RATE=1` only when real-time travel is needed. Artifacts and machine/frame-timing records are written to `.artifacts/verification/`. `CHROMIUM_PATH` can select a compatible local Chromium executable.
@@ -53,10 +54,14 @@ Flight handling is assisted arcade simulation, with coordinated turns, approxima
 
 Exploration verification flies the sport plane across both sides of the valley with normal keyboard input, performs a full roll and sustained inverted flight, checks recovery, and records low/high views and resource plateaus. Camera-only art inspection under `?test=1` is separate from these success paths.
 
-## Current playtest status
+## Current handoff status
 
-The independent baseline-reference art review ended at **7.6/10 after four rounds**, below the 8/10 target. Broken distant-tree cards and detached detail shadows are fixed. Remaining visual limitations are pale/uniform midground soil, sparse middle-distance undergrowth, repetitive distant canopy and visible LOD change. Framework extraction remains deferred until user playtest.
+The first four independent baseline-reference art rounds ended at **7.6/10**. The user then requested three additional art rounds: **7.7 → 7.7 → 8.0/10**. The final independent still-image art review meets the 8/10 target. Remaining polish: repeated distant tree silhouettes, simple/pale broad meadows, some heavy foreground shadows and subtle LOD stippling.
 
-Validation: 36 CPU tests, lint and production build pass. Both aircraft completed keyboard-driven circuits and landings; remote east/west low/high travel, a full sport roll, inverted cockpit/pitch and recovery were checked. The trainer used real-time travel; subsequent runs use 8× travel and 1× captures. The exploration resource assertion's initial warmup cutoff was too early for first-visible airfield uploads; its corrected settled-tail assertion was checked against the existing trace without repeating the flight. The final recorded tail held 248 geometries, 35 textures and 30 programs across 449 detail-window updates. Final fixed-view captures have no browser/WebGL errors.
+The added rounds improve trail color/normal/roughness, middle-distance grass, grove size/color variation, clearing edges, shaded moss/litter and the mown airfield verge. The final build uses the baseline’s full and reduced grass meshes in a bounded 7×7 detail window, plus a sixteen-azimuth/four-elevation pine atlas. Flight controls and the compact game loop remain as previously validated. Framework extraction is the next separately scoped task; [architecture](./ARCHITECTURE.md#handoff--later-framework-dev) identifies reusable capabilities and required changes in existing modules.
 
-Final High-preset reference captures at 1440×900 on Chromium 151 / ANGLE Metal / Apple M1 Pro measured roughly 55 FPS near ground, 67 in low flight and 121 at altitude. These are short headless rAF observations, not production performance guarantees; the 60 FPS ground target was not met consistently. Browser checks serialize GPU work; other desktop load is not controlled. Local evidence is under `.artifacts/`.
+Validation: **36 CPU tests, lint, production build and all three final review sets pass their runtime/resource checks**. The final art sweep holds **193 geometries, 35 textures and 28 programs** after warmup, with **357,361 fixed instance slots**, 49 detail tiles and 109,761 fixed trees. No browser, request or WebGL errors. `npm run verify:art` uses fixed camera spots, a short 90 m local sweep and repeated dispersed-region visits; it avoids another flight circuit. Transition stills show coverage but cannot prove continuous-motion smoothness.
+
+The earlier ordinary-keyboard evidence covers both aircraft’s circuits/landings, remote low/high exploration, a full sport roll, inverted cockpit/pitch and recovery. Those receipts remain under `.artifacts/verification/` and `.artifacts/exploration-flight/`; these art-only rounds did not repeat the circuits. The earlier exploration assertion’s premature warmup cutoff and corrected saved-trace resource audit remain documented with that evidence.
+
+Final High-preset captures at 1440×900 on Chromium 151 / ANGLE Metal / Apple M1 Pro measured roughly **55–62 FPS on the ground, 84 in low flight and 120 at altitude**. These are short headless rAF samples, not a sustained 60 FPS guarantee. Intermediate captures varied substantially; desktop load was uncontrolled and sources differed, so these are not controlled A/B measurements. Lower samples are preserved rather than discarded. Captures and independent review notes are in `.artifacts/art-refinement/`. The corrected final third-round set identifies source commit `62e8463b`; its superseded draft is retained separately.

@@ -10,21 +10,21 @@ const SPEC = {
     track: 1.65,
     radius: 0.43,
     width: 0.32,
-    eye: [-0.46, 1.88, -0.18],
+    eye: [-0.46, 1.83, 0.5],
   },
   atv: {
     wheelBase: 1.55,
     track: 1.1,
     radius: 0.31,
     width: 0.26,
-    eye: [0, 1.77, -0.09],
+    eye: [0, 1.72, 0.3],
   },
   bike: {
     wheelBase: 1.48,
     track: 0,
     radius: 0.35,
     width: 0.14,
-    eye: [0, 1.85, -0.13],
+    eye: [0, 1.81, 0.36],
   },
 };
 const Y = new THREE.Vector3(0, 1, 0);
@@ -975,7 +975,7 @@ export function createVehicleModel(kind = 'jeep') {
     eyeWorld.applyMatrix4(group.matrixWorld);
     // Moderate chassis tilt in the view keeps bumps readable without motion spikes.
     forward
-      .set(Math.sin(steering * 0.12), -0.055, -1)
+      .set(Math.sin(steering * 0.12), -0.1, -1)
       .transformDirection(group.matrixWorld);
     targetWorld.copy(eyeWorld).addScaledVector(forward, 12);
     up.set(0, 1, 0).transformDirection(group.matrixWorld);

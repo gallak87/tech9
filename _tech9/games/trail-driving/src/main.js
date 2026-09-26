@@ -11,6 +11,13 @@ import { DrivingCamera } from './game/DrivingCamera.js';
 import { TrialRules, loadRecords, saveResult } from './game/TrialRules.js';
 import { GameUI } from './game/GameUI.js';
 
+const storage = () => {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+};
 const world = { height, surface, colliders, bounds };
 const garageSpawn = { x: 0, z: 246, heading: Math.PI * 0.08 };
 const definition = {
@@ -32,10 +39,10 @@ const definition = {
     ...forestDefinition.environment,
     exposure: 1.0,
     fog: { color: '#b5c7bf', density: 0.0027 },
-    hemisphere: { sky: '#c4d7d4', ground: '#596044', intensity: 2.0 },
+    hemisphere: { sky: '#c6dcec', ground: '#697263', intensity: 2.3 },
     sun: {
-      color: '#ffe0a6',
-      intensity: 4.2,
+      color: '#ffe6bd',
+      intensity: 3.5,
       position: [65, 90, -50],
       shadowBounds: {
         left: -65,
@@ -64,7 +71,7 @@ class TrailGame {
     this.vehicle = 'jeep';
     this.state = 'garage';
     this.mode = 'trial';
-    this.records = loadRecords(localStorage);
+    this.records = loadRecords(storage());
     this.volume = 0.45;
     try {
       const volume = Number(
@@ -130,6 +137,7 @@ class TrailGame {
     if (this.state !== 'driving') return;
     this.state = 'paused';
     this.input.setEnabled(false);
+    this.feedback.update({ ...this.motion.snapshot(), active: false }, 0);
     this.ui.render();
   }
   resume() {
@@ -287,7 +295,7 @@ class TrailGame {
               this.vehicle,
               this.route.id,
               this.rules.result(),
-              localStorage,
+              storage(),
             ),
           };
           this.state = 'results';
@@ -313,8 +321,19 @@ class TrailGame {
       const x = s.x,
         y = s.y,
         z = s.z;
-      this.app.camera.position.set(x + 7.4, y + 3.8, z - 8.2);
-      this.app.camera.lookAt(x - 0.4, y + 1, z);
+      const scale =
+        this.vehicle === 'jeep' ? 1 : this.vehicle === 'atv' ? 0.76 : 0.69;
+      const narrow = this.app.canvas.clientWidth < 521;
+      this.app.camera.position.set(
+        x + 5.0 * scale,
+        y + 2.65 * scale,
+        z - 5.8 * scale,
+      );
+      this.app.camera.lookAt(
+        x + (narrow ? 0 : 1.55 * scale),
+        y + 1,
+        z + (narrow ? 0 : 1.4 * scale),
+      );
       this.app.camera.updateMatrixWorld();
     } else this.camera.update(dt);
     this.app.sun.position.set(s.x + 65, s.y + 90, s.z - 50);
@@ -340,6 +359,11 @@ class TrailGame {
       records: structuredClone(this.records),
       cameraMode: this.camera.follow.mode,
       input: this.input.sample(),
+      audio: {
+        engine: this.feedback.engineGain?.gain.value ?? 0,
+        tire: this.feedback.tireGain?.gain.value ?? 0,
+        state: this.feedback.context?.state ?? 'locked',
+      },
     };
   }
   dispose() {
@@ -361,7 +385,13 @@ try {
   });
   app.camera.far = 850;
   app.camera.updateProjectionMatrix();
-  app.setSettings({ quality: 'balanced' }, false);
+  let hasSettings = false;
+  try {
+    hasSettings = Boolean(storage()?.getItem('trail-driving.settings'));
+  } catch {
+    /* Denied storage uses defaults. */
+  }
+  if (testMode || !hasSettings) app.setSettings({ quality: 'balanced' }, false);
   const park = createParkWorld();
   await app.register(park);
   game = new TrailGame(app, park);

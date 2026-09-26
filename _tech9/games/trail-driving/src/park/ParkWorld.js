@@ -10,10 +10,16 @@ import {
   placements,
   colliders,
   GARAGE_POSTS,
-  createRandom,
+  SIGNPOSTS,
   TERRAIN_SIZE,
   TERRAIN_RESOLUTION,
 } from './parkData.js';
+
+import {
+  BACKDROP_RINGS,
+  backdropPoint,
+  sceneryPlacements,
+} from './scenicData.js';
 
 const ASSET_ROOT = `${import.meta.env?.BASE_URL ?? './'}assets/`;
 const UP = new THREE.Vector3(0, 1, 0);
@@ -33,15 +39,16 @@ function groundMaterial(textures) {
       pathColor: { value: textures.pathColor },
       pathNormal: { value: textures.pathNormal },
       pathRoughness: { value: textures.pathRoughness },
+      stoneColor: { value: textures.stoneColor },
     });
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
-        '#include <common>\nattribute float trail;\nvarying float vTrail;\nvarying vec3 vGround;',
+        '#include <common>\nattribute float trail;\nattribute float gravel;\nvarying float vTrail;\nvarying float vGravel;\nvarying vec3 vGround;',
       )
       .replace(
         '#include <begin_vertex>',
-        '#include <begin_vertex>\nvTrail=trail;\nvGround=position;',
+        '#include <begin_vertex>\nvTrail=trail;\nvGravel=gravel;\nvGround=position;',
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
@@ -50,7 +57,9 @@ function groundMaterial(textures) {
       uniform sampler2D pathColor;
       uniform sampler2D pathNormal;
       uniform sampler2D pathRoughness;
+      uniform sampler2D stoneColor;
       varying float vTrail;
+      varying float vGravel;
       varying vec3 vGround;
     `,
       )
@@ -61,10 +70,17 @@ function groundMaterial(textures) {
       vec4 roadSample=texture2D(pathColor,vMapUv*0.88+vec2(.217,.531));
       float noise=(floorSample.g-floorSample.r)*1.4+(floorSample.r-.3)*.45;
       float road=smoothstep(.12,.9,vTrail+noise*(1.-abs(vTrail*2.-1.)));
-      vec4 soil=roadSample*vec4(1.5,1.29,1.02,1.);
-      diffuseColor*=mix(floorSample*vec4(.82,.99,.65,1.),soil,road);
-      float macro=.94+.06*sin(vGround.x*.043+cos(vGround.z*.037))*sin(vGround.z*.051);
-      diffuseColor.rgb*=macro;
+      vec4 stoneSample=texture2D(stoneColor,vGround.xz*.14);
+      float ridge=smoothstep(100.,230.,vGround.x)*(1.-smoothstep(-100.,90.,vGround.z));
+      float patch=.5+.5*sin(vGround.x*.086+sin(vGround.z*.042)*2.)*cos(vGround.z*.077+sin(vGround.x*.027));
+      vec3 mossTint=mix(vec3(.36,.58,.47),vec3(.66,.72,.54),smoothstep(.2,.85,patch));
+      vec3 forest=floorSample.rgb*mossTint;
+      vec3 ridgeFloor=mix(floorSample.rgb*vec3(.71,.75,.65),stoneSample.rgb*.55,.26+.24*patch);
+      vec4 soil=roadSample*vec4(1.19,1.14,1.04,1.);
+      vec3 gravelSoil=mix(roadSample.rgb*vec3(1.05,1.10,1.11),stoneSample.rgb*.78,.27);
+      soil.rgb=mix(soil.rgb,gravelSoil,vGravel);
+      diffuseColor*=vec4(mix(mix(forest,ridgeFloor,ridge),soil.rgb,road),1.);
+      diffuseColor.rgb*=.94+.06*sin(vGround.x*.043+cos(vGround.z*.037))*sin(vGround.z*.051);
     `,
       )
       .replace(
@@ -81,7 +97,7 @@ function groundMaterial(textures) {
         ),
       );
   };
-  material.customProgramCacheKey = () => 'alder-terrain-v1';
+  material.customProgramCacheKey = () => 'cascade-terrain-v2';
   return material;
 }
 
@@ -119,6 +135,7 @@ function terrain(textures, owned) {
   const p = geometry.attributes.position,
     uv = geometry.attributes.uv;
   const trail = new Float32Array(p.count),
+    gravel = new Float32Array(p.count),
     colors = new Float32Array(p.count * 3);
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i),
@@ -126,7 +143,12 @@ function terrain(textures, owned) {
       y = height(x, z);
     p.setY(i, y);
     uv.setXY(i, x / 4.2, z / 4.2);
-    const d = trailSample(x, z).distance;
+    const sample = trailSample(x, z);
+    const d = sample.distance;
+    gravel[i] =
+      sample.route === 'granite' || (sample.route === 'ridge' && z < 20)
+        ? 1
+        : 0;
     const apron = clamp((34 - Math.hypot(x, z - 250)) / 8, 0, 1);
     trail[i] = Math.max(apron, clamp((7.6 - d) / 2.1, 0, 1));
     const ridge = clamp((x - 70) / 140, 0, 1) * clamp((-z + 100) / 200, 0, 1);
@@ -137,6 +159,7 @@ function terrain(textures, owned) {
     colors[i * 3 + 2] = 0.8 - ridge * 0.03 + variation;
   }
   geometry.setAttribute('trail', new THREE.BufferAttribute(trail, 1));
+  geometry.setAttribute('gravel', new THREE.BufferAttribute(gravel, 1));
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
   const material = groundMaterial(textures);
@@ -195,10 +218,10 @@ function instanceKit(
     if (material.map) material.map.anisotropy = 4;
     if (name.startsWith('rock')) material.normalScale?.setScalar(0.65);
     if (name.startsWith('grass') || name.startsWith('fern')) {
-      material.color.multiplyScalar(1.35);
+      material.color.multiplyScalar(name.startsWith('fern') ? 1.16 : 1.08);
       material.normalScale?.setScalar(0.4);
       material.emissive.set('#597448');
-      material.emissiveIntensity = 0.1;
+      material.emissiveIntensity = 0.055;
     }
     if (
       material.alphaTest > 0 ||
@@ -225,9 +248,27 @@ function instanceKit(
       mesh.receiveShadow = true;
       mesh.userData.fullCount = items.length;
       mesh.userData.density = density;
-      if (name.startsWith('pine_') && part.name.includes('wood'))
+      if (density)
+        mesh.userData.coverRange = name === 'pine_sapling' ? 220 : 125;
+      if (
+        name !== 'pine_sapling' &&
+        name.startsWith('pine_') &&
+        part.name.includes('wood')
+      )
         mesh.userData.detailRange = 175;
-      items.forEach((item, i) => mesh.setMatrixAt(i, placementMatrix(item)));
+      items.forEach((item, i) => {
+        mesh.setMatrixAt(i, placementMatrix(item));
+        const variation = 0.88 + 0.12 * Math.sin(item.x * 0.37 + item.z * 0.19);
+        const tint = new THREE.Color();
+        if (name.startsWith('rock'))
+          tint.setRGB(
+            variation * 0.95,
+            variation,
+            Math.min(1, variation * 1.06),
+          );
+        else tint.setRGB(variation * 0.94, variation, variation * 0.94);
+        mesh.setColorAt(i, tint);
+      });
       mesh.instanceMatrix.needsUpdate = true;
       mesh.computeBoundingSphere();
       group.add(mesh);
@@ -430,7 +471,7 @@ function buildStructures(group, owned) {
   for (let r = 0; r < ROUTES.length; r++) {
     const route = ROUTES[r],
       mat = routeMaterials[r];
-    route.gates.forEach((gate, index) => {
+    route.gates.forEach((gate) => {
       for (const side of [-1, 1]) {
         const x =
             gate.x + Math.cos(gate.heading) * (gate.width / 2 + 0.45) * side,
@@ -439,28 +480,27 @@ function buildStructures(group, owned) {
         cylinder(timber, x, y + 0.82, z, 0.15, 1.64, 6);
         box(mat, x, y + 1.33, z, 0.38, 0.54, 0.14, -gate.heading);
       }
-      if (index % 4 === 0) {
-        const x = gate.x + Math.cos(gate.heading) * 9.6,
-          z = gate.z + Math.sin(gate.heading) * 9.6,
-          y = height(x, z);
-        cylinder(timber, x, y + 1.65, z, 0.13, 3.3, 6);
-        sign(
-          [
-            `${String(r + 1).padStart(2, '0')}  ${route.name.toUpperCase()}`,
-            index === 0
-              ? 'START  ↑'
-              : `${Math.round((index / (route.gates.length - 1)) * 100)}%  /  KEEP FOLLOWING THE MARKERS`,
-          ],
-          x,
-          y + 2.65,
-          z,
-          4.4,
-          1.25,
-          -gate.heading,
-          route.color,
-        );
-      }
     });
+  }
+  for (const post of SIGNPOSTS) {
+    const route = ROUTES.find((r) => r.id === post.routeId);
+    const y = height(post.x, post.z);
+    cylinder(timber, post.x, y + 1.65, post.z, 0.13, 3.3, 6);
+    sign(
+      [
+        `${String(ROUTES.indexOf(route) + 1).padStart(2, '0')}  ${route.name.toUpperCase()}`,
+        post.gateIndex === 0
+          ? 'START  ↑'
+          : `${Math.round((post.gateIndex / (route.gates.length - 1)) * 100)}%  /  KEEP FOLLOWING THE MARKERS`,
+      ],
+      post.x,
+      y + 2.65,
+      post.z,
+      4.4,
+      1.25,
+      -post.heading,
+      route.color,
+    );
   }
   // Skyline lookout pavilion: a destination visible from the northern ridge.
   const lx = 191,
@@ -614,45 +654,43 @@ function createNextGate(group, owned) {
   return { arch, color, map };
 }
 
-function mountainRing(group, owned) {
-  const geometry = new THREE.BufferGeometry(),
-    vertices = [],
-    colors = [];
-  const count = 128;
-  const color = new THREE.Color();
-  for (let i = 0; i < count; i++) {
-    const sample = (j, outer) => {
-      const a = (j / count) * Math.PI * 2;
-      const radius = outer ? 680 + 70 * Math.sin(a * 5) : 306;
-      const peak = outer
-        ? 92 +
-          43 * Math.sin(a * 3.1 + 0.3) +
-          35 * Math.sin(a * 7.7) +
-          20 * Math.cos(a * 13)
-        : height(Math.sin(a) * 300, Math.cos(a) * 300) - 3;
-      return [Math.sin(a) * radius, peak, Math.cos(a) * radius];
-    };
-    const a = sample(i, false),
-      b = sample(i + 1, false),
-      c = sample(i, true),
-      d = sample(i + 1, true);
-    for (const p of [a, c, b, b, c, d]) {
-      vertices.push(...p);
-      color.setRGB(
-        0.27 + p[1] * 0.0008,
-        0.36 + p[1] * 0.0007,
-        0.34 + p[1] * 0.0008,
-      );
-      colors.push(color.r, color.g, color.b);
+function mountainRing(group, owned, textures) {
+  const vertices = [],
+    colors = [],
+    uv = [];
+  const segments = 256;
+  for (let ring = 0; ring < BACKDROP_RINGS.length - 1; ring++) {
+    for (let i = 0; i < segments; i++) {
+      const a = backdropPoint(i, ring),
+        b = backdropPoint(i + 1, ring);
+      const c = backdropPoint(i, ring + 1),
+        d = backdropPoint(i + 1, ring + 1);
+      for (const p of [a, b, c, b, d, c]) {
+        vertices.push(...p);
+        uv.push(p[0] / 9, p[2] / 9);
+        const distance = Math.max(Math.abs(p[0]), Math.abs(p[2]));
+        const far = clamp((distance - 350) / 450, 0, 1);
+        const grain = Math.sin(p[0] * 0.025) * Math.cos(p[2] * 0.029) * 0.07;
+        colors.push(
+          0.36 + far * 0.14 + grain,
+          0.48 + far * 0.12 + grain,
+          0.4 + far * 0.18 + grain,
+        );
+      }
     }
   }
+  const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
     'position',
     new THREE.Float32BufferAttribute(vertices, 3),
   );
   geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
   geometry.computeVertexNormals();
   const material = new THREE.MeshStandardMaterial({
+    map: textures.floorColor,
+    normalMap: textures.floorNormal,
+    normalScale: new THREE.Vector2(0.25, 0.25),
     vertexColors: true,
     roughness: 1,
     side: THREE.DoubleSide,
@@ -660,42 +698,9 @@ function mountainRing(group, owned) {
   owned.add(geometry);
   owned.add(material);
   const mesh = new THREE.Mesh(geometry, material);
-  mesh.name = 'Distant alpine ridgelines';
+  mesh.name = 'Textured foothills outside the complete drivable square';
+  mesh.receiveShadow = true;
   group.add(mesh);
-}
-
-function groundcover() {
-  const random = createRandom(68124),
-    entries = [];
-  for (const route of ROUTES)
-    for (let i = 0; i < route.points.length; i += 3) {
-      const a = route.points[i],
-        b = route.points[(i + 1) % route.points.length],
-        dx = b.x - a.x,
-        dz = b.z - a.z,
-        len = Math.hypot(dx, dz) || 1;
-      for (const side of [-1, 1])
-        for (let j = 0; j < 2; j++) {
-          const width = 8.3 + random() * 6,
-            x = a.x - (dz / len) * width * side + (random() - 0.5) * 5,
-            z = a.z + (dx / len) * width * side + (random() - 0.5) * 5;
-          if (trailSample(x, z).distance < 7.7 || Math.hypot(x, z - 250) < 30)
-            continue;
-          entries.push({
-            x,
-            z,
-            scale: 0.85 + random() * 1.3,
-            rotation: random() * 6.28,
-            prototype:
-              x > 150
-                ? 'grass_tall'
-                : i % 5 === 0
-                  ? 'fern_a'
-                  : 'grass_short_lod',
-          });
-        }
-    }
-  return entries;
 }
 
 /** SceneApp layer: owns its meshes, kit copies and textures, never the renderer. */
@@ -735,8 +740,13 @@ export function createParkWorld() {
               .then((g) => g.scene),
         loadTextures(ctx.renderer, owned),
       ]);
+      kit.getObjectByName('rock_a').traverse((part) => {
+        if (part.isMesh && part.material.map)
+          textures.stoneColor = part.material.map;
+      });
+      textures.stoneColor ??= textures.pathColor;
       group.add(terrain(textures, owned));
-      mountainRing(group, owned);
+      mountainRing(group, owned, textures);
       for (const name of ['pine_a', 'pine_b', 'pine_c', 'rock_a', 'rock_b'])
         instanceKit(
           group,
@@ -745,7 +755,21 @@ export function createParkWorld() {
           placements.filter((p) => p.prototype === name),
           owned,
         );
-      const cover = groundcover();
+      const { cover, saplings, stones } = sceneryPlacements();
+      coverBatches.push(
+        ...instanceKit(group, kit, 'pine_sapling', saplings, owned, {
+          chunkSize: 100,
+          shadow: false,
+          density: true,
+        }),
+      );
+      coverBatches.push(
+        ...instanceKit(group, kit, 'rock_a', stones, owned, {
+          chunkSize: 100,
+          shadow: false,
+          density: true,
+        }),
+      );
       for (const name of ['grass_short_lod', 'grass_tall', 'fern_a'])
         coverBatches.push(
           ...instanceKit(
@@ -800,6 +824,10 @@ export function createParkWorld() {
           changed = true;
         }
       }
+      for (const mesh of coverBatches)
+        mesh.visible =
+          mesh.boundingSphere.center.distanceTo(context.camera.position) <
+          mesh.userData.coverRange + mesh.boundingSphere.radius;
       if (changed) context.renderer.shadowMap.needsUpdate = true;
     },
     configure(patch) {

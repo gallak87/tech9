@@ -840,7 +840,7 @@ function rider(parent, kind, p) {
       boot.position.set(foot[0], foot[1] - 0.06, foot[2] - 0.075);
     }
   };
-  return { group, head, update };
+  return { group, head, torso, limbs, update };
 }
 
 function suspension(parent, wheelData, kind, p) {
@@ -989,6 +989,8 @@ export function createVehicleModel(kind = 'jeep') {
   function setDriverView(value) {
     driverView = Boolean(value);
     person.head.visible = !driverView;
+    person.torso.visible = !driverView;
+    for (const limb of person.limbs) limb.upperArm.visible = !driverView;
   }
   function dispose() {
     if (disposed) return;

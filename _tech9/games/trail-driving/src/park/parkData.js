@@ -435,5 +435,35 @@ for (const route of ROUTES)
         radius: 0.17,
       });
   }
+/** Tall route signage is shared by the scenery layer and contact solver. */
+export const SIGNPOSTS = Object.freeze(
+  ROUTES.flatMap((route) =>
+    route.gates.flatMap((gate, gateIndex) => {
+      if (gateIndex % 4 !== 0) return [];
+      const x = gate.x + Math.cos(gate.heading) * 9.6,
+        z = gate.z + Math.sin(gate.heading) * 9.6;
+      if (trailSample(x, z).distance < 8) return [];
+      return [
+        Object.freeze({
+          id: `${route.id}-sign-${gateIndex}`,
+          routeId: route.id,
+          gateIndex,
+          x,
+          z,
+          heading: gate.heading,
+          radius: 0.18,
+        }),
+      ];
+    }),
+  ),
+);
+for (const post of SIGNPOSTS)
+  builtColliders.push({
+    id: post.id,
+    kind: 'barrier',
+    x: post.x,
+    z: post.z,
+    radius: post.radius,
+  });
 export const colliders = Object.freeze(builtColliders.map(Object.freeze));
 export const parkData = Object.freeze({ height, surface, colliders, bounds });

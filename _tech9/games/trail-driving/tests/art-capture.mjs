@@ -36,8 +36,17 @@ try {
     await page.waitForTimeout(200);
     await page.screenshot({ path: path.join(output, `${vehicle}-driver.png`) });
     await page.keyboard.press('Escape');
+    if (i === 0)
+      await page.screenshot({ path: path.join(output, 'pause.png') });
     await page.locator('[data-action="garage"]').last().click();
   }
+  await page.locator('[data-action="settings"]').click();
+  await page.screenshot({ path: path.join(output, 'settings.png') });
+  await page.locator('[data-action="garage"]').last().click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: path.join(output, 'narrow-garage.png') });
+  await page.locator('[data-action="free"]').click();
+  await page.screenshot({ path: path.join(output, 'narrow-hud.png') });
   await writeFile(
     path.join(output, 'capture.json'),
     JSON.stringify(

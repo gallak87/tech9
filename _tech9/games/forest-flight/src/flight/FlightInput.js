@@ -21,7 +21,13 @@ export class FlightInput {
     this.target = target;
     this.documentTarget = documentTarget;
     this.down = (event) => {
-      if (/INPUT|SELECT|TEXTAREA/.test(event.target?.tagName)) return;
+      if (
+        /^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test(event.target?.tagName) ||
+        event.target?.isContentEditable
+      ) {
+        this.reset();
+        return;
+      }
       if (KEYS.has(event.code)) {
         event.preventDefault();
         this.keys.add(event.code);

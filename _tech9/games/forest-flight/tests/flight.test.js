@@ -186,3 +186,26 @@ test('pause silences audio immediately before hidden-tab frame suppression', asy
   assert.equal(host.sim.paused, true);
   assert.deepEqual(calls, ['reset', ['flight', true]]);
 });
+
+test('flight input leaves focused UI button activation to the browser', () => {
+  const target = new EventTarget(),
+    doc = new EventTarget();
+  const input = new FlightInput({
+    target,
+    documentTarget: doc,
+    onAction() {},
+    onBlur() {},
+  });
+  input.keys.add('KeyW');
+  let prevented = false;
+  input.down({
+    code: 'Space',
+    target: { tagName: 'BUTTON' },
+    preventDefault() {
+      prevented = true;
+    },
+  });
+  assert.equal(prevented, false);
+  assert.deepEqual([...input.keys], []);
+  input.dispose();
+});

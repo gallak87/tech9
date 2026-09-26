@@ -405,6 +405,10 @@ export function createFlightWorld() {
         return;
       }
       landscape = await createLandscape(context, gltf.scene);
+      if (disposed) {
+        landscape.dispose();
+        return;
+      }
       landscape.configure(settings);
     },
     configure(next) {

@@ -213,7 +213,8 @@ try {
       await focusSession.send('Emulation.setFocusEmulationEnabled', {
         enabled: true,
       });
-      await focusSession.detach();
+      // Keep the focus override for the long flight after the genuine focus-loss
+      // check; other desktop apps must not interrupt keyboard validation.
       await keys([]);
       assert.equal(s.paused, true, 'Real tab focus loss pauses flight');
       assert.deepEqual(s.heldKeys, []);

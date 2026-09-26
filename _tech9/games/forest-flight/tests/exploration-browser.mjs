@@ -68,6 +68,8 @@ async function rollAndInvert() {
   report.roll = { accumulated, invertedSeconds: 1.5, recovered: true };
 }
 try {
+  const focus = await h.page.context().newCDPSession(h.page);
+  await focus.send('Emulation.setFocusEmulationEnabled', { enabled: true });
   await h.page.locator('#quality').selectOption('high');
   await h.page.locator('#choose-sport').click();
   await h.page.locator('#start').click();

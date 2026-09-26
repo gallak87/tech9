@@ -22,7 +22,11 @@ export function groundHeight(x, z) {
     smooth(65, 140, Math.abs(x + 100)),
     smooth(125, 220, Math.abs(z - 250)),
   );
-  return (hills + Math.max(0, rolling)) * Math.min(strip, apron);
+  const ridgeDetail =
+    valley *
+    (12 * Math.sin(x * 0.021 + z * 0.004) * Math.cos(z * 0.019) +
+      5 * Math.sin(x * 0.044 - z * 0.025));
+  return (hills + ridgeDetail + Math.max(0, rolling)) * Math.min(strip, apron);
 }
 
 export function randomSequence(seed) {
@@ -50,8 +54,8 @@ export const treeCells = new Map();
 const random = randomSequence(81733);
 for (let gx = -200; gx < 200; gx++) {
   for (let gz = -200; gz < 200; gz++) {
-    const x = (gx + 0.15 + random() * 0.7) * 14;
-    const z = (gz + 0.15 + random() * 0.7) * 14;
+    const x = (gx + 0.05 + random() * 0.9) * 14;
+    const z = (gz + 0.05 + random() * 0.9) * 14;
     if (random() > forestCover(x, z) * 0.88 || trailDistance(x, z) < 4)
       continue;
     const height = 18 + random() * 15;
@@ -89,7 +93,7 @@ export function detailTile(cx, cz) {
       continue;
     const cover = forestCover(x, z);
     const patch = Math.sin(x * 0.19 + Math.cos(z * 0.16)) * Math.cos(z * 0.23);
-    if (rng() > 0.64 + patch * 0.34) continue;
+    if (i >= 8 && rng() > 0.64 + patch * 0.34) continue;
     const kind =
       i < 3
         ? 'rock_' + (i % 2 ? 'a' : 'b')
@@ -112,7 +116,9 @@ export function detailTile(cx, cz) {
         ? 2 + rng()
         : kind.startsWith('fern')
           ? 1.2 + rng()
-          : 0.55 + rng() * 0.7,
+          : kind === 'pine_sapling'
+            ? 0.45 + rng() * 0.4
+            : 0.65 + rng() * 0.85,
     });
   }
   return entries;

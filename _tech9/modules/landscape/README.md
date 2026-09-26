@@ -31,6 +31,53 @@ function update(dt, elapsed) {
 
 Without weather, omit that sibling module and use the default `windMode: 'local'`. With weather, select `windMode: 'weather'` before init: the local oscillator is disabled, and weather supplies the single shared wind field for both near and mid-distance grass/ferns. Default `manageFog: true` adjusts an existing FogExp2 according to camera height above terrain; set false when your environment adapter owns fog. Landscape never creates lights or precipitation. The optional exported `AtmospherePass` is the proven terrain-relative postprocess: call `resize(width,height,pixelRatio)`, `configure({samples:4,rays:32},{atmosphere:1,sunlight:1})`, then `render(scene,camera,sun,localGroundHeight)` instead of your direct render. It requires a PCF directional shadow map and writes the final image to the screen. Dispose it separately.
 
+## Authored scenes
+
+`createComposedLandscape` uses the same forest assets, material preparation, scanned floor and shadow helpers for fixed authored scenes. Baseline uses this entry point to preserve its detailed 160 m forest; its terrain, placements, collision proxies and weather surface queries remain scene-owned. Use `createLandscape` above for larger worlds with moving detail and distance transitions. These are two rendering policies within the same module, not two forest asset implementations.
+
+```js
+import * as THREE from 'three';
+import { createComposedLandscape } from './modules/landscape/src/Landscape.js';
+const groundHeight = (x, z) => Math.sin(x * 0.03) * Math.cos(z * 0.04);
+const forest = createComposedLandscape({
+  terrain: {
+    bounds: { minX: -80, maxX: 80, minZ: -80, maxZ: 80 },
+    segments: 256,
+    groundHeight,
+    pathMask: (x) => Math.max(0, 1 - Math.abs(x) / 2),
+    tint: () => [0.87, 0.89, 0.83], // Linear RGB vertex tint.
+  },
+  placements: [
+    {
+      prototype: 'pine_a',
+      shadow: true,
+      entries: [
+        {
+          x: -7,
+          z: 12,
+          matrix: new THREE.Matrix4().makeTranslation(
+            -7,
+            groundHeight(-7, 12),
+            12,
+          ),
+        },
+      ],
+    },
+  ],
+});
+await forest.init({ scene, renderer });
+forest.configure({ quality: 'high', richness: 1 });
+// Optionally pass forest.getWeatherTargets() to weather with scene-owned surface queries.
+// Render through your existing loop; this fixed layer needs no update call.
+// Dispose weather first, then forest.dispose().
+```
+
+Terrain bounds must be finite and nonempty; `segments` is an integer from 1–1024 (default 256) per axis. Supply finite `groundHeight`, `pathMask` (clamped 0–1) and three-component linear RGB `tint` values. Detail is baked once: use a resolution appropriate for your terrain, and retain the same height callback for controllers/collision. The caller owns travel limits and scene lighting.
+
+Each placement supplies a named kit `prototype` and `entries` with finite `x`, `z` and a Three.js `Matrix4`. Optional per-entry `color` is a Three.js `Color` when the placement enables `color: true`. Prototypes include `pine_a/b/c`, `pine_sapling`, `rock_a/b`, `fallen_log`, `grass_short`, `grass_short_lod`, `grass_tall`, `grass_tiny`, `fern_a/b`, plus generated `trail_pebble` and `fallen_twig`. `shadow` enables casting; all batches receive shadows. `chunkSize` defaults to 40 m (positive finite value). Each chunk has fixed capacity from its entries; `density: true` lets quality/richness adjust its visible count. Put entries marked `reserve: true` after ordinary entries, so increasing density reveals them last. Balanced/high/ultra density factors are 0.66/1/1.08, multiplied by richness (0–1.6, default 1), capped by capacity. Zero richness hides density batches; substantial authored objects stay intact. There is no streaming cache or per-frame allocation; the supplied scene size bounds resource use.
+
+`id` defaults to `landscape`; `assetURL` follows the directory contract below. The layer owns loaded assets, cloned geometry/materials and floor textures. Optionally supply a borrowed kit as `init({scene,renderer,assets:{forestKit: gltf.scene}})` (a Map also works); its original geometry/materials/textures are retained on disposal. One activation per layer, including after cancellation/failure; create a fresh layer to retry. The composed renderer uses weather's shared wind only and does not create a local oscillator. Weather, environment and frame-loop ownership are unchanged.
+
 ## Defaults and configuration
 
 `createLandscape({layout,assetURL,quality,windMode,manageFog})` starts with a 4.8×4.8 km playable area, a continuous rolling valley, three pine forms, irregular groves and a meandering trail. The canopy extends 400 m and terrain 800 m beyond each playable edge. `surfaceBounds` includes this terrain skirt so weather also reaches the visible horizon. Exports `DEFAULT_BOUNDS`, `DEFAULT_TRAIL`, `defaultGroundHeight`, `defaultForestCover` and `createLandscapeLayout` allow query-only use before loading assets. Layout options:

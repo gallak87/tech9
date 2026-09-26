@@ -14,6 +14,6 @@ Copy the selected folders into a package's `src/modules/`, including required si
 | [weather](./weather/README.md)                           | Rain, wet surfaces, settled snow, snowfall and shared wind           | Three.js                                                     |
 | [flight-motion](./flight-motion/README.md)               | Aircraft motion, contact observations and keyboard input             | Three.js                                                     |
 | [aircraft](./aircraft/README.md)                         | Trainer/sport models, cockpit animation, controls and motion binding | flight-motion; Three.js                                      |
-| [landscape](./landscape/README.md)                       | Forest assets, terrain materials and traveling vegetation detail     | Three.js; optional weather                                   |
+| [landscape](./landscape/README.md)                       | Forest assets/materials, authored scenes and traveling detail        | Three.js; optional weather                                   |
 
 See [copying](../docs/MODULES.md) and [module development](../FRAMEWORK_DEV.md).

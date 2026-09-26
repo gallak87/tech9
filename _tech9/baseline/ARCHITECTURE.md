@@ -8,10 +8,10 @@ A fixed 160 × 160 metre forest study. Three.js owns rendering; Blender authors 
 - `src/world/forestDefinition.js` owns scene identity, presentation, rectangular bounds, terrain query, named camera views, environment defaults and world factory. `src/core/sceneDefinition.js` validates that contract before GPU allocation.
 - `src/core/SceneApp.js` owns renderer, camera, frame loop, lighting, settings and the small lifecycle registry.
 - A world layer provides `id`, `init(context)`, optional `update(dt, elapsed)`, `configure(settings)` and `dispose()`. Context supplies scene, camera, renderer, assets, events, an independent `ui` mount, world bounds, `groundHeight(x,z)` and the selected `definition`. Future characters, interactions and HUD layers register through the same lifecycle.
-- `src/core/AtmospherePass.js` owns a linear HDR scene target, half-resolution world-space shadow raymarch and final tone mapping/contact shading. It samples the scene depth and native directional comparison shadow texture; geometry remains sharply resolved.
-- `src/core/softShadows.js` wraps the forest materials with a deterministic 12-tap PCF filter while preserving their terrain and wind shader hooks. It targets the pinned Three.js release; validate captures when upgrading Three.js.
+- `src/modules/landscape/src/AtmospherePass.js` owns a linear HDR scene target, half-resolution world-space shadow raymarch and final tone mapping/contact shading. It samples the scene depth and native directional comparison shadow texture; geometry remains sharply resolved.
+- `src/modules/landscape/src/softShadows.js` wraps the forest materials with a deterministic 12-tap PCF filter while preserving their terrain and wind shader hooks. It targets the pinned Three.js release; validate captures when upgrading Three.js.
 - `src/core/FlyCamera.js` owns pointer-lock and keyboard input, speed and boundary enforcement using the injected bounds/ground query. `app.setController(factoryOrObject)` replaces and disposes the previous camera owner. No character or physics is included.
-- `src/world/ForestWorld.js` exports `createForestWorld()` returning a layer. Its init can be async. It owns terrain, trees, rocks and ground cover, never renderer or UI. Export `terrainHeight(x,z)` and `pathCenter(z)` from `src/world/terrain.js` for camera clearance and later grounded actors.
+- `src/world/ForestWorld.js` exports `createForestWorld()` returning a layer. It delegates assets, materials and rendering to the selected landscape module’s `createComposedLandscape`. Scene-owned `forestComposition.js` supplies the fixed terrain sampling/tint and exact authored tree, rock, debris and ground-cover placements; the module has no knowledge of this layout. Its init is async. It never owns renderer or UI. Export `terrainHeight(x,z)` and `pathCenter(z)` from `src/world/terrain.js` for camera clearance and later grounded actors.
 - `src/ui/DevPanel.js` owns exactly five high-level controls: quality, sunlight, atmosphere, richness and exposure. UI reads scene presentation and view metadata, receives callbacks and metrics, and never edits world internals.
 - `src/core/settings.js` defines shared presets and validated persisted values. Storage defaults to `${definition.id}.settings`; the app accepts an explicit `storageKey` for independently owned game forks.
 
@@ -59,7 +59,7 @@ Copy this baseline through the framework's fork workflow, then develop the stand
 
 ## Asset contract
 
-Blender output: `public/assets/forest-kit.glb` with named reusable prototypes `pine_a`, `pine_b`, `pine_c`, `pine_sapling`, `rock_a`, `rock_b`, `fallen_log`, plus low-cost grass and fern prototypes (groups allowed). Model origin at base, metres, +Y up after glTF export. Keep combined triangles under 100k; reusable prototype meshes are instanced at runtime. `art/build_forest.py` reproducibly writes `art/forest-kit.blend` and the GLB. Materials and textures carry source/license metadata in `public/assets/ASSETS.md`.
+Blender output: `src/modules/landscape/assets/runtime/forest-kit.glb` with named reusable prototypes `pine_a`, `pine_b`, `pine_c`, `pine_sapling`, `rock_a`, `rock_b`, `fallen_log`, plus low-cost grass and fern prototypes (groups allowed). Model origin at base, metres, +Y up after glTF export. Keep combined triangles under 100k; reusable prototype meshes are instanced at runtime. `src/modules/landscape/assets/art/build_forest.py` reproducibly writes its sibling `forest-kit.blend` and the runtime GLB. Materials and textures carry source/license metadata in `src/modules/landscape/assets/runtime/ASSETS.md`.
 
 ## Composition
 
@@ -75,7 +75,7 @@ Tests expose read-only snapshot and named-camera hooks through `window.__SCENE_T
 
 ## Module copies
 
-`package.json` → `tech9.modules` selects grounded-walking and placement-collisions. Their source and license records are copied under `src/modules/<id>`, with versions and hashes in `PROVENANCE.json`. The runtime imports those local copies. Use the framework's module sync to update them from canonical source.
+`package.json` → `tech9.modules` selects grounded-walking, placement-collisions, weather and landscape. Their source and license records are copied under `src/modules/<id>`, with versions and hashes in `PROVENANCE.json`. The runtime imports those local copies. Use the framework's module sync to update them from canonical source. Baseline contains no second forest asset/material renderer outside that selected copy. Landscape also provides kilometer-scale terrain with moving vegetation detail for other consumers; baseline uses fixed chunked instance batches and a 256-segment terrain grid to preserve its authored scene.
 
 `getForestPlacements()` exports immutable matrices used by both rendering and proxy generation. `placementCircle` accounts for scale and local centre; `placementCapsuleChain` covers full deadfall endpoints. `getForestColliders()` includes all substantial authored forest solids with documented approximations.
 

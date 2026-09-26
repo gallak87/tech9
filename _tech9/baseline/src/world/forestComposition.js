@@ -10,7 +10,6 @@ import {
   pathWidth,
   terrainHeight,
   WORLD_HALF,
-  WORLD_SIZE,
 } from './terrain.js';
 const UP = new THREE.Vector3(0, 1, 0);
 function matrixAt(x, z, scale, rotation, yOffset = 0) {
@@ -522,6 +521,5 @@ export function createForestComposition() {
       ...groundcoverPlacements(),
       ...debrisPlacements(),
     ],
-    terrainArea: WORLD_SIZE * WORLD_SIZE,
   };
 }

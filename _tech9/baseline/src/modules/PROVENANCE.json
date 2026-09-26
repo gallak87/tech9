@@ -85,7 +85,7 @@
       "files": [
         {
           "path": "README.md",
-          "sha256": "684021e554627cbb5a9d9128dae7cd712cf82f500c1d2dc9566e23be6a834d51"
+          "sha256": "356acc45d78c16ab906cad5c98b9af824f494e2137c9dc1f3f7dd4de70f791f8"
         },
         {
           "path": "THREE-LICENSE.txt",
@@ -257,7 +257,7 @@
         },
         {
           "path": "src/ComposedLandscape.js",
-          "sha256": "074ea06831a1453b0f59f4f0c1e449119aaec3ebaf258bc2443cf7f4b6af4266"
+          "sha256": "bb50de3f9194fa9025de00b68726e4b950d87ae7271b688f04e11623e28a26c9"
         },
         {
           "path": "src/Landscape.js",

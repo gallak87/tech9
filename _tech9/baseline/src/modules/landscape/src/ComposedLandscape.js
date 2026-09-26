@@ -310,7 +310,7 @@ export function createComposedLandscape({
       stats.vegetationInstances = 0;
       for (const mesh of densityBatches) {
         mesh.count = Math.max(
-          1,
+          ratio === 0 ? 0 : 1,
           Math.min(
             mesh.userData.maxCount,
             Math.round(mesh.userData.baseCount * ratio),

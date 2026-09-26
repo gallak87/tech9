@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { createBoatMaterials } from './BoatMaterials.js';
+import { createShipHelm } from './ShipHelm.js';
 
 /** Authored sailing ships in metres. Materials, rigging and canvas stay editable here. */
 export function createSailingShip(profile) {
@@ -15,24 +17,10 @@ export function createSailingShip(profile) {
   const group = new THREE.Group();
   group.name = galleon ? 'Resolute galleon' : 'Kestrel schooner';
   const staticGroup = new THREE.Group();
-  const captain = new THREE.Group();
-  captain.name = 'Captain head and torso';
-  const arms = new THREE.Group();
-  const wheelMount = new THREE.Group();
-  const wheel = new THREE.Group();
-  wheel.name = 'Wooden ship wheel';
-  const grips = new THREE.Group();
-  grips.name = 'Captain sliding grips';
-  group.add(staticGroup, captain, arms, wheelMount);
-  wheelMount.add(wheel, grips);
-  wheelMount.position.set(helmX, quarterY + 1.03, helmZ);
-  wheelMount.rotation.x = -0.1;
+  group.add(staticGroup);
   const owned = new Set();
-  const armLinks = [];
   let disposed = false;
-  let wheelAngle = 0;
   const up = new THREE.Vector3(0, 1, 0);
-  const delta = new THREE.Vector3();
   const own = (resource) => {
     owned.add(resource);
     return resource;
@@ -71,7 +59,7 @@ export function createSailingShip(profile) {
     // Triangular canvas has one shared corner, so its closing rope can be empty.
     if (d.lengthSq() < 1e-10) return null;
     const item = mesh(
-      new THREE.CylinderGeometry(r2, r, d.length(), 8),
+      new THREE.CylinderGeometry(r2, r, d.length(), r > 0.06 ? 18 : 8),
       mat,
       0,
       0,
@@ -82,61 +70,27 @@ export function createSailingShip(profile) {
     item.quaternion.setFromUnitVectors(up, d.normalize());
     return item;
   };
-  function texture(cloth = false) {
-    const w = 128,
-      h = 256,
-      data = new Uint8Array(w * h * 4);
-    let seed = 93;
-    for (let y = 0; y < h; y++)
-      for (let x = 0; x < w; x++) {
-        seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-        const noise = seed / 4294967296;
-        const grain = cloth
-          ? x % 3 === 0 || y % 3 === 0
-            ? -4
-            : 1
-          : Math.sin(x * 1.7 + Math.sin(y * 0.026) * 1.7) * 7;
-        const seam = cloth ? (x < 2 ? 14 : 0) : x < 3 ? 40 : 0;
-        const shade = Math.round(237 + grain + noise * 12 - seam);
-        const i = (y * w + x) * 4;
-        data[i] = data[i + 1] = data[i + 2] = shade;
-        data[i + 3] = 255;
-      }
-    const map = own(new THREE.DataTexture(data, w, h));
-    map.colorSpace = THREE.SRGBColorSpace;
-    map.wrapS = map.wrapT = THREE.RepeatWrapping;
-    map.magFilter = THREE.LinearFilter;
-    map.minFilter = THREE.LinearMipmapLinearFilter;
-    map.generateMipmaps = true;
-    map.anisotropy = 4;
-    map.needsUpdate = true;
-    return map;
-  }
-  const grain = texture();
-  const hullWood = material(galleon ? '#674331' : '#786044', 0.81);
-  hullWood.map = grain;
-  const deckWood = material('#b29468', 0.87);
-  deckWood.map = grain;
-  const timber = material('#715035', 0.71);
-  timber.map = grain;
-  const darkWood = material('#392e24', 0.87);
-  const wheelWood = material('#91653a', 0.55);
-  const trim = material(galleon ? '#b39960' : '#bdaf87', 0.65, 0.16);
-  const paint = material(galleon ? '#243b37' : '#294f4b', 0.8);
-  const iron = material('#333b39', 0.77, 0.15);
-  const rope = material('#6c6250', 0.95);
-  const canvas = material(galleon ? '#ddd3b9' : '#e7ddc5', 0.96);
-  canvas.side = THREE.DoubleSide;
-  canvas.map = texture(true);
-  canvas.vertexColors = true;
-  const glass = material('#38575a', 0.41, 0.1);
-  const lamp = material('#e6c384', 0.6);
-  lamp.emissive.set('#ba7433');
-  lamp.emissiveIntensity = 0.25;
-  const skin = material('#b28e6b', 0.9),
-    shirt = material('#bfc5b7', 0.95),
-    coat = material('#2d4548', 0.91),
-    hair = material('#3c3430', 0.95);
+  const materials = createBoatMaterials({ own, galleon });
+  const {
+    hullWood,
+    deckWood,
+    timber,
+    darkWood,
+    trim,
+    paint,
+    iron,
+    rope,
+    canvas,
+    glass,
+    lamp,
+  } = materials;
+  const sailSeam = own(canvas.clone());
+  sailSeam.vertexColors = false;
+  sailSeam.color.multiplyScalar(0.82);
+  const sailPatch = own(canvas.clone());
+  sailPatch.vertexColors = false;
+  sailPatch.color.multiplyScalar(0.94);
+  const ivory = materials.ivory ?? trim;
 
   // A fine bow, flared shoulders and a broad transom, not an enlarged motor launch.
   const stations = [
@@ -150,29 +104,50 @@ export function createSailingShip(profile) {
     [0.43, galleon ? 0.405 : 0.36],
     [0.5, galleon ? 0.35 : 0.27],
   ];
-  const outline = [];
-  for (const [z, w] of stations) outline.push([w * beam, z * length]);
-  for (const [z, w] of [...stations].reverse())
-    outline.push([-w * beam, z * length]);
-  const sheer = (z) => Math.pow(Math.abs(z / (length * 0.5)), 3) * 0.34;
+  const sideCurve = new THREE.CatmullRomCurve3(
+    stations.map(([z, w]) => new THREE.Vector3(w * beam, 0, z * length)),
+    false,
+    'centripetal',
+  );
+  const starboard = sideCurve
+    .getPoints(40)
+    .map((p) => [Math.min(beam * 0.5, p.x), p.z]);
+  const outline = [
+    ...starboard,
+    ...[...starboard].reverse().map(([x, z]) => [-x, z]),
+  ];
+  const sheer = (z) => Math.pow(Math.abs(z / (length * 0.5)), 2.7) * 0.34;
+  const widthAt = (z) => {
+    for (let i = 1; i < starboard.length; i++)
+      if (z <= starboard[i][1]) {
+        const [ax, az] = starboard[i - 1],
+          [bx, bz] = starboard[i];
+        return THREE.MathUtils.lerp(
+          ax,
+          bx,
+          THREE.MathUtils.clamp((z - az) / (bz - az), 0, 1),
+        );
+      }
+    return starboard.at(-1)[0];
+  };
   function hullBand(low, high, loScale, hiScale, mat) {
     const positions = [],
-      uvs = [];
-    for (let i = 0; i < outline.length; i++) {
-      const a = outline[i],
-        b = outline[(i + 1) % outline.length];
-      const point = (p, scale, y) => [
-        p[0] * scale,
-        y + sheer(p[1]),
-        p[1] * (0.87 + scale * 0.13),
-      ];
-      const aa = point(a, loScale, low),
-        ab = point(a, hiScale, high),
-        ba = point(b, loScale, low),
-        bb = point(b, hiScale, high);
-      for (const p of [aa, ab, ba, ab, bb, ba]) {
-        positions.push(...p);
-        uvs.push(p[1] * 4.0, p[2] * 0.32);
+      uvs = [],
+      indices = [];
+    for (let i = 0; i <= outline.length; i++) {
+      const p = outline[i % outline.length];
+      for (const [scale, y] of [
+        [loScale, low],
+        [hiScale, high],
+      ]) {
+        const x = p[0] * scale,
+          z = p[1] * (0.87 + scale * 0.13);
+        positions.push(x, y + sheer(p[1]), z);
+        uvs.push(y * 4, z * 0.32);
+      }
+      if (i < outline.length) {
+        const a = i * 2;
+        indices.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
       }
     }
     const geo = new THREE.BufferGeometry();
@@ -181,15 +156,50 @@ export function createSailingShip(profile) {
       new THREE.Float32BufferAttribute(positions, 3),
     );
     geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geo.setIndex(indices);
     geo.computeVertexNormals();
     mesh(geo, mat);
   }
-  hullBand(-0.92, 0.08, 0.48, 0.88, darkWood);
-  hullBand(0.08, deckY, 0.88, 1, hullWood);
-  hullBand(deckY - 0.17, deckY - 0.045, 0.993, 1.002, paint);
-  hullBand(deckY - 0.03, deckY + 0.07, 1.003, 1.006, trim);
-  hullBand(0.17, 0.22, 0.895, 0.907, trim);
-  function deck(points, y, mat = deckWood) {
+  hullBand(-0.92, -0.3, 0.48, 0.75, darkWood);
+  hullBand(-0.3, 0.08, 0.75, 0.88, darkWood);
+  hullBand(0.08, deckY, 0.88, 1, darkWood);
+  const strakes = galleon ? 8 : 6;
+  for (let i = 0; i < strakes; i++) {
+    const lo = 0.08 + ((deckY - 0.08) * i) / strakes,
+      hi = 0.08 + ((deckY - 0.08) * (i + 1)) / strakes;
+    const mat =
+      (!galleon && i > 0 && i < strakes - 1) || (galleon && i >= strakes - 2)
+        ? paint
+        : hullWood;
+    hullBand(
+      lo + 0.007,
+      hi - 0.006,
+      0.883 + (i / strakes) * 0.12,
+      0.883 + ((i + 1) / strakes) * 0.12,
+      mat,
+    );
+  }
+  hullBand(deckY - 0.115, deckY - 0.07, 1.006, 1.008, trim);
+  hullBand(deckY - 0.03, deckY + 0.07, 1.008, 1.011, galleon ? timber : ivory);
+  hullBand(0.17, 0.21, 0.9, 0.907, trim);
+  // Clip real planks to their deck outline, including staggered butt joints.
+  function clipPolygon(points, axis, bound, above) {
+    const output = [];
+    for (let i = 0; i < points.length; i++) {
+      const a = points[i],
+        b = points[(i + 1) % points.length];
+      const insideA = above ? a[axis] >= bound : a[axis] <= bound,
+        insideB = above ? b[axis] >= bound : b[axis] <= bound;
+      if (insideA) output.push(a);
+      if (insideA !== insideB) {
+        const t = (bound - a[axis]) / (b[axis] - a[axis]);
+        output.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+      }
+    }
+    return output;
+  }
+  function deckSurface(points, y, mat, curved = false) {
+    if (points.length < 3) return;
     const shape = new THREE.Shape(
       points.map(([x, z]) => new THREE.Vector2(x, -z)),
     );
@@ -197,11 +207,44 @@ export function createSailingShip(profile) {
     geo.rotateX(-Math.PI / 2);
     const pos = geo.attributes.position,
       uv = geo.attributes.uv;
-    for (let i = 0; i < pos.count; i++)
-      uv.setXY(i, pos.getX(i) * 4.8, pos.getZ(i) * 0.48);
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i),
+        z = pos.getZ(i);
+      pos.setY(
+        i,
+        curved
+          ? sheer(z) + 0.025 * (1 - Math.min(1, (x / (beam * 0.5)) ** 2))
+          : 0,
+      );
+      uv.setXY(i, x * 4.8, z * 0.48);
+    }
+    geo.computeVertexNormals();
     mesh(geo, mat, 0, y, 0);
   }
-  deck(outline, deckY + 0.02);
+  function deck(points, y, mat = deckWood, curved = false) {
+    deckSurface(points, y - 0.006, darkWood, curved);
+    const minX = Math.min(...points.map((p) => p[0])),
+      maxX = Math.max(...points.map((p) => p[0]));
+    const minZ = Math.min(...points.map((p) => p[1])),
+      maxZ = Math.max(...points.map((p) => p[1]));
+    const spacing = 0.208;
+    for (
+      let x = Math.floor(minX / spacing) * spacing, index = 0;
+      x < maxX;
+      x += spacing, index++
+    ) {
+      let strip = clipPolygon(points, 0, x + 0.004, true);
+      strip = clipPolygon(strip, 0, x + spacing - 0.004, false);
+      if (strip.length < 3) continue;
+      const offset = (index % 3) * 0.84;
+      for (let z = minZ - 2.52 + offset; z < maxZ; z += 2.52) {
+        let plank = clipPolygon(strip, 1, z + 0.006, true);
+        plank = clipPolygon(plank, 1, z + 2.512, false);
+        deckSurface(plank, y, mat, curved);
+      }
+    }
+  }
+  deck(outline, deckY + 0.025, deckWood, true);
   // Bulwark rail follows the actual contour. Open tops preserve the view over the bow.
   for (let i = 0; i < outline.length; i++) {
     const a = outline[i],
@@ -213,12 +256,13 @@ export function createSailingShip(profile) {
       0.055,
       timber,
     );
-    rod(
-      [a[0], deckY + 0.11 + sheer(a[1]), a[1]],
-      [a[0], high + sheer(a[1]), a[1]],
-      0.043,
-      paint,
-    );
+    if (i % 4 === 0 || i === 40 || i === 41)
+      rod(
+        [a[0], deckY + 0.11 + sheer(a[1]), a[1]],
+        [a[0], high + sheer(a[1]), a[1]],
+        0.043,
+        paint,
+      );
   }
   // Keel, rudder and a long stayed bowsprit are characteristic silhouettes.
   box(0.18, 0.82, length * 0.74, darkWood, 0, -0.67, 0.2);
@@ -240,25 +284,54 @@ export function createSailingShip(profile) {
   const aftStart = length * (galleon ? 0.23 : 0.24),
     aftEnd = length * 0.485;
   const aftWidth = beam * (galleon ? 0.8 : 0.73);
-  rounded(
-    aftWidth,
-    quarterY - deckY,
-    aftEnd - aftStart,
-    hullWood,
-    0,
-    (quarterY + deckY) / 2,
-    (aftStart + aftEnd) / 2,
-    0.04,
-  );
-  deck(
-    [
-      [-aftWidth / 2, aftStart],
-      [aftWidth / 2, aftStart],
-      [aftWidth * 0.43, aftEnd],
-      [-aftWidth * 0.43, aftEnd],
-    ],
-    quarterY + 0.015,
-  );
+  const aftOutline = [
+    [-aftWidth * 0.5, aftStart],
+    [-aftWidth * 0.495, aftStart + (aftEnd - aftStart) * 0.45],
+    [-aftWidth * 0.44, aftEnd - 0.1],
+    [-aftWidth * 0.25, aftEnd + 0.015],
+    [0, aftEnd + 0.065],
+    [aftWidth * 0.25, aftEnd + 0.015],
+    [aftWidth * 0.44, aftEnd - 0.1],
+    [aftWidth * 0.495, aftStart + (aftEnd - aftStart) * 0.45],
+    [aftWidth * 0.5, aftStart],
+  ];
+  function raisedBody(points, low, high, mat) {
+    const pos = [],
+      uv = [];
+    for (let i = 0; i < points.length; i++) {
+      const a = points[i],
+        b = points[(i + 1) % points.length];
+      for (const [p, y, s] of [
+        [a, low, 0.98],
+        [b, low, 0.98],
+        [a, high, 1],
+        [a, high, 1],
+        [b, low, 0.98],
+        [b, high, 1],
+      ]) {
+        pos.push(p[0] * s, y, p[1]);
+        uv.push(y * 4, p[1] * 0.32);
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+    geo.computeVertexNormals();
+    mesh(geo, mat);
+  }
+  raisedBody(aftOutline, deckY, quarterY, galleon ? paint : hullWood);
+  deck(aftOutline, quarterY + 0.015);
+  for (let i = 0; i < aftOutline.length - 1; i++) {
+    const a = aftOutline[i],
+      b = aftOutline[i + 1];
+    for (const y of [deckY + 0.12, quarterY - 0.11, quarterY + 0.04])
+      rod(
+        [a[0], y, a[1]],
+        [b[0], y, b[1]],
+        y === quarterY - 0.11 ? 0.02 : 0.036,
+        y === quarterY - 0.11 ? trim : timber,
+      );
+  }
   const steps = galleon ? 6 : 3;
   for (let i = 0; i < steps; i++)
     box(
@@ -297,26 +370,87 @@ export function createSailingShip(profile) {
       trim,
     );
   if (galleon) {
-    for (let i = -2; i <= 2; i++) {
-      rounded(
-        0.45,
-        0.64,
-        0.07,
+    function archedWindow(x, y, z, width, height, angle = 0) {
+      const arch = (w, h) => {
+        const shape = new THREE.Shape();
+        shape.moveTo(-w / 2, -h / 2);
+        shape.lineTo(w / 2, -h / 2);
+        shape.lineTo(w / 2, h * 0.19);
+        shape.quadraticCurveTo(w / 2, h * 0.5, 0, h * 0.5);
+        shape.quadraticCurveTo(-w / 2, h * 0.5, -w / 2, h * 0.19);
+        shape.closePath();
+        return shape;
+      };
+      const outer = arch(width, height),
+        hole = arch(width - 0.085, height - 0.085);
+      outer.holes.push(new THREE.Path(hole.getPoints(12)));
+      const frame = mesh(
+        new THREE.ExtrudeGeometry(outer, {
+          depth: 0.028,
+          bevelEnabled: true,
+          bevelSize: 0.008,
+          bevelThickness: 0.008,
+          bevelSegments: 1,
+          steps: 1,
+          curveSegments: 10,
+        }),
         trim,
-        i * 0.57,
-        quarterY - 0.56,
-        aftEnd + 0.025,
-        0.02,
+        x,
+        y,
+        z,
       );
-      box(0.34, 0.5, 0.083, glass, i * 0.57, quarterY - 0.56, aftEnd + 0.05);
-      box(0.024, 0.52, 0.09, trim, i * 0.57, quarterY - 0.56, aftEnd + 0.06);
-      box(0.35, 0.023, 0.09, trim, i * 0.57, quarterY - 0.55, aftEnd + 0.06);
+      frame.rotation.y = angle;
+      const pane = mesh(
+        new THREE.ShapeGeometry(arch(width - 0.055, height - 0.055)),
+        glass,
+        x,
+        y,
+        z + 0.003,
+      );
+      pane.rotation.y = angle;
+      const pt = (px, py) => [
+        x + Math.cos(angle) * px,
+        y + py,
+        z - Math.sin(angle) * px + 0.039,
+      ];
+      rod(pt(0, -height * 0.45), pt(0, height * 0.43), 0.011, timber);
+      rod(
+        pt(-width * 0.43, -height * 0.03),
+        pt(width * 0.43, -height * 0.03),
+        0.012,
+        timber,
+      );
     }
+    for (let i = -2; i <= 2; i++) {
+      const x = i * 0.57,
+        t = x / (aftWidth * 0.44),
+        z = aftEnd + 0.075 - 0.13 * t * t;
+      archedWindow(x, quarterY - 0.57, z, 0.46, 0.74, t * 0.12);
+      rod(
+        [x - 0.24, quarterY - 0.99, z],
+        [x + 0.24, quarterY - 0.99, z],
+        0.034,
+        timber,
+      );
+      // Carved gallery bracket joins the projected frame to the hull below it.
+      rod(
+        [x, quarterY - 1.06, z - 0.08],
+        [x, quarterY - 0.96, z + 0.05],
+        0.055,
+        trim,
+      );
+    }
+    for (const side of [-1, 1])
+      for (let i = 0; i < 2; i++) {
+        const z = aftEnd - 0.7 - i * 0.72,
+          x = side * (aftWidth * 0.46);
+        archedWindow(x, quarterY - 0.56, z, 0.42, 0.67, (side * Math.PI) / 2);
+      }
     // Closed gunport shutters and wale bands are architectural details only.
     for (const side of [-1, 1])
       for (let i = 0; i < 5; i++) {
         const z = -4.9 + i * 2.0,
-          x = side * beam * (0.42 + 0.055 * Math.sin((i / 4) * Math.PI));
+          x = side * widthAt(z) * (0.88 + (0.88 / deckY) * 0.12 + 0.009);
         box(0.055, 0.39, 0.53, paint, x, 0.88, z);
         rod(
           [x + side * 0.03, 1.1, z - 0.3],
@@ -349,6 +483,31 @@ export function createSailingShip(profile) {
   } else {
     rounded(2.16, 0.72, 2.35, paint, 0, deckY + 0.36, 0.8, 0.08);
     rounded(2.34, 0.12, 2.5, deckWood, 0, deckY + 0.77, 0.8, 0.06);
+    for (const side of [-1, 1]) {
+      rod(
+        [side * 1.08, deckY + 0.08, -0.38],
+        [side * 1.08, deckY + 0.08, 1.98],
+        0.024,
+        ivory,
+      );
+      rod(
+        [side * 1.08, deckY + 0.66, -0.38],
+        [side * 1.08, deckY + 0.66, 1.98],
+        0.026,
+        ivory,
+      );
+      for (const z of [-0.35, 1.97])
+        rod(
+          [side * 1.08, deckY + 0.08, z],
+          [side * 1.08, deckY + 0.67, z],
+          0.023,
+          timber,
+        );
+    }
+    rounded(0.76, 0.08, 0.96, timber, 0, deckY + 0.87, 0.7, 0.03);
+    rounded(0.62, 0.027, 0.82, glass, 0, deckY + 0.919, 0.7, 0.012);
+    for (const z of [0.44, 0.7, 0.96])
+      box(0.64, 0.031, 0.015, trim, 0, deckY + 0.937, z);
     for (const side of [-1, 1])
       for (let i = 0; i < 3; i++) {
         const port = mesh(
@@ -373,6 +532,19 @@ export function createSailingShip(profile) {
       box(0.025, 0.54, 0.075, trim, x, deckY + 0.3, 2.025);
   }
 
+  function curvedLine(points, r, mat) {
+    if (points[0].distanceToSquared(points.at(-1)) < 1e-8) return;
+    mesh(
+      new THREE.TubeGeometry(
+        new THREE.CatmullRomCurve3(points),
+        Math.max(8, points.length * 2),
+        r,
+        5,
+        false,
+      ),
+      mat,
+    );
+  }
   function sailQuad(
     topLeft,
     topRight,
@@ -381,30 +553,38 @@ export function createSailingShip(profile) {
     billow = 0.55,
     square = false,
   ) {
-    const positions = [],
-      uvs = [],
-      colors = [],
-      indices = [],
-      nx = 18,
-      ny = 12;
     const tl = new THREE.Vector3(...topLeft),
       tr = new THREE.Vector3(...topRight),
       bl = new THREE.Vector3(...bottomLeft),
       br = new THREE.Vector3(...bottomRight);
+    const normal = new THREE.Vector3(square ? 0 : -1, 0, square ? 1 : 0);
+    function point(u, v, offset = 0) {
+      const p = tl.clone().lerp(tr, u).lerp(bl.clone().lerp(br, u), v);
+      const puff = Math.sin(u * Math.PI) * Math.sin(v * Math.PI);
+      const tension =
+        Math.sin(u * 31 + v * 8) *
+        0.022 *
+        Math.sin(v * Math.PI) *
+        Math.pow(Math.abs(u - 0.5) * 2, 3);
+      p.addScaledVector(normal, puff * billow + tension + offset);
+      if (square) p.y -= Math.sin(u * Math.PI) * v * 0.19;
+      return p;
+    }
+    const positions = [],
+      uvs = [],
+      colors = [],
+      indices = [],
+      nx = 24,
+      ny = 20;
     for (let y = 0; y <= ny; y++)
       for (let x = 0; x <= nx; x++) {
         const u = x / nx,
-          v = y / ny;
-        const p = tl.clone().lerp(tr, u).lerp(bl.clone().lerp(br, u), v);
-        const puff = Math.sin(u * Math.PI) * Math.sin(v * Math.PI);
-        if (square) {
-          p.z += puff * billow;
-          p.y -= Math.sin(u * Math.PI) * v * 0.19;
-        } else p.x -= puff * billow;
+          v = y / ny,
+          p = point(u, v);
         positions.push(...p);
         uvs.push(u * 6, v * 1.4);
         const tone =
-          0.9 + Math.sin(u * Math.PI) * 0.07 - Math.pow(v, 5) * 0.035;
+          0.91 + Math.sin(u * Math.PI) * 0.07 - Math.pow(v, 5) * 0.035;
         colors.push(tone, tone, tone);
         if (x < nx && y < ny) {
           const i = y * (nx + 1) + x;
@@ -421,13 +601,79 @@ export function createSailingShip(profile) {
     geo.setIndex(indices);
     geo.computeVertexNormals();
     mesh(geo, canvas);
-    for (const [a, b] of [
-      [topLeft, topRight],
-      [topLeft, bottomLeft],
-      [topRight, bottomRight],
-      [bottomLeft, bottomRight],
+    const line = (fn) => Array.from({ length: 21 }, (_, i) => fn(i / 20));
+    for (const boundary of [
+      (t) => point(t, 0),
+      (t) => point(t, 1),
+      (t) => point(0, t),
+      (t) => point(1, t),
     ])
-      rod(a, b, 0.014, rope);
+      curvedLine(line(boundary), 0.015, rope);
+    for (let seam = 1; seam < 7; seam++)
+      curvedLine(
+        line((v) => point(seam / 7, v, 0.006)),
+        0.0055,
+        sailSeam,
+      );
+    for (const v of [0.72, 0.82]) {
+      const pos = [],
+        uv = [];
+      for (let i = 0; i < 24; i++) {
+        const u = i / 24,
+          b = (i + 1) / 24;
+        for (const [a, c] of [
+          [u, v - 0.004],
+          [b, v - 0.004],
+          [u, v + 0.004],
+          [u, v + 0.004],
+          [b, v - 0.004],
+          [b, v + 0.004],
+        ]) {
+          pos.push(...point(a, c, 0.009));
+          uv.push(a * 6, c * 1.4);
+        }
+      }
+      const band = new THREE.BufferGeometry();
+      band.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      band.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      band.computeVertexNormals();
+      mesh(band, sailPatch);
+    }
+    for (let i = 1; i < 7; i++) {
+      const a = point(i / 7, 0.82, 0.019),
+        b = a
+          .clone()
+          .add(
+            new THREE.Vector3(
+              square ? 0.025 : -0.025,
+              -0.14,
+              square ? 0.05 : 0,
+            ),
+          );
+      rod(a.toArray(), b.toArray(), 0.007, rope);
+    }
+    for (const [u, v, du, dv] of [
+      [0, 0, 0.11, 0.12],
+      [1, 0, -0.11, 0.12],
+      [0, 1, 0.11, -0.12],
+      [1, 1, -0.11, -0.12],
+    ]) {
+      const pos = [
+        ...point(u, v, 0.01),
+        ...point(u + du, v, 0.01),
+        ...point(u, v + dv, 0.01),
+      ];
+      const patch = new THREE.BufferGeometry();
+      patch.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      patch.setAttribute(
+        'uv',
+        new THREE.Float32BufferAttribute([0, 0, 1, 0, 0, 1], 2),
+      );
+      patch.computeVertexNormals();
+      mesh(patch, sailPatch);
+      const corner = point(u, v);
+      sphere(corner.x, corner.y, corner.z, 0.028, 0.028, 0.028, rope);
+    }
   }
   function mast(z, height) {
     rod([0, deckY, z], [0, height, z], 0.145, timber, staticGroup, 0.073);
@@ -441,11 +687,95 @@ export function createSailingShip(profile) {
       );
       collar.rotation.x = Math.PI / 2;
     }
+    sphere(0, height + 0.014, z, 0.075, 0.035, 0.075, timber);
+    mesh(
+      new THREE.CylinderGeometry(0.23, 0.28, 0.13, 16),
+      timber,
+      0,
+      deckY + 0.08,
+      z,
+    );
+    for (const side of [-1, 1]) {
+      rounded(
+        0.8,
+        0.065,
+        0.16,
+        timber,
+        side * 0.68,
+        deckY + 0.69,
+        z + 0.47,
+        0.022,
+      );
+      for (const end of [-0.29, 0.29])
+        rod(
+          [side * 0.68 + end, deckY + 0.1, z + 0.47],
+          [side * 0.68 + end, deckY + 0.69, z + 0.47],
+          0.028,
+          timber,
+        );
+      for (let i = 0; i < 5; i++) {
+        const x = side * 0.68 + (i - 2) * 0.13;
+        rod(
+          [x, deckY + 0.6, z + 0.47],
+          [x, deckY + 0.83, z + 0.47],
+          0.012,
+          timber,
+        );
+        sphere(x, deckY + 0.83, z + 0.47, 0.018, 0.026, 0.018, timber);
+      }
+      rod(
+        [0, height * 0.45, z + 0.07],
+        [side * 0.68, deckY + 0.77, z + 0.47],
+        0.012,
+        rope,
+      );
+    }
     // Paired shrouds and sparse ratlines imply working rigging without a wire cage.
     for (const side of [-1, 1]) {
       const top = [side * 0.055, height * 0.79, z],
         a = [side * beam * 0.46, deckY + 0.35, z + 0.35],
         b = [side * beam * 0.43, deckY + 0.35, z + 1.35];
+      for (const anchor of [a, b]) {
+        const [x, y, az] = anchor;
+        const deadeye = mesh(
+          new THREE.CylinderGeometry(0.1, 0.1, 0.052, 14),
+          timber,
+          x,
+          y,
+          az,
+        );
+        deadeye.rotation.z = Math.PI / 2;
+        const lower = mesh(
+          new THREE.CylinderGeometry(0.088, 0.088, 0.052, 14),
+          timber,
+          x,
+          y - 0.24,
+          az,
+        );
+        lower.rotation.z = Math.PI / 2;
+        rod([x, y - 0.31, az], [x * 0.985, deckY - 0.13, az], 0.019, iron);
+        for (const d of [-0.049, 0, 0.049])
+          rod(
+            [x + side * 0.04, y - 0.035, az + d],
+            [x + side * 0.04, y - 0.205, az + d * 0.9],
+            0.01,
+            rope,
+          );
+        for (const [oy, oz] of [
+          [-0.035, -0.038],
+          [-0.035, 0.038],
+          [0.04, 0],
+        ])
+          sphere(
+            x + side * 0.03,
+            y + oy,
+            az + oz,
+            0.01,
+            0.015,
+            0.015,
+            darkWood,
+          );
+      }
       rod(top, a, 0.016, rope);
       rod(top, b, 0.016, rope);
       for (let i = 1; i < 15; i++) {
@@ -675,202 +1005,6 @@ export function createSailingShip(profile) {
     ).rotation.y = Math.PI / 4;
   }
 
-  // Full-size eight-spoke wooden wheel with projecting turned handles.
-  rounded(0.54, 0.82, 0.43, timber, helmX, quarterY + 0.43, helmZ - 0.18, 0.04);
-  rod(
-    [helmX, quarterY + 1.03, helmZ - 0.38],
-    [helmX, quarterY + 1.03, helmZ],
-    0.1,
-    trim,
-  );
-  mesh(new THREE.TorusGeometry(0.51, 0.044, 9, 48), wheelWood, 0, 0, 0, wheel);
-  mesh(new THREE.TorusGeometry(0.514, 0.01, 5, 40), trim, 0, 0, 0.035, wheel);
-  for (let i = 0; i < 8; i++) {
-    const a = (i / 8) * Math.PI * 2,
-      c = Math.cos(a),
-      s = Math.sin(a);
-    rod(
-      [c * 0.13, s * 0.13, 0],
-      [c * 0.69, s * 0.69, 0],
-      0.024,
-      wheelWood,
-      wheel,
-    );
-    sphere(c * 0.675, s * 0.675, 0, 0.036, 0.036, 0.036, wheelWood, wheel);
-    rod(
-      [c * 0.5, s * 0.5, -0.026],
-      [c * 0.5, s * 0.5, 0.027],
-      0.035,
-      trim,
-      wheel,
-    );
-  }
-  const hub = mesh(
-    new THREE.CylinderGeometry(0.146, 0.146, 0.1, 20),
-    wheelWood,
-    0,
-    0,
-    0.014,
-    wheel,
-  );
-  hub.rotation.x = Math.PI / 2;
-  mesh(new THREE.TorusGeometry(0.11, 0.012, 6, 24), trim, 0, 0, 0.071, wheel);
-  const pin = mesh(
-    new THREE.CylinderGeometry(0.037, 0.037, 0.025, 12),
-    trim,
-    0,
-    0,
-    0.077,
-    wheel,
-  );
-  pin.rotation.x = Math.PI / 2;
-  // Simple gimballed compass, deliberately mechanical rather than a dashboard.
-  mesh(
-    new THREE.CylinderGeometry(0.18, 0.23, 0.32, 12),
-    trim,
-    helmX - 0.68,
-    quarterY + 0.84,
-    helmZ - 0.25,
-  );
-  const compass = mesh(
-    new THREE.CircleGeometry(0.145, 24),
-    glass,
-    helmX - 0.68,
-    quarterY + 1.012,
-    helmZ - 0.25,
-  );
-  compass.rotation.x = -Math.PI / 2;
-  rod(
-    [helmX - 0.74, quarterY + 1.017, helmZ - 0.25],
-    [helmX - 0.62, quarterY + 1.017, helmZ - 0.25],
-    0.008,
-    trim,
-  );
-
-  // Standing captain: body hidden only from its own view, hands retained in both.
-  sphere(helmX, quarterY + 1.12, helmZ + 0.72, 0.23, 0.34, 0.17, coat, captain);
-  sphere(helmX, quarterY + 1.4, helmZ + 0.71, 0.25, 0.1, 0.17, shirt, captain);
-  rod(
-    [helmX, quarterY + 1.38, helmZ + 0.72],
-    [helmX, quarterY + 1.56, helmZ + 0.72],
-    0.07,
-    skin,
-    captain,
-  );
-  sphere(
-    helmX,
-    quarterY + 1.68,
-    helmZ + 0.68,
-    0.128,
-    0.163,
-    0.139,
-    skin,
-    captain,
-  );
-  sphere(
-    helmX,
-    quarterY + 1.8,
-    helmZ + 0.71,
-    0.142,
-    0.074,
-    0.146,
-    hair,
-    captain,
-  );
-  for (const sign of [-1, 1]) {
-    rod(
-      [helmX + sign * 0.105, quarterY + 0.9, helmZ + 0.72],
-      [helmX + sign * 0.13, quarterY + 0.1, helmZ + 0.78],
-      0.088,
-      coat,
-      captain,
-    );
-    rounded(
-      0.18,
-      0.13,
-      0.33,
-      darkWood,
-      helmX + sign * 0.13,
-      quarterY + 0.07,
-      helmZ + 0.69,
-      0.04,
-      captain,
-    );
-    const a = sign < 0 ? (Math.PI * 5) / 6 : Math.PI / 6;
-    const gx = Math.cos(a) * 0.51,
-      gy = Math.sin(a) * 0.51;
-    const palm = sphere(gx, gy, 0.05, 0.041, 0.054, 0.031, skin, grips);
-    palm.rotation.z = a - Math.PI / 2;
-    sphere(gx, gy - 0.041, 0.058, 0.032, 0.041, 0.026, skin, grips);
-    for (let finger = 0; finger < 4; finger++) {
-      const offset = (finger - 1.5) * 0.022;
-      const curve = new THREE.CatmullRomCurve3(
-        [
-          [0.044, 0.045],
-          [0.024, 0.07],
-          [-0.031, 0.065],
-          [-0.049, 0.016],
-          [-0.022, -0.044],
-        ].map(
-          ([r, z]) =>
-            new THREE.Vector3(
-              gx + Math.cos(a) * r - Math.sin(a) * offset,
-              gy + Math.sin(a) * r + Math.cos(a) * offset,
-              z,
-            ),
-        ),
-      );
-      mesh(
-        new THREE.TubeGeometry(curve, 8, 0.01, 5, false),
-        skin,
-        0,
-        0,
-        0,
-        grips,
-      );
-    }
-    sphere(
-      gx - sign * 0.029,
-      gy - 0.022,
-      0.064,
-      0.019,
-      0.032,
-      0.025,
-      skin,
-      grips,
-    );
-    const upper = mesh(
-      new THREE.CylinderGeometry(0.048, 0.047, 1, 10),
-      shirt,
-      0,
-      0,
-      0,
-      arms,
-    );
-    const lower = mesh(
-      new THREE.CylinderGeometry(0.029, 0.038, 1, 10),
-      skin,
-      0,
-      0,
-      0,
-      arms,
-    );
-    const elbow = sphere(0, 0, 0, 0.049, 0.05, 0.047, shirt, arms);
-    armLinks.push({
-      sign,
-      upper,
-      lower,
-      elbow,
-      grip: new THREE.Vector3(gx, gy - 0.075, 0.06),
-      shoulder: new THREE.Vector3(
-        helmX + sign * 0.23,
-        quarterY + 1.39,
-        helmZ + 0.65,
-      ),
-      hand: new THREE.Vector3(),
-      bend: new THREE.Vector3(),
-    });
-  }
   function batch(parent) {
     const batches = new Map();
     for (const item of [...parent.children]) {
@@ -881,11 +1015,23 @@ export function createSailingShip(profile) {
         : item.geometry;
       const geo = own(source.clone().applyMatrix4(item.matrix));
       const keep = ['position', 'normal'];
-      if (item.material.map) keep.push('uv');
+      if (
+        item.material.map ||
+        item.material.bumpMap ||
+        item.material.roughnessMap ||
+        item.material.normalMap
+      )
+        keep.push('uv');
       if (item.material.vertexColors) keep.push('color');
       for (const key of Object.keys(geo.attributes))
         if (!keep.includes(key)) geo.deleteAttribute(key);
-      if (item.material.map && !geo.attributes.uv) {
+      if (
+        (item.material.map ||
+          item.material.bumpMap ||
+          item.material.roughnessMap ||
+          item.material.normalMap) &&
+        !geo.attributes.uv
+      ) {
         const pos = geo.attributes.position,
           uv = [];
         for (let i = 0; i < pos.count; i++) uv.push(pos.getX(i), pos.getZ(i));
@@ -899,49 +1045,22 @@ export function createSailingShip(profile) {
       mesh(mergeGeometries(geometries), mat, 0, 0, 0, parent);
   }
   batch(staticGroup);
-  batch(wheel);
-  batch(grips);
-  batch(captain);
-  function fit(item, a, b) {
-    delta.copy(b).sub(a);
-    item.position.copy(a).add(b).multiplyScalar(0.5);
-    item.scale.y = delta.length();
-    item.quaternion.setFromUnitVectors(up, delta.normalize());
-  }
-  function update(dt, steer) {
-    wheelAngle += (steer * 2.05 - wheelAngle) * (1 - Math.exp(-dt * 8));
-    wheel.rotation.z = -wheelAngle;
-    grips.rotation.z = -Math.tanh(wheelAngle * 0.6) * 0.22;
-    grips.updateMatrix();
-    wheelMount.updateMatrix();
-    for (const arm of armLinks) {
-      arm.hand
-        .copy(arm.grip)
-        .applyMatrix4(grips.matrix)
-        .applyMatrix4(wheelMount.matrix);
-      arm.bend.copy(arm.shoulder).lerp(arm.hand, 0.5);
-      arm.bend.x += arm.sign * 0.09;
-      arm.bend.y = quarterY + 1.02;
-      arm.bend.z += 0.09;
-      fit(arm.upper, arm.shoulder, arm.bend);
-      fit(arm.lower, arm.bend, arm.hand);
-      arm.elbow.position.copy(arm.bend);
-    }
-    return wheelAngle;
-  }
-  update(0, 0);
+  const helm = createShipHelm({
+    profile,
+    helmX,
+    helmZ,
+    quarterY,
+    own,
+    materials,
+  });
+  group.add(helm.group);
   return {
     group,
-    eye: new THREE.Vector3(helmX, quarterY + 1.76, helmZ + 1.23),
-    target: new THREE.Vector3(helmX, quarterY - 0.2, helmZ - 7.8),
-    update,
-    setCameraMode(mode) {
-      captain.visible = mode !== 'captain';
-    },
-    reset() {
-      wheelAngle = 0;
-      update(0, 0);
-    },
+    eye: helm.eye,
+    target: helm.target,
+    update: (dt, steer) => helm.update(dt, steer),
+    setCameraMode: (mode) => helm.setCameraMode(mode),
+    reset: () => helm.reset(),
     dispose() {
       if (disposed) return;
       disposed = true;

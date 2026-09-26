@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { createSailingShip } from './SailingShipModel.js';
+import { createShipShadow } from './ShipShadow.js';
 
 /** Vessel appearance and wake only; rules, movement, renderer and camera stay separate. */
 export function createBoatView(boat, rules) {
@@ -19,7 +20,7 @@ export function createBoatView(boat, rules) {
     cameraMode: 'chase',
     wheelAngle: 0,
   };
-  let context, ship, wake, spray;
+  let context, ship, wake, spray, selfShadow;
   let disposed = false,
     lastX = boat.x,
     lastZ = boat.z;
@@ -47,6 +48,7 @@ export function createBoatView(boat, rules) {
     ship?.dispose();
     ship = createSailingShip(profile);
     root.add(ship.group);
+    selfShadow?.attach();
     ship.setCameraMode(stats.cameraMode);
     Object.assign(stats, {
       vesselId: profile.id,
@@ -348,6 +350,14 @@ export function createBoatView(boat, rules) {
       selectVessel();
       buildWake();
       ctx.scene.add(root);
+      if (ctx.renderer) {
+        selfShadow = createShipShadow(
+          ctx.renderer,
+          root,
+          ctx.definition.environment.sun.position,
+        );
+        selfShadow.attach();
+      }
     },
     update(dt) {
       if (disposed) return;
@@ -382,6 +392,7 @@ export function createBoatView(boat, rules) {
         roll + Math.sin(visualTime * 0.81) * 0.011,
         'YXZ',
       );
+      selfShadow?.render(boat.vessel);
       updateWake(running ? dt : 0, speed);
       lastX = boat.x;
       lastZ = boat.z;
@@ -391,6 +402,7 @@ export function createBoatView(boat, rules) {
     dispose() {
       if (disposed) return;
       disposed = true;
+      selfShadow?.dispose();
       ship?.dispose();
       context?.scene.remove(root);
       if (wake) context?.scene.remove(wake);

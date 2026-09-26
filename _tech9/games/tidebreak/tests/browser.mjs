@@ -120,6 +120,12 @@ try {
             .getAttribute('aria-pressed')) === 'true',
       );
       await capture(`${vesselId}-selection`);
+      await page.screenshot({
+        path: path.join(output, `${vesselId}-portrait.png`),
+        style: '#app-ui { visibility: hidden !important; }',
+        clip: { x: 535, y: 115, width: 820, height: 820 },
+      });
+      report.captures.push(`${vesselId}-portrait`);
       await page.getByRole('button', { name: 'Cast off' }).click();
       check(
         'ship choices are hidden during a lap',

@@ -118,6 +118,7 @@ export async function openScene({
   width = 1600,
   height = 1000,
   timeout = 120000,
+  recordVideoDir,
 } = {}) {
   const server = await startServer(mode);
   let browser;
@@ -130,6 +131,9 @@ export async function openScene({
     const page = await browser.newPage({
       viewport: { width, height },
       deviceScaleFactor: 1,
+      ...(recordVideoDir
+        ? { recordVideo: { dir: recordVideoDir, size: { width, height } } }
+        : {}),
     });
     // Evidence must represent one loaded revision even if another agent edits
     // source during the run. This forest has no application WebSocket traffic.

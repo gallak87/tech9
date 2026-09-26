@@ -2,6 +2,8 @@ import './style.css';
 import { SceneApp } from './core/SceneApp.js';
 import { forestDefinition } from './world/forestDefinition.js';
 import { DevPanel } from './ui/DevPanel.js';
+import { createForestWeather } from './world/ForestWeather.js';
+import { createForestWeatherSurface } from './world/weatherSurface.js';
 import { WalkingController } from './modules/grounded-walking/src/WalkingController.js';
 
 const loading = document.querySelector('#loading');
@@ -9,6 +11,7 @@ let app;
 let panel;
 let walking;
 let walkUI;
+let weather;
 
 /** Scene-owned demonstration UI; the reusable controller never creates a menu. */
 function mountWalking(app, root) {
@@ -103,7 +106,8 @@ try {
   const query = new URLSearchParams(location.search);
   const testMode = query.get('test') === '1';
   const walkMode = query.get('controller') === 'walk';
-  const definition = walkMode
+  const surface = createForestWeatherSurface();
+  const sceneDefinition = walkMode
     ? {
         ...forestDefinition,
         presentation: {
@@ -116,6 +120,25 @@ try {
         },
       }
     : forestDefinition;
+  const definition = {
+    ...sceneDefinition,
+    groundHeight: (x, z) =>
+      forestDefinition.groundHeight(x, z) +
+      (weather?.groundSnowDepth(x, z) ?? 0),
+    views: {
+      ...sceneDefinition.views,
+      weatherRock: {
+        hidden: true,
+        position: [-3.5, 2.1, 13.5],
+        target: [-5.8, 0.9, 10],
+      },
+      weatherShelter: {
+        hidden: true,
+        position: [-8.5, 1.9, 16.8],
+        target: [-3, 0.3, 12],
+      },
+    },
+  };
   app = new SceneApp(document.querySelector('#scene'), {
     definition,
     testMode,
@@ -129,6 +152,7 @@ try {
       },
       snapshot: () => ({
         ...app.snapshot(),
+        weather: weather?.stats,
         ...(walking
           ? {
               walking: {
@@ -145,8 +169,16 @@ try {
       }),
       setView: (name) => app.setView(name),
       setSettings: (patch) => app.setSettings(patch, false),
+      setWeather: (patch) => weather.configureWeather(patch),
+      cycleWeather: async () => {
+        app.unregister('forest-weather');
+        weather = createForestWeather(app, forest, surface);
+        await app.register(weather);
+      },
     };
-  await app.register(forestDefinition.createWorld());
+  const forest = await app.register(forestDefinition.createWorld());
+  weather = createForestWeather(app, forest, surface);
+  await app.register(weather);
   panel = new DevPanel(app, document.querySelector('#interface'));
   if (walkMode)
     walkUI = mountWalking(app, document.querySelector('#interface'));

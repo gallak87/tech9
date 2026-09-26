@@ -42,3 +42,18 @@ npm run verify:walking
 ```
 
 Browser commands use Playwright Chromium; install it with `npx playwright install chromium` when needed. `SCENE_PORT` selects a free port; `SCENE_URL` uses an existing server. Test hooks require `?test=1`. See [test commands](./tests/README.md) and the [performance roadmap](./ROADMAP.md).
+
+## Weather study
+
+The forest now consumes the reusable [weather module](../modules/weather/README.md). The left field panel selects Clear, Drizzle, Heavy rain, Clear winter and Snowfall. **Shape the weather** exposes independent rain, falling snow, settled snow, wetness, wind, wind direction and cloud controls. Stopping rain leaves slowly drying surfaces; stopping snowfall leaves settled snow. Sound starts muted and requires the Sound button. Pause freezes weather, and Reset returns dry clear conditions. Trail/Rock/Shelter compare exposed and covered surfaces without moving the scene. The ordinary fly/walking controls, view buttons and five renderer controls remain available; H hides both panels.
+
+For the dedicated weather worktree, use strict dev port 4500 and preview port 4501:
+
+```sh
+npm run dev -- --port 4500
+npm run build
+npm run preview -- --port 4501
+SCENE_PORT=4502 npm run verify:weather
+```
+
+Snow uses a thin surface layer capped at 6.5 cm; walking uses the corresponding terrain height allowance. Rock, log and tree-crown cover queries are scene-owned analytic approximations. Static vegetation shadows retain the original pose. Puddles use procedural sky-colored reflections without reflecting scene objects. The module README documents reuse and limits; `tests/weather-browser.mjs` exercises controls, lifecycle, mute, shelter, travel and recorded frame timing. Headless focus-loss verification dispatches the actual blur/focus lifecycle events because Chromium's headless window manager does not consistently blur background pages.

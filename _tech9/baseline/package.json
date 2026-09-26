@@ -16,7 +16,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:staged": "lint-staged --cwd .",
-    "verify:walking": "npm run build && node tests/walking-browser.mjs"
+    "verify:walking": "npm run build && node tests/walking-browser.mjs",
+    "verify:weather": "npm run build && node tests/weather-browser.mjs"
   },
   "lint-staged": {
     "*.{js,mjs}": [
@@ -49,7 +50,8 @@
   "tech9": {
     "modules": [
       "grounded-walking",
-      "placement-collisions"
+      "placement-collisions",
+      "weather"
     ]
   }
 }

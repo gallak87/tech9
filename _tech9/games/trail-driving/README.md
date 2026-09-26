@@ -90,3 +90,5 @@ The separate framework-dev phase extracted reusable behavior into canonical modu
 - [follow-camera](../../modules/follow-camera/README.md) 1.1.0: terrain/solid boom resolution applied around camera interpolation.
 
 The immutable fork receipts and the game's copied follow-camera 1.0.1 remain unchanged. Adoption of canonical modules in a future game is explicit; these are source copies rather than runtime framework dependencies.
+
+The final framework check at `76078046` passed **122 tests**, ESLint/formatting, canonical module builds and registry validation (nine total modules). This includes integration checks connecting all three neutral motion presets to wheel presentation and terrain/solid camera clearance. Independent extraction review found a public collision-sweep arithmetic edge case with opposite extremely large finite headings; endpoint normalization and a regression resolved it. Camera arithmetic overflow also fails explicitly. The reviewer rechecked the committed fixes and reported no unresolved findings. The accepted game and its recorded driving behavior are unchanged by these canonical module fixes.

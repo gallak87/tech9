@@ -20,6 +20,16 @@ export function createWeatherAudio() {
           last = (last + Math.random() * 0.04 - 0.02) / 1.02;
           data[i] = last * 3.5;
         }
+        // Meet at zero across the loop seam to avoid a periodic noise-buffer click.
+        const seam = Math.min(
+          Math.round(context.sampleRate * 0.008),
+          data.length / 2,
+        );
+        for (let i = 0; i < seam; i++) {
+          const gain = Math.sin((i / seam) * Math.PI * 0.5);
+          data[i] *= gain;
+          data[data.length - 1 - i] *= gain;
+        }
         source = context.createBufferSource();
         source.buffer = buffer;
         source.loop = true;
@@ -44,12 +54,12 @@ export function createWeatherAudio() {
       rain.gain.setTargetAtTime(
         silent ? 0 : state.rain * (0.035 + exposure * 0.09),
         context.currentTime,
-        0.15,
+        silent ? 0.04 : 0.15,
       );
       wind.gain.setTargetAtTime(
         silent ? 0 : state.wind * state.gust * (0.02 + exposure * 0.045),
         context.currentTime,
-        0.3,
+        silent ? 0.04 : 0.3,
       );
       filter.frequency.setTargetAtTime(
         300 + exposure * 1200,

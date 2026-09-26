@@ -25,6 +25,10 @@ export function createImpacts(scene, camera, query) {
     const phases = new Float32Array(capacity);
     for (let i = 0; i < capacity; i++) phases[i] = random(i + 90);
     geometry.setAttribute('phase', new InstancedBufferAttribute(phases, 1));
+    geometry.setAttribute(
+      'pooling',
+      new InstancedBufferAttribute(new Float32Array(capacity), 1),
+    );
     const uniforms = {
       time: { value: 0 },
       wet: { value: 0 },
@@ -43,10 +47,10 @@ export function createImpacts(scene, camera, query) {
             polygonOffset: true,
             polygonOffsetFactor: -2,
             polygonOffsetUnits: -2,
-            vertexShader: `attribute float phase; varying vec2 vUv; varying float vPhase; varying vec3 vPosition; void main(){ vUv=uv;vPhase=phase;vec4 world=modelMatrix*instanceMatrix*vec4(position,1.0);vPosition=world.xyz;gl_Position=projectionMatrix*viewMatrix*world; }`,
+            vertexShader: `attribute float pooling; varying float vPooling; attribute float phase; varying vec2 vUv; varying float vPhase; varying vec3 vPosition; void main(){ vUv=uv;vPhase=phase;vPooling=pooling;vec4 world=modelMatrix*instanceMatrix*vec4(position,1.0);vPosition=world.xyz;gl_Position=projectionMatrix*viewMatrix*world; }`,
             fragmentShader: `
         uniform float time;uniform float wet;uniform float rain;uniform float snow;uniform vec2 wind;
-        varying vec2 vUv;varying float vPhase;varying vec3 vPosition;
+        varying vec2 vUv;varying float vPhase;varying vec3 vPosition;varying float vPooling;
         float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         void main(){
           vec2 q=(vUv-0.5)*2.0;
@@ -55,7 +59,7 @@ export function createImpacts(scene, camera, query) {
           float cycle=fract(time*1.8+vPhase*13.0);
           float ripple=pow(max(0.0,1.0-abs(length(q)-cycle*0.92)*35.0),2.0)*(1.0-cycle);
           float impact=exp(-length(q)*13.0)*pow(1.0-cycle,9.0);
-          gl_FragColor=vec4(vec3(0.58,0.63,0.63),(ripple+impact*0.45)*surfaceMask*rain*0.62*(1.0-snow));
+          gl_FragColor=vec4(vec3(0.58,0.63,0.63),(ripple*mix(0.035,1.0,vPooling)*wet+impact*0.45)*surfaceMask*rain*0.62*(1.0-snow));
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,
@@ -75,6 +79,7 @@ export function createImpacts(scene, camera, query) {
       let count = 0;
       // World-anchored cells retain the same puddles when the viewer moves.
       const phases = e.geometry.getAttribute('phase');
+      const pooling = e.geometry.getAttribute('pooling');
       const cells = e.kind === 'puddles' ? 11 : 17;
       const step = e.kind === 'puddles' ? 3 : 1.8;
       const half = Math.floor(cells / 2);
@@ -108,9 +113,11 @@ export function createImpacts(scene, camera, query) {
         );
         scratch.updateMatrix();
         phases.setX(count, random(seed + 90));
+        pooling.setX(count, hit.puddle);
         e.mesh.setMatrixAt(count++, scratch.matrix);
       }
       phases.needsUpdate = true;
+      pooling.needsUpdate = true;
       e.mesh.count = count;
       e.mesh.instanceMatrix.needsUpdate = true;
     }

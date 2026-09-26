@@ -86,11 +86,12 @@ export function createForestWeather(app, forest, surface, features = {}) {
     const target = weather.stats.target;
     for (const input of panel.querySelectorAll('[data-weather]')) {
       const key = input.dataset.weather;
-      input.value = target[key];
+      const value = key === 'wetness' ? weather.condition.wetness : target[key];
+      input.value = value;
       panel.querySelector(`[data-value="${key}"]`).textContent =
         key === 'windDirection'
-          ? `${Math.round(target[key])}°`
-          : `${Math.round(target[key] * 100)}%`;
+          ? `${Math.round(value)}°`
+          : `${Math.round(value * 100)}%`;
     }
     for (const button of panel.querySelectorAll('[data-preset]'))
       button.setAttribute(
@@ -273,6 +274,12 @@ export function createForestWeather(app, forest, surface, features = {}) {
         const s = weather.condition,
           p = app.camera.position;
         const hit = surface.sampleSurface(p.x, p.z);
+        const wetnessControl = panel.querySelector('[data-weather="wetness"]');
+        if (document.activeElement !== wetnessControl) {
+          wetnessControl.value = s.wetness;
+          panel.querySelector('[data-value="wetness"]').textContent =
+            `${Math.round(s.wetness * 100)}%`;
+        }
         panel.querySelector('#weather-condition').textContent =
           `${WEATHER_PRESETS[preset]?.label ?? 'Custom'} · wet ${Math.round(s.wetness * 100)}%`;
         panel.querySelector('#weather-exposure').textContent =

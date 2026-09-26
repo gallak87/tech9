@@ -78,7 +78,7 @@ export function installWeatherMaterials(targets, field, state) {
         float weatherDeposit = smoothstep(0.23,0.8,weatherN.y) * weatherExposure * weatherRetention * weatherSnow * ${snow.toFixed(3)};
         // Thin, bounded accumulation. World-space lift remains valid for scaled instances.
         float weatherDepth = weatherDeposit * 0.065 * ${depth.toFixed(3)} * (0.75+weatherNoise(weatherWorld.xz*3.5)*0.25);
-        vec2 weatherBend = weatherWind * ${wind.toFixed(3)} * min(pow(max(position.y,0.0),1.4),5.0) * (0.055 + 0.018*sin(weatherTime*1.3+weatherWorld.x*0.7+weatherWorld.z*0.5));
+        vec2 weatherBend = weatherWind * ${wind.toFixed(3)} * min(pow(max(position.y,0.0),1.4),5.0) * (0.065 + 0.022*sin(weatherTime*1.3+weatherWorld.x*0.7+weatherWorld.z*0.5) + 0.008*sin(weatherTime*3.7+weatherWorld.x*1.9));
         vec3 weatherOffset = vec3(weatherBend.x,weatherDepth,weatherBend.y);
         #ifdef USE_INSTANCING
           transformed += inverse(mat3(modelMatrix)*mat3(instanceMatrix)) * weatherOffset;
@@ -112,7 +112,7 @@ export function installWeatherMaterials(targets, field, state) {
         float weatherCover = smoothstep(0.19,0.245,weatherAmount - (1.0-weatherSlope)*0.65 - weatherMacro*0.24 - weatherGrain*0.055);
         weatherCover *= weatherSlope;
         float weatherMoisture = weatherWet * mix(0.25,1.0,weatherExposure) * ${wet.toFixed(3)} * (0.84+weatherMacro*0.16) * (1.0-weatherWinter*(1.0-weatherRain)*0.65);
-        diffuseColor.rgb *= 1.0 - weatherMoisture * ${ground ? '0.2' : '0.28'};
+        diffuseColor.rgb *= 1.0 - weatherMoisture * ${ground ? '0.27' : '0.31'};
         // Seasonal vegetation retains texture and variety instead of becoming emissive green.
         float winterLuma = dot(diffuseColor.rgb,vec3(0.2126,0.7152,0.0722));
         diffuseColor.rgb = mix(diffuseColor.rgb, mix(diffuseColor.rgb,vec3(winterLuma*0.92,winterLuma*0.94,winterLuma*0.83),0.55),weatherWinter*${foliage.toFixed(1)});
@@ -120,7 +120,10 @@ export function installWeatherMaterials(targets, field, state) {
         snowColor *= 1.0-weatherMoisture*0.1;
         // Thin accumulation gets a darker granular boundary against exposed ground.
         snowColor *= mix(0.92,1.0,smoothstep(0.25,0.9,weatherCover));
-        diffuseColor.rgb = mix(diffuseColor.rgb,snowColor,weatherCover);
+        float weatherDust = weatherSnow * weatherExposure * ${ground.toFixed(1)} * (1.0-weatherCover) * smoothstep(0.35,0.75,weatherNoise(vWeatherPosition.xz*5.0)) * 0.23;
+        float weatherThaw = weatherSnow * weatherExposure * ${ground.toFixed(1)} * (1.0-weatherCover) * smoothstep(0.3,0.65,weatherRetention);
+        diffuseColor.rgb *= 1.0-weatherThaw*0.18;
+        diffuseColor.rgb = mix(diffuseColor.rgb,snowColor,weatherCover+weatherDust);
       `,
         )
         .replace(

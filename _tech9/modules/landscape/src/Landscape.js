@@ -9,15 +9,39 @@ export {
   defaultForestCover,
 } from './layout.js';
 export { AtmospherePass } from './AtmospherePass.js';
-export const LANDSCAPE_ASSET_URL = new URL(
-  '../assets/runtime/',
-  import.meta.url,
-);
+export const LANDSCAPE_ASSETS = Object.freeze({
+  'forest-kit.glb': new URL('../assets/runtime/forest-kit.glb', import.meta.url)
+    .href,
+  'textures/forest-floor-color.jpg': new URL(
+    '../assets/runtime/textures/forest-floor-color.jpg',
+    import.meta.url,
+  ).href,
+  'textures/forest-floor-normal.jpg': new URL(
+    '../assets/runtime/textures/forest-floor-normal.jpg',
+    import.meta.url,
+  ).href,
+  'textures/forest-floor-roughness.jpg': new URL(
+    '../assets/runtime/textures/forest-floor-roughness.jpg',
+    import.meta.url,
+  ).href,
+  'textures/path-color.jpg': new URL(
+    '../assets/runtime/textures/path-color.jpg',
+    import.meta.url,
+  ).href,
+  'textures/path-normal.jpg': new URL(
+    '../assets/runtime/textures/path-normal.jpg',
+    import.meta.url,
+  ).href,
+  'textures/path-roughness.jpg': new URL(
+    '../assets/runtime/textures/path-roughness.jpg',
+    import.meta.url,
+  ).href,
+});
 
 /** Loaded finite landscape layer. Renderer, frame loop and weather are caller-owned. */
 export function createLandscape({
   layout: createOptions = {},
-  assetURL = LANDSCAPE_ASSET_URL,
+  assetURL,
   windMode = 'local',
   manageFog = true,
   quality = 'high',
@@ -27,11 +51,12 @@ export function createLandscape({
   if (!['balanced', 'high', 'ultra'].includes(quality))
     throw new RangeError('Unknown landscape quality.');
   const layout = createLandscapeLayout(createOptions);
-  const rootURL = new URL(String(assetURL), import.meta.url);
+  const rootURL = assetURL ? new URL(String(assetURL), import.meta.url) : null;
   let context,
     render,
     kit,
-    disposed = false;
+    disposed = false,
+    initializing = false;
   const disposeKit = () => {
     if (!kit) return;
     const resources = new Set();
@@ -62,10 +87,13 @@ export function createLandscape({
       if (!value?.scene || !value?.renderer || !value?.camera)
         throw new TypeError('Landscape needs scene, renderer and camera.');
       context = value;
+      initializing = true;
       try {
         kit = (
           await new GLTFLoader().loadAsync(
-            new URL('forest-kit.glb', rootURL).href,
+            rootURL
+              ? new URL('forest-kit.glb', rootURL).href
+              : LANDSCAPE_ASSETS['forest-kit.glb'],
           )
         ).scene;
         if (disposed) {
@@ -76,7 +104,7 @@ export function createLandscape({
           { ...value, manageFog },
           kit,
           layout,
-          { assetURL: rootURL, windMode },
+          { assetURL: rootURL, assets: LANDSCAPE_ASSETS, windMode },
         );
         if (disposed) {
           built.dispose();
@@ -89,10 +117,17 @@ export function createLandscape({
       } catch (error) {
         layer.dispose();
         throw error;
+      } finally {
+        initializing = false;
+        if (disposed) disposeKit();
       }
     },
-    configure(settings) {
-      render?.configure(settings);
+    configure(settings = {}) {
+      if (settings.quality === undefined) return;
+      if (!['balanced', 'high', 'ultra'].includes(settings.quality))
+        throw new RangeError('Unknown landscape quality.');
+      quality = settings.quality;
+      render?.configure({ quality });
     },
     update(_dt, elapsed = 0) {
       if (!disposed && render) render.update(context.camera.position, elapsed);
@@ -111,7 +146,7 @@ export function createLandscape({
       if (disposed) return;
       disposed = true;
       render?.dispose();
-      disposeKit();
+      if (!initializing) disposeKit();
     },
   };
   return layer;

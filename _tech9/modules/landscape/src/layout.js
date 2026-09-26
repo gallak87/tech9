@@ -70,12 +70,27 @@ export function createLandscapeLayout({
     ['minZ', 'maxZ'],
   ])
     if (bounds[b] - bounds[a] < 64 || bounds[b] - bounds[a] > 4800)
-      throw new RangeError('Landscape dimensions must be64–4800 metres.');
+      throw new RangeError('Landscape dimensions must be 64–4800 metres.');
   if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff)
-    throw new RangeError('Seed must be an unsigned32-bit integer.');
+    throw new RangeError('Seed must be an unsigned 32-bit integer.');
   for (const fn of [groundHeight, forestCover, excludeDetail, mown])
     if (typeof fn !== 'function')
       throw new TypeError('Landscape queries must be functions.');
+  const heightQuery = groundHeight,
+    coverQuery = forestCover;
+  groundHeight = (x, z) => {
+    const height = heightQuery(x, z);
+    if (!Number.isFinite(height))
+      throw new TypeError('Ground height must be finite.');
+    return height;
+  };
+  forestCover = (x, z) => {
+    const cover = coverQuery(x, z);
+    if (!Number.isFinite(cover))
+      throw new TypeError('Forest cover must be finite.');
+    return clamp(cover, 0, 1);
+  };
+  groundHeight(bounds.minX, bounds.minZ);
   bounds = Object.freeze({ ...bounds });
   const path =
     trail === false ? null : Object.freeze({ ...DEFAULT_TRAIL, ...trail });
@@ -143,13 +158,21 @@ export function createLandscapeLayout({
   /** A camera window has constant capacity; tiles are reproducible in any order. */
   function detailTile(cx, cz) {
     const rng = randomSequence(
-      (Math.imul(cx, 73856093) ^ Math.imul(cz, 19349663) ^ 92151) >>> 0,
+      (Math.imul(cx, 73856093) ^ Math.imul(cz, 19349663) ^ seed ^ 92151) >>> 0,
     );
     const entries = [];
     for (let i = 0; i < 2200; i++) {
       const x = (cx + rng()) * 32,
         z = (cz + rng()) * 32;
-      if (excludeDetail(x, z) || trailDistance(x, z) < 1.4) continue;
+      if (
+        x < terrainBounds.minX ||
+        x > terrainBounds.maxX ||
+        z < terrainBounds.minZ ||
+        z > terrainBounds.maxZ ||
+        excludeDetail(x, z) ||
+        trailDistance(x, z) < 1.4
+      )
+        continue;
       const cover = forestCover(x, z);
       const trimmed = mown(x, z);
       const patch =

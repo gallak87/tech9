@@ -33,7 +33,7 @@
     },
     {
       "id": "weather",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "source": "modules/weather",
       "files": [
         {
@@ -42,7 +42,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "2bad7668e46f9be1f3c991e7b03c3139613d983364ab27f5f4921fd9fb62af68"
+          "sha256": "d60777dc5fc06f9523adf9ff5a8dca136dabbf53e9e54d01d3922d567742cf8a"
         },
         {
           "path": "src/Weather.js",
@@ -58,7 +58,7 @@
         },
         {
           "path": "src/materials.js",
-          "sha256": "ce383ece7a640e398b90bb033a09c9631aec175af77150a4c7ea411a4d1a2a28"
+          "sha256": "60317b2d36d1e7bf6288f7173a7846d536b538e183ab34775a30b0de463b2437"
         },
         {
           "path": "src/precipitation.js",

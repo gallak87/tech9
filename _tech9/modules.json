@@ -35,6 +35,14 @@
     },
     {
       "id": "weather",
+      "version": "1.1.0"
+    },
+    {
+      "id": "aircraft",
+      "version": "1.0.0"
+    },
+    {
+      "id": "landscape",
       "version": "1.0.0"
     }
   ]

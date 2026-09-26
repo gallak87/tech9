@@ -1,6 +1,6 @@
 # Flight / landscape extraction checkpoint
 
-Paused at the user's request for a committed stopping point on `codex/forest-flight`. **This is work in progress, not a completed framework-dev release.** The branch has not been merged into `g/scene-test`.
+Historical checkpoint at `8212bdba`; the user subsequently resumed this extraction. Implementation, running examples, weather integration and registry metadata are now present, and the full framework check passes (111 tests). Focused browser validation and final source review remain in progress. The branch has not been merged into `g/scene-test`.
 
 ## Completed at the checkpoint
 

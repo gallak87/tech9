@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createAircraft } from '../src/Aircraft.js';
+import { PerspectiveCamera } from 'three';
+import { FollowCamera } from '../../follow-camera/src/FollowCamera.js';
+import { createAircraft, createAircraftControls } from '../src/Aircraft.js';
 for (const profile of ['trainer', 'sport'])
   test(`${profile} model follows motion and provides a rolled cockpit pose`, () => {
     const a = createAircraft({
@@ -23,3 +25,44 @@ for (const profile of ['trainer', 'sport'])
     a.dispose();
     assert.equal(released, count);
   });
+
+test('mounted camera tracks inversion and controls toggle assistance without consuming form keys', () => {
+  const aircraft = createAircraft({
+    profile: 'sport',
+    spawn: { x: 0, z: 0, y: 400, heading: 0, roll: Math.PI, speed: 45 },
+  });
+  const camera = new PerspectiveCamera();
+  const follow = new FollowCamera(camera, {
+    getTarget: aircraft.snapshot,
+    mounted: { getPose: aircraft.getCockpitPose },
+  });
+  follow.setMode('mounted');
+  follow.update(0);
+  assert.ok(camera.up.y < -0.99);
+  const window = new EventTarget(),
+    document = new EventTarget();
+  const controls = createAircraftControls(aircraft, {
+    window,
+    document,
+    enabled: true,
+  });
+  const press = (code) => {
+    const event = new Event('keydown', { cancelable: true });
+    Object.assign(event, { code, repeat: false });
+    window.dispatchEvent(event);
+  };
+  press('KeyF');
+  assert.equal(aircraft.snapshot().stabilization, false);
+  document.activeElement = { tagName: 'INPUT' };
+  press('KeyF');
+  assert.equal(aircraft.snapshot().stabilization, false);
+  document.activeElement = null;
+  press('Space');
+  assert.equal(controls.sample().level, true);
+  window.dispatchEvent(new Event('blur'));
+  assert.equal(controls.enabled, false);
+  assert.equal(controls.sample().level, false);
+  controls.dispose();
+  follow.dispose();
+  aircraft.dispose();
+});

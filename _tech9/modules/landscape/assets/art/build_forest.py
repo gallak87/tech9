@@ -3,7 +3,7 @@
   python3 art/generate_needles.py
   blender --background --factory-startup --python art/build_forest.py
 
-All design choices are deterministic. Image sources are in public/assets/ASSETS.md.
+All design choices are deterministic. Image sources are in ../runtime/ASSETS.md.
 """
 import bpy
 import bmesh

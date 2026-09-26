@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Aircraft / landscape</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #26352d;
+        color: #f3f4eb;
+        font: 14px system-ui;
+      }
+      canvas {
+        display: block;
+      }
+      aside {
+        position: absolute;
+        left: 18px;
+        top: 18px;
+        background: #17251fde;
+        padding: 16px;
+        border-radius: 8px;
+        max-width: 560px;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 8px 0;
+      }
+      button {
+        padding: 6px 10px;
+        margin: 3px;
+        border: 1px solid #91a79b;
+        border-radius: 4px;
+        background: #344b40;
+        color: white;
+        cursor: pointer;
+      }
+      a {
+        color: #c2ebd4;
+      }
+      output {
+        display: block;
+        font-variant-numeric: tabular-nums;
+        margin-top: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <aside>
+      <h1>Aircraft / landscape</h1>
+      <p>
+        Arrows pitch / roll · W/S throttle · A/D rudder · F assistance · Space
+        recover · C camera · P pause
+      </p>
+      <div>
+        <button data-profile="trainer">Trainer</button
+        ><button data-profile="sport">Sport</button
+        ><button id="resume">Fly / resume</button
+        ><button id="cockpit">Cockpit / chase</button
+        ><button id="reset">Reset airborne</button>
+      </div>
+      <div>
+        <button data-weather="clear">Clear</button
+        ><button data-weather="rain">Rain</button
+        ><button data-weather="winter">Winter</button>
+      </div>
+      <output id="status">Loading forest assets…</output>
+      <p><a href="/modules/landscape/examples/">Landscape example</a></p>
+    </aside>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

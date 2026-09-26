@@ -28,3 +28,25 @@ test('relocated finite landscape has deterministic local cover and caller-owned 
     }),
   );
 });
+
+test('seed changes local detail, invalid callback output fails early, and finite terrain stops detail', () => {
+  const options = {
+    bounds: { minX: 100, maxX: 300, minZ: -800, maxZ: 400 },
+    trail: false,
+  };
+  const a = createLandscapeLayout({ ...options, seed: 1 }),
+    b = createLandscapeLayout({ ...options, seed: 2 });
+  assert.notDeepEqual(a.detailTile(5, 0), b.detailTile(5, 0));
+  assert.equal(a.detailTile(1000, 1000).length, 0);
+  assert.throws(
+    () => createLandscapeLayout({ ...options, groundHeight: () => NaN }),
+    /finite/,
+  );
+  assert.throws(
+    () => createLandscapeLayout({ ...options, forestCover: () => Infinity }),
+    /finite/,
+  );
+  const empty = createLandscapeLayout({ ...options, forestCover: () => -5 });
+  assert.equal(empty.trees.length, 0);
+  assert.equal(empty.forestCover(0, 0), 0);
+});

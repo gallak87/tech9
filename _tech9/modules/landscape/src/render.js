@@ -19,7 +19,7 @@ export async function buildLandscape(
   context,
   kit,
   layout,
-  { assetURL, windMode = 'local' } = {},
+  { assetURL, assets, windMode = 'local' } = {},
 ) {
   const {
     groundHeight,
@@ -205,7 +205,11 @@ export async function buildLandscape(
         'path-roughness.jpg',
       ].map(async (name) => {
         const texture = keep(
-          await loader.loadAsync(new URL(`textures/${name}`, rootURL).href),
+          await loader.loadAsync(
+            rootURL
+              ? new URL(`textures/${name}`, rootURL).href
+              : assets[`textures/${name}`],
+          ),
         );
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.anisotropy = Math.min(
@@ -241,7 +245,7 @@ export async function buildLandscape(
       shadeContext.drawImage(
         stamp,
         ((t.x - canopyBounds.minX) / spanX) * 2048 - radius,
-        ((t.z - canopyBounds.minZ) / spanZ) * 2048 - radius,
+        ((t.z - canopyBounds.minZ) / spanZ) * 2048 - (radius * spanX) / spanZ,
         radius * 2,
         (radius * 2 * spanX) / spanZ,
       );
@@ -390,6 +394,51 @@ export async function buildLandscape(
         minFilter: THREE.LinearMipmapLinearFilter,
       }),
     );
+    // Upright impostors retain per-pixel upward normals for weather deposition.
+    // Both atlases are fixed at initialization; no rebake or allocations during travel.
+    const normalAtlas = keep(
+      new THREE.WebGLRenderTarget(3072, 2304, {
+        samples: 4,
+        generateMipmaps: true,
+        minFilter: THREE.LinearMipmapLinearFilter,
+      }),
+    );
+    const normalMaterials = new Map();
+    function normalMaterial(source) {
+      if (!normalMaterials.has(source)) {
+        const material = keep(
+          new THREE.MeshBasicMaterial({
+            map: source.map,
+            alphaTest: source.alphaTest,
+            side: source.side,
+            toneMapped: false,
+          }),
+        );
+        material.onBeforeCompile = (shader) => {
+          shader.vertexShader = shader.vertexShader
+            .replace(
+              '#include <common>',
+              '#include <common>\nvarying float atlasNormalY;',
+            )
+            .replace(
+              '#include <begin_vertex>',
+              '#include <begin_vertex>\natlasNormalY = normalize(mat3(modelMatrix) * normal).y;',
+            );
+          shader.fragmentShader = shader.fragmentShader
+            .replace(
+              '#include <common>',
+              '#include <common>\nvarying float atlasNormalY;',
+            )
+            .replace(
+              '#include <opaque_fragment>',
+              '#include <opaque_fragment>\ngl_FragColor.rgb = vec3(atlasNormalY * .5 + .5);',
+            );
+        };
+        material.customProgramCacheKey = () => 'landscape-normal-y-atlas';
+        normalMaterials.set(source, material);
+      }
+      return normalMaterials.get(source);
+    }
     const bakeScene = new THREE.Scene();
     bakeScene.add(new THREE.HemisphereLight('#c4d3d2', '#5c6146', 1.65));
     const sun = new THREE.DirectionalLight('#ffe2af', 4.2);
@@ -421,10 +470,12 @@ export async function buildLandscape(
     const scissor = renderer.getScissor(new THREE.Vector4());
     const scissorTest = renderer.getScissorTest();
     try {
-      renderer.setRenderTarget(atlas);
       renderer.setClearColor(0, 0);
-      renderer.setScissorTest(false);
-      renderer.clear();
+      for (const target of [atlas, normalAtlas]) {
+        renderer.setRenderTarget(target);
+        renderer.setScissorTest(false);
+        renderer.clear();
+      }
       renderer.setScissorTest(true);
       for (let kind = 0; kind < 3; kind++) {
         const model = new THREE.Group();
@@ -446,6 +497,7 @@ export async function buildLandscape(
               Math.cos(yaw) * Math.cos(pitch) * 3,
             );
             camera.lookAt(0, 0.5, 0);
+            renderer.setRenderTarget(atlas);
             atlas.viewport.set(
               azimuth * 192,
               (kind * 4 + elevation) * 192,
@@ -468,6 +520,18 @@ export async function buildLandscape(
             );
             renderer.shadowMap.needsUpdate = true;
             renderer.render(bakeScene, camera);
+            normalAtlas.viewport.copy(atlas.viewport);
+            normalAtlas.scissor.copy(atlas.scissor);
+            normalAtlas.scissorTest = true;
+            const originals = model.children.map((mesh) => mesh.material);
+            model.children.forEach((mesh, i) => {
+              mesh.material = normalMaterial(originals[i]);
+            });
+            renderer.setRenderTarget(normalAtlas);
+            renderer.render(bakeScene, camera);
+            model.children.forEach((mesh, i) => {
+              mesh.material = originals[i];
+            });
           }
         }
         bakeScene.remove(model);
@@ -674,16 +738,16 @@ export async function buildLandscape(
         for (const material of farSurfaces)
           result.push({
             material,
-            impostor: true,
+            normalYMap: normalAtlas.texture,
             foliage: true,
             wind: 0,
             depth: 0,
-            snow: 0.8,
+            snow: 1,
           });
         return result;
       },
       configure(settings) {
-        if (settings.quality !== quality) {
+        if (settings.quality !== undefined && settings.quality !== quality) {
           quality = settings.quality;
           tileX = Infinity;
         }

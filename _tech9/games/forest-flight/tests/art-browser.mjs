@@ -59,7 +59,8 @@ try {
       performance: await samplePerformance(h.page, 1000),
     });
   }
-  // 90 m in three seconds at an ordinary low-flight speed. Captures keep 1x time.
+  // Short 90 m camera sweep; 3 m steps, 100 ms minimum spacing, always 1x time.
+  // Screenshots add pauses. Three stills do not establish temporal smoothness.
   for (let i = 0; i <= 30; i++) {
     const p = [620, groundHeight(620, -950) + 35, -950 - i * 3];
     await inspect(p, [750, groundHeight(750, -1250) + 20, -1250 - i * 3]);

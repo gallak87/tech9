@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:staged": "lint-staged --cwd .",
-    "verify:exploration": "npm run build && node tests/exploration-browser.mjs"
+    "verify:exploration": "npm run build && node tests/exploration-browser.mjs",
+    "verify:art": "npm run build && node tests/art-browser.mjs"
   },
   "lint-staged": {
     "*.{js,mjs}": [

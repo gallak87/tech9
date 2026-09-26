@@ -41,8 +41,12 @@ export function forestCover(x, z) {
   if (Math.abs(x + 100) < 100 && Math.abs(z - 250) < 200) return 0;
   const grove =
     Math.sin(x * 0.005 + Math.cos(z * 0.003) * 2) *
-    Math.cos(z * 0.004 - x * 0.001);
-  return 1 - smooth(0.15, 0.75, grove);
+      Math.cos(z * 0.004 - x * 0.001) +
+    0.2 *
+      Math.sin(x * 0.023 + Math.cos(z * 0.017) * 2) *
+      Math.cos(z * 0.029 - x * 0.009) +
+    0.09 * Math.sin(x * 0.067 + z * 0.037) * Math.cos(z * 0.051);
+  return 1 - smooth(0.05, 0.85, grove);
 }
 export function trailDistance(x, z) {
   return Math.abs(
@@ -95,8 +99,11 @@ export function detailTile(cx, cz) {
     )
       continue;
     const cover = forestCover(x, z);
+    const mown =
+      (Math.abs(x) < 82 && Math.abs(z) < 900) ||
+      (Math.abs(x + 100) < 100 && Math.abs(z - 250) < 200);
     const patch = Math.sin(x * 0.19 + Math.cos(z * 0.16)) * Math.cos(z * 0.23);
-    if (i >= 8 && rng() > 0.64 + patch * 0.34) continue;
+    if (i >= 8 && rng() > (mown ? 0.32 : 0.64) + patch * 0.34) continue;
     const kind =
       i < 3
         ? 'rock_' + (i % 2 ? 'a' : 'b')
@@ -116,7 +123,7 @@ export function detailTile(cx, cz) {
       kind,
       angle: rng() * Math.PI * 2,
       scale: kind.startsWith('grass')
-        ? 2 + rng()
+        ? (2 + rng()) * (mown ? 0.42 : 1)
         : kind.startsWith('fern')
           ? 1.2 + rng()
           : kind === 'pine_sapling'

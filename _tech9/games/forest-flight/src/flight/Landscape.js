@@ -85,7 +85,7 @@ export async function createLandscape(context, kit) {
         }
         const plant = name.startsWith('grass') || name.startsWith('fern');
         if (plant) {
-          material.color.multiplyScalar(name.startsWith('grass') ? 1.58 : 1.34);
+          material.color.multiplyScalar(name.startsWith('grass') ? 1.48 : 1.34);
           material.normalScale?.setScalar(0.5);
           material.emissive.set('#617c36');
           material.emissiveIntensity = name.startsWith('grass') ? 0.115 : 0.07;
@@ -166,10 +166,13 @@ export async function createLandscape(context, kit) {
             : 'diffuseColor.a *= 1.0 - coverage;'
         }`,
         );
-        if (material.isMeshStandardMaterial && material.alphaTest > 0)
+        if (
+          (material.isMeshStandardMaterial || material.isMeshLambertMaterial) &&
+          material.alphaTest > 0
+        )
           shader.fragmentShader = shader.fragmentShader.replace(
             '#include <lights_fragment_end>',
-            '#include <lights_fragment_end>\nreflectedLight.indirectDiffuse += diffuseColor.rgb * .08;',
+            `#include <lights_fragment_end>\nreflectedLight.indirectDiffuse += diffuseColor.rgb * ${material.isMeshLambertMaterial ? '.14' : '.08'};`,
           );
       };
       material.customProgramCacheKey = () =>
@@ -273,8 +276,10 @@ export async function createLandscape(context, kit) {
         '#include <map_fragment>',
         `
       vec2 w = vGround.xz;
-      float grove = sin(w.x * .005 + cos(w.y * .003)*2.) * cos(w.y*.004-w.x*.001);
-      float glade = smoothstep(.15,.75,grove);
+      float grove = sin(w.x * .005 + cos(w.y * .003)*2.) * cos(w.y*.004-w.x*.001)
+        + .20*sin(w.x*.023+cos(w.y*.017)*2.)*cos(w.y*.029-w.x*.009)
+        + .09*sin(w.x*.067+w.y*.037)*cos(w.y*.051);
+      float glade = smoothstep(.05,.85,grove);
       float cut = (1.-smoothstep(28.,80.,abs(w.x))) * (1.-smoothstep(465.,760.,abs(w.y)));
       float track = 1.-smoothstep(1.25,2.75,abs(w.x-(320.+85.*sin(w.y*.003)+26.*sin(w.y*.012))));
       vec3 floorColor = texture2D(map,vMapUv).rgb;
@@ -283,10 +288,15 @@ export async function createLandscape(context, kit) {
       float pathBlend = smoothstep(.16,.88,track + edgeNoise*(1.-abs(track*2.-1.)));
       float macro = coverNoise(w*.018)*.65 + coverNoise(w*.079)*.35;
       float litter = coverNoise(w*.37)*.65 + coverNoise(w*1.7)*.35;
-      vec3 meadow = mix(vec3(.15,.22,.075),vec3(.30,.34,.14),macro);
-      vec3 forest = floorColor * mix(vec3(.055,.13,.042),vec3(.18,.29,.09),macro);
+      vec3 meadow = mix(vec3(.085,.125,.035),vec3(.22,.26,.09),macro);
+      vec3 forest = floorColor * mix(vec3(.12,.21,.07),vec3(.20,.29,.105),macro);
       forest *= mix(vec3(.72,.83,.58),vec3(1.07,.93,.69),smoothstep(.33,.7,litter));
       vec3 cover = mix(forest, meadow*(.78+floorColor*.65), max(glade,cut*.85));
+      // The same colony rhythm used by seeded plants leaves a moss/litter bed
+      // when fine geometry recedes, including in the trimmed airfield meadow.
+      float colony = .5 + .5*sin(w.x*.19+cos(w.y*.16))*cos(w.y*.23);
+      vec3 moss = floorColor*vec3(.12,.24,.055);
+      cover = mix(cover,moss,smoothstep(.30,.80,colony)*.38);
       float slope = 1.0 - abs(normalize(cross(dFdx(vGround),dFdy(vGround))).y);
       float outcrop = smoothstep(.045,.19,slope)*smoothstep(130.,260.,vGround.y)*(0.55+macro*.45);
       cover = mix(cover,vec3(.25,.27,.23)*(floorColor*.5+.6),outcrop*.75);

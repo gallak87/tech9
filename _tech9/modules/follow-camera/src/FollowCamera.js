@@ -62,7 +62,12 @@ export class FollowCamera {
     this.groundHeight = groundHeight;
     this.follow = Object.freeze(config);
     this.mounted =
-      mounted && Object.freeze({ near: 0.05, fov: 70, ...mounted });
+      mounted &&
+      Object.freeze({
+        ...mounted,
+        near: mounted.near ?? 0.05,
+        fov: mounted.fov ?? 70,
+      });
     this.onChange = onChange;
     this.mode = 'follow';
     this.disposed = false;

@@ -62,6 +62,33 @@ test('mounted pose preserves up, projection and immediate reflection invalidatio
   assert.equal(changes, 2);
 });
 
+test('nullish mounted projection options retain finite default projection', () => {
+  for (const options of [
+    {},
+    { near: undefined },
+    { fov: undefined },
+    { near: null },
+    { fov: null },
+    { near: null, fov: undefined },
+  ]) {
+    const camera = new PerspectiveCamera();
+    const rig = new FollowCamera(camera, {
+      getTarget: () => ({ x: 0, z: 0, heading: 0 }),
+      mounted: {
+        getPose: () => ({ position: [0, 2, 0], target: [0, 2, -1] }),
+        ...options,
+      },
+    });
+    rig.setMode('mounted');
+    rig.update(1 / 60);
+    assert.equal(camera.near, 0.05);
+    assert.equal(camera.fov, 70);
+    assert.ok(camera.projectionMatrix.elements.every(Number.isFinite));
+    assert.ok(camera.projectionMatrixInverse.elements.every(Number.isFinite));
+    rig.dispose();
+  }
+});
+
 test('camera rejects invalid options and poses, without applying invalid positions', () => {
   const camera = new PerspectiveCamera();
   assert.throws(

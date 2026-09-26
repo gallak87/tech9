@@ -52,16 +52,23 @@ export function resolveCameraBoom(
     const h = groundHeight(x, z);
     if (h !== -Infinity && !Number.isFinite(h))
       throw new TypeError('Ground height must be finite or -Infinity.');
-    return h + clearance;
+    const value = h + clearance;
+    if (value !== -Infinity && !Number.isFinite(value))
+      throw new RangeError('Camera terrain clearance exceeds numeric range.');
+    return value;
   };
   let safe = 1;
   const horizontalLengthSq = dx * dx + dz * dz;
+  if (!Number.isFinite(horizontalLengthSq))
+    throw new RangeError('Camera boom geometry exceeds numeric range.');
   // Analytic disc intersections retain thin solids between terrain samples.
   for (const solid of colliders) {
     const ox = target.x - solid.x,
       oz = target.z - solid.z;
     const radius = solid.radius + clearance;
     const c = ox * ox + oz * oz - radius * radius;
+    if (!Number.isFinite(c))
+      throw new RangeError('Camera collider geometry exceeds numeric range.');
     if (c <= 0) {
       safe = 0;
       break;
@@ -69,6 +76,8 @@ export function resolveCameraBoom(
     if (horizontalLengthSq === 0) continue;
     const b = ox * dx + oz * dz;
     const discriminant = b * b - horizontalLengthSq * c;
+    if (!Number.isFinite(b) || !Number.isFinite(discriminant))
+      throw new RangeError('Camera intersection exceeds numeric range.');
     if (discriminant < 0) continue;
     const entry = (-b - Math.sqrt(discriminant)) / horizontalLengthSq;
     if (entry >= 0 && entry <= safe)

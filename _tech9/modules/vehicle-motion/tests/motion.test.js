@@ -316,3 +316,17 @@ test('surface payloads cannot retain mutable consumer objects in snapshots', () 
     state.contacts[0].y = 400;
   }, TypeError);
 });
+
+test('opposite large finite headings cannot overflow and skip a solid sweep', () => {
+  const motion = new VehicleMotion({
+    world: flat({ colliders: [{ x: 0, z: 0, radius: 1 }] }),
+    spawn: { x: -10, z: 0, heading: 0 },
+  });
+  assert.equal(
+    motion.collisionBetween(
+      { x: -10, z: 0, heading: 1e308 },
+      { x: 10, z: 0, heading: -1e308 },
+    ),
+    true,
+  );
+});

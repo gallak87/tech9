@@ -113,3 +113,21 @@ test('follow rejects invalid collision callbacks and returned poses', () => {
   assert.throws(() => rig.update(1 / 60), /resolver/);
   assert.deepEqual(camera.position.toArray(), [0, 0, 0]);
 });
+
+test('finite camera inputs cannot silently overflow floor or solid geometry', () => {
+  assert.throws(
+    () =>
+      resolveCameraBoom(origin, behind, {
+        groundHeight: () => 1e308,
+        clearance: 1e308,
+      }),
+    /numeric range/,
+  );
+  assert.throws(
+    () =>
+      resolveCameraBoom(origin, behind, {
+        colliders: [{ x: 1e308, z: 0, radius: 1e308 }],
+      }),
+    /numeric range/,
+  );
+});

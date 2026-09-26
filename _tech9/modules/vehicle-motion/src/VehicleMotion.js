@@ -326,7 +326,12 @@ export class VehicleMotion {
     // Rotation between tiny simulation steps is enclosed by padding the chord.
     const turnPad =
       this.config.dimensions.length *
-      (1 - Math.cos(normalizeHeading(to.heading - from.heading) / 2));
+      (1 -
+        Math.cos(
+          normalizeHeading(
+            normalizeHeading(to.heading) - normalizeHeading(from.heading),
+          ) / 2,
+        ));
     for (const forward of this.#footprintOffsets) {
       const a = this.point(from.x, from.z, from.heading, 0, forward);
       const b = this.point(to.x, to.z, to.heading, 0, forward);

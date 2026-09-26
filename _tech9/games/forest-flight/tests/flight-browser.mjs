@@ -271,7 +271,7 @@ try {
   });
 } catch (error) {
   report.failure = error.stack;
-  await page.screenshot({ path: `${output}/failure.png` });
+  await page.screenshot({ path: `${output}/failure.png` }).catch(() => {});
   console.error(error);
   process.exitCode = 1;
 } finally {

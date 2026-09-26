@@ -58,13 +58,16 @@ for (let gx = -200; gx < 200; gx++) {
     const z = (gz + 0.05 + random() * 0.9) * 14;
     if (random() > forestCover(x, z) * 0.88 || trailDistance(x, z) < 4)
       continue;
-    const height = 18 + random() * 15;
+    const mature =
+      0.5 +
+      0.5 * Math.sin(x * 0.009 + Math.cos(z * 0.007)) * Math.cos(z * 0.008);
+    const height = 17 + random() * 10 + mature * 9;
     const tree = {
       x,
       z,
       y: groundHeight(x, z),
       height,
-      radius: height * 0.19,
+      radius: height * 0.232,
       angle: random() * Math.PI * 2,
       tone: random(),
       kind: Math.floor(random() * 3),

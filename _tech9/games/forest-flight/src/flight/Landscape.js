@@ -112,7 +112,7 @@ export async function createLandscape(context, kit) {
         const height = bounds.max.y - bounds.min.y;
         for (const part of parts) {
           part.geometry.translate(0, -bounds.min.y, 0);
-          part.geometry.scale(1 / height, 1 / height, 1 / height);
+          part.geometry.scale(1.22 / height, 1 / height, 1.22 / height);
         }
       }
       prototypes.set(name, parts);
@@ -158,7 +158,12 @@ export async function createLandscape(context, kit) {
           '#include <alphatest_fragment>',
           `#include <alphatest_fragment>
         float coverage = smoothstep(${near.toFixed(1)}, ${far.toFixed(1)}, vDetailDistance);
-        diffuseColor.a *= ${inverse ? 'coverage' : '1.0 - coverage'};`,
+        ${
+          tree
+            ? `float sampleMask = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy), vec2(.06711056,.00583715))));
+        if (${inverse ? 'coverage <= sampleMask' : 'coverage > sampleMask'}) discard;`
+            : 'diffuseColor.a *= 1.0 - coverage;'
+        }`,
         );
         if (material.isMeshStandardMaterial && material.alphaTest > 0)
           shader.fragmentShader = shader.fragmentShader.replace(
@@ -271,7 +276,7 @@ export async function createLandscape(context, kit) {
       vec3 dirt = texture2D(pathTexture,vMapUv*1.28).rgb;
       float macro = coverNoise(w*.018)*.65 + coverNoise(w*.079)*.35;
       vec3 meadow = mix(vec3(.15,.22,.075),vec3(.30,.34,.14),macro);
-      vec3 forest = floorColor * mix(vec3(.22,.34,.18),vec3(.53,.69,.38),macro);
+      vec3 forest = floorColor * mix(vec3(.065,.12,.045),vec3(.22,.32,.12),macro);
       vec3 cover = mix(forest, meadow*(.78+floorColor*.65), max(glade,cut*.85));
       float slope = 1.0 - abs(normalize(cross(dFdx(vGround),dFdy(vGround))).y);
       float outcrop = smoothstep(.045,.19,slope)*smoothstep(130.,260.,vGround.y)*(0.55+macro*.45);
@@ -417,7 +422,7 @@ export async function createLandscape(context, kit) {
           side: THREE.DoubleSide,
         }),
       );
-      fade(surface, 160, 240, true, false, true);
+      fade(surface, 180, 220, true, false, true);
       const configure = surface.onBeforeCompile;
       surface.onBeforeCompile = (shader) => {
         configure(shader);
@@ -454,8 +459,8 @@ export async function createLandscape(context, kit) {
         prototypes.get(name).map((part) => {
           fade(
             part.material,
-            isTree ? 160 : 32,
-            isTree ? 240 : 66,
+            isTree ? 180 : 32,
+            isTree ? 220 : 66,
             false,
             part.plant,
             isTree,

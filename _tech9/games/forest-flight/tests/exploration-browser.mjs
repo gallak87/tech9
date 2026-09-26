@@ -170,7 +170,7 @@ try {
   );
 } catch (error) {
   report.error = error.stack;
-  await capture('failure');
+  await capture('failure').catch(() => {});
   throw error;
 } finally {
   await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2));

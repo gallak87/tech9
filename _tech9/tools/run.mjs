@@ -49,12 +49,10 @@ async function main(args) {
 
 ./run --runtime                         Show the selected local runtime
 ./run ci                                Install framework dependencies
-./run --prefix scenes/scene-test ci      Install the forest example
-./run --prefix scenes/pond-test ci       Install the pond example
-./run run dev:walk                      Open the walking forest example
-./run run dev:pond                      Open the pond example
+./run run check                         Run framework tests, lint and module builds
 ./run run t9 -- catalog                 List available capabilities
-./run test                              Run framework checks
+./run test                              Run framework/module tests
+./run --prefix <package> run <script>    Run a scene or game's own command
 
 Set TECH9_NODE to choose an installed executable explicitly. No runtimes or
 hooks are installed automatically. Child npm commands receive the same Node.

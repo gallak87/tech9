@@ -27,17 +27,14 @@ Use Node `^22.13.0 || >=24.0.0`. From the repository root:
 ```sh
 ./_tech9/run --runtime
 ./_tech9/run ci
-./_tech9/run --prefix scenes/scene-test ci
-./_tech9/run --prefix scenes/pond-test ci
-./_tech9/run run dev:walk
-# Or: ./_tech9/run run dev:pond
+./_tech9/run run check
 ```
 
 `run` selects a supported installed Node and anchors npm to the framework directory. `TECH9_NODE` can select an explicit executable. It never installs Node or changes hooks implicitly. Ordinary npm commands with supported Node also work. Each scene/game has its own dependencies and lockfile; root installation is not required.
 
-Run `./_tech9/run run check` for framework/module tests, lint, source-copy integrity, module builds and catalog validation. Only framework dependencies are needed. `./_tech9/run run build` compiles every registered module's JavaScript into ignored `.artifacts/module-build/`, with Three.js external. These outputs validate compilation; consumers still copy canonical source.
+Run `./_tech9/run run check` for framework/module tests, lint, module builds and catalog validation. Only framework development dependencies are needed. Three.js is a devDependency because canonical camera/water tests use its real objects; the CLI does not render anything, and each game installs its own runtime dependencies. `./_tech9/run run build` compiles every registered module's JavaScript into ignored `.artifacts/module-build/`, with Three.js external. These outputs validate compilation; consumers still copy canonical source.
 
-Maintained starter scenes have separate test/lint/build/browser commands and install their own dependencies. Use those for affected starter integrations and a free `SCENE_PORT` for browser checks. Consumer game suites belong to game-dev work and are never a framework regression gate.
+Starter scenes keep their dev/build/browser commands in their own packages; see their READMEs to run them. Framework checks do not launch or build scenes or games. When maintaining starter copies, use `./_tech9/run run sync:modules -- --check` explicitly to compare them with canonical source. Consumer game suites belong to game-dev work and are never a framework regression gate.
 
 ## Source and local workspace
 

@@ -28,7 +28,7 @@ The renderer still assumes an outdoor sun/sky scene. Scene definitions are chose
 
 Schemas document serialized formats. Runtime validation additionally checks cross-references, lane ownership and dependency cycles, safe filesystem destinations, clean source and immutable fork provenance. Tests cover invalid inputs and transactional failure paths.
 
-The framework's `check` command runs tooling/module tests, lint/copy checks, a canonical module build and catalog validation. `build` compiles all registered module JavaScript with the framework's own pinned Vite dependency and externalizes Three.js. Its ignored output is a compilation check, not a shared engine distribution. CLI tests create synthetic disposable fixtures rather than using an existing game.
+The framework's `check` command runs tooling/module tests, lint, a canonical module build and catalog validation. Starter-copy comparison is an explicit maintenance operation (`sync:modules -- --check`), separate from lint. `build` compiles all registered module JavaScript with the framework's own pinned Vite dependency and externalizes Three.js. Its ignored output is a compilation check, not a shared engine distribution. Three.js is a development dependency for canonical module tests; games install their own runtime dependencies. CLI tests create synthetic disposable fixtures rather than using an existing game.
 
 The framework package and tools live under `_tech9`; no root package changes are required. CLI metadata and plan paths are repository-relative, and new games go to `_tech9/games/<slug>`. The root remains CommonJS for old game tools; framework tools use `.mjs`. Games and scenes install independently rather than sharing a monorepo dependency graph.
 

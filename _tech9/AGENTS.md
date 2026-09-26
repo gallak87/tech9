@@ -15,4 +15,4 @@ Choose `game-dev` to build a game through [GENERATE.md](./GENERATE.md), or `fram
 - Preserve asset sources and license records. Install supported Node dependencies in the owning package. Dependency installation must not change repository hooks. The optional scoped hook is installed explicitly; preserve each scene/game's lint configuration and older games' tooling.
 - Do not publish, push, or start the next game unless requested. Stop only processes this task started.
 
-From the repository root, use `npm --prefix _tech9 run t9 -- --help`, `npm --prefix _tech9 test`, `npm --prefix _tech9 run lint`, and `npm --prefix _tech9 run dev:scene`. Scenes and games install separately. Framework tools are ESM; the root keeps its existing CommonJS helpers.
+From the repository root, use `./_tech9/run run check` for framework tests, lint, module builds and catalog validation. Scenes and games install and run through their own packages; their checks are separate. Framework tools are ESM; the root keeps its existing CommonJS helpers.

@@ -9,21 +9,12 @@
     "test": "node --test tests/*.test.mjs modules/*/tests/*.test.js",
     "build": "node tools/build-modules.mjs",
     "check": "npm test && npm run lint && npm run build && npm run t9 -- validate",
-    "lint": "eslint tools tests modules eslint.config.mjs --max-warnings 0 && npm run format:check && npm run check:modules",
+    "lint": "eslint tools tests modules eslint.config.mjs --max-warnings 0 && npm run format:check",
     "format:check": "prettier --check '*.md' '*.json' '*.mjs' docs tools tests schemas modules",
     "format": "prettier --write '*.md' '*.json' '*.mjs' docs tools tests schemas modules",
     "lint:staged": "lint-staged",
     "hooks:install": "node tools/install-hooks.mjs",
-    "dev:scene": "npm --prefix scenes/scene-test run dev",
-    "build:scene": "npm --prefix scenes/scene-test run build",
-    "verify:scene": "npm --prefix scenes/scene-test run verify",
-    "sync:modules": "node tools/sync-modules.mjs",
-    "check:modules": "node tools/sync-modules.mjs --check",
-    "dev:walk": "npm --prefix scenes/scene-test run dev -- --open /?controller=walk",
-    "dev:pond": "npm --prefix scenes/pond-test run dev",
-    "build:pond": "npm --prefix scenes/pond-test run build",
-    "verify:walking": "npm --prefix scenes/scene-test run verify:walking",
-    "verify:pond": "npm --prefix scenes/pond-test run verify"
+    "sync:modules": "node tools/sync-modules.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

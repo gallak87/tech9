@@ -70,6 +70,8 @@ try {
     assert.ok(Math.abs((await snapshot()).motion.speed) < 1);
     await arrange({ x: 260, z: -4, heading: Math.asin(-0.15) });
     await page.keyboard.down('w');
+    let airCaptured = false,
+      landedCaptured = false;
     let airborne = 0,
       landings = 0,
       rough = false,
@@ -78,6 +80,17 @@ try {
     while (Date.now() < end) {
       const s = (await snapshot()).motion;
       airborne += Number(s.airborne);
+      if (s.airborne && !airCaptured) {
+        airCaptured = true;
+        await page.screenshot({
+          path: path.join(out, vehicle + '-takeoff.png'),
+        });
+      } else if (!s.airborne && airCaptured && !landedCaptured) {
+        landedCaptured = true;
+        await page.screenshot({
+          path: path.join(out, vehicle + '-landed.png'),
+        });
+      }
       landings += Number(s.landing > 0);
       rough ||= s.surface.kind === 'rough';
       peak = Math.max(peak, s.speed);

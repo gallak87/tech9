@@ -102,6 +102,8 @@ function createRoute(spec) {
   });
 }
 
+// Medal bands calibrated from nine normal-speed keyboard runs (80–106 seconds),
+// retaining headroom for first-time clean driving and room for faster lines.
 export const ROUTES = Object.freeze([
   createRoute({
     id: 'woodland',
@@ -110,7 +112,7 @@ export const ROUTES = Object.freeze([
     color: '#d8a445',
     description:
       'A flowing dirt ribbon through tall pines. Carry speed, brake before the bends.',
-    medals: { jeep: [99, 118, 145], atv: [91, 110, 136], bike: [86, 105, 132] },
+    medals: { jeep: [86, 105, 132], atv: [85, 103, 130], bike: [84, 101, 128] },
     anchors: [
       [-25, 220],
       [-45, 163],
@@ -137,8 +139,8 @@ export const ROUTES = Object.freeze([
     description:
       'Climb loose stone and a chain of deliberate switchbacks. Find traction, then unwind.',
     medals: {
-      jeep: [116, 133, 157],
-      atv: [107, 125, 150],
+      jeep: [108, 127, 151],
+      atv: [109, 127, 151],
       bike: [102, 122, 146],
     },
     anchors: [
@@ -171,9 +173,9 @@ export const ROUTES = Object.freeze([
     description:
       'Open views, fast sweepers and three rolling crests. Settle the landing before the next turn.',
     medals: {
-      jeep: [106, 125, 150],
-      atv: [98, 116, 143],
-      bike: [91, 109, 137],
+      jeep: [96, 114, 138],
+      atv: [98, 116, 140],
+      bike: [94, 111, 135],
     },
     anchors: [
       [25, 220],

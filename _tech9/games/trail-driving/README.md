@@ -48,10 +48,11 @@ npm test
 npm run lint
 npm run build
 SCENE_PORT=4482 npm run verify
+SCENE_PORT=4482 npm run verify:handling
 SCENE_PORT=4482 npm run verify:routes
 ```
 
-`verify` checks real keyboard movement, braking, camera changes, pause/focus, recovery, gate rejection, restart, repeated vehicle switching, responsive menus and graphics controls. `verify:routes` completes nine runs at normal simulation speed through Playwright keyboard input and verifies records after reload. Its feedback driver reads snapshots but never writes position, time or progression. Run it alone: browser/GPU measurements are serialized.
+`verify` checks real keyboard movement, braking, camera changes, pause/focus, recovery, gate rejection, restart, repeated vehicle switching, responsive menus and graphics controls. `verify:handling` exercises each vehicle against solid obstacles, reverse, rough ground, jumps and recovery, plus hidden-tab audio and denied storage. `verify:routes` completes nine runs at normal simulation speed through Playwright keyboard input and verifies records after reload. Its feedback driver reads snapshots but never writes position, time or progression. Run it alone: browser/GPU measurements are serialized.
 
 Development observations and rare-state setup require `?test=1`. Production exposes no test hooks. Ignored `.artifacts/` contains local screenshots and verification reports. Performance is measured at 1600 × 1000 Balanced with browser/GPU/frame timings reported; it is not a guarantee across hardware.
 

@@ -19,6 +19,8 @@ import {
   BACKDROP_RINGS,
   backdropPoint,
   sceneryPlacements,
+  mountainSilhouettePoint,
+  visualCanopyShade,
 } from './scenicData.js';
 
 const ASSET_ROOT = `${import.meta.env?.BASE_URL ?? './'}assets/`;
@@ -71,11 +73,14 @@ function groundMaterial(textures) {
       float noise=(floorSample.g-floorSample.r)*1.4+(floorSample.r-.3)*.45;
       float road=smoothstep(.12,.9,vTrail+noise*(1.-abs(vTrail*2.-1.)));
       vec4 stoneSample=texture2D(stoneColor,vGround.xz*.14);
-      float ridge=smoothstep(100.,230.,vGround.x)*(1.-smoothstep(-100.,90.,vGround.z));
+      float ridge=max(smoothstep(100.,230.,vGround.x)*(1.-smoothstep(-100.,90.,vGround.z)),smoothstep(-70.,60.,vGround.x)*(1.-smoothstep(-190.,-150.,vGround.z)));
       float mossPattern=.5+.5*sin(vGround.x*.086+sin(vGround.z*.042)*2.)*cos(vGround.z*.077+sin(vGround.x*.027));
       vec3 mossTint=mix(vec3(.36,.58,.47),vec3(.66,.72,.54),smoothstep(.2,.85,mossPattern));
-      vec3 forest=floorSample.rgb*mossTint;
-      vec3 ridgeFloor=mix(floorSample.rgb*vec3(.71,.75,.65),stoneSample.rgb*.55,.26+.24*mossPattern);
+      float woodland=1.-smoothstep(-65.,25.,vGround.x);
+      vec3 forest=mix(floorSample.rgb*mossTint,mix(floorSample.rgb*vec3(.28,.38,.33),roadSample.rgb*.49,.36),woodland);
+      float talus=vGravel*(1.-ridge)*smoothstep(.25,.68,mossPattern)*.78;
+      forest=mix(forest,stoneSample.rgb*vec3(.71,.78,.78),talus);
+      vec3 ridgeFloor=mix(floorSample.rgb*vec3(.57,.57,.40),stoneSample.rgb*vec3(.83,.88,.87),.25+.45*smoothstep(.2,.85,mossPattern));
       vec4 soil=roadSample*vec4(1.19,1.14,1.04,1.);
       vec3 gravelSoil=mix(roadSample.rgb*vec3(1.05,1.10,1.11),stoneSample.rgb*.78,.27);
       soil.rgb=mix(soil.rgb,gravelSoil,vGravel);
@@ -97,7 +102,7 @@ function groundMaterial(textures) {
         ),
       );
   };
-  material.customProgramCacheKey = () => 'cascade-terrain-v2';
+  material.customProgramCacheKey = () => 'cascade-terrain-v3';
   return material;
 }
 
@@ -154,9 +159,10 @@ function terrain(textures, owned) {
     const ridge = clamp((x - 70) / 140, 0, 1) * clamp((-z + 100) / 200, 0, 1);
     const variation =
       Math.sin(x * 0.037 + z * 0.013) * Math.cos(z * 0.041) * 0.04;
-    colors[i * 3] = 0.88 + ridge * 0.17 + variation;
-    colors[i * 3 + 1] = 0.94 + ridge * 0.06 + variation;
-    colors[i * 3 + 2] = 0.8 - ridge * 0.03 + variation;
+    const canopyShade = visualCanopyShade(x, z);
+    colors[i * 3] = (0.88 + ridge * 0.17 + variation) * canopyShade;
+    colors[i * 3 + 1] = (0.94 + ridge * 0.06 + variation) * canopyShade;
+    colors[i * 3 + 2] = (0.8 - ridge * 0.03 + variation) * canopyShade;
   }
   geometry.setAttribute('trail', new THREE.BufferAttribute(trail, 1));
   geometry.setAttribute('gravel', new THREE.BufferAttribute(gravel, 1));
@@ -180,7 +186,7 @@ function placementMatrix(item) {
       item.z,
     ),
     new THREE.Quaternion().setFromAxisAngle(UP, item.rotation ?? 0),
-    new THREE.Vector3(scale, scale, scale),
+    new THREE.Vector3(scale, scale * (item.vertical ?? 1), scale),
   );
 }
 
@@ -703,6 +709,47 @@ function mountainRing(group, owned, textures) {
   group.add(mesh);
 }
 
+function distantSilhouettes(group, owned) {
+  for (let layer = 0; layer < 2; layer++) {
+    const positions = [],
+      colors = [];
+    const segments = 256;
+    for (let row = 0; row < 2; row++)
+      for (let i = 0; i < segments; i++) {
+        const a = mountainSilhouettePoint(i, layer, row),
+          b = mountainSilhouettePoint(i + 1, layer, row);
+        const c = mountainSilhouettePoint(i, layer, row + 1),
+          d = mountainSilhouettePoint(i + 1, layer, row + 1);
+        for (const p of [a, b, c, b, d, c]) {
+          positions.push(...p);
+          const light = 0.015 * Math.sin(p[0] * 0.028 + p[2] * 0.019);
+          const fade = layer * 0.055 + Math.max(p[1], 0) * 0.00011;
+          colors.push(
+            0.19 + fade + light,
+            0.26 + fade + light,
+            0.255 + fade + light,
+          );
+        }
+      }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(positions, 3),
+    );
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geometry.computeVertexNormals();
+    const material = new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      side: THREE.DoubleSide,
+    });
+    owned.add(geometry);
+    owned.add(material);
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.name = `Distant broken alpine silhouette ${layer + 1}`;
+    group.add(mesh);
+  }
+}
+
 /** SceneApp layer: owns its meshes, kit copies and textures, never the renderer. */
 export function createParkWorld() {
   const group = new THREE.Group();
@@ -747,6 +794,7 @@ export function createParkWorld() {
       textures.stoneColor ??= textures.pathColor;
       group.add(terrain(textures, owned));
       mountainRing(group, owned, textures);
+      distantSilhouettes(group, owned);
       for (const name of ['pine_a', 'pine_b', 'pine_c', 'rock_a', 'rock_b'])
         instanceKit(
           group,

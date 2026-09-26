@@ -152,6 +152,10 @@ try {
     return { warmed, after };
   });
   await check('responsive menus and graphics audio controls', async () => {
+    await page.setViewportSize({ width: 900, height: 640 });
+    await page.locator('[data-action="start"]').scrollIntoViewIfNeeded();
+    const startBox = await page.locator('[data-action="start"]').boundingBox();
+    assert.ok(startBox.y >= 0 && startBox.y + startBox.height <= 640);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: path.join(out, 'narrow-garage.png') });
     await page.locator('[data-action="settings"]').click();

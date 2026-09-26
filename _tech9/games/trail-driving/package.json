@@ -16,7 +16,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint:staged": "lint-staged --cwd .",
-    "verify:routes": "npm run build && node tests/route-playthrough.mjs"
+    "verify:routes": "npm run build && node tests/route-playthrough.mjs",
+    "verify:handling": "npm run build && node tests/handling-browser.mjs",
+    "capture:art": "npm run build && node tests/art-capture.mjs"
   },
   "lint-staged": {
     "*.{js,mjs}": [
@@ -49,7 +51,8 @@
   "tech9": {
     "modules": [
       "grounded-walking",
-      "placement-collisions"
+      "placement-collisions",
+      "follow-camera"
     ]
   }
 }

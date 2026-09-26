@@ -19,7 +19,7 @@ const storage = () => {
   }
 };
 const world = { height, surface, colliders, bounds };
-const garageSpawn = { x: 0, z: 246, heading: Math.PI * 0.08 };
+const garageSpawn = { x: 0, z: 238, heading: Math.PI * 0.08 };
 const definition = {
   ...forestDefinition,
   id: 'trail-driving',
@@ -383,7 +383,7 @@ try {
     testMode,
     ui: document.querySelector('#world-hud'),
   });
-  app.camera.far = 850;
+  app.camera.far = 1200;
   app.camera.updateProjectionMatrix();
   let hasSettings = false;
   try {

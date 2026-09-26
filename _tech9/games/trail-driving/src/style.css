@@ -139,7 +139,11 @@ select:focus-visible {
   top: 126px;
   left: 48px;
   width: 395px;
-  padding: 0 0 16px;
+  max-height: calc(100dvh - 166px);
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #8a9c83 transparent;
+  padding: 0 8px 16px 0;
   pointer-events: auto;
 }
 .panel:before {
@@ -779,5 +783,19 @@ kbd {
       #11262235 40% 54%,
       #112622ed 63%
     );
+  }
+}
+
+@media (max-width: 850px) {
+  .drive-controls {
+    background: #102821b8;
+    border-radius: 4px;
+    padding: 10px 8px;
+  }
+  .run-heading {
+    filter: drop-shadow(0 2px 3px #102821);
+  }
+  .map-wrap canvas {
+    background: #102a28dd;
   }
 }

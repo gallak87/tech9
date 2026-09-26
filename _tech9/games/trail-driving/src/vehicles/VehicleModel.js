@@ -46,6 +46,8 @@ function palette(kind) {
     tread: material(0x303332, 0.97),
     black: material(0x283034, 0.6, 0.25),
     seat: material(0x34322d, 0.93),
+    glove: material(0x202928, 0.91),
+    boot: material(0x3d382a, 0.92),
     silver: material(0xaab4b4, 0.32, 0.83),
     steel: material(0x677477, 0.46, 0.68),
     dark: material(0x424944, 0.67, 0.35),
@@ -373,13 +375,15 @@ function jeepBody(body, p) {
       [side * 0.74, 2.1, 0.86],
       0.046,
     );
-    beam(
+    const roofRail = beam(
       body,
       p.black,
       [side * 0.74, 2.1, 0.86],
       [side * 0.72, 2.02, -0.36],
-      0.046,
+      0.033,
     );
+    roofRail.userData.dynamic = true;
+    roofRail.userData.hideInDriverView = true;
     beam(
       body,
       p.black,
@@ -474,6 +478,19 @@ function jeepBody(body, p) {
       [Math.PI / 2, 0, 0],
     );
   }
+  for (let i = 0; i < 9; i++) {
+    const a = -Math.PI * 0.22 + (i * Math.PI * 1.45) / 8;
+    const cx = -0.37,
+      cy = 1.28;
+    beam(
+      body,
+      p.accent,
+      [cx + Math.cos(a) * 0.05, cy + Math.sin(a) * 0.05, -0.424],
+      [cx + Math.cos(a) * 0.061, cy + Math.sin(a) * 0.061, -0.424],
+      0.0025,
+    );
+  }
+  beam(body, p.red, [-0.37, 1.28, -0.419], [-0.395, 1.318, -0.419], 0.003);
   for (const x of [-0.44, 0.44]) {
     box(body, p.seat, [0.61, 0.15, 0.6], [x, 0.98, 0.29], 0.06);
     box(body, p.seat, [0.6, 0.69, 0.15], [x, 1.27, 0.59], 0.055, [-0.1, 0, 0]);
@@ -766,10 +783,10 @@ function rider(parent, kind, p) {
   for (const side of [-1, 1]) {
     const upperArm = beam(group, p.jacket, [0, 0, 0], [0, 1, 0], 0.07);
     const forearm = beam(group, p.jacket, [0, 0, 0], [0, 1, 0], 0.056);
-    const hand = ball(group, p.black, 0.055, [0, 0, 0], [1, 1, 1.2]);
+    const hand = ball(group, p.glove, 0.055, [0, 0, 0], [1, 1, 1.2]);
     const thigh = beam(group, p.trousers, [0, 0, 0], [0, 1, 0], 0.082);
     const shin = beam(group, p.trousers, [0, 0, 0], [0, 1, 0], 0.065);
-    const boot = box(group, p.black, [0.13, 0.14, 0.25], [0, 0, 0], 0.035);
+    const boot = box(group, p.boot, [0.13, 0.14, 0.25], [0, 0, 0], 0.035);
     limbs.push({ side, upperArm, forearm, hand, thigh, shin, boot });
   }
   let posture = 0;
@@ -990,6 +1007,9 @@ export function createVehicleModel(kind = 'jeep') {
     driverView = Boolean(value);
     person.head.visible = !driverView;
     person.torso.visible = !driverView;
+    group.traverse((part) => {
+      if (part.userData.hideInDriverView) part.visible = !driverView;
+    });
     for (const limb of person.limbs) limb.upperArm.visible = !driverView;
   }
   function dispose() {

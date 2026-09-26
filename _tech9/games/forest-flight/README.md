@@ -52,3 +52,11 @@ Browser verification uses installed headed Playwright Chromium and ordinary keyb
 Flight handling is assisted arcade simulation, with coordinated turns, approximate lift and conservative obstacle proxies. Desktop keyboard play is the intended input. The aircraft and airfield geometry are editable JavaScript sources; the forest kit, font and retained asset authoring sources carry their [original licenses](./public/assets/ASSETS.md).
 
 Exploration verification flies the sport plane across both sides of the valley with normal keyboard input, performs a full roll and sustained inverted flight, checks recovery, and records low/high views and resource plateaus. Camera-only art inspection under `?test=1` is separate from these success paths.
+
+## Current playtest status
+
+The independent baseline-reference art review ended at **7.6/10 after four rounds**, below the 8/10 target. Broken distant-tree cards and detached detail shadows are fixed. Remaining visual limitations are pale/uniform midground soil, sparse middle-distance undergrowth, repetitive distant canopy and visible LOD change. Framework extraction remains deferred until user playtest.
+
+Validation: 36 CPU tests, lint and production build pass. Both aircraft completed keyboard-driven circuits and landings; remote east/west low/high travel, a full sport roll, inverted cockpit/pitch and recovery were checked. The trainer used real-time travel; subsequent runs use 8× travel and 1× captures. The exploration resource assertion's initial warmup cutoff was too early for first-visible airfield uploads; its corrected settled-tail assertion was checked against the existing trace without repeating the flight. The final recorded tail held 248 geometries, 35 textures and 30 programs across 449 detail-window updates. Final fixed-view captures have no browser/WebGL errors.
+
+Final High-preset reference captures at 1440×900 on Chromium 151 / ANGLE Metal / Apple M1 Pro measured roughly 55 FPS near ground, 67 in low flight and 121 at altitude. These are short headless rAF observations, not production performance guarantees; the 60 FPS ground target was not met consistently. Browser checks serialize GPU work; other desktop load is not controlled. Local evidence is under `.artifacts/`.

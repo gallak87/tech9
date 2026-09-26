@@ -1,60 +1,48 @@
-# Start a Tech9 task
+# Build a game
 
-This is the agent-facing kickoff for the active framework. Choose the mode from the user’s intent: **game-dev** for a playable game, **framework-dev** for a shared capability or bringing one back from a game. For framework-dev, continue with [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md); the remaining game-fork steps here do not apply. If intent is unclear, ask which outcome they want.
+Use **game-dev** to turn a game idea into a standalone playable package. For reusable module work, use [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md).
 
-The intended `/generate` entrypoint will route to these same flows. Slash registration and CLI mode flags are deferred; today an agent reads the appropriate document and executes the task. The CLI is a tool inside the workflow.
+Read [AGENTS.md](./AGENTS.md), [WORKFLOW.md](./WORKFLOW.md), the [module guide](./modules/README.md) and the baseline's README/architecture. The framework root is `_tech9/`; CLI paths are relative to the framework directory.
 
-## Locate the active framework
+## Define the experience
 
-The directory containing this file is the framework root: currently `_tech9/`, eventually the repository root after a separately authorized migration. Resolve workflow documents, `runs/`, `scenes/` and `games/` relative to this file. Read its `AGENTS.md`, `README.md`, `WORKFLOW.md`, catalog and the selected starter's README/ARCHITECTURE before editing.
+Describe the player objective, core actions, outcome, recovery and restart. Start with the baseline and identify the modules and game-specific systems needed for the experience. Record scope, acceptance, path ownership, dependencies, validation, authority and the stopping point in `runs/<slug>/BRIEF.md` and `plan.json`. The plan follows the [execution-plan schema](./schemas/execution-plan.schema.json).
 
-While `_tech9` is active, ignore the legacy root planners, `meta/` and `.claude/commands/generate.md` for this workflow. Preserve those files. New pilots belong in `_tech9/games/<slug>`; temporary, ignored coordination belongs in `_tech9/runs/<slug>`. The existing Alder Signal at repository-root `games/alder-signal` is an earlier pilot and stays in place for now.
+Use delegated authority for routine decisions and clarify material missing requirements. A planning-only task ends with the plan.
 
-The current CLI still takes repository-relative catalog and plan paths, even when invoked from `_tech9`. This is a tooling detail, not a change to the user's kickoff. Root graduation will update those path adapters and metadata separately; this document does not claim that moving the directory today is supported.
+For pilots, set `artGate` to `{ "threshold": 8, "maxRounds": 4 }`. Deliver the complete playable loop and bounded review cycle before further depth. Larger games use the milestones and handoff points defined in their brief.
 
-## Direct and authorize
+## Create the package
 
-Turn the idea into a short player experience with a clear objective, core action, outcome and restart. Inspect actual starter capabilities. For a pilot, prefer one satisfying complete loop to a large feature list. Ask only about material missing requirements; ordinary creative choices can follow delegated authority. If the user asked for planning only, deliver a plan and stop before implementation.
+The fork destination must be absent. If `games/<slug>` contains exactly a launch packet (`BRIEF.md` and `PROMPT.md`), move that directory to `runs/<slug>` before creating its plan. Preserve existing run directories and inspect unexpected contents. A game with a fork receipt is an existing project to resume.
 
-For an existing launch packet, first perform the relocation described under “Bootstrap one owned game,” before creating any run directory or plan. Then preserve/refine its `runs/<slug>/BRIEF.md` and write `plan.json` following the execution-plan schema. For a new idea without a launch packet, create those run files directly. Keep these run files local and ignored; never commit or force-add them. Record scope, acceptance, concrete path ownership, dependency order, validation, authority and stopping point. Do not claim the user approved a plan they have not seen: use delegated authority when their request covers execution. Preserve user constraints across the entire run.
-
-For game pilots, set `artGate` to `{ "threshold": 8, "maxRounds": 4 }`. First build and verify the complete loop, then run the bounded critic/fix cycle below. Hand over the playable build when the gate passes or reaches its cap; further depth waits for user playtesting. A cap below 8 means a failed art gate, reported plainly.
-
-## Managed goal and bounded critique
-
-Executing a launch prompt explicitly requests a managed goal for the complete game handoff. After inspection and scope definition, create that goal when the host provides a goal mechanism; never replace an unfinished goal silently. A planning-only request does not start one. If the host has no goal tool, use the written execution plan and report that limitation. The CLI itself does not create goals or run agents.
-
-The goal covers the complete playable loop, correctness checks, checkpoint commits, independent critique and handoff. It is not merely “make the screenshot score 8.” Keep progress and stop conditions tied to those concrete deliverables. Only mark it complete when required work is finished; if the visual round cap was reached below target, the handoff may be complete while the art gate explicitly remains failed. Do not hide unverified gameplay behind a visual score.
-
-Use a separate, demanding AAA art critic against frozen committed builds and actual browser captures. The critic must judge composition, lighting, materials, asset/animation quality, visual coherence and readability, identify concrete deficits and score honestly against the stated visual ambition. Do not relabel starter limitations as a pass or quietly lower the standard because this is a pilot. For each failed round, prioritize the highest-value game-local fixes, rerun affected checks and commit before another review. Stop at 8/10 or four rounds; report the final score and remaining deficits at the cap. Keep gameplay/engineering findings separate and resolve correctness blockers regardless of art score.
-
-## Bootstrap one owned game
-
-Some pilots start with only `BRIEF.md` and `PROMPT.md` under `games/<slug>`. The fork command deliberately refuses any existing destination. Inspect that directory first. If it contains exactly those launch files and `runs/<slug>` does not exist, move the entire launch-packet directory to `runs/<slug>`, then write the plan there. This preserves the brief and frees the output path. Never remove or overwrite a game, an existing run, or unexpected files to make the fork succeed. If a game already has a provenance receipt, inspect it and resume it instead of forking again.
-
-From the current framework directory (`_tech9`), use a supported Node version and these commands, substituting the chosen starter, slug and ports:
+From `_tech9`, using supported Node:
 
 ```sh
-npm ci
-npm run t9 -- catalog
-npm run t9 -- validate _tech9/runs/<slug>/plan.json
-npm run t9 -- fork --starter <starter-id> --slug <slug> --plan _tech9/runs/<slug>/plan.json --port <dev-port> --dry-run
-npm run t9 -- fork --starter <starter-id> --slug <slug> --plan _tech9/runs/<slug>/plan.json --port <dev-port>
-npm --prefix games/<slug> ci
+./run ci
+./run run t9 -- modules
+./run run t9 -- validate runs/<slug>/plan.json
+./run run t9 -- fork --slug <slug> --plan runs/<slug>/plan.json --port <dev-port> --dry-run
+./run run t9 -- fork --slug <slug> --plan runs/<slug>/plan.json --port <dev-port>
+./run --prefix games/<slug> ci
 ```
 
-Only fork a clean committed starter. Inspect the current catalog: the forest source now includes fly/grounded walking and placement-derived collision helpers; the pond example additionally integrates water and shoreline. Use the example or concise usage aid linked from `modules/README.md`; `docs/CAPABILITIES.md` explains source copying. Starter selection chooses a tested source combination; arbitrary module composition is not an automatic CLI feature. Animals, fishing rules and complete game loops remain game work. Build needed systems inside the game. Preserve the generated `tech9.json` and `GAME_PLAN.json` bytes and source/license records. Replace inherited starter documentation with truthful game documentation. Give game storage and presentation their own identity.
+Copy the clean, committed baseline. Set `schemaVersion: 2` and `baselineVersion` to the version in `baseline/package.json` in the execution plan. Integrate additional modules using the [module guide](./modules/README.md) and [copying guide](./docs/MODULES.md), preserving their layout, dependencies and licenses. Keep `tech9.json` and `GAME_PLAN.json` byte-for-byte intact. Give the game its own presentation, storage namespace and documentation.
 
-## Build, verify and hand over
+## Build and validate
 
-Follow WORKFLOW.md. Keep renderer ownership, world content, controller and rules separate at concrete seams. Every new system must participate in the running loop. Use bounded agents when authorized and useful; an independent critic reviews a stable committed checkpoint. One owner edits each path. Games own their copied source and never import runtime code from the framework or another game.
+Executing a launch prompt requests a managed goal for implementation, validation, review and handoff. Create it after scope definition when supported by the host; preserve any unfinished goal. Otherwise use the written execution plan.
 
-Run the game's unit, lint, build and browser checks. Verify the core action, success, failure/recovery, pause/resume and restart with real input. Test hooks stay behind `?test=1`; they must not replace the core playthrough. Record browser, GPU, viewport, preset and frame timing for performance claims. Keep review reports and captures in ignored `runs/` or `.artifacts/`; commit source and tests, not a review archive.
+Keep renderer ownership, content, controllers and rules separate. Complete start → real input → core action → outcome → restart before adding depth. Follow the brief's milestones and [shared workflow](./WORKFLOW.md).
 
-For simultaneous worktrees, edit only the assigned game and run directory. Keep any unresolved framework friction or capability request in local notes while coordinating; do not patch shared starter/tooling as part of game development. Hand a requested promotion to the framework-dev workflow, which can inspect game source directly without these notes. Use the assigned ports, check availability, and do not replace repository hooks. Worktrees share machine resources: coordinate GPU captures, or disclose competing load and defer isolated performance claims. Never stop another session's server.
+Run the package's unit, lint, build and browser checks. Verify success, failure/recovery, pause/resume, focus loss and restart through real input. Test hooks behind `?test=1` support observation and rare-state setup. Performance measurements include browser, GPU, viewport, preset and frame timing.
 
-Keep current launch instructions, controls and limitations in the game README. Report validation and critic results in the task; no tracked execution report is required. Stop at the agreed handoff; do not begin another game, publish, push, migrate the root framework or promote modules without that scope being authorized. A useful game-local water layer or animal controller is a candidate for reuse, not an automatic framework feature.
+With multiple worktrees, use assigned paths and free strict ports. Coordinate GPU captures against committed builds and disclose competing machine load. Stop task-owned processes at handoff.
 
-## Future slash-command adapter
+## Review and handoff
 
-When command integration is requested, `/generate` should route the user's task and current authorization to game-dev or framework-dev, resolving paths from the active framework root and preserving the ignored `/runs/` policy. It should retain the user's playtest gates and resume an existing run when appropriate. It should not introduce a second planning/build pipeline or require the user to operate the CLI. Until that adapter is installed, the manual prompt is the supported kickoff.
+Use an independent demanding art critic against committed builds and browser captures. Assess composition, lighting, materials, assets, animation, coherence and readability against the brief's visual ambition. Fix the highest-value findings and commit before the next round. Stop at the agreed threshold or round cap and report the actual result. Correctness blockers require resolution regardless of visual score.
+
+Keep launch instructions, controls and limitations in the game README. Report validation, review results and remaining scope in the task. Complete the managed goal when the required handoff is finished, including an honest failed art gate if the round cap was reached. Handle local records as described in WORKFLOW.md.
+
+Reusable game systems can be brought into the framework through a separately scoped framework-dev task.

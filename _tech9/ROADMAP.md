@@ -1,22 +1,6 @@
 # Roadmap
 
-## Current workflows
-
-- **game-dev:** [GENERATE.md](./GENERATE.md) takes a game idea through starter selection, implementation, real-input validation and bounded critique.
-- **framework-dev:** [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md) creates shared capabilities or brings them back from games. It is a supported manual agent flow, with no historian archive required.
-- Walking/input, placement collisions, supported Node startup and pond water are available. Current versions live in the catalog; [examples](./modules/README.md) show their use.
-- [Tidebreak](./games/tidebreak/BRIEF.md) is a prepared brief/prompt for a separate agent. Ocean/island layout, boat movement and chase camera remain new game work.
-
-## Next capabilities
-
-- Improve graphics efficiency from measurements: CPU/GPU split, pacing, overdraw, LOD/culling, shadows and adaptive resolution. Keep comparable visual quality; see the [scene roadmap](./scenes/scene-test/ROADMAP.md).
-- Prove an alternate season/layout and add other starter flavors when a real game needs them.
-- Explicit source upgrade/diff tooling; no silent migrations of existing games.
-- Broader hardware, accessibility and mobile controls when a chosen game warrants them.
-- Streaming worlds, more exact physics, destruction, multiplayer and publishing only within an authorized task.
-
-## Future root and command integration
-
-Root migration remains a separately scoped decision. Move the workflow entrypoints and framework-relative `/runs/` ignore rule with the source; never commit a local run archive during migration. Update CLI path adapters and catalog paths then. Preserve legacy root entrypoints until that work is authorized.
-
-Register a thin `/generate` adapter that routes the user's task to game-dev or framework-dev, retaining authority and stop conditions. The manual workflows already exist; command registration and CLI mode flags are not implemented. A fresh consumer should need the current source and workflow, not someone else's coordination history.
+- Improve baseline frame pacing, overdraw, LOD/culling and shadow cost. See the [baseline roadmap](./baseline/ROADMAP.md).
+- Extend modules in response to game requirements and reusable implementations.
+- **World composition:** build a real level containing connected forest and canyon regions after the standalone canyon and weather integration. Keep reusable landscape assets, materials, placement and terrain construction separate from authored level layouts. Compose regions under one renderer, controller and weather state, with continuous terrain/material transitions and consistent collision, surface and shelter queries. Use that level to establish the smallest useful landscape-module interfaces and bounded detail/loading behavior. Completion means ordinary traversal across both regions with coherent visuals, contacts and weather. This is future capability work, independent of root graduation.
+- Graduate the framework to the repository root using the [relocation checklist](./docs/MIGRATION.md).

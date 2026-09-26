@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "modules": [
+    {
+      "id": "grounded-walking",
+      "version": "1.0.0"
+    },
+    {
+      "id": "placement-collisions",
+      "version": "1.0.0"
+    },
+    {
+      "id": "pond-water",
+      "version": "1.2.0"
+    },
+    {
+      "id": "boat-motion",
+      "version": "1.0.0"
+    },
+    {
+      "id": "follow-camera",
+      "version": "1.0.1"
+    },
+    {
+      "id": "island-ocean",
+      "version": "1.0.0"
+    }
+  ]
+}

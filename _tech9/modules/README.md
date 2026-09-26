@@ -1,11 +1,14 @@
-# Capability index
+# Modules
 
-The current modules use existing runnable scenes as their usage examples. There are no parallel module manuals. Read the linked composition point and run the scene using its package README.
+Copy the selected folders into a package's `src/modules/`, including required sibling modules, assets and licenses. Each guide below shows integration and lifecycle. [modules.json](../modules.json) records versions.
 
-| Module                  | Canonical source                                                            | Working example                                                                                                             |
-| ----------------------- | --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Grounded movement/input | [WalkingController.js](./grounded-walking/src/WalkingController.js)         | [Forest composition](../scenes/scene-test/src/main.js), launched with `?controller=walk`                                    |
-| Placement collisions    | [placementCollisions.js](./placement-collisions/src/placementCollisions.js) | [Shared forest rendering/collider placements](../scenes/scene-test/src/world/ForestWorld.js)                                |
-| Pond water/shore        | [PondWater.js](./pond-water/src/PondWater.js)                               | [Pond composition](../scenes/pond-test/src/main.js) and [shore definition](../scenes/pond-test/src/world/pondDefinition.js) |
+| Module                                                   | Provides                                                        | Dependencies                                                 |
+| -------------------------------------------------------- | --------------------------------------------------------------- | ------------------------------------------------------------ |
+| [grounded-walking](./grounded-walking/README.md)         | Grounded camera movement and desktop input                      | placement-collisions; Three.js camera supplied by the caller |
+| [placement-collisions](./placement-collisions/README.md) | Placement-derived discs, capsule chains and movement resolution | None                                                         |
+| [pond-water](./pond-water/README.md)                     | Reflective water, shared shoreline queries and shore decoration | Three.js                                                     |
+| [boat-motion](./boat-motion/README.md)                   | Arcade boat simulation and keyboard input                       | None                                                         |
+| [follow-camera](./follow-camera/README.md)               | Follow and mounted camera modes                                 | Three.js                                                     |
+| [island-ocean](./island-ocean/README.md)                 | Island coast, navigation and reflective ocean                   | pond-water; Three.js                                         |
 
-The catalog records current versions. Scenes carry checked local copies; games inherit owned copies through a starter fork. For source-copy maintenance use [CAPABILITIES.md](../docs/CAPABILITIES.md). To add or bring back a capability use [FRAMEWORK_DEV.md](../FRAMEWORK_DEV.md).
+See [copying](../docs/MODULES.md) and [module development](../FRAMEWORK_DEV.md).

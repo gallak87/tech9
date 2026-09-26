@@ -66,41 +66,15 @@ function uniqueIds(entries, label) {
   return seen;
 }
 
-export function validateCatalog(catalog) {
+export function validateModules(registry) {
   assert(
-    object(catalog) && catalog.schemaVersion === 1,
-    'Catalog schemaVersion must be 1',
+    object(registry) && registry.schemaVersion === 1,
+    'Modules schemaVersion must be 1',
   );
-  const scenes = uniqueIds(catalog.scenes, 'scenes');
-  uniqueIds(catalog.starters, 'starters');
-  uniqueIds(catalog.modules, 'modules');
-  for (const scene of catalog.scenes) {
-    version(scene.version, `Scene ${scene.id} version`);
-    safeRelative(scene.path, `Scene ${scene.id} path`);
-    safeRelative(scene.manifest, `Scene ${scene.id} manifest`);
-  }
-  for (const starter of catalog.starters) {
-    version(starter.version, `Starter ${starter.id} version`);
-    assert(
-      scenes.has(starter.scene),
-      `Starter ${starter.id} references unknown scene ${starter.scene}`,
-    );
-    assert(
-      ['available', 'planned', 'deprecated'].includes(starter.status),
-      `Starter ${starter.id} has invalid status`,
-    );
-    assert(
-      text(starter.description),
-      `Starter ${starter.id} needs a description`,
-    );
-    strings(starter.provides, `Starter ${starter.id} provides`);
-    strings(starter.excludes, `Starter ${starter.id} excludes`);
-  }
-  for (const module of catalog.modules) {
+  uniqueIds(registry.modules, 'modules');
+  for (const module of registry.modules)
     version(module.version, `Module ${module.id} version`);
-    safeRelative(module.path, `Module ${module.id} path`);
-  }
-  return catalog;
+  return registry;
 }
 
 function ownershipPath(value) {
@@ -113,16 +87,14 @@ function ownershipPath(value) {
   return plain.replace(/\/$/, '');
 }
 
-export function validatePlan(plan, catalog) {
+export function validatePlan(plan, baselineVersion) {
   assert(
-    object(plan) && plan.schemaVersion === 1,
-    'Plan schemaVersion must be 1',
+    object(plan) && plan.schemaVersion === 2,
+    'Plan schemaVersion must be 2',
   );
   slug(plan.id, 'Plan id');
   assert(text(plan.title) && text(plan.pitch), 'Plan needs a title and pitch');
-  assert(object(plan.starter), 'Plan needs a starter');
-  slug(plan.starter.id, 'Plan starter id');
-  version(plan.starter.version, 'Plan starter version');
+  version(plan.baselineVersion, 'Plan baselineVersion');
   assert(
     ['approved', 'draft'].includes(plan.status),
     'Plan status must be approved or draft',
@@ -223,19 +195,10 @@ export function validatePlan(plan, catalog) {
     'artGate needs a threshold in (0, 10] and maxRounds in [1, 10]',
   );
   assert(text(plan.stopAfter), 'Plan needs stopAfter');
-  if (catalog) {
-    validateCatalog(catalog);
-    const starter = catalog.starters.find(
-      (entry) => entry.id === plan.starter.id,
-    );
-    assert(starter, `Unknown starter: ${plan.starter.id}`);
+  if (baselineVersion !== undefined) {
     assert(
-      starter.version === plan.starter.version,
-      `Starter version mismatch: plan ${plan.starter.version}, catalog ${starter.version}`,
-    );
-    assert(
-      starter.status === 'available',
-      `Starter ${starter.id} is not available`,
+      plan.baselineVersion === baselineVersion,
+      `Baseline version mismatch: plan ${plan.baselineVersion}, package ${baselineVersion}`,
     );
   }
   return plan;

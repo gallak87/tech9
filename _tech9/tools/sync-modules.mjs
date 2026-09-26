@@ -3,7 +3,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { confinedPath, loadCatalog, readJson } from './lib/project.mjs';
+import { confinedPath, loadModules, readJson } from './lib/project.mjs';
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -25,151 +25,116 @@ async function files(root, relative = '') {
   return result;
 }
 
-/** Maintainer-only snapshots into registered framework scenes, never existing games. */
+/** Refresh the baseline's selected module source copies. */
 export async function syncModules({ root, write = false }) {
-  const catalog = await loadCatalog(root);
-  const jobs = [];
-  for (const scene of catalog.scenes) {
-    if (!scene.path.startsWith('_tech9/scenes/'))
+  const registry = await loadModules(root);
+  const packageJson = await readJson(
+    await confinedPath(root, 'baseline/package.json'),
+  );
+  const selected = packageJson.tech9?.modules;
+  if (!Array.isArray(selected) || new Set(selected).size !== selected.length)
+    throw new Error('baseline/package.json needs a unique tech9.modules list');
+  const copyRoot = await confinedPath(root, `baseline/src/modules`, {
+    allowMissing: true,
+  });
+  const copyEntries = await readdir(copyRoot).catch((error) => {
+    if (error.code === 'ENOENT') return [];
+    throw error;
+  });
+  for (const entry of copyEntries) {
+    if (entry !== 'PROVENANCE.json' && !selected.includes(entry))
       throw new Error(
-        `Module syncing is limited to framework scenes: ${scene.path}`,
+        `Unexpected module copy; inspect before removing: ${copyRoot}/${entry}`,
       );
-    const manifestPath = await confinedPath(
-      root,
-      `${scene.path}/capabilities.json`,
-      { allowMissing: true },
+  }
+  const records = [];
+  const copies = [];
+  for (const id of selected) {
+    const module = registry.modules.find((item) => item.id === id);
+    if (!module)
+      throw new Error(`Unknown module ${id} in baseline/package.json`);
+    const modulePath = `modules/${id}`;
+    const moduleRoot = await confinedPath(root, modulePath);
+    const source = await confinedPath(root, `${modulePath}/src`);
+    const target = await confinedPath(root, `baseline/src/modules/${id}`, {
+      allowMissing: true,
+    });
+    const sourceFiles = await files(source);
+    if (!sourceFiles.length)
+      throw new Error(`Module ${id} contains no source files`);
+    const documentation = (await readdir(moduleRoot)).filter(
+      (name) =>
+        name === 'README.md' ||
+        /(?:LICENSE|NOTICE).*(?:\.txt|\.md)?$/i.test(name),
     );
-    let manifest;
-    try {
-      manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
-    } catch (error) {
-      if (error.code === 'ENOENT') continue;
-      throw error;
-    }
-    if (
-      manifest.schemaVersion !== 1 ||
-      !Array.isArray(manifest.modules) ||
-      new Set(manifest.modules).size !== manifest.modules.length
-    )
-      throw new Error(`Invalid capabilities manifest: ${manifestPath}`);
-    const copyRoot = await confinedPath(
-      root,
-      `${scene.path}/src/capabilities`,
-      { allowMissing: true },
+    const assets = await files(path.join(moduleRoot, 'assets')).catch(
+      (error) => {
+        if (error.code === 'ENOENT') return [];
+        throw error;
+      },
     );
-    const copyEntries = await readdir(copyRoot).catch((error) => {
+    const included = [
+      ...sourceFiles.map((file) => `src/${file}`),
+      ...documentation,
+      ...assets.map((file) => `assets/${file}`),
+    ].sort();
+    const existing = await files(target).catch((error) => {
       if (error.code === 'ENOENT') return [];
       throw error;
     });
-    for (const entry of copyEntries) {
-      if (entry !== 'PROVENANCE.json' && !manifest.modules.includes(entry))
+    for (const file of existing)
+      if (!included.includes(file))
         throw new Error(
-          `Unexpected capability copy; inspect before removing: ${copyRoot}/${entry}`,
+          `Unexpected module-copy file; inspect before removing: ${target}/${file}`,
         );
-    }
-    const records = [];
-    const copies = [];
-    for (const id of manifest.modules) {
-      const module = catalog.modules.find((item) => item.id === id);
-      if (!module) throw new Error(`Unknown module ${id} in ${manifestPath}`);
-      if (!module.path.startsWith('_tech9/modules/'))
-        throw new Error(
-          `Module syncing requires framework-owned source: ${module.path}`,
-        );
-      const moduleRoot = await confinedPath(root, module.path);
-      const source = await confinedPath(root, `${module.path}/src`);
-      const target = await confinedPath(
+    const entries = [];
+    for (const file of included) {
+      const content = await readFile(await confinedPath(moduleRoot, file));
+      const destination = await confinedPath(
         root,
-        `${scene.path}/src/capabilities/${id}`,
+        `baseline/src/modules/${id}/${file}`,
         { allowMissing: true },
       );
-      const sourceFiles = await files(source);
-      if (!sourceFiles.length)
-        throw new Error(`Module ${id} contains no source files`);
-      const documentation = (await readdir(moduleRoot)).filter(
-        (name) =>
-          name === 'README.md' ||
-          /(?:LICENSE|NOTICE).*(?:\.txt|\.md)?$/i.test(name),
-      );
-      const included = [
-        ...sourceFiles.map((file) => `src/${file}`),
-        ...documentation,
-      ].sort();
-      const existing = await files(target).catch((error) => {
-        if (error.code === 'ENOENT') return [];
-        throw error;
-      });
-      for (const file of existing)
-        if (!included.includes(file))
-          throw new Error(
-            `Unexpected module-copy file; inspect before removing: ${target}/${file}`,
-          );
-      const entries = [];
-      for (const file of included) {
-        const content = await readFile(await confinedPath(moduleRoot, file));
-        const destination = await confinedPath(
-          root,
-          `${scene.path}/src/capabilities/${id}/${file}`,
-          { allowMissing: true },
-        );
-        entries.push({ path: file, sha256: sha256(content) });
-        copies.push({ destination, content });
-      }
-      records.push({
-        id,
-        version: module.version,
-        source: module.path,
-        files: entries,
-      });
+      entries.push({ path: file, sha256: sha256(content) });
+      copies.push({ destination, content });
     }
-    const provenancePath = await confinedPath(
-      root,
-      `${scene.path}/src/capabilities/PROVENANCE.json`,
-      { allowMissing: true },
-    );
-    jobs.push({
-      scene: scene.id,
-      provenancePath,
-      provenance: {
-        schemaVersion: 1,
-        ownership: 'source-copy',
-        modules: records,
-      },
-      copies,
+    records.push({
+      id,
+      version: module.version,
+      source: modulePath,
+      files: entries,
     });
   }
-  // Validate every path/source before making any writes.
-  for (const job of jobs) {
-    for (const { destination, content } of job.copies) {
-      if (write) {
-        await mkdir(path.dirname(destination), { recursive: true });
-        await writeFile(destination, content);
-      } else {
-        const current = await readFile(destination).catch((error) => {
-          throw new Error(
-            `Missing module copy ${destination}: ${error.message}`,
-          );
-        });
-        if (!current.equals(content))
-          throw new Error(
-            `Module copy differs: ${destination}. Review source, then run sync:modules -- --write.`,
-          );
-      }
-    }
+  const provenancePath = await confinedPath(
+    root,
+    `baseline/src/modules/PROVENANCE.json`,
+    { allowMissing: true },
+  );
+  const provenance = { schemaVersion: 1, modules: records };
+  // Validate every source and destination before writing.
+  for (const { destination, content } of copies) {
     if (write) {
-      await mkdir(path.dirname(job.provenancePath), { recursive: true });
-      await writeFile(
-        job.provenancePath,
-        `${JSON.stringify(job.provenance, null, 2)}\n`,
-      );
-    } else if (
-      !isDeepStrictEqual(await readJson(job.provenancePath), job.provenance)
-    )
-      throw new Error(`Module provenance differs: ${job.provenancePath}`);
+      await mkdir(path.dirname(destination), { recursive: true });
+      await writeFile(destination, content);
+    } else {
+      const current = await readFile(destination).catch((error) => {
+        throw new Error(`Missing module copy ${destination}: ${error.message}`);
+      });
+      if (!current.equals(content))
+        throw new Error(
+          `Module copy differs: ${destination}. Review source, then run sync:modules -- --write.`,
+        );
+    }
   }
+  if (write) {
+    await mkdir(path.dirname(provenancePath), { recursive: true });
+    await writeFile(provenancePath, `${JSON.stringify(provenance, null, 2)}\n`);
+  } else if (!isDeepStrictEqual(await readJson(provenancePath), provenance))
+    throw new Error(`Module provenance differs: ${provenancePath}`);
   return {
     mode: write ? 'write' : 'check',
-    scenes: jobs.map((job) => ({ id: job.scene, files: job.copies.length })),
+    modules: selected,
+    files: copies.length,
   };
 }
 
@@ -186,7 +151,7 @@ if (
     process.exitCode = 1;
   } else {
     syncModules({
-      root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'),
+      root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
       write: args[0] === '--write',
     })
       .then((result) => console.log(JSON.stringify(result, null, 2)))

@@ -5,11 +5,20 @@ import husky from 'husky';
 
 // Installation is deliberately explicit: dependency installation must not
 // replace another game's repository-level hooksPath.
-const root = path.resolve(
+const framework = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  '../..',
+  '..',
 );
-process.chdir(root);
+const repository = execFileSync(
+  'git',
+  ['-C', framework, 'rev-parse', '--show-toplevel'],
+  { encoding: 'utf8' },
+).trim();
+const hookPath = path
+  .relative(repository, path.join(framework, '.husky'))
+  .split(path.sep)
+  .join('/');
+process.chdir(repository);
 const previous = execFileSync(
   'git',
   ['config', '--get', '--default', '', 'core.hooksPath'],
@@ -18,15 +27,15 @@ const previous = execFileSync(
     stdio: ['ignore', 'pipe', 'ignore'],
   },
 ).trim();
-const result = husky('_tech9/.husky');
+const result = husky(hookPath);
 if (result) {
   console.error(result);
   process.exitCode = 1;
 } else {
   console.log(
-    `Tech9 hook installed at _tech9/.husky/_ (previous: ${previous || 'Git default'}).`,
+    `Tech9 hook installed at ${hookPath}/_ (previous: ${previous || 'Git default'}).`,
   );
   console.log(
-    'Only staged files under _tech9 are checked, using their nearest package configuration.',
+    'Staged framework files use their nearest package configuration.',
   );
 }

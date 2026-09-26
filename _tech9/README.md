@@ -1,53 +1,44 @@
-# Tech9 · playable foundations
+# Tech9
 
-The active framework lives in `_tech9/` alongside the legacy root framework. Root replacement is a separate, later migration. Games own their source copies; framework changes do not silently upgrade them.
+Tested game modules and a runnable baseline. Games own their copied source, assets, dependencies and development lifecycle.
 
-## Choose a workflow
+## Start
 
-- **Build a game:** give an agent your idea and [GENERATE.md](./GENERATE.md). It selects a real starter and builds a complete playable loop.
-- **Build or bring back a capability:** give an agent [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md) and the capability or game source to work from. It lands reusable code, tests and one usage aid: an example **or** concise documentation.
-
-Both flows follow [WORKFLOW.md](./WORKFLOW.md). They work from a fresh clone without historical run records. `/generate` registration is deferred; the manual agent kickoff supports both task modes now.
-
-## What is available
-
-A **scene** is runnable authored content. A **starter** is a registered scene bundle with honest limits. A **game** owns a copied starter. A **module** is reusable source incorporated into those copies.
-
-- [Forest exploration](./scenes/scene-test/README.md): fixed 160 m forest, fly or grounded movement, placement-derived collisions and five graphics controls.
-- [Pond exploration](./scenes/pond-test/README.md): grounded traversal, reflective water and coupled shore/terrain/vegetation.
-
-These scenes are the usage examples for walking, collision and water modules; see the [capability index](./modules/README.md). They do not provide full physics, vehicles or finished game rules. `t9 catalog` lists current availability.
-
-## Install and run
-
-Use Node `^22.13.0 || >=24.0.0`. From the repository root:
+From `_tech9/`, use Node `^22.13.0 || >=24.0.0`:
 
 ```sh
-./_tech9/run --runtime
-./_tech9/run ci
-./_tech9/run --prefix scenes/scene-test ci
-./_tech9/run --prefix scenes/pond-test ci
-./_tech9/run run dev:walk
-# Or: ./_tech9/run run dev:pond
+./run ci
+./run run check
+./run run t9 -- modules
 ```
 
-`run` selects a supported installed Node and anchors npm to the framework directory. `TECH9_NODE` can select an explicit executable. It never installs Node or changes hooks implicitly. Ordinary npm commands with supported Node also work. Each scene/game has its own dependencies and lockfile; root installation is not required.
+`run` selects an installed supported Node and runs npm from the framework directory. `TECH9_NODE` selects an executable; `./run --runtime` reports it. Ordinary npm commands also work with supported Node.
 
-Framework checks are `./_tech9/run test` and `./_tech9/run run lint`. Each scene supplies its own test/lint/build/browser commands. Use a free `SCENE_PORT` for browser checks.
+To explore the [baseline](./baseline/README.md):
 
-## Source and local workspace
+```sh
+./run --prefix baseline ci
+./run --prefix baseline run dev
+```
 
-| Location                         | Purpose                                                          |
-| -------------------------------- | ---------------------------------------------------------------- |
-| `catalog.json`, `framework.json` | Current versions and availability                                |
-| `scenes/`, `modules/`            | Reusable source and runnable starter examples                    |
-| `tools/`, `schemas/`, `tests/`   | Source-copy CLI, contracts and safety checks                     |
-| `games/<game>/`                  | Independent game output                                          |
-| `docs/`                          | Current operating guidance                                       |
-| `runs/<task>/`                   | Ignored local plans, coordination and reviews; created on demand |
+## Develop
 
-Commit source, tests and required licenses. `runs/` and `.artifacts/` stay local and are never force-added. Do not turn completed runs into tracked history elsewhere. A game's current README explains how to play it; Git provides development history.
+- [Game development](./GENERATE.md): define the experience, copy the baseline and compose modules.
+- [Framework development](./FRAMEWORK_DEV.md): build a module or extract reusable work from a game.
+- [Module guide](./modules/README.md): interfaces, dependencies and integration examples.
+- [Shared workflow](./WORKFLOW.md): planning, review and handoff.
 
-The optional scoped hook is installed explicitly with `./_tech9/run run hooks:install`. It reports the prior Git hook setting and checks only staged `_tech9` files using the nearest package's lint configuration. Dependency installation does not change repository hooks. See [migration](./docs/MIGRATION.md) for hook details and the future root-migration contract.
+## Layout
 
-See [architecture](./ARCHITECTURE.md), [capability copying](./docs/CAPABILITIES.md), [extension seams](./docs/EXTENDING.md), and [roadmap](./ROADMAP.md).
+| Path                           | Contents                                                        |
+| ------------------------------ | --------------------------------------------------------------- |
+| `modules.json`                 | Module IDs and versions; each ID names a folder in `modules/`   |
+| `modules/<id>/`                | Source, tests, usage documentation and required assets/licenses |
+| `baseline/`                    | Standalone starting application and staging environment         |
+| `games/<slug>/`                | Independently owned game packages                               |
+| `tools/`, `schemas/`, `tests/` | Framework tooling and checks                                    |
+| `runs/`, `.artifacts/`         | Ignored task records and generated output                       |
+
+`./run run check` runs framework tests, lint, module compilation and registry validation. `./run run sync:modules -- --write` refreshes the baseline's selected module copies; `--check` compares them. Package commands are documented in each package's README.
+
+See [architecture](./ARCHITECTURE.md), [module copying](./docs/MODULES.md), [runtime contracts](./docs/EXTENDING.md) and [local setup](./docs/MIGRATION.md).

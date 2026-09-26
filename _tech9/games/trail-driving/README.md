@@ -80,6 +80,31 @@ Independent engineering review found three P2 issues: hidden-tab audio, throwing
 
 The independent art review concluded at **7.6/10** after the four-round cap (6.0 → 7.0 → 7.4 → 7.6), below the 8/10 target. No definite visual correctness blockers remained. The forest and slope treatment remain repetitive, rocky-route identity and distant mountain forms are simple, and riders/materials retain a stylized prototype quality. Animation was assessed through captured takeoff/landing pairs rather than continuous video; those stills do not establish motion continuity.
 
+## Vehicle art rebuild
+
+The later vehicle-only pass rebuilt all three models with formed body shells, detailed tires and running gear, shared environment reflections, live instruments, articulated riding gear and separate material finishes. Lamps, handguards, goggles, gloves and cockpit visibility received further refinements. Model replacement owns and disposes its geometry, materials and generated textures while preserving the shared reflection target.
+
+The user identified ATV panel/leg and bike exhaust/boot intersections that the initial visual review missed. The repair pass opened the ATV footwell, moved its upper rails and hood away from the knees, rerouted the bike exhaust and oil line, planted soles on the actual foot supports, and aligned boot cuffs with the shins. Dedicated both-side closeups now cover rest, steering, takeoff and landing. Mounted sleeves extend outside the camera frame, and the Jeep speedometer is visible through the wheel opening.
+
+The independent vehicle-only AAA critique ended at **7.0/10**, below the requested 9/10 target, at the six-round cap. This is a separate rubric from the earlier whole-game 7.6 review.
+
+| Round | Asset checkpoint    | Vehicle craft |
+| ----- | ------------------- | ------------- |
+| 1     | `df54377e` baseline | 4.8/10        |
+| 2     | `5ab9e519`          | 6.1/10        |
+| 3     | `80f352e5`          | 6.4/10        |
+| 4     | `274fd4d2`          | 6.7/10        |
+| 5     | `ad0c7366`          | 6.8/10        |
+| 6     | `b9124b9a`          | **7.0/10**    |
+
+Final per-vehicle scores were Jeep 6.9, ATV 7.1 and bike 7.0. The critic found no definite clipping blocker in 13 representative final images, including both-side rider clearances, steering and unobscured airborne poses. Remaining AAA gaps are faceted/thin primary surfaces and simple optics, uniform material finish, tubular clothing, angular boots and shallow finger grip. Continuous video was recorded but not played by the critic; sampled stills do not establish motion continuity. All six local critiques are preserved in `.artifacts/vehicle-reviews/`, including the [final assessment](.artifacts/vehicle-reviews/review-round-6.md). The round-three score includes the correction for the user-identified clipping that the initial review missed.
+
+The final asset checkpoint is `b9124b9a`. All **50 CPU tests**, lint and production build passed. The eight asset checks include contact transforms, resource ownership and actual sole-to-support geometry. Fresh browser verification passed driving, braking, camera modes, pause/focus, gate rejection, responsive menus, settings and production-hook isolation. After repeated vehicle switching, warmed resource counts stayed at 309 geometries, 55 textures and 32 programs. No asset, console, page or WebGL errors occurred.
+
+Separate five-second real-keyboard acceleration samples for Jeep, ATV and bike measured 120.00, 120.00 and 119.60 observed FPS respectively; mean frame intervals were 8.33, 8.33 and 8.36 ms, with p95 9.2, 9.2 and 9.3 ms. Environment: Chromium 151.0.7922.34, headless full Chromium, ANGLE Metal on Apple M1 Pro, 1600 × 1000, Balanced. These short samples include browser scheduling and are not worst-case or cross-device guarantees.
+
+Local evidence is retained in ignored `.artifacts/vehicle-round-2` through `vehicle-round-6`; the final folder includes closeups, cockpit steering, sustained jump/landing pairs, continuous WebM recording, browser verification and moving-performance reports. The final jump captures use a fixed approach and normal-speed keyboard input, waiting for at least 120 ms of observed airtime; they are articulation checks, not route-completion evidence. The earlier nine-route acceptance remains unchanged: physics, routes, gate rules, fork receipts and canonical framework modules were not edited during this art pass. Temporary browser/server processes are closed after validation.
+
 ## Framework handoff
 
 The separate framework-dev phase extracted reusable behavior into canonical modules while leaving this game's local implementation and authored content under game ownership:

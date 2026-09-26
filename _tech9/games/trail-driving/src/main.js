@@ -8,6 +8,7 @@ import { VehicleInput } from './driving/VehicleInput.js';
 import { createVehicleModel } from './vehicles/VehicleModel.js';
 import { DrivingFeedback } from './vehicles/DrivingFeedback.js';
 import { DrivingCamera } from './game/DrivingCamera.js';
+import { createVehicleLighting } from './game/VehicleLighting.js';
 import { TrialRules, loadRecords, saveResult } from './game/TrialRules.js';
 import { GameUI } from './game/GameUI.js';
 
@@ -87,6 +88,7 @@ class TrailGame {
       camera: app.camera,
     });
     this.feedback.setVolume(this.volume);
+    this.vehicleLighting = createVehicleLighting(app.renderer);
     this.setVehicle('jeep');
     this.rules = new TrialRules(this.route, this.vehicle);
     this.input = new VehicleInput({
@@ -111,6 +113,7 @@ class TrailGame {
     this.vehicle = id;
     this.motion = new VehicleMotion({ vehicle: id, world, spawn: garageSpawn });
     this.model = createVehicleModel(id);
+    this.vehicleLighting.apply(this.model.group);
     this.app.scene.add(this.model.group);
     this.model.update(this.motion.snapshot(), 0);
     if (this.camera) {
@@ -380,6 +383,7 @@ class TrailGame {
     this.feedback.dispose();
     this.model.dispose();
     this.app.scene.remove(this.model.group);
+    this.vehicleLighting.dispose();
     this.ui.dispose();
   }
 }
@@ -403,8 +407,26 @@ try {
   const park = createParkWorld();
   await app.register(park);
   game = new TrailGame(app, park);
+  let inspection = null;
+  let inspectionFov = null;
   app.setController({
-    update: (dt) => game.update(dt),
+    update: (dt) => {
+      game.update(dt);
+      if (testMode && inspection) {
+        const s = game.motion.snapshot();
+        const transform = ([x, y, z]) => [
+          s.x + Math.cos(s.heading) * x - Math.sin(s.heading) * z,
+          s.y + y,
+          s.z + Math.sin(s.heading) * x + Math.cos(s.heading) * z,
+        ];
+        app.camera.position.set(...transform(inspection.position));
+        app.camera.up.set(0, 1, 0);
+        app.camera.lookAt(...transform(inspection.target));
+        app.camera.fov = inspection.fov;
+        app.camera.updateProjectionMatrix();
+        app.camera.updateMatrixWorld();
+      }
+    },
     resetMotion: () => game?.input.clear(),
     dispose() {},
   });
@@ -418,6 +440,34 @@ try {
       world: () => ({ bounds, colliders }),
       height: (x, z) => height(x, z),
       setSettings: (p) => app.setSettings(p, false),
+      inspectionCamera: (pose) => {
+        if (pose === null) {
+          inspection = null;
+          if (inspectionFov !== null) app.camera.fov = inspectionFov;
+          inspectionFov = null;
+          app.camera.updateProjectionMatrix();
+          game.camera.resetMotion();
+          return;
+        }
+        const vector = (v) =>
+          Array.isArray(v) && v.length === 3 && v.every(Number.isFinite);
+        if (
+          !vector(pose?.position) ||
+          !vector(pose?.target) ||
+          !Number.isFinite(pose.fov) ||
+          pose.fov < 20 ||
+          pose.fov > 100
+        )
+          throw new TypeError(
+            'Inspection camera requires finite vectors and fov20–100.',
+          );
+        inspectionFov ??= app.camera.fov;
+        inspection = {
+          position: [...pose.position],
+          target: [...pose.target],
+          fov: pose.fov,
+        };
+      },
       arrange: (pose) => {
         game.motion.reset(pose);
         game.model.update(game.motion.snapshot(), 0);

@@ -60,7 +60,7 @@ export function createPrecipitation(
         varying vec2 vUv; varying float vFade; varying float vDistance;
         void main(){
           float fallSpeed = ${isRain ? '15.0+weatherSeed.w*7.0' : '0.72+weatherSeed.w*0.75'};
-          float radius = ${isRain ? '24.0' : '23.0'};
+          float radius = ${isRain ? '22.0' : '18.0'};
           vec3 p=vec3(weatherSeed.x*radius*2.0,weatherSeed.y*22.0,weatherSeed.z*radius*2.0);
           p.xz += windTravel*${isRain ? '0.68' : '0.8'};
           ${isRain ? '' : 'p.x += sin(time*0.8+weatherSeed.w*43.0)*0.6; p.z += cos(time*0.6+weatherSeed.x*25.0)*0.45;'}
@@ -75,7 +75,7 @@ export function createPrecipitation(
           vec2 along=normalize(velocity.xy+vec2(0.0001));
           vec2 across=vec2(along.y,-along.x);
           float size=${isRain ? '0.014+weatherSeed.w*0.009' : '0.018+weatherSeed.w*0.035'};
-          mv.xy += ${isRain ? 'across*position.x*size+along*position.y*(0.18+weatherSeed.w*0.22)' : 'position.xy*size'};
+          mv.xy += ${isRain ? 'across*position.x*size+along*position.y*(0.11+weatherSeed.w*0.17)' : 'position.xy*size'};
           gl_Position=projectionMatrix*mv;
           vUv=uv;
           vFade=above*edge*smoothstep(0.55,2.0,-mv.z)*(1.0-smoothstep(13.0,17.0,p.y-eye.y));
@@ -88,7 +88,7 @@ export function createPrecipitation(
           float shape=${isRain ? 'pow(max(0.0,1.0-abs(vUv.x-0.5)*2.0),1.4)*sin(vUv.y*3.14159)' : '1.0-smoothstep(0.15,0.5,length(vUv-0.5))'};
           float fog=1.0-exp(-fogDensity*fogDensity*vDistance*vDistance);
           vec3 color=mix(${isRain ? 'vec3(0.65,0.74,0.8)' : 'vec3(0.85,0.91,0.94)'},fogColor,fog);
-          gl_FragColor=vec4(color,shape*vFade*${isRain ? '0.66' : '0.85'}*strength);
+          gl_FragColor=vec4(color,shape*vFade*${isRain ? '0.52' : '0.85'}*strength);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,

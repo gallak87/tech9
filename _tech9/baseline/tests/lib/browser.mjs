@@ -17,7 +17,7 @@ export function argument(name, fallback) {
   return index >= 0 ? process.argv[index + 1] : fallback;
 }
 
-async function installedChromium() {
+export async function installedChromium() {
   if (process.env.CHROMIUM_PATH) return process.env.CHROMIUM_PATH;
   try {
     await access(chromium.executablePath());

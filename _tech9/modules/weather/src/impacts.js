@@ -9,6 +9,7 @@ import {
   DoubleSide,
 } from 'three';
 import { surfaceHit } from './surfaces.js';
+import { createPuddleMaterial } from './puddles.js';
 const random = (n) => (((Math.sin(n * 78.233 + 4.1) * 43758.5453) % 1) + 1) % 1;
 
 export function createImpacts(scene, camera, query) {
@@ -31,16 +32,19 @@ export function createImpacts(scene, camera, query) {
       snow: { value: 0 },
       wind: { value: new Vector2() },
     };
-    const material = new ShaderMaterial({
-      uniforms,
-      transparent: true,
-      depthWrite: false,
-      side: DoubleSide,
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -2,
-      vertexShader: `attribute float phase; varying vec2 vUv; varying float vPhase; varying vec3 vPosition; void main(){ vUv=uv;vPhase=phase;vec4 world=modelMatrix*instanceMatrix*vec4(position,1.0);vPosition=world.xyz;gl_Position=projectionMatrix*viewMatrix*world; }`,
-      fragmentShader: `
+    const material =
+      kind === 'puddles'
+        ? createPuddleMaterial(uniforms)
+        : new ShaderMaterial({
+            uniforms,
+            transparent: true,
+            depthWrite: false,
+            side: DoubleSide,
+            polygonOffset: true,
+            polygonOffsetFactor: -2,
+            polygonOffsetUnits: -2,
+            vertexShader: `attribute float phase; varying vec2 vUv; varying float vPhase; varying vec3 vPosition; void main(){ vUv=uv;vPhase=phase;vec4 world=modelMatrix*instanceMatrix*vec4(position,1.0);vPosition=world.xyz;gl_Position=projectionMatrix*viewMatrix*world; }`,
+            fragmentShader: `
         uniform float time;uniform float wet;uniform float rain;uniform float snow;uniform vec2 wind;
         varying vec2 vUv;varying float vPhase;varying vec3 vPosition;
         float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -66,9 +70,10 @@ export function createImpacts(scene, camera, query) {
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,
-    });
+          });
     const mesh = new InstancedMesh(geometry, material, capacity);
     mesh.name = `Weather ${kind}`;
+    mesh.receiveShadow = kind === 'puddles';
     mesh.frustumCulled = false;
     mesh.renderOrder = 2;
     scene.add(mesh);
@@ -101,9 +106,14 @@ export function createImpacts(scene, camera, query) {
         scratch.quaternion.setFromUnitVectors(localNormal, normal);
         const size =
           e.kind === 'puddles'
-            ? 0.35 + random(seed + 8) * 1.4
+            ? 0.28 + Math.pow(random(seed + 8), 1.7) * 1.8
             : 0.09 + random(seed + 7) * 0.17;
-        scratch.scale.set(size, size * (e.kind === 'puddles' ? 0.7 : 1), 1);
+        scratch.rotateZ(random(seed + 21) * Math.PI * 2);
+        scratch.scale.set(
+          size,
+          size * (e.kind === 'puddles' ? 0.45 + random(seed + 13) * 0.6 : 1),
+          1,
+        );
         scratch.updateMatrix();
         phases.setX(count, random(seed + 90));
         e.mesh.setMatrixAt(count++, scratch.matrix);

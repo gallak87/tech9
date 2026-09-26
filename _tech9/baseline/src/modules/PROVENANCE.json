@@ -42,7 +42,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "cb07e19570c8fde0a64526924bb3bdcbdaeeb035fbf590d041e0815c7bd3503a"
+          "sha256": "d3b8d6c998e9f0f594acb79102410078d80958e0f733c1c8d72c3a0a595b78d9"
         },
         {
           "path": "src/Weather.js",
@@ -54,15 +54,19 @@
         },
         {
           "path": "src/impacts.js",
-          "sha256": "697ea06f4ff29a8c9a3a96d2b887eced8c226b2a383dc55c63ae31412b332861"
+          "sha256": "a31cc3c53559ea3a4b6fcc8434758c56e1a7d787d9c5ebc5b6edd5c74b882c58"
         },
         {
           "path": "src/materials.js",
-          "sha256": "82cbb3c8ff2a4cb83e323543f0bea0c61ee42967f9935f272f6093673120987d"
+          "sha256": "34763e8d21087aad8d10f10a3fe6018ac82089a27a32d6268f8b530c19ab5389"
         },
         {
           "path": "src/precipitation.js",
-          "sha256": "96631187f416b22525cac5bca60bfc03f2d51ff3ffce0abc81c57347ed6aad39"
+          "sha256": "014f8f71a8179c1537c947efd54295a614eb5a1a2972306eba406db31a263322"
+        },
+        {
+          "path": "src/puddles.js",
+          "sha256": "fbf0a5dc1a96f7574ff8addfe1b8e89f640215184af3dc1cbd6c3c2589dfa600"
         },
         {
           "path": "src/state.js",

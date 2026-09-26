@@ -1,4 +1,5 @@
 import { Color, MathUtils } from 'three';
+import { createForestReflection } from './forestReflection.js';
 import {
   createWeather,
   WEATHER_PRESETS,
@@ -6,9 +7,10 @@ import {
 } from '../modules/weather/src/Weather.js';
 
 /** This adapter alone knows about the forest's sky, lights, views and interface. */
-export function createForestWeather(app, forest, surface) {
+export function createForestWeather(app, forest, surface, features = {}) {
   const weather = createWeather({
     targets: forest.getWeatherTargets(),
+    features,
     sampleSurface: surface.sampleSurface,
     surfaceBounds: app.bounds,
   });
@@ -20,6 +22,9 @@ export function createForestWeather(app, forest, surface) {
   };
   const base = app.definition.environment;
   const initialSky = app.sky.material.fragmentShader;
+  const initialEnvironment = app.scene.environment;
+  const initialEnvironmentIntensity = app.scene.environmentIntensity;
+  let reflection;
   let panel,
     abort,
     preset = 'clear';
@@ -71,6 +76,7 @@ export function createForestWeather(app, forest, surface) {
     app.atmosphere.volumeMaterial.uniforms.sunColor.value.copy(colors.sun);
     app.renderer.toneMappingExposure =
       base.exposure * app.settings.exposure * MathUtils.lerp(1, 0.91, winter);
+    app.scene.environmentIntensity = 0.55 + weather.condition.wetness * 0.45;
     skyCloud.value = cloud;
     skyWinter.value = winter;
   }
@@ -232,6 +238,8 @@ export function createForestWeather(app, forest, surface) {
       active ? surface.snowDepth(x, z, weather.condition.snow) : 0,
     init(context) {
       abort = new AbortController();
+      reflection = createForestReflection(app.renderer);
+      app.scene.environment = reflection.texture;
       weather.init(context);
       app.sky.material.uniforms.weatherCloud = skyCloud;
       app.sky.material.uniforms.weatherWinter = skyWinter;
@@ -279,6 +287,9 @@ export function createForestWeather(app, forest, surface) {
     },
     dispose() {
       active = false;
+      app.scene.environment = initialEnvironment;
+      app.scene.environmentIntensity = initialEnvironmentIntensity;
+      reflection?.dispose();
       abort?.abort();
       panel?.remove();
       weather.dispose();

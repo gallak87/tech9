@@ -9,7 +9,7 @@ export function installWeatherMaterials(targets, field, state) {
       throw new Error(
         'Weather surface targets require MeshStandardMaterial or MeshPhysicalMaterial.',
       );
-    for (const key of ['snow', 'wet', 'wind'])
+    for (const key of ['snow', 'wet', 'wind', 'depth'])
       if (target[key] !== undefined && !Number.isFinite(target[key]))
         throw new Error(`Weather target ${key} must be finite.`);
   }
@@ -22,6 +22,7 @@ export function installWeatherMaterials(targets, field, state) {
     weatherWet: { value: 0 },
     weatherSnow: { value: 0 },
     weatherWinter: { value: 0 },
+    weatherRain: { value: 0 },
     weatherTime: { value: 0 },
     weatherWind: { value: new Vector2() },
   };
@@ -44,6 +45,7 @@ export function installWeatherMaterials(targets, field, state) {
     const snow = Math.max(0, Math.min(1, target.snow ?? 1));
     const wet = Math.max(0, Math.min(1, target.wet ?? 1));
     const wind = Math.max(0, Math.min(1, target.wind ?? 0));
+    const depth = Math.max(0, Math.min(1, target.depth ?? 1));
     const ground = target.ground ? 1 : 0;
     const foliage = target.foliage ? 1 : 0;
     const compile = function (shader, renderer) {
@@ -75,7 +77,7 @@ export function installWeatherMaterials(targets, field, state) {
         float weatherRetention = mix(1.0,weatherHit.b,${ground.toFixed(1)});
         float weatherDeposit = smoothstep(0.23,0.8,weatherN.y) * weatherExposure * weatherRetention * weatherSnow * ${snow.toFixed(3)};
         // Thin, bounded accumulation. World-space lift remains valid for scaled instances.
-        float weatherDepth = weatherDeposit * 0.065;
+        float weatherDepth = weatherDeposit * 0.065 * ${depth.toFixed(3)} * (0.75+weatherNoise(weatherWorld.xz*3.5)*0.25);
         vec2 weatherBend = weatherWind * ${wind.toFixed(3)} * min(pow(max(position.y,0.0),1.4),5.0) * (0.055 + 0.018*sin(weatherTime*1.3+weatherWorld.x*0.7+weatherWorld.z*0.5));
         vec3 weatherOffset = vec3(weatherBend.x,weatherDepth,weatherBend.y);
         #ifdef USE_INSTANCING
@@ -92,7 +94,7 @@ export function installWeatherMaterials(targets, field, state) {
           '#include <common>',
           `#include <common>
         ${surfaceGLSL}
-        uniform float weatherSnow; uniform float weatherWet; uniform float weatherWinter;
+        uniform float weatherSnow; uniform float weatherWet; uniform float weatherWinter; uniform float weatherRain;
         varying vec3 vWeatherPosition; varying vec3 vWeatherNormal;
       `,
         )
@@ -105,14 +107,14 @@ export function installWeatherMaterials(targets, field, state) {
         float weatherSlope = smoothstep(0.23,0.8,normalize(vWeatherNormal).y);
         float weatherMacro = weatherNoise(vWeatherPosition.xz*1.8) * 0.65 + weatherNoise(vWeatherPosition.xz*8.0) * 0.35;
         float weatherAmount = weatherSnow * weatherExposure * weatherRetention * ${snow.toFixed(3)};
-        float weatherCover = smoothstep(0.15,0.4,weatherAmount - (1.0-weatherSlope)*0.65 - weatherMacro*0.21);
+        float weatherCover = smoothstep(0.17,0.32,weatherAmount - (1.0-weatherSlope)*0.65 - weatherMacro*0.21);
         weatherCover *= weatherSlope;
-        float weatherMoisture = weatherWet * mix(0.25,1.0,weatherExposure) * ${wet.toFixed(3)};
-        diffuseColor.rgb *= 1.0 - weatherMoisture * 0.33;
+        float weatherMoisture = weatherWet * mix(0.25,1.0,weatherExposure) * ${wet.toFixed(3)} * (0.84+weatherMacro*0.16) * (1.0-weatherWinter*(1.0-weatherRain)*0.65);
+        diffuseColor.rgb *= 1.0 - weatherMoisture * ${ground ? '0.2' : '0.28'};
         // Seasonal vegetation retains texture and variety instead of becoming emissive green.
         float winterLuma = dot(diffuseColor.rgb,vec3(0.2126,0.7152,0.0722));
         diffuseColor.rgb = mix(diffuseColor.rgb, mix(diffuseColor.rgb,vec3(winterLuma*0.92,winterLuma*0.94,winterLuma*0.83),0.55),weatherWinter*${foliage.toFixed(1)});
-        vec3 snowColor = vec3(0.77,0.84,0.88) * (0.91+weatherMacro*0.09);
+        vec3 snowColor = vec3(0.84,0.87,0.89) * (0.94+weatherMacro*0.04+weatherNoise(vWeatherPosition.xz*65.0)*0.02);
         snowColor *= 1.0-weatherMoisture*0.1;
         diffuseColor.rgb = mix(diffuseColor.rgb,snowColor,weatherCover);
       `,
@@ -120,8 +122,8 @@ export function installWeatherMaterials(targets, field, state) {
         .replace(
           '#include <metalnessmap_fragment>',
           `#include <metalnessmap_fragment>
-        roughnessFactor = mix(roughnessFactor, max(0.18,roughnessFactor*0.39),weatherMoisture);
-        roughnessFactor = mix(roughnessFactor,0.83-weatherMoisture*0.2,weatherCover);
+        roughnessFactor = mix(roughnessFactor, max(${ground ? '0.49' : '0.24'},roughnessFactor*${ground ? '0.72' : '0.46'}),weatherMoisture);
+        roughnessFactor = mix(roughnessFactor,0.93-weatherMoisture*0.12,weatherCover);
       `,
         )
         .replace(
@@ -139,7 +141,7 @@ export function installWeatherMaterials(targets, field, state) {
         );
     };
     const cacheKey = () =>
-      `${baseKey()}:weather-v1:${enabled}:${snow}:${wet}:${wind}:${ground}:${foliage}`;
+      `${baseKey()}:weather-v1:${enabled}:${snow}:${wet}:${wind}:${ground}:${foliage}:${depth}`;
     material.onBeforeCompile = compile;
     material.customProgramCacheKey = cacheKey;
     material.needsUpdate = true;
@@ -157,6 +159,7 @@ export function installWeatherMaterials(targets, field, state) {
       uniforms.weatherWet.value = state.wetness;
       uniforms.weatherSnow.value = state.snow;
       uniforms.weatherWinter.value = state.winter;
+      uniforms.weatherRain.value = state.rain;
       uniforms.weatherTime.value = state.time;
       uniforms.weatherWind.value.set(state.windX, state.windZ);
     },

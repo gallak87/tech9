@@ -170,9 +170,9 @@ try {
       setView: (name) => app.setView(name),
       setSettings: (patch) => app.setSettings(patch, false),
       setWeather: (patch) => weather.configureWeather(patch),
-      cycleWeather: async () => {
+      cycleWeather: async (features = {}) => {
         app.unregister('forest-weather');
-        weather = createForestWeather(app, forest, surface);
+        weather = createForestWeather(app, forest, surface, features);
         await app.register(weather);
       },
     };

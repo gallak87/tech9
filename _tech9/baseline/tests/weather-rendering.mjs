@@ -22,6 +22,9 @@ async function capture() {
 try {
   await page.locator('[data-setting="quality"]').selectOption('balanced');
   await page.evaluate(() =>
+    window.__SCENE_TEST__.cycleWeather({ impacts: false, audio: false }),
+  );
+  await page.evaluate(() =>
     window.__SCENE_TEST__.setWeather({
       rain: 0,
       snowfall: 0,

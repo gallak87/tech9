@@ -577,6 +577,8 @@ function buildDebris(group, disposables) {
     color: '#3b3024',
     roughness: 0.98,
   });
+  pebbleMaterial.userData.weather = { depth: 0 };
+  stickMaterial.userData.weather = { depth: 0 };
   const pebbles = scatter(
     random,
     1500,

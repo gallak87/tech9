@@ -105,14 +105,20 @@ function tailored(parent, p, sections, kind, side = 1) {
     const fold =
       (kind === 'torso' ? 0.0045 : 0.0028) * envelope * Math.sin(phase);
     if (core) {
+      const compression =
+        kind === 'trousers' && t > 0.64 && cz < 0.4
+          ? 0.0022 * Math.sin(((t - 0.64) / 0.36) * Math.PI * 3) ** 2
+          : 0;
       positions.setX(
         i,
-        positions.getX(i) + sx * fold + side * Math.sin(t * Math.PI) * 0.0018,
+        positions.getX(i) +
+          sx * (fold - compression) +
+          side * Math.sin(t * Math.PI) * 0.0018,
       );
       positions.setZ(
         i,
         positions.getZ(i) +
-          cz * fold +
+          cz * (fold - compression) +
           (kind === 'torso' ? 0 : 0.005 * Math.sin(t * Math.PI)),
       );
     }
@@ -214,9 +220,9 @@ function glove(parent, p, side) {
     p.glove,
     [
       [-0.033, 0.026, 0.018],
-      [-0.025, 0.034, 0.023],
-      [0.007, 0.041, 0.022],
-      [0.031, 0.034, 0.017],
+      [-0.025, 0.031, 0.018],
+      [0.007, 0.039, 0.018],
+      [0.027, 0.031, 0.014],
     ],
     24,
   );
@@ -242,8 +248,8 @@ function glove(parent, p, side) {
       group,
       p.clothDark,
       1,
-      [x, 0.041 + lift, 0.002],
-      [0.0072, 0.006, 0.011],
+      [x, 0.042 + lift, 0.002],
+      [0.0075, 0.0065, 0.0115],
     );
     tube(
       group,
@@ -490,60 +496,105 @@ function shellSurface(parent, p) {
 }
 
 function goggle(parent, p) {
-  function lens(mat, w, h, depth) {
-    const points = [],
-      idx = [],
-      uv = [];
-    const cols = 20;
-    for (let row = 0; row < 2; row++)
-      for (let i = 0; i <= cols; i++) {
-        const x = ((i / cols) * 2 - 1) * w;
-        const edge = Math.pow(Math.abs(x / w), 4);
-        points.push(
-          x,
-          0.039 + (row ? 1 : -1) * h * (1 - edge * 0.3),
-          depth + (x / w) ** 2 * 0.036,
-        );
-        uv.push(i / cols, row);
-      }
-    for (let i = 0; i < cols; i++)
-      idx.push(i, i + cols + 1, i + 1, i + 1, i + cols + 1, i + cols + 2);
-    const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute(
-      'position',
-      new THREE.Float32BufferAttribute(points, 3),
-    );
-    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-    geometry.setIndex(idx);
-    geometry.computeVertexNormals();
-    mesh(parent, geometry, mat);
+  // A curved optical face with a nose relief sits inside a thin perimeter rim.
+  // The gasket is a ring, leaving physical depth to the face behind the lens.
+  const lensMaterial = p.visor.clone();
+  lensMaterial.color.set(0x3f6870);
+  lensMaterial.metalness = 0.08;
+  lensMaterial.roughness = 0.13;
+  lensMaterial.transparent = true;
+  lensMaterial.opacity = 0.86;
+  lensMaterial.depthWrite = false;
+  function edge(u, top, w, h, z) {
+    const corner = Math.pow(Math.abs(u), 5);
+    const nose = top ? 0 : 0.012 * Math.exp(-((u / 0.21) ** 2));
+    return [
+      u * w,
+      0.042 + (top ? 1 : -1) * h * (1 - corner * 0.34) + nose,
+      z + u * u * 0.035,
+    ];
   }
-  lens(p.black, 0.12, 0.047, -0.153);
-  lens(p.visor, 0.106, 0.034, -0.158);
+  const points = [],
+    uv = [],
+    indices = [],
+    columns = 32,
+    rows = 6;
+  for (let row = 0; row <= rows; row++)
+    for (let col = 0; col <= columns; col++) {
+      const u = (col / columns) * 2 - 1;
+      const low = edge(u, false, 0.108, 0.029, -0.154),
+        high = edge(u, true, 0.108, 0.029, -0.154);
+      points.push(
+        low[0],
+        THREE.MathUtils.lerp(low[1], high[1], row / rows),
+        low[2] - Math.sin((row / rows) * Math.PI) * 0.0015,
+      );
+      uv.push(col / columns, row / rows);
+    }
+  for (let row = 0; row < rows; row++)
+    for (let col = 0; col < columns; col++) {
+      const a = row * (columns + 1) + col,
+        b = a + columns + 1;
+      indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(points, 3),
+  );
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  mesh(parent, geometry, lensMaterial);
+  for (const [material, width, height, depth, radius] of [
+    [p.clothDark, 0.111, 0.032, -0.142, 0.005],
+    [p.black, 0.113, 0.034, -0.152, 0.0034],
+  ]) {
+    const perimeter = [];
+    for (let i = 0; i <= 24; i++)
+      perimeter.push(edge((i / 24) * 2 - 1, true, width, height, depth));
+    for (let i = 24; i >= 0; i--)
+      perimeter.push(edge((i / 24) * 2 - 1, false, width, height, depth));
+    tube(parent, material, perimeter, radius, 64, true);
+  }
   for (const side of [-1, 1]) {
     tube(
       parent,
       p.clothDark,
       [
-        [side * 0.105, 0.043, -0.11],
-        [side * 0.154, 0.04, 0.005],
-        [side * 0.129, 0.041, 0.099],
+        [side * 0.108, 0.044, -0.109],
+        [side * 0.151, 0.04, 0.004],
+        [side * 0.128, 0.041, 0.099],
         [side * 0.071, 0.042, 0.15],
         [0, 0.043, 0.164],
       ],
-      0.015,
-      20,
+      0.011,
+      24,
     );
     tube(
       parent,
       p.accent,
       [
-        [side * 0.157, 0.043, -0.005],
-        [side * 0.153, 0.043, 0.04],
-        [side * 0.137, 0.043, 0.084],
+        [side * 0.154, 0.043, -0.005],
+        [side * 0.15, 0.043, 0.04],
+        [side * 0.134, 0.043, 0.084],
+      ],
+      0.0028,
+      10,
+    );
+    panel(
+      parent,
+      p.plastic,
+      [
+        [-0.012, -0.011],
+        [0.012, -0.011],
+        [0.013, 0.011],
+        [-0.009, 0.011],
       ],
       0.004,
-      9,
+      [side * 0.137, 0.043, -0.066],
+      [0, side * 1.12, 0],
+      0.003,
     );
   }
 }
@@ -960,7 +1011,12 @@ export function createRider(parent, kind, p) {
       elbowJoint.position.set(...elbow);
       hand.position.set(...grip);
       hand.quaternion.copy(controls.quaternion);
-      if (isJeep) hand.rotateZ(-side * 0.35);
+      if (isJeep) {
+        // A wheel grip is tangent to its rim and the glove back faces the
+        // driver; the bar-grip orientation otherwise reads as an oval mitten.
+        hand.rotateZ(-side * 1.224);
+        hand.rotateX(Math.PI / 2);
+      }
       setBeam(thigh, [hips[0] + side * 0.105, hips[1] - 0.015, hips[2]], knee);
       setBeam(shin, knee, foot);
       kneePad.position.set(...knee);

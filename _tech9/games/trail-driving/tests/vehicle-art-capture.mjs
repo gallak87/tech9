@@ -22,18 +22,23 @@ const evidence = [];
 async function captureJump(kind, suffix = '') {
   await page.evaluate(() =>
     window.__SCENE_TEST__.arrange({
-      x: 260,
-      z: -4,
+      x: 268.25,
+      z: 30.395,
       heading: Math.asin(-0.15),
     }),
   );
   await page.keyboard.down('w');
   let takeoff = false,
-    landed = false;
-  const end = Date.now() + 7000;
+    landed = false,
+    airSince = null;
+  const end = Date.now() + 9000;
   while (Date.now() < end) {
     const state = await h.snapshot();
-    if (state.motion.airborne && !takeoff) {
+    if (state.motion.airborne) airSince ??= Date.now();
+    else if (!takeoff) airSince = null;
+    // Skip momentary terrain hops: inspect a sustained jump after the approach
+    // has built speed, with time for rider/suspension posture to respond.
+    if (state.motion.airborne && !takeoff && Date.now() - airSince >= 120) {
       takeoff = true;
       await page.screenshot({
         path: path.join(out, `${kind}${suffix}-takeoff.png`),
@@ -52,7 +57,7 @@ async function captureJump(kind, suffix = '') {
   await page.keyboard.up('w');
   assert.ok(
     takeoff && landed,
-    `${kind} demonstrates a fresh takeoff and grounded landing`,
+    `${kind} demonstrates a sustained takeoff and grounded landing`,
   );
 }
 try {
@@ -174,6 +179,12 @@ try {
         performance,
         errors: h.errors,
         evidence,
+        jumpApproach: {
+          x: 268.25,
+          z: 30.395,
+          heading: Math.asin(-0.15),
+          minimumObservedAirMs: 120,
+        },
         note: 'Inspection closeups use test-only camera poses in the real park. Turn and terrain-jump sequences use real keyboard input. Jump approach uses targeted setup; this is articulation evidence, not route-completion evidence. Still frames do not substitute for continuous video.',
       },
       null,

@@ -152,9 +152,9 @@ function palette(kind) {
     skin: material(0xb88964, 0.87),
     helmet: new THREE.MeshPhysicalMaterial({
       color: kind === 'bike' ? 0xdce0d0 : 0x43514c,
-      roughness: 0.31,
-      clearcoat: 0.64,
-      clearcoatRoughness: 0.2,
+      roughness: 0.42,
+      clearcoat: 0.34,
+      clearcoatRoughness: 0.28,
     }),
     visor: new THREE.MeshPhysicalMaterial({
       color: 0x172b32,
@@ -312,6 +312,28 @@ function wheel(parent, spec, p, x, z, front, bike) {
         [face + side * 0.012, Math.sin(a) * rim, Math.cos(a) * rim],
         0.006,
       );
+    }
+    const markingPosition = [side * width * 0.548, r * 0.77, 0];
+    const markingRotation = [0, (side * Math.PI) / 2, 0];
+    if (p.tireMarking) {
+      const marking = mesh(
+        spin,
+        new THREE.PlaneGeometry(r * 0.69, r * 0.078),
+        p.tireMarking,
+        markingPosition,
+        markingRotation,
+      );
+      marking.castShadow = false;
+    } else {
+      const marking = graphic(spin, 'TRAIL / AT', {
+        position: markingPosition,
+        rotation: markingRotation,
+        width: r * 0.69,
+        height: r * 0.078,
+        color: '#7b7e74',
+        font: '700',
+      });
+      if (marking) p.tireMarking = marking.material;
     }
     // Cast sidewall ribs catch grazing light without oversized lettering.
     for (let i = 0; i < 38; i++) {
@@ -499,6 +521,47 @@ function sideShell(parent, mat, side, profile, center, thickness = 0.014) {
     triangle(2 * n + 1, n + 1 + next, n + 1 + i);
     triangle(i, n + 1 + i, n + 1 + next);
     triangle(i, n + 1 + next, next);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(vertices, 3),
+  );
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return mesh(parent, geometry, mat);
+}
+
+function cuppedShell(parent, mat, outline, center, thickness = 0.004) {
+  const vertices = [],
+    uv = [],
+    indices = [],
+    n = outline.length;
+  for (const back of [0, thickness]) {
+    for (const [x, y, z] of outline) {
+      vertices.push(x, y, z + back);
+      uv.push(x * 2 + 0.5, y * 2 + 0.5);
+    }
+    vertices.push(center[0], center[1], center[2] + back);
+    uv.push(0.5, 0.5);
+  }
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    indices.push(
+      n,
+      i,
+      j,
+      2 * n + 1,
+      n + 1 + j,
+      n + 1 + i,
+      i,
+      n + 1 + i,
+      n + 1 + j,
+      i,
+      n + 1 + j,
+      j,
+    );
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
@@ -1152,52 +1215,72 @@ function atvBody(body, p) {
       0.023,
       14,
     );
-    // Headlights are inset angled clusters with separate reflectors and brows.
     const headlamp = new THREE.Group();
-    headlamp.position.set(side * 0.3, 0.759, -1.167);
+    headlamp.position.set(side * 0.3, 0.747, -1.153);
     headlamp.rotation.y = -side * 0.17;
     body.add(headlamp);
     panel(
       headlamp,
+      p.paint,
+      [
+        [-0.168, -0.064],
+        [0.139, -0.064],
+        [0.174, 0.041],
+        [0.141, 0.082],
+        [-0.129, 0.083],
+      ],
+      0.033,
+      [0, 0, 0.011],
+      undefined,
+      0.013,
+    );
+    panel(
+      headlamp,
       p.black,
       [
-        [-0.155, -0.053],
-        [0.13, -0.053],
-        [0.15, 0.045],
-        [-0.115, 0.068],
+        [-0.143, -0.047],
+        [0.121, -0.047],
+        [0.144, 0.029],
+        [0.12, 0.057],
+        [-0.112, 0.058],
       ],
-      0.044,
-      [0, 0, 0],
+      0.012,
+      [0, 0, -0.018],
       undefined,
-      0.016,
+      0.008,
     );
-    for (const x of [-0.075, 0.065]) {
+    for (const x of [-0.071, 0.059]) {
       cylinder(
         headlamp,
-        p.silver,
-        0.039,
-        0.007,
-        [x, 0, -0.054],
+        p.steel,
+        0.036,
+        0.006,
+        [x, 0.003, -0.035],
         [Math.PI / 2, 0, 0],
+        32,
       );
-      ball(headlamp, p.lens, 0.031, [x, 0, -0.066], [1, 1, 0.31]);
       cylinder(
         headlamp,
-        p.lamp,
-        0.027,
-        0.009,
-        [x, 0, -0.064],
+        p.visor,
+        0.029,
+        0.008,
+        [x, 0.003, -0.039],
         [Math.PI / 2, 0, 0],
+        32,
       );
+      ball(headlamp, p.lens, 0.022, [x, 0.003, -0.044], [1, 1, 0.3]);
+      ball(headlamp, p.lamp, 0.01, [x, 0.003, -0.051], [1, 1, 0.2]);
     }
     beam(
       headlamp,
       p.lamp,
-      [-0.105, 0.041, -0.071],
-      [0.12, 0.029, -0.071],
-      0.006,
+      [-0.108, 0.044, -0.039],
+      [0.11, 0.039, -0.039],
+      0.0035,
       8,
     );
+    for (const x of [-0.139, 0.135])
+      bolt(headlamp, p.black, [x, -0.034, -0.028], 0.004, [Math.PI / 2, 0, 0]);
     box(body, p.red, [0.16, 0.043, 0.026], [side * 0.41, 0.766, 1.094], 0.013);
     box(
       body,
@@ -1534,17 +1617,22 @@ function bikeBody(body, p) {
     ],
     { bevel: 0.42 },
   );
-  // Compact enduro mask: chamfered shoulders flow around a deep lamp aperture.
-  loft(
+  // Thin cupped mask wraps around the optical recess with formed shoulders.
+  cuppedShell(
     frontAssembly,
     p.paint,
     [
-      [-0.721, 0.09, 1.033, 1.194],
-      [-0.704, 0.13, 1.0, 1.265],
-      [-0.682, 0.142, 1.008, 1.25],
-      [-0.653, 0.105, 1.047, 1.222],
+      [-0.068, 1.255, -0.683],
+      [0.068, 1.255, -0.683],
+      [0.13, 1.209, -0.688],
+      [0.106, 1.087, -0.695],
+      [0.041, 1.021, -0.713],
+      [-0.041, 1.021, -0.713],
+      [-0.106, 1.087, -0.695],
+      [-0.13, 1.209, -0.688],
     ],
-    { bevel: 0.28 },
+    [0, 1.146, -0.735],
+    0.008,
   );
   panel(
     frontAssembly,
@@ -1923,16 +2011,32 @@ function steeringControl(parent, kind, p) {
         0.008,
         22,
       );
-      loft(
+      const guardCenter = side * (w - 0.022);
+      const guardRim = [];
+      for (let i = 0; i < 16; i++) {
+        const angle = (-i * Math.PI * 2) / 16;
+        const nx = Math.cos(angle),
+          ny = Math.sin(angle);
+        const radiusX = side * nx > 0 ? 0.12 : 0.098;
+        guardRim.push([
+          guardCenter + nx * radiusX,
+          0.031 + ny * 0.043,
+          -0.119 + nx * nx * 0.03 + ny * ny * 0.006,
+        ]);
+      }
+      cuppedShell(
         group,
         bike ? p.accent : p.paint,
-        [
-          [-0.125, 0.065, 0.013, 0.072],
-          [-0.103, 0.13, -0.016, 0.075],
-          [-0.075, 0.12, -0.02, 0.055],
-        ],
-        { x: side * (w - 0.02), bevel: 0.36 },
+        guardRim,
+        [guardCenter, 0.031, -0.128],
+        0.004,
       );
+      tube(group, p.plastic, guardRim, 0.0028, 32, true);
+      bolt(group, p.black, [guardCenter + side * 0.101, 0.032, -0.09], 0.004, [
+        Math.PI / 2,
+        0,
+        0,
+      ]);
       cylinder(
         group,
         p.silver,

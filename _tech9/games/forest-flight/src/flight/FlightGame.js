@@ -77,6 +77,8 @@ export class FlightGame {
     this.visual = new AircraftVisual(type);
     this.app.scene.add(this.visual.group);
     this.sim.reset(type);
+    this.view.setMode('follow');
+    $('camera').textContent = 'C · Cockpit';
     this.view.resetMotion();
     for (const id of Object.keys(AIRCRAFT)) {
       $(`choose-${id}`).classList.toggle('selected', id === type);
@@ -94,6 +96,7 @@ export class FlightGame {
     this.input.reset();
     this.view.setMode('follow');
     this.visual.setCockpitMode?.(false);
+    $('camera').textContent = 'C · Cockpit';
     this.view.resetMotion();
     if (fly) this.start();
   }
@@ -101,6 +104,7 @@ export class FlightGame {
     if (['ready', 'crashed', 'landed'].includes(this.sim.state.phase)) return;
     this.sim.paused = value;
     this.input.reset();
+    this.audio.update(this.sim.state, value);
     if (!value) this.audio.start();
   }
   action(key) {
@@ -147,7 +151,7 @@ export class FlightGame {
       this.rotation.set(s.pitch, -s.heading, -s.roll, 'YXZ'),
     );
     this.visual.update(s, this.sim.paused ? 0 : dt);
-    if (s.phase === 'ready') {
+    if (s.phase === 'ready' && this.view.mode === 'follow') {
       this.app.camera.position.set(-14, 7, 354);
       this.app.camera.up.set(0, 1, 0);
       this.app.camera.lookAt(0, 1.8, 337);

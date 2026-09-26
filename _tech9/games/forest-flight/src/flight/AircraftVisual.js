@@ -567,7 +567,7 @@ export class AircraftVisual {
     if (this.needleSpeed)
       this.needleSpeed.rotation.z = (-(state.speed ?? 0) / 80) * Math.PI * 1.8;
     if (this.needleAltitude)
-      this.needleAltitude.rotation.z = (-(state.position?.y ?? 0) / 300) * TAU;
+      this.needleAltitude.rotation.z = (-(state.y ?? 0) / 300) * TAU;
   }
 
   dispose() {

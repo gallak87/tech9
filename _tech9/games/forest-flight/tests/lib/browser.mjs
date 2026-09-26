@@ -127,10 +127,11 @@ export async function openScene({
       headless: process.env.HEADED !== '1',
       ...(executablePath ? { executablePath } : {}),
     });
-    const page = await browser.newPage({
+    const context = await browser.newContext({
       viewport: { width, height },
       deviceScaleFactor: 1,
     });
+    const page = await context.newPage();
     // Evidence must represent one loaded revision even if another agent edits
     // source during the run. This forest has no application WebSocket traffic.
     if (mode === 'dev') {

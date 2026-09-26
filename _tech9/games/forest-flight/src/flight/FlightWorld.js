@@ -100,6 +100,15 @@ for (let attempts = 0; trees.length < 4200 && attempts < 30000; attempts++) {
 /** Conservative visual proxies, indexed by the same placements as the forest. */
 export function getObstacle(x, y, z, radius = 3) {
   if (
+    x > -147 - radius &&
+    x < -137 + radius &&
+    z > 229 - radius &&
+    z < 237 + radius &&
+    y > -radius &&
+    y < 5 + radius
+  )
+    return { id: 'office', name: 'the airfield office' };
+  if (
     x > -123 - radius &&
     x < -77 + radius &&
     z > 169 - radius &&

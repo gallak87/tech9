@@ -1,44 +1,50 @@
-# Tech9 Baseline
+# Forest Flight
 
-A standalone starting application and staging environment: Three.js rendering, a 160 × 160 metre forest, editable assets, fly/grounded camera controls and graphics settings.
+Two airplanes, a forest airstrip and a short scenic circuit. Fly the steady **Cedar T-1** trainer or the quicker **Swift S-2** sport plane. Both are available immediately. Three optional scenic markers lead around the valley; return to the runway and brake to a stop for your landing result, or keep exploring.
 
 ## Run
 
-From this package, with Node `^22.13.0 || >=24.0.0`:
+From the repository root:
 
 ```sh
-npm ci
-npm run dev
+./_tech9/run --prefix games/forest-flight ci
+./_tech9/run --prefix games/forest-flight run dev
 ```
 
-Vite serves port 4399. `npm run build` creates `dist/`; `npm run preview` serves it on port 4400. Assets and fonts are local.
+Open **http://127.0.0.1:4490**. Production preview uses port 4491 after `npm run build`. This standalone package supports Node `^22.13.0 || >=24.0.0`; direct npm commands also work from this directory.
 
-## Controls
+## Fly
 
-The default fly view supports drag-to-look, WASD/arrows, E/Q vertical movement and Shift boost. **Explore the grove** captures the pointer; Escape releases it. H hides the HUD; 01/02/03 select viewpoints.
+| Input      | Action                                                        |
+| ---------- | ------------------------------------------------------------- |
+| W / S      | Increase / decrease throttle; power remains set when released |
+| ↓ / ↑      | Raise / lower the nose                                        |
+| ← / →      | Bank left / right; turns coordinate automatically             |
+| A / D      | Rudder; steer while taxiing                                   |
+| Space      | Steady the wings and ease toward level pitch                  |
+| B          | Wheel brakes                                                  |
+| C          | Chase / cockpit view                                          |
+| P / Escape | Pause / resume                                                |
+| R          | Restart with the current airplane                             |
+| M          | Mute / unmute engine sound                                    |
 
-Open `/?controller=walk` for grounded movement with Start/Pause/Resume, right-drag or IJKL look, optional pointer capture, WASD/arrows and Shift speed. Escape/P pauses. Tuning pauses movement and keeps keyboard focus in the menu.
+Start the engine, hold **W** for full power, then gently pull **↓** around **45 kt in the trainer** or **57 kt in the sport plane**. Use short pitch inputs; the airplane holds its attitude with gentle self-centering. Bank to turn, then use Space to steady the wings. Low-speed feedback prompts you to lower the nose and add power.
 
-Quality, sunlight, atmosphere, ground cover and exposure persist locally. Balanced/High/Ultra cap scene pixels at 1.6/2.6/5.2 million. The FPS indicator measures render-loop timing.
+For landing, line up with the long runway, reduce power with S and descend gently. Aim for roughly 45–55 kt in the trainer or 55–65 kt in the sport plane. Keep the wings level, ease the nose up just above the runway, then hold S and B to stop. Hard impacts and off-airfield landings offer immediate retry. Focus loss pauses the flight and clears held keys.
+
+The map marks north, the runway, airplane and scenic markers. Altitude is metres above local terrain; airspeed is knots. Graphics quality and mute are accessible in the top toolbar. The bounded valley spans 4.8 km with a 750 m altitude ceiling.
 
 ## Development
-
-Read [ARCHITECTURE.md](./ARCHITECTURE.md) for runtime contracts. `src/main.js` selects the world definition, registers layers and selects the controller. `SceneApp` owns the renderer and frame loop; layers own their resources. `terrainHeight(x,z)` supplies the shared ground query. Units are metres, +Y up.
-
-`package.json` → `tech9.modules` selects grounded-walking and placement-collisions. Their owned source copies live under `src/modules/`. Render placements also drive conservative tree, rock and deadfall collision proxies.
-
-## Assets
-
-[Asset provenance](./public/assets/ASSETS.md) records licenses and source files. `art/forest-kit.blend`, source images and scripts reproduce the forest kit. Run `npm run assets:build` with Blender 5.1+ and Python/Pillow. `BLENDER_BIN`, `BLENDER_PATH` and `PYTHON_BIN` select executables. Runtime use needs only the committed assets.
-
-## Checks
 
 ```sh
 npm test
 npm run lint
 npm run build
-npm run verify
-npm run verify:walking
+SCENE_PORT=4492 npm run verify
 ```
 
-Browser commands use Playwright Chromium; install it with `npx playwright install chromium` when needed. `SCENE_PORT` selects a free port; `SCENE_URL` uses an existing server. Test hooks require `?test=1`. See [test commands](./tests/README.md) and the [performance roadmap](./ROADMAP.md).
+Browser verification uses installed Playwright Chromium and ordinary keyboard controls for a complete scenic circuit and landing with each aircraft. It takes about six minutes. Artifacts and machine/frame-timing records are written to `.artifacts/verification/`. `CHROMIUM_PATH` can select a compatible local Chromium executable.
+
+[Architecture](./ARCHITECTURE.md) describes the code boundaries. [Brief](./BRIEF.md) and [prompt](./PROMPT.md) define the development scope. The copy receipts are `tech9.json` and `GAME_PLAN.json`.
+
+Flight handling is assisted arcade simulation, with coordinated turns, approximate lift and conservative obstacle proxies. Desktop keyboard play is the intended input. The aircraft and airfield geometry are editable JavaScript sources; the forest kit, font and retained asset authoring sources carry their [original licenses](./public/assets/ASSETS.md).

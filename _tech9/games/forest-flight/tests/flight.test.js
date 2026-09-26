@@ -129,6 +129,8 @@ test('airfield runway and both approach corridors are graded and free of collide
     }
   }
   assert.match(getObstacle(-100, 4, 185).name, /hangar/);
+  assert.match(getObstacle(-142, 1.35, 233, 3.2).name, /office/);
+  assert.equal(getObstacle(-142, 20, 233, 3.2), null);
   assert.ok(groundHeight(1800, 0) > 100);
 });
 test('held flight keys clear on blur, hidden document and disposal', () => {

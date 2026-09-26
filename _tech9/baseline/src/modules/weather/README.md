@@ -63,3 +63,9 @@ For a minimal running scene with a solid overhead shelter, launch from `_tech9`:
 ```
 
 `examples/main.js` is a complete scene integration with explicit roof exposure and four preset buttons. It uses the framework's installed Three.js dependency and no forest assets.
+
+## Visual review notes
+
+Six independent forest art reviews scored **5.8, 6.0, 6.0, 6.5, 6.5 and 6.2/10** against an AAA reference; the 9/10 target was not met. Strengths were coherent weather moods, readable paths, retained bark/rock detail and snow caps. Future polish: more natural ground-snow edges and depth, stronger wet rock/foliage response, and richer precipitation detail.
+
+Critics inspected stills and ordered motion samples. Subsequent user playback review approved the visuals and audio and found walking decent.

@@ -11,4 +11,6 @@ Copy the selected folders into a package's `src/modules/`, including required si
 | [follow-camera](./follow-camera/README.md)               | Follow and mounted camera modes                                 | Three.js                                                     |
 | [island-ocean](./island-ocean/README.md)                 | Island coast, navigation and reflective ocean                   | pond-water; Three.js                                         |
 
+| [weather](./weather/README.md) | Rain, wet surfaces, settled snow, snowfall and shared wind | Three.js |
+
 See [copying](../docs/MODULES.md) and [module development](../FRAMEWORK_DEV.md).

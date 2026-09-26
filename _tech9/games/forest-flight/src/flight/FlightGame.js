@@ -54,6 +54,7 @@ export class FlightGame {
     on('hangar', () => this.reset(false));
     on('pause', () => this.pause(true));
     on('camera', () => this.toggleCamera());
+    on('stabilization', () => this.toggleStabilization());
     on('mute', () => this.mute());
     for (const type of Object.keys(AIRCRAFT))
       on(`choose-${type}`, () => this.select(type));
@@ -111,7 +112,11 @@ export class FlightGame {
     if (key === 'KeyP' || key === 'Escape') this.pause(!this.sim.paused);
     if (key === 'KeyR') this.reset(true);
     if (key === 'KeyC') this.toggleCamera();
+    if (key === 'KeyF') this.toggleStabilization();
     if (key === 'KeyM') this.mute();
+  }
+  toggleStabilization() {
+    this.sim.setStabilization(!this.sim.state.stabilization);
   }
   toggleCamera() {
     const mounted = this.view.mode === 'follow';
@@ -158,6 +163,12 @@ export class FlightGame {
       this.app.camera.updateMatrixWorld();
     } else this.view.update(dt);
     // The aircraft and windsock move; nearby shadow maps track those objects.
+    const shadowX = Math.round(this.app.camera.position.x / 4) * 4;
+    const shadowZ = Math.round(this.app.camera.position.z / 4) * 4;
+    const shadowY = groundHeight(shadowX, shadowZ);
+    this.app.sun.target.position.set(shadowX, shadowY, shadowZ);
+    this.app.sun.position.set(shadowX + 100, shadowY + 180, shadowZ - 120);
+    this.app.sun.target.updateMatrixWorld();
     this.app.renderer.shadowMap.needsUpdate = true;
     this.audio.update(s, this.sim.paused);
     this.renderHud();
@@ -187,6 +198,9 @@ export class FlightGame {
       `${String(Math.round(((((s.heading * 180) / Math.PI) % 360) + 360) % 360)).padStart(3, '0')}°`;
     $('climb').textContent =
       `${s.verticalSpeed >= 0 ? '+' : ''}${s.verticalSpeed.toFixed(1)}`;
+    $('stabilization').textContent =
+      `F · Stability ${s.stabilization ? 'on' : 'off'}`;
+    $('stabilization').setAttribute('aria-pressed', String(s.stabilization));
     $('aircraft-name').textContent = spec.name;
     $('phase').textContent = this.sim.paused
       ? 'PAUSED'
@@ -212,8 +226,9 @@ export class FlightGame {
         ?.classList.toggle('visited', s.visited.includes(marker.id));
     let tip = 'Hold W for throttle · At flying speed, gently pull ↓';
     if (s.phase === 'flight')
-      tip =
-        '← → bank to turn · Space steadies the wings · Scenic markers are optional';
+      tip = s.stabilization
+        ? '← → bank to turn · F disables stabilization · Space recovers level flight'
+        : 'FREE FLIGHT · Hold ← → for full rolls · Pitch follows your wings · Space recovers';
     if (s.phase === 'flight' && altitude < 35 && s.verticalSpeed < -0.5)
       tip =
         'Landing: align with runway · S reduces power · Gently pull ↓ to flare';

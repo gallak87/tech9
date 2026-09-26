@@ -23,20 +23,20 @@ const definition = {
   initialView: 'airfield',
   views: { airfield: { position: [-14, 7, 354], target: [0, 1.8, 337] } },
   environment: {
-    exposure: 1.05,
-    fog: { color: '#b5c9c5', density: 0.00024 },
-    hemisphere: { sky: '#c2dfed', ground: '#73755b', intensity: 2 },
+    exposure: 0.98,
+    fog: { color: '#b5c9c5', density: 0.00031 },
+    hemisphere: { sky: '#c4d3d2', ground: '#5c6146', intensity: 1.65 },
     sun: {
-      color: '#fff0cf',
-      intensity: 3.1,
-      position: [-220, 480, -350],
+      color: '#ffe2af',
+      intensity: 4.2,
+      position: [100, 180, -120],
       shadowBounds: {
-        left: -430,
-        right: 430,
-        top: 600,
-        bottom: -600,
-        near: 10,
-        far: 1500,
+        left: -135,
+        right: 135,
+        top: 135,
+        bottom: -135,
+        near: 1,
+        far: 650,
       },
     },
     sky: {
@@ -56,7 +56,8 @@ try {
     ui: document.getElementById('ui'),
     storageKey: 'forest-flight.settings',
   });
-  await app.register(createFlightWorld());
+  const world = createFlightWorld();
+  await app.register(world);
   const game = new FlightGame(app);
   app.setController(game);
   document.getElementById('map-markers').innerHTML = LANDMARKS.map(
@@ -72,8 +73,30 @@ try {
   window.addEventListener('pagehide', () => app.dispose(), { once: true });
   if (testMode)
     window.__FLIGHT_TEST__ = {
-      snapshot: () => game.snapshot(),
+      snapshot: () => ({ ...game.snapshot(), landscape: { ...world.stats } }),
       dispose: () => app.dispose(),
+      inspect: (position, target) => {
+        game.sim.paused = true;
+        app.setController({
+          update() {
+            app.camera.position.fromArray(position);
+            app.camera.up.set(0, 1, 0);
+            app.camera.lookAt(...target);
+          },
+          dispose() {},
+        });
+        app.sun.target.position.set(
+          position[0],
+          groundHeight(position[0], position[2]),
+          position[2],
+        );
+        app.sun.position
+          .copy(app.sun.target.position)
+          .add({ x: 100, y: 180, z: -120 });
+        app.sun.target.updateMatrixWorld();
+        app.renderer.shadowMap.needsUpdate = true;
+        document.getElementById('ui').hidden = true;
+      },
       scenario: (name) => {
         if (name !== 'collision') throw new Error('Unknown test scenario');
         game.sim.reset();

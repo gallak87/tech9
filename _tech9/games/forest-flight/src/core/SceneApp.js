@@ -12,6 +12,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
+import { AtmospherePass } from './AtmospherePass.js';
 import { FlyCamera } from './FlyCamera.js';
 import {
   DEFAULT_SETTINGS,
@@ -104,6 +105,7 @@ export class SceneApp {
       );
     this.scene.add(this.sky);
 
+    this.atmosphere = new AtmospherePass(this.renderer);
     this.setController(
       ({ camera, canvas, bounds, groundHeight }) =>
         new FlyCamera(camera, canvas, bounds, groundHeight),
@@ -256,6 +258,7 @@ export class SceneApp {
       this.sun.shadow.map = null;
     }
 
+    this.atmosphere.configure(preset, settings);
     for (const layer of this.layers) layer.configure?.(settings);
     if (
       previous.quality !== settings.quality ||
@@ -279,6 +282,7 @@ export class SceneApp {
     );
     this.renderer.setPixelRatio(ratio);
     this.renderer.setSize(width, height, false);
+    this.atmosphere.resize(width, height, ratio);
     this.camera.aspect = width / height;
     this.camera.updateProjectionMatrix();
   }
@@ -297,7 +301,12 @@ export class SceneApp {
       this.controls.update(dt);
       for (const layer of this.layers) layer.update?.(dt, now / 1000);
       this.renderer.info.reset();
-      this.renderer.render(this.scene, this.camera);
+      this.atmosphere.render(
+        this.scene,
+        this.camera,
+        this.sun,
+        this.groundHeight(this.camera.position.x, this.camera.position.z),
+      );
       this.sampleTime += rawDt;
       this.sampleFrames++;
       if (this.sampleTime >= 0.7) {
@@ -354,6 +363,7 @@ export class SceneApp {
     this.controls.dispose();
     this.abort.abort();
 
+    this.atmosphere.dispose();
     this.sky.geometry.dispose();
     this.sky.material.dispose();
     this.sun.shadow.map?.dispose();

@@ -21,6 +21,7 @@ Open **http://127.0.0.1:4490**. Production preview uses port 4491 after `npm run
 | ↓ / ↑      | Raise / lower the nose                                        |
 | ← / →      | Bank left / right; turns coordinate automatically             |
 | A / D      | Rudder; steer while taxiing                                   |
+| F          | Toggle stabilization (starts on; choice survives restart)     |
 | Space      | Steady the wings and ease toward level pitch                  |
 | B          | Wheel brakes                                                  |
 | C          | Chase / cockpit view                                          |
@@ -28,11 +29,11 @@ Open **http://127.0.0.1:4490**. Production preview uses port 4491 after `npm run
 | R          | Restart with the current airplane                             |
 | M          | Mute / unmute engine sound                                    |
 
-Start the engine, hold **W** for full power, then gently pull **↓** around **45 kt in the trainer** or **57 kt in the sport plane**. Use short pitch inputs; the airplane holds its attitude with gentle self-centering. Bank to turn, then use Space to steady the wings. Low-speed feedback prompts you to lower the nose and add power.
+Start the engine, hold **W** for full power, then gently pull **↓** around **45 kt in the trainer** or **57 kt in the sport plane**. Stabilization starts enabled: use short pitch inputs and gentle self-centering. Press **F** for free attitude control. Hold a bank key for a complete roll; when inverted, **↑ pushes the nose toward the sky** and **↓ pulls toward the ground**. Inverted flight needs active pitch/power and loses height if left alone. **Space** recovers toward upright level flight in either mode. Bank to turn, then use Space to steady the wings. Low-speed feedback prompts you to lower the nose and add power.
 
 For landing, line up with the long runway, reduce power with S and descend gently. Aim for roughly 45–55 kt in the trainer or 55–65 kt in the sport plane. Keep the wings level, ease the nose up just above the runway, then hold S and B to stop. Hard impacts and off-airfield landings offer immediate retry. Focus loss pauses the flight and clears held keys.
 
-The map marks north, the runway, airplane and scenic markers. Altitude is metres above local terrain; airspeed is knots. Graphics quality and mute are accessible in the top toolbar. The bounded valley spans 4.8 km with a 750 m altitude ceiling.
+The map marks north, the runway, airplane and scenic markers. Altitude is metres above local terrain; airspeed is knots. Graphics quality and mute are accessible in the top toolbar. The bounded valley spans 4.8 km with a 750 m altitude ceiling. Forest detail follows the camera across the valley: baseline pines, bark, ferns, grasses, mossy rocks, fallen logs and scanned soil. A winding trail crosses the eastern groves. Distant canopy uses baked views of those same trees; detail fades across overlapping distance bands.
 
 ## Development
 
@@ -41,6 +42,7 @@ npm test
 npm run lint
 npm run build
 SCENE_PORT=4492 npm run verify
+SCENE_PORT=4492 npm run verify:exploration
 ```
 
 Browser verification uses installed headed Playwright Chromium and ordinary keyboard controls for a complete scenic circuit and landing with each aircraft. It takes about six minutes. Artifacts and machine/frame-timing records are written to `.artifacts/verification/`. `CHROMIUM_PATH` can select a compatible local Chromium executable.
@@ -48,3 +50,5 @@ Browser verification uses installed headed Playwright Chromium and ordinary keyb
 [Architecture](./ARCHITECTURE.md) describes the code boundaries. [Brief](./BRIEF.md) and [prompt](./PROMPT.md) define the development scope. The copy receipts are `tech9.json` and `GAME_PLAN.json`.
 
 Flight handling is assisted arcade simulation, with coordinated turns, approximate lift and conservative obstacle proxies. Desktop keyboard play is the intended input. The aircraft and airfield geometry are editable JavaScript sources; the forest kit, font and retained asset authoring sources carry their [original licenses](./public/assets/ASSETS.md).
+
+Exploration verification flies the sport plane across both sides of the valley with normal keyboard input, performs a full roll and sustained inverted flight, checks recovery, and records low/high views and resource plateaus. Camera-only art inspection under `?test=1` is separate from these success paths.

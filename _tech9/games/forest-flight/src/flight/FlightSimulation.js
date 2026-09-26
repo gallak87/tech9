@@ -1,3 +1,4 @@
+import { Euler, Quaternion, Vector3 } from 'three';
 const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
 const approach = (n, target, rate, dt) =>
   n + (target - n) * (1 - Math.exp(-rate * dt));
@@ -43,6 +44,14 @@ export class FlightSimulation {
     this.obstacle = obstacle;
     this.bounds = bounds;
     this.landmarks = landmarks;
+    this.rotation = new Euler(0, 0, 0, 'YXZ');
+    this.attitude = new Quaternion();
+    this.increment = new Quaternion();
+    this.forward = new Vector3();
+    this.up = new Vector3();
+    this.axisX = new Vector3(1, 0, 0);
+    this.axisY = new Vector3(0, 1, 0);
+    this.axisZ = new Vector3(0, 0, 1);
     this.reset(type);
   }
   reset(type = this.state?.type ?? 'trainer') {
@@ -50,6 +59,7 @@ export class FlightSimulation {
     this.spec = AIRCRAFT[type];
     this.state = {
       type,
+      stabilization: this.state?.stabilization ?? true,
       x: 0,
       y: this.spec.gear,
       z: 340,
@@ -75,6 +85,9 @@ export class FlightSimulation {
     };
     this.paused = false;
     this.touchdown = false;
+  }
+  setStabilization(enabled) {
+    this.state.stabilization = Boolean(enabled);
   }
   start() {
     if (this.state.phase === 'ready') this.state.phase = 'taxi';
@@ -149,28 +162,55 @@ export class FlightSimulation {
       }
     } else {
       s.airborneTime += dt;
-      s.pitch = clamp(
-        s.pitch + pitch * spec.pitchRate * authority * dt,
-        -0.6,
-        0.65,
+      // Rotate about the aircraft's local axes: pitch reverses its world-space
+      // effect when inverted, and no Euler-angle clamp blocks a roll or loop.
+      this.attitude.setFromEuler(
+        this.rotation.set(s.pitch, -s.heading, -s.roll, 'YXZ'),
       );
-      s.roll = clamp(
-        s.roll + roll * spec.rollRate * authority * dt,
-        -1.05,
-        1.05,
+      this.attitude.multiply(
+        this.increment.setFromAxisAngle(
+          this.axisX,
+          pitch * spec.pitchRate * authority * dt,
+        ),
       );
-      if (!pitch)
-        s.pitch = approach(s.pitch, 0.015, input.level ? 3 : 0.18, dt);
-      if (!roll) s.roll = approach(s.roll, 0, input.level ? 4 : 0.25, dt);
-      s.heading +=
-        ((9.81 * Math.tan(s.roll)) / Math.max(s.speed, 15) +
-          yaw * 0.22 * authority) *
-        dt;
+      this.attitude.multiply(
+        this.increment.setFromAxisAngle(
+          this.axisZ,
+          -roll * spec.rollRate * authority * dt,
+        ),
+      );
+      this.attitude.multiply(
+        this.increment.setFromAxisAngle(
+          this.axisY,
+          -yaw * 0.22 * authority * dt,
+        ),
+      );
+      const turn =
+        (9.81 * Math.sin(s.roll)) /
+        (Math.max(s.speed, 15) * Math.max(0.5, Math.abs(Math.cos(s.roll))));
+      this.attitude.premultiply(
+        this.increment.setFromAxisAngle(this.axisY, -turn * dt),
+      );
+      this.rotation.setFromQuaternion(this.attitude.normalize(), 'YXZ');
+      s.pitch = this.rotation.x;
+      s.heading = -this.rotation.y;
+      s.roll = -this.rotation.z;
+      if (s.stabilization || input.level) {
+        if (!pitch || input.level)
+          s.pitch = approach(s.pitch, 0.015, input.level ? 3 : 0.18, dt);
+        if (!roll || input.level)
+          s.roll = approach(s.roll, 0, input.level ? 4 : 0.25, dt);
+      }
+      this.attitude.setFromEuler(
+        this.rotation.set(s.pitch, -s.heading, -s.roll, 'YXZ'),
+      );
+      this.forward.set(0, 0, -1).applyQuaternion(this.attitude);
+      this.up.set(0, 1, 0).applyQuaternion(this.attitude);
       const sink = Math.max(0, spec.stall + 2 - s.speed) * 1.6;
       s.stall = s.speed < spec.stall;
       s.verticalSpeed = approach(
         s.verticalSpeed,
-        Math.sin(s.pitch) * s.speed - 0.7 - sink - Math.abs(s.roll) * 1.2,
+        this.forward.y * s.speed - 0.7 - sink - (1 - this.up.y) * 4.5,
         2.1,
         dt,
       );
@@ -179,7 +219,7 @@ export class FlightSimulation {
     const travel = s.speed * Math.cos(s.pitch) * dt;
     s.x += Math.sin(s.heading) * travel;
     s.z -= Math.cos(s.heading) * travel;
-    s.distance += travel;
+    s.distance += Math.abs(travel);
     const ground = this.groundHeight(s.x, s.z);
     s.maxAltitude = Math.max(s.maxAltitude, s.y - ground);
     if (!s.grounded && s.y <= ground + spec.gear) {

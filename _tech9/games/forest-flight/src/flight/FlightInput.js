@@ -34,7 +34,7 @@ export class FlightInput {
       }
       if (
         !event.repeat &&
-        ['KeyP', 'Escape', 'KeyR', 'KeyC', 'KeyM'].includes(event.code)
+        ['KeyP', 'Escape', 'KeyR', 'KeyC', 'KeyM', 'KeyF'].includes(event.code)
       ) {
         event.preventDefault();
         onAction(event.code);

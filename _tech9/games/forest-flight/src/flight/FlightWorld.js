@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { treeCells, randomSequence } from './LandscapeLayout.js';
+import { createLandscape } from './Landscape.js';
+export { groundHeight } from './LandscapeLayout.js';
 
 export const BOUNDS = 2400;
 export const RUNWAY = Object.freeze({
@@ -36,67 +38,6 @@ export const LANDMARKS = Object.freeze([
   },
 ]);
 const clamp = THREE.MathUtils.clamp;
-const smooth = (a, b, value) => {
-  const t = clamp((value - a) / (b - a), 0, 1);
-  return t * t * (3 - 2 * t);
-};
-
-/** Shared continuous height query; the runway and apron are exactly level. */
-export function groundHeight(x, z) {
-  const valley = smooth(350, 1750, Math.abs(x));
-  const ridge = 0.65 + 0.35 * Math.sin(z * 0.0027 + x * 0.0018);
-  const hills =
-    valley * (130 + 230 * ridge) + smooth(1500, 2750, Math.abs(z)) * 170;
-  const rolling =
-    7 +
-    11 * Math.sin(x * 0.005) * Math.cos(z * 0.004) +
-    5 * Math.sin(x * 0.013 + z * 0.008);
-  const strip = Math.max(
-    smooth(55, 180, Math.abs(x)),
-    smooth(700, 1000, Math.abs(z)),
-  );
-  const apron = Math.max(
-    smooth(65, 140, Math.abs(x + 100)),
-    smooth(125, 220, Math.abs(z - 250)),
-  );
-  return (hills + Math.max(0, rolling)) * Math.min(strip, apron);
-}
-
-function randomSequence(seed) {
-  return () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-}
-
-const trees = [];
-const treeCells = new Map();
-const random = randomSequence(81733);
-for (let attempts = 0; trees.length < 4200 && attempts < 30000; attempts++) {
-  const close = trees.length < 2200;
-  const x = (random() * 2 - 1) * (close ? 1300 : 2320);
-  const z = (random() * 2 - 1) * (close ? 1700 : 2320);
-  if (Math.abs(x) < 80 && Math.abs(z) < 900) continue;
-  if (Math.abs(x + 100) < 100 && Math.abs(z - 250) < 200) continue;
-  // Irregular clearings make the treeline readable from the air.
-  if (Math.sin(x * 0.012 + Math.cos(z * 0.006)) + Math.cos(z * 0.011) > 1.48)
-    continue;
-  const height = 17 + random() * 22;
-  const tree = {
-    x,
-    z,
-    y: groundHeight(x, z),
-    height,
-    radius: height * 0.19,
-    angle: random() * Math.PI * 2,
-    tone: random(),
-  };
-  trees.push(tree);
-  const key = `${Math.floor(x / 80)},${Math.floor(z / 80)}`;
-  if (!treeCells.has(key)) treeCells.set(key, []);
-  treeCells.get(key).push(tree);
-}
-
 /** Conservative visual proxies, indexed by the same placements as the forest. */
 export function getObstacle(x, y, z, radius = 3) {
   if (
@@ -161,6 +102,9 @@ export function createFlightWorld() {
   const resources = new Set();
   const markers = [];
   let windsock;
+  let landscape;
+  let context;
+  let settings = { quality: 'high', richness: 1 };
   let disposed = false;
   const keep = (resource) => {
     resources.add(resource);
@@ -184,101 +128,10 @@ export function createFlightWorld() {
   function horizontal(w, d, surface, x, y, z) {
     const item = mesh(new THREE.PlaneGeometry(w, d), surface, x, y, z);
     item.rotation.x = -Math.PI / 2;
+    surface.polygonOffset = true;
+    surface.polygonOffsetFactor = -1;
+    surface.polygonOffsetUnits = -2 - Math.round(y * 200);
     return item;
-  }
-  function terrain() {
-    const texture = keep(
-      canvasTexture(
-        256,
-        256,
-        (ctx, w, h) => {
-          ctx.fillStyle = '#c6c8b7';
-          ctx.fillRect(0, 0, w, h);
-          const rng = randomSequence(961);
-          for (let i = 0; i < 18000; i++) {
-            const v = Math.floor(115 + rng() * 115);
-            ctx.fillStyle = `rgba(${v},${v + 5},${v - 10},0.24)`;
-            ctx.fillRect(rng() * w, rng() * h, 1 + rng() * 2, 1 + rng() * 3);
-          }
-        },
-        true,
-      ),
-    );
-    const geometry = new THREE.PlaneGeometry(6500, 6500, 320, 320);
-    geometry.rotateX(-Math.PI / 2);
-    const p = geometry.attributes.position;
-    const colors = new Float32Array(p.count * 3);
-    const color = new THREE.Color();
-    const forestFloor = new THREE.Color('#647b5c');
-    const meadow = new THREE.Color('#b6b084');
-    const shale = new THREE.Color('#a2a49a');
-    const mown = new THREE.Color('#a9af7d');
-    // Concentrate terrain samples near the airfield, with one continuous surface.
-    for (let i = 0; i < p.count; i++) {
-      const px = p.getX(i) / 3250,
-        pz = p.getZ(i) / 3250;
-      const x = Math.sign(px) * Math.pow(Math.abs(px), 1.55) * 3250;
-      const z = Math.sign(pz) * Math.pow(Math.abs(pz), 1.2) * 3250;
-      const y = groundHeight(x, z);
-      p.setXYZ(i, x, y - 0.045, z);
-      const patch =
-        Math.sin(x * 0.006 + Math.cos(z * 0.004) * 1.8) *
-        Math.cos(z * 0.005 + Math.sin(x * 0.003));
-      const glade = smooth(0.08, 0.75, patch);
-      color.copy(forestFloor).lerp(meadow, glade * 0.82);
-      const slope =
-        Math.hypot(
-          groundHeight(x + 5, z) - groundHeight(x - 5, z),
-          groundHeight(x, z + 5) - groundHeight(x, z - 5),
-        ) / 10;
-      color.lerp(
-        shale,
-        smooth(130, 290, y) * smooth(0.1, 0.32, slope) * (0.5 + 0.4 * glade),
-      );
-      const cut =
-        (1 - smooth(28, 85, Math.abs(x))) * (1 - smooth(465, 720, Math.abs(z)));
-      color.lerp(mown, cut * 0.88);
-      color.toArray(colors, i * 3);
-      geometry.attributes.uv.setXY(i, x / 7, z / 7);
-    }
-    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geometry.computeVertexNormals();
-    const surface = material('#ffffff', {
-      map: texture,
-      vertexColors: true,
-      roughness: 1,
-    });
-    surface.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <common>',
-        '#include <common>\nvarying vec3 vFlightTerrain;',
-      );
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nvFlightTerrain = position;',
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <common>',
-        `#include <common>
-        varying vec3 vFlightTerrain;
-        float fieldHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123); }
-        float fieldNoise(vec2 p) {
-          vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
-          return mix(mix(fieldHash(i), fieldHash(i + vec2(1., 0.)), f.x), mix(fieldHash(i + vec2(0., 1.)), fieldHash(i + 1.), f.x), f.y);
-        }
-      `,
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <color_fragment>',
-        `#include <color_fragment>
-        float patchwork = fieldNoise(vFlightTerrain.xz * .023) * .65 + fieldNoise(vFlightTerrain.xz * .087) * .35;
-        float fineCover = fieldNoise(vFlightTerrain.xz * .7);
-        diffuseColor.rgb *= .77 + patchwork * .38 + fineCover * .08;
-      `,
-      );
-    };
-    surface.customProgramCacheKey = () => 'flight-terrain-mottling';
-    mesh(geometry, surface);
   }
   function airport() {
     const asphalt = keep(
@@ -466,148 +319,6 @@ export function createFlightWorld() {
       segment.material.side = THREE.DoubleSide;
     }
   }
-  function forest(kit) {
-    const far = trees.filter(
-      (tree) => Math.abs(tree.x) > 470 || Math.abs(tree.z) > 820,
-    );
-    const near = trees.filter(
-      (tree) => Math.abs(tree.x) <= 470 && Math.abs(tree.z) <= 820,
-    );
-    const crownParts = [];
-    // Broad lower branches, smaller shoulders and a narrow tip cover the upper trunk.
-    for (const [level, [height, width, depth, rise, spread, count]] of [
-      [0.41, 0.142, 0.135, 0.165, 0.036, 4],
-      [0.61, 0.112, 0.104, 0.17, 0.03, 4],
-      [0.8, 0.076, 0.071, 0.14, 0.018, 3],
-    ].entries()) {
-      for (let branch = 0; branch < count; branch++) {
-        const angle = (branch * Math.PI * 2) / count + level * 1.7;
-        const part = new THREE.DodecahedronGeometry(1, 0);
-        part.scale(width, rise, depth);
-        part.rotateY(angle);
-        part.translate(
-          Math.sin(angle) * spread,
-          height + Math.sin(branch * 2.4) * 0.025,
-          Math.cos(angle) * spread,
-        );
-        crownParts.push(part);
-      }
-    }
-    const tip = new THREE.ConeGeometry(0.052, 0.18, 7);
-    tip.translate(-0.007, 0.91, 0.004);
-    crownParts.push(tip.toNonIndexed());
-    tip.dispose();
-    const crown = keep(mergeGeometries(crownParts));
-    crownParts.forEach((part) => part.dispose());
-    const trunk = keep(new THREE.CylinderGeometry(0.014, 0.025, 0.72, 5));
-    trunk.translate(0, 0.36, 0);
-    const crownMaterial = material('#ffffff', { roughness: 1 });
-    crownMaterial.onBeforeCompile = (shader) => {
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <common>',
-        '#include <common>\nvarying vec3 vFlightCrown;',
-      );
-      shader.vertexShader = shader.vertexShader.replace(
-        '#include <begin_vertex>',
-        '#include <begin_vertex>\nvFlightCrown = position;',
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <common>',
-        '#include <common>\nvarying vec3 vFlightCrown;',
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <color_fragment>',
-        `#include <color_fragment>
-        float crownDetail = sin(vFlightCrown.y * 215. + sin(vFlightCrown.x * 170.)) * sin(vFlightCrown.z * 191. + vFlightCrown.x * 89.);
-        diffuseColor.rgb *= .9 + crownDetail * .12;
-      `,
-      );
-    };
-    crownMaterial.customProgramCacheKey = () => 'flight-pine-crown';
-    const woodMaterial = material('#6f6650');
-    const matrix = new THREE.Matrix4(),
-      position = new THREE.Vector3(),
-      rotation = new THREE.Quaternion(),
-      scale = new THREE.Vector3();
-    const up = new THREE.Vector3(0, 1, 0);
-    const color = new THREE.Color();
-    const chunks = new Map();
-    for (const tree of far) {
-      const key = `${Math.floor(tree.x / 500)},${Math.floor(tree.z / 500)}`;
-      if (!chunks.has(key)) chunks.set(key, []);
-      chunks.get(key).push(tree);
-    }
-    for (const entries of chunks.values()) {
-      const leaves = new THREE.InstancedMesh(
-        crown,
-        crownMaterial,
-        entries.length,
-      );
-      const trunks = new THREE.InstancedMesh(
-        trunk,
-        woodMaterial,
-        entries.length,
-      );
-      for (let i = 0; i < entries.length; i++) {
-        const tree = entries[i];
-        position.set(tree.x, tree.y, tree.z);
-        rotation.setFromAxisAngle(up, tree.angle);
-        scale.set(
-          tree.height * (0.88 + tree.tone * 0.12),
-          tree.height,
-          tree.height * (1 - tree.tone * 0.12),
-        );
-        matrix.compose(position, rotation, scale);
-        leaves.setMatrixAt(i, matrix);
-        scale.setScalar(tree.height);
-        matrix.compose(position, rotation, scale);
-        trunks.setMatrixAt(i, matrix);
-        color.set('#4f6145').lerp(new THREE.Color('#738061'), tree.tone);
-        leaves.setColorAt(i, color);
-      }
-      leaves.computeBoundingSphere();
-      trunks.computeBoundingSphere();
-      group.add(leaves, trunks);
-    }
-    kit.updateMatrixWorld(true);
-    for (let kind = 0; kind < 3; kind++) {
-      const prototype = kit.getObjectByName(
-        ['pine_a', 'pine_b', 'pine_c'][kind],
-      );
-      const entries = near.filter((_, i) => i % 3 === kind);
-      if (!prototype || !entries.length) continue;
-      const bounds = new THREE.Box3().setFromObject(prototype);
-      const originalHeight = bounds.max.y - bounds.min.y;
-      const inverse = new THREE.Matrix4().copy(prototype.matrixWorld).invert();
-      prototype.traverse((part) => {
-        if (!part.isMesh) return;
-        const local = new THREE.Matrix4().multiplyMatrices(
-          inverse,
-          part.matrixWorld,
-        );
-        const geometry = keep(part.geometry.clone().applyMatrix4(local));
-        const surface = keep(part.material.clone());
-        surface.roughness = 1;
-        const batch = new THREE.InstancedMesh(
-          geometry,
-          surface,
-          entries.length,
-        );
-        batch.castShadow = true;
-        batch.receiveShadow = true;
-        for (let i = 0; i < entries.length; i++) {
-          const tree = entries[i];
-          position.set(tree.x, tree.y, tree.z);
-          rotation.setFromAxisAngle(up, tree.angle);
-          scale.setScalar(tree.height / originalHeight);
-          matrix.compose(position, rotation, scale);
-          batch.setMatrixAt(i, matrix);
-        }
-        batch.computeBoundingSphere();
-        group.add(batch);
-      });
-    }
-  }
   function guides() {
     for (const point of LANDMARKS) {
       const marker = new THREE.Group();
@@ -666,9 +377,12 @@ export function createFlightWorld() {
   }
   return {
     id: 'flight-world',
-    async init({ scene }) {
-      scene.add(group);
-      terrain();
+    get stats() {
+      return landscape?.stats ?? {};
+    },
+    async init(initialContext) {
+      context = initialContext;
+      context.scene.add(group);
       airport();
       guides();
       const gltf = await new GLTFLoader().loadAsync(
@@ -690,9 +404,15 @@ export function createFlightWorld() {
         resources.clear();
         return;
       }
-      forest(gltf.scene);
+      landscape = await createLandscape(context, gltf.scene);
+      landscape.configure(settings);
+    },
+    configure(next) {
+      settings = { ...settings, ...next };
+      landscape?.configure(settings);
     },
     update(dt, elapsed = 0) {
+      landscape?.update(context.camera.position, elapsed);
       if (windsock) {
         windsock.rotation.y = -0.45 + Math.sin(elapsed * 0.6) * 0.13;
         windsock.rotation.z = Math.sin(elapsed * 2.5) * 0.04;
@@ -702,6 +422,7 @@ export function createFlightWorld() {
     },
     dispose() {
       disposed = true;
+      landscape?.dispose();
       group.removeFromParent();
       for (const resource of resources) resource.dispose();
       resources.clear();

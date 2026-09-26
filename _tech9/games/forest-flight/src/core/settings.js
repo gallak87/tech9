@@ -10,7 +10,7 @@ export const QUALITY = Object.freeze({
     pixelRatio: 1,
     maxPixels: 1600000,
     shadowSize: 2048,
-    samples: 0,
+    samples: 4,
     rays: 20,
   },
   high: {

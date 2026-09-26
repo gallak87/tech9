@@ -209,3 +209,98 @@ test('flight input leaves focused UI button activation to the browser', () => {
   assert.deepEqual([...input.keys], []);
   input.dispose();
 });
+
+test('unassisted sport completes both full rolls without heading singularities', () => {
+  for (const direction of [-1, 1]) {
+    const sim = new FlightSimulation({ type: 'sport' });
+    sim.start();
+    Object.assign(sim.state, {
+      grounded: false,
+      phase: 'flight',
+      y: 450,
+      speed: 50,
+      throttle: 1,
+    });
+    sim.setStabilization(false);
+    let accumulated = 0,
+      previous = 0;
+    for (let i = 0; i < 600; i++) {
+      sim.update(1 / 120, { roll: direction });
+      const delta = sim.state.roll - previous;
+      accumulated += Math.atan2(Math.sin(delta), Math.cos(delta));
+      previous = sim.state.roll;
+      assert.ok(
+        Object.values(sim.state)
+          .filter((v) => typeof v === 'number')
+          .every(Number.isFinite),
+      );
+      assert.equal(sim.state.phase, 'flight');
+    }
+    assert.ok(
+      accumulated * direction > Math.PI * 2,
+      `${accumulated} completes a roll`,
+    );
+  }
+});
+
+test('inverted flight holds attitude, body pitch reverses and recovery is available with stability off', () => {
+  const make = () => {
+    const sim = new FlightSimulation({ type: 'sport' });
+    sim.start();
+    Object.assign(sim.state, {
+      grounded: false,
+      phase: 'flight',
+      y: 450,
+      speed: 48,
+      throttle: 1,
+      roll: Math.PI - 0.01,
+    });
+    sim.setStabilization(false);
+    return sim;
+  };
+  const held = make();
+  run(held, 4, {});
+  assert.ok(Math.abs(held.state.roll) > 3.0);
+  assert.ok(
+    held.state.verticalSpeed < -5,
+    'inverted lift needs active nose-up compensation',
+  );
+  const pull = make();
+  run(pull, 0.4, { pitch: 1 });
+  const push = make();
+  run(push, 0.4, { pitch: -1 });
+  assert.ok(
+    pull.state.pitch < -0.15,
+    'pull pitches toward the ground inverted',
+  );
+  assert.ok(push.state.pitch > 0.15, 'push raises the nose inverted');
+  run(held, 3, { level: true });
+  assert.ok(Math.abs(held.state.roll) < 0.001);
+  assert.equal(held.state.stabilization, false);
+  held.reset();
+  assert.equal(
+    held.state.stabilization,
+    false,
+    'choice persists through restart',
+  );
+});
+
+test('stabilization can be toggled without changing attitude immediately', () => {
+  const sim = new FlightSimulation();
+  sim.start();
+  Object.assign(sim.state, {
+    grounded: false,
+    phase: 'flight',
+    y: 300,
+    speed: 40,
+    throttle: 0.7,
+    pitch: 0.15,
+    roll: 0.5,
+  });
+  sim.setStabilization(false);
+  run(sim, 1, {});
+  assert.ok(Math.abs(sim.state.roll - 0.5) < 0.01);
+  sim.setStabilization(true);
+  run(sim, 3, {});
+  assert.ok(Math.abs(sim.state.roll) < 0.26);
+});

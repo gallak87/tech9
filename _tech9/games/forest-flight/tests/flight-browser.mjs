@@ -13,6 +13,14 @@ const report = {
   environment: harness.environment,
   checks: [],
 };
+const simulationRate = Number(process.env.SIMULATION_RATE ?? 8);
+const aircraft = (process.env.VERIFY_AIRCRAFT ?? 'trainer,sport').split(',');
+report.simulationRate = simulationRate;
+const rate = (value) =>
+  page.evaluate(
+    (value) => window.__FLIGHT_TEST__.setSimulationRate(value),
+    value,
+  );
 let held = new Set();
 async function keys(wanted) {
   const next = new Set(wanted);
@@ -31,6 +39,7 @@ async function circuit(type) {
   await page.locator(`#choose-${type}`).click();
   await page.screenshot({ path: `${output}/${type}-airstrip.png` });
   await page.locator('#start').click();
+  await rate(simulationRate);
   const spec =
     type === 'trainer'
       ? { rotate: 23, stall: 18, gear: 1.35, cruise: 42 }
@@ -55,6 +64,7 @@ async function circuit(type) {
     }
     if (['crashed', 'landed'].includes(s.phase)) {
       await keys([]);
+      await rate(1);
       await page.screenshot({ path: `${output}/${type}-${s.phase}.png` });
       assert.equal(s.phase, 'landed', `${type}: ${s.reason}`);
       assert.equal(
@@ -122,19 +132,23 @@ async function circuit(type) {
     }
     await keys(wanted);
     if (!flightCapture && s.time > 27) {
+      await rate(1);
       await page.screenshot({ path: `${output}/${type}-flight.png` });
       flightCapture = true;
       await keys([]);
-      report[`${type}Performance`] = await samplePerformance(page, 2000);
+      report[`${type}Performance`] = await samplePerformance(page, 1200);
+      await rate(simulationRate);
     }
     if (!cockpitCapture && s.time > 55) {
       await keys([]);
+      await rate(1);
       await page.keyboard.press('KeyC');
       await page.waitForTimeout(100);
       assert.equal((await snapshot()).cameraMode, 'mounted');
       await page.screenshot({ path: `${output}/${type}-cockpit.png` });
       await page.keyboard.press('KeyC');
       cockpitCapture = true;
+      await rate(simulationRate);
     }
     if (track.length === 0 || s.time - track.at(-1).time >= 10)
       track.push({
@@ -145,7 +159,7 @@ async function circuit(type) {
         speed: s.speed,
         stage,
       });
-    await page.waitForTimeout(90);
+    await page.waitForTimeout(15);
   }
   throw new Error(`${type} exceeded circuit time budget`);
 }
@@ -232,14 +246,12 @@ try {
       return { pausedTime: frozen, focusPaused: true, restart: true };
     },
   );
-  await check('trainer real-input scenic circuit and runway landing', () =>
-    circuit('trainer'),
-  );
-  await page.locator('#hangar').click();
-  await check('sport real-input scenic circuit and runway landing', () =>
-    circuit('sport'),
-  );
-  await page.locator('#hangar').click();
+  for (const type of aircraft) {
+    await check(`${type} real-input scenic circuit and runway landing`, () =>
+      circuit(type),
+    );
+    await page.locator('#hangar').click();
+  }
   await check('graphics, responsive layout and sound controls', async () => {
     for (const quality of ['high', 'ultra', 'balanced']) {
       await page.locator('#quality').selectOption(quality);

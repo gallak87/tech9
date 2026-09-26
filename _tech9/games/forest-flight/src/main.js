@@ -75,6 +75,11 @@ try {
     window.__FLIGHT_TEST__ = {
       snapshot: () => ({ ...game.snapshot(), landscape: { ...world.stats } }),
       dispose: () => app.dispose(),
+      setSimulationRate: (rate) => {
+        if (!Number.isInteger(rate) || rate < 1 || rate > 12)
+          throw new RangeError('Test rate must be 1–12');
+        game.testSimulationRate = rate;
+      },
       inspect: (position, target) => {
         game.sim.paused = true;
         app.setController({

@@ -7,6 +7,13 @@ const output = `${root}/.artifacts/exploration-flight`;
 await mkdir(output, { recursive: true });
 const h = await openScene({ mode: 'preview', width: 1440, height: 900 });
 const report = { environment: h.environment, track: [], captures: [] };
+const simulationRate = Number(process.env.SIMULATION_RATE ?? 8);
+report.simulationRate = simulationRate;
+const rate = (value) =>
+  h.page.evaluate(
+    (value) => window.__FLIGHT_TEST__.setSimulationRate(value),
+    value,
+  );
 let held = new Set();
 async function keys(wanted) {
   const next = new Set(wanted);
@@ -17,10 +24,13 @@ async function keys(wanted) {
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 const angle = (x) => Math.atan2(Math.sin(x), Math.cos(x));
 async function capture(name) {
+  await rate(1);
+  await h.page.waitForTimeout(180);
   await h.page.screenshot({ path: `${output}/${name}.png` });
   report.captures.push({ name, state: await h.snapshot() });
 }
 async function rollAndInvert() {
+  await rate(1);
   await keys([]);
   await h.page.keyboard.press('KeyF');
   assert.equal((await h.snapshot()).stabilization, false);
@@ -73,6 +83,7 @@ try {
   await h.page.locator('#quality').selectOption('high');
   await h.page.locator('#choose-sport').click();
   await h.page.locator('#start').click();
+  await rate(simulationRate);
   const route = [
     [1300, 460, -950],
     [-1250, 'low', -1450],
@@ -123,6 +134,7 @@ try {
           await rollAndInvert();
           rolled = true;
         }
+        await rate(simulationRate);
         stage++;
         console.log(`PASS ordinary exploration leg ${stage}`);
         continue;
@@ -142,7 +154,7 @@ try {
       });
       lastSample = s.time;
     }
-    await h.page.waitForTimeout(90);
+    await h.page.waitForTimeout(15);
   }
   await keys([]);
   assert.equal(stage, route.length, 'all remote exploration legs complete');

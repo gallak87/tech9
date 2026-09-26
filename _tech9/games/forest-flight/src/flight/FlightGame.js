@@ -149,7 +149,9 @@ export class FlightGame {
       if (this.frameTimes.length > 600) this.frameTimes.shift();
     }
     this.lastFrame = now;
-    this.sim.update(dt, this.input.sample());
+    const input = this.input.sample();
+    for (let step = 0; step < (this.testSimulationRate ?? 1); step++)
+      this.sim.update(dt, input);
     const s = this.sim.state;
     this.visual.group.position.set(s.x, s.y, s.z);
     this.visual.group.quaternion.setFromEuler(

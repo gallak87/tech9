@@ -21,7 +21,7 @@ export function createPrecipitation(
   const effects = [];
   for (const kind of ['rain', 'snow']) {
     if (kind === 'rain' ? !rain : !snow) continue;
-    const capacity = kind === 'rain' ? 3600 : 1800;
+    const capacity = kind === 'rain' ? 7200 : 1800;
     const base = new PlaneGeometry(1, 1);
     const geometry = new InstancedBufferGeometry();
     geometry.index = base.index.clone();
@@ -74,11 +74,11 @@ export function createPrecipitation(
           vec3 velocity=(viewMatrix*vec4(wind.x*0.68,-fallSpeed,wind.y*0.68,0.0)).xyz;
           vec2 along=normalize(velocity.xy+vec2(0.0001));
           vec2 across=vec2(along.y,-along.x);
-          float size=${isRain ? '0.014+weatherSeed.w*0.009' : '0.018+weatherSeed.w*0.035'};
+          float size=${isRain ? '0.006+weatherSeed.w*0.006' : '0.018+weatherSeed.w*0.035'};
           mv.xy += ${isRain ? 'across*position.x*size+along*position.y*(0.11+weatherSeed.w*0.17)' : 'position.xy*size'};
           gl_Position=projectionMatrix*mv;
           vUv=uv;
-          vFade=above*edge*smoothstep(0.55,2.0,-mv.z)*(1.0-smoothstep(13.0,17.0,p.y-eye.y));
+          vFade=${isRain ? '(0.5+weatherSeed.z*0.5)' : '1.0'}*above*edge*smoothstep(0.55,2.0,-mv.z)*(1.0-smoothstep(13.0,17.0,p.y-eye.y));
           vDistance=length(mv.xyz);
         }`,
       fragmentShader: `
@@ -88,7 +88,7 @@ export function createPrecipitation(
           float shape=${isRain ? 'pow(max(0.0,1.0-abs(vUv.x-0.5)*2.0),1.4)*sin(vUv.y*3.14159)' : '1.0-smoothstep(0.15,0.5,length(vUv-0.5))'};
           float fog=1.0-exp(-fogDensity*fogDensity*vDistance*vDistance);
           vec3 color=mix(${isRain ? 'vec3(0.65,0.74,0.8)' : 'vec3(0.85,0.91,0.94)'},fogColor,fog);
-          gl_FragColor=vec4(color,shape*vFade*${isRain ? '0.52' : '0.85'}*strength);
+          gl_FragColor=vec4(color,shape*vFade*${isRain ? '0.44' : '0.85'}*strength);
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,

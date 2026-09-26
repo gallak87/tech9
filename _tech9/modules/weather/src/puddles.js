@@ -4,11 +4,11 @@ import { DoubleSide, MeshPhysicalMaterial } from 'three';
 export function createPuddleMaterial(uniforms) {
   const material = new MeshPhysicalMaterial({
     name: 'Weather shallow puddles',
-    color: '#718077',
-    roughness: 0.08,
+    color: '#33342d',
+    roughness: 0.045,
     metalness: 0,
     ior: 1.333,
-    envMapIntensity: 1.35,
+    envMapIntensity: 2.4,
     transparent: true,
     depthWrite: false,
     side: DoubleSide,
@@ -43,8 +43,8 @@ export function createPuddleMaterial(uniforms) {
       float waterMask=1.0-smoothstep(0.43,0.98,edge);
       float cycle=fract(time*1.7+vPuddlePhase*13.0);
       float waterRipple=pow(max(0.0,1.0-abs(length(q)-cycle*0.9)*33.0),2.0)*(1.0-cycle)*rain;
-      diffuseColor.rgb*=mix(vec3(0.5,0.41,0.29),vec3(0.78,0.88,0.89),waterMask);
-      diffuseColor.a*=waterMask*smoothstep(0.3,0.95,wet)*(1.0-smoothstep(0.08,0.5,snow))*0.72;
+      diffuseColor.rgb*=mix(vec3(0.5,0.41,0.29),vec3(0.73,0.75,0.69),waterMask);
+      diffuseColor.a*=waterMask*smoothstep(0.3,0.95,wet)*(1.0-smoothstep(0.08,0.5,snow))*0.88;
     `,
       )
       .replace(

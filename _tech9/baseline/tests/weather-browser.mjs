@@ -160,9 +160,9 @@ try {
     await wait();
     const s = (await snapshot()).weather;
     assert.ok(
-      s.particles.rain <= 3600 &&
+      s.particles.rain <= 7200 &&
         s.particles.snow <= 1800 &&
-        s.impacts.splashes <= 100 &&
+        s.impacts.splashes <= 160 &&
         s.impacts.puddles <= 52,
     );
     return { before, after };

@@ -124,7 +124,9 @@ export function installWeatherMaterials(targets, field, state) {
         .replace(
           '#include <metalnessmap_fragment>',
           `#include <metalnessmap_fragment>
-        roughnessFactor = mix(roughnessFactor, max(${ground ? '0.49' : '0.24'},roughnessFactor*${ground ? '0.72' : '0.46'}),weatherMoisture);
+        roughnessFactor = mix(roughnessFactor, max(${ground ? '0.49' : '0.18'},roughnessFactor*${ground ? '0.72' : '0.34'}),weatherMoisture);
+        float weatherFilm = smoothstep(0.53,0.78,weatherNoise(vWeatherPosition.xz*2.1)) * weatherMoisture * ${ground.toFixed(1)};
+        roughnessFactor = mix(roughnessFactor,0.26,weatherFilm*0.7);
         roughnessFactor = mix(roughnessFactor,0.93-weatherMoisture*0.12,weatherCover);
       `,
         )

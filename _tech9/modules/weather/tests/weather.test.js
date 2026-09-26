@@ -160,8 +160,8 @@ test('repeat activation/disposal keeps scene and caller material ownership stabl
     weather.init({ scene, camera, bounds });
     weather.update(0.05);
     assert.equal(scene.children.length, 4);
-    assert.ok(weather.stats.particles.rain <= 3600);
-    assert.ok(weather.stats.impacts.splashes <= 100);
+    assert.ok(weather.stats.particles.rain <= 7200);
+    assert.ok(weather.stats.impacts.splashes <= 160);
     camera.position.set(n * 100, 80, n * -100);
     weather.update(0.05);
     weather.dispose();

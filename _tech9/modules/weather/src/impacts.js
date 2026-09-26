@@ -20,7 +20,7 @@ export function createImpacts(scene, camera, query) {
   let centerX = Infinity,
     centerZ = Infinity;
   for (const kind of ['puddles', 'splashes']) {
-    const capacity = kind === 'puddles' ? 52 : 100;
+    const capacity = kind === 'puddles' ? 52 : 160;
     const geometry = new PlaneGeometry(1, 1);
     const phases = new Float32Array(capacity);
     for (let i = 0; i < capacity; i++) phases[i] = random(i + 90);
@@ -54,19 +54,8 @@ export function createImpacts(scene, camera, query) {
           float surfaceMask=1.0-smoothstep(0.5,0.98,edge);
           float cycle=fract(time*1.8+vPhase*13.0);
           float ripple=pow(max(0.0,1.0-abs(length(q)-cycle*0.92)*35.0),2.0)*(1.0-cycle);
-          ${
-            kind === 'puddles'
-              ? `
-            float fresnel=pow(1.0-abs(normalize(cameraPosition-vPosition).y),3.0);
-            float shimmer=sin(q.x*28.0+time*wind.x)*sin(q.y*23.0+time*wind.y)*0.018;
-            vec3 color=mix(vec3(0.08,0.105,0.11),vec3(0.27,0.34,0.37),fresnel*0.55+shimmer);
-            color+=ripple*rain*0.07;
-            gl_FragColor=vec4(color,surfaceMask*smoothstep(0.32,0.95,wet)*(1.0-smoothstep(0.08,0.5,snow))*0.46);
-          `
-              : `
-            gl_FragColor=vec4(vec3(0.55,0.65,0.68),ripple*surfaceMask*rain*0.4*(1.0-snow));
-          `
-          }
+          float impact=exp(-length(q)*13.0)*pow(1.0-cycle,9.0);
+          gl_FragColor=vec4(vec3(0.58,0.63,0.63),(ripple+impact*0.45)*surfaceMask*rain*0.62*(1.0-snow));
           #include <tonemapping_fragment>
           #include <colorspace_fragment>
         }`,
@@ -86,12 +75,15 @@ export function createImpacts(scene, camera, query) {
       let count = 0;
       // World-anchored cells retain the same puddles when the viewer moves.
       const phases = e.geometry.getAttribute('phase');
-      for (let i = 0; i < 121 && count < e.capacity; i++) {
-        const gx = Math.floor(centerX / 3) + (i % 11) - 5;
-        const gz = Math.floor(centerZ / 3) + Math.floor(i / 11) - 5;
+      const cells = e.kind === 'puddles' ? 11 : 17;
+      const step = e.kind === 'puddles' ? 3 : 1.8;
+      const half = Math.floor(cells / 2);
+      for (let i = 0; i < cells * cells && count < e.capacity; i++) {
+        const gx = Math.floor(centerX / step) + (i % cells) - half;
+        const gz = Math.floor(centerZ / step) + Math.floor(i / cells) - half;
         const seed = gx * 311 + gz * 919;
-        const x = gx * 3 + (random(seed) - 0.5) * 2.1;
-        const z = gz * 3 + (random(seed + 1) - 0.5) * 2.1;
+        const x = gx * step + (random(seed) - 0.5) * step * 0.7;
+        const z = gz * step + (random(seed + 1) - 0.5) * step * 0.7;
         const hit = surfaceHit(query, x, z);
         if (
           !hit ||
@@ -107,7 +99,7 @@ export function createImpacts(scene, camera, query) {
         const size =
           e.kind === 'puddles'
             ? 0.28 + Math.pow(random(seed + 8), 1.7) * 1.8
-            : 0.09 + random(seed + 7) * 0.17;
+            : 0.13 + random(seed + 7) * 0.22;
         scratch.rotateZ(random(seed + 21) * Math.PI * 2);
         scratch.scale.set(
           size,

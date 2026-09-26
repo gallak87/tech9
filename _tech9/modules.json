@@ -28,6 +28,10 @@
     {
       "id": "sailing-ships",
       "version": "1.0.0"
+    },
+    {
+      "id": "weather",
+      "version": "1.0.0"
     }
   ]
 }

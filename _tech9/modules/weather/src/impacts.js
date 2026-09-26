@@ -83,9 +83,15 @@ export function createImpacts(scene, camera, query) {
       const cells = e.kind === 'puddles' ? 11 : 17;
       const step = e.kind === 'puddles' ? 3 : 1.8;
       const half = Math.floor(cells / 2);
-      for (let i = 0; i < cells * cells && count < e.capacity; i++) {
-        const gx = Math.floor(centerX / step) + (i % cells) - half;
-        const gz = Math.floor(centerZ / step) + Math.floor(i / cells) - half;
+      // Fill nearest cells first so a capacity limit cannot cut off one hemisphere.
+      const offsets = Array.from({ length: cells * cells }, (_, i) => [
+        (i % cells) - half,
+        Math.floor(i / cells) - half,
+      ]).sort((a, b) => a[0] ** 2 + a[1] ** 2 - b[0] ** 2 - b[1] ** 2);
+      for (const [dx, dz] of offsets) {
+        if (count >= e.capacity) break;
+        const gx = Math.floor(centerX / step) + dx;
+        const gz = Math.floor(centerZ / step) + dz;
         const seed = gx * 311 + gz * 919;
         const x = gx * step + (random(seed) - 0.5) * step * 0.7;
         const z = gz * step + (random(seed + 1) - 0.5) * step * 0.7;

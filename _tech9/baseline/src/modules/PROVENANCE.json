@@ -54,11 +54,11 @@
         },
         {
           "path": "src/impacts.js",
-          "sha256": "365ffcd6c25f52fb759c4374607208fe32a1b85a469b5318a25c356bf2552e1e"
+          "sha256": "c35807bbe8c8f64809563248f0cce55b13cc48100831d1df9f958943bd268151"
         },
         {
           "path": "src/materials.js",
-          "sha256": "6ed9fc9d3114dcb035454f78b2941937f7c3bbcddfabd6c4794b1ad5ef40ab2f"
+          "sha256": "ce383ece7a640e398b90bb033a09c9631aec175af77150a4c7ea411a4d1a2a28"
         },
         {
           "path": "src/precipitation.js",

@@ -120,8 +120,8 @@ export function installWeatherMaterials(targets, field, state) {
         snowColor *= 1.0-weatherMoisture*0.1;
         // Thin accumulation gets a darker granular boundary against exposed ground.
         snowColor *= mix(0.92,1.0,smoothstep(0.25,0.9,weatherCover));
-        float weatherDust = weatherSnow * weatherExposure * ${ground.toFixed(1)} * (1.0-weatherCover) * smoothstep(0.35,0.75,weatherNoise(vWeatherPosition.xz*5.0)) * 0.23;
-        float weatherThaw = weatherSnow * weatherExposure * ${ground.toFixed(1)} * (1.0-weatherCover) * smoothstep(0.3,0.65,weatherRetention);
+        float weatherDust = weatherAmount * weatherSlope * ${ground.toFixed(1)} * (1.0-weatherCover) * smoothstep(0.35,0.75,weatherNoise(vWeatherPosition.xz*5.0)) * 0.23;
+        float weatherThaw = weatherAmount * weatherSlope * ${ground.toFixed(1)} * (1.0-weatherCover) * smoothstep(0.3,0.65,weatherRetention);
         diffuseColor.rgb *= 1.0-weatherThaw*0.18;
         diffuseColor.rgb = mix(diffuseColor.rgb,snowColor,weatherCover+weatherDust);
       `,

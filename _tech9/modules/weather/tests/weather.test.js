@@ -15,6 +15,7 @@ import {
 import { createWeather } from '../src/Weather.js';
 import { createSurfaceField, surfaceHit } from '../src/surfaces.js';
 import { installWeatherMaterials } from '../src/materials.js';
+import { createImpacts } from '../src/impacts.js';
 const bounds = { minX: -20, maxX: 20, minZ: -20, maxZ: 20 };
 const query = (x, z) => ({
   position: [x, 0, z],
@@ -226,4 +227,96 @@ test('composed cache keys follow live consumer shader variants', () => {
   installation.dispose();
   field.dispose();
   material.dispose();
+});
+
+test('snow dust and thaw honor zero material, retention and slope response', () => {
+  const field = createSurfaceField(query, bounds, 8);
+  const smoothstep = (a, b, x) => {
+    const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+  for (const snow of [0, 1]) {
+    const material = new MeshStandardMaterial();
+    const installation = installWeatherMaterials(
+      [{ material, ground: true, snow }],
+      field,
+      createWeatherState().current,
+    );
+    const shader = {
+      vertexShader: ShaderLib.standard.vertexShader,
+      fragmentShader: ShaderLib.standard.fragmentShader,
+      uniforms: {},
+    };
+    material.onBeforeCompile(shader, {});
+    // Evaluate the generated scalar GLSL expressions with a fixed noise sample.
+    // This catches omitted response factors without requiring a browser shader runtime.
+    const expression = (name) =>
+      shader.fragmentShader
+        .match(new RegExp(`float ${name} = ([^;]+);`))[1]
+        .replace(/weatherNoise\(vWeatherPosition\.xz\*5\.0\)/g, '0.7');
+    for (const retention of [0, 1])
+      for (const slope of [0, 1]) {
+        const values = {
+          weatherSnow: 1,
+          weatherExposure: 1,
+          weatherRetention: retention,
+          weatherSlope: slope,
+          weatherCover: 0,
+          smoothstep,
+        };
+        for (const name of ['weatherAmount', 'weatherDust', 'weatherThaw']) {
+          values[name] = new Function(
+            ...Object.keys(values),
+            `return ${expression(name)};`,
+          )(...Object.values(values));
+        }
+        for (const name of ['weatherDust', 'weatherThaw']) {
+          if (!snow || !retention || !slope) assert.equal(values[name], 0);
+          else assert.ok(values[name] > 0);
+        }
+      }
+    installation.dispose();
+    material.dispose();
+  }
+  field.dispose();
+});
+
+test('capped splashes surround the viewer and preserve deterministic world cells', () => {
+  const scene = new Scene(),
+    camera = new PerspectiveCamera();
+  const impacts = createImpacts(scene, camera, (x, z) => ({
+    position: [x, 0, z],
+    normal: [0, 1, 0],
+    exposure: 1,
+    puddle: 1,
+  }));
+  const state = createWeatherState({ rain: 1, wetness: 1 }).current;
+  impacts.update(state);
+  const mesh = scene.getObjectByName('Weather splashes');
+  assert.equal(mesh.count, 160);
+  const quadrants = [0, 0, 0, 0];
+  const positions = [];
+  for (let i = 0; i < mesh.count; i++) {
+    const x = mesh.instanceMatrix.array[i * 16 + 12],
+      z = mesh.instanceMatrix.array[i * 16 + 14];
+    quadrants[(x >= 0 ? 1 : 0) + (z >= 0 ? 2 : 0)]++;
+    positions.push([x, z]);
+  }
+  assert.ok(
+    quadrants.every((count) => count >= 30),
+    JSON.stringify(quadrants),
+  );
+  camera.position.x = 12;
+  impacts.update(state);
+  camera.position.x = 0;
+  impacts.update(state);
+  assert.deepEqual(
+    Array.from({ length: mesh.count }, (_, i) => [
+      mesh.instanceMatrix.array[i * 16 + 12],
+      mesh.instanceMatrix.array[i * 16 + 14],
+    ]),
+    positions,
+  );
+  impacts.dispose();
+  assert.equal(scene.children.length, 0);
 });

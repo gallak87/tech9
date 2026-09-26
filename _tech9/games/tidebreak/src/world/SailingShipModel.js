@@ -608,6 +608,134 @@ export function createSailingShip(profile) {
       box(0.025, 0.54, 0.075, trim, x, deckY + 0.3, 2.025);
   }
 
+  function transomNameplate() {
+    const name = galleon ? 'RESOLUTE' : 'KESTREL';
+    const glyphs = {
+      K: [
+        [
+          [0, 0],
+          [0, 1],
+        ],
+        [
+          [0.64, 1],
+          [0, 0.45],
+          [0.65, 0],
+        ],
+      ],
+      E: [
+        [
+          [0.65, 1],
+          [0, 1],
+          [0, 0],
+          [0.65, 0],
+        ],
+        [
+          [0, 0.51],
+          [0.53, 0.51],
+        ],
+      ],
+      S: [
+        [
+          [0.65, 0.92],
+          [0.52, 1],
+          [0.1, 1],
+          [0, 0.87],
+          [0, 0.62],
+          [0.12, 0.52],
+          [0.53, 0.48],
+          [0.65, 0.36],
+          [0.65, 0.12],
+          [0.53, 0],
+          [0.1, 0],
+          [0, 0.08],
+        ],
+      ],
+      T: [
+        [
+          [0, 1],
+          [0.68, 1],
+        ],
+        [
+          [0.34, 1],
+          [0.34, 0],
+        ],
+      ],
+      R: [
+        [
+          [0, 0],
+          [0, 1],
+          [0.49, 1],
+          [0.65, 0.87],
+          [0.65, 0.66],
+          [0.48, 0.52],
+          [0, 0.52],
+        ],
+        [
+          [0.32, 0.52],
+          [0.67, 0],
+        ],
+      ],
+      L: [
+        [
+          [0, 1],
+          [0, 0],
+          [0.65, 0],
+        ],
+      ],
+      O: [
+        [
+          [0.12, 0],
+          [0, 0.13],
+          [0, 0.86],
+          [0.12, 1],
+          [0.53, 1],
+          [0.65, 0.86],
+          [0.65, 0.13],
+          [0.53, 0],
+          [0.12, 0],
+        ],
+      ],
+      U: [
+        [
+          [0, 1],
+          [0, 0.14],
+          [0.14, 0],
+          [0.51, 0],
+          [0.65, 0.14],
+          [0.65, 1],
+        ],
+      ],
+    };
+    const step = 0.147,
+      height = 0.17,
+      width = name.length * step + 0.2,
+      y = deckY - 0.17,
+      z = length * 0.5 + 0.025;
+    rounded(width, 0.29, 0.06, darkWood, 0, y, z, 0.034);
+    for (const side of [-1, 1]) {
+      rod(
+        [-width * 0.45, y + side * 0.117, z + 0.036],
+        [width * 0.45, y + side * 0.117, z + 0.036],
+        0.01,
+        trim,
+      );
+      sphere(side * width * 0.45, y, z + 0.045, 0.012, 0.012, 0.008, trim);
+    }
+    for (let i = 0; i < name.length; i++)
+      for (const stroke of glyphs[name[i]])
+        for (let j = 1; j < stroke.length; j++) {
+          const x = (i - name.length / 2) * step + 0.037;
+          const a = stroke[j - 1],
+            b = stroke[j];
+          rod(
+            [x + a[0] * height, y + (a[1] - 0.5) * height, z + 0.045],
+            [x + b[0] * height, y + (b[1] - 0.5) * height, z + 0.045],
+            0.006,
+            trim,
+          );
+        }
+  }
+  transomNameplate();
   function curvedLine(points, r, mat) {
     if (points[0].distanceToSquared(points.at(-1)) < 1e-8) return;
     mesh(
@@ -636,14 +764,33 @@ export function createSailingShip(profile) {
     const normal = new THREE.Vector3(square ? 0 : -1, 0, square ? 1 : 0);
     function point(u, v, offset = 0) {
       const p = tl.clone().lerp(tr, u).lerp(bl.clone().lerp(br, u), v);
-      const puff = Math.sin(u * Math.PI) * Math.sin(v * Math.PI);
-      const tension =
-        Math.sin(u * 31 + v * 8) *
-        0.022 *
-        Math.sin(v * Math.PI) *
-        Math.pow(Math.abs(u - 0.5) * 2, 3);
-      p.addScaledVector(normal, puff * billow + tension + offset);
-      if (square) p.y -= Math.sin(u * Math.PI) * v * 0.19;
+      const su = Math.max(0, Math.sin(u * Math.PI)),
+        sv = Math.max(0, Math.sin(v * Math.PI));
+      // The pressure pocket sits forward of centre; broad folds fan out from the clews.
+      // All attachment corners stay fixed, and the hems/seams use this same surface.
+      const pocket =
+        Math.pow(su, 0.87) *
+        Math.pow(sv, 0.92) *
+        (1 + 0.24 * Math.sin(u * Math.PI * 1.7 + 0.4) * sv);
+      const clewRadius = Math.hypot(1 - u, 1 - v),
+        tackRadius = Math.hypot(u, 1 - v);
+      const clewFold =
+        Math.sin(Math.atan2(1 - v, 1 - u) * 4) *
+        Math.exp(-clewRadius * 2.15) *
+        (1 - Math.exp(-clewRadius * 9));
+      const tackFold =
+        Math.sin(Math.atan2(1 - v, u) * 4) *
+        Math.exp(-tackRadius * 2.7) *
+        (1 - Math.exp(-tackRadius * 8));
+      const tension = (clewFold * 0.29 + tackFold * 0.17) * billow;
+      p.addScaledVector(normal, pocket * billow + tension + offset);
+      if (square) {
+        p.x -= (u - 0.5) * 2 * Math.pow(Math.abs(u - 0.5) * 2, 3) * sv * 0.15;
+        p.y -= Math.pow(su, 0.9) * Math.pow(v, 3) * (0.29 + 0.08 * u);
+      } else {
+        p.z -= Math.pow(u, 4) * sv * 0.2;
+        p.y += su * Math.pow(v, 5) * 0.13;
+      }
       return p;
     }
     const positions = [],
@@ -659,9 +806,13 @@ export function createSailingShip(profile) {
           p = point(u, v);
         positions.push(...p);
         uvs.push(u * 6, v * 1.4);
+        const panel = [0.995, 0.967, 0.988, 0.955, 0.982, 0.971, 0.996][
+          Math.min(6, Math.floor(u * 7))
+        ];
         const tone =
-          0.91 + Math.sin(u * Math.PI) * 0.07 - Math.pow(v, 5) * 0.035;
-        colors.push(tone, tone, tone);
+          (0.935 + Math.sin(u * Math.PI) * 0.05 - Math.pow(v, 5) * 0.026) *
+          panel;
+        colors.push(tone, tone * 0.996, tone * 0.985);
         if (x < nx && y < ny) {
           const i = y * (nx + 1) + x;
           indices.push(i, i + nx + 1, i + 1, i + 1, i + nx + 1, i + nx + 2);
@@ -1099,13 +1250,13 @@ export function createSailingShip(profile) {
         workingDeckY(z + reach * 0.84) + 0.2,
         z + reach * 0.84,
       ];
-      workingBlock(upperSheet);
-      workingBlock(lowerSheet, 0.85);
+      workingBlock(upperSheet, 0.62);
+      workingBlock(lowerSheet, 0.65);
       rod([0, bottom, z + reach * 0.95], upperSheet, 0.017, rope);
       for (const shift of [-0.025, 0.025])
         rod(
-          [upperSheet[0] + shift, upperSheet[1] - 0.09, upperSheet[2]],
-          [lowerSheet[0] + shift, lowerSheet[1] + 0.08, lowerSheet[2]],
+          [upperSheet[0] + shift * 0.7, upperSheet[1] - 0.058, upperSheet[2]],
+          [lowerSheet[0] + shift * 0.7, lowerSheet[1] + 0.054, lowerSheet[2]],
           0.011,
           rope,
         );

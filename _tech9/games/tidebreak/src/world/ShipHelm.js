@@ -524,9 +524,9 @@ export function createShipHelm({
       new THREE.Vector3(0.028, -0.041, 0.017),
       new THREE.Vector3(0.038, -0.014, 0.019),
       new THREE.Vector3(0.043, 0.02, 0.02),
-      new THREE.Vector3(0.04, 0.039, 0.016),
-      new THREE.Vector3(0.03, 0.048, 0.011),
-      new THREE.Vector3(0, 0.052, 0),
+      new THREE.Vector3(0.039, 0.03, 0.015),
+      new THREE.Vector3(0.029, 0.037, 0.01),
+      new THREE.Vector3(0, 0.04, 0),
     ]);
     const positions = [],
       uvs = [],
@@ -576,7 +576,7 @@ export function createShipHelm({
       finger(
         [
           [x, 0.033, 0.062],
-          [x, 0.055 - short, 0.037],
+          [x, 0.065 - short, 0.041],
           [x, 0.034, -0.018],
           [x, -0.007, -0.032],
           [x, -0.025 + short, -0.005],
@@ -596,12 +596,42 @@ export function createShipHelm({
       0.0125,
       hand,
     );
-    const sleeve = (radii) =>
-      turned(
-        radii.map(([y, r]) => [r, y - 0.5]),
-        m.coat,
-        arms,
+    const sleeve = (radii, curved = false) => {
+      if (!curved)
+        return turned(
+          radii.map(([y, r]) => [r, y - 0.5]),
+          m.coat,
+          arms,
+        );
+      const outline = new THREE.CatmullRomCurve3(
+        radii.map(([y, radius]) => new THREE.Vector3(radius, y - 0.5, 0)),
       );
+      const geometry = new THREE.LatheGeometry(
+        outline.getPoints(48).map((p) => new THREE.Vector2(p.x, p.y)),
+        36,
+      );
+      const positions = geometry.attributes.position;
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i),
+          y = positions.getY(i),
+          z = positions.getZ(i);
+        const t = Math.max(0, Math.min(1, y + 0.5));
+        const bend = Math.sin(t * Math.PI);
+        const angle = Math.atan2(x, z);
+        // A shaped sleeve follows the forearm instead of reading as a straight
+        // pipe. Three broad, oblique cloth folds soften its tapered silhouette.
+        const fold =
+          1 + 0.07 * Math.sin(t * Math.PI * 6 + Math.sin(angle) * 0.9) * bend;
+        positions.setXYZ(
+          i,
+          x * fold + sign * 0.062 * bend,
+          y,
+          z * fold + 0.022 * bend,
+        );
+      }
+      geometry.computeVertexNormals();
+      return mesh(geometry, m.coat, arms);
+    };
     const upper = sleeve([
       [0, 0.094],
       [0.09, 0.103],
@@ -611,16 +641,19 @@ export function createShipHelm({
       [0.9, 0.079],
       [1, 0.07],
     ]);
-    const lower = sleeve([
-      [0, 0.081],
-      [0.12, 0.085],
-      [0.25, 0.078],
-      [0.43, 0.071],
-      [0.58, 0.063],
-      [0.81, 0.048],
-      [0.9, 0.049],
-      [1, 0.043],
-    ]);
+    const lower = sleeve(
+      [
+        [0, 0.081],
+        [0.12, 0.085],
+        [0.25, 0.078],
+        [0.43, 0.071],
+        [0.58, 0.063],
+        [0.81, 0.048],
+        [0.9, 0.049],
+        [1, 0.043],
+      ],
+      true,
+    );
     const elbow = ellipsoid(0, 0, 0, 0.078, 0.074, 0.079, m.coat, arms);
     const shoulderCap = ellipsoid(
       helmX + sign * 0.225,
@@ -633,6 +666,12 @@ export function createShipHelm({
       arms,
     );
     const cuff = torus(0.036, 0.007, 0, 0, 0, darkCloth, arms);
+    const shirtCuff = mesh(
+      new THREE.CylinderGeometry(0.031, 0.034, 0.035, 32, 1, true),
+      m.shirt,
+      arms,
+    );
+    shirtCuff.name = `${sign < 0 ? 'Left' : 'Right'} cream shirt cuff`;
     const wrist = ellipsoid(0, 0, 0, 0.026, 0.043, 0.022, m.skin, arms);
     upper.name = `${sign < 0 ? 'Left' : 'Right'} external upper sleeve`;
     shoulderCap.name = `${sign < 0 ? 'Left' : 'Right'} external shoulder`;
@@ -645,6 +684,7 @@ export function createShipHelm({
       elbow,
       shoulderCap,
       cuff,
+      shirtCuff,
       wrist,
       shoulder: new THREE.Vector3(
         helmX + sign * 0.225,
@@ -724,6 +764,10 @@ export function createShipHelm({
       direction.copy(arm.handPoint).sub(arm.bend).normalize();
       arm.cuff.position.copy(arm.cuffPoint);
       arm.cuff.quaternion.setFromUnitVectors(forward, direction);
+      arm.shirtCuff.position
+        .copy(arm.cuffPoint)
+        .addScaledVector(direction, 0.026);
+      arm.shirtCuff.quaternion.setFromUnitVectors(up, direction);
       arm.wrist.position.copy(arm.handPoint).lerp(arm.cuffPoint, 0.45);
       arm.wrist.quaternion.setFromUnitVectors(up, direction);
     }

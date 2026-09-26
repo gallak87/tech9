@@ -147,6 +147,8 @@ export function createBoatMaterials({ own, galleon }) {
   const trim = material('#b49b62', 0.43, 0.72);
   trim.roughnessMap = metalRough;
   const paint = material(galleon ? '#233b37' : '#245559', 0.63);
+  paint.map = timberMap;
+  paint.roughnessMap = woodRough;
   paint.bumpMap = woodHeight;
   paint.bumpScale = 0.0008;
   const iron = material('#343d3c', 0.65, 0.58);
@@ -186,24 +188,40 @@ export function createBoatMaterials({ own, galleon }) {
   coat.bumpScale = 0.001;
   const hair = material('#302b25', 0.98);
 
-  for (const mat of [hullWood, deckWood, timber]) {
+  for (const mat of [hullWood, deckWood, timber, paint]) {
+    const isDeck = mat === deckWood;
+    const isPaint = mat === paint;
     mat.onBeforeCompile = (shader) => {
       shader.vertexShader =
-        'varying vec3 vTimberPosition;\n' + shader.vertexShader;
+        'varying vec3 vTimberPosition; varying vec2 vTimberUv;\n' +
+        shader.vertexShader;
       shader.vertexShader = shader.vertexShader.replace(
         '#include <begin_vertex>',
-        '#include <begin_vertex>\nvTimberPosition = position;',
+        '#include <begin_vertex>\nvTimberPosition = position; vTimberUv=uv;',
       );
       shader.fragmentShader =
-        'varying vec3 vTimberPosition;\n' + shader.fragmentShader;
+        'varying vec3 vTimberPosition; varying vec2 vTimberUv;\n' +
+        shader.fragmentShader;
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <map_fragment>',
         `#include <map_fragment>
-      float boardHash=fract(sin(floor(vTimberPosition.x*4.8)*127.1+floor(vTimberPosition.z*0.32)*311.7)*43758.5453);
-      diffuseColor.rgb*=mix(0.91,1.04,boardHash);`,
+      float boardId=${isDeck ? 'floor(vTimberPosition.x*4.8)' : 'floor(vTimberPosition.y*7.4)'};
+      float lengthId=floor(vTimberPosition.z*0.36+fract(boardId*0.618));
+      float boardHash=fract(sin(boardId*127.1+lengthId*311.7)*43758.5453);
+      float broadPatina=sin(vTimberPosition.z*1.9+sin(vTimberPosition.x*3.2))*0.5+0.5;
+      diffuseColor.rgb*=mix(0.87,1.075,boardHash)*mix(0.96,1.0,broadPatina);
+      ${
+        isPaint
+          ? `float edge=min(fract(vTimberUv.x),1.0-fract(vTimberUv.x));
+      float wear=(1.0-smoothstep(0.006,0.025,edge))*smoothstep(0.4,0.8,boardHash)*smoothstep(0.35,0.75,broadPatina);
+      diffuseColor.rgb=mix(diffuseColor.rgb,vec3(0.23,0.16,0.083),wear*0.42);`
+          : ''
+      }
+      ${mat === hullWood || isPaint ? 'diffuseColor.rgb*=mix(0.74,1.0,smoothstep(0.06,0.55,vTimberPosition.y));' : ''}`,
       );
     };
-    mat.customProgramCacheKey = () => 'boat-timber-variation-v1';
+    mat.customProgramCacheKey = () =>
+      `boat-timber-finish-v2:${isDeck}:${isPaint}:${mat === hullWood}`;
   }
   return {
     hullWood,

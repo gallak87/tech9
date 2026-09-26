@@ -25,7 +25,7 @@ Quality, sunlight, atmosphere, ground cover and exposure persist locally. Balanc
 
 Read [ARCHITECTURE.md](./ARCHITECTURE.md) for runtime contracts. `src/main.js` selects the world definition, registers layers and selects the controller. `SceneApp` owns the renderer and frame loop; layers own their resources. `terrainHeight(x,z)` supplies the shared ground query. Units are metres, +Y up.
 
-`package.json` → `tech9.modules` selects grounded-walking and placement-collisions. Their owned source copies live under `src/modules/`. Render placements also drive conservative tree, rock and deadfall collision proxies.
+`package.json` → `tech9.modules` selects grounded-walking, placement-collisions and weather. Their owned source copies live under `src/modules/`. Render placements also drive conservative tree, rock and deadfall collision proxies.
 
 ## Assets
 

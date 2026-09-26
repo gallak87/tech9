@@ -31,12 +31,14 @@ function run(command, args) {
 }
 
 try {
-  await run(process.env.PYTHON_BIN || 'python3', ['art/generate_needles.py']);
+  await run(process.env.PYTHON_BIN || 'python3', [
+    'src/modules/landscape/assets/art/generate_needles.py',
+  ]);
   await run(executable, [
     '--background',
     '--factory-startup',
     '--python',
-    'art/build_forest.py',
+    'src/modules/landscape/assets/art/build_forest.py',
   ]);
 } catch (error) {
   console.error(

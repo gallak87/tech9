@@ -1,0 +1,7 @@
+# Build Forest Flight
+
+Read BRIEF.md and the framework AGENTS.md, GENERATE.md, WORKFLOW.md, baseline architecture and module guides. Build the complete compact flight pilot in the assigned dedicated worktree. Make routine design, implementation, asset and validation decisions autonomously. Use bounded independent reviews and serialized GPU work.
+
+Create a schema-version-2 plan in runs/forest-flight using the current baseline version. Fork the clean committed baseline with the CLI if this game has no receipt; otherwise resume its package. Preserve tech9.json and GAME_PLAN.json. Keep simulation, input, aircraft presentation, world queries, camera and flight rules separate. Reuse applicable modules and baseline rendering/assets. Deliver the two distinct aircraft and complete flight/landing/recovery loop before additional depth.
+
+Run meaningful tests, lint, build and real-input browser validation for both aircraft. Record actual browser/GPU/viewport/quality and frame timing. Commit stable work, obtain engineering and bounded art review, fix correctness blockers and report actual results. After game validation and review, perform bounded framework-dev extraction of the proven reusable flight and input behavior, with focused tests and concise usage documentation. The game keeps its owned implementation. Do not merge or publish until user playtest. Finish with launch command, controls, checks, limitations and reusable entrypoints.

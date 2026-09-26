@@ -1,0 +1,12 @@
+.artifacts/
+.husky/
+dist/
+node_modules/
+public/
+package-lock.json
+
+# Preserve imported mesh source formatting and acquisition metadata.
+art/sources/
+# Immutable fork provenance.
+tech9.json
+GAME_PLAN.json

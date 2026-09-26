@@ -5,6 +5,8 @@ import {
   PerspectiveCamera,
   MeshStandardMaterial,
   MeshBasicMaterial,
+  MeshLambertMaterial,
+  Texture,
   ShaderLib,
 } from 'three';
 import {
@@ -319,4 +321,93 @@ test('capped splashes surround the viewer and preserve deterministic world cells
   );
   impacts.dispose();
   assert.equal(scene.children.length, 0);
+});
+
+test('Lambert detail and upright impostors share weather and restore their own hooks', () => {
+  const field = createSurfaceField(query, bounds, 8);
+  const state = createWeatherState({
+    snow: 0.8,
+    wind: 0.6,
+    transition: 0,
+  }).current;
+  const map = new Texture();
+  for (const [material, source, policy] of [
+    [new MeshLambertMaterial(), ShaderLib.lambert, { wind: 0.65, depth: 0 }],
+    [
+      new MeshBasicMaterial({ map }),
+      ShaderLib.basic,
+      { snowMask: map, depth: 0 },
+    ],
+  ]) {
+    const previous = material.onBeforeCompile;
+    const hooks = installWeatherMaterials(
+      [{ material, foliage: true, ...policy }],
+      field,
+      state,
+    );
+    hooks.update();
+    const shader = {
+      vertexShader: source.vertexShader,
+      fragmentShader: source.fragmentShader,
+      uniforms: {},
+    };
+    material.onBeforeCompile(shader, {});
+    assert.equal(shader.uniforms.weatherSnow.value, 0.8);
+    assert.equal(shader.uniforms.weatherWind.value.x, state.windX);
+    assert.match(shader.vertexShader, /weatherOffset/);
+    if (policy.snowMask) {
+      assert.equal(shader.uniforms.weatherSnowMask.value, map);
+      assert.match(
+        shader.fragmentShader,
+        /texture2D\(weatherSnowMask,vMapUv\)/,
+      );
+    } else assert.match(shader.fragmentShader, /normalize\(vWeatherNormal\).y/);
+    assert.doesNotMatch(shader.fragmentShader, /roughnessFactor = mix/);
+    hooks.dispose();
+    assert.equal(material.onBeforeCompile, previous);
+    material.dispose();
+  }
+  assert.throws(
+    () =>
+      installWeatherMaterials(
+        [
+          {
+            material: new MeshBasicMaterial({ map }),
+            snowMask: map,
+            wind: 1,
+          },
+        ],
+        field,
+        state,
+      ),
+    /zero wind/,
+  );
+  map.dispose();
+  field.dispose();
+});
+
+test('snow masks reject missing diffuse UVs before changing any material hooks', () => {
+  const field = createSurfaceField(query, bounds, 8);
+  const earlier = new MeshStandardMaterial();
+  const previous = earlier.onBeforeCompile;
+  const snowMask = new Texture();
+  for (const material of [
+    new MeshStandardMaterial(),
+    new MeshLambertMaterial(),
+  ]) {
+    assert.throws(
+      () =>
+        installWeatherMaterials(
+          [{ material: earlier }, { material, snowMask }],
+          field,
+          {},
+        ),
+      /diffuse map/,
+    );
+    assert.equal(earlier.onBeforeCompile, previous);
+    material.dispose();
+  }
+  snowMask.dispose();
+  earlier.dispose();
+  field.dispose();
 });

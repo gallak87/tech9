@@ -38,6 +38,7 @@ export class AtmospherePass {
         lightDirection: { value: new Vector3() },
         sunColor: { value: new Color('#ffe2ae') },
         strength: { value: 1 },
+        groundLevel: { value: 0 },
         raySteps: { value: 32 },
       },
       vertexShader: fullscreenVertex,
@@ -46,7 +47,7 @@ export class AtmospherePass {
         uniform highp sampler2DShadow tShadow;
         uniform mat4 inverseProjection; uniform mat4 cameraWorld; uniform mat4 shadowMatrix;
         uniform vec3 eye; uniform vec3 lightDirection; uniform vec3 sunColor;
-        uniform float strength; uniform float raySteps; varying vec2 vUv;
+        uniform float strength; uniform float raySteps; uniform float groundLevel; varying vec2 vUv;
         void main(){
           float depth=texture2D(tDepth,vUv).r;
           vec4 view=inverseProjection*vec4(vUv*2.0-1.0,depth*2.0-1.0,1.0);
@@ -67,7 +68,7 @@ export class AtmospherePass {
             if(coord.x>0.0&&coord.x<1.0&&coord.y>0.0&&coord.y<1.0&&coord.z<1.0){
               visible=texture(tShadow,vec3(coord.xy,coord.z-0.0002));
             }
-            float groundMist=exp(-max(point.y-1.8,0.0)*0.095);
+            float groundMist=exp(-max(point.y-groundLevel-1.8,0.0)*0.095);
             float nearFade=smoothstep(0.6,5.0,distance);
             scattering+=visible*groundMist*nearFade*exp(-distance*0.027)*stepLength;
           }
@@ -141,11 +142,12 @@ export class AtmospherePass {
     this.volumeMaterial.uniforms.strength.value =
       settings.atmosphere * settings.sunlight;
   }
-  render(scene, camera, sun) {
+  render(scene, camera, sun, groundLevel = 0) {
     this.renderer.setRenderTarget(this.target);
     this.renderer.render(scene, camera);
     this.material.uniforms.clipPlanes.value.set(camera.near, camera.far);
     const uniforms = this.volumeMaterial.uniforms;
+    uniforms.groundLevel.value = groundLevel;
     uniforms.tShadow.value = sun.shadow.map.depthTexture;
     uniforms.inverseProjection.value.copy(camera.projectionMatrixInverse);
     uniforms.cameraWorld.value.copy(camera.matrixWorld);

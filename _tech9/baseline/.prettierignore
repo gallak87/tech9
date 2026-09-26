@@ -6,4 +6,4 @@ public/
 package-lock.json
 
 # Preserve imported mesh source formatting and acquisition metadata.
-art/sources/
+src/modules/landscape/assets/art/sources/

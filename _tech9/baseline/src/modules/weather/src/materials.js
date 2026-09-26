@@ -5,10 +5,27 @@ import { surfaceGLSL } from './surfaces.js';
 export function installWeatherMaterials(targets, field, state) {
   // Validate the entire batch before changing a caller's first material.
   for (const target of targets) {
-    if (!target.material?.isMeshStandardMaterial)
+    if (!(
+      target.material?.isMeshStandardMaterial ||
+      target.material?.isMeshLambertMaterial ||
+      (target.material?.isMeshBasicMaterial &&
+        target.material.map?.isTexture &&
+        target.snowMask?.isTexture)
+    ))
       throw new Error(
-        'Weather surface targets require MeshStandardMaterial or MeshPhysicalMaterial.',
+        'Weather surface targets require MeshStandardMaterial, MeshPhysicalMaterial, MeshLambertMaterial, or an upright Basic impostor with snowMask.',
       );
+    if (target.snowMask !== undefined && !target.snowMask?.isTexture)
+      throw new TypeError('Weather snowMask must be a texture.');
+    if (target.snowMask && !target.material.map?.isTexture)
+      throw new TypeError(
+        'Weather snowMask requires a diffuse map for aligned UVs.',
+      );
+    if (
+      target.material.isMeshBasicMaterial &&
+      ((target.wind ?? 0) !== 0 || (target.depth ?? 0) !== 0)
+    )
+      throw new RangeError('Weather impostors require zero wind and depth.');
     for (const key of ['snow', 'wet', 'wind', 'depth'])
       if (target[key] !== undefined && !Number.isFinite(target[key]))
         throw new Error(`Weather target ${key} must be finite.`);
@@ -29,10 +46,6 @@ export function installWeatherMaterials(targets, field, state) {
   const seen = new Set();
   for (const target of targets) {
     const material = target.material;
-    if (!material?.isMeshStandardMaterial)
-      throw new Error(
-        'Weather surface targets require MeshStandardMaterial or MeshPhysicalMaterial.',
-      );
     if (seen.has(material)) continue;
     seen.add(material);
     const previous = material.onBeforeCompile;
@@ -45,13 +58,18 @@ export function installWeatherMaterials(targets, field, state) {
     const snow = Math.max(0, Math.min(1, target.snow ?? 1));
     const wet = Math.max(0, Math.min(1, target.wet ?? 1));
     const wind = Math.max(0, Math.min(1, target.wind ?? 0));
-    const depth = Math.max(0, Math.min(1, target.depth ?? 1));
+    const depth = Math.max(
+      0,
+      Math.min(1, target.depth ?? (material.isMeshBasicMaterial ? 0 : 1)),
+    );
     const ground = target.ground ? 1 : 0;
     const foliage = target.foliage ? 1 : 0;
     const compile = function (shader, renderer) {
       previous.call(this, shader, renderer);
       if (!enabled) return;
       Object.assign(shader.uniforms, uniforms);
+      if (target.snowMask)
+        shader.uniforms.weatherSnowMask = { value: target.snowMask };
       shader.vertexShader = shader.vertexShader
         .replace(
           '#include <common>',
@@ -95,6 +113,7 @@ export function installWeatherMaterials(targets, field, state) {
           `#include <common>
         ${surfaceGLSL}
         uniform float weatherSnow; uniform float weatherWet; uniform float weatherWinter; uniform float weatherRain;
+        ${target.snowMask ? 'uniform sampler2D weatherSnowMask;' : ''}
         varying vec3 vWeatherPosition; varying vec3 vWeatherNormal;
       `,
         )
@@ -104,12 +123,12 @@ export function installWeatherMaterials(targets, field, state) {
         vec4 weatherHit = weatherSurface(vWeatherPosition.xz);
         float weatherExposure = mix(weatherHit.g, 1.0, smoothstep(weatherHit.a-0.8,weatherHit.a+0.4,vWeatherPosition.y));
         float weatherRetention = mix(1.0,weatherHit.b,${ground.toFixed(1)});
-        float weatherSlope = smoothstep(0.23,0.8,normalize(vWeatherNormal).y);
+        float weatherSlope = ${target.snowMask ? 'texture2D(weatherSnowMask,vMapUv).r' : 'smoothstep(0.23,0.8,normalize(vWeatherNormal).y)'};
         float weatherMacro = weatherNoise(vWeatherPosition.xz*1.8) * 0.65 + weatherNoise(vWeatherPosition.xz*8.0) * 0.35;
         float weatherAmount = weatherSnow * weatherExposure * weatherRetention * ${snow.toFixed(3)};
         // Broken, narrow deposition edges retain exposed leaf litter and stone.
         float weatherGrain = weatherNoise(vWeatherPosition.xz*28.0);
-        float weatherCover = smoothstep(0.19,0.245,weatherAmount - (1.0-weatherSlope)*0.65 - weatherMacro*0.24 - weatherGrain*0.055);
+        float weatherCover = smoothstep(0.19,0.245,weatherAmount - ${target.snowMask ? '0.0' : '(1.0-weatherSlope)*0.65'} - weatherMacro*0.24 - weatherGrain*0.055);
         weatherCover *= weatherSlope;
         float weatherMoisture = weatherWet * mix(0.25,1.0,weatherExposure) * ${wet.toFixed(3)} * (0.84+weatherMacro*0.16) * (1.0-weatherWinter*(1.0-weatherRain)*0.65);
         diffuseColor.rgb *= 1.0 - weatherMoisture * ${ground ? '0.27' : '0.31'};
@@ -160,7 +179,7 @@ export function installWeatherMaterials(targets, field, state) {
         );
     };
     const cacheKey = () =>
-      `${baseKey()}:weather-v1:${enabled}:${snow}:${wet}:${wind}:${ground}:${foliage}:${depth}`;
+      `${baseKey()}:weather-v2:${enabled}:${snow}:${wet}:${wind}:${ground}:${foliage}:${depth}:${!!target.snowMask}`;
     material.onBeforeCompile = compile;
     material.customProgramCacheKey = cacheKey;
     material.needsUpdate = true;

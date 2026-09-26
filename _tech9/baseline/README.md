@@ -25,11 +25,11 @@ Quality, sunlight, atmosphere, ground cover and exposure persist locally. Balanc
 
 Read [ARCHITECTURE.md](./ARCHITECTURE.md) for runtime contracts. `src/main.js` selects the world definition, registers layers and selects the controller. `SceneApp` owns the renderer and frame loop; layers own their resources. `terrainHeight(x,z)` supplies the shared ground query. Units are metres, +Y up.
 
-`package.json` → `tech9.modules` selects grounded-walking, placement-collisions and weather. Their owned source copies live under `src/modules/`. Render placements also drive conservative tree, rock and deadfall collision proxies.
+`package.json` → `tech9.modules` selects grounded-walking, placement-collisions, weather and landscape. Their owned source copies live under `src/modules/`. The scene owns terrain and authored placements in `forestComposition.js`; `ForestWorld.js` calls landscape’s `createComposedLandscape` for shared rendering and material ownership. Those placements also drive conservative tree, rock and deadfall collision proxies. The fixed forest retains its detail; the landscape module separately exposes larger worlds with traveling detail.
 
 ## Assets
 
-[Asset provenance](./public/assets/ASSETS.md) records licenses and source files. `art/forest-kit.blend`, source images and scripts reproduce the forest kit. Run `npm run assets:build` with Blender 5.1+ and Python/Pillow. `BLENDER_BIN`, `BLENDER_PATH` and `PYTHON_BIN` select executables. Runtime use needs only the committed assets.
+[Asset provenance](./src/modules/landscape/assets/runtime/ASSETS.md) records licenses and source files. `src/modules/landscape/assets/art/forest-kit.blend`, source images and scripts reproduce the forest kit. Canonical framework improvements belong in `modules/landscape` and reach baseline through module sync; a standalone game owns its copied assets. Run `npm run assets:build` with Blender 5.1+ and Python/Pillow. `BLENDER_BIN`, `BLENDER_PATH` and `PYTHON_BIN` select executables. Runtime use needs only the committed assets.
 
 ## Checks
 
@@ -45,7 +45,7 @@ Browser commands use Playwright Chromium; install it with `npx playwright instal
 
 ## Weather study
 
-The forest now consumes the reusable [weather module](../modules/weather/README.md). The left field panel selects Clear, Drizzle, Heavy rain, Clear winter and Snowfall. **Shape the weather** exposes independent rain, falling snow, settled snow, wetness, wind, wind direction and cloud controls. Stopping rain leaves slowly drying surfaces; stopping snowfall leaves settled snow. Sound starts muted and requires the Sound button. Pause freezes weather, and Reset returns dry clear conditions. Trail/Rock/Shelter compare exposed and covered surfaces without moving the scene. The ordinary fly/walking controls, view buttons and five renderer controls remain available; H hides both panels.
+The forest consumes the reusable [weather module](./src/modules/weather/README.md). The left field panel selects Clear, Drizzle, Heavy rain, Clear winter and Snowfall. **Shape the weather** exposes independent rain, falling snow, settled snow, wetness, wind, wind direction and cloud controls. Stopping rain leaves slowly drying surfaces; stopping snowfall leaves settled snow. Sound starts muted and requires the Sound button. Pause freezes weather, and Reset returns dry clear conditions. Trail/Rock/Shelter compare exposed and covered surfaces without moving the scene. The ordinary fly/walking controls, view buttons and five renderer controls remain available; H hides both panels.
 
 For the dedicated weather worktree, use strict dev port 4500 and preview port 4501:
 

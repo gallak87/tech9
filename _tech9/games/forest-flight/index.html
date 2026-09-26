@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#182e2b" />
+    <title>Forest Flight · A little altitude</title>
+    <link rel="icon" href="/favicon.svg" />
+  </head>
+  <body>
+    <canvas aria-label="Forest flight game world"></canvas>
+    <div id="ui">
+      <header>
+        <div class="brand">
+          <span class="emblem">✦</span>
+          <div>FOREST FLIGHT<small>A LITTLE ALTITUDE</small></div>
+        </div>
+        <div class="header-tools">
+          <span id="fps">— fps</span
+          ><label class="quality-label"
+            >Graphics
+            <select id="quality" aria-label="Graphics quality">
+              <option value="balanced">Balanced</option>
+              <option value="high">High</option>
+              <option value="ultra">Ultra</option>
+            </select></label
+          ><button id="stabilization" aria-pressed="true">
+            F · Stability on</button
+          ><button id="mute">M · Sound on</button
+          ><button id="camera">C · Cockpit</button
+          ><button id="pause">P · Pause</button>
+        </div>
+      </header>
+      <div class="flight-tag">
+        <span class="status-dot"></span><span id="aircraft-name">Cedar T-1</span
+        ><span class="divider">/</span><span id="phase">PREFLIGHT</span>
+      </div>
+      <section id="welcome" class="welcome">
+        <div class="eyebrow">FIELD NOTES / 001</div>
+        <h1>The forest.<br />From up here.</h1>
+        <p>A quiet airstrip. Two airplanes.<br />Take the long way home.</p>
+        <div class="aircraft-picker" role="group" aria-label="Choose airplane">
+          <button
+            id="choose-trainer"
+            class="aircraft-card selected"
+            aria-pressed="true"
+          >
+            <span class="aircraft-number">01</span><strong>Cedar T-1</strong
+            ><small>HIGH-WING TRAINER</small
+            ><span>Steady & forgiving</span></button
+          ><button id="choose-sport" class="aircraft-card" aria-pressed="false">
+            <span class="aircraft-number">02</span><strong>Swift S-2</strong
+            ><small>LOW-WING SPORT</small><span>Quick & responsive</span>
+          </button>
+        </div>
+        <button id="start" class="primary">Start engine <span>↗</span></button>
+        <div class="welcome-foot">
+          Explore three optional scenic markers,<br />then return for a soft
+          landing. Or just fly.
+        </div>
+      </section>
+      <aside class="map-card">
+        <div class="eyebrow">THE FLIGHT VALLEY <span>N ↑</span></div>
+        <svg viewBox="0 0 160 160" aria-label="Airfield and scenic marker map">
+          <defs>
+            <pattern
+              id="grid"
+              width="20"
+              height="20"
+              patternUnits="userSpaceOnUse"
+            >
+              <path
+                d="M20 0H0V20"
+                fill="none"
+                stroke="currentColor"
+                opacity=".12"
+              />
+            </pattern>
+          </defs>
+          <rect width="160" height="160" fill="url(#grid)" />
+          <path
+            d="M14 119Q30 90 18 60T56 12M120 14Q139 48 126 79T151 142M7 140Q70 130 98 150"
+            fill="none"
+            stroke="currentColor"
+            opacity=".18"
+          />
+          <path
+            d="M80 92L57 53L52 97L80 113Z"
+            fill="none"
+            stroke="currentColor"
+            stroke-dasharray="3 5"
+            opacity=".4"
+          />
+          <rect x="78" y="65" width="4" height="30" rx="1" fill="#f1debb" />
+          <g id="map-markers"></g>
+          <g id="map-plane" transform="translate(80 91)">
+            <path d="M0-6L3 0L7 3V5L1 3V6H-1V3L-7 5V3L-3 0Z" fill="#f4bb74" />
+          </g>
+        </svg>
+        <div class="map-bottom">
+          SCENIC MARKERS <strong id="markers">0 / 3</strong>
+        </div>
+      </aside>
+      <div class="bottom">
+        <div id="tip" class="tip">
+          Hold W for throttle · At flying speed, gently pull ↓
+        </div>
+        <div class="instruments">
+          <div class="instrument">
+            <span>AIRSPEED</span>
+            <div><b id="speed">0</b><em>kt</em></div>
+          </div>
+          <div class="instrument">
+            <span>ALTITUDE AGL</span>
+            <div><b id="altitude">0</b><em>m</em></div>
+          </div>
+          <div class="attitude" aria-label="Aircraft attitude">
+            <div id="attitude-sky"></div>
+            <i></i><span>— ▴ —</span>
+          </div>
+          <div class="instrument narrow">
+            <span>HEADING</span>
+            <div><b id="heading">000°</b></div>
+          </div>
+          <div class="instrument narrow">
+            <span>VERTICAL</span>
+            <div><b id="climb">+0.0</b><em>m/s</em></div>
+          </div>
+          <div class="instrument throttle-instrument">
+            <span>THROTTLE</span>
+            <div>
+              <b id="throttle">0%</b>
+              <div class="throttle-track"><i id="throttle-fill"></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="keyline">
+          <span><kbd>W</kbd><kbd>S</kbd> throttle</span
+          ><span><kbd>↑</kbd><kbd>↓</kbd> pitch</span
+          ><span><kbd>←</kbd><kbd>→</kbd> bank</span
+          ><span><kbd>A</kbd><kbd>D</kbd> rudder</span
+          ><span><kbd>SPACE</kbd> steady</span><span><kbd>B</kbd> brake</span
+          ><span><kbd>R</kbd> restart</span>
+        </div>
+      </div>
+      <div id="paused" class="modal-backdrop" hidden>
+        <section class="modal">
+          <div class="eyebrow">TAKE A BREATH</div>
+          <h2>Flight paused.</h2>
+          <p>Your airplane is holding here.<br />Resume when you’re ready.</p>
+          <button id="resume" class="primary">
+            Resume flight <span>↗</span></button
+          ><button id="retry" class="secondary">Restart at the airstrip</button>
+        </section>
+      </div>
+      <div id="result" class="modal-backdrop" hidden>
+        <section class="modal">
+          <div id="result-kicker" class="eyebrow">BACK AT THE AIRFIELD</div>
+          <h2 id="result-title">A good day to fly.</h2>
+          <p id="result-description"></p>
+          <button id="again" class="primary">Fly again <span>↗</span></button
+          ><button id="hangar" class="secondary">Choose an airplane</button>
+        </section>
+      </div>
+      <div id="loading" class="loading">
+        <div class="emblem">✦</div>
+        <h2>Opening the airfield…</h2>
+        <p>Preparing the forest and your airplane.</p>
+      </div>
+      <div id="load-error" class="load-error" role="alert" hidden></div>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

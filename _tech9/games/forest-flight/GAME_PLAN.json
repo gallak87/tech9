@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 2,
+  "id": "forest-flight",
+  "title": "Forest Flight",
+  "pitch": "Two distinct airplanes, one forest airstrip, a short scenic flight and satisfying return landing.",
+  "baselineVersion": "1.3.0",
+  "status": "approved",
+  "authorization": {
+    "mode": "delegated",
+    "basis": "User requested full delegated implementation in a dedicated worktree, with no merge until personal playtest."
+  },
+  "scope": {
+    "mustHave": [
+      "Forest airfield with clear graded runway and approaches",
+      "Trainer and sport aircraft with distinct handling and animation",
+      "Takeoff, scenic flight, landing, crash recovery, pause and restart",
+      "Chase and cockpit views, audio/mute, flight HUD and graphics settings"
+    ],
+    "outOfScope": [
+      "Race campaign, progression economy",
+      "Framework extraction before playtest",
+      "Merging or publishing"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "first-flight",
+      "title": "Complete trainer loop",
+      "deliverables": [
+        "Airfield, trainer, flight controls and rules"
+      ],
+      "acceptance": [
+        "Real input can take off, fly and land or recover"
+      ]
+    },
+    {
+      "id": "two-aircraft",
+      "title": "Distinct aircraft and presentation",
+      "deliverables": [
+        "Sport plane, cameras, sound, polished world/HUD"
+      ],
+      "acceptance": [
+        "Both aircraft selectable and distinct, useful flight feedback"
+      ]
+    },
+    {
+      "id": "verification",
+      "title": "Validation and review",
+      "deliverables": [
+        "Meaningful tests, browser evidence, review and handoff"
+      ],
+      "acceptance": [
+        "Tests/lint/build pass, both real-input loops exercised, art review bounded"
+      ]
+    }
+  ],
+  "lanes": [
+    {
+      "id": "game",
+      "role": "Game implementation owner",
+      "owns": [
+        "_tech9/games/forest-flight/**"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "validation": {
+    "commands": [
+      "npm test",
+      "npm run lint",
+      "npm run build",
+      "npm run verify"
+    ],
+    "playthrough": [
+      "Both aircraft takeoff-flight-landing through real input",
+      "Pause/focus reset, restart, crash recovery, camera and settings"
+    ],
+    "performance": {
+      "targetFps": 60,
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "quality": "balanced"
+    }
+  },
+  "artGate": {
+    "threshold": 8,
+    "maxRounds": 4
+  },
+  "stopAfter": "Committed playable game ready for user playtest. Preserve worktree; no merge or framework extraction."
+}

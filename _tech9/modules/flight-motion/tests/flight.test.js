@@ -218,6 +218,7 @@ test('spawn reset is atomic and respects relocated ground, altitude and obstacle
     rollInput: 0,
     yawInput: 0,
     contact: null,
+    stabilization: true,
   });
 });
 
@@ -370,4 +371,41 @@ test('blur and hidden document disable input once and release listeners', () => 
   f.key('KeyC');
   assert.deepEqual(f.pauses, ['blur', 'hidden']);
   assert.deepEqual(f.actions, []);
+});
+
+test('free sport attitude completes a roll, holds inverted, reverses pitch and recovers', () => {
+  const flight = new FlightSimulation({
+    profile: 'sport',
+    stabilization: false,
+    spawn: { x: 0, z: 0, y: 700, heading: 0, speed: 45, throttle: 0.7 },
+  });
+  let previous = flight.snapshot().roll,
+    total = 0;
+  for (let i = 0; i < 480; i++) {
+    const state = flight.step(1 / 120, { roll: 1 });
+    total += Math.atan2(
+      Math.sin(state.roll - previous),
+      Math.cos(state.roll - previous),
+    );
+    previous = state.roll;
+  }
+  assert.ok(total > Math.PI * 2);
+  flight.reset({
+    x: 0,
+    z: 0,
+    y: 700,
+    heading: 0,
+    speed: 45,
+    throttle: 0.7,
+    roll: Math.PI,
+  });
+  const held = run(flight, 1);
+  assert.ok(Math.abs(held.roll) > 3);
+  const pushed = run(flight, 0.3, { pitch: -1 });
+  assert.ok(pushed.pitch > held.pitch + 0.08);
+  const recovered = run(flight, 2, { level: true });
+  assert.ok(Math.abs(recovered.roll) < 0.02);
+  assert.equal(recovered.stabilization, false);
+  flight.setStabilization(true);
+  assert.equal(flight.snapshot().stabilization, true);
 });

@@ -1,3 +1,4 @@
+import { Euler, Quaternion, Vector3 } from 'three';
 const FIXED_STEP = 1 / 120;
 const SWEEP_SPACING = 0.5;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -46,8 +47,8 @@ function spawnPose(value) {
     pose.y = value.y;
   }
   for (const [key, min, max] of [
-    ['pitch', -0.6, 0.65],
-    ['roll', -1.05, 1.05],
+    ['pitch', -Math.PI, Math.PI],
+    ['roll', -Math.PI, Math.PI],
     ['speed', 0, 1000],
     ['verticalSpeed', -1000, 1000],
     ['throttle', 0, 1],
@@ -62,6 +63,7 @@ function spawnPose(value) {
 export class FlightSimulation {
   constructor({
     profile = 'trainer',
+    stabilization = true,
     handling = {},
     spawn = { x: 0, z: 0, heading: 0 },
     groundHeight = () => 0,
@@ -103,6 +105,15 @@ export class FlightSimulation {
     this.obstacle = obstacle;
     this.footprint = footprint;
     this.maxFrameTime = maxFrameTime;
+    this.stabilization = Boolean(stabilization);
+    this.rotation = new Euler(0, 0, 0, 'YXZ');
+    this.attitude = new Quaternion();
+    this.increment = new Quaternion();
+    this.forward = new Vector3();
+    this.up = new Vector3();
+    this.axisX = new Vector3(1, 0, 0);
+    this.axisY = new Vector3(0, 1, 0);
+    this.axisZ = new Vector3(0, 0, 1);
     this.reset(spawn);
   }
 
@@ -213,32 +224,55 @@ export class FlightSimulation {
         next.verticalSpeed = 1;
       }
     } else {
-      next.pitch = clamp(
-        next.pitch + input.pitch * h.pitchRate * authority * dt,
-        -0.6,
-        0.65,
+      // Proven Forest Flight body-axis attitude, without its airport/game rules.
+      this.attitude.setFromEuler(
+        this.rotation.set(next.pitch, -next.heading, -next.roll, 'YXZ'),
       );
-      next.roll = clamp(
-        next.roll + input.roll * h.rollRate * authority * dt,
-        -1.05,
-        1.05,
+      this.attitude.multiply(
+        this.increment.setFromAxisAngle(
+          this.axisX,
+          input.pitch * h.pitchRate * authority * dt,
+        ),
       );
-      if (!input.pitch)
-        next.pitch = approach(next.pitch, 0.015, input.level ? 3 : 0.18, dt);
-      if (!input.roll)
-        next.roll = approach(next.roll, 0, input.level ? 4 : 0.25, dt);
-      next.heading +=
-        ((9.81 * Math.tan(next.roll)) / Math.max(next.speed, 15) +
-          input.yaw * 0.22 * authority) *
-        dt;
+      this.attitude.multiply(
+        this.increment.setFromAxisAngle(
+          this.axisZ,
+          -input.roll * h.rollRate * authority * dt,
+        ),
+      );
+      this.attitude.multiply(
+        this.increment.setFromAxisAngle(
+          this.axisY,
+          -input.yaw * 0.22 * authority * dt,
+        ),
+      );
+      const turn =
+        (9.81 * Math.sin(next.roll)) /
+        (Math.max(next.speed, 15) *
+          Math.max(0.5, Math.abs(Math.cos(next.roll))));
+      this.attitude.premultiply(
+        this.increment.setFromAxisAngle(this.axisY, -turn * dt),
+      );
+      this.rotation.setFromQuaternion(this.attitude.normalize(), 'YXZ');
+      next.pitch = this.rotation.x;
+      next.heading = -this.rotation.y;
+      next.roll = -this.rotation.z;
+      if (this.stabilization || input.level) {
+        if (!input.pitch || input.level)
+          next.pitch = approach(next.pitch, 0.015, input.level ? 3 : 0.18, dt);
+        if (!input.roll || input.level)
+          next.roll = approach(next.roll, 0, input.level ? 4 : 0.25, dt);
+      }
+      this.attitude.setFromEuler(
+        this.rotation.set(next.pitch, -next.heading, -next.roll, 'YXZ'),
+      );
+      this.forward.set(0, 0, -1).applyQuaternion(this.attitude);
+      this.up.set(0, 1, 0).applyQuaternion(this.attitude);
       const sink = Math.max(0, h.stallSpeed + 2 - next.speed) * 1.6;
       next.stall = next.speed < h.stallSpeed;
       next.verticalSpeed = approach(
         next.verticalSpeed,
-        Math.sin(next.pitch) * next.speed -
-          0.7 -
-          sink -
-          Math.abs(next.roll) * 1.2,
+        this.forward.y * next.speed - 0.7 - sink - (1 - this.up.y) * 4.5,
         2.1,
         dt,
       );
@@ -331,9 +365,14 @@ export class FlightSimulation {
     this._state = { ...next, x: lastX, y: lastY, z: lastZ };
   }
 
+  setStabilization(enabled) {
+    this.stabilization = Boolean(enabled);
+  }
+
   snapshot() {
     return {
       ...this._state,
+      stabilization: this.stabilization,
       contact: this._contact ? structuredClone(this._contact) : null,
     };
   }

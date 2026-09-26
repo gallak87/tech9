@@ -1,6 +1,6 @@
 # Flight motion
 
-Assisted fixed-wing movement and keyboard input, with trainer and sport profiles. Copy this folder into the game's `src/modules/`. No runtime dependencies.
+Assisted or free-attitude fixed-wing movement and keyboard input, with trainer and sport profiles. Copy this folder into the game's `src/modules/`. Requires Three.js r186.
 
 ```js
 import { FlightSimulation } from './modules/flight-motion/src/FlightSimulation.js';
@@ -51,3 +51,5 @@ Snapshots include pose, speed, vertical speed, throttle, grounded/stall flags, a
 Movement uses fixed 120 Hz ticks and bounded 0.5-metre contact sweeps. `maxFrameTime` defaults to 0.1 seconds; excess time and the remainder of a contact-producing step are discarded. Consumers decide whether a touchdown or collision permits continued movement.
 
 Input starts disabled. W/S change throttle, arrows control pitch/bank, A/D yaw, B brakes and Space steadies flight. P/Escape/Tab, blur and hidden-document transitions clear and disable input; resume with `setEnabled(true)`. Disabling input alone does not pause simulation. `clear()`, `sample()` and `dispose()` manage held state and listeners; focused UI controls retain their keys. Partial `bindings` overrides accept code arrays for `pitchUp`, `pitchDown`, `rollLeft`, `rollRight`, `yawLeft`, `yawRight`, `throttleUp`, `throttleDown`, `brake`, `level`. Configure `pauseKeys`, `actions`, or injected `window`/`document` separately.
+
+Version 2 adds proven Forest Flight body-axis quaternion attitude: full rolls/inverted flight, `stabilization: false` at construction and `setStabilization(enabled)`. Assistance remains on by default; `input.level` temporarily recovers in either mode. Spawn pitch/roll accept −π…π, and snapshots include `stabilization`. Euler output remains YXZ-compatible; renderer and rules remain caller-owned. This changes the old clamped attitude behavior and adds the Three.js dependency. See the aircraft extraction draft for model/cockpit/input bindings.

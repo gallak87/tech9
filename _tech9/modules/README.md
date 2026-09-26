@@ -13,6 +13,6 @@ Copy the selected folders into a package's `src/modules/`, including required si
 | [sailing-ships](./sailing-ships/README.md)               | Schooner and galleon models, animated helm and optional self-shadows | Three.js                                                     |
 | [weather](./weather/README.md)                           | Rain, wet surfaces, settled snow, snowfall and shared wind           | Three.js                                                     |
 
-| [flight-motion](./flight-motion/README.md) | Aircraft motion, contact observations and keyboard input | None |
+| [flight-motion](./flight-motion/README.md) | Aircraft motion, contact observations and keyboard input | Three.js |
 
 See [copying](../docs/MODULES.md) and [module development](../FRAMEWORK_DEV.md).

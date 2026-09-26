@@ -77,7 +77,7 @@ export function createForestWeatherSurface() {
       position: [x, terrainHeight(x, z), z],
       normal: [nx / length, (epsilon * 2) / length, nz / length],
       exposure,
-      snowRetention: 0.52 + trail * 0.48,
+      snowRetention: 0.42 + trail * 0.58,
       puddle: (1 - trail) * exposure,
       coverHeight,
     };

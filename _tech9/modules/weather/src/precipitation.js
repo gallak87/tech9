@@ -73,7 +73,7 @@ export function createPrecipitation(
           vec4 mv=viewMatrix*vec4(p,1.0);
           vec3 velocity=(viewMatrix*vec4(wind.x*0.68,-fallSpeed,wind.y*0.68,0.0)).xyz;
           vec2 along=normalize(velocity.xy+vec2(0.0001));
-          vec2 across=vec2(-along.y,along.x);
+          vec2 across=vec2(along.y,-along.x);
           float size=${isRain ? '0.014+weatherSeed.w*0.009' : '0.018+weatherSeed.w*0.035'};
           mv.xy += ${isRain ? 'across*position.x*size+along*position.y*(0.18+weatherSeed.w*0.22)' : 'position.xy*size'};
           gl_Position=projectionMatrix*mv;

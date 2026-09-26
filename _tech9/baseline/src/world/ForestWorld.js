@@ -270,7 +270,12 @@ function instancePrototype(
     }
     material.userData.weather = {
       foliage: material.alphaTest > 0,
-      snow: material.alphaTest > 0 ? 0.86 : 1,
+      snow:
+        material.alphaTest > 0
+          ? prototypeName.startsWith('pine_')
+            ? 0.68
+            : 0.47
+          : 1,
       wind:
         prototypeName.startsWith('grass_') || prototypeName.startsWith('fern_')
           ? 0.7

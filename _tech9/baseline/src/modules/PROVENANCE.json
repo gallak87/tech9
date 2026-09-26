@@ -54,15 +54,15 @@
         },
         {
           "path": "src/impacts.js",
-          "sha256": "e786707fc0c662e683e9999824b15985933fdb25598fd41fcb0e95d51d6fcc0e"
+          "sha256": "697ea06f4ff29a8c9a3a96d2b887eced8c226b2a383dc55c63ae31412b332861"
         },
         {
           "path": "src/materials.js",
-          "sha256": "0fa474adfc545a6a966ec213af5ab7e97f7732656115d786a5a958acb1625216"
+          "sha256": "82cbb3c8ff2a4cb83e323543f0bea0c61ee42967f9935f272f6093673120987d"
         },
         {
           "path": "src/precipitation.js",
-          "sha256": "e0c6375fc2a59f9241ebe8242b939df16699a8e85f272de247a9eadf6c9820d7"
+          "sha256": "96631187f416b22525cac5bca60bfc03f2d51ff3ffce0abc81c57347ed6aad39"
         },
         {
           "path": "src/state.js",

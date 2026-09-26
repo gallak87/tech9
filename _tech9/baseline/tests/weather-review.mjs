@@ -31,7 +31,7 @@ async function hud(value) {
     await page.locator('canvas').focus();
     await page.keyboard.press('h');
     clean = value;
-    await page.waitForTimeout(150);
+    await page.waitForTimeout(400);
   }
 }
 async function capture(name) {

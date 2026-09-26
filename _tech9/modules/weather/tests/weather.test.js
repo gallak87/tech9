@@ -208,3 +208,22 @@ test('wind travel stays continuous when heading changes after a long run', () =>
   state.update(20);
   assert.equal(state.current.windTravelX, paused);
 });
+
+test('composed cache keys follow live consumer shader variants', () => {
+  const material = new MeshStandardMaterial();
+  let variant = 'A';
+  material.customProgramCacheKey = () => variant;
+  const field = createSurfaceField(query, bounds, 8);
+  const installation = installWeatherMaterials(
+    [{ material }],
+    field,
+    createWeatherState().current,
+  );
+  const first = material.customProgramCacheKey();
+  variant = 'B';
+  assert.notEqual(material.customProgramCacheKey(), first);
+  assert.match(material.customProgramCacheKey(), /^B:/);
+  installation.dispose();
+  field.dispose();
+  material.dispose();
+});

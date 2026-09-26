@@ -1,4 +1,4 @@
-import { Vector2, Vector4 } from 'three';
+import { Material, Vector2, Vector4 } from 'three';
 import { surfaceGLSL } from './surfaces.js';
 
 /** Wrap caller hooks. One installation per material; restore only hooks we own. */
@@ -36,7 +36,11 @@ export function installWeatherMaterials(targets, field, state) {
     seen.add(material);
     const previous = material.onBeforeCompile;
     const previousKey = material.customProgramCacheKey;
-    const baseKey = previousKey.call(material);
+    const baseKey = () =>
+      previousKey === Material.prototype.customProgramCacheKey
+        ? previous.toString()
+        : previousKey.call(material);
+    let enabled = true;
     const snow = Math.max(0, Math.min(1, target.snow ?? 1));
     const wet = Math.max(0, Math.min(1, target.wet ?? 1));
     const wind = Math.max(0, Math.min(1, target.wind ?? 0));
@@ -44,6 +48,7 @@ export function installWeatherMaterials(targets, field, state) {
     const foliage = target.foliage ? 1 : 0;
     const compile = function (shader, renderer) {
       previous.call(this, shader, renderer);
+      if (!enabled) return;
       Object.assign(shader.uniforms, uniforms);
       shader.vertexShader = shader.vertexShader
         .replace(
@@ -134,11 +139,12 @@ export function installWeatherMaterials(targets, field, state) {
         );
     };
     const cacheKey = () =>
-      `${baseKey}:weather-v1:${snow}:${wet}:${wind}:${ground}:${foliage}`;
+      `${baseKey()}:weather-v1:${enabled}:${snow}:${wet}:${wind}:${ground}:${foliage}`;
     material.onBeforeCompile = compile;
     material.customProgramCacheKey = cacheKey;
     material.needsUpdate = true;
     owned.push(() => {
+      enabled = false;
       if (material.onBeforeCompile === compile)
         material.onBeforeCompile = previous;
       if (material.customProgramCacheKey === cacheKey)

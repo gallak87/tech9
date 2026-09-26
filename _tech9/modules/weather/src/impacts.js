@@ -46,8 +46,8 @@ export function createImpacts(scene, camera, query) {
         float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
         void main(){
           vec2 q=(vUv-0.5)*2.0;
-          float edge=length(q)+sin(q.x*11.0+vPhase*9.0)*sin(q.y*13.0)*0.08;
-          float surfaceMask=1.0-smoothstep(0.65,0.99,edge);
+          float edge=length(q)+sin(q.x*7.0+vPhase*9.0)*sin(q.y*9.0+vPhase*5.0)*0.16+sin(q.x*21.0+q.y*17.0)*0.035;
+          float surfaceMask=1.0-smoothstep(0.5,0.98,edge);
           float cycle=fract(time*1.8+vPhase*13.0);
           float ripple=pow(max(0.0,1.0-abs(length(q)-cycle*0.92)*35.0),2.0)*(1.0-cycle);
           ${
@@ -55,9 +55,9 @@ export function createImpacts(scene, camera, query) {
               ? `
             float fresnel=pow(1.0-abs(normalize(cameraPosition-vPosition).y),3.0);
             float shimmer=sin(q.x*28.0+time*wind.x)*sin(q.y*23.0+time*wind.y)*0.018;
-            vec3 color=mix(vec3(0.08,0.105,0.11),vec3(0.38,0.47,0.51),fresnel*0.72+shimmer);
+            vec3 color=mix(vec3(0.08,0.105,0.11),vec3(0.27,0.34,0.37),fresnel*0.55+shimmer);
             color+=ripple*rain*0.07;
-            gl_FragColor=vec4(color,surfaceMask*smoothstep(0.32,0.95,wet)*(1.0-smoothstep(0.08,0.5,snow))*0.68);
+            gl_FragColor=vec4(color,surfaceMask*smoothstep(0.32,0.95,wet)*(1.0-smoothstep(0.08,0.5,snow))*0.46);
           `
               : `
             gl_FragColor=vec4(vec3(0.55,0.65,0.68),ripple*surfaceMask*rain*0.4*(1.0-snow));

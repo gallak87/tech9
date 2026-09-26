@@ -767,10 +767,10 @@ kbd {
     margin-bottom: 12px;
   }
   .garage .section-label:first-of-type {
-    margin-top: 155px;
+    margin-top: 325px;
   }
   .garage > .section-label:nth-of-type(2) {
-    margin-top: 155px;
+    margin-top: 325px;
   }
   .garage:before {
     background: linear-gradient(

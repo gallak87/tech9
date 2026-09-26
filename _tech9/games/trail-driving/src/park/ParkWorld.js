@@ -72,10 +72,10 @@ function groundMaterial(textures) {
       float road=smoothstep(.12,.9,vTrail+noise*(1.-abs(vTrail*2.-1.)));
       vec4 stoneSample=texture2D(stoneColor,vGround.xz*.14);
       float ridge=smoothstep(100.,230.,vGround.x)*(1.-smoothstep(-100.,90.,vGround.z));
-      float patch=.5+.5*sin(vGround.x*.086+sin(vGround.z*.042)*2.)*cos(vGround.z*.077+sin(vGround.x*.027));
-      vec3 mossTint=mix(vec3(.36,.58,.47),vec3(.66,.72,.54),smoothstep(.2,.85,patch));
+      float mossPattern=.5+.5*sin(vGround.x*.086+sin(vGround.z*.042)*2.)*cos(vGround.z*.077+sin(vGround.x*.027));
+      vec3 mossTint=mix(vec3(.36,.58,.47),vec3(.66,.72,.54),smoothstep(.2,.85,mossPattern));
       vec3 forest=floorSample.rgb*mossTint;
-      vec3 ridgeFloor=mix(floorSample.rgb*vec3(.71,.75,.65),stoneSample.rgb*.55,.26+.24*patch);
+      vec3 ridgeFloor=mix(floorSample.rgb*vec3(.71,.75,.65),stoneSample.rgb*.55,.26+.24*mossPattern);
       vec4 soil=roadSample*vec4(1.19,1.14,1.04,1.);
       vec3 gravelSoil=mix(roadSample.rgb*vec3(1.05,1.10,1.11),stoneSample.rgb*.78,.27);
       soil.rgb=mix(soil.rgb,gravelSoil,vGravel);

@@ -1,3 +1,4 @@
+import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { openScene, root } from './lib/browser.mjs';
@@ -47,6 +48,7 @@ try {
   await page.screenshot({ path: path.join(output, 'narrow-garage.png') });
   await page.locator('[data-action="free"]').click();
   await page.screenshot({ path: path.join(output, 'narrow-hud.png') });
+  for (const errors of Object.values(h.errors)) assert.deepEqual(errors, []);
   await writeFile(
     path.join(output, 'capture.json'),
     JSON.stringify(

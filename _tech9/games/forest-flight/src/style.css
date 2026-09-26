@@ -634,3 +634,70 @@ kbd {
     font-size: 10px;
   }
 }
+.welcome {
+  isolation: isolate;
+}
+.welcome:before {
+  background: linear-gradient(
+    90deg,
+    #142f2bd9 0%,
+    #142f2b9c 68%,
+    transparent 100%
+  );
+}
+.cockpit .instruments {
+  position: absolute;
+  bottom: calc(100vh - 158px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 575px;
+  padding: 8px 12px;
+  gap: 12px;
+  border-radius: 6px;
+}
+.cockpit .instrument {
+  min-width: 70px;
+}
+.cockpit .instrument > span {
+  font-size: 8px;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.cockpit .instrument b,
+.cockpit .instrument.narrow b,
+.cockpit .throttle-instrument b {
+  font-size: 20px;
+}
+.cockpit .instrument em {
+  font-size: 9px;
+}
+.cockpit .attitude {
+  display: none;
+}
+.cockpit .throttle-track {
+  height: 20px;
+}
+.cockpit .tip {
+  margin-bottom: 14px;
+  font-size: 11px;
+}
+.cockpit .keyline {
+  background: #142b24c9;
+  border-radius: 5px;
+  padding: 6px;
+  width: fit-content;
+  margin: 0 auto;
+}
+.cockpit .map-card {
+  top: 158px;
+}
+@media (max-width: 1100px) {
+  .cockpit .instruments {
+    width: 510px;
+    gap: 7px;
+    bottom: calc(100vh - 174px);
+  }
+  .cockpit .map-card {
+    top: 180px;
+  }
+}

@@ -165,6 +165,7 @@ export class FlightGame {
   renderHud() {
     const s = this.sim.state,
       spec = this.sim.spec;
+    document.body.classList.toggle('cockpit', this.view.mode === 'mounted');
     const altitude = Math.max(0, s.y - groundHeight(s.x, s.z) - spec.gear);
     $('welcome').hidden = s.phase !== 'ready';
     $('paused').hidden = !this.sim.paused;

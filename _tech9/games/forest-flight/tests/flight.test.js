@@ -165,3 +165,24 @@ test('held flight keys clear on blur, hidden document and disposal', () => {
   key('KeyW');
   assert.equal(input.sample().throttle, 0);
 });
+
+test('pause silences audio immediately before hidden-tab frame suppression', async () => {
+  const { FlightGame } = await import('../src/flight/FlightGame.js');
+  const calls = [];
+  const host = {
+    sim: { state: { phase: 'flight' }, paused: false },
+    input: {
+      reset() {
+        calls.push('reset');
+      },
+    },
+    audio: {
+      update(state, paused) {
+        calls.push([state.phase, paused]);
+      },
+    },
+  };
+  FlightGame.prototype.pause.call(host, true);
+  assert.equal(host.sim.paused, true);
+  assert.deepEqual(calls, ['reset', ['flight', true]]);
+});

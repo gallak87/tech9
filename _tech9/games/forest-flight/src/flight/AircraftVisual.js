@@ -501,23 +501,22 @@ export class AircraftVisual {
       const panelTexture = keep(new THREE.CanvasTexture(instruments));
       panelTexture.colorSpace = THREE.SRGBColorSpace;
       const panelFace = mesh(
-        new THREE.PlaneGeometry(1.15, 0.5),
+        new THREE.PlaneGeometry(1.5, 0.38),
         surface('#ffffff', { map: panelTexture, roughness: 0.9, metalness: 0 }),
         this.cockpit,
       );
-      panelFace.position.set(0, 0.12, -1.17);
-      panelFace.rotation.x = -0.12;
-      box([1.3, 0.08, 0.38], [0, 0.39, -1.32], dark, this.cockpit);
+      panelFace.position.set(0, 0.03, -1.7);
+      box([1.56, 0.028, 0.16], [0, 0.232, -1.74], dark, this.cockpit);
       rod(
-        [-0.58, 0.36, -1.25],
-        [-0.48, 1.1, -0.76],
-        0.024,
+        [-0.75, 0.23, -1.76],
+        [-0.63, 1.22, -1.4],
+        0.018,
         paint,
         this.cockpit,
       );
-      rod([0.58, 0.36, -1.25], [0.48, 1.1, -0.76], 0.024, paint, this.cockpit);
+      rod([0.75, 0.23, -1.76], [0.63, 1.22, -1.4], 0.018, paint, this.cockpit);
       this.yoke = new THREE.Group();
-      this.yoke.position.set(0, -0.01, -0.97);
+      this.yoke.position.set(0, -0.015, -1.45);
       this.cockpit.add(this.yoke);
       rod([-0.18, 0, 0], [0.18, 0, 0], 0.022, dark, this.yoke);
       rod([-0.18, 0, 0], [-0.18, 0.11, 0], 0.025, dark, this.yoke);
@@ -525,13 +524,13 @@ export class AircraftVisual {
       // Needles move over the painted dial faces; HUD carries the exact telemetry.
       this.needleSpeed = box(
         [0.012, 0.086, 0.004],
-        [-0.355, 0.126, -1.148],
+        [-0.4629, 0.0359, -1.695],
         accent,
         this.cockpit,
       );
       this.needleAltitude = box(
         [0.012, 0.086, 0.004],
-        [0.35, 0.126, -1.148],
+        [0.4512, 0.0359, -1.695],
         accent,
         this.cockpit,
       );
@@ -562,7 +561,7 @@ export class AircraftVisual {
     this.rudder.rotation.y = yaw * 0.34;
     if (this.yoke) {
       this.yoke.rotation.z = -roll * 0.4;
-      this.yoke.position.z = -0.97 + pitch * 0.05;
+      this.yoke.position.z = -1.45 + pitch * 0.04;
     }
     if (this.needleSpeed)
       this.needleSpeed.rotation.z = (-(state.speed ?? 0) / 80) * Math.PI * 1.8;

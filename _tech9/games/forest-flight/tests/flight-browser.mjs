@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openScene, root, samplePerformance } from './lib/browser.mjs';
+import { groundHeight } from '../src/flight/FlightWorld.js';
 const output = `${root}/.artifacts/verification`;
 await mkdir(output, { recursive: true });
 const harness = await openScene({ mode: 'preview', width: 1440, height: 900 });
@@ -33,8 +34,8 @@ async function circuit(type) {
       ? { rotate: 23, stall: 18, gear: 1.35, cruise: 42 }
       : { rotate: 29, stall: 23, gear: 1.15, cruise: 48 };
   const route = [
-    [-700, 150, -800],
-    [-850, 170, 500],
+    [-700, 170, -800],
+    [-850, 210, 500],
     [-500, 130, 1350],
     [0, 100, 1600],
   ];
@@ -87,7 +88,13 @@ async function circuit(type) {
         speed = spec.cruise;
       if (target) {
         heading = Math.atan2(target[0] - s.x, -(target[2] - s.z));
-        altitude = target[1];
+        altitude = Math.max(
+          target[1],
+          groundHeight(
+            s.x + Math.sin(s.heading) * 120,
+            s.z - Math.cos(s.heading) * 120,
+          ) + 85,
+        );
         if (Math.hypot(target[0] - s.x, target[2] - s.z) < 120) stage++;
       } else {
         heading = clamp(-s.x / 140, -0.35, 0.35);
@@ -115,6 +122,7 @@ async function circuit(type) {
     if (!flightCapture && s.time > 27) {
       await page.screenshot({ path: `${output}/${type}-flight.png` });
       flightCapture = true;
+      await keys([]);
       report[`${type}Performance`] = await samplePerformance(page, 2000);
     }
     if (!cockpitCapture && s.time > 55) {
@@ -144,6 +152,11 @@ try {
     'load and repeated aircraft changes release model resources',
     async () => {
       assert.equal((await snapshot()).phase, 'ready');
+      await page.keyboard.press('KeyC');
+      assert.equal((await snapshot()).cameraMode, 'mounted');
+      await page.locator('#choose-sport').click();
+      assert.equal((await snapshot()).cameraMode, 'follow');
+      assert.match(await page.locator('#camera').textContent(), /Cockpit/);
       for (let i = 0; i < 3; i++) {
         await page.locator('#choose-sport').click();
         await page.waitForTimeout(100);
@@ -179,13 +192,26 @@ try {
       assert.equal((await snapshot()).time, frozen);
       await page.locator('#resume').click();
       await keys(['ArrowDown']);
+      const focusSession = await page.context().newCDPSession(page);
+      await focusSession.send('Emulation.setFocusEmulationEnabled', {
+        enabled: false,
+      });
+      await page.bringToFront();
       const other = await page.context().newPage();
+      const otherSession = await page.context().newCDPSession(other);
+      await otherSession.send('Emulation.setFocusEmulationEnabled', {
+        enabled: false,
+      });
       await other.goto('about:blank');
       await other.bringToFront();
       await page.waitForTimeout(200);
       s = await snapshot();
       await other.close();
       await page.bringToFront();
+      await focusSession.send('Emulation.setFocusEmulationEnabled', {
+        enabled: true,
+      });
+      await focusSession.detach();
       await keys([]);
       assert.equal(s.paused, true, 'Real tab focus loss pauses flight');
       assert.deepEqual(s.heldKeys, []);

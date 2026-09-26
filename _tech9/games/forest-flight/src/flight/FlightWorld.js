@@ -474,38 +474,38 @@ export function createFlightWorld() {
       (tree) => Math.abs(tree.x) <= 470 && Math.abs(tree.z) <= 820,
     );
     const crownParts = [];
-    for (const [r, h, y] of [
-      [0.19, 0.46, 0.49],
-      [0.16, 0.4, 0.67],
-      [0.1, 0.32, 0.85],
-    ]) {
-      const part = new THREE.ConeGeometry(r, h, 9, 3);
-      const vertices = part.attributes.position;
-      for (let v = 0; v < vertices.count; v++) {
-        const x = vertices.getX(v),
-          z = vertices.getZ(v);
-        const angle = Math.atan2(z, x);
-        const ragged =
-          1 +
-          Math.sin(angle * 7.0 + y * 23) * 0.17 +
-          Math.cos(angle * 13.0 + y * 31) * 0.08;
-        const elevation = vertices.getY(v);
-        vertices.setXYZ(
-          v,
-          x * ragged + elevation * 0.018,
-          elevation + Math.sin(angle * 5 + y * 19) * Math.hypot(x, z) * 0.16,
-          z * ragged,
+    // Offset foliage clusters echo the detailed pines' open trunks and irregular crowns.
+    for (let level = 0; level < 3; level++) {
+      for (let branch = 0; branch < 3; branch++) {
+        const angle = (branch * Math.PI * 2) / 3 + level * 1.7;
+        const radius = 0.065 - level * 0.015;
+        const part = new THREE.DodecahedronGeometry(1, 0);
+        part.scale(
+          0.105 - level * 0.014,
+          0.15 - level * 0.01,
+          0.095 - level * 0.012,
         );
+        part.rotateY(angle);
+        part.translate(
+          Math.sin(angle) * radius,
+          0.55 + level * 0.135 + branch * 0.012,
+          Math.cos(angle) * radius,
+        );
+        crownParts.push(part);
       }
-      part.computeVertexNormals();
-      part.translate(0, y, 0);
-      crownParts.push(part);
     }
+    const tip = new THREE.ConeGeometry(0.078, 0.24, 7);
+    tip.translate(-0.012, 0.88, 0.01);
+    crownParts.push(tip);
     const crown = keep(mergeGeometries(crownParts));
     crownParts.forEach((part) => part.dispose());
     const trunk = keep(new THREE.CylinderGeometry(0.014, 0.025, 0.72, 5));
     trunk.translate(0, 0.36, 0);
-    const crownMaterial = material('#647a58', { roughness: 1 });
+    const crownMaterial = material('#ffffff', {
+      roughness: 1,
+      emissive: '#2c3b32',
+      emissiveIntensity: 0.12,
+    });
     const woodMaterial = material('#6f6650');
     const matrix = new THREE.Matrix4(),
       position = new THREE.Vector3(),
@@ -538,7 +538,7 @@ export function createFlightWorld() {
         matrix.compose(position, rotation, scale);
         leaves.setMatrixAt(i, matrix);
         trunks.setMatrixAt(i, matrix);
-        color.set('#496956').lerp(new THREE.Color('#8a9e76'), tree.tone);
+        color.set('#55755e').lerp(new THREE.Color('#8d9c78'), tree.tone);
         leaves.setColorAt(i, color);
       }
       leaves.computeBoundingSphere();
@@ -608,6 +608,34 @@ export function createFlightWorld() {
       wing.rotation.z = Math.PI * 0.15;
       marker.rotation.y =
         point.id === 'ridge' ? -0.85 : point.id === 'forest' ? 0.15 : 0;
+      const badgeTexture = keep(
+        canvasTexture(256, 256, (ctx) => {
+          ctx.fillStyle = 'rgba(29, 56, 46, 0.88)';
+          ctx.beginPath();
+          ctx.arc(128, 128, 91, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = point.color;
+          ctx.lineWidth = 7;
+          ctx.stroke();
+          ctx.fillStyle = '#fff5dc';
+          ctx.font = '600 112px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(String(LANDMARKS.indexOf(point) + 1), 128, 132);
+        }),
+      );
+      const badge = new THREE.Sprite(
+        keep(
+          new THREE.SpriteMaterial({
+            map: badgeTexture,
+            transparent: true,
+            depthWrite: false,
+            toneMapped: false,
+          }),
+        ),
+      );
+      badge.scale.set(18, 18, 1);
+      marker.add(badge);
       group.add(marker);
       markers.push(marker);
     }

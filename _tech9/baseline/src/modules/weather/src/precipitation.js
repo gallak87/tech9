@@ -21,7 +21,7 @@ export function createPrecipitation(
   const effects = [];
   for (const kind of ['rain', 'snow']) {
     if (kind === 'rain' ? !rain : !snow) continue;
-    const capacity = kind === 'rain' ? 7200 : 1800;
+    const capacity = kind === 'rain' ? 7200 : 2800;
     const base = new PlaneGeometry(1, 1);
     const geometry = new InstancedBufferGeometry();
     geometry.index = base.index.clone();
@@ -74,7 +74,7 @@ export function createPrecipitation(
           vec3 velocity=(viewMatrix*vec4(wind.x*0.68,-fallSpeed,wind.y*0.68,0.0)).xyz;
           vec2 along=normalize(velocity.xy+vec2(0.0001));
           vec2 across=vec2(along.y,-along.x);
-          float size=${isRain ? '0.006+weatherSeed.w*0.006' : '0.018+weatherSeed.w*0.035'};
+          float size=${isRain ? '0.006+weatherSeed.w*0.006' : '0.016+weatherSeed.w*weatherSeed.w*0.045'};
           mv.xy += ${isRain ? 'across*position.x*size+along*position.y*(0.11+weatherSeed.w*0.17)' : 'position.xy*size'};
           gl_Position=projectionMatrix*mv;
           vUv=uv;

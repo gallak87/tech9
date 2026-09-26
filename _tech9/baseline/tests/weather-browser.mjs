@@ -161,7 +161,7 @@ try {
     const s = (await snapshot()).weather;
     assert.ok(
       s.particles.rain <= 7200 &&
-        s.particles.snow <= 1800 &&
+        s.particles.snow <= 2800 &&
         s.impacts.splashes <= 160 &&
         s.impacts.puddles <= 52,
     );

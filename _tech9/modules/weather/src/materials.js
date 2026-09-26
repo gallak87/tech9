@@ -118,6 +118,8 @@ export function installWeatherMaterials(targets, field, state) {
         diffuseColor.rgb = mix(diffuseColor.rgb, mix(diffuseColor.rgb,vec3(winterLuma*0.92,winterLuma*0.94,winterLuma*0.83),0.55),weatherWinter*${foliage.toFixed(1)});
         vec3 snowColor = vec3(0.84,0.87,0.89) * (0.90+weatherMacro*0.065+weatherGrain*0.035);
         snowColor *= 1.0-weatherMoisture*0.1;
+        // Thin accumulation gets a darker granular boundary against exposed ground.
+        snowColor *= mix(0.92,1.0,smoothstep(0.25,0.9,weatherCover));
         diffuseColor.rgb = mix(diffuseColor.rgb,snowColor,weatherCover);
       `,
         )
@@ -136,7 +138,7 @@ export function installWeatherMaterials(targets, field, state) {
         normal = normalize(mix(normal,nonPerturbedNormal,weatherCover*0.68));
         // Millimetre-scale powder relief in screen derivatives, fading before aliasing.
         if(weatherSnow > 0.0){
-          float powder = (weatherNoise(vWeatherPosition.xz*18.0)*0.0015 + weatherGrain*0.0007) * weatherCover;
+          float powder = (weatherNoise(vWeatherPosition.xz*2.3)*0.009 + weatherNoise(vWeatherPosition.xz*18.0)*0.002 + weatherGrain*0.0007) * weatherCover;
           powder *= 1.0-smoothstep(5.0,16.0,length(vViewPosition));
           vec3 powderDx=dFdx(-vViewPosition), powderDy=dFdy(-vViewPosition);
           vec3 powderR1=cross(powderDy,normal), powderR2=cross(normal,powderDx);

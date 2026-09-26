@@ -44,7 +44,9 @@ export function createForestWeather(app, forest, surface, features = {}) {
     app.scene.fog.color.copy(colors.fog);
     app.scene.background.copy(colors.fog);
     app.scene.fog.density =
-      MathUtils.lerp(base.fog.density, 0.015, cloud) * app.settings.atmosphere;
+      MathUtils.lerp(base.fog.density, 0.015, cloud) *
+      MathUtils.lerp(1, 0.64, winter * (1 - cloud)) *
+      app.settings.atmosphere;
     colors.sun
       .set(base.sun.color)
       .lerp(new Color('#d0dfed'), cloud)
@@ -53,7 +55,7 @@ export function createForestWeather(app, forest, surface, features = {}) {
     app.sun.intensity =
       base.sun.intensity *
       MathUtils.lerp(1, 0.16, cloud) *
-      MathUtils.lerp(1, 0.8, winter) *
+      MathUtils.lerp(1, 1.12, winter * (1 - cloud)) *
       app.settings.sunlight;
     colors.sky
       .set(base.hemisphere.sky)
@@ -64,11 +66,9 @@ export function createForestWeather(app, forest, surface, features = {}) {
       .lerp(new Color('#586775'), winter);
     app.hemisphere.color.copy(colors.sky);
     app.hemisphere.groundColor.copy(colors.ground);
-    app.hemisphere.intensity = MathUtils.lerp(
-      base.hemisphere.intensity,
-      1.8,
-      cloud,
-    );
+    app.hemisphere.intensity =
+      MathUtils.lerp(base.hemisphere.intensity, 1.8, cloud) *
+      MathUtils.lerp(1, 0.66, winter * (1 - cloud));
     app.atmosphere.volumeMaterial.uniforms.strength.value =
       app.settings.atmosphere *
       app.settings.sunlight *

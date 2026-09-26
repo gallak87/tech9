@@ -78,11 +78,16 @@ export function createForestWeatherSurface() {
       pathWidth(z) + 0.6,
       pathDistance(x, z),
     );
+    const packedLane = smooth(
+      0.35,
+      pathWidth(z) + 0.5,
+      pathDistance(x, z) + Math.sin(z * 1.3) * 0.12,
+    );
     return {
       position: [x, terrainHeight(x, z), z],
       normal: [nx / length, (epsilon * 2) / length, nz / length],
       exposure,
-      snowRetention: 0.42 + trail * 0.58,
+      snowRetention: 0.22 + packedLane * 0.78,
       puddle: (1 - trail) * exposure,
       coverHeight,
     };

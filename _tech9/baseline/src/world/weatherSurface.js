@@ -41,13 +41,13 @@ export function createForestWeatherSurface() {
   const buckets = new Map();
   for (const c of crowns)
     for (
-      let x = Math.floor((c.x - c.radius) / 8);
-      x <= Math.floor((c.x + c.radius) / 8);
+      let x = Math.floor((c.x - c.radius * 1.16) / 8);
+      x <= Math.floor((c.x + c.radius * 1.16) / 8);
       x++
     )
       for (
-        let z = Math.floor((c.z - c.radius) / 8);
-        z <= Math.floor((c.z + c.radius) / 8);
+        let z = Math.floor((c.z - c.radius * 1.16) / 8);
+        z <= Math.floor((c.z + c.radius * 1.16) / 8);
         z++
       ) {
         const key = `${x}:${z}`;
@@ -63,7 +63,12 @@ export function createForestWeatherSurface() {
       coverHeight = terrainHeight(x, z);
     for (const c of buckets.get(`${Math.floor(x / 8)}:${Math.floor(z / 8)}`) ??
       []) {
-      const distance = Math.hypot(x - c.x, z - c.z) / c.radius;
+      const angle = Math.atan2(z - c.z, x - c.x);
+      const edge =
+        1.0 +
+        0.09 * Math.sin(angle * 3 + c.x) +
+        0.07 * Math.cos(angle * 5 + c.z);
+      const distance = Math.hypot(x - c.x, z - c.z) / (c.radius * edge);
       if (distance >= 1) continue;
       exposure *= 0.13 + 0.87 * smooth(0.2, 1, distance);
       coverHeight = Math.max(coverHeight, c.top - distance * 3);

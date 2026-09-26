@@ -107,14 +107,16 @@ export function installWeatherMaterials(targets, field, state) {
         float weatherSlope = smoothstep(0.23,0.8,normalize(vWeatherNormal).y);
         float weatherMacro = weatherNoise(vWeatherPosition.xz*1.8) * 0.65 + weatherNoise(vWeatherPosition.xz*8.0) * 0.35;
         float weatherAmount = weatherSnow * weatherExposure * weatherRetention * ${snow.toFixed(3)};
-        float weatherCover = smoothstep(0.17,0.32,weatherAmount - (1.0-weatherSlope)*0.65 - weatherMacro*0.21);
+        // Broken, narrow deposition edges retain exposed leaf litter and stone.
+        float weatherGrain = weatherNoise(vWeatherPosition.xz*28.0);
+        float weatherCover = smoothstep(0.19,0.245,weatherAmount - (1.0-weatherSlope)*0.65 - weatherMacro*0.24 - weatherGrain*0.055);
         weatherCover *= weatherSlope;
         float weatherMoisture = weatherWet * mix(0.25,1.0,weatherExposure) * ${wet.toFixed(3)} * (0.84+weatherMacro*0.16) * (1.0-weatherWinter*(1.0-weatherRain)*0.65);
         diffuseColor.rgb *= 1.0 - weatherMoisture * ${ground ? '0.2' : '0.28'};
         // Seasonal vegetation retains texture and variety instead of becoming emissive green.
         float winterLuma = dot(diffuseColor.rgb,vec3(0.2126,0.7152,0.0722));
         diffuseColor.rgb = mix(diffuseColor.rgb, mix(diffuseColor.rgb,vec3(winterLuma*0.92,winterLuma*0.94,winterLuma*0.83),0.55),weatherWinter*${foliage.toFixed(1)});
-        vec3 snowColor = vec3(0.84,0.87,0.89) * (0.94+weatherMacro*0.04+weatherNoise(vWeatherPosition.xz*65.0)*0.02);
+        vec3 snowColor = vec3(0.84,0.87,0.89) * (0.90+weatherMacro*0.065+weatherGrain*0.035);
         snowColor *= 1.0-weatherMoisture*0.1;
         diffuseColor.rgb = mix(diffuseColor.rgb,snowColor,weatherCover);
       `,
@@ -129,7 +131,17 @@ export function installWeatherMaterials(targets, field, state) {
         .replace(
           '#include <lights_physical_fragment>',
           `
-        normal = normalize(mix(normal,nonPerturbedNormal,weatherCover*0.78));
+        normal = normalize(mix(normal,nonPerturbedNormal,weatherCover*0.68));
+        // Millimetre-scale powder relief in screen derivatives, fading before aliasing.
+        if(weatherSnow > 0.0){
+          float powder = (weatherNoise(vWeatherPosition.xz*18.0)*0.0015 + weatherGrain*0.0007) * weatherCover;
+          powder *= 1.0-smoothstep(5.0,16.0,length(vViewPosition));
+          vec3 powderDx=dFdx(-vViewPosition), powderDy=dFdy(-vViewPosition);
+          vec3 powderR1=cross(powderDy,normal), powderR2=cross(normal,powderDx);
+          float powderDet=dot(powderDx,powderR1);
+          vec3 powderGradient=sign(powderDet)*(dFdx(powder)*powderR1+dFdy(powder)*powderR2);
+          normal=normalize(max(abs(powderDet),0.0000001)*normal-powderGradient);
+        }
         #include <lights_physical_fragment>
       `,
         )

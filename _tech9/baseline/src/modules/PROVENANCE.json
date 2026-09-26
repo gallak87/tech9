@@ -58,7 +58,7 @@
         },
         {
           "path": "src/materials.js",
-          "sha256": "34763e8d21087aad8d10f10a3fe6018ac82089a27a32d6268f8b530c19ab5389"
+          "sha256": "3597d821b43c418022fc4414a54d411683fad10f577009e781fb4a5745808212"
         },
         {
           "path": "src/precipitation.js",

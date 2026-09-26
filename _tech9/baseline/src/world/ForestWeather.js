@@ -13,6 +13,7 @@ export function createForestWeather(app, forest, surface, features = {}) {
     features,
     sampleSurface: surface.sampleSurface,
     surfaceBounds: app.bounds,
+    fieldResolution: 256,
   });
   const colors = {
     fog: new Color(),
@@ -38,12 +39,12 @@ export function createForestWeather(app, forest, surface, features = {}) {
       winter = s.winter;
     colors.fog
       .set(base.fog.color)
-      .lerp(new Color('#7b939f'), cloud)
+      .lerp(new Color('#7e898c'), cloud)
       .lerp(new Color('#b5c9da'), winter * (1 - cloud * 0.35));
     app.scene.fog.color.copy(colors.fog);
     app.scene.background.copy(colors.fog);
     app.scene.fog.density =
-      MathUtils.lerp(base.fog.density, 0.019, cloud) * app.settings.atmosphere;
+      MathUtils.lerp(base.fog.density, 0.015, cloud) * app.settings.atmosphere;
     colors.sun
       .set(base.sun.color)
       .lerp(new Color('#d0dfed'), cloud)
@@ -51,12 +52,12 @@ export function createForestWeather(app, forest, surface, features = {}) {
     app.sun.color.copy(colors.sun);
     app.sun.intensity =
       base.sun.intensity *
-      MathUtils.lerp(1, 0.09, cloud) *
+      MathUtils.lerp(1, 0.16, cloud) *
       MathUtils.lerp(1, 0.8, winter) *
       app.settings.sunlight;
     colors.sky
       .set(base.hemisphere.sky)
-      .lerp(new Color('#a9bbc9'), cloud)
+      .lerp(new Color('#b6bdc2'), cloud)
       .lerp(new Color('#b9cee3'), winter);
     colors.ground
       .set(base.hemisphere.ground)
@@ -250,7 +251,7 @@ export function createForestWeather(app, forest, surface, features = {}) {
         )
         .replace(
           'gl_FragColor = vec4(texColor, 1.0);',
-          `vec3 overcast = mix(horizonTint,vec3(0.38,0.47,0.56),smoothstep(0.0,0.75,direction.y));
+          `vec3 overcast = mix(horizonTint,vec3(0.42,0.46,0.49),smoothstep(0.0,0.75,direction.y));
         texColor = mix(texColor,overcast,weatherCloud*0.96);
         texColor = mix(texColor,texColor*vec3(0.9,0.98,1.1),weatherWinter*0.3);
         gl_FragColor = vec4(texColor, 1.0);`,

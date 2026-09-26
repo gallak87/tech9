@@ -79,11 +79,11 @@ export function createBoatMaterials({ own, galleon }) {
     256,
     (u, v, x, y) => {
       const warp =
-        Math.cos(x * Math.PI * 0.5) * 0.009 +
-        Math.cos(y * Math.PI * 0.5) * 0.008;
+        Math.cos(x * Math.PI * 0.5) * 0.002 +
+        Math.cos(y * Math.PI * 0.5) * 0.002;
       const mottling =
-        Math.sin(u * 16 + Math.sin(v * 23)) * Math.sin(v * 19) * 0.012;
-      const value = 0.92 + warp + mottling + (hash(x, y) - 0.5) * 0.017;
+        Math.sin(u * 16 + Math.sin(v * 23)) * Math.sin(v * 19) * 0.004;
+      const value = 0.92 + warp + mottling + (hash(x, y) - 0.5) * 0.005;
       return [value, value * 0.99, value * 0.963];
     },
     true,
@@ -129,7 +129,7 @@ export function createBoatMaterials({ own, galleon }) {
         envMapIntensity: 0.5,
       }),
     );
-  const lumber = (color, roughness = 0.8, bumpScale = 0.018) => {
+  const lumber = (color, roughness = 0.8, bumpScale = 0.002) => {
     const mat = material(color, roughness);
     Object.assign(mat, {
       map: timberMap,
@@ -140,26 +140,26 @@ export function createBoatMaterials({ own, galleon }) {
     return mat;
   };
   const hullWood = lumber(galleon ? '#644735' : '#76533a');
-  const deckWood = lumber('#b19a79', 0.92, 0.022);
-  const timber = lumber('#69503a', 0.76, 0.009);
+  const deckWood = lumber('#b6a083', 0.92, 0.0015);
+  const timber = lumber('#69503a', 0.76, 0.001);
   const darkWood = lumber('#2d2924', 0.94);
-  const wheelWood = lumber('#79502e', 0.48, 0.003);
+  const wheelWood = lumber('#79502e', 0.48, 0.0006);
   const trim = material('#b49b62', 0.43, 0.72);
   trim.roughnessMap = metalRough;
   const paint = material(galleon ? '#233b37' : '#245559', 0.63);
   paint.bumpMap = woodHeight;
-  paint.bumpScale = 0.006;
+  paint.bumpScale = 0.0008;
   const iron = material('#343d3c', 0.65, 0.58);
   iron.roughnessMap = metalRough;
   const rope = material('#75674e', 0.97);
   rope.bumpMap = clothHeight;
-  rope.bumpScale = 0.009;
+  rope.bumpScale = 0.001;
   const canvas = material(galleon ? '#d3c9ad' : '#e0d8bf', 0.96);
   Object.assign(canvas, {
     side: THREE.DoubleSide,
     map: clothMap,
     bumpMap: clothHeight,
-    bumpScale: 0.006,
+    bumpScale: 0.00035,
     vertexColors: true,
     envMapIntensity: 0.18,
   });

@@ -446,6 +446,82 @@ export function createSailingShip(profile) {
           x = side * (aftWidth * 0.46);
         archedWindow(x, quarterY - 0.56, z, 0.42, 0.67, (side * Math.PI) / 2);
       }
+    // Projected cornice, sill and pilasters make the gallery a joined structure.
+    const galleryPoint = (x, y, out = 0.13) => [
+      x,
+      y,
+      aftEnd + 0.075 - 0.13 * (x / (aftWidth * 0.44)) ** 2 + out,
+    ];
+    for (const [y, r, mat, out] of [
+      [quarterY + 0.008, 0.067, timber, 0.11],
+      [quarterY - 0.095, 0.026, trim, 0.16],
+      [quarterY - 0.995, 0.055, timber, 0.13],
+      [quarterY - 1.08, 0.02, trim, 0.12],
+    ]) {
+      const points = Array.from(
+        { length: 25 },
+        (_, i) =>
+          new THREE.Vector3(
+            ...galleryPoint(((i / 24) * 2 - 1) * aftWidth * 0.43, y, out),
+          ),
+      );
+      curvedLine(points, r, mat);
+    }
+    for (const x of [-1.43, -0.855, -0.285, 0.285, 0.855, 1.43]) {
+      const at = galleryPoint(x, quarterY - 0.98, 0.1);
+      const profile = [
+        new THREE.Vector2(0.062, 0),
+        new THREE.Vector2(0.062, 0.055),
+        new THREE.Vector2(0.044, 0.1),
+        new THREE.Vector2(0.039, 0.68),
+        new THREE.Vector2(0.063, 0.73),
+        new THREE.Vector2(0.063, 0.81),
+      ];
+      mesh(new THREE.LatheGeometry(profile, 12), timber, at[0], at[1], at[2]);
+      rounded(0.17, 0.042, 0.15, trim, at[0], at[1] + 0.77, at[2], 0.009);
+    }
+    for (const x of [-1.16, -0.58, 0, 0.58, 1.16]) {
+      const at = galleryPoint(x, quarterY - 1.02, 0.01);
+      const shape = new THREE.Shape();
+      shape.moveTo(0, 0);
+      shape.lineTo(0.24, 0);
+      shape.bezierCurveTo(0.25, -0.12, 0.065, -0.17, 0.045, -0.39);
+      shape.lineTo(0, -0.43);
+      shape.closePath();
+      const support = mesh(
+        new THREE.ExtrudeGeometry(shape, {
+          depth: 0.115,
+          bevelEnabled: true,
+          bevelSize: 0.008,
+          bevelThickness: 0.008,
+          bevelSegments: 1,
+          steps: 1,
+          curveSegments: 12,
+        }),
+        timber,
+        at[0] + 0.058,
+        at[1],
+        at[2],
+      );
+      support.rotation.y = -Math.PI / 2;
+    }
+    // A single small carved compass-rose crest is the stern's quiet focal point.
+    const crest = galleryPoint(0, quarterY - 1.17, 0.17);
+    mesh(new THREE.TorusGeometry(0.14, 0.025, 7, 28), timber, ...crest);
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4,
+        r = i % 2 === 0 ? 0.125 : 0.083;
+      rod(
+        [crest[0], crest[1], crest[2] + 0.02],
+        [
+          crest[0] + Math.cos(a) * r,
+          crest[1] + Math.sin(a) * r,
+          crest[2] + 0.02,
+        ],
+        0.012,
+        trim,
+      );
+    }
     // Closed gunport shutters and wale bands are architectural details only.
     for (const side of [-1, 1])
       for (let i = 0; i < 5; i++) {
@@ -675,6 +751,202 @@ export function createSailingShip(profile) {
       sphere(corner.x, corner.y, corner.z, 0.028, 0.028, 0.028, rope);
     }
   }
+  function workingBlock(point, scale = 1) {
+    const [x, y, z] = point;
+    for (const side of [-1, 1])
+      sphere(
+        x,
+        y,
+        z + side * 0.034 * scale,
+        0.073 * scale,
+        0.115 * scale,
+        0.025 * scale,
+        timber,
+      );
+    const sheave = mesh(
+      new THREE.CylinderGeometry(
+        0.062 * scale,
+        0.062 * scale,
+        0.04 * scale,
+        16,
+      ),
+      iron,
+      x,
+      y,
+      z,
+    );
+    sheave.rotation.x = Math.PI / 2;
+    sphere(
+      x,
+      y,
+      z + 0.064 * scale,
+      0.014 * scale,
+      0.014 * scale,
+      0.012 * scale,
+      trim,
+    );
+    const harness = Array.from({ length: 25 }, (_, i) => {
+      const a = (i / 24) * Math.PI * 2;
+      return new THREE.Vector3(
+        x + Math.cos(a) * 0.085 * scale,
+        y + Math.sin(a) * 0.13 * scale,
+        z,
+      );
+    });
+    // TubeGeometry supports closed curves here; preserve the visible rope strop.
+    mesh(
+      new THREE.TubeGeometry(
+        new THREE.CatmullRomCurve3(harness.slice(0, -1), true),
+        28,
+        0.01 * scale,
+        5,
+        true,
+      ),
+      rope,
+    );
+  }
+  function cleat(x, y, z) {
+    rounded(0.22, 0.037, 0.105, iron, x, y + 0.018, z, 0.018);
+    for (const side of [-1, 1])
+      rod(
+        [x + side * 0.058, y + 0.03, z],
+        [x + side * 0.074, y + 0.115, z],
+        0.023,
+        iron,
+      );
+    rod([x - 0.17, y + 0.12, z], [x + 0.17, y + 0.12, z], 0.024, iron);
+    const tie = [
+      [-0.13, 0.07],
+      [-0.13, -0.055],
+      [0.13, 0.055],
+      [0.13, -0.055],
+      [-0.13, 0.055],
+    ].map(([dx, dz]) => new THREE.Vector3(x + dx, y + 0.107, z + dz));
+    curvedLine(tie, 0.01, rope);
+  }
+  const workingDeckY = (z) =>
+    z > aftStart
+      ? quarterY
+      : deckY + sheer(z) + (galleon && z < -length * 0.25 ? 0.45 : 0);
+  // Windlass/capstan and their leading lines explain how the bow ground tackle works.
+  const winchZ = -length * 0.32,
+    winchY = workingDeckY(winchZ);
+  if (galleon) {
+    mesh(
+      new THREE.CylinderGeometry(0.42, 0.46, 0.09, 20),
+      timber,
+      0,
+      winchY + 0.045,
+      winchZ,
+    );
+    const drumProfile = [
+      [0.27, 0],
+      [0.31, 0.065],
+      [0.21, 0.15],
+      [0.18, 0.44],
+      [0.26, 0.55],
+      [0.29, 0.62],
+    ].map(([r, y]) => new THREE.Vector2(r, y));
+    mesh(
+      new THREE.LatheGeometry(drumProfile, 20),
+      timber,
+      0,
+      winchY + 0.09,
+      winchZ,
+    );
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4,
+        c = Math.cos(a),
+        d = Math.sin(a);
+      rod(
+        [c * 0.27, winchY + 0.18, winchZ + d * 0.27],
+        [c * 0.24, winchY + 0.62, winchZ + d * 0.24],
+        0.025,
+        iron,
+      );
+    }
+    for (let i = 0; i < 4; i++) {
+      const a = (i * Math.PI) / 2,
+        c = Math.cos(a),
+        d = Math.sin(a);
+      rod(
+        [c * 0.16, winchY + 0.66, winchZ + d * 0.16],
+        [c * 0.92, winchY + 0.66, winchZ + d * 0.92],
+        0.028,
+        timber,
+      );
+    }
+    for (let i = 0; i < 3; i++) {
+      const wrap = mesh(
+        new THREE.TorusGeometry(0.24, 0.018, 6, 28),
+        rope,
+        0,
+        winchY + 0.27 + i * 0.045,
+        winchZ,
+      );
+      wrap.rotation.x = Math.PI / 2;
+    }
+  } else {
+    for (const x of [-0.66, 0.66])
+      rounded(0.17, 0.43, 0.39, timber, x, winchY + 0.215, winchZ, 0.025);
+    const roller = mesh(
+      new THREE.CylinderGeometry(0.19, 0.19, 1.43, 20),
+      timber,
+      0,
+      winchY + 0.41,
+      winchZ,
+    );
+    roller.rotation.z = Math.PI / 2;
+    for (const x of [-0.76, 0.76]) {
+      const collar = mesh(
+        new THREE.CylinderGeometry(0.24, 0.24, 0.064, 18),
+        iron,
+        x,
+        winchY + 0.41,
+        winchZ,
+      );
+      collar.rotation.z = Math.PI / 2;
+      rod(
+        [x, winchY + 0.41, winchZ],
+        [x, winchY + 0.7, winchZ + 0.15],
+        0.024,
+        iron,
+      );
+    }
+    for (let i = -2; i <= 2; i++) {
+      const wrap = mesh(
+        new THREE.TorusGeometry(0.202, 0.016, 6, 28),
+        rope,
+        i * 0.037,
+        winchY + 0.41,
+        winchZ,
+      );
+      wrap.rotation.y = Math.PI / 2;
+    }
+  }
+  for (const side of [-1, 1]) {
+    const endZ = -length * 0.43,
+      endY = workingDeckY(endZ) + 0.07;
+    const fairlead = mesh(
+      new THREE.TorusGeometry(0.073, 0.02, 6, 16),
+      iron,
+      side * 0.31,
+      endY,
+      endZ,
+    );
+    fairlead.rotation.x = Math.PI / 2;
+    rod(
+      [side * 0.19, winchY + 0.28, winchZ],
+      [side * 0.31, endY, endZ],
+      0.021,
+      rope,
+    );
+    cleat(
+      side * beam * 0.3,
+      workingDeckY(-length * 0.22) + 0.03,
+      -length * 0.22,
+    );
+  }
   function mast(z, height) {
     rod([0, deckY, z], [0, height, z], 0.145, timber, staticGroup, 0.073);
     for (const y of [deckY + 0.3, height * 0.46, height * 0.74]) {
@@ -821,6 +1093,37 @@ export function createSailingShip(profile) {
         [0, bottom + 0.1, z + reach * 0.96],
         0.92,
       );
+      const upperSheet = [0, bottom - 0.2, z + reach * 0.95];
+      const lowerSheet = [
+        beam * 0.29,
+        workingDeckY(z + reach * 0.84) + 0.2,
+        z + reach * 0.84,
+      ];
+      workingBlock(upperSheet);
+      workingBlock(lowerSheet, 0.85);
+      rod([0, bottom, z + reach * 0.95], upperSheet, 0.017, rope);
+      for (const shift of [-0.025, 0.025])
+        rod(
+          [upperSheet[0] + shift, upperSheet[1] - 0.09, upperSheet[2]],
+          [lowerSheet[0] + shift, lowerSheet[1] + 0.08, lowerSheet[2]],
+          0.011,
+          rope,
+        );
+      cleat(
+        lowerSheet[0],
+        workingDeckY(lowerSheet[2]) + 0.035,
+        lowerSheet[2] + 0.23,
+      );
+      rod(
+        lowerSheet,
+        [
+          lowerSheet[0],
+          workingDeckY(lowerSheet[2]) + 0.14,
+          lowerSheet[2] + 0.23,
+        ],
+        0.012,
+        rope,
+      );
       rod([0, h * 0.98, z], [0, bottom, z + reach], 0.012, rope);
     }
     // High-clewed jib leaves the captain's low forward view open.
@@ -869,13 +1172,27 @@ export function createSailingShip(profile) {
         0.8,
         true,
       );
-      for (const side of [-1, 1])
+      for (const side of [-1, 1]) {
+        const upper = [side * w * 0.47, y - 0.3, z + 0.1];
+        const lower = [side * beam * 0.4, workingDeckY(z + 2) + 0.21, z + 2];
+        workingBlock(upper, 0.9);
+        workingBlock(lower, 0.8);
+        rod([side * w * 0.52, y, z], upper, 0.017, rope);
+        for (const shift of [-0.025, 0.025])
+          rod(
+            [upper[0] + shift, upper[1] - 0.07, upper[2]],
+            [lower[0] + shift, lower[1] + 0.07, lower[2]],
+            0.011,
+            rope,
+          );
+        cleat(lower[0], workingDeckY(lower[2]) + 0.025, lower[2] + 0.18);
         rod(
-          [side * w * 0.52, y, z],
-          [side * beam * 0.42, deckY + 0.2, z + 2.0],
-          0.014,
+          lower,
+          [lower[0], workingDeckY(lower[2]) + 0.13, lower[2] + 0.18],
+          0.012,
           rope,
         );
+      }
     }
     rod([0, 11.15, 3.45], [0, 6.0, 7.3], 0.065, timber);
     sailQuad(

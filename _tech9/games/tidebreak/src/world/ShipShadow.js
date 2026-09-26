@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 /** A small depth pass for the ship alone; it never rebuilds the island shadow. */
 export function createShipShadow(renderer, root, sunPosition) {
-  const size = 1024;
+  const size = 1536;
   const target = new THREE.WebGLRenderTarget(size, size, {
     minFilter: THREE.NearestFilter,
     magFilter: THREE.NearestFilter,
@@ -39,6 +39,9 @@ export function createShipShadow(renderer, root, sunPosition) {
     1,
   );
   const matrix = new THREE.Matrix4();
+  const captureProjection = new THREE.Matrix4();
+  const captureTransform = new THREE.Matrix4();
+  const inverseTransform = new THREE.Matrix4();
   const uniforms = {
     shipShadowMap: { value: target.texture },
     shipShadowMatrix: { value: matrix },
@@ -89,9 +92,9 @@ export function createShipShadow(renderer, root, sunPosition) {
               shipLit+=step(shipP.z-0.0007,stored)/9.0;
             }
           }
-          reflectedLight.directDiffuse*=mix(0.25,1.0,shipLit);
+          reflectedLight.directDiffuse*=mix(0.42,1.0,shipLit);
           reflectedLight.directSpecular*=mix(0.35,1.0,shipLit);
-          reflectedLight.indirectDiffuse*=mix(0.78,1.0,shipLit);`,
+          reflectedLight.indirectDiffuse*=mix(0.87,1.0,shipLit);`,
         );
       };
       mat.customProgramCacheKey = () => `${key}:ship-self-shadow-v1`;
@@ -100,7 +103,16 @@ export function createShipShadow(renderer, root, sunPosition) {
     frame = 0;
   }
   function render(profile) {
-    if (disposed || frame++ % 2 !== 0) return;
+    if (disposed) return;
+    root.updateMatrixWorld(true);
+    if (frame++ % 2 !== 0) {
+      // Keep cached depth attached to the moving hull between shadow captures.
+      matrix
+        .copy(captureProjection)
+        .multiply(captureTransform)
+        .multiply(inverseTransform.copy(root.matrixWorld).invert());
+      return;
+    }
     const span =
       Math.max(profile.length * 0.73, profile.mastHeight * 0.76) + 1.4;
     camera.left = camera.bottom = -span;
@@ -116,6 +128,8 @@ export function createShipShadow(renderer, root, sunPosition) {
       .copy(bias)
       .multiply(camera.projectionMatrix)
       .multiply(camera.matrixWorldInverse);
+    captureProjection.copy(matrix);
+    captureTransform.copy(root.matrixWorld);
     const parent = root.parent;
     const index = parent?.children.indexOf(root);
     const previousTarget = renderer.getRenderTarget();

@@ -32,6 +32,7 @@ export function createShipHelm({
   const worldQuaternion = new THREE.Quaternion();
   const armLinks = [];
   let wheelAngle = 0;
+  let captainMode = false;
 
   const localMaterial = (color, roughness = 0.7, metalness = 0) =>
     own(new THREE.MeshStandardMaterial({ color, roughness, metalness }));
@@ -514,6 +515,52 @@ export function createShipHelm({
     const tip = points.at(-1);
     ellipsoid(...tip, radius, radius, radius, m.skin, parent);
   }
+  function palm() {
+    // A single tapered palm/wrist surface avoids the overlapping rounded lumps
+    // of a sphere-built hand. Its back is flatter than its side silhouette.
+    const profile = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(0, -0.09, 0),
+      new THREE.Vector3(0.025, -0.076, 0.017),
+      new THREE.Vector3(0.028, -0.041, 0.017),
+      new THREE.Vector3(0.038, -0.014, 0.019),
+      new THREE.Vector3(0.043, 0.02, 0.02),
+      new THREE.Vector3(0.04, 0.039, 0.016),
+      new THREE.Vector3(0.03, 0.048, 0.011),
+      new THREE.Vector3(0, 0.052, 0),
+    ]);
+    const positions = [],
+      uvs = [],
+      indices = [];
+    const rings = 28,
+      sides = 20;
+    for (let ring = 0; ring <= rings; ring++) {
+      const t = ring / rings,
+        section = profile.getPoint(t);
+      for (let side = 0; side <= sides; side++) {
+        const angle = (side / sides) * Math.PI * 2;
+        positions.push(
+          Math.max(0, section.x) * Math.cos(angle),
+          section.y,
+          0.057 - t * 0.008 + Math.max(0, section.z) * Math.sin(angle),
+        );
+        uvs.push(side / sides, t);
+        if (ring < rings && side < sides) {
+          const a = ring * (sides + 1) + side,
+            b = a + sides + 1;
+          indices.push(a, b, a + 1, a + 1, b, b + 1);
+        }
+      }
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(positions, 3),
+    );
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    return geometry;
+  }
   for (const sign of [-1, 1]) {
     const angle = sign < 0 ? (Math.PI * 5) / 6 : Math.PI / 6;
     const hand = new THREE.Group();
@@ -522,33 +569,31 @@ export function createShipHelm({
     hand.position.set(Math.cos(angle) * 0.4, Math.sin(angle) * 0.4, 0);
     hand.rotation.z = angle - Math.PI / 2;
     grips.add(hand);
-    ellipsoid(0, 0.018, 0.058, 0.044, 0.057, 0.028, m.skin, hand);
-    ellipsoid(0, -0.043, 0.06, 0.03, 0.055, 0.025, m.skin, hand);
+    mesh(palm(), m.skin, hand);
     for (let i = 0; i < 4; i++) {
       const x = (i - 1.5) * 0.022;
       const short = Math.abs(i - 1.4) * 0.004;
       finger(
         [
-          [x, 0.034, 0.071],
-          [x, 0.06 - short, 0.041],
+          [x, 0.033, 0.062],
+          [x, 0.055 - short, 0.037],
           [x, 0.034, -0.018],
           [x, -0.007, -0.032],
           [x, -0.025 + short, -0.005],
         ],
-        i === 3 ? 0.009 : 0.0105,
+        i === 3 ? 0.008 : 0.0095,
         hand,
       );
-      ellipsoid(x, 0.055 - short, 0.047, 0.009, 0.011, 0.008, m.skin, hand);
       ellipsoid(x, -0.018 + short, -0.021, 0.006, 0.009, 0.002, nails, hand);
     }
     finger(
       [
-        [-sign * 0.031, -0.017, 0.07],
-        [-sign * 0.051, 0.003, 0.061],
+        [-sign * 0.03, -0.017, 0.061],
+        [-sign * 0.049, 0.003, 0.054],
         [-sign * 0.038, 0.024, 0.025],
         [-sign * 0.018, 0.026, 0.01],
       ],
-      0.014,
+      0.0125,
       hand,
     );
     const sleeve = (radii) =>
@@ -567,17 +612,17 @@ export function createShipHelm({
       [1, 0.07],
     ]);
     const lower = sleeve([
-      [0, 0.069],
-      [0.12, 0.076],
-      [0.25, 0.065],
-      [0.43, 0.065],
-      [0.58, 0.058],
-      [0.81, 0.05],
-      [0.9, 0.052],
-      [1, 0.047],
+      [0, 0.081],
+      [0.12, 0.085],
+      [0.25, 0.078],
+      [0.43, 0.071],
+      [0.58, 0.063],
+      [0.81, 0.048],
+      [0.9, 0.049],
+      [1, 0.043],
     ]);
     const elbow = ellipsoid(0, 0, 0, 0.078, 0.074, 0.079, m.coat, arms);
-    ellipsoid(
+    const shoulderCap = ellipsoid(
       helmX + sign * 0.225,
       quarterY + 1.37,
       bodyZ - 0.015,
@@ -587,14 +632,18 @@ export function createShipHelm({
       m.coat,
       arms,
     );
-    const cuff = torus(0.039, 0.009, 0, 0, 0, darkCloth, arms);
-    const wrist = ellipsoid(0, 0, 0, 0.028, 0.05, 0.027, m.skin, arms);
+    const cuff = torus(0.036, 0.007, 0, 0, 0, darkCloth, arms);
+    const wrist = ellipsoid(0, 0, 0, 0.026, 0.043, 0.022, m.skin, arms);
+    upper.name = `${sign < 0 ? 'Left' : 'Right'} external upper sleeve`;
+    shoulderCap.name = `${sign < 0 ? 'Left' : 'Right'} external shoulder`;
+    lower.name = `${sign < 0 ? 'Left' : 'Right'} continuous forearm sleeve`;
     armLinks.push({
       sign,
       hand,
       upper,
       lower,
       elbow,
+      shoulderCap,
       cuff,
       wrist,
       shoulder: new THREE.Vector3(
@@ -657,11 +706,18 @@ export function createShipHelm({
         .applyMatrix4(arm.hand.matrix)
         .applyMatrix4(grips.matrix)
         .applyMatrix4(wheelMount.matrix);
-      arm.bend.copy(arm.shoulder).lerp(arm.handPoint, 0.58);
-      arm.bend.x += arm.sign * 0.065;
-      arm.bend.y = quarterY + 0.91;
-      arm.bend.z += 0.05;
-      arm.cuffPoint.copy(arm.handPoint).lerp(arm.bend, 0.11);
+      if (captainMode) {
+        // View arms start below the near frame; the continuous tapered sleeves
+        // run into the wrists, without presenting shoulders or elbow balls.
+        arm.bend.set(helmX + arm.sign * 0.47, quarterY + 0.52, helmZ + 1.0);
+      } else {
+        arm.bend.copy(arm.shoulder).lerp(arm.handPoint, 0.58);
+        arm.bend.x += arm.sign * 0.065;
+        arm.bend.y = quarterY + 0.91;
+        arm.bend.z += 0.05;
+      }
+      direction.copy(arm.bend).sub(arm.handPoint).normalize();
+      arm.cuffPoint.copy(arm.handPoint).addScaledVector(direction, 0.046);
       fit(arm.upper, arm.shoulder, arm.bend);
       fit(arm.lower, arm.bend, arm.cuffPoint);
       arm.elbow.position.copy(arm.bend);
@@ -683,7 +739,14 @@ export function createShipHelm({
     target: new THREE.Vector3(helmX, quarterY + 0.8, helmZ - 10),
     update,
     setCameraMode(mode) {
-      captain.visible = mode !== 'captain';
+      captainMode = mode === 'captain';
+      captain.visible = !captainMode;
+      for (const arm of armLinks) {
+        arm.upper.visible = !captainMode;
+        arm.shoulderCap.visible = !captainMode;
+        arm.elbow.visible = !captainMode;
+      }
+      update(0, 0);
     },
     reset() {
       wheelAngle = 0;

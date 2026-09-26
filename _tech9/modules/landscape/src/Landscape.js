@@ -1,4 +1,4 @@
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { loadForestKit, disposeForestKit } from './forestAssets.js';
 import { createLandscapeLayout } from './layout.js';
 import { buildLandscape } from './render.js';
 export {
@@ -9,34 +9,8 @@ export {
   defaultForestCover,
 } from './layout.js';
 export { AtmospherePass } from './AtmospherePass.js';
-export const LANDSCAPE_ASSETS = Object.freeze({
-  'forest-kit.glb': new URL('../assets/runtime/forest-kit.glb', import.meta.url)
-    .href,
-  'textures/forest-floor-color.jpg': new URL(
-    '../assets/runtime/textures/forest-floor-color.jpg',
-    import.meta.url,
-  ).href,
-  'textures/forest-floor-normal.jpg': new URL(
-    '../assets/runtime/textures/forest-floor-normal.jpg',
-    import.meta.url,
-  ).href,
-  'textures/forest-floor-roughness.jpg': new URL(
-    '../assets/runtime/textures/forest-floor-roughness.jpg',
-    import.meta.url,
-  ).href,
-  'textures/path-color.jpg': new URL(
-    '../assets/runtime/textures/path-color.jpg',
-    import.meta.url,
-  ).href,
-  'textures/path-normal.jpg': new URL(
-    '../assets/runtime/textures/path-normal.jpg',
-    import.meta.url,
-  ).href,
-  'textures/path-roughness.jpg': new URL(
-    '../assets/runtime/textures/path-roughness.jpg',
-    import.meta.url,
-  ).href,
-});
+export { LANDSCAPE_ASSETS } from './forestAssets.js';
+export { createComposedLandscape } from './ComposedLandscape.js';
 
 /** Loaded finite landscape layer. Renderer, frame loop and weather are caller-owned. */
 export function createLandscape({
@@ -59,25 +33,7 @@ export function createLandscape({
     initializing = false;
   const disposeKit = () => {
     if (!kit) return;
-    const resources = new Set();
-    kit.traverse((o) => {
-      if (o.geometry) resources.add(o.geometry);
-      for (const m of Array.isArray(o.material)
-        ? o.material
-        : o.material
-          ? [o.material]
-          : []) {
-        resources.add(m);
-        for (const value of Object.values(m))
-          if (value?.isTexture) resources.add(value);
-      }
-    });
-    const images = new Set();
-    for (const resource of resources)
-      if (resource.isTexture && resource.source?.data?.close)
-        images.add(resource.source.data);
-    resources.forEach((r) => r.dispose());
-    images.forEach((image) => image.close());
+    disposeForestKit(kit);
     kit = null;
   };
   const layer = {
@@ -95,13 +51,7 @@ export function createLandscape({
       context = value;
       initializing = true;
       try {
-        kit = (
-          await new GLTFLoader().loadAsync(
-            rootURL
-              ? new URL('forest-kit.glb', rootURL).href
-              : LANDSCAPE_ASSETS['forest-kit.glb'],
-          )
-        ).scene;
+        kit = await loadForestKit(rootURL);
         if (disposed) {
           disposeKit();
           return;
@@ -110,7 +60,7 @@ export function createLandscape({
           { ...value, manageFog },
           kit,
           layout,
-          { assetURL: rootURL, assets: LANDSCAPE_ASSETS, windMode },
+          { assetURL: rootURL, windMode },
         );
         if (disposed) {
           built.dispose();

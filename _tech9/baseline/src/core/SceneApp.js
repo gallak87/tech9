@@ -13,7 +13,7 @@ import {
 } from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { FlyCamera } from './FlyCamera.js';
-import { AtmospherePass } from './AtmospherePass.js';
+import { AtmospherePass } from '../modules/landscape/src/AtmospherePass.js';
 import {
   DEFAULT_SETTINGS,
   loadSettings,

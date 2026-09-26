@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { softenShadowSampling } from './softShadows.js';
+import { loadForestTextures, prepareForestParts } from './forestAssets.js';
+import { createForestFloorMaterial } from './forestFloor.js';
 
 const TREE_NAMES = ['pine_a', 'pine_b', 'pine_c'];
 const DETAIL_NAMES = [
@@ -19,7 +21,7 @@ export async function buildLandscape(
   context,
   kit,
   layout,
-  { assetURL, assets, windMode = 'local' } = {},
+  { assetURL, windMode = 'local' } = {},
 ) {
   const {
     groundHeight,
@@ -68,63 +70,13 @@ export async function buildLandscape(
   try {
     kit.updateMatrixWorld(true);
 
-    // Preserve the baseline's bark/needle, scanned fern and mossy granite materials,
-    // prototype transforms, alpha coverage, transmission and plant wind treatment.
     for (const name of [...TREE_NAMES, ...DETAIL_NAMES]) {
-      const root = kit.getObjectByName(name);
-      if (!root) throw new Error(`Missing baseline forest asset: ${name}`);
-      const inverse = root.matrixWorld.clone().invert();
-      const parts = [];
-      root.traverse((part) => {
-        if (!part.isMesh) return;
-        const geometry = keep(
-          part.geometry
-            .clone()
-            .applyMatrix4(
-              new THREE.Matrix4().multiplyMatrices(inverse, part.matrixWorld),
-            ),
-        );
-        const material = keep(part.material.clone());
-        material.envMapIntensity = 0.3;
-        if (material.map) material.map.anisotropy = 8;
-        if (name.startsWith('rock')) {
-          const uv = geometry.attributes.uv;
-          for (let i = 0; i < uv.count; i++)
-            uv.setXY(i, uv.getX(i) * 0.4, uv.getY(i) * 0.4);
-          material.normalScale?.setScalar(0.55);
-        }
-        const plant = name.startsWith('grass') || name.startsWith('fern');
-        if (plant) {
-          material.color.multiplyScalar(name.startsWith('grass') ? 1.48 : 1.34);
-          material.normalScale?.setScalar(0.5);
-          material.emissive.set('#617c36');
-          material.emissiveIntensity = name.startsWith('grass') ? 0.115 : 0.07;
-        }
-        if (
-          material.alphaTest > 0 ||
-          material.name.toLowerCase().includes('needle')
-        ) {
-          material.side = THREE.DoubleSide;
-          material.alphaTest = material.name.toLowerCase().includes('needle')
-            ? 0.37
-            : 0.42;
-          material.alphaToCoverage = true;
-          material.transparent = false;
-          material.roughness = 0.95;
-        }
-        parts.push({ geometry, material, plant });
+      const parts = prepareForestParts(kit, name, {
+        normalizeTree: TREE_NAMES.includes(name),
       });
-      if (TREE_NAMES.includes(name)) {
-        const bounds = new THREE.Box3();
-        for (const part of parts) {
-          part.geometry.computeBoundingBox();
-          bounds.union(part.geometry.boundingBox);
-        }
-        const height = bounds.max.y - bounds.min.y;
-        for (const part of parts) {
-          part.geometry.translate(0, -bounds.min.y, 0);
-          part.geometry.scale(1.22 / height, 1 / height, 1.22 / height);
-        }
+      for (const part of parts) {
+        keep(part.geometry);
+        keep(part.material);
       }
       prototypes.set(name, parts);
     }
@@ -194,37 +146,8 @@ export async function buildLandscape(
       if (material.isMeshStandardMaterial) softenShadowSampling(material);
     }
 
-    const loader = new THREE.TextureLoader();
-    const loadedTextures = await Promise.allSettled(
-      [
-        'forest-floor-color.jpg',
-        'forest-floor-normal.jpg',
-        'forest-floor-roughness.jpg',
-        'path-color.jpg',
-        'path-normal.jpg',
-        'path-roughness.jpg',
-      ].map(async (name) => {
-        const texture = keep(
-          await loader.loadAsync(
-            rootURL
-              ? new URL(`textures/${name}`, rootURL).href
-              : assets[`textures/${name}`],
-          ),
-        );
-        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-        texture.anisotropy = Math.min(
-          8,
-          context.renderer.capabilities.getMaxAnisotropy(),
-        );
-        if (name.includes('color')) texture.colorSpace = THREE.SRGBColorSpace;
-        return texture;
-      }),
-    );
-    const textureFailure = loadedTextures.find(
-      (result) => result.status === 'rejected',
-    );
-    if (textureFailure) throw textureFailure.reason;
-    const textures = loadedTextures.map((result) => result.value);
+    const textures = await loadForestTextures(context.renderer, rootURL);
+    textures.forEach(keep);
     // One finite shade field anchors the distant canopy to the same placements.
     const shadeCanvas = document.createElement('canvas');
     shadeCanvas.width = shadeCanvas.height = 2048;
@@ -295,19 +218,11 @@ export async function buildLandscape(
     }
     terrainGeometry.computeVertexNormals();
     const terrainMaterial = keep(
-      new THREE.MeshStandardMaterial({
-        map: textures[0],
-        normalMap: textures[1],
-        roughnessMap: textures[2],
-        normalScale: new THREE.Vector2(0.7, 0.7),
-        roughness: 0.97,
-        color: '#e5e8d5',
-      }),
+      createForestFloorMaterial(textures, { color: '#e5e8d5' }),
     );
+    const configureFloor = terrainMaterial.onBeforeCompile;
     terrainMaterial.onBeforeCompile = (shader) => {
-      shader.uniforms.pathTexture = { value: textures[3] };
-      shader.uniforms.pathNormal = { value: textures[4] };
-      shader.uniforms.pathRoughness = { value: textures[5] };
+      configureFloor(shader);
       shader.uniforms.canopyShade = { value: canopyShade };
       shader.uniforms.landscapeEye = eye;
       shader.uniforms.forestCoverTexture = { value: coverTexture };
@@ -330,7 +245,7 @@ export async function buildLandscape(
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <common>',
         `#include <common>
-      varying vec3 vGround; uniform vec3 landscapeEye; uniform sampler2D pathTexture; uniform sampler2D pathNormal; uniform sampler2D pathRoughness; uniform sampler2D canopyShade; uniform sampler2D forestCoverTexture; uniform vec4 forestBounds;
+      varying vec3 vGround; uniform vec3 landscapeEye; uniform sampler2D canopyShade; uniform sampler2D forestCoverTexture; uniform vec4 forestBounds;
       float coverHash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
       float coverNoise(vec2 p) { vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(coverHash(i),coverHash(i+vec2(1,0)),f.x),mix(coverHash(i+vec2(0,1)),coverHash(i+1.),f.x),f.y); }`,
       );
@@ -365,17 +280,6 @@ export async function buildLandscape(
       diffuseColor.rgb *= mix(1.,soilMoisture,pathBlend);
       diffuseColor.rgb *= .80 + .20 * texture2D(canopyShade,(w-forestBounds.xy)/forestBounds.zw).r;
     `,
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <roughnessmap_fragment>',
-        `float roughnessFactor = max(.71, roughness * mix(texture2D(roughnessMap,vRoughnessMapUv).g,texture2D(pathRoughness,vRoughnessMapUv*1.28+vec2(.213,.782)).g,pathBlend));`,
-      );
-      shader.fragmentShader = shader.fragmentShader.replace(
-        '#include <normal_fragment_maps>',
-        THREE.ShaderChunk.normal_fragment_maps.replace(
-          'vec3 mapN = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;',
-          `vec3 mapN = mix(texture2D(normalMap,vNormalMapUv).xyz,texture2D(pathNormal,vNormalMapUv*1.28+vec2(.213,.782)).xyz,pathBlend)*2.-1.;`,
-        ),
       );
     };
     terrainMaterial.customProgramCacheKey = () => 'landscape-scanned-ground';

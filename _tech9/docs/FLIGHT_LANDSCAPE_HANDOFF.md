@@ -1,5 +1,7 @@
 # Aircraft and landscape framework handoff
 
+A follow-up baseline integration is paused at the user’s request. See the [current checkpoint](./FLIGHT_LANDSCAPE_CHECKPOINT.md) for uncompleted work and current validation. The extraction results below describe the previously completed iteration; they do not validate the follow-up changes.
+
 Framework-dev extraction is complete on `codex/forest-flight`, using the current `g/scene-test` workflow and accepted weather work. The branch is intentionally unmerged for user review. Original Forest Flight source, airport layout, markers and game rules remain game-owned.
 
 ## Reusable capabilities

@@ -120,6 +120,12 @@ try {
             .getAttribute('aria-pressed')) === 'true',
       );
       await capture(`${vesselId}-selection`);
+      await page.screenshot({
+        path: path.join(output, `${vesselId}-portrait.png`),
+        style: '#app-ui { visibility: hidden !important; }',
+        clip: { x: 535, y: 115, width: 820, height: 820 },
+      });
+      report.captures.push(`${vesselId}-portrait`);
       await page.getByRole('button', { name: 'Cast off' }).click();
       check(
         'ship choices are hidden during a lap',
@@ -457,12 +463,14 @@ try {
       );
     }
   }
+  report.errors = scene.errors;
   check(
     'no console/page/request/WebGL errors',
     Object.values(scene.errors).every((a) => a.length === 0),
   );
   report.errors = scene.errors;
 } catch (error) {
+  report.errors = scene.errors;
   report.failure = error.stack;
   report.snapshot = await snapshot().catch(() => null);
   await capture('failure').catch(() => {});

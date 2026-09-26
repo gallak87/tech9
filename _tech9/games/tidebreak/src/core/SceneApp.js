@@ -301,7 +301,8 @@ export class SceneApp {
     this.renderer.shadowMap.needsUpdate = true;
     this.renderer.setAnimationLoop((now) => {
       if (document.hidden) return;
-      const rawDt = (now - this.lastTime) / 1000;
+      // A queued RAF timestamp can precede performance.now() at start/resume.
+      const rawDt = Math.max(0, (now - this.lastTime) / 1000);
       const dt = Math.min(rawDt, 0.05) * this.playbackRate;
       this.lastTime = now;
       for (const layer of this.layers) layer.update?.(dt, now / 1000);

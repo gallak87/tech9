@@ -33,6 +33,48 @@ function deferred() {
   return { promise, resolve };
 }
 
+test('start and resume never send negative time to layers or camera', () => {
+  const { host } = lifecycleHost();
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    value: { hidden: false },
+  });
+  try {
+    let frame;
+    const layerTimes = [],
+      cameraTimes = [];
+    host.playbackRate = 1;
+    host.renderer.setAnimationLoop = (callback) => {
+      frame = callback;
+    };
+    host.renderer.info = { reset() {} };
+    host.atmosphere.render = () => {};
+    host.controls.update = (dt) => cameraTimes.push(dt);
+    host.layers = [
+      {
+        update: (dt) => {
+          assert.ok(Number.isFinite(dt) && dt >= 0);
+          layerTimes.push(dt);
+        },
+      },
+    ];
+    host.start();
+    host.lastTime = 100; // startup performance.now(), newer than queued RAF
+    frame(99);
+    frame(115);
+    host.lastTime = 500; // same race following visibility restoration
+    frame(499);
+    frame(515);
+    assert.deepEqual(layerTimes, [0, 0.016, 0, 0.016]);
+    assert.deepEqual(cameraTimes, layerTimes);
+    host.stop();
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'document', previous);
+    else delete globalThis.document;
+  }
+});
+
 test('concurrent layer registration reserves the id before asynchronous initialization', async () => {
   const { host } = lifecycleHost();
   const loading = deferred();

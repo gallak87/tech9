@@ -43,7 +43,7 @@ npm run build
 SCENE_PORT=4492 npm run verify
 ```
 
-Browser verification uses installed Playwright Chromium and ordinary keyboard controls for a complete scenic circuit and landing with each aircraft. It takes about six minutes. Artifacts and machine/frame-timing records are written to `.artifacts/verification/`. `CHROMIUM_PATH` can select a compatible local Chromium executable.
+Browser verification uses installed headed Playwright Chromium and ordinary keyboard controls for a complete scenic circuit and landing with each aircraft. It takes about six minutes. Artifacts and machine/frame-timing records are written to `.artifacts/verification/`. `CHROMIUM_PATH` can select a compatible local Chromium executable.
 
 [Architecture](./ARCHITECTURE.md) describes the code boundaries. [Brief](./BRIEF.md) and [prompt](./PROMPT.md) define the development scope. The copy receipts are `tech9.json` and `GAME_PLAN.json`.
 

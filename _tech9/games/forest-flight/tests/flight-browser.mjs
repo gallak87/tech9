@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openScene, root, samplePerformance } from './lib/browser.mjs';
 import { groundHeight } from '../src/flight/FlightWorld.js';
+// Real tab focus changes require a visible browser rather than emulated focus.
+process.env.HEADED ??= '1';
 const output = `${root}/.artifacts/verification`;
 await mkdir(output, { recursive: true });
 const harness = await openScene({ mode: 'preview', width: 1440, height: 900 });

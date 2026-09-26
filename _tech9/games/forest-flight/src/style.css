@@ -701,3 +701,21 @@ kbd {
     top: 180px;
   }
 }
+.flight-tag {
+  z-index: 2;
+}
+.welcome:before {
+  top: -24px;
+}
+
+.preflight .instruments,
+.preflight .tip {
+  display: none;
+}
+.preflight .keyline {
+  background: #142b24bc;
+  border-radius: 6px;
+  padding: 7px 12px;
+  width: fit-content;
+  margin: 0 auto;
+}

@@ -474,39 +474,56 @@ export function createFlightWorld() {
       (tree) => Math.abs(tree.x) <= 470 && Math.abs(tree.z) <= 820,
     );
     const crownParts = [];
-    // Offset foliage clusters echo the detailed pines' open trunks and irregular crowns.
-    for (let level = 0; level < 3; level++) {
-      for (let branch = 0; branch < 3; branch++) {
-        const angle = (branch * Math.PI * 2) / 3 + level * 1.7;
-        const radius = 0.065 - level * 0.015;
+    // Broad lower branches, smaller shoulders and a narrow tip cover the upper trunk.
+    for (const [level, [height, width, depth, rise, spread, count]] of [
+      [0.41, 0.142, 0.135, 0.165, 0.036, 4],
+      [0.61, 0.112, 0.104, 0.17, 0.03, 4],
+      [0.8, 0.076, 0.071, 0.14, 0.018, 3],
+    ].entries()) {
+      for (let branch = 0; branch < count; branch++) {
+        const angle = (branch * Math.PI * 2) / count + level * 1.7;
         const part = new THREE.DodecahedronGeometry(1, 0);
-        part.scale(
-          0.105 - level * 0.014,
-          0.15 - level * 0.01,
-          0.095 - level * 0.012,
-        );
+        part.scale(width, rise, depth);
         part.rotateY(angle);
         part.translate(
-          Math.sin(angle) * radius,
-          0.55 + level * 0.135 + branch * 0.012,
-          Math.cos(angle) * radius,
+          Math.sin(angle) * spread,
+          height + Math.sin(branch * 2.4) * 0.025,
+          Math.cos(angle) * spread,
         );
         crownParts.push(part);
       }
     }
-    const tip = new THREE.ConeGeometry(0.078, 0.24, 7);
-    tip.translate(-0.012, 0.88, 0.01);
+    const tip = new THREE.ConeGeometry(0.052, 0.18, 7);
+    tip.translate(-0.007, 0.91, 0.004);
     crownParts.push(tip.toNonIndexed());
     tip.dispose();
     const crown = keep(mergeGeometries(crownParts));
     crownParts.forEach((part) => part.dispose());
     const trunk = keep(new THREE.CylinderGeometry(0.014, 0.025, 0.72, 5));
     trunk.translate(0, 0.36, 0);
-    const crownMaterial = material('#ffffff', {
-      roughness: 1,
-      emissive: '#2c3b32',
-      emissiveIntensity: 0.12,
-    });
+    const crownMaterial = material('#ffffff', { roughness: 1 });
+    crownMaterial.onBeforeCompile = (shader) => {
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <common>',
+        '#include <common>\nvarying vec3 vFlightCrown;',
+      );
+      shader.vertexShader = shader.vertexShader.replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\nvFlightCrown = position;',
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <common>',
+        '#include <common>\nvarying vec3 vFlightCrown;',
+      );
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        float crownDetail = sin(vFlightCrown.y * 215. + sin(vFlightCrown.x * 170.)) * sin(vFlightCrown.z * 191. + vFlightCrown.x * 89.);
+        diffuseColor.rgb *= .9 + crownDetail * .12;
+      `,
+      );
+    };
+    crownMaterial.customProgramCacheKey = () => 'flight-pine-crown';
     const woodMaterial = material('#6f6650');
     const matrix = new THREE.Matrix4(),
       position = new THREE.Vector3(),
@@ -535,11 +552,17 @@ export function createFlightWorld() {
         const tree = entries[i];
         position.set(tree.x, tree.y, tree.z);
         rotation.setFromAxisAngle(up, tree.angle);
-        scale.setScalar(tree.height);
+        scale.set(
+          tree.height * (0.88 + tree.tone * 0.12),
+          tree.height,
+          tree.height * (1 - tree.tone * 0.12),
+        );
         matrix.compose(position, rotation, scale);
         leaves.setMatrixAt(i, matrix);
+        scale.setScalar(tree.height);
+        matrix.compose(position, rotation, scale);
         trunks.setMatrixAt(i, matrix);
-        color.set('#55755e').lerp(new THREE.Color('#8d9c78'), tree.tone);
+        color.set('#4f6145').lerp(new THREE.Color('#738061'), tree.tone);
         leaves.setColorAt(i, color);
       }
       leaves.computeBoundingSphere();

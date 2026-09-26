@@ -158,14 +158,24 @@ try {
   }
   await keys([]);
   assert.equal(stage, route.length, 'all remote exploration legs complete');
-  const recent = report.track.slice(-20),
-    warm = report.track.filter((v) => v.time < 100);
-  for (const key of ['geometries', 'textures', 'programs'])
-    assert.ok(
-      Math.max(...recent.map((v) => v.memory[key])) <=
-        Math.max(...warm.map((v) => v.memory[key])) + 2,
-      `${key} plateaus after warmup`,
+  // Renderer.info grows when an existing offscreen airfield mesh first uploads.
+  // Audit the settled tail after all directions have been visited, not a fixed
+  // time that might precede the first view of the rear of the hangar.
+  const recent = report.track.slice(-10);
+  for (const key of ['geometries', 'textures', 'programs']) {
+    assert.equal(
+      Math.max(...recent.map((v) => v.memory[key])),
+      Math.min(...recent.map((v) => v.memory[key])),
+      `${key} plateaus after all views warm`,
     );
+  }
+  assert.ok(
+    report.track.every(
+      (v) =>
+        v.landscape.poolCapacity === report.track[0].landscape.poolCapacity,
+    ),
+    'instance buffer capacity is constant throughout travel',
+  );
   assert.ok(report.track.every((v) => v.landscape.detailTiles === 25));
   assert.ok(
     report.track.at(-1).landscape.rebuilds > 100,

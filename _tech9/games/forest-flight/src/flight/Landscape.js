@@ -275,15 +275,17 @@ export async function createLandscape(context, kit) {
       vec3 floorColor = texture2D(map,vMapUv).rgb;
       vec3 dirt = texture2D(pathTexture,vMapUv*1.28).rgb;
       float macro = coverNoise(w*.018)*.65 + coverNoise(w*.079)*.35;
+      float litter = coverNoise(w*.37)*.65 + coverNoise(w*1.7)*.35;
       vec3 meadow = mix(vec3(.15,.22,.075),vec3(.30,.34,.14),macro);
-      vec3 forest = floorColor * mix(vec3(.065,.12,.045),vec3(.22,.32,.12),macro);
+      vec3 forest = floorColor * mix(vec3(.055,.13,.042),vec3(.18,.29,.09),macro);
+      forest *= mix(vec3(.72,.83,.58),vec3(1.07,.93,.69),smoothstep(.33,.7,litter));
       vec3 cover = mix(forest, meadow*(.78+floorColor*.65), max(glade,cut*.85));
       float slope = 1.0 - abs(normalize(cross(dFdx(vGround),dFdy(vGround))).y);
       float outcrop = smoothstep(.045,.19,slope)*smoothstep(130.,260.,vGround.y)*(0.55+macro*.45);
       cover = mix(cover,vec3(.25,.27,.23)*(floorColor*.5+.6),outcrop*.75);
       // Fine PBR detail resolves nearby; broad coherent canopy/glade colors survive altitude.
-      diffuseColor.rgb *= mix(cover, dirt*vec3(1.46,1.28,1.07),track);
-      diffuseColor.rgb *= .38 + .62 * texture2D(canopyShade,(w+2800.)/5600.).r;
+      diffuseColor.rgb *= mix(cover, dirt*vec3(1.22,1.07,.86),track);
+      diffuseColor.rgb *= .70 + .30 * texture2D(canopyShade,(w+2800.)/5600.).r;
     `,
       );
     };
@@ -465,7 +467,40 @@ export async function createLandscape(context, kit) {
             part.plant,
             isTree,
           );
-          return batch(part.geometry, part.material, capacity, !part.plant);
+          const mesh = batch(
+            part.geometry,
+            part.material,
+            capacity,
+            !part.plant,
+          );
+          if (!part.plant) {
+            const depth = keep(
+              new THREE.MeshDepthMaterial({
+                depthPacking: THREE.RGBADepthPacking,
+                map: part.material.map,
+                alphaTest: part.material.alphaTest,
+                side: part.material.side,
+              }),
+            );
+            fade(
+              depth,
+              isTree ? 180 : 32,
+              isTree ? 220 : 66,
+              false,
+              false,
+              isTree,
+            );
+            const configureDepth = depth.onBeforeCompile;
+            depth.onBeforeCompile = (shader) => {
+              configureDepth(shader);
+              shader.fragmentShader = shader.fragmentShader.replace(
+                'diffuseColor.a *= 1.0 - coverage;',
+                'float mask = fract(52.9829189 * fract(dot(floor(gl_FragCoord.xy),vec2(.06711056,.00583715)))); if(coverage > mask) discard;',
+              );
+            };
+            mesh.customDepthMaterial = depth;
+          }
+          return mesh;
         }),
       );
     }
@@ -499,7 +534,7 @@ export async function createLandscape(context, kit) {
           cz = Math.floor(cameraPosition.z / 32),
           cy = Math.floor(cameraPosition.y / 32);
         context.scene.fog.density =
-          0.00031 +
+          0.00022 +
           0.0025 *
             Math.exp(
               -Math.max(

@@ -1065,17 +1065,21 @@ function atvBody(body, p) {
       0.031,
       22,
     );
-    tube(
+    // Upper cradle runs beneath/inboard of the full knee/shin envelope.
+    const upperRail = tube(
       body,
       p.black,
       [
-        [side * 0.25, 0.36, 0.68],
-        [side * 0.26, 0.72, 0.4],
-        [side * 0.21, 0.77, -0.45],
+        [side * 0.24, 0.34, 0.78],
+        [side * 0.075, 0.69, 0.42],
+        [side * 0.075, 0.69, -0.38],
+        [side * 0.17, 0.8, -0.46],
       ],
-      0.026,
-      20,
+      0.021,
+      32,
     );
+    upperRail.name = `atv-upper-rail-${side < 0 ? 'left' : 'right'}`;
+    upperRail.userData.dynamic = true;
     arch(body, p, side, -0.775, 'atv');
     arch(body, p, side, 0.775, 'atv');
     loft(
@@ -1237,8 +1241,8 @@ function atvBody(body, p) {
       [-1.13, 0.25, 0.57, 0.77],
       [-0.87, 0.32, 0.65, 0.925],
       [-0.46, 0.24, 0.65, 0.985],
-      [-0.23, 0.18, 0.63, 0.92],
-      [0.07, 0.145, 0.61, 0.83],
+      [-0.23, 0.13, 0.63, 0.92],
+      [0.07, 0.095, 0.61, 0.83],
     ],
     { bevel: 0.32 },
   );
@@ -1261,8 +1265,9 @@ function atvBody(body, p) {
     body,
     p.seat,
     [
-      [-0.025, 0.13, 0.81, 0.956],
-      [0.16, 0.185, 0.82, 0.969],
+      [-0.04, 0.088, 0.81, 0.956],
+      [0.055, 0.105, 0.815, 0.96],
+      [0.18, 0.16, 0.82, 0.969],
       [0.55, 0.193, 0.85, 1.005],
       [0.72, 0.165, 0.87, 0.999],
     ],
@@ -1273,8 +1278,8 @@ function atvBody(body, p) {
       body,
       p.seam,
       [
-        [side * 0.135, 0.951, 0],
-        [side * 0.19, 0.97, 0.25],
+        [side * 0.089, 0.951, -0.015],
+        [side * 0.164, 0.97, 0.25],
         [side * 0.17, 0.999, 0.65],
       ],
       0.0027,
@@ -1731,17 +1736,22 @@ function bikeBody(body, p) {
     ring(exhaust, p.black, 0.074, 0.009, [0, y, 0], [Math.PI / 2, 0, 0], 6, 24);
   cylinder(exhaust, p.black, 0.04, 0.027, [0, 0.226, 0], undefined, 16);
   cylinder(exhaust, p.dark, 0.025, 0.029, [0, 0.229, 0], undefined, 16);
-  tube(
+  // Oil line remains entirely ahead of the shin/cuff's swept front bound.
+  const oilLine = tube(
     body,
     p.black,
     [
-      [-0.13, 0.84, -0.1],
-      [-0.235, 0.72, -0.13],
-      [-0.19, 0.63, 0.08],
+      [-0.075, 0.847, -0.18],
+      [-0.115, 0.795, -0.225],
+      [-0.105, 0.694, -0.219],
+      [-0.075, 0.642, -0.168],
     ],
-    0.013,
-    18,
+    0.011,
+    24,
   );
+  oilLine.name = 'calf-clearance-oil-line';
+  oilLine.userData.dynamic = true;
+  beam(body, p.steel, [-0.075, 0.642, -0.17], [-0.075, 0.642, -0.135], 0.012);
 }
 
 function steeringControl(parent, kind, p) {

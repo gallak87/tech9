@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Vector3, Texture } from 'three';
+import { Box3, Raycaster, Vector3, Texture } from 'three';
 import { createVehicleModel } from '../src/vehicles/VehicleModel.js';
 import { VehicleMotion } from '../src/driving/VehicleMotion.js';
 
@@ -84,5 +84,54 @@ for (const vehicle of ['jeep', 'atv', 'bike']) {
     assert.equal(borrowedDisposals, 0);
     assert.equal(model.group.children.length, 0);
     borrowed.dispose();
+  });
+}
+
+// Sample the rendered sole/support geometry instead of asserting authored anchor
+// constants, so changes to boot shape or foot platforms cannot silently sink feet.
+for (const vehicle of ['atv', 'bike']) {
+  test(`${vehicle} boot soles stay planted above rendered supports`, () => {
+    const model = createVehicleModel(vehicle);
+    try {
+      const boots = [];
+      model.group.traverse((part) => {
+        if (part.name === 'formed-motocross-boot') boots.push(part);
+      });
+      assert.equal(boots.length, 2);
+      const body = model.group.getObjectByName('body');
+      const down = new Vector3(0, -1, 0);
+      for (const airborne of [false, true]) {
+        for (const steer of [-1, 0, 1]) {
+          for (let frame = 0; frame < 20; frame++)
+            model.update(
+              { x: 0, y: 0, z: 0, speed: 12, airborne, steer },
+              1 / 60,
+            );
+          for (const boot of boots) {
+            const bounds = new Box3().setFromObject(boot);
+            const center = bounds.getCenter(new Vector3());
+            let closest = Infinity;
+            for (let sample = 1; sample < 50; sample++) {
+              const z =
+                bounds.min.z + ((bounds.max.z - bounds.min.z) * sample) / 50;
+              const ray = new Raycaster(
+                new Vector3(center.x, bounds.min.y + 0.008, z),
+                down,
+                0,
+                0.04,
+              );
+              const hit = ray.intersectObject(body, true)[0];
+              if (hit) closest = Math.min(closest, hit.distance - 0.008);
+            }
+            assert.ok(
+              closest >= -0.001 && closest <= 0.008,
+              `${vehicle} sole needs contact without penetration; support gap=${closest}`,
+            );
+          }
+        }
+      }
+    } finally {
+      model.dispose();
+    }
   });
 }

@@ -302,80 +302,151 @@ function ridingBoot(parent, p, side) {
   const group = new THREE.Group();
   group.name = 'formed-motocross-boot';
   parent.add(group);
-  form(
-    group,
-    p.boot,
-    [
-      [-0.106, 0.061, 0.111, -0.058],
-      [-0.089, 0.075, 0.14, -0.061],
-      [-0.06, 0.075, 0.143, -0.066],
-      [-0.012, 0.066, 0.123, -0.048],
-      [0.04, 0.056, 0.064, 0.002],
-      [0.12, 0.061, 0.061, 0.003],
-      [0.19, 0.062, 0.059, 0.008],
-    ],
-    24,
-  );
-  form(
+  // A planted, shaped foot and a separately articulated cuff: the shin enters
+  // its opening, instead of cutting through the side of a vertical boot tube.
+  loft(
     group,
     p.black,
     [
-      [-0.114, 0.061, 0.113, -0.057],
-      [-0.106, 0.078, 0.142, -0.064],
-      [-0.085, 0.078, 0.145, -0.064],
+      [-0.202, 0.031, -0.114, -0.095],
+      [-0.17, 0.062, -0.114, -0.088],
+      [-0.105, 0.068, -0.114, -0.086],
+      [0.006, 0.061, -0.114, -0.087],
+      [0.074, 0.051, -0.114, -0.089],
     ],
-    24,
+    { bevel: 0.28 },
   );
-  // Curved shin armor, instep ribs and three functional closure straps.
-  const armor = ball(
+  loft(
+    group,
+    p.boot,
+    [
+      [-0.196, 0.028, -0.094, -0.057],
+      [-0.166, 0.058, -0.093, -0.024],
+      [-0.102, 0.064, -0.091, -0.012],
+      [-0.014, 0.055, -0.089, 0.017],
+      [0.07, 0.047, -0.09, 0.009],
+    ],
+    { bevel: 0.34 },
+  );
+  // Separate toe protection and stitched instep provide broad material planes.
+  loft(
     group,
     p.plastic,
-    1,
-    [0, 0.116, -0.054],
-    [0.047, 0.08, 0.014],
+    [
+      [-0.191, 0.027, -0.059, -0.052],
+      [-0.164, 0.053, -0.029, -0.021],
+      [-0.119, 0.057, -0.02, -0.012],
+    ],
+    { bevel: 0.31 },
   );
-  armor.rotation.x = -0.06;
-  for (const h of [-0.002, 0.07, 0.15]) {
+  for (const z of [-0.092, -0.07, -0.048])
     tube(
       group,
       p.clothDark,
       [
-        [-0.053, h, -0.046],
-        [0, h, -0.065],
-        [0.051, h, -0.046],
+        [-0.049, -0.018, z],
+        [0, 0.002, z - 0.001],
+        [0.049, -0.018, z],
       ],
-      0.01,
-      10,
+      0.0028,
+      12,
     );
-    const buckle = panel(
-      group,
-      p.silver,
-      [
-        [-0.017, -0.008],
-        [0.017, -0.008],
-        [0.017, 0.008],
-        [-0.017, 0.008],
-      ],
-      0.004,
-      [side * 0.056, h, -0.032],
-      [0, (side * Math.PI) / 2, 0],
-      0.002,
-    );
-    buckle.name = 'boot-closure-buckle';
-  }
-  for (let i = 0; i < 3; i++)
+  for (const outer of [-1, 1]) {
     tube(
       group,
       p.seam,
       [
-        [-0.049, -0.016 - i * 0.009, -0.103 - i * 0.015],
-        [0, -0.003 - i * 0.009, -0.111 - i * 0.015],
-        [0.049, -0.016 - i * 0.009, -0.103 - i * 0.015],
+        [outer * 0.029, -0.067, -0.193],
+        [outer * 0.062, -0.065, -0.151],
+        [outer * 0.063, -0.063, -0.095],
+        [outer * 0.054, -0.058, 0.045],
       ],
-      0.0035,
-      9,
+      0.0018,
+      20,
     );
+    for (const z of [-0.145, -0.092, -0.039, 0.014, 0.054])
+      tube(
+        group,
+        p.boot,
+        [
+          [outer * 0.052, -0.109, z],
+          [outer * 0.063, -0.095, z],
+        ],
+        0.003,
+        4,
+      );
+  }
+  const upper = new THREE.Group();
+  upper.name = 'shin-aligned-boot-cuff';
+  upper.position.set(0, 0.007, 0.004);
+  group.add(upper);
+  form(
+    upper,
+    p.boot,
+    [
+      [-0.02, 0.045, 0.046],
+      [0.025, 0.048, 0.048],
+      [0.078, 0.052, 0.049],
+      [0.137, 0.056, 0.051],
+      [0.176, 0.056, 0.051],
+    ],
+    28,
+  );
+  form(
+    upper,
+    p.clothDark,
+    [
+      [0.15, 0.057, 0.052],
+      [0.18, 0.058, 0.053],
+    ],
+    28,
+  );
+  panel(
+    upper,
+    p.plastic,
+    [
+      [-0.031, 0.037],
+      [0.031, 0.037],
+      [0.041, 0.145],
+      [0.027, 0.172],
+      [-0.028, 0.172],
+      [-0.041, 0.145],
+    ],
+    0.008,
+    [0, 0, -0.05],
+    [0, Math.PI, 0],
+    0.006,
+  );
+  for (const h of [0.03, 0.086, 0.145]) {
+    tube(
+      upper,
+      p.clothDark,
+      [
+        [-0.045, h, -0.032],
+        [0, h, -0.06],
+        [0.045, h, -0.032],
+      ],
+      0.007,
+      12,
+    );
+    panel(
+      upper,
+      p.silver,
+      [
+        [-0.014, -0.007],
+        [0.014, -0.007],
+        [0.014, 0.007],
+        [-0.014, 0.007],
+      ],
+      0.003,
+      [side * 0.051, h, -0.031],
+      [0, (side * Math.PI) / 2, 0],
+      0.002,
+    );
+  }
+  batch(upper);
   batch(group);
+  group.upper = upper;
   return group;
 }
 
@@ -717,6 +788,14 @@ export function createRider(parent, kind, p) {
     const upperArm = sleeve(group, p, true, side);
     upperArm.userData.hideInDriverView = true;
     const forearm = sleeve(group, p, false, side);
+    const forearmSurfaces = [];
+    forearm.traverse((part) => {
+      if (part.geometry)
+        forearmSurfaces.push({
+          geometry: part.geometry,
+          base: part.geometry.getAttribute('position').array.slice(),
+        });
+    });
     const hand = glove(group, p, side);
     const thigh = new THREE.Group();
     group.add(thigh);
@@ -785,6 +864,7 @@ export function createRider(parent, kind, p) {
       side,
       upperArm,
       forearm,
+      forearmSurfaces,
       hand,
       thigh,
       shin,
@@ -873,7 +953,7 @@ export function createRider(parent, kind, p) {
         ? [
             hip[0] + side * (isJeep ? 0.28 : 0.38),
             center[1] - 0.35,
-            hip[2] + 0.58,
+            hip[2] + (isJeep ? 0.02 : -0.12),
           ]
         : elbow;
       setBeam(forearm, sleeveOrigin, grip);
@@ -890,6 +970,11 @@ export function createRider(parent, kind, p) {
       kneePad.quaternion.setFromUnitVectors(Y, kneeDirection);
       boot.position.set(...foot);
       boot.rotation.set(0, side * (isJeep ? 0.025 : 0.075), 0);
+      const cuffDirection = new THREE.Vector3(...knee)
+        .sub(new THREE.Vector3(...foot))
+        .normalize()
+        .applyQuaternion(boot.quaternion.clone().invert());
+      boot.upper.quaternion.setFromUnitVectors(Y, cuffDirection);
     }
   };
   return {
@@ -900,6 +985,26 @@ export function createRider(parent, kind, p) {
     update,
     setDriverView(value) {
       driverView = Boolean(value);
+      for (const { forearmSurfaces } of limbs)
+        for (const { geometry, base } of forearmSurfaces) {
+          const position = geometry.getAttribute('position');
+          for (let i = 0; i < position.count; i++) {
+            const t = clamp(base[i * 3 + 1] + 0.5, 0, 1);
+            const bend = driverView
+              ? Math.sin(t * Math.PI) * (1 - t * 0.3) * 0.041
+              : 0;
+            position.setXYZ(
+              i,
+              base[i * 3],
+              base[i * 3 + 1],
+              base[i * 3 + 2] + bend,
+            );
+          }
+          position.needsUpdate = true;
+          geometry.computeVertexNormals();
+          geometry.computeBoundingBox();
+          geometry.computeBoundingSphere();
+        }
     },
   };
 }

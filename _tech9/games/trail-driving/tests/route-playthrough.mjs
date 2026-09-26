@@ -29,11 +29,13 @@ try {
         .locator(`[data-action="route"][data-value="${route.id}"]`)
         .click();
       await page.locator('[data-action="start"]').click();
+      let captured = false;
       const result = await driveRoute(page, route, {
         onSample: async ({ state, cursor, routePoints, best, wallSeconds }) =>
           console.log(
             `${vehicle}/${route.id} ${wallSeconds.toFixed(0)}s gate ${state.trial.nextGate}/${state.trial.totalGates} path ${cursor}/${routePoints} offset ${best.toFixed(1)}m speed ${state.motion.speed.toFixed(1)}`,
-          ),
+          );
+        },
       });
       report.runs.push(result);
       console.log('COMPLETE', JSON.stringify(result));

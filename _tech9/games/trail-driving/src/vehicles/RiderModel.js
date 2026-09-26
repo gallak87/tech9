@@ -57,87 +57,145 @@ function form(parent, material, sections, segments = 24) {
   return mesh(parent, geometry, material);
 }
 
-// A garment section is built in a normalized local limb frame. Its organic
-// taper survives articulation; a group holds stitched panels and end cuffs.
-function limb(parent, material, sections) {
-  const group = new THREE.Group();
-  parent.add(group);
-  form(group, material, sections);
-  return group;
+// Cloth is shaped over the anatomy, with broad contrasting cut panels and
+// compression folds. Color follows the authored fabric cuts, rather than
+// independent floating strips on an otherwise uniform capsule.
+function tailored(parent, p, sections, kind, side = 1) {
+  const profile = new THREE.CatmullRomCurve3(
+    sections.map(([y, rx, rz]) => new THREE.Vector3(rx, y, rz)),
+    false,
+    'catmullrom',
+    0.3,
+  );
+  const rows = kind === 'torso' ? 52 : 34;
+  const segments = kind === 'torso' ? 48 : 36;
+  const dense = [];
+  for (let i = 0; i <= rows; i++) {
+    const t = i / rows,
+      v = profile.getPoint(t),
+      f = t * (sections.length - 1),
+      k = Math.min(sections.length - 2, Math.floor(f));
+    const cz = THREE.MathUtils.lerp(
+      sections[k][3] || 0,
+      sections[k + 1][3] || 0,
+      f - k,
+    );
+    dense.push([v.y, v.x, v.z, cz]);
+  }
+  const source = kind === 'trousers' ? p.trousers : p.jacket;
+  const material = source.clone();
+  material.color.set(0xffffff);
+  material.vertexColors = true;
+  const object = form(parent, material, dense, segments);
+  const positions = object.geometry.getAttribute('position');
+  const colors = new Float32Array(positions.count * 3);
+  const color = new THREE.Color();
+  for (let i = 0; i < positions.count; i++) {
+    const row = Math.min(rows, Math.floor(i / (segments + 1)));
+    const t = row / rows,
+      a = ((i % (segments + 1)) / segments) * Math.PI * 2;
+    const y = positions.getY(i),
+      sx = Math.sin(a),
+      cz = Math.cos(a);
+    const core = i < (rows + 1) * (segments + 1);
+    const envelope =
+      Math.exp(-(((t - 0.19) / 0.17) ** 2)) +
+      0.8 * Math.exp(-(((t - 0.72) / 0.16) ** 2));
+    const phase = t * (kind === 'torso' ? 47 : 39) + sx * 1.6 + side * 0.37;
+    const fold =
+      (kind === 'torso' ? 0.0045 : 0.0028) * envelope * Math.sin(phase);
+    if (core) {
+      positions.setX(
+        i,
+        positions.getX(i) + sx * fold + side * Math.sin(t * Math.PI) * 0.0018,
+      );
+      positions.setZ(
+        i,
+        positions.getZ(i) +
+          cz * fold +
+          (kind === 'torso' ? 0 : 0.005 * Math.sin(t * Math.PI)),
+      );
+    }
+    let dark,
+      accent = false,
+      seam;
+    if (kind === 'torso') {
+      const cut = 0.084 + Math.abs(sx) * 0.073;
+      dark = y > cut || Math.abs(sx) > 0.88 || y < -0.205;
+      seam = Math.abs(y - cut) < 0.005 || Math.abs(Math.abs(sx) - 0.88) < 0.022;
+      accent = y > cut - 0.018 && y < cut - 0.009 && Math.abs(sx) < 0.85;
+    } else if (kind === 'upper') {
+      const cut = 0.24 + 0.18 * sx * side;
+      dark = t < cut || (cz > 0.7 && t > 0.43);
+      seam = Math.abs(t - cut) < 0.025;
+      accent = t > cut + 0.022 && t < cut + 0.055 && cz < 0.2;
+    } else if (kind === 'forearm') {
+      const cut = 0.1 + t * 0.45;
+      dark = cz > cut || t > 0.84;
+      seam = Math.abs(cz - cut) < 0.045 || (t > 0.8 && t < 0.825);
+      accent = t > 0.67 && t < 0.695 && cz > 0.7;
+    } else {
+      dark = cz > 0.3 || t > 0.84;
+      seam = Math.abs(cz - 0.3) < 0.035;
+    }
+    color.copy(dark ? p.clothDark.color : source.color);
+    if (seam) color.lerp(p.seam.color, 0.3);
+    if (accent) color.copy(p.accent.color);
+    color.multiplyScalar(0.88 + 0.08 * Math.cos(phase) * envelope);
+    color.toArray(colors, i * 3);
+  }
+  object.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  object.geometry.computeVertexNormals();
+  return object;
 }
 
 function sleeve(parent, p, upper, side) {
-  const group = limb(
-    parent,
-    p.jacket,
+  const group = new THREE.Group();
+  parent.add(group);
+  tailored(
+    group,
+    p,
     upper
       ? [
-          [-0.5, 0.053, 0.058],
-          [-0.43, 0.071, 0.071],
-          [-0.2, 0.077, 0.074],
-          [0.09, 0.068, 0.063, 0.003],
-          [0.36, 0.058, 0.054, 0.004],
-          [0.5, 0.048, 0.048],
+          [-0.5, 0.051, 0.054],
+          [-0.4, 0.068, 0.066],
+          [-0.17, 0.074, 0.069],
+          [0.12, 0.064, 0.059, 0.006],
+          [0.38, 0.055, 0.051, 0.005],
+          [0.52, 0.048, 0.045],
         ]
       : [
-          [-0.5, 0.047, 0.045],
-          [-0.36, 0.058, 0.05],
-          [-0.03, 0.052, 0.044],
-          [0.3, 0.042, 0.037],
-          [0.5, 0.035, 0.033],
+          [-0.52, 0.047, 0.046],
+          [-0.33, 0.053, 0.047],
+          [-0.02, 0.05, 0.039],
+          [0.29, 0.037, 0.031],
+          [0.5, 0.032, 0.029],
         ],
+    upper ? 'upper' : 'forearm',
+    side,
   );
-  group.name = upper ? 'shaped-upper-sleeve' : 'shaped-forearm-and-cuff';
-  if (upper) {
-    // Elbow abrasion insert is curved with the sleeve, not a floating ball.
-    const pad = ball(
-      group,
-      p.clothDark,
-      1,
-      [0, 0.36, 0.044],
-      [0.052, 0.145, 0.02],
-    );
-    pad.rotation.z = side * 0.06;
-    tube(
-      group,
-      p.seam,
-      [
-        [side * 0.051, -0.36, -0.027],
-        [side * 0.059, -0.12, -0.03],
-        [side * 0.05, 0.15, -0.025],
-        [side * 0.04, 0.37, -0.022],
-      ],
-      0.0035,
-      14,
-    );
-    tube(
-      group,
-      p.accent,
-      [
-        [side * 0.049, -0.3, 0.047],
-        [side * 0.058, -0.2, 0.045],
-        [side * 0.06, -0.07, 0.039],
-      ],
-      0.008,
-      8,
-    );
-  } else {
+  group.name = upper ? 'tailored-upper-sleeve' : 'creased-forearm-and-cuff';
+  if (!upper) {
     form(group, p.clothDark, [
-      [0.34, 0.042, 0.037],
-      [0.43, 0.04, 0.035],
-      [0.5, 0.036, 0.034],
+      [0.38, 0.036, 0.031],
+      [0.46, 0.034, 0.031],
+      [0.52, 0.032, 0.029],
     ]);
-    tube(
+    const tab = panel(
       group,
-      p.seam,
+      p.glove,
       [
-        [side * 0.045, -0.28, 0.026],
-        [side * 0.043, 0.04, 0.023],
-        [side * 0.034, 0.31, 0.02],
+        [-0.014, -0.023],
+        [0.016, -0.023],
+        [0.02, 0.025],
+        [-0.015, 0.025],
       ],
-      0.003,
-      12,
+      0.002,
+      [0, 0.416, 0.032],
+      [0, 0, side * 0.16],
+      0.002,
     );
+    tab.name = 'cuff-adjustment-tab';
   }
   batch(group);
   return group;
@@ -147,34 +205,51 @@ function glove(parent, p, side) {
   const group = new THREE.Group();
   group.name = 'articulated-gripping-glove';
   parent.add(group);
-  ball(group, p.glove, 1, [0, 0.034, 0.024], [0.052, 0.034, 0.045]);
-  ball(group, p.clothDark, 1, [0, 0.057, 0.027], [0.045, 0.013, 0.031]);
-  // Fingers wrap around the grip axis (local X), with knuckles above it and
-  // curled tips below; the thumb opposes them on the inner side.
+  // A low, tapered palm leaves individual knuckles readable from the cockpit.
+  const palm = form(
+    group,
+    p.glove,
+    [
+      [-0.033, 0.026, 0.018],
+      [-0.025, 0.034, 0.023],
+      [0.007, 0.041, 0.022],
+      [0.031, 0.034, 0.017],
+    ],
+    24,
+  );
+  palm.rotation.x = Math.PI / 2;
+  palm.position.set(0, 0.026, 0.026);
   for (let i = 0; i < 4; i++) {
-    const x = -0.034 + i * 0.022;
+    const x = -0.027 + i * 0.018;
+    const lift = (1 - Math.abs(i - 1.5) / 2) * 0.004;
     tube(
       group,
       p.glove,
       [
-        [x, 0.037, 0.024],
-        [x, 0.043, -0.005],
-        [x, 0.025, -0.03],
-        [x, -0.006, -0.031],
-        [x, -0.02, -0.011],
+        [x, 0.03 + lift, 0.025],
+        [x, 0.036 + lift, -0.005],
+        [x, 0.02, -0.025],
+        [x, -0.006, -0.026],
+        [x, -0.018, -0.009],
       ],
-      0.0105 - Math.abs(1.5 - i) * 0.001,
-      12,
+      0.0087 - Math.abs(1.5 - i) * 0.0006,
+      14,
     );
-    ball(group, p.plastic, 1, [x, 0.05, 0.009], [0.009, 0.007, 0.014]);
+    ball(
+      group,
+      p.clothDark,
+      1,
+      [x, 0.041 + lift, 0.002],
+      [0.0072, 0.006, 0.011],
+    );
     tube(
       group,
       p.seam,
       [
-        [x - 0.003, 0.051, 0.027],
-        [x - 0.003, 0.052, 0.013],
+        [x, 0.044 + lift, 0.019],
+        [x, 0.046 + lift, 0.005],
       ],
-      0.0018,
+      0.0011,
       4,
     );
   }
@@ -182,24 +257,39 @@ function glove(parent, p, side) {
     group,
     p.glove,
     [
-      [-side * 0.038, 0.025, 0.037],
-      [-side * 0.056, 0.003, 0.025],
-      [-side * 0.047, -0.022, 0.005],
-      [-side * 0.023, -0.025, -0.002],
+      [-side * 0.028, 0.02, 0.036],
+      [-side * 0.046, 0.006, 0.021],
+      [-side * 0.041, -0.016, 0.003],
+      [-side * 0.024, -0.023, -0.002],
     ],
-    0.014,
+    0.011,
     14,
   );
+  // Flexible wrist closure, with a narrow fabric tab instead of a rigid oval pad.
+  const strap = panel(
+    group,
+    p.clothDark,
+    [
+      [-0.025, -0.013],
+      [0.022, -0.013],
+      [0.026, 0.012],
+      [-0.022, 0.014],
+    ],
+    0.002,
+    [0, 0.046, 0.043],
+    [-Math.PI / 2, 0, 0],
+    0.002,
+  );
+  strap.name = 'glove-wrist-closure';
   tube(
     group,
     p.accent,
     [
-      [-0.028, 0.061, 0.039],
-      [0, 0.066, 0.039],
-      [0.025, 0.061, 0.039],
+      [-0.012, 0.05, 0.043],
+      [0.014, 0.05, 0.043],
     ],
-    0.004,
-    8,
+    0.0015,
+    4,
   );
   batch(group);
   return group;
@@ -529,122 +619,73 @@ function jacket(parent, p) {
   const group = new THREE.Group();
   group.name = 'tailored-jacket-and-pelvis';
   parent.add(group);
-  form(
+  tailored(
     group,
-    p.jacket,
+    p,
     [
-      [-0.245, 0.139, 0.1, 0.013],
-      [-0.195, 0.154, 0.11, 0.009],
-      [-0.088, 0.151, 0.119],
-      [0.033, 0.173, 0.126, -0.004],
-      [0.137, 0.194, 0.126, -0.009],
-      [0.204, 0.183, 0.103, -0.003],
-      [0.254, 0.103, 0.073, -0.002],
+      [-0.245, 0.142, 0.093, 0.013],
+      [-0.196, 0.153, 0.105, 0.009],
+      [-0.077, 0.151, 0.119],
+      [0.041, 0.171, 0.122, -0.004],
+      [0.139, 0.187, 0.12, -0.009],
+      [0.203, 0.176, 0.098, -0.003],
+      [0.25, 0.099, 0.069, -0.002],
     ],
-    32,
+    'torso',
   );
   form(group, p.clothDark, [
-    [-0.244, 0.14, 0.103, 0.012],
-    [-0.213, 0.154, 0.113, 0.009],
+    [0.211, 0.087, 0.065],
+    [0.256, 0.075, 0.059],
+    [0.273, 0.069, 0.057],
   ]);
-  form(group, p.clothDark, [
-    [0.218, 0.092, 0.069],
-    [0.263, 0.079, 0.063],
-    [0.28, 0.073, 0.06],
-  ]);
-  // Shoulder yoke and ergonomically curved textile panels replace a backpack.
-  for (const side of [-1, 1]) {
-    tube(
-      group,
-      p.clothDark,
-      [
-        [side * 0.13, 0.184, 0.073],
-        [side * 0.104, 0.156, 0.104],
-        [side * 0.071, 0.137, 0.119],
-        [0, 0.123, 0.128],
-      ],
-      0.02,
-      18,
-    );
-    tube(
-      group,
-      p.seam,
-      [
-        [side * 0.143, 0.125, 0.091],
-        [side * 0.122, 0.041, 0.098],
-        [side * 0.111, -0.057, 0.094],
-        [side * 0.103, -0.183, 0.081],
-      ],
-      0.004,
-      18,
-    );
-    tube(
-      group,
-      p.accent,
-      [
-        [side * 0.17, 0.132, -0.076],
-        [side * 0.139, 0.135, -0.1],
-        [side * 0.079, 0.13, -0.123],
-      ],
-      0.007,
-      14,
-    );
-    tube(
-      group,
-      p.clothDark,
-      [
-        [side * 0.163, 0.015, -0.039],
-        [side * 0.155, -0.073, -0.044],
-        [side * 0.14, -0.163, -0.026],
-      ],
-      0.019,
-      14,
-    );
-    tube(
-      group,
-      p.seam,
-      [
-        [side * 0.089, -0.063, -0.106],
-        [side * 0.114, -0.1, -0.087],
-      ],
-      0.004,
-      8,
-    );
-  }
+  // The zipper and small pocket welt sit on cloth; broad garment cuts are
+  // colored directly into its deformed mesh and never float like pipes.
   tube(
     group,
-    p.seam,
+    p.clothDark,
     [
-      [0, 0.215, -0.082],
-      [0, 0.123, -0.135],
-      [0, -0.013, -0.127],
-      [0, -0.172, -0.102],
+      [0, 0.215, -0.075],
+      [0, 0.121, -0.128],
+      [0, -0.012, -0.128],
+      [0, -0.171, -0.103],
     ],
-    0.003,
+    0.0022,
     24,
   );
+  for (const side of [-1, 1])
+    tube(
+      group,
+      p.clothDark,
+      [
+        [side * 0.08, -0.061, -0.111],
+        [side * 0.112, -0.099, -0.091],
+      ],
+      0.0025,
+      8,
+    );
+  const lettering = p.jacket.color.r > 0.5 ? '#34433f' : '#e0d9c6';
   graphic(group, 'NORTH CASCADE', {
-    position: [0, 0.045, 0.133],
-    width: 0.205,
-    height: 0.033,
-    color: '#dfd9c8',
+    position: [0, 0.042, 0.132],
+    width: 0.21,
+    height: 0.031,
+    color: lettering,
     font: '700',
   });
   graphic(group, 'TRAIL DIVISION', {
-    position: [0, 0.005, 0.129],
-    width: 0.126,
-    height: 0.023,
-    color: '#afa99a',
+    position: [0, 0.001, 0.129],
+    width: 0.13,
+    height: 0.02,
+    color: lettering,
     font: '500',
   });
   const pelvis = form(
     group,
     p.trousers,
     [
-      [-0.35, 0.137, 0.083, 0.025],
-      [-0.299, 0.176, 0.102, 0.025],
-      [-0.234, 0.17, 0.106, 0.016],
-      [-0.198, 0.147, 0.099, 0.015],
+      [-0.351, 0.13, 0.079, 0.025],
+      [-0.298, 0.164, 0.1, 0.025],
+      [-0.233, 0.163, 0.104, 0.016],
+      [-0.198, 0.145, 0.096, 0.015],
     ],
     28,
   );
@@ -674,51 +715,64 @@ export function createRider(parent, kind, p) {
     upperArm.userData.hideInDriverView = true;
     const forearm = sleeve(group, p, false, side);
     const hand = glove(group, p, side);
-    const thigh = limb(group, p.trousers, [
-      [-0.5, 0.072, 0.082],
-      [-0.34, 0.088, 0.09],
-      [-0.09, 0.09, 0.088],
-      [0.22, 0.075, 0.072],
-      [0.42, 0.062, 0.059],
-      [0.5, 0.055, 0.052],
-    ]);
-    tube(
+    const thigh = new THREE.Group();
+    group.add(thigh);
+    tailored(
       thigh,
-      p.seam,
+      p,
       [
-        [side * 0.074, -0.33, -0.018],
-        [side * 0.087, -0.07, -0.016],
-        [side * 0.069, 0.24, -0.012],
+        [-0.5, 0.07, 0.078],
+        [-0.34, 0.084, 0.086],
+        [-0.09, 0.083, 0.082],
+        [0.22, 0.069, 0.067],
+        [0.42, 0.057, 0.055],
+        [0.53, 0.053, 0.05],
       ],
-      0.0035,
-      15,
+      'trousers',
+      side,
     );
-    ball(thigh, p.clothDark, 1, [0, 0.36, -0.039], [0.06, 0.15, 0.031]);
-    const shin = limb(group, p.trousers, [
-      [-0.5, 0.059, 0.057],
-      [-0.34, 0.071, 0.06, 0.004],
-      [-0.05, 0.064, 0.058, 0.004],
-      [0.27, 0.05, 0.05],
-      [0.5, 0.046, 0.044],
-    ]);
-    tube(
+    const shin = new THREE.Group();
+    group.add(shin);
+    tailored(
       shin,
-      p.seam,
+      p,
       [
-        [side * 0.062, -0.3, -0.021],
-        [side * 0.053, 0.07, -0.025],
-        [side * 0.043, 0.4, -0.018],
+        [-0.53, 0.056, 0.053],
+        [-0.34, 0.065, 0.057, 0.004],
+        [-0.05, 0.06, 0.055, 0.004],
+        [0.27, 0.048, 0.047],
+        [0.5, 0.044, 0.042],
       ],
-      0.003,
-      14,
+      'trousers',
+      side,
     );
-    const kneePad = ball(group, p.plastic, 1, [0, 0, 0], [0.064, 0.071, 0.039]);
+    const kneePad = new THREE.Group();
+    group.add(kneePad);
+    ball(kneePad, p.trousers, 1, [0, 0, 0], [0.056, 0.051, 0.054]);
+    panel(
+      kneePad,
+      p.plastic,
+      [
+        [-0.036, -0.043],
+        [0.032, -0.043],
+        [0.043, -0.014],
+        [0.04, 0.031],
+        [0.024, 0.044],
+        [-0.026, 0.044],
+        [-0.042, 0.02],
+      ],
+      0.008,
+      [0, 0, -0.052],
+      [0, Math.PI, 0],
+      0.006,
+    );
+    batch(kneePad);
     const elbowJoint = ball(
       group,
-      p.clothDark,
+      p.jacket,
       1,
       [0, 0, 0],
-      [0.05, 0.048, 0.05],
+      [0.046, 0.047, 0.044],
     );
     elbowJoint.userData.hideInDriverView = true;
     const boot = ridingBoot(group, p, side);
@@ -816,7 +870,7 @@ export function createRider(parent, kind, p) {
       if (isJeep) hand.rotateZ(-side * 0.35);
       setBeam(thigh, [hips[0] + side * 0.105, hips[1] - 0.015, hips[2]], knee);
       setBeam(shin, knee, foot);
-      kneePad.position.set(knee[0], knee[1], knee[2] - 0.042);
+      kneePad.position.set(...knee);
       const kneeDirection = new THREE.Vector3(...foot)
         .sub(new THREE.Vector3(...knee))
         .normalize();

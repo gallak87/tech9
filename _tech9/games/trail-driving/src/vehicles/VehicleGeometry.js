@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import {
+  mergeGeometries,
+  toCreasedNormals,
+} from 'three/addons/utils/BufferGeometryUtils.js';
 
 const Y = new THREE.Vector3(0, 1, 0);
 
@@ -176,7 +179,9 @@ export function loft(parent, mat, stations, { x = 0, bevel = 0.18 } = {}) {
   geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  return mesh(parent, geometry, mat);
+  const creased = toCreasedNormals(geometry, Math.PI / 5);
+  geometry.dispose();
+  return mesh(parent, creased, mat);
 }
 
 // Extruded sheet with bevelled stamped edges. Polygon coordinates are the local

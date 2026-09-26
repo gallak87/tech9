@@ -26,7 +26,7 @@ const SPEC = {
     track: 1.65,
     radius: 0.43,
     width: 0.32,
-    eye: [-0.46, 1.83, 0.5],
+    eye: [-0.46, 1.74, 0.64],
   },
   atv: {
     wheelBase: 1.55,
@@ -60,9 +60,9 @@ function palette(kind) {
   return {
     paint: new THREE.MeshPhysicalMaterial({
       color: kind === 'jeep' ? 0xb57927 : kind === 'atv' ? 0x086d65 : 0xe8e1ce,
-      roughness: 0.29,
-      metalness: 0.22,
-      clearcoat: 0.65,
+      roughness: kind === 'jeep' ? 0.36 : 0.42,
+      metalness: kind === 'jeep' ? 0.16 : 0.015,
+      clearcoat: kind === 'jeep' ? 0.45 : 0.28,
       clearcoatRoughness: 0.24,
       roughnessMap: grain,
       bumpMap: grain,
@@ -108,6 +108,13 @@ function palette(kind) {
       roughness: 0.14,
       clearcoat: 1,
     }),
+    lens: new THREE.MeshPhysicalMaterial({
+      color: 0xb6c6bf,
+      roughness: 0.15,
+      metalness: 0.32,
+      clearcoat: 0.9,
+      clearcoatRoughness: 0.1,
+    }),
     amber: material(0xbf6a12, 0.25, 0.2, {
       emissive: 0x60300a,
       emissiveIntensity: 0.15,
@@ -119,7 +126,7 @@ function palette(kind) {
     glass: new THREE.MeshPhysicalMaterial({
       color: 0xc1d8d5,
       transparent: true,
-      opacity: 0.16,
+      opacity: 0.055,
       roughness: 0.07,
       metalness: 0.15,
       clearcoat: 1,
@@ -365,52 +372,143 @@ function wheel(parent, spec, p, x, z, front, bike) {
 
 function arch(parent, p, side, centerZ, kind) {
   const jeep = kind === 'jeep';
-  const half = jeep ? 0.6 : 0.47,
-    radius = jeep ? 0.55 : 0.41;
-  const edgeX = side * (jeep ? 1.055 : 0.744);
-  const innerX = side * (jeep ? 0.7 : 0.34);
-  // Real wheel-opening clearance: the strip follows a polygonal arch instead of
-  // placing a solid shelf through the tire's upper silhouette.
-  const points = [
-    [centerZ - half, 0.52],
-    [centerZ - half * 0.87, radius + (jeep ? 0.35 : 0.28)],
-    [centerZ - half * 0.58, radius + (jeep ? 0.63 : 0.43)],
-    [centerZ + half * 0.55, radius + (jeep ? 0.63 : 0.43)],
-    [centerZ + half * 0.91, radius + (jeep ? 0.33 : 0.27)],
-    [centerZ + half, 0.52],
-  ];
+  const front = centerZ < 0;
+  // Thin closed flares follow the body shoulder, with short folded ends. The
+  // earlier deep U-shaped curtain hid lamps and read as unsupported pipework.
+  const edgeX = side * (jeep ? 1.015 : 0.716);
+  const innerX = side * (jeep ? 0.729 : 0.36);
+  const points = jeep
+    ? front
+      ? [
+          [-0.55, 0.975],
+          [-0.42, 1.055],
+          [-0.12, 1.092],
+          [0.26, 1.085],
+          [0.46, 0.965],
+        ]
+      : [
+          [-0.52, 0.79],
+          [-0.39, 1.034],
+          [-0.17, 1.096],
+          [0.24, 1.096],
+          [0.49, 0.88],
+        ]
+    : [
+        [-0.36, 0.727],
+        [-0.26, 0.829],
+        [-0.08, 0.859],
+        [0.22, 0.838],
+        [0.37, 0.721],
+      ];
   const verts = [],
-    idx = [],
+    indices = [],
     uv = [];
-  points.forEach(([z, y], i) => {
-    verts.push(innerX, y + 0.012, z, edgeX, y - 0.035, z);
-    uv.push(0, i / 5, 1, i / 5);
-  });
-  for (let i = 0; i < points.length - 1; i++) {
-    const k = i * 2;
-    if (side > 0) idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
-    else idx.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);
+  for (let i = 0; i < points.length; i++) {
+    const [dz, y] = points[i],
+      z = centerZ + dz;
+    // Inner/high and outer/low folded shell; all four edges are closed.
+    verts.push(
+      innerX,
+      y + 0.012,
+      z,
+      edgeX,
+      y - 0.017,
+      z,
+      edgeX,
+      y - 0.039,
+      z,
+      innerX,
+      y - 0.011,
+      z,
+    );
+    uv.push(0, i / 4, 1, i / 4, 1, i / 4, 0, i / 4);
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
-  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
-  geo.setIndex(idx);
-  geo.computeVertexNormals();
-  mesh(parent, geo, p.paint);
+  const face = (a, b, c, d) => {
+    if (side > 0) indices.push(a, b, c, a, c, d);
+    else indices.push(a, c, b, a, d, c);
+  };
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = i * 4,
+      b = a + 4;
+    face(a, b, b + 1, a + 1);
+    face(a + 1, b + 1, b + 2, a + 2);
+    face(a + 2, b + 2, b + 3, a + 3);
+    face(a + 3, b + 3, b, a);
+  }
+  face(0, 1, 2, 3);
+  const last = (points.length - 1) * 4;
+  face(last + 3, last + 2, last + 1, last);
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  mesh(parent, geometry, p.paint);
   tube(
     parent,
     p.plastic,
-    points.map(([z, y]) => [edgeX, y - 0.04, z]),
-    jeep ? 0.032 : 0.023,
+    points.map(([dz, y]) => [edgeX, y - 0.028, centerZ + dz]),
+    jeep ? 0.012 : 0.009,
     30,
   );
-  tube(
-    parent,
-    p.black,
-    points.map(([z, y]) => [innerX, y - 0.018, z]),
-    0.019,
-    30,
+  if (jeep && front) {
+    // Apron behind the hood edge closes the engine bay while retaining the
+    // wheel opening and attaching the flare to a real inner fender.
+    const apron = new THREE.Group();
+    apron.position.x = side * 0.715;
+    apron.rotation.y = (side * Math.PI) / 2;
+    parent.add(apron);
+    panel(
+      apron,
+      p.black,
+      [
+        [-1.81, 0.91],
+        [-0.56, 0.91],
+        [-0.53, 1.19],
+        [-1.73, 1.13],
+      ].map(([z, y]) => [-side * z, y]),
+      0.012,
+      [0, 0, 0],
+      undefined,
+      0.008,
+    );
+  }
+}
+
+// A closed compound side shell. The deliberately bulged center and varying
+// lateral edge stations produce designed plastic curvature, rather than an
+// extruded flat polygon. Profile coordinates are [z, y, lateralWidth].
+function sideShell(parent, mat, side, profile, center, thickness = 0.014) {
+  const vertices = [],
+    uv = [],
+    indices = [],
+    n = profile.length;
+  for (const offset of [0, -thickness]) {
+    for (const [z, y, x] of profile) {
+      vertices.push(side * (x + offset), y, z);
+      uv.push((z + 0.6) / 1.5, (y - 0.7) / 0.55);
+    }
+    vertices.push(side * (center[2] + offset), center[1], center[0]);
+    uv.push((center[0] + 0.6) / 1.5, (center[1] - 0.7) / 0.55);
+  }
+  const triangle = (a, b, c) =>
+    indices.push(...(side > 0 ? [a, c, b] : [a, b, c]));
+  for (let i = 0; i < n; i++) {
+    const next = (i + 1) % n;
+    triangle(n, i, next);
+    triangle(2 * n + 1, n + 1 + next, n + 1 + i);
+    triangle(i, n + 1 + i, n + 1 + next);
+    triangle(i, n + 1 + next, next);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(vertices, 3),
   );
+  geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return mesh(parent, geometry, mat);
 }
 
 function lamp(parent, p, position, radius = 0.12) {
@@ -432,14 +530,19 @@ function lamp(parent, p, position, radius = 0.12) {
     [Math.PI / 2, 0, 0],
     40,
   );
-  cylinder(
+  ball(
+    parent,
+    p.lens,
+    radius * 0.85,
+    [position[0], position[1], position[2] - 0.028],
+    [1, 1, 0.29],
+  );
+  ball(
     parent,
     p.lamp,
-    radius * 0.84,
-    0.064,
-    [position[0], position[1], position[2] - 0.017],
-    [Math.PI / 2, 0, 0],
-    40,
+    radius * 0.29,
+    [position[0], position[1], position[2] - 0.05],
+    [1, 1, 0.26],
   );
   ring(
     parent,
@@ -459,7 +562,7 @@ function lamp(parent, p, position, radius = 0.12) {
       p.silver,
       [position[0] + x, position[1] - h, position[2] - 0.051],
       [position[0] + x, position[1] + h, position[2] - 0.051],
-      0.0015,
+      0.001,
       6,
     );
   }
@@ -636,9 +739,9 @@ function jeepBody(body, p) {
       p.black,
       [
         [side * 0.7, 0.89, 0.83],
-        [side * 0.7, 1.91, 0.83],
-        [side * 0.65, 2.04, 0.83],
-        [side * 0.42, 2.055, 0.83],
+        [side * 0.7, 2.04, 0.83],
+        [side * 0.65, 2.17, 0.83],
+        [side * 0.42, 2.185, 0.83],
       ],
       0.04,
       24,
@@ -647,8 +750,8 @@ function jeepBody(body, p) {
       body,
       p.black,
       [
-        [side * 0.7, 1.98, 0.82],
-        [side * 0.76, 1.82, 1.11],
+        [side * 0.7, 2.11, 0.82],
+        [side * 0.76, 1.95, 1.11],
         [side * 0.76, 1.18, 1.5],
       ],
       0.034,
@@ -658,9 +761,9 @@ function jeepBody(body, p) {
       body,
       p.black,
       [
-        [side * 0.68, 2.02, 0.82],
-        [side * 0.69, 2.025, 0.0],
-        [side * 0.68, 1.975, -0.34],
+        [side * 0.68, 2.15, 0.82],
+        [side * 0.69, 2.155, 0.0],
+        [side * 0.68, 2.105, -0.34],
       ],
       0.03,
       20,
@@ -671,14 +774,14 @@ function jeepBody(body, p) {
       body,
       p.paint,
       [side * 0.715, 1.32, -0.52],
-      [side * 0.715, 1.965, -0.31],
-      0.034,
+      [side * 0.715, 2.1, -0.31],
+      0.025,
     );
     beam(
       body,
       p.plastic,
       [side * 0.668, 1.355, -0.504],
-      [side * 0.668, 1.925, -0.318],
+      [side * 0.668, 2.06, -0.318],
       0.009,
     );
     tube(
@@ -692,13 +795,18 @@ function jeepBody(body, p) {
       0.016,
       12,
     );
-    box(body, p.black, [0.062, 0.18, 0.13], [side * 0.952, 1.52, -0.48], 0.03);
+    box(body, p.black, [0.16, 0.18, 0.038], [side * 0.952, 1.52, -0.48], 0.02, [
+      0,
+      side * 0.24,
+      0,
+    ]);
     box(
       body,
       p.machined,
-      [0.004, 0.147, 0.1],
-      [side * 0.986, 1.52, -0.48],
-      0.022,
+      [0.133, 0.147, 0.004],
+      [side * 0.952, 1.52, -0.458],
+      0.012,
+      [0, side * 0.24, 0],
     );
     box(body, p.black, [0.18, 0.16, 0.051], [side * 0.63, 1.06, 1.635], 0.018);
     box(body, p.red, [0.148, 0.11, 0.028], [side * 0.63, 1.077, 1.665], 0.012);
@@ -717,16 +825,16 @@ function jeepBody(body, p) {
       small: '4 × 4 / FIELD SERIES',
     });
   }
-  beam(body, p.black, [-0.65, 2.05, 0.83], [0.65, 2.05, 0.83], 0.044);
-  beam(body, p.paint, [-0.735, 1.965, -0.31], [0.735, 1.965, -0.31], 0.035);
-  beam(body, p.paint, [-0.724, 1.33, -0.52], [0.724, 1.33, -0.52], 0.024);
+  beam(body, p.black, [-0.65, 2.18, 0.83], [0.65, 2.18, 0.83], 0.044);
+  beam(body, p.paint, [-0.735, 2.1, -0.31], [0.735, 2.1, -0.31], 0.025);
+  beam(body, p.paint, [-0.724, 1.33, -0.52], [0.724, 1.33, -0.52], 0.017);
   const glass = box(
     body,
     p.glass,
-    [1.346, 0.636, 0.012],
-    [0, 1.648, -0.417],
+    [1.346, 0.774, 0.012],
+    [0, 1.717, -0.417],
     0,
-    [0.314, 0, 0],
+    [0.265, 0, 0],
   );
   glass.castShadow = false;
   for (const x of [-0.32, 0.32]) {
@@ -865,17 +973,18 @@ function jeepBody(body, p) {
     for (let y = -0.022; y <= 0.023; y += 0.014)
       box(body, p.steel, [0.074, 0.004, 0.006], [x, 1.24 + y, -0.309]);
   }
-  for (const [x, r] of [
-    [-0.47, 0.081],
-    [-0.27, 0.053],
-    [-0.1, 0.038],
+  box(body, p.plastic, [0.21, 0.188, 0.115], [-0.47, 1.368, -0.373], 0.039);
+  for (const [x, r, cy] of [
+    [-0.47, 0.081, 1.37],
+    [-0.27, 0.053, 1.28],
+    [-0.1, 0.038, 1.28],
   ]) {
     cylinder(
       body,
       p.silver,
       r,
       0.015,
-      [x, 1.247, -0.316],
+      [x, cy, -0.316],
       [Math.PI / 2, 0, 0],
       32,
     );
@@ -884,7 +993,7 @@ function jeepBody(body, p) {
       p.visor,
       r * 0.88,
       0.02,
-      [x, 1.247, -0.303],
+      [x, cy, -0.303],
       [Math.PI / 2, 0, 0],
       32,
     );
@@ -893,8 +1002,8 @@ function jeepBody(body, p) {
       beam(
         body,
         p.accent,
-        [x + Math.cos(a) * r * 0.63, 1.247 + Math.sin(a) * r * 0.63, -0.29],
-        [x + Math.cos(a) * r * 0.78, 1.247 + Math.sin(a) * r * 0.78, -0.29],
+        [x + Math.cos(a) * r * 0.63, cy + Math.sin(a) * r * 0.63, -0.29],
+        [x + Math.cos(a) * r * 0.78, cy + Math.sin(a) * r * 0.78, -0.29],
         0.0018,
         6,
       );
@@ -902,8 +1011,8 @@ function jeepBody(body, p) {
     beam(
       body,
       p.red,
-      [x, 1.247, -0.287],
-      [x - r * 0.43, 1.247 + r * 0.5, -0.287],
+      [x, cy, -0.287],
+      [x - r * 0.43, cy + r * 0.5, -0.287],
       0.0022,
       6,
     );
@@ -1037,7 +1146,7 @@ function atvBody(body, p) {
     );
     // Headlights are inset angled clusters with separate reflectors and brows.
     const headlamp = new THREE.Group();
-    headlamp.position.set(side * 0.32, 0.751, -1.091);
+    headlamp.position.set(side * 0.3, 0.759, -1.167);
     headlamp.rotation.y = -side * 0.17;
     body.add(headlamp);
     panel(
@@ -1257,58 +1366,61 @@ function bikeBody(body, p) {
         [x, 0.4, 0.24],
         [x, 0.88, 0.44],
       ],
-      0.027,
+      0.021,
       35,
     );
     beam(body, p.accent, [x, 0.46, 0.18], [x, 0.94, -0.27], 0.025);
     beam(body, p.black, [x, 0.72, 0.13], [x, 1.075, 0.77], 0.019);
     beam(body, p.black, [x, 1.05, 0.1], [x, 1.075, 0.8], 0.019);
     // Formed radiator shrouds, tapered forward and cut away around the knee.
-    const shroud = new THREE.Group();
-    shroud.position.x = side * 0.17;
-    shroud.rotation.y = (side * Math.PI) / 2;
-    body.add(shroud);
-    panel(
-      shroud,
+    sideShell(
+      body,
       p.accent,
+      side,
       [
-        [-0.39, 1.105],
-        [-0.27, 0.75],
-        [0.04, 0.79],
-        [0.18, 1.04],
-        [0.05, 1.16],
-      ].map(([z, y]) => [-side * z, y]),
-      0.032,
-      [0, 0, 0],
-      [0, 0, 0],
-      0.025,
+        [-0.425, 1.102, 0.115],
+        [-0.27, 0.803, 0.17],
+        [0.015, 0.839, 0.139],
+        [0.156, 1.059, 0.141],
+        [-0.055, 1.157, 0.145],
+      ],
+      [-0.17, 1.035, 0.207],
     );
-    panel(
-      shroud,
+    sideShell(
+      body,
       p.paint,
+      side,
       [
-        [0.1, 0.87],
-        [0.22, 0.815],
-        [0.65, 0.93],
-        [0.74, 1.092],
-        [0.26, 1.106],
-      ].map(([z, y]) => [-side * z, y]),
-      0.022,
-      [0, 0, 0.02],
-      undefined,
-      0.018,
+        [0.13, 1.097, 0.129],
+        [0.22, 0.867, 0.137],
+        [0.56, 0.945, 0.119],
+        [0.735, 1.055, 0.105],
+        [0.58, 1.107, 0.138],
+      ],
+      [0.4, 1.037, 0.171],
+      0.011,
+    );
+    tube(
+      body,
+      p.black,
+      [
+        [side * 0.146, 1.158, -0.045],
+        [side * 0.149, 1.106, 0.11],
+      ],
+      0.003,
+      8,
     );
     const radiator = box(
       body,
       p.dark,
-      [0.083, 0.3, 0.22],
-      [side * 0.18, 0.79, -0.23],
+      [0.052, 0.235, 0.15],
+      [side * 0.15, 0.773, -0.25],
       0.012,
       [-0.16, 0, 0],
     );
     radiator.name = 'radiator';
-    for (let y = 0.67; y < 0.9; y += 0.024)
-      box(body, p.steel, [0.095, 0.006, 0.22], [side * 0.18, y, -0.23], 0.002);
+    for (let y = 0.68; y < 0.87; y += 0.024)
+      box(body, p.steel, [0.067, 0.005, 0.15], [side * 0.15, y, -0.25], 0.002);
     box(body, p.black, [0.15, 0.035, 0.085], [side * 0.225, 0.48, 0.18], 0.008);
     for (const z of [0.151, 0.18, 0.209])
       beam(
@@ -1319,7 +1431,7 @@ function bikeBody(body, p) {
         0.006,
       );
     graphic(body, '03', {
-      position: [side * 0.203, 1.005, 0.46],
+      position: [side * 0.174, 1.02, 0.42],
       rotation: [0, (side * Math.PI) / 2, 0],
       width: 0.23,
       height: 0.14,
@@ -1327,10 +1439,10 @@ function bikeBody(body, p) {
       small: 'SUMMIT',
     });
     graphic(body, 'S / 450', {
-      position: [side * 0.216, 1.021, -0.21],
+      position: [side * 0.209, 1.035, -0.18],
       rotation: [0, (side * Math.PI) / 2, 0],
-      width: 0.29,
-      height: 0.09,
+      width: 0.25,
+      height: 0.07,
       color: '#e5dcc6',
     });
   }
@@ -1412,63 +1524,89 @@ function bikeBody(body, p) {
     ],
     { bevel: 0.42 },
   );
-  // Headlight mask is a tapered faceted shell over a recessed optical lens.
-  panel(
+  // Compact enduro mask: chamfered shoulders flow around a deep lamp aperture.
+  loft(
     frontAssembly,
     p.paint,
     [
-      [-0.11, -0.16],
-      [0.11, -0.16],
-      [0.17, 0.074],
-      [0.115, 0.14],
-      [-0.115, 0.14],
-      [-0.17, 0.074],
+      [-0.721, 0.09, 1.033, 1.194],
+      [-0.704, 0.13, 1.0, 1.265],
+      [-0.645, 0.142, 1.008, 1.25],
+      [-0.598, 0.105, 1.047, 1.222],
     ],
-    0.055,
-    [0, 1.125, -0.616],
-    [0.13, 0, 0],
-    0.024,
+    { bevel: 0.28 },
   );
   panel(
     frontAssembly,
     p.black,
     [
-      [-0.083, -0.07],
-      [0.083, -0.07],
-      [0.104, 0.055],
-      [-0.104, 0.055],
+      [-0.071, -0.075],
+      [0.071, -0.075],
+      [0.1, 0.06],
+      [0.056, 0.086],
+      [-0.056, 0.086],
+      [-0.1, 0.06],
     ],
-    0.008,
-    [0, 1.145, -0.674],
-    [0.13, 0, 0],
-    0.013,
+    0.012,
+    [0, 1.134, -0.729],
+    [0.16, 0, 0],
+    0.009,
+  );
+  panel(
+    frontAssembly,
+    p.silver,
+    [
+      [-0.057, -0.061],
+      [0.057, -0.061],
+      [0.08, 0.048],
+      [-0.08, 0.048],
+    ],
+    0.005,
+    [0, 1.139, -0.744],
+    [0.16, 0, 0],
+    0.006,
   );
   cylinder(
     frontAssembly,
-    p.silver,
-    0.052,
-    0.018,
-    [0, 1.143, -0.682],
-    [Math.PI / 2 + 0.13, 0, 0],
+    p.black,
+    0.04,
+    0.014,
+    [0, 1.153, -0.757],
+    [Math.PI / 2 + 0.16, 0, 0],
     32,
   );
   cylinder(
     frontAssembly,
     p.lamp,
-    0.041,
-    0.023,
-    [0, 1.144, -0.69],
-    [Math.PI / 2 + 0.13, 0, 0],
+    0.032,
+    0.021,
+    [0, 1.153, -0.765],
+    [Math.PI / 2 + 0.16, 0, 0],
     32,
   );
   beam(
     frontAssembly,
     p.lamp,
-    [-0.067, 1.188, -0.694],
-    [0.067, 1.188, -0.694],
-    0.007,
+    [-0.058, 1.106, -0.751],
+    [0.058, 1.106, -0.751],
+    0.006,
     8,
   );
+  for (const side of [-1, 1]) {
+    box(
+      frontAssembly,
+      p.black,
+      [0.021, 0.081, 0.004],
+      [side * 0.098, 1.071, -0.722],
+      0.004,
+      [0.16, side * 0.18, side * 0.18],
+    );
+    bolt(frontAssembly, p.steel, [side * 0.12, 1.225, -0.699], 0.006, [
+      Math.PI / 2,
+      0,
+      0,
+    ]);
+  }
   const forkPivot = new THREE.Vector3(0, 1.18, -0.5);
   frontAssembly.position.copy(forkPivot);
   for (const part of frontAssembly.children) part.position.sub(forkPivot);
@@ -1523,31 +1661,41 @@ function bikeBody(body, p) {
       );
     }
   }
+  cylinder(
+    body,
+    p.dark,
+    0.093,
+    0.192,
+    [0, 0.723, -0.065],
+    [-0.19, 0, 0],
+    20,
+    0.089,
+  );
+  for (let i = 0; i < 6; i++) {
+    const y = 0.642 + i * 0.031;
+    cylinder(
+      body,
+      p.steel,
+      0.111,
+      0.008,
+      [0, y, -0.065 - (y - 0.723) * 0.19],
+      [-0.19, 0, 0],
+      24,
+    );
+  }
+  cylinder(body, p.dark, 0.106, 0.051, [0, 0.846, -0.09], [-0.19, 0, 0], 12);
   box(
     body,
     p.steel,
-    [0.255, 0.24, 0.21],
-    [0, 0.72, -0.07],
-    0.025,
-    [-0.2, 0, 0],
+    [0.179, 0.041, 0.151],
+    [0, 0.878, -0.096],
+    0.015,
+    [-0.19, 0, 0],
   );
-  for (let y = 0.64; y <= 0.84; y += 0.029)
-    box(
-      body,
-      p.dark,
-      [0.282, 0.011, 0.232],
-      [0, y, -0.07],
-      0.004,
-      [-0.2, 0, 0],
-    );
-  box(
-    body,
-    p.silver,
-    [0.264, 0.048, 0.19],
-    [0, 0.877, -0.101],
-    0.01,
-    [-0.2, 0, 0],
-  );
+  for (const side of [-1, 1]) {
+    bolt(body, p.black, [side * 0.071, 0.9, -0.047], 0.01, undefined);
+    bolt(body, p.black, [side * 0.071, 0.876, -0.14], 0.01, undefined);
+  }
   box(body, p.dark, [0.31, 0.033, 0.38], [0, 0.382, 0.043], 0.02, [0.1, 0, 0]);
   tube(
     body,
@@ -1840,7 +1988,7 @@ function steeringControl(parent, kind, p) {
               parent,
               new THREE.CircleGeometry(0.068, 48),
               screenMaterial,
-              [-0.47, 1.247, -0.286],
+              [-0.47, 1.37, -0.286],
             )
           : mesh(
               group,

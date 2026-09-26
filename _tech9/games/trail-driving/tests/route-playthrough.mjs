@@ -31,7 +31,13 @@ try {
       await page.locator('[data-action="start"]').click();
       let captured = false;
       const result = await driveRoute(page, route, {
-        onSample: async ({ state, cursor, routePoints, best, wallSeconds }) =>
+        onSample: async ({ state, cursor, routePoints, best, wallSeconds }) => {
+          if (!captured && state.trial.nextGate >= 4) {
+            captured = true;
+            await page.screenshot({
+              path: path.join(output, `${vehicle}-${route.id}-driving.png`),
+            });
+          }
           console.log(
             `${vehicle}/${route.id} ${wallSeconds.toFixed(0)}s gate ${state.trial.nextGate}/${state.trial.totalGates} path ${cursor}/${routePoints} offset ${best.toFixed(1)}m speed ${state.motion.speed.toFixed(1)}`,
           );

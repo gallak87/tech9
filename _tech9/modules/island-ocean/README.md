@@ -1,13 +1,13 @@
 # Island coast and ocean
 
-Copy `island-ocean/src/` and the sibling `pond-water/` module, including its `THREE-LICENSE.txt`, into the game's capabilities. Preserve their sibling layout and use Three.js `0.186.1` with WebGLRenderer. No external textures are required.
+Copy `island-ocean/src/` and the sibling `pond-water/` module, including its `THREE-LICENSE.txt`, into the game's modules. Preserve their sibling layout and use Three.js `0.186.1` with WebGLRenderer. No external textures are required.
 
 ```js
 import {
   createIslandCoast,
   createNavigationArea,
-} from './capabilities/island-ocean/src/islandCoast.js';
-import { createOceanLayer } from './capabilities/island-ocean/src/OceanLayer.js';
+} from './modules/island-ocean/src/islandCoast.js';
+import { createOceanLayer } from './modules/island-ocean/src/OceanLayer.js';
 
 const coast = createIslandCoast({ x: 30, z: -20, radius: 40, level: 2 });
 const canOccupy = createNavigationArea({
@@ -30,4 +30,4 @@ Coast options default to centre `(0,0)`, radius 77 m, level 0, 256 segments, lan
 
 Ocean options: `id`, `coast`, `halfSize=1000` (square centred on the island, must enclose it), `quality`, `normalSize=256` (power of two, 16–512), `waterColor='#186276'`, `distortionScale=1.3`. Presets: balanced 1024 px/every 3 frames, high 1536/every 2, ultra 2048/every 2. Unknown quality falls back to balanced. Layer stats expose the selected settings. Initialization is single-use; failed initialization releases resources automatically. It owns geometry, procedural normals, reflection target and material, but borrows the scene/renderer.
 
-One star-shaped island and a finite planar surface: no streamed/infinite sea, waves displacing geometry, fluid physics, underwater rendering, boats or rules. Navigation bounds are independent of visible water extent. Reflections are throttled planar approximations with faded frustum edges; mounted views can still show approximation limits.
+The surface surrounds one star-shaped island and has finite extent. Navigation bounds are independent of visible water extent. Reflections are throttled planar approximations with faded frustum edges; mounted views can still show approximation limits.

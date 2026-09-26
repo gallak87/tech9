@@ -1,31 +1,32 @@
 #!/usr/bin/env node
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { forkStarter, loadCatalog, loadPlan } from './lib/project.mjs';
+import {
+  forkBaseline,
+  loadBaseline,
+  loadModules,
+  loadPlan,
+} from './lib/project.mjs';
 
-export const HELP = `tech9 — versioned game starters
+export const HELP = `tech9 — game modules and baseline
 
-Usage (repository root):
-  npm --prefix _tech9 run t9 -- catalog
-  npm --prefix _tech9 run t9 -- validate [path/to/plan.json]
-  npm --prefix _tech9 run t9 -- fork --starter forest-exploration --slug my-game --plan path/to/plan.json [--port 4410] [--dry-run]
+From the framework directory:
+  ./run run t9 -- modules
+  ./run run t9 -- validate [runs/my-game/plan.json]
+  ./run run t9 -- fork --slug my-game --plan runs/my-game/plan.json [--port 4410] [--dry-run]
 
-From _tech9, use npm run t9 -- <command> with the same repository-relative paths.
+modules   List reusable modules and versions.
+validate  Check module paths and an optional execution plan.
+fork      Copy the baseline into games/<slug> using an approved plan.
 
-catalog   List the registered scenes, starters and optional modules.
-validate  Check catalog paths/manifests and, when supplied, an execution plan.
-fork      Copy an approved plan's committed starter into _tech9/games/<slug>.
-
-Forks are standalone source copies, not completed games. Fork never overwrites,
-installs dependencies, runs plan commands, calls a model or changes the source.
-Plan paths are repository-relative regardless of working directory, or absolute
-paths inside this repository. Default ports are 4410 and 4411.
-The source scene must be clean and committed. --dry-run validates without writes.
+Paths are relative to the framework directory, regardless of working directory.
+The baseline must be clean and committed. Fork never overwrites an existing
+package. --dry-run validates without writes. Default ports are 4410 and 4411.
 `;
 
 function forkOptions(args) {
   const options = {};
-  const values = new Set(['--starter', '--slug', '--plan', '--port']);
+  const values = new Set(['--slug', '--plan', '--port']);
   for (let index = 0; index < args.length; index += 1) {
     const name = args[index];
     if (name === '--dry-run') {
@@ -36,7 +37,6 @@ function forkOptions(args) {
       if (!value || value.startsWith('--'))
         throw new Error(`${name} needs a value`);
       const key = {
-        '--starter': 'starterId',
         '--slug': 'slug',
         '--plan': 'planPath',
         '--port': 'port',
@@ -45,18 +45,16 @@ function forkOptions(args) {
       options[key] = value;
     } else throw new Error(`Unknown fork argument: ${name}`);
   }
-  for (const key of ['starterId', 'slug', 'planPath'])
+  for (const key of ['slug', 'planPath'])
     if (!options[key])
-      throw new Error(
-        `Missing ${key === 'starterId' ? '--starter' : key === 'planPath' ? '--plan' : '--slug'}`,
-      );
+      throw new Error(`Missing ${key === 'planPath' ? '--plan' : '--slug'}`);
   return options;
 }
 
 export async function run(
   args,
   {
-    root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'),
+    root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
     output = console.log,
   } = {},
 ) {
@@ -65,21 +63,21 @@ export async function run(
     output(HELP);
     return;
   }
-  if (command === 'catalog') {
-    if (rest.length) throw new Error('catalog takes no arguments');
-    output(JSON.stringify(await loadCatalog(root), null, 2));
+  if (command === 'modules') {
+    if (rest.length) throw new Error('modules takes no arguments');
+    output(JSON.stringify(await loadModules(root), null, 2));
   } else if (command === 'validate') {
     if (rest.length > 1 || rest[0]?.startsWith('--'))
       throw new Error('validate accepts one optional plan path');
-    const catalog = await loadCatalog(root);
-    const plan = rest[0] ? await loadPlan(root, rest[0], catalog) : null;
+    const registry = await loadModules(root);
+    const plan = rest[0]
+      ? await loadPlan(root, rest[0], (await loadBaseline(root)).version)
+      : null;
     output(
       JSON.stringify(
         {
           valid: true,
-          scenes: catalog.scenes.length,
-          starters: catalog.starters.length,
-          modules: catalog.modules.length,
+          modules: registry.modules.length,
           ...(plan ? { plan: plan.id, status: plan.status } : {}),
         },
         null,
@@ -89,7 +87,7 @@ export async function run(
   } else if (command === 'fork') {
     output(
       JSON.stringify(
-        await forkStarter({ root, ...forkOptions(rest) }),
+        await forkBaseline({ root, ...forkOptions(rest) }),
         null,
         2,
       ),

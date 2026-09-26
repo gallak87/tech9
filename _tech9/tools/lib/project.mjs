@@ -22,7 +22,7 @@ import {
   fail,
   safeRelative,
   SLUG,
-  validateCatalog,
+  validateModules,
   validatePlan,
 } from './validation.mjs';
 
@@ -36,7 +36,7 @@ const EXCLUDED_NAMES = new Set([
   '.DS_Store',
 ]);
 const GENERATED_FILES = new Set(['tech9.json', 'GAME_PLAN.json']);
-const GAMES_DIRECTORY = '_tech9/games';
+const GAMES_DIRECTORY = 'games';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
@@ -69,25 +69,28 @@ export async function confinedPath(
   return cursor;
 }
 
-export async function loadCatalog(root) {
-  const catalog = validateCatalog(
-    await readJson(await confinedPath(root, '_tech9/catalog.json')),
+export async function loadModules(root) {
+  const registry = validateModules(
+    await readJson(await confinedPath(root, 'modules.json')),
   );
-  for (const scene of catalog.scenes) {
-    const directory = await confinedPath(root, scene.path);
+  for (const module of registry.modules) {
+    const directory = await confinedPath(root, `modules/${module.id}`);
     if (!(await lstat(directory)).isDirectory())
-      fail(`Scene path is not a directory: ${scene.path}`);
-    const manifest = await readJson(
-      await confinedPath(directory, scene.manifest),
-    );
-    if (manifest.id !== scene.id || manifest.version !== scene.version)
-      fail(`Scene manifest id/version differs from catalog: ${scene.id}`);
+      fail(`Module path is not a directory: ${module.id}`);
   }
-  for (const module of catalog.modules) await confinedPath(root, module.path);
-  return catalog;
+  return registry;
 }
 
-export async function loadPlan(root, planPath, catalog) {
+export async function loadBaseline(root) {
+  const packageJson = await readJson(
+    await confinedPath(root, 'baseline/package.json'),
+  );
+  if (!packageJson.scripts?.dev || !packageJson.scripts?.build)
+    fail('Baseline must have dev and build package scripts');
+  return packageJson;
+}
+
+export async function loadPlan(root, planPath, baselineVersion) {
   const canonicalRoot = await realpath(root);
   const absolute = path.resolve(canonicalRoot, planPath);
   let relative = path
@@ -104,7 +107,7 @@ export async function loadPlan(root, planPath, catalog) {
   }
   return validatePlan(
     await readJson(await confinedPath(root, relative)),
-    catalog,
+    baselineVersion,
   );
 }
 
@@ -150,36 +153,40 @@ async function git(root, args) {
   }
 }
 
-async function snapshotSource(root, scene) {
+async function snapshotSource(root) {
   const repository = await realpath(
     (await git(root, ['rev-parse', '--show-toplevel'])).trim(),
   );
-  if (repository !== (await realpath(root)))
-    fail('Fork root must be the Git repository root');
-  const commit = (await git(root, ['rev-parse', '--verify', 'HEAD'])).trim();
-  const changes = await git(root, [
+  const source = await confinedPath(root, 'baseline');
+  const sourcePath = path
+    .relative(repository, source)
+    .split(path.sep)
+    .join('/');
+  const commit = (
+    await git(repository, ['rev-parse', '--verify', 'HEAD'])
+  ).trim();
+  const changes = await git(repository, [
     'status',
     '--porcelain=v1',
     '--untracked-files=all',
     '--',
-    scene.path,
+    sourcePath,
   ]);
   if (changes.trim())
     fail(
-      `Source scene must be clean and committed before forking:\n${changes.trim()}`,
+      `Baseline must be clean and committed before forking:\n${changes.trim()}`,
     );
-  const source = await confinedPath(root, scene.path);
   const files = await sourceFiles(source);
   const tracked = new Set(
-    (await git(root, ['ls-files', '-z', '--', scene.path]))
+    (await git(repository, ['ls-files', '-z', '--', sourcePath]))
       .split('\0')
       .filter(Boolean),
   );
-  if (files.length === 0) fail('Source scene contains no files');
+  if (files.length === 0) fail('Baseline contains no files');
   const records = [];
   for (const file of files) {
-    if (!tracked.has(`${scene.path}/${file}`))
-      fail(`Source file is not committed: ${scene.path}/${file}`);
+    if (!tracked.has(`${sourcePath}/${file}`))
+      fail(`Source file is not committed: ${sourcePath}/${file}`);
     if (GENERATED_FILES.has(file))
       fail(`Source contains reserved fork output ${file}`);
     const content = await readFile(path.join(source, file));
@@ -187,6 +194,7 @@ async function snapshotSource(root, scene) {
   }
   return {
     source,
+    path: sourcePath,
     commit,
     records,
     sha256: hash(
@@ -211,9 +219,8 @@ async function absent(destination) {
   }
 }
 
-export async function forkStarter({
+export async function forkBaseline({
   root,
-  starterId,
   slug,
   planPath,
   port = 4410,
@@ -224,45 +231,21 @@ export async function forkStarter({
       'Game slug must be lowercase letters, digits and single hyphens, begin with a letter, and be at most 64 characters',
     );
   const devPort = portNumber(port);
-  const catalog = await loadCatalog(root);
-  const plan = await loadPlan(root, planPath, catalog);
+  const sourcePackage = await loadBaseline(root);
+  const plan = await loadPlan(root, planPath, sourcePackage.version);
   if (plan.status !== 'approved')
     fail('Fork requires an approved execution plan');
-  if (plan.starter.id !== starterId)
-    fail('Requested starter must match the execution plan');
   if (plan.id !== slug) fail('Game slug must match the execution plan id');
-  const starter = catalog.starters.find((entry) => entry.id === starterId);
-  const scene = catalog.scenes.find((entry) => entry.id === starter.scene);
   const destinationPath = `${GAMES_DIRECTORY}/${slug}`;
   const destination = await confinedPath(root, destinationPath, {
     allowMissing: true,
   });
   await absent(destination);
-  const snapshot = await snapshotSource(root, scene);
-  const sourcePackage = await readJson(
-    path.join(snapshot.source, 'package.json'),
-  );
-  const sourceManifest = await readJson(
-    await confinedPath(snapshot.source, scene.manifest),
-  );
-  let qualityEvidence;
-  if (sourceManifest.qualityEvidence) {
-    await confinedPath(snapshot.source, sourceManifest.qualityEvidence);
-    qualityEvidence = {
-      path: `${scene.path}/${sourceManifest.qualityEvidence}`,
-      ...(sourceManifest.qualityStatus
-        ? { status: sourceManifest.qualityStatus }
-        : {}),
-      note: 'Historical source review at source.commit; not a review of this game. Review files are not copied.',
-    };
-  }
-  if (!sourcePackage.scripts?.dev || !sourcePackage.scripts?.build)
-    fail('Starter scene must have dev and build package scripts');
+  const snapshot = await snapshotSource(root);
   const result = {
     status: dryRun ? 'dry-run' : 'scaffolded',
     destination: destinationPath,
-    starter: { id: starter.id, version: starter.version },
-    scene: { id: scene.id, version: scene.version },
+    baselineVersion: sourcePackage.version,
     sourceCommit: snapshot.commit,
     sourceSha256: snapshot.sha256,
     files: snapshot.records.length,
@@ -298,16 +281,6 @@ export async function forkStarter({
     };
     delete packageJson.scripts.prepare;
     await writeFile(packageFile, json(packageJson));
-    // A fork has not been reviewed. Preserve historical ratings only as source
-    // provenance rather than a dangling local review link or a game rating.
-    if (sourceManifest.qualityEvidence || sourceManifest.qualityStatus) {
-      delete sourceManifest.qualityEvidence;
-      delete sourceManifest.qualityStatus;
-      await writeFile(
-        path.join(temporary, scene.manifest),
-        json(sourceManifest),
-      );
-    }
     const lockFile = path.join(temporary, 'package-lock.json');
     try {
       await access(lockFile);
@@ -332,22 +305,19 @@ export async function forkStarter({
       `${prettierIgnore}${prettierIgnore && !prettierIgnore.endsWith('\n') ? '\n' : ''}# Immutable fork provenance.\ntech9.json\nGAME_PLAN.json\n`,
     );
     const receipt = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: slug,
       status: 'scaffolded',
       createdAt: new Date().toISOString(),
-      starter: result.starter,
-      scene: result.scene,
       source: {
-        path: scene.path,
+        path: snapshot.path,
+        version: sourcePackage.version,
         commit: snapshot.commit,
         snapshotSha256: snapshot.sha256,
         files: snapshot.records,
-        ...(qualityEvidence ? { qualityEvidence } : {}),
       },
       plan: { path: 'GAME_PLAN.json', sha256: hash(json(plan)) },
       ports: result.ports,
-      note: 'A standalone source fork. Gameplay, validation and critic gates in GAME_PLAN.json still need execution. No live dependency on the starter.',
     };
     await writeFile(path.join(temporary, 'GAME_PLAN.json'), json(plan), {
       flag: 'wx',
@@ -356,7 +326,7 @@ export async function forkStarter({
       flag: 'wx',
     });
     // Detect edits made while the snapshot was copied, before publishing the fork.
-    const after = await snapshotSource(root, scene);
+    const after = await snapshotSource(root);
     if (after.sha256 !== snapshot.sha256 || after.commit !== snapshot.commit)
       fail(
         'Source changed while forking; retry from a stable committed checkpoint',

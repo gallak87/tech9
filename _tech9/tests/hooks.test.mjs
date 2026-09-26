@@ -12,7 +12,7 @@ const lintStagedCli = fileURLToPath(
   new URL('../bin/lint-staged.js', import.meta.resolve('lint-staged')),
 );
 
-test('scoped hook ignores root/older-game files and uses each scene/game package directory', async (t) => {
+test('scoped hook ignores root/older-game files and uses each baseline/game package directory', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'tech9-hooks-test-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const write = async (relative, content) => {
@@ -32,7 +32,7 @@ appendFileSync(new URL('./executed.jsonl', import.meta.url), JSON.stringify({ cw
     ['', 'node record.mjs'],
     ['games/older', 'node ../../record.mjs'],
     ['_tech9', 'node ../record.mjs'],
-    ['_tech9/scenes/forest', 'node ../../../record.mjs'],
+    ['_tech9/baseline', 'node ../../record.mjs'],
     ['_tech9/games/pilot', 'node ../../../record.mjs'],
   ]) {
     await write(
@@ -56,7 +56,7 @@ appendFileSync(new URL('./executed.jsonl', import.meta.url), JSON.stringify({ cw
     '',
     'games/older',
     '_tech9',
-    '_tech9/scenes/forest',
+    '_tech9/baseline',
     '_tech9/games/pilot',
   ]) {
     await write(path.join(directory, 'README.md'), 'fixture\n');
@@ -72,7 +72,7 @@ appendFileSync(new URL('./executed.jsonl', import.meta.url), JSON.stringify({ cw
   assert.equal(calls.length, 3);
   assert.deepEqual(
     calls.map((call) => call.cwd.slice(call.cwd.lastIndexOf('/_tech9'))).sort(),
-    ['/_tech9', '/_tech9/games/pilot', '/_tech9/scenes/forest'],
+    ['/_tech9', '/_tech9/baseline', '/_tech9/games/pilot'],
   );
   assert.ok(
     calls.every(

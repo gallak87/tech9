@@ -2,14 +2,14 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://tech9.local/schemas/execution-plan.schema.json",
   "title": "Tech9 execution plan",
-  "description": "The human-reviewable contract for a game build. The CLI also checks catalog compatibility, dependency cycles and exclusive file ownership. Validation never executes commands or grants authority beyond the user's actual instructions.",
+  "description": "Game scope, ownership, acceptance and authority. The CLI validates the baseline version, dependency cycles and exclusive file ownership.",
   "type": "object",
   "required": [
     "schemaVersion",
     "id",
     "title",
     "pitch",
-    "starter",
+    "baselineVersion",
     "status",
     "authorization",
     "scope",
@@ -20,33 +20,43 @@
     "stopAfter"
   ],
   "properties": {
-    "schemaVersion": { "const": 1 },
-    "id": { "$ref": "#/$defs/id" },
-    "title": { "$ref": "#/$defs/text" },
-    "pitch": { "$ref": "#/$defs/text" },
-    "starter": {
-      "type": "object",
-      "required": ["id", "version"],
-      "properties": {
-        "id": { "$ref": "#/$defs/id" },
-        "version": { "$ref": "#/$defs/version" }
-      }
+    "schemaVersion": {
+      "const": 2
     },
-    "status": { "enum": ["draft", "approved"] },
+    "id": {
+      "$ref": "#/$defs/id"
+    },
+    "title": {
+      "$ref": "#/$defs/text"
+    },
+    "pitch": {
+      "$ref": "#/$defs/text"
+    },
+    "status": {
+      "enum": ["draft", "approved"]
+    },
     "authorization": {
       "type": "object",
       "required": ["mode", "basis"],
       "properties": {
-        "mode": { "enum": ["delegated", "explicit"] },
-        "basis": { "$ref": "#/$defs/text" }
+        "mode": {
+          "enum": ["delegated", "explicit"]
+        },
+        "basis": {
+          "$ref": "#/$defs/text"
+        }
       }
     },
     "scope": {
       "type": "object",
       "required": ["mustHave", "outOfScope"],
       "properties": {
-        "mustHave": { "$ref": "#/$defs/nonemptyStrings" },
-        "outOfScope": { "$ref": "#/$defs/strings" }
+        "mustHave": {
+          "$ref": "#/$defs/nonemptyStrings"
+        },
+        "outOfScope": {
+          "$ref": "#/$defs/strings"
+        }
       }
     },
     "milestones": {
@@ -56,10 +66,18 @@
         "type": "object",
         "required": ["id", "title", "deliverables", "acceptance"],
         "properties": {
-          "id": { "$ref": "#/$defs/id" },
-          "title": { "$ref": "#/$defs/text" },
-          "deliverables": { "$ref": "#/$defs/nonemptyStrings" },
-          "acceptance": { "$ref": "#/$defs/nonemptyStrings" }
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "title": {
+            "$ref": "#/$defs/text"
+          },
+          "deliverables": {
+            "$ref": "#/$defs/nonemptyStrings"
+          },
+          "acceptance": {
+            "$ref": "#/$defs/nonemptyStrings"
+          }
         }
       }
     },
@@ -70,13 +88,24 @@
         "type": "object",
         "required": ["id", "role", "owns", "dependsOn"],
         "properties": {
-          "id": { "$ref": "#/$defs/id" },
-          "role": { "$ref": "#/$defs/text" },
-          "owns": { "type": "array", "items": { "$ref": "#/$defs/ownership" } },
+          "id": {
+            "$ref": "#/$defs/id"
+          },
+          "role": {
+            "$ref": "#/$defs/text"
+          },
+          "owns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ownership"
+            }
+          },
           "dependsOn": {
             "type": "array",
             "uniqueItems": true,
-            "items": { "$ref": "#/$defs/id" }
+            "items": {
+              "$ref": "#/$defs/id"
+            }
           }
         }
       }
@@ -85,20 +114,35 @@
       "type": "object",
       "required": ["commands", "playthrough", "performance"],
       "properties": {
-        "commands": { "$ref": "#/$defs/nonemptyStrings" },
-        "playthrough": { "$ref": "#/$defs/nonemptyStrings" },
+        "commands": {
+          "$ref": "#/$defs/nonemptyStrings"
+        },
+        "playthrough": {
+          "$ref": "#/$defs/nonemptyStrings"
+        },
         "performance": {
           "type": "object",
           "required": ["targetFps", "viewport", "quality"],
           "properties": {
-            "targetFps": { "type": "number", "exclusiveMinimum": 0 },
-            "quality": { "$ref": "#/$defs/text" },
+            "targetFps": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "quality": {
+              "$ref": "#/$defs/text"
+            },
             "viewport": {
               "type": "object",
               "required": ["width", "height"],
               "properties": {
-                "width": { "type": "integer", "minimum": 1 },
-                "height": { "type": "integer", "minimum": 1 }
+                "width": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "height": {
+                  "type": "integer",
+                  "minimum": 1
+                }
               }
             }
           }
@@ -109,11 +153,24 @@
       "type": "object",
       "required": ["threshold", "maxRounds"],
       "properties": {
-        "threshold": { "type": "number", "exclusiveMinimum": 0, "maximum": 10 },
-        "maxRounds": { "type": "integer", "minimum": 1, "maximum": 10 }
+        "threshold": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 10
+        },
+        "maxRounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
       }
     },
-    "stopAfter": { "$ref": "#/$defs/text" }
+    "stopAfter": {
+      "$ref": "#/$defs/text"
+    },
+    "baselineVersion": {
+      "$ref": "#/$defs/version"
+    }
   },
   "$defs": {
     "id": {
@@ -125,12 +182,22 @@
       "type": "string",
       "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[a-z0-9.-]+)?$"
     },
-    "text": { "type": "string", "pattern": "\\S" },
-    "strings": { "type": "array", "items": { "$ref": "#/$defs/text" } },
+    "text": {
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "strings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/text"
+      }
+    },
     "nonemptyStrings": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/text" }
+      "items": {
+        "$ref": "#/$defs/text"
+      }
     },
     "ownership": {
       "type": "string",

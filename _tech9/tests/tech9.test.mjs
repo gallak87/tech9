@@ -17,51 +17,29 @@ import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { format } from 'prettier';
-import { forkStarter, loadCatalog, loadPlan } from '../tools/lib/project.mjs';
-import { validateCatalog, validatePlan } from '../tools/lib/validation.mjs';
+import { forkBaseline, loadModules, loadPlan } from '../tools/lib/project.mjs';
+import { validateModules, validatePlan } from '../tools/lib/validation.mjs';
 import { run } from '../tools/tech9.mjs';
 
 const execute = promisify(execFile);
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
-const scenePath = '_tech9/scenes/scene-test';
+const baselinePath = '_tech9/baseline';
 const prettierCli = fileURLToPath(
   new URL('./bin/prettier.cjs', import.meta.resolve('prettier')),
 );
 
-function catalog() {
-  return {
-    schemaVersion: 1,
-    scenes: [
-      {
-        id: 'alder-vale',
-        version: '1.1.0',
-        path: scenePath,
-        manifest: 'scene.json',
-      },
-    ],
-    starters: [
-      {
-        id: 'forest-exploration',
-        version: '0.1.0',
-        scene: 'alder-vale',
-        status: 'available',
-        description: 'A bounded forest starter.',
-        provides: ['fly-camera'],
-        excludes: ['gameplay'],
-      },
-    ],
-    modules: [],
-  };
+function registry() {
+  return { schemaVersion: 1, modules: [{ id: 'walking', version: '1.0.0' }] };
 }
 
 function plan() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'sample-game',
     title: 'Sample Game',
     pitch: 'Restore a signal in the forest.',
-    starter: { id: 'forest-exploration', version: '0.1.0' },
+    baselineVersion: '1.0.0',
     status: 'approved',
     authorization: {
       mode: 'delegated',
@@ -121,16 +99,13 @@ async function fixture(t) {
         ...args,
       ])
     ).stdout.trim();
-  await write('_tech9/catalog.json', json(catalog()));
+  await write('_tech9/modules.json', json(registry()));
+  await write('_tech9/modules/walking/src/walk.js', 'export const speed = 3;');
   await write('_tech9/runs/sample-game/plan.json', json(plan()));
   await write(
-    `${scenePath}/scene.json`,
-    json({ id: 'alder-vale', version: '1.1.0' }),
-  );
-  await write(
-    `${scenePath}/package.json`,
+    `${baselinePath}/package.json`,
     json({
-      name: 'scene-test',
+      name: 'tech9-baseline',
       version: '1.0.0',
       type: 'module',
       scripts: {
@@ -142,34 +117,40 @@ async function fixture(t) {
     }),
   );
   await write(
-    `${scenePath}/package-lock.json`,
+    `${baselinePath}/package-lock.json`,
     json({
-      name: 'scene-test',
+      name: 'tech9-baseline',
       lockfileVersion: 3,
-      packages: { '': { name: 'scene-test', version: '1.0.0' } },
+      packages: { '': { name: 'tech9-baseline', version: '1.0.0' } },
     }),
   );
   await write(
-    `${scenePath}/src/main.js`,
+    `${baselinePath}/src/main.js`,
     "import { sample } from './world.js';\nconsole.log(sample);\n",
   );
   await write(
-    `${scenePath}/src/world.js`,
+    `${baselinePath}/src/world.js`,
     "export const sample = 'standalone-ready';\n",
   );
-  await write(`${scenePath}/public/assets/LICENSE.md`, 'CC0 fixture asset\n');
   await write(
-    `${scenePath}/public/assets/forest.glb`,
+    `${baselinePath}/public/assets/LICENSE.md`,
+    'CC0 fixture asset\n',
+  );
+  await write(
+    `${baselinePath}/public/assets/forest.glb`,
     Buffer.from([0, 1, 2, 255]),
   );
-  await write(`${scenePath}/art/forest.blend`, 'editable source');
-  await write(`${scenePath}/art/forest.blend1`, 'backup');
-  await write(`${scenePath}/node_modules/large.txt`, 'installed dependencies');
-  await write(`${scenePath}/dist/bundle.js`, 'built output');
-  await write(`${scenePath}/.artifacts/frame.png`, 'disposable image');
-  await write(`${scenePath}/.husky/pre-commit`, 'old repository hook');
-  await write(`${scenePath}/docs/reviews/round.json`, 'old evidence');
-  await write(`${scenePath}/docs/EXTENDING.md`, 'extension guide');
+  await write(`${baselinePath}/art/forest.blend`, 'editable source');
+  await write(`${baselinePath}/art/forest.blend1`, 'backup');
+  await write(
+    `${baselinePath}/node_modules/large.txt`,
+    'installed dependencies',
+  );
+  await write(`${baselinePath}/dist/bundle.js`, 'built output');
+  await write(`${baselinePath}/.artifacts/frame.png`, 'disposable image');
+  await write(`${baselinePath}/.husky/pre-commit`, 'old repository hook');
+  await write(`${baselinePath}/docs/reviews/round.json`, 'old evidence');
+  await write(`${baselinePath}/docs/EXTENDING.md`, 'extension guide');
   await git('init', '--quiet');
   await git('add', '.');
   await git(
@@ -183,36 +164,33 @@ async function fixture(t) {
     'fixture',
   );
   const args = {
-    root,
-    starterId: 'forest-exploration',
+    root: path.join(root, '_tech9'),
     slug: 'sample-game',
-    planPath: '_tech9/runs/sample-game/plan.json',
+    planPath: 'runs/sample-game/plan.json',
     port: 4410,
   };
   return {
     root,
+    framework: args.root,
     write,
     git,
     args,
-    source: path.join(root, scenePath),
+    source: path.join(root, baselinePath),
     destination: path.join(root, '_tech9/games/sample-game'),
   };
 }
 
-test('validates the minimal execution contract and exact catalog versions', () => {
-  assert.equal(validatePlan(plan(), catalog()).id, 'sample-game');
+test('validates the execution contract and baseline version', () => {
+  assert.equal(validatePlan(plan(), '1.0.0').id, 'sample-game');
   const changed = plan();
-  changed.starter.version = '9.0.0';
-  assert.throws(() => validatePlan(changed, catalog()), /version mismatch/);
-  const unavailable = catalog();
-  unavailable.starters[0].status = 'planned';
-  assert.throws(() => validatePlan(plan(), unavailable), /not available/);
+  changed.baselineVersion = '9.0.0';
+  assert.throws(() => validatePlan(changed, '1.0.0'), /version mismatch/);
 });
 
 test('rejects malformed plans, duplicate IDs and unknown dependencies', () => {
   for (const modify of [
     (p) => {
-      p.schemaVersion = 2;
+      p.schemaVersion = 3;
     },
     (p) => {
       p.scope.mustHave = [];
@@ -232,7 +210,7 @@ test('rejects malformed plans, duplicate IDs and unknown dependencies', () => {
   ]) {
     const candidate = plan();
     modify(candidate);
-    assert.throws(() => validatePlan(candidate, catalog()));
+    assert.throws(() => validatePlan(candidate, '1.0.0'));
   }
 });
 
@@ -253,42 +231,31 @@ test('rejects cycles and ambiguous or unsafe lane ownership', () => {
   }
 });
 
-test('rejects duplicate catalog IDs, unknown scenes and path traversal', () => {
-  const duplicate = catalog();
-  duplicate.scenes.push(structuredClone(duplicate.scenes[0]));
-  assert.throws(() => validateCatalog(duplicate), /Duplicate/);
-  const unknown = catalog();
-  unknown.starters[0].scene = 'missing';
-  assert.throws(() => validateCatalog(unknown), /unknown scene/);
-  for (const unsafe of [
-    '../outside',
-    '/tmp/x',
-    'C:/x',
-    'a\\b',
-    'a/../b',
-    'a//b',
-  ]) {
-    const candidate = catalog();
-    candidate.scenes[0].path = unsafe;
-    assert.throws(() => validateCatalog(candidate));
+test('rejects duplicate module IDs and invalid module names', () => {
+  const duplicate = registry();
+  duplicate.modules.push(structuredClone(duplicate.modules[0]));
+  assert.throws(() => validateModules(duplicate), /Duplicate/);
+  for (const id of ['../outside', '/tmp/x', 'C:/x', 'a/b', 'UPPER']) {
+    const candidate = registry();
+    candidate.modules[0].id = id;
+    assert.throws(() => validateModules(candidate));
   }
 });
 
 test('standalone fork preserves source/assets/licenses, excludes generated files and records provenance', async (t) => {
   const f = await fixture(t);
   const originalPackage = await readFile(path.join(f.source, 'package.json'));
-  const result = await forkStarter(f.args);
+  const result = await forkBaseline(f.args);
   assert.equal(result.status, 'scaffolded');
-  assert.equal(result.destination, '_tech9/games/sample-game');
-  assert.equal(result.next[0], 'cd _tech9/games/sample-game');
+  assert.equal(result.destination, 'games/sample-game');
+  assert.equal(result.next[0], 'cd games/sample-game');
   const receipt = JSON.parse(
     await readFile(path.join(f.destination, 'tech9.json')),
   );
   assert.equal(receipt.status, 'scaffolded');
   assert.equal(receipt.source.commit, await f.git('rev-parse', 'HEAD'));
-  assert.equal(receipt.source.path, scenePath);
-  assert.equal(receipt.starter.version, '0.1.0');
-  assert.equal(receipt.scene.version, '1.1.0');
+  assert.equal(receipt.source.path, baselinePath);
+  assert.equal(receipt.source.version, '1.0.0');
   assert.ok(Number.isFinite(Date.parse(receipt.createdAt)));
   for (const record of receipt.source.files) {
     const content = await readFile(path.join(f.source, record.path));
@@ -370,7 +337,7 @@ test('new forks leave an existing legacy root game untouched', async (t) => {
   const f = await fixture(t);
   await f.write('games/sample-game/keep.txt', 'legacy game');
   const before = await readdir(path.join(f.root, 'games'));
-  await forkStarter(f.args);
+  await forkBaseline(f.args);
   assert.deepEqual(await readdir(path.join(f.root, 'games')), before);
   assert.equal(
     await readFile(path.join(f.root, 'games/sample-game/keep.txt'), 'utf8'),
@@ -385,7 +352,7 @@ test('new forks leave an existing legacy root game untouched', async (t) => {
 test('dry-run performs all checks without creating a destination or temporary files', async (t) => {
   const f = await fixture(t);
   const before = await f.git('status', '--porcelain');
-  const result = await forkStarter({ ...f.args, dryRun: true });
+  const result = await forkBaseline({ ...f.args, dryRun: true });
   assert.equal(result.status, 'dry-run');
   assert.ok(result.files > 0);
   await assert.rejects(readdir(path.join(f.root, '_tech9/games')), {
@@ -406,39 +373,35 @@ test('rejects malicious slugs and invalid ports before any copy', async (t) => {
     '',
     'a'.repeat(65),
   ]) {
-    await assert.rejects(forkStarter({ ...f.args, slug }), /slug/);
+    await assert.rejects(forkBaseline({ ...f.args, slug }), /slug/);
   }
   for (const port of [0, 1023, 65535, '4410;touch', 44.1]) {
-    await assert.rejects(forkStarter({ ...f.args, port }), /Port/);
+    await assert.rejects(forkBaseline({ ...f.args, port }), /Port/);
   }
 });
 
 test('never overwrites an existing destination, including an empty directory', async (t) => {
   const f = await fixture(t);
   await mkdir(f.destination, { recursive: true });
-  await assert.rejects(forkStarter(f.args), /already exists/);
+  await assert.rejects(forkBaseline(f.args), /already exists/);
   await f.write('_tech9/games/sample-game/keep.txt', 'existing game');
-  await assert.rejects(forkStarter(f.args), /already exists/);
+  await assert.rejects(forkBaseline(f.args), /already exists/);
   assert.equal(
     await readFile(path.join(f.destination, 'keep.txt'), 'utf8'),
     'existing game',
   );
 });
 
-test('rejects draft plans and mismatched slug or starter', async (t) => {
+test('rejects draft plans and mismatched slug', async (t) => {
   const f = await fixture(t);
   const draft = plan();
   draft.status = 'draft';
-  await f.write(f.args.planPath, json(draft));
-  await assert.rejects(forkStarter(f.args), /approved execution plan/);
-  await f.write(f.args.planPath, json(plan()));
+  await f.write(`_tech9/${f.args.planPath}`, json(draft));
+  await assert.rejects(forkBaseline(f.args), /approved execution plan/);
+  await f.write(`_tech9/${f.args.planPath}`, json(plan()));
   await assert.rejects(
-    forkStarter({ ...f.args, slug: 'other-game' }),
+    forkBaseline({ ...f.args, slug: 'other-game' }),
     /match.*plan id/,
-  );
-  await assert.rejects(
-    forkStarter({ ...f.args, starterId: 'unknown' }),
-    /starter must match/,
   );
 });
 
@@ -446,31 +409,31 @@ test('requires clean committed source but allows unrelated repository work', asy
   const f = await fixture(t);
   await f.write('unrelated-work.txt', 'concurrent game work');
   assert.equal(
-    (await forkStarter({ ...f.args, dryRun: true })).status,
+    (await forkBaseline({ ...f.args, dryRun: true })).status,
     'dry-run',
   );
-  await f.write(`${scenePath}/src/world.js`, 'uncommitted edit');
-  await assert.rejects(forkStarter(f.args), /clean and committed/);
-  await f.git('restore', `${scenePath}/src/world.js`);
-  await f.write(`${scenePath}/src/untracked.js`, 'untracked code');
-  await assert.rejects(forkStarter(f.args), /clean and committed/);
+  await f.write(`${baselinePath}/src/world.js`, 'uncommitted edit');
+  await assert.rejects(forkBaseline(f.args), /clean and committed/);
+  await f.git('restore', `${baselinePath}/src/world.js`);
+  await f.write(`${baselinePath}/src/untracked.js`, 'untracked code');
+  await assert.rejects(forkBaseline(f.args), /clean and committed/);
 });
 
 test('rejects symlinked source assets and plan files', async (t) => {
   const f = await fixture(t);
   await symlink(
-    path.join(f.root, f.args.planPath),
-    path.join(f.root, 'plan-link.json'),
+    path.join(f.framework, f.args.planPath),
+    path.join(f.framework, 'plan-link.json'),
   );
   await assert.rejects(
-    loadPlan(f.root, 'plan-link.json', catalog()),
+    loadPlan(f.framework, 'plan-link.json', '1.0.0'),
     /Symlinks/,
   );
   await symlink(
-    path.join(f.root, f.args.planPath),
+    path.join(f.framework, f.args.planPath),
     path.join(f.source, 'src/link.json'),
   );
-  await f.git('add', `${scenePath}/src/link.json`);
+  await f.git('add', `${baselinePath}/src/link.json`);
   await f.git(
     '-c',
     'user.name=Tech9 test',
@@ -481,26 +444,26 @@ test('rejects symlinked source assets and plan files', async (t) => {
     '-m',
     'symlink fixture',
   );
-  await assert.rejects(forkStarter(f.args), /Source symlink/);
+  await assert.rejects(forkBaseline(f.args), /Source symlink/);
 });
 
 test('rejects outside plan paths and symlinked destination parents', async (t) => {
   const f = await fixture(t);
   await assert.rejects(
-    loadPlan(f.root, '../outside.json', catalog()),
+    loadPlan(f.framework, '../outside.json', '1.0.0'),
     /traversal/,
   );
   const outside = await mkdtemp(path.join(os.tmpdir(), 'tech9-outside-'));
   t.after(() => rm(outside, { recursive: true, force: true }));
   await symlink(outside, path.join(f.root, '_tech9/games'));
-  await assert.rejects(forkStarter(f.args), /Symlinks/);
+  await assert.rejects(forkBaseline(f.args), /Symlinks/);
   assert.deepEqual(await readdir(outside), []);
 });
 
 test('rejects ignored but uncommitted source files instead of silently copying them', async (t) => {
   const f = await fixture(t);
-  await f.write(`${scenePath}/.gitignore`, 'secret.env\n');
-  await f.git('add', `${scenePath}/.gitignore`);
+  await f.write(`${baselinePath}/.gitignore`, 'secret.env\n');
+  await f.git('add', `${baselinePath}/.gitignore`);
   await f.git(
     '-c',
     'user.name=Tech9 test',
@@ -511,25 +474,22 @@ test('rejects ignored but uncommitted source files instead of silently copying t
     '-m',
     'ignore fixture',
   );
-  await f.write(`${scenePath}/secret.env`, 'not an asset');
-  await assert.rejects(forkStarter(f.args), /not committed/);
+  await f.write(`${baselinePath}/secret.env`, 'not an asset');
+  await assert.rejects(forkBaseline(f.args), /not committed/);
 });
 
-test('catalog validation checks scene manifests and paths', async (t) => {
+test('module validation checks registered directories', async (t) => {
   const f = await fixture(t);
-  assert.equal((await loadCatalog(f.root)).scenes.length, 1);
-  await f.write(
-    `${scenePath}/scene.json`,
-    json({ id: 'wrong-scene', version: '1.1.0' }),
-  );
-  await assert.rejects(loadCatalog(f.root), /manifest id\/version/);
+  assert.equal((await loadModules(f.framework)).modules.length, 1);
+  await rm(path.join(f.framework, 'modules/walking'), { recursive: true });
+  await assert.rejects(loadModules(f.framework), { code: 'ENOENT' });
 });
 
 test('concurrent forks cannot replace each other or leak temporary directories', async (t) => {
   const f = await fixture(t);
   const results = await Promise.allSettled([
-    forkStarter(f.args),
-    forkStarter(f.args),
+    forkBaseline(f.args),
+    forkBaseline(f.args),
   ]);
   assert.equal(
     results.filter((result) => result.status === 'fulfilled').length,
@@ -550,8 +510,8 @@ test('concurrent forks cannot replace each other or leak temporary directories',
 
 test('failed copying preparation removes only its temporary files', async (t) => {
   const f = await fixture(t);
-  await f.write(`${scenePath}/package-lock.json`, '{invalid lock file');
-  await f.git('add', `${scenePath}/package-lock.json`);
+  await f.write(`${baselinePath}/package-lock.json`, '{invalid lock file');
+  await f.git('add', `${baselinePath}/package-lock.json`);
   await f.git(
     '-c',
     'user.name=Tech9 test',
@@ -563,7 +523,7 @@ test('failed copying preparation removes only its temporary files', async (t) =>
     'invalid lock fixture',
   );
   await f.write('_tech9/games/another-game/keep.txt', 'preserve this game');
-  await assert.rejects(forkStarter(f.args), /Cannot read JSON.*package-lock/);
+  await assert.rejects(forkBaseline(f.args), /Cannot read JSON.*package-lock/);
   assert.deepEqual(await readdir(path.join(f.root, '_tech9/games')), [
     'another-game',
   ]);
@@ -580,25 +540,25 @@ test('failed copying preparation removes only its temporary files', async (t) =>
   );
 });
 
-test('CLI reports help/catalog/validation and rejects unknown options', async (t) => {
+test('CLI reports help/modules/validation and rejects unknown options', async (t) => {
   const f = await fixture(t);
   const output = [];
-  const options = { root: f.root, output: (value) => output.push(value) };
+  const options = { root: f.framework, output: (value) => output.push(value) };
   await run(['--help'], options);
-  assert.match(output.pop(), /not completed games/);
-  await run(['catalog'], options);
-  assert.equal(JSON.parse(output.pop()).starters[0].id, 'forest-exploration');
+  assert.match(output.pop(), /game modules and baseline/);
+  await run(['modules'], options);
+  assert.equal(JSON.parse(output.pop()).modules[0].id, 'walking');
   await run(['validate', f.args.planPath], options);
   assert.equal(JSON.parse(output.pop()).valid, true);
   await assert.rejects(
     run(['fork', '--wat'], options),
     /Unknown fork argument/,
   );
-  await assert.rejects(run(['fork', '--starter'], options), /needs a value/);
+  await assert.rejects(run(['fork', '--slug'], options), /needs a value/);
   await assert.rejects(run(['unknown'], options), /Unknown command/);
 });
 
-test('CLI npm-prefix invocation keeps plans relative to the repository', async (t) => {
+test('CLI npm-prefix invocation keeps plans relative to the framework', async (t) => {
   const f = await fixture(t);
   const foundation = path.resolve(
     fileURLToPath(new URL('..', import.meta.url)),
@@ -640,8 +600,6 @@ test('CLI npm-prefix invocation keeps plans relative to the repository', async (
     [
       'tools/tech9.mjs',
       'fork',
-      '--starter',
-      f.args.starterId,
       '--slug',
       f.args.slug,
       '--plan',
@@ -649,70 +607,22 @@ test('CLI npm-prefix invocation keeps plans relative to the repository', async (
     ],
     { cwd: path.join(f.root, '_tech9') },
   );
-  assert.equal(JSON.parse(fork.stdout).destination, '_tech9/games/sample-game');
+  assert.equal(JSON.parse(fork.stdout).destination, 'games/sample-game');
   await readFile(path.join(f.destination, 'tech9.json'));
   await assert.rejects(readdir(path.join(f.root, 'games')), { code: 'ENOENT' });
 });
 
-test('fork relocates historical quality attribution into provenance without inheriting a review', async (t) => {
-  const f = await fixture(t);
-  await f.write(
-    `${scenePath}/scene.json`,
-    json({
-      id: 'alder-vale',
-      version: '1.1.0',
-      qualityEvidence: 'docs/reviews/round.json',
-      qualityStatus: { score: 6.2, target: 8, passed: false },
-    }),
-  );
-  await f.git('add', `${scenePath}/scene.json`);
-  await f.git(
-    '-c',
-    'user.name=Tech9 test',
-    '-c',
-    'user.email=tech9-test@example.invalid',
-    'commit',
-    '--quiet',
-    '-m',
-    'quality fixture',
-  );
-  await forkStarter(f.args);
-  const receipt = JSON.parse(
-    await readFile(path.join(f.destination, 'tech9.json')),
-  );
-  const manifest = JSON.parse(
-    await readFile(path.join(f.destination, 'scene.json')),
-  );
-  assert.equal(manifest.qualityEvidence, undefined);
-  assert.equal(manifest.qualityStatus, undefined);
-  assert.equal(
-    receipt.source.qualityEvidence.path,
-    `${scenePath}/docs/reviews/round.json`,
-  );
-  assert.equal(receipt.source.qualityEvidence.status.passed, false);
-  assert.equal(receipt.source.commit, await f.git('rev-parse', 'HEAD'));
-  assert.match(
-    receipt.source.qualityEvidence.note,
-    /not a review of this game/,
-  );
-  assert.equal(
-    JSON.parse(await readFile(path.join(f.source, 'scene.json'))).qualityStatus
-      .score,
-    6.2,
-  );
-});
-
 for (const existingIgnore of [
   undefined,
-  '# Preserve starter rules\r\nart/sources/\r\n!GAME_PLAN.json',
+  '# Preserve baseline rules\r\nart/sources/\r\n!GAME_PLAN.json',
 ]) {
   test(`fork protects provenance from game formatting ${existingIgnore === undefined ? 'without' : 'with'} an existing ignore file`, async (t) => {
     const f = await fixture(t);
-    await f.write(`${scenePath}/.prettierrc.json`, json({ tabWidth: 4 }));
+    await f.write(`${baselinePath}/.prettierrc.json`, json({ tabWidth: 4 }));
     if (existingIgnore !== undefined) {
-      await f.write(`${scenePath}/.prettierignore`, existingIgnore);
+      await f.write(`${baselinePath}/.prettierignore`, existingIgnore);
     }
-    await f.git('add', scenePath);
+    await f.git('add', baselinePath);
     await f.git(
       '-c',
       'user.name=Tech9 test',
@@ -721,9 +631,9 @@ for (const existingIgnore of [
       'commit',
       '--quiet',
       '-m',
-      'starter formatting rules',
+      'baseline formatting rules',
     );
-    await forkStarter(f.args);
+    await forkBaseline(f.args);
     const ignore = await readFile(
       path.join(f.destination, '.prettierignore'),
       'utf8',

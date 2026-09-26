@@ -1,36 +1,26 @@
 # Architecture
 
-## Source ownership
+## Modules and baseline
 
-The framework supplies reusable source and starter bundles. Each scene and game is a standalone package with its own lockfile, runtime, assets, licenses and tests. A generated game owns its copied files and can be developed or distributed independently.
+`modules.json` records module IDs and versions. Source paths follow `modules/<id>/src`; each module includes tests and an integration guide. Assets and licenses travel with the source.
 
-Canonical module source lives under `modules/<id>/src`, with tests under `modules/<id>/tests`. A module's usage aid describes its interface, dependencies, resource ownership and limits. Framework-dev maintains these capabilities and incorporates reusable work from games.
+`baseline/` is a standalone Three.js application with its own package, lockfile, renderer, authored world and assets. Its package version identifies the starting application. `package.json` lists selected modules in `tech9.modules`; `sync:modules` copies them into `src/modules/<id>` and records source versions and hashes in `PROVENANCE.json`.
 
-Each starter scene declares module IDs in `capabilities.json`. The sync tool copies canonical source into `src/capabilities/<id>/src` and records versions and hashes in `PROVENANCE.json`. Runtime imports resolve to those local copies. See [capability copying](./docs/CAPABILITIES.md).
+The baseline uses one renderer/frame loop, one camera controller and disposable layers. The world definition supplies terrain, bounds, views and presentation. See [runtime contracts](./docs/EXTENDING.md).
 
-## Catalog and forks
+## Game copies
 
-The catalog resolves starter → scene → manifest and lists optional modules. Starter records describe provided features, exclusions and availability.
+The CLI copies a clean, committed baseline into `games/<slug>`, preserving source, editable assets and licenses. It adapts package name/ports and writes two records:
 
-The CLI forks a clean, committed starter into `_tech9/games/<slug>`. It copies source, assets and licenses; adapts the package name and ports; and creates two immutable records:
+- `tech9.json`: baseline package version, source commit and per-file hashes.
+- `GAME_PLAN.json`: the execution plan used for the copy.
 
-- `tech9.json`: starter/scene versions, source commit and per-file SHA-256 hashes.
-- `GAME_PLAN.json`: the execution plan used for the fork.
+The generated `.prettierignore` preserves their bytes. Each game owns its files, package and subsequent changes. Additional modules are integrated as local source copies.
 
-The generated `.prettierignore` preserves those records' bytes. CLI validation checks catalog references, plans, path ownership, dependency cycles, destination safety and source provenance. Fork tests use disposable fixtures.
+## Tools
 
-## Runtime composition
+Tool paths resolve from the framework directory. The CLI validates module IDs, plans, baseline version, path ownership and source provenance. Fork tests use small disposable fixtures.
 
-The forest and pond starters use one `SceneApp` for the renderer, camera, frame loop, lighting, settings and layer lifecycle. A scene definition supplies authored content, terrain, bounds, views and presentation. One controller owns camera movement; disposable layers own world and interaction resources. See [extension contracts](./docs/EXTENDING.md).
+Framework checks compile canonical module JavaScript with Three.js external. Three.js supplies real cameras, materials and geometry for module tests; Vite compiles source. Build output goes to `.artifacts/module-build/`. Game development uses source files.
 
-The scene definition is selected at boot. The environment renderer uses an outdoor sun/sky setup. Collision descriptors are conservative horizontal proxies. The catalog and scene READMEs describe each starter's limits.
-
-## Development tools
-
-Framework tools use ESM and resolve catalog/plan paths relative to the Git repository root. Workflow paths are relative to `_tech9`.
-
-`check` runs tooling/module tests, lint, module compilation and catalog validation. Three.js supplies objects used by module tests; Vite compiles registered module JavaScript with Three.js external. Both are framework development dependencies. Compilation output is local verification output; game generation uses canonical source.
-
-`sync:modules -- --check` compares starter copies with canonical source. `sync:modules -- --write` updates those copies and their metadata.
-
-Each package installs its own dependencies. The optional scoped hook selects the nearest package's lint-staged configuration. Hook setup and repository relocation are described in [MIGRATION.md](./docs/MIGRATION.md).
+Each package installs dependencies independently. The optional Git hook selects the nearest package's lint-staged configuration. See [setup and relocation](./docs/MIGRATION.md).

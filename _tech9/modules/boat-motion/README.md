@@ -1,10 +1,10 @@
 # Boat movement and keyboard input
 
-Copy this module's `src/` into the game's owned capabilities. It has no runtime dependencies. Metres/seconds, XZ plane, heading zero faces −Z and positive heading turns right.
+Copy this module's `src/` into the game's owned modules. It has no runtime dependencies. Metres/seconds, XZ plane, heading zero faces −Z and positive heading turns right.
 
 ```js
-import { BoatSimulation } from './capabilities/boat-motion/src/BoatSimulation.js';
-import { BoatInput } from './capabilities/boat-motion/src/BoatInput.js';
+import { BoatSimulation } from './modules/boat-motion/src/BoatSimulation.js';
+import { BoatInput } from './modules/boat-motion/src/BoatInput.js';
 
 const boat = new BoatSimulation({
   spawn: { x: 22, z: 114, heading: Math.PI / 2 },
@@ -29,4 +29,4 @@ Default controls are WASD/arrows; P/Escape/Tab pause. Override `bindings` with f
 
 `reset(spawn?)` validates occupancy before changing state and clears velocity/contact history; omitted spawn reuses the last valid spawn. Handling fields are exported as `DEFAULT_HANDLING`, each accepting 0–1000. Input axes clamp to −1…1. The simulation runs fixed 1/120 s steps, discards frame time beyond `maxFrameTime` (default 0.25 s; maximum 1 s), and sweeps in at most 0.2 m increments. Navigation must accept the complete disc; barriers thinner than the sweep spacing can be missed. Contacts slide along free axes and count a new collision after 0.25 s clear of contact.
 
-This is assisted arcade motion: thrust, braking, drag and speed-dependent reverse-aware steering. No wind, sail/rigging simulation, buoyancy, waves, hull polygons or game rules. Render model and input adapter are optional; AI or other devices can call `step` directly.
+Arcade motion combines thrust, braking, drag and speed-dependent reverse-aware steering. Render model and input adapter are optional; AI or other devices can call `step` directly.

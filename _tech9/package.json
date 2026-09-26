@@ -1,8 +1,8 @@
 {
-  "name": "tech9-foundation",
-  "version": "2.2.0",
+  "name": "tech9",
+  "version": "3.0.0",
   "private": true,
-  "description": "Additive Tech9 starters, source forks and agent production tooling.",
+  "description": "Reusable game modules and a standalone starting application.",
   "type": "module",
   "scripts": {
     "t9": "node tools/tech9.mjs",

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
 import { confinedPath, readJson } from './lib/project.mjs';
-import { validateCatalog } from './lib/validation.mjs';
+import { validateModules } from './lib/validation.mjs';
 
 const framework = fileURLToPath(new URL('..', import.meta.url));
 
@@ -23,22 +23,15 @@ async function entries(directory, prefix = '') {
   return result;
 }
 
-/** Compile canonical source only. Games and scene packages are never inputs. */
+/** Compile canonical module source. */
 export async function buildModules({ root = framework, write = true } = {}) {
-  const catalog = validateCatalog(
-    await readJson(path.join(root, 'catalog.json')),
+  const registry = validateModules(
+    await readJson(path.join(root, 'modules.json')),
   );
   const entry = {},
     sources = [];
-  for (const module of catalog.modules) {
-    if (!module.path.startsWith('_tech9/modules/'))
-      throw new Error(
-        `Module build requires framework-owned source: ${module.path}`,
-      );
-    const source = await confinedPath(
-      root,
-      `${module.path.slice('_tech9/'.length)}/src`,
-    );
+  for (const module of registry.modules) {
+    const source = await confinedPath(root, `modules/${module.id}/src`);
     const files = await entries(source);
     if (!Object.keys(files).length)
       throw new Error(`Module ${module.id} has no JavaScript entries`);

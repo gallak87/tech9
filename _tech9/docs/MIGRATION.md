@@ -1,29 +1,24 @@
-# Framework location and setup
+# Setup and framework location
 
-The framework root is `_tech9/`. Workflow paths are relative to that directory; CLI catalog and plan paths are relative to the Git repository root. Game output is `_tech9/games/<slug>`.
+The framework currently lives in `_tech9/`. Commands and plan paths resolve from the framework directory. Packages under `baseline/` and `games/` install their own dependencies.
 
 ## Local setup
 
-Framework, scene and game packages install independently. Framework tools use ESM; root helpers use CommonJS.
-
-Install the optional scoped hook from the repository root:
+Install the optional scoped Git hook from the framework directory:
 
 ```sh
-./_tech9/run run hooks:install
+./run run hooks:install
 ```
 
-Git has one `core.hooksPath` per repository. Installation reports the previous setting and selects `_tech9/.husky/_`. The hook checks staged `_tech9` files using the nearest package's lint-staged configuration. Install that package's development dependencies before committing its files. Dependency installation leaves hook configuration unchanged.
+Git has one `core.hooksPath` per repository. Installation reports the previous setting and selects the framework's `.husky/_`. The hook uses the nearest package's lint-staged configuration. Install the affected package's development dependencies before committing.
 
-Restore a prior valid hook path with `git config core.hooksPath <path>`, or unset it to use `.git/hooks`.
+Restore a prior hook with `git config core.hooksPath <path>`, or unset it to use `.git/hooks`.
 
-## Root relocation checklist
+## Root graduation
 
-When relocating the framework to the repository root:
+1. Account for existing root packages, commands and games.
+2. Move the framework files, baseline and workflows to the root; reconcile directory conflicts.
+3. Carry framework ignore rules and reinstall the scoped hook at its new location.
+4. Update repository entry links and run framework checks.
 
-1. Account for existing root commands, helpers, packages and games.
-2. Move the framework source and both workflow entrypoints.
-3. Update CLI path adapters, catalog/output paths, hooks and command examples.
-4. Carry framework-relative `/runs/` and artifact ignore rules.
-5. Run framework checks, module-copy checks and standalone fork validation from a clean checkout.
-
-Root relocation is a separate task from capability development.
+Module paths, plan paths, game output and tool entrypoints are framework-relative.

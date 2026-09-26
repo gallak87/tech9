@@ -50,9 +50,9 @@ async function main(args) {
 ./run --runtime                         Show the selected local runtime
 ./run ci                                Install framework dependencies
 ./run run check                         Run framework tests, lint and module builds
-./run run t9 -- catalog                 List available capabilities
+./run run t9 -- modules                 List reusable modules
 ./run test                              Run framework/module tests
-./run --prefix <package> run <script>    Run a scene or game's own command
+./run --prefix <package> run <script>    Run a package's own command
 
 Set TECH9_NODE to choose an installed executable explicitly. No runtimes or
 hooks are installed automatically. Child npm commands receive the same Node.

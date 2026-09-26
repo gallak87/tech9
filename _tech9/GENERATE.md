@@ -1,12 +1,12 @@
 # Build a game
 
-Use **game-dev** to turn a game idea into a standalone playable package. For reusable capability work, use [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md).
+Use **game-dev** to turn a game idea into a standalone playable package. For reusable module work, use [FRAMEWORK_DEV.md](./FRAMEWORK_DEV.md).
 
-Read [AGENTS.md](./AGENTS.md), [WORKFLOW.md](./WORKFLOW.md), the catalog and the selected starter's README/architecture. The framework root is `_tech9/`; CLI catalog and plan paths are relative to the Git repository root.
+Read [AGENTS.md](./AGENTS.md), [WORKFLOW.md](./WORKFLOW.md), the [module guide](./modules/README.md) and the baseline's README/architecture. The framework root is `_tech9/`; CLI paths are relative to the framework directory.
 
 ## Define the experience
 
-Describe the player objective, core actions, outcome, recovery and restart. Select a starter from its documented capabilities and identify additional modules or game-specific systems. Record scope, acceptance, path ownership, dependencies, validation, authority and the stopping point in `runs/<slug>/BRIEF.md` and `plan.json`. The plan follows the [execution-plan schema](./schemas/execution-plan.schema.json).
+Describe the player objective, core actions, outcome, recovery and restart. Start with the baseline and identify the modules and game-specific systems needed for the experience. Record scope, acceptance, path ownership, dependencies, validation, authority and the stopping point in `runs/<slug>/BRIEF.md` and `plan.json`. The plan follows the [execution-plan schema](./schemas/execution-plan.schema.json).
 
 Use delegated authority for routine decisions and clarify material missing requirements. A planning-only task ends with the plan.
 
@@ -20,14 +20,14 @@ From `_tech9`, using supported Node:
 
 ```sh
 ./run ci
-./run run t9 -- catalog
-./run run t9 -- validate _tech9/runs/<slug>/plan.json
-./run run t9 -- fork --starter <starter-id> --slug <slug> --plan _tech9/runs/<slug>/plan.json --port <dev-port> --dry-run
-./run run t9 -- fork --starter <starter-id> --slug <slug> --plan _tech9/runs/<slug>/plan.json --port <dev-port>
+./run run t9 -- modules
+./run run t9 -- validate runs/<slug>/plan.json
+./run run t9 -- fork --slug <slug> --plan runs/<slug>/plan.json --port <dev-port> --dry-run
+./run run t9 -- fork --slug <slug> --plan runs/<slug>/plan.json --port <dev-port>
 ./run --prefix games/<slug> ci
 ```
 
-Fork a clean, committed starter. Integrate additional modules using the [capability index](./modules/README.md) and [copying guide](./docs/CAPABILITIES.md), preserving their layout, dependencies and licenses. Keep `tech9.json` and `GAME_PLAN.json` byte-for-byte intact. Give the game its own presentation, storage namespace and documentation.
+Copy the clean, committed baseline. Set `schemaVersion: 2` and `baselineVersion` to the version in `baseline/package.json` in the execution plan. Integrate additional modules using the [module guide](./modules/README.md) and [copying guide](./docs/MODULES.md), preserving their layout, dependencies and licenses. Keep `tech9.json` and `GAME_PLAN.json` byte-for-byte intact. Give the game its own presentation, storage namespace and documentation.
 
 ## Build and validate
 

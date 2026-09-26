@@ -1,37 +1,19 @@
-# Develop a framework capability
+# Develop a module
 
-Use **framework-dev** to create or improve reusable capabilities, including extracting useful code from a game. Follow [WORKFLOW.md](./WORKFLOW.md). Paths in this document are relative to `_tech9/`.
+Use **framework-dev** to create or improve reusable code, including extraction from a game. Follow [WORKFLOW.md](./WORKFLOW.md).
 
-## Scope
+1. Read the relevant implementation and tests. Define the reusable behavior, configuration, dependencies, resource ownership and acceptance criteria.
+2. Put source in `modules/<id>/src`, tests in `tests/`, and required assets in `assets/`. Preserve licenses and editable source assets.
+3. Write a concise module README with a working integration example, dependencies, lifecycle and concrete constraints. Link it from the [module guide](./modules/README.md).
+4. Record the module ID and version in [modules.json](./modules.json). The ID matches its folder name.
+5. Run `./run run check`. Use rendering or real-input checks when required by the change. Review stable source and resolve actionable findings.
 
-Read the catalog and relevant source/tests. For an extraction, inspect the game's implementation and identify the reusable behavior, configuration, dependencies, resource ownership and limits. Define acceptance and validation for the capability.
-
-## Implement
-
-Put runtime source in `modules/<id>/src` and tests in `modules/<id>/tests`, or update the relevant scene/tool. Keep the interface concrete and preserve licenses and editable asset sources.
-
-Choose one usage aid:
-
-- An existing runnable example, linked from the [capability index](./modules/README.md).
-- Concise module documentation describing integration and current limits.
-
-Walking, placement collisions and pond water use the forest/pond scenes as examples. Boat motion, follow camera and island ocean use module documentation.
-
-Register the module and version in the catalog. When updating a scene's module composition, update its `capabilities.json`, format canonical source, then run:
+When changing modules selected by the baseline, format canonical source and refresh the local copies:
 
 ```sh
 ./run run sync:modules -- --write
-./run run sync:modules -- --check
 ```
 
-See [capability copying](./docs/CAPABILITIES.md) for layout and metadata details.
+The baseline selects modules through `package.json` → `tech9.modules`. See [module copying](./docs/MODULES.md).
 
-## Validate and review
-
-Run `./run run check`. Cover behavior, configuration and resource lifecycle in module tests. Use a focused browser fixture or maintained scene for rendering and input behavior when relevant. Verify a standalone source fork before marking a new starter available.
-
-Commit a stable implementation and obtain an independent engineering review when warranted. Fix actionable findings and rerun affected checks.
-
-## Deliver
-
-Provide source, tests, required licenses, the usage aid and current catalog/copy metadata. Report availability, integration instructions, checks and limitations. Follow the shared workflow for local artifacts and handoff.
+Deliver source, tests, usage documentation, required assets/licenses and current version metadata. Report validation and material limits in the task.

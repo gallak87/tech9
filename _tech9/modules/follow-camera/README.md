@@ -1,9 +1,9 @@
 # Follow and mounted cameras
 
-Copy `src/` into the game's capabilities and use Three.js `0.186.1`. Supply an unparented camera (or an identity scene parent); positions are world space.
+Copy `src/` into the game's modules and use Three.js `0.186.1`. Supply an unparented camera (or an identity scene parent); positions are world space.
 
 ```js
-import { FollowCamera } from './capabilities/follow-camera/src/FollowCamera.js';
+import { FollowCamera } from './modules/follow-camera/src/FollowCamera.js';
 
 const view = new FollowCamera(camera, {
   getTarget: () => ({ ...boat.snapshot(), y: waterLevel }),
@@ -22,4 +22,4 @@ Target requires `x`, `z`, `heading` (zero faces −Z), optional `y` (default 0).
 
 Follow options: `distance=12`, `height=6`, `side=0`, `lookAhead=4`, `targetHeight=1`, `damping=5`, `clearance=1`, `near=0.15`, `fov=58`. Damping is exponential; elapsed time clamps to 0.25 s. Terrain clearance applies to both the desired and interpolated position; omit `groundHeight` for no floor. Switching mode updates projection and invokes `onChange`, as does `resetMotion`.
 
-This does not resolve walls, overhead obstructions or line-of-sight occlusion. Mounted poses are trusted attachment positions, with no terrain correction. It owns no render loop, input, game state or GPU resources.
+Follow clearance uses the ground-height query; walls and overhead obstructions need caller handling. Mounted poses use the supplied attachment positions directly. The caller owns the frame loop, camera and input.

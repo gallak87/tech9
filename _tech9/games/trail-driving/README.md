@@ -59,3 +59,34 @@ Development observations and rare-state setup require `?test=1`. Production expo
 ## Simulation limits
 
 Handling is forgiving arcade vehicle motion, with assisted bike balance and automatic gearing. Solid scenery uses conservative horizontal collision proxies, including while airborne. Suspension follows sampled terrain contacts; it is not a rigid-body drivetrain. Input is keyboard-focused. The landscape and routes are bounded, authored single-player content.
+
+## Recorded acceptance
+
+All nine trials completed through real Playwright keyboard input at normal simulation speed. The feedback driver read observations only; it did not write vehicle position, clocks or progress. Every run crossed every directional gate, finished without collisions, recovery or penalties, and exercised result/retry. All nine records survived a reload.
+
+| Vehicle     | Fernwood Loop   | Granite Switchbacks | Skyline Run     |
+| ----------- | --------------- | ------------------- | --------------- |
+| Ridge Jeep  | 80.500 s · gold | 102.259 s · gold    | 90.201 s · gold |
+| Scout ATV   | 82.351 s · gold | 106.218 s · gold    | 93.533 s · gold |
+| Summit Bike | 80.525 s · gold | 104.017 s · silver  | 90.812 s · gold |
+
+These route runs used checkpoint `45f45723`; later changes adjusted visual presentation and medal thresholds without changing route geometry, motion or gate rules. Reported medal categories remain the same. The final generic browser pass used `a0a829b9` and checked all vehicle/camera modes, pause/focus, progression rejection, retry, graphics/audio, responsive menus and bounded model resource replacement. Geometry, texture and program counts were unchanged after repeated vehicle switches. No asset, console, page or WebGL errors occurred.
+
+The 42 CPU tests, lint and production build passed. Separate handling runs verified keyboard collision, braking/reverse, recovery and terrain takeoff followed by grounded landing for all three vehicles. Targeted setup was used for those rare-state checks, not the nine route completions. Hidden-tab engine/tire gains reached zero and boot succeeded when access to local storage threw.
+
+Moving performance observation: Chromium 151.0.7922.34, headless full Chromium, ANGLE Metal on Apple M1 Pro, 1600 × 1000 drawing buffer, Balanced preset, 600 requestAnimationFrame samples over about five seconds: 120.02 observed FPS, 8.332 ms mean interval, 9.4 ms p95. This is a short measured route segment, includes browser scheduling, and is not a worst-case or cross-device performance guarantee.
+
+Independent engineering review found three P2 issues: hidden-tab audio, throwing storage access and missing tall-signpost collision proxies. All were fixed and rechecked, including 39/39 vehicle/signpost probes. No unresolved correctness findings remained in that game review.
+
+The independent art review concluded at **7.6/10** after the four-round cap (6.0 → 7.0 → 7.4 → 7.6), below the 8/10 target. No definite visual correctness blockers remained. The forest and slope treatment remain repetitive, rocky-route identity and distant mountain forms are simple, and riders/materials retain a stylized prototype quality. Animation was assessed through captured takeoff/landing pairs rather than continuous video; those stills do not establish motion continuity.
+
+## Framework handoff
+
+The separate framework-dev phase extracted reusable behavior into canonical modules while leaving this game's local implementation and authored content under game ownership:
+
+- [vehicle-motion](../../modules/vehicle-motion/README.md): configurable arcade vehicle motion, terrain contacts, static collision, jumps and recovery.
+- [vehicle-input](../../modules/vehicle-input/README.md): keyboard and focus lifecycle.
+- [vehicle-presentation](../../modules/vehicle-presentation/README.md): supplied chassis and wheel transforms, with consumer-owned Three.js resources.
+- [follow-camera](../../modules/follow-camera/README.md) 1.1.0: terrain/solid boom resolution applied around camera interpolation.
+
+The immutable fork receipts and the game's copied follow-camera 1.0.1 remain unchanged. Adoption of canonical modules in a future game is explicit; these are source copies rather than runtime framework dependencies.

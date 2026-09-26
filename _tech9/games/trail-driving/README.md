@@ -109,9 +109,7 @@ Local evidence is retained in ignored `.artifacts/vehicle-round-2` through `vehi
 
 The separate framework-dev phase extracted reusable behavior into canonical modules while leaving this game's local implementation and authored content under game ownership:
 
-- [vehicle-motion](../../modules/vehicle-motion/README.md): configurable arcade vehicle motion, terrain contacts, static collision, jumps and recovery.
-- [vehicle-input](../../modules/vehicle-input/README.md): keyboard and focus lifecycle.
-- [vehicle-presentation](../../modules/vehicle-presentation/README.md): supplied chassis and wheel transforms, with consumer-owned Three.js resources.
+- [vehicles](../../modules/vehicles/README.md) 1.0.0: the later consolidation of motion, input and presentation, now including the improved models, matched presets, mounted attachments and optional lighting/feedback.
 - [follow-camera](../../modules/follow-camera/README.md) 1.1.0: terrain/solid boom resolution applied around camera interpolation.
 
 The immutable fork receipts and the game's copied follow-camera 1.0.1 remain unchanged. Adoption of canonical modules in a future game is explicit; these are source copies rather than runtime framework dependencies.

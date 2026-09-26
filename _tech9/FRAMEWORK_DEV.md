@@ -2,6 +2,8 @@
 
 Use **framework-dev** to create or improve reusable code, including extraction from a game. Follow [WORKFLOW.md](./WORKFLOW.md).
 
+Extract the usable feature, including supporting assets and presets. Keep related implementation parts together unless independent reuse justifies a split.
+
 1. Read the relevant implementation and tests. Define the reusable behavior, configuration, dependencies, resource ownership and acceptance criteria.
 2. Put source in `modules/<id>/src`, tests in `tests/`, and required assets in `assets/`. Preserve licenses and editable source assets.
 3. Write a concise module README with a working integration example, dependencies, lifecycle and concrete constraints. Link it from the [module guide](./modules/README.md).

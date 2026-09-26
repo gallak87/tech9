@@ -1,67 +1,11 @@
+import { VEHICLE_PRESETS } from './VehiclePresets.js';
+export { VEHICLE_PRESETS } from './VehiclePresets.js';
+
 const clamp = (value, low, high) => Math.max(low, Math.min(high, value));
 const approach = (value, target, response, dt) =>
   value + (target - value) * (1 - Math.exp(-response * dt));
 const finite = (value, fallback = 0) =>
   Number.isFinite(value) ? value : fallback;
-
-/** Metres, seconds and radians. Geometry mounts at the terrain plane, facing -Z. */
-export const VEHICLE_PRESETS = Object.freeze(
-  Object.fromEntries(
-    Object.entries({
-      fourWheel: {
-        layout: 'four-wheel',
-        topSpeed: 25,
-        reverseSpeed: 5.2,
-        acceleration: 6.8,
-        braking: 12.5,
-        dimensions: { wheelBase: 2.8, track: 1.65, width: 1.94, length: 4.2 },
-        wheelRadius: 0.43,
-        steering: 0.53,
-        steeringResponse: 5.3,
-        grip: 1.12,
-        suspension: 0.27,
-        suspensionResponse: 8,
-        weightTransfer: 0.009,
-      },
-      quad: {
-        layout: 'four-wheel',
-        topSpeed: 28,
-        reverseSpeed: 4.5,
-        acceleration: 8.1,
-        braking: 15,
-        dimensions: { wheelBase: 1.55, track: 1.1, width: 1.22, length: 2.3 },
-        wheelRadius: 0.31,
-        steering: 0.58,
-        steeringResponse: 8.5,
-        grip: 1,
-        suspension: 0.23,
-        suspensionResponse: 11,
-        weightTransfer: 0.013,
-      },
-      twoWheel: {
-        layout: 'two-wheel',
-        topSpeed: 31,
-        reverseSpeed: 2.4,
-        acceleration: 9.1,
-        braking: 16,
-        dimensions: { wheelBase: 1.48, track: 0, width: 0.74, length: 2.2 },
-        wheelRadius: 0.35,
-        steering: 0.48,
-        steeringResponse: 6.5,
-        grip: 0.95,
-        suspension: 0.25,
-        suspensionResponse: 12,
-        weightTransfer: 0.01,
-      },
-    }).map(([key, value]) => [
-      key,
-      Object.freeze({
-        ...value,
-        dimensions: Object.freeze(value.dimensions),
-      }),
-    ]),
-  ),
-);
 
 const MAX_COORDINATE = 1_000_000;
 const finiteCoordinate = (value) =>
@@ -123,11 +67,35 @@ function ownedConfig(config) {
   return Object.freeze(copy);
 }
 
+function ownedColliders(colliders) {
+  if (!Array.isArray(colliders) || colliders.length > 10000)
+    throw new TypeError(
+      'Obstacles must be an array of at most 10,000 circles.',
+    );
+  return Object.freeze(
+    colliders.map((item) => {
+      if (
+        !item ||
+        !finiteCoordinate(item.x) ||
+        !finiteCoordinate(item.z) ||
+        !Number.isFinite(item.radius) ||
+        item.radius <= 0 ||
+        item.radius > 256
+      )
+        throw new TypeError(
+          'Colliders require coordinates within ±1,000,000 and radius in (0,256].',
+        );
+      return Object.freeze({ x: item.x, z: item.z, radius: item.radius });
+    }),
+  );
+}
+
 function ownedWorld(world) {
   if (typeof world?.height !== 'function')
     throw new TypeError('world.height must be a function.');
-  if (world.surface !== undefined && typeof world.surface !== 'function')
-    throw new TypeError('world.surface must be a function when supplied.');
+  for (const name of ['surface', 'queryObstacles'])
+    if (world[name] !== undefined && typeof world[name] !== 'function')
+      throw new TypeError(`world.${name} must be a function when supplied.`);
   const bounds = Object.fromEntries(
     ['minX', 'maxX', 'minZ', 'maxZ'].map((key) => [key, world.bounds?.[key]]),
   );
@@ -139,31 +107,12 @@ function ownedWorld(world) {
     throw new TypeError(
       'world.bounds must be a finite nonempty rectangle within ±1,000,000 metres.',
     );
-  const colliders = world.colliders ?? [];
-  if (!Array.isArray(colliders) || colliders.length > 10000)
-    throw new TypeError(
-      'world.colliders must be an array of at most 10,000 circles.',
-    );
   return Object.freeze({
     height: world.height.bind(world),
     surface: world.surface?.bind(world),
+    queryObstacles: world.queryObstacles?.bind(world),
     bounds: Object.freeze(bounds),
-    colliders: Object.freeze(
-      colliders.map((item) => {
-        if (
-          !item ||
-          !finiteCoordinate(item.x) ||
-          !finiteCoordinate(item.z) ||
-          !Number.isFinite(item.radius) ||
-          item.radius <= 0 ||
-          item.radius > 256
-        )
-          throw new TypeError(
-            'Colliders require coordinates within ±1,000,000 and radius in (0,256].',
-          );
-        return Object.freeze({ x: item.x, z: item.z, radius: item.radius });
-      }),
-    ),
+    colliders: ownedColliders(world.colliders ?? []),
   });
 }
 
@@ -226,7 +175,7 @@ function distanceToSegment(px, pz, ax, az, bx, bz) {
 /**
  * Forgiving arcade motion: a traction-limited bicycle model, sampled wheel
  * support, ballistic jumps and a conservative swept footprint. No render owner.
- * world.height/surface are pure queries; world.colliders remain static per instance.
+ * World callbacks are synchronous queries; colliders remain static per instance.
  */
 export class VehicleMotion {
   #index;
@@ -239,7 +188,7 @@ export class VehicleMotion {
   #ground;
   #state;
   constructor({
-    config = VEHICLE_PRESETS.fourWheel,
+    config = VEHICLE_PRESETS.jeep,
     world,
     spawn = { x: 0, z: 0, heading: 0 },
   } = {}) {
@@ -347,12 +296,19 @@ export class VehicleMotion {
         b.z + radius > bounds.maxZ
       )
         return true;
-      const nearby = this.#index.query(
-        Math.min(a.x, b.x) - radius,
-        Math.max(a.x, b.x) + radius,
-        Math.min(a.z, b.z) - radius,
-        Math.max(a.z, b.z) + radius,
-      );
+      const area = {
+        minX: Math.min(a.x, b.x) - radius,
+        maxX: Math.max(a.x, b.x) + radius,
+        minZ: Math.min(a.z, b.z) - radius,
+        maxZ: Math.max(a.z, b.z) + radius,
+      };
+      const nearby = [
+        ...this.#index.query(area.minX, area.maxX, area.minZ, area.maxZ),
+      ];
+      if (this.world.queryObstacles)
+        nearby.push(
+          ...ownedColliders(this.world.queryObstacles(Object.freeze(area))),
+        );
       for (const item of nearby) {
         if (
           distanceToSegment(item.x, item.z, a.x, a.z, b.x, b.z) <

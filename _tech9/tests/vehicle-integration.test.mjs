@@ -4,8 +4,8 @@ import { Group, PerspectiveCamera, Scene, Vector3 } from 'three';
 import {
   VehicleMotion,
   VEHICLE_PRESETS,
-} from '../modules/vehicle-motion/src/VehicleMotion.js';
-import { VehiclePresentation } from '../modules/vehicle-presentation/src/VehiclePresentation.js';
+} from '../modules/vehicles/src/VehicleMotion.js';
+import { VehiclePresentation } from '../modules/vehicles/src/VehiclePresentation.js';
 import { FollowCamera } from '../modules/follow-camera/src/FollowCamera.js';
 import { resolveCameraBoom } from '../modules/follow-camera/src/CameraBoom.js';
 

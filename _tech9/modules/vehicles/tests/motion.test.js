@@ -53,12 +53,10 @@ test('wheel contacts and body attitude follow the same sloped terrain', () => {
       Math.abs(
         contact.y -
           height(contact.x, contact.z) -
-          VEHICLE_PRESETS.fourWheel.wheelRadius,
+          VEHICLE_PRESETS.jeep.wheelRadius,
       ) < 1e-8,
     );
-    assert.ok(
-      Math.abs(contact.compression) <= VEHICLE_PRESETS.fourWheel.suspension,
-    );
+    assert.ok(Math.abs(contact.compression) <= VEHICLE_PRESETS.jeep.suspension);
   }
 });
 
@@ -76,7 +74,7 @@ test('swept footprint stops fast vehicles at thin solids and map boundaries', ()
   assert.ok(motion.validPose(motion.snapshot()));
   const world = flat({ bounds: { minX: -8, maxX: 8, minZ: -20, maxZ: 8 } });
   const bounded = new VehicleMotion({
-    config: VEHICLE_PRESETS.twoWheel,
+    config: VEHICLE_PRESETS.bike,
     world,
   });
   assert.ok(drive(bounded, 10).z > -19);
@@ -125,7 +123,7 @@ test('a crest produces ballistic flight followed by stable grounded landing', ()
 
 test('two-wheel assisted lean is bounded and recenters when braking to rest', () => {
   const motion = new VehicleMotion({
-    config: VEHICLE_PRESETS.twoWheel,
+    config: VEHICLE_PRESETS.bike,
     world: flat(),
   });
   drive(motion, 3);
@@ -175,7 +173,7 @@ test('loose and rough surfaces reduce traction and acceleration', () => {
 
 test('consumer configuration is owned, frozen and drives a custom chassis', () => {
   const config = {
-    ...VEHICLE_PRESETS.fourWheel,
+    ...VEHICLE_PRESETS.jeep,
     acceleration: 3,
     topSpeed: 12,
     dimensions: { wheelBase: 2.1, track: 1.3, width: 1.6, length: 3 },
@@ -221,15 +219,15 @@ test('numeric and layout validation rejects unsafe configuration and worlds', ()
     { acceleration: -1 },
     { wheelRadius: 0 },
     { suspensionResponse: NaN },
-    { dimensions: { ...VEHICLE_PRESETS.fourWheel.dimensions, wheelBase: 0 } },
-    { dimensions: { ...VEHICLE_PRESETS.fourWheel.dimensions, track: 5 } },
+    { dimensions: { ...VEHICLE_PRESETS.jeep.dimensions, wheelBase: 0 } },
+    { dimensions: { ...VEHICLE_PRESETS.jeep.dimensions, track: 5 } },
     { layout: 'two-wheel' },
   ];
   for (const overrides of badConfigs)
     assert.throws(
       () =>
         new VehicleMotion({
-          config: { ...VEHICLE_PRESETS.fourWheel, ...overrides },
+          config: { ...VEHICLE_PRESETS.jeep, ...overrides },
           world: flat(),
         }),
     );

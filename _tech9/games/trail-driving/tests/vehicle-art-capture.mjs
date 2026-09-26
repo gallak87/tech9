@@ -29,6 +29,9 @@ try {
       front: [4.3 * scale, 2.45, -5.8 * scale],
       rear: [-4.5 * scale, 2.35, 5.8 * scale],
       side: [6.7 * scale, 1.7, 0],
+      'opposite-side': [-6.7 * scale, 1.7, 0],
+      'leg-clearance-right': [3.5 * scale, 1.25, 0.2],
+      'leg-clearance-left': [-3.5 * scale, 1.25, 0.2],
       detail: [2.9 * scale, 1.6, -3.1 * scale],
     };
     for (const [name, position] of Object.entries(views)) {
@@ -36,7 +39,15 @@ try {
         (pose) => window.__SCENE_TEST__.inspectionCamera(pose),
         {
           position,
-          target: [0, name === 'detail' ? 0.82 : 1.05, 0],
+          target: [
+            0,
+            name.startsWith('leg-clearance')
+              ? 0.9
+              : name === 'detail'
+                ? 0.82
+                : 1.05,
+            0,
+          ],
           fov: name === 'detail' ? 39 : 37,
         },
       );
@@ -63,6 +74,19 @@ try {
     await page.keyboard.up('Space');
     await page.keyboard.press('c');
     await page.screenshot({ path: path.join(out, `${kind}-driver.png`) });
+    for (const key of ['a', 'd']) {
+      await page.keyboard.down(key);
+      await page.waitForTimeout(350);
+      await page.screenshot({
+        path: path.join(out, `${kind}-driver-steer-${key}.png`),
+      });
+      evidence.push({
+        kind,
+        frame: `driver-steer-${key}`,
+        snapshot: await h.snapshot(),
+      });
+      await page.keyboard.up(key);
+    }
     await page.keyboard.press('c');
     await page.evaluate(() =>
       window.__SCENE_TEST__.arrange({

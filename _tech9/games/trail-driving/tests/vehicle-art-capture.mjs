@@ -18,6 +18,43 @@ const h = await openScene({
   }),
   { page } = h;
 const evidence = [];
+
+async function captureJump(kind, suffix = '') {
+  await page.evaluate(() =>
+    window.__SCENE_TEST__.arrange({
+      x: 260,
+      z: -4,
+      heading: Math.asin(-0.15),
+    }),
+  );
+  await page.keyboard.down('w');
+  let takeoff = false,
+    landed = false;
+  const end = Date.now() + 7000;
+  while (Date.now() < end) {
+    const state = await h.snapshot();
+    if (state.motion.airborne && !takeoff) {
+      takeoff = true;
+      await page.screenshot({
+        path: path.join(out, `${kind}${suffix}-takeoff.png`),
+      });
+      evidence.push({ kind, frame: `${suffix}-takeoff`, snapshot: state });
+    } else if (takeoff && !state.motion.airborne && !landed) {
+      landed = true;
+      await page.screenshot({
+        path: path.join(out, `${kind}${suffix}-landed.png`),
+      });
+      evidence.push({ kind, frame: `${suffix}-landed`, snapshot: state });
+      break;
+    }
+    await page.waitForTimeout(40);
+  }
+  await page.keyboard.up('w');
+  assert.ok(
+    takeoff && landed,
+    `${kind} demonstrates a fresh takeoff and grounded landing`,
+  );
+}
 try {
   for (const kind of ['jeep', 'atv', 'bike']) {
     await page.locator(`[data-action="vehicle"][data-value="${kind}"]`).click();
@@ -88,35 +125,37 @@ try {
       await page.keyboard.up(key);
     }
     await page.keyboard.press('c');
-    await page.evaluate(() =>
-      window.__SCENE_TEST__.arrange({
-        x: 260,
-        z: -4,
-        heading: Math.asin(-0.15),
-      }),
-    );
-    await page.keyboard.down('w');
-    let takeoff = false,
-      landed = false;
-    const end = Date.now() + 7000;
-    while (Date.now() < end) {
-      const state = await h.snapshot();
-      if (state.motion.airborne && !takeoff) {
-        takeoff = true;
-        await page.screenshot({ path: path.join(out, `${kind}-takeoff.png`) });
-        evidence.push({ kind, frame: 'takeoff', snapshot: state });
-      } else if (takeoff && !state.motion.airborne && !landed) {
-        landed = true;
-        await page.screenshot({ path: path.join(out, `${kind}-landed.png`) });
-        evidence.push({ kind, frame: 'landed', snapshot: state });
+    await captureJump(kind);
+    if (kind !== 'jeep') {
+      await page.addStyleTag({ content: '#interface {visibility:hidden}' });
+      for (const [side, sign] of [
+        ['right', 1],
+        ['left', -1],
+      ]) {
+        await page.evaluate(
+          (pose) => window.__SCENE_TEST__.inspectionCamera(pose),
+          {
+            position: [sign * 2.66, 1.25, 0.2],
+            target: [0, 0.9, 0],
+            fov: 37,
+          },
+        );
+        await page.keyboard.down('a');
+        await page.waitForTimeout(350);
+        await page.screenshot({
+          path: path.join(out, `${kind}-leg-${side}-steer.png`),
+        });
+        evidence.push({
+          kind,
+          frame: `leg-${side}-steer`,
+          snapshot: await h.snapshot(),
+        });
+        await page.keyboard.up('a');
+        await captureJump(kind, `-leg-${side}`);
       }
-      await page.waitForTimeout(40);
+      await page.evaluate(() => window.__SCENE_TEST__.inspectionCamera(null));
+      await page.addStyleTag({ content: '#interface {visibility:visible}' });
     }
-    await page.keyboard.up('w');
-    assert.ok(
-      takeoff && landed,
-      `${kind} demonstrates a fresh takeoff and grounded landing`,
-    );
     await page.keyboard.press('Escape');
     await page.locator('[data-action="garage"]').last().click();
   }

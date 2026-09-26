@@ -120,10 +120,13 @@ function tailored(parent, p, sections, kind, side = 1) {
       accent = false,
       seam;
     if (kind === 'torso') {
-      const cut = 0.084 + Math.abs(sx) * 0.073;
-      dark = y > cut || Math.abs(sx) > 0.88 || y < -0.205;
-      seam = Math.abs(y - cut) < 0.005 || Math.abs(Math.abs(sx) - 0.88) < 0.022;
-      accent = y > cut - 0.018 && y < cut - 0.009 && Math.abs(sx) < 0.85;
+      // A low-profile shoulder yoke leaves the front of the neck open. The
+      // earlier continuous dark upper chest read as an oversized neck brace.
+      const cut =
+        cz > 0 ? 0.169 - Math.abs(sx) * 0.03 : 0.235 - Math.abs(sx) * 0.069;
+      dark = y > cut || Math.abs(sx) > 0.9 || y < -0.209;
+      seam = Math.abs(y - cut) < 0.003 || Math.abs(Math.abs(sx) - 0.9) < 0.016;
+      accent = y > cut - 0.012 && y < cut - 0.007 && Math.abs(sx) < 0.88;
     } else if (kind === 'upper') {
       const cut = 0.24 + 0.18 * sx * side;
       dark = t < cut || (cz > 0.7 && t > 0.43);
@@ -479,9 +482,9 @@ function helmet(parent, p) {
   group.name = 'full-face-helmet-and-neck';
   parent.add(group);
   form(group, p.clothDark, [
-    [-0.16, 0.066, 0.06],
-    [-0.112, 0.077, 0.069],
-    [-0.081, 0.078, 0.071],
+    [-0.144, 0.052, 0.049],
+    [-0.112, 0.059, 0.055],
+    [-0.081, 0.067, 0.062],
   ]);
   ball(group, p.skin, 1, [0, -0.045, -0.002], [0.097, 0.096, 0.085]);
   shellSurface(group, p);
@@ -627,16 +630,16 @@ function jacket(parent, p) {
       [-0.196, 0.153, 0.105, 0.009],
       [-0.077, 0.151, 0.119],
       [0.041, 0.171, 0.122, -0.004],
-      [0.139, 0.187, 0.12, -0.009],
-      [0.203, 0.176, 0.098, -0.003],
-      [0.25, 0.099, 0.069, -0.002],
+      [0.139, 0.187, 0.114, -0.016],
+      [0.203, 0.176, 0.088, -0.024],
+      [0.25, 0.089, 0.062, -0.026],
     ],
     'torso',
   );
   form(group, p.clothDark, [
-    [0.211, 0.087, 0.065],
-    [0.256, 0.075, 0.059],
-    [0.273, 0.069, 0.057],
+    [0.227, 0.067, 0.056, -0.019],
+    [0.251, 0.063, 0.053, -0.02],
+    [0.266, 0.06, 0.05, -0.018],
   ]);
   // The zipper and small pocket welt sit on cloth; broad garment cuts are
   // colored directly into its deformed mesh and never float like pipes.
@@ -791,6 +794,7 @@ export function createRider(parent, kind, p) {
     });
   }
   let posture = 0;
+  let driverView = false;
   const update = (snapshot, dt, controls) => {
     const rough = ['rock', 'rough', 'rocky'].includes(snapshot.surface?.kind);
     const desired = isJeep
@@ -811,9 +815,10 @@ export function createRider(parent, kind, p) {
     const hips = [hip[0] + lean, hip[1] + posture, hip[2] - posture * 0.35];
     const center = [hips[0], hips[1] + 0.23, hips[2] - (isJeep ? 0.025 : 0.13)];
     torso.position.set(...center);
-    torso.rotation.x = isJeep ? -0.07 : -0.25 - posture * 0.35;
+    torso.rotation.x = isJeep ? -0.07 : -0.32 - posture * 0.35;
     torso.rotation.z = -lean * 0.45;
-    head.position.set(center[0], center[1] + 0.355, center[2] - 0.105);
+    torso.updateMatrix();
+    head.position.set(0, 0.336, -0.029).applyMatrix4(torso.matrix);
     head.rotation.set(
       isJeep ? 0.015 : 0.035 - posture * 0.12,
       -(snapshot.steer || 0) * 0.16,
@@ -831,11 +836,9 @@ export function createRider(parent, kind, p) {
       kneePad,
       elbowJoint,
     } of limbs) {
-      const shoulder = [
-        center[0] + side * 0.181,
-        center[1] + 0.16,
-        center[2] - 0.02,
-      ];
+      const shoulder = new THREE.Vector3(side * 0.18, 0.158, -0.018)
+        .applyMatrix4(torso.matrix)
+        .toArray();
       const grip = new THREE.Vector3(
         isJeep ? side * 0.18 : side * (kind === 'bike' ? 0.355 : 0.415),
         isJeep ? 0.065 : 0.035,
@@ -845,8 +848,8 @@ export function createRider(parent, kind, p) {
         .toArray();
       const elbow = [
         center[0] + side * (isJeep ? 0.23 : 0.29),
-        center[1] - 0.075,
-        center[2] - 0.18,
+        center[1] - (isJeep ? 0.075 : 0.025),
+        center[2] - 0.19,
       ];
       const knee = [
         hip[0] + side * (isJeep ? 0.135 : 0.2),
@@ -859,11 +862,21 @@ export function createRider(parent, kind, p) {
       ];
       const foot = [
         hip[0] + side * (isJeep ? 0.135 : kind === 'bike' ? 0.25 : 0.43),
-        isJeep ? 0.73 : kind === 'bike' ? 0.57 : 0.52,
+        isJeep ? 0.73 : kind === 'bike' ? 0.623 : 0.593,
         isJeep ? -0.36 : 0.15,
       ];
       setBeam(upperArm, shoulder, elbow);
-      setBeam(forearm, elbow, grip);
+      // A first-person view sees through the hidden torso. Continue the sleeve
+      // behind that camera so its cut upper end never floats over the dashboard;
+      // the wrist/grip anchor and third-person arm stay physically unchanged.
+      const sleeveOrigin = driverView
+        ? [
+            hip[0] + side * (isJeep ? 0.28 : 0.38),
+            center[1] - 0.35,
+            hip[2] + 0.58,
+          ]
+        : elbow;
+      setBeam(forearm, sleeveOrigin, grip);
       elbowJoint.position.set(...elbow);
       hand.position.set(...grip);
       hand.quaternion.copy(controls.quaternion);
@@ -879,5 +892,14 @@ export function createRider(parent, kind, p) {
       boot.rotation.set(0, side * (isJeep ? 0.025 : 0.075), 0);
     }
   };
-  return { group, head, torso, limbs, update };
+  return {
+    group,
+    head,
+    torso,
+    limbs,
+    update,
+    setDriverView(value) {
+      driverView = Boolean(value);
+    },
+  };
 }

@@ -460,7 +460,7 @@ function arch(parent, p, side, centerZ, kind) {
     parent.add(apron);
     panel(
       apron,
-      p.black,
+      p.paint,
       [
         [-1.81, 0.91],
         [-0.56, 0.91],
@@ -1100,34 +1100,38 @@ function atvBody(body, p) {
       ],
       { x: side * 0.36, bevel: 0.24 },
     );
+    // Forward access cover leaves the entire knee-to-foot corridor open.
+    // In particular, no opaque surface spans the sloping shin at z≈0.04.
     const cheek = new THREE.Group();
-    cheek.position.x = side * 0.292;
+    cheek.name = 'atv-front-engine-cover';
+    cheek.position.x = side * 0.235;
     cheek.rotation.y = (side * Math.PI) / 2;
     body.add(cheek);
     panel(
       cheek,
       p.plastic,
       [
-        [-0.35, 0.45],
-        [0.3, 0.42],
-        [0.49, 0.7],
-        [0.23, 0.84],
-        [-0.25, 0.75],
+        [-0.45, 0.46],
+        [-0.17, 0.46],
+        [-0.16, 0.665],
+        [-0.24, 0.79],
+        [-0.43, 0.723],
       ].map(([z, y]) => [-side * z, y]),
-      0.018,
+      0.012,
       [0, 0, 0],
       undefined,
-      0.014,
+      0.011,
     );
-    for (let z = -0.16; z < 0.1; z += 0.065)
+    for (let z = -0.36; z < -0.15; z += 0.055) {
       box(
         body,
         p.black,
-        [0.019, 0.15, 0.025],
-        [side * 0.31, 0.655, z],
-        0.004,
+        [0.018, 0.13, 0.019],
+        [side * 0.252, 0.655, z],
+        0.003,
         [0.3, 0, 0],
       );
+    }
     // Broad pierced foot platforms, attached to the lower frame.
     box(body, p.plastic, [0.3, 0.045, 0.58], [side * 0.45, 0.442, 0.14], 0.02);
     for (let z = -0.1; z < 0.37; z += 0.065)
@@ -1169,23 +1173,24 @@ function atvBody(body, p) {
         p.silver,
         0.039,
         0.007,
-        [x, 0, -0.026],
+        [x, 0, -0.054],
         [Math.PI / 2, 0, 0],
       );
+      ball(headlamp, p.lens, 0.031, [x, 0, -0.066], [1, 1, 0.31]);
       cylinder(
         headlamp,
         p.lamp,
         0.027,
         0.009,
-        [x, 0, -0.031],
+        [x, 0, -0.064],
         [Math.PI / 2, 0, 0],
       );
     }
     beam(
       headlamp,
       p.lamp,
-      [-0.105, 0.041, -0.03],
-      [0.12, 0.029, -0.03],
+      [-0.105, 0.041, -0.071],
+      [0.12, 0.029, -0.071],
       0.006,
       8,
     );
@@ -1531,8 +1536,8 @@ function bikeBody(body, p) {
     [
       [-0.721, 0.09, 1.033, 1.194],
       [-0.704, 0.13, 1.0, 1.265],
-      [-0.645, 0.142, 1.008, 1.25],
-      [-0.598, 0.105, 1.047, 1.222],
+      [-0.682, 0.142, 1.008, 1.25],
+      [-0.653, 0.105, 1.047, 1.222],
     ],
     { bevel: 0.28 },
   );
@@ -1697,19 +1702,26 @@ function bikeBody(body, p) {
     bolt(body, p.black, [side * 0.071, 0.876, -0.14], 0.01, undefined);
   }
   box(body, p.dark, [0.31, 0.033, 0.38], [0, 0.382, 0.043], 0.02, [0.1, 0, 0]);
-  tube(
+  // The header exits forward, passes below the guarded crankcase, then rises
+  // behind the heel. Its entire hot path clears the right boot's swept volume.
+  const header = tube(
     body,
     p.steel,
     [
       [0.08, 0.786, -0.2],
-      [0.2, 0.715, -0.31],
-      [0.252, 0.602, -0.18],
-      [0.228, 0.65, 0.19],
+      [0.17, 0.7, -0.31],
+      [0.175, 0.52, -0.27],
+      [0.13, 0.332, -0.12],
+      [0.12, 0.332, 0.26],
+      [0.13, 0.43, 0.37],
+      [0.165, 0.64, 0.43],
       [0.205, 0.816, 0.47],
     ],
-    0.026,
-    32,
+    0.023,
+    46,
   );
+  header.name = 'boot-clearance-exhaust-header';
+  header.userData.dynamic = true; // retain an inspectable clearance assembly
   const exhaust = new THREE.Group();
   exhaust.position.set(0.215, 0.892, 0.6);
   exhaust.rotation.x = Math.PI / 2 - 0.18;
@@ -1742,8 +1754,7 @@ function steeringControl(parent, kind, p) {
     group.rotation.x = -0.48;
     ring(group, p.rubber, 0.194, 0.023);
     ring(group, p.dark, 0.183, 0.005, [0, 0, 0.013]);
-    for (let i = 0; i < 3; i++) {
-      const a = (i * Math.PI * 2) / 3;
+    for (const a of [Math.PI / 2, Math.PI, Math.PI * 1.5]) {
       const arm = new THREE.Group();
       arm.rotation.z = a;
       group.add(arm);
@@ -2259,6 +2270,59 @@ function springMesh(parent, mat, radius, length, coils, wire) {
   result.geometry.scale(1, 1 / length, 1);
   return result;
 }
+// Low-body dust is baked in the vehicle's authored coordinates. It does not
+// follow world height, simulation state or wheel rotation, and it never touches
+// rider gear or hand controls. Fine grain remains in the separate roughness map.
+function applySurfaceFinish(group, body, p, kind) {
+  const coated = new Set([p.paint, p.plastic, p.black, p.dark]);
+  const lowerBand =
+    kind === 'jeep'
+      ? [0.57, 1.02]
+      : kind === 'atv'
+        ? [0.35, 0.82]
+        : [0.37, 0.88];
+  const dust = new THREE.Color(0x796b51);
+  const point = new THREE.Vector3();
+  group.updateMatrixWorld(true);
+  group.traverse((object) => {
+    if (!object.geometry || !coated.has(object.material)) return;
+    const material = object.material;
+    let node = object,
+      isBody = false;
+    while (node) {
+      if (node === body) {
+        isBody = true;
+        break;
+      }
+      node = node.parent;
+    }
+    const positions = object.geometry.getAttribute('position');
+    const colors = new Float32Array(positions.count * 3);
+    for (let i = 0; i < positions.count; i++) {
+      point.fromBufferAttribute(positions, i).applyMatrix4(object.matrixWorld);
+      const band = isBody
+        ? clamp((lowerBand[1] - point.y) / (lowerBand[1] - lowerBand[0]), 0, 1)
+        : 0;
+      const variation =
+        0.73 +
+        0.27 *
+          Math.sin(point.x * 19 + point.z * 11) *
+          Math.sin(point.z * 7 - point.y * 13);
+      const blend =
+        band * band * variation * (material === p.paint ? 0.28 : 0.17);
+      for (const [j, component] of ['r', 'g', 'b'].entries()) {
+        const base = material.color[component];
+        colors[i * 3 + j] =
+          base > 0.0001
+            ? (base * (1 - blend) + dust[component] * blend) / base
+            : 1;
+      }
+    }
+    object.geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    material.vertexColors = true;
+  });
+}
+
 /** Owns all its geometry/materials; scene attachment is the caller's responsibility. */
 export function createVehicleModel(kind = 'jeep') {
   if (!SPEC[kind]) throw new TypeError(`Unknown vehicle model: ${kind}`);
@@ -2329,6 +2393,7 @@ export function createVehicleModel(kind = 'jeep') {
   const suspensionUpdaters = wheels.map((value) =>
     suspension(group, value, kind, p),
   );
+  applySurfaceFinish(group, body, p, kind);
   let spin = 0;
   let steering = 0;
   let driverView = false;
@@ -2404,6 +2469,7 @@ export function createVehicleModel(kind = 'jeep') {
   }
   function setDriverView(value) {
     driverView = Boolean(value);
+    person.setDriverView?.(driverView);
     person.head.visible = !driverView;
     person.torso.visible = !driverView;
     group.traverse((part) => {

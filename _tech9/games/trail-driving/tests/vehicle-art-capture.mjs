@@ -9,7 +9,13 @@ const out = path.join(
   process.env.VEHICLE_ROUND || 'vehicle-art',
 );
 await mkdir(out, { recursive: true });
-const h = await openScene({ mode: 'preview' }),
+const h = await openScene({
+    mode: 'preview',
+    videoDirectory:
+      process.env.RECORD_VEHICLE_VIDEO === '1'
+        ? path.join(out, 'video')
+        : undefined,
+  }),
   { page } = h;
 const evidence = [];
 try {
@@ -70,6 +76,7 @@ try {
           cwd: root,
           encoding: 'utf8',
         }).trim(),
+        videoPath: page.video() ? await page.video().path() : null,
         environment: h.environment,
         performance,
         errors: h.errors,

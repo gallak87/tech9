@@ -257,6 +257,7 @@ export async function createLandscape(context, kit) {
       shader.uniforms.pathNormal = { value: textures[4] };
       shader.uniforms.pathRoughness = { value: textures[5] };
       shader.uniforms.canopyShade = { value: canopyShade };
+      shader.uniforms.landscapeEye = eye;
       shader.vertexShader = shader.vertexShader.replace(
         '#include <common>',
         '#include <common>\nvarying vec3 vGround;',
@@ -268,7 +269,7 @@ export async function createLandscape(context, kit) {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <common>',
         `#include <common>
-      varying vec3 vGround; uniform sampler2D pathTexture; uniform sampler2D pathNormal; uniform sampler2D pathRoughness; uniform sampler2D canopyShade;
+      varying vec3 vGround; uniform vec3 landscapeEye; uniform sampler2D pathTexture; uniform sampler2D pathNormal; uniform sampler2D pathRoughness; uniform sampler2D canopyShade;
       float coverHash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453); }
       float coverNoise(vec2 p) { vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(coverHash(i),coverHash(i+vec2(1,0)),f.x),mix(coverHash(i+vec2(0,1)),coverHash(i+1.),f.x),f.y); }`,
       );
@@ -296,7 +297,8 @@ export async function createLandscape(context, kit) {
       // when fine geometry recedes, including in the trimmed airfield meadow.
       float colony = .5 + .5*sin(w.x*.19+cos(w.y*.16))*cos(w.y*.23);
       vec3 moss = floorColor*vec3(.12,.24,.055);
-      cover = mix(cover,moss,smoothstep(.30,.80,colony)*.38);
+      float colonyDetail = 1. - smoothstep(25.,80.,distance(vGround,landscapeEye));
+      cover = mix(cover,moss,smoothstep(.30,.80,colony)*.38*colonyDetail);
       float slope = 1.0 - abs(normalize(cross(dFdx(vGround),dFdy(vGround))).y);
       float outcrop = smoothstep(.045,.19,slope)*smoothstep(130.,260.,vGround.y)*(0.55+macro*.45);
       cover = mix(cover,vec3(.25,.27,.23)*(floorColor*.5+.6),outcrop*.75);

@@ -4,7 +4,7 @@
 
 Create a goal to complete and verify the integrated Echo extraction, starting-point selection and reference-game review described below. Own implementation, integration and validation in this session. Work autonomously through preparation, commit the completed result, then stop for the user's new-game brief.
 
-Use an isolated Git worktree from the current accepted branch. Reuse a suitable task worktree or create a managed one. Read `_tech9/AGENTS.md`, `_tech9/WORKFLOW.md`, `_tech9/FRAMEWORK_DEV.md`, `_tech9/GENERATE.md` and `HANDOFF-tech9-graduation.md`. Read local instructions and architecture for the source packages you inspect.
+Work in the current checkout. Inspect repository status and preserve unrelated changes. Read `_tech9/AGENTS.md`, `_tech9/WORKFLOW.md`, `_tech9/FRAMEWORK_DEV.md`, `_tech9/GENERATE.md` and `HANDOFF-tech9-graduation.md`. Read local instructions and architecture for the source packages you inspect.
 
 Delegate bounded inspection and independent critique when useful. Keep one owner per edited path and integrate the findings here. Commit stable milestones and keep current usage documentation concise.
 
@@ -50,7 +50,7 @@ Run framework checks, relevant starting-package checks and focused generation te
 
 Use the shared workflow's harsh independent visual critique for authored visual deliverables, and review the integrated interfaces. Resolve actionable findings and report concrete remaining limitations.
 
-Preparation is complete when the extracted capabilities, named starting packages and generation tooling work together, reference findings are resolved or explicitly deferred, and required checks pass. Commit that checkpoint and update the graduation document's current structure and preparation status. Leave the worktree ready for the game phase and the branch ready for review; merging remains subject to the user's instructions.
+Preparation is complete when the extracted capabilities, named starting packages and generation tooling work together, reference findings are resolved or explicitly deferred, and required checks pass. Commit that checkpoint and update the graduation document's current structure and preparation status. Leave the checkout ready for the game phase.
 
 ## Game brief gate
 
@@ -60,7 +60,7 @@ Wait for the brief before creating or implementing the game. The user's choice i
 
 ## After the brief
 
-Continue in this session and worktree. Clarify material missing requirements and create a new goal for the agreed game plus its framework-dev phase.
+Continue in this session and checkout. Clarify material missing requirements and create a new goal for the agreed game plus its framework-dev phase.
 
 1. Use `_tech9/GENERATE.md` to create a distinct standalone 2D/2.5D game in `_tech9/games/<slug>/`, selecting the appropriate starting point and relevant extracted modules.
 2. Build the complete agreed experience. Validate gameplay, controls, lifecycle, presentation and performance; follow the agreed harsh independent critique and improvement passes.

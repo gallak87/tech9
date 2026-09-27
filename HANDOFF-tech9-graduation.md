@@ -21,7 +21,7 @@ From the repository root, use `./_tech9/run`; from the framework directory, use 
 
 ## Pre-graduation work
 
-Use one session and worktree with the [framework expansion prompt](./PROMPT-framework-expansion.md). Its preparation goal covers extraction, starting-point selection and reference review through verified integration. Commit the preparation checkpoint, complete that goal, and wait for the user's new-game brief. The same session can continue with a new goal for the game and framework-dev phase. Root relocation is a separate task.
+Use one session in the current checkout with the [framework expansion prompt](./PROMPT-framework-expansion.md). Its preparation goal covers extraction, starting-point selection and reference review through verified integration. Commit the preparation checkpoint, complete that goal, and wait for the user's new-game brief. The same session can continue with a new goal for the game and framework-dev phase. Root relocation is a separate task.
 
 | Work | Deliverable |
 | --- | --- |

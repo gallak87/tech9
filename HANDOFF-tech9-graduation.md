@@ -21,24 +21,26 @@ From the repository root, use `./_tech9/run`; from the framework directory, use 
 
 ## Pre-graduation work
 
-Run prompts 01–03 in parallel worktrees from the same accepted commit. Merge accepted work and complete integration before starting prompt 04 in a fresh worktree. Root relocation is a separate task.
+Use one session and worktree with the [framework expansion prompt](./PROMPT-framework-expansion.md). Its preparation goal covers extraction, starting-point selection and reference review through verified integration. Commit the preparation checkpoint, complete that goal, and wait for the user's new-game brief. The same session can continue with a new goal for the game and framework-dev phase. Root relocation is a separate task.
 
-| Step | Deliverable | Prompt |
-| --- | --- | --- |
-| 01 | Reusable Echo capabilities, supporting art and a runnable 2.5D starting package | [Echo extraction](./01_ECHO_FRAMEWORK_DEV_PROMPT.md) |
-| 02 | Generation that selects a suitable starting package or creates a minimal standalone package | [Starting-point selection](./02_STARTING_POINTS_PROMPT.md) |
-| 03 | Concrete framework improvements informed by Canvas2D, Three.js and Godot reference games and root authoring tools | [Reference-game pass](./03_REFERENCE_GAMES_PROMPT.md) |
-| 04 | A new 2D/2.5D game using the accepted framework, followed by completed framework-dev extraction or improvements | [Game brief — TBD](./04_TBD_PROMPT.md) |
+| Work | Deliverable |
+| --- | --- |
+| Echo extraction | Reusable capabilities, supporting art and a runnable 2.5D starting package |
+| Starting-point selection | Generation that selects a suitable starting package or creates a minimal standalone package |
+| Reference review | Concrete findings and justified improvements informed by Canvas2D, Three.js, Godot and root authoring tools |
+| Integration | Working package selection, module copies, package creation and passing affected checks |
+| User input | The new game's concept, scope, presentation and target devices |
+| New game and framework-dev | A completed 2D/2.5D game using the framework, followed by integrated reusable capabilities or improvements |
 
 Chronoforge Echo is the primary extraction source. Void Sentinel supplies a Canvas2D shooter reference; Vulpine and Void Sentinel Breach supply Three.js references; Void Fracture supplies the Godot reference. Existing games retain their owned implementations. Reusable modules include the source, selected assets, presets and integration needed by another game.
 
 Starting packages compose modules into runnable applications. Each declares its runtime and dependencies. Generation selects the appropriate foundation; concrete support follows implemented and verified package paths.
 
-Parallel ownership: 01 owns extracted modules, module build dependencies and sprite-world; 02 owns generation, source copying/synchronization, schemas and shared usage docs; 03 owns reference findings and independently scoped authoring tools. During integration, connect sprite-world to generation, verify selected module copies and package creation, resolve concrete reference findings, and run affected checks. References may justify findings alone rather than new code.
+The session owns integration and can delegate independent inspection or critique. Preparation includes connecting sprite-world to generation and resolving concrete reference findings. References may justify findings alone rather than new code.
 
 ## Graduation gate
 
-**Status: pending.** The new game's brief is open. Cutover starts after all four steps are accepted and integrated:
+**Status: pending.** Framework expansion and the new game's brief are open. Cutover starts after preparation and the game/framework-dev phase are accepted and integrated:
 
 - Echo capabilities and starting-point selection are usable through the new framework.
 - The reference pass has resolved concrete blockers for the supported paths.

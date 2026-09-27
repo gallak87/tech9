@@ -18,13 +18,13 @@ Extract reusable 2.5D capabilities from Echo, add starting-point selection and c
 
 Move the older framework into `_archive/` and promote `_tech9/` to root. Keep GitHub Pages serving committed browser games and pilots. Decide archive coverage and retain stable public routes.
 
-[Work prompts, graduation gate and cutover plan](../HANDOFF-tech9-graduation.md)
+[Session prompt](../PROMPT-framework-expansion.md) · [Graduation gate and cutover plan](../HANDOFF-tech9-graduation.md)
 
 ### 2. Build a full game
 
 Define the new 2D/2.5D game's experience, presentation and target devices. Build it in `games/<slug>/` from the appropriate starting point and modules. Its completed framework-dev phase is the graduation gate.
 
-[Game brief — TBD](../04_TBD_PROMPT.md)
+[Game brief gate](../PROMPT-framework-expansion.md#game-brief-gate)
 
 ### 3. Improve baseline performance
 

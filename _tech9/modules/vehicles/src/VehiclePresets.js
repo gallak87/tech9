@@ -1,0 +1,58 @@
+/** Metres, seconds and radians. Geometry mounts at the terrain plane, facing -Z. */
+export const VEHICLE_PRESETS = Object.freeze(
+  Object.fromEntries(
+    Object.entries({
+      jeep: {
+        layout: 'four-wheel',
+        topSpeed: 25,
+        reverseSpeed: 5.2,
+        acceleration: 6.8,
+        braking: 12.5,
+        dimensions: { wheelBase: 2.8, track: 1.65, width: 1.94, length: 4.2 },
+        wheelRadius: 0.43,
+        steering: 0.53,
+        steeringResponse: 5.3,
+        grip: 1.12,
+        suspension: 0.27,
+        suspensionResponse: 8,
+        weightTransfer: 0.009,
+      },
+      atv: {
+        layout: 'four-wheel',
+        topSpeed: 28,
+        reverseSpeed: 4.5,
+        acceleration: 8.1,
+        braking: 15,
+        dimensions: { wheelBase: 1.55, track: 1.1, width: 1.22, length: 2.3 },
+        wheelRadius: 0.31,
+        steering: 0.58,
+        steeringResponse: 8.5,
+        grip: 1,
+        suspension: 0.23,
+        suspensionResponse: 11,
+        weightTransfer: 0.013,
+      },
+      bike: {
+        layout: 'two-wheel',
+        topSpeed: 31,
+        reverseSpeed: 2.4,
+        acceleration: 9.1,
+        braking: 16,
+        dimensions: { wheelBase: 1.48, track: 0, width: 0.74, length: 2.2 },
+        wheelRadius: 0.35,
+        steering: 0.48,
+        steeringResponse: 6.5,
+        grip: 0.95,
+        suspension: 0.25,
+        suspensionResponse: 12,
+        weightTransfer: 0.01,
+      },
+    }).map(([key, value]) => [
+      key,
+      Object.freeze({
+        ...value,
+        dimensions: Object.freeze(value.dimensions),
+      }),
+    ]),
+  ),
+);

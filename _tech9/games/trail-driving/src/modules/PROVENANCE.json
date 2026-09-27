@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "modules": [
+    {
+      "id": "grounded-walking",
+      "version": "1.0.0",
+      "source": "modules/grounded-walking",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "cc398954fe27fb4b33a739f73240a75fe557a261402bfc1a4e3a861811b88421"
+        },
+        {
+          "path": "src/WalkingController.js",
+          "sha256": "2ba856e6c6619a2b080d7baf6086f4cac918731f8e3ac4682b6c36c8b3e75dbd"
+        }
+      ]
+    },
+    {
+      "id": "placement-collisions",
+      "version": "1.0.0",
+      "source": "modules/placement-collisions",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "c4d7e42cd3f4bc3973caaeeafa026e84746361a33bf23a44b0ee370099e55b03"
+        },
+        {
+          "path": "src/placementCollisions.js",
+          "sha256": "927897abb073f123c4ba2f996fcb8eedd1726323bad05ec4eaff13e18cb7410d"
+        }
+      ]
+    }
+  ]
+}

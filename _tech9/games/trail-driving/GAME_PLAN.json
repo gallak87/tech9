@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 2,
+  "id": "trail-driving",
+  "title": "Trail Driving",
+  "pitch": "Three distinct off-road vehicles, three timed trails, a coherent forest park, and reusable driving modules.",
+  "baselineVersion": "1.3.0",
+  "status": "approved",
+  "authorization": {
+    "mode": "delegated",
+    "basis": "User executes PROMPT.md: routine design, implementation, local dependencies, asset authoring, validation, bounded agents and local milestone commits are delegated."
+  },
+  "scope": {
+    "mustHave": [
+      "All BRIEF.md requirements: Jeep, ATV, dirt bike, three 60–150 second routes, garage/free drive/trials/results/retry, medals and persistent records",
+      "Terrain contacts, collisions, suspension, bike balance, driver/chase views, audio, settings, recovery, focus safety",
+      "Nine real-input runs, independent engineering and bounded art review, framework extraction"
+    ],
+    "outOfScope": [
+      "Online play",
+      "Publishing or pushing remote changes"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "jeep-loop",
+      "title": "Complete first loop",
+      "deliverables": [
+        "Jeep selection through result and retry"
+      ],
+      "acceptance": [
+        "Real driving, terrain, collision, camera, pause and recovery"
+      ]
+    },
+    {
+      "id": "roster",
+      "title": "Complete vehicle roster",
+      "deliverables": [
+        "ATV and bike motion and animated presentation"
+      ],
+      "acceptance": [
+        "Distinct handling, mounted/chase camera and transitions"
+      ]
+    },
+    {
+      "id": "game",
+      "title": "Complete game",
+      "deliverables": [
+        "Three routes, progression, audio, effects and presentation"
+      ],
+      "acceptance": [
+        "Nine combinations playable with local persistence"
+      ]
+    },
+    {
+      "id": "acceptance",
+      "title": "Acceptance",
+      "deliverables": [
+        "Checks and independent reviews"
+      ],
+      "acceptance": [
+        "Nine normal-speed real-input completions, edge cases, performance, engineering fixes and art 8/10 or four rounds"
+      ]
+    },
+    {
+      "id": "framework",
+      "title": "Framework-dev",
+      "deliverables": [
+        "Proven reusable modules and improvements"
+      ],
+      "acceptance": [
+        "Canonical tests, usage docs, registry, framework checks, review and commit"
+      ]
+    }
+  ],
+  "lanes": [
+    {
+      "id": "integration",
+      "role": "Root: rules, UI, integration, validation",
+      "owns": [
+        "games/trail-driving/src/main.js",
+        "games/trail-driving/src/game",
+        "games/trail-driving/src/style.css",
+        "games/trail-driving/tests",
+        "games/trail-driving/README.md"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "dynamics",
+      "role": "Vehicle motion and input",
+      "owns": [
+        "games/trail-driving/src/driving"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "world",
+      "role": "Terrain, routes, placements and rendering",
+      "owns": [
+        "games/trail-driving/src/park"
+      ],
+      "dependsOn": []
+    },
+    {
+      "id": "vehicles",
+      "role": "Vehicle models and feedback",
+      "owns": [
+        "games/trail-driving/src/vehicles"
+      ],
+      "dependsOn": []
+    }
+  ],
+  "validation": {
+    "commands": [
+      "./run --prefix games/trail-driving test",
+      "./run --prefix games/trail-driving run lint",
+      "./run --prefix games/trail-driving run build",
+      "./run --prefix games/trail-driving run verify",
+      "./run run check"
+    ],
+    "playthrough": [
+      "All nine vehicle/route combinations at normal speed using keyboard input",
+      "Gate order/direction, finish eligibility, recovery, restart, pause/focus, switching cameras/vehicles, storage and resource lifecycle"
+    ],
+    "performance": {
+      "targetFps": 60,
+      "viewport": {
+        "width": 1600,
+        "height": 1000
+      },
+      "quality": "Balanced"
+    }
+  },
+  "artGate": {
+    "threshold": 8,
+    "maxRounds": 4
+  },
+  "stopAfter": "Game acceptance, bounded review, framework-dev extraction/review, committed handoff, run cleanup and task process shutdown."
+}

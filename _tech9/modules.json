@@ -19,7 +19,7 @@
     },
     {
       "id": "follow-camera",
-      "version": "1.0.1"
+      "version": "1.1.0"
     },
     {
       "id": "island-ocean",
@@ -44,6 +44,10 @@
     {
       "id": "landscape",
       "version": "1.1.0"
+    },
+    {
+      "id": "vehicles",
+      "version": "1.0.0"
     }
   ]
 }

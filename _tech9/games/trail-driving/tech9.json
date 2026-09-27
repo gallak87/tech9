@@ -1,0 +1,427 @@
+{
+  "schemaVersion": 2,
+  "id": "trail-driving",
+  "status": "scaffolded",
+  "createdAt": "2026-09-26T00:51:41.072Z",
+  "source": {
+    "path": "_tech9/baseline",
+    "version": "1.3.0",
+    "commit": "0e03621d8aa488666754f0325da3651000509a0c",
+    "snapshotSha256": "e08ba290b9389e54a0ab702e956bf7506994e64c451f5b808c35e06ada2ba3a2",
+    "files": [
+      {
+        "path": ".gitignore",
+        "bytes": 72,
+        "sha256": "2b9976c4c1600e25a5a49397eea5802c4385c365ceea91c4a2b82e6c61c619d6"
+      },
+      {
+        "path": ".prettierignore",
+        "bytes": 149,
+        "sha256": "bce6f3cfd38c68913a008d3e150a11f30dea9058acca771527bcd4a80f887ebd"
+      },
+      {
+        "path": ".prettierrc.json",
+        "bytes": 26,
+        "sha256": "37055c98043228133ffcc5cad7bba5ef6c8f24698a551cae547b90f51d22e519"
+      },
+      {
+        "path": "ARCHITECTURE.md",
+        "bytes": 9249,
+        "sha256": "7f0f5715f46d59a28b776a583b8380792913cc2bed46c09f86b074db08891434"
+      },
+      {
+        "path": "art/acquire_groundcover.py",
+        "bytes": 2692,
+        "sha256": "cefd7956d77fe73d53dc1fd7ddbfe9fd094438e3d46d40ffb5c0d9d5e001562f"
+      },
+      {
+        "path": "art/asset-report.json",
+        "bytes": 1022,
+        "sha256": "43778a0b4c148cb192b638c0f91db142094d6b82b9d1e5f3bd4e8b3dad079b2b"
+      },
+      {
+        "path": "art/build_forest.py",
+        "bytes": 20170,
+        "sha256": "aed90f375194f6ab841d0706ba4b8492d1e03b042f550ad918fae838335d1684"
+      },
+      {
+        "path": "art/forest-kit.blend",
+        "bytes": 9984421,
+        "sha256": "a27e5fc1ce5faeeb9f8d9028c57b6edf993ad3ed315ddab80b884f5b45d98fc3"
+      },
+      {
+        "path": "art/generate_needles.py",
+        "bytes": 4403,
+        "sha256": "d6098cc602178f8b1abbe9aed4b01648643b46193f2d19e1346dd19a7a4e78f4"
+      },
+      {
+        "path": "art/sources/fern_02/fern_02.bin",
+        "bytes": 45088,
+        "sha256": "865c20b7954e714c0e8692c1c9f99a72c9ab6ff6cfcef5ddf21bf88d625d9257"
+      },
+      {
+        "path": "art/sources/fern_02/fern_02.gltf",
+        "bytes": 2463,
+        "sha256": "48b744a24e6108850bca1efa4096e29d8a355e4101a2a40c31836e376abd74e0"
+      },
+      {
+        "path": "art/sources/fern_02/textures/fern_02_alpha_1k.png",
+        "bytes": 114589,
+        "sha256": "ea3c64284c7ebdeedf484d2d816eae92825ec526140c3bb83859ddc7a64001f9"
+      },
+      {
+        "path": "art/sources/fern_02/textures/fern_02_arm_1k.jpg",
+        "bytes": 280359,
+        "sha256": "ebfb5d76ce9cbdaec20bcd22dce9b755f0b1b8650ef29ca13555e3e6961025d7"
+      },
+      {
+        "path": "art/sources/fern_02/textures/fern_02_diff_1k.jpg",
+        "bytes": 315705,
+        "sha256": "a828a6e7b4c01c826911e2eac4b3afc7457dab7b3b392a31c681ed88b7d50029"
+      },
+      {
+        "path": "art/sources/fern_02/textures/fern_02_nor_gl_1k.jpg",
+        "bytes": 367222,
+        "sha256": "45bce132c6e96a0864bc89ab5da51361ab3f4afa83a6669ae499ab5ca811f621"
+      },
+      {
+        "path": "art/sources/fern_02/textures/fern_02_rgba_1k.png",
+        "bytes": 838210,
+        "sha256": "c53438a086f4021e9ac4e95b71a93fada1e5c2632c9ce8e90fb2287b1d49e1cc"
+      },
+      {
+        "path": "art/sources/grass_medium_01/grass_medium_01.bin",
+        "bytes": 41156,
+        "sha256": "e0754e54862356ff727e95155aa7221355acc94b557cdf9df0ee9743997ed0b2"
+      },
+      {
+        "path": "art/sources/grass_medium_01/grass_medium_01.gltf",
+        "bytes": 3552,
+        "sha256": "c427c0e7741c42b590f53d929af283a5cc77c51d2a74e76155d59b1f2c91c954"
+      },
+      {
+        "path": "art/sources/grass_medium_01/textures/grass_medium_01_alpha_1k.png",
+        "bytes": 648718,
+        "sha256": "711a8e49af758d6a6ce1f610db858899a27be19da6d1866bd35c13bc7b8ffeff"
+      },
+      {
+        "path": "art/sources/grass_medium_01/textures/grass_medium_01_arm_1k.jpg",
+        "bytes": 679518,
+        "sha256": "9a3a30f72bc02f4398967c5b08f2d20cce30bd423a2613b42a727034296fa3ae"
+      },
+      {
+        "path": "art/sources/grass_medium_01/textures/grass_medium_01_diff_1k.jpg",
+        "bytes": 395673,
+        "sha256": "71495bd6a11fddcab0aaff38246fea1a7b802a705483f1c7cbca53955daa8050"
+      },
+      {
+        "path": "art/sources/grass_medium_01/textures/grass_medium_01_nor_gl_1k.jpg",
+        "bytes": 956166,
+        "sha256": "cae298d3d1d7ff7c7e210ad8ac772b96706e356f9315a6b04fde373ce01ccf1e"
+      },
+      {
+        "path": "art/sources/grass_medium_01/textures/grass_medium_01_rgba_1k.png",
+        "bytes": 840009,
+        "sha256": "2032d52cea9650f763c98bd14841f2fa51e3358843a3e24420fec4e1732608f2"
+      },
+      {
+        "path": "art/sources/manifest.json",
+        "bytes": 3093,
+        "sha256": "105d97a207627292e5a11ef1feab91da3a7ec65bd455f1a9837afc92d4bcea09"
+      },
+      {
+        "path": "art/textures/bark_brown_02_diff_1k.jpg",
+        "bytes": 659592,
+        "sha256": "920fa0bed0c9d78c1d530e99795113afd532d7db746de440f4a85d7c83ed0f1a"
+      },
+      {
+        "path": "art/textures/bark_brown_02_nor_gl_1k.jpg",
+        "bytes": 1015623,
+        "sha256": "0d5e691e8ad8bcd093a3587887fda2a6b4a948b5708a4f256f7919584c6eb857"
+      },
+      {
+        "path": "art/textures/bark_brown_02_rough_1k.jpg",
+        "bytes": 337946,
+        "sha256": "68125592de36e15bae7aa6db85c4d135aeb7e5653199ba226483a70f6d69837d"
+      },
+      {
+        "path": "art/textures/forest-granite-diff.jpg",
+        "bytes": 510948,
+        "sha256": "ff40a03843e0bae5cb4f055cd3db7dd41c2369543ebdf24ca2d92bb2464881f6"
+      },
+      {
+        "path": "art/textures/pine_tree_01_twig_alpha_1k.png",
+        "bytes": 351928,
+        "sha256": "6f91aa99f2c27108d6f817f874954aa7df8bfbb4dea2673e9322555a6ae79d99"
+      },
+      {
+        "path": "art/textures/pine_tree_01_twig_diff_1k.jpg",
+        "bytes": 510932,
+        "sha256": "e649f0f9bc74d1af5f1a45eaf2fe7a29adaaddfab251f746b983da301e4b80e1"
+      },
+      {
+        "path": "art/textures/pine-spray.png",
+        "bytes": 1210488,
+        "sha256": "5db8c5d6f927b4908adabbca9182c759f05bc08395fae19bdf2ece304f59a3a9"
+      },
+      {
+        "path": "art/textures/rock_boulder_cracked_diff_1k.jpg",
+        "bytes": 998110,
+        "sha256": "e88c9e50109c7f610bc380a00b9bdac5954c392bb02134dedeea3358da57276a"
+      },
+      {
+        "path": "art/textures/rock_boulder_cracked_nor_gl_1k.jpg",
+        "bytes": 1079683,
+        "sha256": "022000a37cb91457de2e0c738baebbc1b0b8eb864ba99321d07c248d5c0741bc"
+      },
+      {
+        "path": "art/textures/rock_boulder_cracked_rough_1k.jpg",
+        "bytes": 379850,
+        "sha256": "47e6c4b43c9cc5331d0392e3f74777f9a6712edda141dd148586b404c6c30e73"
+      },
+      {
+        "path": "art/textures/timber-endgrain.jpg",
+        "bytes": 63310,
+        "sha256": "14d2d1635f7a24020c813a81990e93878d09ecb1923ff734630fb8c5fc9fd2cd"
+      },
+      {
+        "path": "eslint.config.js",
+        "bytes": 682,
+        "sha256": "c12f4d1e76dad60975bc48b18ab8ff7d082db2c02292a980490684a33be3ebfc"
+      },
+      {
+        "path": "index.html",
+        "bytes": 1024,
+        "sha256": "167b2b358403837e794c3c8b477e574812514b2fe18cd73a10befa8b06f60c75"
+      },
+      {
+        "path": "package-lock.json",
+        "bytes": 73937,
+        "sha256": "af259c4c6449e475c2f14d1c880d175a480595d672ff975f4645f9fbe6bf9831"
+      },
+      {
+        "path": "package.json",
+        "bytes": 1491,
+        "sha256": "f22130b47dee8a81cb531c2c9b6ed694998a8fe97d08885b0e1c392cc2af20c0"
+      },
+      {
+        "path": "public/assets/ASSETS.md",
+        "bytes": 6083,
+        "sha256": "e525a52a51557f3fb45edca5f98d6c7815247eb8af1404f622369631cd0d3170"
+      },
+      {
+        "path": "public/assets/forest-kit.glb",
+        "bytes": 11457108,
+        "sha256": "ca7a1a9b2112e62f78eb993cac034505df27d56b84c64c897631e05c0822ccd6"
+      },
+      {
+        "path": "public/assets/textures/forest-floor-color.jpg",
+        "bytes": 1195394,
+        "sha256": "cfa40bc9d9417d1852db8753a8d5917f110c40101179f63543c382e39bc05e4a"
+      },
+      {
+        "path": "public/assets/textures/forest-floor-normal.jpg",
+        "bytes": 1466049,
+        "sha256": "832328216adc0a7e1f70a31d5ee48c9ab7f2152d83816122736cf42ac4b2ebd6"
+      },
+      {
+        "path": "public/assets/textures/forest-floor-roughness.jpg",
+        "bytes": 511385,
+        "sha256": "0c2a1d91aacb8e54a496051b59854e51e456fe858abeade778e308359ef16463"
+      },
+      {
+        "path": "public/assets/textures/path-color.jpg",
+        "bytes": 501955,
+        "sha256": "df3f135c899f10a3b018738343b222cbc67d13e7c76c5d8da834a3d34c984417"
+      },
+      {
+        "path": "public/assets/textures/path-normal.jpg",
+        "bytes": 1011780,
+        "sha256": "ac517ca39eb507ae0f27e2b3db431c60888f9b5c3c52bec49d2c0775da0920cb"
+      },
+      {
+        "path": "public/assets/textures/path-roughness.jpg",
+        "bytes": 340815,
+        "sha256": "ae9fb57c1173ccb4579f40edf8321a30bdca815042ffd72015a2a707c7e2e7ba"
+      },
+      {
+        "path": "public/assets/textures/SOURCES.md",
+        "bytes": 753,
+        "sha256": "769273c378218c23d81036fad55ae4eaf400d0bf1562904224eed42cfccc12c7"
+      },
+      {
+        "path": "public/favicon.svg",
+        "bytes": 229,
+        "sha256": "41566d99fc788306ae1514f73ede320b48a1dc0a03876ebf2e1b0fcdf44b9ab4"
+      },
+      {
+        "path": "public/fonts/Barlow-OFL.txt",
+        "bytes": 4376,
+        "sha256": "10b0e6bb43166a50fbe7cde2895bd7f703738a5da843acb5c97c95dc9ea26817"
+      },
+      {
+        "path": "public/fonts/barlow-regular.ttf",
+        "bytes": 82624,
+        "sha256": "a35caa4687f434d66453c1fe423d7074cfa9fd7ab80c19b0780f3862887d2fc9"
+      },
+      {
+        "path": "README.md",
+        "bytes": 2326,
+        "sha256": "2333e2becceb5e3681d649aecff7dcbe4517f4919536f048cad9424bfcbe3256"
+      },
+      {
+        "path": "ROADMAP.md",
+        "bytes": 2427,
+        "sha256": "d64e7ace503008fcaa1cc1b6ac82ff3e4ffcf7e97d92d6cec20ff681cec0c9e3"
+      },
+      {
+        "path": "scripts/build-assets.mjs",
+        "bytes": 1363,
+        "sha256": "daa8b97b1204a2ae87089f0a9543038a79a54586d757fb7488b7e09aea2b63d4"
+      },
+      {
+        "path": "scripts/capture.mjs",
+        "bytes": 1697,
+        "sha256": "dbfb1b856e04aae370831b163e737c6d2f4634fb74b27b34a35ffc8f57bcd414"
+      },
+      {
+        "path": "src/core/AtmospherePass.js",
+        "bytes": 7020,
+        "sha256": "4126500bcaf51b426efc9a10195d7832f696769d60df82424d5ee1b438d16049"
+      },
+      {
+        "path": "src/core/FlyCamera.js",
+        "bytes": 3881,
+        "sha256": "584bee742d91f6825e903ba9a03688e2715046888276e0f12f2d1748ce216174"
+      },
+      {
+        "path": "src/core/SceneApp.js",
+        "bytes": 12355,
+        "sha256": "d857715538530d5d3c7d99b56d3e53bb05293e4aef498d2bb1f1c668622b7da8"
+      },
+      {
+        "path": "src/core/sceneDefinition.js",
+        "bytes": 2092,
+        "sha256": "2640eefb9d1d3a9f79c0bb47647f28fefa73f79171aa3be2c4ebe83390d2d72f"
+      },
+      {
+        "path": "src/core/settings.js",
+        "bytes": 1327,
+        "sha256": "86d1d1bced468a4118b4d43826895c487b0bfc51ef2c8079eb1a7c624ef12840"
+      },
+      {
+        "path": "src/core/softShadows.js",
+        "bytes": 1110,
+        "sha256": "c062b54032363c0bba8d121b2e908305c6f9a850b9564a8cbdbcb64518e626ca"
+      },
+      {
+        "path": "src/main.js",
+        "bytes": 5098,
+        "sha256": "39e5e3d6f76beedd30478a7aeca2ec35e008e80ed4167446b493227259f4564c"
+      },
+      {
+        "path": "src/modules/grounded-walking/README.md",
+        "bytes": 1219,
+        "sha256": "cc398954fe27fb4b33a739f73240a75fe557a261402bfc1a4e3a861811b88421"
+      },
+      {
+        "path": "src/modules/grounded-walking/src/WalkingController.js",
+        "bytes": 8433,
+        "sha256": "2ba856e6c6619a2b080d7baf6086f4cac918731f8e3ac4682b6c36c8b3e75dbd"
+      },
+      {
+        "path": "src/modules/placement-collisions/README.md",
+        "bytes": 1227,
+        "sha256": "c4d7e42cd3f4bc3973caaeeafa026e84746361a33bf23a44b0ee370099e55b03"
+      },
+      {
+        "path": "src/modules/placement-collisions/src/placementCollisions.js",
+        "bytes": 4574,
+        "sha256": "927897abb073f123c4ba2f996fcb8eedd1726323bad05ec4eaff13e18cb7410d"
+      },
+      {
+        "path": "src/modules/PROVENANCE.json",
+        "bytes": 918,
+        "sha256": "0d5f21be191bf720370845e22d4210a25427c351be57cfcd33b0459390cd8979"
+      },
+      {
+        "path": "src/style.css",
+        "bytes": 9381,
+        "sha256": "2ac4d1b2840cbfb84885b619d058b319da42659e5ffec8c8c344ec1deb3c2ad4"
+      },
+      {
+        "path": "src/ui/DevPanel.js",
+        "bytes": 8080,
+        "sha256": "a16172df1954085d7bd9bb94d06ce9034597d81fcb267104d3f274a101e238b5"
+      },
+      {
+        "path": "src/world/forestDefinition.js",
+        "bytes": 2496,
+        "sha256": "80d43fd6afbb9c0bebde06077f18b79143b17c24447738eda93e4afabebe2505"
+      },
+      {
+        "path": "src/world/ForestWorld.js",
+        "bytes": 28464,
+        "sha256": "ba4dc967adf5af199d531ef791bf31ba7586b38a0b4ca826e86cd2b1bc56eef4"
+      },
+      {
+        "path": "src/world/terrain.js",
+        "bytes": 2152,
+        "sha256": "58618bd1f509a838557a1dae45b71f3bff9dd0316d881329ae10959b6f3f8880"
+      },
+      {
+        "path": "tests/browser.mjs",
+        "bytes": 7873,
+        "sha256": "221fc12341c30fd54db26f76de0423fc611b6750ec9cae6937971e62fa28734f"
+      },
+      {
+        "path": "tests/contracts.test.js",
+        "bytes": 4781,
+        "sha256": "b6976a3ebcf9427fd8063c160ee5c09c311eb8a29d8fb758bc97448b7612b577"
+      },
+      {
+        "path": "tests/lib/browser.mjs",
+        "bytes": 8091,
+        "sha256": "0387b93bf50d08b17cfde3b2d6b2fa8fce43e855b37b1010fd2079391bc2237d"
+      },
+      {
+        "path": "tests/lifecycle.test.js",
+        "bytes": 5516,
+        "sha256": "ec54a79dd8c707a97de07662ec41d1bfb1ed977e21dbd2688f554b69d2f0b456"
+      },
+      {
+        "path": "tests/placement.test.js",
+        "bytes": 2542,
+        "sha256": "230e2722430bd95e03c984685bb7ce28807dc3dbb3be619c0cb58de94ee7fce5"
+      },
+      {
+        "path": "tests/README.md",
+        "bytes": 2775,
+        "sha256": "72db7fac7ce475831216705320a4883ec95163dd88ab8740fd1fb63706d25243"
+      },
+      {
+        "path": "tests/runtime.test.js",
+        "bytes": 6282,
+        "sha256": "3fb99262bcb9eac4aca3f49a0f73b8f36fbdcb03ff5ffd705ba74a02b50b1a75"
+      },
+      {
+        "path": "tests/walking-browser.mjs",
+        "bytes": 10288,
+        "sha256": "f575d556ce2340e6c0350483cdfb633203a3dc4b1c9b9f2349f5eaa217d3a6f5"
+      },
+      {
+        "path": "vite.config.js",
+        "bytes": 258,
+        "sha256": "9aa6a5235b10cdc1240d5dc30a90e5c0df01b29b420e560802feb2fd754918ab"
+      }
+    ]
+  },
+  "plan": {
+    "path": "GAME_PLAN.json",
+    "sha256": "396758ececb436335ad5de44785efad5dd60cefdd4482ea01ee931c163dc84a3"
+  },
+  "ports": {
+    "dev": 4480,
+    "preview": 4481
+  }
+}

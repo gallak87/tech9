@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Vehicles · integration example</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font: 15px/1.5 system-ui;
+        background: #a9bac5;
+        color: #14222b;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      aside {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        max-width: calc(100vw - 32px);
+        padding: 14px 18px;
+        border-radius: 12px;
+        background: #fffffff0;
+        box-shadow: 0 5px 25px #18252b24;
+      }
+      h1 {
+        font-size: 19px;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 8px 0 0;
+      }
+      select,
+      button {
+        font: inherit;
+        padding: 7px 12px;
+        border: 1px solid #738b93;
+        border-radius: 6px;
+      }
+      button {
+        background: #163f47;
+        color: white;
+        cursor: pointer;
+      }
+      output {
+        display: block;
+        margin-top: 8px;
+        font-variant-numeric: tabular-nums;
+      }
+      @media (max-width: 520px) {
+        aside {
+          font-size: 12px;
+          padding: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside>
+      <h1>Vehicles</h1>
+      <label
+        >Vehicle
+        <select id="vehicle">
+          <option value="jeep">Jeep</option>
+          <option value="atv">ATV</option>
+          <option value="bike">Dirt bike</option>
+        </select></label
+      >
+      <button id="resume">Drive / resume</button>
+      <p>
+        WASD / arrows · Space brake · C camera<br />R recover · T reset · Esc
+        pause
+      </p>
+      <output id="status" aria-live="off">Paused</output>
+    </aside>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

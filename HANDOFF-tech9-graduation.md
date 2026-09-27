@@ -9,6 +9,7 @@
 | `modules/`, `modules.json`                       | Thirteen reusable capabilities with source, assets, licenses, tests and integration guides.                                                                           |
 | `baselines/web-3d-world/`                        | Forest starting application: authored terrain and placements, fly/walking controls, landscape rendering and weather. Selected modules are synchronized source copies. |
 | `baselines/web-2.5d-world/`                      | Authored coastal starting application with generic sprite-world exploration, camera, depth/occlusion, desktop/touch controls and owned artwork.                       |
+| `scaffolds/`                                     | Minimal standalone Canvas2D, PixiJS and Three.js packages with owned dependencies and input/lifecycle examples.                                                       |
 | `games/_pilot/`                                  | Five standalone reference pilots: Stillwater Fishing, Pinewatch Hunt, Tidebreak, Trail Driving and Forest Flight.                                                     |
 | `games/<slug>/`                                  | Destination for new standalone games.                                                                                                                                 |
 | `tools/`, `schemas/`, `tests/`                   | Module builds, execution plans, source copying, provenance and framework verification.                                                                                |
@@ -41,13 +42,37 @@ The session owns integration and can delegate independent inspection or critique
 
 ## Preparation checkpoint
 
-The selected extraction is one cohesive `sprite-world` module. Both authored starting packages and three minimal web scaffolds have explicit renderer/runtime and package ownership. Reference findings are recorded in `_tech9/docs/REFERENCE-GAMES.md`; native support and broader tooling are deferred. The user requested review of `audio-runtime` after step 03; no audio extraction is included. Stop when preparation acceptance passes and wait for the user to return for step 04/new-game briefing. No root cutover is authorized by preparation.
+**Status: complete; ready for step 04 with the user.** Implementation checkpoint `b216931b` integrates the approved cohesive `sprite-world` extraction, both authored starting packages, three minimal web scaffolds and source-qualified reference findings. The final documentation checkpoint records acceptance without changing runtime source. No new game or root cutover has begun.
 
-Validation in progress: framework tests/lint/build/registry; selected module sync; owning package checks; real-input browser desktop/touch/rotation/lifecycle checks; clean committed source creation; independent visual and interface review.
+`sprite-world` requires explicit scene, artwork, actor and ground-painter inputs. Its optional coastal preset retains the source artwork, measured crops, editable originals and notices. The coastal starting application demonstrates traversal, camera, scenery depth/occlusion, collisions, landmark callbacks, keyboard/pointer/touch controls and resource lifetime. Echo's campaign, combat, progression and saves remain outside the module. Existing games and immutable receipts were preserved.
+
+Validation completed:
+
+- Framework: **221 tests**, lint/format, module builds and registry validation for all **13 modules**.
+- All five committed starting points: owned dependency installation, source copying, production build and immutable receipt checks. Both baselines passed source synchronization (3D: 4 modules/64 files; 2.5D: 1 module/24 files), package tests (21 and 2) and lint/build checks.
+- Coastal application: **14 real-input browser checks**, including camera/movement, collisions, interaction, pause/focus, reset/disposal, touch cancellation, rotation and persisted-page recovery. Production checks passed local art/font loading under a subpath, back navigation and exclusion of development test hooks. All three minimal scaffolds passed keyboard, pointer, touch, resize and lifecycle browser checks.
+- Independent interface review: all four reported ownership/configuration/history issues fixed and rechecked. Independent visual review: **8.0/10 in round 3**; ordinary input reaches the observatory and a grounded, opaque shoreline lookout.
+- Representative coastal timing: 180 frames, median/p95 **16.7/16.7 ms**, Chromium 153.0.8010.53, ANGLE Metal Apple M1 Pro, 1280×720 CSS viewport, coastal preset and 1.5-million backing-pixel budget. This is one desktop sample, not physical mobile acceptance or full GPU-memory measurement.
+
+Evidence remains in ignored `_tech9/.artifacts/framework-expansion/` (final framework log, interface/visual reports and `final-generation.json`), `_tech9/.artifacts/generation/run-gewTSg/`, `_tech9/.artifacts/scaffold-browser/run-A50REa/` and the coastal package's `.artifacts/verification/`.
+
+Remaining limits are explicit: direct click movement does not route around obstacles; scenery fade affects whole props; ground/water repeats and angular authored boundaries remain visible; still captures do not establish motion polish. Resource bytes estimate retained pixels, and protected active/pending artwork may exceed the eviction target. Physical mobile performance, native Godot generation and broader asset tooling remain future work. Reference findings and justified deferrals are in `_tech9/docs/REFERENCE-GAMES.md` and `_tech9/ROADMAP.md`.
+
+The user deferred `audio-runtime` for review after step 03; it is recorded but not extracted. Step 04 awaits the user's new-game concept, core loop, presentation and target devices. Agree its scope and visual gate before starting the separate game/framework-dev goal.
+
+From the repository root:
+
+```sh
+./_tech9/run --prefix baselines/web-2.5d-world run dev # http://127.0.0.1:4403
+./_tech9/run --prefix baselines/web-3d-world run dev  # http://127.0.0.1:4399
+./_tech9/run run t9 -- starting-points
+```
+
+Use `_tech9/GENERATE.md` for `web-canvas2d`, `web-pixi` or `web-three` and for creating the selected standalone game after the brief.
 
 ## Graduation gate
 
-**Status: pending.** Preparation implementation is integrated; committed-source generation checks and independent review are still being completed. The new game’s brief remains required. Cutover starts after preparation and the game/framework-dev phase are accepted and integrated:
+**Status: pending.** Preparation is complete and committed. The new game’s brief remains required; preparation alone does not satisfy graduation. Cutover starts after preparation and the game/framework-dev phase are accepted and integrated:
 
 - Echo capabilities and starting-point selection are usable through the new framework.
 - The reference pass has resolved concrete blockers for the supported paths.

@@ -1,6 +1,6 @@
 # Setup and framework location
 
-The framework lives in `_tech9/`. Commands and plan paths resolve from the framework directory. The baseline, games and reference pilots each install their own dependencies.
+The framework lives in `_tech9/`. Commands and plan paths resolve from the framework directory. Starting packages, games and reference pilots each install their own dependencies.
 
 ## Local setup
 

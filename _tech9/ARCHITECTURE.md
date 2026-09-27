@@ -6,7 +6,7 @@
 
 `baseline/` is a standalone Three.js application with its own package, lockfile, renderer, authored world and assets. Its package version identifies the starting application. `package.json` lists selected modules in `tech9.modules`; `sync:modules` copies them into `src/modules/<id>` and records source versions and hashes in `PROVENANCE.json`.
 
-The baseline uses one renderer/frame loop, one camera controller and disposable layers. The world definition supplies terrain, bounds, views and presentation. See [runtime contracts](./docs/EXTENDING.md).
+The baseline uses one renderer/frame loop, one camera controller and disposable layers. Its authored forest supplies terrain, placements, collision queries, views and presentation; selected modules supply rendering and behavior. See [runtime contracts](./baseline/ARCHITECTURE.md).
 
 ## Game copies
 
@@ -15,7 +15,7 @@ The CLI copies a clean, committed baseline into `games/<slug>`, preserving sourc
 - `tech9.json`: baseline package version, source commit and per-file hashes.
 - `GAME_PLAN.json`: the execution plan used for the copy.
 
-The generated `.prettierignore` preserves their bytes. Each game owns its files, package and subsequent changes. Additional modules are integrated as local source copies.
+The generated `.prettierignore` preserves their bytes. Each game owns its files, package and subsequent changes. Additional modules are integrated as local source copies. Reference pilots live in `games/_pilot/<slug>/`; new games use `games/<slug>/`.
 
 ## Tools
 

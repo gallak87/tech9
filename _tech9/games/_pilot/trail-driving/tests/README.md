@@ -1,6 +1,6 @@
 # Trail Driving verification
 
-Run package commands with supported Node 22.13+ (22.x) or 24+. From the repository root, `./_tech9/run --prefix games/trail-driving run <script>` selects a supported local runtime. Install package dependencies with `./_tech9/run --prefix games/trail-driving ci` first.
+Run package commands with supported Node 22.13+ (22.x) or 24+. From the repository root, `./_tech9/run --prefix games/_pilot/trail-driving run <script>` selects a supported local runtime. Install package dependencies with `./_tech9/run --prefix games/_pilot/trail-driving ci` first.
 
 | Command                                                     | Coverage and output                                                                                                                                                                                        |
 | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { openScene, root, samplePerformance } from './lib/browser.mjs';
 
 // Run without video and serialize GPU windows with other scene tasks.
-const output = path.resolve(root, '../.artifacts/weather/performance');
+const output = path.join(root, '.artifacts/weather/performance');
 await mkdir(output, { recursive: true });
 const report = {
   commit: execFileSync('git', ['rev-parse', 'HEAD'], {

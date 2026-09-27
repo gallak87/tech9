@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { openScene, root, argument } from './lib/browser.mjs';
 const pass = argument('pass', '1');
-const output = path.resolve(root, '../.artifacts/weather', `pass-${pass}`);
+const output = path.join(root, '.artifacts/weather', `pass-${pass}`);
 await mkdir(output, { recursive: true });
 const commit = execFileSync('git', ['rev-parse', 'HEAD'], {
   cwd: root,

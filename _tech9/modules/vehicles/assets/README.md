@@ -1,6 +1,6 @@
 # Editable asset sources
 
-The Jeep, ATV and dirt bike are original procedural assets extracted from Trail Driving's accepted vehicle-art checkpoint `b9124b9a` (handoff `c7f5d72e`). This canonical copy is independently editable. The game keeps its own implementation.
+The Jeep, ATV and dirt bike are original procedural assets with editable geometry, material and animation sources.
 
 - [VehicleModel.js](../src/VehicleModel.js): vehicle silhouettes, body panels, running gear, wheels, mechanical assemblies, steering controls, instruments, palette, surface finishing and mounted attachments.
 - [VehicleGeometry.js](../src/VehicleGeometry.js): panel/loft polygons, shaped tire cross-sections, rounded forms, tubes, deterministic grain maps and original canvas graphics.

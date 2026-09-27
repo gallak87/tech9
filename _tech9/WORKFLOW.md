@@ -19,11 +19,11 @@ Run relevant unit, lint and build checks. Use real-input browser checks for play
 
 Commit stable source before independent review. Serialize browser/GPU captures against that build. Fix actionable findings and rerun affected checks. Performance records include browser, GPU, viewport, preset and frame timing, with the measurement's limits.
 
-For a requested game art gate, use an independent critic and stop at **8/10 or four rounds**, whichever comes first. Report the actual result and remaining limitations. Resolve correctness blockers independently of the visual score.
+For visual work, use the brief's review target and round cap. If a requested art gate has neither, default to **8/10 or four rounds**, whichever comes first. An independent demanding critic reviews composition, lighting, materials, assets, animation and readability against the brief and its references. Fix the highest-value findings between committed captures. Report the actual result and remaining limitations; resolve correctness blockers independently of the visual score.
 
 ## Deliver
 
-Commit source, tests and required licenses. Keep launch instructions, controls and current limitations with the game. A reusable module includes one usage aid: an existing working example or concise documentation.
+Commit source, tests, editable assets and required licenses. Keep launch instructions, controls and current limitations with the owning package. A reusable module includes one usage aid: a working example or concise documentation.
 
 Report the deliverable, validation and limitations in the task. Keep plans, assignments, reviews and captures in ignored `runs/` or `.artifacts/`. Remove the completed task's run folder after handoff, preserving other active tasks. Git records source history.
 

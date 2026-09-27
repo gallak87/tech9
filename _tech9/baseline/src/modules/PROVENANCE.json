@@ -42,7 +42,7 @@
         },
         {
           "path": "README.md",
-          "sha256": "f273094d84a354a22d7d23e793e4845d51be65ff0a4fdd71cb241bf69eed1685"
+          "sha256": "853cd7a10c55a50c5e2bff554ff68996a38babead316a82fc97a18c294af6b48"
         },
         {
           "path": "src/Weather.js",
@@ -85,7 +85,7 @@
       "files": [
         {
           "path": "README.md",
-          "sha256": "356acc45d78c16ab906cad5c98b9af824f494e2137c9dc1f3f7dd4de70f791f8"
+          "sha256": "8f56060f8ffd3112cc3a27d6f5b0b66ab6824e2dce119be847a5f6f61b09116f"
         },
         {
           "path": "THREE-LICENSE.txt",

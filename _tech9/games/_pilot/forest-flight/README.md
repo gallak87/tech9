@@ -7,8 +7,8 @@ Two airplanes, a forest airstrip and a short scenic circuit. Fly the steady **Ce
 From the repository root:
 
 ```sh
-./_tech9/run --prefix games/forest-flight ci
-./_tech9/run --prefix games/forest-flight run dev
+./_tech9/run --prefix games/_pilot/forest-flight ci
+./_tech9/run --prefix games/_pilot/forest-flight run dev
 ```
 
 Open **http://127.0.0.1:4490**. Production preview uses port 4491 after `npm run build`. This standalone package supports Node `^22.13.0 || >=24.0.0`; direct npm commands also work from this directory.

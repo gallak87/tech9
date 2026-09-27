@@ -1,4 +1,4 @@
-# Tech9 Baseline — architecture contract
+# Baseline architecture
 
 A fixed 160 × 160 metre forest study. Three.js owns rendering; Blender authors reusable mesh assets. One metre equals one world unit, +Y is up. Content is deterministic and bounded, authored at initialization.
 
@@ -10,7 +10,7 @@ A fixed 160 × 160 metre forest study. Three.js owns rendering; Blender authors 
 - A world layer provides `id`, `init(context)`, optional `update(dt, elapsed)`, `configure(settings)` and `dispose()`. Context supplies scene, camera, renderer, assets, events, an independent `ui` mount, world bounds, `groundHeight(x,z)` and the selected `definition`. Future characters, interactions and HUD layers register through the same lifecycle.
 - `src/modules/landscape/src/AtmospherePass.js` owns a linear HDR scene target, half-resolution world-space shadow raymarch and final tone mapping/contact shading. It samples the scene depth and native directional comparison shadow texture; geometry remains sharply resolved.
 - `src/modules/landscape/src/softShadows.js` wraps the forest materials with a deterministic 12-tap PCF filter while preserving their terrain and wind shader hooks. It targets the pinned Three.js release; validate captures when upgrading Three.js.
-- `src/core/FlyCamera.js` owns pointer-lock and keyboard input, speed and boundary enforcement using the injected bounds/ground query. `app.setController(factoryOrObject)` replaces and disposes the previous camera owner. No character or physics is included.
+- `src/core/FlyCamera.js` owns pointer-lock and keyboard input, speed and boundary enforcement using the injected bounds/ground query. `app.setController(factoryOrObject)` replaces and disposes the previous camera owner.
 - `src/world/ForestWorld.js` exports `createForestWorld()` returning a layer. It delegates assets, materials and rendering to the selected landscape module’s `createComposedLandscape`. Scene-owned `forestComposition.js` supplies the fixed terrain sampling/tint and exact authored tree, rock, debris and ground-cover placements; the module has no knowledge of this layout. Its init is async. It never owns renderer or UI. Export `terrainHeight(x,z)` and `pathCenter(z)` from `src/world/terrain.js` for camera clearance and later grounded actors.
 - `src/ui/DevPanel.js` owns exactly five high-level controls: quality, sunlight, atmosphere, richness and exposure. UI reads scene presentation and view metadata, receives callbacks and metrics, and never edits world internals.
 - `src/core/settings.js` defines shared presets and validated persisted values. Storage defaults to `${definition.id}.settings`; the app accepts an explicit `storageKey` for independently owned game forks.
@@ -53,6 +53,18 @@ A controller requires synchronous `update(dt)` and `dispose()` methods. `resetMo
 
 `forestDefinition.getColliders()` (also available on the forest layer) returns immutable deterministic descriptors `{id, kind, x, z, radius}` derived from rendered mature-tree, rock and fallen-log placements. The grounded controller resolves these conservative horizontal proxies. They exclude saplings, small foliage, terrain slopes and exact mesh surfaces. A game defines its player radius, movement resolution and additional proxies. The fly camera ignores these circles. Descriptors are available before asset loading.
 
+## Extension points
+
+| Change                     | Integration                                                                                            |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Authored world             | Supply a definition, terrain query, bounds, views, placements and matching collision descriptors.      |
+| Weather or season          | Configure the weather module and adapt its condition state to scene-owned sky, lighting and materials. |
+| Movement or vehicle camera | Replace the camera owner through `app.setController(factory)`.                                         |
+| Objectives and HUD         | Register a disposable game layer; use `context.ui` and narrow events for state changes.                |
+| Live world selection       | Own load/unload orchestration, dispose previous layers/controllers and isolate persisted settings.     |
+
+Read `src/main.js` and `src/world/forestDefinition.js` for concrete wiring. Use the same terrain and placements for visible surfaces, traversal and contact queries. Seed placement and keep unrelated content on separate random streams.
+
 ## Independent game forks
 
 Copy this baseline through the framework's fork workflow, then develop the standalone package in `games/<slug>`. Preserve its source receipt, assets and license records. Give it a scene ID, storage namespace, presentation and game tests. Register gameplay through the layer lifecycle and `context.ui`, use narrow events for game/HUD communication, and replace camera control through `setController`.
@@ -71,11 +83,11 @@ A gently winding dirt trail starts near (0, 22), leading toward (4, -35). Camera
 
 ## Validation
 
-Tests expose read-only snapshot and named-camera hooks through `window.__SCENE_TEST__` only with `?test=1`. Browser checks cover load, GL errors, tuning, flight, bounds, resizing and reference captures. CPU tests additionally validate alternate scene ground/bounds/view data, controller ownership, scene context, storage isolation and deterministic collision descriptors. Screenshot evidence is not a claim of equivalent real GPU FPS. No production benchmark promises without measured hardware results.
+Tests expose read-only snapshot and named-camera hooks through `window.__SCENE_TEST__` only with `?test=1`. Browser checks cover load, GL errors, tuning, flight, bounds, resizing and reference captures. CPU tests validate definition data, controller ownership, scene context, storage isolation and deterministic collision descriptors. See [test commands](./tests/README.md).
 
 ## Module copies
 
-`package.json` → `tech9.modules` selects grounded-walking, placement-collisions, weather and landscape. Their source and license records are copied under `src/modules/<id>`, with versions and hashes in `PROVENANCE.json`. The runtime imports those local copies. Use the framework's module sync to update them from canonical source. Baseline contains no second forest asset/material renderer outside that selected copy. Landscape also provides kilometer-scale terrain with moving vegetation detail for other consumers; baseline uses fixed chunked instance batches and a 256-segment terrain grid to preserve its authored scene.
+`package.json` → `tech9.modules` selects grounded-walking, placement-collisions, weather and landscape. Their source and license records are copied under `src/modules/<id>`, with versions and hashes in `PROVENANCE.json`. The runtime imports those local copies. Use the framework's module sync to update them from canonical source. Baseline uses landscape's fixed chunked instance batches and a 256-segment terrain grid; its larger-world renderer with moving vegetation detail is available to other consumers.
 
 `getForestPlacements()` exports immutable matrices used by both rendering and proxy generation. `placementCircle` accounts for scale and local centre; `placementCapsuleChain` covers full deadfall endpoints. `getForestColliders()` includes all substantial authored forest solids with documented approximations.
 

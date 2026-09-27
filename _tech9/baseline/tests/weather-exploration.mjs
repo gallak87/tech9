@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { openScene, root } from './lib/browser.mjs';
-const output = path.resolve(root, '../.artifacts/weather/exploration');
+const output = path.join(root, '.artifacts/weather/exploration');
 await mkdir(output, { recursive: true });
 const h = await openScene({
   mode: 'preview',

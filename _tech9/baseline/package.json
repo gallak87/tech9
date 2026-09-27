@@ -18,7 +18,6 @@
     "lint:staged": "lint-staged --cwd .",
     "verify:walking": "npm run build && node tests/walking-browser.mjs",
     "verify:weather": "npm run build && node tests/weather-browser.mjs && node tests/weather-rendering.mjs && node tests/weather-exploration.mjs",
-    "verify:weather:example": "node tests/weather-example.mjs",
     "verify:weather:performance": "npm run build && node tests/weather-performance.mjs"
   },
   "lint-staged": {

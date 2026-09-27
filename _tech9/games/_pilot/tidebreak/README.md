@@ -5,8 +5,8 @@ Choose **Kestrel**, a 14 m schooner with fore-and-aft canvas, or **Resolute**, a
 Use Node **^22.13.0 or >=24**. From this repository checkout:
 
 ```sh
-./_tech9/run --prefix games/tidebreak ci
-./_tech9/run --prefix games/tidebreak run dev
+./_tech9/run --prefix games/_pilot/tidebreak ci
+./_tech9/run --prefix games/_pilot/tidebreak run dev
 ```
 
 Open [Tidebreak](http://127.0.0.1:4460/). Dev **4460**, production preview **4461**, browser verification **4462** are strict ports. This game installs independently and never changes repository hooks. Production preview requires `run build` followed by `run preview` with the same package prefix.
@@ -23,10 +23,10 @@ The chart shows your heading, next gate and mooring ring. Gates require crossing
 ## Validate
 
 ```sh
-./_tech9/run --prefix games/tidebreak test
-./_tech9/run --prefix games/tidebreak run lint
-./_tech9/run --prefix games/tidebreak run build
-./_tech9/run --prefix games/tidebreak run verify
+./_tech9/run --prefix games/_pilot/tidebreak test
+./_tech9/run --prefix games/_pilot/tidebreak run lint
+./_tech9/run --prefix games/_pilot/tidebreak run build
+./_tech9/run --prefix games/_pilot/tidebreak run verify
 ```
 
 Browser verification defaults to 10× test playback for fast repeat checks; `SIM_RATE=1` restores real time, and `FLEET_ONLY=1 SIM_RATE=1` checks both ship choices, both helm views, steering animation, reset, repeated model disposal and narrow layout. `VESSEL=galleon LAP_ONLY=1` checks a fast full galleon lap; omit `VESSEL` for the schooner. `HELM_ONLY=1 SIM_RATE=1` retains the camera/focus checkpoints. Playback rate is honored only with `?test=1`; normal play stays at real time.

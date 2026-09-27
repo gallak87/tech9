@@ -4,7 +4,7 @@ import path from 'node:path';
 import { openScene, root } from './lib/browser.mjs';
 const h = await openScene({ mode: 'preview' });
 const { page } = h;
-const output = path.resolve(root, '../.artifacts/weather/rendering');
+const output = path.join(root, '.artifacts/weather/rendering');
 await mkdir(output, { recursive: true });
 const report = { environment: h.environment };
 async function capture() {

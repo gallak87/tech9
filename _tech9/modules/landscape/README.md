@@ -1,6 +1,6 @@
 # Landscape
 
-Baseline-quality forest assets, terrain materials, deterministic terrain/vegetation queries and camera-following detail, extracted from the accepted Forest Flight iteration. Copy this folder including `assets/` into `src/modules/`. Requires Three.js r186/WebGL2, metres and +Y up. Runtime GLB/textures and editable Blender/Python/image sources retain their provenance/licenses in [ASSETS.md](./assets/runtime/ASSETS.md). The caller owns renderer, camera, lighting, frame loop and game rules.
+Forest assets, terrain materials, deterministic terrain/vegetation queries and camera-following detail. Copy this folder including `assets/` into `src/modules/`. Requires Three.js r186/WebGL2, metres and +Y up. Runtime GLB/textures and editable Blender/Python/image sources retain their provenance/licenses in [ASSETS.md](./assets/runtime/ASSETS.md). The caller owns renderer, camera, lighting, frame loop and game rules.
 
 ```js
 import {
@@ -29,11 +29,11 @@ function update(dt, elapsed) {
 // Teardown: weather.dispose(); landscape.dispose(); then dispose your renderer/lights.
 ```
 
-Without weather, omit that sibling module and use the default `windMode: 'local'`. With weather, select `windMode: 'weather'` before init: the local oscillator is disabled, and weather supplies the single shared wind field for both near and mid-distance grass/ferns. Default `manageFog: true` adjusts an existing FogExp2 according to camera height above terrain; set false when your environment adapter owns fog. Landscape never creates lights or precipitation. The optional exported `AtmospherePass` is the proven terrain-relative postprocess: call `resize(width,height,pixelRatio)`, `configure({samples:4,rays:32},{atmosphere:1,sunlight:1})`, then `render(scene,camera,sun,localGroundHeight)` instead of your direct render. It requires a PCF directional shadow map and writes the final image to the screen. Dispose it separately.
+Without weather, omit that sibling module and use the default `windMode: 'local'`. With weather, select `windMode: 'weather'` before init: the local oscillator is disabled, and weather supplies the single shared wind field for both near and mid-distance grass/ferns. Default `manageFog: true` adjusts an existing FogExp2 according to camera height above terrain; set false when your environment adapter owns fog. Landscape never creates lights or precipitation. The optional exported `AtmospherePass` is a terrain-relative postprocess: call `resize(width,height,pixelRatio)`, `configure({samples:4,rays:32},{atmosphere:1,sunlight:1})`, then `render(scene,camera,sun,localGroundHeight)` instead of your direct render. It requires a PCF directional shadow map and writes the final image to the screen. Dispose it separately.
 
 ## Authored scenes
 
-`createComposedLandscape` uses the same forest assets, material preparation, scanned floor and shadow helpers for fixed authored scenes. Baseline uses this entry point to preserve its detailed 160 m forest; its terrain, placements, collision proxies and weather surface queries remain scene-owned. Use `createLandscape` above for larger worlds with moving detail and distance transitions. These are two rendering policies within the same module, not two forest asset implementations.
+`createComposedLandscape` uses the same forest assets, material preparation, scanned floor and shadow helpers for fixed authored scenes. Baseline uses this entry point to preserve its detailed 160 m forest; its terrain, placements, collision proxies and weather surface queries remain scene-owned. Use `createLandscape` above for larger worlds with moving detail and distance transitions. Both rendering policies share the asset and material helpers.
 
 ```js
 import * as THREE from 'three';
@@ -97,7 +97,7 @@ The layer uses one finite terrain mesh, static tree placements and two fixed 307
 
 `groundHeight` is analytic; terrain triangles approximate it. `obstacle(x,y,z,radius)` uses conservative tree trunk/crown proxies and returns null or a cloneable tree descriptor; it does not model small rocks/logs, wing shape or triangle collisions. `sampleSurface(x,z)` returns terrain height/normal, approximate canopy throughfall/cover plane, trail snow retention and puddle suitability, or null beyond the terrain. Weather's sampled field is coarse over kilometres; neither query models stacked surfaces or individual branches.
 
-Weather **1.1.0** composes the existing terrain/fade/shadow hooks, applies shared wind to Lambert/PBR plants, and uses the fixed snow-mask atlas for snow on upright distant pine cards. Cards retain baked daylight lighting: variable sun direction/relighting and close-up exact snow matching are outside this extraction. Snow depth is disabled for vegetation/cards to preserve their static shadows; ground uses accepted weather's thin lift. Dispose weather before landscape so its hooks restore before materials/textures are released. Loaded assets, generated atlases, fixed instance pools, ground maps and geometry are landscape-owned; caller resources are retained.
+Weather **1.1.0** composes the terrain/fade/shadow hooks, applies shared wind to Lambert/PBR plants, and uses the fixed snow-mask atlas for snow on upright distant pine cards. Cards retain baked daylight lighting and approximate close-up snow coverage; their illumination does not track changing sun direction. Snow depth is disabled for vegetation/cards to preserve their static shadows; ground uses weather's thin lift. Dispose weather before landscape so its hooks restore before materials/textures are released. Loaded assets, generated atlases, fixed instance pools, ground maps and geometry are landscape-owned; caller resources are retained.
 
 ## Running example
 

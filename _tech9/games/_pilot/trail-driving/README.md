@@ -7,8 +7,8 @@ Three off-road vehicles in a 600 × 600 metre forest park. Choose a Ridge Jeep, 
 From the repository root, with a supported Node runtime:
 
 ```sh
-./_tech9/run --prefix games/trail-driving ci
-./_tech9/run --prefix games/trail-driving run dev
+./_tech9/run --prefix games/_pilot/trail-driving ci
+./_tech9/run --prefix games/_pilot/trail-driving run dev
 ```
 
 Open <http://127.0.0.1:4480>. Production preview uses `npm run build` then `npm run preview` in this package, on port 4481. Browser verification uses a free strict port selected with `SCENE_PORT=4482`.
@@ -109,8 +109,8 @@ Local evidence is retained in ignored `.artifacts/vehicle-round-2` through `vehi
 
 The separate framework-dev phase extracted reusable behavior into canonical modules while leaving this game's local implementation and authored content under game ownership:
 
-- [vehicles](../../modules/vehicles/README.md) 1.0.0: the later consolidation of motion, input and presentation, now including the improved models, matched presets, mounted attachments and optional lighting/feedback.
-- [follow-camera](../../modules/follow-camera/README.md) 1.1.0: terrain/solid boom resolution applied around camera interpolation.
+- [vehicles](../../../modules/vehicles/README.md) 1.0.0: the later consolidation of motion, input and presentation, now including the improved models, matched presets, mounted attachments and optional lighting/feedback.
+- [follow-camera](../../../modules/follow-camera/README.md) 1.1.0: terrain/solid boom resolution applied around camera interpolation.
 
 The immutable fork receipts and the game's copied follow-camera 1.0.1 remain unchanged. Adoption of canonical modules in a future game is explicit; these are source copies rather than runtime framework dependencies.
 

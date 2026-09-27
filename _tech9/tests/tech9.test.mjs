@@ -182,6 +182,10 @@ async function fixture(t) {
 
 test('validates the execution contract and baseline version', () => {
   assert.equal(validatePlan(plan(), '1.0.0').id, 'sample-game');
+  const extended = plan();
+  extended.authorization.basis = 'The user requested up to 20 critic rounds.';
+  extended.artGate.maxRounds = 20;
+  assert.equal(validatePlan(extended, '1.0.0').artGate.maxRounds, 20);
   const changed = plan();
   changed.baselineVersion = '9.0.0';
   assert.throws(() => validatePlan(changed, '1.0.0'), /version mismatch/);
@@ -211,6 +215,11 @@ test('rejects malformed plans, duplicate IDs and unknown dependencies', () => {
     const candidate = plan();
     modify(candidate);
     assert.throws(() => validatePlan(candidate, '1.0.0'));
+  }
+  for (const maxRounds of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    const candidate = plan();
+    candidate.artGate.maxRounds = maxRounds;
+    assert.throws(() => validatePlan(candidate, '1.0.0'), /maxRounds/);
   }
 });
 

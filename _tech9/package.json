@@ -16,7 +16,8 @@
     "hooks:install": "node tools/install-hooks.mjs",
     "sync:modules": "node tools/sync-modules.mjs",
     "example:vehicles": "vite modules/vehicles/example --host 127.0.0.1 --port 4490 --strictPort",
-    "verify:vehicles": "node modules/vehicles/tests/browser.mjs"
+    "verify:vehicles": "node modules/vehicles/tests/browser.mjs",
+    "verify:weather": "node modules/weather/tests/browser.mjs"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

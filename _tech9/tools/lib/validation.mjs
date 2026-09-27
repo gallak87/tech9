@@ -189,10 +189,9 @@ export function validatePlan(plan, baselineVersion) {
       Number.isFinite(plan.artGate.threshold) &&
       plan.artGate.threshold > 0 &&
       plan.artGate.threshold <= 10 &&
-      Number.isInteger(plan.artGate.maxRounds) &&
-      plan.artGate.maxRounds > 0 &&
-      plan.artGate.maxRounds <= 10,
-    'artGate needs a threshold in (0, 10] and maxRounds in [1, 10]',
+      Number.isSafeInteger(plan.artGate.maxRounds) &&
+      plan.artGate.maxRounds > 0,
+    'artGate needs a threshold in (0, 10] and a positive safe-integer maxRounds',
   );
   assert(text(plan.stopAfter), 'Plan needs stopAfter');
   if (baselineVersion !== undefined) {

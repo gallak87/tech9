@@ -24,9 +24,10 @@ function edges(road) {
       dx = b[0] - a[0],
       dy = b[1] - a[1],
       length = Math.hypot(dx, dy);
-    for (let d = 0; d < length; d += 7) {
+    for (let d = 0; d < length; d += 9) {
       const t = d / length;
       for (const side of [-1, 1]) {
+        if (Math.sin((travelled + d) * 0.033 + side * 2) < -0.25) continue;
         const variation =
           Math.sin((travelled + d) * 0.085 + side) * 3.5 +
           (hash(j * 800 + Math.floor(d) + side) - 0.5) * 7;
@@ -34,7 +35,7 @@ function edges(road) {
         points.push({
           x: a[0] + dx * t - (dy / length) * width * side,
           y: a[1] + dy * t + (dx / length) * width * side,
-          r: 3 + hash(d * 3 + j + side) * 5,
+          r: 1.5 + hash(d * 3 + j + side) * 3,
         });
       }
     }
@@ -69,44 +70,74 @@ export function drawGround(ctx, { scene, camera, viewport, patterns, time }) {
   }
   ctx.globalAlpha = 1;
   for (const water of scene.water) {
-    polygon(ctx, water);
-    ctx.fillStyle = patterns[5];
-    ctx.fill();
     ctx.save();
+    polygon(ctx, water);
     ctx.clip();
-    for (const [width, alpha] of [
-      [86, 0.22],
-      [56, 0.3],
-      [26, 0.6],
-    ]) {
-      ctx.lineWidth = width;
-      ctx.strokeStyle = patterns[4];
-      ctx.globalAlpha = alpha;
-      polygon(ctx, water);
-      ctx.stroke();
+    // Broad color drift keeps the retained water texture quiet at play scale.
+    const depth = ctx.createLinearGradient(
+      1150,
+      200,
+      scene.width,
+      scene.height,
+    );
+    depth.addColorStop(0, '#245951');
+    depth.addColorStop(0.5, '#286c72');
+    depth.addColorStop(1, '#174758');
+    ctx.fillStyle = depth;
+    ctx.fillRect(0, 0, scene.width, scene.height);
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = patterns[5];
+    ctx.fillRect(0, 0, scene.width, scene.height);
+    ctx.lineCap = ctx.lineJoin = 'round';
+    // Short overlapping shallow strokes vary in width along the authored bank.
+    // No pale outline: the transition is entirely inside the water boundary.
+    for (let i = 0; i < water.length; i++) {
+      const a = water[i],
+        b = water[(i + 1) % water.length];
+      if (
+        (a[0] === b[0] && (a[0] === 0 || a[0] === scene.width)) ||
+        (a[1] === b[1] && (a[1] === 0 || a[1] === scene.height))
+      )
+        continue;
+      const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
+      for (let d = 0; d < length; d += 18) {
+        const t = d / length,
+          end = Math.min(1, (d + 18) / length);
+        const x = a[0] + (b[0] - a[0]) * t;
+        const y = a[1] + (b[1] - a[1]) * t;
+        const width = 43 + Math.sin(x * 0.017 + y * 0.024) * 17;
+        for (const [scale, alpha] of [
+          [1.8, 0.09],
+          [1.2, 0.13],
+          [0.65, 0.21],
+        ]) {
+          ctx.lineWidth = width * scale;
+          ctx.strokeStyle = patterns[4];
+          ctx.globalAlpha = alpha;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(a[0] + (b[0] - a[0]) * end, a[1] + (b[1] - a[1]) * end);
+          ctx.stroke();
+        }
+      }
     }
     ctx.strokeStyle = '#d4e5cd';
     ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.13;
+    ctx.globalAlpha = 0.045;
     for (
-      let y = Math.floor(camera.y / 47) * 47;
-      y < camera.y + viewport.height;
-      y += 47
+      let row = Math.floor(camera.y / 67);
+      row * 67 < camera.y + viewport.height;
+      row++
     ) {
+      const y = row * 67 + hash(row) * 25;
       ctx.beginPath();
       for (let x = camera.x; x < camera.x + viewport.width; x += 12) {
-        const py = y + Math.sin(x * 0.019 + time * 0.6) * 3.5;
+        const py = y + Math.sin(x * 0.019 + time * 0.6 + row) * 3.5;
         x === camera.x ? ctx.moveTo(x, py) : ctx.lineTo(x, py);
       }
       ctx.stroke();
     }
     ctx.restore();
-    // A thin weathered bank sits between the grass and shallow water.
-    ctx.strokeStyle = patterns[2];
-    ctx.lineJoin = 'round';
-    ctx.lineWidth = 7;
-    polygon(ctx, water);
-    ctx.stroke();
   }
   for (const clearing of scene.clearings) {
     ctx.fillStyle = patterns[2];
@@ -139,7 +170,7 @@ export function drawGround(ctx, { scene, camera, viewport, patterns, time }) {
       roadPath(ctx, road);
       ctx.stroke();
     }
-    ctx.globalAlpha = 0.7;
+    ctx.globalAlpha = 0.3;
     ctx.fillStyle = patterns[0];
     ctx.beginPath();
     for (const p of edges(road)) {
@@ -154,7 +185,7 @@ export function drawGround(ctx, { scene, camera, viewport, patterns, time }) {
       ctx.ellipse(p.x, p.y, p.r, p.r * 0.62, 0, 0, Math.PI * 2);
     }
     ctx.fill();
-    ctx.globalAlpha = 0.22;
+    ctx.globalAlpha = 0.1;
     ctx.fillStyle = patterns[2];
     ctx.beginPath();
     for (const p of edges(road)) {

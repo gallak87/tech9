@@ -45,8 +45,8 @@ export const coastScene = {
       points: [
         [1030, 700],
         [1180, 760],
-        [1330, 830],
-        [1550, 900],
+        [1280, 830],
+        [1320, 980],
       ],
       width: 58,
     },
@@ -121,9 +121,18 @@ export const coastScene = {
       [{ x: -80, y: -105, w: 204, h: 120 }],
       { interact: { label: 'Read the cottage note', radius: 130 } },
     ),
-    prop('overlook', 'cliff', 1450, 985, 190, rock(65), {
-      interact: { label: 'Look out to sea', radius: 110 },
-    }),
+    prop(
+      'overlook',
+      'cliff',
+      1450,
+      985,
+      190,
+      [{ x: -95, y: -145, w: 190, h: 155 }],
+      {
+        occludes: false,
+        interact: { label: 'Look out to sea', radius: 140 },
+      },
+    ),
     prop('tree-west', 'tree', 260, 865, 340, trunk(28)),
     prop('tree-cottage', 'tree', 600, 715, 260, trunk(20)),
     prop('tree-north', 'tree', 725, 405, 295, trunk(24)),
@@ -159,7 +168,15 @@ export const coastScene = {
       { x: -72, y: -24, w: 42, h: 30 },
       { x: 36, y: -24, w: 42, h: 30 },
     ]),
-    prop('cliff-north', 'cliff', 1470, 465, 135, rock(42)),
+    prop(
+      'cliff-north',
+      'cliff',
+      1470,
+      465,
+      135,
+      [{ x: -68, y: -103, w: 136, h: 110 }],
+      { occludes: false },
+    ),
   ],
 };
 

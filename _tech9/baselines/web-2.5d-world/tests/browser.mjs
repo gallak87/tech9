@@ -196,12 +196,20 @@ try {
         [1030, 700],
         [1160, 760],
         [1280, 810],
-        [1370, 885],
-        [1430, 915],
+        [1300, 900],
+        [1325, 980],
       ])
         await walkTo({ x, y });
       await page.waitForTimeout(300);
+      assert.equal((await snapshot()).near?.id, 'overlook');
       await shot('desktop-shoreline');
+      await hold('d', 700);
+      const blocked = (await snapshot()).actor;
+      assert.ok(blocked.x < 1355, 'cliff face blocks the ordinary approach');
+      assert.ok(blocked.x > 1330, 'actor can reach the land beside the cliff');
+      await page.keyboard.press('f');
+      assert.equal(await page.locator('#reading').isVisible(), true);
+      await page.getByRole('button', { name: 'Keep wandering' }).click();
     },
   );
   await check('persisted page suspension can return and resume', async () => {

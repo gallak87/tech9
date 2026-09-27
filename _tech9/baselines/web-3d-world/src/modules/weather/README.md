@@ -1,6 +1,6 @@
 # Weather
 
-Composable Three.js rain, persistent wetness, settled snow, snowfall and shared wind. The forest baseline is the complete working example: `baseline/src/world/ForestWeather.js` chooses participants and applies condition state to its own sky, lights, fog and interface. Copy this folder into `src/modules/weather/`. Requires Three.js r186, WebGL2, metres and +Y up. No external assets or network requests; particle shapes, surface variation and ambience are authored in the source files.
+Composable Three.js rain, persistent wetness, settled snow, snowfall and shared wind. The forest baseline is the complete working example: `baselines/web-3d-world/src/world/ForestWeather.js` chooses participants and applies condition state to its own sky, lights, fog and interface. Copy this folder into `src/modules/weather/`. Requires Three.js r186, WebGL2, metres and +Y up. No external assets or network requests; particle shapes, surface variation and ambience are authored in the source files.
 
 ```js
 import {

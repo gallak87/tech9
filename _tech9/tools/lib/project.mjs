@@ -37,6 +37,7 @@ const EXCLUDED_NAMES = new Set([
 ]);
 const GENERATED_FILES = new Set(['tech9.json', 'GAME_PLAN.json']);
 const GAMES_DIRECTORY = 'games';
+export const DEFAULT_BASELINE = 'baselines/web-3d-world';
 const hash = (value) => createHash('sha256').update(value).digest('hex');
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 
@@ -83,7 +84,7 @@ export async function loadModules(root) {
 
 export async function loadBaseline(root) {
   const packageJson = await readJson(
-    await confinedPath(root, 'baseline/package.json'),
+    await confinedPath(root, `${DEFAULT_BASELINE}/package.json`),
   );
   if (!packageJson.scripts?.dev || !packageJson.scripts?.build)
     fail('Baseline must have dev and build package scripts');
@@ -157,7 +158,7 @@ async function snapshotSource(root) {
   const repository = await realpath(
     (await git(root, ['rev-parse', '--show-toplevel'])).trim(),
   );
-  const source = await confinedPath(root, 'baseline');
+  const source = await confinedPath(root, DEFAULT_BASELINE);
   const sourcePath = path
     .relative(repository, source)
     .split(path.sep)

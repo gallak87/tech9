@@ -1,4 +1,4 @@
-# Tech9 Baseline
+# Web 3D world
 
 A standalone starting application: Three.js rendering, a 160 × 160 metre forest, editable assets, fly/grounded camera controls, weather and graphics settings.
 

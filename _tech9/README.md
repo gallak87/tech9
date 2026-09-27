@@ -48,8 +48,8 @@ From `_tech9/`, with Node `^22.13.0 || >=24.0.0`:
 ```sh
 ./run ci
 ./run run check
-./run --prefix baseline ci
-./run --prefix baseline run dev
+./run --prefix baselines/web-3d-world ci
+./run --prefix baselines/web-3d-world run dev
 ```
 
 Open the baseline at **http://127.0.0.1:4399**. `run` selects an installed supported Node; `TECH9_NODE` overrides it.
@@ -73,7 +73,9 @@ _tech9/
 ├── GENERATE.md        ← build a game
 ├── FRAMEWORK_DEV.md   ← develop reusable capabilities
 ├── ROADMAP.md         ← framework evolution
-├── baseline/          ← runnable forest starting point
+├── baselines/
+│   ├── web-3d-world/   ← runnable Three.js forest
+│   └── web-2.5d-world/ ← Echo extraction pending
 ├── modules/           ← source, assets, tests and usage guides
 ├── modules.json       ← module IDs and versions
 ├── games/
@@ -83,4 +85,4 @@ _tech9/
 └── tools/, tests/     ← framework commands and checks
 ```
 
-[Architecture](ARCHITECTURE.md) · [Baseline](baseline/README.md) · [Local setup](docs/MIGRATION.md)
+[Architecture](ARCHITECTURE.md) · [Baseline](baselines/web-3d-world/README.md) · [Local setup](docs/MIGRATION.md)

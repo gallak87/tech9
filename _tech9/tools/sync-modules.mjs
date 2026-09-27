@@ -3,7 +3,12 @@ import { isDeepStrictEqual } from 'node:util';
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { confinedPath, loadModules, readJson } from './lib/project.mjs';
+import {
+  DEFAULT_BASELINE,
+  confinedPath,
+  loadModules,
+  readJson,
+} from './lib/project.mjs';
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -29,12 +34,14 @@ async function files(root, relative = '') {
 export async function syncModules({ root, write = false }) {
   const registry = await loadModules(root);
   const packageJson = await readJson(
-    await confinedPath(root, 'baseline/package.json'),
+    await confinedPath(root, `${DEFAULT_BASELINE}/package.json`),
   );
   const selected = packageJson.tech9?.modules;
   if (!Array.isArray(selected) || new Set(selected).size !== selected.length)
-    throw new Error('baseline/package.json needs a unique tech9.modules list');
-  const copyRoot = await confinedPath(root, `baseline/src/modules`, {
+    throw new Error(
+      `${DEFAULT_BASELINE}/package.json needs a unique tech9.modules list`,
+    );
+  const copyRoot = await confinedPath(root, `${DEFAULT_BASELINE}/src/modules`, {
     allowMissing: true,
   });
   const copyEntries = await readdir(copyRoot).catch((error) => {
@@ -52,13 +59,17 @@ export async function syncModules({ root, write = false }) {
   for (const id of selected) {
     const module = registry.modules.find((item) => item.id === id);
     if (!module)
-      throw new Error(`Unknown module ${id} in baseline/package.json`);
+      throw new Error(
+        `Unknown module ${id} in ${DEFAULT_BASELINE}/package.json`,
+      );
     const modulePath = `modules/${id}`;
     const moduleRoot = await confinedPath(root, modulePath);
     const source = await confinedPath(root, `${modulePath}/src`);
-    const target = await confinedPath(root, `baseline/src/modules/${id}`, {
-      allowMissing: true,
-    });
+    const target = await confinedPath(
+      root,
+      `${DEFAULT_BASELINE}/src/modules/${id}`,
+      { allowMissing: true },
+    );
     const sourceFiles = await files(source);
     if (!sourceFiles.length)
       throw new Error(`Module ${id} contains no source files`);
@@ -92,7 +103,7 @@ export async function syncModules({ root, write = false }) {
       const content = await readFile(await confinedPath(moduleRoot, file));
       const destination = await confinedPath(
         root,
-        `baseline/src/modules/${id}/${file}`,
+        `${DEFAULT_BASELINE}/src/modules/${id}/${file}`,
         { allowMissing: true },
       );
       entries.push({ path: file, sha256: sha256(content) });
@@ -107,7 +118,7 @@ export async function syncModules({ root, write = false }) {
   }
   const provenancePath = await confinedPath(
     root,
-    `baseline/src/modules/PROVENANCE.json`,
+    `${DEFAULT_BASELINE}/src/modules/PROVENANCE.json`,
     { allowMissing: true },
   );
   const provenance = { schemaVersion: 1, modules: records };

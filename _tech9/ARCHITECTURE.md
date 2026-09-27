@@ -1,12 +1,14 @@
 # Architecture
 
-## Modules and baseline
+## Modules and baselines
 
 `modules.json` records module IDs and versions. Source paths follow `modules/<id>/src`; each module includes tests and an integration guide. Assets and licenses travel with the source.
 
-`baseline/` is a standalone Three.js application with its own package, lockfile, renderer, authored world and assets. Its package version identifies the starting application. `package.json` lists selected modules in `tech9.modules`; `sync:modules` copies them into `src/modules/<id>` and records source versions and hashes in `PROVENANCE.json`.
+`baselines/web-3d-world/` is a standalone Three.js application with its own package, lockfile, renderer, authored world and assets. Its package version identifies the starting application. `package.json` lists selected modules in `tech9.modules`; `sync:modules` copies them into `src/modules/<id>` and records source versions and hashes in `PROVENANCE.json`.
 
-The baseline uses one renderer/frame loop, one camera controller and disposable layers. Its authored forest supplies terrain, placements, collision queries, views and presentation; selected modules supply rendering and behavior. See [runtime contracts](./baseline/ARCHITECTURE.md).
+`baselines/web-2.5d-world/` is reserved for the Echo-derived starting application. It has no runnable package yet. The CLI and module sync currently target `web-3d-world`; starting-point selection is part of the framework expansion task.
+
+The baseline uses one renderer/frame loop, one camera controller and disposable layers. Its authored forest supplies terrain, placements, collision queries, views and presentation; selected modules supply rendering and behavior. See [runtime contracts](./baselines/web-3d-world/ARCHITECTURE.md).
 
 ## Game copies
 

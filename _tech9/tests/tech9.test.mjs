@@ -24,7 +24,7 @@ import { run } from '../tools/tech9.mjs';
 const execute = promisify(execFile);
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
 const hash = (value) => createHash('sha256').update(value).digest('hex');
-const baselinePath = '_tech9/baseline';
+const baselinePath = '_tech9/baselines/web-3d-world';
 const prettierCli = fileURLToPath(
   new URL('./bin/prettier.cjs', import.meta.resolve('prettier')),
 );

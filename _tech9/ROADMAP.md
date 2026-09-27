@@ -2,7 +2,7 @@
 
 ## Current state
 
-A runnable forest baseline, twelve reusable modules and five independent pilots. Games start from owned source copies. Landscape, weather, aircraft, sailing and driving capabilities are available for new games.
+A runnable `baselines/web-3d-world` forest, twelve reusable modules and five independent pilots. `baselines/web-2.5d-world` awaits Echo extraction. Games start from owned source copies. Landscape, weather, aircraft, sailing and driving capabilities are available for new games.
 
 ```text
 idea → baseline + modules → game → playtest → framework-dev
@@ -30,7 +30,7 @@ Define the new 2D/2.5D game's experience, presentation and target devices. Build
 
 Profile frame pacing, foliage, shadows and atmosphere on target hardware. Keep visual comparisons at matching views and settings.
 
-[Baseline performance roadmap](baseline/ROADMAP.md)
+[Baseline performance roadmap](baselines/web-3d-world/ROADMAP.md)
 
 ### 4. Develop the canyon starting point
 

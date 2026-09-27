@@ -38,11 +38,11 @@
       "files": [
         {
           "path": "NOTICE.md",
-          "sha256": "5643690c1203a1406a7de5625e15aa4713bd67679c0ddc6a19bd3fd2739516f9"
+          "sha256": "b2a8289b5fdf9f1c741df7cd110e0c72014d96d1713fa491f1d9b4a44f686f63"
         },
         {
           "path": "README.md",
-          "sha256": "853cd7a10c55a50c5e2bff554ff68996a38babead316a82fc97a18c294af6b48"
+          "sha256": "89eb298b016f7ff0339f2ee42d532129807f8b7a08aa1a1e2dc0f2393ab28e5e"
         },
         {
           "path": "src/Weather.js",

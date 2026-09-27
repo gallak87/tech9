@@ -14,7 +14,7 @@ Use framework-dev to extract a usable 2D/2.5D foundation from `games/chronoforge
 
 - Assess cohesive capabilities around sprite-world rendering and exploration, touch/viewport handling, and asset loading. These are candidate areas, not a required module count.
 - Put selected canonical capabilities in `_tech9/modules/`, with the reusable art, editable sources, licenses, presets and integration needed by another game. Parameterize authored content, dimensions, budgets and game callbacks.
-- Compose owned module copies into `_tech9/baselines/sprite-world/`: a compact authored starting application with movement, camera, scenery depth/occlusion and usable controls. Preserve the demonstrated presentation quality of reused art.
+- Build the prepared `_tech9/baselines/web-2.5d-world/` directory into a compact authored starting application with movement, camera, scenery depth/occlusion and usable controls. Compose owned module copies and preserve the demonstrated presentation quality of reused art.
 - Register the modules and adapt build/dependency handling as required. Prioritize exploration and presentation; broader ATB combat, campaign progression and save migration extraction need separate justification.
 
 Keep related implementation parts together unless independent reuse warrants a split.
@@ -23,7 +23,7 @@ Keep related implementation parts together unless independent reuse warrants a s
 
 Allow generation to select a suitable starting package or scaffold a minimal standalone web package when none fits. Use `tools/scaffold.js` as a reference for stack selection.
 
-- Use `_tech9/baselines/<name>/` for named runnable starting packages, including forest and sprite-world. Each owns its package, runtime dependencies, launch/build commands and module selection.
+- Use the existing `_tech9/baselines/<name>/` layout: `web-3d-world` contains the runnable Three.js forest; `web-2.5d-world` is the prepared destination for Echo extraction. Each runnable package owns its dependencies, launch/build commands and module selection. Folder names identify the starting points independently of game slug rules.
 - Adapt generation, plan validation, copying, module synchronization and provenance to the selected source. Preserve existing games and immutable fork receipts, overwrite protection and clean-source provenance for package copies.
 - Keep renderer and runtime requirements explicit. Advertise implemented and verified paths; native-engine support requires a usable package path.
 - Update quickstart, architecture, generation and copying guides with concise commands for the supported choices.
@@ -34,19 +34,19 @@ Each game owns its source, assets and dependencies. Starting packages supply aut
 
 Use these implementations to identify real requirements and useful authoring tools. Inspect their completion state and feed findings into the extraction and generation work as it develops.
 
-| Source | Perspective |
-| --- | --- |
-| `games/void-sentinel/` | Canvas2D top-down scrolling shooter |
-| `games/vulpine/` | Three.js flight/shooter, worlds and audio |
-| `games/void-sentinel-breach/` | Three.js and Blender/GLB asset preparation |
-| `games/void-fracture/` | Native Godot scenes, scripts and package structure |
-| `tools/` | Stack selection, sprite/scenery authoring and development tooling |
+| Source                        | Perspective                                                       |
+| ----------------------------- | ----------------------------------------------------------------- |
+| `games/void-sentinel/`        | Canvas2D top-down scrolling shooter                               |
+| `games/vulpine/`              | Three.js flight/shooter, worlds and audio                         |
+| `games/void-sentinel-breach/` | Three.js and Blender/GLB asset preparation                        |
+| `games/void-fracture/`        | Native Godot scenes, scripts and package structure                |
+| `tools/`                      | Stack selection, sprite/scenery authoring and development tooling |
 
 Trace how these game styles fit the supported entry points. Resolve unnecessary forest, RPG or renderer assumptions. Promote a helper or authoring tool when it supplies a concrete missing capability; extend accepted modules where they already fit. Keep useful usage guidance with the implementation and deferred opportunities in the roadmap. The reference review can produce findings without new code; a port or extraction from every game is outside this goal.
 
 ## Preparation acceptance
 
-Run framework checks, relevant starting-package checks and focused generation tests. Verify the actual forest and sprite-world packages through source selection, module synchronization and package creation. Exercise the new starting application's rendering, movement, controls and asset lifetime through real input. Keep disposable verification packages and output in ignored artifacts.
+Run framework checks, relevant starting-package checks and focused generation tests. Verify `web-3d-world` and `web-2.5d-world` through source selection, module synchronization and package creation. Exercise the new starting application's rendering, movement, controls and asset lifetime through real input. Keep disposable verification packages and output in ignored artifacts.
 
 Use the shared workflow's harsh independent visual critique for authored visual deliverables, and review the integrated interfaces. Resolve actionable findings and report concrete remaining limitations.
 

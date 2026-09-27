@@ -27,7 +27,7 @@ async function fixture(t) {
     }),
   );
   await write(
-    'baseline/package.json',
+    'baselines/web-3d-world/package.json',
     JSON.stringify({ tech9: { modules: ['walking'] } }),
   );
   await write('modules/walking/src/walk.js', 'export const speed = 3;\n');
@@ -37,7 +37,10 @@ async function fixture(t) {
   return {
     root,
     write,
-    target: path.join(root, 'baseline/src/modules/walking/src/walk.js'),
+    target: path.join(
+      root,
+      'baselines/web-3d-world/src/modules/walking/src/walk.js',
+    ),
   };
 }
 
@@ -71,7 +74,7 @@ test('module copying refuses symlinks and unknown module IDs before writes', asy
   await assert.rejects(syncModules({ root: f.root, write: true }), /symlinks/);
   await rm(path.join(f.root, 'modules/walking/src/link.js'));
   await f.write(
-    'baseline/package.json',
+    'baselines/web-3d-world/package.json',
     JSON.stringify({ tech9: { modules: ['missing'] } }),
   );
   await assert.rejects(
@@ -83,7 +86,10 @@ test('module copying refuses symlinks and unknown module IDs before writes', asy
 test('module snapshot never silently deletes unexpected destination files', async (t) => {
   const f = await fixture(t);
   await syncModules({ root: f.root, write: true });
-  await f.write('baseline/src/modules/walking/src/local.js', 'preserve\n');
+  await f.write(
+    'baselines/web-3d-world/src/modules/walking/src/local.js',
+    'preserve\n',
+  );
   await assert.rejects(
     syncModules({ root: f.root, write: true }),
     /Unexpected module-copy file/,
@@ -98,7 +104,7 @@ test('removed module copies require explicit inspection', async (t) => {
   const f = await fixture(t);
   await syncModules({ root: f.root, write: true });
   await f.write(
-    'baseline/package.json',
+    'baselines/web-3d-world/package.json',
     JSON.stringify({ tech9: { modules: [] } }),
   );
   await assert.rejects(

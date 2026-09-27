@@ -17,7 +17,7 @@ From the framework directory:
 
 modules   List reusable modules and versions.
 validate  Check module paths and an optional execution plan.
-fork      Copy the baseline into games/<slug> using an approved plan.
+fork      Copy baselines/web-3d-world into games/<slug> using an approved plan.
 
 Paths are relative to the framework directory, regardless of working directory.
 The baseline must be clean and committed. Fork never overwrites an existing

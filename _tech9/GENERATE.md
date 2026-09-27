@@ -14,6 +14,8 @@ Set `artGate` and milestones to the brief's review requirements. Reference pilot
 
 ## Create the package
 
+The current fork command uses `baselines/web-3d-world/`. `baselines/web-2.5d-world/` awaits extraction; selectable starting points are part of the framework expansion task.
+
 The fork destination must be absent. If `games/<slug>` contains exactly a launch packet (`BRIEF.md` and `PROMPT.md`), move that directory to `runs/<slug>` before creating its plan. Preserve existing run directories and inspect unexpected contents. A game with a fork receipt is an existing project to resume.
 
 From `_tech9`, using supported Node:
@@ -27,7 +29,7 @@ From `_tech9`, using supported Node:
 ./run --prefix games/<slug> ci
 ```
 
-Copy the clean, committed baseline. Set `schemaVersion: 2` and `baselineVersion` to the version in `baseline/package.json` in the execution plan. Integrate additional modules using the [module guide](./modules/README.md) and [copying guide](./docs/MODULES.md), preserving their layout, dependencies and licenses. Keep `tech9.json` and `GAME_PLAN.json` byte-for-byte intact. Give the game its own presentation, storage namespace and documentation.
+Copy the clean, committed baseline. Set `schemaVersion: 2` and `baselineVersion` to the version in `baselines/web-3d-world/package.json` in the execution plan. Integrate additional modules using the [module guide](./modules/README.md) and [copying guide](./docs/MODULES.md), preserving their layout, dependencies and licenses. Keep `tech9.json` and `GAME_PLAN.json` byte-for-byte intact. Give the game its own presentation, storage namespace and documentation.
 
 ## Build and validate
 

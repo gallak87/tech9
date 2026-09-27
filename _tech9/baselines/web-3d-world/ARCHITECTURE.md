@@ -1,4 +1,4 @@
-# Baseline architecture
+# Web 3D world architecture
 
 A fixed 160 × 160 metre forest study. Three.js owns rendering; Blender authors reusable mesh assets. One metre equals one world unit, +Y is up. Content is deterministic and bounded, authored at initialization.
 

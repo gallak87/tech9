@@ -26,7 +26,7 @@ Open **http://127.0.0.1:4403** for the coastal sprite world. For the Three.js fo
 
 Use a minimal scaffold when neither authored world fits. Every choice has local dependencies, its own launch/build commands and optional selected modules. Native engines remain future work.
 
-Give an agent your pitch and [GENERATE.md](GENERATE.md) to build a game. Use [FRAMEWORK_DEV.md](FRAMEWORK_DEV.md) to develop or extract reusable capabilities. The [shared workflow](WORKFLOW.md) covers ownership, validation and independent critique.
+Give an agent a few sentences about your game and [GENERATE.md](GENERATE.md). The workflow turns that pitch into a concrete **Goal / How to work / Rules** build prompt and a validated execution plan, then builds the game within your authorization. You do not need to supply the planning instructions yourself. Use [FRAMEWORK_DEV.md](FRAMEWORK_DEV.md) to develop or extract reusable capabilities. The [shared workflow](WORKFLOW.md) covers ownership, validation and independent critique.
 
 ## Modules
 

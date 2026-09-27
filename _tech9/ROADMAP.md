@@ -14,13 +14,17 @@ idea → baseline + modules → game → playtest → framework-dev
 
 ### 1. Graduate to the repository root
 
+Extract reusable 2.5D capabilities from Echo, add starting-point selection and check the result against existing Canvas2D, Three.js and Godot games. Complete a new 2D/2.5D game using the accepted framework, then finish and integrate its framework-dev phase.
+
 Move the older framework into `_archive/` and promote `_tech9/` to root. Keep GitHub Pages serving committed browser games and pilots. Decide archive coverage and retain stable public routes.
 
-[Cutover plan](../HANDOFF-tech9-graduation.md)
+[Work prompts, graduation gate and cutover plan](../HANDOFF-tech9-graduation.md)
 
 ### 2. Build a full game
 
-Use a fresh session to build a complete game in `games/<slug>/`, combining the accepted modules. Let gameplay and playtesting identify the next useful improvements.
+Define the new 2D/2.5D game's experience, presentation and target devices. Build it in `games/<slug>/` from the appropriate starting point and modules. Its completed framework-dev phase is the graduation gate.
+
+[Game brief — TBD](../04_TBD_PROMPT.md)
 
 ### 3. Improve baseline performance
 
@@ -30,7 +34,7 @@ Profile frame pacing, foliage, shadows and atmosphere on target hardware. Keep v
 
 ### 4. Develop the canyon starting point
 
-Build an authored canyon with its own terrain, materials and traversal. Reuse weather to exercise rain, snow and shelter in a second environment. Add baseline selection when a second starting package is accepted.
+Build an authored canyon with its own terrain, materials and traversal. Reuse weather to exercise rain, snow and shelter in a second environment. Register the accepted package through starting-point selection.
 
 [Canyon brief](docs/plans/canyon.md)
 

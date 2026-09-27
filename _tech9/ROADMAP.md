@@ -14,7 +14,7 @@ idea → baseline + modules → game → playtest → framework-dev
 
 ### 1. Graduate to the repository root
 
-Preparation adds Echo-derived sprite exploration, named starting packages, minimal web scaffolds and source-qualified reference findings. Next, complete a new 2D/2.5D game from the user’s brief, then finish and integrate its framework-dev phase. Preparation alone does not satisfy graduation.
+Preparation is complete: Echo-derived sprite exploration, named starting packages, minimal web scaffolds and source-qualified reference findings are integrated and validated. Next, complete a new 2D/2.5D game from the user’s brief, then finish and integrate its framework-dev phase. Preparation alone does not satisfy graduation.
 
 Move the older framework into `_archive/` and promote `_tech9/` to root. Keep GitHub Pages serving committed browser games and pilots. Decide archive coverage and retain stable public routes.
 
@@ -22,7 +22,9 @@ Move the older framework into `_archive/` and promote `_tech9/` to root. Keep Gi
 
 ### 2. Build a full game
 
-Define the new 2D/2.5D game's experience, presentation and target devices. Build it in `games/<slug>/` from the appropriate starting point and modules. Its completed framework-dev phase is the graduation gate.
+Define the new 2.5D game's experience, presentation and target devices. The user's direction is a distinct, non-RPG premise with a new visual identity; the concept and scope remain to be chosen. Reuse sprite-world's capabilities with game-owned artwork and composition. The coastal baseline's Echo-derived artwork is a replaceable example preset, not a requirement for the new game.
+
+Build it in `games/<slug>/` from the appropriate starting point and modules. Its completed framework-dev phase is the graduation gate. Record time to the first playable loop, repeated implementation work and awkward integration points to guide that phase; a useful improvement or authoring tool can be a better contribution than another runtime module.
 
 [Game brief gate](../PROMPT-framework-expansion.md#game-brief-gate)
 
@@ -69,15 +71,24 @@ Improve prominent models against visual references and actual gameplay views. Ch
 
 ## Deferred
 
-- **Simpler planning metadata:** reduce required scaffolding fields when the current plan format adds work without improving a game build.
 - **Native runtime comparison:** compare the same forest assets and views in Godot; use measured results to guide further work.
+
+### Faster game development
+
+These are roadmap follow-ups, not additional graduation requirements or approved implementation scope. Prioritize them using friction observed in the next game.
+
+- **Shorter path to a playable experiment:** generate a small execution plan with sensible defaults from a brief and starting-point choice. Retain detailed ownership and validation options for larger work; avoid requiring manual coordination metadata for a one-person prototype. Verify that the simplified path still produces an independently runnable, traceable package.
+- **Playable capability catalog:** connect module descriptions to runnable examples, actual consumers, supported renderers and composition recipes. Let a developer see what a capability does and which pieces work together before reading implementation details. Reuse existing examples and pilots first.
+- **Reviewable module updates:** compare a game's owned copy, its recorded source and the current canonical module. Distinguish local customization from upstream changes, preview proposed updates and preserve immutable fork receipts. Current explicit synchronization is not a merge workflow.
+- **Framework-dev starter and checks:** scaffold module source, tests, asset notices and a small example; verify registry requirements, owned-copy integration and standalone use. Keep scope and interface decisions reviewable. Extraction should preserve assets, presets and the behavior that made the original useful; module count is not a success metric.
+- **Gameplay patterns worth investigating:** compare repeated start/pause/results/retry flows and interaction/feedback behavior across games. Extract only after concrete consumers establish a shared contract; keep each game's objectives, scoring and progression local.
 
 ### Concrete extraction opportunities
 
 - **Audio runtime:** gesture-safe Web Audio ownership, buses, bounded synthesized cues and cleanup; keep score and game-event mapping local. This is the strongest independent candidate from the reference review. User decision: defer extraction and review it after step 03.
-- **Sprite authoring:** extend sprite-world with portable recipe-driven atlas/icon preparation and pixel-parity fixtures; preserve prepared alpha, measured anchors and editable originals.
+- **Sprite authoring:** extend sprite-world's existing helpers into portable recipe-driven atlas/icon preparation with crop, transparency, anchor and frame validation. Preserve prepared alpha, measured anchors and editable originals; verify reproducibility with pixel-parity fixtures. Start as an authoring tool owned with sprite-world rather than another runtime module.
 - **Rigid GLB ownership:** use a real consumer to prove template/instance leases, independent materials, failed/late loads and disposal before introducing another asset abstraction.
-- **Deterministic scenery authoring:** build on accepted landscape/world-composition modules with shared seeded placement and matching-camera previews.
+- **Scene and scenery authoring:** begin with a concrete game's small placement inspector for props, collision footprints and interaction zones, previewed through the actual camera. Save deterministic scene data and verify that rendered placement matches traversal. Extend existing landscape/world-composition capabilities for seeded 3D scenery where useful; a full general-purpose editor is not the initial scope.
 - **Native Godot packages:** implement a runnable native source package, scene/resource copying and validated export path before advertising support.
 
 [Source-qualified reference findings](docs/REFERENCE-GAMES.md)

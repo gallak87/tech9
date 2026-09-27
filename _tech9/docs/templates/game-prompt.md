@@ -1,4 +1,4 @@
-<!-- Authoring template for GENERATE.md. Replace all bracketed guidance with concrete game decisions, retain the three headings, and save the result as runs/<slug>/PROMPT.md. This file is not a user questionnaire. -->
+<!-- Authoring template for GENERATE.md. Replace all bracketed guidance with concrete game decisions, retain the three headings, and save the result as runs/<slug>/PROMPT.md. Match BRIEF.md and plan.json. Prepare this before the review gate; drafting it does not authorize execution. -->
 
 # Goal
 
@@ -24,7 +24,7 @@ Use [verified starting point, renderer and selected modules] in `_tech9/games/[s
 
 # Rules
 
-- Honor user constraints; make routine decisions and state material assumptions. Ask only about blocking ambiguity or genuinely missing authority. Continue through the authorized task rather than stopping after the generated plan.
+- Start implementation after the GENERATE.md review gate is accepted or explicitly waived. Honor user constraints; make routine decisions within the approved scope and review material departures. Preserve prior approval on resume and continue through the authorized task.
 - Keep ownership explicit. Builders edit their assigned paths; the integration owner handles shared application changes. Do not invent tools, agents, permissions or review results.
 - Preserve unrelated work, standalone package boundaries and immutable fork receipts. Use package-owned dependencies and the framework's compatibility checks.
 - Judge completion by playable behavior and observed presentation. Report failures, unmet targets and unverified device/motion claims honestly; do not inflate scores or repeat review indefinitely.

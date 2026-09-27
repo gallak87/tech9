@@ -8,10 +8,17 @@ Choose a coherent, bounded experience: player actions, challenge, outcome/retry 
 
 Write these files in `runs/<slug>/`:
 
+- **`BRIEF.md`:** fill the [game-brief template](docs/templates/game-brief.md). Keep it about one screen: the game, scope, presentation, important assumptions and a short build summary with proposed roles and milestones.
 - **`PROMPT.md`:** fill the [game-prompt template](docs/templates/game-prompt.md), retaining **Goal → How to work → Rules**. Replace placeholders with concrete game decisions and acceptance criteria. Keep user requirements distinct from inferred choices; scale scope and quality targets to this game.
-- **`plan.json`:** derive the [schema-2 execution plan](schemas/execution-plan.schema.json) from that prompt. Set `startingPoint` and `baselineVersion` to the selected package and its current version. Match scope, milestones, ownership, validation, art gate and stopping point to the prompt. Use the workflow's review defaults unless the brief specifies otherwise. One implementation lane is sufficient for a solo build.
+- **`plan.json`:** derive a draft [schema-2 execution plan](schemas/execution-plan.schema.json) from that prompt. Set `startingPoint` and `baselineVersion` to the selected package and its current version. Match scope, milestones, ownership, validation, art gate and stopping point across the packet. Use the workflow's review defaults unless the brief specifies otherwise. One implementation lane is sufficient for a solo build.
 
-Record the actual user authority in `authorization.basis`. Use `approved` when the build is authorized and required approvals are satisfied; otherwise use `draft`. Summarize the direction and proceed with an authorized build. For prompt-only requests, deliver the packet and stop.
+## Review once before building
+
+Prepare and validate the complete packet, then show the brief and build summary in the conversation and link the full prompt. Ask the user to approve or revise, and **wait before forking, generating game assets or starting implementation**. A general request to build does not skip this review.
+
+Keep the plan `draft` while awaiting approval. Apply requested revisions across the packet; once accepted, record the approval in `authorization.basis`, set `approved`, revalidate and build. That approval covers the concept and build summary, including the proposed roster; a separate roster gate is used only when requested. Routine implementation decisions need no further confirmation. Bring material departures from the approved concept or scope back for review.
+
+Honor an explicit instruction to skip this review, recording it as delegated authority. Do not repeat an already completed gate on resume. For prompt-only requests, deliver the packet without building.
 
 ## Choose the starting point
 

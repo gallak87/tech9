@@ -3,12 +3,9 @@ import { isDeepStrictEqual } from 'node:util';
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  DEFAULT_BASELINE,
-  confinedPath,
-  loadModules,
-  readJson,
-} from './lib/project.mjs';
+import { confinedPath, loadModules, readJson } from './lib/project.mjs';
+
+import { startingPoint, packageModules } from './lib/starting-points.mjs';
 
 const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
@@ -31,19 +28,41 @@ async function files(root, relative = '') {
 }
 
 /** Refresh the baseline's selected module source copies. */
-export async function syncModules({ root, write = false }) {
+export async function syncModules({ root, write = false, from, packagePath }) {
+  if (from !== undefined && packagePath !== undefined)
+    throw new Error('Choose --from or --package, not both');
+  const destinationPackage = packagePath ?? startingPoint(from).path;
+  if (
+    destinationPackage === 'modules' ||
+    destinationPackage.startsWith('modules/')
+  )
+    throw new Error('Module copies cannot target canonical modules');
   const registry = await loadModules(root);
   const packageJson = await readJson(
-    await confinedPath(root, `${DEFAULT_BASELINE}/package.json`),
+    await confinedPath(root, `${destinationPackage}/package.json`),
   );
-  const selected = packageJson.tech9?.modules;
-  if (!Array.isArray(selected) || new Set(selected).size !== selected.length)
-    throw new Error(
-      `${DEFAULT_BASELINE}/package.json needs a unique tech9.modules list`,
-    );
-  const copyRoot = await confinedPath(root, `${DEFAULT_BASELINE}/src/modules`, {
-    allowMissing: true,
-  });
+  const selected = packageModules(
+    packageJson,
+    registry,
+    `${destinationPackage}/package.json`,
+  );
+  if (packagePath === undefined) {
+    const source = startingPoint(from);
+    if (
+      packageJson.tech9.runtime !== source.runtime ||
+      packageJson.tech9.renderer !== source.renderer
+    )
+      throw new Error(
+        `Starting package ${source.name} must declare runtime ${source.runtime} and renderer ${source.renderer}`,
+      );
+  }
+  const copyRoot = await confinedPath(
+    root,
+    `${destinationPackage}/src/modules`,
+    {
+      allowMissing: true,
+    },
+  );
   const copyEntries = await readdir(copyRoot).catch((error) => {
     if (error.code === 'ENOENT') return [];
     throw error;
@@ -58,16 +77,12 @@ export async function syncModules({ root, write = false }) {
   const copies = [];
   for (const id of selected) {
     const module = registry.modules.find((item) => item.id === id);
-    if (!module)
-      throw new Error(
-        `Unknown module ${id} in ${DEFAULT_BASELINE}/package.json`,
-      );
     const modulePath = `modules/${id}`;
     const moduleRoot = await confinedPath(root, modulePath);
     const source = await confinedPath(root, `${modulePath}/src`);
     const target = await confinedPath(
       root,
-      `${DEFAULT_BASELINE}/src/modules/${id}`,
+      `${destinationPackage}/src/modules/${id}`,
       { allowMissing: true },
     );
     const sourceFiles = await files(source);
@@ -78,12 +93,13 @@ export async function syncModules({ root, write = false }) {
         name === 'README.md' ||
         /(?:LICENSE|NOTICE).*(?:\.txt|\.md)?$/i.test(name),
     );
-    const assets = await files(path.join(moduleRoot, 'assets')).catch(
-      (error) => {
-        if (error.code === 'ENOENT') return [];
-        throw error;
-      },
-    );
+    const assetsRoot = await confinedPath(moduleRoot, 'assets', {
+      allowMissing: true,
+    });
+    const assets = await files(assetsRoot).catch((error) => {
+      if (error.code === 'ENOENT') return [];
+      throw error;
+    });
     const included = [
       ...sourceFiles.map((file) => `src/${file}`),
       ...documentation,
@@ -103,7 +119,7 @@ export async function syncModules({ root, write = false }) {
       const content = await readFile(await confinedPath(moduleRoot, file));
       const destination = await confinedPath(
         root,
-        `${DEFAULT_BASELINE}/src/modules/${id}/${file}`,
+        `${destinationPackage}/src/modules/${id}/${file}`,
         { allowMissing: true },
       );
       entries.push({ path: file, sha256: sha256(content) });
@@ -118,10 +134,18 @@ export async function syncModules({ root, write = false }) {
   }
   const provenancePath = await confinedPath(
     root,
-    `${DEFAULT_BASELINE}/src/modules/PROVENANCE.json`,
+    `${destinationPackage}/src/modules/PROVENANCE.json`,
     { allowMissing: true },
   );
   const provenance = { schemaVersion: 1, modules: records };
+  // A minimal scaffold with no copies need not carry an empty provenance file.
+  if (!selected.length && !copyEntries.length && !write)
+    return {
+      mode: 'check',
+      package: destinationPackage,
+      modules: [],
+      files: 0,
+    };
   // Validate every source and destination before writing.
   for (const { destination, content } of copies) {
     if (write) {
@@ -144,6 +168,7 @@ export async function syncModules({ root, write = false }) {
     throw new Error(`Module provenance differs: ${provenancePath}`);
   return {
     mode: write ? 'write' : 'check',
+    package: destinationPackage,
     modules: selected,
     files: copies.length,
   };
@@ -154,21 +179,30 @@ if (
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 ) {
   const args = process.argv.slice(2);
-  if (
-    args.length > 1 ||
-    (args.length && !['--write', '--check'].includes(args[0]))
-  ) {
-    console.error('Usage: node tools/sync-modules.mjs [--check | --write]');
+  const options = {
+    root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
+  };
+  try {
+    const seen = new Set();
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      const key = ['--write', '--check'].includes(arg) ? 'mode' : arg;
+      if (seen.has(key)) throw new Error(`Duplicate sync option ${arg}`);
+      seen.add(key);
+      if (arg === '--write' || arg === '--check')
+        options.write = arg === '--write';
+      else if (arg === '--from' || arg === '--package') {
+        const value = args[++i];
+        if (!value || value.startsWith('--'))
+          throw new Error(`${arg} needs a value`);
+        options[arg === '--from' ? 'from' : 'packagePath'] = value;
+      } else throw new Error(`Unknown sync option: ${arg}`);
+    }
+    if (options.from && options.packagePath)
+      throw new Error('Choose --from or --package, not both');
+    console.log(JSON.stringify(await syncModules(options), null, 2));
+  } catch (error) {
+    console.error(error.message);
     process.exitCode = 1;
-  } else {
-    syncModules({
-      root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'),
-      write: args[0] === '--write',
-    })
-      .then((result) => console.log(JSON.stringify(result, null, 2)))
-      .catch((error) => {
-        console.error(error.message);
-        process.exitCode = 1;
-      });
   }
 }

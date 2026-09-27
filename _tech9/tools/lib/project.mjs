@@ -22,9 +22,12 @@ import {
   fail,
   safeRelative,
   SLUG,
+  VERSION,
   validateModules,
   validatePlan,
 } from './validation.mjs';
+
+import { startingPoint, packageModules } from './starting-points.mjs';
 
 const execute = promisify(execFile);
 const EXCLUDED_NAMES = new Set([
@@ -82,12 +85,32 @@ export async function loadModules(root) {
   return registry;
 }
 
-export async function loadBaseline(root) {
+export async function loadBaseline(root, name) {
+  const selected = startingPoint(name);
   const packageJson = await readJson(
-    await confinedPath(root, `${DEFAULT_BASELINE}/package.json`),
+    await confinedPath(root, `${selected.path}/package.json`),
   );
-  if (!packageJson.scripts?.dev || !packageJson.scripts?.build)
-    fail('Baseline must have dev and build package scripts');
+  if (
+    ['dev', 'build'].some(
+      (script) =>
+        typeof packageJson.scripts?.[script] !== 'string' ||
+        !packageJson.scripts[script].trim(),
+    )
+  )
+    fail('Starting package must have dev and build package scripts');
+  if (
+    typeof packageJson.version !== 'string' ||
+    !VERSION.test(packageJson.version)
+  )
+    fail('Starting package must have a semantic version');
+  packageModules(packageJson, await loadModules(root), selected.path);
+  if (
+    packageJson.tech9.runtime !== selected.runtime ||
+    packageJson.tech9.renderer !== selected.renderer
+  )
+    fail(
+      `Starting package ${selected.name} must declare runtime ${selected.runtime} and renderer ${selected.renderer}`,
+    );
   return packageJson;
 }
 
@@ -154,11 +177,11 @@ async function git(root, args) {
   }
 }
 
-async function snapshotSource(root) {
+async function snapshotSource(root, sourceRelative = DEFAULT_BASELINE) {
   const repository = await realpath(
     (await git(root, ['rev-parse', '--show-toplevel'])).trim(),
   );
-  const source = await confinedPath(root, DEFAULT_BASELINE);
+  const source = await confinedPath(root, sourceRelative);
   const sourcePath = path
     .relative(repository, source)
     .split(path.sep)
@@ -226,26 +249,40 @@ export async function forkBaseline({
   planPath,
   port = 4410,
   dryRun = false,
+  from,
+  outputDirectory = GAMES_DIRECTORY,
 }) {
   if (typeof slug !== 'string' || !SLUG.test(slug) || slug.length > 64)
     fail(
       'Game slug must be lowercase letters, digits and single hyphens, begin with a letter, and be at most 64 characters',
     );
   const devPort = portNumber(port);
-  const sourcePackage = await loadBaseline(root);
-  const plan = await loadPlan(root, planPath, sourcePackage.version);
+  const plan = await loadPlan(root, planPath);
+  const selected = startingPoint(from ?? plan.startingPoint);
+  if ((plan.startingPoint ?? 'web-3d-world') !== selected.name)
+    fail('Starting point does not match the execution plan');
+  const sourcePackage = await loadBaseline(root, selected.name);
+  validatePlan(plan, sourcePackage.version);
   if (plan.status !== 'approved')
     fail('Fork requires an approved execution plan');
   if (plan.id !== slug) fail('Game slug must match the execution plan id');
-  const destinationPath = `${GAMES_DIRECTORY}/${slug}`;
+  safeRelative(outputDirectory, 'Output directory');
+  if (
+    outputDirectory === selected.path ||
+    outputDirectory.startsWith(`${selected.path}/`) ||
+    selected.path.startsWith(`${outputDirectory}/`)
+  )
+    fail('Output directory must not overlap the starting package');
+  const destinationPath = `${outputDirectory}/${slug}`;
   const destination = await confinedPath(root, destinationPath, {
     allowMissing: true,
   });
   await absent(destination);
-  const snapshot = await snapshotSource(root);
+  const snapshot = await snapshotSource(root, selected.path);
   const result = {
     status: dryRun ? 'dry-run' : 'scaffolded',
     destination: destinationPath,
+    startingPoint: selected,
     baselineVersion: sourcePackage.version,
     sourceCommit: snapshot.commit,
     sourceSha256: snapshot.sha256,
@@ -254,7 +291,7 @@ export async function forkBaseline({
     next: [`cd ${destinationPath}`, 'npm ci', 'npm run dev'],
   };
   if (dryRun) return result;
-  const games = await confinedPath(root, GAMES_DIRECTORY, {
+  const games = await confinedPath(root, outputDirectory, {
     allowMissing: true,
   });
   await mkdir(games, { recursive: true });
@@ -312,6 +349,10 @@ export async function forkBaseline({
       createdAt: new Date().toISOString(),
       source: {
         path: snapshot.path,
+        startingPoint: selected.name,
+        kind: selected.kind,
+        runtime: selected.runtime,
+        renderer: selected.renderer,
         version: sourcePackage.version,
         commit: snapshot.commit,
         snapshotSha256: snapshot.sha256,
@@ -327,7 +368,7 @@ export async function forkBaseline({
       flag: 'wx',
     });
     // Detect edits made while the snapshot was copied, before publishing the fork.
-    const after = await snapshotSource(root);
+    const after = await snapshotSource(root, selected.path);
     if (after.sha256 !== snapshot.sha256 || after.commit !== snapshot.commit)
       fail(
         'Source changed while forking; retry from a stable committed checkpoint',

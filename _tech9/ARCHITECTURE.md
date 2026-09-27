@@ -1,28 +1,29 @@
 # Architecture
 
-## Modules and baselines
+## Source packages and modules
 
-`modules.json` records module IDs and versions. Source paths follow `modules/<id>/src`; each module includes tests and an integration guide. Assets and licenses travel with the source.
+Authored applications live in `baselines/<name>/`: `web-3d-world` composes a Three.js forest; `web-2.5d-world` composes an Echo-derived coastal sprite world. Minimal dependency-owned applications live in `scaffolds/`: `web-canvas2d`, `web-pixi` and `web-three`. The explicit catalog in `tools/lib/starting-points.mjs` maps supported names to package paths, kind, runtime and renderer. A folder name identifies a source independently of game slug syntax.
 
-`baselines/web-3d-world/` is a standalone Three.js application with its own package, lockfile, renderer, authored world and assets. Its package version identifies the starting application. `package.json` lists selected modules in `tech9.modules`; `sync:modules` copies them into `src/modules/<id>` and records source versions and hashes in `PROVENANCE.json`.
+Every runnable package owns its manifest/lockfile, launch/build commands, rendering loop, authored composition and `tech9` metadata. `tech9.runtime`, `tech9.renderer` and `tech9.modules` make compatibility explicit. Modules have no live dependency on a game or on the older root framework.
 
-`baselines/web-2.5d-world/` is reserved for the Echo-derived starting application. It has no runnable package yet. The CLI and module sync currently target `web-3d-world`; starting-point selection is part of the framework expansion task.
+`modules.json` records canonical versions and requirements: renderer/runtime, concrete package dependencies and required sibling modules. Portable simulation modules may have no renderer requirement. Canonical source lives in `modules/<id>/src`, with tests, a usage guide, and any supporting assets, editable sources and license records.
 
-The baseline uses one renderer/frame loop, one camera controller and disposable layers. Its authored forest supplies terrain, placements, collision queries, views and presentation; selected modules supply rendering and behavior. See [runtime contracts](./baselines/web-3d-world/ARCHITECTURE.md).
+## Owned module copies
 
-## Game copies
+`sync:modules -- --from <name>` selects a source package; `--package games/<slug>` explicitly targets an owned game. It validates dependencies, source/destination paths and unexpected files before writing. Selected source, README/notices and assets are copied to `src/modules/<id>/`; versions and hashes go in `src/modules/PROVENANCE.json`. See [copying](docs/MODULES.md). Existing games are never refreshed implicitly.
 
-The CLI copies a clean, committed baseline into `games/<slug>`, preserving source, editable assets and licenses. It adapts package name/ports and writes two records:
+The Three.js application owns one renderer/frame loop and camera controller, with disposable layers and authored terrain/placement queries. The sprite application owns its coastal composition and HTML presentation while `sprite-world` owns bounded rendering surfaces, movement/control state and loaded artwork. Canvas2D composes logical sprite depth and PixiJS presents it. See each package's architecture for concrete interfaces.
 
-- `tech9.json`: baseline package version, source commit and per-file hashes.
-- `GAME_PLAN.json`: the execution plan used for the copy.
+## Generation and provenance
 
-The generated `.prettierignore` preserves their bytes. Each game owns its files, package and subsequent changes. Additional modules are integrated as local source copies. Reference pilots live in `games/_pilot/<slug>/`; new games use `games/<slug>/`.
+Schema-2 plans select a `startingPoint`; absent means the legacy `web-3d-world`. `baselineVersion` always refers to the selected source package, including minimal scaffolds. Validation checks scope, exclusive ownership, dependency cycles and selected version. Unsupported sources fail explicitly; web scaffolds do not imply native engine support.
 
-## Tools
+Fork copies a clean, committed source into absent `games/<slug>`, adapts name/ports, and preserves its package boundaries and licenses. It writes immutable `tech9.json` (source identity, kind, runtime/renderer, version, commit and hashes) and `GAME_PLAN.json` (the execution plan). Generated formatting exclusions preserve receipt bytes. Existing fork receipts remain unchanged. A copy owns every file and evolves independently; there are no runtime source links.
 
-Tool paths resolve from the framework directory. The CLI validates module IDs, plans, baseline version, path ownership and source provenance. Fork tests use small disposable fixtures.
+New games live in `games/<slug>`; reference pilots stay in `games/_pilot/<slug>`. Disposable verification packages and output stay in ignored `.artifacts/`.
 
-Framework checks compile canonical module JavaScript with Three.js external. Three.js supplies real cameras, materials and geometry for module tests; Vite compiles source. Build output goes to `.artifacts/module-build/`. Game development uses source files.
+## Verification and tooling
 
-Each package installs dependencies independently. The optional Git hook selects the nearest package's lint-staged configuration. See [setup and relocation](./docs/MIGRATION.md).
+Framework checks run unit/integration tests, lint/format, canonical module builds and registry validation. Module builds externalize declared runtime packages; the consuming package supplies those dependencies. Build output goes to `.artifacts/module-build/`.
+
+Starting packages run their own tests/builds and browser checks. Generation tests cover source selection, receipts, synchronization, overwrite/path protection and compatibility. [Reference findings](docs/REFERENCE-GAMES.md) distinguish inspected game implementations from verified framework support. Each package installs independently. Optional hooks select the nearest package's lint-staged configuration; see [setup](docs/MIGRATION.md).

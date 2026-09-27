@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "modules": [
+    {
+      "id": "sprite-world",
+      "version": "1.0.0",
+      "source": "modules/sprite-world",
+      "files": [
+        {
+          "path": "README.md",
+          "sha256": "6ae1933de048a4273a5d0c6b7e9cb3be048d28255095090878e9d4de480b136f"
+        },
+        {
+          "path": "assets/NOTICE.md",
+          "sha256": "3b326462734f2cedc91ffde7939d8d459f31491ae32318b4ab43c8f3f80b046b"
+        },
+        {
+          "path": "assets/provenance.json",
+          "sha256": "fb4026bb4ec47d453b3870c334eadf67d9eabb6310fbfe4d97c544c3258d10fa"
+        },
+        {
+          "path": "assets/runtime/coast-details.png",
+          "sha256": "a2d2a78f0957a5977523a47d5e052b3c1100dfece09df90b910d9902decdbcc7"
+        },
+        {
+          "path": "assets/runtime/coast-ground.png",
+          "sha256": "2c556c62218eec83286f6cbf9740c186407709e4b17a3f7a3572b493ba4adbe1"
+        },
+        {
+          "path": "assets/runtime/coast-props.png",
+          "sha256": "5d6b9d98c7dfda25f69d01294c80cb1949c58d09722bbea35b7a209a86917a92"
+        },
+        {
+          "path": "assets/runtime/kaida-idle.png",
+          "sha256": "b605eb7dfb3bc953e9f04f951762a7bde9868edad00494dadcc57ffdee5fac8d"
+        },
+        {
+          "path": "assets/runtime/kaida-walk.png",
+          "sha256": "9a183bab55524b4d49e4294d20f5c852c55b1de1cd8528ba05d245f11a8a191f"
+        },
+        {
+          "path": "assets/sources/coast-details.png",
+          "sha256": "b20bd0ebda2bfccdaa318b136f510504e0f41f29731a83d031d10424358d12e8"
+        },
+        {
+          "path": "assets/sources/coast-ground.png",
+          "sha256": "31cb91039be3ac2c888d6b7632c7fa6151966ccd64cd316eee6481fba0723ff8"
+        },
+        {
+          "path": "assets/sources/kaida-idle.png",
+          "sha256": "5ff36022e0242d4b549569afccd9f38fba086d4b5371c7ede7eeae21ecfc14c7"
+        },
+        {
+          "path": "assets/sources/kaida-walk.png",
+          "sha256": "f32faad95fc7a4ecb5a91f1642be44286c09474e6412c51fcf5831beb256df33"
+        },
+        {
+          "path": "src/assets.js",
+          "sha256": "56f1c633711850568be1cc64d92b9a8b6f12feb331320f9eb6b609b89d18e1a0"
+        },
+        {
+          "path": "src/authoring.js",
+          "sha256": "4b1a115747aa01135239270f521d7ce05c96b31eb7bef20314b208c8f240d5ef"
+        },
+        {
+          "path": "src/coastal.js",
+          "sha256": "e97811edecaab66d85bf2b206581de209cb0bff97cede37195b344d0e773f710"
+        },
+        {
+          "path": "src/contract.js",
+          "sha256": "889bd6d52c88b9e8b7f87a7a1962cdf30c857a0fb085b083296b7ed6b11b41d9"
+        },
+        {
+          "path": "src/controls.js",
+          "sha256": "db19e490592a3129f17a36dbf383ce88858513b5d773f9ad13825368bae30b11"
+        },
+        {
+          "path": "src/exploration.js",
+          "sha256": "fe1ccb32649e5452d85f3f67f0fafdcd46bf0ca6b372e8ebe9e5abd12843d86c"
+        },
+        {
+          "path": "src/frames.js",
+          "sha256": "abe24f99fb355bc7b8ea9777999110b9ef64493df64e6796306881ff9f60710f"
+        },
+        {
+          "path": "src/index.js",
+          "sha256": "fdae8c3e9bfca6dd6427140d1ac05bfba244485911840e5174a5ae55283775c8"
+        },
+        {
+          "path": "src/touch-input.js",
+          "sha256": "ea31a34d4a4edc9d8e0d1f9e4fd5c7a927a2e6e287fbd7767c98f36ccb8835f1"
+        },
+        {
+          "path": "src/viewport.js",
+          "sha256": "8e3add9d1f46dfb9e057afb2b10e4c528031535c445340a8e797580f3ec9a4bd"
+        },
+        {
+          "path": "src/world.js",
+          "sha256": "51656ef093b7d61daedbf246317ebecb1679f74b8dec91a935f638f917d94aa0"
+        }
+      ]
+    }
+  ]
+}

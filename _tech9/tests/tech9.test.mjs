@@ -17,9 +17,15 @@ import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { format } from 'prettier';
-import { forkBaseline, loadModules, loadPlan } from '../tools/lib/project.mjs';
+import {
+  forkBaseline,
+  loadBaseline,
+  loadModules,
+  loadPlan,
+} from '../tools/lib/project.mjs';
 import { validateModules, validatePlan } from '../tools/lib/validation.mjs';
 import { run } from '../tools/tech9.mjs';
+import { STARTING_POINTS } from '../tools/lib/starting-points.mjs';
 
 const execute = promisify(execFile);
 const json = (value) => `${JSON.stringify(value, null, 2)}\n`;
@@ -108,6 +114,7 @@ async function fixture(t) {
       name: 'tech9-baseline',
       version: '1.0.0',
       type: 'module',
+      tech9: { runtime: 'web', renderer: 'three', modules: ['walking'] },
       scripts: {
         dev: 'vite --port 4399',
         preview: 'vite preview --port 4400',
@@ -151,6 +158,20 @@ async function fixture(t) {
   await write(`${baselinePath}/.husky/pre-commit`, 'old repository hook');
   await write(`${baselinePath}/docs/reviews/round.json`, 'old evidence');
   await write(`${baselinePath}/docs/EXTENDING.md`, 'extension guide');
+  for (const [name, selected] of Object.entries(STARTING_POINTS)) {
+    if (name === 'web-3d-world') continue;
+    const relative = `_tech9/${selected.path}`;
+    await cp(path.join(root, baselinePath), path.join(root, relative), {
+      recursive: true,
+    });
+    const manifest = JSON.parse(
+      await readFile(path.join(root, relative, 'package.json')),
+    );
+    manifest.name = name;
+    manifest.version = '2.0.0';
+    manifest.tech9.renderer = selected.renderer;
+    await write(`${relative}/package.json`, json(manifest));
+  }
   await git('init', '--quiet');
   await git('add', '.');
   await git(
@@ -684,3 +705,166 @@ for (const existingIgnore of [
     }
   });
 }
+
+for (const [name, selected] of Object.entries(STARTING_POINTS)) {
+  test(`selected starting package ${name} is independently versioned, copied and recorded`, async (t) => {
+    const f = await fixture(t);
+    const candidate = {
+      ...plan(),
+      startingPoint: name,
+      baselineVersion: name === 'web-3d-world' ? '1.0.0' : '2.0.0',
+    };
+    await f.write(`_tech9/${f.args.planPath}`, json(candidate));
+    const result = await forkBaseline({ ...f.args, from: name });
+    assert.equal(result.startingPoint.name, name);
+    const receipt = JSON.parse(
+      await readFile(path.join(f.destination, 'tech9.json')),
+    );
+    assert.equal(receipt.source.path, `_tech9/${selected.path}`);
+    assert.equal(receipt.source.startingPoint, name);
+    assert.equal(receipt.source.runtime, selected.runtime);
+    assert.equal(receipt.source.renderer, selected.renderer);
+    assert.equal(receipt.source.kind, selected.kind);
+    assert.equal(receipt.source.version, candidate.baselineVersion);
+    assert.equal(
+      JSON.parse(await readFile(path.join(f.destination, 'package.json'))).tech9
+        .renderer,
+      selected.renderer,
+    );
+    const bytes = await readFile(path.join(f.destination, 'tech9.json'));
+    await assert.rejects(
+      forkBaseline({ ...f.args, from: name }),
+      /already exists/,
+    );
+    assert.deepEqual(
+      await readFile(path.join(f.destination, 'tech9.json')),
+      bytes,
+    );
+  });
+}
+
+test('starting point names have their own catalog and cannot select paths or native engines', async (t) => {
+  const f = await fixture(t);
+  for (const startingPoint of [
+    '../escape',
+    'baselines/web-3d-world',
+    'godot',
+    '',
+    null,
+    ['web-3d-world'],
+  ]) {
+    assert.throws(
+      () => validatePlan({ ...plan(), startingPoint }),
+      /Unknown starting point/,
+    );
+  }
+  await assert.rejects(
+    forkBaseline({ ...f.args, from: 'web-pixi' }),
+    /match.*execution plan/,
+  );
+  const candidate = { ...plan(), startingPoint: 'web-pixi' };
+  await f.write(`_tech9/${f.args.planPath}`, json(candidate));
+  await assert.rejects(forkBaseline(f.args), /version mismatch/);
+  const outputs = [];
+  await run(['starting-points'], {
+    root: f.framework,
+    output: (value) => outputs.push(value),
+  });
+  assert.deepEqual(
+    JSON.parse(outputs[0]).map((point) => point.name),
+    Object.keys(STARTING_POINTS),
+  );
+  await assert.rejects(
+    run(['starting-points', 'extra'], { root: f.framework }),
+    /takes no arguments/,
+  );
+});
+
+test('a selected package checks its own source, manifest and output boundaries', async (t) => {
+  const f = await fixture(t);
+  const candidate = {
+    ...plan(),
+    startingPoint: 'web-pixi',
+    baselineVersion: '2.0.0',
+  };
+  await f.write(`_tech9/${f.args.planPath}`, json(candidate));
+  await f.write(`${baselinePath}/src/world.js`, 'unrelated baseline edit');
+  assert.equal(
+    (await forkBaseline({ ...f.args, dryRun: true })).status,
+    'dry-run',
+  );
+  for (const outputDirectory of [
+    '../escape',
+    '/tmp/game',
+    'scaffolds',
+    'scaffolds/web-pixi',
+    'scaffolds/web-pixi/child',
+  ])
+    await assert.rejects(
+      forkBaseline({ ...f.args, outputDirectory }),
+      /traversal|relative|overlap/,
+    );
+  await f.write(
+    '_tech9/scaffolds/web-pixi/src/world.js',
+    'dirty selected source',
+  );
+  await assert.rejects(forkBaseline(f.args), /clean and committed/);
+  const manifest = await loadBaseline(f.framework, 'web-pixi');
+  delete manifest.tech9;
+  await f.write('_tech9/scaffolds/web-pixi/package.json', json(manifest));
+  await assert.rejects(loadBaseline(f.framework, 'web-pixi'), /must declare/);
+});
+
+test('verification forks can live entirely inside ignored artifacts', async (t) => {
+  const f = await fixture(t);
+  const result = await forkBaseline({
+    ...f.args,
+    outputDirectory: '.artifacts/generation/packages',
+  });
+  assert.equal(
+    result.destination,
+    '.artifacts/generation/packages/sample-game',
+  );
+  await readFile(path.join(f.framework, result.destination, 'tech9.json'));
+  await assert.rejects(readdir(path.join(f.framework, 'games')), {
+    code: 'ENOENT',
+  });
+});
+
+test('registry validates concrete renderer, runtime and package requirements', () => {
+  const base = () => ({
+    schemaVersion: 1,
+    modules: [
+      {
+        id: 'walking',
+        version: '1.0.0',
+        requires: {
+          runtime: 'web',
+          renderer: 'pixi',
+          dependencies: { 'pixi.js': '8.16.0' },
+          modules: ['collision'],
+        },
+      },
+      { id: 'collision', version: '1.0.0' },
+    ],
+  });
+  assert.equal(validateModules(base()).modules.length, 2);
+  for (const requires of [
+    null,
+    [],
+    { runtime: 'godot' },
+    { renderer: 'phaser' },
+    { modules: 'collision' },
+    { modules: ['missing'] },
+    { modules: ['walking'] },
+    { modules: ['collision', 'collision'] },
+    { dependencies: [] },
+    { dependencies: { '../outside': '1.0.0' } },
+    { dependencies: { three: '*' } },
+    { unknown: true },
+  ]) {
+    const candidate = base();
+    candidate.modules[0].requires = requires;
+    assert.throws(() => validateModules(candidate));
+  }
+});

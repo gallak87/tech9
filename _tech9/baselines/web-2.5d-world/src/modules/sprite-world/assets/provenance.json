@@ -1,0 +1,65 @@
+{
+  "source": "games/chronoforge-echo",
+  "status": "Project-generated selected art, copied without modification. No separate third-party art license found; no new public license granted.",
+  "assets": [
+    {
+      "id": "coast-ground",
+      "runtime": "runtime/coast-ground.png",
+      "origin": "games/chronoforge-echo/public/assets/coast-ground-source.png",
+      "width": 768,
+      "height": 512,
+      "sha256": "2c556c62218eec83286f6cbf9740c186407709e4b17a3f7a3572b493ba4adbe1",
+      "historicalPrompt": "Not available in the inspected source package.",
+      "authoring": "sources/coast-ground.png",
+      "authoringOrigin": "games/chronoforge-echo/art/sources/ground/coast-ground-source.png",
+      "authoringSha256": "31cb91039be3ac2c888d6b7632c7fa6151966ccd64cd316eee6481fba0723ff8"
+    },
+    {
+      "id": "coast-details",
+      "runtime": "runtime/coast-details.png",
+      "origin": "games/chronoforge-echo/public/assets/world/coastal-details-v1-source.png",
+      "width": 1254,
+      "height": 1254,
+      "sha256": "a2d2a78f0957a5977523a47d5e052b3c1100dfece09df90b910d9902decdbcc7",
+      "historicalPrompt": "Not available in the inspected source package.",
+      "authoring": "sources/coast-details.png",
+      "authoringOrigin": "games/chronoforge-echo/art/sources/world/coastal-details-v1-source.png",
+      "authoringSha256": "b20bd0ebda2bfccdaa318b136f510504e0f41f29731a83d031d10424358d12e8"
+    },
+    {
+      "id": "coast-props",
+      "runtime": "runtime/coast-props.png",
+      "origin": "games/chronoforge-echo/public/assets/coast-props-source.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "5d6b9d98c7dfda25f69d01294c80cb1949c58d09722bbea35b7a209a86917a92",
+      "historicalPrompt": "Not available in the inspected source package.",
+      "authoring": "runtime/coast-props.png",
+      "authoringNote": "The live PNG itself is the original editable source; no separate retained original exists."
+    },
+    {
+      "id": "kaida-walk",
+      "runtime": "runtime/kaida-walk.png",
+      "origin": "games/chronoforge-echo/public/assets/kaida-walk-source.png",
+      "width": 1448,
+      "height": 1086,
+      "sha256": "9a183bab55524b4d49e4294d20f5c852c55b1de1cd8528ba05d245f11a8a191f",
+      "historicalPrompt": "Not available in the inspected source package.",
+      "authoring": "sources/kaida-walk.png",
+      "authoringOrigin": "games/chronoforge-echo/art/sources/kaida-walk-source.png",
+      "authoringSha256": "f32faad95fc7a4ecb5a91f1642be44286c09474e6412c51fcf5831beb256df33"
+    },
+    {
+      "id": "kaida-idle",
+      "runtime": "runtime/kaida-idle.png",
+      "origin": "games/chronoforge-echo/public/assets/kaida-showcase-source.png",
+      "width": 2172,
+      "height": 724,
+      "sha256": "b605eb7dfb3bc953e9f04f951762a7bde9868edad00494dadcc57ffdee5fac8d",
+      "historicalPrompt": "Not available in the inspected source package.",
+      "authoring": "sources/kaida-idle.png",
+      "authoringOrigin": "games/chronoforge-echo/art/sources/kaida-showcase-source.png",
+      "authoringSha256": "5ff36022e0242d4b549569afccd9f38fba086d4b5371c7ede7eeae21ecfc14c7"
+    }
+  ]
+}

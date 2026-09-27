@@ -170,6 +170,16 @@
     },
     "baselineVersion": {
       "$ref": "#/$defs/version"
+    },
+    "startingPoint": {
+      "enum": [
+        "web-3d-world",
+        "web-2.5d-world",
+        "web-canvas2d",
+        "web-pixi",
+        "web-three"
+      ],
+      "description": "Selected source package. Absent in legacy plans means web-3d-world. baselineVersion refers to this package."
     }
   },
   "$defs": {

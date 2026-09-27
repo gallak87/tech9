@@ -30,7 +30,10 @@ export async function buildModules({ root = framework, write = true } = {}) {
   );
   const entry = {},
     sources = [];
+  const dependencies = new Set();
   for (const module of registry.modules) {
+    for (const name of Object.keys(module.requires?.dependencies ?? {}))
+      dependencies.add(name);
     const source = await confinedPath(root, `modules/${module.id}/src`);
     const files = await entries(source);
     if (!Object.keys(files).length)
@@ -55,7 +58,10 @@ export async function buildModules({ root = framework, write = true } = {}) {
         fileName: (_format, name) => `${name}.js`,
       },
       rolldownOptions: {
-        external: (id) => id === 'three' || id.startsWith('three/'),
+        external: (id) =>
+          [...dependencies].some(
+            (name) => id === name || id.startsWith(`${name}/`),
+          ),
       },
     },
   });
@@ -68,7 +74,7 @@ if (
   buildModules()
     .then(() =>
       console.log(
-        'Canonical modules built in .artifacts/module-build (Three.js external).',
+        'Canonical modules built in .artifacts/module-build (declared runtime dependencies external).',
       ),
     )
     .catch((error) => {

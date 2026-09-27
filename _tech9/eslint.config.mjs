@@ -2,7 +2,15 @@ import js from '@eslint/js';
 import globals from 'globals';
 import prettier from 'eslint-config-prettier';
 export default [
-  { ignores: ['**/legacy/**', '**/scenes/**', '**/node_modules/**'] },
+  {
+    ignores: [
+      '**/legacy/**',
+      '**/scenes/**',
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/.artifacts/**',
+    ],
+  },
   {
     files: ['**/*.mjs'],
     ...js.configs.recommended,
@@ -13,7 +21,7 @@ export default [
     },
   },
   {
-    files: ['modules/**/*.js'],
+    files: ['modules/**/*.js', 'scaffolds/**/*.js'],
     ...js.configs.recommended,
     languageOptions: {
       ecmaVersion: 'latest',

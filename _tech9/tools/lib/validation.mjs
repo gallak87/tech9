@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { startingPoint } from './starting-points.mjs';
 
 export const SLUG = /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/;
 export const VERSION = /^\d+\.\d+\.\d+(?:-[a-z0-9.-]+)?$/;
@@ -71,9 +72,58 @@ export function validateModules(registry) {
     object(registry) && registry.schemaVersion === 1,
     'Modules schemaVersion must be 1',
   );
-  uniqueIds(registry.modules, 'modules');
-  for (const module of registry.modules)
+  const ids = uniqueIds(registry.modules, 'modules');
+  for (const module of registry.modules) {
     version(module.version, `Module ${module.id} version`);
+    if (module.requires === undefined) continue;
+    const requirements = module.requires;
+    assert(
+      object(requirements),
+      `Module ${module.id} requires must be an object`,
+    );
+    for (const key of Object.keys(requirements))
+      assert(
+        ['runtime', 'renderer', 'modules', 'dependencies'].includes(key),
+        `Unknown requirement ${key} in module ${module.id}`,
+      );
+    if (requirements.runtime !== undefined)
+      assert(
+        requirements.runtime === 'web',
+        `Module ${module.id} requires an unsupported runtime`,
+      );
+    if (requirements.renderer !== undefined)
+      assert(
+        ['canvas2d', 'pixi', 'three'].includes(requirements.renderer),
+        `Module ${module.id} requires an unsupported renderer`,
+      );
+    if (requirements.modules !== undefined) {
+      strings(requirements.modules, `Module ${module.id} requirements.modules`);
+      assert(
+        new Set(requirements.modules).size === requirements.modules.length,
+        `Module ${module.id} has duplicate module requirements`,
+      );
+      for (const id of requirements.modules)
+        assert(
+          ids.has(id) && id !== module.id,
+          `Module ${module.id} requires unknown or self module ${id}`,
+        );
+    }
+    if (requirements.dependencies !== undefined) {
+      assert(
+        object(requirements.dependencies),
+        `Module ${module.id} dependencies must be an object`,
+      );
+      for (const [name, requiredVersion] of Object.entries(
+        requirements.dependencies,
+      )) {
+        assert(
+          /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/.test(name),
+          `Module ${module.id} has invalid package dependency ${name}`,
+        );
+        version(requiredVersion, `Module ${module.id} dependency ${name}`);
+      }
+    }
+  }
   return registry;
 }
 
@@ -92,6 +142,7 @@ export function validatePlan(plan, baselineVersion) {
     object(plan) && plan.schemaVersion === 2,
     'Plan schemaVersion must be 2',
   );
+  if (plan.startingPoint !== undefined) startingPoint(plan.startingPoint);
   slug(plan.id, 'Plan id');
   assert(text(plan.title) && text(plan.pitch), 'Plan needs a title and pitch');
   version(plan.baselineVersion, 'Plan baselineVersion');

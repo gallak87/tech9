@@ -2,7 +2,7 @@
 
 ## Current state
 
-A runnable `baselines/web-3d-world` forest, twelve reusable modules and five independent pilots. `baselines/web-2.5d-world` awaits Echo extraction. Games start from owned source copies. Landscape, weather, aircraft, sailing and driving capabilities are available for new games.
+Runnable Three.js forest and Pixi/Canvas coastal starting applications, thirteen reusable modules, three minimal web scaffolds and five independent pilots. Games start from owned source copies. Landscape, weather, aircraft, sailing and driving capabilities are available for new games.
 
 ```text
 idea → baseline + modules → game → playtest → framework-dev
@@ -14,7 +14,7 @@ idea → baseline + modules → game → playtest → framework-dev
 
 ### 1. Graduate to the repository root
 
-Extract reusable 2.5D capabilities from Echo, add starting-point selection and check the result against existing Canvas2D, Three.js and Godot games. Complete a new 2D/2.5D game using the accepted framework, then finish and integrate its framework-dev phase.
+Preparation adds Echo-derived sprite exploration, named starting packages, minimal web scaffolds and source-qualified reference findings. Next, complete a new 2D/2.5D game from the user’s brief, then finish and integrate its framework-dev phase. Preparation alone does not satisfy graduation.
 
 Move the older framework into `_archive/` and promote `_tech9/` to root. Keep GitHub Pages serving committed browser games and pilots. Decide archive coverage and retain stable public routes.
 
@@ -54,6 +54,7 @@ Improve prominent models against visual references and actual gameplay views. Ch
 
 | Capability        | Modules                                              |
 | ----------------- | ---------------------------------------------------- |
+| Sprite worlds     | sprite-world                                         |
 | Grounded movement | grounded-walking, placement-collisions               |
 | Water and sailing | pond-water, island-ocean, boat-motion, sailing-ships |
 | Cameras           | follow-camera                                        |
@@ -70,3 +71,13 @@ Improve prominent models against visual references and actual gameplay views. Ch
 
 - **Simpler planning metadata:** reduce required scaffolding fields when the current plan format adds work without improving a game build.
 - **Native runtime comparison:** compare the same forest assets and views in Godot; use measured results to guide further work.
+
+### Concrete extraction opportunities
+
+- **Audio runtime:** gesture-safe Web Audio ownership, buses, bounded synthesized cues and cleanup; keep score and game-event mapping local. This is the strongest independent candidate from the reference review. User decision: defer extraction and review it after step 03.
+- **Sprite authoring:** extend sprite-world with portable recipe-driven atlas/icon preparation and pixel-parity fixtures; preserve prepared alpha, measured anchors and editable originals.
+- **Rigid GLB ownership:** use a real consumer to prove template/instance leases, independent materials, failed/late loads and disposal before introducing another asset abstraction.
+- **Deterministic scenery authoring:** build on accepted landscape/world-composition modules with shared seeded placement and matching-camera previews.
+- **Native Godot packages:** implement a runnable native source package, scene/resource copying and validated export path before advertising support.
+
+[Source-qualified reference findings](docs/REFERENCE-GAMES.md)

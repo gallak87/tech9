@@ -3,7 +3,15 @@
   "modules": [
     {
       "id": "grounded-walking",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        },
+        "modules": ["placement-collisions"]
+      }
     },
     {
       "id": "placement-collisions",
@@ -11,7 +19,14 @@
     },
     {
       "id": "pond-water",
-      "version": "1.2.0"
+      "version": "1.2.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        }
+      }
     },
     {
       "id": "boat-motion",
@@ -19,35 +34,104 @@
     },
     {
       "id": "follow-camera",
-      "version": "1.1.0"
+      "version": "1.1.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        }
+      }
     },
     {
       "id": "island-ocean",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        },
+        "modules": ["pond-water"]
+      }
     },
     {
       "id": "flight-motion",
-      "version": "2.0.0"
+      "version": "2.0.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        }
+      }
     },
     {
       "id": "sailing-ships",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        }
+      }
     },
     {
       "id": "weather",
-      "version": "1.1.0"
+      "version": "1.1.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        }
+      }
     },
     {
       "id": "aircraft",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        },
+        "modules": ["flight-motion"]
+      }
     },
     {
       "id": "landscape",
-      "version": "1.1.0"
+      "version": "1.1.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        }
+      }
     },
     {
       "id": "vehicles",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "three",
+        "dependencies": {
+          "three": "0.186.1"
+        }
+      }
+    },
+    {
+      "id": "sprite-world",
+      "version": "1.0.0",
+      "requires": {
+        "runtime": "web",
+        "renderer": "pixi",
+        "dependencies": {
+          "pixi.js": "8.16.0"
+        }
+      }
     }
   ]
 }

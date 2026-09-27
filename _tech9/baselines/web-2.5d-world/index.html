@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="data:," />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#152b2d" />
+    <title>Coastal paths · World study</title>
+    <style>
+      body {
+        margin: 0;
+        background: #152b2d;
+        color: #f7eed8;
+        font: 16px system-ui;
+      }
+      #loading {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        text-align: center;
+        background: #152b2d;
+        z-index: 10;
+      }
+      #loading[hidden] {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading" role="status"><p>Opening the coast…</p></div>
+    <main id="app">
+      <header class="masthead">
+        <div class="identity">
+          <span class="eyebrow">A place to wander</span>
+          <h1>Coastal paths</h1>
+          <p id="region">Cypress approach</p>
+        </div>
+        <nav aria-label="World controls">
+          <button id="pause" disabled>Pause</button
+          ><button id="reset" disabled>Return to start</button>
+        </nav>
+      </header>
+      <div
+        id="stage"
+        aria-label="Coastal world. Move using WASD, arrows, or the movement stick."
+        tabindex="0"
+      ></div>
+      <div class="field-note" id="field-note">
+        <span class="note-rule"></span>
+        <p>Past the cypresses,<br />the old observatory waits.</p>
+      </div>
+      <div id="nearby" class="nearby" hidden>
+        <span class="key">F</span><span id="near-label"></span>
+      </div>
+      <footer class="desktop-controls">
+        <span><kbd>W A S D</kbd> / arrows to walk</span
+        ><span><kbd>Shift</kbd> to run</span
+        ><span>Click a clear path to walk</span>
+      </footer>
+      <div id="touch-controls"></div>
+      <section id="welcome" class="veil" hidden aria-label="Explore the coast">
+        <div class="welcome-card">
+          <span class="eyebrow">A coastal world study</span>
+          <h2>Take the<br /><em>long way.</em></h2>
+          <p>
+            A quiet path through limestone ruins,<br />sea grass and salt-worn
+            stone.
+          </p>
+          <button id="start" class="primary">
+            Explore the coast <span aria-hidden="true">↗</span></button
+          ><small>Walk the paths. Read the old stones.</small>
+        </div>
+      </section>
+      <section id="paused" class="veil" hidden aria-label="Paused">
+        <div class="compact-card">
+          <span class="eyebrow">Take your time</span>
+          <h2>Paused</h2>
+          <button id="resume" class="primary">Return to the coast</button>
+        </div>
+      </section>
+      <dialog id="reading" aria-labelledby="reading-title">
+        <form method="dialog">
+          <span class="eyebrow">A note from the coast</span>
+          <h2 id="reading-title"></h2>
+          <p id="reading-body"></p>
+          <button class="primary">Keep wandering</button>
+        </form>
+      </dialog>
+      <div id="error" class="veil" hidden role="alert">
+        <div class="compact-card">
+          <h2>The coast could not open.</h2>
+          <p id="error-message"></p>
+          <button id="retry" class="primary">Try again</button>
+        </div>
+      </div>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

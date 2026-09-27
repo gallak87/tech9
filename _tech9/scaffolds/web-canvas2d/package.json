@@ -1,0 +1,23 @@
+{
+  "name": "tech9-web-canvas2d",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --strictPort --port 4410",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --strictPort --port 4411"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "8.3.0"
+  },
+  "engines": {
+    "node": "^22.13.0 || >=24.0.0"
+  },
+  "tech9": {
+    "runtime": "web",
+    "renderer": "canvas2d",
+    "modules": []
+  }
+}

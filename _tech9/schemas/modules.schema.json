@@ -24,6 +24,37 @@
           "version": {
             "type": "string",
             "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[a-z0-9.-]+)?$"
+          },
+          "requires": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "runtime": {
+                "const": "web"
+              },
+              "renderer": {
+                "enum": ["canvas2d", "pixi", "three"]
+              },
+              "modules": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+                  "maxLength": 64
+                }
+              },
+              "dependencies": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string",
+                  "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[a-z0-9.-]+)?$"
+                },
+                "propertyNames": {
+                  "pattern": "^(?:@[a-z0-9][a-z0-9._-]*/)?[a-z0-9][a-z0-9._-]*$"
+                }
+              }
+            }
           }
         }
       }

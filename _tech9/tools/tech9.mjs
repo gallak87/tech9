@@ -8,16 +8,20 @@ import {
   loadPlan,
 } from './lib/project.mjs';
 
+import { STARTING_POINTS } from './lib/starting-points.mjs';
+
 export const HELP = `tech9 — game modules and baseline
 
 From the framework directory:
+  ./run run t9 -- starting-points
   ./run run t9 -- modules
   ./run run t9 -- validate [runs/my-game/plan.json]
-  ./run run t9 -- fork --slug my-game --plan runs/my-game/plan.json [--port 4410] [--dry-run]
+  ./run run t9 -- fork --slug my-game --plan runs/my-game/plan.json [--from web-2.5d-world] [--port 4410] [--dry-run]
 
+starting-points  List authored baselines and minimal web scaffolds.
 modules   List reusable modules and versions.
 validate  Check module paths and an optional execution plan.
-fork      Copy baselines/web-3d-world into games/<slug> using an approved plan.
+fork      Copy the plan startingPoint (default web-3d-world) into games/<slug>.
 
 Paths are relative to the framework directory, regardless of working directory.
 The baseline must be clean and committed. Fork never overwrites an existing
@@ -26,7 +30,7 @@ package. --dry-run validates without writes. Default ports are 4410 and 4411.
 
 function forkOptions(args) {
   const options = {};
-  const values = new Set(['--slug', '--plan', '--port']);
+  const values = new Set(['--slug', '--plan', '--port', '--from']);
   for (let index = 0; index < args.length; index += 1) {
     const name = args[index];
     if (name === '--dry-run') {
@@ -40,6 +44,7 @@ function forkOptions(args) {
         '--slug': 'slug',
         '--plan': 'planPath',
         '--port': 'port',
+        '--from': 'from',
       }[name];
       if (options[key] !== undefined) throw new Error(`Duplicate ${name}`);
       options[key] = value;
@@ -63,16 +68,33 @@ export async function run(
     output(HELP);
     return;
   }
-  if (command === 'modules') {
+  if (command === 'starting-points') {
+    if (rest.length) throw new Error('starting-points takes no arguments');
+    const choices = [];
+    for (const [name, definition] of Object.entries(STARTING_POINTS)) {
+      const pkg = await loadBaseline(root, name);
+      choices.push({
+        name,
+        ...definition,
+        version: pkg.version,
+        modules: pkg.tech9?.modules ?? [],
+      });
+    }
+    output(JSON.stringify(choices, null, 2));
+  } else if (command === 'modules') {
     if (rest.length) throw new Error('modules takes no arguments');
     output(JSON.stringify(await loadModules(root), null, 2));
   } else if (command === 'validate') {
     if (rest.length > 1 || rest[0]?.startsWith('--'))
       throw new Error('validate accepts one optional plan path');
     const registry = await loadModules(root);
-    const plan = rest[0]
-      ? await loadPlan(root, rest[0], (await loadBaseline(root)).version)
-      : null;
+    const plan = rest[0] ? await loadPlan(root, rest[0]) : null;
+    if (plan)
+      await loadPlan(
+        root,
+        rest[0],
+        (await loadBaseline(root, plan.startingPoint)).version,
+      );
     output(
       JSON.stringify(
         {

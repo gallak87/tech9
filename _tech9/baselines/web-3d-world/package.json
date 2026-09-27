@@ -54,6 +54,8 @@
       "placement-collisions",
       "weather",
       "landscape"
-    ]
+    ],
+    "runtime": "web",
+    "renderer": "three"
   }
 }

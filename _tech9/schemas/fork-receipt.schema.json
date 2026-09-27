@@ -63,6 +63,18 @@
         },
         "version": {
           "type": "string"
+        },
+        "startingPoint": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": ["baseline", "scaffold"]
+        },
+        "runtime": {
+          "const": "web"
+        },
+        "renderer": {
+          "enum": ["canvas2d", "pixi", "three"]
         }
       }
     },

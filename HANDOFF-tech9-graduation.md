@@ -6,9 +6,9 @@
 
 | Path                                             | Purpose                                                                                                                                                               |
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `modules/`, `modules.json`                       | Twelve reusable capabilities with source, assets, licenses, tests and integration guides.                                                                             |
+| `modules/`, `modules.json`                       | Thirteen reusable capabilities with source, assets, licenses, tests and integration guides.                                                                           |
 | `baselines/web-3d-world/`                        | Forest starting application: authored terrain and placements, fly/walking controls, landscape rendering and weather. Selected modules are synchronized source copies. |
-| `baselines/web-2.5d-world/`                      | Prepared directory for Echo extraction; no runnable package yet.                                                                                                      |
+| `baselines/web-2.5d-world/`                      | Authored coastal starting application with generic sprite-world exploration, camera, depth/occlusion, desktop/touch controls and owned artwork.                       |
 | `games/_pilot/`                                  | Five standalone reference pilots: Stillwater Fishing, Pinewatch Hunt, Tidebreak, Trail Driving and Forest Flight.                                                     |
 | `games/<slug>/`                                  | Destination for new standalone games.                                                                                                                                 |
 | `tools/`, `schemas/`, `tests/`                   | Module builds, execution plans, source copying, provenance and framework verification.                                                                                |
@@ -16,7 +16,7 @@
 
 Framework and baseline versions live in their package manifests. Modules have no runtime dependency on games or the older root framework. Games own their copied source, assets and dependencies; `tech9.json` and `GAME_PLAN.json` remain immutable fork receipts.
 
-`web-3d-world` selects grounded-walking, placement-collisions, landscape and weather. Its authored composition is separate from the reusable forest assets and rendering in landscape. The CLI and module sync currently target this package. Starting-point selection and the runnable `web-2.5d-world` package belong to framework expansion. The [canyon plan](./_tech9/docs/plans/canyon.md) and [world composition roadmap](./_tech9/ROADMAP.md) are future capability work.
+`web-3d-world` selects grounded-walking, placement-collisions, landscape and weather. Its authored composition is separate from the reusable forest assets and rendering in landscape. The CLI selects either authored baseline or a minimal `web-canvas2d`, `web-pixi` or `web-three` scaffold. Module synchronization targets the selected package explicitly and validates renderer/runtime, dependencies and sibling modules. `sprite-world` takes explicit authored data and callbacks; Echo campaign/combat/progression/save state remains outside the framework. The [canyon plan](./_tech9/docs/plans/canyon.md) and [world composition roadmap](./_tech9/ROADMAP.md) are future capability work.
 
 From the repository root, use `./_tech9/run`; from the framework directory, use `./run`. Supported Node versions are recorded in `package.json`. Framework verification is `./run run check`; package checks run in their owning directories. Optional hooks are installed through `./run run hooks:install`.
 
@@ -39,9 +39,15 @@ Starting packages compose modules into runnable applications. Each declares its 
 
 The session owns integration and can delegate independent inspection or critique. Preparation includes connecting `web-2.5d-world` to generation and resolving concrete reference findings. References may justify findings alone rather than new code.
 
+## Preparation checkpoint
+
+The selected extraction is one cohesive `sprite-world` module. Both authored starting packages and three minimal web scaffolds have explicit renderer/runtime and package ownership. Reference findings are recorded in `_tech9/docs/REFERENCE-GAMES.md`; native support and broader tooling are deferred. The user requested review of `audio-runtime` after step 03; no audio extraction is included. Stop when preparation acceptance passes and wait for the user to return for step 04/new-game briefing. No root cutover is authorized by preparation.
+
+Validation in progress: framework tests/lint/build/registry; selected module sync; owning package checks; real-input browser desktop/touch/rotation/lifecycle checks; clean committed source creation; independent visual and interface review.
+
 ## Graduation gate
 
-**Status: pending.** Framework expansion and the new game's brief are open. Cutover starts after preparation and the game/framework-dev phase are accepted and integrated:
+**Status: pending.** Preparation implementation is integrated; committed-source generation checks and independent review are still being completed. The new game’s brief remains required. Cutover starts after preparation and the game/framework-dev phase are accepted and integrated:
 
 - Echo capabilities and starting-point selection are usable through the new framework.
 - The reference pass has resolved concrete blockers for the supported paths.

@@ -8,12 +8,12 @@ Use **framework-dev** to create or improve reusable capabilities, including extr
 4. Record the module ID and version in [modules.json](./modules.json). The ID matches its folder name.
 5. Run `./run run check`. Use rendering or real-input checks when required by the change. Review stable source and resolve actionable findings.
 
-When changing modules selected by the baseline, format canonical source and refresh the local copies:
+When changing modules selected by a starting package, format canonical source and refresh its local copies:
 
 ```sh
-./run run sync:modules -- --write
+./run run sync:modules -- --from <starting-point> --write
 ```
 
-The baseline selects modules through `package.json` → `tech9.modules`. See [module copying](./docs/MODULES.md).
+Each package declares its runtime/renderer and selects modules through `package.json` → `tech9.modules`. See [module copying](./docs/MODULES.md).
 
 Keep usage documentation current; record task progress and review evidence in the shared workflow's local artifacts.

@@ -1,0 +1,559 @@
+@font-face {
+  font-family: Barlow;
+  src: url('/fonts/barlow-regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: Barlow;
+  src: url('/fonts/barlow-semibold.ttf') format('truetype');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: Garamond;
+  src: url('/fonts/eb-garamond-regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+:root {
+  font-family: Barlow, system-ui, sans-serif;
+  color: #fbf1d7;
+  background: #152b2d;
+  font-synthesis: none;
+  --gold: #e6c98a;
+  --ink: #162b2d;
+  --muted: #b9c9be;
+  --edge: rgba(240, 224, 182, 0.2);
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+#app {
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+body {
+  margin: 0;
+}
+button {
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  color: inherit;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  background: rgba(15, 35, 36, 0.8);
+  min-height: 44px;
+  padding: 10px 17px;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+button:hover {
+  background: #304a45;
+  border-color: var(--gold);
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+button:focus-visible,
+#stage:focus-visible {
+  outline: 2px solid #f6dd9b;
+  outline-offset: 4px;
+}
+button.primary {
+  background: var(--gold);
+  color: var(--ink);
+  border: 1px solid var(--gold);
+  min-height: 50px;
+  padding: 12px 22px;
+}
+button.primary:hover {
+  background: #f6dd9b;
+}
+button.primary span {
+  margin-left: 36px;
+}
+[hidden] {
+  display: none !important;
+}
+#app {
+  position: relative;
+  isolation: isolate;
+}
+#stage {
+  position: absolute;
+  inset: 0;
+  outline: none !important;
+  touch-action: none;
+}
+#stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+.masthead {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 30px 36px 55px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+  background: linear-gradient(#10292be0, #10292b66 55%, transparent);
+}
+.masthead nav {
+  display: flex;
+  gap: 8px;
+  pointer-events: auto;
+}
+.identity {
+  pointer-events: none;
+}
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+}
+h1 {
+  font:
+    400 34px/1.12 Garamond,
+    Georgia,
+    serif;
+  letter-spacing: 0.01em;
+  margin: 7px 0 5px;
+}
+#region {
+  font-size: 13px;
+  color: #d3decd;
+  margin: 0;
+  letter-spacing: 0.03em;
+}
+.desktop-controls {
+  position: absolute;
+  z-index: 2;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+  font-size: 13px;
+  padding: 34px 20px 21px;
+  color: #deead8;
+  background: linear-gradient(transparent, #10292bd9);
+  pointer-events: none;
+}
+.desktop-controls span {
+  white-space: nowrap;
+}
+kbd {
+  font:
+    600 11px Barlow,
+    system-ui;
+  letter-spacing: 0.03em;
+  padding: 3px 5px;
+  border: 1px solid #b9c9be44;
+  border-radius: 3px;
+  color: #f4e4bf;
+  margin-right: 4px;
+}
+.field-note {
+  position: absolute;
+  bottom: 90px;
+  right: 36px;
+  z-index: 2;
+  text-align: right;
+  pointer-events: none;
+  text-shadow: 0 2px 7px #0e262c;
+}
+.field-note p {
+  font:
+    400 21px/1.3 Garamond,
+    Georgia,
+    serif;
+  margin: 12px 0;
+}
+.note-rule {
+  display: inline-block;
+  width: 34px;
+  height: 1px;
+  background: var(--gold);
+}
+.nearby {
+  position: absolute;
+  left: 50%;
+  bottom: 78px;
+  transform: translateX(-50%);
+  z-index: 3;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  max-width: 90vw;
+  padding: 10px 18px;
+  background: #152d2bea;
+  border: 1px solid #cfbe8866;
+  border-radius: 7px;
+  font-size: 15px;
+  box-shadow: 0 6px 22px #05191755;
+  pointer-events: none;
+}
+.key {
+  font-size: 12px;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 26px;
+  border: 1px solid #f0d9a35e;
+  border-radius: 4px;
+  color: var(--gold);
+}
+.veil {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: #0b22272b;
+}
+.welcome-card {
+  text-align: left;
+  justify-self: start;
+  margin-left: 9vw;
+  padding: 40px 48px 35px;
+  background: linear-gradient(130deg, #112b2bef, #112b2be0);
+  border: 1px solid var(--edge);
+  box-shadow: 0 20px 100px #00171988;
+  border-radius: 2px;
+}
+.welcome-card h2 {
+  font:
+    400 76px/0.9 Garamond,
+    Georgia,
+    serif;
+  letter-spacing: -0.035em;
+  margin: 22px 0;
+}
+.welcome-card h2 em {
+  font-style: italic;
+  color: #e6ce99;
+}
+.welcome-card p {
+  font-size: 16px;
+  line-height: 1.6;
+  color: #d4dfcf;
+  margin: 24px 0;
+}
+.welcome-card small {
+  display: block;
+  color: #abc2b7;
+  font-size: 12px;
+  margin-top: 18px;
+}
+.compact-card {
+  background: #10292bf5;
+  border: 1px solid var(--edge);
+  padding: 36px 44px;
+  text-align: center;
+  max-width: min(90vw, 480px);
+  box-shadow: 0 20px 80px #001a22aa;
+}
+h2 {
+  font:
+    400 40px/1.1 Garamond,
+    Georgia,
+    serif;
+  margin: 16px 0 24px;
+}
+#error-message {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+dialog {
+  z-index: 10;
+  background: #142d2c;
+  color: #f5ead0;
+  border: 1px solid #b6a46a88;
+  padding: 35px 42px;
+  max-width: min(90vw, 480px);
+  border-radius: 4px;
+  box-shadow: 0 20px 100px #00191999;
+}
+dialog::backdrop {
+  background: #0b202aac;
+}
+dialog h2 {
+  font-size: 36px;
+  margin: 20px 0;
+}
+dialog p {
+  font:
+    400 21px/1.45 Garamond,
+    Georgia,
+    serif;
+  color: #d1decf;
+  margin-bottom: 28px;
+}
+dialog button {
+  width: 100%;
+}
+#touch-controls {
+  display: none;
+}
+.sprite-controls {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+.sprite-stick {
+  touch-action: none;
+  width: 118px;
+  height: 118px;
+  min-width: 118px;
+  border: 1px solid #ddd2a855;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #9bb9a826 32%,
+    #06252970 34%,
+    #0625299e 69%,
+    #cbb88640 70%,
+    #06252990 72%
+  );
+  position: relative;
+  user-select: none;
+}
+.sprite-stick::after {
+  content: 'MOVE';
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-align: center;
+  color: #d1dfd0;
+  pointer-events: none;
+}
+.sprite-stick-knob {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #e1d7b780;
+  left: calc(50% - 18px);
+  top: calc(50% - 18px);
+  pointer-events: none;
+}
+.sprite-action {
+  min-height: 48px;
+  min-width: 72px;
+  background: #132e2eed;
+}
+.sprite-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 180px;
+}
+@media (pointer: coarse), (max-width: 720px) {
+  .masthead {
+    padding: 20px 20px 44px;
+  }
+  .masthead h1 {
+    font-size: 30px;
+  }
+  .masthead .eyebrow {
+    font-size: 9px;
+  }
+  .masthead nav {
+    gap: 6px;
+  }
+  .masthead button {
+    font-size: 13px;
+    padding: 9px 12px;
+    min-height: 44px;
+  }
+  #reset {
+    max-width: 82px;
+  }
+  .desktop-controls {
+    display: none;
+  }
+  .field-note {
+    right: 22px;
+    bottom: 190px;
+  }
+  .field-note p {
+    font-size: 18px;
+  }
+  #touch-controls {
+    display: block;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    padding: 12px max(22px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(22px, env(safe-area-inset-left));
+    background: linear-gradient(transparent, #0e292deb);
+  }
+  .nearby {
+    bottom: 166px;
+    font-size: 14px;
+    white-space: normal;
+  }
+  .nearby .key {
+    display: none;
+  }
+  .welcome-card {
+    margin: 0;
+    padding: 32px;
+    justify-self: center;
+    width: min(87vw, 390px);
+  }
+  .welcome-card h2 {
+    font-size: 64px;
+  }
+  .welcome-card p {
+    font-size: 15px;
+  }
+  .welcome-card small {
+    font-size: 12px;
+  }
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  #stage {
+    bottom: 150px;
+  }
+  .field-note {
+    display: none;
+  }
+  .nearby {
+    bottom: 166px;
+  }
+  .masthead {
+    padding: 18px 18px 44px;
+  }
+  .masthead nav {
+    flex-direction: column;
+  }
+  .masthead #reset {
+    max-width: none;
+    padding: 7px 10px;
+  }
+  .masthead h1 {
+    font-size: 29px;
+  }
+  .welcome-card {
+    margin-bottom: 50px;
+  }
+  .welcome-card h2 {
+    font-size: 62px;
+  }
+  .sprite-controls {
+    max-width: 540px;
+    margin: auto;
+  }
+  .sprite-actions {
+    max-width: 180px;
+  }
+  dialog {
+    padding: 28px;
+  }
+}
+@media (pointer: coarse) and (orientation: landscape) {
+  .masthead {
+    padding: 15px 22px 40px;
+  }
+  .masthead h1 {
+    font-size: 28px;
+  }
+  #touch-controls {
+    padding: 5px 24px 10px;
+  }
+  .sprite-stick {
+    width: 100px;
+    height: 100px;
+    min-width: 100px;
+  }
+  .sprite-controls {
+    align-items: flex-end;
+  }
+  .field-note {
+    display: none;
+  }
+  .nearby {
+    bottom: 28px;
+  }
+  .welcome-card {
+    padding: 20px 32px;
+    width: auto;
+    min-width: 390px;
+  }
+  .welcome-card h2 {
+    font-size: 47px;
+    margin: 12px 0;
+  }
+  .welcome-card h2 br {
+    display: none;
+  }
+  .welcome-card p {
+    margin: 12px 0;
+  }
+  .welcome-card small {
+    margin-top: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+/* The controller positions the knob with a centered translate. */
+.sprite-stick-knob {
+  left: 50%;
+  top: 50%;
+}
+.sprite-stick-label {
+  display: none;
+}
+#stage canvas {
+  outline: none;
+}
+.sprite-action[data-action='run'] {
+  margin-left: auto;
+}
+.sprite-action[data-action='interact'] {
+  max-width: 150px;
+}
+@media (max-width: 600px) and (orientation: portrait) {
+  .sprite-controls {
+    gap: 10px;
+  }
+  .sprite-action {
+    padding: 10px;
+    font-size: 14px;
+  }
+  .sprite-action[data-action='interact'] {
+    min-width: 86px;
+  }
+}

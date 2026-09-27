@@ -28,7 +28,9 @@ async function fixture(t) {
   );
   await write(
     'baselines/web-3d-world/package.json',
-    JSON.stringify({ tech9: { modules: ['walking'] } }),
+    JSON.stringify({
+      tech9: { runtime: 'web', renderer: 'three', modules: ['walking'] },
+    }),
   );
   await write('modules/walking/src/walk.js', 'export const speed = 3;\n');
   await write('modules/walking/README.md', '# Walking contract\n');
@@ -75,7 +77,9 @@ test('module copying refuses symlinks and unknown module IDs before writes', asy
   await rm(path.join(f.root, 'modules/walking/src/link.js'));
   await f.write(
     'baselines/web-3d-world/package.json',
-    JSON.stringify({ tech9: { modules: ['missing'] } }),
+    JSON.stringify({
+      tech9: { runtime: 'web', renderer: 'three', modules: ['missing'] },
+    }),
   );
   await assert.rejects(
     syncModules({ root: f.root, write: true }),
@@ -105,11 +109,178 @@ test('removed module copies require explicit inspection', async (t) => {
   await syncModules({ root: f.root, write: true });
   await f.write(
     'baselines/web-3d-world/package.json',
-    JSON.stringify({ tech9: { modules: [] } }),
+    JSON.stringify({
+      tech9: { runtime: 'web', renderer: 'three', modules: [] },
+    }),
   );
   await assert.rejects(
     syncModules({ root: f.root, write: true }),
     /Unexpected module copy/,
   );
   assert.equal(await readFile(f.target, 'utf8'), 'export const speed = 3;\n');
+});
+
+test('sync selects named Pixi packages and arbitrary owned packages with matching requirements', async (t) => {
+  const f = await fixture(t);
+  await f.write(
+    'modules.json',
+    JSON.stringify({
+      schemaVersion: 1,
+      modules: [
+        {
+          id: 'walking',
+          version: '1.0.0',
+          requires: {
+            runtime: 'web',
+            renderer: 'pixi',
+            dependencies: { 'pixi.js': '8.16.0' },
+          },
+        },
+      ],
+    }),
+  );
+  const pkg = {
+    tech9: { runtime: 'web', renderer: 'pixi', modules: ['walking'] },
+    dependencies: { 'pixi.js': '8.16.0' },
+  };
+  await f.write('baselines/web-2.5d-world/package.json', JSON.stringify(pkg));
+  await f.write('games/owned/package.json', JSON.stringify(pkg));
+  await f.write('games/owned/tech9.json', 'immutable original receipt');
+  await f.write('modules/walking/assets/source.svg', '<svg/>');
+  await f.write('modules/walking/assets/LICENSE.txt', 'CC0');
+  for (const options of [
+    { from: 'web-2.5d-world' },
+    { packagePath: 'games/owned' },
+  ]) {
+    const result = await syncModules({ root: f.root, write: true, ...options });
+    assert.equal(result.files, 5);
+    await syncModules({ root: f.root, ...options });
+    assert.equal(
+      await readFile(
+        path.join(
+          f.root,
+          result.package,
+          'src/modules/walking/assets/source.svg',
+        ),
+        'utf8',
+      ),
+      '<svg/>',
+    );
+  }
+  assert.equal(
+    await readFile(path.join(f.root, 'games/owned/tech9.json'), 'utf8'),
+    'immutable original receipt',
+  );
+  await assert.rejects(readFile(f.target), { code: 'ENOENT' });
+});
+
+test('sync preflights dependencies and renderer requirements before copying any files', async (t) => {
+  const f = await fixture(t);
+  await f.write(
+    'modules.json',
+    JSON.stringify({
+      schemaVersion: 1,
+      modules: [
+        { id: 'walking', version: '1.0.0' },
+        {
+          id: 'sprites',
+          version: '1.0.0',
+          requires: {
+            runtime: 'web',
+            renderer: 'pixi',
+            modules: ['walking'],
+            dependencies: { 'pixi.js': '8.16.0' },
+          },
+        },
+      ],
+    }),
+  );
+  await f.write(
+    'modules/sprites/src/index.js',
+    'export const name = "sprites";',
+  );
+  for (const pkg of [
+    {
+      tech9: {
+        runtime: 'web',
+        renderer: 'three',
+        modules: ['walking', 'sprites'],
+      },
+      dependencies: { 'pixi.js': '8.16.0' },
+    },
+    {
+      tech9: { runtime: 'web', renderer: 'pixi', modules: ['sprites'] },
+      dependencies: { 'pixi.js': '8.16.0' },
+    },
+    {
+      tech9: {
+        runtime: 'web',
+        renderer: 'pixi',
+        modules: ['walking', 'sprites'],
+      },
+      dependencies: {},
+    },
+    {
+      tech9: {
+        runtime: 'web',
+        renderer: 'pixi',
+        modules: ['walking', 'sprites'],
+      },
+      devDependencies: { 'pixi.js': '8.16.0' },
+    },
+    {
+      tech9: {
+        runtime: 'web',
+        renderer: 'pixi',
+        modules: ['walking', 'sprites'],
+      },
+      dependencies: { 'pixi.js': '8.15.0' },
+    },
+  ]) {
+    await f.write('games/owned/package.json', JSON.stringify(pkg));
+    await assert.rejects(
+      syncModules({ root: f.root, packagePath: 'games/owned', write: true }),
+      /requires/,
+    );
+    await assert.rejects(
+      readFile(
+        path.join(f.root, 'games/owned/src/modules/walking/src/walk.js'),
+      ),
+      { code: 'ENOENT' },
+    );
+  }
+});
+
+test('sync refuses ambiguous selectors, traversal and symlinked package paths', async (t) => {
+  const f = await fixture(t);
+  await assert.rejects(
+    syncModules({
+      root: f.root,
+      from: 'web-pixi',
+      packagePath: 'games/owned',
+      write: true,
+    }),
+    /Choose/,
+  );
+  for (const packagePath of ['../outside', '/tmp/outside', 'modules/walking'])
+    await assert.rejects(
+      syncModules({ root: f.root, packagePath, write: true }),
+      /traversal|relative|canonical/,
+    );
+  await symlink(
+    path.join(f.root, 'baselines/web-3d-world'),
+    path.join(f.root, 'games/alias'),
+  );
+  await assert.rejects(
+    syncModules({ root: f.root, packagePath: 'games/alias', write: true }),
+    /Symlinks/,
+  );
+  await symlink(
+    path.join(f.root, 'modules/walking'),
+    path.join(f.root, 'modules/walking/assets'),
+  );
+  await assert.rejects(
+    syncModules({ root: f.root, write: true }),
+    /Symlinks|symlinks/,
+  );
 });

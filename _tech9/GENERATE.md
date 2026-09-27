@@ -6,11 +6,17 @@ Accept a short game pitch and carry it through the [shared workflow](WORKFLOW.md
 
 Choose a coherent, bounded experience: player actions, challenge, outcome/retry loop, presentation and target devices. Honor explicit constraints, make routine decisions, and state consequential assumptions. Ask only about blocking ambiguity. Inspect the [module guide](modules/README.md) and the selected package's README/architecture before committing to its capabilities.
 
+Use these defaults for new game briefs unless the user specifies otherwise:
+
+- **AAA quality:** aim for AAA-level art direction, game feel and finish within the chosen style and compact scope. Select strong visual references and concrete presentation goals; placeholder art is not finished work.
+- **Bounded fanout:** propose subagents for independent work, with clear interfaces, exclusive file ownership and one integrator. After the packet is approved, use that parallelism when available and useful; explain a solo plan when it is the better fit.
+- **Harsh AAA art critic:** assign a separate reviewer who writes no implementation code. Review actual gameplay, motion, art, effects, UI and audio against references. Default to **8.5/10, up to four rounds**, with ranked fixes and honest final scores; reaching the cap does not meet the target automatically.
+
 Write these files in `runs/<slug>/`:
 
 - **`BRIEF.md`:** fill the [game-brief template](docs/templates/game-brief.md). Keep it about one screen: the game, scope, presentation, important assumptions and a short build summary with proposed roles and milestones.
 - **`PROMPT.md`:** fill the [game-prompt template](docs/templates/game-prompt.md), retaining **Goal → How to work → Rules**. Replace placeholders with concrete game decisions and acceptance criteria. Keep user requirements distinct from inferred choices; scale scope and quality targets to this game.
-- **`plan.json`:** derive a draft [schema-2 execution plan](schemas/execution-plan.schema.json) from that prompt. Set `startingPoint` and `baselineVersion` to the selected package and its current version. Match scope, milestones, ownership, validation, art gate and stopping point across the packet. Use the workflow's review defaults unless the brief specifies otherwise. One implementation lane is sufficient for a solo build.
+- **`plan.json`:** derive a draft [schema-2 execution plan](schemas/execution-plan.schema.json) from that prompt. Set `startingPoint` and `baselineVersion` to the selected package and its current version. Match scope, roster/ownership, milestones, validation, art gate and stopping point across the packet. Record the brief's review target and round cap; one implementation lane is sufficient for a justified solo build.
 
 ## Review once before building
 

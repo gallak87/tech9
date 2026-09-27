@@ -4,9 +4,9 @@ import {
   COASTAL_ASSETS,
   COASTAL_FRAMES,
   COASTAL_ACTOR,
-  drawCoastalGround,
   createCoastalPatterns,
 } from './modules/sprite-world/src/index.js';
+import { drawGround } from './ground.js';
 import { coastScene, coastNotes, regionAt } from './coast.js';
 
 const byId = (id) => document.getElementById(id);
@@ -57,6 +57,7 @@ async function boot({ welcome = true } = {}) {
   hide('welcome', true);
   hide('loading', false);
   started = false;
+  document.body.classList.remove('exploring');
   if (world) {
     world.dispose();
     lastDisposed = world.snapshot();
@@ -69,7 +70,8 @@ async function boot({ welcome = true } = {}) {
       assets: COASTAL_ASSETS,
       frames: COASTAL_FRAMES,
       actor: { ...COASTAL_ACTOR, ...coastScene.spawn },
-      drawGround: drawCoastalGround,
+      drawGround,
+      camera: { anchorY: 0.72 },
       createPatterns: createCoastalPatterns,
       controls: { touch: 'auto', container: byId('touch-controls') },
       viewport: view,
@@ -87,6 +89,7 @@ async function boot({ welcome = true } = {}) {
     world.start();
     world.setPaused(welcome);
     started = !welcome;
+    document.body.classList.toggle('exploring', started);
     hide('loading', true);
     hide('welcome', !welcome);
     byId('pause').disabled = byId('reset').disabled = false;
@@ -100,6 +103,7 @@ async function boot({ welcome = true } = {}) {
 }
 on(byId('start'), 'click', () => {
   started = true;
+  document.body.classList.add('exploring');
   hide('welcome', true);
   world.setPaused(false);
   world.controls.focus();
@@ -111,6 +115,7 @@ on(byId('resume'), 'click', () => {
 });
 on(byId('reset'), 'click', () => boot({ welcome: false }));
 on(byId('retry'), 'click', () => boot());
+on(byId('pause-reset'), 'click', () => boot({ welcome: false }));
 on(byId('reading'), 'close', () => {
   if (started) {
     setPaused(false);
@@ -139,7 +144,18 @@ function dispose() {
   world?.dispose();
   listeners.abort();
 }
-on(window, 'pagehide', dispose);
+on(window, 'pagehide', (event) => {
+  if (event.persisted) {
+    world?.stop();
+    setPaused(true);
+  } else dispose();
+});
+on(window, 'pageshow', (event) => {
+  if (event.persisted && world) {
+    world.start();
+    setPaused(true);
+  }
+});
 if (import.meta.hot) import.meta.hot.dispose(dispose);
 if (import.meta.env.DEV && new URLSearchParams(location.search).has('test'))
   window.__COAST_TEST__ = {

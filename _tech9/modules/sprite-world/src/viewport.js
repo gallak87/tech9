@@ -63,10 +63,16 @@ export function followCamera(
   scene,
   viewport,
   dt,
-  { speed = 9, immediate = false } = {},
+  { speed = 9, immediate = false, anchorX = 0.5, anchorY = 0.57 } = {},
 ) {
+  anchorX = Number.isFinite(anchorX) ? clamp(anchorX, 0, 1) : 0.5;
+  anchorY = Number.isFinite(anchorY) ? clamp(anchorY, 0, 1) : 0.57;
+  speed = positive(speed, 9);
   const target = clampCamera(
-    { x: actor.x - viewport.width * 0.5, y: actor.y - viewport.height * 0.57 },
+    {
+      x: actor.x - viewport.width * anchorX,
+      y: actor.y - viewport.height * anchorY,
+    },
     scene,
     viewport,
   );

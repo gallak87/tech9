@@ -23,6 +23,7 @@ import {
   COASTAL_ACTOR,
 } from '../src/coastal.js';
 import { AssetCache } from '../src/assets.js';
+import { SceneTransition } from '../src/scene-transition.js';
 import { keyNeutralExterior } from '../src/authoring.js';
 import { validateWorldOptions, copyActor } from '../src/contract.js';
 const tick = () => new Promise((resolve) => setImmediate(resolve));
@@ -432,4 +433,148 @@ test('generic runtime has no preset imports or sample asset assumptions', async 
     'utf8',
   );
   assert.doesNotMatch(runtime, /coastal|kaida|coast-ground|COASTAL|KAIDA/i);
+});
+
+test('other prepared reservations survive activation despite zero warm groups and a tiny budget', async () => {
+  const { cache } = fixture({ warmGroups: 0, budgetBytes: 1 });
+  await cache.prepare('future', ['shared', 'b']);
+  await cache.prepare('later', ['shared', 'c']);
+  await cache.prepare('now', ['shared', 'a']);
+  cache.activate('now');
+  assert.ok(
+    cache.images.has('a') && cache.images.has('b') && cache.images.has('c'),
+  );
+  assert.equal(cache.diagnostics().reservationCount, 2);
+  cache.activate('future');
+  assert.ok(cache.images.has('b') && cache.images.has('c'));
+  assert.equal(cache.images.has('a'), false);
+  cache.activate('later');
+  assert.ok(cache.images.has('c') && cache.images.has('shared'));
+  assert.equal(cache.images.has('b'), false);
+  assert.equal(cache.diagnostics().reservationCount, 0);
+  cache.dispose();
+});
+
+test('invalid cache limits and entries fail synchronously instead of hanging the decode queue', () => {
+  const options = { entries: [{ id: 'image' }] };
+  for (const concurrency of [NaN, Infinity, 0, -1, 1.5, '2'])
+    assert.throws(
+      () => new AssetCache({ ...options, concurrency }),
+      /concurrency/,
+    );
+  for (const budgetBytes of [NaN, Infinity, -1, '2'])
+    assert.throws(
+      () => new AssetCache({ ...options, budgetBytes }),
+      /budgetBytes/,
+    );
+  for (const warmGroups of [NaN, Infinity, -1, 0.5, '2'])
+    assert.throws(
+      () => new AssetCache({ ...options, warmGroups }),
+      /warmGroups/,
+    );
+  for (const entries of [
+    undefined,
+    {},
+    [null],
+    [{ id: '' }],
+    [{ id: 3 }],
+    [{ id: 'same' }, { id: 'same' }],
+  ])
+    assert.throws(() => new AssetCache({ entries }), /entries|ID/);
+  assert.throws(
+    () => new AssetCache({ ...options, commonIds: ['missing'] }),
+    /registered/,
+  );
+  assert.doesNotThrow(
+    () =>
+      new AssetCache({
+        ...options,
+        concurrency: 1,
+        budgetBytes: 0,
+        warmGroups: 0,
+      }),
+  );
+});
+
+test('concurrent same-scene transitions keep the latest reservation, including an already active destination', async () => {
+  for (const alreadyActive of [false, true]) {
+    const { cache } = fixture({ warmGroups: 0, budgetBytes: 1 });
+    await cache.prepare('old', ['a']);
+    cache.activate('old');
+    if (alreadyActive) {
+      await cache.prepare('destination', ['b']);
+      cache.activate('destination');
+    }
+    const transitions = new SceneTransition(cache),
+      commits = [];
+    const transition = (label) =>
+      transitions.run('destination', ['b'], {
+        validate() {
+          assert.ok(
+            cache.images.has('b'),
+            'destination artwork must remain live',
+          );
+        },
+        commit() {
+          commits.push(label);
+        },
+      });
+    const result = await Promise.all([
+      transition('stale'),
+      transition('latest'),
+    ]);
+    assert.deepEqual(result, [false, true]);
+    assert.deepEqual(commits, ['latest']);
+    assert.equal(cache.active, 'destination');
+    assert.ok(cache.images.has('b'));
+    assert.equal(cache.images.has('a'), false);
+    assert.equal(cache.diagnostics().reservationCount, 0);
+    transitions.dispose();
+    cache.dispose();
+  }
+});
+
+test('distinct reservation owners release only their sources when sharing a scene id', async () => {
+  const { cache } = fixture({ warmGroups: 0, budgetBytes: 1 }),
+    first = {},
+    second = {};
+  await cache.prepare('scene', ['a'], { reservation: first });
+  await cache.prepare('scene', ['b'], { reservation: second });
+  cache.discard('scene', { reservation: first });
+  assert.equal(cache.images.has('a'), false);
+  assert.ok(cache.images.has('b'));
+  cache.activate('scene', { reservation: second });
+  assert.ok(cache.images.has('b'));
+  assert.equal(cache.diagnostics().reservationCount, 0);
+  cache.dispose();
+});
+
+test('camera anchors are consumer-configurable, finite and bounded', () => {
+  const scene = { width: 4000, height: 3000 },
+    view = { width: 1000, height: 600 },
+    actor = { x: 2000, y: 1500 };
+  assert.deepEqual(
+    followCamera({ x: 0, y: 0 }, actor, scene, view, 0, {
+      immediate: true,
+      anchorX: 0.4,
+      anchorY: 0.72,
+    }),
+    { x: 1600, y: 1068 },
+  );
+  assert.deepEqual(
+    followCamera({ x: 0, y: 0 }, actor, scene, view, 0, {
+      immediate: true,
+      anchorX: -2,
+      anchorY: 3,
+    }),
+    { x: 2000, y: 900 },
+  );
+  assert.deepEqual(
+    followCamera({ x: 0, y: 0 }, actor, scene, view, 0, {
+      immediate: true,
+      anchorX: NaN,
+      anchorY: Infinity,
+    }),
+    { x: 1500, y: 1158 },
+  );
 });

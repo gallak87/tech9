@@ -557,3 +557,33 @@ dialog button {
     min-width: 86px;
   }
 }
+
+#pause-reset {
+  display: block;
+  margin: 12px auto 0;
+  width: 100%;
+}
+@media (pointer: coarse), (max-width: 720px) {
+  .exploring .masthead {
+    padding: 12px 18px 27px;
+    align-items: center;
+  }
+  .exploring .masthead .eyebrow,
+  .exploring .masthead #reset {
+    display: none;
+  }
+  .exploring .masthead h1 {
+    font-size: 22px;
+    margin: 0 0 2px;
+  }
+  .exploring #region {
+    font-size: 12px;
+  }
+  .exploring .masthead nav {
+    flex-direction: row;
+  }
+  .exploring .masthead #pause {
+    min-height: 44px;
+    padding: 9px 14px;
+  }
+}

@@ -152,12 +152,79 @@ try {
     const s = await snapshot();
     assert.ok(s.actor.y < 990, 'trunk blocks feet');
     assert.ok(s.actor.y > 950, 'can walk beneath painted canopy');
-    assert.equal(
-      await page.evaluate(() => window.__COAST_TEST__.teleport(1010, 640)),
-      true,
+  });
+  await check(
+    'authored road reaches observatory and shoreline with pointer input',
+    async () => {
+      await page
+        .getByRole('button', { name: 'Return to start', exact: true })
+        .click();
+      await page.waitForFunction(
+        () =>
+          window.__COAST_TEST__?.snapshot()?.started &&
+          !document.querySelector('#reset').disabled,
+      );
+      const walkTo = async (point) => {
+        const state = await snapshot(),
+          rect = await page.locator('#stage canvas').boundingBox();
+        await page.mouse.click(
+          rect.x +
+            ((point.x - state.camera.x) * rect.width) / state.viewport.width,
+          rect.y +
+            ((point.y - state.camera.y) * rect.height) / state.viewport.height,
+        );
+        await page.waitForFunction(
+          (p) => {
+            const a = window.__COAST_TEST__.snapshot().actor;
+            return Math.hypot(a.x - p.x, a.y - p.y) < 6;
+          },
+          point,
+          { timeout: 4000 },
+        );
+      };
+      for (const [x, y] of [
+        [890, 860],
+        [970, 780],
+        [1030, 700],
+        [1010, 640],
+      ])
+        await walkTo({ x, y });
+      await page.waitForTimeout(350);
+      assert.equal((await snapshot()).near.id, 'observatory');
+      await shot('desktop-observatory');
+      for (const [x, y] of [
+        [1030, 700],
+        [1160, 760],
+        [1280, 810],
+        [1370, 885],
+        [1430, 915],
+      ])
+        await walkTo({ x, y });
+      await page.waitForTimeout(300);
+      await shot('desktop-shoreline');
+    },
+  );
+  await check('persisted page suspension can return and resume', async () => {
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new PageTransitionEvent('pagehide', { persisted: true }),
+      ),
     );
+    assert.equal((await snapshot()).paused, true);
+    const before = (await snapshot()).stats.frameCount;
     await page.waitForTimeout(100);
-    await shot('desktop-observatory');
+    assert.equal((await snapshot()).stats.frameCount, before);
+    await page.evaluate(() =>
+      window.dispatchEvent(
+        new PageTransitionEvent('pageshow', { persisted: true }),
+      ),
+    );
+    await page
+      .getByRole('button', { name: 'Return to the coast', exact: true })
+      .click();
+    await page.waitForTimeout(80);
+    assert.ok((await snapshot()).stats.frameCount > before);
+    assert.equal((await snapshot()).paused, false);
   });
   await check(
     'focus loss pauses and resize preserves aspect and pixel limits',

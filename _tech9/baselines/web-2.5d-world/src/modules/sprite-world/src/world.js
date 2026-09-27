@@ -1,5 +1,6 @@
 import { Application, Sprite, Texture } from 'pixi.js';
 import { AssetCache } from './assets.js';
+import { SceneTransition } from './scene-transition.js';
 import { createViewport, followCamera, clientToWorld } from './viewport.js';
 import { moveActor, isWalkable, nearestInteraction } from './exploration.js';
 import {
@@ -23,6 +24,7 @@ export async function createSpriteWorld({
   createPatterns,
   controls: controlOptions = {},
   viewport: viewportOptions = {},
+  camera: cameraOptions = {},
   budgets = {},
   onInteract = () => {},
   onState = () => {},
@@ -51,6 +53,7 @@ export async function createSpriteWorld({
     budgetBytes: budgets.assetBytes ?? 96 * 1024 ** 2,
     warmGroups: budgets.warmGroups ?? 1,
   });
+  const sceneTransition = new SceneTransition(cache);
   const canvas = document.createElement('canvas'),
     ctx = canvas.getContext('2d', { alpha: false });
   const app = new Application();
@@ -70,8 +73,7 @@ export async function createSpriteWorld({
     near = null,
     target = null,
     occludedProps = 0,
-    frameCount = 0,
-    sceneRequest = 0;
+    frameCount = 0;
   const signal = new AbortController();
   const sceneIds = (value) => value.assetIds || assets.map((entry) => entry.id);
   const stats = () => ({
@@ -160,6 +162,7 @@ export async function createSpriteWorld({
     sprite.width = viewport.width;
     sprite.height = viewport.height;
     camera = followCamera(camera, actor, scene, viewport, 0, {
+      ...cameraOptions,
       immediate: true,
     });
     render();
@@ -197,7 +200,7 @@ export async function createSpriteWorld({
         Math.hypot(before.x - actor.x, before.y - actor.y) < 0.01
       )
         target = null;
-      camera = followCamera(camera, actor, scene, viewport, dt);
+      camera = followCamera(camera, actor, scene, viewport, dt, cameraOptions);
       near = nearestInteraction(scene, actor);
       controls.setInteraction(near);
     } else actor.moving = false;
@@ -310,27 +313,19 @@ export async function createSpriteWorld({
     const spawn = next.spawn || { x: actor.x, y: actor.y };
     if (!isWalkable(next, spawn.x, spawn.y, actor.radius))
       throw new Error('Scene spawn must be walkable');
-    const ticket = ++sceneRequest;
-    await cache.prepare(next.id, sceneIds(next));
-    if (ticket !== sceneRequest || disposed) {
-      if (!disposed) cache.discard(next.id);
-      return false;
-    }
-    try {
-      validateArt(next, actor);
-    } catch (error) {
-      cache.discard(next.id);
-      throw error;
-    }
-    scene = next;
-    actor = { ...actor, ...spawn, moving: false };
-    cache.activate(next.id);
-    configurePatterns();
-    target = null;
-    controls.clear();
-    resize();
-    return true;
+    return sceneTransition.run(next.id, sceneIds(next), {
+      validate: () => validateArt(next, actor),
+      commit: () => {
+        scene = next;
+        actor = { ...actor, ...spawn, moving: false };
+        configurePatterns();
+        target = null;
+        controls.clear();
+        resize();
+      },
+    });
   }
+
   function teleport(x, y) {
     if (!isWalkable(scene, x, y, actor.radius)) return false;
     actor.x = x;
@@ -339,6 +334,7 @@ export async function createSpriteWorld({
     target = null;
     controls.clear();
     camera = followCamera(camera, actor, scene, viewport, 0, {
+      ...cameraOptions,
       immediate: true,
     });
     near = nearestInteraction(scene, actor);
@@ -351,7 +347,7 @@ export async function createSpriteWorld({
     if (disposed) return;
     stop();
     disposed = true;
-    sceneRequest++;
+    sceneTransition.dispose();
     signal.abort();
     observer?.disconnect();
     controls?.dispose();

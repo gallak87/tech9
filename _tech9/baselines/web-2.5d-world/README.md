@@ -15,7 +15,7 @@ Open **http://127.0.0.1:4403**. `npm run build` produces `dist/`; `npm run previ
 
 ## Controls
 
-Choose **Explore the coast**. Use WASD/arrows to walk, hold Shift to run, or click a clear destination. Use F/E/Enter beside a landmark to read its note. Escape or Pause pauses; resume through the button or Escape. **Return to start** releases the current world and recreates it at the entrance. Focus loss pauses and clears held movement.
+Choose **Explore the coast**. Use WASD/arrows to walk, hold Shift to run, or click a clear destination. Use F/E/Enter beside a landmark to read its note. Escape or Pause pauses; resume through the button or Escape. On small screens, Return to start is inside the pause panel. **Return to start** releases the current world and recreates it at the entrance. Focus loss pauses and clears held movement.
 
 Touch devices have a movement stick, Walk/Run toggle and contextual interaction button. Portrait reserves a separate thumb zone; landscape uses the lower edge. CSS controls keep their size independently of world zoom and rendering resolution. Browser/device emulation covers these layouts; physical-device acceptance remains future work.
 
@@ -32,6 +32,7 @@ npm test
 npm run lint
 npm run build
 npm run verify
+npm run verify:pages
 ```
 
 Browser checks use installed Playwright Chromium or an already installed compatible Chromium (`CHROMIUM_PATH` overrides it). `COAST_PORT` selects a free strict development port. Checks cover desktop input, camera, collisions, pause, reading, restart/disposal, touch, orientation and rendering; output goes to ignored `.artifacts/verification/`.

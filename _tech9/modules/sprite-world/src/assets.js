@@ -56,20 +56,41 @@ export class AssetCache {
     warmGroups = 1,
     commonIds = [],
   } = {}) {
-    this.entries = new Map(entries.map((entry) => [entry.id, entry]));
-    if (this.entries.size !== entries.length)
-      throw new Error('Duplicate asset ID');
+    if (!Array.isArray(entries))
+      throw new Error('Asset entries must be an array');
+    if (!Number.isInteger(concurrency) || concurrency < 1)
+      throw new Error('Asset concurrency must be a finite positive integer');
+    if (!Number.isFinite(budgetBytes) || budgetBytes < 0)
+      throw new Error('Asset budgetBytes must be finite and nonnegative');
+    if (!Number.isInteger(warmGroups) || warmGroups < 0)
+      throw new Error('Asset warmGroups must be a finite nonnegative integer');
+    if (typeof load !== 'function' || typeof release !== 'function')
+      throw new Error('Asset load and release must be functions');
+    this.entries = new Map();
+    for (const entry of entries) {
+      if (!entry || typeof entry.id !== 'string' || !entry.id.trim())
+        throw new Error('Asset entries require nonempty string ids');
+      if (this.entries.has(entry.id))
+        throw new Error(`Duplicate asset ID: ${entry.id}`);
+      this.entries.set(entry.id, entry);
+    }
+    if (
+      !Array.isArray(commonIds) ||
+      commonIds.some((id) => !this.entries.has(id))
+    )
+      throw new Error('Common asset ids must name registered entries');
     this.load = load;
     this.release = release;
-    this.concurrency = Math.max(1, Math.floor(concurrency));
-    this.budgetBytes = Math.max(0, budgetBytes);
-    this.warmGroups = Math.max(0, Math.floor(warmGroups));
+    this.concurrency = concurrency;
+    this.budgetBytes = budgetBytes;
+    this.warmGroups = warmGroups;
     this.commonIds = new Set(commonIds);
     this.images = new Map();
     this.records = new Map();
     this.pending = new Map();
     this.queue = [];
     this.groups = new Map();
+    this.reservations = new Map();
     this.requests = new Map();
     this.running = 0;
     this.generation = 0;
@@ -78,8 +99,15 @@ export class AssetCache {
     this.disposed = false;
     this.peakBytes = 0;
   }
-  async prepare(key, ids) {
+  async prepare(key, ids, { reservation = key } = {}) {
     if (this.disposed) throw new Error('Asset cache is disposed');
+    if (typeof key !== 'string' || !key.trim())
+      throw new Error('Asset group requires a nonempty string key');
+    if (!Array.isArray(ids) && !(ids instanceof Set))
+      throw new Error('Asset dependency ids must be an array or Set');
+    const held = this.reservations.get(reservation);
+    if (held && held.key !== key)
+      throw new Error('An asset reservation cannot own different groups');
     ids = [...new Set([...this.commonIds, ...ids])];
     for (const id of ids)
       if (!this.entries.has(id)) throw new Error(`Unknown asset: ${id}`);
@@ -93,11 +121,9 @@ export class AssetCache {
       const failed = results.find((result) => result.status === 'rejected');
       if (failed) throw failed.reason;
       if (this.generation !== generation || this.disposed) throw aborted();
-      this.groups.set(key, {
-        ids: new Set(ids),
-        used: ++this.clock,
-        reserved: true,
-      });
+      if (!this.groups.has(key))
+        this.groups.set(key, { ids: new Set(), used: ++this.clock });
+      this.reservations.set(reservation, { key, ids: new Set(ids) });
       return this.images;
     } finally {
       this.requests.delete(token);
@@ -162,29 +188,47 @@ export class AssetCache {
       this.drain();
     }
   }
-  activate(key) {
-    const group = this.groups.get(key);
-    if (!group || [...group.ids].some((id) => !this.images.has(id)))
+  activate(key, { reservation = key } = {}) {
+    const group = this.groups.get(key),
+      held = this.reservations.get(reservation);
+    if (held && held.key !== key)
+      throw new Error('Asset reservation does not own this group');
+    if (!group || (reservation !== key && !held))
       throw new Error('Prepare artwork before activation');
-    for (const g of this.groups.values()) g.reserved = false;
+    const ids = held?.ids || group.ids;
+    if ([...ids].some((id) => !this.images.has(id)))
+      throw new Error('Prepare artwork before activation');
+    group.ids = new Set(ids);
     group.used = ++this.clock;
+    this.reservations.delete(reservation);
     this.active = key;
     this.trim();
   }
-  discard(key) {
-    if (key === this.active) return false;
-    this.groups.delete(key);
+  hasReservation(key) {
+    return [...this.reservations.values()].some((held) => held.key === key);
+  }
+  discard(key, { reservation = key } = {}) {
+    const held = this.reservations.get(reservation);
+    if (held?.key === key) this.reservations.delete(reservation);
+    else if (reservation !== key) return false;
+    if (key === this.active || this.hasReservation(key)) {
+      this.releaseUnused();
+      return Boolean(held);
+    }
+    const removed = this.groups.delete(key);
     this.releaseUnused();
-    return true;
+    return removed;
   }
   trim() {
     if (this.disposed) return;
-    let inactive = [...this.groups]
-      .filter(([key, g]) => key !== this.active && !g.reserved)
+    const inactive = [...this.groups]
+      .filter(([key]) => key !== this.active && !this.hasReservation(key))
       .sort((a, b) => a[1].used - b[1].used);
     while (
       inactive.length &&
-      (inactive.length > this.warmGroups || this.bytes > this.budgetBytes)
+      (inactive.length > this.warmGroups ||
+        this.bytes > this.budgetBytes ||
+        !inactive[0][1].ids.size)
     ) {
       this.groups.delete(inactive.shift()[0]);
       this.releaseUnused();
@@ -195,6 +239,8 @@ export class AssetCache {
     const retained = new Set(this.commonIds);
     for (const group of this.groups.values())
       for (const id of group.ids) retained.add(id);
+    for (const held of this.reservations.values())
+      for (const id of held.ids) retained.add(id);
     for (const ids of this.requests.values())
       for (const id of ids) retained.add(id);
     for (const [id, image] of this.images)
@@ -212,7 +258,7 @@ export class AssetCache {
     this.queue = [];
     this.pending.clear();
     this.requests.clear();
-    for (const group of this.groups.values()) group.reserved = false;
+    this.reservations.clear();
     this.trim();
   }
   get bytes() {
@@ -227,6 +273,7 @@ export class AssetCache {
       running: this.running,
       queued: this.queue.length,
       activeGroup: this.active,
+      reservationCount: this.reservations.size,
       groups: [...this.groups.keys()],
       disposed: this.disposed,
     };
@@ -239,6 +286,7 @@ export class AssetCache {
     this.images.clear();
     this.records.clear();
     this.groups.clear();
+    this.reservations.clear();
     this.active = null;
   }
 }

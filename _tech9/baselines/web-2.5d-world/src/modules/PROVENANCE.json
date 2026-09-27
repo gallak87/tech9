@@ -8,7 +8,7 @@
       "files": [
         {
           "path": "README.md",
-          "sha256": "6ae1933de048a4273a5d0c6b7e9cb3be048d28255095090878e9d4de480b136f"
+          "sha256": "2d4ddb66bd7936dcf15f7e49aebea4a42ce02f2a9ca4291174aa324ed83bae26"
         },
         {
           "path": "assets/NOTICE.md",
@@ -56,7 +56,7 @@
         },
         {
           "path": "src/assets.js",
-          "sha256": "56f1c633711850568be1cc64d92b9a8b6f12feb331320f9eb6b609b89d18e1a0"
+          "sha256": "d688fd8aea34f07b67ef0db71c0a6fc5c6044a2b1e63639ac539f2f75b5679cb"
         },
         {
           "path": "src/authoring.js",
@@ -87,16 +87,20 @@
           "sha256": "fdae8c3e9bfca6dd6427140d1ac05bfba244485911840e5174a5ae55283775c8"
         },
         {
+          "path": "src/scene-transition.js",
+          "sha256": "98a435dc2a1523f04ff749a00dd55958320eb95f0ece84881542bd3b4b3048ed"
+        },
+        {
           "path": "src/touch-input.js",
           "sha256": "ea31a34d4a4edc9d8e0d1f9e4fd5c7a927a2e6e287fbd7767c98f36ccb8835f1"
         },
         {
           "path": "src/viewport.js",
-          "sha256": "8e3add9d1f46dfb9e057afb2b10e4c528031535c445340a8e797580f3ec9a4bd"
+          "sha256": "4120cb7d92ea78c7c54fa2a1291e916a7fc02a268b888ee515f62cf463baa5cf"
         },
         {
           "path": "src/world.js",
-          "sha256": "51656ef093b7d61daedbf246317ebecb1679f74b8dec91a935f638f917d94aa0"
+          "sha256": "94bd8291bef173fd38d3a1a6632c4e58c2c6c465b1af4ebb51ade6a077839f4e"
         }
       ]
     }

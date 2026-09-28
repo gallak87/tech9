@@ -1,0 +1,342 @@
+{
+  "milestone": "gate-2-first-level",
+  "humanReview": {
+    "state": "awaiting_gate_2_playtest",
+    "approved": false,
+    "previousGateApproved": true,
+    "direction": "docs/ART_BIBLE.md",
+    "feedback": [
+      "Gate 1 approved; Gate 2 first level only",
+      "Future levels, menus, powerups, enemies, new race metrics and effects deferred",
+      "Auto-steering decision reserved for user at Gate 2"
+    ],
+    "reviewDocument": "ROADMAP.md"
+  },
+  "productionBlocked": false,
+  "gauntlets": {
+    "moduleRounds": {},
+    "wholeGameRounds": 0,
+    "gate2": {
+      "rounds": 4,
+      "cap": 10,
+      "state": "user_ended_after_round_4",
+      "scores": {
+        "art": 8,
+        "lightingMaterialsDepth": 8,
+        "handlingCamera": 9,
+        "track": 8.5,
+        "raceAI": null,
+        "visibleFeedback": 8,
+        "ui": 9,
+        "performanceStability": 8.5
+      },
+      "history": [
+        {
+          "round": 1,
+          "verdict": "fail",
+          "scores": {
+            "art": 6.5,
+            "lightingMaterialsDepth": 6.5,
+            "handlingCamera": 8,
+            "track": 8,
+            "raceAI": null,
+            "visibleFeedback": 6.5,
+            "ui": 8,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE2_CRITIQUE.md",
+          "limits": [
+            "audio listening unverified",
+            "foreground performance unverified per user preference",
+            "physical devices unverified"
+          ]
+        },
+        {
+          "round": 2,
+          "verdict": "fail",
+          "scores": {
+            "art": 7,
+            "lightingMaterialsDepth": 7,
+            "handlingCamera": 8.5,
+            "track": 8.5,
+            "raceAI": null,
+            "visibleFeedback": 7,
+            "ui": 8.5,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE2_CRITIQUE.md",
+          "resolved": [
+            "Unintended speed-dependent chase lag",
+            "Tunnel finishing improved",
+            "Groundgrid contrast reduced"
+          ],
+          "limits": [
+            "audio listening unverified",
+            "foreground performance unverified per user preference",
+            "physical devices unverified"
+          ]
+        },
+        {
+          "round": 3,
+          "verdict": "fail",
+          "scores": {
+            "art": 7.5,
+            "lightingMaterialsDepth": 7.5,
+            "handlingCamera": 9,
+            "track": 8.5,
+            "raceAI": null,
+            "visibleFeedback": 7.5,
+            "ui": 8.5,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE2_CRITIQUE.md",
+          "resolved": [
+            "Connected ground precinct composition",
+            "Ship assembly depth improved",
+            "Tested keyboard/camera scope passed"
+          ],
+          "limits": [
+            "audio listening unverified",
+            "foreground performance unverified per user preference",
+            "physical devices unverified"
+          ]
+        },
+        {
+          "round": 4,
+          "verdict": "fail",
+          "scores": {
+            "art": 8,
+            "lightingMaterialsDepth": 8,
+            "handlingCamera": 9,
+            "track": 8.5,
+            "raceAI": null,
+            "visibleFeedback": 8,
+            "ui": 9,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE2_CRITIQUE.md",
+          "resolved": [
+            "Sky form and sampled horizon/seam views",
+            "Desktop secondary labels and controls readability"
+          ],
+          "limits": [
+            "audio listening unverified",
+            "foreground performance unverified per user preference",
+            "physical devices unverified"
+          ]
+        }
+      ],
+      "terminationReason": "User said the build looks good and requested wrapping critique to proceed to Gate 2",
+      "finalFollowups": {
+        "changes": [
+          "Near start/return facade cavities and glazing",
+          "Irregular canal ripples",
+          "Soft propulsion envelope edges"
+        ],
+        "verification": "Builder stills, geometry/lifecycle checks and final integrator smoke; no new formal score"
+      }
+    }
+  },
+  "budget": {
+    "calls": 1000,
+    "triangles": 2000000,
+    "gpuMiB": 512,
+    "compressedMB": 30,
+    "targetFrameMs": 16.7
+  },
+  "evidence": [],
+  "verifiedEnvironments": [
+    {
+      "hostPlatform": "darwin",
+      "hostRelease": "25.6.0",
+      "hostArchitecture": "arm64",
+      "cpu": "Apple M1 Pro",
+      "logicalCpus": 10,
+      "systemMemoryGiB": 16,
+      "node": "v22.15.0",
+      "headless": true,
+      "viewport": {
+        "width": 1920,
+        "height": 1080
+      },
+      "deviceScaleFactor": 1,
+      "performanceCaveat": "Automation timings describe this host/browser only. Headless or software rendering is not proof of the representative desktop GPU target.",
+      "browser": "153.0.8010.53",
+      "launch": {
+        "headless": true,
+        "args": ["--enable-webgl", "--ignore-gpu-blocklist"],
+        "channel": "chrome"
+      },
+      "graphics": {
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+        "hardwareConcurrency": 10,
+        "deviceMemory": 16,
+        "gpuVendor": "Google Inc. (Apple)",
+        "gpuRenderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+        "webGLVersion": "WebGL 2.0 (OpenGL ES 3.0 Chromium)",
+        "gamepadsPresent": 0
+      }
+    }
+  ],
+  "openIssues": [
+    {
+      "priority": 1,
+      "owner": "human_gate_2",
+      "issue": "Review final visual finish; last formal art/lighting score 8/10 before final facade/water/plume followups"
+    },
+    {
+      "priority": 2,
+      "owner": "human_gate_2",
+      "issue": "Decide automatic tangent alignment behavior"
+    },
+    {
+      "priority": 2,
+      "owner": "human_gate_2",
+      "issue": "Audio mix and foreground performance need human assessment; physical controller/mobile remain unverified"
+    }
+  ],
+  "completedMilestone": {
+    "name": "One-ship playable staging review",
+    "trackLengthMetres": 3600,
+    "validatedLapSeconds": 34.7,
+    "automatedLapImpacts": 0,
+    "realControls": true,
+    "productionBuild": true,
+    "unitTestsPassed": 8,
+    "browserChecksPassed": 24,
+    "errors": 0,
+    "deterministicReplayMatches": true
+  },
+  "performance": {
+    "status": "measured_headless_not_foreground_certified",
+    "compressedBuildKB": 242.55,
+    "report": "docs/PERFORMANCE.md",
+    "historicalGate1FullLap": {
+      "frames": 2079,
+      "frameMs": {
+        "p50": 16.69999999999891,
+        "p95": 16.799999999999272,
+        "p99": 16.80000000000109,
+        "max": 83.29999999999927
+      },
+      "longFrames": 1,
+      "calls": 101,
+      "triangles": 310142,
+      "maxima": {
+        "calls": 104,
+        "triangles": 311498
+      },
+      "geometries": 68,
+      "textures": 10,
+      "estimatedGpuMiB": 59.94316818237304,
+      "gpuEstimateScope": "Geometry + RGBA textures/mips + shadow + approximate framebuffer; driver/PMREM overhead excluded",
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+      "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/153.0.0.0 Safari/537.36",
+      "viewport": {
+        "width": 1920,
+        "height": 1080,
+        "dpr": 1
+      },
+      "timingNote": "Browser RAF frame intervals; validate foreground hardware run before desktop performance claims"
+    },
+    "skyAssetBytes": 1504842,
+    "finalSmoke": {
+      "maxSampledCalls": 632,
+      "maxSampledTriangles": 1540523,
+      "estimatedGpuMiB": 375.66193405151375,
+      "scope": "Four short scenario snapshots; not a full-course or timing certification"
+    }
+  },
+  "reviewers": {
+    "builders": [
+      "gate2_track",
+      "gate2_environment",
+      "gate2_physics",
+      "gate2_ship",
+      "gate2_audio"
+    ],
+    "formalCriticRun": true,
+    "blindJudgesRun": false,
+    "numericQualityScores": {
+      "art": 8,
+      "lightingMaterialsDepth": 8,
+      "handlingCamera": 9,
+      "track": 8.5,
+      "raceAI": null,
+      "visibleFeedback": 8,
+      "ui": 9,
+      "performanceStability": 8.5
+    }
+  },
+  "updatedAt": "2026-09-28T05:46:33.055912+00:00",
+  "gates": {
+    "1": {
+      "state": "approved",
+      "userApproved": true,
+      "feedback": [
+        "Good starting point",
+        "Reverse apparent keyboard steering",
+        "Stop uphill rest drift",
+        "Defer auto-steering decision to Gate 2"
+      ]
+    },
+    "2": {
+      "state": "awaiting_human_review",
+      "userApproved": false,
+      "scope": "First complete Halcyon level and core handling/presentation",
+      "requiresHumanPlaytest": true
+    },
+    "3": {
+      "state": "pending",
+      "scope": "Level 2"
+    },
+    "4": {
+      "state": "pending",
+      "scope": "Level 3"
+    }
+  },
+  "expansionBlocked": true,
+  "evidencePolicy": "Temporary captures .experiments/ only, git-ignored. Concise tracked findings and counters; no accumulating screenshot deliverables.",
+  "gate2Verification": {
+    "unitTestsPassed": 33,
+    "productionBuild": true,
+    "browserChecksPassed": 29,
+    "browserChecksTotal": 29,
+    "browserFailure": null,
+    "steeringObservedCorrect": true,
+    "bankAndSlopeRestPassed": true,
+    "runtimeErrors": 0,
+    "reviewBrowserPolicy": "Hidden/headless local only; no external videos or unsolicited visible windows",
+    "foregroundPerformance": "unverified per user browser preference",
+    "trackLengthMetres": 7200,
+    "independentValidLapSeconds": 68.4083333333,
+    "independentLapImpacts": 0,
+    "browserReport": ".experiments/gate2-regression-round4/report.json",
+    "audioOfflineRender": {
+      "peakAtFullVolume": 0.482,
+      "muteAndPauseSilent": true,
+      "finiteSamples": true,
+      "listening": "unverified"
+    },
+    "finalLapRerun": "Skipped at user request because it runs in real time; earlier valid 68.408s lap retained",
+    "finalSmoke": {
+      "passed": true,
+      "build": "/assets/index-CWszhmZj.js",
+      "errors": [],
+      "scenarios": [
+        "start-showcase",
+        "bank-showcase",
+        "tunnel-showcase",
+        "return-showcase"
+      ],
+      "report": ".experiments/final-smoke/report.json"
+    }
+  },
+  "tooling": {
+    "sourcePattern": "games/chronoforge-echo",
+    "hookInstallation": "package.json prepare -> husky",
+    "preCommit": ".husky/pre-commit -> npm run lint:staged",
+    "customWrappers": false,
+    "fullLintPassed": true
+  }
+}

@@ -1,0 +1,15 @@
+# Halcyon Viaduct — Gate 2 circuit asset
+
+Original editable source only. `model.js` owns the renderer-independent route, `geometry.js` owns the geometry and deterministic surface/sign texture generators, and `index.js` assembles the complete engineered asset. No outside images, meshes, fonts or reference assets.
+
+The circuit is 7,200 m long and 28 m wide, with elevations -14.0 to 117.6 m and city ground at -78 m. It comprises an outer district loop, a high crossing about 100 m above the opening straight, and descending inner turns. The minimum centreline turn radius is approximately 67 m. The 62° crown has smooth fifth-order entry/exit ramps; the east S bend reverses banking, and subsequent banks reach 29°/24°/18°. No vertical tangent or arbitrary-gravity frame is required.
+
+`createTrack()` returns `{id,name,length,width,groundY,sample,checkpoints,sections,scenarios,showcases}`. `sample(s)` accepts wrapped or unwrapped metres and returns `{position,tangent,right,up,quaternion,curvature,bank}`. The mathematical frame is unchanged: local X/Y/Z map to right/up/tangent. Steering conventions belong to physics. Eight ordered checkpoints retain their existing schema.
+
+Eleven contiguous named sections cover the entire route: Meridian interchange, Crown approach, Sixty-two degree crown, East cascade, Transit vault, Foundry waterfront, West ventilation gallery, Helix rise, Meridian skybridge, Inner cascade and Foundations return. Each section includes a showcase distance. Existing scenarios remain available; `bank-rest`, `slope-rest` and `${section.id}-showcase` provide deterministic inspection states without driving assistance.
+
+The asset includes complete box-girder undersides, grounded twin piers with crossing-aware clearance, foundations, bearing collars, service ducts, bolted barriers, drainage trays/slots, access lids, road expansion joints, restrained material wear, corner paint/chevrons, fixture hardware, maintenance refuges/cabinets/ladders, a faceted transit vault with open skylight slots, segmented metal cladding, extraction louvers, suspended fan ducts and warm light cassettes, an open ribbed western gallery, a steel bowstring crossing, and physical district signage. Width allows alternate lines; there are no pickups or new racing mechanics.
+
+`buildTrackVisual(track)` returns a `THREE.Group`. Call `group.userData.update(unwrappedDistance)` each rendered frame to select three real light pools at the nearest authored street/tunnel fixtures. The asset contains 143 mesh batches and 352,694 triangles before additional renderer passes; three unshadowed spotlights illuminate the road near the player. These are source budgets, not measured GPU frame times. All track-owned resources are released by idempotent `group.userData.dispose()`.
+
+`model.test.js` checks nonadjacent crossing clearance, usable corner/frame transitions, distinct bank/slope rest states and complete showcase coverage. Existing shared tests check frame orthonormality and the wrapped seam. Browser appearance, motion and renderer cost require integrated inspection.

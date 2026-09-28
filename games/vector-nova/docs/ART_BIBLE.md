@@ -1,0 +1,15 @@
+# Approved Gate 1 direction — Gate 2 refinement
+
+VECTOR//NOVA / Aerodynamics division 07. Prototype **Kestrel**: broad compact split prow, low swept shoulders, dark teardrop canopy between ceramic shells, exposed rear turbine drums and four levitation shoes. No aircraft wings or weapons. Pearl ceramic, graphite composite, brushed titanium and restrained vermilion markings. Cyan confined to active propulsion; warm warning/track signage. Fasteners, vents and layered panels communicate construction.
+
+**Halcyon Viaduct / proving loop**: elevated metropolitan infrastructure at blue hour, warm horizon and cool steel light. Pale concrete spine, dark composite running surface, steel barriers and amber direction markers. Dense structural foreground, stacked buildings at middle distance and a split-crown utility tower landmark. Piers meet the city floor. The whole first level now follows that engineering and material direction; four independent review rounds are recorded, and the user has requested proceeding to the Gate 2 human playtest.
+
+Camera: low chase with elevation to read the next corner, moderate 61–69° FOV, gentle bank following, no shake by default. Handling: immediate response with recoverable slip, corner turn-in/brake/airbrake, boost changes propulsion/sound and modest FOV. Magnetic surface model proves local frames before jumps/loops.
+
+UI: race telemetry, warm off-white/graphite, technical numerals, vermilion active accents, generous spacing. Original wordmark. VFX priority: road/corner > craft/propulsion > collisions > decoration. Neutral inspection mode shows the real game asset; turntable can stop via reduced motion.
+
+Geometry and materials are authored in owned source. One original cloud-only panorama generated with built-in imagegen is used as the sky texture and reflection source; its prompt/provenance are recorded in SKY_ASSET.md. No world/track/ship screenshot is used as scenery, and no external art/music is used. Source geometry generators are editable assets. No Blender export claimed. Gate 1 direction approved. Gate 2 completes only this first level; subsequent levels and game systems require further human gates.
+
+## Gate 2 first-level treatment
+
+Blue-hour megacity with a warm low western horizon, cool overhead skylight, physically responding ceramic/metal/glass, and dense layered infrastructure. Build authored neighborhoods and distant depth instead of repeating striped cuboids. Shape the skyline with setbacks, curved/tapered towers, building crowns, mechanical floors, service decks and illuminated occupied interiors. The split-crown utility landmark anchors route anticipation. Dark blue atmospheric distance must preserve warm highlight detail. Track engineering and rail materials should read at driving speed; practical lights illuminate surfaces, not only emissive lines. No oversaturated neon blanket, fake scenic background, or bloom hiding geometry. First-level target 60–90 second repeatable lap; keep readable corners, grounded supports and a dramatic banked district transition.

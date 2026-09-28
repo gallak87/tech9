@@ -1,0 +1,5 @@
+if git diff --cached --quiet --diff-filter=ACMR -- games/vector-nova; then
+  exit 0
+fi
+cd games/vector-nova
+npm run lint:staged

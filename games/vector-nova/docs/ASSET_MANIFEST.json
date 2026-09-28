@@ -1,0 +1,74 @@
+{
+  "policy": "Original project-owned procedural geometry/materials plus one original AI-generated cloud-only sky texture; no copied reference-game artwork.",
+  "assets": [
+    {
+      "id": "kestrel",
+      "source": "src/ships/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original procedural lofts, hull panels, engine and hover geometry, source materials and markings",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": ["three"]
+    },
+    {
+      "id": "halcyon-circuit",
+      "source": "src/track/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original authored control points, frame-based geometry, procedural surface textures and signage",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": ["three"]
+    },
+    {
+      "id": "halcyon-city",
+      "source": "src/environment/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original seeded and authored city districts, tapered/setback architecture, facade and occupied-room maps, roof services, lower streets, landscape courts and split-crown landmark",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": ["three"]
+    },
+    {
+      "id": "synth-audio",
+      "source": "src/audio/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original WebAudio oscillator and seeded noise synthesis; no recordings or music",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": []
+    },
+    {
+      "id": "ui-brand",
+      "source": "src/ui/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original wordmark/layout, browser system fonts",
+      "rights": "Project-authored; system fonts referenced, not redistributed",
+      "runtimeDependencies": []
+    },
+    {
+      "id": "halcyon-sky",
+      "source": "public/assets/sky/halcyon-clouds-v1.png and src/renderer/",
+      "creator": "Built-in imagegen tool, prompted by VECTOR//NOVA project; renderer shader by project contributors",
+      "provenance": "Original generated sky/cloud panorama, no reference images; final prompt and method in docs/SKY_ASSET.md. Scene geometry is never baked into the panorama. Runtime shader supplies solar radiance; PMREM and static city probe supply approximate reflections.",
+      "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
+      "runtimeDependencies": ["three"],
+      "dimensions": [1774, 887]
+    }
+  ],
+  "thirdParty": [
+    {
+      "name": "three",
+      "version": "0.186.1",
+      "license": "MIT",
+      "source": "https://github.com/mrdoob/three.js"
+    },
+    {
+      "name": "vite",
+      "version": "8.3.0",
+      "license": "MIT",
+      "source": "https://github.com/vitejs/vite"
+    },
+    {
+      "name": "playwright",
+      "version": "1.58.2",
+      "license": "Apache-2.0",
+      "source": "https://github.com/microsoft/playwright"
+    }
+  ]
+}

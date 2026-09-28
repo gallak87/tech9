@@ -6,6 +6,35 @@ const GRAVITY = 9.81;
 const HOLD_SPEED = 0.12;
 const HALF_WIDTH = 2.25;
 const HALF_LENGTH = 3.5;
+export const STEERING_ASSIST = 0.3;
+
+function roadYawBetween(frame, next, distance) {
+  if (frame.right && frame.tangent && next.tangent) {
+    const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
+    return Math.atan2(
+      dot(frame.right, next.tangent),
+      dot(frame.tangent, next.tangent),
+    );
+  }
+  return finite(frame.curvature) * distance;
+}
+
+function sweptHullExtent(before, after) {
+  const extent = (heading) =>
+    Math.abs(Math.cos(heading)) * HALF_WIDTH +
+    Math.abs(Math.sin(heading)) * HALF_LENGTH;
+  const lower = Math.min(before, after);
+  const upper = Math.max(before, after);
+  const peak = Math.atan2(HALF_LENGTH, HALF_WIDTH);
+  // Include the yaw envelope's interior maximum when turning past a diagonal.
+  for (const angle of [peak, -peak])
+    if (
+      Math.ceil((lower - angle) / Math.PI) <=
+      Math.floor((upper - angle) / Math.PI)
+    )
+      return Math.hypot(HALF_WIDTH, HALF_LENGTH);
+  return Math.max(extent(before), extent(after));
+}
 
 export function createVehicleState() {
   return {
@@ -14,6 +43,7 @@ export function createVehicleState() {
     speed: 0,
     lateralSpeed: 0,
     heading: 0,
+    steeringHeading: 0,
     energy: 100,
     time: 0,
     boosting: false,
@@ -24,7 +54,7 @@ export function createVehicleState() {
 }
 
 function integrate(s, controls, track, dt, events) {
-  const { throttle, brake, steer, airbrake } = controls;
+  const { throttle, brake, steer, airbrake, steeringAssist } = controls;
   const frame = track.sample(s.distance);
   const previousSpeed = s.speed;
   const previousHeading = s.heading;
@@ -46,15 +76,28 @@ function integrate(s, controls, track, dt, events) {
 
   // Input +1 is the driver's right. A +Z-facing chase view sees geometric +X
   // on its left, so yaw/lateral commands have the opposite sign to input.
-  // The magnetic surface-following frame and its automatic bend alignment are
-  // retained for the Gate 2 decision; this does not add lane-centering.
-  const targetHeading = -steer * (airbrake ? 0.27 : 0.18);
+  // Keep the quick control response separate from persistent vehicle yaw.
+  // A spring on total heading would eventually restore full road-following,
+  // even if we subtracted some road turn each tick.
+  const previousSteering =
+    steeringAssist === 1 ? s.heading : finite(s.steeringHeading);
+  const targetHeading = -steer * (airbrake ? 0.27 : 0.18) * steeringAssist;
   const response = airbrake ? 10.5 : 8.5;
   const yawBlend = -Math.expm1(-response * dt);
-  s.heading += (targetHeading - s.heading) * yawBlend;
-  const meanHeading =
+  s.steeringHeading =
+    previousSteering + (targetHeading - previousSteering) * yawBlend;
+  const manualYawRate =
+    -steer * (airbrake ? 2.1 : 1.5) * clamp(previousSpeed / 30, 0, 1);
+  const manualYawStep = (1 - steeringAssist) * manualYawRate * dt;
+  s.heading += s.steeringHeading - previousSteering + manualYawStep;
+  const estimatedRoadYaw =
+    finite(frame.curvature) * previousSpeed * Math.cos(previousHeading) * dt;
+  let meanHeading =
+    previousHeading -
+    previousSteering +
     targetHeading +
-    ((previousHeading - targetHeading) * yawBlend) / (response * dt);
+    ((previousSteering - targetHeading) * yawBlend) / (response * dt) +
+    (manualYawStep - (1 - steeringAssist) * estimatedRoadYaw) * 0.5;
 
   // Hover parking is an explicit active hold, including while steering at rest.
   // It captures only a nearly stopped craft; a moving sideways craft still has
@@ -64,6 +107,8 @@ function integrate(s, controls, track, dt, events) {
   const forwardGravity = -GRAVITY * finite(frame.tangent?.y);
   const lateralGravity =
     -GRAVITY * finite(frame.right?.y, Math.sin(finite(frame.bank)));
+  // Magnetic adhesion balances the normal component, even upside-down. Only
+  // tangent/right projections accelerate this deliberately surface-bound model.
 
   if (parked) {
     s.speed = 0;
@@ -88,6 +133,16 @@ function integrate(s, controls, track, dt, events) {
       (parking ? 0 : forwardGravity);
     s.speed = Math.max(0, previousSpeed + acceleration * dt);
     const meanSpeed = (previousSpeed + s.speed) * 0.5;
+    const distanceStep = Math.cos(meanHeading) * meanSpeed * dt;
+    if (steeringAssist < 1 && distanceStep !== 0) {
+      const nextFrame = track.sample(s.distance + distanceStep);
+      const roadYaw = roadYawBetween(frame, nextFrame, distanceStep);
+      // Remove the unassisted part of actual road yaw. Roll and pitch still
+      // follow the magnetic surface, including through inversion and drops.
+      s.heading -= (1 - steeringAssist) * roadYaw;
+      meanHeading += (1 - steeringAssist) * (estimatedRoadYaw - roadYaw) * 0.5;
+    }
+    s.distance += distanceStep;
 
     // Project world gravity through the actual banked frame. Positive right.y
     // means +lateral is uphill, so gravity must act toward -lateral. Magnetic
@@ -104,17 +159,10 @@ function integrate(s, controls, track, dt, events) {
     const lateralStep =
       targetLateralSpeed * dt +
       ((previousLateralSpeed - targetLateralSpeed) * lateralBlend) / grip;
-    s.distance += Math.cos(meanHeading) * meanSpeed * dt;
-
-    // Sweep the whole step against both rails, including the craft's rotated
-    // width. The widest endpoint bounds its yaw envelope over this small tick.
-    const hullExtent = (heading) =>
-      Math.abs(Math.cos(heading)) * HALF_WIDTH +
-      Math.abs(Math.sin(heading)) * HALF_LENGTH;
+    // Sweep the whole step against both rails, including rotated body width.
     const edge = Math.max(
       0,
-      track.width / 2 -
-        Math.max(hullExtent(previousHeading), hullExtent(s.heading)),
+      track.width / 2 - sweptHullExtent(previousHeading, s.heading),
     );
     const next = s.lateral + lateralStep;
     let side = next > edge ? 1 : next < -edge ? -1 : 0;
@@ -154,12 +202,13 @@ function integrate(s, controls, track, dt, events) {
         events.push({ type: 'impact', payload: { severity, side } });
       }
       s.heading *= 0.65;
+      s.steeringHeading *= 0.65;
     } else s.lateral = next;
   }
   s.energy = clamp(s.energy + (boost ? -21 : 5.5) * dt, 0, 100);
 }
 
-export function stepVehicle(state, input, track, dt) {
+export function stepVehicle(state, input, track, dt, options = {}) {
   const events = [];
   if (!Number.isFinite(dt) || dt <= 0) return events;
   const controls = {
@@ -168,6 +217,11 @@ export function stepVehicle(state, input, track, dt) {
     steer: clamp(finite(input?.steer), -1, 1),
     boost: !!input?.boost,
     airbrake: !!input?.airbrake,
+    steeringAssist: clamp(
+      finite(options.steeringAssist, STEERING_ASSIST),
+      0,
+      1,
+    ),
   };
   // Core already ticks at 120Hz. Subdivide standalone/test calls as well, with
   // the same 100ms backlog bound as core, to prevent unstable giant steps.

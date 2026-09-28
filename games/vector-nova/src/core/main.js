@@ -3,7 +3,11 @@ import { createTrack, buildTrackVisual } from '../track/index.js';
 import { createShip } from '../ships/index.js';
 import { createRenderer } from '../renderer/index.js';
 import { createEnvironment } from '../environment/index.js';
-import { createVehicleState, stepVehicle } from '../physics/index.js';
+import {
+  createVehicleState,
+  stepVehicle,
+  STEERING_ASSIST,
+} from '../physics/index.js';
 import { createRace } from '../race/index.js';
 import { createInput } from '../input/index.js';
 import { createCameraRig } from '../camera/index.js';
@@ -11,7 +15,7 @@ import { createAudio } from '../audio/index.js';
 import { createEffects } from '../effects/index.js';
 import { createUI } from '../ui/index.js';
 import { loadSettings, saveSettings } from '../progression/index.js';
-const VERSION = '0.2.0-gate2';
+const VERSION = '0.2.2-gate2-pacing';
 const host = document.querySelector('#app');
 const errors = [];
 function fail(error) {
@@ -39,6 +43,8 @@ async function boot() {
     { scene, camera, renderer } = view;
   const track = createTrack(),
     road = buildTrackVisual(track);
+  const signatureReview =
+    new URLSearchParams(location.search).get('review') === 'signature';
   const environment = createEnvironment(track);
   scene.add(road, environment);
   const ship = createShip();
@@ -126,7 +132,8 @@ async function boot() {
   }
   function start() {
     sceneShip();
-    if (mode === 'title' || mode === 'inspection') {
+    const newRun = mode === 'title' || mode === 'inspection';
+    if (newRun) {
       scenario = 'staging';
       state = createVehicleState();
       prev = { ...state };
@@ -143,6 +150,12 @@ async function boot() {
     audio.unlock().catch(() => {});
     input.clear();
     ui.setMode(mode);
+    // Review links still enter through the real start button/audio gesture.
+    // Normal launch and fresh-lap actions retain the complete circuit.
+    if (newRun && signatureReview && track.scenarios['signature-entry']) {
+      window.__VN.loadScenario('signature-entry', 47219);
+      ui.notice('SIGNATURE PLAYTEST · LAP UNTIMED');
+    }
   }
   function pause() {
     if (mode !== 'racing') return;
@@ -181,6 +194,7 @@ async function boot() {
     state.distance = race.recover();
     state.lateral = 0;
     state.heading = 0;
+    state.steeringHeading = 0;
     state.lateralSpeed = 0;
     state.speed = 0;
     state.resetCount++;
@@ -413,7 +427,7 @@ async function boot() {
       return {
         version: VERSION,
         trackId: track.id,
-        physicsVersion: 2,
+        physicsVersion: 3,
         seed,
         scenario,
         inputs: inputLog.map((e) => ({ ...e, input: { ...e.input } })),
@@ -423,7 +437,7 @@ async function boot() {
       if (
         replay.version !== VERSION ||
         replay.trackId !== track.id ||
-        replay.physicsVersion !== 2
+        replay.physicsVersion !== 3
       )
         throw new Error('Replay version mismatch');
       this.loadScenario(replay.scenario || 'staging', replay.seed);
@@ -438,6 +452,7 @@ async function boot() {
       return this.getSnapshot();
     },
     getSnapshot() {
+      const frame = track.sample(state.distance);
       return {
         version: VERSION,
         mode,
@@ -445,10 +460,15 @@ async function boot() {
         seed,
         tick,
         settings: { ...settings },
+        handling: { steeringAssist: STEERING_ASSIST },
         trackFrame: {
-          bank: track.sample(state.distance).bank,
-          grade: track.sample(state.distance).tangent.y,
-          lateralGrade: track.sample(state.distance).right.y,
+          bank: frame.bank,
+          roll: frame.roll ?? frame.bank,
+          grade: frame.tangent.y,
+          lateralGrade: frame.right.y,
+          up: frame.up.toArray(),
+          tangent: frame.tangent.toArray(),
+          position: frame.position.toArray(),
         },
         vehicle: { ...state },
         camera: {
@@ -474,6 +494,8 @@ async function boot() {
           length: track.length,
           width: track.width,
           sections: track.sections,
+          signature: track.signature,
+          featureZones: track.featureZones,
           scenarios: Object.keys(track.scenarios || {}),
         },
         events: [...events],

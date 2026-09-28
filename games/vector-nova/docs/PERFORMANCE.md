@@ -50,3 +50,33 @@ errors. These four samples peaked at 632 calls and 1,540,523 triangles with
 375.7MiB estimated GPU assets. They are not a full-course maximum or isolated
 timing benchmark. The normal-speed full-lap rerun was skipped at user request;
 the earlier valid 68.408-second lap remains the completed lap check.
+
+## Signature revision (0.2.1)
+
+Checkpoint before the revision: `04a84460`. The new production build is
+`index-BixP6cDB.js`. Actual three-dimensional centreline arc length remains
+7,200m. The fast numerical traversal completed in approximately 213ms wall time
+with a valid simulated 68.758s lap, zero impacts and minimum camera clearance
+4.78m. This is a numerical check, not real-time driving evidence. No real-time
+full lap or critic round was run for this revision, per user instruction.
+
+Eleven short production-browser checks passed: the signature review link,
+stationary inversion, visible steering direction while inverted, recovery,
+brief actual-keyboard motion through inversion/drop/exit and pause. No runtime
+or asset errors. Captured samples peaked at682 calls /1,631,663 triangles and
+estimated372.5MiB GPU assets; these are sampled values, not a full-course maximum
+or controlled timing benchmark. Foreground performance remains unverified.
+
+Build transfer is about244.5KB gzip HTML/JS/CSS plus the unchanged 1.5 MB sky.
+Temporary stills/reports are ignored in `.experiments/signature-revision/`.
+Gate 2 remains explicitly unapproved and awaits the user's playtest.
+
+## Compact pacing and light stability revision (0.2.2)
+
+Current build: `index-DIQH_RTe.js`. Actual centreline is 5,000 m, with 0.3 automatic bend assistance. A fast numerical full-circuit traversal took 261 ms wall time, completed a valid 47.175 s simulated lap with zero impacts and minimum 4.83 m camera clearance. No normal-speed full lap or critic round was run.
+
+All 55 unit tests and 43 production-browser checks pass, including visible inverted steering, stationary hold, counter-steering, recovery, replay, storage failure and the opening launch. Eighteen short scene samples peaked at 672 calls / 1,275,289 triangles and estimated 353.4 MiB GPU assets. These are sampled values, not full-course maxima or a controlled timing benchmark; foreground performance and human driving feel remain playtest items.
+
+The reported road flicker had two supported causes: active lamp pools could disappear at nonzero intensity, and thin expansion seals intersected the tessellated road. The same three-light pool now uses continuous fades and stable fixture assignments. All 564 new seal triangles were checked at 8 mm road clearance; 20,002 forward/reverse updates checked pooled-light continuity and finite geometry. City clearance checks found no intersections across 1,506 road probes and 114 support axes.
+
+Transfer is about 246.5 KB gzip for HTML/JS/CSS plus the unchanged 1.5 MB sky. Temporary checks stay under ignored `.experiments/pacing-revision/`. Gate 2 remains unapproved.

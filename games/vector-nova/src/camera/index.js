@@ -1,8 +1,13 @@
 import * as T from 'three';
 export function createCameraRig(camera) {
   let initialized = false;
-  const up = new T.Vector3(0, 1, 0);
   const previousAnchor = new T.Vector3();
+  const previousFrame = new T.Quaternion();
+  const transport = new T.Quaternion();
+  const desiredRotation = new T.Quaternion();
+  const lookMatrix = new T.Matrix4();
+  const offset = new T.Vector3();
+  const localUp = new T.Vector3(0, 1, 0);
   return {
     reset() {
       initialized = false;
@@ -13,9 +18,7 @@ export function createCameraRig(camera) {
         .clone()
         .addScaledVector(f.right, state.lateral)
         .addScaledVector(f.up, 1.15);
-      let target,
-        eye,
-        newUp = f.up;
+      let target, eye, back;
       if (mode === 'inspection') return;
       if (mode === 'vista') {
         eye = f.position
@@ -26,7 +29,7 @@ export function createCameraRig(camera) {
         target = p;
       } else {
         const ahead = track.sample(state.distance + 35 + state.speed * 0.18);
-        const back = track.sample(state.distance - 12.5 - state.speed * 0.025);
+        back = track.sample(state.distance - 12.5 - state.speed * 0.025);
         eye = back.position
           .clone()
           .addScaledVector(back.right, state.lateral * 0.83)
@@ -39,17 +42,37 @@ export function createCameraRig(camera) {
           0.55,
         );
       }
-      // Transport the camera with track progress before damping its relative
-      // offset. World-space damping otherwise adds speed/response metres of
-      // unintended follow lag, shrinking the craft as it accelerates.
-      if (initialized && mode === 'chase')
-        camera.position.add(f.position.clone().sub(previousAnchor));
+      // Carry both position and orientation through the continuous road frame.
+      // Translation alone leaves the eye lagging inside a steep crest/pullout;
+      // blending up vectors can collapse when the road turns upside down.
+      if (initialized && mode === 'chase') {
+        transport.copy(f.quaternion).multiply(previousFrame.clone().invert());
+        offset
+          .copy(camera.position)
+          .sub(previousAnchor)
+          .applyQuaternion(transport);
+        camera.position.copy(f.position).add(offset);
+        camera.quaternion.premultiply(transport);
+      }
       previousAnchor.copy(f.position);
+      previousFrame.copy(f.quaternion);
       const k = initialized ? 1 - Math.exp(-dt * 12) : 1;
       camera.position.lerp(eye, k);
-      up.lerp(newUp, initialized ? 1 - Math.exp(-dt * 7) : 1).normalize();
-      camera.up.copy(up);
-      camera.lookAt(target);
+      if (back) {
+        const clearance = offset
+          .copy(camera.position)
+          .sub(back.position)
+          .dot(back.up);
+        if (clearance < 3)
+          camera.position.addScaledVector(back.up, 3 - clearance);
+      }
+      lookMatrix.lookAt(camera.position, target, f.up);
+      desiredRotation.setFromRotationMatrix(lookMatrix);
+      camera.quaternion.slerp(
+        desiredRotation,
+        initialized ? 1 - Math.exp(-dt * 12) : 1,
+      );
+      camera.up.copy(localUp).applyQuaternion(camera.quaternion);
       const fov = 61 + (reducedMotion ? 0 : Math.min(state.speed / 157, 1) * 7);
       camera.fov +=
         (fov - camera.fov) * (initialized ? 1 - Math.exp(-dt * 4) : 1);

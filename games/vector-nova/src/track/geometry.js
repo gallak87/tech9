@@ -206,3 +206,97 @@ export function signTexture(main, secondary, direction = 0) {
   texture.anisotropy = 8;
   return texture;
 }
+
+// Expansion seals follow the actual rendered triangle planes, rather than the
+// ideal spline frame. A straight box intersects the tessellated road on banks
+// and grades, producing alternating exposed/buried pixels as the camera moves.
+export function roadSealGeometry(
+  track,
+  surface,
+  { spacing = 36, breadth = 0.078, offset = 0.008 } = {},
+) {
+  const attribute = surface.getAttribute('position');
+  const segments = attribute.count / 2 - 1;
+  const step = track.length / segments;
+  const positions = [];
+  const normals = [];
+  const edgeInset = 0.02 / track.width;
+  const point = (index) =>
+    new THREE.Vector3().fromBufferAttribute(attribute, index);
+  const clip = (polygon, axis, limit, keepAbove) => {
+    const result = [];
+    for (let i = 0; i < polygon.length; i += 1) {
+      const a = polygon[i];
+      const b = polygon[(i + 1) % polygon.length];
+      const insideA = keepAbove ? a[axis] >= limit : a[axis] <= limit;
+      const insideB = keepAbove ? b[axis] >= limit : b[axis] <= limit;
+      if (insideA) result.push(a);
+      if (insideA !== insideB) {
+        const fraction = (limit - a[axis]) / (b[axis] - a[axis]);
+        result.push({
+          u: THREE.MathUtils.lerp(a.u, b.u, fraction),
+          v: THREE.MathUtils.lerp(a.v, b.v, fraction),
+          position: a.position.clone().lerp(b.position, fraction),
+        });
+      }
+    }
+    return result;
+  };
+  for (let distance = 0; distance < track.length; distance += spacing) {
+    const start = distance - breadth / 2;
+    const end = distance + breadth / 2;
+    const bands = [[Math.max(0, start), Math.min(track.length, end)]];
+    if (start < 0) bands.push([track.length + start, track.length]);
+    if (end > track.length) bands.push([0, end - track.length]);
+    for (const [from, to] of bands) {
+      const first = Math.max(0, Math.floor(from / step));
+      const last = Math.min(segments - 1, Math.floor(to / step));
+      for (let segment = first; segment <= last; segment += 1) {
+        const vertices = [
+          { u: 0, v: 0, position: point(segment * 2) },
+          { u: 1, v: 0, position: point(segment * 2 + 1) },
+          { u: 0, v: 1, position: point(segment * 2 + 2) },
+          { u: 1, v: 1, position: point(segment * 2 + 3) },
+        ];
+        for (const triangle of [
+          [0, 2, 1],
+          [1, 2, 3],
+        ]) {
+          let polygon = triangle.map((index) => vertices[index]);
+          const normal = new THREE.Vector3()
+            .crossVectors(
+              polygon[1].position.clone().sub(polygon[0].position),
+              polygon[2].position.clone().sub(polygon[0].position),
+            )
+            .normalize();
+          for (const [axis, limit, keepAbove] of [
+            ['v', (from - segment * step) / step, true],
+            ['v', (to - segment * step) / step, false],
+            ['u', edgeInset, true],
+            ['u', 1 - edgeInset, false],
+          ]) {
+            if (!polygon.length) break;
+            polygon = clip(polygon, axis, limit, keepAbove);
+          }
+          for (let i = 1; i < polygon.length - 1; i += 1) {
+            for (const vertex of [polygon[0], polygon[i], polygon[i + 1]]) {
+              const lifted = vertex.position
+                .clone()
+                .addScaledVector(normal, offset);
+              positions.push(lifted.x, lifted.y, lifted.z);
+              normals.push(normal.x, normal.y, normal.z);
+            }
+          }
+        }
+      }
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    'position',
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+  geometry.computeBoundingSphere();
+  return geometry;
+}

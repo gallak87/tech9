@@ -2,14 +2,18 @@ export const defaults = {
   volume: 0.35,
   quality: 'high',
   reducedMotion: false,
-  assistance: true,
 };
 export function loadSettings() {
   try {
-    return {
-      ...defaults,
-      ...JSON.parse(localStorage.getItem('vector-nova.settings') || '{}'),
-    };
+    const saved = JSON.parse(
+      localStorage.getItem('vector-nova.settings') || '{}',
+    );
+    return Object.fromEntries(
+      Object.entries(defaults).map(([key, value]) => [
+        key,
+        saved?.[key] ?? value,
+      ]),
+    );
   } catch {
     return { ...defaults };
   }

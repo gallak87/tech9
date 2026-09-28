@@ -1,6 +1,6 @@
 {
   "name": "vector-nova",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5180 --strictPort",
     "verify": "node tools/verify.mjs",
-    "test": "node --test tools/*.test.mjs src/physics/*.test.js src/track/*.test.js src/audio/*.test.js",
+    "test": "node --test tools/*.test.mjs src/physics/*.test.js src/track/*.test.js src/audio/*.test.js src/environment/*.test.js",
     "lint": "eslint . --max-warnings 0 && npm run format:check",
     "lint:fix": "npm run format && eslint . --fix --max-warnings 0",
     "format": "prettier --write .",

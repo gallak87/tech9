@@ -41,12 +41,12 @@ test('shared road frames remain orthonormal and match ship-local axes', () => {
   }
 });
 
-test('first level includes elevation, banking and full-length route', () => {
+test('compact first level retains elevation, banking and a complete route', () => {
   const frames = Array.from({ length: 360 }, (_, i) =>
     track.sample((i * track.length) / 360),
   );
   const heights = frames.map((f) => f.position.y);
-  assert.ok(track.length >= 6600 && track.length <= 8000);
+  assert.ok(track.length >= 4500 && track.length <= 5500);
   assert.ok(
     Math.max(...heights) - Math.min(...heights) >= 40,
     'route must have meaningful elevation',

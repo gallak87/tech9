@@ -323,11 +323,24 @@ try {
   await scenario('staging');
   const w = await hold(['w'], 900, 'wasd-throttle');
   const d = await hold(['w', 'd'], 350, 'wasd-right');
-  const a = await hold(['w', 'a'], 650, 'wasd-left');
+  const counter = await hold(['w', 'a'], 650, 'wasd-countersteer');
+  check(
+    'Counter-steering turns the nose and reverses lateral momentum',
+    counter.vehicle.heading > d.vehicle.heading + 0.003 &&
+      d.vehicle.lateralSpeed < 0 &&
+      counter.vehicle.lateralSpeed > 0,
+  );
+  // Compare each direction from the same launch state. Reduced automatic yaw
+  // retains momentum, so a counter-steer need not immediately retrace its lane.
+  await scenario('staging');
+  const leftStart = await hold(['w'], 900, 'wasd-left-start');
+  const a = await hold(['w', 'a'], 350, 'wasd-left');
   check(
     'WASD has the same correct steering directions as arrows',
     d.vehicle.lateral < w.vehicle.lateral &&
-      a.vehicle.lateral > d.vehicle.lateral,
+      a.vehicle.lateral > leftStart.vehicle.lateral &&
+      a.camera.playerScreenX - a.camera.roadScreenX <
+        leftStart.camera.playerScreenX - leftStart.camera.roadScreenX,
   );
 
   await scenario('fast-corner');

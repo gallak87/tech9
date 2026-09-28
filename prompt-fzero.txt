@@ -1,3 +1,5 @@
+> Continuation note: this original brief is retained as the design source. The user's current phase plan and overrides are in games/vector-nova/ROADMAP.md and games/vector-nova/docs/GATE3_HANDOFF.md. Gate 3 now combines levels 2 and 3; future critic gauntlets are capped at six completed rounds with at least 9/10 in every applicable category. Those instructions supersede older scope/review/evidence directions below. Gate 2 remains unapproved until explicitly changed by the user.
+
 # Goal
 
 Build an original, high-octane, fast-paced, futuristic anti-gravity racing game inspired by the blistering speed, precision and high-stakes racing of F-Zero. Working title: VECTOR//NOVA. Target the browser. Three.js + Vite + ES modules is a strong default, but choose the engine, rendering stack and asset pipeline that best serve the result. Babylon.js, WebGPU where supported, Blender-authored assets, procedural modelling and other appropriate tools are welcome. Explain the choice, then build the game.

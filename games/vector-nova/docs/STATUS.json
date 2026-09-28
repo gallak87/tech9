@@ -1,14 +1,16 @@
 {
   "milestone": "gate-2-first-level",
   "humanReview": {
-    "state": "awaiting_gate_2_playtest",
+    "state": "awaiting_gate_2_pacing_playtest",
     "approved": false,
     "previousGateApproved": true,
     "direction": "docs/ART_BIBLE.md",
     "feedback": [
       "Gate 1 approved; Gate 2 first level only",
       "Future levels, menus, powerups, enemies, new race metrics and effects deferred",
-      "Auto-steering decision reserved for user at Gate 2"
+      "User requested 0.3 bend assistance, shorter drawn-out sections and signature features distributed across the first level",
+      "Reported flickering road light spots; smooth fixture handoffs and conforming expansion seams implemented",
+      "Gate 3 combines levels 2 and 3; no separate Gate 4. Future critique is capped at six rounds, still at least 9/10 per applicable category."
     ],
     "reviewDocument": "ROADMAP.md"
   },
@@ -18,7 +20,7 @@
     "wholeGameRounds": 0,
     "gate2": {
       "rounds": 4,
-      "cap": 10,
+      "cap": 6,
       "state": "user_ended_after_round_4",
       "scores": {
         "art": 8,
@@ -134,7 +136,14 @@
           "Soft propulsion envelope edges"
         ],
         "verification": "Builder stills, geometry/lifecycle checks and final integrator smoke; no new formal score"
-      }
+      },
+      "capAtTermination": 10
+    },
+    "gate3": {
+      "rounds": 0,
+      "cap": 6,
+      "state": "pending_gate_2_approval",
+      "scope": "Combined level 2 and level 3 integration review"
     }
   },
   "budget": {
@@ -187,7 +196,7 @@
     {
       "priority": 2,
       "owner": "human_gate_2",
-      "issue": "Decide automatic tangent alignment behavior"
+      "issue": "Human playtest of 0.3 bend assistance and shorter introductory route"
     },
     {
       "priority": 2,
@@ -209,7 +218,7 @@
   },
   "performance": {
     "status": "measured_headless_not_foreground_certified",
-    "compressedBuildKB": 242.55,
+    "compressedBuildKB": 246.45,
     "report": "docs/PERFORMANCE.md",
     "historicalGate1FullLap": {
       "frames": 2079,
@@ -245,6 +254,19 @@
       "maxSampledTriangles": 1540523,
       "estimatedGpuMiB": 375.66193405151375,
       "scope": "Four short scenario snapshots; not a full-course or timing certification"
+    },
+    "signatureSamples": {
+      "maxCalls": 682,
+      "maxTriangles": 1631663,
+      "estimatedGpuMiB": 372.46119705200203,
+      "scope": "Short headless signature captures; no foreground or full-course performance certification"
+    },
+    "pacingSamples": {
+      "build": "/assets/index-DIQH_RTe.js",
+      "maxCalls": 672,
+      "maxTriangles": 1275289,
+      "estimatedGpuMiB": 353.41919158935553,
+      "scope": "18 short headless scenario samples, not full-course or foreground performance certification"
     }
   },
   "reviewers": {
@@ -268,7 +290,7 @@
       "performanceStability": 8.5
     }
   },
-  "updatedAt": "2026-09-28T05:46:33.055912+00:00",
+  "updatedAt": "2026-09-28T06:48:40.491528+00:00",
   "gates": {
     "1": {
       "state": "approved",
@@ -287,12 +309,10 @@
       "requiresHumanPlaytest": true
     },
     "3": {
-      "state": "pending",
-      "scope": "Level 2"
-    },
-    "4": {
-      "state": "pending",
-      "scope": "Level 3"
+      "state": "pending_gate_2_approval",
+      "userApproved": false,
+      "scope": "Levels 2 and 3 together",
+      "requiresHumanPlaytest": true
     }
   },
   "expansionBlocked": true,
@@ -330,7 +350,8 @@
         "return-showcase"
       ],
       "report": ".experiments/final-smoke/report.json"
-    }
+    },
+    "appliesTo": "Historical pre-signature checkpoint04a84460; current revision checks are in signatureRevision"
   },
   "tooling": {
     "sourcePattern": "games/chronoforge-echo",
@@ -338,5 +359,110 @@
     "preCommit": ".husky/pre-commit -> npm run lint:staged",
     "customWrappers": false,
     "fullLintPassed": true
+  },
+  "signatureRevision": {
+    "checkpointCommit": "04a84460",
+    "scope": "Replace later first-level climb/return with corkscrew, inverted run and steep plunge; keep actual track length7200m",
+    "criticRequested": false,
+    "gate2Approved": false,
+    "state": "ready_for_playtest",
+    "version": "0.2.1-gate2-signature",
+    "build": "/assets/index-BixP6cDB.js",
+    "playtestUrl": "http://127.0.0.1:5180/?review=signature",
+    "actualLengthMetres": 7200.000000001875,
+    "maximumElevationMetres": 528.34,
+    "invertedRunMetres": 158.4,
+    "maximumDropDegrees": 68.06,
+    "fullRollDegrees": 360,
+    "unitTestsPassed": 46,
+    "browserChecksPassed": 11,
+    "runtimeErrors": [],
+    "numericalTraversal": {
+      "wallMilliseconds": 213.373333,
+      "simulatedLapSeconds": 68.75833333333412,
+      "valid": true,
+      "impacts": 0,
+      "minCameraClearanceMetres": 4.782076282908097,
+      "note": "Fast numerical simulation; no real-time full-lap rerun or human-feel claim"
+    },
+    "criticRun": false,
+    "approved": false,
+    "appliesTo": "Historical 0.2.1 signature revision; current checks are in pacingRevision"
+  },
+  "pacingRevision": {
+    "state": "ready_for_playtest",
+    "version": "0.2.2-gate2-pacing",
+    "trackId": "halcyon-viaduct-4-compact",
+    "physicsVersion": 3,
+    "steeringAssist": 0.3,
+    "actualLengthMetres": 5000.000000021704,
+    "priorLengthMetres": 7200,
+    "lengthReductionPercent": 30.5555555553,
+    "invertedRunMetres": 145,
+    "maximumElevationMetres": 525.7,
+    "maximumDropDegrees": 65.95,
+    "minimum3DRadiusMetres": 104.89,
+    "numericalTraversal": {
+      "kind": "Fast numerical circuit traversal, not a real-time lap or sensory playtest",
+      "length": 5000.000000021704,
+      "impacts": 0,
+      "errors": [],
+      "maxSpeed": 116.05168826823852,
+      "maxLateral": 0.5253409944812422,
+      "minCameraClearance": 4.8276127533433275,
+      "maxCameraStep": 0.02714848078021253,
+      "signatureFrames": 256,
+      "wallMilliseconds": 261.36158399999994,
+      "lap": {
+        "duration": 47.174999999997965,
+        "valid": true
+      },
+      "complete": true,
+      "pass": true
+    },
+    "criticRun": false,
+    "approved": false,
+    "playtestUrl": "http://127.0.0.1:5180/",
+    "build": "/assets/index-DIQH_RTe.js",
+    "unitTestsPassed": 55,
+    "productionBuild": true,
+    "browserChecksPassed": 43,
+    "browserChecksTotal": 43,
+    "runtimeErrors": [],
+    "fullLintPassed": true,
+    "lightingFix": {
+      "cause": "Active lamp fixtures were replaced at nonzero intensity; straight expansion seals intersected curved road triangles",
+      "fix": "Stable three-light fixture assignments with continuous fades; seals follow actual road triangles at8mm offset",
+      "fixtureCount": 77,
+      "pooledLights": 3,
+      "sealTrianglesChecked": 564,
+      "assemblyUpdatesChecked": 20002
+    },
+    "cityClearance": {
+      "roadProbes": 1506,
+      "supportAxes": 114,
+      "intersections": 0
+    }
+  },
+  "reviewPolicy": {
+    "maximumCompletedRoundsPerGauntlet": 6,
+    "minimumScoreEachApplicableCategory": 9,
+    "stopAtFirstVerifiedPass": true,
+    "initialCritiqueCountsAsRoundOne": true,
+    "resetCountersToGainAttempts": false,
+    "mandatoryHumanGate": true,
+    "effectiveFor": "All reviews going forward; prior completed review history is preserved"
+  },
+  "handoff": {
+    "document": "docs/GATE3_HANDOFF.md",
+    "originalPrompt": "../../prompt-fzero.txt",
+    "state": "ready_for_fresh_agent",
+    "nextPhase": "Combined Gate 3 after Gate 2 approval",
+    "gate2ApprovalImplied": false,
+    "servers": {
+      "state": "stopped_at_user_request",
+      "ports": [5179, 5180]
+    },
+    "temporaryEvidenceRequiredToResume": false
   }
 }

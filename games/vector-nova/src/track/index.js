@@ -6,8 +6,14 @@ import {
   beamTransform,
   surfaceTexture,
   roadRoughnessTexture,
+  roadSealGeometry,
   signTexture,
 } from './geometry.js';
+import { createSupportLayout } from './supports.js';
+import {
+  createPracticalFixtures,
+  selectPracticalFixtures,
+} from './lighting.js';
 export { createTrack };
 
 const WORLD_UP = new THREE.Vector3(0, 1, 0);
@@ -157,7 +163,7 @@ export function buildTrackVisual(track) {
     );
   }
 
-  sweep(
+  const runningSurface = sweep(
     'Composite running surface / 28 metres',
     [
       [-14, 0],
@@ -241,7 +247,6 @@ export function buildTrackVisual(track) {
     bolts = [],
     grates = [],
     drainSlots = [],
-    joints = [],
     crossheads = [],
     piers = [],
     footings = [],
@@ -272,35 +277,14 @@ export function buildTrackVisual(track) {
     }
   }
   for (let s = 0; s < track.length; s += 36) {
-    joints.push(localTransform(s, 0, 0.008));
     girderSeams.push(localTransform(s, 0, -5.535));
   }
   for (let s = 12; s < 420; s += 21)
     for (const x of [-4.7, 4.7]) laneDashes.push(localTransform(s, x, 0.028));
-  // Skip columns beneath the elevated crossing when a lower running surface
-  // occupies their footprint. The arch then carries the clear bridge span.
-  const lowerRoute = Array.from(
-    { length: Math.ceil(track.length / 9) },
-    (_, i) => ({ s: i * 9, position: track.sample(i * 9).position }),
-  );
-  const columnClear = (position, s) =>
-    lowerRoute.every((entry) => {
-      const delta = Math.abs(entry.s - s);
-      if (Math.min(delta, track.length - delta) < 120) return true;
-      if (entry.position.y > position.y - 15) return true;
-      return (
-        Math.hypot(
-          entry.position.x - position.x,
-          entry.position.z - position.z,
-        ) > 25
-      );
-    });
-  for (let s = 24; s < track.length; s += 72) {
-    const frame = track.sample(s);
-    const supports = [-1, 1].map((side) => framePoint(frame, side * 6.2, -7.2));
-    if (!supports.every((position) => columnClear(position, s))) continue;
+  const supportLayout = track.supportLayout ?? createSupportLayout(track);
+  for (const { distance: s, tops } of supportLayout.standard) {
     crossheads.push(localTransform(s, 0, -6.15));
-    for (const top of supports) {
+    for (const top of tops) {
       const height = top.y - track.groundY - 1.25;
       piers.push({
         position: new THREE.Vector3(
@@ -360,12 +344,21 @@ export function buildTrackVisual(track) {
     darkSteel,
     serviceCovers,
   );
-  addInstances(
-    'Deck expansion seals',
-    new THREE.BoxGeometry(27.98, 0.014, 0.078),
-    darkSteel,
-    joints,
+  const jointMaterial = material({
+    color: 0x29363e,
+    roughness: 0.92,
+    metalness: 0.08,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+    depthWrite: false,
+  });
+  const seals = addMesh(
+    'Deck expansion seals / surface-conforming',
+    roadSealGeometry(track, runningSurface.geometry),
+    jointMaterial,
   );
+  seals.renderOrder = 1;
   addInstances(
     'Underside precast joins',
     new THREE.BoxGeometry(16.45, 0.07, 0.16),
@@ -424,22 +417,14 @@ export function buildTrackVisual(track) {
     lampArms = [],
     lampBodies = [],
     lampFaces = [],
-    lightFixtures = [];
-  for (let s = 24, i = 0; s < track.length; s += 72, i += 1) {
-    if (s > track.length * 0.38 && s < track.length * 0.43) continue;
-    const side = i % 2 ? -1 : 1;
+    lightFixtures = createPracticalFixtures(track);
+  for (const { distance: s, side } of lightFixtures.filter(
+    ({ kind }) => kind === 'street',
+  )) {
     lampPoles.push(localTransform(s, side * 15.37, 4.35));
     lampArms.push(localTransform(s, side * 13.82, 8.61));
     lampBodies.push(localTransform(s, side * 12.22, 8.55));
     lampFaces.push(localTransform(s, side * 12.22, 8.4));
-    const f = track.sample(s);
-    lightFixtures.push({
-      distance: s,
-      position: framePoint(f, side * 12.22, 8.36),
-      target: framePoint(f, side * 6, 0),
-      intensity: 135,
-      color: 0xffd2a0,
-    });
   }
   addInstances(
     'Road luminaire masts',
@@ -483,8 +468,12 @@ export function buildTrackVisual(track) {
     extractionGrilles = [],
     extractionHangers = [],
     evacuationStripes = [];
-  const tunnelStart = track.length * 0.383;
-  const tunnelEnd = track.length * 0.426;
+  const tunnelStart = track.sections.find(
+    (section) => section.id === 'tunnel',
+  ).start;
+  const tunnelEnd = track.sections.find(
+    (section) => section.id === 'tunnel',
+  ).end;
   const vault = [
     [16.5, 0],
     [16.5, 9],
@@ -584,7 +573,7 @@ export function buildTrackVisual(track) {
       }
     }
   }
-  for (let s = tunnelStart, bay = 0; s <= tunnelEnd; s += 24, bay += 1) {
+  for (let s = tunnelStart; s <= tunnelEnd; s += 24) {
     const frame = track.sample(s);
     for (let i = 0; i < vault.length - 1; i += 1)
       ribBeams.push(
@@ -603,14 +592,6 @@ export function buildTrackVisual(track) {
       tunnelPanels.push(localTransform(s, side * 16.06, 4.1));
       evacuationStripes.push(localTransform(s, side * 15.95, 0.78));
     }
-    const side = bay % 2 ? -1 : 1;
-    lightFixtures.push({
-      distance: s,
-      position: framePoint(frame, side * 10.4, 13.51),
-      target: framePoint(frame, side * 7.2, 0.3),
-      intensity: 560,
-      color: 0xffd4a6,
-    });
   }
   for (const side of [-1, 1]) {
     sweep(
@@ -733,8 +714,12 @@ export function buildTrackVisual(track) {
 
   // Western gallery is deliberately open toward the city: concrete knife fins,
   // folded roof blades and structural tie beams, not another enclosed tunnel.
-  const galleryStart = track.length * 0.564;
-  const galleryEnd = track.length * 0.618;
+  const galleryStart = track.sections.find(
+    (section) => section.id === 'gallery',
+  ).start;
+  const galleryEnd = track.sections.find(
+    (section) => section.id === 'gallery',
+  ).end;
   const galleryFins = [],
     galleryRoof = [],
     galleryTies = [],
@@ -812,102 +797,53 @@ export function buildTrackVisual(track) {
       { start: galleryStart, end: galleryEnd },
     );
 
-  // A bowstring bridge describes the circuit crossing from both the upper route
-  // and the start below. Hanging rods leave the 28 m racing surface completely clear.
-  const bridgeStart = track.length * 0.716;
-  const bridgeEnd = track.length * 0.776;
-  const archRibs = [],
-    archHangers = [],
-    archDiagonals = [],
-    archCrossheads = [],
-    bridgeBearings = [];
-  const archPoint = (s, side) => {
-    const u = (s - bridgeStart) / (bridgeEnd - bridgeStart);
-    return framePoint(
-      track.sample(s),
-      side * 17,
-      3.8 + Math.sin(u * Math.PI) * 37,
-    );
-  };
-  const archSegments = 28;
-  for (let i = 0; i < archSegments; i += 1) {
-    const s = THREE.MathUtils.lerp(bridgeStart, bridgeEnd, i / archSegments);
-    const next = THREE.MathUtils.lerp(
-      bridgeStart,
-      bridgeEnd,
-      (i + 1) / archSegments,
-    );
-    for (const side of [-1, 1]) {
-      archRibs.push(
-        beamTransform(archPoint(s, side), archPoint(next, side), 1.05, 1.6),
-      );
-      archHangers.push(
-        beamTransform(
-          framePoint(track.sample(s), side * 16.1, -1),
-          archPoint(s, side),
-          0.16,
-          0.16,
-        ),
-      );
-      if (i % 2 === 0)
-        archDiagonals.push(
-          beamTransform(
-            framePoint(track.sample(s), side * 16.1, -0.4),
-            archPoint(next, side),
-            0.11,
-            0.11,
-          ),
-        );
-    }
-    if (i > 3 && i < archSegments - 3 && i % 3 === 0)
-      archCrossheads.push(
-        beamTransform(archPoint(s, -1), archPoint(s, 1), 0.44, 0.6),
-      );
-  }
-  for (const s of [bridgeStart, bridgeEnd])
-    for (const side of [-1, 1])
-      bridgeBearings.push(localTransform(s, side * 16.6, 1));
+  // Outside portals carry the rolled deck without a pier passing through its
+  // racing face. Every complete leg/crosshead/stay passed the 3D clearance test.
   addInstances(
-    'Meridian steel bowstring arches',
+    'Skyline outside suspension portals',
     new THREE.BoxGeometry(1, 1, 1),
     steel,
-    archRibs,
+    supportLayout.portals.map(({ from, to, width, depth }) =>
+      beamTransform(from, to, width, depth),
+    ),
     true,
   );
   addInstances(
-    'Meridian stainless suspension rods',
-    new THREE.BoxGeometry(1, 1, 1),
-    steel,
-    archHangers,
-  );
-  addInstances(
-    'Meridian diagonal cable stays',
+    'Skyline clear suspension stays',
     new THREE.BoxGeometry(1, 1, 1),
     darkSteel,
-    archDiagonals,
-  );
-  addInstances(
-    'Meridian overhead wind braces',
-    new THREE.BoxGeometry(1, 1, 1),
-    darkSteel,
-    archCrossheads,
+    supportLayout.cables.map(({ from, to }) =>
+      beamTransform(from, to, 0.38, 0.38),
+    ),
     true,
   );
   addInstances(
-    'Meridian bridge bearing seats',
-    new THREE.BoxGeometry(3.4, 3.2, 4.4),
+    'Skyline portal spread foundations',
+    new THREE.BoxGeometry(9.8, 1.3, 11.4),
     concrete,
-    bridgeBearings,
+    supportLayout.anchors,
     true,
   );
-  for (const side of [-1, 1])
-    sweep(
-      'Meridian edge box beam',
-      boxProfile(side * 16.25, -1, 0.85, 1.65),
-      darkSteel,
-      { start: bridgeStart, end: bridgeEnd },
-      true,
-    );
+  const signatureBearers = [];
+  for (const { start, end } of supportLayout.zones) {
+    for (const side of [-1, 1])
+      sweep(
+        'Signature structural edge spine',
+        boxProfile(side * 17.6, -6.9, 1.1, 2.25),
+        darkSteel,
+        { start, end, step: 4 },
+        true,
+      );
+    for (let s = start; s < end; s += 36)
+      signatureBearers.push(localTransform(s, 0, -6.35));
+  }
+  addInstances(
+    'Corkscrew underside transverse bearers',
+    new THREE.BoxGeometry(36.3, 1.8, 1.4),
+    darkSteel,
+    signatureBearers,
+    true,
+  );
 
   const maintenanceDecks = [],
     maintenanceRails = [],
@@ -918,6 +854,8 @@ export function buildTrackVisual(track) {
     ladderStiles = [],
     outboardBraces = [];
   for (let s = 170; s < track.length; s += 252) {
+    if (supportLayout.zones.some(({ start, end }) => s > start && s < end))
+      continue;
     const side = Math.round(s / 252) % 2 ? -1 : 1;
     const frame = track.sample(s);
     maintenanceDecks.push(localTransform(s, side * 18, -0.65));
@@ -1118,13 +1056,13 @@ export function buildTrackVisual(track) {
     signConsoles = [],
     signLights = [];
   const advisories = [
-    [0.075, 'CROWN', '62° BANK   /   NORTH ASCENT', 1],
-    [0.293, 'CASCADE', 'DESCENT   /   REVERSE CURVE', -1],
-    [0.366, 'TRANSIT', 'VAULT 07   /   CLEARANCE 14 M', 1],
-    [0.532, 'WEST GALLERY', 'VENTILATION DISTRICT   /   RISE', 1],
-    [0.699, 'MERIDIAN', 'SKYBRIDGE   /   ELEVATION 105 M', 1],
-    [0.798, 'INNER CASCADE', 'LINKED TURNS   /   DESCENT', 1],
-    [0.926, 'RETURN', 'TIGHTENING TURN   /   GRID', 1],
+    [0.027, 'CROWN', '44° BANK   /   RISING APPROACH', 1],
+    [0.149, 'EAST CASCADE', 'MEDIUM DESCENT   /   HOLD LINE', 1],
+    [0.208, 'TRANSIT', 'VAULT 07   /   CLEARANCE 14 M', 1],
+    [0.262, 'WEST GALLERY', 'VENTILATION DISTRICT   /   RISE', 1],
+    [0.317, 'SKYLINE ASCENT', 'MERIDIAN   /   360° ROTATION', 0],
+    [0.662, 'CASCADE PLUNGE', 'MAGNETIC ADHESION   /   66°', 0],
+    [0.838, 'CANAL RISES', 'FINAL BANK   /   DIP TO GRID', 1],
   ];
   for (const [fraction, main, secondary, direction] of advisories) {
     const s = track.length * fraction;
@@ -1183,7 +1121,7 @@ export function buildTrackVisual(track) {
   );
 
   // Direction boards share one atlas texture and one material per direction.
-  for (const direction of [-1, 1]) {
+  for (const direction of [1]) {
     const chevronTexture = ownTexture(signTexture('', '', -direction));
     const chevronSurface = material({
       color: 0xffffff,
@@ -1195,12 +1133,10 @@ export function buildTrackVisual(track) {
       backs = [],
       supports = [];
     for (const [start, end, side, turn] of [
-      [0.145, 0.265, -1, 1],
-      [0.325, 0.347, 1, -1],
-      [0.362, 0.383, -1, 1],
-      [0.625, 0.685, -1, 1],
-      [0.805, 0.886, -1, 1],
-      [0.935, 0.966, -1, 1],
+      [0.062, 0.162, -1, 1],
+      [0.184, 0.223, -1, 1],
+      [0.596, 0.664, -1, 1],
+      [0.865, 0.955, -1, 1],
     ]) {
       if (turn !== direction) continue;
       for (let s = track.length * start; s < track.length * end; s += 30) {
@@ -1234,7 +1170,6 @@ export function buildTrackVisual(track) {
     );
   }
 
-  lightFixtures.sort((a, b) => a.distance - b.distance);
   const practicalLights = Array.from({ length: 3 }, () => {
     const light = new THREE.SpotLight(0xffd2a0, 0, 54, 1.04, 0.7, 2);
     light.name = 'Nearest authored fixture / practical pool';
@@ -1242,29 +1177,38 @@ export function buildTrackVisual(track) {
     group.add(light, light.target);
     return light;
   });
+  const lightAssignments = Array(practicalLights.length).fill(-1);
   let disposed = false;
   function update(distance) {
-    const wrapped = ((distance % track.length) + track.length) % track.length;
-    const nearest = lightFixtures
-      .map((fixture) => {
-        let delta = fixture.distance - wrapped;
-        if (delta < -track.length / 2) delta += track.length;
-        if (delta > track.length / 2) delta -= track.length;
-        return { fixture, delta, score: Math.abs(delta - 20) };
-      })
-      .sort((a, b) => a.score - b.score)
-      .slice(0, practicalLights.length);
-    nearest.forEach(({ fixture, delta }, index) => {
-      const light = practicalLights[index];
-      light.position.copy(fixture.position);
-      light.target.position.copy(fixture.target);
-      light.color.setHex(fixture.color);
-      light.intensity =
-        fixture.intensity *
-        THREE.MathUtils.smoothstep(135 - Math.abs(delta), 0, 55);
-      light.updateMatrix();
-      light.target.updateMatrix();
-    });
+    const selection = selectPracticalFixtures(
+      lightFixtures,
+      track.length,
+      distance,
+    );
+    const selectedIndices = new Set(selection.map(({ index }) => index));
+    const claimed = new Set();
+    for (const { index, fixture, weight } of selection) {
+      let slot = lightAssignments.indexOf(index);
+      if (slot < 0)
+        slot = lightAssignments.findIndex(
+          (assigned, candidate) =>
+            !selectedIndices.has(assigned) && !claimed.has(candidate),
+        );
+      claimed.add(slot);
+      const light = practicalLights[slot];
+      if (lightAssignments[slot] !== index) {
+        // Continuous selection crosses each reassignment boundary at zero weight.
+        // Scenario teleports may replace all fixtures atomically before drawing.
+        light.intensity = 0;
+        light.position.copy(fixture.position);
+        light.target.position.copy(fixture.target);
+        light.color.setHex(fixture.color);
+        light.updateMatrix();
+        light.target.updateMatrix();
+        lightAssignments[slot] = index;
+      }
+      light.intensity = fixture.intensity * weight;
+    }
   }
   group.userData = {
     asset: 'original authored Halcyon circuit / editable procedural source',

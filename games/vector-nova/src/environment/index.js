@@ -7,6 +7,7 @@ import {
 } from './geometry.js';
 import { createSurfaces, randomSource } from './surfaces.js';
 import { createMeridianPrecinct } from './precinct.js';
+import { groundFrame, createRouteClearance } from './placement.js';
 
 export function createEnvironment(track) {
   const group = new THREE.Group();
@@ -24,9 +25,11 @@ export function createEnvironment(track) {
     route.push(p);
     bounds.expandByPoint(p);
   }
+  const routeClearance = createRouteClearance(track);
+  const clearsRoute = routeClearance.clears;
   const precinct = createMeridianPrecinct(track, batch);
   const centre = bounds.getCenter(new THREE.Vector3());
-  const first = track.sample(70);
+  const first = groundFrame(track, 70);
   const landmark = first.position
     .clone()
     .addScaledVector(first.tangent, 900)
@@ -43,30 +46,12 @@ export function createEnvironment(track) {
     return nearest;
   }
 
-  function clearsRoute(x, z, width, depth, top, yaw = 0, bottom = groundY) {
-    const cosine = Math.cos(yaw),
-      sine = Math.sin(yaw);
-    // Full rotated footprints are expanded by the running deck and its maintenance margin.
-    // Low structures can occupy the city floor only below the actual elevated track.
-    const clearance = track.width / 2 + 13;
-    for (const p of route) {
-      if (top < p.y - 14 || bottom > p.y + 20) continue;
-      const dx = p.x - x,
-        dz = p.z - z;
-      if (
-        Math.abs(dx * cosine - dz * sine) < width / 2 + clearance &&
-        Math.abs(dx * sine + dz * cosine) < depth / 2 + clearance
-      )
-        return false;
-    }
-    return true;
-  }
   while (
-    !clearsRoute(landmark.x, landmark.z, 142, 104, groundY + 490, landmarkYaw)
+    !clearsRoute(landmark.x, landmark.z, 142, 104, groundY + 540, landmarkYaw)
   )
     landmark.addScaledVector(first.tangent, 40);
   const reserved = [{ x: landmark.x, z: landmark.z, radius: 130 }];
-  const concourseFrame = track.sample(track.length * 0.045);
+  const concourseFrame = groundFrame(track, precinct.layout.concourseDistance);
   const concourseSite = concourseFrame.position
     .clone()
     .addScaledVector(concourseFrame.right, 106);
@@ -80,7 +65,7 @@ export function createEnvironment(track) {
       concourseSite.z,
       96,
       155,
-      concourseFrame.position.y + 13,
+      concourseFrame.position.y + 19,
       concourseAngle,
     )
   ) {
@@ -90,7 +75,8 @@ export function createEnvironment(track) {
     track.sections.find((section) => section.id === 'waterfront') ??
     track.sections.find((section) => section.id === 'south');
   if (waterSection) {
-    const waterFrame = track.sample(
+    const waterFrame = groundFrame(
+      track,
       (waterSection.start + waterSection.end) / 2,
     );
     for (const side of [-1, 1]) {
@@ -1600,7 +1586,7 @@ export function createEnvironment(track) {
     );
   }
   // Civic concourse frames the first vista at ship height, clear of both route decks.
-  const start = track.sample(track.length * 0.045);
+  const start = groundFrame(track, precinct.layout.concourseDistance);
   const concourse = start.position.clone().addScaledVector(start.right, 106);
   const cyaw = Math.atan2(start.tangent.x, start.tangent.z),
     concourseHeight = Math.max(30, start.position.y - groundY + 9);
@@ -1610,7 +1596,7 @@ export function createEnvironment(track) {
       concourse.z,
       96,
       155,
-      groundY + concourseHeight + 4,
+      groundY + concourseHeight + 10,
       cyaw,
     )
   ) {
@@ -1697,7 +1683,7 @@ export function createEnvironment(track) {
     track.sections.find((section) => section.id === 'waterfront') ??
     track.sections.find((section) => section.id === 'south');
   if (south) {
-    const frame = track.sample((south.start + south.end) / 2);
+    const frame = groundFrame(track, (south.start + south.end) / 2);
     for (const side of [-1, 1]) {
       const p = frame.position.clone().addScaledVector(frame.right, side * 100),
         yaw = Math.atan2(frame.tangent.x, frame.tangent.z);
@@ -1735,6 +1721,7 @@ export function createEnvironment(track) {
       name: 'Municipal split-crown utility tower',
     },
     precinct: precinct.identity,
+    precinctLayout: precinct.layout,
     districts: [
       'Civic concourse',
       'North financial crown',
@@ -1743,6 +1730,13 @@ export function createEnvironment(track) {
       'Outer borough skyline',
     ],
     groundY,
+    routeClearance: {
+      sampleCount: routeClearance.sampleCount,
+      supportCount: routeClearance.supportCount,
+      halfWidth: routeClearance.halfWidth,
+      localVertical: routeClearance.localVertical,
+      longitudinalHalfLength: routeClearance.longitudinalHalfLength,
+    },
     placedBuildings,
     rejectedBuildings,
     triangleCount: geometry.triangleCount,

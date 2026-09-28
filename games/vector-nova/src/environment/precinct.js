@@ -1,18 +1,18 @@
 import * as THREE from 'three';
+import { groundFrame, precinctLayout } from './placement.js';
 
 // One authored piece of the city: the Meridian drainage gardens and pumping hall.
 // The high viaduct owns the planted ground beneath its columns; the neighbouring
 // blocks face a continuous canal promenade rather than isolated square pads.
 export function createMeridianPrecinct(track, batch) {
   const ground = track.groundY;
-  const from = track.length * 0.922;
-  const to = track.length * 1.254;
+  const layout = precinctLayout(track);
+  const { from, to } = layout;
   const count = Math.ceil((to - from) / 15);
   const frames = [];
   const up = new THREE.Vector3(0, 1, 0);
   for (let i = 0; i <= count; i += 1) {
-    const f = track.sample(from + ((to - from) * i) / count);
-    f.right = new THREE.Vector3().crossVectors(up, f.tangent).normalize();
+    const f = groundFrame(track, from + ((to - from) * i) / count);
     frames.push(f);
   }
   function point(frame, offset, height) {
@@ -23,6 +23,8 @@ export function createMeridianPrecinct(track, batch) {
     );
   }
   function contains(x, z, margin = 0) {
+    if (Math.hypot(x - hallCentre.x, z - hallCentre.z) < 78 + margin)
+      return true;
     for (const f of frames) {
       const cx = f.position.x + f.right.x * 19;
       const cz = f.position.z + f.right.z * 19;
@@ -179,9 +181,8 @@ export function createMeridianPrecinct(track, batch) {
       box('warm', point(f, 57, 7.7), 1.2, 0.14, 1.2);
     }
   }
-  for (const distance of [track.length * 0.967, 140, 650, 1200, 1720]) {
-    const f = track.sample(distance);
-    f.right = new THREE.Vector3().crossVectors(up, f.tangent).normalize();
+  for (const distance of layout.bridgeDistances) {
+    const f = groundFrame(track, distance);
     const yaw = Math.atan2(f.tangent.x, f.tangent.z);
     // A shallow arched footbridge crosses the drainage channel with two true abutments.
     for (const offset of [18, 56])
@@ -217,11 +218,8 @@ export function createMeridianPrecinct(track, batch) {
   }
   // The civic hall is low enough to frame the racing deck and gives this site a
   // recognizable roofscape: three copper barrel vaults over a glazed public gallery.
-  const hallFrame = track.sample(235);
-  hallFrame.right = new THREE.Vector3()
-    .crossVectors(up, hallFrame.tangent)
-    .normalize();
-  const hallCentre = point(hallFrame, 98, 0);
+  const hallFrame = groundFrame(track, layout.hallDistance);
+  const hallCentre = point(hallFrame, layout.hallOffset, 0);
   const hallYaw = Math.atan2(hallFrame.tangent.x, hallFrame.tangent.z);
   function hallPoint(x, y, z) {
     return hallCentre
@@ -290,6 +288,7 @@ export function createMeridianPrecinct(track, batch) {
   }
   return {
     contains,
+    layout,
     identity: 'Meridian water gardens and civic pumping hall',
   };
 }

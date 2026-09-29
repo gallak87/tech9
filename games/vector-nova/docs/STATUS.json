@@ -1,8 +1,8 @@
 {
-  "milestone": "gate-3-orbital-production",
+  "milestone": "gate-3-approved-gate-4-parallel-handoff",
   "humanReview": {
-    "state": "gate3_human_art_feedback",
-    "approved": false,
+    "state": "gate_3_approved",
+    "approved": true,
     "previousGateApproved": true,
     "direction": "docs/ART_BIBLE.md",
     "feedback": [
@@ -14,9 +14,18 @@
       "Gate 2 explicitly approved; old handoff corrected by user",
       "Gate 3 now orbital circuit only; industrial concept tabled",
       "Bare orbital track first for early human grading; full goal-setting and brutal art-critic loop only after shape approval",
-      "Orbital bare shape explicitly approved; full orbital goal loop, independent brutal critic and parallel builders authorized"
+      "Orbital bare shape explicitly approved; full orbital goal loop, independent brutal critic and parallel builders authorized",
+      "User reviewed frames and requested: commit current build, then give the actual orbital road more space identity with neon and frame-like see-through portions.",
+      "User loves the new open gaps; requested fully colored neon road strips, including gap runners and side bars, beyond thin highlights. Gaps approved as an art direction; final Gate 3 approval remains pending.",
+      "User wants the entire orbital circuit to feel different from Halcyon: remove road-like textures and replace familiar highway rails with distinctive taller shaped boundaries; preserve gaps and neon direction.",
+      "User explicitly requested a parallel sky art builder: large moon, broad Milky Way star band, and many visible stars across otherwise black sky.",
+      "User explicitly approved Gate 3: dude fucking sick - gate 3 approved man!! nice work.",
+      "Prepare two separate parallel sessions: Gate 4.1 new level 3; Gate 4.2 immediate road boosts and shields only on Halcyon. Full goal and critic loops for both, eight rounds each.",
+      "Industrial energy-complex phrase removed by user from prompt-fzero.txt; include that edit in the Gate 3 commit.",
+      "Level 3 should be harder with real long jumps and failed-landing recovery just beyond the jump. Exactly two jumps. Keep the lap valid; the recovery delay is the penalty.",
+      "Parent session owns servers; user will provide the two session names/links for coordination."
     ],
-    "reviewDocument": "docs/GATE3_HANDOFF.md"
+    "reviewDocument": "docs/GATE4_HANDOFF.md"
   },
   "productionBlocked": false,
   "gauntlets": {
@@ -492,7 +501,7 @@
     "formalCritic": "orbital_critic",
     "scope": "Gate3 final formal round6, before integrator inspection repair"
   },
-  "updatedAt": "2026-09-29T04:25:04.654292+00:00",
+  "updatedAt": "2026-09-29T06:04:28.208464+00:00",
   "gates": {
     "1": {
       "state": "approved",
@@ -514,15 +523,35 @@
       ]
     },
     "3": {
-      "state": "human_art_feedback",
-      "userApproved": false,
+      "state": "approved",
+      "userApproved": true,
       "scope": "Orbital circuit above a planet only; industrial circuit tabled",
-      "requiresHumanPlaytest": true,
+      "requiresHumanPlaytest": false,
       "shapeApproved": true,
-      "shapeApproval": "User: nice one looks good; lets set a goal and loop with the brutal art critic; fan out where you can, lets make it beautiful."
+      "shapeApproval": "User: nice one looks good; lets set a goal and loop with the brutal art critic; fan out where you can, lets make it beautiful.",
+      "approval": "Explicit user approval after complete orbital road and sky identity pass",
+      "approvedBuild": "/assets/index-BjCTDhTj.js"
+    },
+    "4.1": {
+      "state": "handoff_ready_not_started",
+      "userApproved": false,
+      "implementationAuthorized": true,
+      "scope": "New level 3 Nacre Tempest only: ocean/storm, submerged racing, exactly two real jumps; valid-lap delayed recovery",
+      "statusDocument": "docs/gate4-1/STATUS.json",
+      "requiresHumanPlaytest": true,
+      "criticCap": 8
+    },
+    "4.2": {
+      "state": "handoff_ready_not_started",
+      "userApproved": false,
+      "implementationAuthorized": true,
+      "scope": "Halcyon-only immediate speed strips and one-hit shields; no inventory or delayed activation",
+      "statusDocument": "docs/gate4-2/STATUS.json",
+      "requiresHumanPlaytest": true,
+      "criticCap": 8
     }
   },
-  "expansionBlocked": true,
+  "expansionBlocked": false,
   "evidencePolicy": "Temporary captures .experiments/ only, git-ignored. Concise tracked findings and counters; no accumulating screenshot deliverables.",
   "gate2Verification": {
     "unitTestsPassed": 33,
@@ -652,23 +681,35 @@
     }
   },
   "reviewPolicy": {
-    "maximumCompletedRoundsPerGauntlet": 6,
+    "maximumCompletedRoundsPerGauntlet": 8,
     "minimumScoreEachApplicableCategory": 9,
     "stopAtFirstVerifiedPass": true,
     "initialCritiqueCountsAsRoundOne": true,
     "resetCountersToGainAttempts": false,
     "mandatoryHumanGate": true,
-    "effectiveFor": "All reviews going forward; prior completed review history is preserved"
+    "effectiveFor": "Gate 4.1 and Gate 4.2 handoff; historical Gate 2/3 counters and caps are unchanged",
+    "mandatoryEarlyLevelShapeGate": true
   },
   "handoff": {
-    "document": "docs/GATE3_HANDOFF.md",
+    "document": "docs/GATE4_HANDOFF.md",
     "originalPrompt": "../../prompt-fzero.txt",
-    "state": "verified_orbital_checkpoint",
-    "nextPhase": "User-directed road identity iteration, then human spot check; formal six-round critic gauntlet stays closed",
+    "state": "parallel_lanes_prepared_awaiting_session_assignment",
+    "nextPhase": "User launches separate sessions from Gate 4.1/4.2 briefs and supplies their identities; parent owns servers. Gate 4.1 first supplies common preflight and bare shape/jump human handback.",
     "gate2ApprovalImplied": false,
     "servers": {
-      "state": "running_for_gate3_human_review",
-      "ports": [5179, 5180]
+      "state": "approved_gate3_servers_running",
+      "owner": "parent Gate 3 session",
+      "ports": [5179, 5180],
+      "futureLanePorts": {
+        "4.1": [5191, 5192],
+        "4.2": [5193, 5194]
+      },
+      "laneSessions": {
+        "4.1": null,
+        "4.2": null
+      },
+      "coordination": "Await user-provided session names/links; serve each isolated checkout; serialize GPU-heavy review",
+      "automationCreated": false
     },
     "temporaryEvidenceRequiredToResume": false,
     "gate2ExplicitlyApproved": true
@@ -735,27 +776,30 @@
     }
   },
   "orbitalProduction": {
-    "state": "verified_checkpoint_before_human_art_revision",
+    "state": "human_approved",
     "shapePreserved": true,
-    "goalActive": true,
+    "goalActive": false,
     "builders": {
       "track": "level2_track: src/track/level2/",
       "environment": "orbital_environment: src/environment/orbital/",
       "planet": "orbital_planet: src/renderer/orbital/ and public/assets/orbital/",
       "integration": "root: core/shared renderer/UI/config/docs",
-      "propulsion": "level2_track: src/ships/ for round 3"
+      "propulsion": "level2_track: src/ships/ for round 3",
+      "roadArtRevision": "orbital_environment: src/track/level2/",
+      "trackIdentityRevision": "orbital_environment: src/track/level2/",
+      "skyIdentityRevision": "orbital_planet: src/renderer/orbital/"
     },
     "playtestUrl": "http://127.0.0.1:5180/?level=orbital",
-    "productionApproval": false,
-    "build": "/assets/index-c6gHY7PG.js",
-    "unitTestsPassed": 70,
+    "productionApproval": true,
+    "build": "/assets/index-BjCTDhTj.js",
+    "unitTestsPassed": 73,
     "fullLintPassed": true,
     "productionBuild": true,
     "critic": "orbital_critic",
     "sourceBudgets": {
       "track": {
-        "calls": 52,
-        "triangles": 293103
+        "calls": 61,
+        "triangles": 335339
       },
       "environment": {
         "calls": 161,
@@ -764,9 +808,12 @@
         "textures": 2
       },
       "planet": {
-        "calls": 5,
-        "triangles": 61632,
-        "textureMiBEstimate": 80,
+        "scope": "Complete planet and stellar backdrop",
+        "calls": 6,
+        "triangles": 73728,
+        "starPoints": 17500,
+        "ownedTextures": 7,
+        "textureMiBEstimate": 82.6666666667,
         "runtimeAssetBytes": 16001716
       },
       "ship": {
@@ -775,27 +822,145 @@
       }
     },
     "scopeLimits": [
-      "No new racing systems, AI, ships or powerups",
       "Industrial circuit tabled",
       "Hidden browser timings do not certify foreground 60fps",
-      "Final human Gate3 approval required"
+      "Gate 3 accepted; preserve its content while Gate 4 implements only the separately authorized level and Halcyon mechanics"
     ],
-    "unitTests": 70,
-    "candidateBuild": "/assets/index-c6gHY7PG.js",
-    "browserChecks": 42,
+    "unitTests": 73,
+    "candidateBuild": "/assets/index-BjCTDhTj.js",
+    "browserChecks": 45,
     "browserErrors": 0,
     "lint": true,
-    "browserChecksPassed": 42,
-    "browserChecksTotal": 42,
-    "browserReport": ".experiments/gate3-final-regression/report.json",
-    "initialTransferBytes": 16280960,
+    "browserChecksPassed": 45,
+    "browserChecksTotal": 45,
+    "browserReport": ".experiments/orbital-identity-review/report.json",
     "renderSamples": {
-      "maxCalls": 457,
-      "maxTriangles": 1698825,
-      "maxEstimatedGpuMiB": 403.74515533447266
+      "maxCalls": 477,
+      "maxTriangles": 1876177,
+      "maxEstimatedGpuMiB": 425.3871876525879
     },
-    "postCriticChecks": 9,
-    "artLightingMeetTarget": true
+    "postCriticChecks": 45,
+    "artLightingMeetTarget": null,
+    "browserScope": "Whole-circuit panel/containment and sky pass: 45 functional production checks across nine sections, real-key steering/brake/boost/contact, high/low, responsive layouts and Halcyon regression",
+    "formalScoreScope": "Formal scores describe the pre-road-art candidate, not the subsequent human-directed track or sky revisions",
+    "historicalInitialTransfer": {
+      "build": "/assets/index-C3Xph3wR.js",
+      "bytes": 16280960
+    }
   },
-  "expansionBlockReason": "Orbital art production is authorized; further game-system expansion awaits final Gate 3 human approval."
+  "expansionBlockReason": "Only the two Gate 4 lanes are authorized. Inventory, AI, other ships, additional levels and broad game systems remain deferred.",
+  "orbitalRoadArtRevision": {
+    "state": "human_approved",
+    "baselineCommit": "754fdc4a",
+    "scope": "Road surface, structural openness and colored guidance only; approved route/handling retained",
+    "formalCriticRequested": false,
+    "formalGauntletReopened": false,
+    "humanApproval": true,
+    "gapsApprovedByUser": true,
+    "latestDirection": "Full colored neon material coverage across selected road strips, lattice runners and side bars; preserve successful gaps",
+    "firstLatticePass": {
+      "build": "/assets/index-DF4SQ11U.js",
+      "unitTestsPassed": 72,
+      "browserChecksPassed": 42,
+      "browserChecksTotal": 42,
+      "runtimeErrors": [],
+      "fullLintPassed": true,
+      "productionBuild": true,
+      "browserReport": ".experiments/orbital-road-regression/report.json",
+      "renderSamples": {
+        "maxCalls": 494,
+        "maxTriangles": 1807857,
+        "maxEstimatedGpuMiB": 407.945369720459
+      }
+    },
+    "build": "/assets/index-_3V7U4V3.js",
+    "unitTestsPassed": 72,
+    "fullLintPassed": true,
+    "productionBuild": true,
+    "browserChecksPassed": 12,
+    "browserChecksTotal": 12,
+    "browserErrors": [],
+    "browserReport": ".experiments/orbital-road-review/report.json",
+    "renderSamples": {
+      "maxCalls": 421,
+      "maxTriangles": 1659877,
+      "maxEstimatedGpuMiB": 410.688777923584
+    },
+    "routeAndHandlingPreserved": true,
+    "treatments": [
+      "Cyan full road runners, shoulders and side bars on limb wall ride",
+      "Magenta full road runners, shoulders and side bars on orbital overlook",
+      "Electric blue full road runners, shoulders and side bars on horizon dive",
+      "Short full-width luminous approach/exit bands and darker solid intervals"
+    ],
+    "limits": [
+      "No new formal critic score",
+      "Foreground performance, audio listening and physical devices unverified"
+    ]
+  },
+  "orbitalIdentityRevision": {
+    "state": "human_approved",
+    "scope": [
+      "Full orbital deck surface and boundary silhouette",
+      "Large moon, galactic band and visible starfield"
+    ],
+    "previousVerifiedBuild": "/assets/index-_3V7U4V3.js",
+    "builders": {
+      "orbital_environment": "src/track/level2/",
+      "orbital_planet": "src/renderer/orbital/ and public/assets/orbital/"
+    },
+    "formalGauntletReopened": false,
+    "humanApproval": true,
+    "build": "/assets/index-BjCTDhTj.js",
+    "unitTestsPassed": 73,
+    "productionBuild": true,
+    "fullLintPassed": true,
+    "browserChecksPassed": 45,
+    "browserChecksTotal": 45,
+    "browserErrors": [],
+    "browserReport": ".experiments/orbital-identity-review/report.json",
+    "renderSamples": {
+      "maxCalls": 477,
+      "maxTriangles": 1876177,
+      "maxEstimatedGpuMiB": 425.3871876525879
+    },
+    "routeAndHandlingPreserved": true,
+    "gapsAndNeonPreserved": true,
+    "treatments": [
+      "Smooth induction cassette panels across all solid and neon surfaces",
+      "Tall open U containment frames with inward-facing emitters and crown light fixtures",
+      "Large cratered spherical moon lit from the existing sun direction",
+      "Broad galactic dust band, 12500 concentrated stars and 5000 all-sky stars"
+    ],
+    "inspectedViews": [
+      "Launch moon and solid deck",
+      "Wall ride and return containment frames",
+      "Low launch, wall ride and orbital overlook",
+      "Positive contact feedback",
+      "Portrait race layout",
+      "Halcyon driving regression"
+    ],
+    "limits": [
+      "No new formal critic round or score",
+      "Sampled hidden-browser resources do not certify foreground performance",
+      "Audio listening and physical devices remain unverified"
+    ]
+  },
+  "parallelWork": {
+    "state": "planned_not_started",
+    "sharedPreflightImplemented": false,
+    "contractOwner": "gate4-1",
+    "documentationOwner": "integrator; lane owners write only docs/gate4-1 or docs/gate4-2",
+    "serverOwner": "parent session",
+    "laneStatusDocuments": [
+      "docs/gate4-1/STATUS.json",
+      "docs/gate4-2/STATUS.json"
+    ],
+    "sharedCheckoutAllowed": false,
+    "criticCounters": "Independent lane-local 0/8; do not reset gate3",
+    "level3JumpCount": 2,
+    "missedJumpInvalidatesLap": false,
+    "missedJumpPenalty": "Recovery delay counts in lap time; no added surcharge",
+    "inventoryItems": "deferred for later consideration"
+  }
 }

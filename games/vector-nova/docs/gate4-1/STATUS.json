@@ -1,0 +1,38 @@
+{
+  "gate": "4.1",
+  "state": "handoff_ready_not_started",
+  "objective": "Nacre Tempest level 3: early human shape/jump gate, then complete ocean/storm world and real long jumps",
+  "baseCommit": null,
+  "preflightCommit": null,
+  "preflightState": "not_implemented",
+  "goalActive": false,
+  "humanApproved": false,
+  "shapeApprovalRequired": true,
+  "shapeApproved": false,
+  "gauntlet": {
+    "rounds": 0,
+    "cap": 8,
+    "state": "not_started",
+    "stopAtFirstVerifiedPass": true,
+    "history": []
+  },
+  "verification": {
+    "build": null,
+    "tests": null,
+    "browserChecks": null,
+    "fullLint": null,
+    "foregroundPerformance": "unverified",
+    "audioListening": "unverified",
+    "physicalDevices": "unverified"
+  },
+  "openIssues": [],
+  "sharedDocsPolicy": "Write this lane only during production; integrator aggregates root documents",
+  "jumpRules": {
+    "count": 2,
+    "airborne": true,
+    "missInvalidatesLap": false,
+    "penalty": "Timed recovery beyond landing, included in lap time",
+    "initialRecoveryDelaySeconds": 1.5
+  },
+  "serverOwner": "parent Gate 3 session"
+}

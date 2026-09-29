@@ -16,6 +16,11 @@ export function createContactShadow({ surfaceStep = 0, opacity = 1 } = {}) {
     1,
   );
   geometry.setAttribute('surfaceLateral', surfaceLateral);
+  const surfaceCoverage = new T.Float32BufferAttribute(
+    new Float32Array(positions.count).fill(1),
+    1,
+  );
+  geometry.setAttribute('surfaceCoverage', surfaceCoverage);
   const footprint = Array.from({ length: positions.count }, (_, i) => [
     positions.getX(i),
     positions.getY(i),
@@ -36,11 +41,14 @@ export function createContactShadow({ surfaceStep = 0, opacity = 1 } = {}) {
     },
     vertexShader: `varying vec2 footprintUV;
       attribute float surfaceLateral;
+      attribute float surfaceCoverage;
       varying float lateral;
+      varying float coverage;
       #include <fog_pars_vertex>
       void main() {
         footprintUV = uv * 2. - 1.;
         lateral = surfaceLateral;
+        coverage = surfaceCoverage;
         vec4 mvPosition = modelViewMatrix * vec4(position,1.);
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
@@ -49,6 +57,7 @@ export function createContactShadow({ surfaceStep = 0, opacity = 1 } = {}) {
       uniform float opacity;
       uniform float roadHalfWidth;
       varying float lateral;
+      varying float coverage;
       #include <fog_pars_fragment>
       void main() {
         vec2 q=footprintUV;
@@ -59,7 +68,7 @@ export function createContactShadow({ surfaceStep = 0, opacity = 1 } = {}) {
         float edge=1.-smoothstep(.72,1.,max(abs(q.x),abs(q.y)));
         float alpha=clamp(chassis*.35+pods*.22,0.,.52)*edge;
         alpha*=1.-smoothstep(roadHalfWidth-.2,roadHalfWidth,abs(lateral));
-        gl_FragColor=vec4(.009,.016,.024,alpha*opacity);
+        gl_FragColor=vec4(.009,.016,.024,alpha*opacity*coverage);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
         #include <fog_fragment>
@@ -71,7 +80,7 @@ export function createContactShadow({ surfaceStep = 0, opacity = 1 } = {}) {
   mesh.renderOrder = 1;
   return {
     mesh,
-    update(track, state) {
+    update(track, state, coverageAt) {
       material.uniforms.roadHalfWidth.value = surfaceStep
         ? track.width / 2
         : 1e6;
@@ -86,6 +95,9 @@ export function createContactShadow({ surfaceStep = 0, opacity = 1 } = {}) {
         const distance = state.distance - x * s + z * c;
         const lateral = state.lateral + x * c + z * s;
         surfaceLateral.setX(i, lateral);
+        // Open magnetic spans must not leave a dark decal suspended over the
+        // planet. The road owns which parts of its visual surface are solid.
+        surfaceCoverage.setX(i, coverageAt ? coverageAt(distance, lateral) : 1);
         let p;
         if (surfaceStep) {
           // Match the actual two triangles of each swept road span. Sampling
@@ -130,6 +142,7 @@ export function createContactShadow({ surfaceStep = 0, opacity = 1 } = {}) {
       });
       positions.needsUpdate = true;
       surfaceLateral.needsUpdate = true;
+      surfaceCoverage.needsUpdate = true;
     },
     dispose() {
       geometry.dispose();

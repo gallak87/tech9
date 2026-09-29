@@ -1,4 +1,5 @@
 import * as T from 'three';
+import { createOrbitalSky } from './sky.js';
 
 const PLANET_RADIUS = 12000;
 const PLANET_CENTER = new T.Vector3(0, -13500, 100);
@@ -90,69 +91,6 @@ function material(name, uniforms, fragmentShader, options = {}) {
     `,
     ...options,
   });
-}
-
-function createStars() {
-  const count = 1050;
-  const positions = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
-  const sizes = new Float32Array(count);
-  let seed = 41917;
-  const random = () => {
-    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-  for (let i = 0; i < count; i++) {
-    const y = random() * 2 - 1;
-    const theta = random() * Math.PI * 2;
-    const r = Math.sqrt(1 - y * y);
-    positions.set(
-      [Math.cos(theta) * r * 35000, y * 35000, Math.sin(theta) * r * 35000],
-      i * 3,
-    );
-    const brightness = 0.07 + random() ** 4 * 0.25;
-    const warmth = random();
-    colors.set(
-      [brightness * (0.8 + warmth * 0.2), brightness * 0.9, brightness],
-      i * 3,
-    );
-    sizes[i] = 0.7 + random() ** 5 * 0.9;
-  }
-  const geometry = new T.BufferGeometry();
-  geometry.setAttribute('position', new T.BufferAttribute(positions, 3));
-  geometry.setAttribute('color', new T.BufferAttribute(colors, 3));
-  geometry.setAttribute('starSize', new T.BufferAttribute(sizes, 1));
-  const starMaterial = new T.ShaderMaterial({
-    name: 'Asterion / daylight-limited distant stars',
-    vertexColors: true,
-    transparent: true,
-    depthWrite: false,
-    uniforms: {},
-    vertexShader: `
-      attribute float starSize;
-      varying vec3 vColor;
-      void main() {
-        vColor=color;
-        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);
-        gl_PointSize=starSize;
-      }
-    `,
-    fragmentShader: `
-      varying vec3 vColor;
-      void main() {
-        float alpha=1.-smoothstep(.08,.5,length(gl_PointCoord-.5));
-        gl_FragColor=vec4(vColor,alpha);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }
-    `,
-  });
-  const stars = new T.Points(geometry, starMaterial);
-  stars.name = 'Sparse background stars';
-  stars.frustumCulled = false;
-  stars.renderOrder = -990;
-  stars.userData.reflectionExclude = true;
-  return stars;
 }
 
 /** Authored material maps on a real 24 km spherical world, with separately
@@ -367,41 +305,14 @@ export async function createOrbitalBackdrop() {
   atmosphere.position.copy(PLANET_CENTER);
   atmosphere.renderOrder = -930;
   group.add(atmosphere);
-  const stars = createStars();
-  group.add(stars);
-  const sunMaterial = new T.ShaderMaterial({
-    name: 'Asterion / distant solar radiance',
-    side: T.BackSide,
-    depthWrite: false,
-    uniforms: { sunDirection: { value: SUN_DIRECTION } },
-    vertexShader: `
-      varying vec3 rayDirection;
-      void main() {
-        rayDirection=position;
-        vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);
-        gl_Position=p.xyww;
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 sunDirection;
-      varying vec3 rayDirection;
-      void main() {
-        vec3 ray=normalize(rayDirection);
-        float alignment=dot(ray,sunDirection);
-        float solarDisc=smoothstep(.999975,.999982,alignment);
-        float corona=pow(max(alignment,0.),1800.)*.09;
-        vec3 color=vec3(.0005,.0007,.0012)+vec3(1.,.94,.84)*(solarDisc*14.+corona);
-        gl_FragColor=vec4(color,1.);
-        #include <tonemapping_fragment>
-        #include <colorspace_fragment>
-      }
-    `,
-  });
-  const radiance = new T.Mesh(new T.SphereGeometry(37000, 32, 16), sunMaterial);
-  radiance.name = 'Deep orbital vacuum and sun';
-  radiance.frustumCulled = false;
-  radiance.renderOrder = -1000;
-  group.add(radiance);
+  const {
+    stars,
+    radiance,
+    moon,
+    ownedTextures: skyTextures,
+  } = createOrbitalSky(SUN_DIRECTION);
+  group.add(radiance, stars, moon);
+  ownedTextures.push(...skyTextures);
   return {
     group,
     sunDirection: SUN_DIRECTION.clone(),

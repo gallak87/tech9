@@ -1,0 +1,37 @@
+{
+  "gate": "4.2",
+  "state": "handoff_ready_not_started",
+  "objective": "Halcyon-only automatic drive-over speed strips and one-hit shields",
+  "baseCommit": null,
+  "preflightCommit": null,
+  "preflightState": "not_implemented",
+  "goalActive": false,
+  "humanApproved": false,
+  "shapeApprovalRequired": false,
+  "shapeApproved": null,
+  "gauntlet": {
+    "rounds": 0,
+    "cap": 8,
+    "state": "not_started",
+    "stopAtFirstVerifiedPass": true,
+    "history": []
+  },
+  "verification": {
+    "build": null,
+    "tests": null,
+    "browserChecks": null,
+    "fullLint": null,
+    "foregroundPerformance": "unverified",
+    "audioListening": "unverified",
+    "physicalDevices": "unverified"
+  },
+  "openIssues": [],
+  "sharedDocsPolicy": "Write this lane only during production; integrator aggregates root documents",
+  "serverOwner": "parent Gate 3 session",
+  "featureRules": {
+    "trackId": "halcyon-viaduct-4-compact",
+    "activation": "immediate drive-over",
+    "inventory": false,
+    "rolloutToOtherLevels": false
+  }
+}

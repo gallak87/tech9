@@ -206,8 +206,8 @@ export async function createRenderer(
         });
       }
     },
-    updateContact(track, state) {
-      contactShadow.update(track, state);
+    updateContact(track, state, coverageAt) {
+      contactShadow.update(track, state, coverageAt);
     },
     follow(position) {
       sun.target.position.copy(position);

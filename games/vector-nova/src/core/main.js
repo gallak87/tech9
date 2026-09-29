@@ -365,7 +365,7 @@ async function boot() {
       energy: s.energy / 100,
     });
     view.follow(ship.group.position);
-    view.updateContact(track, s);
+    view.updateContact(track, s, road.userData.surfaceCoverage);
   }
   function render(now) {
     if (!active) return;

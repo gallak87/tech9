@@ -1,17 +1,23 @@
 import * as THREE from 'three';
 import { framePoint } from '../model.js';
-import {
-  sweepGeometry,
-  boxProfile,
-  beamTransform,
-  roadSealGeometry,
-} from '../geometry.js';
+import { sweepGeometry, boxProfile, beamTransform } from '../geometry.js';
 import { selectPracticalFixtures } from '../lighting.js';
 import {
   orbitalSurfaceTexture,
   orbitalSignsTexture,
   orbitalGuidanceTexture,
+  roadNeonSections,
+  applyRoadNeon,
+  fullRoadNeonMaterial,
 } from './materials.js';
+import {
+  createLatticeLayout,
+  latticeRunningGeometry,
+  maskedSweepGeometry,
+  solidRoadSeals,
+  latticeApertureWalls,
+} from './lattice.js';
+import { containmentGeometry } from './containment.js';
 
 export function buildOrbitalTrack(track) {
   const group = new THREE.Group();
@@ -20,6 +26,8 @@ export function buildOrbitalTrack(track) {
   const materials = new Set();
   const textures = new Set();
   const structuralSegments = [];
+  const lattice = createLatticeLayout(track);
+  const neonSections = roadNeonSections(lattice);
   const practicalFixtures = [];
   const material = (parameters) => {
     const result = new THREE.MeshStandardMaterial(parameters);
@@ -32,14 +40,14 @@ export function buildOrbitalTrack(track) {
   };
   const deckMap = texture(orbitalSurfaceTexture());
   const graphite = material({
-    color: 0x8f9b9e,
+    color: 0x9bb8c7,
     map: deckMap,
     bumpMap: deckMap,
-    bumpScale: 0.012,
-    roughness: 0.86,
-    metalness: 0.17,
+    bumpScale: 0.006,
+    roughness: 0.61,
+    metalness: 0.28,
   });
-  const ivory = material({ color: 0xdfdbcf, roughness: 0.59, metalness: 0.2 });
+  const ivory = material({ color: 0x9eafb7, roughness: 0.59, metalness: 0.2 });
   const portalFinish = new THREE.MeshPhysicalMaterial({
     color: 0xcbd0c8,
     roughness: 0.34,
@@ -65,7 +73,6 @@ export function buildOrbitalTrack(track) {
     metalness: 0.18,
   });
   const cavity = material({ color: 0x152730, roughness: 0.9, metalness: 0.12 });
-  const paint = material({ color: 0xe5e4d7, roughness: 0.72, metalness: 0.08 });
   const amber = material({ color: 0xc79d63, roughness: 0.56, metalness: 0.35 });
   const vermilion = material({
     color: 0xb7563d,
@@ -77,6 +84,20 @@ export function buildOrbitalTrack(track) {
     emissive: 0xffd19a,
     emissiveIntensity: 1.9,
     roughness: 0.32,
+  });
+  const cyan = material({
+    color: 0x0e97b7,
+    emissive: 0x04bedf,
+    emissiveIntensity: 2.45,
+    roughness: 0.37,
+    metalness: 0.12,
+  });
+  const violet = material({
+    color: 0x7761bf,
+    emissive: 0x7850ed,
+    emissiveIntensity: 1.75,
+    roughness: 0.4,
+    metalness: 0.16,
   });
   const seals = material({
     color: 0x203139,
@@ -94,6 +115,27 @@ export function buildOrbitalTrack(track) {
     mesh.receiveShadow = true;
     group.add(mesh);
     return mesh;
+  };
+  const neonMaterials = new Map();
+  const addNeon = (
+    name,
+    geometry,
+    surface,
+    uvScale = 16,
+    castShadow = false,
+  ) => {
+    let coating = neonMaterials.get(surface);
+    if (!coating) {
+      coating = fullRoadNeonMaterial(surface);
+      neonMaterials.set(surface, coating);
+      materials.add(coating);
+    }
+    return add(
+      name,
+      applyRoadNeon(geometry, neonSections, uvScale),
+      coating,
+      castShadow,
+    );
   };
   const instances = (name, geometry, surface, entries, castShadow = false) => {
     geometries.add(geometry);
@@ -205,6 +247,14 @@ export function buildOrbitalTrack(track) {
       surface,
       shadows,
     );
+  const neonSweep = (name, profile, surface, options = {}, shadows = false) =>
+    addNeon(
+      name,
+      sweepGeometry(track, profile, { step: 4, ...options }),
+      surface,
+      options.uvScale ?? 16,
+      shadows,
+    );
   const beam = (from, to, thickness, depth = thickness) => {
     structuralSegments.push({
       from,
@@ -214,37 +264,49 @@ export function buildOrbitalTrack(track) {
     return beamTransform(from, to, thickness, depth);
   };
 
-  const runningSurface = sweep(
-    'Graphite ceramic running panels / approved 28 m surface',
+  const baseSurface = sweepGeometry(
+    track,
     [
       [-14, 0],
       [14, 0],
     ],
+    { step: 4, uvScale: 12 },
+  );
+  const runningSurface = addNeon(
+    'Blue graphite running panels and magnetic runners / approved 28 m surface',
+    latticeRunningGeometry(track, baseSurface, lattice),
     graphite,
-    { uvScale: 12 },
+    12,
   );
   runningSurface.userData.drivingSurface = true;
-  sweep(
-    'Ivory folded alloy deck shell',
-    [
-      [17.4, -0.03],
-      [17.4, -1.6],
-      [12.1, -3.8],
-      [9, -7.1],
-      [-9, -7.1],
-      [-12.1, -3.8],
-      [-17.4, -1.6],
-      [-17.4, -0.03],
-    ],
+  add(
+    'Folded alloy deck shell / solid districts only',
+    maskedSweepGeometry(
+      track,
+      [
+        [17.4, -0.03],
+        [17.4, -1.6],
+        [12.1, -3.8],
+        [9, -7.1],
+        [-9, -7.1],
+        [-12.1, -3.8],
+        [-17.4, -1.6],
+        [-17.4, -0.03],
+      ],
+      lattice,
+      false,
+      { uvScale: 24 },
+    ),
     ivory,
-    { uvScale: 24 },
     true,
   );
-  sweep('Graphite keel enclosure', boxProfile(0, -7.8, 12.5, 1.35), dark, {
-    step: 6,
-  });
+  add(
+    'Graphite keel enclosure / solid districts only',
+    maskedSweepGeometry(track, boxProfile(0, -7.8, 12.5, 1.35), lattice, false),
+    dark,
+  );
   for (const side of [-1, 1]) {
-    sweep(
+    neonSweep(
       'Inset ivory service shoulder',
       [
         [side * 15.7 - 1.68, 0.013],
@@ -252,13 +314,13 @@ export function buildOrbitalTrack(track) {
       ],
       ivory,
     );
-    sweep(
-      'Race boundary paint',
+    neonSweep(
+      'Cyan magnetic race boundary',
       [
         [side * 13.65 - 0.1, 0.026],
         [side * 13.65 + 0.1, 0.026],
       ],
-      paint,
+      cyan,
     );
     sweep(
       'Shoulder graphite expansion groove',
@@ -268,26 +330,24 @@ export function buildOrbitalTrack(track) {
       ],
       cavity,
     );
-    sweep(
+    neonSweep(
       'Titanium low curb',
       boxProfile(side * 14.35, 0.19, 0.45, 0.38),
       titanium,
     );
-    sweep(
-      'Folded titanium lower safety rail',
-      [
-        [side * 14.95 - 0.22, 0.62],
-        [side * 14.95 + 0.27, 0.66],
-        [side * 14.95 + 0.3, 1.01],
-        [side * 14.95 + 0.16, 1.12],
-        [side * 14.95 - 0.26, 1.04],
-        [side * 14.95 - 0.22, 0.62],
-      ],
-      titanium,
-    );
-    sweep(
-      'Open titanium upper rail',
-      boxProfile(side * 14.95, 1.68, 0.19, 0.18),
+    addNeon(
+      'Lattice outer service sill',
+      maskedSweepGeometry(
+        track,
+        [
+          [side * 14, -0.025],
+          [side * 14, -1.35],
+          [side * 17.4, -1.35],
+          [side * 17.4, -0.025],
+        ],
+        lattice,
+        true,
+      ),
       titanium,
     );
     sweep(
@@ -304,18 +364,95 @@ export function buildOrbitalTrack(track) {
   }
   const joints = add(
     'Surface-conforming module seals',
-    roadSealGeometry(track, runningSurface.geometry, {
-      spacing: 30,
-      breadth: 0.068,
-      offset: 0.008,
-    }),
+    solidRoadSeals(track, baseSurface, lattice),
     seals,
   );
+  baseSurface.dispose();
   joints.renderOrder = 1;
+  addNeon(
+    'Open lattice aperture reveals / tapered mouths',
+    latticeApertureWalls(track, lattice),
+    titanium,
+    16,
+    true,
+  );
+  const latticeRibs = [],
+    inductionCases = [],
+    inductionLenses = [],
+    runnerSaddles = [],
+    entranceCouplers = [];
+  for (const distance of lattice.ribs) {
+    latticeRibs.push(local(distance, 0, -0.45));
+    for (const side of [-1, 1]) {
+      runnerSaddles.push(local(distance, side * 4.8, -1.05));
+      inductionCases.push(local(distance, side * 16.15, 0.15));
+      inductionLenses.push(local(distance, side * 16.15, 0.29));
+    }
+  }
+  for (const span of lattice.spans)
+    for (const distance of [span.start, span.end])
+      for (const side of [-1, 1])
+        entranceCouplers.push(local(distance, side * 15.7, -1.2));
+  conformPanels(
+    'Lattice transverse magnetic ribs',
+    [28, 0.7, 1.15],
+    underframe,
+    latticeRibs,
+  );
+  conformPanels(
+    'Lattice runner attachment saddles',
+    [2.6, 1.3, 1.8],
+    titanium,
+    runnerSaddles,
+  );
+  conformPanels(
+    'Violet induction hardware enclosures',
+    [2.4, 0.24, 2.6],
+    cavity,
+    inductionCases,
+  );
+  conformPanels(
+    'Violet induction coil lenses',
+    [1.72, 0.055, 1.8],
+    violet,
+    inductionLenses,
+  );
+  conformPanels(
+    'Lattice entry load couplers',
+    [3.4, 1.7, 4.8],
+    underframe,
+    entranceCouplers,
+  );
+  for (const side of [-1, 1])
+    for (const x of [3.93, 5.67, 11.72])
+      addNeon(
+        'Cyan induction runner edge',
+        maskedSweepGeometry(
+          track,
+          boxProfile(side * x, -0.115, 0.09, 0.16),
+          lattice,
+          true,
+        ),
+        cyan,
+      );
+  group.userData.openSpans = lattice.spans.map((span) => ({ ...span }));
+  group.userData.surfaceCoverage = lattice.surfaceCoverage;
+  group.userData.surfaceStep = lattice.step;
+  group.userData.neonSections = neonSections;
+  addNeon(
+    'Orbital U containment frames / outward-canted alloy',
+    containmentGeometry(track),
+    titanium,
+    16,
+    true,
+  );
+  addNeon(
+    'Inset U containment emitter faces',
+    containmentGeometry(track, true),
+    cyan,
+  );
 
-  const railPosts = [],
-    shoes = [],
-    fasteners = [],
+  const containmentFeet = [],
     reflectors = [],
     shoulderLids = [],
     lidInsets = [],
@@ -331,7 +468,6 @@ export function buildOrbitalTrack(track) {
     curbIntervals = [],
     lampBodies = [],
     lampFaces = [],
-    lampBrackets = [],
     portalFrames = [],
     portalCladding = [],
     portalCollars = [],
@@ -341,11 +477,9 @@ export function buildOrbitalTrack(track) {
     directionArrows = [];
   for (let s = 0; s < track.length; s += 12) {
     for (const side of [-1, 1]) {
-      railPosts.push(local(s, side * 14.95, 0.88));
-      shoes.push(local(s, side * 14.95, 0.057));
-      fasteners.push(local(s, side * 14.59, 0.14));
-      fasteners.push(local(s, side * 15.3, 0.14));
-      reflectors.push(local(s, side * 14.74, 1.57));
+      for (const end of [-1, 1])
+        containmentFeet.push(local(s + end * 4.2, side * 14.845, 0.17));
+      reflectors.push(local(s - 4.2, side * 14.73, 1.3));
       if (s % 24 === 0) {
         shoulderLids.push(local(s + 5, side * 16.3, 0.037));
         lidInsets.push(local(s + 5, side * 16.3, 0.072));
@@ -402,13 +536,13 @@ export function buildOrbitalTrack(track) {
     distance += 90, index += 1
   ) {
     const side = index % 2 ? -1 : 1;
-    const frame = track.sample(distance);
-    lampBrackets.push(local(distance, side * 17.0, 2.0));
-    lampBodies.push(local(distance, side * 16.8, 3.85));
-    lampFaces.push(local(distance, side * 16.45, 3.8));
+    const fixtureDistance = Math.round(distance / 12) * 12;
+    const frame = track.sample(fixtureDistance);
+    lampBodies.push(local(fixtureDistance, side * 15.48, 3.85));
+    lampFaces.push(local(fixtureDistance, side * 15.06, 3.8));
     practicalFixtures.push({
-      distance,
-      position: framePoint(frame, side * 16.45, 3.8),
+      distance: fixtureDistance,
+      position: framePoint(frame, side * 15.06, 3.8),
       target: framePoint(frame, side * 6, 0.4),
       intensity: 180,
       color: 0xffd5a6,
@@ -417,25 +551,13 @@ export function buildOrbitalTrack(track) {
       directionArrows.push(local(distance + 15, side * 16.2, 0.125));
   }
   instances(
-    'Rail vertical posts',
-    new THREE.BoxGeometry(0.25, 1.67, 0.38),
-    dark,
-    railPosts,
-  );
-  instances(
-    'Captive rail attachment shoes',
-    new THREE.BoxGeometry(1, 0.11, 0.83),
+    'Containment frame mounting cassettes',
+    new THREE.BoxGeometry(1, 0.3, 1.1),
     titanium,
-    shoes,
+    containmentFeet,
   );
   instances(
-    'Hex-head titanium fixings',
-    new THREE.CylinderGeometry(0.072, 0.072, 0.09, 6),
-    titanium,
-    fasteners,
-  );
-  instances(
-    'Sparse amber passive rail reflectors',
+    'Containment frame amber locator tabs',
     new THREE.BoxGeometry(0.07, 0.15, 0.5),
     amber,
     reflectors,
@@ -510,19 +632,13 @@ export function buildOrbitalTrack(track) {
     curbIntervals,
   );
   instances(
-    'Outer shoulder luminaire brackets',
-    new THREE.BoxGeometry(0.22, 4, 0.25),
-    dark,
-    lampBrackets,
-  );
-  instances(
-    'Shielded luminaire alloy housings',
+    'Containment-integrated practical light housings',
     new THREE.BoxGeometry(0.8, 0.42, 1.8),
     ivory,
     lampBodies,
   );
   instances(
-    'Recessed warm track optics',
+    'Containment-integrated warm optics',
     new THREE.BoxGeometry(0.035, 0.24, 1.45),
     optics,
     lampFaces,

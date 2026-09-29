@@ -100,3 +100,19 @@ Production `/assets/index-C3Xph3wR.js`: all 70 unit tests, full lint, build and 
 ## Verified orbital checkpoint after the final inspection repair
 
 Production `/assets/index-c6gHY7PG.js` passes all 70 unit tests, 42 orbital/Halcyon browser checks and 9 focused inspection/control checks with zero errors. Root current orbital peaks: 457 calls / 1,698,825 triangles / 403.75MiB estimated assets. Full lint and production build pass. The final camera/layout repair received integrator visual checks, without reopening the six-round critic gauntlet or changing its scores. Foreground performance, listening and physical devices remain unverified.
+
+## Human-directed open-frame and full-color neon road
+
+The first lattice build `/assets/index-DF4SQ11U.js` passed all 72 unit tests and 42 functional browser checks, with zero errors. Its broad regression samples peaked at 494 calls / 1,807,857 triangles / 407.95 MiB estimated GPU assets. Actual road apertures, corresponding open underside shells and contact-shadow coverage were verified without route or handling changes.
+
+The final full-color material build `/assets/index-_3V7U4V3.js` again passes all 72 tests, full lint and build. Twelve focused production checks cover high/low real-key motion on five sections, the driven dive exit and portrait presentation, with zero errors. Its 23 sampled views peak at 421 calls / 1,659,877 triangles / 410.69 MiB estimated assets. These are different sampled views, not evidence of a performance improvement over the broader preceding run. All observed values remain below the existing budgets.
+
+Full-color coverage reuses the lattice geometry: 70 source mesh batches / 347,835 triangles, adding 2,814,464 bytes of color attributes and no new textures. Runtime planet maps remain 16,001,716 file bytes. Main script is 248.88 KB gzip; the orbital track module is 11.16 KB gzip. Hidden Chrome on Apple M1 Pro/ANGLE Metal was used; capture timings do not certify foreground frame pacing. No new critic round, full-lap replay or video capture. Reports/stills remain ignored under `.experiments/orbital-road-regression/` and `.experiments/orbital-road-review/`.
+
+## Whole-circuit identity and stellar sky follow-up
+
+Production `/assets/index-BjCTDhTj.js` passes all 73 unit tests, full lint and build, plus 45 functional browser checks with zero runtime or asset errors. The checks exercise all nine orbital sections with real keys, high/low rendering, steering, boost, brake, contact, pause/recovery, circuit views, portrait/landscape layouts and Halcyon driving. The integrator inspected the moon at launch, solid panel deck, containment emitters on both sides, low-quality sky/gaps and positive-contact feedback.
+
+The 27 orbital views sampled 477 calls / 1,876,177 triangles / 425.39 MiB estimated GPU assets at their respective peaks, below the existing 1,000-call / 2M-triangle / 512MiB budgets. These include shadow/postprocessing costs; they are sampled bounds, not a full-course maximum or foreground frame-rate certification. Hidden Chrome 154 on Apple M1 Pro/ANGLE Metal, 1920×1080 at DPR1, plus responsive emulations. No full-lap replay or video capture. Ignored report/stills: `.experiments/orbital-identity-review/`.
+
+Track source now has 61 batches / 335,339 triangles. The complete backdrop has six draws / 73,728 mesh triangles plus 17,500 star points. Its seven owned textures total about 82.67 MiB with mipmaps; the new generated lunar map accounts for 2.67 MiB and requires no new downloaded file. The existing six planet maps remain 16,001,716 file bytes. Main script is 248.88 KB gzip; orbital track, backdrop and environment modules are 11.65, 6.09 and 11.94 KB gzip. The build retains Vite's existing main-chunk size advisory.

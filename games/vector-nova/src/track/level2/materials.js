@@ -1,5 +1,73 @@
 import * as THREE from 'three';
-import { seededRandom } from '../geometry.js';
+
+export function roadNeonSections(lattice) {
+  const treatments = [
+    { name: 'Ion cyan / limb lattice', color: '#087b91' },
+    { name: 'Violet magenta / orbital overlook', color: '#981591' },
+    { name: 'Electric blue / horizon descent', color: '#135ad0' },
+  ];
+  return lattice.spans.map((span, index) => ({
+    start: span.start - 24,
+    end: span.end + 24,
+    ...treatments[index],
+  }));
+}
+
+export function applyRoadNeon(geometry, sections, uvScale = 16) {
+  const uv = geometry.getAttribute('uv');
+  const attribute = new Float32Array(uv.count * 4);
+  const colors = sections.map((section) => new THREE.Color(section.color));
+  for (let vertex = 0; vertex < uv.count; vertex += 1) {
+    const distance = uv.getY(vertex) * uvScale;
+    const index = sections.findIndex(
+      (section) => distance >= section.start && distance <= section.end,
+    );
+    if (index < 0) continue;
+    const section = sections[index];
+    const mask =
+      THREE.MathUtils.smoothstep(distance, section.start, section.start + 8) *
+      (1 - THREE.MathUtils.smoothstep(distance, section.end - 8, section.end));
+    attribute.set([...colors[index].toArray(), mask], vertex * 4);
+  }
+  geometry.setAttribute('roadNeon', new THREE.BufferAttribute(attribute, 4));
+  return geometry;
+}
+
+export function fullRoadNeonMaterial(base) {
+  const material = base.clone();
+  material.name = `${base.name || 'Orbital alloy'} / full-color magnetic coating`;
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader =
+      `attribute vec4 roadNeon; varying vec4 vRoadNeon;\n${shader.vertexShader}`.replace(
+        '#include <begin_vertex>',
+        '#include <begin_vertex>\n vRoadNeon = roadNeon;',
+      );
+    shader.fragmentShader = `varying vec4 vRoadNeon;\n${shader.fragmentShader}`
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        float cassetteFinish = 1.0;
+        #ifdef USE_MAP
+          cassetteFinish = clamp(sampledDiffuseColor.r * 3.3, 0.18, 1.0);
+        #endif
+        diffuseColor.rgb = mix(diffuseColor.rgb, vRoadNeon.rgb * cassetteFinish, vRoadNeon.a);`,
+      )
+      .replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+        roughnessFactor = mix(roughnessFactor, 0.48, vRoadNeon.a);`,
+      )
+      .replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+        // Broad saturated light-emitting coating, kept below the white bloom
+        // threshold. Directional PBR shading still describes its real framing.
+        totalEmissiveRadiance = mix(totalEmissiveRadiance, vRoadNeon.rgb * 1.65 * cassetteFinish, vRoadNeon.a);`,
+      );
+  };
+  material.customProgramCacheKey = () => 'orbital-induction-cassette-neon-v2';
+  return material;
+}
 
 function canvasTexture(width, height, paint) {
   // Pure geometry/clearance tests also build the group without a DOM.
@@ -24,34 +92,45 @@ function canvasTexture(width, height, paint) {
 
 export function orbitalSurfaceTexture() {
   const texture = canvasTexture(1024, 512, (context, width, height) => {
-    const random = seededRandom(49017);
-    const pixels = context.createImageData(width, height);
-    for (let i = 0; i < width * height; i += 1) {
-      const x = i % width;
-      const grain = (random() - 0.5) * 7;
-      let value = 145 + grain;
-      for (const wheel of [260, 375, 650, 765])
-        value -= 11 * Math.exp(-((x - wheel) ** 2) / 420);
-      pixels.data[i * 4] = value;
-      pixels.data[i * 4 + 1] = value + 4;
-      pixels.data[i * 4 + 2] = value + 5;
-      pixels.data[i * 4 + 3] = 255;
-    }
-    context.putImageData(pixels, 0, 0);
-    context.fillStyle = 'rgba(35,48,55,0.2)';
-    for (const x of [0, 170, 341, 682, 853, 1022])
-      context.fillRect(x, 0, 1, height);
-    context.fillStyle = 'rgba(205,216,214,0.09)';
-    for (const x of [8, 178, 349, 690, 861]) context.fillRect(x, 0, 1, height);
-    for (let i = 0; i < 90; i += 1) {
-      context.fillStyle = `rgba(200,215,218,${0.01 + random() * 0.025})`;
-      context.fillRect(
-        random() * width,
-        random() * height,
-        0.6,
-        8 + random() * 35,
-      );
-    }
+    // Smooth removable induction cassettes, with etched terminals and sealed
+    // joints. No grit, aggregate, streak noise or tire-wear bands.
+    context.fillStyle = '#152c3b';
+    context.fillRect(0, 0, width, height);
+    const palette = ['#94b0be', '#9bb7c4', '#83a1b0'];
+    for (let row = 0; row < 2; row += 1)
+      for (let column = 0; column < 6; column += 1) {
+        const x = (column * width) / 6 + 2;
+        const y = (row * height) / 2 + 2;
+        const w = width / 6 - 4,
+          h = height / 2 - 4,
+          cut = 10;
+        context.beginPath();
+        context.moveTo(x + cut, y);
+        context.lineTo(x + w - cut, y);
+        context.lineTo(x + w, y + cut);
+        context.lineTo(x + w, y + h - cut);
+        context.lineTo(x + w - cut, y + h);
+        context.lineTo(x + cut, y + h);
+        context.lineTo(x, y + h - cut);
+        context.lineTo(x, y + cut);
+        context.closePath();
+        context.fillStyle = palette[(column + row) % palette.length];
+        context.fill();
+        context.strokeStyle = '#c0d1d9';
+        context.lineWidth = 1;
+        context.stroke();
+        context.strokeStyle = '#4f7489';
+        context.lineWidth = 2;
+        context.strokeRect(x + 16, y + 20, w - 32, h - 40);
+        for (const end of [0, 1]) {
+          const terminalY = y + 31 + end * (h - 65);
+          context.fillStyle = '#395e76';
+          context.fillRect(x + w / 2 - 19, terminalY, 38, 4);
+          context.fillStyle = '#c4dce5';
+          for (let pin = 0; pin < 4; pin += 1)
+            context.fillRect(x + w / 2 - 14 + pin * 8, terminalY + 1, 3, 2);
+        }
+      }
   });
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   return texture;

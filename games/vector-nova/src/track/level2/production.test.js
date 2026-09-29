@@ -159,8 +159,7 @@ test('high-demand guidance precedes the docking apex and preserves the driving c
     6,
   );
   for (const name of [
-    'Folded titanium lower safety rail',
-    'Open titanium upper rail',
+    'Orbital U containment frames / outward-canted alloy',
     'Exposed triangulated underside frame',
   ]) {
     const material = group.children.find(
@@ -169,5 +168,72 @@ test('high-demand guidance precedes the docking apex and preserves the driving c
     assert.ok(material.roughness >= 0.7);
     assert.ok(material.metalness <= 0.3);
   }
+  group.userData.dispose();
+});
+
+test('containment frames leave the complete racing and camera envelope open through all banks', () => {
+  const group = buildOrbitalTrack(track);
+  const point = new THREE.Vector3();
+  const offset = new THREE.Vector3();
+  for (const name of [
+    'Orbital U containment frames / outward-canted alloy',
+    'Inset U containment emitter faces',
+  ]) {
+    const geometry = group.getObjectByName(name).geometry;
+    const position = geometry.getAttribute('position');
+    const distance = geometry.getAttribute('roadDistance');
+    const normal = geometry.getAttribute('normal');
+    // Test each actual triangle's vertices, edge midpoints and centroid. This
+    // includes inward bowing of chords around corners and rolled transitions.
+    for (let triangle = 0; triangle < position.count; triangle += 3) {
+      if (name === 'Inset U containment emitter faces') {
+        const s =
+          (distance.getX(triangle) +
+            distance.getX(triangle + 1) +
+            distance.getX(triangle + 2)) /
+          3;
+        const frame = track.sample(s);
+        point.set(0, 0, 0);
+        for (let vertex = 0; vertex < 3; vertex += 1)
+          point.add(offset.fromBufferAttribute(position, triangle + vertex));
+        point.multiplyScalar(1 / 3).sub(frame.position);
+        offset.fromBufferAttribute(normal, triangle);
+        assert.ok(
+          Math.sign(point.dot(frame.right)) * offset.dot(frame.right) < 0,
+          'Both single-sided emitter insets face the racing corridor',
+        );
+      }
+      for (const weights of [
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+        [0.5, 0.5, 0],
+        [0, 0.5, 0.5],
+        [0.5, 0, 0.5],
+        [1 / 3, 1 / 3, 1 / 3],
+      ]) {
+        point.set(0, 0, 0);
+        let s = 0;
+        weights.forEach((weight, vertex) => {
+          offset.fromBufferAttribute(position, triangle + vertex);
+          point.addScaledVector(offset, weight);
+          s += distance.getX(triangle + vertex) * weight;
+        });
+        const frame = track.sample(s);
+        const lateral = point.sub(frame.position).dot(frame.right);
+        assert.ok(
+          Math.abs(lateral) > 14.2,
+          `${name} enters the 28 m racing/camera envelope at ${s.toFixed(2)} m`,
+        );
+      }
+    }
+  }
+  for (const obsolete of [
+    'Folded titanium lower safety rail',
+    'Open titanium upper rail',
+    'Titanium rail posts',
+    'Outer shoulder luminaire brackets',
+  ])
+    assert.equal(group.getObjectByName(obsolete), undefined);
   group.userData.dispose();
 });

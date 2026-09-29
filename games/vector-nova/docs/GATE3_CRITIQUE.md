@@ -53,3 +53,15 @@ Desktop title, actual-ship inspection, 3D/top/profile route views and all six re
 Delivered source `/assets/index-c6gHY7PG.js` fixes the final portrait-inspection finding by separating the craft stage from specifications/actions and fitting its complete turntable envelope. The inspection legend is hidden so landscape controls remain unobstructed. Nine focused production-browser assertions passed at 390×844, 320×568, 844×390 and 1920×1080, plus Halcyon portrait regression and real-key driving returns; sequential rotating-craft stills were inspected. Zero errors. Report `.experiments/orbital-inspection-repair/report.json` is ignored. Formal UI 8.5 is preserved as the last critic score; the fix is integrator-verified, not independently rerated.
 
 The six-round gauntlet is closed. No known implementation finding remains open after that repair. Final human art/driving judgment, foreground performance, audio listening and physical-device verification remain outstanding. Broader game systems and the industrial circuit remain deferred.
+
+## Subsequent human-directed road art — no new formal score
+
+The user requested committing the candidate (`754fdc4a`), adding neon/open-frame variety, then explicitly liked the gaps and requested fully colored road runners, panels and side bars. Production `/assets/index-_3V7U4V3.js` preserves the approved geometry/handling and supplies cyan, magenta and electric-blue spans with genuine apertures. All 72 tests, full lint and build pass. The first lattice build passed 42 functional browser checks; the final material-only follow-up passed 12 focused high/low real-input, exit-transition and portrait checks with zero errors. Builder and integrator inspected actual still sequences. This is ready for human spot-checking; the formal counter remains six and the historical scores above do not grade this revision.
+
+## Whole-circuit and sky follow-up — human spot-check pending
+
+Further human feedback requested removing road-like surfaces everywhere, distinctive tall barriers, and a parallel space-sky pass. Candidate `/assets/index-BjCTDhTj.js` supplies smooth induction panels, open U containment frames, integrated lamps, a cratered moon, a broad galactic band and 17,500 stars. Approved gaps/neon, route, handling and planet are retained. Builder/integrator checks: 73 tests, full lint/build, 45 production-browser checks, zero errors; high/low still sequences and short real-key motion inspected. This bounded art follow-up adds no formal review round or score. The human art/driving gate remains pending.
+
+## Human approval and closure
+
+The user explicitly approved Gate 3 after the whole-circuit and sky follow-up on build `/assets/index-BjCTDhTj.js`. This closes its human gate without changing the six-round history or assigning new scores. The newly requested eight-round cap belongs to the separate Gate 4.1/4.2 handoff; it does not reopen this gauntlet. Preserve the approved world, roadway and sky while those lanes proceed.

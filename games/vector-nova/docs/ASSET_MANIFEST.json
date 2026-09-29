@@ -60,9 +60,9 @@
     },
     {
       "id": "asterion-track-production",
-      "source": "src/track/level2/production.js and materials.js",
+      "source": "src/track/level2/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original folded deck, rails, service panels, portal/signage geometry and generated surface textures; adapts own shared sweep/beam/road-seal/stable-fixture helpers",
+      "provenance": "Original induction cassette deck materials, open magnetic lattice spans, full-color neon treatment, taller U containment frames, integrated practical-light housings, portal/signage and service construction. Adapts project-owned sweep/beam/seal/stable-fixture helpers; no copied reference assets.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"]
     },
@@ -94,6 +94,24 @@
         "public/assets/orbital/asterion-terrain-surround-v1.png",
         "public/assets/orbital/asterion-weather-surround-v1.png"
       ]
+    },
+    {
+      "id": "asterion-stellar-sky",
+      "source": "src/renderer/orbital/sky.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original source-native galactic radiance/dust shader, 17500 seeded point stars, spherical moon and deterministic packed lunar albedo/crater-height map generated at runtime. No imagegen, downloads or external astronomical imagery used for this addition.",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": ["three"],
+      "runtimeGeneratedMaps": [
+        {
+          "kind": "packed lunar albedo and crater height",
+          "dimensions": [1024, 512],
+          "seed": 89347,
+          "textureMemoryEstimateMiB": 2.6667
+        }
+      ],
+      "starCount": 17500,
+      "starSeed": 41917
     }
   ],
   "thirdParty": [

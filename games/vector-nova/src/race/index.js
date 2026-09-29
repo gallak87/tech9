@@ -1,7 +1,8 @@
-export function createRace(track) {
+export function createRace(track, { rulesId = 'magnetic-v3-assist-0.3' } = {}) {
   const count = track.checkpoints?.length || 12;
   const spacing = track.length / count;
   return {
+    rulesId,
     lap: 1,
     checkpoint: 0,
     elapsed: 0,
@@ -27,7 +28,11 @@ export function createRace(track) {
           });
           if (index === 0) {
             this.lastLap = this.elapsed;
-            this.history.push({ duration: this.elapsed, valid: this.valid });
+            this.history.push({
+              duration: this.elapsed,
+              valid: this.valid,
+              rulesId,
+            });
             if (this.valid && (!this.best || this.elapsed < this.best))
               this.best = this.elapsed;
             events.push({

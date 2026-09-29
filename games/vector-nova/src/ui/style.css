@@ -965,3 +965,24 @@ select {
     font-size: 8px;
   }
 }
+
+/* Compact landscape keeps the map clear of speed and reserve telemetry. */
+@media (max-height: 570px) and (min-width: 761px) {
+  #interface.driving:not(.blockout-review) #minimap {
+    top: 145px;
+    left: auto;
+    right: 4vw;
+    bottom: auto;
+    width: 100px;
+    height: 75px;
+  }
+}
+
+@media (max-width: 760px) {
+  .timing small {
+    display: block;
+    max-width: clamp(70px, calc(100vw - 260px), 135px);
+    white-space: normal;
+    line-height: 1.3;
+  }
+}

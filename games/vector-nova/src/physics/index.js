@@ -102,7 +102,9 @@ function integrate(s, controls, track, dt, events) {
   // Hover parking is an explicit active hold, including while steering at rest.
   // It captures only a nearly stopped craft; a moving sideways craft still has
   // to dissipate its momentum before capture. Throttle releases the hold.
-  const parking = throttle === 0 && previousSpeed <= HOLD_SPEED;
+  const pad = controls.propulsion && brake < 0.1;
+  const driveThrottle = pad ? 1 : throttle;
+  const parking = driveThrottle === 0 && previousSpeed <= HOLD_SPEED;
   const parked = parking && Math.abs(s.lateralSpeed) < 0.12;
   const forwardGravity = -GRAVITY * finite(frame.tangent?.y);
   const lateralGravity =
@@ -117,8 +119,14 @@ function integrate(s, controls, track, dt, events) {
     // Engine force and quadratic drag meet at the nominal flat-road speed.
     // No speed clamp: grades cost/gain energy and boost release decelerates
     // continuously, instead of snapping a fast craft to its cruise speed.
-    const cruiseSpeed = boost ? 157 : 112;
-    const thrust = boost ? 59 : 42;
+    // A road impulse is a separate, free profile. Choose the strongest active
+    // profile once; manual boost keeps its existing reserve cost and cap.
+    const cruiseSpeed = boost
+      ? 157
+      : pad
+        ? controls.propulsion.cruiseSpeed
+        : 112;
+    const thrust = boost ? 59 : pad ? controls.propulsion.thrust : 42;
     const cruiseDrag = 4.4 + 0.0018 * cruiseSpeed * cruiseSpeed;
     const engine = Math.max(
       0,
@@ -126,7 +134,7 @@ function integrate(s, controls, track, dt, events) {
     );
     const drag = 4.4 + 0.0018 * previousSpeed * previousSpeed;
     const acceleration =
-      throttle * engine -
+      driveThrottle * engine -
       brake * 83 -
       drag -
       (airbrake ? 7 : 0) +
@@ -197,9 +205,16 @@ function integrate(s, controls, track, dt, events) {
       s.lateralSpeed = -side * incoming * 0.22;
       if (s.impact < 0.08) {
         s.speed *= 0.84;
-        s.energy = Math.max(0, s.energy - 6 - severity * 9);
+        const shielded = controls.shield;
+        if (shielded) controls.shield = false;
+        else s.energy = Math.max(0, s.energy - 6 - severity * 9);
         s.impact = 1;
-        events.push({ type: 'impact', payload: { severity, side } });
+        events.push({
+          type: 'impact',
+          payload: shielded
+            ? { severity, side, shielded: true }
+            : { severity, side },
+        });
       }
       s.heading *= 0.65;
       s.steeringHeading *= 0.65;
@@ -217,6 +232,17 @@ export function stepVehicle(state, input, track, dt, options = {}) {
     steer: clamp(finite(input?.steer), -1, 1),
     boost: !!input?.boost,
     airbrake: !!input?.airbrake,
+    // Options are per-call values, never global feature state. Invalid profiles
+    // are ignored and valid impulses cannot exceed explicit manual boost.
+    propulsion:
+      Number.isFinite(options.propulsion?.cruiseSpeed) &&
+      Number.isFinite(options.propulsion?.thrust)
+        ? {
+            cruiseSpeed: clamp(options.propulsion.cruiseSpeed, 112, 157),
+            thrust: clamp(options.propulsion.thrust, 42, 59),
+          }
+        : null,
+    shield: options.shield === true,
     steeringAssist: clamp(
       finite(options.steeringAssist, STEERING_ASSIST),
       0,

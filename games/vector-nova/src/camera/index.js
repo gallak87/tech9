@@ -12,11 +12,26 @@ export function createCameraRig(camera) {
     reset() {
       initialized = false;
     },
-    update(track, state, dt, { mode = 'chase', reducedMotion = false } = {}) {
-      const f = track.sample(state.distance);
+    update(
+      track,
+      state,
+      dt,
+      { mode = 'chase', reducedMotion = false, worldPose = null } = {},
+    ) {
+      const f = worldPose
+        ? {
+            position: worldPose.position.clone(),
+            quaternion: worldPose.quaternion,
+            right: new T.Vector3(1, 0, 0).applyQuaternion(worldPose.quaternion),
+            up: new T.Vector3(0, 1, 0).applyQuaternion(worldPose.quaternion),
+            tangent: new T.Vector3(0, 0, 1).applyQuaternion(
+              worldPose.quaternion,
+            ),
+          }
+        : track.sample(state.distance);
       const p = f.position
         .clone()
-        .addScaledVector(f.right, state.lateral)
+        .addScaledVector(f.right, worldPose ? 0 : state.lateral)
         .addScaledVector(f.up, 1.15);
       let target, eye, back;
       if (mode === 'inspection') return;
@@ -27,6 +42,12 @@ export function createCameraRig(camera) {
           .addScaledVector(f.up, 23)
           .addScaledVector(f.tangent, -46);
         target = p;
+      } else if (worldPose) {
+        eye = p
+          .clone()
+          .addScaledVector(f.tangent, -14 - state.speed * 0.025)
+          .addScaledVector(f.up, 4.0);
+        target = p.clone().addScaledVector(f.tangent, 22);
       } else {
         const ahead = track.sample(state.distance + 35 + state.speed * 0.18);
         back = track.sample(state.distance - 12.5 - state.speed * 0.025);

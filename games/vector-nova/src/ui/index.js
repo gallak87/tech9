@@ -1,5 +1,11 @@
 import './style.css';
-export function createUI(host, actions, settings, track) {
+export function createUI(
+  host,
+  actions,
+  settings,
+  track,
+  runtimeScenarios = {},
+) {
   const root = document.createElement('main');
   root.id = 'interface';
   host.append(root);
@@ -87,6 +93,30 @@ export function createUI(host, actions, settings, track) {
     link.href = '/?level=orbital';
     link.textContent = 'ASTERION ORBITAL CIRCUIT ↗';
     $('title-panel').append(link);
+  }
+  if (Object.keys(runtimeScenarios).length) {
+    let select = $('review-section');
+    if (!select) {
+      const controls = document.createElement('section');
+      controls.id = 'runtime-controls';
+      controls.className = 'runtime-controls';
+      const label = document.createElement('label');
+      label.textContent = 'PRACTICE SCENARIO ';
+      select = document.createElement('select');
+      select.id = 'runtime-scenario';
+      label.append(select);
+      const button = document.createElement('button');
+      button.textContent = 'DRIVE SCENARIO ↗';
+      button.onclick = () => actions.reviewSection(select.value);
+      controls.append(label, button);
+      $('title-panel').append(controls);
+    }
+    for (const [name, scenario] of Object.entries(runtimeScenarios)) {
+      const option = document.createElement('option');
+      option.value = name;
+      option.textContent = scenario.label || name;
+      select.append(option);
+    }
   }
   const bind = (id, fn) => ($(id).onclick = fn);
   bind('start', actions.start);

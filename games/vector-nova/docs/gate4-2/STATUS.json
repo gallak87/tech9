@@ -1,31 +1,119 @@
 {
   "gate": "4.2",
-  "state": "handoff_ready_not_started",
+  "state": "human_approved",
   "objective": "Halcyon-only automatic drive-over speed strips and one-hit shields",
-  "baseCommit": null,
+  "baseCommit": "13bba6aca7c7a7aeb9b6af56a21a46a6111dfd36",
   "preflightCommit": null,
-  "preflightState": "not_implemented",
+  "preflightState": "adopted_and_verified",
   "goalActive": false,
-  "humanApproved": false,
+  "humanApproved": true,
   "shapeApprovalRequired": false,
   "shapeApproved": null,
   "gauntlet": {
-    "rounds": 0,
+    "rounds": 2,
     "cap": 8,
-    "state": "not_started",
+    "state": "stopped_at_evidence_hold_and_deferred_baseline_limit",
     "stopAtFirstVerifiedPass": true,
-    "history": []
+    "history": [
+      {
+        "round": 1,
+        "build": "/assets/index-NyVun_6Y.js",
+        "featureBuild": "/assets/halcyon-Buu509ep.js",
+        "verdict": "fail_changes_required",
+        "scores": {
+          "art": 9,
+          "lightingMaterialsDepth": 9,
+          "handlingCamera": 7,
+          "placementReadability": 8,
+          "mechanicFairness": 9.3,
+          "visibleFeedbackUI": 8.5,
+          "stabilityObservedHeadless": 9
+        },
+        "provisional": ["stabilityObservedHeadless"],
+        "findings": [
+          "F1 P1: Aegis crossbar occludes chase camera on collect/brake stop",
+          "F2 P2: portrait pickup HUD masks upcoming Crown road"
+        ],
+        "browserErrors": 0,
+        "rawReport": ".experiments/gate4-2-critic-round1/report.json",
+        "criticReport": ".experiments/gate4-2-critic-round1/critique.md",
+        "note": "19 valid checks pass; raw strict length equality false positive documented and harness corrected to1e-6 tolerance"
+      },
+      {
+        "round": 2,
+        "build": "/assets/index-If0PLV6o.js",
+        "featureBuild": "/assets/halcyon-AknBKWAf.js",
+        "featureCSS": "/assets/halcyon-DuSPI87g.css",
+        "verdict": "fail_original_score_retained_with_baseline_deferral",
+        "scores": {
+          "art": 9,
+          "lightingMaterialsDepth": 9,
+          "handlingCamera": 8.8,
+          "placementReadability": 9,
+          "mechanicFairness": 9.3,
+          "visibleFeedbackUI": 9,
+          "stabilityObservedHeadless": 9
+        },
+        "provisional": ["stabilityObservedHeadless"],
+        "closedFindings": [
+          "F1 arch camera occlusion",
+          "F2 portrait pickup HUD masks road"
+        ],
+        "findings": [
+          "F3 P2: existing plain-Halcyon portrait craft framing limitation, deferred by parent scope ruling after matched comparison"
+        ],
+        "browserErrors": 0,
+        "rawReport": ".experiments/gate4-2-critic-round2/report.json",
+        "criticReport": ".experiments/gate4-2-critic-round2/critique.md",
+        "supplementReport": ".experiments/gate4-2-critic-round2/corkscrew-stop-supplement/report.json",
+        "checks": {
+          "main": 14,
+          "exactStopSupplement": 3,
+          "totalPassed": 17
+        },
+        "baselineSupplement": {
+          "report": ".experiments/gate4-2-critic-round2/baseline-match/report.json",
+          "images": 4,
+          "errors": 0,
+          "result": "Same exact parked vehicle pose and settled camera/FOV in plain/feature at390x844 high/low; equivalent base craft crop. Temporary non-enumerable scenario fixture removed immediately. Unarmed runtime; no active-field or gameplay proof inferred.",
+          "scopeRuling": "Parent integrator: retain approved Halcyon framing for later iteration; no shared camera change or new round. Original camera score8.8 retained."
+        }
+      }
+    ],
+    "overallVerifiedPass": false
   },
   "verification": {
-    "build": null,
-    "tests": null,
-    "browserChecks": null,
-    "fullLint": null,
+    "build": "/assets/index-If0PLV6o.js",
+    "tests": 120,
+    "browserChecks": {
+      "passed": 17,
+      "total": 17,
+      "errors": 0,
+      "mainReport": ".experiments/gate4-2-critic-round2/report.json",
+      "supplementReport": ".experiments/gate4-2-critic-round2/corkscrew-stop-supplement/report.json",
+      "build": "/assets/index-If0PLV6o.js"
+    },
+    "fullLint": true,
     "foregroundPerformance": "unverified",
     "audioListening": "unverified",
-    "physicalDevices": "unverified"
+    "physicalDevices": "unverified",
+    "baselineTests": 73,
+    "physicsTests": 29,
+    "featureBuild": "/assets/halcyon-AknBKWAf.js",
+    "initialBrowserChecks": {
+      "passed": 11,
+      "total": 11,
+      "errors": 0,
+      "report": ".experiments/gate4-2-initial/report.json",
+      "build": "/assets/index-BQMhB16o.js"
+    }
   },
-  "openIssues": [],
+  "openIssues": [
+    "Existing Halcyon portrait framing crops craft at corkscrew lateral line; matched plain/feature, deferred baseline limitation",
+    "Foreground performance, audio listening, physical devices and actual OS lock unverified",
+    "Final combined Nacre integration check assigned to central integrator",
+    "Pickups remain explicitly opt-in; broader rollout and mechanic expansion require separate direction"
+  ],
   "sharedDocsPolicy": "Write this lane only during production; integrator aggregates root documents",
   "serverOwner": "parent Gate 3 session",
   "featureRules": {
@@ -33,5 +121,66 @@
     "activation": "immediate drive-over",
     "inventory": false,
     "rolloutToOtherLevels": false
+  },
+  "checkout": "/Users/g/.codex/worktrees/gate4-2-halcyon-pickups/tech9",
+  "branch": "codex/gate4-2-halcyon-pickups",
+  "ports": {
+    "dev": 5193,
+    "preview": 5194
+  },
+  "earlyReview": {
+    "humanStop": false,
+    "reason": "Latest explicit user direction relayed by parent fzero2: user away overnight; continue production and critic loop without early human review. Parent provides asynchronous early taste critique. Final human approval remains required."
+  },
+  "builders": {
+    "logic": "pickup_logic: simulation.js, placements.js, logic tests",
+    "presentation": "pickup_presentation: geometry.js, presentation.js, audio.js, style.css and presentation tests",
+    "integration": "root: adapter, opt-in physics, verification and lane docs",
+    "critic": "pickup_critic: independent production/browser evidence, no implementation"
+  },
+  "preflightPatch": {
+    "path": "/tmp/gate4-1-preflight.patch",
+    "sha256": "db476b947fa172d7ad0c90b34af0377e680bfab8cc31c186f180f0046cfdd6c4"
+  },
+  "preflightSupplement": {
+    "path": "/tmp/gate4-1-preflight-supplement.patch",
+    "sha256": "1aaeba74a57a6836401b6ab6a678b7b956e5de8d7df5dcfb298840ba97040cc0"
+  },
+  "sharedRepairPatches": [
+    {
+      "path": "/tmp/gate4-replay-recording.patch",
+      "sha256": "985882feab6ccf568cd2a90d2383b325d21908b7e7fd5f9921e864cb25fb26f8"
+    },
+    {
+      "path": "/tmp/gate4-shared-feedback-ui.patch",
+      "sha256": "fdff9236f1d31e3609a3d81f2dda8309cc36d2722311c7831806d63e3062da88"
+    },
+    {
+      "path": "/tmp/gate4-replay-transaction.patch",
+      "sha256": "c6eda432dfaa704d17f89912594cef5ce0086a6873bee4fd44eaafc7f97e2edd"
+    },
+    {
+      "path": "/tmp/gate4-portrait-timing.patch",
+      "sha256": "9ae62e429503ef2abd061e4af2b7a261ef7f8ad6e259584deaa2e5f95214d6f1",
+      "application": "Exact added rule appended with shared owner approval; patch context included unrelated Nacre CSS and was not imported"
+    }
+  ],
+  "handback": {
+    "url": "http://127.0.0.1:5194/?features=halcyon-pickups",
+    "controls": "Drive over devices; no item-use key. W/arrows throttle, A/D steer, S brake, Shift manual boost, R recover, Esc pause.",
+    "sourcePatch": "/tmp/gate4-2-halcyon-feature.patch",
+    "patchManifest": "/tmp/gate4-2-halcyon-manifest.json",
+    "committed": true,
+    "expansionAuthorized": false
+  },
+  "humanReview": {
+    "approved": true,
+    "date": "2026-09-29",
+    "feedback": "its a great starting point - lets go ahead and merge",
+    "scope": "Gate4.2 only, including reviewed shared runtime/repair dependencies; Nacre remains separate",
+    "mergeAuthorized": true,
+    "targetBranch": "g/scene-test",
+    "defaultOn": false,
+    "evidenceNote": "Human approval does not revise historical critic scores or certify unverified foreground/audio/device checks."
   }
 }

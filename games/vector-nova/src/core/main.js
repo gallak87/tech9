@@ -15,7 +15,15 @@ import { createAudio } from '../audio/index.js';
 import { createEffects } from '../effects/index.js';
 import { createUI } from '../ui/index.js';
 import { loadSettings, saveSettings } from '../progression/index.js';
-const VERSION = '0.2.2-gate2-pacing';
+import { createReviewCamera } from './review-camera.js';
+const parameters = new URLSearchParams(location.search);
+const orbital = parameters.get('level') === 'orbital';
+const blockout = orbital && parameters.get('review') === 'shape';
+const VERSION = orbital
+  ? blockout
+    ? '0.3.0-level2-blockout'
+    : '0.3.0-gate3-orbital'
+  : '0.2.2-gate2-pacing';
 const host = document.querySelector('#app');
 const errors = [];
 function fail(error) {
@@ -39,15 +47,51 @@ window.addEventListener('unhandledrejection', (e) =>
 );
 async function boot() {
   const settings = loadSettings(),
-    view = await createRenderer(host, settings),
+    view = await createRenderer(host, settings, { orbital, blockout }),
     { scene, camera, renderer } = view;
-  const track = createTrack(),
-    road = buildTrackVisual(track);
-  const signatureReview =
-    new URLSearchParams(location.search).get('review') === 'signature';
-  const environment = createEnvironment(track);
+  const candidate = orbital ? await import('../track/level2/index.js') : null;
+  const track = candidate ? candidate.createLevel2Track() : createTrack();
+  if (orbital && !blockout) {
+    track.id = 'asterion-orbital-1';
+    track.review = {
+      ...track.review,
+      kind: 'orbital-production',
+      phase: 'gate-3',
+    };
+  }
+  const road = candidate
+    ? blockout
+      ? candidate.buildLevel2Blockout(track)
+      : candidate.buildOrbitalTrack(track)
+    : buildTrackVisual(track);
+  const reviewCamera = orbital ? createReviewCamera(track, camera) : null;
+  const signatureReview = parameters.get('review') === 'signature';
+  const environment = orbital
+    ? blockout
+      ? new T.Group()
+      : (
+          await import('../environment/orbital/index.js')
+        ).createOrbitalEnvironment(track)
+    : createEnvironment(track);
   scene.add(road, environment);
-  const ship = createShip();
+  const ship = createShip({ plumeExposure: orbital && !blockout ? 1.65 : 1 });
+  const inspectionBounds = new T.Box3().setFromObject(ship.group);
+  const inspectionExtent = {
+    radial: Math.hypot(
+      Math.max(
+        Math.abs(inspectionBounds.min.x),
+        Math.abs(inspectionBounds.max.x),
+      ),
+      Math.max(
+        Math.abs(inspectionBounds.min.z),
+        Math.abs(inspectionBounds.max.z),
+      ),
+    ),
+    vertical: Math.max(
+      Math.abs(inspectionBounds.min.y + 0.15 - 0.7),
+      Math.abs(inspectionBounds.max.y + 0.15 - 0.7),
+    ),
+  };
   scene.add(ship.group);
   // One district-scale radiance probe gives the craft real nearby architecture
   // in its reflections. It is a static approximation, generated from this scene.
@@ -62,6 +106,8 @@ async function boot() {
       : [object.material])
       if (material?.isMeshStandardMaterial) material.envMap = cityReflection;
   });
+  if (orbital && !blockout)
+    environment.userData.setReflection?.(cityReflection);
   const inspectionScene = new T.Scene();
   inspectionScene.background = new T.Color('#64747d');
   inspectionScene.environment = scene.environment;
@@ -103,12 +149,13 @@ async function boot() {
     time = 0,
     raf = 0,
     active = true,
-    inspectionTime = 0;
+    inspectionTime = 0,
+    inspectionLayout = null;
   const inputLog = [],
     events = [],
     audio = createAudio(),
     rig = createCameraRig(camera),
-    effects = createEffects(scene);
+    effects = createEffects(scene, { refinedSparks: orbital && !blockout });
   const emit = (e) => {
     const event = { ...e, tick, time: state.time };
     events.push(event);
@@ -120,7 +167,12 @@ async function boot() {
     }
     if (e.type === 'impact') {
       ui.notice('BARRIER CONTACT · RESERVE LOST');
-      effects.impact(track.sample(state.distance), state.lateral);
+      effects.impact(
+        track.sample(state.distance),
+        orbital && !blockout
+          ? e.payload.side * (track.width / 2 - 0.4)
+          : state.lateral,
+      );
     }
     if (e.type === 'lap')
       ui.notice(
@@ -132,7 +184,8 @@ async function boot() {
   }
   function start() {
     sceneShip();
-    const newRun = mode === 'title' || mode === 'inspection';
+    const newRun =
+      mode === 'title' || mode === 'inspection' || mode === 'overview';
     if (newRun) {
       scenario = 'staging';
       state = createVehicleState();
@@ -220,6 +273,7 @@ async function boot() {
       ship.group.position.set(0, 0.1, 0);
       ship.group.quaternion.identity();
       inspectionTime = 0;
+      inspectionLayout = null;
       input.clear();
     } else {
       sceneShip();
@@ -227,6 +281,16 @@ async function boot() {
       mode = 'racing';
       rig.reset();
     }
+    ui.setMode(mode);
+  }
+  function overview(preset = 'perspective') {
+    if (!reviewCamera) return;
+    sceneShip();
+    reviewCamera.select(preset);
+    mode = 'overview';
+    accumulator = 0;
+    input.clear();
+    rig.reset();
     ui.setMode(mode);
   }
   const ui = createUI(
@@ -238,6 +302,12 @@ async function boot() {
       restart,
       home,
       camera: setCamera,
+      overview,
+      reviewSection(name) {
+        window.__VN.loadScenario(name, 47219);
+        document.activeElement?.blur();
+        ui.notice('SECTION REVIEW · LAP UNTIMED');
+      },
       settings: () => {
         view.apply();
         saveSettings(settings);
@@ -335,21 +405,57 @@ async function boot() {
       camera.up.set(0, 1, 0);
       camera.fov = 39;
       camera.aspect = innerWidth / innerHeight;
+      const size = `${innerWidth}x${innerHeight}`;
+      if (inspectionLayout?.size !== size)
+        inspectionLayout = { size, viewport: ui.inspectionViewport() };
+      const viewport = inspectionLayout.viewport;
+      const target = new T.Vector3(0, viewport ? 0.7 : 0.3, 0);
+      if (viewport) {
+        // Fit the craft's swept turntable envelope into the reserved stage.
+        // Independent horizontal/vertical extents keep short phones useful.
+        camera.position.normalize();
+        const sinPitch = camera.position.y;
+        const cosPitch = Math.hypot(camera.position.x, camera.position.z);
+        const depth =
+          inspectionExtent.radial * cosPitch +
+          inspectionExtent.vertical * sinPitch;
+        const height =
+          inspectionExtent.radial * sinPitch +
+          inspectionExtent.vertical * cosPitch;
+        const projection =
+          innerHeight / Math.tan(T.MathUtils.degToRad(camera.fov / 2));
+        const distance =
+          depth +
+          1.08 *
+            projection *
+            Math.max(
+              inspectionExtent.radial / viewport.width,
+              height / viewport.height,
+            );
+        camera.position.multiplyScalar(distance).add(target);
+      }
       camera.setViewOffset(
         innerWidth,
         innerHeight,
-        -innerWidth * 0.15,
-        0,
+        viewport
+          ? innerWidth / 2 - (viewport.left + viewport.width / 2)
+          : -innerWidth * 0.15,
+        viewport ? innerHeight / 2 - (viewport.top + viewport.height / 2) : 0,
         innerWidth,
         innerHeight,
       );
-      camera.lookAt(0, 0.3, 0);
+      camera.lookAt(target);
       camera.updateProjectionMatrix();
       view.renderInspection(inspectionScene);
     } else {
       camera.clearViewOffset();
       pose(s);
-      if (mode === 'title') {
+      if (
+        reviewCamera &&
+        (mode === 'overview' || (blockout && mode === 'title'))
+      ) {
+        reviewCamera.update();
+      } else if (mode === 'title') {
         const f = track.sample(0);
         camera.position
           .copy(f.position)
@@ -415,6 +521,7 @@ async function boot() {
       return this.getSnapshot();
     },
     setCamera,
+    overview,
     start,
     pause,
     restart,
@@ -491,12 +598,29 @@ async function boot() {
           valid: race.valid,
         },
         track: {
+          id: track.id,
+          name: track.name,
+          review: track.review,
           length: track.length,
           width: track.width,
           sections: track.sections,
           signature: track.signature,
           featureZones: track.featureZones,
           scenarios: Object.keys(track.scenarios || {}),
+        },
+        environment: {
+          metrics: environment.userData.metrics,
+          clearance: environment.userData.clearanceReport
+            ? {
+                ...environment.userData.clearanceReport,
+                placements: environment.userData.clearanceReport.placements.map(
+                  ({ bounds, ...placement }) => ({
+                    ...placement,
+                    partCount: bounds.length,
+                  }),
+                ),
+              }
+            : undefined,
         },
         events: [...events],
         errors: [...errors],

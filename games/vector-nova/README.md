@@ -1,6 +1,6 @@
 # VECTOR//NOVA
 
-Standalone browser anti-gravity racer, **Gate 2 — ready for human playtest; Gate 1 approved**. One original Kestrel and the complete Halcyon Viaduct first level. Built independently with Three.js/Vite; neither tech9 framework is imported or required.
+Standalone browser anti-gravity racer, **Gates 1 and 2 human-approved; orbital shape approved, Gate 3 candidate ready for human playtest**. One original Kestrel, the preserved Halcyon Viaduct first level and the Asterion Orbital candidate. Built independently with Three.js/Vite; neither tech9 framework is imported or required.
 
 ## Run
 
@@ -15,6 +15,7 @@ npm run preview
 # http://127.0.0.1:5180
 npm test
 npm run verify
+npm run verify:orbital
 ```
 
 Vite may require its platform-specific optional native dependency; do not install with optional dependencies disabled. Chrome must be installed for verification, or run `npx playwright install chromium`. `VN_BROWSER_CHANNEL`, `VN_BROWSER_PATH`, `VN_URL`, `VN_EVIDENCE` customize verification. Keep verification headless unless explicitly requested otherwise. The harness keeps a server it starts running for review. Rendering needs WebGL2. No network resources, accounts, external fonts, or backend are used by gameplay.
@@ -35,15 +36,13 @@ The Gate 2 circuit is now 5 km, down from 7.2 km. The opening introduces a gentl
 
 Automatic bend assistance is now 0.3 instead of 1.0. The craft follows 30% of the road's yaw automatically and you steer the remaining turn. Pitch and roll remain magnetically attached to the surface, including upside down. Steering follows the visible driver-left/right directions; stationary magnetic hold prevents rest drift on grades and banks. This is a surface-constrained handling model; free-flight jumps remain deferred.
 
-## Review scope
+## Asterion Orbital — Gate 3 human playtest
 
-Gate 1 approved the Kestrel silhouette, the metropolitan direction and the basic practice shell. Gate 2 completes the first level and core handling/presentation. Broader game systems and subsequent levels remain pending separate human gates. See [roadmap](ROADMAP.md), [architecture](ARCHITECTURE.md), [art bible](docs/ART_BIBLE.md), [provenance](docs/REFERENCES.md), [asset manifest](docs/ASSET_MANIFEST.json), [status](docs/STATUS.json) and [independent critic](docs/GATE2_CRITIQUE.md). A score is claimed only when the critic actually awards it; human approval is separate.
+Open **[Asterion Orbital](http://127.0.0.1:5180/?level=orbital)** after `npm run build` and `npm run preview`. The human-approved 4.5 km route is finished as a sunlit shipyard above a planet. Use **Enter orbital circuit** for a full practice lap. **Circuit views** offers 3D/top/profile views and parked section starts; it collapses while driving. The real Kestrel inspection remains available.
 
-Gate 3 now combines levels 2 and 3 into one phase and one human review; there is no separate Gate 4. Future critic gauntlets stop at a verified pass or six completed rounds, while retaining 9/10 in every applicable category. The [fresh-agent handoff](docs/GATE3_HANDOFF.md) links the original prompt, records the user's overrides and explains how to resume. Servers were explicitly stopped at this checkpoint; launch them again only when continuing work.
+The authorized production and independent critic loop completed six rounds. Final formal scores are 9 for art, lighting, handling, track and visible feedback; UI is 8.5 after the final critic caught portrait inspection framing, now repaired and verified by the integrator without inventing another score. Performance retains 8.5 with foreground, listening and physical-device evidence unverified. This is a playable human-review candidate, not a certified all-category pass. See [critique](docs/GATE3_CRITIQUE.md) and [status](docs/STATUS.json). Industrial is tabled; broader racing systems await explicit Gate 3 approval.
 
-The user ended further critic iterations after four completed rounds, then requested this signature-sequence revision and then the shorter, more evenly paced route with 0.3 steering assistance, without another critic. Gate 2 is explicitly unapproved. The pre-revision checkpoint is commit `04a84460`. Last formal scores: art/lighting 8, handling/UI 9, track 8.5, visible feedback 8, qualified performance 8.5. Final facade/water/plume fixes received builder/integrator checks, not a new critic score. The original all-category 9/10 target is not certified. Those scores apply to the checkpoint, not to the new signature sequence. Gate 2 remains pending the user's playtest of the shorter route and reduced assistance.
-
-For the new pacing, play from the start at `http://127.0.0.1:5180/`. For a focused corkscrew playtest, open `http://127.0.0.1:5180/?review=signature` and press **Enter proving loop**. This starts parked before the corkscrew; its partial lap is untimed. The plain URL and fresh-lap action start the complete circuit.
+[Halcyon](http://127.0.0.1:5180/) remains at the plain URL. The [approved orbital bare shape](http://127.0.0.1:5180/?level=orbital&review=shape) is preserved for comparison. Gate 2's four historical critic rounds did not certify all-category 9/10; human approval does not rewrite those scores or certify foreground performance. See [roadmap](ROADMAP.md), [handoff](docs/GATE3_HANDOFF.md), [architecture](ARCHITECTURE.md), [art bible](docs/ART_BIBLE.md) and [historical critic](docs/GATE2_CRITIQUE.md).
 
 ## Verification
 
@@ -51,7 +50,7 @@ For the new pacing, play from the start at `http://127.0.0.1:5180/`. For a focus
 
 Review browsers stay hidden/headless; do not open external reference videos or visible browser windows, or create new video recordings. Timings from these sessions cannot establish sustained foreground desktop performance. Physical mobile/gamepad and independent audio listening remain unverified. Temporary screenshot sequences and raw reports stay in git-ignored `.experiments/`; concise findings remain in documentation.
 
-Source generators are editable assets; the original generated cloud-only sky lives in public/assets/sky/ with prompt/provenance in docs/SKY_ASSET.md. No Blender exports or remote assets are needed. Third-party licence notices are in `docs/licenses/` and dependency packages. The build is approximately 246KB gzip plus the 1.5MB PNG sky; procedural geometry/textures allocate at boot. Rendering is warmed before the ready signal.
+Source generators are editable assets. Halcyon’s original generated cloud-only sky is documented in `docs/SKY_ASSET.md`. Orbital terrain and separate cloud-density material maps are documented with exact imagegen prompts in `src/renderer/orbital/asset-provenance.json`. The orbital runtime maps total 16.00MB; the main script is about 248KB gzip, with additional lazy circuit modules. No Blender exports or remote assets are needed. Third-party licence notices are in `docs/licenses/` and dependency packages. Geometry and textures allocate at boot; rendering is warmed before the ready signal.
 
 ## Code hygiene
 

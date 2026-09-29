@@ -11,6 +11,10 @@ import {
   plate,
 } from './geometry.js';
 import { createMaterials } from './materials.js';
+import {
+  createOrbitalPlumeGeometry,
+  createOrbitalPlumeMaterial,
+} from './orbital-plume.js';
 
 const PI = Math.PI;
 const prowStations = [
@@ -54,11 +58,16 @@ const disk = (r, x, y, z) =>
 /** Original Kestrel prototype. Local +Z nose, +Y roof; root y=0 is the hover
  * shoe datum. Core owns world movement. All animation stays below this root.
  * Reproducible showcase: update({speed:70,boost:false,steer:0,time:0,energy:1}). */
-export function createShip() {
+export function createShip({ plumeExposure = 1 } = {}) {
   const group = new THREE.Group();
   group.name = 'Kestrel / chassis 07';
   const materials = createMaterials(),
     bins = new Map();
+  const orbitalPlume = plumeExposure > 1;
+  if (orbitalPlume) {
+    materials.plume.dispose();
+    materials.plume = createOrbitalPlumeMaterial();
+  }
   const rotors = [],
     shoes = [],
     plumes = [];
@@ -235,25 +244,30 @@ export function createShip() {
       rotor,
       'Impeller / balanced titanium',
     );
-    // Two nested open ion volumes share one draw: a narrow moving core and a
-    // transparent compression envelope. Both start inside the real nozzle;
-    // neither uses an opaque camera-facing disc.
-    // Compression lives in the light field. A smoothly narrowing boundary
-    // avoids turning the transparent volume into a stack of pointed shards.
-    const jetProfile = Array.from({ length: 13 }, (_, step) => {
-      const aft = step / 12;
-      const radius = 0.235 * (1 - aft) * (1 - 0.16 * Math.sin(PI * aft));
-      return new THREE.Vector2(Math.max(0.001, radius), aft);
-    });
-    const envelope = new THREE.LatheGeometry(jetProfile, 24);
-    envelope.rotateX(-PI / 2);
-    const core = envelope.clone();
-    core.scale(0.38, 0.38, 0.92);
-    // UV.y>=2 marks the inner layer without another material or draw call.
-    for (let vertex = 0; vertex < core.attributes.uv.count; vertex++) {
-      core.attributes.uv.setY(vertex, core.attributes.uv.getY(vertex) + 2);
+    let plumeGeo;
+    if (orbitalPlume) {
+      plumeGeo = createOrbitalPlumeGeometry();
+    } else {
+      // Two nested open ion volumes share one draw: a narrow moving core and a
+      // transparent compression envelope. Both start inside the real nozzle;
+      // neither uses an opaque camera-facing disc.
+      // Compression lives in the light field. A smoothly narrowing boundary
+      // avoids turning the transparent volume into a stack of pointed shards.
+      const jetProfile = Array.from({ length: 13 }, (_, step) => {
+        const aft = step / 12;
+        const radius = 0.235 * (1 - aft) * (1 - 0.16 * Math.sin(PI * aft));
+        return new THREE.Vector2(Math.max(0.001, radius), aft);
+      });
+      const envelope = new THREE.LatheGeometry(jetProfile, 24);
+      envelope.rotateX(-PI / 2);
+      const core = envelope.clone();
+      core.scale(0.38, 0.38, 0.92);
+      // UV.y>=2 marks the inner layer without another material or draw call.
+      for (let vertex = 0; vertex < core.attributes.uv.count; vertex++) {
+        core.attributes.uv.setY(vertex, core.attributes.uv.getY(vertex) + 2);
+      }
+      plumeGeo = combine([envelope, core]);
     }
-    const plumeGeo = combine([envelope, core]);
     const plume = mesh(plumeGeo, materials.plume, group, 'Ion exhaust');
     plume.position.set(x, 0.5, -3.2);
     plume.castShadow = false;
@@ -541,7 +555,9 @@ export function createShip() {
     materials.power.emissiveIntensity =
       1.1 + velocity * 1.1 + (activeBoost ? 1.2 : 0);
     materials.plume.uniforms.strength.value =
-      0.035 + velocity * 0.13 + (activeBoost ? 0.28 : 0);
+      (orbitalPlume
+        ? 0.055 + velocity * 0.11 + (activeBoost ? 0.47 : 0)
+        : 0.035 + velocity * 0.13 + (activeBoost ? 0.28 : 0)) * plumeExposure;
     materials.plume.uniforms.flowTime.value = t;
     materials.plume.uniforms.boostMix.value = activeBoost ? 1 : 0;
     materials.plume.uniforms.glowColor.value.setHex(
@@ -549,11 +565,20 @@ export function createShip() {
     );
     for (let i = 0; i < plumes.length; i++) {
       const pulse = 1 + Math.sin(t * 17 + i * 2) * 0.008;
-      const width = (activeBoost ? 1.02 : 0.73 + velocity * 0.19) * pulse;
+      const width =
+        (orbitalPlume
+          ? activeBoost
+            ? 1.18
+            : 0.8 + velocity * 0.21
+          : activeBoost
+            ? 1.02
+            : 0.73 + velocity * 0.19) * pulse;
       plumes[i].scale.set(
         width,
         width,
-        (0.12 + velocity * 0.68 + (activeBoost ? 1.48 : 0)) * pulse,
+        (orbitalPlume
+          ? 0.22 + velocity * 0.95 + (activeBoost ? 2.55 : 0)
+          : 0.12 + velocity * 0.68 + (activeBoost ? 1.48 : 0)) * pulse,
       );
     }
   }

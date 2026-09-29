@@ -1,11 +1,11 @@
 {
-  "policy": "Original project-owned procedural geometry/materials plus one original AI-generated cloud-only sky texture; no copied reference-game artwork.",
+  "policy": "Original project-owned geometry/materials with an original generated Halcyon sky and four generated orbital regional/surrounding material maps; no copied reference-game artwork.",
   "assets": [
     {
       "id": "kestrel",
       "source": "src/ships/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original procedural lofts, hull panels, engine and hover geometry, source materials and markings",
+      "provenance": "Original procedural lofts, hull panels, engine and hover geometry, source materials and markings; orbital-only analytic propulsion emission volume.",
       "rights": "Project-authored; no third-party asset restrictions",
       "runtimeDependencies": ["three"]
     },
@@ -49,6 +49,51 @@
       "rights": "Generated for this project with built-in imagegen; no third-party reference artwork supplied",
       "runtimeDependencies": ["three"],
       "dimensions": [1774, 887]
+    },
+    {
+      "id": "asterion-orbital-blockout",
+      "source": "src/track/level2/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original authored orbital route, shared project-owned frame/sweep helpers, neutral road geometry and simple sphere planet for early human shape review; no new external imagery",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": ["three"]
+    },
+    {
+      "id": "asterion-track-production",
+      "source": "src/track/level2/production.js and materials.js",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original folded deck, rails, service panels, portal/signage geometry and generated surface textures; adapts own shared sweep/beam/road-seal/stable-fixture helpers",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": ["three"]
+    },
+    {
+      "id": "asterion-shipyard",
+      "source": "src/environment/orbital/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original layered survey tenders, skeletal construction hull, drydock cradles, freight/habitat/relay/solar and radiator assemblies; fitted ceramic panels, pressure shells, recessed control cabins and distinct metal/composite/glass finishes; generated owned geometry and material maps.",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": ["three"]
+    },
+    {
+      "id": "asterion-planet",
+      "source": "src/renderer/orbital/ and public/assets/orbital/",
+      "creator": "VECTOR//NOVA project contributors",
+      "provenance": "Original deterministic global maps plus original imagegen terrain and separate weather-density material maps covering the near region and visible surrounding globe. Real spherical surface/cloud/atmosphere geometry with runtime lighting; no screenshot scenery.",
+      "rights": "Project-authored; no third-party asset restrictions",
+      "runtimeDependencies": ["three"],
+      "offlineGeneratorDependencies": ["numpy", "Pillow"],
+      "textureMemoryEstimateMiB": 80,
+      "compressedAssetBytes": 16001716,
+      "generationMode": "Built-in image_gen tool for regional terrain and grayscale weather; no reference images",
+      "promptRecord": "src/renderer/orbital/asset-provenance.json",
+      "runtimeMaps": [
+        "public/assets/orbital/asterion-surface.webp",
+        "public/assets/orbital/asterion-clouds.webp",
+        "public/assets/orbital/asterion-terrain-authored-v1.png",
+        "public/assets/orbital/asterion-weather-density-v1.png",
+        "public/assets/orbital/asterion-terrain-surround-v1.png",
+        "public/assets/orbital/asterion-weather-surround-v1.png"
+      ]
     }
   ],
   "thirdParty": [

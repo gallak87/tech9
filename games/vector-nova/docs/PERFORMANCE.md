@@ -80,3 +80,23 @@ All 55 unit tests and 43 production-browser checks pass, including visible inver
 The reported road flicker had two supported causes: active lamp pools could disappear at nonzero intensity, and thin expansion seals intersected the tessellated road. The same three-light pool now uses continuous fades and stable fixture assignments. All 564 new seal triangles were checked at 8 mm road clearance; 20,002 forward/reverse updates checked pooled-light continuity and finite geometry. City clearance checks found no intersections across 1,506 road probes and 114 support axes.
 
 Transfer is about 246.5 KB gzip for HTML/JS/CSS plus the unchanged 1.5 MB sky. Temporary checks stay under ignored `.experiments/pacing-revision/`. Gate 2 remains unapproved.
+
+## Gate 3 orbital — round 2 candidate measurements
+
+Production script `/assets/index-C_rmn5EE.js`, `?level=orbital`, hidden Chrome 154 / Apple M1 Pro ANGLE Metal, 1920×1080 DPR1 with high/low and responsive checks. The integrator's 42 real-browser checks passed with zero runtime/load errors; 66 automated tests and full lint also passed. These checks use short actual keyboard runs, sequential stills and snapshots, not a normal-speed full-lap replay.
+
+Sampled orbital render peaks: **400 calls / 1,355,613 triangles / 419.36 MiB estimated GPU assets**. Source counts differ from rendered totals because shadows and postprocessing add passes. Planet maps total 5,583,650 bytes on disk and approximately 112 MiB decoded with mips. Environment source: 14 sites, 131 batches, 271,176 triangles, 6,261 clearance-tested component bounds and two 256px finish maps. Track source: 50 meshes / 256,891 triangles. These remain below existing graphics/asset budgets.
+
+Screenshot-run frame timings include capture stalls and are not performance certification. The independent round 1 isolated samples are recorded in GATE3_CRITIQUE.md; they do not certify the revised round 2 build. Actual foreground pacing, physical devices and audio listening remain unverified under the user's review preferences. Current independent findings and later measurements supersede this intermediate candidate.
+
+## Orbital round 3 candidate
+
+Production `/assets/index-D-5ds8Q3.js`: 70 unit tests, full lint, build and all 42 short real-input browser checks pass with zero runtime/load errors. Current orbital root samples peak at 432 calls / 1,482,305 triangles / 382.12 MiB estimated GPU assets, below the original resource caps. The regional surface and weather now use 64 MiB of texture storage rather than the prior 112 MiB. These capture-heavy samples are resource observations, not timing or foreground certification. Independent review follows in the same bounded gauntlet. Report: `.experiments/gate3-regression-round3/report.json`.
+
+## Orbital round 4 candidate
+
+Production `/assets/index-C3Xph3wR.js`: all 70 unit tests, full lint, build and 42 short real-input browser checks pass with zero errors. Root orbital samples peak at 457 calls / 1,698,873 triangles / 403.75 MiB estimated GPU assets. Six runtime planet textures total 16,001,716 file bytes and 80 MiB estimated texture memory. Added portal and station surface construction preserves the approved route and source clearance checks. Resource caps remain unchanged; independent timing/transfer observations and the human performance limit remain separate. Report: `.experiments/gate3-regression-round4/report.json`.
+
+## Verified orbital checkpoint after the final inspection repair
+
+Production `/assets/index-c6gHY7PG.js` passes all 70 unit tests, 42 orbital/Halcyon browser checks and 9 focused inspection/control checks with zero errors. Root current orbital peaks: 457 calls / 1,698,825 triangles / 403.75MiB estimated assets. Full lint and production build pass. The final camera/layout repair received integrator visual checks, without reopening the six-round critic gauntlet or changing its scores. Foreground performance, listening and physical devices remain unverified.

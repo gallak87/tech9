@@ -8,7 +8,11 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { createSky } from './sky.js';
 import { createContactShadow } from './contact-shadow.js';
 
-export async function createRenderer(host, settings) {
+export async function createRenderer(
+  host,
+  settings,
+  { orbital = false, blockout = false } = {},
+) {
   const renderer = new T.WebGLRenderer({
     antialias: true,
     powerPreference: 'high-performance',
@@ -23,24 +27,49 @@ export async function createRenderer(host, settings) {
   host.prepend(renderer.domElement);
   renderer.domElement.id = 'world';
   const scene = new T.Scene();
-  scene.background = new T.Color('#77899d');
-  scene.fog = new T.FogExp2('#8195af', 0.00025);
-  const camera = new T.PerspectiveCamera(64, 1, 0.2, 14000);
-  const sky = await createSky();
-  scene.add(sky.mesh);
-  const contactShadow = createContactShadow();
+  scene.background = new T.Color(orbital ? '#03070d' : '#77899d');
+  scene.fog = orbital ? null : new T.FogExp2('#8195af', 0.00025);
+  const backdrop =
+    orbital && !blockout
+      ? await (await import('./orbital/index.js')).createOrbitalBackdrop()
+      : null;
+  const sky = backdrop ? null : await createSky();
+  const far = backdrop?.far ?? 14000;
+  const camera = new T.PerspectiveCamera(64, 1, 0.2, far);
+  const backgroundGroup = backdrop?.group ?? sky.mesh;
+  scene.add(backgroundGroup);
+  backgroundGroup.visible = !blockout;
+  function updateBackdrop(position, time = 0) {
+    if (backdrop) backdrop.update?.(position, time);
+    else sky.mesh.position.copy(position);
+  }
+  const contactShadow = createContactShadow(
+    orbital && !blockout ? { surfaceStep: 4, opacity: 0.5 } : undefined,
+  );
   scene.add(contactShadow.mesh);
   const environmentScene = new T.Scene();
-  const environmentSky = sky.mesh.clone();
+  environmentScene.background = scene.background.clone();
+  const environmentSky = backgroundGroup.clone(true);
+  environmentSky.visible = true;
+  environmentSky.traverse((object) => {
+    if (object.userData.reflectionExclude) object.visible = false;
+  });
   environmentScene.add(environmentSky);
   const pmrem = new T.PMREMGenerator(renderer);
-  const env = pmrem.fromScene(environmentScene, 0.04, 0.1, 14000);
+  const env = pmrem.fromScene(environmentScene, 0.04, 0.1, far);
   scene.environment = env.texture;
-  scene.environmentIntensity = 1.12;
+  scene.environmentIntensity = backdrop?.environmentIntensity ?? 1.12;
   pmrem.dispose();
-  const hemi = new T.HemisphereLight('#a9c8f6', '#243244', 1.18);
+  const hemi = new T.HemisphereLight(
+    backdrop?.ambientSky ?? (blockout ? '#e2ebf3' : '#a9c8f6'),
+    backdrop?.ambientGround ?? '#243244',
+    backdrop?.ambientIntensity ?? (blockout ? 2.2 : 1.18),
+  );
   scene.add(hemi);
-  const sun = new T.DirectionalLight('#ffc38e', 2.7);
+  const sun = new T.DirectionalLight(
+    backdrop?.sunColor ?? (blockout ? '#fff2df' : '#ffc38e'),
+    backdrop?.sunIntensity ?? 2.7,
+  );
   sun.castShadow = true;
   sun.shadow.mapSize.set(3072, 3072);
   Object.assign(sun.shadow.camera, {
@@ -55,8 +84,11 @@ export async function createRenderer(host, settings) {
   sun.shadow.normalBias = 0.025;
   scene.add(sun, sun.target);
   // Soft cool back light is a sky contribution, deliberately below the sunset key.
-  const fill = new T.DirectionalLight('#a7caff', 0.55);
-  fill.position.set(140, 200, -100);
+  const fill = new T.DirectionalLight(
+    backdrop?.fillColor ?? '#a7caff',
+    backdrop?.fillIntensity ?? 0.55,
+  );
+  fill.position.set(140, backdrop ? 110 : 200, -100);
   scene.add(fill);
   const target = new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType });
   // GTAO blended into multisampled HDR targets produced an opaque region on
@@ -78,17 +110,24 @@ export async function createRenderer(host, settings) {
   // become solid geometry in the AO normal/depth override pass.
   const renderAO = ao.render.bind(ao);
   ao.render = (...args) => {
-    sky.mesh.visible = false;
+    const skyVisible = backgroundGroup.visible;
+    const contactVisible = contactShadow.mesh.visible;
+    backgroundGroup.visible = false;
     contactShadow.mesh.visible = false;
     try {
       renderAO(...args);
     } finally {
-      sky.mesh.visible = true;
-      contactShadow.mesh.visible = true;
+      backgroundGroup.visible = skyVisible;
+      contactShadow.mesh.visible = contactVisible;
     }
   };
   composer.addPass(ao);
-  const bloom = new UnrealBloomPass(new T.Vector2(960, 540), 0.16, 0.3, 1.8);
+  const bloom = new UnrealBloomPass(
+    new T.Vector2(960, 540),
+    backdrop ? 0.07 : 0.16,
+    0.3,
+    backdrop ? 3.0 : 1.8,
+  );
   composer.addPass(bloom);
   const output = new OutputPass();
   composer.addPass(output);
@@ -116,12 +155,14 @@ export async function createRenderer(host, settings) {
       Math.ceil(innerHeight * ratio * 0.6),
     );
     ao.enabled = settings.quality === 'high' && !mobile;
-    bloom.enabled = settings.quality === 'high';
+    bloom.enabled = settings.quality === 'high' && !blockout;
     renderer.shadowMap.enabled = true;
   }
   apply();
   window.addEventListener('resize', apply);
-  const sunOffset = sky.sunDirection.clone().multiplyScalar(700);
+  const sunOffset = (backdrop?.sunDirection ?? sky.sunDirection)
+    .clone()
+    .multiplyScalar(700);
   return {
     renderer,
     scene,
@@ -130,28 +171,37 @@ export async function createRenderer(host, settings) {
     apply,
     bakeCityReflection(position, excluded) {
       const generator = new T.PMREMGenerator(renderer);
-      const priorSky = sky.mesh.position.clone();
       const shadows = renderer.shadowMap.enabled;
-      const visible = excluded.map((object) => object.visible);
-      excluded.forEach((object) => {
+      const hidden = [...excluded];
+      scene.traverse((object) => {
+        if (object.userData.reflectionExclude) hidden.push(object);
+      });
+      const visible = hidden.map((object) => object.visible);
+      hidden.forEach((object) => {
         object.visible = false;
       });
       contactShadow.mesh.visible = false;
-      sky.mesh.position.copy(position);
+      updateBackdrop(position, elapsed);
       renderer.shadowMap.enabled = false;
       try {
         cityReflection?.dispose();
-        cityReflection = generator.fromScene(scene, 0.025, 0.3, 6000, {
-          size: 256,
-          position,
-        });
+        cityReflection = generator.fromScene(
+          scene,
+          0.025,
+          0.3,
+          backdrop ? far : 6000,
+          {
+            size: 256,
+            position,
+          },
+        );
         return cityReflection.texture;
       } finally {
         generator.dispose();
         renderer.shadowMap.enabled = shadows;
-        sky.mesh.position.copy(priorSky);
+        updateBackdrop(camera.position, elapsed);
         contactShadow.mesh.visible = true;
-        excluded.forEach((object, i) => {
+        hidden.forEach((object, i) => {
           object.visible = visible[i];
         });
       }
@@ -163,7 +213,7 @@ export async function createRenderer(host, settings) {
       sun.target.position.copy(position);
       sun.position.copy(position).add(sunOffset);
       sun.target.updateMatrixWorld();
-      sky.mesh.position.copy(camera.position);
+      updateBackdrop(camera.position, elapsed);
     },
     render(now) {
       const dt = last ? Math.min((now - last) / 1000, 0.1) : 1 / 60;
@@ -171,7 +221,7 @@ export async function createRenderer(host, settings) {
       last = now;
       elapsed += dt;
       if (times.length > 24000) times.shift();
-      sky.mesh.position.copy(camera.position);
+      updateBackdrop(camera.position, elapsed);
       scene.userData.elapsed = elapsed;
       renderer.info.reset();
       renderer.shadowMap.needsUpdate = true;
@@ -209,10 +259,21 @@ export async function createRenderer(host, settings) {
       const gl = renderer.getContext(),
         ext = gl.getExtension('WEBGL_debug_renderer_info');
       let geometryBytes = 0,
-        textureBytes =
-          sky.texture.image.width * sky.texture.image.height * 4 * 1.34;
+        textureBytes = 0;
       const gs = new Set(),
         ts = new Set();
+      const countTexture = (texture) => {
+        if (!texture?.isTexture || ts.has(texture)) return;
+        ts.add(texture);
+        textureBytes +=
+          (texture.image?.width || 256) *
+          (texture.image?.height || 256) *
+          4 *
+          1.34;
+      };
+      countTexture(sky?.texture);
+      for (const texture of backdrop?.ownedTextures ?? [])
+        countTexture(texture);
       scene.traverse((o) => {
         if (o.geometry && !gs.has(o.geometry)) {
           gs.add(o.geometry);
@@ -221,13 +282,7 @@ export async function createRenderer(host, settings) {
           geometryBytes += o.geometry.index?.array.byteLength || 0;
         }
         for (const m of Array.isArray(o.material) ? o.material : [o.material])
-          if (m)
-            for (const v of Object.values(m))
-              if (v?.isTexture && !ts.has(v)) {
-                ts.add(v);
-                textureBytes +=
-                  (v.image?.width || 256) * (v.image?.height || 256) * 4 * 1.34;
-              }
+          if (m) for (const v of Object.values(m)) countTexture(v);
       });
       const ratio = renderer.getPixelRatio();
       const postBytes =
@@ -269,6 +324,11 @@ export async function createRenderer(host, settings) {
           bloom: bloom.enabled,
           tonemapping: 'ACES',
           colourSpace: 'sRGB',
+          world: orbital
+            ? blockout
+              ? 'orbital-blockout'
+              : 'asterion-orbital'
+            : 'halcyon',
         },
         timingNote:
           'RAF intervals; headless and capture runs not foreground certification',
@@ -276,7 +336,8 @@ export async function createRenderer(host, settings) {
     },
     dispose() {
       window.removeEventListener('resize', apply);
-      sky.dispose();
+      backdrop?.dispose();
+      sky?.dispose();
       contactShadow.dispose();
       env.dispose();
       cityReflection?.dispose();

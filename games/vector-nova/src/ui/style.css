@@ -262,6 +262,7 @@ dd {
   color: var(--accent);
 }
 .modal {
+  z-index: 20;
   pointer-events: auto;
   position: absolute;
   left: 50%;
@@ -275,6 +276,13 @@ dd {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: calc(100dvh - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.paused #legend,
+.paused .review-tag {
+  display: none;
 }
 .modal .eyebrow {
   margin-bottom: 0;
@@ -694,5 +702,266 @@ select {
   .energy span,
   .speed i {
     font-size: 11px;
+  }
+}
+
+/* Deliberately small review shell; the actual road remains the subject. */
+#interface.blockout-review {
+  background: none;
+}
+.blockout-review #title-panel {
+  top: 140px;
+  left: 4vw;
+  width: 310px;
+  max-width: 310px;
+}
+.blockout-review #title-panel h1 {
+  font-size: 47px;
+  line-height: 0.95;
+  margin: 14px 0 20px;
+}
+.blockout-review #title-panel .intro {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+.blockout-review .track-facts {
+  margin: 18px 0;
+  gap: 20px;
+}
+.blockout-review #title-panel .small {
+  font-size: 12px;
+  line-height: 1.65;
+}
+#shape-controls {
+  position: absolute;
+  right: 4vw;
+  bottom: 110px;
+  width: 290px;
+  padding: 14px;
+  background: #14222ee8;
+  border: 1px solid #ffffff30;
+  pointer-events: auto;
+}
+.shape-views {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.shape-views button {
+  flex: 1;
+  padding: 12px 8px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.shape-jump {
+  display: grid;
+  gap: 9px;
+}
+.shape-jump label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #d3ddd9;
+}
+.shape-jump select {
+  width: 100%;
+  padding: 10px;
+  background: #233440;
+  border: 1px solid #ffffff50;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+}
+#shape-controls a {
+  display: inline-block;
+  font-size: 10px;
+  margin-top: 14px;
+  color: #dbe5e2;
+  letter-spacing: 0.05em;
+}
+.blockout-review.driving #shape-controls {
+  top: 160px;
+  bottom: auto;
+}
+.blockout-review.driving #shape-controls a {
+  display: none;
+}
+.blockout-review #minimap {
+  top: 390px;
+}
+@media (max-width: 760px), (max-height: 700px) {
+  .blockout-review #title-panel {
+    top: 90px;
+    width: 230px;
+  }
+  .blockout-review #title-panel h1 {
+    font-size: 32px;
+    margin: 8px 0;
+  }
+  .blockout-review #title-panel .intro {
+    font-size: 12px;
+  }
+  .blockout-review #title-panel .small,
+  .blockout-review .track-facts {
+    display: none;
+  }
+  #shape-controls {
+    width: 255px;
+    bottom: 75px;
+  }
+}
+@media (max-width: 760px) {
+  .blockout-review #minimap {
+    top: 175px;
+  }
+  .blockout-review.shape-overview #title-panel .intro {
+    display: none;
+  }
+  .blockout-review #title-panel {
+    top: 75px;
+  }
+  .blockout-review.driving #shape-controls {
+    top: 175px;
+    left: 4vw;
+    right: auto;
+    width: 190px;
+    padding: 8px;
+    max-height: calc(100dvh - 195px);
+    overflow-y: auto;
+  }
+  .blockout-review.driving .shape-jump,
+  .blockout-review.driving #shape-controls a {
+    display: none;
+  }
+  .blockout-review.driving .shape-views {
+    margin: 0;
+  }
+  .orbital-production.driving .shape-jump {
+    display: grid;
+    margin-top: 12px;
+  }
+}
+
+#review-toggle {
+  width: 100%;
+  padding: 8px 2px 14px;
+  border: 0;
+  background: transparent;
+  display: flex;
+  justify-content: space-between;
+}
+#review-toggle[aria-expanded='false'] {
+  padding-bottom: 8px;
+}
+@media (max-height: 570px) and (min-width: 761px) {
+  .driving #legend {
+    display: none;
+  }
+  .blockout-review.driving #shape-controls {
+    top: 170px;
+    width: 220px;
+    padding: 8px;
+    max-height: calc(100dvh - 190px);
+    overflow-y: auto;
+  }
+  .blockout-review #minimap {
+    top: 170px;
+    left: 4vw;
+    right: auto;
+    bottom: auto;
+    width: 110px;
+    height: 80px;
+  }
+  .driving .telemetry {
+    bottom: 30px;
+  }
+  .driving .review-tag {
+    display: none;
+  }
+  .modal button {
+    padding: 10px;
+  }
+}
+#interface.orbital-production:not(.driving) {
+  background: linear-gradient(90deg, #06121ce6, #06121c60 38%, transparent 65%);
+}
+.orbital-production .actions {
+  gap: 8px;
+}
+.orbital-production #title-panel {
+  top: 23vh;
+  width: 330px;
+  max-width: 330px;
+}
+.orbital-production #title-panel h1 {
+  font-size: 55px;
+}
+.orbital-access {
+  display: inline-block;
+  color: #e8cba8;
+  margin-top: 14px;
+  font-size: 12px;
+  letter-spacing: 0.09em;
+}
+.orbital-production #shape-controls {
+  border-color: #e2c5a445;
+}
+@media (max-width: 760px), (max-height: 700px) {
+  .orbital-production #title-panel {
+    top: 15vh;
+    width: 230px;
+  }
+  .orbital-production #title-panel h1 {
+    font-size: 32px;
+  }
+}
+
+.inspecting #legend,
+.inspecting .review-tag {
+  display: none;
+}
+
+/* Portrait inspection reserves a separate stage between heading and controls. */
+@media (max-width: 760px) and (max-aspect-ratio: 1/1) {
+  #inspection-panel {
+    top: 90px;
+    bottom: max(18px, env(safe-area-inset-bottom));
+    left: 6vw;
+    right: 6vw;
+    max-width: none;
+    width: auto;
+    display: flex;
+    flex-direction: column;
+  }
+  #inspection-panel .eyebrow {
+    margin-bottom: 8px;
+    font-size: 8px;
+  }
+  #inspection-panel .inspect-title {
+    font-size: 40px;
+    margin-bottom: 0;
+  }
+  #inspection-panel .intro {
+    display: none;
+  }
+  #inspection-panel dl {
+    margin: auto 0 12px;
+    max-width: none;
+  }
+  #inspection-panel dl div {
+    padding: 9px 0;
+  }
+  #inspection-panel .actions {
+    max-width: none;
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+  }
+  #inspection-panel .actions button {
+    padding: 15px;
+  }
+  #inspection-panel .small {
+    margin: 12px 0 0;
+    font-size: 8px;
   }
 }

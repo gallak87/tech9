@@ -11,6 +11,83 @@ export function createUI(host, actions, settings, track) {
  <footer id="legend"><div><kbd>W</kbd><kbd>↑</kbd><span>THROTTLE</span></div><div><kbd>A</kbd><kbd>D</kbd><span>STEER</span></div><div><kbd>S</kbd><span>BRAKE</span></div><div><kbd>SPACE</kbd><span>AIRBRAKE</span></div><div><kbd>SHIFT</kbd><span>BOOST</span></div><div><kbd>R</kbd><span>RESET</span></div><div><kbd>ESC</kbd><span>PAUSE</span></div></footer>
  <div id="touch" class="hidden"><div><button data-drive="left" aria-label="Steer left">◀</button><button data-drive="right" aria-label="Steer right">▶</button><button data-drive="brake">BRAKE</button></div><div><button data-drive="airbrake">SLIP</button><button data-drive="boost">BOOST</button><button data-drive="throttle">GO</button></div></div><div class="review-tag">FIRST LEVEL <span>02 / HALCYON</span></div>`;
   const $ = (id) => root.querySelector('#' + id);
+  const pausePanel = $('pause-panel');
+  pausePanel.setAttribute('role', 'dialog');
+  pausePanel.setAttribute('aria-modal', 'true');
+  pausePanel.setAttribute('aria-label', 'Session paused');
+  pausePanel.onkeydown = (event) => {
+    if (event.key !== 'Tab') return;
+    const controls = [...pausePanel.querySelectorAll('button, input, select')];
+    const first = controls[0],
+      last = controls.at(-1);
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+  const blockout = track.review?.kind === 'bare-track';
+  const orbital = !!track.review;
+  if (orbital) {
+    root.classList.add('blockout-review');
+    root.classList.toggle('orbital-production', !blockout);
+    root.querySelector('.edition').innerHTML = blockout
+      ? '<i></i> SHAPE REVIEW <span>LEVEL 02 / BARE TRACK</span>'
+      : '<i></i> ASTERION DOCKYARD <span>ORBITAL CIRCUIT / 02</span>';
+    const panel = $('title-panel');
+    panel.querySelector('.eyebrow').textContent = blockout
+      ? 'LEVEL 02 · EARLY HUMAN CHECKPOINT'
+      : 'HIGH ORBIT · COMMISSIONING RUN';
+    panel.querySelector('h1').innerHTML = 'ASTERION<br><em>ORBITAL.</em>';
+    panel.querySelector('.intro').textContent = blockout
+      ? 'Grade the shape, elevation and rhythm above the planet. Bare track first; the shipyard and full art pass follow your approval.'
+      : 'A living world below. Open space ahead. Race the Kestrel through Asterion’s crown decks and orbital shipyards.';
+    panel.querySelector('.small').textContent = blockout
+      ? 'Choose a whole-track view, drive the full circuit, or start parked at any section. W / ↑ to accelerate. Same 0.3 bend assistance as Halcyon.'
+      : 'Bank along the planetary limb. Climb through the yards. Brake before the final docking turn. W / ↑ to accelerate.';
+    $('start').innerHTML = blockout
+      ? 'DRIVE FULL CIRCUIT <span>↗</span>'
+      : 'ENTER ORBITAL CIRCUIT <span>↗</span>';
+    $('inspect').classList.toggle('hidden', blockout);
+    root.querySelector('.section-name > span').textContent =
+      track.name.toUpperCase();
+    root.querySelector('.review-tag').innerHTML = blockout
+      ? 'BARE TRACK <span>02 / HUMAN SHAPE REVIEW</span>'
+      : 'ASTERION <span>02 / ORBITAL SHIPYARD</span>';
+    $('home').textContent = blockout
+      ? 'RETURN TO TRACK OVERVIEW'
+      : 'RETURN TO ORBITAL PADDOCK';
+    const controls = document.createElement('section');
+    controls.id = 'shape-controls';
+    controls.setAttribute('aria-label', 'Circuit views and practice sections');
+    controls.innerHTML = `<button id="review-toggle" aria-expanded="true">CIRCUIT VIEWS <span>−</span></button><div id="review-options"><div class="shape-views" aria-label="Whole-track views"><button data-overview="perspective">3D VIEW</button><button data-overview="top">TOP</button><button data-overview="profile">PROFILE</button></div><div class="shape-jump"><label for="review-section">PRACTICE SECTION</label><select id="review-section"></select><button id="review-drive">DRIVE SECTION ↗</button></div><a href="/">RETURN TO HALCYON</a></div>`;
+    root.append(controls);
+    for (const section of track.sections) {
+      const option = document.createElement('option');
+      option.value = `${section.id}-showcase`;
+      option.textContent = `${section.name} · ${((section.showcase ?? section.start) / 1000).toFixed(2)} km`;
+      $('review-section').append(option);
+    }
+    controls.querySelectorAll('[data-overview]').forEach((button) => {
+      button.onclick = () => actions.overview(button.dataset.overview);
+    });
+    $('review-drive').onclick = () =>
+      actions.reviewSection($('review-section').value);
+    $('review-toggle').onclick = () => {
+      const open = $('review-options').classList.toggle('hidden') === false;
+      $('review-toggle').setAttribute('aria-expanded', String(open));
+      $('review-toggle').querySelector('span').textContent = open ? '−' : '+';
+    };
+    if (blockout) $('review-toggle').classList.add('hidden');
+  } else {
+    const link = document.createElement('a');
+    link.className = 'orbital-access';
+    link.href = '/?level=orbital';
+    link.textContent = 'ASTERION ORBITAL CIRCUIT ↗';
+    $('title-panel').append(link);
+  }
   const bind = (id, fn) => ($(id).onclick = fn);
   bind('start', actions.start);
   bind('inspect-start', actions.start);
@@ -51,21 +128,52 @@ export function createUI(host, actions, settings, track) {
     `${String(Math.floor(t / 60)).padStart(2, '0')}:${(t % 60).toFixed(3).padStart(6, '0')}`;
   return {
     root,
+    inspectionViewport() {
+      if (innerWidth > 760 || innerWidth > innerHeight) return null;
+      const panel = $('inspection-panel');
+      const heading = panel.querySelector('h1').getBoundingClientRect();
+      const specs = panel.querySelector('dl').getBoundingClientRect();
+      return {
+        left: innerWidth * 0.06,
+        top: heading.bottom + 14,
+        width: innerWidth * 0.88,
+        height: Math.max(100, specs.top - heading.bottom - 28),
+      };
+    },
     setMode(mode) {
       if (mode === oldMode) return;
       oldMode = mode;
       for (const [id, show] of [
-        ['title-panel', mode === 'title'],
+        ['title-panel', mode === 'title' || mode === 'overview'],
         ['inspection-panel', mode === 'inspection'],
         ['pause-panel', mode === 'paused'],
-        ['hud', mode === 'racing' || mode === 'paused'],
+        ['hud', mode === 'racing'],
         ['touch', mode === 'racing'],
       ])
         $(id).classList.toggle('hidden', !show);
       root.classList.toggle('driving', mode === 'racing' || mode === 'paused');
+      root.classList.toggle('paused', mode === 'paused');
+      root.classList.toggle('inspecting', mode === 'inspection');
+      root.querySelector('.masthead').inert = mode === 'paused';
+      root.classList.toggle(
+        'shape-overview',
+        mode === 'title' || mode === 'overview',
+      );
+      $('shape-controls')?.classList.toggle(
+        'hidden',
+        mode === 'paused' || mode === 'inspection',
+      );
+      if (orbital && !blockout) {
+        const expanded = mode !== 'racing';
+        $('review-options').classList.toggle('hidden', !expanded);
+        $('review-toggle').setAttribute('aria-expanded', String(expanded));
+        $('review-toggle').querySelector('span').textContent = expanded
+          ? '−'
+          : '+';
+      }
       $('pause-button').classList.toggle('hidden', mode !== 'racing');
       const f =
-        mode === 'title'
+        mode === 'title' || mode === 'overview'
           ? 'start'
           : mode === 'inspection'
             ? 'inspect-start'

@@ -1,7 +1,7 @@
 {
-  "milestone": "gate-2-first-level",
+  "milestone": "gate-3-orbital-production",
   "humanReview": {
-    "state": "awaiting_gate_2_pacing_playtest",
+    "state": "gate3_human_art_feedback",
     "approved": false,
     "previousGateApproved": true,
     "direction": "docs/ART_BIBLE.md",
@@ -10,9 +10,13 @@
       "Future levels, menus, powerups, enemies, new race metrics and effects deferred",
       "User requested 0.3 bend assistance, shorter drawn-out sections and signature features distributed across the first level",
       "Reported flickering road light spots; smooth fixture handoffs and conforming expansion seams implemented",
-      "Gate 3 combines levels 2 and 3; no separate Gate 4. Future critique is capped at six rounds, still at least 9/10 per applicable category."
+      "Gate 3 combines levels 2 and 3; no separate Gate 4. Future critique is capped at six rounds, still at least 9/10 per applicable category.",
+      "Gate 2 explicitly approved; old handoff corrected by user",
+      "Gate 3 now orbital circuit only; industrial concept tabled",
+      "Bare orbital track first for early human grading; full goal-setting and brutal art-critic loop only after shape approval",
+      "Orbital bare shape explicitly approved; full orbital goal loop, independent brutal critic and parallel builders authorized"
     ],
-    "reviewDocument": "ROADMAP.md"
+    "reviewDocument": "docs/GATE3_HANDOFF.md"
   },
   "productionBlocked": false,
   "gauntlets": {
@@ -140,10 +144,207 @@
       "capAtTermination": 10
     },
     "gate3": {
-      "rounds": 0,
+      "rounds": 6,
       "cap": 6,
-      "state": "pending_gate_2_approval",
-      "scope": "Combined level 2 and level 3 integration review"
+      "state": "cap_reached",
+      "scope": "One integrated orbital gauntlet covering all applicable module categories and Halcyon regressions",
+      "history": [
+        {
+          "round": 1,
+          "verdict": "fail",
+          "build": "/assets/index-Ccd771HZ.js",
+          "scores": {
+            "art": 6.5,
+            "lightingMaterialsDepth": 7,
+            "handlingCamera": 9,
+            "track": 8.5,
+            "raceAI": null,
+            "visibleFeedback": 7.5,
+            "ui": 7.5,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE3_CRITIQUE.md",
+          "evidence": ".experiments/gate3-critic/round1/REPORT.md",
+          "issues": [
+            "Model-kit station assets and repeated sparse composition",
+            "Overwhite rails/trusses",
+            "Responsive HUD/modal overlap",
+            "Planet cloud/coast blur",
+            "Polygonal contact footprint",
+            "Advance braking cues",
+            "Existing feedback quality"
+          ],
+          "limits": [
+            "audio listening unverified",
+            "foreground performance unverified",
+            "physical devices unverified"
+          ]
+        },
+        {
+          "round": 2,
+          "verdict": "fail",
+          "build": "/assets/index-C_rmn5EE.js",
+          "scores": {
+            "art": 7.5,
+            "lightingMaterialsDepth": 8,
+            "handlingCamera": 9,
+            "track": 9,
+            "raceAI": null,
+            "visibleFeedback": 8,
+            "ui": 9,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE3_CRITIQUE.md",
+          "evidence": ".experiments/gate3-critic/round2/REPORT.md",
+          "resolved": [
+            "Rail/truss glare",
+            "Polygonal grounding",
+            "Responsive HUD and pause overlap",
+            "Advance braking guidance"
+          ],
+          "issues": [
+            "Hero architecture material finish",
+            "Planet geography/weather still procedural",
+            "Thin boost plume",
+            "Contact effect visual evidence inconclusive"
+          ],
+          "limits": [
+            "Audio listening unverified",
+            "Foreground performance unverified",
+            "Physical devices unverified"
+          ]
+        },
+        {
+          "round": 3,
+          "verdict": "fail",
+          "build": "/assets/index-D-5ds8Q3.js",
+          "scores": {
+            "art": 8.5,
+            "lightingMaterialsDepth": 8.5,
+            "handlingCamera": 9,
+            "track": 9,
+            "raceAI": null,
+            "visibleFeedback": 9,
+            "ui": 9,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE3_CRITIQUE.md",
+          "evidence": ".experiments/gate3-critic/round3/REPORT.md",
+          "resolved": [
+            "Cohesive boost volume in sun and shadow",
+            "Visible soft rail-origin contact streaks",
+            "Main planetary geography and organized weather",
+            "Fitted station cylinders and endcaps"
+          ],
+          "issues": [
+            "Broad portal/crown/return structural surface finish",
+            "Planet regional-detail consistency toward visible limb"
+          ],
+          "limits": [
+            "Audio listening unverified",
+            "Foreground performance unverified",
+            "Physical devices unverified"
+          ]
+        },
+        {
+          "round": 4,
+          "verdict": "hold_unverified_evidence",
+          "build": "/assets/index-C3Xph3wR.js",
+          "scores": {
+            "art": 9,
+            "lightingMaterialsDepth": 9,
+            "handlingCamera": 9,
+            "track": 9,
+            "raceAI": null,
+            "visibleFeedback": 9,
+            "ui": 9,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE3_CRITIQUE.md",
+          "evidence": ".experiments/gate3-critic/round4/REPORT.md",
+          "resolved": [
+            "Manufactured portal, crown girder and return fascia finish",
+            "Planet peripheral terrain/weather consistency"
+          ],
+          "issues": [],
+          "limits": [
+            "Audio listening unverified",
+            "Foreground performance unverified",
+            "Physical devices unverified"
+          ],
+          "note": "No actionable implementation defect found; visual categories meet9 within observed scope. Overall release pass withheld."
+        },
+        {
+          "round": 5,
+          "verdict": "hold_unverified_evidence",
+          "build": "/assets/index-C3Xph3wR.js",
+          "scores": {
+            "art": 9,
+            "lightingMaterialsDepth": 9,
+            "handlingCamera": 9,
+            "track": 9,
+            "raceAI": null,
+            "visibleFeedback": 9,
+            "ui": 9,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE3_CRITIQUE.md",
+          "evidence": ".experiments/gate3-critic/round5/REPORT.md",
+          "issues": [],
+          "limits": [
+            "Audio listening unverified",
+            "Foreground performance unverified",
+            "Physical devices unverified"
+          ],
+          "note": "Unchanged candidate; four previously unsampled real-input section approaches and four quality/pause/restart/section cycles. No new actionable source defect; resource counts stable."
+        },
+        {
+          "round": 6,
+          "verdict": "hold",
+          "build": "/assets/index-C3Xph3wR.js",
+          "scores": {
+            "art": 9,
+            "lightingMaterialsDepth": 9,
+            "handlingCamera": 9,
+            "track": 9,
+            "raceAI": null,
+            "visibleFeedback": 9,
+            "ui": 8.5,
+            "performanceStability": 8.5
+          },
+          "report": "docs/GATE3_CRITIQUE.md",
+          "evidence": ".experiments/gate3-critic/round6/REPORT.md",
+          "issues": [
+            "Portrait 390x844 inspection retains desktop framing, cropping craft behind specifications and controls"
+          ],
+          "limits": [
+            "Audio listening unverified",
+            "Foreground performance unverified",
+            "Physical devices unverified"
+          ],
+          "note": "Final title/inspection/3D/top/profile and return-to-real-input review; all six interaction checks passed, zero errors. Cap reached."
+        }
+      ],
+      "candidateBuild": "/assets/index-C3Xph3wR.js",
+      "scores": {
+        "art": 9,
+        "lightingMaterialsDepth": 9,
+        "handlingCamera": 9,
+        "track": 9,
+        "raceAI": null,
+        "visibleFeedback": 9,
+        "ui": 8.5,
+        "performanceStability": 8.5
+      },
+      "terminationReason": "Six completed rounds; no verified all-category release pass. Final portrait-inspection defect gets a focused integrator repair, without reopening critique.",
+      "postCriticRepair": {
+        "build": "/assets/index-c6gHY7PG.js",
+        "finding": "Portrait ship inspection cropping/overlap",
+        "state": "integrator_verified",
+        "checksPassed": 9,
+        "report": ".experiments/orbital-inspection-repair/report.json",
+        "independentRerating": false
+      }
     }
   },
   "budget": {
@@ -190,17 +391,17 @@
   "openIssues": [
     {
       "priority": 1,
-      "owner": "human_gate_2",
+      "owner": "later_halcyon_iteration",
       "issue": "Review final visual finish; last formal art/lighting score 8/10 before final facade/water/plume followups"
     },
     {
       "priority": 2,
-      "owner": "human_gate_2",
+      "owner": "later_halcyon_iteration",
       "issue": "Human playtest of 0.3 bend assistance and shorter introductory route"
     },
     {
       "priority": 2,
-      "owner": "human_gate_2",
+      "owner": "later_halcyon_iteration",
       "issue": "Audio mix and foreground performance need human assessment; physical controller/mobile remain unverified"
     }
   ],
@@ -271,26 +472,27 @@
   },
   "reviewers": {
     "builders": [
-      "gate2_track",
-      "gate2_environment",
-      "gate2_physics",
-      "gate2_ship",
-      "gate2_audio"
+      "level2_track",
+      "orbital_environment",
+      "orbital_planet",
+      "root"
     ],
     "formalCriticRun": true,
     "blindJudgesRun": false,
     "numericQualityScores": {
-      "art": 8,
-      "lightingMaterialsDepth": 8,
+      "art": 9,
+      "lightingMaterialsDepth": 9,
       "handlingCamera": 9,
-      "track": 8.5,
+      "track": 9,
       "raceAI": null,
-      "visibleFeedback": 8,
-      "ui": 9,
+      "visibleFeedback": 9,
+      "ui": 8.5,
       "performanceStability": 8.5
-    }
+    },
+    "formalCritic": "orbital_critic",
+    "scope": "Gate3 final formal round6, before integrator inspection repair"
   },
-  "updatedAt": "2026-09-28T06:48:40.491528+00:00",
+  "updatedAt": "2026-09-29T04:25:04.654292+00:00",
   "gates": {
     "1": {
       "state": "approved",
@@ -303,16 +505,21 @@
       ]
     },
     "2": {
-      "state": "awaiting_human_review",
-      "userApproved": false,
+      "state": "approved",
+      "userApproved": true,
       "scope": "First complete Halcyon level and core handling/presentation",
-      "requiresHumanPlaytest": true
+      "requiresHumanPlaytest": true,
+      "feedback": [
+        "User explicitly corrected handoff: Gate 2 approved, good enough for now; iterate later during broader game development."
+      ]
     },
     "3": {
-      "state": "pending_gate_2_approval",
+      "state": "human_art_feedback",
       "userApproved": false,
-      "scope": "Levels 2 and 3 together",
-      "requiresHumanPlaytest": true
+      "scope": "Orbital circuit above a planet only; industrial circuit tabled",
+      "requiresHumanPlaytest": true,
+      "shapeApproved": true,
+      "shapeApproval": "User: nice one looks good; lets set a goal and loop with the brutal art critic; fan out where you can, lets make it beautiful."
     }
   },
   "expansionBlocked": true,
@@ -456,13 +663,139 @@
   "handoff": {
     "document": "docs/GATE3_HANDOFF.md",
     "originalPrompt": "../../prompt-fzero.txt",
-    "state": "ready_for_fresh_agent",
-    "nextPhase": "Combined Gate 3 after Gate 2 approval",
+    "state": "verified_orbital_checkpoint",
+    "nextPhase": "User-directed road identity iteration, then human spot check; formal six-round critic gauntlet stays closed",
     "gate2ApprovalImplied": false,
     "servers": {
-      "state": "stopped_at_user_request",
+      "state": "running_for_gate3_human_review",
       "ports": [5179, 5180]
     },
-    "temporaryEvidenceRequiredToResume": false
-  }
+    "temporaryEvidenceRequiredToResume": false,
+    "gate2ExplicitlyApproved": true
+  },
+  "orbitalBlockout": {
+    "state": "human_shape_approved",
+    "humanShapeApproved": true,
+    "criticRun": false,
+    "goalLoopStarted": true,
+    "playtestUrl": "http://127.0.0.1:5180/?level=orbital&review=shape",
+    "scope": "One bare drivable orbital circuit and simple planet for orientation; no finished environment art",
+    "industrialCircuit": "tabled_by_user",
+    "trackId": "asterion-orbital-1-blockout",
+    "trackLengthMetres": 4500.000000000067,
+    "unitTestsPassed": 60,
+    "fullLintPassed": true,
+    "productionBuild": true,
+    "browserChecksPassed": 42,
+    "browserChecksTotal": 42,
+    "runtimeErrors": [],
+    "numericalTraversal": {
+      "kind": "Fast numerical circuit traversal, not a real-time lap or sensory playtest",
+      "length": 4500.000000000067,
+      "impacts": 0,
+      "errors": [],
+      "maxSpeed": 116.05123719295676,
+      "maxLateral": 0.9450371968683203,
+      "minCameraClearance": 4.774097442003363,
+      "maxCameraStep": 0.030631994944383137,
+      "wallRideFrames": 148,
+      "wallMilliseconds": 211.93774999999994,
+      "lap": {
+        "duration": 43.19166666666486,
+        "valid": true
+      },
+      "complete": true,
+      "pass": true
+    },
+    "renderSamples": {
+      "maxSampledCalls": 99,
+      "maxSampledTriangles": 348494,
+      "maxEstimatedGpuMiB": 209.279532623291,
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+      "scope": "Short hidden Chrome still/input samples, not a full-lap, audio or foreground performance certification"
+    },
+    "verification": "Integrator geometry checks and real-input headless browser still sequences; no critic or foreground certification",
+    "verificationDocuments": ["docs/ORBITAL_BLOCKOUT.md"],
+    "builders": ["level2_track"],
+    "inspectedViews": [
+      "3D overview",
+      "top overview",
+      "profile overview",
+      "wall ride before/after steering",
+      "steep dive",
+      "braked final turn",
+      "mobile overview"
+    ],
+    "reviewScope": "Grade shape, elevation, transitions and pacing; final industrial-design/shipyard art intentionally deferred",
+    "build": "/assets/index-sdiDAEZT.js",
+    "finalSmoke": {
+      "passed": true,
+      "hudControlsDoNotOverlapMinimap": true,
+      "runtimeErrors": []
+    }
+  },
+  "orbitalProduction": {
+    "state": "verified_checkpoint_before_human_art_revision",
+    "shapePreserved": true,
+    "goalActive": true,
+    "builders": {
+      "track": "level2_track: src/track/level2/",
+      "environment": "orbital_environment: src/environment/orbital/",
+      "planet": "orbital_planet: src/renderer/orbital/ and public/assets/orbital/",
+      "integration": "root: core/shared renderer/UI/config/docs",
+      "propulsion": "level2_track: src/ships/ for round 3"
+    },
+    "playtestUrl": "http://127.0.0.1:5180/?level=orbital",
+    "productionApproval": false,
+    "build": "/assets/index-c6gHY7PG.js",
+    "unitTestsPassed": 70,
+    "fullLintPassed": true,
+    "productionBuild": true,
+    "critic": "orbital_critic",
+    "sourceBudgets": {
+      "track": {
+        "calls": 52,
+        "triangles": 293103
+      },
+      "environment": {
+        "calls": 161,
+        "triangles": 454144,
+        "parts": 10135,
+        "textures": 2
+      },
+      "planet": {
+        "calls": 5,
+        "triangles": 61632,
+        "textureMiBEstimate": 80,
+        "runtimeAssetBytes": 16001716
+      },
+      "ship": {
+        "calls": 25,
+        "triangles": 83254
+      }
+    },
+    "scopeLimits": [
+      "No new racing systems, AI, ships or powerups",
+      "Industrial circuit tabled",
+      "Hidden browser timings do not certify foreground 60fps",
+      "Final human Gate3 approval required"
+    ],
+    "unitTests": 70,
+    "candidateBuild": "/assets/index-c6gHY7PG.js",
+    "browserChecks": 42,
+    "browserErrors": 0,
+    "lint": true,
+    "browserChecksPassed": 42,
+    "browserChecksTotal": 42,
+    "browserReport": ".experiments/gate3-final-regression/report.json",
+    "initialTransferBytes": 16280960,
+    "renderSamples": {
+      "maxCalls": 457,
+      "maxTriangles": 1698825,
+      "maxEstimatedGpuMiB": 403.74515533447266
+    },
+    "postCriticChecks": 9,
+    "artLightingMeetTarget": true
+  },
+  "expansionBlockReason": "Orbital art production is authorized; further game-system expansion awaits final Gate 3 human approval."
 }

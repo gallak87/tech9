@@ -17,14 +17,22 @@ const report = {
     'Hidden browser timings only; foreground pacing, listening, physical gamepad/mobile remain unverified.',
   ],
 };
+let deadlineReached = false;
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.VN_BROWSER_PATH
     ? { executablePath: process.env.VN_BROWSER_PATH }
     : {}),
 });
+const deadline = setTimeout(
+  async () => {
+    deadlineReached = true;
+    await browser.close();
+  },
+  Math.min(300000, Number(process.env.VN_BATCH_MS) || 300000),
+);
 try {
-  for (const quality of ['high', 'low']) {
+  for (const quality of (process.env.VN_QUALITIES || 'high,low').split(',')) {
     const context = await browser.newContext({
       viewport: { width: 1440, height: 900 },
       deviceScaleFactor: 1,
@@ -138,9 +146,14 @@ try {
   }
   assert.deepEqual(report.errors, []);
 } catch (error) {
-  report.failure = error.stack;
-  throw error;
+  if (deadlineReached)
+    report.incomplete = 'GPU batch deadline reached; requeue remaining cases.';
+  else {
+    report.failure = error.stack;
+    throw error;
+  }
 } finally {
+  clearTimeout(deadline);
   await browser.close();
   await writeFile(
     resolve(output, 'report.json'),

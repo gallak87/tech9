@@ -21,7 +21,7 @@
   },
   "foundation": {
     "state": "committed_and_verified",
-    "selectedBase": "7e0d6067d1124ab56168bcab326ea34cfbeec7cc",
+    "selectedBase": "66b6400617942a63a157c44c6b651bb627f47f7a",
     "sourceWorktree": "/Users/g/code/scratch/tech9",
     "verified": true,
     "checks": "236 tests, lint/build; 10 approved high/low production/shape combinations and 4 disposable fixture combinations, including unknown-level and owned-asset failure cleanup. Integrated build matches the tested build byte-for-byte.",

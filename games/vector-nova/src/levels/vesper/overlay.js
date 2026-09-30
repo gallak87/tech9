@@ -17,7 +17,7 @@ export function createVesperOverlay({ host, track, getMotion }) {
     [data-vesper-guidance] small { color:#c6d2cf; font-size:9px; }
     @media (max-width:760px) and (orientation:portrait) {
       [data-vesper-surface] { position:fixed; top:156px; left:4vw; font-size:8px!important; }
-      [data-vesper-guidance] { top:274px; width:calc(100vw - 64px); padding:5px 8px; font-size:10px; }
+      [data-vesper-guidance] { top:330px; width:calc(100vw - 64px); padding:5px 8px; font-size:10px; }
       body:has(#interface.driving #review-toggle[aria-expanded='true']) [data-vesper-guidance] { top:420px; }
     }
     @media (max-height:570px) and (orientation:landscape) {
@@ -28,6 +28,7 @@ export function createVesperOverlay({ host, track, getMotion }) {
   `;
   host.append(style);
   const short = matchMedia('(max-height:570px) and (orientation:landscape)');
+  const portrait = matchMedia('(max-width:760px) and (orientation:portrait)');
   let presentation = { surface: 'resin', drag: 0 };
   return {
     update({ state, mode }) {
@@ -48,7 +49,7 @@ export function createVesperOverlay({ host, track, getMotion }) {
       const showCue =
         mode === 'racing' &&
         Boolean(nextJump) &&
-        !(short.matches && noticeVisible);
+        !((short.matches || portrait.matches) && noticeVisible);
       cue.style.display = showCue ? 'block' : 'none';
       if (showCue) {
         title.textContent = `${nextJump.optional ? 'BRANCH GAP' : 'CROWN LEAP'} · ${Math.ceil((nextJump.takeoff - s) / 10) * 10} M`;

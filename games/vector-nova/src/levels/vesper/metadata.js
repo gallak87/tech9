@@ -18,7 +18,7 @@ export default {
     tagDetail: '04 / NOCTURNAL FOREST',
     compact: true,
     compactLandscape: true,
-    portraitLowNotice: true,
+    portraitCompactHud: true,
     stackedReview: true,
     lowNotice: true,
     shape: {

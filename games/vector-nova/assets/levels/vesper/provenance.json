@@ -1,0 +1,29 @@
+{
+  "title": "Vesper Canopy — original scene-to-Blender assets",
+  "date": "2026-09-29",
+  "ownership": "Original geometry, shaders and Blender generator authored for VECTOR//NOVA. Scene concepts generated using the built-in image_gen tool; no third-party meshes or textures.",
+  "workflow": "Selected scene concepts → reproducible CPU Blender geometry and named animation joints → one glTF runtime library → in-game lighting/placement. No generated image is used as scenery.",
+  "concepts": [
+    {
+      "file": "concepts/hollow-tree-scene.png",
+      "prompt": "Use case: stylized-concept. Asset type: scene concept for a real 3D racing-game Blender asset. Primary request: Vesper Canopy hollow colossal living tree and crown landing branches at night, viewed from a tiny futuristic hovercraft on a broad 28 metre amber cast-resin raceway. A genuine split entrance opens into a dark cavernous living trunk, the road spirals visibly inside then exits through the broken crown onto a branching bridge. Deep furrowed blue-black bark, pale sapwood torn edges, massive braided buttress roots, sparse warm sap lamps. Layered cool teal leaf crowns and ink-blue distant forest. Wide cinematic production-game concept emphasizing real navigable void, branch load paths, readable silhouette, scale and amber deck thickness, physically coherent local warm light and bright crown opening. Three trunks of differing taper/wounds/root collars. Whole tree visible, ample negative space through branches. No text, no panels, no watermark, no asphalt, no generic cylindrical trunk, no road-obscuring foliage."
+    },
+    {
+      "file": "concepts/hanging-flower-scene.png",
+      "prompt": "Use case: stylized-concept. Asset type: game-world scene concept for original Blender geometry. Primary request: an immense suspended nocturnal flower hanging over a 28 metre broad amber resin racing bridge across a dark forest ravine, tiny angular hovercraft for scale. The blossom has layered thick curled ivory-peach petals and dark burgundy back ridges, hanging amber pollen lantern anthers, translucent milky tissue with fine blue veins; 140 metres across, supported by looping living tendrils descending from canopy boughs. Its bottom clears the bridge by many vehicle heights. Distinct approach and departing silhouette, flower offset enough that the road remains visible. Surrounding cool ink-blue night forest with huge veined teal leaves, layered trunks and mist. Warm amber deck is a substantial physical slab with braided root load-bearing arches. Premium stylized-realistic 3D concept, coherent moonlight and local sap glow, luminous flower interior without neon wash. Wide landscape camera beside hovercraft, show whole blossom and ravine depth. No text, no watermark, no asphalt, no city or extra creatures."
+    },
+    {
+      "file": "concepts/canopy-walker-scene.png",
+      "prompt": "Use case: stylized-concept. Asset type: original articulated game creature and canopy scene for Blender modeling. Primary request: a gigantic nocturnal forest creature slowly stepping over an elevated amber resin hover-racing road in the living canopy, bending nearby crowns and dislodging leaves and glowing spores. Original elegant six-legged long-necked quadruped-like forest walker, organic articulated shoulder and knee joints, heavy ribbed chitin bark-blue carapace, pale warm sapwood joints, leaf-shaped antler crest, long small head with two amber eyes, two elongated antenna tendrils, broad deep body with luminous teal freckles. Creature body 160 metres long and standing 145 metres tall, tiny hovercraft on 28 metre road gives honest vast scale. Silhouette must be instantly legible: broad arched torso, six long separated jointed legs with delicate claw feet, head looking forward, no humanoid. Three-quarter whole-body view with dark layered trees behind and road below, reflected warm road glow under belly and cool soft moonlight across carapace, sparse amber leaf fall. Premium stylized realistic 3D production concept, physically coherent, actual geometry detail. No text, no watermark, no dragon wings, no city, no black silhouette hiding form."
+    }
+  ],
+  "source": "blender/vesper-assets.blend",
+  "generator": "blender/build_vesper.py",
+  "routeEnvelope": "blender/route-envelope.json (sampled from the actual authored track)",
+  "reproduce": "/Applications/Blender.app/Contents/MacOS/Blender --background --python assets/levels/vesper/blender/build_vesper.py",
+  "export": "public/assets/levels/vesper/vesper-canopy.glb",
+  "materials": "Original flat PBR materials, physical petal thickness, modeled leaf veins, geometric bark furrows and emissive local accents. No texture dependencies.",
+  "animation": "Named shoulder/knee/neck/head joints posed deterministically from simulation time and route distance. Two-link leg IK raises crossing feet. Nearby crowns bend, falling leaves/spores use deterministic simulation time. Reduced motion freezes cosmetic movement.",
+  "approximation": "Sculpted procedural Blender surfaces reproduce the selected concepts' silhouette/material hierarchy, without reproducing every fine bark or creature-surface detail. Plant/creature events are visual scenery and do not simulate physical forestry.",
+  "validation": "CPU-only authoring/export completed. Production visual judgment and independent critic evidence belong to the integrated lane review; not certified by these source asset counts."
+}

@@ -1,6 +1,6 @@
 import { sampleVesperSurface } from './surface.js';
 
-export function createVesperOverlay({ host, track }) {
+export function createVesperOverlay({ host, track, getMotion }) {
   const label = document.createElement('span');
   label.dataset.vesperSurface = '';
   label.style.cssText =
@@ -9,14 +9,22 @@ export function createVesperOverlay({ host, track }) {
   return {
     update({ state, mode }) {
       if (!label.isConnected) host.querySelector('.energy')?.prepend(label);
-      const surface = sampleVesperSurface(track, state);
+      const motion = getMotion?.() ?? 'magnetic';
+      const surface =
+        motion === 'magnetic'
+          ? sampleVesperSurface(track, state)
+          : { id: 'air', zone: null, drag: 0 };
       presentation = {
         surface: surface.id,
         zone: surface.zone,
         drag: surface.drag,
       };
       label.textContent =
-        surface.id === 'sap' ? 'FLOWING SAP · DRAG' : 'HARDENED RESIN';
+        surface.id === 'sap'
+          ? 'FLOWING SAP · DRAG'
+          : surface.id === 'air'
+            ? 'CLEAR OF THE BRANCH'
+            : 'HARDENED RESIN';
       label.style.display = ['racing', 'paused'].includes(mode)
         ? 'block'
         : 'none';

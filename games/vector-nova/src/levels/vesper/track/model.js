@@ -1,7 +1,7 @@
 import * as T from 'three';
 import { createReferenceFrames } from '../../../track/frames.js';
 
-export const VESPER_REVISION = 'vesper-route-1';
+export const VESPER_REVISION = 'vesper-route-2';
 const wrap = (s, length) => ((s % length) + length) % length;
 const SOURCE = [
   [-280, 25, -300],
@@ -26,8 +26,8 @@ const SOURCE = [
   [1070, 180, 330],
   [1100, 170, 120],
   [930, 158, 30],
-  [760, 143, 20],
-  [590, 128, 20],
+  [760, 180, 20],
+  [590, 125, 20],
   [380, 118, 20],
   [270, 65, -70],
   [330, 25, -220],
@@ -111,7 +111,7 @@ export function createVesperTrack() {
     };
   }
   const crownTakeoff = nodeS(15) - 8;
-  const branchTakeoff = nodeS(22) + 32;
+  const branchTakeoff = nodeS(22) - 8;
   const jumps = [
     {
       id: 'crown-leap',
@@ -127,8 +127,8 @@ export function createVesperTrack() {
       name: 'Bloomspan branch bypass',
       takeoff: branchTakeoff,
       landingStart: branchTakeoff + 44,
-      landingEnd: branchTakeoff + 155,
-      recovery: branchTakeoff + 165,
+      landingEnd: branchTakeoff + 300,
+      recovery: branchTakeoff + 310,
       halfWidth: 14,
       optional: true,
     },
@@ -196,6 +196,7 @@ export function createVesperTrack() {
   ];
   const scenarios = {
     staging: { distance: 0 },
+    impact: { distance: 180, speed: 85, lateral: -11.7, heading: -0.12 },
     inspection: { distance: 32 },
     'trunk-entry': { distance: nodeS(5) - 65, speed: 42 },
     'spiral-climb': { distance: nodeS(8), speed: 46 },
@@ -208,9 +209,30 @@ export function createVesperTrack() {
     },
     'sap-compare': { distance: nodeS(22) - 75, speed: 85, lateral: 2 },
     'resin-compare': { distance: nodeS(22) - 75, speed: 85, lateral: -5 },
-    'branch-runup': { distance: branchTakeoff - 40, speed: 105, lateral: 8.5 },
+    'branch-runup': { distance: branchTakeoff - 40, speed: 95, lateral: 8.5 },
     'root-descent': { distance: nodeS(25) - 40, speed: 70 },
     'slope-rest': { distance: nodeS(26), speed: 0 },
+    'support-crown-setup': {
+      distance: crownTakeoff - 130,
+      lateral: 0,
+      speed: 0,
+    },
+    'support-trunk-shelf': { distance: nodeS(5) - 70, lateral: 0, speed: 0 },
+    'support-bloom-recovery': {
+      distance: sapZones[1].end + 20,
+      lateral: -5,
+      speed: 0,
+    },
+    'support-branch-setup': {
+      distance: branchTakeoff - 60,
+      lateral: 8.5,
+      speed: 0,
+    },
+    'support-rootfall-recovery': {
+      distance: sapZones[2].end + 25,
+      lateral: 4.5,
+      speed: 0,
+    },
     'creature-event': { distance: nodeS(20) - 60, speed: 58 },
   };
   for (const section of sections)

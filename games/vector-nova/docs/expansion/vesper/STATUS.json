@@ -1,14 +1,147 @@
 {
   "schemaVersion": 1,
-  "phase": "route_and_assets",
+  "phase": "builder_browser_pending",
   "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
   "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
   "branch": "codex/fzero-vesper1",
   "formalRounds": 0,
   "maximumRounds": 8,
   "humanApproved": false,
-  "currentChecks": [],
-  "openFindings": ["Route, real flight and production assets in construction"],
+  "currentChecks": [
+    {
+      "check": "track-contract",
+      "result": "pass",
+      "id": "vesper-canopy-1",
+      "samples": 4602,
+      "spacing": 0.9997826559463131,
+      "measuredLength": 4599.982745304713,
+      "maxArcError": 0.00039931438062046354,
+      "maxFrameTurnPerMetre": 0.05325363961090339
+    },
+    {
+      "check": "full-tests",
+      "result": "pass",
+      "count": 264,
+      "log": ".experiments/expansion/vesper/full-tests.txt"
+    },
+    {
+      "check": "lane-tests",
+      "result": "pass",
+      "geometry": 8,
+      "runtime": 8,
+      "denseLandings": 152,
+      "note": "15 tests rerun after shared fix plus the final targeted petal/barrier test."
+    },
+    {
+      "check": "full-lint-format",
+      "result": "pass"
+    },
+    {
+      "check": "production-build",
+      "result": "pass"
+    },
+    {
+      "check": "asset-lifecycle-animation-clearance",
+      "result": "pass",
+      "scope": "CPU asset-builder probes; 118 support connections,41 creature crossing positions; visual checks pending"
+    }
+  ],
+  "openFindings": [
+    "Builder real-camera and actual-key browser verification pending exclusive GPU lease.",
+    "Responsive shared HUD correction under integrator investigation; formal review has not started."
+  ],
   "rounds": [],
-  "futureSupport": []
+  "futureSupport": [
+    {
+      "id": "crown-setup",
+      "section": "crown",
+      "s": 1596.550713314725,
+      "lateral": 0,
+      "height": 0,
+      "world": [156.5347450269974, 177.96610047906998, 390.8004216966328],
+      "suggestedAid": "boost or reserve refill",
+      "purpose": "Build launch speed on the straight crown shelf.",
+      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+    },
+    {
+      "id": "trunk-shelf",
+      "section": "pillar",
+      "s": 614.58296612528,
+      "lateral": 0,
+      "height": 0,
+      "world": [-119.89303862942405, 55.88857881478009, 203.3305258864858],
+      "suggestedAid": "reserve refill",
+      "purpose": "Enter the precision hollow ascent with impact reserve.",
+      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+    },
+    {
+      "id": "bloom-recovery",
+      "section": "bloom",
+      "s": 3251.324986119798,
+      "lateral": -5,
+      "height": 0,
+      "world": [339.19001386911526, 97.04095921107991, 15.42614382499467],
+      "suggestedAid": "recovery or reserve refill",
+      "purpose": "Recover speed after flowing sap.",
+      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+    },
+    {
+      "id": "branch-setup",
+      "section": "bloom",
+      "s": 2856.255266718776,
+      "lateral": 8.5,
+      "height": 0,
+      "world": [724.2494690640201, 141.61005001654792, 25.58309326006529],
+      "suggestedAid": "boost or reserve refill",
+      "purpose": "Offer support before the optional narrow branch bypass.",
+      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+    },
+    {
+      "id": "rootfall-recovery",
+      "section": "rootfall",
+      "s": 3732.150873202574,
+      "lateral": 4.5,
+      "height": 0,
+      "world": [351.12298830243486, -0.8434913591908336, -332.5999199292501],
+      "suggestedAid": "recovery or stability aid",
+      "purpose": "Support the banked recovery after the root descent.",
+      "observedDifficulty": "Pending real-key production verification; existing manual boost only."
+    }
+  ],
+  "placementTrackRevision": "vesper-route-2",
+  "routeFrameConvention": "Geometric +right is driver-left; height is local +up. World position = sample(s).position + right*lateral + up*height.",
+  "sharedExtensions": [
+    {
+      "sourceCommit": "8c6f05a733453ddbc9f7428c3804c9c419a7f67b",
+      "localCommit": "e3a801641941ac47bd441aab7f159916d1f403ec"
+    },
+    {
+      "sourceCommit": "643fd3a69e0f8feef9b27c545888f8a8c45239f2",
+      "localCommit": "0b4ddb4d"
+    }
+  ],
+  "sourceBudgets": {
+    "roadMeshes": 123,
+    "roadTriangles": 176202,
+    "environmentHighTriangles": 1500373,
+    "environmentLowTriangles": 998499,
+    "assetBytes": 3529636,
+    "scope": "Authored source counts only; actual rendered/transfer/GPU measurements pending"
+  },
+  "preview": {
+    "production": "http://127.0.0.1:5202/?level=vesper",
+    "shape": "http://127.0.0.1:5202/?level=vesper&review=shape",
+    "owner": "fzero-int1",
+    "running": true,
+    "bundles": {
+      "level": "vesper-DtBeeHic.js",
+      "main": "index-CbyPyWr_.js",
+      "css": "index-CnBlraa9.css"
+    }
+  },
+  "unverified": [
+    "Foreground frame pacing",
+    "Independent audio listening",
+    "Physical gamepad/mobile"
+  ]
 }

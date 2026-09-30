@@ -100,6 +100,32 @@ export function createVesperRoad({ track, shape = false }) {
     roughness: 0.15,
     clearcoat: 1,
   });
+  const sapClock = { value: 0 };
+  for (const material of [amber, polished, milk, smoked, sap]) {
+    const flowing = material === sap;
+    material.onBeforeCompile = (shader) => {
+      shader.uniforms.vesperSapTime = sapClock;
+      shader.vertexShader =
+        'varying vec2 vVesperUv;\n' +
+        shader.vertexShader.replace(
+          '#include <begin_vertex>',
+          '#include <begin_vertex>\n vVesperUv=uv;',
+        );
+      shader.fragmentShader =
+        'varying vec2 vVesperUv;\nuniform float vesperSapTime;\n' +
+        shader.fragmentShader.replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+        float lamina = sin(vVesperUv.x * 136.0 + sin(vVesperUv.y * 0.9) * 2.2);
+        float fineLayer = sin(vVesperUv.x * 463.0 + sin(vVesperUv.y * 2.5));
+        diffuseColor.rgb *= 0.94 + 0.04 * lamina + 0.02 * fineLayer;
+        ${flowing ? 'float flow = pow(0.5 + 0.5 * sin(vVesperUv.y * 11.0 - vesperSapTime * 0.75 + sin(vVesperUv.x * 19.0)), 9.0); diffuseColor.rgb += vec3(0.045,0.027,0.01)*flow;' : ''}
+      `,
+        );
+    };
+    material.customProgramCacheKey = () =>
+      flowing ? 'vesper-flow-v1' : 'vesper-lamina-v1';
+  }
   const slices = [
     0,
     track.length,
@@ -133,6 +159,8 @@ export function createVesperRoad({ track, shape = false }) {
       ),
       mat,
     );
+    surface.name = 'Cast resin driving surface';
+    surface.userData.drivingSurface = true;
     surface.receiveShadow = true;
     group.add(surface);
     const thickness = new T.Mesh(
@@ -204,6 +232,28 @@ export function createVesperRoad({ track, shape = false }) {
       );
     }
   }
+  for (const jump of track.jumps.filter((j) => j.optional)) {
+    const divider = new T.Mesh(
+      sweepGeometry(track, boxProfile(5.95, 0.55, 0.9, 1.1), {
+        start: jump.takeoff,
+        end: jump.landingStart,
+        step: 2,
+      }),
+      milk,
+    );
+    divider.name = 'Branch bypass main-road protective divider';
+    group.add(divider);
+    group.add(
+      new T.Mesh(
+        sweepGeometry(track, boxProfile(5.95, 1.13, 0.28, 0.08), {
+          start: jump.takeoff,
+          end: jump.landingStart,
+          step: 2,
+        }),
+        vein,
+      ),
+    );
+  }
   // Visible broad sap films have the same declared spatial extent as the simulation.
   if (!shape)
     for (const zone of track.sapZones) {
@@ -245,6 +295,12 @@ export function createVesperRoad({ track, shape = false }) {
         }
       }
     }
+  group.traverse((o) => {
+    if (o.material === sap) {
+      o.name = 'Flowing sap film';
+      o.userData.sapFilm = true;
+    }
+  });
   const seals = [],
     petals = [[], [], []],
     roots = [],
@@ -299,6 +355,9 @@ export function createVesperRoad({ track, shape = false }) {
       );
       for (const side of [-1, 1])
         for (const braid of [-1, 1]) {
+          // These two crown sockets would cross the lower hollow spiral.
+          // The adjacent shell-attached ribs carry this short crown span.
+          if (side === 1 && s >= 1460 && s <= 1540) continue;
           const start = framePoint(f, side * 10, -3.8);
           const end = anchor
             .clone()
@@ -367,6 +426,9 @@ export function createVesperRoad({ track, shape = false }) {
   }
   return {
     group,
+    update({ time, settings }) {
+      sapClock.value = settings.reducedMotion ? 0 : time;
+    },
     dispose() {
       const gs = new Set(),
         ms = new Set();

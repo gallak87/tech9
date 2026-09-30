@@ -134,10 +134,12 @@ function integrate(s, controls, track, dt, events) {
     );
     const drag = 4.4 + 0.0018 * previousSpeed * previousSpeed;
     const acceleration =
-      driveThrottle * engine -
+      driveThrottle * engine * controls.surface.thrustScale -
       brake * 83 -
       drag -
-      (airbrake ? 7 : 0) +
+      (airbrake ? 7 : 0) -
+      controls.surface.drag +
+      controls.surface.forwardAcceleration +
       (parking ? 0 : forwardGravity);
     s.speed = Math.max(0, previousSpeed + acceleration * dt);
     const meanSpeed = (previousSpeed + s.speed) * 0.5;
@@ -155,9 +157,10 @@ function integrate(s, controls, track, dt, events) {
     // Project world gravity through the actual banked frame. Positive right.y
     // means +lateral is uphill, so gravity must act toward -lateral. Magnetic
     // grip resists the outward corner load but does not cancel it entirely.
-    const grip = parking ? 24 : airbrake ? 4.5 : 7.2;
+    const grip = (parking ? 24 : airbrake ? 4.5 : 7.2) * controls.surface.grip;
     const outwardForce =
-      -finite(frame.curvature) * meanSpeed * meanSpeed * 0.75;
+      -finite(frame.curvature) * meanSpeed * meanSpeed * 0.75 +
+      controls.surface.lateralAcceleration;
     const desiredLateral = parking ? 0 : Math.sin(meanHeading) * meanSpeed;
     const targetLateralSpeed =
       desiredLateral + (parking ? 0 : outwardForce + lateralGravity) / grip;
@@ -172,8 +175,17 @@ function integrate(s, controls, track, dt, events) {
       0,
       track.width / 2 - sweptHullExtent(previousHeading, s.heading),
     );
+    // Optional split decks constrain only grounded travel. The authored inner
+    // divider is a real rail; a skipped launch cannot drift over absent road.
+    const extent = sweptHullExtent(previousHeading, s.heading);
+    const bounds = controls.roadBounds;
+    const lower = bounds ? bounds.min + extent : -edge;
+    const upper = bounds ? bounds.max - extent : edge;
+    const midpoint = bounds ? (bounds.min + bounds.max) / 2 : 0;
+    const leftLimit = Math.min(lower, midpoint);
+    const rightLimit = Math.max(upper, midpoint);
     const next = s.lateral + lateralStep;
-    let side = next > edge ? 1 : next < -edge ? -1 : 0;
+    let side = next > rightLimit ? 1 : next < leftLimit ? -1 : 0;
 
     // Exponential grip can reverse velocity inside a tick. Include that swept
     // extremum even if the endpoint itself has returned inside the barrier.
@@ -191,7 +203,7 @@ function integrate(s, controls, track, dt, events) {
           s.lateral +
           targetLateralSpeed * reversal +
           previousLateralSpeed / grip;
-        side = extreme > edge ? 1 : extreme < -edge ? -1 : 0;
+        side = extreme > rightLimit ? 1 : extreme < leftLimit ? -1 : 0;
       }
     }
     if (side) {
@@ -201,7 +213,7 @@ function integrate(s, controls, track, dt, events) {
         side * s.lateralSpeed,
       );
       const severity = Math.min(1, incoming / 15);
-      s.lateral = side * edge;
+      s.lateral = side > 0 ? rightLimit : leftLimit;
       s.lateralSpeed = -side * incoming * 0.22;
       if (s.impact < 0.08) {
         s.speed *= 0.84;
@@ -209,11 +221,14 @@ function integrate(s, controls, track, dt, events) {
         if (shielded) controls.shield = false;
         else s.energy = Math.max(0, s.energy - 6 - severity * 9);
         s.impact = 1;
+        const contact = bounds
+          ? { railLateral: side > 0 ? bounds.max : bounds.min }
+          : {};
         events.push({
           type: 'impact',
           payload: shielded
-            ? { severity, side, shielded: true }
-            : { severity, side },
+            ? { severity, side, shielded: true, ...contact }
+            : { severity, side, ...contact },
         });
       }
       s.heading *= 0.65;
@@ -241,6 +256,32 @@ export function stepVehicle(state, input, track, dt, options = {}) {
             cruiseSpeed: clamp(options.propulsion.cruiseSpeed, 112, 157),
             thrust: clamp(options.propulsion.thrust, 42, 59),
           }
+        : null,
+    // Level-scoped surface response. Omitted values reproduce the baseline.
+    // Acceleration uses the route tangent/right axes; +right is driver-left.
+    surface: {
+      grip: clamp(finite(options.surface?.grip, 1), 0.05, 4),
+      drag: clamp(finite(options.surface?.drag), 0, 100),
+      thrustScale: clamp(finite(options.surface?.thrustScale, 1), 0, 1),
+      forwardAcceleration: clamp(
+        finite(options.surface?.forwardAcceleration),
+        -100,
+        100,
+      ),
+      lateralAcceleration: clamp(
+        finite(options.surface?.lateralAcceleration),
+        -100,
+        100,
+      ),
+    },
+    roadBounds:
+      Number.isFinite(options.roadBounds?.min) &&
+      Number.isFinite(options.roadBounds?.max) &&
+      options.roadBounds.min >= -track.width / 2 &&
+      options.roadBounds.max <= track.width / 2 &&
+      options.roadBounds.max - options.roadBounds.min >=
+        2 * Math.hypot(HALF_WIDTH, HALF_LENGTH)
+        ? { min: options.roadBounds.min, max: options.roadBounds.max }
         : null,
     shield: options.shield === true,
     steeringAssist: clamp(

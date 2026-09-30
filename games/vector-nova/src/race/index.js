@@ -49,6 +49,9 @@ export function createRace(track, { rulesId = 'magnetic-v3-assist-0.3' } = {}) {
             (event) =>
               event.type === 'jump-transfer' && event.payload.id === jump.id,
           )?.payload;
+          // Optional authored bypasses retain an ordinary supported road.
+          // Only a real transfer takes the constrained airborne credit path.
+          if (jump.optional && !transfer) continue;
           const key = `${cycle}:${jump.id}`;
           const target = current - base;
           const allowed =

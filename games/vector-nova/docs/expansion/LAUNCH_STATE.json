@@ -12,7 +12,6 @@
   },
   "readiness": {
     "state": "committed_foundation_verified",
-    "sourceRevision": "8f330df98a20617a3e3423909d0b5867d887d046",
     "next": "Fresh integrator reviews this foundation, coordinates minimal runtime extensions for the approved local mechanics, and dispatches the seven owned builds. Shared pickup/boost implementation remains deferred."
   },
   "reuseReview": {
@@ -22,7 +21,7 @@
   },
   "foundation": {
     "state": "committed_and_verified",
-    "selectedBase": "8f330df98a20617a3e3423909d0b5867d887d046",
+    "selectedBase": "7e0d6067d1124ab56168bcab326ea34cfbeec7cc",
     "sourceWorktree": "/Users/g/code/scratch/tech9",
     "verified": true,
     "checks": "236 tests, lint/build; 10 approved high/low production/shape combinations and 4 disposable fixture combinations, including unknown-level and owned-asset failure cleanup. Integrated build matches the tested build byte-for-byte.",

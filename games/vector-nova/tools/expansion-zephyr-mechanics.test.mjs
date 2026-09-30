@@ -5,6 +5,7 @@ import { createZephyrRuntime } from '../src/levels/zephyr/runtime.js';
 import {
   interiorAt,
   wetnessAt,
+  wetnessForFrame,
   sampleTowerEvent,
 } from '../src/levels/zephyr/environment/atmosphere.js';
 import { createVehicleState } from '../src/physics/index.js';
@@ -75,5 +76,37 @@ test('Zephyr falling geometry uses a bounded slow event and no simulation forces
   for (let i = 0; i < 240; i++) runtime.advance(state, neutral, 1 / 120);
   assert.equal(state.speed, 0);
   assert.equal(state.lateral, 0);
+  runtime.dispose();
+});
+
+test('Water curtain streams persist through flight and restore with recorded simulation time', () => {
+  const runtime = createZephyrRuntime({ track });
+  const state = {
+    ...createVehicleState(),
+    distance: track.curtains[0].s - 0.2,
+    speed: 112,
+  };
+  runtime.advance(state, { ...neutral, throttle: 1 }, 1 / 120);
+  const data = runtime.snapshot();
+  assert.ok(data.zephyr.wetStart > 0);
+  assert.ok(
+    wetnessForFrame(
+      track,
+      track.jumps[0].landingStart + 160,
+      data.zephyr.wetStart + 2,
+    ) > 0.5,
+  );
+  assert.equal(
+    wetnessForFrame(
+      track,
+      track.jumps[0].landingStart + 160,
+      data.zephyr.wetStart + 7,
+    ),
+    0,
+  );
+  runtime.reset();
+  assert.equal(runtime.snapshot().zephyr.wetStart, null);
+  runtime.restore(data);
+  assert.deepEqual(runtime.snapshot(), data);
   runtime.dispose();
 });

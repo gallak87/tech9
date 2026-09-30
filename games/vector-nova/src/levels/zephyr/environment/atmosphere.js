@@ -31,3 +31,11 @@ export function sampleTowerEvent(age) {
     dust: smooth(0, 4, age) * (1 - smooth(16, 26, age)),
   };
 }
+
+export function wetnessForFrame(track, distance, time) {
+  const start = track.zephyrPresentation?.wetStart;
+  return Math.max(
+    wetnessAt(track, distance),
+    start == null ? 0 : 1 - smooth(0.4, 5.8, time - start),
+  );
+}

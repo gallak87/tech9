@@ -4,7 +4,7 @@ import {
   groundFrame,
   createRouteClearance,
 } from '../../../environment/placement.js';
-import { interiorAt, wetnessAt, sampleTowerEvent } from './atmosphere.js';
+import { interiorAt, wetnessForFrame, sampleTowerEvent } from './atmosphere.js';
 
 const FILES = [
   'cathedral-facade',
@@ -384,7 +384,7 @@ export async function createZephyrEnvironment({ track, view, shape = false }) {
           (1 - interior * (entry.light.isDirectionalLight ? 0.91 : 0.7));
       view.scene.environmentIntensity =
         initialEnvironment * (1 - interior * 0.78);
-      wetness = wetnessAt(track, frame.state.distance);
+      wetness = wetnessForFrame(track, frame.state.distance, frame.time);
       for (const material of waterMaterials)
         material.userData.time.value = frame.time;
       const start = track.zephyrPresentation?.towerStart;
@@ -410,6 +410,13 @@ export async function createZephyrEnvironment({ track, view, shape = false }) {
         object.geometry.computeBoundingSphere();
       }
       shipSpray.visible = wetness > 0.02 && !frame.reviewing;
+      const droplets = shipSpray.geometry.attributes.position;
+      for (let i = 0; i < droplets.count; i++) {
+        const phase = (frame.time * 5 + i * 0.73) % 5;
+        droplets.setY(i, 0.6 + (i % 5) * 0.22 - phase * 0.12);
+        droplets.setZ(i, -1 - phase);
+      }
+      droplets.needsUpdate = true;
       shipSpray.position.copy(frame.ship.group.position);
       shipSpray.quaternion.copy(frame.ship.group.quaternion);
       dropletMaterial.opacity =

@@ -5,7 +5,7 @@ import { createZephyrOverlay } from './overlay.js';
 import { createZephyrRuntime } from './runtime.js';
 export default function createLevel({ shape = false } = {}) {
   return {
-    version: '0.5.0-zephyr-v1',
+    version: '0.5.1-zephyr-v2',
     renderer: {
       world: shape ? 'zephyr-shape' : 'zephyr-basilica',
       background: '#a18eac',

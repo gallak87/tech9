@@ -6,6 +6,7 @@ export default {
   review: true,
   ui: {
     compact: true,
+    compactLandscape: true,
     stackedReview: true,
     lowNotice: true,
     edition: 'ZEPHYR BASILICA',

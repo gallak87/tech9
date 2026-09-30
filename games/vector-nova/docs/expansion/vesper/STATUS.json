@@ -1,18 +1,14 @@
 {
-  "schemaVersion": 2,
-  "mapNumber": 4,
-  "name": "Vesper Canopy",
-  "slug": "vesper",
-  "state": "not_started",
-  "worktree": null,
-  "foundationRevision": null,
-  "coordination": "Live primary docs/expansion/LAUNCH_STATE.json; see common brief",
-  "critic": {
-    "completedRounds": 0,
-    "lastScores": null,
-    "verifiedPass": false
-  },
-  "verification": {},
-  "openIssues": [],
-  "humanApproved": false
+  "schemaVersion": 1,
+  "phase": "route_and_assets",
+  "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
+  "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+  "branch": "codex/fzero-vesper1",
+  "formalRounds": 0,
+  "maximumRounds": 8,
+  "humanApproved": false,
+  "currentChecks": [],
+  "openFindings": ["Route, real flight and production assets in construction"],
+  "rounds": [],
+  "futureSupport": []
 }

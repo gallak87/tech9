@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "phase": "critic_round4_responsive_recheck_ready",
+  "phase": "ready_for_human_review",
   "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
   "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
   "branch": "codex/fzero-vesper1",
-  "formalRounds": 3,
+  "formalRounds": 4,
   "maximumRounds": null,
   "humanApproved": false,
   "currentChecks": [
@@ -16,13 +16,14 @@
       "spacing": 0.9997826559463131,
       "measuredLength": 4599.982745304713,
       "maxArcError": 0.00039931438062046354,
-      "maxFrameTurnPerMetre": 0.05325363961090339
+      "maxFrameTurnPerMetre": 0.05325363961090339,
+      "evidence": ".experiments/expansion/vesper/check-level-r3.log"
     },
     {
       "check": "full-tests",
       "result": "pass",
       "count": 271,
-      "scope": "Full suite after crown/texture assets, shared camera safeFrame and resin depth. Subsequent creature-only texture strength change verified by shader/render checks."
+      "scope": "271tests passed after crown/material/shared-camera changes. Final CSS and portrait flag repair passed affected4contract tests and independent scoped browser verification; no physics/art/camera changes afterward."
     },
     {
       "check": "lane-tests",
@@ -48,16 +49,16 @@
     {
       "check": "actual-key-production",
       "result": "pass",
-      "segments": 11,
-      "compatibleReplayExact": 11,
-      "evidence": ".experiments/expansion/vesper/critic-r2/evidence.json",
+      "segments": 7,
+      "compatibleReplayExact": 7,
+      "evidence": ".experiments/expansion/vesper/critic-r3/evidence.json",
       "launchSpeeds": {
         "boostedCrown": 124.4129343061319,
         "crown": 110.17853317113088,
         "imperfectCrownRecovered": 72.0796063966328,
         "branch": 96.63667769159588
       },
-      "scope": "Independent actual keys:947.19m continuous hollow and481.72m Rootfall without impacts;11/11 exact replays."
+      "scope": "Final art/camera actual keys:946.62m continuous hollow and483.54m Rootfall without impacts; crown107.94/122.48m/s andbranch93.91m/s landed cleanly. R2 surface/control/recovery proof carried unchanged."
     },
     {
       "check": "production-visual-builder",
@@ -80,14 +81,14 @@
       "overviewViews": 6,
       "errors": 0,
       "overlaps": 0,
-      "scope": "Production/shape at1440x900 and1280x720; review open/closed; impact/crown/branch. Approved Halcyon remains opted out. Mobile final pass pending by direct human instruction.",
+      "scope": "Production/shape desktop review, telemetry and notices passed; final responsive repair included independent desktop CSS sanity.",
       "evidence": ".experiments/expansion/vesper/desktop-ui-r2/report.json"
     },
     {
       "check": "camera-safe-frame",
       "result": "pass",
       "count": 38,
-      "scope": "Shared contract/framing, approved/Nacre regressions and dynamic Vesper actual hull framing;3,947saved-input60Hz samples fit, eye/FOV unchanged, max added angular step1.48degrees. Desktop actual-key review pending."
+      "scope": "38targeted regressions and3,947saved-input60Hz samples; full hull fits, eye/FOV unchanged,max added step1.48degrees. Independent R3 impact/ascent/Rootfall/jump driving passes."
     },
     {
       "check": "creature-final-texture",
@@ -99,43 +100,16 @@
     },
     {
       "check": "final-responsive-repair",
-      "result": "pending-browser-recheck",
+      "result": "pass",
       "contractTests": 4,
-      "scope": "Only R3 affected portrait and short landscape touch/HUD cases need recheck. No art or camera changes."
+      "scope": "Final mobile phase completed:36initial responsive stills plus18focused defect-repair stills; wide landscape touch controls and portrait/short-landscape HUD clear. No repeated art matrix; physical devices unverified.",
+      "stills": 18,
+      "controls": 6,
+      "errors": 0,
+      "evidence": ".experiments/expansion/vesper/critic-r4/evidence.json"
     }
   ],
-  "openFindings": [
-    {
-      "id": "R3-landscape-touch-controls",
-      "priority": 1,
-      "category": "feedbackUI",
-      "finding": "At 844x390, all on-screen steering/braking/throttle/boost controls are absent in both quality presets and all captured play states, including on a touch-capable emulated context. The touch region is display:none with zero bounds. The CSS enables its display only at max-width:760px, so rotating a phone beyond that width removes the driving controls.",
-      "reproduction": "Touch-capable 390x844 context, rotate/set viewport to 844x390; enter any racing scenario. No on-screen drive controls remain.",
-      "fix": "Make the existing touch control row available in the supported touch landscape layout without requiring a width under 761px. Preserve non-overlapping notice/map/telemetry regions and verify pointer input/release after rotation.",
-      "source": "src/ui/style.css:514",
-      "evidence": [
-        "final-844x390-high-crown-closed.png",
-        "final-844x390-high-impact-open.png",
-        "final-844x390-low-rootfall.png",
-        "mobile-final.json"
-      ],
-      "implementation": "Responsive correction committed; scoped affected-view verification pending. Accepted art and camera unchanged."
-    },
-    {
-      "id": "R3-responsive-impact-hud-craft",
-      "priority": 2,
-      "category": "feedbackUI",
-      "finding": "At 390x844 during deliberate impact, reserve text and speed cover substantial portions of the banked craft, and the full-width impact notice crosses its rear/engines. At 640x360 the impact notice also crosses the craft. DOM regions are disjoint, so the automatic rectangle audit misses this world-space overlap. The road remains visible and the craft is not cropped by the viewport; this is an overlay placement/framing issue.",
-      "reproduction": "At 390x844 or640x360 load impact, hold actual w+d for approximately1.2s, release and capture. Both high and low show the interference. Portrait screenshots are near1.35s because setup/capture takes real frames.",
-      "fix": "Reserve a clear impact-notice band away from the visible craft and keep essential reserve/speed legible during banked contact. A responsive notice placement and/or opt-in safe-frame adjustment is sufficient; leave accepted desktop art unchanged. Check review open/closed and one ordinary crown view to avoid moving the collision elsewhere.",
-      "evidence": [
-        "final-390x844-high-impact-closed.png",
-        "final-390x844-high-impact-open.png",
-        "final-640x360-low-impact-closed.png"
-      ],
-      "implementation": "Responsive correction committed; scoped affected-view verification pending. Accepted art and camera unchanged."
-    }
-  ],
+  "openFindings": [],
   "rounds": [
     {
       "round": 1,
@@ -191,6 +165,21 @@
       "actualKeyCases": 7,
       "desktopStills": 48,
       "responsiveStills": 36
+    },
+    {
+      "round": 4,
+      "source": "82c9e64c09bf439010916b69426bc73d9aa5188c",
+      "result": "pass",
+      "scores": {
+        "art": 9,
+        "lightingMaterialDepth": 9,
+        "handlingCamera": 9,
+        "routeReadability": 9,
+        "feedbackUI": 9,
+        "stabilityPerformance": 9
+      },
+      "scope": "Focused final responsive repair:18stills,6pointer hold/release checks,pauseclear,desktop CSS sanity; R3 accepted art/camera/mechanics carried unchanged.",
+      "evidence": ".experiments/expansion/vesper/critic-r4/verdict.json"
     }
   ],
   "futureSupport": [
@@ -280,22 +269,22 @@
     {
       "source": "Human-authorized narrowly scoped shared UI work in Vesper checkout",
       "localCommits": ["839d0d13", "925d2580", "3a9d98db"],
-      "scope": "Optional portraitLowNotice and compactLandscape desktop review/map spacing; approved metadata remains unchanged.",
-      "verification": "266CPU tests,14targeted metadata/contract tests,24desktop production/shape layout cases; final mobile pass pending."
+      "scope": "Initial optional portrait HUD and compactLandscape desktop spacing; final portrait flag/placement superseded by e670bddd. Approved metadata remains unchanged.",
+      "verification": "266initial CPU suite,24desktop layout cases; final responsive proof recorded byR4."
     },
     {
       "source": "Human-authorized narrow shared camera fix",
       "localCommits": ["dcc66d0b"],
       "ownedOptInCommit": "b4ef596b",
       "scope": "Optional camera.safeFrame projects cached ship bounds and minimally corrects grounded chase aim; default approved circuits unchanged.",
-      "verification": "38targetedCPU regressions and full271suite; actual-key independent review pending."
+      "verification": "38targetedCPU regressions,271fullsuite and R3 actual-key camera review pass."
     },
     {
       "source": "Final mobile defect repair within human-authorized shared UI scope",
       "localCommits": ["e670bddd"],
       "ownedOptInCommit": "ea021817",
       "scope": "Compact short landscape touch controls/upper impact notices and portraitCompactHud upper telemetry. Replaces unmerged portraitLowNotice. Existing approved metadata remains opted out.",
-      "verification": "4affectedcontract tests,full lint/build; targeted final responsive verification pending."
+      "verification": "4affectedcontract tests,full lint/build andR4 scoped18stills+6pointercontrol checks+pauseclear pass."
     }
   ],
   "sourceBudgets": {
@@ -324,8 +313,8 @@
   },
   "unverified": [
     "Foreground frame pacing",
-    "Independent audio listening",
-    "Physical gamepad/mobile"
+    "Audio listening",
+    "Physical mobile/gamepad devices"
   ],
   "reviewPolicy": "One independent critic loop; original8-round cap removed by direct human completion override relayed by integrator2026-09-30. Preserve actual rounds; external-only evidence gaps do not justify unchanged reviews.",
   "renderedBudgets": {
@@ -333,7 +322,7 @@
       "calls": 944,
       "triangles": 1954358,
       "estimatedGpuMiB": 210.4690697479248,
-      "initialTransferredBytes": 11046635,
+      "initialTransferredBytes": 11046750,
       "scope": "Desktop driving scenes and full-forest overview with completed crown; no hidden scenery.",
       "evidence": ".experiments/expansion/vesper/builder-r3/report.json"
     },
@@ -341,37 +330,18 @@
       "calls": 474,
       "triangles": 1069635,
       "estimatedGpuMiB": 116.5359642791748,
-      "initialTransferredBytes": 11046635,
+      "initialTransferredBytes": 11046750,
       "scope": "Desktop driving scenes and full-forest overview with completed crown; no hidden scenery.",
       "evidence": ".experiments/expansion/vesper/builder-r3/report.json"
     },
     "scope": "Actual renderer all-pass metrics including shadows/AO. Headless RAF timings do not certify foreground pacing.",
-    "criticRound1": {
-      "gameplayTriangles": 2064093,
-      "reviewTriangles": 2240865,
-      "reviewCalls": 1011,
-      "estimatedGpuMiB": 190.05313636779783,
-      "scope": "Independent1440x900desktop/highresponsive/productionreview; gameplayandreviewexceedstartingbudget, correctionsrequired."
-    },
-    "criticRound2": {
-      "captures": 58,
-      "actualKeyDrives": 11,
-      "replayExact": 11,
-      "browserErrors": 0,
-      "hollowMetresNoImpacts": 947.1889556580664,
-      "rootfallMetresNoImpacts": 481.7197996359864,
-      "peakCalls": 977,
-      "peakTriangles": 1886821,
-      "peakGpuMiB": 190.8794226837158,
-      "transferBytes": 5351332,
-      "productionDispose": {
-        "ready": false,
-        "canvas": 0
-      },
-      "shapeDispose": {
-        "ready": false,
-        "canvas": 0
-      }
+    "independentFinal": {
+      "calls": 969,
+      "triangles": 1902191,
+      "estimatedGpuMiB": 210.4690697479248,
+      "responsiveCalls": 790,
+      "responsiveTriangles": 1767625,
+      "scope": "Independent R3 fullforest/actualdrives plusR4 final responsive repair; root overview maximum is retained separately."
     }
   },
   "humanSteers": {
@@ -382,5 +352,23 @@
     "verification": "Desktop art/driving iteration; one mobile pass at the end only.",
     "treeTop": "Complete the literal missing top/crown; walls alone leave an open stump.",
     "creature": "One focused body/legs/face texture pass is sufficient for now; avoid extended modeling cycles."
-  }
+  },
+  "criticResult": "pass",
+  "criticScores": {
+    "art": 9,
+    "lightingMaterialDepth": 9,
+    "handlingCamera": 9,
+    "routeReadability": 9,
+    "feedbackUI": 9,
+    "stabilityPerformance": 9
+  },
+  "reviewedSource": "82c9e64c09bf439010916b69426bc73d9aa5188c",
+  "criticEvidence": ".experiments/expansion/vesper/critic-r4/verdict.json",
+  "handoffNotes": [
+    "All owned production work committed; additional shared opt-in UI/camera refinements packaged separately from original integrator extensions.",
+    "Final human approval remains pending; no push or merge performed.",
+    "Production preview stays running under fzero-int1 ownership. All automation browsers are closed.",
+    "Accepted art and camera are frozen; stop further automated critique.",
+    "Future pickup/boost placement notes remain deferred; no shared pickups or AI/race gate implemented."
+  ]
 }

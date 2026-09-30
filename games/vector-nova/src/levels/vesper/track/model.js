@@ -233,7 +233,11 @@ export function createVesperTrack() {
       lateral: 4.5,
       speed: 0,
     },
-    'creature-event': { distance: nodeS(20) - 60, speed: 58 },
+    'creature-event': {
+      label: 'Bloomspan crossing',
+      distance: nodeS(20) - 60,
+      speed: 58,
+    },
   };
   for (const section of sections)
     scenarios[`${section.id}-showcase`] = {

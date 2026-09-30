@@ -17,34 +17,8 @@
       "measuredLength": 4599.982745304713,
       "maxArcError": 0.00039931438062046354,
       "maxFrameTurnPerMetre": 0.05325363961090339,
-      "evidence": ".experiments/expansion/vesper/check-level-r3.log"
-    },
-    {
-      "check": "full-tests",
-      "result": "pass",
-      "count": 271,
-      "scope": "271tests passed after crown/material/shared-camera changes. Final CSS and portrait flag repair passed affected4contract tests and independent scoped browser verification; no physics/art/camera changes afterward."
-    },
-    {
-      "check": "lane-tests",
-      "result": "pass",
-      "geometry": 8,
-      "runtime": 8,
-      "denseLandings": 152,
-      "note": "Runtime8 incl152/152dense landings after contactv4; geometry8 rerun after1m driving tessellation, shared-UV resin films and jump markings."
-    },
-    {
-      "check": "full-lint-format",
-      "result": "pass"
-    },
-    {
-      "check": "production-build",
-      "result": "pass"
-    },
-    {
-      "check": "asset-lifecycle-animation-clearance",
-      "result": "pass",
-      "scope": "Completed crown:267,498triangle centroid/edge samples plus vertices,118supports and51creature poses produce0road/camera contacts; deterministic/reduced motion and late/double disposal pass including shared bitmap closure."
+      "evidence": ".experiments/expansion/vesper/check-level-r3.log",
+      "scope": "Carried unchanged route, physics and camera baseline. "
     },
     {
       "check": "actual-key-production",
@@ -58,58 +32,78 @@
         "imperfectCrownRecovered": 72.0796063966328,
         "branch": 96.63667769159588
       },
-      "scope": "Final art/camera actual keys:946.62m continuous hollow and483.54m Rootfall without impacts; crown107.94/122.48m/s andbranch93.91m/s landed cleanly. R2 surface/control/recovery proof carried unchanged."
-    },
-    {
-      "check": "production-visual-builder",
-      "result": "inspected",
-      "stills": 22,
-      "evidence": ".experiments/expansion/vesper/builder-r3/report.json",
-      "scope": "Desktop high/low full crown, textured bark/creature, refracted resin and overview; zero renderer errors. Final creature contrast adjustment separately recaptured."
-    },
-    {
-      "check": "shared-browser-smoke",
-      "result": "pass",
-      "cases": 4,
-      "scope": "Final combined crown/material/camera build: production/shape high/low, compatible replay, input clearing, reset, repeated disposal, unknown-level and owned-asset failure cleanup; browser closed.",
-      "evidence": ".experiments/expansion/vesper/generic-r3/report.json"
-    },
-    {
-      "check": "desktop-layout",
-      "result": "pass",
-      "cases": 24,
-      "overviewViews": 6,
-      "errors": 0,
-      "overlaps": 0,
-      "scope": "Production/shape desktop review, telemetry and notices passed; final responsive repair included independent desktop CSS sanity.",
-      "evidence": ".experiments/expansion/vesper/desktop-ui-r2/report.json"
+      "scope": "Carried unchanged route, physics and camera baseline. Final art/camera actual keys:946.62m continuous hollow and483.54m Rootfall without impacts; crown107.94/122.48m/s andbranch93.91m/s landed cleanly. R2 surface/control/recovery proof carried unchanged."
     },
     {
       "check": "camera-safe-frame",
       "result": "pass",
       "count": 38,
-      "scope": "38targeted regressions and3,947saved-input60Hz samples; full hull fits, eye/FOV unchanged,max added step1.48degrees. Independent R3 impact/ascent/Rootfall/jump driving passes."
+      "scope": "Carried unchanged route, physics and camera baseline. 38targeted regressions and3,947saved-input60Hz samples; full hull fits, eye/FOV unchanged,max added step1.48degrees. Independent R3 impact/ascent/Rootfall/jump driving passes."
     },
     {
-      "check": "creature-final-texture",
-      "result": "inspected",
-      "stills": 2,
-      "rendererErrors": 0,
-      "scope": "One bounded material adjustment makes face/body/leg texture visible at driving distance in high/low. Geometry, staging and lighting unchanged.",
-      "evidence": ".experiments/expansion/vesper/creature-texture-final/report.json"
-    },
-    {
-      "check": "final-responsive-repair",
+      "check": "targeted-cpu-tests",
       "result": "pass",
-      "contractTests": 4,
-      "scope": "Final mobile phase completed:36initial responsive stills plus18focused defect-repair stills; wide landscape touch controls and portrait/short-landscape HUD clear. No repeated art matrix; physical devices unverified.",
-      "stills": 18,
-      "controls": 6,
-      "errors": 0,
-      "evidence": ".experiments/expansion/vesper/critic-r4/evidence.json"
+      "count": 21,
+      "scope": "9 geometry/material tests, 8 runtime tests including152dense landings, and4 level contract/lifetime tests."
+    },
+    {
+      "check": "environment-hide-and-lighting",
+      "result": "pass",
+      "scope": "No creature or linked events in normal/review/high/low/reduced modes. Whole forest and3static clearing trees retained; exact1.10lighting factors, reset and late/double disposal checked."
+    },
+    {
+      "check": "sky-lifecycle",
+      "result": "pass",
+      "scope": "Unique texture ownership per creation; camera following; exact1.10lighting rig factors; idempotent texture/geometry/material disposal and rejected-load propagation."
+    },
+    {
+      "check": "full-lint-format",
+      "result": "pass"
+    },
+    {
+      "check": "production-build",
+      "result": "pass"
+    },
+    {
+      "check": "human-refinement-visuals",
+      "result": "inspected",
+      "stills": 32,
+      "rendererErrors": 0,
+      "scope": "18initial desktop stills,13final desktop/mobile stills and1focused sky-seam repair. Plain low curbs, physical resin transmission, no creature, intact whole forest, modest lighting lift and generated cloud/forest sky. One final mobile phase only; final shader seam repair checked on desktop. No critic rounds.",
+      "evidence": [
+        ".experiments/expansion/vesper/human-finish/report.json",
+        ".experiments/expansion/vesper/human-finish-final/report.json",
+        ".experiments/expansion/vesper/sky-wrap-fix/report.json"
+      ]
+    },
+    {
+      "check": "shared-browser-smoke",
+      "result": "pass",
+      "cases": 4,
+      "scope": "Production/shape high/low; compatible replay, reset, input clearing, repeated disposal, unknown-level and ship-asset failure cleanup. Final sky derivative/error-copy repair separately verified.",
+      "evidence": ".experiments/expansion/vesper/generic-human-finish/report.json"
+    },
+    {
+      "check": "sky-asset-failure",
+      "result": "pass",
+      "scope": "Aborted sky request yields useful reload message and releases renderer canvas; ready remains false.",
+      "evidence": ".experiments/expansion/vesper/human-finish-final/sky-failure.json"
+    },
+    {
+      "check": "final-mobile-sanity",
+      "result": "pass",
+      "cases": 3,
+      "scope": "390×844,844×390,640×360 final low-preset stills: sky/resin render, hull/HUD/touch controls remain visible. Existing prior touch-input proof carried; no physical devices.",
+      "evidence": ".experiments/expansion/vesper/human-finish-final/report.json"
     }
   ],
-  "openFindings": [],
+  "openFindings": [
+    {
+      "id": "physical-transmission-high-budget",
+      "status": "known_tradeoff",
+      "scope": "Requested physical resin transmission adds an opaque-scene capture and mip resolve. High overview peaks1187calls/2468430tri against1000calls/2Mtri targets; low760calls/1679291tri is within target. Existing forest batching/LOD is already active; no scenery was hidden or substantially simplified to compensate. Foreground pacing remains unverified."
+    }
+  ],
   "rounds": [
     {
       "round": 1,
@@ -192,7 +186,7 @@
       "world": [156.5347450269974, 177.96610047906998, 390.8004216966328],
       "suggestedAid": "boost or reserve refill",
       "purpose": "Build launch speed on the straight crown shelf.",
-      "observedDifficulty": "Actual-key manual boost launched124.41m/s and landed; unboosted110.18m/s also landed. Imperfect72.08m/s attempt recovered after1.5s. Numerical centered window105\u2013160m/s contiguous."
+      "observedDifficulty": "Actual-key manual boost launched124.41m/s and landed; unboosted110.18m/s also landed. Imperfect72.08m/s attempt recovered after1.5s. Numerical centered window105–160m/s contiguous."
     },
     {
       "id": "trunk-shelf",
@@ -225,7 +219,7 @@
       "world": [724.2494690640201, 141.61005001654792, 25.58309326006529],
       "suggestedAid": "boost or reserve refill",
       "purpose": "Offer support before the optional narrow branch bypass.",
-      "observedDifficulty": "Actual-key branch launch96.64m/s at driver-left8.5m landed. Optional19.5m main strip remains available; numerical65\u2013160m/s centered branch window lands."
+      "observedDifficulty": "Actual-key branch launch96.64m/s at driver-left8.5m landed. Optional19.5m main strip remains available; numerical65–160m/s centered branch window lands."
     },
     {
       "id": "rootfall-recovery",
@@ -289,7 +283,8 @@
   ],
   "sourceBudgets": {
     "assetBytes": 9474740,
-    "scope": "See renderedBudgets for measured draw/triangle/residency values; runtime geometry uses material cells and camera-distance leaf detail."
+    "scope": "See renderedBudgets for measured draw/triangle/residency values; runtime geometry uses material cells and camera-distance leaf detail.",
+    "skyBytes": 1810035
   },
   "preview": {
     "production": "http://127.0.0.1:5202/?level=vesper",
@@ -297,17 +292,16 @@
     "owner": "fzero-int1",
     "running": true,
     "bundles": {
-      "main": "index-7wceQpLi.js",
-      "level": "vesper-DHRYRQp3.js",
+      "main": "index-sWdZGvW7.js",
+      "level": "vesper-BAM1DuGB.js",
       "css": "index-DuS16sdu.css"
     },
     "assetHashes": {
-      "assets/index-7wceQpLi.js": "53d555fc01de2989efd4c83391b18a0266e572188cc4a348c3ac5f12dba8197f",
-      "assets/BufferGeometryUtils-CxZJpR84.js": "24d2e8a1d4f18f31a0e636fa300057d585e3a96719b1e320093c5d5565ccc2ec",
-      "assets/physics-3KfmHGEp.js": "b8ee27b6dbd690fb411f385e9636d52ae04f784b8bbac4c53ef5b0c81750cd9b",
+      "assets/index-sWdZGvW7.js": "3a47be8b7a60fa5bb77a890e806afad7c143f6c017019d5fcc250345d58febbb",
+      "assets/vesper-BAM1DuGB.js": "b283dcb582a573f457f8cd2d64f96afea70346e423c4e7a5ca5de9dec1a02581",
       "assets/index-DuS16sdu.css": "35f3ee2efb8246512f79d4cff4dcb3cfe01a44d9756616ecadfe2c8f2cdb7cd6",
-      "assets/vesper-DHRYRQp3.js": "ed60801b7cf33cd1205083f508d96a4b289894067d946804270bdaf3578584ab",
-      "assets/levels/vesper/vesper-canopy.glb": "33244b847375b3c21ac25fc0db4321bc9da44bfda73419a40820cc4679252cd0"
+      "assets/levels/vesper/vesper-canopy.glb": "33244b847375b3c21ac25fc0db4321bc9da44bfda73419a40820cc4679252cd0",
+      "assets/levels/vesper/vesper-night-sky-v1.png": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c"
     },
     "servedBytesVerified": true
   },
@@ -316,44 +310,39 @@
     "Audio listening",
     "Physical mobile/gamepad devices"
   ],
-  "reviewPolicy": "One independent critic loop; original8-round cap removed by direct human completion override relayed by integrator2026-09-30. Preserve actual rounds; external-only evidence gaps do not justify unchanged reviews.",
+  "reviewPolicy": "Latest human request explicitly ends critic rounds. Implement the five requested refinements and verify functionality; the four earlier formal rounds are historical baseline evidence, not a rescore of this art pass.",
   "renderedBudgets": {
+    "scope": "Actual all-pass draw/triangle measurements include transmission, shadows and postprocessing. GPU estimate from shared metrics excludes driver overhead and the new transmission buffers. Hidden RAF timing does not certify foreground pacing.",
     "high": {
-      "calls": 944,
-      "triangles": 1954358,
-      "estimatedGpuMiB": 210.4690697479248,
-      "initialTransferredBytes": 11046750,
-      "scope": "Desktop driving scenes and full-forest overview with completed crown; no hidden scenery.",
-      "evidence": ".experiments/expansion/vesper/builder-r3/report.json"
+      "calls": 1187,
+      "triangles": 2468430,
+      "estimatedGpuMiB": 215.55291648864747,
+      "initialTransferredBytes": 12855231,
+      "evidence": ".experiments/expansion/vesper/human-finish-final/report.json",
+      "withinDrawTargets": false
     },
     "low": {
-      "calls": 474,
-      "triangles": 1069635,
-      "estimatedGpuMiB": 116.5359642791748,
-      "initialTransferredBytes": 11046750,
-      "scope": "Desktop driving scenes and full-forest overview with completed crown; no hidden scenery.",
-      "evidence": ".experiments/expansion/vesper/builder-r3/report.json"
-    },
-    "scope": "Actual renderer all-pass metrics including shadows/AO. Headless RAF timings do not certify foreground pacing.",
-    "independentFinal": {
-      "calls": 969,
-      "triangles": 1902191,
-      "estimatedGpuMiB": 210.4690697479248,
-      "responsiveCalls": 790,
-      "responsiveTriangles": 1767625,
-      "scope": "Independent R3 fullforest/actualdrives plusR4 final responsive repair; root overview maximum is retained separately."
+      "calls": 760,
+      "triangles": 1679291,
+      "estimatedGpuMiB": 121.61981101989747,
+      "initialTransferredBytes": 12855231,
+      "evidence": ".experiments/expansion/vesper/human-finish-final/report.json",
+      "withinDrawTargets": true
     }
   },
   "humanSteers": {
     "date": "2026-09-30",
     "learnings": "docs/expansion/vesper/learnings.md",
-    "resin": "Deep amber depth and warm reflections with a thin glowing edge; preserve concept identity while controlling blown highlights.",
+    "resin": "Keep deep amber gloss, add restrained actual transmission through the resin deck.",
     "tree": "Keep the enclosing giant hollow tree whole, including production overview presence; refine its art within that silhouette.",
-    "verification": "Desktop art/driving iteration; one mobile pass at the end only.",
+    "verification": "No more critic rounds. Final mobile sanity once after desktop art; no repeated mobile matrix.",
     "treeTop": "Complete the literal missing top/crown; walls alone leave an open stump.",
-    "creature": "One focused body/legs/face texture pass is sufficient for now; avoid extended modeling cycles."
+    "creature": "Hide creature and all linked effects; preserve source/GLB for possible future reuse. No further creature artwork.",
+    "edge": "Remove raised pale/brown hooked petals; preserve low orange curb and thin glow.",
+    "lighting": "Raise the existing map lighting/emissive rig ten percent while preserving dim night mood.",
+    "sky": "Use an original imagegen cloud-and-distant-forest panorama; keep real nearby forest geometry."
   },
-  "criticResult": "pass",
+  "criticResult": "historical_baseline_pass",
   "criticScores": {
     "art": 9,
     "lightingMaterialDepth": 9,
@@ -365,10 +354,12 @@
   "reviewedSource": "82c9e64c09bf439010916b69426bc73d9aa5188c",
   "criticEvidence": ".experiments/expansion/vesper/critic-r4/verdict.json",
   "handoffNotes": [
-    "All owned production work committed; additional shared opt-in UI/camera refinements packaged separately from original integrator extensions.",
-    "Final human approval remains pending; no push or merge performed.",
-    "Production preview stays running under fzero-int1 ownership. All automation browsers are closed.",
-    "Accepted art and camera are frozen; stop further automated critique.",
+    "Latest human-requested refinements complete; no new critic round. Historical all9 baseline scores do not rescore the changed art.",
+    "Physical transmission high-preset draw budget tradeoff is documented in openFindings; low remains within target.",
+    "Creature source and original GLB remain intact for reuse but are not instantiated.",
+    "Final human approval remains pending; no push or merge. Production preview remains running under fzero-int1 ownership; all automation browsers closed.",
+    "Owned implementation and additional shared opt-in UI/camera work remain packaged separately; no approved-level source changed in this pass.",
     "Future pickup/boost placement notes remain deferred; no shared pickups or AI/race gate implemented."
-  ]
+  ],
+  "criticScope": "Scores below apply to reviewedSource before the latest human-directed edge/resin/creature/lighting/sky refinements. No new critic round was run."
 }

@@ -1,8 +1,8 @@
 {
-  "title": "Vesper Canopy \u2014 original scene-to-Blender assets",
-  "date": "2026-09-29",
+  "title": "Vesper Canopy — original scene, material and sky assets",
+  "date": "2026-09-30",
   "ownership": "Original geometry, shaders and Blender generator authored for VECTOR//NOVA. Scene concepts generated using the built-in image_gen tool; no third-party meshes or textures.",
-  "workflow": "Selected scene concepts \u2192 reproducible CPU Blender geometry and named animation joints \u2192 one glTF runtime library \u2192 in-game lighting/placement. A fourth original imagegen output is a mapped material tile embedded in the GLB; no scene concept is used as a scenery billboard.",
+  "workflow": "Original scene concepts → reproducible CPU Blender geometry → glTF runtime library. The bark tile is embedded in the GLB. A separate original imagegen panorama supplies only the far sky/horizon and environment reflections; nearby forest remains real world geometry.",
   "concepts": [
     {
       "file": "concepts/hollow-tree-scene.png",
@@ -22,11 +22,11 @@
   "routeEnvelope": "blender/route-envelope.json (sampled from the actual authored track)",
   "reproduce": "/Applications/Blender.app/Contents/MacOS/Blender --background --python assets/levels/vesper/blender/build_vesper.py",
   "export": "public/assets/levels/vesper/vesper-canopy.glb",
-  "materials": "Original PBR materials with packed, UV-mapped imagegen bark/chitin color tile; geometric bark furrows/cambium ribs; per-leaf color variation exported through COLOR_0; irregular pale-gilled fungal shelves; thick petals and steady local emissive accents. Creature body/legs/face receive mapped surface detail while retaining their approved geometry, palette and staging. The single embedded image has no runtime network dependency beyond the GLB.",
-  "animation": "Authored continuous crossing/departure world path keyed to route distance, with named shoulder/knee/neck/head joints posed deterministically. Two-link IK raises feet over the actual curved route, crowns bend, 72 geometric leaves and bounded spores fall. Reduced motion freezes cosmetic movement.",
-  "approximation": "The complete upper tree uses a tall tapering branched bole above the preserved road cavity. Its organic finish and bounded creature texture pass use an original generated material tile with explicit Blender UVs and procedural roughness/normal shading. Visual plant/creature events do not simulate physical forestry. The creature briefly passes close overhead between full-body approach and departure views.",
-  "validation": "CPU export completed without Blender warnings. Embedded PNG/material color factors and real UV/COLOR_0 bindings verified. Hollow roof ray hits at worldy387.55m; world tree top552m. Across267498 sampled hollow triangle centroids/edge midpoints plus all vertices, zero road/camera corridor contacts; all118 support connections and51 creature poses also have zero sampled corridor contacts. Placement counts remain27 near trees,102 distant,73 foliage,22 fungi,3 gate trunks and3 bending crowns. Deterministic reset, reduced motion, production overview presence, late/double disposal passed. Owned lint/format checks passed. Geometry probes stub bitmap decoding; mapped texture appearance, shader compilation, new draw-pass budgets and independent formal3 review await the combined desktop build. Foreground frame pacing, audio listening and physical devices remain unverified.",
-  "authoredFamilies": "Three forked/wounded/buttressed tree species and geometric distance variants; three foliage and two root families; irregular offset fungal shelves with pale undersides and varied proportions; a complete giant hollow with continuous upper bole into a branching crown (world top552m), real internal cambium vault and clearance-cut entrance/exit; hanging flower; articulated canopy walker; split seedpod station; landing branch.",
+  "materials": "Original PBR materials with packed, UV-mapped imagegen bark/chitin color tile; geometric bark furrows/cambium ribs; per-leaf COLOR_0 variation; irregular pale-gilled fungal shelves. The retained creature includes mapped body/legs/face detail but is not instantiated. Resin uses restrained physical transmission; all existing practical/emissive and sky rig intensities are lifted ten percent.",
+  "animation": "Creature presentation is disabled at the human request: no walker, leaf shower, spores, bent crowns or movement events are instantiated. Its deterministic path/IK/animation implementation and original Blender sources remain available for future reuse.",
+  "approximation": "The complete upper tree uses a tall tapering branched bole above the preserved road cavity. Generated bark provides UV surface detail; the new 2:1 LDR sky panorama provides distant atmosphere and PMREM reflection radiance. Resin transmission uses the Three.js screen-space scene capture, not volumetric ray tracing.",
+  "validation": "Unchanged whole-tree geometry/route clearance baseline retained. Latest refinements pass21targetedCPUtests, environment absence/static-tree/exact-lighting/late+double-disposal checks, independent texture ownership/disposal checks, full lint and production build.32builder stills including one final3viewportmobile sanity phase; zero renderer errors. Production/shape high/low runtime smoke and sky-asset failure cleanup pass. No new critic round. High draw-budget cost from physical transmission is documented in STATUS.json; foreground pacing, audio listening and physical devices remain unverified.",
+  "authoredFamilies": "Three forked/wounded/buttressed tree species and geometric distance variants; three foliage and two root families; irregular offset fungal shelves with pale undersides and varied proportions; a complete giant hollow with continuous upper bole into a branching crown (world top552m), real internal cambium vault and clearance-cut entrance/exit; hanging flower; retained dormant articulated canopy walker; split seedpod station; landing branch.",
   "secondaryGeometryOptimization": "The established secondary reductions remain: foliage lamina0.45/veins0.30, distant crown leaves0.135 and bark0.18. Approved tree placement envelopes are now explicit, so leaf changes do not alter accepted sites. After completing the upper tree and simplifying fungal forms, CPU overview active source geometry is649888 triangles/345meshes versus642203/349 before this pass (+1.20% geometry, four fewer meshes). These source counts exclude extra render passes and are not GPU measurements.",
   "materialTextures": [
     {
@@ -37,5 +37,23 @@
     }
   ],
   "cpuGeometryProbe": "blender/geometry-probe-loader.js exports createVesperGeometryProbeLoader() for Node parseAsync probes. It preserves actual geometry, UV/color attributes and material bindings while substituting Texture objects for bitmap decoding; browser validation still checks pixels/shaders.",
-  "creatureTextureDriveDistanceFollowup": "After combined builder-r3 high/low screenshots, one shader-only adjustment doubles creature texture feature size (UV factor0.5), strengthens bounded plate/groove color contrast and mapped normal relief, and varies roughness with the same texture. The GLB, geometry, staging and lights remain unchanged. Repeat same-distance desktop validation is pending; no new texture generation or remodeling."
+  "creatureTextureDriveDistanceFollowup": "Historical bounded surface-detail pass remains in the preserved creature source. The latest human steer hides the creature and ends creature artwork changes.",
+  "inactiveCreature": {
+    "reason": "Hidden at the human request because the appearance/movement did not justify more polish cycles. Keep for possible future reuse.",
+    "source": "src/levels/vesper/environment/creature.js",
+    "blender": "assets/levels/vesper/blender/vesper-assets.blend",
+    "generator": "assets/levels/vesper/blender/build_vesper.py",
+    "runtimeLibrary": "public/assets/levels/vesper/vesper-canopy.glb",
+    "node": "hero_walker",
+    "exportUnchanged": true
+  },
+  "sky": {
+    "file": "public/assets/levels/vesper/vesper-night-sky-v1.png",
+    "tool": "built-in image_gen",
+    "date": "2026-09-30",
+    "dimensions": [1774, 887],
+    "use": "Original unedited 2:1 panorama on a camera-centred sky sphere, with a four-percent runtime UV overlap to close the longitude seam. Distant clouds/forest only; also supplies PMREM environment reflections. Analytic UV derivatives prevent the wrap meridian from selecting incorrect mip levels.",
+    "prompt": "Use case: stylized-concept.\nAsset type: a finished 2:1 equirectangular 360-degree sky panorama texture for a premium 3D forest racing game, 4096 by 2048 if possible.\nPrimary request: a gorgeous dim blue-hour nocturnal forest atmosphere, rich layered clouds and distant ancient treetops, with exceptional cinematic detail and believable soft moonlit illumination. This is the sky and far horizon only.\nComposition: true full-sphere equirectangular projection, smoothly seamless left and right boundaries; calm zenith, cloud banks around the upper hemisphere, level atmospheric horizon at the middle. Very distant colossal forest crowns form a low, varied silhouette near and below the horizon, fading through deep blue and teal mist. Lower hemisphere transitions smoothly into shadowy blue-green atmospheric haze, with no identifiable foreground.\nClouds: luxurious voluminous stratocumulus and delicate high cloud wisps, luminous pearl-blue rims and soft internal shading, subtle breaks of muted indigo sky, spacious breathable areas between dramatic formations. The detail must remain visible in a dim game without being near-black or overexposed. Sparse faint stars only through a few clear gaps.\nMood and palette: majestic, tranquil, mysterious living forest at night; ink blue, muted cyan, smoky teal, silver moonlit cloud edges. A very restrained pale warm-grey glow low on part of the horizon complements amber resin roads that will be separate game geometry. Not a bright daytime sky or fiery sunset.\nStyle: beautiful high-end cinematic environmental matte painting approaching photorealism, natural atmospheric depth, refined organic silhouettes, rich subtle gradients, no visible brush strokes or game UI.\nConstraints: no road, no bridge, no vehicles, no creature, no close trees or trunk interior, no buildings, no text, no borders, no watermark, no visible sun or moon disk. Far treetops only, so real 3D forest geometry remains the foreground. No split panels, no cubemap cross. Opaque image.",
+    "sha256": "259fa927c01f4d438ea5a0276b82ba1f672182493ac10d0ba9279d62ff48162c"
+  }
 }

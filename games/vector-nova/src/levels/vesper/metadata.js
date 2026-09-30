@@ -10,7 +10,7 @@ export default {
     eyebrow: 'NOCTURNAL TRANSPORT GUILD · 004',
     heading: ['BENEATH THE', 'LIVING CROWN.'],
     intro:
-      'Climb inside a colossal tree. Leap between amber branches. Race beneath the footsteps of a forest giant.',
+      'Climb inside a colossal tree. Leap between amber branches. Trace glowing resin through the moonlit canopy.',
     detail:
       '28 m magnetic deck · hollow ascent · crown flight · sap and resin lines. Manual boost is available.',
     start: 'ENTER THE CANOPY',

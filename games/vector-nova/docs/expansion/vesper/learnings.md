@@ -9,4 +9,10 @@ Human art and workflow steers from Vesper Canopy, 2026-09-29–30. Carry these i
 - **Keep moving after a small steer.** These comments refine the ongoing work; they are not a request to stop, restart, or ask for another routine approval.
 
 - **Whole means a complete top as well as walls.** Restoring an enclosing trunk is insufficient if the skyline still exposes an abruptly cut, open stump. Inspect the upper trunk and crown from actual driving views; complete the giant tree while preserving road entrances and camera clearance.
-- **Use a bounded finish pass for secondary creatures.** If the creature looks toyish, first give its body, legs, and face visible, coherent surface texture. The user considers a focused texture/material pass sufficient for now; avoid many Blender remodeling rounds or perfection cycles.
+- **Use a bounded finish pass for secondary creatures.** If the creature looks toyish, first give its body, legs, and face visible, coherent surface texture. Avoid many Blender remodeling rounds or perfection cycles. The later steer below supersedes showing this creature in Vesper.
+
+- **Keep the road edge simple.** Remove the raised pale/brown petal decorations; the low orange curb and thin glowing edge are enough. The concept did not need extra edge ornaments.
+- **Let resin transmit some light.** Keep its amber body and reflective surface, but allow a restrained view into and through the deck rather than only painting depth onto an opaque material.
+- **Retire an unsuccessful secondary spectacle promptly.** Hide the creature and its associated movement/effects; retain its source and asset for possible reuse. The map stands on its environment and does not require a moving hero. Do not spend more creature-polish cycles.
+- **Lift a dim scene modestly.** Increase the existing lighting by about ten percent while preserving the night mood. Use a dedicated generated cloud-and-distant-forest sky to complete the scene instead of a mostly flat dark background.
+- **Respect a direct finish request.** This pass is implementation and verification only: the user explicitly requested no more critic rounds.

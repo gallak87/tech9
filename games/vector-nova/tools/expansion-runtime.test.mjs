@@ -302,3 +302,57 @@ test('mirrored split-deck divider catches driver-right movement', () => {
     -5.5,
   );
 });
+
+test('curved receiving surface catches a real crossing between cached tangent planes', () => {
+  const track = course(),
+    jump = track.jumps[0];
+  track.sample = (s) => {
+    const slope = 0.05 * (s - 201);
+    const tangent = new THREE.Vector3(0, slope, 1).normalize();
+    const right = new THREE.Vector3(1, 0, 0);
+    const up = tangent.clone().cross(right);
+    return {
+      position: new THREE.Vector3(0, 0.025 * (s - 201) ** 2, s),
+      tangent,
+      right,
+      up,
+      quaternion: new THREE.Quaternion().setFromRotationMatrix(
+        new THREE.Matrix4().makeBasis(right, up, tangent),
+      ),
+    };
+  };
+  const before = {
+    position: new THREE.Vector3(0, 0.721, 201),
+    quaternion: new THREE.Quaternion(),
+  };
+  const after = {
+    position: new THREE.Vector3(0, 0.719, 201.05),
+    quaternion: new THREE.Quaternion(),
+  };
+  const velocity = new THREE.Vector3(0, -0.24, 6);
+  assert.equal(
+    createFlightModel({ curvedContact: false }).sweptLanding(
+      track,
+      jump,
+      before,
+      after,
+      velocity,
+    ),
+    null,
+    'cached plane sweep alone misses the true sampled-surface crossing',
+  );
+  const model = createFlightModel();
+  const hit = model.sweptLanding(track, jump, before, after, velocity);
+  assert.ok(hit && hit.fraction > 0 && hit.fraction < 1);
+  assert.ok(hit.distance >= 201 && hit.distance <= 201.05);
+  assert.equal(
+    model.sweptLanding(track, jump, after, before, velocity.clone().negate()),
+    null,
+    'never relatch upward through underside',
+  );
+  const below = {
+    ...before,
+    position: before.position.clone().add(new THREE.Vector3(0, -2, 0)),
+  };
+  assert.equal(model.sweptLanding(track, jump, below, after, velocity), null);
+});

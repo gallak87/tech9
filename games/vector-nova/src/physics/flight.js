@@ -3,6 +3,7 @@ import { stepVehicle, STEERING_ASSIST } from './index.js';
 
 export const DEFAULT_FLIGHT_RULES = Object.freeze({
   gravity: 26,
+  curvedContact: true,
   hover: 0.72,
   halfWidth: 2.25,
   halfLength: 3.5,
@@ -38,6 +39,11 @@ export function createFlightModel(overrides = {}) {
   };
   for (const [name, value] of Object.entries(R)) {
     if (name === 'railHeight') continue;
+    if (name === 'curvedContact') {
+      if (typeof value !== 'boolean')
+        throw new Error('curvedContact must be boolean.');
+      continue;
+    }
     if (!Number.isFinite(value) || value < 0)
       throw new Error(`Invalid flight rule: ${name}`);
   }
@@ -302,6 +308,100 @@ export function createFlightModel(overrides = {}) {
         footprint.overlap < R.edgeOverlap - 1e-8 ||
         distance - longitudinalExtent < jump.landingStart ||
         distance + longitudinalExtent > jump.landingEnd
+      )
+        continue;
+      if (!first || fraction < first.fraction)
+        first = {
+          fraction,
+          distance,
+          lateral,
+          heading: yaw,
+          edgeCatch: Math.abs(lateral) + footprint.extent > jump.halfWidth,
+          ...footprint,
+        };
+    }
+    return (
+      first ??
+      (R.curvedContact
+        ? refinedLanding(track, jump, before, after, velocity)
+        : null)
+    );
+  }
+
+  // A curved receiving deck can cross the hull between cached tangent planes.
+  // If the fast plane sweep finds no hit, solve against the actual sampled
+  // surface: project both endpoints independently, then bracket the support
+  // crossing. Never accept a craft already beneath the deck or moving upward.
+  function refinedLanding(track, jump, before, after, velocity) {
+    const motion = new THREE.Line3(before.position, after.position);
+    const nearest = new THREE.Vector3();
+    const radius = jump.halfWidth + Math.hypot(R.halfLength, R.hover) + 4;
+    let first = null;
+    function support(pose, seed) {
+      let distance = seed;
+      for (let i = 0; i < 8; i++) {
+        const frame = track.sample(distance);
+        const along = pose.position
+          .clone()
+          .sub(frame.position)
+          .dot(frame.tangent);
+        distance = clamp(distance + along, jump.landingStart, jump.landingEnd);
+        if (Math.abs(along) < 1e-8) break;
+      }
+      const frame = track.sample(distance);
+      return {
+        distance,
+        frame,
+        height:
+          pose.position.clone().sub(frame.position).dot(frame.up) -
+          bodyExtent(pose.quaternion, frame.up),
+      };
+    }
+    for (const segment of landingSegments(track, jump)) {
+      motion.closestPointToPoint(segment.frame.position, true, nearest);
+      if (nearest.distanceToSquared(segment.frame.position) > radius * radius)
+        continue;
+      const a = support(before, segment.distance),
+        b = support(after, segment.distance);
+      if (a.height < -1e-7 || b.height > 0 || a.height - b.height < 1e-8)
+        continue;
+      let low = 0,
+        high = 1,
+        contact;
+      for (let i = 0; i < 24; i++) {
+        const fraction = (low + high) / 2;
+        const position = before.position.clone().lerp(after.position, fraction);
+        const quaternion = before.quaternion
+          .clone()
+          .slerp(after.quaternion, fraction);
+        contact = {
+          fraction,
+          position,
+          quaternion,
+          ...support(
+            { position, quaternion },
+            THREE.MathUtils.lerp(a.distance, b.distance, fraction),
+          ),
+        };
+        if (contact.height > 0) low = fraction;
+        else high = fraction;
+      }
+      const { fraction, distance, frame, position, quaternion } = contact;
+      const lateral = position.clone().sub(frame.position).dot(frame.right);
+      const yaw = landingHeading(quaternion, frame);
+      const footprint = edgeFootprint(
+        quaternion,
+        frame,
+        lateral,
+        jump.halfWidth,
+      );
+      const extent = bodyExtent(quaternion, frame.tangent);
+      if (
+        velocity.dot(frame.up) >= -0.01 ||
+        yaw === null ||
+        footprint.overlap < R.edgeOverlap - 1e-8 ||
+        distance - extent < jump.landingStart ||
+        distance + extent > jump.landingEnd
       )
         continue;
       if (!first || fraction < first.fraction)

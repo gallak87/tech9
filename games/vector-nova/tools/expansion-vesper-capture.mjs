@@ -40,12 +40,15 @@ async function setKeys(page, keys) {
     }
 }
 const snapshot = (page) => page.evaluate(() => window.__VN.getSnapshot());
-async function load(page, scenario) {
+async function load(page, scenario, paused = false) {
   await setKeys(page, []);
-  await page.evaluate((name) => {
-    window.__VN.loadScenario(name, 47219);
-    window.__VN.pause();
-  }, scenario);
+  await page.evaluate(
+    ({ name, paused }) => {
+      window.__VN.loadScenario(name, 47219);
+      if (paused) window.__VN.pause();
+    },
+    { name: scenario, paused },
+  );
   await page.waitForTimeout(220);
 }
 try {
@@ -180,7 +183,7 @@ try {
           targetLateral: 4.5,
         },
       ]) {
-        await load(page, probe.scenario);
+        await load(page, probe.scenario, true);
         const initial = await snapshot(page);
         const samples = [];
         await page.evaluate(() => window.__VN.resume());

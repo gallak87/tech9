@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "phase": "independent_critic_pending",
+  "phase": "critic_round2_ready",
   "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
   "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
   "branch": "codex/fzero-vesper1",
-  "formalRounds": 0,
+  "formalRounds": 1,
   "maximumRounds": null,
   "humanApproved": false,
   "currentChecks": [
@@ -21,8 +21,8 @@
     {
       "check": "full-tests",
       "result": "pass",
-      "count": 264,
-      "log": ".experiments/expansion/vesper/full-tests.txt"
+      "count": 266,
+      "scope": "Full suite after opt-in portrait UI extension and initial round1 scene corrections; later art-only changes use affected geometry/lifecycle/render checks."
     },
     {
       "check": "lane-tests",
@@ -30,7 +30,7 @@
       "geometry": 8,
       "runtime": 8,
       "denseLandings": 152,
-      "note": "8runtime tests rerun after finalcontactv4 incl152/152dense landings;8geometry tests rerun after actual-triangle decorative surface fix."
+      "note": "Runtime8 incl152/152dense landings after contactv4; geometry8 rerun after1m driving tessellation, shared-UV resin films and jump markings."
     },
     {
       "check": "full-lint-format",
@@ -43,7 +43,7 @@
     {
       "check": "asset-lifecycle-animation-clearance",
       "result": "pass",
-      "scope": "CPU asset-builder probes; 118 support connections,41 creature crossing positions; visual checks pending"
+      "scope": "Latest enclosed-tree CPU probes:118support anchors,27shell connections,zero support-corridor contacts;51creature poses without leg contacts; overview presence, deterministic/reduced motion and late/double disposal pass."
     },
     {
       "check": "actual-key-production",
@@ -61,9 +61,9 @@
     {
       "check": "production-visual-builder",
       "result": "inspected",
-      "stills": 21,
-      "evidence": ".experiments/expansion/vesper/builder-presentation-v5/report.json",
-      "scope": "Seven districts plus hollow/creature; high/low+reduced;390x844,844x390,640x360. No renderer errors. Independent judgment pending."
+      "stills": 10,
+      "evidence": ".experiments/expansion/vesper/builder-resin-tree-r2/report.json",
+      "scope": "Desktop high: restored enclosed tree, deep amber resin and thin glow, creature, vault/dawn, crown/branch guidance. Zero renderer errors. Independent reassessment pending."
     },
     {
       "check": "shared-browser-smoke",
@@ -71,10 +71,80 @@
       "cases": 4,
       "scope": "Final builder production/shape high/low, compatible replay, input clearing, reset, repeated disposal, unknown-level and owned-asset failure cleanup.",
       "evidence": ".experiments/expansion/vesper/generic-final-builder/report.json"
+    },
+    {
+      "check": "desktop-layout",
+      "result": "pass",
+      "cases": 24,
+      "overviewViews": 6,
+      "errors": 0,
+      "overlaps": 0,
+      "scope": "Production/shape at1440x900 and1280x720; review open/closed; impact/crown/branch. Approved Halcyon remains opted out. Mobile final pass pending by direct human instruction.",
+      "evidence": ".experiments/expansion/vesper/desktop-ui-r2/report.json"
     }
   ],
-  "openFindings": ["Independent production critic has not completed round1."],
-  "rounds": [],
+  "openFindings": [
+    {
+      "id": "R1-art-forest",
+      "priority": 1,
+      "finding": "Ordinary forest reads as dense repeated straight polygon poles with one palm/frond crown silhouette. Hollow-tree walls read as a faceted dark silo with square-edged openings; the lower vault/return offer little distinct fungal/root/atmospheric composition. Hero presence does not achieve the required living-forest material/silhouette quality.",
+      "implementation": "Builder corrections applied; independent round2 verification pending."
+    },
+    {
+      "id": "R1-light-material",
+      "priority": 1,
+      "finding": "Rootfall contains a broad near-white specular stripe crossing road and craft; creature approach blows out much of the warm road. Resin reads as striped polished wood/plastic with jagged color borders and repeated black/grey rectangular patches, while bark and foliage have too little material depth. Low retains the white road streak.",
+      "implementation": "Builder corrections applied; independent round2 verification pending."
+    },
+    {
+      "id": "R1-creature-staging",
+      "priority": 1,
+      "finding": "Creature has a readable distant silhouette at crown flight, but the designated crossing approach crops it to a belly slab and poles overhead; crossing/departure captures lose it entirely and the flower becomes the only focal point. Leaf shower/tree bend consequence is not convincingly readable in the actual drive-camera evidence.",
+      "implementation": "Builder corrections applied; independent round2 verification pending."
+    },
+    {
+      "id": "R1-jump-cues",
+      "priority": 1,
+      "finding": "Approaching branch bypass shows an almost uniform milky deck with a small flat yellow rectangle; the optional lane, divider and actual gap become clear only at the lip/airborne view. Crown speed/alignment requirement is not clearly signalled before takeoff.",
+      "implementation": "Builder corrections applied; independent round2 verification pending."
+    },
+    {
+      "id": "R1-portrait-overlap",
+      "priority": 2,
+      "finding": "At390x844 the barrier-contact notice overlays the HARDENED RESIN surface label and crosses the craft rear.",
+      "implementation": "Opt-in shared portrait notice and local overlay bounds corrected in source. User requires one mobile verification pass at the end only."
+    },
+    {
+      "id": "R1-review-view",
+      "priority": 2,
+      "finding": "Production3D/profile views are heavily obscured by foreground canopy; profile does not show an assessable route profile.",
+      "implementation": "Human override preserves the enclosed giant tree and all production scenery. Separate bare shape review supplies unobstructed route analysis; production retains place identity."
+    },
+    {
+      "id": "R1-budget",
+      "priority": 2,
+      "finding": "Measured high peaks exceed2M drawn triangles in creature departure2030875 and844x390 impact2064093; review reaches2240865triangles and1011calls.",
+      "implementation": "Final desktop high optimized foliage: actual peak1,891,793tri983calls including full-forest overview, zero browser errors. Independent review pending."
+    }
+  ],
+  "rounds": [
+    {
+      "round": 1,
+      "source": "34eb3e6f52079726f6041d2e1886dd95049c5163",
+      "result": "changes_required",
+      "scores": {
+        "art": 6.5,
+        "lightingMaterialDepth": 6.5,
+        "handlingCamera": 8.5,
+        "routeReadability": 7.5,
+        "feedbackUI": 7.5,
+        "stabilityPerformance": 8.5
+      },
+      "evidence": ".experiments/expansion/vesper/critic-r1/verdict.json",
+      "actualKeyCases": 13,
+      "stills": 60
+    }
+  ],
   "futureSupport": [
     {
       "id": "crown-setup",
@@ -158,6 +228,12 @@
     {
       "sourceCommit": "bd060f2f6ea67043b312f3f679e749bd0f669475",
       "localCommit": "262b3055"
+    },
+    {
+      "source": "Human-authorized narrowly scoped shared UI work in Vesper checkout",
+      "localCommits": ["839d0d13", "925d2580", "3a9d98db"],
+      "scope": "Optional portraitLowNotice and compactLandscape desktop review/map spacing; approved metadata remains unchanged.",
+      "verification": "266CPU tests,14targeted metadata/contract tests,24desktop production/shape layout cases; final mobile pass pending."
     }
   ],
   "sourceBudgets": {
@@ -170,16 +246,17 @@
     "owner": "fzero-int1",
     "running": true,
     "bundles": {
-      "level": "vesper-Bx20fLIA.js",
-      "main": "index-BJCiE5uW.js",
-      "css": "index-Kqb5NyXd.css"
+      "main": "index-SoF4vUA7.js",
+      "level": "vesper-CKEXUWdK.js",
+      "css": "index-VT23Dp9i.css"
     },
     "assetHashes": {
-      "assets/vesper-Bx20fLIA.js": "e4db447c343529947ea663378214cd150d48ead932e0c8b7a93146bcf3d1ee16",
-      "assets/index-BJCiE5uW.js": "e243b1f727ef2d2039e00da2f86e5cfb57b84b664ff0a933f546c258c280996f",
-      "assets/index-Kqb5NyXd.css": "99c0cd94e3123b637a2e216908722bc71fbcd4a99b227df5cae2d140000fb81d",
-      "assets/levels/vesper/vesper-canopy.glb": "817d460b22aece31b63c26a5a7d72214635520e04d7261ef07d8f40c4567fb69"
-    }
+      "assets/index-SoF4vUA7.js": "2a259b375e88538fb77a666bed17adaa73aa105bfb43deb9a6a9fabd070e23b3",
+      "assets/vesper-CKEXUWdK.js": "6088860992159f89948d6b0718a18fcb673e38a28bd59caf860cdf4f85a8164e",
+      "assets/index-VT23Dp9i.css": "8606810cccadf8dd53226a25290df8f6eb13969076d13114db31e2837c965d8a",
+      "assets/levels/vesper/vesper-canopy.glb": "fe0b44d472b587436179210927bf891e64aff403d8fe7e99b5fa16bedf375d71"
+    },
+    "servedBytesVerified": true
   },
   "unverified": [
     "Foreground frame pacing",
@@ -189,17 +266,34 @@
   "reviewPolicy": "One independent critic loop; original8-round cap removed by direct human completion override relayed by integrator2026-09-30. Preserve actual rounds; external-only evidence gaps do not justify unchanged reviews.",
   "renderedBudgets": {
     "high": {
-      "calls": 760,
-      "triangles": 1895313,
-      "estimatedGpuMiB": 157.20401527404783,
-      "initialTransferredBytes": 5021600
+      "calls": 983,
+      "triangles": 1891793,
+      "estimatedGpuMiB": 190.8794226837158,
+      "initialTransferredBytes": 5351332,
+      "scope": "Final high desktop optimized secondary foliage: three prior peak driving views and three full-forest overview views; no scenery hidden.",
+      "evidence": ".experiments/expansion/vesper/builder-budget-r2/report.json"
     },
     "low": {
       "calls": 385,
       "triangles": 989453,
       "estimatedGpuMiB": 90.40714027404785,
-      "initialTransferredBytes": 5021600
+      "initialTransferredBytes": 5021600,
+      "scope": "Previous scene revision; final low-preset capture pending."
     },
-    "scope": "Actual all-pass headless renderer metrics across9driving-camera starts, includingAO/shadows; capture RAF intervals are not foreground pacing certification."
+    "scope": "Actual renderer all-pass metrics including shadows/AO. Headless RAF timings do not certify foreground pacing.",
+    "criticRound1": {
+      "gameplayTriangles": 2064093,
+      "reviewTriangles": 2240865,
+      "reviewCalls": 1011,
+      "estimatedGpuMiB": 190.05313636779783,
+      "scope": "Independent1440x900desktop/highresponsive/productionreview; gameplayandreviewexceedstartingbudget, correctionsrequired."
+    }
+  },
+  "humanSteers": {
+    "date": "2026-09-29",
+    "learnings": "docs/expansion/vesper/learnings.md",
+    "resin": "Deep amber depth and warm reflections with a thin glowing edge; preserve concept identity while controlling blown highlights.",
+    "tree": "Keep the enclosing giant hollow tree whole, including production overview presence; refine its art within that silhouette.",
+    "verification": "Desktop art/driving iteration; one mobile pass at the end only."
   }
 }

@@ -19,7 +19,7 @@ export function createVesperBackdrop() {
         float m=dot(d,moon); c+=vec3(.26,.37,.40)*pow(max(m,0.),110.)*.32;
         c+=vec3(.55,.72,.72)*smoothstep(.99972,.99981,m);
         float star=step(.9989,hash(floor(d*1700.)))*smoothstep(.12,.7,h); c+=star*vec3(.32,.42,.46);
-        vec3 dawn=normalize(vec3(-.82,.018,.24)); float slit=pow(max(dot(d,dawn),0.),25.)*exp(-pow((d.y-.035)/.027,2.)); c+=slit*vec3(.20,.18,.115);
+        vec3 dawn=normalize(vec3(-.095,.065,.995)); float slit=pow(max(dot(d,dawn),0.),18.)*exp(-pow((d.y-.065)/.065,2.)); c+=slit*vec3(.46,.42,.27);
         gl_FragColor=vec4(c,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

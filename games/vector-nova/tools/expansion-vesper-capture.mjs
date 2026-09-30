@@ -98,6 +98,23 @@ try {
         metrics: await page.evaluate(() => window.__VN.getMetrics()),
       });
     }
+    if (process.argv.includes('--overview')) {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      for (const view of ['perspective', 'top', 'profile']) {
+        await page.evaluate((v) => window.__VN.overview(v), view);
+        await page.waitForTimeout(180);
+        const path = resolve(out, `${quality}-overview-${view}.png`);
+        await page.screenshot({ path });
+        report.stills.push({
+          quality,
+          scenario: `overview-${view}`,
+          path,
+          snapshot: await snapshot(page),
+          metrics: await page.evaluate(() => window.__VN.getMetrics()),
+        });
+      }
+      await page.setViewportSize({ width: 1280, height: 720 });
+    }
     report.metrics.push({
       quality,
       viewport: 'desktop',

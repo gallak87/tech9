@@ -1,8 +1,8 @@
 {
-  "objects": 111,
-  "meshes": 1137,
-  "polygons": 82748,
-  "exportBytes": 3454916,
+  "objects": 120,
+  "meshes": 1385,
+  "polygons": 109630,
+  "exportBytes": 3781392,
   "routeRevision": "vesper-route-2",
   "rendered": false
 }

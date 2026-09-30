@@ -14,16 +14,57 @@ export function sampleCanopyWalker(time = 0, reducedMotion = false) {
   };
 }
 
+const WALKER_KEYS = [-600, -250, -60, 40, 140, 300, 550, 750, 1100];
+const WALKER_POSITIONS = [
+  [1130, 65, 250],
+  [1040, 65, -235],
+  [945, 51, -215],
+  [750, 95, 30],
+  [610, 65, -60],
+  [400, 40, -110],
+  [65, -15, -160],
+  [-270, -40, -290],
+  [-950, -80, -350],
+].map((p) => new T.Vector3(...p));
+const WALKER_CURVE = new T.CatmullRomCurve3(
+  WALKER_POSITIONS,
+  false,
+  'centripetal',
+);
+
+/** Authored continuous world path, sampled by progress along this fixed route. */
+export function sampleWalkerStaging(
+  track,
+  distance = 0,
+  reducedMotion = false,
+) {
+  const origin = track.landmarks.creature.s;
+  const relative = reducedMotion ? -90 : distance - origin;
+  let i = WALKER_KEYS.findIndex(
+    (key, j) => j < WALKER_KEYS.length - 1 && relative < WALKER_KEYS[j + 1],
+  );
+  if (i < 0) i = WALKER_KEYS.length - 2;
+  const u = T.MathUtils.clamp(
+    (relative - WALKER_KEYS[i]) / (WALKER_KEYS[i + 1] - WALKER_KEYS[i]),
+    0,
+    1,
+  );
+  const t = (i + u) / (WALKER_KEYS.length - 1);
+  const position = WALKER_CURVE.getPoint(t);
+  const tangent = WALKER_CURVE.getTangent(t).setY(0).normalize();
+  return {
+    position,
+    yaw: Math.atan2(tangent.x, tangent.z),
+    progress: T.MathUtils.clamp((relative + 300) / 850, 0, 1),
+  };
+}
+
 export function createCanopyWalker(template, track, group, bentTrees = []) {
   const walker = template.clone(true);
   walker.name = 'Vesper / articulated nocturnal canopy walker';
-  const f = track.sample(track.landmarks.creature.s);
-  const base = f.position.clone();
-  base.y -= 54;
-  const crossing = f.right.clone().setY(0).normalize();
-  const yaw = Math.atan2(crossing.x, crossing.z);
-  walker.position.copy(base);
-  walker.rotation.y = yaw;
+  const first = sampleWalkerStaging(track, 0);
+  walker.position.copy(first.position);
+  walker.rotation.y = first.yaw;
   walker.traverse((object) => {
     if (object.isMesh) {
       object.castShadow = true;
@@ -33,11 +74,7 @@ export function createCanopyWalker(template, track, group, bentTrees = []) {
   group.add(walker);
   const joints = [];
   const crossingRoad = [];
-  for (
-    let s = track.landmarks.creature.s - 420;
-    s <= track.landmarks.creature.s + 420;
-    s += 8
-  )
+  for (let s = 0; s <= track.length; s += 8)
     crossingRoad.push(track.sample(s).position);
   walker.traverse((object) => {
     const match = object.name.match(/^walker_shoulder_(-?1)_(\d)$/);
@@ -88,13 +125,45 @@ export function createCanopyWalker(template, track, group, bentTrees = []) {
   });
   const particles = new T.Points(geometry, material);
   particles.name = 'Vesper / leaves and spores shed by passing canopy walker';
-  particles.position.copy(f.position).add(new T.Vector3(0, 30, 0));
-  particles.rotation.y = yaw;
+  const showerFrame = track.sample(track.landmarks.creature.s + 180);
+  particles.position.copy(showerFrame.position).add(new T.Vector3(0, 30, 0));
+  particles.rotation.y = Math.atan2(
+    showerFrame.tangent.x,
+    showerFrame.tangent.z,
+  );
   particles.frustumCulled = false;
   group.add(particles);
-  const reflectionLight = new T.PointLight('#ffc373', 5500, 160, 2);
-  reflectionLight.position.copy(f.position).add(new T.Vector3(0, 22, 0));
-  group.add(reflectionLight);
+  // This high, soft light reveals the moving shell without washing out the deck.
+  const shellLight = new T.PointLight('#b1d9cb', 4800, 225, 2);
+  group.add(shellLight);
+  const leafGeometry = new T.BufferGeometry();
+  leafGeometry.setAttribute(
+    'position',
+    new T.Float32BufferAttribute(
+      [0, 0, -1.7, -0.8, 0.16, 0, 0, 0.36, 1.7, 0.8, 0.16, 0, 0, 0.35, 0],
+      3,
+    ),
+  );
+  leafGeometry.setIndex([0, 1, 4, 1, 2, 4, 2, 3, 4, 3, 0, 4]);
+  leafGeometry.computeVertexNormals();
+  const leafMaterial = new T.MeshStandardMaterial({
+    color: '#acaa52',
+    roughness: 0.83,
+    side: T.DoubleSide,
+    emissive: '#363b12',
+    emissiveIntensity: 0.18,
+  });
+  const leaves = new T.InstancedMesh(leafGeometry, leafMaterial, 72);
+  leaves.name = 'Vesper / physical leaves shed onto Bloomspan';
+  leaves.frustumCulled = false;
+  group.add(leaves);
+  const leafDummy = new T.Object3D();
+  const leafSeeds = Array.from({ length: 72 }, () => [
+    random(),
+    random(),
+    random(),
+    random(),
+  ]);
   const axis = new T.Vector3(1, 0, 0);
   const turn = new T.Quaternion();
   return {
@@ -102,15 +171,18 @@ export function createCanopyWalker(template, track, group, bentTrees = []) {
     update({ time = 0, settings = {}, state = {} } = {}) {
       const pose = sampleCanopyWalker(time, settings.reducedMotion);
       const distance = Number.isFinite(state.distance) ? state.distance : 0;
-      const progress = T.MathUtils.clamp(
-        (distance - track.landmarks.creature.s + 300) / 600,
-        0,
-        1,
+      const staging = sampleWalkerStaging(
+        track,
+        distance,
+        settings.reducedMotion,
       );
-      const ease = progress * progress * (3 - 2 * progress);
-      const cross = settings.reducedMotion ? 0 : -195 + ease * 390;
-      walker.position.copy(base).addScaledVector(crossing, cross);
+      const { progress, yaw } = staging;
+      walker.position.copy(staging.position);
       walker.position.y += pose.rise;
+      walker.rotation.y = yaw;
+      shellLight.position
+        .copy(walker.position)
+        .add(new T.Vector3(-85, 144, 75));
       for (const {
         object,
         knee,
@@ -203,14 +275,37 @@ export function createCanopyWalker(template, track, group, bentTrees = []) {
       for (let i = 0; i < bentTrees.length; i++) {
         const encounterBend =
           Math.sin(
-            T.MathUtils.clamp((progress - i * 0.09) * 3, 0, 1) * Math.PI,
-          ) * 0.095;
+            T.MathUtils.clamp((progress - i * 0.13) * 2.3, 0, 1) * Math.PI,
+          ) * 0.16;
         bentTrees[i].rotation.z = settings.reducedMotion
           ? 0
           : encounterBend + pose.bend * 0.2;
       }
       particles.visible =
         !settings.reducedMotion && progress > 0.08 && progress < 0.95;
+      leaves.visible = particles.visible;
+      leaves.count = settings.quality === 'low' ? 32 : 72;
+      for (let i = 0; i < leaves.count; i++) {
+        const [a, b, c, d] = leafSeeds[i];
+        const age = (pose.time * 0.065 + a) % 1;
+        leafDummy.position
+          .copy(showerFrame.position)
+          .addScaledVector(
+            showerFrame.right,
+            (b - 0.5) * 110 + Math.sin(age * 6 + a * 9) * 8,
+          )
+          .addScaledVector(showerFrame.tangent, (c - 0.5) * 175)
+          .add(new T.Vector3(0, 90 - age * 120, 0));
+        leafDummy.rotation.set(
+          age * 4 + b * 6,
+          age * 5 + c * 6,
+          age * 3 + d * 6,
+        );
+        leafDummy.scale.setScalar(1.1 + d * 0.8);
+        leafDummy.updateMatrix();
+        leaves.setMatrixAt(i, leafDummy.matrix);
+      }
+      leaves.instanceMatrix.needsUpdate = true;
       geometry.setDrawRange(0, settings.quality === 'low' ? 80 : 320);
       material.uniforms.time.value = pose.time;
     },

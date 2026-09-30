@@ -14,6 +14,7 @@ import {
   consolidateStaticInstances,
 } from './geometry.js';
 import { createCanopyWalker } from './creature.js';
+import { finishVesperMaterial } from './materials.js';
 
 const ASSET_URL = '/assets/levels/vesper/vesper-canopy.glb';
 
@@ -38,9 +39,30 @@ export function createVesperEnvironment({
     localVertical: [-16, 30],
   });
   const ground = track.groundY ?? -100;
+  const dawnSection = track.sections.find(
+    (section) => section.id === 'dawnscar',
+  );
+  const dawnFrame = groundFrame(track, dawnSection.showcase - 15);
+  const dawnDirection = track
+    .sample(dawnSection.showcase + 115)
+    .position.sub(dawnFrame.position)
+    .setY(0)
+    .normalize();
+  const inCreatureOpening = (position) =>
+    position.x > 440 &&
+    position.x < 1140 &&
+    position.z > -235 &&
+    position.z < 170;
+  const inDawnOpening = (position, radius = 0) => {
+    const d = position.clone().sub(dawnFrame.position);
+    const along = d.dot(dawnDirection);
+    const across = Math.abs(d.x * dawnDirection.z - d.z * dawnDirection.x);
+    return along > 60 && along < 2200 && across < 55 + along * 0.28 + radius;
+  };
   const ownedMaterials = [];
   const material = (name, options) => {
     const value = new T.MeshStandardMaterial({ name, ...options });
+    finishVesperMaterial(value);
     ownedMaterials.push(value);
     return value;
   };
@@ -122,7 +144,11 @@ export function createVesperEnvironment({
   // Match the raceway builder's paired root sockets; each terminates in a grounded collar.
   const anchorParts = [];
   const clearsSupport = createSceneryClearance(track);
-  const hollowData = track.landmarks.hollow;
+  // Keep the defining enclosed trunk outside the internal road spiral.
+  const hollowData = {
+    ...track.landmarks.hollow,
+    radius: track.landmarks.hollow.radius + 46,
+  };
   const hollowCenter = new T.Vector3(...hollowData.center);
   const collars = [];
   for (let s = 18; s < track.length; s += 76) {
@@ -296,7 +322,7 @@ export function createVesperEnvironment({
   stemMesh.name = 'Vesper / grown lantern stems';
   group.add(stemMesh);
   const practicalLights = Array.from({ length: 7 }, () => {
-    const light = new T.PointLight('#ffc878', 170, 64, 2);
+    const light = new T.PointLight('#ffc878', 110, 60, 2);
     group.add(light);
     return light;
   });
@@ -345,6 +371,71 @@ export function createVesperEnvironment({
     }
   }
 
+  if (vault) {
+    const vaultRoots = [];
+    for (let s = vault.start + 30; s < vault.end; s += 103) {
+      const f = groundFrame(track, s);
+      for (const side of [-1, 1]) {
+        const a = f.position
+          .clone()
+          .addScaledVector(f.right, side * 44)
+          .add(new T.Vector3(0, -26, 0));
+        const b = a
+          .clone()
+          .addScaledVector(f.right, side * 22)
+          .addScaledVector(f.tangent, 31)
+          .add(new T.Vector3(0, 16, 0));
+        const c = b
+          .clone()
+          .addScaledVector(f.tangent, 36)
+          .add(new T.Vector3(0, -12, 0));
+        if (clearsSupport([a, b, c], 5))
+          vaultRoots.push(tube([a, b, c], 4.5, 13, 7));
+      }
+    }
+    if (vaultRoots.length) {
+      const g = mergeGeometries(vaultRoots);
+      vaultRoots.forEach((x) => x.dispose());
+      const roots = new T.Mesh(g, bark);
+      roots.name = 'Vesper / low fungal root shelves';
+      roots.receiveShadow = true;
+      group.add(roots);
+    }
+    const cool = new T.PointLight('#6ac9c0', 580, 145, 2);
+    cool.position
+      .copy(track.sample(vault.showcase + 45).position)
+      .add(new T.Vector3(25, 25, 0));
+    group.add(cool);
+  }
+  // Torn boughs frame an intentional pale horizon opening on the return.
+  const scarRibs = [];
+  for (const side of [-1, 1]) {
+    const f = groundFrame(track, dawnSection.showcase + 50);
+    const a = f.position
+      .clone()
+      .addScaledVector(f.right, side * 65)
+      .add(new T.Vector3(0, -50, 0));
+    const b = a
+      .clone()
+      .addScaledVector(f.right, side * 9)
+      .add(new T.Vector3(0, 89, 0));
+    const c = b
+      .clone()
+      .addScaledVector(f.right, -side * 35)
+      .addScaledVector(f.tangent, 17)
+      .add(new T.Vector3(0, 31, 0));
+    if (clearsSupport([a, b, c], 8)) scarRibs.push(tube([a, b, c], 7, 22, 9));
+  }
+  if (scarRibs.length) {
+    const g = mergeGeometries(scarRibs);
+    scarRibs.forEach((x) => x.dispose());
+    const crown = new T.Mesh(g, bark);
+    crown.name = 'Vesper / torn crown framing Dawnscar';
+    crown.castShadow = true;
+    crown.receiveShadow = true;
+    group.add(crown);
+  }
+
   function accept(gltf) {
     assetScene = gltf.scene;
     if (disposed) {
@@ -362,7 +453,8 @@ export function createVesperEnvironment({
       if (!object.isMesh) return;
       for (const m of [object.material].flat()) {
         m.side = T.DoubleSide;
-        m.envMapIntensity = 0.55;
+        m.envMapIntensity = 0.32;
+        finishVesperMaterial(m);
       }
     });
     const hollow = get('hero_hollow').clone(true);
@@ -395,7 +487,7 @@ export function createVesperEnvironment({
       }
     });
     group.add(flower);
-    const flowerLight = new T.PointLight('#ffcc8a', 5000, 200, 2);
+    const flowerLight = new T.PointLight('#ffcc8a', 2400, 160, 2);
     flowerLight.position.copy(flower.position).add(new T.Vector3(0, -35, 0));
     group.add(flowerLight);
     const stationFrame = groundFrame(track, track.landmarks.station.s + 20);
@@ -410,7 +502,7 @@ export function createVesperEnvironment({
     );
     station.name = 'Vesper / split seedpod station';
     group.add(station);
-    const stationLight = new T.PointLight('#ffc77c', 1400, 110, 2);
+    const stationLight = new T.PointLight('#ffc77c', 1000, 95, 2);
     stationLight.position.copy(station.position).add(new T.Vector3(0, 20, 0));
     group.add(stationLight);
     const branchFrame = groundFrame(track, track.jumps[0].landingStart + 95);
@@ -422,6 +514,9 @@ export function createVesperEnvironment({
     );
     group.add(branch);
 
+    const templateBounds = [0, 1, 2].map((i) =>
+      new T.Box3().setFromObject(get(`tree_${i}`)).getSize(new T.Vector3()),
+    );
     // Near/mid/far layers are authored geometry instances with clearance in every district.
     const near = [[], [], []],
       distant = [[], [], []],
@@ -438,8 +533,11 @@ export function createVesperEnvironment({
           .addScaledVector(f.right, side * (114 + random() * 76))
           .addScaledVector(f.tangent, (random() - 0.5) * 60);
         p.y = ground;
-        const height = [182, 227, 158][variant] * scale;
-        const footprint = 150 * scale;
+        const height = templateBounds[variant].y * scale;
+        const footprint =
+          Math.hypot(templateBounds[variant].x, templateBounds[variant].z) *
+            scale +
+          8;
         if (
           !clearance.clears(
             p.x,
@@ -455,6 +553,7 @@ export function createVesperEnvironment({
           metrics.clearanceRejected++;
           continue;
         }
+        if (inDawnOpening(p, footprint * 0.5) || inCreatureOpening(p)) continue;
         const place = {
           position: p.toArray(),
           scale: [scale, scale, scale],
@@ -498,7 +597,7 @@ export function createVesperEnvironment({
       }
     }
     const center = new T.Vector3(290, ground, -10);
-    for (let i = 0; i < 168; i++) {
+    for (let i = 0; i < 138; i++) {
       const a = random() * Math.PI * 2,
         radius = 600 + random() * 1450;
       const p = center
@@ -510,14 +609,17 @@ export function createVesperEnvironment({
         !clearance.clears(
           p.x,
           p.z,
-          150 * scale,
-          150 * scale,
+          Math.hypot(templateBounds[variant].x, templateBounds[variant].z) *
+            scale,
+          Math.hypot(templateBounds[variant].x, templateBounds[variant].z) *
+            scale,
           ground + 240 * scale,
           0,
           ground,
         )
       )
         continue;
+      if (inDawnOpening(p, 65 * scale) || inCreatureOpening(p)) continue;
       distant[variant].push({
         position: p.toArray(),
         scale: [scale, scale, scale],
@@ -525,17 +627,22 @@ export function createVesperEnvironment({
       });
     }
     if (vault)
-      for (let s = vault.start; s < vault.end + 60; s += 34) {
+      for (let s = vault.start; s < vault.end + 30; s += 48) {
         const f = groundFrame(track, s);
         for (const side of [-1, 1]) {
-          const p = f.position.clone().addScaledVector(f.right, side * 76);
-          p.y -= 25;
-          if (clearance.clears(p.x, p.z, 55, 55, p.y + 35, 0, p.y))
+          for (const offset of [63, 82, 101]) {
+            const p = f.position
+              .clone()
+              .addScaledVector(f.right, side * offset);
+            p.y -= 23;
+            if (!clearance.clears(p.x, p.z, 51, 51, p.y + 64, 0, p.y)) continue;
             fans.push({
               position: p.toArray(),
               yaw: random() * Math.PI * 2,
-              scale: [1.1, 1.1, 1.1],
+              scale: [1, 1, 1],
             });
+            break;
+          }
         }
       }
     for (let i = 0; i < 3; i++) {
@@ -584,7 +691,7 @@ export function createVesperEnvironment({
             .clone()
             .addScaledVector(f.right, (i % 2 ? -1 : 1) * offset);
           p.y = ground;
-          if (!clearance.clears(p.x, p.z, 180, 180, ground + 295, 0, ground))
+          if (!clearance.clears(p.x, p.z, 212, 212, ground + 295, 0, ground))
             continue;
           const tree = get(`tree_${i}`).clone(true);
           tree.position.copy(p);
@@ -597,22 +704,22 @@ export function createVesperEnvironment({
         }
       }
     const bent = [];
-    const encounter = groundFrame(track, track.landmarks.creature.s);
-    for (let i = 0; i < 3; i++) {
-      const p = encounter.position
-        .clone()
-        .addScaledVector(encounter.right, -145 - i * 78)
-        .addScaledVector(encounter.tangent, 52 - i * 31);
-      p.y = ground;
-      if (!clearance.clears(p.x, p.z, 146, 146, ground + 270, 0, ground))
+    for (const [i, site] of [
+      [0, [1060, ground, -160]],
+      [1, [815, ground, -122]],
+      [2, [610, ground, -138]],
+    ]) {
+      const p = new T.Vector3(...site);
+      if (!clearance.clears(p.x, p.z, 196, 196, ground + 260, 0, ground))
         continue;
       const tree = get(`tree_${i}`).clone(true);
       tree.position.copy(p);
-      tree.scale.setScalar(1.05);
+      tree.scale.setScalar(1.15);
       tree.name = 'Vesper / crown flexed by approaching walker';
       group.add(tree);
       bent.push(tree);
     }
+    metrics.bendingCrowns = bent.length;
     consolidateStaticInstances(group);
     creature = createCanopyWalker(get('hero_walker'), track, group, bent);
     loaded = true;
@@ -650,6 +757,8 @@ export function createVesperEnvironment({
     group,
     ready,
     update(frame = {}) {
+      // Production overview preserves the living world; shape review owns a bare scene.
+      group.visible = true;
       const next = frame.settings ?? settings;
       setQuality(next, frame.camera);
       const s = frame.state?.distance ?? 0;
@@ -659,7 +768,7 @@ export function createVesperEnvironment({
           (((nearest + i - 2) % lanternSites.length) + lanternSites.length) %
           lanternSites.length;
         light.position.copy(lanternSites[index].position);
-        light.intensity = next.quality === 'low' && i > 3 ? 0 : 170;
+        light.intensity = next.quality === 'low' && i > 3 ? 0 : 110;
       });
       if (loaded) creature.update(frame);
     },

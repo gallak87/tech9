@@ -50,21 +50,30 @@ export function finishVesperMaterial(material) {
              diffuseColor.rgb*=mix(.76,1.23,broad); diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(.79,1.13,1.04),smoothstep(.55,.8,broad)*.35);
              float vesperHeight=pore*.035;
              #ifdef USE_MAP
-               vesperHeight+=dot(sampledDiffuseColor.rgb,vec3(.21,.72,.07))*.075;
+               vesperHeight+=dot(sampledDiffuseColor.rgb,vec3(.21,.72,.07))*.8;
              #endif`
           : `float broad=vesperNoise(vVesperSurface*.12); float fine=sin(length(vVesperSurface.xz)*2.4+vesperNoise(vVesperSurface*.6)*3.);
            diffuseColor.rgb*=mix(.76,1.17,broad)*(1.+fine*.055); float vesperHeight=fine*.035;`;
-    // Keep the creature's approved color/value hierarchy while using the mapped
-    // plate texture as restrained mottling; a raw multiply would blacken the legs.
+    // Broad plates must survive the actual chase-camera distance. Keep the base
+    // palette while enlarging mapped features and separating plate/groove values.
     if (walker)
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <map_fragment>',
         `#ifdef USE_MAP
-          vec4 sampledDiffuseColor=texture2D(map,vMapUv);
-          diffuseColor.rgb*=(vec3(.74)+sampledDiffuseColor.rgb*.95);
+          vec4 sampledDiffuseColor=texture2D(map,vMapUv*.5);
+          diffuseColor.rgb*=clamp(vec3(.35)+sampledDiffuseColor.rgb*3.2,vec3(.32),vec3(1.75));
           diffuseColor.a*=sampledDiffuseColor.a;
         #endif
 ${treatment}`,
+      );
+    if (walker)
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <roughnessmap_fragment>',
+        `#include <roughnessmap_fragment>
+        #ifdef USE_MAP
+          float plateValue=dot(sampledDiffuseColor.rgb,vec3(.21,.72,.07));
+          roughnessFactor=clamp(roughnessFactor*mix(1.15,.78,smoothstep(.03,.36,plateValue)),.55,.96);
+        #endif`,
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
@@ -81,5 +90,5 @@ ${treatment}`,
       );
   };
   material.customProgramCacheKey = () =>
-    `vesper-organic-r4-${bark ? 'bark' : leaf ? 'leaf' : walker ? 'walker' : 'fungus'}`;
+    `vesper-organic-r5-${bark ? 'bark' : leaf ? 'leaf' : walker ? 'walker' : 'fungus'}`;
 }

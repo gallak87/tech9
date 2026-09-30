@@ -12,6 +12,16 @@ Own only `src/levels/vesper/**`, `public/assets/levels/vesper/**`, `tools/expans
 
 Planned dev/preview ports: **5201/5202**. Production route: `http://127.0.0.1:5202/?level=vesper`; shape route adds `&review=shape`. These are reservations, not evidence of running servers. The launching integrator in `docs/expansion/LAUNCH_STATE.json` owns server assignment and GPU capture scheduling. Coordinate before a hidden browser run; report the exact served build and browser CLOSED afterward. Do not touch the historical Gate 4 servers or ping those sessions.
 
+## Defining interactions and spectacle
+
+- **Race inside colossal living trees:** enter through a split trunk, spiral up its hollow interior, then launch through the crown onto another branch.
+
+- **Sap versus resin:** flowing sap slows the ship; narrow hardened resin paths reward precise steering. Short branch jumps offer riskier bypasses.
+
+- **Living canopy event:** A gigantic nocturnal creature moves through the canopy, bending distant trees before stepping over your route and showering it with leaves and glowing spores.
+
+Thread the hollow-tree ascent and crown launch through Pillar Grove/Lantern Crown, let sap choices recur in Bloomspan and Rootfall, and stage the creature across multiple sightlines. Keep precision slaloms, fast canopy bends and the root descent; distribute their new interactions through the lap.
+
 ## World and driving direction
 
 Warm amber resin against ink-blue forest depth; enormous leaves carry cool bioluminescent veins, while pale sapwood and tiny warm maintenance lights make construction readable. This is a living transport system grown into a forest, with deliberate load paths and access fittings rather than random branches pasted around a generic road.
@@ -37,9 +47,13 @@ Start near 4.6 km with a constant 28 m usable magnetic width and roughly 180 m o
 
 - Hero landmarks: the three-trunk gate, suspended enormous flower, and split seedpod station must each have an approach, drive-by and departing silhouette. The flower should dwarf the roadway without filling every frame.
 - Ordinary stretches: authored trunk families, root shelves, young shoots, layered leaf crowns, fungal clusters and occasional maintenance nests. Populate foreground, middle canopy and distant forest at every district; use instanced families with meaningful silhouette variation.
-- Light and sky: a luminous high canopy opens onto blue-violet night and a soft horizon. Leaf veining illuminates nearby tissue; warm fixtures expose resin thickness and the Kestrel shape without recoloring the ship. Preserve negative spaces between crowns.
+- Lighting: Make deep forest pockets and hollow trunks genuinely darker than the open canopy. Local sap glow, leaf veins and warm maintenance lights must reveal nearby bark/resin thickness, the ship and the next exit. Use crown openings as brighter releases; preserve shadow depth rather than globally raising ambient light. The creature must read in silhouette and in reflected/local light, not as a black shape pasted behind neon leaves.
 
 **Reject these shortcuts:** Reject uniform trunk cylinders, a black forest beyond one flower, asphalt with green edges, foliage clipping the racing line, root-tunnel camera occlusion, or emissive leaves that erase road contrast. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
+
+## Future shared pickup/boost locations
+
+Mark approaches to crown/branch jumps for a future shared boost or boost-refill placement, sap-heavy exits for possible recovery/refill support, and a safe setup shelf before the hardest trunk sequence. Explain the intended benefit without inventing a forest-only pickup. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
 
 ## Presets and resource discipline
 
@@ -49,16 +63,16 @@ The [common brief](../../EXPANSION_HANDOFF.md) defines resource limits, ownershi
 
 ## Production and review
 
-Prefer [imagegen concepts as Blender references](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for distinctive modeled assets.
+Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The hollow hero tree and landing branches, enormous hanging flower, and articulated nocturnal creature with its canopy interaction are major scene-to-Blender subjects. Derive ordinary foliage and roots from a small reusable family. Keep all asset iteration inside the single eight-round level critic budget; simple procedural parts need no separate concept/model loop.
 
 Follow the [shared production/critic loop](../../EXPANSION_HANDOFF.md): internal shape checks, full production, one independent counter capped at eight, then final human review. The initial critique counts; stop at the first verified pass or cap. Use the level-specific checks below alongside shared control/lifecycle regressions.
 
 ## Acceptance on the actual production build
 
-1. Run a real-key trunk slalom with braking, driver-left/right steering and an airbrake correction; show at least one recoverable bad line, not just a centred scenario.
-2. Boost into the canopy arc and brake before Bloomspan; verify petal clearances, road direction and the true continuous deck from chase and oblique views.
-3. Descend Rootfall into Mycelium Vault at normal and boosted approach speed; inspect frame continuity, camera clearance, road visibility and stable rest on the slope.
-4. Inspect ordinary grove, crown and root-vault stretches at high/low and reduced motion. Forest depth, amber road identity and distinct barrier silhouette must survive all presets.
+1. Drive the trunk slalom, hollow-tree spiral and crown launch with real steering/braking and the existing manual boost; verify a real flight/landing transition and report the speed window, including an imperfect attempt.
+2. Compare sap drag with hardened resin at the same approach speed; check branch-bypass landing/rail clearance and reset/replay of the surface effect.
+3. Traverse Rootfall and the creature event; check slope rest on grounded sections, road/camera clearance, event scale and readable recovery bends.
+4. Inspect dark trunk/root interiors, lit sap and bright crown exits in high/low and reduced motion; verify every future placement marker against the built route and report difficulty without future pickups.
 5. Across representative starts, prove driver-left/right steering, throttle, brake, airbrake, manual boost, rail feedback, slope rest, pause/resume, reset and valid ordered checkpoint progression. Use real keyboard inputs for motion; deterministic starts are setup, never autopilot evidence. Fast numerical full-lap checks are complementary and must be labelled as simulated.
 6. Inspect the whole shape plus each district in driving view; test desktop, **844×390**, **640×360** and **390×844**. Check actual HUD, notice, map and control bounds during motion and feedback, not only initial screenshots. Shared UI/camera defects go to the integrator rather than being patched outside lane ownership.
 7. Verify shape and production routes, loading/error handling, high/low/reduced motion, compatible replay behavior and incompatible-rules rejection through the supplied contract. Check level exit/disposal and no accidental assets/effects in a baseline route. The integrator owns the combined all-map regression.
@@ -66,7 +80,7 @@ Follow the [shared production/critic loop](../../EXPANSION_HANDOFF.md): internal
 
 ## Scope limits and final evidence
 
-Use the common scope: continuous magnetic road, existing ship/controls, no new gameplay systems or Nacre flight dependency. Only the user supplies final human approval.
+Build the named level interactions and spectacle under the [shared runtime/ownership boundaries](../../EXPANSION_HANDOFF.md#gameplay-and-presentation-boundaries). Preserve the existing ship, controls and default handling outside declared local effects; coordinate reusable runtime support with the integrator. Shared pickup/boost expansion remains placement notes only. Only the user supplies final human approval.
 
 Keep `STATUS.json` to current phase, counter/latest scores, build/checks and open issues. Use this handoff for a short current integration note and, during active review, a compact round table. Keep asset provenance with the assets. Do not create separate implementation/performance/integration/critique reports; raw evidence stays in ignored `.experiments/`. After merge, fold lasting decisions into source/architecture and retire the completed handoff/history.
 

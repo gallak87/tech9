@@ -12,11 +12,21 @@ Own only `src/levels/umbra/**`, `public/assets/levels/umbra/**`, `tools/expansio
 
 Planned dev/preview ports: **5213/5214**. Production route: `http://127.0.0.1:5214/?level=umbra`; shape route adds `&review=shape`. These are reservations, not evidence of running servers. The launching integrator in `docs/expansion/LAUNCH_STATE.json` owns server assignment and GPU capture scheduling. Coordinate before a hidden browser run; report the exact served build and browser CLOSED afterward. Do not touch the historical Gate 4 servers or ping those sessions.
 
+## Defining interactions and spectacle
+
+- **Tidal racing zones:** a visible, gradually increasing pull toward the black hole changes how you hold your line. Banking, countersteering and boost become tools for crossing the strongest zones.
+
+- **Gravity-assisted leaps:** launch from a broken deck and follow a deliberately curved flight path around an observatory fragment onto a lower road. The landing is visible before commitment.
+
+- **Continuous accretion:** The black hole continuously consumes debris: intact distant structures stretch into strands, fragment and spiral into the bright ring. One enormous object undergoes that transformation during the lap.
+
+Retain stacked crossings, inversion and the grounded descending fold, then distribute clearly introduced tidal zones and curved airborne crossings among those features. Build continuous distant accretion plus one enormous, staged spaghettification event with readable stretching and fragmentation; do not replace it with a generic particle swirl.
+
 ## World and driving direction
 
 Dark graphite, fractured pale observatory stone and restrained cold metal hang against a luminous accretion ring. The architecture is asymmetrical and damaged, yet the functioning raceway remains engineered and clearly guided. Difficulty comes from linked corners and layered road geometry, never invisible hazards or unexplained gravity changes.
 
-Start near 5.4 km with a constant 28 m usable width and roughly 320 m of vertical range. Build a learnable sequence of linked turns, one extended inversion and two visually separable stacked crossings, finishing with a descending continuous fold over the start. Give each demanding feature a recognizable entry landmark and short recovery shelf. Keep all surfaces continuously magnetic with validated frames; the black hole exerts no new physics.
+Start near 5.4 km with a constant 28 m usable width and roughly 320 m of vertical range. Build a learnable sequence of linked turns, one extended inversion and two visually separable stacked crossings, finishing with a descending continuous fold over the start. Give each demanding feature a recognizable entry landmark and short recovery shelf. Grounded surfaces retain validated magnetic frames; explicitly declared tidal zones and curved airborne crossings supply the approved gravity interaction.
 
 | Initial lap interval | District            | Geometry, composition and gameplay purpose                                                                                                                                                     |
 | -------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,9 +47,13 @@ Start near 5.4 km with a constant 28 m usable width and roughly 320 m of vertica
 
 - Hero landmarks: the luminous accretion ring, tilted lens assembly and ruined instrument vault. A composed apparent lensing treatment may provide visual spectacle, but avoid full-screen distortion that alters the road or implies simulated astrophysics.
 - Ordinary stretches: fractured observatory terraces, repair gantries, suspended instrument ribs, small service lights and distant debris families. Damaged architecture needs deliberate construction details and silhouette variation, not arbitrary floating debris cubes.
-- Light and sky: ring-derived warm/cool gradients and steady engineered road lighting shape the dark craft and deck. Include structured stars and sparse far ruins in views away from the ring; the majority of the world must not revert to empty black.
+- Lighting: Use ring-derived warm/cool illumination to sculpt dark graphite and pale ruins, with darker instrument vaults and brighter exposed lens-facing spans. Tidal-zone direction/strength and lower landings must remain readable against the accretion ring. Light the stretching object across its deformation so it has mass and strands, and keep away-from-ring views populated and intentionally lit.
 
-**Reject these shortcuts:** Reject arbitrary floating blocks, empty black views away from the ring, a technical route that is merely confusing, invisible crossings, bright guides hiding absent road geometry, inverted camera collisions or new black-hole physics. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
+**Reject these shortcuts:** Reject arbitrary floating blocks, empty black views away from the ring, a technical route that is merely confusing, invisible crossings, bright guides hiding absent road geometry, inverted camera collisions or unexplained global gravity changes. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
+
+## Future shared pickup/boost locations
+
+Mark safe shared boost/refill setup positions before strong tidal zones and curved launches, plus recovery shelves after difficult landings. Note future shared stability/protection support candidates if useful; do not build a gravity-specific inventory or remove the tidal challenge to avoid the missing support. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
 
 ## Presets and resource discipline
 
@@ -49,16 +63,16 @@ The [common brief](../../EXPANSION_HANDOFF.md) defines resource limits, ownershi
 
 ## Production and review
 
-Prefer [imagegen concepts as Blender references](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for distinctive modeled assets.
+Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The observatory fragments/landing structures, tilted lens and enormous object with staged stretched/fragmented forms are major scene-to-Blender subjects. Use reproducible deformation/animation for continuous accretion and reuse small debris families. Keep all asset iteration inside the single eight-round level critic budget; simple procedural parts need no separate concept/model loop.
 
 Follow the [shared production/critic loop](../../EXPANSION_HANDOFF.md): internal shape checks, full production, one independent counter capped at eight, then final human review. The initial critique counts; stop at the first verified pass or cap. Use the level-specific checks below alongside shared control/lifecycle regressions.
 
 ## Acceptance on the actual production build
 
-1. Drive Parallax Stacks and Tidal Knots with actual braking, steering and airbrake; verify the correct deck and next corner are visually clear from the ordinary chase camera.
-2. Traverse the inversion at normal and boosted speed with a mid-roll input correction; numerically verify seam-continuous finite frames and inspect camera clearance throughout entry, hold and exit.
-3. Descend Event Fold with controlled braking and a deliberately imperfect line; show continuous contact, a visible recovery shelf and no false flight, teleport or altered gravity.
-4. Inspect views toward and away from the ring at high/low and reduced motion, including dark ordinary return stretches; road, boundaries, ship and background depth must remain legible.
+1. Drive progressively stronger tidal zones with actual countersteering/braking/boost; measure the declared pull and show ordinary handling outside the zones.
+2. Traverse curved gravity-assisted leaps with actual input, visible lower landing and an imperfect approach; verify airborne force integration, recovery and ordered checkpoints alongside grounded inversions/crossings.
+3. Inspect continuous debris consumption and the enormous object stretching into strands, fragmenting and spiralling inward; verify event/runtime reset, pause and replay without screen-wide road distortion.
+4. Check ring-facing and shadowed views at high/low/reduced motion, tidal/landing cues and future support coordinates; report hard no-pickup sections honestly.
 5. Across representative starts, prove driver-left/right steering, throttle, brake, airbrake, manual boost, rail feedback, slope rest, pause/resume, reset and valid ordered checkpoint progression. Use real keyboard inputs for motion; deterministic starts are setup, never autopilot evidence. Fast numerical full-lap checks are complementary and must be labelled as simulated.
 6. Inspect the whole shape plus each district in driving view; test desktop, **844×390**, **640×360** and **390×844**. Check actual HUD, notice, map and control bounds during motion and feedback, not only initial screenshots. Shared UI/camera defects go to the integrator rather than being patched outside lane ownership.
 7. Verify shape and production routes, loading/error handling, high/low/reduced motion, compatible replay behavior and incompatible-rules rejection through the supplied contract. Check level exit/disposal and no accidental assets/effects in a baseline route. The integrator owns the combined all-map regression.
@@ -66,7 +80,7 @@ Follow the [shared production/critic loop](../../EXPANSION_HANDOFF.md): internal
 
 ## Scope limits and final evidence
 
-Use the common scope: continuous magnetic road, existing ship/controls, no new gameplay systems or Nacre flight dependency. Only the user supplies final human approval.
+Build the named level interactions and spectacle under the [shared runtime/ownership boundaries](../../EXPANSION_HANDOFF.md#gameplay-and-presentation-boundaries). Preserve the existing ship, controls and default handling outside declared local effects; coordinate reusable runtime support with the integrator. Shared pickup/boost expansion remains placement notes only. Only the user supplies final human approval.
 
 Keep `STATUS.json` to current phase, counter/latest scores, build/checks and open issues. Use this handoff for a short current integration note and, during active review, a compact round table. Keep asset provenance with the assets. Do not create separate implementation/performance/integration/critique reports; raw evidence stays in ignored `.experiments/`. After merge, fold lasting decisions into source/architecture and retire the completed handoff/history.
 

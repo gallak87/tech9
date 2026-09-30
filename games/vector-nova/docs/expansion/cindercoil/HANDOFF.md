@@ -12,11 +12,21 @@ Own only `src/levels/cindercoil/**`, `public/assets/levels/cindercoil/**`, `tool
 
 Planned dev/preview ports: **5205/5206**. Production route: `http://127.0.0.1:5206/?level=cindercoil`; shape route adds `&review=shape`. These are reservations, not evidence of running servers. The launching integrator in `docs/expansion/LAUNCH_STATE.json` owns server assignment and GPU capture scheduling. Coordinate before a hidden browser run; report the exact served build and browser CLOSED afterward. Do not touch the historical Gate 4 servers or ping those sessions.
 
+## Defining interactions and spectacle
+
+- **An erupting route:** clearly signalled lava surges temporarily cover parts of the deck, making you choose between a tight protected line and a faster exposed line.
+
+- **Volcanic launch:** a broken spiral ramp sends you across an active vent; timing the approach between eruptions determines how cleanly you cross.
+
+- **Caldera rupture:** A caldera wall ruptures, sending thick lava cascades into the basin beneath you, with cooling crust breaking into rafts.
+
+Keep descending bowls, braking shelves and the rising corkscrew. Spread surge choices across the bowl/curtain reaches, integrate the broken-ramp vent launch into the coil sequence with an explicit landing, and reveal the caldera rupture from several districts. Do not confine all new action to one short segment.
+
 ## World and driving direction
 
 A vast natural caldera surrounds heavy ivory, charcoal and oxidized-red ceramic infrastructure. Slow molten curtains provide scale and warmth; cold ash layers and readable shadow faces prevent the world from becoming an orange bloom wall. The tabled industrial energy-complex concept stays tabled.
 
-Start near 4.5 km with a constant 30 m usable width and about 260 m of vertical range. Alternate 300–550 m loaded descending arcs with obvious 100–200 m braking shelves; vary the exit directions instead of repeating one bowl. Give the rising 360° corkscrew a long, smooth transport frame and clear entry/exit. Surfaces remain continuously magnetic, with no jump or heat-damage rules.
+Start near 4.5 km with a constant 30 m usable width and about 260 m of vertical range. Alternate 300–550 m loaded descending arcs with obvious 100–200 m braking shelves; vary the exit directions instead of repeating one bowl. Give the rising 360° corkscrew a long, smooth transport frame and clear entry/exit. Grounded sections remain magnetic; explicitly authored vent jumps and telegraphed lava-contact hazards belong to this level’s runtime.
 
 | Initial lap interval | District             | Geometry, composition and gameplay purpose                                                                                                                                   |
 | -------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -37,9 +47,13 @@ Start near 4.5 km with a constant 30 m usable width and about 260 m of vertical 
 
 - Hero landmarks: the caldera lake, layered lava curtains and hollow coil tower. Curtains originate at believable channels and terminate in pools; no floating flat orange sheets.
 - Ordinary stretches: broken lava tubes, cooled ropy flows, basalt columns of varied cluster shapes, ash drifts and terrain terraces. Give shadowed near rocks edge definition and multiple middle-distance silhouettes so the world stays rich away from lava.
-- Light and atmosphere: a cool smoky upper sky contrasts with warm low molten light. Preserve the Kestrel material and road value separation, including in the brightest bowl and darkest shelves. Sparse localized heat shimmer must not warp corner geometry.
+- Lighting: Use lava as a motivated warm light source against cool ash sky and darker basalt shelters. Surges and rupture should visibly affect nearby surfaces without blowing out ceramic plates or hiding the safe line. Give shaded shelves readable rock depth and cooling relief; transitions into exposed bowls must retain the ship and braking markers.
 
 **Reject these shortcuts:** Reject orange fog that erases the route, generic factory scenery, unsupported bridge masses, repeated identical bowls, corkscrew camera intersections, or heat/smoke that secretly changes handling. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
+
+## Future shared pickup/boost locations
+
+Mark safe launch-approach boost/refill locations, preparation shelves before repeated surge exposure, and recovery points after the vent landing. Flag where a future shared protection/recovery pickup could help without implementing it or converting hazards into harmless scenery. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
 
 ## Presets and resource discipline
 
@@ -49,16 +63,16 @@ The [common brief](../../EXPANSION_HANDOFF.md) defines resource limits, ownershi
 
 ## Production and review
 
-Prefer [imagegen concepts as Blender references](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for distinctive modeled assets.
+Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The rupturing caldera wall, volumetric lava channels/cascades and crust rafts, and broken vent-launch structure are major scene-to-Blender subjects. Use reusable rock/ceramic families for ordinary stretches; avoid flat orange sheets and visibly crude hero silhouettes. Keep all asset iteration inside the single eight-round level critic budget; simple procedural parts need no separate concept/model loop.
 
 Follow the [shared production/critic loop](../../EXPANSION_HANDOFF.md): internal shape checks, full production, one independent counter capped at eight, then final human review. The initial critique counts; stop at the first verified pass or cap. Use the level-specific checks below alongside shared control/lifecycle regressions.
 
 ## Acceptance on the actual production build
 
-1. Drive Ember Bowl into Basalt Teeth with actual throttle, braking and airbrake; demonstrate that a late brake creates a recoverable line error and that the intended exit is visible.
-2. Traverse Furnace Coil at normal and boosted speeds, steering both directions during the roll; test finite, seam-continuous frames, chase clearance and slope rest.
-3. Check Curtain Reach and the darkest shelf at high/low and reduced motion; road, ship and direction markers must survive hot backgrounds without bloom washout.
-4. Exercise a controlled rail impact on a shelf and resume driving. Decorations and supports must not appear to be collision surfaces where the shared runtime provides none.
+1. Drive both protected and exposed surge lines with real input; verify warning, timing, declared contact consequence and clear safe boundaries.
+2. Traverse the corkscrew and volcanic launch, including imperfect eruption timing; check grounded frames, actual flight/landing and recovery/checkpoint order.
+3. Inspect the caldera rupture, thick cascades and crust rafts from near/middle/far views; verify reset/pause/replay of hazard and spectacle state.
+4. Check warm bowls/cool shelves in high/low/reduced motion and document future boost/protection markers plus any difficult unsupported section.
 5. Across representative starts, prove driver-left/right steering, throttle, brake, airbrake, manual boost, rail feedback, slope rest, pause/resume, reset and valid ordered checkpoint progression. Use real keyboard inputs for motion; deterministic starts are setup, never autopilot evidence. Fast numerical full-lap checks are complementary and must be labelled as simulated.
 6. Inspect the whole shape plus each district in driving view; test desktop, **844×390**, **640×360** and **390×844**. Check actual HUD, notice, map and control bounds during motion and feedback, not only initial screenshots. Shared UI/camera defects go to the integrator rather than being patched outside lane ownership.
 7. Verify shape and production routes, loading/error handling, high/low/reduced motion, compatible replay behavior and incompatible-rules rejection through the supplied contract. Check level exit/disposal and no accidental assets/effects in a baseline route. The integrator owns the combined all-map regression.
@@ -66,7 +80,7 @@ Follow the [shared production/critic loop](../../EXPANSION_HANDOFF.md): internal
 
 ## Scope limits and final evidence
 
-Use the common scope: continuous magnetic road, existing ship/controls, no new gameplay systems or Nacre flight dependency. Only the user supplies final human approval.
+Build the named level interactions and spectacle under the [shared runtime/ownership boundaries](../../EXPANSION_HANDOFF.md#gameplay-and-presentation-boundaries). Preserve the existing ship, controls and default handling outside declared local effects; coordinate reusable runtime support with the integrator. Shared pickup/boost expansion remains placement notes only. Only the user supplies final human approval.
 
 Keep `STATUS.json` to current phase, counter/latest scores, build/checks and open issues. Use this handoff for a short current integration note and, during active review, a compact round table. Keep asset provenance with the assets. Do not create separate implementation/performance/integration/critique reports; raw evidence stays in ignored `.experiments/`. After merge, fold lasting decisions into source/architecture and retire the completed handoff/history.
 

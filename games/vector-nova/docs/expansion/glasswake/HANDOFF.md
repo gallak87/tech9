@@ -1,10 +1,10 @@
 # Map 5 — Glasswake Comet: overnight production handoff
 
-> A fractured comet reveals cobalt ice caverns and an aurora-filled sky, while clear ribbed crystal decks and blue blade-shaped boundaries expose enormous fissures below. Long linked bends and one readable canyon crossing reward smooth momentum; the frozen setting does not automatically introduce slippery handling.
+> A fractured comet reveals cobalt ice caverns and an aurora-filled sky, while clear ribbed crystal decks and blue blade-shaped boundaries expose enormous fissures below. Long linked bends, fracture jumps and readable frost/crystal grip changes reward smooth momentum and deliberate braking.
 
 ## Assignment and authority
 
-**Goal:** Finish a complete continuous comet circuit through fractured cobalt ice, with legible transparent crystal raceway construction and a spectacular engineered canyon crossing, then deliver the verified candidate through one independent critic loop and final human review.
+**Goal:** Finish a complete comet circuit through fractured cobalt ice, with legible transparent crystal raceway construction and a spectacular engineered canyon crossing, then deliver the verified candidate through one independent critic loop and final human review.
 
 Read this brief, [the common execution rules](../../EXPANSION_HANDOFF.md) and the [frozen level contract](../../EXPANSION_LEVEL_CONTRACT.md) when available. Consult architecture/art sections only as needed; do not preload the full roadmap or other lane briefs. Use the integrator’s verified base/API.
 
@@ -12,21 +12,31 @@ Own only `src/levels/glasswake/**`, `public/assets/levels/glasswake/**`, `tools/
 
 Planned dev/preview ports: **5203/5204**. Production route: `http://127.0.0.1:5204/?level=glasswake`; shape route adds `&review=shape`. These are reservations, not evidence of running servers. The launching integrator in `docs/expansion/LAUNCH_STATE.json` owns server assignment and GPU capture scheduling. Coordinate before a hidden browser run; report the exact served build and browser CLOSED afterward. Do not touch the historical Gate 4 servers or ping those sessions.
 
+## Defining interactions and spectacle
+
+- **Fracture jumps:** broken crystal bridges launch you across deep fissures, with transparent landing shelves visible through ice below.
+
+- **Mixed grip:** frosted sections allow more lateral drift, while exposed crystal ribs restore strong magnetic grip. Choosing where to brake becomes part of learning the course.
+
+- **Calving ice shelf:** A huge ice shelf calves beside the circuit. Cracks propagate through its body before it separates, revealing a luminous cavern and drifting fragments.
+
+Retain long momentum-led cavern/rim bends, but compose Fracture Reach as supported crystal spans interrupted by intentional airborne crossings. Repeat readable frost/crystal decisions in the gallery and descending chasm. Show the calving shelf on approach and departure rather than hiding all spectacle at one jump.
+
 ## World and driving direction
 
-Cobalt cavities, pale fractured ice and a quiet violet-green aurora surround optically clear crystal spans. This circuit should feel spacious, cold and exposed, but the vehicle retains the established magnetic grip: the setting is not permission to make handling slippery.
+Cobalt cavities, pale fractured ice and a quiet violet-green aurora surround optically clear crystal spans. This circuit should feel spacious, cold and exposed, with deliberate frost/crystal grip zones; ordinary magnetic handling remains unchanged outside them.
 
-Start near 4.8 km with a constant 30 m usable width and roughly 220 m of elevation change. Favor long linked bends with a few distinct braking decisions over repetitive hairpins; connect the surface rim, cavern and canyon as one physical route. Target one 450–650 m panoramic crossing with curvature and structural landmarks along it. Every metre remains a continuous magnetic surface; transparent geometry is not a flight gap.
+Start near 4.8 km with a constant 30 m usable width and roughly 220 m of elevation change. Favor long linked bends with a few distinct braking decisions over repetitive hairpins; connect the surface rim, cavern and canyon as one physical route. Target one 450–650 m panoramic crossing with curvature and structural landmarks along it. Supported transparent spans and clearly authored flight gaps must be visually distinct; build actual launch/landing behavior for the fracture jumps.
 
-| Initial lap interval | District             | Geometry, composition and gameplay purpose                                                                                                                                                             |
-| -------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0–12%                | **Aurora Berth**     | Launch from a shallow rim shelf into an early bank. A crystalline dock mast frames the aurora and exposes deck ribs beneath the starting grid.                                                         |
-| 12–26%               | **Cobalt Mouth**     | Two linked bends enter a torn cavern entrance. Dark blue ice walls have sharp broken planes, rounded melt pockets and bright fracture edges, not repeated identical crystal spikes.                    |
-| 26–41%               | **Prism Gallery**    | A long climbing interior sweeper threads layered ice curtains. Daylight shafts pick out the transparent road edge and illuminate a massive trapped dark inclusion.                                     |
-| 41–56%               | **Fracture Reach**   | Exit onto a continuous engineered crystal bridge over a deep canyon. Closely readable beams beneath clear deck panes prove support and surface while the far approach is visible well before the span. |
-| 56–70%               | **Auroral Rim**      | Broad banked arcs skim the comet exterior, with the sky opening wide. A distant fractured fragment and sparse dust establish scale without forming a collision hazard.                                 |
-| 70–84%               | **Bluebell Chasm**   | A descending S passes suspended bell-shaped ice vaults and a dark fissure floor. Solid frosted panel bands alternate with clear panes so the exit cannot disappear into the blue background.           |
-| 84–100%              | **Thawlight Return** | A rising linked bend reaches the pale surface and dock mast again. Amber-white navigation fittings and warmer grazing sunlight provide a final tonal release.                                          |
+| Initial lap interval | District             | Geometry, composition and gameplay purpose                                                                                                                                                                           |
+| -------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0–12%                | **Aurora Berth**     | Launch from a shallow rim shelf into an early bank. A crystalline dock mast frames the aurora and exposes deck ribs beneath the starting grid.                                                                       |
+| 12–26%               | **Cobalt Mouth**     | Two linked bends enter a torn cavern entrance. Dark blue ice walls have sharp broken planes, rounded melt pockets and bright fracture edges, not repeated identical crystal spikes.                                  |
+| 26–41%               | **Prism Gallery**    | A long climbing interior sweeper threads layered ice curtains. Daylight shafts pick out the transparent road edge and illuminate a massive trapped dark inclusion.                                                   |
+| 41–56%               | **Fracture Reach**   | Exit onto engineered crystal spans and authored fracture jumps over a deep canyon. Closely readable beams beneath clear deck panes prove support and surface while the far approach is visible well before the span. |
+| 56–70%               | **Auroral Rim**      | Broad banked arcs skim the comet exterior, with the sky opening wide. A distant fractured fragment and sparse dust establish scale without forming a collision hazard.                                               |
+| 70–84%               | **Bluebell Chasm**   | A descending S passes suspended bell-shaped ice vaults and a dark fissure floor. Solid frosted panel bands alternate with clear panes so the exit cannot disappear into the blue background.                         |
+| 84–100%              | **Thawlight Return** | A rising linked bend reaches the pale surface and dock mast again. Amber-white navigation fittings and warmer grazing sunlight provide a final tonal release.                                                        |
 
 ## Raceway construction and whole-world finish
 
@@ -37,9 +47,13 @@ Start near 4.8 km with a constant 30 m usable width and roughly 220 m of elevati
 
 - Hero landmarks: the dock mast, huge dark inclusion in the Prism Gallery and one sweeping canyon bridge. Shape the canyon and its depths as real scene geometry visible through and beside the road.
 - Ordinary stretches: tiered fractures, snowless wind-polished ice, trapped bubbles, rubble shelves and broad fault walls. Build near broken edges, middle-distance cavern chambers and distant exterior fragments; do not substitute a panorama for nearby terrain.
-- Light and sky: broad structured aurora bands and stars above the exterior, cold indirect light inside, and a few warmer docking lights. Use coherent reflections and stable roughness so triangles and seams do not turn into flickering crystal glitter.
+- Lighting: Contrast shadowed cobalt caverns with aurora-lit exterior ice and shafts of light through fractures. Separate frost from clear crystal by broad material/light response so grip can be anticipated. Transparent landing shelves need lit thickness and support silhouettes against both dark fissures and bright ice. Keep reflections stable and preserve geometry within the newly revealed luminous cavern.
 
-**Reject these shortcuts:** Reject a transparent road that disappears, ice triangles with unstable highlights, a sky-only world, repeated crystal spikes, a supposed canyon jump with no real bridge, or new slippery physics. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
+**Reject these shortcuts:** Reject a transparent road that disappears, ice triangles with unstable highlights, a sky-only world, repeated crystal spikes, an invisible bridge masquerading as a jump, or unmarked grip changes. Inspect the mundane connectors with the same care as the hero image. The route, running surface, barriers, underside/supports, near/middle/far scenery and sky must all identify this world without relying on its name.
+
+## Future shared pickup/boost locations
+
+Mark safe boost setup/refill positions before fracture jumps, recovery areas after landings, and approaches where a future shared grip/stability aid could help with frost. These are shared-system candidates only; keep the authored mixed-grip challenge. Record actual built-route coordinates using the [shared placement-note format](../../EXPANSION_HANDOFF.md#future-shared-pickup-and-boost-placement), without implementing those systems or replacing the approved level mechanics.
 
 ## Presets and resource discipline
 
@@ -49,16 +63,16 @@ The [common brief](../../EXPANSION_HANDOFF.md) defines resource limits, ownershi
 
 ## Production and review
 
-Prefer [imagegen concepts as Blender references](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for distinctive modeled assets.
+Use the [scene-imagegen → Blender workflow](../../EXPANSION_HANDOFF.md#asset-workflow-imagegen-to-blender) for major assets: The fractured bridge and landing shelves, layered cavern/ice curtains, and multi-part calving shelf are major scene-to-Blender subjects. Reuse authored fracture families for secondary rubble instead of generating each shard separately. Keep all asset iteration inside the single eight-round level critic budget; simple procedural parts need no separate concept/model loop.
 
 Follow the [shared production/critic loop](../../EXPANSION_HANDOFF.md): internal shape checks, full production, one independent counter capped at eight, then final human review. The initial critique counts; stop at the first verified pass or cap. Use the level-specific checks below alongside shared control/lifecycle regressions.
 
 ## Acceptance on the actual production build
 
-1. Drive linked gallery bends with actual keys, a brake correction and manual boost; verify baseline traction and 0.3 steering assist are unchanged, with no hidden ice modifier.
-2. Cross Fracture Reach slowly, stopped and at boost speed. Verify the same continuous surface/frame in all cases, visible support structure below, stable contact and no fake airborne event.
-3. Inspect the clear deck against bright ice, deep canyon and star sky at high/low; the centreline, side boundary and upcoming exit must remain unambiguous.
-4. Drive cave-entry and cave-exit exposure transitions, inspect the darkest chamber, and repeat the descending S in reduced motion; check camera, shader compilation, transparency order and road visibility.
+1. Drive linked bends across declared frost/crystal boundaries and compare braking/drift at matched speeds; preserve ordinary handling outside those zones.
+2. Cross the fracture jumps with actual input and existing boost; inspect takeoff, real airborne motion, transparent landing shelves, misses/recovery and checkpoint order.
+3. Inspect the calving shelf and clear road against bright ice, deep canyon and sky at high/low; verify the event and grip state reset/replay deterministically.
+4. Check cavern-to-rim lighting, low/reduced-motion readability and future support coordinates; record difficult speed/grip requirements without implementing pickups.
 5. Across representative starts, prove driver-left/right steering, throttle, brake, airbrake, manual boost, rail feedback, slope rest, pause/resume, reset and valid ordered checkpoint progression. Use real keyboard inputs for motion; deterministic starts are setup, never autopilot evidence. Fast numerical full-lap checks are complementary and must be labelled as simulated.
 6. Inspect the whole shape plus each district in driving view; test desktop, **844×390**, **640×360** and **390×844**. Check actual HUD, notice, map and control bounds during motion and feedback, not only initial screenshots. Shared UI/camera defects go to the integrator rather than being patched outside lane ownership.
 7. Verify shape and production routes, loading/error handling, high/low/reduced motion, compatible replay behavior and incompatible-rules rejection through the supplied contract. Check level exit/disposal and no accidental assets/effects in a baseline route. The integrator owns the combined all-map regression.
@@ -66,7 +80,7 @@ Follow the [shared production/critic loop](../../EXPANSION_HANDOFF.md): internal
 
 ## Scope limits and final evidence
 
-Use the common scope: continuous magnetic road, existing ship/controls, no new gameplay systems or Nacre flight dependency. Only the user supplies final human approval.
+Build the named level interactions and spectacle under the [shared runtime/ownership boundaries](../../EXPANSION_HANDOFF.md#gameplay-and-presentation-boundaries). Preserve the existing ship, controls and default handling outside declared local effects; coordinate reusable runtime support with the integrator. Shared pickup/boost expansion remains placement notes only. Only the user supplies final human approval.
 
 Keep `STATUS.json` to current phase, counter/latest scores, build/checks and open issues. Use this handoff for a short current integration note and, during active review, a compact round table. Keep asset provenance with the assets. Do not create separate implementation/performance/integration/critique reports; raw evidence stays in ignored `.experiments/`. After merge, fold lasting decisions into source/architecture and retire the completed handoff/history.
 

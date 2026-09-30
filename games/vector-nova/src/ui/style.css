@@ -1223,6 +1223,8 @@ select {
     top: 182px;
   }
   #interface.compact-landscape.driving #minimap {
-    top: 432px;
+    top: 428px;
+    height: clamp(80px, calc(100dvh - 625px), 120px);
+    width: calc(clamp(80px, calc(100dvh - 625px), 120px) * 4 / 3);
   }
 }

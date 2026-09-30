@@ -15,6 +15,10 @@ const out = resolve(
 await mkdir(out, { recursive: true });
 const track = createVesperTrack();
 const browser = await chromium.launch({ headless: true });
+const deadline = setTimeout(
+  () => void browser.close(),
+  Number(process.env.VN_CAPTURE_TIMEOUT_MS || 210000),
+);
 const report = {
   url,
   headless: true,
@@ -64,6 +68,9 @@ try {
     );
     const page = await context.newPage();
     page.on('pageerror', (e) => report.errors.push(e.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error') report.errors.push(message.text());
+    });
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => window.__VN?.ready, null, {
       timeout: 120000,
@@ -257,7 +264,10 @@ try {
     await context.close();
   }
 } finally {
+  clearTimeout(deadline);
   await browser.close();
+  report.browserClosed = true;
+  console.log('BROWSER CLOSED');
   await writeFile(
     resolve(out, 'report.json'),
     JSON.stringify(report, null, 2) + '\n',

@@ -2,21 +2,21 @@
 import * as T from 'three';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { createLevel3Track } from '../src/track/level3/model.js';
-import { buildNacreTrack } from '../src/track/level3/production.js';
+import { createLevel3Track } from '../src/levels/nacre/track/model.js';
+import { buildNacreTrack } from '../src/levels/nacre/track/production.js';
 import { createCameraRig } from '../src/camera/index.js';
 import { createVehicleState } from '../src/physics/index.js';
-import { createNacreRuntime } from '../src/track/level3/runtime.js';
+import { createNacreRuntime } from '../src/levels/nacre/track/runtime.js';
 import {
   createLeviathanPath,
   createLeviathanClock,
   NACRE_LEVIATHAN,
-} from '../src/environment/level3/leviathan/path.js';
+} from '../src/levels/nacre/environment/leviathan/path.js';
 
 import {
   createLeviathanSpray,
   sampleLeviathanSpray,
-} from '../src/environment/level3/leviathan/spray.js';
+} from '../src/levels/nacre/environment/leviathan/spray.js';
 
 const out = path.resolve(
   process.env.VN_EVIDENCE || '.experiments/gate4-1/leviathan-review/current',

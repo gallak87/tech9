@@ -81,9 +81,10 @@ test('scenario and manual recovery use actual nonuniform checkpoint distances', 
 
 for (const launch of ['short', 'long'])
   test(`actual Nacre ${launch} launches retain a valid lap and credit only their landing checkpoint`, async () => {
-    const { createLevel3Track } = await import('../src/track/level3/model.js');
+    const { createLevel3Track } =
+      await import('../src/levels/nacre/track/model.js');
     const { createNacreRuntime } =
-      await import('../src/track/level3/runtime.js');
+      await import('../src/levels/nacre/track/runtime.js');
     const { createVehicleState } = await import('../src/physics/index.js');
     const { advanceSession } = await import('../src/core/session-runtime.js');
     const course = createLevel3Track(),

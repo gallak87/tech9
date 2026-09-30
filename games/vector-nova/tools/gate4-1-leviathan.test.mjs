@@ -5,21 +5,21 @@ import * as T from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { createCameraRig } from '../src/camera/index.js';
 import { createVehicleState } from '../src/physics/index.js';
-import { createLevel3Track } from '../src/track/level3/model.js';
+import { createLevel3Track } from '../src/levels/nacre/track/model.js';
 import {
   createNacreClearance,
   seededRandom,
-} from '../src/environment/level3/geometry.js';
-import { createNacreWorld } from '../src/environment/level3/world.js';
-import { createNacreMaterials } from '../src/environment/level3/materials.js';
-import { nacreSeabedBaseY } from '../src/environment/level3/seabed.js';
-import { createNacreLeviathan } from '../src/environment/level3/leviathan/index.js';
+} from '../src/levels/nacre/environment/geometry.js';
+import { createNacreWorld } from '../src/levels/nacre/environment/world.js';
+import { createNacreMaterials } from '../src/levels/nacre/environment/materials.js';
+import { nacreSeabedBaseY } from '../src/levels/nacre/environment/seabed.js';
+import { createNacreLeviathan } from '../src/levels/nacre/environment/leviathan/index.js';
 import {
   NACRE_LEVIATHAN,
   createLeviathanPath,
   createLeviathanReturnPath,
   createLeviathanClock,
-} from '../src/environment/level3/leviathan/path.js';
+} from '../src/levels/nacre/environment/leviathan/path.js';
 
 const track = createLevel3Track();
 const path = createLeviathanPath(track);

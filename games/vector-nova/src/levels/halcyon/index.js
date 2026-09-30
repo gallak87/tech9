@@ -1,6 +1,6 @@
-import { createTrack, buildTrackVisual } from '../../track/index.js';
-import { createEnvironment } from '../../environment/index.js';
-import { createSky } from '../../renderer/sky.js';
+import { createTrack, buildTrackVisual } from './track/index.js';
+import { createEnvironment } from './environment/index.js';
+import { createSky } from './backdrop/index.js';
 import {
   createMagneticRuntime,
   hasHalcyonFeatures,

@@ -3,9 +3,9 @@ import {
   createLevel2Track,
   buildLevel2Blockout,
   buildOrbitalTrack,
-} from '../../track/level2/index.js';
-import { createOrbitalEnvironment } from '../../environment/orbital/index.js';
-import { createOrbitalBackdrop } from '../../renderer/orbital/index.js';
+} from './track/index.js';
+import { createOrbitalEnvironment } from './environment/index.js';
+import { createOrbitalBackdrop } from './backdrop/index.js';
 import { legacyPart } from '../legacy.js';
 
 export default function createLevel({ shape }) {

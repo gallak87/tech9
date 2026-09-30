@@ -6,11 +6,11 @@ import {
   buildLevel3Blockout,
   buildNacreTrack,
   createNacreRuntime,
-} from '../src/track/level3/index.js';
+} from '../src/levels/nacre/track/index.js';
 import {
   NACRE_FLIGHT_RULES,
   sweptNacreLanding,
-} from '../src/track/level3/runtime.js';
+} from '../src/levels/nacre/track/runtime.js';
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
 import { createCameraRig } from '../src/camera/index.js';

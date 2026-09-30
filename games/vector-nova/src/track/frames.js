@@ -58,3 +58,11 @@ export function createReferenceFrames(tangents, step, closed = true) {
     );
   });
 }
+
+export function framePoint(frame, right, up, forward = 0) {
+  return frame.position
+    .clone()
+    .addScaledVector(frame.right, right)
+    .addScaledVector(frame.up, up)
+    .addScaledVector(frame.tangent, forward);
+}

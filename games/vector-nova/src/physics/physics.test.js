@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Matrix4, PerspectiveCamera, Quaternion, Vector3 } from 'three';
-import { createTrack } from '../track/index.js';
+import { createTrack } from '../levels/halcyon/track/index.js';
 import { createVehicleState, stepVehicle, STEERING_ASSIST } from './index.js';
 
 const idle = {

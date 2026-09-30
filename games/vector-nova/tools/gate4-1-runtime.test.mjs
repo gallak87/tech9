@@ -10,7 +10,7 @@ import {
   restoreReplayInitial,
   validateReplayInputs,
 } from '../src/core/session-runtime.js';
-import { createTrack } from '../src/track/index.js';
+import { createTrack } from '../src/levels/halcyon/track/index.js';
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
 const track = createTrack();

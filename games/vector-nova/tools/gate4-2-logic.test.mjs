@@ -11,7 +11,7 @@ import {
   HALCYON_TRACK_ID,
   createHalcyonDevices,
 } from '../src/pickups/halcyon/placements.js';
-import { createTrack } from '../src/track/model.js';
+import { createTrack } from '../src/levels/halcyon/track/model.js';
 import { createVehicleState, stepVehicle } from '../src/physics/index.js';
 
 const dt = 1 / 120;

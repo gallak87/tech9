@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { createLevel3Track } from '../src/track/level3/model.js';
-import { createLeviathanPath } from '../src/environment/level3/leviathan/path.js';
-import { createNacreWater } from '../src/environment/level3/water.js';
+import { createLevel3Track } from '../src/levels/nacre/track/model.js';
+import { createLeviathanPath } from '../src/levels/nacre/environment/leviathan/path.js';
+import { createNacreWater } from '../src/levels/nacre/environment/water.js';
 import {
   createNacreWaveShelter,
   sampleNacreSwell,
   NACRE_WAVE_HEIGHT_BOUND,
-} from '../src/environment/level3/ocean-waves.js';
+} from '../src/levels/nacre/environment/ocean-waves.js';
 
 const track = createLevel3Track();
 

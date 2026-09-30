@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Vector3 } from 'three';
-import { createTrack } from '../src/track/index.js';
+import { createTrack } from '../src/levels/halcyon/track/index.js';
 
 const track = createTrack();
 test('the circuit closes without a position or orientation jump', () => {

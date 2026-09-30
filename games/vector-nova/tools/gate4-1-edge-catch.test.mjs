@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import { createLevel3Track } from '../src/track/level3/model.js';
+import { createLevel3Track } from '../src/levels/nacre/track/model.js';
 import {
   createNacreRuntime,
   NACRE_FLIGHT_RULES as R,
   sweptNacreLanding,
   sweptNacreRail,
-} from '../src/track/level3/runtime.js';
+} from '../src/levels/nacre/track/runtime.js';
 import { createVehicleState } from '../src/physics/index.js';
 import { createRace } from '../src/race/index.js';
 import { advanceSession } from '../src/core/session-runtime.js';

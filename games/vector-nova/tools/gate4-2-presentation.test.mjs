@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import { createTrack } from '../src/track/model.js';
+import { createTrack } from '../src/levels/halcyon/track/model.js';
 import { sweepGeometry } from '../src/track/geometry.js';
 import {
   createRoadProjector,

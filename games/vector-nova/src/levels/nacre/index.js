@@ -4,10 +4,10 @@ import {
   buildLevel3Blockout,
   buildNacreTrack,
   createNacreRuntime,
-} from '../../track/level3/index.js';
-import { createNacreEnvironment } from '../../environment/level3/index.js';
-import { createNacreBackdrop } from '../../renderer/level3/index.js';
-import { createNacreImmersion } from '../../core/nacre-presentation.js';
+} from './track/index.js';
+import { createNacreEnvironment } from './environment/index.js';
+import { createNacreBackdrop } from './backdrop/index.js';
+import { createNacreImmersion } from './overlay.js';
 import { legacyPart } from '../legacy.js';
 
 export default function createLevel({ shape }) {

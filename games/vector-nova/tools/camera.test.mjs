@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import { createCameraRig } from '../src/camera/index.js';
-import { createTrack } from '../src/track/model.js';
+import { createTrack } from '../src/levels/halcyon/track/model.js';
 
 test('chase transport retains the authored following distance at racing speed', () => {
   const track = createTrack();

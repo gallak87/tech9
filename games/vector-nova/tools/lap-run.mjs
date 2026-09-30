@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createTrack } from '../src/track/index.js';
+import { createTrack } from '../src/levels/halcyon/track/index.js';
 import { STEERING_ASSIST } from '../src/physics/index.js';
 
 // Verification-only driver: reads state and sends real keyboard events. This is

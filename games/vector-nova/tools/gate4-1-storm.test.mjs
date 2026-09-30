@@ -5,7 +5,7 @@ import {
   createNacreBackdrop,
   sampleNacreLightning,
   NACRE_STORM_RULES,
-} from '../src/renderer/level3/index.js';
+} from '../src/levels/nacre/backdrop/index.js';
 import {
   createNacreThunder,
   createNacreThunderBuffer,

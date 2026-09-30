@@ -8,13 +8,15 @@ Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repo
 | ---------------------- | ------------------------------------------------------------------------------- |
 | levels                 | Validated discovery, per-level factories, metadata and presentation adapters    |
 | core                   | Boot/readiness, fixed-step session, replay, mode changes and teardown           |
-| track                  | Renderer-independent route/frame model; shape and production road geometry      |
-| environment / renderer | World content; sky, light, reflections, postprocessing and resource metrics     |
+| track                  | Optional route-frame, sweep and geometry mechanics                              |
+| environment / renderer | Optional placement mechanics; shared rendering, lighting and resource metrics   |
 | ships / camera         | Async Kestrel asset and local presentation; road-frame chase/inspection cameras |
 | physics / race         | Vehicle motion and rail response; checkpoint/lap validation                     |
 | input / ui             | Normalized controls, focus/visibility cleanup, menus/HUD/settings               |
 | audio / effects        | Event-driven presentation; failure must not stop simulation                     |
 | pickups/halcyon        | Explicit opt-in adapter, deterministic devices and owned presentation           |
+
+`src/levels/<slug>/track/`, `environment/` and `backdrop/` own each circuit’s route, construction, materials, scenery and sky; Nacre also owns its overlay and flight adapter. Shared directories contain reusable mechanics, never a default world style. Existing public asset URLs and replay identities remain stable across source moves.
 
 Shared changes have one integrator; level builders own their assigned files. `src/levels/` discovers asset-free metadata eagerly and imports only the selected implementation. Its [level API](docs/EXPANSION_LEVEL_CONTRACT.md) defines factories, presentation and ownership; unknown or malformed levels fail visibly.
 

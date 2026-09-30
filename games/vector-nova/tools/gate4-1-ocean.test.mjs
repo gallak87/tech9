@@ -3,21 +3,21 @@ import assert from 'node:assert/strict';
 import * as T from 'three';
 import { createCameraRig } from '../src/camera/index.js';
 import createNacreLevel from '../src/levels/nacre/index.js';
-import { createNacreMaterials } from '../src/environment/level3/materials.js';
-import { createLevel3Track } from '../src/track/level3/model.js';
-import { createNacreEnvironment } from '../src/environment/level3/index.js';
-import { createNacreClearance } from '../src/environment/level3/geometry.js';
-import { findNacreWaterCrossings } from '../src/environment/level3/water-crossings.js';
+import { createNacreMaterials } from '../src/levels/nacre/environment/materials.js';
+import { createLevel3Track } from '../src/levels/nacre/track/model.js';
+import { createNacreEnvironment } from '../src/levels/nacre/environment/index.js';
+import { createNacreClearance } from '../src/levels/nacre/environment/geometry.js';
+import { findNacreWaterCrossings } from '../src/levels/nacre/environment/water-crossings.js';
 import {
   sampleNacreWater,
   nacreWaterLocalVisibility,
-} from '../src/environment/level3/atmosphere.js';
-import { nacreSeabedHeight } from '../src/environment/level3/seabed.js';
+} from '../src/levels/nacre/environment/atmosphere.js';
+import { nacreSeabedHeight } from '../src/levels/nacre/environment/seabed.js';
 import {
   createNacreBackdrop,
   sampleNacreLightning,
   NACRE_STORM_RULES,
-} from '../src/renderer/level3/index.js';
+} from '../src/levels/nacre/backdrop/index.js';
 
 const track = createLevel3Track();
 

@@ -1189,3 +1189,14 @@ select {
     bottom: auto;
   }
 }
+
+@media (max-width: 760px) and (min-height: 700px) and (orientation: portrait) {
+  #interface.compact-landscape.driving #notice {
+    top: auto;
+    bottom: 235px;
+    width: calc(100vw - 32px);
+    font-size: 11px;
+    line-height: 1.25;
+    padding: 6px 8px;
+  }
+}

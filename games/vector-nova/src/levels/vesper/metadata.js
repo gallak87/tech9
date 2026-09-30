@@ -17,6 +17,7 @@ export default {
     tag: 'VESPER CANOPY',
     tagDetail: '04 / NOCTURNAL FOREST',
     compact: true,
+    compactLandscape: true,
     stackedReview: true,
     lowNotice: true,
     shape: {

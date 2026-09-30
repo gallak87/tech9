@@ -5,37 +5,6 @@ import { framePoint } from '../../../track/frames.js';
 
 const inside = (s, j) => s > j.takeoff && s < j.landingStart;
 
-function petalGeometry(side, variant) {
-  const points = [];
-  const ids = [];
-  const rows = 12;
-  const cols = 6;
-  // A hooked protective petal with a ribbed back, opening away from the chase corridor.
-  for (let i = 0; i <= rows; i++) {
-    const t = i / rows;
-    const rise = 6.5 * t + 1.5 * Math.sin(t * Math.PI);
-    const reach = 1 + 6 * t * t + (variant === 1 ? 1.7 : 0);
-    const breadth =
-      (0.4 + Math.sin(Math.PI * t) * 2.1) * (variant === 2 ? 0.82 : 1);
-    for (let j = 0; j <= cols; j++) {
-      const u = (j / cols) * 2 - 1;
-      points.push(
-        side * (15 + reach + 0.35 * Math.cos(u * Math.PI)),
-        rise - 0.65 * u * u,
-        u * breadth,
-      );
-      if (i < rows && j < cols) {
-        const a = i * (cols + 1) + j;
-        ids.push(a, a + cols + 1, a + 1, a + 1, a + cols + 1, a + cols + 2);
-      }
-    }
-  }
-  const g = new T.BufferGeometry();
-  g.setAttribute('position', new T.Float32BufferAttribute(points, 3));
-  g.setIndex(ids);
-  g.computeVertexNormals();
-  return g;
-}
 function mergeParts(group, parts, material, name) {
   if (!parts.length) return;
   const geometry = mergeGeometries(parts, false);
@@ -143,7 +112,19 @@ function deckPatch(surface, x0, x1, s0, s1, offset, shape) {
 export function createVesperRoad({ track, shape = false }) {
   const group = new T.Group();
   group.name = shape ? 'Vesper route study' : 'Cast amber transport ribbon';
+  // Physical transmission samples the real scene behind the ribbon. Keep
+  // opacity/depth writes intact: alpha-blended lap-wide meshes sort poorly at
+  // spiral crossings. The retained internal laminae supply the amber depth.
+  const resinOptics = {
+    transmission: shape ? 0 : 0.18,
+    thickness: 3.6,
+    ior: 1.46,
+    attenuationColor: 0xffd08a,
+    attenuationDistance: 14,
+  };
+  const lightScale = shape ? 1 : 1.1;
   const amber = new T.MeshPhysicalMaterial({
+    ...resinOptics,
     color: shape ? 0x88959c : 0xcb781e,
     roughness: 0.19,
     metalness: 0.02,
@@ -152,7 +133,7 @@ export function createVesperRoad({ track, shape = false }) {
     specularIntensity: 0.42,
     specularColor: 0xffd8a0,
     emissive: shape ? 0 : 0x512503,
-    emissiveIntensity: 0.13,
+    emissiveIntensity: 0.13 * lightScale,
   });
   const milk = new T.MeshStandardMaterial({
     color: shape ? 0xc1c9cc : 0xd7b47a,
@@ -165,6 +146,8 @@ export function createVesperRoad({ track, shape = false }) {
     metalness: 0.02,
   });
   const polished = new T.MeshPhysicalMaterial({
+    ...resinOptics,
+    transmission: shape ? 0 : 0.22,
     color: shape ? 0x9faab0 : 0xda8a27,
     roughness: 0.15,
     metalness: 0.02,
@@ -173,9 +156,11 @@ export function createVesperRoad({ track, shape = false }) {
     specularIntensity: 0.45,
     specularColor: 0xffd8a0,
     emissive: shape ? 0 : 0x592503,
-    emissiveIntensity: 0.12,
+    emissiveIntensity: 0.12 * lightScale,
   });
   const core = new T.MeshPhysicalMaterial({
+    ...resinOptics,
+    transmission: shape ? 0 : 0.16,
     color: shape ? 0x8d969b : 0xd57a1d,
     roughness: 0.3,
     metalness: 0.02,
@@ -184,18 +169,13 @@ export function createVesperRoad({ track, shape = false }) {
     specularIntensity: 0.4,
     specularColor: 0xffd39a,
     emissive: shape ? 0 : 0x9d4103,
-    emissiveIntensity: shape ? 0 : 0.22,
+    emissiveIntensity: shape ? 0 : 0.22 * lightScale,
   });
   const vein = new T.MeshStandardMaterial({
     color: 0xffc46e,
     emissive: 0xf2a327,
-    emissiveIntensity: shape ? 0 : 1.6,
+    emissiveIntensity: shape ? 0 : 1.6 * lightScale,
     roughness: 0.45,
-  });
-  const tissue = new T.MeshStandardMaterial({
-    color: shape ? 0xc2cbd0 : 0xd9b68b,
-    roughness: 0.72,
-    side: T.DoubleSide,
   });
   const bark = new T.MeshStandardMaterial({
     color: shape ? 0x505d64 : 0x352719,
@@ -209,7 +189,7 @@ export function createVesperRoad({ track, shape = false }) {
   const sap = new T.MeshPhysicalMaterial({
     color: 0xba8944,
     emissive: 0x402409,
-    emissiveIntensity: 0.06,
+    emissiveIntensity: 0.06 * lightScale,
     roughness: 0.6,
     clearcoat: 0.12,
     clearcoatRoughness: 0.7,
@@ -268,8 +248,8 @@ export function createVesperRoad({ track, shape = false }) {
         vec3 vesperInterior=vec3(0.);
         if(vVesperResinActive>.5) {
           // Six refracted interior layers give inclusions real view parallax.
-          // The shared scene probe supplies the surface reflections; this finite
-          // volume approximation does not require another scene render pass.
+          // The shared probe supplies reflections and physical transmission shows
+          // the scene behind the slab; these inclusions add no further pass.
           vec3 entryNormal=normalize(vVesperResinNormal);
           vec3 interiorRay=refract(-normalize(vVesperResinView),entryNormal,.68);
           for(int layer=0;layer<6;layer++) {
@@ -300,11 +280,11 @@ export function createVesperRoad({ track, shape = false }) {
           )
           .replace(
             '#include <emissivemap_fragment>',
-            '#include <emissivemap_fragment>\n totalEmissiveRadiance+=vesperInterior*.2;',
+            '#include <emissivemap_fragment>\n totalEmissiveRadiance+=vesperInterior*.22;',
           );
     };
     material.customProgramCacheKey = () =>
-      flowing ? 'vesper-flow-v4' : 'vesper-lamina-v4';
+      flowing ? 'vesper-flow-v5' : 'vesper-lamina-v5';
   }
   const slices = [
     0,
@@ -459,7 +439,6 @@ export function createVesperRoad({ track, shape = false }) {
     }
   });
   const seals = [],
-    petals = [[], [], []],
     roots = [],
     clamps = [],
     inlays = [];
@@ -477,17 +456,7 @@ export function createVesperRoad({ track, shape = false }) {
     if (!shape)
       for (const side of [-1, 1]) {
         if (side > 0 && optional) continue;
-        const variant = Math.floor(s / 20) % 3;
-        petals[variant].push(
-          petalGeometry(side, variant).applyMatrix4(
-            new T.Matrix4().compose(
-              f.position,
-              f.quaternion,
-              new T.Vector3(1, 1, 1),
-            ),
-          ),
-        );
-        // Warm windows beneath the outer tissue expose resin depth.
+        // Warm windows below the low curb expose the resin edge depth.
         inlays.push(
           box
             .clone()
@@ -551,14 +520,6 @@ export function createVesperRoad({ track, shape = false }) {
     }
   box.dispose();
   mergeParts(group, seals, milk, 'Translucent reinforcement joints');
-  petals.forEach((parts, i) =>
-    mergeParts(
-      group,
-      parts,
-      i === 1 ? tissue : i === 2 ? smoked : amber,
-      `Hooked petal family ${i}`,
-    ),
-  );
   mergeParts(group, roots, bark, 'Paired braided load roots');
   mergeParts(group, clamps, metal, 'Maintenance sleeves and root sockets');
   mergeParts(group, inlays, vein, 'Amber resin edge windows');
@@ -567,7 +528,7 @@ export function createVesperRoad({ track, shape = false }) {
   const guide = new T.MeshStandardMaterial({
     color: 0xf2deb0,
     emissive: 0xcaa261,
-    emissiveIntensity: shape ? 0 : 0.22,
+    emissiveIntensity: shape ? 0 : 0.22 * lightScale,
     roughness: 0.78,
   });
   const guideParts = [];

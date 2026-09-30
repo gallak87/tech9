@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Vector3 } from 'three';
+import { Raycaster, ShaderLib, Texture, Vector3 } from 'three';
 import { createVesperTrack } from '../src/levels/vesper/track/model.js';
 import { createVesperRoad } from '../src/levels/vesper/track/road.js';
 import { sampleVesperSurface } from '../src/levels/vesper/surface.js';
@@ -342,7 +342,7 @@ test('bounded steering inputs traverse hollow and Rootfall under the unmodified 
   }
 });
 
-test('actual petal and nonlocal barrier vertices clear the road and ten-metre camera envelope', (t) => {
+test('plain low curbs retain their boundary and clear the nonlocal ten-metre camera envelope', (t) => {
   const road = createVesperRoad({ track, shape: false });
   const cell = 24;
   const grid = new Map();
@@ -357,18 +357,29 @@ test('actual petal and nonlocal barrier vertices clear the road and ten-metre ca
     if (!grid.has(id)) grid.set(id, []);
     grid.get(id).push(frame);
   }
-  let petalVertices = 0;
   let barrierVertices = 0;
   let candidates = 0;
-  let petalMargin = Infinity;
+  let maxCurbHeight = 0;
+  let glowVertices = 0;
   try {
+    assert.equal(
+      road.group.children.some((mesh) =>
+        mesh.name.startsWith('Hooked petal family'),
+      ),
+      false,
+    );
+    assert.equal(
+      road.group.children.filter(
+        (mesh) => mesh.name === 'Jump edge sapwood beacon',
+      ).length,
+      6,
+    );
     for (const mesh of road.group.children) {
-      const petal = mesh.name.startsWith('Hooked petal family');
       const positions = mesh.geometry?.attributes.position;
       const uv = mesh.geometry?.attributes.uv;
       if (!positions) continue;
       let barrier = mesh.name === 'Branch bypass main-road protective divider';
-      if (!petal && !barrier && uv) {
+      if (!barrier && uv) {
         // Recognize the actual swept protective curb from its first profile
         // vertex. Other road surfaces, load roots and reinforcement are separate.
         const frame = track.sample(uv.getY(0) * 16);
@@ -377,11 +388,33 @@ test('actual petal and nonlocal barrier vertices clear the road and ten-metre ca
           Math.abs(first.dot(frame.up) - 1.2) < 0.002 &&
           Math.abs(first.dot(frame.right)) >= 13.999 &&
           Math.abs(first.dot(frame.right)) <= 15.501;
+        const glow =
+          Math.abs(first.dot(frame.up) - 0.12) < 0.002 &&
+          Math.abs(first.dot(frame.right)) > 13.3 &&
+          Math.abs(first.dot(frame.right)) < 13.7;
+        if (glow) {
+          assert.ok(mesh.material.emissiveIntensity > 1.5);
+          for (let index = 0; index < positions.count; index += 1) {
+            const own = track.sample(uv.getY(index) * 16);
+            const delta = point(positions, index).sub(own.position);
+            assert.ok(delta.dot(own.up) >= 0.019 && delta.dot(own.up) <= 0.121);
+            assert.ok(
+              Math.abs(Math.abs(delta.dot(own.right)) - 13.48) <= 0.116,
+            );
+            glowVertices += 1;
+          }
+        }
       }
-      if (!petal && !barrier) continue;
+      if (!barrier) continue;
       for (let index = 0; index < positions.count; index += 1) {
-        if (petal) petalVertices += 1;
-        else barrierVertices += 1;
+        barrierVertices += 1;
+        const own = track.sample(uv.getY(index) * 16);
+        const height = point(positions, index).sub(own.position).dot(own.up);
+        maxCurbHeight = Math.max(maxCurbHeight, height);
+        assert.ok(
+          height >= -0.001 && height <= 1.201,
+          `raised curb at ${uv.getY(index) * 16}: ${height}`,
+        );
         const vertex = point(positions, index);
         const coordinates = vertex
           .toArray()
@@ -401,7 +434,7 @@ test('actual petal and nonlocal barrier vertices clear the road and ten-metre ca
                 candidates += 1;
                 const delta = vertex.clone().sub(frame.position);
                 if (Math.abs(delta.dot(frame.tangent)) > 1.1) continue;
-                if (barrier) {
+                {
                   // Curbs and the split-deck divider deliberately touch their
                   // own road boundary. Their real sweep UV identifies that ring.
                   const along = Math.abs(frame.s - uv.getY(index) * 16);
@@ -410,8 +443,6 @@ test('actual petal and nonlocal barrier vertices clear the road and ten-metre ca
                 const height = delta.dot(frame.up);
                 if (height <= 0.05 || height >= 10) continue;
                 const lateral = delta.dot(frame.right);
-                if (petal)
-                  petalMargin = Math.min(petalMargin, Math.abs(lateral) - 14);
                 assert.ok(
                   Math.abs(lateral) >= 13.95,
                   `${mesh.name || 'Protective curb'} vertex ${index} intrudes at s=${frame.s}, lateral=${lateral}, height=${height}`,
@@ -420,23 +451,155 @@ test('actual petal and nonlocal barrier vertices clear the road and ten-metre ca
             }
       }
     }
-    assert.ok(petalVertices > 40000 && barrierVertices > 10000);
-    assert.ok(candidates > 1000000);
-    assert.ok(
-      petalMargin > 1.4,
-      'petal margin must exceed the two-metre grid discretization',
-    );
+    assert.ok(barrierVertices > 10000 && glowVertices > 10000);
+    assert.ok(candidates > 100000);
+    assert.ok(maxCurbHeight > 1.19);
     t.diagnostic(
       JSON.stringify({
-        petalVertices,
+        glowVertices,
         barrierVertices,
         candidates,
-        petalMargin,
+        maxCurbHeight,
         frameSpacing: 2,
         testedHeight: [0.05, 10],
       }),
     );
   } finally {
     road.dispose();
+  }
+});
+
+test('resin transmits through the actual deck stack and retains depth, quality and owned-resource lifecycle', (t) => {
+  const road = createVesperRoad({ track, shape: false });
+  const study = createVesperRoad({ track, shape: true });
+  const probe = new Texture();
+  let probeDisposals = 0;
+  probe.addEventListener('dispose', () => probeDisposals++);
+  const materials = new Set(road.group.children.map((mesh) => mesh.material));
+  const geometries = new Set(road.group.children.map((mesh) => mesh.geometry));
+  const disposals = new Map();
+  for (const resource of [...materials, ...geometries]) {
+    disposals.set(resource, 0);
+    resource.addEventListener('dispose', () =>
+      disposals.set(resource, disposals.get(resource) + 1),
+    );
+  }
+  try {
+    const resin = [...materials].filter(
+      (material) => material.transmission > 0,
+    );
+    assert.equal(resin.length, 3);
+    const shaders = resin.map((material) => {
+      // Feed the production hook the real Three physical shader, preserving
+      // its transmission path alongside the local view-dependent inclusions.
+      const shader = {
+        uniforms: {},
+        vertexShader: ShaderLib.physical.vertexShader,
+        fragmentShader: ShaderLib.physical.fragmentShader,
+      };
+      material.onBeforeCompile(shader);
+      assert.ok(
+        shader.fragmentShader.includes('#include <transmission_fragment>'),
+      );
+      assert.ok(shader.fragmentShader.includes('vec3 interiorRay=refract('));
+      assert.equal(material.transparent, false);
+      assert.equal(material.opacity, 1);
+      assert.equal(material.depthWrite, true);
+      assert.ok(material.transmission >= 0.1 && material.transmission <= 0.25);
+      assert.ok(
+        material.attenuationColor.r > material.attenuationColor.g &&
+          material.attenuationColor.g > material.attenuationColor.b,
+      );
+      return shader;
+    });
+    road.setReflection(probe);
+    for (const material of resin) assert.equal(material.envMap, probe);
+    road.update({
+      time: 7.5,
+      settings: { quality: 'low', reducedMotion: false },
+    });
+    for (const shader of shaders) {
+      assert.equal(shader.uniforms.vesperResinLayers.value, 3);
+      assert.equal(shader.uniforms.vesperSapTime.value, 7.5);
+    }
+    road.update({
+      time: 9,
+      settings: { quality: 'high', reducedMotion: true },
+    });
+    for (const shader of shaders) {
+      assert.equal(shader.uniforms.vesperResinLayers.value, 6);
+      assert.equal(shader.uniforms.vesperSapTime.value, 0);
+    }
+    assert.ok(
+      study.group.children.every((mesh) => !(mesh.material.transmission > 0)),
+    );
+    road.group.updateMatrixWorld(true);
+    const ray = new Raycaster();
+    let checkedStacks = 0;
+    let checkedLayers = 0;
+    for (let s = 17; s < track.length; s += 37) {
+      if (track.isGap(s, 0)) continue;
+      const frame = track.sample(s);
+      for (const lateral of [0, 5]) {
+        ray.set(
+          frame.position
+            .clone()
+            .addScaledVector(frame.right, lateral)
+            .addScaledVector(frame.up, 3),
+          frame.up.clone().negate(),
+        );
+        ray.far = 8;
+        const hits = ray.intersectObjects(road.group.children, false);
+        const surface = hits.find(
+          ({ object }) => object.userData.drivingSurface,
+        );
+        if (!surface || !(surface.object.material.transmission > 0)) continue;
+        // Opaque guides and sap are intentional. Everywhere else, an opaque
+        // hidden layer would defeat a transmissive top by masking background.
+        if (
+          hits.some(
+            ({ object }) =>
+              object.name === 'Advance jump lane and landing guidance' ||
+              object.userData.sapFilm ||
+              object.name === 'Translucent reinforcement joints',
+          )
+        )
+          continue;
+        assert.ok(hits.length > 0);
+        for (const { object } of hits) {
+          assert.ok(
+            object.material.transmission > 0,
+            `opaque layer under resin at ${s}/${lateral}: ${object.name}`,
+          );
+          assert.ok(
+            object.geometry.attributes.vesperResinActive,
+            'transmitted resin retains its internal depth attributes',
+          );
+          checkedLayers += 1;
+        }
+        checkedStacks += 1;
+      }
+    }
+    assert.ok(checkedStacks > 100 && checkedLayers > checkedStacks);
+    t.diagnostic(
+      JSON.stringify({
+        checkedStacks,
+        checkedLayers,
+        meshes: road.group.children.length,
+        resinMaterials: resin.length,
+      }),
+    );
+  } finally {
+    road.dispose();
+    road.dispose();
+    study.dispose();
+    assert.equal(road.group.children.length, 0);
+    for (const count of disposals.values()) assert.equal(count, 1);
+    assert.equal(
+      probeDisposals,
+      0,
+      'borrowed reflection texture remains renderer-owned',
+    );
+    probe.dispose();
   }
 });

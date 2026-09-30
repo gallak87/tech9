@@ -54,7 +54,7 @@
     },
     {
       "id": "asterion-orbital-blockout",
-      "source": "src/track/level2/",
+      "source": "src/levels/orbital/track/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original authored orbital route, shared project-owned frame/sweep helpers, neutral road geometry and simple sphere planet for early human shape review; no new external imagery",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -62,7 +62,7 @@
     },
     {
       "id": "asterion-track-production",
-      "source": "src/track/level2/",
+      "source": "src/levels/orbital/track/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original induction cassette deck materials, open magnetic lattice spans, full-color neon treatment, taller U containment frames, integrated practical-light housings, portal/signage and service construction. Adapts project-owned sweep/beam/seal/stable-fixture helpers; no copied reference assets.",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -70,7 +70,7 @@
     },
     {
       "id": "asterion-shipyard",
-      "source": "src/environment/orbital/",
+      "source": "src/levels/orbital/environment/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original layered survey tenders, skeletal construction hull, drydock cradles, freight/habitat/relay/solar and radiator assemblies; fitted ceramic panels, pressure shells, recessed control cabins and distinct metal/composite/glass finishes; generated owned geometry and material maps.",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -78,7 +78,7 @@
     },
     {
       "id": "asterion-planet",
-      "source": "src/renderer/orbital/ and public/assets/orbital/",
+      "source": "src/levels/orbital/backdrop/ and public/assets/orbital/",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original deterministic global maps plus original imagegen terrain and separate weather-density material maps covering the near region and visible surrounding globe. Real spherical surface/cloud/atmosphere geometry with runtime lighting; no screenshot scenery.",
       "rights": "Project-authored; no third-party asset restrictions",
@@ -87,7 +87,7 @@
       "textureMemoryEstimateMiB": 80,
       "compressedAssetBytes": 16001716,
       "generationMode": "Built-in image_gen tool for regional terrain and grayscale weather; no reference images",
-      "promptRecord": "src/renderer/orbital/asset-provenance.json",
+      "promptRecord": "src/levels/orbital/backdrop/asset-provenance.json",
       "runtimeMaps": [
         "public/assets/orbital/asterion-surface.webp",
         "public/assets/orbital/asterion-clouds.webp",
@@ -99,7 +99,7 @@
     },
     {
       "id": "asterion-stellar-sky",
-      "source": "src/renderer/orbital/sky.js",
+      "source": "src/levels/orbital/backdrop/sky.js",
       "creator": "VECTOR//NOVA project contributors",
       "provenance": "Original source-native galactic radiance/dust shader, 17500 seeded point stars, spherical moon and deterministic packed lunar albedo/crater-height map generated at runtime. No imagegen, downloads or external astronomical imagery used for this addition.",
       "rights": "Project-authored; no third-party asset restrictions",

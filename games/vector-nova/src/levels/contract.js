@@ -1,37 +1,97 @@
 const slugPattern = /^[a-z][a-z0-9-]*$/;
 
+const textFields = [
+  'edition',
+  'subtitle',
+  'eyebrow',
+  'intro',
+  'detail',
+  'start',
+  'tag',
+  'tagDetail',
+];
+export function validateMetadata(metadata, id = metadata?.id) {
+  if (
+    !slugPattern.test(id || '') ||
+    metadata?.id !== id ||
+    typeof metadata.name !== 'string' ||
+    !metadata.name.trim() ||
+    !Number.isFinite(metadata.order) ||
+    typeof metadata.review !== 'boolean' ||
+    typeof metadata.shape !== 'boolean' ||
+    !metadata.ui ||
+    !Array.isArray(metadata.ui.heading) ||
+    metadata.ui.heading.length !== 2 ||
+    !metadata.ui.heading.every(
+      (line) => typeof line === 'string' && line.trim(),
+    )
+  )
+    throw new Error(`Invalid circuit metadata: ${id}`);
+  for (const field of [
+    'edition',
+    'subtitle',
+    'eyebrow',
+    'intro',
+    'detail',
+    'start',
+    'tag',
+    'tagDetail',
+  ])
+    if (typeof metadata.ui[field] !== 'string')
+      throw new Error(`Invalid circuit text: ${id}.${field}`);
+  for (const flag of ['compact', 'stackedReview', 'lowNotice'])
+    if (
+      metadata.ui[flag] !== undefined &&
+      typeof metadata.ui[flag] !== 'boolean'
+    )
+      throw new Error(`Invalid circuit layout: ${id}.${flag}`);
+  if (metadata.ui.shape !== undefined) {
+    if (
+      !metadata.ui.shape ||
+      typeof metadata.ui.shape !== 'object' ||
+      Array.isArray(metadata.ui.shape)
+    )
+      throw new Error(`Invalid circuit shape text: ${id}`);
+    for (const [key, value] of Object.entries(metadata.ui.shape)) {
+      if (textFields.includes(key) && typeof value !== 'string')
+        throw new Error(`Invalid circuit shape text: ${id}.${key}`);
+      if (
+        key === 'heading' &&
+        (!Array.isArray(value) ||
+          value.length !== 2 ||
+          !value.every((line) => typeof line === 'string' && line.trim()))
+      )
+        throw new Error(`Invalid circuit shape heading: ${id}`);
+    }
+  }
+  return metadata;
+}
+
+export function validateDefinition(definition, id = 'circuit') {
+  for (const name of [
+    'createTrack',
+    'createRoad',
+    'createEnvironment',
+    'createBackdrop',
+  ])
+    if (typeof definition?.[name] !== 'function')
+      throw new Error(`${id} is missing ${name}`);
+  for (const name of ['createRuntime', 'createOverlay'])
+    if (
+      definition[name] !== undefined &&
+      typeof definition[name] !== 'function'
+    )
+      throw new Error(`Invalid ${id}.${name}`);
+  if (typeof definition.version !== 'string' || !definition.version)
+    throw new Error(`${id} is missing a version`);
+  return definition;
+}
+
 export function createCatalog(metadataModules, loaders) {
   const entries = new Map();
   for (const [path, metadata] of Object.entries(metadataModules)) {
     const slug = /^\.\/([^/]+)\/metadata\.js$/.exec(path)?.[1];
-    if (
-      !slugPattern.test(slug || '') ||
-      metadata?.id !== slug ||
-      typeof metadata.name !== 'string' ||
-      !metadata.name.trim() ||
-      !Number.isFinite(metadata.order) ||
-      typeof metadata.review !== 'boolean' ||
-      typeof metadata.shape !== 'boolean' ||
-      !metadata.ui ||
-      !Array.isArray(metadata.ui.heading) ||
-      metadata.ui.heading.length !== 2 ||
-      !metadata.ui.heading.every(
-        (line) => typeof line === 'string' && line.trim(),
-      )
-    )
-      throw new Error(`Invalid circuit metadata: ${path}`);
-    for (const field of [
-      'edition',
-      'subtitle',
-      'eyebrow',
-      'intro',
-      'detail',
-      'start',
-      'tag',
-      'tagDetail',
-    ])
-      if (typeof metadata.ui[field] !== 'string')
-        throw new Error(`Invalid circuit text: ${slug}.${field}`);
+    validateMetadata(metadata, slug || '');
     if (entries.has(metadata.id))
       throw new Error(`Duplicate circuit: ${metadata.id}`);
     const load = loaders[`./${slug}/index.js`];
@@ -64,22 +124,7 @@ export function createCatalog(metadataModules, loaders) {
       if (typeof module.default !== 'function')
         throw new Error(`Invalid circuit factory: ${id}`);
       const definition = await module.default({ shape, features });
-      for (const name of [
-        'createTrack',
-        'createRoad',
-        'createEnvironment',
-        'createBackdrop',
-      ])
-        if (typeof definition?.[name] !== 'function')
-          throw new Error(`${id} is missing ${name}`);
-      for (const name of ['createRuntime', 'createOverlay'])
-        if (
-          definition[name] !== undefined &&
-          typeof definition[name] !== 'function'
-        )
-          throw new Error(`Invalid ${id}.${name}`);
-      if (typeof definition.version !== 'string' || !definition.version)
-        throw new Error(`${id} is missing a version`);
+      validateDefinition(definition, id);
       return { metadata: entry.metadata, definition, shape };
     },
   };

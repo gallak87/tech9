@@ -15,7 +15,9 @@
     "format:check": "prettier --check .",
     "lint:staged": "lint-staged --cwd .",
     "prepare": "cd ../.. && husky games/vector-nova/.husky",
-    "verify:orbital": "node tools/orbital-verify.mjs"
+    "verify:orbital": "node tools/orbital-verify.mjs",
+    "check:level": "node tools/check-level.mjs",
+    "verify:level": "node tools/verify-level.mjs"
   },
   "dependencies": {
     "three": "0.186.1"

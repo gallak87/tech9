@@ -15,6 +15,26 @@ const unwrapNear = (angle, reference) =>
 // vertical singularity and recovers continuously after it. The final distributed
 // holonomy correction closes the frame as well as the centreline.
 export function createReferenceFrames(tangents, step, closed = true) {
+  if (!Number.isFinite(step) || step <= 0)
+    throw new RangeError('Frame step must be positive and finite');
+  if (!Array.isArray(tangents) || tangents.length < 2)
+    throw new RangeError('Reference frames need at least two unit tangents');
+  for (const [index, tangent] of tangents.entries()) {
+    if (
+      !tangent?.isVector3 ||
+      !tangent.toArray().every(Number.isFinite) ||
+      Math.abs(tangent.lengthSq() - 1) > 1e-5
+    )
+      throw new TypeError(`Invalid unit tangent at ${index}`);
+    if (index && tangent.dot(tangents[index - 1]) < -0.999999)
+      throw new RangeError(
+        `Ambiguous antiparallel tangents at ${index}; refine the route sampling`,
+      );
+  }
+  if (closed && tangents[0].distanceTo(tangents.at(-1)) > 1e-5)
+    throw new RangeError(
+      'Closed reference frames require a duplicated seam tangent',
+    );
   const first = tangents[0];
   const initialUp = WORLD_UP.clone().addScaledVector(first, -first.y);
   if (initialUp.lengthSq() < 0.001)

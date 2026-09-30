@@ -77,7 +77,7 @@ area('Ocean reflected fill',(550,-200,160),700000,420,(.30,.72,.80),(760,-470,11
 
 # The source-native swell profile is reused for the authoring sea. Shader foam,
 # fog and reflection response are an approximation, not a gameplay capture.
-profile=json.load(open(ROOT+'/src/environment/level3/ocean-profile.json'))
+profile=json.load(open(ROOT+'/src/levels/nacre/environment/ocean-profile.json'))
 wave_vertices=[];wave_faces=[];extent=1800;steps=181
 for z in range(steps):
     for x in range(steps):wave_vertices.append((760-extent+x*extent*2/(steps-1),-470-extent+z*extent*2/(steps-1),0))

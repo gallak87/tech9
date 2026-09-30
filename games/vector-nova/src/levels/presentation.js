@@ -38,6 +38,7 @@ export async function createLevelPresentation(definition, context) {
         overlay?.reset?.();
       },
       setReflection(texture) {
+        if (disposed) return;
         for (const part of parts) part.setReflection?.(texture);
       },
       update(frame) {

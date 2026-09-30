@@ -10,7 +10,7 @@ import math
 from mathutils import Vector
 
 ROOT=Path(__file__).resolve().parents[3]
-PROFILE=json.loads((ROOT/'src/environment/level3/ocean-profile.json').read_text())
+PROFILE=json.loads((ROOT/'src/levels/nacre/environment/ocean-profile.json').read_text())
 OUT=ROOT/'art/level3/ocean'
 EVIDENCE=ROOT/'.experiments/gate4-1/ocean-swells'
 OUT.mkdir(parents=True,exist_ok=True)
@@ -59,7 +59,7 @@ for p in mesh.polygons:
 attr=mesh.attributes.new('crest_foam','FLOAT','POINT')
 for i,f in enumerate(foam):
     attr.data[i].value=f
-obj['profile_source']='src/environment/level3/ocean-profile.json'
+obj['profile_source']='src/levels/nacre/environment/ocean-profile.json'
 obj['profile_json']=json.dumps(PROFILE)
 obj['sample_time_seconds']=5.5
 obj['runtime']='Live Three.js vertex displacement and foam; this is the editable shape study, not a fluid simulation bake.'

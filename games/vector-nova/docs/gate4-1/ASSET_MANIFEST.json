@@ -5,8 +5,8 @@
     {
       "id": "nacre-track",
       "sources": [
-        "src/track/level3/model.js",
-        "src/track/level3/production.js"
+        "src/levels/nacre/track/model.js",
+        "src/levels/nacre/track/production.js"
       ],
       "method": "Authored 3D metre-parameterized route, disconnected running surfaces, merged ceramic scales, pressure inserts, instanced fins/gills and wave-cut support engineering",
       "sourceDrawObjects": 31,
@@ -24,13 +24,16 @@
     },
     {
       "id": "nacre-flight",
-      "sources": ["src/track/level3/runtime.js"],
+      "sources": ["src/levels/nacre/track/runtime.js"],
       "method": "World-space Nacre-only ballistic gravity26m/s\u00b2 and bounded air control; swept hull landing against actual receiving-road frames, independent pitch/roll tolerances and deterministic v3 replay rules; v4 exact contact presentation with vertical/attitude settle and consistent camera handoff framing"
     },
     {
       "id": "ocean-storm-reef",
-      "sources": ["src/environment/level3/", "src/renderer/level3/"],
-      "provenance": "src/environment/level3/asset-provenance.json",
+      "sources": [
+        "src/levels/nacre/environment/",
+        "src/levels/nacre/backdrop/"
+      ],
+      "provenance": "src/levels/nacre/environment/asset-provenance.json",
       "runtimeMaps": 0,
       "additionalRenderPasses": 0,
       "limitations": [
@@ -77,7 +80,7 @@
     },
     {
       "id": "water-crossings",
-      "sources": ["src/environment/level3/water-crossings.js"],
+      "sources": ["src/levels/nacre/environment/water-crossings.js"],
       "method": "Source-native banked road/sea-level intersection geometry and foam shader; simulation-time pooled spray, submerged bubbles and surface ripple triggered by the actual swept craft-center crossing. Wider/brighter spray and stronger ripple; resource counts unchanged.",
       "sourceTriangles": 966,
       "standingDrawObjects": 1,
@@ -96,8 +99,8 @@
     {
       "id": "nacre-storm-and-immersion",
       "sources": [
-        "src/renderer/level3/storm.js",
-        "src/renderer/level3/index.js",
+        "src/levels/nacre/backdrop/storm.js",
+        "src/levels/nacre/backdrop/index.js",
         "src/audio/nacre-thunder.js",
         "src/core/nacre-presentation.js"
       ],
@@ -115,7 +118,7 @@
       "sources": [
         "art/level3/leviathan/nacre-leviathan-v2.blend",
         "art/level3/leviathan/build-model-v2.py",
-        "src/environment/level3/leviathan/",
+        "src/levels/nacre/environment/leviathan/",
         "public/assets/level3/leviathan/nacre-leviathan-v2.glb"
       ],
       "method": "One original 280m Blender sea worm with organic nacre shields, fins, photophores and vertex color variation. One loaded body supplies two arc-length appearances: the first curved breach 5m toward the launch pad from the jump midpoint, and a submerged diagonal left-to-right crossing over the second trench bend. The underwater route has a fixed world-space heading and gentle 8m undulation, never following the road around its turn. Its whole-body crossing is staged at route2140m, 210m earlier than the previous alongside swim, with a speed-scaled clock including boost acceleration. Existing foam and pooled spray are used only for the first breach. No added animal, meshes, maps or passes. Pause, reset/navigation, reduced motion, loading failure and owned disposal remain supported.",

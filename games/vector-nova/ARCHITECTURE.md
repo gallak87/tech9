@@ -25,7 +25,7 @@ Shared changes have one integrator; level builders own their assigned files. `sr
 - Metres/seconds/radians. World +Y up; ship local +Z forward, +Y up.
 - `sample(distance)` wraps arc-length metres and returns `{position, tangent, right, up, quaternion, curvature, bank}`, optionally `roll`. Road, ship, camera and physics consume the same frame.
 - The legacy `frame.right` is geometric +X, which appears driver-left when facing +Z. Positive input steer means driver-right: negative geometric heading/lateral displacement. Do not reverse this when adding levels.
-- Reuse `src/track/frames.js` for continuous parallel-transport frames through vertical tangents/inversions and lap closure. Reconstructing every frame from world-up crossed with tangent fails at vertical directions.
+- Reuse `src/track/frames.js` for continuous parallel-transport frames through vertical tangents/inversions and lap closure. Reconstructing every frame from world-up crossed with tangent fails at vertical directions. The optional [geometry helpers](src/track/README.md) retain authored profiles and local clearance rules; no shared world preset is applied.
 - Track models expose unique/versioned identity, length, full width, ordered checkpoints, contiguous named sections, scenarios and bounds. Production and shape views share one route.
 - Fixed simulation is 120 Hz, capped at 0.1 s / 12 catch-up steps. Pause/visibility loss clears the accumulator. Render interpolates distance and quaternion; presentation never mutates simulation.
 - Bend assistance is 0.3. Persistent heading retains the unassisted yaw, while a separate steering response preserves manual turn-in. Pitch/roll adhere to the magnetic surface.
@@ -59,7 +59,7 @@ One owner releases each geometry, material, texture, listener, audio node and an
 
 `window.__VN` exposes readiness, snapshots/metrics, named scenarios, camera selection, start/pause/restart, replay and disposal for verification. Scenario placement is deterministic setup, not autopilot. Runtime metrics distinguish source geometry from drawn multipass totals.
 
-Targets per active level: ≤1,000 drawn calls, ≤2M drawn triangles, ≤512 MiB estimated GPU assets and ≤30 MB initial compressed transfer. Target 60 Hz on M1 Pro/Chrome at 1920×1080; estimates and hidden capture timings do not certify foreground performance. Load only selected-level assets. Test high/low, reduced motion, pause/reset/replay, resource disposal and relevant real input after runtime changes.
+Targets per active level: ≤1,000 drawn calls, ≤2M drawn triangles, ≤512 MiB estimated GPU assets and ≤30 MB initial compressed transfer. Target 60 Hz on M1 Pro/Chrome at 1920×1080; estimates and hidden capture timings do not certify foreground performance. Load only selected-level assets. The [common level checks](tools/level-checks/README.md) validate CPU track/module contracts and short hidden runtime behavior. Test high/low, reduced motion, pause/reset/replay, resource disposal and relevant real input after runtime changes.
 
 ## Nacre flight, water and moving scenery
 

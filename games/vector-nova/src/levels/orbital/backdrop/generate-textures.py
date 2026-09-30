@@ -9,7 +9,7 @@ import numpy as np
 from PIL import Image
 
 SIZE = (3072, 1536)
-OUT = Path(__file__).resolve().parents[3] / 'public/assets/orbital'
+OUT = Path(__file__).resolve().parents[4] / 'public/assets/orbital'
 OUT.mkdir(parents=True, exist_ok=True)
 
 

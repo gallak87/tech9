@@ -1,3 +1,4 @@
+import { transformedPartBounds } from '../../../environment/bounds.js';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
@@ -132,11 +133,7 @@ export function createParts() {
 }
 
 export function partBounds(parts, matrix) {
-  const transform = new THREE.Matrix4();
-  return parts.entries.map((entry) => {
-    transform.multiplyMatrices(matrix, entry.matrix);
-    return entry.geometry.boundingBox.clone().applyMatrix4(transform);
-  });
+  return transformedPartBounds(parts.entries, matrix);
 }
 
 export function compileSite(parts, materials, matrix, name) {

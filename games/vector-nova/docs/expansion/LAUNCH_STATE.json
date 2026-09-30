@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
   "updatedAt": "2026-09-29",
-  "phase": "initial_dispatch_started",
+  "phase": "level_chats_created",
   "handoffOnly": false,
-  "newChatsCreated": 2,
+  "newChatsCreated": 8,
   "launchAuthorizedAfterPrerequisites": true,
   "launchAllowedNow": true,
   "launchOwner": {
@@ -12,7 +12,7 @@
   },
   "readiness": {
     "state": "committed_foundation_verified",
-    "next": "Integrator coordination is starting; level-agent chats are being brought up separately and registered here."
+    "next": "All seven level chats are registered; the integrator owns ongoing shared support, servers and review coordination."
   },
   "reuseReview": {
     "state": "complete",
@@ -39,8 +39,13 @@
     "externalEvidenceAloneDoesNotJustifyRepeatedReviews": true
   },
   "gpu": {
-    "state": "idle_recheck_coordinator_before_capture",
-    "owner": null,
+    "state": "held",
+    "owner": {
+      "slug": "integrator",
+      "threadId": "01a0f0b6-803c-7291-ba3c-2bc16be6f713",
+      "purpose": "Shared runtime regression: Nacre, baseline and Halcyon opt-in; hidden short checks",
+      "boundedBatch": "One browser at a time; report each process closure before release"
+    },
     "queue": [],
     "existingCoordinatorState": "/Users/g/code/scratch/tech9/games/vector-nova/.experiments/gate4-server-owner/state.json",
     "lastKnownExistingOwner": null,
@@ -59,7 +64,7 @@
       "title": "Vesper Canopy",
       "suggestedChatTitle": "fzero-vesper1",
       "handoff": "docs/expansion/vesper/HANDOFF.md",
-      "state": "created",
+      "state": "building",
       "devPort": 5201,
       "previewPort": 5202,
       "portsVerifiedFree": true,
@@ -68,7 +73,11 @@
       "formalRounds": 0,
       "humanApproved": false,
       "threadId": "01a0f0b7-3956-7552-bca6-501a6ee3acd3",
-      "hostId": "local"
+      "hostId": "local",
+      "worktree": "/Users/g/.codex/worktrees/fzero-vesper1/tech9",
+      "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+      "runtimeRequest": "Mandatory crown jump, optional lateral branch bypass, sap drag 2.5\u20134 m/s\u00b2; queued shared extension.",
+      "sharedExtensionsApplied": []
     },
     {
       "map": 5,
@@ -76,14 +85,19 @@
       "title": "Glasswake Comet",
       "suggestedChatTitle": "fzero-glasswake1",
       "handoff": "docs/expansion/glasswake/HANDOFF.md",
-      "state": "not_started",
+      "state": "building",
       "devPort": 5203,
       "previewPort": 5204,
-      "portsVerifiedFree": false,
+      "portsVerifiedFree": true,
       "previewUrl": "http://127.0.0.1:5204/?level=glasswake",
       "serverStarted": false,
       "formalRounds": 0,
-      "humanApproved": false
+      "humanApproved": false,
+      "threadId": "01a0f0ba-16aa-7892-903e-d79afaf74baf",
+      "hostId": "local",
+      "worktree": "/Users/g/.codex/worktrees/fzero-glasswake1/tech9",
+      "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+      "sharedExtensionsApplied": []
     },
     {
       "map": 6,
@@ -91,14 +105,19 @@
       "title": "Cindercoil",
       "suggestedChatTitle": "fzero-cindercoil1",
       "handoff": "docs/expansion/cindercoil/HANDOFF.md",
-      "state": "not_started",
+      "state": "building",
       "devPort": 5205,
       "previewPort": 5206,
-      "portsVerifiedFree": false,
+      "portsVerifiedFree": true,
       "previewUrl": "http://127.0.0.1:5206/?level=cindercoil",
       "serverStarted": false,
       "formalRounds": 0,
-      "humanApproved": false
+      "humanApproved": false,
+      "threadId": "01a0f0ba-294d-7a13-9c93-8bb1c82dd36a",
+      "hostId": "local",
+      "worktree": "/Users/g/.codex/worktrees/fzero-cindercoil1/tech9",
+      "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+      "sharedExtensionsApplied": []
     },
     {
       "map": 7,
@@ -106,14 +125,19 @@
       "title": "Saffron Leviathan",
       "suggestedChatTitle": "fzero-saffron1",
       "handoff": "docs/expansion/saffron/HANDOFF.md",
-      "state": "not_started",
+      "state": "building",
       "devPort": 5207,
       "previewPort": 5208,
-      "portsVerifiedFree": false,
+      "portsVerifiedFree": true,
       "previewUrl": "http://127.0.0.1:5208/?level=saffron",
       "serverStarted": false,
       "formalRounds": 0,
-      "humanApproved": false
+      "humanApproved": false,
+      "threadId": "01a0f0ba-3ba3-7721-89b7-2767e2d93030",
+      "hostId": "local",
+      "worktree": "/Users/g/.codex/worktrees/fzero-saffron1/tech9",
+      "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+      "sharedExtensionsApplied": []
     },
     {
       "map": 8,
@@ -121,14 +145,19 @@
       "title": "Zephyr Basilica",
       "suggestedChatTitle": "fzero-zephyr1",
       "handoff": "docs/expansion/zephyr/HANDOFF.md",
-      "state": "not_started",
+      "state": "building",
       "devPort": 5209,
       "previewPort": 5210,
-      "portsVerifiedFree": false,
+      "portsVerifiedFree": true,
       "previewUrl": "http://127.0.0.1:5210/?level=zephyr",
       "serverStarted": false,
       "formalRounds": 0,
-      "humanApproved": false
+      "humanApproved": false,
+      "threadId": "01a0f0ba-5093-7dc0-b2cb-d41cc4e1ec01",
+      "hostId": "local",
+      "worktree": "/Users/g/.codex/worktrees/fzero-zephyr1/tech9",
+      "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+      "sharedExtensionsApplied": []
     },
     {
       "map": 9,
@@ -136,14 +165,19 @@
       "title": "Helion Flare",
       "suggestedChatTitle": "fzero-helion1",
       "handoff": "docs/expansion/helion/HANDOFF.md",
-      "state": "not_started",
+      "state": "building",
       "devPort": 5211,
       "previewPort": 5212,
-      "portsVerifiedFree": false,
+      "portsVerifiedFree": true,
       "previewUrl": "http://127.0.0.1:5212/?level=helion",
       "serverStarted": false,
       "formalRounds": 0,
-      "humanApproved": false
+      "humanApproved": false,
+      "threadId": "01a0f0ba-604a-76b2-9524-2975888727fd",
+      "hostId": "local",
+      "worktree": "/Users/g/.codex/worktrees/fzero-helion1/tech9",
+      "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+      "sharedExtensionsApplied": []
     },
     {
       "map": 10,
@@ -151,21 +185,39 @@
       "title": "Umbra Fold",
       "suggestedChatTitle": "fzero-umbra1",
       "handoff": "docs/expansion/umbra/HANDOFF.md",
-      "state": "not_started",
+      "state": "building",
       "devPort": 5213,
       "previewPort": 5214,
-      "portsVerifiedFree": false,
+      "portsVerifiedFree": true,
       "previewUrl": "http://127.0.0.1:5214/?level=umbra",
       "serverStarted": false,
       "formalRounds": 0,
-      "humanApproved": false
+      "humanApproved": false,
+      "threadId": "01a0f0ba-75e9-7652-9bbd-85a3673e7968",
+      "hostId": "local",
+      "worktree": "/Users/g/.codex/worktrees/fzero-umbra1/tech9",
+      "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
+      "sharedExtensionsApplied": []
     }
   ],
   "integration": {
     "worktree": "/Users/g/.codex/worktrees/vector-nova-expansion-integration/tech9",
-    "state": "bootstrap_build",
+    "state": "shared_runtime_browser_regression",
     "foundation": "66b6400617942a63a157c44c6b651bb627f47f7a",
     "sharedExtensions": [],
-    "humanApproved": false
+    "humanApproved": false,
+    "initialBuild": "passed with Node 22.15.0; isolated dependencies installed",
+    "plannedExtension": "Reusable swept flight/landing preserving Nacre rules; optional branch selection; per-call grip/drag/force response. Lanes own zones, heat state, event timing and presentation.",
+    "cpuRegression": "246 tests; full lint/format and production build pass",
+    "previewPort": 5216,
+    "previewUrl": "http://127.0.0.1:5216/",
+    "waitCursors": {
+      "vesper": "1e3fd4b7-f532-45bc-a947-35eed220d30b:2",
+      "glasswake": "562c25d3-21b2-45c2-8958-9e854d2a48ca:1",
+      "cindercoil": "8773c089-9eae-4f49-a5cd-7d79d6161d87:1",
+      "saffron": "4dbe108d-86ef-483a-8dc4-2aa987df67cb:1",
+      "zephyr": "95ec0429-8eb1-41c6-bbef-5ea6f180142d:1",
+      "helion": "7994abf0-ada4-4ffc-874e-aeaf34e21778:1"
+    }
   }
 }

@@ -1213,3 +1213,16 @@ select {
     padding: 6px 8px;
   }
 }
+
+/* Expansion review controls occupy their own desktop band above the map. */
+@media (min-width: 761px) and (min-height: 701px) {
+  #interface.compact-landscape.driving .section-name {
+    align-self: flex-start;
+  }
+  #interface.compact-landscape.driving #shape-controls {
+    top: 182px;
+  }
+  #interface.compact-landscape.driving #minimap {
+    top: 432px;
+  }
+}

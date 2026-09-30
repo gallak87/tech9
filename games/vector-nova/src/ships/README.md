@@ -4,8 +4,8 @@ The human-approved jet-like redesign replaces the broad procedural hull with an
 original Blender-authored model. Source and reproducible exporter are in
 `assets/ships/kestrel/`; the runtime loads
 `public/assets/ships/kestrel/kestrel.glb`. The approved concept is a design
-reference, never a runtime billboard or substitute for geometry. Independent
-review findings are in `docs/kestrel/CRITIQUE.md`.
+reference, never a runtime billboard or substitute for geometry. Completed
+review history is retained in Git (approved integration: `1dfff691`).
 
 `await createShip({plumeExposure})` returns `{group, update, dispose}`. Loading
 finishes before the core measures inspection bounds, bakes reflections or warms

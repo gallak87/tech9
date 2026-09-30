@@ -1,15 +1,25 @@
-# VECTOR//NOVA ownership and phase rules
+# VECTOR//NOVA
 
-Standalone app: do not import the repository frameworks or modify reference games. Read ARCHITECTURE.md, docs/ART_BIBLE.md, ROADMAP.md and docs/STATUS.json before edits. Gates 1, 2 and 3 are explicitly human-approved. Preserve Halcyon and the finished Asterion Orbital circuit, including its smooth panels, U frames, neon gaps, moon and stellar sky. The industrial energy-complex requirement was removed by the user from prompt-fzero.txt. Historical Gate 2 and Gate 3 gauntlets remain closed at four and six rounds respectively; human approval does not rewrite their scores or certify unavailable hardware/audio checks.
+Standalone Three.js/Vite game. Work inside this app; do not import repository frameworks or modify reference games.
 
-The next authorized implementation is split into two separate sessions: Gate 4.1 builds level 3, Nacre Tempest, an alien ocean/storm circuit with genuine submerged road and harder, real airborne long jumps; Gate 4.2 builds immediate drive-over speed boosts and shield pickups ONLY on Halcyon. Read docs/GATE4_HANDOFF.md and the assigned lane's docs/gate4-1/HANDOFF.md or docs/gate4-2/HANDOFF.md. This checkpoint prepares those sessions; it does not claim either feature implemented. Stored inventory/manual item activation, weapons, AI, additional ships and broader race/menu/progression systems remain deferred.
+## Read only what the task needs
 
-Use separate managed worktrees/branches from the same approved Gate 3 handoff commit. Do not run the two sessions in one mutable checkout. The brief specifies a small common runtime preflight owned by Gate 4.1; Gate 4.2 consumes that exact contract before integrated browser work. No cloned runtime, custom launcher or overlapping core edits. During preflight, Gate 4.1 owns its declared shared files and the initial no-op feature stub; afterward Gate 4.2 exclusively owns physics and pickups/halcyon. Per-lane status, critique, provenance and performance files prevent competing edits to shared documentation. Each session may delegate narrow builders with exclusive folders and one integrator; critics write no implementation. Never edit another lane's files to work around a missing contract.
+Start with this file and [current status](docs/STATUS.json).
 
-The two Gate 4 gauntlets each stop at the first verified pass or EIGHT completed formal rounds. Count the initial critique as round 1. All applicable categories still require at least 9/10 plus no critical functional/performance failure; averages cannot hide a weak category. Do not reset/split/rename counters to gain attempts. Keep unavailable evidence explicitly unverified. Full goal-setting, production and independent brutal critique are requested for both lanes. Level 3 first presents bare shape, water crossings and an actual jump/failed-landing demonstration for early human approval; do not bury that gate behind finished art. Level 3 has exactly two long jumps. Automatic missed-jump recovery retains a valid lap; its delay, counted in lap time, is the penalty. Both lanes end with their own mandatory human playtest. A critic never supplies human approval.
+- Runtime/geometry changes: relevant sections of [ARCHITECTURE.md](ARCHITECTURE.md).
+- Visual work: [art direction](docs/ART_BIBLE.md).
+- Planning: [ROADMAP.md](ROADMAP.md).
+- Assigned level/integration work: that task's current handoff only. Do not preload all level briefs, status files or old transcripts.
 
-ESLint/Prettier/Husky follow Echo's workflow. Run meaningful targeted checks, full npm run lint, a production build and relevant real-input production-browser checks before handoff. Husky formats/fixes/re-stages app staged files. Do not add custom installation/routing wrappers. Commit only when requested; the present user request authorizes committing Gate 3, these handoff changes and the existing prompt edit together. Follow-up implementation commits require their session's authorization.
+## Working rules
 
-Local review browsers remain hidden/headless. Do not open external reference videos or unsolicited visible windows; do not create or play new videos. Use sequential stills and short real-input motion checks, plus fast numerical route/physics checks. Skip normal-speed automated full-lap replays unless newly requested. The parent Gate 3 session owns the running servers. The user will supply the other session names/links there; coordinate isolated checkout/port/build assignments through that owner. Do not start/stop/repoint another lane's server. Keep the approved servers alive for review. Headless capture timings do not certify foreground performance; listening and physical devices remain unverified unless actually checked.
+- Preserve approved levels, shared controls and 0.3 steering assistance unless the user requests a change.
+- Use isolated worktrees for parallel implementation, exclusive file ownership and one integrator for shared code. Preserve other agents' edits and servers.
+- The Nacre merge and seven-map launch remain separate pending steps; follow their current handoffs. Finished critic loops stay closed.
+- Run checks appropriate to the change: targeted tests, lint/build for code; formatting and links for docs. Existing ESLint/Prettier/Husky package scripts own tooling.
+- Browsers stay hidden/headless. No unsolicited videos or normal-speed automated full laps. Coordinate GPU use and servers with their owner; report only actually verified results.
+- Commit when requested. Human approval cannot be supplied by an agent.
 
-Transient captures/raw critic reports belong in git-ignored .experiments/. Keep concise durable findings, counters and provenance in the lane's tracked docs. No accumulating screenshot/video deliverables; prioritize a playable URL and honest outcome. Human art feedback is valuable early: distinguish the entire world AND the raceway through surfaces, barrier silhouettes, foreground engineering, sky/water and route rhythm, not one attractive landmark or a palette swap.
+## Keep documentation small
+
+STATUS.json is a current snapshot, not an event log. Put lasting technical decisions in architecture/source docs, visual direction in the art bible, and future work in the roadmap. Handoffs hold only active execution context. After merge, remove completed handoffs/review histories; Git retains them. Keep asset provenance and licences. Raw captures/reports belong in ignored .experiments/. Do not create separate status, implementation, performance and integration reports that repeat each other.

@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 2,
+  "updatedAt": "2026-09-29",
+  "phase": "awaiting_final_nacre_revision_then_foundation",
+  "handoffOnly": false,
+  "newChatsCreated": 0,
+  "launchAuthorizedAfterPrerequisites": true,
+  "launchAllowedNow": false,
+  "launchOwner": {
+    "threadId": null,
+    "hostId": null
+  },
+  "readiness": {
+    "state": "final_nacre_tweak_pending",
+    "sourceWorktree": "/Users/g/.codex/worktrees/gate4-1-nacre-tempest/tech9",
+    "sourceThreadId": "01a0ebc7-32f4-79d1-b223-ebbf88104f31",
+    "finalRevision": null,
+    "userCompletionSignalReceived": false
+  },
+  "reuseReview": {
+    "state": "preliminary_complete_final_review_pending",
+    "findingsDocument": "games/vector-nova/ROADMAP.md",
+    "source": "Nacre working tree; final revision not pinned"
+  },
+  "foundation": {
+    "state": "track_checks_prepared_loader_not_implemented",
+    "provisionalBase": "1dfff69100b6d4df2e82253c5f3754aba3367c3b",
+    "selectedBase": null,
+    "preparationWorktree": "/Users/g/.codex/worktrees/level-expansion/tech9",
+    "uncommittedPreparedFiles": [
+      "games/vector-nova/tools/expansion-track-contract.test.mjs",
+      "games/vector-nova/tools/level-checks/track-contract.mjs",
+      "games/vector-nova/tools/level-checks/README.md"
+    ],
+    "toolingChecks": "134 tests, lint/build, read-only Nacre track check passed",
+    "verified": false
+  },
+  "documentsToCopy": [
+    "games/vector-nova/AGENTS.md",
+    "games/vector-nova/ARCHITECTURE.md",
+    "games/vector-nova/README.md",
+    "games/vector-nova/ROADMAP.md",
+    "games/vector-nova/docs/**",
+    "games/vector-nova/src/ships/README.md"
+  ],
+  "reviewPolicy": {
+    "earlyHumanStopDuringLevelProduction": false,
+    "finalHumanApprovalRequired": true,
+    "maximumFormalRoundsPerLane": 8,
+    "initialCritiqueCountsAsRoundOne": true,
+    "resetCounters": false,
+    "externalEvidenceAloneDoesNotJustifyRepeatedReviews": true
+  },
+  "gpu": {
+    "state": "must_reconcile_existing_gate4_owner_before_any_capture",
+    "owner": null,
+    "queue": [],
+    "existingCoordinatorState": "/Users/g/code/scratch/tech9/games/vector-nova/.experiments/gate4-server-owner/state.json",
+    "lastKnownExistingOwner": "4.1",
+    "concurrentCaptureLimit": 1
+  },
+  "existingPortsToPreserve": [5179, 5180, 5191, 5192, 5193, 5194, 5195, 5196],
+  "oldAutomation": {
+    "id": "vector-nova-overnight-coordination",
+    "status": "PAUSED",
+    "resumeUnchanged": false
+  },
+  "lanes": [
+    {
+      "map": 4,
+      "slug": "vesper",
+      "title": "Vesper Canopy",
+      "suggestedChatTitle": "fzero-m4-vesper",
+      "handoff": "docs/expansion/vesper/HANDOFF.md",
+      "state": "not_started_launch_on_hold",
+      "devPort": 5201,
+      "previewPort": 5202,
+      "portsVerifiedFree": false,
+      "previewUrl": "http://127.0.0.1:5202/?level=vesper",
+      "serverStarted": false,
+      "formalRounds": 0,
+      "humanApproved": false
+    },
+    {
+      "map": 5,
+      "slug": "glasswake",
+      "title": "Glasswake Comet",
+      "suggestedChatTitle": "fzero-m5-glasswake",
+      "handoff": "docs/expansion/glasswake/HANDOFF.md",
+      "state": "not_started_launch_on_hold",
+      "devPort": 5203,
+      "previewPort": 5204,
+      "portsVerifiedFree": false,
+      "previewUrl": "http://127.0.0.1:5204/?level=glasswake",
+      "serverStarted": false,
+      "formalRounds": 0,
+      "humanApproved": false
+    },
+    {
+      "map": 6,
+      "slug": "cindercoil",
+      "title": "Cindercoil",
+      "suggestedChatTitle": "fzero-m6-cindercoil",
+      "handoff": "docs/expansion/cindercoil/HANDOFF.md",
+      "state": "not_started_launch_on_hold",
+      "devPort": 5205,
+      "previewPort": 5206,
+      "portsVerifiedFree": false,
+      "previewUrl": "http://127.0.0.1:5206/?level=cindercoil",
+      "serverStarted": false,
+      "formalRounds": 0,
+      "humanApproved": false
+    },
+    {
+      "map": 7,
+      "slug": "saffron",
+      "title": "Saffron Leviathan",
+      "suggestedChatTitle": "fzero-m7-saffron",
+      "handoff": "docs/expansion/saffron/HANDOFF.md",
+      "state": "not_started_launch_on_hold",
+      "devPort": 5207,
+      "previewPort": 5208,
+      "portsVerifiedFree": false,
+      "previewUrl": "http://127.0.0.1:5208/?level=saffron",
+      "serverStarted": false,
+      "formalRounds": 0,
+      "humanApproved": false
+    },
+    {
+      "map": 8,
+      "slug": "zephyr",
+      "title": "Zephyr Basilica",
+      "suggestedChatTitle": "fzero-m8-zephyr",
+      "handoff": "docs/expansion/zephyr/HANDOFF.md",
+      "state": "not_started_launch_on_hold",
+      "devPort": 5209,
+      "previewPort": 5210,
+      "portsVerifiedFree": false,
+      "previewUrl": "http://127.0.0.1:5210/?level=zephyr",
+      "serverStarted": false,
+      "formalRounds": 0,
+      "humanApproved": false
+    },
+    {
+      "map": 9,
+      "slug": "helion",
+      "title": "Helion Flare",
+      "suggestedChatTitle": "fzero-m9-helion",
+      "handoff": "docs/expansion/helion/HANDOFF.md",
+      "state": "not_started_launch_on_hold",
+      "devPort": 5211,
+      "previewPort": 5212,
+      "portsVerifiedFree": false,
+      "previewUrl": "http://127.0.0.1:5212/?level=helion",
+      "serverStarted": false,
+      "formalRounds": 0,
+      "humanApproved": false
+    },
+    {
+      "map": 10,
+      "slug": "umbra",
+      "title": "Umbra Fold",
+      "suggestedChatTitle": "fzero-m10-umbra",
+      "handoff": "docs/expansion/umbra/HANDOFF.md",
+      "state": "not_started_launch_on_hold",
+      "devPort": 5213,
+      "previewPort": 5214,
+      "portsVerifiedFree": false,
+      "previewUrl": "http://127.0.0.1:5214/?level=umbra",
+      "serverStarted": false,
+      "formalRounds": 0,
+      "humanApproved": false
+    }
+  ]
+}

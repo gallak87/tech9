@@ -1,6 +1,6 @@
-# Gate 4 frozen session runtime contract (preflight v1)
+# Session runtime adapter contract
 
-Base: `13bba6ac`. Gate 4.1 owns this preflight; Gate 4.2 owns `src/physics/**` and `src/pickups/halcyon/**` after explicit patch transfer. No future Nacre import is part of preflight. Baseline default physics stays version 3 with steering assistance 0.3.
+The shared adapter shipped with the approved Halcyon pickups in `a0069329`. Baseline physics remains version 3 with steering assistance 0.3. Nacre-specific flight/race wiring is pending integration; consult its current merge brief.
 
 Factory `createHalcyonRuntime({track, scene, ship, host, settings, emit})` is dynamically imported only when `track.id === "halcyon-viaduct-4-compact"` and the exact query `features=halcyon-pickups`. Other tracks ignore the opt-in. The ordinary baseline factory is `createMagneticRuntime`.
 
@@ -19,10 +19,10 @@ Core tick order: save previous vehicle state; log input; `advanceSession` calls 
 
 Replay header includes application version, track ID, physics version, runtime `{id,version,rulesId}`, seed, scenario and tick inputs. Mismatch is rejected. Replay resets to deterministic scenario and re-runs the same advance path. Existing manual R recovery invalidates lap and disables clean input-only replay; automatic Nacre recovery does not set that manual reset counter. Race history includes rulesId; no persistence or additional time-trial feature is introduced.
 
-Nacre-specific extension (owned by 4.1): its adapter holds distance at the exact unwrapped takeoff through flight/recovery, then emits `jump-transfer` with `{id,from,to,outcome:"landed"|"recovered"}`. Core race checks this against only that jump's authored takeoff, landing and apron interval before crediting ordered checkpoints. Recovery delay is included in normal dt, no surcharge, no invalidation. This does not affect Halcyon adapters.
+Pending Nacre-specific extension: its adapter holds distance at the exact unwrapped takeoff through flight/recovery, then emits `jump-transfer` with `{id,from,to,outcome:"landed"|"recovered"}`. Core race checks this against only that jump's authored takeoff, landing and apron interval before crediting ordered checkpoints. Recovery delay is included in normal dt, no surcharge, no invalidation. This does not affect Halcyon adapters.
 
-Preflight tests: exact no-op state/events vs direct physics, feature guard, shared live/replay tick determinism and rules compatibility. Later lane tests own real feature outcomes.
+Tests cover baseline state/event equivalence, feature guards, shared live/replay determinism and rules compatibility; each feature owns its outcome tests.
 
-## Reviewed preflight supplement
+## Replay initialization
 
-Replay also carries `initial:{vehicle,runtime}` captured after deterministic fresh/scenario reset. Playback validates all values are finite and initial state exactly matches the versioned scenario's deterministic reset state, then restores the vehicle and calls adapter `restore`. Tampered or stale initial state is rejected. The restore hook is exercised by normal replay, not an unused promise. Owned presentation `update` is invoked in inspection as well as every other mode, with zero dt outside racing, so owned craft fields/audio can hide or stop correctly. The initial stub-specific test is retired at ownership transfer; default magnetic equivalence remains tested and Gate 4.2 owns its actual adapter tests.
+Replay also carries `initial:{vehicle,runtime}` captured after deterministic fresh/scenario reset. Playback validates all values are finite and initial state exactly matches the versioned scenario's deterministic reset state, then restores the vehicle and calls adapter `restore`. Tampered or stale initial state is rejected. The restore hook is exercised by normal replay, not an unused promise. Owned presentation `update` is invoked in inspection as well as every other mode, with zero dt outside racing, so owned craft fields/audio can hide or stop correctly.

@@ -1,80 +1,59 @@
-# VECTOR//NOVA — architecture
+# VECTOR//NOVA architecture
 
-## Milestone and stack
+## Stack and module boundaries
 
-Gates 1, 2 and 3 are approved. The next scoped work is level 3 (Nacre Tempest: ocean/storm and real jumps) in Gate 4.1, and Halcyon-only immediate boosts/shields in Gate 4.2. These features are planned, not yet implemented; the industrial energy-complex requirement has been removed. See ROADMAP.md. Standalone Vite + Three.js ES modules; no framework imports, symlinks, launchers or registries. WebGL2 baseline, no WebGPU requirement. PBR, ACES exposure, sRGB output, instancing and real geometry. Chosen for browser reach and fast physically coherent iteration. Official renderer/color guidance: https://threejs.org/docs/pages/WebGLRenderer.html and https://threejs.org/manual/pages/color-management.html.
+Standalone Vite + Three.js ES modules, WebGL2, PBR/ACES and sRGB output. No repository framework, alternate launcher or cloned runtime. See [status](docs/STATUS.json) for what is merged and [roadmap](ROADMAP.md) for planned work.
 
-## Ownership and APIs (before parallel feature work)
+| Module                 | Responsibility                                                                  |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| core                   | Boot/readiness, fixed-step session, replay, mode changes and teardown           |
+| track                  | Renderer-independent route/frame model; shape and production road geometry      |
+| environment / renderer | World content; sky, light, reflections, postprocessing and resource metrics     |
+| ships / camera         | Async Kestrel asset and local presentation; road-frame chase/inspection cameras |
+| physics / race         | Vehicle motion and rail response; checkpoint/lap validation                     |
+| input / ui             | Normalized controls, focus/visibility cleanup, menus/HUD/settings               |
+| audio / effects        | Event-driven presentation; failure must not stop simulation                     |
+| pickups/halcyon        | Explicit opt-in adapter, deterministic devices and owned presentation           |
 
-Integrator owns package/config/docs and cross-module integration. Each delegated builder exclusively owns its assigned folder and requests core changes. The original subsystem overview below describes existing APIs; [Gate 4 ownership](docs/GATE4_HANDOFF.md) supersedes its broad folder ownership for the next two sessions.
+Shared changes have one integrator; level builders own their assigned files. The generic expansion loader is not implemented yet. Its [contract requirements](docs/EXPANSION_LEVEL_CONTRACT.md) are provisional.
 
-- `src/core`: integrator; runtime, clocks, shared contract, fixed-step orchestration, readiness/errors, seeded RNG and teardown.
-- `src/track`: track builder; `createTrack()` -> `{length,width,sample(s), checkpoints, sections}`; `buildTrackVisual(track)` -> THREE.Group. `sample(s)` uses wrapping arc-length metres and returns `{position,tangent,right,up,quaternion,curvature,bank}`. Vectors are THREE.Vector3, quaternion maps local X/Y/Z to right/up/tangent. Positive curvature bends toward geometric right (driver-left). Geometry shares exactly the same frame. Width is full road width. Track origin near starting grid, +Z tangent preferred. Gate 2 pacing revision targets an approximately 5 km circuit, width 28 m, with distributed introductory features. Smooth closed centreline, continuous bank/elevation, short roof, underside/barriers/supports. Model independent of renderer.
-- `src/ships`: ship builder; `createShip()` -> `{group,update({speed,boost,steer,time,energy}),dispose()}`. Original craft, local +Z nose/+Y up, centred at hover hardware, length about 7 m, width 4.5 m. Core applies world pose; update animates children only. No external assets.
-- `tools`: verification builder; Playwright harness starts app if needed, waits for `window.__VN.ready`, drives actual keyboard, captures PNG sequences + JSON. No video recording or visible browser windows. Own scripts/scenarios only; request runtime changes.
-- `src/renderer`: renderer, lights/reflection, colour management, resize/dispose, graphics and metrics.
-- `src/environment`: city architecture, distance layers, seeded variation, instancing, landmark.
-- `src/physics`: `createVehicleState`, `stepVehicle(state,input,track,dt,{steeringAssist}?)`; track-space kinematics with heading, lateral velocity, speed, energy. No meshes in state.
-- `src/input`: keyboard/gamepad/touch normalized `{throttle,brake,steer,airbrake,boost}`, command callbacks, clear on blur/hidden, listener cleanup.
-- `src/camera`: anticipatory chase, damped local up, inspection preset, conservative road clearance.
-- `src/race`: eight track-provided ordered checkpoints, lap validation and reset invalidation. Repeatable practice laps for staging.
-- `src/effects`, `src/audio`: subordinate state/event presentation; WebAudio engine/hover/wind/boost and contact feedback; failure cannot stop simulation.
-- `src/ui`: title/briefing, inspection, HUD, pause/restart, working settings, touch. Semantic buttons/focus, no dead controls.
-- `src/progression`: guarded settings/best storage. Replay compatibility after approval.
-- `src/content`: declarative staging metadata.
-- `src/ai`: reserved and deferred. `src/pickups/halcyon`: authorized for Gate 4.2, not yet implemented.
+## Route, coordinates and handling
 
-## Runtime contracts
+- Metres/seconds/radians. World +Y up; ship local +Z forward, +Y up.
+- `sample(distance)` wraps arc-length metres and returns `{position, tangent, right, up, quaternion, curvature, bank}`, optionally `roll`. Road, ship, camera and physics consume the same frame.
+- The legacy `frame.right` is geometric +X, which appears driver-left when facing +Z. Positive input steer means driver-right: negative geometric heading/lateral displacement. Do not reverse this when adding levels.
+- Reuse `src/track/frames.js` for continuous parallel-transport frames through vertical tangents/inversions and lap closure. Reconstructing every frame from world-up crossed with tangent fails at vertical directions.
+- Track models expose unique/versioned identity, length, full width, ordered checkpoints, contiguous named sections, scenarios and bounds. Production and shape views share one route.
+- Fixed simulation is 120 Hz, capped at 0.1 s / 12 catch-up steps. Pause/visibility loss clears the accumulator. Render interpolates distance and quaternion; presentation never mutates simulation.
+- Bend assistance is 0.3. Persistent heading retains the unassisted yaw, while a separate steering response preserves manual turn-in. Pitch/roll adhere to the magnetic surface.
+- Gravity projects through tangent/right axes; explicit parking hold prevents slope/bank creep. Yaw-aware swept rail bounds resolve collision, reserve loss and lateral response. Manual recovery clears heading and invalidates the lap.
 
-Metres/seconds/radians; world +Y up. Ship local +Z forward/+Y up. The legacy `frame.right` API names geometric +X, which appears on the driver’s left when facing +Z; driver-right is `-frame.right`. Input steer +1 always means driver-right and therefore produces negative geometric heading/lateral displacement. Upright right=worldUp×tangent, up=tangent×right; bank rotates about tangent. Sampled parallel transport with bounded horizon guidance and distributed seam correction supports vertical tangents and the authored 360° roll. Ship, track geometry, physics and camera consume the same continuous frame. All consumers share sample(s), wrapping at length with finite difference across seam. Arc lookup avoids parameter-speed variation. Fixed 120 Hz simulation; cap elapsed at .1 s / 12 catch-up steps; clear accumulator on pause or visibility loss. Render interpolates previous/current unwrapped distance and shortest rotation.
+Halcyon uses a 5 km route with distributed rise/descent, full roll/inverted hold and plunge. Asterion uses 4.5 km with a wall ride, raised crossing and steep dive. Authored dimensions and section data belong in their models, not duplicated documentation tables.
 
-Vehicle state `{distance,lateral,speed,lateralSpeed,heading,steeringHeading,energy,time,boosting,impact,resetCount}`. Track sample wraps distance. Automatic bend assistance is 0.3 following user feedback. The unassisted portion of actual road yaw is removed from persistent vehicle heading, while a separate steering response preserves fast input and manual yaw control. Magnetic pitch and roll adhesion still follows the road. Recovery clears both heading terms. Curvature applies a bounded lateral load; grip drives lateral velocity, airbrake adds rotation/slip, brake lowers speed, boost spends energy. Sweep old/new lateral body limits each step; impact removes speed/energy and reflects lateral motion with cooldown. Magnetic adhesion constrains staging to surface: not free flight. Reset recentres at last checkpoint and invalidates lap. Ordered forward checkpoint crossings; seam only counts after all checkpoints. General production swept hull/triangles and arbitrary gravity remain deferred. Gate 4.1 now authorizes level-specific swept landing checks and real jumps; they are not implemented in this checkpoint.
+## Session, devices and replay
 
-Events `{type,tick,time,payload}`: `impact:{severity,side}`, `boost:{active}`, `checkpoint:{index,lapTime}`, `lap:{duration,valid}`, `recover:{penalty}`, `pause:{active}`. Presentation never mutates simulation. Seeded RNG, separate decoration seed. Tick input log with build/track/physics version+seed; production ghosts must reject mismatches.
+`src/core/session-runtime.js` provides the ordinary magnetic adapter and one `advanceSession` path shared by live input and replay. The [session adapter contract](docs/GATE4_RUNTIME_CONTRACT.md) defines hooks and event order. Preserve identity `{id, version, rulesId}`; replay also checks app/track/physics versions, seed and deterministic initial state. Reject incompatible or incomplete logs.
 
-## Verification API
+Halcyon devices load only for exact track identity plus `features=halcyon-pickups`. Baseline and feature records remain separate; other levels do not import that feature.
 
-`window.__VN={ready,version,loadScenario(name,seed),setCamera('chase'|'inspection'|'vista'),getSnapshot(),getMetrics(),getInputLog(),start(),pause(),restart()}` after shader warmup. Scenarios: staging, fast-corner, bank, impact, inspection. Scenario selection sets deterministic initial state, never autopilots. Snapshot includes mode/scenario/seed/settings/vehicle/lap/checkpoint/errors. Metrics: frame p50/p95/p99, long frames >33.3ms, calls/triangles/geometries/textures, browser/GPU. Real control motion verification. Remaining scenarios only with their features.
+Device ticks expire timers and apply brake cancellation before physics, consume shields on qualifying impacts, then sweep new forward crossings. A shield collected later in a tick cannot protect an earlier impact. Effects do not stack; manual recovery clears effects while retaining the consumed-device ledger. Reverse/parking/reset farming must not rearm devices. Shields protect reserve loss, not collision separation or speed consequences. Layout/tuning/rules IDs live in `src/pickups/halcyon/`.
 
-## Lifecycle, failures, budgets
+Nacre's pending adapter adds true flight and swept landings. Automatic missed-jump recovery counts its delay as elapsed time and retains a valid lap; manual recovery still invalidates it. Keep that specialized behavior out of the ordinary magnetic adapter and the seven new continuous-surface maps.
 
-One owner disposes geometries/materials/textures/audio/listeners/RAF. Immutable track/scenery; dispose via builder or root traversal. Essential WebGL/build errors replace loader with readable reload feedback. Audio/storage failure goes to diagnostics without breaking practice. Context loss pauses with reload. Pause/blur releases inputs and freezes race time.
-Target (unverified): Apple M1 Pro integrated GPU, Chrome, 1920×1080, 60 Hz / 16.7 ms. Report actual host and percentiles. High budgets ≤1,000 calls, ≤2M triangles, estimated GPU assets ≤512MiB, initial compressed ≤30MB. DPR cap 1.25 desktop/1 mobile, scalable shadows/resolution. Restrained bloom and contact AO on high; no motion blur. GPU-byte counts explicitly estimates. Later circuits streamed after approval. Physical mobile/gamepad marked unverified if unavailable.
+## Ship and rendering
 
-## Implemented first-level geometry
+`await createShip(options)` returns `{group, update, dispose}`. Load the GLB before measuring inspection bounds, baking reflections or warming shaders. Core owns world pose; update animates only local presentation. Source/exporter/provenance: `assets/ships/kestrel/`; runtime asset: `public/assets/ships/kestrel/kestrel.glb`. See [ship API](src/ships/README.md).
 
-Halcyon is now 5,000 m with eight ordered checkpoints and eleven contiguous districts. The introductory rise/bank begins near 110 m; the 44° crown and early descent lead into a skyline climb, full 360° roll at 1,760–2,880 m with a 145 m inverted hold, a banked upper connector, a 66° plunge at 3,400–4,180 m and an undulating canal return. Elevation ranges approximately −11.4..525.7 m with ground at −78 m. The centreline was reauthored to remove long inactive stretches and retain a minimum 3D radius near 105 m, rather than uniformly shrinking the previous 7.2 km route. Named feature and structural zones drive scenery and support placement. Environment clearance includes both the oriented road envelope and accepted support footprints.
+High uses single-sample HDR, GTAO, restrained bloom, OutputPass and SMAA. Multisampled HDR plus GTAO caused an ANGLE Metal opaque-region fault; retain the working pipeline. Low omits postprocessing. DPR caps are 1.25 desktop / 1 mobile.
 
-Replay instrumentation includes getReplay/playReplay with version/track/physics compatibility checks; reset-containing sessions must restart before capture. Source geometry counts are distinct from actually drawn renderer totals. Runtime observations are recorded in docs/PERFORMANCE.md after verification.
+Sky PMREM and a static scene probe approximate reflections; these are not realtime reflections. Renderer-owned reflection textures are borrowed by ship/environment materials and must not be disposed by borrowers. Road coverage masks the analytic contact footprint over real apertures.
 
-## Gate 2 renderer and physics
+Camera damping follows transport through the road frame, with quaternion rotation and local road clearance to handle inverted decks and steep crests. Inspection fits the loaded ship's bounds to the available UI region. Pooled road lights use continuous fades; thin road details must follow the tessellated surface to avoid flicker.
 
-Physics schema version 3 projects gravity through tangent/right axes, uses explicit stationary magnetic parking hold and yaw-aware swept rail bounds, reduces automatic road-yaw assistance to 0.3 and smoothly releases boost. Replay compatibility rejects earlier versions. Renderer uses original generated cloud-only sky panorama plus analytic solar radiance and its PMREM reflection, warm low key/cool fill, practical track fixtures, restrained GTAO contact occlusion and high-threshold bloom. Renderer owns postprocess resources; low preset omits postprocessing. A single-sample HDR target plus SMAA avoids an observed ANGLE Metal multisample/AO compositing fault. A static city radiance probe generated from the actual scene supplies architectural reflections for the craft, while the world uses the sky probe; this is an approximation, not realtime reflection. An analytic ambient footprint follows sampled road vertices beneath the chassis to supplement sun shadows in city shade; it is a local approximation, not another shadow-casting light. Chase-camera damping acts after transporting both position and orientation through the road frame; quaternion damping avoids an antipodal up-vector collapse and road-local clearance protects steep crests and inverted decks. Track exports optional `userData.update(distance)` for reused practical lights; environment may export `userData.update(cameraPosition,time)` for local visibility. All transient review captures are git-ignored .experiments. No new game systems are authorized during Gate 2.
+## Lifecycle and verification
 
-## Orbital bare-track review
+One owner releases each geometry, material, texture, listener, audio node and animation callback. Await owned assets and shader warmup before setting ready. Dispose must be idempotent; failed boot should show a useful reload error. Audio/storage failure stays recoverable, and context loss pauses.
 
-`?level=orbital&review=shape` preserves the early bare checkpoint, dynamically loading `src/track/level2/index.js` through the shared track API. The plain URL retains Halcyon. This shape-review mode uses the same physics, ship, camera, race and input modules, with neutral lighting and a bare planet instead of production scenery. The review camera fits the actual route for static 3D/top/profile views; section jumps are untimed, parked diagnostic starts. No autopilot or new racing systems are introduced. The early human gate was approved before full orbital art and the formal critic loop.
+`window.__VN` exposes readiness, snapshots/metrics, named scenarios, camera selection, start/pause/restart, replay and disposal for verification. Scenario placement is deterministic setup, not autopilot. Runtime metrics distinguish source geometry from drawn multipass totals.
 
-## Orbital production integration
-
-The default `?level=orbital` builds the approved model with `buildOrbitalTrack(track)` and `createOrbitalEnvironment(track)`. The renderer dynamically creates the planet backdrop and consumes its lighting metadata, far distance and texture ownership. AO excludes distant planet/stars; the planet remains fixed in world space, unlike Halcyon's camera-centred sky sphere. `?level=orbital&review=shape` preserves the bare geometry checkpoint. Each orbital builder owns one folder and lifecycle; root owns integration. One Gate 3 critic counter covers all relevant modules, avoiding multiple reset gauntlets.
-
-Orbital environment materials borrow the existing scene-reflection texture via `userData.setReflection(texture)`; renderer ownership is retained and the environment never disposes it. The orbital-only propulsion option uses an analytic emission volume; the default Halcyon craft remains unchanged. Orbital contact particles originate at the actual rail edge. Regional generated terrain and cloud-density maps remain separate material channels on the real sphere, with live shading/atmosphere.
-
-Portrait ship inspection reserves a stage between its heading and specifications/actions. The inspection camera fits the rotating hull’s horizontal/vertical/depth envelope into that DOM-measured region, recomputing on entry or viewport change. This keeps narrow displays clear while the normal driving camera remains governed by the existing road-frame rig.
-
-The human-directed orbital road revision alternates solid blue-silver cassette deck with three open magnetic lattice spans. Apertures are clipped out of the original running-surface triangles, and the corresponding shell/keel faces are removed; the planet is visible through real geometry openings. Tapered mouths, runners, cross ribs and aperture reveals retain the original road planes. Track exports `userData.openSpans` and `userData.surfaceCoverage(distance,lateral)`; the latter masks the shared contact footprint over holes, with full coverage as the default for other tracks. This changes presentation only: the approved route and magnetic surface-constrained physics remain intact.
-
-The full-color follow-up adds a `roadNeon` vertex attribute and shared material variants to the existing track geometry. The same section treatment covers running panels, shoulders, aperture reveals, curbs and upper/lower side bars, including short solid approach/exit bands. `userData.neonSections` records the cyan, magenta and blue intervals. Emission stays below the white bloom threshold and retains directional material response. No overlapping opaque road meshes or new textures are introduced.
-
-The subsequent all-course identity pass replaces the upper/lower highway bars and posts with taller open U containment frames outside the driving width, while retaining a low edge plinth. Smooth cassette-panel maps replace grain and tire-wear marks, including visible detail in neon regions. Existing practical-light slots and fades are retained; physical fixtures move into selected frame crowns. The running-surface geometry and aperture coverage contract stay unchanged.
-
-`src/renderer/orbital/sky.js` owns source-native stellar radiance, 17,500 point stars and a scene-fixed spherical moon. A deterministic 1024×512 packed lunar albedo/height map provides crater relief; the existing sun direction shades it. The sky sphere and stars follow the camera, while the planet and moon remain world-fixed. Moon/stars are excluded from reflection captures and the backdrop remains excluded from GTAO. The existing backdrop texture/group disposal path owns the new lunar map and geometry. No new downloaded asset files or shared Halcyon renderer changes are required.
-
-## Planned Gate 4 boundary — not implemented yet
-
-The current core hardcodes level selection and calls stepVehicle separately for live play and replay. The level lane first introduces a small optional per-session simulation/presentation adapter and one common advancement path, with a no-op Halcyon feature factory. It owns core/renderer/camera/UI and scoped race/progression integration; the mechanics lane consumes the verified preflight and thereafter owns the Halcyon adapter, devices and opt-in physics parameters. Exact method names/tick order must be frozen in docs/GATE4_RUNTIME_CONTRACT.md during preflight. Do not assume a plugin API already exists or fork the runtime into a second launcher.
-
-Level 3 flight belongs in src/track/level3 alongside authored takeoff/landing/recovery volumes. It provides world pose during flight and ordinary track-space pose after a valid landing. Exactly two jumps are requested. Automatic failed-jump recovery advances only the authored jump interval after a timed delay, preserving a valid lap and counting the delay in lap time. Keep ordered checkpoint/finish integrity and distinct rules identity. Halcyon pickups use default magnetic pose; shield/boost modifiers are opt-in, with unchanged default physics and existing controls.
-
-Both sessions use separate worktrees, dist outputs, lane-local status/critique/provenance and verification tools. The parent session owns servers and GPU-review scheduling once user-provided session identities are available. Shared roadmap/status manifests are aggregated only by the integrator; lane progress is recorded in docs/gate4-1 and docs/gate4-2. See the parallel handoff for exact paths, ports, preflight transfer and integration checks.
+Targets per active level: ≤1,000 drawn calls, ≤2M drawn triangles, ≤512 MiB estimated GPU assets and ≤30 MB initial compressed transfer. Target 60 Hz on M1 Pro/Chrome at 1920×1080; estimates and hidden capture timings do not certify foreground performance. Load only selected-level assets. Test high/low, reduced motion, pause/reset/replay, resource disposal and relevant real input after runtime changes.

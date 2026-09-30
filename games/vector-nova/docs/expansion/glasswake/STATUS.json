@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 2,
+  "mapNumber": 5,
+  "name": "Glasswake Comet",
+  "slug": "glasswake",
+  "state": "not_started_launch_on_hold",
+  "implementationStarted": false,
+  "worktree": null,
+  "foundationRevision": null,
+  "coordination": "docs/expansion/LAUNCH_STATE.json",
+  "critic": {
+    "completedRounds": 0,
+    "maximumRounds": 8,
+    "lastScores": null,
+    "verifiedPass": false
+  },
+  "verification": {},
+  "openIssues": [],
+  "finalHumanReviewRequired": true,
+  "humanApproved": false
+}

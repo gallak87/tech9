@@ -3,11 +3,13 @@
   "assets": [
     {
       "id": "kestrel",
-      "source": "src/ships/",
+      "source": "assets/ships/kestrel/ and src/ships/",
       "creator": "VECTOR//NOVA project contributors",
-      "provenance": "Original procedural lofts, hull panels, engine and hover geometry, source materials and markings; orbital-only analytic propulsion emission volume.",
+      "provenance": "Original Blender-authored jet model, project-generated concept and analytic blue exhaust. Editable source, exporter and exact generation provenance are retained beside the asset.",
       "rights": "Project-authored; no third-party asset restrictions",
-      "runtimeDependencies": ["three"]
+      "runtimeDependencies": ["three"],
+      "runtimeAsset": "public/assets/ships/kestrel/kestrel.glb",
+      "provenanceRecord": "assets/ships/kestrel/provenance.json"
     },
     {
       "id": "halcyon-circuit",

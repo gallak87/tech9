@@ -17,6 +17,13 @@ const report = {
     'No foreground pacing, listening or physical device certification.',
   ],
 };
+const deadline = setTimeout(
+  () => browser.close().catch(() => {}),
+  Math.max(
+    1,
+    Number(process.env.VN_BATCH_DEADLINE || Date.now() + 260000) - Date.now(),
+  ),
+);
 let page;
 try {
   const context = await browser.newContext({
@@ -157,6 +164,7 @@ try {
   report.failure = String(error.stack);
   process.exitCode = 1;
 } finally {
+  clearTimeout(deadline);
   await writeFile(`${output}/report.json`, JSON.stringify(report, null, 2));
   await browser.close();
   console.log(

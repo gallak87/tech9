@@ -36,7 +36,7 @@ export default function createLevel({ shape = false } = {}) {
       for (const [phase, time] of [
         ['intact', 14],
         ['stretch', 24],
-        ['fragment', 38],
+        ['fragment', 32],
         ['consume', 50],
       ]) {
         track.scenarios[`accretion-${phase}`] = {

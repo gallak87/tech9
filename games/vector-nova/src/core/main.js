@@ -80,7 +80,9 @@ async function boot() {
         ).createOrbitalEnvironment(track)
     : createEnvironment(track);
   scene.add(road, environment);
-  const ship = createShip({ plumeExposure: orbital && !blockout ? 1.65 : 1 });
+  const ship = await createShip({
+    plumeExposure: orbital && !blockout ? 1.65 : 1,
+  });
   const inspectionBounds = new T.Box3().setFromObject(ship.group);
   const inspectionExtent = {
     radial: Math.hypot(

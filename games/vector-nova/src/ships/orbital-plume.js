@@ -7,7 +7,10 @@ export function createOrbitalPlumeMaterial() {
   return new THREE.ShaderMaterial({
     name: 'Orbital ion exhaust / integrated emission volume',
     transparent: true,
-    blending: THREE.AdditiveBlending,
+    // Ray integration computes extinction as well as emission. Normal alpha
+    // compositing preserves that transmission; additive blending left sharp
+    // background shadows visible through even the dense engine core.
+    blending: THREE.NormalBlending,
     depthWrite: false,
     side: THREE.FrontSide,
     toneMapped: false,
@@ -51,24 +54,26 @@ export function createOrbitalPlumeMaterial() {
         for(int sampleIndex=0;sampleIndex<28;sampleIndex++) {
           vec3 p = localEye + ray*(start+(float(sampleIndex)+.5)*stepLength);
           float aft = clamp(-p.z,0.,1.);
-          float radius = .245*(1.-aft*.44)*(1.-smoothstep(.67,1.,aft)*.84);
+          float radius = .255*(1.-aft*.32)*(1.-smoothstep(.67,1.,aft)*.84);
           float radial = length(p.xy)/max(radius,.007);
           float boundary = 1.-smoothstep(.68,1.15,radial);
           float envelope = exp(-radial*radial*3.2)*boundary;
           float core = exp(-radial*radial*21.)*boundary;
-          float axial = smoothstep(.012,.095,aft)*(1.-smoothstep(.69,1.,aft))*exp(-aft*1.45);
+          float axial = smoothstep(.002,.035,aft)*(1.-smoothstep(.69,1.,aft))*exp(-aft*1.12);
           float flow = .94+.06*sin(aft*26.-flowTime*(14.+boostMix*9.));
-          float density = (envelope*.72+core*2.5)*axial*flow;
+          float compression = pow(.5+.5*cos(aft*31.),6.);
+          float density = (envelope*.9+core*2.9)*axial*flow*(1.+boostMix*.24*compression);
           float alpha = 1.-exp(-density*stepLength*strength*5.3);
           float coreMix = core/(envelope+core+.0001);
-          vec3 color = mix(glowColor*1.15,vec3(.60,.91,1.),coreMix*.9);
-          color *= 1.1+boostMix*.8;
+          vec3 color = mix(glowColor*1.35,vec3(.46,.78,1.),coreMix*.82);
+          color *= 1.45+boostMix*.75;
           radiance += transmission*alpha*color;
           transmission *= 1.-alpha;
         }
         float opacity = 1.-transmission;
         if(opacity<.001) discard;
         gl_FragColor = vec4(radiance/max(opacity,.001),opacity);
+        #include <colorspace_fragment>
       }`,
   });
 }

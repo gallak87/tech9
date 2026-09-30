@@ -48,7 +48,7 @@
   <aside>
     <p>VECTOR // NOVA &nbsp; • &nbsp; AERODYNAMICS 07</p>
     <h1>KESTREL</h1>
-    <p>ORIGINAL STAGING CHASSIS &nbsp; / &nbsp; 6.95 M</p>
+    <p>CONCEPT 01 &nbsp; / &nbsp; BLENDER-AUTHORED RACING CHASSIS</p>
   </aside>
   <small
     >DRAG TO ORBIT &nbsp; / &nbsp; SCROLL TO INSPECT &nbsp; / &nbsp; ACTUAL GAME
@@ -112,7 +112,7 @@
     const rim = new THREE.DirectionalLight(0xa5cff4, 2.0);
     rim.position.set(-6, 4, -4);
     scene.add(rim);
-    const ship = createShip();
+    const ship = await createShip();
     ship.group.position.y = 0.68;
     scene.add(ship.group);
     ship.update({ speed: 0, time: 0 });

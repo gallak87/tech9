@@ -1,0 +1,21 @@
+{
+  "asset": "Kestrel Concept 01",
+  "revision": 4,
+  "blender": "5.1.1",
+  "axes": "+Z forward, +Y up",
+  "bounds": {
+    "min": [-1.6864900588989258, -0.03999999910593033, -3.2200000286102295],
+    "max": [1.6864900588989258, 1.3417441844940186, 3.696706533432007]
+  },
+  "dimensions": [3.3729801177978516, 1.3817441835999489, 6.916706562042236],
+  "triangles": 43022,
+  "meshes": 12,
+  "materials": 12,
+  "glbBytes": 1291864,
+  "anchors": {
+    "Exhaust_L": [-0.955, 0.448, -3.23],
+    "Exhaust_R": [0.955, 0.448, -3.23]
+  },
+  "sourceComponents": 156,
+  "renderViews": ["front", "top", "rear", "side", "underside"]
+}

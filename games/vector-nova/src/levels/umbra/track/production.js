@@ -6,6 +6,7 @@ import {
   beamTransform,
 } from '../../../track/geometry.js';
 import { framePoint } from '../../../track/frames.js';
+import { tidalResponse } from './forces.js';
 
 function panelGeometry(track) {
   const positions = [];
@@ -296,9 +297,6 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
       const nearLaunch = track.jumps.some(
         (jump) => distance > jump.takeoff - 180 && distance < jump.takeoff,
       );
-      const inTide = track.tidalZones.some(
-        (zone) => distance > zone.start && distance < zone.end,
-      );
       const sideMaterial = nearLanding ? pale : metal;
       const outside = frame.curvature > 0 ? -1 : 1;
       for (const side of [-1, 1]) {
@@ -307,7 +305,7 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
         const x = side * (half + (tall ? 2.2 : 1.5));
         const y = shape ? 1.55 : tall ? 3.65 : 2.65;
         const length = Math.min(tall ? 20 : 12, (end - distance) * 1.2);
-        const plateMaterial = nearLaunch || inTide ? amber : sideMaterial;
+        const plateMaterial = nearLaunch ? amber : sideMaterial;
         localBox(
           plateMaterial,
           frame,
@@ -391,6 +389,168 @@ export function buildUmbraRoad(track, { shape = false } = {}) {
       }
     }
   }
+  // Tide instruments use sideways arrows and measured force bars; launch
+  // instruments retain their longitudinal runway stripes. The paint follows
+  // the actual deck frame, including bank reversals and the inversion exit.
+  const tidePaintPositions = [];
+  const tidePaintNormals = [];
+  const tideCues = [];
+  const maximumTide = Math.max(
+    ...track.tidalZones.map((zone) => zone.strength),
+  );
+  const paintStroke = (distance, from, to, breadth = 0.26) => {
+    const dx = to[0] - from[0];
+    const dz = to[1] - from[1];
+    const inverse = breadth / (2 * Math.hypot(dx, dz));
+    const corners = [
+      [from[0] - dz * inverse, from[1] + dx * inverse],
+      [from[0] + dz * inverse, from[1] - dx * inverse],
+      [to[0] - dz * inverse, to[1] + dx * inverse],
+      [to[0] + dz * inverse, to[1] - dx * inverse],
+    ].map(([x, z]) => {
+      const frame = track.sample(distance + z);
+      return { position: framePoint(frame, x, 0.087), up: frame.up };
+    });
+    for (const indices of [
+      [0, 1, 2],
+      [1, 3, 2],
+    ]) {
+      const vertices = indices.map((index) => corners[index]);
+      const normal = new THREE.Vector3().crossVectors(
+        vertices[1].position.clone().sub(vertices[0].position),
+        vertices[2].position.clone().sub(vertices[0].position),
+      );
+      if (normal.dot(vertices[0].up) < 0) vertices.reverse();
+      for (const vertex of vertices) {
+        tidePaintPositions.push(...vertex.position.toArray());
+        tidePaintNormals.push(...vertex.up.toArray());
+      }
+    }
+  };
+  for (const zone of track.tidalZones) {
+    for (
+      let distance = zone.start + 6;
+      distance < zone.end - 5;
+      distance += 24
+    ) {
+      if ([-4, 0, 4].some((offset) => track.isGap(distance + offset))) continue;
+      const frame = track.sample(distance);
+      const direction =
+        Math.sign(
+          track.accretionCenter.clone().sub(frame.position).dot(frame.right),
+        ) || 1;
+      const response = tidalResponse(track, distance);
+      const fraction = THREE.MathUtils.clamp(
+        response.strength / maximumTide,
+        0,
+        1,
+      );
+      const bars = 1 + Math.floor(fraction * 2.999);
+      tideCues.push({
+        distance,
+        zone: zone.id,
+        direction,
+        strength: response.strength,
+        fraction,
+        bars,
+      });
+      for (const side of [-1, 1]) {
+        for (let bar = 0; bar < bars; bar += 1) {
+          const x = side * 11;
+          const z = (bar - (bars - 1) / 2) * 2.25;
+          const tail = x - direction * 0.77;
+          const tip = x + direction * 0.77;
+          paintStroke(distance, [tail, z - 0.83], [tip, z]);
+          paintStroke(distance, [tail, z + 0.83], [tip, z]);
+        }
+        if (!shape) {
+          const x = side * 16.2;
+          // A graphite instrument badge sits wholly beyond the usable road;
+          // its head-on face makes the lateral arrow readable from chase view.
+          localBox(underside, frame, x, 3.9, 0, 2.6, 3.1, 0.32);
+          beam(
+            metal,
+            framePoint(frame, x, 0.8),
+            framePoint(frame, x, 2.35),
+            0.25,
+            0.28,
+          );
+          for (const vertical of [-0.45, 0.45]) {
+            beam(
+              amber,
+              framePoint(frame, x - direction * 0.62, 4.8 + vertical, -0.2),
+              framePoint(frame, x + direction * 0.62, 4.8, -0.2),
+              0.16,
+              0.12,
+            );
+          }
+          for (let bar = 0; bar < bars; bar += 1) {
+            const height = 0.48 + fraction * 0.95;
+            localBox(
+              amber,
+              frame,
+              x + (bar - (bars - 1) / 2) * 0.52,
+              2.62 + height / 2,
+              -0.2,
+              0.25,
+              height,
+              0.1,
+            );
+          }
+        }
+      }
+    }
+    // Twin amber entry uprights and a cool capped exit identify the exact
+    // authored interval without constructing a gate above the race corridor.
+    for (const [distance, entering] of [
+      [zone.start, true],
+      [zone.end, false],
+    ]) {
+      if (track.isGap(distance)) continue;
+      const frame = track.sample(distance);
+      for (const side of [-1, 1]) {
+        for (const offset of [-0.42, 0.42])
+          localBox(
+            entering ? amber : guide,
+            frame,
+            side * 15.5 + offset,
+            2.7,
+            0,
+            0.22,
+            4.2,
+            0.32,
+          );
+        localBox(
+          entering ? amber : guide,
+          frame,
+          side * 15.5,
+          entering ? 0.55 : 4.85,
+          0,
+          1.06,
+          0.22,
+          0.32,
+        );
+      }
+    }
+  }
+  if (tidePaintPositions.length) {
+    const paint = new THREE.BufferGeometry();
+    paint.setAttribute(
+      'position',
+      new THREE.Float32BufferAttribute(tidePaintPositions, 3),
+    );
+    paint.setAttribute(
+      'normal',
+      new THREE.Float32BufferAttribute(tidePaintNormals, 3),
+    );
+    paint.computeBoundingSphere();
+    mesh(
+      'Embedded lateral tide chevrons / measured ramp and ring direction',
+      paint,
+      amber,
+    );
+  }
+  group.userData.tideCues = tideCues;
   // Amber landing ribs and stacked runway arrows remain visible on both presets.
   for (const jump of track.jumps) {
     for (const distance of [

@@ -13,7 +13,8 @@
     "lint": "Full ESLint/format passed",
     "build": "Production passed",
     "numericalTraversal": "55.5s, valid ordered full lap, 2 swept landings, 0 impacts; numerical steering controller, not human difficulty evidence",
-    "browser": "Awaiting coordinated GPU grant"
+    "browser": "Awaiting coordinated GPU grant",
+    "curvedContactV2": "9 affected runtime tests passed including full valid numerical lap"
   },
   "futureSupport": [
     {
@@ -73,8 +74,8 @@
     }
   ],
   "open": [
-    "Shared curved-contact follow-up pending integrator assessment",
     "Builder graphical/real-input checks queued",
+    "Shared responsive HUD follow-up under integrator review",
     "Independent formal critique remains0/8"
   ],
   "unverified": [
@@ -86,6 +87,10 @@
     {
       "source": "8c6f05a733453ddbc9f7428c3804c9c419a7f67b",
       "local": "3d7b2e72"
+    },
+    {
+      "source": "643fd3a69e0f8feef9b27c545888f8a8c45239f2",
+      "local": "96b2d6d9"
     }
   ],
   "trackRevision": {

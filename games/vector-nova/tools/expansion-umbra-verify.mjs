@@ -244,6 +244,19 @@ try {
   );
   check('steering assistance preserved', reset.handling.steeringAssist === 0.3);
   assert.deepEqual(report.errors, []);
+  await page.route('**/assets/levels/umbra/umbra-observatory.glb', (route) =>
+    route.abort('failed'),
+  );
+  await page.goto(url.href);
+  await page.locator('.failure').waitFor({ state: 'visible', timeout: 30000 });
+  check(
+    'selected Umbra asset failure removes renderer and offers recovery',
+    (await page.locator('canvas#world').count()) === 0 &&
+      (await page.locator('.failure button').count()) === 2 &&
+      !(await page.evaluate(() => !!window.__VN?.ready)),
+  );
+  // The intentionally aborted owned asset logs an expected network error.
+  report.expectedAssetFailureErrors = report.errors.splice(0);
 } catch (e) {
   report.errors.push(e.stack || String(e));
 } finally {
